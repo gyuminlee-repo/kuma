@@ -206,4 +206,46 @@ def handle_export_janus_mapping(params: dict) -> dict:
     return {"output_path": str(output), "format": fmt}
 
 
-__all__ = ["handle_export_excel", "handle_get_plate_data", "handle_export_janus_mapping"]
+def handle_export_janus_mapping_dry_run(params: dict) -> dict:
+    """Return Janus mapping rows for preview without writing a file.
+
+    Same prerequisite as ``export_janus_mapping`` (a prior ``analyze``), but no
+    output path: nothing is written. Validation problems come back inside the
+    payload instead of raising, so the dialog can show every problem before the
+    user commits to a file. The export path keeps its fail-fast behaviour.
+
+    Params:
+        dest_layout (str, optional): "source" (default) or "compact".
+
+    Returns ``{"rows": [...], "errors": [...], "row_count": N}``. Each error is
+    ``{"code", "message", "mutant_ids"}`` with code one of ``unresolved_well``,
+    ``plate_capacity``, ``duplicate_dest_well``.
+
+    Raises ``RuntimeError`` if no analyze has been run in this session, and
+    ``ValueError`` on an invalid ``dest_layout``.
+    """
+    from kuma_core.mame.export.janus_mapping import build_janus_preview_rows
+
+    state = get_state()
+    if state.last_replicates is None:
+        raise RuntimeError(
+            "No prior analyze result. Run 'analyze' before "
+            "'export_janus_mapping_dry_run'."
+        )
+
+    # `or` (not a get default) so an explicit JSON null also falls back.
+    dest_layout = str(params.get("dest_layout") or "source").lower()
+    if dest_layout not in ("source", "compact"):
+        raise ValueError(
+            f"Invalid dest_layout '{dest_layout}'. Expected 'source' or 'compact'."
+        )
+
+    return build_janus_preview_rows(state.last_replicates, dest_layout=dest_layout)
+
+
+__all__ = [
+    "handle_export_excel",
+    "handle_get_plate_data",
+    "handle_export_janus_mapping",
+    "handle_export_janus_mapping_dry_run",
+]

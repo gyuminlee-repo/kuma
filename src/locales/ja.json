@@ -674,7 +674,14 @@
         "exportJanus": "Janus マッピングをエクスポート",
         "exporting": "エクスポート中…",
         "exported": "エクスポートが完了しました",
-        "exportErrorPathRequired": "出力パスが必要です。"
+        "exportErrorPathRequired": "出力パスが必要です。",
+        "previewHeading": "プレビュー",
+        "previewCount": "{{count}}行",
+        "previewLoading": "プレビューを読み込み中…",
+        "previewEmpty": "エクスポートできる確定 pick がありません。",
+        "previewFailed": "プレビューを取得できません: {{message}}",
+        "previewRetry": "プレビューを再試行",
+        "previewBlocked": "以下の問題を解決してからエクスポートしてください。"
       },
       "runReport": {
         "title": "Run レポートをエクスポート",

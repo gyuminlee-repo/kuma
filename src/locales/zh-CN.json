@@ -674,7 +674,14 @@
         "exportJanus": "导出 Janus Mapping",
         "exporting": "导出中…",
         "exported": "导出成功",
-        "exportErrorPathRequired": "必须提供输出路径。"
+        "exportErrorPathRequired": "必须提供输出路径。",
+        "previewHeading": "预览",
+        "previewCount": "{{count}} 行",
+        "previewLoading": "正在加载预览…",
+        "previewEmpty": "没有可导出的已确认 pick。",
+        "previewFailed": "无法加载预览：{{message}}",
+        "previewRetry": "重试预览",
+        "previewBlocked": "请先解决以下问题再导出。"
       },
       "runReport": {
         "title": "导出运行报告",

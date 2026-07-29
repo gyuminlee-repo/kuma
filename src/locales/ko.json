@@ -768,7 +768,14 @@
         "exportJanus": "Janus 매핑 내보내기",
         "exporting": "내보내는 중…",
         "exported": "내보내기 완료",
-        "exportErrorPathRequired": "출력 경로를 입력하세요."
+        "exportErrorPathRequired": "출력 경로를 입력하세요.",
+        "previewHeading": "미리보기",
+        "previewCount": "{{count}}행",
+        "previewLoading": "미리보기를 불러오는 중…",
+        "previewEmpty": "내보낼 확정 pick이 없습니다.",
+        "previewFailed": "미리보기를 불러오지 못했습니다: {{message}}",
+        "previewRetry": "미리보기 다시 시도",
+        "previewBlocked": "아래 문제를 해결한 뒤 내보내기가 가능합니다."
       },
       "runReport": {
         "title": "실행 보고서 내보내기",

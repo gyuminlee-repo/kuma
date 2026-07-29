@@ -674,7 +674,14 @@
         "exportJanus": "Exportar mapeamento Janus",
         "exporting": "Exportando…",
         "exported": "Exportado com sucesso",
-        "exportErrorPathRequired": "O caminho de saída é obrigatório."
+        "exportErrorPathRequired": "O caminho de saída é obrigatório.",
+        "previewHeading": "Pré-visualização",
+        "previewCount": "{{count}} linhas",
+        "previewLoading": "Carregando pré-visualização…",
+        "previewEmpty": "Nenhum pick confirmado para exportar.",
+        "previewFailed": "Pré-visualização indisponível: {{message}}",
+        "previewRetry": "Tentar pré-visualização novamente",
+        "previewBlocked": "Resolva os problemas abaixo antes de exportar."
       },
       "runReport": {
         "title": "Exportar relatório da execução",

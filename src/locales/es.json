@@ -674,7 +674,14 @@
         "exportJanus": "Exportar mapeo Janus",
         "exporting": "Exportando…",
         "exported": "Exportado correctamente",
-        "exportErrorPathRequired": "La ruta de salida es requerida."
+        "exportErrorPathRequired": "La ruta de salida es requerida.",
+        "previewHeading": "Vista previa",
+        "previewCount": "{{count}} filas",
+        "previewLoading": "Cargando vista previa…",
+        "previewEmpty": "No hay picks confirmados para exportar.",
+        "previewFailed": "Vista previa no disponible: {{message}}",
+        "previewRetry": "Reintentar vista previa",
+        "previewBlocked": "Resuelva los problemas siguientes antes de exportar."
       },
       "runReport": {
         "title": "Exportar informe de la corrida",

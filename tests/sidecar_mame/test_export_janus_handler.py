@@ -21,7 +21,10 @@ from kuma_core.mame.models import (
     VerdictRecord,
 )
 from sidecar_mame.core import reset_state, set_last_analyze
-from sidecar_mame.handlers.export import handle_export_janus_mapping
+from sidecar_mame.handlers.export import (
+    handle_export_janus_mapping,
+    handle_export_janus_mapping_dry_run,
+)
 
 
 def _make_replicate(mutant_id: str, nb: str, custom: str, size_kb: float) -> ReplicateResult:
@@ -118,5 +121,61 @@ def test_duplicate_dest_surfaces_through_handler(tmp_path: Path) -> None:
         out = tmp_path / "dup.csv"
         with pytest.raises(ValueError, match="duplicate dest_well"):
             handle_export_janus_mapping({"output": str(out)})
+    finally:
+        reset_state()
+
+
+# ---------------------------------------------------------------------------
+# Dry-run preview handler
+# ---------------------------------------------------------------------------
+
+
+def test_dry_run_requires_a_prior_analyze() -> None:
+    reset_state()
+    with pytest.raises(RuntimeError, match="No prior analyze result"):
+        handle_export_janus_mapping_dry_run({})
+
+
+def test_dry_run_returns_rows_without_writing(tmp_path: Path, seeded_state) -> None:
+    result = handle_export_janus_mapping_dry_run({})
+    assert result["row_count"] == 2
+    assert [r["dest_well"] for r in result["rows"]] == ["E7", "H12"]
+    assert result["errors"] == []
+    assert list(tmp_path.iterdir()) == [], "dry run must not create files"
+
+
+def test_dry_run_passes_dest_layout_to_core(seeded_state) -> None:
+    result = handle_export_janus_mapping_dry_run({"dest_layout": "compact"})
+    assert [r["dest_well"] for r in result["rows"]] == ["A1", "B1"]
+    assert [r["source_well"] for r in result["rows"]] == ["E7", "H12"]
+
+
+def test_dry_run_treats_null_dest_layout_as_source(seeded_state) -> None:
+    result = handle_export_janus_mapping_dry_run({"dest_layout": None})
+    assert [r["dest_well"] for r in result["rows"]] == ["E7", "H12"]
+
+
+def test_dry_run_rejects_invalid_dest_layout(seeded_state) -> None:
+    with pytest.raises(ValueError, match="Invalid dest_layout"):
+        handle_export_janus_mapping_dry_run({"dest_layout": "grid"})
+
+
+def test_dry_run_reports_duplicate_instead_of_raising() -> None:
+    set_last_analyze(
+        [],
+        [
+            _make_replicate("P1_A1", "NB01", "1_1", 200.0),
+            _make_replicate("P2_A1", "NB02", "1_1", 100.0),
+        ],
+        "/tmp/out.xlsx",
+        run_meta=None,
+    )
+    try:
+        result = handle_export_janus_mapping_dry_run({})
+        assert [e["code"] for e in result["errors"]] == ["duplicate_dest_well"]
+        assert result["errors"][0]["mutant_ids"] == ["P1_A1", "P2_A1"]
+        # Same state, compact layout: the documented way out reports clean.
+        compact = handle_export_janus_mapping_dry_run({"dest_layout": "compact"})
+        assert compact["errors"] == []
     finally:
         reset_state()

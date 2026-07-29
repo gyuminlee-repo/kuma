@@ -4,14 +4,17 @@
  * Provides:
  *  - CSV / XLSX format selection (radio group)
  *  - Destination layout selection (source position vs compact from A1)
+ *  - Row preview via the `export_janus_mapping_dry_run` RPC, refreshed when the
+ *    dialog opens and whenever the destination layout changes
  *  - Output path with Browse button
- *  - Export button that calls sidecar `export_janus_mapping` RPC
+ *  - Export button that calls sidecar `export_janus_mapping` RPC, blocked while
+ *    the preview reports a plate-layout problem
  *  - Success / error feedback inline
  *
  * Entered via: File > Export Janus Mapping… in MenuBar.
  */
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { AlertCircle, CheckCircle2, Download, FolderOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -29,9 +32,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { JanusDeckPreview } from "@/components/mame/widgets/JanusDeckPreview";
-import { buildJanusDefaultPath, handleExportMameJanusMapping } from "@/lib/mame/janus";
+import {
+  buildJanusDefaultPath,
+  fetchMameJanusPreview,
+  handleExportMameJanusMapping,
+} from "@/lib/mame/janus";
 import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
-import type { JanusDestLayout, JanusExportFormat } from "@/types/mame/models";
+import type {
+  JanusDestLayout,
+  JanusExportFormat,
+  JanusPreviewResult,
+} from "@/types/mame/models";
 
 interface JanusMappingDialogProps {
   open: boolean;
@@ -49,6 +60,45 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [lastExportPath, setLastExportPath] = useState<string | null>(null);
+
+  const [preview, setPreview] = useState<JanusPreviewResult | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewFailure, setPreviewFailure] = useState<string | null>(null);
+  // Monotonic request id: a fast layout toggle can resolve out of order, and a
+  // stale response would show the other layout dest wells.
+  const previewSeq = useRef(0);
+
+  const loadPreview = useCallback(async (layout: JanusDestLayout) => {
+    const seq = ++previewSeq.current;
+    setPreviewLoading(true);
+    setPreviewFailure(null);
+    try {
+      const result = await fetchMameJanusPreview(layout);
+      if (previewSeq.current !== seq) return;
+      setPreview(result);
+    } catch (err) {
+      if (previewSeq.current !== seq) return;
+      setPreview(null);
+      setPreviewFailure(err instanceof Error ? err.message : String(err));
+    } finally {
+      if (previewSeq.current === seq) setPreviewLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!open) {
+      // Drop stale rows so a reopen never flashes the previous run.
+      previewSeq.current += 1;
+      setPreview(null);
+      setPreviewFailure(null);
+      setPreviewLoading(false);
+      return;
+    }
+    void loadPreview(destLayout);
+  }, [open, destLayout, loadPreview]);
+
+  const previewErrors = preview?.errors ?? [];
+  const hasPreviewErrors = previewErrors.length > 0;
 
   function deriveDefaultPath(fmt: JanusExportFormat): string {
     if (!project) return "";
@@ -172,6 +222,123 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
             </p>
           </fieldset>
 
+          {/* Row preview, what the export would write, before it writes it. */}
+          <section className="space-y-1.5" aria-label={t("mame.dialogs.janusMapping.previewHeading")}>
+            <div className="flex items-baseline justify-between gap-2">
+              <h3 className="text-xs font-medium text-muted-foreground">
+                {t("mame.dialogs.janusMapping.previewHeading")}
+              </h3>
+              {preview && (
+                <span className="text-caption tabular-nums text-muted-foreground">
+                  {t("mame.dialogs.janusMapping.previewCount", {
+                    count: preview.row_count,
+                  })}
+                </span>
+              )}
+            </div>
+
+            {/* Validation problems block the export; this is the point of the preview. */}
+            {hasPreviewErrors && (
+              <div
+                className="space-y-1 rounded-control border border-error/40 bg-error/8 px-3 py-2"
+                role="alert"
+                aria-live="assertive"
+              >
+                <p className="text-caption font-medium text-error">
+                  {t("mame.dialogs.janusMapping.previewBlocked")}
+                </p>
+                <ul className="space-y-1">
+                  {previewErrors.map((e) => (
+                    <li key={e.code} className="flex items-start gap-2">
+                      <AlertCircle
+                        size={13}
+                        className="mt-0.5 flex-shrink-0 text-error"
+                        aria-hidden="true"
+                      />
+                      <span className="text-caption text-error">{e.message}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {previewLoading && (
+              <p className="text-caption text-muted-foreground" aria-live="polite">
+                {t("mame.dialogs.janusMapping.previewLoading")}
+              </p>
+            )}
+
+            {/* A dry-run failure is not a validation failure: it leaves Export
+                enabled, since the export path has its own fail-fast guards. */}
+            {previewFailure && !previewLoading && (
+              <div className="flex items-start gap-2 rounded-control border border-warning/40 bg-warning/8 px-3 py-2">
+                <AlertCircle
+                  size={13}
+                  className="mt-0.5 flex-shrink-0 text-warning"
+                  aria-hidden="true"
+                />
+                <div className="space-y-1">
+                  <p className="text-caption text-warning">
+                    {t("mame.dialogs.janusMapping.previewFailed", {
+                      message: previewFailure,
+                    })}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-caption"
+                    onClick={() => void loadPreview(destLayout)}
+                  >
+                    {t("mame.dialogs.janusMapping.previewRetry")}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {preview && !previewLoading && preview.rows.length === 0 && (
+              <p className="text-caption text-muted-foreground">
+                {t("mame.dialogs.janusMapping.previewEmpty")}
+              </p>
+            )}
+
+            {preview && preview.rows.length > 0 && (
+              <div className="max-h-56 overflow-y-auto rounded-control border border-border">
+                {/* Column labels are the literal export header row, so they stay
+                    untranslated to match the produced file byte-for-byte. */}
+                <table className="w-full border-collapse text-caption">
+                  <thead className="sticky top-0 bg-muted">
+                    <tr className="text-left">
+                      <th scope="col" className="px-2 py-1 font-medium">name</th>
+                      <th scope="col" className="px-2 py-1 font-medium">source_plate</th>
+                      <th scope="col" className="px-2 py-1 font-medium">source_well</th>
+                      <th scope="col" className="px-2 py-1 font-medium">dest_well</th>
+                      <th scope="col" className="px-2 py-1 text-right font-medium">
+                        priority_score
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preview.rows.map((row, idx) => (
+                      <tr
+                        key={`${row.name}-${row.source_plate}-${row.source_well}-${idx}`}
+                        className="border-t border-border/60"
+                      >
+                        <td className="px-2 py-1 font-mono">{row.name}</td>
+                        <td className="px-2 py-1 font-mono">{row.source_plate}</td>
+                        <td className="px-2 py-1 font-mono">{row.source_well}</td>
+                        <td className="px-2 py-1 font-mono">{row.dest_well}</td>
+                        <td className="px-2 py-1 text-right font-mono tabular-nums">
+                          {row.priority_score}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
           {/* Output path */}
           <div className="space-y-1.5">
             <Label
@@ -253,7 +420,9 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
           <Button
             size="sm"
             onClick={() => void doExport()}
-            disabled={isExporting || storeIsExporting || !resolvedPath}
+            disabled={
+              isExporting || storeIsExporting || !resolvedPath || hasPreviewErrors
+            }
             className="gap-2"
           >
             <Download size={14} aria-hidden="true" />

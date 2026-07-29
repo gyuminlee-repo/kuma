@@ -83,74 +83,98 @@ def _custom_barcode_to_seq(custom: str) -> int | None:
     return (f - 1) * 8 + r
 
 
-def _check_wells_resolved(bad_barcodes: list[tuple[str, str]]) -> None:
-    """Reject rows whose ``custom_barcode`` could not be mapped to a well.
+def _find_unresolved_wells(
+    bad_barcodes: list[tuple[str, str]],
+) -> dict[str, object] | None:
+    """Report rows whose ``custom_barcode`` could not be mapped to a well.
 
     A blank well silently shipped to JANUS is an unusable instruction, so the
-    export fails instead of emitting it (no silent fallback).
+    export refuses it (no silent fallback) and the preview surfaces it.
     """
     if not bad_barcodes:
-        return
+        return None
     detail = ", ".join(f"{mid} (custom_barcode={cb!r})" for mid, cb in bad_barcodes)
-    raise ValueError(
-        "Janus mapping: unparseable custom_barcode, well position unknown for "
-        f"{len(bad_barcodes)} mutant(s): {detail}. "
-        "Expected '<row>_<col>' with row 1-8 and col 1-12."
-    )
+    return {
+        "code": "unresolved_well",
+        "message": (
+            "Janus mapping: unparseable custom_barcode, well position unknown for "
+            f"{len(bad_barcodes)} mutant(s): {detail}. "
+            "Expected '<row>_<col>' with row 1-8 and col 1-12."
+        ),
+        "mutant_ids": [mid for mid, _ in bad_barcodes],
+    }
 
 
-def _check_plate_capacity(rows: list[dict[str, object]]) -> None:
-    """Reject selections larger than one 96-well destination plate.
+def _find_plate_overflow(rows: list[dict[str, object]]) -> dict[str, object] | None:
+    """Report selections larger than one 96-well destination plate.
 
-    Runs before compact reassignment so the message names the real problem
+    Evaluated before compact reassignment so the message names the real problem
     rather than surfacing ``seq_to_well``'s internal range error.
     """
-    if len(rows) > 96:
-        raise ValueError(
+    if len(rows) <= 96:
+        return None
+    return {
+        "code": "plate_capacity",
+        "message": (
             f"Janus mapping: {len(rows)} picks exceed the 96-well destination "
             "plate capacity. Reduce the selection to at most 96 clones."
-        )
+        ),
+        "mutant_ids": [str(row["name"]) for row in rows[96:]],
+    }
 
 
-def _check_dest_unique(rows: list[dict[str, object]]) -> None:
-    """Reject duplicate ``dest_well`` (JANUS would double-dispense one well).
+def _find_duplicate_dests(rows: list[dict[str, object]]) -> dict[str, object] | None:
+    """Report duplicate ``dest_well`` (JANUS would double-dispense one well).
 
     Duplicates arise in source layout when two plates carry a pick at the same
     position, which is normal in multi-plate runs, so the message names the
     compact layout as the way out.
+
+    Blank destinations are skipped: they mean the well never resolved, which
+    ``_find_unresolved_wells`` already reports. In the export path that check
+    raises first, so skipping blanks here leaves export behaviour unchanged.
     """
     seen: dict[str, list[str]] = {}
     for row in rows:
-        seen.setdefault(str(row["dest_well"]), []).append(str(row["name"]))
+        well = str(row["dest_well"])
+        if not well:
+            continue
+        seen.setdefault(well, []).append(str(row["name"]))
     dups = {well: names for well, names in seen.items() if len(names) > 1}
-    if dups:
-        detail = "; ".join(
-            f"{well} <- {', '.join(names)}" for well, names in sorted(dups.items())
-        )
-        raise ValueError(
+    if not dups:
+        return None
+    detail = "; ".join(
+        f"{well} <- {', '.join(names)}" for well, names in sorted(dups.items())
+    )
+    mutant_ids: list[str] = []
+    for _, names in sorted(dups.items()):
+        mutant_ids.extend(names)
+    return {
+        "code": "duplicate_dest_well",
+        "message": (
             "Janus mapping: duplicate dest_well would dispense multiple clones "
             f"into the same well: {detail}. "
             "Use dest_layout='compact' to assign destinations sequentially."
-        )
+        ),
+        "mutant_ids": mutant_ids,
+    }
 
 
-def _build_janus_rows(
+def _raise_if(finding: dict[str, object] | None) -> None:
+    """Fail-fast wrapper: turn a structured finding into the export ``ValueError``."""
+    if finding is not None:
+        raise ValueError(str(finding["message"]))
+
+
+def _assemble_janus_rows(
     replicates: list[ReplicateResult],
-    dest_layout: str = "source",
-) -> list[dict[str, object]]:
-    """Build sorted Janus mapping rows from replicate results.
+    dest_layout: str,
+) -> tuple[list[dict[str, object]], list[tuple[str, str]]]:
+    """Build and sort rows without validating them.
 
-    Only includes mutants that have a confirmed selected plate (not failed).
-    Rows are sorted by ``priority_score`` DESC.
-
-    *dest_layout* controls ``dest_well`` assignment:
-
-    - ``"source"`` (default): ``dest_well`` mirrors ``source_well``.
-    - ``"compact"``: destinations are assigned sequentially from A1 in sorted
-      (priority DESC) order, following the column-major ``seq_to_well``
-      convention (A1, B1, ... H1, A2, ...).
-
-    Raises ``ValueError`` on empty wells, >96 rows, or duplicate destinations.
+    Returns ``(rows, bad_barcodes)``. Destinations still mirror the source
+    position; compact reassignment is applied by the caller so that both the
+    export and the preview can decide what to do about capacity first.
     """
     if dest_layout not in ("source", "compact"):
         raise ValueError(
@@ -194,19 +218,90 @@ def _build_janus_rows(
 
     # Sort by priority DESC (high-volume first per §2.5 recommendation).
     rows.sort(key=lambda r: float(r["priority_score"]), reverse=True)  # type: ignore[arg-type]
+    return rows, bad_barcodes
+
+
+def _apply_compact_layout(rows: list[dict[str, object]]) -> None:
+    """Reassign ``dest_well`` sequentially from A1, in place.
+
+    Only the first 96 rows get a destination; ``seq_to_well`` rejects anything
+    past 96. Overflow rows keep a blank destination and are reported by
+    ``_find_plate_overflow``.
+    """
+    for idx, row in enumerate(rows):
+        row["dest_well"] = seq_to_well(idx + 1) if idx < 96 else ""
+
+
+def _build_janus_rows(
+    replicates: list[ReplicateResult],
+    dest_layout: str = "source",
+) -> list[dict[str, object]]:
+    """Build sorted Janus mapping rows from replicate results.
+
+    Only includes mutants that have a confirmed selected plate (not failed).
+    Rows are sorted by ``priority_score`` DESC.
+
+    *dest_layout* controls ``dest_well`` assignment:
+
+    - ``"source"`` (default): ``dest_well`` mirrors ``source_well``.
+    - ``"compact"``: destinations are assigned sequentially from A1 in sorted
+      (priority DESC) order, following the column-major ``seq_to_well``
+      convention (A1, B1, ... H1, A2, ...).
+
+    Raises ``ValueError`` on empty wells, >96 rows, or duplicate destinations.
+    """
+    rows, bad_barcodes = _assemble_janus_rows(replicates, dest_layout)
 
     # Empty-well and capacity checks run before compact reassignment so the
     # capacity error names the picks instead of tripping seq_to_well's range.
-    _check_wells_resolved(bad_barcodes)
-    _check_plate_capacity(rows)
+    _raise_if(_find_unresolved_wells(bad_barcodes))
+    _raise_if(_find_plate_overflow(rows))
 
     if dest_layout == "compact":
-        for idx, row in enumerate(rows):
-            row["dest_well"] = seq_to_well(idx + 1)
+        _apply_compact_layout(rows)
 
     # Duplicate check runs in both modes (defensive; unreachable in compact).
-    _check_dest_unique(rows)
+    _raise_if(_find_duplicate_dests(rows))
     return rows
+
+
+def build_janus_preview_rows(
+    replicates: list[ReplicateResult],
+    dest_layout: str = "source",
+) -> dict[str, object]:
+    """Build Janus mapping rows in-memory, collecting problems instead of raising.
+
+    Mirrors ``_build_janus_rows`` row-for-row so the preview shows exactly what
+    the export would write, but the three guards (unresolved well, >96 picks,
+    duplicate destination) are returned as structured entries. Showing every
+    problem at once is the point: the export path keeps its fail-fast behaviour.
+
+    Returns ``{"rows": [...], "errors": [...], "row_count": N}`` where each
+    error entry is ``{"code": str, "message": str, "mutant_ids": [str, ...]}``.
+
+    Rows with an unresolved well are kept with blank ``source_well`` and
+    ``dest_well`` so the broken clone stays visible in the preview.
+    """
+    rows, bad_barcodes = _assemble_janus_rows(replicates, dest_layout)
+
+    errors: list[dict[str, object]] = []
+    for finding in (
+        _find_unresolved_wells(bad_barcodes),
+        _find_plate_overflow(rows),
+    ):
+        if finding is not None:
+            errors.append(finding)
+
+    if dest_layout == "compact":
+        _apply_compact_layout(rows)
+
+    # Evaluated after compaction: compact layout is the documented way out of a
+    # duplicate, so reporting a pre-compaction duplicate would be misleading.
+    dup = _find_duplicate_dests(rows)
+    if dup is not None:
+        errors.append(dup)
+
+    return {"rows": rows, "errors": errors, "row_count": len(rows)}
 
 
 def _meta_comment_line(meta: "NgsRunMeta") -> str:

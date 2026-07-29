@@ -674,7 +674,14 @@
         "exportJanus": "Экспорт Janus Mapping",
         "exporting": "Экспорт…",
         "exported": "Экспорт успешно завершён",
-        "exportErrorPathRequired": "Требуется путь вывода."
+        "exportErrorPathRequired": "Требуется путь вывода.",
+        "previewHeading": "Предпросмотр",
+        "previewCount": "строк: {{count}}",
+        "previewLoading": "Загрузка предпросмотра…",
+        "previewEmpty": "Нет подтверждённых pick для экспорта.",
+        "previewFailed": "Предпросмотр недоступен: {{message}}",
+        "previewRetry": "Повторить предпросмотр",
+        "previewBlocked": "Устраните проблемы ниже перед экспортом."
       },
       "runReport": {
         "title": "Экспорт отчёта о запуске",
