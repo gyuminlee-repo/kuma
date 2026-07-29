@@ -148,6 +148,31 @@ class TestAlignReads:
             assert aln.r_st == 0
             assert aln.r_en == len(_REF_SEQ)
 
+    def test_graded_coverage_filter_excludes_partial(self, ref_fasta: Path) -> None:
+        """A partial read is rejected by the graded coverage_fraction filter (the
+        chimera_split=False demux path). Collapsing coverage to
+        require_full_span=(coverage_fraction >= 1.0) previously dropped this filter
+        for any fraction < 1.0, admitting partial-coverage reads into wells."""
+        partial = _REF_SEQ[: len(_REF_SEQ) // 2]  # ~50% of the reference
+        reads = [("partial", partial)]
+        # Without a coverage filter the partial read is admitted (only MAPQ applies).
+        kept_none = align_reads(reads, ref_fasta, min_mapq=0, require_full_span=False)
+        assert len(kept_none) >= 1
+        # The graded filter at 0.98 rejects the partial read.
+        kept_098 = align_reads(
+            reads, ref_fasta, min_mapq=0, require_full_span=False, coverage_fraction=0.98
+        )
+        assert len(kept_098) == 0
+        # A full-length read still passes the same graded filter.
+        kept_full = align_reads(
+            [("full", _REF_SEQ)],
+            ref_fasta,
+            min_mapq=0,
+            require_full_span=False,
+            coverage_fraction=0.98,
+        )
+        assert len(kept_full) >= 1
+
     def test_alignment_has_cigar(self, ref_fasta: Path) -> None:
         reads = [("r1", _REF_SEQ)]
         alns = align_reads(reads, ref_fasta, min_mapq=0, require_full_span=False)
