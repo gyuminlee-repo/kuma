@@ -30,12 +30,23 @@ BLAST에 이메일 필요. `KURO_CONTACT_EMAIL` 또는 `~/.kuro/config.json`의 
 
 EVOLVEpro CSV는 `variant`, `variants`, `mutation`, `mutations`, `mutant`, `mutation_list` 중 하나의 컬럼명 필요 (대소문자 구분, 첫 매칭). 컬럼명을 위 중 하나로 변경.
 
-## No valid primer pair found within Tm tolerance
+## No valid primer pair
 
-모든 후보 윈도우 실패. 확인:
-- 타깃 잔기가 서열 경계 근처 (flanking 서열 부족)
-- 극단적 GC context (폴리A/T 구간)
-- Tm 범위 넓은 다른 폴리머레이즈 시도
+v0.13.22부터 실패 사유가 막힌 단계, 그 단계가 도달한 최근접 Tm, 타깃 창, 길이 제약을 함께 알려준다.
+
+```
+No valid primer pair - reverse: closest Tm 64.4C at 19 bp, outside 58+-4.0C (length 19-27 bp)
+```
+
+단계를 먼저 읽는다.
+
+- **reverse, 최근접 Tm이 창 위**: 가장 짧은 합법 reverse가 이미 너무 뜨겁다. GC-rich 구간에서 흔하다. 길이 하한은 UI에서 못 내리므로 **Tm tolerance**를 올린다.
+- **reverse, 최근접 Tm이 창 아래**: 가장 긴 합법 reverse도 여전히 차갑다. AT-rich 구간이다. 이때도 tolerance 상향이 듣는다.
+- **forward**: 대개 경계 문제다. 코돈 하류 염기가 부족하다.
+- **overlap**: 시도한 길이 범위 어디에서도 overlap 창에 못 들어온다.
+- **full overlap**: 프로파일의 길이 하한이 타깃 Tm이 허용하는 것보다 높다. Q5 SDM이 기본으로 full overlap 모드다.
+
+막는 단계는 예상과 다를 수 있다. IspS 95종 실행에서는 실패가 전부 reverse에서 나왔고 forward와 overlap이 원인인 경우는 하나도 없었다.
 
 ## 변이 수 상한 초과
 

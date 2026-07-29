@@ -6,13 +6,20 @@ When a mutation fails the Tm / GC / length / HP filters, it appears with a red r
 
 ## Rescue cascade
 
-Kuro tries three auto-relax passes before giving up:
+Two independent mechanisms run after the first pass fails.
 
-1. Widen Tm tolerance by 1 step
-2. Expand primer length range by ±2 bp
-3. Relax GC range by ±5 %
+**Auto-relax** re-runs each failed mutation once with a widened window:
 
-`tol_max` (default 3 °C) caps the final tolerance. Rescued rows are annotated `[rescued]` in the Note column.
+- Tm tolerance rises by 2 °C above the value you set, capped at 10 °C
+- GC range widens by 5 percentage points on each side, floored at 20 % and capped at 80 %
+
+Primer length limits are not relaxed. GC is scored as a penalty rather than applied as a filter, so widening it changes which candidate ranks first, not whether a candidate exists. Tolerance is the lever that decides feasibility.
+
+**Pool cascade** applies only when you supply a rescue pool. For a failed position it tries the backup variants you listed at that same position. A failure caused by the reverse primer cannot be rescued this way: the reverse primer is built from bases upstream of the codon, so it is identical for every variant at that position.
+
+`tol_max` defaults to 4 °C. Auto-relax therefore reaches 6 °C unless you raise the base value first.
+
+Since v0.13.23 auto-relax runs whether or not a rescue pool is present. Earlier versions skipped it entirely when the pool was empty, which is the usual case for manual and CSV input.
 
 ## Manual retry
 

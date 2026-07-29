@@ -22,11 +22,11 @@ MAME 가 어떤 시퀀싱 run 을 분석할지 지정한다.
 MAME가 생성한 consensus FASTA header는 다음 metadata를 가질 수 있다.
 
 ```text
->{well_name} depth={passed_reads} input_reads={raw_well_reads} aligned_reads={aligned_reads} mapq_failed={n} span_failed={n} mixed_positions={n} max_minor_allele_fraction={f} low_depth_positions={n} consensus_n_fraction={f} low_quality_bases={n}
+>{well_name} depth={passed_reads} input_reads={raw_well_reads} aligned_reads={aligned_reads} mapq_failed={n} span_failed={n} mixed_positions={n} max_minor_allele_fraction={f} low_depth_positions={n} consensus_n_fraction={f} low_quality_bases={n} ... consensus_n_fraction_basis=covered
 ```
 
 - `depth`: 실제 consensus에 기여한 read 수. optional `min_read_count` LOWDEPTH gate에 사용.
-- `consensus_n_fraction`, `low_depth_positions`: per-base depth 부족 또는 ambiguous base call 근거.
+- `consensus_n_fraction`, `low_depth_positions`: per-base depth 부족 또는 ambiguous base call 근거. `consensus_n_fraction`의 분모는 `min_depth`에 도달한 position이며, `consensus_n_fraction_basis=covered` 표식이 그 정의를 명시한다. 표식이 없는 v0.13.23 이전 파일 처리는 `mame-pipeline.md` 참조.
 - `low_quality_bases`: FASTQ Phred gate로 vote에서 제외된 base 수.
 - `mixed_positions`, `max_minor_allele_fraction`: 51/49 같은 within-well mixture가 clean PASS로 숨지 않도록 AMBIGUOUS 판정에 사용.
 - `mapq_failed`, `span_failed`: 정렬 품질/coverage filter에서 탈락한 read 수. Verdict table과 Excel QC 컬럼에 표시된다.
