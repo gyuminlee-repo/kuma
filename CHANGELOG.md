@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.13.33 (Two step 3 inputs, chosen one at a time)
+
+A single toggle named Activity source was deciding two unrelated things at once: what the primary screen measurement arrives as, and how the confirmation report labels its samples. Naming the pairs as modes collapsed six real combinations into two.
+
+### Fixed
+- v0.13.33: The step 3 inputs are chosen on their own axes. The one that mattered was a raw primary screen report paired with a numeric-index confirmation, which no mode could express and which is what arrives once Agilent reports come off the instrument without variant names in the sequence table. The five builders were already split along both axes, so this opens the pairs rather than adding arithmetic. A single entry point takes each axis independently and enforces only the companion each genuinely needs: a well-labelled primary screen needs the plate layout, a numeric-index confirmation needs a rank source. Both previous functions remain as thin wrappers with signatures, warnings, and error strings intact. (#187)
+- v0.13.33: `prev_evolvepro_xlsx` meant opposite axes in the two previous functions, a rank source in one and a primary screen baseline in the other. The unified entry point separates them. (#187)
+- v0.13.33: The provisional badge appears for a prev-EVOLVEpro primary screen with no confirmation. `confidence` is only emitted on the legacy rank branch, so that pair was provisional in fact and unmarked on screen. The badge now derives from the confirmation axis, and the panel names the pair it built from. (#187)
+
+### Changed
+- v0.13.33: An NGS verdict file now applies to every input combination. It carries no axis constraint in the backend, and its previous reports-only visibility was a side effect of the toggle. Callers that sent a GC data sheet together with a verdict file previously had the verdict ignored and will now see gating applied. (#187)
+
 ## v0.13.32 (Step 3 inputs named after what they hold)
 
 A user reading the step 3 panel could not find where the triplicate re-measurement goes, asked why a primary screen source was needed at all, and pointed out that EVOLVEpro writes CSV so a request for an xlsx looked wrong. Every one of those traces back to a label rather than to behaviour.
