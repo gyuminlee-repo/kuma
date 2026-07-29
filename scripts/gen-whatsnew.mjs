@@ -8,7 +8,11 @@
  *
  * Freshness guard: the latest CHANGELOG section MUST reference the current
  * package.json version (e.g. `v0.13.6`); otherwise generation/--check fails so a
- * release cannot ship a stale modal.
+ * release cannot ship a stale modal. This specific failure exits with
+ * EXIT_STALE_CHANGELOG (2) instead of the generic EXIT_ERROR (1) so callers
+ * (see scripts/sync-version.sh) can tell "CHANGELOG has no section yet for the
+ * version being committed" apart from "generation broke for some other reason"
+ * without string-matching the error message.
  *
  * Usage:
  *   node scripts/gen-whatsnew.mjs           # write the generated file
@@ -25,6 +29,11 @@ const OUT = resolve(ROOT, "src/components/dialogs/whatsNew.generated.ts");
 
 const MAX_ITEMS = 8;
 const MAX_DETAIL = 240;
+
+const EXIT_ERROR = 1;
+const EXIT_STALE_CHANGELOG = 2;
+
+class StaleChangelogError extends Error {}
 
 function build() {
   const version = JSON.parse(readFileSync(PKG, "utf-8")).version;
@@ -43,7 +52,7 @@ function build() {
 
   // Freshness guard: the latest section must reference the current version.
   if (!section.join("\n").includes(`v${version}`)) {
-    throw new Error(
+    throw new StaleChangelogError(
       `[gen-whatsnew] CHANGELOG.md's latest section does not mention current version v${version}. ` +
         "Add a CHANGELOG entry for this release before building.",
     );
@@ -87,23 +96,37 @@ function render({ version, items }) {
   );
 }
 
-const rendered = render(build());
+function main() {
+  const rendered = render(build());
 
-if (process.argv.includes("--check")) {
-  let current = "";
-  try {
-    current = readFileSync(OUT, "utf-8");
-  } catch {
-    // missing file => stale
+  if (process.argv.includes("--check")) {
+    let current = "";
+    try {
+      current = readFileSync(OUT, "utf-8");
+    } catch {
+      // missing file => stale
+    }
+    if (current !== rendered) {
+      console.error(
+        "[gen-whatsnew] drift: src/components/dialogs/whatsNew.generated.ts is stale. Run `pnpm gen:whatsnew`.",
+      );
+      process.exit(EXIT_ERROR);
+    }
+    console.log("[gen-whatsnew] up to date");
+    return;
   }
-  if (current !== rendered) {
-    console.error(
-      "[gen-whatsnew] drift: src/components/dialogs/whatsNew.generated.ts is stale. Run `pnpm gen:whatsnew`.",
-    );
-    process.exit(1);
-  }
-  console.log("[gen-whatsnew] up to date");
-} else {
+
   writeFileSync(OUT, rendered, "utf-8");
   console.log(`[gen-whatsnew] wrote ${OUT}`);
+}
+
+try {
+  main();
+} catch (err) {
+  if (err instanceof StaleChangelogError) {
+    console.error(err.message);
+    process.exit(EXIT_STALE_CHANGELOG);
+  }
+  console.error(err instanceof Error ? (err.stack ?? err.message) : String(err));
+  process.exit(EXIT_ERROR);
 }
