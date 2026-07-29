@@ -15,6 +15,7 @@ PKG="$REPO_ROOT/package.json"
 TAURI="$REPO_ROOT/src-tauri/tauri.conf.json"
 CARGO="$REPO_ROOT/src-tauri/Cargo.toml"
 PYPROJECT="$REPO_ROOT/pyproject.toml"
+LOCK="$REPO_ROOT/src-tauri/Cargo.lock"
 GENERATED="$REPO_ROOT/src/components/dialogs/whatsNew.generated.ts"
 GEN_SCRIPT="$REPO_ROOT/scripts/gen-whatsnew.mjs"
 
@@ -51,6 +52,36 @@ for toml_path in (cargo_path, pyproject_path):
     path.write_text(updated, encoding="utf-8")
 PY
 
+# Cargo.lock pins the kuma package version alongside Cargo.toml, and
+# .cross-layer-sync.json now checks it, so a manifest-only amend would break
+# `pnpm run sync:check` on every bump. `cargo update -p kuma` rewrites just the
+# kuma entry and leaves every other dependency pin as recorded.
+#
+# --offline is deliberate and not retried online. A post-commit hook must not
+# stall on the network, and an offline failure means the lockfile needs more
+# than a version bump, which a person has to look at. An automatic online retry
+# would turn that signal into a silent dependency pin change, the exact drift
+# this script exists to prevent.
+LOCK_CHANGED=0
+if command -v cargo >/dev/null 2>&1; then
+  set +e
+  LOCK_OUTPUT=$(cargo update -p kuma --offline --manifest-path "$CARGO" 2>&1)
+  LOCK_STATUS=$?
+  set -e
+  if [ "$LOCK_STATUS" -ne 0 ]; then
+    echo "[sync-version] error: cargo update -p kuma failed (exit $LOCK_STATUS):" >&2
+    echo "$LOCK_OUTPUT" >&2
+    echo "[sync-version] the four version manifests are already edited in the working tree, but the commit was NOT amended. Fix src-tauri/Cargo.lock manually, then run: node scripts/gen-whatsnew.mjs && git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml pyproject.toml src-tauri/Cargo.lock src/components/dialogs/whatsNew.generated.ts && git commit --amend --no-edit --no-verify" >&2
+    exit 1
+  fi
+  if ! git diff --quiet -- "$LOCK"; then
+    LOCK_CHANGED=1
+  fi
+else
+  echo "[sync-version] warning: cargo not found, so src-tauri/Cargo.lock keeps its old kuma version while the manifests move to v$VERSION. That drift fails the version-sync check in \`pnpm run sync:check\`." >&2
+  echo "[sync-version] on a machine with cargo, run: cargo update -p kuma --offline --manifest-path src-tauri/Cargo.toml && git add src-tauri/Cargo.lock && git commit --amend --no-edit --no-verify" >&2
+fi
+
 # package.json's new version is a generation input for whatsNew.generated.ts
 # (scripts/gen-whatsnew.mjs). Regenerate it here so the amended commit below
 # does not amend package.json's version without also amending the derived
@@ -70,6 +101,9 @@ GEN_STATUS=$?
 set -e
 
 ADD_PATHS=("$PKG" "$TAURI" "$CARGO" "$PYPROJECT")
+if [ "$LOCK_CHANGED" -eq 1 ]; then
+  ADD_PATHS+=("$LOCK")
+fi
 if [ "$GEN_STATUS" -eq 0 ]; then
   ADD_PATHS+=("$GENERATED")
 elif [ "$GEN_STATUS" -eq 2 ]; then
