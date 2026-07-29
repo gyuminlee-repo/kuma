@@ -5,8 +5,11 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.13.32";
+export const WHATS_NEW_VERSION = "0.13.33";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Fixed", detail: "The step 3 input labels say what each file is. `Round-1` read as the EVOLVEpro active-learning round when it meant the first pass over the whole plate, two senses the project notes already record as being confused. The panel had the right…" },
+  { label: "Fixed", detail: "The step 3 inputs are chosen on their own axes. The one that mattered was a raw primary screen report paired with a numeric-index confirmation, which no mode could express and which is what arrives once Agilent reports come off the instrum…" },
+  { label: "Fixed", detail: "`prev_evolvepro_xlsx` meant opposite axes in the two previous functions, a rank source in one and a primary screen baseline in the other. The unified entry point separates them. (#187)" },
+  { label: "Fixed", detail: "The provisional badge appears for a prev-EVOLVEpro primary screen with no confirmation. `confidence` is only emitted on the legacy rank branch, so that pair was provisional in fact and unmarked on screen. The badge now derives from the con…" },
+  { label: "Changed", detail: "An NGS verdict file now applies to every input combination. It carries no axis constraint in the backend, and its previous reports-only visibility was a side effect of the toggle. Callers that sent a GC data sheet together with a verdict f…" },
 ];
