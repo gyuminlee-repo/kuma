@@ -1869,12 +1869,6 @@
 <td>genotype route 의 같은 용도 산출</td>
 </tr>
 <tr>
-<td><code>export_evolvepro_csv</code></td>
-<td><code>variant</code>, <code>y_pred</code>, <code>round_n</code>, <code>plate_id</code>, <code>well_id</code>, <code>activity_raw_mean</code>, <code>activity_raw_sd</code></td>
-<td><strong>log2</strong></td>
-<td>KURO in-repo 왕복용. EVOLVEpro 입력 아님</td>
-</tr>
-<tr>
 <td><code>verdict.xlsx</code></td>
 <td>96-well Final Excel (column-major)</td>
 <td>해당 없음</td>
@@ -1883,7 +1877,7 @@
 </tbody>
 </table>
 <p><code>Variant</code> 는 앞 아미노산을 뗀 축약 표기다 (<code>V547I</code> → <code>547I</code>). EVOLVEpro 가 받는 실제 형식이 이것이다.</p>
-<p>CSV 만 log2 인 점에 주의한다. 컬럼명이 소문자 <code>variant</code>/<code>y_pred</code> 인 것도 KURO 로더(<code>kuma_core/kuro/evolvepro.py</code>)와 맞추기 위한 것이며, 외부 EVOLVEpro 에 넣는 파일이 아니다.</p>
+<p>CSV 산출은 UI 에서 낼 수 없다. <code>export_evolvepro_csv</code> 는 <code>kuma_core/mame/activity/export_evolvepro.py</code> 에 남아 있지만 RPC 로 노출되지 않으며, <code>tests/integration/test_kuma_round_trip.py</code> 가 MAME writer 와 KURO 리더(<code>kuma_core/kuro/evolvepro.py</code>)의 컬럼 합의를 검증하는 데만 쓴다. 값이 log2 이고 컬럼명이 소문자 <code>variant</code>/<code>y_pred</code> 인 것도 그 리더에 맞춘 것이며, 외부 EVOLVEpro 에 넣는 파일이 아니다.</p>
 <p><code>build_evolvepro_input</code> 은 xlsx 옆에 <code>&lt;output&gt;.mapping.json</code> audit 파일을 함께 쓴다. ID 에서 변이로 간 매핑과 경고 목록이 들어간다.</p>
 <h2 id="34">3.4 제외 규칙<a class="headerlink" href="#34" title="Permanent link">&para;</a></h2>
 <p>xlsx 산출에서 다음 행은 빠진다.</p>
