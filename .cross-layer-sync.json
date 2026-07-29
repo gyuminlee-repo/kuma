@@ -15,6 +15,14 @@
         {
           "path": "src-tauri/Cargo.toml",
           "extract": "regex:^version\\s*=\\s*\"([^\"]+)\""
+        },
+        {
+          "path": "pyproject.toml",
+          "extract": "regex:^version\\s*=\\s*\"([^\"]+)\""
+        },
+        {
+          "path": "src-tauri/Cargo.lock",
+          "extract": "regex:^name = \"kuma\"\\nversion = \"([^\"]+)\""
         }
       ]
     },
