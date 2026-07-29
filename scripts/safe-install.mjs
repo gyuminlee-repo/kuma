@@ -11,9 +11,14 @@
  * - Windows에서만 package-import-method=copy 임시 적용 (hardlink 락 우회)
  * - EACCES/EBUSY/EPERM 실패 시 3초 대기 후 재시도 (최대 3회)
  * - 마지막 실패 시 원인별 해결 가이드 출력
+ *
+ * 이 repo의 .npmrc는 ignore-scripts=true (supply-chain hardening)이므로
+ * package.json의 "prepare" 라이프사이클 스크립트는 pnpm install에서 실행되지
+ * 않는다. 그래서 install-git-hooks.mjs(post-commit hook 설치)는 pnpm 라이프사이클이
+ * 아니라 이 스크립트가 install 성공 뒤 명시적으로 호출해 실행한다.
  */
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import process from "node:process";
 
 const MAX_ATTEMPTS = 3;
@@ -60,6 +65,17 @@ function runOnce(attempt) {
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+function installGitHooks() {
+  const result = spawnSync(process.execPath, ["scripts/install-git-hooks.mjs"], {
+    stdio: "inherit",
+  });
+  if (result.status !== 0) {
+    console.error(
+      `\n[safe-install] warning: scripts/install-git-hooks.mjs exited ${result.status}, post-commit hook may not be installed.`,
+    );
+  }
 }
 
 function printFailureGuide(lastOutput) {
@@ -110,6 +126,7 @@ async function main() {
     lastOutput = output;
     if (code === 0) {
       console.log(`\n[safe-install] OK (attempt ${attempt}/${MAX_ATTEMPTS})`);
+      installGitHooks();
       process.exit(0);
     }
     if (!retryable) {

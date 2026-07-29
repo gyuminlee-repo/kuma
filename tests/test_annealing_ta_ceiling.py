@@ -37,7 +37,7 @@ FIXTURES = Path(__file__).parent.parent / "fixtures"
 # Every NEB profile shares one extension step; the ceiling is read from the
 # profiles, never hard-coded here.
 _ALL_PROFILES = [
-    "Benchling", "Taq", "Phusion", "Q5", "KOD", "DreamTaq", "TAKARA_GXL", "Q5 SDM",
+    "Taq", "Phusion", "Q5", "KOD", "DreamTaq", "TAKARA_GXL", "Q5 SDM",
 ]
 
 
@@ -186,7 +186,7 @@ def test_phusion_short_primer_end_to_end(registry, offsets):
 
 def test_short_primer_branch_is_opt_in_per_profile(registry):
     # Profiles without the branch ignore the length argument entirely.
-    for name in ("Q5", "Taq", "KOD", "DreamTaq", "Benchling"):
+    for name in ("Q5", "Taq", "KOD", "DreamTaq"):
         rule = _rule(registry, name)
         assert rule["short_primer_len"] is None
         assert _apply_rule(62.0, rule, 18) == _apply_rule(62.0, rule)

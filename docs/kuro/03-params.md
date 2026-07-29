@@ -4,12 +4,12 @@ polymerase profile, codon strategy, Tm/GC 범위를 지정한다.
 
 ## Polymerase profile
 
-8 종 내장 + custom:
+7 종 내장 + custom:
 
-- Benchling, Taq, Phusion, Q5, Q5 SDM, KOD, DreamTaq, TAKARA_GXL
+- Taq, Phusion, Q5, Q5 SDM, KOD, DreamTaq, TAKARA_GXL (기본값 KOD)
 - Custom profile 은 `~/.kuma/kuro/custom_polymerases.json` 에 저장.
 
-profile 선택 시 Tm method · salt · DNA · GC 범위가 manufacturer manual 기준으로 즉시 갱신된다.
+profile 선택 시 설계에 반영되는 값은 GC 범위와 overlap 모드다. 설계 시점 Tm 은 SantaLucia 1998 (Benchling) 고정 스케일이라 profile 을 바꿔도 변하지 않는다. profile 의 Tm method · salt · DNA 값은 권장 annealing 온도(Ta) 계산에만 쓰인다.
 
 ## Codon strategy
 

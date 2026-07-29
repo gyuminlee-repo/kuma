@@ -328,17 +328,30 @@ def _iter_fastq_records(
 # Length window resolution
 # ---------------------------------------------------------------------------
 
+# The ONT read-length spread scales with amplicon length, so a fixed +/-30 bp
+# window (~+/-1.7% of a 1.8 kb amplicon) discards genuine full-length reads and
+# under-counts per-well depth. The effective window is at least +/- this fraction
+# of the target length; length_tolerance_bp remains an explicit floor/override.
+_LENGTH_TOLERANCE_FRACTION = 0.10
+
 
 def _resolve_length_window(params: QualityFilterParams) -> tuple[int, int]:
     """Return (effective_min, effective_max) for length filtering.
 
-    When ``target_length`` is set, the window is
-    ``[target_length - length_tolerance_bp, target_length + length_tolerance_bp]``.
-    Otherwise falls back to ``(length_min, length_max)``.
+    When ``target_length`` is set, the window is ``target_length +/- tol`` where
+    ``tol = max(length_tolerance_bp, round(target_length * _LENGTH_TOLERANCE_FRACTION))``.
+    The proportional term keeps long amplicons from being over-filtered while the
+    absolute ``length_tolerance_bp`` still acts as a floor (and an override when a
+    caller sets it larger than the proportional window). Otherwise falls back to
+    ``(length_min, length_max)``.
     """
     if params.target_length is not None:
-        lo = max(0, params.target_length - params.length_tolerance_bp)
-        hi = params.target_length + params.length_tolerance_bp
+        tol = max(
+            params.length_tolerance_bp,
+            round(params.target_length * _LENGTH_TOLERANCE_FRACTION),
+        )
+        lo = max(0, params.target_length - tol)
+        hi = params.target_length + tol
         return lo, hi
     return params.length_min, params.length_max
 
