@@ -352,6 +352,10 @@ class BuildEvolveproInputParams(BaseModel):
     mapping_audit_path
         Where to write the ID-to-variant JSON audit artifact. Defaults to
         '<output>.mapping.json' next to ``output_xlsx`` when omitted.
+    gc_export_xlsx
+        Where to write the intermediate round-1 well-level relative activity
+        ('Sample Name', 'Area'). Reports-mode raw round-1 only; on the
+        ``round1_evolvepro_xlsx`` path the build records a warning instead.
     """
 
     # Optional: required for rank-mode and raw-reports-mode, but not for
@@ -373,6 +377,10 @@ class BuildEvolveproInputParams(BaseModel):
     verdict_xlsx: str | None = None
     mismatch_threshold: float = Field(default=0.1, gt=0.0)
     mapping_audit_path: str | None = None
+    # Optional reports-mode audit artifact: where to write the intermediate
+    # round-1 well-level relative activity ('Sample Name', 'Area'). Output path,
+    # so it is validated like output_xlsx and never as an existing input.
+    gc_export_xlsx: str | None = None
 
     @field_validator(
         "layout_xlsx",
@@ -442,6 +450,20 @@ class BuildEvolveproInputParams(BaseModel):
             raise ValueError(f"output_xlsx must be an .xlsx file: {v}")
         if not p.parent.exists():
             raise ValueError(f"Parent of output_xlsx does not exist: {p.parent}")
+        return v
+
+    @field_validator("gc_export_xlsx", mode="after")
+    @classmethod
+    def _check_gc_export_xlsx(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if p.suffix.lower() != ".xlsx":
+            raise ValueError(f"gc_export_xlsx must be an .xlsx file: {v}")
+        if not p.parent.exists():
+            raise ValueError(f"Parent of gc_export_xlsx does not exist: {p.parent}")
         return v
 
     @field_validator("mapping_audit_path", mode="after")

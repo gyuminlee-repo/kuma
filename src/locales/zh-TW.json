@@ -961,6 +961,8 @@
       "round1EvolveproXlsxHelper": "上一輪的 EVOLVEpro xlsx（Variant、activity）。重新量測的變體會以其平均值取代。",
       "round1ReportXlsx": "Round-1 報告 xlsx（GC-FID 原始）",
       "round1ReportXlsxHelper": "Agilent FID1B 原始報告；Sample Name 為 well 位置（A1..H12），包含 WT 區塊。",
+      "gcExportXlsx": "相對活性匯出 xlsx（GC data 形式）",
+      "gcExportXlsxHelper": "選用的審閱產物。將 round-1 各 well 的相對活性（area / WT 平均 area）以 Sample Name 與 Area 兩欄寫出，與 GC data 工作表形式一致。",
       "remeasureReportXlsx": "重新量測報告 xlsx（標註變體）",
       "remeasureReportXlsxHelper": "Agilent FID1B 原始報告；Sample Name 為變體標籤（例如 V5F 或 5F），重複列即 replicate。",
       "verdictXlsx": "NGS verdict xlsx",

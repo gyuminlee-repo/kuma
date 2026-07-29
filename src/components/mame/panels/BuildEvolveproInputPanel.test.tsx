@@ -300,6 +300,10 @@ describe("BuildEvolveproInputPanel source-mode toggle", () => {
     });
     render(<BuildEvolveproInputPanel />);
 
+    expect(
+      screen.getByLabelText(/Relative activity export xlsx/),
+    ).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole("button", { name: BUILD_LABEL }));
 
     await waitFor(() => expect(mockBuild).toHaveBeenCalledTimes(1));
@@ -309,6 +313,41 @@ describe("BuildEvolveproInputPanel source-mode toggle", () => {
       remeasure_report_xlsx: "/in/remeasure.xlsx",
       verdict_xlsx: "/in/verdict.xlsx",
       output_xlsx: "/out/ep.xlsx",
+      gc_export_xlsx: undefined,
     });
+  });
+
+  it("sends the optional relative-activity export path when chosen", async () => {
+    seed({
+      sourceMode: "reports",
+      round1Source: "raw",
+      layoutXlsx: "/in/layout.xlsx",
+      round1ReportXlsx: "/in/round1_report.xlsx",
+      remeasureReportXlsx: "/in/remeasure.xlsx",
+      outputXlsx: "/out/ep.xlsx",
+      gcExportXlsx: "/out/gc.xlsx",
+    });
+    render(<BuildEvolveproInputPanel />);
+
+    fireEvent.click(screen.getByRole("button", { name: BUILD_LABEL }));
+
+    await waitFor(() => expect(mockBuild).toHaveBeenCalledTimes(1));
+    expect(mockBuild).toHaveBeenCalledWith({
+      layout_xlsx: "/in/layout.xlsx",
+      round1_report_xlsx: "/in/round1_report.xlsx",
+      remeasure_report_xlsx: "/in/remeasure.xlsx",
+      verdict_xlsx: undefined,
+      output_xlsx: "/out/ep.xlsx",
+      gc_export_xlsx: "/out/gc.xlsx",
+    });
+  });
+
+  it("hides the relative-activity export outside the raw round-1 path", () => {
+    seed({ sourceMode: "reports", round1Source: "prev" });
+    render(<BuildEvolveproInputPanel />);
+
+    expect(
+      screen.queryByLabelText(/Relative activity export xlsx/),
+    ).not.toBeInTheDocument();
   });
 });

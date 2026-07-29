@@ -395,3 +395,114 @@ def _write_verdict(path, rows):
     for w, m, v in rows:
         ws.append([w, "P1", "", m, v, "", "", ""])
     wb.save(path)
+
+
+# ---------------------------------------------------------------------------
+# GC export: optional well-level relative activity artifact (raw round-1 only)
+# ---------------------------------------------------------------------------
+
+def _gc_export_case(tmp_path):
+    """Shared fixture set for the gc_export_xlsx cases."""
+    layout = tmp_path / "layout.xlsx"
+    _write_layout(layout, [("V5F", "A1"), ("V10L", "B1")])
+
+    round1 = tmp_path / "round1.xlsx"
+    _write_fid1b(
+        round1,
+        [
+            ("A1", 0.80),
+            ("B1", 0.40),
+            ("C1", 0.20),  # well absent from the layout: kept by the export
+            ("WT_1", 0.50),
+            ("WT_2", 0.50),
+            ("0", 72.5),  # calibration row, dropped by the parser
+        ],
+    )
+
+    remeasure = tmp_path / "remeasure.xlsx"
+    _write_fid1b(
+        remeasure,
+        [("5F", 0.60), ("WT_1", 0.60), ("WT_2", 0.60)],
+    )
+    return layout, round1, remeasure
+
+
+def test_gc_export_written_with_expected_header_and_row_count(tmp_path):
+    """Raw round-1 + gc_export_xlsx writes a 'Sample Name' / 'Area' sheet."""
+    import openpyxl
+
+    from kuma_core.mame.activity.evolvepro_xlsx import RELATIVE_ACTIVITY_COLUMNS
+
+    layout, round1, remeasure = _gc_export_case(tmp_path)
+    gc_export = tmp_path / "gc_export.xlsx"
+
+    res = build_evolvepro_input_from_reports(
+        layout,
+        round1,
+        remeasure,
+        tmp_path / "out.xlsx",
+        gc_export_xlsx=gc_export,
+    )
+
+    assert res.gc_export_path == gc_export
+    assert gc_export.exists()
+
+    ws = openpyxl.load_workbook(gc_export).active
+    assert ws is not None
+    rows = list(ws.iter_rows(values_only=True))
+    assert rows[0] == RELATIVE_ACTIVITY_COLUMNS
+
+    n_non_wt = sum(1 for r in parse_agilent_standard(round1) if not r.is_wt)
+    assert len(rows) - 1 == n_non_wt == 3
+
+
+def test_gc_export_values_are_area_over_wt_mean(tmp_path):
+    """Every exported value equals raw area / mean WT block area."""
+    from kuma_core.mame.activity.evolvepro_xlsx import parse_relative_only
+
+    layout, round1, remeasure = _gc_export_case(tmp_path)
+    gc_export = tmp_path / "gc_export.xlsx"
+
+    build_evolvepro_input_from_reports(
+        layout,
+        round1,
+        remeasure,
+        tmp_path / "out.xlsx",
+        gc_export_xlsx=gc_export,
+    )
+
+    records = parse_agilent_standard(round1)
+    wt_mean = _agilent_wt_mean(records)
+    expected = [
+        (r.sample_name, r.area / wt_mean) for r in records if not r.is_wt
+    ]
+
+    # Round-trips through the pre-normalised reader, so the file really carries
+    # the GC data shape rather than only the right header text.
+    exported = parse_relative_only(gc_export)
+    assert len(exported) == len(expected)
+    for got, (name, value) in zip(exported, expected):
+        assert got.sample_name == name
+        assert got.area == pytest.approx(value, abs=1e-9)
+
+
+def test_gc_export_warns_and_writes_nothing_on_prev_evolvepro_round1(tmp_path):
+    """The prev-EVOLVEpro round-1 path has no raw report to project."""
+    layout, _round1, remeasure = _gc_export_case(tmp_path)
+    prev = tmp_path / "prev.xlsx"
+    _write_prev_evolvepro(prev, [("5F", 1.6), ("10L", 0.8)])
+    gc_export = tmp_path / "gc_export.xlsx"
+
+    res = build_evolvepro_input_from_reports(
+        layout,
+        None,
+        remeasure,
+        tmp_path / "out.xlsx",
+        prev_evolvepro_xlsx=prev,
+        gc_export_xlsx=gc_export,
+    )
+
+    assert res.gc_export_path is None
+    assert not gc_export.exists()
+    ignored = [w for w in res.warnings if "gc_export_xlsx ignored" in w]
+    assert len(ignored) == 1

@@ -33,6 +33,8 @@ from kuma_core.mame.activity.evolvepro_xlsx import (
     read_evolvepro_xlsx,
     read_evolvepro_rows,
     write_evolvepro_xlsx,
+    write_relative_activity_xlsx,
+    RELATIVE_ACTIVITY_COLUMNS,
 )
 from kuma_core.mame.activity.build_evolvepro_input import (
     BuildEvolveproResult,
@@ -82,6 +84,8 @@ __all__ = [
     "read_evolvepro_xlsx",
     "read_evolvepro_rows",
     "write_evolvepro_xlsx",
+    "write_relative_activity_xlsx",
+    "RELATIVE_ACTIVITY_COLUMNS",
     # Build EVOLVEpro input (4-file assembly + rank mapping)
     "BuildEvolveproResult",
     "BuildEvolveproReportsResult",
