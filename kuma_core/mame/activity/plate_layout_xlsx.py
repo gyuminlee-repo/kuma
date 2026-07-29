@@ -22,6 +22,25 @@ _WELL_RE = re.compile(r"^[A-H][0-9]{1,2}$")
 
 _WT_LITERAL = "WT"
 
+# Experimenter replicate suffix: '<sample name>_r<n>' (case-insensitive 'r').
+# The greedy name group keeps inner underscores intact, so only the trailing
+# suffix is removed ('A40P_E61Y_r1' -> 'A40P_E61Y').
+_REPLICATE_SUFFIX_RE = re.compile(r"^(?P<name>.+)_[rR](?P<rep>\d+)$")
+
+# Sample name reserved for empty wells; excluded from the parsed entries.
+_BLANK_LITERAL = "blank"
+
+
+def _strip_replicate_suffix(label: str) -> str:
+    """Remove a trailing '_r<n>' replicate suffix from *label*.
+
+    Labels without the suffix are returned unchanged.
+    """
+    match = _REPLICATE_SUFFIX_RE.match(label)
+    if match is None:
+        return label
+    return match.group("name")
+
 
 @dataclass(frozen=True)
 class PlateLayoutEntry:
@@ -62,9 +81,23 @@ def parse_plate_layout_xlsx(
         plate layout pair wins and a warning is logged. Raises when neither
         pair is complete.
 
+    Replicate suffix:
+        A trailing '_r<n>' on the label (the experimenter notation, 'r'
+        case-insensitive) marks a replicate of the same sample and is stripped
+        before every other rule applies: 'Q232A_r1' and 'Q232A_r2' both become
+        mutant 'Q232A' on their own wells. Only the trailing suffix is removed,
+        so multi-substitution labels keep their inner underscores
+        ('A40P_E61Y_r1' -> 'A40P_E61Y'). Labels without the suffix pass through
+        unchanged.
+
+    Blank rows:
+        Rows whose sample name (after suffix stripping) is 'blank'
+        (case-insensitive) mark empty wells and are omitted from the result.
+
     WT row detection:
-        Rows whose label cell is 'WT' (case-insensitive) produce
-        PlateLayoutEntry with is_wt=True. Identical for both formats.
+        Rows whose label cell is 'WT' (case-insensitive, after suffix
+        stripping) produce PlateLayoutEntry with is_wt=True. Identical for
+        both formats.
 
     Well position validation:
         Each well value must match [A-H][0-9]{1,2}. Non-matching
@@ -160,11 +193,17 @@ def parse_plate_layout_xlsx(
             )
 
         well_id = _normalise_well(raw_well)
-        is_wt = raw_mutant.upper() == _WT_LITERAL
+        sample_name = _strip_replicate_suffix(raw_mutant)
+
+        if sample_name.lower() == _BLANK_LITERAL:
+            # Empty well marker; carries no mutant.
+            continue
+
+        is_wt = sample_name.upper() == _WT_LITERAL
 
         entries.append(
             PlateLayoutEntry(
-                mutant=raw_mutant,
+                mutant=sample_name,
                 well_id=well_id,
                 is_wt=is_wt,
             )

@@ -193,6 +193,25 @@ class BuildEvolveproResult:
     mismatched: list[dict] = field(default_factory=list)
 
 
+def _unconvertible_warnings(
+    unconvertible: dict[str, list[str]],
+    source_label: str,
+) -> list[str]:
+    """One warning per mutant that has no EVOLVEpro short-notation form.
+
+    EVOLVEpro short notation carries a single position, so a multi-substitution
+    label such as 'A40P_E61Y' has no representation. Such mutants are dropped
+    from *source_label* rather than aborting the whole build. Wells are listed
+    so a reviewer can find the missing rows in the layout.
+    """
+    return [
+        f"Layout mutant {mutant!r} (wells {', '.join(wells)}) cannot be "
+        "converted to EVOLVEpro short notation (multiple substitutions); "
+        f"excluded from the {source_label}."
+        for mutant, wells in unconvertible.items()
+    ]
+
+
 def _build_fallback(
     layout_xlsx: str | Path,
     gc_data_xlsx: str | Path,
@@ -229,6 +248,7 @@ def _build_fallback(
 
     fallback: dict[str, list[float]] = {}
     well_by_variant: dict[str, str] = {}
+    unconvertible: dict[str, list[str]] = {}
     for entry in layout_entries:
         if entry.is_wt:
             continue
@@ -238,10 +258,15 @@ def _build_fallback(
                 "GC data value; excluded from the fallback source."
             )
             continue
-        short = to_evolvepro(entry.mutant)
+        try:
+            short = to_evolvepro(entry.mutant)
+        except ValueError:
+            unconvertible.setdefault(entry.mutant, []).append(entry.well_id)
+            continue
         fallback.setdefault(short, []).append(gc_by_well[entry.well_id])
         well_by_variant[short] = entry.well_id
 
+    warnings.extend(_unconvertible_warnings(unconvertible, "fallback source"))
     return fallback, well_by_variant, warnings
 
 
@@ -537,6 +562,7 @@ def _build_fallback_from_raw_report(
 
     fallback: dict[str, list[float]] = {}
     well_by_variant: dict[str, str] = {}
+    unconvertible: dict[str, list[str]] = {}
     for r in records:
         if r.is_wt:
             continue
@@ -551,9 +577,14 @@ def _build_fallback_from_raw_report(
         if variant_internal is None:
             warnings.append(f"round-1 well {well} has no layout mutant; skipped.")
             continue
-        short = to_evolvepro(variant_internal)
+        try:
+            short = to_evolvepro(variant_internal)
+        except ValueError:
+            unconvertible.setdefault(variant_internal, []).append(well)
+            continue
         fallback.setdefault(short, []).append(r.area / wt_mean)
         well_by_variant[short] = well
+    warnings.extend(_unconvertible_warnings(unconvertible, "round-1 fallback source"))
     return fallback, well_by_variant, warnings
 
 
