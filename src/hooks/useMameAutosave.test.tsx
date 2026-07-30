@@ -2,7 +2,9 @@ import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectProvider } from "@/state/projectContext";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { useRoundStore } from "@/store/round/roundSlice";
 import type { VerdictRecord } from "@/types/mame/models";
+import type { Round } from "@/types/round";
 import { useMameAutosave } from "./useMameAutosave";
 
 const autosaveMocks = vi.hoisted(() => ({
@@ -42,6 +44,19 @@ const verdict: VerdictRecord = {
   verdict_notes: "",
 };
 
+const round: Round = {
+  id: "round_1",
+  n: 1,
+  created_at: "2026-07-30T00:00:00.000Z",
+  status: "activity_linked",
+  error_info: null,
+  plate_meta: { plates: [{ plate_id: "plate01", wt_wells: ["A01"], control_wells: [] }] },
+  design: {},
+  genotype: {},
+  activity: null,
+  merged_table: [],
+};
+
 function Harness() {
   const { flushMameAutosave } = useMameAutosave();
   latestFlush = flushMameAutosave;
@@ -54,6 +69,7 @@ describe("useMameAutosave", () => {
     autosaveMocks.scheduleAutosave.mockClear();
     autosaveMocks.flushAutosave.mockClear();
     useMameAppStore.getState().resetInput();
+    useRoundStore.setState({ rounds: [], active_round_id: null });
   });
 
   afterEach(() => {
@@ -90,6 +106,27 @@ describe("useMameAutosave", () => {
 
     act(() => {
       useMameAppStore.getState().setVerdicts([verdict]);
+    });
+
+    await waitFor(() => {
+      expect(autosaveMocks.scheduleAutosave).toHaveBeenCalledTimes(1);
+    });
+    expect(autosaveMocks.scheduleAutosave).toHaveBeenCalledWith(
+      expect.objectContaining({ projectPath: "/tmp/kuma-project", scratch: false }),
+      "mame",
+      expect.any(Function),
+    );
+  });
+
+  it("schedules mame autosave when round activity state changes", async () => {
+    render(
+      <ProjectProvider value={{ path: "/tmp/kuma-project", name: "Demo", scratch: false }}>
+        <Harness />
+      </ProjectProvider>,
+    );
+
+    act(() => {
+      useRoundStore.setState({ rounds: [round], active_round_id: "round_1" });
     });
 
     await waitFor(() => {

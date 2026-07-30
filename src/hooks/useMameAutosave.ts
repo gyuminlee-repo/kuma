@@ -10,6 +10,7 @@ import { useKumaProject } from "@/state/projectContext";
 import { scheduleAutosave, flushAutosave, type AutosaveTarget } from "@/lib/autosave";
 import { buildMameSnapshot } from "@/lib/mame/autosaveSnapshot";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { useRoundStore } from "@/store/round/roundSlice";
 
 function selectMameInputs(s: ReturnType<typeof useMameAppStore.getState>) {
   const r = s.rawRunParams;
@@ -86,17 +87,28 @@ export function useMameAutosave(): { flushMameAutosave: () => Promise<void> } {
   useEffect(() => {
     if (!project || project.scratch || !project.path) return;
 
+    const buildSnapshot = () => {
+      const roundState = useRoundStore.getState();
+      return buildMameSnapshot(useMameAppStore.getState(), {
+        rounds: roundState.rounds,
+        activeRoundId: roundState.active_round_id,
+      });
+    };
     const unsubscribe = useMameAppStore.subscribe(
       selectMameInputs,
       () => {
-        scheduleAutosave(targetRef.current, "mame", () =>
-          buildMameSnapshot(useMameAppStore.getState()),
-        );
+        scheduleAutosave(targetRef.current, "mame", buildSnapshot);
       },
       { equalityFn: shallowEqualTuple },
     );
+    const unsubscribeRounds = useRoundStore.subscribe(() => {
+      scheduleAutosave(targetRef.current, "mame", buildSnapshot);
+    });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      unsubscribeRounds();
+    };
   }, [project?.path, project?.scratch]);
 
   const flushMameAutosave = useCallback(async (): Promise<void> => {

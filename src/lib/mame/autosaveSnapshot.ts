@@ -7,6 +7,7 @@
 import type { AutosaveSnapshot } from "@/lib/autosave";
 import type { AppState } from "@/store/mame/types";
 import type { RawRunParams } from "@/store/mame/slice-interfaces";
+import type { Round } from "@/types/round";
 
 export const MAME_SCHEMA = 3;
 
@@ -38,8 +39,15 @@ export type MameSnapshotState = Pick<
   | "wellLayout"
 >;
 
+export interface MameRoundSnapshotState {
+  rounds: Round[];
+  activeRoundId: string | null;
+}
+
 export interface MameAutosaveSnapshot extends AutosaveSnapshot {
   schema: typeof MAME_SCHEMA;
+  rounds?: Round[];
+  active_round_id?: string | null;
   input: {
     input_dir: string;
     expected_path: string;
@@ -72,11 +80,16 @@ export interface MameAutosaveSnapshot extends AutosaveSnapshot {
   };
 }
 
-export function buildMameSnapshot(state: MameSnapshotState): MameAutosaveSnapshot {
+export function buildMameSnapshot(
+  state: MameSnapshotState,
+  roundState?: MameRoundSnapshotState,
+): MameAutosaveSnapshot {
   return {
     schema: MAME_SCHEMA,
     saved_at: new Date().toISOString(),
     kuma_version: __APP_VERSION__,
+    rounds: roundState?.rounds ?? [],
+    active_round_id: roundState?.activeRoundId ?? null,
     input: {
       input_dir: state.inputDir,
       expected_path: state.expectedPath,

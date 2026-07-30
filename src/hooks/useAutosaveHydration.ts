@@ -34,6 +34,7 @@ import { resolvePolymeraseName, retiredPolymeraseNotice } from "@/lib/polymerase
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { resetMameAll } from "@/store/mame/resetAll";
+import { useRoundStore } from "@/store/round/roundSlice";
 import type { AppState } from "@/store/appStore";
 import type { AppState as MameAppState } from "@/store/mame/types";
 import type { AutosaveSnapshot, ReadAutosaveResult } from "@/lib/autosave";
@@ -674,6 +675,13 @@ function applyMameSnapshot(snapshot: MameAutosaveSnapshot): void {
   store.setReferencePath(input.reference_path);
   store.setOutputPath(input.output_path);
   if (input.sample_map_path) store.setSampleMapPath(input.sample_map_path);
+
+  if (Array.isArray(snapshot.rounds)) {
+    useRoundStore.setState({
+      rounds: snapshot.rounds,
+      active_round_id: snapshot.active_round_id ?? null,
+    });
+  }
 
   useMameAppStore.setState({
     validationErrors: [],
