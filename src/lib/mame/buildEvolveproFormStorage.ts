@@ -277,6 +277,8 @@ export function hasBuildEvolveproFormValues(
 export function seedBuildEvolveproForm(paths: {
   layoutXlsx?: string;
   gcDataXlsx?: string;
+  round1ReportXlsx?: string;
+  remeasureReportXlsx?: string;
   repBatchXlsx?: string;
   prevEvolveproXlsx?: string;
 }): void {
@@ -285,13 +287,20 @@ export function seedBuildEvolveproForm(paths: {
     ...current,
     layoutXlsx: current.layoutXlsx || paths.layoutXlsx || "",
     gcDataXlsx: current.gcDataXlsx || paths.gcDataXlsx || "",
+    round1ReportXlsx:
+      current.round1ReportXlsx || paths.round1ReportXlsx || "",
+    remeasureReportXlsx:
+      current.remeasureReportXlsx || paths.remeasureReportXlsx || "",
     repBatchXlsx: current.repBatchXlsx || paths.repBatchXlsx || "",
     prevEvolveproXlsx: current.prevEvolveproXlsx || paths.prevEvolveproXlsx || "",
     outputXlsx: current.outputXlsx,
   };
-  // The sample set is a GC data sheet plus a numeric-index confirmation pair.
-  // Select that axis B so the seeded rank files are visible rather than parked
-  // behind a hidden branch, but never override a choice the user already made.
+  const defaultPrimary =
+    current.primarySource === BUILD_EVOLVEPRO_DEFAULT_STATE.primarySource &&
+    !current.gcDataXlsx;
+  if (defaultPrimary && next.round1ReportXlsx) {
+    next.primarySource = "rawReport";
+  }
   if (
     next.confirmationSource === "none" &&
     next.repBatchXlsx &&

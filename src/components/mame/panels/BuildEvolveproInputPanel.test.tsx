@@ -655,19 +655,23 @@ describe("BuildEvolveproInputPanel sample data seeding", () => {
   const SAMPLE = {
     layoutXlsx: "/sample/layout.xlsx",
     gcDataXlsx: "/sample/gc.xlsx",
+    round1ReportXlsx: "/sample/raw-round1.xlsx",
+    remeasureReportXlsx: "/sample/remeasure.xlsx",
     repBatchXlsx: "/sample/rep.xlsx",
     prevEvolveproXlsx: "/sample/prev_ep.xlsx",
   };
 
-  it("selects the numeric-index confirmation the seeded files belong to", () => {
+  it("selects the raw GC-FID primary screen and numeric-index confirmation the seeded files belong to", () => {
     // Without this the seeded rank files land behind an unselected axis and the
     // sample data silently renders as an empty form.
     seedBuildEvolveproForm(SAMPLE);
 
     const state = loadBuildEvolveproFromStorage();
 
-    expect(state.primarySource).toBe("gcSheet");
+    expect(state.primarySource).toBe("rawReport");
     expect(state.confirmationSource).toBe("numericIndex");
+    expect(state.round1ReportXlsx).toBe("/sample/raw-round1.xlsx");
+    expect(state.remeasureReportXlsx).toBe("/sample/remeasure.xlsx");
     expect(state.repBatchXlsx).toBe("/sample/rep.xlsx");
     expect(state.prevEvolveproXlsx).toBe("/sample/prev_ep.xlsx");
   });
@@ -685,7 +689,7 @@ describe("BuildEvolveproInputPanel sample data seeding", () => {
   it("does not select a confirmation source when only one rank file is seeded", () => {
     seedBuildEvolveproForm({
       layoutXlsx: SAMPLE.layoutXlsx,
-      gcDataXlsx: SAMPLE.gcDataXlsx,
+      round1ReportXlsx: SAMPLE.round1ReportXlsx,
       repBatchXlsx: SAMPLE.repBatchXlsx,
     });
 

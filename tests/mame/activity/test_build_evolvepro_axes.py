@@ -222,6 +222,61 @@ def test_raw_report_primary_with_numeric_index_confirmation(files):
     assert rows["20M"] == pytest.approx(0.4)
 
 
+def test_bundled_mame_step3_sample_files_build_raw_primary_numeric_confirmation(
+    tmp_path: Path,
+):
+    root = Path(__file__).resolve().parents[3] / "src-tauri" / "samples" / "mame"
+    output = tmp_path / "mame_step3_sample_output.xlsx"
+
+    result = build_evolvepro_input_axes(
+        output,
+        layout_xlsx=root / "06_mame_plate_layout.xlsx",
+        round1_report_xlsx=root / "11_mame_gc_fid_round1_raw.xlsx",
+        rep_batch_xlsx=root / "12_mame_agilent_numeric_index.xlsx",
+        rank_evolvepro_xlsx=root / "08_mame_evolvepro_raw.xlsx",
+    )
+
+    assert result.primary_source == PRIMARY_RAW_REPORT
+    assert result.confirmation_source == CONFIRM_NUMERIC_INDEX
+    assert result.confidence == "confirmed"
+    assert result.n_variants >= 6
+    assert result.n_authoritative >= 6
+    assert result.mapping.prev_descending is True
+
+    rows = {v: a for v, a in read_evolvepro_rows(output)}
+    assert set(rows) >= {"65A", "203Y", "65T", "64L", "206K", "66H"}
+    assert all(activity > 0 for activity in rows.values())
+
+
+def test_bundled_mame_step3_sample_files_cover_all_seeded_axis_options(
+    tmp_path: Path,
+):
+    root = Path(__file__).resolve().parents[3] / "src-tauri" / "samples" / "mame"
+    expected = {"65A", "203Y", "65T", "64L", "206K", "66H"}
+
+    gc_result = build_evolvepro_input_axes(
+        tmp_path / "gc_sheet_output.xlsx",
+        layout_xlsx=root / "06_mame_plate_layout.xlsx",
+        gc_data_xlsx=root / "10_mame_gc_prenormalised.xlsx",
+    )
+    assert gc_result.primary_source == PRIMARY_GC_SHEET
+    assert gc_result.confirmation_source == CONFIRM_NONE
+    assert {v for v, _ in read_evolvepro_rows(tmp_path / "gc_sheet_output.xlsx")} == expected
+
+    variant_result = build_evolvepro_input_axes(
+        tmp_path / "variant_labels_output.xlsx",
+        layout_xlsx=root / "06_mame_plate_layout.xlsx",
+        round1_report_xlsx=root / "11_mame_gc_fid_round1_raw.xlsx",
+        remeasure_report_xlsx=root / "09_mame_agilent_rep_batch.xlsx",
+    )
+    assert variant_result.primary_source == PRIMARY_RAW_REPORT
+    assert variant_result.confirmation_source == CONFIRM_VARIANT_LABELS
+    assert variant_result.n_authoritative == 6
+    assert {
+        v for v, _ in read_evolvepro_rows(tmp_path / "variant_labels_output.xlsx")
+    } == expected
+
+
 @pytest.mark.parametrize("axis_a", _AXIS_A)
 def test_provisional_build_for_each_primary_source(files, axis_a):
     """Axis B omitted: the baseline alone is written, flagged provisional."""

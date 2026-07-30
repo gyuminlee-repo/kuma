@@ -115,6 +115,8 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       "samples/mame/08_mame_evolvepro_raw.xlsx",
       "samples/mame/09_mame_agilent_rep_batch.xlsx",
       "samples/mame/10_mame_gc_prenormalised.xlsx",
+      "samples/mame/11_mame_gc_fid_round1_raw.xlsx",
+      "samples/mame/12_mame_agilent_numeric_index.xlsx",
       "samples/mame/sample_analysis_result.json",
     ];
     const settled = await Promise.allSettled(relPaths.map((p) => resolveResource(p)));
@@ -143,8 +145,10 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       barcodeSeedsPath,
       designFastaPath,
       prevEvolveproXlsxPath,
-      repBatchXlsxPath,
+      variantLabelsReportPath,
       gcDataXlsxPath,
+      round1ReportXlsxPath,
+      numericIndexXlsxPath,
       analysisResultPath,
     ] = resolved;
 
@@ -170,6 +174,13 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     if (!sampleMapPath) optionalFailures.push("05_mame_sample_map.xlsx");
     if (!barcodeSeedsPath) optionalFailures.push("02_mame_barcode_seeds.xlsx");
     if (!designFastaPath) optionalFailures.push("egfp_with_flanks.fa");
+    if (!variantLabelsReportPath)
+      optionalFailures.push("09_mame_agilent_rep_batch.xlsx");
+    if (!gcDataXlsxPath) optionalFailures.push("10_mame_gc_prenormalised.xlsx");
+    if (!round1ReportXlsxPath)
+      optionalFailures.push("11_mame_gc_fid_round1_raw.xlsx");
+    if (!numericIndexXlsxPath)
+      optionalFailures.push("12_mame_agilent_numeric_index.xlsx");
 
     // Populate input store via cross-slice setters (skip ones that failed).
     const state = get();
@@ -276,7 +287,9 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     seedBuildEvolveproForm({
       layoutXlsx: layoutXlsxPath ?? undefined,
       gcDataXlsx: gcDataXlsxPath ?? undefined,
-      repBatchXlsx: repBatchXlsxPath ?? undefined,
+      round1ReportXlsx: round1ReportXlsxPath ?? undefined,
+      remeasureReportXlsx: variantLabelsReportPath ?? undefined,
+      repBatchXlsx: numericIndexXlsxPath ?? undefined,
       prevEvolveproXlsx: prevEvolveproXlsxPath ?? undefined,
     });
   },
