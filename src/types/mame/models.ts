@@ -189,24 +189,113 @@ export interface ExportResult {
   output_path: string;
 }
 
-export interface JanusExportResult {
-  output_path: string;
-  format: "csv" | "xlsx";
-}
-
 export type JanusExportFormat = "csv" | "xlsx";
 
 /**
  * Destination-well assignment strategy for the Janus mapping export.
  *
- * - "source": dest_well mirrors the source plate position (default).
- * - "compact": dest_well is assigned sequentially from A1 in priority order,
- *   leaving no gaps on the destination plate.
+ * - "compact" (default): dest_well is assigned sequentially from A1 in priority
+ *   order, leaving no gaps on the destination plate. A cell stock plate is a
+ *   new plate, so filling it from the front is the normal case.
+ * - "source": dest_well mirrors the source plate position.
  *
  * Mirrors the ``dest_layout`` param of the ``export_janus_mapping`` RPC
  * (python-core/sidecar_mame/handlers/export.py).
  */
 export type JanusDestLayout = "source" | "compact";
+
+/**
+ * Column set written to the file.
+ *
+ * - "device9" (default): the instrument-native worksheet columns transcribed
+ *   from the workbook the lab imports (`name | type | Dsp. Rack | no |
+ *   Asp. Rack | Asp. Posi | Dsp. Rack | Dsp. Posi | volume`).
+ * - "legacy5": the kuma-internal columns (`name | source_plate | source_well |
+ *   dest_well | priority_score`).
+ */
+export type JanusOutputSchema = "device9" | "legacy5";
+
+/**
+ * Rack numbers of the source plates on the deck, keyed by plate label (P1/P2/P3).
+ *
+ * Assumption, editable in the dialog: source plates come first in the labware
+ * order of the lab workbook `layout` sheet, with the destination plate last.
+ */
+export type JanusSourceRacks = Record<string, number>;
+
+/**
+ * Everything both the export and the preview resolve their behaviour from.
+ *
+ * Mirrors ``JanusSettings`` (kuma_core/mame/export/janus_mapping.py). The RPC
+ * layer takes the same fields in snake_case; `src/lib/mame/janus.ts` does the
+ * conversion in one place so the two calls cannot drift.
+ */
+export interface JanusExportSettings {
+  destLayout: JanusDestLayout;
+  /** Verdict classes to keep. Default: PASS only. */
+  includeVerdicts: VerdictClass[];
+  /** Keep fallback picks (off by default: a fallback pick is not verified). */
+  includeFallback: boolean;
+  outputSchema: JanusOutputSchema;
+  /** Dispense volume in µL (device9 only). */
+  volume: number;
+  /** `type` column value (device9 only). */
+  sampleType: string;
+  /** Liquid class string (device9 only). No default: export is blocked while empty. */
+  liquidClass: string;
+  sourceRacks: JanusSourceRacks;
+  destRack: number;
+}
+
+/** Resolved settings echoed back by the sidecar, in RPC (snake_case) form. */
+export interface JanusResolvedSettings {
+  dest_layout: JanusDestLayout;
+  include_verdicts: VerdictClass[];
+  include_fallback: boolean;
+  output_schema: JanusOutputSchema;
+  volume: number;
+  sample_type: string;
+  liquid_class: string;
+  source_racks: JanusSourceRacks;
+  dest_rack: number;
+  /** Header of the file this policy writes, in order. */
+  columns: string[];
+}
+
+/**
+ * Why a clone was left out of the pick.
+ *
+ * - "failed": the picker marked the replicate failed.
+ * - "no_selection": no plate was selected.
+ * - "missing_verdict": the selected plate carries no verdict record.
+ * - "verdict_class": the verdict is outside `includeVerdicts`.
+ * - "fallback": the pick is a fallback and `includeFallback` is off.
+ */
+export type JanusExclusionReason =
+  | "failed"
+  | "no_selection"
+  | "missing_verdict"
+  | "verdict_class"
+  | "fallback";
+
+export interface JanusExcludedEntry {
+  mutant_id: string;
+  reason: JanusExclusionReason;
+  /** Verdict of the selected plate; empty when no plate was selected. */
+  verdict: VerdictClass | "";
+  /** Deck plate label (P1/P2/P3); empty when no plate was selected. */
+  selected_plate: string;
+  is_fallback: boolean;
+}
+
+export interface JanusExportResult {
+  output_path: string;
+  format: JanusExportFormat;
+  row_count: number;
+  excluded: JanusExcludedEntry[];
+  excluded_count: number;
+  settings: JanusResolvedSettings;
+}
 
 /** One row of the Janus mapping, exactly as it is written to the export file. */
 export interface JanusPreviewRow {
@@ -226,7 +315,9 @@ export interface JanusPreviewRow {
 export type JanusPreviewErrorCode =
   | "unresolved_well"
   | "plate_capacity"
-  | "duplicate_dest_well";
+  | "duplicate_dest_well"
+  | "missing_liquid_class"
+  | "unknown_source_rack";
 
 export interface JanusPreviewError {
   code: JanusPreviewErrorCode;
@@ -244,6 +335,11 @@ export interface JanusPreviewResult {
   rows: JanusPreviewRow[];
   errors: JanusPreviewError[];
   row_count: number;
+  /** Clones left out of the pick, with the reason for each. */
+  excluded: JanusExcludedEntry[];
+  excluded_count: number;
+  /** The policy these rows were built with, echoed back for display. */
+  settings: JanusResolvedSettings;
 }
 
 export type RunReportFormat = "html" | "pdf";

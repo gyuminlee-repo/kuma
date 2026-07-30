@@ -33,6 +33,107 @@ def _custom_barcode_to_seq(custom: str) -> int | None:
     return (f - 1) * 8 + r
 
 
+def _janus_settings_from_params(params: dict):
+    """Build the one ``JanusSettings`` both Janus handlers resolve behaviour from.
+
+    Shared by ``export_janus_mapping`` and ``export_janus_mapping_dry_run`` so
+    the plate the operator approves in the preview is the plate the exported
+    file describes.
+
+    Accepted params (all optional; ``None`` falls back to the default):
+        dest_layout (str): "compact" (default) or "source".
+        include_verdicts (list[str]): verdict classes to keep. Default ["PASS"].
+        include_fallback (bool): keep fallback picks. Default false.
+        output_schema (str): "device9" (default, instrument-native 9 columns) or
+            "legacy5" (kuma-internal 5 columns).
+        volume (number): dispense volume in µL (device9 only).
+        sample_type (str): ``type`` column value (device9 only).
+        liquid_class (str): liquid/labware class string (device9 only, required).
+        source_racks (dict[str, int]): plate label -> Asp. Rack number.
+        dest_rack (int): Dsp. Rack number.
+
+    Raises ``ValueError`` on any invalid value.
+    """
+    from kuma_core.mame.export.janus_mapping import (
+        DEFAULT_DEST_RACK,
+        DEFAULT_LIQUID_CLASS,
+        DEFAULT_SAMPLE_TYPE,
+        DEFAULT_SOURCE_RACKS,
+        DEFAULT_VOLUME_UL,
+        DEST_LAYOUT_COMPACT,
+        SCHEMA_DEVICE9,
+        JanusSettings,
+        normalize_include_verdicts,
+    )
+
+    # `or` (not a get default) so an explicit JSON null also falls back.
+    dest_layout = str(params.get("dest_layout") or DEST_LAYOUT_COMPACT).lower()
+    output_schema = str(params.get("output_schema") or SCHEMA_DEVICE9).lower()
+    include_verdicts = normalize_include_verdicts(params.get("include_verdicts"))
+    include_fallback = bool(params.get("include_fallback") or False)
+
+    raw_volume = params.get("volume")
+    if raw_volume is None:
+        volume = DEFAULT_VOLUME_UL
+    else:
+        try:
+            volume = float(raw_volume)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"Invalid volume {raw_volume!r}. Expected a positive number of µL."
+            ) from exc
+
+    sample_type = str(params.get("sample_type") or DEFAULT_SAMPLE_TYPE)
+    liquid_class = str(
+        params.get("liquid_class")
+        if params.get("liquid_class") is not None
+        else DEFAULT_LIQUID_CLASS
+    )
+
+    raw_racks = params.get("source_racks")
+    if raw_racks is None:
+        source_racks = tuple(DEFAULT_SOURCE_RACKS.items())
+    else:
+        if not isinstance(raw_racks, dict):
+            raise ValueError(
+                "source_racks must be an object mapping plate label to rack number."
+            )
+        pairs: list[tuple[str, int]] = []
+        for label, rack in raw_racks.items():
+            try:
+                pairs.append((str(label), int(rack)))
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"Invalid rack number {rack!r} for source plate {label!r}. "
+                    "Expected an integer."
+                ) from exc
+        source_racks = tuple(pairs)
+
+    raw_dest_rack = params.get("dest_rack")
+    if raw_dest_rack is None:
+        dest_rack = DEFAULT_DEST_RACK
+    else:
+        try:
+            dest_rack = int(raw_dest_rack)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"Invalid dest_rack {raw_dest_rack!r}. Expected an integer."
+            ) from exc
+
+    # JanusSettings.__post_init__ validates dest_layout, output_schema, volume.
+    return JanusSettings(
+        dest_layout=dest_layout,
+        include_verdicts=include_verdicts,
+        include_fallback=include_fallback,
+        output_schema=output_schema,
+        volume=volume,
+        sample_type=sample_type,
+        liquid_class=liquid_class,
+        source_racks=source_racks,
+        dest_rack=dest_rack,
+    )
+
+
 def handle_export_excel(params: dict) -> dict:
     """Rewrite the Excel workbook from cached analyze artefacts.
 
@@ -149,19 +250,24 @@ def handle_export_janus_mapping(params: dict) -> dict:
     Params:
         output (str): destination file path (.csv or .xlsx).
         format (str, optional): "csv" (default) or "xlsx".
-        dest_layout (str, optional): "source" (default, dest_well mirrors the
-            source position) or "compact" (dest_well assigned sequentially from
-            A1 in priority order).
+        plus every selection and instrument param of ``_janus_settings_from_params``.
+
+    Returns the written path alongside ``excluded`` (clones left out, with the
+    reason) so a retry plan can be built from the same call. The excluded list
+    comes from a preview run with the *same* settings object, which is why the
+    core export functions still return only a path.
 
     Raises ``RuntimeError`` if no analyze has been run in this session.
     Raises ``ValueError`` on an invalid argument, or when the core rejects the
-    row set (unresolved well, >96 picks, duplicate dest_well).
+    row set (unresolved well, >96 picks, duplicate dest_well, missing liquid
+    class, unmapped source rack).
 
     Phase 1 note: priority_score column carries file_size_kb as a volume proxy.
     G6/A6 round will replace with actual read_count once fasta_parser exposes
     per-record counts.
     """
     from kuma_core.mame.export import export_mame_janus_csv, export_mame_janus_xlsx
+    from kuma_core.mame.export.janus_mapping import build_janus_preview_rows
 
     state = get_state()
     if state.last_replicates is None:
@@ -177,12 +283,7 @@ def handle_export_janus_mapping(params: dict) -> dict:
     if fmt not in ("csv", "xlsx"):
         raise ValueError(f"Invalid format '{fmt}'. Expected 'csv' or 'xlsx'.")
 
-    # `or` (not a get default) so an explicit JSON null also falls back.
-    dest_layout = str(params.get("dest_layout") or "source").lower()
-    if dest_layout not in ("source", "compact"):
-        raise ValueError(
-            f"Invalid dest_layout '{dest_layout}'. Expected 'source' or 'compact'."
-        )
+    settings = _janus_settings_from_params(params)
 
     # G3: pass cached run meta to embed in the Janus output.
     run_meta = state.last_run_meta  # NgsRunMeta | None
@@ -193,17 +294,28 @@ def handle_export_janus_mapping(params: dict) -> dict:
             output,
             ngs_run_meta=run_meta,  # type: ignore[arg-type]
             kuma_version=KUMA_VERSION,
-            dest_layout=dest_layout,
+            settings=settings,
         )
     else:
         export_mame_janus_csv(
             state.last_replicates,
             output,
             ngs_run_meta=run_meta,  # type: ignore[arg-type]
-            dest_layout=dest_layout,
+            settings=settings,
         )
 
-    return {"output_path": str(output), "format": fmt}
+    # Same settings object as the export above, so the exclusion list describes
+    # exactly the file that was just written.
+    preview = build_janus_preview_rows(state.last_replicates, settings=settings)
+
+    return {
+        "output_path": str(output),
+        "format": fmt,
+        "row_count": preview["row_count"],
+        "excluded": preview["excluded"],
+        "excluded_count": preview["excluded_count"],
+        "settings": preview["settings"],
+    }
 
 
 def handle_export_janus_mapping_dry_run(params: dict) -> dict:
@@ -214,15 +326,17 @@ def handle_export_janus_mapping_dry_run(params: dict) -> dict:
     payload instead of raising, so the dialog can show every problem before the
     user commits to a file. The export path keeps its fail-fast behaviour.
 
-    Params:
-        dest_layout (str, optional): "source" (default) or "compact".
+    Params: every selection and instrument param of
+    ``_janus_settings_from_params`` (no ``output``: nothing is written).
 
-    Returns ``{"rows": [...], "errors": [...], "row_count": N}``. Each error is
-    ``{"code", "message", "mutant_ids"}`` with code one of ``unresolved_well``,
-    ``plate_capacity``, ``duplicate_dest_well``.
+    Returns ``{"rows", "errors", "row_count", "excluded", "excluded_count",
+    "settings"}``. Each error is ``{"code", "message", "mutant_ids"}`` with code
+    one of ``unresolved_well``, ``plate_capacity``, ``duplicate_dest_well``,
+    ``missing_liquid_class``, ``unknown_source_rack``. Each excluded entry is
+    ``{"mutant_id", "reason", "verdict", "selected_plate", "is_fallback"}``.
 
     Raises ``RuntimeError`` if no analyze has been run in this session, and
-    ``ValueError`` on an invalid ``dest_layout``.
+    ``ValueError`` on an invalid setting.
     """
     from kuma_core.mame.export.janus_mapping import build_janus_preview_rows
 
@@ -233,14 +347,8 @@ def handle_export_janus_mapping_dry_run(params: dict) -> dict:
             "'export_janus_mapping_dry_run'."
         )
 
-    # `or` (not a get default) so an explicit JSON null also falls back.
-    dest_layout = str(params.get("dest_layout") or "source").lower()
-    if dest_layout not in ("source", "compact"):
-        raise ValueError(
-            f"Invalid dest_layout '{dest_layout}'. Expected 'source' or 'compact'."
-        )
-
-    return build_janus_preview_rows(state.last_replicates, dest_layout=dest_layout)
+    settings = _janus_settings_from_params(params)
+    return build_janus_preview_rows(state.last_replicates, settings=settings)
 
 
 __all__ = [

@@ -666,8 +666,10 @@
         "outputPathPlaceholder": "目標 .{{ext}} 檔案路徑",
         "outputPathAriaLabel": "Janus mapping 的輸出檔案路徑",
         "browseAriaLabel": "瀏覽 Janus mapping 的儲存路徑",
-        "columnsNote": "列: well, custom_barcode, variant, verdict 以及 plate 座標。",
-        "phase1Note": "Phase 1: 僅包含透過的 well。",
+        "columnsNote": {
+          "device9": "欄位：name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume。",
+          "legacy5": "欄位：name, source_plate, source_well, dest_well, priority_score。"
+        },
         "exportJanus": "匯出 Janus Mapping",
         "exporting": "匯出中…",
         "exported": "匯出成功",
@@ -678,7 +680,37 @@
         "previewEmpty": "沒有可匯出的已確認 pick。",
         "previewFailed": "無法載入預覽：{{message}}",
         "previewRetry": "重試預覽",
-        "previewBlocked": "請先解決以下問題再匯出。"
+        "previewBlocked": "請先解決以下問題再匯出。",
+        "schemaLabel": "輸出欄位結構",
+        "schemaAriaLabel": "Janus 輸出欄位結構",
+        "schemaOption": {
+          "device9": "儀器格式（9 欄）",
+          "legacy5": "kuma 格式（5 欄）"
+        },
+        "schemaHint": {
+          "device9": "依儀器活頁簿欄位輸出：name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume。",
+          "legacy5": "依 kuma 內部欄位輸出：name, source_plate, source_well, dest_well, priority_score。"
+        },
+        "instrumentHeading": "儀器設定",
+        "volumeLabel": "Volume (µL)",
+        "liquidClassLabel": "Liquid class",
+        "liquidClassPlaceholder": "例如：Cell 100ul",
+        "liquidClassHint": "Liquid class 決定機器人的移液行為，因此不設預設值。未填寫前無法匯出。",
+        "deckHeading": "Deck 配置",
+        "sampleTypeLabel": "type 欄位值",
+        "sourceRackLabel": "Asp. Rack {{plate}}",
+        "destRackLabel": "Dsp. Rack",
+        "rackHint": "假設的 rack 編號：依活頁簿 labware 順序，source plate 在前，destination 在後。請依實際 deck 調整。",
+        "excludedHeading": "已排除 {{count}} 個",
+        "excludedNone": "沒有被排除的選殖株。",
+        "excludedReason": {
+          "failed": "失敗",
+          "no_selection": "未選定 plate",
+          "missing_verdict": "缺少 verdict 紀錄",
+          "verdict_class": "未納入的 verdict class",
+          "fallback": "Fallback pick"
+        },
+        "selectionNote": "僅納入 PASS 選殖株。AMBIGUOUS 帶有附帶 indel，LOWDEPTH 未經驗證，兩者都會列在排除清單中。"
       },
       "runReport": {
         "title": "匯出執行報告",

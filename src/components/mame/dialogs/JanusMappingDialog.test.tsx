@@ -38,11 +38,38 @@ import {
   fetchMameJanusPreview,
   handleExportMameJanusMapping,
 } from "@/lib/mame/janus";
-import type { JanusPreviewResult } from "@/types/mame/models";
+import type {
+  JanusExcludedEntry,
+  JanusPreviewResult,
+  JanusResolvedSettings,
+} from "@/types/mame/models";
 import { JanusMappingDialog } from "./JanusMappingDialog";
 
 const mockPreview = vi.mocked(fetchMameJanusPreview);
 const mockExport = vi.mocked(handleExportMameJanusMapping);
+
+const SETTINGS: JanusResolvedSettings = {
+  dest_layout: "compact",
+  include_verdicts: ["PASS"],
+  include_fallback: false,
+  output_schema: "device9",
+  volume: 100,
+  sample_type: "cell",
+  liquid_class: "Cell 100ul",
+  source_racks: { P1: 1, P2: 2, P3: 3 },
+  dest_rack: 4,
+  columns: [
+    "name",
+    "type",
+    "Dsp. Rack",
+    "no",
+    "Asp. Rack",
+    "Asp. Posi",
+    "Dsp. Rack",
+    "Dsp. Posi",
+    "volume",
+  ],
+};
 
 const CLEAN: JanusPreviewResult = {
   rows: [
@@ -63,6 +90,9 @@ const CLEAN: JanusPreviewResult = {
   ],
   errors: [],
   row_count: 2,
+  excluded: [],
+  excluded_count: 0,
+  settings: SETTINGS,
 };
 
 const DUPLICATE: JanusPreviewResult = {
@@ -90,7 +120,34 @@ const DUPLICATE: JanusPreviewResult = {
     },
   ],
   row_count: 2,
+  excluded: [],
+  excluded_count: 0,
+  settings: SETTINGS,
 };
+
+const EXCLUSIONS: JanusExcludedEntry[] = [
+  {
+    mutant_id: "AMBIG",
+    reason: "verdict_class",
+    verdict: "AMBIGUOUS",
+    selected_plate: "P1",
+    is_fallback: false,
+  },
+  {
+    mutant_id: "LOWDEP",
+    reason: "verdict_class",
+    verdict: "LOWDEPTH",
+    selected_plate: "P1",
+    is_fallback: false,
+  },
+  {
+    mutant_id: "FB",
+    reason: "fallback",
+    verdict: "PASS",
+    selected_plate: "P2",
+    is_fallback: true,
+  },
+];
 
 function exportButton(): HTMLButtonElement {
   return screen.getByRole("button", { name: /Export Janus Mapping/i });
@@ -104,7 +161,11 @@ beforeEach(() => {
 describe("JanusMappingDialog preview", () => {
   it("fetches the preview when the dialog opens", async () => {
     render(<JanusMappingDialog open onOpenChange={() => {}} />);
-    await waitFor(() => expect(mockPreview).toHaveBeenCalledWith("source"));
+    await waitFor(() =>
+      expect(mockPreview).toHaveBeenCalledWith(
+        expect.objectContaining({ destLayout: "compact", outputSchema: "device9" }),
+      ),
+    );
     expect(await screen.findByText("HIGH")).toBeInTheDocument();
     expect(screen.getByText("2 rows")).toBeInTheDocument();
   });
@@ -116,10 +177,68 @@ describe("JanusMappingDialog preview", () => {
 
   it("refetches when the destination layout changes", async () => {
     render(<JanusMappingDialog open onOpenChange={() => {}} />);
-    await waitFor(() => expect(mockPreview).toHaveBeenCalledWith("source"));
+    await waitFor(() => expect(mockPreview).toHaveBeenCalled());
 
-    fireEvent.click(screen.getByLabelText("Compact from A1"));
-    await waitFor(() => expect(mockPreview).toHaveBeenCalledWith("compact"));
+    fireEvent.click(screen.getByLabelText("Source position"));
+    await waitFor(() =>
+      expect(mockPreview).toHaveBeenCalledWith(
+        expect.objectContaining({ destLayout: "source" }),
+      ),
+    );
+  });
+
+  it("refetches when the liquid class is typed in", async () => {
+    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    await waitFor(() => expect(mockPreview).toHaveBeenCalled());
+
+    fireEvent.change(screen.getByLabelText("Liquid class"), {
+      target: { value: "Cell 100ul" },
+    });
+    await waitFor(() =>
+      expect(mockPreview).toHaveBeenCalledWith(
+        expect.objectContaining({ liquidClass: "Cell 100ul" }),
+      ),
+    );
+  });
+
+  it("sends the same settings to the export that the preview was built with", async () => {
+    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    // Wait for the first (debounced) preview before editing, so the edit is a
+    // second request rather than a reset of the pending timer.
+    await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(1));
+
+    fireEvent.change(screen.getByLabelText("Liquid class"), {
+      target: { value: "Cell 100ul" },
+    });
+    await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(exportButton()).toBeEnabled());
+
+    fireEvent.click(exportButton());
+    await waitFor(() => expect(mockExport).toHaveBeenCalled());
+    const previewArg = mockPreview.mock.calls.at(-1)?.[0];
+    expect(mockExport.mock.calls[0][2]).toEqual(previewArg);
+  });
+
+  it("lists the excluded clones with the reason for each", async () => {
+    mockPreview.mockResolvedValue({
+      ...CLEAN,
+      excluded: EXCLUSIONS,
+      excluded_count: EXCLUSIONS.length,
+    });
+    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+
+    expect(await screen.findByText("Excluded: 3")).toBeInTheDocument();
+    const verdictRow = screen.getByText("Verdict class not included").closest("li");
+    expect(verdictRow?.textContent).toContain("AMBIG, LOWDEP");
+    const fallbackRow = screen.getByText("Fallback pick").closest("li");
+    expect(fallbackRow?.textContent).toContain("FB");
+  });
+
+  it("says so when nothing was excluded", async () => {
+    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    expect(
+      await screen.findByText("Every clone made the pick."),
+    ).toBeInTheDocument();
   });
 
   it("shows the exact rows the export would write", async () => {
@@ -169,7 +288,7 @@ describe("JanusMappingDialog preview", () => {
     render(<JanusMappingDialog open onOpenChange={() => {}} />);
     await waitFor(() => expect(exportButton()).toBeDisabled());
 
-    fireEvent.click(screen.getByLabelText("Compact from A1"));
+    fireEvent.click(screen.getByLabelText("Source position"));
     await waitFor(() => expect(exportButton()).toBeEnabled());
   });
 
@@ -193,7 +312,14 @@ describe("JanusMappingDialog preview", () => {
   });
 
   it("renders an empty state rather than a table when nothing was picked", async () => {
-    mockPreview.mockResolvedValue({ rows: [], errors: [], row_count: 0 });
+    mockPreview.mockResolvedValue({
+      rows: [],
+      errors: [],
+      row_count: 0,
+      excluded: [],
+      excluded_count: 0,
+      settings: SETTINGS,
+    });
     render(<JanusMappingDialog open onOpenChange={() => {}} />);
 
     expect(
@@ -214,10 +340,11 @@ describe("JanusMappingDialog preview", () => {
       .mockResolvedValueOnce(CLEAN);
 
     render(<JanusMappingDialog open onOpenChange={() => {}} />);
-    fireEvent.click(screen.getByLabelText("Compact from A1"));
+    await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByLabelText("Source position"));
     await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(2));
 
-    // The first (source-layout) call now lands late carrying a duplicate error.
+    // The first (compact-layout) call now lands late carrying a duplicate error.
     resolveFirst?.(DUPLICATE);
     await waitFor(() => expect(exportButton()).toBeEnabled());
     expect(

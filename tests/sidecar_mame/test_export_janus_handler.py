@@ -68,21 +68,41 @@ def seeded_state():
     reset_state()
 
 
+# The handler defaults to the instrument-native 9-column sheet with a compact
+# destination layout. Cases that assert the kuma-internal 5-column output at the
+# source position pass this explicitly; the defaults themselves are asserted by
+# the test_default_* cases below.
+_LEGACY_SOURCE = {"output_schema": "legacy5", "dest_layout": "source"}
+
+
 def _read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8") as fh:
         return list(csv.DictReader(fh))
 
 
-def test_default_layout_mirrors_source(tmp_path: Path, seeded_state) -> None:
-    out = tmp_path / "default.csv"
-    handle_export_janus_mapping({"output": str(out)})
+def test_source_layout_mirrors_source(tmp_path: Path, seeded_state) -> None:
+    out = tmp_path / "source.csv"
+    handle_export_janus_mapping({"output": str(out), **_LEGACY_SOURCE})
     rows = _read_csv(out)
     assert [r["dest_well"] for r in rows] == ["E7", "H12"]
 
 
+def test_default_layout_is_compact(tmp_path: Path, seeded_state) -> None:
+    """A stock plate is a new plate, so the default fills it from A1."""
+    out = tmp_path / "default.csv"
+    handle_export_janus_mapping(
+        {"output": str(out), "output_schema": "legacy5", "liquid_class": "Cell"}
+    )
+    rows = _read_csv(out)
+    assert [r["dest_well"] for r in rows] == ["A1", "B1"]
+    assert [r["source_well"] for r in rows] == ["E7", "H12"]
+
+
 def test_compact_layout_reaches_core_via_csv(tmp_path: Path, seeded_state) -> None:
     out = tmp_path / "compact.csv"
-    handle_export_janus_mapping({"output": str(out), "dest_layout": "compact"})
+    handle_export_janus_mapping(
+        {"output": str(out), "dest_layout": "compact", "output_schema": "legacy5"}
+    )
     rows = _read_csv(out)
     assert [r["dest_well"] for r in rows] == ["A1", "B1"]
     assert [r["source_well"] for r in rows] == ["E7", "H12"]
@@ -91,7 +111,12 @@ def test_compact_layout_reaches_core_via_csv(tmp_path: Path, seeded_state) -> No
 def test_compact_layout_reaches_core_via_xlsx(tmp_path: Path, seeded_state) -> None:
     out = tmp_path / "compact.xlsx"
     handle_export_janus_mapping(
-        {"output": str(out), "format": "xlsx", "dest_layout": "compact"}
+        {
+            "output": str(out),
+            "format": "xlsx",
+            "dest_layout": "compact",
+            "output_schema": "legacy5",
+        }
     )
     ws = openpyxl.load_workbook(out)["Janus Mapping"]
     header = [c.value for c in ws[1]]
@@ -120,7 +145,7 @@ def test_duplicate_dest_surfaces_through_handler(tmp_path: Path) -> None:
     try:
         out = tmp_path / "dup.csv"
         with pytest.raises(ValueError, match="duplicate dest_well"):
-            handle_export_janus_mapping({"output": str(out)})
+            handle_export_janus_mapping({"output": str(out), **_LEGACY_SOURCE})
     finally:
         reset_state()
 
@@ -137,10 +162,12 @@ def test_dry_run_requires_a_prior_analyze() -> None:
 
 
 def test_dry_run_returns_rows_without_writing(tmp_path: Path, seeded_state) -> None:
-    result = handle_export_janus_mapping_dry_run({})
+    result = handle_export_janus_mapping_dry_run(dict(_LEGACY_SOURCE))
     assert result["row_count"] == 2
     assert [r["dest_well"] for r in result["rows"]] == ["E7", "H12"]
     assert result["errors"] == []
+    assert result["excluded"] == []
+    assert result["excluded_count"] == 0
     assert list(tmp_path.iterdir()) == [], "dry run must not create files"
 
 
@@ -150,9 +177,10 @@ def test_dry_run_passes_dest_layout_to_core(seeded_state) -> None:
     assert [r["source_well"] for r in result["rows"]] == ["E7", "H12"]
 
 
-def test_dry_run_treats_null_dest_layout_as_source(seeded_state) -> None:
+def test_dry_run_treats_null_dest_layout_as_compact(seeded_state) -> None:
+    """An explicit JSON null must land on the default, not on a rejected value."""
     result = handle_export_janus_mapping_dry_run({"dest_layout": None})
-    assert [r["dest_well"] for r in result["rows"]] == ["E7", "H12"]
+    assert [r["dest_well"] for r in result["rows"]] == ["A1", "B1"]
 
 
 def test_dry_run_rejects_invalid_dest_layout(seeded_state) -> None:
@@ -171,11 +199,13 @@ def test_dry_run_reports_duplicate_instead_of_raising() -> None:
         run_meta=None,
     )
     try:
-        result = handle_export_janus_mapping_dry_run({})
+        result = handle_export_janus_mapping_dry_run(dict(_LEGACY_SOURCE))
         assert [e["code"] for e in result["errors"]] == ["duplicate_dest_well"]
         assert result["errors"][0]["mutant_ids"] == ["P1_A1", "P2_A1"]
         # Same state, compact layout: the documented way out reports clean.
-        compact = handle_export_janus_mapping_dry_run({"dest_layout": "compact"})
+        compact = handle_export_janus_mapping_dry_run(
+            {"dest_layout": "compact", "output_schema": "legacy5"}
+        )
         assert compact["errors"] == []
     finally:
         reset_state()

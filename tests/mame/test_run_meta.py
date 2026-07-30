@@ -20,6 +20,7 @@ import pytest
 
 from kuma_core.mame.export.excel_writer import _write_kuma_meta_sheet, write_excel
 from kuma_core.mame.export.janus_mapping import (
+    JanusSettings,
     export_mame_janus_csv,
     export_mame_janus_xlsx,
 )
@@ -51,6 +52,11 @@ _SAMPLE_SHEET_CONTENT = """\
 flow_cell_product_code,FLO-MIN106D
 kit,SQK-LSK109
 """
+
+
+# These cases assert the run-meta comment and the __kuma_meta__ sheet on the
+# kuma-internal 5-column output, which is no longer the default schema.
+_LEGACY5 = JanusSettings(output_schema="legacy5", dest_layout="source")
 
 
 def _make_run_dir(parent: Path, dirname: str = "run_xyz") -> Path:
@@ -309,7 +315,7 @@ def test_janus_csv_comment_line_with_meta(tmp_path: Path) -> None:
         basecalling_enabled=True,
         raw_run_dir="/data/run_xyz",
     )
-    export_mame_janus_csv([rr], out, ngs_run_meta=meta)
+    export_mame_janus_csv([rr], out, ngs_run_meta=meta, settings=_LEGACY5)
 
     lines = out.read_text(encoding="utf-8").splitlines()
     assert lines[0].startswith("# kuma_run_meta:"), f"Expected comment line, got: {lines[0]}"
@@ -324,7 +330,7 @@ def test_janus_csv_no_comment_when_meta_none(tmp_path: Path) -> None:
     """
     rr = _make_replicate("V5F", "NB01", "1_1", size_kb=100.0)
     out = tmp_path / "janus_no_comment.csv"
-    export_mame_janus_csv([rr], out, ngs_run_meta=None)
+    export_mame_janus_csv([rr], out, ngs_run_meta=None, settings=_LEGACY5)
 
     with out.open(encoding="utf-8") as fh:
         reader = csv.DictReader(fh)
@@ -343,7 +349,7 @@ def test_janus_csv_comment_dict_reader_skips_correctly(tmp_path: Path) -> None:
         sample_id=None, kit=None, started=None,
         basecalling_enabled=None, raw_run_dir=None,
     )
-    export_mame_janus_csv([rr], out, ngs_run_meta=meta)
+    export_mame_janus_csv([rr], out, ngs_run_meta=meta, settings=_LEGACY5)
 
     with out.open(encoding="utf-8") as fh:
         # Skip comment line before handing to DictReader
@@ -359,7 +365,7 @@ def test_janus_xlsx_kuma_meta_sheet_present(tmp_path: Path) -> None:
     """Janus XLSX always contains __kuma_meta__ sheet."""
     rr = _make_replicate("V5F", "NB01", "1_1", size_kb=100.0)
     out = tmp_path / "janus.xlsx"
-    export_mame_janus_xlsx([rr], out, ngs_run_meta=None)
+    export_mame_janus_xlsx([rr], out, ngs_run_meta=None, settings=_LEGACY5)
     wb = openpyxl.load_workbook(out)
     assert "__kuma_meta__" in wb.sheetnames, "__kuma_meta__ sheet missing from Janus XLSX"
 
@@ -378,7 +384,7 @@ def test_janus_xlsx_kuma_meta_values(tmp_path: Path) -> None:
         raw_run_dir="/data/run_abc",
     )
     out = tmp_path / "janus_kv.xlsx"
-    export_mame_janus_xlsx([rr], out, ngs_run_meta=meta, kuma_version="2.0.0")
+    export_mame_janus_xlsx([rr], out, ngs_run_meta=meta, kuma_version="2.0.0", settings=_LEGACY5)
     wb = openpyxl.load_workbook(out)
     ws = wb["__kuma_meta__"]
     kv = {row[0]: row[1] for row in ws.iter_rows(min_row=2, values_only=True) if row[0]}
@@ -392,7 +398,7 @@ def test_janus_xlsx_legacy_sheet_intact(tmp_path: Path) -> None:
     """Janus Mapping sheet (data) is still present after meta sheet added."""
     rr = _make_replicate("V5F", "NB01", "1_1", size_kb=100.0)
     out = tmp_path / "janus_legacy.xlsx"
-    export_mame_janus_xlsx([rr], out, ngs_run_meta=None)
+    export_mame_janus_xlsx([rr], out, ngs_run_meta=None, settings=_LEGACY5)
     wb = openpyxl.load_workbook(out)
     assert "Janus Mapping" in wb.sheetnames
     assert "__kuma_meta__" in wb.sheetnames

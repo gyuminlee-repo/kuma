@@ -24,7 +24,7 @@ from kuma_core.mame.export.excel_writer import (
     VERDICT_FILL,
 )
 from kuma_core.mame.export.nb_label import nb_label
-from kuma_core.mame.export.janus_mapping import _JANUS_HEADER
+from kuma_core.mame.export.janus_mapping import _JANUS_HEADER, JanusSettings
 from kuma_core.mame.report.builder import build_run_report_data
 from kuma_core.mame.report.html_renderer import render_html
 from kuma_core.mame.models import (
@@ -387,6 +387,12 @@ def test_fallback_ambiguous_selection_no_matrix_o(tmp_path: Path) -> None:
 # Janus mapping export (K4)
 # ---------------------------------------------------------------------------
 
+# The Janus export now defaults to the instrument-native 9-column sheet with a
+# compact destination layout. The cases below predate both defaults and assert
+# the kuma-internal 5-column output at the source position, so they pin that
+# policy explicitly. New-default behaviour lives in tests/mame/test_janus_policy.py.
+_LEGACY5 = JanusSettings(output_schema="legacy5", dest_layout="source")
+
 
 def _make_janus_replicates() -> list[ReplicateResult]:
     """Two confirmed replicates with different sizes (for sort-order test)."""
@@ -410,7 +416,7 @@ def _make_janus_replicates() -> list[ReplicateResult]:
 def test_janus_csv_header(tmp_path: Path) -> None:
     """CSV output must have the exact Janus header."""
     out = tmp_path / "janus.csv"
-    export_mame_janus_csv(_make_janus_replicates(), out)
+    export_mame_janus_csv(_make_janus_replicates(), out, settings=_LEGACY5)
     with out.open(encoding="utf-8") as fh:
         reader = csv.DictReader(fh)
         assert reader.fieldnames == _JANUS_HEADER
@@ -419,7 +425,7 @@ def test_janus_csv_header(tmp_path: Path) -> None:
 def test_janus_csv_sorted_desc(tmp_path: Path) -> None:
     """Rows must be sorted by priority_score DESC (V5F=200 before K7R=50)."""
     out = tmp_path / "janus_sorted.csv"
-    export_mame_janus_csv(_make_janus_replicates(), out)
+    export_mame_janus_csv(_make_janus_replicates(), out, settings=_LEGACY5)
     with out.open(encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
     assert rows[0]["name"] == "V5F", "highest priority_score should come first"
@@ -429,7 +435,7 @@ def test_janus_csv_sorted_desc(tmp_path: Path) -> None:
 def test_janus_csv_plate_label(tmp_path: Path) -> None:
     """NB01->P1, NB02->P2 mapping must be applied in source_plate column."""
     out = tmp_path / "janus_plate.csv"
-    export_mame_janus_csv(_make_janus_replicates(), out)
+    export_mame_janus_csv(_make_janus_replicates(), out, settings=_LEGACY5)
     with out.open(encoding="utf-8") as fh:
         rows = {r["name"]: r for r in csv.DictReader(fh)}
     assert rows["V5F"]["source_plate"] == "P1"
@@ -439,7 +445,7 @@ def test_janus_csv_plate_label(tmp_path: Path) -> None:
 def test_janus_xlsx_sheet_name(tmp_path: Path) -> None:
     """XLSX output must have 'Janus Mapping' sheet with correct header."""
     out = tmp_path / "janus.xlsx"
-    export_mame_janus_xlsx(_make_janus_replicates(), out)
+    export_mame_janus_xlsx(_make_janus_replicates(), out, settings=_LEGACY5)
     wb = openpyxl.load_workbook(out)
     assert "Janus Mapping" in wb.sheetnames
     ws = wb["Janus Mapping"]
@@ -458,7 +464,7 @@ def test_janus_excludes_failed(tmp_path: Path) -> None:
     )
     ok_rr = _make_replicate("V5F", "NB01", "1_1")
     out = tmp_path / "janus_no_failed.csv"
-    export_mame_janus_csv([failed_rr, ok_rr], out)
+    export_mame_janus_csv([failed_rr, ok_rr], out, settings=_LEGACY5)
     with out.open(encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
     names = [r["name"] for r in rows]

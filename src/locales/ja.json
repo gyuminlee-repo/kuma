@@ -666,8 +666,10 @@
         "outputPathPlaceholder": "ターゲット .{{ext}} ファイルパス",
         "outputPathAriaLabel": "Janus マッピング出力ファイルパス",
         "browseAriaLabel": "Janus マッピング保存先を参照",
-        "columnsNote": "カラム: well, custom_barcode, variant, verdict、plate 座標。",
-        "phase1Note": "Phase 1: 合格 well のみ含まれます。",
+        "columnsNote": {
+          "device9": "列: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "列: name, source_plate, source_well, dest_well, priority_score."
+        },
         "exportJanus": "Janus マッピングをエクスポート",
         "exporting": "エクスポート中…",
         "exported": "エクスポートが完了しました",
@@ -678,7 +680,37 @@
         "previewEmpty": "エクスポートできる確定 pick がありません。",
         "previewFailed": "プレビューを取得できません: {{message}}",
         "previewRetry": "プレビューを再試行",
-        "previewBlocked": "以下の問題を解決してからエクスポートしてください。"
+        "previewBlocked": "以下の問題を解決してからエクスポートしてください。",
+        "schemaLabel": "出力列の構成",
+        "schemaAriaLabel": "Janus 出力列スキーマ",
+        "schemaOption": {
+          "device9": "装置様式 (9列)",
+          "legacy5": "kuma 様式 (5列)"
+        },
+        "schemaHint": {
+          "device9": "装置ワークブックの列をそのまま出力します: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "kuma 内部の列を出力します: name, source_plate, source_well, dest_well, priority_score."
+        },
+        "instrumentHeading": "装置設定",
+        "volumeLabel": "Volume (µL)",
+        "liquidClassLabel": "Liquid class",
+        "liquidClassPlaceholder": "例: Cell 100ul",
+        "liquidClassHint": "Liquid class はロボットのピペッティング挙動を決めるため既定値を置きません。入力するまで書き出しはできません。",
+        "deckHeading": "Deck 構成",
+        "sampleTypeLabel": "type 列の値",
+        "sourceRackLabel": "Asp. Rack {{plate}}",
+        "destRackLabel": "Dsp. Rack",
+        "rackHint": "想定した rack 番号: ワークブックの labware 順に source plate が先、destination が最後。実際の deck に合わせて変更してください。",
+        "excludedHeading": "除外 {{count}} 件",
+        "excludedNone": "除外されたクローンはありません。",
+        "excludedReason": {
+          "failed": "失敗",
+          "no_selection": "選択された plate なし",
+          "missing_verdict": "verdict レコードなし",
+          "verdict_class": "対象外の verdict class",
+          "fallback": "Fallback pick"
+        },
+        "selectionNote": "PASS のクローンのみを対象とします。AMBIGUOUS は副次的な indel を伴い、LOWDEPTH は未検証のため除外一覧に表示されます。"
       },
       "runReport": {
         "title": "Run レポートをエクスポート",

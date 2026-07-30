@@ -666,8 +666,10 @@
         "outputPathPlaceholder": "Путь к целевому файлу .{{ext}}",
         "outputPathAriaLabel": "Путь к выходному файлу Janus mapping",
         "browseAriaLabel": "Выбрать путь сохранения Janus mapping",
-        "columnsNote": "Колонки: well, custom_barcode, variant, verdict и координаты plate.",
-        "phase1Note": "Phase 1: включаются только прошедшие wells.",
+        "columnsNote": {
+          "device9": "Столбцы: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "Столбцы: name, source_plate, source_well, dest_well, priority_score."
+        },
         "exportJanus": "Экспорт Janus Mapping",
         "exporting": "Экспорт…",
         "exported": "Экспорт успешно завершён",
@@ -678,7 +680,37 @@
         "previewEmpty": "Нет подтверждённых pick для экспорта.",
         "previewFailed": "Предпросмотр недоступен: {{message}}",
         "previewRetry": "Повторить предпросмотр",
-        "previewBlocked": "Устраните проблемы ниже перед экспортом."
+        "previewBlocked": "Устраните проблемы ниже перед экспортом.",
+        "schemaLabel": "Столбцы вывода",
+        "schemaAriaLabel": "Схема столбцов вывода Janus",
+        "schemaOption": {
+          "device9": "Формат прибора (9 столбцов)",
+          "legacy5": "Формат kuma (5 столбцов)"
+        },
+        "schemaHint": {
+          "device9": "Записывает столбцы книги прибора: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "Записывает столбцы kuma: name, source_plate, source_well, dest_well, priority_score."
+        },
+        "instrumentHeading": "Настройки прибора",
+        "volumeLabel": "Volume (µL)",
+        "liquidClassLabel": "Liquid class",
+        "liquidClassPlaceholder": "например, Cell 100ul",
+        "liquidClassHint": "Liquid class задаёт режим пипетирования робота, поэтому значения по умолчанию нет. Экспорт заблокирован, пока поле пустое.",
+        "deckHeading": "Конфигурация deck",
+        "sampleTypeLabel": "значение столбца type",
+        "sourceRackLabel": "Asp. Rack {{plate}}",
+        "destRackLabel": "Dsp. Rack",
+        "rackHint": "Предполагаемая нумерация rack: сначала исходные планшеты в порядке labware из книги, назначение последним. Подстройте под реальный deck.",
+        "excludedHeading": "Исключено: {{count}}",
+        "excludedNone": "Ни один клон не исключён.",
+        "excludedReason": {
+          "failed": "Сбой",
+          "no_selection": "Планшет не выбран",
+          "missing_verdict": "Нет записи verdict",
+          "verdict_class": "Verdict class не включён",
+          "fallback": "Резервный выбор"
+        },
+        "selectionNote": "Отбираются только клоны PASS. AMBIGUOUS несёт сопутствующий indel, а LOWDEPTH не проверен, поэтому оба попадают в список исключённых."
       },
       "runReport": {
         "title": "Экспорт отчёта о запуске",

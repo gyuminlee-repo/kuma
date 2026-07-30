@@ -12,11 +12,56 @@
 import { sendRequest } from "@/lib/ipc-mame";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type {
-  JanusDestLayout,
   JanusExportFormat,
   JanusExportResult,
+  JanusExportSettings,
   JanusPreviewResult,
 } from "@/types/mame/models";
+
+/**
+ * Default export policy, mirroring ``JanusSettings``
+ * (kuma_core/mame/export/janus_mapping.py).
+ *
+ * Only fully verified clones ship: AMBIGUOUS carries a side indel that would
+ * mislabel an activity measurement and LOWDEPTH is unverified, so both stay out
+ * unless the operator opts in. A stock plate is a new plate, hence the compact
+ * layout. `liquidClass` is deliberately empty: it drives the pipetting
+ * behaviour of the robot, so the sidecar blocks the export until it is set.
+ *
+ * `volume`, `sampleType`, and the rack numbers are stated assumptions with no
+ * lab source in this repository; the dialog surfaces them for editing.
+ */
+export const DEFAULT_JANUS_SETTINGS: JanusExportSettings = {
+  destLayout: "compact",
+  includeVerdicts: ["PASS"],
+  includeFallback: false,
+  outputSchema: "device9",
+  volume: 100,
+  sampleType: "cell",
+  liquidClass: "",
+  sourceRacks: { P1: 1, P2: 2, P3: 3 },
+  destRack: 4,
+};
+
+/**
+ * Convert the UI settings into RPC params.
+ *
+ * The single conversion point for both the export and the preview, so the plate
+ * the operator approves is the plate the exported file describes.
+ */
+function toRpcParams(settings: JanusExportSettings): Record<string, unknown> {
+  return {
+    dest_layout: settings.destLayout,
+    include_verdicts: settings.includeVerdicts,
+    include_fallback: settings.includeFallback,
+    output_schema: settings.outputSchema,
+    volume: settings.volume,
+    sample_type: settings.sampleType,
+    liquid_class: settings.liquidClass,
+    source_racks: settings.sourceRacks,
+    dest_rack: settings.destRack,
+  };
+}
 
 /**
  * Build the default Janus output path for a given project directory.
@@ -46,21 +91,22 @@ export function buildJanusDefaultPath(
  *
  * @param outputPath  Absolute path for the output file.
  * @param format      "csv" (default) or "xlsx".
- * @param destLayout  "source" (default, dest mirrors source well) or
- *                    "compact" (dest assigned sequentially from A1).
- * @returns           Resolved output path and format from sidecar.
+ * @param settings    Selection and instrument policy. Defaults to
+ *                    {@link DEFAULT_JANUS_SETTINGS}.
+ * @returns           Resolved path, format, and the clones left out with the
+ *                    reason for each.
  */
 export async function handleExportMameJanusMapping(
   outputPath: string,
   format: JanusExportFormat = "csv",
-  destLayout: JanusDestLayout = "source",
+  settings: JanusExportSettings = DEFAULT_JANUS_SETTINGS,
 ): Promise<JanusExportResult> {
   useMameAppStore.setState({ isExporting: true });
   try {
     return await sendRequest<JanusExportResult>("export_janus_mapping", {
       output: outputPath,
       format,
-      dest_layout: destLayout,
+      ...toRpcParams(settings),
     });
   } finally {
     useMameAppStore.setState({ isExporting: false });
@@ -78,13 +124,17 @@ export async function handleExportMameJanusMapping(
  * `isExporting` is deliberately left alone: a preview is not an export and must
  * not put the app into its exporting state.
  *
- * @param destLayout  "source" (default, dest mirrors source well) or
- *                    "compact" (dest assigned sequentially from A1).
+ * The reply also carries the clones that would be left out, so the dialog can
+ * show how many were dropped and why before a file is written.
+ *
+ * @param settings  Selection and instrument policy, identical to the one the
+ *                  export will use. Defaults to {@link DEFAULT_JANUS_SETTINGS}.
  */
 export async function fetchMameJanusPreview(
-  destLayout: JanusDestLayout = "source",
+  settings: JanusExportSettings = DEFAULT_JANUS_SETTINGS,
 ): Promise<JanusPreviewResult> {
-  return await sendRequest<JanusPreviewResult>("export_janus_mapping_dry_run", {
-    dest_layout: destLayout,
-  });
+  return await sendRequest<JanusPreviewResult>(
+    "export_janus_mapping_dry_run",
+    toRpcParams(settings),
+  );
 }

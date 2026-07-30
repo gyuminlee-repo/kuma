@@ -771,8 +771,10 @@
         "outputPathPlaceholder": "저장할 .{{ext}} 파일 경로",
         "outputPathAriaLabel": "Janus 매핑 출력 파일 경로",
         "browseAriaLabel": "Janus 매핑 저장 경로 찾아보기",
-        "columnsNote": "열 구성: well, custom_barcode, variant, verdict, plate 좌표.",
-        "phase1Note": "Phase 1: 통과된 well만 포함됩니다.",
+        "columnsNote": {
+          "device9": "열 구성: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "열 구성: name, source_plate, source_well, dest_well, priority_score."
+        },
         "exportJanus": "Janus 매핑 내보내기",
         "exporting": "내보내는 중…",
         "exported": "내보내기 완료",
@@ -783,7 +785,37 @@
         "previewEmpty": "내보낼 확정 pick이 없습니다.",
         "previewFailed": "미리보기를 불러오지 못했습니다: {{message}}",
         "previewRetry": "미리보기 다시 시도",
-        "previewBlocked": "아래 문제를 해결한 뒤 내보내기가 가능합니다."
+        "previewBlocked": "아래 문제를 해결한 뒤 내보내기가 가능합니다.",
+        "schemaLabel": "출력 열 구성",
+        "schemaAriaLabel": "Janus 출력 열 스키마",
+        "schemaOption": {
+          "device9": "장비 양식 (9열)",
+          "legacy5": "kuma 양식 (5열)"
+        },
+        "schemaHint": {
+          "device9": "장비 워크북 열을 그대로 씁니다: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "kuma 내부 열을 씁니다: name, source_plate, source_well, dest_well, priority_score."
+        },
+        "instrumentHeading": "장비 설정",
+        "volumeLabel": "Volume (µL)",
+        "liquidClassLabel": "Liquid class",
+        "liquidClassPlaceholder": "예: Cell 100ul",
+        "liquidClassHint": "Liquid class는 로봇의 피펫팅 거동을 결정하므로 기본값을 두지 않습니다. 입력 전까지 내보내기가 막힙니다.",
+        "deckHeading": "Deck 구성",
+        "sampleTypeLabel": "type 열 값",
+        "sourceRackLabel": "Asp. Rack {{plate}}",
+        "destRackLabel": "Dsp. Rack",
+        "rackHint": "가정한 rack 번호: 워크북 labware 순서대로 source plate가 먼저, destination이 마지막. 실제 deck에 맞게 수정하세요.",
+        "excludedHeading": "제외 {{count}}건",
+        "excludedNone": "제외된 클론이 없습니다.",
+        "excludedReason": {
+          "failed": "실패",
+          "no_selection": "선택된 plate 없음",
+          "missing_verdict": "verdict 레코드 없음",
+          "verdict_class": "포함하지 않은 verdict class",
+          "fallback": "Fallback pick"
+        },
+        "selectionNote": "PASS 클론만 담습니다. AMBIGUOUS는 부수 indel이 있고 LOWDEPTH는 미검증이라 제외 목록에 표시됩니다."
       },
       "runReport": {
         "title": "실행 보고서 내보내기",
