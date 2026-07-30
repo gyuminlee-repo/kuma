@@ -11,7 +11,6 @@ import { scheduleAutosave, flushAutosave, type AutosaveTarget } from "@/lib/auto
 import { buildMameSnapshot } from "@/lib/mame/autosaveSnapshot";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 
-/** 자동 저장 대상 입력 필드 선택자. 결과물 필드는 제외. */
 function selectMameInputs(s: ReturnType<typeof useMameAppStore.getState>) {
   const r = s.rawRunParams;
   return [
@@ -36,6 +35,17 @@ function selectMameInputs(s: ReturnType<typeof useMameAppStore.getState>) {
     s.cdsEnd,
     s.minFileSizeKb,
     s.manyCutoff,
+    s.verdicts,
+    s.replicates,
+    s.summary,
+    s.distributionStats,
+    s.wells,
+    s.selectedWell,
+    s.runHealth,
+    s.buildEvolveproCompletion,
+    s.demuxResult,
+    s.ampliconLengthEstimate,
+    s.wellLayout,
   ] as const;
 }
 

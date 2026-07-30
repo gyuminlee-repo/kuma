@@ -5,7 +5,8 @@ import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { AutosaveSnapshot } from "@/lib/autosave";
 import type { SdmPrimerResult } from "@/types/models";
-import type { AnalyzeResult, ReplicateResult, VerdictRecord } from "@/types/mame/models";
+import type { AnalyzeResult, ReplicateResult, RunHealthData, VerdictRecord, WellEntry } from "@/types/mame/models";
+import { BUILD_EVOLVEPRO_DEFAULT_STATE, createBuildEvolveproCompletion } from "@/lib/mame/buildEvolveproFormStorage";
 import { applyKuroSnapshot, useAutosaveHydration } from "./useAutosaveHydration";
 
 // ── Mocks ────────────────────────────────────────────────────────────────
@@ -116,6 +117,33 @@ const ANALYZE_RESULT: AnalyzeResult = {
   },
 };
 
+const WELL: WellEntry = {
+  well: "A01",
+  barcode: "1_1",
+  native_barcode: "barcode1",
+  verdict: "PASS",
+  mutant_id: "V5F",
+  selected: true,
+  notes: "",
+  is_fallback: false,
+  fallback_reason: null,
+};
+
+const RUN_HEALTH: RunHealthData = {
+  per_plate_summary: {},
+  file_size_distribution: {},
+  suggested_cutoff_kb: 50,
+  bimodal: false,
+  suggested_method: "fixed_50",
+  pore_yield_pct: null,
+  throughput_timeline: null,
+  barcode_distribution: null,
+  cross_talk_candidates: [],
+  recovered_mutants: null,
+  total_mutants: 1,
+  recovery_rate: 1,
+};
+
 function Harness() {
   useAutosaveHydration(() => {});
   return null;
@@ -218,6 +246,90 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     // default analyze.inputs (never silently advanced to analyze.review).
     expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.inputs");
     expect(useMameAppStore.getState().verdicts).toEqual([]);
+  });
+
+  it("restores result state carried inside the mame autosave snapshot", async () => {
+    const buildCompletion = createBuildEvolveproCompletion(
+      {
+        ...BUILD_EVOLVEPRO_DEFAULT_STATE,
+        layoutXlsx: "/proj/layout.xlsx",
+        gcDataXlsx: "/proj/gc.xlsx",
+        outputXlsx: "/proj/evolvepro.xlsx",
+      },
+      "/proj/evolvepro.xlsx",
+    );
+    hooks.readAutosave.mockImplementation((_path: string, kind: string) => {
+      if (kind === "mame") {
+        return Promise.resolve({
+          status: "ok",
+          snapshot: {
+            schema: 2,
+            saved_at: new Date().toISOString(),
+            kuma_version: "0.0.0-test",
+            input: {
+              input_dir: "/proj/run",
+              expected_path: "/proj/expected.xlsx",
+              reference_path: "/proj/ref.fa",
+              output_path: "/proj/out",
+              sample_map_path: "/proj/sample_map.xlsx",
+            },
+            parameters: {
+              mode: "amplicon",
+              ingest_mode: "barcode",
+              input_mode: "raw_run",
+              raw_run_params: {
+                customBarcodesPath: "/proj/barcodes.xlsx",
+                sequencingSummaryPath: "/proj/sequencing_summary.txt",
+                minQscore: 10,
+                lengthMin: 0,
+                lengthMax: 0,
+                targetLength: null,
+                lengthToleranceBp: 50,
+                normalizeHeaders: true,
+                coverageFraction: 0.98,
+                editDistRatio: 0.25,
+                chimeraSplit: true,
+              },
+              cds_start: 1,
+              cds_end: 900,
+              min_file_size_kb: 50,
+              many_cutoff: 5,
+            },
+            results: {
+              verdicts: [VERDICT],
+              replicates: [REPLICATE],
+              summary: ANALYZE_RESULT.summary,
+              distribution_stats: ANALYZE_RESULT.distribution_stats,
+              wells: [WELL],
+              selected_well: WELL,
+              run_health: RUN_HEALTH,
+              build_evolvepro_completion: buildCompletion,
+              demux_result: null,
+              amplicon_length_estimate: null,
+              well_layout: { A01: "V5F" },
+            },
+          },
+        });
+      }
+      return Promise.resolve({ status: "missing" });
+    });
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
+    });
+    const st = useMameAppStore.getState();
+    expect(st.verdicts).toEqual([VERDICT]);
+    expect(st.replicates).toEqual([REPLICATE]);
+    expect(st.summary).toEqual(ANALYZE_RESULT.summary);
+    expect(st.distributionStats).toEqual(ANALYZE_RESULT.distribution_stats);
+    expect(st.wells).toEqual([WELL]);
+    expect(st.selectedWell).toEqual(WELL);
+    expect(st.runHealth).toEqual(RUN_HEALTH);
+    expect(st.buildEvolveproCompletion).toEqual(buildCompletion);
+    expect(st.wellLayout).toEqual({ A01: "V5F" });
   });
 });
 

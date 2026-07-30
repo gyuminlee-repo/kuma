@@ -115,6 +115,8 @@ function makeStore() {
     rescuedMutationDetails: [],
     yPredMap: {},
     poolVariants: [],
+    currentMajor: "design",
+    currentSubStep: "design.load",
     evolveproRankedCandidates: [],
     evolveproSelectedVariants: [],
     evolveproExtraExposed: 10,
@@ -281,6 +283,8 @@ describe("exportSlice — schema_version 0.3", () => {
       SHARED: ["M1A", "M2A"],
       GCAT3: ["M3A"],
     })
+    expect(store.state.currentMajor).toBe("output")
+    expect(store.state.currentSubStep).toBe("output.summary")
   })
 
   it("restoreWorkspace remaps a retired Benchling selection to KOD and keeps its GC range", async () => {

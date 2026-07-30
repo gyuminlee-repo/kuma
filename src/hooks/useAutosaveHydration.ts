@@ -35,6 +35,7 @@ import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { resetMameAll } from "@/store/mame/resetAll";
 import type { AppState } from "@/store/appStore";
+import type { AppState as MameAppState } from "@/store/mame/types";
 import type { AutosaveSnapshot, ReadAutosaveResult } from "@/lib/autosave";
 import type { MameAutosaveSnapshot } from "@/lib/mame/autosaveSnapshot";
 
@@ -423,6 +424,10 @@ export async function applyKuroSnapshot(
     }
   }
 
+  if (!resultsDiscarded && useAppStore.getState().designResults.length > 0) {
+    useAppStore.getState().setSubStep("output.summary");
+  }
+
   return { resultsDiscarded };
 }
 
@@ -674,6 +679,52 @@ function applyMameSnapshot(snapshot: MameAutosaveSnapshot): void {
     validationErrors: [],
     analyzeMessage: i18next.t("autosaveHydration.workspaceRestored"),
   });
+
+  const results = snapshot.results as Record<string, unknown> | undefined;
+  if (results === undefined) return;
+
+  const patch: Partial<MameAppState> = {};
+  let hasReviewResults = false;
+  if (Array.isArray(results.verdicts)) {
+    patch.verdicts = results.verdicts as MameAppState["verdicts"];
+    hasReviewResults = results.verdicts.length > 0;
+  }
+  if (Array.isArray(results.replicates)) {
+    patch.replicates = results.replicates as MameAppState["replicates"];
+  }
+  if (typeof results.summary === "object") {
+    patch.summary = results.summary as MameAppState["summary"];
+    hasReviewResults = hasReviewResults || results.summary !== null;
+  }
+  if (typeof results.distribution_stats === "object") {
+    patch.distributionStats = results.distribution_stats as MameAppState["distributionStats"];
+  }
+  if (Array.isArray(results.wells)) {
+    patch.wells = results.wells as MameAppState["wells"];
+  }
+  if (typeof results.selected_well === "object") {
+    patch.selectedWell = results.selected_well as MameAppState["selectedWell"];
+  }
+  if (typeof results.run_health === "object") {
+    patch.runHealth = results.run_health as MameAppState["runHealth"];
+  }
+  if (typeof results.build_evolvepro_completion === "object") {
+    patch.buildEvolveproCompletion = results.build_evolvepro_completion as MameAppState["buildEvolveproCompletion"];
+  }
+  if (typeof results.demux_result === "object") {
+    patch.demuxResult = results.demux_result as MameAppState["demuxResult"];
+  }
+  if (typeof results.amplicon_length_estimate === "object") {
+    patch.ampliconLengthEstimate = results.amplicon_length_estimate as MameAppState["ampliconLengthEstimate"];
+  }
+  if (typeof results.well_layout === "object") {
+    patch.wellLayout = results.well_layout as MameAppState["wellLayout"];
+  }
+  if (hasReviewResults) {
+    patch.mamePhase = "analyze";
+    patch.currentMameSubStep = "analyze.review";
+  }
+  useMameAppStore.setState(patch);
 }
 
 // ─── Mame analyze-result 복원 ──────────────────────

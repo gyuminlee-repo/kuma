@@ -638,6 +638,12 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       codonStrategy: settings.codonStrategy ?? "closest",
       maxPrimers: settings.maxPrimers ?? 95,
       designResults: restoredDesignResults,
+      ...(restoredDesignResults.length > 0
+        ? {
+            currentMajor: "output" as const,
+            currentSubStep: "output.summary" as const,
+          }
+        : {}),
       successCount: results.successCount ?? 0,
       totalCount: results.totalCount ?? 0,
       failedMutations: results.failedMutations ?? [],
@@ -726,18 +732,18 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
           : null,
         templateLoadError || evolveproReloadError
           ? null
-          : (settings.autoRedesignOnLoad ?? true)
+          : restoredDesignResults.length > 0
+            ? "Workspace loaded. Re-design to enable alternatives and primer swapping."
+            : (settings.autoRedesignOnLoad ?? true)
             ? "Workspace loaded. Re-designing to sync backend..."
-            : ((results.designResults?.length ?? 0) > 0
-                ? "Workspace loaded. Re-design to enable alternatives and primer swapping."
-                : "Workspace loaded."),
+            : "Workspace loaded.",
         restoredPolymerase.notice,
       ]
         .filter(Boolean)
         .join(" "),
     });
     // 템플릿 로딩이 실패했으면 seqInfo가 없으므로 자동 재설계를 시도하지 않는다.
-    if ((settings.autoRedesignOnLoad ?? true) && inputs.mutationText && inputs.fastaPath && !evolveproReloadError && !templateLoadError) {
+    if ((settings.autoRedesignOnLoad ?? true) && restoredDesignResults.length === 0 && inputs.mutationText && inputs.fastaPath && !evolveproReloadError && !templateLoadError) {
       await get().designPrimers();
       const redesignedResults = get().designResults;
       const redesignedPlateState = buildIncludedPlateState({

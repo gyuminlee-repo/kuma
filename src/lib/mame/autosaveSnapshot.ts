@@ -1,17 +1,15 @@
 /**
  * autosaveSnapshot.ts — mame 자동 저장 스냅샷 직렬화 (순수 함수)
  *
- * 저장 대상: inputSlice.ts saveWorkspace (라인 121-141) 기준 필드만.
- * 제외: verdicts, replicates, summary, wells, validationErrors 등 결과물 필드.
+ * 저장 대상: 사용자가 입력한 경로/파라미터와 화면에 표시되는 안정적인 결과 상태.
  */
 
 import type { AutosaveSnapshot } from "@/lib/autosave";
 import type { AppState } from "@/store/mame/types";
 import type { RawRunParams } from "@/store/mame/slice-interfaces";
 
-export const MAME_SCHEMA = 2;
+export const MAME_SCHEMA = 3;
 
-/** buildMameSnapshot에 전달하는 상태 서브셋. AppState의 입력 필드만 포함. */
 export type MameSnapshotState = Pick<
   AppState,
   | "inputDir"
@@ -27,6 +25,17 @@ export type MameSnapshotState = Pick<
   | "cdsEnd"
   | "minFileSizeKb"
   | "manyCutoff"
+  | "verdicts"
+  | "replicates"
+  | "summary"
+  | "distributionStats"
+  | "wells"
+  | "selectedWell"
+  | "runHealth"
+  | "buildEvolveproCompletion"
+  | "demuxResult"
+  | "ampliconLengthEstimate"
+  | "wellLayout"
 >;
 
 export interface MameAutosaveSnapshot extends AutosaveSnapshot {
@@ -48,12 +57,21 @@ export interface MameAutosaveSnapshot extends AutosaveSnapshot {
     min_file_size_kb: number;
     many_cutoff: number;
   };
+  results?: {
+    verdicts: AppState["verdicts"];
+    replicates: AppState["replicates"];
+    summary: AppState["summary"];
+    distribution_stats: AppState["distributionStats"];
+    wells: AppState["wells"];
+    selected_well: AppState["selectedWell"];
+    run_health: AppState["runHealth"];
+    build_evolvepro_completion: AppState["buildEvolveproCompletion"];
+    demux_result: AppState["demuxResult"];
+    amplicon_length_estimate: AppState["ampliconLengthEstimate"];
+    well_layout: AppState["wellLayout"];
+  };
 }
 
-/**
- * mame store 입력 상태를 AutosaveSnapshot으로 직렬화.
- * 결과물 필드(verdicts, replicates, summary, wells 등)는 포함하지 않는다.
- */
 export function buildMameSnapshot(state: MameSnapshotState): MameAutosaveSnapshot {
   return {
     schema: MAME_SCHEMA,
@@ -75,6 +93,19 @@ export function buildMameSnapshot(state: MameSnapshotState): MameAutosaveSnapsho
       cds_end: state.cdsEnd,
       min_file_size_kb: state.minFileSizeKb,
       many_cutoff: state.manyCutoff,
+    },
+    results: {
+      verdicts: state.verdicts,
+      replicates: state.replicates,
+      summary: state.summary,
+      distribution_stats: state.distributionStats,
+      wells: state.wells,
+      selected_well: state.selectedWell,
+      run_health: state.runHealth,
+      build_evolvepro_completion: state.buildEvolveproCompletion,
+      demux_result: state.demuxResult,
+      amplicon_length_estimate: state.ampliconLengthEstimate,
+      well_layout: state.wellLayout,
     },
   };
 }
