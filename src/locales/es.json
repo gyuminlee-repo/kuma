@@ -669,8 +669,10 @@
         "outputPathPlaceholder": "Ruta del archivo .{{ext}} de destino",
         "outputPathAriaLabel": "Ruta del archivo de salida para el mapeo Janus",
         "browseAriaLabel": "Explorar ruta de guardado para el mapeo Janus",
-        "columnsNote": "Columnas: well, custom_barcode, variant, verdict y coordenadas de placa.",
-        "phase1Note": "Fase 1: sólo se incluyen los wells aprobados.",
+        "columnsNote": {
+          "device9": "Columnas: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "Columnas: name, source_plate, source_well, dest_well, priority_score."
+        },
         "exportJanus": "Exportar mapeo Janus",
         "exporting": "Exportando…",
         "exported": "Exportado correctamente",
@@ -681,7 +683,37 @@
         "previewEmpty": "No hay picks confirmados para exportar.",
         "previewFailed": "Vista previa no disponible: {{message}}",
         "previewRetry": "Reintentar vista previa",
-        "previewBlocked": "Resuelva los problemas siguientes antes de exportar."
+        "previewBlocked": "Resuelva los problemas siguientes antes de exportar.",
+        "schemaLabel": "Columnas de salida",
+        "schemaAriaLabel": "Esquema de columnas de salida de Janus",
+        "schemaOption": {
+          "device9": "Formato del equipo (9 columnas)",
+          "legacy5": "Formato kuma (5 columnas)"
+        },
+        "schemaHint": {
+          "device9": "Escribe las columnas del libro del equipo: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "Escribe las columnas de kuma: name, source_plate, source_well, dest_well, priority_score."
+        },
+        "instrumentHeading": "Ajustes del equipo",
+        "volumeLabel": "Volume (µL)",
+        "liquidClassLabel": "Liquid class",
+        "liquidClassPlaceholder": "p. ej. Cell 100ul",
+        "liquidClassHint": "La liquid class determina el comportamiento de pipeteo del robot, por eso no hay valor por defecto. La exportación queda bloqueada hasta indicarla.",
+        "deckHeading": "Configuración del deck",
+        "sampleTypeLabel": "valor de la columna type",
+        "sourceRackLabel": "Asp. Rack {{plate}}",
+        "destRackLabel": "Dsp. Rack",
+        "rackHint": "Numeración de rack asumida: placas de origen primero según el orden de labware del libro, destino al final. Ajústela al deck real.",
+        "excludedHeading": "Excluidos: {{count}}",
+        "excludedNone": "Ningún clon quedó excluido.",
+        "excludedReason": {
+          "failed": "Fallido",
+          "no_selection": "Sin placa seleccionada",
+          "missing_verdict": "Sin registro de verdict",
+          "verdict_class": "Verdict class no incluida",
+          "fallback": "Selección de respaldo"
+        },
+        "selectionNote": "Solo se incluyen los clones PASS. AMBIGUOUS lleva un indel acompañante y LOWDEPTH no está verificado, por eso ambos figuran como excluidos."
       },
       "runReport": {
         "title": "Exportar informe de la corrida",

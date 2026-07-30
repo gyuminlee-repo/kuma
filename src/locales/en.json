@@ -763,8 +763,10 @@
         "outputPathPlaceholder": "Target .{{ext}} file path",
         "outputPathAriaLabel": "Output file path for Janus mapping",
         "browseAriaLabel": "Browse save path for Janus mapping",
-        "columnsNote": "Columns: well, custom_barcode, variant, verdict, and plate coordinates.",
-        "phase1Note": "Phase 1: only passed wells are included.",
+        "columnsNote": {
+          "device9": "Columns: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "Columns: name, source_plate, source_well, dest_well, priority_score."
+        },
         "exportJanus": "Export Janus Mapping",
         "exporting": "Exporting…",
         "exported": "Exported successfully",
@@ -775,7 +777,37 @@
         "previewEmpty": "No confirmed picks to export.",
         "previewFailed": "Preview unavailable: {{message}}",
         "previewRetry": "Retry preview",
-        "previewBlocked": "Fix the problems below before exporting."
+        "previewBlocked": "Fix the problems below before exporting.",
+        "schemaLabel": "Output columns",
+        "schemaAriaLabel": "Janus output column schema",
+        "schemaOption": {
+          "device9": "Instrument (9 columns)",
+          "legacy5": "kuma (5 columns)"
+        },
+        "schemaHint": {
+          "device9": "Writes the instrument worksheet columns: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "Writes the kuma columns: name, source_plate, source_well, dest_well, priority_score."
+        },
+        "instrumentHeading": "Instrument settings",
+        "volumeLabel": "Volume (µL)",
+        "liquidClassLabel": "Liquid class",
+        "liquidClassPlaceholder": "e.g. Cell 100ul",
+        "liquidClassHint": "The liquid class drives the pipetting behaviour of the robot, so no default is assumed. Export stays blocked until it is set.",
+        "deckHeading": "Deck configuration",
+        "sampleTypeLabel": "type column",
+        "sourceRackLabel": "Asp. Rack {{plate}}",
+        "destRackLabel": "Dsp. Rack",
+        "rackHint": "Assumed rack numbering: source plates first in workbook labware order, destination last. Adjust to match the deck.",
+        "excludedHeading": "Excluded: {{count}}",
+        "excludedNone": "Every clone made the pick.",
+        "excludedReason": {
+          "failed": "Failed",
+          "no_selection": "No plate selected",
+          "missing_verdict": "No verdict record",
+          "verdict_class": "Verdict class not included",
+          "fallback": "Fallback pick"
+        },
+        "selectionNote": "Only PASS clones ship. AMBIGUOUS carries a side indel and LOWDEPTH is unverified, so both are listed as excluded."
       },
       "runReport": {
         "title": "Export Run Report",

@@ -3,13 +3,19 @@
  *
  * Provides:
  *  - CSV / XLSX format selection (radio group)
- *  - Destination layout selection (source position vs compact from A1)
+ *  - Output schema selection (instrument-native 9 columns vs kuma 5 columns)
+ *  - Destination layout selection (compact from A1 vs source position)
+ *  - Instrument settings: volume, type, liquid class, and the four rack numbers
  *  - Row preview via the `export_janus_mapping_dry_run` RPC, refreshed when the
- *    dialog opens and whenever the destination layout changes
+ *    dialog opens and whenever any setting changes
+ *  - The clones left out of the pick, with the reason for each
  *  - Output path with Browse button
  *  - Export button that calls sidecar `export_janus_mapping` RPC, blocked while
- *    the preview reports a plate-layout problem
+ *    the preview reports a problem
  *  - Success / error feedback inline
+ *
+ * Preview and export send the same settings object, so what the operator
+ * approves here is what the exported file describes.
  *
  * Entered via: File > Export Janus Mapping… in MenuBar.
  */
@@ -33,6 +39,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { JanusDeckPreview } from "@/components/mame/widgets/JanusDeckPreview";
 import {
+  DEFAULT_JANUS_SETTINGS,
   buildJanusDefaultPath,
   fetchMameJanusPreview,
   handleExportMameJanusMapping,
@@ -40,9 +47,18 @@ import {
 import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
 import type {
   JanusDestLayout,
+  JanusExclusionReason,
   JanusExportFormat,
+  JanusExportSettings,
+  JanusOutputSchema,
   JanusPreviewResult,
 } from "@/types/mame/models";
+
+/** Source plate labels the deck map can carry, in deck order. */
+const SOURCE_PLATES = ["P1", "P2", "P3"] as const;
+
+/** Preview refresh delay, so typing into a text field is one RPC, not one per key. */
+const PREVIEW_DEBOUNCE_MS = 300;
 
 interface JanusMappingDialogProps {
   open: boolean;
@@ -55,7 +71,7 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
 
   const storeIsExporting = useMameAppStore((s) => s.isExporting);
   const [format, setFormat] = useState<JanusExportFormat>("csv");
-  const [destLayout, setDestLayout] = useState<JanusDestLayout>("source");
+  const [settings, setSettings] = useState<JanusExportSettings>(DEFAULT_JANUS_SETTINGS);
   const [outputPath, setOutputPath] = useState<string>("");
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -68,12 +84,12 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
   // stale response would show the other layout dest wells.
   const previewSeq = useRef(0);
 
-  const loadPreview = useCallback(async (layout: JanusDestLayout) => {
+  const loadPreview = useCallback(async (next: JanusExportSettings) => {
     const seq = ++previewSeq.current;
     setPreviewLoading(true);
     setPreviewFailure(null);
     try {
-      const result = await fetchMameJanusPreview(layout);
+      const result = await fetchMameJanusPreview(next);
       if (previewSeq.current !== seq) return;
       setPreview(result);
     } catch (err) {
@@ -94,11 +110,37 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
       setPreviewLoading(false);
       return;
     }
-    void loadPreview(destLayout);
-  }, [open, destLayout, loadPreview]);
+    // Debounced: text fields would otherwise fire one request per keystroke.
+    const timer = setTimeout(() => void loadPreview(settings), PREVIEW_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [open, settings, loadPreview]);
 
   const previewErrors = preview?.errors ?? [];
   const hasPreviewErrors = previewErrors.length > 0;
+  const excluded = preview?.excluded ?? [];
+  const isDevice9 = settings.outputSchema === "device9";
+
+  /** Excluded clones grouped by reason, so a retry plan reads at a glance. */
+  const excludedByReason = excluded.reduce<Partial<Record<JanusExclusionReason, string[]>>>(
+    (acc, entry) => {
+      (acc[entry.reason] ??= []).push(entry.mutant_id);
+      return acc;
+    },
+    {},
+  );
+
+  function patchSettings(partial: Partial<JanusExportSettings>) {
+    setSettings((prev) => ({ ...prev, ...partial }));
+  }
+
+  function patchSourceRack(plate: string, raw: string) {
+    const parsed = Number.parseInt(raw, 10);
+    if (Number.isNaN(parsed)) return;
+    setSettings((prev) => ({
+      ...prev,
+      sourceRacks: { ...prev.sourceRacks, [plate]: parsed },
+    }));
+  }
 
   function deriveDefaultPath(fmt: JanusExportFormat): string {
     if (!project) return "";
@@ -136,7 +178,7 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
     setIsExporting(true);
     setExportError(null);
     try {
-      const result = await handleExportMameJanusMapping(target, format, destLayout);
+      const result = await handleExportMameJanusMapping(target, format, settings);
       setLastExportPath(result.output_path);
       setOutputPath(result.output_path);
     } catch (err) {
@@ -197,7 +239,7 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
               role="radiogroup"
               aria-label={t("mame.dialogs.janusMapping.destLayoutAriaLabel")}
             >
-              {(["source", "compact"] as const).map((layout) => (
+              {(["compact", "source"] as const).map((layout: JanusDestLayout) => (
                 <label
                   key={layout}
                   className="flex cursor-pointer items-center gap-2 text-sm"
@@ -206,8 +248,8 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
                     type="radio"
                     name="janus-dest-layout"
                     value={layout}
-                    checked={destLayout === layout}
-                    onChange={() => setDestLayout(layout)}
+                    checked={settings.destLayout === layout}
+                    onChange={() => patchSettings({ destLayout: layout })}
                     className="accent-primary"
                     aria-label={t(`mame.dialogs.janusMapping.destLayoutOption.${layout}`)}
                   />
@@ -218,9 +260,164 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
               ))}
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              {t(`mame.dialogs.janusMapping.destLayoutHint.${destLayout}`)}
+              {t(`mame.dialogs.janusMapping.destLayoutHint.${settings.destLayout}`)}
             </p>
           </fieldset>
+
+          <fieldset className="space-y-1.5">
+            <legend className="text-xs font-medium text-muted-foreground">
+              {t("mame.dialogs.janusMapping.schemaLabel")}
+            </legend>
+            <div
+              className="flex gap-4"
+              role="radiogroup"
+              aria-label={t("mame.dialogs.janusMapping.schemaAriaLabel")}
+            >
+              {(["device9", "legacy5"] as const).map((schema: JanusOutputSchema) => (
+                <label
+                  key={schema}
+                  className="flex cursor-pointer items-center gap-2 text-sm"
+                >
+                  <input
+                    type="radio"
+                    name="janus-output-schema"
+                    value={schema}
+                    checked={settings.outputSchema === schema}
+                    onChange={() => patchSettings({ outputSchema: schema })}
+                    className="accent-primary"
+                    aria-label={t(`mame.dialogs.janusMapping.schemaOption.${schema}`)}
+                  />
+                  <span className="font-medium">
+                    {t(`mame.dialogs.janusMapping.schemaOption.${schema}`)}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {t(`mame.dialogs.janusMapping.schemaHint.${settings.outputSchema}`)}
+            </p>
+          </fieldset>
+
+          {isDevice9 && (
+            <fieldset className="space-y-2 rounded-control border border-border px-3 py-2.5">
+              <legend className="px-1 text-xs font-medium text-muted-foreground">
+                {t("mame.dialogs.janusMapping.instrumentHeading")}
+              </legend>
+
+              <div className="flex gap-2">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <Label
+                    htmlFor="janus-volume"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    {t("mame.dialogs.janusMapping.volumeLabel")}
+                  </Label>
+                  <Input
+                    id="janus-volume"
+                    type="number"
+                    min={0}
+                    step="any"
+                    value={settings.volume}
+                    onChange={(e) => {
+                      const parsed = Number.parseFloat(e.target.value);
+                      if (!Number.isNaN(parsed)) patchSettings({ volume: parsed });
+                    }}
+                    className="h-9 w-full text-sm"
+                    disabled={isExporting}
+                  />
+                </div>
+                <div className="flex-1 min-w-0 space-y-1">
+                  <Label
+                    htmlFor="janus-liquid-class"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    {t("mame.dialogs.janusMapping.liquidClassLabel")}
+                  </Label>
+                  <Input
+                    id="janus-liquid-class"
+                    value={settings.liquidClass}
+                    onChange={(e) => patchSettings({ liquidClass: e.target.value })}
+                    placeholder={t("mame.dialogs.janusMapping.liquidClassPlaceholder")}
+                    className="h-9 w-full min-w-0 text-sm"
+                    aria-required="true"
+                    disabled={isExporting}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {t("mame.dialogs.janusMapping.liquidClassHint")}
+              </p>
+
+              <details className="group">
+                <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+                  {t("mame.dialogs.janusMapping.deckHeading")}
+                </summary>
+                <div className="mt-2 space-y-2">
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="janus-sample-type"
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      {t("mame.dialogs.janusMapping.sampleTypeLabel")}
+                    </Label>
+                    <Input
+                      id="janus-sample-type"
+                      value={settings.sampleType}
+                      onChange={(e) => patchSettings({ sampleType: e.target.value })}
+                      className="h-9 w-full min-w-0 text-sm"
+                      disabled={isExporting}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    {SOURCE_PLATES.map((plate) => (
+                      <div key={plate} className="flex-1 min-w-0 space-y-1">
+                        <Label
+                          htmlFor={`janus-rack-${plate}`}
+                          className="text-xs font-medium text-muted-foreground"
+                        >
+                          {t("mame.dialogs.janusMapping.sourceRackLabel", { plate })}
+                        </Label>
+                        <Input
+                          id={`janus-rack-${plate}`}
+                          type="number"
+                          min={1}
+                          step={1}
+                          value={settings.sourceRacks[plate] ?? ""}
+                          onChange={(e) => patchSourceRack(plate, e.target.value)}
+                          className="h-9 w-full text-sm"
+                          disabled={isExporting}
+                        />
+                      </div>
+                    ))}
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <Label
+                        htmlFor="janus-dest-rack"
+                        className="text-xs font-medium text-muted-foreground"
+                      >
+                        {t("mame.dialogs.janusMapping.destRackLabel")}
+                      </Label>
+                      <Input
+                        id="janus-dest-rack"
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={settings.destRack}
+                        onChange={(e) => {
+                          const parsed = Number.parseInt(e.target.value, 10);
+                          if (!Number.isNaN(parsed)) patchSettings({ destRack: parsed });
+                        }}
+                        className="h-9 w-full text-sm"
+                        disabled={isExporting}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {t("mame.dialogs.janusMapping.rackHint")}
+                  </p>
+                </div>
+              </details>
+            </fieldset>
+          )}
 
           {/* Row preview, what the export would write, before it writes it. */}
           <section className="space-y-1.5" aria-label={t("mame.dialogs.janusMapping.previewHeading")}>
@@ -288,7 +485,7 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
                     variant="outline"
                     size="sm"
                     className="h-7 px-2 text-caption"
-                    onClick={() => void loadPreview(destLayout)}
+                    onClick={() => void loadPreview(settings)}
                   >
                     {t("mame.dialogs.janusMapping.previewRetry")}
                   </Button>
@@ -337,6 +534,35 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
                 </table>
               </div>
             )}
+
+            {preview && !previewLoading && (
+              <div className="space-y-1">
+                <p className="text-caption font-medium text-muted-foreground">
+                  {t("mame.dialogs.janusMapping.excludedHeading", {
+                    count: preview.excluded_count,
+                  })}
+                </p>
+                {preview.excluded_count === 0 ? (
+                  <p className="text-caption text-muted-foreground">
+                    {t("mame.dialogs.janusMapping.excludedNone")}
+                  </p>
+                ) : (
+                  <ul className="space-y-0.5">
+                    {(
+                      Object.entries(excludedByReason) as [JanusExclusionReason, string[]][]
+                    ).map(([reason, ids]) => (
+                      <li key={reason} className="text-caption text-muted-foreground">
+                        <span className="font-medium">
+                          {t(`mame.dialogs.janusMapping.excludedReason.${reason}`)}
+                        </span>
+                        <span className="tabular-nums"> ({ids.length}): </span>
+                        <span className="font-mono break-all">{ids.join(", ")}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </section>
 
           {/* Output path */}
@@ -373,10 +599,10 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
 
           {/* Column info note */}
           <p className="text-xs text-muted-foreground leading-relaxed">
-            {t("mame.dialogs.janusMapping.columnsNote")}
+            {t(`mame.dialogs.janusMapping.columnsNote.${settings.outputSchema}`)}
             <br />
             <span className="text-warning">
-              {t("mame.dialogs.janusMapping.phase1Note")}
+              {t("mame.dialogs.janusMapping.selectionNote")}
             </span>
           </p>
 

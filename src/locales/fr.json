@@ -669,8 +669,10 @@
         "outputPathPlaceholder": "Chemin du fichier .{{ext}} cible",
         "outputPathAriaLabel": "Chemin du fichier de sortie pour le mapping Janus",
         "browseAriaLabel": "Parcourir le chemin d'enregistrement pour le mapping Janus",
-        "columnsNote": "Colonnes : well, custom_barcode, variant, verdict et coordonnées de plaque.",
-        "phase1Note": "Phase 1 : seuls les wells passés sont inclus.",
+        "columnsNote": {
+          "device9": "Colonnes : name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "Colonnes : name, source_plate, source_well, dest_well, priority_score."
+        },
         "exportJanus": "Exporter le mapping Janus",
         "exporting": "Export en cours…",
         "exported": "Exporté avec succès",
@@ -681,7 +683,37 @@
         "previewEmpty": "Aucun pick confirmé à exporter.",
         "previewFailed": "Aperçu indisponible : {{message}}",
         "previewRetry": "Réessayer l'aperçu",
-        "previewBlocked": "Corrigez les problèmes ci-dessous avant d'exporter."
+        "previewBlocked": "Corrigez les problèmes ci-dessous avant d'exporter.",
+        "schemaLabel": "Colonnes de sortie",
+        "schemaAriaLabel": "Schéma des colonnes de sortie Janus",
+        "schemaOption": {
+          "device9": "Format de l'appareil (9 colonnes)",
+          "legacy5": "Format kuma (5 colonnes)"
+        },
+        "schemaHint": {
+          "device9": "Écrit les colonnes du classeur de l'appareil : name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "Écrit les colonnes kuma : name, source_plate, source_well, dest_well, priority_score."
+        },
+        "instrumentHeading": "Réglages de l'appareil",
+        "volumeLabel": "Volume (µL)",
+        "liquidClassLabel": "Liquid class",
+        "liquidClassPlaceholder": "ex. Cell 100ul",
+        "liquidClassHint": "La liquid class pilote le comportement de pipetage du robot, aucune valeur par défaut n'est donc supposée. L'export reste bloqué tant qu'elle est vide.",
+        "deckHeading": "Configuration du deck",
+        "sampleTypeLabel": "valeur de la colonne type",
+        "sourceRackLabel": "Asp. Rack {{plate}}",
+        "destRackLabel": "Dsp. Rack",
+        "rackHint": "Numérotation de rack supposée : plaques source d'abord, dans l'ordre labware du classeur, destination en dernier. À ajuster au deck.",
+        "excludedHeading": "Exclus : {{count}}",
+        "excludedNone": "Aucun clone n'a été exclu.",
+        "excludedReason": {
+          "failed": "Échec",
+          "no_selection": "Aucune plaque sélectionnée",
+          "missing_verdict": "Aucun enregistrement de verdict",
+          "verdict_class": "Verdict class non incluse",
+          "fallback": "Choix de repli"
+        },
+        "selectionNote": "Seuls les clones PASS sont retenus. AMBIGUOUS porte un indel associé et LOWDEPTH n'est pas vérifié, les deux apparaissent donc comme exclus."
       },
       "runReport": {
         "title": "Exporter le rapport de run",
