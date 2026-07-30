@@ -36,7 +36,10 @@ vi.mock("@/components/mame/panels/BuildEvolveproInputPanel", () => ({
 
 import { ActivityStepView } from "./ActivityStepView";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
-import { ACTIVITY_ROUTE_STORAGE_KEY } from "@/lib/mame/activityRouteStorage";
+import {
+  ACTIVITY_ROUTE_DEFAULT,
+  ACTIVITY_ROUTE_STORAGE_KEY,
+} from "@/lib/mame/activityRouteStorage";
 import {
   BUILD_EVOLVEPRO_STORAGE_KEY,
   BUILD_EVOLVEPRO_DEFAULT_STATE,
@@ -54,10 +57,23 @@ describe("ActivityStepView", () => {
   });
 
   it("activity.ingest mounts the merged Ingest + Merge + Export sections", () => {
+    // Explicit: these three sections belong to the genotype route, which is no
+    // longer the default (see ACTIVITY_ROUTE_DEFAULT).
+    localStorage.setItem(ACTIVITY_ROUTE_STORAGE_KEY, JSON.stringify("genotype"));
     const { getByTestId } = render(<ActivityStepView />);
     expect(getByTestId("ingest-section")).toBeTruthy();
     expect(getByTestId("merge-section")).toBeTruthy();
     expect(getByTestId("export-section")).toBeTruthy();
+  });
+
+  it("defaults to the plate-layout route, the only one that can produce a file", () => {
+    // Pins the ACTIVITY_ROUTE_DEFAULT decision: the genotype route joins against
+    // a round genotype that nothing populates, so its export writes zero rows.
+    // Flipping this back requires wiring the Analyze verdicts into the round.
+    expect(ACTIVITY_ROUTE_DEFAULT).toBe("plateLayout");
+    const { getByTestId, queryByTestId } = render(<ActivityStepView />);
+    expect(getByTestId("build-evolvepro-panel")).toBeTruthy();
+    expect(queryByTestId("merge-section")).toBeNull();
   });
 
   it("legacy activity.mergeExport redirects to the merged activity step", () => {
