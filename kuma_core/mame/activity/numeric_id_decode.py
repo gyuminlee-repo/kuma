@@ -1,0 +1,271 @@
+"""Decode the numeric sample IDs of an Agilent GC-FID report into variants.
+
+From 2026-07 the lab exports both activity measurements in the block layout
+whose sample names are numeric IDs (``parse_agilent_block_rep_batch`` grammar:
+``<base>`` is replicate 1, ``<base>-<rep>`` is replicate ``rep``). The IDs
+carry no variant information, so they have to be decoded against the plate
+layout.
+
+Two files arrive per round and they are numbered independently:
+
+  primary screen (whole plate, 1 replicate per variant)
+      ID ``i`` is the ``i``-th non-WT row of the plate layout, in well order.
+
+  confirmation (subset, n replicates per variant)
+      ID ``j`` is the ``j``-th member of the subset that was re-measured, in
+      the same well order. The subset is every variant whose primary-screen
+      relative activity exceeded wild-type, which is the selection the lab
+      actually performs, so it is derived from the primary screen rather than
+      supplied separately.
+
+Verified against the 2026-03 campaign: the 34 IDs of
+``260327_Ep_R1_positive.xlsx`` decode to exactly the 34 variants whose
+``IspS_round1_Ep.xlsx`` activity is above 1.0 (WT), in layout well order,
+34 of 34 including the six positions that carry several substitutions.
+
+An earlier decoder assumed ID ``i`` indexed a previous EVOLVEpro file sorted by
+descending activity. That is a different order entirely and mislabelled all 34
+(``build_id_variant_mapping``); see ``WRONG_RANK_ASSUMPTION_NOTE``.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from .evolvepro_xlsx import BlockRepBatchResult, parse_agilent_block_rep_batch
+from .plate_layout_xlsx import parse_plate_layout_xlsx
+from .variant_notation import to_evolvepro
+
+WRONG_RANK_ASSUMPTION_NOTE = (
+    "numeric sample IDs index the plate layout in well order, not a "
+    "previous EVOLVEpro file sorted by activity"
+)
+
+# Wild-type relative activity. The report is normalised by its own WT block
+# mean, so WT sits at exactly 1.0 and the selection threshold is that value.
+WT_RELATIVE = 1.0
+
+
+@dataclass(frozen=True)
+class DecodedId:
+    """One numeric ID resolved to a variant, with its measured replicates.
+
+    id: 1-based numeric base ID as written in the report.
+    variant: short EVOLVEpro notation, e.g. ``53R``.
+    mutant: internal notation from the layout, e.g. ``K53R``.
+    well: layout well of that variant.
+    relative: replicate areas divided by the report WT block mean, in the
+        replicate order the parser found them.
+    """
+
+    id: int
+    variant: str
+    mutant: str
+    well: str
+    relative: tuple[float, ...]
+
+    @property
+    def mean(self) -> float:
+        return sum(self.relative) / len(self.relative)
+
+
+@dataclass
+class DecodeResult:
+    """Outcome of decoding one numeric-ID report.
+
+    rows: DecodedId per numeric ID, ascending by ID.
+    wt_mean: WT block mean used as the divisor.
+    order: the variant order the IDs were matched against, so a caller can
+        show what position each ID resolved to.
+    warnings: non-fatal notes.
+    """
+
+    rows: list[DecodedId]
+    wt_mean: float
+    order: list[str]
+    warnings: list[str] = field(default_factory=list)
+
+    def by_variant(self) -> dict[str, list[float]]:
+        return {r.variant: list(r.relative) for r in self.rows}
+
+    def id_to_variant(self) -> dict[int, str]:
+        return {r.id: r.variant for r in self.rows}
+
+
+def _wt_mean(block: BlockRepBatchResult, source: str) -> float:
+    if not block.wt_areas:
+        raise ValueError(
+            f"{source} has no WT block areas; relative activity needs the "
+            "WT blocks (sample names 'WT1'/'WT_1'/...) to divide by."
+        )
+    m = sum(block.wt_areas) / len(block.wt_areas)
+    if m <= 0:
+        raise ValueError(
+            f"{source} WT block mean must be > 0 (computed {m:.6g} from "
+            f"{block.wt_areas})."
+        )
+    return m
+
+
+def layout_variant_order(
+    layout_xlsx: str | Path,
+) -> tuple[list[tuple[str, str, str]], list[str]]:
+    """Non-WT layout rows in well order as ``(short, mutant, well)``.
+
+    Rows whose mutant has no EVOLVEpro short form (several substitutions) are
+    dropped with a warning rather than shifting every later ID by one, because
+    a silent shift would rename the whole plate.
+    """
+    warnings: list[str] = []
+    order: list[tuple[str, str, str]] = []
+    for entry in parse_plate_layout_xlsx(layout_xlsx):
+        if entry.is_wt:
+            continue
+        try:
+            short = to_evolvepro(entry.mutant)
+        except ValueError:
+            warnings.append(
+                f"Layout mutant {entry.mutant!r} (well {entry.well_id}) has no "
+                "EVOLVEpro short form (several substitutions); it cannot take a "
+                "numeric ID and is excluded from the decode order."
+            )
+            continue
+        order.append((short, entry.mutant, entry.well_id))
+    return order, warnings
+
+
+def _decode_against(
+    block: BlockRepBatchResult,
+    order: list[tuple[str, str, str]],
+    wt_mean: float,
+    *,
+    source: str,
+    order_label: str,
+) -> list[DecodedId]:
+    """Match ascending numeric IDs onto *order* positionally.
+
+    An ID outside ``1..len(order)`` aborts the decode. Guessing would attach a
+    real measurement to the wrong variant, and every consumer downstream treats
+    the label as ground truth.
+    """
+    ids = sorted(block.reps)
+    if not ids:
+        raise ValueError(f"{source} carries no numeric sample IDs to decode.")
+    lo, hi = ids[0], ids[-1]
+    if lo < 1 or hi > len(order):
+        raise ValueError(
+            f"{source} has numeric IDs {lo}..{hi}, but {order_label} holds "
+            f"{len(order)} variants. IDs must be 1..{len(order)}; a decode "
+            "outside that range would label measurements with the wrong "
+            "variant. Check that the layout matches this run."
+        )
+    if len(ids) != len(order):
+        raise ValueError(
+            f"{source} carries {len(ids)} numeric IDs but {order_label} holds "
+            f"{len(order)} variants. The two must line up one to one; a "
+            f"partial file cannot be decoded positionally. Missing IDs: "
+            f"{sorted(set(range(1, len(order) + 1)) - set(ids))[:10]}"
+        )
+
+    rows: list[DecodedId] = []
+    for base_id in ids:
+        short, mutant, well = order[base_id - 1]
+        rows.append(
+            DecodedId(
+                id=base_id,
+                variant=short,
+                mutant=mutant,
+                well=well,
+                relative=tuple(a / wt_mean for a in block.reps[base_id]),
+            )
+        )
+    return rows
+
+
+def decode_primary_screen(
+    report_xlsx: str | Path,
+    layout_xlsx: str | Path,
+) -> DecodeResult:
+    """Decode the whole-plate primary screen against the plate layout.
+
+    ID ``i`` is the ``i``-th non-WT layout row in well order.
+
+    Raises:
+        ValueError: WT blocks missing, or the ID set does not line up with the
+            layout one to one.
+    """
+    source = Path(report_xlsx).name
+    block = parse_agilent_block_rep_batch(report_xlsx)
+    wt_mean = _wt_mean(block, source)
+    order, warnings = layout_variant_order(layout_xlsx)
+    rows = _decode_against(
+        block,
+        order,
+        wt_mean,
+        source=source,
+        order_label="the plate layout",
+    )
+    return DecodeResult(
+        rows=rows,
+        wt_mean=wt_mean,
+        order=[o[0] for o in order],
+        warnings=warnings,
+    )
+
+
+def above_wt_subset(primary: DecodeResult) -> list[tuple[str, str, str]]:
+    """Primary-screen variants above wild-type, in layout well order.
+
+    This reproduces the lab selection rule: every variant that beat WT in the
+    one-replicate screen goes on to the replicated confirmation. Order is the
+    layout order the primary screen was decoded in, so the confirmation file
+    numbers its subset the same way.
+    """
+    selected = {r.variant for r in primary.rows if r.mean > WT_RELATIVE}
+    return [
+        (r.variant, r.mutant, r.well)
+        for r in primary.rows
+        if r.variant in selected
+    ]
+
+
+def decode_confirmation(
+    report_xlsx: str | Path,
+    primary: DecodeResult,
+) -> DecodeResult:
+    """Decode the replicated confirmation against the above-WT subset.
+
+    ID ``j`` is the ``j``-th above-WT variant of *primary*, in layout well
+    order. The subset comes from the primary screen rather than a separate
+    file, so the two reports are the only inputs beyond the layout.
+
+    Raises:
+        ValueError: WT blocks missing, or the ID count does not match the
+            above-WT count. That mismatch means the confirmation covered a
+            different set than "everything above WT", which this decoder
+            cannot infer, so it refuses rather than mislabelling.
+    """
+    source = Path(report_xlsx).name
+    block = parse_agilent_block_rep_batch(report_xlsx)
+    wt_mean = _wt_mean(block, source)
+    subset = above_wt_subset(primary)
+    if not subset:
+        raise ValueError(
+            f"No primary-screen variant exceeded wild-type ({WT_RELATIVE}), so "
+            f"there is no subset for {source} to index into. Check that the "
+            "primary screen WT blocks are the right ones."
+        )
+    rows = _decode_against(
+        block,
+        subset,
+        wt_mean,
+        source=source,
+        order_label="the above-WT subset of the primary screen",
+    )
+    return DecodeResult(
+        rows=rows,
+        wt_mean=wt_mean,
+        order=[s[0] for s in subset],
+        warnings=[],
+    )
