@@ -1129,3 +1129,109 @@ describe("applyKuroSnapshot: 프로젝트 폴더 이식", () => {
     expect(outcome.unavailableInputs).toEqual([]);
   });
 });
+
+describe("useAutosaveHydration: 결과 파일 없이도 사이드카를 채운다", () => {
+  /**
+   * 화면의 verdict 표는 자동 저장 스냅샷에서 복원되는데 사이드카 상태는 별도
+   * 결과 파일로만 채워졌다. 결과 파일이 없으면 표는 보이는데 리포트와 Excel
+   * 내보내기는 "No prior analyze result" 로 거부됐다. 그 간극을 메운다.
+   */
+  function mameSnapshotWithResults() {
+    return {
+      status: "ok",
+      snapshot: {
+        schema: 4,
+        saved_at: new Date().toISOString(),
+        kuma_version: "0.0.0-test",
+        input: {
+          input_dir: "project://run",
+          expected_path: "",
+          reference_path: "",
+          output_path: "project://out",
+          sample_map_path: "",
+        },
+        parameters: {
+          mode: "amplicon",
+          ingest_mode: "barcode",
+          input_mode: "raw_run",
+          raw_run_params: undefined,
+          cds_start: 1,
+          cds_end: 900,
+          min_file_size_kb: 50,
+          many_cutoff: 5,
+        },
+        results: {
+          verdicts: [VERDICT],
+          replicates: [REPLICATE],
+          summary: ANALYZE_RESULT.summary,
+          distribution_stats: ANALYZE_RESULT.distribution_stats,
+        },
+      },
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) =>
+      kind === "mame"
+        ? Promise.resolve(mameSnapshotWithResults())
+        : Promise.resolve({ status: "missing" }),
+    );
+    hooks.detectProjectFiles.mockResolvedValue({});
+    hooks.sendMameRequest.mockResolvedValue({});
+  });
+
+  it("결과 파일이 없으면 스냅샷의 결과로 load_analyze_result 를 호출한다", async () => {
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(
+        hooks.sendMameRequest.mock.calls.some((c) => c[0] === "load_analyze_result"),
+      ).toBe(true);
+    });
+    const call = hooks.sendMameRequest.mock.calls.find(
+      (c) => c[0] === "load_analyze_result",
+    );
+    expect(call?.[1]).toMatchObject({
+      verdicts: [VERDICT],
+      replicates: [REPLICATE],
+    });
+  });
+
+  it("output_path 를 현재 프로젝트 폴더 기준 절대 경로로 되돌려 보낸다", async () => {
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(
+        hooks.sendMameRequest.mock.calls.some((c) => c[0] === "load_analyze_result"),
+      ).toBe(true);
+    });
+    const call = hooks.sendMameRequest.mock.calls.find(
+      (c) => c[0] === "load_analyze_result",
+    );
+    expect(String(call?.[1]?.output_path)).not.toContain("project://");
+    expect(String(call?.[1]?.output_path)).toContain("/out");
+  });
+
+  it("결과 파일이 정상이면 스냅샷 폴백을 쓰지 않는다", async () => {
+    hooks.readMameResultSnapshot.mockResolvedValue({
+      status: "ok",
+      snapshot: { result: ANALYZE_RESULT },
+    });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(hooks.detectProjectFiles).toHaveBeenCalled();
+    });
+    const calls = hooks.sendMameRequest.mock.calls.filter(
+      (c) => c[0] === "load_analyze_result",
+    );
+    // 결과 파일 경로 하나만 사이드카를 채운다. 중복 주입이 아니다.
+    expect(calls).toHaveLength(1);
+  });
+});
