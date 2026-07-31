@@ -117,3 +117,47 @@ describe("buildKuroSnapshot", () => {
     });
   });
 });
+
+describe("buildKuroSnapshot 경로 이식성", () => {
+  it("프로젝트 폴더 안 경로를 project:// 상대 경로로 저장한다", () => {
+    const snapshot = buildKuroSnapshot(baseState, "/project");
+
+    expect(snapshot.input).toMatchObject({
+      sequence_path: "project://input.gb",
+      evolvepro_csv_path: "project://evolvepro.csv",
+    });
+  });
+
+  it("프로젝트 폴더 밖 경로는 절대 경로로 남긴다", () => {
+    const snapshot = buildKuroSnapshot(
+      { ...baseState, fastaPath: "/elsewhere/ref.gb" },
+      "/project",
+    );
+
+    expect(snapshot.input).toMatchObject({
+      sequence_path: "/elsewhere/ref.gb",
+      evolvepro_csv_path: "project://evolvepro.csv",
+    });
+  });
+
+  it("projectPath를 주지 않으면 절대 경로를 그대로 둔다 (scratch 세션)", () => {
+    const snapshot = buildKuroSnapshot(baseState);
+
+    expect(snapshot.input).toMatchObject({
+      sequence_path: "/project/input.gb",
+      evolvepro_csv_path: "/project/evolvepro.csv",
+    });
+  });
+
+  it("빈 경로는 null로 유지한다", () => {
+    const snapshot = buildKuroSnapshot(
+      { ...baseState, fastaPath: "", evolveproCsvPath: "" },
+      "/project",
+    );
+
+    expect(snapshot.input).toMatchObject({
+      sequence_path: null,
+      evolvepro_csv_path: null,
+    });
+  });
+});

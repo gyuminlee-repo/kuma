@@ -65,3 +65,32 @@ export async function listRestorableProjects(): Promise<RecentProject[]> {
 export async function deleteProjectFolder(path: string): Promise<RecentProject[]> {
   return invoke<RecentProject[]>("delete_project_folder_cmd", { path });
 }
+
+/** export_project_zip_cmd / import_project_zip_cmd 결과. */
+export interface ArchiveSummary {
+  /** 내보낸 zip 경로, 또는 가져오기로 만들어진 프로젝트 폴더 경로. */
+  path: string;
+  file_count: number;
+  total_bytes: number;
+}
+
+/**
+ * 프로젝트 폴더를 zip 하나로 묶는다. 다른 PC로 옮겨 이어서 작업하기 위한 통로다.
+ *
+ * 폴더 밖 대용량 입력(MinKNOW raw run 등)은 담지 않는다. 분석 결과가 이미 폴더
+ * 안에 보존돼 있어 받는 쪽에서 결과 조회·내보내기·리포트가 모두 가능하다.
+ */
+export async function exportProjectZip(
+  projectPath: string,
+  outputPath: string,
+): Promise<ArchiveSummary> {
+  return invoke<ArchiveSummary>("export_project_zip_cmd", { projectPath, outputPath });
+}
+
+/** zip 을 `destParent` 아래 새 폴더로 풀고 그 경로를 돌려준다. */
+export async function importProjectZip(
+  archivePath: string,
+  destParent: string,
+): Promise<ArchiveSummary> {
+  return invoke<ArchiveSummary>("import_project_zip_cmd", { archivePath, destParent });
+}

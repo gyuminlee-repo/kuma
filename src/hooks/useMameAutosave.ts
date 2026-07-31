@@ -89,10 +89,16 @@ export function useMameAutosave(): { flushMameAutosave: () => Promise<void> } {
 
     const buildSnapshot = () => {
       const roundState = useRoundStore.getState();
-      return buildMameSnapshot(useMameAppStore.getState(), {
-        rounds: roundState.rounds,
-        activeRoundId: roundState.active_round_id,
-      });
+      // 경로 상대화 기준은 쓰기 시점의 대상 프로젝트다. targetRef를 따라가야
+      // 프로젝트 전환 직후 예약분이 옛 폴더 기준으로 상대화되지 않는다.
+      return buildMameSnapshot(
+        useMameAppStore.getState(),
+        {
+          rounds: roundState.rounds,
+          activeRoundId: roundState.active_round_id,
+        },
+        targetRef.current.scratch ? null : targetRef.current.projectPath,
+      );
     };
     const unsubscribe = useMameAppStore.subscribe(
       selectMameInputs,

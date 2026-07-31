@@ -83,7 +83,8 @@ pub fn compute_stage(path: &Path) -> String {
     .to_string()
 }
 
-fn unique_folder(root: &Path, name: &str) -> PathBuf {
+/// Pick a folder name that does not collide, appending `_2`, `_3`, ... as needed.
+pub(crate) fn unique_folder(root: &Path, name: &str) -> PathBuf {
     let candidate = root.join(name);
     if !candidate.exists() {
         return candidate;

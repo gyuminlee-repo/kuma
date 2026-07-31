@@ -12,7 +12,12 @@
     "openWorkspace": "打开工作区...",
     "saveWorkspace": "保存工作区...",
     "compareWorkspaces": "比较工作区...",
-    "exportWorkspaceZip": "将工作区导出为 zip..."
+    "exportProjectZip": "将项目导出为 ZIP...",
+    "importProjectZip": "从 ZIP 导入项目...",
+    "exportProjectZipDone": "已将 {{count}} 个文件保存到 {{path}}",
+    "exportProjectZipFailed": "项目导出失败: {{detail}}",
+    "importProjectZipDone": "已将 {{count}} 个文件导入到 {{path}}",
+    "importProjectZipFailed": "项目导入失败: {{detail}}"
   },
   "export": {
     "all": "全部导出",
@@ -585,7 +590,6 @@
       "compareWorkspacesNoDiff": "No differences found.",
       "compareWorkspacesSame": "The two workspaces are identical.",
       "compareWorkspacesTitle": "Compare Workspaces",
-      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon",
       "selectWorkspaceA": "Select first workspace (A)",
       "selectWorkspaceB": "Select second workspace (B)"
     },
@@ -2289,6 +2293,7 @@
     "writeFailed": "无法写入自动保存文件 ({{filename}})。原因: {{cause}}",
     "carriedFromScratch": "已从未保存的上一次会话继续 ({{relative}})",
     "resultsDiscarded": "已从源文件重新选择 variant 列表，与恢复的 primer 表不一致，因此已清空该表。请重新运行设计。",
+    "inputsUnavailable": "有 {{count}} 个输入文件无法打开，已从恢复中略过。结果仍在，但缺少来源输入，请重新选择: {{paths}}",
     "workspaceRestored": "工作区已恢复",
     "autoDetected": "自动检测: {{fields}}",
     "fieldRunFolder": "run 文件夹",

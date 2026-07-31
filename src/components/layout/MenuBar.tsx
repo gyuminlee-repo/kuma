@@ -17,7 +17,9 @@ import {
 import { useTheme } from "../ui/ThemeToggle";
 import type { Theme } from "../ui/ThemeToggle";
 import i18next, { setLocale, SUPPORTED_LOCALES } from "../../lib/i18n";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
+import { exportProjectZip, importProjectZip, getConfig, loadProject } from "../../lib/project";
+import { useKumaProject } from "../../state/projectContext";
 import { loadManifestFromFile } from "../../lib/runManifest";
 import { CrashLogDialog } from "../dialogs/CrashLogDialog";
 import {
@@ -87,6 +89,59 @@ interface MenuBarProps {
 
 export function MenuBar({ onClearRequest }: MenuBarProps = {}) {
   const { t } = useTranslation();
+  const project = useKumaProject();
+
+  /**
+   * 프로젝트 폴더를 zip 으로 묶는다. 실패는 조용히 넘기지 않고 toast 로 알린다.
+   * 저장 다이얼로그를 취소하면 아무 일도 하지 않는다(오류가 아니다).
+   */
+  const handleExportProjectZip = useCallback(async () => {
+    const projectPath = project?.path;
+    if (!projectPath) return;
+    const defaultName = `${project?.name ?? "kuma-project"}.zip`;
+    try {
+      const target = await saveDialog({
+        defaultPath: defaultName,
+        filters: [{ name: "ZIP", extensions: ["zip"] }],
+      });
+      if (!target) return;
+      const summary = await exportProjectZip(projectPath, target);
+      toast.success(
+        t("file.exportProjectZipDone", {
+          count: summary.file_count,
+          path: summary.path,
+        }),
+      );
+    } catch (err) {
+      toast.error(t("file.exportProjectZipFailed", { detail: String(err) }));
+    }
+  }, [project?.path, project?.name, t]);
+
+  /**
+   * zip 을 프로젝트 루트 아래로 풀고 그대로 연다. 푼 뒤 열지 않으면 사용자가
+   * 폴더를 다시 찾아야 하므로 한 동작으로 잇는다.
+   */
+  const handleImportProjectZip = useCallback(async () => {
+    try {
+      const archive = await openDialog({
+        multiple: false,
+        filters: [{ name: "ZIP", extensions: ["zip"] }],
+      });
+      if (typeof archive !== "string") return;
+      const config = await getConfig();
+      const summary = await importProjectZip(archive, config.projects_root);
+      await loadProject(summary.path);
+      toast.success(
+        t("file.importProjectZipDone", {
+          count: summary.file_count,
+          path: summary.path,
+        }),
+      );
+      window.dispatchEvent(new CustomEvent("kuma:return-to-home"));
+    } catch (err) {
+      toast.error(t("file.importProjectZipFailed", { detail: String(err) }));
+    }
+  }, [t]);
   const isExporting = useAppStore((s) => s.isExporting);
   const isDesigning = useAppStore((s) => s.isDesigning);
   const loadSampleData = useAppStore((s) => s.loadSampleData);
@@ -230,6 +285,17 @@ export function MenuBar({ onClearRequest }: MenuBarProps = {}) {
             onClick={() => window.dispatchEvent(new CustomEvent("kuma:return-to-home"))}
           >
             {t("file.openProject")}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {/*
+            프로젝트 이식. 자동 저장 스냅샷이 폴더 기준 상대 경로를 쓰므로
+            (lib/projectPath.ts) 폴더째 옮기면 다른 PC에서 그대로 이어진다.
+          */}
+          <DropdownMenuItem onClick={() => { void handleExportProjectZip(); }} disabled={!project?.path}>
+            {t("file.exportProjectZip")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => { void handleImportProjectZip(); }}>
+            {t("file.importProjectZip")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {/* §1 Recovery: UI 상태 보존 sidecar 재시작. Zustand 스토어는 메모리에 유지됨 */}

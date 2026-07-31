@@ -12,7 +12,12 @@
     "openWorkspace": "Ouvrir un espace de travail...",
     "saveWorkspace": "Enregistrer l'espace de travail...",
     "compareWorkspaces": "Comparer les espaces de travail...",
-    "exportWorkspaceZip": "Exporter l'espace de travail au format zip..."
+    "exportProjectZip": "Exporter le projet en ZIP...",
+    "importProjectZip": "Importer un projet depuis un ZIP...",
+    "exportProjectZipDone": "{{count}} fichier(s) enregistre(s) dans {{path}}",
+    "exportProjectZipFailed": "Echec de l'export du projet: {{detail}}",
+    "importProjectZipDone": "{{count}} fichier(s) importe(s) dans {{path}}",
+    "importProjectZipFailed": "Echec de l'import du projet: {{detail}}"
   },
   "export": {
     "all": "Tout exporter",
@@ -585,7 +590,6 @@
       "compareWorkspacesNoDiff": "No differences found.",
       "compareWorkspacesSame": "The two workspaces are identical.",
       "compareWorkspacesTitle": "Compare Workspaces",
-      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon",
       "selectWorkspaceA": "Select first workspace (A)",
       "selectWorkspaceB": "Select second workspace (B)"
     },
@@ -2289,6 +2293,7 @@
     "writeFailed": "Impossible d'écrire le fichier autosave ({{filename}}). Cause : {{cause}}",
     "carriedFromScratch": "Repris d'une session précédente non enregistrée ({{relative}})",
     "resultsDiscarded": "La liste des variants a été re-sélectionnée depuis le fichier source et ne correspond plus au tableau de primers restauré. Le tableau a été vidé. Relancer la conception.",
+    "inputsUnavailable": "{{count}} fichier(s) d'entree n'ont pas pu etre ouverts et sont absents de la restauration. Les resultats subsistent mais leur entree source manque, veuillez la reselectionner: {{paths}}",
     "workspaceRestored": "Espace de travail restauré",
     "autoDetected": "Auto-détecté : {{fields}}",
     "fieldRunFolder": "dossier de run",
