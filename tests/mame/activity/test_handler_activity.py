@@ -314,6 +314,59 @@ class TestHandleMergeForEvolvepro:
             "status": "ngs_done",
         }
 
+    def _setup_round_two_wells(
+        self,
+        round_id: str = "round_1",
+        mutation_a: str = "F89W",
+        mutation_b: str = "A50G",
+        activity_a: float = 2.0,
+        activity_b: float = 3.0,
+    ) -> None:
+        """Two mutant wells, needed to close a 2-swap cycle (a single-well
+        round can only ever produce an open, unclosed mismatch — see
+        test_open_mismatch_warns_without_blocking_export above)."""
+        _rounds[round_id] = {
+            "n": 1,
+            "plate_meta": {
+                "plates": [
+                    {"plate_id": "P01", "wt_wells": ["A01"], "control_wells": []}
+                ]
+            },
+            "design": {
+                "plateMap": [
+                    {"plate_id": "P01", "well_id": "B03", "mutation": mutation_a},
+                    {"plate_id": "P01", "well_id": "B04", "mutation": mutation_b},
+                ]
+            },
+            "genotype": {
+                "verdict": [
+                    {"plate_id": "P01", "well_id": "B03", "called_mutation": mutation_a},
+                    {"plate_id": "P01", "well_id": "B04", "called_mutation": mutation_b},
+                ]
+            },
+            "activity": {
+                "raw_records": [
+                    {
+                        "plate_id": "P01", "well_id": "A01",
+                        "value": 1.0, "replicate_idx": 1,
+                        "is_wt": True, "source_file": "act.csv",
+                    },
+                    {
+                        "plate_id": "P01", "well_id": "B03",
+                        "value": activity_a, "replicate_idx": 1,
+                        "is_wt": False, "source_file": "act.csv",
+                    },
+                    {
+                        "plate_id": "P01", "well_id": "B04",
+                        "value": activity_b, "replicate_idx": 1,
+                        "is_wt": False, "source_file": "act.csv",
+                    },
+                ]
+            },
+            "merged_table": [],
+            "status": "ngs_done",
+        }
+
     def test_round1_no_prev_ep_returns_no_warnings(self):
         """round_n=1, prev_round_evolvepro={} → no swap warnings, export_blocked=False."""
         self._setup_round()
@@ -347,15 +400,41 @@ class TestHandleMergeForEvolvepro:
                 "prev_round_evolvepro": {},
             })
 
-    def test_swap_detected_raises_export_blocked_error(self):
-        """When label-swap with severity=error is detected, ExportBlockedError is raised."""
+    def test_open_mismatch_warns_without_blocking_export(self):
+        """An open (unclosed) label mismatch is a warning, not an export block.
+
+        F89W's measured value (2.0) coincidentally matches a different
+        prev-round variant ("OTHER"), but there is no reverse mapping
+        (OTHER -> 89W) to close the permutation, so this is ambiguous
+        rather than a confirmed relabeling (see sanity_check._group_swap_cycles).
+        """
         self._setup_round()
-        # Inject a prev-round EP where F89W's value (2.0) is mapped to a different
-        # variant, triggering a label_swap_cycle detection.
-        # A01 (WT) is excluded. B03 has activity=2.0.
-        # Prev EP: short variant "89W" had value 99.9 (mismatch), but "OTHER" had 2.0
-        # → measured value for F89W matches "OTHER" in prev EP → swap detected.
         prev_ep = {"OTHER": 2.0, "89W": 99.9}
+        res = handle_merge_for_evolvepro({
+            "round_id": "round_1",
+            "prev_round_evolvepro": prev_ep,
+        })
+        assert res["export_blocked"] is False
+        swap_warnings = res["stats"]["warnings"]
+        assert any(
+            w["severity"] == "warning" and w["code"] == "label_swap_cycle"
+            for w in swap_warnings
+        )
+
+    def test_closed_swap_cycle_raises_export_blocked_error(self):
+        """A *closed* 2-swap cycle (both directions present) is severity=error
+        and raises ExportBlockedError, unlike the open-mismatch case above.
+
+        B03=F89W measured 2.0, B04=A50G measured 3.0. prev EP has "89W": 3.0
+        (== measured activity_b) and "50G": 2.0 (== measured activity_a), so
+        each well's value matches the *other* variant's prior value, closing
+        the permutation (see sanity_check._group_swap_cycles).
+        """
+        self._setup_round_two_wells(
+            mutation_a="F89W", mutation_b="A50G",
+            activity_a=2.0, activity_b=3.0,
+        )
+        prev_ep = {"89W": 3.0, "50G": 2.0}
         with pytest.raises(ExportBlockedError):
             handle_merge_for_evolvepro({
                 "round_id": "round_1",

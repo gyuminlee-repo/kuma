@@ -355,6 +355,11 @@ class BuildEvolveproInputParams(BaseModel):
         Where to write the intermediate round-1 well-level relative activity
         ('Sample Name', 'Area'). Raw round-1 report only; on the other axis A
         sources the build records a warning instead.
+    allow_label_mismatch
+        When False (default), a closed-permutation well<->well label swap or
+        a severity="error" numeric-index label-swap warning aborts the build
+        with a ValueError before anything is written. Set True to proceed
+        once the flagged wells/variants have been reviewed.
     """
 
     # Optional: required for rank-mode and raw-reports-mode, but not for
@@ -386,6 +391,12 @@ class BuildEvolveproInputParams(BaseModel):
     # round-1 well-level relative activity ('Sample Name', 'Area'). Output path,
     # so it is validated like output_xlsx and never as an existing input.
     gc_export_xlsx: str | None = None
+    # When False (default), a closed-permutation well<->well label swap
+    # detected by the label audit (kuma_core.mame.activity.label_audit) or a
+    # severity="error" numeric-index label-swap warning aborts the build with
+    # a ValueError. Set True to proceed once the flagged wells/variants have
+    # been reviewed.
+    allow_label_mismatch: bool = False
 
     @field_validator(
         "layout_xlsx",

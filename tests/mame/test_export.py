@@ -763,5 +763,10 @@ def test_sheet1_header_includes_marker_columns() -> None:
 
 
 def test_final_header_includes_marker_columns() -> None:
-    """Regression: _FINAL_HEADER carries the new fallback/notes columns."""
-    assert _FINAL_HEADER[-3:] == ["is_fallback", "fallback_reason", "notes"]
+    """Regression: _FINAL_HEADER carries the fallback/notes/observed_aa columns."""
+    assert _FINAL_HEADER[-4:] == [
+        "is_fallback",
+        "fallback_reason",
+        "notes",
+        "observed_aa",
+    ]

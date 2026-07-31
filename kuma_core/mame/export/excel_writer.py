@@ -91,6 +91,7 @@ _FINAL_HEADER = [
     "is_fallback",
     "fallback_reason",
     "notes",
+    "observed_aa",
 ]
 
 # Reference-format "NGS Results" / "Final (matrix)" sheets adapt to the actual
@@ -314,7 +315,7 @@ def _write_final(
         well = mapper.seq_to_well(seq)
         rr = replicate_by_seq.get(seq)
         if rr is None:
-            ws.append([well, "", "", "", "", "", "", ""])
+            ws.append([well, "", "", "", "", "", "", "", ""])
             _highlight_well_cell(ws, ws.max_row)
             continue
 
@@ -322,7 +323,7 @@ def _write_final(
             failed_wells.append(well)
             failed_count += 1
             redo_targets.append(rr.mutant_id)
-            ws.append([well, "FAILED", "-", rr.mutant_id, "-", "", "", ""])
+            ws.append([well, "FAILED", "-", rr.mutant_id, "-", "", "", "", ""])
             for cell in ws[ws.max_row]:
                 cell.fill = _fill(FAILED_FILL)
         else:
@@ -337,6 +338,7 @@ def _write_final(
                     "Y" if rr.is_fallback else "",
                     (rr.fallback_reason or "") if rr.is_fallback else "",
                     vr.verdict_notes,
+                    ", ".join(vr.translated.observed_aa_changes),
                 ]
             )
             row_idx = ws.max_row
@@ -369,6 +371,7 @@ def _write_final(
                     "",
                     rr.mutant_id,
                     rr.selection_reason,
+                    "",
                     "",
                     "",
                     "",

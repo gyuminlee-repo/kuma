@@ -181,9 +181,12 @@ def _group_swap_cycles(
     """Group mismatch pairs into swap/cycle warnings.
 
     A swap group is identified by the set of (expected_short, matched_short)
-    label pairs. A single mismatch (A → B, no reverse) is sufficient to flag
-    severity="error" (spec §6-A: any value-label inconsistency is a swap).
-    Closed cycles (A→B, B→A or A→B→C→A) are grouped into one warning.
+    label pairs. Closed cycles (A→B, B→A or A→B→C→A) are the reliable
+    signal for a real relabeling event and are flagged severity="error".
+    An open path (A→B with no reverse, i.e. not a closed permutation) is
+    ambiguous: the measured value may simply coincide with another
+    variant's prior-round value by chance, so it is flagged
+    severity="warning" rather than blocking export.
     """
     # Build a directed graph: expected → matched
     from_to: dict[str, str] = {}
@@ -195,7 +198,8 @@ def _group_swap_cycles(
 
     # Find cycles using iterative path tracing.
     visited: set[str] = set()
-    cycle_groups: list[list[str]] = []
+    # (group, is_closed_cycle)
+    cycle_groups: list[tuple[list[str], bool]] = []
 
     for start in list(from_to.keys()):
         if start in visited:
@@ -213,34 +217,46 @@ def _group_swap_cycles(
             # Found a cycle; extract the cycle portion.
             cycle_start_idx = path.index(node)
             cycle = path[cycle_start_idx:]
-            cycle_groups.append(cycle)
+            cycle_groups.append((cycle, True))
             visited.update(cycle)
         else:
-            # No closed cycle — but any mismatch (even one-directional) is
-            # a swap indicator and must be flagged as severity="error".
-            # A single path entry means one variant matched the wrong label.
+            # No closed cycle — an open path (single or chained mismatch
+            # that never returns to its start) does not confirm a real
+            # relabeling; the value match may be coincidental.
             if path:
-                cycle_groups.append(path)
+                cycle_groups.append((path, False))
             visited.update(path)
 
     swap_warnings: list[SwapWarning] = []
-    for group in cycle_groups:
+    for group, is_closed in cycle_groups:
         group_variants = group
         group_wells = [pair_data[v][1] for v in group if v in pair_data]
         group_values = [pair_data[v][0] for v in group if v in pair_data]
+        if is_closed:
+            message = (
+                f"Label swap detected among {len(group_variants)} "
+                f"variant(s): {', '.join(group_variants)}. "
+                "Measured values match prev-round EVOLVEpro entries "
+                "for different labels. Export is blocked until resolved."
+            )
+        else:
+            message = (
+                f"Possible label mismatch among {len(group_variants)} "
+                f"variant(s): {', '.join(group_variants)}. "
+                "Measured value(s) match a different prev-round "
+                "EVOLVEpro label, but the mismatch does not close into a "
+                "cycle, so this may be a coincidental value match rather "
+                "than a real relabeling. Review before trusting this "
+                "assignment."
+            )
         swap_warnings.append(
             SwapWarning(
-                severity="error",
+                severity="error" if is_closed else "warning",
                 code="label_swap_cycle",
                 variants=group_variants,
                 wells=group_wells,
                 values=group_values,
-                message=(
-                    f"Label swap detected among {len(group_variants)} "
-                    f"variant(s): {', '.join(group_variants)}. "
-                    "Measured values match prev-round EVOLVEpro entries "
-                    "for different labels. Export is blocked until resolved."
-                ),
+                message=message,
             )
         )
 

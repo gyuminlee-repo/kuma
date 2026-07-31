@@ -66,6 +66,11 @@ export interface BuildEvolveproInputParams {
   /** Raw primary screen report only: where to write the intermediate well-level
    *  relative activity (Sample Name, Area). Omit to skip the export. */
   gc_export_xlsx?: string | null
+  /** When false (default), a closed-permutation well<->well label swap (label
+   *  audit) or a severity="error" numeric-index label-swap warning aborts the
+   *  build with a ValueError before anything is written. Set true to proceed
+   *  once the flagged wells/variants have been reviewed. */
+  allow_label_mismatch?: boolean
 }
 
 /**
@@ -122,6 +127,37 @@ export interface MismatchedVariant {
   fallback: number
 }
 
+/**
+ * One well's label-audit outcome (only populated for discordant wells).
+ * Mirrors kuma_core.mame.activity.label_audit.LabelFinding.
+ */
+export interface LabelFinding {
+  well: string
+  expected: string
+  observed: string[]
+  category:
+    | "not_introduced"
+    | "wrong_residue"
+    | "extra_mutation"
+    | "sequence_collapse"
+    | "cross_well"
+  verdict: string
+}
+
+/**
+ * Plate-level well<->mutant label-audit result. Mirrors
+ * kuma_core.mame.activity.label_audit.LabelAudit. Requires both verdict_xlsx
+ * and layout_xlsx; null on the response when either is omitted.
+ */
+export interface LabelAudit {
+  discordant: LabelFinding[]
+  n_checked: number
+  n_unevaluable: number
+  is_closed_permutation: boolean
+  cycles: string[][]
+  geometry: "two_swap" | "contiguous_shift" | "scattered" | "global_offset" | null
+}
+
 /** Result of a mame.activity.build_evolvepro_input RPC call. */
 export interface BuildEvolveproInputResult {
   /** Resolved path to the written EVOLVEpro input xlsx. */
@@ -172,4 +208,7 @@ export interface BuildEvolveproInputResult {
    * 1-replicate primary screen mean beyond the merge threshold (QC, not error).
    */
   mismatched: MismatchedVariant[]
+  /** Well<->mutant discordance audit; null unless both verdict_xlsx and
+   *  layout_xlsx were supplied. */
+  label_audit?: LabelAudit | null
 }
