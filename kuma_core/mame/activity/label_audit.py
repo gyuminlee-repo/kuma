@@ -18,6 +18,7 @@ from kuma_core.mame.export.well_mapper import well_to_seq
 
 _WT_LITERAL = "WT"
 _SEQUENCE_COLLAPSE_THRESHOLD = 20
+_PLATE_WELL_COUNT = 96
 _POSITION_RE = re.compile(r"(\d+)")
 
 
@@ -78,15 +79,18 @@ def _classify_geometry(cycles: tuple[tuple[str, ...], ...]) -> str | None:
         return None
 
     displacements: list[int] = []
+    modular_displacements: list[int] = []
     for cycle in cycles:
         idx = [well_to_seq(w) for w in cycle]
         n = len(idx)
         for i in range(n):
-            displacements.append(idx[(i + 1) % n] - idx[i])
+            delta = idx[(i + 1) % n] - idx[i]
+            displacements.append(delta)
+            modular_displacements.append(delta % _PLATE_WELL_COUNT)
 
     if len(cycles) == 1 and len(cycles[0]) == 2:
         return "two_swap"
-    if len(set(displacements)) == 1:
+    if len(set(modular_displacements)) == 1:
         return "global_offset"
     if all(abs(d) <= 3 for d in displacements):
         return "contiguous_shift"
@@ -198,11 +202,11 @@ def audit_labels(
     # well exactly match another well's own expected label?
     candidates: dict[str, str] = {}
     for well, finding in provisional.items():
-        for label in finding.observed:
-            target = label_to_well.get(label)
-            if target is not None and target != well:
-                candidates[well] = target
-                break
+        if len(finding.observed) != 1:
+            continue
+        target = label_to_well.get(finding.observed[0])
+        if target is not None and target != well:
+            candidates[well] = target
 
     is_closed_permutation = False
     cycles: tuple[tuple[str, ...], ...] = ()

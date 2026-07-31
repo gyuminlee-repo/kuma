@@ -27,6 +27,7 @@ from kuma_core.mame.activity.verdict_ngs import (
     parse_verdict_rows,
     parse_verdict_wells,
 )
+from kuma_core.mame.export.well_mapper import seq_to_well
 
 # ---------------------------------------------------------------------------
 # audit_labels: category classification
@@ -164,6 +165,40 @@ def test_f12_g12_coincidental_match_is_not_a_closed_permutation():
     finding = audit.discordant[0]
     assert finding.well == "F12"
     assert finding.category == "wrong_residue"
+
+
+def test_extra_cross_well_observation_is_not_a_closed_permutation():
+    layout = {"A01": "M1A", "B01": "M2A", "C01": "M3A"}
+    rows = {
+        "A01": VerdictRow(verdict="WRONG_AA", observed_aa=("M2A", "M3A")),
+        "B01": VerdictRow(verdict="WRONG_AA", observed_aa=("M3A",)),
+        "C01": VerdictRow(verdict="WRONG_AA", observed_aa=("M1A",)),
+    }
+
+    audit = audit_labels(layout, rows)
+
+    assert audit.is_closed_permutation is False
+    assert audit.cycles == ()
+    assert audit.geometry is None
+    assert {f.category for f in audit.discordant} == {"extra_mutation"}
+
+
+def test_full_plate_one_step_cycle_is_global_offset():
+    layout = {seq_to_well(i): f"M{i}A" for i in range(1, 97)}
+    rows = {
+        seq_to_well(i): VerdictRow(
+            verdict="WRONG_AA",
+            observed_aa=(f"M{(i % 96) + 1}A",),
+        )
+        for i in range(1, 97)
+    }
+
+    audit = audit_labels(layout, rows)
+
+    assert audit.is_closed_permutation is True
+    assert audit.geometry == "global_offset"
+    assert len(audit.cycles) == 1
+    assert len(audit.cycles[0]) == 96
 
 
 # ---------------------------------------------------------------------------
