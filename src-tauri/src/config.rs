@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -172,6 +173,120 @@ pub fn list_recent_projects_cmd() -> Result<Vec<RecentProject>, String> {
     Ok(cfg.recent_projects)
 }
 
+/// Resolve `path` to its real location if it is safe to move to the trash.
+///
+/// Guards run in order and each failure returns a distinct message so the
+/// frontend can tell the user which rule blocked the delete.
+pub(crate) fn ensure_deletable_with(
+    path: &Path,
+    projects_root: &Path,
+    home: Option<PathBuf>,
+) -> Result<PathBuf, String> {
+    // (a) must be an existing directory
+    if !path.is_dir() {
+        return Err("DeleteRefused: path is not an existing directory".into());
+    }
+
+    // (b) must be a valid kuma project (kuma.project.json marker)
+    load_project(path).map_err(|e| format!("DeleteRefused: not a kuma project folder ({e})"))?;
+
+    // (c) resolved path must not be home, a filesystem root, or projects_root
+    let target = path
+        .canonicalize()
+        .map_err(|e| format!("DeleteRefused: cannot resolve real path ({e})"))?;
+
+    if let Some(home) = home.as_deref().and_then(canonical) {
+        if target == home {
+            return Err("DeleteRefused: refusing to delete the home directory".into());
+        }
+        // Equality alone lets an ancestor through: deleting `~/..`-side folders
+        // would take the home directory down with them.
+        if home.starts_with(&target) {
+            return Err("DeleteRefused: refusing to delete a parent of the home directory".into());
+        }
+    }
+    if target.parent().is_none() {
+        return Err("DeleteRefused: refusing to delete a filesystem root".into());
+    }
+    if let Some(root) = canonical(projects_root) {
+        if target == root {
+            return Err("DeleteRefused: refusing to delete the projects root folder".into());
+        }
+        // Same ancestor hole: with projects_root at ~/work/thesis/runs, deleting
+        // ~/work/thesis would trash every project inside it.
+        if root.starts_with(&target) {
+            return Err("DeleteRefused: refusing to delete a parent of the projects root".into());
+        }
+    }
+
+    Ok(target)
+}
+
+fn canonical(path: &Path) -> Option<PathBuf> {
+    path.canonicalize().ok()
+}
+
+fn ensure_deletable(path: &Path, projects_root: &Path) -> Result<PathBuf, String> {
+    ensure_deletable_with(path, projects_root, dirs::home_dir())
+}
+
+/// Direct children of `projects_root` that are valid projects but absent from `recents`.
+pub(crate) fn collect_restorable(
+    projects_root: &Path,
+    recents: &[RecentProject],
+) -> Vec<RecentProject> {
+    let Ok(entries) = fs::read_dir(projects_root) else {
+        return Vec::new();
+    };
+    let known: HashSet<PathBuf> = recents.iter().map(|r| PathBuf::from(&r.path)).collect();
+
+    let mut out: Vec<RecentProject> = entries
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.is_dir() && !known.contains(p))
+        .filter_map(|p| {
+            let proj = load_project(&p).ok()?;
+            Some(RecentProject {
+                path: p.to_string_lossy().to_string(),
+                name: proj.name,
+                last_opened: String::new(),
+                project_id: Some(proj.project_id),
+            })
+        })
+        .collect();
+
+    out.sort_by(|a, b| a.name.cmp(&b.name).then_with(|| a.path.cmp(&b.path)));
+    out
+}
+
+#[tauri::command]
+pub fn list_restorable_projects_cmd() -> Result<Vec<RecentProject>, String> {
+    let Ok(cfg) = read_config_file(&prod_config_root()) else {
+        return Ok(Vec::new());
+    };
+    Ok(collect_restorable(&cfg.projects_root, &cfg.recent_projects))
+}
+
+#[tauri::command]
+pub fn delete_project_folder_cmd(path: String) -> Result<Vec<RecentProject>, String> {
+    let root = prod_config_root();
+    let mut cfg = read_config_file(&root)?;
+    let removed = Path::new(&path);
+    // The guard resolves symlinks so its rules cannot be sidestepped, but the
+    // resolved path is deliberately not what gets trashed: the trash crate keeps
+    // the final component verbatim, so handing it a resolved path would trash the
+    // symlink target instead of the entry the confirmation dialog named.
+    ensure_deletable(removed, &cfg.projects_root)?;
+
+    // Only drop the recents entry once the folder actually reached the trash,
+    // so a failure never leaves an orphaned folder hidden from the user.
+    trash::delete(removed).map_err(|e| format!("DeleteFailed: {e}"))?;
+
+    cfg.recent_projects.retain(|r| Path::new(&r.path) != removed);
+    save_config(&root, &cfg)?;
+    Ok(cfg.recent_projects)
+}
+
 #[tauri::command]
 pub fn remove_recent_project_cmd(path: String) -> Result<Vec<RecentProject>, String> {
     let root = prod_config_root();
@@ -239,6 +354,134 @@ mod tests {
         ];
         let pruned = prune_missing(projects);
         assert!(pruned.is_empty());
+    }
+
+    // ---- delete guards -------------------------------------------------
+    // These exercise the pure guard only. trash::delete is never called from
+    // tests so the developer trash folder stays clean.
+
+    #[test]
+    fn ensure_deletable_accepts_a_real_project_under_root() {
+        let root = TempDir::new().unwrap();
+        let proj = create_project(root.path(), "alpha").unwrap();
+
+        let ok = ensure_deletable_with(&proj, root.path(), Some(PathBuf::from("/nonexistent-home")))
+            .unwrap();
+        assert_eq!(ok, proj.canonicalize().unwrap());
+    }
+
+    #[test]
+    fn ensure_deletable_rejects_directory_without_project_marker() {
+        let root = TempDir::new().unwrap();
+        let plain = root.path().join("just-a-folder");
+        fs::create_dir_all(&plain).unwrap();
+
+        let err = ensure_deletable_with(&plain, root.path(), None).unwrap_err();
+        assert!(
+            err.starts_with("DeleteRefused: not a kuma project folder"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn ensure_deletable_rejects_missing_path() {
+        let root = TempDir::new().unwrap();
+        let missing = root.path().join("no/such/project");
+
+        let err = ensure_deletable_with(&missing, root.path(), None).unwrap_err();
+        assert_eq!(err, "DeleteRefused: path is not an existing directory");
+    }
+
+    #[test]
+    fn ensure_deletable_rejects_home_directory() {
+        let root = TempDir::new().unwrap();
+        let proj = create_project(root.path(), "home-lookalike").unwrap();
+
+        let err = ensure_deletable_with(&proj, root.path(), Some(proj.clone())).unwrap_err();
+        assert_eq!(err, "DeleteRefused: refusing to delete the home directory");
+    }
+
+    #[test]
+    fn ensure_deletable_rejects_projects_root_itself() {
+        let root = TempDir::new().unwrap();
+        let proj = create_project(root.path(), "root-lookalike").unwrap();
+
+        let err = ensure_deletable_with(&proj, &proj, None).unwrap_err();
+        assert_eq!(
+            err,
+            "DeleteRefused: refusing to delete the projects root folder"
+        );
+    }
+
+    #[test]
+    fn ensure_deletable_rejects_a_parent_of_the_projects_root() {
+        // projects_root sits inside the folder being deleted, so trashing the
+        // folder would take every project with it.
+        let base = TempDir::new().unwrap();
+        let thesis = create_project(base.path(), "thesis").unwrap();
+        let runs = thesis.join("runs");
+        fs::create_dir_all(&runs).unwrap();
+
+        let err = ensure_deletable_with(&thesis, &runs, None).unwrap_err();
+        assert_eq!(
+            err,
+            "DeleteRefused: refusing to delete a parent of the projects root"
+        );
+    }
+
+    #[test]
+    fn ensure_deletable_rejects_a_parent_of_the_home_directory() {
+        let base = TempDir::new().unwrap();
+        let workspace = create_project(base.path(), "workspace").unwrap();
+        let home = workspace.join("home");
+        fs::create_dir_all(&home).unwrap();
+
+        let err = ensure_deletable_with(&workspace, base.path(), Some(home)).unwrap_err();
+        assert_eq!(
+            err,
+            "DeleteRefused: refusing to delete a parent of the home directory"
+        );
+    }
+
+    // ---- restorable listing --------------------------------------------
+
+    #[test]
+    fn collect_restorable_excludes_recents_and_non_projects() {
+        let root = TempDir::new().unwrap();
+        let known = create_project(root.path(), "known").unwrap();
+        let forgotten = create_project(root.path(), "forgotten").unwrap();
+        fs::create_dir_all(root.path().join("not-a-project")).unwrap();
+
+        let recents = vec![make_project(known.to_str().unwrap())];
+        let found = collect_restorable(root.path(), &recents);
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].path, forgotten.to_string_lossy());
+        assert_eq!(found[0].name, "forgotten");
+        assert_eq!(found[0].last_opened, "");
+        assert!(found[0].project_id.is_some());
+    }
+
+    #[test]
+    fn collect_restorable_sorts_by_name() {
+        let root = TempDir::new().unwrap();
+        create_project(root.path(), "charlie").unwrap();
+        create_project(root.path(), "alpha").unwrap();
+        create_project(root.path(), "bravo").unwrap();
+
+        let names: Vec<String> = collect_restorable(root.path(), &[])
+            .into_iter()
+            .map(|r| r.name)
+            .collect();
+        assert_eq!(names, vec!["alpha", "bravo", "charlie"]);
+    }
+
+    #[test]
+    fn collect_restorable_returns_empty_when_root_missing() {
+        let root = TempDir::new().unwrap();
+        let missing = root.path().join("gone");
+
+        assert!(collect_restorable(&missing, &[]).is_empty());
     }
 
     #[test]

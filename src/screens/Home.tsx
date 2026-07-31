@@ -16,11 +16,15 @@ import { Card, CardDescription, CardTitle } from "../components/ui/card";
 import { cn, formatError } from "../lib/utils";
 import {
   createProject,
+  deleteProjectFolder,
   listRecentProjects,
+  listRestorableProjects,
   loadProject,
   removeRecentProject,
   type RecentProject,
 } from "../lib/project";
+
+type DeleteStage = "choice" | "confirmFolder";
 
 type HomeProps = {
   onOpenProject: (path: string, options?: { newlyCreated?: boolean }) => void;
@@ -38,6 +42,11 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState("");
   const [pendingDelete, setPendingDelete] = useState<RecentProject | null>(null);
+  const [deleteStage, setDeleteStage] = useState<DeleteStage>("choice");
+  // Guards the delete actions while a request is in flight: trashing a large
+  // folder takes a while, and a second call would fail on the now-gone path.
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [restorableProjects, setRestorableProjects] = useState<RecentProject[]>([]);
   const [overviewCollapsed, setOverviewCollapsed] = useState<boolean>(
     () => localStorage.getItem("kuma.home.overviewCollapsed") === "1",
   );
@@ -65,10 +74,70 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
         }
       });
 
+    // A failure here must not block the first screen: stay empty and log.
+    void listRestorableProjects()
+      .then((items) => {
+        if (isMounted) {
+          setRestorableProjects(items);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setRestorableProjects([]);
+        }
+        console.warn("Failed to list restorable projects", err);
+      });
+
     return () => {
       isMounted = false;
     };
   }, []);
+
+  async function refreshRestorable() {
+    try {
+      setRestorableProjects(await listRestorableProjects());
+    } catch (err) {
+      setRestorableProjects([]);
+      console.warn("Failed to list restorable projects", err);
+    }
+  }
+
+  function closeDeleteDialog() {
+    setPendingDelete(null);
+    setDeleteStage("choice");
+    setIsDeleting(false);
+  }
+
+  /** List-only removal: the folder stays on disk and becomes restorable. */
+  async function handleRemoveFromList(project: RecentProject) {
+    if (isDeleting) return;
+    setIsDeleting(true);
+    try {
+      const items = await removeRecentProject(project.path);
+      setRecentProjects(items);
+      await refreshRestorable();
+    } catch (err) {
+      setError(formatError(err));
+    } finally {
+      closeDeleteDialog();
+    }
+  }
+
+  /** Folder removal: moves the folder to the OS trash, recoverable from there. */
+  async function handleDeleteFolder(project: RecentProject) {
+    if (isDeleting) return;
+    setIsDeleting(true);
+    try {
+      const items = await deleteProjectFolder(project.path);
+      setRecentProjects(items);
+      // Refresh after the folder is gone so it cannot reappear as restorable.
+      await refreshRestorable();
+    } catch (err) {
+      setError(formatError(err));
+    } finally {
+      closeDeleteDialog();
+    }
+  }
 
   async function handleCreateProject() {
     const trimmedName = projectName.trim();
@@ -268,12 +337,55 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
                     size="icon"
                     aria-label={t("home.deleteButton")}
                     className="absolute right-2 top-2 h-8 w-8 text-muted-foreground hover:text-error"
+                    data-testid="delete-project"
                     onClick={(e) => {
                       e.stopPropagation();
+                      // Always reopen on the safe first step.
+                      setDeleteStage("choice");
                       setPendingDelete(project);
                     }}
                   >
                     <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section
+          data-testid="restorable-section"
+          className="mt-8 w-full rounded-container border border-border bg-card p-6"
+        >
+          <h2 className="text-lg font-semibold">{t("home.restorableTitle")}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t("home.restorableDesc")}</p>
+
+          <div className="mt-4 space-y-3">
+            {restorableProjects.length === 0 ? (
+              <div className="rounded-container border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+                {t("home.restorableEmpty")}
+              </div>
+            ) : (
+              restorableProjects.map((project) => (
+                <div
+                  key={project.path}
+                  className="flex items-center justify-between gap-3 rounded-container border border-border bg-muted/50 px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <div className="font-medium text-foreground">{project.name}</div>
+                    <div className="mt-1 break-all text-sm text-muted-foreground">
+                      {project.path}
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    data-testid="restore-project"
+                    className="shrink-0"
+                    onClick={() => void handleOpenRecentProject(project.path)}
+                  >
+                    {t("home.restoreButton")}
                   </Button>
                 </div>
               ))
@@ -312,36 +424,95 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{t("home.deleteConfirmTitle")}</DialogTitle>
-            <DialogDescription>{t("home.deleteConfirmDesc")}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setPendingDelete(null)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-error border-error/40 hover:bg-error/8"
-              onClick={async () => {
-                if (!pendingDelete) return;
-                try {
-                  await removeRecentProject(pendingDelete.path);
-                  const items = await listRecentProjects();
-                  setRecentProjects(items);
-                } catch (err) {
-                  setError(formatError(err));
-                } finally {
-                  setPendingDelete(null);
-                }
-              }}
-            >
-              {t("home.delete")}
-            </Button>
-          </DialogFooter>
+      <Dialog open={!!pendingDelete} onOpenChange={(o) => !o && closeDeleteDialog()}>
+        <DialogContent className="max-w-md">
+          {deleteStage === "choice" ? (
+            <div data-testid="delete-choice-step">
+              <DialogHeader>
+                <DialogTitle>{t("home.deleteChoiceTitle")}</DialogTitle>
+                <DialogDescription>{t("home.deleteChoiceDesc")}</DialogDescription>
+              </DialogHeader>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  data-testid="delete-from-list"
+                  disabled={isDeleting}
+                  className="rounded-container border border-border bg-muted/50 px-4 py-3 text-left transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+                  onClick={() => {
+                    if (!pendingDelete) return;
+                    void handleRemoveFromList(pendingDelete);
+                  }}
+                >
+                  <span className="block text-sm font-medium text-foreground">
+                    {t("home.deleteFromListLabel")}
+                  </span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {t("home.deleteFromListDesc")}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  data-testid="delete-folder"
+                  className="rounded-container border border-error/40 px-4 py-3 text-left transition hover:bg-error/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() => setDeleteStage("confirmFolder")}
+                >
+                  <span className="block text-sm font-medium text-error">
+                    {t("home.deleteFolderLabel")}
+                  </span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {t("home.deleteFolderDesc")}
+                  </span>
+                </button>
+              </div>
+
+              <DialogFooter className="mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  data-testid="delete-choice-cancel"
+                  onClick={closeDeleteDialog}
+                >
+                  {t("common.cancel")}
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div data-testid="delete-folder-confirm-step">
+              <DialogHeader>
+                <DialogTitle>{t("home.deleteFolderConfirmTitle")}</DialogTitle>
+                <DialogDescription>
+                  {t("home.deleteFolderConfirmDesc", { path: pendingDelete?.path ?? "" })}
+                </DialogDescription>
+              </DialogHeader>
+
+              <DialogFooter className="mt-4 flex gap-2">
+                <Button
+                  autoFocus
+                  variant="outline"
+                  size="sm"
+                  data-testid="delete-folder-cancel"
+                  onClick={closeDeleteDialog}
+                >
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  data-testid="delete-folder-confirm"
+                  disabled={isDeleting}
+                  className="text-error border-error/40 hover:bg-error/8"
+                  onClick={() => {
+                    if (!pendingDelete) return;
+                    void handleDeleteFolder(pendingDelete);
+                  }}
+                >
+                  {t("home.deleteFolderConfirmButton")}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
