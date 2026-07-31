@@ -30,9 +30,10 @@ unweighted majority vote behavior.
 from __future__ import annotations
 
 import statistics
-from collections import defaultdict
 from dataclasses import dataclass
 from typing import Sequence
+
+import numpy as np
 
 from kuma_core.mame.ingest.align import (
     Alignment,
@@ -49,6 +50,63 @@ from kuma_core.mame.ingest.align import (
 
 # Complement table (single-char, uppercase).
 _COMP = str.maketrans("ACGTacgtNn", "TGCAtgcaNn")
+
+# ---------------------------------------------------------------------------
+# Vectorized pileup internals
+# ---------------------------------------------------------------------------
+# The pileup keeps one column per possible vote token.  Column order is only a
+# storage layout and never a tie-break rule: the scalar implementation resolved
+# majority ties via ``max(counts.items())``, which returns the *first* key in
+# ``dict`` insertion order, i.e. the token first incremented at that reference
+# position.  The vectorized path reproduces that by recording, per (position,
+# token), the index of the earliest alignment that voted it and breaking ties on
+# the smallest such index.  Alignment index is the right granularity because a
+# single alignment votes at most once per reference position (reference-consuming
+# CIGAR ops never overlap), so no two tokens at one position can share an index.
+_TOKENS = "ACGTN-"
+_N_TOKENS = len(_TOKENS)
+_TOK_N = 4
+_TOK_DEL = 5
+
+# ASCII -> token column, 255 for anything the scalar path dropped.  The scalar
+# path upper-cased the base before the ``base in "ACGTN"`` membership test, so
+# both cases map to the same column.
+_BASE_LUT = np.full(256, 255, dtype=np.uint8)
+for _i, _c in enumerate("ACGTN"):
+    _BASE_LUT[ord(_c)] = _i
+    _BASE_LUT[ord(_c.lower())] = _i
+
+_CONSENSUS_CHARS = np.frombuffer(b"ACGTNN", dtype=np.uint8)
+
+# Op-code lookup tables (sized past the highest BAM op so an out-of-range op
+# code cannot index out of bounds; unknown ops consume nothing, matching the
+# scalar path's defensive fall-through).
+_MAX_OP = 16
+_REF_CONSUMES = np.zeros(_MAX_OP, dtype=np.int64)
+_QRY_CONSUMES = np.zeros(_MAX_OP, dtype=np.int64)
+_IS_MATCH = np.zeros(_MAX_OP, dtype=bool)
+_IS_DEL = np.zeros(_MAX_OP, dtype=bool)
+for _op in (_CIGAR_M, _CIGAR_D, _CIGAR_N, _CIGAR_EQ, _CIGAR_X):
+    _REF_CONSUMES[_op] = 1
+for _op in (_CIGAR_M, _CIGAR_I, _CIGAR_S, _CIGAR_EQ, _CIGAR_X):
+    _QRY_CONSUMES[_op] = 1
+for _op in (_CIGAR_M, _CIGAR_EQ, _CIGAR_X):
+    _IS_MATCH[_op] = True
+for _op in (_CIGAR_D, _CIGAR_N):
+    _IS_DEL[_op] = True
+
+_BIG = np.int64(np.iinfo(np.int64).max)
+
+
+def _expand_ranges(starts: np.ndarray, counts: np.ndarray) -> np.ndarray:
+    """Concatenate ``range(s, s + c)`` for every (start, count) pair."""
+    total = int(counts.sum())
+    if total == 0:
+        return np.empty(0, dtype=np.int64)
+    ends = np.cumsum(counts)
+    offsets = ends - counts
+    flat = np.arange(total, dtype=np.int64) - np.repeat(offsets, counts)
+    return np.repeat(starts, counts) + flat
 
 
 @dataclass(frozen=True)
@@ -147,65 +205,53 @@ def call_consensus_with_metrics(
     """
     ref_len = len(reference_seq)
 
-    # per_position[ref_pos] = {base: count}
-    per_position: list[dict[str, int]] = [defaultdict(int) for _ in range(ref_len)]
-    # insertion_events[ref_pos] = number of reads with insertion starting here
-    insertion_events: list[int] = [0] * ref_len
+    counts, first_touch, insertion_events, n_low_quality_bases, per_read_net_indel = (
+        _accumulate_all(alignments, ref_len, min_base_quality)
+    )
 
-    n_low_quality_bases = 0
-    per_read_net_indel: list[int] = []
-    for aln in alignments:
-        low_quality_bases, net_indel = _accumulate(
-            aln,
-            per_position,
-            insertion_events,
-            min_base_quality=min_base_quality,
-        )
-        n_low_quality_bases += low_quality_bases
-        per_read_net_indel.append(net_indel)
+    # --- per-position majority vote (vectorized) ---------------------------
+    total = counts.sum(axis=1)
+    covered = total >= min_depth
+    n_low_depth_positions = int(ref_len - int(covered.sum()))
+    n_covered_positions = int(covered.sum())
 
-    # Build consensus string.
-    out: list[str] = []
+    # Mixed-position evidence: second-most-common A/C/G/T base.  ``base_counts``
+    # in the scalar path only held tokens with a nonzero count, so requiring
+    # >= 2 distinct nonzero bases makes "second largest including zeros" and
+    # "second largest among present" the same value.
+    acgt = counts[:, :4]
+    base_total = acgt.sum(axis=1)
+    n_distinct_bases = (acgt > 0).sum(axis=1)
+    mix_eligible = covered & (base_total >= mix_min_depth) & (n_distinct_bases >= 2)
     n_mixed_positions = 0
     max_minor_allele_fraction = 0.0
-    n_low_depth_positions = 0
-    # Positions the amplicon actually interrogates at usable depth. Used as the
-    # consensus_n_fraction denominator (see below).
-    n_covered_positions = 0
-    n_covered_no_call = 0
-    for pos in range(ref_len):
-        counts = per_position[pos]
-        total = sum(counts.values())
-        if total < min_depth:
-            n_low_depth_positions += 1
-            out.append("N")
-            continue
-        n_covered_positions += 1
+    if bool(mix_eligible.any()):
+        second = np.sort(acgt[mix_eligible], axis=1)[:, -2]
+        minor_fraction = second / base_total[mix_eligible]
+        max_minor_allele_fraction = float(minor_fraction.max())
+        n_mixed_positions = int(
+            (minor_fraction >= mix_minor_fraction_threshold).sum()
+        )
 
-        base_counts = {
-            base: count for base, count in counts.items() if base.upper() in "ACGT"
-        }
-        base_total = sum(base_counts.values())
-        if base_total >= mix_min_depth and len(base_counts) >= 2:
-            ranked = sorted(base_counts.values(), reverse=True)
-            minor_fraction = ranked[1] / base_total
-            max_minor_allele_fraction = max(max_minor_allele_fraction, minor_fraction)
-            if minor_fraction >= mix_minor_fraction_threshold:
-                n_mixed_positions += 1
+    # Majority token.  Ties resolve to the token first seen at that position,
+    # matching ``max(dict.items(), key=count)`` over an insertion-ordered dict.
+    best_count = counts.max(axis=1) if ref_len else np.zeros(0, dtype=np.int64)
+    tie_key = np.where(counts == best_count[:, None], first_touch, _BIG)
+    best_idx = tie_key.argmin(axis=1)
 
-        # Find majority base.
-        best_base, best_count = max(counts.items(), key=lambda kv: kv[1])
-        if best_base == "-" or best_count / total < 0.5:
-            # Deletion majority or no clear winner → N (gap-free output).
-            out.append("N")
-            n_covered_no_call += 1
-        else:
-            called = best_base.upper() if best_base.upper() in "ACGT" else "N"
-            out.append(called)
-            if called == "N":
-                n_covered_no_call += 1
+    with np.errstate(invalid="ignore", divide="ignore"):
+        majority_frac = np.where(total > 0, best_count / np.maximum(total, 1), 0.0)
+    # A covered position with zero depth is only reachable for min_depth <= 0,
+    # where the scalar path raised on an empty dict; call it 'N'.
+    no_call = (
+        (best_idx == _TOK_DEL) | (majority_frac < 0.5) | (best_idx == _TOK_N)
+    ) | (total == 0)
+    n_covered_no_call = int((covered & no_call).sum())
 
-    consensus_seq = "".join(out)
+    out_chars = np.where(
+        covered & ~no_call, _CONSENSUS_CHARS[best_idx], np.uint8(ord("N"))
+    ).astype(np.uint8)
+    consensus_seq = out_chars.tobytes().decode("ascii")
     # Amplicon-scoped no-call rate. The denominator is the set of positions the
     # reads actually interrogate at usable depth, NOT the full reference length.
     # A reference longer than the amplicon (a plasmid map carrying backbone/UTR,
@@ -231,38 +277,30 @@ def call_consensus_with_metrics(
     # Deletion fraction: deletion votes / (base votes + deletion votes) per pos.
     # Insertion fraction: insertion events / base depth at anchor pos.
     # max_indel_event_fraction = max across all positions of either fraction.
-    max_indel_event_fraction = 0.0
-    n_indel_event_positions = 0
-    # Track the longest contiguous run of deletion-majority positions
-    # (del_frac > 0.5). pos iterates in ascending order, so a simple counter
-    # captures contiguity. Same 0.5 majority definition used for base calls.
+    #
+    # Spanning depth: reads that covered this position (base votes + del votes).
+    # Inserting reads always vote a base at the anchor M op before the I op, so
+    # they are already counted. Using total depth as the denominator guarantees
+    # ins_frac <= 1.0 whenever ins_ev <= depth (true by construction). del_frac
+    # uses the same denominator; del_votes is a subset of depth so it is <= 1.0.
+    del_votes = counts[:, _TOK_DEL]
+    safe_depth = np.maximum(total, 1)
+    ins_frac = np.where(total > 0, insertion_events / safe_depth, 0.0)
+    del_frac = np.where(total > 0, del_votes / safe_depth, 0.0)
+    pos_max = np.maximum(ins_frac, del_frac)
+    max_indel_event_fraction = float(pos_max.max()) if ref_len else 0.0
+    n_indel_event_positions = int((pos_max >= 0.05).sum())
+
+    # Longest contiguous run of deletion-majority positions (del_frac > 0.5).
+    # Same 0.5 majority definition used for base calls.
+    del_major = del_frac > 0.5
     max_del_run = 0
-    cur_del_run = 0
-    for pos in range(ref_len):
-        counts = per_position[pos]
-        depth_pos = sum(counts.values())
-        del_votes = counts.get("-", 0)
-        base_depth = depth_pos - del_votes  # reads that voted a base
-        ins_ev = insertion_events[pos]
-        # Spanning depth: reads that covered this position (base votes + del
-        # votes). Inserting reads always vote a base at the anchor M op before
-        # the I op, so they are already counted in base_depth. Using depth_pos
-        # as the denominator guarantees ins_frac <= 1.0 whenever ins_ev <=
-        # depth_pos (true by construction: every inserting read contributed a
-        # base vote at the anchor). del_frac uses the same denominator for
-        # consistency; del_votes is a subset of depth_pos so del_frac <= 1.0.
-        ins_frac = ins_ev / depth_pos if depth_pos > 0 else 0.0
-        del_frac = del_votes / depth_pos if depth_pos > 0 else 0.0
-        pos_max = max(ins_frac, del_frac)
-        if pos_max > max_indel_event_fraction:
-            max_indel_event_fraction = pos_max
-        if pos_max >= 0.05:
-            n_indel_event_positions += 1
-        if del_frac > 0.5:
-            cur_del_run += 1
-            max_del_run = max(max_del_run, cur_del_run)
-        else:
-            cur_del_run = 0
+    if bool(del_major.any()):
+        edges = np.flatnonzero(
+            np.concatenate(([True], del_major[1:] != del_major[:-1], [True]))
+        )
+        run_lengths = np.diff(edges)
+        max_del_run = int(run_lengths[del_major[edges[:-1]]].max())
 
     return ConsensusCall(
         consensus_seq=consensus_seq,
@@ -275,6 +313,192 @@ def call_consensus_with_metrics(
         max_indel_event_fraction=max_indel_event_fraction,
         max_del_run_length=max_del_run,
         net_indel_bp=net_indel_bp,
+    )
+
+
+def _accumulate_all(
+    alignments: Sequence[Alignment],
+    ref_len: int,
+    min_base_quality: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, int, list[int]]:
+    """Build the whole-well pileup from every alignment in one vectorized pass.
+
+    Returns ``(counts, first_touch, insertion_events, n_low_quality_bases,
+    per_read_net_indel)``.  ``counts`` and ``first_touch`` are ``(ref_len, 6)``
+    int64 arrays over the ``_TOKENS`` columns; ``first_touch`` holds the index
+    of the earliest alignment that voted each (position, token) pair and exists
+    solely to reproduce the scalar dict-insertion-order tie-break.
+
+    Every alignment is flattened into one batch (one concatenated CIGAR table,
+    one concatenated query buffer) so the cost per well is a fixed handful of
+    array operations instead of a handful per read.
+    """
+    n_reads = len(alignments)
+    counts = np.zeros((ref_len, _N_TOKENS), dtype=np.int64)
+    first_touch = np.full((ref_len, _N_TOKENS), _BIG, dtype=np.int64)
+    insertion_events = np.zeros(ref_len, dtype=np.int64)
+    if n_reads == 0 or ref_len == 0:
+        return counts, first_touch, insertion_events, 0, [0] * n_reads
+
+    # --- flatten reads -----------------------------------------------------
+    seq_parts: list[bytes] = []
+    qual_parts: list[bytes] = []
+    cigar_pairs: list[list[int]] = []
+    n_ops = np.empty(n_reads, dtype=np.int64)
+    seq_len = np.empty(n_reads, dtype=np.int64)
+    qual_len = np.zeros(n_reads, dtype=np.int64)
+    r_st = np.empty(n_reads, dtype=np.int64)
+    q_st = np.empty(n_reads, dtype=np.int64)
+    any_qual = False
+
+    for i, aln in enumerate(alignments):
+        if aln.strand == -1:
+            q_seq = _reverse_complement(aln.read_seq)
+            q_qual = aln.read_qual[::-1] if aln.read_qual is not None else None
+        else:
+            q_seq = aln.read_seq
+            q_qual = aln.read_qual
+        # "replace" keeps the mapping one byte per character, so query offsets
+        # stay aligned; the replacement byte is not in _BASE_LUT and is dropped
+        # exactly like the scalar `base in "ACGTN"` test dropped it.
+        enc = q_seq.encode("ascii", "replace")
+        seq_parts.append(enc)
+        seq_len[i] = len(enc)
+        if q_qual is not None:
+            any_qual = True
+            qenc = q_qual.encode("ascii", "replace")
+            qual_parts.append(qenc)
+            qual_len[i] = len(qenc)
+        else:
+            qual_parts.append(b"")
+        cigar_pairs.extend(aln.cigar)
+        n_ops[i] = len(aln.cigar)
+        r_st[i] = aln.r_st
+        q_st[i] = aln.q_st
+
+    seq_arr = np.frombuffer(b"".join(seq_parts), dtype=np.uint8)
+    seq_off = np.concatenate(([0], np.cumsum(seq_len)[:-1]))
+    qual_arr = np.frombuffer(b"".join(qual_parts), dtype=np.uint8)
+    qual_off = np.concatenate(([0], np.cumsum(qual_len)[:-1]))
+
+    n_total_ops = int(n_ops.sum())
+    if n_total_ops == 0:
+        return counts, first_touch, insertion_events, 0, [0] * n_reads
+
+    cigar = np.array(cigar_pairs, dtype=np.int64).reshape(-1, 2)
+    lengths = cigar[:, 0]
+    raw_ops = cigar[:, 1]
+    # Fold anything outside the BAM op range onto a spare no-op slot, matching
+    # the scalar path's "unknown op consumes nothing" fall-through.
+    ops = np.where((raw_ops >= 0) & (raw_ops < _MAX_OP), raw_ops, _MAX_OP - 1)
+    op_read = np.repeat(np.arange(n_reads, dtype=np.int64), n_ops)
+
+    # --- per-read CIGAR cursors, computed as one segmented cumulative sum ---
+    ref_step = _REF_CONSUMES[ops] * lengths
+    qry_step = _QRY_CONSUMES[ops] * lengths
+    ref_excl = np.cumsum(ref_step) - ref_step
+    qry_excl = np.cumsum(qry_step) - qry_step
+    # Index of each read's first op; reads with no ops never index through it.
+    op_base = np.concatenate(([0], np.cumsum(n_ops)[:-1]))
+    op_base = np.minimum(op_base, n_total_ops - 1)
+    ref_starts = r_st[op_read] + (ref_excl - ref_excl[op_base][op_read])
+    qry_starts = q_st[op_read] + (qry_excl - qry_excl[op_base][op_read])
+
+    is_match = _IS_MATCH[ops]
+    is_del = _IS_DEL[ops]
+    is_ins = ops == _CIGAR_I
+
+    signed_indel = np.where(is_ins, lengths, 0) - np.where(is_del, lengths, 0)
+    net = np.bincount(
+        op_read, weights=signed_indel.astype(np.float64), minlength=n_reads
+    )
+    per_read_net_indel = [int(v) for v in net]
+
+    n_low_quality_bases = 0
+    flat_match = np.empty(0, dtype=np.int64)
+    read_match = np.empty(0, dtype=np.int64)
+    flat_del = np.empty(0, dtype=np.int64)
+    read_del = np.empty(0, dtype=np.int64)
+
+    # --- aligned bases -----------------------------------------------------
+    if is_match.any():
+        rp0 = ref_starts[is_match]
+        qp0 = qry_starts[is_match]
+        rd = op_read[is_match]
+        n = lengths[is_match]
+        # The scalar guard was `0 <= rp < ref_len and qp < len(q_seq)`.  Both
+        # bounds are monotone in the op offset, so the surviving offsets form
+        # one contiguous slice per op.
+        lo = np.maximum(0, -rp0)
+        hi = np.minimum(n, np.minimum(ref_len - rp0, seq_len[rd] - qp0))
+        cnt = np.maximum(0, hi - lo)
+        rp = _expand_ranges(rp0 + lo, cnt)
+        qp = _expand_ranges(qp0 + lo, cnt)
+        ridx = np.repeat(rd, cnt)
+        if rp.size:
+            keep = np.ones(rp.size, dtype=bool)
+            if any_qual:
+                # _phred33 returns None past the end of the quality string, and
+                # the scalar path kept those bases unfiltered.
+                scored = qp < qual_len[ridx]
+                if scored.any():
+                    where_scored = np.flatnonzero(scored)
+                    idx = qual_off[ridx[where_scored]] + qp[where_scored]
+                    scores = (qual_arr[idx].astype(np.int32) - 33).clip(min=0)
+                    low = scores < min_base_quality
+                    n_low_quality_bases = int(low.sum())
+                    keep[where_scored[low]] = False
+            codes = _BASE_LUT[seq_arr[seq_off[ridx] + qp]]
+            keep &= codes != 255
+            flat_match = rp[keep] * _N_TOKENS + codes[keep]
+            read_match = ridx[keep]
+
+    # --- deletions / reference skips ---------------------------------------
+    if is_del.any():
+        rp0 = ref_starts[is_del]
+        rd = op_read[is_del]
+        n = lengths[is_del]
+        lo = np.maximum(0, -rp0)
+        hi = np.minimum(n, ref_len - rp0)
+        cnt = np.maximum(0, hi - lo)
+        rp = _expand_ranges(rp0 + lo, cnt)
+        if rp.size:
+            flat_del = rp * _N_TOKENS + _TOK_DEL
+            read_del = np.repeat(rd, cnt)
+
+    # --- insertion anchors --------------------------------------------------
+    if is_ins.any():
+        anchors = ref_starts[is_ins] - 1
+        anchors = anchors[(anchors >= 0) & (anchors < ref_len)]
+        if anchors.size:
+            insertion_events = np.bincount(anchors, minlength=ref_len).astype(
+                np.int64
+            )
+
+    if flat_match.size or flat_del.size:
+        allflat = np.concatenate((flat_match, flat_del))
+        counts = (
+            np.bincount(allflat, minlength=ref_len * _N_TOKENS)
+            .astype(np.int64)
+            .reshape(ref_len, _N_TOKENS)
+        )
+        # Base votes and deletion votes land in disjoint columns, so the two
+        # writes below never collide and each can be done independently.  Both
+        # index arrays are ordered by alignment, and duplicate fancy-index
+        # writes keep the last assignment, so writing in reverse leaves the
+        # smallest alignment index (the first-touch) in place.
+        flat_first = first_touch.reshape(-1)
+        if flat_match.size:
+            flat_first[flat_match[::-1]] = read_match[::-1]
+        if flat_del.size:
+            flat_first[flat_del[::-1]] = read_del[::-1]
+
+    return (
+        counts,
+        first_touch,
+        insertion_events,
+        n_low_quality_bases,
+        per_read_net_indel,
     )
 
 
