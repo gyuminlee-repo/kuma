@@ -1,10 +1,6 @@
-<!-- AUTO-GENERATED from CLAUDE.md by claude2codex.sh on 2026-06-02 -->
-<!-- Source: /mnt/d/_workspace/cc/kuma/CLAUDE.md -->
-<!-- 편집은 CLAUDE.md를 수정하고 스크립트를 재실행. 직접 편집 금지. -->
+# AGENTS.md
 
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+이 저장소에서 코딩 에이전트가 따라야 할 규칙을 정의한다. Claude Code 는 CLAUDE.md 의 import 로 이 파일을 읽는다.
 
 ## Project Overview
 
@@ -17,21 +13,20 @@ implemented in Python, and the layers communicate through JSON-RPC.
 
 ```
 Frontend (React 19 + Zustand + TailwindCSS)
-  └── src/lib/ipc.ts + src/lib/ipc-{mame,evolvepro}/
+  └── src/lib/ipc.ts + src/lib/ipc-mame/
         ↕  (Tauri commands route JSON-RPC requests to sidecar processes)
 Rust Shell (src-tauri/)
   └── Desktop host: window, project config, progress cache, sidecar lifecycle
 Python Sidecars (PyInstaller binaries)
   ├── python-core/sidecar_kuro/      → kuma_core/kuro/
-  ├── python-core/sidecar_mame/      → kuma_core/mame/
-  └── python-core/sidecar_evolvepro/ → kuma_core/evolvepro/
+  └── python-core/sidecar_mame/      → kuma_core/mame/
 ```
 
 ### Key layers
 
-- **`kuma_core/`** — Installable Python domain package. `kuro/` handles primer design, `mame/` handles NGS verification, `evolvepro/` handles conda-backed execution, and `shared/` contains common helpers.
-- **`python-core/`** — JSON-RPC adapters and PyInstaller packaging. `sidecar_{kuro,mame,evolvepro}/dispatcher.py` route methods to handlers; Pydantic models validate requests. `build_sidecar.py` builds all three binaries.
-- **`src/`** — React 19 frontend. KURO, MAME, and EVOLVEpro each have dedicated state and UI areas. IPC clients live under `src/lib/ipc.ts`, `ipc-mame/`, and `ipc-evolvepro/`.
+- **`kuma_core/`** — Installable Python domain package. `kuro/` handles primer design, `mame/` handles NGS verification, and `shared/` contains common helpers.
+- **`python-core/`** — JSON-RPC adapters and PyInstaller packaging. `sidecar_{kuro,mame}/dispatcher.py` route methods to handlers; Pydantic models validate requests. `build_sidecar.py` builds the sidecar binaries.
+- **`src/`** — React 19 frontend. KURO and MAME each have dedicated state and UI areas. IPC clients live under `src/lib/ipc.ts` and `ipc-mame/`.
 - **`src-tauri/`** — Rust desktop host: Tauri commands, windowing, project config, progress cache, integrity verification, and sidecar lifecycle. Scientific logic does not belong here.
 - **`tests/`** — Python and cross-layer tests. Frontend Vitest files are colocated under `src/`; Rust host tests live under `src-tauri/tests/`.
 
@@ -45,7 +40,7 @@ exportSlice → all slices (read-only for workspace save/load)
 ```
 
 ### Frontend ↔ Sidecar communication
-- `src/lib/ipc.ts`, `src/lib/ipc-mame/`, and `src/lib/ipc-evolvepro/` call Tauri commands for their respective channels.
+- `src/lib/ipc.ts` and `src/lib/ipc-mame/` call Tauri commands for their respective channels.
 - Rust manages the packaged sidecar processes and routes JSON-RPC requests over stdin/stdout.
 - Sidecars write JSON-RPC responses plus `progress` notifications to stdout.
 - TypeScript types in `src/types/models.ts` must match Pydantic models in `python-core/sidecar_kuro/models.py`.
@@ -174,10 +169,3 @@ Three files must have matching version on release:
 - Version bump 시 `git tag` 최신값뿐 아니라 `git log --oneline -5`의 커밋 메시지 `vX.X.X.YY` 시퀀스도 함께 확인 (태그 없이 커밋만 진행된 구간이 있으면 역행 위험)
 - `Cargo.lock` is committed (binary app needs reproducible builds)
 - CI pins `ubuntu-22.04` (not `ubuntu-latest`) for WebKit dependency compatibility
-- 라벨(`vX.X.X`) 결정 전 `git fetch --all` 후 `git log --oneline origin/<현재 브랜치> -5` 로 다른 머신 푸시분 확인 (다중 머신 동기화 환경에서 라벨 중복 방지)
-- "커밋만" 명시가 없으면 commit 후 즉시 push
-- push 후 `git --no-pager log origin/<branch>..<branch> --oneline | wc -l` 이 0 인지 확인 (silent push fail 차단)
-- push 전 `/simplify` 실행, 코드 변경 시 README·UPDATE-NOTES 동기 갱신
-
-### UI Language
-- UI 와 소스 코드 텍스트는 영어 전용. 한국어는 `docs/README.ko.md` 에만 둔다 (사용자 대면 프로그램 텍스트 영어 고정)
