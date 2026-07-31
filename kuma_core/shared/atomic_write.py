@@ -28,17 +28,32 @@ _logger = logging.getLogger(__name__)
 _TMP_SUFFIX = ".tmp"
 
 
-def atomic_write_text(path: Path, content: str, *, encoding: str = "utf-8") -> Path:
+def atomic_write_text(
+    path: Path,
+    content: str,
+    *,
+    encoding: str = "utf-8",
+    fsync: bool = True,
+) -> Path:
     """Write *content* to *path* atomically via a sibling temp file + os.replace.
 
     The data is written to ``<path><_TMP_SUFFIX>`` in the same directory,
-    flushed and fsync'd, then renamed over *path*. If the write fails, the
-    temp file is removed and the original *path* (if any) is left untouched.
+    flushed and (by default) fsync'd, then renamed over *path*. If the write
+    fails, the temp file is removed and the original *path* (if any) is left
+    untouched.
 
     Args:
         path: Destination path. Its parent directory must already exist.
         content: Text to write.
         encoding: Text encoding, default ``"utf-8"``.
+        fsync: When True (default), fsync the temp file before the rename so
+            the contents survive a machine crash / power loss. Pass False
+            **only** for intermediate artifacts that a re-run can regenerate
+            (crash-recoverable scratch output). The rename stays atomic either
+            way, so a reader never sees a partial file; what is given up is
+            durability across an OS-level crash, where the file may come back
+            empty or stale. Never pass False for final deliverables, stage
+            markers, or anything a resume path treats as authoritative.
 
     Returns:
         The resolved absolute path that was written.
@@ -52,7 +67,8 @@ def atomic_write_text(path: Path, content: str, *, encoding: str = "utf-8") -> P
         with open(tmp_path, "w", encoding=encoding) as fh:
             fh.write(content)
             fh.flush()
-            os.fsync(fh.fileno())
+            if fsync:
+                os.fsync(fh.fileno())
         os.replace(tmp_path, path)
     except OSError:
         # Leave the original file intact; best-effort remove the partial temp

@@ -789,6 +789,7 @@ def run_combinatorial_demux(
     consensus_workers: int | None = None,
     per_read_parallel: bool = False,
     progress_callback: Callable[[int, int, str], None] | None = None,
+    barcode_prefixes: tuple[list[tuple[str, str]], list[tuple[str, str]]] | None = None,
 ) -> DemuxResult:
     """MAPQ-filtered alignment-anchored fuzzy per-well demux with chimera splitting.
 
@@ -845,6 +846,13 @@ def run_combinatorial_demux(
     consensus_workers:
         Worker count for the per-well consensus ThreadPool.  ``None`` (default)
         keeps the module-level ``_CONSENSUS_WORKERS`` default.
+    barcode_prefixes:
+        Pre-parsed ``(r_barcodes, f_barcodes)`` as returned by
+        :func:`load_barcode_prefixes`.  ``None`` (default) parses
+        *barcodes_xlsx* here, preserving the original behaviour.  Supplying it
+        lets a caller that already parsed the workbook (e.g. the per-native-
+        barcode ProcessPool parent) skip both the parse and the ~1.4 s
+        ``openpyxl`` import inside every worker process.
 
     Returns
     -------
@@ -868,6 +876,7 @@ def run_combinatorial_demux(
             consensus_workers=consensus_workers,
             per_read_parallel=per_read_parallel,
             progress_callback=progress_callback,
+            barcode_prefixes=barcode_prefixes,
         )
 
 
@@ -888,6 +897,7 @@ def _run_combinatorial_demux_body(
     consensus_workers: int | None,
     per_read_parallel: bool,
     progress_callback: Callable[[int, int, str], None] | None,
+    barcode_prefixes: tuple[list[tuple[str, str]], list[tuple[str, str]]] | None = None,
 ) -> DemuxResult:
     """Body of :func:`run_combinatorial_demux` (see there for semantics).
 
@@ -911,7 +921,14 @@ def _run_combinatorial_demux_body(
     stats = DemuxStats()
 
     with TIMER.phase("load_barcodes"):
-        r_barcodes, f_barcodes = load_barcode_prefixes(barcodes_xlsx)
+        # A caller that already parsed the workbook passes the result in; that
+        # skips this process's first `import openpyxl` too (the import lives
+        # inside load_barcode_prefixes and dominates the phase: ~1.4 s import
+        # vs ~0.01 s parse), which matters once per worker process.
+        if barcode_prefixes is not None:
+            r_barcodes, f_barcodes = barcode_prefixes
+        else:
+            r_barcodes, f_barcodes = load_barcode_prefixes(barcodes_xlsx)
     log.info(
         "Loaded %d R barcodes, %d F barcodes (prefix-only, annealing tail stripped)",
         len(r_barcodes),
@@ -1187,9 +1204,16 @@ def _run_combinatorial_demux_body(
             well_name = f"{r_idx}_{f_idx}"
             per_well_reads[well_name] = reads
             fasta_path = reads_dir / f"{well_name}.fasta"
+            # fsync=False: these per-well reads FASTA are an intermediate
+            # artifact consumed by the consensus step below and fully
+            # reconstructible by re-running the unit (whose completion marker is
+            # written last, and IS fsync'd). Skipping fsync here is a large win
+            # on network/9p-backed output dirs. Final consensus FASTA, the
+            # combined FASTA, and stage markers keep the default fsync=True.
             atomic_write_text(
                 fasta_path,
                 "".join(f">{read_id}\n{trimmed}\n" for read_id, trimmed in reads),
+                fsync=False,
             )
 
     stats.wells_with_reads = sum(1 for v in per_well.values() if len(v) >= 1)
@@ -1532,7 +1556,11 @@ def _demux_one_nb(payload: dict) -> dict:
         chimera_split=payload["chimera_split"], well_consensus_at_root=True,
         minimap2_threads=payload["minimap2_threads"], consensus_workers=payload["consensus_workers"],
         per_read_parallel=payload.get("per_read_parallel", False),
-        progress_callback=inner_cb)
+        progress_callback=inner_cb,
+        # Parsed once in the parent and shipped in the payload (picklable list
+        # of (name, prefix) tuples). Absent => this worker parses the xlsx
+        # itself, as before.
+        barcode_prefixes=payload.get("barcode_prefixes"))
     s = result.stats
     return {"nb_name": payload["nb_name"], "sort_barcode_name": payload["sort_barcode_name"],
             "output_dir": str(Path(payload["output_dir"]).resolve()),
@@ -1731,6 +1759,18 @@ def run_combinatorial_demux_per_nb(
     _emit_agg(force=True)  # tick past resume-skipped units immediately
 
     if P > 1 and pending:
+        # Parse the barcode workbook once here and ship the result in each
+        # payload, instead of every spawned worker re-parsing it. The dominant
+        # cost is not the parse (~0.01 s) but the first `import openpyxl`
+        # (~1.4 s) inside load_barcode_prefixes, which a worker now skips
+        # entirely. Done only on this branch: the serial path below runs the
+        # unit in this same process, where openpyxl is already imported, so
+        # there is nothing to save and the workbook stays unread when a caller
+        # stubs the worker out.
+        with TIMER.phase("load_barcodes_parent"):
+            _barcode_prefixes = load_barcode_prefixes(barcodes_xlsx)
+        for pl in pending:
+            pl["barcode_prefixes"] = _barcode_prefixes
         mp_ctx = multiprocessing.get_context("spawn")
         manager = None
         progress_q = None
