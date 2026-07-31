@@ -2296,7 +2296,9 @@
     "fieldExpected": "expected",
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
-    "fieldSequencingSummary": "sequencing summary"
+    "fieldSequencingSummary": "sequencing summary",
+    "pathsMoved": "Diese Eingaben wurden verschoben und muessen neu ausgewaehlt werden: {{fields}}",
+    "sequenceMissing": "Die Sequenzdatei konnte nicht geoeffnet werden ({{filename}}). Bitte erneut auswaehlen."
   },
   "phaseC": {
     "majors": {

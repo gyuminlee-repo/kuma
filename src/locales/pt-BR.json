@@ -2296,7 +2296,9 @@
     "fieldExpected": "expected",
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
-    "fieldSequencingSummary": "sequencing summary"
+    "fieldSequencingSummary": "sequencing summary",
+    "pathsMoved": "Estas entradas foram movidas e precisam ser selecionadas novamente: {{fields}}",
+    "sequenceMissing": "Nao foi possivel abrir o arquivo de sequencia ({{filename}}). Selecione-o novamente."
   },
   "phaseC": {
     "majors": {

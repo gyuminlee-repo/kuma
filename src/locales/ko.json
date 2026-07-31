@@ -2329,7 +2329,9 @@
     "fieldExpected": "예상 유전형",
     "fieldSampleMap": "샘플 맵",
     "fieldCustomBarcodes": "커스텀 바코드",
-    "fieldSequencingSummary": "시퀀싱 요약"
+    "fieldSequencingSummary": "시퀀싱 요약",
+    "pathsMoved": "이전 경로를 찾을 수 없어 다시 지정해야 합니다: {{fields}}",
+    "sequenceMissing": "서열 파일을 열지 못했습니다 ({{filename}}). 다시 선택하세요."
   },
   "phaseC": {
     "majors": {

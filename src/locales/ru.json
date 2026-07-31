@@ -2296,7 +2296,9 @@
     "fieldExpected": "expected",
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
-    "fieldSequencingSummary": "sequencing summary"
+    "fieldSequencingSummary": "sequencing summary",
+    "pathsMoved": "Эти входные файлы перемещены, выберите их заново: {{fields}}",
+    "sequenceMissing": "Не удалось открыть файл последовательности ({{filename}}). Выберите его заново."
   },
   "phaseC": {
     "majors": {

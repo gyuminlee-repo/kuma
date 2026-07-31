@@ -2296,7 +2296,9 @@
     "fieldExpected": "expected",
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
-    "fieldSequencingSummary": "sequencing summary"
+    "fieldSequencingSummary": "sequencing summary",
+    "pathsMoved": "以下输入的路径已失效，需要重新选择: {{fields}}",
+    "sequenceMissing": "无法打开序列文件 ({{filename}})。请重新选择。"
   },
   "phaseC": {
     "majors": {
