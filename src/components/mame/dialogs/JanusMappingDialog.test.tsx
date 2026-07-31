@@ -354,13 +354,13 @@ describe("JanusMappingDialog preview", () => {
     await waitFor(() => expect(exportButton()).toBeEnabled());
   });
 
-  it("leaves the export enabled when the preview itself fails to load", async () => {
+  it("blocks export when the preview itself fails to load", async () => {
     mockPreview.mockRejectedValue(new Error("sidecar unavailable"));
     render(<JanusMappingDialog open onOpenChange={() => {}} />);
 
     await waitFor(() => expect(mockPreview).toHaveBeenCalled());
     expect(await screen.findByText(/sidecar unavailable/i)).toBeInTheDocument();
-    expect(exportButton()).toBeEnabled();
+    expect(exportButton()).toBeDisabled();
   });
 
   it("retries a failed preview on demand", async () => {

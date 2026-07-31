@@ -185,7 +185,8 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
     !isExporting &&
     !storeIsExporting &&
     !hasPreviewErrors &&
-    (previewFailure !== null || (isPreviewCurrent && !previewLoading));
+    isPreviewCurrent &&
+    !previewLoading;
 
   /** Excluded clones grouped by reason, so a retry plan reads at a glance. */
   const excludedByReason = excluded.reduce<Partial<Record<JanusExclusionReason, string[]>>>(
