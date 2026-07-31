@@ -26,7 +26,12 @@ export const HEADER_TOOLTIPS: Record<string, string> = {
   tolerance_used: "Tm tolerance Fwd/Rev (each starts at +/-0.5, widens by 0.5 up to +/-3.0)",
   penalty: "Penalty score: Tm deviation + GC% + codon distance + hairpin/homodimer + synthesis difficulty (lower = better)",
   candidate_count: "Unique forward / reverse candidates (click to compare if >1)",
-  has_offtarget: "Off-target binding detected on template strand",
+  // Design-search rows (design_sdm_primers) always read OK: an off-target
+  // hit now rejects the candidate outright instead of just flagging it, so
+  // a rejected candidate never reaches this table. This column still
+  // carries real signal for user-added custom primer rows (Evaluate tab),
+  // which are not filtered the same way.
+  has_offtarget: "Off-target binding detected on template strand (custom-evaluated primers only; design-search results are always OK by construction)",
   hairpin: "Hairpin/Homodimer worst Tm (>40°C = warning)",
   gc_fwd: "Forward primer GC content (40-60% recommended)",
   gc_rev: "Reverse primer GC content (40-60% recommended)",

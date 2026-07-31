@@ -16,7 +16,6 @@ from kuma_core.kuro.sdm_engine import (
     _design_full_overlap,
     _synthesis_score,
     check_offtarget,
-    check_offtarget_sliding,
     design_sdm_primers,
     design_single_sdm,
     export_results_tsv,
@@ -360,79 +359,63 @@ class TestCancelCheck:
         assert 0 < len(results) <= 3
 
 
-class TestCheckOfftargetSliding:
-    """Sliding-window off-target (PrimerBench / SnapGene-style)."""
+class TestCheckOfftarget:
+    """`check_offtarget()` is the function the design path actually calls
 
-    def test_empty_on_short_primer(self):
-        # Primer shorter than min_length returns no hits.
-        hits = check_offtarget_sliding(
-            primer_seq="ACGTACGT",
-            template="ACGTACGTACGTACGT",
-            intended_start=0,
-            intended_end=8,
-            min_length=15,
-        )
-        assert hits == []
+    (6 call sites in design_single_sdm / evaluate_custom_primer). It used
+    to have zero detection-oriented tests, unlike the never-called
+    sliding-window checker, which has since been removed (see PR body).
+    """
 
-    def test_detects_internal_match(self):
-        # 15-bp internal window ("CGTACGTACGTACGT") matches elsewhere on the
-        # template — 3' anchor would miss, sliding must catch.
-        internal = "CGTACGTACGTACGT"  # 15 bp
-        primer = "AA" + internal + "TT"  # 19 bp, internal window matches
-        # Template: intended site + distant copy of the internal window
-        template = primer + "N" * 50 + internal + "N" * 20
-        hits = check_offtarget_sliding(
+    # 24 nt primer, arbitrary composition.
+    PRIMER = "ATGGCTAGCATCGTAGCATGCAGT"
+
+    def test_fixed_rule_detects_internal_mismatch_site(self):
+        """The blind spot pinned in the previous commit is now closed.
+
+        Decoy site: on the template, literally equal to PRIMER except for
+        2 internal mismatches at 0-based offsets 8 and 13 (both well inside
+        the last `min_match`=15 nt from the 3' end, but 10+ nt away from
+        the 3' terminus itself, so the last 6 nt -- the region literature
+        says actually drives priming -- are untouched).
+
+        Per Kwok et al. 1990 NAR 18(4):999 and Huang/Arnheim/Goodman 1992
+        NAR 20(17):4567, a 3' end that is fully complementary primes
+        efficiently even with internal mismatches; Primer3 itself only
+        requires the last 4 nt to be mismatch-free. The legacy 15-nt full
+        anchor alone would miss this decoy (see the previous commit); the
+        mismatch-tolerant end_nt=4 + calc_heterodimer rule added in this
+        commit catches it (measured Tm ~47.6C, threshold 45.0).
+        """
+        primer = self.PRIMER
+        decoy_site = "ATGGCTAGAATCGGAGCATGCAGT"  # positions 8, 13 flipped
+        assert len(decoy_site) == len(primer)
+        assert primer[-6:] == decoy_site[-6:]  # 3' end (>=6 nt) intact
+        assert primer != decoy_site  # internal mismatches present
+
+        template = primer + "N" * 50 + decoy_site + "N" * 20
+        hits = check_offtarget(
             primer_seq=primer,
             template=template,
             intended_start=0,
             intended_end=len(primer),
-            min_length=15,
         )
-        internal_hits = [h for h in hits if h.truncation_type == "internal"]
-        assert len(internal_hits) >= 1
-        assert any(h.match_length == 15 for h in internal_hits)
+        assert len(hits) >= 1, (
+            "mismatch-tolerant 3'-anchor rule should detect this decoy"
+        )
+        assert any(h.tm >= 45.0 for h in hits)
 
-    def test_full_length_match(self):
-        primer = "ACGTACGTACGTACGTAC"  # 18 bp
+    def test_perfect_repeat_is_detected(self):
+        """Baseline: an exact-repeat 3' anchor is caught (regression guard)."""
+        primer = self.PRIMER
         template = "N" * 40 + primer + "N" * 40 + primer + "N" * 40
-        hits = check_offtarget_sliding(
+        hits = check_offtarget(
             primer_seq=primer,
             template=template,
             intended_start=40,
             intended_end=40 + len(primer),
-            min_length=15,
         )
-        full = [h for h in hits if h.truncation_type == "full"]
-        assert len(full) >= 1
-
-    def test_self_hit_excluded(self):
-        primer = "ACGTACGTACGTACGTAC"  # 18 bp, appears once
-        template = "N" * 40 + primer + "N" * 40
-        hits = check_offtarget_sliding(
-            primer_seq=primer,
-            template=template,
-            intended_start=40,
-            intended_end=40 + len(primer),
-            min_length=15,
-        )
-        assert hits == []
-
-    def test_antisense_detection(self):
-        from kuma_core.kuro.overlap import reverse_complement
-        primer = "ACGTACGTACGTACGTAC"  # 18 bp
-        # Place the reverse complement elsewhere on the sense strand so it
-        # surfaces as an antisense hit from the primer's point of view.
-        rc = reverse_complement(primer)
-        template = "N" * 40 + primer + "N" * 40 + rc + "N" * 40
-        hits = check_offtarget_sliding(
-            primer_seq=primer,
-            template=template,
-            intended_start=40,
-            intended_end=40 + len(primer),
-            min_length=15,
-        )
-        antisense = [h for h in hits if h.strand == "antisense"]
-        assert len(antisense) >= 1
+        assert len(hits) >= 1
 
 
 class TestDesignFullOverlap:
@@ -698,7 +681,98 @@ class TestFailureReasonNamesStage:
             assert reason.startswith("No valid primer pair - "), (
                 f"{raw}: unexpected prefix: {reason}"
             )
-            assert any(stage in reason for stage in ("overlap:", "forward:", "reverse:")), (
+            assert any(
+                stage in reason
+                for stage in ("overlap:", "forward:", "reverse:", "off-target:")
+            ), (
                 f"{raw}: reason names no design stage: {reason}"
             )
             assert reason.isascii(), f"{raw}: non-ASCII reason: {reason}"
+
+
+class TestOfftargetRejectionAndDiagnosis:
+    """Off-target hits reject candidates outright; total rejection is diagnosed."""
+
+    def test_no_offtarget_in_surviving_design_results(self, genbank_path, mutations_csv):
+        """Every SURVIVING design-search result has zero off-target hits.
+
+        design_single_sdm now rejects any candidate with an off-target hit
+        instead of merely penalizing it, so a candidate that reaches the
+        final result list can never carry one.
+        """
+        results, _cand, _failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+        )
+        assert len(results) >= 1
+        for r in results:
+            assert r.has_offtarget is False, r.mutation.raw
+            assert r.offtarget_fwd == []
+            assert r.offtarget_rev == []
+
+    def test_design_yield_unchanged_on_reference_fixture(self, genbank_path, mutations_csv):
+        """Regression guard: reject-not-penalize must not cost yield here.
+
+        Measured baseline for this fixture (target_start=1790, Q5,
+        overlap_len=18): 10/12 mutations succeed, 2 fail (E167A, H100A) for
+        Tm/length reasons unrelated to off-target. See PR body for the
+        off-target threshold sweep against these same 19 candidates.
+        """
+        results, _cand, failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+        )
+        assert len(results) == 10, (
+            f"expected 10/12 successes, got {len(results)}/12: "
+            f"failed={list(failed.keys())}"
+        )
+
+    def test_all_offtarget_failure_is_diagnosed_as_offtarget(
+        self, genbank_path, mutations_csv, monkeypatch
+    ):
+        """If every Tm/length-valid candidate is off-target, say so.
+
+        Forces check_offtarget to report a hit for every call (as if the
+        whole fixture were saturated with off-target sites), then asserts
+        diagnose_sdm_failure names the off-target stage rather than falling
+        back to the generic "cause not isolated" message.
+        """
+        import kuma_core.kuro.sdm_engine as sdm_engine_mod
+
+        fake_hit = OffTargetHit(
+            position=0, strand="sense", match_seq="N", tm=99.0, match_length=4,
+        )
+
+        def _always_hit(*args, **kwargs):
+            return [fake_hit]
+
+        monkeypatch.setattr(sdm_engine_mod, "check_offtarget", _always_hit)
+
+        results, _cand, failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+        )
+        assert results == [], "every candidate should be off-target-rejected"
+        assert failed, "expected all 12 mutations to fail"
+        # E167A/H100A already fail for a reverse-Tm reason unrelated to
+        # off-target (see test_design_yield_unchanged_on_reference_fixture);
+        # forcing every check_offtarget call to hit does not change that.
+        # The other 10 mutations used to succeed, so with every candidate
+        # now off-target-saturated they must be diagnosed as off-target.
+        previously_succeeding = {
+            "Q232A", "Y233A", "E335A", "K200A", "F203A",
+            "D227A", "G237A", "P240A", "Y155A", "C175A",
+        }
+        for raw, reason in failed.items():
+            assert reason.startswith("No valid primer pair - "), raw
+            if raw in previously_succeeding:
+                assert "off-target:" in reason, f"{raw}: {reason}"
