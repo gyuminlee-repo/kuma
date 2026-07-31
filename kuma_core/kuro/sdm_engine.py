@@ -64,6 +64,14 @@ class SdmPrimerResult:
     tolerance_used: float = 0.0 # Max of fwd/rev tolerance (kept for UI display and export)
     tolerance_fwd: float = 0.0  # Fwd-specific tolerance step
     tolerance_rev: float = 0.0  # Rev-specific tolerance step
+    # design_single_sdm (both overlap modes) now REJECTS any candidate with
+    # an off-target hit outright, so for design-search results these three
+    # fields are always False/[]/[] by construction -- a hit never survives
+    # to be reported here. evaluate_custom_primer (user-supplied primer
+    # pair, not a search over candidates) is the one path where these still
+    # carry real information: there is no alternative candidate to fall
+    # back to for a user's own primers, so it reports the hit instead of
+    # rejecting it.
     has_offtarget: bool = False
     offtarget_fwd: list[OffTargetHit] = field(default_factory=list)
     offtarget_rev: list[OffTargetHit] = field(default_factory=list)
@@ -1040,6 +1048,7 @@ def design_single_sdm(
 
             if all_candidates:
                 rc_template = reverse_complement(seq.upper())
+                surviving: list[SdmPrimerResult] = []
                 for c in all_candidates:
                     c.offtarget_fwd = check_offtarget(
                         c.forward_seq, seq,
@@ -1054,14 +1063,18 @@ def design_single_sdm(
                         profile=profile,
                     )
                     if c.offtarget_fwd or c.offtarget_rev:
-                        c.has_offtarget = True
-                        ot_count = len(c.offtarget_fwd) + len(c.offtarget_rev)
-                        c.penalty = round(c.penalty + ot_count * 5.0, 2)
+                        # Off-target hit: reject the candidate outright rather
+                        # than penalize it (a penalty still lets it win if no
+                        # alternative exists). If every candidate at this tol
+                        # is rejected, fall through and widen tol below.
+                        continue
                     _check_secondary_structure(c)
                     _check_synthesis_score(c)
+                    surviving.append(c)
 
-                all_candidates.sort(key=lambda r: r.penalty)
-                return all_candidates[:num_return]
+                if surviving:
+                    surviving.sort(key=lambda r: r.penalty)
+                    return surviving[:num_return]
 
             tol += tol_step
 
@@ -1090,6 +1103,7 @@ def design_single_sdm(
 
         if all_candidates:
             rc_template = reverse_complement(seq.upper())
+            surviving = []
             for c in all_candidates:
                 fwd_start = c.overlap_window.start
                 fwd_end = fwd_start + c.fwd_len
@@ -1106,15 +1120,18 @@ def design_single_sdm(
                     profile=profile,
                 )
                 if c.offtarget_fwd or c.offtarget_rev:
-                    c.has_offtarget = True
-                    ot_count = len(c.offtarget_fwd) + len(c.offtarget_rev)
-                    c.penalty = round(c.penalty + ot_count * 5.0, 2)
+                    # Off-target hit: reject the candidate outright rather
+                    # than penalize it. If every candidate at this tol is
+                    # rejected, fall through and widen tol below.
+                    continue
 
                 _check_secondary_structure(c)
                 _check_synthesis_score(c)
+                surviving.append(c)
 
-            all_candidates.sort(key=lambda r: r.penalty)
-            return all_candidates[:num_return]
+            if surviving:
+                surviving.sort(key=lambda r: r.penalty)
+                return surviving[:num_return]
 
         tol += tol_step
 
@@ -1232,6 +1249,16 @@ def diagnose_sdm_failure(
         float, bool, tuple[float, int] | None, bool, tuple[float, int] | None
     ] | None = None
 
+    # Off-target bookkeeping: every (window, variant) combo where BOTH sides
+    # independently pass Tm/length at tol_max is a real would-be candidate --
+    # design_single_sdm builds exactly this pair and then runs check_offtarget
+    # on it. If it never survives, the failure is off-target-caused, not
+    # Tm/length-caused, and fwd_passed/rev_passed alone cannot see that.
+    offtarget_total_pairs = 0
+    offtarget_reject_count = 0
+    offtarget_examples: list[str] = []
+    rc_template = reverse_complement(seq.upper())
+
     def _excess(info: tuple[float, int] | None, target: float) -> float:
         if info is None:
             return float("inf")
@@ -1269,11 +1296,12 @@ def diagnose_sdm_failure(
                     best_fwd = fwd_info
                 # Pass/fail is decided by the primitive at tol_max, not by the
                 # rounded probe Tm, so the verdict matches the search exactly.
-                fwd_ok = _extend_forward(
+                fwd_at_tol = _extend_forward(
                     overlap_seq, variant.mt_codon, downstream_seq,
                     tm_target_fwd, tol_max, profile, min_downstream,
                     fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max,
-                ) is not None
+                )
+                fwd_ok = fwd_at_tol is not None
                 if fwd_ok:
                     fwd_passed = True
 
@@ -1289,12 +1317,44 @@ def diagnose_sdm_failure(
                     or abs(rev_info[0] - tm_target_rev) < abs(best_rev[0] - tm_target_rev)
                 ):
                     best_rev = rev_info
-                rev_ok = _extend_reverse(
+                rev_at_tol = _extend_reverse(
                     overlap_seq, upstream_seq, tm_target_rev, tol_max, profile,
                     rev_len_min=rev_len_min, rev_len_max=rev_len_max,
-                ) is not None
+                )
+                rev_ok = rev_at_tol is not None
                 if rev_ok:
                     rev_passed = True
+
+                if fwd_ok and rev_ok:
+                    # This is exactly the candidate design_single_sdm would
+                    # build here. Check it the same way the search does.
+                    offtarget_total_pairs += 1
+                    fwd_full = fwd_at_tol[0]
+                    rev_full = rev_at_tol[0]
+                    fwd_start = overlap_start
+                    fwd_end = fwd_start + len(fwd_full)
+                    rev_start = overlap_start - len(rev_at_tol[1])
+                    rev_end = codon_start
+                    ot_fwd = check_offtarget(
+                        fwd_full, seq, fwd_start, fwd_end,
+                        antisense_cache=rc_template, profile=profile,
+                    )
+                    ot_rev = check_offtarget(
+                        rev_full, seq, rev_start, rev_end,
+                        antisense_cache=rc_template, profile=profile,
+                    )
+                    if ot_fwd or ot_rev:
+                        offtarget_reject_count += 1
+                        if len(offtarget_examples) < 3:
+                            for label, hits in (("forward", ot_fwd), ("reverse", ot_rev)):
+                                for h in hits:
+                                    offtarget_examples.append(
+                                        f"{label} primer vs {h.strand} pos {h.position} "
+                                        f"(Tm {h.tm:.1f}C)"
+                                    )
+                                    break
+                                if len(offtarget_examples) >= 3:
+                                    break
 
                 pair_excess = (0.0 if fwd_ok else _excess(fwd_info, tm_target_fwd)) + (
                     0.0 if rev_ok else _excess(rev_info, tm_target_rev)
@@ -1354,6 +1414,13 @@ def diagnose_sdm_failure(
                 "no single overlap window satisfies both sides - "
                 + "; ".join(clauses)
             )
+
+    if not clauses and offtarget_total_pairs > 0 and offtarget_reject_count == offtarget_total_pairs:
+        sites = "; ".join(offtarget_examples) if offtarget_examples else "site details unavailable"
+        return prefix + (
+            f"off-target: all {offtarget_total_pairs} Tm/length-valid candidate(s) "
+            f"rejected for off-target binding - {sites}"
+        )
 
     if not clauses:
         return prefix + "cause not isolated to overlap, forward, or reverse"

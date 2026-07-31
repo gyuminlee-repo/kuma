@@ -757,7 +757,98 @@ class TestFailureReasonNamesStage:
             assert reason.startswith("No valid primer pair - "), (
                 f"{raw}: unexpected prefix: {reason}"
             )
-            assert any(stage in reason for stage in ("overlap:", "forward:", "reverse:")), (
+            assert any(
+                stage in reason
+                for stage in ("overlap:", "forward:", "reverse:", "off-target:")
+            ), (
                 f"{raw}: reason names no design stage: {reason}"
             )
             assert reason.isascii(), f"{raw}: non-ASCII reason: {reason}"
+
+
+class TestOfftargetRejectionAndDiagnosis:
+    """Off-target hits reject candidates outright; total rejection is diagnosed."""
+
+    def test_no_offtarget_in_surviving_design_results(self, genbank_path, mutations_csv):
+        """Every SURVIVING design-search result has zero off-target hits.
+
+        design_single_sdm now rejects any candidate with an off-target hit
+        instead of merely penalizing it, so a candidate that reaches the
+        final result list can never carry one.
+        """
+        results, _cand, _failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+        )
+        assert len(results) >= 1
+        for r in results:
+            assert r.has_offtarget is False, r.mutation.raw
+            assert r.offtarget_fwd == []
+            assert r.offtarget_rev == []
+
+    def test_design_yield_unchanged_on_reference_fixture(self, genbank_path, mutations_csv):
+        """Regression guard: reject-not-penalize must not cost yield here.
+
+        Measured baseline for this fixture (target_start=1790, Q5,
+        overlap_len=18): 10/12 mutations succeed, 2 fail (E167A, H100A) for
+        Tm/length reasons unrelated to off-target. See PR body for the
+        off-target threshold sweep against these same 19 candidates.
+        """
+        results, _cand, failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+        )
+        assert len(results) == 10, (
+            f"expected 10/12 successes, got {len(results)}/12: "
+            f"failed={list(failed.keys())}"
+        )
+
+    def test_all_offtarget_failure_is_diagnosed_as_offtarget(
+        self, genbank_path, mutations_csv, monkeypatch
+    ):
+        """If every Tm/length-valid candidate is off-target, say so.
+
+        Forces check_offtarget to report a hit for every call (as if the
+        whole fixture were saturated with off-target sites), then asserts
+        diagnose_sdm_failure names the off-target stage rather than falling
+        back to the generic "cause not isolated" message.
+        """
+        import kuma_core.kuro.sdm_engine as sdm_engine_mod
+
+        fake_hit = OffTargetHit(
+            position=0, strand="sense", match_seq="N", tm=99.0, match_length=4,
+        )
+
+        def _always_hit(*args, **kwargs):
+            return [fake_hit]
+
+        monkeypatch.setattr(sdm_engine_mod, "check_offtarget", _always_hit)
+
+        results, _cand, failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+        )
+        assert results == [], "every candidate should be off-target-rejected"
+        assert failed, "expected all 12 mutations to fail"
+        # E167A/H100A already fail for a reverse-Tm reason unrelated to
+        # off-target (see test_design_yield_unchanged_on_reference_fixture);
+        # forcing every check_offtarget call to hit does not change that.
+        # The other 10 mutations used to succeed, so with every candidate
+        # now off-target-saturated they must be diagnosed as off-target.
+        previously_succeeding = {
+            "Q232A", "Y233A", "E335A", "K200A", "F203A",
+            "D227A", "G237A", "P240A", "Y155A", "C175A",
+        }
+        for raw, reason in failed.items():
+            assert reason.startswith("No valid primer pair - "), raw
+            if raw in previously_succeeding:
+                assert "off-target:" in reason, f"{raw}: {reason}"
