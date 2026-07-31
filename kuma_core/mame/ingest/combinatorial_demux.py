@@ -1198,19 +1198,25 @@ def _run_combinatorial_demux_body(
         stats.ambiguous_dropped,
     )
 
-    # Write per-well FASTA files
+    # Collect per-well reads in memory. The consensus step below consumes this
+    # dict directly, so the on-disk per-well reads FASTA is not read by any
+    # production code path; it is off by default and only written when
+    # KUMA_MAME_KEEP_WELL_READS=1 is set for post-hoc forensics. Writing one
+    # small file per well dominates wall time on network/9p-backed output dirs.
     per_well_reads: dict[str, list[tuple[str, str]]] = {}
+    keep_well_reads = os.environ.get("KUMA_MAME_KEEP_WELL_READS", "").strip() == "1"
     with TIMER.phase("write_well_fasta"):
         for (r_idx, f_idx), reads in per_well.items():
             well_name = f"{r_idx}_{f_idx}"
             per_well_reads[well_name] = reads
+            if not keep_well_reads:
+                continue
             fasta_path = reads_dir / f"{well_name}.fasta"
             # fsync=False: these per-well reads FASTA are an intermediate
-            # artifact consumed by the consensus step below and fully
-            # reconstructible by re-running the unit (whose completion marker is
-            # written last, and IS fsync'd). Skipping fsync here is a large win
-            # on network/9p-backed output dirs. Final consensus FASTA, the
-            # combined FASTA, and stage markers keep the default fsync=True.
+            # artifact fully reconstructible by re-running the unit (whose
+            # completion marker is written last, and IS fsync'd). Final
+            # consensus FASTA, the combined FASTA, and stage markers keep the
+            # default fsync=True.
             atomic_write_text(
                 fasta_path,
                 "".join(f">{read_id}\n{trimmed}\n" for read_id, trimmed in reads),
