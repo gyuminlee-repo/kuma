@@ -34,9 +34,12 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
+
+from kuma_core.mame.perf import TIMER
 
 # CIGAR operation codes (BAM spec)
 _CIGAR_M = 0   # match or mismatch
@@ -301,6 +304,12 @@ _MINIMAP2_THREADS: int = int(
 )
 
 
+# Approximate byte budget per stdout drain.  Large enough that the timer pair
+# amortises over thousands of SAM lines (chunk granularity, not per read), small
+# enough that the block list never dominates peak RAM.
+_SAM_BLOCK_BYTES = 4 << 20
+
+
 def build_minimap2_index(reference_fasta: Path, mmi_path: Path) -> Path:
     """Pre-build a minimap2 ``.mmi`` index with the ``map-ont`` preset.
 
@@ -337,6 +346,7 @@ def _run_minimap2(
     preset: str,
     best_n: int | None = None,
     threads: int | None = None,
+    timing_prefix: str = "align_minimap2",
 ) -> list[tuple[int, int, int, int, str]]:
     """Run minimap2 -a, parsing SAM records straight off stdout.
 
@@ -346,6 +356,12 @@ def _run_minimap2(
     stdout is consumed from a pipe instead of being written to a SAM file, so
     the full alignment output is never materialised on disk.  stderr is captured
     in memory only (never written to a file path).
+
+    Timing: stdout is drained in byte-bounded blocks so the time blocked on the
+    subprocess pipe (``<prefix>.minimap2_wall``) is separated from the Python
+    SAM parse (``<prefix>.sam_parse``).  One timer pair per block, never per
+    read.  Both keys are dotted, so :func:`kuma_core.mame.perf._report` treats
+    them as sub-phases and does not double-count them against the parent.
 
     Returns the parsed records; raises RuntimeError on a non-zero exit.
     """
@@ -365,7 +381,18 @@ def _run_minimap2(
     )
     if proc.stdout is None:
         raise RuntimeError("minimap2 stdout pipe unavailable")
-    records = list(_iter_sam_records_stream(proc.stdout))
+    wall_key = f"{timing_prefix}.minimap2_wall"
+    parse_key = f"{timing_prefix}.sam_parse"
+    records: list[tuple[int, int, int, int, str]] = []
+    while True:
+        t0 = time.perf_counter()
+        block = proc.stdout.readlines(_SAM_BLOCK_BYTES)
+        TIMER.add(wall_key, time.perf_counter() - t0)
+        if not block:
+            break
+        t1 = time.perf_counter()
+        records.extend(_iter_sam_records_stream(block))
+        TIMER.add(parse_key, time.perf_counter() - t1)
     _, err = proc.communicate()
     if proc.returncode != 0:
         raise RuntimeError(
@@ -577,7 +604,10 @@ def align_reads_grouped(
             return out
 
         positional_ref = reference_index if reference_index is not None else reference_fasta
-        records = _run_minimap2(positional_ref, reads_fasta, preset, threads=threads)
+        records = _run_minimap2(
+            positional_ref, reads_fasta, preset, threads=threads,
+            timing_prefix="well_consensus.align_minimap2_batch",
+        )
 
         primary: dict[int, Alignment] = {}
         for read_index, flag, pos, mapq, cigar_str in records:
@@ -707,6 +737,7 @@ def align_reads_multi(
     coverage_fraction: float = 0.98,
     best_n: int = 20,
     threads: int | None = None,
+    reference_index: Path | None = None,
 ) -> list[tuple[str, str, list[Alignment]]]:
     """Align reads and return ALL passing hits per read (chimera/concatemer support).
 
@@ -732,6 +763,14 @@ def align_reads_multi(
     best_n:
         Maximum number of secondary alignments minimap2 reports per read
         (passed as -N).  Increase for high-copy concatemers (default 20).
+    reference_index:
+        Optional prebuilt minimap2 ``.mmi`` index (see
+        :func:`build_minimap2_index`), used as the positional reference in place
+        of ``reference_fasta`` so each call skips its own index build.  It MUST
+        be built with the same preset as ``preset`` (``map-ont``) to keep output
+        identical.  ``reference_fasta`` is still read for its length.  With one
+        call per read chunk the saving scales with the chunk count, so this is a
+        precondition for finer read chunking rather than a win on its own.
 
     Returns
     -------
@@ -745,6 +784,17 @@ def align_reads_multi(
     to avoid counting the same physical read twice in one well.  Secondary
     alignments (FLAG 0x100) are skipped: minimap2 emits SEQ=* and MAPQ=0 for
     them, so the min_mapq filter would discard them in any case.
+
+    ``-N`` is deliberately kept rather than replaced with ``--secondary=no``.
+    Measured on the step2 reference run (12k reads, single-amplicon reference):
+    ``-N 20`` yields 11960 primary + 7884 supplementary + only 28 secondary
+    records, and ``--secondary=no`` yields the same 11960 + 7884 with a
+    byte-identical kept-hit set.  Suppressing 28 of 19872 records is 0.14% of
+    the output, and an interleaved A/B measured no wall-time difference
+    (min 1.563s vs 1.586s over 8 alternating reps).  A single-sequence
+    reference simply offers minimap2 almost no secondary chains to report, so
+    the flag has nothing to save here.  Revisit only if a multi-sequence
+    reference is ever used.
     """
     if not reference_fasta.exists():
         raise FileNotFoundError(f"Reference FASTA not found: {reference_fasta}")
@@ -757,8 +807,9 @@ def align_reads_multi(
         if not index_map:
             return []
 
+        positional_ref = reference_index if reference_index is not None else reference_fasta
         records = _run_minimap2(
-            reference_fasta, reads_fasta, preset, best_n=best_n,
+            positional_ref, reads_fasta, preset, best_n=best_n,
             threads=threads,
         )
 
