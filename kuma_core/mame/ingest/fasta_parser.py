@@ -29,6 +29,7 @@ separate future pipeline entry point, not a concern of this consensus parser.
 from __future__ import annotations
 
 import logging
+import os
 import re
 from collections.abc import Iterator
 from pathlib import Path
@@ -52,8 +53,10 @@ from kuma_core.mame.ingest.consensus_metadata import (
     SPAN_FAILED,
 )
 from kuma_core.mame.ingest.stage_marker import (
-    CONSENSUS_FILE_PATTERNS,
+    DirEntryMap,
+    iter_consensus_names,
     read_stage_marker,
+    scan_unit_dir,
     validate_marker,
 )
 from kuma_core.mame.models import BarcodeRecord
@@ -125,14 +128,19 @@ def _recover_covered_n_fraction(
     return n_covered_no_call / n_covered
 
 
-def _iter_consensus_files(directory: Path) -> Iterator[Path]:
-    seen: set[Path] = set()
-    for pattern in CONSENSUS_FILE_PATTERNS:
-        for path in sorted(directory.glob(pattern)):
-            if path in seen:
-                continue
-            seen.add(path)
-            yield path
+def _iter_consensus_entries(
+    directory: Path, entries: DirEntryMap | None = None
+) -> Iterator[tuple[Path, "os.DirEntry[str] | None"]]:
+    """Yield ``(path, entry)`` for each consensus FASTA under *directory*.
+
+    Emission order matches the previous per-pattern ``sorted(dir.glob(...))``
+    walk.  The ``DirEntry`` is carried alongside the path so the caller can take
+    the file size from the already-performed scan instead of a fresh ``stat``.
+    """
+    if entries is None:
+        entries = scan_unit_dir(directory)
+    for name in iter_consensus_names(entries):
+        yield directory / name, entries.get(name)
 
 
 def _parse_single_fasta(path: Path) -> tuple[str, str, int, dict[str, str]]:
@@ -165,8 +173,18 @@ def _parse_single_fasta(path: Path) -> tuple[str, str, int, dict[str, str]]:
     return header, consensus_seq, header_count, _read_metadata(header)
 
 
-def parse_fasta_file(path: Path, native_barcode: str) -> BarcodeRecord:
+def parse_fasta_file(
+    path: Path,
+    native_barcode: str,
+    entry: "os.DirEntry[str] | None" = None,
+) -> BarcodeRecord:
     """Parse a single consensus FASTA file into a BarcodeRecord.
+
+    *entry* is the optional ``os.DirEntry`` for *path* from the caller's
+    directory scan.  ``DirEntry.stat()`` caches its result, so passing an entry
+    the marker guard already stat-ed makes ``file_size_kb`` free instead of a
+    second ``stat`` per well.  The value is identical either way: both follow
+    symlinks and read ``st_size``.
 
     Raises
     ------
@@ -183,7 +201,7 @@ def parse_fasta_file(path: Path, native_barcode: str) -> BarcodeRecord:
     header, consensus_seq, record_count, metadata = _parse_single_fasta(path)
 
     custom_barcode = header.split()[0] if header else path.stem
-    size_bytes = path.stat().st_size
+    size_bytes = entry.stat().st_size if entry is not None else path.stat().st_size
     file_size_kb = size_bytes / 1024.0
     depth = _read_int_metadata(metadata, DEPTH)
     read_count: int | None = depth if depth is not None else record_count
@@ -270,10 +288,19 @@ def load_barcode_directory(input_dir: Path) -> list[BarcodeRecord]:
         raise FileNotFoundError(f"Consensus FASTA input directory not found: {input_dir}")
 
     records: list[BarcodeRecord] = []
-    for nb_dir in sorted(p for p in input_dir.iterdir() if p.is_dir()):
+    # One readdir per NB directory, reused by the marker presence test, the
+    # inventory guard and the per-well file size. ``entry.is_dir()`` here reads
+    # the readdir type field where the platform supplies it, so the top-level
+    # walk no longer stats every child either.
+    with os.scandir(input_dir) as top:
+        nb_dirs = sorted(
+            (input_dir / e.name for e in top if e.is_dir()), key=lambda p: p.name
+        )
+    for nb_dir in nb_dirs:
         native_barcode = nb_dir.name
+        entries = scan_unit_dir(nb_dir)
 
-        marker = read_stage_marker(nb_dir)
+        marker = read_stage_marker(nb_dir, entries)
         if marker is None:
             _logger.warning(
                 "No demux/consensus completion marker in %s; proceeding "
@@ -281,7 +308,7 @@ def load_barcode_directory(input_dir: Path) -> list[BarcodeRecord]:
                 nb_dir,
             )
         else:
-            ok, reason = validate_marker(marker, nb_dir)
+            ok, reason = validate_marker(marker, nb_dir, entries)
             if not ok:
                 raise ValueError(
                     f"Demux/consensus output for '{native_barcode}' is "
@@ -290,6 +317,10 @@ def load_barcode_directory(input_dir: Path) -> list[BarcodeRecord]:
                     "Re-run the demux+consensus stage for this unit."
                 )
 
-        for consensus_file in _iter_consensus_files(nb_dir):
-            records.append(parse_fasta_file(consensus_file, native_barcode=native_barcode))
+        for consensus_file, entry in _iter_consensus_entries(nb_dir, entries):
+            records.append(
+                parse_fasta_file(
+                    consensus_file, native_barcode=native_barcode, entry=entry
+                )
+            )
     return records
