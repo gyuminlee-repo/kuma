@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.13.37 (KURO exports land in the project)
+
+MAME started routing its generated files through the open project. KURO did not, so a design exported from the same project could end up anywhere the last save dialog happened to point, and nothing downstream knew the files existed.
+
+### Fixed
+
+- v0.13.37: Export All opens on the project design folder and creates it first, so a project that has never been exported to is still a valid destination. Choosing somewhere else still works and behaves as before.
+- v0.13.37: The files Export All writes are recorded in the project manifest, each under a type taken from its filename suffix. Steps that look for an earlier output can now find one. Files with an unrecognised suffix are skipped rather than filed under a guess, and a recording failure reports itself without turning a finished export into an error.
+
 ## v0.13.35 (Release version sync)
 
 ### Fixed
