@@ -979,6 +979,12 @@ class ExportAllParams(BaseModel):
     bom: bool = False
     mappings: Optional[list[PlateMappingItem]] = None
     dedup_info: Optional[dict[str, list[str]]] = None
+    #: Forward-primer quadrant of the 384 Echo source plate. See
+    #: ``ExportMappingParams.quadrant``. Applies to the Echo csv only; the xlsx
+    #: layout sheet keeps the row-doubled view.
+    quadrant: Optional[Literal["A1", "A2", "B1", "B2"]] = None
+    #: Quadrants already spent on a part-used plate, stated by the operator.
+    used_quadrants: Optional[list[Literal["A1", "A2", "B1", "B2"]]] = None
 
     @field_validator("fwd_plate_name", "rev_plate_name")
     @classmethod

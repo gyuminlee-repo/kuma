@@ -1,3 +1,4 @@
+import type { EchoQuadrant } from "@/types/models";
 /**
  * Pure interface definitions for each Zustand store slice.
  * This file intentionally imports ONLY from `../../types/models` (no slice
@@ -348,10 +349,19 @@ export interface ExportSlice {
   /** true while an export RPC is in flight (Excel, mapping, benchmark) */
   isExporting: boolean;
   echoTransferVol: number;
+  /**
+   * 384 Echo source plate 에서 96-head Zephyr 가 stamp 를 시작할 quadrant.
+   * null 이면 기존 row-doubled 배치를 그대로 쓴다. reverse 는 짝 quadrant 로 간다.
+   */
+  echoQuadrant: EchoQuadrant | null;
+  /** 이 plate 에서 이미 소진된 quadrant. 작업자가 직접 입력한다. */
+  echoUsedQuadrants: EchoQuadrant[];
   janusTransferVol: number;
   getPlateMap: () => Promise<void>;
   exportExcel: (filepath: string, projectId?: string) => Promise<void>;
   setEchoTransferVol: (value: number) => void;
+  setEchoQuadrant: (value: EchoQuadrant | null) => void;
+  setEchoUsedQuadrants: (value: EchoQuadrant[]) => void;
   setJanusTransferVol: (value: number) => void;
   setTableSorting: (updater: Updater<SortingState>) => void;
   setStatus: (msg: string) => void;

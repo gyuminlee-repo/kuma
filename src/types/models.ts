@@ -743,6 +743,10 @@ export interface RpcMethodMap {
       amount?: "0.05" | "0.2";
       purification?: "MOPC";
       echo_transfer_vol?: number;
+      /** Forward-primer quadrant of the 384 Echo source plate. Echo csv only. */
+      quadrant?: EchoQuadrant | null;
+      /** Quadrants already spent on a part-used plate, stated by the operator. */
+      used_quadrants?: EchoQuadrant[];
       janus_transfer_vol?: number;
       bom?: boolean;
       mappings?: PlateMapping[];
