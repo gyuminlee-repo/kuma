@@ -1770,6 +1770,24 @@
     "threeDNoStructure": "구조 미로드: 3D가 아닌 위치 거리를 사용합니다. 3D 기반 선택을 원하면 구조를 불러오세요.",
     "threeDFrameMismatch": "구조가 이 서열 프레임과 맞지 않습니다: 3D가 아닌 위치 거리를 사용합니다."
   },
+  "hydrationOverlay": {
+    "title": "프로젝트 복원 중",
+    "description": "마지막 자동 저장 상태를 불러오는 중입니다. 복원된 값이 입력을 덮어쓰지 않도록 완료될 때까지 편집이 잠깁니다.",
+    "cancel": "취소하고 홈으로",
+    "confirmTitle": "프로젝트를 닫을까요?",
+    "confirmDescription": "프로젝트를 닫고 처음 화면으로 돌아갑니다. 복원 중이던 내용은 저장되지 않습니다.",
+    "keepWaiting": "계속 기다리기",
+    "confirmLeave": "홈으로 나가기",
+    "titleScratch": "작업 내용 복원 중",
+    "descriptionScratch": "마지막 자동 저장 상태를 불러오는 중입니다. 복원된 값이 입력을 덮어쓰지 않도록 완료될 때까지 편집이 잠깁니다.",
+    "confirmTitleScratch": "복원을 중단할까요?",
+    "confirmDescriptionScratch": "처음 화면으로 돌아갑니다. 복원 중이던 내용은 저장되지 않습니다.",
+    "phaseReset": "이전 작업 내용을 정리하는 중",
+    "phaseWorkspace": "워크스페이스를 여는 중",
+    "phaseKuro": "프라이머 설계 작업 내용을 불러오는 중",
+    "phaseMame": "서열 검증 결과를 불러오는 중",
+    "phaseDetect": "프로젝트 폴더에서 파일을 찾는 중"
+  },
   "closeConfirm": {
     "designing": {
       "title": "디자인 진행 중",

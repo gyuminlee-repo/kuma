@@ -1755,6 +1755,24 @@
     "failed": "Sidecar fehlgeschlagen",
     "networkError": "Network Fehler"
   },
+  "hydrationOverlay": {
+    "title": "Projekt wird wiederhergestellt",
+    "description": "Der zuletzt automatisch gespeicherte Zustand wird geladen. Die Bearbeitung ist gesperrt, bis der Vorgang endet, damit wiederhergestellte Werte Ihre Eingaben nicht überschreiben.",
+    "cancel": "Abbrechen und zur Startseite",
+    "confirmTitle": "Projekt schließen?",
+    "confirmDescription": "Das Projekt wird geschlossen und die Startseite wird geöffnet. Inhalte, die gerade wiederhergestellt werden, werden nicht gespeichert.",
+    "keepWaiting": "Weiter warten",
+    "confirmLeave": "Zur Startseite",
+    "titleScratch": "Arbeitsstand wird wiederhergestellt",
+    "descriptionScratch": "Der zuletzt automatisch gespeicherte Zustand wird geladen. Die Bearbeitung ist gesperrt, bis der Vorgang endet, damit wiederhergestellte Werte Ihre Eingaben nicht überschreiben.",
+    "confirmTitleScratch": "Wiederherstellung abbrechen?",
+    "confirmDescriptionScratch": "Sie kehren zur Startseite zurück. Inhalte, die gerade wiederhergestellt werden, werden nicht gespeichert.",
+    "phaseReset": "Vorherige Arbeit wird aufgeräumt",
+    "phaseWorkspace": "Workspace wird geöffnet",
+    "phaseKuro": "Arbeit am Primer-Design wird geladen",
+    "phaseMame": "Ergebnisse der Sequenzprüfung werden geladen",
+    "phaseDetect": "Dateien im Projektordner werden gesucht"
+  },
   "closeConfirm": {
     "designing": {
       "title": "Design läuft",

@@ -1776,6 +1776,24 @@
     "failed": "Sidecar failed",
     "networkError": "Network error"
   },
+  "hydrationOverlay": {
+    "title": "Restoring your project",
+    "description": "Loading the last autosaved state. Editing is disabled until this finishes so restored values do not overwrite your input.",
+    "cancel": "Cancel and return to Home",
+    "confirmTitle": "Close this project?",
+    "confirmDescription": "This closes the project and returns to Home. Anything still being restored will not be saved.",
+    "keepWaiting": "Keep waiting",
+    "confirmLeave": "Leave to Home",
+    "titleScratch": "Restoring your work",
+    "descriptionScratch": "Loading the last autosaved state. Editing is disabled until this finishes so restored values do not overwrite your input.",
+    "confirmTitleScratch": "Stop restoring?",
+    "confirmDescriptionScratch": "You will go back to the Home screen. Anything still being restored will not be saved.",
+    "phaseReset": "Clearing your previous work",
+    "phaseWorkspace": "Opening the workspace",
+    "phaseKuro": "Loading your primer design work",
+    "phaseMame": "Loading your sequence verification results",
+    "phaseDetect": "Looking for files in the project folder"
+  },
   "closeConfirm": {
     "designing": {
       "title": "Design in progress",
