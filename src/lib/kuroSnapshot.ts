@@ -6,12 +6,17 @@
  * rescuedMutationDetails)을 함께 저장한다. 필드 목록은 exportSlice
  * getWorkspaceSnapshot의 results 블록과 1:1로 맞춘다.
  * schema 1 스냅샷에는 results가 없으며, 복원 측이 결과물만 비운 채 읽는다.
+ *
+ * schema 3부터 파일 경로를 절대 경로가 아니라 `PathRef`(lib/pathRef.ts)로 담는다.
+ * 프로젝트 폴더 안이면 상대 경로, 밖이면 외부 참조다. 폴더를 통째로 옮겨도
+ * 프로젝트 안 입력은 그대로 열린다. 복원 측은 구버전의 맨 문자열도 받는다.
  */
 
 import type { AutosaveSnapshot } from "./autosave";
+import { toPathRef } from "@/lib/pathRef";
 import type { AppState } from "@/store/types";
 
-export const KURO_SCHEMA = 2;
+export const KURO_SCHEMA = 3;
 
 /** buildKuroSnapshot에 전달하는 store 상태 부분집합 */
 export interface KuroSnapshotState
@@ -40,18 +45,23 @@ export interface KuroSnapshotState
   > {}
 
 /** store 상태에서 직렬화 가능한 kuro 자동 저장 스냅샷을 만든다. */
-export function buildKuroSnapshot(state: KuroSnapshotState): AutosaveSnapshot {
+export function buildKuroSnapshot(
+  state: KuroSnapshotState,
+  projectPath?: string | null,
+): AutosaveSnapshot {
   return {
     schema: KURO_SCHEMA,
     saved_at: new Date().toISOString(),
     kuma_version: __APP_VERSION__,
     input: {
-      sequence_path: state.fastaPath || null,
+      sequence_path: state.fastaPath ? toPathRef(projectPath, state.fastaPath) : null,
       selected_cds: state.selectedGene || null,
       mutation_text: state.mutationText,
       mutation_input_mode: state.mutationInputMode,
       evolvepro_mode: state.evolveproMode,
-      evolvepro_csv_path: state.evolveproCsvPath || null,
+      evolvepro_csv_path: state.evolveproCsvPath
+        ? toPathRef(projectPath, state.evolveproCsvPath)
+        : null,
       evolvepro_variant_column: state.evolveproVariantColumn,
       evolvepro_score_column: state.evolveproScoreColumn,
       evolvepro_score_order: state.evolveproScoreOrder,

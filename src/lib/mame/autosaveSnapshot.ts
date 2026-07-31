@@ -5,11 +5,12 @@
  */
 
 import type { AutosaveSnapshot } from "@/lib/autosave";
+import { toPathRef, type StoredPath } from "@/lib/pathRef";
 import type { AppState } from "@/store/mame/types";
 import type { RawRunParams } from "@/store/mame/slice-interfaces";
 import type { Round } from "@/types/round";
 
-export const MAME_SCHEMA = 3;
+export const MAME_SCHEMA = 4;
 
 export type MameSnapshotState = Pick<
   AppState,
@@ -48,12 +49,17 @@ export interface MameAutosaveSnapshot extends AutosaveSnapshot {
   schema: typeof MAME_SCHEMA;
   rounds?: Round[];
   active_round_id?: string | null;
+  /**
+   * schema 4 부터 경로를 `PathRef`(lib/pathRef.ts) 로 담는다. 프로젝트 안이면
+   * 상대 경로, 밖이면 외부 참조다. 빈 값은 빈 문자열이고, 구버전 스냅샷은
+   * 맨 절대 경로 문자열이라 복원 측이 두 형태를 모두 받는다.
+   */
   input: {
-    input_dir: string;
-    expected_path: string;
-    reference_path: string;
-    output_path: string;
-    sample_map_path: string;
+    input_dir: StoredPath;
+    expected_path: StoredPath;
+    reference_path: StoredPath;
+    output_path: StoredPath;
+    sample_map_path: StoredPath;
   };
   parameters: {
     mode: string;
@@ -80,9 +86,15 @@ export interface MameAutosaveSnapshot extends AutosaveSnapshot {
   };
 }
 
+/** 빈 값은 빈 문자열 그대로 둔다. 참조로 감싸면 "없음" 이 표현되지 않는다. */
+function ref(projectPath: string | null | undefined, value: string) {
+  return value ? toPathRef(projectPath, value) : "";
+}
+
 export function buildMameSnapshot(
   state: MameSnapshotState,
   roundState?: MameRoundSnapshotState,
+  projectPath?: string | null,
 ): MameAutosaveSnapshot {
   return {
     schema: MAME_SCHEMA,
@@ -91,11 +103,11 @@ export function buildMameSnapshot(
     rounds: roundState?.rounds ?? [],
     active_round_id: roundState?.activeRoundId ?? null,
     input: {
-      input_dir: state.inputDir,
-      expected_path: state.expectedPath,
-      reference_path: state.referencePath,
-      output_path: state.outputPath,
-      sample_map_path: state.sampleMapPath,
+      input_dir: ref(projectPath, state.inputDir),
+      expected_path: ref(projectPath, state.expectedPath),
+      reference_path: ref(projectPath, state.referencePath),
+      output_path: ref(projectPath, state.outputPath),
+      sample_map_path: ref(projectPath, state.sampleMapPath),
     },
     parameters: {
       mode: state.mode,

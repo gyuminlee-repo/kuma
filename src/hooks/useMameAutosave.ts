@@ -90,10 +90,14 @@ export function useMameAutosave(): { flushMameAutosave: () => Promise<void> } {
 
     const buildSnapshot = () => {
       const roundState = useRoundStore.getState();
-      return buildMameSnapshot(useMameAppStore.getState(), {
-        rounds: roundState.rounds,
-        activeRoundId: roundState.active_round_id,
-      });
+      return buildMameSnapshot(
+        useMameAppStore.getState(),
+        {
+          rounds: roundState.rounds,
+          activeRoundId: roundState.active_round_id,
+        },
+        targetRef.current.projectPath,
+      );
     };
     const unsubscribe = useMameAppStore.subscribe(
       selectMameInputs,

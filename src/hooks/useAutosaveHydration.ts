@@ -35,6 +35,7 @@ import {
   type MamePathField,
 } from "@/lib/mame/stalePaths";
 import { exists } from "@tauri-apps/plugin-fs";
+import { fromPathRef, type StoredPath } from "@/lib/pathRef";
 import { getLatestArtifact, openWorkspace } from "@/lib/workspace";
 import { resolvePolymeraseName, retiredPolymeraseNotice } from "@/lib/polymeraseAliases";
 import { useAppStore } from "@/store/appStore";
@@ -236,6 +237,7 @@ function discardResultsIfVariantsDiverged(): boolean {
 export async function applyKuroSnapshot(
   snapshot: AutosaveSnapshot,
   isCurrent?: () => boolean,
+  projectPath?: string | null,
 ): Promise<KuroSnapshotApplyOutcome> {
   const alive = () => isCurrent?.() ?? true;
   const input = snapshot.input as Record<string, unknown> | undefined;
@@ -291,8 +293,8 @@ export async function applyKuroSnapshot(
       patch.evolveproSheetName = input.others_sheet_name;
     }
   } else {
-    if (typeof input?.evolvepro_csv_path === "string" || input?.evolvepro_csv_path === null) {
-      patch.evolveproCsvPath = input.evolvepro_csv_path ?? "";
+    if (input?.evolvepro_csv_path !== undefined) {
+      patch.evolveproCsvPath = fromPathRef(projectPath, input.evolvepro_csv_path as StoredPath);
     }
     if (typeof input?.evolvepro_variant_column === "string" || input?.evolvepro_variant_column === null) {
       patch.evolveproVariantColumn = input.evolvepro_variant_column;
@@ -431,14 +433,15 @@ export async function applyKuroSnapshot(
 
   // (a) loadSequence는 그 자체가 store 쓰기라 호출 전에 막아야 한다.
   if (!alive()) return { resultsDiscarded: false };
-  if (typeof input?.sequence_path === "string" && input.sequence_path) {
+  const sequencePath = fromPathRef(projectPath, input?.sequence_path as StoredPath);
+  if (sequencePath) {
     try {
-      await useAppStore.getState().loadSequence(input.sequence_path);
+      await useAppStore.getState().loadSequence(sequencePath);
     } catch {
       // 복원은 계속하되 침묵하지 않는다. 서열이 안 실린 채로 프로젝트가 정상
       // 복원된 것처럼 보이면 사용자는 설계를 다시 돌릴 때까지 알아채지 못한다.
       console.warn("[autosave] kuro: sequence load failed, continuing restore");
-      sequenceLoadFailedPath = input.sequence_path;
+      sequenceLoadFailedPath = sequencePath;
     }
   }
   // (b) await 동안 취소됐을 수 있다. 이미 착지한 seqInfo는 되돌리지 못하지만
@@ -578,11 +581,12 @@ async function applyScratchKuroSnapshot(
   onMessage: (msg: HydrationStatusMessage) => void,
   isCurrent: () => boolean,
   source: "scratch" | "promotion" = "scratch",
+  projectPath?: string | null,
 ): Promise<boolean> {
   if (result.status === "ok") {
     let outcome: KuroSnapshotApplyOutcome;
     try {
-      outcome = await applyKuroSnapshot(result.snapshot, isCurrent);
+      outcome = await applyKuroSnapshot(result.snapshot, isCurrent, projectPath);
     } catch (err) {
       console.warn("[autosave] kuro scratch: apply snapshot failed", err);
       onMessage({
@@ -688,7 +692,7 @@ async function promoteScratchToProject(
   if (!alive()) return;
   await atomicWriteJson(
     autosavePath(projectPath, "kuro"),
-    buildKuroSnapshot(useAppStore.getState()),
+    buildKuroSnapshot(useAppStore.getState(), projectPath),
   );
   // 순서는 이미 옳다(프로젝트 쓰기 성공 → scratch 삭제). 여기서 취소로 빠지면
   // scratch가 그대로 남는 쪽으로 기운다. 되돌릴 수 없는 삭제보다 중복이 낫다.
@@ -886,7 +890,10 @@ export async function applyMameAutoDetect(
 
 // ─── Mame 복원 ────────────────────────────────────────────────────────────
 
-function applyMameSnapshot(snapshot: MameAutosaveSnapshot): void {
+function applyMameSnapshot(
+  snapshot: MameAutosaveSnapshot,
+  projectPath?: string | null,
+): void {
   const store = useMameAppStore.getState();
   const { input, parameters } = snapshot;
 
@@ -900,11 +907,12 @@ function applyMameSnapshot(snapshot: MameAutosaveSnapshot): void {
     minFileSizeKb: parameters.min_file_size_kb,
     manyCutoff: parameters.many_cutoff,
   });
-  store.setInputDir(input.input_dir);
-  store.setExpectedPath(input.expected_path);
-  store.setReferencePath(input.reference_path);
-  store.setOutputPath(input.output_path);
-  if (input.sample_map_path) store.setSampleMapPath(input.sample_map_path);
+  store.setInputDir(fromPathRef(projectPath, input.input_dir));
+  store.setExpectedPath(fromPathRef(projectPath, input.expected_path));
+  store.setReferencePath(fromPathRef(projectPath, input.reference_path));
+  store.setOutputPath(fromPathRef(projectPath, input.output_path));
+  const sampleMap = fromPathRef(projectPath, input.sample_map_path);
+  if (sampleMap) store.setSampleMapPath(sampleMap);
 
   if (Array.isArray(snapshot.rounds)) {
     useRoundStore.setState({
@@ -1206,7 +1214,7 @@ export function useAutosaveHydration(
       // ── kuro 결과 처리
       if (kuroResult.status === "ok") {
         try {
-          const outcome = await applyKuroSnapshot(kuroResult.snapshot, isCurrent);
+          const outcome = await applyKuroSnapshot(kuroResult.snapshot, isCurrent, path);
           if (!isCurrent()) return;
           onMessage({
             kind: "kuro",
@@ -1267,6 +1275,10 @@ export function useAutosaveHydration(
             onMessage,
             isCurrent,
             "promotion",
+            // 승격 대상 프로젝트 기준으로 경로를 푼다. scratch 스냅샷은
+            // 프로젝트가 없던 시점에 쓰였으므로 전부 외부 참조(절대 경로)이고,
+            // 승격 직후 재직렬화될 때 프로젝트 안 파일이 상대 경로로 바뀐다.
+            path,
           );
           // 승격한 scratch 스냅샷은 여기서 소비된다. 지우지 않으면 이후 만드는
           // 신규 프로젝트마다 같은 FASTA·mutation·designResults가 다시 새어
@@ -1300,7 +1312,7 @@ export function useAutosaveHydration(
       // ── mame 결과 처리
       if (mameResult.status === "ok") {
         try {
-          applyMameSnapshot(mameResult.snapshot as MameAutosaveSnapshot);
+          applyMameSnapshot(mameResult.snapshot as MameAutosaveSnapshot, path);
           if (!isCurrent()) return;
           onMessage({
             kind: "mame",

@@ -115,7 +115,7 @@ export function useKuroAutosave(): void {
       scheduleAutosave(
         targetRef.current,
         "kuro",
-        () => buildKuroSnapshot(useAppStore.getState()),
+        () => buildKuroSnapshot(useAppStore.getState(), targetRef.current.projectPath),
       );
     });
 

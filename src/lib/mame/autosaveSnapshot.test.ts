@@ -189,3 +189,91 @@ describe("buildMameSnapshot", () => {
     });
   });
 });
+
+// ─── schema 4: 이식 가능한 경로 ──────────────────────────────────────────
+
+describe("buildMameSnapshot path portability", () => {
+  /** 경로 필드만 있으면 되는 최소 상태. 나머지는 빌더가 그대로 통과시킨다. */
+  function stateWith(paths: {
+    inputDir: string;
+    expectedPath: string;
+    referencePath: string;
+    outputPath: string;
+    sampleMapPath: string;
+  }) {
+    return {
+      ...paths,
+      mode: "amplicon",
+      ingestMode: "barcode",
+      inputMode: "raw_run",
+      rawRunParams: {},
+      cdsStart: 0,
+      cdsEnd: 0,
+      minFileSizeKb: 50,
+      manyCutoff: 5,
+    } as unknown as Parameters<typeof buildMameSnapshot>[0];
+  }
+
+  it("writes in-project inputs as relative and outside ones as external", () => {
+    const snap = buildMameSnapshot(
+      stateWith({
+        inputDir: "/data/20260212_1430_MN",
+        expectedPath: "/proj/inputs/expected.xlsx",
+        referencePath: "/proj/inputs/ref.fasta",
+        outputPath: "/proj/out/mame_result.xlsx",
+        sampleMapPath: "",
+      }),
+      undefined,
+      "/proj",
+    );
+
+    expect(snap.input.expected_path).toEqual({
+      kind: "project",
+      rel: "inputs/expected.xlsx",
+    });
+    expect(snap.input.output_path).toEqual({
+      kind: "project",
+      rel: "out/mame_result.xlsx",
+    });
+    // The raw run folder is gigabytes and lives outside the project, so it is
+    // recorded as a reference to re-point rather than something to carry along.
+    expect(snap.input.input_dir).toEqual({
+      kind: "external",
+      path: "/data/20260212_1430_MN",
+      name: "20260212_1430_MN",
+    });
+    // Empty stays empty: wrapping it would make "not set" indistinguishable.
+    expect(snap.input.sample_map_path).toBe("");
+  });
+
+  it("keeps every path external when there is no project", () => {
+    const snap = buildMameSnapshot(
+      stateWith({
+        inputDir: "/data/run",
+        expectedPath: "/proj/inputs/expected.xlsx",
+        referencePath: "",
+        outputPath: "",
+        sampleMapPath: "",
+      }),
+      undefined,
+      null,
+    );
+
+    expect(snap.input.expected_path).toMatchObject({ kind: "external" });
+  });
+
+  it("declares schema 4 so older builds refuse the new shape instead of misreading it", () => {
+    const snap = buildMameSnapshot(
+      stateWith({
+        inputDir: "",
+        expectedPath: "",
+        referencePath: "",
+        outputPath: "",
+        sampleMapPath: "",
+      }),
+      undefined,
+      "/proj",
+    );
+    expect(snap.schema).toBe(4);
+  });
+});
