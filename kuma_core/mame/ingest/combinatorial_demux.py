@@ -75,7 +75,7 @@ from kuma_core.mame.ingest.stage_marker import (
 )
 from kuma_core.mame.ingest.well_consensus import _read_reference_seq
 from kuma_core.mame.perf import TIMER, timed_iter
-from kuma_core.shared.atomic_write import atomic_write_text
+from kuma_core.shared.atomic_write import atomic_write_text, fsync_directory
 
 log = logging.getLogger(__name__)
 
@@ -1386,10 +1386,24 @@ def _run_combinatorial_demux_body(
                         consensus_n_fraction_basis=BASIS_COVERED,
                     ),
                 ),
+                # fsync=False here, one fsync_directory below instead. Per-file
+                # fsync costs a filesystem round trip per well (~280 of them) and
+                # bought no end-to-end guarantee anyway: atomic_write_text never
+                # fsync'd the parent directory, so the os.replace that publishes
+                # the final name was not durable. Batching the durability point
+                # into a single directory fsync commits all those renames at
+                # once, and on ext4 (data=ordered) that metadata commit forces
+                # the newly allocated data blocks out first, so the batch stays
+                # "absent or complete". The authoritative completion signal is
+                # still the stage marker, written afterwards with fsync=True,
+                # and validate_marker rejects a missing or zero-length well.
+                fsync=False,
             )
             _consensus_done += 1
             if progress_callback is not None:
                 progress_callback(_consensus_done, _consensus_total, "consensus")
+
+    fsync_directory(consensus_dir)
 
     TIMER.add("well_consensus_wall", time.perf_counter() - _t_cons)
 

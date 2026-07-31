@@ -52,8 +52,11 @@ def atomic_write_text(
             (crash-recoverable scratch output). The rename stays atomic either
             way, so a reader never sees a partial file; what is given up is
             durability across an OS-level crash, where the file may come back
-            empty or stale. Never pass False for final deliverables, stage
-            markers, or anything a resume path treats as authoritative.
+            empty or stale. Never pass False for a lone final deliverable, a
+            stage marker, or anything a resume path treats as authoritative.
+            The one exception is a *batch* of files whose durability point is
+            deferred to a single :func:`fsync_directory` call over their shared
+            parent once the batch is complete; see that function.
 
     Returns:
         The resolved absolute path that was written.
@@ -85,4 +88,45 @@ def atomic_write_text(
     return path.resolve()
 
 
-__all__ = ["atomic_write_text"]
+def fsync_directory(path: Path) -> bool:
+    """Best-effort fsync of the directory *path* itself.
+
+    :func:`atomic_write_text` fsyncs the temp file but never the parent
+    directory, so the ``os.replace`` that publishes the final name is not
+    durable on its own. Calling this once after a batch of writes commits all
+    of those renames together, which is what lets the per-file fsync be dropped
+    for the members of the batch: on ext4 (``data=ordered``, the mount default)
+    the metadata commit forces the newly allocated data blocks out first, so
+    after this call the batch is "absent or complete" rather than "present but
+    empty".
+
+    Best-effort by design. Directory file descriptors do not exist on Windows,
+    and network/pass-through filesystems (9p, drvfs) may reject the fsync; in
+    both cases durability was never actually available and the caller should
+    not fail because of it.
+
+    Args:
+        path: Directory to fsync.
+
+    Returns:
+        True if the directory was fsync'd, False if the platform or filesystem
+        refused (logged at debug level).
+    """
+    if os.name != "posix":
+        return False
+    try:
+        fd = os.open(str(path), os.O_RDONLY)
+    except OSError as exc:
+        _logger.debug("Could not open %s for directory fsync: %s", path, exc)
+        return False
+    try:
+        os.fsync(fd)
+    except OSError as exc:
+        _logger.debug("Directory fsync of %s not supported: %s", path, exc)
+        return False
+    finally:
+        os.close(fd)
+    return True
+
+
+__all__ = ["atomic_write_text", "fsync_directory"]
