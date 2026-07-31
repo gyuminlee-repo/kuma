@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.13.39.1 (The last two autosave paths become portable)
+
+Portable snapshot paths landed in v0.13.35.4, but two of them sit nested inside the raw-run parameters and were missed, so a moved project lost its custom barcodes and sequencing summary without saying so.
+
+### Fixed
+
+- v0.13.39.1: The custom barcode table and sequencing summary paths are stored relative to the project folder like every other input. Thresholds and length settings in the same block are not paths and are untouched. Older snapshots keep reading as absolute.
+
 ## v0.13.39 (Autosave survives a hard exit and a bad save)
 
 Project folders became portable in v0.13.35.4, and a moved project re-detects its inputs since v0.13.38. Two ways of losing work were left.

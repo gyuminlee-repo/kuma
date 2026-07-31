@@ -272,3 +272,72 @@ describe("buildMameSnapshot 경로 이식성", () => {
     expect(buildMameSnapshot(pathState(), undefined, "/proj").schema).toBe(4);
   });
 });
+
+// ─── raw_run_params 안의 경로 ────────────────────────────────────────────
+
+describe("buildMameSnapshot raw run params portability", () => {
+  /** 경로 두 개만 보면 되는 최소 상태. */
+  function stateWithRawParams(params: Record<string, unknown>) {
+    return {
+      inputDir: "",
+      expectedPath: "",
+      referencePath: "",
+      outputPath: "",
+      sampleMapPath: "",
+      mode: "amplicon",
+      ingestMode: "barcode",
+      inputMode: "raw_run",
+      rawRunParams: {
+        customBarcodesPath: "",
+        sequencingSummaryPath: "",
+        minQscore: 9,
+        lengthMin: 0,
+        lengthMax: 0,
+        targetLength: null,
+        lengthToleranceBp: 50,
+        normalizeHeaders: true,
+        coverageFraction: 0.98,
+        editDistRatio: 0.25,
+        chimeraSplit: true,
+        ...params,
+      },
+      cdsStart: 0,
+      cdsEnd: 0,
+      minFileSizeKb: 50,
+      manyCutoff: 5,
+    } as unknown as Parameters<typeof buildMameSnapshot>[0];
+  }
+
+  it("relativises the two paths and leaves the rest of the params alone", () => {
+    const snap = buildMameSnapshot(
+      stateWithRawParams({
+        customBarcodesPath: "/proj/inputs/barcodes.xlsx",
+        sequencingSummaryPath: "/data/run/sequencing_summary.txt",
+      }),
+      undefined,
+      "/proj",
+    );
+
+    expect(snap.parameters.raw_run_params.customBarcodesPath).toBe(
+      "project://inputs/barcodes.xlsx",
+    );
+    // Outside the project, so it stays absolute rather than pretending it can
+    // travel with the folder.
+    expect(snap.parameters.raw_run_params.sequencingSummaryPath).toBe(
+      "/data/run/sequencing_summary.txt",
+    );
+    // Thresholds are not paths and must survive untouched.
+    expect(snap.parameters.raw_run_params).toMatchObject({
+      minQscore: 9,
+      coverageFraction: 0.98,
+      chimeraSplit: true,
+    });
+  });
+
+  it("leaves unset paths empty rather than turning them into a project root", () => {
+    const snap = buildMameSnapshot(stateWithRawParams({}), undefined, "/proj");
+
+    expect(snap.parameters.raw_run_params.customBarcodesPath).toBe("");
+    expect(snap.parameters.raw_run_params.sequencingSummaryPath).toBe("");
+  });
+});

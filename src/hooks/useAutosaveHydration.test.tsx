@@ -417,6 +417,60 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     expect(useMameAppStore.getState().inputDir).toBe("");
   });
 
+  it("resolves project-relative raw run params against the project that is open now", async () => {
+    // The snapshot was written on another machine, so the stored value is
+    // relative. Restoring must rebuild it against the current folder rather
+    // than handing the backend a bare fragment.
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) => {
+      if (kind === "mame") {
+        return Promise.resolve({
+          status: "ok",
+          snapshot: {
+            schema: 4,
+            saved_at: new Date().toISOString(),
+            kuma_version: "0.0.0-test",
+            input: {
+              input_dir: "",
+              expected_path: "",
+              reference_path: "",
+              output_path: "",
+              sample_map_path: "",
+            },
+            parameters: {
+              mode: "amplicon",
+              ingest_mode: "barcode",
+              input_mode: "raw_run",
+              raw_run_params: {
+                customBarcodesPath: "project://inputs/barcodes.xlsx",
+                sequencingSummaryPath: "/data/run/sequencing_summary.txt",
+                minQscore: 12,
+              },
+              cds_start: 0,
+              cds_end: 0,
+              min_file_size_kb: 50,
+              many_cutoff: 5,
+            },
+          },
+        });
+      }
+      return Promise.resolve({ status: "missing" });
+    });
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+    hooks.detectProjectFiles.mockResolvedValue({});
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().rawRunParams.customBarcodesPath).toBe(
+        "/proj/inputs/barcodes.xlsx",
+      );
+    });
+    // Absolute values are left as they are, and non-path params survive.
+    const params = useMameAppStore.getState().rawRunParams;
+    expect(params.sequencingSummaryPath).toBe("/data/run/sequencing_summary.txt");
+    expect(params.minQscore).toBe(12);
+  });
+
   it("fills empty MAME expected mutations from the latest KURO SDM primer artifact", async () => {
     hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
     hooks.getLatestArtifact.mockImplementation((type: string) => {
