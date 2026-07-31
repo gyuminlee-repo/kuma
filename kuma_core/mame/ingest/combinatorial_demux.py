@@ -662,10 +662,24 @@ _PERREAD_THRESHOLD_DEFAULT = 10000
 # between chunks (lowers alignment-stage peak RAM only; per_well accumulates to
 # consensus as before). Read at call time via os.environ (KUMA_MAME_READ_CHUNK)
 # so tests can lower it; a module-level constant bound at import could not be
-# overridden by monkeypatch. Identity is preserved because minimap2 maps each
-# query independently (per-read MAPQ, no cross-read normalisation), so a chunk's
-# per-read hits equal the whole-load's, and chunks are processed in input order
-# with per-chunk read_index re-sort -> global per_well append order is unchanged.
+# overridden by monkeypatch.
+#
+# WARNING: this value CHANGES THE OUTPUT. It is not a pure performance knob.
+# minimap2 is deterministic for a fixed query set but is NOT split-invariant:
+# aligning a read set in one call and in two halves yields different hits for a
+# small number of reads. Measured on the reference workload (one native barcode,
+# 13190 reads, ispS.fasta, minimap2 map-ont -N 20): splitting in half moved 3
+# reads out of the passing set, brought 2 different ones in, and changed the hit
+# list of 21 more, including the ORDER of supplementary hits. Hit order feeds the
+# is_first_hit / chimera-split classification below, so assigned_reads moves too
+# (11979 -> 11977 end to end at KUMA_MAME_READ_CHUNK=10000). The effect is
+# identical at -t 1, so it is intrinsic query-set dependence, not a threading
+# artifact.
+#
+# The default is therefore deliberately larger than any per-barcode read count in
+# practice, i.e. one chunk per native barcode. Lowering it to fan alignment work
+# out across more cores trades byte-identical output for throughput; do not do it
+# without re-baselining scripts/perf_step2_harness.py fingerprints.
 _READ_CHUNK_DEFAULT = 50000
 
 
@@ -955,12 +969,16 @@ def _run_combinatorial_demux_body(
     # materialising the whole FASTQ. Each chunk's minimap2 input/SAM and its
     # Alignment lists are dropped between iterations, lowering alignment-stage
     # peak RAM only (per_well still accumulates across chunks to consensus).
-    # Identity is preserved because minimap2 maps each query independently
-    # (per-read MAPQ, no cross-read normalisation), so a chunk's per-read hits
-    # equal the whole-load's; chunks run in input order and the per-read pool
-    # re-sorts each chunk by read_index, so the global per_well append order
-    # (and thus consensus tie-break) is unchanged. stats are accumulated across
-    # chunks (total_reads/passed_*/per-read deltas all use +=).
+    # Chunks run in input order and the per-read pool re-sorts each chunk by
+    # read_index, so the per_well append order (and thus the consensus tie-break)
+    # is stable for a GIVEN chunk size; stats are accumulated across chunks
+    # (total_reads/passed_*/per-read deltas all use +=).
+    #
+    # Changing the chunk size does NOT preserve output: minimap2 is not
+    # split-invariant, so a read's hits (and their order) depend on which other
+    # reads share its call. See the _READ_CHUNK_DEFAULT comment for the measured
+    # numbers. Treat this loop as "one chunk per native barcode" unless you are
+    # deliberately re-baselining.
     _chunk_size = int(
         os.environ.get("KUMA_MAME_READ_CHUNK", str(_READ_CHUNK_DEFAULT))
     )
@@ -1661,8 +1679,17 @@ def run_combinatorial_demux_per_nb(
     threads_per = max(1, cpu // P)
     # n_nb == 1: this single NB runs in the main process (no per-NB pool), so
     # the per-read matching loop may fan out to its own ProcessPool. With n>1
-    # the per-NB pool already owns the cores, so per-read stays serial (and
-    # nesting a pool inside a worker is illegal anyway).
+    # the per-NB pool already owns the cores, so per-read stays serial.
+    #
+    # Nesting is not the reason. Nesting a ProcessPoolExecutor inside one of its
+    # own workers is legal (its workers are created non-daemonic, unlike
+    # multiprocessing.Pool workers, which refuse children); an earlier note here
+    # claimed otherwise. The reason is throughput: allowing the nested fan-out
+    # with n_nb=3 on a 10-core box, each NB worker capped at its cpu//n_nb share,
+    # measured 19% slower end to end and was slower in all 5 paired rounds. The
+    # nested spawn warm-up plus pickling the per-chunk read payload costs more
+    # than the ~0.3 s of per-NB matching work it parallelises. Output stayed
+    # byte-identical, so this is purely a cost decision, not a safety one.
     per_read_parallel = n == 1
 
     payloads: list[dict] = []
