@@ -1,3 +1,4 @@
+import type { EchoQuadrant } from "@/types/models";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { mkdir } from "@tauri-apps/plugin-fs";
 import { sendRequest } from "../../lib/ipc-kuro";
@@ -201,6 +202,13 @@ export interface ExportAllUiParams {
   echoTransferVol: number;
   janusTransferVol: number;
   bom: boolean;
+  /**
+   * Forward-primer quadrant of the 384 Echo source plate, i.e. where a 96-head
+   * Zephyr starts its stamp. Omitted keeps the older row-doubled layout.
+   */
+  quadrant?: EchoQuadrant | null;
+  /** Quadrants already spent on a part-used plate, stated by the operator. */
+  usedQuadrants?: EchoQuadrant[];
 }
 
 /**
@@ -268,6 +276,8 @@ export async function handleExportAll(
       rev_plate_name: params.rvsPlateName ?? "",
       amount: params.amount,
       echo_transfer_vol: params.echoTransferVol,
+      quadrant: params.quadrant ?? null,
+      used_quadrants: params.usedQuadrants ?? [],
       janus_transfer_vol: params.janusTransferVol,
       bom: params.bom,
       mappings: enriched,
