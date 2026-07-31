@@ -52,6 +52,10 @@ class ConsensusResult:
     n_low_quality_bases:
         Number of FASTQ bases excluded from pileup voting by the base-quality
         gate. Zero for legacy FASTA-only inputs.
+    net_indel_bp:
+        Median per-read net indel length (insertions minus deletions) over the
+        whole aligned span. Non-zero modulo 3 marks a frameshift. 0 for wells
+        with no passing reads.
     """
 
     consensus_seq: str
@@ -67,11 +71,15 @@ class ConsensusResult:
     n_low_depth_positions: int = 0
     consensus_n_fraction: float = 0.0
     n_low_quality_bases: int = 0
+    n_indel_event_positions: int = 0
+    max_indel_event_fraction: float = 0.0
+    max_del_run_length: int = 0
+    net_indel_bp: int = 0
     alignments: list[Alignment] = field(default_factory=list, repr=False)
 
 
 def compute_well_consensuses(
-    per_well_reads: dict[str, list[tuple[str, str]]],
+    per_well_reads: dict[str, list[tuple[str, ...]]],
     reference_fasta: Path,
     min_mapq: int = 25,
     require_full_span: bool = True,
@@ -174,6 +182,10 @@ def compute_well_consensuses(
             n_low_depth_positions=consensus_call.n_low_depth_positions,
             consensus_n_fraction=consensus_call.consensus_n_fraction,
             n_low_quality_bases=consensus_call.n_low_quality_bases,
+            n_indel_event_positions=consensus_call.n_indel_event_positions,
+            max_indel_event_fraction=consensus_call.max_indel_event_fraction,
+            max_del_run_length=consensus_call.max_del_run_length,
+            net_indel_bp=consensus_call.net_indel_bp,
             alignments=alignments,
         )
 

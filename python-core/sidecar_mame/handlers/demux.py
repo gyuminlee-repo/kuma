@@ -260,6 +260,10 @@ def _run_consensus_on_dir(
                     low_depth_positions=result.n_low_depth_positions,
                     consensus_n_fraction=result.consensus_n_fraction,
                     low_quality_bases=result.n_low_quality_bases,
+                    n_indel_event_positions=result.n_indel_event_positions,
+                    max_indel_event_fraction=result.max_indel_event_fraction,
+                    max_del_run_length=result.max_del_run_length,
+                    net_indel=result.net_indel_bp,
                     consensus_n_fraction_basis=BASIS_COVERED,
                 ),
             ),
@@ -279,6 +283,10 @@ def _run_consensus_on_dir(
             "n_low_depth_positions": result.n_low_depth_positions,
             "consensus_n_fraction": round(result.consensus_n_fraction, 3),
             "n_low_quality_bases": result.n_low_quality_bases,
+            "n_indel_event_positions": result.n_indel_event_positions,
+            "max_indel_event_fraction": round(result.max_indel_event_fraction, 3),
+            "max_del_run_length": result.max_del_run_length,
+            "net_indel_bp": result.net_indel_bp,
         }
 
     # Remove wells that had zero passing reads (empty consensus).
@@ -483,17 +491,14 @@ def handle_demux_and_filter(params: dict) -> dict:
     _progress(5, "Starting demux...")
 
     # ── Demux ─────────────────────────────────────────────────────────────
+    per_nb_input: dict[str, int] = {}
+    per_nb_unassigned: dict[str, int] = {}
     if nb_dirs_raw:
         # Multi-native-barcode mode: merge results from multiple subdirectories.
         merged_input = 0
         merged_assigned = 0
         merged_unassigned = 0
         merged_per_well: dict[str, int] = {}
-
-        # Per-NB input/unassigned for the units processed THIS run, recorded in
-        # each unit's completion marker so a later full resume can reseed them.
-        per_nb_input: dict[str, int] = {}
-        per_nb_unassigned: dict[str, int] = {}
 
         # Seed merged counts from already-complete units so the aggregated
         # response is not undercounted on a resumed run.  per_well/assigned were

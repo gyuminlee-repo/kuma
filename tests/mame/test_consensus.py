@@ -313,3 +313,63 @@ class TestPerPositionDepth:
     def test_empty_alignments_zero_depth(self) -> None:
         depths = per_position_depth([], 10)
         assert depths == [0] * 10
+
+
+class TestNetIndelMetric:
+    """``ConsensusCall.net_indel_bp`` = median per-read (I lengths - D lengths)."""
+
+    def test_one_bp_deletion_median_minus_one(self) -> None:
+        ref = "ATGCATGC"
+        ref_len = len(ref)
+        # Each read drops 1 bp at ref pos 4: CIGAR 4M 1D 3M, read_seq = 7 bp.
+        reads = [
+            _make_aln(
+                read_seq="ATGCTGC",
+                ref_len=ref_len,
+                cigar=[[4, _CIGAR_M], [1, _CIGAR_D], [3, _CIGAR_M]],
+            )
+            for _ in range(5)
+        ]
+        result = call_consensus_with_metrics(reads, ref)
+        assert result.net_indel_bp == -1
+
+    def test_three_bp_deletion_median_minus_three(self) -> None:
+        ref = "ATGCATGC"
+        ref_len = len(ref)
+        # Each read drops 3 bp at ref pos 3-5: CIGAR 3M 3D 2M, read_seq = 5 bp.
+        reads = [
+            _make_aln(
+                read_seq="ATGGC",
+                ref_len=ref_len,
+                cigar=[[3, _CIGAR_M], [3, _CIGAR_D], [2, _CIGAR_M]],
+            )
+            for _ in range(5)
+        ]
+        result = call_consensus_with_metrics(reads, ref)
+        assert result.net_indel_bp == -3
+
+    def test_clean_reads_median_zero(self) -> None:
+        ref = "ATGCATGC"
+        reads = [_make_aln(ref, len(ref)) for _ in range(5)]
+        result = call_consensus_with_metrics(reads, ref)
+        assert result.net_indel_bp == 0
+
+    def test_one_bp_insertion_median_plus_one(self) -> None:
+        ref = "ATGCATGC"
+        ref_len = len(ref)
+        # Each read inserts 1 bp after ref pos 4: CIGAR 4M 1I 4M, read_seq = 9 bp.
+        reads = [
+            _make_aln(
+                read_seq="ATGCAATGC",
+                ref_len=ref_len,
+                cigar=[[4, _CIGAR_M], [1, _CIGAR_I], [4, _CIGAR_M]],
+            )
+            for _ in range(5)
+        ]
+        result = call_consensus_with_metrics(reads, ref)
+        assert result.net_indel_bp == 1
+
+    def test_no_reads_median_zero(self) -> None:
+        # No alignments: median over an empty list must not raise; defaults to 0.
+        result = call_consensus_with_metrics([], "ATGCATGC")
+        assert result.net_indel_bp == 0
