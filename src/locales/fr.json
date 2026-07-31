@@ -2301,7 +2301,8 @@
     "fieldExpected": "attendu",
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
-    "fieldSequencingSummary": "sequencing summary"
+    "fieldSequencingSummary": "sequencing summary",
+    "pathsMoved": "Ces entrees ont ete deplacees et doivent etre selectionnees a nouveau: {{fields}}"
   },
   "phaseC": {
     "majors": {

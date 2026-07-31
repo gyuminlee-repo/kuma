@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.13.38 (Reopening a moved project finds its files again)
+
+Autosave records the absolute paths picked in a file dialog. Opening the project from a new folder, or on another machine, left those paths pointing at nothing. Auto-detect could not step in, because it only fills fields that are empty and a dead path is not empty.
+
+### Fixed
+
+- v0.13.38: Restored MAME input paths are checked before use. Ones that no longer resolve are cleared, so the existing auto-detect finds the same files inside the project again. A path whose check fails outright is kept, because a permission error or a slow network drive is not evidence that the file is gone.
+- v0.13.38: Inputs that auto-detect cannot recover, a raw MinKNOW run folder outside the project being the common case, are named on screen. Previously they were blanked with no notice.
+- v0.13.38: A sequence file that cannot be reopened during restore is reported by name. It used to fail into the console only, leaving a project that looked fully restored but had no sequence loaded.
+
 ## v0.13.37 (KURO exports land in the project)
 
 MAME started routing its generated files through the open project. KURO did not, so a design exported from the same project could end up anywhere the last save dialog happened to point, and nothing downstream knew the files existed.

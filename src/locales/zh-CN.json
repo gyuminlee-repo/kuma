@@ -2301,7 +2301,8 @@
     "fieldExpected": "expected",
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
-    "fieldSequencingSummary": "sequencing summary"
+    "fieldSequencingSummary": "sequencing summary",
+    "pathsMoved": "以下输入的路径已失效，需要重新选择: {{fields}}"
   },
   "phaseC": {
     "majors": {

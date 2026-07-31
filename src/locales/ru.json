@@ -2301,7 +2301,8 @@
     "fieldExpected": "expected",
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
-    "fieldSequencingSummary": "sequencing summary"
+    "fieldSequencingSummary": "sequencing summary",
+    "pathsMoved": "Эти входные файлы перемещены, выберите их заново: {{fields}}"
   },
   "phaseC": {
     "majors": {

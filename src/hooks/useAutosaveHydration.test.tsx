@@ -32,7 +32,17 @@ const hooks = vi.hoisted(() => ({
   sendKuroRequest: vi.fn(),
   openWorkspace: vi.fn(),
   getLatestArtifact: vi.fn(),
+  // 전역 fs stub 의 exists 는 항상 false 라, 그대로 두면 복원된 경로가 전부
+  // "사라진 파일"로 판정돼 죽은 경로 정리에 지워진다. 이 테스트들이 검증하는
+  // 것은 경로 존재가 아니라 복원·우선순위이므로 기본값을 present 로 둔다.
+  // 사라진 경로 동작은 exists 를 false 로 뒤집는 전용 테스트에서 확인한다.
+  exists: vi.fn(async (_path: string) => true),
 }));
+
+vi.mock("@tauri-apps/plugin-fs", async () => {
+  const actual = await vi.importActual<Record<string, unknown>>("@tauri-apps/plugin-fs");
+  return { ...actual, exists: hooks.exists };
+});
 
 // KURO 사이드카 RPC. applyKuroSnapshot이 loadEvolveproCsv를 통해 호출한다.
 vi.mock("@/lib/ipc-kuro", () => ({
@@ -197,8 +207,13 @@ const ROUND: Round = {
   ],
 };
 
+/** hydration 이 사용자에게 띄운 알림. 화면에 그리지 않으므로 여기서 모은다. */
+const hydrationMessages: string[] = [];
+
 function Harness() {
-  useAutosaveHydration(() => {});
+  useAutosaveHydration((m) => {
+    hydrationMessages.push(m.message);
+  });
   return null;
 }
 
@@ -213,6 +228,7 @@ function renderHydration(): void {
 describe("useAutosaveHydration: analyze-result restore", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hydrationMessages.length = 0;
     useMameAppStore.getState().resetInput();
     useMameAppStore.getState().resetAnalysis();
     useMameAppStore.getState().setMameSubStep("setup.files");
@@ -224,6 +240,9 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     // detection finds nothing (avoid touching the store further).
     hooks.detectProjectFiles.mockResolvedValue({});
     hooks.detectFromInputDir.mockResolvedValue({});
+    // clearAllMocks 가 hoisted 기본 구현까지 지우므로 매 테스트마다 되세운다.
+    // 기본은 present. 사라진 경로를 다루는 테스트가 개별적으로 뒤집는다.
+    hooks.exists.mockResolvedValue(true);
     hooks.openWorkspace.mockResolvedValue(undefined);
     hooks.getLatestArtifact.mockResolvedValue(null);
     // sidecar RPCs: load_analyze_result ack, then get_plate_data empty grid.
@@ -302,6 +321,100 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     // default analyze.inputs (never silently advanced to analyze.review).
     expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.inputs");
     expect(useMameAppStore.getState().verdicts).toEqual([]);
+  });
+
+  it("clears a restored MAME path that no longer exists so auto-detect can refill it", async () => {
+    // The snapshot carries absolute paths from the machine that wrote it. Here
+    // the run folder is gone (project moved) but the reference still resolves.
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) => {
+      if (kind === "mame") {
+        return Promise.resolve({
+          status: "ok",
+          snapshot: {
+            schema: 1,
+            saved_at: new Date().toISOString(),
+            kuma_version: "0.0.0-test",
+            input: {
+              input_dir: "/old-machine/run",
+              expected_path: "",
+              reference_path: "/proj/ref.fasta",
+              output_path: "",
+              sample_map_path: "",
+            },
+            parameters: {
+              mode: "amplicon",
+              ingest_mode: "barcode",
+              input_mode: "raw_run",
+              raw_run_params: undefined,
+              cds_start: 0,
+              cds_end: 0,
+              min_file_size_kb: 50,
+              many_cutoff: 5,
+            },
+          },
+        });
+      }
+      return Promise.resolve({ status: "missing" });
+    });
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+    hooks.exists.mockImplementation(async (p: string) => p !== "/old-machine/run");
+    // Auto-detect finds the run folder again inside the moved project.
+    hooks.detectProjectFiles.mockResolvedValue({ inputDir: "/proj/20260731_1200_run" });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().inputDir).toBe("/proj/20260731_1200_run");
+    });
+    // The path that still resolved is untouched, so a live value is never
+    // discarded just because a sibling went missing.
+    expect(useMameAppStore.getState().referencePath).toBe("/proj/ref.fasta");
+  });
+
+  it("names the inputs that stayed missing after auto-detect", async () => {
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) => {
+      if (kind === "mame") {
+        return Promise.resolve({
+          status: "ok",
+          snapshot: {
+            schema: 1,
+            saved_at: new Date().toISOString(),
+            kuma_version: "0.0.0-test",
+            input: {
+              input_dir: "/old-machine/run",
+              expected_path: "",
+              reference_path: "",
+              output_path: "",
+              sample_map_path: "",
+            },
+            parameters: {
+              mode: "amplicon",
+              ingest_mode: "barcode",
+              input_mode: "raw_run",
+              raw_run_params: undefined,
+              cds_start: 0,
+              cds_end: 0,
+              min_file_size_kb: 50,
+              many_cutoff: 5,
+            },
+          },
+        });
+      }
+      return Promise.resolve({ status: "missing" });
+    });
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+    hooks.exists.mockResolvedValue(false);
+    // Nothing to re-detect: the raw run folder lived outside the project.
+    hooks.detectProjectFiles.mockResolvedValue({});
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(
+        hydrationMessages.some((m) => /run folder|실행 폴더/i.test(m)),
+      ).toBe(true);
+    });
+    expect(useMameAppStore.getState().inputDir).toBe("");
   });
 
   it("fills empty MAME expected mutations from the latest KURO SDM primer artifact", async () => {

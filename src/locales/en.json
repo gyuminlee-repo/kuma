@@ -2334,7 +2334,8 @@
     "fieldExpected": "expected",
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
-    "fieldSequencingSummary": "sequencing summary"
+    "fieldSequencingSummary": "sequencing summary",
+    "pathsMoved": "These inputs moved and need to be picked again: {{fields}}"
   },
   "phaseC": {
     "majors": {

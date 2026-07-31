@@ -29,6 +29,12 @@ import { KURO_SCHEMA, buildKuroSnapshot } from "@/lib/kuroSnapshot";
 import { buildKuroResultResetPatch } from "@/lib/kuroResultReset";
 import { MAME_SCHEMA } from "@/lib/mame/autosaveSnapshot";
 import { detectProjectFiles, detectFromInputDir } from "@/lib/mame/detectProjectFiles";
+import {
+  findStaleMamePaths,
+  MAME_PATH_LABEL_KEYS,
+  type MamePathField,
+} from "@/lib/mame/stalePaths";
+import { exists } from "@tauri-apps/plugin-fs";
 import { getLatestArtifact, openWorkspace } from "@/lib/workspace";
 import { resolvePolymeraseName, retiredPolymeraseNotice } from "@/lib/polymeraseAliases";
 import { useAppStore } from "@/store/appStore";
@@ -721,6 +727,76 @@ async function promoteScratchToProject(
   await deleteScratchAutosave();
 }
 
+// ─── Mame 죽은 경로 정리 ────────────────────────────────────────────────
+
+/**
+ * 복원된 MAME 입력 경로 중 존재하지 않는 것을 store 에서 비운다.
+ *
+ * 자동 저장은 사용자가 고른 절대 경로를 그대로 담으므로, 프로젝트 폴더를 옮기거나
+ * 다른 PC 에서 열면 그 경로가 죽는다. 죽은 값을 남겨 두면 바로 뒤 자동 감지가
+ * "이미 채워짐"으로 보고 건너뛰어(applyMameAutoDetect 의 `!store.xxx` 가드) 같은
+ * 파일이 프로젝트 폴더 안에 있어도 다시 찾지 못한다.
+ *
+ * 비우기만 하고 다시 찾지는 않는다. 재탐색은 뒤이어 도는 자동 감지의 일이다.
+ *
+ * @returns 비운 필드의 사용자 표기 라벨. 자동 감지가 다시 채우지 못한 항목을
+ *          호출부가 가려내 사용자에게 재지정을 요청하는 데 쓴다.
+ */
+async function clearStaleMamePaths(): Promise<MamePathField[]> {
+  const store = useMameAppStore.getState();
+  const stale = await findStaleMamePaths(
+    {
+      inputDir: store.inputDir,
+      expectedPath: store.expectedPath,
+      referencePath: store.referencePath,
+      sampleMapPath: store.sampleMapPath,
+      customBarcodesPath: store.rawRunParams.customBarcodesPath ?? "",
+      sequencingSummaryPath: store.rawRunParams.sequencingSummaryPath ?? "",
+    },
+    exists,
+  );
+  if (stale.length === 0) return [];
+
+  const fresh = useMameAppStore.getState();
+  for (const field of stale) {
+    switch (field) {
+      case "inputDir":
+        fresh.setInputDir("");
+        break;
+      case "expectedPath":
+        fresh.setExpectedPath("");
+        break;
+      case "referencePath":
+        fresh.setReferencePath("");
+        break;
+      case "sampleMapPath":
+        fresh.setSampleMapPath("");
+        break;
+      case "customBarcodesPath":
+        fresh.setParams({ rawRunParams: { customBarcodesPath: "" } });
+        break;
+      case "sequencingSummaryPath":
+        fresh.setParams({ rawRunParams: { sequencingSummaryPath: "" } });
+        break;
+    }
+  }
+  return stale;
+}
+
+/** 자동 감지가 끝난 뒤에도 여전히 비어 있는 필드만 남긴다. */
+function stillMissing(fields: MamePathField[]): MamePathField[] {
+  const store = useMameAppStore.getState();
+  const value: Record<MamePathField, string> = {
+    inputDir: store.inputDir,
+    expectedPath: store.expectedPath,
+    referencePath: store.referencePath,
+    sampleMapPath: store.sampleMapPath,
+    customBarcodesPath: store.rawRunParams.customBarcodesPath ?? "",
+    sequencingSummaryPath: store.rawRunParams.sequencingSummaryPath ?? "",
+  };
+  return fields.filter((f) => !value[f]);
+}
+
 // ─── Mame 자동 탐지 ──────────────────────────────────────────────────────
 
 /**
@@ -1334,6 +1410,12 @@ export function useAutosaveHydration(
       }
       if (!isCurrent()) return;
 
+      // ── 죽은 경로 정리: 복원된 절대 경로 중 더 이상 존재하지 않는 것을 비운다.
+      //    비우지 않으면 바로 아래 자동 감지가 "이미 채워짐"으로 보고 건너뛰어,
+      //    같은 파일이 프로젝트 폴더 안에 있어도 영영 못 찾는다.
+      const droppedFields = await clearStaleMamePaths();
+      if (!isCurrent()) return;
+
       // ── auto-detect: autosave 복원 후 여전히 비어있는 필드를 프로젝트 디렉토리에서 채운다
       setRunPhase("detect");
       await applyMameAutoDetect(
@@ -1350,6 +1432,21 @@ export function useAutosaveHydration(
         },
         isCurrent,
       );
+      if (!isCurrent()) return;
+
+      // 자동 감지가 되찾지 못한 항목만 남는다. raw MinKNOW run 폴더처럼 프로젝트
+      // 밖에 있던 입력이 여기 걸린다. 조용히 비워 두면 사용자는 값이 사라진 줄도
+      // 모르므로, 무엇을 다시 고르면 되는지 이름으로 알린다.
+      const unresolved = stillMissing(droppedFields);
+      if (unresolved.length > 0) {
+        onMessage({
+          kind: "mame",
+          variant: "restored",
+          message: i18next.t("autosaveHydration.pathsMoved", {
+            fields: unresolved.map((f) => i18next.t(MAME_PATH_LABEL_KEYS[f])).join(", "),
+          }),
+        });
+      }
     })().finally(() => {
       // 어느 경로로 끝나든(정상 종료, 조기 return, 예외) 게이트를 반드시 푼다.
       // 게이트가 남으면 이후 자동 저장이 통째로 죽는다. cancel()이나 언마운트가
