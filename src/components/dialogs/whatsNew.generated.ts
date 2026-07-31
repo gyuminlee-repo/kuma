@@ -5,9 +5,9 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.13.35";
+export const WHATS_NEW_VERSION = "0.13.37";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Fixed", detail: "Release metadata now stays aligned across the frontend package, Tauri app, Python package, and Cargo lockfile so CI catches no version drift during tagged builds." },
-  { label: "Fixed", detail: "The release notes and in-app What's New source are refreshed for the current patch release instead of carrying the previous release version." },
+  { label: "Fixed", detail: "Export All opens on the project design folder and creates it first, so a project that has never been exported to is still a valid destination. Choosing somewhere else still works and behaves as before." },
+  { label: "Fixed", detail: "The files Export All writes are recorded in the project manifest, each under a type taken from its filename suffix. Steps that look for an earlier output can now find one. Files with an unrecognised suffix are skipped rather than filed und…" },
 ];

@@ -2089,7 +2089,7 @@ dependencies = [
 
 [[package]]
 name = "kuma"
-version = "0.13.35"
+version = "0.13.37"
 dependencies = [
  "chrono",
  "dirs 5.0.1",
