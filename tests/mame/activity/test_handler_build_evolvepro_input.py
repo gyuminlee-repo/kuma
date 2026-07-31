@@ -7,6 +7,7 @@ method is registered in the dispatcher.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -69,6 +70,28 @@ def _make_prev(tmp_path: Path) -> Path:
     return tmp_path / "prev.xlsx"
 
 
+def _make_expected(tmp_path: Path) -> Path:
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "expected_mutations"
+    ws.append([
+        "mutant_id",
+        "position",
+        "wt_aa",
+        "mt_aa",
+        "wt_codon",
+        "mt_codon",
+        "group_id",
+        "primer_set_ref",
+        "notation_type",
+        "status",
+    ])
+    ws.append(["V5F", 5, "V", "F", "", "", "", "V5F", "substitution", "DESIGNED"])
+    ws.append(["V10L", 10, "V", "L", "", "", "", "V10L", "substitution", "DESIGNED"])
+    wb.save(str(tmp_path / "expected.xlsx"))
+    return tmp_path / "expected.xlsx"
+
+
 def test_handler_returns_documented_shape(tmp_path: Path):
     out = tmp_path / "out.xlsx"
     res = handle_build_evolvepro_input({
@@ -101,6 +124,29 @@ def test_handler_returns_documented_shape(tmp_path: Path):
     assert isinstance(res["warnings"], list)
     assert isinstance(res["swap_warnings"], list)
     assert Path(res["mapping_audit_path"]).exists()
+
+
+def test_handler_numeric_primary_writes_mapping_audit_in_decode_order(tmp_path: Path):
+    out = tmp_path / "numeric.xlsx"
+
+    res = handle_build_evolvepro_input({
+        "round1_rep_batch_xlsx": str(_make_rep_batch(tmp_path)),
+        "expected_mutations_xlsx": str(_make_expected(tmp_path)),
+        "remeasure_rep_batch_xlsx": str(_make_rep_batch(tmp_path)),
+        "output_xlsx": str(out),
+    })
+
+    expected_rows = [
+        {"id": 1, "variant": "5F", "well": "A1"},
+        {"id": 2, "variant": "10L", "well": "B1"},
+    ]
+    assert res["primary_source"] == "numeric_report"
+    assert res["confirmation_source"] == "numeric_subset"
+    assert res["mapping_audit"] == expected_rows
+    audit_path = Path(res["mapping_audit_path"])
+    assert audit_path.exists()
+    payload = json.loads(audit_path.read_text(encoding="utf-8"))
+    assert payload["mapping"] == expected_rows
 
 
 def test_handler_rejects_missing_input(tmp_path: Path):

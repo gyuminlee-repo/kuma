@@ -370,6 +370,12 @@ class BuildEvolveproInputParams(BaseModel):
     # EVOLVEpro form rather than as a raw Agilent report.
     round1_evolvepro_xlsx: str | None = None
     remeasure_report_xlsx: str | None = None
+    # Numeric-ID pair, the format the lab exports from 2026-07. Sample names are
+    # bare numbers, so the variants come from an order source: the KURO design
+    # (expected_mutations_xlsx, preferred) or the hand-written plate layout.
+    round1_rep_batch_xlsx: str | None = None
+    expected_mutations_xlsx: str | None = None
+    remeasure_rep_batch_xlsx: str | None = None
     # Optional NGS verdict input (reports-mode only in practice; not enforced
     # here). When provided, variants whose well has a non-PASS verdict are
     # excluded. Absent leaves the build unchanged (layout-trust).
@@ -389,6 +395,9 @@ class BuildEvolveproInputParams(BaseModel):
         "round1_report_xlsx",
         "round1_evolvepro_xlsx",
         "remeasure_report_xlsx",
+        "round1_rep_batch_xlsx",
+        "expected_mutations_xlsx",
+        "remeasure_rep_batch_xlsx",
         "verdict_xlsx",
         mode="after",
     )
@@ -426,6 +435,7 @@ class BuildEvolveproInputParams(BaseModel):
                 ("round1_report_xlsx", self.round1_report_xlsx),
                 ("gc_data_xlsx", self.gc_data_xlsx),
                 ("round1_evolvepro_xlsx", self.round1_evolvepro_xlsx),
+                ("round1_rep_batch_xlsx", self.round1_rep_batch_xlsx),
             )
             if value
         ]
@@ -433,13 +443,28 @@ class BuildEvolveproInputParams(BaseModel):
             raise ValueError(
                 "no primary screen source: provide exactly one of "
                 "round1_report_xlsx (raw report), gc_data_xlsx (pre-normalised "
-                "GC sheet) or round1_evolvepro_xlsx (previous EVOLVEpro file)"
+                "GC sheet), round1_evolvepro_xlsx (previous EVOLVEpro file) or "
+                "round1_rep_batch_xlsx (numeric sample IDs)"
             )
         if len(primary) > 1:
             raise ValueError(
                 f"multiple primary screen sources ({', '.join(primary)}): "
                 "provide exactly one of round1_report_xlsx, gc_data_xlsx, "
-                "round1_evolvepro_xlsx"
+                "round1_evolvepro_xlsx, round1_rep_batch_xlsx"
+            )
+        if self.round1_rep_batch_xlsx and not (
+            self.expected_mutations_xlsx or self.layout_xlsx
+        ):
+            raise ValueError(
+                "numeric primary screen (round1_rep_batch_xlsx) needs an order "
+                "to index into: provide expected_mutations_xlsx (the KURO "
+                "design, preferred) or layout_xlsx. The sample IDs carry no "
+                "variant information on their own"
+            )
+        if self.expected_mutations_xlsx and not self.round1_rep_batch_xlsx:
+            raise ValueError(
+                "expected_mutations_xlsx is the order source for the numeric "
+                "primary screen and needs round1_rep_batch_xlsx alongside it"
             )
         if self.round1_report_xlsx and not self.layout_xlsx:
             raise ValueError(
@@ -455,6 +480,7 @@ class BuildEvolveproInputParams(BaseModel):
             name
             for name, value in (
                 ("remeasure_report_xlsx", self.remeasure_report_xlsx),
+                ("remeasure_rep_batch_xlsx", self.remeasure_rep_batch_xlsx),
                 ("rep_batch_xlsx", self.rep_batch_xlsx),
             )
             if value
@@ -462,8 +488,16 @@ class BuildEvolveproInputParams(BaseModel):
         if len(confirmation) > 1:
             raise ValueError(
                 f"multiple confirmation sources ({', '.join(confirmation)}): "
-                "provide at most one of remeasure_report_xlsx (variant labels) "
-                "or rep_batch_xlsx (numeric index)"
+                "provide at most one of remeasure_report_xlsx (variant labels), "
+                "remeasure_rep_batch_xlsx (numeric IDs into the above-WT "
+                "subset) or rep_batch_xlsx (numeric index)"
+            )
+        if self.remeasure_rep_batch_xlsx and not self.round1_rep_batch_xlsx:
+            raise ValueError(
+                "numeric-subset confirmation (remeasure_rep_batch_xlsx) "
+                "requires round1_rep_batch_xlsx: its IDs index the above-WT "
+                "subset of that primary screen, which no other primary source "
+                "produces"
             )
         if self.rep_batch_xlsx and not self.prev_evolvepro_xlsx:
             raise ValueError(

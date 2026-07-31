@@ -652,16 +652,65 @@
         "description": "Exportar el archivo final de mapeo Janus de cell-stock (K4 spec) como CSV o XLSX.",
         "formatLabel": "Formato",
         "formatAriaLabel": "Formato de exportación del mapeo Janus",
+        "destLayoutLabel": "Disposición de destino",
+        "destLayoutAriaLabel": "Disposición del well de destino de Janus",
+        "destLayoutOption": {
+          "source": "Posición de source",
+          "compact": "Compacto desde A1"
+        },
+        "destLayoutHint": {
+          "source": "dest_well replica la posición de la source plate. La exportación falla si dos picks caen en el mismo well.",
+          "compact": "dest_well se asigna secuencialmente desde A1 por orden de priority, sin dejar wells vacíos."
+        },
         "outputPathLabel": "Ruta del archivo de salida",
         "outputPathPlaceholder": "Ruta del archivo .{{ext}} de destino",
         "outputPathAriaLabel": "Ruta del archivo de salida para el mapeo Janus",
         "browseAriaLabel": "Explorar ruta de guardado para el mapeo Janus",
-        "columnsNote": "Columnas: well, custom_barcode, variant, verdict y coordenadas de placa.",
-        "phase1Note": "Fase 1: sólo se incluyen los wells aprobados.",
+        "columnsNote": {
+          "device9": "Columnas: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "Columnas: name, source_plate, source_well, dest_well, priority_score."
+        },
         "exportJanus": "Exportar mapeo Janus",
         "exporting": "Exportando…",
         "exported": "Exportado correctamente",
-        "exportErrorPathRequired": "La ruta de salida es requerida."
+        "exportErrorPathRequired": "La ruta de salida es requerida.",
+        "previewHeading": "Vista previa",
+        "previewCount": "{{count}} filas",
+        "previewLoading": "Cargando vista previa…",
+        "previewEmpty": "No hay picks confirmados para exportar.",
+        "previewFailed": "Vista previa no disponible: {{message}}",
+        "previewRetry": "Reintentar vista previa",
+        "previewBlocked": "Resuelva los problemas siguientes antes de exportar.",
+        "schemaLabel": "Columnas de salida",
+        "schemaAriaLabel": "Esquema de columnas de salida de Janus",
+        "schemaOption": {
+          "device9": "Formato del equipo (9 columnas)",
+          "legacy5": "Formato kuma (5 columnas)"
+        },
+        "schemaHint": {
+          "device9": "Escribe las columnas del libro del equipo: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "Escribe las columnas de kuma: name, source_plate, source_well, dest_well, priority_score."
+        },
+        "instrumentHeading": "Ajustes del equipo",
+        "volumeLabel": "Volume (µL)",
+        "liquidClassLabel": "Liquid class",
+        "liquidClassPlaceholder": "p. ej. Cell 100ul",
+        "liquidClassHint": "La liquid class determina el comportamiento de pipeteo del robot, por eso no hay valor por defecto. La exportación queda bloqueada hasta indicarla.",
+        "deckHeading": "Configuración del deck",
+        "sampleTypeLabel": "valor de la columna type",
+        "sourceRackLabel": "Asp. Rack {{plate}}",
+        "destRackLabel": "Dsp. Rack",
+        "rackHint": "Numeración de rack asumida: placas de origen primero según el orden de labware del libro, destino al final. Ajústela al deck real.",
+        "excludedHeading": "Excluidos: {{count}}",
+        "excludedNone": "Ningún clon quedó excluido.",
+        "excludedReason": {
+          "failed": "Fallido",
+          "no_selection": "Sin placa seleccionada",
+          "missing_verdict": "Sin registro de verdict",
+          "verdict_class": "Verdict class no incluida",
+          "fallback": "Selección de respaldo"
+        },
+        "selectionNote": "Solo se incluyen los clones PASS. AMBIGUOUS lleva un indel acompañante y LOWDEPTH no está verificado, por eso ambos figuran como excluidos."
       },
       "runReport": {
         "title": "Exportar informe de la corrida",
@@ -974,7 +1023,18 @@
       "nNgsExcluded": "Excluidas por NGS",
       "missingInputs": "Todavía falta",
       "restoredNotice": "Se restauraron rutas en este dispositivo. Bórrelas si pertenecen a otro proyecto.",
-      "clearRestored": "Borrar entradas EVOLVEpro restauradas"
+      "clearRestored": "Borrar entradas EVOLVEpro restauradas",
+      "primarySourceNumericReport": "Informe con ID numéricos (placa completa)",
+      "confirmationSourceNumericSubset": "Confirmación con ID numéricos (subconjunto sobre WT)",
+      "primarySourceNumericReportHelper": "Cribado de placa completa con nombres de muestra numéricos. El ID i es el i-ésimo mutante diseñado en orden de placa, por lo que se requiere una fuente de orden.",
+      "confirmationSourceNumericSubsetHelper": "Confirmación replicada cuyos ID numéricos numeran las variantes que superan al tipo silvestre, en el mismo orden de placa. Requiere el cribado primario numérico.",
+      "round1RepBatchXlsx": "Cribado primario (ID numéricos)",
+      "round1RepBatchXlsxHelper": "Informe Agilent FID1B de la placa completa, una réplica por variante.",
+      "expectedMutationsXlsx": "Diseño KURO (expected_mutations)",
+      "expectedMutationsXlsxHelper": "Fuente de orden tomada directamente del diseño, sin transcribir a mano un archivo de placa. Preferida frente al layout.",
+      "remeasureRepBatchXlsx": "Confirmación (ID numéricos)",
+      "remeasureRepBatchXlsxHelper": "Informe Agilent FID1B del subconjunto remedido, varias réplicas por variante.",
+      "orLabel": "uno u otro"
     },
     "verdictBadge": {
       "help": {

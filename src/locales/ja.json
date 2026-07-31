@@ -652,16 +652,65 @@
         "description": "最終 cell-stock Janus マッピングファイル (K4 仕様) を CSV または XLSX でエクスポート。",
         "formatLabel": "形式",
         "formatAriaLabel": "Janus マッピングエクスポート形式",
+        "destLayoutLabel": "配置先レイアウト",
+        "destLayoutAriaLabel": "Janus 配置先 well レイアウト",
+        "destLayoutOption": {
+          "source": "Source 位置",
+          "compact": "A1 から順次配置"
+        },
+        "destLayoutHint": {
+          "source": "dest_well が source plate の位置をそのまま使用します。2 つの pick が同じ well になるとエクスポートは失敗します。",
+          "compact": "dest_well を priority 順に A1 から順次割り当て、空の well を残しません。"
+        },
         "outputPathLabel": "出力ファイルパス",
         "outputPathPlaceholder": "ターゲット .{{ext}} ファイルパス",
         "outputPathAriaLabel": "Janus マッピング出力ファイルパス",
         "browseAriaLabel": "Janus マッピング保存先を参照",
-        "columnsNote": "カラム: well, custom_barcode, variant, verdict、plate 座標。",
-        "phase1Note": "Phase 1: 合格 well のみ含まれます。",
+        "columnsNote": {
+          "device9": "列: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "列: name, source_plate, source_well, dest_well, priority_score."
+        },
         "exportJanus": "Janus マッピングをエクスポート",
         "exporting": "エクスポート中…",
         "exported": "エクスポートが完了しました",
-        "exportErrorPathRequired": "出力パスが必要です。"
+        "exportErrorPathRequired": "出力パスが必要です。",
+        "previewHeading": "プレビュー",
+        "previewCount": "{{count}}行",
+        "previewLoading": "プレビューを読み込み中…",
+        "previewEmpty": "エクスポートできる確定 pick がありません。",
+        "previewFailed": "プレビューを取得できません: {{message}}",
+        "previewRetry": "プレビューを再試行",
+        "previewBlocked": "以下の問題を解決してからエクスポートしてください。",
+        "schemaLabel": "出力列の構成",
+        "schemaAriaLabel": "Janus 出力列スキーマ",
+        "schemaOption": {
+          "device9": "装置様式 (9列)",
+          "legacy5": "kuma 様式 (5列)"
+        },
+        "schemaHint": {
+          "device9": "装置ワークブックの列をそのまま出力します: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "kuma 内部の列を出力します: name, source_plate, source_well, dest_well, priority_score."
+        },
+        "instrumentHeading": "装置設定",
+        "volumeLabel": "Volume (µL)",
+        "liquidClassLabel": "Liquid class",
+        "liquidClassPlaceholder": "例: Cell 100ul",
+        "liquidClassHint": "Liquid class はロボットのピペッティング挙動を決めるため既定値を置きません。入力するまで書き出しはできません。",
+        "deckHeading": "Deck 構成",
+        "sampleTypeLabel": "type 列の値",
+        "sourceRackLabel": "Asp. Rack {{plate}}",
+        "destRackLabel": "Dsp. Rack",
+        "rackHint": "想定した rack 番号: ワークブックの labware 順に source plate が先、destination が最後。実際の deck に合わせて変更してください。",
+        "excludedHeading": "除外 {{count}} 件",
+        "excludedNone": "除外されたクローンはありません。",
+        "excludedReason": {
+          "failed": "失敗",
+          "no_selection": "選択された plate なし",
+          "missing_verdict": "verdict レコードなし",
+          "verdict_class": "対象外の verdict class",
+          "fallback": "Fallback pick"
+        },
+        "selectionNote": "PASS のクローンのみを対象とします。AMBIGUOUS は副次的な indel を伴い、LOWDEPTH は未検証のため除外一覧に表示されます。"
       },
       "runReport": {
         "title": "Run レポートをエクスポート",
@@ -974,7 +1023,18 @@
       "nNgsExcluded": "NGS 除外",
       "missingInputs": "不足しているファイル",
       "restoredNotice": "このデバイスに保存されていたパスを復元しました。別プロジェクトのファイルならクリアしてください。",
-      "clearRestored": "復元された EVOLVEpro 入力をクリア"
+      "clearRestored": "復元された EVOLVEpro 入力をクリア",
+      "primarySourceNumericReport": "数値IDレポート (プレート全体)",
+      "confirmationSourceNumericSubset": "数値ID確認測定 (WT超過サブセット)",
+      "primarySourceNumericReportHelper": "サンプル名が数値のみの全プレート測定。id i はプレート順の i 番目の設計変異なので、順序ソースが必要です。",
+      "confirmationSourceNumericSubsetHelper": "一次スクリーニングで WT を上回った変異に同じプレート順で番号を振った反復確認測定。数値ID一次スクリーニングが必要です。",
+      "round1RepBatchXlsx": "一次スクリーニング (数値ID)",
+      "round1RepBatchXlsxHelper": "プレート全体の Agilent FID1B レポート、変異あたり1反復。",
+      "expectedMutationsXlsx": "KURO 設計 (expected_mutations)",
+      "expectedMutationsXlsxHelper": "設計から直接得る順序ソースで、プレートファイルを手書き転記しません。layout より優先されます。",
+      "remeasureRepBatchXlsx": "確認測定 (数値ID)",
+      "remeasureRepBatchXlsxHelper": "再測定サブセットの Agilent FID1B レポート、変異あたり複数反復。",
+      "orLabel": "いずれか一つ"
     },
     "verdictBadge": {
       "help": {

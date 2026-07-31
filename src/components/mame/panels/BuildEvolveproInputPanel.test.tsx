@@ -53,6 +53,7 @@ import {
   BUILD_EVOLVEPRO_STORAGE_KEY,
   BUILD_EVOLVEPRO_DEFAULT_STATE,
   createBuildEvolveproCompletion,
+  hasCompletedBuildEvolveproOutput,
   loadBuildEvolveproFromStorage,
   seedBuildEvolveproForm,
   type BuildEvolveproFormState,
@@ -109,6 +110,10 @@ const PRIMARY_SEED: Record<
   },
   gcSheet: { layoutXlsx: "/in/layout.xlsx", gcDataXlsx: "/in/gc.xlsx" },
   prevEvolvepro: { round1EvolveproXlsx: "/in/round1_ep.xlsx" },
+  numericReport: {
+    round1RepBatchXlsx: "/in/round1_rep.xlsx",
+    expectedMutationsXlsx: "/in/expected.xlsx",
+  },
 };
 
 const PRIMARY_PARAMS: Record<BuildEvolveproPrimarySource, object> = {
@@ -122,6 +127,12 @@ const PRIMARY_PARAMS: Record<BuildEvolveproPrimarySource, object> = {
     round1_evolvepro_xlsx: "/in/round1_ep.xlsx",
     layout_xlsx: undefined,
   },
+  // The design wins when both order sources are filled, so layout_xlsx is not
+  // sent at all rather than sent alongside it.
+  numericReport: {
+    round1_rep_batch_xlsx: "/in/round1_rep.xlsx",
+    expected_mutations_xlsx: "/in/expected.xlsx",
+  },
 };
 
 /** Files each axis B source needs, and the params it is expected to send. */
@@ -134,6 +145,7 @@ const CONFIRM_SEED: Record<
     repBatchXlsx: "/in/rep.xlsx",
     prevEvolveproXlsx: "/in/prev_ep.xlsx",
   },
+  numericSubset: { remeasureRepBatchXlsx: "/in/remeasure_rep.xlsx" },
 };
 
 const CONFIRM_PARAMS: Record<
@@ -145,19 +157,29 @@ const CONFIRM_PARAMS: Record<
     rep_batch_xlsx: "/in/rep.xlsx",
     prev_evolvepro_xlsx: "/in/prev_ep.xlsx",
   },
+  numericSubset: { remeasure_rep_batch_xlsx: "/in/remeasure_rep.xlsx" },
 };
 
 const PRIMARY_SOURCES: BuildEvolveproPrimarySource[] = [
   "rawReport",
   "gcSheet",
   "prevEvolvepro",
+  "numericReport",
 ];
 const CONFIRM_SOURCES: Exclude<BuildEvolveproConfirmationSource, "none">[] = [
   "variantLabels",
+  "numericSubset",
   "numericIndex",
 ];
+// Every pair except numericSubset with a non-numeric primary. Those IDs number
+// the above-WT subset of the numeric primary screen, so no other axis A source
+// can produce the set they index into; the panel blocks that pair instead of
+// submitting it.
 const COMBINATIONS = PRIMARY_SOURCES.flatMap((primary) =>
-  CONFIRM_SOURCES.map((confirmation) => ({ primary, confirmation })),
+  CONFIRM_SOURCES.filter(
+    (confirmation) =>
+      confirmation !== "numericSubset" || primary === "numericReport",
+  ).map((confirmation) => ({ primary, confirmation })),
 );
 
 function helpButtonFor(labelText: string): HTMLElement {
@@ -332,6 +354,57 @@ describe("BuildEvolveproInputPanel axis toggles", () => {
     expect(sent.round1_report_xlsx).toBeUndefined();
     expect(sent.gc_export_xlsx).toBeUndefined();
     expect(sent.gc_data_xlsx).toBe("/in/gc.xlsx");
+  });
+
+  it("blocks a numeric-subset confirmation paired with another primary", () => {
+    // Its IDs number the above-WT subset of the numeric primary screen. Paired
+    // with any other axis A source they would index a set never measured, so
+    // the panel refuses rather than submitting.
+    seed({
+      primarySource: "gcSheet",
+      confirmationSource: "numericSubset",
+      ...PRIMARY_SEED.gcSheet,
+      ...CONFIRM_SEED.numericSubset,
+      outputXlsx: OUTPUT,
+    });
+    render(<BuildEvolveproInputPanel />);
+
+    expect(screen.getByRole("button", { name: BUILD_LABEL })).toBeDisabled();
+    expect(screen.getByText(/Still needed/).textContent).toContain(
+      "Primary screen (numeric IDs)",
+    );
+    expect(mockBuild).not.toHaveBeenCalled();
+  });
+
+  it("blocks a numeric primary screen until an order source is chosen", () => {
+    // Bare numeric sample names carry no variant information, so either the
+    // KURO design or the hand-written layout has to be present.
+    seed({
+      primarySource: "numericReport",
+      confirmationSource: "none",
+      round1RepBatchXlsx: "/in/round1_rep.xlsx",
+      outputXlsx: OUTPUT,
+    });
+    render(<BuildEvolveproInputPanel />);
+
+    expect(screen.getByRole("button", { name: BUILD_LABEL })).toBeDisabled();
+    expect(screen.getByText(/Still needed/).textContent).toContain(
+      "KURO design",
+    );
+    expect(mockBuild).not.toHaveBeenCalled();
+  });
+
+  it("accepts the hand-written layout as the numeric order source", () => {
+    seed({
+      primarySource: "numericReport",
+      confirmationSource: "none",
+      round1RepBatchXlsx: "/in/round1_rep.xlsx",
+      layoutXlsx: "/in/layout.xlsx",
+      outputXlsx: OUTPUT,
+    });
+    render(<BuildEvolveproInputPanel />);
+
+    expect(screen.getByRole("button", { name: BUILD_LABEL })).toBeEnabled();
   });
 
   it("blocks a numeric-index confirmation until the rank source is chosen", () => {
@@ -546,6 +619,33 @@ describe("BuildEvolveproInputPanel axis toggles", () => {
         OUTPUT,
       ),
     );
+  });
+
+  it("invalidates completion when numeric report inputs change", () => {
+    const submitted: BuildEvolveproFormState = {
+      ...BUILD_EVOLVEPRO_DEFAULT_STATE,
+      primarySource: "numericReport",
+      confirmationSource: "numericSubset",
+      round1RepBatchXlsx: "/in/round1_rep.xlsx",
+      expectedMutationsXlsx: "/in/expected.xlsx",
+      remeasureRepBatchXlsx: "/in/remeasure_rep.xlsx",
+      outputXlsx: OUTPUT,
+    };
+    const completion = createBuildEvolveproCompletion(submitted, OUTPUT);
+
+    expect(hasCompletedBuildEvolveproOutput(submitted, completion)).toBe(true);
+    expect(
+      hasCompletedBuildEvolveproOutput(
+        { ...submitted, remeasureRepBatchXlsx: "/in/remeasure_rep_v2.xlsx" },
+        completion,
+      ),
+    ).toBe(false);
+    expect(
+      hasCompletedBuildEvolveproOutput(
+        { ...submitted, expectedMutationsXlsx: "/in/expected_v2.xlsx" },
+        completion,
+      ),
+    ).toBe(false);
   });
 
   it("ignores a successful build that resolves after the form changed", async () => {

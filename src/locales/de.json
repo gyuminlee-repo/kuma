@@ -652,16 +652,65 @@
         "description": "Export die final cell-stock Janus mapping Datei (K4 spec) as CSV oder XLSX.",
         "formatLabel": "Format",
         "formatAriaLabel": "Janus mapping export Format",
+        "destLayoutLabel": "Ziel-Layout",
+        "destLayoutAriaLabel": "Janus Ziel well Layout",
+        "destLayoutOption": {
+          "source": "Source Position",
+          "compact": "Kompakt ab A1"
+        },
+        "destLayoutHint": {
+          "source": "dest_well übernimmt die Position der source plate. Der Export schlägt fehl, wenn zwei picks im selben well landen.",
+          "compact": "dest_well wird in priority Reihenfolge ab A1 fortlaufend vergeben, ohne leere wells."
+        },
         "outputPathLabel": "Ausgabe-Dateipfad",
         "outputPathPlaceholder": "Target .{{ext}} Datei Pfad",
         "outputPathAriaLabel": "Ausgabe Datei Pfad für Janus mapping",
         "browseAriaLabel": "Durchsuchen speichern Pfad für Janus mapping",
-        "columnsNote": "Columns: well, custom_barcode, Variante, verdict, und Platte coordinates.",
-        "phase1Note": "Phase 1: only passed wells sind included.",
+        "columnsNote": {
+          "device9": "Spalten: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "Spalten: name, source_plate, source_well, dest_well, priority_score."
+        },
         "exportJanus": "Janus-Mapping exportieren",
         "exporting": "Exportiere…",
         "exported": "Erfolgreich exportiert",
-        "exportErrorPathRequired": "Ausgabepfad ist erforderlich."
+        "exportErrorPathRequired": "Ausgabepfad ist erforderlich.",
+        "previewHeading": "Vorschau",
+        "previewCount": "{{count}} Zeilen",
+        "previewLoading": "Vorschau wird geladen…",
+        "previewEmpty": "Keine bestätigten Picks zum Exportieren.",
+        "previewFailed": "Vorschau nicht verfügbar: {{message}}",
+        "previewRetry": "Vorschau erneut laden",
+        "previewBlocked": "Beheben Sie die unten genannten Probleme vor dem Export.",
+        "schemaLabel": "Ausgabespalten",
+        "schemaAriaLabel": "Janus-Ausgabespaltenschema",
+        "schemaOption": {
+          "device9": "Geräteformat (9 Spalten)",
+          "legacy5": "kuma-Format (5 Spalten)"
+        },
+        "schemaHint": {
+          "device9": "Schreibt die Spalten der Geräte-Arbeitsmappe: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "Schreibt die kuma-Spalten: name, source_plate, source_well, dest_well, priority_score."
+        },
+        "instrumentHeading": "Geräteeinstellungen",
+        "volumeLabel": "Volume (µL)",
+        "liquidClassLabel": "Liquid class",
+        "liquidClassPlaceholder": "z. B. Cell 100ul",
+        "liquidClassHint": "Die Liquid class steuert das Pipettierverhalten des Roboters, daher gibt es keinen Standardwert. Der Export bleibt bis zur Eingabe gesperrt.",
+        "deckHeading": "Deck-Konfiguration",
+        "sampleTypeLabel": "type-Spaltenwert",
+        "sourceRackLabel": "Asp. Rack {{plate}}",
+        "destRackLabel": "Dsp. Rack",
+        "rackHint": "Angenommene Rack-Nummern: Quellplatten zuerst in der Labware-Reihenfolge der Arbeitsmappe, Zielplatte zuletzt. An das Deck anpassen.",
+        "excludedHeading": "Ausgeschlossen: {{count}}",
+        "excludedNone": "Kein Klon wurde ausgeschlossen.",
+        "excludedReason": {
+          "failed": "Fehlgeschlagen",
+          "no_selection": "Keine Platte ausgewählt",
+          "missing_verdict": "Kein Verdict-Datensatz",
+          "verdict_class": "Verdict class nicht einbezogen",
+          "fallback": "Fallback-Pick"
+        },
+        "selectionNote": "Nur PASS-Klone werden übernommen. AMBIGUOUS trägt ein begleitendes Indel, LOWDEPTH ist ungeprüft, beide erscheinen in der Ausschlussliste."
       },
       "runReport": {
         "title": "Export Ausführen Report",
@@ -974,7 +1023,18 @@
       "nNgsExcluded": "NGS-ausgeschlossen",
       "missingInputs": "Noch erforderlich",
       "restoredNotice": "Pfade wurden auf diesem Gerät wiederhergestellt. Löschen Sie sie, wenn sie zu einem anderen Projekt gehören.",
-      "clearRestored": "Wiederhergestellte EVOLVEpro-Eingaben löschen"
+      "clearRestored": "Wiederhergestellte EVOLVEpro-Eingaben löschen",
+      "primarySourceNumericReport": "Bericht mit numerischen IDs (ganze Platte)",
+      "confirmationSourceNumericSubset": "Bestätigung mit numerischen IDs (Teilmenge über WT)",
+      "primarySourceNumericReportHelper": "Ganzplatten-Screen mit rein numerischen Probennamen. ID i ist die i-te entworfene Mutante in Plattenreihenfolge, daher wird eine Reihenfolgequelle benötigt.",
+      "confirmationSourceNumericSubsetHelper": "Replizierte Bestätigung, deren numerische IDs die Varianten über dem Wildtyp in derselben Plattenreihenfolge durchnummerieren. Erfordert den numerischen Primärscreen.",
+      "round1RepBatchXlsx": "Primärscreen (numerische IDs)",
+      "round1RepBatchXlsxHelper": "Agilent-FID1B-Bericht der ganzen Platte, eine Replikate je Variante.",
+      "expectedMutationsXlsx": "KURO-Design (expected_mutations)",
+      "expectedMutationsXlsxHelper": "Reihenfolgequelle direkt aus dem Design, ohne handschriftlich übertragene Plattendatei. Vorzug vor dem Layout.",
+      "remeasureRepBatchXlsx": "Bestätigung (numerische IDs)",
+      "remeasureRepBatchXlsxHelper": "Agilent-FID1B-Bericht der nachgemessenen Teilmenge, mehrere Replikate je Variante.",
+      "orLabel": "eines von beiden"
     },
     "verdictBadge": {
       "help": {

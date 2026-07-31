@@ -15,7 +15,8 @@ export const BUILD_EVOLVEPRO_STORAGE_KEY = "kuma:mame:buildEvolvepro";
 export type BuildEvolveproPrimarySource =
   | "rawReport"
   | "gcSheet"
-  | "prevEvolvepro";
+  | "prevEvolvepro"
+  | "numericReport";
 
 /**
  * Axis B, how the n-replicate confirmation labels its samples. At most one is
@@ -25,17 +26,20 @@ export type BuildEvolveproPrimarySource =
 export type BuildEvolveproConfirmationSource =
   | "none"
   | "variantLabels"
+  | "numericSubset"
   | "numericIndex";
 
 const PRIMARY_SOURCES: readonly BuildEvolveproPrimarySource[] = [
   "rawReport",
   "gcSheet",
   "prevEvolvepro",
+  "numericReport",
 ];
 
 const CONFIRMATION_SOURCES: readonly BuildEvolveproConfirmationSource[] = [
   "none",
   "variantLabels",
+  "numericSubset",
   "numericIndex",
 ];
 
@@ -49,6 +53,9 @@ export interface BuildEvolveproFormState {
   round1ReportXlsx: string;
   round1EvolveproXlsx: string;
   remeasureReportXlsx: string;
+  round1RepBatchXlsx: string;
+  expectedMutationsXlsx: string;
+  remeasureRepBatchXlsx: string;
   verdictXlsx: string;
   outputXlsx: string;
   /** Optional reports-mode raw round-1 export path (well-level relative
@@ -66,6 +73,9 @@ export const BUILD_EVOLVEPRO_DEFAULT_STATE: BuildEvolveproFormState = {
   round1ReportXlsx: "",
   round1EvolveproXlsx: "",
   remeasureReportXlsx: "",
+  round1RepBatchXlsx: "",
+  expectedMutationsXlsx: "",
+  remeasureRepBatchXlsx: "",
   verdictXlsx: "",
   outputXlsx: "",
   gcExportXlsx: "",
@@ -95,6 +105,16 @@ export function loadBuildEvolveproFromStorage(): BuildEvolveproFormState {
         typeof p.round1EvolveproXlsx === "string" ? p.round1EvolveproXlsx : "",
       remeasureReportXlsx:
         typeof p.remeasureReportXlsx === "string" ? p.remeasureReportXlsx : "",
+      round1RepBatchXlsx:
+        typeof p.round1RepBatchXlsx === "string" ? p.round1RepBatchXlsx : "",
+      expectedMutationsXlsx:
+        typeof p.expectedMutationsXlsx === "string"
+          ? p.expectedMutationsXlsx
+          : "",
+      remeasureRepBatchXlsx:
+        typeof p.remeasureRepBatchXlsx === "string"
+          ? p.remeasureRepBatchXlsx
+          : "",
       verdictXlsx: typeof p.verdictXlsx === "string" ? p.verdictXlsx : "",
       outputXlsx: typeof p.outputXlsx === "string" ? p.outputXlsx : "",
       gcExportXlsx: typeof p.gcExportXlsx === "string" ? p.gcExportXlsx : "",
@@ -177,6 +197,13 @@ export function hasBuildEvolveproPrimaryInputs(
       return Boolean(state.layoutXlsx && state.gcDataXlsx);
     case "prevEvolvepro":
       return Boolean(state.round1EvolveproXlsx);
+    case "numericReport":
+      // Either order source satisfies it; the design is preferred but the
+      // hand-written layout still works for plates filled before it.
+      return Boolean(
+        state.round1RepBatchXlsx &&
+          (state.expectedMutationsXlsx || state.layoutXlsx),
+      );
   }
 }
 
@@ -189,6 +216,12 @@ export function hasBuildEvolveproConfirmationInputs(
       return true;
     case "variantLabels":
       return Boolean(state.remeasureReportXlsx);
+    case "numericSubset":
+      // Its IDs number the above-WT subset of the numeric primary screen, so
+      // that screen has to be the selected axis A source.
+      return Boolean(
+        state.remeasureRepBatchXlsx && state.primarySource === "numericReport",
+      );
     case "numericIndex":
       return Boolean(state.repBatchXlsx && state.prevEvolveproXlsx);
   }
@@ -222,8 +255,12 @@ export function buildEvolveproFormSignature(
     round1ReportXlsx: state.round1ReportXlsx,
     round1EvolveproXlsx: state.round1EvolveproXlsx,
     remeasureReportXlsx: state.remeasureReportXlsx,
+    round1RepBatchXlsx: state.round1RepBatchXlsx,
+    expectedMutationsXlsx: state.expectedMutationsXlsx,
+    remeasureRepBatchXlsx: state.remeasureRepBatchXlsx,
     verdictXlsx: state.verdictXlsx,
     outputXlsx: state.outputXlsx,
+    gcExportXlsx: state.gcExportXlsx,
   });
 }
 

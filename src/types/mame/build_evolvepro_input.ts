@@ -43,8 +43,17 @@ export interface BuildEvolveproInputParams {
   /** Axis A: primary screen baseline already in EVOLVEpro form (Variant,
    *  activity). No layout needed. */
   round1_evolvepro_xlsx?: string | null
+  /** Axis A: whole-plate primary screen whose sample names are bare numeric
+   *  IDs. Needs an order source: expected_mutations_xlsx or layout_xlsx. */
+  round1_rep_batch_xlsx?: string | null
+  /** Order source for the numeric primary screen: the KURO expected_mutations
+   *  sheet. Preferred over layout_xlsx, which is transcribed by hand. */
+  expected_mutations_xlsx?: string | null
   /** Axis B: variant-labeled Agilent FID1B confirmation report. */
   remeasure_report_xlsx?: string | null
+  /** Axis B: confirmation whose numeric IDs index the above-WT subset of the
+   *  numeric primary screen. Requires round1_rep_batch_xlsx. */
+  remeasure_rep_batch_xlsx?: string | null
   /** Optional NGS verdict xlsx. Variants whose well carries a non-PASS verdict
    *  are excluded. Omit to skip NGS gating. */
   verdict_xlsx?: string | null
@@ -67,6 +76,7 @@ export type BuildEvolveproPrimarySourceId =
   | "raw_report"
   | "gc_sheet"
   | "prev_evolvepro"
+  | "numeric_report"
 
 /**
  * Axis B identifier reported back by the backend (the CONFIRM_* constants).
@@ -74,6 +84,7 @@ export type BuildEvolveproPrimarySourceId =
  */
 export type BuildEvolveproConfirmationSourceId =
   | "variant_labels"
+  | "numeric_subset"
   | "numeric_index"
   | "none"
 

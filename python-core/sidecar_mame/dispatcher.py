@@ -27,6 +27,7 @@ from sidecar_mame.handlers.load import handle_load_analyze_result
 from sidecar_mame.handlers.export import (
     handle_export_excel,
     handle_export_janus_mapping,
+    handle_export_janus_mapping_dry_run,
     handle_get_plate_data,
 )
 from sidecar_mame.handlers.kuma_meta import handle_read_kuma_meta
@@ -86,6 +87,9 @@ _METHODS = {
     "export_excel": handle_export_excel,
     "get_plate_data": handle_get_plate_data,
     "export_janus_mapping": handle_export_janus_mapping,
+    # Preview the Janus rows before committing to a file. Same analyze
+    # prerequisite, no output path, validation returned instead of raised.
+    "export_janus_mapping_dry_run": handle_export_janus_mapping_dry_run,
     "read_kuma_meta": handle_read_kuma_meta,
     "export_run_report": handle_export_run_report,
     "cancel_analyze": lambda _: {"cancelled": True},

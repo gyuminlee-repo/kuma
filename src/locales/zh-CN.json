@@ -652,16 +652,65 @@
         "description": "将最终的 cell-stock Janus mapping 文件 (K4 spec) 导出为 CSV 或 XLSX。",
         "formatLabel": "格式",
         "formatAriaLabel": "Janus mapping 导出格式",
+        "destLayoutLabel": "目标布局",
+        "destLayoutAriaLabel": "Janus 目标 well 布局",
+        "destLayoutOption": {
+          "source": "Source 位置",
+          "compact": "从 A1 顺序排列"
+        },
+        "destLayoutHint": {
+          "source": "dest_well 沿用 source plate 的位置。若两个 pick 落在同一个 well，导出将失败。",
+          "compact": "dest_well 按 priority 顺序从 A1 起依次分配，不留空 well。"
+        },
         "outputPathLabel": "输出文件路径",
         "outputPathPlaceholder": "目标 .{{ext}} 文件路径",
         "outputPathAriaLabel": "Janus mapping 的输出文件路径",
         "browseAriaLabel": "浏览 Janus mapping 的保存路径",
-        "columnsNote": "列: well, custom_barcode, variant, verdict 以及 plate 坐标。",
-        "phase1Note": "Phase 1: 仅包含通过的 well。",
+        "columnsNote": {
+          "device9": "列：name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume。",
+          "legacy5": "列：name, source_plate, source_well, dest_well, priority_score。"
+        },
         "exportJanus": "导出 Janus Mapping",
         "exporting": "导出中…",
         "exported": "导出成功",
-        "exportErrorPathRequired": "必须提供输出路径。"
+        "exportErrorPathRequired": "必须提供输出路径。",
+        "previewHeading": "预览",
+        "previewCount": "{{count}} 行",
+        "previewLoading": "正在加载预览…",
+        "previewEmpty": "没有可导出的已确认 pick。",
+        "previewFailed": "无法加载预览：{{message}}",
+        "previewRetry": "重试预览",
+        "previewBlocked": "请先解决以下问题再导出。",
+        "schemaLabel": "输出列结构",
+        "schemaAriaLabel": "Janus 输出列结构",
+        "schemaOption": {
+          "device9": "仪器格式（9 列）",
+          "legacy5": "kuma 格式（5 列）"
+        },
+        "schemaHint": {
+          "device9": "按仪器工作簿列输出：name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume。",
+          "legacy5": "按 kuma 内部列输出：name, source_plate, source_well, dest_well, priority_score。"
+        },
+        "instrumentHeading": "仪器设置",
+        "volumeLabel": "Volume (µL)",
+        "liquidClassLabel": "Liquid class",
+        "liquidClassPlaceholder": "例如：Cell 100ul",
+        "liquidClassHint": "Liquid class 决定机器人的移液行为，因此不设默认值。未填写前无法导出。",
+        "deckHeading": "Deck 配置",
+        "sampleTypeLabel": "type 列取值",
+        "sourceRackLabel": "Asp. Rack {{plate}}",
+        "destRackLabel": "Dsp. Rack",
+        "rackHint": "假定的 rack 编号：按工作簿 labware 顺序，source plate 在前，destination 在后。请按实际 deck 调整。",
+        "excludedHeading": "已排除 {{count}} 个",
+        "excludedNone": "没有被排除的克隆。",
+        "excludedReason": {
+          "failed": "失败",
+          "no_selection": "未选定 plate",
+          "missing_verdict": "缺少 verdict 记录",
+          "verdict_class": "未纳入的 verdict class",
+          "fallback": "Fallback pick"
+        },
+        "selectionNote": "仅纳入 PASS 克隆。AMBIGUOUS 带有附带 indel，LOWDEPTH 未经验证，两者都会列在排除清单中。"
       },
       "runReport": {
         "title": "导出运行报告",
@@ -974,7 +1023,18 @@
       "nNgsExcluded": "NGS 排除",
       "missingInputs": "仍需提供",
       "restoredNotice": "已恢复此设备上的路径。如果它们属于其他项目，请清除。",
-      "clearRestored": "清除已恢复的 EVOLVEpro 输入"
+      "clearRestored": "清除已恢复的 EVOLVEpro 输入",
+      "primarySourceNumericReport": "数字ID报告（整板）",
+      "confirmationSourceNumericSubset": "数字ID验证（高于WT的子集）",
+      "primarySourceNumericReportHelper": "样品名仅为数字的整板测定。id i 对应板序中第 i 个设计突变，因此需要顺序来源。",
+      "confirmationSourceNumericSubsetHelper": "对初筛中高于野生型的突变按相同板序编号的重复验证测定。需要数字ID初筛。",
+      "round1RepBatchXlsx": "初筛（数字ID）",
+      "round1RepBatchXlsxHelper": "整板 Agilent FID1B 报告，每个突变一个重复。",
+      "expectedMutationsXlsx": "KURO 设计 (expected_mutations)",
+      "expectedMutationsXlsxHelper": "直接来自设计的顺序来源，无需手工誊写板文件。优先于 layout。",
+      "remeasureRepBatchXlsx": "验证测定（数字ID）",
+      "remeasureRepBatchXlsxHelper": "重测子集的 Agilent FID1B 报告，每个突变多个重复。",
+      "orLabel": "二选一"
     },
     "verdictBadge": {
       "help": {

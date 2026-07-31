@@ -497,7 +497,18 @@
       "nNgsExcluded": "NGS-excluded",
       "missingInputs": "Still needed",
       "restoredNotice": "Paths were restored on this device. Clear them if they belong to another project.",
-      "clearRestored": "Clear restored EVOLVEpro inputs"
+      "clearRestored": "Clear restored EVOLVEpro inputs",
+      "primarySourceNumericReport": "Numeric-ID report (whole plate)",
+      "confirmationSourceNumericSubset": "Numeric-ID confirmation (above-WT subset)",
+      "primarySourceNumericReportHelper": "Whole-plate screen whose sample names are bare numbers. ID i is the i-th designed mutant in plate order, so an order source is required.",
+      "confirmationSourceNumericSubsetHelper": "Replicated confirmation whose numeric IDs number the variants that beat wild-type in the primary screen, in the same plate order. Requires the numeric primary screen.",
+      "round1RepBatchXlsx": "Primary screen (numeric IDs)",
+      "round1RepBatchXlsxHelper": "Agilent FID1B report for the whole plate, one replicate per variant.",
+      "expectedMutationsXlsx": "KURO design (expected_mutations)",
+      "expectedMutationsXlsxHelper": "Order source taken straight from the design, so no plate file is transcribed by hand. Preferred over the layout.",
+      "remeasureRepBatchXlsx": "Confirmation (numeric IDs)",
+      "remeasureRepBatchXlsxHelper": "Agilent FID1B report for the re-measured subset, several replicates per variant.",
+      "orLabel": "either one"
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",
@@ -746,16 +757,65 @@
         "description": "Export the final cell-stock Janus mapping file (K4 spec) as CSV or XLSX.",
         "formatLabel": "Format",
         "formatAriaLabel": "Janus mapping export format",
+        "destLayoutLabel": "Destination layout",
+        "destLayoutAriaLabel": "Janus destination well layout",
+        "destLayoutOption": {
+          "source": "Source position",
+          "compact": "Compact from A1"
+        },
+        "destLayoutHint": {
+          "source": "dest_well mirrors the source plate position. Export fails if two picks land on the same well.",
+          "compact": "dest_well is assigned sequentially from A1 in priority order, leaving no empty wells."
+        },
         "outputPathLabel": "Output file path",
         "outputPathPlaceholder": "Target .{{ext}} file path",
         "outputPathAriaLabel": "Output file path for Janus mapping",
         "browseAriaLabel": "Browse save path for Janus mapping",
-        "columnsNote": "Columns: well, custom_barcode, variant, verdict, and plate coordinates.",
-        "phase1Note": "Phase 1: only passed wells are included.",
+        "columnsNote": {
+          "device9": "Columns: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "Columns: name, source_plate, source_well, dest_well, priority_score."
+        },
         "exportJanus": "Export Janus Mapping",
         "exporting": "Exporting…",
         "exported": "Exported successfully",
-        "exportErrorPathRequired": "Output path is required."
+        "exportErrorPathRequired": "Output path is required.",
+        "previewHeading": "Preview",
+        "previewCount": "{{count}} rows",
+        "previewLoading": "Loading preview…",
+        "previewEmpty": "No confirmed picks to export.",
+        "previewFailed": "Preview unavailable: {{message}}",
+        "previewRetry": "Retry preview",
+        "previewBlocked": "Fix the problems below before exporting.",
+        "schemaLabel": "Output columns",
+        "schemaAriaLabel": "Janus output column schema",
+        "schemaOption": {
+          "device9": "Instrument (9 columns)",
+          "legacy5": "kuma (5 columns)"
+        },
+        "schemaHint": {
+          "device9": "Writes the instrument worksheet columns: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "Writes the kuma columns: name, source_plate, source_well, dest_well, priority_score."
+        },
+        "instrumentHeading": "Instrument settings",
+        "volumeLabel": "Volume (µL)",
+        "liquidClassLabel": "Liquid class",
+        "liquidClassPlaceholder": "e.g. Cell 100ul",
+        "liquidClassHint": "The liquid class drives the pipetting behaviour of the robot, so no default is assumed. Export stays blocked until it is set.",
+        "deckHeading": "Deck configuration",
+        "sampleTypeLabel": "type column",
+        "sourceRackLabel": "Asp. Rack {{plate}}",
+        "destRackLabel": "Dsp. Rack",
+        "rackHint": "Assumed rack numbering: source plates first in workbook labware order, destination last. Adjust to match the deck.",
+        "excludedHeading": "Excluded: {{count}}",
+        "excludedNone": "Every clone made the pick.",
+        "excludedReason": {
+          "failed": "Failed",
+          "no_selection": "No plate selected",
+          "missing_verdict": "No verdict record",
+          "verdict_class": "Verdict class not included",
+          "fallback": "Fallback pick"
+        },
+        "selectionNote": "Only PASS clones ship. AMBIGUOUS carries a side indel and LOWDEPTH is unverified, so both are listed as excluded."
       },
       "runReport": {
         "title": "Export Run Report",

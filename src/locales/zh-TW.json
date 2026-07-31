@@ -652,16 +652,65 @@
         "description": "將最終的 cell-stock Janus mapping 檔案 (K4 spec) 匯出為 CSV 或 XLSX。",
         "formatLabel": "格式",
         "formatAriaLabel": "Janus mapping 匯出格式",
+        "destLayoutLabel": "目標配置",
+        "destLayoutAriaLabel": "Janus 目標 well 配置",
+        "destLayoutOption": {
+          "source": "Source 位置",
+          "compact": "從 A1 依序排列"
+        },
+        "destLayoutHint": {
+          "source": "dest_well 沿用 source plate 的位置。若兩個 pick 落在同一個 well，匯出將失敗。",
+          "compact": "dest_well 依 priority 順序從 A1 起依序分配，不留空 well。"
+        },
         "outputPathLabel": "輸出檔案路徑",
         "outputPathPlaceholder": "目標 .{{ext}} 檔案路徑",
         "outputPathAriaLabel": "Janus mapping 的輸出檔案路徑",
         "browseAriaLabel": "瀏覽 Janus mapping 的儲存路徑",
-        "columnsNote": "列: well, custom_barcode, variant, verdict 以及 plate 座標。",
-        "phase1Note": "Phase 1: 僅包含透過的 well。",
+        "columnsNote": {
+          "device9": "欄位：name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume。",
+          "legacy5": "欄位：name, source_plate, source_well, dest_well, priority_score。"
+        },
         "exportJanus": "匯出 Janus Mapping",
         "exporting": "匯出中…",
         "exported": "匯出成功",
-        "exportErrorPathRequired": "必須提供輸出路徑。"
+        "exportErrorPathRequired": "必須提供輸出路徑。",
+        "previewHeading": "預覽",
+        "previewCount": "{{count}} 列",
+        "previewLoading": "正在載入預覽…",
+        "previewEmpty": "沒有可匯出的已確認 pick。",
+        "previewFailed": "無法載入預覽：{{message}}",
+        "previewRetry": "重試預覽",
+        "previewBlocked": "請先解決以下問題再匯出。",
+        "schemaLabel": "輸出欄位結構",
+        "schemaAriaLabel": "Janus 輸出欄位結構",
+        "schemaOption": {
+          "device9": "儀器格式（9 欄）",
+          "legacy5": "kuma 格式（5 欄）"
+        },
+        "schemaHint": {
+          "device9": "依儀器活頁簿欄位輸出：name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume。",
+          "legacy5": "依 kuma 內部欄位輸出：name, source_plate, source_well, dest_well, priority_score。"
+        },
+        "instrumentHeading": "儀器設定",
+        "volumeLabel": "Volume (µL)",
+        "liquidClassLabel": "Liquid class",
+        "liquidClassPlaceholder": "例如：Cell 100ul",
+        "liquidClassHint": "Liquid class 決定機器人的移液行為，因此不設預設值。未填寫前無法匯出。",
+        "deckHeading": "Deck 配置",
+        "sampleTypeLabel": "type 欄位值",
+        "sourceRackLabel": "Asp. Rack {{plate}}",
+        "destRackLabel": "Dsp. Rack",
+        "rackHint": "假設的 rack 編號：依活頁簿 labware 順序，source plate 在前，destination 在後。請依實際 deck 調整。",
+        "excludedHeading": "已排除 {{count}} 個",
+        "excludedNone": "沒有被排除的選殖株。",
+        "excludedReason": {
+          "failed": "失敗",
+          "no_selection": "未選定 plate",
+          "missing_verdict": "缺少 verdict 紀錄",
+          "verdict_class": "未納入的 verdict class",
+          "fallback": "Fallback pick"
+        },
+        "selectionNote": "僅納入 PASS 選殖株。AMBIGUOUS 帶有附帶 indel，LOWDEPTH 未經驗證，兩者都會列在排除清單中。"
       },
       "runReport": {
         "title": "匯出執行報告",
@@ -974,7 +1023,18 @@
       "nNgsExcluded": "NGS 排除",
       "missingInputs": "尚需提供",
       "restoredNotice": "已復原此裝置上的路徑。如果它們屬於其他專案，請清除。",
-      "clearRestored": "清除已復原的 EVOLVEpro 輸入"
+      "clearRestored": "清除已復原的 EVOLVEpro 輸入",
+      "primarySourceNumericReport": "數字ID報告（整盤）",
+      "confirmationSourceNumericSubset": "數字ID驗證（高於WT的子集）",
+      "primarySourceNumericReportHelper": "樣品名僅為數字的整盤測定。id i 對應盤序中第 i 個設計突變，因此需要順序來源。",
+      "confirmationSourceNumericSubsetHelper": "對初篩中高於野生型的突變按相同盤序編號的重複驗證測定。需要數字ID初篩。",
+      "round1RepBatchXlsx": "初篩（數字ID）",
+      "round1RepBatchXlsxHelper": "整盤 Agilent FID1B 報告，每個突變一個重複。",
+      "expectedMutationsXlsx": "KURO 設計 (expected_mutations)",
+      "expectedMutationsXlsxHelper": "直接來自設計的順序來源，無需手工謄寫盤檔案。優先於 layout。",
+      "remeasureRepBatchXlsx": "驗證測定（數字ID）",
+      "remeasureRepBatchXlsxHelper": "重測子集的 Agilent FID1B 報告，每個突變多個重複。",
+      "orLabel": "二選一"
     },
     "verdictBadge": {
       "help": {

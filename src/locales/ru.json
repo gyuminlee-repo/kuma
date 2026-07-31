@@ -652,16 +652,65 @@
         "description": "Экспортировать финальный файл cell-stock Janus mapping (K4 spec) как CSV или XLSX.",
         "formatLabel": "Формат",
         "formatAriaLabel": "Формат экспорта Janus mapping",
+        "destLayoutLabel": "Схема назначения",
+        "destLayoutAriaLabel": "Схема well назначения Janus",
+        "destLayoutOption": {
+          "source": "Позиция source",
+          "compact": "Компактно с A1"
+        },
+        "destLayoutHint": {
+          "source": "dest_well повторяет позицию source plate. Экспорт завершится ошибкой, если два pick попадут в один well.",
+          "compact": "dest_well назначается последовательно с A1 в порядке priority, без пустых well."
+        },
         "outputPathLabel": "Путь к выходному файлу",
         "outputPathPlaceholder": "Путь к целевому файлу .{{ext}}",
         "outputPathAriaLabel": "Путь к выходному файлу Janus mapping",
         "browseAriaLabel": "Выбрать путь сохранения Janus mapping",
-        "columnsNote": "Колонки: well, custom_barcode, variant, verdict и координаты plate.",
-        "phase1Note": "Phase 1: включаются только прошедшие wells.",
+        "columnsNote": {
+          "device9": "Столбцы: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "Столбцы: name, source_plate, source_well, dest_well, priority_score."
+        },
         "exportJanus": "Экспорт Janus Mapping",
         "exporting": "Экспорт…",
         "exported": "Экспорт успешно завершён",
-        "exportErrorPathRequired": "Требуется путь вывода."
+        "exportErrorPathRequired": "Требуется путь вывода.",
+        "previewHeading": "Предпросмотр",
+        "previewCount": "строк: {{count}}",
+        "previewLoading": "Загрузка предпросмотра…",
+        "previewEmpty": "Нет подтверждённых pick для экспорта.",
+        "previewFailed": "Предпросмотр недоступен: {{message}}",
+        "previewRetry": "Повторить предпросмотр",
+        "previewBlocked": "Устраните проблемы ниже перед экспортом.",
+        "schemaLabel": "Столбцы вывода",
+        "schemaAriaLabel": "Схема столбцов вывода Janus",
+        "schemaOption": {
+          "device9": "Формат прибора (9 столбцов)",
+          "legacy5": "Формат kuma (5 столбцов)"
+        },
+        "schemaHint": {
+          "device9": "Записывает столбцы книги прибора: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+          "legacy5": "Записывает столбцы kuma: name, source_plate, source_well, dest_well, priority_score."
+        },
+        "instrumentHeading": "Настройки прибора",
+        "volumeLabel": "Volume (µL)",
+        "liquidClassLabel": "Liquid class",
+        "liquidClassPlaceholder": "например, Cell 100ul",
+        "liquidClassHint": "Liquid class задаёт режим пипетирования робота, поэтому значения по умолчанию нет. Экспорт заблокирован, пока поле пустое.",
+        "deckHeading": "Конфигурация deck",
+        "sampleTypeLabel": "значение столбца type",
+        "sourceRackLabel": "Asp. Rack {{plate}}",
+        "destRackLabel": "Dsp. Rack",
+        "rackHint": "Предполагаемая нумерация rack: сначала исходные планшеты в порядке labware из книги, назначение последним. Подстройте под реальный deck.",
+        "excludedHeading": "Исключено: {{count}}",
+        "excludedNone": "Ни один клон не исключён.",
+        "excludedReason": {
+          "failed": "Сбой",
+          "no_selection": "Планшет не выбран",
+          "missing_verdict": "Нет записи verdict",
+          "verdict_class": "Verdict class не включён",
+          "fallback": "Резервный выбор"
+        },
+        "selectionNote": "Отбираются только клоны PASS. AMBIGUOUS несёт сопутствующий indel, а LOWDEPTH не проверен, поэтому оба попадают в список исключённых."
       },
       "runReport": {
         "title": "Экспорт отчёта о запуске",
@@ -974,7 +1023,18 @@
       "nNgsExcluded": "Исключено по NGS",
       "missingInputs": "Ещё требуется",
       "restoredNotice": "Пути восстановлены на этом устройстве. Очистите их, если они относятся к другому проекту.",
-      "clearRestored": "Очистить восстановленные входы EVOLVEpro"
+      "clearRestored": "Очистить восстановленные входы EVOLVEpro",
+      "primarySourceNumericReport": "Отчёт с числовыми ID (весь планшет)",
+      "confirmationSourceNumericSubset": "Подтверждение с числовыми ID (подмножество выше WT)",
+      "primarySourceNumericReportHelper": "Скрининг всего планшета с чисто числовыми именами образцов. ID i соответствует i-му спроектированному мутанту в порядке планшета, поэтому нужен источник порядка.",
+      "confirmationSourceNumericSubsetHelper": "Повторное подтверждение, числовые ID которого нумеруют варианты выше дикого типа в том же порядке планшета. Требуется числовой первичный скрининг.",
+      "round1RepBatchXlsx": "Первичный скрининг (числовые ID)",
+      "round1RepBatchXlsxHelper": "Отчёт Agilent FID1B по всему планшету, по одной реплике на вариант.",
+      "expectedMutationsXlsx": "Дизайн KURO (expected_mutations)",
+      "expectedMutationsXlsxHelper": "Источник порядка прямо из дизайна, без переписанного вручную файла планшета. Предпочтительнее layout.",
+      "remeasureRepBatchXlsx": "Подтверждение (числовые ID)",
+      "remeasureRepBatchXlsxHelper": "Отчёт Agilent FID1B по повторно измеренному подмножеству, несколько реплик на вариант.",
+      "orLabel": "одно из двух"
     },
     "verdictBadge": {
       "help": {

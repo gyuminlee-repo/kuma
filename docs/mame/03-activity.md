@@ -30,45 +30,47 @@ well 컬럼 값은 well 좌표(`A1` 또는 `A01`) 이거나 WT 반복 라벨(`WT
 
 분모는 plate 단위로 두 소스 중 우선순위가 높은 쪽을 쓴다. 활성 파일에 `WT_1`/`WT_2` 같은 전용 WT 반복 행이 실려 있으면 그 값들의 평균이 그 plate 의 분모다 (reports-mode 와 같은 정의). 전용 WT 행이 없는 plate 만 사용자가 `WtWellGrid` 에서 좌표로 지정한 WT well 로 역산하며, 이때는 그 plate 의 모든 WT well 의 모든 replicate 를 한데 평균한다. 어느 소스가 쓰였는지는 merge 결과의 `n_wt_replicate_rows`, `n_plates_wt_from_replicates` 로 확인한다. 전용 WT 행은 well 좌표가 아니라 라벨이라 변이 well 로 합류하지 않고 EVOLVEpro 산출에도 들어가지 않는다.
 
-## 3.2 plateLayout route: 두 모드
+## 3.2 plateLayout route: 두 축
 
-`mame.activity.build_evolvepro_input` 이 두 모드를 받는다. 정확한 계약은 `python-core/sidecar_mame/models.py` 의 `BuildEvolveproInputParams` 와 `_mode_xor` 가 정본이다.
+`mame.activity.build_evolvepro_input` 은 서로 독립인 두 축으로 입력을 받는다. 정확한 계약은 `python-core/sidecar_mame/models.py` 의 `BuildEvolveproInputParams` 와 `_axis_sources` 검증자가 정본이다. 두 축은 서로를 제약하지 않아 A/B 조합은 전부 허용된다. 코드 주석에 남은 rank-mode, reports-mode 라는 이름은 이 조합 중 자주 쓰는 몇 가지의 통칭이며 별개 실행 경로가 아니다.
 
-### rank-mode
+### 축 A: 1반복 1차 스크리닝 (정확히 하나)
 
-사전 정규화된 GC 시트를 라운드 값으로 쓴다. 과거 수동 워크플로우와 호환하기 위한 경로다.
-
-| 입력 | 필수 | 필수 컬럼 |
+| 입력 | 라벨 | 딸린 요구 |
 |---|---|---|
-| `layout_xlsx` | 필수 | `Mutant` + `Well Pos.` (plate layout 형식) 또는 `sample_name` + `well` (step 1 에서 생성되는 sample map 형식). 두 쌍이 한 시트에 다 있으면 plate layout 쌍이 우선. 샘플 이름 끝의 반복 접미사 `_r<n>` (r 대소문자 무시) 은 떼어내고 앞부분을 샘플 이름으로 쓴다 (`Q232A_r1`/`_r2`/`_r3` → 같은 변이 `Q232A` 의 세 well, `WT_r1` → WT 대조군, `A40P_E61Y_r1` → `A40P_E61Y` 로 이름 안 언더스코어 보존). 샘플 이름이 `blank` (대소문자 무시) 인 행은 빈 well 이라 결과에서 제외 |
-| `gc_data_xlsx` | 필수 | `Sample Name`, `Area` (값이 이미 WT 대비 상대값) |
-| `rep_batch_xlsx` | 선택 | Agilent FID1B rep-batch 블록 |
-| `prev_evolvepro_xlsx` | 선택 | `Variant`, `activity` |
+| `round1_report_xlsx` | well 좌표 | raw Agilent FID1B 1차 report. `layout_xlsx` 필요 |
+| `gc_data_xlsx` | well 좌표 | 사전 정규화된 GC 시트 (`Sample Name`, `Area`, 값이 이미 WT 대비 상대값). `layout_xlsx` 필요 |
+| `round1_evolvepro_xlsx` | 변이 이름 | 1차 값이 이미 EVOLVEpro 형식(`Variant`, `activity`)일 때. layout 불필요 |
 
-layout + GC 두 개만 주면 provisional 결과가 나온다. 뒤의 두 개를 함께 주면 3반복 재측정이 authoritative 로 병합돼 confirmed 로 올라간다.
+셋 중 하나도 없거나 둘 이상이면 `ValueError` 로 거절한다.
 
-### reports-mode
+### 축 B: n반복 확인 측정 (최대 하나)
 
-raw Agilent FID1B report 에서 fold-change 를 직접 계산한다. 사람이 미리 정규화한 시트를 요구하지 않는 정상 경로다.
-
-| 입력 | 필수 | 내용 |
+| 입력 | 라벨 | 딸린 요구 |
 |---|---|---|
-| `remeasure_report_xlsx` | 필수 | variant 라벨 재측정 report |
-| `round1_report_xlsx` | 택1 | raw 라운드-1 report (sample name 이 well 좌표). 이걸 쓰면 `layout_xlsx` 필수 |
-| `round1_evolvepro_xlsx` | 택1 | 라운드-1 이 이미 EVOLVEpro 형식으로 있을 때 |
-| `verdict_xlsx` | 선택 | 주면 non-PASS well 의 변이를 제외 |
+| `remeasure_report_xlsx` | 변이 이름 | variant 라벨 재측정 Agilent report |
+| `rep_batch_xlsx` | 숫자 ID | Agilent FID1B rep-batch 블록. 숫자 ID 에는 변이 이름이 없어 `prev_evolvepro_xlsx` 를 rank 소스로 함께 줘야 한다 |
 
-round-1 소스는 둘 중 **정확히 하나**여야 한다.
+축 B 를 아예 생략하면 provisional 결과가 나온다 (축 A 만으로 build 가 성공한다). 축 B 를 주면 재측정이 authoritative 로 병합돼 confirmed 로 올라간다.
+
+### 공통 선택 입력
+
+| 입력 | 내용 |
+|---|---|
+| `layout_xlsx` | `Mutant` + `Well Pos.` (plate layout 형식) 또는 `sample_name` + `well` (step 1 에서 생성되는 sample map 형식). 두 쌍이 한 시트에 다 있으면 plate layout 쌍이 우선. 샘플 이름 끝의 반복 접미사 `_r<n>` (r 대소문자 무시) 은 떼어내고 앞부분을 샘플 이름으로 쓴다 (`Q232A_r1`/`_r2`/`_r3` → 같은 변이 `Q232A` 의 세 well, `WT_r1` → WT 대조군, `A40P_E61Y_r1` → `A40P_E61Y` 로 이름 안 언더스코어 보존). 샘플 이름이 `blank` (대소문자 무시) 인 행은 빈 well 이라 결과에서 제외. well 좌표 라벨을 쓰는 축 A 소스에는 필수 |
+| `verdict_xlsx` | 주면 non-PASS well 의 변이를 제외 |
+| `mismatch_threshold` | 두 축이 같은 변이를 정의할 때 평균 차 임계. 기본 0.1 |
+| `gc_export_xlsx` | raw 1차 report 일 때만, 중간 well 단위 상대활성(`Sample Name`, `Area`) 을 따로 남길 경로 |
 
 ### 정규화
 
-두 모드 모두 WT 대비 선형 상대값을 낸다.
+어느 축 조합이든 WT 대비 선형 상대값을 낸다.
 
 ```
 relative = area / mean(WT block areas)
 ```
 
-reports-mode 는 replicate 마다 각각 나눈다. WT 블록이 없으면 `ValueError` 로 즉시 실패하며 조용한 fallback 은 없다. WT 판정은 sample name 이 `WT_1` / `WT1` 형태(`^WT_?\d+$`)일 때다. sample name 이 순수 숫자인 블록은 캘리브레이션으로 보고 건너뛴다.
+raw Agilent report 소스(`round1_report_xlsx`, `remeasure_report_xlsx`)는 replicate 마다 각각 나눈다. WT 블록이 없으면 `ValueError` 로 즉시 실패하며 조용한 fallback 은 없다. WT 판정은 sample name 이 `WT_1` / `WT1` 형태(`^WT_?\d+$`)일 때다. sample name 이 순수 숫자인 블록은 캘리브레이션으로 보고 건너뛴다.
 
 재측정과 라운드-1 에 같은 변이가 있으면 재측정을 우선하고, 두 평균 차가 임계(기본 0.1)를 넘으면 mismatch 로 표시한다. 임계를 넘어도 값은 재측정 쪽을 쓰고 표시만 남긴다.
 
