@@ -40,6 +40,7 @@ from .evolvepro_xlsx import (
     write_relative_activity_xlsx,
 )
 from .merge import merge_replicates_priority
+from .numeric_id_decode import DecodeResult, decode_confirmation, decode_primary_screen
 from .models import MergeReplicatesStats, Variant
 from .plate_layout_xlsx import parse_plate_layout_xlsx, _normalise_well
 from .sanity_check import detect_label_swap
@@ -680,10 +681,12 @@ def build_evolvepro_input_from_reports(
 PRIMARY_RAW_REPORT = "raw_report"           # raw Agilent report (well labels)
 PRIMARY_GC_SHEET = "gc_sheet"               # pre-normalised GC sheet (well labels)
 PRIMARY_PREV_EVOLVEPRO = "prev_evolvepro"   # previous EVOLVEpro file (variant labels)
+PRIMARY_NUMERIC_REPORT = "numeric_report"   # numeric sample IDs, whole plate
 
 # Axis B, how the n-replicate confirmation labels its samples (at most one).
 CONFIRM_VARIANT_LABELS = "variant_labels"   # variant-labeled Agilent report
 CONFIRM_NUMERIC_INDEX = "numeric_index"     # numeric base IDs + rank source
+CONFIRM_NUMERIC_SUBSET = "numeric_subset"   # numeric IDs into the above-WT subset
 CONFIRM_NONE = "none"                       # provisional, no confirmation
 
 _DEFAULT_NO_VARIANTS_MESSAGE = (
@@ -729,13 +732,16 @@ class BuildEvolveproAxesResult:
 def build_evolvepro_input_axes(
     output_xlsx: str | Path,
     *,
-    # Axis A, primary screen (1 replicate). Exactly one of the three.
+    # Axis A, primary screen (1 replicate). Exactly one of the four.
     round1_report_xlsx: str | Path | None = None,
     gc_data_xlsx: str | Path | None = None,
     round1_evolvepro_xlsx: str | Path | None = None,
+    round1_rep_batch_xlsx: str | Path | None = None,
     layout_xlsx: str | Path | None = None,
-    # Axis B, confirmation (n replicates). At most one of the two.
+    expected_mutations_xlsx: str | Path | None = None,
+    # Axis B, confirmation (n replicates). At most one of the three.
     remeasure_report_xlsx: str | Path | None = None,
+    remeasure_rep_batch_xlsx: str | Path | None = None,
     rep_batch_xlsx: str | Path | None = None,
     rank_evolvepro_xlsx: str | Path | None = None,
     # Shared options.
@@ -796,6 +802,7 @@ def build_evolvepro_input_axes(
             (PRIMARY_RAW_REPORT, round1_report_xlsx),
             (PRIMARY_GC_SHEET, gc_data_xlsx),
             (PRIMARY_PREV_EVOLVEPRO, round1_evolvepro_xlsx),
+            (PRIMARY_NUMERIC_REPORT, round1_rep_batch_xlsx),
         )
         if src is not None
     ]
@@ -804,7 +811,8 @@ def build_evolvepro_input_axes(
             "exactly one primary screen source is required, got "
             f"{len(primary_selected)} ({', '.join(primary_selected) or 'none'}): "
             "pass round1_report_xlsx (raw report), gc_data_xlsx (pre-normalised "
-            "GC sheet) or round1_evolvepro_xlsx (previous EVOLVEpro file)"
+            "GC sheet), round1_evolvepro_xlsx (previous EVOLVEpro file) or "
+            "round1_rep_batch_xlsx (numeric sample IDs)"
         )
     primary_source = primary_selected[0]
 
@@ -813,6 +821,7 @@ def build_evolvepro_input_axes(
         name
         for name, src in (
             (CONFIRM_VARIANT_LABELS, remeasure_report_xlsx),
+            (CONFIRM_NUMERIC_SUBSET, remeasure_rep_batch_xlsx),
             (CONFIRM_NUMERIC_INDEX, rep_batch_xlsx),
         )
         if src is not None
@@ -821,7 +830,8 @@ def build_evolvepro_input_axes(
         raise ValueError(
             "at most one confirmation source is allowed, got "
             f"{', '.join(confirm_selected)}: pass remeasure_report_xlsx "
-            "(variant labels) or rep_batch_xlsx (numeric index), not both"
+            "(variant labels), remeasure_rep_batch_xlsx (numeric IDs into the "
+            "above-WT subset) or rep_batch_xlsx (numeric index), not several"
         )
     confirmation_source = (
         confirm_selected[0] if confirm_selected else CONFIRM_NONE
@@ -833,9 +843,26 @@ def build_evolvepro_input_axes(
             "previous EVOLVEpro file, so variant names cannot be recovered "
             "without it"
         )
+    # The above-WT subset is derived from the primary screen, so this
+    # confirmation only means anything when the primary screen is the matching
+    # numeric report. Pairing it with a variant-labelled or pre-normalised
+    # primary would silently index into a set that was never measured.
+    if (
+        confirmation_source == CONFIRM_NUMERIC_SUBSET
+        and primary_source != PRIMARY_NUMERIC_REPORT
+    ):
+        raise ValueError(
+            "numeric-subset confirmation (remeasure_rep_batch_xlsx) requires "
+            "round1_rep_batch_xlsx as the primary screen: its IDs index the "
+            "above-WT subset of that screen, which no other primary source "
+            f"can produce (got primary source {primary_source!r})"
+        )
 
     # --- axis A build ------------------------------------------------------
     gc_export_path: Path | None = None
+    # Set only by the numeric primary screen; the numeric-subset confirmation
+    # indexes into it, which is why the two are locked together above.
+    primary_decode: DecodeResult | None = None
     if primary_source == PRIMARY_RAW_REPORT:
         if layout_xlsx is None:
             raise ValueError(
@@ -866,6 +893,27 @@ def build_evolvepro_input_axes(
             layout_xlsx, gc_data_xlsx
         )
         warnings.extend(w_primary)
+    elif primary_source == PRIMARY_NUMERIC_REPORT:
+        if layout_xlsx is None and expected_mutations_xlsx is None:
+            raise ValueError(
+                "numeric primary screen (round1_rep_batch_xlsx) needs an order "
+                "to index into: pass expected_mutations_xlsx (the KURO design, "
+                "preferred) or layout_xlsx (hand-written plate file). The "
+                "sample IDs carry no variant information on their own."
+            )
+        if gc_export_xlsx is not None:
+            warnings.append(
+                _GC_EXPORT_IGNORED.format(source="a numeric-ID report")
+            )
+        assert round1_rep_batch_xlsx is not None  # axis A selection guarantees it
+        primary_decode = decode_primary_screen(
+            round1_rep_batch_xlsx,
+            None if expected_mutations_xlsx is not None else layout_xlsx,
+            expected_xlsx=expected_mutations_xlsx,
+        )
+        fallback = primary_decode.by_variant()
+        well_by_variant = {r.variant: r.well for r in primary_decode.rows}
+        warnings.extend(primary_decode.warnings)
     else:
         if gc_export_xlsx is not None:
             warnings.append(
@@ -901,6 +949,16 @@ def build_evolvepro_input_axes(
             remeasure_report_xlsx
         )
         warnings.extend(w_confirm)
+    elif confirmation_source == CONFIRM_NUMERIC_SUBSET:
+        # Axis selection already refused any primary other than the numeric one,
+        # so the decode of that screen is what these IDs index into.
+        assert primary_decode is not None
+        assert remeasure_rep_batch_xlsx is not None
+        confirm_decode = decode_confirmation(
+            remeasure_rep_batch_xlsx, primary_decode
+        )
+        authoritative = confirm_decode.by_variant()
+        warnings.extend(confirm_decode.warnings)
 
     # --- merge (short variant space) ---------------------------------------
     authoritative_v: dict[Variant, list[float]] = {
