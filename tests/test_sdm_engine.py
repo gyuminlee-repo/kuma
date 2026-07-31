@@ -360,6 +360,67 @@ class TestCancelCheck:
         assert 0 < len(results) <= 3
 
 
+class TestCheckOfftarget:
+    """`check_offtarget()` is the function the design path actually calls
+
+    (6 call sites in design_single_sdm / evaluate_custom_primer). Unlike
+    `check_offtarget_sliding` (never called from the design path), this one
+    had zero detection-oriented tests before this commit.
+    """
+
+    # 24 nt primer, arbitrary composition.
+    PRIMER = "ATGGCTAGCATCGTAGCATGCAGT"
+
+    def test_current_anchor_rule_misses_internal_mismatch_site(self):
+        """THIS IS A BUG, PINNED ON PURPOSE. The next commit flips it.
+
+        Decoy site: on the template, literally equal to PRIMER except for
+        2 internal mismatches at 0-based offsets 8 and 13 (both well inside
+        the last `min_match`=15 nt from the 3' end, but 10+ nt away from
+        the 3' terminus itself, so the last 6 nt -- the region literature
+        says actually drives priming -- are untouched).
+
+        Per Kwok et al. 1990 NAR 18(4):999 and Huang/Arnheim/Goodman 1992
+        NAR 20(17):4567, a 3' end that is fully complementary primes
+        efficiently even with internal mismatches; Primer3 itself only
+        requires the last 4 nt to be mismatch-free. The current KURO rule
+        instead requires the **entire** last 15 nt to match with zero
+        mismatches, so it misses exactly this decoy -- the most dangerous
+        combination (perfect 3' end + internal mismatches) is invisible to
+        it. That is the bug this file documents and the next commit fixes.
+        """
+        primer = self.PRIMER
+        decoy_site = "ATGGCTAGAATCGGAGCATGCAGT"  # positions 8, 13 flipped
+        assert len(decoy_site) == len(primer)
+        assert primer[-6:] == decoy_site[-6:]  # 3' end (>=6 nt) intact
+        assert primer != decoy_site  # internal mismatches present
+
+        template = primer + "N" * 50 + decoy_site + "N" * 20
+        hits = check_offtarget(
+            primer_seq=primer,
+            template=template,
+            intended_start=0,
+            intended_end=len(primer),
+        )
+        assert hits == [], (
+            "current 15-nt-exact-anchor rule is expected to miss this decoy; "
+            f"got {hits!r} -- if this now fails, the blind spot may already "
+            "be fixed and this test should be flipped (see commit 2)"
+        )
+
+    def test_perfect_repeat_is_detected(self):
+        """Baseline: an exact-repeat 3' anchor is caught (regression guard)."""
+        primer = self.PRIMER
+        template = "N" * 40 + primer + "N" * 40 + primer + "N" * 40
+        hits = check_offtarget(
+            primer_seq=primer,
+            template=template,
+            intended_start=40,
+            intended_end=40 + len(primer),
+        )
+        assert len(hits) >= 1
+
+
 class TestCheckOfftargetSliding:
     """Sliding-window off-target (PrimerBench / SnapGene-style)."""
 
