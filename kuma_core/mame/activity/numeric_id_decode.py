@@ -74,6 +74,19 @@ class DecodedId:
         return sum(self.relative) / len(self.relative)
 
 
+@dataclass(frozen=True)
+class DecodedSlot:
+    id: int
+    variant: str | None
+    mutant: str
+    well: str
+    relative: tuple[float, ...]
+
+    @property
+    def mean(self) -> float:
+        return sum(self.relative) / len(self.relative)
+
+
 @dataclass
 class DecodeResult:
     """Outcome of decoding one numeric-ID report.
@@ -88,6 +101,7 @@ class DecodeResult:
     rows: list[DecodedId]
     wt_mean: float
     order: list[str]
+    slots: list[DecodedSlot] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
     def by_variant(self) -> dict[str, list[float]]:
@@ -183,7 +197,7 @@ def _decode_against(
     *,
     source: str,
     order_label: str,
-) -> list[DecodedId]:
+) -> tuple[list[DecodedId], list[DecodedSlot]]:
     """Match ascending numeric IDs onto *order* positionally.
 
     An ID outside ``1..len(order)`` aborts the decode. Guessing would attach a
@@ -210,8 +224,19 @@ def _decode_against(
         )
 
     rows: list[DecodedId] = []
+    slots: list[DecodedSlot] = []
     for base_id in ids:
         short, mutant, well = order[base_id - 1]
+        relative = tuple(a / wt_mean for a in block.reps[base_id])
+        slots.append(
+            DecodedSlot(
+                id=base_id,
+                variant=short,
+                mutant=mutant,
+                well=well,
+                relative=relative,
+            )
+        )
         if short is None:
             continue
         rows.append(
@@ -220,10 +245,10 @@ def _decode_against(
                 variant=short,
                 mutant=mutant,
                 well=well,
-                relative=tuple(a / wt_mean for a in block.reps[base_id]),
+                relative=relative,
             )
         )
-    return rows
+    return rows, slots
 
 
 def decode_primary_screen(
@@ -259,7 +284,7 @@ def decode_primary_screen(
         assert layout_xlsx is not None
         order, warnings = layout_variant_order(layout_xlsx)
         order_label = "the plate layout"
-    rows = _decode_against(
+    rows, slots = _decode_against(
         block,
         order,
         wt_mean,
@@ -270,11 +295,12 @@ def decode_primary_screen(
         rows=rows,
         wt_mean=wt_mean,
         order=[o[0] for o in order if o[0] is not None],
+        slots=slots,
         warnings=warnings,
     )
 
 
-def above_wt_subset(primary: DecodeResult) -> list[tuple[str, str, str]]:
+def above_wt_subset(primary: DecodeResult) -> DecodeOrder:
     """Primary-screen variants above wild-type, in layout well order.
 
     This reproduces the lab selection rule: every variant that beat WT in the
@@ -282,11 +308,16 @@ def above_wt_subset(primary: DecodeResult) -> list[tuple[str, str, str]]:
     layout order the primary screen was decoded in, so the confirmation file
     numbers its subset the same way.
     """
-    selected = {r.variant for r in primary.rows if r.mean > WT_RELATIVE}
+    if not primary.slots:
+        return [
+            (r.variant, r.mutant, r.well)
+            for r in primary.rows
+            if r.mean > WT_RELATIVE
+        ]
     return [
-        (r.variant, r.mutant, r.well)
-        for r in primary.rows
-        if r.variant in selected
+        (slot.variant, slot.mutant, slot.well)
+        for slot in primary.slots
+        if slot.mean > WT_RELATIVE
     ]
 
 
@@ -316,7 +347,7 @@ def decode_confirmation(
             f"there is no subset for {source} to index into. Check that the "
             "primary screen WT blocks are the right ones."
         )
-    rows = _decode_against(
+    rows, slots = _decode_against(
         block,
         subset,
         wt_mean,
@@ -326,6 +357,7 @@ def decode_confirmation(
     return DecodeResult(
         rows=rows,
         wt_mean=wt_mean,
-        order=[s[0] for s in subset],
+        order=[s[0] for s in subset if s[0] is not None],
+        slots=slots,
         warnings=[],
     )

@@ -206,6 +206,33 @@ class TestConfirmation:
         ]
         assert result.rows[0].mean == pytest.approx(1.5)
 
+    def test_above_wt_multi_substitution_slot_does_not_shift_confirmation(
+        self, tmp_path
+    ):
+        layout = _layout(
+            tmp_path,
+            [("V5F", "A1"), ("A40P_E61Y", "B1"), ("R87P", "C1"), ("WT", "H12")],
+        )
+        primary_report = _report(
+            tmp_path,
+            {1: [2.5], 2: [2.4], 3: [2.3]},
+            [_WT],
+            name="primary_multi_sub_above_wt.xlsx",
+        )
+        primary = decode_primary_screen(primary_report, layout)
+        confirm = self._confirmation(
+            tmp_path,
+            {1: [1.4], 2: [1.2], 3: [0.9]},
+        )
+
+        result = decode_confirmation(confirm, primary)
+
+        assert [(r.id, r.variant, r.well) for r in result.rows] == [
+            (1, "5F", "A01"),
+            (3, "87P", "C01"),
+        ]
+        assert result.order == ["5F", "87P"]
+
     def test_replicate_count_is_not_fixed(self, tmp_path):
         primary = decode_primary_screen(_primary(tmp_path), _layout(tmp_path))
         confirm = self._confirmation(
