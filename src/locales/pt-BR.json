@@ -12,7 +12,12 @@
     "openWorkspace": "Abrir workspace...",
     "saveWorkspace": "Salvar workspace...",
     "compareWorkspaces": "Comparar workspaces...",
-    "exportWorkspaceZip": "Exportar workspace como zip..."
+    "exportProjectZip": "Exportar projeto como ZIP...",
+    "importProjectZip": "Importar projeto de ZIP...",
+    "exportProjectZipDone": "{{count}} arquivo(s) salvo(s) em {{path}}",
+    "exportProjectZipFailed": "Falha ao exportar o projeto: {{detail}}",
+    "importProjectZipDone": "{{count}} arquivo(s) importado(s) para {{path}}",
+    "importProjectZipFailed": "Falha ao importar o projeto: {{detail}}"
   },
   "export": {
     "all": "Exportar tudo",
@@ -585,7 +590,6 @@
       "compareWorkspacesNoDiff": "No differences found.",
       "compareWorkspacesSame": "The two workspaces are identical.",
       "compareWorkspacesTitle": "Compare Workspaces",
-      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon",
       "selectWorkspaceA": "Select first workspace (A)",
       "selectWorkspaceB": "Select second workspace (B)"
     },
@@ -2289,6 +2293,7 @@
     "writeFailed": "Não foi possível gravar o arquivo de salvamento automático ({{filename}}). Causa: {{cause}}",
     "carriedFromScratch": "Continuado de uma sessão anterior não salva ({{relative}})",
     "resultsDiscarded": "A lista de variants foi selecionada novamente a partir do arquivo de origem e não corresponde mais à tabela de primers restaurada, portanto a tabela foi limpa. Execute o design novamente.",
+    "inputsUnavailable": "Nao foi possivel abrir {{count}} arquivo(s) de entrada, que ficaram de fora da restauracao. Os resultados continuam la, mas falta a entrada de origem. Selecione novamente: {{paths}}",
     "workspaceRestored": "Workspace restaurado",
     "autoDetected": "Auto-detectado: {{fields}}",
     "fieldRunFolder": "pasta da execução",
@@ -2297,8 +2302,7 @@
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
-    "pathsMoved": "Estas entradas foram movidas e precisam ser selecionadas novamente: {{fields}}",
-    "sequenceMissing": "Nao foi possivel abrir o arquivo de sequencia ({{filename}}). Selecione-o novamente."
+    "pathsMoved": "Estas entradas foram movidas e precisam ser selecionadas novamente: {{fields}}"
   },
   "phaseC": {
     "majors": {

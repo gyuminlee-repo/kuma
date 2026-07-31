@@ -12,7 +12,12 @@
     "openWorkspace": "워크스페이스 열기...",
     "saveWorkspace": "워크스페이스 저장...",
     "compareWorkspaces": "워크스페이스 비교...",
-    "exportWorkspaceZip": "워크스페이스 ZIP으로 내보내기..."
+    "exportProjectZip": "프로젝트를 ZIP으로 내보내기...",
+    "importProjectZip": "ZIP에서 프로젝트 가져오기...",
+    "exportProjectZipDone": "파일 {{count}}개를 {{path}} 에 저장했습니다",
+    "exportProjectZipFailed": "프로젝트 내보내기 실패: {{detail}}",
+    "importProjectZipDone": "파일 {{count}}개를 {{path}} 로 가져왔습니다",
+    "importProjectZipFailed": "프로젝트 가져오기 실패: {{detail}}"
   },
   "export": {
     "all": "전체 내보내기",
@@ -691,8 +696,7 @@
       "restartSidecarConfirm": "분석이 실행 중입니다. 그래도 sidecar를 재시작하시겠습니까?",
       "selectWorkspaceA": "첫 번째 워크스페이스 선택 (A)",
       "selectWorkspaceB": "두 번째 워크스페이스 선택 (B)",
-      "compareWorkspacesFailed": "워크스페이스 비교 실패: {{error}}",
-      "exportWorkspaceZipSoon": "워크스페이스를 zip으로 내보내기 - 준비 중"
+      "compareWorkspacesFailed": "워크스페이스 비교 실패: {{error}}"
     },
     "statusBar": {
       "ready": "준비됨",
@@ -2322,6 +2326,7 @@
     "writeFailed": "자동 저장 파일을 쓰지 못했습니다 ({{filename}}). 원인: {{cause}}",
     "carriedFromScratch": "저장하지 않은 이전 세션에서 이어왔습니다 ({{relative}})",
     "resultsDiscarded": "소스 파일에서 variant 목록을 다시 선택했고 복원된 primer 표와 맞지 않아 표를 비웠습니다. 설계를 다시 실행하세요.",
+    "inputsUnavailable": "입력 파일 {{count}}개를 열지 못해 복원에서 빠졌습니다. 결과는 남아 있지만 근거 입력이 없으니 다시 지정하세요: {{paths}}",
     "workspaceRestored": "Workspace 복원됨",
     "autoDetected": "자동 감지: {{fields}}",
     "fieldRunFolder": "실행 폴더",
@@ -2330,8 +2335,7 @@
     "fieldSampleMap": "샘플 맵",
     "fieldCustomBarcodes": "커스텀 바코드",
     "fieldSequencingSummary": "시퀀싱 요약",
-    "pathsMoved": "이전 경로를 찾을 수 없어 다시 지정해야 합니다: {{fields}}",
-    "sequenceMissing": "서열 파일을 열지 못했습니다 ({{filename}}). 다시 선택하세요."
+    "pathsMoved": "이전 경로를 찾을 수 없어 다시 지정해야 합니다: {{fields}}"
   },
   "phaseC": {
     "majors": {

@@ -114,7 +114,13 @@ export function useKuroAutosave(): void {
       scheduleAutosave(
         targetRef.current,
         "kuro",
-        () => buildKuroSnapshot(useAppStore.getState()),
+        // 경로 상대화 기준은 쓰기 시점의 대상 프로젝트다. targetRef를 따라가야
+        // 프로젝트 전환 직후 예약분이 옛 폴더 기준으로 상대화되지 않는다.
+        () =>
+          buildKuroSnapshot(
+            useAppStore.getState(),
+            targetRef.current.scratch ? null : targetRef.current.projectPath,
+          ),
       );
     });
 

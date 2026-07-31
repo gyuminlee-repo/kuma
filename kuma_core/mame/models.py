@@ -62,6 +62,7 @@ class BarcodeRecord:
     # 0 = insertion-driven, 1 = isolated single position (artifact suspect),
     # >=2 = N-bp contiguous deletion.
     max_del_run_length: int = 0
+    net_indel_bp: int | None = None
 
 
 @dataclass

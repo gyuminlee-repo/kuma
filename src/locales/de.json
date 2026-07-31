@@ -12,7 +12,12 @@
     "openWorkspace": "Workspace öffnen...",
     "saveWorkspace": "Workspace speichern...",
     "compareWorkspaces": "Workspaces vergleichen...",
-    "exportWorkspaceZip": "Workspace als zip exportieren..."
+    "exportProjectZip": "Projekt als ZIP exportieren...",
+    "importProjectZip": "Projekt aus ZIP importieren...",
+    "exportProjectZipDone": "{{count}} Datei(en) nach {{path}} gespeichert",
+    "exportProjectZipFailed": "Projektexport fehlgeschlagen: {{detail}}",
+    "importProjectZipDone": "{{count}} Datei(en) nach {{path}} importiert",
+    "importProjectZipFailed": "Projektimport fehlgeschlagen: {{detail}}"
   },
   "export": {
     "all": "Alles exportieren",
@@ -585,7 +590,6 @@
       "compareWorkspacesNoDiff": "No differences found.",
       "compareWorkspacesSame": "The two workspaces are identical.",
       "compareWorkspacesTitle": "Compare Workspaces",
-      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon",
       "selectWorkspaceA": "Select first workspace (A)",
       "selectWorkspaceB": "Select second workspace (B)"
     },
@@ -2289,6 +2293,7 @@
     "writeFailed": "Autosave-Datei konnte nicht geschrieben werden ({{filename}}). Ursache: {{cause}}",
     "carriedFromScratch": "Aus einer nicht gespeicherten früheren Sitzung übernommen ({{relative}})",
     "resultsDiscarded": "Die variant-Liste wurde aus der Quelldatei neu ausgewählt und passt nicht mehr zur wiederhergestellten primer-Tabelle. Die Tabelle wurde geleert. Das Design bitte erneut ausführen.",
+    "inputsUnavailable": "{{count}} Eingabedatei(en) konnten nicht geoeffnet werden und fehlen in der Wiederherstellung. Die Ergebnisse sind noch da, die zugrunde liegende Eingabe fehlt jedoch. Bitte erneut auswaehlen: {{paths}}",
     "workspaceRestored": "Workspace wiederhergestellt",
     "autoDetected": "Automatisch erkannt: {{fields}}",
     "fieldRunFolder": "ausführen Ordner",
@@ -2297,8 +2302,7 @@
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
-    "pathsMoved": "Diese Eingaben wurden verschoben und muessen neu ausgewaehlt werden: {{fields}}",
-    "sequenceMissing": "Die Sequenzdatei konnte nicht geoeffnet werden ({{filename}}). Bitte erneut auswaehlen."
+    "pathsMoved": "Diese Eingaben wurden verschoben und muessen neu ausgewaehlt werden: {{fields}}"
   },
   "phaseC": {
     "majors": {

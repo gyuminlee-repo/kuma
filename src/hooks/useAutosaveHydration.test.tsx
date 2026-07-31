@@ -1002,3 +1002,76 @@ describe("applyKuroSnapshot: 복원 결과물 vs 재선택 variant", () => {
     expect(st.plateMappings).toHaveLength(1);
   });
 });
+
+describe("applyKuroSnapshot: 프로젝트 폴더 이식", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAppStore.getState().resetAll();
+  });
+
+  /** evolvepro_csv_path 만 바꾼 스냅샷. 결과물은 재선택과 일치시켜 폐기를 피한다. */
+  function snapshotWithCsvPath(csvPath: string): AutosaveSnapshot {
+    const snapshot = snapshotWithResults("X9Y") as unknown as {
+      input: Record<string, unknown>;
+    };
+    return {
+      ...(snapshot as unknown as AutosaveSnapshot),
+      input: { ...snapshot.input, evolvepro_csv_path: csvPath },
+    } as unknown as AutosaveSnapshot;
+  }
+
+  it("project:// 경로를 현재 프로젝트 폴더 기준으로 되살려 로드한다", async () => {
+    mockReselection(["X9Y"]);
+
+    await applyKuroSnapshot(
+      snapshotWithCsvPath("project://evolvepro.csv"),
+      undefined,
+      "/newpc/run7",
+    );
+
+    // 다른 PC의 폴더 기준으로 다시 조립된 경로로 사이드카를 호출해야 한다.
+    expect(useAppStore.getState().evolveproCsvPath).toBe("/newpc/run7/evolvepro.csv");
+    expect(hooks.sendKuroRequest).toHaveBeenCalledWith(
+      "load_evolvepro_csv",
+      expect.objectContaining({ filepath: "/newpc/run7/evolvepro.csv" }),
+    );
+  });
+
+  it("구 스냅샷의 절대 경로는 기준 폴더와 무관하게 그대로 쓴다", async () => {
+    mockReselection(["X9Y"]);
+
+    await applyKuroSnapshot(
+      snapshotWithCsvPath("/oldpc/run7/evolvepro.csv"),
+      undefined,
+      "/newpc/run7",
+    );
+
+    expect(useAppStore.getState().evolveproCsvPath).toBe("/oldpc/run7/evolvepro.csv");
+  });
+
+  it("입력을 열지 못하면 복원은 이어가되 열지 못한 경로를 보고한다", async () => {
+    hooks.sendKuroRequest.mockRejectedValue(new Error("ENOENT"));
+
+    const outcome = await applyKuroSnapshot(
+      snapshotWithCsvPath("/oldpc/run7/evolvepro.csv"),
+      undefined,
+      "/newpc/run7",
+    );
+
+    // 조용히 넘어가면 결과물만 남고 근거 입력이 빠진 상태를 정상으로 오인한다.
+    expect(outcome.unavailableInputs).toEqual(["/oldpc/run7/evolvepro.csv"]);
+    expect(useAppStore.getState().designResults).toHaveLength(1);
+  });
+
+  it("정상 복원이면 열지 못한 입력 목록이 비어 있다", async () => {
+    mockReselection(["X9Y"]);
+
+    const outcome = await applyKuroSnapshot(
+      snapshotWithCsvPath("project://evolvepro.csv"),
+      undefined,
+      "/newpc/run7",
+    );
+
+    expect(outcome.unavailableInputs).toEqual([]);
+  });
+});

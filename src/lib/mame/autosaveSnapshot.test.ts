@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { BUILD_EVOLVEPRO_DEFAULT_STATE, createBuildEvolveproCompletion } from "@/lib/mame/buildEvolveproFormStorage";
 import type { DistributionStats, ReplicateResult, RunHealthData, VerdictRecord, WellEntry } from "@/types/mame/models";
 import type { Round } from "@/types/round";
-import { buildMameSnapshot } from "./autosaveSnapshot";
+import { buildMameSnapshot, type MameSnapshotState } from "./autosaveSnapshot";
 
 const verdict: VerdictRecord = {
   native_barcode: "barcode1",
@@ -187,5 +187,88 @@ describe("buildMameSnapshot", () => {
         well_layout: { A01: "V5F" },
       },
     });
+  });
+});
+
+describe("buildMameSnapshot 경로 이식성", () => {
+  // 경로 필드만 보는 테스트라 나머지는 최소값으로 채운다.
+  const pathState = (overrides: Partial<MameSnapshotState> = {}): MameSnapshotState => ({
+    inputDir: "/proj/run",
+    expectedPath: "/proj/expected.xlsx",
+    referencePath: "/proj/ref.fa",
+    outputPath: "/proj/out",
+    sampleMapPath: "/proj/sample_map.xlsx",
+    mode: "amplicon",
+    ingestMode: "barcode",
+    inputMode: "raw_run",
+    rawRunParams: {
+      customBarcodesPath: "",
+      sequencingSummaryPath: "",
+      minQscore: 10,
+      lengthMin: 0,
+      lengthMax: 0,
+      targetLength: null,
+      lengthToleranceBp: 50,
+      normalizeHeaders: true,
+      coverageFraction: 0.98,
+      editDistRatio: 0.25,
+      chimeraSplit: true,
+    },
+    cdsStart: 1,
+    cdsEnd: 900,
+    minFileSizeKb: 50,
+    manyCutoff: 5,
+    verdicts: [],
+    replicates: [],
+    summary: null,
+    distributionStats: null,
+    wells: [],
+    selectedWell: null,
+    runHealth: null,
+    buildEvolveproCompletion: null,
+    demuxResult: null,
+    ampliconLengthEstimate: null,
+    wellLayout: null,
+    ...overrides,
+  });
+
+  it("프로젝트 폴더 안 경로를 project:// 상대 경로로 저장한다", () => {
+    const snapshot = buildMameSnapshot(pathState(), undefined, "/proj");
+
+    expect(snapshot.input).toEqual({
+      input_dir: "project://run",
+      expected_path: "project://expected.xlsx",
+      reference_path: "project://ref.fa",
+      output_path: "project://out",
+      sample_map_path: "project://sample_map.xlsx",
+    });
+  });
+
+  it("프로젝트 폴더 밖 raw run 폴더는 절대 경로로 남긴다", () => {
+    const snapshot = buildMameSnapshot(
+      pathState({ inputDir: "/ngs/run_20260730" }),
+      undefined,
+      "/proj",
+    );
+
+    expect(snapshot.input.input_dir).toBe("/ngs/run_20260730");
+    expect(snapshot.input.reference_path).toBe("project://ref.fa");
+  });
+
+  it("projectPath를 주지 않으면 절대 경로를 그대로 둔다 (scratch 세션)", () => {
+    const snapshot = buildMameSnapshot(pathState());
+
+    expect(snapshot.input.input_dir).toBe("/proj/run");
+    expect(snapshot.input.expected_path).toBe("/proj/expected.xlsx");
+  });
+
+  it("빈 경로는 빈 문자열로 유지한다", () => {
+    const snapshot = buildMameSnapshot(pathState({ sampleMapPath: "" }), undefined, "/proj");
+
+    expect(snapshot.input.sample_map_path).toBe("");
+  });
+
+  it("schema 를 4 로 올려 구 빌드가 새 스냅샷을 잘못 읽지 않게 한다", () => {
+    expect(buildMameSnapshot(pathState(), undefined, "/proj").schema).toBe(4);
   });
 });

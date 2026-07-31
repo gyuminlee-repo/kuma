@@ -163,6 +163,30 @@ class TestWellConsensusUnit:
         assert r.n_passed_filter >= 1
         assert len(r.consensus_seq) == len(_SYNTH_REF)
 
+    def test_one_bp_deletion_well_net_indel_minus_one(self, ref_fasta: Path) -> None:
+        """End-to-end glue: real deletion reads through compute_well_consensuses
+        surface as net_indel_bp == -1 (the value the verdict tier keys off).
+
+        Exercises the production propagation ConsensusCall.net_indel_bp ->
+        ConsensusResult.net_indel_bp, not just call_consensus_with_metrics.
+        """
+        # Drop 1 bp at position 150 so minimap2 emits a 1D CIGAR per read.
+        del_read = _SYNTH_REF[:150] + _SYNTH_REF[151:]
+        per_well = {"w": [(f"r{i}", del_read) for i in range(6)]}
+        results = compute_well_consensuses(per_well, ref_fasta, min_mapq=0)
+        r = results["w"]
+        assert r.n_passed_filter >= 1
+        assert r.net_indel_bp == -1
+
+    def test_perfect_reads_well_net_indel_zero(self, ref_fasta: Path) -> None:
+        per_well = {"w": [(f"r{i}", _SYNTH_REF) for i in range(5)]}
+        results = compute_well_consensuses(per_well, ref_fasta, min_mapq=0)
+        assert results["w"].net_indel_bp == 0
+
+    def test_zero_reads_well_net_indel_zero(self, ref_fasta: Path) -> None:
+        results = compute_well_consensuses({"w": []}, ref_fasta, min_mapq=0)
+        assert results["w"].net_indel_bp == 0
+
     def test_missing_reference_raises(self, tmp_path: Path) -> None:
         with pytest.raises(FileNotFoundError):
             compute_well_consensuses(

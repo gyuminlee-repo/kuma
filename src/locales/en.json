@@ -12,7 +12,12 @@
     "openWorkspace": "Open Workspace...",
     "saveWorkspace": "Save Workspace...",
     "compareWorkspaces": "Compare workspaces...",
-    "exportWorkspaceZip": "Export workspace as zip..."
+    "exportProjectZip": "Export project as ZIP...",
+    "importProjectZip": "Import project from ZIP...",
+    "exportProjectZipDone": "Saved {{count}} file(s) to {{path}}",
+    "exportProjectZipFailed": "Project export failed: {{detail}}",
+    "importProjectZipDone": "Imported {{count}} file(s) into {{path}}",
+    "importProjectZipFailed": "Project import failed: {{detail}}"
   },
   "export": {
     "all": "Export All",
@@ -691,8 +696,7 @@
       "closeBtn": "Close",
       "selectWorkspaceA": "Select first workspace (A)",
       "selectWorkspaceB": "Select second workspace (B)",
-      "compareWorkspacesFailed": "Workspace compare failed: {{error}}",
-      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon"
+      "compareWorkspacesFailed": "Workspace compare failed: {{error}}"
     },
     "statusBar": {
       "ready": "Ready",
@@ -2322,6 +2326,7 @@
     "writeFailed": "Could not write the autosave file ({{filename}}). Cause: {{cause}}",
     "carriedFromScratch": "Carried over from an unsaved earlier session ({{relative}})",
     "resultsDiscarded": "The variant list was re-selected from the source file and no longer matches the restored primer table, so the table was cleared. Run the design again.",
+    "inputsUnavailable": "{{count}} input file(s) could not be opened and were left out of the restore. Results are still here but their source input is missing, so re-select it: {{paths}}",
     "workspaceRestored": "Workspace restored",
     "autoDetected": "Auto-detected: {{fields}}",
     "fieldRunFolder": "run folder",
@@ -2330,8 +2335,7 @@
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
-    "pathsMoved": "These inputs moved and need to be picked again: {{fields}}",
-    "sequenceMissing": "The sequence file could not be opened ({{filename}}). Select it again."
+    "pathsMoved": "These inputs moved and need to be picked again: {{fields}}"
   },
   "phaseC": {
     "majors": {

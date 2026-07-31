@@ -51,8 +51,8 @@ requires_minimap2 = pytest.mark.skipif(
 # ---------------------------------------------------------------------------
 
 _REFERENCE_NT = "ATGGGGTTT"  # M G F
-_G2A_NT = "ATGGCGTTT"  # well 1_2
-_F3W_NT = "ATGGGGTGG"  # well 2_1
+_G2A_NT = "ATGGCGTTT"
+_F3W_NT = "ATGGGGTGG"
 _PAD = "\n" * (52 * 1024)  # clear the default 50 KB file-size threshold
 
 
@@ -234,6 +234,41 @@ def test_handle_analyze_consensus_dir_backward_compatible(
     }
     assert "assigned_reads" not in result
     assert "wells_with_reads" not in result
+
+
+def test_handle_analyze_auto_scopes_from_expected_when_sample_map_omitted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    ingest_dir = tmp_path / "consensus"
+    _write_fasta(ingest_dir / "NB01" / "1_1.fasta", header="1_1", body=_G2A_NT)
+    _write_fasta(ingest_dir / "NB01" / "2_1.fasta", header="2_1", body=_F3W_NT)
+    reference = _make_reference_fasta(tmp_path)
+    kuro_xlsx = tmp_path / "kuro.xlsx"
+    _make_kuro_xlsx(kuro_xlsx)
+    output = tmp_path / "out.xlsx"
+    _capture_progress(monkeypatch)
+
+    result = analyze_mod.handle_analyze({
+        "input_dir": str(ingest_dir),
+        "reference": str(reference),
+        "expected": str(kuro_xlsx),
+        "output": str(output),
+        "cds_start": 0,
+        "cds_end": 9,
+        "min_file_size_kb": 0.0,
+        "min_read_count": 0,
+        "ingest_mode": "barcode",
+    })
+
+    by_custom = {v["custom_barcode"]: v for v in result["verdicts"]}
+    assert by_custom["1_1"]["verdict"] == "PASS"
+    assert by_custom["1_1"]["expected_mutations"] == ["G2A"]
+    assert by_custom["1_1"]["mutant_id"] == "G2A"
+    assert by_custom["2_1"]["verdict"] == "PASS"
+    assert by_custom["2_1"]["expected_mutations"] == ["F3W"]
+    assert by_custom["2_1"]["mutant_id"] == "F3W"
 
 
 # ---------------------------------------------------------------------------

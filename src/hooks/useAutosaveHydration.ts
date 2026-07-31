@@ -45,6 +45,7 @@ import type { AppState } from "@/store/appStore";
 import type { AppState as MameAppState } from "@/store/mame/types";
 import type { AutosaveSnapshot, ReadAutosaveResult } from "@/lib/autosave";
 import type { MameAutosaveSnapshot } from "@/lib/mame/autosaveSnapshot";
+import { fromPortablePath } from "@/lib/projectPath";
 
 // ─── 공개 타입 ────────────────────────────────────────────────────────────
 
@@ -57,7 +58,13 @@ export interface HydrationStatusMessage {
     | "missing"
     | "io_failed"
     /** 복원된 결과물이 재선택된 variant 목록과 어긋나 폐기됐다. */
-    | "results_discarded";
+    | "results_discarded"
+    /**
+     * 스냅샷이 가리키는 입력 파일을 열지 못했다. 프로젝트 폴더를 다른 PC로 옮겼고
+     * 그 입력이 폴더 밖에 있었을 때 주로 발생한다. 조용히 넘기면 결과물만 복원되고
+     * 그 근거가 된 입력은 빠진 상태가 되므로 반드시 사용자에게 알린다.
+     */
+    | "inputs_unavailable";
   message: string;
   /** ISO 문자열. "5분 전" 표시용 */
   savedAt?: string;
@@ -120,11 +127,11 @@ export interface KuroSnapshotApplyOutcome {
   /** 재선택된 variant 목록과 어긋나 복원된 결과물을 폐기했으면 true. */
   resultsDiscarded: boolean;
   /**
-   * 스냅샷의 서열 파일을 다시 읽지 못했으면 그 경로. 복원 자체는 계속 진행하므로
-   * 이 값이 있으면 화면상 정상 복원처럼 보이는데 서열만 비어 있는 상태다.
-   * 이른 취소 경로에서는 생략된다(취소면 알릴 대상도 없다).
+   * 열지 못한 입력 파일 경로. 비어 있으면 전부 정상이다. 복원 자체는 계속하되
+   * 호출부가 사용자에게 알린다. 결과물은 살아 있는데 근거 입력이 빠진 상태를
+   * 조용히 두면 어긋난 화면을 정상으로 오인한다.
    */
-  sequenceLoadFailedPath?: string;
+  unavailableInputs: string[];
 }
 
 // ─── 상대 시간 포맷 헬퍼 ─────────────────────────────────────────────────
@@ -236,13 +243,22 @@ function discardResultsIfVariantsDiverged(): boolean {
 export async function applyKuroSnapshot(
   snapshot: AutosaveSnapshot,
   isCurrent?: () => boolean,
+  projectPath: string | null = null,
 ): Promise<KuroSnapshotApplyOutcome> {
   const alive = () => isCurrent?.() ?? true;
+  // 열지 못한 입력을 모아 호출부가 한 번에 알리도록 한다.
+  const unavailableInputs: string[] = [];
+  const done = (resultsDiscarded: boolean): KuroSnapshotApplyOutcome => ({
+    resultsDiscarded,
+    unavailableInputs,
+  });
+  // schema 3+ 스냅샷의 `project://` 경로를 현재 프로젝트 폴더 기준 절대 경로로
+  // 되돌린다. 구 스냅샷의 절대 경로는 그대로 통과한다.
+  const resolve = (value: string): string => fromPortablePath(projectPath, value);
   const input = snapshot.input as Record<string, unknown> | undefined;
   const params = snapshot.parameters as Record<string, unknown> | undefined;
   const diversity = snapshot.diversity as Record<string, unknown> | undefined;
   const patch: Partial<AppState> = {};
-  let sequenceLoadFailedPath: string | undefined;
 
   // input
   if (isMutationInputMode(input?.mutation_input_mode)) {
@@ -276,7 +292,9 @@ export async function applyKuroSnapshot(
   const wasOthersMode = input?.evolvepro_mode === "others";
   if (wasOthersMode) {
     if (typeof input?.others_source_path === "string" || input?.others_source_path === null) {
-      patch.evolveproCsvPath = input.others_source_path ?? "";
+      patch.evolveproCsvPath = input.others_source_path
+        ? resolve(input.others_source_path)
+        : "";
     }
     if (typeof input?.others_variant_column === "string" || input?.others_variant_column === null) {
       patch.evolveproVariantColumn = input.others_variant_column;
@@ -292,7 +310,9 @@ export async function applyKuroSnapshot(
     }
   } else {
     if (typeof input?.evolvepro_csv_path === "string" || input?.evolvepro_csv_path === null) {
-      patch.evolveproCsvPath = input.evolvepro_csv_path ?? "";
+      patch.evolveproCsvPath = input.evolvepro_csv_path
+        ? resolve(input.evolvepro_csv_path)
+        : "";
     }
     if (typeof input?.evolvepro_variant_column === "string" || input?.evolvepro_variant_column === null) {
       patch.evolveproVariantColumn = input.evolvepro_variant_column;
@@ -430,20 +450,25 @@ export async function applyKuroSnapshot(
   }
 
   // (a) loadSequence는 그 자체가 store 쓰기라 호출 전에 막아야 한다.
-  if (!alive()) return { resultsDiscarded: false };
+  if (!alive()) return done(false);
   if (typeof input?.sequence_path === "string" && input.sequence_path) {
-    try {
-      await useAppStore.getState().loadSequence(input.sequence_path);
-    } catch {
-      // 복원은 계속하되 침묵하지 않는다. 서열이 안 실린 채로 프로젝트가 정상
-      // 복원된 것처럼 보이면 사용자는 설계를 다시 돌릴 때까지 알아채지 못한다.
-      console.warn("[autosave] kuro: sequence load failed, continuing restore");
-      sequenceLoadFailedPath = input.sequence_path;
+    const sequencePath = resolve(input.sequence_path);
+    if (!sequencePath) {
+      unavailableInputs.push(input.sequence_path);
+    } else {
+      try {
+        await useAppStore.getState().loadSequence(sequencePath);
+      } catch {
+        // 복원은 계속하되 조용히 넘기지 않는다. 옮긴 프로젝트에서 폴더 밖
+        // 서열 파일이 빠졌을 때 이 경로로 온다.
+        console.warn("[autosave] kuro: sequence load failed, continuing restore");
+        unavailableInputs.push(sequencePath);
+      }
     }
   }
   // (b) await 동안 취소됐을 수 있다. 이미 착지한 seqInfo는 되돌리지 못하지만
   //     뒤따르는 patch 조립·적용은 여기서 끊는다.
-  if (!alive()) return { resultsDiscarded: false };
+  if (!alive()) return done(false);
 
   const selectedCds = typeof input?.selected_cds === "string" ? input.selected_cds : "";
   if (selectedCds) {
@@ -496,7 +521,7 @@ export async function applyKuroSnapshot(
 
   // (c) 스냅샷 본체를 store에 붓는 지점. 취소된 복원의 patch가 다음 프로젝트
   //     store에 착지하는 것을 막는 핵심 가드다.
-  if (!alive()) return { resultsDiscarded: false };
+  if (!alive()) return done(false);
   useAppStore.setState(patch);
 
   let resultsDiscarded = false;
@@ -504,26 +529,29 @@ export async function applyKuroSnapshot(
   if (activeSourcePath) {
     try {
       // (d) loadEvolveproCsv도 store 쓰기(mutationText 갱신)라 호출 전에 막는다.
-      if (!alive()) return { resultsDiscarded: false };
+      if (!alive()) return done(false);
       await useAppStore.getState().loadEvolveproCsv(activeSourcePath);
       // (e) discardResultsIfVariantsDiverged는 setState로 결과물 블록을 비운다.
       //     await 뒤 취소됐다면 다음 프로젝트의 결과물을 지우게 되므로 막는다.
-      if (!alive()) return { resultsDiscarded: false };
+      if (!alive()) return done(false);
       // 재선택이 성공한 경우에만 비교한다. 로드가 실패하면 mutationText가
       // 갱신되지 않아 비교 자체가 무의미하다.
       resultsDiscarded = discardResultsIfVariantsDiverged();
     } catch {
+      // 조용히 넘기면 designResults는 복원되고 그 근거 variant 목록만 빠진
+      // 어긋난 상태가 정상처럼 보인다. 호출부가 알리도록 기록한다.
       console.warn("[autosave] kuro: EVOLVEpro source load failed, continuing restore");
+      unavailableInputs.push(activeSourcePath);
     }
   }
 
   if (!resultsDiscarded && useAppStore.getState().designResults.length > 0) {
     // (f) setSubStep도 store 쓰기다. 취소 후 화면 위치를 옮기지 않는다.
-    if (!alive()) return { resultsDiscarded: false };
+    if (!alive()) return done(false);
     useAppStore.getState().setSubStep("output.summary");
   }
 
-  return { resultsDiscarded, sequenceLoadFailedPath };
+  return done(resultsDiscarded);
 }
 
 function basename(filePath: string): string {
@@ -608,20 +636,21 @@ async function applyScratchKuroSnapshot(
       message,
       savedAt: result.snapshot.saved_at,
     });
+    if (outcome.unavailableInputs.length > 0) {
+      onMessage({
+        kind: "kuro",
+        variant: "inputs_unavailable",
+        message: i18next.t("autosaveHydration.inputsUnavailable", {
+          count: outcome.unavailableInputs.length,
+          paths: outcome.unavailableInputs.join(", "),
+        }),
+      });
+    }
     if (outcome.resultsDiscarded) {
       onMessage({
         kind: "kuro",
         variant: "results_discarded",
         message: i18next.t("autosaveHydration.resultsDiscarded"),
-      });
-    }
-    if (outcome.sequenceLoadFailedPath) {
-      onMessage({
-        kind: "kuro",
-        variant: "restored",
-        message: i18next.t("autosaveHydration.sequenceMissing", {
-          filename: basename(outcome.sequenceLoadFailedPath),
-        }),
       });
     }
     return true;
@@ -688,7 +717,9 @@ async function promoteScratchToProject(
   if (!alive()) return;
   await atomicWriteJson(
     autosavePath(projectPath, "kuro"),
-    buildKuroSnapshot(useAppStore.getState()),
+    // scratch에서 승격되는 경로다. scratch 스냅샷은 절대 경로만 담고 있으므로
+    // 여기서 새 프로젝트 폴더 기준으로 상대화되어 이식 가능해진다.
+    buildKuroSnapshot(useAppStore.getState(), projectPath),
   );
   // 순서는 이미 옳다(프로젝트 쓰기 성공 → scratch 삭제). 여기서 취소로 빠지면
   // scratch가 그대로 남는 쪽으로 기운다. 되돌릴 수 없는 삭제보다 중복이 낫다.
@@ -886,7 +917,14 @@ export async function applyMameAutoDetect(
 
 // ─── Mame 복원 ────────────────────────────────────────────────────────────
 
-function applyMameSnapshot(snapshot: MameAutosaveSnapshot): void {
+/**
+ * @param projectPath schema 4+ 스냅샷의 `project://` 경로를 되돌릴 기준 폴더.
+ *   구 스냅샷의 절대 경로는 기준과 무관하게 그대로 통과한다.
+ */
+function applyMameSnapshot(
+  snapshot: MameAutosaveSnapshot,
+  projectPath: string | null = null,
+): void {
   const store = useMameAppStore.getState();
   const { input, parameters } = snapshot;
 
@@ -900,11 +938,16 @@ function applyMameSnapshot(snapshot: MameAutosaveSnapshot): void {
     minFileSizeKb: parameters.min_file_size_kb,
     manyCutoff: parameters.many_cutoff,
   });
-  store.setInputDir(input.input_dir);
-  store.setExpectedPath(input.expected_path);
-  store.setReferencePath(input.reference_path);
-  store.setOutputPath(input.output_path);
-  if (input.sample_map_path) store.setSampleMapPath(input.sample_map_path);
+  // 프로젝트 폴더 안을 가리키던 입력은 여기서 현재 폴더 기준으로 되살아난다.
+  // 폴더 밖 절대 경로는 그대로 복원되며, 옮긴 PC에 없으면 이어지는 자동 탐지가
+  // 빈 필드를 프로젝트 디렉토리에서 채운다.
+  const resolveMame = (value: string): string => fromPortablePath(projectPath, value);
+  store.setInputDir(resolveMame(input.input_dir));
+  store.setExpectedPath(resolveMame(input.expected_path));
+  store.setReferencePath(resolveMame(input.reference_path));
+  store.setOutputPath(resolveMame(input.output_path));
+  const sampleMapPath = resolveMame(input.sample_map_path);
+  if (sampleMapPath) store.setSampleMapPath(sampleMapPath);
 
   if (Array.isArray(snapshot.rounds)) {
     useRoundStore.setState({
@@ -1206,7 +1249,7 @@ export function useAutosaveHydration(
       // ── kuro 결과 처리
       if (kuroResult.status === "ok") {
         try {
-          const outcome = await applyKuroSnapshot(kuroResult.snapshot, isCurrent);
+          const outcome = await applyKuroSnapshot(kuroResult.snapshot, isCurrent, path);
           if (!isCurrent()) return;
           onMessage({
             kind: "kuro",
@@ -1214,6 +1257,16 @@ export function useAutosaveHydration(
             message: i18next.t("autosaveHydration.restored", { relative: formatRelativeTime(kuroResult.snapshot.saved_at) }),
             savedAt: kuroResult.snapshot.saved_at,
           });
+          if (outcome.unavailableInputs.length > 0) {
+            onMessage({
+              kind: "kuro",
+              variant: "inputs_unavailable",
+              message: i18next.t("autosaveHydration.inputsUnavailable", {
+                count: outcome.unavailableInputs.length,
+                paths: outcome.unavailableInputs.join(", "),
+              }),
+            });
+          }
           if (outcome.resultsDiscarded) {
             onMessage({
               kind: "kuro",
@@ -1221,17 +1274,17 @@ export function useAutosaveHydration(
               message: i18next.t("autosaveHydration.resultsDiscarded"),
             });
           }
-          if (outcome.sequenceLoadFailedPath) {
-            onMessage({
-              kind: "kuro",
-              variant: "restored",
-              message: i18next.t("autosaveHydration.sequenceMissing", {
-                filename: basename(outcome.sequenceLoadFailedPath),
-              }),
-            });
-          }
         } catch (err) {
+          // scratch 경로(applyScratchKuroSnapshot)는 이미 corrupted를 알린다.
+          // 프로젝트 경로만 침묵하면 같은 실패가 화면에 안 뜨므로 맞춘다.
           console.warn("[autosave] kuro: apply snapshot failed", err);
+          onMessage({
+            kind: "kuro",
+            variant: "corrupted",
+            message: i18next.t("autosaveHydration.corrupted", {
+              filename: "kuro.json",
+            }),
+          });
         }
       } else if (kuroResult.status === "corrupted") {
         onMessage({
@@ -1300,7 +1353,7 @@ export function useAutosaveHydration(
       // ── mame 결과 처리
       if (mameResult.status === "ok") {
         try {
-          applyMameSnapshot(mameResult.snapshot as MameAutosaveSnapshot);
+          applyMameSnapshot(mameResult.snapshot as MameAutosaveSnapshot, path);
           if (!isCurrent()) return;
           onMessage({
             kind: "mame",

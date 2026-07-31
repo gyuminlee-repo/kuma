@@ -48,6 +48,7 @@ from kuma_core.mame.ingest.consensus_metadata import (
     MAX_INDEL_EVENT_FRACTION,
     MAX_MINOR_ALLELE_FRACTION,
     MIXED_POSITIONS,
+    NET_INDEL,
     SPAN_FAILED,
 )
 from kuma_core.mame.ingest.stage_marker import (
@@ -224,6 +225,7 @@ def parse_fasta_file(path: Path, native_barcode: str) -> BarcodeRecord:
     n_indel_event_positions = _read_int_metadata(metadata, INDEL_EVENT_POSITIONS) or 0
     max_indel_event_fraction = _read_float_metadata(metadata, MAX_INDEL_EVENT_FRACTION) or 0.0
     max_del_run_length = _read_int_metadata(metadata, MAX_DEL_RUN_LENGTH) or 0
+    net_indel_bp = _read_int_metadata(metadata, NET_INDEL)
 
     return BarcodeRecord(
         native_barcode=native_barcode,
@@ -245,6 +247,7 @@ def parse_fasta_file(path: Path, native_barcode: str) -> BarcodeRecord:
         n_indel_event_positions=n_indel_event_positions,
         max_indel_event_fraction=max_indel_event_fraction,
         max_del_run_length=max_del_run_length,
+        net_indel_bp=net_indel_bp,
     )
 
 
