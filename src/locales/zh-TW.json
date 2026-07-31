@@ -974,7 +974,9 @@
       "nNgsExcluded": "NGS 排除",
       "missingInputs": "尚需提供",
       "restoredNotice": "已復原此裝置上的路徑。如果它們屬於其他專案，請清除。",
-      "clearRestored": "清除已復原的 EVOLVEpro 輸入"
+      "clearRestored": "清除已復原的 EVOLVEpro 輸入",
+      "primarySourceNumericReport": "數字ID報告（整盤）",
+      "confirmationSourceNumericSubset": "數字ID驗證（高於WT的子集）"
     },
     "verdictBadge": {
       "help": {
