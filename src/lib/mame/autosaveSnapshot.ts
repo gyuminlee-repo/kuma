@@ -89,6 +89,25 @@ export interface MameAutosaveSnapshot extends AutosaveSnapshot {
  * @param projectPath 경로 필드를 상대화할 기준 폴더. scratch 세션은 null이며
  *   이때 경로는 절대 경로로 남는다(옮길 대상이 애초에 없다).
  */
+/**
+ * raw_run_params 안의 파일 경로 두 개도 이식 가능한 형태로 바꾼다.
+ *
+ * 나머지 필드(임계값·길이·불리언)는 경로가 아니므로 손대지 않는다. 이 두 개만
+ * 남겨 두면 프로젝트 폴더를 옮겼을 때 커스텀 바코드와 시퀀싱 요약만 조용히
+ * 깨진다. 값이 비어 있으면 "미지정" 이므로 그대로 둔다(toPortablePath 가
+ * 빈 문자열을 통과시킨다).
+ */
+function portableRawRunParams(
+  params: RawRunParams,
+  portable: (value: string) => string,
+): RawRunParams {
+  return {
+    ...params,
+    customBarcodesPath: portable(params.customBarcodesPath ?? ""),
+    sequencingSummaryPath: portable(params.sequencingSummaryPath ?? ""),
+  };
+}
+
 export function buildMameSnapshot(
   state: MameSnapshotState,
   roundState?: MameRoundSnapshotState,
@@ -112,7 +131,7 @@ export function buildMameSnapshot(
       mode: state.mode,
       ingest_mode: state.ingestMode,
       input_mode: state.inputMode,
-      raw_run_params: state.rawRunParams,
+      raw_run_params: portableRawRunParams(state.rawRunParams, portable),
       cds_start: state.cdsStart,
       cds_end: state.cdsEnd,
       min_file_size_kb: state.minFileSizeKb,

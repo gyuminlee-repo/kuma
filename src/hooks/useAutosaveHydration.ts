@@ -48,6 +48,7 @@ import { resetMameAll } from "@/store/mame/resetAll";
 import { useRoundStore } from "@/store/round/roundSlice";
 import type { AppState } from "@/store/appStore";
 import type { AppState as MameAppState } from "@/store/mame/types";
+import type { RawRunParams } from "@/store/mame/slice-interfaces";
 import type { AutosaveSnapshot, ReadAutosaveResult } from "@/lib/autosave";
 import type { MameAutosaveSnapshot } from "@/lib/mame/autosaveSnapshot";
 import { fromPortablePath, isExternalPath } from "@/lib/projectPath";
@@ -953,6 +954,27 @@ export async function applyMameAutoDetect(
  * @param projectPath schema 4+ 스냅샷의 `project://` 경로를 되돌릴 기준 폴더.
  *   구 스냅샷의 절대 경로는 기준과 무관하게 그대로 통과한다.
  */
+/**
+ * raw_run_params 안의 경로 두 개를 현재 환경의 절대 경로로 되돌린다.
+ *
+ * schema 4 부터 이 둘도 `project://` 로 저장된다. 구 스냅샷은 절대 경로이고
+ * `fromPortablePath` 가 접두사 없는 값을 그대로 통과시키므로 그대로 읽힌다.
+ * params 자체가 없으면 undefined 를 넘겨 store 기본값을 쓰게 한다.
+ */
+function resolveRawRunParams(
+  raw: unknown,
+  projectPath: string | null | undefined,
+): RawRunParams | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const params = raw as RawRunParams;
+  const base = projectPath ?? null;
+  return {
+    ...params,
+    customBarcodesPath: fromPortablePath(base, params.customBarcodesPath ?? ""),
+    sequencingSummaryPath: fromPortablePath(base, params.sequencingSummaryPath ?? ""),
+  };
+}
+
 function applyMameSnapshot(
   snapshot: MameAutosaveSnapshot,
   projectPath: string | null = null,
@@ -964,7 +986,7 @@ function applyMameSnapshot(
     mode: parameters.mode as Parameters<typeof store.setParams>[0]["mode"],
     ingestMode: parameters.ingest_mode as Parameters<typeof store.setParams>[0]["ingestMode"],
     inputMode: (parameters.input_mode as Parameters<typeof store.setParams>[0]["inputMode"]) ?? "raw_run",
-    rawRunParams: parameters.raw_run_params ?? undefined,
+    rawRunParams: resolveRawRunParams(parameters.raw_run_params, projectPath),
     cdsStart: parameters.cds_start,
     cdsEnd: parameters.cds_end,
     minFileSizeKb: parameters.min_file_size_kb,
