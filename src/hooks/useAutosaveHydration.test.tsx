@@ -29,6 +29,8 @@ const hooks = vi.hoisted(() => ({
   detectProjectFiles: vi.fn(),
   detectFromInputDir: vi.fn(),
   sendKuroRequest: vi.fn(),
+  openWorkspace: vi.fn(),
+  getLatestArtifact: vi.fn(),
 }));
 
 // KURO 사이드카 RPC. applyKuroSnapshot이 loadEvolveproCsv를 통해 호출한다.
@@ -64,6 +66,13 @@ vi.mock("@/lib/ipc-mame", () => ({
 vi.mock("@/lib/mame/detectProjectFiles", () => ({
   detectProjectFiles: hooks.detectProjectFiles,
   detectFromInputDir: hooks.detectFromInputDir,
+}));
+
+vi.mock("@/lib/workspace", () => ({
+  openWorkspace: hooks.openWorkspace,
+  getLatestArtifact: hooks.getLatestArtifact,
+  getActiveWorkspace: vi.fn(() => null),
+  clearWorkspace: vi.fn(),
 }));
 
 // ── Fixtures ─────────────────────────────────────────────────────────────
@@ -214,6 +223,8 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     // detection finds nothing (avoid touching the store further).
     hooks.detectProjectFiles.mockResolvedValue({});
     hooks.detectFromInputDir.mockResolvedValue({});
+    hooks.openWorkspace.mockResolvedValue(undefined);
+    hooks.getLatestArtifact.mockResolvedValue(null);
     // sidecar RPCs: load_analyze_result ack, then get_plate_data empty grid.
     hooks.sendMameRequest.mockImplementation((method: string) => {
       if (method === "load_analyze_result") {
@@ -290,6 +301,90 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     // default analyze.inputs (never silently advanced to analyze.review).
     expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.inputs");
     expect(useMameAppStore.getState().verdicts).toEqual([]);
+  });
+
+  it("fills empty MAME expected mutations from the latest KURO SDM primer artifact", async () => {
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+    hooks.getLatestArtifact.mockImplementation((type: string) => {
+      if (type === "sdm_primer_xlsx") {
+        return Promise.resolve({
+          id: "artifact-1",
+          app: "kuro",
+          step: "sdm_primer",
+          type: "sdm_primer_xlsx",
+          path: "/proj/design/kuro_sdm_primers.xlsx",
+          producedAt: "2026-07-31T00:00:00.000Z",
+          mtime: "2026-07-31T00:00:00.000Z",
+          sizeBytes: 128,
+          stale: false,
+        });
+      }
+      return Promise.resolve(null);
+    });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().expectedPath).toBe(
+        "/proj/design/kuro_sdm_primers.xlsx",
+      );
+    });
+    expect(hooks.getLatestArtifact).toHaveBeenCalledWith("sdm_primer_xlsx");
+  });
+
+  it("does not overwrite a restored MAME expected mutations path with a KURO artifact", async () => {
+    hooks.readAutosave.mockImplementation((_path: string, kind: string) => {
+      if (kind === "mame") {
+        return Promise.resolve({
+          status: "ok",
+          snapshot: {
+            schema: 2,
+            saved_at: new Date().toISOString(),
+            kuma_version: "0.0.0-test",
+            rounds: [],
+            active_round_id: null,
+            input: {
+              input_dir: "",
+              expected_path: "/proj/manual_expected.xlsx",
+              reference_path: "",
+              output_path: "",
+              sample_map_path: "",
+            },
+            parameters: {
+              mode: "amplicon",
+              ingest_mode: "barcode",
+              input_mode: "raw_run",
+              raw_run_params: undefined,
+              cds_start: 0,
+              cds_end: 0,
+              min_file_size_kb: 50,
+              many_cutoff: 5,
+            },
+          },
+        });
+      }
+      return Promise.resolve({ status: "missing" });
+    });
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+    hooks.getLatestArtifact.mockResolvedValue({
+      id: "artifact-1",
+      app: "kuro",
+      step: "sdm_primer",
+      type: "sdm_primer_xlsx",
+      path: "/proj/design/kuro_sdm_primers.xlsx",
+      producedAt: "2026-07-31T00:00:00.000Z",
+      mtime: "2026-07-31T00:00:00.000Z",
+      sizeBytes: 128,
+      stale: false,
+    });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().expectedPath).toBe(
+        "/proj/manual_expected.xlsx",
+      );
+    });
   });
 
   it("restores result state carried inside the mame autosave snapshot", async () => {

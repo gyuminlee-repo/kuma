@@ -26,12 +26,15 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { mkdir } from "@tauri-apps/plugin-fs";
 import { FolderOpen, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { buildEvolveproInput } from "@/lib/ipc-mame";
+import { useKumaProject } from "@/state/projectContext";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { describeRpcError, extractMissingMethod } from "@/lib/errors";
 import { revealInOSFolder } from "@/lib/openFolder";
+import { registerArtifacts } from "@/lib/workspace";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InlineHelp } from "@/components/ui/InlineHelp";
@@ -60,6 +63,16 @@ function getFilename(p: string): string {
 
 function toSinglePath(result: string | string[] | null): string | null {
   return typeof result === "string" ? result : null;
+}
+
+function projectFile(projectPath: string, folder: string, filename: string): string {
+  const sep = projectPath.includes("\\") ? "\\" : "/";
+  return `${projectPath.replace(/[\\/]+$/, "")}${sep}${folder}${sep}${filename}`;
+}
+
+function parentDir(filePath: string): string {
+  const index = Math.max(filePath.lastIndexOf("/"), filePath.lastIndexOf("\\"));
+  return index > 0 ? filePath.slice(0, index) : "";
 }
 
 /** Helper copy shown under each axis toggle for the currently selected source. */
@@ -93,6 +106,7 @@ const CONFIRMATION_SOURCE_LABEL: Record<
 
 export function BuildEvolveproInputPanel() {
   const { t } = useTranslation();
+  const project = useKumaProject();
   const [form, setFormRaw] = useState<FormState>(() => loadFromStorage());
   const [showRestoredNotice, setShowRestoredNotice] = useState(() =>
     hasBuildEvolveproFormValues(loadFromStorage()),
@@ -119,6 +133,12 @@ export function BuildEvolveproInputPanel() {
       return next;
     });
   }
+
+  useEffect(() => {
+    if (!project?.path || form.outputXlsx) return;
+    setForm({ outputXlsx: projectFile(project.path, "activity", "evolvepro_input.xlsx") });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project?.path, form.outputXlsx]);
 
   // Clear the previous result when any input changes so the summary never lags.
   useEffect(() => {
@@ -162,12 +182,16 @@ export function BuildEvolveproInputPanel() {
   );
 
   const browseOutput = useCallback(async () => {
+    const defaultPath = project?.path
+      ? form.outputXlsx || projectFile(project.path, "activity", "evolvepro_input.xlsx")
+      : form.outputXlsx || undefined;
     const selected = await save({
+      defaultPath,
       filters: [{ name: "Excel", extensions: ["xlsx"] }],
       title: t("mame.buildEvolvepro.chooseOutput"),
     });
     if (selected) setForm({ outputXlsx: selected });
-  }, [t]);
+  }, [form.outputXlsx, project?.path, t]);
 
   // Optional review artifact, so it uses a save-file dialog like the output
   // control (never an open dialog: the file does not exist yet).
@@ -269,6 +293,10 @@ export function BuildEvolveproInputPanel() {
     const buildSignature = buildEvolveproFormSignature(form);
 
     try {
+      const outputParent = parentDir(params.output_xlsx);
+      if (outputParent) {
+        await mkdir(outputParent, { recursive: true });
+      }
       const res = await buildEvolveproInput(params);
       if (
         formGenerationRef.current !== buildGeneration ||
@@ -280,6 +308,16 @@ export function BuildEvolveproInputPanel() {
       setBuildEvolveproCompletion(
         createBuildEvolveproCompletion(form, res.output_path),
       );
+      await registerArtifacts([
+        {
+          app: "mame",
+          step: "activity",
+          type: "evolvepro_csv",
+          absolutePath: res.output_path,
+        },
+      ]).catch((err) => {
+        console.warn("[workspace] mame EVOLVEpro artifact registration failed", err);
+      });
       toast.success(t("mame.buildEvolvepro.toastSuccess"), {
         description: t("mame.buildEvolvepro.toastSuccessDesc", {
           count: res.n_variants,

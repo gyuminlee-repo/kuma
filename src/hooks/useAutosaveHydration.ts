@@ -29,7 +29,7 @@ import { KURO_SCHEMA, buildKuroSnapshot } from "@/lib/kuroSnapshot";
 import { buildKuroResultResetPatch } from "@/lib/kuroResultReset";
 import { MAME_SCHEMA } from "@/lib/mame/autosaveSnapshot";
 import { detectProjectFiles, detectFromInputDir } from "@/lib/mame/detectProjectFiles";
-import { openWorkspace } from "@/lib/workspace";
+import { getLatestArtifact, openWorkspace } from "@/lib/workspace";
 import { resolvePolymeraseName, retiredPolymeraseNotice } from "@/lib/polymeraseAliases";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
@@ -648,6 +648,19 @@ export async function applyMameAutoDetect(
     if (!storeAfter.rawRunParams.sequencingSummaryPath && fromInputDir.sequencingSummaryPath) {
       storeAfter.setParams({ rawRunParams: { sequencingSummaryPath: fromInputDir.sequencingSummaryPath } });
       filled.push(i18next.t("autosaveHydration.fieldSequencingSummary"));
+    }
+  }
+
+  const storeAfterDetection = useMameAppStore.getState();
+  if (!storeAfterDetection.expectedPath) {
+    try {
+      const sdmPrimer = await getLatestArtifact("sdm_primer_xlsx");
+      if (sdmPrimer?.path && !useMameAppStore.getState().expectedPath) {
+        useMameAppStore.getState().setExpectedPath(sdmPrimer.path);
+        filled.push(i18next.t("autosaveHydration.fieldExpected"));
+      }
+    } catch (err) {
+      console.warn("[autosave] mame: SDM primer artifact lookup failed", err);
     }
   }
 

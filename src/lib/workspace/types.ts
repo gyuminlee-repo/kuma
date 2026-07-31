@@ -3,7 +3,11 @@ export type AppId = "kuro" | "mame" | "primerbench";
 export type ArtifactType =
   | "evolvepro_csv"
   | "sdm_primer_xlsx"
-  | "mame_consensus_fasta";
+  | "mame_barcodes_xlsx"
+  | "mame_context_json"
+  | "mame_consensus_fasta"
+  | "mame_reference_fasta"
+  | "mame_sample_map_xlsx";
 
 export interface ManifestArtifact {
   id: string;
