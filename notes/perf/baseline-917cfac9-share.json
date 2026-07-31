@@ -1,0 +1,129 @@
+{
+  "schema": "kuma-mame-step2-perf/1",
+  "created_utc": "2026-07-31T14:37:29Z",
+  "git_head": "917cfac9",
+  "identity": {
+    "assigned_reads": 11979,
+    "total_reads": 34278,
+    "wells_with_reads": 280,
+    "verdicts": {
+      "PASS": 91,
+      "AMBIGUOUS": 4,
+      "MIXED": 3,
+      "FAIL": 185
+    },
+    "tree_sha256": "b23a6a2ec8f136fa0f94cbaee6d8b0157aa400fba46d178765aa8bd9dcf345a4",
+    "file_count": 287,
+    "hash_excluded": [
+      "result.xlsx"
+    ]
+  },
+  "identity_stable_across_repeats": true,
+  "identity_unstable_keys": [],
+  "extra": {
+    "native_barcodes": [
+      "barcode13",
+      "barcode20",
+      "barcode06"
+    ],
+    "demux_stats": {
+      "total_reads": 34278,
+      "passed_mapq": 22105,
+      "passed_coverage": 22105,
+      "assigned_reads": 11979,
+      "ambiguous_dropped": 12935,
+      "chimera_splits": 5546,
+      "wells_with_reads": 280,
+      "wells_with_min_reads": 267
+    },
+    "verdict_total": 280
+  },
+  "environment": {
+    "out_root": "/mnt/d/_workspace/.kuma-perf",
+    "out_root_fs": "9p",
+    "run_dir": "/mnt/d/_workspace/020.admin/projects/060.nanopore_NGS/mame_step21_test/20260212_2227_X4_FBF10847_e7145f8e",
+    "inputs_dir": "/mnt/d/_workspace/020.admin/projects/060.nanopore_NGS/mame_step21_test/inputs",
+    "minimap2": "/mnt/d/_workspace/cc/kuma/python-core/vendor/minimap2/linux-x64/minimap2",
+    "python": "3.11.15",
+    "cpu_count": 10,
+    "tuning_env": {
+      "KUMA_MAME_NB_PARALLEL": null,
+      "KUMA_MAME_NB_WORKERS": null,
+      "KUMA_MAME_PERREAD_THRESHOLD": null,
+      "KUMA_MAME_PERREAD_WORKERS": null,
+      "KUMA_MAME_CONSENSUS_WORKERS": null,
+      "KUMA_MAME_READ_CHUNK": null,
+      "KUMA_MAME_KEEP_WELL_READS": null
+    }
+  },
+  "timing": {
+    "repeat": 3,
+    "wall_s_runs": [
+      23.3492,
+      20.3925,
+      19.9391
+    ],
+    "wall_s_median": 20.3925,
+    "demux_s_runs": [
+      16.3928,
+      15.0526,
+      14.5856
+    ],
+    "demux_s_median": 15.0526,
+    "analyze_s_runs": [
+      6.3298,
+      5.2571,
+      5.2558
+    ],
+    "analyze_s_median": 5.2571,
+    "phases_s_median": {
+      "well_consensus_wall": 26.9183,
+      "align_minimap2": 8.1121,
+      "well_consensus.compute_sum": 2.4892,
+      "fastq_read": 2.1686,
+      "ingest": 1.9649,
+      "well_consensus.align_minimap2_batch": 1.7758,
+      "barcode_match": 0.8177,
+      "translate_diff": 0.6881,
+      "export_excel": 0.2481,
+      "build_index": 0.0447,
+      "load_barcodes_parent": 0.0105,
+      "verdict_classify": 0.0042,
+      "write_well_fasta": 0.0001,
+      "load_barcodes": 0.0
+    },
+    "scopes_run0": [
+      {
+        "scope": "demux",
+        "pid": 272405,
+        "wall_s": 13.7161
+      },
+      {
+        "scope": "demux",
+        "pid": 272408,
+        "wall_s": 13.9087
+      },
+      {
+        "scope": "demux",
+        "pid": 272409,
+        "wall_s": 14.1558
+      },
+      {
+        "scope": "demux_per_nb",
+        "pid": 272317,
+        "wall_s": 16.2902,
+        "workers": 3,
+        "barcodes": 3,
+        "parallel": true
+      },
+      {
+        "scope": "analyze",
+        "pid": 272317,
+        "wall_s": 3.2335
+      }
+    ]
+  },
+  "hash_exclusions": {
+    "result.xlsx": "xlsx zip container embeds per-entry mtime, not content-deterministic"
+  }
+}
