@@ -115,6 +115,11 @@ function previewCellValue(
   }
 }
 
+function parsePositiveIntegerInput(raw: string): number | null {
+  if (!/^[1-9]\d*$/.test(raw)) return null;
+  return Number.parseInt(raw, 10);
+}
+
 interface JanusMappingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -202,8 +207,8 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
   }
 
   function patchSourceRack(plate: string, raw: string) {
-    const parsed = Number.parseInt(raw, 10);
-    if (Number.isNaN(parsed)) return;
+    const parsed = parsePositiveIntegerInput(raw);
+    if (parsed === null) return;
     setSettings((prev) => ({
       ...prev,
       sourceRacks: { ...prev.sourceRacks, [plate]: parsed },
@@ -467,11 +472,11 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
                         type="number"
                         min={1}
                         step={1}
-                        value={settings.destRack}
-                        onChange={(e) => {
-                          const parsed = Number.parseInt(e.target.value, 10);
-                          if (!Number.isNaN(parsed)) patchSettings({ destRack: parsed });
-                        }}
+	                        value={settings.destRack}
+	                        onChange={(e) => {
+	                          const parsed = parsePositiveIntegerInput(e.target.value);
+	                          if (parsed !== null) patchSettings({ destRack: parsed });
+	                        }}
                         className="h-9 w-full text-sm"
                         disabled={isExporting}
                       />

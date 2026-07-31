@@ -135,8 +135,10 @@ def test_invalid_dest_layout_rejected(tmp_path: Path, seeded_state) -> None:
 @pytest.mark.parametrize(
     "params, message",
     [
-        ({"source_racks": {"P1": 0, "P2": 2, "P3": 3}}, "Invalid source rack"),
+        ({"source_racks": {"P1": 0, "P2": 2, "P3": 3}}, "Invalid rack number"),
+        ({"source_racks": {"P1": 1.9, "P2": 2, "P3": 3}}, "Invalid rack number"),
         ({"dest_rack": 0}, "Invalid dest_rack"),
+        ({"dest_rack": 4.7}, "Invalid dest_rack"),
     ],
 )
 def test_device9_rejects_non_positive_rack_numbers(

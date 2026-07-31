@@ -18,6 +18,20 @@ from sidecar_mame.core import (
 _ALLOWED_JANUS_EXTENSIONS = {".csv", ".xlsx"}
 
 
+def _parse_positive_int(value: object, label: str) -> int:
+    if isinstance(value, bool):
+        raise ValueError(f"Invalid {label} {value!r}. Expected a positive integer.")
+    if isinstance(value, int):
+        parsed = value
+    elif isinstance(value, str) and value.strip().isdigit():
+        parsed = int(value.strip())
+    else:
+        raise ValueError(f"Invalid {label} {value!r}. Expected a positive integer.")
+    if parsed < 1:
+        raise ValueError(f"Invalid {label} {value!r}. Expected a positive integer.")
+    return parsed
+
+
 def _custom_barcode_to_seq(custom: str) -> int | None:
     """``{R}_{F}`` -> 1-based column-major sequence index (mirrors excel_writer)."""
     parts = custom.split("_")
@@ -101,11 +115,13 @@ def _janus_settings_from_params(params: dict):
         pairs: list[tuple[str, int]] = []
         for label, rack in raw_racks.items():
             try:
-                pairs.append((str(label), int(rack)))
-            except (TypeError, ValueError) as exc:
+                pairs.append(
+                    (str(label), _parse_positive_int(rack, f"rack number for source plate {label!r}"))
+                )
+            except ValueError as exc:
                 raise ValueError(
                     f"Invalid rack number {rack!r} for source plate {label!r}. "
-                    "Expected an integer."
+                    "Expected a positive integer."
                 ) from exc
         source_racks = tuple(pairs)
 
@@ -114,10 +130,10 @@ def _janus_settings_from_params(params: dict):
         dest_rack = DEFAULT_DEST_RACK
     else:
         try:
-            dest_rack = int(raw_dest_rack)
-        except (TypeError, ValueError) as exc:
+            dest_rack = _parse_positive_int(raw_dest_rack, "dest_rack")
+        except ValueError as exc:
             raise ValueError(
-                f"Invalid dest_rack {raw_dest_rack!r}. Expected an integer."
+                f"Invalid dest_rack {raw_dest_rack!r}. Expected a positive integer."
             ) from exc
 
     # JanusSettings.__post_init__ validates dest_layout, output_schema, volume.

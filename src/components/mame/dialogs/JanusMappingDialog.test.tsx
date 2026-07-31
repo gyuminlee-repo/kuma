@@ -238,6 +238,22 @@ describe("JanusMappingDialog preview", () => {
     );
   });
 
+  it("ignores fractional rack edits instead of truncating them", async () => {
+    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByText("Deck configuration"));
+
+    fireEvent.change(screen.getByLabelText("Asp. Rack P1"), {
+      target: { value: "1.9" },
+    });
+    fireEvent.change(screen.getByLabelText("Dsp. Rack"), {
+      target: { value: "4.7" },
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(mockPreview).toHaveBeenCalledTimes(1);
+  });
+
   it("sends the same settings to the export that the preview was built with", async () => {
     render(<JanusMappingDialog open onOpenChange={() => {}} />);
     // Wait for the first (debounced) preview before editing, so the edit is a
