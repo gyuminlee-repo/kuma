@@ -40,6 +40,28 @@ export async function listRecentProjects(): Promise<RecentProject[]> {
   return invoke<RecentProject[]>("list_recent_projects_cmd");
 }
 
-export async function removeRecentProject(path: string): Promise<Config> {
-  return invoke<Config>("remove_recent_project_cmd", { path });
+/**
+ * List-only removal: drops the entry from the recent list while the folder
+ * stays on disk. Returns the updated recent list, mirroring
+ * `deleteProjectFolder` so both removal paths have the same shape.
+ */
+export async function removeRecentProject(path: string): Promise<RecentProject[]> {
+  return invoke<RecentProject[]>("remove_recent_project_cmd", { path });
+}
+
+/**
+ * Projects that live under the projects root but are absent from the recent
+ * list, i.e. entries removed from the list while their folder stayed on disk.
+ * `last_opened` is unknown for these and comes back as an empty string.
+ */
+export async function listRestorableProjects(): Promise<RecentProject[]> {
+  return invoke<RecentProject[]>("list_restorable_projects_cmd");
+}
+
+/**
+ * Moves the project folder to the OS trash (never a permanent delete) and
+ * removes it from the recent list. Returns the updated recent list.
+ */
+export async function deleteProjectFolder(path: string): Promise<RecentProject[]> {
+  return invoke<RecentProject[]>("delete_project_folder_cmd", { path });
 }

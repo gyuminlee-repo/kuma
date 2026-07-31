@@ -277,6 +277,8 @@ pub fn run() {
             config::load_project_cmd,
             config::list_recent_projects_cmd,
             config::remove_recent_project_cmd,
+            config::list_restorable_projects_cmd,
+            config::delete_project_folder_cmd,
             sidecar_rpc,
             sidecar_kill,
             sidecar_is_running,
