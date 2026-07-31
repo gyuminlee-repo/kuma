@@ -8,7 +8,5 @@ export interface WhatsNewItem {
 export const WHATS_NEW_VERSION = "0.13.39";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Fixed", detail: "Autosave is flushed when the app closes. The flush existed but nothing called it on the close path, so edits made inside the 1.5 second debounce window were lost on exit. Both autosave subscriptions now register the shutdown step themselve…" },
-  { label: "Fixed", detail: "The previous snapshot is kept before each overwrite, three generations deep, at most one every five minutes so the copies point at genuinely different times. Autosave used to overwrite a single file, leaving no way back from a bad save." },
-  { label: "Fixed", detail: "Inputs that a restore cannot recover are listed in a banner naming each one, and it stays until each is pointed at its new location. They were previously blanked behind a status message that disappeared after four seconds. A replacement th…" },
+  { label: "Fixed", detail: "The custom barcode table and sequencing summary paths are stored relative to the project folder like every other input. Thresholds and length settings in the same block are not paths and are untouched. Older snapshots keep reading as absol…" },
 ];
