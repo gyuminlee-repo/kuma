@@ -1087,6 +1087,41 @@ function applyMameSnapshot(
  * 복원이 완주하면 다음 프로젝트의 사이드카 상태와 Plate View가 이전 프로젝트
  * 결과로 덮인다. 인자를 생략하면 항상 진행한다(단위 테스트 경로).
  */
+/**
+ * 결과 파일 없이 자동 저장 스냅샷만으로 사이드카 분석 상태를 되살린다.
+ *
+ * 화면의 verdict 표는 `applyMameSnapshot` 이 스냅샷에서 직접 복원하는 반면,
+ * 사이드카 `last_verdicts` 는 별도 결과 파일 경로(`restoreMameResult`)로만
+ * 채워진다. 결과 파일이 없거나 읽히지 않으면 두 쪽이 어긋나 "표는 보이는데
+ * 리포트·Excel 내보내기는 No prior analyze result 로 거부되는" 상태가 된다.
+ * 스냅샷이 이미 verdicts·replicates·summary·distribution_stats 를 들고 있으므로
+ * 같은 RPC 에 그대로 실어 보내면 그 간극이 사라진다.
+ *
+ * @returns 사이드카를 채웠으면 true. 스냅샷에 결과가 없으면 false.
+ */
+async function injectSnapshotResultsIntoSidecar(
+  snapshot: MameAutosaveSnapshot,
+  projectPath: string,
+  isCurrent?: () => boolean,
+): Promise<boolean> {
+  const alive = () => isCurrent?.() ?? true;
+  const results = snapshot.results;
+  if (!results || !Array.isArray(results.verdicts) || results.verdicts.length === 0) {
+    return false;
+  }
+  if (!alive()) return false;
+  await sendMameRequest<LoadAnalyzeResultResponse>("load_analyze_result", {
+    verdicts: results.verdicts,
+    // output_path 는 사이드카가 후속 내보내기 기본 경로로만 쓴다. 스냅샷 값은
+    // 프로젝트 상대 형태일 수 있으므로 현재 폴더 기준으로 되돌린다.
+    replicates: results.replicates ?? [],
+    output_path: fromPortablePath(projectPath, snapshot.input?.output_path ?? ""),
+    summary: results.summary ?? null,
+    distribution_stats: results.distribution_stats ?? null,
+  });
+  return alive();
+}
+
 async function restoreMameResult(
   projectPath: string,
   isCurrent?: () => boolean,
@@ -1458,6 +1493,15 @@ export function useAutosaveHydration(
             variant: "restored",
             message: i18next.t("autosaveHydration.workspaceRestored"),
           });
+        } else if (mameResult.status === "ok") {
+          // 결과 파일이 없거나 못 읽었다. 화면에는 스냅샷의 verdict 표가 이미
+          // 복원돼 있으므로, 사이드카만 비워 두면 리포트·Excel 내보내기가
+          // "No prior analyze result" 로 거부된다. 같은 값으로 채워 맞춘다.
+          await injectSnapshotResultsIntoSidecar(
+            mameResult.snapshot as MameAutosaveSnapshot,
+            path,
+            isCurrent,
+          );
         }
       } catch (err) {
         console.warn("[autosave] mame: analyze-result restore failed", err);

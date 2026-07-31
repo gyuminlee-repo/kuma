@@ -54,6 +54,15 @@ def handle_export_run_report(params: dict) -> dict:
         raise RuntimeError(
             "No prior analyze result. Run 'analyze' before 'export_run_report'."
         )
+    # An empty verdict list is not "nothing to say", it renders a full report
+    # scaffold with every count at zero and an empty plate map. That file opens
+    # fine and reads as a finished run, so it is refused rather than written.
+    if not state.last_verdicts:
+        raise RuntimeError(
+            "The last analyze run produced no wells, so a run report would be "
+            "blank. Re-run the analysis and check the barcode and run-folder "
+            "inputs before exporting."
+        )
 
     requested_format = str(params.get("format", "html")).lower()
     if requested_format not in ("html", "pdf"):
