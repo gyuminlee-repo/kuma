@@ -1051,6 +1051,14 @@
         "LOWDEPTH": "Too few reads to call this well reliably.",
         "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
       }
+    },
+    "missingInputs": {
+      "title": "Einige Eingaben konnten nicht wiederhergestellt werden",
+      "description": "Dateien ausserhalb des Projektordners werden nicht mitbewegt. Bitte neu zuweisen.",
+      "browse": "Durchsuchen",
+      "chooseTitle": "{{name}} suchen",
+      "mismatchTitle": "Moeglicherweise eine andere Datei",
+      "mismatchBody": "War {{expected}}, gewaehlt {{actual}}. Ignorieren, wenn beabsichtigt."
     }
   },
   "home": {

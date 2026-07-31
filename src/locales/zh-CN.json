@@ -1051,6 +1051,14 @@
         "LOWDEPTH": "Too few reads to call this well reliably.",
         "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
       }
+    },
+    "missingInputs": {
+      "title": "有输入未能恢复",
+      "description": "项目文件夹之外的文件不会随之移动。请重新指定以下项目。",
+      "browse": "浏览",
+      "chooseTitle": "指定 {{name}}",
+      "mismatchTitle": "可能是不同的文件",
+      "mismatchBody": "原为 {{expected}}，选择了 {{actual}}。如为有意更改可忽略。"
     }
   },
   "home": {
