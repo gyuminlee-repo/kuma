@@ -20,6 +20,23 @@ import { appDataDir } from "@tauri-apps/api/path";
 
 export const DEBOUNCE_MS = 1500;
 export const MAX_SKEW_MS = 30_000;
+
+/**
+ * 보관할 이전 세대 스냅샷 개수. `<file>.1` 이 가장 최근이다.
+ *
+ * 자동 저장은 파일 하나를 계속 덮어쓰므로, 잘못된 상태가 한 번 저장되면 되돌릴
+ * 방법이 없었다. 세대를 남겨 두면 "직전 상태" 로 되돌아갈 여지가 생긴다.
+ */
+export const GENERATION_KEEP = 3;
+
+/**
+ * 세대를 새로 뜨는 최소 간격.
+ *
+ * 디바운스가 1.5 초라 매 write 마다 회전시키면 몇 분 만에 세 세대가 전부 같은
+ * 시점으로 채워져 되돌릴 지점이 사라진다. 간격을 두면 세 세대가 실제로 서로 다른
+ * 시점을 가리킨다.
+ */
+export const GENERATION_INTERVAL_MS = 5 * 60_000;
 const AUTOSAVE_DIR_NAME = ".autosave";
 /** 프로젝트 없이(scratch) 작업할 때 쓰는 앱 데이터 디렉토리 파일명. */
 const SCRATCH_FILE_NAME = "kuro-scratch-autosave.json";
@@ -234,6 +251,45 @@ export async function atomicWriteJson(filePath: string, data: unknown): Promise<
   await rename(tmpPath, filePath);
 }
 
+/** 세대 회전 마지막 시각. 파일 경로별로 둔다(kuro/mame 가 서로 독립). */
+const lastRotationAt = new Map<string, number>();
+
+/**
+ * 덮어쓰기 직전에 현재 스냅샷을 이전 세대로 밀어 둔다.
+ *
+ * `<file>.2` → `<file>.3`, `<file>.1` → `<file>.2` 로 rename 한 뒤 현재 파일을
+ * `<file>.1` 로 **복사**한다. rename 이 아니라 복사인 이유는, 현재 파일을 옮겨
+ * 버리면 새 내용이 착지하기 전 짧은 순간 스냅샷이 아예 없는 상태가 되기
+ * 때문이다. 그 사이에 앱이 죽으면 되돌릴 것 자체가 사라진다.
+ *
+ * 회전 실패는 삼킨다. 이건 부가 안전망이고, 여기서 throw 하면 정작 중요한 본
+ * 저장까지 막힌다. 다만 조용히 넘기지 않고 경고는 남긴다.
+ *
+ * @returns 실제로 회전했으면 true (간격 미달이나 원본 부재면 false).
+ */
+export async function rotateGenerations(
+  filePath: string,
+  now: number = Date.now(),
+): Promise<boolean> {
+  const last = lastRotationAt.get(filePath) ?? 0;
+  if (now - last < GENERATION_INTERVAL_MS) return false;
+  try {
+    if (!(await exists(filePath))) return false;
+    for (let i = GENERATION_KEEP - 1; i >= 1; i--) {
+      const from = `${filePath}.${i}`;
+      if (await exists(from)) {
+        await rename(from, `${filePath}.${i + 1}`);
+      }
+    }
+    await writeTextFile(`${filePath}.1`, await readTextFile(filePath));
+    lastRotationAt.set(filePath, now);
+    return true;
+  } catch (err) {
+    console.warn("[autosave] generation rotation failed:", err);
+    return false;
+  }
+}
+
 // ─── readAutosave ────────────────────────────────────────────────────────
 
 /**
@@ -407,6 +463,8 @@ export function scheduleAutosave(
   const task = async (): Promise<void> => {
     const filePath = await resolveTargetPath(resolvedTarget, kind);
     if (filePath === null) return;
+    // 덮어쓰기 전에만 세대를 뜬다. 내부에서 간격을 보고 대부분 즉시 빠진다.
+    await rotateGenerations(filePath);
     await atomicWriteJson(filePath, snapshot);
   };
 
