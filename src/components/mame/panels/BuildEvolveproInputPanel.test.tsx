@@ -10,18 +10,27 @@
 
 import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ProjectProvider } from "@/state/projectContext";
 
 const mockSetBuildEvolveproCompletion = vi.hoisted(() => vi.fn());
+const mockRegisterArtifacts = vi.hoisted(() => vi.fn());
+const mockMkdir = vi.hoisted(() => vi.fn());
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: vi.fn(),
   save: vi.fn(),
+}));
+vi.mock("@tauri-apps/plugin-fs", () => ({
+  mkdir: mockMkdir,
 }));
 vi.mock("@/lib/ipc-mame", () => ({
   buildEvolveproInput: vi.fn(),
 }));
 vi.mock("@/lib/openFolder", () => ({
   revealInOSFolder: vi.fn(),
+}));
+vi.mock("@/lib/workspace", () => ({
+  registerArtifacts: mockRegisterArtifacts,
 }));
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -172,6 +181,8 @@ beforeEach(() => {
   localStorage.clear();
   vi.clearAllMocks();
   mockBuild.mockResolvedValue(RESULT);
+  mockRegisterArtifacts.mockResolvedValue(undefined);
+  mockMkdir.mockResolvedValue(undefined);
 });
 
 describe("BuildEvolveproInputPanel axis toggles", () => {
@@ -204,6 +215,38 @@ describe("BuildEvolveproInputPanel axis toggles", () => {
       ...PRIMARY_PARAMS.gcSheet,
       verdict_xlsx: undefined,
       output_xlsx: OUTPUT,
+    });
+  });
+
+  it("defaults the EVOLVEpro output into the active project activity folder and registers it", async () => {
+    seed({ ...PRIMARY_SEED.gcSheet });
+    render(
+      <ProjectProvider value={{ path: "/proj", name: "Demo", scratch: false }}>
+        <BuildEvolveproInputPanel />
+      </ProjectProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Still needed/)).not.toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: BUILD_LABEL }));
+
+    await waitFor(() => expect(mockBuild).toHaveBeenCalledTimes(1));
+    expect(mockBuild).toHaveBeenCalledWith({
+      ...PRIMARY_PARAMS.gcSheet,
+      verdict_xlsx: undefined,
+      output_xlsx: "/proj/activity/evolvepro_input.xlsx",
+    });
+    expect(mockMkdir).toHaveBeenCalledWith("/proj/activity", { recursive: true });
+    await waitFor(() => {
+      expect(mockRegisterArtifacts).toHaveBeenCalledWith([
+        {
+          app: "mame",
+          step: "activity",
+          type: "evolvepro_csv",
+          absolutePath: RESULT.output_path,
+        },
+      ]);
     });
   });
 

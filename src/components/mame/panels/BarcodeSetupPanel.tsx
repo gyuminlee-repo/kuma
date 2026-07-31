@@ -22,6 +22,7 @@ import { rpc } from "@/lib/ipc";
 import { describeRpcError, extractMissingMethod } from "@/lib/errors";
 import { revealInOSFolder } from "@/lib/openFolder";
 import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
+import { registerArtifacts } from "@/lib/workspace";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -471,6 +472,34 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
             ? { targetLength: res.amplicon_length }
             : {}),
         },
+      });
+      await registerArtifacts([
+        {
+          app: "mame",
+          step: "setup",
+          type: "mame_barcodes_xlsx",
+          absolutePath: res.barcodes_xlsx,
+        },
+        {
+          app: "mame",
+          step: "setup",
+          type: "mame_reference_fasta",
+          absolutePath: res.amplicon_fa,
+        },
+        {
+          app: "mame",
+          step: "setup",
+          type: "mame_sample_map_xlsx",
+          absolutePath: res.sample_map_template,
+        },
+        {
+          app: "mame",
+          step: "setup",
+          type: "mame_context_json",
+          absolutePath: res.context_json,
+        },
+      ]).catch((err) => {
+        console.warn("[workspace] mame setup artifact registration failed", err);
       });
       const destName = getFilename(destDir);
       const lengthDesc = res.amplicon_length != null

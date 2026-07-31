@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdtempSync, writeFileSync, unlinkSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -107,6 +107,23 @@ describe("workspace api", () => {
     ]);
     const list = await listArtifacts();
     expect(list).toHaveLength(2);
+  });
+
+  it("keeps project-folder SDM primer artifacts relative in the manifest and resolves them for consumers", async () => {
+    const designDir = join(dir, "design");
+    mkdirSync(designDir);
+    const file = join(designDir, "kuro_sdm_primers.xlsx");
+    writeFileSync(file, "xlsx");
+
+    await registerArtifacts([
+      { app: "kuro", step: "sdm_primer", type: "sdm_primer_xlsx", absolutePath: file },
+    ]);
+
+    const manifest = await readManifest(dir);
+    expect(manifest?.artifacts[0].path).toBe("design/kuro_sdm_primers.xlsx");
+    const latest = await getLatestArtifact("sdm_primer_xlsx");
+    expect(latest?.path).toBe(file);
+    expect(latest?.stale).toBe(false);
   });
 
   it("getLatestArtifact returns null when none", async () => {

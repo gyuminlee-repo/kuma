@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BUILD_EVOLVEPRO_DEFAULT_STATE, createBuildEvolveproCompletion } from "@/lib/mame/buildEvolveproFormStorage";
 import type { DistributionStats, ReplicateResult, RunHealthData, VerdictRecord, WellEntry } from "@/types/mame/models";
+import type { Round } from "@/types/round";
 import { buildMameSnapshot } from "./autosaveSnapshot";
 
 const verdict: VerdictRecord = {
@@ -74,6 +75,47 @@ const runHealth: RunHealthData = {
   recovery_rate: 1,
 };
 
+const round: Round = {
+  id: "round_1",
+  n: 1,
+  created_at: "2026-07-30T00:00:00.000Z",
+  status: "activity_linked",
+  error_info: null,
+  plate_meta: { plates: [{ plate_id: "plate01", wt_wells: ["A01"], control_wells: [] }] },
+  design: {},
+  genotype: {},
+  activity: {
+    records: [
+      {
+        plate_id: "plate01",
+        well_id: "A01",
+        value: 2.4,
+        replicate_idx: 1,
+        is_wt: false,
+        source_file: "/proj/activity.csv",
+      },
+    ],
+    plate_meta: { plates: [{ plate_id: "plate01", wt_wells: ["A01"], control_wells: [] }] },
+  },
+  merged_table: [
+    {
+      plate_id: "plate01",
+      well_id: "A01",
+      mutation: "V5F",
+      mutation_source: "mame_genotype",
+      expected_mutation: "V5F",
+      called_mutation: "V5F",
+      ngs_success: true,
+      activity_raw_mean: 2.4,
+      activity_raw_sd: 0,
+      activity_replicates: [2.4],
+      replicate_n: 1,
+      fold_change: 2.3,
+      log2_fc: 1.2,
+    },
+  ],
+};
+
 describe("buildMameSnapshot", () => {
   it("stores all user-visible result state for literal save-load", () => {
     const buildCompletion = createBuildEvolveproCompletion(
@@ -123,9 +165,14 @@ describe("buildMameSnapshot", () => {
       demuxResult: null,
       ampliconLengthEstimate: null,
       wellLayout: { A01: "V5F" },
+    }, {
+      rounds: [round],
+      activeRoundId: "round_1",
     });
 
     expect(snapshot).toMatchObject({
+      rounds: [round],
+      active_round_id: "round_1",
       results: {
         verdicts: [verdict],
         replicates: [replicate],

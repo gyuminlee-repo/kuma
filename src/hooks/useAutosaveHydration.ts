@@ -29,11 +29,12 @@ import { KURO_SCHEMA, buildKuroSnapshot } from "@/lib/kuroSnapshot";
 import { buildKuroResultResetPatch } from "@/lib/kuroResultReset";
 import { MAME_SCHEMA } from "@/lib/mame/autosaveSnapshot";
 import { detectProjectFiles, detectFromInputDir } from "@/lib/mame/detectProjectFiles";
-import { openWorkspace } from "@/lib/workspace";
+import { getLatestArtifact, openWorkspace } from "@/lib/workspace";
 import { resolvePolymeraseName, retiredPolymeraseNotice } from "@/lib/polymeraseAliases";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { resetMameAll } from "@/store/mame/resetAll";
+import { useRoundStore } from "@/store/round/roundSlice";
 import type { AppState } from "@/store/appStore";
 import type { AppState as MameAppState } from "@/store/mame/types";
 import type { AutosaveSnapshot, ReadAutosaveResult } from "@/lib/autosave";
@@ -772,6 +773,19 @@ export async function applyMameAutoDetect(
     }
   }
 
+  const storeAfterDetection = useMameAppStore.getState();
+  if (!storeAfterDetection.expectedPath) {
+    try {
+      const sdmPrimer = await getLatestArtifact("sdm_primer_xlsx");
+      if (sdmPrimer?.path && !useMameAppStore.getState().expectedPath) {
+        useMameAppStore.getState().setExpectedPath(sdmPrimer.path);
+        filled.push(i18next.t("autosaveHydration.fieldExpected"));
+      }
+    } catch (err) {
+      console.warn("[autosave] mame: SDM primer artifact lookup failed", err);
+    }
+  }
+
   onMessage(filled);
 }
 
@@ -796,6 +810,13 @@ function applyMameSnapshot(snapshot: MameAutosaveSnapshot): void {
   store.setReferencePath(input.reference_path);
   store.setOutputPath(input.output_path);
   if (input.sample_map_path) store.setSampleMapPath(input.sample_map_path);
+
+  if (Array.isArray(snapshot.rounds)) {
+    useRoundStore.setState({
+      rounds: snapshot.rounds,
+      active_round_id: snapshot.active_round_id ?? null,
+    });
+  }
 
   useMameAppStore.setState({
     validationErrors: [],

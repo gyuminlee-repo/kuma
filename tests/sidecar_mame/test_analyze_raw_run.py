@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import gzip
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -88,6 +89,13 @@ def _make_kuro_xlsx(dest: Path) -> None:
 def _make_reference_fasta(tmp_path: Path, seq: str = _REFERENCE_NT) -> Path:
     ref = tmp_path / "reference.fasta"
     ref.write_text(f">ref\n{seq}\n", encoding="utf-8")
+    return ref
+
+
+def _make_binary_snapgene_placeholder(tmp_path: Path) -> Path:
+    """Binary .dna-shaped fixture with invalid UTF-8 bytes."""
+    ref = tmp_path / "reference.dna"
+    ref.write_bytes(b"SnapGene\x00" + bytes([0xA5]) + b"\x00sequence")
     return ref
 
 
@@ -293,6 +301,72 @@ def test_handle_analyze_raw_run(
     # Whole-run progress is monotonic non-decreasing across the handoff.
     all_vals = [p["value"] for p in params]
     assert all_vals == sorted(all_vals), f"progress must be non-decreasing; got {all_vals}"
+
+
+def test_handle_analyze_raw_run_materializes_snapgene_reference_before_demux(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from kuma_core.mame import ingest as ingest_mod
+    from kuma_core.mame import pipeline as pipeline_mod
+    from kuma_core.mame.ingest import IngestMode
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    reference = _make_binary_snapgene_placeholder(tmp_path)
+    barcodes_xlsx = tmp_path / "barcodes.xlsx"
+    _make_barcodes_xlsx(barcodes_xlsx)
+    expected_xlsx = tmp_path / "expected.xlsx"
+    _make_kuro_xlsx(expected_xlsx)
+    output = tmp_path / "out.xlsx"
+    seen: dict[str, Path] = {}
+
+    monkeypatch.setattr(
+        analyze_mod,
+        "_read_reference_sequence",
+        lambda path: _RAW_REF_SEQ if path.suffix == ".dna" else path.read_text(encoding="utf-8"),
+    )
+    monkeypatch.setattr(
+        ingest_mod,
+        "route_ingest",
+        lambda _input_dir, _mode: [
+            SimpleNamespace(file_size_kb=1.0, read_count=10),
+        ],
+    )
+
+    def fake_ingest_run_folder(**kwargs):
+        reference_fasta = kwargs["reference_fasta"]
+        assert isinstance(reference_fasta, Path)
+        reference_fasta.read_text(encoding="utf-8")
+        seen["demux_reference"] = reference_fasta
+
+    def fake_run_analyze(**kwargs):
+        reference_path = kwargs["reference_path"]
+        assert isinstance(reference_path, Path)
+        reference_path.read_text(encoding="utf-8")
+        seen["pipeline_reference"] = reference_path
+        assert kwargs["ingest_mode"] is IngestMode.BARCODE
+        return [], []
+
+    monkeypatch.setattr(ingest_mod, "ingest_run_folder", fake_ingest_run_folder)
+    monkeypatch.setattr(pipeline_mod, "run_analyze", fake_run_analyze)
+    _capture_progress(monkeypatch)
+
+    result = analyze_mod.handle_analyze({
+        "input_dir": str(run_dir),
+        "reference": str(reference),
+        "expected": str(expected_xlsx),
+        "output": str(output),
+        "custom_barcodes_xlsx": str(barcodes_xlsx),
+        "cds_start": 0,
+        "cds_end": 60,
+        "min_file_size_kb": 0.0,
+        "ingest_mode": "barcode",
+    })
+
+    assert result["verdicts"] == []
+    assert seen["demux_reference"].suffix == ".fa"
+    assert seen["demux_reference"].parent == output.parent / "demux_filtered"
+    assert seen["pipeline_reference"] == seen["demux_reference"]
 
 
 @requires_minimap2
