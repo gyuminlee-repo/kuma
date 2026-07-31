@@ -517,6 +517,32 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
 # A-pipeline: 4-file EVOLVEpro input build (layout + GC + rep-batch + prev EP)
 # ---------------------------------------------------------------------------
 
+def _serialise_label_audit(audit: Any) -> dict | None:
+    """Flatten a ``LabelAudit`` (frozen dataclass, nested findings + tuples)
+    into a JSON-serialisable dict, or ``None`` when no audit was run (no
+    verdict_xlsx / layout_xlsx supplied).
+    """
+    if audit is None:
+        return None
+    return {
+        "discordant": [
+            {
+                "well": f.well,
+                "expected": f.expected,
+                "observed": list(f.observed),
+                "category": f.category,
+                "verdict": f.verdict,
+            }
+            for f in audit.discordant
+        ],
+        "n_checked": audit.n_checked,
+        "n_unevaluable": audit.n_unevaluable,
+        "is_closed_permutation": audit.is_closed_permutation,
+        "cycles": [list(c) for c in audit.cycles],
+        "geometry": audit.geometry,
+    }
+
+
 def handle_build_evolvepro_input(params: dict) -> dict:
     """``mame.activity.build_evolvepro_input`` build one EVOLVEpro input xlsx.
 
@@ -550,6 +576,8 @@ def handle_build_evolvepro_input(params: dict) -> dict:
         mismatch_threshold (float, optional, default 0.1)
         mapping_audit_path (str, optional)
         gc_export_xlsx (str, optional, raw round-1 report only)
+        allow_label_mismatch (bool, optional, default False; set True to
+            proceed past a closed-permutation/severity=error label swap)
 
     Returns:
         {
@@ -570,12 +598,16 @@ def handle_build_evolvepro_input(params: dict) -> dict:
           "ngs_excluded": [str],
           "mode": str,
           "primary_source": str (PRIMARY_* axis A constant),
-          "confirmation_source": str (CONFIRM_* axis B constant)
+          "confirmation_source": str (CONFIRM_* axis B constant),
+          "label_audit": LabelAudit dict | null (well<->mutant discordance
+              audit; null unless both verdict_xlsx and layout_xlsx were given)
         }
 
     Raises:
         ValueError(-32602): invalid params or empty sources (WT areas missing,
-            empty replicate list, no variants to write).
+            empty replicate list, no variants to write, or, unless
+            allow_label_mismatch=True, a closed-permutation/severity=error
+            label-swap warning on the numeric-index confirmation axis).
         FileNotFoundError(-32602): an input is missing or the output directory
             does not exist.
     """
@@ -618,6 +650,7 @@ def handle_build_evolvepro_input(params: dict) -> dict:
         verdict_xlsx=p.verdict_xlsx,
         mapping_audit_path=audit_path,
         gc_export_xlsx=p.gc_export_xlsx,
+        allow_label_mismatch=p.allow_label_mismatch,
     )
 
     if r.mapping.rows:
@@ -654,6 +687,7 @@ def handle_build_evolvepro_input(params: dict) -> dict:
         # apart on every primary source, not only the rank-mode ones.
         "primary_source": r.primary_source,
         "confirmation_source": r.confirmation_source,
+        "label_audit": _serialise_label_audit(r.label_audit),
     }
     if is_rank:
         # Rank-mode only, matching the field set the frontend already reads.

@@ -63,12 +63,12 @@ def _write_prev_evolvepro(path, rows):
     wb.save(path)
 
 
-# The 14-key response contract mirrored by TS BuildEvolveproInputResult.
+# The 17-key response contract mirrored by TS BuildEvolveproInputResult.
 _RESULT_KEYS = {
     "output_path", "n_variants", "n_authoritative", "n_fallback_only",
     "mapping_audit", "mapping_audit_path", "prev_descending", "warnings",
     "swap_warnings", "mismatched", "mode", "n_ngs_excluded", "ngs_excluded",
-    "gc_export_path", "primary_source", "confirmation_source",
+    "gc_export_path", "primary_source", "confirmation_source", "label_audit",
 }
 
 
