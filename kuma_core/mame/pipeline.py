@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from collections import defaultdict
 from collections.abc import Callable
 from pathlib import Path
@@ -14,6 +15,7 @@ from kuma_core.mame.export.well_mapper import seq_to_well
 from kuma_core.mame.ingest import IngestMode, route_ingest
 from kuma_core.mame.ingest.sort_barcode import parse_sample_map
 from kuma_core.mame.io.kuro_reader import expected_to_labels, read_expected_mutations
+from kuma_core.mame.perf import TIMER
 from kuma_core.mame.models import (
     CompareParams,
     ExpectedMutation,
@@ -142,6 +144,7 @@ def run_analyze(
     sub-progress; the domain layer stays I/O-agnostic and never throttles.
     """
 
+    _perf_base = TIMER.begin()
     reference_seq = _read_reference_fasta(reference_path)
     expected_mutations = read_expected_mutations(expected_path)
     expected_labels = expected_to_labels(expected_mutations)
@@ -196,7 +199,8 @@ def run_analyze(
                 well_to_labels[nw] = labels
                 well_to_mutant[nw] = sample_str
 
-    records = route_ingest(input_dir, ingest_mode)
+    with TIMER.phase("ingest"):
+        records = route_ingest(input_dir, ingest_mode)
     params = CompareParams(
         min_file_size_kb=min_file_size_kb,
         min_read_count=min_read_count,
@@ -206,13 +210,21 @@ def run_analyze(
 
     verdicts: list[VerdictRecord] = []
     total_records = len(records)
+    # Per-record timing (records are wells, not reads) accumulated in locals and
+    # committed once after the loop, so the timer costs two perf_counter calls
+    # per record and no lock traffic inside it.
+    _t_translate = 0.0
+    _t_verdict = 0.0
     for i, rec in enumerate(records, 1):
+        _t0 = time.perf_counter()
         translated = translate_and_diff(
             record=rec,
             reference_seq=reference_seq,
             cds_start=cds_start,
             cds_end=cds_end,
         )
+        _t1 = time.perf_counter()
+        _t_translate += _t1 - _t0
         # Scope verdict to this well's own expected label(s) when a sample_map is
         # available.  Falls back to the full expected_labels list for wells whose
         # custom_barcode cannot be parsed or whose sample name is not a known mutant.
@@ -224,12 +236,17 @@ def run_analyze(
                 scoped = well_to_labels.get(wid)
                 if scoped is not None:
                     scoped_labels = scoped
+        _t2 = time.perf_counter()
         verdict = classify_verdict(translated, scoped_labels, params)
         verdicts.append(verdict)
+        _t_verdict += time.perf_counter() - _t2
         # Live per-record sub-progress. Unthrottled and I/O-free here; the
         # handler layer throttles emissions to avoid a stdout flood.
         if progress_callback is not None:
             progress_callback(i, total_records)
+
+    TIMER.add("translate_diff", _t_translate)
+    TIMER.add("verdict_classify", _t_verdict)
 
     grouped = _assign_mutant_ids(verdicts, expected_mutations, well_to_mutant=well_to_mutant)
 
@@ -252,12 +269,16 @@ def run_analyze(
         if designed_mutant_ids is not None
         else _designed_mutant_ids_from_expected(expected_mutations)
     )
-    write_excel(
-        verdict_records=verdicts,
-        replicate_results=replicate_results,
-        output_path=output_path,
-        mapper=WellMapper(),
-        mode="amplicon" if mode == "amplicon" else "plasmid",
-        designed_mutant_ids=designed,
-    )
+    with TIMER.phase("export_excel"):
+        write_excel(
+            verdict_records=verdicts,
+            replicate_results=replicate_results,
+            output_path=output_path,
+            mapper=WellMapper(),
+            mode="amplicon" if mode == "amplicon" else "plasmid",
+            designed_mutant_ids=designed,
+        )
+
+    TIMER.end("analyze", _perf_base, records=total_records)
+
     return verdicts, replicate_results

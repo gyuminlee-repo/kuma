@@ -45,6 +45,7 @@ import logging
 import threading
 import multiprocessing
 import tempfile
+import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -73,6 +74,7 @@ from kuma_core.mame.ingest.stage_marker import (
     write_stage_marker,
 )
 from kuma_core.mame.ingest.well_consensus import _read_reference_seq
+from kuma_core.mame.perf import TIMER, timed_iter
 from kuma_core.shared.atomic_write import atomic_write_text
 
 log = logging.getLogger(__name__)
@@ -848,6 +850,50 @@ def run_combinatorial_demux(
     -------
     DemuxResult with stats, per_well_reads, per_well_consensus.
     """
+    with TIMER.session("demux", output_dir=str(output_dir)):
+        return _run_combinatorial_demux_body(
+            raw_fastq_paths=raw_fastq_paths,
+            reference_fasta=reference_fasta,
+            barcodes_xlsx=barcodes_xlsx,
+            output_dir=output_dir,
+            mapq_threshold=mapq_threshold,
+            coverage_fraction=coverage_fraction,
+            trim_flank_bp=trim_flank_bp,
+            min_depth=min_depth,
+            window_bp=window_bp,
+            edit_dist_ratio=edit_dist_ratio,
+            chimera_split=chimera_split,
+            well_consensus_at_root=well_consensus_at_root,
+            minimap2_threads=minimap2_threads,
+            consensus_workers=consensus_workers,
+            per_read_parallel=per_read_parallel,
+            progress_callback=progress_callback,
+        )
+
+
+def _run_combinatorial_demux_body(
+    raw_fastq_paths: list[Path],
+    reference_fasta: Path,
+    barcodes_xlsx: Path,
+    output_dir: Path,
+    mapq_threshold: int,
+    coverage_fraction: float,
+    trim_flank_bp: int,
+    min_depth: int,
+    window_bp: int,
+    edit_dist_ratio: float,
+    chimera_split: bool,
+    well_consensus_at_root: bool,
+    minimap2_threads: int | None,
+    consensus_workers: int | None,
+    per_read_parallel: bool,
+    progress_callback: Callable[[int, int, str], None] | None,
+) -> DemuxResult:
+    """Body of :func:`run_combinatorial_demux` (see there for semantics).
+
+    Split out only so the public entry point can wrap the whole run in one
+    :meth:`PhaseTimer.session`; behaviour is unchanged.
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
     if well_consensus_at_root:
         reads_dir = output_dir / "reads"
@@ -864,7 +910,8 @@ def run_combinatorial_demux(
 
     stats = DemuxStats()
 
-    r_barcodes, f_barcodes = load_barcode_prefixes(barcodes_xlsx)
+    with TIMER.phase("load_barcodes"):
+        r_barcodes, f_barcodes = load_barcode_prefixes(barcodes_xlsx)
     log.info(
         "Loaded %d R barcodes, %d F barcodes (prefix-only, annealing tail stripped)",
         len(r_barcodes),
@@ -898,19 +945,23 @@ def run_combinatorial_demux(
     _chunk_size = max(1, _chunk_size)
     _read_chunks = _iter_chunks(_iter_fastq(raw_fastq_paths), _chunk_size)
 
-    for chunk_reads in _read_chunks:
+    # Phase timing: charging only the generator's `next()` to fastq_read keeps
+    # gzip decompression + parsing separate from the per-chunk work below, with
+    # one timer pair per chunk (never per read).
+    for chunk_reads in timed_iter(_read_chunks, "fastq_read"):
         stats.total_reads += len(chunk_reads)
 
         if chimera_split:
             # --- multi-hit path: chimera / concatemer splitting ------------
-            multi_results = align_reads_multi(
-                reads=chunk_reads,
-                reference_fasta=reference_fasta,
-                preset="map-ont",
-                min_mapq=mapq_threshold,
-                coverage_fraction=coverage_fraction,
-                threads=minimap2_threads,
-            )
+            with TIMER.phase("align_minimap2"):
+                multi_results = align_reads_multi(
+                    reads=chunk_reads,
+                    reference_fasta=reference_fasta,
+                    preset="map-ont",
+                    min_mapq=mapq_threshold,
+                    coverage_fraction=coverage_fraction,
+                    threads=minimap2_threads,
+                )
 
             reads_with_hits = len(multi_results)
             total_hit_count = sum(len(hits) for _, _, hits in multi_results)
@@ -952,6 +1003,12 @@ def run_combinatorial_demux(
                 else:
                     pool_workers = cpu
                 pool_workers = max(1, min(pool_workers, _demux_total))
+
+                # Parent-side wall clock only. The matching work happens in
+                # spawned workers, so this is NOT decomposable into their
+                # internal phases and is not CPU time either (it overlaps
+                # pool_workers processes).
+                _t_pool = time.perf_counter()
 
                 indexed = [
                     (i, rid, rseq, hits)
@@ -1006,7 +1063,12 @@ def run_combinatorial_demux(
                     stats.assigned_reads += assigned_d
                     stats.chimera_splits += chimera_d
                     stats.ambiguous_dropped += ambiguous_d
+
+                TIMER.add(
+                    "barcode_match_parallel_wall", time.perf_counter() - _t_pool
+                )
             else:
+                _t_match = time.perf_counter()
                 _demux_step = max(1, _demux_total // 100)  # ~1% interval throttle
                 for _demux_i, (read_id, read_seq, hits) in enumerate(multi_results):
                     if progress_callback is not None and _demux_i % _demux_step == 0:
@@ -1061,22 +1123,25 @@ def run_combinatorial_demux(
                             stats.chimera_splits += 1
                         is_first_hit = False
 
+                TIMER.add("barcode_match", time.perf_counter() - _t_match)
+
         else:
             # --- legacy single-hit path ------------------------------------
-            alignments = align_reads(
-                reads=chunk_reads,
-                reference_fasta=reference_fasta,
-                preset="map-ont",
-                min_mapq=mapq_threshold,
-                # Apply the SAME graded coverage filter as the multi-hit path
-                # (align_reads_multi). Collapsing it to require_full_span=
-                # (coverage_fraction >= 1.0) dropped the span filter entirely for
-                # any coverage_fraction < 1.0 (e.g. the 0.98 default), admitting
-                # partial-coverage reads into wells on the chimera_split=False path.
-                require_full_span=False,
-                coverage_fraction=coverage_fraction,
-                threads=minimap2_threads,
-            )
+            with TIMER.phase("align_minimap2"):
+                alignments = align_reads(
+                    reads=chunk_reads,
+                    reference_fasta=reference_fasta,
+                    preset="map-ont",
+                    min_mapq=mapq_threshold,
+                    # Apply the SAME graded coverage filter as the multi-hit path
+                    # (align_reads_multi). Collapsing it to require_full_span=
+                    # (coverage_fraction >= 1.0) dropped the span filter entirely for
+                    # any coverage_fraction < 1.0 (e.g. the 0.98 default), admitting
+                    # partial-coverage reads into wells on the chimera_split=False path.
+                    require_full_span=False,
+                    coverage_fraction=coverage_fraction,
+                    threads=minimap2_threads,
+                )
             stats.passed_coverage += len(alignments)
             stats.passed_mapq += len(alignments)
             log.info(
@@ -1085,6 +1150,7 @@ def run_combinatorial_demux(
                 len(chunk_reads),
             )
 
+            _t_match = time.perf_counter()
             for aln in alignments:
                 trimmed = _trim_read(aln, aln.read_seq, trim_flank_bp)
                 result = _demux_read_anchored(
@@ -1104,6 +1170,7 @@ def run_combinatorial_demux(
                 r_idx, f_idx = result
                 per_well[(r_idx, f_idx)].append((aln.read_id, trimmed))
                 stats.assigned_reads += 1
+            TIMER.add("barcode_match", time.perf_counter() - _t_match)
 
     log.info("Total reads: %d", stats.total_reads)
     log.info(
@@ -1115,14 +1182,15 @@ def run_combinatorial_demux(
 
     # Write per-well FASTA files
     per_well_reads: dict[str, list[tuple[str, str]]] = {}
-    for (r_idx, f_idx), reads in per_well.items():
-        well_name = f"{r_idx}_{f_idx}"
-        per_well_reads[well_name] = reads
-        fasta_path = reads_dir / f"{well_name}.fasta"
-        atomic_write_text(
-            fasta_path,
-            "".join(f">{read_id}\n{trimmed}\n" for read_id, trimmed in reads),
-        )
+    with TIMER.phase("write_well_fasta"):
+        for (r_idx, f_idx), reads in per_well.items():
+            well_name = f"{r_idx}_{f_idx}"
+            per_well_reads[well_name] = reads
+            fasta_path = reads_dir / f"{well_name}.fasta"
+            atomic_write_text(
+                fasta_path,
+                "".join(f">{read_id}\n{trimmed}\n" for read_id, trimmed in reads),
+            )
 
     stats.wells_with_reads = sum(1 for v in per_well.values() if len(v) >= 1)
     stats.wells_with_min_reads = sum(
@@ -1148,9 +1216,10 @@ def run_combinatorial_demux(
     _index_tmp = tempfile.TemporaryDirectory(prefix="kuma_mame_idx_")
     well_index: Path | None
     try:
-        well_index = build_minimap2_index(
-            reference_fasta, Path(_index_tmp.name) / "reference.mmi"
-        )
+        with TIMER.phase("build_index"):
+            well_index = build_minimap2_index(
+                reference_fasta, Path(_index_tmp.name) / "reference.mmi"
+            )
     except Exception as exc:  # noqa: BLE001
         # Index prebuild is a pure performance optimisation. On any failure,
         # fall back to per-well on-the-fly indexing (reference_index=None) so
@@ -1207,6 +1276,10 @@ def run_combinatorial_demux(
 
     _consensus_done = 0
     n_workers = consensus_workers if consensus_workers is not None else _CONSENSUS_WORKERS
+    # Wall time of the whole per-well consensus stage in this process. The
+    # ``*_sum`` keys added inside _compute_well_consensus are summed over the
+    # ThreadPool workers and can exceed this wall.
+    _t_cons = time.perf_counter()
     with ThreadPoolExecutor(max_workers=n_workers) as pool:
         futures = {
             pool.submit(_run_well, wn, rds): wn
@@ -1259,6 +1332,8 @@ def run_combinatorial_demux(
             _consensus_done += 1
             if progress_callback is not None:
                 progress_callback(_consensus_done, _consensus_total, "consensus")
+
+    TIMER.add("well_consensus_wall", time.perf_counter() - _t_cons)
 
     # All wells finished aligning against the prebuilt index; drop the tempdir.
     _index_tmp.cleanup()
@@ -1323,6 +1398,10 @@ def _compute_well_consensus(
             0,
         )
 
+    # One timer pair per well (not per read): the two sub-phases are summed
+    # across the consensus ThreadPool workers, so they are labelled *_sum and
+    # may exceed the stage wall time.
+    _t_aln = time.perf_counter()
     well_alignments = align_reads(
         reads=reads,
         reference_fasta=reference_fasta,
@@ -1338,6 +1417,7 @@ def _compute_well_consensus(
         # back to indexing reference_fasta on the fly.
         reference_index=reference_index,
     )
+    TIMER.add("well_consensus.align_minimap2_sum", time.perf_counter() - _t_aln)
 
     if not well_alignments:
         log.debug(
@@ -1361,11 +1441,12 @@ def _compute_well_consensus(
             0,
         )
 
-    consensus_call = call_consensus_with_metrics(
-        well_alignments,
-        ref_seq,
-        min_depth=min_depth,
-    )
+    with TIMER.phase("well_consensus.compute_sum"):
+        consensus_call = call_consensus_with_metrics(
+            well_alignments,
+            ref_seq,
+            min_depth=min_depth,
+        )
     return (
         consensus_call.consensus_seq,
         len(well_alignments),
@@ -1513,6 +1594,12 @@ def run_combinatorial_demux_per_nb(
     parallel path was used), and ``workers`` (process count).
     """
     from kuma_core.mame.ingest.sort_barcode import _nb_to_sort_barcode_name
+
+    # Parent-side measurement window. On the serial path the child
+    # run_combinatorial_demux phases land in this same process and therefore
+    # show up decomposed; on the ProcessPool path only the parent wall is
+    # measured here and each worker emits its own "demux" record.
+    _perf_base = TIMER.begin()
 
     cpu = os.cpu_count() or 4
     n = len(nb_to_fastq)
@@ -1712,6 +1799,10 @@ def run_combinatorial_demux_per_nb(
     merged = {
         k: sum(s["stats"][k] for s in ordered_summaries) for k in _DEMUX_NB_STAT_KEYS
     }
+
+    TIMER.end(
+        "demux_per_nb", _perf_base, workers=P, barcodes=n, parallel=P > 1,
+    )
 
     return {"merged_stats": merged, "per_nb": ordered_summaries,
             "parallel": P > 1, "workers": P}
