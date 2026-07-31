@@ -57,6 +57,7 @@ from typing import Callable, Iterator
 
 from kuma_core.mame.ingest.align import (
     align_reads,
+    align_reads_grouped,
     align_reads_multi,
     build_minimap2_index,
     _get_reference_length,
@@ -1234,9 +1235,9 @@ def _run_combinatorial_demux_body(
     _consensus_total = len(per_well_reads)
 
     # Build the reference minimap2 index once (map-ont preset, identical to the
-    # per-well alignment preset) so every well reuses it instead of rebuilding
-    # the index on each of the (up to 96) align_reads calls. The .mmi lives in a
-    # tempdir that spans the whole consensus loop below.
+    # consensus alignment preset) so the batched alignment below skips the
+    # on-the-fly index build. The .mmi lives in a tempdir dropped right after
+    # that single call.
     _index_tmp = tempfile.TemporaryDirectory(prefix="kuma_mame_idx_")
     well_index: Path | None
     try:
@@ -1253,6 +1254,30 @@ def _run_combinatorial_demux_body(
             "index the reference FASTA on the fly", exc
         )
         well_index = None
+
+    # One minimap2 call for every well of this unit instead of one per well.
+    # Per-read results are identical (minimap2 maps each query independently and
+    # the seed-occurrence cutoffs come from the prebuilt index, not the query
+    # set) and align_reads_grouped keeps each well's reads in input order, which
+    # the consensus tie-break depends on. Threads: the per-well calls had to
+    # stay at 1 because up to n_workers wells aligned concurrently; a single
+    # batched call can use this worker's whole allotted share.
+    n_workers = consensus_workers if consensus_workers is not None else _CONSENSUS_WORKERS
+    _batch_threads = minimap2_threads if minimap2_threads is not None else n_workers
+    try:
+        with TIMER.phase("well_consensus.align_minimap2_batch"):
+            well_alignments_map = align_reads_grouped(
+                groups=list(per_well_reads.items()),
+                reference_fasta=reference_fasta,
+                preset="map-ont",
+                min_mapq=0,           # trimmed reads; already filtered upstream
+                require_full_span=False,
+                threads=max(1, _batch_threads),
+                reference_index=well_index,
+            )
+    finally:
+        # Every well aligned in the single call above; the .mmi is done with.
+        _index_tmp.cleanup()
 
     def _run_well(
         well_name: str,
@@ -1276,8 +1301,8 @@ def _run_combinatorial_demux_body(
             max_del_run_length,
             net_indel,
         ) = _compute_well_consensus(
-            well_name, reads, reference_fasta, ref_seq, ref_len, min_depth,
-            reference_index=well_index,
+            well_name, reads, well_alignments_map.get(well_name, []),
+            ref_seq, ref_len, min_depth,
         )
         return (
             well_name,
@@ -1299,7 +1324,6 @@ def _run_combinatorial_demux_body(
         )
 
     _consensus_done = 0
-    n_workers = consensus_workers if consensus_workers is not None else _CONSENSUS_WORKERS
     # Wall time of the whole per-well consensus stage in this process. The
     # ``*_sum`` keys added inside _compute_well_consensus are summed over the
     # ThreadPool workers and can exceed this wall.
@@ -1359,9 +1383,6 @@ def _run_combinatorial_demux_body(
 
     TIMER.add("well_consensus_wall", time.perf_counter() - _t_cons)
 
-    # All wells finished aligning against the prebuilt index; drop the tempdir.
-    _index_tmp.cleanup()
-
     # Combined single-file consensus FASTA (all wells, sorted by R then F),
     # mirroring the Aporva pipeline's final/<...>_consensus_dna.fasta output.
     # The per-well consensus/ files above are still written.
@@ -1396,13 +1417,17 @@ def _trim_read(aln: Alignment, original_seq: str, flank_bp: int) -> str:
 def _compute_well_consensus(
     well_name: str,
     reads: list[tuple[str, str]],
-    reference_fasta: Path,
+    well_alignments: list[Alignment],
     ref_seq: str,
     ref_len: int,
     min_depth: int,
-    reference_index: Path | None = None,
 ) -> tuple[str, int, int, float, int, float, int, int, int, int, int, int, float, int, int]:
-    """Align reads and return consensus sequence, depth, and mix metrics."""
+    """Call consensus for one well from its (pre-computed) alignments.
+
+    ``well_alignments`` comes from the single batched :func:`align_reads_grouped`
+    call for the whole unit and is in this well's original read order, which the
+    consensus tie-break depends on.
+    """
     if not reads:
         return (
             "N" * ref_len,
@@ -1421,27 +1446,6 @@ def _compute_well_consensus(
             0,
             0,
         )
-
-    # One timer pair per well (not per read): the two sub-phases are summed
-    # across the consensus ThreadPool workers, so they are labelled *_sum and
-    # may exceed the stage wall time.
-    _t_aln = time.perf_counter()
-    well_alignments = align_reads(
-        reads=reads,
-        reference_fasta=reference_fasta,
-        preset="map-ont",
-        min_mapq=0,           # trimmed reads; already filtered upstream
-        require_full_span=False,
-        # One thread per well: parallelism comes from the consensus
-        # ThreadPoolExecutor across wells, so per-well minimap2 must stay
-        # single-threaded to avoid workers x threads oversubscription.
-        threads=1,
-        # Reuse the reference .mmi prebuilt once for the whole consensus loop
-        # (map-ont preset), skipping a fresh per-well index build. None falls
-        # back to indexing reference_fasta on the fly.
-        reference_index=reference_index,
-    )
-    TIMER.add("well_consensus.align_minimap2_sum", time.perf_counter() - _t_aln)
 
     if not well_alignments:
         log.debug(

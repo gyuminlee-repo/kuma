@@ -36,7 +36,7 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Sequence
 
 # CIGAR operation codes (BAM spec)
 _CIGAR_M = 0   # match or mismatch
@@ -264,9 +264,9 @@ def _strip_clips(cigar: list[list[int]]) -> list[list[int]]:
 
 
 def _normalise_read_tuple(read: tuple[str, ...]) -> tuple[str, str, str | None]:
-    if len(read) >= 3:
-        return str(read[0]), str(read[1]), str(read[2])
-    return str(read[0]), str(read[1]), None
+    fields = list(read)
+    qual = str(fields[2]) if len(fields) >= 3 else None
+    return str(fields[0]), str(fields[1]), qual
 
 
 def _write_reads_fasta(
@@ -498,19 +498,123 @@ def align_reads(
         aln = primary.get(idx)
         if aln is None:
             continue
-        if aln.mapq < min_mapq:
-            continue
-        if require_full_span and not (aln.r_st == 0 and aln.r_en == ref_len):
-            continue
-        if (
-            coverage_fraction is not None
-            and ref_len > 0
-            and (aln.r_en - aln.r_st) / ref_len < coverage_fraction
+        if not _alignment_passes(
+            aln, ref_len, min_mapq, require_full_span, coverage_fraction
         ):
             continue
         results.append(aln)
 
     return results
+
+
+def _alignment_passes(
+    aln: Alignment,
+    ref_len: int,
+    min_mapq: int,
+    require_full_span: bool,
+    coverage_fraction: float | None,
+) -> bool:
+    """Post-alignment filters shared by align_reads and align_reads_grouped."""
+    if aln.mapq < min_mapq:
+        return False
+    if require_full_span and not (aln.r_st == 0 and aln.r_en == ref_len):
+        return False
+    if (
+        coverage_fraction is not None
+        and ref_len > 0
+        and (aln.r_en - aln.r_st) / ref_len < coverage_fraction
+    ):
+        return False
+    return True
+
+
+def align_reads_grouped(
+    groups: Sequence[tuple[str, Sequence[tuple[str, ...]]]],
+    reference_fasta: Path,
+    preset: str = "map-ont",
+    min_mapq: int = 25,
+    require_full_span: bool = True,
+    threads: int | None = None,
+    reference_index: Path | None = None,
+    coverage_fraction: float | None = None,
+) -> dict[str, list[Alignment]]:
+    """Align several read groups in ONE minimap2 call, split back per group.
+
+    ``groups`` is a sequence of ``(group_key, reads)`` pairs with the same read
+    tuple shape :func:`align_reads` accepts.  All reads are written to a single
+    FASTA with globally increasing synthetic integer QNAMEs, so each group owns
+    a contiguous ``[start, end)`` index range; splitting the parsed SAM records
+    back by that range preserves each group's original read order exactly.
+
+    Result is identical to calling :func:`align_reads` once per group with the
+    same parameters: minimap2 maps every query independently and, with a
+    prebuilt index, its seed-occurrence cutoffs come from the index rather than
+    the query set, so batching cannot change a per-read alignment.  Returns
+    ``{group_key: [Alignment, ...]}`` with an entry for every key in ``groups``.
+    """
+    if not reference_fasta.exists():
+        raise FileNotFoundError(f"Reference FASTA not found: {reference_fasta}")
+
+    ref_len = _get_reference_length(reference_fasta)
+    out: dict[str, list[Alignment]] = {key: [] for key, _ in groups}
+
+    with tempfile.TemporaryDirectory(prefix="kuro_align_") as tmpdir:
+        reads_fasta = Path(tmpdir) / "reads.fasta"
+        index_map: list[tuple[str, str, str | None]] = []
+        bounds: list[tuple[str, int, int]] = []
+        with reads_fasta.open("w", encoding="utf-8") as fh:
+            for key, reads in groups:
+                start = len(index_map)
+                for raw_read in reads:
+                    read_id, seq, qual = _normalise_read_tuple(raw_read)
+                    if not seq:
+                        continue
+                    idx = len(index_map)
+                    index_map.append((read_id, seq, qual))
+                    fh.write(f">{idx}\n{seq}\n")
+                bounds.append((key, start, len(index_map)))
+        if not index_map:
+            return out
+
+        positional_ref = reference_index if reference_index is not None else reference_fasta
+        records = _run_minimap2(positional_ref, reads_fasta, preset, threads=threads)
+
+        primary: dict[int, Alignment] = {}
+        for read_index, flag, pos, mapq, cigar_str in records:
+            if flag & (_FLAG_SECONDARY | _FLAG_SUPPLEMENTARY):
+                continue
+            if read_index in primary:
+                continue
+            cigar = _parse_cigar(cigar_str)
+            r_st, r_en, q_st, q_en = _coords_from_cigar(cigar, pos, bool(flag & _FLAG_REVERSE))
+            read_id, read_seq, read_qual = index_map[read_index]
+            primary[read_index] = Alignment(
+                read_id=read_id,
+                read_seq=read_seq,
+                read_qual=read_qual,
+                mapq=mapq,
+                cigar=_strip_clips(cigar),
+                r_st=r_st,
+                r_en=r_en,
+                q_st=q_st,
+                q_en=q_en,
+                strand=-1 if (flag & _FLAG_REVERSE) else 1,
+                reference_length=ref_len,
+            )
+
+    for key, start, end in bounds:
+        group_results = out[key]
+        for idx in range(start, end):
+            aln = primary.get(idx)
+            if aln is None:
+                continue
+            if not _alignment_passes(
+                aln, ref_len, min_mapq, require_full_span, coverage_fraction
+            ):
+                continue
+            group_results.append(aln)
+
+    return out
 
 
 def align_reads_with_stats(
