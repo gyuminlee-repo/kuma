@@ -50,7 +50,6 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 import os
-import sys
 import re
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from typing import Callable, Iterator
@@ -80,18 +79,23 @@ from kuma_core.shared.atomic_write import atomic_write_text
 
 log = logging.getLogger(__name__)
 
-def _is_frozen_win() -> bool:
-    """True only on a frozen (PyInstaller) Windows build.
-
-    PyInstaller --onefile + multiprocessing "spawn" deadlocks on Windows: each
-    spawned worker re-extracts the whole onefile archive, so the per-NB and
-    per-read ProcessPools never make progress. Linux/macOS frozen demux is fine
-    (fork / no re-extraction); only the Windows frozen sidecar hangs. Callers
-    fall back to serial demux when this is True; dev/test and Linux/macOS keep
-    full parallelism.
-    """
-    return sys.platform == "win32" and bool(getattr(sys, "frozen", False))
-
+# NOTE (2026-07-31): a former `_is_frozen_win()` guard disabled both the per-NB
+# and the per-read ProcessPool on frozen Windows builds, blaming "PyInstaller
+# onefile re-extracts the archive per spawned worker and deadlocks". That
+# diagnosis was wrong and is deliberately not restored:
+#   * The observed symptom (Windows frozen smoke appearing to hang) was root-
+#     caused later the same day to stdin read-ahead buffering in the sidecar
+#     dispatcher, and fixed there, see the readline() loop in
+#     python-core/sidecar_mame/dispatcher.py. The demux itself ran in ~10 s once
+#     the request actually reached it; it was never a compute cold-start.
+#   * The guard also claimed "Linux/macOS is fine (fork)", which is false: this
+#     module forces the "spawn" start method on every platform, and the Linux
+#     frozen onefile build exercises exactly the same spawn ProcessPool path in
+#     CI without deadlocking.
+# Re-entrancy of spawned children is handled by multiprocessing.freeze_support()
+# in python-core/sidecar_main_mame.py, not by disabling parallelism. Escape
+# hatches remain env-driven: KUMA_MAME_NB_PARALLEL=0 disables the per-NB pool,
+# and a large KUMA_MAME_PERREAD_THRESHOLD disables the per-read pool.
 
 _F_TAIL = "cacaggaggttaaacc"
 _R_TAIL = "tgcgttgcgctctag"
@@ -1007,7 +1011,7 @@ def _run_combinatorial_demux_body(
             # _match_reads_chunk.
             _use_perread_pool = (
                 per_read_parallel and _demux_total >= _threshold
-                and _demux_total > 0 and not _is_frozen_win()
+                and _demux_total > 0
             )
 
             if _use_perread_pool:
@@ -1642,7 +1646,7 @@ def run_combinatorial_demux_per_nb(
     cpu = os.cpu_count() or 4
     n = len(nb_to_fastq)
     env_off = os.environ.get("KUMA_MAME_NB_PARALLEL", "1") == "0"
-    use_parallel = parallel and n > 1 and not env_off and not _is_frozen_win()
+    use_parallel = parallel and n > 1 and not env_off
     if use_parallel:
         _env_workers = os.environ.get("KUMA_MAME_NB_WORKERS", "").strip()
         if max_workers:
@@ -1659,7 +1663,7 @@ def run_combinatorial_demux_per_nb(
     # the per-read matching loop may fan out to its own ProcessPool. With n>1
     # the per-NB pool already owns the cores, so per-read stays serial (and
     # nesting a pool inside a worker is illegal anyway).
-    per_read_parallel = n == 1 and not _is_frozen_win()
+    per_read_parallel = n == 1
 
     payloads: list[dict] = []
     for nb_name, paths in nb_to_fastq.items():
