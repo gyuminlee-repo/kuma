@@ -324,7 +324,11 @@
         "sampleMapTemplate": "Sample-map-Vorlage (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "Ordner konnte nicht geöffnet werden."
+      "openFolderError": "Ordner konnte nicht geöffnet werden.",
+      "variantSheet": "Variantenblatt",
+      "variantColumn": "Variantenspalte",
+      "variantColumnPlaceholder": "Spalte waehlen",
+      "variantColumnHelper": "Die Zeilenreihenfolge dieser Spalte fuellt die 96-Well-Platte. Eine WT-Zeile dient als Kontrolle."
     },
     "activity": {
       "sectionIngest": "Activity hochladen",

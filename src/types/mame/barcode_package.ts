@@ -39,12 +39,48 @@ export interface GenerateMamePackageParams {
   /** Require GC clamp on 3-prime end. Default: true. */
   require_gc_clamp?: boolean
   /**
-   * Optional KURO results xlsx carrying an expected_mutations sheet. When set,
-   * sample_map_template.xlsx is pre-filled with a draft placement (one designed
-   * mutant per well in column-major order, WT control last) instead of headers
-   * only. The draft still needs verification against the physical plate.
+   * Optional variant list. When set, sample_map_template.xlsx is pre-filled with
+   * a draft placement (one variant per well in column-major order, WT control
+   * last) instead of headers only. The draft still needs verification against
+   * the physical plate.
+   *
+   * A KURO results xlsx carrying an expected_mutations sheet is detected and
+   * read with its own strict reader. Any other workbook or csv is read as a
+   * plain list, one variant per row, in file order.
    */
   expected_mutations_path?: string
+  /**
+   * Sheet holding the variant list. Only needed for a non-KURO file whose sheet
+   * cannot be inferred; ignored for KURO exports.
+   */
+  variant_sheet?: string
+  /**
+   * Column holding the variant labels. Only needed when the header is not a
+   * recognised name (variant, mutation, mutant_id, ...) and the sheet has more
+   * than one column.
+   */
+  variant_column?: string
+}
+
+/** Parameters for the inspect_variant_source RPC method. */
+export interface InspectVariantSourceParams {
+  /** Variant list to inspect (xlsx or csv). */
+  path: string
+}
+
+/**
+ * What a variant list offers, so the UI can present sheet and column pickers
+ * instead of rejecting an unfamiliar layout.
+ */
+export interface VariantSourceInfo {
+  /** True when this is a KURO export and needs no column mapping. */
+  is_kuro_export: boolean
+  /** Sheet names in workbook order. Empty for csv. */
+  sheets: string[]
+  /** Headers per sheet. csv uses the single key "". */
+  headers: Record<string, string[]>
+  /** Column the backend would pick on its own, when it can pick one. */
+  suggested_column: string | null
 }
 
 /** Result of the generate_mame_package RPC method. */

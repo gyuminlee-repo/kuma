@@ -342,7 +342,11 @@
         "sampleMapTemplate": "Sample map template (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "Could not open the folder."
+      "openFolderError": "Could not open the folder.",
+      "variantSheet": "Variant sheet",
+      "variantColumn": "Variant column",
+      "variantColumnPlaceholder": "Select a column",
+      "variantColumnHelper": "Rows fill the 96-well plate in this column's order. A WT row is used as the control instead of appending one."
     },
     "activity": {
       "ingest": {

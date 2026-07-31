@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { autoDetectCdsCandidates } from "@/lib/sequence/autoDetectCds";
 import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
 import type { SequenceInfo } from "@/types/models";
+import type { VariantSourceInfo } from "@/types/mame/barcode_package";
 import { useKumaProject } from "@/state/projectContext";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { rpc } from "@/lib/ipc";
@@ -180,6 +181,11 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
   // template is pre-filled with a draft well placement instead of headers only,
   // so the operator verifies a draft rather than authoring the map from scratch.
   const expectedPath = useMameAppStore((s) => s.expectedPath);
+  // 변이 목록 파일이 KURO export 가 아니고 열을 특정할 수 없을 때만 시트·열을
+  // 고르게 한다. KURO export 는 백엔드가 알아서 판독하므로 아무것도 묻지 않는다.
+  const [variantInfo, setVariantInfo] = useState<VariantSourceInfo | null>(null);
+  const [variantSheet, setVariantSheet] = useState("");
+  const [variantColumn, setVariantColumn] = useState("");
   const currentTargetLength = useMameAppStore((s) => s.rawRunParams.targetLength);
   const cdsCandidates = useMameAppStore((s) => s.cdsCandidates);
   const selectedCdsIndex = useMameAppStore((s) => s.selectedCdsIndex);
@@ -307,6 +313,35 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
     setForm({ fastaPath: sharedFastaPath });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sharedFastaPath]);
+
+  // 변이 목록 파일이 바뀌면 어떤 시트·열을 가졌는지 확인한다. 실패해도 생성을
+  // 막지 않는다. 백엔드가 스스로 판단할 수 있는 파일이면 여기서 물을 것이 없다.
+  useEffect(() => {
+    const path = expectedPath.trim();
+    if (!path) {
+      setVariantInfo(null);
+      setVariantSheet("");
+      setVariantColumn("");
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const info = await rpc<VariantSourceInfo>("mame", "inspect_variant_source", { path });
+        if (cancelled) return;
+        setVariantInfo(info);
+        setVariantSheet(info.is_kuro_export ? "" : (info.sheets[0] ?? ""));
+        setVariantColumn(info.suggested_column ?? "");
+      } catch {
+        // 구버전 사이드카에는 이 메서드가 없다. 그 경우 기존 동작(KURO 전용)으로
+        // 남고 사용자는 아무 차이를 못 느낀다.
+        if (!cancelled) setVariantInfo(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [expectedPath]);
 
   // ─── 파일 브라우저 ───────────────────────────────────────────────────────
 
@@ -455,6 +490,8 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
       tm_max: optFloat(form.tmMax),
       require_gc_clamp: form.requireGcClamp,
       expected_mutations_path: expectedPath.trim() || undefined,
+      variant_sheet: variantSheet || undefined,
+      variant_column: variantColumn || undefined,
     };
 
     try {
@@ -692,6 +729,52 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
           <h3 id="section-meta" className="mb-3 text-sm font-medium text-foreground">
             {t("mame.barcodeSetup.projectMetadata")}
           </h3>
+          {/*
+            변이 목록 매핑. KURO export 는 백엔드가 판독하므로 숨긴다. 그 외
+            파일에서만 시트·열을 고르게 한다. KURO 입력 단계가 EVOLVEpro 와
+            그 외 파일을 같은 방식으로 받는 것과 같은 규약이다.
+          */}
+          {variantInfo && !variantInfo.is_kuro_export && (
+            <div className="grid grid-cols-2 gap-3">
+              {variantInfo.sheets.length > 1 && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="variant-sheet" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {t("mame.barcodeSetup.variantSheet")}
+                  </Label>
+                  <Select value={variantSheet} onValueChange={setVariantSheet}>
+                    <SelectTrigger id="variant-sheet" className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {variantInfo.sheets.map((name) => (
+                        <SelectItem key={name} value={name}>{name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <Label htmlFor="variant-column" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {t("mame.barcodeSetup.variantColumn")}
+                </Label>
+                <Select value={variantColumn} onValueChange={setVariantColumn}>
+                  <SelectTrigger id="variant-column" className="h-8 text-xs">
+                    <SelectValue placeholder={t("mame.barcodeSetup.variantColumnPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(variantInfo.headers[variantSheet] ?? variantInfo.headers[""] ?? [])
+                      .filter((header) => header !== "")
+                      .map((header) => (
+                        <SelectItem key={header} value={header}>{header}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-caption text-muted-foreground">
+                  {t("mame.barcodeSetup.variantColumnHelper")}
+                </p>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="gene-name" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

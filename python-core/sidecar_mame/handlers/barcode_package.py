@@ -27,7 +27,11 @@ Optional
   require_gc_clamp     (bool,  default true)
   topology              (str,  default None -- auto-detect from fasta_path;
                          explicit "linear" or "circular" overrides detection)
-  expected_mutations_path (str, default None) -- KURO results xlsx. When given,
+  variant_sheet (str, default None) -- sheet holding the variant list, when the
+    file is not a KURO export and the sheet cannot be inferred.
+  variant_column (str, default None) -- column holding the variant labels, for
+    the same case.
+  expected_mutations_path (str, default None) -- variant list xlsx. When given,
                          sample_map_template.xlsx is pre-filled with a draft
                          well placement (one designed mutant per well in
                          column-major order, WT control last) instead of
@@ -58,6 +62,40 @@ from sidecar_mame.core import (
 )
 
 _logger = logging.getLogger(__name__)
+
+
+def _optional_str(raw: object) -> str | None:
+    """Treat absent, null and blank alike: the caller did not choose."""
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    return text or None
+
+
+def handle_inspect_variant_source(params: dict) -> dict:
+    """Report the sheets and columns a variant list offers.
+
+    Lets the UI present the same sheet/column pickers the KURO input step uses,
+    rather than rejecting a file whose layout is merely unfamiliar. A KURO export
+    answers ``is_kuro_export`` so no mapping is asked for.
+
+    Parameters
+    ----------
+    path : str
+        Variant list to inspect (xlsx or csv).
+    """
+    from kuma_core.mame.io.variant_list import inspect_variant_source
+
+    raw = _optional_str(params.get("path"))
+    if raw is None:
+        raise ValueError("path is required")
+    info = inspect_variant_source(Path(raw))
+    return {
+        "is_kuro_export": info.is_kuro_export,
+        "sheets": info.sheets,
+        "headers": info.headers,
+        "suggested_column": info.suggested_column,
+    }
 
 
 def handle_generate_mame_package(params: dict) -> dict:
@@ -137,9 +175,11 @@ def handle_generate_mame_package(params: dict) -> dict:
         allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS,
     )
 
-    # Optional KURO results xlsx for sample-map pre-fill. Absent/empty means
+    # Optional variant list for sample-map pre-fill. Absent/empty means
     # "emit a header-only template"; a supplied path must be a readable xlsx
     # (validated here so a typo surfaces before primer design runs).
+    # A KURO export is detected downstream and keeps its strict reader; any other
+    # workbook is read as a plain list, optionally with sheet/column overrides.
     expected_mutations_raw = params.get("expected_mutations_path")
     expected_mutations_path: Path | None = None
     if expected_mutations_raw is not None and str(expected_mutations_raw).strip() != "":
@@ -185,6 +225,8 @@ def handle_generate_mame_package(params: dict) -> dict:
         require_gc_clamp=require_gc_clamp,
         topology=topology,
         expected_mutations_path=expected_mutations_path,
+        variant_sheet=_optional_str(params.get("variant_sheet")),
+        variant_column=_optional_str(params.get("variant_column")),
     )
 
     return {

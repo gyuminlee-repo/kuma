@@ -324,7 +324,11 @@
         "sampleMapTemplate": "Sample map 範本 (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "無法開啟資料夾。"
+      "openFolderError": "無法開啟資料夾。",
+      "variantSheet": "變異清單工作表",
+      "variantColumn": "變異欄",
+      "variantColumnPlaceholder": "選擇欄位",
+      "variantColumnHelper": "依此欄的列順序填入 96 孔盤。若有 WT 列，則以其作為對照。"
     },
     "activity": {
       "sectionIngest": "上傳 activity 資料",

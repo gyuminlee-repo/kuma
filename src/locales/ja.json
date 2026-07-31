@@ -324,7 +324,11 @@
         "sampleMapTemplate": "Sample map テンプレート (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "フォルダーを開けませんでした。"
+      "openFolderError": "フォルダーを開けませんでした。",
+      "variantSheet": "変異リストのシート",
+      "variantColumn": "変異の列",
+      "variantColumnPlaceholder": "列を選択",
+      "variantColumnHelper": "この列の行順で 96 well に配置します。WT 行があればそれを対照に使います。"
     },
     "activity": {
       "sectionIngest": "活性データのアップロード",

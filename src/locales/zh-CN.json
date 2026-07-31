@@ -324,7 +324,11 @@
         "sampleMapTemplate": "Sample map 模板 (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "无法打开文件夹。"
+      "openFolderError": "无法打开文件夹。",
+      "variantSheet": "变异列表工作表",
+      "variantColumn": "变异列",
+      "variantColumnPlaceholder": "选择列",
+      "variantColumnHelper": "按此列的行顺序填入 96 孔板。若存在 WT 行，则以其作为对照。"
     },
     "activity": {
       "sectionIngest": "上传 activity 数据",
