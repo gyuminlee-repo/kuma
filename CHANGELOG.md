@@ -6,6 +6,10 @@ Autosave records the absolute paths picked in a file dialog. Opening the project
 
 ### Fixed
 
+- v0.13.38: Autosave records file paths relative to the project folder instead of as absolute paths. Copying a project folder, or opening it on another machine, now restores its inputs directly. Files kept outside the project, a multi-gigabyte MinKNOW run folder being the usual case, are recorded as references carrying name, size and modification time rather than being pinned to the machine that wrote them. Older snapshots still load.
+- v0.13.38: Inputs that cannot be recovered are listed in a banner with the name and size they had, and it stays until each is pointed at its new location. A replacement whose size differs from the recorded one raises a warning, since attaching a same-named but different sequencing run is the mistake this guards against. A deliberate replacement is still accepted.
+- v0.13.38: Autosave is flushed when the app closes. The flush existed but nothing called it on the close path, so edits made inside the 1.5 second debounce window were lost on exit.
+- v0.13.38: The previous snapshot is kept before each overwrite, three generations deep, at most one every five minutes so the copies point at genuinely different times. Autosave used to overwrite a single file, leaving no way back from a bad save.
 - v0.13.38: Restored MAME input paths are checked before use. Ones that no longer resolve are cleared, so the existing auto-detect finds the same files inside the project again. A path whose check fails outright is kept, because a permission error or a slow network drive is not evidence that the file is gone.
 - v0.13.38: Inputs that auto-detect cannot recover, a raw MinKNOW run folder outside the project being the common case, are named on screen. Previously they were blanked with no notice.
 - v0.13.38: A sequence file that cannot be reopened during restore is reported by name. It used to fail into the console only, leaving a project that looked fully restored but had no sequence loaded.

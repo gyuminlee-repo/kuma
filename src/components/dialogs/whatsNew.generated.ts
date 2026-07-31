@@ -8,6 +8,10 @@ export interface WhatsNewItem {
 export const WHATS_NEW_VERSION = "0.13.38";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
+  { label: "Fixed", detail: "Autosave records file paths relative to the project folder instead of as absolute paths. Copying a project folder, or opening it on another machine, now restores its inputs directly. Files kept outside the project, a multi-gigabyte MinKNOW…" },
+  { label: "Fixed", detail: "Inputs that cannot be recovered are listed in a banner with the name and size they had, and it stays until each is pointed at its new location. A replacement whose size differs from the recorded one raises a warning, since attaching a same…" },
+  { label: "Fixed", detail: "Autosave is flushed when the app closes. The flush existed but nothing called it on the close path, so edits made inside the 1.5 second debounce window were lost on exit." },
+  { label: "Fixed", detail: "The previous snapshot is kept before each overwrite, three generations deep, at most one every five minutes so the copies point at genuinely different times. Autosave used to overwrite a single file, leaving no way back from a bad save." },
   { label: "Fixed", detail: "Restored MAME input paths are checked before use. Ones that no longer resolve are cleared, so the existing auto-detect finds the same files inside the project again. A path whose check fails outright is kept, because a permission error or…" },
   { label: "Fixed", detail: "Inputs that auto-detect cannot recover, a raw MinKNOW run folder outside the project being the common case, are named on screen. Previously they were blanked with no notice." },
   { label: "Fixed", detail: "A sequence file that cannot be reopened during restore is reported by name. It used to fail into the console only, leaving a project that looked fully restored but had no sequence loaded." },
