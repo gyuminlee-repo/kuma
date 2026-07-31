@@ -366,6 +366,7 @@ def _find_best_barcode(
     barcodes: list[tuple[str, str]],
     window: str,
     edit_dist_ratio: float,
+    max_edits: list[int] | None = None,
 ) -> tuple[int, int] | None:
     """Find the unambiguous best-matching barcode in *window*.
 
@@ -377,6 +378,11 @@ def _find_best_barcode(
         Sequence window extracted from the read.
     edit_dist_ratio:
         Max allowed edit distance = int(len(bc) * edit_dist_ratio).
+    max_edits:
+        Optional precomputed per-barcode thresholds, positionally aligned with
+        *barcodes*.  When omitted they are derived from *edit_dist_ratio* exactly
+        as before; passing them in only hoists a read-invariant computation out
+        of the per-read loop (identical values, no behaviour change).
 
     Returns
     -------
@@ -388,7 +394,10 @@ def _find_best_barcode(
     second_best_dist: int = 10**6
 
     for i, (_, prefix) in enumerate(barcodes):
-        max_edit = int(len(prefix) * edit_dist_ratio)
+        if max_edits is None:
+            max_edit = int(len(prefix) * edit_dist_ratio)
+        else:
+            max_edit = max_edits[i]
         dist = _best_infix_match(prefix, window, max_edit)
         if dist is None:
             continue
@@ -409,6 +418,110 @@ def _find_best_barcode(
     return best_idx + 1, best_dist  # 1-based index
 
 
+@dataclass(frozen=True)
+class _BarcodePlan:
+    """Read-invariant barcode preprocessing, computed once per run.
+
+    Everything here depends only on (r_barcodes, f_barcodes, edit_dist_ratio),
+    never on the read, so hoisting it out of the per-read loop cannot change
+    results.  Module-level dataclass => picklable for the ``spawn`` ProcessPool.
+    """
+
+    r_barcodes_rc: list[tuple[str, str]]
+    f_barcodes: list[tuple[str, str]]
+    max_r_len: int
+    max_f_len: int
+    r_max_edits: list[int]
+    f_max_edits: list[int]
+    edit_dist_ratio: float
+
+
+def _build_barcode_plan(
+    r_barcodes: list[tuple[str, str]],
+    f_barcodes: list[tuple[str, str]],
+    edit_dist_ratio: float,
+) -> _BarcodePlan:
+    """Precompute the read-invariant parts of :func:`_demux_read_anchored`.
+
+    Mirrors the former per-read expressions verbatim:
+    ``max(len(p))`` defaults, ``_reverse_complement`` of each R prefix, and
+    ``int(len(prefix) * edit_dist_ratio)``.  RC preserves length, so the R
+    thresholds computed from the RC'd prefixes equal the original ones.
+    """
+    r_rc = [(name, _reverse_complement(prefix)) for name, prefix in r_barcodes]
+    return _BarcodePlan(
+        r_barcodes_rc=r_rc,
+        f_barcodes=f_barcodes,
+        max_r_len=max((len(p) for _, p in r_barcodes), default=10),
+        max_f_len=max((len(p) for _, p in f_barcodes), default=11),
+        r_max_edits=[int(len(p) * edit_dist_ratio) for _, p in r_rc],
+        f_max_edits=[int(len(p) * edit_dist_ratio) for _, p in f_barcodes],
+        edit_dist_ratio=edit_dist_ratio,
+    )
+
+
+def _extract_barcode_windows(
+    read_seq: str,
+    q_st: int,
+    q_en: int,
+    strand: int,
+    window_bp: int,
+    max_f_len: int,
+    max_r_len: int,
+) -> tuple[str, str]:
+    """Return the (f_window, r_window) barcode search slices for one read.
+
+    Window extraction works on two short slices instead of upper()/RC'ing the
+    whole (up to multi-kb) read. This is exact, not an approximation:
+    ``upper()`` and ``_reverse_complement()`` (str.translate + reversal) are
+    both per-character on the ASCII bases a FASTQ read carries, so
+        upper(S)[a:b]                == upper(S[a:b])
+        RC(upper(S))[a:b]            == RC(upper(S[L-b:L-a]))
+    The -1 branch below is the second identity with the window bounds folded
+    in; see the comment there for the coordinate derivation.
+
+    Window rationale (unchanged):
+    F barcode is strictly 5' of alignment start (F_barcode + F_anneal tail).
+    The inner edge stops at the anchor and must NOT extend into the aligned
+    insert: the reference 5'-start can sit within the edit threshold of a
+    forward barcode (e.g. ispS starts "TGGCTTGCTC", edit distance 2 from the
+    F9 prefix "TGCCTTGATC"). If the insert is inside the search window, every
+    read whose real F barcode is degraded matches that barcode against the gene
+    start and funnels into a single well, contaminating its whole column. The
+    barcode + anneal lie wholly 5' of the insert, so excluding the insert loses
+    no real barcode signal. The R barcode window is the mirror image: strictly
+    3' of the alignment end, where the barcode appears as RC(R_barcode) (hence
+    the R prefixes are searched in RC form, precomputed in the plan).
+    """
+    L = len(read_seq)
+
+    if strand == -1:
+        # Original code normalised via norm_q_st = L - q_en, norm_q_en = L - q_st
+        # on rc = RC(upper(read_seq)), then took
+        #   f_window = rc[max(0, norm_q_st - window_bp - max_f_len) : min(L, norm_q_st)]
+        #   r_window = rc[max(0, norm_q_en) : min(L, norm_q_en + window_bp + max_r_len)]
+        # Mapping rc[a:b] back to the read via RC(upper(read_seq[L-b:L-a])) and
+        # substituting L - norm_q_st = q_en, L - norm_q_en = q_st gives:
+        #   f source = read_seq[max(0, q_en) : min(L, q_en + window_bp + max_f_len)]
+        #   r source = read_seq[max(0, q_st - window_bp - max_r_len) : min(L, q_st)]
+        # (min/max survive the mapping because L - min(L, x) == max(0, L - x).)
+        f_window = _reverse_complement(
+            read_seq[max(0, q_en):min(L, q_en + window_bp + max_f_len)].upper()
+        )
+        r_window = _reverse_complement(
+            read_seq[max(0, q_st - window_bp - max_r_len):min(L, q_st)].upper()
+        )
+    else:
+        f_window = read_seq[
+            max(0, q_st - window_bp - max_f_len):min(L, q_st)
+        ].upper()
+        r_window = read_seq[
+            max(0, q_en):min(L, q_en + window_bp + max_r_len)
+        ].upper()
+
+    return f_window, r_window
+
+
 def _demux_read_anchored(
     read_seq: str,
     q_st: int,
@@ -418,6 +531,7 @@ def _demux_read_anchored(
     f_barcodes: list[tuple[str, str]],
     window_bp: int = 30,
     edit_dist_ratio: float = 0.20,
+    plan: _BarcodePlan | None = None,
 ) -> tuple[int, int] | None:
     """Demux one read using alignment anchors and edlib fuzzy matching.
 
@@ -437,6 +551,11 @@ def _demux_read_anchored(
         Max allowed edit distance fraction of barcode length (default 0.20).
         Threshold = floor(len(bc) * ratio).  At ratio=0.20: 10 bp -> 2 edits,
         11 bp -> 2 edits, 15 bp -> 3 edits.
+    plan:
+        Optional :class:`_BarcodePlan` from :func:`_build_barcode_plan`, letting
+        callers hoist the read-invariant barcode preprocessing out of their
+        per-read loop.  Omitted (or built for a different *edit_dist_ratio*) it
+        is rebuilt here, so existing call sites keep working unchanged.
 
     Returns
     -------
@@ -457,46 +576,29 @@ def _demux_read_anchored(
     So the 5' window contains F_barcode (as-is) and the 3' window contains
     RC(R_barcode). R barcode prefixes are reverse-complemented before searching.
     """
-    seq = read_seq.upper()
-    L = len(seq)
+    if plan is None or plan.edit_dist_ratio != edit_dist_ratio:
+        plan = _build_barcode_plan(r_barcodes, f_barcodes, edit_dist_ratio)
 
-    if strand == -1:
-        # Normalise to forward orientation so window math is uniform.
-        seq = _reverse_complement(seq)
-        norm_q_st = L - q_en
-        norm_q_en = L - q_st
-    else:
-        norm_q_st = q_st
-        norm_q_en = q_en
+    # Window extraction (slice-then-normalise) lives in
+    # :func:`_extract_barcode_windows`; see its docstring for the equivalence
+    # proof against the original whole-read upper()/RC() formulation and for
+    # the biological rationale of the window bounds.
+    f_window, r_window = _extract_barcode_windows(
+        read_seq,
+        q_st,
+        q_en,
+        strand,
+        window_bp,
+        plan.max_f_len,
+        plan.max_r_len,
+    )
 
-    max_r_len = max((len(p) for _, p in r_barcodes), default=10)
-    max_f_len = max((len(p) for _, p in f_barcodes), default=11)
-
-    # F barcode: strictly 5' of alignment start (F_barcode + F_anneal tail).
-    # The inner edge stops at the anchor (norm_q_st) and must NOT extend into the
-    # aligned insert: the reference 5'-start can sit within the edit threshold of
-    # a forward barcode (e.g. ispS starts "TGGCTTGCTC", edit distance 2 from the
-    # F9 prefix "TGCCTTGATC"). If the insert is inside the search window, every
-    # read whose real F barcode is degraded matches that barcode against the gene
-    # start and funnels into a single well, contaminating its whole column. The
-    # barcode + anneal lie wholly 5' of the insert, so excluding the insert loses
-    # no real barcode signal.
-    f_win_start = max(0, norm_q_st - window_bp - max_f_len)
-    f_win_end = min(L, norm_q_st)
-    f_window = seq[f_win_start:f_win_end]
-
-    # R barcode: strictly 3' of alignment end, appears as RC(R_barcode) in the
-    # read. Inner edge stops at the anchor (norm_q_en) for the same reason: the
-    # aligned insert must not enter the barcode search window.
-    r_win_start = max(0, norm_q_en)
-    r_win_end = min(L, norm_q_en + window_bp + max_r_len)
-    r_window = seq[r_win_start:r_win_end]
-
-    # RC the R barcode prefixes: on the read the R barcode is reverse-complemented
-    r_barcodes_rc = [(name, _reverse_complement(prefix)) for name, prefix in r_barcodes]
-
-    f_result = _find_best_barcode(f_barcodes, f_window, edit_dist_ratio)
-    r_result = _find_best_barcode(r_barcodes_rc, r_window, edit_dist_ratio)
+    f_result = _find_best_barcode(
+        plan.f_barcodes, f_window, edit_dist_ratio, plan.f_max_edits
+    )
+    r_result = _find_best_barcode(
+        plan.r_barcodes_rc, r_window, edit_dist_ratio, plan.r_max_edits
+    )
 
     if r_result is None or f_result is None:
         return None
@@ -605,6 +707,9 @@ def _match_reads_chunk(
     ``(r_idx, f_idx, slice_seq)`` to push onto ``per_well[(r_idx, f_idx)]`` and
     the three deltas are this read's contribution to the matching stats.
     """
+    # Read-invariant barcode preprocessing, hoisted out of the per-read loop.
+    plan = _build_barcode_plan(r_barcodes, f_barcodes, edit_dist_ratio)
+
     out: list[tuple[int, list[tuple[int, int, str]], int, int, int]] = []
     for read_index, _read_id, read_seq, hits in chunk:
         assigned_wells_this_read: set[tuple[int, int]] = set()
@@ -631,6 +736,7 @@ def _match_reads_chunk(
                 f_barcodes=f_barcodes,
                 window_bp=window_bp,
                 edit_dist_ratio=edit_dist_ratio,
+                plan=plan,
             )
             if result is None:
                 ambiguous_delta += 1
@@ -764,6 +870,12 @@ def run_combinatorial_demux(
         len(r_barcodes),
         len(f_barcodes),
     )
+
+    # Read-invariant barcode preprocessing (RC'd R prefixes, max prefix lengths,
+    # per-barcode edit thresholds) computed once for the whole run instead of
+    # per read. The ProcessPool path rebuilds it inside each worker chunk
+    # (_match_reads_chunk) rather than pickling it, keeping the payload as-is.
+    barcode_plan = _build_barcode_plan(r_barcodes, f_barcodes, edit_dist_ratio)
 
     ref_len = _get_reference_length(reference_fasta)
     log.info("Reference length: %d bp", ref_len)
@@ -925,6 +1037,7 @@ def run_combinatorial_demux(
                             f_barcodes=f_barcodes,
                             window_bp=window_bp,
                             edit_dist_ratio=edit_dist_ratio,
+                            plan=barcode_plan,
                         )
                         if result is None:
                             stats.ambiguous_dropped += 1
@@ -983,6 +1096,7 @@ def run_combinatorial_demux(
                     f_barcodes=f_barcodes,
                     window_bp=window_bp,
                     edit_dist_ratio=edit_dist_ratio,
+                    plan=barcode_plan,
                 )
                 if result is None:
                     stats.ambiguous_dropped += 1

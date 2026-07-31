@@ -873,3 +873,157 @@ class TestMinimap2ThreadsConstant:
 
         # Auto-detected default: all host cores minus one reserved for the UI.
         assert _MINIMAP2_THREADS == max(1, (os.cpu_count() or 4) - 1)
+
+
+# ---------------------------------------------------------------------------
+# Barcode-window extraction equivalence (perf refactor regression guard)
+# ---------------------------------------------------------------------------
+
+import random  # noqa: E402
+
+from kuma_core.mame.ingest.combinatorial_demux import (  # noqa: E402
+    _extract_barcode_windows,
+)
+
+# Independent reverse-complement for the reference implementation, so the
+# reference does not inherit a bug from the production helper it guards.
+_REF_COMP = str.maketrans("ACGTacgtNn", "TGCAtgcaNn")
+
+
+def _ref_rc(seq: str) -> str:
+    return seq.translate(_REF_COMP)[::-1]
+
+
+def _reference_windows_pre_refactor(
+    read_seq: str,
+    q_st: int,
+    q_en: int,
+    strand: int,
+    window_bp: int,
+    max_f_len: int,
+    max_r_len: int,
+) -> tuple[str, str]:
+    """Pre-refactor window formula, transcribed verbatim as a test oracle.
+
+    The original code upper()'d (and, on strand -1, reverse-complemented) the
+    *whole* read, normalised the anchor coordinates, then sliced.  The shipped
+    helper slices first and normalises only the two short slices.  This oracle
+    is written out by hand on purpose: the original implementation no longer
+    exists in the tree, so it cannot be imported.
+    """
+    seq = read_seq.upper()
+    L = len(seq)
+    if strand == -1:
+        seq = _ref_rc(seq)
+        norm_q_st = L - q_en
+        norm_q_en = L - q_st
+    else:
+        norm_q_st = q_st
+        norm_q_en = q_en
+    f_window = seq[max(0, norm_q_st - window_bp - max_f_len):min(L, norm_q_st)]
+    r_window = seq[max(0, norm_q_en):min(L, norm_q_en + window_bp + max_r_len)]
+    return f_window, r_window
+
+
+_WINDOW_ALPHABET = "ACGTacgtNn"
+_WINDOW_LENGTHS = (0, 1, 2, 5, 20, 45, 46, 47, 60, 150)
+_WINDOW_BPS = (0, 1, 30)
+_WINDOW_MAX_LENS = ((11, 10), (0, 0), (16, 15))
+_WINDOW_STRANDS = (1, -1)
+# Enumerate every (q_st, q_en) pair up to this read length; sample above it.
+_WINDOW_FULL_ENUM_MAX_L = 20
+_WINDOW_SAMPLED_PAIRS = 200
+_WINDOW_SEQS_PER_LENGTH = 2
+_WINDOW_SEED = 20260731
+
+
+def _anchor_pairs(rng: random.Random, L: int) -> list[tuple[int, int]]:
+    """Anchor (q_st, q_en) pairs for read length *L*: boundaries + sampling."""
+    # Boundary cases are included unconditionally, never left to sampling.
+    pairs: set[tuple[int, int]] = {
+        (0, 0),          # empty alignment at the 5' end
+        (0, L),          # alignment spans the whole read
+        (L, L),          # empty alignment at the 3' end
+    }
+    for x in (0, 1, L // 2, L - 1, L):
+        if 0 <= x <= L:
+            pairs.add((x, x))            # q_st == q_en
+            pairs.add((x, L))            # q_en == L
+            pairs.add((0, x))            # q_st == 0
+    if L <= _WINDOW_FULL_ENUM_MAX_L:
+        for q_st in range(L + 1):
+            for q_en in range(q_st, L + 1):
+                pairs.add((q_st, q_en))
+    else:
+        for _ in range(_WINDOW_SAMPLED_PAIRS):
+            a = rng.randint(0, L)
+            b = rng.randint(0, L)
+            pairs.add((min(a, b), max(a, b)))
+    return sorted(pairs)
+
+
+def test_extract_barcode_windows_matches_pre_refactor_formula() -> None:
+    """Regression guard: the slice-then-normalise window extraction in
+    ``_extract_barcode_windows`` must return byte-identical f/r windows to the
+    original upper()/RC()-the-whole-read formula, so the hot-loop perf refactor
+    cannot silently shift barcode search windows and mis-assign wells.
+    """
+    rng = random.Random(_WINDOW_SEED)
+    checked = 0
+    for L in _WINDOW_LENGTHS:
+        seqs = [
+            "".join(rng.choice(_WINDOW_ALPHABET) for _ in range(L))
+            for _ in range(_WINDOW_SEQS_PER_LENGTH)
+        ]
+        for q_st, q_en in _anchor_pairs(rng, L):
+            assert 0 <= q_st <= q_en <= L
+            for strand in _WINDOW_STRANDS:
+                for window_bp in _WINDOW_BPS:
+                    for max_f_len, max_r_len in _WINDOW_MAX_LENS:
+                        for read_seq in seqs:
+                            expected = _reference_windows_pre_refactor(
+                                read_seq, q_st, q_en, strand,
+                                window_bp, max_f_len, max_r_len,
+                            )
+                            actual = _extract_barcode_windows(
+                                read_seq, q_st, q_en, strand,
+                                window_bp, max_f_len, max_r_len,
+                            )
+                            assert actual == expected, (
+                                f"L={L} q_st={q_st} q_en={q_en} "
+                                f"strand={strand} window_bp={window_bp} "
+                                f"max_f_len={max_f_len} max_r_len={max_r_len} "
+                                f"read={read_seq!r}"
+                            )
+                            checked += 1
+    # Guard against the sampling silently collapsing to a trivial case count.
+    assert checked > 20000, checked
+
+
+def test_extract_barcode_windows_is_used_by_demux_read_anchored() -> None:
+    """Regression guard: _demux_read_anchored must route through the shared
+    window helper, so the equivalence test above actually covers production.
+    """
+    calls: list[tuple[object, ...]] = []
+    import kuma_core.mame.ingest.combinatorial_demux as mod
+
+    original = mod._extract_barcode_windows
+
+    def _spy(*args: object) -> tuple[str, str]:
+        calls.append(args)
+        return original(*args)  # type: ignore[arg-type]
+
+    mod._extract_barcode_windows = _spy  # type: ignore[assignment]
+    try:
+        _demux_read_anchored(
+            "ACGT" * 40,
+            q_st=20,
+            q_en=100,
+            strand=1,
+            r_barcodes=[("R1", _R_BARCODES[0])],
+            f_barcodes=[("F1", _F_BARCODES[0])],
+        )
+    finally:
+        mod._extract_barcode_windows = original  # type: ignore[assignment]
+
+    assert len(calls) == 1
