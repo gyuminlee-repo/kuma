@@ -53,6 +53,7 @@ import {
   BUILD_EVOLVEPRO_STORAGE_KEY,
   BUILD_EVOLVEPRO_DEFAULT_STATE,
   createBuildEvolveproCompletion,
+  hasCompletedBuildEvolveproOutput,
   loadBuildEvolveproFromStorage,
   seedBuildEvolveproForm,
   type BuildEvolveproFormState,
@@ -618,6 +619,33 @@ describe("BuildEvolveproInputPanel axis toggles", () => {
         OUTPUT,
       ),
     );
+  });
+
+  it("invalidates completion when numeric report inputs change", () => {
+    const submitted: BuildEvolveproFormState = {
+      ...BUILD_EVOLVEPRO_DEFAULT_STATE,
+      primarySource: "numericReport",
+      confirmationSource: "numericSubset",
+      round1RepBatchXlsx: "/in/round1_rep.xlsx",
+      expectedMutationsXlsx: "/in/expected.xlsx",
+      remeasureRepBatchXlsx: "/in/remeasure_rep.xlsx",
+      outputXlsx: OUTPUT,
+    };
+    const completion = createBuildEvolveproCompletion(submitted, OUTPUT);
+
+    expect(hasCompletedBuildEvolveproOutput(submitted, completion)).toBe(true);
+    expect(
+      hasCompletedBuildEvolveproOutput(
+        { ...submitted, remeasureRepBatchXlsx: "/in/remeasure_rep_v2.xlsx" },
+        completion,
+      ),
+    ).toBe(false);
+    expect(
+      hasCompletedBuildEvolveproOutput(
+        { ...submitted, expectedMutationsXlsx: "/in/expected_v2.xlsx" },
+        completion,
+      ),
+    ).toBe(false);
   });
 
   it("ignores a successful build that resolves after the form changed", async () => {

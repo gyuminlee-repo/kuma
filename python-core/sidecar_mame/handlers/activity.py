@@ -592,7 +592,12 @@ def handle_build_evolvepro_input(params: dict) -> dict:
     # screen and the numeric-index confirmation are the rank-mode inputs; any
     # other axis combination reports as reports-mode. The axis pair is exposed
     # separately via primary_source / confirmation_source.
-    is_rank = bool(p.gc_data_xlsx) or bool(p.rep_batch_xlsx)
+    is_rank = bool(
+        p.gc_data_xlsx
+        or p.round1_rep_batch_xlsx
+        or p.remeasure_rep_batch_xlsx
+        or p.rep_batch_xlsx
+    )
     audit_path = p.mapping_audit_path
     if is_rank and audit_path is None:
         audit_path = str(Path(p.output_xlsx).with_suffix(".mapping.json"))
@@ -615,7 +620,7 @@ def handle_build_evolvepro_input(params: dict) -> dict:
         gc_export_xlsx=p.gc_export_xlsx,
     )
 
-    if is_rank:
+    if r.mapping.rows:
         mapping_audit = [
             {"id": m.id, "variant": m.variant, "well": m.well}
             for m in r.mapping.rows
@@ -623,7 +628,7 @@ def handle_build_evolvepro_input(params: dict) -> dict:
     else:
         mapping_audit = [
             {"id": i + 1, "variant": v, "well": w}
-            for i, (v, w) in enumerate(sorted(r.well_by_variant.items()))
+            for i, (v, w) in enumerate(r.well_by_variant.items())
         ]
 
     response: dict = {

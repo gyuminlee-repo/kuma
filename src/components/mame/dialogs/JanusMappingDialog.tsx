@@ -60,6 +60,61 @@ const SOURCE_PLATES = ["P1", "P2", "P3"] as const;
 /** Preview refresh delay, so typing into a text field is one RPC, not one per key. */
 const PREVIEW_DEBOUNCE_MS = 300;
 
+function previewMatchesSettings(
+  preview: JanusPreviewResult | null,
+  settings: JanusExportSettings,
+): boolean {
+  if (!preview) return false;
+  const resolved = preview.settings;
+  return (
+    resolved.dest_layout === settings.destLayout &&
+    resolved.output_schema === settings.outputSchema &&
+    resolved.include_fallback === settings.includeFallback &&
+    resolved.volume === settings.volume &&
+    resolved.sample_type === settings.sampleType &&
+    resolved.liquid_class === settings.liquidClass &&
+    resolved.dest_rack === settings.destRack &&
+    JSON.stringify(resolved.include_verdicts) ===
+      JSON.stringify(settings.includeVerdicts) &&
+    JSON.stringify(resolved.source_racks) === JSON.stringify(settings.sourceRacks)
+  );
+}
+
+function previewCellValue(
+  row: JanusPreviewResult["rows"][number],
+  rowIdx: number,
+  idx: number,
+  column: string,
+  settings: JanusPreviewResult["settings"],
+): string {
+  if (settings.output_schema === "legacy5") {
+    if (column === "priority_score") return String(row.priority_score);
+    return String(row[column as keyof typeof row] ?? "");
+  }
+  switch (`${idx}:${column}`) {
+    case "0:name":
+      return row.name;
+    case "1:type":
+      return settings.sample_type;
+    case "2:Dsp. Rack":
+      return settings.liquid_class;
+    case "3:no":
+      return String(rowIdx + 1);
+    case "4:Asp. Rack":
+      return String(settings.source_racks[row.source_plate] ?? "");
+    case "5:Asp. Posi":
+      return row.source_well;
+    case "6:Dsp. Rack":
+      return String(settings.dest_rack);
+    case "7:Dsp. Posi":
+      return row.dest_well;
+    case "8:volume":
+      return String(settings.volume);
+    default:
+      return "";
+  }
+}
+
 interface JanusMappingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -119,6 +174,18 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
   const hasPreviewErrors = previewErrors.length > 0;
   const excluded = preview?.excluded ?? [];
   const isDevice9 = settings.outputSchema === "device9";
+  const resolvedPath = outputPath || deriveDefaultPath(format);
+  const isPreviewCurrent = previewMatchesSettings(preview, settings);
+  const previewColumns =
+    preview?.settings.columns && preview.settings.columns.length > 0
+      ? preview.settings.columns
+      : ["name", "source_plate", "source_well", "dest_well", "priority_score"];
+  const canExport =
+    Boolean(resolvedPath) &&
+    !isExporting &&
+    !storeIsExporting &&
+    !hasPreviewErrors &&
+    (previewFailure !== null || (isPreviewCurrent && !previewLoading));
 
   /** Excluded clones grouped by reason, so a retry plan reads at a glance. */
   const excludedByReason = excluded.reduce<Partial<Record<JanusExclusionReason, string[]>>>(
@@ -187,8 +254,6 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
       setIsExporting(false);
     }
   }
-
-  const resolvedPath = outputPath || deriveDefaultPath(format);
 
   return (
     <Dialog open={open} onOpenChange={(next) => !isExporting && onOpenChange(next)}>
@@ -505,15 +570,17 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
                     untranslated to match the produced file byte-for-byte. */}
                 <table className="w-full border-collapse text-caption">
                   <thead className="sticky top-0 bg-muted">
-                    <tr className="text-left">
-                      <th scope="col" className="px-2 py-1 font-medium">name</th>
-                      <th scope="col" className="px-2 py-1 font-medium">source_plate</th>
-                      <th scope="col" className="px-2 py-1 font-medium">source_well</th>
-                      <th scope="col" className="px-2 py-1 font-medium">dest_well</th>
-                      <th scope="col" className="px-2 py-1 text-right font-medium">
-                        priority_score
-                      </th>
-                    </tr>
+	                    <tr className="text-left">
+	                      {previewColumns.map((column, idx) => (
+	                        <th
+	                          key={`${column}-${idx}`}
+	                          scope="col"
+	                          className="px-2 py-1 font-medium"
+	                        >
+	                          {column}
+	                        </th>
+	                      ))}
+	                    </tr>
                   </thead>
                   <tbody>
                     {preview.rows.map((row, idx) => (
@@ -521,13 +588,14 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
                         key={`${row.name}-${row.source_plate}-${row.source_well}-${idx}`}
                         className="border-t border-border/60"
                       >
-                        <td className="px-2 py-1 font-mono">{row.name}</td>
-                        <td className="px-2 py-1 font-mono">{row.source_plate}</td>
-                        <td className="px-2 py-1 font-mono">{row.source_well}</td>
-                        <td className="px-2 py-1 font-mono">{row.dest_well}</td>
-                        <td className="px-2 py-1 text-right font-mono tabular-nums">
-                          {row.priority_score}
-                        </td>
+                        {previewColumns.map((column, columnIdx) => (
+                          <td
+                            key={`${column}-${columnIdx}`}
+                            className="px-2 py-1 font-mono tabular-nums"
+                          >
+                            {previewCellValue(row, idx, columnIdx, column, preview.settings)}
+                          </td>
+                        ))}
                       </tr>
                     ))}
                   </tbody>
@@ -646,9 +714,7 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
           <Button
             size="sm"
             onClick={() => void doExport()}
-            disabled={
-              isExporting || storeIsExporting || !resolvedPath || hasPreviewErrors
-            }
+            disabled={!canExport}
             className="gap-2"
           >
             <Download size={14} aria-hidden="true" />

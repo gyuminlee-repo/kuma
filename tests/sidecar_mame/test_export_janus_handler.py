@@ -132,6 +132,29 @@ def test_invalid_dest_layout_rejected(tmp_path: Path, seeded_state) -> None:
     assert not out.exists(), "invalid params must not produce an output file"
 
 
+@pytest.mark.parametrize(
+    "params, message",
+    [
+        ({"source_racks": {"P1": 0, "P2": 2, "P3": 3}}, "Invalid source rack"),
+        ({"dest_rack": 0}, "Invalid dest_rack"),
+    ],
+)
+def test_device9_rejects_non_positive_rack_numbers(
+    tmp_path: Path,
+    seeded_state,
+    params,
+    message: str,
+) -> None:
+    out = tmp_path / "bad-rack.csv"
+    with pytest.raises(ValueError, match=message):
+        handle_export_janus_mapping({
+            "output": str(out),
+            "liquid_class": "Cell 100ul",
+            **params,
+        })
+    assert not out.exists()
+
+
 def test_duplicate_dest_surfaces_through_handler(tmp_path: Path) -> None:
     set_last_analyze(
         [],

@@ -109,10 +109,9 @@ class TestLayoutOrder:
         assert warnings == []
 
     def test_multi_substitution_row_is_dropped_with_a_warning(self, tmp_path):
-        # 'A40P_E61Y' has no single-position short form, so it cannot take an ID.
         rows = [("V5F", "A1"), ("A40P_E61Y", "B1"), ("R87P", "C1")]
         order, warnings = layout_variant_order(_layout(tmp_path, rows))
-        assert [o[0] for o in order] == ["5F", "87P"]
+        assert [o[0] for o in order] == ["5F", None, "87P"]
         assert len(warnings) == 1
         assert "A40P_E61Y" in warnings[0]
 
@@ -159,6 +158,22 @@ class TestPrimaryScreen:
         report = _report(tmp_path, {1: [1.0], 2: [1.0], 4: [1.0], 5: [1.0]}, [_WT])
         with pytest.raises(ValueError, match="line up one to one"):
             decode_primary_screen(report, _layout(tmp_path))
+
+    def test_multi_substitution_slot_does_not_shift_later_ids(self, tmp_path):
+        layout = _layout(
+            tmp_path,
+            [("V5F", "A1"), ("A40P_E61Y", "B1"), ("R87P", "C1"), ("WT", "H12")],
+        )
+        report = _report(tmp_path, {1: [2.0], 2: [3.0], 3: [4.0]}, [_WT])
+
+        result = decode_primary_screen(report, layout)
+
+        assert [(r.id, r.variant, r.well) for r in result.rows] == [
+            (1, "5F", "A01"),
+            (3, "87P", "C01"),
+        ]
+        assert result.order == ["5F", "87P"]
+        assert any("slot is preserved" in warning for warning in result.warnings)
 
 
 class TestAboveWtSubset:

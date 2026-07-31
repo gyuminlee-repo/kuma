@@ -870,6 +870,7 @@ def build_evolvepro_input_axes(
                 "its samples are well positions, so the plate layout is needed "
                 "to name the variants"
             )
+        assert round1_report_xlsx is not None
         fallback, well_by_variant, w_primary = _build_fallback_from_raw_report(
             round1_report_xlsx, layout_xlsx
         )
@@ -885,6 +886,7 @@ def build_evolvepro_input_axes(
                 "(gc_data_xlsx) is keyed by well position, so the plate layout "
                 "is needed to name the variants"
             )
+        assert gc_data_xlsx is not None
         if gc_export_xlsx is not None:
             warnings.append(
                 _GC_EXPORT_IGNORED.format(source="a pre-normalised GC sheet")
@@ -915,6 +917,7 @@ def build_evolvepro_input_axes(
         well_by_variant = {r.variant: r.well for r in primary_decode.rows}
         warnings.extend(primary_decode.warnings)
     else:
+        assert round1_evolvepro_xlsx is not None
         if gc_export_xlsx is not None:
             warnings.append(
                 _GC_EXPORT_IGNORED.format(source="a previous EVOLVEpro file")
@@ -934,9 +937,21 @@ def build_evolvepro_input_axes(
     mapping = IdVariantMapping(
         rows=[], prev_descending=True, n_prev_variants=0, warnings=[]
     )
+    if primary_decode is not None:
+        mapping = IdVariantMapping(
+            rows=[
+                MappingRow(id=r.id, variant=r.variant, well=r.well)
+                for r in primary_decode.rows
+            ],
+            prev_descending=True,
+            n_prev_variants=len(primary_decode.order),
+            warnings=list(primary_decode.warnings),
+        )
     prev_ep_rows: list[tuple[str, float]] = []
     authoritative: dict[str, list[float]] = {}
     if confirmation_source == CONFIRM_NUMERIC_INDEX:
+        assert rep_batch_xlsx is not None
+        assert rank_evolvepro_xlsx is not None
         block_result = parse_agilent_block_rep_batch(rep_batch_xlsx)
         prev_ep_rows = read_evolvepro_rows(rank_evolvepro_xlsx)
         mapping = build_id_variant_mapping(
@@ -945,6 +960,7 @@ def build_evolvepro_input_axes(
         warnings.extend(mapping.warnings)
         authoritative = _build_authoritative(block_result, mapping)
     elif confirmation_source == CONFIRM_VARIANT_LABELS:
+        assert remeasure_report_xlsx is not None
         authoritative, w_confirm = _build_authoritative_from_variant_report(
             remeasure_report_xlsx
         )

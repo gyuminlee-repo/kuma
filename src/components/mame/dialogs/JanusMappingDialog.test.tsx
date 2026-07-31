@@ -40,6 +40,7 @@ import {
 } from "@/lib/mame/janus";
 import type {
   JanusExcludedEntry,
+  JanusExportSettings,
   JanusPreviewResult,
   JanusResolvedSettings,
 } from "@/types/mame/models";
@@ -149,13 +150,49 @@ const EXCLUSIONS: JanusExcludedEntry[] = [
   },
 ];
 
+function resolvedSettingsFromUi(
+  settings: JanusExportSettings | undefined,
+): JanusResolvedSettings {
+  if (!settings) return SETTINGS;
+  return {
+    dest_layout: settings.destLayout,
+    include_verdicts: settings.includeVerdicts,
+    include_fallback: settings.includeFallback,
+    output_schema: settings.outputSchema,
+    volume: settings.volume,
+    sample_type: settings.sampleType,
+    liquid_class: settings.liquidClass,
+    source_racks: settings.sourceRacks,
+    dest_rack: settings.destRack,
+    columns:
+      settings.outputSchema === "device9"
+        ? [
+            "name",
+            "type",
+            "Dsp. Rack",
+            "no",
+            "Asp. Rack",
+            "Asp. Posi",
+            "Dsp. Rack",
+            "Dsp. Posi",
+            "volume",
+          ]
+        : ["name", "source_plate", "source_well", "dest_well", "priority_score"],
+  };
+}
+
+function cleanPreviewFor(settings: JanusExportSettings | undefined): JanusPreviewResult {
+  return { ...CLEAN, settings: resolvedSettingsFromUi(settings) };
+}
+
 function exportButton(): HTMLButtonElement {
   return screen.getByRole("button", { name: /Export Janus Mapping/i });
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
-  mockPreview.mockResolvedValue(CLEAN);
+  mockPreview.mockReset();
+  mockExport.mockReset();
+  mockPreview.mockImplementation(async (settings) => cleanPreviewFor(settings));
 });
 
 describe("JanusMappingDialog preview", () => {
@@ -220,11 +257,12 @@ describe("JanusMappingDialog preview", () => {
   });
 
   it("lists the excluded clones with the reason for each", async () => {
-    mockPreview.mockResolvedValue({
+    mockPreview.mockImplementation(async (settings) => ({
       ...CLEAN,
       excluded: EXCLUSIONS,
       excluded_count: EXCLUSIONS.length,
-    });
+      settings: resolvedSettingsFromUi(settings),
+    }));
     render(<JanusMappingDialog open onOpenChange={() => {}} />);
 
     expect(await screen.findByText("Excluded: 3")).toBeInTheDocument();
@@ -243,7 +281,6 @@ describe("JanusMappingDialog preview", () => {
 
   it("shows the exact rows the export would write", async () => {
     render(<JanusMappingDialog open onOpenChange={() => {}} />);
-    // Scoped to the table: the deck diagram above it also carries P1/P2 labels.
     const table = await screen.findByRole("table");
     const cells = within(table)
       .getAllByRole("row")
@@ -254,20 +291,39 @@ describe("JanusMappingDialog preview", () => {
           .map((c) => c.textContent),
       );
     expect(cells).toEqual([
-      ["HIGH", "P1", "E7", "E7", "300"],
-      ["LOW", "P2", "H12", "H12", "10"],
+      ["HIGH", "cell", "", "1", "1", "E7", "4", "E7", "100"],
+      ["LOW", "cell", "", "2", "2", "H12", "4", "H12", "100"],
     ]);
-    // Header is the literal export header row, untranslated on purpose.
     const header = within(table)
       .getAllByRole("columnheader")
       .map((c) => c.textContent);
     expect(header).toEqual([
       "name",
-      "source_plate",
-      "source_well",
-      "dest_well",
-      "priority_score",
+      "type",
+      "Dsp. Rack",
+      "no",
+      "Asp. Rack",
+      "Asp. Posi",
+      "Dsp. Rack",
+      "Dsp. Posi",
+      "volume",
     ]);
+  });
+
+  it("blocks export while the visible preview is stale for edited settings", async () => {
+    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    await waitFor(() => expect(exportButton()).toBeEnabled());
+
+    fireEvent.change(screen.getByLabelText("Liquid class"), {
+      target: { value: "Different class" },
+    });
+
+    expect(exportButton()).toBeDisabled();
+    await waitFor(() =>
+      expect(mockPreview).toHaveBeenCalledWith(
+        expect.objectContaining({ liquidClass: "Different class" }),
+      ),
+    );
   });
 
   it("blocks the export and shows the problem when validation fails", async () => {
@@ -284,11 +340,17 @@ describe("JanusMappingDialog preview", () => {
   });
 
   it("re-enables the export once a layout change clears the problem", async () => {
-    mockPreview.mockResolvedValueOnce(DUPLICATE).mockResolvedValueOnce(CLEAN);
+    mockPreview
+      .mockResolvedValueOnce(DUPLICATE)
+      .mockImplementationOnce(async (settings) => cleanPreviewFor(settings));
     render(<JanusMappingDialog open onOpenChange={() => {}} />);
-    await waitFor(() => expect(exportButton()).toBeDisabled());
+    expect(
+      await screen.findByText(/duplicate dest_well would dispense/i),
+    ).toBeInTheDocument();
+    expect(exportButton()).toBeDisabled();
 
     fireEvent.click(screen.getByLabelText("Source position"));
+    await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(exportButton()).toBeEnabled());
   });
 
@@ -296,6 +358,7 @@ describe("JanusMappingDialog preview", () => {
     mockPreview.mockRejectedValue(new Error("sidecar unavailable"));
     render(<JanusMappingDialog open onOpenChange={() => {}} />);
 
+    await waitFor(() => expect(mockPreview).toHaveBeenCalled());
     expect(await screen.findByText(/sidecar unavailable/i)).toBeInTheDocument();
     expect(exportButton()).toBeEnabled();
   });
@@ -303,7 +366,7 @@ describe("JanusMappingDialog preview", () => {
   it("retries a failed preview on demand", async () => {
     mockPreview
       .mockRejectedValueOnce(new Error("sidecar unavailable"))
-      .mockResolvedValueOnce(CLEAN);
+      .mockImplementationOnce(async (settings) => cleanPreviewFor(settings));
     render(<JanusMappingDialog open onOpenChange={() => {}} />);
     await screen.findByText(/sidecar unavailable/i);
 
@@ -312,14 +375,14 @@ describe("JanusMappingDialog preview", () => {
   });
 
   it("renders an empty state rather than a table when nothing was picked", async () => {
-    mockPreview.mockResolvedValue({
+    mockPreview.mockImplementation(async (settings) => ({
       rows: [],
       errors: [],
       row_count: 0,
       excluded: [],
       excluded_count: 0,
-      settings: SETTINGS,
-    });
+      settings: resolvedSettingsFromUi(settings),
+    }));
     render(<JanusMappingDialog open onOpenChange={() => {}} />);
 
     expect(
@@ -337,7 +400,7 @@ describe("JanusMappingDialog preview", () => {
             resolveFirst = resolve;
           }),
       )
-      .mockResolvedValueOnce(CLEAN);
+      .mockImplementationOnce(async (settings) => cleanPreviewFor(settings));
 
     render(<JanusMappingDialog open onOpenChange={() => {}} />);
     await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(1));

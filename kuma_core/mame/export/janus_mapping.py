@@ -407,6 +407,19 @@ class JanusSettings:
             raise ValueError(
                 f"Invalid volume {self.volume!r}. Expected a positive number of µL."
             )
+        if self.output_schema == SCHEMA_DEVICE9:
+            bad_source_racks = [
+                f"{label}={rack}" for label, rack in self.source_racks if rack < 1
+            ]
+            if bad_source_racks:
+                raise ValueError(
+                    "Invalid source rack number(s) "
+                    f"{', '.join(bad_source_racks)}. Expected positive integers."
+                )
+            if self.dest_rack < 1:
+                raise ValueError(
+                    f"Invalid dest_rack {self.dest_rack!r}. Expected a positive integer."
+                )
         object.__setattr__(
             self, "include_verdicts", normalize_include_verdicts(self.include_verdicts)
         )

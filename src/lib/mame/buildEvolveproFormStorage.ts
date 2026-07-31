@@ -255,8 +255,12 @@ export function buildEvolveproFormSignature(
     round1ReportXlsx: state.round1ReportXlsx,
     round1EvolveproXlsx: state.round1EvolveproXlsx,
     remeasureReportXlsx: state.remeasureReportXlsx,
+    round1RepBatchXlsx: state.round1RepBatchXlsx,
+    expectedMutationsXlsx: state.expectedMutationsXlsx,
+    remeasureRepBatchXlsx: state.remeasureRepBatchXlsx,
     verdictXlsx: state.verdictXlsx,
     outputXlsx: state.outputXlsx,
+    gcExportXlsx: state.gcExportXlsx,
   });
 }
 

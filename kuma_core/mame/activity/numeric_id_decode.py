@@ -32,6 +32,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from collections.abc import Sequence
+from typing import TypeAlias
 
 from .evolvepro_xlsx import BlockRepBatchResult, parse_agilent_block_rep_batch
 from .plate_layout_xlsx import parse_plate_layout_xlsx
@@ -45,6 +47,8 @@ WRONG_RANK_ASSUMPTION_NOTE = (
 # Wild-type relative activity. The report is normalised by its own WT block
 # mean, so WT sits at exactly 1.0 and the selection threshold is that value.
 WT_RELATIVE = 1.0
+
+DecodeOrder: TypeAlias = list[tuple[str | None, str, str]]
 
 
 @dataclass(frozen=True)
@@ -110,15 +114,15 @@ def _wt_mean(block: BlockRepBatchResult, source: str) -> float:
 
 def layout_variant_order(
     layout_xlsx: str | Path,
-) -> tuple[list[tuple[str, str, str]], list[str]]:
+) -> tuple[DecodeOrder, list[str]]:
     """Non-WT layout rows in well order as ``(short, mutant, well)``.
 
     Rows whose mutant has no EVOLVEpro short form (several substitutions) are
-    dropped with a warning rather than shifting every later ID by one, because
-    a silent shift would rename the whole plate.
+    kept as unlabelled slots. Numeric IDs index physical non-WT rows; dropping
+    an unconvertible row would shift every later ID and rename the whole plate.
     """
     warnings: list[str] = []
-    order: list[tuple[str, str, str]] = []
+    order: DecodeOrder = []
     for entry in parse_plate_layout_xlsx(layout_xlsx):
         if entry.is_wt:
             continue
@@ -127,17 +131,17 @@ def layout_variant_order(
         except ValueError:
             warnings.append(
                 f"Layout mutant {entry.mutant!r} (well {entry.well_id}) has no "
-                "EVOLVEpro short form (several substitutions); it cannot take a "
-                "numeric ID and is excluded from the decode order."
+                "EVOLVEpro short form (several substitutions); its numeric ID "
+                "slot is preserved but omitted from EVOLVEpro output."
             )
-            continue
+            short = None
         order.append((short, entry.mutant, entry.well_id))
     return order, warnings
 
 
 def expected_variant_order(
     expected_xlsx: str | Path,
-) -> tuple[list[tuple[str, str, str]], list[str]]:
+) -> tuple[DecodeOrder, list[str]]:
     """Decode order straight from the KURO ``expected_mutations`` sheet.
 
     Same shape as :func:`layout_variant_order`, derived from the design instead
@@ -155,7 +159,7 @@ def expected_variant_order(
     from kuma_core.mame.layout import canonical_plate_order
 
     warnings: list[str] = []
-    order: list[tuple[str, str, str]] = []
+    order: DecodeOrder = []
     ordered = canonical_plate_order(read_expected_mutations(Path(expected_xlsx)))
     for seq, mutation in enumerate(ordered, start=1):
         mutant = mutation.mutant_id
@@ -164,17 +168,17 @@ def expected_variant_order(
         except ValueError:
             warnings.append(
                 f"Designed mutant {mutant!r} has no EVOLVEpro short form (several "
-                "substitutions); it cannot take a numeric ID and is excluded from "
-                "the decode order."
+                "substitutions); its numeric ID slot is preserved but omitted "
+                "from EVOLVEpro output."
             )
-            continue
+            short = None
         order.append((short, mutant, seq_to_well(seq)))
     return order, warnings
 
 
 def _decode_against(
     block: BlockRepBatchResult,
-    order: list[tuple[str, str, str]],
+    order: Sequence[tuple[str | None, str, str]],
     wt_mean: float,
     *,
     source: str,
@@ -208,6 +212,8 @@ def _decode_against(
     rows: list[DecodedId] = []
     for base_id in ids:
         short, mutant, well = order[base_id - 1]
+        if short is None:
+            continue
         rows.append(
             DecodedId(
                 id=base_id,
@@ -263,7 +269,7 @@ def decode_primary_screen(
     return DecodeResult(
         rows=rows,
         wt_mean=wt_mean,
-        order=[o[0] for o in order],
+        order=[o[0] for o in order if o[0] is not None],
         warnings=warnings,
     )
 
