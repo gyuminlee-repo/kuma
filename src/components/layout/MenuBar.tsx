@@ -216,10 +216,10 @@ export function MenuBar({ onClearRequest }: MenuBarProps = {}) {
 
   const menus = (
     <>
-      {/* App 메뉴 — mockup v5: 첫 메뉴는 앱명(kuro), 굵게. KURO 탭에서는 "kuro"만 노출. */}
+      {/* File 메뉴, 앱명 트리거를 File 로 통일해 mame 메뉴바와 동형으로 맞춘다. */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className={`${TRIGGER_CLS} font-bold`}>{t("menuBar.appMenu.kuro")}</button>
+          <button className={TRIGGER_CLS}>{t("menu.file")}</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem onClick={handleOpenSequence}>
@@ -244,11 +244,8 @@ export function MenuBar({ onClearRequest }: MenuBarProps = {}) {
             {t("file.restartSidecar")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          {/* close() 는 close 핸들러를 타므로 autosave 가 실행된다. destroy() 는 건너뛴다. */}
           <DropdownMenuItem onClick={() => { void getCurrentWindow().close(); }}>
-            <span className="flex-1">{t("menuBar.appMenu.closeWindow")}</span>
-            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}W</kbd>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => { void getCurrentWindow().destroy(); }}>
             <span className="flex-1">{t("menuBar.appMenu.quit")}</span>
             <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}Q</kbd>
           </DropdownMenuItem>

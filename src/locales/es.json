@@ -11,9 +11,6 @@
     "restartSidecar": "Reiniciar sidecar",
     "openWorkspace": "Abrir workspace...",
     "saveWorkspace": "Guardar workspace...",
-    "validateInputs": "Validar entradas",
-    "runAnalysis": "Ejecutar análisis",
-    "cancelAnalysis": "Cancelar análisis",
     "compareWorkspaces": "Comparar workspaces...",
     "exportWorkspaceZip": "Exportar workspace como zip..."
   },
@@ -1857,9 +1854,6 @@
       "reportIssue": "Report issue"
     },
     "appMenu": {
-      "kuro": "kuro",
-      "mame": "mame",
-      "closeWindow": "Cerrar ventana",
       "quit": "Salir de kuma"
     },
     "fileMenuTrigger": "File"

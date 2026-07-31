@@ -277,7 +277,6 @@ export function MameAppLayout() {
         titlebar={
           <MenuBar
             onClearRequest={() => setClearConfirmOpen(true)}
-            onRunRequest={tryRunAnalysis}
             onJanusOpen={() => setJanusOpen(true)}
           />
         }

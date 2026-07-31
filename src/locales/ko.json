@@ -11,9 +11,6 @@
     "restartSidecar": "Sidecar 재시작",
     "openWorkspace": "워크스페이스 열기...",
     "saveWorkspace": "워크스페이스 저장...",
-    "validateInputs": "입력 검증",
-    "runAnalysis": "분석 실행",
-    "cancelAnalysis": "분석 취소",
     "compareWorkspaces": "워크스페이스 비교...",
     "exportWorkspaceZip": "워크스페이스 ZIP으로 내보내기..."
   },
@@ -1862,9 +1859,6 @@
       }
     },
     "appMenu": {
-      "closeWindow": "창 닫기",
-      "kuro": "kuro",
-      "mame": "mame",
       "quit": "kuma 종료"
     },
     "edit": {
