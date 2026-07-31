@@ -128,11 +128,17 @@ WSL2 환경이라 GUI 실행 검증은 하지 않는다.
 | 항목 | 결과 |
 |---|---|
 | 1. `npx tsc --noEmit` | exit 0, 0 errors |
-| 2. `npx vitest run src/components` | 60 files / 410 tests passed, 0 failed |
+| 2. `npx vitest run` (전체) | 109 files / 784 tests passed, 0 failed. 로케일 삭제가 10개 파일에 걸쳐 스펙의 `src/components` 범위보다 넓어져 전체로 확대 |
 | 3. sync trio | `sync-check-groups` 49 passed 0 failed. `sync-check` 는 dev false-positive 2건(`tauri-resources`, `generated-models`)만 잔존 |
 | 4. 로케일 정합 | `menu.file` 10/10, `i18n-parity` ok (2201 keys × 10), `i18n-lint` ok |
 | 5. 잔존 참조 | `appMenu.(kuro\|mame\|closeWindow)` 및 삭제 항목 키 grep 0건 |
 | 6. 단축키 회귀 | `MameAppLayout.tsx` diff 는 `onRunRequest` prop 1줄 삭제뿐. 단축키 등록부(`:226-234`) 무변경. `AppLayout.tsx` 는 diff 미포함 |
+
+### 단축키 레지스트리 대조
+
+`src/lib/shortcuts.ts` 의 `SHORTCUTS` 가 `KeyboardShortcutsDialog` 와 About dialog 의 단일 출처다. 삭제한 항목의 단축키(⌘W, ⌘Q, ⌘E)는 이 레지스트리에 원래 없었으므로 stale 표시가 생기지 않는다. 남은 ⌘O(kuro, `AppLayout`)·⌘D(both, `MameAppLayout`)·⌘L·⌘J·⌘,·⌘/·⌘Shift+R 은 모두 등록 핸들러가 살아 있다.
+
+참고로 ⌘E(Export Excel)는 `MameAppLayout.tsx:227-229` 에 핸들러가 있으나 `SHORTCUTS` 에는 등재된 적이 없다. 본 변경 이전부터의 누락이며 범위 밖이다.
 
 ### 스펙 대비 추가 변경 1건
 
