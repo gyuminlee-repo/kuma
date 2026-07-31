@@ -378,6 +378,20 @@ def test_non_positive_volume_is_rejected() -> None:
         JanusSettings(liquid_class="Cell", volume=0.0)
 
 
+@pytest.mark.parametrize(
+    "kwargs, message",
+    [
+        ({"source_racks": (("P1", 1.9),)}, "Invalid source rack number"),
+        ({"source_racks": (("P1", True),)}, "Invalid source rack number"),
+        ({"dest_rack": 4.7}, "Invalid dest_rack"),
+        ({"dest_rack": False}, "Invalid dest_rack"),
+    ],
+)
+def test_device9_rack_numbers_must_be_positive_integers(kwargs, message: str) -> None:
+    with pytest.raises(ValueError, match=message):
+        JanusSettings(liquid_class="Cell", **kwargs)
+
+
 # ---------------------------------------------------------------------------
 # Preview and export agreement
 # ---------------------------------------------------------------------------

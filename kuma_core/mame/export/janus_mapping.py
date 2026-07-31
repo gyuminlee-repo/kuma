@@ -123,6 +123,12 @@ DEFAULT_DEST_RACK = 4
 DEFAULT_LIQUID_CLASS = ""
 
 
+def _require_positive_int(value: object, label: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise ValueError(f"Invalid {label} {value!r}. Expected a positive integer.")
+    return value
+
+
 def _custom_barcode_to_seq(custom: str) -> int | None:
     """`{R}_{F}` -> 1-based column-major sequence index."""
     parts = custom.split("_")
@@ -408,18 +414,11 @@ class JanusSettings:
                 f"Invalid volume {self.volume!r}. Expected a positive number of µL."
             )
         if self.output_schema == SCHEMA_DEVICE9:
-            bad_source_racks = [
-                f"{label}={rack}" for label, rack in self.source_racks if rack < 1
-            ]
-            if bad_source_racks:
-                raise ValueError(
-                    "Invalid source rack number(s) "
-                    f"{', '.join(bad_source_racks)}. Expected positive integers."
+            for label, rack in self.source_racks:
+                _require_positive_int(
+                    rack, f"source rack number for plate {label!r}"
                 )
-            if self.dest_rack < 1:
-                raise ValueError(
-                    f"Invalid dest_rack {self.dest_rack!r}. Expected a positive integer."
-                )
+            _require_positive_int(self.dest_rack, "dest_rack")
         object.__setattr__(
             self, "include_verdicts", normalize_include_verdicts(self.include_verdicts)
         )
