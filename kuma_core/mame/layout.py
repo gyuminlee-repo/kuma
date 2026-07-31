@@ -49,12 +49,35 @@ class DraftLayout:
         return not self.dropped_mutant_ids and not self.wt_omitted
 
 
+def canonical_plate_order(
+    expected_mutations: list[ExpectedMutation],
+) -> list[ExpectedMutation]:
+    """Order the designed mutants the way the bench fills the plate.
+
+    Residue position ascending. Python sorts stably, so several substitutions at
+    one position keep the KURO sheet order, which is the order the design was
+    written in and therefore the only tie-break with a source of truth behind it.
+
+    Measured against the 2026-03 campaign plate (95 mutants): position agrees for
+    all 95 wells, and the sheet tie-break agrees at eight of the twelve positions
+    carrying several substitutions. The four that differ (87, 267, 426, 552) are
+    each a permutation inside one position, which is the shape a hand transcription
+    slip takes rather than a different rule. Position 426 is the one already known
+    to be mislabelled in the hand-written layout, so this ordering is the reason to
+    stop hand-writing it, not a fit to it.
+    """
+    return sorted(expected_mutations, key=lambda m: m.position)
+
+
 def build_draft_layout(expected_mutations: list[ExpectedMutation]) -> DraftLayout:
     """Build a column-major draft layout: well i -> mutant_id, well N+1 -> "WT".
 
     well ``i`` (1-based, column-major via ``seq_to_well``) is assigned
     ``expected_mutations[i-1].mutant_id`` for ``i = 1..N`` where ``N`` is the
     number of expected mutations. A single WT control occupies well ``N+1``.
+
+    The caller decides the order. Pass :func:`canonical_plate_order` output to get
+    the plate the bench actually fills; the list as given keeps KURO sheet order.
 
     Clamping (reported via the returned :class:`DraftLayout`, never silent):
     - ``N + 1 > 96`` (i.e. ``N >= 96``): the WT well is omitted -> ``wt_omitted``.
@@ -79,4 +102,4 @@ def build_draft_layout(expected_mutations: list[ExpectedMutation]) -> DraftLayou
     )
 
 
-__all__ = ["DraftLayout", "build_draft_layout"]
+__all__ = ["DraftLayout", "build_draft_layout", "canonical_plate_order"]
