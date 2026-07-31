@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.13.35 (Release version sync)
+
+### Fixed
+
+- v0.13.35: Release metadata now stays aligned across the frontend package, Tauri app, Python package, and Cargo lockfile so CI catches no version drift during tagged builds.
+- v0.13.35: The release notes and in-app What's New source are refreshed for the current patch release instead of carrying the previous release version.
+
 ## v0.13.33 (Two step 3 inputs, chosen one at a time)
 
 A single toggle named Activity source was deciding two unrelated things at once: what the primary screen measurement arrives as, and how the confirmation report labels its samples. Naming the pairs as modes collapsed six real combinations into two.
