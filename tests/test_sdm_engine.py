@@ -371,8 +371,8 @@ class TestCheckOfftarget:
     # 24 nt primer, arbitrary composition.
     PRIMER = "ATGGCTAGCATCGTAGCATGCAGT"
 
-    def test_current_anchor_rule_misses_internal_mismatch_site(self):
-        """THIS IS A BUG, PINNED ON PURPOSE. The next commit flips it.
+    def test_fixed_rule_detects_internal_mismatch_site(self):
+        """The blind spot pinned in the previous commit is now closed.
 
         Decoy site: on the template, literally equal to PRIMER except for
         2 internal mismatches at 0-based offsets 8 and 13 (both well inside
@@ -383,11 +383,10 @@ class TestCheckOfftarget:
         Per Kwok et al. 1990 NAR 18(4):999 and Huang/Arnheim/Goodman 1992
         NAR 20(17):4567, a 3' end that is fully complementary primes
         efficiently even with internal mismatches; Primer3 itself only
-        requires the last 4 nt to be mismatch-free. The current KURO rule
-        instead requires the **entire** last 15 nt to match with zero
-        mismatches, so it misses exactly this decoy -- the most dangerous
-        combination (perfect 3' end + internal mismatches) is invisible to
-        it. That is the bug this file documents and the next commit fixes.
+        requires the last 4 nt to be mismatch-free. The legacy 15-nt full
+        anchor alone would miss this decoy (see the previous commit); the
+        mismatch-tolerant end_nt=4 + calc_heterodimer rule added in this
+        commit catches it (measured Tm ~47.6C, threshold 45.0).
         """
         primer = self.PRIMER
         decoy_site = "ATGGCTAGAATCGGAGCATGCAGT"  # positions 8, 13 flipped
@@ -402,11 +401,10 @@ class TestCheckOfftarget:
             intended_start=0,
             intended_end=len(primer),
         )
-        assert hits == [], (
-            "current 15-nt-exact-anchor rule is expected to miss this decoy; "
-            f"got {hits!r} -- if this now fails, the blind spot may already "
-            "be fixed and this test should be flipped (see commit 2)"
+        assert len(hits) >= 1, (
+            "mismatch-tolerant 3'-anchor rule should detect this decoy"
         )
+        assert any(h.tm >= 45.0 for h in hits)
 
     def test_perfect_repeat_is_detected(self):
         """Baseline: an exact-repeat 3' anchor is caught (regression guard)."""

@@ -441,74 +441,151 @@ def check_offtarget(
     intended_end: int,
     min_match: int = 15,
     tm_threshold: float = 45.0,
+    end_nt: int = 4,
+    mismatch_tm_threshold: float = 45.0,
     antisense_cache: str | None = None,
     profile: PolymeraseProfile | None = None,
 ) -> list[OffTargetHit]:
     """Check for off-target binding sites on the template.
 
+    Union of two rules, because they catch different failure modes and
+    neither alone is safe to drop (see docs referenced below):
+
+    1. Legacy full-anchor rule (``min_match``/``tm_threshold``, algorithm
+       unchanged from the original KURO implementation): the primer's 3'
+       end matches ``min_match`` nt of the template with zero mismatches,
+       extended 5'-ward while identity holds, and the perfect-complement Tm
+       of that matched span (``_calc_sdm_tm``) clears ``tm_threshold``. This
+       still matters on its own: a long perfect repeat can have a lower
+       ``calc_heterodimer`` Tm than a shorter, GC-richer mismatch-tolerant
+       match would need to clear ``mismatch_tm_threshold`` at ``end_nt``,
+       so dropping this branch could let some perfect repeats slip through.
+
+    2. Mismatch-tolerant 3'-anchor rule (``end_nt``/``mismatch_tm_threshold``,
+       new): only the primer's last ``end_nt`` bases (default 4) must match
+       the template exactly -- the length literature reports as the actual
+       floor for productive priming (Kwok et al. 1990 NAR 18(4):999: 3'
+       terminal mismatches cut yield 20-100x, internal mismatches barely
+       matter, the last 4 bases are what counts; Huang/Arnheim/Goodman 1992
+       NAR 20(17):4567: Taq extends a 3' mispair at 1e-3 to 1e-6 relative
+       efficiency depending on the mismatch, i.e. it is not simply blocked;
+       Primer3 itself uses the same last-4-nt-clean convention). The
+       full-length duplex is then scored with ``primer3.calc_heterodimer``,
+       which -- unlike ``_calc_sdm_tm`` -- evaluates the actual (possibly
+       mismatched) pairing instead of assuming perfect complementarity. This
+       is the rule that catches the combination rule 1 cannot see: a
+       perfect 3' end with internal mismatches inside the first
+       ``min_match`` bases from the terminus.
+
+    ``TM_THRESHOLD`` (``mismatch_tm_threshold``, default 45.0) was measured
+    against fixtures/pSHCE-dmpR.gb + fixtures/mutation_list_insilico_test.csv
+    (Q5, overlap_len=18, target_start=1790): across all 19 legitimate
+    candidates design_sdm_primers produces for that fixture, the highest
+    ``calc_heterodimer`` Tm found at any non-intended ``end_nt``-anchor site
+    is 43.4 C, so 45.0 both reuses the pre-existing legacy threshold and
+    clears every real candidate's own spurious-anchor Tm with a ~1.6 C
+    margin, while a synthetic decoy (3' end intact, 2 internal mismatches)
+    scores 47.6 C and is caught. See PR body for the full sweep table.
+
     Args:
         antisense_cache: Pre-computed rc(template.upper()) to avoid
             recomputing for every primer in a batch.
     """
-    hits: list[OffTargetHit] = []
+    hits_by_site: dict[tuple[str, int], OffTargetHit] = {}
     p_upper = primer_seq.upper()
     t_upper = template.upper()
     plen = len(p_upper)
     tlen = len(t_upper)
-
-    if plen < min_match:
-        return hits
-
-    primer_3end = p_upper[-(min_match):]
-
     rc_template = antisense_cache if antisense_cache else reverse_complement(t_upper)
 
-    for strand_label, strand_seq in [
-        ("sense", t_upper),
-        ("antisense", rc_template),
-    ]:
-        slen = len(strand_seq)
-        for pos in range(slen - min_match + 1):
-            if strand_seq[pos:pos + min_match] != primer_3end:
-                continue
+    def _record(strand_label: str, tpos: int, match_seq: str, tm: float, match_length: int) -> None:
+        key = (strand_label, tpos)
+        prev = hits_by_site.get(key)
+        if prev is None or tm > prev.tm:
+            hits_by_site[key] = OffTargetHit(
+                position=tpos, strand=strand_label,
+                match_seq=match_seq, tm=round(tm, 1),
+                match_length=match_length,
+                truncation_type="3prime_anchor",
+            )
 
-            # Extend match toward 5' of primer
-            ext = 0
-            while True:
-                pi = plen - min_match - 1 - ext
-                si = pos - 1 - ext
-                if pi < 0 or si < 0:
-                    break
-                if p_upper[pi] != strand_seq[si]:
-                    break
-                ext += 1
+    # ── Rule 1: legacy full-anchor, zero mismatches over min_match ──────────
+    if plen >= min_match:
+        primer_3end = p_upper[-(min_match):]
+        for strand_label, strand_seq in [
+            ("sense", t_upper),
+            ("antisense", rc_template),
+        ]:
+            slen = len(strand_seq)
+            for pos in range(slen - min_match + 1):
+                if strand_seq[pos:pos + min_match] != primer_3end:
+                    continue
 
-            match_start = pos - ext
-            match_end = pos + min_match
+                # Extend match toward 5' of primer
+                ext = 0
+                while True:
+                    pi = plen - min_match - 1 - ext
+                    si = pos - 1 - ext
+                    if pi < 0 or si < 0:
+                        break
+                    if p_upper[pi] != strand_seq[si]:
+                        break
+                    ext += 1
 
-            # Convert to original template coordinates for intended range check
-            if strand_label == "sense":
-                tpos, tpos_end = match_start, match_end
-            else:
-                tpos = tlen - match_end
-                tpos_end = tlen - match_start
+                match_start = pos - ext
+                match_end = pos + min_match
 
-            # Skip matches overlapping the intended binding site
-            if not (tpos_end <= intended_start or tpos >= intended_end):
-                continue
+                if strand_label == "sense":
+                    tpos, tpos_end = match_start, match_end
+                else:
+                    tpos = tlen - match_end
+                    tpos_end = tlen - match_start
 
-            match_seq = strand_seq[match_start:match_end]
-            tm = _calc_sdm_tm(match_seq)
+                if not (tpos_end <= intended_start or tpos >= intended_end):
+                    continue
 
-            if tm >= tm_threshold:
-                hits.append(OffTargetHit(
-                    position=tpos, strand=strand_label,
-                    match_seq=match_seq, tm=round(tm, 1),
-                    match_length=min_match + ext,
-                    truncation_type="3prime_anchor",
-                ))
+                match_seq = strand_seq[match_start:match_end]
+                tm = _calc_sdm_tm(match_seq)
 
-    return hits
+                if tm >= tm_threshold:
+                    _record(strand_label, tpos, match_seq, tm, min_match + ext)
+
+    # ── Rule 2: mismatch-tolerant 3' anchor + heterodimer Tm ────────────────
+    if plen >= end_nt:
+        anchor = p_upper[-end_nt:]
+        concs = _thermo_concs()
+        for strand_label, strand_seq in [
+            ("sense", t_upper),
+            ("antisense", rc_template),
+        ]:
+            slen = len(strand_seq)
+            for pos in range(slen - end_nt + 1):
+                if strand_seq[pos:pos + end_nt] != anchor:
+                    continue
+
+                site_end = pos + end_nt
+                site_start = site_end - plen
+                if site_start < 0:
+                    continue  # not enough template upstream to hold the full primer
+
+                if strand_label == "sense":
+                    tpos, tpos_end = site_start, site_end
+                else:
+                    tpos = tlen - site_end
+                    tpos_end = tlen - site_start
+
+                if not (tpos_end <= intended_start or tpos >= intended_end):
+                    continue
+
+                site = strand_seq[site_start:site_end]
+                rc_site = reverse_complement(site)
+                result = primer3.calc_heterodimer(p_upper, rc_site, **concs)
+                tm = result.tm if result.structure_found else 0.0
+
+                if tm >= mismatch_tm_threshold:
+                    _record(strand_label, tpos, site, tm, plen)
+
+    return list(hits_by_site.values())
 
 
 def _find_all_positions(haystack: str, needle: str) -> list[int]:
