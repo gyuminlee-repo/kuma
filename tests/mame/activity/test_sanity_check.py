@@ -82,6 +82,28 @@ def test_three_cycle_label_swap():
 
 
 # ---------------------------------------------------------------------------
+# Case 3b: open mismatch — single unclosed A→B path (no reverse B→A)
+# ---------------------------------------------------------------------------
+
+def test_open_mismatch_severity_warning():
+    # Layout says A01=F10A (short=10A), but its measured value only matches
+    # prev-round 10B, and 10B's own well does not reciprocate back to 10A
+    # (10B is absent from this round's layout entirely). This is an open,
+    # unclosed path, not a closed swap permutation, so it must be a warning
+    # rather than an error (real relabeling shows up as a closed cycle; see
+    # test_two_swap_severity_error / test_three_cycle_label_swap).
+    layout = _layout(("F10A", "A01"))
+    activity_map = {"A01": 0.70}
+    prev_ep = {"10A": 0.50, "10B": 0.70}
+    result = detect_label_swap(layout, activity_map, prev_ep)
+    swap_warnings = [w for w in result if w.code == "label_swap_cycle"]
+    assert len(swap_warnings) == 1
+    w = swap_warnings[0]
+    assert w.severity == "warning"
+    assert set(w.variants) == {"10A"}
+
+
+# ---------------------------------------------------------------------------
 # Case 4: value_collision — same value matches multiple prev-EP variants
 # ---------------------------------------------------------------------------
 

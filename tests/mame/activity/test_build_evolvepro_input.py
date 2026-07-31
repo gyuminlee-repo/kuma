@@ -282,7 +282,6 @@ def test_build_output_header_and_rowcount(tmp_path: Path):
         tmp_path, [("V5F", "A1"), ("V10L", "B1"), ("S11E", "C1")]
     )
     gc = _make_gc_data(tmp_path, [("A1", 1.0), ("B1", 1.1), ("C1", 0.9)])
-    # Two authoritative IDs, mapped to the top two prev variants.
     rep = _make_rep_batch(
         tmp_path,
         {1: [1.0, 1.1, 1.2], 2: [0.9, 1.0, 1.1]},

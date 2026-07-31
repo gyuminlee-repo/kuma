@@ -39,6 +39,7 @@ from .evolvepro_xlsx import (
     write_evolvepro_xlsx,
     write_relative_activity_xlsx,
 )
+from .label_audit import LabelAudit, audit_labels
 from .merge import merge_replicates_priority
 from .numeric_id_decode import DecodeResult, decode_confirmation, decode_primary_screen
 from .models import MergeReplicatesStats, Variant
@@ -727,6 +728,7 @@ class BuildEvolveproAxesResult:
     n_ngs_excluded: int = 0
     ngs_excluded: list[str] = field(default_factory=list)
     gc_export_path: Path | None = None
+    label_audit: LabelAudit | None = None
 
 
 def build_evolvepro_input_axes(
@@ -750,6 +752,7 @@ def build_evolvepro_input_axes(
     mapping_audit_path: str | Path | None = None,
     gc_export_xlsx: str | Path | None = None,
     no_variants_message: str | None = None,
+    allow_label_mismatch: bool = False,
 ) -> BuildEvolveproAxesResult:
     """Assemble an EVOLVEpro input xlsx from one primary screen + one confirmation.
 
@@ -784,13 +787,19 @@ def build_evolvepro_input_axes(
             well-level relative activity is written there. On the other axis A
             sources the build records a warning instead.
         no_variants_message: overrides the empty-result ValueError text.
+        allow_label_mismatch: when False (default), a severity="error"
+            label-swap warning from detect_label_swap (numeric-index
+            confirmation axis only) aborts the build with a ValueError before
+            anything is written. Set True to proceed anyway once the flagged
+            wells/variants have been reviewed.
 
     Returns:
         BuildEvolveproAxesResult.
 
     Raises:
         ValueError: axis selection invalid, a required companion input missing,
-            WT areas missing, or no variants left to write.
+            WT areas missing, no variants left to write, or (unless
+            allow_label_mismatch=True) a severity="error" label-swap warning.
     """
     output_path = Path(output_xlsx)
     warnings: list[str] = []
@@ -1002,8 +1011,12 @@ def build_evolvepro_input_axes(
 
     # --- optional NGS verdict gating ---------------------------------------
     ngs_excluded: list[str] = []
+    label_audit_result: LabelAudit | None = None
     if verdict_xlsx is not None:
-        from kuma_core.mame.activity.verdict_ngs import parse_verdict_wells, _PASS
+        from kuma_core.mame.activity.verdict_ngs import parse_verdict_rows, _PASS
+
+        verdict_rows_full = parse_verdict_rows(verdict_xlsx)
+        verdict_by_well = {w: r.verdict for w, r in verdict_rows_full.items()}
 
         if not well_by_variant:
             warnings.append(
@@ -1011,7 +1024,6 @@ def build_evolvepro_input_axes(
                 "(prev-EVOLVEpro round-1 mode without layout_xlsx)."
             )
         else:
-            verdict_by_well = parse_verdict_wells(verdict_xlsx)
             for variant in list(merged):
                 well = well_by_variant.get(str(variant))
                 if well is None:
@@ -1031,13 +1043,16 @@ def build_evolvepro_input_axes(
                     "Check the verdict file or omit it to use layout-trust."
                 )
 
-    # --- write -------------------------------------------------------------
-    rows = sorted(merged.items(), key=lambda kv: -kv[1])
-    n_variants = write_evolvepro_xlsx(
-        [(str(v), float(a)) for v, a in rows], output_path
-    )
+        # Well<->mutant label audit (detection/classification only, Phase 1;
+        # requires both an NGS verdict source and a plate layout).
+        if layout_xlsx is not None:
+            layout_map = {
+                e.well_id: e.mutant for e in parse_plate_layout_xlsx(layout_xlsx)
+            }
+            label_audit_result = audit_labels(layout_map, verdict_rows_full)
 
-    # --- label-swap guard (numeric-index axis only, advisory) --------------
+    # --- label-swap guard (numeric-index axis only, advisory unless the
+    # swap is severity="error", which blocks export by default) ------------
     swap_warnings: list = []
     if confirmation_source == CONFIRM_NUMERIC_INDEX:
         prev_ep_map = {
@@ -1052,6 +1067,22 @@ def build_evolvepro_input_axes(
             swap_layout.append((str(variant), well))
             swap_activity[well] = float(activity)
         swap_warnings = detect_label_swap(swap_layout, swap_activity, prev_ep_map)
+
+        error_warnings = [w for w in swap_warnings if w.severity == "error"]
+        if error_warnings and not allow_label_mismatch:
+            details = "; ".join(w.message for w in error_warnings)
+            raise ValueError(
+                "Label swap detected (severity=error); export blocked. "
+                f"{details} Review the flagged wells and variants, then "
+                "re-run with allow_label_mismatch=True to proceed once "
+                "confirmed."
+            )
+
+    # --- write -------------------------------------------------------------
+    rows = sorted(merged.items(), key=lambda kv: -kv[1])
+    n_variants = write_evolvepro_xlsx(
+        [(str(v), float(a)) for v, a in rows], output_path
+    )
 
     # --- mapping audit artifact --------------------------------------------
     audit_path: Path | None = None
@@ -1082,4 +1113,5 @@ def build_evolvepro_input_axes(
         n_ngs_excluded=len(ngs_excluded),
         ngs_excluded=sorted(ngs_excluded),
         gc_export_path=gc_export_path,
+        label_audit=label_audit_result,
     )
