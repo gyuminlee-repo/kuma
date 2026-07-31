@@ -976,7 +976,16 @@
       "restoredNotice": "Des chemins ont été restaurés sur cet appareil. Effacez-les s’ils appartiennent à un autre projet.",
       "clearRestored": "Effacer les entrées EVOLVEpro restaurées",
       "primarySourceNumericReport": "Rapport à ID numériques (plaque entière)",
-      "confirmationSourceNumericSubset": "Confirmation à ID numériques (sous-ensemble au-dessus du WT)"
+      "confirmationSourceNumericSubset": "Confirmation à ID numériques (sous-ensemble au-dessus du WT)",
+      "primarySourceNumericReportHelper": "Criblage de plaque entière dont les noms d'échantillon sont de simples nombres. L'ID i est le i-ème mutant conçu dans l'ordre de la plaque, une source d'ordre est donc requise.",
+      "confirmationSourceNumericSubsetHelper": "Confirmation répliquée dont les ID numériques numérotent les variants dépassant le type sauvage, dans le même ordre de plaque. Nécessite le criblage primaire numérique.",
+      "round1RepBatchXlsx": "Criblage primaire (ID numériques)",
+      "round1RepBatchXlsxHelper": "Rapport Agilent FID1B de la plaque entière, un réplicat par variant.",
+      "expectedMutationsXlsx": "Conception KURO (expected_mutations)",
+      "expectedMutationsXlsxHelper": "Source d'ordre issue directement de la conception, sans fichier de plaque recopié à la main. Préférée au layout.",
+      "remeasureRepBatchXlsx": "Confirmation (ID numériques)",
+      "remeasureRepBatchXlsxHelper": "Rapport Agilent FID1B du sous-ensemble remesuré, plusieurs réplicats par variant.",
+      "orLabel": "l'un ou l'autre"
     },
     "verdictBadge": {
       "help": {

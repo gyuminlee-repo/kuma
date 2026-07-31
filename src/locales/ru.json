@@ -976,7 +976,16 @@
       "restoredNotice": "Пути восстановлены на этом устройстве. Очистите их, если они относятся к другому проекту.",
       "clearRestored": "Очистить восстановленные входы EVOLVEpro",
       "primarySourceNumericReport": "Отчёт с числовыми ID (весь планшет)",
-      "confirmationSourceNumericSubset": "Подтверждение с числовыми ID (подмножество выше WT)"
+      "confirmationSourceNumericSubset": "Подтверждение с числовыми ID (подмножество выше WT)",
+      "primarySourceNumericReportHelper": "Скрининг всего планшета с чисто числовыми именами образцов. ID i соответствует i-му спроектированному мутанту в порядке планшета, поэтому нужен источник порядка.",
+      "confirmationSourceNumericSubsetHelper": "Повторное подтверждение, числовые ID которого нумеруют варианты выше дикого типа в том же порядке планшета. Требуется числовой первичный скрининг.",
+      "round1RepBatchXlsx": "Первичный скрининг (числовые ID)",
+      "round1RepBatchXlsxHelper": "Отчёт Agilent FID1B по всему планшету, по одной реплике на вариант.",
+      "expectedMutationsXlsx": "Дизайн KURO (expected_mutations)",
+      "expectedMutationsXlsxHelper": "Источник порядка прямо из дизайна, без переписанного вручную файла планшета. Предпочтительнее layout.",
+      "remeasureRepBatchXlsx": "Подтверждение (числовые ID)",
+      "remeasureRepBatchXlsxHelper": "Отчёт Agilent FID1B по повторно измеренному подмножеству, несколько реплик на вариант.",
+      "orLabel": "одно из двух"
     },
     "verdictBadge": {
       "help": {

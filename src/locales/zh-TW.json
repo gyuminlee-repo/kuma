@@ -976,7 +976,16 @@
       "restoredNotice": "已復原此裝置上的路徑。如果它們屬於其他專案，請清除。",
       "clearRestored": "清除已復原的 EVOLVEpro 輸入",
       "primarySourceNumericReport": "數字ID報告（整盤）",
-      "confirmationSourceNumericSubset": "數字ID驗證（高於WT的子集）"
+      "confirmationSourceNumericSubset": "數字ID驗證（高於WT的子集）",
+      "primarySourceNumericReportHelper": "樣品名僅為數字的整盤測定。id i 對應盤序中第 i 個設計突變，因此需要順序來源。",
+      "confirmationSourceNumericSubsetHelper": "對初篩中高於野生型的突變按相同盤序編號的重複驗證測定。需要數字ID初篩。",
+      "round1RepBatchXlsx": "初篩（數字ID）",
+      "round1RepBatchXlsxHelper": "整盤 Agilent FID1B 報告，每個突變一個重複。",
+      "expectedMutationsXlsx": "KURO 設計 (expected_mutations)",
+      "expectedMutationsXlsxHelper": "直接來自設計的順序來源，無需手工謄寫盤檔案。優先於 layout。",
+      "remeasureRepBatchXlsx": "驗證測定（數字ID）",
+      "remeasureRepBatchXlsxHelper": "重測子集的 Agilent FID1B 報告，每個突變多個重複。",
+      "orLabel": "二選一"
     },
     "verdictBadge": {
       "help": {

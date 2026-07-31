@@ -499,7 +499,16 @@
       "restoredNotice": "이 장치에 저장된 경로를 복구했습니다. 다른 프로젝트의 파일이면 초기화하세요.",
       "clearRestored": "복구된 EVOLVEpro 입력 초기화",
       "primarySourceNumericReport": "숫자 ID 리포트 (전체 플레이트)",
-      "confirmationSourceNumericSubset": "숫자 ID 확인 측정 (WT 초과 집합)"
+      "confirmationSourceNumericSubset": "숫자 ID 확인 측정 (WT 초과 집합)",
+      "primarySourceNumericReportHelper": "샘플명이 숫자뿐인 전체 플레이트 측정. id i 는 plate 순서상 i 번째 설계 변이이므로 순서 소스가 필요합니다.",
+      "confirmationSourceNumericSubsetHelper": "1차 스크리닝에서 WT 를 넘은 변이들에 같은 plate 순서로 번호를 매긴 반복 확인 측정. 숫자 ID 1차 스크리닝이 필요합니다.",
+      "round1RepBatchXlsx": "1차 스크리닝 (숫자 ID)",
+      "round1RepBatchXlsxHelper": "플레이트 전체 Agilent FID1B 리포트, 변이당 1반복.",
+      "expectedMutationsXlsx": "KURO 설계 (expected_mutations)",
+      "expectedMutationsXlsxHelper": "설계에서 바로 가져오는 순서 소스라 plate 파일을 손으로 옮겨 적지 않습니다. layout 보다 우선합니다.",
+      "remeasureRepBatchXlsx": "확인 측정 (숫자 ID)",
+      "remeasureRepBatchXlsxHelper": "재측정 집합의 Agilent FID1B 리포트, 변이당 여러 반복.",
+      "orLabel": "둘 중 하나"
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",

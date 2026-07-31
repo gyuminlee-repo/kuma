@@ -976,7 +976,16 @@
       "restoredNotice": "このデバイスに保存されていたパスを復元しました。別プロジェクトのファイルならクリアしてください。",
       "clearRestored": "復元された EVOLVEpro 入力をクリア",
       "primarySourceNumericReport": "数値IDレポート (プレート全体)",
-      "confirmationSourceNumericSubset": "数値ID確認測定 (WT超過サブセット)"
+      "confirmationSourceNumericSubset": "数値ID確認測定 (WT超過サブセット)",
+      "primarySourceNumericReportHelper": "サンプル名が数値のみの全プレート測定。id i はプレート順の i 番目の設計変異なので、順序ソースが必要です。",
+      "confirmationSourceNumericSubsetHelper": "一次スクリーニングで WT を上回った変異に同じプレート順で番号を振った反復確認測定。数値ID一次スクリーニングが必要です。",
+      "round1RepBatchXlsx": "一次スクリーニング (数値ID)",
+      "round1RepBatchXlsxHelper": "プレート全体の Agilent FID1B レポート、変異あたり1反復。",
+      "expectedMutationsXlsx": "KURO 設計 (expected_mutations)",
+      "expectedMutationsXlsxHelper": "設計から直接得る順序ソースで、プレートファイルを手書き転記しません。layout より優先されます。",
+      "remeasureRepBatchXlsx": "確認測定 (数値ID)",
+      "remeasureRepBatchXlsxHelper": "再測定サブセットの Agilent FID1B レポート、変異あたり複数反復。",
+      "orLabel": "いずれか一つ"
     },
     "verdictBadge": {
       "help": {

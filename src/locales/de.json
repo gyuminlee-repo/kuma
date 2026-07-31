@@ -976,7 +976,16 @@
       "restoredNotice": "Pfade wurden auf diesem Gerät wiederhergestellt. Löschen Sie sie, wenn sie zu einem anderen Projekt gehören.",
       "clearRestored": "Wiederhergestellte EVOLVEpro-Eingaben löschen",
       "primarySourceNumericReport": "Bericht mit numerischen IDs (ganze Platte)",
-      "confirmationSourceNumericSubset": "Bestätigung mit numerischen IDs (Teilmenge über WT)"
+      "confirmationSourceNumericSubset": "Bestätigung mit numerischen IDs (Teilmenge über WT)",
+      "primarySourceNumericReportHelper": "Ganzplatten-Screen mit rein numerischen Probennamen. ID i ist die i-te entworfene Mutante in Plattenreihenfolge, daher wird eine Reihenfolgequelle benötigt.",
+      "confirmationSourceNumericSubsetHelper": "Replizierte Bestätigung, deren numerische IDs die Varianten über dem Wildtyp in derselben Plattenreihenfolge durchnummerieren. Erfordert den numerischen Primärscreen.",
+      "round1RepBatchXlsx": "Primärscreen (numerische IDs)",
+      "round1RepBatchXlsxHelper": "Agilent-FID1B-Bericht der ganzen Platte, eine Replikate je Variante.",
+      "expectedMutationsXlsx": "KURO-Design (expected_mutations)",
+      "expectedMutationsXlsxHelper": "Reihenfolgequelle direkt aus dem Design, ohne handschriftlich übertragene Plattendatei. Vorzug vor dem Layout.",
+      "remeasureRepBatchXlsx": "Bestätigung (numerische IDs)",
+      "remeasureRepBatchXlsxHelper": "Agilent-FID1B-Bericht der nachgemessenen Teilmenge, mehrere Replikate je Variante.",
+      "orLabel": "eines von beiden"
     },
     "verdictBadge": {
       "help": {

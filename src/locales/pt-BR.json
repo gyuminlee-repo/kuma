@@ -976,7 +976,16 @@
       "restoredNotice": "Caminhos foram restaurados neste dispositivo. Limpe-os se pertencerem a outro projeto.",
       "clearRestored": "Limpar entradas EVOLVEpro restauradas",
       "primarySourceNumericReport": "Relatório com IDs numéricos (placa inteira)",
-      "confirmationSourceNumericSubset": "Confirmação com IDs numéricos (subconjunto acima do WT)"
+      "confirmationSourceNumericSubset": "Confirmação com IDs numéricos (subconjunto acima do WT)",
+      "primarySourceNumericReportHelper": "Triagem de placa inteira com nomes de amostra numéricos. O ID i é o i-ésimo mutante projetado na ordem da placa, portanto é necessária uma fonte de ordem.",
+      "confirmationSourceNumericSubsetHelper": "Confirmação replicada cujos IDs numéricos numeram as variantes acima do tipo selvagem, na mesma ordem da placa. Requer a triagem primária numérica.",
+      "round1RepBatchXlsx": "Triagem primária (IDs numéricos)",
+      "round1RepBatchXlsxHelper": "Relatório Agilent FID1B da placa inteira, uma réplica por variante.",
+      "expectedMutationsXlsx": "Design KURO (expected_mutations)",
+      "expectedMutationsXlsxHelper": "Fonte de ordem obtida diretamente do design, sem transcrever à mão um arquivo de placa. Preferida ao layout.",
+      "remeasureRepBatchXlsx": "Confirmação (IDs numéricos)",
+      "remeasureRepBatchXlsxHelper": "Relatório Agilent FID1B do subconjunto remedido, várias réplicas por variante.",
+      "orLabel": "um ou outro"
     },
     "verdictBadge": {
       "help": {

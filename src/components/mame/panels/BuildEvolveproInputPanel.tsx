@@ -80,11 +80,13 @@ const PRIMARY_HELP: Record<FormState["primarySource"], string> = {
   rawReport: "mame.buildEvolvepro.primarySourceRawReportHelper",
   gcSheet: "mame.buildEvolvepro.primarySourceGcSheetHelper",
   prevEvolvepro: "mame.buildEvolvepro.primarySourcePrevEvolveproHelper",
+  numericReport: "mame.buildEvolvepro.primarySourceNumericReportHelper",
 };
 
 const CONFIRMATION_HELP: Record<FormState["confirmationSource"], string> = {
   none: "mame.buildEvolvepro.confirmationSourceNoneHelper",
   variantLabels: "mame.buildEvolvepro.confirmationSourceVariantLabelsHelper",
+  numericSubset: "mame.buildEvolvepro.confirmationSourceNumericSubsetHelper",
   numericIndex: "mame.buildEvolvepro.confirmationSourceNumericIndexHelper",
 };
 
@@ -155,6 +157,9 @@ export function BuildEvolveproInputPanel() {
     form.round1ReportXlsx,
     form.round1EvolveproXlsx,
     form.remeasureReportXlsx,
+    form.round1RepBatchXlsx,
+    form.expectedMutationsXlsx,
+    form.remeasureRepBatchXlsx,
     form.verdictXlsx,
     form.outputXlsx,
     form.gcExportXlsx,
@@ -220,6 +225,14 @@ export function BuildEvolveproInputPanel() {
   } else if (form.primarySource === "gcSheet") {
     if (!form.layoutXlsx) need("layoutXlsx", "bep-layout");
     if (!form.gcDataXlsx) need("gcDataXlsx", "bep-gc");
+  } else if (form.primarySource === "numericReport") {
+    if (!form.round1RepBatchXlsx) need("round1RepBatchXlsx", "bep-round1-rep");
+    // Sample names are bare numbers, so one of the two order sources has to be
+    // present for the IDs to mean anything. The KURO design is the one to ask
+    // for; the layout is accepted for plates filled before it existed.
+    if (!form.expectedMutationsXlsx && !form.layoutXlsx) {
+      need("expectedMutationsXlsx", "bep-expected");
+    }
   } else if (!form.round1EvolveproXlsx) {
     need("round1EvolveproXlsx", "bep-round1-evolvepro");
   }
@@ -228,6 +241,15 @@ export function BuildEvolveproInputPanel() {
   // variant names of its own, so it needs the rank source alongside it.
   if (form.confirmationSource === "variantLabels") {
     if (!form.remeasureReportXlsx) need("remeasureReportXlsx", "bep-remeasure");
+  } else if (form.confirmationSource === "numericSubset") {
+    if (!form.remeasureRepBatchXlsx) {
+      need("remeasureRepBatchXlsx", "bep-remeasure-rep");
+    }
+    // Its IDs number the above-WT subset of the numeric primary screen, so
+    // that screen has to be the one selected on axis A.
+    if (form.primarySource !== "numericReport") {
+      need("round1RepBatchXlsx", "bep-round1-rep");
+    }
   } else if (form.confirmationSource === "numericIndex") {
     if (!form.repBatchXlsx) need("repBatchXlsx", "bep-rep");
     if (!form.prevEvolveproXlsx) need("prevEvolveproXlsx", "bep-prev");
@@ -259,6 +281,19 @@ export function BuildEvolveproInputPanel() {
           round1_evolvepro_xlsx: form.round1EvolveproXlsx,
           layout_xlsx: form.layoutXlsx || undefined,
         };
+      case "numericReport":
+        // Exactly one order source reaches the backend. The design wins when
+        // both are filled, so a leftover layout path cannot quietly decide the
+        // variant names.
+        return form.expectedMutationsXlsx
+          ? {
+              round1_rep_batch_xlsx: form.round1RepBatchXlsx,
+              expected_mutations_xlsx: form.expectedMutationsXlsx,
+            }
+          : {
+              round1_rep_batch_xlsx: form.round1RepBatchXlsx,
+              layout_xlsx: form.layoutXlsx,
+            };
     }
   }
 
@@ -268,6 +303,8 @@ export function BuildEvolveproInputPanel() {
         return {};
       case "variantLabels":
         return { remeasure_report_xlsx: form.remeasureReportXlsx };
+      case "numericSubset":
+        return { remeasure_rep_batch_xlsx: form.remeasureRepBatchXlsx };
       case "numericIndex":
         return {
           rep_batch_xlsx: form.repBatchXlsx,
@@ -415,6 +452,10 @@ export function BuildEvolveproInputPanel() {
                 label: t("mame.buildEvolvepro.primarySourceGcSheet"),
               },
               {
+                value: "numericReport",
+                label: t("mame.buildEvolvepro.primarySourceNumericReport"),
+              },
+              {
                 value: "prevEvolvepro",
                 label: t("mame.buildEvolvepro.primarySourcePrevEvolvepro"),
               },
@@ -425,7 +466,46 @@ export function BuildEvolveproInputPanel() {
             }
           />
 
-          {form.primarySource === "prevEvolvepro" ? (
+          {form.primarySource === "numericReport" ? (
+            <>
+              <FilePickerField
+                id="bep-round1-rep"
+                label={t("mame.buildEvolvepro.round1RepBatchXlsx")}
+                filled={Boolean(form.round1RepBatchXlsx)}
+                value={form.round1RepBatchXlsx}
+                onBrowse={() =>
+                  browseXlsx("round1RepBatchXlsx", t("mame.buildEvolvepro.round1RepBatchXlsx"))
+                }
+                helperText={t("mame.buildEvolvepro.round1RepBatchXlsxHelper")}
+                helpText={t("mame.buildEvolvepro.round1RepBatchXlsxHelper")}
+              />
+              {/* The design is the order source to reach for; the layout is
+                  accepted for plates filled before it existed. Either one
+                  satisfies the requirement, so both read as optional. */}
+              <FilePickerField
+                id="bep-expected"
+                label={t("mame.buildEvolvepro.expectedMutationsXlsx") + " (" + t("mame.buildEvolvepro.orLabel") + ")"}
+                filled={Boolean(form.expectedMutationsXlsx)}
+                value={form.expectedMutationsXlsx}
+                onBrowse={() =>
+                  browseXlsx("expectedMutationsXlsx", t("mame.buildEvolvepro.expectedMutationsXlsx"))
+                }
+                helperText={t("mame.buildEvolvepro.expectedMutationsXlsxHelper")}
+                helpText={t("mame.buildEvolvepro.expectedMutationsXlsxHelper")}
+              />
+              <FilePickerField
+                id="bep-layout-order"
+                label={t("mame.buildEvolvepro.layoutXlsx") + " (" + t("mame.buildEvolvepro.orLabel") + ")"}
+                filled={Boolean(form.layoutXlsx)}
+                value={form.layoutXlsx}
+                onBrowse={() =>
+                  browseXlsx("layoutXlsx", t("mame.buildEvolvepro.layoutXlsx"))
+                }
+                helperText={t("mame.buildEvolvepro.layoutXlsxHelper")}
+                helpText={t("mame.buildEvolvepro.layoutXlsxHelper")}
+              />
+            </>
+          ) : form.primarySource === "prevEvolvepro" ? (
             <>
               <FilePickerField
                 id="bep-round1-evolvepro"
@@ -525,6 +605,10 @@ export function BuildEvolveproInputPanel() {
                 label: t("mame.buildEvolvepro.confirmationSourceVariantLabels"),
               },
               {
+                value: "numericSubset",
+                label: t("mame.buildEvolvepro.confirmationSourceNumericSubset"),
+              },
+              {
                 value: "numericIndex",
                 label: t("mame.buildEvolvepro.confirmationSourceNumericIndex"),
               },
@@ -536,6 +620,22 @@ export function BuildEvolveproInputPanel() {
               })
             }
           />
+
+          {form.confirmationSource === "numericSubset" && (
+            <>
+              <FilePickerField
+                id="bep-remeasure-rep"
+                label={t("mame.buildEvolvepro.remeasureRepBatchXlsx")}
+                filled={Boolean(form.remeasureRepBatchXlsx)}
+                value={form.remeasureRepBatchXlsx}
+                onBrowse={() =>
+                  browseXlsx("remeasureRepBatchXlsx", t("mame.buildEvolvepro.remeasureRepBatchXlsx"))
+                }
+                helperText={t("mame.buildEvolvepro.remeasureRepBatchXlsxHelper")}
+                helpText={t("mame.buildEvolvepro.remeasureRepBatchXlsxHelper")}
+              />
+            </>
+          )}
 
           {form.confirmationSource === "variantLabels" && (
             <FilePickerField
