@@ -16,7 +16,6 @@ from kuma_core.kuro.sdm_engine import (
     _design_full_overlap,
     _synthesis_score,
     check_offtarget,
-    check_offtarget_sliding,
     design_sdm_primers,
     design_single_sdm,
     export_results_tsv,
@@ -363,9 +362,9 @@ class TestCancelCheck:
 class TestCheckOfftarget:
     """`check_offtarget()` is the function the design path actually calls
 
-    (6 call sites in design_single_sdm / evaluate_custom_primer). Unlike
-    `check_offtarget_sliding` (never called from the design path), this one
-    had zero detection-oriented tests before this commit.
+    (6 call sites in design_single_sdm / evaluate_custom_primer). It used
+    to have zero detection-oriented tests, unlike the never-called
+    sliding-window checker, which has since been removed (see PR body).
     """
 
     # 24 nt primer, arbitrary composition.
@@ -417,81 +416,6 @@ class TestCheckOfftarget:
             intended_end=40 + len(primer),
         )
         assert len(hits) >= 1
-
-
-class TestCheckOfftargetSliding:
-    """Sliding-window off-target (PrimerBench / SnapGene-style)."""
-
-    def test_empty_on_short_primer(self):
-        # Primer shorter than min_length returns no hits.
-        hits = check_offtarget_sliding(
-            primer_seq="ACGTACGT",
-            template="ACGTACGTACGTACGT",
-            intended_start=0,
-            intended_end=8,
-            min_length=15,
-        )
-        assert hits == []
-
-    def test_detects_internal_match(self):
-        # 15-bp internal window ("CGTACGTACGTACGT") matches elsewhere on the
-        # template — 3' anchor would miss, sliding must catch.
-        internal = "CGTACGTACGTACGT"  # 15 bp
-        primer = "AA" + internal + "TT"  # 19 bp, internal window matches
-        # Template: intended site + distant copy of the internal window
-        template = primer + "N" * 50 + internal + "N" * 20
-        hits = check_offtarget_sliding(
-            primer_seq=primer,
-            template=template,
-            intended_start=0,
-            intended_end=len(primer),
-            min_length=15,
-        )
-        internal_hits = [h for h in hits if h.truncation_type == "internal"]
-        assert len(internal_hits) >= 1
-        assert any(h.match_length == 15 for h in internal_hits)
-
-    def test_full_length_match(self):
-        primer = "ACGTACGTACGTACGTAC"  # 18 bp
-        template = "N" * 40 + primer + "N" * 40 + primer + "N" * 40
-        hits = check_offtarget_sliding(
-            primer_seq=primer,
-            template=template,
-            intended_start=40,
-            intended_end=40 + len(primer),
-            min_length=15,
-        )
-        full = [h for h in hits if h.truncation_type == "full"]
-        assert len(full) >= 1
-
-    def test_self_hit_excluded(self):
-        primer = "ACGTACGTACGTACGTAC"  # 18 bp, appears once
-        template = "N" * 40 + primer + "N" * 40
-        hits = check_offtarget_sliding(
-            primer_seq=primer,
-            template=template,
-            intended_start=40,
-            intended_end=40 + len(primer),
-            min_length=15,
-        )
-        assert hits == []
-
-    def test_antisense_detection(self):
-        from kuma_core.kuro.overlap import reverse_complement
-        primer = "ACGTACGTACGTACGTAC"  # 18 bp
-        # Place the reverse complement elsewhere on the sense strand so it
-        # surfaces as an antisense hit from the primer's point of view.
-        rc = reverse_complement(primer)
-        template = "N" * 40 + primer + "N" * 40 + rc + "N" * 40
-        hits = check_offtarget_sliding(
-            primer_seq=primer,
-            template=template,
-            intended_start=40,
-            intended_end=40 + len(primer),
-            min_length=15,
-        )
-        antisense = [h for h in hits if h.strand == "antisense"]
-        assert len(antisense) >= 1
 
 
 class TestDesignFullOverlap:
