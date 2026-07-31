@@ -11,9 +11,6 @@
     "restartSidecar": "Reiniciar sidecar",
     "openWorkspace": "Abrir workspace...",
     "saveWorkspace": "Guardar workspace...",
-    "validateInputs": "Validar entradas",
-    "runAnalysis": "Ejecutar análisis",
-    "cancelAnalysis": "Cancelar análisis",
     "compareWorkspaces": "Comparar workspaces...",
     "exportWorkspaceZip": "Exportar workspace como zip..."
   },
@@ -1765,6 +1762,24 @@
     "failed": "Sidecar falló",
     "networkError": "Error de red"
   },
+  "hydrationOverlay": {
+    "title": "Restaurando el proyecto",
+    "description": "Se está cargando el último estado guardado automáticamente. La edición queda bloqueada hasta que termine para que los valores restaurados no sobrescriban lo que escribas.",
+    "cancel": "Cancelar y volver al inicio",
+    "confirmTitle": "¿Cerrar el proyecto?",
+    "confirmDescription": "Se cerrará el proyecto y volverás al inicio. Lo que se estaba restaurando no se guardará.",
+    "keepWaiting": "Seguir esperando",
+    "confirmLeave": "Salir al inicio",
+    "titleScratch": "Restaurando tu trabajo",
+    "descriptionScratch": "Se está cargando el último estado guardado automáticamente. La edición queda bloqueada hasta que termine para que los valores restaurados no sobrescriban lo que escribas.",
+    "confirmTitleScratch": "¿Detener la restauración?",
+    "confirmDescriptionScratch": "Volverás a la pantalla de inicio. Lo que se estaba restaurando no se guardará.",
+    "phaseReset": "Limpiando el trabajo anterior",
+    "phaseWorkspace": "Abriendo el workspace",
+    "phaseKuro": "Cargando el trabajo de diseño de primers",
+    "phaseMame": "Cargando los resultados de verificación de secuencias",
+    "phaseDetect": "Buscando archivos en la carpeta del proyecto"
+  },
   "closeConfirm": {
     "designing": {
       "title": "Diseño en progreso",
@@ -1867,9 +1882,6 @@
       "reportIssue": "Report issue"
     },
     "appMenu": {
-      "kuro": "kuro",
-      "mame": "mame",
-      "closeWindow": "Cerrar ventana",
       "quit": "Salir de kuma"
     },
     "fileMenuTrigger": "File"

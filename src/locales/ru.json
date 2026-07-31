@@ -11,9 +11,6 @@
     "restartSidecar": "Перезапустить Sidecar",
     "openWorkspace": "Открыть Workspace...",
     "saveWorkspace": "Сохранить Workspace...",
-    "validateInputs": "Проверить входные данные",
-    "runAnalysis": "Запустить анализ",
-    "cancelAnalysis": "Отменить анализ",
     "compareWorkspaces": "Сравнить workspaces...",
     "exportWorkspaceZip": "Экспорт workspace в zip..."
   },
@@ -1765,6 +1762,24 @@
     "failed": "Sidecar не запустился",
     "networkError": "Сетевая ошибка"
   },
+  "hydrationOverlay": {
+    "title": "Восстановление проекта",
+    "description": "Загружается последнее автосохранённое состояние. Редактирование заблокировано до завершения, чтобы восстановленные значения не перезаписали ваш ввод.",
+    "cancel": "Отменить и вернуться на главную",
+    "confirmTitle": "Закрыть проект?",
+    "confirmDescription": "Проект будет закрыт, откроется главная страница. Данные, которые восстанавливались, не сохранятся.",
+    "keepWaiting": "Продолжить ожидание",
+    "confirmLeave": "Выйти на главную",
+    "titleScratch": "Восстановление вашей работы",
+    "descriptionScratch": "Загружается последнее автосохранённое состояние. Редактирование заблокировано до завершения, чтобы восстановленные значения не перезаписали ваш ввод.",
+    "confirmTitleScratch": "Прервать восстановление?",
+    "confirmDescriptionScratch": "Вы вернётесь на главную страницу. Данные, которые восстанавливались, не сохранятся.",
+    "phaseReset": "Очистка предыдущей работы",
+    "phaseWorkspace": "Открытие Workspace",
+    "phaseKuro": "Загрузка данных дизайна праймеров",
+    "phaseMame": "Загрузка результатов проверки последовательностей",
+    "phaseDetect": "Поиск файлов в папке проекта"
+  },
   "closeConfirm": {
     "designing": {
       "title": "Design выполняется",
@@ -1867,9 +1882,6 @@
       "reportIssue": "Report issue"
     },
     "appMenu": {
-      "kuro": "kuro",
-      "mame": "mame",
-      "closeWindow": "Закрыть окно",
       "quit": "Выйти из kuma"
     },
     "fileMenuTrigger": "File"

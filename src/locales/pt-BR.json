@@ -11,9 +11,6 @@
     "restartSidecar": "Reiniciar sidecar",
     "openWorkspace": "Abrir workspace...",
     "saveWorkspace": "Salvar workspace...",
-    "validateInputs": "Validar entradas",
-    "runAnalysis": "Executar análise",
-    "cancelAnalysis": "Cancelar análise",
     "compareWorkspaces": "Comparar workspaces...",
     "exportWorkspaceZip": "Exportar workspace como zip..."
   },
@@ -1765,6 +1762,24 @@
     "failed": "Sidecar falhou",
     "networkError": "Erro de rede"
   },
+  "hydrationOverlay": {
+    "title": "Restaurando o projeto",
+    "description": "Carregando o último estado salvo automaticamente. A edição fica bloqueada até terminar para que os valores restaurados não sobrescrevam o que você digitar.",
+    "cancel": "Cancelar e voltar ao início",
+    "confirmTitle": "Fechar o projeto?",
+    "confirmDescription": "O projeto será fechado e você voltará ao início. O que estava sendo restaurado não será salvo.",
+    "keepWaiting": "Continuar esperando",
+    "confirmLeave": "Sair para o início",
+    "titleScratch": "Restaurando seu trabalho",
+    "descriptionScratch": "Carregando o último estado salvo automaticamente. A edição fica bloqueada até terminar para que os valores restaurados não sobrescrevam o que você digitar.",
+    "confirmTitleScratch": "Interromper a restauração?",
+    "confirmDescriptionScratch": "Você voltará à tela inicial. O que estava sendo restaurado não será salvo.",
+    "phaseReset": "Limpando o trabalho anterior",
+    "phaseWorkspace": "Abrindo o workspace",
+    "phaseKuro": "Carregando o trabalho de design de primers",
+    "phaseMame": "Carregando os resultados da verificação de sequências",
+    "phaseDetect": "Procurando arquivos na pasta do projeto"
+  },
   "closeConfirm": {
     "designing": {
       "title": "Design em andamento",
@@ -1867,9 +1882,6 @@
       "reportIssue": "Report issue"
     },
     "appMenu": {
-      "kuro": "kuro",
-      "mame": "mame",
-      "closeWindow": "Fechar janela",
       "quit": "Sair do kuma"
     },
     "fileMenuTrigger": "File"

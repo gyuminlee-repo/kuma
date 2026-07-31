@@ -11,9 +11,6 @@
     "restartSidecar": "重啟 Sidecar",
     "openWorkspace": "開啟工作區...",
     "saveWorkspace": "儲存工作區...",
-    "validateInputs": "驗證輸入",
-    "runAnalysis": "執行分析",
-    "cancelAnalysis": "取消分析",
     "compareWorkspaces": "比較工作區...",
     "exportWorkspaceZip": "將工作區匯出為 zip..."
   },
@@ -1765,6 +1762,24 @@
     "failed": "Sidecar 失敗",
     "networkError": "網路錯誤"
   },
+  "hydrationOverlay": {
+    "title": "正在還原專案",
+    "description": "正在載入上次自動儲存的狀態。還原完成前編輯會鎖定，以免還原的數值覆蓋您的輸入。",
+    "cancel": "取消並返回首頁",
+    "confirmTitle": "要關閉專案嗎？",
+    "confirmDescription": "將關閉專案並返回首頁。正在還原的內容不會儲存。",
+    "keepWaiting": "繼續等待",
+    "confirmLeave": "離開並返回首頁",
+    "titleScratch": "正在還原工作內容",
+    "descriptionScratch": "正在載入上次自動儲存的狀態。還原完成前編輯會鎖定，以免還原的數值覆蓋您的輸入。",
+    "confirmTitleScratch": "要中止還原嗎？",
+    "confirmDescriptionScratch": "將返回首頁。正在還原的內容不會儲存。",
+    "phaseReset": "正在整理上一次的工作內容",
+    "phaseWorkspace": "正在開啟工作區",
+    "phaseKuro": "正在載入引物設計的工作內容",
+    "phaseMame": "正在載入序列驗證結果",
+    "phaseDetect": "正在專案資料夾中尋找檔案"
+  },
   "closeConfirm": {
     "designing": {
       "title": "設計進行中",
@@ -1867,9 +1882,6 @@
       "reportIssue": "回報問題"
     },
     "appMenu": {
-      "kuro": "kuro",
-      "mame": "mame",
-      "closeWindow": "關閉視窗",
       "quit": "結束 kuma"
     },
     "fileMenuTrigger": "File"

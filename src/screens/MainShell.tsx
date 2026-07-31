@@ -17,6 +17,7 @@ import type { BusyReason } from "@/components/dialogs/CloseConfirmDialog";
 import { registerShutdownHook, runShutdownHooks } from "@/lib/shutdownHook";
 import { toast } from "sonner";
 import { ProjectTourCoordinator } from "@/components/dialogs/ProjectTourCoordinator";
+import { HydrationOverlay } from "@/components/dialogs/HydrationOverlay";
 
 const LazySettingsDialog = lazy(async () =>
   import("@/components/layout/SettingsDialog").then((m) => ({ default: m.SettingsDialog })),
@@ -181,7 +182,14 @@ export function MainShell() {
   // Phase 2: Kuro 자동 저장 구독 등록
   useKuroAutosave();
   // Phase 4: 프로젝트 진입 시 자동 저장 복원
-  useAutosaveHydration(handleHydrationMessage);
+  const { hydrating, phase, cancel: cancelHydration } = useAutosaveHydration(handleHydrationMessage);
+
+  // 복원 취소 → Home 복귀. App.tsx의 kuma:return-to-home 핸들러가
+  // setProject(null) + setScreen("home")을 수행한다.
+  const handleHydrationCancel = useCallback(() => {
+    cancelHydration();
+    window.dispatchEvent(new Event("kuma:return-to-home"));
+  }, [cancelHydration]);
 
   // ── autosave 이벤트 옵저버 등록
   useEffect(() => {
@@ -519,7 +527,8 @@ export function MainShell() {
         </div>
       </Tabs>
 
-      {project && !project.scratch && (
+      {/* 복원 중에는 투어를 띄우지 않는다. GuidedTour 가 #root 에 inert 를 걸어 HydrationOverlay 취소 버튼을 죽인다. */}
+      {project && !project.scratch && !hydrating && (
         <ProjectTourCoordinator
           key={project.project_id ?? project.path}
           project={project}
@@ -542,6 +551,14 @@ export function MainShell() {
           <LazyLogPanel onClose={() => setLogPanelVisible(false)} />
         )}
       </Suspense>
+
+      {/* 자동 저장 복원 구간 차단 오버레이 (400ms 지연 표시) */}
+      <HydrationOverlay
+        open={hydrating}
+        onCancel={handleHydrationCancel}
+        phase={phase}
+        scratch={project?.scratch ?? false}
+      />
 
       {/* §22 Graceful Shutdown: busy 상태 close 확인 */}
       <Suspense fallback={null}>

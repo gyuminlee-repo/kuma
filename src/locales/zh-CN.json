@@ -11,9 +11,6 @@
     "restartSidecar": "重启 Sidecar",
     "openWorkspace": "打开工作区...",
     "saveWorkspace": "保存工作区...",
-    "validateInputs": "验证输入",
-    "runAnalysis": "运行分析",
-    "cancelAnalysis": "取消分析",
     "compareWorkspaces": "比较工作区...",
     "exportWorkspaceZip": "将工作区导出为 zip..."
   },
@@ -1765,6 +1762,24 @@
     "failed": "Sidecar 失败",
     "networkError": "网络错误"
   },
+  "hydrationOverlay": {
+    "title": "正在恢复项目",
+    "description": "正在载入上次自动保存的状态。恢复完成前编辑处于锁定状态，以免恢复的数值覆盖您的输入。",
+    "cancel": "取消并返回主页",
+    "confirmTitle": "要关闭项目吗？",
+    "confirmDescription": "将关闭项目并返回主页。正在恢复的内容不会被保存。",
+    "keepWaiting": "继续等待",
+    "confirmLeave": "退出到主页",
+    "titleScratch": "正在恢复工作内容",
+    "descriptionScratch": "正在载入上次自动保存的状态。恢复完成前编辑处于锁定状态，以免恢复的数值覆盖您的输入。",
+    "confirmTitleScratch": "要中止恢复吗？",
+    "confirmDescriptionScratch": "将返回主页。正在恢复的内容不会被保存。",
+    "phaseReset": "正在清理上一次的工作内容",
+    "phaseWorkspace": "正在打开工作区",
+    "phaseKuro": "正在载入引物设计的工作内容",
+    "phaseMame": "正在载入序列验证结果",
+    "phaseDetect": "正在项目文件夹中查找文件"
+  },
   "closeConfirm": {
     "designing": {
       "title": "设计进行中",
@@ -1867,9 +1882,6 @@
       "reportIssue": "报告问题"
     },
     "appMenu": {
-      "kuro": "kuro",
-      "mame": "mame",
-      "closeWindow": "关闭窗口",
       "quit": "退出 kuma"
     },
     "fileMenuTrigger": "File"

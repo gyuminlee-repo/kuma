@@ -35,6 +35,17 @@ vi.mock("@/lib/ipc", async (importOriginal) => {
   };
 });
 
+// Freeze autosave hydration as finished. The real hook round-trips the sidecar on
+// every project entry and HydrationOverlay covers the whole screen meanwhile, which
+// would swallow the clicks this flow test drives.
+vi.mock("@/hooks/useAutosaveHydration", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useAutosaveHydration")>();
+  return {
+    ...actual,
+    useAutosaveHydration: () => ({ hydrating: false, phase: null, cancel: () => {} }),
+  };
+});
+
 // Replace the heavy MameAppLayout with a stub that dispatches the integration event.
 vi.mock("@/components/mame/layout/MameAppLayout", () => ({
   MameAppLayout: () => (
