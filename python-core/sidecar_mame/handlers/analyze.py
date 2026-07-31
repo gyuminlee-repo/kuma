@@ -332,6 +332,7 @@ def handle_analyze(params: dict) -> dict:
     reference = _validate_filepath(
         params["reference"], allowed_extensions=_ALLOWED_SEQUENCE_EXTENSIONS
     )
+    reference_for_pipeline = reference
     expected = _validate_filepath(
         params["expected"], allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
     )
@@ -435,12 +436,23 @@ def handle_analyze(params: dict) -> dict:
         raw_trim_flank_bp = int(params.get("trim_flank_bp", 30))
         raw_custom_barcodes_xlsx = params.get("custom_barcodes_xlsx")
         raw_native_barcodes = params.get("native_barcodes")
+        if not isinstance(raw_custom_barcodes_xlsx, str):
+            raise ValueError("custom_barcodes_xlsx is required for raw-run analysis")
+
+        demux_output_dir = (
+            Path(params["demux_output_dir"])
+            if params.get("demux_output_dir")
+            else output.parent / "demux_filtered"
+        )
+        if reference.suffix.lower() not in _ALLOWED_FASTA_EXTENSIONS:
+            demux_output_dir.mkdir(parents=True, exist_ok=True)
+            reference_for_pipeline = _write_reference_fasta(reference, demux_output_dir)
 
         AnalyzeRawRunParams.model_validate(
             {
                 "minknow_run_dir": str(input_dir),
                 "custom_barcodes_xlsx": raw_custom_barcodes_xlsx,
-                "reference_fasta": str(reference),
+                "reference_fasta": str(reference_for_pipeline),
                 "demux_output_dir": params.get("demux_output_dir"),
                 "native_barcodes": raw_native_barcodes,
                 "mapq_threshold": raw_mapq_threshold,
@@ -451,11 +463,6 @@ def handle_analyze(params: dict) -> dict:
             }
         )
 
-        demux_output_dir = (
-            Path(params["demux_output_dir"])
-            if params.get("demux_output_dir")
-            else output.parent / "demux_filtered"
-        )
         _demux_started = time.monotonic()
         _demux_done_evt = threading.Event()
 
@@ -485,7 +492,7 @@ def handle_analyze(params: dict) -> dict:
             ingest_run_folder(
                 run_dir=original_run_dir,
                 custom_barcodes_xlsx=Path(raw_custom_barcodes_xlsx),
-                reference_fasta=reference,
+                reference_fasta=reference_for_pipeline,
                 demux_output_dir=demux_output_dir,
                 native_barcodes=raw_native_barcodes,
                 mapq_threshold=raw_mapq_threshold,
@@ -611,8 +618,27 @@ def handle_analyze(params: dict) -> dict:
         _holder["value"] = 60
         _holder["message"] = "Classifying verdicts..."
 
-        with tempfile.TemporaryDirectory(prefix="mame-reference-") as tmpdir:
-            reference_for_pipeline = _write_reference_fasta(reference, Path(tmpdir))
+        if not is_raw and reference.suffix.lower() not in _ALLOWED_FASTA_EXTENSIONS:
+            with tempfile.TemporaryDirectory(prefix="mame-reference-") as tmpdir:
+                reference_for_pipeline = _write_reference_fasta(reference, Path(tmpdir))
+                verdicts, replicates = run_analyze(
+                    input_dir=input_dir,
+                    reference_path=reference_for_pipeline,
+                    expected_path=expected,
+                    output_path=output,
+                    cds_start=cds_start,
+                    cds_end=cds_end,
+                    mode=mode,
+                    min_file_size_kb=min_file_size_kb,
+                    min_read_count=min_read_count,
+                    max_consensus_n_fraction=max_consensus_n_fraction,
+                    many_cutoff=many_cutoff,
+                    ingest_mode=ingest_mode_enum,
+                    sample_map_path=sample_map_path,
+                    well_layout=well_layout,
+                    progress_callback=_band_callback,
+                )
+        else:
             verdicts, replicates = run_analyze(
                 input_dir=input_dir,
                 reference_path=reference_for_pipeline,
