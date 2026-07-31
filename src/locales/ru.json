@@ -12,7 +12,12 @@
     "openWorkspace": "Открыть Workspace...",
     "saveWorkspace": "Сохранить Workspace...",
     "compareWorkspaces": "Сравнить workspaces...",
-    "exportWorkspaceZip": "Экспорт workspace в zip..."
+    "exportProjectZip": "Eksportirovat proekt v ZIP...",
+    "importProjectZip": "Importirovat proekt iz ZIP...",
+    "exportProjectZipDone": "Sohraneno faylov: {{count}} v {{path}}",
+    "exportProjectZipFailed": "Ne udalos eksportirovat proekt: {{detail}}",
+    "importProjectZipDone": "Importirovano faylov: {{count}} v {{path}}",
+    "importProjectZipFailed": "Ne udalos importirovat proekt: {{detail}}"
   },
   "export": {
     "all": "Экспортировать всё",
@@ -585,7 +590,6 @@
       "compareWorkspacesNoDiff": "No differences found.",
       "compareWorkspacesSame": "The two workspaces are identical.",
       "compareWorkspacesTitle": "Compare Workspaces",
-      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon",
       "selectWorkspaceA": "Select first workspace (A)",
       "selectWorkspaceB": "Select second workspace (B)"
     },
@@ -2289,6 +2293,7 @@
     "writeFailed": "Не удалось записать файл autosave ({{filename}}). Причина: {{cause}}",
     "carriedFromScratch": "Продолжено из несохранённой предыдущей сессии ({{relative}})",
     "resultsDiscarded": "Список variants заново выбран из исходного файла и больше не соответствует восстановленной таблице primer, поэтому таблица очищена. Запустите дизайн заново.",
+    "inputsUnavailable": "Ne udalos otkryt {{count}} vhodnyh faylov, oni ne popali v vosstanovlenie. Rezultaty na meste, no ishodnyy vhod otsutstvuet, vyberite ego zanovo: {{paths}}",
     "workspaceRestored": "Workspace восстановлен",
     "autoDetected": "Авто-определено: {{fields}}",
     "fieldRunFolder": "папка run",

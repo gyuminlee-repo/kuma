@@ -1,6 +1,7 @@
 pub mod config;
 pub mod keep_awake;
 pub mod project;
+pub mod project_archive;
 pub mod sidecar;
 pub mod sidecar_verify;
 
@@ -275,6 +276,8 @@ pub fn run() {
             config::set_projects_root_cmd,
             config::create_project_cmd,
             config::load_project_cmd,
+            project_archive::export_project_zip_cmd,
+            project_archive::import_project_zip_cmd,
             config::list_recent_projects_cmd,
             config::remove_recent_project_cmd,
             config::list_restorable_projects_cmd,
