@@ -77,6 +77,7 @@ export function ExportFormatSelector() {
     try {
       await handleExportAll({
         projectId: project?.project_id,
+        projectPath: project?.path,
         projectName: projectName || undefined,
         fwdPlateName: fwdPlate || undefined,
         rvsPlateName: rvsPlate || undefined,

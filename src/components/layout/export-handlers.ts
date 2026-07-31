@@ -1,5 +1,8 @@
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { mkdir } from "@tauri-apps/plugin-fs";
 import { sendRequest } from "../../lib/ipc-kuro";
+import { ensureWorkspaceFromExportPath, registerArtifacts } from "../../lib/workspace";
+import type { ArtifactType } from "../../lib/workspace/types";
 import { useAppStore } from "../../store/appStore";
 import { defaultExportFilename } from "../../lib/filename";
 import type { BenchmarkResult, WorkspaceData } from "../../types/models";
@@ -155,8 +158,42 @@ export async function handleOpenSequence() {
 // Export All + Macrogen (spec 2026-05-13)
 // ---------------------------------------------------------------------------
 
+/**
+ * Maps an export_all output filename to the artifact type it registers as.
+ * The backend names every file `<prefix>_<role>.<ext>`, so the suffix is the
+ * only stable discriminator. Unknown suffixes are skipped rather than guessed.
+ */
+const EXPORT_ALL_ARTIFACT_TYPES: ReadonlyArray<readonly [string, ArtifactType]> = [
+  ["_echo.csv", "kuro_echo_csv"],
+  ["_echo.xlsx", "kuro_echo_xlsx"],
+  ["_janus.csv", "kuro_janus_csv"],
+  ["_janus.xlsx", "kuro_janus_xlsx"],
+  ["_macrogen.xls", "kuro_macrogen_xls"],
+  ["_platemap.xlsx", "kuro_platemap_xlsx"],
+  ["_primers.fasta", "kuro_primers_fasta"],
+  ["_run.json", "kuro_run_json"],
+];
+
+function artifactTypeForExportAllFile(filename: string): ArtifactType | null {
+  for (const [suffix, type] of EXPORT_ALL_ARTIFACT_TYPES) {
+    if (filename.endsWith(suffix)) return type;
+  }
+  return null;
+}
+
+function joinPath(dir: string, name: string): string {
+  const sep = dir.includes("\\") ? "\\" : "/";
+  return `${dir.replace(/[\\/]+$/, "")}${sep}${name}`;
+}
+
 export interface ExportAllUiParams {
   projectId?: string;
+  /**
+   * Active project folder. When set, the directory picker opens there and the
+   * produced files are recorded in the workspace manifest, mirroring how MAME
+   * routes its artifacts through the project.
+   */
+  projectPath?: string;
   projectName?: string;
   fwdPlateName?: string;
   rvsPlateName?: string;
@@ -173,7 +210,29 @@ export interface ExportAllUiParams {
 export async function handleExportAll(
   params: ExportAllUiParams,
 ): Promise<{ success: string[]; failed: { path: string; reason: string }[]; output_dir: string } | null> {
-  const dir = await open({ directory: true, multiple: false });
+  // Default the picker to the project folder so exports land inside the
+  // project by default, the way MAME routes its artifacts. The folder is
+  // created first, otherwise the dialog silently ignores a missing defaultPath.
+  let projectExportDir = params.projectPath
+    ? joinPath(params.projectPath, "design")
+    : undefined;
+  if (projectExportDir) {
+    try {
+      await mkdir(projectExportDir, { recursive: true });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.warning("Project export folder unavailable", {
+        description: `${projectExportDir}: ${msg}. Choose a destination manually.`,
+        duration: 8000,
+      });
+      projectExportDir = undefined;
+    }
+  }
+  const dir = await open({
+    directory: true,
+    multiple: false,
+    ...(projectExportDir ? { defaultPath: projectExportDir } : {}),
+  });
   if (!dir || typeof dir !== "string") {
     return null;
   }
@@ -219,6 +278,38 @@ export async function handleExportAll(
     const failedCount = result.failed?.length ?? 0;
     const totalCount = successCount + failedCount;
     const outputDir = result.output_dir ?? dir;
+
+    // Record the produced files so the manifest can hand them to later steps,
+    // the way MAME registers its build outputs. A registry failure must never
+    // turn a successful export into a user-visible error, so it is reported
+    // separately instead of being swallowed.
+    if (successCount > 0) {
+      const artifacts = result.success
+        .map((filename) => {
+          const type = artifactTypeForExportAllFile(filename);
+          return type
+            ? {
+                app: "kuro" as const,
+                step: "export",
+                type,
+                absolutePath: joinPath(outputDir, filename),
+              }
+            : null;
+        })
+        .filter((a): a is NonNullable<typeof a> => a !== null);
+      if (artifacts.length > 0) {
+        try {
+          await ensureWorkspaceFromExportPath(joinPath(outputDir, result.success[0]));
+          await registerArtifacts(artifacts);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          toast.warning("Export saved, but not recorded in the project", {
+            description: `${msg}. Later steps will not auto-fill from these files.`,
+            duration: 8000,
+          });
+        }
+      }
+    }
 
     if (failedCount === 0 && successCount > 0) {
       toast.success("Export all complete", {
