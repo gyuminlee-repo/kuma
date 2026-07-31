@@ -232,6 +232,87 @@ class TestConfirmation:
         assert all(r.mean == pytest.approx(1.0) for r in result.rows)
 
 
+class TestExpectedMutationsOrderSource:
+    """The KURO design as the order source, replacing the hand-written plate."""
+
+    def _expected(self, tmp_path: Path, rows) -> Path:
+        wb, ws = _new_sheet()
+        ws.title = "expected_mutations"
+        ws.append(
+            [
+                "mutant_id",
+                "position",
+                "wt_aa",
+                "mt_aa",
+                "wt_codon",
+                "mt_codon",
+                "group_id",
+                "primer_set_ref",
+                "notation_type",
+                "status",
+            ]
+        )
+        for mutant, position in rows:
+            ws.append(
+                [
+                    mutant,
+                    position,
+                    mutant[0],
+                    mutant[-1],
+                    "",
+                    "",
+                    "",
+                    mutant,
+                    "substitution",
+                    "DESIGNED",
+                ]
+            )
+        p = tmp_path / "expected.xlsx"
+        wb.save(p)
+        return p
+
+    def test_orders_by_position_then_sheet_order(self, tmp_path):
+        from kuma_core.mame.activity.numeric_id_decode import expected_variant_order
+
+        # Sheet order is deliberately not position order, and 53 carries three
+        # substitutions whose sheet order is not alphabetical.
+        sheet = [("R87P", 87), ("V5F", 5), ("K53R", 53), ("K53S", 53), ("K53N", 53)]
+        order, warnings = expected_variant_order(self._expected(tmp_path, sheet))
+        assert [o[0] for o in order] == ["5F", "53R", "53S", "53N", "87P"]
+        assert warnings == []
+
+    def test_assigns_column_major_wells(self, tmp_path):
+        from kuma_core.mame.activity.numeric_id_decode import expected_variant_order
+
+        sheet = [("V5F", 5), ("K53R", 53)]
+        order, _ = expected_variant_order(self._expected(tmp_path, sheet))
+        assert [o[2] for o in order] == ["A1", "B1"]
+
+    def test_decodes_a_report_without_any_plate_file(self, tmp_path):
+        sheet = [("R87P", 87), ("V5F", 5), ("K53R", 53), ("K53S", 53), ("K53N", 53)]
+        result = decode_primary_screen(
+            _primary(tmp_path), expected_xlsx=self._expected(tmp_path, sheet)
+        )
+        assert [(r.id, r.variant) for r in result.rows] == [
+            (1, "5F"),
+            (2, "53R"),
+            (3, "53S"),
+            (4, "53N"),
+            (5, "87P"),
+        ]
+
+    def test_needs_exactly_one_order_source(self, tmp_path):
+        sheet = [("V5F", 5)]
+        with pytest.raises(ValueError, match="exactly one order source"):
+            decode_primary_screen(_primary(tmp_path))
+        with pytest.raises(ValueError, match="exactly one order source"):
+            decode_primary_screen(
+                _primary(tmp_path),
+                _layout(tmp_path),
+                expected_xlsx=self._expected(tmp_path, sheet),
+            )
+
+
 class TestOrderIsNotActivityRank:
     """Guards the decode against the assumption it replaced.
 

@@ -135,6 +135,43 @@ def layout_variant_order(
     return order, warnings
 
 
+def expected_variant_order(
+    expected_xlsx: str | Path,
+) -> tuple[list[tuple[str, str, str]], list[str]]:
+    """Decode order straight from the KURO ``expected_mutations`` sheet.
+
+    Same shape as :func:`layout_variant_order`, derived from the design instead
+    of a hand-written plate file: :func:`canonical_plate_order` fixes the order
+    and ``seq_to_well`` assigns the column-major wells, so nobody transcribes a
+    plate by hand and no transcription slip can reach the decode.
+
+    Prefer this over ``layout_variant_order``. The two agree on every well
+    position for the 2026-03 campaign; where they differ it is a permutation
+    inside one residue position in the hand-written file, including the 426 rows
+    already known to be wrong there.
+    """
+    from kuma_core.mame.export.well_mapper import seq_to_well
+    from kuma_core.mame.io.kuro_reader import read_expected_mutations
+    from kuma_core.mame.layout import canonical_plate_order
+
+    warnings: list[str] = []
+    order: list[tuple[str, str, str]] = []
+    ordered = canonical_plate_order(read_expected_mutations(Path(expected_xlsx)))
+    for seq, mutation in enumerate(ordered, start=1):
+        mutant = mutation.mutant_id
+        try:
+            short = to_evolvepro(mutant)
+        except ValueError:
+            warnings.append(
+                f"Designed mutant {mutant!r} has no EVOLVEpro short form (several "
+                "substitutions); it cannot take a numeric ID and is excluded from "
+                "the decode order."
+            )
+            continue
+        order.append((short, mutant, seq_to_well(seq)))
+    return order, warnings
+
+
 def _decode_against(
     block: BlockRepBatchResult,
     order: list[tuple[str, str, str]],
@@ -185,26 +222,43 @@ def _decode_against(
 
 def decode_primary_screen(
     report_xlsx: str | Path,
-    layout_xlsx: str | Path,
+    layout_xlsx: str | Path | None = None,
+    *,
+    expected_xlsx: str | Path | None = None,
 ) -> DecodeResult:
-    """Decode the whole-plate primary screen against the plate layout.
+    """Decode the whole-plate primary screen. ID ``i`` is the ``i``-th variant.
 
-    ID ``i`` is the ``i``-th non-WT layout row in well order.
+    Exactly one order source. ``expected_xlsx`` (the KURO ``expected_mutations``
+    sheet) is the one to reach for: it removes the hand-written plate file from
+    the round entirely. ``layout_xlsx`` stays for campaigns whose plate was filled
+    before that, and for the case where the bench deliberately departed from the
+    design order.
 
     Raises:
-        ValueError: WT blocks missing, or the ID set does not line up with the
-            layout one to one.
+        ValueError: neither or both order sources given, WT blocks missing, or the
+            ID set does not line up with the order one to one.
     """
+    if (layout_xlsx is None) == (expected_xlsx is None):
+        raise ValueError(
+            "exactly one order source is required: expected_xlsx (KURO design, "
+            "preferred) or layout_xlsx (hand-written plate file)"
+        )
     source = Path(report_xlsx).name
     block = parse_agilent_block_rep_batch(report_xlsx)
     wt_mean = _wt_mean(block, source)
-    order, warnings = layout_variant_order(layout_xlsx)
+    if expected_xlsx is not None:
+        order, warnings = expected_variant_order(expected_xlsx)
+        order_label = "the KURO expected_mutations design"
+    else:
+        assert layout_xlsx is not None
+        order, warnings = layout_variant_order(layout_xlsx)
+        order_label = "the plate layout"
     rows = _decode_against(
         block,
         order,
         wt_mean,
         source=source,
-        order_label="the plate layout",
+        order_label=order_label,
     )
     return DecodeResult(
         rows=rows,
