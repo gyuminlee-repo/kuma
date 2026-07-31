@@ -324,7 +324,11 @@
         "sampleMapTemplate": "Plantilla de sample map (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "No se pudo abrir la carpeta."
+      "openFolderError": "No se pudo abrir la carpeta.",
+      "variantSheet": "Hoja de variantes",
+      "variantColumn": "Columna de variantes",
+      "variantColumnPlaceholder": "Elegir una columna",
+      "variantColumnHelper": "El orden de las filas de esta columna llena la placa de 96 pocillos. Una fila WT se usa como control."
     },
     "activity": {
       "sectionIngest": "Subir activity",

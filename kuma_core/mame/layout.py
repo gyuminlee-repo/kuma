@@ -69,12 +69,19 @@ def canonical_plate_order(
     return sorted(expected_mutations, key=lambda m: m.position)
 
 
-def build_draft_layout(expected_mutations: list[ExpectedMutation]) -> DraftLayout:
+def build_draft_layout(
+    expected_mutations: list[ExpectedMutation],
+    include_wt: bool = True,
+) -> DraftLayout:
     """Build a column-major draft layout: well i -> mutant_id, well N+1 -> "WT".
 
     well ``i`` (1-based, column-major via ``seq_to_well``) is assigned
     ``expected_mutations[i-1].mutant_id`` for ``i = 1..N`` where ``N`` is the
     number of expected mutations. A single WT control occupies well ``N+1``.
+
+    ``include_wt=False`` skips that control well. Pass it when the source list
+    already carried a wild-type row (see ``io/variant_list.py``), which the
+    generic reader strips out and reports rather than parsing as a mutation.
 
     The caller decides the order. Pass :func:`canonical_plate_order` output to get
     the plate the bench actually fills; the list as given keeps KURO sheet order.
@@ -91,6 +98,14 @@ def build_draft_layout(expected_mutations: list[ExpectedMutation]) -> DraftLayou
     n_mutants = min(len(expected_mutations), _PLATE_CAPACITY)
     for i in range(1, n_mutants + 1):
         layout[seq_to_well(i)] = expected_mutations[i - 1].mutant_id
+    if not include_wt:
+        # The source listed its own WT row, so appending one here would put two
+        # controls on the plate and mis-attribute the second.
+        return DraftLayout(
+            layout=layout,
+            dropped_mutant_ids=[m.mutant_id for m in expected_mutations[_PLATE_CAPACITY:]],
+            wt_omitted=False,
+        )
     wt_seq = len(expected_mutations) + 1
     wt_omitted = wt_seq > _PLATE_CAPACITY
     if not wt_omitted:

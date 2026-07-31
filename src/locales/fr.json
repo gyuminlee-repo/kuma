@@ -324,7 +324,11 @@
         "sampleMapTemplate": "Modèle de sample map (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "Impossible d'ouvrir le dossier."
+      "openFolderError": "Impossible d'ouvrir le dossier.",
+      "variantSheet": "Feuille des variants",
+      "variantColumn": "Colonne des variants",
+      "variantColumnPlaceholder": "Choisir une colonne",
+      "variantColumnHelper": "L'ordre des lignes de cette colonne remplit la plaque 96 puits. Une ligne WT sert de controle."
     },
     "activity": {
       "sectionIngest": "Téléverser l'activity",

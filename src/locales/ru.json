@@ -324,7 +324,11 @@
         "sampleMapTemplate": "Шаблон sample map (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "Не удалось открыть папку."
+      "openFolderError": "Не удалось открыть папку.",
+      "variantSheet": "List so spiskom variantov",
+      "variantColumn": "Stolbec variantov",
+      "variantColumnPlaceholder": "Vyberite stolbec",
+      "variantColumnHelper": "Poryadok strok etogo stolbca zapolnyaet 96-lunochnyy planshet. Stroka WT sluzhit kontrolem."
     },
     "activity": {
       "sectionIngest": "Загрузить activity",

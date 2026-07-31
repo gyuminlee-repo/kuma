@@ -44,7 +44,10 @@ from sidecar_mame.handlers.activity import (
     handle_merge_for_evolvepro,
     reset_activity_state,
 )
-from sidecar_mame.handlers.barcode_package import handle_generate_mame_package
+from sidecar_mame.handlers.barcode_package import (
+    handle_generate_mame_package,
+    handle_inspect_variant_source,
+)
 from sidecar_mame.handlers.build_well_layout import handle_build_well_layout
 from sidecar_mame.handlers.ingest import handle_parse_reference
 from sidecar_mame.handlers.combinatorial_demux import handle_run_combinatorial_demux
@@ -109,6 +112,7 @@ _METHODS = {
     "mame.activity.build_evolvepro_input": handle_build_evolvepro_input,
     # Feature B: MAME Barcode Setup
     "generate_mame_package": handle_generate_mame_package,
+    "inspect_variant_source": handle_inspect_variant_source,
     # Analyze-phase CDS picker: parse reference (FASTA / GenBank / SnapGene)
     "mame.ingest.parse_reference": handle_parse_reference,
     # PR-A: alignment-anchored combinatorial demux pipeline

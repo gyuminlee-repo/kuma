@@ -342,7 +342,11 @@
         "sampleMapTemplate": "Sample map 템플릿 (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "폴더를 열지 못했습니다."
+      "openFolderError": "폴더를 열지 못했습니다.",
+      "variantSheet": "변이 목록 시트",
+      "variantColumn": "변이 열",
+      "variantColumnPlaceholder": "열 선택",
+      "variantColumnHelper": "이 열의 행 순서대로 96-well에 배치됩니다. WT 행이 있으면 그 자리를 대조군으로 씁니다."
     },
     "activity": {
       "ingest": {

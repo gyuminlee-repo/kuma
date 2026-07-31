@@ -324,7 +324,11 @@
         "sampleMapTemplate": "Modelo de sample map (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "Não foi possível abrir a pasta."
+      "openFolderError": "Não foi possível abrir a pasta.",
+      "variantSheet": "Planilha de variantes",
+      "variantColumn": "Coluna de variantes",
+      "variantColumnPlaceholder": "Escolher uma coluna",
+      "variantColumnHelper": "A ordem das linhas desta coluna preenche a placa de 96 pocos. Uma linha WT serve de controle."
     },
     "activity": {
       "sectionIngest": "Enviar activity",
