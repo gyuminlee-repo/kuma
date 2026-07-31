@@ -35,7 +35,8 @@ import {
   type MamePathField,
 } from "@/lib/mame/stalePaths";
 import { exists } from "@tauri-apps/plugin-fs";
-import { fromPathRef, type StoredPath } from "@/lib/pathRef";
+import { asExternalRef, fromPathRef, type StoredPath } from "@/lib/pathRef";
+import { useMissingInputs, type MissingInput } from "@/lib/mame/missingInputs";
 import { getLatestArtifact, openWorkspace } from "@/lib/workspace";
 import { resolvePolymeraseName, retiredPolymeraseNotice } from "@/lib/polymeraseAliases";
 import { useAppStore } from "@/store/appStore";
@@ -756,6 +757,32 @@ async function clearStaleMamePaths(): Promise<MamePathField[]> {
   return stale;
 }
 
+/** 스냅샷 input 블록에서 필드에 대응하는 저장값을 꺼낸다. */
+const MAME_SNAPSHOT_KEY: Partial<Record<MamePathField, string>> = {
+  inputDir: "input_dir",
+  expectedPath: "expected_path",
+  referencePath: "reference_path",
+  sampleMapPath: "sample_map_path",
+};
+
+/**
+ * 되찾지 못한 필드를 사용자에게 보여줄 형태로 바꾼다.
+ *
+ * 스냅샷에 외부 참조로 적혀 있었다면 그때의 이름·크기·수정시각을 함께 실어,
+ * 다시 고른 대상이 같은 것인지 대조할 수 있게 한다. 구버전 스냅샷(맨 문자열)
+ * 이거나 참조가 없으면 필드 라벨만 남는다.
+ */
+function describeMissingInput(
+  field: MamePathField,
+  input: Record<string, unknown> | undefined,
+): MissingInput {
+  const key = MAME_SNAPSHOT_KEY[field];
+  const ref = key ? asExternalRef(input?.[key] as StoredPath) : null;
+  return ref
+    ? { field, name: ref.name, size: ref.size, mtime: ref.mtime }
+    : { field, name: i18next.t(MAME_PATH_LABEL_KEYS[field]) };
+}
+
 /** 자동 감지가 끝난 뒤에도 여전히 비어 있는 필드만 남긴다. */
 function stillMissing(fields: MamePathField[]): MamePathField[] {
   const store = useMameAppStore.getState();
@@ -1397,6 +1424,17 @@ export function useAutosaveHydration(
       // 밖에 있던 입력이 여기 걸린다. 조용히 비워 두면 사용자는 값이 사라진 줄도
       // 모르므로, 무엇을 다시 고르면 되는지 이름으로 알린다.
       const unresolved = stillMissing(droppedFields);
+      // 이전 프로젝트의 잔여 항목이 남지 않도록 매 복원마다 통째로 교체한다.
+      useMissingInputs.getState().setMissing(
+        unresolved.map((field) =>
+          describeMissingInput(
+            field,
+            mameResult.status === "ok"
+              ? (mameResult.snapshot as MameAutosaveSnapshot).input
+              : undefined,
+          ),
+        ),
+      );
       if (unresolved.length > 0) {
         onMessage({
           kind: "mame",

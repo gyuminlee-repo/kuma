@@ -1047,6 +1047,14 @@
         "LOWDEPTH": "Too few reads to call this well reliably.",
         "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
       }
+    },
+    "missingInputs": {
+      "title": "有輸入未能還原",
+      "description": "專案資料夾之外的檔案不會隨之移動。請重新指定以下項目。",
+      "browse": "瀏覽",
+      "chooseTitle": "指定 {{name}}",
+      "mismatchTitle": "可能是不同的檔案",
+      "mismatchBody": "原為 {{expected}}，選擇了 {{actual}}。若為有意變更可忽略。"
     }
   },
   "home": {

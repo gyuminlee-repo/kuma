@@ -62,14 +62,19 @@ const baseState: KuroSnapshotState = {
 
 describe("buildKuroSnapshot", () => {
   it("serializes autosave inputs needed to restore EVOLVEpro mode with column overrides", () => {
+    // No project path, so every file is an external reference (schema 3).
     const snapshot = buildKuroSnapshot(baseState);
 
     expect(snapshot.input).toMatchObject({
-      sequence_path: "/project/input.gb",
+      sequence_path: { kind: "external", path: "/project/input.gb", name: "input.gb" },
       selected_cds: "42",
       mutation_input_mode: "evolvepro",
       evolvepro_mode: "pipeline",
-      evolvepro_csv_path: "/project/evolvepro.csv",
+      evolvepro_csv_path: {
+        kind: "external",
+        path: "/project/evolvepro.csv",
+        name: "evolvepro.csv",
+      },
       evolvepro_variant_column: "variant",
       evolvepro_score_column: "score",
       evolvepro_score_order: "asc",
@@ -114,6 +119,27 @@ describe("buildKuroSnapshot", () => {
     expect(snapshot.diversity).toMatchObject({
       structural_diversity_enabled: true,
       structural_kappa: 0.7,
+    });
+  });
+});
+
+describe("buildKuroSnapshot path portability (schema 3)", () => {
+  it("stores files inside the project folder as relative paths", () => {
+    const snapshot = buildKuroSnapshot(baseState, "/project");
+
+    // "/project/input.gb" lives under the project, so the snapshot travels
+    // with the folder instead of pinning the machine it was written on.
+    expect(snapshot.input).toMatchObject({
+      sequence_path: { kind: "project", rel: "input.gb" },
+      evolvepro_csv_path: { kind: "project", rel: "evolvepro.csv" },
+    });
+  });
+
+  it("keeps files outside the project as external references", () => {
+    const snapshot = buildKuroSnapshot(baseState, "/elsewhere");
+
+    expect(snapshot.input).toMatchObject({
+      sequence_path: { kind: "external", path: "/project/input.gb" },
     });
   });
 });
