@@ -1752,6 +1752,24 @@
     "failed": "Sidecar 失敗",
     "networkError": "ネットワークエラー"
   },
+  "hydrationOverlay": {
+    "title": "プロジェクトを復元しています",
+    "description": "最後に自動保存された状態を読み込んでいます。復元された値が入力を上書きしないよう、完了するまで編集をロックします。",
+    "cancel": "キャンセルしてホームに戻る",
+    "confirmTitle": "プロジェクトを閉じますか？",
+    "confirmDescription": "プロジェクトを閉じてホーム画面に戻ります。復元中だった内容は保存されません。",
+    "keepWaiting": "待機を続ける",
+    "confirmLeave": "ホームに戻る",
+    "titleScratch": "作業内容を復元しています",
+    "descriptionScratch": "最後に自動保存された状態を読み込んでいます。復元された値が入力を上書きしないよう、完了するまで編集をロックします。",
+    "confirmTitleScratch": "復元を中止しますか？",
+    "confirmDescriptionScratch": "ホーム画面に戻ります。復元中だった内容は保存されません。",
+    "phaseReset": "前の作業内容を整理しています",
+    "phaseWorkspace": "ワークスペースを開いています",
+    "phaseKuro": "プライマー設計の作業内容を読み込んでいます",
+    "phaseMame": "配列検証の結果を読み込んでいます",
+    "phaseDetect": "プロジェクトフォルダ内のファイルを探しています"
+  },
   "closeConfirm": {
     "designing": {
       "title": "Design 進行中",

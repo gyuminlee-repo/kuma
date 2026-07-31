@@ -1752,6 +1752,24 @@
     "failed": "Échec du sidecar",
     "networkError": "Erreur réseau"
   },
+  "hydrationOverlay": {
+    "title": "Restauration du projet",
+    "description": "Chargement du dernier état enregistré automatiquement. La modification est bloquée jusqu'à la fin afin que les valeurs restaurées n'écrasent pas votre saisie.",
+    "cancel": "Annuler et revenir à l'accueil",
+    "confirmTitle": "Fermer le projet ?",
+    "confirmDescription": "Le projet sera fermé et vous reviendrez à l'accueil. Ce qui était en cours de restauration ne sera pas enregistré.",
+    "keepWaiting": "Continuer d'attendre",
+    "confirmLeave": "Revenir à l'accueil",
+    "titleScratch": "Restauration de votre travail",
+    "descriptionScratch": "Chargement du dernier état enregistré automatiquement. La modification est bloquée jusqu'à la fin afin que les valeurs restaurées n'écrasent pas votre saisie.",
+    "confirmTitleScratch": "Arrêter la restauration ?",
+    "confirmDescriptionScratch": "Vous reviendrez à l'écran d'accueil. Ce qui était en cours de restauration ne sera pas enregistré.",
+    "phaseReset": "Nettoyage du travail précédent",
+    "phaseWorkspace": "Ouverture de l'espace de travail",
+    "phaseKuro": "Chargement du travail de design de primers",
+    "phaseMame": "Chargement des résultats de vérification des séquences",
+    "phaseDetect": "Recherche des fichiers dans le dossier du projet"
+  },
   "closeConfirm": {
     "designing": {
       "title": "Design en cours",
