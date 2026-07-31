@@ -977,7 +977,9 @@
       "nNgsExcluded": "Exclus par NGS",
       "missingInputs": "Encore nécessaire",
       "restoredNotice": "Des chemins ont été restaurés sur cet appareil. Effacez-les s’ils appartiennent à un autre projet.",
-      "clearRestored": "Effacer les entrées EVOLVEpro restaurées"
+      "clearRestored": "Effacer les entrées EVOLVEpro restaurées",
+      "primarySourceNumericReport": "Rapport à ID numériques (plaque entière)",
+      "confirmationSourceNumericSubset": "Confirmation à ID numériques (sous-ensemble au-dessus du WT)"
     },
     "verdictBadge": {
       "help": {

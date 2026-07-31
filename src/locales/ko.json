@@ -500,7 +500,9 @@
       "nNgsExcluded": "NGS 제외",
       "missingInputs": "아직 필요한 파일",
       "restoredNotice": "이 장치에 저장된 경로를 복구했습니다. 다른 프로젝트의 파일이면 초기화하세요.",
-      "clearRestored": "복구된 EVOLVEpro 입력 초기화"
+      "clearRestored": "복구된 EVOLVEpro 입력 초기화",
+      "primarySourceNumericReport": "숫자 ID 리포트 (전체 플레이트)",
+      "confirmationSourceNumericSubset": "숫자 ID 확인 측정 (WT 초과 집합)"
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",

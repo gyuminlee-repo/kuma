@@ -80,6 +80,7 @@ const PRIMARY_SOURCE_LABEL: Record<BuildEvolveproPrimarySourceId, string> = {
   raw_report: "mame.buildEvolvepro.primarySourceRawReport",
   gc_sheet: "mame.buildEvolvepro.primarySourceGcSheet",
   prev_evolvepro: "mame.buildEvolvepro.primarySourcePrevEvolvepro",
+  numeric_report: "mame.buildEvolvepro.primarySourceNumericReport",
 };
 
 const CONFIRMATION_SOURCE_LABEL: Record<
@@ -88,6 +89,7 @@ const CONFIRMATION_SOURCE_LABEL: Record<
 > = {
   none: "mame.buildEvolvepro.confirmationSourceNone",
   variant_labels: "mame.buildEvolvepro.confirmationSourceVariantLabels",
+  numeric_subset: "mame.buildEvolvepro.confirmationSourceNumericSubset",
   numeric_index: "mame.buildEvolvepro.confirmationSourceNumericIndex",
 };
 

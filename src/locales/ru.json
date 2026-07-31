@@ -977,7 +977,9 @@
       "nNgsExcluded": "Исключено по NGS",
       "missingInputs": "Ещё требуется",
       "restoredNotice": "Пути восстановлены на этом устройстве. Очистите их, если они относятся к другому проекту.",
-      "clearRestored": "Очистить восстановленные входы EVOLVEpro"
+      "clearRestored": "Очистить восстановленные входы EVOLVEpro",
+      "primarySourceNumericReport": "Отчёт с числовыми ID (весь планшет)",
+      "confirmationSourceNumericSubset": "Подтверждение с числовыми ID (подмножество выше WT)"
     },
     "verdictBadge": {
       "help": {

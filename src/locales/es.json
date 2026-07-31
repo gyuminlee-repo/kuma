@@ -977,7 +977,9 @@
       "nNgsExcluded": "Excluidas por NGS",
       "missingInputs": "Todavía falta",
       "restoredNotice": "Se restauraron rutas en este dispositivo. Bórrelas si pertenecen a otro proyecto.",
-      "clearRestored": "Borrar entradas EVOLVEpro restauradas"
+      "clearRestored": "Borrar entradas EVOLVEpro restauradas",
+      "primarySourceNumericReport": "Informe con ID numéricos (placa completa)",
+      "confirmationSourceNumericSubset": "Confirmación con ID numéricos (subconjunto sobre WT)"
     },
     "verdictBadge": {
       "help": {

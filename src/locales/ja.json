@@ -977,7 +977,9 @@
       "nNgsExcluded": "NGS 除外",
       "missingInputs": "不足しているファイル",
       "restoredNotice": "このデバイスに保存されていたパスを復元しました。別プロジェクトのファイルならクリアしてください。",
-      "clearRestored": "復元された EVOLVEpro 入力をクリア"
+      "clearRestored": "復元された EVOLVEpro 入力をクリア",
+      "primarySourceNumericReport": "数値IDレポート (プレート全体)",
+      "confirmationSourceNumericSubset": "数値ID確認測定 (WT超過サブセット)"
     },
     "verdictBadge": {
       "help": {
