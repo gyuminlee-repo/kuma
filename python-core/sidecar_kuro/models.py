@@ -581,6 +581,14 @@ class ExportMappingParams(BaseModel):
     mappings: Optional[list[PlateMappingItem]] = None
     dedup_info: Optional[dict[str, list[str]]] = None
     mapping_range: Optional[MappingRange] = None
+    #: Forward-primer quadrant of the 384 source plate (A1/A2/B1/B2), i.e. where a
+    #: 96-head Zephyr starts its stamp. Reverse primers land in the row-paired
+    #: partner. Takes precedence over ``mapping_range``, which cannot express a
+    #: column offset. Echo only.
+    quadrant: Optional[Literal["A1", "A2", "B1", "B2"]] = None
+    #: Quadrants already spent on a part-used plate, stated by the operator.
+    #: Dispensing onto one is refused rather than warned about.
+    used_quadrants: Optional[list[Literal["A1", "A2", "B1", "B2"]]] = None
     bom: bool = False
 
 

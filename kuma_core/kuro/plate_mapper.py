@@ -619,13 +619,23 @@ def _validate_mapping_range(
 def _to_384_well_fwd(
     well_96: str,
     mapping_range: tuple[str, str] | None = None,
+    quadrant: str | None = None,
 ) -> str:
     """Map 96-well address to 384-well forward primer position.
 
     Default: forward primers occupy even-indexed 384 rows (A,C,E,G,I,K,M,O).
     With ``mapping_range=(row_start, row_end)`` (inclusive, A-P), forward rows
     are restricted to the even sub-offsets within that range.
+
+    ``quadrant`` selects one of the four interleaved sets a 96-head Zephyr can
+    stamp (A1/A2/B1/B2) and takes precedence over ``mapping_range``, which
+    describes row bands of the older row-doubled layout and cannot express a
+    column offset. See ``plate_quadrant`` for the geometry.
     """
+    if quadrant is not None:
+        from kuma_core.kuro.plate_quadrant import to_384_well
+
+        return to_384_well(well_96, quadrant)
     rng = _validate_mapping_range(mapping_range)
     row_idx = _ROWS_96.index(well_96[0])
     if rng is None:
@@ -639,13 +649,22 @@ def _to_384_well_fwd(
 def _to_384_well_rev(
     well_96: str,
     mapping_range: tuple[str, str] | None = None,
+    quadrant: str | None = None,
 ) -> str:
     """Map 96-well address to 384-well reverse primer position.
 
     Default: reverse primers occupy odd-indexed 384 rows (B,D,F,H,J,L,N,P).
     With ``mapping_range=(row_start, row_end)`` (inclusive, A-P), reverse rows
     are restricted to the odd sub-offsets within that range.
+
+    ``quadrant`` here is the *forward* quadrant; the reverse set lands in its
+    row-paired partner (A1 -> B1, A2 -> B2) so forward and reverse stay on
+    adjacent rows of the same columns, as they did before.
     """
+    if quadrant is not None:
+        from kuma_core.kuro.plate_quadrant import paired_quadrant, to_384_well
+
+        return to_384_well(well_96, paired_quadrant(quadrant))
     rng = _validate_mapping_range(mapping_range)
     row_idx = _ROWS_96.index(well_96[0])
     if rng is None:
@@ -664,6 +683,8 @@ def export_echo_mapping_csv(
     rev_groups: dict[str, list[str]] | None = None,
     encoding: str = "utf-8",
     mapping_range: tuple[str, str] | None = None,
+    quadrant: str | None = None,
+    used_quadrants: list[str] | None = None,
 ) -> None:
     """Export Echo 525 acoustic dispenser mapping CSV.
 
@@ -686,6 +707,13 @@ def export_echo_mapping_csv(
     """
     import csv
 
+    if quadrant is not None:
+        # 이미 쓴 quadrant 위에 덮어쓰면 그 안의 프라이머가 사라진다. 경고가 아니라
+        # 거부다. 판단 근거는 작업자가 입력한 현재 plate 상태뿐이다.
+        from kuma_core.kuro.plate_quadrant import check_quadrants_available
+
+        check_quadrants_available(quadrant, used_quadrants)
+
     fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
         fwd_mappings, rev_mappings, rev_groups,
     )
@@ -702,7 +730,7 @@ def export_echo_mapping_csv(
             plate_idx, base_well = _parse_well_plate(m.well)
             src_plate = f"Source [{plate_idx + 1}]"
             dest_plate = f"Destination [{plate_idx + 1}]"
-            src_well = _to_384_well_fwd(base_well, mapping_range=mapping_range)
+            src_well = _to_384_well_fwd(base_well, mapping_range=mapping_range, quadrant=quadrant)
             for vol in _split_echo_volume(transfer_vol):
                 writer.writerow([
                     src_plate, m.primer_name, src_well,
@@ -722,7 +750,7 @@ def export_echo_mapping_csv(
             src_plate = f"Source [{fwd_plate_idx + 1}]"
             dest_plate = f"Destination [{fwd_plate_idx + 1}]"
             _, rev_base_well = _parse_well_plate(rev_m.well)
-            src_well = _to_384_well_rev(rev_base_well, mapping_range=mapping_range)
+            src_well = _to_384_well_rev(rev_base_well, mapping_range=mapping_range, quadrant=quadrant)
             _, dest_well = _parse_well_plate(fwd_by_mut.get(fwd_m.mutation, fwd_m.well))
 
             for vol in _split_echo_volume(transfer_vol):

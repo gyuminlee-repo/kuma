@@ -297,6 +297,13 @@ export interface ExportOrderResult extends ExportResult {
   primer_count: number;
 }
 
+/**
+ * The four wells a 96-head Zephyr can start a 384-plate stamp from. Each covers
+ * one interleaved set of 96 wells (row parity x column parity); the four tile
+ * the plate. Mirrors kuma_core/kuro/plate_quadrant.QUADRANTS.
+ */
+export type EchoQuadrant = "A1" | "A2" | "B1" | "B2";
+
 export interface ExportMappingResult extends ExportResult {
   format: "echo" | "janus";
   primer_count: number;
@@ -657,6 +664,15 @@ export interface RpcMethodMap {
     params: RpcParams & {
       bom?: boolean;
       mapping_range?: { row_start: string; row_end: string } | null;
+      /**
+       * Forward-primer quadrant of the 384 source plate, i.e. where a 96-head
+       * Zephyr starts its stamp. Reverse primers land in the row-paired partner
+       * (A1 -> B1, A2 -> B2). Takes precedence over mapping_range, which cannot
+       * express a column offset. Echo only.
+       */
+      quadrant?: EchoQuadrant | null;
+      /** Quadrants already spent on a part-used plate, stated by the operator. */
+      used_quadrants?: EchoQuadrant[];
     };
     result: ExportMappingResult;
   };

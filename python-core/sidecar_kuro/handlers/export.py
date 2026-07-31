@@ -431,7 +431,9 @@ def handle_export_mapping(params: dict) -> dict:
             export_echo_mapping_csv(fwd_mappings, rev_mappings, resolved,
                                     transfer_vol=vol, rev_groups=rev_groups,
                                     encoding=encoding,
-                                    mapping_range=mapping_range)
+                                    mapping_range=mapping_range,
+                                    quadrant=p.quadrant,
+                                    used_quadrants=list(p.used_quadrants or []))
     else:
         vol = _resolve_mapping_transfer_volume(p.format, p.transfer_vol)
         if use_xlsx:
