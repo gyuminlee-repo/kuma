@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.13.39 (Autosave survives a hard exit and a bad save)
+
+Project folders became portable in v0.13.35.4, and a moved project re-detects its inputs since v0.13.38. Two ways of losing work were left.
+
+### Fixed
+
+- v0.13.39: Autosave is flushed when the app closes. The flush existed but nothing called it on the close path, so edits made inside the 1.5 second debounce window were lost on exit. Both autosave subscriptions now register the shutdown step themselves instead of depending on the screen to wire it.
+- v0.13.39: The previous snapshot is kept before each overwrite, three generations deep, at most one every five minutes so the copies point at genuinely different times. Autosave used to overwrite a single file, leaving no way back from a bad save.
+- v0.13.39: Inputs that a restore cannot recover are listed in a banner naming each one, and it stays until each is pointed at its new location. They were previously blanked behind a status message that disappeared after four seconds. A replacement that does not look like the original raises a warning, since attaching a same-named but different sequencing run is the mistake this guards against, while a deliberate replacement is still accepted.
+
 ## v0.13.38 (Reopening a moved project finds its files again)
 
 Autosave records the absolute paths picked in a file dialog. Opening the project from a new folder, or on another machine, left those paths pointing at nothing. Auto-detect could not step in, because it only fills fields that are empty and a dead path is not empty.

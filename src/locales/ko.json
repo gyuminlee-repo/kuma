@@ -1051,6 +1051,14 @@
         "LOWDEPTH": "Too few reads to call this well reliably.",
         "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
       }
+    },
+    "missingInputs": {
+      "title": "복원하지 못한 입력이 있습니다",
+      "description": "프로젝트 폴더 밖에 있던 파일은 함께 옮겨지지 않습니다. 아래 항목을 다시 지정하세요.",
+      "browse": "찾아보기",
+      "chooseTitle": "{{name}} 다시 지정",
+      "mismatchTitle": "다른 파일일 수 있습니다",
+      "mismatchBody": "원래: {{expected}}, 선택: {{actual}}. 그대로 사용하려면 무시하세요."
     }
   },
   "home": {

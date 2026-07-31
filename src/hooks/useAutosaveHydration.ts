@@ -30,6 +30,11 @@ import { buildKuroResultResetPatch } from "@/lib/kuroResultReset";
 import { MAME_SCHEMA } from "@/lib/mame/autosaveSnapshot";
 import { detectProjectFiles, detectFromInputDir } from "@/lib/mame/detectProjectFiles";
 import {
+  basename as inputBasename,
+  useMissingInputs,
+  type MissingInput,
+} from "@/lib/mame/missingInputs";
+import {
   findStaleMamePaths,
   MAME_PATH_LABEL_KEYS,
   type MamePathField,
@@ -45,7 +50,7 @@ import type { AppState } from "@/store/appStore";
 import type { AppState as MameAppState } from "@/store/mame/types";
 import type { AutosaveSnapshot, ReadAutosaveResult } from "@/lib/autosave";
 import type { MameAutosaveSnapshot } from "@/lib/mame/autosaveSnapshot";
-import { fromPortablePath } from "@/lib/projectPath";
+import { fromPortablePath, isExternalPath } from "@/lib/projectPath";
 
 // ─── 공개 타입 ────────────────────────────────────────────────────────────
 
@@ -783,6 +788,33 @@ async function clearStaleMamePaths(): Promise<MamePathField[]> {
   return stale;
 }
 
+/** 스냅샷 input 블록에서 필드에 대응하는 저장값을 꺼낸다. */
+const MAME_SNAPSHOT_KEY: Partial<Record<MamePathField, string>> = {
+  inputDir: "input_dir",
+  expectedPath: "expected_path",
+  referencePath: "reference_path",
+  sampleMapPath: "sample_map_path",
+};
+
+/**
+ * 되찾지 못한 필드를 배너에 보여줄 형태로 바꾼다.
+ *
+ * 스냅샷 형식은 `lib/projectPath.ts` 규약이라 프로젝트 밖 값은 절대 경로
+ * 그대로다. 거기서 이름을 얻어 "무엇을 다시 골라야 하는지" 를 보여준다.
+ * 크기는 스냅샷에 없으므로 붙이지 않는다(대조는 이름으로 내려간다).
+ * 저장값이 없으면 필드 라벨만 남긴다.
+ */
+function describeMissingInput(
+  field: MamePathField,
+  input: Record<string, unknown> | undefined,
+): MissingInput {
+  const key = MAME_SNAPSHOT_KEY[field];
+  const stored = key ? input?.[key] : undefined;
+  return typeof stored === "string" && isExternalPath(stored)
+    ? { field, name: inputBasename(stored) }
+    : { field, name: i18next.t(MAME_PATH_LABEL_KEYS[field]) };
+}
+
 /** 자동 감지가 끝난 뒤에도 여전히 비어 있는 필드만 남긴다. */
 function stillMissing(fields: MamePathField[]): MamePathField[] {
   const store = useMameAppStore.getState();
@@ -1438,6 +1470,17 @@ export function useAutosaveHydration(
       // 밖에 있던 입력이 여기 걸린다. 조용히 비워 두면 사용자는 값이 사라진 줄도
       // 모르므로, 무엇을 다시 고르면 되는지 이름으로 알린다.
       const unresolved = stillMissing(droppedFields);
+      // 이전 프로젝트의 잔여 항목이 남지 않도록 매 복원마다 통째로 교체한다.
+      useMissingInputs.getState().setMissing(
+        unresolved.map((field) =>
+          describeMissingInput(
+            field,
+            mameResult.status === "ok"
+              ? ((mameResult.snapshot as MameAutosaveSnapshot).input as unknown as Record<string, unknown>)
+              : undefined,
+          ),
+        ),
+      );
       if (unresolved.length > 0) {
         onMessage({
           kind: "mame",
