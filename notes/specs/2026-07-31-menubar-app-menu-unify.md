@@ -1,8 +1,8 @@
 # 메뉴바 앱 이름 메뉴 통합 (kuro / mame → File)
 
 - 날짜: 2026-07-31
-- 상태: 설계 승인 대기
-- 범위: `src/components/layout/MenuBar.tsx`, `src/components/mame/layout/MenuBar.tsx`, `src/locales/*.json`
+- 상태: 승인 완료, 구현 완료
+- 범위: `src/components/layout/MenuBar.tsx`, `src/components/mame/layout/MenuBar.tsx`, `src/components/mame/layout/MameAppLayout.tsx`, `src/locales/*.json`
 - 범위 밖: Edit / View / Run / Help 메뉴, 두 MenuBar 컴포넌트의 공통 추출
 
 ## 1. 문제
@@ -121,8 +121,28 @@ Export 항목이 2개뿐이라 최상위 Export 메뉴를 신설하지 않는다
 
 WSL2 환경이라 GUI 실행 검증은 하지 않는다.
 
+## 5.1 구현 결과 (2026-07-31)
+
+스펙 §5 기준 전 항목 통과.
+
+| 항목 | 결과 |
+|---|---|
+| 1. `npx tsc --noEmit` | exit 0, 0 errors |
+| 2. `npx vitest run src/components` | 60 files / 410 tests passed, 0 failed |
+| 3. sync trio | `sync-check-groups` 49 passed 0 failed. `sync-check` 는 dev false-positive 2건(`tauri-resources`, `generated-models`)만 잔존 |
+| 4. 로케일 정합 | `menu.file` 10/10, `i18n-parity` ok (2201 keys × 10), `i18n-lint` ok |
+| 5. 잔존 참조 | `appMenu.(kuro\|mame\|closeWindow)` 및 삭제 항목 키 grep 0건 |
+| 6. 단축키 회귀 | `MameAppLayout.tsx` diff 는 `onRunRequest` prop 1줄 삭제뿐. 단축키 등록부(`:226-234`) 무변경. `AppLayout.tsx` 는 diff 미포함 |
+
+### 스펙 대비 추가 변경 1건
+
+§3.2 는 삭제 대상 로케일 키로 `menuBar.appMenu.{kuro,mame,closeWindow}` 3개만 열거했으나, 메뉴 항목 삭제로 `file.validateInputs`, `file.runAnalysis`, `file.cancelAnalysis` 도 참조 0건이 되었다. 같은 변경이 만든 dead key 이므로 함께 제거했다. `export.excel` 은 `AnalyzeStepView` 등에서 7건 참조가 남아 유지했다. 로케일 파일당 총 6키 삭제, 10개 파일 모두 동일하게 적용해 parity 유지.
+
+`version-sync` 와 `gen-whatsnew --check` FAIL 은 브랜치가 릴리스 중간 커밋(`3427f32`, package.json 0.13.34 / pyproject 0.13.33)에 물려 있어 발생했다. 본 변경은 매니페스트를 건드리지 않으며, `origin/main`(`fe0ace8`, 전 매니페스트 0.13.35)으로 rebase 해 해소했다.
+
 ## 6. 승인 이력
 
 - 메뉴 IA: File 로 이름 변경 + 도구별 항목 재배치 (사용자 선택)
 - Quit 처리: Quit 하나만 남기고 `close()` 사용 (사용자 선택)
 - mame 전용 6개: 화면에 이미 있는 4개는 재배치가 아니라 삭제 (사용자 지적으로 수정)
+- 2026-07-31 스펙 전체 승인, 구현 착수 (사용자 승인)

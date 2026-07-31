@@ -7,7 +7,6 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { CrashLogDialog } from "@/components/dialogs/CrashLogDialog";
 import { RunReportDialog } from "@/components/mame/dialogs/RunReportDialog";
 import { ReRunManifestDialog } from "@/components/dialogs/ReRunManifestDialog";
-import { selectCanRun } from "@/store/mame/selectors";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,20 +74,15 @@ const THEME_ITEMS: { value: Theme; labelKey: string }[] = [
 
 interface MenuBarProps {
   onClearRequest: () => void;
-  onRunRequest: () => void;
-  /** JANUS export dialog 열기 — MameAppLayout에서 janusOpen 상태 소유. */
+  /** JANUS export dialog 열기, MameAppLayout에서 janusOpen 상태 소유. */
   onJanusOpen?: () => void;
 }
 
-export function MenuBar({ onClearRequest, onRunRequest, onJanusOpen }: MenuBarProps) {
+export function MenuBar({ onClearRequest, onJanusOpen }: MenuBarProps) {
   const { t } = useTranslation();
   const hasResults = useMameAppStore((s) => s.verdicts.length > 0);
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
-  const validateInputs = useMameAppStore((s) => s.validateInputs);
-  const openExport = useMameAppStore((s) => s.openExport);
-  const cancelAnalysis = useMameAppStore((s) => s.cancelAnalysis);
   const loadSampleData = useMameAppStore((s) => s.loadSampleData);
-  const canRun = useMameAppStore(selectCanRun);
   const logPanelVisible = useAppStore((s) => s.logPanelVisible);
   const toggleLogPanel = useAppStore((s) => s.toggleLogPanel);
   const jobsPanelVisible = useAppStore((s) => s.jobsPanelVisible);
@@ -212,10 +206,12 @@ export function MenuBar({ onClearRequest, onRunRequest, onJanusOpen }: MenuBarPr
 
   const menus = (
     <>
-      {/* App 메뉴 — mockup v5: 첫 메뉴는 앱명(mame), 굵게. MAME 탭에서는 "mame"만 노출. */}
+      {/* File 메뉴, 앱명 트리거를 File 로 통일해 kuro 메뉴바와 동형으로 맞춘다.
+          Validate / Run / Cancel / Export Excel 은 AnalyzeStepView 에 버튼이 있어 제외했다.
+          단축키(⌘D, ⌘E)는 MameAppLayout 에 등록돼 있어 영향받지 않는다. */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className={`${TRIGGER_CLS} font-bold`}>{t("menuBar.appMenu.mame")}</button>
+          <button className={TRIGGER_CLS}>{t("menu.file")}</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem
@@ -224,15 +220,11 @@ export function MenuBar({ onClearRequest, onRunRequest, onJanusOpen }: MenuBarPr
             <span className="flex-1">{t("file.openProject")}</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => void validateInputs()} disabled={isAnalyzing}>
-            <span className="flex-1">{t("file.validateInputs")}</span>
+          <DropdownMenuItem onClick={openJanus} disabled={!hasResults}>
+            <span className="flex-1">{t("export.janusMapping")}</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={onRunRequest} disabled={!canRun}>
-            <span className="flex-1">{t("file.runAnalysis")}</span>
-            <DropdownMenuShortcut>{MOD_KEY}D</DropdownMenuShortcut>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => void cancelAnalysis()} disabled={!isAnalyzing}>
-            <span className="flex-1">{t("file.cancelAnalysis")}</span>
+          <DropdownMenuItem onClick={() => setRunReportOpen(true)} disabled={!hasResults}>
+            <span className="flex-1">{t("export.runReport")}</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {/* §1 Recovery: UI 상태 보존 sidecar 재시작. Zustand 스토어는 메모리에 유지됨 */}
@@ -246,22 +238,8 @@ export function MenuBar({ onClearRequest, onRunRequest, onJanusOpen }: MenuBarPr
             {t("file.restartSidecar")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={openExport} disabled={!hasResults}>
-            <span className="flex-1">{t("export.excel")}</span>
-            <DropdownMenuShortcut>{MOD_KEY}E</DropdownMenuShortcut>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={openJanus} disabled={!hasResults}>
-            <span className="flex-1">{t("export.janusMapping")}</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setRunReportOpen(true)} disabled={!hasResults}>
-            <span className="flex-1">{t("export.runReport")}</span>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
+          {/* close() 는 close 핸들러를 타므로 autosave 가 실행된다. destroy() 는 건너뛴다. */}
           <DropdownMenuItem onClick={() => { void getCurrentWindow().close(); }}>
-            <span className="flex-1">{t("menuBar.appMenu.closeWindow")}</span>
-            <DropdownMenuShortcut>{MOD_KEY}W</DropdownMenuShortcut>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => { void getCurrentWindow().destroy(); }}>
             <span className="flex-1">{t("menuBar.appMenu.quit")}</span>
             <DropdownMenuShortcut>{MOD_KEY}Q</DropdownMenuShortcut>
           </DropdownMenuItem>

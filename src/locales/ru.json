@@ -11,9 +11,6 @@
     "restartSidecar": "Перезапустить Sidecar",
     "openWorkspace": "Открыть Workspace...",
     "saveWorkspace": "Сохранить Workspace...",
-    "validateInputs": "Проверить входные данные",
-    "runAnalysis": "Запустить анализ",
-    "cancelAnalysis": "Отменить анализ",
     "compareWorkspaces": "Сравнить workspaces...",
     "exportWorkspaceZip": "Экспорт workspace в zip..."
   },
@@ -1857,9 +1854,6 @@
       "reportIssue": "Report issue"
     },
     "appMenu": {
-      "kuro": "kuro",
-      "mame": "mame",
-      "closeWindow": "Закрыть окно",
       "quit": "Выйти из kuma"
     },
     "fileMenuTrigger": "File"

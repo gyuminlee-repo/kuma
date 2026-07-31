@@ -11,9 +11,6 @@
     "restartSidecar": "Restart Sidecar",
     "openWorkspace": "Open Workspace...",
     "saveWorkspace": "Save Workspace...",
-    "validateInputs": "Validate Inputs",
-    "runAnalysis": "Run Analysis",
-    "cancelAnalysis": "Cancel Analysis",
     "compareWorkspaces": "Compare workspaces...",
     "exportWorkspaceZip": "Export workspace as zip..."
   },
@@ -1862,9 +1859,6 @@
       }
     },
     "appMenu": {
-      "closeWindow": "Close window",
-      "kuro": "kuro",
-      "mame": "mame",
       "quit": "Quit kuma"
     },
     "edit": {

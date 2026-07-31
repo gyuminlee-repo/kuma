@@ -11,9 +11,6 @@
     "restartSidecar": "Sidecar を再起動",
     "openWorkspace": "ワークスペースを開く...",
     "saveWorkspace": "ワークスペースを保存...",
-    "validateInputs": "入力を検証",
-    "runAnalysis": "解析を実行",
-    "cancelAnalysis": "解析をキャンセル",
     "compareWorkspaces": "ワークスペースを比較...",
     "exportWorkspaceZip": "ワークスペースを ZIP でエクスポート..."
   },
@@ -1857,9 +1854,6 @@
       "reportIssue": "問題を報告"
     },
     "appMenu": {
-      "kuro": "kuro",
-      "mame": "mame",
-      "closeWindow": "ウィンドウを閉じる",
       "quit": "kuma を終了"
     },
     "fileMenuTrigger": "File"

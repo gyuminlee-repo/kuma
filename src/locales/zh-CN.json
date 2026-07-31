@@ -11,9 +11,6 @@
     "restartSidecar": "重启 Sidecar",
     "openWorkspace": "打开工作区...",
     "saveWorkspace": "保存工作区...",
-    "validateInputs": "验证输入",
-    "runAnalysis": "运行分析",
-    "cancelAnalysis": "取消分析",
     "compareWorkspaces": "比较工作区...",
     "exportWorkspaceZip": "将工作区导出为 zip..."
   },
@@ -1857,9 +1854,6 @@
       "reportIssue": "报告问题"
     },
     "appMenu": {
-      "kuro": "kuro",
-      "mame": "mame",
-      "closeWindow": "关闭窗口",
       "quit": "退出 kuma"
     },
     "fileMenuTrigger": "File"
