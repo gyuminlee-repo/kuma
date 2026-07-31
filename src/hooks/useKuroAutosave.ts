@@ -10,6 +10,7 @@ import { shallow } from "zustand/shallow";
 import { useAppStore } from "@/store/appStore";
 import { useKumaProject } from "@/state/projectContext";
 import { scheduleAutosave, flushAutosave, type AutosaveTarget } from "@/lib/autosave";
+import { registerShutdownHook } from "@/lib/shutdownHook";
 import { buildKuroSnapshot } from "@/lib/kuroSnapshot";
 import type { AppState } from "@/store/types";
 
@@ -120,6 +121,15 @@ export function useKuroAutosave(): void {
 
     return unsubscribe;
   }, [projectPath, scratch]);
+
+  // 종료 직전 강제 저장. 디바운스가 1.5초라 이것이 없으면 마지막 편집분이
+  // 통째로 날아간다. 훅 등록을 이 훅 안에 두는 이유는 호출부가 반환된 flush
+  // 함수를 쓰지 않아도(현재 MainShell이 그렇다) 보장되게 하기 위해서다.
+  useEffect(() => {
+    return registerShutdownHook(async () => {
+      await flushAutosave(targetRef.current, "kuro");
+    });
+  }, []);
 }
 
 /**
