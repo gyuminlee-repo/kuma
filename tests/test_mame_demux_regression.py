@@ -714,6 +714,53 @@ def test_chunked_alignment_identity(
     )
 
 
+def test_chunked_alignment_uses_global_qname_offset(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Each read chunk must be aligned with a running QNAME offset.
+
+    ``align._write_reads_fasta`` renames reads to synthetic integer QNAMEs, and
+    minimap2 seeds its per-read RNG from a hash of the query name, so a QNAME
+    that restarts at 0 in every chunk changes the alignment of a handful of
+    reads and makes KUMA_MAME_READ_CHUNK an output-changing knob rather than a
+    performance knob (measured end to end: assigned_reads 11979 at chunk 50000
+    versus 11977 at chunk 10000 on the step2 reference workload). The offsets
+    must therefore be 0, len(chunk_0), len(chunk_0) + len(chunk_1), ...
+
+    No minimap2 needed: the aligner is stubbed, so this guards the contract even
+    where the binary is unavailable.
+    """
+    import kuma_core.mame.ingest.combinatorial_demux as cd
+
+    seen: list[tuple[int, int]] = []
+
+    def _fake_align_reads_multi(*, reads, name_offset=0, **_kwargs):
+        seen.append((name_offset, len(reads)))
+        return []
+
+    monkeypatch.setattr(cd, "align_reads_multi", _fake_align_reads_multi)
+    monkeypatch.setenv("KUMA_MAME_READ_CHUNK", "2")
+
+    run_combinatorial_demux(
+        raw_fastq_paths=[FIXTURE_DIR / "synth_R1.fastq.gz"],
+        reference_fasta=FIXTURE_DIR / "reference.fasta",
+        barcodes_xlsx=FIXTURE_DIR / "sample_map.xlsx",
+        output_dir=tmp_path / "offsets",
+        mapq_threshold=0,
+        coverage_fraction=0.5,
+        min_depth=MIN_DEPTH,
+    )
+
+    assert len(seen) > 1, "fixture did not split into multiple chunks"
+    running = 0
+    for offset, n_reads in seen:
+        assert offset == running, (
+            f"chunk QNAME offset {offset} != running read count {running}; "
+            "chunk-local numbering changes minimap2 output"
+        )
+        running += n_reads
+
+
 @requires_minimap2
 def test_tie_classification(tmp_path: Path) -> None:
     """The tie well induces a real base-count tie, and _diff classifies a

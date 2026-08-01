@@ -664,22 +664,23 @@ _PERREAD_THRESHOLD_DEFAULT = 10000
 # so tests can lower it; a module-level constant bound at import could not be
 # overridden by monkeypatch.
 #
-# WARNING: this value CHANGES THE OUTPUT. It is not a pure performance knob.
-# minimap2 is deterministic for a fixed query set but is NOT split-invariant:
-# aligning a read set in one call and in two halves yields different hits for a
-# small number of reads. Measured on the reference workload (one native barcode,
-# 13190 reads, ispS.fasta, minimap2 map-ont -N 20): splitting in half moved 3
-# reads out of the passing set, brought 2 different ones in, and changed the hit
-# list of 21 more, including the ORDER of supplementary hits. Hit order feeds the
-# is_first_hit / chimera-split classification below, so assigned_reads moves too
-# (11979 -> 11977 end to end at KUMA_MAME_READ_CHUNK=10000). The effect is
-# identical at -t 1, so it is intrinsic query-set dependence, not a threading
-# artifact.
+# CORRECTION (2026-08-01): an earlier version of this comment blamed minimap2,
+# claiming it "is NOT split-invariant" and that the chunk size therefore could
+# not preserve output. That was wrong. minimap2 aligns each query independently
+# and IS split-invariant for a fixed set of query NAMES; the earlier measurement
+# was confounded by our own aligner adapter, which renamed reads to their
+# position within the call (align._write_reads_fasta wrote ">0", ">1", ... from
+# scratch per call). minimap2 seeds its per-read RNG from a hash of the query
+# name, so restarting the numbering in every chunk changed the effective seed of
+# every read and moved a handful of alignments. Proof: aligning the SAME 3000
+# reads in the SAME order, numbered 0.. versus 100000.., produced different SAM
+# at -t 1 and -t 7 alike (MAPQ 60 -> 1 on read index 235, primary/supplementary
+# swap on 124, a different chain on 1830).
 #
-# The default is therefore deliberately larger than any per-barcode read count in
-# practice, i.e. one chunk per native barcode. Lowering it to fan alignment work
-# out across more cores trades byte-identical output for throughput; do not do it
-# without re-baselining scripts/perf_step2_harness.py fingerprints.
+# The loop below now passes a running ``name_offset`` so each read keeps the
+# QNAME it would have had in a single whole-set call, which makes the output
+# invariant to this value. It is a performance knob again. Any future change
+# that re-derives query names from a chunk-local counter re-introduces the bug.
 _READ_CHUNK_DEFAULT = 50000
 
 
@@ -971,25 +972,35 @@ def _run_combinatorial_demux_body(
     # peak RAM only (per_well still accumulates across chunks to consensus).
     # Chunks run in input order and the per-read pool re-sorts each chunk by
     # read_index, so the per_well append order (and thus the consensus tie-break)
-    # is stable for a GIVEN chunk size; stats are accumulated across chunks
-    # (total_reads/passed_*/per-read deltas all use +=).
+    # is stable; stats are accumulated across chunks (total_reads/passed_*/
+    # per-read deltas all use +=).
     #
-    # Changing the chunk size does NOT preserve output: minimap2 is not
-    # split-invariant, so a read's hits (and their order) depend on which other
-    # reads share its call. See the _READ_CHUNK_DEFAULT comment for the measured
-    # numbers. Treat this loop as "one chunk per native barcode" unless you are
-    # deliberately re-baselining.
+    # Changing the chunk size preserves the output, but only because the running
+    # name_offset below keeps every read's synthetic QNAME identical to the
+    # single-chunk case. See the _READ_CHUNK_DEFAULT comment for why the QNAME
+    # is load-bearing.
     _chunk_size = int(
         os.environ.get("KUMA_MAME_READ_CHUNK", str(_READ_CHUNK_DEFAULT))
     )
     _chunk_size = max(1, _chunk_size)
     _read_chunks = _iter_chunks(_iter_fastq(raw_fastq_paths), _chunk_size)
 
+    # Running count of reads already handed to the aligner, passed as
+    # name_offset so a read keeps the same synthetic QNAME whatever the chunk
+    # size. Without it every chunk restarts the numbering at 0 and minimap2
+    # (per-read RNG seeded from the QNAME hash) returns different hits for a
+    # handful of reads, which is what made the chunk size change the output.
+    # It advances by the number of NON-EMPTY reads because _write_reads_fasta
+    # skips empty sequences when it assigns indices.
+    _name_offset = 0
+
     # Phase timing: charging only the generator's `next()` to fastq_read keeps
     # gzip decompression + parsing separate from the per-chunk work below, with
     # one timer pair per chunk (never per read).
     for chunk_reads in timed_iter(_read_chunks, "fastq_read"):
         stats.total_reads += len(chunk_reads)
+        _chunk_offset = _name_offset
+        _name_offset += sum(1 for _rid, _seq in chunk_reads if _seq)
 
         if chimera_split:
             # --- multi-hit path: chimera / concatemer splitting ------------
@@ -1001,6 +1012,7 @@ def _run_combinatorial_demux_body(
                     min_mapq=mapq_threshold,
                     coverage_fraction=coverage_fraction,
                     threads=minimap2_threads,
+                    name_offset=_chunk_offset,
                 )
 
             reads_with_hits = len(multi_results)
@@ -1181,6 +1193,7 @@ def _run_combinatorial_demux_body(
                     require_full_span=False,
                     coverage_fraction=coverage_fraction,
                     threads=minimap2_threads,
+                    name_offset=_chunk_offset,
                 )
             stats.passed_coverage += len(alignments)
             stats.passed_mapq += len(alignments)
