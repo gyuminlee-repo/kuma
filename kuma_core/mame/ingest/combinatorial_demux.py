@@ -40,8 +40,10 @@ Assumptions:
 
 from __future__ import annotations
 
+import contextlib
 import gzip
 import logging
+import queue
 import threading
 import multiprocessing
 import tempfile
@@ -53,7 +55,7 @@ import os
 import re
 import sys
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from typing import Callable, Iterator
+from typing import Callable, Iterator, TypeVar
 
 from kuma_core.mame.ingest.align import (
     align_reads,
@@ -77,6 +79,8 @@ from kuma_core.mame.ingest.stage_marker import (
 from kuma_core.mame.ingest.well_consensus import _read_reference_seq
 from kuma_core.mame.perf import TIMER, timed_iter
 from kuma_core.shared.atomic_write import atomic_write_text, fsync_directory
+
+T = TypeVar("T")
 
 log = logging.getLogger(__name__)
 
@@ -430,6 +434,64 @@ def _iter_fastq(paths: list[Path]) -> Iterator[tuple[str, str]]:
                     yield read_id, seq
 
 
+#: Queue depth (in chunks) of the FASTQ prefetch thread. 0 disables prefetch
+#: and restores the fully serial read-then-align path.
+_FASTQ_PREFETCH_DEFAULT = 1
+
+
+def _prefetch(it: Iterator[T], depth: int) -> Iterator[T]:
+    """Yield from *it* while a background thread runs it ``depth`` items ahead.
+
+    Ordering: a single producer thread drains *it* sequentially into a FIFO
+    queue, so consumed order is the producing order verbatim. This matters for
+    the demux, whose consensus tie-break depends on within-well read order
+    (``kuma_core/mame/consensus.py`` ``first_touch``).
+
+    Why a thread: measured on the reference workload, 89% of the FASTQ read
+    cost is zlib decompression, which releases the GIL, and the consumer spends
+    most of its time waiting on the minimap2 subprocess. Both leave the GIL
+    free for the producer.
+
+    Memory: the queue holds at most *depth* ready items plus the one in flight.
+
+    Errors: an exception raised by *it* is captured and re-raised in the
+    consumer at the point it would have surfaced serially, so a truncated or
+    corrupt gzip still aborts the run instead of looking like a short input.
+    """
+    q: "queue.Queue[tuple[bool, object]]" = queue.Queue(maxsize=max(1, depth))
+    stop = threading.Event()
+    _DONE = object()
+
+    def _produce() -> None:
+        try:
+            for item in it:
+                if stop.is_set():
+                    return
+                q.put((True, item))
+        except BaseException as exc:  # noqa: BLE001 - re-raised in the consumer
+            q.put((False, exc))
+            return
+        q.put((True, _DONE))
+
+    thread = threading.Thread(target=_produce, name="fastq-prefetch", daemon=True)
+    thread.start()
+    try:
+        while True:
+            ok, payload = q.get()
+            if not ok:
+                raise payload  # type: ignore[misc]
+            if payload is _DONE:
+                return
+            yield payload  # type: ignore[misc]
+    finally:
+        # Unblock the producer if the consumer abandoned the iterator early
+        # (exception upstream, generator close) so the thread cannot leak.
+        stop.set()
+        with contextlib.suppress(queue.Empty):
+            while True:
+                q.get_nowait()
+
+
 # ---------------------------------------------------------------------------
 # Alignment-anchored fuzzy barcode matching
 # ---------------------------------------------------------------------------
@@ -775,7 +837,35 @@ _PERREAD_THRESHOLD_DEFAULT = 10000
 # QNAME it would have had in a single whole-set call, which makes the output
 # invariant to this value. It is a performance knob again. Any future change
 # that re-derives query names from a chunk-local counter re-introduces the bug.
-_READ_CHUNK_DEFAULT = 50000
+#
+# Sizing (measured 2026-08-01, 10-core WSL2 box, reference workload of 3 native
+# barcodes / 34.3k reads). The value only matters through the number of chunks,
+# because that is what the FASTQ prefetch above has to overlap with: at 50000
+# the reference workload is ONE chunk per barcode and there is nothing to hide
+# the gzip behind. Interleaved 6-round A/B, prefetch on, e2e wall / demux
+# medians and the residual fastq_read wait:
+#
+#   chunk 10000  ( 2 chunks/NB)  7.951 s / 6.206 s   fastq_read 1.765 s
+#   chunk  5000  ( 3 chunks/NB)  7.791 s / 6.021 s   fastq_read 0.853 s
+#   chunk  2500  ( 6 chunks/NB)  7.699 s / 5.947 s   fastq_read 0.436 s
+#
+# against 8.568 s / 6.686 s for the old 50000 default with prefetch off. Going
+# below 2500 loses: the per-chunk fixed cost (tempdir, reads FASTA write,
+# minimap2 spawn, reference index build) is ~0.016 s, which is +1.4% of the
+# alignment phase at 2500 but +9% at 1000 (single-barcode min-of-4, -t 3).
+#
+# Production scale (~1e6 reads per barcode) was checked as an argument, not
+# measured. Chunk COUNT is not a resource: the prefetch queue is bounded
+# (maxsize=depth), so a slow consumer applies backpressure to the reader and at
+# most depth+1 chunks are ever resident. 2500 reads x ~1.5 kb is ~4 MB per
+# resident chunk against ~75 MB for the old 50000, i.e. this lowers the
+# alignment-stage peak RAM that the chunk loop exists to bound. The per-chunk
+# fixed cost stays a constant ~1.4% of alignment because chunk count and total
+# alignment work grow together. The one input that would change this answer is a
+# large multi-record reference, where the per-chunk index build stops being
+# negligible; that case should pass a prebuilt ``reference_index`` rather than
+# raise the chunk size.
+_READ_CHUNK_DEFAULT = 2500
 
 
 def _iter_chunks(
@@ -1079,6 +1169,17 @@ def _run_combinatorial_demux_body(
     _chunk_size = max(1, _chunk_size)
     _read_chunks = _iter_chunks(_iter_fastq(raw_fastq_paths), _chunk_size)
 
+    # Read/align pipelining: run the reader one chunk ahead on a background
+    # thread so gzip decompression of chunk N+1 overlaps the alignment of chunk
+    # N instead of sitting on the critical path. Order is preserved (single
+    # producer, FIFO queue), so consensus tie-break is unaffected. With a single
+    # chunk there is nothing to overlap and this is a no-op.
+    _prefetch_depth = int(
+        os.environ.get("KUMA_MAME_FASTQ_PREFETCH", str(_FASTQ_PREFETCH_DEFAULT))
+    )
+    if _prefetch_depth > 0:
+        _read_chunks = _prefetch(_read_chunks, _prefetch_depth)
+
     # Running count of reads already handed to the aligner, passed as
     # name_offset so a read keeps the same synthetic QNAME whatever the chunk
     # size. Without it every chunk restarts the numbering at 0 and minimap2
@@ -1086,11 +1187,16 @@ def _run_combinatorial_demux_body(
     # handful of reads, which is what made the chunk size change the output.
     # It advances by the number of NON-EMPTY reads because _write_reads_fasta
     # skips empty sequences when it assigns indices.
+    #
+    # The prefetch thread only reorders WHEN a chunk is produced, never in which
+    # order chunks are consumed (single producer + FIFO), so the offset the loop
+    # below assigns to each chunk is unchanged by it.
     _name_offset = 0
 
     # Phase timing: charging only the generator's `next()` to fastq_read keeps
     # gzip decompression + parsing separate from the per-chunk work below, with
-    # one timer pair per chunk (never per read).
+    # one timer pair per chunk (never per read). With prefetch on, this measures
+    # residual *waiting* for the reader, not the reader's total cost.
     for chunk_reads in timed_iter(_read_chunks, "fastq_read"):
         stats.total_reads += len(chunk_reads)
         _chunk_offset = _name_offset
@@ -1801,6 +1907,28 @@ def run_combinatorial_demux_per_nb(
         P = max(1, min(P, n, cpu))
     else:
         P = 1
+    # Work unit is one native barcode, so P is capped by the barcode count and
+    # each worker gets cpu // P minimap2 threads. On the reference workload that
+    # is 3 processes x 3 threads on a 10-core box.
+    #
+    # Flattening the unit to (barcode, read_chunk) on a single cpu-wide pool was
+    # measured on 2026-08-01 and does NOT pay, so it is deliberately not done.
+    # The premise for it was that minimap2 scales sublinearly in -t, making
+    # "more processes x fewer threads" win. That premise is false for this
+    # workload: on one barcode (13190 reads, ispS 1683 bp, min of 4) minimap2
+    # measures 5.973 s at -t 1, 3.120 s at -t 2, 2.250 s at -t 3 and 1.824 s at
+    # -t 4, i.e. 3.28x on 4 threads. With no sublinearity to exploit, any split
+    # that keeps the same core count is a wash, and a real ProcessPool fan-out
+    # over (barcode, chunk) units confirmed it (medians / mins, 4 interleaved
+    # rounds): 3px3t 3.379/2.839, 6px2t 2.936/2.833, 9px1t 3.028/2.709,
+    # 10px1t 3.005/2.732. Nor is there an idle core to claim: raising the
+    # per-worker budget to -t 4 or -t 5 (10 to 15 threads on 10 cores) measured
+    # 3.279/2.899 against 3.157 for -t 3, inside the noise. The alignment stage
+    # already saturates the box, so the flattened version would only add
+    # cross-process pickling of read chunks and a coarser resume unit.
+    #
+    # What DID pay on the same axis is overlapping the stages inside a worker
+    # rather than adding workers: see _READ_CHUNK_DEFAULT and _prefetch.
     threads_per = max(1, cpu // P)
     # n_nb == 1: this single NB runs in the main process (no per-NB pool), so
     # the per-read matching loop may fan out to its own ProcessPool. With n>1
