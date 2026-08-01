@@ -908,6 +908,50 @@ _WELL_BUFFER_MB_DEFAULT = 512
 _CONSENSUS_BATCH_MB_DEFAULT = 32
 
 
+# Dynamic core budget for the per-native-barcode ProcessPool. The work unit is
+# one native barcode, and the three barcodes of the real plate measure
+# 2837 : 1945 : 849 MB, a 3.34 : 1 spread that the worker walls track almost
+# exactly. Under a static cpu//P share the two small workers therefore finish
+# around a third and two thirds of the way through and their cores then idle
+# (scale-profile section 5, unit-balance section 1). Worth 8.6 percent of the
+# s3 wall, measured. ``KUMA_MAME_CORE_BUDGET=0`` restores the static share.
+_CORE_BUDGET_DEFAULT = 1
+
+
+class _CoreBudget:
+    """This worker's current share of the box, as siblings finish.
+
+    Holds a shared counter of live workers (a ``Manager().Value`` proxy, the
+    same transport the progress queue already uses) plus the static floor. The
+    parent decrements the counter as each unit completes, so ``threads()``
+    only ever grows and never drops below the static share.
+
+    Only minimap2 ``-t`` is widened. The consensus ThreadPool is deliberately
+    left at its static width: its concurrency multiplies the per-batch pileup
+    arrays, which is exactly the term ``KUMA_MAME_CONSENSUS_BATCH_MB`` exists
+    to bound, so widening it would trade the memory bound for wall.
+
+    Thread count does not change demux output: the P=3x3, P=2x5 and P=1x10
+    arrangements in scale-profile section 5 all produced tree digest
+    9d106bae4d32. minimap2 seeds its per-read RNG from the query NAME, not from
+    the thread that happens to pick the read up.
+    """
+
+    __slots__ = ("_live", "_floor", "_cpu")
+
+    def __init__(self, live, floor: int, cpu: int) -> None:
+        self._live = live
+        self._floor = max(1, floor)
+        self._cpu = max(1, cpu)
+
+    def threads(self) -> int:
+        try:
+            live = int(self._live.value)
+        except Exception:  # noqa: BLE001 - proxy gone: fall back to the static share
+            return self._floor
+        return max(self._floor, self._cpu // max(1, live))
+
+
 class _WellReadBuffer:
     """Assigned read slices per well, with a bounded in-memory footprint.
 
@@ -1136,6 +1180,7 @@ def run_combinatorial_demux(
     per_read_parallel: bool = False,
     progress_callback: Callable[[int, int, str], None] | None = None,
     barcode_prefixes: tuple[list[tuple[str, str]], list[tuple[str, str]]] | None = None,
+    core_budget: "_CoreBudget | None" = None,
 ) -> DemuxResult:
     """MAPQ-filtered alignment-anchored fuzzy per-well demux with chimera splitting.
 
@@ -1199,6 +1244,13 @@ def run_combinatorial_demux(
         lets a caller that already parsed the workbook (e.g. the per-native-
         barcode ProcessPool parent) skip both the parse and the ~1.4 s
         ``openpyxl`` import inside every worker process.
+    core_budget:
+        Optional :class:`_CoreBudget` shared with the per-native-barcode parent.
+        When supplied, every minimap2 invocation raises its ``-t`` to this
+        process's current share of the box as sibling workers finish, instead of
+        holding the static share for the whole run.  ``None`` (default) keeps
+        *minimap2_threads* fixed.  Not part of the RPC surface: it is a
+        parent-to-worker scheduling handle, not a demux parameter.
 
     Returns
     -------
@@ -1223,6 +1275,7 @@ def run_combinatorial_demux(
             per_read_parallel=per_read_parallel,
             progress_callback=progress_callback,
             barcode_prefixes=barcode_prefixes,
+            core_budget=core_budget,
         )
 
 
@@ -1244,6 +1297,7 @@ def _run_combinatorial_demux_body(
     per_read_parallel: bool,
     progress_callback: Callable[[int, int, str], None] | None,
     barcode_prefixes: tuple[list[tuple[str, str]], list[tuple[str, str]]] | None = None,
+    core_budget: "_CoreBudget | None" = None,
 ) -> DemuxResult:
     """Body of :func:`run_combinatorial_demux` (see there for semantics).
 
@@ -1289,6 +1343,19 @@ def _run_combinatorial_demux_body(
 
     ref_len = _get_reference_length(reference_fasta)
     log.info("Reference length: %d bp", ref_len)
+
+    def _mm_threads() -> int | None:
+        """minimap2 ``-t`` for the next invocation.
+
+        Re-read per call rather than once per run: with a core budget the share
+        grows as sibling native-barcode workers finish, and every minimap2 call
+        is a fresh subprocess, so the newer share applies from the next chunk on
+        with no restart. Without a budget this is the static value and the call
+        is a plain attribute read.
+        """
+        if core_budget is None:
+            return minimap2_threads
+        return core_budget.threads()
 
     # Assigned read slices, held between the read loop and consensus. Bounded:
     # see _WELL_BUFFER_MB_DEFAULT. Chunking bounds the alignment stage only,
@@ -1359,7 +1426,7 @@ def _run_combinatorial_demux_body(
                     preset="map-ont",
                     min_mapq=mapq_threshold,
                     coverage_fraction=coverage_fraction,
-                    threads=minimap2_threads,
+                    threads=_mm_threads(),
                     name_offset=_chunk_offset,
                 )
 
@@ -1543,7 +1610,7 @@ def _run_combinatorial_demux_body(
                     # partial-coverage reads into wells on the chimera_split=False path.
                     require_full_span=False,
                     coverage_fraction=coverage_fraction,
-                    threads=minimap2_threads,
+                    threads=_mm_threads(),
                     name_offset=_chunk_offset,
                 )
             stats.passed_coverage += len(alignments)
@@ -1662,7 +1729,19 @@ def _run_combinatorial_demux_body(
     # size does not move a single alignment; it is the same invariant the read
     # loop above maintains for the chunk size.
     n_workers = consensus_workers if consensus_workers is not None else _CONSENSUS_WORKERS
-    _batch_threads = minimap2_threads if minimap2_threads is not None else n_workers
+    _batch_threads_static = (
+        minimap2_threads if minimap2_threads is not None else n_workers
+    )
+
+    def _batch_threads() -> int:
+        """minimap2 ``-t`` for the next consensus batch alignment.
+
+        Same widening as the read loop. ``n_workers`` (the consensus ThreadPool)
+        stays static on purpose: see :class:`_CoreBudget`.
+        """
+        if core_budget is None:
+            return max(1, _batch_threads_static)
+        return max(1, core_budget.threads())
 
     _cons_batch_bytes = (
         max(
@@ -1760,7 +1839,7 @@ def _run_combinatorial_demux_body(
                         preset="map-ont",
                         min_mapq=0,           # trimmed reads; already filtered upstream
                         require_full_span=False,
-                        threads=max(1, _batch_threads),
+                        threads=_batch_threads(),
                         reference_index=well_index,
                         name_offset=_cons_name_offset,
                     )
@@ -2039,6 +2118,16 @@ def _demux_one_nb(payload: dict) -> dict:
                     pass
         inner_cb = _inner_cb
 
+    # Reclaim the cores of native barcodes that already finished. Absent (or a
+    # Manager that failed to start) => the static minimap2_threads share, as
+    # before.
+    _live = payload.get("live_workers")
+    budget = (
+        _CoreBudget(_live, payload["minimap2_threads"], payload.get("cpu_total", 1))
+        if _live is not None
+        else None
+    )
+
     result = run_combinatorial_demux(
         raw_fastq_paths=fastq, reference_fasta=Path(payload["reference_fasta"]),
         barcodes_xlsx=Path(payload["barcodes_xlsx"]), output_dir=Path(payload["output_dir"]),
@@ -2051,7 +2140,8 @@ def _demux_one_nb(payload: dict) -> dict:
         # Parsed once in the parent and shipped in the payload (picklable list
         # of (name, prefix) tuples). Absent => this worker parses the xlsx
         # itself, as before.
-        barcode_prefixes=payload.get("barcode_prefixes"))
+        barcode_prefixes=payload.get("barcode_prefixes"),
+        core_budget=budget)
     s = result.stats
     return {"nb_name": payload["nb_name"], "sort_barcode_name": payload["sort_barcode_name"],
             "output_dir": str(Path(payload["output_dir"]).resolve()),
@@ -2157,6 +2247,12 @@ def run_combinatorial_demux_per_nb(
     #
     # What DID pay on the same axis is overlapping the stages inside a worker
     # rather than adding workers: see _READ_CHUNK_DEFAULT and _prefetch.
+    #
+    # threads_per is the FLOOR, not the whole story: on the parallel path a
+    # shared live-worker count lets each survivor raise its minimap2 -t to
+    # cpu // live once a sibling unit finishes (see _CoreBudget below). The
+    # units are 3.34 : 1 on the real plate, so the static share alone leaves
+    # cores idle for most of the run.
     threads_per = max(1, cpu // P)
     # n_nb == 1: this single NB runs in the main process (no per-NB pool), so
     # the per-read matching loop may fan out to its own ProcessPool. With n>1
@@ -2309,6 +2405,23 @@ def run_combinatorial_demux_per_nb(
         if progress_q is not None:
             for pl in pending:
                 pl["progress_queue"] = progress_q
+        # Dynamic core budget: a shared count of workers still running, so a
+        # worker whose siblings have finished raises its minimap2 -t to the
+        # freed cores instead of holding cpu//P for the whole run. Sizes on the
+        # real plate are 3.34 : 1, so under the static share the two small
+        # workers finish at 80 s and 179 s of a 251 s run.
+        live_val = None
+        if os.environ.get(
+            "KUMA_MAME_CORE_BUDGET", str(_CORE_BUDGET_DEFAULT)
+        ).strip() != "0" and manager is not None:
+            try:
+                live_val = manager.Value("i", len(pending))
+            except Exception:  # noqa: BLE001 - proxy unavailable: static share
+                live_val = None
+        if live_val is not None:
+            for pl in pending:
+                pl["live_workers"] = live_val
+                pl["cpu_total"] = cpu
         _drain_stop = threading.Event()
 
         def _drainer(progress_queue) -> None:
@@ -2330,6 +2443,15 @@ def run_combinatorial_demux_per_nb(
                 futs = {ex.submit(_demux_one_nb, pl): pl["nb_name"] for pl in pending}
                 for fut in as_completed(futs):
                     summ = fut.result()  # propagate worker exceptions (fail-fast)
+                    if live_val is not None:
+                        # Publish the freed cores before anything else: the
+                        # survivors pick them up on their next minimap2 call.
+                        # Only the parent writes, so read-modify-write here
+                        # needs no lock beyond as_completed's single thread.
+                        try:
+                            live_val.value = max(1, int(live_val.value) - 1)
+                        except Exception:  # noqa: BLE001 - proxy gone, static share
+                            pass
                     _commit_marker(summ)  # commit point: unit files all on disk now
                     with _agg_lock:
                         nb_frac[summ["nb_name"]] = 1.0
