@@ -768,9 +768,13 @@ def align_reads_multi(
         :func:`build_minimap2_index`), used as the positional reference in place
         of ``reference_fasta`` so each call skips its own index build.  It MUST
         be built with the same preset as ``preset`` (``map-ont``) to keep output
-        identical.  ``reference_fasta`` is still read for its length.  With one
-        call per read chunk the saving scales with the chunk count, so this is a
-        precondition for finer read chunking rather than a win on its own.
+        identical.  ``reference_fasta`` is still read for its length.  No caller
+        currently passes it; it exists so all three align entry points expose the
+        same reference-selection parameter, and it is unused-but-tested rather
+        than load-bearing.  (An earlier version of this docstring called it a
+        precondition for finer read chunking.  That is not true: chunk size is
+        pinned by minimap2 not being split-invariant, not by index-build cost.
+        See the ``_READ_CHUNK_DEFAULT`` comment in ``combinatorial_demux``.)
 
     Returns
     -------
@@ -795,6 +799,28 @@ def align_reads_multi(
     reference simply offers minimap2 almost no secondary chains to report, so
     the flag has nothing to save here.  Revisit only if a multi-sequence
     reference is ever used.
+
+    ``-a`` (SAM) is likewise kept rather than swapped for PAF, and this one is
+    counter-intuitive enough to be worth the paragraph.  This path never reads
+    the CIGAR -- ``cigar=`` below is a dead field here, only
+    :func:`align_reads_grouped` feeds ``consensus`` -- so PAF looks free, and
+    dropping ``-a`` really is fast: interleaved 4-round A/B on the step-2
+    reference barcode (13190 reads, ispS 1683 bp, ``-x map-ont -N 20 -t 3``)
+    measured 2.003 s median for ``-a`` against 0.726 s for bare PAF, -64%.  The
+    saving is base-level DP alignment being skipped, and that is exactly what
+    makes it unusable: bare PAF reports *chain* endpoints, while ``-a`` reports
+    DP-extended ones.  On the same barcode ``r_en`` moves inward by a median of
+    2 bp, and ``coverage_fraction`` is a ratio of those endpoints, so the demux
+    gate flips underneath: 11992 passing hits become 11745 (344 lost at the
+    coverage gate, 96 gained, 0 attributable to mapq).  Bare PAF also stops
+    emitting ``tp:A:S`` entirely, so the ``FLAG 0x100`` correspondence breaks.
+
+    ``-c`` PAF (base-level alignment, PAF text) *is* output-identical -- verified
+    on that barcode as 22688 tuples in the same order and 28 secondary records
+    either way -- and shrinks stdout from 39 MB to 4 MB, but it still pays for
+    the DP: 1.971 s median against 2.003 s, inside the noise.  SAM text volume is
+    not the cost here; the DP is.  Both results are pinned by
+    ``tests/mame/test_align_paf_equivalence.py``.
     """
     if not reference_fasta.exists():
         raise FileNotFoundError(f"Reference FASTA not found: {reference_fasta}")
