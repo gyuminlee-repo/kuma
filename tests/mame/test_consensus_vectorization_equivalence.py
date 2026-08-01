@@ -35,6 +35,7 @@ from kuma_core.mame.ingest.align import (
     _QUERY_CONSUMING,
     _REF_CONSUMING,
 )
+from kuma_core.mame.ingest import consensus as consensus_mod
 from kuma_core.mame.ingest.consensus import call_consensus_with_metrics
 
 _COMP = str.maketrans("ACGTacgtNn", "TGCAtgcaNn")
@@ -515,6 +516,80 @@ def test_vectorized_consensus_matches_scalar_reference() -> None:
                 f"case {i}: {name} type {type(got)!r} != {type(want)!r}"
             )
             assert got == want, f"case {i}: {name} {got!r} != {want!r}"
+
+
+def test_batch_size_does_not_change_any_field() -> None:
+    """Defends the batched pileup: splitting a well across vectorized batches
+    must not move a single ConsensusCall field.
+
+    The tie-break is the fragile part. It resolves to the earliest alignment
+    index that voted a (position, token) pair, which a single flattened batch
+    got from one reverse-ordered scatter. Batching reproduces it by merging
+    per-batch scatters with a running minimum, and that is only correct because
+    batches are consecutive slices in read order. A budget of 1 puts every read
+    in its own batch, which is the worst case for that merge.
+    """
+    budgets = (1, 64, 4096, consensus_mod._BATCH_BASE_BUDGET)
+    original = consensus_mod._BATCH_BASE_BUDGET
+    try:
+        for i, case in enumerate(_CORPUS):
+            results = []
+            for budget in budgets:
+                consensus_mod._BATCH_BASE_BUDGET = budget
+                results.append(
+                    call_consensus_with_metrics(
+                        alignments=case.alignments,
+                        reference_seq=case.reference_seq,
+                        min_depth=case.min_depth,
+                        mix_min_depth=case.mix_min_depth,
+                        mix_minor_fraction_threshold=(
+                            case.mix_minor_fraction_threshold
+                        ),
+                        min_base_quality=case.min_base_quality,
+                    )
+                )
+            for budget, got in zip(budgets[1:], results[1:]):
+                for name in _FIELDS:
+                    want = getattr(results[0], name)
+                    have = getattr(got, name)
+                    assert type(have) is type(want), (
+                        f"case {i} budget {budget}: {name} type "
+                        f"{type(have)!r} != {type(want)!r}"
+                    )
+                    assert have == want, (
+                        f"case {i} budget {budget}: {name} {have!r} != {want!r}"
+                    )
+    finally:
+        consensus_mod._BATCH_BASE_BUDGET = original
+
+
+def test_batching_actually_splits_the_corpus() -> None:
+    """Defends the test above: if every case fitted in one batch at every
+    budget, batch invariance would hold vacuously."""
+    original = consensus_mod._BATCH_BASE_BUDGET
+    try:
+        consensus_mod._BATCH_BASE_BUDGET = 1
+        multi = sum(
+            1
+            for case in _CORPUS
+            if len(consensus_mod._batch_bounds(case.alignments)) > 1
+        )
+        assert multi >= _N_CASES // 2, f"only {multi} of {_N_CASES} cases split"
+
+        consensus_mod._BATCH_BASE_BUDGET = original
+        # At the shipped budget the corpus stays single-batch, which is what
+        # keeps the scalar-equivalence test above covering the unbatched path.
+        # The floor is 0, not 1: a case with no alignments has no batches.
+        shipped = [
+            len(consensus_mod._batch_bounds(case.alignments)) for case in _CORPUS
+        ]
+        assert max(shipped) == 1, (
+            f"shipped budget {original} splits some corpus cases: "
+            f"max {max(shipped)} batches"
+        )
+        assert min(shipped) == 0, "expected at least one empty-alignment case"
+    finally:
+        consensus_mod._BATCH_BASE_BUDGET = original
 
 
 def test_fuzz_corpus_exercises_every_risky_category() -> None:
