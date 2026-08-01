@@ -60,9 +60,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
 
-from kuma_core.shared.atomic_write import atomic_write_text
+from kuma_core.shared.atomic_write import atomic_write_text, fsync_directory
+from kuma_core.shared.fs_walk import rglob_entries
 
 _logger = logging.getLogger(__name__)
+
+# The FASTQ extension set every MinKNOW input walk in this module looks for.
+# Named once so the single-pass walk and its callers cannot drift apart.
+FASTQ_PATTERNS: tuple[str, ...] = ("*.fastq", "*.fastq.gz")
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -194,11 +199,16 @@ def detect_used_native_barcodes(
 
     sizes: list[tuple[str, int]] = []
     for d in nb_dirs:
+        # One recursive walk per NB dir instead of one per pattern, and the size
+        # comes from the walk's own DirEntry.  MinKNOW splits output every 4000
+        # reads, so a real run puts hundreds to thousands of files under each
+        # barcode dir and this scan is the first thing step 2 does.
         total = 0
-        for pattern in ("*.fastq", "*.fastq.gz"):
-            for f in d.rglob(pattern):
+        matches = rglob_entries(d, FASTQ_PATTERNS)
+        for pattern in FASTQ_PATTERNS:
+            for _path, entry in matches[pattern]:
                 try:
-                    total += f.stat().st_size
+                    total += entry.stat().st_size
                 except OSError:
                     # Unreadable/vanished file: skip rather than abort detection.
                     continue
@@ -672,11 +682,18 @@ def _demux_cutadapt(
 
     # Header normalization: rewrite every per-well FASTA header to >{well_name}.
     if normalize_headers:
+        rewrote_any = False
         for well_name in list(per_well_counts.keys()):
             fp = output_dir / f"{well_name}.fasta"
-            if not fp.exists():
+            # Open straight away instead of exists()-then-read: the guard was a
+            # separate stat per well, and on a share that round-trip costs more
+            # than the read it guards.  The not-found families below are exactly
+            # the cases where exists() returned False, including a dangling
+            # symlink.  Any other OSError still propagates, as it did before.
+            try:
+                lines = fp.read_text(encoding="utf-8").splitlines(keepends=True)
+            except (FileNotFoundError, NotADirectoryError):
                 continue
-            lines = fp.read_text(encoding="utf-8").splitlines(keepends=True)
             normalized: list[str] = []
             for ln in lines:
                 if ln.startswith(">"):
@@ -684,8 +701,14 @@ def _demux_cutadapt(
                 else:
                     normalized.append(ln)
             # In-place header rewrite over an already-good file: atomic so an
-            # interruption cannot truncate it.
-            atomic_write_text(fp, "".join(normalized))
+            # interruption cannot truncate it.  Durability is deferred to the one
+            # directory fsync below rather than paid per well; the rename stays
+            # atomic either way, and a lost rewrite is a re-runnable stage, not a
+            # final deliverable (the stage marker is written later, fsync'd).
+            atomic_write_text(fp, "".join(normalized), fsync=False)
+            rewrote_any = True
+        if rewrote_any:
+            fsync_directory(output_dir)
 
     n_input = n_assigned + n_unassigned
 
@@ -764,10 +787,11 @@ def demux_native_barcode(
             "Provide the universal reverse primer sequence or set linked_trim=False."
         )
 
-    # Collect FASTQ files.
+    # Collect FASTQ files.  One walk for both extensions; the combined sort is
+    # kept so the resulting order is byte-identical to the two-walk version.
+    _matches = rglob_entries(fastq_dir, FASTQ_PATTERNS)
     fastq_files: list[Path] = sorted(
-        [p for p in fastq_dir.rglob("*.fastq")]
-        + [p for p in fastq_dir.rglob("*.fastq.gz")]
+        path for pattern in FASTQ_PATTERNS for path, _entry in _matches[pattern]
     )
     if not fastq_files:
         raise FileNotFoundError(
