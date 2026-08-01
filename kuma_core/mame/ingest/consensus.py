@@ -147,6 +147,26 @@ def _reverse_complement(seq: str) -> str:
     return seq.translate(_COMP)[::-1]
 
 
+def _oriented_q_st(aln: Alignment) -> int:
+    """Query start of *aln* in the orientation the CIGAR walks.
+
+    ``Alignment.q_st``/``q_en`` are stored in the original (as-input) read
+    orientation, matching mappy.  The consensus pileup walks the CIGAR over the
+    reverse complement of ``read_seq`` when ``strand == -1``, and in that
+    coordinate system the alignment starts at ``len(read_seq) - q_en``.
+
+    The two agree only when the leading and trailing clips happen to be equal.
+    They are usually equal here because reads reach consensus as
+    ``read_seq[q_st - trim : q_en + trim]`` slices with a symmetric flank, but
+    the slice is clamped at the read boundaries, so a read whose alignment ends
+    within ``trim_flank_bp`` of its end yields an asymmetric clip and, under the
+    old convention, shifted the whole read by the difference.
+    """
+    if aln.strand == -1:
+        return len(aln.read_seq) - aln.q_en
+    return aln.q_st
+
+
 def call_consensus(
     alignments: Sequence[Alignment],
     reference_seq: str,
@@ -374,7 +394,7 @@ def _accumulate_all(
         cigar_pairs.extend(aln.cigar)
         n_ops[i] = len(aln.cigar)
         r_st[i] = aln.r_st
-        q_st[i] = aln.q_st
+        q_st[i] = _oriented_q_st(aln)
 
     seq_arr = np.frombuffer(b"".join(seq_parts), dtype=np.uint8)
     seq_off = np.concatenate(([0], np.cumsum(seq_len)[:-1]))
@@ -536,7 +556,7 @@ def _accumulate(
         q_qual = aln.read_qual
 
     ref_pos = aln.r_st
-    q_pos = aln.q_st
+    q_pos = _oriented_q_st(aln)
     ref_len = len(per_position)
     n_low_quality_bases = 0
     net_indel = 0
