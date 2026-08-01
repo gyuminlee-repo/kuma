@@ -51,6 +51,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import os
 import re
+import sys
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from typing import Callable, Iterator
 
@@ -89,13 +90,16 @@ log = logging.getLogger(__name__)
 #     python-core/sidecar_mame/dispatcher.py. The demux itself ran in ~10 s once
 #     the request actually reached it; it was never a compute cold-start.
 #   * The guard also claimed "Linux/macOS is fine (fork)", which is false: this
-#     module forces the "spawn" start method on every platform, and the Linux
-#     frozen onefile build exercises exactly the same spawn ProcessPool path in
-#     CI without deadlocking.
+#     module never used the plain "fork" start method, and the Linux frozen
+#     onefile build exercises the same spawn ProcessPool path in CI without
+#     deadlocking.
 # Re-entrancy of spawned children is handled by multiprocessing.freeze_support()
-# in python-core/sidecar_main_mame.py, not by disabling parallelism. Escape
-# hatches remain env-driven: KUMA_MAME_NB_PARALLEL=0 disables the per-NB pool,
-# and a large KUMA_MAME_PERREAD_THRESHOLD disables the per-read pool.
+# in python-core/sidecar_main_mame.py, not by disabling parallelism. Frozen
+# builds still take exactly that spawn path; see _mp_start_method() below, which
+# only upgrades non-frozen POSIX to forkserver. Escape hatches remain
+# env-driven: KUMA_MAME_NB_PARALLEL=0 disables the per-NB pool, a large
+# KUMA_MAME_PERREAD_THRESHOLD disables the per-read pool, and
+# KUMA_MAME_MP_START=spawn pins the old start method.
 
 _F_TAIL = "cacaggaggttaaacc"
 _R_TAIL = "tgcgttgcgctctag"
@@ -122,6 +126,96 @@ _CONSENSUS_WORKERS: int = int(
 # directory. Mirrors the Aporva pipeline's final/<...>_consensus_dna.fasta so
 # downstream tools that expect one multi-record FASTA keep working.
 _COMBINED_CONSENSUS_FILENAME = "consensus_all_dna.fasta"
+
+# Modules the forkserver helper imports once, so every forked demux worker
+# starts with them already resident. Only this module is listed: importing it
+# pulls the whole worker-side chain (align, consensus -> numpy, edlib, ...).
+_MP_PRELOAD = ("kuma_core.mame.ingest.combinatorial_demux",)
+
+
+def _mp_start_method() -> str:
+    """Start method for the demux ProcessPools.
+
+    "forkserver" launches one helper process, imports ``_MP_PRELOAD`` in it
+    once, then forks already-warm children. "spawn" instead pays a full
+    interpreter start plus the whole import chain in every worker, every run.
+
+    Restricted to POSIX, non-frozen builds:
+
+    * forkserver is POSIX only, so Windows always reports "spawn".
+    * ``multiprocessing.forkserver.ensure_running`` launches the helper as
+      ``[sys.executable] + interpreter_flags + ["-c", <code>]`` (CPython 3.11
+      forkserver.py:148-151). Unlike ``spawn.get_command_line``, it carries no
+      ``sys.frozen`` branch, so inside a PyInstaller bundle it would re-exec
+      the frozen sidecar binary, which ignores ``-c`` and would restart the
+      JSON-RPC loop instead of becoming a forkserver. Frozen therefore stays on
+      spawn, which multiprocessing.freeze_support() in
+      python-core/sidecar_main_mame.py already handles.
+
+    Forked children are safe here despite the parent holding threads (the
+    progress drain thread below, plus the sidecar heartbeat/stdin threads):
+    the forkserver helper is created by fork+exec (util.spawnv_passfds ->
+    _posixsubprocess.fork_exec), so it never inherits parent threads or their
+    lock state, and workers are forked from that single-threaded helper rather
+    than from the parent.
+
+    ``KUMA_MAME_MP_START`` forces a method by name (escape hatch).
+    """
+    available = multiprocessing.get_all_start_methods()
+    forced = os.environ.get("KUMA_MAME_MP_START", "").strip().lower()
+    if forced:
+        if forced in available:
+            return forced
+        log.warning(
+            "KUMA_MAME_MP_START=%r is not available (have %s); using spawn",
+            forced, available,
+        )
+        return "spawn"
+    if getattr(sys, "frozen", False):
+        return "spawn"
+    if "forkserver" in available:
+        return "forkserver"
+    return "spawn"
+
+
+def _demux_mp_context():
+    """Multiprocessing context for the demux pools, preloaded when forkserver."""
+    method = _mp_start_method()
+    ctx = multiprocessing.get_context(method)
+    if method == "forkserver":
+        # A preload entry that fails to import is skipped by the forkserver
+        # (forkserver.main swallows ImportError), so this cannot make workers
+        # unusable, they would just import lazily as under spawn.
+        ctx.set_forkserver_preload(list(_MP_PRELOAD))
+    return ctx
+
+
+def _warm_mp_context(ctx) -> threading.Thread | None:
+    """Start the forkserver helper off the critical path. No-op for spawn.
+
+    The helper is otherwise created lazily by the first ``Process.start()``,
+    which puts its preload import (~0.5 s) in front of the first worker. Kicking
+    it here lets it run concurrently with the parent-side barcode parse below,
+    so even the first pool in a process starts warm.
+
+    ``forkserver.ensure_running`` is idempotent and holds its own lock, so the
+    pool calling it again later is harmless.
+    """
+    if ctx.get_start_method() != "forkserver":
+        return None
+    from multiprocessing import forkserver as _forkserver
+
+    def _warm() -> None:
+        try:
+            _forkserver.ensure_running()
+        except Exception:  # warm-up is an optimization, never fatal
+            log.debug("forkserver warm-up failed", exc_info=True)
+
+    thread = threading.Thread(
+        target=_warm, name="mame-forkserver-warmup", daemon=True
+    )
+    thread.start()
+    return thread
 
 
 def _reverse_complement(seq: str) -> str:
@@ -1063,7 +1157,7 @@ def _run_combinatorial_demux_body(
                 collected: list[
                     tuple[int, list[tuple[int, int, str]], int, int, int]
                 ] = []
-                ctx = multiprocessing.get_context("spawn")
+                ctx = _demux_mp_context()
                 with ProcessPoolExecutor(
                     max_workers=pool_workers, mp_context=ctx
                 ) as ex:
@@ -1814,6 +1908,11 @@ def run_combinatorial_demux_per_nb(
     _emit_agg(force=True)  # tick past resume-skipped units immediately
 
     if P > 1 and pending:
+        # Pick the start method first and, on forkserver, let its helper boot in
+        # the background so its preload import overlaps the barcode parse below
+        # instead of delaying the first worker. No-op under spawn.
+        mp_ctx = _demux_mp_context()
+        _warm_mp_context(mp_ctx)
         # Parse the barcode workbook once here and ship the result in each
         # payload, instead of every spawned worker re-parsing it. The dominant
         # cost is not the parse (~0.01 s) but the first `import openpyxl`
@@ -1826,7 +1925,6 @@ def run_combinatorial_demux_per_nb(
             _barcode_prefixes = load_barcode_prefixes(barcodes_xlsx)
         for pl in pending:
             pl["barcode_prefixes"] = _barcode_prefixes
-        mp_ctx = multiprocessing.get_context("spawn")
         manager = None
         progress_q = None
         try:

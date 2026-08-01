@@ -80,6 +80,7 @@ _TUNING_ENV = (
     "KUMA_MAME_CONSENSUS_WORKERS",
     "KUMA_MAME_READ_CHUNK",
     "KUMA_MAME_KEEP_WELL_READS",
+    "KUMA_MAME_MP_START",
 )
 
 # Identity keys; any difference here fails --compare-baseline.
