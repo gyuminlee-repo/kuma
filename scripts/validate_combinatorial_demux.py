@@ -115,20 +115,20 @@ def main() -> None:
     print("-" * 36)
 
     for well in sample_wells:
-        our_reads = len(result.per_well_reads.get(well, []))
+        our_reads = result.per_well_read_counts.get(well, 0)
         ref_fasta_well = REFERENCE_OUTPUT_DIR / f"{well}.fasta"
         ref_reads = count_reads_in_fasta(ref_fasta_well) if ref_fasta_well.exists() else 0
         ratio = our_reads / ref_reads if ref_reads > 0 else float("inf")
         flag = " OK" if 0.5 <= ratio <= 2.0 else " WARN"
         print(f"{well:<8} {our_reads:>8} {ref_reads:>8} {ratio:>8.2f}{flag}")
 
-    wells_10 = sum(1 for reads in result.per_well_reads.values() if len(reads) >= 10)
+    wells_10 = sum(1 for n in result.per_well_read_counts.values() if n >= 10)
     print(f"\n[goal] Wells with >=10 reads: {wells_10} / 96 (target: >=80)")
 
-    if result.per_well_reads:
+    if result.per_well_read_counts:
         print("\n=== Top 20 wells by read count ===")
         rows = sorted(
-            [(w, len(r)) for w, r in result.per_well_reads.items()],
+            list(result.per_well_read_counts.items()),
             key=lambda x: (-x[1], x[0]),
         )
         for well, cnt in rows[:20]:

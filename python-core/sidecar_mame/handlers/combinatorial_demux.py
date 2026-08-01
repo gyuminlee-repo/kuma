@@ -358,9 +358,10 @@ def handle_run_combinatorial_demux(params: dict) -> dict:
     _send_progress(req_id, "consensus", 100, "Done.")
 
     stats = result.stats
-    per_well_read_counts = {
-        well: len(reads) for well, reads in result.per_well_reads.items()
-    }
+    # Counts, not the reads themselves: a large run bounds its memory by
+    # spilling the read slices and leaves result.per_well_reads empty (see
+    # DemuxResult), while per_well_read_counts is always populated.
+    per_well_read_counts = dict(result.per_well_read_counts)
 
     _logger.info(
         "combinatorial_demux complete: %d assigned reads, %d wells with reads",

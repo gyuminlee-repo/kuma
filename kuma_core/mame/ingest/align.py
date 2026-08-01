@@ -581,6 +581,7 @@ def align_reads_grouped(
     threads: int | None = None,
     reference_index: Path | None = None,
     coverage_fraction: float | None = None,
+    name_offset: int = 0,
 ) -> dict[str, list[Alignment]]:
     """Align several read groups in ONE minimap2 call, split back per group.
 
@@ -600,6 +601,13 @@ def align_reads_grouped(
     alignments.  See the CORRECTION note above ``_READ_CHUNK_DEFAULT`` in
     ``combinatorial_demux``.  Returns
     ``{group_key: [Alignment, ...]}`` with an entry for every key in ``groups``.
+
+    ``name_offset`` shifts the synthetic QNAMEs by a constant, exactly as in
+    :func:`align_reads`.  A caller that splits one logical set of groups over
+    several calls (to bound peak memory) passes the running count of non-empty
+    reads already emitted, which keeps every read's QNAME identical to the
+    single-call numbering and therefore keeps minimap2's per-read RNG seed, and
+    the resulting alignments, unchanged.
     """
     if not reference_fasta.exists():
         raise FileNotFoundError(f"Reference FASTA not found: {reference_fasta}")
@@ -620,7 +628,7 @@ def align_reads_grouped(
                         continue
                     idx = len(index_map)
                     index_map.append((read_id, seq, qual))
-                    fh.write(f">{idx}\n{seq}\n")
+                    fh.write(f">{idx + name_offset}\n{seq}\n")
                 bounds.append((key, start, len(index_map)))
         if not index_map:
             return out
@@ -632,7 +640,8 @@ def align_reads_grouped(
         )
 
         primary: dict[int, Alignment] = {}
-        for read_index, flag, pos, mapq, cigar_str in records:
+        for qname_index, flag, pos, mapq, cigar_str in records:
+            read_index = qname_index - name_offset
             if flag & (_FLAG_SECONDARY | _FLAG_SUPPLEMENTARY):
                 continue
             if read_index in primary:

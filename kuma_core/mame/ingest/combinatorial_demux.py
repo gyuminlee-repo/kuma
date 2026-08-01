@@ -247,11 +247,20 @@ class DemuxStats:
 
 @dataclass
 class DemuxResult:
-    """Return value of run_combinatorial_demux."""
+    """Return value of run_combinatorial_demux.
+
+    ``per_well_reads`` carries the assigned read slices per well, but ONLY when
+    the run fitted inside the in-memory well buffer (see ``_WellReadBuffer``).
+    A run large enough to spill leaves it empty rather than pulling gigabytes
+    of reads back off disk to hand to a caller that, in every production path,
+    only counts them.  ``per_well_read_counts`` is always populated and is what
+    those callers should read.
+    """
 
     stats: DemuxStats
     per_well_reads: dict[str, list[tuple[str, str]]] = field(default_factory=dict)
     per_well_consensus: dict[str, str] = field(default_factory=dict)
+    per_well_read_counts: dict[str, int] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -868,6 +877,136 @@ _PERREAD_THRESHOLD_DEFAULT = 10000
 _READ_CHUNK_DEFAULT = 2500
 
 
+# Memory bound for the assigned read slices held between the read loop and
+# consensus (MB of sequence text; the Python object overhead on top is roughly
+# another 60%). Measured 2026-08-01: this buffer is 0.71 MB of resident set per
+# MB of input FASTQ and, before this bound existed, it was the term that made
+# the real 5.9 GB run need ~14 GB of RSS. Above the budget every well is
+# appended to its own spill file and the RAM lists are dropped; the reads come
+# back one consensus batch at a time.
+#
+# 512 MB is chosen so the reference 54 MB fixture (4 MB of slices) and any run
+# up to ~700 MB of FASTQ per barcode never spill at all, i.e. the default costs
+# nothing on every workload measured so far, while the real run (2975 MB in the
+# largest barcode) spills and stays bounded. 0 disables the bound.
+_WELL_BUFFER_MB_DEFAULT = 512
+
+# Memory bound for the consensus stage (MB of sequence text per batch of
+# wells). Wells are aligned and consensus-called one batch at a time instead of
+# all at once, which bounds BOTH the Alignment objects held (~1.6 kB per read,
+# measured) and the per-well pileup arrays inside call_consensus_with_metrics
+# (~45 B per aligned base, measured, and allocated for every read of a well in
+# one vectorised pass).
+#
+# 32 MB keeps the batch pileup near the 1.4 GB mark for a worker whose threads
+# all land on batch-sized wells at once, and leaves the reference fixture and
+# every barcode up to ~65 MB of slices in a single batch (i.e. unchanged from
+# the previous all-wells-at-once path). A single well larger than the budget
+# still forms its own batch: bounding one well below its own depth is not
+# possible from here, it needs the accumulation inside consensus.py to become
+# incremental. 0 disables batching.
+_CONSENSUS_BATCH_MB_DEFAULT = 32
+
+
+class _WellReadBuffer:
+    """Assigned read slices per well, with a bounded in-memory footprint.
+
+    Appends land in RAM. Once the buffered sequence text passes ``budget``
+    every well is flushed to a spill file under a private temp dir and the RAM
+    lists are cleared, so the resident set stops tracking the input size.
+    :meth:`load` concatenates a well's spill file with its RAM tail, which
+    reproduces the append order exactly whether or not a spill happened.
+
+    That order is load-bearing twice over: it fixes each read's synthetic QNAME
+    in the consensus alignment, and consensus resolves per-position ties by
+    first touch (``first_touch`` in ``ingest/consensus.py``). Nothing here may
+    reorder reads within a well.
+
+    The spill format is one ``read_id<TAB>sequence`` line per read.
+    ``_iter_fastq`` takes the read id as ``header[1:].split()[0]``, so it can
+    contain neither a tab nor a newline and needs no escaping.
+    """
+
+    __slots__ = ("_budget", "_mem", "_counts", "_sizes", "_bytes", "_tmp", "_spilled")
+
+    def __init__(self, budget_bytes: int) -> None:
+        self._budget = budget_bytes
+        self._mem: dict[tuple[int, int], list[tuple[str, str]]] = defaultdict(list)
+        self._counts: dict[tuple[int, int], int] = {}
+        self._sizes: dict[tuple[int, int], int] = {}
+        self._bytes = 0
+        self._tmp: tempfile.TemporaryDirectory | None = None
+        self._spilled: set[tuple[int, int]] = set()
+
+    @property
+    def spilled(self) -> bool:
+        """True once anything has been written to disk (final after the read loop)."""
+        return bool(self._spilled)
+
+    def append(self, well: tuple[int, int], read_id: str, seq: str) -> None:
+        self._mem[well].append((read_id, seq))
+        self._counts[well] = self._counts.get(well, 0) + 1
+        self._sizes[well] = self._sizes.get(well, 0) + len(seq)
+        self._bytes += len(seq) + len(read_id) + 1
+        if self._budget and self._bytes > self._budget:
+            self.flush()
+
+    def wells(self) -> list[tuple[int, int]]:
+        """Well keys in first-append order (the old ``per_well`` dict order)."""
+        return list(self._counts)
+
+    def counts(self) -> dict[tuple[int, int], int]:
+        return dict(self._counts)
+
+    def sizes(self) -> dict[tuple[int, int], int]:
+        """Sequence bytes per well, whether resident or spilled."""
+        return dict(self._sizes)
+
+    def _path(self, well: tuple[int, int]) -> Path:
+        assert self._tmp is not None
+        return Path(self._tmp.name) / f"{well[0]}_{well[1]}.tsv"
+
+    def flush(self) -> None:
+        """Append every buffered well to its spill file and drop the RAM lists."""
+        if self._tmp is None:
+            self._tmp = tempfile.TemporaryDirectory(prefix="kuma_mame_wells_")
+        with TIMER.phase("well_buffer_spill"):
+            for well, reads in self._mem.items():
+                if not reads:
+                    continue
+                with self._path(well).open("a", encoding="utf-8") as fh:
+                    fh.writelines(f"{rid}\t{seq}\n" for rid, seq in reads)
+                self._spilled.add(well)
+        self._mem.clear()
+        self._bytes = 0
+
+    def load(self, well: tuple[int, int]) -> list[tuple[str, str]]:
+        """Return this well's reads in append order (spilled part first)."""
+        out: list[tuple[str, str]] = []
+        if well in self._spilled:
+            with TIMER.phase("well_buffer_reload"):
+                with self._path(well).open(encoding="utf-8") as fh:
+                    for line in fh:
+                        rid, _tab, seq = line.rstrip("\n").partition("\t")
+                        out.append((rid, seq))
+        out.extend(self._mem.get(well, ()))
+        return out
+
+    def release(self, well: tuple[int, int]) -> None:
+        """Drop a well's reads once its consensus is written."""
+        reads = self._mem.pop(well, None)
+        if reads:
+            self._bytes -= sum(len(s) + len(r) + 1 for r, s in reads)
+        if well in self._spilled:
+            self._spilled.discard(well)
+            self._path(well).unlink(missing_ok=True)
+
+    def close(self) -> None:
+        if self._tmp is not None:
+            self._tmp.cleanup()
+            self._tmp = None
+
+
 def _iter_chunks(
     it: Iterator[tuple[str, str]], size: int
 ) -> Iterator[list[tuple[str, str]]]:
@@ -1151,7 +1290,13 @@ def _run_combinatorial_demux_body(
     ref_len = _get_reference_length(reference_fasta)
     log.info("Reference length: %d bp", ref_len)
 
-    per_well: dict[tuple[int, int], list[tuple[str, str]]] = defaultdict(list)
+    # Assigned read slices, held between the read loop and consensus. Bounded:
+    # see _WELL_BUFFER_MB_DEFAULT. Chunking bounds the alignment stage only,
+    # this buffer is what grows with the whole barcode.
+    _buffer_mb = int(
+        os.environ.get("KUMA_MAME_WELL_BUFFER_MB", str(_WELL_BUFFER_MB_DEFAULT))
+    )
+    per_well = _WellReadBuffer(max(0, _buffer_mb) * 1_000_000)
 
     # Chunk-stream read loading: load + align in N-read chunks instead of
     # materialising the whole FASTQ. Each chunk's minimap2 input/SAM and its
@@ -1314,7 +1459,7 @@ def _run_combinatorial_demux_body(
                 ) in collected:
                     read_id = id_by_index[read_index]
                     for r_idx, f_idx, slice_seq in appends:
-                        per_well[(r_idx, f_idx)].append((read_id, slice_seq))
+                        per_well.append((r_idx, f_idx), read_id, slice_seq)
                     stats.assigned_reads += assigned_d
                     stats.chimera_splits += chimera_d
                     stats.ambiguous_dropped += ambiguous_d
@@ -1373,7 +1518,7 @@ def _run_combinatorial_demux_body(
                             continue
 
                         assigned_wells_this_read.add(well)
-                        per_well[well].append((read_id, slice_seq))
+                        per_well.append(well, read_id, slice_seq)
 
                         if is_first_hit:
                             stats.assigned_reads += 1
@@ -1427,7 +1572,7 @@ def _run_combinatorial_demux_body(
                     stats.ambiguous_dropped += 1
                     continue
                 r_idx, f_idx = result
-                per_well[(r_idx, f_idx)].append((aln.read_id, trimmed))
+                per_well.append((r_idx, f_idx), aln.read_id, trimmed)
                 stats.assigned_reads += 1
             TIMER.add("barcode_match", time.perf_counter() - _t_match)
 
@@ -1439,34 +1584,23 @@ def _run_combinatorial_demux_body(
         stats.ambiguous_dropped,
     )
 
-    # Collect per-well reads in memory. The consensus step below consumes this
-    # dict directly, so the on-disk per-well reads FASTA is not read by any
-    # production code path; it is off by default and only written when
-    # KUMA_MAME_KEEP_WELL_READS=1 is set for post-hoc forensics. Writing one
-    # small file per well dominates wall time on network/9p-backed output dirs.
-    per_well_reads: dict[str, list[tuple[str, str]]] = {}
-    keep_well_reads = os.environ.get("KUMA_MAME_KEEP_WELL_READS", "").strip() == "1"
-    with TIMER.phase("write_well_fasta"):
-        for (r_idx, f_idx), reads in per_well.items():
-            well_name = f"{r_idx}_{f_idx}"
-            per_well_reads[well_name] = reads
-            if not keep_well_reads:
-                continue
-            fasta_path = reads_dir / f"{well_name}.fasta"
-            # fsync=False: these per-well reads FASTA are an intermediate
-            # artifact fully reconstructible by re-running the unit (whose
-            # completion marker is written last, and IS fsync'd). Final
-            # consensus FASTA, the combined FASTA, and stage markers keep the
-            # default fsync=True.
-            atomic_write_text(
-                fasta_path,
-                "".join(f">{read_id}\n{trimmed}\n" for read_id, trimmed in reads),
-                fsync=False,
-            )
+    # Well inventory. The read slices themselves stay in the bounded buffer and
+    # are pulled back one consensus batch at a time below, so nothing here
+    # materialises the whole barcode.
+    well_counts = per_well.counts()
+    well_sizes = per_well.sizes()
+    well_keys = per_well.wells()
 
-    stats.wells_with_reads = sum(1 for v in per_well.values() if len(v) >= 1)
+    # The on-disk per-well reads FASTA is not read by any production code path;
+    # it is off by default and only written when KUMA_MAME_KEEP_WELL_READS=1 is
+    # set for post-hoc forensics. Writing one small file per well dominates
+    # wall time on network/9p-backed output dirs. It is written inside the
+    # consensus batch loop, where the reads are resident anyway.
+    keep_well_reads = os.environ.get("KUMA_MAME_KEEP_WELL_READS", "").strip() == "1"
+
+    stats.wells_with_reads = sum(1 for n in well_counts.values() if n >= 1)
     stats.wells_with_min_reads = sum(
-        1 for v in per_well.values() if len(v) >= min_depth
+        1 for n in well_counts.values() if n >= min_depth
     )
     log.info(
         "Wells with >=1 read: %d/96, wells with >=%d reads: %d/96",
@@ -1479,12 +1613,19 @@ def _run_combinatorial_demux_body(
     ref_seq = _read_reference_seq(reference_fasta)
     per_well_consensus: dict[str, str] = {}
 
-    _consensus_total = len(per_well_reads)
+    _consensus_total = len(well_keys)
+
+    # Reads handed back to the caller. Populated only when the buffer never
+    # spilled, i.e. when holding them costs nothing beyond what the run already
+    # held; a spilled run reports read COUNTS instead (per_well_read_counts,
+    # which is what every production consumer of this field actually reads).
+    per_well_reads: dict[str, list[tuple[str, str]]] = {}
+    _materialise_reads = not per_well.spilled
 
     # Build the reference minimap2 index once (map-ont preset, identical to the
     # consensus alignment preset) so the batched alignment below skips the
     # on-the-fly index build. The .mmi lives in a tempdir dropped right after
-    # that single call.
+    # the last batch.
     _index_tmp = tempfile.TemporaryDirectory(prefix="kuma_mame_idx_")
     well_index: Path | None
     try:
@@ -1502,7 +1643,7 @@ def _run_combinatorial_demux_body(
         )
         well_index = None
 
-    # One minimap2 call for every well of this unit instead of one per well.
+    # One minimap2 call per BATCH of wells instead of one per well.
     # Per-read results were verified identical over 92 wells and 4936 reads.
     # Note the independence argument is necessary but not sufficient: minimap2
     # maps each query independently and the seed-occurrence cutoffs come from
@@ -1511,28 +1652,52 @@ def _run_combinatorial_demux_body(
     # move a few alignments (see the CORRECTION above _READ_CHUNK_DEFAULT).
     # align_reads_grouped keeps each well's reads in input order, which
     # the consensus tie-break depends on. Threads: the per-well calls had to
-    # stay at 1 because up to n_workers wells aligned concurrently; a single
-    # batched call can use this worker's whole allotted share.
+    # stay at 1 because up to n_workers wells aligned concurrently; a batched
+    # call can use this worker's whole allotted share.
+    #
+    # Batching is a memory bound, not a speed change: it caps the Alignment
+    # objects and the consensus pileup arrays that are live at once (see
+    # _CONSENSUS_BATCH_MB_DEFAULT). The running ``name_offset`` gives every
+    # read the QNAME it would have had in a single all-wells call, so the batch
+    # size does not move a single alignment; it is the same invariant the read
+    # loop above maintains for the chunk size.
     n_workers = consensus_workers if consensus_workers is not None else _CONSENSUS_WORKERS
     _batch_threads = minimap2_threads if minimap2_threads is not None else n_workers
-    try:
-        with TIMER.phase("well_consensus.align_minimap2_batch"):
-            well_alignments_map = align_reads_grouped(
-                groups=list(per_well_reads.items()),
-                reference_fasta=reference_fasta,
-                preset="map-ont",
-                min_mapq=0,           # trimmed reads; already filtered upstream
-                require_full_span=False,
-                threads=max(1, _batch_threads),
-                reference_index=well_index,
-            )
-    finally:
-        # Every well aligned in the single call above; the .mmi is done with.
-        _index_tmp.cleanup()
+
+    _cons_batch_bytes = (
+        max(
+            0,
+            int(
+                os.environ.get(
+                    "KUMA_MAME_CONSENSUS_BATCH_MB", str(_CONSENSUS_BATCH_MB_DEFAULT)
+                )
+            ),
+        )
+        * 1_000_000
+    )
+
+    def _well_batches() -> Iterator[list[tuple[int, int]]]:
+        """Group wells, in append order, into batches of bounded sequence bytes.
+
+        A well larger than the budget forms its own batch; splitting one well
+        is not possible here, consensus needs all of its reads at once.
+        """
+        cur: list[tuple[int, int]] = []
+        cur_bytes = 0
+        for key in well_keys:
+            size = well_sizes.get(key, 0)
+            if cur and _cons_batch_bytes and cur_bytes + size > _cons_batch_bytes:
+                yield cur
+                cur, cur_bytes = [], 0
+            cur.append(key)
+            cur_bytes += size
+        if cur:
+            yield cur
 
     def _run_well(
         well_name: str,
         reads: list[tuple[str, str]],
+        alignments: list[Alignment],
     ) -> tuple[str, str, int, int, float, int, float, int, int, int, int, int, int, float, int, int]:
         """Worker: returns consensus sequence, depth, and mix metrics."""
         (
@@ -1552,8 +1717,7 @@ def _run_combinatorial_demux_body(
             max_del_run_length,
             net_indel,
         ) = _compute_well_consensus(
-            well_name, reads, well_alignments_map.get(well_name, []),
-            ref_seq, ref_len, min_depth,
+            well_name, reads, alignments, ref_seq, ref_len, min_depth,
         )
         return (
             well_name,
@@ -1579,70 +1743,125 @@ def _run_combinatorial_demux_body(
     # ``*_sum`` keys added inside _compute_well_consensus are summed over the
     # ThreadPool workers and can exceed this wall.
     _t_cons = time.perf_counter()
-    with ThreadPoolExecutor(max_workers=n_workers) as pool:
-        futures = {
-            pool.submit(_run_well, wn, rds): wn
-            for wn, rds in per_well_reads.items()
-        }
-        for fut in as_completed(futures):
-            (
-                wn,
-                seq,
-                depth,
-                mixed_positions,
-                max_minor_fraction,
-                low_depth_positions,
-                n_fraction,
-                low_quality_bases,
-                input_reads,
-                aligned_reads,
-                mapq_failed,
-                span_failed,
-                n_indel_event_positions,
-                max_indel_event_fraction,
-                max_del_run_length,
-                net_indel,
-            ) = fut.result()
-            per_well_consensus[wn] = seq
-            atomic_write_text(
-                consensus_dir / f"{wn}.fasta",
-                format_consensus_fasta_record(
-                    wn,
-                    seq,
-                    ConsensusMetadata(
-                        depth=depth,
-                        input_reads=input_reads,
-                        aligned_reads=aligned_reads,
-                        mapq_failed=mapq_failed,
-                        span_failed=span_failed,
-                        mixed_positions=mixed_positions,
-                        max_minor_allele_fraction=max_minor_fraction,
-                        low_depth_positions=low_depth_positions,
-                        consensus_n_fraction=n_fraction,
-                        low_quality_bases=low_quality_bases,
-                        n_indel_event_positions=n_indel_event_positions,
-                        max_indel_event_fraction=max_indel_event_fraction,
-                        max_del_run_length=max_del_run_length,
-                        net_indel=net_indel,
-                        consensus_n_fraction_basis=BASIS_COVERED,
-                    ),
-                ),
-                # fsync=False here, one fsync_directory below instead. Per-file
-                # fsync costs a filesystem round trip per well (~280 of them) and
-                # bought no end-to-end guarantee anyway: atomic_write_text never
-                # fsync'd the parent directory, so the os.replace that publishes
-                # the final name was not durable. Batching the durability point
-                # into a single directory fsync commits all those renames at
-                # once, and on ext4 (data=ordered) that metadata commit forces
-                # the newly allocated data blocks out first, so the batch stays
-                # "absent or complete". The authoritative completion signal is
-                # still the stage marker, written afterwards with fsync=True,
-                # and validate_marker rejects a missing or zero-length well.
-                fsync=False,
-            )
-            _consensus_done += 1
-            if progress_callback is not None:
-                progress_callback(_consensus_done, _consensus_total, "consensus")
+    # Running count of non-empty reads already numbered by align_reads_grouped,
+    # so each batch continues the single-call numbering (see above).
+    _cons_name_offset = 0
+    try:
+        with ThreadPoolExecutor(max_workers=n_workers) as pool:
+            for _batch in _well_batches():
+                groups = [
+                    (f"{r_idx}_{f_idx}", per_well.load((r_idx, f_idx)))
+                    for r_idx, f_idx in _batch
+                ]
+                with TIMER.phase("well_consensus.align_minimap2_batch"):
+                    well_alignments_map = align_reads_grouped(
+                        groups=groups,
+                        reference_fasta=reference_fasta,
+                        preset="map-ont",
+                        min_mapq=0,           # trimmed reads; already filtered upstream
+                        require_full_span=False,
+                        threads=max(1, _batch_threads),
+                        reference_index=well_index,
+                        name_offset=_cons_name_offset,
+                    )
+                # align_reads_grouped skips empty sequences when it assigns indices, so
+                # the offset must advance by the same count.
+                _cons_name_offset += sum(
+                    1 for _wn, rds in groups for _rid, _seq in rds if _seq
+                )
+
+                if keep_well_reads:
+                    # fsync=False: these per-well reads FASTA are an intermediate
+                    # artifact fully reconstructible by re-running the unit (whose
+                    # completion marker is written last, and IS fsync'd). Final
+                    # consensus FASTA, the combined FASTA, and stage markers keep the
+                    # default fsync=True.
+                    with TIMER.phase("write_well_fasta"):
+                        for well_name, reads in groups:
+                            atomic_write_text(
+                                reads_dir / f"{well_name}.fasta",
+                                "".join(f">{rid}\n{seq}\n" for rid, seq in reads),
+                                fsync=False,
+                            )
+                if _materialise_reads:
+                    per_well_reads.update(groups)
+
+                futures = {
+                    pool.submit(_run_well, wn, rds, well_alignments_map.get(wn, [])): wn
+                    for wn, rds in groups
+                }
+                for fut in as_completed(futures):
+                    (
+                        wn,
+                        seq,
+                        depth,
+                        mixed_positions,
+                        max_minor_fraction,
+                        low_depth_positions,
+                        n_fraction,
+                        low_quality_bases,
+                        input_reads,
+                        aligned_reads,
+                        mapq_failed,
+                        span_failed,
+                        n_indel_event_positions,
+                        max_indel_event_fraction,
+                        max_del_run_length,
+                        net_indel,
+                    ) = fut.result()
+                    per_well_consensus[wn] = seq
+                    atomic_write_text(
+                        consensus_dir / f"{wn}.fasta",
+                        format_consensus_fasta_record(
+                            wn,
+                            seq,
+                            ConsensusMetadata(
+                                depth=depth,
+                                input_reads=input_reads,
+                                aligned_reads=aligned_reads,
+                                mapq_failed=mapq_failed,
+                                span_failed=span_failed,
+                                mixed_positions=mixed_positions,
+                                max_minor_allele_fraction=max_minor_fraction,
+                                low_depth_positions=low_depth_positions,
+                                consensus_n_fraction=n_fraction,
+                                low_quality_bases=low_quality_bases,
+                                n_indel_event_positions=n_indel_event_positions,
+                                max_indel_event_fraction=max_indel_event_fraction,
+                                max_del_run_length=max_del_run_length,
+                                net_indel=net_indel,
+                                consensus_n_fraction_basis=BASIS_COVERED,
+                            ),
+                        ),
+                        # fsync=False here, one fsync_directory below instead. Per-file
+                        # fsync costs a filesystem round trip per well (~280 of them) and
+                        # bought no end-to-end guarantee anyway: atomic_write_text never
+                        # fsync'd the parent directory, so the os.replace that publishes
+                        # the final name was not durable. Batching the durability point
+                        # into a single directory fsync commits all those renames at
+                        # once, and on ext4 (data=ordered) that metadata commit forces
+                        # the newly allocated data blocks out first, so the batch stays
+                        # "absent or complete". The authoritative completion signal is
+                        # still the stage marker, written afterwards with fsync=True,
+                        # and validate_marker rejects a missing or zero-length well.
+                        fsync=False,
+                    )
+                    _consensus_done += 1
+                    if progress_callback is not None:
+                        progress_callback(_consensus_done, _consensus_total, "consensus")
+
+                # This batch is written; drop its reads (RAM and spill file
+                # alike) before the next batch pulls the next ones in. Skipped
+                # when the reads were handed to the caller, which then owns
+                # them and expects them to stay alive.
+                if not _materialise_reads:
+                    for key in _batch:
+                        per_well.release(key)
+                del groups, well_alignments_map
+    finally:
+        # Every batch aligned; the .mmi and any spill files are done with.
+        _index_tmp.cleanup()
+        per_well.close()
 
     fsync_directory(consensus_dir)
 
@@ -1664,6 +1883,9 @@ def _run_combinatorial_demux_body(
         stats=stats,
         per_well_reads=per_well_reads,
         per_well_consensus=per_well_consensus,
+        per_well_read_counts={
+            f"{r_idx}_{f_idx}": n for (r_idx, f_idx), n in well_counts.items()
+        },
     )
 
 
@@ -1834,7 +2056,7 @@ def _demux_one_nb(payload: dict) -> dict:
     return {"nb_name": payload["nb_name"], "sort_barcode_name": payload["sort_barcode_name"],
             "output_dir": str(Path(payload["output_dir"]).resolve()),
             "stats": {k: getattr(s, k) for k in _DEMUX_NB_STAT_KEYS},
-            "per_well_read_counts": {w: len(r) for w, r in result.per_well_reads.items()}}
+            "per_well_read_counts": dict(result.per_well_read_counts)}
 
 
 def _summary_from_marker(sort_barcode_name: str, nb_out: Path, marker: dict) -> dict:
