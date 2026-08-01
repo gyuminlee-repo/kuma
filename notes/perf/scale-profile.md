@@ -204,6 +204,11 @@ Thread split measured at s3 (one run each, walls carry load noise):
 | P=2 x 5 threads | 255.66 | 72.6 / 126.5 / 253.0 | 4576 | 9d106bae4d32 |
 | P=1 x 10 threads (serial) | 353.63 | 50.1 / 127.8 / 174.4 | 6227 | 9d106bae4d32 |
 
+On the P=1 row the three figures are sequential segments of one process, not concurrent
+workers, which is why they sum to the e2e wall. The s3 and s3bal round-2 pair below
+(258.14 against 198.46) is the cleanest comparison in this section: back to back, same
+minute, same background load.
+
 Giving one barcode all ten threads speeds that barcode up by only 1.40 to 1.60x
 (barcode13 80.0 to 50.1, barcode06 179.2 to 127.8, barcode20 246.6 to 174.4). The
 per-barcode pipeline is not thread-scalable, because `barcode_match`, the gzip reader
