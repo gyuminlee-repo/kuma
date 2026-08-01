@@ -31,7 +31,9 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
 from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from kuma_core.mame.ingest.consensus_metadata import (
@@ -65,9 +67,125 @@ _logger = logging.getLogger(__name__)
 
 _METADATA_RE = re.compile(r"(?:^|\s)([A-Za-z_][A-Za-z0-9_]*)=([^\s]+)")
 
+# Batched per-well metadata + content access (see ``_batch_map``).
+#
+# Ingesting one consensus directory costs two per-file round trips: the marker
+# guard's ``DirEntry.stat()`` (size check) and the parser's ``open``+``read``.  On
+# a local filesystem each is microseconds; on a Windows share (9p) each is a
+# network round trip of milliseconds, and the 283-file reference workload spent
+# ~0.87 s of ingest almost entirely waiting on them.  Both syscalls release the
+# GIL, so overlapping them with a small thread pool hides the latency: reading
+# the same 283 files measured 555 ms sequential vs 59 ms at 8 threads.
+#
+# The same fan-out is a *pessimisation* on ext4, where one read costs less than
+# the thread hand-off (1.6 ms -> 23 ms for those 283 files).  The mode is
+# therefore decided by measuring, not by guessing from the path: the first few
+# items are done inline and, if they average slower than ``_PROBE_LATENCY_S``,
+# the storage is round-trip bound and the remainder is fanned out.
+_ENV_INGEST_WORKERS = "KUMA_MAME_INGEST_WORKERS"
+#: Items handled inline before the auto decision. Large enough to average out one
+#: slow outlier, small enough that the probe itself costs ~16 ms on 9p.
+_PROBE_ITEMS = 8
+#: Per-item wall above which thread fan-out pays for itself. ext4 measures ~5 us
+#: per file and 9p ~2 ms, so the two populations are three orders of magnitude
+#: apart and the exact cut-off inside that gap does not matter.
+_PROBE_LATENCY_S = 3e-4
+#: Fan-out used when the probe says "round-trip bound". The 9p sweep is flat from
+#: 8 to 32 workers (59 / 60 / 76 / 63 ms), so 8 is the smallest value on the
+#: plateau: same wall, fewest threads.
+_DEFAULT_INGEST_WORKERS = 8
+
 
 def _open_text(path: Path):
     return path.open("r", encoding="utf-8")
+
+
+def _configured_workers() -> int | None:
+    """Worker count from ``KUMA_MAME_INGEST_WORKERS``; ``None`` means auto-probe.
+
+    ``0`` or ``1`` forces the sequential path, which is also the escape hatch if
+    a filesystem ever misbehaves under concurrent reads.
+    """
+    raw = os.environ.get(_ENV_INGEST_WORKERS, "").strip()
+    if not raw:
+        return None
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        _logger.warning(
+            "%s=%r is not an integer; falling back to auto worker sizing.",
+            _ENV_INGEST_WORKERS,
+            raw,
+        )
+        return None
+
+
+def _map_parallel(fn, items: list, workers: int) -> list:
+    """Apply *fn* to *items* over *workers* threads, results in input order.
+
+    Work is handed out as ``workers`` round-robin slices rather than one task per
+    item: ``ThreadPoolExecutor`` ignores ``chunksize``, and one future per item
+    adds measurable dispatch overhead at this granularity.  Round-robin (rather
+    than contiguous) slicing keeps every worker spread across all directories, so
+    one slower directory does not serialise onto a single thread.
+    """
+    n = min(workers, len(items))
+    slices = [items[i::n] for i in range(n)]
+    with ThreadPoolExecutor(max_workers=n) as pool:
+        parts = list(pool.map(lambda group: [fn(x) for x in group], slices))
+    out: list = [None] * len(items)
+    for i, part in enumerate(parts):
+        out[i::n] = part
+    return out
+
+
+def _batch_map(fn, items: list, parallel: bool | None = None) -> tuple[list, bool]:
+    """Apply *fn* to every item in order; return ``(results, used_parallel)``.
+
+    *parallel* pre-decides the mode so two passes over the same directory (stat
+    then read) pay for the latency probe only once.  ``None`` resolves the mode
+    from ``KUMA_MAME_INGEST_WORKERS`` or, absent that, from the probe.  The
+    returned flag is that decision, for the caller to feed forward.
+    """
+    if not items:
+        return [], bool(parallel)
+
+    if parallel is None:
+        workers = _configured_workers()
+        if workers is not None:
+            if workers <= 1:
+                return [fn(item) for item in items], False
+            return _map_parallel(fn, items, workers), True
+    elif parallel:
+        return _map_parallel(fn, items, _DEFAULT_INGEST_WORKERS), True
+    else:
+        return [fn(item) for item in items], False
+
+    probe_n = min(_PROBE_ITEMS, len(items))
+    started = time.perf_counter()
+    head = [fn(item) for item in items[:probe_n]]
+    per_item = (time.perf_counter() - started) / probe_n
+    rest = items[probe_n:]
+    if per_item < _PROBE_LATENCY_S:
+        head.extend(fn(item) for item in rest)
+        return head, False
+    head.extend(_map_parallel(fn, rest, _DEFAULT_INGEST_WORKERS))
+    return head, True
+
+
+def _warm_size(entry: "os.DirEntry[str]") -> None:
+    """Populate *entry*'s cached ``stat`` result; a failed lookup is left to the guard.
+
+    ``DirEntry.stat()`` memoises on the entry object, so pre-warming a whole
+    directory in one batched pass makes the marker guard's later per-well size
+    check free.  A failure is only logged here: the guard re-issues the same call
+    and already reports an ``OSError`` as "well missing on disk", so raising now
+    would turn that diagnosis into a crash.
+    """
+    try:
+        entry.stat()
+    except OSError as exc:
+        _logger.debug("stat pre-warm failed for %s: %s", entry.path, exc)
 
 
 def _read_metadata(header: str) -> dict[str, str]:
@@ -143,9 +261,32 @@ def _iter_consensus_entries(
         yield directory / name, entries.get(name)
 
 
-def _parse_single_fasta(path: Path) -> tuple[str, str, int, dict[str, str]]:
-    with _open_text(path) as fh:
-        lines = [ln.rstrip("\r\n") for ln in fh.readlines()]
+def _split_lines(data: bytes) -> list[str]:
+    """Decode *data* into the exact line list ``open(path, "r").readlines()`` gave.
+
+    Text mode applies universal newlines (``\\r\\n`` and a lone ``\\r`` both become
+    ``\\n``) and the caller then stripped the terminator, so translating first and
+    splitting on ``\\n`` reproduces it.  ``str.splitlines`` is deliberately NOT used:
+    it also breaks on ``\\x0b``, ``\\x0c``, ``\\x1c``-``\\x1e`` and ``\\u2028``, which text
+    mode does not, so a header carrying one of those would split differently.
+    """
+    text = data.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    lines = text.split("\n")
+    # ``readlines`` yields no trailing empty element for a file ending in a
+    # newline; ``split`` does. Drop it so the line list matches.
+    if lines and lines[-1] == "":
+        lines.pop()
+    return lines
+
+
+def _parse_single_fasta(
+    path: Path, data: bytes | None = None
+) -> tuple[str, str, int, dict[str, str]]:
+    if data is None:
+        with _open_text(path) as fh:
+            lines = [ln.rstrip("\r\n") for ln in fh.readlines()]
+    else:
+        lines = _split_lines(data)
 
     header: str | None = None
     seq_parts: list[str] = []
@@ -177,6 +318,7 @@ def parse_fasta_file(
     path: Path,
     native_barcode: str,
     entry: "os.DirEntry[str] | None" = None,
+    data: bytes | None = None,
 ) -> BarcodeRecord:
     """Parse a single consensus FASTA file into a BarcodeRecord.
 
@@ -185,6 +327,12 @@ def parse_fasta_file(
     the marker guard already stat-ed makes ``file_size_kb`` free instead of a
     second ``stat`` per well.  The value is identical either way: both follow
     symlinks and read ``st_size``.
+
+    *data* is the file content when the caller already read it (see
+    ``_read_all``).  Supplying it also supplies the size: ``len(data)`` is the
+    ``st_size`` of the regular file that was just read in full, so the record no
+    longer needs a ``stat`` at all.  That matters on a share, where the stat is a
+    round trip of its own even for an entry the scan already produced.
 
     Raises
     ------
@@ -198,10 +346,15 @@ def parse_fasta_file(
     """
 
     # Read-only access: raw data is never modified.
-    header, consensus_seq, record_count, metadata = _parse_single_fasta(path)
+    header, consensus_seq, record_count, metadata = _parse_single_fasta(path, data)
 
     custom_barcode = header.split()[0] if header else path.stem
-    size_bytes = entry.stat().st_size if entry is not None else path.stat().st_size
+    if data is not None:
+        size_bytes = len(data)
+    elif entry is not None:
+        size_bytes = entry.stat().st_size
+    else:
+        size_bytes = path.stat().st_size
     file_size_kb = size_bytes / 1024.0
     depth = _read_int_metadata(metadata, DEPTH)
     read_count: int | None = depth if depth is not None else record_count
@@ -287,7 +440,12 @@ def load_barcode_directory(input_dir: Path) -> list[BarcodeRecord]:
     if not input_dir.exists() or not input_dir.is_dir():
         raise FileNotFoundError(f"Consensus FASTA input directory not found: {input_dir}")
 
-    records: list[BarcodeRecord] = []
+    # Three ordered passes over the tree, each batched, instead of one
+    # file-at-a-time loop: readdir every NB dir, pre-warm every entry's size,
+    # then guard + read.  The order of the emitted records is unchanged, because
+    # the pending list is built in exactly the old walk order (NB dirs sorted by
+    # name, files in ``iter_consensus_names`` order) and consumed in that order.
+    pending: list[tuple[Path, str, "os.DirEntry[str] | None"]] = []
     # One readdir per NB directory, reused by the marker presence test, the
     # inventory guard and the per-well file size. ``entry.is_dir()`` here reads
     # the readdir type field where the platform supplies it, so the top-level
@@ -296,10 +454,22 @@ def load_barcode_directory(input_dir: Path) -> list[BarcodeRecord]:
         nb_dirs = sorted(
             (input_dir / e.name for e in top if e.is_dir()), key=lambda p: p.name
         )
-    for nb_dir in nb_dirs:
-        native_barcode = nb_dir.name
-        entries = scan_unit_dir(nb_dir)
+    scanned = [(nb_dir, scan_unit_dir(nb_dir)) for nb_dir in nb_dirs]
 
+    # The marker guard checks every recorded well's size, one ``stat`` each, and
+    # that loop alone measured ~1.2 s of the reference workload's ingest on 9p.
+    # Warming those cached stats in one batched pass leaves the guard itself
+    # unchanged but removes its per-well round trip.  The decision is carried
+    # into the content read below so the latency probe runs only once.
+    parallel: bool | None = None
+    if scanned:
+        _warmed, parallel = _batch_map(
+            _warm_size,
+            [entry for _nb_dir, entries in scanned for entry in entries.values()],
+        )
+
+    for nb_dir, entries in scanned:
+        native_barcode = nb_dir.name
         marker = read_stage_marker(nb_dir, entries)
         if marker is None:
             _logger.warning(
@@ -318,9 +488,12 @@ def load_barcode_directory(input_dir: Path) -> list[BarcodeRecord]:
                 )
 
         for consensus_file, entry in _iter_consensus_entries(nb_dir, entries):
-            records.append(
-                parse_fasta_file(
-                    consensus_file, native_barcode=native_barcode, entry=entry
-                )
-            )
-    return records
+            pending.append((consensus_file, native_barcode, entry))
+
+    contents, _used_parallel = _batch_map(
+        Path.read_bytes, [path for path, _nb, _entry in pending], parallel
+    )
+    return [
+        parse_fasta_file(path, native_barcode=nb, entry=entry, data=data)
+        for (path, nb, entry), data in zip(pending, contents)
+    ]
