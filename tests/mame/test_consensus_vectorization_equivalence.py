@@ -83,7 +83,13 @@ def _scalar_accumulate(
         q_qual = aln.read_qual
 
     ref_pos = aln.r_st
-    q_pos = aln.q_st
+    # q_st/q_en are stored in the original read orientation; the walk below is
+    # over the reverse complement, where the alignment starts at
+    # ``len(read_seq) - q_en``.  Transcribed alongside the production fix in
+    # ``consensus._oriented_q_st``; the pre-fix reference used ``aln.q_st``
+    # unconditionally and so shifted every asymmetrically clipped minus-strand
+    # read.
+    q_pos = len(aln.read_seq) - aln.q_en if aln.strand == -1 else aln.q_st
     ref_len = len(per_position)
     n_low_quality_bases = 0
     net_indel = 0
@@ -292,6 +298,15 @@ def _make_aln(
         qual = "".join(chr(33 + rng.randint(0, 40)) for _ in range(n_qual))
     r_en = r_st + sum(length for length, op in cigar if op in _REF_CONSUMING)
     q_en = q_st + sum(length for length, op in cigar if op in _QUERY_CONSUMING)
+    if strand == -1 and len(seq) < q_en:
+        # Real producers derive q_st/q_en from the SAM record, so
+        # ``q_en <= len(read_seq)`` always holds (see align._coords_from_cigar).
+        # The minus-strand cursor is ``len(read_seq) - q_en``, which is only
+        # meaningful under that invariant, so the deliberately-short reads above
+        # are padded back to it rather than producing a negative start no
+        # aligner can emit.  Plus-strand short reads still exercise the
+        # ``qp < len(q_seq)`` bound.
+        seq = seq + "".join(rng.choice(alphabet) for _ in range(q_en - len(seq)))
     return Alignment(
         read_id=f"r{rng.randint(0, 1_000_000)}",
         read_seq=seq,

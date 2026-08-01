@@ -945,15 +945,18 @@ def _match_reads_chunk(
                 plan=plan,
             )
             if result is None:
+                # A hit that resolved to no well is not an assignment, so it
+                # must not consume the read's "first assignment" slot; doing so
+                # mis-filed the next successful hit as a chimera split.
                 ambiguous_delta += 1
-                is_first_hit = False
                 continue
 
             r_idx, f_idx = result
             well = (r_idx, f_idx)
 
             if well in assigned_wells_this_read:
-                is_first_hit = False
+                # Duplicate of a well already assigned for this read; the slot
+                # was consumed by that earlier hit, not by this one.
                 continue
 
             assigned_wells_this_read.add(well)
@@ -1354,16 +1357,19 @@ def _run_combinatorial_demux_body(
                             plan=barcode_plan,
                         )
                         if result is None:
+                            # A hit that resolved to no well is not an
+                            # assignment, so it must not consume the read's
+                            # "first assignment" slot; doing so mis-filed the
+                            # next successful hit as a chimera split.
                             stats.ambiguous_dropped += 1
-                            is_first_hit = False
                             continue
 
                         r_idx, f_idx = result
                         well = (r_idx, f_idx)
 
                         if well in assigned_wells_this_read:
-                            # Already assigned to this well from an earlier hit.
-                            is_first_hit = False
+                            # Already assigned to this well from an earlier hit;
+                            # that hit consumed the slot, not this one.
                             continue
 
                         assigned_wells_this_read.add(well)
