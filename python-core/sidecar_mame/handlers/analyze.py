@@ -322,6 +322,7 @@ def handle_analyze(params: dict) -> dict:
         is_minknow_run_dir,
         route_ingest,
     )
+    from kuma_core.mame.perf import TIMER
     from kuma_core.mame.pipeline import run_analyze
 
     input_dir = _validate_dirpath(params["input_dir"])
@@ -511,6 +512,16 @@ def handle_analyze(params: dict) -> dict:
         # ingests it exactly like a pre-demuxed consensus dir.
         input_dir = demux_output_dir
 
+    # Perf window for the whole analyze body. ``run_analyze`` used to open its
+    # own, which left everything this handler does around it (the ingest for the
+    # distribution stats, run-meta discovery, the expected-mutations read, the
+    # response serialisation) outside every reported scope: the handler measured
+    # 2.33 s against a 1.26 s "analyze" scope on a share, and the missing second
+    # was invisible. The window is opened here and ``run_analyze`` is told not to
+    # report (``perf_scope=None``), so there is exactly ONE report and its wall is
+    # the handler wall. The raw-run demux above is deliberately outside it: that
+    # stage reports its own scopes.
+    _perf_base = TIMER.begin()
     _emit(5, "Validating inputs...")
 
     mode = str(params.get("mode", "amplicon"))
@@ -596,6 +607,36 @@ def handle_analyze(params: dict) -> dict:
                 total=total,
             )
 
+    # A11: discover MinKNOW run metadata once at analyze time and cache it.
+    # It is pure read-only filesystem probing whose result is not needed until
+    # ``set_last_analyze`` at the very end, and on a share it costs ~0.17 s of
+    # directory globbing that used to sit on the critical path after the
+    # pipeline. Running it alongside the pipeline removes it from the wall
+    # without moving where its value is consumed. Imported lazily (cold start).
+    from kuma_core.mame.ingest.run_meta import discover_run_meta
+
+    _run_meta_holder: dict[str, Any] = {}
+
+    def _discover_run_meta() -> None:
+        # ``_sum`` suffix per kuma_core.mame.perf: this is accumulated on a
+        # worker thread and overlaps the reporting thread's wall, so it is a
+        # share-of-wall number, not a slice of a partition.
+        try:
+            with TIMER.phase("run_meta_sum"):
+                _run_meta_holder["value"] = discover_run_meta(
+                    original_run_dir if is_raw else input_dir
+                )
+        except BaseException as exc:  # noqa: BLE001 - re-raised on the main thread
+            # Moving this call onto a thread must not turn a failure into a
+            # silent ``run_meta=None``: the exception is carried back and raised
+            # where the synchronous version would have raised it.
+            _run_meta_holder["error"] = exc
+
+    _meta_thread = threading.Thread(
+        target=_discover_run_meta, daemon=True, name="analyze-run-meta"
+    )
+    _meta_thread.start()
+
     _hb_thread = threading.Thread(
         target=_heartbeat, daemon=True, name="analyze-heartbeat"
     )
@@ -606,10 +647,21 @@ def handle_analyze(params: dict) -> dict:
         # the pipeline raises later. This ingest is silent I/O; the heartbeat
         # (already running) covers it.
         ingest_mode_enum = IngestMode(ingest_mode_raw)
-        raw_records = route_ingest(input_dir, ingest_mode_enum)
+        with TIMER.phase("ingest"):
+            raw_records = route_ingest(input_dir, ingest_mode_enum)
         dist_stats = compute_distribution_stats(
             [rec.file_size_kb for rec in raw_records]
         )
+
+        # Read the expected-mutations xlsx ONCE. ``run_analyze`` needs the parsed
+        # rows and this handler needs the designed-mutant denominator derived from
+        # them; each used to open the same workbook separately.
+        from kuma_core.mame.detected import designed_mutant_ids as _designed_ids
+        from kuma_core.mame.io.kuro_reader import read_expected_mutations
+
+        with TIMER.phase("expected_read"):
+            expected_mutations = read_expected_mutations(expected)
+        dids = _designed_ids(expected_mutations)
 
         _emit(30, "Translating sequences...")
         _holder["value"] = 30
@@ -637,6 +689,10 @@ def handle_analyze(params: dict) -> dict:
                     sample_map_path=sample_map_path,
                     well_layout=well_layout,
                     progress_callback=_band_callback,
+                    records=raw_records,
+                    expected_mutations=expected_mutations,
+                    designed_mutant_ids=dids,
+                    perf_scope=None,
                 )
         else:
             verdicts, replicates = run_analyze(
@@ -655,6 +711,10 @@ def handle_analyze(params: dict) -> dict:
                 sample_map_path=sample_map_path,
                 well_layout=well_layout,
                 progress_callback=_band_callback,
+                records=raw_records,
+                expected_mutations=expected_mutations,
+                designed_mutant_ids=dids,
+                perf_scope=None,
             )
     finally:
         # Stop and join the heartbeat BEFORE the terminal milestones so a stale
@@ -665,19 +725,15 @@ def handle_analyze(params: dict) -> dict:
     _emit(85, "Selecting best replicates...")
     _emit(100, "Writing Excel output...")
 
-    # A11: discover MinKNOW run metadata once at analyze time and cache it.
-    # Imported lazily to avoid cold-start overhead.
-    from kuma_core.mame.ingest.run_meta import discover_run_meta
-
-    run_meta = discover_run_meta(original_run_dir if is_raw else input_dir)
-
-    # Recovery (재현율) denominator: distinct designed mutant_ids from the same
-    # expected-mutations xlsx the pipeline validated/consumed. Read once here so
-    # downstream recovery survives both analyze and workspace-reload.
-    from kuma_core.mame.detected import designed_mutant_ids as _designed_ids
-    from kuma_core.mame.io.kuro_reader import read_expected_mutations
-
-    dids = _designed_ids(read_expected_mutations(expected))
+    # Collect the run metadata discovered alongside the pipeline. ``dids`` (the
+    # recovery denominator: distinct designed mutant_ids) came from the single
+    # expected-mutations read above, which ``run_analyze`` shared, so downstream
+    # recovery still survives both analyze and workspace-reload.
+    _meta_thread.join()
+    _meta_error = _run_meta_holder.get("error")
+    if _meta_error is not None:
+        raise _meta_error
+    run_meta = _run_meta_holder.get("value")
 
     set_last_analyze(
         verdicts,
@@ -687,7 +743,7 @@ def handle_analyze(params: dict) -> dict:
         designed_mutant_ids=dids,
     )
 
-    return {
+    response = {
         "verdicts": [_serialize_verdict(v) for v in verdicts],
         "replicates": [_serialize_replicate(r) for r in replicates],
         "output_path": str(output),
@@ -714,6 +770,8 @@ def handle_analyze(params: dict) -> dict:
             else {}
         ),
     }
+    TIMER.end("analyze", _perf_base, records=len(verdicts))
+    return response
 
 
 __all__ = [
