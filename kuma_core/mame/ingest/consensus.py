@@ -97,6 +97,49 @@ for _op in (_CIGAR_D, _CIGAR_N):
 
 _BIG = np.int64(np.iinfo(np.int64).max)
 
+# Query bases per vectorized batch.
+#
+# The pileup is linear in aligned bases in operation count, but flattening a
+# whole well at once is not linear in *time*: every intermediate
+# (``_expand_ranges`` output, the query/quality gather indices, the flat vote
+# codes) is one int64 per aligned base, so a deep well builds hundreds of MB of
+# transients that no longer fit any cache. Measured on a 1683 bp reference, the
+# single-batch cost per aligned base rose from 47 ns at depth 50 to 90 ns at
+# depth 3200 purely from that effect. Well count saturates at the plate size
+# while run size keeps growing, so depth is exactly the axis that scales.
+#
+# Batching caps the working set instead. Batches are consecutive slices in read
+# order, so the ``first_touch`` tie-break is preserved by a running minimum
+# (see ``_accumulate_batch``) and every other accumulator is a plain sum.
+#
+# The value is set from whole-pipeline interleaved A/B, not from a microbenchmark.
+# Consensus runs on a ThreadPool of ``cpu_count - 1`` inside each of three demux
+# processes, and that oversubscription changes the answer: an isolated
+# single-threaded replay of real wells prefers a budget near 32 Ki and reports a
+# 3x win, while the same wells inside the pipeline regress at that budget. Tune
+# this against ``scripts/perf_step2_harness.py``, never against a standalone loop.
+#
+# Measured, per-worker-summed ``well_consensus_wall``, interleaved so machine load
+# hits both arms, with ``align_minimap2`` quoted as an untouched control:
+#
+#   scale                 unbatched   262144   ratio   control (align)
+#   s2  488 MB, 306 rd/well  7.33 s   9.61 s   0.76x   63.2 -> 72.3 s
+#   s3 2201 MB, 1724 rd/well 53.87 s  28.83 s  1.87x   270.8 -> 261.2 s
+#   s3 second pair           56.34 s  29.50 s  1.91x   272.7 -> 280.6 s
+#
+# So this trades roughly 20 percent of the consensus phase at s2 (about 2 percent
+# of a worker wall, inside pipeline run-to-run noise) for 1.9x at s3, and the gap
+# widens with depth because well count saturates at the plate size while run size
+# keeps growing. Peak RSS is the other half of the reason: at s3 the unbatched
+# path peaked at 5901 MB across the process tree and 4325 MB in a single worker,
+# against 2636 MB and 1511 MB batched. The real run is 5902 MB of FASTQ, larger
+# than s3, so the unbatched transients are an out-of-memory hazard there.
+#
+# Raising the budget does not recover the s2 cost (524288 measured within 2
+# percent of 262144 across three pairs), so the s2 side is inherent to splitting
+# at all rather than a budget that is merely too small.
+_BATCH_BASE_BUDGET = 262144
+
 
 def _expand_ranges(starts: np.ndarray, counts: np.ndarray) -> np.ndarray:
     """Concatenate ``range(s, s + c)`` for every (start, count) pair."""
@@ -341,7 +384,7 @@ def _accumulate_all(
     ref_len: int,
     min_base_quality: int,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, int, list[int]]:
-    """Build the whole-well pileup from every alignment in one vectorized pass.
+    """Build the whole-well pileup from every alignment.
 
     Returns ``(counts, first_touch, insertion_events, n_low_quality_bases,
     per_read_net_indel)``.  ``counts`` and ``first_touch`` are ``(ref_len, 6)``
@@ -349,9 +392,11 @@ def _accumulate_all(
     of the earliest alignment that voted each (position, token) pair and exists
     solely to reproduce the scalar dict-insertion-order tie-break.
 
-    Every alignment is flattened into one batch (one concatenated CIGAR table,
-    one concatenated query buffer) so the cost per well is a fixed handful of
-    array operations instead of a handful per read.
+    Alignments are flattened into vectorized batches (one concatenated CIGAR
+    table, one concatenated query buffer per batch) so the cost is a fixed
+    handful of array operations per batch instead of per read.  Batches are
+    capped at ``_BATCH_BASE_BUDGET`` query bases; see that constant for why the
+    whole well is not flattened at once.
     """
     n_reads = len(alignments)
     counts = np.zeros((ref_len, _N_TOKENS), dtype=np.int64)
@@ -359,6 +404,76 @@ def _accumulate_all(
     insertion_events = np.zeros(ref_len, dtype=np.int64)
     if n_reads == 0 or ref_len == 0:
         return counts, first_touch, insertion_events, 0, [0] * n_reads
+
+    n_low_quality_bases = 0
+    per_read_net_indel: list[int] = []
+    # Scratch reused across batches so the merge below allocates nothing.
+    batch_first = np.empty((ref_len, _N_TOKENS), dtype=np.int64)
+    for lo_read, hi_read in _batch_bounds(alignments):
+        n_low_quality_bases += _accumulate_batch(
+            alignments,
+            lo_read,
+            hi_read,
+            ref_len,
+            min_base_quality,
+            counts,
+            first_touch,
+            batch_first,
+            insertion_events,
+            per_read_net_indel,
+        )
+
+    return (
+        counts,
+        first_touch,
+        insertion_events,
+        n_low_quality_bases,
+        per_read_net_indel,
+    )
+
+
+def _batch_bounds(alignments: Sequence[Alignment]) -> list[tuple[int, int]]:
+    """Split ``alignments`` into consecutive read ranges of bounded query size.
+
+    Ranges are consecutive and in read order, which is what keeps the
+    ``first_touch`` tie-break well defined: every read in batch *k* has a larger
+    alignment index than every read in batch *k-1*, so merging batch results
+    with a running minimum reproduces the single-batch answer exactly.
+    """
+    bounds: list[tuple[int, int]] = []
+    lo = 0
+    acc = 0
+    for i, aln in enumerate(alignments):
+        acc += len(aln.read_seq)
+        if acc >= _BATCH_BASE_BUDGET:
+            bounds.append((lo, i + 1))
+            lo = i + 1
+            acc = 0
+    if lo < len(alignments):
+        bounds.append((lo, len(alignments)))
+    return bounds
+
+
+def _accumulate_batch(
+    alignments: Sequence[Alignment],
+    lo_read: int,
+    hi_read: int,
+    ref_len: int,
+    min_base_quality: int,
+    counts: np.ndarray,
+    first_touch: np.ndarray,
+    batch_first: np.ndarray,
+    insertion_events: np.ndarray,
+    per_read_net_indel: list[int],
+) -> int:
+    """Fold ``alignments[lo_read:hi_read]`` into the running well accumulators.
+
+    ``counts``, ``first_touch``, ``insertion_events`` and ``per_read_net_indel``
+    are updated in place; the low-quality base count for this batch is returned.
+    ``batch_first`` is caller-owned scratch of the same shape as ``first_touch``.
+    """
+    batch = alignments[lo_read:hi_read]
+    n_reads = len(batch)
 
     # --- flatten reads -----------------------------------------------------
     seq_parts: list[bytes] = []
@@ -371,7 +486,7 @@ def _accumulate_all(
     q_st = np.empty(n_reads, dtype=np.int64)
     any_qual = False
 
-    for i, aln in enumerate(alignments):
+    for i, aln in enumerate(batch):
         if aln.strand == -1:
             q_seq = _reverse_complement(aln.read_seq)
             q_qual = aln.read_qual[::-1] if aln.read_qual is not None else None
@@ -403,7 +518,8 @@ def _accumulate_all(
 
     n_total_ops = int(n_ops.sum())
     if n_total_ops == 0:
-        return counts, first_touch, insertion_events, 0, [0] * n_reads
+        per_read_net_indel.extend([0] * n_reads)
+        return 0
 
     cigar = np.array(cigar_pairs, dtype=np.int64).reshape(-1, 2)
     lengths = cigar[:, 0]
@@ -432,7 +548,7 @@ def _accumulate_all(
     net = np.bincount(
         op_read, weights=signed_indel.astype(np.float64), minlength=n_reads
     )
-    per_read_net_indel = [int(v) for v in net]
+    per_read_net_indel.extend(int(v) for v in net)
 
     n_low_quality_bases = 0
     flat_match = np.empty(0, dtype=np.int64)
@@ -491,35 +607,35 @@ def _accumulate_all(
         anchors = ref_starts[is_ins] - 1
         anchors = anchors[(anchors >= 0) & (anchors < ref_len)]
         if anchors.size:
-            insertion_events = np.bincount(anchors, minlength=ref_len).astype(
+            insertion_events += np.bincount(anchors, minlength=ref_len).astype(
                 np.int64
             )
 
     if flat_match.size or flat_del.size:
         allflat = np.concatenate((flat_match, flat_del))
-        counts = (
-            np.bincount(allflat, minlength=ref_len * _N_TOKENS)
-            .astype(np.int64)
-            .reshape(ref_len, _N_TOKENS)
+        flat_counts = counts.reshape(-1)
+        flat_counts += np.bincount(allflat, minlength=ref_len * _N_TOKENS).astype(
+            np.int64
         )
         # Base votes and deletion votes land in disjoint columns, so the two
         # writes below never collide and each can be done independently.  Both
         # index arrays are ordered by alignment, and duplicate fancy-index
         # writes keep the last assignment, so writing in reverse leaves the
         # smallest alignment index (the first-touch) in place.
-        flat_first = first_touch.reshape(-1)
+        #
+        # Writes land in per-batch scratch and are folded into the running
+        # ``first_touch`` with a minimum.  Batches are consecutive slices in read
+        # order, so an earlier batch always holds the smaller alignment index and
+        # the minimum picks the same winner a single flattened batch would.
+        batch_first.fill(_BIG)
+        flat_first = batch_first.reshape(-1)
         if flat_match.size:
-            flat_first[flat_match[::-1]] = read_match[::-1]
+            flat_first[flat_match[::-1]] = read_match[::-1] + lo_read
         if flat_del.size:
-            flat_first[flat_del[::-1]] = read_del[::-1]
+            flat_first[flat_del[::-1]] = read_del[::-1] + lo_read
+        np.minimum(first_touch, batch_first, out=first_touch)
 
-    return (
-        counts,
-        first_touch,
-        insertion_events,
-        n_low_quality_bases,
-        per_read_net_indel,
-    )
+    return n_low_quality_bases
 
 
 def _phred33(qual: str, idx: int) -> int | None:
