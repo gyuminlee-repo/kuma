@@ -33,6 +33,8 @@ import logging
 import threading
 from pathlib import Path
 
+from kuma_core.mame.ingest.demux import FASTQ_PATTERNS
+from kuma_core.shared.fs_walk import rglob_entries
 from sidecar_mame.core import _send
 from sidecar_mame.models import CombinatorialDemuxParams
 
@@ -48,6 +50,22 @@ _HEARTBEAT_INTERVAL_S: float = 30.0
 _emit_lock = threading.Lock()
 
 
+def _fastq_sorted(directory: Path) -> list[Path]:
+    """FASTQ(.gz) under *directory*, ordered as the two-``rglob`` version was.
+
+    The previous expression was ``sorted(rglob("*.fastq")) + sorted(rglob(
+    "*.fastq.gz"))``: two full recursive walks of one tree, and a concatenation
+    of two independently sorted groups rather than one merged sort.  One walk
+    now answers both patterns; the group order is preserved because this list is
+    the demux input order.
+    """
+    matches = rglob_entries(directory, FASTQ_PATTERNS)
+    out: list[Path] = []
+    for pattern in FASTQ_PATTERNS:
+        out.extend(sorted(path for path, _entry in matches[pattern]))
+    return out
+
+
 def _collect_fastq(minknow_run_dir: Path) -> list[Path]:
     """Collect FASTQ(.gz) files from a MinKNOW run directory.
 
@@ -60,9 +78,7 @@ def _collect_fastq(minknow_run_dir: Path) -> list[Path]:
         raise FileNotFoundError(
             f"fastq_pass/ directory not found under {minknow_run_dir}"
         )
-    paths = sorted(fastq_pass.rglob("*.fastq")) + sorted(
-        fastq_pass.rglob("*.fastq.gz")
-    )
+    paths = _fastq_sorted(fastq_pass)
     if not paths:
         raise FileNotFoundError(
             f"No FASTQ files found under {fastq_pass}"
@@ -157,7 +173,7 @@ def handle_run_combinatorial_demux(params: dict) -> dict:
             nb_input = fastq_pass / nb_name
             if not nb_input.is_dir():
                 raise FileNotFoundError(f"native barcode dir not found: {nb_input}")
-            fq = sorted(nb_input.rglob("*.fastq")) + sorted(nb_input.rglob("*.fastq.gz"))
+            fq = _fastq_sorted(nb_input)
             if not fq:
                 raise FileNotFoundError(f"No FASTQ files under {nb_input}")
             nb_to_fastq[nb_name] = fq
