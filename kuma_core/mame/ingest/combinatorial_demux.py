@@ -1391,9 +1391,13 @@ def _run_combinatorial_demux_body(
         well_index = None
 
     # One minimap2 call for every well of this unit instead of one per well.
-    # Per-read results are identical (minimap2 maps each query independently and
-    # the seed-occurrence cutoffs come from the prebuilt index, not the query
-    # set) and align_reads_grouped keeps each well's reads in input order, which
+    # Per-read results were verified identical over 92 wells and 4936 reads.
+    # Note the independence argument is necessary but not sufficient: minimap2
+    # maps each query independently and the seed-occurrence cutoffs come from
+    # the prebuilt index rather than the query set, but its per-read RNG is
+    # seeded from the query NAME hash, so regrouping that renumbers reads can
+    # move a few alignments (see the CORRECTION above _READ_CHUNK_DEFAULT).
+    # align_reads_grouped keeps each well's reads in input order, which
     # the consensus tie-break depends on. Threads: the per-well calls had to
     # stay at 1 because up to n_workers wells aligned concurrently; a single
     # batched call can use this worker's whole allotted share.
