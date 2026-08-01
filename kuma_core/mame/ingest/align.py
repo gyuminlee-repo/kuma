@@ -273,13 +273,27 @@ def _normalise_read_tuple(read: tuple[str, ...]) -> tuple[str, str, str | None]:
 
 
 def _write_reads_fasta(
-    reads: Iterable[tuple[str, ...]], fasta_path: Path
+    reads: Iterable[tuple[str, ...]], fasta_path: Path, name_offset: int = 0
 ) -> list[tuple[str, str, str | None]]:
     """Write reads to a FASTA with synthetic integer QNAMEs.
 
     Returns an index map:
     ``index_map[i] == (original_read_id, original_seq, original_qual_or_none)``.
     Empty reads are skipped (not written, not indexed).
+
+    ``name_offset`` is added to the written QNAME (the returned index map stays
+    0-based). The QNAME is NOT cosmetic: minimap2 seeds its per-read RNG from a
+    hash of the query name (map.c ``mm_map_frag``: ``__ac_X31_hash_string(qname)``
+    mixed with the query length and ``--seed``), and that RNG drives the random
+    subsampling of high-occurrence seeds plus chain tie-breaks. Two runs over the
+    same read with a different QNAME can therefore pick a different primary hit,
+    a different supplementary order, or a different MAPQ. A caller that aligns
+    one logical read set in several calls must pass a running offset so every
+    read keeps the QNAME it would have had in a single call; otherwise the split
+    point changes the alignment output. Measured on the step2 reference workload
+    (3000 barcode13 reads, ispS.fasta, ``map-ont -N 20``): renumbering the very
+    same reads from 0.. to 100000.. changed the SAM at ``-t 1`` and ``-t 7``
+    alike, including a MAPQ 60 -> 1 flip.
     """
     index_map: list[tuple[str, str, str | None]] = []
     with fasta_path.open("w", encoding="utf-8") as fh:
@@ -289,7 +303,7 @@ def _write_reads_fasta(
                 continue
             idx = len(index_map)
             index_map.append((read_id, seq, qual))
-            fh.write(f">{idx}\n{seq}\n")
+            fh.write(f">{idx + name_offset}\n{seq}\n")
     return index_map
 
 
@@ -437,6 +451,7 @@ def align_reads(
     threads: int | None = None,
     reference_index: Path | None = None,
     coverage_fraction: float | None = None,
+    name_offset: int = 0,
 ) -> list[Alignment]:
     """Align reads to a reference using the minimap2 CLI.
 
@@ -487,16 +502,18 @@ def align_reads(
 
     with tempfile.TemporaryDirectory(prefix="kuro_align_") as tmpdir:
         reads_fasta = Path(tmpdir) / "reads.fasta"
-        index_map = _write_reads_fasta(reads, reads_fasta)
+        index_map = _write_reads_fasta(reads, reads_fasta, name_offset=name_offset)
         if not index_map:
             return []
 
         positional_ref = reference_index if reference_index is not None else reference_fasta
         records = _run_minimap2(positional_ref, reads_fasta, preset, threads=threads)
 
-        # Collect the single primary alignment per read index.
+        # Collect the single primary alignment per read index. QNAMEs carry
+        # name_offset (see _write_reads_fasta); strip it to index into index_map.
         primary: dict[int, Alignment] = {}
-        for read_index, flag, pos, mapq, cigar_str in records:
+        for qname_index, flag, pos, mapq, cigar_str in records:
+            read_index = qname_index - name_offset
             if flag & (_FLAG_SECONDARY | _FLAG_SUPPLEMENTARY):
                 continue
             if read_index in primary:
@@ -738,6 +755,7 @@ def align_reads_multi(
     best_n: int = 20,
     threads: int | None = None,
     reference_index: Path | None = None,
+    name_offset: int = 0,
 ) -> list[tuple[str, str, list[Alignment]]]:
     """Align reads and return ALL passing hits per read (chimera/concatemer support).
 
@@ -771,6 +789,15 @@ def align_reads_multi(
         identical.  ``reference_fasta`` is still read for its length.  With one
         call per read chunk the saving scales with the chunk count, so this is a
         precondition for finer read chunking rather than a win on its own.
+    name_offset:
+        Value added to the synthetic integer QNAME written for each read (see
+        :func:`_write_reads_fasta`). A caller that aligns one logical read set in
+        several calls MUST pass the number of reads already aligned, otherwise
+        each call restarts the numbering at 0, every read gets a different QNAME
+        than it would have had in a single call, and minimap2 (whose per-read RNG
+        is seeded from the QNAME hash) returns different hits for a small number
+        of reads. The offset is stripped again before the results are built, so
+        returned read ids and hit order are unaffected by its value.
 
     Returns
     -------
@@ -803,7 +830,7 @@ def align_reads_multi(
 
     with tempfile.TemporaryDirectory(prefix="kuro_align_") as tmpdir:
         reads_fasta = Path(tmpdir) / "reads.fasta"
-        index_map = _write_reads_fasta(reads, reads_fasta)
+        index_map = _write_reads_fasta(reads, reads_fasta, name_offset=name_offset)
         if not index_map:
             return []
 
@@ -814,8 +841,11 @@ def align_reads_multi(
         )
 
         # Collect passing hits per read index (primary + supplementary).
+        # QNAMEs carry name_offset; strip it to get back the 0-based index_map
+        # position, so nothing downstream sees the offset.
         hits_by_index: dict[int, list[Alignment]] = {}
-        for read_index, flag, pos, mapq, cigar_str in records:
+        for qname_index, flag, pos, mapq, cigar_str in records:
+            read_index = qname_index - name_offset
             if flag & _FLAG_SECONDARY:
                 continue
             if mapq < min_mapq:
