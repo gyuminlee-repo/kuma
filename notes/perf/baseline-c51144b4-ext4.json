@@ -1,0 +1,137 @@
+{
+  "schema": "kuma-mame-step2-perf/1",
+  "created_utc": "2026-08-01T09:18:01Z",
+  "git_head": "c51144b4",
+  "identity": {
+    "assigned_reads": 12836,
+    "total_reads": 34278,
+    "wells_with_reads": 280,
+    "verdicts": {
+      "PASS": 91,
+      "AMBIGUOUS": 4,
+      "MIXED": 3,
+      "FAIL": 185
+    },
+    "tree_sha256": "6ef2d9f8824b5a79487a4359dc568081f6d51543aa16f6a61b219b9750e68de5",
+    "file_count": 287,
+    "hash_excluded": [
+      "result.xlsx"
+    ]
+  },
+  "identity_stable_across_repeats": true,
+  "identity_unstable_keys": [],
+  "extra": {
+    "native_barcodes": [
+      "barcode13",
+      "barcode20",
+      "barcode06"
+    ],
+    "demux_stats": {
+      "total_reads": 34278,
+      "passed_mapq": 22105,
+      "passed_coverage": 22105,
+      "assigned_reads": 12836,
+      "ambiguous_dropped": 12935,
+      "chimera_splits": 4689,
+      "wells_with_reads": 280,
+      "wells_with_min_reads": 267
+    },
+    "verdict_total": 280
+  },
+  "environment": {
+    "out_root": "/home/gml/.cache/kuma-perf",
+    "out_root_fs": "ext4",
+    "run_dir": "/mnt/d/_workspace/020.admin/projects/060.nanopore_NGS/mame_step21_test/20260212_2227_X4_FBF10847_e7145f8e",
+    "inputs_dir": "/mnt/d/_workspace/020.admin/projects/060.nanopore_NGS/mame_step21_test/inputs",
+    "minimap2": "/mnt/d/_workspace/cc/kuma/python-core/vendor/minimap2/linux-x64/minimap2",
+    "python": "3.11.15",
+    "cpu_count": 10,
+    "tuning_env": {
+      "KUMA_MAME_NB_PARALLEL": null,
+      "KUMA_MAME_NB_WORKERS": null,
+      "KUMA_MAME_PERREAD_THRESHOLD": null,
+      "KUMA_MAME_PERREAD_WORKERS": null,
+      "KUMA_MAME_CONSENSUS_WORKERS": null,
+      "KUMA_MAME_READ_CHUNK": null,
+      "KUMA_MAME_FASTQ_PREFETCH": null,
+      "KUMA_MAME_KEEP_WELL_READS": null,
+      "KUMA_MAME_MP_START": null
+    }
+  },
+  "timing": {
+    "repeat": 3,
+    "wall_s_runs": [
+      14.2714,
+      10.0615,
+      9.7452
+    ],
+    "wall_s_median": 10.0615,
+    "demux_s_runs": [
+      13.252,
+      9.5071,
+      8.9082
+    ],
+    "demux_s_median": 9.5071,
+    "analyze_s_runs": [
+      0.9548,
+      0.5088,
+      0.5363
+    ],
+    "analyze_s_median": 0.5363,
+    "phases_s_median": {
+      "export_excel": 0.3148,
+      "translate_diff": 0.0676,
+      "expected_read": 0.016,
+      "load_barcodes_parent": 0.0134,
+      "ingest": 0.0105,
+      "verdict_classify": 0.0032,
+      "run_meta_sum": 0.001,
+      "align_minimap2": 0.0,
+      "well_consensus_wall": 0.0,
+      "well_consensus.compute_sum": 0.0,
+      "well_consensus.align_minimap2_batch.sam_parse": 0.0,
+      "build_index": 0.0,
+      "align_minimap2.sam_parse": 0.0,
+      "well_consensus.align_minimap2_batch.minimap2_wall": 0.0,
+      "align_minimap2.minimap2_wall": 0.0,
+      "write_well_fasta": 0.0,
+      "barcode_match": 0.0,
+      "load_barcodes": 0.0,
+      "fastq_read": 0.0,
+      "well_consensus.align_minimap2_batch": 0.0
+    },
+    "scopes_run0": [
+      {
+        "scope": "demux",
+        "pid": 1803622,
+        "wall_s": 7.8638
+      },
+      {
+        "scope": "demux",
+        "pid": 1803621,
+        "wall_s": 8.6268
+      },
+      {
+        "scope": "demux",
+        "pid": 1803618,
+        "wall_s": 9.2313
+      },
+      {
+        "scope": "demux_per_nb",
+        "pid": 1803175,
+        "wall_s": 13.2312,
+        "workers": 3,
+        "barcodes": 3,
+        "parallel": true
+      },
+      {
+        "scope": "analyze",
+        "pid": 1803175,
+        "wall_s": 0.5069
+      }
+    ]
+  },
+  "hash_exclusions": {
+    "result.xlsx": "xlsx zip container embeds per-entry mtime, not content-deterministic"
+  }
+}
