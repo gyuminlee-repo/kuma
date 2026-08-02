@@ -870,7 +870,16 @@ class PreviewEvolveproSourceParams(BaseModel):
 class LoadEvolveproParams(BaseModel):
     filepath: str = ""
     top_n: int = Field(default=96, ge=0, le=10000)
-    max_per_position: int = Field(default=0, ge=0)
+    # Default 1 (one substitution per residue), matching the UI default. The
+    # frontend only sends this when both usePipeline and positionDiversityEnabled
+    # are on, so a 0 default meant either toggle silently restored unlimited
+    # stacking. Pass 0 explicitly to opt back into unlimited.
+    max_per_position: int = Field(default=1, ge=0)
+    # Residues at the CDS 3' end to drop; requires ref_seq. Kept as a literal so
+    # this module stays importable without kuma_core (gen_models_schema.py dumps
+    # the schema standalone); tests/test_evolvepro.py pins it equal to
+    # kuma_core.kuro.evolvepro.DEFAULT_C_TERM_MARGIN, which carries the derivation.
+    c_term_margin: int = Field(default=1, ge=0)
     domains: list[DomainEntry] = Field(default_factory=list)
     excluded_ranges: list[ExcludedRange] = Field(default_factory=list)
     domain_diversity: bool = False

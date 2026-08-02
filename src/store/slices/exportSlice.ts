@@ -595,6 +595,14 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         const result = await sendRequest("load_evolvepro_csv", {
           filepath: inputs.evolveproCsvPath,
           top_n: (settings.fillOnFailure ?? true) ? sendCount * 2 : sendCount,
+          // This call rebuilds the y_pred lookup and the candidate pool for an
+          // already-decided workspace; it does not re-run selection. Both
+          // guards are switched off so the restored map still covers every
+          // saved mutation, including several at one position or one at the
+          // C terminus. Leaving them at their defaults would silently drop
+          // y_pred entries for variants the workspace already committed to.
+          max_per_position: 0,
+          c_term_margin: 0,
         });
         const yPredMap: Record<string, number> = {};
         if (Array.isArray(result.variants) && Array.isArray(result.y_preds)) {

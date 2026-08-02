@@ -211,6 +211,7 @@ def handle_load_evolvepro_csv(params: dict) -> dict:
         filepath=str(resolved),
         top_n=p.top_n,
         max_per_position=p.max_per_position,
+        c_term_margin=p.c_term_margin,
         domains=p.domains,
         excluded_ranges=[{"start": r.start, "end": r.end} for r in p.excluded_ranges],
         domain_diversity=p.domain_diversity,

@@ -705,6 +705,7 @@ export interface LandscapeEntry {
 }
 export interface LoadEvolveproParams {
   anchor_variants?: string[];
+  c_term_margin?: number;
   distance_mode?: "auto" | "1d" | "3d";
   domain_diversity?: boolean;
   domain_overlap_policy?: "first" | "largest";

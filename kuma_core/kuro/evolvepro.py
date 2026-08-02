@@ -492,6 +492,38 @@ def _variant_has_position_one(variant: str) -> bool:
     return False
 
 
+#: Residues at the CDS 3' end excluded by default (see _variant_in_c_term_margin).
+#: Derived from the SDM design constraints, not chosen by hand:
+#: _extend_forward requires at least ``min_downstream`` nucleotides 3' of the
+#: mutant codon (``max(profile.min_3prime_dist, 1)``; every built-in profile in
+#: resources/polymerase_profiles.json sets min_3prime_dist = 4). Within the
+#: coding frame a mutation at protein position p has 3*(L-p)+3 nucleotides left
+#: (remaining codons plus the stop codon), so 3*(L-p)+3 >= 4 holds for every
+#: p <= L-1 and fails only at p = L. The last residue is therefore the only
+#: position whose forward-primer 3' arm cannot be placed inside the coding
+#: sequence at all; it is always vector-derived and hence construct-specific.
+#: No larger margin follows from the constraints, so none is applied.
+DEFAULT_C_TERM_MARGIN = 1
+
+
+def _variant_in_c_term_margin(variant: str, protein_length: int, margin: int) -> bool:
+    """Return True if any token of *variant* sits in the last *margin* residues.
+
+    Mirrors _variant_has_position_one at the opposite terminus. Returns False
+    when the protein length is unknown (margin cannot be evaluated) or when
+    *margin* is not positive.
+    """
+    if margin <= 0 or protein_length <= 0:
+        return False
+    cutoff = protein_length - margin
+    for token in re.split(r"[/,]", variant):
+        token = token.strip()
+        m = _SINGLE_POS_RE.match(token)
+        if m and int(m.group(1)) > cutoff:
+            return True
+    return False
+
+
 def _extract_aa_position(variant: str) -> int | None:
     """Extract the 1-based amino acid position from the first token of a variant string.
 
@@ -509,7 +541,8 @@ def _extract_aa_position(variant: str) -> int | None:
 def load_evolvepro_csv(
     filepath: str | Path,
     top_n: int = 96,
-    max_per_position: int = 0,
+    max_per_position: int = 1,
+    c_term_margin: int = DEFAULT_C_TERM_MARGIN,
     domains: Sequence[Mapping[str, Any]] | None = None,
     excluded_ranges: Sequence[Mapping[str, Any]] | None = None,
     domain_diversity: bool = False,
@@ -545,7 +578,14 @@ def load_evolvepro_csv(
     top_n : int
         Maximum number of variants to select.
     max_per_position : int
-        Max mutations per amino acid position (0 = no limit).
+        Max mutations per amino acid position (0 = no limit). Defaults to 1,
+        matching the UI default and the R3-2 selection rule; pass 0 explicitly
+        to restore the unlimited behaviour.
+    c_term_margin : int
+        Residues at the CDS 3' end to exclude (0 = disabled). Requires
+        *ref_seq* to know the protein length; without it the guard is inert
+        and c_term_frame_known is False in the result. See
+        DEFAULT_C_TERM_MARGIN for the derivation of the default.
     domains : list[dict] | None
         Domain boundary dicts with 'name', 'start', 'end' keys.
     domain_diversity : bool
@@ -583,6 +623,20 @@ def load_evolvepro_csv(
     start_codon_removed_variants: list[str] = [r[0] for r in raw_rows if _variant_has_position_one(r[0])]
     raw_rows = [r for r in raw_rows if not _variant_has_position_one(r[0])]
     start_codon_removed = len(start_codon_removed_variants)
+    # Symmetric guard at the opposite terminus. Only active when ref_seq gives
+    # the protein length; the margin is a residue count, so it cannot be
+    # evaluated without one. Reported (not silent) so the UI can say why.
+    protein_length = len(ref_seq.strip())
+    c_term_frame_known = protein_length > 0
+    c_term_removed_variants: list[str] = []
+    if c_term_frame_known and c_term_margin > 0:
+        c_term_removed_variants = [
+            r[0] for r in raw_rows
+            if _variant_in_c_term_margin(r[0], protein_length, c_term_margin)
+        ]
+        removed_set = set(c_term_removed_variants)
+        raw_rows = [r for r in raw_rows if r[0] not in removed_set]
+    c_term_removed = len(c_term_removed_variants)
     # Build (variant, sort_score) pairs for all downstream filters/selectors.
     # raw_map keeps the original score for the final response yPredMap.
     score_rows: list[tuple[str, float]] = [(v, s) for v, s, _ in raw_rows]
@@ -714,12 +768,18 @@ def load_evolvepro_csv(
         "used_score_column": used_score_column,
         "start_codon_removed": start_codon_removed,
         "start_codon_removed_variants": start_codon_removed_variants,
+        "c_term_removed": c_term_removed,
+        "c_term_removed_variants": c_term_removed_variants,
+        "c_term_frame_known": c_term_frame_known,
         "step_stats": {
             "position_filter_removed": position_filter_removed,
             "domain_selected": domain_selected,
             "pareto_exchanges": pareto_exchanges,
             "start_codon_removed": start_codon_removed,
             "start_codon_removed_variants": start_codon_removed_variants,
+            "c_term_removed": c_term_removed,
+            "c_term_removed_variants": c_term_removed_variants,
+            "c_term_frame_known": c_term_frame_known,
         },
         "ranked_candidates": ranked_candidates,
     }

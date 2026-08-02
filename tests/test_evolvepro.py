@@ -393,7 +393,11 @@ class TestRefSeqConversion:
             "5K,1.2\n"
         )
         # ref_seq pos 1=M, 2=F, 3=L, 4=S, 5=I
-        result = load_evolvepro_csv(csv_file, top_n=10, ref_seq="MFLSI")
+        # c_term_margin=0: this case is about short-form → internal notation
+        # conversion. Position 5 is the last residue of this 5-mer ref_seq, so
+        # the default C-terminal guard would drop 5K and hide the conversion
+        # being asserted. The guard has its own tests below.
+        result = load_evolvepro_csv(csv_file, top_n=10, ref_seq="MFLSI", c_term_margin=0)
         assert "F2W" in result["variants"]
         assert "I5K" in result["variants"]
 
@@ -509,6 +513,108 @@ class TestStartCodonFilter:
 
         assert result["start_codon_removed_variants"] == []
         assert len(result["start_codon_removed_variants"]) == result["start_codon_removed"]
+
+
+class TestCTerminalGuard:
+    """Last-residue variants are excluded, mirroring the position-1 guard."""
+
+    def _csv(self, tmp_path, name):
+        csv_file = tmp_path / name
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "R10D,0.95\n"
+            "A30G,0.80\n"
+            "Q50K,0.70\n"
+        )
+        return csv_file
+
+    def test_last_residue_variant_excluded(self, tmp_path):
+        """A variant on the final residue of ref_seq is dropped and reported."""
+        result = load_evolvepro_csv(
+            self._csv(tmp_path, "cterm.csv"), top_n=10, ref_seq="A" * 50
+        )
+
+        assert "Q50K" not in result["variants"]
+        assert result["c_term_removed_variants"] == ["Q50K"]
+        assert result["c_term_removed"] == 1
+        assert result["c_term_frame_known"] is True
+        assert result["step_stats"]["c_term_removed_variants"] == ["Q50K"]
+
+    def test_inert_without_ref_seq(self, tmp_path):
+        """Without ref_seq the protein length is unknown, so nothing is dropped."""
+        result = load_evolvepro_csv(self._csv(tmp_path, "cterm_noref.csv"), top_n=10)
+
+        assert "Q50K" in result["variants"]
+        assert result["c_term_removed"] == 0
+        assert result["c_term_frame_known"] is False
+
+    def test_margin_zero_disables_guard(self, tmp_path):
+        """c_term_margin=0 is the escape hatch."""
+        result = load_evolvepro_csv(
+            self._csv(tmp_path, "cterm_off.csv"),
+            top_n=10,
+            ref_seq="A" * 50,
+            c_term_margin=0,
+        )
+
+        assert "Q50K" in result["variants"]
+        assert result["c_term_removed"] == 0
+
+    def test_larger_margin_covers_more_residues(self, tmp_path):
+        """A margin of 21 also removes position 30 of a 50 aa protein."""
+        result = load_evolvepro_csv(
+            self._csv(tmp_path, "cterm_wide.csv"),
+            top_n=10,
+            ref_seq="A" * 50,
+            c_term_margin=21,
+        )
+
+        assert result["c_term_removed_variants"] == ["A30G", "Q50K"]
+        assert result["variants"] == ["R10D"]
+
+    def test_default_margin_matches_sidecar_model(self):
+        """The Pydantic literal and the derived constant must not drift apart."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python-core"))
+        from sidecar_kuro.models import LoadEvolveproParams
+
+        from kuma_core.kuro.evolvepro import DEFAULT_C_TERM_MARGIN
+
+        params = LoadEvolveproParams()
+        assert params.c_term_margin == DEFAULT_C_TERM_MARGIN
+        assert params.max_per_position == 1
+
+
+class TestMaxPerPositionDefault:
+    """The backend default is 1, matching the UI, with 0 as the opt-out."""
+
+    def _csv(self, tmp_path, name):
+        csv_file = tmp_path / name
+        csv_file.write_text(
+            "variant,y_pred\n"
+            "R10D,0.95\n"
+            "R10E,0.94\n"
+            "R10K,0.93\n"
+            "A30G,0.80\n"
+        )
+        return csv_file
+
+    def test_default_caps_one_per_position(self, tmp_path):
+        result = load_evolvepro_csv(self._csv(tmp_path, "cap_default.csv"), top_n=10)
+
+        at_10 = [v for v in result["variants"] if v.startswith("R10")]
+        assert len(at_10) == 1
+        assert "A30G" in result["variants"]
+
+    def test_explicit_zero_restores_unlimited(self, tmp_path):
+        result = load_evolvepro_csv(
+            self._csv(tmp_path, "cap_off.csv"), top_n=10, max_per_position=0
+        )
+
+        at_10 = [v for v in result["variants"] if v.startswith("R10")]
+        assert len(at_10) == 3
 
 
 class TestRankedCandidates:

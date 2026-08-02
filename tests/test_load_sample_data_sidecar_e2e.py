@@ -104,7 +104,12 @@ def test_load_sample_data_text_mode_full_chain(client: SidecarClient) -> None:
             "ref_seq": translation,
         },
     )
-    assert csv_result["total_count"] >= 24
+    # The fixture holds 24 rows, one of which (K239A) sits on the last residue
+    # of the 239 aa translation and is dropped by the default C-terminal guard.
+    # The point of this assertion is that the sample still yields a usable pool,
+    # so it is stated as "everything except the guarded terminal variant".
+    assert csv_result["c_term_removed_variants"] == ["K239A"]
+    assert csv_result["total_count"] == 23
     assert csv_result["selected_count"] > 0
     assert len(csv_result["variants"]) > 0
 

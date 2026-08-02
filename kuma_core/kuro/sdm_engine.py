@@ -1596,6 +1596,40 @@ def _load_snapgene(dna_path: Path) -> tuple[str, str]:
     return header, sequence
 
 
+def find_cds_end(seq: str, target_start: int) -> int | None:
+    """Return the index just past the first in-frame stop codon after *target_start*.
+
+    The design template is normally the whole plasmid, not the CDS, so the
+    coding region has to be located before anything can say whether a primer
+    reaches past it. Returns None when no in-frame stop is found (the caller
+    then skips the boundary report rather than guessing).
+    """
+    stops = {"TAA", "TAG", "TGA"}
+    upper = seq.upper()
+    for i in range(target_start, len(upper) - 2, 3):
+        if upper[i:i + 3] in stops:
+            return i + 3
+    return None
+
+
+def annotate_cds_overrun(result: SdmPrimerResult, cds_end: int) -> None:
+    """Record how far the forward primer reaches past the CDS stop codon.
+
+    Not a failure. The forward 3' arm running into vector sequence is normal and
+    often unavoidable near the C terminus, but it makes the primer specific to
+    this construct, which is otherwise invisible to the user. Only the forward
+    primer is checked: it is the only one whose template span is reconstructible
+    from the stored fields in both overlap modes (overlap_window.start is the
+    primer 5' end in each), and it is the only one that can cross the 3' boundary.
+    """
+    fwd_end = result.overlap_window.start + len(result.forward_seq)
+    if fwd_end > cds_end:
+        result.warnings.append(
+            f"Fwd primer extends {fwd_end - cds_end} nt past the CDS stop codon "
+            "(3' arm is vector-derived, construct-specific)"
+        )
+
+
 def design_sdm_primers(
     fasta_path: Path,
     target_start: int,
@@ -1636,6 +1670,12 @@ def design_sdm_primers(
             f"Expected ATG at position {target_start}, found {atg}. "
             "Check target_start parameter."
         )
+
+    # Located once: the template is the plasmid, so every primer that reaches
+    # past this point is annealing to vector rather than to the gene.
+    cds_end = find_cds_end(sequence, target_start)
+    if cds_end is None:
+        logger.info("No in-frame stop codon after position %d; CDS boundary report disabled", target_start)
 
     registry = PolymeraseRegistry()
     profile = replace(registry.get(polymerase))
@@ -1706,6 +1746,8 @@ def design_sdm_primers(
             logger.warning("FAILED: %s - no valid primer pair found", mut.raw)
             continue
         best = candidates[0]
+        if cds_end is not None:
+            annotate_cds_overrun(best, cds_end)
         all_candidates[mut.raw] = candidates
         logger.info(
             "  %s: Fwd=%d bp (Tm=%.1f), Rev=%d bp (Tm=%.1f), "

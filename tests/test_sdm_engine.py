@@ -19,6 +19,7 @@ from kuma_core.kuro.sdm_engine import (
     design_sdm_primers,
     design_single_sdm,
     export_results_tsv,
+    find_cds_end,
     load_fasta,
     load_sequence,
 )
@@ -239,6 +240,42 @@ class TestDesignSdmPrimers:
                 f"{r.mutation.raw}: mutant codon {r.mutation.mt_codon} "
                 f"not found in forward primer"
             )
+
+
+class TestCdsBoundaryReport:
+    """A primer reaching past the CDS stop codon is reported, never rejected."""
+
+    def test_find_cds_end_locates_in_frame_stop(self, genbank_path):
+        _h, seq, _g = load_sequence(genbank_path)
+        cds_end = find_cds_end(seq, TARGET_START)
+
+        assert cds_end == 3482
+        assert seq[cds_end - 3:cds_end] in {"TAA", "TAG", "TGA"}
+
+    def test_find_cds_end_none_without_in_frame_stop(self):
+        assert find_cds_end("ATG" + "AAA" * 20, 0) is None
+
+    def test_last_residue_primer_is_flagged_not_failed(self, genbank_path, tmp_path):
+        """dmpR is 563 aa; G563A designs fine but its 3' arm is vector sequence."""
+        csv_file = tmp_path / "terminal.csv"
+        csv_file.write_text("mutation\nG563A\nI559V\n")
+
+        results, _c, failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=csv_file,
+            polymerase="Q5",
+            overlap_len=18,
+        )
+        by_mutation = {r.mutation.raw: r for r in results}
+
+        assert failed == {}, "the boundary report must not turn into a failure"
+        assert any(
+            "past the CDS stop codon" in w for w in by_mutation["G563A"].warnings
+        )
+        assert not any(
+            "past the CDS stop codon" in w for w in by_mutation["I559V"].warnings
+        ), "an interior mutation stays inside the CDS and must not be flagged"
 
 
 class TestExportTsv:
