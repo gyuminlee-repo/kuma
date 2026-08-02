@@ -5,14 +5,9 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.14.0";
+export const WHATS_NEW_VERSION = "0.14.1";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Fixed", detail: "Read chunk boundaries changed the result. Reads were renumbered from zero on every aligner call, and minimap2 seeds its per-read random state from a hash of the query name, so the same read got a different effective seed depending on which…" },
-  { label: "Fixed", detail: "The minus-strand consensus cursor started at the original-orientation query offset after the read was reverse complemented, which only holds when the leading and trailing clips are symmetric. In the reference workload 26 of 7779 minus-stra…" },
-  { label: "Fixed", detail: "`assigned_reads` was undercounted and `chimera_splits` overcounted, because the first-hit flag was cleared even when a hit failed. In the reference workload 857 reads move from the second counter to the first. Sequence output is unaffected…" },
-  { label: "Fixed", detail: "Step 2 no longer holds a whole barcode of read slices, or a whole well of pileup arrays, at once. Both are processed in bounded batches whose size is derived from the memory limit divided by the number of concurrent workers, reading a cgro…" },
-  { label: "Changed", detail: "Step 2 is faster, mostly on setups where the output folder sits on a network or translated filesystem. Against a Windows share the reference workload goes from 21.2 s to 8.6 s end to end, with the analyze stage falling from 5.4 s to 0.7 s.…" },
-  { label: "Changed", detail: "Consensus cost per aligned base no longer rises with well depth. It was climbing 1.9x between depth 50 and depth 3200 and is now flat." },
-  { label: "Changed", detail: "Demux workers hand freed cores back to whichever native barcode is still running, so an uneven plate stops leaving cores idle once the smaller barcodes finish." },
+  { label: "Fixed", detail: "Frameshift is decided from the consensus. The net indel now comes from the same majority vote that calls the bases, counting deletion-majority reference positions and majority insertion length. The per-read median is kept as a quality metr…" },
+  { label: "Fixed", detail: "The consensus and per-read figures are written as separate FASTA header keys. A file written by an earlier version keeps its old key read as the per-read metric, so reprocessing it does not re-condemn the same wells." },
 ];
