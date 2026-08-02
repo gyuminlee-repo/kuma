@@ -4,6 +4,7 @@
 Verifies that the frozen (PyInstaller) MAME sidecar binary correctly handles:
   - ProcessPoolExecutor(mp_context=spawn) + multiprocessing.freeze_support()
   - per-NB parallel combinatorial demux over JSON-RPC 2.0
+  - per-read ProcessPool demux (single native barcode, lowered threshold)
 
 Usage:
     python frozen_mame_smoke.py <path-to-frozen-mame-sidecar>
@@ -143,6 +144,19 @@ def _build_run_dir(workdir: Path) -> Path:
     return run_dir
 
 
+def _build_single_nb_run_dir(workdir: Path) -> Path:
+    """Create a MinKNOW run dir with exactly ONE native barcode.
+
+    ``run_combinatorial_demux_multi`` only sets ``per_read_parallel=True`` when
+    n_nb == 1 (with n_nb > 1 the per-NB pool already owns the cores). Combined
+    with a lowered ``KUMA_MAME_PERREAD_THRESHOLD`` this is what drives the
+    per-read spawn ProcessPool, a path the two-barcode fixture never reaches.
+    """
+    run_dir = workdir / "RUN_SINGLE"
+    _build_fastq_gz(run_dir / "fastq_pass" / "barcode06")
+    return run_dir
+
+
 def _build_expected_mutations_xlsx(workdir: Path) -> Path:
     """Write a minimal KURO results xlsx with an ``expected_mutations`` sheet.
 
@@ -200,7 +214,12 @@ def _rpc(id_: int, method: str, params: dict[str, Any]) -> str:
 
 class SidecarIO:
 
-    def __init__(self, binary: Path, stderr_path: Path) -> None:
+    def __init__(
+        self,
+        binary: Path,
+        stderr_path: Path,
+        env: dict[str, str] | None = None,
+    ) -> None:
         self._stderr_fh = open(stderr_path, "w", encoding="utf-8")
         self.proc = subprocess.Popen(
             [str(binary)],
@@ -209,6 +228,7 @@ class SidecarIO:
             stderr=self._stderr_fh,
             text=True,
             bufsize=1,
+            env=env,
         )
         self._q: queue.Queue[dict[str, Any] | None] = queue.Queue()
         self._reader = threading.Thread(target=self._read_loop, daemon=True)
@@ -302,14 +322,27 @@ def run_smoke(binary: Path) -> None:
         ref_fasta = _build_reference_fasta(workdir)
         xlsx = _build_barcodes_xlsx(workdir)
         run_dir = _build_run_dir(workdir)
+        single_run_dir = _build_single_nb_run_dir(workdir)
         expected_xlsx = _build_expected_mutations_xlsx(workdir)
         out_dir = workdir / "output"
         out_dir.mkdir()
 
-        sio = SidecarIO(binary, stderr_path)
+        # KUMA_MAME_PERREAD_THRESHOLD=1 lets step [5/6] (single native barcode)
+        # reach the per-read spawn ProcessPool with the tiny synthetic fixture.
+        # Steps [3/6] and [4/6] use two native barcodes, where per_read_parallel
+        # is False regardless of the threshold, so they stay on the serial
+        # per-read path and are unaffected.
+        # KUMA_MAME_TIMING_JSON gives a frozen-safe positive signal: the
+        # per-read pool branch records a "barcode_match_parallel_wall" phase.
+        timing_json = workdir / "timing.jsonl"
+        child_env = dict(os.environ)
+        child_env["KUMA_MAME_PERREAD_THRESHOLD"] = "1"
+        child_env["KUMA_MAME_TIMING_JSON"] = str(timing_json)
+
+        sio = SidecarIO(binary, stderr_path, env=child_env)
 
         # --- ping ---
-        print("[1/5] ping ...")
+        print("[1/6] ping ...")
         sio.send(_rpc(1, "ping", {}))
         try:
             ping_resp = sio.recv(1, timeout=30.0)
@@ -321,7 +354,7 @@ def run_smoke(binary: Path) -> None:
             failures.append(f"ping timed out or process died: {exc}")
 
         # --- detect ---
-        print("[2/5] mame.detect_native_barcodes ...")
+        print("[2/6] mame.detect_native_barcodes ...")
         sio.send(_rpc(2, "mame.detect_native_barcodes", {
             "minknow_run_dir": str(run_dir),
         }))
@@ -341,7 +374,7 @@ def run_smoke(binary: Path) -> None:
             failures.append(f"detect timed out or process died: {exc}")
 
         # --- per-NB parallel demux ---
-        print("[3/5] mame.run_combinatorial_demux (per-NB parallel) ...")
+        print("[3/6] mame.run_combinatorial_demux (per-NB parallel) ...")
         sio.send(_rpc(3, "mame.run_combinatorial_demux", {
             "minknow_run_dir": str(run_dir),
             "custom_barcodes_xlsx": str(xlsx),
@@ -371,7 +404,7 @@ def run_smoke(binary: Path) -> None:
 
         # --- analyze (raw MinKNOW run folder: folds demux + analyze) ---
         analyze_out = workdir / "analyze_out.xlsx"
-        print("[4/5] mame.analyze (raw MinKNOW run folder) ...")
+        print("[4/6] mame.analyze (raw MinKNOW run folder) ...")
         sio.send(_rpc(4, "analyze", {
             "input_dir": str(run_dir),
             "reference": str(ref_fasta),
@@ -408,11 +441,79 @@ def run_smoke(binary: Path) -> None:
         except (TimeoutError, RuntimeError) as exc:
             failures.append(f"analyze timed out or process died: {exc}")
 
-        # --- shutdown ---
-        print("[5/5] shutdown ...")
-        sio.send(_rpc(5, "shutdown", {}))
+        # --- per-read ProcessPool demux (single native barcode) ---
+        # The steps above never reach the per-read pool: with 2 native barcodes
+        # per_read_parallel is False. One native barcode + a threshold of 1
+        # forces the per-read spawn ProcessPool, which is the newly enabled
+        # path on frozen Windows builds. The stderr check at the end must still
+        # see exactly one "MAME sidecar started" line: if a spawned per-read
+        # worker re-entered the RPC loop it would print a second one.
+        perread_out = workdir / "output_perread"
+        perread_out.mkdir()
+        print("[5/6] mame.run_combinatorial_demux (per-read ProcessPool, 1 NB) ...")
+        sio.send(_rpc(5, "mame.run_combinatorial_demux", {
+            "minknow_run_dir": str(single_run_dir),
+            "custom_barcodes_xlsx": str(xlsx),
+            "reference_fasta": str(ref_fasta),
+            "output_dir": str(perread_out),
+            "native_barcodes": ["barcode06"],
+        }))
         try:
-            sio.recv(5, timeout=15.0)
+            pr_resp = sio.recv(5, timeout=300.0)
+            if "error" in pr_resp:
+                failures.append(f"per-read demux RPC error: {pr_resp['error']}")
+            else:
+                pr_result = pr_resp.get("result", {})
+                pr_nb = pr_result.get("native_barcodes")
+                if not isinstance(pr_nb, list) or len(pr_nb) != 1:
+                    failures.append(
+                        f"per-read demux: native_barcodes expected list of 1, got {pr_nb!r}"
+                    )
+                elif not pr_result.get("assigned_reads"):
+                    failures.append(
+                        f"per-read demux: assigned_reads={pr_result.get('assigned_reads')!r}, "
+                        "expected a positive count"
+                    )
+                else:
+                    print(
+                        f"      per-read demux OK, assigned_reads="
+                        f"{pr_result.get('assigned_reads')}, "
+                        f"wells_with_reads={pr_result.get('wells_with_reads')}"
+                    )
+        except (TimeoutError, RuntimeError) as exc:
+            failures.append(f"per-read demux timed out or process died: {exc}")
+
+        # Positive proof the pool actually ran: only the ProcessPool branch
+        # records a "barcode_match_parallel_wall" phase into the timing JSONL.
+        perread_phase_seen = False
+        if timing_json.exists():
+            for raw in timing_json.read_text(
+                encoding="utf-8", errors="replace"
+            ).splitlines():
+                if not raw.strip():
+                    continue
+                try:
+                    rec = json.loads(raw)
+                except json.JSONDecodeError:
+                    continue
+                if "barcode_match_parallel_wall" in rec.get("phases_s", {}):
+                    perread_phase_seen = True
+                    break
+        if perread_phase_seen:
+            print("      per-read ProcessPool path confirmed "
+                  "(barcode_match_parallel_wall recorded)")
+        else:
+            failures.append(
+                "per-read demux: 'barcode_match_parallel_wall' phase absent from "
+                f"{timing_json}, the per-read ProcessPool branch never ran, so this "
+                "step did not exercise the path it is meant to cover"
+            )
+
+        # --- shutdown ---
+        print("[6/6] shutdown ...")
+        sio.send(_rpc(6, "shutdown", {}))
+        try:
+            sio.recv(6, timeout=15.0)
             print("      shutdown ack received")
         except (TimeoutError, RuntimeError) as exc:
             # Shutdown ack may not arrive before EOF; process exit is the criterion

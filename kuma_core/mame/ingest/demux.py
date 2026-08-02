@@ -48,6 +48,7 @@ Unassigned reads are discarded (counted only).
 
 from __future__ import annotations
 
+import errno
 import gzip
 import logging
 import math
@@ -60,9 +61,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
 
-from kuma_core.shared.atomic_write import atomic_write_text
+from kuma_core.shared.atomic_write import atomic_write_text, fsync_directory
+from kuma_core.shared.fs_walk import rglob_entries
 
 _logger = logging.getLogger(__name__)
+
+# The FASTQ extension set every MinKNOW input walk in this module looks for.
+# Named once so the single-pass walk and its callers cannot drift apart.
+FASTQ_PATTERNS: tuple[str, ...] = ("*.fastq", "*.fastq.gz")
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -194,11 +200,16 @@ def detect_used_native_barcodes(
 
     sizes: list[tuple[str, int]] = []
     for d in nb_dirs:
+        # One recursive walk per NB dir instead of one per pattern, and the size
+        # comes from the walk's own DirEntry.  MinKNOW splits output every 4000
+        # reads, so a real run puts hundreds to thousands of files under each
+        # barcode dir and this scan is the first thing step 2 does.
         total = 0
-        for pattern in ("*.fastq", "*.fastq.gz"):
-            for f in d.rglob(pattern):
+        matches = rglob_entries(d, FASTQ_PATTERNS)
+        for pattern in FASTQ_PATTERNS:
+            for _path, entry in matches[pattern]:
                 try:
-                    total += f.stat().st_size
+                    total += entry.stat().st_size
                 except OSError:
                     # Unreadable/vanished file: skip rather than abort detection.
                     continue
@@ -568,6 +579,35 @@ def _build_adapters_fasta(barcodes: dict[str, str], tmp_dir: str) -> str:
     return str(fasta_path)
 
 
+# The errno set ``pathlib._ignore_error`` swallows, i.e. exactly the failures
+# for which ``Path.exists()`` answers False instead of raising.  Reproducing it
+# here is what makes the EAFP read below a behaviour-preserving swap for an
+# ``exists()`` guard: anything outside this set (EACCES, EISDIR, ...) propagated
+# from the old ``exists()`` call too and must keep propagating.
+_MISSING_ERRNOS: frozenset[int] = frozenset(
+    {
+        errno.ENOENT,
+        errno.ENOTDIR,
+        errno.EBADF,
+        errno.ELOOP,
+    }
+)
+
+
+def _read_text_if_present(path: Path) -> str | None:
+    """Contents of *path*, or ``None`` where ``exists()`` would have said False.
+
+    One open replaces ``exists()`` plus ``read_text()``, halving the metadata
+    round-trips per file on a Windows share.
+    """
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError as exc:
+        if exc.errno not in _MISSING_ERRNOS:
+            raise
+        return None
+
+
 def _collect_cutadapt_outputs(
     output_dir: Path,
     custom_barcodes: dict[str, str],
@@ -576,25 +616,32 @@ def _collect_cutadapt_outputs(
 
     Returns (per_well_counts, n_assigned, n_unassigned).
     Unassigned: reads in ``_unassigned.fasta`` (if present).
+
+    cutadapt only emits a file for a barcode it actually matched, so a missing
+    well file is the normal case rather than an error.  Absence used to be
+    established with ``exists()`` and the content then fetched with a second
+    call, which is two metadata round-trips per well (192 for a 96-well plate)
+    where one open suffices.  Asking forgiveness instead of permission halves
+    that traffic, which matters on a Windows share where one stat is ~2.8 ms.
+
+    :func:`_read_text_if_present` reproduces the ``exists()`` verdict exactly,
+    errno set included, so which files are counted does not change.
     """
     per_well_counts: dict[str, int] = {}
     n_assigned = 0
     for name in custom_barcodes:
-        fp = output_dir / f"{name}.fasta"
-        if not fp.exists():
+        text = _read_text_if_present(output_dir / f"{name}.fasta")
+        if text is None:
             continue
-        count = sum(1 for ln in fp.read_text(encoding="utf-8").splitlines() if ln.startswith(">"))
+        count = sum(1 for ln in text.splitlines() if ln.startswith(">"))
         if count:
             per_well_counts[name] = count
             n_assigned += count
 
-    unassigned_file = output_dir / "_unassigned.fasta"
-    n_unassigned = 0
-    if unassigned_file.exists():
-        n_unassigned = sum(
-            1 for ln in unassigned_file.read_text(encoding="utf-8").splitlines()
-            if ln.startswith(">")
-        )
+    unassigned_text = _read_text_if_present(output_dir / "_unassigned.fasta")
+    n_unassigned = sum(
+        1 for ln in (unassigned_text or "").splitlines() if ln.startswith(">")
+    )
     return per_well_counts, n_assigned, n_unassigned
 
 
@@ -672,11 +719,18 @@ def _demux_cutadapt(
 
     # Header normalization: rewrite every per-well FASTA header to >{well_name}.
     if normalize_headers:
+        rewrote_any = False
         for well_name in list(per_well_counts.keys()):
             fp = output_dir / f"{well_name}.fasta"
-            if not fp.exists():
+            # Open straight away instead of exists()-then-read: the guard was a
+            # separate stat per well, and on a share that round-trip costs more
+            # than the read it guards.  The not-found families below are exactly
+            # the cases where exists() returned False, including a dangling
+            # symlink.  Any other OSError still propagates, as it did before.
+            try:
+                lines = fp.read_text(encoding="utf-8").splitlines(keepends=True)
+            except (FileNotFoundError, NotADirectoryError):
                 continue
-            lines = fp.read_text(encoding="utf-8").splitlines(keepends=True)
             normalized: list[str] = []
             for ln in lines:
                 if ln.startswith(">"):
@@ -684,8 +738,14 @@ def _demux_cutadapt(
                 else:
                     normalized.append(ln)
             # In-place header rewrite over an already-good file: atomic so an
-            # interruption cannot truncate it.
-            atomic_write_text(fp, "".join(normalized))
+            # interruption cannot truncate it.  Durability is deferred to the one
+            # directory fsync below rather than paid per well; the rename stays
+            # atomic either way, and a lost rewrite is a re-runnable stage, not a
+            # final deliverable (the stage marker is written later, fsync'd).
+            atomic_write_text(fp, "".join(normalized), fsync=False)
+            rewrote_any = True
+        if rewrote_any:
+            fsync_directory(output_dir)
 
     n_input = n_assigned + n_unassigned
 
@@ -764,10 +824,11 @@ def demux_native_barcode(
             "Provide the universal reverse primer sequence or set linked_trim=False."
         )
 
-    # Collect FASTQ files.
+    # Collect FASTQ files.  One walk for both extensions; the combined sort is
+    # kept so the resulting order is byte-identical to the two-walk version.
+    _matches = rglob_entries(fastq_dir, FASTQ_PATTERNS)
     fastq_files: list[Path] = sorted(
-        [p for p in fastq_dir.rglob("*.fastq")]
-        + [p for p in fastq_dir.rglob("*.fastq.gz")]
+        path for pattern in FASTQ_PATTERNS for path, _entry in _matches[pattern]
     )
     if not fastq_files:
         raise FileNotFoundError(

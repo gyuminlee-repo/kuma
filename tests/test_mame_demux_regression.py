@@ -42,6 +42,7 @@ from pathlib import Path
 
 import pytest
 
+import kuma_core.mame.ingest.combinatorial_demux as cd
 from kuma_core.mame.ingest.align import align_reads
 from kuma_core.mame.ingest.combinatorial_demux import run_combinatorial_demux
 from kuma_core.mame.ingest.consensus import _accumulate
@@ -714,6 +715,53 @@ def test_chunked_alignment_identity(
     )
 
 
+def test_chunked_alignment_uses_global_qname_offset(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Each read chunk must be aligned with a running QNAME offset.
+
+    ``align._write_reads_fasta`` renames reads to synthetic integer QNAMEs, and
+    minimap2 seeds its per-read RNG from a hash of the query name, so a QNAME
+    that restarts at 0 in every chunk changes the alignment of a handful of
+    reads and makes KUMA_MAME_READ_CHUNK an output-changing knob rather than a
+    performance knob (measured end to end: assigned_reads 11979 at chunk 50000
+    versus 11977 at chunk 10000 on the step2 reference workload). The offsets
+    must therefore be 0, len(chunk_0), len(chunk_0) + len(chunk_1), ...
+
+    No minimap2 needed: the aligner is stubbed, so this guards the contract even
+    where the binary is unavailable.
+    """
+    import kuma_core.mame.ingest.combinatorial_demux as cd
+
+    seen: list[tuple[int, int]] = []
+
+    def _fake_align_reads_multi(*, reads, name_offset=0, **_kwargs):
+        seen.append((name_offset, len(reads)))
+        return []
+
+    monkeypatch.setattr(cd, "align_reads_multi", _fake_align_reads_multi)
+    monkeypatch.setenv("KUMA_MAME_READ_CHUNK", "2")
+
+    run_combinatorial_demux(
+        raw_fastq_paths=[FIXTURE_DIR / "synth_R1.fastq.gz"],
+        reference_fasta=FIXTURE_DIR / "reference.fasta",
+        barcodes_xlsx=FIXTURE_DIR / "sample_map.xlsx",
+        output_dir=tmp_path / "offsets",
+        mapq_threshold=0,
+        coverage_fraction=0.5,
+        min_depth=MIN_DEPTH,
+    )
+
+    assert len(seen) > 1, "fixture did not split into multiple chunks"
+    running = 0
+    for offset, n_reads in seen:
+        assert offset == running, (
+            f"chunk QNAME offset {offset} != running read count {running}; "
+            "chunk-local numbering changes minimap2 output"
+        )
+        running += n_reads
+
+
 @requires_minimap2
 def test_tie_classification(tmp_path: Path) -> None:
     """The tie well induces a real base-count tie, and _diff classifies a
@@ -754,3 +802,96 @@ def test_tie_classification(tmp_path: Path) -> None:
     # 3. A multi-position / non-ACGT change must classify as genuine.
     genuine = "N" + base_consensus[1:]
     assert _classify_consensus_diff(base_consensus, genuine) == "genuine"
+
+
+# ---------------------------------------------------------------------------
+# FASTQ read/align pipelining (_prefetch)
+# ---------------------------------------------------------------------------
+
+
+def test_prefetch_preserves_order() -> None:
+    """The prefetch thread must yield producer order verbatim.
+
+    Consensus tie-break depends on within-well read order (consensus.py
+    first_touch), so a reordering prefetch would silently change output.
+    """
+    for depth in (1, 2, 8):
+        src = list(range(500))
+        assert list(cd._prefetch(iter(src), depth)) == src, (
+            f"prefetch(depth={depth}) reordered or dropped items"
+        )
+
+
+def test_prefetch_propagates_producer_exception() -> None:
+    """An exception raised mid-iteration must surface in the consumer.
+
+    Swallowing it would make a truncated input look like a short-but-valid one.
+    """
+
+    def _boom():
+        yield 1
+        yield 2
+        raise ValueError("producer exploded")
+
+    seen = []
+    with pytest.raises(ValueError, match="producer exploded"):
+        for item in cd._prefetch(_boom(), 1):
+            seen.append(item)
+    assert seen == [1, 2], f"items before the error were lost: {seen}"
+
+
+def test_prefetch_corrupt_gzip_raises(tmp_path: Path) -> None:
+    """A truncated gzip read through the prefetch path still raises.
+
+    End-to-end over the real _iter_fastq / _iter_chunks stack, not a stub, so a
+    future change that catches BadGzipFile inside the reader is caught here.
+    """
+    good = (FIXTURE_DIR / "synth_R1.fastq.gz").read_bytes()
+    corrupt = tmp_path / "truncated.fastq.gz"
+    corrupt.write_bytes(good[: len(good) // 2])
+
+    chunks = cd._iter_chunks(cd._iter_fastq([corrupt]), 1)
+    with pytest.raises(EOFError):
+        list(cd._prefetch(chunks, 1))
+
+
+@requires_minimap2
+def test_prefetch_output_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Prefetch on/off must produce identical demux output at a chunk size
+    small enough that the pipelining actually engages (multiple chunks)."""
+    monkeypatch.setenv("KUMA_MAME_READ_CHUNK", "2")
+
+    monkeypatch.setenv("KUMA_MAME_FASTQ_PREFETCH", "0")
+    serial = _run_demux_full(tmp_path / "serial")
+
+    monkeypatch.setenv("KUMA_MAME_FASTQ_PREFETCH", "1")
+    prefetched = _run_demux_full(tmp_path / "prefetched")
+
+    assert serial["stats"] == prefetched["stats"]
+    assert serial["per_well_reads"] == prefetched["per_well_reads"], (
+        "ordered per_well_reads differ with prefetch enabled"
+    )
+    assert serial["per_well_consensus"] == prefetched["per_well_consensus"]
+
+
+def test_read_chunk_default_lets_prefetch_engage() -> None:
+    """The shipped chunk default must split a realistic barcode into chunks.
+
+    Prefetch can only hide the gzip cost when there is a next chunk to read
+    while the current one aligns, so the two settings are one decision. Raising
+    the default back above a barcode's read count silently turns the pipelining
+    into a no-op without failing anything else, which is what happened before
+    (the old 50000 default made the reference workload one chunk per barcode).
+    The bound below is the smallest real barcode in the reference run, ~11k
+    reads; the assert deliberately leaves room rather than pinning the exact
+    value, so retuning stays possible and only a regression to "one chunk" trips.
+    """
+    smallest_realistic_barcode_reads = 11000
+    assert cd._READ_CHUNK_DEFAULT * 2 <= smallest_realistic_barcode_reads, (
+        f"_READ_CHUNK_DEFAULT={cd._READ_CHUNK_DEFAULT} yields fewer than 2 chunks "
+        f"for a {smallest_realistic_barcode_reads}-read barcode, so the FASTQ "
+        f"prefetch has nothing to overlap with and is a no-op"
+    )
+    assert cd._FASTQ_PREFETCH_DEFAULT > 0, "prefetch disabled by default"

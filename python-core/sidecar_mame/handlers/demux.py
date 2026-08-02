@@ -96,10 +96,20 @@ from kuma_core.mame.ingest.stage_marker import (
     read_stage_marker,
     write_stage_marker,
 )
+from kuma_core.mame.ingest.demux import FASTQ_PATTERNS
 from kuma_core.mame.ingest.well_consensus import compute_well_consensuses
-from kuma_core.shared.atomic_write import atomic_write_text
+from kuma_core.shared.atomic_write import atomic_write_text, fsync_directory
+from kuma_core.shared.fs_walk import rglob_entries
 
 _logger = logging.getLogger(__name__)
+
+_FASTA_PATTERN = "*.fasta"
+
+
+def _rglob_fasta(root: Path) -> list[Path]:
+    """Per-well FASTA under *root*, from one walk (was ``root.rglob``)."""
+    matches = rglob_entries(root, (_FASTA_PATTERN,))[_FASTA_PATTERN]
+    return [path for path, _entry in matches]
 
 
 # ---------------------------------------------------------------------------
@@ -131,9 +141,10 @@ def _collect_fastq_quality_by_read_id(fastq_dir: Path) -> dict[str, str]:
     from kuma_core.mame.ingest.quality_filter import _iter_fastq_records
 
     quality_by_read_id: dict[str, str] = {}
+    # One walk for both extensions; the combined sort keeps the previous order.
+    _matches = rglob_entries(fastq_dir, FASTQ_PATTERNS)
     fastq_files = sorted(
-        [p for p in fastq_dir.rglob("*.fastq")]
-        + [p for p in fastq_dir.rglob("*.fastq.gz")]
+        path for pattern in FASTQ_PATTERNS for path, _entry in _matches[pattern]
     )
     for fastq_path in fastq_files:
         for read_id, _seq, qual in _iter_fastq_records(fastq_path):
@@ -244,6 +255,9 @@ def _run_consensus_on_dir(
         # analysis can use true consensus read depth instead of file size.
         # Atomic (temp + os.replace) so an interrupted write never leaves a
         # truncated consensus file that a consumer would treat as valid.
+        # One fsync per well is one round-trip per well on a share; the batch is
+        # made durable by the single fsync_directory below, and the stage marker
+        # that the caller writes afterwards is what marks the unit authoritative.
         atomic_write_text(
             fasta_path,
             format_consensus_fasta_record(
@@ -267,6 +281,7 @@ def _run_consensus_on_dir(
                     consensus_n_fraction_basis=BASIS_COVERED,
                 ),
             ),
+            fsync=False,
         )
 
         stats[well_name] = {
@@ -299,7 +314,14 @@ def _run_consensus_on_dir(
             fasta_path.unlink()
         except OSError as exc:
             _logger.warning("Could not remove empty consensus FASTA %s: %s", fasta_path, exc)
-        _logger.info("Well %s: no reads passed alignment filter — removed.", w)
+        _logger.info("Well %s: no reads passed alignment filter, removed.", w)
+
+    # Durability point for the whole batch: one directory fsync commits every
+    # os.replace above together, replacing the per-well fsync that each
+    # atomic_write_text used to pay.  Placed after the empty-well removals so the
+    # committed directory is the final one.
+    if consensus_map:
+        fsync_directory(fasta_dir)
 
     return stats
 
@@ -642,9 +664,26 @@ def handle_demux_and_filter(params: dict) -> dict:
                     n_qf_failed_qscore += 1
                     fail_read_ids.add(read_id)
 
-        # Apply fail set to all per-well FASTA files under output_dir.
+        # Apply the fail set to every per-well FASTA under output_dir, and count
+        # the survivors in the SAME pass.
+        #
+        # This used to be two passes: one that rewrote each file, then a second
+        # that walked the whole tree again and re-read every file it had just
+        # written, only to count its ``>`` lines.  The surviving header count is
+        # already known here from ``filtered_lines``, so the second walk and the
+        # second full read of every well are both redundant.
+        #
+        # Seed the rebuilt counts from already-complete units first (their files
+        # are skipped below), which also fixes the key order of the response dict
+        # at the same order the two-pass version produced.
         n_removed = 0
-        for fasta_file in sorted(output_dir.rglob("*.fasta")):
+        updated_per_well: dict[str, int] = {}
+        for nb_name in completed_nbs:
+            for well, cnt in completed_marker_counts.get(nb_name, {}).items():
+                updated_per_well[well] = updated_per_well.get(well, 0) + cnt
+
+        touched_dirs: set[Path] = set()
+        for fasta_file in sorted(_rglob_fasta(output_dir)):
             if fasta_file.name.startswith("_"):
                 continue  # skip _unassigned.fasta
             if fasta_file.parent.name in completed_nbs:
@@ -652,6 +691,7 @@ def handle_demux_and_filter(params: dict) -> dict:
             lines = fasta_file.read_text(encoding="utf-8").splitlines(keepends=True)
             filtered_lines: list[str] = []
             skip_next = False
+            n_kept = 0
             for line in lines:
                 if line.startswith(">"):
                     rid = line[1:].split()[0].rstrip("\r\n")
@@ -660,13 +700,36 @@ def handle_demux_and_filter(params: dict) -> dict:
                         n_removed += 1
                         continue
                     skip_next = False
+                    n_kept += 1
                     filtered_lines.append(line)
                 else:
                     if not skip_next:
                         filtered_lines.append(line)
             # In-place rewrite of an already-good per-well FASTA: atomic so an
-            # interruption cannot truncate the existing file.
-            atomic_write_text(fasta_file, "".join(filtered_lines))
+            # interruption cannot truncate the existing file.  Durability is
+            # deferred to one fsync per output directory after the batch instead
+            # of one fsync per well; the rename stays atomic either way, and this
+            # stage is re-runnable (the stage marker, written later and fsync'd,
+            # is what makes a unit authoritative).
+            atomic_write_text(fasta_file, "".join(filtered_lines), fsync=False)
+            touched_dirs.add(fasta_file.parent)
+            if n_kept:
+                # Use stem relative to output_dir as well name.
+                updated_per_well[fasta_file.stem] = (
+                    updated_per_well.get(fasta_file.stem, 0) + n_kept
+                )
+            else:
+                # Remove empty FASTA so analyze does not see ghost wells.  The
+                # (empty) rewrite above is kept rather than skipped so that a
+                # failing unlink leaves exactly what it left before: an empty
+                # file, not an unfiltered one.
+                try:
+                    fasta_file.unlink()
+                except OSError as exc:
+                    _logger.warning("Could not remove empty FASTA %s: %s", fasta_file, exc)
+
+        for touched in sorted(touched_dirs):
+            fsync_directory(touched)
 
         n_qf_passed = n_qf_input - len(fail_read_ids)
         filter_stats_dict = {
@@ -677,32 +740,6 @@ def handle_demux_and_filter(params: dict) -> dict:
             "n_failed_barcode": n_qf_failed_barcode,
         }
 
-        # Recompute per_well_counts after filtering; remove ghost empty files.
-        # Seed from already-complete units (their files were not re-filtered) so
-        # the rebuilt counts do not drop them.
-        updated_per_well: dict[str, int] = {}
-        for nb_name in completed_nbs:
-            for well, cnt in completed_marker_counts.get(nb_name, {}).items():
-                updated_per_well[well] = updated_per_well.get(well, 0) + cnt
-        for fasta_file in sorted(output_dir.rglob("*.fasta")):
-            if fasta_file.name.startswith("_"):
-                continue
-            if fasta_file.parent.name in completed_nbs:
-                continue  # already-complete unit: counts seeded from marker
-            count = sum(
-                1 for ln in fasta_file.read_text(encoding="utf-8").splitlines()
-                if ln.startswith(">")
-            )
-            if count:
-                # Use stem relative to output_dir as well name.
-                well_name = fasta_file.stem
-                updated_per_well[well_name] = updated_per_well.get(well_name, 0) + count
-            else:
-                # Remove empty FASTA so analyze does not see ghost wells.
-                try:
-                    fasta_file.unlink()
-                except OSError as exc:
-                    _logger.warning("Could not remove empty FASTA %s: %s", fasta_file, exc)
         if updated_per_well:
             # Rebuild demux_result with updated counts.
             n_assigned_filtered = sum(updated_per_well.values())

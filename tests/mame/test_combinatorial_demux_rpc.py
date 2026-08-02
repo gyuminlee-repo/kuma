@@ -147,6 +147,11 @@ class _MockDemuxResult:
             "4_7": "NNNNNN",
         }
     )
+    # Mirrors the real DemuxResult: counts are always populated, the reads
+    # themselves only when the run stayed inside the in-memory well buffer.
+    per_well_read_counts: dict[str, int] = field(
+        default_factory=lambda: {"1_1": 3, "2_3": 2, "4_7": 1}
+    )
 
 
 # ---------------------------------------------------------------------------

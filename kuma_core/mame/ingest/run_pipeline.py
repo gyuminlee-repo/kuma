@@ -29,10 +29,27 @@ from kuma_core.mame.ingest.combinatorial_demux import (
     run_combinatorial_demux,
     run_combinatorial_demux_per_nb,
 )
+from kuma_core.mame.ingest.demux import FASTQ_PATTERNS
 from kuma_core.mame.ingest.fasta_parser import load_barcode_directory
 from kuma_core.mame.models import BarcodeRecord
+from kuma_core.shared.fs_walk import rglob_entries
 
 ProgressCallback = Callable[[int, int, str], None]
+
+
+def _collect_fastq_sorted(directory: Path) -> list[Path]:
+    """FASTQ(.gz) under *directory*, ordered as the two-``rglob`` version was.
+
+    The previous expression was ``sorted(rglob("*.fastq")) + sorted(rglob(
+    "*.fastq.gz"))``: two walks, and a concatenation of two independently sorted
+    groups rather than one merged sort.  Both properties are preserved here, the
+    group order included, because this list is the demux input order.
+    """
+    matches = rglob_entries(directory, FASTQ_PATTERNS)
+    out: list[Path] = []
+    for pattern in FASTQ_PATTERNS:
+        out.extend(sorted(path for path, _entry in matches[pattern]))
+    return out
 
 
 def is_minknow_run_dir(path: Path) -> bool:
@@ -55,7 +72,7 @@ def _collect_pool_fastq(run_dir: Path) -> list[Path]:
     fastq_pass = run_dir / "fastq_pass"
     if not fastq_pass.is_dir():
         raise FileNotFoundError(f"fastq_pass/ directory not found under {run_dir}")
-    paths = sorted(fastq_pass.rglob("*.fastq")) + sorted(fastq_pass.rglob("*.fastq.gz"))
+    paths = _collect_fastq_sorted(fastq_pass)
     if not paths:
         raise FileNotFoundError(f"No FASTQ files found under {fastq_pass}")
     return paths
@@ -79,7 +96,7 @@ def _collect_per_nb_fastq(
         nb_input = fastq_pass / nb_name
         if not nb_input.is_dir():
             raise FileNotFoundError(f"native barcode dir not found: {nb_input}")
-        fq = sorted(nb_input.rglob("*.fastq")) + sorted(nb_input.rglob("*.fastq.gz"))
+        fq = _collect_fastq_sorted(nb_input)
         if not fq:
             raise FileNotFoundError(f"No FASTQ files under {nb_input}")
         nb_to_fastq[nb_name] = fq

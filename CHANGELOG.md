@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.14.0 (MAME step 2 finishes a whole sequencing run)
+
+Step 2 could not complete a full run on a 15 GiB machine. Peak memory grew with input size, because a whole native barcode of read slices was held until consensus, and a whole well was then flattened into one array per aligned base. A 5.9 GB run now peaks at 4.6 GB and completes. Measuring that also surfaced two defects that changed reported numbers, and both are fixed here.
+
+### Fixed
+
+- v0.14.0: Read chunk boundaries changed the result. Reads were renumbered from zero on every aligner call, and minimap2 seeds its per-read random state from a hash of the query name, so the same read got a different effective seed depending on which chunk it landed in. The shipped default splits a barcode of roughly a million reads into about 25 chunks, so production runs were already affected. Read numbering is now global across chunks, and every chunk size produces the same output.
+- v0.14.0: The minus-strand consensus cursor started at the original-orientation query offset after the read was reverse complemented, which only holds when the leading and trailing clips are symmetric. In the reference workload 26 of 7779 minus-strand alignments had asymmetric clips and voted into the pileup at chance-level identity, meaning pure noise. Consensus sequences and verdicts on that data are unchanged; nine wells report different header quality metrics and one shallow well loses a noise-induced mixed position.
+- v0.14.0: `assigned_reads` was undercounted and `chimera_splits` overcounted, because the first-hit flag was cleared even when a hit failed. In the reference workload 857 reads move from the second counter to the first. Sequence output is unaffected. A resume marker written by an earlier version still carries the old totals.
+- v0.14.0: Step 2 no longer holds a whole barcode of read slices, or a whole well of pileup arrays, at once. Both are processed in bounded batches whose size is derived from the memory limit divided by the number of concurrent workers, reading a cgroup limit ahead of total system memory so a container does not size itself against host RAM.
+
+### Changed
+
+- v0.14.0: Step 2 is faster, mostly on setups where the output folder sits on a network or translated filesystem. Against a Windows share the reference workload goes from 21.2 s to 8.6 s end to end, with the analyze stage falling from 5.4 s to 0.7 s. On a local ext4 disk the same workload goes from 9.4 s to 7.6 s. Per-file durability calls, repeated directory scans and duplicate metadata lookups were the bulk of it, so a purely local disk sees the smaller share of the gain.
+- v0.14.0: Consensus cost per aligned base no longer rises with well depth. It was climbing 1.9x between depth 50 and depth 3200 and is now flat.
+- v0.14.0: Demux workers hand freed cores back to whichever native barcode is still running, so an uneven plate stops leaving cores idle once the smaller barcodes finish.
 ## v0.13.39.1 (The last two autosave paths become portable)
 
 Portable snapshot paths landed in v0.13.35.4, but two of them sit nested inside the raw-run parameters and were missed, so a moved project lost its custom barcodes and sequencing summary without saying so.

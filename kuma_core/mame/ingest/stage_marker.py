@@ -49,8 +49,11 @@ key omit it too (treated as "not seedable", never a crash).
 
 from __future__ import annotations
 
+import fnmatch
 import json
-from pathlib import Path
+import os
+import re
+from pathlib import Path, PurePath
 from typing import Any
 
 from kuma_core.shared.atomic_write import atomic_write_text
@@ -60,11 +63,63 @@ MARKER_SCHEMA_VERSION = 1
 STAGE_NAME = "demux_consensus"
 
 # Single source of truth for the per-well consensus FASTA extension set.  The
-# downstream consumer (``fasta_parser._iter_consensus_files``) imports this so
-# the orphan/extra-file guard globs the SAME extensions the consumer will read;
+# downstream consumer (``fasta_parser._iter_consensus_entries``) shares this so
+# the orphan/extra-file guard matches the SAME extensions the consumer reads;
 # a stray ``.fa`` / ``.fas`` orphan is therefore caught, not silently consumed.
 # Defined here (the leaf module) to avoid a circular import with fasta_parser.
 CONSENSUS_FILE_PATTERNS: tuple[str, ...] = ("*.fasta", "*.fa", "*.fas")
+
+# Compiled equivalents of ``Path.glob(pattern)`` name matching, so a single
+# ``os.scandir`` pass can replace one ``glob`` pass per pattern.  ``pathlib``
+# compiles glob patterns with ``fnmatch.translate`` and applies
+# ``re.IGNORECASE`` on Windows flavours only; mirroring both keeps the matched
+# name set byte-identical to the previous ``glob`` behaviour on every platform.
+# Directories, symlinks (including broken ones) and dot-files match here exactly
+# as they matched ``Path.glob`` before (verified empirically), so the guard's
+# orphan/extra-file semantics are unchanged.
+_GLOB_FLAGS = re.IGNORECASE if os.name == "nt" else 0
+_CONSENSUS_FILE_MATCHERS: tuple[re.Pattern[str], ...] = tuple(
+    re.compile(fnmatch.translate(pattern), _GLOB_FLAGS)
+    for pattern in CONSENSUS_FILE_PATTERNS
+)
+
+# ``name -> DirEntry`` for one directory, produced by a single readdir.
+DirEntryMap = dict[str, "os.DirEntry[str]"]
+
+
+def scan_unit_dir(unit_dir: Path) -> DirEntryMap:
+    """Return ``{name: DirEntry}`` for *unit_dir* from a single readdir pass.
+
+    The returned ``DirEntry`` objects are the unit of reuse: ``DirEntry.stat()``
+    caches its result, so one map shared between the marker guard and the
+    consensus reader costs at most one ``stat`` per file instead of one per
+    consumer.  A missing or unreadable directory yields an empty map, matching
+    ``Path.glob`` on a non-existent directory (silently empty, never raising).
+    """
+    try:
+        with os.scandir(unit_dir) as it:
+            return {entry.name: entry for entry in it}
+    except OSError:
+        return {}
+
+
+def iter_consensus_names(entries: DirEntryMap) -> list[str]:
+    """Return the consensus-FASTA names in *entries*, in ``glob`` pattern order.
+
+    Reproduces ``for pattern in CONSENSUS_FILE_PATTERNS: sorted(dir.glob(...))``
+    de-duplicated: names are grouped by the first pattern they match and sorted
+    within the group.  The three patterns are mutually exclusive on POSIX, but
+    the grouping is kept so the emitted order does not depend on that.
+    """
+    out: list[str] = []
+    claimed: set[str] = set()
+    for matcher in _CONSENSUS_FILE_MATCHERS:
+        group = sorted(
+            name for name in entries if name not in claimed and matcher.match(name)
+        )
+        claimed.update(group)
+        out.extend(group)
+    return out
 
 
 def marker_path(unit_dir: Path) -> Path:
@@ -124,16 +179,26 @@ def write_stage_marker(
     return atomic_write_text(marker_path(unit_dir), content)
 
 
-def read_stage_marker(unit_dir: Path) -> dict[str, Any] | None:
+def read_stage_marker(
+    unit_dir: Path, entries: DirEntryMap | None = None
+) -> dict[str, Any] | None:
     """Return the parsed marker for *unit_dir*, or ``None`` when absent.
 
     A marker file that cannot be parsed as the expected JSON object is treated
     as absent (``None``) so a corrupt marker never crashes resume/consume; the
     unit is then re-processed (resume) or proceeds unguarded (consume, like a
     legacy dir).
+
+    When *entries* (a :func:`scan_unit_dir` map) is supplied, the presence test
+    reads that map instead of issuing a separate ``exists()`` stat.  A read that
+    fails afterwards still returns ``None``, so a marker deleted between the
+    scan and the read behaves exactly like an absent one.
     """
     mpath = marker_path(unit_dir)
-    if not mpath.exists():
+    if entries is None:
+        if not mpath.exists():
+            return None
+    elif MARKER_FILENAME not in entries:
         return None
     try:
         data = json.loads(mpath.read_text(encoding="utf-8"))
@@ -144,26 +209,31 @@ def read_stage_marker(unit_dir: Path) -> dict[str, Any] | None:
     return data
 
 
-def _list_well_fasta(unit_dir: Path) -> set[str]:
+def _list_well_fasta(unit_dir: Path, entries: DirEntryMap | None = None) -> set[str]:
     """Return the set of per-well FASTA stems present in *unit_dir*.
 
-    Mirrors the consumer (``fasta_parser._iter_consensus_files``): every file
+    Mirrors the consumer (``fasta_parser._iter_consensus_entries``): every file
     matching ``CONSENSUS_FILE_PATTERNS`` (``*.fasta`` / ``*.fa`` / ``*.fas``)
     whose name does not start with ``_`` (so ``_unassigned.fasta`` is
-    excluded).  Globbing the SAME extension set the consumer reads is what lets
+    excluded).  Matching the SAME extension set the consumer reads is what lets
     a stray ``.fa`` / ``.fas`` orphan be flagged as an extra file instead of
     silently bypassing the guard.
+
+    *entries* is an optional :func:`scan_unit_dir` map; supplying it replaces
+    the three per-pattern directory scans with zero additional syscalls.
     """
-    unit_dir = Path(unit_dir)
-    stems: set[str] = set()
-    for pattern in CONSENSUS_FILE_PATTERNS:
-        for p in unit_dir.glob(pattern):
-            if not p.name.startswith("_"):
-                stems.add(p.stem)
-    return stems
+    if entries is None:
+        entries = scan_unit_dir(unit_dir)
+    return {
+        PurePath(name).stem
+        for name in iter_consensus_names(entries)
+        if not name.startswith("_")
+    }
 
 
-def validate_marker(marker: dict[str, Any], unit_dir: Path) -> tuple[bool, str]:
+def validate_marker(
+    marker: dict[str, Any], unit_dir: Path, entries: DirEntryMap | None = None
+) -> tuple[bool, str]:
     """Validate *marker* against the files actually present in *unit_dir*.
 
     Validation is **inventory match**: the set of well names recorded in the
@@ -177,8 +247,10 @@ def validate_marker(marker: dict[str, Any], unit_dir: Path) -> tuple[bool, str]:
         ``(ok, reason)`` where *reason* is empty on success and a human-readable
         explanation on failure.
     """
+    if entries is None:
+        entries = scan_unit_dir(unit_dir)
     recorded = {str(w) for w in marker.get("wells", [])}
-    on_disk = _list_well_fasta(unit_dir)
+    on_disk = _list_well_fasta(unit_dir, entries)
 
     missing = recorded - on_disk
     if missing:
@@ -196,11 +268,19 @@ def validate_marker(marker: dict[str, Any], unit_dir: Path) -> tuple[bool, str]:
             f"inventory: {sorted(extra)[:5]}",
         )
 
+    # Existence AND non-zero size are both still required per recorded well.
+    # A name absent from the scan, or one whose stat fails (a broken symlink is
+    # the realistic case, and ``Path.exists()`` reported False for it before),
+    # is reported as missing exactly as before; the size test is unchanged.
     for well in sorted(recorded):
-        fpath = Path(unit_dir) / f"{well}.fasta"
-        if not fpath.exists():
+        entry = entries.get(f"{well}.fasta")
+        if entry is None:
             return (False, f"recorded well '{well}' FASTA missing on disk")
-        if fpath.stat().st_size == 0:
+        try:
+            size = entry.stat().st_size
+        except OSError:
+            return (False, f"recorded well '{well}' FASTA missing on disk")
+        if size == 0:
             return (False, f"recorded well '{well}' FASTA is empty (truncated)")
 
     return (True, "")
@@ -208,10 +288,11 @@ def validate_marker(marker: dict[str, Any], unit_dir: Path) -> tuple[bool, str]:
 
 def is_unit_complete(unit_dir: Path) -> bool:
     """True iff *unit_dir* has a valid marker whose inventory matches disk."""
-    marker = read_stage_marker(unit_dir)
+    entries = scan_unit_dir(unit_dir)
+    marker = read_stage_marker(unit_dir, entries)
     if marker is None:
         return False
-    ok, _reason = validate_marker(marker, unit_dir)
+    ok, _reason = validate_marker(marker, unit_dir, entries)
     return ok
 
 
@@ -219,6 +300,9 @@ __all__ = [
     "MARKER_FILENAME",
     "MARKER_SCHEMA_VERSION",
     "STAGE_NAME",
+    "DirEntryMap",
+    "scan_unit_dir",
+    "iter_consensus_names",
     "marker_path",
     "write_stage_marker",
     "read_stage_marker",

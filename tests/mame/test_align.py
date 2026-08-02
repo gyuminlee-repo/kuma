@@ -16,7 +16,13 @@ from pathlib import Path
 
 import pytest
 
-from kuma_core.mame.ingest.align import Alignment, _get_reference_length, align_reads
+from kuma_core.mame.ingest.align import (
+    Alignment,
+    _get_reference_length,
+    align_reads,
+    align_reads_multi,
+    build_minimap2_index,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -244,3 +250,52 @@ class TestAlignReads:
         assert all(op not in (4, 5) for _, op in aln.cigar)
         # Clipping is still reflected in the query coordinates.
         assert aln.q_st > 0
+
+
+class TestAlignReadsMultiPrebuiltIndex:
+    """`reference_index` on the demux path must not perturb any output.
+
+    The parameter exists so a caller splitting reads into many chunks can build
+    the .mmi once instead of letting every chunk re-index the reference. That is
+    only safe if a prebuilt index reproduces FASTA-indexed output exactly: a
+    prebuilt index makes minimap2 ignore runtime -k/-w, so a preset mismatch
+    would silently shift alignments and, downstream, well assignment. The index
+    is built with the same map-ont preset used at align time, so every
+    (read_id, r_st, r_en, q_st, q_en, strand, mapq) must match.
+    """
+
+    @pytest.fixture()
+    def ref_fasta(self, tmp_path: Path) -> Path:
+        path = tmp_path / "ref.fasta"
+        _write_fasta(path, "ref", _REF_SEQ)
+        return path
+
+    @staticmethod
+    def _hits(results: list) -> list[tuple]:
+        return [
+            (read_id, h.r_st, h.r_en, h.q_st, h.q_en, h.strand, h.mapq)
+            for read_id, _seq, hits in results
+            for h in hits
+        ]
+
+    def test_prebuilt_index_matches_fasta(self, ref_fasta: Path, tmp_path: Path) -> None:
+        reads = [
+            ("fwd", _REF_SEQ),
+            ("rev", _rc(_REF_SEQ)),
+            ("flanked", "T" * 15 + _REF_SEQ + "A" * 25),
+            # Concatemer: two copies, the case supplementary records exist for.
+            ("chimera", _REF_SEQ + _REF_SEQ),
+        ]
+        from_fasta = align_reads_multi(
+            reads, ref_fasta, min_mapq=0, coverage_fraction=0.0, threads=1
+        )
+        mmi = build_minimap2_index(ref_fasta, tmp_path / "ref.mmi")
+        assert mmi.exists(), "prebuilt .mmi was not created"
+        from_mmi = align_reads_multi(
+            reads, ref_fasta, min_mapq=0, coverage_fraction=0.0, threads=1,
+            reference_index=mmi,
+        )
+        assert self._hits(from_fasta), "FASTA-indexed alignment produced no hits"
+        assert self._hits(from_fasta) == self._hits(from_mmi), (
+            "prebuilt-index demux alignment diverges from FASTA-indexed output"
+        )

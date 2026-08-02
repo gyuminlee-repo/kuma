@@ -7,6 +7,8 @@ in alternative start codons; for this fixture either is acceptable.
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 from Bio.Seq import Seq
 
 from kuma_core.mame.models import BarcodeRecord, TranslatedRecord
@@ -16,6 +18,22 @@ def _strip_gaps(seq: str) -> str:
     return seq.replace("-", "")
 
 
+@lru_cache(maxsize=None)
+def _codon_aa(codon: str, table: str) -> str:
+    """Translate a single codon, memoised.
+
+    The body is exactly the call it replaces, so the result is identical to
+    Biopython's by construction (including ambiguity handling, where an
+    N-bearing codon yields 'X'). Only the dispatch is amortised: the per-well
+    loop asked Biopython for the same handful of codons hundreds of times per
+    record. The key space is bounded by the 3-character nucleotide alphabet.
+    """
+    return str(Seq(codon).translate(table=table))
+
+
+# Bounded so a sidecar process analysing several references cannot grow this
+# without limit; in practice one entry serves a whole run.
+@lru_cache(maxsize=8)
 def _translate_cds(cds: str, table: int = 11) -> str:
     """Translate in-frame CDS. Gap characters ('-') are removed beforehand.
 
@@ -115,7 +133,7 @@ def _aa_ungapped_diffs(
             aa_changes.append(f"{ref_k}{codon_i + 1}del")
             aa_chars.append("-")
             continue
-        aa = str(Seq(codon).translate(table=str(table)))
+        aa = _codon_aa(codon, str(table))
         if aa == "*":
             aa_chars.append("*")
             if codon_i < len(ref_aa):

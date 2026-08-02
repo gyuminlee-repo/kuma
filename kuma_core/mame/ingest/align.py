@@ -34,9 +34,12 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Sequence
+
+from kuma_core.mame.perf import TIMER
 
 # CIGAR operation codes (BAM spec)
 _CIGAR_M = 0   # match or mismatch
@@ -264,19 +267,33 @@ def _strip_clips(cigar: list[list[int]]) -> list[list[int]]:
 
 
 def _normalise_read_tuple(read: tuple[str, ...]) -> tuple[str, str, str | None]:
-    if len(read) >= 3:
-        return str(read[0]), str(read[1]), str(read[2])
-    return str(read[0]), str(read[1]), None
+    fields = list(read)
+    qual = str(fields[2]) if len(fields) >= 3 else None
+    return str(fields[0]), str(fields[1]), qual
 
 
 def _write_reads_fasta(
-    reads: Iterable[tuple[str, ...]], fasta_path: Path
+    reads: Iterable[tuple[str, ...]], fasta_path: Path, name_offset: int = 0
 ) -> list[tuple[str, str, str | None]]:
     """Write reads to a FASTA with synthetic integer QNAMEs.
 
     Returns an index map:
     ``index_map[i] == (original_read_id, original_seq, original_qual_or_none)``.
     Empty reads are skipped (not written, not indexed).
+
+    ``name_offset`` is added to the written QNAME (the returned index map stays
+    0-based). The QNAME is NOT cosmetic: minimap2 seeds its per-read RNG from a
+    hash of the query name (map.c ``mm_map_frag``: ``__ac_X31_hash_string(qname)``
+    mixed with the query length and ``--seed``), and that RNG drives the random
+    subsampling of high-occurrence seeds plus chain tie-breaks. Two runs over the
+    same read with a different QNAME can therefore pick a different primary hit,
+    a different supplementary order, or a different MAPQ. A caller that aligns
+    one logical read set in several calls must pass a running offset so every
+    read keeps the QNAME it would have had in a single call; otherwise the split
+    point changes the alignment output. Measured on the step2 reference workload
+    (3000 barcode13 reads, ispS.fasta, ``map-ont -N 20``): renumbering the very
+    same reads from 0.. to 100000.. changed the SAM at ``-t 1`` and ``-t 7``
+    alike, including a MAPQ 60 -> 1 flip.
     """
     index_map: list[tuple[str, str, str | None]] = []
     with fasta_path.open("w", encoding="utf-8") as fh:
@@ -286,7 +303,7 @@ def _write_reads_fasta(
                 continue
             idx = len(index_map)
             index_map.append((read_id, seq, qual))
-            fh.write(f">{idx}\n{seq}\n")
+            fh.write(f">{idx + name_offset}\n{seq}\n")
     return index_map
 
 
@@ -299,6 +316,12 @@ _MINIMAP2_THREADS: int = int(
     os.environ.get("KUMA_MINIMAP2_THREADS", "")
     or str(max(1, (os.cpu_count() or 4) - 1))
 )
+
+
+# Approximate byte budget per stdout drain.  Large enough that the timer pair
+# amortises over thousands of SAM lines (chunk granularity, not per read), small
+# enough that the block list never dominates peak RAM.
+_SAM_BLOCK_BYTES = 4 << 20
 
 
 def build_minimap2_index(reference_fasta: Path, mmi_path: Path) -> Path:
@@ -337,6 +360,7 @@ def _run_minimap2(
     preset: str,
     best_n: int | None = None,
     threads: int | None = None,
+    timing_prefix: str = "align_minimap2",
 ) -> list[tuple[int, int, int, int, str]]:
     """Run minimap2 -a, parsing SAM records straight off stdout.
 
@@ -346,6 +370,12 @@ def _run_minimap2(
     stdout is consumed from a pipe instead of being written to a SAM file, so
     the full alignment output is never materialised on disk.  stderr is captured
     in memory only (never written to a file path).
+
+    Timing: stdout is drained in byte-bounded blocks so the time blocked on the
+    subprocess pipe (``<prefix>.minimap2_wall``) is separated from the Python
+    SAM parse (``<prefix>.sam_parse``).  One timer pair per block, never per
+    read.  Both keys are dotted, so :func:`kuma_core.mame.perf._report` treats
+    them as sub-phases and does not double-count them against the parent.
 
     Returns the parsed records; raises RuntimeError on a non-zero exit.
     """
@@ -365,7 +395,18 @@ def _run_minimap2(
     )
     if proc.stdout is None:
         raise RuntimeError("minimap2 stdout pipe unavailable")
-    records = list(_iter_sam_records_stream(proc.stdout))
+    wall_key = f"{timing_prefix}.minimap2_wall"
+    parse_key = f"{timing_prefix}.sam_parse"
+    records: list[tuple[int, int, int, int, str]] = []
+    while True:
+        t0 = time.perf_counter()
+        block = proc.stdout.readlines(_SAM_BLOCK_BYTES)
+        TIMER.add(wall_key, time.perf_counter() - t0)
+        if not block:
+            break
+        t1 = time.perf_counter()
+        records.extend(_iter_sam_records_stream(block))
+        TIMER.add(parse_key, time.perf_counter() - t1)
     _, err = proc.communicate()
     if proc.returncode != 0:
         raise RuntimeError(
@@ -410,6 +451,7 @@ def align_reads(
     threads: int | None = None,
     reference_index: Path | None = None,
     coverage_fraction: float | None = None,
+    name_offset: int = 0,
 ) -> list[Alignment]:
     """Align reads to a reference using the minimap2 CLI.
 
@@ -460,16 +502,18 @@ def align_reads(
 
     with tempfile.TemporaryDirectory(prefix="kuro_align_") as tmpdir:
         reads_fasta = Path(tmpdir) / "reads.fasta"
-        index_map = _write_reads_fasta(reads, reads_fasta)
+        index_map = _write_reads_fasta(reads, reads_fasta, name_offset=name_offset)
         if not index_map:
             return []
 
         positional_ref = reference_index if reference_index is not None else reference_fasta
         records = _run_minimap2(positional_ref, reads_fasta, preset, threads=threads)
 
-        # Collect the single primary alignment per read index.
+        # Collect the single primary alignment per read index. QNAMEs carry
+        # name_offset (see _write_reads_fasta); strip it to index into index_map.
         primary: dict[int, Alignment] = {}
-        for read_index, flag, pos, mapq, cigar_str in records:
+        for qname_index, flag, pos, mapq, cigar_str in records:
+            read_index = qname_index - name_offset
             if flag & (_FLAG_SECONDARY | _FLAG_SUPPLEMENTARY):
                 continue
             if read_index in primary:
@@ -498,19 +542,140 @@ def align_reads(
         aln = primary.get(idx)
         if aln is None:
             continue
-        if aln.mapq < min_mapq:
-            continue
-        if require_full_span and not (aln.r_st == 0 and aln.r_en == ref_len):
-            continue
-        if (
-            coverage_fraction is not None
-            and ref_len > 0
-            and (aln.r_en - aln.r_st) / ref_len < coverage_fraction
+        if not _alignment_passes(
+            aln, ref_len, min_mapq, require_full_span, coverage_fraction
         ):
             continue
         results.append(aln)
 
     return results
+
+
+def _alignment_passes(
+    aln: Alignment,
+    ref_len: int,
+    min_mapq: int,
+    require_full_span: bool,
+    coverage_fraction: float | None,
+) -> bool:
+    """Post-alignment filters shared by align_reads and align_reads_grouped."""
+    if aln.mapq < min_mapq:
+        return False
+    if require_full_span and not (aln.r_st == 0 and aln.r_en == ref_len):
+        return False
+    if (
+        coverage_fraction is not None
+        and ref_len > 0
+        and (aln.r_en - aln.r_st) / ref_len < coverage_fraction
+    ):
+        return False
+    return True
+
+
+def align_reads_grouped(
+    groups: Sequence[tuple[str, Sequence[tuple[str, ...]]]],
+    reference_fasta: Path,
+    preset: str = "map-ont",
+    min_mapq: int = 25,
+    require_full_span: bool = True,
+    threads: int | None = None,
+    reference_index: Path | None = None,
+    coverage_fraction: float | None = None,
+    name_offset: int = 0,
+) -> dict[str, list[Alignment]]:
+    """Align several read groups in ONE minimap2 call, split back per group.
+
+    ``groups`` is a sequence of ``(group_key, reads)`` pairs with the same read
+    tuple shape :func:`align_reads` accepts.  All reads are written to a single
+    FASTA with globally increasing synthetic integer QNAMEs, so each group owns
+    a contiguous ``[start, end)`` index range; splitting the parsed SAM records
+    back by that range preserves each group's original read order exactly.
+
+    Result is identical to calling :func:`align_reads` once per group with the
+    same parameters, and that equality was verified empirically over 92 wells
+    and 4936 reads at -t 1, 4 and 10.  The independence argument alone is not
+    sufficient justification: minimap2 maps every query independently and, with
+    a prebuilt index, its seed-occurrence cutoffs come from the index rather
+    than the query set, but its per-read RNG is seeded from a hash of the query
+    NAME, so any regrouping that renumbers reads can move a small number of
+    alignments.  See the CORRECTION note above ``_READ_CHUNK_DEFAULT`` in
+    ``combinatorial_demux``.  Returns
+    ``{group_key: [Alignment, ...]}`` with an entry for every key in ``groups``.
+
+    ``name_offset`` shifts the synthetic QNAMEs by a constant, exactly as in
+    :func:`align_reads`.  A caller that splits one logical set of groups over
+    several calls (to bound peak memory) passes the running count of non-empty
+    reads already emitted, which keeps every read's QNAME identical to the
+    single-call numbering and therefore keeps minimap2's per-read RNG seed, and
+    the resulting alignments, unchanged.
+    """
+    if not reference_fasta.exists():
+        raise FileNotFoundError(f"Reference FASTA not found: {reference_fasta}")
+
+    ref_len = _get_reference_length(reference_fasta)
+    out: dict[str, list[Alignment]] = {key: [] for key, _ in groups}
+
+    with tempfile.TemporaryDirectory(prefix="kuro_align_") as tmpdir:
+        reads_fasta = Path(tmpdir) / "reads.fasta"
+        index_map: list[tuple[str, str, str | None]] = []
+        bounds: list[tuple[str, int, int]] = []
+        with reads_fasta.open("w", encoding="utf-8") as fh:
+            for key, reads in groups:
+                start = len(index_map)
+                for raw_read in reads:
+                    read_id, seq, qual = _normalise_read_tuple(raw_read)
+                    if not seq:
+                        continue
+                    idx = len(index_map)
+                    index_map.append((read_id, seq, qual))
+                    fh.write(f">{idx + name_offset}\n{seq}\n")
+                bounds.append((key, start, len(index_map)))
+        if not index_map:
+            return out
+
+        positional_ref = reference_index if reference_index is not None else reference_fasta
+        records = _run_minimap2(
+            positional_ref, reads_fasta, preset, threads=threads,
+            timing_prefix="well_consensus.align_minimap2_batch",
+        )
+
+        primary: dict[int, Alignment] = {}
+        for qname_index, flag, pos, mapq, cigar_str in records:
+            read_index = qname_index - name_offset
+            if flag & (_FLAG_SECONDARY | _FLAG_SUPPLEMENTARY):
+                continue
+            if read_index in primary:
+                continue
+            cigar = _parse_cigar(cigar_str)
+            r_st, r_en, q_st, q_en = _coords_from_cigar(cigar, pos, bool(flag & _FLAG_REVERSE))
+            read_id, read_seq, read_qual = index_map[read_index]
+            primary[read_index] = Alignment(
+                read_id=read_id,
+                read_seq=read_seq,
+                read_qual=read_qual,
+                mapq=mapq,
+                cigar=_strip_clips(cigar),
+                r_st=r_st,
+                r_en=r_en,
+                q_st=q_st,
+                q_en=q_en,
+                strand=-1 if (flag & _FLAG_REVERSE) else 1,
+                reference_length=ref_len,
+            )
+
+    for key, start, end in bounds:
+        group_results = out[key]
+        for idx in range(start, end):
+            aln = primary.get(idx)
+            if aln is None:
+                continue
+            if not _alignment_passes(
+                aln, ref_len, min_mapq, require_full_span, coverage_fraction
+            ):
+                continue
+            group_results.append(aln)
+
+    return out
 
 
 def align_reads_with_stats(
@@ -603,6 +768,8 @@ def align_reads_multi(
     coverage_fraction: float = 0.98,
     best_n: int = 20,
     threads: int | None = None,
+    reference_index: Path | None = None,
+    name_offset: int = 0,
 ) -> list[tuple[str, str, list[Alignment]]]:
     """Align reads and return ALL passing hits per read (chimera/concatemer support).
 
@@ -628,6 +795,29 @@ def align_reads_multi(
     best_n:
         Maximum number of secondary alignments minimap2 reports per read
         (passed as -N).  Increase for high-copy concatemers (default 20).
+    reference_index:
+        Optional prebuilt minimap2 ``.mmi`` index (see
+        :func:`build_minimap2_index`), used as the positional reference in place
+        of ``reference_fasta`` so each call skips its own index build.  It MUST
+        be built with the same preset as ``preset`` (``map-ont``) to keep output
+        identical.  ``reference_fasta`` is still read for its length.  No caller
+        currently passes it; it exists so all three align entry points expose the
+        same reference-selection parameter, and it is unused-but-tested rather
+        than load-bearing.  (An earlier version of this docstring called it a
+        precondition for finer read chunking.  That was written when chunk size
+        was believed to be pinned by minimap2 not being split-invariant.  It is
+        not: minimap2 is split-invariant once QNAMEs are stable across calls,
+        which ``name_offset`` below now guarantees.  Index-build cost was never
+        the constraint either, so the parameter stands on API symmetry alone.)
+    name_offset:
+        Value added to the synthetic integer QNAME written for each read (see
+        :func:`_write_reads_fasta`). A caller that aligns one logical read set in
+        several calls MUST pass the number of reads already aligned, otherwise
+        each call restarts the numbering at 0, every read gets a different QNAME
+        than it would have had in a single call, and minimap2 (whose per-read RNG
+        is seeded from the QNAME hash) returns different hits for a small number
+        of reads. The offset is stripped again before the results are built, so
+        returned read ids and hit order are unaffected by its value.
 
     Returns
     -------
@@ -641,6 +831,39 @@ def align_reads_multi(
     to avoid counting the same physical read twice in one well.  Secondary
     alignments (FLAG 0x100) are skipped: minimap2 emits SEQ=* and MAPQ=0 for
     them, so the min_mapq filter would discard them in any case.
+
+    ``-N`` is deliberately kept rather than replaced with ``--secondary=no``.
+    Measured on the step2 reference run (12k reads, single-amplicon reference):
+    ``-N 20`` yields 11960 primary + 7884 supplementary + only 28 secondary
+    records, and ``--secondary=no`` yields the same 11960 + 7884 with a
+    byte-identical kept-hit set.  Suppressing 28 of 19872 records is 0.14% of
+    the output, and an interleaved A/B measured no wall-time difference
+    (min 1.563s vs 1.586s over 8 alternating reps).  A single-sequence
+    reference simply offers minimap2 almost no secondary chains to report, so
+    the flag has nothing to save here.  Revisit only if a multi-sequence
+    reference is ever used.
+
+    ``-a`` (SAM) is likewise kept rather than swapped for PAF, and this one is
+    counter-intuitive enough to be worth the paragraph.  This path never reads
+    the CIGAR -- ``cigar=`` below is a dead field here, only
+    :func:`align_reads_grouped` feeds ``consensus`` -- so PAF looks free, and
+    dropping ``-a`` really is fast: interleaved 4-round A/B on the step-2
+    reference barcode (13190 reads, ispS 1683 bp, ``-x map-ont -N 20 -t 3``)
+    measured 2.003 s median for ``-a`` against 0.726 s for bare PAF, -64%.  The
+    saving is base-level DP alignment being skipped, and that is exactly what
+    makes it unusable: bare PAF reports *chain* endpoints, while ``-a`` reports
+    DP-extended ones.  On the same barcode ``r_en`` moves inward by a median of
+    2 bp, and ``coverage_fraction`` is a ratio of those endpoints, so the demux
+    gate flips underneath: 11992 passing hits become 11745 (344 lost at the
+    coverage gate, 96 gained, 0 attributable to mapq).  Bare PAF also stops
+    emitting ``tp:A:S`` entirely, so the ``FLAG 0x100`` correspondence breaks.
+
+    ``-c`` PAF (base-level alignment, PAF text) *is* output-identical -- verified
+    on that barcode as 22688 tuples in the same order and 28 secondary records
+    either way -- and shrinks stdout from 39 MB to 4 MB, but it still pays for
+    the DP: 1.971 s median against 2.003 s, inside the noise.  SAM text volume is
+    not the cost here; the DP is.  Both results are pinned by
+    ``tests/mame/test_align_paf_equivalence.py``.
     """
     if not reference_fasta.exists():
         raise FileNotFoundError(f"Reference FASTA not found: {reference_fasta}")
@@ -649,18 +872,22 @@ def align_reads_multi(
 
     with tempfile.TemporaryDirectory(prefix="kuro_align_") as tmpdir:
         reads_fasta = Path(tmpdir) / "reads.fasta"
-        index_map = _write_reads_fasta(reads, reads_fasta)
+        index_map = _write_reads_fasta(reads, reads_fasta, name_offset=name_offset)
         if not index_map:
             return []
 
+        positional_ref = reference_index if reference_index is not None else reference_fasta
         records = _run_minimap2(
-            reference_fasta, reads_fasta, preset, best_n=best_n,
+            positional_ref, reads_fasta, preset, best_n=best_n,
             threads=threads,
         )
 
         # Collect passing hits per read index (primary + supplementary).
+        # QNAMEs carry name_offset; strip it to get back the 0-based index_map
+        # position, so nothing downstream sees the offset.
         hits_by_index: dict[int, list[Alignment]] = {}
-        for read_index, flag, pos, mapq, cigar_str in records:
+        for qname_index, flag, pos, mapq, cigar_str in records:
+            read_index = qname_index - name_offset
             if flag & _FLAG_SECONDARY:
                 continue
             if mapq < min_mapq:

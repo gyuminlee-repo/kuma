@@ -508,7 +508,9 @@ export interface ExportAllParams {
   project_id?: string | null;
   project_name?: string | null;
   purification?: "MOPC";
+  quadrant?: ("A1" | "A2" | "B1" | "B2") | null;
   rev_plate_name?: string;
+  used_quadrants?: ("A1" | "A2" | "B1" | "B2")[] | null;
   [k: string]: unknown;
 }
 export interface PlateMappingItem {
@@ -593,7 +595,9 @@ export interface ExportMappingParams {
   format?: "echo" | "janus";
   mapping_range?: MappingRange | null;
   mappings?: PlateMappingItem[] | null;
+  quadrant?: ("A1" | "A2" | "B1" | "B2") | null;
   transfer_vol?: number | null;
+  used_quadrants?: ("A1" | "A2" | "B1" | "B2")[] | null;
   [k: string]: unknown;
 }
 export interface ExportMappingResultModel {
