@@ -563,6 +563,11 @@ def handle_analyze(params: dict) -> dict:
         ):
             raise ValueError("well_layout must be a mapping of well_id (str) to sample_name (str)")
         well_layout = well_layout_raw
+    elif sample_map_path is None:
+        from kuma_core.mame.io.kuro_reader import read_expected_mutations
+        from kuma_core.mame.layout import build_draft_layout
+
+        well_layout = build_draft_layout(read_expected_mutations(expected)).layout
 
     _emit(10, "Ingesting FASTA files...")
 

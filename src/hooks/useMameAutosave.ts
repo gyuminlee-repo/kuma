@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useKumaProject } from "@/state/projectContext";
 import { scheduleAutosave, flushAutosave, type AutosaveTarget } from "@/lib/autosave";
+import { registerShutdownHook } from "@/lib/shutdownHook";
 import { buildMameSnapshot } from "@/lib/mame/autosaveSnapshot";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useRoundStore } from "@/store/round/roundSlice";
@@ -89,10 +90,16 @@ export function useMameAutosave(): { flushMameAutosave: () => Promise<void> } {
 
     const buildSnapshot = () => {
       const roundState = useRoundStore.getState();
-      return buildMameSnapshot(useMameAppStore.getState(), {
-        rounds: roundState.rounds,
-        activeRoundId: roundState.active_round_id,
-      });
+      // 경로 상대화 기준은 쓰기 시점의 대상 프로젝트다. targetRef를 따라가야
+      // 프로젝트 전환 직후 예약분이 옛 폴더 기준으로 상대화되지 않는다.
+      return buildMameSnapshot(
+        useMameAppStore.getState(),
+        {
+          rounds: roundState.rounds,
+          activeRoundId: roundState.active_round_id,
+        },
+        targetRef.current.scratch ? null : targetRef.current.projectPath,
+      );
     };
     const unsubscribe = useMameAppStore.subscribe(
       selectMameInputs,
@@ -113,6 +120,14 @@ export function useMameAutosave(): { flushMameAutosave: () => Promise<void> } {
 
   const flushMameAutosave = useCallback(async (): Promise<void> => {
     await flushAutosave(targetRef.current, "mame");
+  }, []);
+
+  // kuro 쪽과 같은 이유로 종료 훅을 훅 내부에서 등록한다. 반환된
+  // flushMameAutosave 를 호출부가 종료 경로에 연결하지 않아도 동작해야 한다.
+  useEffect(() => {
+    return registerShutdownHook(async () => {
+      await flushAutosave(targetRef.current, "mame");
+    });
   }, []);
 
   return { flushMameAutosave };

@@ -12,7 +12,12 @@
     "openWorkspace": "開啟工作區...",
     "saveWorkspace": "儲存工作區...",
     "compareWorkspaces": "比較工作區...",
-    "exportWorkspaceZip": "將工作區匯出為 zip..."
+    "exportProjectZip": "將專案匯出為 ZIP...",
+    "importProjectZip": "從 ZIP 匯入專案...",
+    "exportProjectZipDone": "已將 {{count}} 個檔案儲存至 {{path}}",
+    "exportProjectZipFailed": "專案匯出失敗: {{detail}}",
+    "importProjectZipDone": "已將 {{count}} 個檔案匯入至 {{path}}",
+    "importProjectZipFailed": "專案匯入失敗: {{detail}}"
   },
   "export": {
     "all": "全部匯出",
@@ -319,7 +324,11 @@
         "sampleMapTemplate": "Sample map 範本 (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "無法開啟資料夾。"
+      "openFolderError": "無法開啟資料夾。",
+      "variantSheet": "變異清單工作表",
+      "variantColumn": "變異欄",
+      "variantColumnPlaceholder": "選擇欄位",
+      "variantColumnHelper": "依此欄的列順序填入 96 孔盤。若有 WT 列，則以其作為對照。"
     },
     "activity": {
       "sectionIngest": "上傳 activity 資料",
@@ -585,7 +594,6 @@
       "compareWorkspacesNoDiff": "No differences found.",
       "compareWorkspacesSame": "The two workspaces are identical.",
       "compareWorkspacesTitle": "Compare Workspaces",
-      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon",
       "selectWorkspaceA": "Select first workspace (A)",
       "selectWorkspaceB": "Select second workspace (B)"
     },
@@ -1047,6 +1055,14 @@
         "LOWDEPTH": "Too few reads to call this well reliably.",
         "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
       }
+    },
+    "missingInputs": {
+      "title": "有輸入未能還原",
+      "description": "專案資料夾之外的檔案不會隨之移動。請重新指定以下項目。",
+      "browse": "瀏覽",
+      "chooseTitle": "指定 {{name}}",
+      "mismatchTitle": "可能是不同的檔案",
+      "mismatchBody": "原為 {{expected}}，選擇了 {{actual}}。若為有意變更可忽略。"
     }
   },
   "home": {
@@ -2289,6 +2305,7 @@
     "writeFailed": "無法寫入自動儲存檔案 ({{filename}})。原因: {{cause}}",
     "carriedFromScratch": "已從未儲存的上一次工作階段繼續 ({{relative}})",
     "resultsDiscarded": "已從來源檔案重新選擇 variant 清單，與恢復的 primer 表不一致，因此已清空該表。請重新執行設計。",
+    "inputsUnavailable": "有 {{count}} 個輸入檔案無法開啟，已從還原中略過。結果仍在，但缺少來源輸入，請重新選擇: {{paths}}",
     "workspaceRestored": "工作區已恢復",
     "autoDetected": "自動檢測: {{fields}}",
     "fieldRunFolder": "run 資料夾",
@@ -2296,7 +2313,8 @@
     "fieldExpected": "expected",
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
-    "fieldSequencingSummary": "sequencing summary"
+    "fieldSequencingSummary": "sequencing summary",
+    "pathsMoved": "以下輸入的路徑已失效，需要重新選擇: {{fields}}"
   },
   "phaseC": {
     "majors": {

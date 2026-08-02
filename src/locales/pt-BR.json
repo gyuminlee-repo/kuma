@@ -12,7 +12,12 @@
     "openWorkspace": "Abrir workspace...",
     "saveWorkspace": "Salvar workspace...",
     "compareWorkspaces": "Comparar workspaces...",
-    "exportWorkspaceZip": "Exportar workspace como zip..."
+    "exportProjectZip": "Exportar projeto como ZIP...",
+    "importProjectZip": "Importar projeto de ZIP...",
+    "exportProjectZipDone": "{{count}} arquivo(s) salvo(s) em {{path}}",
+    "exportProjectZipFailed": "Falha ao exportar o projeto: {{detail}}",
+    "importProjectZipDone": "{{count}} arquivo(s) importado(s) para {{path}}",
+    "importProjectZipFailed": "Falha ao importar o projeto: {{detail}}"
   },
   "export": {
     "all": "Exportar tudo",
@@ -319,7 +324,11 @@
         "sampleMapTemplate": "Modelo de sample map (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "Não foi possível abrir a pasta."
+      "openFolderError": "Não foi possível abrir a pasta.",
+      "variantSheet": "Planilha de variantes",
+      "variantColumn": "Coluna de variantes",
+      "variantColumnPlaceholder": "Escolher uma coluna",
+      "variantColumnHelper": "A ordem das linhas desta coluna preenche a placa de 96 pocos. Uma linha WT serve de controle."
     },
     "activity": {
       "sectionIngest": "Enviar activity",
@@ -585,7 +594,6 @@
       "compareWorkspacesNoDiff": "No differences found.",
       "compareWorkspacesSame": "The two workspaces are identical.",
       "compareWorkspacesTitle": "Compare Workspaces",
-      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon",
       "selectWorkspaceA": "Select first workspace (A)",
       "selectWorkspaceB": "Select second workspace (B)"
     },
@@ -1047,6 +1055,14 @@
         "LOWDEPTH": "Too few reads to call this well reliably.",
         "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
       }
+    },
+    "missingInputs": {
+      "title": "Algumas entradas nao puderam ser restauradas",
+      "description": "Arquivos fora da pasta do projeto nao acompanham a copia. Indique o novo local.",
+      "browse": "Procurar",
+      "chooseTitle": "Localizar {{name}}",
+      "mismatchTitle": "Pode ser um arquivo diferente",
+      "mismatchBody": "Era {{expected}}, escolhido {{actual}}. Ignore se a troca for intencional."
     }
   },
   "home": {
@@ -2289,6 +2305,7 @@
     "writeFailed": "Não foi possível gravar o arquivo de salvamento automático ({{filename}}). Causa: {{cause}}",
     "carriedFromScratch": "Continuado de uma sessão anterior não salva ({{relative}})",
     "resultsDiscarded": "A lista de variants foi selecionada novamente a partir do arquivo de origem e não corresponde mais à tabela de primers restaurada, portanto a tabela foi limpa. Execute o design novamente.",
+    "inputsUnavailable": "Nao foi possivel abrir {{count}} arquivo(s) de entrada, que ficaram de fora da restauracao. Os resultados continuam la, mas falta a entrada de origem. Selecione novamente: {{paths}}",
     "workspaceRestored": "Workspace restaurado",
     "autoDetected": "Auto-detectado: {{fields}}",
     "fieldRunFolder": "pasta da execução",
@@ -2296,7 +2313,8 @@
     "fieldExpected": "expected",
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
-    "fieldSequencingSummary": "sequencing summary"
+    "fieldSequencingSummary": "sequencing summary",
+    "pathsMoved": "Estas entradas foram movidas e precisam ser selecionadas novamente: {{fields}}"
   },
   "phaseC": {
     "majors": {

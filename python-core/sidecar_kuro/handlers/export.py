@@ -431,7 +431,9 @@ def handle_export_mapping(params: dict) -> dict:
             export_echo_mapping_csv(fwd_mappings, rev_mappings, resolved,
                                     transfer_vol=vol, rev_groups=rev_groups,
                                     encoding=encoding,
-                                    mapping_range=mapping_range)
+                                    mapping_range=mapping_range,
+                                    quadrant=p.quadrant,
+                                    used_quadrants=list(p.used_quadrants or []))
     else:
         vol = _resolve_mapping_transfer_volume(p.format, p.transfer_vol)
         if use_xlsx:
@@ -606,12 +608,16 @@ def _export_echo_for_all(
     transfer_vol: int,
     rev_groups: dict,
     bom: bool,
+    quadrant: str | None = None,
+    used_quadrants: list[str] | None = None,
 ) -> None:
     export_echo_mapping_csv(
         fwd, rev, output_path,
         transfer_vol=transfer_vol,
         rev_groups=rev_groups,
         encoding="utf-8-sig" if bom else "utf-8",
+        quadrant=quadrant,
+        used_quadrants=used_quadrants,
     )
 
 
@@ -976,6 +982,8 @@ def handle_export_all(params: dict) -> dict:
         transfer_vol=int(p.echo_transfer_vol),
         rev_groups=rev_groups,
         bom=p.bom,
+        quadrant=p.quadrant,
+        used_quadrants=list(p.used_quadrants or []),
     ))
 
     _try(ECHO_XLSX, lambda: export_echo_mapping_xlsx(

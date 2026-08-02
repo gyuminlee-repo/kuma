@@ -32,7 +32,17 @@ const hooks = vi.hoisted(() => ({
   sendKuroRequest: vi.fn(),
   openWorkspace: vi.fn(),
   getLatestArtifact: vi.fn(),
+  // 전역 fs stub 의 exists 는 항상 false 라, 그대로 두면 복원된 경로가 전부
+  // "사라진 파일"로 판정돼 죽은 경로 정리에 지워진다. 이 테스트들이 검증하는
+  // 것은 경로 존재가 아니라 복원·우선순위이므로 기본값을 present 로 둔다.
+  // 사라진 경로 동작은 exists 를 false 로 뒤집는 전용 테스트에서 확인한다.
+  exists: vi.fn(async (_path: string) => true),
 }));
+
+vi.mock("@tauri-apps/plugin-fs", async () => {
+  const actual = await vi.importActual<Record<string, unknown>>("@tauri-apps/plugin-fs");
+  return { ...actual, exists: hooks.exists };
+});
 
 // KURO 사이드카 RPC. applyKuroSnapshot이 loadEvolveproCsv를 통해 호출한다.
 vi.mock("@/lib/ipc-kuro", () => ({
@@ -197,8 +207,13 @@ const ROUND: Round = {
   ],
 };
 
+/** hydration 이 사용자에게 띄운 알림. 화면에 그리지 않으므로 여기서 모은다. */
+const hydrationMessages: string[] = [];
+
 function Harness() {
-  useAutosaveHydration(() => {});
+  useAutosaveHydration((m) => {
+    hydrationMessages.push(m.message);
+  });
   return null;
 }
 
@@ -213,6 +228,7 @@ function renderHydration(): void {
 describe("useAutosaveHydration: analyze-result restore", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hydrationMessages.length = 0;
     useMameAppStore.getState().resetInput();
     useMameAppStore.getState().resetAnalysis();
     useMameAppStore.getState().setMameSubStep("setup.files");
@@ -224,6 +240,9 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     // detection finds nothing (avoid touching the store further).
     hooks.detectProjectFiles.mockResolvedValue({});
     hooks.detectFromInputDir.mockResolvedValue({});
+    // clearAllMocks 가 hoisted 기본 구현까지 지우므로 매 테스트마다 되세운다.
+    // 기본은 present. 사라진 경로를 다루는 테스트가 개별적으로 뒤집는다.
+    hooks.exists.mockResolvedValue(true);
     hooks.openWorkspace.mockResolvedValue(undefined);
     hooks.getLatestArtifact.mockResolvedValue(null);
     // sidecar RPCs: load_analyze_result ack, then get_plate_data empty grid.
@@ -302,6 +321,154 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     // default analyze.inputs (never silently advanced to analyze.review).
     expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.inputs");
     expect(useMameAppStore.getState().verdicts).toEqual([]);
+  });
+
+  it("clears a restored MAME path that no longer exists so auto-detect can refill it", async () => {
+    // The snapshot carries absolute paths from the machine that wrote it. Here
+    // the run folder is gone (project moved) but the reference still resolves.
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) => {
+      if (kind === "mame") {
+        return Promise.resolve({
+          status: "ok",
+          snapshot: {
+            schema: 1,
+            saved_at: new Date().toISOString(),
+            kuma_version: "0.0.0-test",
+            input: {
+              input_dir: "/old-machine/run",
+              expected_path: "",
+              reference_path: "/proj/ref.fasta",
+              output_path: "",
+              sample_map_path: "",
+            },
+            parameters: {
+              mode: "amplicon",
+              ingest_mode: "barcode",
+              input_mode: "raw_run",
+              raw_run_params: undefined,
+              cds_start: 0,
+              cds_end: 0,
+              min_file_size_kb: 50,
+              many_cutoff: 5,
+            },
+          },
+        });
+      }
+      return Promise.resolve({ status: "missing" });
+    });
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+    hooks.exists.mockImplementation(async (p: string) => p !== "/old-machine/run");
+    // Auto-detect finds the run folder again inside the moved project.
+    hooks.detectProjectFiles.mockResolvedValue({ inputDir: "/proj/20260731_1200_run" });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().inputDir).toBe("/proj/20260731_1200_run");
+    });
+    // The path that still resolved is untouched, so a live value is never
+    // discarded just because a sibling went missing.
+    expect(useMameAppStore.getState().referencePath).toBe("/proj/ref.fasta");
+  });
+
+  it("names the inputs that stayed missing after auto-detect", async () => {
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) => {
+      if (kind === "mame") {
+        return Promise.resolve({
+          status: "ok",
+          snapshot: {
+            schema: 1,
+            saved_at: new Date().toISOString(),
+            kuma_version: "0.0.0-test",
+            input: {
+              input_dir: "/old-machine/run",
+              expected_path: "",
+              reference_path: "",
+              output_path: "",
+              sample_map_path: "",
+            },
+            parameters: {
+              mode: "amplicon",
+              ingest_mode: "barcode",
+              input_mode: "raw_run",
+              raw_run_params: undefined,
+              cds_start: 0,
+              cds_end: 0,
+              min_file_size_kb: 50,
+              many_cutoff: 5,
+            },
+          },
+        });
+      }
+      return Promise.resolve({ status: "missing" });
+    });
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+    hooks.exists.mockResolvedValue(false);
+    // Nothing to re-detect: the raw run folder lived outside the project.
+    hooks.detectProjectFiles.mockResolvedValue({});
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(
+        hydrationMessages.some((m) => /run folder|실행 폴더/i.test(m)),
+      ).toBe(true);
+    });
+    expect(useMameAppStore.getState().inputDir).toBe("");
+  });
+
+  it("resolves project-relative raw run params against the project that is open now", async () => {
+    // The snapshot was written on another machine, so the stored value is
+    // relative. Restoring must rebuild it against the current folder rather
+    // than handing the backend a bare fragment.
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) => {
+      if (kind === "mame") {
+        return Promise.resolve({
+          status: "ok",
+          snapshot: {
+            schema: 4,
+            saved_at: new Date().toISOString(),
+            kuma_version: "0.0.0-test",
+            input: {
+              input_dir: "",
+              expected_path: "",
+              reference_path: "",
+              output_path: "",
+              sample_map_path: "",
+            },
+            parameters: {
+              mode: "amplicon",
+              ingest_mode: "barcode",
+              input_mode: "raw_run",
+              raw_run_params: {
+                customBarcodesPath: "project://inputs/barcodes.xlsx",
+                sequencingSummaryPath: "/data/run/sequencing_summary.txt",
+                minQscore: 12,
+              },
+              cds_start: 0,
+              cds_end: 0,
+              min_file_size_kb: 50,
+              many_cutoff: 5,
+            },
+          },
+        });
+      }
+      return Promise.resolve({ status: "missing" });
+    });
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+    hooks.detectProjectFiles.mockResolvedValue({});
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().rawRunParams.customBarcodesPath).toBe(
+        "/proj/inputs/barcodes.xlsx",
+      );
+    });
+    // Absolute values are left as they are, and non-path params survive.
+    const params = useMameAppStore.getState().rawRunParams;
+    expect(params.sequencingSummaryPath).toBe("/data/run/sequencing_summary.txt");
+    expect(params.minQscore).toBe(12);
   });
 
   it("fills empty MAME expected mutations from the latest KURO SDM primer artifact", async () => {
@@ -887,5 +1054,184 @@ describe("applyKuroSnapshot: 복원 결과물 vs 재선택 variant", () => {
     expect(st.designResults).toHaveLength(1);
     expect(st.successCount).toBe(1);
     expect(st.plateMappings).toHaveLength(1);
+  });
+});
+
+describe("applyKuroSnapshot: 프로젝트 폴더 이식", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAppStore.getState().resetAll();
+  });
+
+  /** evolvepro_csv_path 만 바꾼 스냅샷. 결과물은 재선택과 일치시켜 폐기를 피한다. */
+  function snapshotWithCsvPath(csvPath: string): AutosaveSnapshot {
+    const snapshot = snapshotWithResults("X9Y") as unknown as {
+      input: Record<string, unknown>;
+    };
+    return {
+      ...(snapshot as unknown as AutosaveSnapshot),
+      input: { ...snapshot.input, evolvepro_csv_path: csvPath },
+    } as unknown as AutosaveSnapshot;
+  }
+
+  it("project:// 경로를 현재 프로젝트 폴더 기준으로 되살려 로드한다", async () => {
+    mockReselection(["X9Y"]);
+
+    await applyKuroSnapshot(
+      snapshotWithCsvPath("project://evolvepro.csv"),
+      undefined,
+      "/newpc/run7",
+    );
+
+    // 다른 PC의 폴더 기준으로 다시 조립된 경로로 사이드카를 호출해야 한다.
+    expect(useAppStore.getState().evolveproCsvPath).toBe("/newpc/run7/evolvepro.csv");
+    expect(hooks.sendKuroRequest).toHaveBeenCalledWith(
+      "load_evolvepro_csv",
+      expect.objectContaining({ filepath: "/newpc/run7/evolvepro.csv" }),
+    );
+  });
+
+  it("구 스냅샷의 절대 경로는 기준 폴더와 무관하게 그대로 쓴다", async () => {
+    mockReselection(["X9Y"]);
+
+    await applyKuroSnapshot(
+      snapshotWithCsvPath("/oldpc/run7/evolvepro.csv"),
+      undefined,
+      "/newpc/run7",
+    );
+
+    expect(useAppStore.getState().evolveproCsvPath).toBe("/oldpc/run7/evolvepro.csv");
+  });
+
+  it("입력을 열지 못하면 복원은 이어가되 열지 못한 경로를 보고한다", async () => {
+    hooks.sendKuroRequest.mockRejectedValue(new Error("ENOENT"));
+
+    const outcome = await applyKuroSnapshot(
+      snapshotWithCsvPath("/oldpc/run7/evolvepro.csv"),
+      undefined,
+      "/newpc/run7",
+    );
+
+    // 조용히 넘어가면 결과물만 남고 근거 입력이 빠진 상태를 정상으로 오인한다.
+    expect(outcome.unavailableInputs).toEqual(["/oldpc/run7/evolvepro.csv"]);
+    expect(useAppStore.getState().designResults).toHaveLength(1);
+  });
+
+  it("정상 복원이면 열지 못한 입력 목록이 비어 있다", async () => {
+    mockReselection(["X9Y"]);
+
+    const outcome = await applyKuroSnapshot(
+      snapshotWithCsvPath("project://evolvepro.csv"),
+      undefined,
+      "/newpc/run7",
+    );
+
+    expect(outcome.unavailableInputs).toEqual([]);
+  });
+});
+
+describe("useAutosaveHydration: 결과 파일 없이도 사이드카를 채운다", () => {
+  /**
+   * 화면의 verdict 표는 자동 저장 스냅샷에서 복원되는데 사이드카 상태는 별도
+   * 결과 파일로만 채워졌다. 결과 파일이 없으면 표는 보이는데 리포트와 Excel
+   * 내보내기는 "No prior analyze result" 로 거부됐다. 그 간극을 메운다.
+   */
+  function mameSnapshotWithResults() {
+    return {
+      status: "ok",
+      snapshot: {
+        schema: 4,
+        saved_at: new Date().toISOString(),
+        kuma_version: "0.0.0-test",
+        input: {
+          input_dir: "project://run",
+          expected_path: "",
+          reference_path: "",
+          output_path: "project://out",
+          sample_map_path: "",
+        },
+        parameters: {
+          mode: "amplicon",
+          ingest_mode: "barcode",
+          input_mode: "raw_run",
+          raw_run_params: undefined,
+          cds_start: 1,
+          cds_end: 900,
+          min_file_size_kb: 50,
+          many_cutoff: 5,
+        },
+        results: {
+          verdicts: [VERDICT],
+          replicates: [REPLICATE],
+          summary: ANALYZE_RESULT.summary,
+          distribution_stats: ANALYZE_RESULT.distribution_stats,
+        },
+      },
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) =>
+      kind === "mame"
+        ? Promise.resolve(mameSnapshotWithResults())
+        : Promise.resolve({ status: "missing" }),
+    );
+    hooks.detectProjectFiles.mockResolvedValue({});
+    hooks.sendMameRequest.mockResolvedValue({});
+  });
+
+  it("결과 파일이 없으면 스냅샷의 결과로 load_analyze_result 를 호출한다", async () => {
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(
+        hooks.sendMameRequest.mock.calls.some((c) => c[0] === "load_analyze_result"),
+      ).toBe(true);
+    });
+    const call = hooks.sendMameRequest.mock.calls.find(
+      (c) => c[0] === "load_analyze_result",
+    );
+    expect(call?.[1]).toMatchObject({
+      verdicts: [VERDICT],
+      replicates: [REPLICATE],
+    });
+  });
+
+  it("output_path 를 현재 프로젝트 폴더 기준 절대 경로로 되돌려 보낸다", async () => {
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(
+        hooks.sendMameRequest.mock.calls.some((c) => c[0] === "load_analyze_result"),
+      ).toBe(true);
+    });
+    const call = hooks.sendMameRequest.mock.calls.find(
+      (c) => c[0] === "load_analyze_result",
+    );
+    expect(String(call?.[1]?.output_path)).not.toContain("project://");
+    expect(String(call?.[1]?.output_path)).toContain("/out");
+  });
+
+  it("결과 파일이 정상이면 스냅샷 폴백을 쓰지 않는다", async () => {
+    hooks.readMameResultSnapshot.mockResolvedValue({
+      status: "ok",
+      snapshot: { result: ANALYZE_RESULT },
+    });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(hooks.detectProjectFiles).toHaveBeenCalled();
+    });
+    const calls = hooks.sendMameRequest.mock.calls.filter(
+      (c) => c[0] === "load_analyze_result",
+    );
+    // 결과 파일 경로 하나만 사이드카를 채운다. 중복 주입이 아니다.
+    expect(calls).toHaveLength(1);
   });
 });

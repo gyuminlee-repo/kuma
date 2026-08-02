@@ -20,6 +20,7 @@
  */
 
 import { AlertCircle, Download, ShieldCheck, Trash2 } from "lucide-react";
+import { MissingInputsBanner } from "@/components/mame/panels/MissingInputsBanner";
 import { computeEtaFromElapsed } from "@/lib/eta";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -159,6 +160,8 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
     case "analyze.inputs":
       mainContent = (
         <div className="flex flex-col gap-3">
+          {/* 복원 후 되찾지 못한 외부 입력. 해소될 때까지 남는다. */}
+          <MissingInputsBanner />
           {/* Progress 및 상태 */}
           <div className="space-y-1 px-1">
             <div className="truncate text-body font-medium text-foreground" aria-live="polite">

@@ -29,6 +29,9 @@ tokio = { version = "1", features = ["sync", "rt", "macros", "io-util", "time", 
 keepawake = "0.6"
 sha2 = "0.10"
 trash = "5"
+# Project folder <-> zip so a project can be carried to another machine.
+# Already present transitively; pinned here as a direct dependency.
+zip = { version = "4", default-features = false, features = ["deflate"] }
 
 [target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
 tauri-plugin-single-instance = "2"

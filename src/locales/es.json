@@ -12,7 +12,12 @@
     "openWorkspace": "Abrir workspace...",
     "saveWorkspace": "Guardar workspace...",
     "compareWorkspaces": "Comparar workspaces...",
-    "exportWorkspaceZip": "Exportar workspace como zip..."
+    "exportProjectZip": "Exportar proyecto como ZIP...",
+    "importProjectZip": "Importar proyecto desde ZIP...",
+    "exportProjectZipDone": "Se guardaron {{count}} archivo(s) en {{path}}",
+    "exportProjectZipFailed": "Fallo la exportacion del proyecto: {{detail}}",
+    "importProjectZipDone": "Se importaron {{count}} archivo(s) en {{path}}",
+    "importProjectZipFailed": "Fallo la importacion del proyecto: {{detail}}"
   },
   "export": {
     "all": "Exportar todo",
@@ -319,7 +324,11 @@
         "sampleMapTemplate": "Plantilla de sample map (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "No se pudo abrir la carpeta."
+      "openFolderError": "No se pudo abrir la carpeta.",
+      "variantSheet": "Hoja de variantes",
+      "variantColumn": "Columna de variantes",
+      "variantColumnPlaceholder": "Elegir una columna",
+      "variantColumnHelper": "El orden de las filas de esta columna llena la placa de 96 pocillos. Una fila WT se usa como control."
     },
     "activity": {
       "sectionIngest": "Subir activity",
@@ -585,7 +594,6 @@
       "compareWorkspacesNoDiff": "No differences found.",
       "compareWorkspacesSame": "The two workspaces are identical.",
       "compareWorkspacesTitle": "Compare Workspaces",
-      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon",
       "selectWorkspaceA": "Select first workspace (A)",
       "selectWorkspaceB": "Select second workspace (B)"
     },
@@ -1047,6 +1055,14 @@
         "LOWDEPTH": "Too few reads to call this well reliably.",
         "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
       }
+    },
+    "missingInputs": {
+      "title": "Algunas entradas no se pudieron restaurar",
+      "description": "Los archivos fuera de la carpeta del proyecto no se mueven con ella. Indique su nueva ubicacion.",
+      "browse": "Examinar",
+      "chooseTitle": "Localizar {{name}}",
+      "mismatchTitle": "Puede ser un archivo distinto",
+      "mismatchBody": "Era {{expected}}, se eligio {{actual}}. Ignore esto si el cambio es intencionado."
     }
   },
   "home": {
@@ -2289,6 +2305,7 @@
     "writeFailed": "No se pudo escribir el archivo de autoguardado ({{filename}}). Causa: {{cause}}",
     "carriedFromScratch": "Continuado desde una sesión anterior sin guardar ({{relative}})",
     "resultsDiscarded": "La lista de variants se volvió a seleccionar desde el archivo de origen y ya no coincide con la tabla de primers restaurada, por lo que la tabla se vació. Ejecutar el diseño de nuevo.",
+    "inputsUnavailable": "No se pudieron abrir {{count}} archivo(s) de entrada y quedaron fuera de la restauracion. Los resultados siguen ahi pero falta su entrada de origen, vuelva a seleccionarla: {{paths}}",
     "workspaceRestored": "Workspace restaurado",
     "autoDetected": "Auto-detectado: {{fields}}",
     "fieldRunFolder": "carpeta de la corrida",
@@ -2296,7 +2313,8 @@
     "fieldExpected": "expected",
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
-    "fieldSequencingSummary": "sequencing summary"
+    "fieldSequencingSummary": "sequencing summary",
+    "pathsMoved": "Estas entradas se movieron y deben seleccionarse de nuevo: {{fields}}"
   },
   "phaseC": {
     "majors": {

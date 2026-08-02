@@ -16,6 +16,33 @@ Step 2 could not complete a full run on a 15 GiB machine. Peak memory grew with 
 - v0.14.0: Step 2 is faster, mostly on setups where the output folder sits on a network or translated filesystem. Against a Windows share the reference workload goes from 21.2 s to 8.6 s end to end, with the analyze stage falling from 5.4 s to 0.7 s. On a local ext4 disk the same workload goes from 9.4 s to 7.6 s. Per-file durability calls, repeated directory scans and duplicate metadata lookups were the bulk of it, so a purely local disk sees the smaller share of the gain.
 - v0.14.0: Consensus cost per aligned base no longer rises with well depth. It was climbing 1.9x between depth 50 and depth 3200 and is now flat.
 - v0.14.0: Demux workers hand freed cores back to whichever native barcode is still running, so an uneven plate stops leaving cores idle once the smaller barcodes finish.
+## v0.13.39.1 (The last two autosave paths become portable)
+
+Portable snapshot paths landed in v0.13.35.4, but two of them sit nested inside the raw-run parameters and were missed, so a moved project lost its custom barcodes and sequencing summary without saying so.
+
+### Fixed
+
+- v0.13.39.1: The custom barcode table and sequencing summary paths are stored relative to the project folder like every other input. Thresholds and length settings in the same block are not paths and are untouched. Older snapshots keep reading as absolute.
+
+## v0.13.39 (Autosave survives a hard exit and a bad save)
+
+Project folders became portable in v0.13.35.4, and a moved project re-detects its inputs since v0.13.38. Two ways of losing work were left.
+
+### Fixed
+
+- v0.13.39: Autosave is flushed when the app closes. The flush existed but nothing called it on the close path, so edits made inside the 1.5 second debounce window were lost on exit. Both autosave subscriptions now register the shutdown step themselves instead of depending on the screen to wire it.
+- v0.13.39: The previous snapshot is kept before each overwrite, three generations deep, at most one every five minutes so the copies point at genuinely different times. Autosave used to overwrite a single file, leaving no way back from a bad save.
+- v0.13.39: Inputs that a restore cannot recover are listed in a banner naming each one, and it stays until each is pointed at its new location. They were previously blanked behind a status message that disappeared after four seconds. A replacement that does not look like the original raises a warning, since attaching a same-named but different sequencing run is the mistake this guards against, while a deliberate replacement is still accepted.
+
+## v0.13.38 (Reopening a moved project finds its files again)
+
+Autosave records the absolute paths picked in a file dialog. Opening the project from a new folder, or on another machine, left those paths pointing at nothing. Auto-detect could not step in, because it only fills fields that are empty and a dead path is not empty.
+
+### Fixed
+
+- v0.13.38: Restored MAME input paths are checked before use. Ones that no longer resolve are cleared, so the existing auto-detect finds the same files inside the project again. A path whose check fails outright is kept, because a permission error or a slow network drive is not evidence that the file is gone.
+- v0.13.38: Inputs that auto-detect cannot recover, a raw MinKNOW run folder outside the project being the common case, are named on screen. Previously they were blanked with no notice.
+- v0.13.38: A sequence file that cannot be reopened during restore is reported by name. It used to fail into the console only, leaving a project that looked fully restored but had no sequence loaded.
 
 ## v0.13.37 (KURO exports land in the project)
 

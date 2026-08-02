@@ -29,6 +29,17 @@ import { KURO_SCHEMA, buildKuroSnapshot } from "@/lib/kuroSnapshot";
 import { buildKuroResultResetPatch } from "@/lib/kuroResultReset";
 import { MAME_SCHEMA } from "@/lib/mame/autosaveSnapshot";
 import { detectProjectFiles, detectFromInputDir } from "@/lib/mame/detectProjectFiles";
+import {
+  basename as inputBasename,
+  useMissingInputs,
+  type MissingInput,
+} from "@/lib/mame/missingInputs";
+import {
+  findStaleMamePaths,
+  MAME_PATH_LABEL_KEYS,
+  type MamePathField,
+} from "@/lib/mame/stalePaths";
+import { exists } from "@tauri-apps/plugin-fs";
 import { getLatestArtifact, openWorkspace } from "@/lib/workspace";
 import { resolvePolymeraseName, retiredPolymeraseNotice } from "@/lib/polymeraseAliases";
 import { useAppStore } from "@/store/appStore";
@@ -37,8 +48,10 @@ import { resetMameAll } from "@/store/mame/resetAll";
 import { useRoundStore } from "@/store/round/roundSlice";
 import type { AppState } from "@/store/appStore";
 import type { AppState as MameAppState } from "@/store/mame/types";
+import type { RawRunParams } from "@/store/mame/slice-interfaces";
 import type { AutosaveSnapshot, ReadAutosaveResult } from "@/lib/autosave";
 import type { MameAutosaveSnapshot } from "@/lib/mame/autosaveSnapshot";
+import { fromPortablePath, isExternalPath } from "@/lib/projectPath";
 
 // ─── 공개 타입 ────────────────────────────────────────────────────────────
 
@@ -51,7 +64,13 @@ export interface HydrationStatusMessage {
     | "missing"
     | "io_failed"
     /** 복원된 결과물이 재선택된 variant 목록과 어긋나 폐기됐다. */
-    | "results_discarded";
+    | "results_discarded"
+    /**
+     * 스냅샷이 가리키는 입력 파일을 열지 못했다. 프로젝트 폴더를 다른 PC로 옮겼고
+     * 그 입력이 폴더 밖에 있었을 때 주로 발생한다. 조용히 넘기면 결과물만 복원되고
+     * 그 근거가 된 입력은 빠진 상태가 되므로 반드시 사용자에게 알린다.
+     */
+    | "inputs_unavailable";
   message: string;
   /** ISO 문자열. "5분 전" 표시용 */
   savedAt?: string;
@@ -113,6 +132,12 @@ export interface AutosaveHydrationHandle {
 export interface KuroSnapshotApplyOutcome {
   /** 재선택된 variant 목록과 어긋나 복원된 결과물을 폐기했으면 true. */
   resultsDiscarded: boolean;
+  /**
+   * 열지 못한 입력 파일 경로. 비어 있으면 전부 정상이다. 복원 자체는 계속하되
+   * 호출부가 사용자에게 알린다. 결과물은 살아 있는데 근거 입력이 빠진 상태를
+   * 조용히 두면 어긋난 화면을 정상으로 오인한다.
+   */
+  unavailableInputs: string[];
 }
 
 // ─── 상대 시간 포맷 헬퍼 ─────────────────────────────────────────────────
@@ -224,8 +249,18 @@ function discardResultsIfVariantsDiverged(): boolean {
 export async function applyKuroSnapshot(
   snapshot: AutosaveSnapshot,
   isCurrent?: () => boolean,
+  projectPath: string | null = null,
 ): Promise<KuroSnapshotApplyOutcome> {
   const alive = () => isCurrent?.() ?? true;
+  // 열지 못한 입력을 모아 호출부가 한 번에 알리도록 한다.
+  const unavailableInputs: string[] = [];
+  const done = (resultsDiscarded: boolean): KuroSnapshotApplyOutcome => ({
+    resultsDiscarded,
+    unavailableInputs,
+  });
+  // schema 3+ 스냅샷의 `project://` 경로를 현재 프로젝트 폴더 기준 절대 경로로
+  // 되돌린다. 구 스냅샷의 절대 경로는 그대로 통과한다.
+  const resolve = (value: string): string => fromPortablePath(projectPath, value);
   const input = snapshot.input as Record<string, unknown> | undefined;
   const params = snapshot.parameters as Record<string, unknown> | undefined;
   const diversity = snapshot.diversity as Record<string, unknown> | undefined;
@@ -263,7 +298,9 @@ export async function applyKuroSnapshot(
   const wasOthersMode = input?.evolvepro_mode === "others";
   if (wasOthersMode) {
     if (typeof input?.others_source_path === "string" || input?.others_source_path === null) {
-      patch.evolveproCsvPath = input.others_source_path ?? "";
+      patch.evolveproCsvPath = input.others_source_path
+        ? resolve(input.others_source_path)
+        : "";
     }
     if (typeof input?.others_variant_column === "string" || input?.others_variant_column === null) {
       patch.evolveproVariantColumn = input.others_variant_column;
@@ -279,7 +316,9 @@ export async function applyKuroSnapshot(
     }
   } else {
     if (typeof input?.evolvepro_csv_path === "string" || input?.evolvepro_csv_path === null) {
-      patch.evolveproCsvPath = input.evolvepro_csv_path ?? "";
+      patch.evolveproCsvPath = input.evolvepro_csv_path
+        ? resolve(input.evolvepro_csv_path)
+        : "";
     }
     if (typeof input?.evolvepro_variant_column === "string" || input?.evolvepro_variant_column === null) {
       patch.evolveproVariantColumn = input.evolvepro_variant_column;
@@ -417,17 +456,25 @@ export async function applyKuroSnapshot(
   }
 
   // (a) loadSequence는 그 자체가 store 쓰기라 호출 전에 막아야 한다.
-  if (!alive()) return { resultsDiscarded: false };
+  if (!alive()) return done(false);
   if (typeof input?.sequence_path === "string" && input.sequence_path) {
-    try {
-      await useAppStore.getState().loadSequence(input.sequence_path);
-    } catch {
-      console.warn("[autosave] kuro: sequence load failed, continuing restore");
+    const sequencePath = resolve(input.sequence_path);
+    if (!sequencePath) {
+      unavailableInputs.push(input.sequence_path);
+    } else {
+      try {
+        await useAppStore.getState().loadSequence(sequencePath);
+      } catch {
+        // 복원은 계속하되 조용히 넘기지 않는다. 옮긴 프로젝트에서 폴더 밖
+        // 서열 파일이 빠졌을 때 이 경로로 온다.
+        console.warn("[autosave] kuro: sequence load failed, continuing restore");
+        unavailableInputs.push(sequencePath);
+      }
     }
   }
   // (b) await 동안 취소됐을 수 있다. 이미 착지한 seqInfo는 되돌리지 못하지만
   //     뒤따르는 patch 조립·적용은 여기서 끊는다.
-  if (!alive()) return { resultsDiscarded: false };
+  if (!alive()) return done(false);
 
   const selectedCds = typeof input?.selected_cds === "string" ? input.selected_cds : "";
   if (selectedCds) {
@@ -480,7 +527,7 @@ export async function applyKuroSnapshot(
 
   // (c) 스냅샷 본체를 store에 붓는 지점. 취소된 복원의 patch가 다음 프로젝트
   //     store에 착지하는 것을 막는 핵심 가드다.
-  if (!alive()) return { resultsDiscarded: false };
+  if (!alive()) return done(false);
   useAppStore.setState(patch);
 
   let resultsDiscarded = false;
@@ -488,26 +535,29 @@ export async function applyKuroSnapshot(
   if (activeSourcePath) {
     try {
       // (d) loadEvolveproCsv도 store 쓰기(mutationText 갱신)라 호출 전에 막는다.
-      if (!alive()) return { resultsDiscarded: false };
+      if (!alive()) return done(false);
       await useAppStore.getState().loadEvolveproCsv(activeSourcePath);
       // (e) discardResultsIfVariantsDiverged는 setState로 결과물 블록을 비운다.
       //     await 뒤 취소됐다면 다음 프로젝트의 결과물을 지우게 되므로 막는다.
-      if (!alive()) return { resultsDiscarded: false };
+      if (!alive()) return done(false);
       // 재선택이 성공한 경우에만 비교한다. 로드가 실패하면 mutationText가
       // 갱신되지 않아 비교 자체가 무의미하다.
       resultsDiscarded = discardResultsIfVariantsDiverged();
     } catch {
+      // 조용히 넘기면 designResults는 복원되고 그 근거 variant 목록만 빠진
+      // 어긋난 상태가 정상처럼 보인다. 호출부가 알리도록 기록한다.
       console.warn("[autosave] kuro: EVOLVEpro source load failed, continuing restore");
+      unavailableInputs.push(activeSourcePath);
     }
   }
 
   if (!resultsDiscarded && useAppStore.getState().designResults.length > 0) {
     // (f) setSubStep도 store 쓰기다. 취소 후 화면 위치를 옮기지 않는다.
-    if (!alive()) return { resultsDiscarded: false };
+    if (!alive()) return done(false);
     useAppStore.getState().setSubStep("output.summary");
   }
 
-  return { resultsDiscarded };
+  return done(resultsDiscarded);
 }
 
 function basename(filePath: string): string {
@@ -592,6 +642,16 @@ async function applyScratchKuroSnapshot(
       message,
       savedAt: result.snapshot.saved_at,
     });
+    if (outcome.unavailableInputs.length > 0) {
+      onMessage({
+        kind: "kuro",
+        variant: "inputs_unavailable",
+        message: i18next.t("autosaveHydration.inputsUnavailable", {
+          count: outcome.unavailableInputs.length,
+          paths: outcome.unavailableInputs.join(", "),
+        }),
+      });
+    }
     if (outcome.resultsDiscarded) {
       onMessage({
         kind: "kuro",
@@ -663,12 +723,111 @@ async function promoteScratchToProject(
   if (!alive()) return;
   await atomicWriteJson(
     autosavePath(projectPath, "kuro"),
-    buildKuroSnapshot(useAppStore.getState()),
+    // scratch에서 승격되는 경로다. scratch 스냅샷은 절대 경로만 담고 있으므로
+    // 여기서 새 프로젝트 폴더 기준으로 상대화되어 이식 가능해진다.
+    buildKuroSnapshot(useAppStore.getState(), projectPath),
   );
   // 순서는 이미 옳다(프로젝트 쓰기 성공 → scratch 삭제). 여기서 취소로 빠지면
   // scratch가 그대로 남는 쪽으로 기운다. 되돌릴 수 없는 삭제보다 중복이 낫다.
   if (!alive()) return;
   await deleteScratchAutosave();
+}
+
+// ─── Mame 죽은 경로 정리 ────────────────────────────────────────────────
+
+/**
+ * 복원된 MAME 입력 경로 중 존재하지 않는 것을 store 에서 비운다.
+ *
+ * 자동 저장은 사용자가 고른 절대 경로를 그대로 담으므로, 프로젝트 폴더를 옮기거나
+ * 다른 PC 에서 열면 그 경로가 죽는다. 죽은 값을 남겨 두면 바로 뒤 자동 감지가
+ * "이미 채워짐"으로 보고 건너뛰어(applyMameAutoDetect 의 `!store.xxx` 가드) 같은
+ * 파일이 프로젝트 폴더 안에 있어도 다시 찾지 못한다.
+ *
+ * 비우기만 하고 다시 찾지는 않는다. 재탐색은 뒤이어 도는 자동 감지의 일이다.
+ *
+ * @returns 비운 필드의 사용자 표기 라벨. 자동 감지가 다시 채우지 못한 항목을
+ *          호출부가 가려내 사용자에게 재지정을 요청하는 데 쓴다.
+ */
+async function clearStaleMamePaths(): Promise<MamePathField[]> {
+  const store = useMameAppStore.getState();
+  const stale = await findStaleMamePaths(
+    {
+      inputDir: store.inputDir,
+      expectedPath: store.expectedPath,
+      referencePath: store.referencePath,
+      sampleMapPath: store.sampleMapPath,
+      customBarcodesPath: store.rawRunParams.customBarcodesPath ?? "",
+      sequencingSummaryPath: store.rawRunParams.sequencingSummaryPath ?? "",
+    },
+    exists,
+  );
+  if (stale.length === 0) return [];
+
+  const fresh = useMameAppStore.getState();
+  for (const field of stale) {
+    switch (field) {
+      case "inputDir":
+        fresh.setInputDir("");
+        break;
+      case "expectedPath":
+        fresh.setExpectedPath("");
+        break;
+      case "referencePath":
+        fresh.setReferencePath("");
+        break;
+      case "sampleMapPath":
+        fresh.setSampleMapPath("");
+        break;
+      case "customBarcodesPath":
+        fresh.setParams({ rawRunParams: { customBarcodesPath: "" } });
+        break;
+      case "sequencingSummaryPath":
+        fresh.setParams({ rawRunParams: { sequencingSummaryPath: "" } });
+        break;
+    }
+  }
+  return stale;
+}
+
+/** 스냅샷 input 블록에서 필드에 대응하는 저장값을 꺼낸다. */
+const MAME_SNAPSHOT_KEY: Partial<Record<MamePathField, string>> = {
+  inputDir: "input_dir",
+  expectedPath: "expected_path",
+  referencePath: "reference_path",
+  sampleMapPath: "sample_map_path",
+};
+
+/**
+ * 되찾지 못한 필드를 배너에 보여줄 형태로 바꾼다.
+ *
+ * 스냅샷 형식은 `lib/projectPath.ts` 규약이라 프로젝트 밖 값은 절대 경로
+ * 그대로다. 거기서 이름을 얻어 "무엇을 다시 골라야 하는지" 를 보여준다.
+ * 크기는 스냅샷에 없으므로 붙이지 않는다(대조는 이름으로 내려간다).
+ * 저장값이 없으면 필드 라벨만 남긴다.
+ */
+function describeMissingInput(
+  field: MamePathField,
+  input: Record<string, unknown> | undefined,
+): MissingInput {
+  const key = MAME_SNAPSHOT_KEY[field];
+  const stored = key ? input?.[key] : undefined;
+  return typeof stored === "string" && isExternalPath(stored)
+    ? { field, name: inputBasename(stored) }
+    : { field, name: i18next.t(MAME_PATH_LABEL_KEYS[field]) };
+}
+
+/** 자동 감지가 끝난 뒤에도 여전히 비어 있는 필드만 남긴다. */
+function stillMissing(fields: MamePathField[]): MamePathField[] {
+  const store = useMameAppStore.getState();
+  const value: Record<MamePathField, string> = {
+    inputDir: store.inputDir,
+    expectedPath: store.expectedPath,
+    referencePath: store.referencePath,
+    sampleMapPath: store.sampleMapPath,
+    customBarcodesPath: store.rawRunParams.customBarcodesPath ?? "",
+    sequencingSummaryPath: store.rawRunParams.sequencingSummaryPath ?? "",
+  };
+  return fields.filter((f) => !value[f]);
 }
 
 // ─── Mame 자동 탐지 ──────────────────────────────────────────────────────
@@ -791,7 +950,35 @@ export async function applyMameAutoDetect(
 
 // ─── Mame 복원 ────────────────────────────────────────────────────────────
 
-function applyMameSnapshot(snapshot: MameAutosaveSnapshot): void {
+/**
+ * @param projectPath schema 4+ 스냅샷의 `project://` 경로를 되돌릴 기준 폴더.
+ *   구 스냅샷의 절대 경로는 기준과 무관하게 그대로 통과한다.
+ */
+/**
+ * raw_run_params 안의 경로 두 개를 현재 환경의 절대 경로로 되돌린다.
+ *
+ * schema 4 부터 이 둘도 `project://` 로 저장된다. 구 스냅샷은 절대 경로이고
+ * `fromPortablePath` 가 접두사 없는 값을 그대로 통과시키므로 그대로 읽힌다.
+ * params 자체가 없으면 undefined 를 넘겨 store 기본값을 쓰게 한다.
+ */
+function resolveRawRunParams(
+  raw: unknown,
+  projectPath: string | null | undefined,
+): RawRunParams | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const params = raw as RawRunParams;
+  const base = projectPath ?? null;
+  return {
+    ...params,
+    customBarcodesPath: fromPortablePath(base, params.customBarcodesPath ?? ""),
+    sequencingSummaryPath: fromPortablePath(base, params.sequencingSummaryPath ?? ""),
+  };
+}
+
+function applyMameSnapshot(
+  snapshot: MameAutosaveSnapshot,
+  projectPath: string | null = null,
+): void {
   const store = useMameAppStore.getState();
   const { input, parameters } = snapshot;
 
@@ -799,17 +986,22 @@ function applyMameSnapshot(snapshot: MameAutosaveSnapshot): void {
     mode: parameters.mode as Parameters<typeof store.setParams>[0]["mode"],
     ingestMode: parameters.ingest_mode as Parameters<typeof store.setParams>[0]["ingestMode"],
     inputMode: (parameters.input_mode as Parameters<typeof store.setParams>[0]["inputMode"]) ?? "raw_run",
-    rawRunParams: parameters.raw_run_params ?? undefined,
+    rawRunParams: resolveRawRunParams(parameters.raw_run_params, projectPath),
     cdsStart: parameters.cds_start,
     cdsEnd: parameters.cds_end,
     minFileSizeKb: parameters.min_file_size_kb,
     manyCutoff: parameters.many_cutoff,
   });
-  store.setInputDir(input.input_dir);
-  store.setExpectedPath(input.expected_path);
-  store.setReferencePath(input.reference_path);
-  store.setOutputPath(input.output_path);
-  if (input.sample_map_path) store.setSampleMapPath(input.sample_map_path);
+  // 프로젝트 폴더 안을 가리키던 입력은 여기서 현재 폴더 기준으로 되살아난다.
+  // 폴더 밖 절대 경로는 그대로 복원되며, 옮긴 PC에 없으면 이어지는 자동 탐지가
+  // 빈 필드를 프로젝트 디렉토리에서 채운다.
+  const resolveMame = (value: string): string => fromPortablePath(projectPath, value);
+  store.setInputDir(resolveMame(input.input_dir));
+  store.setExpectedPath(resolveMame(input.expected_path));
+  store.setReferencePath(resolveMame(input.reference_path));
+  store.setOutputPath(resolveMame(input.output_path));
+  const sampleMapPath = resolveMame(input.sample_map_path);
+  if (sampleMapPath) store.setSampleMapPath(sampleMapPath);
 
   if (Array.isArray(snapshot.rounds)) {
     useRoundStore.setState({
@@ -895,6 +1087,41 @@ function applyMameSnapshot(snapshot: MameAutosaveSnapshot): void {
  * 복원이 완주하면 다음 프로젝트의 사이드카 상태와 Plate View가 이전 프로젝트
  * 결과로 덮인다. 인자를 생략하면 항상 진행한다(단위 테스트 경로).
  */
+/**
+ * 결과 파일 없이 자동 저장 스냅샷만으로 사이드카 분석 상태를 되살린다.
+ *
+ * 화면의 verdict 표는 `applyMameSnapshot` 이 스냅샷에서 직접 복원하는 반면,
+ * 사이드카 `last_verdicts` 는 별도 결과 파일 경로(`restoreMameResult`)로만
+ * 채워진다. 결과 파일이 없거나 읽히지 않으면 두 쪽이 어긋나 "표는 보이는데
+ * 리포트·Excel 내보내기는 No prior analyze result 로 거부되는" 상태가 된다.
+ * 스냅샷이 이미 verdicts·replicates·summary·distribution_stats 를 들고 있으므로
+ * 같은 RPC 에 그대로 실어 보내면 그 간극이 사라진다.
+ *
+ * @returns 사이드카를 채웠으면 true. 스냅샷에 결과가 없으면 false.
+ */
+async function injectSnapshotResultsIntoSidecar(
+  snapshot: MameAutosaveSnapshot,
+  projectPath: string,
+  isCurrent?: () => boolean,
+): Promise<boolean> {
+  const alive = () => isCurrent?.() ?? true;
+  const results = snapshot.results;
+  if (!results || !Array.isArray(results.verdicts) || results.verdicts.length === 0) {
+    return false;
+  }
+  if (!alive()) return false;
+  await sendMameRequest<LoadAnalyzeResultResponse>("load_analyze_result", {
+    verdicts: results.verdicts,
+    // output_path 는 사이드카가 후속 내보내기 기본 경로로만 쓴다. 스냅샷 값은
+    // 프로젝트 상대 형태일 수 있으므로 현재 폴더 기준으로 되돌린다.
+    replicates: results.replicates ?? [],
+    output_path: fromPortablePath(projectPath, snapshot.input?.output_path ?? ""),
+    summary: results.summary ?? null,
+    distribution_stats: results.distribution_stats ?? null,
+  });
+  return alive();
+}
+
 async function restoreMameResult(
   projectPath: string,
   isCurrent?: () => boolean,
@@ -1111,7 +1338,7 @@ export function useAutosaveHydration(
       // ── kuro 결과 처리
       if (kuroResult.status === "ok") {
         try {
-          const outcome = await applyKuroSnapshot(kuroResult.snapshot, isCurrent);
+          const outcome = await applyKuroSnapshot(kuroResult.snapshot, isCurrent, path);
           if (!isCurrent()) return;
           onMessage({
             kind: "kuro",
@@ -1119,6 +1346,16 @@ export function useAutosaveHydration(
             message: i18next.t("autosaveHydration.restored", { relative: formatRelativeTime(kuroResult.snapshot.saved_at) }),
             savedAt: kuroResult.snapshot.saved_at,
           });
+          if (outcome.unavailableInputs.length > 0) {
+            onMessage({
+              kind: "kuro",
+              variant: "inputs_unavailable",
+              message: i18next.t("autosaveHydration.inputsUnavailable", {
+                count: outcome.unavailableInputs.length,
+                paths: outcome.unavailableInputs.join(", "),
+              }),
+            });
+          }
           if (outcome.resultsDiscarded) {
             onMessage({
               kind: "kuro",
@@ -1127,7 +1364,16 @@ export function useAutosaveHydration(
             });
           }
         } catch (err) {
+          // scratch 경로(applyScratchKuroSnapshot)는 이미 corrupted를 알린다.
+          // 프로젝트 경로만 침묵하면 같은 실패가 화면에 안 뜨므로 맞춘다.
           console.warn("[autosave] kuro: apply snapshot failed", err);
+          onMessage({
+            kind: "kuro",
+            variant: "corrupted",
+            message: i18next.t("autosaveHydration.corrupted", {
+              filename: "kuro.json",
+            }),
+          });
         }
       } else if (kuroResult.status === "corrupted") {
         onMessage({
@@ -1196,7 +1442,7 @@ export function useAutosaveHydration(
       // ── mame 결과 처리
       if (mameResult.status === "ok") {
         try {
-          applyMameSnapshot(mameResult.snapshot as MameAutosaveSnapshot);
+          applyMameSnapshot(mameResult.snapshot as MameAutosaveSnapshot, path);
           if (!isCurrent()) return;
           onMessage({
             kind: "mame",
@@ -1247,10 +1493,25 @@ export function useAutosaveHydration(
             variant: "restored",
             message: i18next.t("autosaveHydration.workspaceRestored"),
           });
+        } else if (mameResult.status === "ok") {
+          // 결과 파일이 없거나 못 읽었다. 화면에는 스냅샷의 verdict 표가 이미
+          // 복원돼 있으므로, 사이드카만 비워 두면 리포트·Excel 내보내기가
+          // "No prior analyze result" 로 거부된다. 같은 값으로 채워 맞춘다.
+          await injectSnapshotResultsIntoSidecar(
+            mameResult.snapshot as MameAutosaveSnapshot,
+            path,
+            isCurrent,
+          );
         }
       } catch (err) {
         console.warn("[autosave] mame: analyze-result restore failed", err);
       }
+      if (!isCurrent()) return;
+
+      // ── 죽은 경로 정리: 복원된 절대 경로 중 더 이상 존재하지 않는 것을 비운다.
+      //    비우지 않으면 바로 아래 자동 감지가 "이미 채워짐"으로 보고 건너뛰어,
+      //    같은 파일이 프로젝트 폴더 안에 있어도 영영 못 찾는다.
+      const droppedFields = await clearStaleMamePaths();
       if (!isCurrent()) return;
 
       // ── auto-detect: autosave 복원 후 여전히 비어있는 필드를 프로젝트 디렉토리에서 채운다
@@ -1269,6 +1530,32 @@ export function useAutosaveHydration(
         },
         isCurrent,
       );
+      if (!isCurrent()) return;
+
+      // 자동 감지가 되찾지 못한 항목만 남는다. raw MinKNOW run 폴더처럼 프로젝트
+      // 밖에 있던 입력이 여기 걸린다. 조용히 비워 두면 사용자는 값이 사라진 줄도
+      // 모르므로, 무엇을 다시 고르면 되는지 이름으로 알린다.
+      const unresolved = stillMissing(droppedFields);
+      // 이전 프로젝트의 잔여 항목이 남지 않도록 매 복원마다 통째로 교체한다.
+      useMissingInputs.getState().setMissing(
+        unresolved.map((field) =>
+          describeMissingInput(
+            field,
+            mameResult.status === "ok"
+              ? ((mameResult.snapshot as MameAutosaveSnapshot).input as unknown as Record<string, unknown>)
+              : undefined,
+          ),
+        ),
+      );
+      if (unresolved.length > 0) {
+        onMessage({
+          kind: "mame",
+          variant: "restored",
+          message: i18next.t("autosaveHydration.pathsMoved", {
+            fields: unresolved.map((f) => i18next.t(MAME_PATH_LABEL_KEYS[f])).join(", "),
+          }),
+        });
+      }
     })().finally(() => {
       // 어느 경로로 끝나든(정상 종료, 조기 return, 예외) 게이트를 반드시 푼다.
       // 게이트가 남으면 이후 자동 저장이 통째로 죽는다. cancel()이나 언마운트가

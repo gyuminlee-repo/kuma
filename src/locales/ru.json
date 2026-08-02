@@ -12,7 +12,12 @@
     "openWorkspace": "Открыть Workspace...",
     "saveWorkspace": "Сохранить Workspace...",
     "compareWorkspaces": "Сравнить workspaces...",
-    "exportWorkspaceZip": "Экспорт workspace в zip..."
+    "exportProjectZip": "Eksportirovat proekt v ZIP...",
+    "importProjectZip": "Importirovat proekt iz ZIP...",
+    "exportProjectZipDone": "Sohraneno faylov: {{count}} v {{path}}",
+    "exportProjectZipFailed": "Ne udalos eksportirovat proekt: {{detail}}",
+    "importProjectZipDone": "Importirovano faylov: {{count}} v {{path}}",
+    "importProjectZipFailed": "Ne udalos importirovat proekt: {{detail}}"
   },
   "export": {
     "all": "Экспортировать всё",
@@ -319,7 +324,11 @@
         "sampleMapTemplate": "Шаблон sample map (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "Не удалось открыть папку."
+      "openFolderError": "Не удалось открыть папку.",
+      "variantSheet": "List so spiskom variantov",
+      "variantColumn": "Stolbec variantov",
+      "variantColumnPlaceholder": "Vyberite stolbec",
+      "variantColumnHelper": "Poryadok strok etogo stolbca zapolnyaet 96-lunochnyy planshet. Stroka WT sluzhit kontrolem."
     },
     "activity": {
       "sectionIngest": "Загрузить activity",
@@ -585,7 +594,6 @@
       "compareWorkspacesNoDiff": "No differences found.",
       "compareWorkspacesSame": "The two workspaces are identical.",
       "compareWorkspacesTitle": "Compare Workspaces",
-      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon",
       "selectWorkspaceA": "Select first workspace (A)",
       "selectWorkspaceB": "Select second workspace (B)"
     },
@@ -1047,6 +1055,14 @@
         "LOWDEPTH": "Too few reads to call this well reliably.",
         "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
       }
+    },
+    "missingInputs": {
+      "title": "Некоторые входные файлы не восстановлены",
+      "description": "Файлы вне папки проекта не перемещаются вместе с ней. Укажите их новое расположение.",
+      "browse": "Обзор",
+      "chooseTitle": "Указать {{name}}",
+      "mismatchTitle": "Возможно, это другой файл",
+      "mismatchBody": "Было {{expected}}, выбрано {{actual}}. Игнорируйте, если замена намеренная."
     }
   },
   "home": {
@@ -2289,6 +2305,7 @@
     "writeFailed": "Не удалось записать файл autosave ({{filename}}). Причина: {{cause}}",
     "carriedFromScratch": "Продолжено из несохранённой предыдущей сессии ({{relative}})",
     "resultsDiscarded": "Список variants заново выбран из исходного файла и больше не соответствует восстановленной таблице primer, поэтому таблица очищена. Запустите дизайн заново.",
+    "inputsUnavailable": "Ne udalos otkryt {{count}} vhodnyh faylov, oni ne popali v vosstanovlenie. Rezultaty na meste, no ishodnyy vhod otsutstvuet, vyberite ego zanovo: {{paths}}",
     "workspaceRestored": "Workspace восстановлен",
     "autoDetected": "Авто-определено: {{fields}}",
     "fieldRunFolder": "папка run",
@@ -2296,7 +2313,8 @@
     "fieldExpected": "expected",
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
-    "fieldSequencingSummary": "sequencing summary"
+    "fieldSequencingSummary": "sequencing summary",
+    "pathsMoved": "Эти входные файлы перемещены, выберите их заново: {{fields}}"
   },
   "phaseC": {
     "majors": {

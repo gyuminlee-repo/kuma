@@ -12,7 +12,12 @@
     "openWorkspace": "ワークスペースを開く...",
     "saveWorkspace": "ワークスペースを保存...",
     "compareWorkspaces": "ワークスペースを比較...",
-    "exportWorkspaceZip": "ワークスペースを ZIP でエクスポート..."
+    "exportProjectZip": "プロジェクトを ZIP で書き出し...",
+    "importProjectZip": "ZIP からプロジェクトを読み込み...",
+    "exportProjectZipDone": "ファイル {{count}} 件を {{path}} に保存しました",
+    "exportProjectZipFailed": "プロジェクトの書き出しに失敗しました: {{detail}}",
+    "importProjectZipDone": "ファイル {{count}} 件を {{path}} に取り込みました",
+    "importProjectZipFailed": "プロジェクトの読み込みに失敗しました: {{detail}}"
   },
   "export": {
     "all": "すべてエクスポート",
@@ -319,7 +324,11 @@
         "sampleMapTemplate": "Sample map テンプレート (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "フォルダーを開けませんでした。"
+      "openFolderError": "フォルダーを開けませんでした。",
+      "variantSheet": "変異リストのシート",
+      "variantColumn": "変異の列",
+      "variantColumnPlaceholder": "列を選択",
+      "variantColumnHelper": "この列の行順で 96 well に配置します。WT 行があればそれを対照に使います。"
     },
     "activity": {
       "sectionIngest": "活性データのアップロード",
@@ -585,7 +594,6 @@
       "compareWorkspacesNoDiff": "No differences found.",
       "compareWorkspacesSame": "The two workspaces are identical.",
       "compareWorkspacesTitle": "Compare Workspaces",
-      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon",
       "selectWorkspaceA": "Select first workspace (A)",
       "selectWorkspaceB": "Select second workspace (B)"
     },
@@ -1047,6 +1055,14 @@
         "LOWDEPTH": "Too few reads to call this well reliably.",
         "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
       }
+    },
+    "missingInputs": {
+      "title": "復元できなかった入力があります",
+      "description": "プロジェクトフォルダ外のファイルは一緒に移動しません。以下を指定し直してください。",
+      "browse": "参照",
+      "chooseTitle": "{{name}} を指定",
+      "mismatchTitle": "別のファイルの可能性があります",
+      "mismatchBody": "元: {{expected}}、選択: {{actual}}。意図した変更なら無視してください。"
     }
   },
   "home": {
@@ -2289,6 +2305,7 @@
     "writeFailed": "Autosave ファイルを書き込めませんでした ({{filename}})。原因: {{cause}}",
     "carriedFromScratch": "保存されていない前回のセッションから引き継ぎました ({{relative}})",
     "resultsDiscarded": "ソースファイルから variant リストを選び直した結果、復元された primer テーブルと一致しないためテーブルを消去しました。設計を再実行してください。",
+    "inputsUnavailable": "入力ファイル {{count}} 件を開けず復元から外れました。結果は残っていますが元の入力がないため再選択してください: {{paths}}",
     "workspaceRestored": "ワークスペースを復元しました",
     "autoDetected": "自動検出: {{fields}}",
     "fieldRunFolder": "run フォルダ",
@@ -2296,7 +2313,8 @@
     "fieldExpected": "expected",
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
-    "fieldSequencingSummary": "sequencing summary"
+    "fieldSequencingSummary": "sequencing summary",
+    "pathsMoved": "以前のパスが見つからないため再指定が必要です: {{fields}}"
   },
   "phaseC": {
     "majors": {

@@ -10,6 +10,7 @@ import { shallow } from "zustand/shallow";
 import { useAppStore } from "@/store/appStore";
 import { useKumaProject } from "@/state/projectContext";
 import { scheduleAutosave, flushAutosave, type AutosaveTarget } from "@/lib/autosave";
+import { registerShutdownHook } from "@/lib/shutdownHook";
 import { buildKuroSnapshot } from "@/lib/kuroSnapshot";
 import type { AppState } from "@/store/types";
 
@@ -114,12 +115,27 @@ export function useKuroAutosave(): void {
       scheduleAutosave(
         targetRef.current,
         "kuro",
-        () => buildKuroSnapshot(useAppStore.getState()),
+        // 경로 상대화 기준은 쓰기 시점의 대상 프로젝트다. targetRef를 따라가야
+        // 프로젝트 전환 직후 예약분이 옛 폴더 기준으로 상대화되지 않는다.
+        () =>
+          buildKuroSnapshot(
+            useAppStore.getState(),
+            targetRef.current.scratch ? null : targetRef.current.projectPath,
+          ),
       );
     });
 
     return unsubscribe;
   }, [projectPath, scratch]);
+
+  // 종료 직전 강제 저장. 디바운스가 1.5초라 이것이 없으면 마지막 편집분이
+  // 통째로 날아간다. 훅 등록을 이 훅 안에 두는 이유는 호출부가 반환된 flush
+  // 함수를 쓰지 않아도(현재 MainShell이 그렇다) 보장되게 하기 위해서다.
+  useEffect(() => {
+    return registerShutdownHook(async () => {
+      await flushAutosave(targetRef.current, "kuro");
+    });
+  }, []);
 }
 
 /**

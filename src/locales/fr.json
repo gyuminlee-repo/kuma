@@ -12,7 +12,12 @@
     "openWorkspace": "Ouvrir un espace de travail...",
     "saveWorkspace": "Enregistrer l'espace de travail...",
     "compareWorkspaces": "Comparer les espaces de travail...",
-    "exportWorkspaceZip": "Exporter l'espace de travail au format zip..."
+    "exportProjectZip": "Exporter le projet en ZIP...",
+    "importProjectZip": "Importer un projet depuis un ZIP...",
+    "exportProjectZipDone": "{{count}} fichier(s) enregistre(s) dans {{path}}",
+    "exportProjectZipFailed": "Echec de l'export du projet: {{detail}}",
+    "importProjectZipDone": "{{count}} fichier(s) importe(s) dans {{path}}",
+    "importProjectZipFailed": "Echec de l'import du projet: {{detail}}"
   },
   "export": {
     "all": "Tout exporter",
@@ -319,7 +324,11 @@
         "sampleMapTemplate": "Modèle de sample map (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "Impossible d'ouvrir le dossier."
+      "openFolderError": "Impossible d'ouvrir le dossier.",
+      "variantSheet": "Feuille des variants",
+      "variantColumn": "Colonne des variants",
+      "variantColumnPlaceholder": "Choisir une colonne",
+      "variantColumnHelper": "L'ordre des lignes de cette colonne remplit la plaque 96 puits. Une ligne WT sert de controle."
     },
     "activity": {
       "sectionIngest": "Téléverser l'activity",
@@ -585,7 +594,6 @@
       "compareWorkspacesNoDiff": "No differences found.",
       "compareWorkspacesSame": "The two workspaces are identical.",
       "compareWorkspacesTitle": "Compare Workspaces",
-      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon",
       "selectWorkspaceA": "Select first workspace (A)",
       "selectWorkspaceB": "Select second workspace (B)"
     },
@@ -1047,6 +1055,14 @@
         "LOWDEPTH": "Too few reads to call this well reliably.",
         "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
       }
+    },
+    "missingInputs": {
+      "title": "Certaines entrees n ont pas pu etre restaurees",
+      "description": "Les fichiers hors du dossier de projet ne le suivent pas. Indiquez leur nouvel emplacement.",
+      "browse": "Parcourir",
+      "chooseTitle": "Localiser {{name}}",
+      "mismatchTitle": "Il peut s agir d un fichier different",
+      "mismatchBody": "Etait {{expected}}, choisi {{actual}}. Ignorez si le changement est voulu."
     }
   },
   "home": {
@@ -2289,6 +2305,7 @@
     "writeFailed": "Impossible d'écrire le fichier autosave ({{filename}}). Cause : {{cause}}",
     "carriedFromScratch": "Repris d'une session précédente non enregistrée ({{relative}})",
     "resultsDiscarded": "La liste des variants a été re-sélectionnée depuis le fichier source et ne correspond plus au tableau de primers restauré. Le tableau a été vidé. Relancer la conception.",
+    "inputsUnavailable": "{{count}} fichier(s) d'entree n'ont pas pu etre ouverts et sont absents de la restauration. Les resultats subsistent mais leur entree source manque, veuillez la reselectionner: {{paths}}",
     "workspaceRestored": "Espace de travail restauré",
     "autoDetected": "Auto-détecté : {{fields}}",
     "fieldRunFolder": "dossier de run",
@@ -2296,7 +2313,8 @@
     "fieldExpected": "attendu",
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
-    "fieldSequencingSummary": "sequencing summary"
+    "fieldSequencingSummary": "sequencing summary",
+    "pathsMoved": "Ces entrees ont ete deplacees et doivent etre selectionnees a nouveau: {{fields}}"
   },
   "phaseC": {
     "majors": {

@@ -12,7 +12,12 @@
     "openWorkspace": "Workspace öffnen...",
     "saveWorkspace": "Workspace speichern...",
     "compareWorkspaces": "Workspaces vergleichen...",
-    "exportWorkspaceZip": "Workspace als zip exportieren..."
+    "exportProjectZip": "Projekt als ZIP exportieren...",
+    "importProjectZip": "Projekt aus ZIP importieren...",
+    "exportProjectZipDone": "{{count}} Datei(en) nach {{path}} gespeichert",
+    "exportProjectZipFailed": "Projektexport fehlgeschlagen: {{detail}}",
+    "importProjectZipDone": "{{count}} Datei(en) nach {{path}} importiert",
+    "importProjectZipFailed": "Projektimport fehlgeschlagen: {{detail}}"
   },
   "export": {
     "all": "Alles exportieren",
@@ -319,7 +324,11 @@
         "sampleMapTemplate": "Sample-map-Vorlage (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "Ordner konnte nicht geöffnet werden."
+      "openFolderError": "Ordner konnte nicht geöffnet werden.",
+      "variantSheet": "Variantenblatt",
+      "variantColumn": "Variantenspalte",
+      "variantColumnPlaceholder": "Spalte waehlen",
+      "variantColumnHelper": "Die Zeilenreihenfolge dieser Spalte fuellt die 96-Well-Platte. Eine WT-Zeile dient als Kontrolle."
     },
     "activity": {
       "sectionIngest": "Activity hochladen",
@@ -585,7 +594,6 @@
       "compareWorkspacesNoDiff": "No differences found.",
       "compareWorkspacesSame": "The two workspaces are identical.",
       "compareWorkspacesTitle": "Compare Workspaces",
-      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon",
       "selectWorkspaceA": "Select first workspace (A)",
       "selectWorkspaceB": "Select second workspace (B)"
     },
@@ -1047,6 +1055,14 @@
         "LOWDEPTH": "Too few reads to call this well reliably.",
         "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
       }
+    },
+    "missingInputs": {
+      "title": "Einige Eingaben konnten nicht wiederhergestellt werden",
+      "description": "Dateien ausserhalb des Projektordners werden nicht mitbewegt. Bitte neu zuweisen.",
+      "browse": "Durchsuchen",
+      "chooseTitle": "{{name}} suchen",
+      "mismatchTitle": "Moeglicherweise eine andere Datei",
+      "mismatchBody": "War {{expected}}, gewaehlt {{actual}}. Ignorieren, wenn beabsichtigt."
     }
   },
   "home": {
@@ -2289,6 +2305,7 @@
     "writeFailed": "Autosave-Datei konnte nicht geschrieben werden ({{filename}}). Ursache: {{cause}}",
     "carriedFromScratch": "Aus einer nicht gespeicherten früheren Sitzung übernommen ({{relative}})",
     "resultsDiscarded": "Die variant-Liste wurde aus der Quelldatei neu ausgewählt und passt nicht mehr zur wiederhergestellten primer-Tabelle. Die Tabelle wurde geleert. Das Design bitte erneut ausführen.",
+    "inputsUnavailable": "{{count}} Eingabedatei(en) konnten nicht geoeffnet werden und fehlen in der Wiederherstellung. Die Ergebnisse sind noch da, die zugrunde liegende Eingabe fehlt jedoch. Bitte erneut auswaehlen: {{paths}}",
     "workspaceRestored": "Workspace wiederhergestellt",
     "autoDetected": "Automatisch erkannt: {{fields}}",
     "fieldRunFolder": "ausführen Ordner",
@@ -2296,7 +2313,8 @@
     "fieldExpected": "expected",
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
-    "fieldSequencingSummary": "sequencing summary"
+    "fieldSequencingSummary": "sequencing summary",
+    "pathsMoved": "Diese Eingaben wurden verschoben und muessen neu ausgewaehlt werden: {{fields}}"
   },
   "phaseC": {
     "majors": {

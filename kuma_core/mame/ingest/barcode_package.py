@@ -627,6 +627,8 @@ def generate_mame_package(
     require_gc_clamp: bool = True,
     topology: str | None = None,
     expected_mutations_path: Path | None = None,
+    variant_sheet: str | None = None,
+    variant_column: str | None = None,
 ) -> MamePackageResult:
     """Generate the complete MAME input package for a sequencing run.
 
@@ -690,8 +692,15 @@ def generate_mame_package(
         unrecognised); plain FASTA has no topology annotation and is always
         treated as "linear". Pass "linear" or "circular" explicitly to
         override auto-detection.
+    variant_sheet:
+        Sheet holding the variant list, when the file is not a KURO export and
+        the sheet cannot be inferred. Ignored for KURO exports.
+    variant_column:
+        Column holding the variant labels, for the same case. Ignored for KURO
+        exports and unnecessary when the header is a recognised name.
     expected_mutations_path:
-        Optional path to a KURO results xlsx carrying an ``expected_mutations``
+        Optional path to a variant list. A KURO results xlsx carrying an
+        ``expected_mutations``
         sheet. When given, ``sample_map_template.xlsx`` is pre-filled with one
         row per designed mutant in column-major well order plus a trailing
         ``WT`` control row, so the operator verifies a draft instead of
@@ -778,7 +787,11 @@ def generate_mame_package(
     sample_map_rows: list[tuple[str, str]] = []
     sample_map_preserved = _sample_map_has_data(template_path)
     if expected_mutations_path is not None and not sample_map_preserved:
-        sample_map_rows = _build_sample_map_rows(Path(expected_mutations_path))
+        sample_map_rows = _build_sample_map_rows(
+            Path(expected_mutations_path),
+            variant_sheet=variant_sheet,
+            variant_column=variant_column,
+        )
     if sample_map_preserved:
         pkg_warnings.append(
             f"sample_map_template.xlsx already contains well assignments and was "
@@ -967,7 +980,11 @@ def _sample_map_has_data(path: Path) -> bool:
         wb.close()
 
 
-def _build_sample_map_rows(expected_mutations_path: Path) -> list[tuple[str, str]]:
+def _build_sample_map_rows(
+    expected_mutations_path: Path,
+    variant_sheet: str | None = None,
+    variant_column: str | None = None,
+) -> list[tuple[str, str]]:
     """Return draft ``(sample_name, well)`` rows from a KURO results xlsx.
 
     Delegates placement to :func:`kuma_core.mame.layout.build_draft_layout` so
@@ -985,17 +1002,25 @@ def _build_sample_map_rows(expected_mutations_path: Path) -> list[tuple[str, str
         to emit a misleading template.
     """
     # Local imports: keep module import cost off the barcode-only code path.
-    from kuma_core.mame.io.kuro_reader import read_expected_mutations
+    from kuma_core.mame.io.variant_list import read_variant_source
     from kuma_core.mame.layout import build_draft_layout
 
-    expected = read_expected_mutations(Path(expected_mutations_path))
+    # Accepts a KURO export or a plain variant list. The KURO shape is detected
+    # and routed to the strict reader, so its behaviour is unchanged.
+    read = read_variant_source(
+        Path(expected_mutations_path),
+        sheet=variant_sheet,
+        variant_column=variant_column,
+    )
+    expected = read.expected
     if not expected:
         raise ValueError(
             f"No DESIGNED expected mutations found in {expected_mutations_path}; "
             "cannot pre-fill the sample map template. Omit "
             "expected_mutations_path to emit a header-only template."
         )
-    draft = build_draft_layout(expected)
+    # A source that lists its own WT row must not also get an appended one.
+    draft = build_draft_layout(expected, include_wt=not read.has_explicit_wt)
     # A clamped draft is refused rather than written. The template is a file the
     # operator edits with no confirmation step in between, and a truncated sheet
     # reads as a correct full plate, so writing one would hide the truncation

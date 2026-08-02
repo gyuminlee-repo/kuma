@@ -2,14 +2,19 @@
  * autosaveSnapshot.ts — mame 자동 저장 스냅샷 직렬화 (순수 함수)
  *
  * 저장 대상: 사용자가 입력한 경로/파라미터와 화면에 표시되는 안정적인 결과 상태.
+ *
+ * schema 4부터 `input` 블록의 경로를 프로젝트 폴더 기준 이식 가능 형태로 저장한다
+ * (`lib/projectPath.ts`). 폴더 안을 가리키면 `project://` 상대 경로, 밖이면 절대
+ * 경로 그대로다. 구 스냅샷은 접두사가 없어 절대 경로로 읽히므로 그대로 호환된다.
  */
 
 import type { AutosaveSnapshot } from "@/lib/autosave";
 import type { AppState } from "@/store/mame/types";
 import type { RawRunParams } from "@/store/mame/slice-interfaces";
 import type { Round } from "@/types/round";
+import { toPortablePath } from "@/lib/projectPath";
 
-export const MAME_SCHEMA = 3;
+export const MAME_SCHEMA = 4;
 
 export type MameSnapshotState = Pick<
   AppState,
@@ -80,10 +85,35 @@ export interface MameAutosaveSnapshot extends AutosaveSnapshot {
   };
 }
 
+/**
+ * @param projectPath 경로 필드를 상대화할 기준 폴더. scratch 세션은 null이며
+ *   이때 경로는 절대 경로로 남는다(옮길 대상이 애초에 없다).
+ */
+/**
+ * raw_run_params 안의 파일 경로 두 개도 이식 가능한 형태로 바꾼다.
+ *
+ * 나머지 필드(임계값·길이·불리언)는 경로가 아니므로 손대지 않는다. 이 두 개만
+ * 남겨 두면 프로젝트 폴더를 옮겼을 때 커스텀 바코드와 시퀀싱 요약만 조용히
+ * 깨진다. 값이 비어 있으면 "미지정" 이므로 그대로 둔다(toPortablePath 가
+ * 빈 문자열을 통과시킨다).
+ */
+function portableRawRunParams(
+  params: RawRunParams,
+  portable: (value: string) => string,
+): RawRunParams {
+  return {
+    ...params,
+    customBarcodesPath: portable(params.customBarcodesPath ?? ""),
+    sequencingSummaryPath: portable(params.sequencingSummaryPath ?? ""),
+  };
+}
+
 export function buildMameSnapshot(
   state: MameSnapshotState,
   roundState?: MameRoundSnapshotState,
+  projectPath: string | null = null,
 ): MameAutosaveSnapshot {
+  const portable = (value: string): string => toPortablePath(projectPath, value);
   return {
     schema: MAME_SCHEMA,
     saved_at: new Date().toISOString(),
@@ -91,17 +121,17 @@ export function buildMameSnapshot(
     rounds: roundState?.rounds ?? [],
     active_round_id: roundState?.activeRoundId ?? null,
     input: {
-      input_dir: state.inputDir,
-      expected_path: state.expectedPath,
-      reference_path: state.referencePath,
-      output_path: state.outputPath,
-      sample_map_path: state.sampleMapPath,
+      input_dir: portable(state.inputDir),
+      expected_path: portable(state.expectedPath),
+      reference_path: portable(state.referencePath),
+      output_path: portable(state.outputPath),
+      sample_map_path: portable(state.sampleMapPath),
     },
     parameters: {
       mode: state.mode,
       ingest_mode: state.ingestMode,
       input_mode: state.inputMode,
-      raw_run_params: state.rawRunParams,
+      raw_run_params: portableRawRunParams(state.rawRunParams, portable),
       cds_start: state.cdsStart,
       cds_end: state.cdsEnd,
       min_file_size_kb: state.minFileSizeKb,

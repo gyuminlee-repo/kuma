@@ -39,6 +39,9 @@ import {
   beginHydration,
   endHydration,
   _resetStateForTest,
+  rotateGenerations,
+  GENERATION_INTERVAL_MS,
+  GENERATION_KEEP,
   DEBOUNCE_MS,
   type AutosaveTarget,
   type AutosaveSnapshot,
@@ -63,6 +66,23 @@ function makeSnapshot(label = "snap"): AutosaveSnapshot {
     kuma_version: "0.1.4",
     label,
   };
+}
+
+/**
+ * 스냅샷 본 저장만 센다.
+ *
+ * 세대 보관이 붙은 뒤로 fs mock 에는 두 종류의 호출이 섞인다. 본 저장은
+ * `<file>.tmp` 에 쓴 뒤 `<file>` 로 rename 하고, 세대 회전은 `<file>.N` 을
+ * 다루거나 `<file>.1` 에 직접 쓴다. 아래 두 헬퍼로 본 저장만 골라내 기존
+ * 디바운스·직렬 큐 검증의 의미를 그대로 유지한다.
+ */
+function snapshotWriteCount(): number {
+  return mockWriteTextFile.mock.calls.filter(([path]) => path.endsWith(".tmp")).length;
+}
+
+/** 세대 회전 rename(`<file>.N` 으로 가는 것)을 제외한 본 저장 rename 수. */
+function snapshotRenameCount(): number {
+  return mockRename.mock.calls.filter(([, to]) => !/\.\d+$/.test(to)).length;
 }
 
 // ─── 설정 ─────────────────────────────────────────────────────────────────
@@ -99,11 +119,13 @@ describe("scheduleAutosave", () => {
     await Promise.resolve();
 
     // writeTextFile(tmp) + rename 각 1회
-    expect(mockWriteTextFile).toHaveBeenCalledTimes(1);
-    expect(mockRename).toHaveBeenCalledTimes(1);
+    expect(snapshotWriteCount()).toBe(1);
+    expect(snapshotRenameCount()).toBe(1);
 
     // tmp 경로가 .tmp 접미사를 가지는지 확인
-    const tmpArg = mockWriteTextFile.mock.calls[0][0];
+    const tmpArg = mockWriteTextFile.mock.calls.find(([path]) =>
+      path.endsWith(".tmp"),
+    )?.[0];
     expect(tmpArg).toMatch(/\.tmp$/);
   });
 
@@ -250,8 +272,8 @@ describe("flushAutosave", () => {
     vi.useRealTimers();
     await flushAutosave(target);
 
-    expect(mockWriteTextFile).toHaveBeenCalledTimes(2);
-    expect(mockRename).toHaveBeenCalledTimes(2);
+    expect(snapshotWriteCount()).toBe(2);
+    expect(snapshotRenameCount()).toBe(2);
   });
 });
 
@@ -405,5 +427,91 @@ describe("onAutosaveEvent (observer)", () => {
     scheduleAutosave(target, "kuro", () => makeSnapshot("after-unsub"));
     await flushAutosave(target, "kuro");
     expect(received.length).toBe(prevCount);
+  });
+});
+
+// ─── 세대 보관 ────────────────────────────────────────────────────────────
+
+describe("rotateGenerations", () => {
+  beforeEach(() => {
+    _resetStateForTest();
+    mockExists.mockReset();
+    mockRename.mockReset();
+    mockWriteTextFile.mockReset();
+    mockReadTextFile.mockReset();
+    mockExists.mockResolvedValue(true);
+    mockRename.mockResolvedValue(undefined);
+    mockWriteTextFile.mockResolvedValue(undefined);
+    mockReadTextFile.mockResolvedValue('{"schema":2}');
+  });
+
+  it("shifts older generations down and copies the current file to .1", async () => {
+    const rotated = await rotateGenerations("/proj/.autosave/kuro.json", 10_000_000);
+
+    expect(rotated).toBe(true);
+    // 오래된 것부터 밀어야 덮어쓰지 않는다: .2 -> .3, 그다음 .1 -> .2
+    expect(mockRename.mock.calls).toEqual([
+      ["/proj/.autosave/kuro.json.2", "/proj/.autosave/kuro.json.3"],
+      ["/proj/.autosave/kuro.json.1", "/proj/.autosave/kuro.json.2"],
+    ]);
+    // 현재 파일은 rename 이 아니라 복사다. 옮겨 버리면 새 내용이 착지하기 전
+    // 순간에 스냅샷이 없는 상태가 생긴다.
+    expect(mockWriteTextFile).toHaveBeenCalledWith(
+      "/proj/.autosave/kuro.json.1",
+      '{"schema":2}',
+    );
+    expect(GENERATION_KEEP).toBe(3);
+  });
+
+  it("skips when the interval has not elapsed", async () => {
+    await rotateGenerations("/proj/.autosave/kuro.json", 10_000_000);
+    mockRename.mockClear();
+    mockWriteTextFile.mockClear();
+
+    const again = await rotateGenerations(
+      "/proj/.autosave/kuro.json",
+      10_000_000 + GENERATION_INTERVAL_MS - 1,
+    );
+
+    expect(again).toBe(false);
+    expect(mockRename).not.toHaveBeenCalled();
+    expect(mockWriteTextFile).not.toHaveBeenCalled();
+  });
+
+  it("rotates again once the interval has elapsed", async () => {
+    await rotateGenerations("/proj/.autosave/kuro.json", 10_000_000);
+
+    const again = await rotateGenerations(
+      "/proj/.autosave/kuro.json",
+      10_000_000 + GENERATION_INTERVAL_MS,
+    );
+
+    expect(again).toBe(true);
+  });
+
+  it("keeps kuro and mame on independent schedules", async () => {
+    await rotateGenerations("/proj/.autosave/kuro.json", 10_000_000);
+
+    const mame = await rotateGenerations("/proj/.autosave/mame.json", 10_000_000);
+
+    expect(mame).toBe(true);
+  });
+
+  it("does nothing when there is no file yet", async () => {
+    mockExists.mockResolvedValue(false);
+
+    const rotated = await rotateGenerations("/proj/.autosave/kuro.json", 10_000_000);
+
+    expect(rotated).toBe(false);
+    expect(mockWriteTextFile).not.toHaveBeenCalled();
+  });
+
+  it("never lets a rotation failure escape to the caller", async () => {
+    mockRename.mockRejectedValue(new Error("EACCES"));
+
+    // 회전은 부가 안전망이다. 여기서 throw 하면 본 저장까지 막힌다.
+    await expect(
+      rotateGenerations("/proj/.autosave/kuro.json", 10_000_000),
+    ).resolves.toBe(false);
   });
 });

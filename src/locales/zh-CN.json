@@ -12,7 +12,12 @@
     "openWorkspace": "打开工作区...",
     "saveWorkspace": "保存工作区...",
     "compareWorkspaces": "比较工作区...",
-    "exportWorkspaceZip": "将工作区导出为 zip..."
+    "exportProjectZip": "将项目导出为 ZIP...",
+    "importProjectZip": "从 ZIP 导入项目...",
+    "exportProjectZipDone": "已将 {{count}} 个文件保存到 {{path}}",
+    "exportProjectZipFailed": "项目导出失败: {{detail}}",
+    "importProjectZipDone": "已将 {{count}} 个文件导入到 {{path}}",
+    "importProjectZipFailed": "项目导入失败: {{detail}}"
   },
   "export": {
     "all": "全部导出",
@@ -319,7 +324,11 @@
         "sampleMapTemplate": "Sample map 模板 (xlsx)",
         "contextJson": "Run context (JSON)"
       },
-      "openFolderError": "无法打开文件夹。"
+      "openFolderError": "无法打开文件夹。",
+      "variantSheet": "变异列表工作表",
+      "variantColumn": "变异列",
+      "variantColumnPlaceholder": "选择列",
+      "variantColumnHelper": "按此列的行顺序填入 96 孔板。若存在 WT 行，则以其作为对照。"
     },
     "activity": {
       "sectionIngest": "上传 activity 数据",
@@ -585,7 +594,6 @@
       "compareWorkspacesNoDiff": "No differences found.",
       "compareWorkspacesSame": "The two workspaces are identical.",
       "compareWorkspacesTitle": "Compare Workspaces",
-      "exportWorkspaceZipSoon": "Export workspace as zip - coming soon",
       "selectWorkspaceA": "Select first workspace (A)",
       "selectWorkspaceB": "Select second workspace (B)"
     },
@@ -1047,6 +1055,14 @@
         "LOWDEPTH": "Too few reads to call this well reliably.",
         "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
       }
+    },
+    "missingInputs": {
+      "title": "有输入未能恢复",
+      "description": "项目文件夹之外的文件不会随之移动。请重新指定以下项目。",
+      "browse": "浏览",
+      "chooseTitle": "指定 {{name}}",
+      "mismatchTitle": "可能是不同的文件",
+      "mismatchBody": "原为 {{expected}}，选择了 {{actual}}。如为有意更改可忽略。"
     }
   },
   "home": {
@@ -2289,6 +2305,7 @@
     "writeFailed": "无法写入自动保存文件 ({{filename}})。原因: {{cause}}",
     "carriedFromScratch": "已从未保存的上一次会话继续 ({{relative}})",
     "resultsDiscarded": "已从源文件重新选择 variant 列表，与恢复的 primer 表不一致，因此已清空该表。请重新运行设计。",
+    "inputsUnavailable": "有 {{count}} 个输入文件无法打开，已从恢复中略过。结果仍在，但缺少来源输入，请重新选择: {{paths}}",
     "workspaceRestored": "工作区已恢复",
     "autoDetected": "自动检测: {{fields}}",
     "fieldRunFolder": "run 文件夹",
@@ -2296,7 +2313,8 @@
     "fieldExpected": "expected",
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
-    "fieldSequencingSummary": "sequencing summary"
+    "fieldSequencingSummary": "sequencing summary",
+    "pathsMoved": "以下输入的路径已失效，需要重新选择: {{fields}}"
   },
   "phaseC": {
     "majors": {

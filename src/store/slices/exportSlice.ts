@@ -349,6 +349,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
   tableSorting: [],
   isExporting: false,
   echoTransferVol: 100,
+  echoQuadrant: null,
+  echoUsedQuadrants: [],
   janusTransferVol: 2.0,
 
   getPlateMap: async () => {
@@ -428,6 +430,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
   },
 
   setEchoTransferVol: (value: number) => set({ echoTransferVol: value }),
+  setEchoQuadrant: (value) => set({ echoQuadrant: value }),
+  setEchoUsedQuadrants: (value) => set({ echoUsedQuadrants: value }),
   setJanusTransferVol: (value: number) => set({ janusTransferVol: value }),
 
   setStatus: (msg: string) => set({ statusMessage: msg }),
@@ -857,6 +861,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       tableSorting: [],
       isExporting: false,
       echoTransferVol: 100,
+      echoQuadrant: null,
+      echoUsedQuadrants: [],
       janusTransferVol: 2.0,
     });
     if (!options?.preserveWorkspaceArtifacts && getActiveWorkspace()) {
