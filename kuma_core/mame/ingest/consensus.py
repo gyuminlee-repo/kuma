@@ -29,6 +29,7 @@ unweighted majority vote behavior.
 
 from __future__ import annotations
 
+import os
 import statistics
 from dataclasses import dataclass
 from typing import Sequence
@@ -138,7 +139,55 @@ _BIG = np.int64(np.iinfo(np.int64).max)
 # Raising the budget does not recover the s2 cost (524288 measured within 2
 # percent of 262144 across three pairs), so the s2 side is inherent to splitting
 # at all rather than a budget that is merely too small.
-_BATCH_BASE_BUDGET = 262144
+#
+# PORTABILITY (measured 2026-08-02, same box). Asked whether this should be
+# derived from CPU cache size the way the memory bounds in combinatorial_demux
+# are now derived from RAM. It should NOT, and the reason is arithmetic rather
+# than taste.
+#
+# At this budget each int64 intermediate is 262144 * 8 B = 2 MiB, and there are
+# roughly five of them live at once (_expand_ranges output, the query and
+# quality gather indices, the flat vote codes, the compress scratch), so one
+# thread's working set is ~10 MiB. This box has 3 MiB of L2 per core and 20 MiB
+# of L3 shared by ten of them, and consensus runs on a ThreadPool inside each of
+# three worker processes. The chosen budget is therefore already far outside
+# cache, by more than an order of magnitude, and moving it by a factor of two
+# does not change which side of the cache boundary it sits on.
+#
+# The budget that WOULD be cache-resident is ~32768 query bases (1.25 MiB of
+# intermediates, a comfortable fit in 3 MiB of L2). That value was measured, and
+# it is the loser: 2.73x single-threaded but 0.89x at four threads (section 3 of
+# notes/perf/consensus-depth.md), i.e. a cache-derived rule would reliably pick
+# the configuration that is slower in the arrangement the pipeline actually
+# runs. What moves the optimum is thread oversubscription, not cache size.
+#
+# Measured plateau on the reference fixture, five interleaved rounds per arm,
+# phase seconds summed over the three workers (min of 5, then median of 5):
+#
+#   budget    compute_sum        well_consensus_wall
+#    32768    4.176 / 4.262      3.239 / 3.371
+#    65536    3.721 / 3.949      2.997 / 3.239
+#   131072    3.410 / 3.844      2.931 / 3.249
+#   262144    3.195 / 3.426      2.980 / 3.038
+#   524288    3.300 / 3.623      2.926 / 3.135
+#  1048576    2.916 / 3.355      2.700 / 3.005
+#
+# 32768 is off the plateau and losing, by 31 percent of `compute_sum` against
+# 262144, exactly as the cache arithmetic above predicts. From 65536 upward the
+# consensus wall spans 2.70 to 3.00 s min, under 10 percent across a 16x range
+# of budgets, and non-monotone within it; that phase is about a fifth of a
+# worker wall, so the whole span is ~2 percent of the run, which is pipeline
+# run-to-run noise (`align_minimap2`, untouched by this constant, moved 8.35 to
+# 9.22 s across the same arms).
+#
+# A plateau that wide is not worth a derivation: any box landing anywhere in it
+# is within noise of the optimum, whereas a cache-derived rule would leave the
+# plateau entirely and land on 32768. So this stays a fixed constant. The env
+# override below is the escape hatch for the one input that could actually move
+# the optimum, a machine whose consensus thread count is far from this one.
+_BATCH_BASE_BUDGET = int(
+    os.environ.get("KUMA_MAME_CONSENSUS_BASE_BUDGET", "").strip() or 262144
+)
 
 
 def _expand_ranges(starts: np.ndarray, counts: np.ndarray) -> np.ndarray:

@@ -191,7 +191,26 @@ def _read_timing(jsonl: Path) -> dict[str, Any]:
                 "scope": rec.get("scope"),
                 "pid": rec.get("pid"),
                 "wall_s": round(float(rec.get("wall_s", 0.0)), 4),
-                **{k: rec[k] for k in ("workers", "barcodes", "parallel") if k in rec},
+                # Scheduling/sizing provenance. The memory keys say which
+                # budgets this worker derived and from what, so a fingerprint
+                # taken on another box is self-describing rather than needing
+                # the box interrogated separately.
+                **{
+                    k: rec[k]
+                    for k in (
+                        "workers",
+                        "barcodes",
+                        "parallel",
+                        "mem_limit_bytes",
+                        "mem_limit_source",
+                        "mem_workers",
+                        "well_buffer_mb",
+                        "well_buffer_mb_source",
+                        "consensus_batch_mb",
+                        "consensus_batch_mb_source",
+                    )
+                    if k in rec
+                },
             }
         )
     return {
