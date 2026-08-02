@@ -277,7 +277,8 @@ def _run_consensus_on_dir(
                     n_indel_event_positions=result.n_indel_event_positions,
                     max_indel_event_fraction=result.max_indel_event_fraction,
                     max_del_run_length=result.max_del_run_length,
-                    net_indel=result.net_indel_bp,
+                    consensus_net_indel=result.consensus_net_indel_bp,
+                    read_net_indel=result.median_read_net_indel_bp,
                     consensus_n_fraction_basis=BASIS_COVERED,
                 ),
             ),
@@ -301,7 +302,8 @@ def _run_consensus_on_dir(
             "n_indel_event_positions": result.n_indel_event_positions,
             "max_indel_event_fraction": round(result.max_indel_event_fraction, 3),
             "max_del_run_length": result.max_del_run_length,
-            "net_indel_bp": result.net_indel_bp,
+            "consensus_net_indel_bp": result.consensus_net_indel_bp,
+            "median_read_net_indel_bp": result.median_read_net_indel_bp,
         }
 
     # Remove wells that had zero passing reads (empty consensus).

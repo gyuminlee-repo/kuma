@@ -52,10 +52,14 @@ class ConsensusResult:
     n_low_quality_bases:
         Number of FASTQ bases excluded from pileup voting by the base-quality
         gate. Zero for legacy FASTA-only inputs.
-    net_indel_bp:
+    consensus_net_indel_bp:
+        Net indel of the consensus itself relative to the reference (inserted bp
+        accepted by majority, minus deletion-majority reference positions).
+        Non-zero modulo 3 marks a frameshift. 0 for wells with no passing reads.
+    median_read_net_indel_bp:
         Median per-read net indel length (insertions minus deletions) over the
-        whole aligned span. Non-zero modulo 3 marks a frameshift. 0 for wells
-        with no passing reads.
+        whole aligned span. Read-quality evidence only; on ONT data it tracks the
+        per-read homopolymer error rate and is not a frameshift signal.
     """
 
     consensus_seq: str
@@ -74,7 +78,8 @@ class ConsensusResult:
     n_indel_event_positions: int = 0
     max_indel_event_fraction: float = 0.0
     max_del_run_length: int = 0
-    net_indel_bp: int = 0
+    consensus_net_indel_bp: int = 0
+    median_read_net_indel_bp: int = 0
     alignments: list[Alignment] = field(default_factory=list, repr=False)
 
 
@@ -185,7 +190,8 @@ def compute_well_consensuses(
             n_indel_event_positions=consensus_call.n_indel_event_positions,
             max_indel_event_fraction=consensus_call.max_indel_event_fraction,
             max_del_run_length=consensus_call.max_del_run_length,
-            net_indel_bp=consensus_call.net_indel_bp,
+            consensus_net_indel_bp=consensus_call.consensus_net_indel_bp,
+            median_read_net_indel_bp=consensus_call.median_read_net_indel_bp,
             alignments=alignments,
         )
 

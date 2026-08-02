@@ -316,9 +316,21 @@ class TestPerPositionDepth:
 
 
 class TestNetIndelMetric:
-    """``ConsensusCall.net_indel_bp`` = median per-read (I lengths - D lengths)."""
+    """The two net-indel measurements and the gap between them.
 
-    def test_one_bp_deletion_median_minus_one(self) -> None:
+    ``consensus_net_indel_bp`` describes the CALLED consensus: inserted bp that
+    a majority of spanning reads carry, minus reference positions called as
+    deletions. It is the FRAMESHIFT gate input.
+
+    ``median_read_net_indel_bp`` describes the RAW READS. On ONT data it tracks
+    the per-read homopolymer indel error rate, which is exactly the error a
+    consensus exists to average away, so it is quality evidence only.
+
+    When every read carries the same indel the two agree; the discriminating
+    case is ``test_half_reads_one_bp_deletion_error_...`` below.
+    """
+
+    def test_one_bp_deletion_consensus_minus_one(self) -> None:
         ref = "ATGCATGC"
         ref_len = len(ref)
         # Each read drops 1 bp at ref pos 4: CIGAR 4M 1D 3M, read_seq = 7 bp.
@@ -331,9 +343,10 @@ class TestNetIndelMetric:
             for _ in range(5)
         ]
         result = call_consensus_with_metrics(reads, ref)
-        assert result.net_indel_bp == -1
+        assert result.consensus_net_indel_bp == -1
+        assert result.median_read_net_indel_bp == -1
 
-    def test_three_bp_deletion_median_minus_three(self) -> None:
+    def test_three_bp_deletion_consensus_minus_three(self) -> None:
         ref = "ATGCATGC"
         ref_len = len(ref)
         # Each read drops 3 bp at ref pos 3-5: CIGAR 3M 3D 2M, read_seq = 5 bp.
@@ -346,18 +359,23 @@ class TestNetIndelMetric:
             for _ in range(5)
         ]
         result = call_consensus_with_metrics(reads, ref)
-        assert result.net_indel_bp == -3
+        assert result.consensus_net_indel_bp == -3
+        # In frame: the verdict gate divides by 3 and lets this through.
+        assert result.consensus_net_indel_bp % 3 == 0
 
-    def test_clean_reads_median_zero(self) -> None:
+    def test_clean_reads_consensus_zero(self) -> None:
         ref = "ATGCATGC"
         reads = [_make_aln(ref, len(ref)) for _ in range(5)]
         result = call_consensus_with_metrics(reads, ref)
-        assert result.net_indel_bp == 0
+        assert result.consensus_net_indel_bp == 0
+        assert result.median_read_net_indel_bp == 0
 
-    def test_one_bp_insertion_median_plus_one(self) -> None:
+    def test_one_bp_insertion_consensus_plus_one(self) -> None:
         ref = "ATGCATGC"
         ref_len = len(ref)
         # Each read inserts 1 bp after ref pos 4: CIGAR 4M 1I 4M, read_seq = 9 bp.
+        # The reference-length consensus drops the inserted base, so the bp only
+        # survives via the insertion-event accumulators.
         reads = [
             _make_aln(
                 read_seq="ATGCAATGC",
@@ -367,9 +385,77 @@ class TestNetIndelMetric:
             for _ in range(5)
         ]
         result = call_consensus_with_metrics(reads, ref)
-        assert result.net_indel_bp == 1
+        assert result.consensus_net_indel_bp == 1
+        assert result.median_read_net_indel_bp == 1
 
-    def test_no_reads_median_zero(self) -> None:
-        # No alignments: median over an empty list must not raise; defaults to 0.
+    def test_no_reads_consensus_zero(self) -> None:
+        # No alignments: nothing to measure, and the median over an empty list
+        # must not raise.
         result = call_consensus_with_metrics([], "ATGCATGC")
-        assert result.net_indel_bp == 0
+        assert result.consensus_net_indel_bp == 0
+        assert result.median_read_net_indel_bp == 0
+
+    # -- the three cases the verdict has to tell apart ----------------------
+
+    def test_consensus_carries_the_deletion_is_a_frameshift(self) -> None:
+        """Real 1 bp deletion: every read has it, so the consensus has it."""
+        ref = "ATGCATGCATGC"
+        ref_len = len(ref)
+        reads = [
+            _make_aln(
+                read_seq="ATGCTGCATGC",
+                ref_len=ref_len,
+                cigar=[[4, _CIGAR_M], [1, _CIGAR_D], [7, _CIGAR_M]],
+            )
+            for _ in range(10)
+        ]
+        result = call_consensus_with_metrics(reads, ref)
+        assert result.consensus_net_indel_bp == -1
+        assert result.consensus_net_indel_bp % 3 != 0
+
+    def test_per_read_deletion_error_without_a_consensus_gap(self) -> None:
+        """The defect. Most reads carry a 1 bp deletion error, so the median
+        per-read net indel is -1, but the errors sit at DIFFERENT positions, so
+        no reference position reaches deletion majority and the called consensus
+        is gap-free and identical to the reference.
+
+        Scattered rather than co-located is what ONT homopolymer error actually
+        looks like, and it is the difference that matters: co-located deletions
+        in a majority of reads ARE a real deletion and are called as one (see
+        ``test_consensus_carries_the_deletion_is_a_frameshift``). This shape is
+        what produced ``net_indel=-1`` on 253 of 288 wells whose consensus
+        aligned to the reference as a single gap-free match block.
+        """
+        ref = "ATGCATGCATGCATGCATGCATGC"
+        ref_len = len(ref)
+        # 16 reads, each deleting one distinct position: every read nets -1 bp,
+        # yet each position sees a single deletion vote out of 16.
+        erroring = [
+            _make_aln(
+                read_seq=ref[:i] + ref[i + 1 :],
+                ref_len=ref_len,
+                cigar=[[i, _CIGAR_M], [1, _CIGAR_D], [ref_len - i - 1, _CIGAR_M]],
+            )
+            for i in range(4, 20)
+        ]
+        result = call_consensus_with_metrics(erroring, ref)
+        assert result.median_read_net_indel_bp == -1
+        assert result.consensus_seq == ref
+        assert result.consensus_net_indel_bp == 0
+        assert result.max_del_run_length == 0
+
+    def test_three_bp_consensus_deletion_keeps_frame(self) -> None:
+        """A real 3 bp deletion in the consensus is in frame, not a frameshift."""
+        ref = "ATGCATGCATGC"
+        ref_len = len(ref)
+        reads = [
+            _make_aln(
+                read_seq="ATGCTGCA",
+                ref_len=ref_len,
+                cigar=[[4, _CIGAR_M], [3, _CIGAR_D], [4, _CIGAR_M]],
+            )
+            for _ in range(10)
+        ]
+        result = call_consensus_with_metrics(reads, ref)
+        assert result.consensus_net_indel_bp == -3
+        assert result.consensus_net_indel_bp % 3 == 0

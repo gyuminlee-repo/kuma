@@ -752,10 +752,10 @@ class TestConsensusParallelEquivalence:
 
         # Canonical serial consensus answers
         expected = {
-            "1_1": ("AAACCC", 5, 0, 0.0, 0, 0.0, 0, 5, 5, 0, 0, 0, 0.0, 0, 0),
-            "1_2": ("TTTGGG", 3, 0, 0.0, 0, 0.0, 0, 3, 3, 0, 0, 0, 0.0, 0, 0),
-            "2_1": ("GGGAAA", 4, 0, 0.0, 0, 0.0, 0, 4, 4, 0, 0, 0, 0.0, 0, 0),
-            "2_2": ("CCCAAA", 2, 0, 0.0, 0, 0.0, 0, 2, 2, 0, 0, 0, 0.0, 0, 0),
+            "1_1": ("AAACCC", 5, 0, 0.0, 0, 0.0, 0, 5, 5, 0, 0, 0, 0.0, 0, 0, 0),
+            "1_2": ("TTTGGG", 3, 0, 0.0, 0, 0.0, 0, 3, 3, 0, 0, 0, 0.0, 0, 0, 0),
+            "2_1": ("GGGAAA", 4, 0, 0.0, 0, 0.0, 0, 4, 4, 0, 0, 0, 0.0, 0, 0, 0),
+            "2_2": ("CCCAAA", 2, 0, 0.0, 0, 0.0, 0, 2, 2, 0, 0, 0, 0.0, 0, 0, 0),
         }
 
         call_counts: dict[str, int] = {}
@@ -811,7 +811,8 @@ class TestConsensusParallelEquivalence:
                     n_indel_event_positions,
                     max_indel_event_fraction,
                     max_del_run_length,
-                    net_indel,
+                    consensus_net_indel,
+                    read_net_indel,
                 ) = cd_mod._compute_well_consensus(
                     wn, rds, ref_fasta, ref_seq, ref_len, 1
                 )
@@ -824,7 +825,8 @@ class TestConsensusParallelEquivalence:
                     f"low_depth_positions={low_depth_positions} "
                     f"consensus_n_fraction={n_fraction:.3f} "
                     f"low_quality_bases={low_quality_bases} "
-                    f"net_indel={net_indel}\n{seq}\n"
+                    f"consensus_net_indel={consensus_net_indel} "
+                    f"read_net_indel={read_net_indel}\n{seq}\n"
                 )
 
         call_counts.clear()

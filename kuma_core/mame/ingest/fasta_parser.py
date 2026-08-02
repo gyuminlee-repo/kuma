@@ -41,6 +41,7 @@ from kuma_core.mame.ingest.consensus_metadata import (
     BASIS_COVERED,
     CONSENSUS_N_FRACTION,
     CONSENSUS_N_FRACTION_BASIS,
+    CONSENSUS_NET_INDEL,
     DEPTH,
     INDEL_EVENT_POSITIONS,
     INPUT_READS,
@@ -52,6 +53,7 @@ from kuma_core.mame.ingest.consensus_metadata import (
     MAX_MINOR_ALLELE_FRACTION,
     MIXED_POSITIONS,
     NET_INDEL,
+    READ_NET_INDEL,
     SPAN_FAILED,
 )
 from kuma_core.mame.ingest.stage_marker import (
@@ -396,7 +398,14 @@ def parse_fasta_file(
     n_indel_event_positions = _read_int_metadata(metadata, INDEL_EVENT_POSITIONS) or 0
     max_indel_event_fraction = _read_float_metadata(metadata, MAX_INDEL_EVENT_FRACTION) or 0.0
     max_del_run_length = _read_int_metadata(metadata, MAX_DEL_RUN_LENGTH) or 0
-    net_indel_bp = _read_int_metadata(metadata, NET_INDEL)
+    consensus_net_indel_bp = _read_int_metadata(metadata, CONSENSUS_NET_INDEL)
+    # The legacy ``net_indel`` key stored the per-read median under a name that
+    # read like a consensus measurement. It is folded into the read metric, never
+    # into the verdict-bearing one, so a file written before the rename cannot
+    # revive the misread frameshift call.
+    median_read_net_indel_bp = _read_int_metadata(metadata, READ_NET_INDEL)
+    if median_read_net_indel_bp is None:
+        median_read_net_indel_bp = _read_int_metadata(metadata, NET_INDEL)
 
     return BarcodeRecord(
         native_barcode=native_barcode,
@@ -418,7 +427,8 @@ def parse_fasta_file(
         n_indel_event_positions=n_indel_event_positions,
         max_indel_event_fraction=max_indel_event_fraction,
         max_del_run_length=max_del_run_length,
-        net_indel_bp=net_indel_bp,
+        consensus_net_indel_bp=consensus_net_indel_bp,
+        median_read_net_indel_bp=median_read_net_indel_bp,
     )
 
 
