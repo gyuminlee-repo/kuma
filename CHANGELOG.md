@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.14.1 (Frameshift is judged from the consensus)
+
+A well whose consensus aligns to the reference without a single gap was being called FRAMESHIFT. The gate read the median net indel across raw reads rather than the net indel of the consensus, and ONT reads carry frequent single-base indel errors, so on a run where that median lands at one base the gate fired almost everywhere. Building a consensus is what averages those errors away, so the verdict was reading the very signal the consensus exists to remove.
+
+### Fixed
+
+- v0.14.1: Frameshift is decided from the consensus. The net indel now comes from the same majority vote that calls the bases, counting deletion-majority reference positions and majority insertion length. The per-read median is kept as a quality metric under a separate header key and no longer reaches the verdict. On the reference workload this moves 91 passing wells to 150; every one of the 83 wells that left FRAMESHIFT was checked to be gapless and full length, and every one of the 59 newly passing wells has an observed mutation matching its design. Real frame-breaking indels are still caught, and the tests that pin them pass unchanged.
+- v0.14.1: The consensus and per-read figures are written as separate FASTA header keys. A file written by an earlier version keeps its old key read as the per-read metric, so reprocessing it does not re-condemn the same wells.
+
 ## v0.14.0 (MAME step 2 finishes a whole sequencing run)
 
 Step 2 could not complete a full run on a 15 GiB machine. Peak memory grew with input size, because a whole native barcode of read slices was held until consensus, and a whole well was then flattened into one array per aligned base. A 5.9 GB run now peaks at 4.6 GB and completes. Measuring that also surfaced two defects that changed reported numbers, and both are fixed here.
