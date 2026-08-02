@@ -55,7 +55,7 @@ import os
 import re
 import sys
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from typing import Callable, Iterator, TypeVar
+from typing import Any, Callable, Iterator, TypeVar
 
 from kuma_core.mame.ingest.align import (
     align_reads,
@@ -874,6 +874,34 @@ _PERREAD_THRESHOLD_DEFAULT = 10000
 # large multi-record reference, where the per-chunk index build stops being
 # negligible; that case should pass a prebuilt ``reference_index`` rather than
 # raise the chunk size.
+#
+# PORTABILITY (measured 2026-08-02). Asked whether this should adapt to core
+# count or filesystem the way the memory bounds now adapt to RAM. Measured, and
+# the answer is NO: keep it fixed. Recorded here so the next person does not
+# repeat the sweep.
+#
+# Both sides of the trade-off turn out to be environment-insensitive in SHAPE.
+# The term the chunk size buys is the residual `fastq_read` wait, i.e. the gzip
+# the prefetch failed to hide, and it moves monotonically and almost identically
+# in two environments that differ in both axes at once (medians of 3, chunk ->
+# fastq_read seconds):
+#
+#   9p share, 10 cores   1000: 0.233  2500: 0.861  5000: 1.254  50000: 2.929
+#   ext4,      4 cores   1000: 0.219  2500: 0.685  5000: 1.033  50000: 2.682
+#
+# Same curve to within a few percent across a filesystem change that the ingest
+# fan-out DOES have to probe for, and across a 2.5x core change. The opposing
+# term, the ~0.016 s per-chunk fixed cost, is tempdir + FASTA write + minimap2
+# spawn + index build, none of which scales with either axis either.
+#
+# The resulting wall is flat across a 50x span of chunk sizes in both
+# environments (e2e min of 3: 8.51 / 9.18 / 8.69 / 9.00 / 8.85 s on the share,
+# 9.43 / 9.55 / 10.21 / 9.60 / 9.58 s on 4 cores, for 1000 / 2500 / 5000 /
+# 10000 / 50000). No optimum resolves above run-to-run noise, so there is
+# nothing for an adaptive rule to track: it would add a code path and a failure
+# mode to chase differences smaller than the measurement error.
+# ``KUMA_MAME_READ_CHUNK`` remains the escape hatch if some future environment
+# does show a gradient.
 _READ_CHUNK_DEFAULT = 2500
 
 
@@ -889,6 +917,10 @@ _READ_CHUNK_DEFAULT = 2500
 # up to ~700 MB of FASTQ per barcode never spill at all, i.e. the default costs
 # nothing on every workload measured so far, while the real run (2975 MB in the
 # largest barcode) spills and stays bounded. 0 disables the bound.
+#
+# This is now the FALLBACK only, used when the box will not tell us how much
+# memory it has (see _memory_limit_bytes). The live default is derived from the
+# limit; _WELL_BUFFER_FRACTION reproduces 512 on the 15 GiB box it was tuned on.
 _WELL_BUFFER_MB_DEFAULT = 512
 
 # Memory bound for the consensus stage (MB of sequence text per batch of
@@ -905,7 +937,259 @@ _WELL_BUFFER_MB_DEFAULT = 512
 # still forms its own batch: bounding one well below its own depth is not
 # possible from here, it needs the accumulation inside consensus.py to become
 # incremental. 0 disables batching.
+#
+# Fallback only, as with _WELL_BUFFER_MB_DEFAULT above.
 _CONSENSUS_BATCH_MB_DEFAULT = 32
+
+
+# --------------------------------------------------------------------------
+# Adaptive sizing of the two memory bounds above
+# --------------------------------------------------------------------------
+#
+# Both defaults were measured on ONE box (10 cores, 15 GiB, 3 native barcodes)
+# and neither number is a property of the workload: they are a property of how
+# much RAM that box had. Shipping them fixed is wrong in both directions. An
+# 8 GiB laptop running the same three workers gets 3 x 512 MB of slice text
+# (~2.5 GB of RSS after the ~60% object overhead) plus 3 x the batch pileup on
+# top of the aligner, which is the OOM the bound exists to prevent; a 64 GiB
+# workstation spills and re-reads for no reason and batches finer than it needs
+# to, paying the ~0.016 s per-batch fixed cost more often than necessary.
+#
+# So derive both from the memory limit, the same philosophy the ingest fan-out
+# uses for the filesystem (``fasta_parser._PROBE_LATENCY_S``): measure or read
+# the environment, never guess it from a path or a hardcoded profile. Here the
+# environment can simply be ASKED rather than probed, so there is no probe.
+#
+# Denominator choice, stated because it is the load-bearing assumption:
+#
+# * The limit, not the free memory. ``MemAvailable`` moves with whatever else
+#   the user has open, so deriving from it would make two runs of the same data
+#   on the same box pick different budgets, and a run started next to a browser
+#   would silently size itself for a machine it is not on. Output is identical
+#   either way (see the identity note below), but a value that jitters is not
+#   one you can reason about from a bug report. The limit is a stable property
+#   of the box, and the clamp floor is what protects the genuinely small box.
+# * cgroup before /proc/meminfo. Inside a container ``MemTotal`` is the HOST's
+#   RAM, which is exactly the case where over-sizing is fatal: the kernel OOM
+#   killer enforces ``memory.max``, and the host figure can be an order of
+#   magnitude larger. cgroup v2 nests, so the effective limit is the tightest
+#   value on the path from this process's cgroup up to the root, not just the
+#   leaf's.
+#
+# IDENTITY: neither budget can change demux output. The well buffer only
+# decides whether a slice list is spilled to disk and re-read (``_WellReadBuffer``
+# preserves append order across a spill by construction), and the consensus
+# batch only decides how many wells share one minimap2 call, with ``name_offset``
+# keeping every QNAME identical to the all-wells case. Both invariants predate
+# this change; the acceptance test below drives the budgets to their extremes
+# and checks the tree hash is unmoved.
+
+#: cgroup v2 leaf: this many bytes is "no limit".
+_CGROUP_UNLIMITED = "max"
+#: cgroup v1 writes a huge sentinel rather than a word, anything at or above
+#: this is "no limit" (the exact value varies with PAGE_SIZE).
+_CGROUP_V1_UNLIMITED = 1 << 62
+
+#: Per-worker share of the limit given to the assigned-slice buffer. 0.10 of
+#: 16.04 GB / 3 workers is 535 MB, i.e. it reproduces the measured 512 on the
+#: box the constant was tuned on. Slice text costs ~1.6x its size in RSS, so
+#: this is ~16% of the share in resident terms and leaves the majority to the
+#: aligner, the pileup transients and the interpreter.
+_WELL_BUFFER_FRACTION = 0.10
+#: Floor/ceiling in MB. The floor keeps a tiny container from spilling on every
+#: append; the ceiling stops a big box from turning the bound into a no-op
+#: (past a few GB of buffered text the spill path is the cheaper behaviour
+#: anyway, and an unbounded buffer is what needed 14 GB on the real run).
+_WELL_BUFFER_MB_MIN = 64
+_WELL_BUFFER_MB_MAX = 4096
+
+#: Per-worker share of the limit given to one consensus batch of sequence text.
+#: 0.006 of 16.04 GB / 3 is 32.1 MB, reproducing the measured 32. The pileup
+#: transients this bounds are ~45 B per aligned base and are multiplied by the
+#: consensus ThreadPool width, which is why the fraction is so much smaller
+#: than the buffer's.
+_CONSENSUS_BATCH_FRACTION = 0.006
+#: Floor/ceiling in MB. The floor is what keeps batch COUNT from exploding:
+#: each batch costs ~0.016 s of fixed work (tempdir, FASTA write, minimap2
+#: spawn, index build) and at s3 the 25 batches already came to 8.6 s, 4.8% of
+#: the run, so a budget small enough to double that is worse than the spill it
+#: avoids. The ceiling is set past the largest value ever measured as useful
+#: (524288 query bases of batch was neutral against 262144, consensus-depth.md
+#: section 4) so a huge box widens but does not run unbounded.
+_CONSENSUS_BATCH_MB_MIN = 8
+_CONSENSUS_BATCH_MB_MAX = 256
+
+
+def _read_cgroup_v2_limit(
+    root: Path = Path("/sys/fs/cgroup"),
+    proc_cgroup: Path = Path("/proc/self/cgroup"),
+) -> int | None:
+    """Tightest ``memory.max`` from this process's cgroup up to the root.
+
+    cgroup v2 limits nest: a pod can sit inside a slice that is itself capped,
+    and the kernel enforces the minimum. Reading only the leaf would over-size
+    in exactly that layout. Returns ``None`` when unified cgroups are absent or
+    every level on the path says ``max``.
+
+    The two paths are parameters purely so the nesting behaviour can be tested
+    against a temp-dir replica; nothing in production passes them.
+    """
+    try:
+        # Unified hierarchy always presents "0::<relative path>".
+        rel = ""
+        for line in proc_cgroup.read_text().splitlines():
+            parts = line.split(":", 2)
+            if len(parts) == 3 and parts[0] == "0":
+                rel = parts[2].strip()
+                break
+        if not rel:
+            return None
+    except OSError:
+        return None
+
+    node = root / rel.lstrip("/")
+    best: int | None = None
+    # Walk leaf -> root. Bounded by the path depth; `root` itself has no
+    # memory.max, so the loop simply stops finding files.
+    while True:
+        try:
+            raw = (node / "memory.max").read_text().strip()
+        except OSError:
+            raw = ""
+        if raw and raw != _CGROUP_UNLIMITED:
+            try:
+                val = int(raw)
+            except ValueError:
+                val = 0
+            if val > 0:
+                best = val if best is None else min(best, val)
+        if node == root or root not in node.parents:
+            break
+        node = node.parent
+    return best
+
+
+def _read_cgroup_v1_limit() -> int | None:
+    """``memory.limit_in_bytes`` from a legacy cgroup v1 memory controller."""
+    try:
+        val = int(
+            Path("/sys/fs/cgroup/memory/memory.limit_in_bytes").read_text().strip()
+        )
+    except (OSError, ValueError):
+        return None
+    return val if 0 < val < _CGROUP_V1_UNLIMITED else None
+
+
+def _read_phys_mem() -> int | None:
+    """Physical RAM in bytes, or ``None`` if the platform will not say.
+
+    ``os.sysconf`` covers Linux and macOS. Windows has neither it nor
+    ``/proc``, so frozen Windows builds fall through to the fixed defaults;
+    that is the pre-existing behaviour, not a regression.
+    """
+    try:
+        pages = os.sysconf("SC_PHYS_PAGES")
+        page_size = os.sysconf("SC_PAGE_SIZE")
+    except (AttributeError, ValueError, OSError):
+        return None
+    if pages > 0 and page_size > 0:
+        return pages * page_size
+    return None
+
+
+def _memory_limit_bytes() -> tuple[int | None, str]:
+    """Bytes this process tree may use, plus a one-word provenance tag.
+
+    The tag is carried into the timing record so a support question can be
+    answered without reproducing the environment: it says whether the number
+    came from a container limit or from the physical box.
+    """
+    phys = _read_phys_mem()
+    for reader, tag in (
+        (_read_cgroup_v2_limit, "cgroup_v2"),
+        (_read_cgroup_v1_limit, "cgroup_v1"),
+    ):
+        limit = reader()
+        if limit is None:
+            continue
+        # A cgroup may be capped ABOVE the physical RAM (common on unconstrained
+        # container runtimes). The binding constraint is whichever is smaller.
+        if phys is not None and phys < limit:
+            return phys, "meminfo"
+        return limit, tag
+    if phys is not None:
+        return phys, "meminfo"
+    return None, "unknown"
+
+
+def _derive_mb(
+    limit_bytes: int | None,
+    workers: int,
+    fraction: float,
+    lo_mb: int,
+    hi_mb: int,
+    fallback_mb: int,
+) -> int:
+    """One budget in MB: a clamped fraction of this worker's share of *limit*.
+
+    *workers* is the number of native-barcode processes that will hold such a
+    budget CONCURRENTLY. Dividing by it is the whole point: the constants were
+    read off a single-worker RSS figure but three of them run at once, so an
+    undivided budget is a 3x under-count of what the box is asked for.
+    """
+    if limit_bytes is None:
+        return fallback_mb
+    per_worker_mb = limit_bytes / max(1, workers) / 1_000_000
+    return int(max(lo_mb, min(hi_mb, per_worker_mb * fraction)))
+
+
+def _resolve_memory_budgets(workers: int) -> dict[str, Any]:
+    """Well-buffer and consensus-batch budgets in MB, with their provenance.
+
+    An explicit environment variable always wins, including the documented
+    ``0`` that disables a bound outright; adaptation only fills in the value
+    nobody chose.
+    """
+    limit, source = _memory_limit_bytes()
+    info: dict[str, Any] = {
+        "mem_limit_bytes": limit,
+        "mem_limit_source": source,
+        "mem_workers": workers,
+    }
+
+    for key, env_name, fraction, lo, hi, fallback in (
+        (
+            "well_buffer_mb",
+            "KUMA_MAME_WELL_BUFFER_MB",
+            _WELL_BUFFER_FRACTION,
+            _WELL_BUFFER_MB_MIN,
+            _WELL_BUFFER_MB_MAX,
+            _WELL_BUFFER_MB_DEFAULT,
+        ),
+        (
+            "consensus_batch_mb",
+            "KUMA_MAME_CONSENSUS_BATCH_MB",
+            _CONSENSUS_BATCH_FRACTION,
+            _CONSENSUS_BATCH_MB_MIN,
+            _CONSENSUS_BATCH_MB_MAX,
+            _CONSENSUS_BATCH_MB_DEFAULT,
+        ),
+    ):
+        raw = os.environ.get(env_name, "").strip()
+        if raw:
+            try:
+                info[key] = max(0, int(raw))
+                info[key + "_source"] = "env"
+                continue
+            except ValueError:
+                log.warning(
+                    "%s=%r is not an integer; deriving the budget instead.",
+                    env_name,
+                    raw,
+                )
+        info[key] = _derive_mb(limit, workers, fraction, lo, hi, fallback)
+        info[key + "_source"] = "derived" if limit is not None else "fallback"
+    return info
 
 
 # Dynamic core budget for the per-native-barcode ProcessPool. The work unit is
@@ -1181,6 +1465,7 @@ def run_combinatorial_demux(
     progress_callback: Callable[[int, int, str], None] | None = None,
     barcode_prefixes: tuple[list[tuple[str, str]], list[tuple[str, str]]] | None = None,
     core_budget: "_CoreBudget | None" = None,
+    mem_workers: int = 1,
 ) -> DemuxResult:
     """MAPQ-filtered alignment-anchored fuzzy per-well demux with chimera splitting.
 
@@ -1251,13 +1536,40 @@ def run_combinatorial_demux(
         holding the static share for the whole run.  ``None`` (default) keeps
         *minimap2_threads* fixed.  Not part of the RPC surface: it is a
         parent-to-worker scheduling handle, not a demux parameter.
+    mem_workers:
+        How many native-barcode processes hold a memory budget concurrently,
+        i.e. the divisor for this process's share of the box (see
+        :func:`_resolve_memory_budgets`).  ``1`` (default) is correct for the
+        serial path and for any direct caller.  Like *core_budget* this is a
+        parent-to-worker scheduling handle and not part of the RPC surface: it
+        cannot change output, only how often the run spills and re-reads.
 
     Returns
     -------
     DemuxResult with stats, per_well_reads, per_well_consensus.
     """
-    with TIMER.session("demux", output_dir=str(output_dir)):
+    # Resolve the two memory bounds once, here, so they can be both LOGGED and
+    # folded into this worker's timing record. A user hitting an out-of-memory
+    # or an unexpected spill can be asked for one line instead of for their
+    # container spec: the record carries the limit, where it was read from, the
+    # divisor, each budget and whether it was derived or forced by env.
+    budgets = _resolve_memory_budgets(mem_workers)
+    log.info(
+        "Memory budgets: well_buffer=%d MB (%s), consensus_batch=%d MB (%s); "
+        "limit=%s MB via %s / %d worker(s)",
+        budgets["well_buffer_mb"],
+        budgets["well_buffer_mb_source"],
+        budgets["consensus_batch_mb"],
+        budgets["consensus_batch_mb_source"],
+        round(budgets["mem_limit_bytes"] / 1_000_000)
+        if budgets["mem_limit_bytes"]
+        else "unknown",
+        budgets["mem_limit_source"],
+        budgets["mem_workers"],
+    )
+    with TIMER.session("demux", output_dir=str(output_dir), **budgets):
         return _run_combinatorial_demux_body(
+            budgets=budgets,
             raw_fastq_paths=raw_fastq_paths,
             reference_fasta=reference_fasta,
             barcodes_xlsx=barcodes_xlsx,
@@ -1298,6 +1610,7 @@ def _run_combinatorial_demux_body(
     progress_callback: Callable[[int, int, str], None] | None,
     barcode_prefixes: tuple[list[tuple[str, str]], list[tuple[str, str]]] | None = None,
     core_budget: "_CoreBudget | None" = None,
+    budgets: dict[str, Any] | None = None,
 ) -> DemuxResult:
     """Body of :func:`run_combinatorial_demux` (see there for semantics).
 
@@ -1358,12 +1671,12 @@ def _run_combinatorial_demux_body(
         return core_budget.threads()
 
     # Assigned read slices, held between the read loop and consensus. Bounded:
-    # see _WELL_BUFFER_MB_DEFAULT. Chunking bounds the alignment stage only,
-    # this buffer is what grows with the whole barcode.
-    _buffer_mb = int(
-        os.environ.get("KUMA_MAME_WELL_BUFFER_MB", str(_WELL_BUFFER_MB_DEFAULT))
-    )
-    per_well = _WellReadBuffer(max(0, _buffer_mb) * 1_000_000)
+    # see _WELL_BUFFER_MB_DEFAULT and _resolve_memory_budgets. Chunking bounds
+    # the alignment stage only, this buffer is what grows with the whole barcode.
+    # A direct caller of the body (tests) gets a single-worker derivation.
+    if budgets is None:
+        budgets = _resolve_memory_budgets(1)
+    per_well = _WellReadBuffer(max(0, int(budgets["well_buffer_mb"])) * 1_000_000)
 
     # Chunk-stream read loading: load + align in N-read chunks instead of
     # materialising the whole FASTQ. Each chunk's minimap2 input/SAM and its
@@ -1743,17 +2056,7 @@ def _run_combinatorial_demux_body(
             return max(1, _batch_threads_static)
         return max(1, core_budget.threads())
 
-    _cons_batch_bytes = (
-        max(
-            0,
-            int(
-                os.environ.get(
-                    "KUMA_MAME_CONSENSUS_BATCH_MB", str(_CONSENSUS_BATCH_MB_DEFAULT)
-                )
-            ),
-        )
-        * 1_000_000
-    )
+    _cons_batch_bytes = max(0, int(budgets["consensus_batch_mb"])) * 1_000_000
 
     def _well_batches() -> Iterator[list[tuple[int, int]]]:
         """Group wells, in append order, into batches of bounded sequence bytes.
@@ -2141,7 +2444,11 @@ def _demux_one_nb(payload: dict) -> dict:
         # of (name, prefix) tuples). Absent => this worker parses the xlsx
         # itself, as before.
         barcode_prefixes=payload.get("barcode_prefixes"),
-        core_budget=budget)
+        core_budget=budget,
+        # How many of these workers run at once, so each one asks for its own
+        # share of the box rather than all of it. Absent (a caller that did not
+        # set it) => 1, the pre-existing single-worker sizing.
+        mem_workers=payload.get("mem_workers", 1))
     s = result.stats
     return {"nb_name": payload["nb_name"], "sort_barcode_name": payload["sort_barcode_name"],
             "output_dir": str(Path(payload["output_dir"]).resolve()),
@@ -2287,6 +2594,10 @@ def run_combinatorial_demux_per_nb(
             "minimap2_threads": threads_per,
             "consensus_workers": threads_per,
             "per_read_parallel": per_read_parallel,
+            # Memory-budget divisor. P is the count of these processes that are
+            # resident at once, which is what the box actually has to hold; the
+            # serial path leaves this at 1 because there is only ever one.
+            "mem_workers": P,
         })
 
     # Fail fast if two entries map to the same sort_barcode output dir
