@@ -231,7 +231,17 @@ class ConsensusCall:
     # alignment artifact); >=2 = an N-bp contiguous deletion (more likely real).
     # Informational only; does not change the consensus or the verdict gate.
     max_del_run_length: int = 0
-    net_indel_bp: int = 0
+    # Net indel of the CONSENSUS relative to the reference, in bp:
+    #   (bp of majority-supported insertion) - (deletion-majority ref positions)
+    # Both terms are read off the same majority rule that produces the base
+    # calls, so this is what the called molecule looks like, not what any single
+    # read looks like. This is the value the FRAMESHIFT gate consumes.
+    consensus_net_indel_bp: int = 0
+    # Median over reads of (inserted bp - deleted bp) in that read CIGAR.
+    # QUALITY METRIC ONLY, never a verdict input. ONT reads carry a high
+    # per-read indel error rate in homopolymers, so on a real run the median can
+    # sit at -1 while the consensus built from those same reads is indel-free.
+    median_read_net_indel_bp: int = 0
 
 
 def _reverse_complement(seq: str) -> str:
@@ -317,9 +327,14 @@ def call_consensus_with_metrics(
     """
     ref_len = len(reference_seq)
 
-    counts, first_touch, insertion_events, n_low_quality_bases, per_read_net_indel = (
-        _accumulate_all(alignments, ref_len, min_base_quality)
-    )
+    (
+        counts,
+        first_touch,
+        insertion_events,
+        insertion_bp,
+        n_low_quality_bases,
+        per_read_net_indel,
+    ) = _accumulate_all(alignments, ref_len, min_base_quality)
 
     # --- per-position majority vote (vectorized) ---------------------------
     total = counts.sum(axis=1)
@@ -379,7 +394,7 @@ def call_consensus_with_metrics(
         consensus_n_fraction = n_covered_no_call / n_covered_positions
     else:
         consensus_n_fraction = 1.0 if ref_len > 0 else 0.0
-    net_indel_bp = (
+    median_read_net_indel_bp = (
         round(statistics.median(per_read_net_indel))
         if per_read_net_indel
         else 0
@@ -414,6 +429,34 @@ def call_consensus_with_metrics(
         run_lengths = np.diff(edges)
         max_del_run = int(run_lengths[del_major[edges[:-1]]].max())
 
+    # Net indel of the CONSENSUS, from the same majority rule that calls bases.
+    #
+    # Deleted bp: every reference position whose deletion fraction wins the
+    # majority is absent from the called molecule; the gap-free consensus writes
+    # 'N' there, so the length stays at ref_len and the bp count has to be read
+    # off ``del_major`` rather than off ``len(consensus_seq)``.
+    #
+    # Inserted bp: an insertion anchored at a position carried by a majority of
+    # the spanning reads is part of the called molecule even though the
+    # reference-length consensus drops it. ``insertion_bp / insertion_events``
+    # is the mean inserted length among the reads that inserted there, which is
+    # exactly the inserted length when they agree (the ordinary case) and a
+    # rounded consensus of the lengths when they do not.
+    #
+    # NOT the per-read median. On ONT data the median per-read net indel tracks
+    # the homopolymer error rate of individual reads, and averaging those errors
+    # away is the whole purpose of building a consensus: a well whose reads are
+    # mostly -1 bp but whose consensus aligns to the reference gap-free has a
+    # consensus net indel of 0 and is not a frameshift.
+    n_del_majority = int(del_major.sum())
+    ins_major = ins_frac > 0.5
+    inserted_bp = 0
+    if bool(ins_major.any()):
+        ev = insertion_events[ins_major]
+        bp = insertion_bp[ins_major]
+        inserted_bp = int(np.rint(bp / np.maximum(ev, 1)).sum())
+    consensus_net_indel_bp = inserted_bp - n_del_majority
+
     return ConsensusCall(
         consensus_seq=consensus_seq,
         n_mixed_positions=n_mixed_positions,
@@ -424,7 +467,8 @@ def call_consensus_with_metrics(
         n_indel_event_positions=n_indel_event_positions,
         max_indel_event_fraction=max_indel_event_fraction,
         max_del_run_length=max_del_run,
-        net_indel_bp=net_indel_bp,
+        consensus_net_indel_bp=consensus_net_indel_bp,
+        median_read_net_indel_bp=median_read_net_indel_bp,
     )
 
 
@@ -432,11 +476,14 @@ def _accumulate_all(
     alignments: Sequence[Alignment],
     ref_len: int,
     min_base_quality: int,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, int, list[int]]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, list[int]]:
     """Build the whole-well pileup from every alignment.
 
-    Returns ``(counts, first_touch, insertion_events, n_low_quality_bases,
-    per_read_net_indel)``.  ``counts`` and ``first_touch`` are ``(ref_len, 6)``
+    Returns ``(counts, first_touch, insertion_events, insertion_bp,
+    n_low_quality_bases, per_read_net_indel)``.  ``insertion_bp[ref_pos]`` is the
+    total inserted length summed over the reads counted in
+    ``insertion_events[ref_pos]``, so their ratio is the mean inserted length at
+    that anchor.  ``counts`` and ``first_touch`` are ``(ref_len, 6)``
     int64 arrays over the ``_TOKENS`` columns; ``first_touch`` holds the index
     of the earliest alignment that voted each (position, token) pair and exists
     solely to reproduce the scalar dict-insertion-order tie-break.
@@ -451,8 +498,16 @@ def _accumulate_all(
     counts = np.zeros((ref_len, _N_TOKENS), dtype=np.int64)
     first_touch = np.full((ref_len, _N_TOKENS), _BIG, dtype=np.int64)
     insertion_events = np.zeros(ref_len, dtype=np.int64)
+    insertion_bp = np.zeros(ref_len, dtype=np.int64)
     if n_reads == 0 or ref_len == 0:
-        return counts, first_touch, insertion_events, 0, [0] * n_reads
+        return (
+            counts,
+            first_touch,
+            insertion_events,
+            insertion_bp,
+            0,
+            [0] * n_reads,
+        )
 
     n_low_quality_bases = 0
     per_read_net_indel: list[int] = []
@@ -469,6 +524,7 @@ def _accumulate_all(
             first_touch,
             batch_first,
             insertion_events,
+            insertion_bp,
             per_read_net_indel,
         )
 
@@ -476,6 +532,7 @@ def _accumulate_all(
         counts,
         first_touch,
         insertion_events,
+        insertion_bp,
         n_low_quality_bases,
         per_read_net_indel,
     )
@@ -513,12 +570,14 @@ def _accumulate_batch(
     first_touch: np.ndarray,
     batch_first: np.ndarray,
     insertion_events: np.ndarray,
+    insertion_bp: np.ndarray,
     per_read_net_indel: list[int],
 ) -> int:
     """Fold ``alignments[lo_read:hi_read]`` into the running well accumulators.
 
-    ``counts``, ``first_touch``, ``insertion_events`` and ``per_read_net_indel``
-    are updated in place; the low-quality base count for this batch is returned.
+    ``counts``, ``first_touch``, ``insertion_events``, ``insertion_bp`` and
+    ``per_read_net_indel`` are updated in place; the low-quality base count for
+    this batch is returned.
     ``batch_first`` is caller-owned scratch of the same shape as ``first_touch``.
     """
     batch = alignments[lo_read:hi_read]
@@ -654,11 +713,20 @@ def _accumulate_batch(
     # --- insertion anchors --------------------------------------------------
     if is_ins.any():
         anchors = ref_starts[is_ins] - 1
-        anchors = anchors[(anchors >= 0) & (anchors < ref_len)]
+        ins_len = lengths[is_ins]
+        in_range = (anchors >= 0) & (anchors < ref_len)
+        anchors = anchors[in_range]
+        ins_len = ins_len[in_range]
         if anchors.size:
             insertion_events += np.bincount(anchors, minlength=ref_len).astype(
                 np.int64
             )
+            # Same anchors, weighted by inserted length, so the two arrays stay
+            # element-wise comparable and their ratio is a mean over exactly the
+            # reads counted in ``insertion_events``.
+            insertion_bp += np.bincount(
+                anchors, weights=ins_len.astype(np.float64), minlength=ref_len
+            ).astype(np.int64)
 
     if flat_match.size or flat_del.size:
         allflat = np.concatenate((flat_match, flat_del))

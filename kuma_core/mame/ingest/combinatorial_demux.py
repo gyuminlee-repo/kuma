@@ -2080,7 +2080,10 @@ def _run_combinatorial_demux_body(
         well_name: str,
         reads: list[tuple[str, str]],
         alignments: list[Alignment],
-    ) -> tuple[str, str, int, int, float, int, float, int, int, int, int, int, int, float, int, int]:
+    ) -> tuple[
+        str, str, int, int, float, int, float, int, int, int, int, int, int, float,
+        int, int, int,
+    ]:
         """Worker: returns consensus sequence, depth, and mix metrics."""
         (
             seq,
@@ -2097,7 +2100,8 @@ def _run_combinatorial_demux_body(
             n_indel_event_positions,
             max_indel_event_fraction,
             max_del_run_length,
-            net_indel,
+            consensus_net_indel,
+            read_net_indel,
         ) = _compute_well_consensus(
             well_name, reads, alignments, ref_seq, ref_len, min_depth,
         )
@@ -2117,7 +2121,8 @@ def _run_combinatorial_demux_body(
             n_indel_event_positions,
             max_indel_event_fraction,
             max_del_run_length,
-            net_indel,
+            consensus_net_indel,
+            read_net_indel,
         )
 
     _consensus_done = 0
@@ -2189,7 +2194,8 @@ def _run_combinatorial_demux_body(
                         n_indel_event_positions,
                         max_indel_event_fraction,
                         max_del_run_length,
-                        net_indel,
+                        consensus_net_indel,
+                        read_net_indel,
                     ) = fut.result()
                     per_well_consensus[wn] = seq
                     atomic_write_text(
@@ -2211,7 +2217,8 @@ def _run_combinatorial_demux_body(
                                 n_indel_event_positions=n_indel_event_positions,
                                 max_indel_event_fraction=max_indel_event_fraction,
                                 max_del_run_length=max_del_run_length,
-                                net_indel=net_indel,
+                                consensus_net_indel=consensus_net_indel,
+                                read_net_indel=read_net_indel,
                                 consensus_n_fraction_basis=BASIS_COVERED,
                             ),
                         ),
@@ -2290,7 +2297,10 @@ def _compute_well_consensus(
     ref_seq: str,
     ref_len: int,
     min_depth: int,
-) -> tuple[str, int, int, float, int, float, int, int, int, int, int, int, float, int, int]:
+) -> tuple[
+    str, int, int, float, int, float, int, int, int, int, int, int, float, int,
+    int, int,
+]:
     """Call consensus for one well from its (pre-computed) alignments.
 
     ``well_alignments`` comes from the single batched :func:`align_reads_grouped`
@@ -2314,6 +2324,7 @@ def _compute_well_consensus(
             0.0,
             0,
             0,
+            0,
         )
 
     if not well_alignments:
@@ -2334,6 +2345,7 @@ def _compute_well_consensus(
             0,
             0,
             0.0,
+            0,
             0,
             0,
         )
@@ -2359,7 +2371,8 @@ def _compute_well_consensus(
         consensus_call.n_indel_event_positions,
         consensus_call.max_indel_event_fraction,
         consensus_call.max_del_run_length,
-        consensus_call.net_indel_bp,
+        consensus_call.consensus_net_indel_bp,
+        consensus_call.median_read_net_indel_bp,
     )
 
 

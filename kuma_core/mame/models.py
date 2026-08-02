@@ -62,7 +62,15 @@ class BarcodeRecord:
     # 0 = insertion-driven, 1 = isolated single position (artifact suspect),
     # >=2 = N-bp contiguous deletion.
     max_del_run_length: int = 0
-    net_indel_bp: int | None = None
+    # Net indel of the consensus relative to the reference. The FRAMESHIFT gate
+    # reads this field. ``None`` for inputs that carry no such measurement
+    # (pre-aligned FASTA, and files written before the field was renamed away
+    # from the per-read median), which skips the gate.
+    consensus_net_indel_bp: int | None = None
+    # Median per-read net indel. Read-quality evidence only; deliberately not a
+    # verdict input, because ONT per-read indel error makes it non-zero on wells
+    # whose consensus is indel-free.
+    median_read_net_indel_bp: int | None = None
 
 
 @dataclass

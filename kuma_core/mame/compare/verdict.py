@@ -179,13 +179,22 @@ def classify_verdict(
             verdict_notes="; ".join(notes),
         )
 
-    net_indel = translated.barcode.net_indel_bp
+    # Frame is a property of the called molecule, so the gate reads the net indel
+    # of the CONSENSUS, never the median over raw reads. ONT reads carry a high
+    # per-read indel error rate in homopolymers; on a real plate the per-read
+    # median sat at -1 bp for 253 of 288 wells whose consensus aligned to the
+    # reference gap-free (CIGAR 1683M at depth 4,982-6,560), and every one of
+    # them was failed as a frameshift. Averaging that per-read error away is
+    # precisely what building a consensus is for.
+    net_indel = translated.barcode.consensus_net_indel_bp
     if net_indel is not None and net_indel % 3 != 0:
         return VerdictRecord(
             translated=translated,
             expected_mutations=list(expected_mutations),
             verdict=VerdictClass.FRAMESHIFT,
-            verdict_notes=f"net indel {net_indel} bp not divisible by 3 (frameshift)",
+            verdict_notes=(
+                f"consensus net indel {net_indel} bp not divisible by 3 (frameshift)"
+            ),
         )
 
     # INDEL EVENT gate — surface indel-bearing wells that evade the existing

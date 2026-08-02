@@ -50,7 +50,8 @@ _FIELDS = (
     "n_indel_event_positions",
     "max_indel_event_fraction",
     "max_del_run_length",
-    "net_indel_bp",
+    "consensus_net_indel_bp",
+    "median_read_net_indel_bp",
 )
 
 
@@ -73,6 +74,7 @@ def _scalar_accumulate(
     aln: Alignment,
     per_position: list[dict[str, int]],
     insertion_events: list[int],
+    insertion_bp: list[int],
     min_base_quality: int,
 ) -> tuple[int, int]:
     """Walk one alignment's CIGAR, voting into insertion-ordered dicts."""
@@ -125,6 +127,7 @@ def _scalar_accumulate(
             rp = ref_pos - 1
             if 0 <= rp < ref_len:
                 insertion_events[rp] += 1
+                insertion_bp[rp] += length
             q_pos += length
 
         elif op == _CIGAR_S:
@@ -159,12 +162,13 @@ def _scalar_consensus(
     ref_len = len(reference_seq)
     per_position: list[dict[str, int]] = [defaultdict(int) for _ in range(ref_len)]
     insertion_events: list[int] = [0] * ref_len
+    insertion_bp: list[int] = [0] * ref_len
 
     n_low_quality_bases = 0
     per_read_net_indel: list[int] = []
     for aln in alignments:
         low_quality_bases, net_indel = _scalar_accumulate(
-            aln, per_position, insertion_events, min_base_quality
+            aln, per_position, insertion_events, insertion_bp, min_base_quality
         )
         n_low_quality_bases += low_quality_bases
         per_read_net_indel.append(net_indel)
@@ -210,7 +214,7 @@ def _scalar_consensus(
         consensus_n_fraction = n_covered_no_call / n_covered_positions
     else:
         consensus_n_fraction = 1.0 if ref_len > 0 else 0.0
-    net_indel_bp = (
+    median_read_net_indel_bp = (
         round(statistics.median(per_read_net_indel)) if per_read_net_indel else 0
     )
 
@@ -218,11 +222,14 @@ def _scalar_consensus(
     n_indel_event_positions = 0
     max_del_run = 0
     cur_del_run = 0
+    n_del_majority = 0
+    inserted_bp = 0
     for pos in range(ref_len):
         counts = per_position[pos]
         depth_pos = sum(counts.values())
         del_votes = counts.get("-", 0)
         ins_ev = insertion_events[pos]
+        ins_bp = insertion_bp[pos]
         ins_frac = ins_ev / depth_pos if depth_pos > 0 else 0.0
         del_frac = del_votes / depth_pos if depth_pos > 0 else 0.0
         pos_max = max(ins_frac, del_frac)
@@ -230,7 +237,10 @@ def _scalar_consensus(
             max_indel_event_fraction = pos_max
         if pos_max >= 0.05:
             n_indel_event_positions += 1
+        if ins_frac > 0.5:
+            inserted_bp += round(ins_bp / ins_ev)
         if del_frac > 0.5:
+            n_del_majority += 1
             cur_del_run += 1
             max_del_run = max(max_del_run, cur_del_run)
         else:
@@ -246,7 +256,8 @@ def _scalar_consensus(
         "n_indel_event_positions": n_indel_event_positions,
         "max_indel_event_fraction": max_indel_event_fraction,
         "max_del_run_length": max_del_run,
-        "net_indel_bp": net_indel_bp,
+        "consensus_net_indel_bp": inserted_bp - n_del_majority,
+        "median_read_net_indel_bp": median_read_net_indel_bp,
     }
     return expected, per_position, insertion_events
 

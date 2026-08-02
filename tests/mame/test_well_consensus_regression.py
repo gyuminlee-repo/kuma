@@ -165,10 +165,14 @@ class TestWellConsensusUnit:
 
     def test_one_bp_deletion_well_net_indel_minus_one(self, ref_fasta: Path) -> None:
         """End-to-end glue: real deletion reads through compute_well_consensuses
-        surface as net_indel_bp == -1 (the value the verdict tier keys off).
+        surface as consensus_net_indel_bp == -1 (the value the verdict keys off).
 
-        Exercises the production propagation ConsensusCall.net_indel_bp ->
-        ConsensusResult.net_indel_bp, not just call_consensus_with_metrics.
+        Exercises the production propagation
+        ConsensusCall.consensus_net_indel_bp -> ConsensusResult, not just
+        call_consensus_with_metrics. Every read carries the deletion, so the
+        consensus carries it too and the two net-indel measurements agree here;
+        the case where they disagree (per-read error only) is covered in
+        tests/mame/test_consensus.py.
         """
         # Drop 1 bp at position 150 so minimap2 emits a 1D CIGAR per read.
         del_read = _SYNTH_REF[:150] + _SYNTH_REF[151:]
@@ -176,16 +180,17 @@ class TestWellConsensusUnit:
         results = compute_well_consensuses(per_well, ref_fasta, min_mapq=0)
         r = results["w"]
         assert r.n_passed_filter >= 1
-        assert r.net_indel_bp == -1
+        assert r.consensus_net_indel_bp == -1
+        assert r.median_read_net_indel_bp == -1
 
     def test_perfect_reads_well_net_indel_zero(self, ref_fasta: Path) -> None:
         per_well = {"w": [(f"r{i}", _SYNTH_REF) for i in range(5)]}
         results = compute_well_consensuses(per_well, ref_fasta, min_mapq=0)
-        assert results["w"].net_indel_bp == 0
+        assert results["w"].consensus_net_indel_bp == 0
 
     def test_zero_reads_well_net_indel_zero(self, ref_fasta: Path) -> None:
         results = compute_well_consensuses({"w": []}, ref_fasta, min_mapq=0)
-        assert results["w"].net_indel_bp == 0
+        assert results["w"].consensus_net_indel_bp == 0
 
     def test_missing_reference_raises(self, tmp_path: Path) -> None:
         with pytest.raises(FileNotFoundError):
