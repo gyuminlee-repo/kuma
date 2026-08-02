@@ -89,6 +89,7 @@ python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 ```
 
 ### CI (`ci.yml`)
+- Runs on every pull request against `main`, on `v*` tags, and on manual dispatch. Before 2026-08 it fired on tags only, so cross-layer drift could reach `main` unchecked and surface as a failed tagged build.
 - Python tests: matrix of `{ubuntu, windows, macos} × {3.11, 3.12}`
 - TypeScript typecheck: `npx tsc --noEmit`
 - Rust check: `cd src-tauri && cargo check` (requires frontend build first + sidecar stub)
