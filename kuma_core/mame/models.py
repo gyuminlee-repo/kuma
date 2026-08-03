@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # import cycle: ingest imports this module
+    from kuma_core.mame.ingest.codon_haplotype import WellCodonHaplotypes
 
 
 class VerdictClass(StrEnum):
@@ -71,6 +75,12 @@ class BarcodeRecord:
     # verdict input, because ONT per-read indel error makes it non-zero on wells
     # whose consensus is indel-free.
     median_read_net_indel_bp: int | None = None
+    # Per-codon read-level 3-mer evidence for this well, loaded from the
+    # per-unit codon-haplotype sidecar written by the consensus stage.
+    # ``None`` means the evidence does not exist for this well (a consensus tree
+    # produced before the sidecar existed, or an unreadable sidecar). It is NOT
+    # the same as "the variant was never seen", and consumers must say so.
+    codon_haplotypes: "WellCodonHaplotypes | None" = None
 
 
 @dataclass
@@ -126,6 +136,51 @@ class CompareParams:
 
 
 @dataclass
+class ExpectedCodonEvidence:
+    """Read-level 3-mer evidence for ONE expected mutation in one well.
+
+    Reports how often the designed codon actually appeared among the reads,
+    which is a different question from what the majority consensus called. A
+    designed variant present in 1 percent of reads is real evidence of a low
+    frequency clone, and is invisible to a majority vote.
+
+    ``count_is_upper_bound`` is True when the designed codon fell outside the
+    top-k the sidecar retained. ``count`` is then the largest value it could
+    possibly have, never a measured number.
+    """
+
+    label: str
+    expected_codon: str
+    codon_index: int
+    codon_depth: int
+    count: int
+    count_is_upper_bound: bool
+    majority_codon: str
+    majority_count: int
+    #: Reads assigned to this well. Carried alongside ``codon_depth`` because
+    #: their RATIO is diagnostic: a full-length amplicon should place nearly
+    #: every read across every codon, so a codon whose depth is a small fraction
+    #: of the well is not evidence of absence, it is evidence that the aligner
+    #: did not put the reads there. Measured on the IspS plate, the 27 wells
+    #: designed at the final codon all sit near 1 percent (well 4_12: depth 5
+    #: over 446 reads, against 443 one codon earlier) because the aligner soft
+    #: clips a mismatched terminal codon instead of aligning through it.
+    well_read_count: int = 0
+    #: Set when no number could be produced at all: no sidecar for this well, a
+    #: CDS that does not sit on the recorded codon grid, or a design row with no
+    #: codon. Empty string when the numbers above are meaningful.
+    unavailable_reason: str = ""
+
+    @property
+    def fraction(self) -> float:
+        return self.count / self.codon_depth if self.codon_depth else 0.0
+
+    @property
+    def majority_fraction(self) -> float:
+        return self.majority_count / self.codon_depth if self.codon_depth else 0.0
+
+
+@dataclass
 class VerdictRecord:
     """Compare -> Select transfer object."""
 
@@ -140,6 +195,12 @@ class VerdictRecord:
     # single native_barcode (sort bin) carries many wells. Defaults to "" for
     # directly-constructed records and legacy persisted payloads.
     mutant_id: str = ""
+    # Read-level evidence for each expected mutation of this well, in the order
+    # the expected labels were given. Empty when the caller supplied no design
+    # codons. Advisory only: it never changes ``verdict``.
+    expected_codon_evidence: list[ExpectedCodonEvidence] = field(
+        default_factory=list
+    )
 
 
 @dataclass

@@ -174,8 +174,31 @@ def run_analyze(
     # Keys are mutant_id strings (e.g. "V5F", "K53N"); values are lists of
     # human-readable AA labels (e.g. ["V5F"]).  Only non-empty entries are kept.
     mutant_to_labels: dict[str, list[str]] = defaultdict(list)
+    # AA label -> designed mutant codon, for read-level minor-allele reporting.
+    # Keyed by the label and not by the position: a saturation library puts many
+    # mutant codons on ONE position (the IspS plate carries nine at R560), so a
+    # position-keyed map would either collide or have to discard exactly the
+    # case this evidence exists for. A label whose rows disagree is dropped
+    # rather than guessed, because reporting another mutant codon count under
+    # this label would be worse than reporting none.
+    codon_by_label: dict[str, str] = {}
+    conflicting_labels: set[str] = set()
     for m in expected_mutations:
-        mutant_to_labels[m.mutant_id].append(f"{m.wt_aa}{m.position}{m.mt_aa}")
+        label = f"{m.wt_aa}{m.position}{m.mt_aa}"
+        mutant_to_labels[m.mutant_id].append(label)
+        codon = (m.mt_codon or "").strip().upper()
+        if not codon:
+            continue
+        seen = codon_by_label.get(label)
+        if seen is None:
+            codon_by_label[label] = codon
+        elif seen != codon:
+            conflicting_labels.add(label)
+    expected_codons: dict[str, str] = {
+        label: codon
+        for label, codon in codon_by_label.items()
+        if label not in conflicting_labels
+    }
 
     # Build well_id -> scoped label list from a well->sample source.
     # - If neither well_layout nor sample_map_path is given (amplicon / non-
@@ -259,7 +282,13 @@ def run_analyze(
                 if scoped is not None:
                     scoped_labels = scoped
         _t2 = time.perf_counter()
-        verdict = classify_verdict(translated, scoped_labels, params)
+        verdict = classify_verdict(
+            translated,
+            scoped_labels,
+            params,
+            expected_codons=expected_codons,
+            cds_start=cds_start,
+        )
         verdicts.append(verdict)
         _t_verdict += time.perf_counter() - _t2
         # Live per-record sub-progress. Unthrottled and I/O-free here; the

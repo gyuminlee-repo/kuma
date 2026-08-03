@@ -66,6 +66,7 @@ from kuma_core.mame.ingest.align import (
     Alignment,
 )
 from kuma_core.mame.ingest.consensus import call_consensus_with_metrics
+from kuma_core.mame.ingest import codon_haplotype as _codon
 from kuma_core.mame.ingest.consensus_metadata import (
     BASIS_COVERED,
     ConsensusMetadata,
@@ -2082,9 +2083,9 @@ def _run_combinatorial_demux_body(
         alignments: list[Alignment],
     ) -> tuple[
         str, str, int, int, float, int, float, int, int, int, int, int, int, float,
-        int, int, int,
+        int, int, int, dict,
     ]:
-        """Worker: returns consensus sequence, depth, and mix metrics."""
+        """Worker: returns consensus sequence, depth, mix metrics and codons."""
         (
             seq,
             depth,
@@ -2102,6 +2103,7 @@ def _run_combinatorial_demux_body(
             max_del_run_length,
             consensus_net_indel,
             read_net_indel,
+            codon_summary,
         ) = _compute_well_consensus(
             well_name, reads, alignments, ref_seq, ref_len, min_depth,
         )
@@ -2123,9 +2125,13 @@ def _run_combinatorial_demux_body(
             max_del_run_length,
             consensus_net_indel,
             read_net_indel,
+            codon_summary,
         )
 
     _consensus_done = 0
+    # Bounded per-codon haplotype summaries, one entry per well, written as a
+    # single per-unit sidecar once the whole unit is on disk (see below).
+    per_well_codons: dict[str, dict] = {}
     # Wall time of the whole per-well consensus stage in this process. The
     # ``*_sum`` keys added inside _compute_well_consensus are summed over the
     # ThreadPool workers and can exceed this wall.
@@ -2196,8 +2202,10 @@ def _run_combinatorial_demux_body(
                         max_del_run_length,
                         consensus_net_indel,
                         read_net_indel,
+                        codon_summary,
                     ) = fut.result()
                     per_well_consensus[wn] = seq
+                    per_well_codons[wn] = codon_summary
                     atomic_write_text(
                         consensus_dir / f"{wn}.fasta",
                         format_consensus_fasta_record(
@@ -2252,6 +2260,22 @@ def _run_combinatorial_demux_body(
         _index_tmp.cleanup()
         per_well.close()
 
+    # Per-unit codon-haplotype sidecar. One file per unit rather than one per
+    # well: 280 extra small files would cost a filesystem round trip each on a
+    # Windows share, and the whole table is read at once anyway. Written BEFORE
+    # the stage completion marker, which is the commit point of the unit.
+    #
+    # The name starts with a dot and ends in .json, so it matches none of
+    # CONSENSUS_FILE_PATTERNS and the marker inventory guard neither expects nor
+    # rejects it, exactly like .demux_consensus_complete.json.
+    with TIMER.phase("write_codon_sidecar"):
+        _codon.write_sidecar(
+            consensus_dir,
+            unit=consensus_dir.name,
+            per_well=per_well_codons,
+            n_codons=ref_len // 3,
+        )
+
     fsync_directory(consensus_dir)
 
     TIMER.add("well_consensus_wall", time.perf_counter() - _t_cons)
@@ -2299,7 +2323,7 @@ def _compute_well_consensus(
     min_depth: int,
 ) -> tuple[
     str, int, int, float, int, float, int, int, int, int, int, int, float, int,
-    int, int,
+    int, int, dict,
 ]:
     """Call consensus for one well from its (pre-computed) alignments.
 
@@ -2325,6 +2349,7 @@ def _compute_well_consensus(
             0,
             0,
             0,
+            _codon.empty_summary(ref_len // 3),
         )
 
     if not well_alignments:
@@ -2348,6 +2373,7 @@ def _compute_well_consensus(
             0,
             0,
             0,
+            _codon.empty_summary(ref_len // 3),
         )
 
     with TIMER.phase("well_consensus.compute_sum"):
@@ -2373,6 +2399,13 @@ def _compute_well_consensus(
         consensus_call.max_del_run_length,
         consensus_call.consensus_net_indel_bp,
         consensus_call.median_read_net_indel_bp,
+        # Reduced here, inside the ThreadPool worker, so the per-well table is
+        # dropped as soon as it has been summarised: keeping the raw
+        # (n_codons, 64) arrays alive until the writer would scale the peak with
+        # the batch size for no benefit.
+        _codon.summarize(consensus_call.codon_haplotypes)
+        if consensus_call.codon_haplotypes is not None
+        else _codon.empty_summary(ref_len // 3),
     )
 
 

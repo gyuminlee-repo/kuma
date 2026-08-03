@@ -12,6 +12,36 @@ export type VerdictClass =
 
 export type SidecarStatus = "disconnected" | "connecting" | "ready" | "error";
 
+/**
+ * Read-level evidence for one expected mutation in one well: how often the
+ * DESIGNED codon actually appeared among the reads, which is a different
+ * question from what the majority consensus called. A designed variant present
+ * in a small percentage of reads is real evidence of a low frequency clone and
+ * is invisible to a majority vote.
+ *
+ * Produced by the consensus stage into a per-unit sidecar. Absent for consensus
+ * trees written before that sidecar existed, which is why the whole field is
+ * optional and why `unavailable_reason` exists rather than a silent zero.
+ */
+export interface ExpectedCodonEvidence {
+  label: string;
+  expected_codon: string;
+  codon_index: number;
+  /** Reads supplying all three bases of this codon unambiguously. */
+  codon_depth: number;
+  count: number;
+  /** True when the codon fell outside the retained top-k, so `count` is only an upper bound. */
+  count_is_upper_bound: boolean;
+  fraction: number;
+  majority_codon: string;
+  majority_count: number;
+  majority_fraction: number;
+  /** Reads in the well. A `codon_depth` far below this means the alignment, not the library, lost the codon. */
+  well_read_count: number;
+  /** Non-empty when no number could be produced; the other fields are then meaningless. */
+  unavailable_reason: string;
+}
+
 export interface VerdictRecord {
   native_barcode: string;
   custom_barcode: string;
@@ -41,6 +71,12 @@ export interface VerdictRecord {
   mutant_id: string;
   verdict: VerdictClass;
   verdict_notes: string;
+  /**
+   * One entry per expected mutation, in the order the expected labels were
+   * given. Empty when the run supplied no design codons, and absent entirely on
+   * payloads persisted before this field existed, so read it defensively.
+   */
+  expected_codon_evidence?: ExpectedCodonEvidence[];
 }
 
 export interface ReplicateResult {

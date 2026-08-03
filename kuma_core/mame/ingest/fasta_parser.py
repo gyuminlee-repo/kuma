@@ -36,6 +36,7 @@ from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from kuma_core.mame.ingest.codon_haplotype import read_sidecar
 from kuma_core.mame.ingest.consensus_metadata import (
     ALIGNED_READS,
     BASIS_COVERED,
@@ -455,7 +456,9 @@ def load_barcode_directory(input_dir: Path) -> list[BarcodeRecord]:
     # then guard + read.  The order of the emitted records is unchanged, because
     # the pending list is built in exactly the old walk order (NB dirs sorted by
     # name, files in ``iter_consensus_names`` order) and consumed in that order.
-    pending: list[tuple[Path, str, "os.DirEntry[str] | None"]] = []
+    pending: list[
+        tuple[Path, str, "os.DirEntry[str] | None", dict | None]
+    ] = []
     # One readdir per NB directory, reused by the marker presence test, the
     # inventory guard and the per-well file size. ``entry.is_dir()`` here reads
     # the readdir type field where the platform supplies it, so the top-level
@@ -497,13 +500,20 @@ def load_barcode_directory(input_dir: Path) -> list[BarcodeRecord]:
                     "Re-run the demux+consensus stage for this unit."
                 )
 
+        # One sidecar read per unit, not per well. ``None`` (absent or
+        # unreadable) travels through to the record as "no evidence", which the
+        # verdict layer reports rather than rendering as a zero observation.
+        unit_codons = read_sidecar(nb_dir)
         for consensus_file, entry in _iter_consensus_entries(nb_dir, entries):
-            pending.append((consensus_file, native_barcode, entry))
+            pending.append((consensus_file, native_barcode, entry, unit_codons))
 
     contents, _used_parallel = _batch_map(
-        Path.read_bytes, [path for path, _nb, _entry in pending], parallel
+        Path.read_bytes, [path for path, _nb, _entry, _cod in pending], parallel
     )
-    return [
-        parse_fasta_file(path, native_barcode=nb, entry=entry, data=data)
-        for (path, nb, entry), data in zip(pending, contents)
-    ]
+    records: list[BarcodeRecord] = []
+    for (path, nb, entry, unit_codons), data in zip(pending, contents):
+        record = parse_fasta_file(path, native_barcode=nb, entry=entry, data=data)
+        if unit_codons is not None:
+            record.codon_haplotypes = unit_codons.get(record.custom_barcode)
+        records.append(record)
+    return records

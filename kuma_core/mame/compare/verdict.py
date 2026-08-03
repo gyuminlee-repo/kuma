@@ -12,8 +12,10 @@ from __future__ import annotations
 
 import re
 
+from kuma_core.mame.ingest.codon_haplotype import codon_index_for_aa_position
 from kuma_core.mame.models import (
     CompareParams,
+    ExpectedCodonEvidence,
     TranslatedRecord,
     VerdictClass,
     VerdictRecord,
@@ -29,6 +31,15 @@ _NT_INDEL_RE = re.compile(r"^(\d+)_INDEL$")
 # (inconclusive) instead of a confident contamination call. Mirrors the LOWDEPTH
 # read-count gate and applies only when both a read_count and min_read_count exist.
 _MIXED_CONFIDENT_DEPTH_FACTOR = 3
+
+# Codon depth below this fraction of the well read count is reported as a
+# coverage shortfall rather than read as a measurement. A read that reaches the
+# well has already passed the demux span and coverage gates, so it should supply
+# every codon; when it does not, the alignment dropped the codon and "not seen"
+# says nothing about the library. Half is a deliberately loose bound: the
+# observed failure mode is an order of magnitude below the well depth, and ONT
+# reads lose a few percent of codons to indel noise even when healthy.
+_CODON_COVERAGE_SHORTFALL = 0.5
 
 
 class ExpectedCoordinateMismatchError(ValueError):
@@ -130,12 +141,195 @@ def _has_frameshift(translated: TranslatedRecord, window_bp: int) -> bool:
     return False
 
 
+
+
+# ---------------------------------------------------------------------------
+# Expected-codon read-level evidence
+# ---------------------------------------------------------------------------
+#
+# A majority-vote consensus answers "what is the dominant molecule in this
+# well". It cannot answer "was the designed variant introduced at all", and the
+# two come apart whenever a designed clone is a minority. Measured on the IspS
+# R560 plate: all nine designed variants are genuinely present in the reads at
+# 0.16 to 1.56 percent while wild type holds 92.6 percent, so every one of them
+# is reported WRONG_AA, which is indistinguishable from "the mutagenesis never
+# worked". These helpers attach the read-level number so an operator can tell
+# a failed reaction from a low frequency one.
+#
+# They never change the verdict. R560 IS a WRONG_AA well: the clone that grew is
+# wild type. What changes is that the note now says so explicitly.
+
+
+def _codon_coverage_warning(ev: ExpectedCodonEvidence) -> str:
+    """Flag a codon the alignment barely covered, so 'not seen' is not misread."""
+    if ev.well_read_count <= 0:
+        return ""
+    if ev.codon_depth >= ev.well_read_count * _CODON_COVERAGE_SHORTFALL:
+        return ""
+    return (
+        f"codon coverage {ev.codon_depth}/{ev.well_read_count} of well reads, "
+        "so absence here is inconclusive"
+    )
+
+
+def _describe_codon_evidence(ev: ExpectedCodonEvidence) -> str:
+    """One human-readable clause for a single expected mutation."""
+    if ev.unavailable_reason:
+        return f"{ev.label} minor-allele evidence unavailable ({ev.unavailable_reason})"
+    if ev.codon_depth == 0:
+        return (
+            f"expected {ev.label} (codon {ev.expected_codon}) has no read spanning "
+            f"codon {ev.codon_index + 1} at full length"
+            + (
+                f" (well has {ev.well_read_count} reads)"
+                if ev.well_read_count
+                else ""
+            )
+        )
+    if ev.count_is_upper_bound:
+        return (
+            f"expected {ev.label} (codon {ev.expected_codon}) below the retained "
+            f"top-k: at most {ev.fraction * 100:.2f}% (<={ev.count}/{ev.codon_depth})"
+        )
+    if ev.count == 0:
+        return (
+            f"expected {ev.label} (codon {ev.expected_codon}) seen in no read "
+            f"(0/{ev.codon_depth}); majority codon {ev.majority_codon} at "
+            f"{ev.majority_fraction * 100:.1f}%"
+        )
+    return (
+        f"expected {ev.label} (codon {ev.expected_codon}) seen at "
+        f"{ev.fraction * 100:.2f}% ({ev.count}/{ev.codon_depth}); majority codon "
+        f"{ev.majority_codon} at {ev.majority_fraction * 100:.1f}%"
+    )
+
+
+def _codon_evidence_note(evidence: list[ExpectedCodonEvidence]) -> str:
+    parts: list[str] = []
+    for ev in evidence:
+        clause = _describe_codon_evidence(ev)
+        warn = "" if ev.unavailable_reason else _codon_coverage_warning(ev)
+        parts.append(f"{clause} [{warn}]" if warn else clause)
+    return "; ".join(parts)
+
+
+def _collect_codon_evidence(
+    translated: TranslatedRecord,
+    expected_mutations: list[str],
+    expected_codons: dict[str, str] | None,
+    cds_start: int,
+) -> list[ExpectedCodonEvidence]:
+    """Look up each expected mutation in this well's codon-haplotype sidecar.
+
+    Returns an empty list when the caller supplied no design codons at all,
+    which keeps every existing caller byte-identical. Once codons ARE supplied,
+    every expected label yields an entry, including the ones that could not be
+    answered: a missing sidecar has to be visible, not absent.
+    """
+    if not expected_codons:
+        return []
+
+    haplotypes = translated.barcode.codon_haplotypes
+    out: list[ExpectedCodonEvidence] = []
+    for label in expected_mutations:
+        parsed = parse_mutation_label(label)
+        if parsed is None:
+            continue
+        _wt, pos, _mt = parsed
+        codon_seq = (expected_codons.get(label) or "").upper()
+
+        def _blank(reason: str, index: int = -1) -> ExpectedCodonEvidence:
+            return ExpectedCodonEvidence(
+                label=label,
+                expected_codon=codon_seq,
+                codon_index=index,
+                codon_depth=0,
+                count=0,
+                count_is_upper_bound=False,
+                majority_codon="",
+                majority_count=0,
+                well_read_count=int(translated.barcode.read_count or 0),
+                unavailable_reason=reason,
+            )
+
+        if len(codon_seq) != 3 or any(c not in "ACGT" for c in codon_seq):
+            out.append(_blank("design carries no unambiguous mutant codon"))
+            continue
+        if haplotypes is None:
+            out.append(
+                _blank(
+                    "no codon-haplotype sidecar for this well; re-run "
+                    "demux/consensus to produce one"
+                )
+            )
+            continue
+        index = codon_index_for_aa_position(
+            pos, cds_start, haplotypes.frame_offset
+        )
+        if index is None:
+            out.append(
+                _blank(
+                    f"CDS start {cds_start} does not sit on the recorded codon "
+                    f"grid (offset {haplotypes.frame_offset})"
+                )
+            )
+            continue
+        obs = haplotypes.lookup(index, codon_seq)
+        if obs is None:
+            out.append(
+                _blank("codon lies outside the recorded reference grid", index)
+            )
+            continue
+        out.append(
+            ExpectedCodonEvidence(
+                label=label,
+                expected_codon=codon_seq,
+                codon_index=index,
+                codon_depth=obs.depth,
+                count=obs.count,
+                count_is_upper_bound=not obs.exact,
+                majority_codon=obs.majority_seq,
+                majority_count=obs.majority_count,
+                well_read_count=int(translated.barcode.read_count or 0),
+            )
+        )
+    return out
+
+
 def classify_verdict(
     translated: TranslatedRecord,
     expected_mutations: list[str],
     params: CompareParams,
+    expected_codons: dict[str, str] | None = None,
+    cds_start: int = 0,
 ) -> VerdictRecord:
-    """Return a VerdictRecord for the given translated record and expected list."""
+    """Return a VerdictRecord for the given translated record and expected list.
+
+    ``expected_codons`` maps an AA label (``R560L``) to the mutant codon the
+    design calls for. The key is the label and not the position because a
+    saturation library puts many mutant codons on one position. Supplying it turns on read-level minor-allele reporting: every
+    returned record carries ``expected_codon_evidence``, and the two WRONG_AA
+    branches that say "missing" or "mismatched" qualify that with the measured
+    frequency. Omitting it (the default) leaves behaviour exactly as before.
+
+    The evidence is advisory. It is attached to whatever verdict the classifier
+    reached and never redirects it.
+    """
+    evidence = _collect_codon_evidence(
+        translated, list(expected_mutations), expected_codons, cds_start
+    )
+    record = _classify_verdict(translated, expected_mutations, params, evidence)
+    record.expected_codon_evidence = evidence
+    return record
+
+
+def _classify_verdict(
+    translated: TranslatedRecord,
+    expected_mutations: list[str],
+    params: CompareParams,
+    evidence: list[ExpectedCodonEvidence],
+) -> VerdictRecord:
+    """Verdict decision proper. ``evidence`` only ever reaches verdict_notes."""
 
     notes: list[str] = []
 
@@ -409,14 +603,22 @@ def classify_verdict(
         if pos in observed_parsed:
             obs_wt, obs_mt = observed_parsed[pos]
             if obs_mt != exp_mt:
+                hit = [
+                    ev for ev in evidence if ev.label == f"{exp_wt}{pos}{exp_mt}"
+                ]
                 return VerdictRecord(
                     translated=translated,
                     expected_mutations=list(expected_mutations),
                     verdict=VerdictClass.WRONG_AA,
                     verdict_notes=_join(
                         notes,
-                        f"expected {exp_wt}{pos}{exp_mt}, "
-                        f"observed {obs_wt}{pos}{obs_mt}",
+                        _join(
+                            [
+                                f"expected {exp_wt}{pos}{exp_mt}, "
+                                f"observed {obs_wt}{pos}{obs_mt}"
+                            ],
+                            _codon_evidence_note(hit),
+                        ),
                     ),
                 )
 
@@ -429,12 +631,23 @@ def classify_verdict(
     ]
     if missing_expected:
         # Missing an expected position = not a PASS; treat as WRONG_AA-style failure.
+        #
+        # "missing" here is a statement about the CONSENSUS, and on its own it
+        # conflates two different laboratory outcomes: the mutagenesis produced
+        # nothing, or it produced a clone that lost the population. The codon
+        # evidence separates them, so it is appended whenever it exists.
+        missing_set = set(missing_expected)
+        hits = [ev for ev in evidence if ev.label in missing_set]
         return VerdictRecord(
             translated=translated,
             expected_mutations=list(expected_mutations),
             verdict=VerdictClass.WRONG_AA,
             verdict_notes=_join(
-                notes, f"missing expected: {', '.join(missing_expected)}"
+                notes,
+                _join(
+                    [f"missing expected: {', '.join(missing_expected)}"],
+                    _codon_evidence_note(hits),
+                ),
             ),
         )
 

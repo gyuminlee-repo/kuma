@@ -31,11 +31,12 @@ from __future__ import annotations
 
 import os
 import statistics
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Sequence
 
 import numpy as np
 
+from kuma_core.mame.ingest import codon_haplotype as _codon
 from kuma_core.mame.ingest.align import (
     Alignment,
     _CIGAR_D,
@@ -242,6 +243,17 @@ class ConsensusCall:
     # per-read indel error rate in homopolymers, so on a real run the median can
     # sit at -1 while the consensus built from those same reads is indel-free.
     median_read_net_indel_bp: int = 0
+    # Per-codon read-level haplotype counts: ``(ref_len // 3, 64)`` int64, one
+    # row per codon on the reference grid, one column per unambiguous 3-mer.
+    # See ``ingest/codon_haplotype.py`` for why the codon, and not the single
+    # position, is the unit that can separate co-located designed variants.
+    #
+    # Excluded from equality and repr on purpose: this is bulk evidence rather
+    # than part of the call identity, and a numpy array has no scalar truth
+    # value, so a compared field would break ``==`` on the dataclass.
+    codon_haplotypes: np.ndarray | None = field(
+        default=None, compare=False, repr=False
+    )
 
 
 def _reverse_complement(seq: str) -> str:
@@ -334,6 +346,7 @@ def call_consensus_with_metrics(
         insertion_bp,
         n_low_quality_bases,
         per_read_net_indel,
+        codon_haplotypes,
     ) = _accumulate_all(alignments, ref_len, min_base_quality)
 
     # --- per-position majority vote (vectorized) ---------------------------
@@ -469,6 +482,7 @@ def call_consensus_with_metrics(
         max_del_run_length=max_del_run,
         consensus_net_indel_bp=consensus_net_indel_bp,
         median_read_net_indel_bp=median_read_net_indel_bp,
+        codon_haplotypes=codon_haplotypes,
     )
 
 
@@ -476,11 +490,16 @@ def _accumulate_all(
     alignments: Sequence[Alignment],
     ref_len: int,
     min_base_quality: int,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, list[int]]:
+) -> tuple[
+    np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, list[int], np.ndarray
+]:
     """Build the whole-well pileup from every alignment.
 
     Returns ``(counts, first_touch, insertion_events, insertion_bp,
-    n_low_quality_bases, per_read_net_indel)``.  ``insertion_bp[ref_pos]`` is the
+    n_low_quality_bases, per_read_net_indel, codon_haplotypes)``.
+    ``codon_haplotypes`` is the ``(ref_len // 3, 64)`` read-level 3-mer table
+    built from the SAME filtered votes the pileup uses, so it costs one extra
+    scatter per batch rather than a second walk over the reads.  ``insertion_bp[ref_pos]`` is the
     total inserted length summed over the reads counted in
     ``insertion_events[ref_pos]``, so their ratio is the mean inserted length at
     that anchor.  ``counts`` and ``first_touch`` are ``(ref_len, 6)``
@@ -499,6 +518,7 @@ def _accumulate_all(
     first_touch = np.full((ref_len, _N_TOKENS), _BIG, dtype=np.int64)
     insertion_events = np.zeros(ref_len, dtype=np.int64)
     insertion_bp = np.zeros(ref_len, dtype=np.int64)
+    codon_haplotypes = _codon.new_counts(ref_len // 3)
     if n_reads == 0 or ref_len == 0:
         return (
             counts,
@@ -507,6 +527,7 @@ def _accumulate_all(
             insertion_bp,
             0,
             [0] * n_reads,
+            codon_haplotypes,
         )
 
     n_low_quality_bases = 0
@@ -526,6 +547,7 @@ def _accumulate_all(
             insertion_events,
             insertion_bp,
             per_read_net_indel,
+            codon_haplotypes,
         )
 
     return (
@@ -535,6 +557,7 @@ def _accumulate_all(
         insertion_bp,
         n_low_quality_bases,
         per_read_net_indel,
+        codon_haplotypes,
     )
 
 
@@ -572,12 +595,13 @@ def _accumulate_batch(
     insertion_events: np.ndarray,
     insertion_bp: np.ndarray,
     per_read_net_indel: list[int],
+    codon_haplotypes: np.ndarray,
 ) -> int:
     """Fold ``alignments[lo_read:hi_read]`` into the running well accumulators.
 
-    ``counts``, ``first_touch``, ``insertion_events``, ``insertion_bp`` and
-    ``per_read_net_indel`` are updated in place; the low-quality base count for
-    this batch is returned.
+    ``counts``, ``first_touch``, ``insertion_events``, ``insertion_bp``,
+    ``per_read_net_indel`` and ``codon_haplotypes`` are updated in place; the
+    low-quality base count for this batch is returned.
     ``batch_first`` is caller-owned scratch of the same shape as ``first_touch``.
     """
     batch = alignments[lo_read:hi_read]
@@ -694,8 +718,18 @@ def _accumulate_batch(
                     keep[where_scored[low]] = False
             codes = _BASE_LUT[seq_arr[seq_off[ridx] + qp]]
             keep &= codes != 255
-            flat_match = rp[keep] * _N_TOKENS + codes[keep]
+            kept_rp = rp[keep]
+            kept_codes = codes[keep]
+            flat_match = kept_rp * _N_TOKENS + kept_codes
             read_match = ridx[keep]
+            # Codon haplotypes ride on the same surviving votes: quality gate,
+            # alphabet gate and reference bounds have all been applied, and a
+            # read votes at most once per reference position, so no extra walk
+            # over the reads is needed to know which three bases each read
+            # carried in a codon.
+            _codon.accumulate(
+                codon_haplotypes, kept_rp, read_match, kept_codes, n_reads
+            )
 
     # --- deletions / reference skips ---------------------------------------
     if is_del.any():

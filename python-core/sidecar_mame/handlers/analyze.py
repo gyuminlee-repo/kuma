@@ -121,6 +121,26 @@ def _serialize_verdict(vr: Any) -> dict:
         "mutant_id": getattr(vr, "mutant_id", ""),
         "verdict": vr.verdict.value,
         "verdict_notes": vr.verdict_notes,
+        # Read-level evidence for each expected mutation. Empty list on every
+        # path that did not supply design codons, so the payload shape is
+        # additive for existing consumers.
+        "expected_codon_evidence": [
+            {
+                "label": ev.label,
+                "expected_codon": ev.expected_codon,
+                "codon_index": ev.codon_index,
+                "codon_depth": ev.codon_depth,
+                "count": ev.count,
+                "count_is_upper_bound": ev.count_is_upper_bound,
+                "fraction": ev.fraction,
+                "majority_codon": ev.majority_codon,
+                "majority_count": ev.majority_count,
+                "majority_fraction": ev.majority_fraction,
+                "well_read_count": ev.well_read_count,
+                "unavailable_reason": ev.unavailable_reason,
+            }
+            for ev in getattr(vr, "expected_codon_evidence", [])
+        ],
     }
 
 
@@ -150,6 +170,7 @@ def _deserialize_verdict(d: dict) -> Any:
     """
     from kuma_core.mame.models import (
         BarcodeRecord,
+        ExpectedCodonEvidence,
         TranslatedRecord,
         VerdictClass,
         VerdictRecord,
@@ -179,12 +200,33 @@ def _deserialize_verdict(d: dict) -> Any:
         observed_aa_changes=list(d.get("observed_aa_changes", [])),
         n_no_call_aa=int(d.get("n_no_call_aa", 0)),
     )
+    # Restored rather than dropped: a reloaded analyze result feeds the same
+    # export and plate views as a fresh one, and losing the read-level evidence
+    # here would make a persisted run quietly less informative than the run that
+    # produced it. Absent on payloads written before the field existed.
+    evidence = [
+        ExpectedCodonEvidence(
+            label=e.get("label", ""),
+            expected_codon=e.get("expected_codon", ""),
+            codon_index=int(e.get("codon_index", -1)),
+            codon_depth=int(e.get("codon_depth", 0)),
+            count=int(e.get("count", 0)),
+            count_is_upper_bound=bool(e.get("count_is_upper_bound", False)),
+            majority_codon=e.get("majority_codon", ""),
+            majority_count=int(e.get("majority_count", 0)),
+            well_read_count=int(e.get("well_read_count", 0)),
+            unavailable_reason=e.get("unavailable_reason", ""),
+        )
+        for e in (d.get("expected_codon_evidence") or [])
+        if isinstance(e, dict)
+    ]
     return VerdictRecord(
         translated=translated,
         expected_mutations=list(d.get("expected_mutations", [])),
         verdict=VerdictClass(d["verdict"]),
         verdict_notes=d.get("verdict_notes", ""),
         mutant_id=d.get("mutant_id", ""),
+        expected_codon_evidence=evidence,
     )
 
 
