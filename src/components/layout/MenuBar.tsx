@@ -81,6 +81,16 @@ const THEME_ITEMS: { value: Theme; labelKey: string }[] = [
 ];
 
 interface MenuBarProps {
+  /**
+   * Edit → Clear All 메뉴 항목 클릭 시 호출. AppLayout이 shared
+   * ClearConfirmDialog 열도록 setter 주입.
+   */
+  onClearRequest?: () => void;
+}
+
+export function MenuBar({ onClearRequest }: MenuBarProps = {}) {
+  const { t } = useTranslation();
+  const project = useKumaProject();
 
   const isExporting = useAppStore((s) => s.isExporting);
   const isDesigning = useAppStore((s) => s.isDesigning);
