@@ -101,6 +101,40 @@ def handle_inspect_variant_source(params: dict) -> dict:
     }
 
 
+def handle_check_plate_order(params: dict) -> dict:
+    """Report whether an exported workbook describes one plate or two.
+
+    MAME reads row *i* of ``expected_mutations`` as well *i*, so that sheet and the
+    primer plate sheets in the same file are the same statement written twice. Exports
+    written before v0.14.3 could disagree, and the disagreement is invisible in the
+    numbers: every well gets a variant and the verdicts come out scored against a plate
+    nobody built. A caller asks this when loading a project so the mismatch is stated
+    instead of inherited.
+
+    Parameters
+    ----------
+    path : str
+        Workbook to check (xlsx). Anything else answers ``comparable: false``.
+    """
+    from kuma_core.mame.io.plate_order_check import check_plate_order
+
+    raw = _optional_str(params.get("path"))
+    if raw is None:
+        raise ValueError("path is required")
+    report = check_plate_order(Path(raw))
+    return {
+        "comparable": report.comparable,
+        "mismatched": report.mismatched,
+        "plate_sheet": report.plate_sheet,
+        "examples": [
+            {"well": well, "plate": plate, "expected": expected}
+            for well, plate, expected in report.examples
+        ],
+        "missing_from_expected": report.missing_from_expected,
+        "absent_from_plate": report.absent_from_plate,
+    }
+
+
 def handle_generate_mame_package(params: dict) -> dict:
     """Generate the MAME barcode package from seeds and a CDS FASTA.
 

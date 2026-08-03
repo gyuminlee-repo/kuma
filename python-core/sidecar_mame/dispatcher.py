@@ -46,6 +46,7 @@ from sidecar_mame.handlers.activity import (
 )
 from sidecar_mame.handlers.barcode_package import (
     handle_generate_mame_package,
+    handle_check_plate_order,
     handle_inspect_variant_source,
 )
 from sidecar_mame.handlers.build_well_layout import handle_build_well_layout
@@ -112,6 +113,7 @@ _METHODS = {
     "mame.activity.build_evolvepro_input": handle_build_evolvepro_input,
     # Feature B: MAME Barcode Setup
     "generate_mame_package": handle_generate_mame_package,
+    "check_plate_order": handle_check_plate_order,
     "inspect_variant_source": handle_inspect_variant_source,
     # Analyze-phase CDS picker: parse reference (FASTA / GenBank / SnapGene)
     "mame.ingest.parse_reference": handle_parse_reference,

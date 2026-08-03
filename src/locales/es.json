@@ -328,7 +328,8 @@
       "variantSheet": "Hoja de variantes",
       "variantColumn": "Columna de variantes",
       "variantColumnPlaceholder": "Elegir una columna",
-      "variantColumnHelper": "El orden de las filas de esta columna llena la placa de 96 pocillos. Una fila WT se usa como control."
+      "variantColumnHelper": "El orden de las filas de esta columna llena la placa de 96 pocillos. Una fila WT se usa como control.",
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
     },
     "activity": {
       "sectionIngest": "Subir activity",
@@ -2314,7 +2315,8 @@
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
-    "pathsMoved": "Estas entradas se movieron y deben seleccionarse de nuevo: {{fields}}"
+    "pathsMoved": "Estas entradas se movieron y deben seleccionarse de nuevo: {{fields}}",
+    "plateOrderMismatch": "The expected file {{filename}} disagrees with itself. The plate on sheet {{sheet}} and the order in expected_mutations differ (well {{well}}: {{plate}} on the plate, {{expected}} in the list). MAME takes wells from row numbers, so analysing this scores every well against a different design. Re-export from KURO or choose the sheet yourself."
   },
   "phaseC": {
     "majors": {
