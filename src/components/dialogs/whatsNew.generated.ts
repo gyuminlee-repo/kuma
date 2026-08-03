@@ -5,7 +5,7 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.14.4";
+export const WHATS_NEW_VERSION = "0.14.5";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
   { label: "Fixed", detail: "Whether to keep a restored design table is now decided by comparing the saved mutation list against the mutation list a reload of the same EVOLVEpro source produces, not by checking each row against that list. A row whose mutation came fro…" },

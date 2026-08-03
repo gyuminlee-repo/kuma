@@ -348,7 +348,8 @@
       "variantSheet": "변이 목록 시트",
       "variantColumn": "변이 열",
       "variantColumnPlaceholder": "열 선택",
-      "variantColumnHelper": "이 열의 행 순서대로 96-well에 배치됩니다. WT 행이 있으면 그 자리를 대조군으로 씁니다."
+      "variantColumnHelper": "이 열의 행 순서대로 96-well에 배치됩니다. WT 행이 있으면 그 자리를 대조군으로 씁니다.",
+      "variantColumnKuroHelper": "KURO export 판독 시트를 고르면 열은 mutant_id 로 고정되고 status 필터가 먼저 적용됩니다. 플레이트를 적은 다른 시트를 고르면 열을 직접 지정할 수 있습니다."
     },
     "activity": {
       "ingest": {
@@ -913,9 +914,9 @@
         "ariaLabel": "expected_mutations xlsx에서 well 레이아웃 자동 생성",
         "clear": "레이아웃 해제",
         "clearAriaLabel": "확정된 well 레이아웃 해제",
-        "disabledBySampleMap": "Sample Map이 선택되어 있어 비활성화됨. Sample Map이 well-to-sample 매핑의 기준 자료임.",
-        "fallbackHint": "Sample Map이 없는 run을 위한 대체 수단. KURO 시트 행 순서를 A1부터 well에 순서대로(column-major) 배정하며 WT 대조군 well은 없다고 가정함.",
-        "overrideWarning": "이 레이아웃이 Sample Map을 덮어씀. Sample Map을 사용하려면 레이아웃을 해제할 것."
+        "disabledBySampleMap": "우선순위: 생성한 레이아웃 > Sample Map > 자동 추론. Sample Map 을 쓰려면 레이아웃을 생성하지 않거나 해제할 것.",
+        "fallbackHint": "우선순위: 생성한 레이아웃 > Sample Map > 자동 추론. 셋 다 없으면 분석 시 KURO 시트 행 순서를 A1부터 column-major 로 자동 배정하므로, 이 버튼은 그 배정을 미리 확인·고정하는 용도이며 필수가 아님.",
+        "overrideWarning": "생성한 레이아웃이 Sample Map 을 덮어씀. Sample Map 을 쓰려면 레이아웃을 해제할 것."
       }
     },
     "setup": {
@@ -2349,7 +2350,8 @@
     "fieldSampleMap": "샘플 맵",
     "fieldCustomBarcodes": "커스텀 바코드",
     "fieldSequencingSummary": "시퀀싱 요약",
-    "pathsMoved": "이전 경로를 찾을 수 없어 다시 지정해야 합니다: {{fields}}"
+    "pathsMoved": "이전 경로를 찾을 수 없어 다시 지정해야 합니다: {{fields}}",
+    "plateOrderMismatch": "프로젝트의 expected 파일 {{filename}} 이 자기 자신과 어긋납니다. {{sheet}} 시트의 플레이트 배치와 expected_mutations 순서가 다릅니다(well {{well}}: 플레이트 {{plate}} 대 목록 {{expected}}). MAME 는 행 번호로 well 을 정하므로 이대로 분석하면 모든 well 이 다른 설계로 채점됩니다. KURO 에서 다시 export 하거나 시트를 직접 고르세요."
   },
   "phaseC": {
     "majors": {

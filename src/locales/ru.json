@@ -330,7 +330,8 @@
       "variantSheet": "List so spiskom variantov",
       "variantColumn": "Stolbec variantov",
       "variantColumnPlaceholder": "Vyberite stolbec",
-      "variantColumnHelper": "Poryadok strok etogo stolbca zapolnyaet 96-lunochnyy planshet. Stroka WT sluzhit kontrolem."
+      "variantColumnHelper": "Poryadok strok etogo stolbca zapolnyaet 96-lunochnyy planshet. Stroka WT sluzhit kontrolem.",
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
     },
     "activity": {
       "sectionIngest": "Загрузить activity",
@@ -2316,7 +2317,8 @@
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
-    "pathsMoved": "Эти входные файлы перемещены, выберите их заново: {{fields}}"
+    "pathsMoved": "Эти входные файлы перемещены, выберите их заново: {{fields}}",
+    "plateOrderMismatch": "The expected file {{filename}} disagrees with itself. The plate on sheet {{sheet}} and the order in expected_mutations differ (well {{well}}: {{plate}} on the plate, {{expected}} in the list). MAME takes wells from row numbers, so analysing this scores every well against a different design. Re-export from KURO or choose the sheet yourself."
   },
   "phaseC": {
     "majors": {

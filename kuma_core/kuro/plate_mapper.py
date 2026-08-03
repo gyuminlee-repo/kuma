@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -380,6 +381,13 @@ def _order_results_by_plate(results: list, mappings: list[PlateMapping]) -> list
     Forward mappings carry the well order. Results with no forward mapping keep their
     original relative order at the end rather than being dropped, since a missing
     mapping is not a reason to lose a designed mutation from the sheet.
+
+    Ordering alone is not enough, which the same export also shows. `mappings` arrives
+    from the UI and carries entries added while relaxing conditions on a failed
+    mutation, while `results` is the design state, so a filled well can have a primer
+    and no result. `V263I` at C7 is one: a primer, a reverse partner, and no row here.
+    Dropping it shifts every later well by one, so :func:`_plate_ordered_row_sources`
+    emits a row per well instead and this function only settles the order.
     """
     rank: dict[str, int] = {}
     for index, mapping in enumerate(mappings):
@@ -394,16 +402,69 @@ def _order_results_by_plate(results: list, mappings: list[PlateMapping]) -> list
     return [result for _, result in ordered]
 
 
+def _plate_ordered_row_sources(
+    results: list, mappings: list[PlateMapping]
+) -> list[tuple[object, PlateMapping | None]]:
+    """Pair every plate well with the result describing it, in well order.
+
+    Returns ``(result_or_None, mapping_or_None)``. One entry per forward mapping, in
+    mapping order, followed by any result the plate does not carry. A well whose
+    mutation has no result yields ``(None, mapping)``: the caller synthesises that row
+    from the mapping, because MAME counts rows to find wells and a gap here silently
+    renames every later well.
+    """
+    by_mutation: dict[str, object] = {}
+    for result in results:
+        by_mutation.setdefault(result.mutation.raw, result)
+
+    sources: list[tuple[object, PlateMapping | None]] = []
+    seen: set[str] = set()
+    for mapping in mappings:
+        if mapping.primer_type != "forward" or mapping.mutation in seen:
+            continue
+        seen.add(mapping.mutation)
+        sources.append((by_mutation.get(mapping.mutation), mapping))
+    for result in results:
+        if result.mutation.raw not in seen:
+            sources.append((result, None))
+    return sources
+
+
+def _synthesised_row(mapping: PlateMapping, headers: list[str]) -> list:
+    """Build an expected-mutations row for a well whose mutation has no result.
+
+    Only what the mapping actually states is written. The residue fields come from the
+    notation, the codons from the mapping when it carries them, and everything else is
+    left empty rather than guessed. ``status`` is ``DESIGNED`` because a primer for this
+    well exists, which is the question that field answers for MAME.
+    """
+    match = re.match(r"^([A-Za-z])(\d+)([A-Za-z*])$", mapping.mutation.strip())
+    values: dict[str, object] = {
+        "mutant_id": mapping.mutation,
+        "position": int(match.group(2)) if match else None,
+        "wt_aa": match.group(1).upper() if match else "",
+        "mt_aa": match.group(3).upper() if match else "",
+        "wt_codon": mapping.wt_codon or "",
+        "mt_codon": mapping.mt_codon or "",
+        "group_id": "",
+        "primer_set_ref": mapping.mutation,
+        "notation_type": "substitution" if match else "",
+        "status": "DESIGNED",
+    }
+    return [values.get(header, "") for header in headers]
+
+
 def _write_expected_mutations_sheet(
     wb,                              # openpyxl.Workbook
-    results: list,                   # list[SdmPrimerResult]
+    row_sources: list,               # list[tuple[SdmPrimerResult | None, PlateMapping | None]]
     rescued_info: list[dict] | None = None,  # list of RescuedMutation dicts from frontend
 ) -> None:
     """Append 'expected_mutations' sheet to workbook.
 
-    One row per Mutation from DESIGNED results, in the order given. Callers pass
-    plate order (see :func:`_order_results_by_plate`) because MAME reads row *i* of
-    this sheet as well *i*.
+    One row per plate well, in well order, because MAME reads row *i* of this sheet as
+    well *i*. Callers build the pairs with :func:`_plate_ordered_row_sources`; a well
+    whose mutation has no design result is written from its mapping rather than
+    skipped, since a skipped row renames every later well.
     Multi-notation (A40P/E61Y) produces one row per sub-mutation;
     they are linked via group_id.
     FAILED mutations excluded in Phase 1.
@@ -440,7 +501,12 @@ def _write_expected_mutations_sheet(
     ]
     ws = wb.create_sheet("expected_mutations")
     ws.append(HEADERS)
-    for r in results:
+    for r, mapping in row_sources:
+        if r is None:
+            if mapping is None:
+                continue
+            ws.append(_synthesised_row(mapping, HEADERS))
+            continue
         m = r.mutation
         rescue_meta = rescued_lookup.get(m.raw, {})
         ws.append([
@@ -530,7 +596,7 @@ def export_plate_excel(
     if results:
         _write_expected_mutations_sheet(
             wb,
-            _order_results_by_plate(results, mappings),
+            _plate_ordered_row_sources(results, mappings),
             rescued_info=rescued_info,
         )
 

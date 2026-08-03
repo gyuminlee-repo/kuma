@@ -72,7 +72,13 @@ export interface HydrationStatusMessage {
      * 그 입력이 폴더 밖에 있었을 때 주로 발생한다. 조용히 넘기면 결과물만 복원되고
      * 그 근거가 된 입력은 빠진 상태가 되므로 반드시 사용자에게 알린다.
      */
-    | "inputs_unavailable";
+    | "inputs_unavailable"
+    /**
+     * 복원한 expected 워크북이 자기 자신과 어긋난다. `expected_mutations` 순서가 같은
+     * 파일의 프라이머 플레이트 시트와 다르면 MAME 는 행 번호로 well 을 세므로 전 well
+     * 이 잘못된 설계로 채점된다. 숫자만 보면 정상으로 보이는 종류라 반드시 알린다.
+     */
+    | "plate_order_mismatch";
   message: string;
   /** ISO 문자열. "5분 전" 표시용 */
   savedAt?: string;
@@ -849,6 +855,61 @@ export async function applyKuroSnapshot(
   // 착지한 쪽이 조용히 이겨 어느 쪽이 정본인지 알 수 없게 된다.
 
   return done(resultsDiscarded);
+}
+
+interface PlateOrderReport {
+  comparable: boolean;
+  mismatched: boolean;
+  plate_sheet: string | null;
+  examples: { well: string; plate: string; expected: string }[];
+  missing_from_expected: string[];
+  absent_from_plate: string[];
+}
+
+/**
+ * 복원한 expected 워크북이 자기 자신과 어긋나면 알린다.
+ *
+ * `expected_mutations` 는 MAME 에게 well 좌표계다. 같은 파일의 프라이머 플레이트
+ * 시트와 순서가 다르면 전 well 이 다른 설계로 채점되는데, 개수도 판정도 정상으로
+ * 보여서 사용자가 알아챌 방법이 없다. 그래서 로딩 시점에 말해 준다.
+ *
+ * 검사 자체가 실패하는 것(구버전 사이드카, 읽을 수 없는 파일)은 복원을 막을 이유가
+ * 아니므로 조용히 넘어간다. 없는 문제를 만들지도, 있는 문제를 감추지도 않는다.
+ */
+async function reportPlateOrderMismatch(
+  expectedPath: string,
+  onMessage: (message: HydrationStatusMessage) => void,
+  isCurrent: () => boolean,
+): Promise<void> {
+  if (!expectedPath) return;
+  let report: PlateOrderReport | null = null;
+  try {
+    const raw = await sendMameRequest("check_plate_order", { path: expectedPath });
+    // 구버전 사이드카는 이 메서드를 모르고, 테스트 대역은 undefined 를 준다. 응답
+    // 모양을 확인하기 전에 필드를 읽으면 복원 자체가 깨지므로 여기서 걸러낸다.
+    if (raw && typeof raw === "object" && "comparable" in raw) {
+      report = raw as PlateOrderReport;
+    }
+  } catch {
+    return;
+  }
+  if (!report || !isCurrent() || !report.comparable) return;
+  const missing = report.missing_from_expected ?? [];
+  if (!report.mismatched && missing.length === 0) return;
+
+  const example = (report.examples ?? [])[0];
+  onMessage({
+    kind: "mame",
+    variant: "plate_order_mismatch",
+    message: i18next.t("autosaveHydration.plateOrderMismatch", {
+      filename: basename(expectedPath),
+      sheet: report.plate_sheet ?? "",
+      well: example?.well ?? "",
+      plate: example?.plate ?? "",
+      expected: example?.expected ?? "",
+      missing: missing.join(", "),
+    }),
+  });
 }
 
 function basename(filePath: string): string {
@@ -1837,6 +1898,13 @@ export function useAutosaveHydration(
               : undefined,
           ),
         ),
+      );
+      // 복원한 expected 워크북이 자기 자신과 어긋나는지 본다. v0.14.3 이전 export 가
+      // 그렇고, 조용히 넘기면 그 프로젝트의 모든 판정이 틀린 배치로 나온다.
+      void reportPlateOrderMismatch(
+        useMameAppStore.getState().expectedPath,
+        onMessage,
+        isCurrent,
       );
       if (unresolved.length > 0) {
         onMessage({

@@ -348,7 +348,8 @@
       "variantSheet": "Variant sheet",
       "variantColumn": "Variant column",
       "variantColumnPlaceholder": "Select a column",
-      "variantColumnHelper": "Rows fill the 96-well plate in this column's order. A WT row is used as the control instead of appending one."
+      "variantColumnHelper": "Rows fill the 96-well plate in this column's order. A WT row is used as the control instead of appending one.",
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
     },
     "activity": {
       "ingest": {
@@ -913,9 +914,9 @@
         "ariaLabel": "Auto-generate well layout from expected_mutations xlsx",
         "clear": "Clear layout",
         "clearAriaLabel": "Clear the confirmed well layout",
-        "disabledBySampleMap": "Disabled because a Sample Map is selected. The Sample Map is the authoritative well-to-sample mapping.",
-        "fallbackHint": "Fallback for runs without a Sample Map. Assigns KURO sheet row order to wells A1 onward (column-major) and assumes no WT control wells.",
-        "overrideWarning": "This layout overrides the Sample Map. Clear it to use the Sample Map instead."
+        "disabledBySampleMap": "Precedence: a built layout > Sample Map > inference. To use the Sample Map, do not build a layout, or clear it.",
+        "fallbackHint": "Precedence: a built layout > Sample Map > inference. With none of the three, analysis assigns wells column-major from A1 in KURO sheet order on its own, so this button previews and pins that assignment rather than being required.",
+        "overrideWarning": "A built layout overrides the Sample Map. Clear the layout to use the Sample Map."
       }
     },
     "setup": {
@@ -2349,7 +2350,8 @@
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
-    "pathsMoved": "These inputs moved and need to be picked again: {{fields}}"
+    "pathsMoved": "These inputs moved and need to be picked again: {{fields}}",
+    "plateOrderMismatch": "The expected file {{filename}} disagrees with itself. The plate on sheet {{sheet}} and the order in expected_mutations differ (well {{well}}: {{plate}} on the plate, {{expected}} in the list). MAME takes wells from row numbers, so analysing this scores every well against a different design. Re-export from KURO or choose the sheet yourself."
   },
   "phaseC": {
     "majors": {
