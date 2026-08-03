@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.14.7 (One File menu, drawn once)
+
+v0.13.35.1 renamed the two app-name triggers to `File` so the menubars had the same shape. The contents stayed in two files and drifted anyway. KURO offered project zip import and export and MAME did not, although the archive holds the whole project folder and therefore the work of both apps. The two menus also reached for different label keys for the same word, so fixing one left the other behind without any sign of it.
+
+### Changed
+
+- v0.14.7: Both menubars render one `FileMenu`. Project open, archive import, archive export, sidecar restart and quit live in it once; each app passes only what it alone can do. `useProjectArchiveActions` holds the two archive callbacks so their dialogs, toasts and cancel-is-not-an-error behaviour cannot diverge either. MAME gains archive import and export, which is the gap this closes: a project carries KURO and MAME work together, so exporting one from the app that produced the second half was never a KURO-only action.
+- v0.14.7: Both menubars use `menu.file` and `menu.edit`. KURO was reading `menuBar.edit.title` for the same word.
+- v0.14.7: A cross-layer group ties the two menubars to `FileMenu`, so touching one alone is reported rather than noticed months later.
+
+### Removed
+
+- v0.14.7: The File menu no longer repeats what a button already does during normal work. `Open sequence` duplicated the Browse button in `SequenceInput`, and the two behaved differently: the panel rejects a FASTA with an explanation while the menu path accepted it. `Export JANUS mapping` duplicated the `Open JANUS export` button in the pane that has the data in front of the operator. `Export run report` stays, being the only way in. The dead `onJanusOpen` prop goes with it.
+
+### Added
+
+- v0.14.7: CI runs the frontend unit tests. Around 900 vitest cases had no job and were only ever run by hand, which on this repo cannot be done from WSL at all: a `pnpm install` into the shared folder replaces the Windows `node_modules` and breaks the Windows build. New tests pin the shared File menu, including the absence of the two duplicated entries.
+
 ## v0.14.5 (Reopening a project brings back the session that was left)
 
 Autosave was on, yet closing KURO and reopening the project landed on step 5 with nothing in it. Two separate causes stacked. The check that decides whether a restored design table is still valid compared each row against the reselected variant list plus the candidate pool it was drawn from, but never against what had actually been saved, so every row that fill-on-failure or rescue had filled in from that pool read as a leftover from an edited CSV and the whole table went. On one real autosave pair, 95 saved primer rows dropped to 0 two minutes later, and the emptied state then overwrote the good snapshot. Underneath that, restore was never treating the snapshot as authoritative: it reran `load_fasta` and the EVOLVEpro pipeline from the source files on every launch, and that rerun overwrote the domain selection, the variant selection, the pipeline statistics and the pool it had just restored. Saving more fields alone could not have fixed it.

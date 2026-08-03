@@ -14,7 +14,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
@@ -26,6 +25,8 @@ import { KeyboardShortcutsDialog } from "@/components/dialogs/KeyboardShortcutsD
 import { SharedAboutDialog } from "@/components/layout/SharedAboutDialog";
 import { invoke } from "@tauri-apps/api/core";
 import { killSidecar } from "@/lib/ipc";
+import { FileMenu } from "@/components/layout/FileMenu";
+import { useProjectArchiveActions } from "@/hooks/useProjectArchiveActions";
 import { generateDiagnosticsBundle } from "@/lib/diagnostics";
 import { revealInOSFolder } from "@/lib/openFolder";
 import { useAppStore } from "@/store/appStore";
@@ -77,12 +78,13 @@ const THEME_ITEMS: { value: Theme; labelKey: string }[] = [
 interface MenuBarProps {
   onClearRequest: () => void;
   /** JANUS export dialog 열기, MameAppLayout에서 janusOpen 상태 소유. */
-  onJanusOpen?: () => void;
 }
 
-export function MenuBar({ onClearRequest, onJanusOpen }: MenuBarProps) {
+export function MenuBar({ onClearRequest }: MenuBarProps) {
   const { t } = useTranslation();
   const project = useKumaProject();
+  // 프로젝트 zip 동작은 KURO 메뉴바와 같은 훅을 쓴다.
+  const projectArchive = useProjectArchiveActions(project?.path, project?.name);
   const hasResults = useMameAppStore((s) => s.verdicts.length > 0);
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
   const loadSampleData = useMameAppStore((s) => s.loadSampleData);
@@ -237,52 +239,29 @@ export function MenuBar({ onClearRequest, onJanusOpen }: MenuBarProps) {
 
   const [runReportOpen, setRunReportOpen] = useState(false);
 
-  // JANUS dialog는 MameAppLayout이 단독 소유. MenuBar는 prop 콜백만 호출.
-  const openJanus = () => {
-    onJanusOpen?.();
-  };
-
   const menus = (
     <>
-      {/* File 메뉴, 앱명 트리거를 File 로 통일해 kuro 메뉴바와 동형으로 맞춘다.
-          Validate / Run / Cancel / Export Excel 은 AnalyzeStepView 에 버튼이 있어 제외했다.
-          단축키(⌘D, ⌘E)는 MameAppLayout 에 등록돼 있어 영향받지 않는다. */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button className={TRIGGER_CLS}>{t("menu.file")}</button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          <DropdownMenuItem
-            onClick={() => window.dispatchEvent(new CustomEvent("kuma:return-to-home"))}
-          >
-            <span className="flex-1">{t("file.openProject")}</span>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={openJanus} disabled={!hasResults}>
-            <span className="flex-1">{t("export.janusMapping")}</span>
-          </DropdownMenuItem>
+      {/* File 메뉴는 FileMenu 가 그린다. Validate / Run / Cancel / Export Excel 은
+          AnalyzeStepView 에 버튼이 있어 제외했다. 단축키(⌘D, ⌘E)는 MameAppLayout 에
+          등록돼 있어 영향받지 않는다. */}
+      <FileMenu
+        triggerClassName={TRIGGER_CLS}
+        hasProject={Boolean(project?.path)}
+        sidecar="mame"
+        restartConfirmMessage={isAnalyzing ? t("mame.menuBar.restartSidecarConfirm") : null}
+        onExportProjectZip={projectArchive.exportZip}
+        onImportProjectZip={projectArchive.importZip}
+        onRestartSidecar={() => { void killSidecar("mame"); }}
+        extraItems={
+          /*
+            MAME 고유 항목만 남긴다. JANUS export 는 MameAppLayout 의 "Open JANUS
+            export" 버튼과 중복이라 제외했다. Run report 는 이 메뉴가 유일한 진입점이다.
+          */
           <DropdownMenuItem onClick={() => setRunReportOpen(true)} disabled={!hasResults}>
             <span className="flex-1">{t("export.runReport")}</span>
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          {/* §1 Recovery: UI 상태 보존 sidecar 재시작. Zustand 스토어는 메모리에 유지됨 */}
-          <DropdownMenuItem
-            onClick={() => {
-              if (isAnalyzing && !window.confirm(t("mame.menuBar.restartSidecarConfirm"))) return;
-              void killSidecar("mame");
-            }}
-            disabled={false}
-          >
-            {t("file.restartSidecar")}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          {/* close() 는 close 핸들러를 타므로 autosave 가 실행된다. destroy() 는 건너뛴다. */}
-          <DropdownMenuItem onClick={() => { void getCurrentWindow().close(); }}>
-            <span className="flex-1">{t("menuBar.appMenu.quit")}</span>
-            <DropdownMenuShortcut>{MOD_KEY}Q</DropdownMenuShortcut>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        }
+      />
 
       {/* Edit 메뉴 — 2-A: Preferences 추가 */}
       <DropdownMenu>
