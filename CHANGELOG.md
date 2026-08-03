@@ -25,7 +25,19 @@ Step 2 could not complete a full run on a 15 GiB machine. Peak memory grew with 
 - v0.14.0: Step 2 is faster, mostly on setups where the output folder sits on a network or translated filesystem. Against a Windows share the reference workload goes from 21.2 s to 8.6 s end to end, with the analyze stage falling from 5.4 s to 0.7 s. On a local ext4 disk the same workload goes from 9.4 s to 7.6 s. Per-file durability calls, repeated directory scans and duplicate metadata lookups were the bulk of it, so a purely local disk sees the smaller share of the gain.
 - v0.14.0: Consensus cost per aligned base no longer rises with well depth. It was climbing 1.9x between depth 50 and depth 3200 and is now flat.
 - v0.14.0: Demux workers hand freed cores back to whichever native barcode is still running, so an uneven plate stops leaving cores idle once the smaller barcodes finish.
-## v0.13.39.1 (The last two autosave paths become portable)
+
+## v0.13.39.2 to v0.13.39.4 (Three items from the 260731 revision list)
+
+Three requests arrived together and merged the same day, and this section is written afterwards because none of them was recorded at the time. They first shipped in the v0.14.0 build. The first of the three carried a `v0.13.39.1` label that was already taken by the raw-run path fix below, so it is grouped here rather than given a version of its own.
+
+### Added
+
+- v0.13.39.3-4: The Echo source plate quadrant is selectable as A1, A2, B1 or B2. A 96-head is on a 9 mm pitch and a 384 plate on 4.5 mm, so one stamp reaches every other row and every other column, and exactly four starting points exist. The previous mapping doubled the row and kept the column, which fills rows A-P against columns 1-12: reachable by hand but not by the head that actually makes the plate. Choosing a quadrant fixes forward and reverse as a row-parity pair, so A1 puts reverse at B1, and two pairs fill one plate, which is the `2 round primer set / 1 Echo source plate` working concept. Leaving the choice unset keeps the old mapping unchanged. Where a plate is part used, the operator states which quadrants are gone rather than the app guessing, and dispensing onto a used quadrant is refused rather than warned about, because the primers already there would be lost.
+- v0.13.39.1: MAME accepts a plain variant list instead of only a KURO export. A workbook holding an `expected_mutations` sheet still goes to the original reader untouched, so status filtering and codon fields behave exactly as before; anything else is read as one variant per row in file order, and csv and tsv are accepted too. Of the ten columns the old format required, only `mutant_id`, `status` and the `wt_aa`/`position`/`mt_aa` triple are read anywhere downstream, so relaxing the shape costs no behaviour. A WT row is recognised rather than parsed as a variant, and a list carrying its own control does not get a second one added.
+
+### Fixed
+
+- v0.13.39.2: A run report no longer comes out blank or refuses to write. Two paths produced the same complaint. The verdict table on screen is restored straight from the autosave snapshot, while every export reads a separate sidecar copy that was filled only from a result file, and a missing or unreadable result file failed silently: the table looked fine and the export then refused with `No prior analyze result`, writing nothing and warning no one. The snapshot now seeds the sidecar through the same load path when the result file cannot be read. Separately, an analysis finding no wells produced an empty verdict list that passed the null guard, and the renderer built a complete report scaffold with every count at zero and an empty plate map, which opens and reads like a finished run. That is now refused with a message naming the inputs to check.
 
 Portable snapshot paths landed in v0.13.35.4, but two of them sit nested inside the raw-run parameters and were missed, so a moved project lost its custom barcodes and sequencing summary without saying so.
 
