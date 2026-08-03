@@ -43,8 +43,24 @@ class OffTargetHit:
     # "full": full-length primer match
     # "5prime": only 5' end matched (3' trimmed)
     # "3prime": only 3' end matched (5' trimmed)
-    # "internal": neither end aligned (both sides trimmed) — PrimerBench-only
+    # "internal": neither end aligned (both sides trimmed), PrimerBench-only
     truncation_type: str = "3prime_anchor"
+    # Failure mode this hit belongs to. The two are physically different and a
+    # candidate can be rejected by either, so the report has to say which.
+    #
+    # extendable: the primer's 3' terminal base is complementary to the
+    #   template at this site, so a polymerase can extend from it -> spurious
+    #   amplicon risk (Kwok S et al., Nucleic Acids Res 18(4):999-1005, 1990,
+    #   PMID 2179874: a 3'-terminal mismatch cuts yield 20-100x while internal
+    #   mismatches barely matter, so the terminal base is the discriminator).
+    # in_overlap_arm: the duplex is carried by the primer's 5' overlap arm,
+    #   which in this workflow is the Gibson homology arm. Mis-annealing there
+    #   is an assembly failure, not a PCR one, and it does not need an
+    #   extendable 3' end to happen.
+    extendable: bool = True
+    in_overlap_arm: bool = False
+    # Human-readable tag of which rule fired, for diagnostics.
+    reason: str = "legacy_perfect_anchor"
 
 
 @dataclass
@@ -442,6 +458,45 @@ def _extend_reverse(
     return best
 
 
+def _find_all(haystack: str, needle: str) -> list[int]:
+    """All (overlapping) start positions of ``needle`` in ``haystack``."""
+    out: list[int] = []
+    if not needle:
+        return out
+    start = 0
+    while True:
+        pos = haystack.find(needle, start)
+        if pos < 0:
+            return out
+        out.append(pos)
+        start = pos + 1
+
+
+def _binding_in_overlap_arm(
+    primer: str, site: str, arm_len: int, min_run: int
+) -> bool:
+    """True when the primer/site duplex is carried by the 5' overlap arm alone.
+
+    ``primer`` and ``site`` are the same length and in the same 5'->3' register
+    (the primer is identical, not complementary, to ``site``: it binds the other
+    strand). The longest run of identities is taken as the duplex core; the arm
+    verdict requires that core to be at least ``min_run`` long and to end no
+    later than the arm boundary, i.e. nothing outside the Gibson homology arm
+    contributes to holding the primer down.
+    """
+    if arm_len <= 0:
+        return False
+    best_len = 0
+    best_end = 0
+    run = 0
+    for i, (a, b) in enumerate(zip(primer, site)):
+        run = run + 1 if a == b else 0
+        if run > best_len:
+            best_len = run
+            best_end = i + 1
+    return best_len >= min_run and best_end <= arm_len
+
+
 def check_offtarget(
     primer_seq: str,
     template: str,
@@ -453,6 +508,8 @@ def check_offtarget(
     mismatch_tm_threshold: float = 45.0,
     antisense_cache: str | None = None,
     profile: PolymeraseProfile | None = None,
+    seed_len: int = 8,
+    overlap_arm_len: int = 0,
 ) -> list[OffTargetHit]:
     """Check for off-target binding sites on the template.
 
@@ -469,21 +526,48 @@ def check_offtarget(
        match would need to clear ``mismatch_tm_threshold`` at ``end_nt``,
        so dropping this branch could let some perfect repeats slip through.
 
-    2. Mismatch-tolerant 3'-anchor rule (``end_nt``/``mismatch_tm_threshold``,
-       new): only the primer's last ``end_nt`` bases (default 4) must match
-       the template exactly -- the length literature reports as the actual
-       floor for productive priming (Kwok et al. 1990 NAR 18(4):999: 3'
-       terminal mismatches cut yield 20-100x, internal mismatches barely
-       matter, the last 4 bases are what counts; Huang/Arnheim/Goodman 1992
-       NAR 20(17):4567: Taq extends a 3' mispair at 1e-3 to 1e-6 relative
-       efficiency depending on the mismatch, i.e. it is not simply blocked;
-       Primer3 itself uses the same last-4-nt-clean convention). The
-       full-length duplex is then scored with ``primer3.calc_heterodimer``,
-       which -- unlike ``_calc_sdm_tm`` -- evaluates the actual (possibly
-       mismatched) pairing instead of assuming perfect complementarity. This
-       is the rule that catches the combination rule 1 cannot see: a
-       perfect 3' end with internal mismatches inside the first
-       ``min_match`` bases from the terminus.
+    2. Mismatch-tolerant duplex rule (``mismatch_tm_threshold``): every
+       candidate alignment window of full primer length is scored with
+       ``primer3.calc_heterodimer``, which -- unlike ``_calc_sdm_tm`` --
+       evaluates the actual (possibly mismatched) pairing instead of
+       assuming perfect complementarity. The Tm comparison is the verdict;
+       everything before it is only a prefilter that decides which windows
+       get scored at all.
+
+       That prefilter used to be "the primer's last ``end_nt`` bases match
+       the template exactly", which made the 3' terminus a precondition for
+       being looked at, not just for being extendable. Any site where a
+       non-terminal stretch of the primer anneals was therefore never
+       submitted to the Tm test -- a blind spot in coverage, not a judgement
+       call. Windows now come from the union of two prefilters:
+
+       (a) the legacy ``end_nt`` 3' anchor, kept because a site dense in
+           internal mismatches can contain no exact ``seed_len``-mer at all
+           and would otherwise be lost; and
+       (b) position-agnostic seeding: every ``seed_len``-mer of the primer
+           (default 8) is located on both strands, and each exact seed hit
+           is expanded back to a full-primer-length window by subtracting
+           the seed's offset within the primer. Windows falling off either
+           template edge are dropped, windows overlapping the intended site
+           are excluded exactly as before, and duplicate windows reached via
+           several seeds are deduplicated by coordinate.
+
+       A window is scored only if it belongs to one of the two physical
+       failure modes recorded on ``OffTargetHit`` (``extendable`` or
+       ``in_overlap_arm``, see that dataclass). A site that is neither
+       cannot prime (no extendable 3' terminus) and cannot mis-assemble (the
+       duplex is not carried by the Gibson arm), so reporting it would be
+       over-rejection. ``overlap_arm_len`` is the length of the primer's 5'
+       overlap arm; when callers leave it at 0 the assembly mode is simply
+       never claimed. Legacy 3'-anchor windows are extendable by
+       construction, so nothing the previous rule caught is dropped here.
+
+       Literature for the extendability criterion: Kwok et al. 1990 NAR
+       18(4):999 (3' terminal mismatches cut yield 20-100x, internal
+       mismatches barely matter, the last 4 bases are what counts);
+       Huang/Arnheim/Goodman 1992 NAR 20(17):4567 (Taq extends a 3' mispair
+       at 1e-3 to 1e-6 relative efficiency, i.e. it is not simply blocked);
+       Primer3 itself uses the same last-4-nt-clean convention.
 
     ``TM_THRESHOLD`` (``mismatch_tm_threshold``, default 45.0) was measured
     against fixtures/pSHCE-dmpR.gb + fixtures/mutation_list_insilico_test.csv
@@ -506,7 +590,17 @@ def check_offtarget(
     tlen = len(t_upper)
     rc_template = antisense_cache if antisense_cache else reverse_complement(t_upper)
 
-    def _record(strand_label: str, tpos: int, match_seq: str, tm: float, match_length: int) -> None:
+    def _record(
+        strand_label: str,
+        tpos: int,
+        match_seq: str,
+        tm: float,
+        match_length: int,
+        truncation_type: str = "3prime_anchor",
+        extendable: bool = True,
+        in_overlap_arm: bool = False,
+        reason: str = "legacy_perfect_anchor",
+    ) -> None:
         key = (strand_label, tpos)
         prev = hits_by_site.get(key)
         if prev is None or tm > prev.tm:
@@ -514,7 +608,10 @@ def check_offtarget(
                 position=tpos, strand=strand_label,
                 match_seq=match_seq, tm=round(tm, 1),
                 match_length=match_length,
-                truncation_type="3prime_anchor",
+                truncation_type=truncation_type,
+                extendable=extendable,
+                in_overlap_arm=in_overlap_arm,
+                reason=reason,
             )
 
     # ── Rule 1: legacy full-anchor, zero mismatches over min_match ──────────
@@ -558,23 +655,41 @@ def check_offtarget(
                 if tm >= tm_threshold:
                     _record(strand_label, tpos, match_seq, tm, min_match + ext)
 
-    # ── Rule 2: mismatch-tolerant 3' anchor + heterodimer Tm ────────────────
+    # ── Rule 2: seeded alignment windows + heterodimer Tm ───────────────────
     if plen >= end_nt:
         anchor = p_upper[-end_nt:]
         concs = _thermo_concs()
+
+        # Every seed_len-mer of the primer, with the offsets it occurs at.
+        seed_offsets: dict[str, list[int]] = {}
+        if plen >= seed_len:
+            for off in range(plen - seed_len + 1):
+                seed_offsets.setdefault(p_upper[off:off + seed_len], []).append(off)
+
         for strand_label, strand_seq in [
             ("sense", t_upper),
             ("antisense", rc_template),
         ]:
             slen = len(strand_seq)
-            for pos in range(slen - end_nt + 1):
-                if strand_seq[pos:pos + end_nt] != anchor:
-                    continue
+            site_starts: set[int] = set()
 
-                site_end = pos + end_nt
-                site_start = site_end - plen
-                if site_start < 0:
-                    continue  # not enough template upstream to hold the full primer
+            # (a) legacy 3'-anchor prefilter, kept so no previously caught
+            #     site can be lost to the seed requirement.
+            for pos in _find_all(strand_seq, anchor):
+                site_start = pos + end_nt - plen
+                if 0 <= site_start <= slen - plen:
+                    site_starts.add(site_start)
+
+            # (b) position-agnostic seeds, expanded to full-primer windows.
+            for seed, offsets in seed_offsets.items():
+                for pos in _find_all(strand_seq, seed):
+                    for off in offsets:
+                        site_start = pos - off
+                        if 0 <= site_start <= slen - plen:
+                            site_starts.add(site_start)
+
+            for site_start in sorted(site_starts):
+                site_end = site_start + plen
 
                 if strand_label == "sense":
                     tpos, tpos_end = site_start, site_end
@@ -586,12 +701,32 @@ def check_offtarget(
                     continue
 
                 site = strand_seq[site_start:site_end]
+
+                # Classify before scoring: a window that is neither
+                # extendable nor arm-borne has no failure mode to report,
+                # and skipping it also saves the calc_heterodimer call.
+                extendable = p_upper[-1] == site[-1]
+                in_arm = _binding_in_overlap_arm(
+                    p_upper, site, overlap_arm_len, seed_len
+                )
+                if not (extendable or in_arm):
+                    continue
+
                 rc_site = reverse_complement(site)
                 result = primer3.calc_heterodimer(p_upper, rc_site, **concs)
                 tm = result.tm if result.structure_found else 0.0
 
                 if tm >= mismatch_tm_threshold:
-                    _record(strand_label, tpos, site, tm, plen)
+                    _record(
+                        strand_label, tpos, site, tm, plen,
+                        truncation_type="3prime_anchor" if extendable else "5prime",
+                        extendable=extendable,
+                        in_overlap_arm=in_arm,
+                        reason=(
+                            "extendable_3prime" if extendable
+                            else "overlap_arm_misanneal"
+                        ),
+                    )
 
     return list(hits_by_site.values())
 
@@ -958,10 +1093,14 @@ def design_single_sdm(
             for c in all_candidates:
                 fwd_start = c.overlap_window.start
                 fwd_end = fwd_start + c.fwd_len
+                # 5' overlap arm = the part of the primer that is not the
+                # template-binding extension. Gibson homology, so a duplex
+                # carried by it alone is an assembly risk (see OffTargetHit).
                 c.offtarget_fwd = check_offtarget(
                     c.forward_seq, seq, fwd_start, fwd_end,
                     antisense_cache=rc_template,
                     profile=profile,
+                    overlap_arm_len=c.fwd_len - len(c.forward_binding),
                 )
                 rev_start = c.overlap_window.start - len(c.reverse_binding)
                 rev_end = c.overlap_window.end
@@ -969,6 +1108,7 @@ def design_single_sdm(
                     c.reverse_seq, seq, rev_start, rev_end,
                     antisense_cache=rc_template,
                     profile=profile,
+                    overlap_arm_len=c.rev_len - len(c.reverse_binding),
                 )
                 if c.offtarget_fwd or c.offtarget_rev:
                     # Off-target hit: reject the candidate outright rather
