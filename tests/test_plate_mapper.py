@@ -654,3 +654,80 @@ class TestExpectedMutationsSheet:
 
         # expected_mutations 시트가 마지막 시트
         assert wb.sheetnames[-1] == "expected_mutations"
+
+
+class TestExpectedMutationsFollowsPlateOrder:
+    """MAME reads row i of expected_mutations as well i, so that order is a coordinate."""
+
+    def _result(self, raw, wt, pos, mt):
+        from kuma_core.kuro.mutation import Mutation
+        from kuma_core.kuro.overlap import OverlapWindow
+        from kuma_core.kuro.sdm_engine import SdmPrimerResult
+
+        mut = Mutation(
+            raw=raw, wt_aa=wt, position=pos, mt_aa=mt,
+            codon_start=0, wt_codon="GTG", mt_codon="TTT", group_id=None,
+        )
+        return SdmPrimerResult(
+            mutation=mut,
+            forward_seq="AAATTTCCCGGG",
+            reverse_seq="CCCGGGAAATTT",
+            forward_binding="AAATTT",
+            reverse_binding="CCCGGG",
+            overlap_window=OverlapWindow(sequence="AAATTTCCC", start=0, end=9, codon_offset=3),
+            tm_fwd=60.0, tm_rev=58.0, tm_overlap=55.0, tm_condition_met=True,
+        )
+
+    def _mapping(self, well, mutation, primer_type):
+        from kuma_core.kuro.plate_mapper import PlateMapping
+
+        suffix = "F" if primer_type == "forward" else "R"
+        return PlateMapping(
+            well=well,
+            primer_name=f"{mutation}_{suffix}",
+            sequence="AAATTTCCC",
+            primer_type=primer_type,
+            mutation=mutation,
+        )
+
+    def test_rows_are_reordered_to_match_the_forward_plate(self, tmp_path):
+        from openpyxl import load_workbook
+
+        from kuma_core.kuro.plate_mapper import export_plate_excel
+
+        # 설계 순서(점수 순 등)와 플레이트 순서가 어긋난 상태를 재현한다.
+        results = [self._result(*a) for a in (
+            ("I92D", "I", 92, "D"), ("S11I", "S", 11, "I"), ("K53I", "K", 53, "I"),
+        )]
+        mappings = [
+            self._mapping("A1", "S11I", "forward"),
+            self._mapping("B1", "K53I", "forward"),
+            self._mapping("C1", "I92D", "forward"),
+            self._mapping("A2", "S11I", "reverse"),
+        ]
+        out = tmp_path / "platemap.xlsx"
+
+        export_plate_excel(mappings, out, results=results)
+
+        ws = load_workbook(out)["expected_mutations"]
+        ids = [row[0] for row in ws.iter_rows(min_row=2, values_only=True) if row[0]]
+        # 260722 R2-1 export 가 낸 증상: 같은 94종이 두 시트에서 다른 순서였다.
+        assert ids == ["S11I", "K53I", "I92D"]
+
+    def test_a_result_without_a_forward_mapping_is_kept_at_the_end(self, tmp_path):
+        from openpyxl import load_workbook
+
+        from kuma_core.kuro.plate_mapper import export_plate_excel
+
+        results = [self._result(*a) for a in (
+            ("I92D", "I", 92, "D"), ("S11I", "S", 11, "I"),
+        )]
+        mappings = [self._mapping("A1", "S11I", "forward")]
+        out = tmp_path / "platemap.xlsx"
+
+        export_plate_excel(mappings, out, results=results)
+
+        ws = load_workbook(out)["expected_mutations"]
+        ids = [row[0] for row in ws.iter_rows(min_row=2, values_only=True) if row[0]]
+        # 매핑이 없다고 설계된 변이를 시트에서 잃지는 않는다.
+        assert ids == ["S11I", "I92D"]

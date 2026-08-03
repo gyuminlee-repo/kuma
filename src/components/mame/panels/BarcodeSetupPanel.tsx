@@ -44,6 +44,13 @@ import { FileField } from "./FileField";
 
 const STORAGE_KEY = "kuma:mame:barcodeSetup";
 
+/**
+ * 사이드카가 KURO export 판독에 쓰는 시트 이름. `kuma_core/mame/io/variant_list.py`
+ * 의 `KURO_SHEET` 와 같은 값이어야 한다. 이 값을 그대로 보내면 백엔드가 종전
+ * 강판독 경로를 타므로, 기본 선택으로 두어도 동작이 바뀌지 않는다.
+ */
+const KURO_VARIANT_SHEET = "expected_mutations";
+
 interface SetupFormState {
   fastaPath: string;
   geneStart: string;
@@ -330,7 +337,12 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
         const info = await rpc<VariantSourceInfo>("mame", "inspect_variant_source", { path });
         if (cancelled) return;
         setVariantInfo(info);
-        setVariantSheet(info.is_kuro_export ? "" : (info.sheets[0] ?? ""));
+        // KURO export 는 판독 시트를 그대로 골라 둔 상태로 시작한다. 그 값을 보내는
+        // 것과 안 보내는 것이 백엔드에서 같은 경로라, 기본값은 종전과 동일하고
+        // 다른 시트로 바꾸는 것만 명시적 override 가 된다.
+        setVariantSheet(
+          info.is_kuro_export ? KURO_VARIANT_SHEET : (info.sheets[0] ?? ""),
+        );
         setVariantColumn(info.suggested_column ?? "");
       } catch {
         // 구버전 사이드카에는 이 메서드가 없다. 그 경우 기존 동작(KURO 전용)으로
@@ -730,11 +742,15 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
             {t("mame.barcodeSetup.projectMetadata")}
           </h3>
           {/*
-            변이 목록 매핑. KURO export 는 백엔드가 판독하므로 숨긴다. 그 외
-            파일에서만 시트·열을 고르게 한다. KURO 입력 단계가 EVOLVEpro 와
-            그 외 파일을 같은 방식으로 받는 것과 같은 규약이다.
+            변이 목록 매핑. KURO export 는 기본적으로 백엔드가 판독하지만, 한
+            워크북이 expected_mutations 시트와 실제 플레이트를 적은 시트를 함께
+            들고 있을 수 있다. 그때 앞쪽을 말없이 고르면 아무도 선택하지 않은
+            목록으로 96 well 전부가 배정된다. 그래서 시트가 둘 이상이면 KURO
+            export 에서도 선택지를 보여주고, 고르지 않으면 종전 경로를 탄다.
+            KURO 입력 단계가 EVOLVEpro 와 그 외 파일을 같은 방식으로 받는 것과
+            같은 규약이다.
           */}
-          {variantInfo && !variantInfo.is_kuro_export && (
+          {variantInfo && (!variantInfo.is_kuro_export || variantInfo.sheets.length > 1) && (
             <div className="grid grid-cols-2 gap-3">
               {variantInfo.sheets.length > 1 && (
                 <div className="space-y-1.5">

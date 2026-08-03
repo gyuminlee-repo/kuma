@@ -8,7 +8,7 @@ export interface WhatsNewItem {
 export const WHATS_NEW_VERSION = "0.14.2";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Added", detail: "Shipped in v0.14.0 and announced now: the Echo source plate quadrant is selectable as A1, A2, B1 or B2, which is the set of starting points a 96-head can actually reach on a 384 plate. Choosing one fixes forward and reverse as a row-parity…" },
-  { label: "Added", detail: "Shipped in v0.14.0 and announced now: MAME accepts a plain variant list, one variant per row in file order, as csv, tsv or xlsx with the sheet and column chosen on screen. A workbook holding an `expected_mutations` sheet still takes the or…" },
-  { label: "Fixed", detail: "Shipped in v0.14.0 and announced now: a run report no longer comes out blank or refuses to write. A restored session seeds the export path from its own snapshot, and an analysis that found no wells is refused with the inputs to check rathe…" },
+  { label: "Fixed", detail: "`expected_mutations` is written in the order the plate sheets use. The forward mappings carry the well order and the sheet now follows them, so one workbook describes one plate and a change to the primer ordering moves both together. A des…" },
+  { label: "Fixed", detail: "Naming a sheet on the MAME variant input overrides the KURO recognition instead of being discarded. A workbook carrying an `expected_mutations` sheet was routed to the strict reader before the choice was consulted, so pointing at the sheet…" },
+  { label: "Fixed", detail: "The variant input offers sheets and headers for a KURO export too. The picker was hidden entirely for those files, so there was nothing to override with. The strict sheet stays selected by default." },
 ];

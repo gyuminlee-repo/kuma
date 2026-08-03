@@ -365,6 +365,35 @@ def _pair_rev_per_plate(
 
 
 
+def _order_results_by_plate(results: list, mappings: list[PlateMapping]) -> list:
+    """Return *results* in the well order the plate sheets use.
+
+    MAME assigns well *i* from row *i* of this sheet (``build_draft_layout``), so the
+    row order here is a plate coordinate, not a presentation choice. The plate sheets
+    are written from ``mappings`` while this sheet used to iterate ``results``, which
+    arrives in design order (the ranking a diversity or EVOLVEpro run produced). One
+    workbook then described two different plates, and reading the wrong one places
+    every well from a list nobody built. Observed on the 260722 R2-1 export: the same
+    94 mutants in both sheets, `K53I` at well A2 by the primer list and `I92D` at A2
+    by this sheet, which scored 94 of 95 wells against the wrong design.
+
+    Forward mappings carry the well order. Results with no forward mapping keep their
+    original relative order at the end rather than being dropped, since a missing
+    mapping is not a reason to lose a designed mutation from the sheet.
+    """
+    rank: dict[str, int] = {}
+    for index, mapping in enumerate(mappings):
+        if mapping.primer_type != "forward":
+            continue
+        rank.setdefault(mapping.mutation, index)
+    fallback = len(mappings)
+    ordered = sorted(
+        enumerate(results),
+        key=lambda pair: (rank.get(pair[1].mutation.raw, fallback), pair[0]),
+    )
+    return [result for _, result in ordered]
+
+
 def _write_expected_mutations_sheet(
     wb,                              # openpyxl.Workbook
     results: list,                   # list[SdmPrimerResult]
@@ -372,7 +401,9 @@ def _write_expected_mutations_sheet(
 ) -> None:
     """Append 'expected_mutations' sheet to workbook.
 
-    One row per Mutation from DESIGNED results.
+    One row per Mutation from DESIGNED results, in the order given. Callers pass
+    plate order (see :func:`_order_results_by_plate`) because MAME reads row *i* of
+    this sheet as well *i*.
     Multi-notation (A40P/E61Y) produces one row per sub-mutation;
     they are linked via group_id.
     FAILED mutations excluded in Phase 1.
@@ -494,9 +525,14 @@ def export_plate_excel(
         ws = wb.create_sheet(f"Rev Plate{tag}")
         _write_plate_sheet(ws, rev_chunk, _COLOR_REV, rev_groups=chunk_rev_groups)
 
-    # Phase 1: append expected_mutations sheet when results are provided
+    # Phase 1: append expected_mutations sheet when results are provided, in the same
+    # well order the plate sheets above use. MAME reads row i of that sheet as well i.
     if results:
-        _write_expected_mutations_sheet(wb, results, rescued_info=rescued_info)
+        _write_expected_mutations_sheet(
+            wb,
+            _order_results_by_plate(results, mappings),
+            rescued_info=rescued_info,
+        )
 
     wb.save(output_path)
 

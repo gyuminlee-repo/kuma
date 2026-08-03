@@ -11,6 +11,12 @@ file and simply reads whichever sheet and column the user points at. A KURO
 export keeps working untouched: it is recognised and routed to the strict reader,
 so its ``status`` filter and rescue-stage handling are unchanged.
 
+Recognition is a default, not a verdict. Naming a sheet overrides it, because one
+workbook can carry the strict sheet next to the sheet that describes the plate on
+the bench, and the two can disagree on both membership and order. Preferring the
+strict sheet in that case places every well from a list nobody chose, and the
+result reads like a finished plate rather than a mis-set one.
+
 Row order is plate order. ``build_draft_layout`` already assigns well *i* from
 element *i*, so a plain list needs no extra ordering rule. This is in fact more
 faithful than the KURO path, where non-designed rows are filtered out first and
@@ -127,25 +133,24 @@ def inspect_variant_source(path: Path) -> VariantSourceInfo:
     workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
     try:
         sheets = list(workbook.sheetnames)
-        if KURO_SHEET in sheets:
-            return VariantSourceInfo(
-                is_kuro_export=True,
-                sheets=sheets,
-                headers={},
-                suggested_column=None,
-            )
+        is_kuro = KURO_SHEET in sheets
         sheet_headers: dict[str, list[str]] = {}
         for name in sheets:
             first = next(workbook[name].iter_rows(values_only=True), None)
             sheet_headers[name] = [
                 "" if cell is None else str(cell).strip() for cell in (first or ())
             ]
-        first_sheet = sheets[0] if sheets else ""
+        # Headers are reported for every sheet even on a KURO export. A workbook can
+        # carry the strict sheet next to the sheet that actually describes the plate
+        # in front of the operator, and without headers there is nothing to pick from.
+        first_sheet = KURO_SHEET if is_kuro else (sheets[0] if sheets else "")
         return VariantSourceInfo(
-            is_kuro_export=False,
+            is_kuro_export=is_kuro,
             sheets=sheets,
             headers=sheet_headers,
-            suggested_column=_suggest_column(sheet_headers.get(first_sheet, [])),
+            suggested_column=(
+                None if is_kuro else _suggest_column(sheet_headers.get(first_sheet, []))
+            ),
         )
     finally:
         workbook.close()
@@ -223,7 +228,12 @@ def read_variant_source(
             is_kuro = KURO_SHEET in workbook.sheetnames
         finally:
             workbook.close()
-        if is_kuro:
+        # An explicit sheet wins. A workbook can hold the strict sheet alongside the
+        # sheet that describes the plate on the bench, and those two can disagree on
+        # both membership and order; silently preferring the strict one then places
+        # every well from a list the operator did not choose. Naming no sheet, or
+        # naming the strict one, keeps the previous behaviour exactly.
+        if is_kuro and sheet in (None, KURO_SHEET):
             return VariantListReadResult(
                 expected=read_expected_mutations(path),
                 has_explicit_wt=False,
