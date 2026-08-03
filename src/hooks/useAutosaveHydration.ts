@@ -27,6 +27,8 @@ import { sendRequest as sendMameRequest } from "@/lib/ipc-mame";
 import type { LoadAnalyzeResultResponse } from "@/types/mame/models";
 import { KURO_SCHEMA, buildKuroSnapshot } from "@/lib/kuroSnapshot";
 import { buildKuroResultResetPatch } from "@/lib/kuroResultReset";
+import { fingerprintSource, fingerprintsEqual, type SourceFingerprint } from "@/lib/sourceFingerprint";
+import { MAJOR_ORDER, SUBSTEP_ORDER, type MajorStepId, type StepStatus, type SubStepId } from "@/store/slices/navigationSlice";
 import { MAME_SCHEMA } from "@/lib/mame/autosaveSnapshot";
 import { detectProjectFiles, detectFromInputDir } from "@/lib/mame/detectProjectFiles";
 import {
@@ -197,8 +199,101 @@ function isDistanceMode(value: unknown): value is AppState["distanceMode"] {
   return value === "auto" || value === "1d" || value === "3d";
 }
 
+function isMajorStepId(value: unknown): value is MajorStepId {
+  return typeof value === "string" && (MAJOR_ORDER as string[]).includes(value);
+}
+
+function isSubStepId(value: unknown): value is SubStepId {
+  if (typeof value !== "string") return false;
+  return Object.values(SUBSTEP_ORDER).some((steps) => (steps as string[]).includes(value));
+}
+
 /**
- * 재선택된 variant 목록과 복원된 결과물이 어긋나면 결과물을 비운다.
+ * 스냅샷의 stepStatus를 현재 스키마의 전체 sub-step 키 집합에 병합한다.
+ *
+ * 저장 시점 이후 새 sub-step이 추가됐을 수 있어(스키마 자체 확장), 저장값을
+ * 그대로 덮어쓰면 새 키가 빠진 채 stepStatus가 부분적으로만 존재하게 된다.
+ * navigationSlice.buildInitialStepStatus와 동일한 기본값 위에 저장값 중
+ * 유효한 키만 얹는다.
+ */
+function mergeStepStatus(saved: unknown): Record<SubStepId, StepStatus> {
+  const base: Record<SubStepId, StepStatus> = {} as Record<SubStepId, StepStatus>;
+  for (const steps of Object.values(SUBSTEP_ORDER)) {
+    for (const id of steps) {
+      base[id] = { done: false, reachable: true };
+    }
+  }
+  if (typeof saved !== "object" || saved === null) return base;
+  for (const [key, value] of Object.entries(saved as Record<string, unknown>)) {
+    if (!isSubStepId(key)) continue;
+    if (typeof value !== "object" || value === null) continue;
+    const candidate = value as Record<string, unknown>;
+    if (typeof candidate.done === "boolean" && typeof candidate.reachable === "boolean") {
+      base[key] = { done: candidate.done, reachable: candidate.reachable };
+    }
+  }
+  return base;
+}
+
+function isSourceFingerprint(value: unknown): value is SourceFingerprint {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.size === "number" && typeof candidate.mtimeMs === "number";
+}
+
+/**
+ * 재도출 결과에 영향을 주는 설정 필드. 값이 하나라도 patch에 실리지 않았으면
+ * (스냅샷에 해당 필드가 없거나 타입 가드에서 걸러진 경우) 재도출 폴백으로
+ * 안전하게 떨어뜨린다.
+ *
+ * 정상 복원 경로에서는 이 값들이 모두 같은 스냅샷의 diversity/parameters
+ * 블록에서 나와 patch에 항상 실린다(자동 저장 복원은 저장 당시 설정을 그대로
+ * 복원한다). 이 목록은 그 전제가 깨졌는지 확인하는 방어용이며, "현재 설정과
+ * 재도출 설정이 실제로 다른가"를 새로 계산하지는 않는다(같은 patch에서 나온
+ * 값끼리는 항등이라 계산할 것이 없다).
+ */
+// 역할: loadEvolveproCsv 빠른 경로(재도출 건너뛰기) 진입 전, 저장 당시
+// 파라미터가 지금 patch에 그대로 실렸는지 확인하는 방어 게이트다.
+const REDESIGN_SENSITIVE_PARAM_KEYS: ReadonlyArray<keyof AppState> = [
+  "evolveproMode",
+  "roundSize",
+  "evolveproRound",
+  "maxPrimers",
+  "positionDiversityEnabled",
+  "maxPerPosition",
+  "domainDiversityEnabled",
+  "domainStrategy",
+  "domainOverlapPolicy",
+  "linkerHandling",
+  "domainQuotaMin",
+  "paretoDiversityEnabled",
+  "entropyWeightEnabled",
+  "entropyWeight",
+  "paretoPoolMultiplier",
+  "distanceMode",
+  "structuralDiversityEnabled",
+  "structuralKappa",
+];
+
+function pipelineParamsAppliedToPatch(patch: Partial<AppState>): boolean {
+  return REDESIGN_SENSITIVE_PARAM_KEYS.every((key) => key in patch);
+}
+
+/**
+ * mutationText를 divergence 비교용으로 토큰화한다.
+ * prepareDesignInput(designSlice.helpers.ts)의 토큰화와 동일하게 맞춘다.
+ */
+function tokenizeMutationText(text: string): Set<string> {
+  return new Set(
+    text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith("#")),
+  );
+}
+
+/**
+ * 저장 시점 입력이 재도출 입력과 달라졌으면 복원된 결과물을 비운다.
  *
  * loadEvolveproCsv는 source 파일을 다시 읽어 mutationText를 새 variant 목록으로
  * 덮어쓴다(inputSlice.helpers.ts buildEvolveproLoadStateUpdate). CSV가 편집됐거나
@@ -206,33 +301,31 @@ function isDistanceMode(value: unknown): value is AppState["distanceMode"] {
  * 프라이머가 목록에는 새 변이가 남는 조용한 불일치가 생긴다. 조용히 유지하는 대신
  * 결과물을 비우고 호출부가 사용자에게 알리게 한다.
  *
- * 비교 방향: designResults의 mutation 라벨(SdmPrimerResult.mutation)이 전부
- * (재선택 목록 ∪ poolVariants)에 들어 있는지 본다. rescue로 설계된 프라이머는
- * mutationText에 없고 poolVariants에만 있으므로 pool까지 허용해야 오발화하지
- * 않는다. 반대 방향(재선택 목록 ⊆ 결과물)은 설계 실패 변이(failedMutations)
- * 때문에 정상 상태에서도 늘 어긋나므로 쓰지 않는다.
+ * 비교 대상: 저장 시점 스냅샷의 mutation_text와 재도출 후 현재 mutationText를
+ * 줄 단위 토큰화해 **집합 동일성**으로 비교한다(순서 차이로 오발화하지 않게).
+ * designResults의 mutation 라벨을 (mutationText ∪ poolVariants)의 부분집합인지
+ * 보는 이전 방식은 폐기했다. fill-on-failure/rescue로 poolVariants에서 채워진
+ * 결과의 mutation은 애초에 mutationText에 없는 게 정상이라, 그 방식은 정상
+ * 상태에서도 늘 발산으로 오판했다(designResults 95건 저장 → 복원 시 71건이
+ * mutationText 밖 pool 유래라 전량 폐기되는 실사례). "무엇이 달라졌는가"를
+ * 직접 보는 이 방식은 그 오판을 없앤다.
  *
- * 한계(false negative): CSV가 바뀌어도 옛 mutation이 새 pool에 그대로 남아 있으면
- * 감지하지 못한다. 조용히 틀린 표를 남기지 않는 쪽만 보장한다.
+ * 스냅샷에 mutation_text가 없거나 문자열이 아니면(schema 3 이하 구 스냅샷)
+ * 비교 근거가 없으므로 판정을 건너뛰고 결과를 유지한다(근거 없이 지우지 않는다).
  *
  * 재설계까지 돌리지는 않는다. restoreWorkspace(autoRedesignOnLoad)는 사용자가
  * 명시적으로 연 워크스페이스라 재설계가 정당하지만, 자동 저장 복원은 앱 진입
  * 경로여서 사이드카 설계 작업을 자동으로 띄우는 건 과하다.
  */
-function discardResultsIfVariantsDiverged(): boolean {
+function discardResultsIfVariantsDiverged(savedMutationText: unknown): boolean {
   const state = useAppStore.getState();
   if (state.designResults.length === 0) return false;
+  if (typeof savedMutationText !== "string") return false;
 
-  // prepareDesignInput(designSlice.helpers.ts)의 토큰화와 동일하게 맞춘다.
-  const allowed = new Set(
-    state.mutationText
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith("#")),
-  );
-  for (const variant of state.poolVariants) allowed.add(variant);
-
-  const diverged = state.designResults.some((r) => !allowed.has(r.mutation));
+  const saved = tokenizeMutationText(savedMutationText);
+  const current = tokenizeMutationText(state.mutationText);
+  const diverged =
+    saved.size !== current.size || [...saved].some((line) => !current.has(line));
   if (!diverged) return false;
 
   // 결과물 블록을 한 번에 비운다. 스냅샷 results 블록이 채우는 필드와 1:1로
@@ -460,6 +553,68 @@ export async function applyKuroSnapshot(
   if (typeof diversity?.save_cache === "boolean") {
     patch.saveCache = diversity.save_cache;
   }
+  // schema 5+. exportSlice의 settings 블록과 같은 이유로 saveCache와 무관하게
+  // 항상 복원한다(위 kuroSnapshot.ts diversity 블록 주석 참조).
+  if (Array.isArray(diversity?.ref_domains)) {
+    patch.refDomains = diversity.ref_domains as AppState["refDomains"];
+  }
+  if (typeof diversity?.ref_domain_hash === "string") {
+    patch.refDomainHash = diversity.ref_domain_hash;
+  }
+  if (typeof diversity?.structure_accession === "string") {
+    patch.structureAccession = diversity.structure_accession;
+  }
+  if (typeof diversity?.structure_loaded === "boolean") {
+    patch.structureLoaded = diversity.structure_loaded;
+  }
+  // schema 5+. 지문 일치로 loadSequence를 건너뛰면(아래 (a)) 그게 띄우던
+  // fire-and-forget searchUniprot도 안 돌아 uniprotCandidates를 재생성할 길이
+  // 없다. 구 스냅샷에는 이 필드가 없으므로 Array.isArray 가드로만 덮어쓴다
+  // (없으면 건드리지 않는다, 근거 없이 빈 배열로 지우지 않는다).
+  if (Array.isArray(diversity?.uniprot_candidates)) {
+    patch.uniprotCandidates = diversity.uniprot_candidates as AppState["uniprotCandidates"];
+  }
+
+  // parameters 확장 (schema 5+)
+  if (typeof params?.tm_tolerance === "number") {
+    patch.tmTolerance = params.tm_tolerance;
+  }
+  if (typeof params?.random_seed === "number" || params?.random_seed === null) {
+    patch.randomSeed = params.random_seed ?? null;
+  }
+
+  // benchmark (schema 5+)
+  const benchmark = snapshot.benchmark as Record<string, unknown> | undefined;
+  if (typeof benchmark?.benchmark_top_percentile === "number") {
+    patch.benchmarkTopPercentile = benchmark.benchmark_top_percentile;
+  }
+  if (typeof benchmark?.benchmark_random_trials === "number") {
+    patch.benchmarkRandomTrials = benchmark.benchmark_random_trials;
+  }
+  if (typeof benchmark?.benchmark_random_seed === "number" || benchmark?.benchmark_random_seed === null) {
+    patch.benchmarkRandomSeed = benchmark?.benchmark_random_seed ?? null;
+  }
+
+  // ui (schema 5+)
+  const ui = snapshot.ui as Record<string, unknown> | undefined;
+  if (Array.isArray(ui?.table_sorting)) {
+    patch.tableSorting = ui.table_sorting as AppState["tableSorting"];
+  }
+
+  // sources (schema 5+). loadSequence/loadEvolveproCsv 재도출을 건너뛸 수 있는지
+  // 판정하는 근거. 아래 (a)/(d) 각각에서 쓴다.
+  const sources = snapshot.sources as Record<string, unknown> | undefined;
+  const savedSequenceFingerprint = isSourceFingerprint(sources?.sequence_fingerprint)
+    ? sources.sequence_fingerprint
+    : null;
+  const savedEvolveproCsvFingerprint = isSourceFingerprint(sources?.evolvepro_csv_fingerprint)
+    ? sources.evolvepro_csv_fingerprint
+    : null;
+  const savedSequenceInfo =
+    typeof input?.sequence_info === "object" && input.sequence_info !== null
+      ? (input.sequence_info as AppState["seqInfo"])
+      : null;
+  const pipeline = snapshot.pipeline as Record<string, unknown> | undefined;
 
   // (a) loadSequence는 그 자체가 store 쓰기라 호출 전에 막아야 한다.
   if (!alive()) return done(false);
@@ -468,13 +623,37 @@ export async function applyKuroSnapshot(
     if (!sequencePath) {
       unavailableInputs.push(input.sequence_path);
     } else {
-      try {
-        await useAppStore.getState().loadSequence(sequencePath);
-      } catch {
-        // 복원은 계속하되 조용히 넘기지 않는다. 옮긴 프로젝트에서 폴더 밖
-        // 서열 파일이 빠졌을 때 이 경로로 온다.
-        console.warn("[autosave] kuro: sequence load failed, continuing restore");
-        unavailableInputs.push(sequencePath);
+      // 지문이 일치하고 seqInfo 원본이 있으면 loadSequence를 다시 돌리지
+      // 않는다. loadSequence는 domains/refDomains/poolVariants 등을 초기화하고
+      // searchUniprot/annotateReferenceDomains를 fire-and-forget으로 띄우는
+      // 부수효과가 있어, 그 결과가 이 복원이 붓는 patch보다 늦게 착지하며
+      // 방금 복원한 값을 덮어썼다(문제 2 배경 참조).
+      const currentFingerprint = savedSequenceFingerprint && savedSequenceInfo
+        ? await fingerprintSource(sequencePath)
+        : null;
+      if (!alive()) return done(false);
+      if (
+        savedSequenceFingerprint &&
+        savedSequenceInfo &&
+        fingerprintsEqual(savedSequenceFingerprint, currentFingerprint)
+      ) {
+        patch.fastaPath = sequencePath;
+        patch.seqInfo = savedSequenceInfo;
+        // loadSequence가 하던 MAME 공유 store dual-write를 대신 수행한다.
+        try {
+          useMameAppStore.getState().setSharedFastaPath(sequencePath);
+        } catch {
+          // Defensive: never let the cross-store hand-off break restore.
+        }
+      } else {
+        try {
+          await useAppStore.getState().loadSequence(sequencePath);
+        } catch {
+          // 복원은 계속하되 조용히 넘기지 않는다. 옮긴 프로젝트에서 폴더 밖
+          // 서열 파일이 빠졌을 때 이 경로로 온다.
+          console.warn("[autosave] kuro: sequence load failed, continuing restore");
+          unavailableInputs.push(sequencePath);
+        }
       }
     }
   }
@@ -484,8 +663,11 @@ export async function applyKuroSnapshot(
 
   const selectedCds = typeof input?.selected_cds === "string" ? input.selected_cds : "";
   if (selectedCds) {
-    const state = useAppStore.getState();
-    const geneExists = state.seqInfo?.genes.some((g) => String(g.cds_start) === selectedCds) ?? false;
+    // 빠른 경로(지문 일치, loadSequence 재호출 생략)에서는 아직 store에 착지하지
+    // 않았으므로 patch.seqInfo를 먼저 본다. 일반 경로는 loadSequence의 await가
+    // 끝난 뒤라 store에 이미 반영돼 있어 기존과 동일하게 동작한다.
+    const seqInfoForGeneCheck = patch.seqInfo ?? useAppStore.getState().seqInfo;
+    const geneExists = seqInfoForGeneCheck?.genes.some((g) => String(g.cds_start) === selectedCds) ?? false;
     if (geneExists) {
       patch.selectedGene = selectedCds;
     }
@@ -529,6 +711,30 @@ export async function applyKuroSnapshot(
     if (Array.isArray(results.rescuedMutationDetails)) {
       patch.rescuedMutationDetails = results.rescuedMutationDetails as AppState["rescuedMutationDetails"];
     }
+    // schema 4+. schema 3 이하 스냅샷에는 없으므로 여기서는 그대로 둔다(하위
+    // 호환). 뒤이은 loadEvolveproCsv(아래)가 재도출한 pool로 다시 덮어쓰는 것이
+    // 정상이며, 여기서 복원하는 목적은 그 사이 divergence 판정에 값이 있게
+    // 하는 것이 아니라 결과 화면이 poolVariants를 참조하는 다른 UI(예:
+    // DiversityOptions 조합 비율)가 hydration 도중에도 빈 상태로 잠깐 깜빡이지
+    // 않게 하는 것이다.
+    if (Array.isArray(results.poolVariants)) {
+      patch.poolVariants = results.poolVariants as AppState["poolVariants"];
+    }
+    // schema 5+. rescuedMutations/showBenchmark는 항상 저장되므로 항상 복원.
+    // alternativesCache/benchmarkResults는 saveCache가 꺼져 있으면 스냅샷에
+    // 없으므로(kuroSnapshot.ts 참조) 여기서는 있을 때만 덮어쓴다.
+    if (Array.isArray(results.rescuedMutations)) {
+      patch.rescuedMutations = results.rescuedMutations as AppState["rescuedMutations"];
+    }
+    if (typeof results.showBenchmark === "boolean") {
+      patch.showBenchmark = results.showBenchmark;
+    }
+    if (typeof results.alternativesCache === "object" && results.alternativesCache !== null) {
+      patch.alternativesCache = results.alternativesCache as AppState["alternativesCache"];
+    }
+    if (typeof results.benchmarkResults === "object" && results.benchmarkResults !== null) {
+      patch.benchmarkResults = results.benchmarkResults as AppState["benchmarkResults"];
+    }
   }
 
   // (c) 스냅샷 본체를 store에 붓는 지점. 취소된 복원의 patch가 다음 프로젝트
@@ -539,29 +745,114 @@ export async function applyKuroSnapshot(
   let resultsDiscarded = false;
   const activeSourcePath = patch.evolveproCsvPath ?? useAppStore.getState().evolveproCsvPath;
   if (activeSourcePath) {
-    try {
-      // (d) loadEvolveproCsv도 store 쓰기(mutationText 갱신)라 호출 전에 막는다.
+    // pipeline 블록이 재도출 없이 fast-path를 채울 만큼 온전한지. 지문이
+    // 있어도 이 배열들이 없으면(구 스냅샷) 재도출로 폴백한다.
+    const pipelineArraysPresent =
+      pipeline !== undefined &&
+      Array.isArray(pipeline.evolvepro_selected_variants) &&
+      Array.isArray(pipeline.evolvepro_ranked_candidates) &&
+      typeof pipeline.y_pred_map === "object" &&
+      pipeline.y_pred_map !== null;
+    // pipelineParamsAppliedToPatch: 위 REDESIGN_SENSITIVE_PARAM_KEYS 주석 참조.
+    const canAttemptCsvSkip =
+      savedEvolveproCsvFingerprint !== null &&
+      pipelineArraysPresent &&
+      pipelineParamsAppliedToPatch(patch);
+
+    if (!alive()) return done(false);
+    const currentCsvFingerprint = canAttemptCsvSkip
+      ? await fingerprintSource(activeSourcePath)
+      : null;
+    if (!alive()) return done(false);
+    const csvFingerprintMatches =
+      canAttemptCsvSkip && fingerprintsEqual(savedEvolveproCsvFingerprint, currentCsvFingerprint);
+
+    if (csvFingerprintMatches && pipeline) {
+      // 지문 일치: loadEvolveproCsv 재도출을 건너뛰고 pipeline 블록을 그대로
+      // 정본으로 쓴다. 비교 대상(재도출된 mutationText)이 없으므로 divergence
+      // 판정도 하지 않는다(discardResultsIfVariantsDiverged 헤더 참조).
+      // results 블록(designResults/poolVariants 등)은 이미 위 (c) 지점의
+      // useAppStore.setState(patch)로 반영된 상태다. 여기서 만드는
+      // pipelinePatch는 그 위에 pipeline 파생 상태(yPredMap 등)만 보충하는
+      // 별도 setState이며, poolVariants를 다시 건드리지 않는다(이중 처리 아님).
+      const pipelinePatch: Partial<AppState> = {
+        evolveproCsvPath: activeSourcePath,
+        yPredMap: pipeline.y_pred_map as AppState["yPredMap"],
+        evolveproSelectedVariants: pipeline.evolvepro_selected_variants as AppState["evolveproSelectedVariants"],
+        evolveproRankedCandidates: pipeline.evolvepro_ranked_candidates as AppState["evolveproRankedCandidates"],
+        evolveproUsedVariantColumn:
+          typeof pipeline.evolvepro_used_variant_column === "string"
+            ? pipeline.evolvepro_used_variant_column
+            : null,
+        evolveproUsedScoreColumn:
+          typeof pipeline.evolvepro_used_score_column === "string"
+            ? pipeline.evolvepro_used_score_column
+            : null,
+        evolveproTotalCount:
+          typeof pipeline.evolvepro_total_count === "number" ? pipeline.evolvepro_total_count : 0,
+        evolveproFilteredCount:
+          typeof pipeline.evolvepro_filtered_count === "number" ? pipeline.evolvepro_filtered_count : null,
+        evolveproParetoExchanges:
+          typeof pipeline.evolvepro_pareto_exchanges === "number" ? pipeline.evolvepro_pareto_exchanges : null,
+        evolveproStepStats: (pipeline.evolvepro_step_stats ?? null) as AppState["evolveproStepStats"],
+        domainStats: (
+          typeof pipeline.domain_stats === "object" && pipeline.domain_stats !== null
+            ? pipeline.domain_stats
+            : {}
+        ) as AppState["domainStats"],
+      };
       if (!alive()) return done(false);
-      await useAppStore.getState().loadEvolveproCsv(activeSourcePath);
-      // (e) discardResultsIfVariantsDiverged는 setState로 결과물 블록을 비운다.
-      //     await 뒤 취소됐다면 다음 프로젝트의 결과물을 지우게 되므로 막는다.
-      if (!alive()) return done(false);
-      // 재선택이 성공한 경우에만 비교한다. 로드가 실패하면 mutationText가
-      // 갱신되지 않아 비교 자체가 무의미하다.
-      resultsDiscarded = discardResultsIfVariantsDiverged();
-    } catch {
-      // 조용히 넘기면 designResults는 복원되고 그 근거 variant 목록만 빠진
-      // 어긋난 상태가 정상처럼 보인다. 호출부가 알리도록 기록한다.
-      console.warn("[autosave] kuro: EVOLVEpro source load failed, continuing restore");
-      unavailableInputs.push(activeSourcePath);
+      useAppStore.setState(pipelinePatch);
+      // loadEvolveproCsv가 하던 MAME 공유 store dual-write를 대신 수행한다.
+      try {
+        useMameAppStore.getState().setSharedEvolveproCsvPath(activeSourcePath);
+      } catch {
+        // Defensive: never let the cross-store hand-off break restore.
+      }
+    } else {
+      try {
+        // (d) loadEvolveproCsv도 store 쓰기(mutationText 갱신)라 호출 전에 막는다.
+        if (!alive()) return done(false);
+        await useAppStore.getState().loadEvolveproCsv(activeSourcePath);
+        // (e) discardResultsIfVariantsDiverged는 setState로 결과물 블록을 비운다.
+        //     await 뒤 취소됐다면 다음 프로젝트의 결과물을 지우게 되므로 막는다.
+        if (!alive()) return done(false);
+        // 재선택이 성공한 경우에만 비교한다. 로드가 실패하면 mutationText가
+        // 갱신되지 않아 비교 자체가 무의미하다.
+        resultsDiscarded = discardResultsIfVariantsDiverged(input?.mutation_text);
+      } catch {
+        // 조용히 넘기면 designResults는 복원되고 그 근거 variant 목록만 빠진
+        // 어긋난 상태가 정상처럼 보인다. 호출부가 알리도록 기록한다.
+        console.warn("[autosave] kuro: EVOLVEpro source load failed, continuing restore");
+        unavailableInputs.push(activeSourcePath);
+      }
     }
   }
 
-  if (!resultsDiscarded && useAppStore.getState().designResults.length > 0) {
+  // 화면 위치(schema 5+). 저장된 위치가 있으면 그걸 쓰고, 없으면(구 스냅샷)
+  // 기존 결과물 유무 휴리스틱으로 폴백한다. 결과물이 폐기됐으면 어느 쪽도
+  // 적용하지 않는다(비어 있는 output.summary로 보내지 않는다).
+  if (!alive()) return done(false);
+  const navigation = snapshot.navigation as Record<string, unknown> | undefined;
+  const hasSavedNavigation =
+    navigation !== undefined &&
+    isMajorStepId(navigation.current_major) &&
+    isSubStepId(navigation.current_sub_step);
+  if (!resultsDiscarded && hasSavedNavigation && navigation) {
+    useAppStore.setState({
+      currentMajor: navigation.current_major as MajorStepId,
+      currentSubStep: navigation.current_sub_step as SubStepId,
+      stepStatus: mergeStepStatus(navigation.step_status),
+    });
+  } else if (!resultsDiscarded && useAppStore.getState().designResults.length > 0) {
     // (f) setSubStep도 store 쓰기다. 취소 후 화면 위치를 옮기지 않는다.
-    if (!alive()) return done(false);
     useAppStore.getState().setSubStep("output.summary");
   }
+
+  // KURO 스냅샷은 Round 엔티티(rounds/active_round_id)를 복원하지 않는다.
+  // MAME 스냅샷이 이미 이 상태를 단독 소유·복원한다(1290행 부근
+  // applyMameSnapshot 참조). 여기서 또 setState하면 두 스냅샷 중 나중에
+  // 착지한 쪽이 조용히 이겨 어느 쪽이 정본인지 알 수 없게 된다.
 
   return done(resultsDiscarded);
 }

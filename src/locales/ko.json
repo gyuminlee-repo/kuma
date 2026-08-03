@@ -7,6 +7,8 @@
   },
   "file": {
     "openSequence": "시퀀스 열기...",
+    "manualSaveDone": "{{time}}에 저장했습니다",
+    "manualSaveFailed": "저장 실패: {{detail}}",
     "openProject": "프로젝트 열기...",
     "restartSidecar": "Sidecar 재시작",
     "openWorkspace": "워크스페이스 열기...",

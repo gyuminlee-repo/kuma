@@ -7,6 +7,8 @@
   },
   "file": {
     "openSequence": "打开序列...",
+    "manualSaveDone": "已于 {{time}} 保存",
+    "manualSaveFailed": "保存失败：{{detail}}",
     "openProject": "打开项目...",
     "restartSidecar": "重启 Sidecar",
     "openWorkspace": "打开工作区...",

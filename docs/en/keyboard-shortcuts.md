@@ -5,6 +5,7 @@
 | Shortcut | Action | Scope |
 |---|---|---|
 | `Ctrl+O` | Open Sequence | Kuro |
+| `Ctrl+S` | Save now (manual) | Kuro and Mame |
 
 ## Edit
 
