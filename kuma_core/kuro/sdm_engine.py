@@ -458,6 +458,12 @@ def _extend_reverse(
     return best
 
 
+# Shortest shared stretch that can plausibly act as Gibson homology, and so
+# the floor for calling an off-target duplex an assembly hazard rather than a
+# coincidence. See _binding_in_overlap_arm for the citation.
+_MIN_ASSEMBLY_HOMOLOGY = 15
+
+
 def _find_all(haystack: str, needle: str) -> list[int]:
     """All (overlapping) start positions of ``needle`` in ``haystack``."""
     out: list[int] = []
@@ -480,11 +486,23 @@ def _binding_in_overlap_arm(
     ``primer`` and ``site`` are the same length and in the same 5'->3' register
     (the primer is identical, not complementary, to ``site``: it binds the other
     strand). The longest run of identities is taken as the duplex core; the arm
-    verdict requires that core to be at least ``min_run`` long and to end no
-    later than the arm boundary, i.e. nothing outside the Gibson homology arm
-    contributes to holding the primer down.
+    verdict requires that core to end no later than the arm boundary -- nothing
+    outside the Gibson homology arm contributes to holding the primer down --
+    and to be at least ``_MIN_ASSEMBLY_HOMOLOGY`` long.
+
+    The length floor is what keeps this from becoming an over-rejection rule.
+    A site is only an assembly hazard if the shared stretch could actually act
+    as Gibson homology, and Gibson assembly needs 15-20 nt of it at minimum
+    (Gibson DG et al., Nat Methods 6(5):343-345, 2009, PMID 19363495, used 40
+    bp overlaps; the NEB HiFi/Gibson protocol floor is 15-20 nt). Measured on
+    fixtures/dmpR_evolvepro.csv with KOD, dropping the floor to the seed length
+    made an 8/11 nt partial match inside an 11 nt arm reject H277G outright and
+    displace the winning P297I pair -- neither of which is a real assembly risk.
     """
     if arm_len <= 0:
+        return False
+    min_run = max(min_run, _MIN_ASSEMBLY_HOMOLOGY)
+    if arm_len < min_run:
         return False
     best_len = 0
     best_end = 0
@@ -1326,13 +1344,18 @@ def diagnose_sdm_failure(
                     fwd_end = fwd_start + len(fwd_full)
                     rev_start = overlap_start - len(rev_at_tol[1])
                     rev_end = codon_start
+                    # overlap_arm_len must match what design_single_sdm passes
+                    # for the same pair, or the diagnostic reports a different
+                    # verdict than the search it is explaining.
                     ot_fwd = check_offtarget(
                         fwd_full, seq, fwd_start, fwd_end,
                         antisense_cache=rc_template, profile=profile,
+                        overlap_arm_len=len(overlap_seq),
                     )
                     ot_rev = check_offtarget(
                         rev_full, seq, rev_start, rev_end,
                         antisense_cache=rc_template, profile=profile,
+                        overlap_arm_len=len(rev_full) - len(rev_at_tol[1]),
                     )
                     if ot_fwd or ot_rev:
                         offtarget_reject_count += 1
