@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.14.2.1 (The expected list is written in plate order)
+
+A KURO export described two different plates. The `Fwd List` and `Fwd Plate` sheets are written from the plate mapping, so their order is the well order, while `expected_mutations` iterated the design output, whose order is whatever ranking produced it. On the 260722 R2-1 export both sheets carry the same 94 mutants and disagree on where they sit: the primer list puts `K53I` at A2, the expected sheet puts `I92D` there.
+
+MAME reads row *i* of `expected_mutations` as well *i*, so it scored that plate against a list nobody built. Well `1_2` held K53I and was judged WRONG_AA for missing I92D, which is five rows away at `6_2`. Wells whose read depth fell under the gate reported LOWDEPTH instead, which hid the same mismatch rather than fixing it.
+
+### Fixed
+
+- v0.14.2.1: `expected_mutations` is written in the order the plate sheets use. The forward mappings carry the well order and the sheet now follows them, so one workbook describes one plate and a change to the primer ordering moves both together. A designed mutation with no forward mapping keeps its place at the end rather than being dropped. Reading an already-exported workbook is unchanged, so a file written before this still needs its sheet chosen by hand.
+- v0.14.2.1: Naming a sheet on the MAME variant input overrides the KURO recognition instead of being discarded. A workbook carrying an `expected_mutations` sheet was routed to the strict reader before the choice was consulted, so pointing at the sheet that describes the bench plate silently read the other one. Naming no sheet, or naming `expected_mutations`, behaves exactly as before.
+- v0.14.2.1: The variant input offers sheets and headers for a KURO export too. The picker was hidden entirely for those files, so there was nothing to override with. The strict sheet stays selected by default.
+
 ## v0.14.2 (Three features the app never announced)
 
 No behaviour changes here. The Echo quadrant selector, the plain variant-list input and the run-report fix all shipped in the v0.14.0 build, but none of them was written into the release notes, so What's New has never mentioned that they exist. This release carries the announcement. The full write-up sits in the v0.13.39.2 to v0.13.39.4 section.

@@ -266,3 +266,68 @@ class TestInspect:
         path = _write_sheet(tmp_path / "v.xlsx", [["alpha", "beta"], ["V5F", "x"]])
 
         assert inspect_variant_source(path).suggested_column is None
+
+
+class TestExplicitSheetBeatsRecognition:
+    """One workbook can hold the strict sheet next to the sheet built on the bench."""
+
+    def _mixed_workbook(self, path):
+        """`expected_mutations` and a plate sheet carrying the same set, reordered."""
+        wb = Workbook()
+        plate = wb.worksheets[0]
+        plate.title = "Fwd List"
+        plate.append(["Well", "Primer Name", "Mutation"])
+        for well, mutant in (("A1", "S11I"), ("B1", "S22T"), ("C1", "K53I")):
+            plate.append([well, f"{mutant}_F", mutant])
+        strict = wb.create_sheet("expected_mutations")
+        strict.append([
+            "mutant_id", "position", "wt_aa", "mt_aa", "wt_codon",
+            "mt_codon", "group_id", "primer_set_ref", "notation_type", "status",
+        ])
+        # Same three mutants, design order rather than plate order.
+        for mutant_id, position, wt, mt in (
+            ("K53I", 53, "K", "I"), ("S11I", 11, "S", "I"), ("S22T", 22, "S", "T"),
+        ):
+            strict.append(
+                [mutant_id, position, wt, mt, "GTG", "TTT", "", "", "single", "DESIGNED"]
+            )
+        wb.save(path)
+        return path
+
+    def test_naming_another_sheet_reads_that_sheet(self, tmp_path):
+        path = self._mixed_workbook(tmp_path / "platemap.xlsx")
+
+        result = read_variant_source(path, sheet="Fwd List", variant_column="Mutation")
+
+        # 플레이트 시트를 고르면 그 순서가 곧 well 순서다.
+        assert [m.mutant_id for m in result.expected] == ["S11I", "S22T", "K53I"]
+        # column-major: seq 1..3 -> A1,B1,C1 이고 WT 는 그 다음 칸이다.
+        layout = build_draft_layout(result.expected).layout
+        assert [layout[w] for w in ("A1", "B1", "C1")] == ["S11I", "S22T", "K53I"]
+        assert layout["D1"] == "WT"
+
+    def test_naming_no_sheet_keeps_the_strict_reader(self, tmp_path):
+        path = self._mixed_workbook(tmp_path / "platemap.xlsx")
+
+        result = read_variant_source(path)
+
+        assert result.sheet == "expected_mutations"
+        assert [m.mutant_id for m in result.expected] == ["K53I", "S11I", "S22T"]
+
+    def test_naming_the_strict_sheet_keeps_the_strict_reader(self, tmp_path):
+        path = self._mixed_workbook(tmp_path / "platemap.xlsx")
+
+        result = read_variant_source(path, sheet="expected_mutations")
+
+        assert result.variant_column == "mutant_id"
+        assert [m.mutant_id for m in result.expected] == ["K53I", "S11I", "S22T"]
+
+    def test_headers_are_offered_for_every_sheet_of_a_kuro_export(self, tmp_path):
+        path = self._mixed_workbook(tmp_path / "platemap.xlsx")
+
+        info = inspect_variant_source(path)
+
+        # 강판독이 기본이라는 사실은 유지하되, 다른 시트를 고를 재료는 준다.
+        assert info.is_kuro_export is True
+        assert "Fwd List" in info.sheets
+        assert info.headers["Fwd List"] == ["Well", "Primer Name", "Mutation"]
