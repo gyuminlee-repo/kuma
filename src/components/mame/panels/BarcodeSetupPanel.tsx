@@ -805,7 +805,11 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
                 <Label htmlFor="variant-column" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   {t("mame.barcodeSetup.variantColumn")}
                 </Label>
-                <Select value={variantColumn} onValueChange={setVariantColumn}>
+                <Select
+                  value={variantColumn}
+                  onValueChange={setVariantColumn}
+                  disabled={variantSheet === KURO_VARIANT_SHEET}
+                >
                   <SelectTrigger id="variant-column" className="h-8 text-xs">
                     <SelectValue placeholder={t("mame.barcodeSetup.variantColumnPlaceholder")} />
                   </SelectTrigger>
@@ -818,7 +822,14 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
                   </SelectContent>
                 </Select>
                 <p className="text-caption text-muted-foreground">
-                  {t("mame.barcodeSetup.variantColumnHelper")}
+                  {/*
+                    강판독 시트를 고른 상태에서는 열 선택이 무의미하다. 백엔드가
+                    mutant_id 를 쓰고 status 필터를 먼저 걸기 때문이다. 조작은
+                    되는데 결과가 안 바뀌는 컨트롤을 두지 않는다.
+                  */}
+                  {variantSheet === KURO_VARIANT_SHEET
+                    ? t("mame.barcodeSetup.variantColumnKuroHelper")
+                    : t("mame.barcodeSetup.variantColumnHelper")}
                 </p>
               </div>
             </div>

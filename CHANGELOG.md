@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.14.4 (A row per well, and a project that says when it disagrees with itself)
+
+v0.14.3 put the expected sheet in plate order and stopped there. Order is only half of it. `export_excel` takes `mappings` from the UI, which carries the wells filled while relaxing conditions on a failed mutation, and `results` from the design state, which does not. A filled well therefore had a primer and no row, and dropping that row renames every later well. `V263I` at C7 of the 260722 R2-1 export is one: a forward primer, a reverse partner, and nothing in `expected_mutations`. Ordering 94 rows against 95 wells still misplaces everything from C7 on.
+
+### Fixed
+
+- v0.14.4: `expected_mutations` carries one row per plate well. A well whose mutation has no design result is written from its mapping, taking the residues from the notation and the codons from the mapping when it has them, leaving the rest empty rather than inventing it. Row count now equals well count, which is the property MAME depends on and the one v0.14.3 left unchecked.
+- v0.14.4: The column picker on the MAME variant input is disabled while the KURO reader sheet is selected, and says why. It was live but inert: that path always reads `mutant_id` and applies the status filter first, so a chosen column changed nothing.
+
+### Added
+
+- v0.14.4: Loading a project reports an expected workbook that disagrees with itself. The plate sheets and `expected_mutations` in one file are the same statement written twice, and a workbook exported before v0.14.3 can have them differ. Nothing failed when they did: every well got a variant and the verdicts came out scored against a plate nobody built. The message names the well and both readings. A file missing either sheet is reported as not comparable rather than as consistent, so silence cannot be read as agreement.
+
+### Changed
+
+- v0.14.4: The well-layout controls state one precedence rule instead of two contradicting ones. `Sample Map` was described as the authority in one hint and as overridden in another, and which won depended on the order the two controls were touched. Both now say what the code does: a built layout, then the sample map, then the inference. The hint also says the inference happens on its own, so the button previews and pins that assignment rather than being a step to remember.
+
 ## v0.14.3 (The expected list is written in plate order)
 
 A KURO export described two different plates. The `Fwd List` and `Fwd Plate` sheets are written from the plate mapping, so their order is the well order, while `expected_mutations` iterated the design output, whose order is whatever ranking produced it. On the 260722 R2-1 export both sheets carry the same 94 mutants and disagree on where they sit: the primer list puts `K53I` at A2, the expected sheet puts `I92D` there.

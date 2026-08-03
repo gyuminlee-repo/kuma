@@ -540,7 +540,8 @@ class TestExpectedMutationsSheet:
 
         mock_results = self._make_mock_results()
         wb = Workbook()
-        _write_expected_mutations_sheet(wb, mock_results)
+        # 이제 (result, mapping) 쌍을 받는다. 매핑 없이 결과만 있는 경우.
+        _write_expected_mutations_sheet(wb, [(r, None) for r in mock_results])
 
         # 시트 존재 확인
         assert "expected_mutations" in wb.sheetnames
@@ -589,7 +590,7 @@ class TestExpectedMutationsSheet:
         wb = Workbook()
         _write_expected_mutations_sheet(
             wb,
-            mock_results,
+            [(r, None) for r in mock_results],
             rescued_info=[
                 {
                     "original": "V5F",
@@ -731,3 +732,98 @@ class TestExpectedMutationsFollowsPlateOrder:
         ids = [row[0] for row in ws.iter_rows(min_row=2, values_only=True) if row[0]]
         # 매핑이 없다고 설계된 변이를 시트에서 잃지는 않는다.
         assert ids == ["S11I", "I92D"]
+
+
+class TestExpectedMutationsCoversEveryWell:
+    """The sheet is a plate coordinate system: row count and order both matter."""
+
+    def _result(self, raw, wt, pos, mt):
+        from kuma_core.kuro.mutation import Mutation
+        from kuma_core.kuro.overlap import OverlapWindow
+        from kuma_core.kuro.sdm_engine import SdmPrimerResult
+
+        return SdmPrimerResult(
+            mutation=Mutation(
+                raw=raw, wt_aa=wt, position=pos, mt_aa=mt,
+                codon_start=0, wt_codon="GTG", mt_codon="TTT", group_id=None,
+            ),
+            forward_seq="AAATTTCCCGGG", reverse_seq="CCCGGGAAATTT",
+            forward_binding="AAATTT", reverse_binding="CCCGGG",
+            overlap_window=OverlapWindow(sequence="AAATTTCCC", start=0, end=9, codon_offset=3),
+            tm_fwd=60.0, tm_rev=58.0, tm_overlap=55.0, tm_condition_met=True,
+        )
+
+    def _fwd(self, well, mutation, wt_codon=None, mt_codon=None):
+        from kuma_core.kuro.plate_mapper import PlateMapping
+
+        return PlateMapping(
+            well=well, primer_name=f"{mutation}_F", sequence="AAATTTCCC",
+            primer_type="forward", mutation=mutation,
+            wt_codon=wt_codon, mt_codon=mt_codon,
+        )
+
+    def test_a_filled_well_with_no_design_result_still_gets_a_row(self, tmp_path):
+        """`export_excel` 이 mappings 는 UI 에서, results 는 백엔드에서 받는 탓에 생긴 간극."""
+        from openpyxl import load_workbook
+
+        from kuma_core.kuro.plate_mapper import export_plate_excel
+
+        # 조건 완화로 채워진 V263I 는 플레이트에만 있고 설계 결과에는 없다.
+        results = [self._result(*a) for a in (
+            ("R262N", "R", 262, "N"), ("I277V", "I", 277, "V"),
+        )]
+        mappings = [
+            self._fwd("A1", "R262N"),
+            self._fwd("B1", "V263I", wt_codon="GTG", mt_codon="ATT"),
+            self._fwd("C1", "I277V"),
+        ]
+        out = tmp_path / "platemap.xlsx"
+
+        export_plate_excel(mappings, out, results=results)
+
+        ws = load_workbook(out)["expected_mutations"]
+        rows = [r for r in ws.iter_rows(min_row=2, values_only=True) if r[0]]
+        # well 수와 행 수가 같아야 뒤쪽 well 이 밀리지 않는다.
+        assert [r[0] for r in rows] == ["R262N", "V263I", "I277V"]
+        filled = rows[1]
+        assert (filled[1], filled[2], filled[3]) == (263, "V", "I")
+        assert (filled[4], filled[5]) == ("GTG", "ATT")
+        assert filled[9] == "DESIGNED"
+
+    def test_codons_are_left_empty_when_the_mapping_does_not_carry_them(self, tmp_path):
+        from openpyxl import load_workbook
+
+        from kuma_core.kuro.plate_mapper import export_plate_excel
+
+        out = tmp_path / "platemap.xlsx"
+        export_plate_excel(
+            [self._fwd("A1", "V263I")], out, results=[self._result("R262N", "R", 262, "N")],
+        )
+
+        ws = load_workbook(out)["expected_mutations"]
+        rows = [r for r in ws.iter_rows(min_row=2, values_only=True) if r[0]]
+        synthesised = next(r for r in rows if r[0] == "V263I")
+        # 없는 값을 지어내지 않는다. 빈 문자열은 xlsx 왕복에서 None 으로 읽힌다.
+        assert not synthesised[4] and not synthesised[5]
+
+    def test_a_reverse_only_mutation_does_not_add_a_well(self, tmp_path):
+        from openpyxl import load_workbook
+
+        from kuma_core.kuro.plate_mapper import PlateMapping, export_plate_excel
+
+        results = [self._result("R262N", "R", 262, "N")]
+        mappings = [
+            self._fwd("A1", "R262N"),
+            PlateMapping(
+                well="A1", primer_name="R262N_R", sequence="CCCGGG",
+                primer_type="reverse", mutation="R262N",
+            ),
+        ]
+        out = tmp_path / "platemap.xlsx"
+
+        export_plate_excel(mappings, out, results=results)
+
+        ws = load_workbook(out)["expected_mutations"]
+        rows = [r for r in ws.iter_rows(min_row=2, values_only=True) if r[0]]
+        # forward 만 well 을 정의한다. rev 플레이트는 별개 좌표계다.
+        assert [r[0] for r in rows] == ["R262N"]

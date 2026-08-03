@@ -328,7 +328,8 @@
       "variantSheet": "变异列表工作表",
       "variantColumn": "变异列",
       "variantColumnPlaceholder": "选择列",
-      "variantColumnHelper": "按此列的行顺序填入 96 孔板。若存在 WT 行，则以其作为对照。"
+      "variantColumnHelper": "按此列的行顺序填入 96 孔板。若存在 WT 行，则以其作为对照。",
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
     },
     "activity": {
       "sectionIngest": "上传 activity 数据",
@@ -2314,7 +2315,8 @@
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
-    "pathsMoved": "以下输入的路径已失效，需要重新选择: {{fields}}"
+    "pathsMoved": "以下输入的路径已失效，需要重新选择: {{fields}}",
+    "plateOrderMismatch": "The expected file {{filename}} disagrees with itself. The plate on sheet {{sheet}} and the order in expected_mutations differ (well {{well}}: {{plate}} on the plate, {{expected}} in the list). MAME takes wells from row numbers, so analysing this scores every well against a different design. Re-export from KURO or choose the sheet yourself."
   },
   "phaseC": {
     "majors": {
