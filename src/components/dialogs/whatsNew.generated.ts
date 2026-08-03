@@ -5,7 +5,7 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.14.2";
+export const WHATS_NEW_VERSION = "0.14.3";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
   { label: "Fixed", detail: "`expected_mutations` is written in the order the plate sheets use. The forward mappings carry the well order and the sheet now follows them, so one workbook describes one plate and a change to the primer ordering moves both together. A des…" },
