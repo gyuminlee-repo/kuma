@@ -492,12 +492,23 @@ def _binding_in_overlap_arm(
 
     The length floor is what keeps this from becoming an over-rejection rule.
     A site is only an assembly hazard if the shared stretch could actually act
-    as Gibson homology, and Gibson assembly needs 15-20 nt of it at minimum
-    (Gibson DG et al., Nat Methods 6(5):343-345, 2009, PMID 19363495, used 40
-    bp overlaps; the NEB HiFi/Gibson protocol floor is 15-20 nt). Measured on
-    fixtures/dmpR_evolvepro.csv with KOD, dropping the floor to the seed length
-    made an 8/11 nt partial match inside an 11 nt arm reject H277G outright and
-    displace the winning P297I pair -- neither of which is a real assembly risk.
+    as Gibson homology.
+
+    Where 15 comes from: NEB, NEBuilder HiFi DNA Assembly Master Mix (E2621)
+    product page, https://www.neb.com/en/products/e2621-nebuilder-hifi-dna-assembly-master-mix
+    -- "This method has been used to assemble either single-stranded
+    oligonucleotides or different sizes of DNA fragments with varied overlaps
+    (15-30 bp)." 15 is therefore the bottom of the range the method is
+    documented to work over, not a recommended optimum. The assembly method
+    itself is Gibson DG et al., Nat Methods 6(5):343-345, 2009 (PMID 19363495),
+    cited here only as the origin of the technique: that paper describes the 5'
+    exonuclease / polymerase / ligase chemistry and states no minimum homology
+    length, so no number is taken from it.
+
+    Measured on fixtures/dmpR_evolvepro.csv with KOD, dropping the floor to the
+    seed length made an 8/11 nt partial match inside an 11 nt arm reject H277G
+    outright and displace the winning P297I pair -- neither of which is a real
+    assembly risk.
     """
     if arm_len <= 0:
         return False

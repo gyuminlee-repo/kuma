@@ -507,9 +507,10 @@ class TestCheckOfftarget:
 
         Site: 11 nt of the 18 nt arm anneal perfectly and nothing else does,
         3' terminus mismatched, duplex Tm 60.3 C. Tm alone would reject it,
-        but 11 nt cannot act as Gibson homology (Gibson DG et al., Nat Methods
-        6(5):343-345, 2009; NEB protocol floor 15-20 nt) and a mismatched 3'
-        end cannot prime, so there is no failure mode to report. Without this
+        but 11 nt is below the shortest overlap the assembly method is
+        documented to work with (NEB NEBuilder HiFi E2621 product page: "varied
+        overlaps (15-30 bp)", so 15 is the bottom of the documented range), and
+        a mismatched 3' end cannot prime -- no failure mode. Without this
         floor an 8/11 nt partial arm match in fixtures/dmpR_evolvepro.csv
         rejected H277G outright and displaced the winning P297I pair.
         """
