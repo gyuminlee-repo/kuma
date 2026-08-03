@@ -7,6 +7,8 @@
   },
   "file": {
     "openSequence": "シーケンスを開く...",
+    "manualSaveDone": "{{time}}に保存しました",
+    "manualSaveFailed": "保存に失敗しました: {{detail}}",
     "openProject": "プロジェクトを開く...",
     "restartSidecar": "Sidecar を再起動",
     "openWorkspace": "ワークスペースを開く...",

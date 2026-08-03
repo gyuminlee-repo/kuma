@@ -37,11 +37,17 @@ const hooks = vi.hoisted(() => ({
   // 것은 경로 존재가 아니라 복원·우선순위이므로 기본값을 present 로 둔다.
   // 사라진 경로 동작은 exists 를 false 로 뒤집는 전용 테스트에서 확인한다.
   exists: vi.fn(async (_path: string) => true),
+  // schema 5+ 지문 판정. 기본은 stat 실패(= 지문 없음 = 항상 재도출 폴백)라
+  // 기존 28개 테스트가 이 변경으로 영향받지 않는다. 지문 fast-path를 확인하는
+  // 테스트만 명시적으로 재설정한다.
+  stat: vi.fn<(path: string) => Promise<{ size: number; mtime: Date | null }>>(async () => {
+    throw new Error("stat not stubbed in this test");
+  }),
 }));
 
 vi.mock("@tauri-apps/plugin-fs", async () => {
   const actual = await vi.importActual<Record<string, unknown>>("@tauri-apps/plugin-fs");
-  return { ...actual, exists: hooks.exists };
+  return { ...actual, exists: hooks.exists, stat: hooks.stat };
 });
 
 // KURO 사이드카 RPC. applyKuroSnapshot이 loadEvolveproCsv를 통해 호출한다.
@@ -1055,6 +1061,104 @@ describe("applyKuroSnapshot: 복원 결과물 vs 재선택 variant", () => {
     expect(st.successCount).toBe(1);
     expect(st.plateMappings).toHaveLength(1);
   });
+
+  // schema 4: rescue/fill-on-failure로 poolVariants에서 채워진 결과의 mutation은
+  // mutationText에 없는 게 정상이다. 새 판정 기준은 저장 시점 mutation_text와
+  // 재도출 mutationText만 비교하므로, 이런 결과가 있어도 저장 시점 입력이
+  // 그대로면 유지돼야 한다(pool 유래 designResults 71건 전량 폐기 회귀 방지).
+  it("(a) poolVariants에서 채워진 결과가 있어도 저장 시점 입력이 그대로면 결과를 유지한다", async () => {
+    mockReselection(["X9Y"]);
+
+    const snapshot: AutosaveSnapshot = {
+      schema: 4,
+      saved_at: new Date().toISOString(),
+      kuma_version: "0.0.0-test",
+      input: {
+        sequence_path: null,
+        selected_cds: null,
+        mutation_text: "X9Y",
+        mutation_input_mode: "evolvepro",
+        evolvepro_mode: "pipeline",
+        evolvepro_csv_path: "/proj/evolvepro.csv",
+      },
+      parameters: {},
+      diversity: {},
+      results: {
+        // P50Q는 mutationText("X9Y")에는 없고 poolVariants에만 있는, rescue로
+        // 채워진 결과를 흉내낸다.
+        designResults: [designResultFor("X9Y"), designResultFor("P50Q")],
+        successCount: 2,
+        totalCount: 2,
+        failedMutations: [],
+        plateMappings: [],
+        dedupInfo: {},
+        manuallySwapped: {},
+        customCandidates: {},
+        rescuedMutationDetails: [{ mutation: "P50Q" }],
+        poolVariants: ["X9Y", "P50Q"],
+      },
+    } as unknown as AutosaveSnapshot;
+
+    const outcome = await applyKuroSnapshot(snapshot);
+
+    expect(outcome.resultsDiscarded).toBe(false);
+    // poolVariants는 이 검사 뒤 loadEvolveproCsv 재도출 결과로 다시 덮인다
+    // (정상 동작, useAutosaveHydration.ts 545행 주석 참조). 여기서는 그 값이
+    // designResults 유지 판정에 영향을 주지 않는다는 것만 확인한다.
+    const st = useAppStore.getState();
+    expect(st.designResults).toHaveLength(2);
+  });
+
+  // (b) 재도출 mutationText가 저장 시점 mutation_text와 실제로 달라지면(CSV 편집 등)
+  // 여전히 폐기해야 한다. 위 (a)와 대조되는 회귀 방지 케이스.
+  it("(b) 재도출 mutationText가 저장 시점 mutation_text와 다르면 결과를 폐기한다", async () => {
+    mockReselection(["A1B"]);
+
+    const outcome = await applyKuroSnapshot(snapshotWithResults("X9Y"));
+
+    expect(outcome.resultsDiscarded).toBe(true);
+    expect(useAppStore.getState().designResults).toEqual([]);
+  });
+
+  // (c) schema 3 이하 구 스냅샷에는 results.poolVariants가 없다. 비교 근거가 되는
+  // input.mutation_text 자체는 schema 1부터 있었으므로, 이 필드만으로도 판정은
+  // 정상 동작해야 하고 poolVariants 부재로 죽지 않아야 한다.
+  it("(c) schema 3 스냅샷(poolVariants 없음)도 복원이 깨지지 않는다", async () => {
+    mockReselection(["X9Y"]);
+
+    const snapshot: AutosaveSnapshot = {
+      schema: 3,
+      saved_at: new Date().toISOString(),
+      kuma_version: "0.0.0-test",
+      input: {
+        sequence_path: null,
+        selected_cds: null,
+        mutation_text: "X9Y",
+        mutation_input_mode: "evolvepro",
+        evolvepro_mode: "pipeline",
+        evolvepro_csv_path: "/proj/evolvepro.csv",
+      },
+      parameters: {},
+      diversity: {},
+      results: {
+        designResults: [designResultFor("X9Y")],
+        successCount: 1,
+        totalCount: 1,
+        failedMutations: [],
+        plateMappings: [],
+        dedupInfo: {},
+        manuallySwapped: {},
+        customCandidates: {},
+        rescuedMutationDetails: [],
+        // poolVariants 없음 (schema 3 이하)
+      },
+    } as unknown as AutosaveSnapshot;
+
+    const outcome = await applyKuroSnapshot(snapshot);
+
+    expect(outcome.resultsDiscarded).toBe(false);
+    expect(useAppStore.getState().designResults).toHaveLength(1);
+  });
 });
 
 describe("applyKuroSnapshot: 프로젝트 폴더 이식", () => {
@@ -1127,6 +1231,226 @@ describe("applyKuroSnapshot: 프로젝트 폴더 이식", () => {
     );
 
     expect(outcome.unavailableInputs).toEqual([]);
+  });
+});
+
+// ── schema 5: 지문 일치 시 재도출 건너뛰기 ────────────────────────────────
+
+describe("applyKuroSnapshot: 지문 기반 재도출 건너뛰기 (schema 5)", () => {
+  const SEQ_PATH = "/proj/target.fa";
+  const CSV_PATH = "/proj/evolvepro.csv";
+  const MATCHING_FP = { size: 100, mtimeMs: 1_700_000_000_000 };
+
+  const SEQ_INFO = { header: "target", seq_length: 9, genes: [{ cds_start: 0, cds_end: 9, gene: "g", aa_length: 3, organism: "e", organism_key: "ecoli", translation: "MKT", uniprot_accession: null }] };
+
+  function fastPathSnapshot(overrides: Record<string, unknown> = {}): AutosaveSnapshot {
+    return {
+      schema: 5,
+      saved_at: new Date().toISOString(),
+      kuma_version: "0.0.0-test",
+      input: {
+        sequence_path: SEQ_PATH,
+        selected_cds: "0",
+        mutation_text: "X9Y",
+        mutation_input_mode: "evolvepro",
+        evolvepro_mode: "pipeline",
+        evolvepro_csv_path: CSV_PATH,
+        sequence_info: SEQ_INFO,
+      },
+      parameters: {
+        max_primers: 95,
+      },
+      diversity: {
+        evolvepro_round: 1,
+        round_size: 96,
+        position_diversity_enabled: true,
+        max_per_position: 1,
+        domain_diversity_enabled: true,
+        domain_strategy: "proportional",
+        domain_overlap_policy: "first",
+        linker_handling: "include",
+        domain_quota_min: 1,
+        pareto_diversity_enabled: true,
+        structural_diversity_enabled: false,
+        structural_kappa: 0.3,
+        entropy_weight_enabled: true,
+        entropy_weight: 0.3,
+        pareto_pool_multiplier: 2.0,
+        distance_mode: "auto",
+        ref_domains: [{ name: "Kinase", start: 1, end: 50 }],
+        ref_domain_hash: "hash-abc",
+        uniprot_candidates: [{ accession: "P42212", description: "GFP", organism: "A. victoria", score: 1 }],
+      },
+      results: {
+        designResults: [designResultFor("X9Y")],
+        successCount: 1,
+        totalCount: 1,
+        failedMutations: [],
+        plateMappings: [],
+        dedupInfo: {},
+        manuallySwapped: {},
+        customCandidates: {},
+        rescuedMutationDetails: [],
+        poolVariants: ["X9Y"],
+      },
+      pipeline: {
+        y_pred_map: { X9Y: 0.9 },
+        evolvepro_selected_variants: ["X9Y"],
+        evolvepro_ranked_candidates: [{ variant: "X9Y", y_pred: 0.9, aa_position: 9 }],
+        evolvepro_used_variant_column: "variant",
+        evolvepro_used_score_column: "score",
+        evolvepro_total_count: 1,
+        evolvepro_filtered_count: 0,
+        evolvepro_pareto_exchanges: 0,
+        evolvepro_step_stats: null,
+        domain_stats: {},
+      },
+      sources: {
+        sequence_fingerprint: MATCHING_FP,
+        evolvepro_csv_fingerprint: MATCHING_FP,
+      },
+      ...overrides,
+    } as unknown as AutosaveSnapshot;
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAppStore.getState().resetAll();
+    useMameAppStore.getState().resetInput();
+    hooks.stat.mockResolvedValue({ size: MATCHING_FP.size, mtime: new Date(MATCHING_FP.mtimeMs) });
+  });
+
+  it("(a) 지문이 일치하면 loadSequence/loadEvolveproCsv를 호출하지 않고 저장된 파생 상태를 그대로 쓴다", async () => {
+    const outcome = await applyKuroSnapshot(fastPathSnapshot());
+
+    expect(hooks.sendKuroRequest).not.toHaveBeenCalledWith("load_fasta", expect.anything());
+    expect(hooks.sendKuroRequest).not.toHaveBeenCalledWith("load_evolvepro_csv", expect.anything());
+
+    const st = useAppStore.getState();
+    expect(st.fastaPath).toBe(SEQ_PATH);
+    expect(st.seqInfo).toEqual(SEQ_INFO);
+    expect(st.evolveproCsvPath).toBe(CSV_PATH);
+    expect(st.yPredMap).toEqual({ X9Y: 0.9 });
+    expect(st.evolveproSelectedVariants).toEqual(["X9Y"]);
+    expect(st.designResults).toHaveLength(1);
+    expect(outcome.resultsDiscarded).toBe(false);
+  });
+
+  it("(g) 지문 일치 경로에서 uniprotCandidates/refDomains가 복원되고 search_uniprot/도메인 스캔은 호출되지 않는다", async () => {
+    // 빠른 경로의 계약: loadSequence 자체를 안 돌리므로 그게 fire-and-forget으로
+    // 띄우던 searchUniprot(→ "search_uniprot")과, domainDiversityEnabled일 때
+    // 같이 뜨는 annotateReferenceDomains(→ "annotate_domains_by_sequence")도
+    // 돌지 않는다. 대신 저장된 refDomains/refDomainHash/uniprotCandidates가
+    // 그대로 정본이 된다(2026-08-03 리뷰 지적: UniProt 패널 빈 목록 회귀 수정).
+    await applyKuroSnapshot(fastPathSnapshot());
+
+    expect(hooks.sendKuroRequest).not.toHaveBeenCalledWith("search_uniprot", expect.anything());
+    expect(hooks.sendKuroRequest).not.toHaveBeenCalledWith(
+      "annotate_domains_by_sequence",
+      expect.anything(),
+    );
+
+    const st = useAppStore.getState();
+    expect(st.uniprotCandidates).toEqual([
+      { accession: "P42212", description: "GFP", organism: "A. victoria", score: 1 },
+    ]);
+    expect(st.refDomains).toEqual([{ name: "Kinase", start: 1, end: 50 }]);
+    expect(st.refDomainHash).toBe("hash-abc");
+  });
+
+  it("(f) 지문 일치 경로에서도 MAME 공유 store dual-write가 수행된다", async () => {
+    await applyKuroSnapshot(fastPathSnapshot());
+
+    expect(useMameAppStore.getState().sharedFastaPath).toBe(SEQ_PATH);
+    expect(useMameAppStore.getState().sharedEvolveproCsvPath).toBe(CSV_PATH);
+  });
+
+  it("(b) 지문이 불일치하면 재도출로 폴백하고 기존 divergence 판정이 적용된다", async () => {
+    // 저장된 지문과 다른 stat 응답 → 파일이 바뀐 것으로 판정.
+    hooks.stat.mockResolvedValue({ size: 999, mtime: new Date(1) });
+    mockReselection(["A1B"]); // 재도출 결과가 저장 시점 mutation_text("X9Y")와 다르다
+
+    const outcome = await applyKuroSnapshot(fastPathSnapshot());
+
+    expect(hooks.sendKuroRequest).toHaveBeenCalledWith("load_fasta", expect.anything());
+    expect(hooks.sendKuroRequest).toHaveBeenCalledWith(
+      "load_evolvepro_csv",
+      expect.objectContaining({ filepath: CSV_PATH }),
+    );
+    expect(outcome.resultsDiscarded).toBe(true);
+    expect(useAppStore.getState().designResults).toEqual([]);
+  });
+
+  it("(c) 화면 위치(navigation)가 저장된 값으로 복원된다", async () => {
+    await applyKuroSnapshot(
+      fastPathSnapshot({
+        navigation: {
+          current_major: "output",
+          current_sub_step: "output.summary",
+          step_status: {},
+        },
+      }),
+    );
+
+    const st = useAppStore.getState();
+    expect(st.currentMajor).toBe("output");
+    expect(st.currentSubStep).toBe("output.summary");
+  });
+
+  it("(c) navigation이 없는 구 스냅샷은 기존 결과물 유무 휴리스틱으로 폴백한다", async () => {
+    const snapshot = fastPathSnapshot();
+    delete (snapshot as Record<string, unknown>).navigation;
+
+    await applyKuroSnapshot(snapshot);
+
+    expect(useAppStore.getState().currentSubStep).toBe("output.summary");
+  });
+
+  it("(d) KURO 스냅샷은 Round 엔티티를 저장/복원하지 않는다(MAME 스냅샷 단독 소유)", async () => {
+    // Round 상태는 MAME 자동 저장(lib/mame/autosaveSnapshot.ts)이 단독으로
+    // 저장·복원하고 useMameAutosave.ts가 트리거를 갖는다. KURO 쪽에 두 번째
+    // writer를 두면 두 스냅샷의 저장 시점이 갈릴 때 나중에 착지한 쪽이 조용히
+    // 이겨 어느 쪽이 정본인지 알 수 없어진다(2026-08-03 되돌림). 이 테스트는
+    // KURO 스냅샷에 rounds가 실려 있어도(방어적으로 넣어봐도) useRoundStore를
+    // 건드리지 않는다는 것만 확인한다.
+    const round = {
+      id: "round_1",
+      n: 1,
+      created_at: new Date().toISOString(),
+      status: "design" as const,
+      error_info: null,
+      plate_meta: { plates: [] },
+      design: {},
+      genotype: {},
+      activity: null,
+      merged_table: [],
+    };
+    useRoundStore.setState({ rounds: [round], active_round_id: "round_1" });
+
+    // 스냅샷에 rounds가 얹혀 있어도(예: 구버전 잔재, 다른 소스) 무시해야 한다.
+    await applyKuroSnapshot(
+      fastPathSnapshot({ rounds: [], active_round_id: null }),
+    );
+
+    expect(useRoundStore.getState().rounds).toEqual([round]);
+    expect(useRoundStore.getState().active_round_id).toBe("round_1");
+  });
+
+  it("(e) schema 3/4 스냅샷(sources/pipeline 없음)도 복원이 깨지지 않고 재도출로 진행한다", async () => {
+    mockReselection(["X9Y"]);
+    const snapshot = fastPathSnapshot();
+    delete (snapshot as Record<string, unknown>).sources;
+    delete (snapshot as Record<string, unknown>).pipeline;
+    (snapshot as unknown as { schema: number }).schema = 3;
+
+    const outcome = await applyKuroSnapshot(snapshot);
+
+    expect(hooks.sendKuroRequest).toHaveBeenCalledWith("load_fasta", expect.anything());
+    expect(hooks.sendKuroRequest).toHaveBeenCalledWith(
+      "load_evolvepro_csv",
+      expect.objectContaining({ filepath: CSV_PATH }),
+    );
+    expect(outcome.resultsDiscarded).toBe(false);
   });
 });
 

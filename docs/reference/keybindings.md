@@ -7,6 +7,7 @@ On macOS, replace `Ctrl` with `Cmd`.
 | Shortcut | Action | Scope |
 |---|---|---|
 | `Ctrl+O` | Open Sequence | Kuro |
+| `Ctrl+S` | Save now (manual) | Kuro and Mame |
 | `Ctrl+,` | Preferences | Kuro and Mame |
 | `Ctrl+L` | Toggle Logs panel | Kuro and Mame |
 | `Ctrl+J` | Toggle Jobs panel | Kuro and Mame |

@@ -66,6 +66,23 @@
   ],
   "groups": [
     {
+      "id": "kuro-autosave-results-restore",
+      "files": [
+        "src/lib/kuroSnapshot.ts",
+        "src/hooks/useAutosaveHydration.ts",
+        "src/lib/kuroResultReset.ts"
+      ],
+      "symbols": [
+        "KURO_SCHEMA",
+        "buildKuroSnapshot",
+        "applyKuroSnapshot",
+        "discardResultsIfVariantsDiverged",
+        "buildKuroResultResetPatch"
+      ],
+      "note": "kuroSnapshot의 results 블록 필드 목록, useAutosaveHydration의 복원/divergence 판정, kuroResultReset의 초기화 패치는 1:1로 맞아야 한다. schema 4에서 poolVariants를 results에 추가하고 divergence 판정을 mutation_text 집합 비교로 교체했다(2026-08-03).",
+      "severity": "warning"
+    },
+    {
       "id": "workspace-artifact-registry",
       "files": [
         "src/lib/workspace/types.ts",

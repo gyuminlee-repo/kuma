@@ -5,6 +5,7 @@
 | 단축키 | 동작 | 범위 |
 |---|---|---|
 | `Ctrl+O` | 서열 열기 | Kuro |
+| `Ctrl+S` | Save now (manual) | Kuro 및 Mame |
 
 ## 편집
 

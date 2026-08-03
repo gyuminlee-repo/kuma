@@ -7,6 +7,8 @@
   },
   "file": {
     "openSequence": "Ouvrir une séquence...",
+    "manualSaveDone": "Enregistré à {{time}}",
+    "manualSaveFailed": "Échec de l'enregistrement : {{detail}}",
     "openProject": "Ouvrir un projet...",
     "restartSidecar": "Redémarrer le sidecar",
     "openWorkspace": "Ouvrir un espace de travail...",

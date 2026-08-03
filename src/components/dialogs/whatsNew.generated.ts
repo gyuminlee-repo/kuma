@@ -5,11 +5,12 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.14.4";
+export const WHATS_NEW_VERSION = "0.14.5";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Fixed", detail: "`expected_mutations` carries one row per plate well. A well whose mutation has no design result is written from its mapping, taking the residues from the notation and the codons from the mapping when it has them, leaving the rest empty rat…" },
-  { label: "Fixed", detail: "The column picker on the MAME variant input is disabled while the KURO reader sheet is selected, and says why. It was live but inert: that path always reads `mutant_id` and applies the status filter first, so a chosen column changed nothin…" },
-  { label: "Added", detail: "Loading a project reports an expected workbook that disagrees with itself. The plate sheets and `expected_mutations` in one file are the same statement written twice, and a workbook exported before v0.14.3 can have them differ. Nothing fai…" },
-  { label: "Changed", detail: "The well-layout controls state one precedence rule instead of two contradicting ones. `Sample Map` was described as the authority in one hint and as overridden in another, and which won depended on the order the two controls were touched.…" },
+  { label: "Fixed", detail: "Whether to keep a restored design table is now decided by comparing the saved mutation list against the mutation list a reload of the same EVOLVEpro source produces, not by checking each row against that list. A row whose mutation came fro…" },
+  { label: "Fixed", detail: "The autosave snapshot stores the candidate variant pool (`poolVariants`) next to `designResults`, so pool-dependent UI such as the combinatorial-variant ratio no longer flashes empty during a restore." },
+  { label: "Added", detail: "Autosave keeps the rest of the session too (schema 5): the wizard position and per-step completion, the EVOLVEpro derived state (selection, ranking, per-step statistics, score map, domain statistics), the reference domain annotation and it…" },
+  { label: "Added", detail: "A restore that finds the sequence file and the EVOLVEpro source unchanged since the snapshot was written skips the pipeline rerun entirely and uses the saved state as it stands. Sameness is judged by file size and modification time, so no…" },
+  { label: "Added", detail: "`Ctrl/Cmd+S` saves the open project immediately instead of waiting out the autosave debounce, and reports the time it saved at. It works while a text field has focus, where the other global shortcuts deliberately stand aside, and it is lis…" },
 ];

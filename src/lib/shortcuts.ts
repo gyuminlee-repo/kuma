@@ -20,6 +20,7 @@ export interface ShortcutEntry {
 export const SHORTCUTS: ShortcutEntry[] = [
   // File
   { keys: `${MOD}+O`,           action: "Open Sequence",          scope: "kuro", category: "file" },
+  { keys: `${MOD}+S`,           action: "Save now (manual)",      scope: "both", category: "file" },
 
   // Edit
   { keys: `${MOD}+,`,           action: "Preferences",            scope: "both", category: "edit" },
