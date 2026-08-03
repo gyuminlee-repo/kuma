@@ -789,6 +789,21 @@
       ],
       "note": "build_evolvepro_input RPC 4-layer 계약: 조립함수(BuildEvolveproResult 필드) <-> BuildEvolveproInputParams Pydantic <-> dispatcher 등록 <-> handler 응답 dict <-> TS BuildEvolveproInputResult/MismatchedVariant <-> ipc-mame client. 응답 키(mismatched 등) <-> TS 필드명 byte-for-byte 일치 유지",
       "severity": "warning"
+    },
+    {
+      "id": "shared-file-menu",
+      "files": [
+        "src/components/layout/FileMenu.tsx",
+        "src/components/layout/MenuBar.tsx",
+        "src/components/mame/layout/MenuBar.tsx"
+      ],
+      "symbols": [
+        "FileMenu",
+        "menu.file",
+        "menu.edit"
+      ],
+      "note": "File 메뉴는 FileMenu 하나가 그린다. 두 메뉴바는 앱 고유 항목만 extraItems 로 넘긴다. 한쪽 메뉴바만 고치면 v0.13.35.1 처럼 이름만 같고 내용이 갈린다. 라벨 키도 menu.file/menu.edit 로 공유한다.",
+      "severity": "warning"
     }
   ]
 }

@@ -18,19 +18,19 @@ import {
 import { useTheme } from "../ui/ThemeToggle";
 import type { Theme } from "../ui/ThemeToggle";
 import i18next, { setLocale, SUPPORTED_LOCALES } from "../../lib/i18n";
-import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
-import { exportProjectZip, importProjectZip, getConfig, loadProject } from "../../lib/project";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useKumaProject } from "../../state/projectContext";
 import { loadManifestFromFile } from "../../lib/runManifest";
 import { CrashLogDialog } from "../dialogs/CrashLogDialog";
 import {
-  handleOpenSequence,
   executeMigrateAndLoad,
   MIGRATE_DIALOG_CLOSED,
 } from "./export-handlers";
 import { WorkspaceMigrateDialog } from "../dialogs/WorkspaceMigrateDialog";
 import type { MigrateDialogState } from "../dialogs/WorkspaceMigrateDialog";
 import { SubtoolMenuBar } from "./SubtoolMenuBar";
+import { FileMenu } from "./FileMenu";
+import { useProjectArchiveActions } from "@/hooks/useProjectArchiveActions";
 import type { RunManifest } from "../../lib/runManifest";
 import type { InputVerifyResult } from "../../lib/reRun";
 import { ReRunManifestDialog } from "../dialogs/ReRunManifestDialog";
@@ -81,68 +81,7 @@ const THEME_ITEMS: { value: Theme; labelKey: string }[] = [
 ];
 
 interface MenuBarProps {
-  /**
-   * Edit → Clear All 메뉴 항목 클릭 시 호출. AppLayout이 shared
-   * ClearConfirmDialog 열도록 setter 주입.
-   */
-  onClearRequest?: () => void;
-}
 
-export function MenuBar({ onClearRequest }: MenuBarProps = {}) {
-  const { t } = useTranslation();
-  const project = useKumaProject();
-
-  /**
-   * 프로젝트 폴더를 zip 으로 묶는다. 실패는 조용히 넘기지 않고 toast 로 알린다.
-   * 저장 다이얼로그를 취소하면 아무 일도 하지 않는다(오류가 아니다).
-   */
-  const handleExportProjectZip = useCallback(async () => {
-    const projectPath = project?.path;
-    if (!projectPath) return;
-    const defaultName = `${project?.name ?? "kuma-project"}.zip`;
-    try {
-      const target = await saveDialog({
-        defaultPath: defaultName,
-        filters: [{ name: "ZIP", extensions: ["zip"] }],
-      });
-      if (!target) return;
-      const summary = await exportProjectZip(projectPath, target);
-      toast.success(
-        t("file.exportProjectZipDone", {
-          count: summary.file_count,
-          path: summary.path,
-        }),
-      );
-    } catch (err) {
-      toast.error(t("file.exportProjectZipFailed", { detail: String(err) }));
-    }
-  }, [project?.path, project?.name, t]);
-
-  /**
-   * zip 을 프로젝트 루트 아래로 풀고 그대로 연다. 푼 뒤 열지 않으면 사용자가
-   * 폴더를 다시 찾아야 하므로 한 동작으로 잇는다.
-   */
-  const handleImportProjectZip = useCallback(async () => {
-    try {
-      const archive = await openDialog({
-        multiple: false,
-        filters: [{ name: "ZIP", extensions: ["zip"] }],
-      });
-      if (typeof archive !== "string") return;
-      const config = await getConfig();
-      const summary = await importProjectZip(archive, config.projects_root);
-      await loadProject(summary.path);
-      toast.success(
-        t("file.importProjectZipDone", {
-          count: summary.file_count,
-          path: summary.path,
-        }),
-      );
-      window.dispatchEvent(new CustomEvent("kuma:return-to-home"));
-    } catch (err) {
-      toast.error(t("file.importProjectZipFailed", { detail: String(err) }));
-    }
-  }, [t]);
   const isExporting = useAppStore((s) => s.isExporting);
   const isDesigning = useAppStore((s) => s.isDesigning);
   const loadSampleData = useAppStore((s) => s.loadSampleData);
@@ -312,59 +251,35 @@ export function MenuBar({ onClearRequest }: MenuBarProps = {}) {
     }
   }
 
+  // 프로젝트 zip 동작은 두 메뉴바가 같은 훅을 쓴다.
+  const projectArchive = useProjectArchiveActions(project?.path, project?.name);
+
   const menus = (
     <>
-      {/* File 메뉴, 앱명 트리거를 File 로 통일해 mame 메뉴바와 동형으로 맞춘다. */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button className={TRIGGER_CLS}>{t("menu.file")}</button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          <DropdownMenuItem onClick={handleOpenSequence}>
-            <span className="flex-1">{t("file.openSequence")}</span>
-            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}O</kbd>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => window.dispatchEvent(new CustomEvent("kuma:return-to-home"))}
-          >
-            {t("file.openProject")}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          {/*
-            프로젝트 이식. 자동 저장 스냅샷이 폴더 기준 상대 경로를 쓰므로
-            (lib/projectPath.ts) 폴더째 옮기면 다른 PC에서 그대로 이어진다.
-          */}
-          <DropdownMenuItem onClick={() => { void handleExportProjectZip(); }} disabled={!project?.path}>
-            {t("file.exportProjectZip")}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => { void handleImportProjectZip(); }}>
-            {t("file.importProjectZip")}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          {/* §1 Recovery: UI 상태 보존 sidecar 재시작. Zustand 스토어는 메모리에 유지됨 */}
-          <DropdownMenuItem
-            onClick={() => {
-              const busy = isDesigning || isExporting;
-              if (busy && !window.confirm(t("menuBar.restartSidecarBusyConfirm"))) return;
-              void killSidecar("kuro");
-            }}
-            disabled={false}
-          >
-            {t("file.restartSidecar")}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          {/* close() 는 close 핸들러를 타므로 autosave 가 실행된다. destroy() 는 건너뛴다. */}
-          <DropdownMenuItem onClick={() => { void getCurrentWindow().close(); }}>
-            <span className="flex-1">{t("menuBar.appMenu.quit")}</span>
-            <kbd className="ml-4 text-caption text-muted-foreground">{MOD_KEY}Q</kbd>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/*
+        File 메뉴는 FileMenu 가 그린다. 프로젝트 단위 동작은 두 앱이 같아야 하고,
+        따로 두었더니 KURO 에만 프로젝트 zip 이 생겼다.
+        시퀀스 열기는 SequenceInput 의 Browse 버튼과 중복이라 제외했다. 그쪽은 FASTA
+        를 이유와 함께 거부하는데 메뉴 경로는 받아들여서, 두 경로가 다르게 동작했다.
+      */}
+      <FileMenu
+        triggerClassName={TRIGGER_CLS}
+        hasProject={Boolean(project?.path)}
+        sidecar="kuro"
+        restartConfirmMessage={
+          isDesigning || isExporting ? t("menuBar.restartSidecarBusyConfirm") : null
+        }
+        onExportProjectZip={projectArchive.exportZip}
+        onImportProjectZip={projectArchive.importZip}
+        onRestartSidecar={() => { void killSidecar("kuro"); }}
+      />
 
       {/* Edit 메뉴 — Clear All + Preferences 진입점 */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className={TRIGGER_CLS}>{t("menuBar.edit.title")}</button>
+          {/* 두 메뉴바가 같은 라벨 키를 쓴다. 예전에는 menuBar.edit.title 과 menu.edit
+              로 갈려 있어 한쪽만 고치면 조용히 어긋났다. */}
+          <button className={TRIGGER_CLS}>{t("menu.edit")}</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem
