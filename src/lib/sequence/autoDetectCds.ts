@@ -8,8 +8,26 @@ export interface CdsCandidate {
   start: number;     // 0-based inclusive
   end: number;       // 0-based exclusive
   source: "genbank-cds" | "fasta-orf";
-  label?: string;    // GenBank: gene/product name; FASTA: "ORF1", "ORF2", ...
+  label?: string;    // GenBank: gene/locus/product; FASTA: "ORF1", "ORF2", ...
   aa_length: number; // (end - start - 3) / 3 (excluding stop codon)
+  /** Annotation-derived gene identifier. Set only for GenBank/SnapGene CDS
+   *  features: prefers /gene=, then /locus_tag=, then /product=. Blank and
+   *  "unknown" values are ignored. FASTA ORF candidates leave this unset so
+   *  the UI requires an explicit name. */
+  gene_name?: string;
+}
+
+/** Return the first usable gene, locus-tag, or product annotation. */
+export function deriveAnnotationGeneName(
+  gene?: string,
+  locusTag?: string,
+  product?: string,
+): string | undefined {
+  for (const value of [gene, locusTag, product]) {
+    const normalized = value?.trim();
+    if (normalized && normalized.toLowerCase() !== "unknown") return normalized;
+  }
+  return undefined;
 }
 
 // Minimum ORF length in amino acids for FASTA ORF detection
@@ -18,7 +36,7 @@ const MIN_AA_LENGTH = 30;
 /**
  * Extract all CDS/ORF candidates from a sequence file content.
  *
- * GenBank: parses all CDS features (skips join() constructs) with /gene= and /product= labels.
+ * GenBank: parses all CDS features (skips join() constructs) with gene/locus/product labels.
  * FASTA: searches all 3 forward frames for ATG~stop ORFs, filters by MIN_AA_LENGTH.
  * GenBank candidates are returned first when both types are present.
  */
@@ -78,6 +96,7 @@ function parseGenbankCds(content: string): CdsCandidate[] {
       // Scan forward for qualifiers (stop at next feature)
       let gene: string | undefined;
       let product: string | undefined;
+      let locusTag: string | undefined;
       let j = i + 1;
       let currentQual: string | null = null;
       let currentVal = "";
@@ -91,6 +110,7 @@ function parseGenbankCds(content: string): CdsCandidate[] {
         if (qualMatch) {
           // Save previous accumulated qualifier
           if (currentQual === "gene") gene = currentVal;
+          else if (currentQual === "locus_tag") locusTag = currentVal;
           else if (currentQual === "product") product = currentVal;
 
           currentQual = qualMatch[1];
@@ -98,6 +118,7 @@ function parseGenbankCds(content: string): CdsCandidate[] {
           // Check if value is complete (ends with ")
           if (qLine.trimEnd().endsWith('"')) {
             if (currentQual === "gene") gene = currentVal;
+            else if (currentQual === "locus_tag") locusTag = currentVal;
             else if (currentQual === "product") product = currentVal;
             currentQual = null;
             currentVal = "";
@@ -109,6 +130,7 @@ function parseGenbankCds(content: string): CdsCandidate[] {
             currentVal += " " + contMatch[1].trim().replace(/"$/, "");
             if (qLine.trimEnd().endsWith('"')) {
               if (currentQual === "gene") gene = currentVal;
+              else if (currentQual === "locus_tag") locusTag = currentVal;
               else if (currentQual === "product") product = currentVal;
               currentQual = null;
               currentVal = "";
@@ -120,10 +142,18 @@ function parseGenbankCds(content: string): CdsCandidate[] {
 
       // Flush last qualifier if not closed
       if (currentQual === "gene") gene = currentVal;
+      else if (currentQual === "locus_tag") locusTag = currentVal;
       else if (currentQual === "product") product = currentVal;
 
-      const label = gene ?? product;
-      candidates.push({ start, end, source: "genbank-cds", label, aa_length: aaLength });
+      const geneName = deriveAnnotationGeneName(gene, locusTag, product);
+      candidates.push({
+        start,
+        end,
+        source: "genbank-cds",
+        label: geneName,
+        aa_length: aaLength,
+        gene_name: geneName,
+      });
       i = j;
       continue;
     }

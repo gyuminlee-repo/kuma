@@ -20,8 +20,8 @@ export interface GenerateMamePackageParams {
   output_dir: string
   /** Project root for mame_context.json. */
   project_root: string
-  /** Gene name used in output filenames. Default: "egfp". */
-  gene_name?: string
+  /** Input-derived or explicitly entered gene name used in output filenames. */
+  gene_name: string
   /** Polymerase preset for Tm calculation. Default: "Q5". */
   polymerase?: string
   /** Minimum flank length (nt). Default: 100. */

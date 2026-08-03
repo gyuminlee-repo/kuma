@@ -70,6 +70,21 @@ describe("autoDetectCdsCandidates — GenBank multi-CDS", () => {
     expect(results[1]).toMatchObject({ start: 499, end: 800, label: "geneB" });
   });
 
+  it("uses locus_tag when gene is unavailable", () => {
+    const content = [
+      "LOCUS test",
+      "     CDS             100..400",
+      '                     /gene="unknown"',
+      '                     /locus_tag="LT_001"',
+      '                     /product="Target protein"',
+    ].join("\n");
+
+    expect(autoDetectCdsCandidates(content)[0]).toMatchObject({
+      label: "LT_001",
+      gene_name: "LT_001",
+    });
+  });
+
   it("aa_length 계산 (stop codon 제외)", () => {
     // 100..400 → end-start = 301 nt → (301 - 3) / 3 = 99 aa (excluding stop)
     const content = "     CDS             100..400\n";

@@ -14,9 +14,12 @@ Required
   barcode_seeds_path   (str) -- path to barcode seeds xlsx (fwd_1..12, rev_1..8)
   output_dir           (str) -- destination directory for outputs
   project_root         (str) -- project root for mame_context.json
+  gene_name            (str) -- gene identifier for output filenames/labels;
+                         annotated inputs auto-fill this from /gene=,
+                         /locus_tag=, or /product=; plain FASTA requires explicit
+                         entry (no default — omit or blank raises ValueError)
 
 Optional
-  gene_name            (str,   default "egfp")
   polymerase           (str,   default "Q5")
   flank_min            (int,   default 100)
   flank_max            (int,   default 400)
@@ -124,16 +127,14 @@ def handle_generate_mame_package(params: dict) -> dict:
             f"gene_start and gene_end must be integers: {exc}"
         ) from exc
 
-    # Optional parameters
-    # gene_name: required to be a non-empty string when present. The UI seeds
-    # a default ("egfp") in the input panel, so empty here implies the user
-    # explicitly cleared it. Silently substituting a hardcoded literal would
-    # mislead operators expecting their typed gene name to flow through.
-    gene_name_raw = params.get("gene_name", "egfp")
+    # gene_name is required. The UI supplies it from annotation autofill or
+    # explicit user entry; a fixed fallback would mislabel other targets.
+    gene_name_raw = params.get("gene_name")
     if gene_name_raw is None or str(gene_name_raw).strip() == "":
         raise ValueError(
-            "gene_name must be a non-empty string; received empty value. "
-            "Type a gene name in the Project metadata panel before generating."
+            "gene_name is required and must be a non-empty string. "
+            "Annotated inputs (GenBank/SnapGene) auto-fill this field; "
+            "plain FASTA requires an explicit entry in the Project metadata panel."
         )
     gene_name: str = str(gene_name_raw).strip()
     polymerase: str = str(params.get("polymerase", "Q5"))

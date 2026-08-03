@@ -13,8 +13,11 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { CheckCircle2, FolderOpen, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { autoDetectCdsCandidates } from "@/lib/sequence/autoDetectCds";
-import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
+import {
+  autoDetectCdsCandidates,
+  deriveAnnotationGeneName,
+  type CdsCandidate,
+} from "@/lib/sequence/autoDetectCds";
 import type { SequenceInfo } from "@/types/models";
 import type { VariantSourceInfo } from "@/types/mame/barcode_package";
 import { useKumaProject } from "@/state/projectContext";
@@ -223,7 +226,14 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
         for (const c of candidates) {
           if (c.aa_length > best.aa_length) best = c;
         }
-        setForm({ geneStart: String(best.start), geneEnd: String(best.end) });
+        const update: Partial<SetupFormState> = {
+          geneStart: String(best.start),
+          geneEnd: String(best.end),
+        };
+        if (best.source === "genbank-cds") {
+          update.geneName = best.gene_name ?? "";
+        }
+        setForm(update);
       }
     }
 
@@ -236,17 +246,21 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
       rpc<SequenceInfo>("kuro", "load_fasta", { filepath: form.fastaPath })
         .then((info) => {
           if (cancelled) return;
-          const candidates: CdsCandidate[] = info.genes.map((g) => ({
-            start: g.cds_start,
-            end: g.cds_end,
-            source: "genbank-cds",
-            label: g.gene || g.product || undefined,
-            // The sidecar counts the stop codon as a residue ((end-start)/3),
-            // while CdsCandidate excludes it, matching parseGenbankCds and
-            // parseFastaOrfs in autoDetectCds.ts. Recompute so annotated and
-            // ORF-derived candidates report the same protein length.
-            aa_length: Math.floor((g.cds_end - g.cds_start - 3) / 3),
-          }));
+          const candidates: CdsCandidate[] = info.genes.map((g) => {
+            const geneName = deriveAnnotationGeneName(g.gene, undefined, g.product);
+            return {
+              start: g.cds_start,
+              end: g.cds_end,
+              source: "genbank-cds",
+              label: geneName,
+              // The sidecar counts the stop codon as a residue ((end-start)/3),
+              // while CdsCandidate excludes it, matching parseGenbankCds and
+              // parseFastaOrfs in autoDetectCds.ts. Recompute so annotated and
+              // ORF-derived candidates report the same protein length.
+              aa_length: Math.floor((g.cds_end - g.cds_start - 3) / 3),
+              gene_name: geneName,
+            };
+          });
           applyBest(candidates);
           setSeqLength(info.seq_length);
         })
@@ -289,6 +303,9 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
     setForm({
       fastaPath: samplePrefill.fastaPath,
       barcodeSeedsPath: samplePrefill.barcodeSeedsPath,
+      geneStart: "",
+      geneEnd: "",
+      geneName: "",
     });
     consumeSamplePrefill();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -310,7 +327,7 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
   useEffect(() => {
     if (!sharedFastaPath) return;
     if (form.fastaPath) return;
-    setForm({ fastaPath: sharedFastaPath });
+    setForm({ fastaPath: sharedFastaPath, geneStart: "", geneEnd: "", geneName: "" });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sharedFastaPath]);
 
@@ -358,7 +375,9 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
         title: "Select CDS sequence file",
       }),
     );
-    if (selected) setForm({ fastaPath: selected });
+    if (selected) {
+      setForm({ fastaPath: selected, geneStart: "", geneEnd: "", geneName: "" });
+    }
   }, []);
 
   const browseBarcodeSeeds = useCallback(async () => {
@@ -437,6 +456,7 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
     const check = validateGenerateBarcodePackage({
       fastaPath: form.fastaPath,
       barcodeSeedsPath: form.barcodeSeedsPath,
+      geneName: form.geneName,
       geneStart: form.geneStart,
       geneEnd: form.geneEnd,
       isRangeValid,
@@ -480,7 +500,7 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
       barcode_seeds_path: form.barcodeSeedsPath,
       output_dir: destDir,
       project_root: project.path,
-      gene_name: form.geneName || undefined,
+      gene_name: form.geneName.trim(),
       polymerase: form.polymerase,
       flank_min: optInt(form.flankMin),
       flank_max: optInt(form.flankMax),
@@ -586,7 +606,12 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
             <FileField
               label={t("mame.barcodeSetup.cdsFasta")}
               value={form.fastaPath}
-              onChange={(v) => setForm({ fastaPath: v })}
+              onChange={(v) => setForm({
+                fastaPath: v,
+                geneStart: "",
+                geneEnd: "",
+                geneName: "",
+              })}
               onBrowse={browseFasta}
               placeholder={t("mame.barcodeSetup.cdsFastaPlaceholder")}
               stateLabel={t("mame.barcodeSetup.requiredStateLabel")}
@@ -642,7 +667,14 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
                   setSelectedCdsIndex(i);
                   const cand = cdsCandidates[i];
                   if (cand) {
-                    setForm({ geneStart: String(cand.start), geneEnd: String(cand.end) });
+                    const selUpdate: Partial<SetupFormState> = {
+                      geneStart: String(cand.start),
+                      geneEnd: String(cand.end),
+                    };
+                    if (cand.source === "genbank-cds") {
+                      selUpdate.geneName = cand.gene_name ?? "";
+                    }
+                    setForm(selUpdate);
                   }
                 }}
               >
@@ -784,7 +816,6 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
                 id="gene-name"
                 value={form.geneName}
                 onChange={(e) => setForm({ geneName: e.target.value })}
-                placeholder="egfp"
                 className="h-8 text-xs font-mono"
               />
             </div>

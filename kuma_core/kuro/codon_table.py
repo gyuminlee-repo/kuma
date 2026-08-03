@@ -140,6 +140,24 @@ def get_codon_table(
     return _registry.get_codon_table(organism)
 
 
+def resolve_organism_key(annotation: str | None) -> str | None:
+    """Resolve a sequence annotation to a canonical supported organism key.
+
+    Returns the canonical key (e.g. ``"ecoli"``) when *annotation* maps to a
+    known alias, or ``None`` for blank or unsupported values.  Side-effect-free.
+
+    Args:
+        annotation: Raw organism annotation string (e.g. ``"Escherichia coli"``).
+
+    Returns:
+        Canonical organism key or ``None``.
+    """
+    if not annotation or not annotation.strip():
+        return None
+    key = annotation.strip().lower()
+    return _ORGANISM_ALIASES.get(key)
+
+
 def best_codon(aa: str, organism: str = "ecoli") -> str:
     """Return the most frequently used codon for an amino acid.
 

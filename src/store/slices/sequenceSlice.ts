@@ -83,6 +83,7 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
 
       set({
         ...(invalidateResults ? buildKuroResultResetPatch() : {}),
+        ...(bestGene?.organism_key ? { organism: bestGene.organism_key } : {}),
         fastaPath: filepath,
         seqInfo: info,
         selectedGene: selectedKey,
@@ -183,6 +184,9 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
     const { seqInfo, organism } = get();
     const g = seqInfo?.genes.find((g) => String(g.cds_start) === gene);
     if (g) {
+      if (g.organism_key) {
+        set({ organism: g.organism_key });
+      }
       const knownAcc = g.uniprot_accession ?? "";
       const translation = g.translation ?? "";
       if (knownAcc) {

@@ -339,118 +339,110 @@ class TestBadNotation:
 
 
 # ---------------------------------------------------------------------------
-# Scenario 7: no-ref_seq  (OQ-④: auto-load IspS fallback)
+# Scenario 7: missing ref_seq — fail-closed for non-WT replicate data
 # ---------------------------------------------------------------------------
 
-# Real EGFP AA at position 89 (index 88) as returned by get_egfp_wt_aa_seq().
-# Derived from fixtures/ispS.fa; used to seed the round with a realistic mutation.
-_ISPS_AA89 = None  # resolved lazily in _seed_round_isps()
 
+class TestMissingRefSeq:
+    """Non-WT replicate data without ref_seq fails clearly (ValueError)."""
 
-def _get_isps_aa89() -> str:
-    """Return the actual IspS WT AA at 1-based position 89 (index 88)."""
-    from kuma_core.mame.activity.ref_seq import get_egfp_wt_aa_seq
-    return get_egfp_wt_aa_seq()[88]
-
-
-def _seed_round_isps(round_id: str = "round_isps") -> str:
-    """Seed a round using the real IspS position-89 AA. Returns mutation string."""
-    wt_aa = _get_isps_aa89()
-    mutation = f"{wt_aa}89W"
-    _rounds[round_id] = {
-        "n": 1,
-        "plate_meta": {
-            "plates": [
-                {"plate_id": "P01", "wt_wells": ["A01"], "control_wells": []}
-            ]
-        },
-        "design": {
-            "plateMap": [
-                {"plate_id": "P01", "well_id": "B03", "mutation": mutation},
-            ]
-        },
-        "genotype": {
-            "verdict": [
-                {"plate_id": "P01", "well_id": "B03", "called_mutation": mutation},
-            ]
-        },
-        "activity": {
-            "raw_records": [
-                {
-                    "plate_id": "P01", "well_id": "A01",
-                    "value": 1.0, "replicate_idx": 1,
-                    "is_wt": True, "source_file": "act.csv",
-                },
-                {
-                    "plate_id": "P01", "well_id": "B03",
-                    "value": 2.0, "replicate_idx": 1,
-                    "is_wt": False, "source_file": "act.csv",
-                },
-            ]
-        },
-        "merged_table": [],
-        "status": "ngs_done",
-    }
-    return mutation
-
-
-class TestNoRefSeq:
-    """OQ-④: ref_seq omission triggers IspS auto-load; explicit failure tested via monkeypatch."""
-
-    def test_missing_ref_seq_auto_loads_isps(self):
-        """No ref_seq → get_egfp_wt_aa_seq() called automatically → success."""
-        from kuma_core.mame.activity.ref_seq import get_egfp_wt_aa_seq
-        get_egfp_wt_aa_seq.cache_clear()
-        mutation = _seed_round_isps()
-        res = handle_merge_for_evolvepro({
-            "round_id": "round_isps",
-            "prev_round_evolvepro": {},
-            "authoritative_measurements": {"89W": [1.2, 1.3]},
-            # ref_seq intentionally omitted → auto-load
-        })
-        assert res["replicate_stats"] is not None
-        assert res["replicate_stats"]["authoritative_count"] == 1
-        get_egfp_wt_aa_seq.cache_clear()
-
-    def test_explicit_none_ref_seq_auto_loads_isps(self):
-        """ref_seq=None → same auto-load path as omission."""
-        from kuma_core.mame.activity.ref_seq import get_egfp_wt_aa_seq
-        get_egfp_wt_aa_seq.cache_clear()
-        _seed_round_isps()
-        res = handle_merge_for_evolvepro({
-            "round_id": "round_isps",
-            "prev_round_evolvepro": {},
-            "authoritative_measurements": {"89W": [1.0]},
-            "ref_seq": None,
-        })
-        assert res["replicate_stats"] is not None
-        get_egfp_wt_aa_seq.cache_clear()
-
-    def test_auto_load_failure_raises_value_error_with_message(self, monkeypatch):
-        """When get_egfp_wt_aa_seq raises, ValueError includes 'EGFP auto-load failed'.
-
-        The handler uses a lazy "from ... import get_egfp_wt_aa_seq" inside the
-        function body.  Patching sys.modules ensures the function call inside the
-        handler sees the mock regardless of import timing.
-        """
-        import sys
-        import kuma_core.mame.activity.ref_seq as ref_seq_module
-
-        def _raise(*a, **kw):
-            raise FileNotFoundError("mocked missing file")
-
-        # Patch the module attribute so the lazy import inside the handler gets
-        # the mock (handler calls get_egfp_wt_aa_seq() after importing it from
-        # the module at call time).
-        monkeypatch.setattr(ref_seq_module, "get_egfp_wt_aa_seq", _raise)
-        # Also ensure the module cached in sys.modules is the patched one.
-        sys.modules["kuma_core.mame.activity.ref_seq"] = ref_seq_module
+    def test_missing_ref_seq_raises_value_error(self):
+        """No ref_seq with non-WT measurement → ValueError (-32602)."""
         _seed_round()
-        with pytest.raises(ValueError, match="EGFP auto-load failed"):
+        with pytest.raises(ValueError, match="ref_seq is required"):
+            handle_merge_for_evolvepro({
+                "round_id": "round_1",
+                "prev_round_evolvepro": {},
+                "authoritative_measurements": {"89W": [1.2, 1.3]},
+                # ref_seq intentionally omitted
+            })
+
+    def test_none_ref_seq_raises_value_error(self):
+        """ref_seq=None with non-WT measurement → ValueError (-32602)."""
+        _seed_round()
+        with pytest.raises(ValueError, match="ref_seq is required"):
             handle_merge_for_evolvepro({
                 "round_id": "round_1",
                 "prev_round_evolvepro": {},
                 "authoritative_measurements": {"89W": [1.0]},
+                "ref_seq": None,
+            })
+
+    def test_empty_ref_seq_raises_value_error(self):
+        """ref_seq="" (empty string) with non-WT measurement → ValueError (-32602)."""
+        _seed_round()
+        with pytest.raises(ValueError, match="ref_seq is required"):
+            handle_merge_for_evolvepro({
+                "round_id": "round_1",
+                "prev_round_evolvepro": {},
+                "authoritative_measurements": {"89W": [1.0]},
+                "ref_seq": "",
+            })
+
+    def test_whitespace_only_ref_seq_raises_value_error(self):
+        """ref_seq containing only whitespace is treated as missing."""
+        _seed_round()
+        with pytest.raises(ValueError, match="ref_seq is required"):
+            handle_merge_for_evolvepro({
+                "round_id": "round_1",
+                "prev_round_evolvepro": {},
+                "authoritative_measurements": {"89W": [1.0]},
+                "ref_seq": "   ",
+            })
+
+    def test_explicit_ref_seq_succeeds(self):
+        """Explicit non-empty ref_seq is trimmed and accepted."""
+        _seed_round()
+        res = handle_merge_for_evolvepro({
+            "round_id": "round_1",
+            "prev_round_evolvepro": {},
+            "authoritative_measurements": {"89W": [1.2, 1.3]},
+            "ref_seq": f"  {REF_SEQ}  ",
+        })
+        assert res["replicate_stats"] is not None
+        assert res["replicate_stats"]["authoritative_count"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Scenario 7b: WT-only measurements do not require ref_seq
+# ---------------------------------------------------------------------------
+
+
+class TestWtOnlyMeasurements:
+    """WT-only measurement keys are filtered; no non-WT data → ref_seq not required."""
+
+    def test_wt_only_authoritative_no_ref_seq_required(self):
+        """authoritative with only WT keys and no ref_seq → not an error."""
+        _seed_round()
+        res = handle_merge_for_evolvepro({
+            "round_id": "round_1",
+            "prev_round_evolvepro": {},
+            "authoritative_measurements": {"WT": [1.0, 1.1], "WT_1": [0.9]},
+            # ref_seq intentionally omitted — must not raise
+        })
+        # All WT keys filtered → no replicate merge → replicate_stats is null.
+        assert res["replicate_stats"] is None
+
+    def test_wt_only_fallback_no_ref_seq_required(self):
+        """fallback with only WT keys and no ref_seq → not an error."""
+        _seed_round()
+        res = handle_merge_for_evolvepro({
+            "round_id": "round_1",
+            "prev_round_evolvepro": {},
+            "authoritative_measurements": {},
+            "fallback_measurements": {"WT": [1.0]},
+            # ref_seq intentionally omitted — must not raise
+        })
+        assert res["replicate_stats"] is None
+
+    def test_mixed_wt_and_non_wt_requires_ref_seq(self):
+        """Mixed WT + non-WT keys: after WT filtering non-WT remains → ref_seq required."""
+        _seed_round()
+        with pytest.raises(ValueError, match="ref_seq is required"):
+            handle_merge_for_evolvepro({
+                "round_id": "round_1",
+                "prev_round_evolvepro": {},
+                "authoritative_measurements": {"WT": [1.0], "89W": [1.2]},
                 # ref_seq intentionally omitted
             })
 

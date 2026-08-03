@@ -451,6 +451,7 @@ class TestGenerateMamePackage:
             barcode_seeds_path=seeds,
             output_dir=project_root / "design",
             project_root=project_root,
+            gene_name="test_gene",
         )
         assert isinstance(result.warnings, list)
 
@@ -466,6 +467,7 @@ class TestGenerateMamePackage:
             barcode_seeds_path=seeds,
             output_dir=output_dir,
             project_root=project_root,
+            gene_name="test_gene",
         )
 
         wb = openpyxl.load_workbook(str(result.barcodes_xlsx), read_only=True)
@@ -495,6 +497,7 @@ class TestGenerateMamePackage:
             barcode_seeds_path=seeds,
             output_dir=output_dir,
             project_root=project_root,
+            gene_name="test_gene",
         )
 
         ctx = json.loads(result.context_json.read_text(encoding="utf-8"))
@@ -522,6 +525,7 @@ class TestGenerateMamePackage:
                 barcode_seeds_path=seeds,
                 output_dir=output_dir,
                 project_root=project_root,
+                gene_name="test_gene",
             )
 
         assert result.barcodes_xlsx.exists()
@@ -541,6 +545,7 @@ class TestGenerateMamePackage:
                 barcode_seeds_path=seeds,
                 output_dir=output_dir,
                 project_root=project_root,
+                gene_name="test_gene",
             )
 
     def test_fasta_not_found_raises(self, tmp_path: Path) -> None:
@@ -556,6 +561,7 @@ class TestGenerateMamePackage:
                 barcode_seeds_path=seeds,
                 output_dir=project_root / "design",
                 project_root=project_root,
+                gene_name="test_gene",
             )
 
     def test_gene_name_flows_to_row_names_and_filename(self, tmp_path: Path) -> None:
@@ -576,15 +582,15 @@ class TestGenerateMamePackage:
             barcode_seeds_path=seeds,
             output_dir=output_dir,
             project_root=project_root,
-            gene_name="MYGENE",
+            gene_name="../MY GENE",
         )
 
-        # Amplicon FASTA filename + header must use the gene name.
-        assert result.amplicon_fa.name == "MYGENE_amplicon.fa"
+        # Filename and FASTA header use the same safe normalized prefix.
+        assert result.amplicon_fa.name == "my_gene_amplicon.fa"
         header = result.amplicon_fa.read_text(encoding="utf-8").splitlines()[0]
-        assert header.startswith(">MYGENE_amplicon")
+        assert header.startswith(">my_gene_amplicon")
 
-        # Barcode xlsx rows must use the sanitized gene prefix (mygene_f_*, mygene_r_*).
+        # Barcode xlsx rows use the same safe gene prefix.
         wb = openpyxl.load_workbook(str(result.barcodes_xlsx), read_only=True)
         try:
             ws = wb.worksheets[0]
@@ -592,8 +598,8 @@ class TestGenerateMamePackage:
         finally:
             wb.close()
         names = [str(r[0]) for r in rows[1:] if r[0] is not None]
-        assert "mygene_f_1" in names
-        assert "mygene_r_8" in names
+        assert "my_gene_f_1" in names
+        assert "my_gene_r_8" in names
         assert not any(n.startswith("isps_") for n in names)
 
         # Reader must still parse the custom-prefix xlsx into the 96-well map.
@@ -663,6 +669,7 @@ class TestSampleMapTemplatePrefill:
             barcode_seeds_path=seeds,
             output_dir=project_root / "design",
             project_root=project_root,
+            gene_name="test_gene",
         )
         assert result.sample_map_prefilled_rows == 0
         assert _read_sample_map(result.sample_map_template) == []
@@ -683,6 +690,7 @@ class TestSampleMapTemplatePrefill:
             barcode_seeds_path=seeds,
             output_dir=project_root / "design",
             project_root=project_root,
+            gene_name="test_gene",
             expected_mutations_path=expected_xlsx,
         )
 
@@ -708,6 +716,7 @@ class TestSampleMapTemplatePrefill:
             barcode_seeds_path=seeds,
             output_dir=project_root / "design",
             project_root=project_root,
+            gene_name="test_gene",
             expected_mutations_path=expected_xlsx,
         )
         assert any("pre-filled" in w and "Verify" in w for w in result.warnings)
@@ -730,6 +739,7 @@ class TestSampleMapTemplatePrefill:
             barcode_seeds_path=seeds,
             output_dir=project_root / "design",
             project_root=project_root,
+            gene_name="test_gene",
             expected_mutations_path=expected_xlsx,
         )
 
@@ -749,6 +759,7 @@ class TestSampleMapTemplatePrefill:
                 barcode_seeds_path=seeds,
                 output_dir=project_root / "design",
                 project_root=project_root,
+                gene_name="test_gene",
                 expected_mutations_path=project_root / "does_not_exist.xlsx",
             )
 
@@ -765,6 +776,7 @@ class TestSampleMapTemplatePrefill:
                 barcode_seeds_path=seeds,
                 output_dir=project_root / "design",
                 project_root=project_root,
+                gene_name="test_gene",
                 expected_mutations_path=expected_xlsx,
             )
 
@@ -783,6 +795,7 @@ class TestSampleMapTemplatePrefill:
             barcode_seeds_path=seeds,
             output_dir=output_dir,
             project_root=project_root,
+            gene_name="test_gene",
             expected_mutations_path=expected_xlsx,
         )
         assert first.sample_map_preserved is False
@@ -800,6 +813,7 @@ class TestSampleMapTemplatePrefill:
             barcode_seeds_path=seeds,
             output_dir=output_dir,
             project_root=project_root,
+            gene_name="test_gene",
             expected_mutations_path=expected_xlsx,
         )
         assert second.sample_map_preserved is True
@@ -821,6 +835,7 @@ class TestSampleMapTemplatePrefill:
             barcode_seeds_path=seeds,
             output_dir=output_dir,
             project_root=project_root,
+            gene_name="test_gene",
         )  # header-only template
 
         result = generate_mame_package(
@@ -830,6 +845,7 @@ class TestSampleMapTemplatePrefill:
             barcode_seeds_path=seeds,
             output_dir=output_dir,
             project_root=project_root,
+            gene_name="test_gene",
             expected_mutations_path=expected_xlsx,
         )
         assert result.sample_map_preserved is False
@@ -855,6 +871,7 @@ class TestSampleMapTemplatePrefill:
                 barcode_seeds_path=seeds,
                 output_dir=project_root / "design",
                 project_root=project_root,
+                gene_name="test_gene",
                 expected_mutations_path=expected_xlsx,
             )
 
@@ -873,5 +890,6 @@ class TestSampleMapTemplatePrefill:
                 barcode_seeds_path=seeds,
                 output_dir=project_root / "design",
                 project_root=project_root,
+                gene_name="test_gene",
                 expected_mutations_path=expected_xlsx,
             )

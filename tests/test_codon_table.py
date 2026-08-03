@@ -13,6 +13,7 @@ from kuma_core.kuro.codon_table import (
     codon_to_aa,
     get_codon_table,
     mt_codons_for_design,
+    resolve_organism_key,
 )
 
 
@@ -160,6 +161,33 @@ class TestMtCodonsForDesign:
         # Both should encode A
         assert codon_to_aa(ecoli_codons[0]) == "A"
         assert codon_to_aa(yeast_codons[0]) == "A"
+
+
+class TestResolveOrganismKey:
+    @pytest.mark.parametrize(
+        ("annotation", "expected"),
+        [
+            ("ecoli", "ecoli"),
+            (" E. coli ", "ecoli"),
+            ("Escherichia coli", "ecoli"),
+            ("Bacillus subtilis", "bsubtilis"),
+            ("Saccharomyces cerevisiae", "scerevisiae"),
+            ("Homo sapiens", "hsapiens"),
+        ],
+    )
+    def test_supported_annotation_resolves_to_canonical_key(
+        self, annotation: str, expected: str
+    ):
+        assert resolve_organism_key(annotation) == expected
+
+    @pytest.mark.parametrize(
+        "annotation",
+        [None, "", "   ", "synthetic construct", "unknown organism"],
+    )
+    def test_unsupported_or_blank_annotation_returns_none(
+        self, annotation: str | None
+    ):
+        assert resolve_organism_key(annotation) is None
 
 
 class TestCodonTableRegistry:

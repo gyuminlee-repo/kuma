@@ -292,27 +292,19 @@
       "files": [
         "python-core/sidecar_mame/handlers/activity.py",
         "src/types/mame/activity.ts",
-        "src/store/mame/activitySlice.ts"
+        "src/store/mame/activitySlice.ts",
+        "src/components/mame/panels/ActivityPanel.tsx",
+        "src/store/slices/sequenceSlice.ts"
       ],
       "symbols": [
         "handle_merge_for_evolvepro",
         "MergeForEvolveproParams",
         "MergeForEvolveproResponse",
-        "mergeForEvolvepro"
+        "mergeForEvolvepro",
+        "selectedGene",
+        "translation"
       ],
-      "note": "merge_for_evolvepro 핸들러 ↔ TS params/response ↔ store action",
-      "severity": "blocking"
-    },
-    {
-      "id": "mame-ref-seq-fallback",
-      "files": [
-        "kuma_core/mame/activity/ref_seq.py",
-        "fixtures/egfp.fa"
-      ],
-      "symbols": [
-        "DEFAULT_EGFP_CDS_PATH"
-      ],
-      "note": "DEFAULT_EGFP_CDS_PATH 기본 fallback이 fixtures/egfp.fa 존재 가정 (coding-frame nucleotide)",
+      "note": "merge_for_evolvepro handler ↔ TS params/response ↔ MAME store action ↔ selected KURO CDS translation forwarded by ActivityPanel",
       "severity": "blocking"
     },
     {
@@ -497,15 +489,19 @@
       "files": [
         "kuma_core/mame/ingest/barcode_package.py",
         "python-core/sidecar_mame/handlers/barcode_package.py",
-        "src/types/mame/barcode_package.ts"
+        "src/types/mame/barcode_package.ts",
+        "src/components/mame/panels/BarcodeSetupPanel.tsx",
+        "src/lib/sequence/autoDetectCds.ts",
+        "src/store/validation.ts"
       ],
       "symbols": [
         "generate_mame_package",
         "design_flanking_primers",
         "GenerateMamePackageParams",
-        "MamePackageResult"
+        "MamePackageResult",
+        "gene_name"
       ],
-      "note": "generate_mame_package/design_flanking_primers params ↔ handler dict ↔ TS interfaces ↔ dispatcher 등록",
+      "note": "generate_mame_package requires an input-derived or explicit gene_name across CDS detection, UI validation, handler dict, core API, and TS interfaces",
       "severity": "blocking"
     },
     {
@@ -712,6 +708,22 @@
       ],
       "severity": "blocking",
       "note": "MAME parse_reference가 KURO load_sequence/load_fasta를 재사용하면 KURO 정책 변경이 MAME로 cascade. ingest.py가 KURO 모듈 import 시 함께 검토 필요."
+    },
+    {
+      "id": "kuro-sequence-organism-annotation",
+      "files": [
+        "kuma_core/kuro/codon_table.py",
+        "python-core/sidecar_kuro/handlers/sequence.py",
+        "src/types/models.ts",
+        "src/store/slices/sequenceSlice.ts",
+        "src/components/panels/InputPanel/SequenceInput.tsx"
+      ],
+      "symbols": [
+        "resolve_organism_key",
+        "organism_key"
+      ],
+      "note": "Input organism annotation resolves to a backend-owned supported codon-table key; unsupported annotations preserve the user's explicit selection.",
+      "severity": "blocking"
     },
     {
       "id": "mutation-input-mode-enum",

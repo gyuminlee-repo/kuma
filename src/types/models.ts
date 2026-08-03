@@ -49,6 +49,7 @@ export interface GeneInfo {
   cds_end: number;
   aa_length: number;
   organism?: string;
+  organism_key?: string | null;
   translation?: string;
   uniprot_accession?: string;
 }

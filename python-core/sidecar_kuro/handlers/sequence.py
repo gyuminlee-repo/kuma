@@ -1,7 +1,8 @@
 """Handlers: FASTA loading and mutation text parsing."""
 
-from kuma_core.kuro.sdm_engine import load_sequence
+from kuma_core.kuro.codon_table import resolve_organism_key
 from kuma_core.kuro.mutation import parse_mutation_notation
+from kuma_core.kuro.sdm_engine import load_sequence
 
 import sidecar_kuro.core as _core
 from sidecar_kuro.core import (
@@ -36,6 +37,7 @@ def handle_load_fasta(params: dict) -> dict:
                 "cds_end": g.cds_end,
                 "aa_length": g.aa_length,
                 "organism": g.organism,
+                "organism_key": resolve_organism_key(g.organism),
                 "translation": g.translation,
                 "uniprot_accession": g.uniprot_accession,
             }
