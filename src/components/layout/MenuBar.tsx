@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useAppStore } from "../../store/appStore";
 import { generateDiagnosticsBundle } from "../../lib/diagnostics";
 import { revealInOSFolder } from "../../lib/openFolder";
+import { flushAutosave, type AutosaveTarget } from "../../lib/autosave";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -167,13 +168,55 @@ export function MenuBar({ onClearRequest }: MenuBarProps = {}) {
 
   const [reRunVerify, setReRunVerify] = useState<InputVerifyResult | null>(null);
 
+  /**
+   * Ctrl/Cmd+S 수동 저장. 기존 자동 저장(디바운스 1.5초) 기계를 그대로 재사용한다.
+   * kuro/mame 두 kind 를 모두 flush하는 이유: 이 메뉴바는 항상 kuro 화면에서만
+   * 마운트되지만(Radix Tabs가 비활성 탭 콘텐츠를 unmount), 수동 저장 단축키의
+   * 의도는 "현재 프로젝트 상태 전체"를 확정하는 것이다. flushAutosave는 대상이
+   * 없거나(scratch+fallback 없음) 큐에 pending 변경이 없으면 조용히 no-op이므로
+   * 두 kind를 항상 함께 flush해도 안전하고, mame 탭으로 돌아갔을 때도 최신 상태가
+   * 보장된다. 재진입 가드는 두지 않는다: autosave.ts의 kind별 직렬 큐
+   * (inFlight/pending)가 이미 동시 write를 막는다.
+   */
+  const handleManualSave = useCallback(async () => {
+    const target: AutosaveTarget = {
+      projectPath: project?.path ?? null,
+      scratch: project?.scratch ?? true,
+      scratchFallback: true,
+    };
+    try {
+      await Promise.all([
+        flushAutosave(target, "kuro"),
+        flushAutosave(target, "mame"),
+      ]);
+      toast.success(
+        t("file.manualSaveDone", { time: new Date().toLocaleTimeString() }),
+      );
+    } catch (err) {
+      toast.error(
+        t("file.manualSaveFailed", {
+          detail: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    }
+  }, [project?.path, project?.scratch, t]);
+
   // §D3.5: View 메뉴 단축키 (Ctrl/Cmd+L: Logs, Ctrl/Cmd+J: Jobs)
   // + Edit/Help 단축키 (Ctrl/Cmd+, Preferences, Ctrl/Cmd+/ Shortcuts)
   const handleViewKeyDown = useCallback((e: KeyboardEvent) => {
+    // Ctrl/Cmd+S 수동 저장: input/textarea 포커스 가드보다 먼저 처리한다.
+    // 저장 단축키는 텍스트 입력 중에도 동작해야 의미가 있고, 브라우저/웹뷰의
+    // 기본 "페이지 저장" 동작도 여기서 preventDefault로 막아야 한다.
+    // Shift/Alt 조합은 다른 단축키 몫이므로 순수 Ctrl/Cmd+S 만 받는다.
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      void handleManualSave();
+      return;
+    }
     // B: input/textarea/contenteditable 포커스 시 전역 단축키 무시
     const target = e.target as HTMLElement;
     if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
-    // F11: fullscreen toggle (modifier 없음) — C: .catch 추가
+    // F11: fullscreen toggle (modifier 없음), C: .catch 추가
     if (e.key === "F11") {
       e.preventDefault();
       void getCurrentWindow().isFullscreen().then((full) =>

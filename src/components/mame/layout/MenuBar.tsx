@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { useKumaProject } from "@/state/projectContext";
+import { flushAutosave, type AutosaveTarget } from "@/lib/autosave";
 import { CrashLogDialog } from "@/components/dialogs/CrashLogDialog";
 import { RunReportDialog } from "@/components/mame/dialogs/RunReportDialog";
 import { ReRunManifestDialog } from "@/components/dialogs/ReRunManifestDialog";
@@ -80,6 +82,7 @@ interface MenuBarProps {
 
 export function MenuBar({ onClearRequest, onJanusOpen }: MenuBarProps) {
   const { t } = useTranslation();
+  const project = useKumaProject();
   const hasResults = useMameAppStore((s) => s.verdicts.length > 0);
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
   const loadSampleData = useMameAppStore((s) => s.loadSampleData);
@@ -101,13 +104,48 @@ export function MenuBar({ onClearRequest, onJanusOpen }: MenuBarProps) {
   // Theme hook (2-D)
   const { theme, setTheme } = useTheme();
 
+  /**
+   * Ctrl/Cmd+S 수동 저장. KURO MenuBar와 동일한 배선(대칭). 이유는 그쪽 주석 참조:
+   * mame 탭에서도 kuro/mame 두 kind를 모두 flush한다. flushAutosave는 대상이
+   * 없거나 pending 변경이 없으면 no-op이라 안전하고, 재진입 가드는 autosave.ts의
+   * kind별 직렬 큐가 이미 처리한다.
+   */
+  const handleManualSave = useCallback(async () => {
+    const target: AutosaveTarget = {
+      projectPath: project?.path ?? null,
+      scratch: project?.scratch ?? true,
+      scratchFallback: true,
+    };
+    try {
+      await Promise.all([
+        flushAutosave(target, "kuro"),
+        flushAutosave(target, "mame"),
+      ]);
+      toast.success(
+        t("file.manualSaveDone", { time: new Date().toLocaleTimeString() }),
+      );
+    } catch (err) {
+      toast.error(
+        t("file.manualSaveFailed", {
+          detail: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    }
+  }, [project?.path, project?.scratch, t]);
+
   // §D3.5: View 메뉴 단축키 (Ctrl/Cmd+L: Logs, Ctrl/Cmd+J: Jobs)
   // + 2-A: Ctrl+, Preferences, Ctrl+/ Shortcuts
   const handleViewKeyDown = useCallback((e: KeyboardEvent) => {
+    // Ctrl/Cmd+S 수동 저장: input/textarea 포커스 가드보다 먼저 처리(대칭, KURO 참조).
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      void handleManualSave();
+      return;
+    }
     // B: input/textarea/contenteditable 포커스 시 전역 단축키 무시
     const target = e.target as HTMLElement;
     if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
-    // F11: fullscreen toggle (modifier 없음) — C: .catch 추가
+    // F11: fullscreen toggle (modifier 없음), C: .catch 추가
     if (e.key === "F11") {
       e.preventDefault();
       void getCurrentWindow().isFullscreen().then((full) =>

@@ -7,6 +7,8 @@
   },
   "file": {
     "openSequence": "Open Sequence...",
+    "manualSaveDone": "Saved at {{time}}",
+    "manualSaveFailed": "Save failed: {{detail}}",
     "openProject": "Open Project...",
     "restartSidecar": "Restart Sidecar",
     "openWorkspace": "Open Workspace...",

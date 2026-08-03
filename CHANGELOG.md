@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.14.4 (Reopening a project brings back the session that was left)
+
+Autosave was on, yet closing KURO and reopening the project landed on step 5 with nothing in it. Two separate causes stacked. The check that decides whether a restored design table is still valid compared each row against the reselected variant list plus the candidate pool it was drawn from, but never against what had actually been saved, so every row that fill-on-failure or rescue had filled in from that pool read as a leftover from an edited CSV and the whole table went. On one real autosave pair, 95 saved primer rows dropped to 0 two minutes later, and the emptied state then overwrote the good snapshot. Underneath that, restore was never treating the snapshot as authoritative: it reran `load_fasta` and the EVOLVEpro pipeline from the source files on every launch, and that rerun overwrote the domain selection, the variant selection, the pipeline statistics and the pool it had just restored. Saving more fields alone could not have fixed it.
+
+### Fixed
+
+- v0.14.4: Whether to keep a restored design table is now decided by comparing the saved mutation list against the mutation list a reload of the same EVOLVEpro source produces, not by checking each row against that list. A row whose mutation came from the candidate pool rather than the typed-in list is no longer read as evidence the source changed. A genuinely stale autosave (source file edited, round advanced) still discards the table and says so, unchanged.
+- v0.14.4: The autosave snapshot stores the candidate variant pool (`poolVariants`) next to `designResults`, so pool-dependent UI such as the combinatorial-variant ratio no longer flashes empty during a restore.
+
+### Added
+
+- v0.14.4: Autosave keeps the rest of the session too (schema 5): the wizard position and per-step completion, the EVOLVEpro derived state (selection, ranking, per-step statistics, score map, domain statistics), the reference domain annotation and its hash, the loaded structure, the parsed sequence itself, table sorting, and the benchmark settings and output. Reopening a project restores where the work was, not just its inputs.
+- v0.14.4: A restore that finds the sequence file and the EVOLVEpro source unchanged since the snapshot was written skips the pipeline rerun entirely and uses the saved state as it stands. Sameness is judged by file size and modification time, so no hashing cost is added. A file that did change, or one that cannot be inspected, falls back to the previous reload path and to the divergence check above.
+- v0.14.4: `Ctrl/Cmd+S` saves the open project immediately instead of waiting out the autosave debounce, and reports the time it saved at. It works while a text field has focus, where the other global shortcuts deliberately stand aside, and it is listed in the keyboard shortcuts dialog.
+
 ## v0.14.3 (The expected list is written in plate order)
 
 A KURO export described two different plates. The `Fwd List` and `Fwd Plate` sheets are written from the plate mapping, so their order is the well order, while `expected_mutations` iterated the design output, whose order is whatever ranking produced it. On the 260722 R2-1 export both sheets carry the same 94 mutants and disagree on where they sit: the primer list puts `K53I` at A2, the expected sheet puts `I92D` there.

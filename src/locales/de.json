@@ -7,6 +7,8 @@
   },
   "file": {
     "openSequence": "Sequenz öffnen...",
+    "manualSaveDone": "Gespeichert um {{time}}",
+    "manualSaveFailed": "Speichern fehlgeschlagen: {{detail}}",
     "openProject": "Projekt öffnen...",
     "restartSidecar": "Sidecar neu starten",
     "openWorkspace": "Workspace öffnen...",

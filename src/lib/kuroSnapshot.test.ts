@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildKuroSnapshot, type KuroSnapshotState } from "./kuroSnapshot";
+import { buildKuroSnapshot, KURO_SCHEMA, type KuroSnapshotState } from "./kuroSnapshot";
 
 const baseState: KuroSnapshotState = {
   fastaPath: "/project/input.gb",
   selectedGene: "42",
   organism: "ecoli",
+  seqInfo: null,
   mutationText: "A1V",
   mutationInputMode: "evolvepro",
   evolveproCsvPath: "/project/evolvepro.csv",
@@ -30,6 +31,11 @@ const baseState: KuroSnapshotState = {
   distanceMode: "3d",
   structuralDiversityEnabled: false,
   structuralKappa: 0.3,
+  refDomains: [],
+  refDomainHash: "",
+  structureAccession: "",
+  structureLoaded: false,
+  uniprotCandidates: [],
   evolveproRound: 2,
   roundSize: 96,
   autoRedesignOnLoad: false,
@@ -49,6 +55,11 @@ const baseState: KuroSnapshotState = {
   revLenMax: 28,
   fillOnFailure: true,
   overlapMode: "full",
+  tmTolerance: 4.0,
+  randomSeed: null,
+  benchmarkTopPercentile: 10,
+  benchmarkRandomTrials: 100,
+  benchmarkRandomSeed: null,
   designResults: [],
   successCount: 0,
   totalCount: 0,
@@ -58,7 +69,121 @@ const baseState: KuroSnapshotState = {
   manuallySwapped: {},
   customCandidates: {},
   rescuedMutationDetails: [],
+  poolVariants: [],
+  rescuedMutations: [],
+  alternativesCache: {},
+  benchmarkResults: null,
+  showBenchmark: false,
+  tableSorting: [],
+  currentMajor: "design",
+  currentSubStep: "design.load",
+  stepStatus: {
+    "design.load": { done: false, reachable: true },
+    "design.mutation": { done: false, reachable: true },
+    "design.params": { done: false, reachable: true },
+    "design.submit": { done: false, reachable: true },
+    "output.summary": { done: false, reachable: true },
+    "export.all": { done: false, reachable: true },
+  },
+  yPredMap: {},
+  evolveproSelectedVariants: [],
+  evolveproRankedCandidates: [],
+  evolveproUsedVariantColumn: null,
+  evolveproUsedScoreColumn: null,
+  evolveproTotalCount: 0,
+  evolveproFilteredCount: null,
+  evolveproParetoExchanges: null,
+  evolveproStepStats: null,
+  domainStats: {},
 };
+
+describe("buildKuroSnapshot: schema 5", () => {
+  it("uses schema 5", () => {
+    expect(KURO_SCHEMA).toBe(5);
+    expect(buildKuroSnapshot(baseState).schema).toBe(5);
+  });
+
+  it("serializes navigation, pipeline, ui, benchmark and sequence_info blocks", () => {
+    const snapshot = buildKuroSnapshot({
+      ...baseState,
+      currentMajor: "output",
+      currentSubStep: "output.summary",
+      tableSorting: [{ id: "mutation", desc: false }],
+      yPredMap: { A1B: 0.5 },
+      evolveproSelectedVariants: ["A1B"],
+      seqInfo: { header: "h", seq_length: 3, genes: [] } as unknown as KuroSnapshotState["seqInfo"],
+    });
+
+    expect(snapshot.navigation).toMatchObject({
+      current_major: "output",
+      current_sub_step: "output.summary",
+    });
+    expect(snapshot.ui).toMatchObject({ table_sorting: [{ id: "mutation", desc: false }] });
+    expect(snapshot.pipeline).toMatchObject({
+      y_pred_map: { A1B: 0.5 },
+      evolvepro_selected_variants: ["A1B"],
+    });
+    expect(snapshot.benchmark).toMatchObject({
+      benchmark_top_percentile: 10,
+      benchmark_random_trials: 100,
+    });
+    expect(snapshot.input).toMatchObject({
+      sequence_info: { header: "h", seq_length: 3, genes: [] },
+    });
+  });
+
+  it("includes source fingerprints from extras", () => {
+    const snapshot = buildKuroSnapshot(baseState, null, {
+      sequenceFingerprint: { size: 10, mtimeMs: 123 },
+      evolveproCsvFingerprint: null,
+    });
+
+    expect(snapshot.sources).toMatchObject({
+      sequence_fingerprint: { size: 10, mtimeMs: 123 },
+      evolvepro_csv_fingerprint: null,
+    });
+  });
+
+  it("does not store rounds/active_round_id (MAME 스냅샷 단독 소유)", () => {
+    const snapshot = buildKuroSnapshot(baseState);
+
+    expect(snapshot).not.toHaveProperty("rounds");
+    expect(snapshot).not.toHaveProperty("active_round_id");
+  });
+
+  it("gates alternativesCache/benchmarkResults behind saveCache", () => {
+    const withCache = buildKuroSnapshot({
+      ...baseState,
+      saveCache: true,
+      alternativesCache: { A1B: [] },
+    });
+    const withoutCache = buildKuroSnapshot({
+      ...baseState,
+      saveCache: false,
+      alternativesCache: { A1B: [] },
+    });
+
+    expect((withCache.results as Record<string, unknown>).alternativesCache).toEqual({ A1B: [] });
+    expect((withoutCache.results as Record<string, unknown>).alternativesCache).toBeUndefined();
+  });
+});
+
+describe("buildKuroSnapshot: schema 4 poolVariants", () => {
+  it("uses schema 5 (schema 4 필드는 그대로 유지)", () => {
+    expect(buildKuroSnapshot(baseState).schema).toBe(5);
+  });
+
+  it("includes poolVariants in the results block", () => {
+    const snapshot = buildKuroSnapshot({
+      ...baseState,
+      designResults: [],
+      poolVariants: ["A1B", "P50Q"],
+    });
+    expect(snapshot.results).toMatchObject({
+      poolVariants: ["A1B", "P50Q"],
+    });
+  });
+});
 
 describe("buildKuroSnapshot", () => {
   it("serializes autosave inputs needed to restore EVOLVEpro mode with column overrides", () => {

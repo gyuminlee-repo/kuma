@@ -7,6 +7,8 @@
   },
   "file": {
     "openSequence": "Открыть последовательность...",
+    "manualSaveDone": "Сохранено в {{time}}",
+    "manualSaveFailed": "Не удалось сохранить: {{detail}}",
     "openProject": "Открыть проект...",
     "restartSidecar": "Перезапустить Sidecar",
     "openWorkspace": "Открыть Workspace...",
