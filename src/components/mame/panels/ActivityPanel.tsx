@@ -33,6 +33,7 @@ import { checkMameInputSize, type InputSizeLevel } from "@/lib/inputThresholds";
 import { InputSizeWarningDialog } from "@/components/dialogs/InputSizeWarningDialog";
 import type { MergeStats, SwapWarning } from "@/types/mame/activity";
 import type { RoundMetrics } from "@/types/round-metrics";
+import { useAppStore } from "@/store/appStore";
 
 // ---------------------------------------------------------------------------
 // ExportBlockedErrorDisplay — 라벨 교체 감지 시 강화 에러 표시
@@ -144,6 +145,13 @@ export function MergeSection() {
   const lastReplicateStats = useStore(activityStore, (s: ActivitySlice) => s.lastReplicateStats);
   const mergeActivity = useStore(activityStore, (s: ActivitySlice) => s.mergeActivity);
   const mergeForEvolvepro = useStore(activityStore, (s: ActivitySlice) => s.mergeForEvolvepro);
+  const refSeq = useAppStore((s) => {
+    if (!s.seqInfo) return "";
+    const gene = s.seqInfo.genes.find(
+      (candidate) => String(candidate.cds_start) === s.selectedGene,
+    );
+    return gene?.translation?.trim() ?? "";
+  });
 
   const hasActivity = useRoundStore(
     (s) => (s.rounds.find((r) => r.id === activeRoundId)?.activity?.records?.length ?? 0) > 0,
@@ -197,7 +205,10 @@ export function MergeSection() {
             aria-label={t("mame.activity.merge.btnEvolveproAria")}
             onClick={() =>
               guardedMerge(
-                () => activeRoundId && void mergeForEvolvepro(activeRoundId),
+                () => activeRoundId && void mergeForEvolvepro(
+                  activeRoundId,
+                  refSeq ? { ref_seq: refSeq } : undefined,
+                ),
                 true,
               )
             }

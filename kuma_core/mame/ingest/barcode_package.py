@@ -2,7 +2,7 @@
 
 This module produces three output files and a context JSON:
 - ``barcodes_sequence.xlsx``    : 20-row combinatorial barcode table (12 fwd + 8 rev)
-- ``{gene_name}_amplicon.fa``   : single-entry FASTA for the target gene region
+- ``{sanitized_gene_name}_amplicon.fa`` : single-entry FASTA for the target gene region
 - ``sample_map_template.xlsx``  : well-map template for the MAME operator (blank
   headers, or pre-filled with a draft placement when ``expected_mutations_path``
   is supplied)
@@ -11,13 +11,13 @@ This module produces three output files and a context JSON:
 Typical call site::
 
     result = generate_mame_package(
-        fasta_path=Path("seq/egfp.fa"),
+        fasta_path=Path("seq/target.fa"),
         gene_start=400,
         gene_end=700,
         barcode_seeds_path=Path("design/barcode_seeds.xlsx"),
         output_dir=Path("project/design"),
         project_root=Path("project"),
-        gene_name="egfp",
+        gene_name="target_gene",
         polymerase="Q5",
     )
 """
@@ -616,7 +616,7 @@ def generate_mame_package(
     barcode_seeds_path: Path,
     output_dir: Path,
     project_root: Path,
-    gene_name: str = "egfp",
+    gene_name: str,
     polymerase: str = "Q5",
     flank_min: int = 100,
     flank_max: int = 400,
@@ -642,7 +642,7 @@ def generate_mame_package(
        sequence = SEED + flanking (all upper). The ``sanitized_gene`` prefix
        is derived from the ``gene_name`` parameter via
        :func:`_sanitize_gene_prefix`.
-    5. Write ``{gene_name}_amplicon.fa`` containing the gene region subsequence.
+    5. Write ``{sanitized_gene_name}_amplicon.fa`` containing the target gene region.
     6. Write ``sample_map_template.xlsx`` (column A "sample_name", column B
        "well"). Header-only by default; pre-filled with a draft placement when
        ``expected_mutations_path`` is supplied. An existing template that
@@ -667,7 +667,8 @@ def generate_mame_package(
         Root of the KUMA project. ``mame_context.json`` is written here.
         All paths in the JSON are relative to this directory.
     gene_name:
-        Gene label used for the amplicon FASTA filename and header.
+        Required gene label derived from input annotation or explicit user entry.
+        It is sanitized for barcode row names and the amplicon filename.
     polymerase:
         Name of the polymerase profile to use for Tm calculation.
         Must be one of the keys in ``POLYMERASE_PROFILES`` (default "Q5").
@@ -766,13 +767,13 @@ def generate_mame_package(
     )
 
     # Step 5: amplicon FASTA (gene region only)
-    amplicon_fa_path = output_dir / f"{gene_name}_amplicon.fa"
+    amplicon_fa_path = output_dir / f"{gene_prefix}_amplicon.fa"
     _write_amplicon_fasta(
         path=amplicon_fa_path,
         cds_seq=cds_seq,
         gene_start=gene_start,
         gene_end=gene_end,
-        gene_name=gene_name,
+        gene_name=gene_prefix,
     )
 
     # Step 6: sample map template. Pre-filled with a draft well placement when

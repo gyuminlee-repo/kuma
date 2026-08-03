@@ -9,6 +9,7 @@ import { InlineHelp } from "../../ui/InlineHelp";
 
 const SEQUENCE_DROP_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna"]);
 const FASTA_EXTENSIONS = new Set([".fa", ".fasta", ".fna"]);
+const STATIC_ORGANISM_KEYS = new Set(["ecoli", "bsubtilis", "scerevisiae"]);
 
 export function SequenceInput() {
   const { t } = useTranslation();
@@ -21,6 +22,13 @@ export function SequenceInput() {
   const setOrganism = useAppStore((s) => s.setOrganism);
   const loadSequence = useAppStore((s) => s.loadSequence);
   const uniprotSearching = useAppStore((s) => s.uniprotSearching);
+
+  const isAutoOrganism = organism !== "" && !STATIC_ORGANISM_KEYS.has(organism);
+  // Find any gene whose organism_key matches to get the raw annotation as label.
+  // Avoids duplicating Python alias logic in TypeScript.
+  const autoOrganismLabel = isAutoOrganism
+    ? (seqInfo?.genes.find((g) => g.organism_key === organism)?.organism ?? organism)
+    : null;
 
   const handleBrowseSelect = useCallback(async (path: string) => {
     const ext = path.slice(path.lastIndexOf(".")).toLowerCase();
@@ -165,6 +173,9 @@ export function SequenceInput() {
           value={organism}
           onChange={(e) => setOrganism(e.target.value)}
         >
+          {isAutoOrganism && autoOrganismLabel !== null && (
+            <option value={organism}>{autoOrganismLabel}</option>
+          )}
           <option value="ecoli" title={t("sequenceInput.ecoliTitle")}>E. coli K-12</option>
           <option value="bsubtilis" title={t("sequenceInput.bsubtilisTitle")}>B. subtilis 168</option>
           <option value="scerevisiae" title={t("sequenceInput.scerevisiaeTitle")}>S. cerevisiae</option>

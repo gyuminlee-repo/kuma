@@ -335,8 +335,9 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
         mismatch_threshold (float, optional): Mean difference threshold for
             mismatch flagging. Default 0.1.
         ref_seq (str, optional): WT reference sequence for from_evolvepro
-            conversion. Required when authoritative or fallback measurements
-            are non-empty.
+            conversion. Required when non-WT authoritative or fallback
+            measurements remain after WT-key filtering. WT-only input
+            does not require ref_seq.
 
     Returns:
         {
@@ -350,8 +351,8 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
         RuntimeError(-32002): round_id not found.
         ExportBlockedError(-32004): SwapWarning with severity="error" detected.
         KeyError(-32602): required parameter missing.
-        ValueError(-32602): ref_seq missing when replicate data provided;
-            empty measurement list; from_evolvepro parse failure.
+        ValueError(-32602): ref_seq missing when non-WT replicate data
+            provided; empty measurement list; from_evolvepro parse failure.
     """
     from kuma_core.mame.activity.join import merge_activity_with_genotype
     from kuma_core.mame.activity.merge import merge_replicates_priority
@@ -365,8 +366,6 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
     )
     from kuma_core.mame.activity.sanity_check import detect_label_swap
     from kuma_core.mame.activity.variant_notation import from_evolvepro
-    from kuma_core.mame.activity.ref_seq import get_egfp_wt_aa_seq
-
     round_id: str = params["round_id"]  # KeyError → -32602 via dispatcher
     prev_round_evolvepro: dict[str, float] = params.get("prev_round_evolvepro", {})
     authoritative_measurements: dict[str, list[float]] = params.get(
@@ -378,21 +377,10 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
     mismatch_threshold: float = float(params.get("mismatch_threshold", 0.1))
     ref_seq: str | None = params.get("ref_seq")
 
-    # Fast-fail: replicate data provided but ref_seq missing.
-    has_replicate_data = bool(authoritative_measurements or fallback_measurements)
-    if has_replicate_data and not ref_seq:
-        # OQ-④: auto-load EGFP WT reference when ref_seq not explicitly provided.
-        try:
-            ref_seq = get_egfp_wt_aa_seq()
-        except (FileNotFoundError, ValueError) as _e:
-            raise ValueError(
-                "ref_seq required and EGFP auto-load failed: "
-                f"{_e}"
-            ) from _e
-
-    # WT key filtering (OQ-3 decision): remove WT entries before passing to
-    # merge_replicates_priority. WT is reference baseline, not a variant.
+    # WT key filtering: remove WT entries before deciding whether a reference is
+    # required. WT is reference baseline, not a variant.
     # Covers plain 'WT' (EVOLVEpro convention) and 'WT_N'/'WTN' patterns.
+    has_replicate_data = bool(authoritative_measurements or fallback_measurements)
     if has_replicate_data:
         authoritative_measurements = {
             k: v for k, v in authoritative_measurements.items()
@@ -404,6 +392,13 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
         }
         # Re-evaluate after WT filtering: both may be empty now.
         has_replicate_data = bool(authoritative_measurements or fallback_measurements)
+
+    if has_replicate_data:
+        if not isinstance(ref_seq, str) or not ref_seq.strip():
+            raise ValueError(
+                "ref_seq is required when non-WT replicate measurements are provided"
+            )
+        ref_seq = ref_seq.strip()
 
     with _rounds_lock:
         rd = _get_round(round_id)  # RuntimeError → -32002 via dispatcher
@@ -432,9 +427,7 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
         if has_replicate_data:
             # Convert short EVOLVEpro notation → internal notation.
             # ValueError from from_evolvepro (bad notation) → -32602 via dispatcher.
-            # ref_seq is guaranteed non-None here (checked above).
-            if ref_seq is None:  # pragma: no cover — defensive narrowing
-                raise ValueError("ref_seq required for replicate merge")
+            # ref_seq is a validated, non-empty string here.
             authoritative_internal: dict[Variant, list[float]] = {
                 Variant(from_evolvepro(k, ref_seq)): v
                 for k, v in authoritative_measurements.items()

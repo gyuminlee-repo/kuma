@@ -85,6 +85,7 @@ export function validateExportAll(inp: ExportAllInput): ValidationResult {
 export interface GenerateBarcodePackageInput {
   fastaPath: string;
   barcodeSeedsPath: string;
+  geneName: string;
   geneStart: string;
   geneEnd: string;
   isRangeValid: boolean;
@@ -97,6 +98,7 @@ export function validateGenerateBarcodePackage(
   const missing: string[] = [];
   if (!inp.fastaPath) missing.push("validation.missing.cdsFasta");
   if (!inp.barcodeSeedsPath) missing.push("validation.missing.barcodeSeeds");
+  if (!inp.geneName.trim()) missing.push("mame.barcodeSetup.geneName");
   if (inp.geneStart === "" || inp.geneEnd === "") {
     missing.push("validation.missing.geneCoordinates");
   } else if (!inp.isRangeValid) {

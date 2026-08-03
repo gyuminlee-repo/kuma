@@ -1,8 +1,12 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { toast } from "sonner";
+import { readTextFile } from "@tauri-apps/plugin-fs";
 import { ProjectProvider } from "@/state/projectContext";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { MamePackageResult } from "@/types/mame/barcode_package";
+import { validateGenerateBarcodePackage } from "@/store/validation";
 import { BarcodeSetupPanel } from "./BarcodeSetupPanel";
 
 const mockRpc = vi.hoisted(() => vi.fn());
@@ -33,6 +37,26 @@ vi.mock("sonner", () => ({
 
 const STORAGE_KEY = "kuma:mame:barcodeSetup";
 
+const elementProto = Element.prototype as unknown as Record<string, unknown>;
+const savedElementMethods: Record<string, unknown> = {};
+
+function installSelectShims() {
+  for (const name of ["hasPointerCapture", "setPointerCapture", "releasePointerCapture", "scrollIntoView"]) {
+    savedElementMethods[name] = elementProto[name];
+    elementProto[name] = function () {};
+  }
+}
+
+function removeSelectShims() {
+  for (const [name, value] of Object.entries(savedElementMethods)) {
+    if (value === undefined) delete elementProto[name];
+    else elementProto[name] = value;
+  }
+}
+
+beforeEach(installSelectShims);
+afterEach(removeSelectShims);
+
 const RESULT: MamePackageResult = {
   barcodes_xlsx: "/proj/design/custom_barcodes.xlsx",
   amplicon_fa: "/proj/design/amplicon.fa",
@@ -51,7 +75,7 @@ function seedSetupForm(): void {
       fastaPath: "/proj/input/cds.fa",
       geneStart: "0",
       geneEnd: "534",
-      geneName: "egfp",
+      geneName: "target_gene",
       polymerase: "Q5",
       flankMin: "100",
       flankMax: "400",
@@ -100,6 +124,7 @@ describe("BarcodeSetupPanel project artifacts", () => {
           output_dir: "/proj/design",
           project_root: "/proj",
           expected_mutations_path: "/proj/design/kuro_sdm_primers.xlsx",
+          gene_name: "target_gene",
         }),
       );
     });
@@ -145,5 +170,249 @@ describe("BarcodeSetupPanel project artifacts", () => {
     expect(useMameAppStore.getState().rawRunParams.customBarcodesPath).toBe(
       RESULT.barcodes_xlsx,
     );
+  });
+});
+// ─── Unit: validateGenerateBarcodePackage geneName guard ─────────────────────
+
+describe("validateGenerateBarcodePackage – geneName", () => {
+  const base = {
+    fastaPath: "/input.fa",
+    barcodeSeedsPath: "/seeds.xlsx",
+    geneStart: "0",
+    geneEnd: "720",
+    isRangeValid: true,
+    projectPath: "/proj",
+  };
+
+  it("fails when geneName is empty", () => {
+    const result = validateGenerateBarcodePackage({ ...base, geneName: "" });
+    expect(result.ok).toBe(false);
+    expect(result.missing).toContain("mame.barcodeSetup.geneName");
+  });
+
+  it("fails when geneName is whitespace-only", () => {
+    const result = validateGenerateBarcodePackage({ ...base, geneName: "   " });
+    expect(result.ok).toBe(false);
+    expect(result.missing).toContain("mame.barcodeSetup.geneName");
+  });
+
+  it("passes when geneName is non-blank", () => {
+    const result = validateGenerateBarcodePackage({ ...base, geneName: "target_gene" });
+    expect(result.ok).toBe(true);
+    expect(result.missing).not.toContain("mame.barcodeSetup.geneName");
+  });
+});
+
+// ─── Component: annotation autofill and geneName blocking ────────────────────
+
+describe("BarcodeSetupPanel annotation autofill", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+    useMameAppStore.getState().resetInput();
+    mockRegisterArtifacts.mockResolvedValue(undefined);
+  });
+
+  it("auto-fills geneName from the best annotated CDS gene field", async () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        fastaPath: "/proj/input/cds.gb",
+        geneStart: "",
+        geneEnd: "",
+        geneName: "",
+        polymerase: "Q5",
+        flankMin: "100",
+        flankMax: "400",
+        bindingMinLen: "18",
+        bindingMaxLen: "35",
+        tmMin: "55.0",
+        tmMax: "68.0",
+        requireGcClamp: true,
+        barcodeSeedsPath: "/proj/input/barcode_seeds.xlsx",
+        outputDir: "",
+      }),
+    );
+    mockRpc.mockImplementation((_app: string, method: string) => {
+      if (method === "load_fasta") {
+        return Promise.resolve({
+          seq_length: 900,
+          genes: [
+            {
+              gene: "target_a",
+              product: "target protein A",
+              cds_start: 0,
+              cds_end: 720,
+              aa_length: 239,
+            },
+          ],
+        });
+      }
+      return Promise.resolve(RESULT);
+    });
+
+    render(
+      <ProjectProvider value={{ path: "/proj", name: "Demo", scratch: false }}>
+        <BarcodeSetupPanel />
+      </ProjectProvider>,
+    );
+
+    await waitFor(() => {
+      const input = screen.getByLabelText("Gene name") as HTMLInputElement;
+      expect(input.value).toBe("target_a");
+    });
+  });
+
+  it("updates geneName when user switches annotated CDS selection", async () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        fastaPath: "/proj/input/cds.gb",
+        geneStart: "",
+        geneEnd: "",
+        geneName: "",
+        polymerase: "Q5",
+        flankMin: "100",
+        flankMax: "400",
+        bindingMinLen: "18",
+        bindingMaxLen: "35",
+        tmMin: "55.0",
+        tmMax: "68.0",
+        requireGcClamp: true,
+        barcodeSeedsPath: "/proj/input/barcode_seeds.xlsx",
+        outputDir: "",
+      }),
+    );
+    mockRpc.mockImplementation((_app: string, method: string) => {
+      if (method === "load_fasta") {
+        return Promise.resolve({
+          seq_length: 1800,
+          genes: [
+            {
+              gene: "target_a",
+              product: "target protein A",
+              cds_start: 0,
+              cds_end: 720,
+              aa_length: 239,
+            },
+            {
+              gene: "target_b",
+              product: "target protein B",
+              cds_start: 900,
+              cds_end: 1620,
+              aa_length: 239,
+            },
+          ],
+        });
+      }
+      return Promise.resolve(RESULT);
+    });
+
+    render(
+      <ProjectProvider value={{ path: "/proj", name: "Demo", scratch: false }}>
+        <BarcodeSetupPanel />
+      </ProjectProvider>,
+    );
+
+    // Wait for autofill from the first candidate.
+    await waitFor(() => {
+      const input = screen.getByLabelText("Gene name") as HTMLInputElement;
+      expect(input.value).toBe("target_a");
+    });
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("combobox", { name: /CDS \/ ORF candidate/i }));
+    await user.click(await screen.findByRole("option", { name: /target_b/i }));
+
+    await waitFor(() => {
+      const input = screen.getByLabelText("Gene name") as HTMLInputElement;
+      expect(input.value).toBe("target_b");
+    });
+  });
+
+  it("blocks generation and shows warning when geneName is blank", async () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        fastaPath: "/proj/input/cds.fa",
+        geneStart: "0",
+        geneEnd: "720",
+        geneName: "",
+        polymerase: "Q5",
+        flankMin: "100",
+        flankMax: "400",
+        bindingMinLen: "18",
+        bindingMaxLen: "35",
+        tmMin: "55.0",
+        tmMax: "68.0",
+        requireGcClamp: true,
+        barcodeSeedsPath: "/proj/input/barcode_seeds.xlsx",
+        outputDir: "",
+      }),
+    );
+    // load_fasta is not called for .fa, readTextFile is mocked globally
+    mockRpc.mockResolvedValue(RESULT);
+
+    render(
+      <ProjectProvider value={{ path: "/proj", name: "Demo", scratch: false }}>
+        <BarcodeSetupPanel />
+      </ProjectProvider>,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Generate Barcode Package" }),
+    );
+
+    await waitFor(() => {
+      expect(toast.warning).toHaveBeenCalled();
+    });
+    // RPC must not have been called with generate_mame_package
+    const rpgCalls = (mockRpc as ReturnType<typeof vi.fn>).mock.calls.filter(
+      (c: unknown[]) => c[1] === "generate_mame_package",
+    );
+    expect(rpgCalls).toHaveLength(0);
+  });
+
+  it("leaves geneName unchanged for plain FASTA ORF candidates", async () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        fastaPath: "/proj/input/cds.fa",
+        geneStart: "",
+        geneEnd: "",
+        geneName: "my_custom_gene",
+        polymerase: "Q5",
+        flankMin: "100",
+        flankMax: "400",
+        bindingMinLen: "18",
+        bindingMaxLen: "35",
+        tmMin: "55.0",
+        tmMax: "68.0",
+        requireGcClamp: true,
+        barcodeSeedsPath: "/proj/input/barcode_seeds.xlsx",
+        outputDir: "",
+      }),
+    );
+    // Override readTextFile to return a valid FASTA with a long-enough ORF
+    // (≥ 30 aa after stop exclusion = ≥ 33 codons = 99 nt minimum).
+    // The global mock default (9 nt) produces 0 candidates (too short), so we
+    // supply a synthetic ORF that exceeds MIN_AA_LENGTH to confirm the effect ran.
+    const orf = "ATG" + "AAA".repeat(32) + "TAA"; // 1 + 32 Lys + stop = 33 codons, 30 aa
+    vi.mocked(readTextFile).mockResolvedValueOnce(`>cds\n${orf}\n`);
+    mockRpc.mockResolvedValue(RESULT);
+
+    render(
+      <ProjectProvider value={{ path: "/proj", name: "Demo", scratch: false }}>
+        <BarcodeSetupPanel />
+      </ProjectProvider>,
+    );
+
+    // After effect fires (ORFs detected), geneName should still be user value
+    await waitFor(() => {
+      expect(useMameAppStore.getState().cdsCandidates.length).toBeGreaterThan(0);
+    });
+
+    const input = screen.getByLabelText("Gene name") as HTMLInputElement;
+    expect(input.value).toBe("my_custom_gene");
   });
 });

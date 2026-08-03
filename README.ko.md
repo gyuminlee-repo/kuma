@@ -285,7 +285,7 @@ Fold change와 log2_fc는 플레이트별 WT 평균을 기준으로 계산된다
 
 `mame.activity.merge_for_evolvepro` (v0.2.9.0)가 EVOLVEpro 내보내기용 병합을 대체: 활성-지노타입 join + `merge_replicates_priority` (authoritative 우선·mismatch 플래그) + 라벨 교체 가드. 응답에 `replicate_stats`·`export_blocked` 노출. 5/12 데모는 기존 `activity.merge`를 그대로 사용하며 v0.3 버튼 "EVOLVEpro용 병합 (v0.3)"이 패널에 병행 배치.
 
-기본 reference 는 `ref_seq` 미전달 시 `fixtures/egfp.fa` 를 BioPython translate 로 자동 로드합니다 (OQ-④ 결정, v0.9.9.9). 레거시 IspS 라운드용 `fixtures/ispS.fa` (Populus alba ispS CDS, AB198180.1) 도 보존됩니다. UI 추가 배선 불필요.
+EVOLVEpro replicate 병합의 `ref_seq`는 현재 선택된 sequence 입력과 해당 CDS translation에서 가져옵니다. 입력에서 유도한 reference가 없으면 non-WT replicate 측정값을 거부하며, 운영 코드가 EGFP fixture 또는 다른 암묵적 target으로 대체하지 않습니다. 레거시 IspS 라운드용 `fixtures/ispS.fa` (Populus alba ispS CDS, AB198180.1)는 계속 보존됩니다.
 
 </details>
 

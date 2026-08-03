@@ -156,6 +156,34 @@ describe("loadSequence derived-result invalidation", () => {
 
     expect(state.statusMessage).not.toContain("resultsClearedOnTemplateChange");
   });
+
+  it("uses a supported organism inferred by the selected input CDS", async () => {
+    const annotatedGene = {
+      ...GENE_B,
+      organism: "Escherichia coli",
+      organism_key: "ecoli",
+    };
+    mockedSendRequest.mockResolvedValue(seqInfoOf(annotatedGene) as never);
+    const { state, slice } = makeStore({ organism: "hsapiens" });
+
+    await slice.loadSequence("/tmp/annotated.gb");
+
+    expect(state.organism).toBe("ecoli");
+  });
+
+  it("preserves the user organism when the input annotation is unsupported", async () => {
+    const unsupportedGene = {
+      ...GENE_B,
+      organism: "synthetic construct",
+    };
+    mockedSendRequest.mockResolvedValue(seqInfoOf(unsupportedGene) as never);
+    const { state, slice } = makeStore({ organism: "hsapiens" });
+
+    await slice.loadSequence("/tmp/synthetic.gb");
+
+    expect(state.organism).toBe("hsapiens");
+  });
+
 });
 
 describe("setSelectedGene derived-result invalidation", () => {
@@ -195,5 +223,22 @@ describe("setSelectedGene derived-result invalidation", () => {
 
     expect(state.designResults).toEqual([{ mutation: "F385Y" }]);
     expect(state.backendDesignStateSynced).toBe(true);
+  });
+
+  it("updates organism when a supported annotated CDS is selected", () => {
+    const annotatedGene = {
+      ...GENE_B,
+      cds_start: 2,
+      organism: "Bacillus subtilis",
+      organism_key: "bsubtilis",
+    };
+    const { state, slice } = makeStore({
+      organism: "hsapiens",
+      seqInfo: { header: "h", seq_length: 9, genes: [GENE_A, annotatedGene] },
+    });
+
+    slice.setSelectedGene("2");
+
+    expect(state.organism).toBe("bsubtilis");
   });
 });
