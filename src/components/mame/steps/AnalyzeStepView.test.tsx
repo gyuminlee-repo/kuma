@@ -21,12 +21,19 @@ vi.mock("@/components/ui/Panel", () => ({
     children,
     className,
     title,
+    scrollBody,
   }: {
     children: React.ReactNode;
     className?: string;
     title?: string;
+    scrollBody?: boolean;
   }) => (
-    <div data-testid="data-panel" data-class-name={className ?? ""} data-title={title ?? ""}>
+    <div
+      data-testid="data-panel"
+      data-class-name={className ?? ""}
+      data-title={title ?? ""}
+      data-scroll-body={scrollBody ? "true" : "false"}
+    >
       {children}
     </div>
   ),
@@ -196,17 +203,40 @@ describe("AnalyzeStepView (Task #12, analyze.review)", () => {
 
     const panels = screen.getAllByTestId("data-panel");
     const verdictPanel = panels.find((panel) => panel.dataset.title === "Verdict table");
-    const breakdownPanel = panels.find((panel) => panel.dataset.title === "Per-plate verdict breakdown");
     const resizablePanels = screen.getAllByTestId("resizable-panel");
 
     expect(verdictPanel).toHaveAttribute("data-class-name", expect.stringContaining("min-h-[240px]"));
-    expect(breakdownPanel).toHaveAttribute("data-class-name", expect.stringContaining("min-h-[240px]"));
     expect(resizablePanels).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ dataset: expect.objectContaining({ defaultSize: "34", minSize: "18" }) }),
         expect.objectContaining({ dataset: expect.objectContaining({ defaultSize: "66", minSize: "30" }) }),
       ]),
     );
+  });
+
+  it("lets the per-plate breakdown scroll instead of clipping it", () => {
+    render(<AnalyzeStepView runHealth={fakeHealth} />);
+
+    const panels = screen.getAllByTestId("data-panel");
+    const breakdownPanel = panels.find(
+      (panel) => panel.dataset.title === "Per-plate verdict breakdown",
+    );
+    const platePanel = panels.find((panel) => panel.dataset.title === "Plate map");
+    const verdictPanel = panels.find((panel) => panel.dataset.title === "Verdict table");
+
+    // RunHealthPanel has no scroll container of its own, so the panel body has
+    // to provide one: without it the chart is cut off with no way to reach it.
+    expect(breakdownPanel).toHaveAttribute("data-scroll-body", "true");
+    // A px floor would push the section past a splitter dragged below it.
+    expect(breakdownPanel?.dataset.className).not.toContain("min-h-[240px]");
+    // The panel body owns the overflow now; the outer section must not also
+    // declare one, or the two overflow classes race in the stylesheet.
+    expect(breakdownPanel?.dataset.className).not.toContain("overflow-");
+
+    // Children that scroll themselves stay opted out (no nested scrollbars).
+    expect(platePanel).toHaveAttribute("data-scroll-body", "false");
+    expect(platePanel?.dataset.className).not.toContain("overflow-");
+    expect(verdictPanel).toHaveAttribute("data-scroll-body", "false");
   });
 
   it("analyze.review without runHealth does not mount RunHealthPanel", () => {
