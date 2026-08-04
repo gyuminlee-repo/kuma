@@ -584,7 +584,8 @@
       "statusReadyToRun": "実行可能",
       "statusDraft": "下書き状態",
       "statusInProgress": "進行中",
-      "successRateHelp": "Share of designed mutants with at least one PASS replicate. WT controls and UNKNOWN_* groups are excluded. AMBIGUOUS does not count here (unlike Recovered)."
+      "successRateHelp": "Share of designed mutants with at least one PASS replicate. WT controls and UNKNOWN_* groups are excluded. AMBIGUOUS does not count here (unlike Recovered).",
+      "statusElapsed": "Took {{duration}}"
     },
     "menuBar": {
       "restartSidecarConfirm": "解析が実行中です。Sidecar を再起動しますか?",
@@ -978,6 +979,16 @@
         "nextStepReference": "Reference: confirm the reference file matches the sequenced amplicon. A reference from a different construct drops every read during alignment.",
         "nextStepExpected": "Expected mutations: confirm the expected-mutations file covers the variants used in this run.",
         "nextStepInputFolder": "Input folder: confirm the selected folder is the run for this experiment and that its barcode folders contain reads."
+      },
+      "durationDialog": {
+        "title": "Analysis complete",
+        "description": "The step 2.1 analysis run has finished.",
+        "elapsedLabel": "Elapsed time"
+      },
+      "duration": {
+        "minSec": "{{min}} min {{sec}} s",
+        "minOnly": "{{min}} min",
+        "secOnly": "{{sec}} s"
       }
     },
     "buildEvolvepro": {

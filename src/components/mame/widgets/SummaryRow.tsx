@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 
+import { formatRunDuration } from "@/lib/mame/runDuration";
 import { cn } from "@/lib/utils";
 
 function getReadinessTone(readiness: number): string {
@@ -50,6 +51,7 @@ export function SummaryRow() {
   const analyzeProgress = useMameAppStore((s) => s.analyzeProgress);
   const validationErrors = useMameAppStore((s) => s.validationErrors);
   const runHealth = useMameAppStore((s) => s.runHealth);
+  const analyzeDurationMs = useMameAppStore((s) => s.analyzeDurationMs);
 
   const requiredInputs = inputMode === "raw_run"
     ? [inputDir, customBarcodesPath, expectedPath, referencePath, outputPath]
@@ -96,6 +98,20 @@ export function SummaryRow() {
           ? t("mame.summaryRow.statusReadyToRun")
           : t("mame.summaryRow.statusDraft");
 
+  // Resident counterpart of the step 2.1 completion popup: the popup is gone
+  // the moment it is dismissed, so the same duration stays on the Status tile
+  // that already carries run state. Rendered as that tile's hint rather than a
+  // fifth tile, which would stretch the 2.2 layout by a whole row on narrow
+  // widths. `analyzeDurationMs` is null before the first run and after a
+  // cancel/failure, and a zero-verdict run is left to EmptyAnalysisNotice, so
+  // in all three cases the hint is simply absent instead of reading "0 min".
+  const elapsedHint =
+    !isAnalyzing && analyzeDurationMs !== null && verdicts.length > 0
+      ? t("mame.summaryRow.statusElapsed", {
+          duration: formatRunDuration(analyzeDurationMs, t),
+        })
+      : undefined;
+
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label={t("mame.summaryRow.ariaLabel")}>
       <SummaryTile
@@ -129,7 +145,7 @@ export function SummaryRow() {
         label={t("mame.summaryRow.status")}
         value={statusLabel}
         valueClassName="text-base"
-        hint={isAnalyzing ? t("mame.summaryRow.statusInProgress") : undefined}
+        hint={isAnalyzing ? t("mame.summaryRow.statusInProgress") : elapsedHint}
       />
     </div>
   );

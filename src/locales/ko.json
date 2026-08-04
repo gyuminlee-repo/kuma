@@ -193,6 +193,16 @@
         "nextStepReference": "Reference: 시퀀싱한 amplicon과 reference 파일이 일치하는지 확인하세요. 다른 construct의 reference를 넣으면 alignment 단계에서 모든 read가 버려집니다.",
         "nextStepExpected": "Expected mutations: 이번 실행의 변이가 expected mutations 파일에 들어 있는지 확인하세요.",
         "nextStepInputFolder": "입력 폴더: 선택한 폴더가 이번 실험의 run이며 barcode 폴더에 read가 들어 있는지 확인하세요."
+      },
+      "durationDialog": {
+        "title": "분석 완료",
+        "description": "2.1 분석 실행이 끝났습니다.",
+        "elapsedLabel": "걸린 시간"
+      },
+      "duration": {
+        "minSec": "{{min}}분 {{sec}}초",
+        "minOnly": "{{min}}분",
+        "secOnly": "{{sec}}초"
       }
     },
     "nativeBarcodeDialog": {
@@ -709,7 +719,8 @@
       "statusReadyToRun": "실행 준비 완료",
       "statusDraft": "설정 중",
       "statusInProgress": "진행 중",
-      "successRateHelp": "Share of designed mutants with at least one PASS replicate. WT controls and UNKNOWN_* groups are excluded. AMBIGUOUS does not count here (unlike Recovered)."
+      "successRateHelp": "Share of designed mutants with at least one PASS replicate. WT controls and UNKNOWN_* groups are excluded. AMBIGUOUS does not count here (unlike Recovered).",
+      "statusElapsed": "{{duration}} 소요"
     },
     "menuBar": {
       "closeBtn": "닫기",

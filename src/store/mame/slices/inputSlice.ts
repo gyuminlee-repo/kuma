@@ -58,6 +58,17 @@ function pickLongestIndex(candidates: CdsCandidate[]): number | null {
   return best;
 }
 
+/**
+ * Wall-clock milliseconds since `startedAt`, or null when the run carried no
+ * start stamp. Reads the same `analyzeStartedAt` clock the in-run ETA uses, so
+ * the reported duration and the ETA cannot disagree about when a run began.
+ */
+function elapsedSince(startedAt: number | null): number | null {
+  if (startedAt === null) return null;
+  const elapsed = Date.now() - startedAt;
+  return elapsed >= 0 ? elapsed : null;
+}
+
 /** Join cross-platform path segments. */
 function joinPathSlice(dir: string, filename: string): string {
   const sep = dir.includes("\\") ? "\\" : "/";
@@ -109,6 +120,7 @@ const mameInputInitialState = {
   analyzeTotal: null as number | null,
   analyzeStage: null as string | null,
   analyzeStartedAt: null as number | null,
+  analyzeDurationMs: null as number | null,
   analyzePhase: null as "demux" | "analyze" | null,
   demuxProgress: 0,
   demuxMessage: "",
@@ -375,6 +387,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       analyzeTotal: null,
       analyzeStage: null,
       analyzeStartedAt: null,
+      analyzeDurationMs: elapsedSince(get().analyzeStartedAt),
       analyzePhase: null,
     });
   },
@@ -387,6 +400,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       analyzeTotal: null,
       analyzeStage: null,
       analyzeStartedAt: Date.now(),
+      // A new run invalidates the previous run's duration, so the completion
+      // popup keyed on null -> number can fire again.
+      analyzeDurationMs: null,
       analyzePhase: null,
       validationErrors: [],
     });
@@ -475,6 +491,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         analyzeTotal: null,
         analyzeStage: null,
         analyzeStartedAt: null,
+        analyzeDurationMs: elapsedSince(get().analyzeStartedAt),
         analyzePhase: null,
       });
     } catch (error) {
@@ -483,6 +500,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         isDetectingBarcodes: false,
         analyzeMessage: "Analysis failed",
         analyzeStartedAt: null,
+        // A failed run has no duration to report; leaving a stale value here
+        // would surface a completion popup for a run that never completed.
+        analyzeDurationMs: null,
         analyzePhase: null,
         validationErrors: [formatError(error)],
       });
@@ -498,6 +518,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         isAnalyzing: false,
         analyzeMessage: "Analysis failed",
         analyzeStartedAt: null,
+        analyzeDurationMs: null,
         analyzePhase: null,
         validationErrors: [formatError(error)],
       });
@@ -510,6 +531,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       isDetectingBarcodes: false,
       analyzeMessage: "",
       analyzeStartedAt: null,
+      analyzeDurationMs: null,
       analyzePhase: null,
     });
   },
@@ -527,6 +549,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       analyzeMessage: "Analysis cancelled",
       analyzeStage: null,
       analyzeStartedAt: null,
+      // A cancelled run reports no duration. `summary` alone cannot express
+      // this: cancelling a re-run leaves the previous run's summary in place.
+      analyzeDurationMs: null,
       analyzePhase: null,
     });
   },
