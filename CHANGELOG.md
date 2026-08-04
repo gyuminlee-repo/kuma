@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.14.8 (Off-target scanning sees the sites the 3' end never touches)
+
+Both off-target rules required the last bases of a primer to match the template exactly before a site was examined at all, so the 3' terminus decided which sites reached the thermodynamic test rather than only whether one could be extended. A site where a non-terminal stretch anneals was never scored, however strong the duplex. Widening the prefilter also surfaces sites whose 3' terminus does not pair, and those cannot prime, so each hit now records which failure mode it belongs to and only the two modes that can actually spoil a reaction are reported.
+
+### Fixed
+
+- v0.14.8: Candidate off-target windows now come from the union of the existing 4 nt 3' anchor and a position-agnostic 8 nt seed scan, each seed hit expanded back to a full-primer-length window and deduplicated by coordinate. The anchor path is kept because a site dense in internal mismatches can contain no exact seed anywhere, so the window set is a strict superset of the previous one. The verdict is still the `calc_heterodimer` Tm against the same 45.0 C threshold, and both design fixtures come out character-identical.
+- v0.14.8: Every hit is classified as extendable (the 3' terminal base pairs, so a polymerase can extend from it, a spurious-amplicon risk) or as confined to the 5' overlap arm (the Gibson homology, so an assembly risk), and a site that is neither is no longer reported. The arm mode requires at least 15 nt of shared sequence, the bottom of the 15-30 bp overlap range NEB documents for HiFi assembly; without that floor an 8 nt partial match inside an 11 nt arm rejected a valid H277G design outright and displaced the winning P297I pair.
+
 ## v0.14.7 (One File menu, drawn once)
 
 v0.13.35.1 renamed the two app-name triggers to `File` so the menubars had the same shape. The contents stayed in two files and drifted anyway. KURO offered project zip import and export and MAME did not, although the archive holds the whole project folder and therefore the work of both apps. The two menus also reached for different label keys for the same word, so fixing one left the other behind without any sign of it.
@@ -365,7 +374,7 @@ A defect audit run straight after v0.13.22, aimed at one pattern: a declared con
 ## v0.13.16 (In-app automatic updates)
 
 ### Added
-- v0.13.16.0: Kuma can now **update itself in place**. When a newer signed release is detected, the update dialog offers **Update now**, which downloads the platform artifact, verifies its Ed25519 signature against the key embedded in the app, installs it, and relaunches — no manual installer step. Windows (NSIS), macOS, and Linux AppImage are fully automatic; Debian `.deb` has no updater artifact and falls back to opening the release page. Signing uses a self-generated Tauri updater key (not a paid code-signing certificate), so the free/unsigned distribution policy is unchanged and the SmartScreen guidance still applies. (`src-tauri/tauri.conf.json`, `src-tauri/src/lib.rs`, `src-tauri/capabilities/default.json`, `src/lib/updateCheck.ts`, `src/components/dialogs/UpdateAvailableDialog.tsx`, `.github/workflows/build.yml`, `scripts/gen-latest-json.mjs`)
+- v0.13.16.0: Kuma can now **update itself in place**. When a newer signed release is detected, the update dialog offers **Update now**, which downloads the platform artifact, verifies its Ed25519 signature against the key embedded in the app, installs it, and relaunches, no manual installer step. Windows (NSIS), macOS, and Linux AppImage are fully automatic; Debian `.deb` has no updater artifact and falls back to opening the release page. Signing uses a self-generated Tauri updater key (not a paid code-signing certificate), so the free/unsigned distribution policy is unchanged and the SmartScreen guidance still applies. (`src-tauri/tauri.conf.json`, `src-tauri/src/lib.rs`, `src-tauri/capabilities/default.json`, `src/lib/updateCheck.ts`, `src/components/dialogs/UpdateAvailableDialog.tsx`, `.github/workflows/build.yml`, `scripts/gen-latest-json.mjs`)
 
 ---
 ## v0.13.15 (MAME Activity runs independently on layout + GC)
@@ -428,10 +437,10 @@ A defect audit run straight after v0.13.22, aimed at one pattern: a declared con
 ## v0.13.8 (KURO 3D panel polish + packaged-sidecar dispersion fix)
 
 ### Improved
-- v0.13.8.0: the KURO Candidate 3D structure analysis panel now explains itself inline — the Structural Dispersion card, its null-distribution histogram, and each metric row carry `?` help toggles; the histogram marker uses `P1`/`P96` percentile notation instead of `1%ile`; the metric is relabeled "Observed percentile vs random"; and a Color legend under the viewer maps every color (domain / pLDDT backbone, y_pred variant spheres, active-site sticks, binding-site spheres) to its meaning, adapting to the current coloring mode. (`src/components/panels/Selection3DPanel.tsx`, `src/locales/*.json`)
+- v0.13.8.0: the KURO Candidate 3D structure analysis panel now explains itself inline, the Structural Dispersion card, its null-distribution histogram, and each metric row carry `?` help toggles; the histogram marker uses `P1`/`P96` percentile notation instead of `1%ile`; the metric is relabeled "Observed percentile vs random"; and a Color legend under the viewer maps every color (domain / pLDDT backbone, y_pred variant spheres, active-site sticks, binding-site spheres) to its meaning, adapting to the current coloring mode. (`src/components/panels/Selection3DPanel.tsx`, `src/locales/*.json`)
 - v0.13.8.0: the Color legend rows are clickable toggles that show/hide each 3D layer (variant spheres, active-site sticks, binding-site spheres) while the backbone stays always-on; the standalone Interface checkbox is folded into the legend, and the panel is reordered to toolbar → 3D viewer → legend → Structural Dispersion → tables so toggle/coloring changes are visible in the viewer immediately. (`src/components/panels/Selection3DPanel.tsx`, `src/locales/*.json`)
-- v0.13.8.0: corrected the mislabeled "Interface" overlay to "Binding site" across the viewer, legend, table column, and hover label — the magenta spheres are UniProt `Binding site` (ligand/cofactor/metal-binding) residues, not a protein-protein interface. (`src/components/panels/Selection3DPanel.tsx`, `src/locales/*.json`, `docs/kuro/05-output.md`)
-- v0.13.8.0: documented that the 3D dispersion, pLDDT, and active/binding overlays are interpretation/QC aids, not candidate-selection filters — low-confidence or disordered residues are not auto-excluded from the mutation set, and EVOLVEpro y_pred ranking remains the sole selection authority. (`docs/kuro/05-output.md`)
+- v0.13.8.0: corrected the mislabeled "Interface" overlay to "Binding site" across the viewer, legend, table column, and hover label, the magenta spheres are UniProt `Binding site` (ligand/cofactor/metal-binding) residues, not a protein-protein interface. (`src/components/panels/Selection3DPanel.tsx`, `src/locales/*.json`, `docs/kuro/05-output.md`)
+- v0.13.8.0: documented that the 3D dispersion, pLDDT, and active/binding overlays are interpretation/QC aids, not candidate-selection filters, low-confidence or disordered residues are not auto-excluded from the mutation set, and EVOLVEpro y_pred ranking remains the sole selection authority. (`docs/kuro/05-output.md`)
 
 ### Fixed
 - v0.13.8.0: the KURO 3D dispersion compute no longer fails in the packaged sidecar with `[Errno 2] No such file or directory: '..._MEI.../Bio/Align/substitution_matrices/data/BLOSUM62'`. The reference→accession position mapper now uses `PairwiseAligner` with explicit match/mismatch scoring instead of loading Biopython's loose `BLOSUM62` data file, which PyInstaller does not bundle into the temp extraction dir. (`kuma_core/kuro/interface.py`, `tests/test_g001_backend.py`)
@@ -479,7 +488,7 @@ A defect audit run straight after v0.13.22, aimed at one pattern: a declared con
 - v0.13.4.0: all 10 locales brought to full key parity with `i18n-lint` hardening; UI locales and the Kuro/MAME screens now load on demand (dynamic `import()` + `React.lazy`/`Suspense`), trimming the initial JS bundle. (`src/locales/*.json`, `scripts/i18n-lint.mjs`, `src/lib/i18n.ts`, `src/screens/MainShell.tsx`)
 
 ### Removed
-- v0.13.4.0: the Tauri auto-updater is removed — the frontend `src/lib/updater.ts`, the Cargo dependency, the updater capability, the `lib.rs` plugin registration, and the About-dialog wiring are all gone, and the Check-for-updates menu entry is repurposed to the release page. (`src/lib/updater.ts` deleted, `src-tauri/Cargo.toml`, `src-tauri/capabilities/default.json`, `src-tauri/src/lib.rs`, `src/components/layout/SharedAboutDialog.tsx`)
+- v0.13.4.0: the Tauri auto-updater is removed, the frontend `src/lib/updater.ts`, the Cargo dependency, the updater capability, the `lib.rs` plugin registration, and the About-dialog wiring are all gone, and the Check-for-updates menu entry is repurposed to the release page. (`src/lib/updater.ts` deleted, `src-tauri/Cargo.toml`, `src-tauri/capabilities/default.json`, `src-tauri/src/lib.rs`, `src/components/layout/SharedAboutDialog.tsx`)
 
 ### Fixed
 - v0.13.3.2: corrected an EVOLVEpro numeric overflow and four stale test expectations.

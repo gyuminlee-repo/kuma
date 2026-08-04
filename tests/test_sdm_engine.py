@@ -405,6 +405,131 @@ class TestCheckOfftarget:
         )
         assert any(h.tm >= 45.0 for h in hits)
 
+    # Second primer, laid out as the design path actually builds one:
+    # a 5' Gibson overlap arm followed by a 3' template-binding extension.
+    ARM = "GCAGCTGGACCTGTACCA"   # 18 nt 5' overlap arm
+    TAIL = "TTAGAC"              # 6 nt 3' extension
+    ARM_PRIMER = ARM + TAIL
+
+    def test_site_without_3prime_anchor_is_detected(self):
+        """The 3' anchor used to gate *which sites get scored at all*.
+
+        Decoy: the primer's whole 18 nt 5' arm anneals perfectly and the 3'
+        terminal base is complementary too, but bases -4..-2 are not, so the
+        old `end_nt`=4 exact anchor never matched and the site was never
+        handed to calc_heterodimer. Its measured duplex Tm is 57.3 C, far
+        above the 45.0 threshold, and its 3' terminus is extendable, so it is
+        a genuine spurious-priming risk (Kwok et al. 1990 NAR 18(4):999).
+        """
+        primer = self.ARM_PRIMER
+        decoy = self.ARM + "TTCTTC"
+        assert len(decoy) == len(primer)
+        assert decoy[-4:] != primer[-4:], "old 4 nt anchor must NOT match"
+        assert decoy[-1] == primer[-1], "3' terminal base must be extendable"
+
+        template = "N" * 40 + primer + "N" * 40 + decoy + "N" * 40
+        hits = check_offtarget(
+            primer_seq=primer,
+            template=template,
+            intended_start=40,
+            intended_end=40 + len(primer),
+        )
+        assert len(hits) == 1, f"expected the decoy only, got {hits}"
+        hit = hits[0]
+        assert hit.position == 40 + len(primer) + 40
+        assert hit.tm >= 45.0
+        assert hit.extendable is True
+        assert hit.in_overlap_arm is False
+        assert hit.reason == "extendable_3prime"
+
+    def test_overlap_arm_misanneal_is_a_separate_failure_mode(self):
+        """Arm-only annealing is an assembly risk, not a priming one.
+
+        Decoy: the 18 nt Gibson arm anneals perfectly, the entire 6 nt 3'
+        extension mismatches (terminal base included), duplex Tm 52.4 C. No
+        polymerase extends from it, so it makes no amplicon -- but the arm is
+        the homology used for Gibson assembly, so it can still mis-join.
+        The hit is reported only when the caller says where the arm ends;
+        with no arm declared there is no failure mode to claim and the site
+        is silently dropped rather than over-rejected.
+        """
+        primer = self.ARM_PRIMER
+        decoy = self.ARM + "AAGTTG"
+        assert decoy[-1] != primer[-1], "3' terminus must NOT be extendable"
+
+        template = "N" * 40 + primer + "N" * 40 + decoy + "N" * 40
+        kwargs = dict(
+            primer_seq=primer,
+            template=template,
+            intended_start=40,
+            intended_end=40 + len(primer),
+        )
+
+        hits = check_offtarget(overlap_arm_len=len(self.ARM), **kwargs)
+        assert len(hits) == 1, f"expected the arm decoy only, got {hits}"
+        hit = hits[0]
+        assert hit.tm >= 45.0
+        assert hit.extendable is False
+        assert hit.in_overlap_arm is True
+        assert hit.reason == "overlap_arm_misanneal"
+        assert hit.truncation_type == "5prime"
+
+        assert check_offtarget(**kwargs) == [], (
+            "without a declared overlap arm this site has no failure mode"
+        )
+
+    def test_weak_seeded_site_is_not_over_rejected(self):
+        """Negative control for the wider prefilter.
+
+        The decoy shares an exact 8 nt seed with the primer, so the new
+        position-agnostic prefilter does build an alignment window for it --
+        but the 3' terminus mismatches and the duplex is only 31.3 C, well
+        under the 45.0 threshold. Widening the prefilter must not widen what
+        gets rejected.
+        """
+        primer = self.ARM_PRIMER
+        decoy = primer[:8] + "ATATTAAGTTAATTAA"
+        assert len(decoy) == len(primer)
+        assert decoy[-1] != primer[-1]
+
+        template = "N" * 40 + primer + "N" * 40 + decoy + "N" * 40
+        hits = check_offtarget(
+            primer_seq=primer,
+            template=template,
+            intended_start=40,
+            intended_end=40 + len(primer),
+            overlap_arm_len=len(self.ARM),
+        )
+        assert hits == [], f"weak site must not be reported, got {hits}"
+
+    def test_short_arm_match_is_not_an_assembly_hazard(self):
+        """The Gibson homology floor is what stops the arm mode over-rejecting.
+
+        Site: 11 nt of the 18 nt arm anneal perfectly and nothing else does,
+        3' terminus mismatched, duplex Tm 60.3 C. Tm alone would reject it,
+        but 11 nt is below the shortest overlap the assembly method is
+        documented to work with (NEB NEBuilder HiFi E2621 product page: "varied
+        overlaps (15-30 bp)", so 15 is the bottom of the documented range), and
+        a mismatched 3' end cannot prime -- no failure mode. Without this
+        floor an 8/11 nt partial arm match in fixtures/dmpR_evolvepro.csv
+        rejected H277G outright and displaced the winning P297I pair.
+        """
+        arm = "ATATGCGCCGGCGGCCGC"
+        primer = arm + "TTAGAC"
+        decoy = "TTTTTTT" + arm[7:] + "AAGTTG"
+        assert len(decoy) == len(primer)
+        assert decoy[-1] != primer[-1]
+
+        template = "N" * 40 + primer + "N" * 40 + decoy + "N" * 40
+        hits = check_offtarget(
+            primer_seq=primer,
+            template=template,
+            intended_start=40,
+            intended_end=40 + len(primer),
+            overlap_arm_len=len(arm),
+        )
+        assert hits == [], f"11 nt of arm homology is not a hazard, got {hits}"
+
     def test_perfect_repeat_is_detected(self):
         """Baseline: an exact-repeat 3' anchor is caught (regression guard)."""
         primer = self.PRIMER
