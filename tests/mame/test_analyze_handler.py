@@ -62,10 +62,37 @@ def _plate_workbook(
     else:
         first.title = "Sheet1"
     strict = wb.create_sheet("expected_mutations")
-    strict.append(["mutant_id", "position", "wt_aa", "mt_aa", "status"])
+    # The full ten-column header, not an abbreviation of it. ``validate_inputs``
+    # now reads the workbook the way the run will, so a sheet the strict reader
+    # would reject can no longer pass validation and fail at analyze time.
+    strict.append(
+        [
+            "mutant_id",
+            "position",
+            "wt_aa",
+            "mt_aa",
+            "wt_codon",
+            "mt_codon",
+            "group_id",
+            "primer_set_ref",
+            "notation_type",
+            "status",
+        ]
+    )
     for mutation in expected_ids:
         strict.append(
-            [mutation, int(mutation[1:-1]), mutation[0], mutation[-1], "DESIGNED"]
+            [
+                mutation,
+                int(mutation[1:-1]),
+                mutation[0],
+                mutation[-1],
+                "",
+                "",
+                "",
+                "",
+                "",
+                "DESIGNED",
+            ]
         )
     wb.save(path)
     return path

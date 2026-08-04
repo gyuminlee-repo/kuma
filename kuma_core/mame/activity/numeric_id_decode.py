@@ -156,7 +156,7 @@ def layout_variant_order(
 def expected_variant_order(
     expected_xlsx: str | Path,
 ) -> tuple[DecodeOrder, list[str]]:
-    """Decode order straight from the KURO ``expected_mutations`` sheet.
+    """Decode order straight from the expected-variant list.
 
     Same shape as :func:`layout_variant_order`, derived from the design instead
     of a hand-written plate file: :func:`canonical_plate_order` fixes the order
@@ -167,14 +167,22 @@ def expected_variant_order(
     position for the 2026-03 campaign; where they differ it is a permutation
     inside one residue position in the hand-written file, including the 426 rows
     already known to be wrong there.
+
+    The list may be a KURO export or a plain variant list; the sheet and column
+    are auto-detected. There is no sheet/column override here because this path
+    has no picker in front of it: a file too ambiguous to read on its own is
+    served by passing ``layout_xlsx`` instead, which states the order outright.
+    An explicit wild-type row needs no handling: it is not a decodable variant,
+    so the generic reader drops it exactly as ``layout_variant_order`` skips
+    ``is_wt`` entries.
     """
     from kuma_core.mame.export.well_mapper import seq_to_well
-    from kuma_core.mame.io.kuro_reader import read_expected_mutations
+    from kuma_core.mame.io.variant_list import read_variant_source
     from kuma_core.mame.layout import canonical_plate_order
 
     warnings: list[str] = []
     order: DecodeOrder = []
-    ordered = canonical_plate_order(read_expected_mutations(Path(expected_xlsx)))
+    ordered = canonical_plate_order(read_variant_source(Path(expected_xlsx)).expected)
     for seq, mutation in enumerate(ordered, start=1):
         mutant = mutation.mutant_id
         try:

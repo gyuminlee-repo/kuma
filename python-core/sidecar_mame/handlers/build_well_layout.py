@@ -1,10 +1,18 @@
 """``mame.build_well_layout`` JSON-RPC handler.
 
-Reads the ``expected_mutations`` sheet of a KURO results xlsx and produces a
-draft 96-well plate layout (one mutant per well in column-major order, followed
-by a single WT control well). The draft is consumed by the frontend as an
-editable starting point and later passed back to ``analyze`` via the
-``well_layout`` parameter (highest-priority well->sample source).
+Reads the expected-variant list and produces a draft 96-well plate layout (one
+mutant per well in column-major order, followed by a single WT control well).
+The draft is consumed by the frontend as an editable starting point and later
+passed back to ``analyze`` via the ``well_layout`` parameter (highest-priority
+well->sample source).
+
+The list may be a KURO export (a workbook carrying an ``expected_mutations``
+sheet, routed to the strict reader unchanged) or a plain variant list, read via
+:func:`kuma_core.mame.io.variant_list.read_variant_source`. The optional
+``variant_sheet`` / ``variant_column`` params name the sheet and column for the
+plain shape; they mirror what ``mame.generate_mame_package`` already accepts, so
+the layout drafted here and the sample map template written there are read off
+the same rows rather than off two different auto-detections of one workbook.
 
 RPC method name: ``mame.build_well_layout``
 Registered in ``sidecar_mame.dispatcher._METHODS`` (synchronous: read-only
@@ -34,7 +42,7 @@ from __future__ import annotations
 
 
 def handle_build_well_layout(params: dict) -> dict:
-    """Build a draft well->sample layout from a KURO expected_mutations xlsx.
+    """Build a draft well->sample layout from an expected-variant list.
 
     Parameters
     ----------
@@ -54,11 +62,18 @@ def handle_build_well_layout(params: dict) -> dict:
 
     p = BuildWellLayoutParams.model_validate(params)
 
-    from kuma_core.mame.io.kuro_reader import read_expected_mutations
+    from kuma_core.mame.io.variant_list import read_variant_source
     from kuma_core.mame.layout import build_draft_layout
 
-    expected = read_expected_mutations(Path(p.expected_mutations_xlsx))
-    result = build_draft_layout(expected)
+    read = read_variant_source(
+        Path(p.expected_mutations_xlsx),
+        sheet=p.variant_sheet,
+        variant_column=p.variant_column,
+    )
+    # A source that lists its own WT row must not also get an appended one, or the
+    # plate carries two controls and the second is mis-attributed. Same rule the
+    # sample map template follows in ``_build_sample_map_rows``.
+    result = build_draft_layout(read.expected, include_wt=not read.has_explicit_wt)
 
     # ``result.layout`` is an insertion-ordered dict[well_id, sample_name] in
     # column-major order (WT last when present); preserve that order.
