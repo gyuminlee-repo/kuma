@@ -5,12 +5,12 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.14.5";
+export const WHATS_NEW_VERSION = "0.14.7";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Fixed", detail: "Whether to keep a restored design table is now decided by comparing the saved mutation list against the mutation list a reload of the same EVOLVEpro source produces, not by checking each row against that list. A row whose mutation came fro…" },
-  { label: "Fixed", detail: "The autosave snapshot stores the candidate variant pool (`poolVariants`) next to `designResults`, so pool-dependent UI such as the combinatorial-variant ratio no longer flashes empty during a restore." },
-  { label: "Added", detail: "Autosave keeps the rest of the session too (schema 5): the wizard position and per-step completion, the EVOLVEpro derived state (selection, ranking, per-step statistics, score map, domain statistics), the reference domain annotation and it…" },
-  { label: "Added", detail: "A restore that finds the sequence file and the EVOLVEpro source unchanged since the snapshot was written skips the pipeline rerun entirely and uses the saved state as it stands. Sameness is judged by file size and modification time, so no…" },
-  { label: "Added", detail: "`Ctrl/Cmd+S` saves the open project immediately instead of waiting out the autosave debounce, and reports the time it saved at. It works while a text field has focus, where the other global shortcuts deliberately stand aside, and it is lis…" },
+  { label: "Changed", detail: "Both menubars render one `FileMenu`. Project open, archive import, archive export, sidecar restart and quit live in it once; each app passes only what it alone can do. `useProjectArchiveActions` holds the two archive callbacks so their dia…" },
+  { label: "Changed", detail: "Both menubars use `menu.file` and `menu.edit`. KURO was reading `menuBar.edit.title` for the same word." },
+  { label: "Changed", detail: "A cross-layer group ties the two menubars to `FileMenu`, so touching one alone is reported rather than noticed months later." },
+  { label: "Removed", detail: "The File menu no longer repeats what a button already does during normal work. `Open sequence` duplicated the Browse button in `SequenceInput`, and the two behaved differently: the panel rejects a FASTA with an explanation while the menu p…" },
+  { label: "Added", detail: "CI runs the frontend unit tests. Around 900 vitest cases had no job and were only ever run by hand, which on this repo cannot be done from WSL at all: a `pnpm install` into the shared folder replaces the Windows `node_modules` and breaks t…" },
 ];

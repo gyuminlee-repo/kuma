@@ -96,6 +96,13 @@ jobs:
       - name: i18n en/ko key parity
         run: node scripts/i18n-parity.mjs
 
+      # Frontend unit tests had no job at all, so 900-odd vitest cases were only ever
+      # run by hand. A test nobody runs is documentation with a false badge on it, and
+      # on this repo it cannot be run from WSL: pnpm install into the shared folder
+      # replaces the Windows node_modules and breaks the Windows build.
+      - name: Frontend unit tests
+        run: npx vitest run
+
   rust-check:
     runs-on: ubuntu-22.04
 
