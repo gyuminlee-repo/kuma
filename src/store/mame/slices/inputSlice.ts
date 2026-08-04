@@ -4,23 +4,29 @@ import { formatError } from "@/lib/utils";
 import { defaultMameExportFilename } from "@/lib/mameFilename";
 import { writeMameResultSnapshot } from "@/lib/mame/resultSnapshot";
 import { pickAnalyzeYield } from "@/lib/mame/analyzeYield";
+import { isPlateOrderReportable } from "@/lib/mame/plateOrderMessage";
+// Store-free module on purpose: `janus.ts` imports this store, so importing
+// it here would close a module-eval cycle.
 import {
-  buildPlateOrderMessage,
-  gradePlateOrder,
-  isPlateOrderReportable,
-} from "@/lib/mame/plateOrderMessage";
+  loadJanusSettings,
+  saveJanusSettings,
+  toRpcParams,
+} from "@/lib/mame/janusSettings";
 import type {
   AmpliconLengthEstimate,
   AnalyzeResult,
   DemuxAndFilterResult,
   DistributionStats,
+  JanusAutosaveResult,
+  JanusExportSettings,
   PlateOrderFinding,
   PlateOrderReport,
   ValidationResult,
 } from "@/types/mame/models";
 import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
+import type { VariantSourceInfo } from "@/types/mame/barcode_package";
 
-import type { BuildWellLayoutResult, WellLayout, WellLayoutRow } from "@/types/mame/well_layout";
+import type { WellLayout } from "@/types/mame/well_layout";
 import type { DetectNativeBarcodesResult } from "@/types/mame/detect_native_barcodes";
 import type { InputSlice, RawRunParams } from "../slice-interfaces";
 import type { AppState } from "../types";
@@ -143,11 +149,30 @@ const mameInputInitialState = {
   sharedFastaPath: null as string | null,
   sharedEvolveproCsvPath: null as string | null,
   resetEpoch: 0,
-  wellLayoutDraft: null as WellLayoutRow[] | null,
-  wellLayoutOverflow: null as { droppedMutantIds: string[]; wtOmitted: boolean } | null,
   wellLayout: null as WellLayout | null,
   plateOrderFinding: null as PlateOrderFinding | null,
+  variantSourceInfo: null as VariantSourceInfo | null,
+  variantSheet: null as string | null,
+  variantColumn: null as string | null,
+  variantSelectionExplicit: false,
+  janusSettings: loadJanusSettings(),
+  janusAutosave: null as JanusAutosaveResult | null,
 };
+
+/**
+ * The variant-list reading choice, in RPC form.
+ *
+ * One helper for every call that reads the expected list (validate_inputs and
+ * both analyze paths): sending different values from different calls would have
+ * the validation and the run look at different rows of the same file. Omitted
+ * entirely while nothing is chosen, which is the pre-v0.15.6 behaviour.
+ */
+function variantSourceParams(state: AppState): Record<string, string> {
+  return {
+    ...(state.variantSheet ? { variant_sheet: state.variantSheet } : {}),
+    ...(state.variantColumn ? { variant_column: state.variantColumn } : {}),
+  };
+}
 
 export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set, get) => ({
   ...mameInputInitialState,
@@ -199,11 +224,77 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   setSharedEvolveproCsvPath: (sharedEvolveproCsvPath) => set({ sharedEvolveproCsvPath }),
   bumpResetEpoch: () => set((s) => ({ resetEpoch: s.resetEpoch + 1 })),
   setInputDir: (inputDir) => set({ inputDir, validationErrors: [] }),
-  // A finding describes one workbook. Pointing at another file makes the stored
-  // one a statement about a file nobody is running, so it must not keep gating.
-  // The panel re-checks the new file right after (see `checkExpectedPlateOrder`).
+  // A finding describes one workbook, and a mapping names columns of one file.
+  // Pointing at another file makes both statements about a file nobody is
+  // running: the sheet and column chosen for the previous one would silently
+  // name rows in this one. The panel re-checks and re-inspects the new file
+  // right after (see `checkExpectedPlateOrder`, `inspectVariantSource`).
   setExpectedPath: (expectedPath) =>
-    set({ expectedPath, validationErrors: [], plateOrderFinding: null }),
+    set({
+      expectedPath,
+      validationErrors: [],
+      plateOrderFinding: null,
+      variantSourceInfo: null,
+      variantSheet: null,
+      variantColumn: null,
+      variantSelectionExplicit: false,
+    }),
+  /**
+   * Ask what the picked variant list offers, and preselect what the backend
+   * would read on its own.
+   *
+   * Preselecting the auto-detected column (rather than leaving the picker
+   * empty) means the displayed mapping is the mapping that runs. A KURO export
+   * needs no mapping at all, so the panel hides itself off `is_kuro_export`.
+   * A sidecar too old for this method leaves `variantSourceInfo` null, which is
+   * the pre-v0.15.6 behaviour: KURO exports only, no picker.
+   */
+  inspectVariantSource: async (path: string) => {
+    if (!path) {
+      set({
+        variantSourceInfo: null,
+        variantSheet: null,
+        variantColumn: null,
+        variantSelectionExplicit: false,
+      });
+      return;
+    }
+    try {
+      const info = await sendRequest<VariantSourceInfo>(
+        "inspect_variant_source",
+        { path },
+        30_000,
+      );
+      if (get().expectedPath !== path) return;
+      set({
+        variantSourceInfo: info,
+        // Sheet stays unset for a KURO export: the backend already knows which
+        // sheet it reads, and naming it here would only be a second way to say
+        // the same thing.
+        variantSheet: info.is_kuro_export ? null : (info.sheets[0] ?? null),
+        variantColumn: info.is_kuro_export ? null : info.suggested_column,
+        variantSelectionExplicit: false,
+      });
+    } catch {
+      if (get().expectedPath !== path) return;
+      set({ variantSourceInfo: null });
+    }
+  },
+  setVariantSheet: (variantSheet) =>
+    set({
+      variantSheet,
+      // The headers differ per sheet, so the column chosen for the old one
+      // cannot be carried over.
+      variantColumn: null,
+      variantSelectionExplicit: true,
+      validationErrors: [],
+    }),
+  setVariantColumn: (variantColumn) =>
+    set({ variantColumn, variantSelectionExplicit: true, validationErrors: [] }),
+  setJanusSettings: (janusSettings: JanusExportSettings) => {
+    saveJanusSettings(janusSettings);
+    set({ janusSettings });
+  },
   setReferencePath: (referencePath) => {
     set({ referencePath, validationErrors: [] });
     void get().refreshAnalyzeCdsCandidates(referencePath);
@@ -329,16 +420,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       set({ plateOrderFinding: null });
       return;
     }
-    const state = get();
-    set({
-      plateOrderFinding: {
-        ...report,
-        severity: gradePlateOrder(report, {
-          hasSampleMap: Boolean(state.sampleMapPath),
-          hasWellLayout: state.wellLayout !== null,
-        }),
-      },
-    });
+    // Always informational. Since v0.15.6 the operator names the sheet and the
+    // column to read, so a disagreement between two sheets of one workbook is
+    // something to state, not a reason to refuse the run.
+    set({ plateOrderFinding: { ...report, severity: "info" } });
   },
   validateInputs: async () => {
     set({ isValidating: true, validationErrors: [] });
@@ -356,6 +441,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         // including the ones this run's layout inputs make harmless.
         sample_map_xlsx: get().sampleMapPath || null,
         well_layout: get().wellLayout ?? null,
+        ...variantSourceParams(get()),
       });
       set({
         validationErrors: result.errors,
@@ -408,6 +494,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         max_consensus_n_fraction: state.maxConsensusNFraction,
         sample_map_xlsx: state.sampleMapPath || null,
         well_layout: state.wellLayout ?? null,
+        // Same reading of the variant list the validation used, and the same
+        // Janus policy the export dialog holds.
+        ...variantSourceParams(state),
+        janus_settings: toRpcParams(state.janusSettings),
         // Raw-run demux knobs folded into analyze. `reference` above is reused
         // server-side as reference_fasta.
         custom_barcodes_xlsx: rawRunParams.customBarcodesPath,
@@ -434,6 +524,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     })();
     get().setOutputPath(outDir);
     get().setDistributionStats(result.distribution_stats ?? null);
+    // The run wrote (or could not write) its Janus mapping. Kept so the result
+    // view can state it; swallowing it leaves the operator looking for a file
+    // that was never created.
+    set({ janusAutosave: result.janus_autosave ?? null });
     // Persist the FULL analyze response AS-IS (sibling result file) once on
     // success, so restart can replay it into the sidecar + restore the 2.2
     // review view. Awaited so an immediate app-close does not lose it. Failure
@@ -459,30 +553,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     });
   },
   runAnalysis: async () => {
-    // Backstop for the gate the Run button already applies through
-    // selectCanRun. The run can also be reached from the layout's run request
-    // and from a restored session, and a wrong-plate run is not recoverable
-    // from its own output, so refuse here too and say why.
-    const gateState = get();
-    const blockingFinding = gateState.plateOrderFinding;
-    if (
-      blockingFinding &&
-      gradePlateOrder(blockingFinding, {
-        hasSampleMap: Boolean(gateState.sampleMapPath),
-        hasWellLayout: gateState.wellLayout !== null,
-      }) === "blocking"
-    ) {
-      set({
-        validationErrors: [
-          buildPlateOrderMessage(
-            { ...blockingFinding, severity: "blocking" },
-            gateState.expectedPath,
-          ).text,
-        ],
-        analyzeMessage: "Analysis blocked",
-      });
-      return;
-    }
+    // No plate-order gate here any more. The operator names the sheet and the
+    // column the variant list is read from (v0.15.6), so a disagreement between
+    // two sheets of one workbook is reported by PlateOrderNotice and left to
+    // them: refusing would be the program overruling a statement it asked for.
     set({
       isAnalyzing: true,
       analyzeProgress: 0,
@@ -552,6 +626,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           // path must too, or the plate plan shows PASS wells as fails.
           sample_map_xlsx: state.sampleMapPath || null,
           well_layout: state.wellLayout ?? null,
+          ...variantSourceParams(state),
+          // The sidecar writes the Janus mapping at the end of every run, and
+          // refuses without a liquid class. Sending the dialog's settings is
+          // what turns that refusal into a file.
+          janus_settings: toRpcParams(state.janusSettings),
         },
         MAME_ANALYZE_RPC_TIMEOUT_MS,
       );
@@ -567,6 +646,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       })();
       get().setOutputPath(outDir);
       get().setDistributionStats(result.distribution_stats ?? null);
+      set({ janusAutosave: result.janus_autosave ?? null });
       try {
         await writeMameResultSnapshot(get().projectPath, result);
       } catch (err) {
@@ -645,43 +725,6 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       analyzeDurationMs: null,
       analyzePhase: null,
     });
-  },
-  buildWellLayout: async () => {
-    const expectedPath = get().expectedPath;
-    if (!expectedPath) {
-      set({ validationErrors: ["Expected mutations xlsx is required to build well layout."] });
-      return;
-    }
-    try {
-      const result = await sendRequest<BuildWellLayoutResult>(
-        "mame.build_well_layout",
-        { expected_mutations_xlsx: expectedPath },
-        30_000,
-      );
-      set({
-        wellLayoutDraft: result.draft,
-        wellLayoutOverflow: {
-          droppedMutantIds: result.dropped_mutant_ids,
-          wtOmitted: result.wt_omitted,
-        },
-        validationErrors: [],
-      });
-    } catch (error) {
-      set({ validationErrors: [formatError(error)] });
-    }
-  },
-  confirmWellLayout: (rows: WellLayoutRow[]) => {
-    const layout: WellLayout = {};
-    for (const r of rows) {
-      layout[r.well] = r.sample;
-    }
-    set({ wellLayout: layout, wellLayoutDraft: null, wellLayoutOverflow: null });
-  },
-  cancelWellLayout: () => {
-    set({ wellLayoutDraft: null, wellLayoutOverflow: null });
-  },
-  clearWellLayout: () => {
-    set({ wellLayout: null, wellLayoutDraft: null, wellLayoutOverflow: null });
   },
   resetInput: () => set({ ...mameInputInitialState }),
 });

@@ -5,12 +5,14 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.15.5";
+export const WHATS_NEW_VERSION = "0.15.6";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Fixed", detail: "`validate_inputs` runs the same plate-order check on the expected workbook it already has open and returns the finding under `plate_order`, absent when there is nothing to report so `valid` and `errors` keep their meaning. Severity splits…" },
-  { label: "Fixed", detail: "Choosing an expected workbook checks that one file straight away, through `check_plate_order` rather than a full validation, so the answer arrives while the other inputs may still be unchosen and cannot be buried under errors about them. T…" },
-  { label: "Fixed", detail: "The restore-time notice and the analyze-inputs notice are built from one message, so the same disagreement is described the same way in both places instead of reading as two problems. Each names the plate sheet, the disagreeing wells with…" },
-  { label: "Changed", detail: "A clipped verdict-table cell now has a real way to read the rest of it. The Notes, AA Changes and Quality cells clip a long value at the column edge and the only way past that was a native `title` tooltip: about a second of hover before it…" },
-  { label: "Changed", detail: "Verdict-table columns can be resized by dragging the header edge, and the widths are kept per machine in local storage so a column widened once stays widened after a reload. The drag handle is focusable and takes arrow keys, so the width c…" },
+  { label: "Added", detail: "The analyze path reads a plain variant list, not only a KURO export. `analyze`, `validate_inputs` and `mame.build_well_layout` take optional `variant_sheet` / `variant_column`, absent means the previous behaviour, and `mame.inspect_variant…" },
+  { label: "Added", detail: "The expected-list file field carries a sheet and column picker, following the convention the KURO input step set: the auto-detected column is preselected as a first-class option in the same select, so the mapping on screen is the mapping t…" },
+  { label: "Added", detail: "A finished analyze reports what became of the Janus mapping it wrote beside its result workbook: the path and row count when written, that nothing was selected when there was nothing to write, and the reason when it failed. The run also se…" },
+  { label: "Changed", detail: "Build well layout is gone, along with its confirmation dialog. Confirming 96 rows by hand was never done, and nothing is lost by removing it: analyze assigns the wells itself whether or not a layout was pinned. The `well_layout` parameter…" },
+  { label: "Changed", detail: "A plate-order disagreement no longer stops a run. Now that the operator names the sheet and the column the variant list is read from, the program has no standing to refuse: the finding is stated on the inputs panel and the run proceeds, an…" },
+  { label: "Changed", detail: "The Activity step offers one path instead of two routes. The route selector is now an activity value source: an uploaded long-format activity table joined to the round genotype, or a plate layout with GC data or a raw Agilent report. The p…" },
+  { label: "Changed", detail: "The per-plate verdict breakdown scrolls instead of clipping its last rows." },
 ];

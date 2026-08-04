@@ -15,7 +15,10 @@
  *  - Success / error feedback inline
  *
  * Preview and export send the same settings object, so what the operator
- * approves here is what the exported file describes.
+ * approves here is what the exported file describes. The object lives in the
+ * mame store (persisted), because an analyze run writes its own mapping with
+ * these very settings: keeping them local here would leave every run without a
+ * liquid class and therefore without a file.
  *
  * Entered via: File > Export Janus Mapping… in MenuBar.
  */
@@ -39,7 +42,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { JanusDeckPreview } from "@/components/mame/widgets/JanusDeckPreview";
 import {
-  DEFAULT_JANUS_SETTINGS,
   buildJanusDefaultPath,
   fetchMameJanusPreview,
   handleExportMameJanusMapping,
@@ -130,8 +132,9 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
   const project = useKumaProject();
 
   const storeIsExporting = useMameAppStore((s) => s.isExporting);
+  const settings = useMameAppStore((s) => s.janusSettings);
+  const setSettings = useMameAppStore((s) => s.setJanusSettings);
   const [format, setFormat] = useState<JanusExportFormat>("csv");
-  const [settings, setSettings] = useState<JanusExportSettings>(DEFAULT_JANUS_SETTINGS);
   const [outputPath, setOutputPath] = useState<string>("");
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -203,16 +206,16 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
   );
 
   function patchSettings(partial: Partial<JanusExportSettings>) {
-    setSettings((prev) => ({ ...prev, ...partial }));
+    setSettings({ ...settings, ...partial });
   }
 
   function patchSourceRack(plate: string, raw: string) {
     const parsed = parsePositiveIntegerInput(raw);
     if (parsed === null) return;
-    setSettings((prev) => ({
-      ...prev,
-      sourceRacks: { ...prev.sourceRacks, [plate]: parsed },
-    }));
+    setSettings({
+      ...settings,
+      sourceRacks: { ...settings.sourceRacks, [plate]: parsed },
+    });
   }
 
   function deriveDefaultPath(fmt: JanusExportFormat): string {

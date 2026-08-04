@@ -35,6 +35,7 @@ import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
 import { PlateClusterAlert } from "@/components/mame/widgets/PlateClusterAlert";
 import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNotice";
 import { PlateOrderNotice } from "@/components/mame/widgets/PlateOrderNotice";
+import { JanusAutosaveNotice } from "@/components/mame/widgets/JanusAutosaveNotice";
 import { AnalyzeDurationDialog } from "@/components/mame/dialogs/AnalyzeDurationDialog";
 import { InputPanel } from "@/components/mame/panels/InputPanel";
 import { ParameterPanel } from "@/components/mame/panels/ParameterPanel";
@@ -257,6 +258,10 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               clean run answer the wrong question. */}
           <PlateOrderNotice />
 
+          {/* The run writes the Janus mapping on its own; whether it did is
+              part of the run's outcome, not a detail of the export dialog. */}
+          <JanusAutosaveNotice />
+
           {zeroResult && <EmptyAnalysisNotice />}
 
           {/* Secondary action row: Validate / Clear / Export */}
@@ -316,6 +321,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       mainContent = (
         <div className="flex h-full min-h-0 flex-col relative" ref={reviewContainerRef}>
           <PlateClusterAlert />
+          <JanusAutosaveNotice />
           <div className="flex-1 min-h-0">
           <PanelGroup direction="horizontal" autoSaveId="mame.analyze.review.split">
             <Panel defaultSize={50} minSize={25}>

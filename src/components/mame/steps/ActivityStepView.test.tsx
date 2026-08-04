@@ -66,7 +66,7 @@ describe("ActivityStepView", () => {
     expect(getByTestId("export-section")).toBeTruthy();
   });
 
-  it("defaults to the plate-layout route, the only one that can produce a file", () => {
+  it("defaults to the plate-layout source, the only one that can produce a file", () => {
     // Pins the ACTIVITY_ROUTE_DEFAULT decision: the genotype route joins against
     // a round genotype that nothing populates, so its export writes zero rows.
     // Flipping this back requires wiring the Analyze verdicts into the round.
@@ -83,7 +83,7 @@ describe("ActivityStepView", () => {
     expect(queryByTestId("merge-section")).toBeNull();
   });
 
-  it("blocks Activity next until the selected route has produced EVOLVEpro inputs", async () => {
+  it("blocks Activity next until the selected activity source has produced EVOLVEpro inputs", async () => {
     localStorage.setItem(ACTIVITY_ROUTE_STORAGE_KEY, JSON.stringify("plateLayout"));
     localStorage.setItem(
       BUILD_EVOLVEPRO_STORAGE_KEY,
@@ -100,7 +100,7 @@ describe("ActivityStepView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("Complete the selected Activity route")).toBeInTheDocument();
+    expect(screen.getByText("Complete the selected activity source")).toBeInTheDocument();
     expect(useMameAppStore.getState().currentMameSubStep).toBe("activity.ingest");
   });
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.15.6 (MAME reads the list you point at, and stops asking about the plate it built for nobody)
+
+MAME still treated a KURO export as the only variant list it could analyse, kept a Build well layout button whose 96 rows nobody ever checked, refused a run over two sheets disagreeing inside a workbook the operator had already chosen how to read, and offered two EVOLVEpro-input routes for a workflow that always sequences. The Janus mapping an analyze run writes for itself also failed on every run, because the settings it needs never left the export dialog.
+
+### Added
+
+- v0.15.6: The analyze path reads a plain variant list, not only a KURO export. `analyze`, `validate_inputs` and `mame.build_well_layout` take optional `variant_sheet` / `variant_column`, absent means the previous behaviour, and `mame.inspect_variant_source` reports what a picked file offers: whether it is a KURO export, its sheets, the headers per sheet, and the column the reader would choose on its own (`variant`, `mutation`, `mutant_id` and their plurals, case-insensitive, with `wt`/`wildtype`/`control` read as the control row).
+- v0.15.6: The expected-list file field carries a sheet and column picker, following the convention the KURO input step set: the auto-detected column is preselected as a first-class option in the same select, so the mapping on screen is the mapping that runs and a wrong guess is visible before a run rather than after one. The three calls that read the file (validation and both analyze paths) are sent the same pair, so a run can never be validated against rows nobody looked at. A KURO export hides the controls: its reader knows its own sheet and column, and a picker that changes nothing is worse than none.
+- v0.15.6: A finished analyze reports what became of the Janus mapping it wrote beside its result workbook: the path and row count when written, that nothing was selected when there was nothing to write, and the reason when it failed. The run also sends the Janus settings the export dialog holds, which is what turns a `missing_liquid_class` refusal into a file; those settings are kept between sessions, since the sidecar assumes no liquid class of its own (it decides how the robot handles the cells).
+
+### Changed
+
+- v0.15.6: Build well layout is gone, along with its confirmation dialog. Confirming 96 rows by hand was never done, and nothing is lost by removing it: analyze assigns the wells itself whether or not a layout was pinned. The `well_layout` parameter stays on the RPC, and a layout stored in an older project still restores and still outranks the sample map.
+- v0.15.6: A plate-order disagreement no longer stops a run. Now that the operator names the sheet and the column the variant list is read from, the program has no standing to refuse: the finding is stated on the inputs panel and the run proceeds, and once the sheet and column have been picked by hand the notice says nothing at all, because it would only repeat a decision that was just made. What it keeps reporting either way is a mutant on the plate with no row in the list, which shifts every later well by one whatever the sheet order is and is invisible in the output. The escape wording names the sample map and the column mapping, not the button that no longer exists.
+- v0.15.6: The Activity step offers one path instead of two routes. The route selector is now an activity value source: an uploaded long-format activity table joined to the round genotype, or a plate layout with GC data or a raw Agilent report. The plate-layout handling is absorbed, not deleted, so the WT-block normalisation and round-1 baseline selection added in v0.13.27 stay exactly where they were, and the NGS verdicts are part of the answer whichever source is chosen.
+- v0.15.6: The per-plate verdict breakdown scrolls instead of clipping its last rows.
+
 ## v0.15.5 (A workbook that describes two plates is stopped before the run, not after it)
 
 A KURO export writes the same plate twice, on the primer plate sheet and on `expected_mutations`, and MAME reads wells off the second one when nothing else supplies them. On 2026-08-04 the two disagreed and all 94 wells were scored against variants nobody had put there. The run reported the right number of wells and a full set of verdicts, so the only sign anything was wrong was a day spent chasing it. A check for exactly this existed and ran only when a project was restored from autosave, which is the one path that day did not take.

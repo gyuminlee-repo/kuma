@@ -1,11 +1,22 @@
 /**
- * ActivityRouteSelector, mutually-exclusive picker between the two
- * EVOLVEpro-input generation routes offered by the Activity phase (3.1):
+ * ActivitySourceSelector, "where do this round's activity values come from".
  *
- *   - "genotype": long-format activity upload merged against the current
- *     round's NGS genotype (IngestSection + MergeSection + ExportSection).
- *   - "plateLayout": plate layout + GC data xlsx files, no NGS required
- *     (BuildEvolveproInputPanel).
+ * v0.15.6 folded the two EVOLVEpro-input routes into one step. There is no
+ * route to choose any more: sequencing happens in every campaign this workflow
+ * describes, so the NGS verdicts are always part of the answer and the only
+ * open question is which file carries the measured activity.
+ *
+ * The two answers, both carried over from the routes they replace:
+ *   - "genotype":    a long-format activity upload, joined to the round's NGS
+ *                    genotype (IngestSection + MergeSection + ExportSection).
+ *   - "plateLayout": a plate layout with GC data or a raw Agilent report, whose
+ *                    per-well handling (WT-block normalisation, round-1
+ *                    baseline selection, v0.13.27) lives in
+ *                    BuildEvolveproInputPanel and is gated there by the NGS
+ *                    verdict file.
+ *
+ * The stored values keep the old names so a saved selection survives the
+ * rename (see activityRouteStorage.ts).
  *
  * Pure presentational component: state lives in the parent (ActivityStepView)
  * and is persisted there via activityRouteStorage helpers. No store import
@@ -17,18 +28,18 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { ActivityRoute } from "@/lib/mame/activityRouteStorage";
 
-export interface ActivityRouteSelectorProps {
+export interface ActivitySourceSelectorProps {
   value: ActivityRoute;
   onChange: (route: ActivityRoute) => void;
 }
 
-interface RouteOption {
+interface SourceOption {
   value: ActivityRoute;
   labelKey: string;
   descKey: string;
 }
 
-const ROUTE_OPTIONS: RouteOption[] = [
+const SOURCE_OPTIONS: SourceOption[] = [
   {
     value: "genotype",
     labelKey: "mame.activity.route.genotypeLabel",
@@ -41,16 +52,16 @@ const ROUTE_OPTIONS: RouteOption[] = [
   },
 ];
 
-export function ActivityRouteSelector({ value, onChange }: ActivityRouteSelectorProps) {
+export function ActivitySourceSelector({ value, onChange }: ActivitySourceSelectorProps) {
   const { t } = useTranslation();
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
     event.preventDefault();
-    const currentIndex = ROUTE_OPTIONS.findIndex((opt) => opt.value === value);
+    const currentIndex = SOURCE_OPTIONS.findIndex((opt) => opt.value === value);
     const delta = event.key === "ArrowRight" ? 1 : -1;
-    const nextIndex = (currentIndex + delta + ROUTE_OPTIONS.length) % ROUTE_OPTIONS.length;
-    onChange(ROUTE_OPTIONS[nextIndex].value);
+    const nextIndex = (currentIndex + delta + SOURCE_OPTIONS.length) % SOURCE_OPTIONS.length;
+    onChange(SOURCE_OPTIONS[nextIndex].value);
   }
 
   return (
@@ -58,13 +69,16 @@ export function ActivityRouteSelector({ value, onChange }: ActivityRouteSelector
       <h3 className="text-sm font-semibold text-foreground">
         {t("mame.activity.route.heading")}
       </h3>
+      <p className="text-xs text-muted-foreground">
+        {t("mame.activity.route.ngsNote")}
+      </p>
       <div
         role="radiogroup"
         aria-label={t("mame.activity.route.ariaLabel")}
         onKeyDown={handleKeyDown}
         className="grid grid-cols-1 gap-2 sm:grid-cols-2"
       >
-        {ROUTE_OPTIONS.map((option) => {
+        {SOURCE_OPTIONS.map((option) => {
           const checked = value === option.value;
           return (
             <button

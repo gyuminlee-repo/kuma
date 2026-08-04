@@ -129,6 +129,12 @@ export interface AnalyzeResult extends AnalyzeYield {
     readonly cds_end: number;
     readonly note: string;
   };
+  /**
+   * What became of the Janus mapping this run wrote beside its workbook.
+   * Optional on the type because a snapshot persisted before the field existed
+   * is replayed verbatim; a live sidecar always sends it.
+   */
+  janus_autosave?: JanusAutosaveResult;
 }
 
 /**
@@ -423,6 +429,30 @@ export interface JanusPreviewResult {
   excluded_count: number;
   /** The policy these rows were built with, echoed back for display. */
   settings: JanusResolvedSettings;
+}
+
+/**
+ * Outcome of the Janus mapping written automatically at the end of an analyze.
+ *
+ * Mirrors ``_autosave_janus_mapping`` in
+ * `python-core/sidecar_mame/handlers/analyze.py`, which never raises: a mapping
+ * that could not be written is a fact to report, not a reason to lose the run.
+ *
+ * - "saved": the file exists at `output_path` and carries `row_count` rows.
+ * - "skipped": nothing was selected, so no file was written (an empty mapping
+ *   reads like a finished plate).
+ * - "failed": `errors` says why. `missing_liquid_class` is the common one: the
+ *   device9 schema has no default liquid class because it decides how the robot
+ *   handles the cells.
+ */
+export interface JanusAutosaveResult {
+  status: "saved" | "skipped" | "failed";
+  output_path: string | null;
+  format: "csv";
+  row_count: number;
+  excluded: JanusExcludedEntry[];
+  excluded_count: number;
+  errors: JanusPreviewError[];
 }
 
 export type RunReportFormat = "html" | "pdf";

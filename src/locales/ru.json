@@ -155,11 +155,10 @@
   "mame": {
     "plateOrder": {
       "title": "Plate order disagreement in {{filename}}",
-      "bodyBlocking": "The primer plate on sheet {{sheet}} and the order of expected_mutations do not match. This run has no sample map and no confirmed well layout, so MAME takes each well from a row number in expected_mutations. Running it scores every well against a different design, and the counts and the verdicts still look normal.",
       "bodyInfo": "The primer plate on sheet {{sheet}} and the order of expected_mutations do not match. This run takes its wells from the sample map or the confirmed well layout, so the verdicts are not affected. The workbook still describes two different plates.",
       "example": "well {{well}}: {{plate}} on the plate, {{expected}} in expected_mutations",
       "missing": "On the plate but absent from expected_mutations: {{items}}. Each one shifts every later well by one.",
-      "escape": "Settle this before running. Re-export from KURO, or tell MAME which sample sits in which well: choose a sample map file, or use Build well layout and confirm the plate. Either one takes the sheet order out of this run and lets it start. MAME does not pick a sheet for you, because only you know which plate was pipetted."
+      "escape": "Which sheet describes the tubes that were pipetted is yours to state: name the sheet and column the variant list is read from, or choose a sample map file. Either one takes the sheet order out of this run. MAME does not pick a sheet for you."
     },
     "input": {
       "redetect": "Перепроверить",
@@ -416,13 +415,14 @@
         "alreadySetTooltip": "WT wells уже заданы"
       },
       "route": {
-        "heading": "Маршрут входных данных EVOLVEpro",
-        "ariaLabel": "Выберите способ создания входных данных EVOLVEpro",
-        "genotypeLabel": "Activity + NGS genotype",
-        "genotypeDesc": "Загрузите long-format well activity, объедините с NGS verdict этого round, затем экспортируйте.",
-        "plateLayoutLabel": "Plate layout + GC data",
-        "plateLayoutDesc": "Создать напрямую из xlsx-файлов plate layout и GC data. NGS genotype не требуется.",
-        "completeCurrentRoute": "Завершите выбранный маршрут Activity"
+        "heading": "Activity value source",
+        "ariaLabel": "Choose where this round's activity values come from",
+        "ngsNote": "The NGS verdicts of this run are used either way; only the source of the measured activity changes.",
+        "genotypeLabel": "Activity upload (long format)",
+        "genotypeDesc": "Upload long-format well activity and join it to this round's NGS genotype, then export.",
+        "plateLayoutLabel": "Plate layout + GC data / Agilent report",
+        "plateLayoutDesc": "Read activity per well from a plate layout with GC data or a raw Agilent report, gated by the NGS verdict file.",
+        "completeCurrentRoute": "Complete the selected activity source"
       }
     },
     "runHealth": {
@@ -815,16 +815,14 @@
         "helperText": "Отчёт анализа использует KURO-style rule-based имя файла .xlsx",
         "helpText": "Папка, куда сохраняется Excel с результатом анализа. Имя файла генерируется автоматически по правилам KURO-style, объединяя дату, токены reference/input, MAME target и токены количества результатов."
       },
-      "buildWellLayout": {
-        "button": "Построить well layout",
-        "building": "Построение…",
-        "confirmed": "подтверждено well: {{count}}",
-        "ariaLabel": "Автоматически создать well layout из expected_mutations xlsx",
-        "clear": "Очистить layout",
-        "clearAriaLabel": "Очистить подтверждённый well layout",
-        "disabledBySampleMap": "Отключено, так как выбран Sample Map. Sample Map является основным источником соответствия well-to-sample.",
-        "fallbackHint": "Резервный вариант для run без Sample Map. Назначает порядок строк листа KURO для well начиная с A1 (column-major) и предполагает отсутствие контрольных well WT.",
-        "overrideWarning": "Этот layout переопределяет Sample Map. Очистите его, чтобы использовать Sample Map вместо него."
+      "variantMapping": {
+        "heading": "Variant list mapping",
+        "sheetLabel": "Variant sheet",
+        "columnLabel": "Variant column",
+        "columnAuto": "Auto-detect",
+        "suggested": "Auto-detected column: {{column}}",
+        "noSuggestion": "No column was recognised automatically. Choose the one holding the variant labels.",
+        "helper": "Wells are filled in this column's order, one variant per row. A KURO export needs no mapping and hides these controls."
       }
     },
     "janusDeck": {
@@ -989,19 +987,13 @@
         "minSec": "{{min}} min {{sec}} s",
         "minOnly": "{{min}} min",
         "secOnly": "{{sec}} s"
+      },
+      "janusAutosave": {
+        "saved": "Janus mapping written next to the result workbook ({{rows}} rows).",
+        "skipped": "No clone met the Janus selection, so no mapping file was written.",
+        "failed": "The Janus mapping was not written.",
+        "excluded": "{{clones}} clone(s) left out of the mapping. Open File > Export Janus Mapping to see why."
       }
-    },
-    "wellLayoutDialog": {
-      "title": "Confirm well–sample layout",
-      "description": "Review the auto-generated well–sample mapping from the KURO expected_mutations xlsx. Edit any sample name before confirming.",
-      "hint": "Confirm the well→sample mapping; WT control is the last well.",
-      "tableAriaLabel": "Well-layout confirmation table",
-      "sampleAriaLabel": "Sample name for well {{well}}",
-      "empty": "No wells generated. Check that the expected_mutations xlsx is selected.",
-      "rowCount": "{{count}} well(s) in layout",
-      "droppedMutants": "{{count}} mutant(s) do not fit this 96-well plate and are missing from the draft: {{mutants}}. The barcode space is 12 fwd x 8 rev, so split the campaign across plates and build one layout per plate.",
-      "wtOmitted": "The plate is full, so no well was left for the WT control. Without a declared WT well the clean-control check is lost.",
-      "confirm": "Confirm layout"
     },
     "buildEvolvepro": {
       "title": "Создание входных данных EVOLVEpro",

@@ -4,8 +4,11 @@
  * Two paths report the same fact: `useAutosaveHydration` after restoring a
  * project, and the analyze inputs panel after a file pick or a validation. They
  * used to have separate copy, which reads as two different problems. Both go
- * through here now, so the same disagreement is always described the same way
- * and only the severity changes the tone.
+ * through here now, so the same disagreement is always described the same way.
+ *
+ * Informational since v0.15.6: the operator names the sheet and the column the
+ * variant list is read from, so this states what the workbook says about itself
+ * and stops there.
  *
  * Nothing here repairs anything. Which sheet describes the tubes that were
  * actually pipetted is the operator's call, not a guess this layer can make
@@ -17,33 +20,6 @@ import type {
   PlateOrderReport,
   PlateOrderSeverity,
 } from "@/types/mame/models";
-
-/** Layout inputs that decide whether the sheet order reaches a well at all. */
-export interface PlateOrderLayoutInputs {
-  hasSampleMap: boolean;
-  hasWellLayout: boolean;
-}
-
-/**
- * Grade an ungraded report the way the sidecar does.
- *
- * Mirrors `_plate_order_finding` in
- * `python-core/sidecar_mame/handlers/analyze.py`: `expected_mutations` is a well
- * coordinate system only when the layout is inferred from it, which happens
- * exactly when neither a sample map nor a confirmed well layout is given.
- * Used for the `check_plate_order` response (which carries no severity) and to
- * re-grade a stored finding after the operator supplies one of those inputs.
- */
-export function gradePlateOrder(
-  // Kept in the signature because grading is a statement about this report, and
-  // every caller has one in hand. The grade itself reads only the inputs: the
-  // sheets disagreeing is what makes a finding, and whether that reaches the
-  // verdicts is decided by where the well coordinates come from.
-  _report: PlateOrderReport,
-  inputs: PlateOrderLayoutInputs,
-): PlateOrderSeverity {
-  return inputs.hasSampleMap || inputs.hasWellLayout ? "info" : "blocking";
-}
 
 /** True when a report has something worth saying at all. */
 export function isPlateOrderReportable(report: PlateOrderReport): boolean {
@@ -61,8 +37,8 @@ export interface PlateOrderMessage {
   examples: string[];
   /** Mutants on the plate with no row in expected_mutations; null when none. */
   missing: string | null;
-  /** How to get past a blocking finding; null for an informational one. */
-  escape: string | null;
+  /** How to take the sheet order out of the run. */
+  escape: string;
   /** Everything above as one paragraph, for single-string channels. */
   text: string;
 }
@@ -72,7 +48,7 @@ function basename(filePath: string): string {
 }
 
 /**
- * Build the user-facing description of a graded finding.
+ * Build the user-facing description of a finding.
  *
  * `expectedPath` is named so the operator knows which of the two files they
  * picked is the one that contradicts itself.
@@ -99,12 +75,12 @@ export function buildPlateOrderMessage(
         t("mame.plateOrder.missing", { items: missingItems.join(", ") })
       : null;
   const title = t("mame.plateOrder.title", { filename });
-  const body =
-    finding.severity === "blocking"
-      ? t("mame.plateOrder.bodyBlocking", { sheet })
-      : t("mame.plateOrder.bodyInfo", { sheet });
-  const escape =
-    finding.severity === "blocking" ? t("mame.plateOrder.escape") : null;
+  const body = t("mame.plateOrder.bodyInfo", { sheet });
+  // Always offered, never demanded. The finding does not stop a run any more
+  // (v0.15.6), so this reads as the way to make the sheet order irrelevant
+  // rather than as a precondition: name the sheet and column to read, or state
+  // the wells with a sample map.
+  const escape = t("mame.plateOrder.escape");
   const text = [title, body, ...examples, missing, escape]
     .filter((part): part is string => Boolean(part))
     .join(" ");
