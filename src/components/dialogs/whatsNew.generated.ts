@@ -5,7 +5,7 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.15.0";
+export const WHATS_NEW_VERSION = "0.15.1";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
   { label: "Fixed", detail: "Raw MinKNOW analysis derives the shared primer tails from the custom barcode workbook and, when they uniquely bound the reference, extracts the sequenced amplicon before mapping. CDS coordinates are translated into the extracted reference,…" },

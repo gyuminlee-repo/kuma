@@ -1,13 +1,13 @@
 # Changelog
 
-## v0.15.0 (MAME raw runs reach the review plate)
+## v0.15.1 (MAME raw runs reach the review plate)
 
 MAME could report `Analysis complete` while leaving the verdict table and plate empty when a whole-plasmid FASTA was supplied for a shorter sequenced amplicon. The default 98% coverage gate was applied to the full plasmid, so every read was rejected, and the resulting zero-hit completion marker caused later runs to skip the same input.
 
 ### Fixed
 
-- v0.15.0: Raw MinKNOW analysis derives the shared primer tails from the custom barcode workbook and, when they uniquely bound the reference, extracts the sequenced amplicon before mapping. CDS coordinates are translated into the extracted reference, and the resolution details are returned with the analysis result.
-- v0.15.0: A completed native-barcode marker with input reads but no MAPQ-passing alignments is reprocessed instead of resumed as a successful empty unit. If no wells are recovered after processing, the run now reports an actionable input/reference error rather than a false successful completion.
+- v0.15.1: Raw MinKNOW analysis derives the shared primer tails from the custom barcode workbook and, when they uniquely bound the reference, extracts the sequenced amplicon before mapping. CDS coordinates are translated into the extracted reference, and the resolution details are returned with the analysis result.
+- v0.15.1: A completed native-barcode marker with input reads but no MAPQ-passing alignments is reprocessed instead of resumed as a successful empty unit. If no wells are recovered after processing, the run now reports an actionable input/reference error rather than a false successful completion.
 
 ## v0.14.8 (Off-target scanning sees the sites the 3' end never touches)
 
