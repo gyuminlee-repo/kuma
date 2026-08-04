@@ -709,7 +709,10 @@
       },
       "recoveredHelp": "A mutant is recovered when at least one of its replicate wells (across all plates) is PASS or AMBIGUOUS.",
       "tabFinal": "Final",
-      "finalFallbackNotice": "선정된 replicate 가 아직 없어 FINAL 대신 전체(ALL) well 을 표시합니다."
+      "finalFallbackNotice": "선정된 replicate 가 아직 없어 FINAL 대신 전체(ALL) well 을 표시합니다.",
+      "resizeColumnAriaLabel": "{{column}} 열 너비 조절",
+      "resizeColumnHint": "끌어서 너비를 조절합니다. 더블클릭 또는 Home 키로 초기화합니다.",
+      "resetColumnWidths": "열 너비 초기화"
     },
     "summaryRow": {
       "ariaLabel": "분석 요약",
@@ -2076,6 +2079,10 @@
     "inlineHelp": {
       "showHelp": "도움말 보기",
       "hideHelp": "도움말 숨기기"
+    },
+    "expandableText": {
+      "show": "{{label}}: {{text}} (전문 보기)",
+      "hide": "{{label}}: {{text}} (전문 닫기)"
     }
   },
   "round": {
