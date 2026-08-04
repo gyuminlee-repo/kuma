@@ -114,6 +114,16 @@ SurfacePanel.displayName = "SurfacePanel";
 
 export interface DataPanelProps extends PanelBaseProps {
   onError?: (e: Error) => void;
+  /**
+   * Let the panel body scroll when its content is taller than the panel.
+   *
+   * Off by default: the usual DataPanel child (a virtualised table, a plate
+   * map) owns its own scroll container, and a second one on the outside would
+   * nest two scrollbars. Turn it on for children that just lay content out and
+   * would otherwise be clipped with no way to reach the rest. A panel inside a
+   * resizable PanelGroup has no height the child can count on.
+   */
+  scrollBody?: boolean;
 }
 
 export function DataPanel({
@@ -122,6 +132,7 @@ export function DataPanel({
   headerSlot,
   className,
   children,
+  scrollBody = false,
   onError: _onError,
 }: DataPanelProps) {
   const { t } = useTranslation();
@@ -145,7 +156,10 @@ export function DataPanel({
       )}
     >
       <PanelHeader title={title} description={description} right={headerSlot} />
-      <div className="min-h-0 flex-1 overflow-hidden">
+      <div
+        className={cn("min-h-0 flex-1", scrollBody ? "overflow-auto" : "overflow-hidden")}
+        data-scroll-body={scrollBody ? "true" : undefined}
+      >
         <ErrorBoundary fallback={fallback}>{children}</ErrorBoundary>
       </div>
     </section>

@@ -335,7 +335,10 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
             <Panel defaultSize={50} minSize={25}>
               <PanelGroup direction="vertical" autoSaveId="mame.analyze.review.vsplit.v2">
                 <Panel defaultSize={34} minSize={18}>
-                  <DataPanel title={t("mame.appLayout.platePlanTitle")} className="h-full min-h-0 overflow-auto">
+                  {/* PlateView keeps its own scroll containers (the grid area
+                      and the selected-well aside), so the panel body stays
+                      unscrolled, a second scrollbar here would nest. */}
+                  <DataPanel title={t("mame.appLayout.platePlanTitle")} className="h-full min-h-0">
                     <div
                       role="region"
                       aria-label={t("mame.plateView.expandedRegionAriaLabel")}
@@ -349,7 +352,16 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
                   className="h-2 bg-border hover:bg-border/70 transition-colors"
                 />
                 <Panel defaultSize={66} minSize={30}>
-                  <DataPanel title={t("mame.appLayout.efficiencyChartTitle")} className="h-full min-h-[240px] overflow-auto">
+                  {/* RunHealthPanel just lays its sections out, so whatever it
+                      renders has to fit or be reachable by scrolling: the user
+                      can drag the splitter above down to well under the chart's
+                      natural height. `min-h-0` (not a px floor) because the
+                      panel really can be shorter than the content. */}
+                  <DataPanel
+                    title={t("mame.appLayout.efficiencyChartTitle")}
+                    className="h-full min-h-0"
+                    scrollBody
+                  >
                     {runHealth !== null ? (
                       <RunHealthPanel
                         health={runHealth}
