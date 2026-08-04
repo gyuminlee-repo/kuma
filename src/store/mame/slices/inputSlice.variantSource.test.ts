@@ -52,7 +52,26 @@ const ANALYZE_REPLY = {
   },
 };
 
+/**
+ * A store whose inputs are already chosen, so each test only sets up the one
+ * thing it is about.
+ *
+ * `createInputSlice` carries its own initial state (empty paths, `raw_run`
+ * mode), and that state lands on the object after the seed does. So the seed
+ * has to be applied a second time, after the slice: assigning it only before
+ * leaves every path empty and the mode `raw_run`, which sends `runAnalysis`
+ * down the demux branch and out through its missing-input guard before any RPC
+ * is issued.
+ */
 function makeStore(initial: Partial<AppState> = {}) {
+  const seed: Partial<AppState> = {
+    inputDir: "D:/project/consensus",
+    expectedPath: "D:/project/variants.xlsx",
+    referencePath: "D:/project/ref.fasta",
+    outputPath: "D:/project",
+    inputMode: "consensus" as const,
+    ...initial,
+  };
   const state: Partial<AppState> = {
     setVerdicts: vi.fn(),
     setReplicates: vi.fn(),
@@ -62,12 +81,7 @@ function makeStore(initial: Partial<AppState> = {}) {
     setDistributionStats: vi.fn(),
     loadPlateData: vi.fn().mockResolvedValue(undefined),
     loadRunHealth: vi.fn().mockResolvedValue(undefined),
-    inputDir: "D:/project/consensus",
-    expectedPath: "D:/project/variants.xlsx",
-    referencePath: "D:/project/ref.fasta",
-    outputPath: "D:/project",
-    inputMode: "consensus" as const,
-    ...initial,
+    ...seed,
   };
   const set = (
     updater: Partial<AppState> | ((current: AppState) => Partial<AppState>),
@@ -81,7 +95,7 @@ function makeStore(initial: Partial<AppState> = {}) {
     get as Parameters<typeof createInputSlice>[1],
     {} as Parameters<typeof createInputSlice>[2],
   );
-  Object.assign(state, slice, initial);
+  Object.assign(state, slice, seed);
   return state as AppState;
 }
 
