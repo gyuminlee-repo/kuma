@@ -234,6 +234,12 @@ def test_handle_analyze_consensus_dir_backward_compatible(
     }
     assert "assigned_reads" not in result
     assert "wells_with_reads" not in result
+    # Consensus-dir mode never runs the aligner, so no read passes or fails a
+    # MAPQ / coverage gate here. The counters must stay ABSENT rather than be
+    # reported as zero: a zero would read as "every read was rejected".
+    assert "total_reads" not in result
+    assert "passed_mapq" not in result
+    assert "passed_coverage" not in result
 
 
 def test_handle_analyze_auto_scopes_from_expected_when_sample_map_omitted(
@@ -316,6 +322,14 @@ def test_handle_analyze_raw_run(
     assert result["wells_with_reads"] >= 1, result
     assert result["assigned_reads"] >= 1, result
 
+    # Demux gate counters ride along. ``passed_mapq`` is the signal that tells a
+    # zero-verdict run apart from a reference mismatch, so it must reach the
+    # response even when the run succeeded.
+    assert result["total_reads"] >= 1, result
+    assert result["passed_mapq"] >= 1, result
+    # The two gates count independently (v0.15.2): coverage is a subset of MAPQ.
+    assert result["passed_coverage"] <= result["passed_mapq"], result
+
     params = _progress_params(sent)
     assert params, "expected progress emissions"
 
@@ -390,6 +404,72 @@ def test_handle_analyze_raw_run_extracts_amplicon_from_whole_plasmid(
             f"{len(left_flank) + len(amplicon)} ({len(amplicon)} bp)."
         ),
     }
+
+
+def test_handle_analyze_raw_run_reports_gate_counts_from_demux(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The demux gate counters reach the response verbatim, aligner or not.
+
+    Stubs the demux so the contract under test is the plumbing (``stats_out``
+    sink -> response keys) rather than minimap2 behaviour: this pins the wiring
+    on machines with no minimap2 binary, where the end-to-end raw-run test
+    skips. A wipeout shape (``passed_mapq == 0``) is used deliberately, since
+    that is the case the zero-verdict notice exists to explain.
+    """
+    from kuma_core.mame import ingest as ingest_mod
+    from kuma_core.mame import pipeline as pipeline_mod
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    reference = _make_reference_fasta(tmp_path, seq=_RAW_REF_SEQ)
+    barcodes_xlsx = tmp_path / "barcodes.xlsx"
+    _make_barcodes_xlsx(barcodes_xlsx)
+    expected_xlsx = tmp_path / "expected.xlsx"
+    _make_kuro_xlsx(expected_xlsx)
+    output = tmp_path / "out.xlsx"
+
+    monkeypatch.setattr(
+        ingest_mod,
+        "route_ingest",
+        lambda _input_dir, _mode: [SimpleNamespace(file_size_kb=1.0, read_count=0)],
+    )
+
+    def fake_ingest_run_folder(**kwargs):
+        kwargs["stats_out"].update({
+            "total_reads": 4321,
+            "passed_mapq": 0,
+            "passed_coverage": 0,
+            "assigned_reads": 0,
+            "ambiguous_dropped": 0,
+            "chimera_splits": 0,
+            "wells_with_reads": 0,
+            "wells_with_min_reads": 0,
+        })
+
+    monkeypatch.setattr(ingest_mod, "ingest_run_folder", fake_ingest_run_folder)
+    monkeypatch.setattr(pipeline_mod, "run_analyze", lambda **_kwargs: ([], []))
+    _capture_progress(monkeypatch)
+
+    result = analyze_mod.handle_analyze({
+        "input_dir": str(run_dir),
+        "reference": str(reference),
+        "expected": str(expected_xlsx),
+        "output": str(output),
+        "custom_barcodes_xlsx": str(barcodes_xlsx),
+        "cds_start": 0,
+        "cds_end": 60,
+        "min_file_size_kb": 0.0,
+        "min_read_count": 0,
+        "ingest_mode": "barcode",
+    })
+
+    assert result["total_reads"] == 4321
+    assert result["passed_mapq"] == 0
+    assert result["passed_coverage"] == 0
+    # The pre-existing raw-run yield keys are untouched by the addition.
+    assert result["wells_with_reads"] == 1
+    assert result["assigned_reads"] == 0
 
 
 def test_handle_analyze_raw_run_materializes_snapgene_reference_before_demux(

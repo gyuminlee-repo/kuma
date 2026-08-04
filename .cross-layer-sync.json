@@ -778,6 +778,28 @@
       "severity": "blocking"
     },
     {
+      "id": "mame-analyze-yield-fields",
+      "files": [
+        "kuma_core/mame/ingest/combinatorial_demux.py",
+        "kuma_core/mame/ingest/run_pipeline.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "src/types/mame/models.ts",
+        "src/lib/mame/analyzeYield.ts",
+        "src/components/mame/widgets/EmptyAnalysisNotice.tsx"
+      ],
+      "symbols": [
+        "DemuxStats",
+        "stats_out",
+        "passed_mapq",
+        "passed_coverage",
+        "total_reads",
+        "AnalyzeYield",
+        "pickAnalyzeYield"
+      ],
+      "note": "Optional analyze-response yield fields that explain a zero-verdict run: DemuxStats counters -> ingest_run_folder stats_out sink -> analyze response keys (total_reads, passed_mapq, passed_coverage, assigned_reads, wells_with_reads) -> TS AnalyzeYield -> pickAnalyzeYield narrowing -> EmptyAnalysisNotice rows. Every key is optional by contract and is OMITTED, never zero-filled, when the mode cannot produce it (consensus-dir mode runs no demux). Adding a counter on the Python side without extending AnalyzeYield and pickAnalyzeYield silently drops it before it reaches the notice.",
+      "severity": "blocking"
+    },
+    {
       "id": "mame-build-evolvepro-input",
       "files": [
         "kuma_core/mame/activity/build_evolvepro_input.py",

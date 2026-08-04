@@ -12,12 +12,14 @@ unavailable, matching the guards used by the other MAME ingest tests.
 from __future__ import annotations
 
 import gzip
+from dataclasses import fields
 from pathlib import Path
 
 import pytest
 
 from kuma_core.mame.export.excel_writer import _custom_barcode_to_seq
 from kuma_core.mame.export.well_mapper import seq_to_well
+from kuma_core.mame.ingest.combinatorial_demux import DemuxStats
 from kuma_core.mame.ingest.run_pipeline import ingest_run_folder, is_minknow_run_dir
 
 # ---------------------------------------------------------------------------
@@ -211,6 +213,34 @@ class TestIngestSinglePool:
         # Off-diagonal wells must decode without transposition.
         assert _expected_wells() <= wells
 
+    def test_stats_out_receives_gate_counters(self, tmp_path: Path) -> None:
+        """``stats_out`` mirrors the pooled DemuxStats so a caller can report it."""
+        _require_minimap2()
+        ref = _build_reference(tmp_path)
+        xlsx = _build_barcodes_xlsx(tmp_path)
+        run_dir = _build_single_pool_run(tmp_path)
+        out_dir = tmp_path / "demux_pool_stats"
+        stats: dict[str, int] = {}
+
+        records = ingest_run_folder(
+            run_dir,
+            xlsx,
+            ref,
+            out_dir,
+            mapq_threshold=0,
+            coverage_fraction=0.5,
+            trim_flank_bp=30,
+            min_depth=1,
+            stats_out=stats,
+        )
+
+        assert records
+        assert set(stats) == {f.name for f in fields(DemuxStats)}
+        assert all(isinstance(v, int) for v in stats.values()), stats
+        assert stats["total_reads"] > 0
+        # Coverage is the stricter of the two gates and counts its own subset.
+        assert stats["passed_coverage"] <= stats["passed_mapq"] <= stats["total_reads"]
+
 
 # ---------------------------------------------------------------------------
 # ingest_run_folder — per native barcode
@@ -245,6 +275,34 @@ class TestIngestPerNb:
         for rec in records:
             seq = _custom_barcode_to_seq(rec.custom_barcode)
             assert seq is not None
+
+    def test_stats_out_receives_merged_gate_counters(self, tmp_path: Path) -> None:
+        """Per-NB mode sums the same counter set across native barcodes."""
+        _require_minimap2()
+        ref = _build_reference(tmp_path)
+        xlsx = _build_barcodes_xlsx(tmp_path)
+        nb_names = ["barcode06", "barcode20"]
+        run_dir = _build_per_nb_run(tmp_path, nb_names)
+        out_dir = tmp_path / "demux_nb_stats"
+        stats: dict[str, int] = {}
+
+        records = ingest_run_folder(
+            run_dir,
+            xlsx,
+            ref,
+            out_dir,
+            native_barcodes=nb_names,
+            mapq_threshold=0,
+            coverage_fraction=0.5,
+            trim_flank_bp=30,
+            stats_out=stats,
+        )
+
+        assert records
+        # Same key set as the pooled path, so a consumer needs one shape only.
+        assert set(stats) == {f.name for f in fields(DemuxStats)}
+        assert stats["total_reads"] > 0
+        assert stats["passed_coverage"] <= stats["passed_mapq"] <= stats["total_reads"]
 
     def test_resume_is_idempotent(self, tmp_path: Path) -> None:
         _require_minimap2()
