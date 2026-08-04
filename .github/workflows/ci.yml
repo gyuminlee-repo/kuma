@@ -84,11 +84,13 @@ jobs:
           mkdir -p src-tauri/resources
           printf '# Third-party notices\n\n(placeholder; real content generated at build time by scripts/build-notice.mjs)\n' > src-tauri/resources/NOTICE.md
 
+      # Run the wrapper, not the individual stages. sync:check has three of them
+      # and the third (What's New bundle freshness) was missing here, so a stale
+      # whatsNew.generated.ts could reach main and only surface on the release
+      # tag, where a failed quality-gates skips build and release entirely.
+      # build.yml already invokes the wrapper; this keeps the two in step.
       - name: Cross-layer sync check
-        run: node scripts/sync-check.mjs
-
-      - name: Cross-layer groups co-evolve check
-        run: node scripts/sync-check-groups.mjs
+        run: pnpm run sync:check
 
       - name: i18n hardcoded-Korean lint
         run: node scripts/i18n-lint.mjs
