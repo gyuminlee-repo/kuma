@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.15.5 (A workbook that describes two plates is stopped before the run, not after it)
+
+A KURO export writes the same plate twice, on the primer plate sheet and on `expected_mutations`, and MAME reads wells off the second one when nothing else supplies them. On 2026-08-04 the two disagreed and all 94 wells were scored against variants nobody had put there. The run reported the right number of wells and a full set of verdicts, so the only sign anything was wrong was a day spent chasing it. A check for exactly this existed and ran only when a project was restored from autosave, which is the one path that day did not take.
+
+### Fixed
+
+- v0.15.5: `validate_inputs` runs the same plate-order check on the expected workbook it already has open and returns the finding under `plate_order`, absent when there is nothing to report so `valid` and `errors` keep their meaning. Severity splits on whether the layout is inferred: `handle_analyze` falls back to a draft layout built from `expected_mutations` only when neither `well_layout` nor `sample_map_xlsx` is given, and only then is the sheet order a well coordinate system. Blocking there, informational otherwise. Both parameters are read as optional, so omitting them grades as inferred, the louder of the two answers.
+- v0.15.5: Choosing an expected workbook checks that one file straight away, through `check_plate_order` rather than a full validation, so the answer arrives while the other inputs may still be unchosen and cannot be buried under errors about them. The finding is also shown with the validation result and refuses the run: a blocking one disables the Run button and is repeated as the reason if a run is started another way. The way past it is to state which sample sits in which well, by choosing a sample map or confirming a built well layout, which is what makes the sheet order irrelevant to the run. No sheet is picked automatically, because only the operator knows which plate was pipetted.
+- v0.15.5: The restore-time notice and the analyze-inputs notice are built from one message, so the same disagreement is described the same way in both places instead of reading as two problems. Each names the plate sheet, the disagreeing wells with what each sheet puts there, and the mutants the plate carries that `expected_mutations` does not.
+
 ## v0.15.4 (The verdict table opens on the picks, and a well explains itself)
 
 The review screen opened on ALL, so the first thing on screen was every replicate copy of every well instead of the per-variant picks that the run was made to produce. Nothing anywhere said why a well was called what it was called: the expected mutation, the observed change, the counters behind the call and the two rejected replicate copies all arrived in the analyze response and none of them were drawn. And the file field that has accepted a plain variant list since v0.14.0 was still labelled for KURO exports alone.

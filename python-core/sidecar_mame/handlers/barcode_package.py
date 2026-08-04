@@ -101,6 +101,25 @@ def handle_inspect_variant_source(params: dict) -> dict:
     }
 
 
+def plate_order_payload(report) -> dict:
+    """Serialise a :class:`PlateOrderReport` for the wire.
+
+    Shared with ``validate_inputs`` so both callers hand the frontend the same
+    shape and one type describes them.
+    """
+    return {
+        "comparable": report.comparable,
+        "mismatched": report.mismatched,
+        "plate_sheet": report.plate_sheet,
+        "examples": [
+            {"well": well, "plate": plate, "expected": expected}
+            for well, plate, expected in report.examples
+        ],
+        "missing_from_expected": report.missing_from_expected,
+        "absent_from_plate": report.absent_from_plate,
+    }
+
+
 def handle_check_plate_order(params: dict) -> dict:
     """Report whether an exported workbook describes one plate or two.
 

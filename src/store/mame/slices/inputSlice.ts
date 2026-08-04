@@ -4,11 +4,18 @@ import { formatError } from "@/lib/utils";
 import { defaultMameExportFilename } from "@/lib/mameFilename";
 import { writeMameResultSnapshot } from "@/lib/mame/resultSnapshot";
 import { pickAnalyzeYield } from "@/lib/mame/analyzeYield";
+import {
+  buildPlateOrderMessage,
+  gradePlateOrder,
+  isPlateOrderReportable,
+} from "@/lib/mame/plateOrderMessage";
 import type {
   AmpliconLengthEstimate,
   AnalyzeResult,
   DemuxAndFilterResult,
   DistributionStats,
+  PlateOrderFinding,
+  PlateOrderReport,
   ValidationResult,
 } from "@/types/mame/models";
 import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
@@ -139,6 +146,7 @@ const mameInputInitialState = {
   wellLayoutDraft: null as WellLayoutRow[] | null,
   wellLayoutOverflow: null as { droppedMutantIds: string[]; wtOmitted: boolean } | null,
   wellLayout: null as WellLayout | null,
+  plateOrderFinding: null as PlateOrderFinding | null,
 };
 
 export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set, get) => ({
@@ -191,7 +199,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   setSharedEvolveproCsvPath: (sharedEvolveproCsvPath) => set({ sharedEvolveproCsvPath }),
   bumpResetEpoch: () => set((s) => ({ resetEpoch: s.resetEpoch + 1 })),
   setInputDir: (inputDir) => set({ inputDir, validationErrors: [] }),
-  setExpectedPath: (expectedPath) => set({ expectedPath, validationErrors: [] }),
+  // A finding describes one workbook. Pointing at another file makes the stored
+  // one a statement about a file nobody is running, so it must not keep gating.
+  // The panel re-checks the new file right after (see `checkExpectedPlateOrder`).
+  setExpectedPath: (expectedPath) =>
+    set({ expectedPath, validationErrors: [], plateOrderFinding: null }),
   setReferencePath: (referencePath) => {
     set({ referencePath, validationErrors: [] });
     void get().refreshAnalyzeCdsCandidates(referencePath);
@@ -280,6 +292,54 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       });
     }
   },
+  // Ask the sidecar about the expected workbook alone, without the rest of a
+  // validation.
+  //
+  // A file pick is the path that let the 2026-08-04 incident through, and it is
+  // the moment the operator can still act on the answer. Running the full
+  // `validate_inputs` here would report every input not chosen yet ("input_dir
+  // is required") as an error over a file the user just picked correctly, and
+  // those errors feed `selectCanRun`. `check_plate_order` opens the one workbook
+  // instead, which is the same cost the restore path already pays.
+  //
+  // It answers without a severity, so grade it the way the sidecar would.
+  checkExpectedPlateOrder: async (expectedPath: string) => {
+    if (!expectedPath) {
+      set({ plateOrderFinding: null });
+      return;
+    }
+    let report: PlateOrderReport | null = null;
+    try {
+      const raw = await sendRequest<unknown>("check_plate_order", { path: expectedPath }, 30_000);
+      // An older sidecar does not know the method and a test double answers
+      // undefined. Reading fields before the shape is confirmed would turn a
+      // missing feature into a broken file picker.
+      if (raw && typeof raw === "object" && "comparable" in raw) {
+        report = raw as PlateOrderReport;
+      }
+    } catch {
+      // A check that cannot run is not a finding. Staying silent leaves the
+      // validate/analyze path to say it, and inventing a block here would
+      // strand every operator on an older sidecar.
+      return;
+    }
+    // Race guard: the operator may have picked another file mid-flight.
+    if (!report || get().expectedPath !== expectedPath) return;
+    if (!isPlateOrderReportable(report)) {
+      set({ plateOrderFinding: null });
+      return;
+    }
+    const state = get();
+    set({
+      plateOrderFinding: {
+        ...report,
+        severity: gradePlateOrder(report, {
+          hasSampleMap: Boolean(state.sampleMapPath),
+          hasWellLayout: state.wellLayout !== null,
+        }),
+      },
+    });
+  },
   validateInputs: async () => {
     set({ isValidating: true, validationErrors: [] });
     try {
@@ -291,9 +351,16 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         // Raw-run guard in the backend validate_inputs needs the barcodes xlsx
         // to recognise a configured raw MinKNOW run folder; empty in non-raw mode.
         custom_barcodes_xlsx: get().rawRunParams.customBarcodesPath,
+        // Read only to grade the plate_order finding, under the same names
+        // analyze uses. Omitting them grades every disagreement as blocking,
+        // including the ones this run's layout inputs make harmless.
+        sample_map_xlsx: get().sampleMapPath || null,
+        well_layout: get().wellLayout ?? null,
       });
       set({
         validationErrors: result.errors,
+        // Absent key = nothing to report, which has to clear a previous finding.
+        plateOrderFinding: result.plate_order ?? null,
         isValidating: false,
         analyzeMessage: result.valid ? "Validation complete" : "Validation errors found",
       });
@@ -392,6 +459,30 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     });
   },
   runAnalysis: async () => {
+    // Backstop for the gate the Run button already applies through
+    // selectCanRun. The run can also be reached from the layout's run request
+    // and from a restored session, and a wrong-plate run is not recoverable
+    // from its own output, so refuse here too and say why.
+    const gateState = get();
+    const blockingFinding = gateState.plateOrderFinding;
+    if (
+      blockingFinding &&
+      gradePlateOrder(blockingFinding, {
+        hasSampleMap: Boolean(gateState.sampleMapPath),
+        hasWellLayout: gateState.wellLayout !== null,
+      }) === "blocking"
+    ) {
+      set({
+        validationErrors: [
+          buildPlateOrderMessage(
+            { ...blockingFinding, severity: "blocking" },
+            gateState.expectedPath,
+          ).text,
+        ],
+        analyzeMessage: "Analysis blocked",
+      });
+      return;
+    }
     set({
       isAnalyzing: true,
       analyzeProgress: 0,

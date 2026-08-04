@@ -153,6 +153,14 @@
     "savedAt": "Saved at {{time}}"
   },
   "mame": {
+    "plateOrder": {
+      "title": "Plate order disagreement in {{filename}}",
+      "bodyBlocking": "The primer plate on sheet {{sheet}} and the order of expected_mutations do not match. This run has no sample map and no confirmed well layout, so MAME takes each well from a row number in expected_mutations. Running it scores every well against a different design, and the counts and the verdicts still look normal.",
+      "bodyInfo": "The primer plate on sheet {{sheet}} and the order of expected_mutations do not match. This run takes its wells from the sample map or the confirmed well layout, so the verdicts are not affected. The workbook still describes two different plates.",
+      "example": "well {{well}}: {{plate}} on the plate, {{expected}} in expected_mutations",
+      "missing": "On the plate but absent from expected_mutations: {{items}}. Each one shifts every later well by one.",
+      "escape": "Settle this before running. Re-export from KURO, or tell MAME which sample sits in which well: choose a sample map file, or use Build well layout and confirm the plate. Either one takes the sheet order out of this run and lets it start. MAME does not pick a sheet for you, because only you know which plate was pipetted."
+    },
     "input": {
       "redetect": "Re-detect",
       "redetecting": "Detecting..."
@@ -2420,8 +2428,7 @@
     "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
-    "pathsMoved": "These inputs moved and need to be picked again: {{fields}}",
-    "plateOrderMismatch": "The expected file {{filename}} disagrees with itself. The plate on sheet {{sheet}} and the order in expected_mutations differ (well {{well}}: {{plate}} on the plate, {{expected}} in the list). MAME takes wells from row numbers, so analysing this scores every well against a different design. Re-export from KURO or choose the sheet yourself."
+    "pathsMoved": "These inputs moved and need to be picked again: {{fields}}"
   },
   "phaseC": {
     "majors": {
