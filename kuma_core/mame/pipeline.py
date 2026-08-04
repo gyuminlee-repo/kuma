@@ -14,7 +14,8 @@ from kuma_core.mame.export.excel_writer import _custom_barcode_to_seq
 from kuma_core.mame.export.well_mapper import seq_to_well
 from kuma_core.mame.ingest import IngestMode, route_ingest
 from kuma_core.mame.ingest.sort_barcode import parse_sample_map
-from kuma_core.mame.io.kuro_reader import expected_to_labels, read_expected_mutations
+from kuma_core.mame.io.kuro_reader import expected_to_labels
+from kuma_core.mame.io.variant_list import read_variant_source
 from kuma_core.mame.perf import TIMER
 from kuma_core.mame.models import (
     BarcodeRecord,
@@ -138,6 +139,8 @@ def run_analyze(
     records: list[BarcodeRecord] | None = None,
     expected_mutations: list[ExpectedMutation] | None = None,
     perf_scope: str | None = "analyze",
+    variant_sheet: str | None = None,
+    variant_column: str | None = None,
 ) -> tuple[list[VerdictRecord], list[ReplicateResult]]:
     """Run the full pipeline and write the Excel output. Returns in-memory results.
 
@@ -161,13 +164,21 @@ def run_analyze(
     ``TIMER.begin()`` itself and will call ``TIMER.end()``), which is how the
     handler gets ONE report covering the work it does around this function
     instead of a nested second report that would double-count every phase.
+
+    ``variant_sheet`` / ``variant_column`` name the sheet and column to read
+    ``expected_path`` from when it is a plain variant list rather than a KURO
+    export.  Both default to ``None``, which is auto-detection and leaves a KURO
+    export on exactly the path it took before.  They are ignored when
+    ``expected_mutations`` is supplied, since nothing is read then.
     """
 
     _perf_base = TIMER.begin() if perf_scope is not None else None
     reference_seq = _read_reference_fasta(reference_path)
     if expected_mutations is None:
         with TIMER.phase("expected_read"):
-            expected_mutations = read_expected_mutations(expected_path)
+            expected_mutations = read_variant_source(
+                expected_path, sheet=variant_sheet, variant_column=variant_column
+            ).expected
     expected_labels = expected_to_labels(expected_mutations)
 
     # Build per-mutant label lists for verdict scoping.

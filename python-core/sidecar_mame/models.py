@@ -274,13 +274,27 @@ class BuildWellLayoutParams(BaseModel):
     Required fields
     ---------------
     expected_mutations_xlsx
-        Path to a KURO results xlsx containing an ``expected_mutations`` sheet.
-        Read via ``read_expected_mutations`` and turned into a draft 96-well
-        plate layout by ``build_draft_layout`` (one mutant per well in
-        column-major order, followed by a single WT control well).
+        Path to the expected-variant list: either a KURO results xlsx carrying an
+        ``expected_mutations`` sheet, or a plain variant list (one variant per
+        row, in plate order). Read via ``read_variant_source`` and turned into a
+        draft 96-well plate layout by ``build_draft_layout`` (one mutant per well
+        in column-major order, followed by a single WT control well, which is
+        skipped when the source listed its own wild-type row).
+
+    Optional fields
+    ---------------
+    variant_sheet, variant_column
+        Sheet and column holding the variant labels, for a plain list whose
+        layout cannot be told apart on its own. Both default to ``None``, which
+        is auto-detection: a caller that omits them (any frontend built before
+        this) gets exactly the previous behaviour on a KURO export. They mirror
+        the ``generate_mame_package`` params of the same names so the layout and
+        the sample map template are read off the same rows.
     """
 
     expected_mutations_xlsx: str
+    variant_sheet: str | None = None
+    variant_column: str | None = None
 
     @field_validator("expected_mutations_xlsx", mode="after")
     @classmethod

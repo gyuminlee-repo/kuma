@@ -397,6 +397,48 @@
       "severity": "blocking"
     },
     {
+      "id": "mame-variant-source",
+      "files": [
+        "kuma_core/mame/io/variant_list.py",
+        "kuma_core/mame/ingest/barcode_package.py",
+        "python-core/sidecar_mame/handlers/barcode_package.py",
+        "python-core/sidecar_mame/handlers/build_well_layout.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "python-core/sidecar_mame/models.py",
+        "src/types/mame/barcode_package.ts",
+        "src/types/mame/well_layout.ts",
+        "src/types/mame/models.ts",
+        "src/components/mame/panels/BarcodeSetupPanel.tsx"
+      ],
+      "symbols": [
+        "read_variant_source",
+        "inspect_variant_source",
+        "variant_sheet",
+        "variant_column",
+        "has_explicit_wt"
+      ],
+      "note": "expected-variant input accepts a KURO export or a plain variant list, and every RPC that reads it must offer the same choice: read_variant_source <-> the sample map, well layout, and analyze paths <-> variant_sheet/variant_column params on generate_mame_package, mame.build_well_layout, analyze, and validate_inputs <-> the TS params and the sheet/column picker. Adding the param to one RPC and not the others makes one file read two ways in one run, which places wells from a list nobody chose. has_explicit_wt travels with the read: any path that calls build_draft_layout must pass include_wt=not has_explicit_wt, or a source carrying its own WT row gets a second control well.",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-janus-autosave",
+      "files": [
+        "kuma_core/mame/export/janus_mapping.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "python-core/sidecar_mame/handlers/export.py",
+        "src/lib/mame/janus.ts",
+        "src/types/mame/models.ts"
+      ],
+      "symbols": [
+        "janus_autosave_path",
+        "_janus_settings_from_params",
+        "DEFAULT_JANUS_SETTINGS",
+        "build_janus_preview_rows"
+      ],
+      "note": "analyze writes the Janus mapping beside the result workbook and reports it on the janus_autosave response field. The settings default through _janus_settings_from_params, the one resolver the export_janus_mapping RPC also uses, and DEFAULT_JANUS_SETTINGS in the dialog must keep matching it or the automatic file and the dialog file differ for the same run. Changing the janus_autosave keys (status, output_path, format, row_count, excluded, excluded_count, errors) means changing the TS type that renders them.",
+      "severity": "warning"
+    },
+    {
       "id": "mame-dispatcher-build-well-layout",
       "files": [
         "python-core/sidecar_mame/dispatcher.py"

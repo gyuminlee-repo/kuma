@@ -47,8 +47,11 @@ def read_expected_mutations(path: Path) -> list[ExpectedMutation]:
     try:
         if _EXPECTED_SHEET not in wb.sheetnames:
             raise ValueError(
-                f"KURO xlsx '{path}' is missing the required '{_EXPECTED_SHEET}' sheet. "
-                "Re-export from a KURO build >= commit 8c47037."
+                f"'{path}' cannot be read as an expected-variant list. MAME accepts "
+                "either a KURO export (a workbook carrying an "
+                f"'{_EXPECTED_SHEET}' sheet) or a plain variant list: one variant "
+                "per row under a single variant column, in plate order. This file "
+                "is neither."
             )
         ws = wb[_EXPECTED_SHEET]
         rows_iter = ws.iter_rows(values_only=True)

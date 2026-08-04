@@ -207,6 +207,94 @@ def _deserialize_replicate(d: dict) -> Any:
     )
 
 
+#: Token appended to the result workbook stem for the auto-saved Janus mapping.
+_JANUS_AUTOSAVE_SUFFIX = "_janus"
+
+
+def janus_autosave_path(output: Path) -> Path:
+    """Where the Janus mapping lands for a run whose workbook is *output*.
+
+    The result workbook name is built on the frontend (``defaultMameExportFilename``
+    in ``src/lib/mameFilename.ts``: date, source token, ``MAME``, verdict count) and
+    arrives here fully formed. Deriving from that name rather than rebuilding the
+    rule keeps the two artefacts of one run named alike and leaves a single place
+    where the rule lives; a second implementation here would drift the first time
+    the rule changed. Same directory, same stem, plus the Janus token.
+    """
+    return output.with_name(f"{output.stem}{_JANUS_AUTOSAVE_SUFFIX}.csv")
+
+
+def _autosave_janus_mapping(
+    replicates: list,
+    output: Path,
+    run_meta: object,
+    janus_params: dict,
+) -> dict:
+    """Write the Janus mapping for a finished run, next to its workbook.
+
+    The analysis is already done and cached when this runs, so nothing here may
+    raise: a mapping that cannot be written is a fact to report, not a reason to
+    lose a multi-minute run. Every outcome comes back in the same shape.
+
+    Settings are resolved by ``_janus_settings_from_params``, the very function
+    the ``export_janus_mapping`` RPC uses, so the automatic file and the one the
+    dialog writes cannot default differently. One consequence is worth stating:
+    the default ``device9`` schema has no default liquid class (it decides how the
+    robot handles the cells, so none is assumed), and the export refuses to write
+    without one. Until a caller supplies ``janus_settings.liquid_class`` this
+    reports ``failed`` with ``missing_liquid_class`` rather than inventing a value
+    or quietly switching to a schema the operator did not choose.
+
+    Returns ``{"status", "output_path", "format", "row_count", "excluded",
+    "excluded_count", "errors"}``. ``status`` is ``"saved"``, ``"skipped"``
+    (nothing selected: no file is written, because an empty mapping reads like a
+    finished plate), or ``"failed"``.
+    """
+    result: dict = {
+        "status": "failed",
+        "output_path": None,
+        "format": "csv",
+        "row_count": 0,
+        "excluded": [],
+        "excluded_count": 0,
+        "errors": [],
+    }
+    try:
+        from kuma_core.mame.export import export_mame_janus_csv
+        from kuma_core.mame.export.janus_mapping import build_janus_preview_rows
+
+        from .export import _janus_settings_from_params
+
+        settings = _janus_settings_from_params(janus_params)
+        preview = build_janus_preview_rows(replicates, settings=settings)
+        result["row_count"] = preview["row_count"]
+        result["excluded"] = preview["excluded"]
+        result["excluded_count"] = preview["excluded_count"]
+
+        if preview["errors"]:
+            result["errors"] = preview["errors"]
+            return result
+        if preview["row_count"] == 0:
+            result["status"] = "skipped"
+            return result
+
+        target = janus_autosave_path(output)
+        export_mame_janus_csv(
+            replicates,
+            target,
+            ngs_run_meta=run_meta,  # type: ignore[arg-type]
+            settings=settings,
+        )
+        result["status"] = "saved"
+        result["output_path"] = str(target)
+        return result
+    except Exception as exc:  # noqa: BLE001 - the run must survive any failure here
+        result["errors"] = [
+            {"code": "autosave_failed", "message": str(exc), "mutant_ids": []}
+        ]
+        return result
+
+
 def _summarize(verdicts: list) -> dict:
     total = len(verdicts)
     pass_count = sum(1 for v in verdicts if v.verdict.value == "PASS")
@@ -227,7 +315,7 @@ def _plate_order_finding(params: dict, expected_path: Path) -> dict | None:
 
     ``expected_mutations`` is a well coordinate system to MAME only when the layout
     is inferred from it: :func:`handle_analyze` falls back to
-    ``build_draft_layout(read_expected_mutations(...))`` exactly when neither
+    ``build_draft_layout(read_variant_source(...).expected)`` exactly when neither
     ``well_layout`` nor ``sample_map_xlsx`` is given. With either of those present the
     sheet order never reaches a well, so the same disagreement is a fact about the
     file rather than about this run. That split is the ``severity`` field.
@@ -258,7 +346,12 @@ def _plate_order_finding(params: dict, expected_path: Path) -> dict | None:
 
 
 def handle_validate_inputs(params: dict) -> dict:
-    """Check that all required paths exist and the KURO xlsx has the required sheet.
+    """Check that all required paths exist and the expected-variant list is readable.
+
+    "Readable" is whatever :func:`read_variant_source` accepts: a KURO export or a
+    plain variant list. Optional ``variant_sheet`` / ``variant_column`` name the
+    sheet and column for the plain shape and must match what will be sent to
+    ``analyze``, or this check grades a different set of rows than the run reads.
 
     Always returns a 200 response with ``valid`` + ``errors``; callers surface
     the list directly to the user. Does *not* raise on individual validation
@@ -331,19 +424,37 @@ def handle_validate_inputs(params: dict) -> dict:
             expected_path = _validate_filepath(
                 expected, allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
             )
-            # Sheet-level probe: load workbook read-only and assert the sheet exists.
+            # Read-level probe. A KURO export is not the only accepted shape, so
+            # the old "does it carry an expected_mutations sheet" test would now
+            # reject a plain variant list that analyze goes on to read fine.
+            # Asking the reader itself keeps this check and the run in agreement,
+            # and it reports the reader's own message (which names the sheet or
+            # column at fault) instead of a single fixed sentence.
+            from kuma_core.mame.io.variant_list import KURO_SHEET, read_variant_source
+
+            from .barcode_package import _optional_str
+
+            try:
+                read_variant_source(
+                    expected_path,
+                    sheet=_optional_str(params.get("variant_sheet")),
+                    variant_column=_optional_str(params.get("variant_column")),
+                )
+                expected_readable = True
+            except (FileNotFoundError, ValueError) as exc:
+                expected_readable = False
+                errors.append(f"expected: {exc}")
+
+            # The plate-order check compares the KURO sheet against the primer
+            # plate sheets, so it only has something to say about a KURO export.
             import openpyxl  # local import keeps cold-start fast
 
             wb = openpyxl.load_workbook(expected_path, read_only=True, data_only=True)
             try:
-                has_expected_sheet = "expected_mutations" in wb.sheetnames
-                if not has_expected_sheet:
-                    errors.append(
-                        "expected: missing required 'expected_mutations' sheet"
-                    )
+                is_kuro_export = KURO_SHEET in wb.sheetnames
             finally:
                 wb.close()
-            if has_expected_sheet:
+            if expected_readable and is_kuro_export:
                 plate_order = _plate_order_finding(params, expected_path)
         except (FileNotFoundError, ValueError) as exc:
             errors.append(f"expected: {exc}")
@@ -363,7 +474,18 @@ def handle_validate_inputs(params: dict) -> dict:
 
 
 def handle_analyze(params: dict) -> dict:
-    """Run the full pipeline and cache the resulting artefacts for downstream RPCs."""
+    """Run the full pipeline and cache the resulting artefacts for downstream RPCs.
+
+    Two files come out of one run: the result workbook at ``output`` and the Janus
+    mapping beside it (see :func:`janus_autosave_path`), written here rather than
+    waiting for the export dialog. Optional ``janus_settings`` carries the same
+    fields the ``export_janus_mapping`` RPC accepts; omitting it means the dialog
+    defaults. The outcome rides back on ``janus_autosave`` and never raises.
+
+    Optional ``variant_sheet`` / ``variant_column`` name the sheet and column of a
+    plain expected-variant list. Omitting both is auto-detection, which leaves a
+    KURO export on the path it always took.
+    """
     # Lazy import: keeps the sidecar cold-start < 200 ms and lets the module
     # import during unit tests that stub mame.
     from kuma_core.mame.distribution import compute_distribution_stats
@@ -391,6 +513,13 @@ def handle_analyze(params: dict) -> dict:
     expected = _validate_filepath(
         params["expected"], allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
     )
+    # Optional sheet/column for an expected list that is not a KURO export. Both
+    # absent (any frontend built before this) means auto-detection, which routes a
+    # KURO export to the strict reader exactly as before.
+    from .barcode_package import _optional_str
+
+    variant_sheet = _optional_str(params.get("variant_sheet"))
+    variant_column = _optional_str(params.get("variant_column"))
     output = _validate_output_path(
         params["output"], allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
     )
@@ -690,10 +819,17 @@ def handle_analyze(params: dict) -> dict:
             raise ValueError("well_layout must be a mapping of well_id (str) to sample_name (str)")
         well_layout = well_layout_raw
     elif sample_map_path is None:
-        from kuma_core.mame.io.kuro_reader import read_expected_mutations
+        from kuma_core.mame.io.variant_list import read_variant_source
         from kuma_core.mame.layout import build_draft_layout
 
-        well_layout = build_draft_layout(read_expected_mutations(expected)).layout
+        # Same read and the same WT rule as ``mame.build_well_layout``: the two
+        # produce the layout for the same file and must not disagree about it.
+        _inferred = read_variant_source(
+            expected, sheet=variant_sheet, variant_column=variant_column
+        )
+        well_layout = build_draft_layout(
+            _inferred.expected, include_wt=not _inferred.has_explicit_wt
+        ).layout
 
     _emit(10, "Ingesting FASTA files...")
 
@@ -794,10 +930,12 @@ def handle_analyze(params: dict) -> dict:
         # rows and this handler needs the designed-mutant denominator derived from
         # them; each used to open the same workbook separately.
         from kuma_core.mame.detected import designed_mutant_ids as _designed_ids
-        from kuma_core.mame.io.kuro_reader import read_expected_mutations
+        from kuma_core.mame.io.variant_list import read_variant_source
 
         with TIMER.phase("expected_read"):
-            expected_mutations = read_expected_mutations(expected)
+            expected_mutations = read_variant_source(
+                expected, sheet=variant_sheet, variant_column=variant_column
+            ).expected
         dids = _designed_ids(expected_mutations)
 
         _emit(30, "Translating sequences...")
@@ -880,10 +1018,18 @@ def handle_analyze(params: dict) -> dict:
         designed_mutant_ids=dids,
     )
 
+    # The Janus mapping is the second artefact of the same run, so it is written
+    # here rather than waiting for the operator to open the dialog. Cached state
+    # is already set above, so a failure here costs the file, never the analysis.
+    janus_autosave = _autosave_janus_mapping(
+        replicates, output, run_meta, params.get("janus_settings") or {}
+    )
+
     response = {
         "verdicts": [_serialize_verdict(v) for v in verdicts],
         "replicates": [_serialize_replicate(r) for r in replicates],
         "output_path": str(output),
+        "janus_autosave": janus_autosave,
         "designed_mutant_ids": sorted(dids),
         "summary": _summarize(verdicts),
         "distribution_stats": {

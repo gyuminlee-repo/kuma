@@ -228,3 +228,171 @@ def test_build_well_layout_registered_synchronous() -> None:
 
     assert "mame.build_well_layout" in _METHODS
     assert "mame.build_well_layout" not in _ASYNC_METHODS
+
+
+# ---------------------------------------------------------------------------
+# Plain variant lists on the analysis and layout paths
+#
+# The generic adapter used to be wired to the sample map template only, so a
+# workbook with a single ``variant`` column reached ``mame.build_well_layout``
+# and ``analyze`` as a KURO export that was missing its sheet. These pin the two
+# shapes side by side: a plain list is read, and a KURO export is unchanged.
+# ---------------------------------------------------------------------------
+
+
+def _make_variant_list_xlsx(dest: Path, labels: list[str], header: str = "variant") -> Path:
+    """A workbook with one variant column and no ``expected_mutations`` sheet."""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.title = "Variants"
+    ws.append([header])
+    for label in labels:
+        ws.append([label])
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    wb.save(dest)
+    return dest
+
+
+def test_build_well_layout_reads_a_plain_variant_list(tmp_path: Path) -> None:
+    from sidecar_mame.handlers.build_well_layout import handle_build_well_layout
+
+    path = _make_variant_list_xlsx(tmp_path / "variants.xlsx", ["G2A", "F3W"])
+
+    result = handle_build_well_layout({"expected_mutations_xlsx": str(path)})
+
+    assert result["draft"] == [
+        {"well": "A1", "sample": "G2A"},
+        {"well": "B1", "sample": "F3W"},
+        {"well": "C1", "sample": "WT"},
+    ]
+    assert result["count"] == 3
+
+
+def test_build_well_layout_does_not_append_a_second_wt(tmp_path: Path) -> None:
+    """A source carrying its own WT row gets no appended control well."""
+    from sidecar_mame.handlers.build_well_layout import handle_build_well_layout
+
+    path = _make_variant_list_xlsx(tmp_path / "with_wt.xlsx", ["G2A", "F3W", "WT"])
+
+    result = handle_build_well_layout({"expected_mutations_xlsx": str(path)})
+
+    assert result["draft"] == [
+        {"well": "A1", "sample": "G2A"},
+        {"well": "B1", "sample": "F3W"},
+    ]
+    assert [row["sample"] for row in result["draft"]].count("WT") == 0
+
+
+def test_build_well_layout_honours_an_explicit_sheet_and_column(tmp_path: Path) -> None:
+    """Two candidate columns are ambiguous until the caller names one."""
+    from sidecar_mame.handlers.build_well_layout import handle_build_well_layout
+
+    path = tmp_path / "two_columns.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.title = "Round 2"
+    ws.append(["alpha", "beta"])
+    ws.append(["G2A", "F3W"])
+    wb.save(path)
+
+    result = handle_build_well_layout(
+        {
+            "expected_mutations_xlsx": str(path),
+            "variant_sheet": "Round 2",
+            "variant_column": "beta",
+        }
+    )
+
+    assert result["draft"][0] == {"well": "A1", "sample": "F3W"}
+
+
+def test_build_well_layout_kuro_export_is_unchanged(tmp_path: Path) -> None:
+    """The KURO shape keeps taking the strict reader, WT control included."""
+    from sidecar_mame.handlers.build_well_layout import handle_build_well_layout
+
+    kuro = tmp_path / "kuro.xlsx"
+    _make_kuro_xlsx(kuro)
+
+    assert handle_build_well_layout({"expected_mutations_xlsx": str(kuro)}) == {
+        "draft": [
+            {"well": "A1", "sample": "G2A"},
+            {"well": "B1", "sample": "F3W"},
+            {"well": "C1", "sample": "WT"},
+        ],
+        "count": 3,
+        "dropped_mutant_ids": [],
+        "wt_omitted": False,
+    }
+
+
+def test_run_analyze_reads_a_plain_variant_list(tmp_path: Path) -> None:
+    """The analysis path scores wells from a workbook with no KURO sheet."""
+    ingest = tmp_path / "consensus"
+    _write_fasta(ingest / "NB01" / "1_2.fasta", "1_2", _G2A_NT)   # A02 G2A
+    _write_fasta(ingest / "NB01" / "2_1.fasta", "2_1", _F3W_NT)   # B01 F3W
+    reference = _make_reference_fasta(tmp_path)
+    variants = _make_variant_list_xlsx(tmp_path / "variants.xlsx", ["G2A", "F3W"])
+
+    verdicts, _ = run_analyze(
+        input_dir=ingest, reference_path=reference, expected_path=variants,
+        output_path=tmp_path / "out.xlsx", cds_start=0, cds_end=9,
+        min_file_size_kb=0.0, ingest_mode=IngestMode.BARCODE,
+        well_layout={"A2": "G2A", "B1": "F3W"},
+    )
+
+    by_custom = {v.translated.barcode.custom_barcode: v for v in verdicts}
+    assert by_custom["1_2"].verdict is VerdictClass.PASS, by_custom["1_2"].verdict_notes
+    assert by_custom["2_1"].verdict is VerdictClass.PASS, by_custom["2_1"].verdict_notes
+
+
+def test_validate_inputs_accepts_a_plain_variant_list(tmp_path: Path) -> None:
+    """Validation used to demand the KURO sheet and rejected a readable list."""
+    from sidecar_mame.handlers.analyze import handle_validate_inputs
+
+    ingest = tmp_path / "consensus"
+    _write_fasta(ingest / "NB01" / "1_2.fasta", "1_2", _G2A_NT)
+    reference = _make_reference_fasta(tmp_path)
+    variants = _make_variant_list_xlsx(tmp_path / "variants.xlsx", ["G2A", "F3W"])
+
+    result = handle_validate_inputs(
+        {
+            "input_dir": str(ingest),
+            "reference": str(reference),
+            "expected": str(variants),
+            "cds_end": 9,
+        }
+    )
+
+    assert result == {"valid": True, "errors": []}
+
+
+def test_validate_inputs_reports_why_a_file_cannot_be_read(tmp_path: Path) -> None:
+    """The error names what is needed instead of pointing at a KURO commit."""
+    from sidecar_mame.handlers.analyze import handle_validate_inputs
+
+    ingest = tmp_path / "consensus"
+    _write_fasta(ingest / "NB01" / "1_2.fasta", "1_2", _G2A_NT)
+    reference = _make_reference_fasta(tmp_path)
+    path = tmp_path / "ambiguous.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.append(["alpha", "beta"])
+    ws.append(["G2A", "F3W"])
+    wb.save(path)
+
+    result = handle_validate_inputs(
+        {
+            "input_dir": str(ingest),
+            "reference": str(reference),
+            "expected": str(path),
+            "cds_end": 9,
+        }
+    )
+
+    assert result["valid"] is False
+    (message,) = result["errors"]
+    assert "which column holds the variants" in message
+    assert "8c47037" not in message
