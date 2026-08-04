@@ -427,6 +427,24 @@
       "severity": "blocking"
     },
     {
+      "id": "mame-plate-order-finding",
+      "files": [
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "python-core/sidecar_mame/handlers/barcode_package.py",
+        "src/types/mame/models.ts",
+        "src/hooks/useAutosaveHydration.ts",
+        "src/store/mame/slices/inputSlice.ts"
+      ],
+      "symbols": [
+        "plate_order_payload",
+        "_plate_order_finding",
+        "check_plate_order",
+        "missing_from_expected"
+      ],
+      "note": "validate_inputs 와 check_plate_order 는 같은 plate_order_payload 모양을 돌려주고, validate_inputs 쪽만 severity(blocking|info)를 덧붙인다. severity 는 well_layout/sample_map_xlsx 유무로 갈리므로 inputSlice 가 그 두 값을 함께 보내지 않으면 정보 수준 불일치가 차단으로 잘못 표시된다. payload 필드를 바꾸면 ValidationResult 와 useAutosaveHydration 의 PlateOrderReport 를 함께 고칠 것.",
+      "severity": "blocking"
+    },
+    {
       "id": "shared-sidecar",
       "files": [
         "kuma_core/shared/sidecar.py",

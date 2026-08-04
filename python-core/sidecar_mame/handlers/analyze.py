@@ -222,14 +222,59 @@ def _summarize(verdicts: list) -> dict:
     }
 
 
+def _plate_order_finding(params: dict, expected_path: Path) -> dict | None:
+    """Does the expected workbook agree with its own primer plate sheets?
+
+    ``expected_mutations`` is a well coordinate system to MAME only when the layout
+    is inferred from it: :func:`handle_analyze` falls back to
+    ``build_draft_layout(read_expected_mutations(...))`` exactly when neither
+    ``well_layout`` nor ``sample_map_xlsx`` is given. With either of those present the
+    sheet order never reaches a well, so the same disagreement is a fact about the
+    file rather than about this run. That split is the ``severity`` field.
+
+    Returns ``None`` when there is nothing to say: a workbook the check cannot compare
+    (no plate sheet, a plain variant list), one whose sheets agree, or a check that
+    failed outright. A failed check is not a reason to hold up validation.
+    """
+    try:
+        from kuma_core.mame.io.plate_order_check import check_plate_order
+
+        from .barcode_package import plate_order_payload
+
+        report = check_plate_order(expected_path)
+    except Exception:  # noqa: BLE001, openpyxl surface is broad; silence beats noise
+        return None
+    if not report.comparable or report.ok:
+        return None
+
+    # Mirrors the layout fallback in handle_analyze: an explicit well_layout wins
+    # even when empty, and sample_map_xlsx only counts when non-blank.
+    infers_layout = params.get("well_layout") is None and not params.get(
+        "sample_map_xlsx"
+    )
+    payload = plate_order_payload(report)
+    payload["severity"] = "blocking" if infers_layout else "info"
+    return payload
+
+
 def handle_validate_inputs(params: dict) -> dict:
     """Check that all required paths exist and the KURO xlsx has the required sheet.
 
     Always returns a 200 response with ``valid`` + ``errors``; callers surface
     the list directly to the user. Does *not* raise on individual validation
-    failures — only on programmer errors (missing param key).
+    failures, only on programmer errors (missing param key).
+
+    A readable expected workbook is additionally checked against its own primer plate
+    sheets (see :func:`_plate_order_finding`). The finding rides along under
+    ``plate_order`` and the key is absent when there is nothing to report, so ``valid``
+    and ``errors`` keep meaning exactly what they did.
+
+    Optional ``well_layout`` / ``sample_map_xlsx`` are read only to grade that finding;
+    omitting them (any frontend built before this) grades it as if the layout were
+    inferred, which is the louder of the two answers.
     """
     errors: list[str] = []
+    plate_order: dict | None = None
 
     input_dir = params.get("input_dir")
     reference = params.get("reference")
@@ -291,12 +336,15 @@ def handle_validate_inputs(params: dict) -> dict:
 
             wb = openpyxl.load_workbook(expected_path, read_only=True, data_only=True)
             try:
-                if "expected_mutations" not in wb.sheetnames:
+                has_expected_sheet = "expected_mutations" in wb.sheetnames
+                if not has_expected_sheet:
                     errors.append(
                         "expected: missing required 'expected_mutations' sheet"
                     )
             finally:
                 wb.close()
+            if has_expected_sheet:
+                plate_order = _plate_order_finding(params, expected_path)
         except (FileNotFoundError, ValueError) as exc:
             errors.append(f"expected: {exc}")
         except Exception as exc:  # noqa: BLE001 — openpyxl surface is broad
@@ -308,7 +356,10 @@ def handle_validate_inputs(params: dict) -> dict:
         except ValueError as exc:
             errors.append(str(exc))
 
-    return {"valid": not errors, "errors": errors}
+    result: dict = {"valid": not errors, "errors": errors}
+    if plate_order is not None:
+        result["plate_order"] = plate_order
+    return result
 
 
 def handle_analyze(params: dict) -> dict:
