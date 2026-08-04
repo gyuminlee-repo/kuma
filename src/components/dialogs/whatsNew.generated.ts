@@ -5,12 +5,9 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.14.7";
+export const WHATS_NEW_VERSION = "0.14.8";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Changed", detail: "Both menubars render one `FileMenu`. Project open, archive import, archive export, sidecar restart and quit live in it once; each app passes only what it alone can do. `useProjectArchiveActions` holds the two archive callbacks so their dia…" },
-  { label: "Changed", detail: "Both menubars use `menu.file` and `menu.edit`. KURO was reading `menuBar.edit.title` for the same word." },
-  { label: "Changed", detail: "A cross-layer group ties the two menubars to `FileMenu`, so touching one alone is reported rather than noticed months later." },
-  { label: "Removed", detail: "The File menu no longer repeats what a button already does during normal work. `Open sequence` duplicated the Browse button in `SequenceInput`, and the two behaved differently: the panel rejects a FASTA with an explanation while the menu p…" },
-  { label: "Added", detail: "CI runs the frontend unit tests. Around 900 vitest cases had no job and were only ever run by hand, which on this repo cannot be done from WSL at all: a `pnpm install` into the shared folder replaces the Windows `node_modules` and breaks t…" },
+  { label: "Fixed", detail: "Candidate off-target windows now come from the union of the existing 4 nt 3' anchor and a position-agnostic 8 nt seed scan, each seed hit expanded back to a full-primer-length window and deduplicated by coordinate. The anchor path is kept…" },
+  { label: "Fixed", detail: "Every hit is classified as extendable (the 3' terminal base pairs, so a polymerase can extend from it, a spurious-amplicon risk) or as confined to the 5' overlap arm (the Gibson homology, so an assembly risk), and a site that is neither is…" },
 ];
