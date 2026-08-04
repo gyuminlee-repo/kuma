@@ -146,6 +146,14 @@ def _stub_demux_one_nb(payload: dict) -> dict:
     }
 
 
+def _stub_reference(tmp_path: Path) -> Path:
+    """A real reference file: the orchestrator fingerprints it for the markers."""
+    path = tmp_path / "ref.fasta"
+    if not path.exists():
+        path.write_text(">stub_ref\nACGTACGTACGTACGT\n", encoding="utf-8")
+    return path
+
+
 def test_orchestration_per_nb_inline_order_and_merge(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -164,7 +172,7 @@ def test_orchestration_per_nb_inline_order_and_merge(
 
     result = run_combinatorial_demux_per_nb(
         nb_to_fastq,
-        Path("ref.fasta"),
+        _stub_reference(tmp_path),
         Path("barcodes.xlsx"),
         tmp_path / "out",
         parallel=False,
@@ -211,7 +219,7 @@ def test_orchestration_per_nb_progress_is_aggregate_and_monotonic(
     }
     run_combinatorial_demux_per_nb(
         nb_to_fastq,
-        Path("ref.fasta"),
+        _stub_reference(tmp_path),
         Path("barcodes.xlsx"),
         tmp_path / "out",
         parallel=False,
@@ -251,7 +259,7 @@ def test_orchestration_per_nb_parallel_smoke(
 
     result = run_combinatorial_demux_per_nb(
         nb_to_fastq,
-        Path("ref.fasta"),
+        _stub_reference(tmp_path),
         Path("barcodes.xlsx"),
         tmp_path / "out2",
         parallel=True,

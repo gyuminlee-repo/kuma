@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from kuma_core.mame.models import BarcodeRecord
 from kuma_core.mame.translate import extract_aa_changes, translate_and_diff
 
@@ -109,6 +111,81 @@ def test_translate_n_codon_is_no_call_not_mutation(
     assert translated.observed_aa_changes == []
     assert all(not c.endswith("X") for c in translated.observed_aa_changes)
     assert translated.n_no_call_aa == 1
+
+
+def test_consensus_too_short_for_the_cds_window_is_refused() -> None:
+    """A consensus that cannot cover the CDS must not be diffed.
+
+    Consensus sequences carry one base per reference position, so a consensus
+    ending before cds_end cannot have come from this reference. On 2026-08-04 a
+    resumed run diffed 1,683 bp consensus files (CDS-scoped) against a 1,715 bp
+    amplicon whose CDS ends at 1,699 and reported about 530 amino-acid changes
+    per well. Reinterpreting the shorter sequence would hide that; refusing it
+    names the problem.
+    """
+    codons = ["ATG", "GCT", "TGC", "TCT", "GTA", "TCC", "ACT", "TAA"]
+    cds = "".join(codons)
+    left_tail = "CACAGGAGGTTAAACC"
+    right_tail = "TGCGTTGCGCTCTAG"
+    reference = left_tail + cds + right_tail
+    cds_start = len(left_tail)
+    cds_end = cds_start + len(cds)
+
+    with pytest.raises(ValueError) as excinfo:
+        translate_and_diff(
+            record=_br(cds),
+            reference_seq=reference,
+            cds_start=cds_start,
+            cds_end=cds_end,
+        )
+
+    message = str(excinfo.value)
+    assert f"consensus {len(cds)} bp" in message
+    assert f"reference {len(reference)} bp" in message
+    assert f"CDS ending at {cds_end}" in message
+    assert "reused" in message
+
+    # The same consensus in reference coordinates is diffed normally.
+    mutated_cds = cds[:12] + "ATA" + cds[15:]
+    translated = translate_and_diff(
+        record=_br(left_tail + mutated_cds + right_tail),
+        reference_seq=reference,
+        cds_start=cds_start,
+        cds_end=cds_end,
+    )
+    assert translated.observed_aa_changes == ["V5I"]
+
+
+def test_consensus_longer_than_the_reference_is_still_diffed() -> None:
+    """Trailing sequence past the CDS is an insertion, not a coordinate error.
+
+    An externally supplied consensus may run past the reference; the query is
+    bounded to the CDS window, so the refusal above must not catch this.
+    """
+    codons = ["ATG", "GCT", "TGC", "TCT", "GTA", "TCC", "ACT", "TAA"]
+    cds = "".join(codons)
+    mutated = cds[:12] + "ATA" + cds[15:]
+    translated = translate_and_diff(
+        record=_br(mutated + "CC"),
+        reference_seq=cds,
+        cds_start=0,
+        cds_end=len(cds),
+    )
+    assert translated.observed_aa_changes == ["V5I"]
+
+
+def test_bare_cds_reference_is_diffed_normally(
+    reference_seq: str, cds_params: dict[str, int]
+) -> None:
+    """cds_start 0 over a reference that IS the CDS stays untouched."""
+    mutated = reference_seq[:3] + "TTT" + reference_seq[6:]
+    translated = translate_and_diff(
+        record=_br(mutated),
+        reference_seq=reference_seq,
+        cds_start=cds_params["cds_start"],
+        cds_end=cds_params["cds_end"],
+    )
+    assert translated.observed_aa_changes == ["V2F"]
 
 
 def test_extract_aa_changes_basic() -> None:

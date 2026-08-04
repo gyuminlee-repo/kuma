@@ -5,9 +5,11 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.15.1";
+export const WHATS_NEW_VERSION = "0.15.2";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Fixed", detail: "Raw MinKNOW analysis derives the shared primer tails from the custom barcode workbook and, when they uniquely bound the reference, extracts the sequenced amplicon before mapping. CDS coordinates are translated into the extracted reference,…" },
-  { label: "Fixed", detail: "A completed native-barcode marker with input reads but no MAPQ-passing alignments is reprocessed instead of resumed as a successful empty unit. If no wells are recovered after processing, the run now reports an actionable input/reference e…" },
+  { label: "Fixed", detail: "Raw MinKNOW analysis refuses to start when the amplicon span cannot be derived from the custom barcode workbook AND the reference as supplied cannot pass the coverage filter. The two cases are told apart on the data: an alignment cannot sp…" },
+  { label: "Fixed", detail: "`passed_mapq` and `passed_coverage` count their own gate. Both used to be assigned the post-filter total, which made a coverage wipeout indistinguishable from a MAPQ wipeout in the per-barcode statistics and nearly sent the diagnosis above…" },
+  { label: "Fixed", detail: "Completion markers record the identity of what produced the unit, the reference digest and the gates applied, and resume compares it. A unit whose reference or parameters differ from the current run is reprocessed instead of reused, and a…" },
+  { label: "Fixed", detail: "The verdict diff refuses a consensus that ends before the coding sequence it is compared against, naming both lengths and pointing at a stale output directory. Consensus is called one base per reference position, so such a pair cannot shar…" },
 ];

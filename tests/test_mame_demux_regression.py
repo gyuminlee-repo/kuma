@@ -735,11 +735,15 @@ def test_chunked_alignment_uses_global_qname_offset(
 
     seen: list[tuple[int, int]] = []
 
+    from kuma_core.mame.ingest.align import AlignmentGateCounts
+
     def _fake_align_reads_multi(*, reads, name_offset=0, **_kwargs):
         seen.append((name_offset, len(reads)))
-        return []
+        return [], AlignmentGateCounts()
 
-    monkeypatch.setattr(cd, "align_reads_multi", _fake_align_reads_multi)
+    monkeypatch.setattr(
+        cd, "align_reads_multi_with_gate_counts", _fake_align_reads_multi
+    )
     monkeypatch.setenv("KUMA_MAME_READ_CHUNK", "2")
 
     run_combinatorial_demux(

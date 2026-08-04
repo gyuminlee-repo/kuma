@@ -1029,3 +1029,67 @@ def test_extract_barcode_windows_is_used_by_demux_read_anchored() -> None:
         mod._extract_barcode_windows = original  # type: ignore[assignment]
 
     assert len(calls) == 1
+
+
+@pytest.mark.parametrize("chimera_split", [True, False])
+def test_coverage_wipeout_is_not_reported_as_a_mapq_wipeout(
+    tmp_path: Path, mock_barcodes_xlsx: Path, chimera_split: bool
+) -> None:
+    """passed_mapq and passed_coverage must count DIFFERENT gates.
+
+    Reads carrying only the first 60 bp of a 660 bp reference align uniquely
+    (so they clear MAPQ) but cover 9% of the reference (so they all die at the
+    0.98 coverage gate).  Both counters used to be set to the post-filter count,
+    which made this look like a MAPQ wipeout in the marker stats.
+    """
+    import random
+
+    rng = random.Random(20260804)
+    filler = "".join(rng.choice("ACGT") for _ in range(600))
+    reference = tmp_path / "long_reference.fasta"
+    reference.write_text(f">long_ref\n{_REF_SEQ}{filler}\n")
+
+    reads = [(f"r{i}", _build_read(1, 1, _REF_SEQ)) for i in range(8)]
+    fastq = _make_fastq_gz(tmp_path, reads)
+
+    result = run_combinatorial_demux(
+        raw_fastq_paths=[fastq],
+        reference_fasta=reference,
+        barcodes_xlsx=mock_barcodes_xlsx,
+        output_dir=tmp_path / "out",
+        mapq_threshold=0,
+        coverage_fraction=0.98,
+        trim_flank_bp=30,
+        min_depth=1,
+        chimera_split=chimera_split,
+    )
+
+    assert result.stats.total_reads == 8
+    assert result.stats.passed_mapq > 0
+    assert result.stats.passed_coverage == 0
+    assert result.stats.assigned_reads == 0
+
+
+def test_marker_resume_uses_the_coverage_gate_not_the_mapq_gate() -> None:
+    """A completed unit whose reads all died at the coverage gate is re-run.
+
+    Markers written before the two gates were counted separately carry equal
+    values in both counters, so their verdict is unchanged.
+    """
+    from kuma_core.mame.ingest.combinatorial_demux import _marker_has_usable_alignment
+
+    # New-format marker: cleared MAPQ, wiped out at the coverage gate.
+    assert not _marker_has_usable_alignment(
+        {"stats": {"total_reads": 100, "passed_mapq": 100, "passed_coverage": 0}}
+    )
+    assert _marker_has_usable_alignment(
+        {"stats": {"total_reads": 100, "passed_mapq": 100, "passed_coverage": 40}}
+    )
+    # Legacy marker shape (both counters equal) and the empty-unit case.
+    assert not _marker_has_usable_alignment(
+        {"stats": {"total_reads": 100, "passed_mapq": 0, "passed_coverage": 0}}
+    )
+    assert _marker_has_usable_alignment(
+        {"stats": {"total_reads": 0, "passed_mapq": 0, "passed_coverage": 0}}
+    )
+    assert _marker_has_usable_alignment({})

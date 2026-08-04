@@ -452,7 +452,11 @@ def handle_analyze(params: dict) -> dict:
             demux_output_dir.mkdir(parents=True, exist_ok=True)
             reference_for_pipeline = _write_reference_fasta(reference, demux_output_dir)
 
-        from kuma_core.mame.ingest.amplicon_reference import resolve_amplicon_reference
+        from kuma_core.mame.ingest.amplicon_reference import (
+            check_coverage_reachable,
+            resolve_amplicon_reference,
+            unreachable_coverage_message,
+        )
 
         demux_output_dir.mkdir(parents=True, exist_ok=True)
         amplicon_resolution = resolve_amplicon_reference(
@@ -460,6 +464,30 @@ def handle_analyze(params: dict) -> dict:
             Path(raw_custom_barcodes_xlsx),
             demux_output_dir,
         )
+        if not amplicon_resolution.extracted:
+            # Extraction was skipped. That is FINE when the user already supplied
+            # the amplicon itself, and fatal when it means a whole construct is
+            # about to be used as the reference: the coverage gate would then
+            # drop every read and the run would finish "successfully" with 0
+            # wells (barcode 07/08/09, 2026-08-04). Decide between the two on
+            # the data rather than on a length guess -- an alignment cannot span
+            # more reference than the read is long, so if the longest read in
+            # the run is shorter than coverage_fraction x reference length, no
+            # read can pass and the run is refused before it starts.
+            reachability = check_coverage_reachable(
+                amplicon_resolution.reference_fasta,
+                original_run_dir,
+                raw_coverage_fraction,
+            )
+            if not reachability.reachable:
+                raise ValueError(
+                    unreachable_coverage_message(
+                        reachability,
+                        amplicon_resolution,
+                        Path(raw_custom_barcodes_xlsx),
+                        amplicon_resolution.reference_fasta,
+                    )
+                )
         reference_for_pipeline = amplicon_resolution.reference_fasta
         if amplicon_resolution.extracted:
             reference = reference_for_pipeline

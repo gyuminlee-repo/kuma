@@ -17,10 +17,10 @@ Marker filename: ``.demux_consensus_complete.json`` (leading dot plus ``.json``
 suffix so it is never picked up by ``*.fasta`` / ``*.fa`` / ``*.fas`` globs or
 by the quality-filter ``rglob("*.fasta")`` pass).
 
-Schema (version 1)::
+Schema (version 2)::
 
     {
-      "schema_version": 1,
+      "schema_version": 2,
       "stage": "demux_consensus",
       "unit": "<nb dir name>",
       "consensus": <bool>,            # True if A4/A5 consensus ran
@@ -28,8 +28,24 @@ Schema (version 1)::
       "wells": ["<well>", ...],       # sorted expected inventory (well stems)
       "n_input_reads": <int|null>,    # optional: this unit's demux input reads
       "n_unassigned": <int|null>,     # optional: this unit's unassigned reads
-      "stats": {"<key>": <int>, ...}  # optional: extra per-unit summary counters
+      "stats": {"<key>": <int>, ...}, # optional: extra per-unit summary counters
+      "inputs": {                     # v2: identity of what produced the unit
+        "reference": {"length": <int>, "sha256": "<hex>"},
+        "params": {"<name>": <scalar>, ...}
+      }
     }
+
+Version 2 adds ``inputs``: the identity of the reference the consensus was
+called against, plus the parameters that decide which reads reach a well.  A
+marker records only what its producer knows, so a unit written without a
+reference (``consensus: false``) carries no ``inputs.reference``.
+
+Why it exists: the earlier schema recorded nothing about the reference, so a
+rerun that changed the reference resumed the completed units and translated the
+OLD consensus against the NEW reference.  On 2026-08-04 that produced 96 wells
+of roughly 530 amino-acid changes each from one real substitution, in a run that
+finished in one second because every unit was resumed.  Resume must therefore
+compare inputs, not just inventory (see :func:`marker_inputs_match`).
 
 The ``n_input_reads`` / ``n_unassigned`` keys are optional.  They let a
 fully-resumed run reconstruct the aggregate input/unassigned totals from the
@@ -50,6 +66,7 @@ key omit it too (treated as "not seedable", never a crash).
 from __future__ import annotations
 
 import fnmatch
+import hashlib
 import json
 import os
 import re
@@ -59,7 +76,7 @@ from typing import Any
 from kuma_core.shared.atomic_write import atomic_write_text
 
 MARKER_FILENAME = ".demux_consensus_complete.json"
-MARKER_SCHEMA_VERSION = 1
+MARKER_SCHEMA_VERSION = 2
 STAGE_NAME = "demux_consensus"
 
 # Single source of truth for the per-well consensus FASTA extension set.  The
@@ -127,6 +144,80 @@ def marker_path(unit_dir: Path) -> Path:
     return Path(unit_dir) / MARKER_FILENAME
 
 
+def reference_fingerprint(reference_fasta: Path) -> dict[str, Any]:
+    """Return ``{"length": int, "sha256": str}`` for a reference FASTA.
+
+    The digest covers the bare upper-cased sequence, headers and line breaks
+    excluded, because those are the bases the consensus is called against.  Two
+    files that differ only in their header or line wrapping therefore resume
+    against each other, while any change to the sequence (a different construct,
+    a re-extracted amplicon span, a corrected base) does not.
+    """
+    sequence = "".join(
+        line.strip()
+        for line in Path(reference_fasta).read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.startswith(">")
+    ).upper()
+    return {
+        "length": len(sequence),
+        "sha256": hashlib.sha256(sequence.encode("ascii", "replace")).hexdigest(),
+    }
+
+
+def marker_inputs_match(
+    marker: dict[str, Any],
+    reference: dict[str, Any] | None,
+    params: dict[str, Any] | None = None,
+) -> tuple[bool, str]:
+    """Whether a completed unit may be REUSED for the inputs of the current run.
+
+    Returns ``(ok, reason)``; *reason* is empty on success.
+
+    A unit written without consensus carries no reference, so there is nothing
+    to compare and it is reusable. Otherwise the recorded fingerprint and
+    parameters must match the ones supplied.
+
+    A marker that records no ``inputs`` at all (schema version 1) is NOT
+    reusable when a reference is in play: nothing in it says which reference
+    produced the consensus, so reusing it is exactly the bug this guards. Every
+    caller answers a negative by recomputing the unit, which costs time and
+    cannot be wrong; trusting the marker can be.
+    """
+    if not marker.get("consensus"):
+        return (True, "")
+    if reference is None:
+        return (True, "")
+    inputs = marker.get("inputs")
+    if not isinstance(inputs, dict):
+        return (
+            False,
+            "marker records no input identity (written before reference "
+            "fingerprinting), so the reference it used is unknown",
+        )
+    recorded_reference = inputs.get("reference")
+    if not isinstance(recorded_reference, dict):
+        return (False, "marker records no reference fingerprint")
+    if recorded_reference.get("sha256") != reference.get("sha256"):
+        return (
+            False,
+            "reference changed since the unit was written "
+            f"(marker {recorded_reference.get('length')} bp, "
+            f"current {reference.get('length')} bp)",
+        )
+    if params:
+        recorded_params = inputs.get("params")
+        if not isinstance(recorded_params, dict):
+            return (False, "marker records no parameters")
+        differing = sorted(
+            name
+            for name, value in params.items()
+            if name not in recorded_params or recorded_params[name] != value
+        )
+        if differing:
+            return (False, f"parameters changed since the unit was written: {differing}")
+    return (True, "")
+
+
 def write_stage_marker(
     unit_dir: Path,
     *,
@@ -135,6 +226,8 @@ def write_stage_marker(
     n_input_reads: int | None = None,
     n_unassigned: int | None = None,
     stats: dict[str, int] | None = None,
+    reference: dict[str, Any] | None = None,
+    params: dict[str, Any] | None = None,
 ) -> Path:
     """Atomically write the completion marker into *unit_dir*.
 
@@ -156,6 +249,13 @@ def write_stage_marker(
             the aggregate of those counters.  Omitted from the payload when
             ``None`` or empty; older markers that omit it are treated as "not
             seedable" by the consumer (never a crash).
+        reference: Optional :func:`reference_fingerprint` of the reference the
+            consensus was called against.  Recorded under ``inputs.reference``
+            so a later run can refuse to reuse this unit once the reference
+            changes.  A producer that used no reference passes ``None``.
+        params: Optional ``{name: scalar}`` of the settings that decide which
+            reads reach a well (alignment gates, trimming, consensus depth).
+            Recorded under ``inputs.params`` and compared on resume.
 
     Returns:
         The resolved path of the written marker.
@@ -175,6 +275,13 @@ def write_stage_marker(
         payload["n_unassigned"] = int(n_unassigned)
     if stats:
         payload["stats"] = {str(k): int(v) for k, v in stats.items()}
+    inputs: dict[str, Any] = {}
+    if reference is not None:
+        inputs["reference"] = dict(reference)
+    if params:
+        inputs["params"] = dict(params)
+    if inputs:
+        payload["inputs"] = inputs
     content = json.dumps(payload, ensure_ascii=False, indent=2)
     return atomic_write_text(marker_path(unit_dir), content)
 
@@ -304,6 +411,8 @@ __all__ = [
     "scan_unit_dir",
     "iter_consensus_names",
     "marker_path",
+    "marker_inputs_match",
+    "reference_fingerprint",
     "write_stage_marker",
     "read_stage_marker",
     "validate_marker",

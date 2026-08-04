@@ -58,9 +58,9 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_compl
 from typing import Any, Callable, Iterator, TypeVar
 
 from kuma_core.mame.ingest.align import (
-    align_reads,
     align_reads_grouped,
-    align_reads_multi,
+    align_reads_multi_with_gate_counts,
+    align_reads_with_gate_counts,
     build_minimap2_index,
     _get_reference_length,
     Alignment,
@@ -73,7 +73,9 @@ from kuma_core.mame.ingest.consensus_metadata import (
 )
 from kuma_core.mame.ingest.stage_marker import (
     is_unit_complete,
+    marker_inputs_match,
     read_stage_marker,
+    reference_fingerprint,
     write_stage_marker,
 )
 from kuma_core.mame.ingest.well_consensus import _read_reference_seq
@@ -1733,7 +1735,7 @@ def _run_combinatorial_demux_body(
         if chimera_split:
             # --- multi-hit path: chimera / concatemer splitting ------------
             with TIMER.phase("align_minimap2"):
-                multi_results = align_reads_multi(
+                multi_results, gate_counts = align_reads_multi_with_gate_counts(
                     reads=chunk_reads,
                     reference_fasta=reference_fasta,
                     preset="map-ont",
@@ -1745,10 +1747,18 @@ def _run_combinatorial_demux_body(
 
             reads_with_hits = len(multi_results)
             total_hit_count = sum(len(hits) for _, _, hits in multi_results)
-            stats.passed_coverage += reads_with_hits
-            stats.passed_mapq += reads_with_hits
+            # The two counters are per-gate and NOT interchangeable:
+            # passed_mapq counts reads clearing MAPQ alone, passed_coverage the
+            # subset that also cleared the coverage gate. Assigning both the
+            # post-filter number (as this did before) made a coverage wipeout --
+            # e.g. a whole-plasmid reference against amplicon reads -- read as a
+            # MAPQ wipeout in the marker stats.
+            stats.passed_mapq += gate_counts.reads_passed_mapq
+            stats.passed_coverage += gate_counts.reads_passed_coverage
             log.info(
-                "Passed MAPQ+coverage filter (chunk): %d reads / %d total hits",
+                "Passed MAPQ filter (chunk): %d reads; also passed coverage: "
+                "%d reads / %d total hits",
+                gate_counts.reads_passed_mapq,
                 reads_with_hits,
                 total_hit_count,
             )
@@ -1911,7 +1921,7 @@ def _run_combinatorial_demux_body(
         else:
             # --- legacy single-hit path ------------------------------------
             with TIMER.phase("align_minimap2"):
-                alignments = align_reads(
+                alignments, gate_counts = align_reads_with_gate_counts(
                     reads=chunk_reads,
                     reference_fasta=reference_fasta,
                     preset="map-ont",
@@ -1926,12 +1936,15 @@ def _run_combinatorial_demux_body(
                     threads=_mm_threads(),
                     name_offset=_chunk_offset,
                 )
-            stats.passed_coverage += len(alignments)
-            stats.passed_mapq += len(alignments)
+            # Per-gate counters; see the multi-hit path above for why these two
+            # must not both be set to the post-filter number.
+            stats.passed_mapq += gate_counts.reads_passed_mapq
+            stats.passed_coverage += gate_counts.reads_passed_coverage
             log.info(
-                "Passed MAPQ+coverage filter (chunk): %d / %d",
-                len(alignments),
+                "Passed MAPQ filter (chunk): %d / %d; also passed coverage: %d",
+                gate_counts.reads_passed_mapq,
                 len(chunk_reads),
+                len(alignments),
             )
 
             _t_match = time.perf_counter()
@@ -2497,12 +2510,25 @@ def _summary_from_marker(sort_barcode_name: str, nb_out: Path, marker: dict) -> 
 
 
 def _marker_has_usable_alignment(marker: dict) -> bool:
+    """True when a completed unit's marker records reads that survived alignment.
+
+    Reads ``passed_coverage``, the LAST alignment gate, because that is the
+    count of reads that actually reached barcode matching; a unit whose reads
+    were all dropped is re-run rather than resumed as an empty result.
+
+    This used to read ``passed_mapq`` back when both counters were assigned the
+    same post-filter number, so the two were interchangeable. Now that the gates
+    are counted separately, ``passed_mapq`` alone would call a unit usable even
+    when every read died at the coverage gate. Markers written before the split
+    still carry ``passed_mapq == passed_coverage``, so the decision for old
+    markers is unchanged.
+    """
     stats = marker.get("stats")
     if not isinstance(stats, dict):
         return True
     total_reads = int(stats.get("total_reads", 0))
-    passed_mapq = int(stats.get("passed_mapq", 0))
-    return total_reads == 0 or passed_mapq > 0
+    passed_coverage = int(stats.get("passed_coverage", 0))
+    return total_reads == 0 or passed_coverage > 0
 
 
 def run_combinatorial_demux_per_nb(
@@ -2630,6 +2656,19 @@ def run_combinatorial_demux_per_nb(
             f"Native barcodes map to colliding sort_barcode output dirs: {_sort_names}"
         )
 
+    # Identity of the inputs that decide this run's per-well output. Recorded in
+    # every marker written below and compared before any unit is reused, so a
+    # rerun that swaps the reference (or a gate) recomputes instead of reusing
+    # consensus called against something else.
+    _marker_reference = reference_fingerprint(reference_fasta)
+    _marker_params = {
+        "mapq_threshold": int(mapq_threshold),
+        "coverage_fraction": float(coverage_fraction),
+        "trim_flank_bp": int(trim_flank_bp),
+        "edit_dist_ratio": float(edit_dist_ratio),
+        "chimera_split": bool(chimera_split),
+    }
+
     # ── Resume: which per-NB units are already complete? ─────────────────
     # A unit (one output_dir/sort_barcode{NN}/ dir) is "done" ONLY when it
     # carries a valid completion marker whose recorded inventory matches the
@@ -2637,12 +2676,27 @@ def run_combinatorial_demux_per_nb(
     # completed unit's summary is reconstructed from its marker (mirroring the
     # _demux_one_nb dict) so it is NOT re-demuxed/aligned, yet still seeds
     # merged_stats and per_nb identically to a freshly-processed one.
+    #
+    # Inventory alone is not enough: it says the files are all there, never what
+    # they were made from. A unit whose recorded reference/parameters differ from
+    # this run is reprocessed, which is the same remedy this loop already applies
+    # to a unit with no usable alignment, and never a silent reuse.
     completed_summaries: dict[str, dict] = {}  # nb_name -> summary dict
     for pl in payloads:
         nb_out = output_dir / pl["sort_barcode_name"]
         if is_unit_complete(nb_out):
             marker = read_stage_marker(nb_out)
-            if marker is not None and _marker_has_usable_alignment(marker):
+            if marker is None:
+                continue
+            inputs_ok, inputs_reason = marker_inputs_match(
+                marker, _marker_reference, _marker_params
+            )
+            if not inputs_ok:
+                log.info(
+                    "Reprocessing %s: %s", pl["sort_barcode_name"], inputs_reason
+                )
+                continue
+            if _marker_has_usable_alignment(marker):
                 summ = _summary_from_marker(pl["sort_barcode_name"], nb_out, marker)
                 summ["nb_name"] = pl["nb_name"]  # real input nb_name for ordering
                 completed_summaries[pl["nb_name"]] = summ
@@ -2675,6 +2729,8 @@ def run_combinatorial_demux_per_nb(
             },
             consensus=True,
             stats={k: int(summ["stats"][k]) for k in _DEMUX_NB_STAT_KEYS},
+            reference=_marker_reference,
+            params=_marker_params,
         )
 
     summaries: list[dict] = list(completed_summaries.values())
