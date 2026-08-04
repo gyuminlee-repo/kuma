@@ -93,6 +93,16 @@ export interface AnalyzeResult {
   output_path: string;
   summary: AnalyzeSummary;
   distribution_stats: DistributionStats;
+  reference_resolution?: {
+    readonly path: string;
+    readonly extracted: boolean;
+    readonly span_start: number | null;
+    readonly span_end: number | null;
+    readonly original_length: number;
+    readonly cds_start: number;
+    readonly cds_end: number;
+    readonly note: string;
+  };
 }
 
 /**

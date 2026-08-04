@@ -338,6 +338,60 @@ def test_handle_analyze_raw_run(
     assert all_vals == sorted(all_vals), f"progress must be non-decreasing; got {all_vals}"
 
 
+@requires_minimap2
+def test_handle_analyze_raw_run_extracts_amplicon_from_whole_plasmid(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    left_flank = "G" * 80
+    amplicon = _F_TAIL + _RAW_REF_SEQ + _reverse_complement(_R_TAIL)
+    reference = _make_reference_fasta(
+        tmp_path,
+        seq=left_flank + amplicon + "C" * 70,
+    )
+    barcodes_xlsx = tmp_path / "barcodes.xlsx"
+    _make_barcodes_xlsx(barcodes_xlsx)
+    expected_xlsx = tmp_path / "expected.xlsx"
+    _make_kuro_xlsx(expected_xlsx)
+    output = tmp_path / "out.xlsx"
+    _capture_progress(monkeypatch)
+
+    result = analyze_mod.handle_analyze({
+        "input_dir": str(run_dir),
+        "reference": str(reference),
+        "expected": str(expected_xlsx),
+        "output": str(output),
+        "custom_barcodes_xlsx": str(barcodes_xlsx),
+        "cds_start": len(left_flank) + len(_F_TAIL),
+        "cds_end": len(left_flank) + len(_F_TAIL) + len(_RAW_REF_SEQ),
+        "min_file_size_kb": 0.0,
+        "min_read_count": 0,
+        "ingest_mode": "barcode",
+        "mapq_threshold": 0,
+        "coverage_fraction": 0.98,
+        "trim_flank_bp": 30,
+    })
+
+    assert result["wells_with_reads"] >= 1
+    assert result["assigned_reads"] >= 1
+    assert result["verdicts"]
+    assert result["reference_resolution"] == {
+        "path": str(output.parent / "demux_filtered" / "reference.amplicon.fa"),
+        "extracted": True,
+        "span_start": len(left_flank) + 1,
+        "span_end": len(left_flank) + len(amplicon),
+        "original_length": len(left_flank) + len(amplicon) + 70,
+        "cds_start": len(_F_TAIL),
+        "cds_end": len(_F_TAIL) + len(_RAW_REF_SEQ),
+        "note": (
+            f"Amplicon extracted from reference positions {len(left_flank) + 1}-"
+            f"{len(left_flank) + len(amplicon)} ({len(amplicon)} bp)."
+        ),
+    }
+
+
 def test_handle_analyze_raw_run_materializes_snapgene_reference_before_demux(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

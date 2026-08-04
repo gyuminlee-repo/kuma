@@ -2496,6 +2496,15 @@ def _summary_from_marker(sort_barcode_name: str, nb_out: Path, marker: dict) -> 
     }
 
 
+def _marker_has_usable_alignment(marker: dict) -> bool:
+    stats = marker.get("stats")
+    if not isinstance(stats, dict):
+        return True
+    total_reads = int(stats.get("total_reads", 0))
+    passed_mapq = int(stats.get("passed_mapq", 0))
+    return total_reads == 0 or passed_mapq > 0
+
+
 def run_combinatorial_demux_per_nb(
     nb_to_fastq: dict[str, list[Path]],
     reference_fasta: Path,
@@ -2633,7 +2642,7 @@ def run_combinatorial_demux_per_nb(
         nb_out = output_dir / pl["sort_barcode_name"]
         if is_unit_complete(nb_out):
             marker = read_stage_marker(nb_out)
-            if marker is not None:
+            if marker is not None and _marker_has_usable_alignment(marker):
                 summ = _summary_from_marker(pl["sort_barcode_name"], nb_out, marker)
                 summ["nb_name"] = pl["nb_name"]  # real input nb_name for ordering
                 completed_summaries[pl["nb_name"]] = summ

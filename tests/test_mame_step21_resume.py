@@ -645,6 +645,47 @@ def test_combinatorial_per_nb_missing_marker_is_reprocessed(
     assert res["merged_stats"]["assigned_reads"] == 3
 
 
+def test_combinatorial_per_nb_zero_map_marker_is_reprocessed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import kuma_core.mame.ingest.combinatorial_demux as cd
+
+    monkeypatch.setenv("KUMA_MAME_NB_PARALLEL", "0")
+    out_dir = tmp_path / "out"
+    nb_out = out_dir / "sort_barcode01"
+    nb_out.mkdir(parents=True)
+    write_stage_marker(
+        nb_out,
+        per_well_counts={},
+        consensus=True,
+        stats=_fake_nb_stats(total=100, assigned=0, wells=0),
+    )
+    worker_calls: list[str] = []
+
+    def _fake_worker(payload: dict) -> dict:
+        worker_calls.append(payload["nb_name"])
+        _write_consensus(nb_out, "1_1")
+        return {
+            "nb_name": payload["nb_name"],
+            "sort_barcode_name": payload["sort_barcode_name"],
+            "output_dir": str(nb_out.resolve()),
+            "stats": _fake_nb_stats(total=100, assigned=80, wells=1),
+            "per_well_read_counts": {"1_1": 80},
+        }
+
+    monkeypatch.setattr(cd, "_demux_one_nb", _fake_worker)
+
+    result = cd.run_combinatorial_demux_per_nb(
+        {"NB01": [tmp_path / "NB01" / "reads.fastq.gz"]},
+        reference_fasta=tmp_path / "ref.fasta",
+        barcodes_xlsx=tmp_path / "barcodes.xlsx",
+        output_dir=out_dir,
+    )
+
+    assert worker_calls == ["NB01"]
+    assert result["merged_stats"]["assigned_reads"] == 80
+
+
 def test_combinatorial_per_nb_mismatched_marker_is_reprocessed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

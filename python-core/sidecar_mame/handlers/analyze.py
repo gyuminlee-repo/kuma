@@ -334,6 +334,9 @@ def handle_analyze(params: dict) -> dict:
         params["reference"], allowed_extensions=_ALLOWED_SEQUENCE_EXTENSIONS
     )
     reference_for_pipeline = reference
+    amplicon_resolution = None
+    resolved_raw_cds_start: int | None = None
+    resolved_raw_cds_end: int | None = None
     expected = _validate_filepath(
         params["expected"], allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
     )
@@ -449,6 +452,35 @@ def handle_analyze(params: dict) -> dict:
             demux_output_dir.mkdir(parents=True, exist_ok=True)
             reference_for_pipeline = _write_reference_fasta(reference, demux_output_dir)
 
+        from kuma_core.mame.ingest.amplicon_reference import resolve_amplicon_reference
+
+        demux_output_dir.mkdir(parents=True, exist_ok=True)
+        amplicon_resolution = resolve_amplicon_reference(
+            reference_for_pipeline,
+            Path(raw_custom_barcodes_xlsx),
+            demux_output_dir,
+        )
+        reference_for_pipeline = amplicon_resolution.reference_fasta
+        if amplicon_resolution.extracted:
+            reference = reference_for_pipeline
+            original_cds_start = int(params.get("cds_start", 0))
+            original_cds_end = int(params.get("cds_end", 0) or 0)
+            span = amplicon_resolution.span
+            if (
+                span is not None
+                and original_cds_end > span.start
+                and original_cds_start >= span.start
+                and original_cds_end <= span.end
+            ):
+                resolved_raw_cds_start = original_cds_start - span.start
+                resolved_raw_cds_end = original_cds_end - span.start
+            elif 0 < original_cds_end <= span.end - span.start:
+                resolved_raw_cds_start = original_cds_start
+                resolved_raw_cds_end = original_cds_end
+            else:
+                resolved_raw_cds_start = amplicon_resolution.cds_start
+                resolved_raw_cds_end = amplicon_resolution.cds_end
+
         AnalyzeRawRunParams.model_validate(
             {
                 "minknow_run_dir": str(input_dir),
@@ -526,8 +558,16 @@ def handle_analyze(params: dict) -> dict:
 
     mode = str(params.get("mode", "amplicon"))
     ingest_mode_raw = str(params.get("ingest_mode", "barcode"))
-    cds_start = int(params.get("cds_start", 0))
-    cds_end = _resolve_cds_end(params.get("cds_end"), reference)
+    cds_start = (
+        resolved_raw_cds_start
+        if resolved_raw_cds_start is not None
+        else int(params.get("cds_start", 0))
+    )
+    cds_end = (
+        resolved_raw_cds_end
+        if resolved_raw_cds_end is not None and resolved_raw_cds_end > 0
+        else _resolve_cds_end(params.get("cds_end"), reference)
+    )
     min_file_size_kb = float(params.get("min_file_size_kb", 50.0))
     # Default to 30 when the caller omits the field entirely; an explicit None
     # or "" disables the read-depth gate (legacy file-size fallback).
@@ -654,6 +694,12 @@ def handle_analyze(params: dict) -> dict:
         ingest_mode_enum = IngestMode(ingest_mode_raw)
         with TIMER.phase("ingest"):
             raw_records = route_ingest(input_dir, ingest_mode_enum)
+        if is_raw and not raw_records:
+            raise ValueError(
+                "No wells were recovered from the MinKNOW reads. Check that the "
+                "reference contains the sequenced amplicon and that the custom "
+                "barcode definitions match this run."
+            )
         dist_stats = compute_distribution_stats(
             [rec.file_size_kb for rec in raw_records]
         )
@@ -772,6 +818,30 @@ def handle_analyze(params: dict) -> dict:
                 "wells_with_reads": len(raw_records),
             }
             if is_raw
+            else {}
+        ),
+        **(
+            {
+                "reference_resolution": {
+                    "path": str(amplicon_resolution.reference_fasta),
+                    "extracted": amplicon_resolution.extracted,
+                    "span_start": (
+                        amplicon_resolution.span.start + 1
+                        if amplicon_resolution.span is not None
+                        else None
+                    ),
+                    "span_end": (
+                        amplicon_resolution.span.end
+                        if amplicon_resolution.span is not None
+                        else None
+                    ),
+                    "original_length": amplicon_resolution.original_length,
+                    "cds_start": cds_start,
+                    "cds_end": cds_end,
+                    "note": amplicon_resolution.note,
+                }
+            }
+            if amplicon_resolution is not None
             else {}
         ),
     }
