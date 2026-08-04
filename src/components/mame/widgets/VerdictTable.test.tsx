@@ -1,11 +1,12 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "zustand";
 import type { AppState as MameAppStore } from "@/store/mame/mameAppStore";
 import type { RoundSlice } from "@/store/round/roundSlice";
 import type { Round } from "@/types/round";
 import type { MergedRow } from "@/types/mame/activity";
 import type { VerdictRecord, ReplicateResult } from "@/types/mame/models";
+import { VERDICT_COLUMN_WIDTH_STORAGE_KEY } from "@/lib/mame/verdictColumnWidthStorage";
 
 vi.mock("@/store/mame/mameAppStore");
 vi.mock("@/store/round/roundSlice");
@@ -377,5 +378,143 @@ describe("VerdictTable", () => {
       native_barcode: "barcode01",
       mutant_id: "F89W",
     });
+  });
+});
+
+// ── Truncated cells: a real path to the full text ──────────────────────────
+//
+// jsdom reports 0 for every layout metric, so overflow is simulated: a cell is
+// "overflowing" when its text is longer than what a 240px box fits (~8px per
+// character). That mirrors the scrollWidth vs clientWidth check the component
+// makes in the browser.
+const SIMULATED_BOX_WIDTH = 240;
+const SIMULATED_CHAR_WIDTH = 8;
+
+function simulateTextMetrics() {
+  Object.defineProperty(HTMLElement.prototype, "scrollWidth", {
+    configurable: true,
+    get(this: HTMLElement) {
+      return (this.textContent?.length ?? 0) * SIMULATED_CHAR_WIDTH;
+    },
+  });
+  Object.defineProperty(HTMLElement.prototype, "clientWidth", {
+    configurable: true,
+    get() {
+      return SIMULATED_BOX_WIDTH;
+    },
+  });
+}
+
+function restoreTextMetrics() {
+  Reflect.deleteProperty(HTMLElement.prototype, "scrollWidth");
+  Reflect.deleteProperty(HTMLElement.prototype, "clientWidth");
+}
+
+const LONG_NOTES =
+  "consensus net indel -1 bp not divisible by 3 (frameshift) · All plates below pickable threshold (only ['FRAMESHIFT', 'MIXED']). Highest-volume sort_barcode09 (834 reads) used as fallback.";
+
+function renderWithVerdicts(verdicts: VerdictRecord[]) {
+  vi.mocked(useMameAppStore).mockImplementation((sel: (s: MameAppStore) => unknown) =>
+    sel(makeMameStore({ verdicts }).getState()),
+  );
+  vi.mocked(useRoundStore).mockImplementation((sel: (s: RoundSlice) => unknown) =>
+    sel(makeRoundStore([], null).getState()),
+  );
+  render(<VerdictTable />);
+}
+
+describe("VerdictTable truncated cells", () => {
+  beforeEach(() => {
+    simulateTextMetrics();
+  });
+
+  afterEach(() => {
+    restoreTextMetrics();
+  });
+
+  it("offers a keyboard-reachable trigger that reveals the full notes text", () => {
+    renderWithVerdicts([{ ...mockVerdict, verdict_notes: LONG_NOTES }]);
+
+    const trigger = screen.getByRole("button", { name: /consensus net indel/ });
+    expect(trigger.tagName).toBe("BUTTON");
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    // A native button is in the tab order, so the full text is reachable
+    // without a pointer.
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+
+    fireEvent.click(trigger);
+    const panel = screen.getByTestId("expandable-text-panel");
+    expect(panel.getAttribute("role")).toBe("tooltip");
+    expect(panel.textContent).toContain(LONG_NOTES);
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByTestId("expandable-text-panel")).toBeNull();
+  });
+
+  it("adds no trigger to a row whose notes are empty", () => {
+    renderWithVerdicts([{ ...mockVerdict, verdict_notes: "" }]);
+
+    expect(screen.queryByRole("button", { name: /^Notes:/ })).toBeNull();
+    expect(screen.queryByTestId("expandable-text-panel")).toBeNull();
+  });
+
+  it("adds no trigger to a row whose notes fit the cell", () => {
+    renderWithVerdicts([{ ...mockVerdict, verdict_notes: "low depth" }]);
+
+    expect(screen.queryByRole("button", { name: /low depth/ })).toBeNull();
+  });
+});
+
+// ── Column resizing ────────────────────────────────────────────────────────
+describe("VerdictTable column resizing", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  function notesHeader() {
+    const handle = screen.getByTestId("resize-handle-verdict_notes");
+    const header = handle.closest("th");
+    if (!header) throw new Error("resize handle is not inside a header cell");
+    return { handle, header };
+  }
+
+  it("keeps a keyboard-resized column width, and restores the default on reset", () => {
+    renderWithVerdicts([mockVerdict]);
+
+    const { handle, header } = notesHeader();
+    expect(handle.getAttribute("tabindex")).toBe("0");
+    expect(handle.getAttribute("role")).toBe("separator");
+    const defaultWidth = header.style.width;
+    expect(defaultWidth).toBe("240px");
+
+    fireEvent.keyDown(handle, { key: "ArrowRight" });
+    expect(header.style.width).toBe("256px");
+
+    fireEvent.keyDown(handle, { key: "Home" });
+    expect(header.style.width).toBe(defaultWidth);
+  });
+
+  it("persists the width across a remount and resets it back", () => {
+    renderWithVerdicts([mockVerdict]);
+    fireEvent.keyDown(screen.getByTestId("resize-handle-verdict_notes"), {
+      key: "ArrowRight",
+    });
+    expect(
+      JSON.parse(localStorage.getItem(VERDICT_COLUMN_WIDTH_STORAGE_KEY) ?? "{}"),
+    ).toMatchObject({ verdict_notes: 256 });
+
+    cleanup();
+    renderWithVerdicts([mockVerdict]);
+    const { handle, header } = notesHeader();
+    expect(header.style.width).toBe("256px");
+
+    // Double-click is the pointer escape hatch from a column dragged too narrow.
+    fireEvent.doubleClick(handle);
+    expect(header.style.width).toBe("240px");
+    expect(
+      JSON.parse(localStorage.getItem(VERDICT_COLUMN_WIDTH_STORAGE_KEY) ?? "{}"),
+    ).toEqual({});
   });
 });

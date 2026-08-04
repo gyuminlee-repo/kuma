@@ -574,7 +574,10 @@
       },
       "recoveredHelp": "A mutant is recovered when at least one of its replicate wells (across all plates) is PASS or AMBIGUOUS.",
       "tabFinal": "Final",
-      "finalFallbackNotice": "No replicate has been selected yet, so FINAL is showing every well (ALL)."
+      "finalFallbackNotice": "No replicate has been selected yet, so FINAL is showing every well (ALL).",
+      "resizeColumnAriaLabel": "Resize column {{column}}",
+      "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
+      "resetColumnWidths": "Reset column widths"
     },
     "summaryRow": {
       "ariaLabel": "Résumé de l'analyse",
@@ -2055,6 +2058,10 @@
     "inlineHelp": {
       "showHelp": "Afficher l'aide",
       "hideHelp": "Masquer l'aide"
+    },
+    "expandableText": {
+      "show": "{{label}}: {{text}} (show full text)",
+      "hide": "{{label}}: {{text}} (hide full text)"
     }
   },
   "round": {

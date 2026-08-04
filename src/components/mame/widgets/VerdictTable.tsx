@@ -5,11 +5,12 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type ColumnSizingState,
   type VisibilityState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { AlertTriangle, Search, SlidersHorizontal } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useRoundStore, type RoundSlice } from "@/store/round/roundSlice";
@@ -24,6 +25,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -32,6 +34,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { StateView } from "@/components/ui/StateView";
+import { ExpandableText } from "@/components/ui/ExpandableText";
+import {
+  clampColumnWidth,
+  loadVerdictColumnWidths,
+  saveVerdictColumnWidths,
+  MAX_COLUMN_WIDTH,
+  MIN_COLUMN_WIDTH,
+} from "@/lib/mame/verdictColumnWidthStorage";
 
 type ActivityColumns = {
   activity_log2fc: number | null;
@@ -91,6 +101,8 @@ const ACTIVITY_COLUMN_LABELS: Record<(typeof ACTIVITY_COLUMN_IDS)[number], strin
 };
 
 const VIRTUAL_THRESHOLD = 1000;
+/** Keyboard resize step (px) applied per arrow keypress on a column separator. */
+const RESIZE_STEP = 16;
 const EMPTY_MERGED_TABLE: MergedRow[] = [];
 
 export function selectActiveMergedTable(state: RoundSlice): MergedRow[] {
@@ -98,9 +110,10 @@ export function selectActiveMergedTable(state: RoundSlice): MergedRow[] {
   return round?.merged_table ?? EMPTY_MERGED_TABLE;
 }
 
-// Fixed per-column widths (px) keyed by column id. With `table-fixed`, these make
-// the layout identical across the ALL / NB tabs — otherwise table-auto resizes
-// columns to whatever subset of data each tab happens to show.
+// Default per-column widths (px) keyed by column id. With `table-fixed`, these
+// make the layout identical across the ALL / NB tabs, otherwise table-auto
+// resizes columns to whatever subset of data each tab happens to show. They are
+// the defaults a resized column returns to (react-table column `size`).
 const COLUMN_WIDTHS: Record<string, number> = {
   custom_barcode: 96,
   mutant_id: 120,
@@ -460,7 +473,11 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
           const noCall = row.original.n_no_call_aa;
           return (
             <span className="flex items-center gap-1 font-mono text-xs text-muted-foreground">
-              <span className="min-w-0 truncate">{changes || "—"}</span>
+              <ExpandableText
+                className="min-w-0 flex-1"
+                text={changes || "-"}
+                label={t("mame.verdictTable.colAaChanges")}
+              />
               {noCall > 0 && (
                 <span
                   className="shrink-0 rounded-sm bg-muted px-1 text-caption text-muted-foreground/80"
@@ -503,20 +520,35 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
         cell: ({ row }) => {
           const nPct = row.original.consensus_n_fraction * 100;
           const mixPct = row.original.max_minor_allele_fraction * 100;
+          // Composed once so the inline segments and the expanded panel cannot
+          // drift apart; each segment keeps its own explanatory tooltip.
+          const parts = [
+            {
+              text: `N ${nPct.toFixed(1)}% ld${row.original.n_low_depth_positions}`,
+              title: t("mame.verdictTable.tooltip.consensusN"),
+            },
+            {
+              text: `mix ${row.original.n_mixed_positions}/${mixPct.toFixed(1)}%`,
+              title: t("mame.verdictTable.tooltip.minorAllele"),
+            },
+            {
+              text: `drop Q${row.original.n_mapq_failed} S${row.original.n_span_failed} BQ${row.original.n_low_quality_bases}`,
+              title: t("mame.verdictTable.tooltip.alignmentDrops"),
+            },
+          ];
           return (
-            <span className="block truncate font-mono text-caption text-muted-foreground">
-              <span title={t("mame.verdictTable.tooltip.consensusN")}>
-                N {nPct.toFixed(1)}% ld{row.original.n_low_depth_positions}
-              </span>
-              {" · "}
-              <span title={t("mame.verdictTable.tooltip.minorAllele")}>
-                mix {row.original.n_mixed_positions}/{mixPct.toFixed(1)}%
-              </span>
-              {" · "}
-              <span title={t("mame.verdictTable.tooltip.alignmentDrops")}>
-                drop Q{row.original.n_mapq_failed} S{row.original.n_span_failed} BQ{row.original.n_low_quality_bases}
-              </span>
-            </span>
+            <ExpandableText
+              className="font-mono text-caption text-muted-foreground"
+              text={parts.map((part) => part.text).join(" · ")}
+              label={t("mame.verdictTable.colQuality")}
+            >
+              {parts.map((part, index) => (
+                <Fragment key={part.title}>
+                  {index > 0 && " · "}
+                  <span title={part.title}>{part.text}</span>
+                </Fragment>
+              ))}
+            </ExpandableText>
           );
         },
       },
@@ -526,17 +558,13 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
         cell: ({ row }) => {
           const notes = row.original.verdict_notes;
           const fbReason = row.original.is_fallback ? row.original.fallback_reason : null;
-          const text = [notes, fbReason].filter(Boolean).join(" · ") || "—";
+          const text = [notes, fbReason].filter(Boolean).join(" · ") || "-";
           return (
-            <span
-              className={cn(
-                "block max-w-[28rem] truncate text-xs",
-                fbReason ? "text-warning" : "text-muted-foreground",
-              )}
-              title={text}
-            >
-              {text}
-            </span>
+            <ExpandableText
+              className={cn("text-xs", fbReason ? "text-warning" : "text-muted-foreground")}
+              text={text}
+              label={t("mame.verdictTable.colNotes")}
+            />
           );
         },
       },
@@ -658,21 +686,71 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
     [t, recoveredByMutant, selectedSet, openWellDetail, selectedWell],
   );
 
+  // Each column carries its default width as react-table `size`, so a resized
+  // column has a defined value to reset back to (column.resetSize()).
+  const sizedColumns = useMemo<ColumnDef<VerdictRow>[]>(
+    () =>
+      columns.map((column): ColumnDef<VerdictRow> => {
+        const id = column.id ?? ("accessorKey" in column ? String(column.accessorKey) : undefined);
+        return id ? { ...column, size: colWidth(id) } : column;
+      }),
+    [columns],
+  );
+
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() =>
+    loadVerdictColumnWidths(),
+  );
+  useEffect(() => {
+    saveVerdictColumnWidths(columnSizing);
+  }, [columnSizing]);
+
   const table = useReactTable({
     data: filteredRows,
-    columns,
-    state: { sorting, columnVisibility },
+    columns: sizedColumns,
+    state: { sorting, columnVisibility, columnSizing },
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: setColumnSizing,
+    enableColumnResizing: true,
+    // "onEnd", not "onChange": the table is virtualized, and committing a new
+    // size on every mousemove would re-render every visible row for each frame
+    // of the drag.
+    columnResizeMode: "onEnd",
+    defaultColumn: { minSize: MIN_COLUMN_WIDTH, maxSize: MAX_COLUMN_WIDTH },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   });
 
+  // Keyboard resizing: the drag handle is focusable, and arrow keys move the
+  // same sizing state the pointer drag writes.
+  const nudgeColumnWidth = useCallback(
+    (columnId: string, delta: number) => {
+      setColumnSizing((prev) => ({
+        ...prev,
+        [columnId]: clampColumnWidth((prev[columnId] ?? colWidth(columnId)) + delta),
+      }));
+    },
+    [setColumnSizing],
+  );
+
+  const columnLabels = useMemo<Record<string, string>>(
+    () => ({
+      custom_barcode: t("mame.verdictTable.colBarcode"),
+      mutant_id: t("mame.verdictTable.colMutantId"),
+      verdict: t("mame.verdictTable.colVerdict"),
+      recovered: t("mame.verdictTable.colRecovered"),
+      observed_aa_changes: t("mame.verdictTable.colAaChanges"),
+      reads: t("mame.verdictTable.colDepth"),
+      quality: t("mame.verdictTable.colQuality"),
+      verdict_notes: t("mame.verdictTable.colNotes"),
+      ...ACTIVITY_COLUMN_LABELS,
+    }),
+    [t],
+  );
+
   const tableRows = table.getRowModel().rows;
-  const tableWidth = table
-    .getVisibleLeafColumns()
-    .reduce((sum, col) => sum + colWidth(col.id), 0);
+  const tableWidth = table.getTotalSize();
   const isVirtual = tableRows.length >= VIRTUAL_THRESHOLD;
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -752,6 +830,14 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
                   </DropdownMenuCheckboxItem>
                 );
               })}
+              <DropdownMenuSeparator />
+              {/* Keyboard-reachable way back from any column dragged too narrow. */}
+              <DropdownMenuItem
+                data-testid="reset-column-widths"
+                onSelect={() => setColumnSizing({})}
+              >
+                {t("mame.verdictTable.resetColumnWidths")}
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -782,9 +868,11 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    style={{ width: colWidth(header.column.id) }}
+                    style={{ width: header.getSize() }}
                     onClick={header.column.getToggleSortingHandler()}
                     className={cn(
+                      // `sticky` also positions the header, so the absolutely
+                      // placed resize handle anchors to this cell.
                       "sticky top-0 z-10 h-control bg-background px-3 text-caption font-semibold text-muted-foreground",
                       header.column.getCanSort() && "cursor-pointer select-none hover:text-foreground",
                     )}
@@ -805,6 +893,55 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
                       {header.column.getIsSorted() === "asc" && <span aria-hidden="true">↑</span>}
                       {header.column.getIsSorted() === "desc" && <span aria-hidden="true">↓</span>}
                     </div>
+                    {header.column.getCanResize() && (
+                      <div
+                        role="separator"
+                        aria-orientation="vertical"
+                        aria-valuenow={header.getSize()}
+                        aria-valuemin={MIN_COLUMN_WIDTH}
+                        aria-valuemax={MAX_COLUMN_WIDTH}
+                        tabIndex={0}
+                        aria-label={t("mame.verdictTable.resizeColumnAriaLabel", {
+                          column: columnLabels[header.column.id] ?? header.column.id,
+                        })}
+                        title={t("mame.verdictTable.resizeColumnHint")}
+                        data-testid={`resize-handle-${header.column.id}`}
+                        onMouseDown={(event) => {
+                          // Keep the header's sort handler out of a drag.
+                          event.stopPropagation();
+                          header.getResizeHandler()(event);
+                        }}
+                        onTouchStart={(event) => {
+                          event.stopPropagation();
+                          header.getResizeHandler()(event);
+                        }}
+                        onClick={(event) => event.stopPropagation()}
+                        onDoubleClick={(event) => {
+                          event.stopPropagation();
+                          header.column.resetSize();
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "ArrowLeft") {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            nudgeColumnWidth(header.column.id, -RESIZE_STEP);
+                          } else if (event.key === "ArrowRight") {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            nudgeColumnWidth(header.column.id, RESIZE_STEP);
+                          } else if (event.key === "Home") {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            header.column.resetSize();
+                          }
+                        }}
+                        className={cn(
+                          "absolute right-0 top-0 h-full w-1.5 cursor-col-resize touch-none select-none",
+                          "hover:bg-primary/50 focus-visible:bg-primary/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring",
+                          header.column.getIsResizing() && "bg-primary",
+                        )}
+                      />
+                    )}
                   </TableHead>
                 ))}
               </TableRow>
