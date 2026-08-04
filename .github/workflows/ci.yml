@@ -3,7 +3,14 @@ name: CI
 on:
   pull_request:
     branches: [main]
+  # Also on direct pushes to main, not only pull requests. A commit that lands
+  # on main without one is otherwise unchecked until the release tag, where the
+  # first gate it meets is quality-gates and a failure there skips build and
+  # release for the whole run. v0.15.0 was lost that way: it reached main
+  # outside a pull request with pyproject.toml left at the previous version,
+  # and version-sync only spoke up once the tag was already cut.
   push:
+    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
 
