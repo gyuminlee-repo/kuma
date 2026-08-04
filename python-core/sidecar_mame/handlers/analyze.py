@@ -347,6 +347,12 @@ def handle_analyze(params: dict) -> dict:
     # Raw-run gate: a MinKNOW run folder (has ``fastq_pass/``) needs demux first;
     # a pre-demuxed consensus dir takes the legacy path untouched.
     is_raw = is_minknow_run_dir(input_dir)
+    # Demux gate counters, filled in by ``ingest_run_folder`` on the raw-run
+    # path only. Stays empty in consensus-dir mode: that path never runs the
+    # aligner, so no read ever passes (or fails) a MAPQ/coverage gate here and
+    # there is nothing to report. Left empty rather than zero-filled so the
+    # response omits the keys instead of claiming "0 reads passed".
+    demux_gate_counts: dict[str, int] = {}
     # Latest demux progress, mirrored by _emit_demux so the demux-phase heartbeat
     # can re-emit a liveness pulse during long, low-event per-NB demux stretches.
     _demux_state = {"value": 0, "message": "Demuxing raw MinKNOW run", "current": 0, "total": 0}
@@ -564,6 +570,7 @@ def handle_analyze(params: dict) -> dict:
                 progress_callback=lambda done, total, stage_str: _emit_demux(
                     done, total, stage_str
                 ),
+                stats_out=demux_gate_counts,
             )
         finally:
             _demux_done_evt.set()
@@ -848,6 +855,20 @@ def handle_analyze(params: dict) -> dict:
             if is_raw
             else {}
         ),
+        # Demux gate counters, keyed exactly as DemuxStats declares them. Only
+        # the three that explain a zero-verdict run are surfaced: the ratio
+        # ``passed_mapq / total_reads`` separates "nothing aligned" from "the
+        # run had no reads", and ``passed_coverage`` splitting away from
+        # ``passed_mapq`` is what a whole-construct reference against amplicon
+        # reads looks like (v0.15.2 made the two counters count their own
+        # gates, so the gap between them is now meaningful). Each key is
+        # emitted only when the demux actually produced it; consensus-dir mode
+        # contributes nothing and the keys stay absent.
+        **{
+            key: int(demux_gate_counts[key])
+            for key in ("total_reads", "passed_mapq", "passed_coverage")
+            if key in demux_gate_counts
+        },
         **(
             {
                 "reference_resolution": {

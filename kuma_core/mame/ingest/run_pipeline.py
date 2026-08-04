@@ -22,6 +22,7 @@ boundary clean).
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from pathlib import Path
 from typing import Callable
 
@@ -117,6 +118,7 @@ def ingest_run_folder(
     chimera_split: bool = True,
     min_depth: int = 3,
     progress_callback: ProgressCallback | None = None,
+    stats_out: dict[str, int] | None = None,
 ) -> list[BarcodeRecord]:
     """Ingest a raw MinKNOW run folder into per-well consensus records.
 
@@ -134,6 +136,17 @@ def ingest_run_folder(
         When truthy, run one demux per listed native barcode (per-NB mode);
         each name must correspond to a ``fastq_pass/<nb>/`` directory.  When
         ``None`` or empty, pool all reads (single-pool mode).
+    stats_out:
+        Optional sink for the demux gate counters.  When given, it is updated
+        in place with the :class:`DemuxStats` fields the run produced
+        (``total_reads``, ``passed_mapq``, ``passed_coverage``,
+        ``assigned_reads``, ``ambiguous_dropped``, ``chimera_splits``,
+        ``wells_with_reads``, ``wells_with_min_reads``), summed across native
+        barcodes in per-NB mode.  Passed as a sink rather than folded into the
+        return value so existing callers that only want the records keep the
+        same signature.  These counters exist only because this function runs
+        the demux; a caller that consumes an already-demuxed consensus
+        directory has no equivalent source for them.
 
     Returns
     -------
@@ -146,7 +159,7 @@ def ingest_run_folder(
 
     if native_barcodes:
         nb_to_fastq = _collect_per_nb_fastq(run_dir, native_barcodes)
-        run_combinatorial_demux_per_nb(
+        per_nb = run_combinatorial_demux_per_nb(
             nb_to_fastq,
             reference_fasta,
             custom_barcodes_xlsx,
@@ -158,9 +171,15 @@ def ingest_run_folder(
             chimera_split=chimera_split,
             progress_callback=progress_callback,
         )
+        if stats_out is not None:
+            # ``merged_stats`` already sums the DemuxStats counters across every
+            # native barcode, including units restored from a resume marker.
+            stats_out.update(
+                {k: int(v) for k, v in per_nb["merged_stats"].items()}
+            )
     else:
         fastq_paths = _collect_pool_fastq(run_dir)
-        run_combinatorial_demux(
+        pooled = run_combinatorial_demux(
             fastq_paths,
             reference_fasta,
             custom_barcodes_xlsx,
@@ -173,5 +192,9 @@ def ingest_run_folder(
             chimera_split=chimera_split,
             progress_callback=progress_callback,
         )
+        if stats_out is not None:
+            stats_out.update(
+                {k: int(v) for k, v in asdict(pooled.stats).items()}
+            )
 
     return load_barcode_directory(demux_output_dir)
