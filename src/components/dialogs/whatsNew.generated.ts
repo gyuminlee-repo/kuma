@@ -5,12 +5,9 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.14.7";
+export const WHATS_NEW_VERSION = "0.15.0";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Changed", detail: "Both menubars render one `FileMenu`. Project open, archive import, archive export, sidecar restart and quit live in it once; each app passes only what it alone can do. `useProjectArchiveActions` holds the two archive callbacks so their dia…" },
-  { label: "Changed", detail: "Both menubars use `menu.file` and `menu.edit`. KURO was reading `menuBar.edit.title` for the same word." },
-  { label: "Changed", detail: "A cross-layer group ties the two menubars to `FileMenu`, so touching one alone is reported rather than noticed months later." },
-  { label: "Removed", detail: "The File menu no longer repeats what a button already does during normal work. `Open sequence` duplicated the Browse button in `SequenceInput`, and the two behaved differently: the panel rejects a FASTA with an explanation while the menu p…" },
-  { label: "Added", detail: "CI runs the frontend unit tests. Around 900 vitest cases had no job and were only ever run by hand, which on this repo cannot be done from WSL at all: a `pnpm install` into the shared folder replaces the Windows `node_modules` and breaks t…" },
+  { label: "Fixed", detail: "Raw MinKNOW analysis derives the shared primer tails from the custom barcode workbook and, when they uniquely bound the reference, extracts the sequenced amplicon before mapping. CDS coordinates are translated into the extracted reference,…" },
+  { label: "Fixed", detail: "A completed native-barcode marker with input reads but no MAPQ-passing alignments is reprocessed instead of resumed as a successful empty unit. If no wells are recovered after processing, the run now reports an actionable input/reference e…" },
 ];
