@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.15.4 (The verdict table opens on the picks, and a well explains itself)
+
+The review screen opened on ALL, so the first thing on screen was every replicate copy of every well instead of the per-variant picks that the run was made to produce. Nothing anywhere said why a well was called what it was called: the expected mutation, the observed change, the counters behind the call and the two rejected replicate copies all arrived in the analyze response and none of them were drawn. And the file field that has accepted a plain variant list since v0.14.0 was still labelled for KURO exports alone.
+
+### Changed
+
+- v0.15.4: FINAL is the default verdict-table tab. FINAL fills only once replicate selection has run, so a run without a selection would open on an empty table that reads as a broken screen: FINAL degrades to ALL in that case and says so in a status line, and returns to FINAL by itself once selection data arrives. The stored filter is left untouched by the degrade.
+- v0.15.4: Clicking a variant id in the verdict table, or a well in the plate map, opens the same detail panel in the right inspector. It puts `expected_mutations` beside `observed_aa_changes` (an empty observation reads as "No change observed" rather than blank), compares every replicate copy of the variant with the selected plate, the selection reason and any fallback reason marked, lists the confidence counters (reads, alignment drops, mixed and low-depth positions, consensus N, low-quality bases), shows the nucleotide changes, and offers the consensus FASTA path and the amino acid sequence as copy buttons instead of printing the sequence. Both entry points write the same `selectedWell`, so the plate highlight follows a table click. A field the backend did not report drops its row rather than being drawn as 0.
+- v0.15.4: The expected-variant file field is labelled for both inputs it accepts. The help text states that a KURO export is read from its `expected_mutations` sheet with the status filter applied first, and that any other workbook lets the sheet and the variant column be chosen by hand.
+
 ## v0.15.3 (A zero-well MAME run names the gate that emptied it)
 
 A raw run given a reference from another construct still finished with `Analysis complete` and an empty plate. The counts that could have said why (reads read, reads that cleared MAPQ, reads that cleared coverage) existed inside the demux and were dropped at the ingest boundary, so the only way to find the cause was to open the run folder and read the per-barcode statistics by hand.

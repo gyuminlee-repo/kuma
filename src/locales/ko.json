@@ -700,7 +700,8 @@
         "ngsHelp": "Sequencing genotype check: pass when the called mutation equals the expected design, fail otherwise."
       },
       "recoveredHelp": "A mutant is recovered when at least one of its replicate wells (across all plates) is PASS or AMBIGUOUS.",
-      "tabFinal": "Final"
+      "tabFinal": "Final",
+      "finalFallbackNotice": "선정된 replicate 가 아직 없어 FINAL 대신 전체(ALL) well 을 표시합니다."
     },
     "summaryRow": {
       "ariaLabel": "분석 요약",
@@ -904,11 +905,11 @@
         "helperText": "MinKNOW 루트 실행 디렉터리 (fastq_pass/ 포함)"
       },
       "kuroXlsx": {
-        "label": "KURO xlsx",
+        "label": "기대 변이 목록 (xlsx)",
         "placeholder": ".xlsx 파일 경로",
         "stateLabel": "필수",
-        "helperText": "KURO의 expected_mutations 시트",
-        "helpText": "KURO에서 내보낸 expected_mutations .xlsx 파일입니다. MAME은 이 파일의 예상 돌연변이를 NGS consensus 결과와 비교합니다."
+        "helperText": "KURO expected_mutations 시트 또는 변이 목록 xlsx",
+        "helpText": "KURO 에서 내보낸 워크북이면 expected_mutations 시트를 자동으로 읽고 status 필터를 먼저 적용합니다. 그 외 워크북이면 시트와 변이 열을 직접 고를 수 있습니다."
       },
       "referenceFasta": {
         "label": "참조 서열",
@@ -1097,6 +1098,44 @@
       "chooseTitle": "{{name}} 다시 지정",
       "mismatchTitle": "다른 파일일 수 있습니다",
       "mismatchBody": "원래: {{expected}}, 선택: {{actual}}. 그대로 사용하려면 무시하세요."
+    },
+    "verdictDetail": {
+      "openAriaLabel": "{{id}} 상세 보기 (well {{well}})",
+      "openTitle": "인스펙터에서 well 상세 보기",
+      "wellLabel": "Well",
+      "sectionEvidence": "판정 근거",
+      "labelExpected": "기대 (expected)",
+      "labelObserved": "관측 (observed)",
+      "expectedNone": "기대 변이 없음",
+      "observedNone": "관측된 변화 없음",
+      "labelVerdictNotes": "비고",
+      "labelNoCallAa": "no-call 코돈",
+      "labelNoCallAaHelp": "consensus N 이 X 로 번역되어 관측 변화에서 제외된 코돈 수",
+      "sectionReplicates": "Replicate 비교",
+      "selectedPlateBadge": "선정됨",
+      "currentWellBadge": "현재 well",
+      "labelSelectionReason": "선정 사유",
+      "noSelectedPlate": "이 변이체는 선정된 replicate 가 없습니다.",
+      "fallbackTitle": "대체 선정 (fallback)",
+      "sectionConfidence": "신뢰도 지표",
+      "labelReadCount": "read 수 (필터 후)",
+      "labelInputReads": "입력 read",
+      "labelAlignedReads": "정렬된 read",
+      "labelMapqFailed": "MAPQ 탈락",
+      "labelSpanFailed": "span 탈락",
+      "labelMixedPositions": "혼합 위치 수",
+      "labelMaxMinorAllele": "최대 minor allele 비율",
+      "labelLowDepthPositions": "저 coverage 위치 수",
+      "labelConsensusN": "consensus N 비율",
+      "labelLowQualityBases": "저품질 염기 수",
+      "sectionNtChanges": "염기 수준 변화",
+      "sectionSource": "원본",
+      "copy": "복사",
+      "copied": "복사됨",
+      "copySourcePath": "consensus FASTA 경로 복사",
+      "copyAaSequence": "아미노산 서열 복사",
+      "aaSequenceLength": "아미노산 서열 ({{count}} aa)",
+      "noVerdictRecord": "이 well 의 판정 레코드를 찾을 수 없습니다."
     }
   },
   "home": {

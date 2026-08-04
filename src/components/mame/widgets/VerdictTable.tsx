@@ -9,11 +9,11 @@ import {
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { AlertTriangle, Search, SlidersHorizontal } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { useRoundStore, type RoundSlice } from "@/store/round/roundSlice";
-import type { VerdictRecord } from "@/types/mame/models";
+import type { VerdictRecord, WellEntry } from "@/types/mame/models";
 import type { MergedRow } from "@/types/mame/activity";
 import { nbLabel, nbOrderKey, wellSortKey } from "@/lib/mame/nbLabel";
 import { VerdictBadge } from "./VerdictBadge";
@@ -164,6 +164,9 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
   const setPlateFilter = useMameAppStore((state) => state.setPlateFilter);
   const setSearchQuery = useMameAppStore((state) => state.setSearchQuery);
   const setSorting = useMameAppStore((state) => state.setSorting);
+  const wells = useMameAppStore((state) => state.wells);
+  const setSelectedWell = useMameAppStore((state) => state.setSelectedWell);
+  const selectedWell = useMameAppStore((state) => state.selectedWell);
 
   // Activity data from the active round merged_table
   // Join key: well_id == custom_barcode (MAME barcode label = well position)
@@ -189,7 +192,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
   }, [verdicts]);
   const plateTabs = useMemo(() => ["FINAL", "ALL", ...nbGroups], [nbGroups]);
   // Guard against a stale persisted filter (an NB no longer present) → fall back to ALL.
-  const activeFilter =
+  const requestedFilter =
     plateFilter === "FINAL" ||
     (plateFilter !== "ALL" && nbGroups.includes(plateFilter))
       ? plateFilter
@@ -223,6 +226,27 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
     }
     return s;
   }, [replicates]);
+
+  // FINAL is the default tab, but it only fills once replicate selection has run.
+  // With no selection the tab would render an empty table that reads as a broken
+  // screen, so FINAL degrades to ALL whenever it would show nothing, and says so.
+  //
+  // No "did the user pick FINAL themselves?" flag is kept: `plateFilter` is a
+  // single in-memory string (store/mame/slices/analysisSlice.ts) with no
+  // provenance, and distinguishing the two cases would need extra state for no
+  // gain, the fallback notice is shown either way, so an explicit FINAL click on
+  // an unselected run is answered with the same explanation. Leaving
+  // `plateFilter` untouched also keeps the existing persistence: once selection
+  // data arrives, the view returns to FINAL by itself.
+  const finalRowCount = useMemo(
+    () =>
+      verdicts.filter((record) =>
+        finalSet.has(`${record.native_barcode}|${record.custom_barcode}`),
+      ).length,
+    [verdicts, finalSet],
+  );
+  const finalFallbackActive = requestedFilter === "FINAL" && finalRowCount === 0;
+  const activeFilter = finalFallbackActive ? "ALL" : requestedFilter;
 
   const rows = useMemo<VerdictRow[]>(() => {
     // Replicate selection drives only the fallback accent (keyed by mutant_id),
@@ -309,6 +333,38 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
     return m;
   }, [verdicts, replicates]);
 
+  // Variant-id click → the same `selectedWell` the plate map writes, so the
+  // detail inspector and the plate highlight follow either entry point. The
+  // plate-map WellEntry is preferred when loaded (it carries the plate position
+  // label); otherwise a WellEntry is built from the verdict record itself so the
+  // panel still opens before get_plate_data has returned.
+  // Wells are keyed by (native_barcode, custom_barcode): custom_barcode alone
+  // cannot tell the replicate copies apart.
+  // Re-clicking the same id keeps the panel open rather than toggling it shut -
+  // that is the existing `selectedWell` convention (PlateView passes a plain
+  // `setSelectedWell`, and loadPlateData preselects a well on load).
+  const openWellDetail = useCallback(
+    (row: VerdictRow) => {
+      const match = wells.find(
+        (w) =>
+          w.native_barcode === row.native_barcode && w.barcode === row.custom_barcode,
+      );
+      const entry: WellEntry = match ?? {
+        well: row.custom_barcode,
+        barcode: row.custom_barcode,
+        native_barcode: row.native_barcode,
+        verdict: row.verdict,
+        mutant_id: row.mutant_id,
+        selected: finalSet.has(`${row.native_barcode}|${row.custom_barcode}`),
+        notes: row.verdict_notes,
+        is_fallback: row.is_fallback,
+        fallback_reason: row.fallback_reason,
+      };
+      setSelectedWell(entry);
+    },
+    [wells, setSelectedWell, finalSet],
+  );
+
   const columns = useMemo<ColumnDef<VerdictRow>[]>(
     () => [
       {
@@ -338,7 +394,22 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
                 <AlertTriangle size={11} aria-hidden="true" />
               </span>
             )}
-            <span className="text-xs font-medium">{row.original.mutant_id}</span>
+            <button
+              type="button"
+              onClick={() => openWellDetail(row.original)}
+              aria-label={t("mame.verdictDetail.openAriaLabel", {
+                id: row.original.mutant_id,
+                well: row.original.custom_barcode,
+              })}
+              aria-pressed={
+                selectedWell?.native_barcode === row.original.native_barcode &&
+                selectedWell?.barcode === row.original.custom_barcode
+              }
+              title={t("mame.verdictDetail.openTitle")}
+              className="min-w-0 truncate rounded-control text-xs font-medium text-foreground underline decoration-dotted underline-offset-2 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+            >
+              {row.original.mutant_id}
+            </button>
             {selectedSet.has(`${row.original.mutant_id}|${row.original.native_barcode}`) && (
               <Badge
                 variant="outline"
@@ -584,7 +655,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
         },
       },
     ],
-    [t, recoveredByMutant, selectedSet],
+    [t, recoveredByMutant, selectedSet, openWellDetail, selectedWell],
   );
 
   const table = useReactTable({
@@ -686,6 +757,15 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
         </div>
       </div>
 
+      {finalFallbackActive && (
+        <p
+          className="bg-muted/50 px-3 py-0.5 text-caption text-muted-foreground"
+          role="status"
+          data-testid="final-fallback-notice"
+        >
+          {t("mame.verdictTable.finalFallbackNotice")}
+        </p>
+      )}
       {isVirtual && (
         <p className="bg-primary/10 px-3 py-0.5 text-caption text-primary" aria-live="polite">
           {t("mame.verdictTable.virtualScrollActive", { count: tableRows.length.toLocaleString() })}

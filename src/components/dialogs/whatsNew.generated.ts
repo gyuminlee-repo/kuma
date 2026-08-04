@@ -5,9 +5,10 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.15.3";
+export const WHATS_NEW_VERSION = "0.15.4";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Changed", detail: "The analyze response carries the three demux gate counters, `total_reads`, `passed_mapq` and `passed_coverage`, filled by `ingest_run_folder` through a stats sink (pooled, or summed across native barcodes). Consensus-dir mode runs no align…" },
-  { label: "Changed", detail: "The zero-result notice reads those counters and names a cause where the counts prove one. Reads present with none clearing MAPQ is reported as nothing aligning to the reference, the signature of a reference from a different sequence. Reads…" },
+  { label: "Changed", detail: "FINAL is the default verdict-table tab. FINAL fills only once replicate selection has run, so a run without a selection would open on an empty table that reads as a broken screen: FINAL degrades to ALL in that case and says so in a status…" },
+  { label: "Changed", detail: "Clicking a variant id in the verdict table, or a well in the plate map, opens the same detail panel in the right inspector. It puts `expected_mutations` beside `observed_aa_changes` (an empty observation reads as \"No change observed\" rathe…" },
+  { label: "Changed", detail: "The expected-variant file field is labelled for both inputs it accepts. The help text states that a KURO export is read from its `expected_mutations` sheet with the status filter applied first, and that any other workbook lets the sheet an…" },
 ];

@@ -75,9 +75,12 @@ function makeMameStore(overrides: Partial<MameAppStore> = {}) {
     plateFilter: "ALL",
     searchQuery: "",
     sorting: [],
+    wells: [],
+    selectedWell: null,
     setPlateFilter: vi.fn(),
     setSearchQuery: vi.fn(),
     setSorting: vi.fn(),
+    setSelectedWell: vi.fn(),
     ...overrides,
   }) as unknown as MameAppStore);
 }
@@ -318,5 +321,61 @@ describe("VerdictTable", () => {
     expect(screen.getByText("Final")).toBeTruthy();
     expect(screen.getByText("A01")).toBeTruthy();
     expect(screen.queryByText("B02")).toBeNull();
+    // FINAL has rows here, so no fallback notice and the FINAL tab stays active.
+    expect(screen.queryByTestId("final-fallback-notice")).toBeNull();
+    expect(screen.getByRole("tab", { name: "Final" }).getAttribute("aria-selected")).toBe(
+      "true",
+    );
+  });
+
+  it("falls back to ALL, with a notice, when FINAL would show no rows", () => {
+    const a: VerdictRecord = { ...mockVerdict, custom_barcode: "A01", mutant_id: "F89W" };
+    const b: VerdictRecord = {
+      ...mockVerdict,
+      custom_barcode: "B02",
+      mutant_id: "K10R",
+      verdict: "NO_CALL",
+    };
+    vi.mocked(useMameAppStore).mockImplementation((sel: (s: MameAppStore) => unknown) =>
+      sel(
+        makeMameStore({
+          verdicts: [a, b],
+          // No replicate selection yet: the FINAL set is empty.
+          replicates: [],
+          plateFilter: "FINAL",
+        }).getState(),
+      ),
+    );
+    vi.mocked(useRoundStore).mockImplementation((sel: (s: RoundSlice) => unknown) =>
+      sel(makeRoundStore([], null).getState()),
+    );
+    render(<VerdictTable />);
+
+    expect(screen.getByTestId("final-fallback-notice")).toBeTruthy();
+    // Every well is listed (ALL behavior), and the ALL tab reflects what is shown.
+    expect(screen.getByText("A01")).toBeTruthy();
+    expect(screen.getByText("B02")).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "ALL" }).getAttribute("aria-selected")).toBe(
+      "true",
+    );
+  });
+
+  it("opens the well detail from the variant id button", () => {
+    const setSelectedWell = vi.fn();
+    vi.mocked(useMameAppStore).mockImplementation((sel: (s: MameAppStore) => unknown) =>
+      sel(makeMameStore({ setSelectedWell }).getState()),
+    );
+    vi.mocked(useRoundStore).mockImplementation((sel: (s: RoundSlice) => unknown) =>
+      sel(makeRoundStore([], null).getState()),
+    );
+    render(<VerdictTable />);
+
+    fireEvent.click(screen.getByRole("button", { name: /F89W/ }));
+    expect(setSelectedWell).toHaveBeenCalledTimes(1);
+    expect(setSelectedWell.mock.calls[0]?.[0]).toMatchObject({
+      barcode: "A01",
+      native_barcode: "barcode01",
+      mutant_id: "F89W",
+    });
   });
 });

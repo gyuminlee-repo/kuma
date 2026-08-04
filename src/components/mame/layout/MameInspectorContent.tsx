@@ -11,6 +11,7 @@
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
+import { VerdictDetailInspector } from "@/components/mame/inspectors/VerdictDetailInspector";
 
 // KV 행 공통 컴포넌트
 function KVRow({ label, value }: { label: string; value: string | number | null | undefined }) {
@@ -122,7 +123,11 @@ function QcVerdictInspector() {
   );
 }
 
-/** 화면 5: MAME QC/Plate — Well Inspector */
+/** 화면 5: MAME QC/Plate, Well Inspector.
+ *
+ * The plate map well button and the verdict table variant-id button both write
+ * `selectedWell`, so this one panel is what either entry point opens. The
+ * detail body lives in VerdictDetailInspector. */
 function QcPlateInspector() {
   const { t } = useTranslation();
   const selectedWell = useMameAppStore((s) => s.selectedWell);
@@ -131,20 +136,7 @@ function QcPlateInspector() {
     return <EmptyState message={t("mame.qc.plate.inspectorNoWellSelected")} />;
   }
 
-  return (
-    <div>
-      <KVRow label={t("mame.qc.plate.inspectorBarcode")} value={selectedWell.barcode} />
-      <KVRow label={t("mame.qc.plate.inspectorReads")} value={selectedWell.notes || "—"} />
-      <KVRow
-        label={t("mame.qc.plate.inspectorReason")}
-        value={
-          selectedWell.is_fallback && selectedWell.fallback_reason
-            ? selectedWell.fallback_reason
-            : selectedWell.verdict
-        }
-      />
-    </div>
-  );
+  return <VerdictDetailInspector />;
 }
 
 /** 화면 6: MAME Activity/Ingest — Activity Inspector */
