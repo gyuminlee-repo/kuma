@@ -5,12 +5,16 @@
  * [updated: spec Phase F F6, WizardContainer 적용]
  * [updated: spec Phase G #19, activity.export 폐지, activity.mergeExport로 통합 (2-step)]
  * [updated: Activity 단일 step 통합, ingest + merge + export 를 한 화면에서 처리 (1-step)]
+ * [updated: v0.15.6, 두 EVOLVEpro-input 경로를 하나로 통합. 경로 선택기 대신
+ *    활성값 소스 축(ActivitySourceSelector)만 남고, NGS 는 어느 소스에서도
+ *    빠지지 않는다: upload 소스는 MergeSection 의 genotype join, plate-layout
+ *    소스는 BuildEvolveproInputPanel 의 verdict 파일 gating 으로 들어간다.]
  * [updated: Step 3 UX 재설계, 2-step으로 분리:
- *    3.1 (activity.ingest)  = mutually-exclusive EVOLVEpro-input route (genotype vs plate layout)
+ *    3.1 (activity.ingest)  = EVOLVEpro-input 생성 (활성값 소스 선택)
  *    3.2 (activity.signals) = cross-round classification (AdvisoryDecisionCard) + round handoff]
  *
  * Sub-step:
- *   activity.ingest    → ActivityRouteSelector + (IngestSection/MergeSection/ExportSection | BuildEvolveproInputPanel)
+ *   activity.ingest    → ActivitySourceSelector + (IngestSection/MergeSection/ExportSection | BuildEvolveproInputPanel)
  *   activity.signals   → AdvisoryDecisionCard + RoundHandoffButton
  *   activity.mergeExport → legacy id, redirects to activity.ingest
  *
@@ -26,7 +30,7 @@ import { IngestSection, MergeSection, ExportSection } from "@/components/mame/pa
 import { WizardContainer } from "@/components/steps/WizardContainer";
 import { StepRedirectFallback } from "./StepRedirectFallback";
 import { BuildEvolveproInputPanel } from "@/components/mame/panels/BuildEvolveproInputPanel";
-import { ActivityRouteSelector } from "@/components/mame/panels/ActivityRouteSelector";
+import { ActivitySourceSelector } from "@/components/mame/panels/ActivitySourceSelector";
 import { AdvisoryDecisionCard } from "@/components/round/AdvisoryDecisionCard";
 import { RoundHandoffButton } from "@/components/round/RoundHandoffButton";
 import {
@@ -76,7 +80,7 @@ function ActivityIngestStep({
 }) {
   return (
     <div className="space-y-6">
-      <ActivityRouteSelector value={route} onChange={onRouteChange} />
+      <ActivitySourceSelector value={route} onChange={onRouteChange} />
       {route === "genotype" ? (
         <>
           <IngestSection />

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { LayoutGrid, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
@@ -10,6 +10,7 @@ import { detectFromInputDir } from "@/lib/mame/detectProjectFiles";
 import type { InputMode } from "@/store/mame/slice-interfaces";
 import { Button } from "@/components/ui/button";
 import { FileField } from "./FileField";
+import { VariantColumnMapping } from "./VariantColumnMapping";
 import { Spinner } from "@/components/ui/Spinner";
 import { defaultMameExportFilename } from "@/lib/filename";
 
@@ -52,14 +53,11 @@ export function InputPanel() {
   const setOutputPath = useMameAppStore((s) => s.setOutputPath);
   const setSampleMapPath = useMameAppStore((s) => s.setSampleMapPath);
   const setParams = useMameAppStore((s) => s.setParams);
-  const wellLayout = useMameAppStore((s) => s.wellLayout);
-  const buildWellLayout = useMameAppStore((s) => s.buildWellLayout);
-  const clearWellLayout = useMameAppStore((s) => s.clearWellLayout);
+  const inspectVariantSource = useMameAppStore((s) => s.inspectVariantSource);
 
   const project = useKumaProject();
   const [isDetecting, setIsDetecting] = useState(false);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
-  const [isBuildingLayout, setIsBuildingLayout] = useState(false);
 
   async function handleRedetect() {
     if (!project?.path) return;
@@ -121,19 +119,12 @@ export function InputPanel() {
     }
   }
 
-  async function handleBuildWellLayout() {
-    if (isBuildingLayout) return;
-    setIsBuildingLayout(true);
-    try {
-      await buildWellLayout();
-    } finally {
-      setIsBuildingLayout(false);
-    }
-  }
-
   async function browseExpected() {
     const selected = toSinglePath(
-      await open({ directory: false, filters: [{ name: "Excel", extensions: ["xlsx"] }] }),
+      await open({
+        directory: false,
+        filters: [{ name: "Variant list (Excel / CSV)", extensions: ["xlsx", "csv"] }],
+      }),
     );
     if (!selected) return;
     setExpectedPath(selected);
@@ -284,55 +275,7 @@ export function InputPanel() {
         readyLabel={readyLabel}
         browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.inputPanel.kuroXlsx.label") })}
       />
-      {expectedPath && (
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => void handleBuildWellLayout()}
-              disabled={isBuildingLayout || Boolean(sampleMapPath)}
-              aria-label={t("mame.inputPanel.buildWellLayout.ariaLabel")}
-              className="h-8 gap-1.5 px-3 text-xs"
-            >
-              <LayoutGrid size={12} aria-hidden="true" />
-              {isBuildingLayout
-                ? t("mame.inputPanel.buildWellLayout.building")
-                : t("mame.inputPanel.buildWellLayout.button")}
-            </Button>
-            {wellLayout !== null && (
-              <>
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-caption font-medium text-primary">
-                  {t("mame.inputPanel.buildWellLayout.confirmed", {
-                    count: Object.keys(wellLayout).length,
-                  })}
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => clearWellLayout()}
-                  aria-label={t("mame.inputPanel.buildWellLayout.clearAriaLabel")}
-                  className="h-8 px-2 text-xs"
-                >
-                  {t("mame.inputPanel.buildWellLayout.clear")}
-                </Button>
-              </>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {sampleMapPath
-              ? t("mame.inputPanel.buildWellLayout.disabledBySampleMap")
-              : t("mame.inputPanel.buildWellLayout.fallbackHint")}
-          </p>
-          {wellLayout !== null && sampleMapPath && (
-            <p className="text-xs text-amber-600 dark:text-amber-500">
-              {t("mame.inputPanel.buildWellLayout.overrideWarning")}
-            </p>
-          )}
-        </div>
-      )}
+      <VariantColumnMapping />
       <FileField
         label={t("mame.inputPanel.referenceFasta.label")}
         value={referencePath}

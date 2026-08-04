@@ -1,25 +1,23 @@
-import { gradePlateOrder } from "@/lib/mame/plateOrderMessage";
 import type { PlateOrderSeverity } from "@/types/mame/models";
 import type { AppState } from "./types";
 
 /**
- * How much the stored plate-order finding costs the run as it stands now.
+ * Whether the stored plate-order finding is worth saying out loud right now.
  *
- * The sidecar graded the finding against the layout inputs it was sent, and the
- * operator can change those inputs afterwards (pick a sample map, confirm a well
- * layout). Re-grading here keeps the gate honest without a second round-trip,
- * and applies the same rule as `_plate_order_finding` in
- * `python-core/sidecar_mame/handlers/analyze.py`.
+ * Always "info" when it is: since v0.15.6 the operator picks the sheet and the
+ * column the variant list is read from, so the program has no standing to call
+ * a disagreement between two sheets of one workbook an error. It reports what
+ * it saw and leaves the reading to the person who chose it.
  *
- * null = no finding, i.e. nothing to say and nothing to stop.
+ * null = nothing to say. That covers no finding at all, and the case where the
+ * operator named the sheet and column themselves: they already stated which
+ * rows to read, and repeating "these two sheets differ" back at them adds
+ * nothing they did not just decide.
  */
 export function selectPlateOrderSeverity(s: AppState): PlateOrderSeverity | null {
-  const finding = s.plateOrderFinding;
-  if (!finding) return null;
-  return gradePlateOrder(finding, {
-    hasSampleMap: Boolean(s.sampleMapPath),
-    hasWellLayout: s.wellLayout !== null,
-  });
+  if (!s.plateOrderFinding) return null;
+  if (s.variantSelectionExplicit) return null;
+  return "info";
 }
 
 export function selectCanRun(s: AppState): boolean {
@@ -36,15 +34,12 @@ export function selectCanRun(s: AppState): boolean {
   } else {
     pathsReady = Boolean(s.inputDir && s.expectedPath && s.referencePath && s.outputPath);
   }
+  // A plate-order disagreement no longer appears here. It is stated on the
+  // inputs panel and the run proceeds; see selectPlateOrderSeverity.
   return (
     pathsReady &&
     !s.isAnalyzing &&
     !s.isValidating &&
-    s.validationErrors.length === 0 &&
-    // The backend leaves `valid` true for a plate disagreement so `valid` keeps
-    // its old meaning, which makes this gate the frontend's job. Running an
-    // inferred layout off two disagreeing sheets scores every well against a
-    // design nobody built, and nothing in the output says so.
-    selectPlateOrderSeverity(s) !== "blocking"
+    s.validationErrors.length === 0
   );
 }

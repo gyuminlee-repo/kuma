@@ -11,57 +11,23 @@
 
 import { sendRequest } from "@/lib/ipc-mame";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { DEFAULT_JANUS_SETTINGS, toRpcParams } from "./janusSettings";
+
+// Re-exported so callers keep one import site for the Janus policy, while the
+// definitions stay in a store-free module (see janusSettings.ts).
+export {
+  DEFAULT_JANUS_SETTINGS,
+  JANUS_SETTINGS_STORAGE_KEY,
+  loadJanusSettings,
+  saveJanusSettings,
+  toRpcParams,
+} from "./janusSettings";
 import type {
   JanusExportFormat,
   JanusExportResult,
   JanusExportSettings,
   JanusPreviewResult,
 } from "@/types/mame/models";
-
-/**
- * Default export policy, mirroring ``JanusSettings``
- * (kuma_core/mame/export/janus_mapping.py).
- *
- * Only fully verified clones ship: AMBIGUOUS carries a side indel that would
- * mislabel an activity measurement and LOWDEPTH is unverified, so both stay out
- * unless the operator opts in. A stock plate is a new plate, hence the compact
- * layout. `liquidClass` is deliberately empty: it drives the pipetting
- * behaviour of the robot, so the sidecar blocks the export until it is set.
- *
- * `volume`, `sampleType`, and the rack numbers are stated assumptions with no
- * lab source in this repository; the dialog surfaces them for editing.
- */
-export const DEFAULT_JANUS_SETTINGS: JanusExportSettings = {
-  destLayout: "compact",
-  includeVerdicts: ["PASS"],
-  includeFallback: false,
-  outputSchema: "device9",
-  volume: 100,
-  sampleType: "cell",
-  liquidClass: "",
-  sourceRacks: { P1: 1, P2: 2, P3: 3 },
-  destRack: 4,
-};
-
-/**
- * Convert the UI settings into RPC params.
- *
- * The single conversion point for both the export and the preview, so the plate
- * the operator approves is the plate the exported file describes.
- */
-function toRpcParams(settings: JanusExportSettings): Record<string, unknown> {
-  return {
-    dest_layout: settings.destLayout,
-    include_verdicts: settings.includeVerdicts,
-    include_fallback: settings.includeFallback,
-    output_schema: settings.outputSchema,
-    volume: settings.volume,
-    sample_type: settings.sampleType,
-    liquid_class: settings.liquidClass,
-    source_racks: settings.sourceRacks,
-    dest_rack: settings.destRack,
-  };
-}
 
 /**
  * Build the default Janus output path for a given project directory.

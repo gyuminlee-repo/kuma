@@ -29,15 +29,26 @@ vi.mock("@/lib/mame/janus", async (importOriginal) => {
 vi.mock("@/state/projectContext", () => ({
   useKumaProject: () => ({ path: "/tmp/proj", name: "proj" }),
 }));
-vi.mock("@/store/mame/mameAppStore", () => ({
-  useMameAppStore: (selector: (s: { isExporting: boolean }) => unknown) =>
-    selector({ isExporting: false }),
-}));
+// The dialog reads its Janus policy from the store now (an analyze run writes
+// its own mapping with the same settings), so the double has to be a real
+// store: a plain selector over a frozen object would never re-render on edit.
+vi.mock("@/store/mame/mameAppStore", async () => {
+  const { create } = await import("zustand");
+  const { DEFAULT_JANUS_SETTINGS } = await import("@/lib/mame/janusSettings");
+  const useMameAppStore = create<JanusStoreDouble>()((set) => ({
+    isExporting: false,
+    janusSettings: DEFAULT_JANUS_SETTINGS,
+    setJanusSettings: (janusSettings: JanusExportSettings) => set({ janusSettings }),
+  }));
+  return { useMameAppStore };
+});
 
 import {
   fetchMameJanusPreview,
   handleExportMameJanusMapping,
 } from "@/lib/mame/janus";
+import { DEFAULT_JANUS_SETTINGS } from "@/lib/mame/janusSettings";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type {
   JanusExcludedEntry,
   JanusExportSettings,
@@ -45,6 +56,12 @@ import type {
   JanusResolvedSettings,
 } from "@/types/mame/models";
 import { JanusMappingDialog } from "./JanusMappingDialog";
+
+interface JanusStoreDouble {
+  isExporting: boolean;
+  janusSettings: JanusExportSettings;
+  setJanusSettings: (settings: JanusExportSettings) => void;
+}
 
 const mockPreview = vi.mocked(fetchMameJanusPreview);
 const mockExport = vi.mocked(handleExportMameJanusMapping);
@@ -190,6 +207,8 @@ function exportButton(): HTMLButtonElement {
 }
 
 beforeEach(() => {
+  // Settings outlive a render now, so each test starts from the defaults.
+  useMameAppStore.setState({ janusSettings: DEFAULT_JANUS_SETTINGS });
   mockPreview.mockReset();
   mockExport.mockReset();
   mockPreview.mockImplementation(async (settings) => cleanPreviewFor(settings));

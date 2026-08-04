@@ -28,7 +28,6 @@ import { sendRequest as sendMameRequest } from "@/lib/ipc-mame";
 import type { LoadAnalyzeResultResponse, PlateOrderReport } from "@/types/mame/models";
 import {
   buildPlateOrderMessage,
-  gradePlateOrder,
   isPlateOrderReportable,
 } from "@/lib/mame/plateOrderMessage";
 import { KURO_SCHEMA, buildKuroSnapshot } from "@/lib/kuroSnapshot";
@@ -875,9 +874,9 @@ export async function applyKuroSnapshot(
  *
  * 문구는 분석 입력 패널의 PlateOrderNotice 와 같은 `buildPlateOrderMessage` 에서
  * 나온다. 같은 사실을 두 경로가 다른 말로 하면 사용자는 서로 다른 문제 둘로 읽는다.
- * 등급은 이 시점의 스토어(sample map / well layout)로 매기므로 두 경로가 다르게
- * 나올 수 있고, 그것이 이 경로를 남겨 두는 이유다. 복원 직후에는 아직 좌표계가 없어
- * blocking 이던 것이 사용자가 sample map 을 고르면 info 로 내려간다.
+ * v0.15.6 부터 등급은 없다. 사용자가 변이 목록의 시트·열을 지목하는 이상 프로그램이
+ * 실행을 막을 근거가 없으므로, 두 경로 모두 info 로 알리기만 한다. 이미 시트·열을
+ * 직접 지정했다면 아무 말도 하지 않는다(PlateOrderNotice 와 같은 기준).
  */
 async function reportPlateOrderMismatch(
   expectedPath: string,
@@ -899,15 +898,11 @@ async function reportPlateOrderMismatch(
   if (!report || !isCurrent()) return;
   if (!isPlateOrderReportable(report)) return;
 
-  const mameState = useMameAppStore.getState();
-  const severity = gradePlateOrder(report, {
-    hasSampleMap: Boolean(mameState.sampleMapPath),
-    hasWellLayout: mameState.wellLayout !== null,
-  });
+  if (useMameAppStore.getState().variantSelectionExplicit) return;
   onMessage({
     kind: "mame",
     variant: "plate_order_mismatch",
-    message: buildPlateOrderMessage({ ...report, severity }, expectedPath).text,
+    message: buildPlateOrderMessage({ ...report, severity: "info" }, expectedPath).text,
   });
 }
 

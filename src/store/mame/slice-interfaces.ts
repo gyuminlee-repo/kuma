@@ -7,6 +7,8 @@ import type {
   AnalyzeYield,
   DistributionStats,
   DemuxAndFilterResult,
+  JanusAutosaveResult,
+  JanusExportSettings,
   PlateOrderFinding,
   ReplicateResult,
   RunHealthData,
@@ -15,7 +17,8 @@ import type {
 } from "@/types/mame/models";
 import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
 import type { NativeBarcodeUsage } from "@/types/mame/detect_native_barcodes";
-import type { WellLayout, WellLayoutRow } from "@/types/mame/well_layout";
+import type { VariantSourceInfo } from "@/types/mame/barcode_package";
+import type { WellLayout } from "@/types/mame/well_layout";
 
 export type InputMode = "consensus" | "sorted_barcode" | "raw_run";
 
@@ -84,20 +87,38 @@ export interface InputSlice {
   // null = no dialog open; non-null = show the confirm dialog with these rows.
   detectedNativeBarcodes: NativeBarcodeUsage[] | null;
   isDetectingBarcodes: boolean;
-  // Well-layout confirm flow: null = not started; non-null = show confirm dialog.
-  wellLayoutDraft: WellLayoutRow[] | null;
-  // What the 96-well ceiling forced out of the current draft. A truncated draft
-  // renders as a correct full plate, so the confirm dialog has to surface this.
-  wellLayoutOverflow: { droppedMutantIds: string[]; wtOmitted: boolean } | null;
-  // Confirmed well->sample mapping; passed to analyze as highest-priority source.
+  // Well->sample mapping passed to analyze as the highest-priority source.
+  // v0.15.6 removed the UI that built one (nobody checked 96 rows by hand, and
+  // analyze assigns wells on its own regardless), so this is non-null only
+  // when restored from a project saved before that. The `well_layout` RPC
+  // param stays: it is the contract, and it still outranks the sample map.
   wellLayout: WellLayout | null;
   // Does the chosen expected workbook agree with its own primer plate sheet?
-  // null = nothing to report (agrees, not comparable, or not checked yet). A
-  // "blocking" finding stops the run via selectPlateOrderSeverity/selectCanRun,
-  // because the sheet order is then the well coordinate system and every verdict
-  // lands on the wrong well while still looking normal.
+  // null = nothing to report (agrees, not comparable, not checked yet, or the
+  // operator named the sheet and column themselves). Stated, never gated: since
+  // v0.15.6 the operator points at the list to read, so the program has no
+  // ground left to refuse the run.
   plateOrderFinding: PlateOrderFinding | null;
-  clearWellLayout: () => void;
+  // What the picked variant list offers (sheets, headers, the column the
+  // backend would choose). null = not inspected, or the sidecar could not.
+  variantSourceInfo: VariantSourceInfo | null;
+  // Sheet and column to read the variant list with. null = let the backend
+  // decide, which is the pre-v0.15.6 behaviour.
+  variantSheet: string | null;
+  variantColumn: string | null;
+  // True once the operator changed either of the two above by hand. Their
+  // statement about which rows to read outranks any disagreement the program
+  // spots between two sheets of the same workbook.
+  variantSelectionExplicit: boolean;
+  // Janus policy the analyze run writes its automatic mapping with, shared with
+  // the export dialog so both files describe the same plate.
+  janusSettings: JanusExportSettings;
+  // What became of that automatic mapping on the last run. null = no run yet.
+  janusAutosave: JanusAutosaveResult | null;
+  inspectVariantSource: (path: string) => Promise<void>;
+  setVariantSheet: (sheet: string | null) => void;
+  setVariantColumn: (column: string | null) => void;
+  setJanusSettings: (settings: JanusExportSettings) => void;
   setInputDir: (path: string) => void;
   setExpectedPath: (path: string) => void;
   setReferencePath: (path: string) => void;
@@ -170,9 +191,6 @@ export interface InputSlice {
   confirmNativeBarcodeSelection: (selected: string[]) => Promise<void>;
   // Close the confirm dialog and abort the pending analysis.
   cancelNativeBarcodeSelection: () => void;
-  buildWellLayout: () => Promise<void>;
-  confirmWellLayout: (rows: WellLayoutRow[]) => void;
-  cancelWellLayout: () => void;
   resetInput: () => void;
 }
 

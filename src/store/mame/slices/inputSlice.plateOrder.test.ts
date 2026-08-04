@@ -1,13 +1,17 @@
 /**
- * The plate-order gate, at the store layer.
+ * The plate-order finding, at the store layer.
  *
  * A KURO export writes the same plate on `Fwd List`/`Fwd Plate` and on
- * `expected_mutations`. When they disagree and MAME has to read wells off the
+ * `expected_mutations`. When they disagree and MAME reads wells off the
  * expected sheet's row order, every verdict lands on the wrong well and nothing
- * in the output says so (2026-08-04, 94 wells). These cover the three things
- * that have to hold for that to be caught: the finding is asked for and stored,
- * it is graded against the layout inputs actually sent, and a blocking grade
- * stops the run.
+ * in the output says so (2026-08-04, 94 wells).
+ *
+ * v0.15.6 changed what follows from that. The operator now names the sheet and
+ * the column the variant list is read from, so the disagreement is reported and
+ * the run proceeds: refusing would be the program overruling a statement it
+ * asked for. These cover that the finding is still asked for and stored, that
+ * it no longer stops anything, and that it goes quiet once the operator has
+ * pointed at the rows themselves.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppState } from "../types";
@@ -71,14 +75,12 @@ function makeRunnableStore(initial: Partial<AppState> = {}) {
   });
 }
 
-describe("mame inputSlice plate-order gate", () => {
+describe("mame inputSlice plate-order finding", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("sends the layout inputs with validate_inputs so the grade is the right one", async () => {
-    // Omitting these grades every disagreement as blocking, including the ones
-    // this run's own well coordinates make harmless.
+  it("sends the layout inputs with validate_inputs", async () => {
     const store = makeRunnableStore({
       sampleMapPath: "D:/project/sample_map.xlsx",
       wellLayout: { A1: "K53I" },
@@ -108,10 +110,11 @@ describe("mame inputSlice plate-order gate", () => {
     );
   });
 
-  it("stores a blocking finding and stops the run", async () => {
+  it("stores a finding the sidecar graded blocking, and still lets the run start", async () => {
+    // The backend keeps its own grading vocabulary; the frontend stopped acting
+    // on it. Nothing about a disagreeing workbook disables Run any more.
     const store = makeRunnableStore();
     mockSendRequest.mockResolvedValueOnce({
-      // `valid` stays true by contract; the gate is this layer's job.
       valid: true,
       errors: [],
       plate_order: { ...REPORT, severity: "blocking" },
@@ -119,41 +122,48 @@ describe("mame inputSlice plate-order gate", () => {
 
     await store.validateInputs();
 
-    expect(store.plateOrderFinding?.severity).toBe("blocking");
-    expect(selectPlateOrderSeverity(store)).toBe("blocking");
-    expect(selectCanRun(store)).toBe(false);
+    expect(store.plateOrderFinding).not.toBeNull();
+    expect(selectPlateOrderSeverity(store)).toBe("info");
+    expect(selectCanRun(store)).toBe(true);
   });
 
-  it("refuses an analyze started past the disabled button, and says why", async () => {
+  it("runs an analyze with a disagreeing workbook instead of refusing it", async () => {
     const store = makeRunnableStore({
       plateOrderFinding: { ...REPORT, severity: "blocking" },
+    });
+    mockSendRequest.mockResolvedValueOnce({
+      verdicts: [],
+      replicates: [],
+      summary: {},
+      output_path: "D:/project/result.xlsx",
+      distribution_stats: null,
     });
 
     await store.runAnalysis();
 
-    expect(mockSendRequest).not.toHaveBeenCalled();
-    expect(store.isAnalyzing).toBe(false);
-    expect(store.validationErrors).toHaveLength(1);
-    // Names the sheet, the disagreeing well and the mutant missing from the
-    // expected sheet, so the operator knows which file to look at.
-    expect(store.validationErrors[0]).toContain("Fwd List");
-    expect(store.validationErrors[0]).toContain("A2");
-    expect(store.validationErrors[0]).toContain("Q17R");
-    expect(store.validationErrors[0]).toContain("KURO_expected.xlsx");
+    expect(mockSendRequest).toHaveBeenCalledWith(
+      "analyze",
+      expect.anything(),
+      expect.any(Number),
+    );
+    expect(store.validationErrors).toEqual([]);
   });
 
-  it("lets an info finding through: it is stated, not gated", async () => {
-    const store = makeRunnableStore({ sampleMapPath: "D:/project/sample_map.xlsx" });
+  it("says nothing at all once the operator named the sheet and column", async () => {
+    // Their statement about which rows to read is the answer to the question
+    // the notice would ask. Repeating it back adds nothing.
+    const store = makeRunnableStore();
     mockSendRequest.mockResolvedValueOnce({
       valid: true,
       errors: [],
-      plate_order: { ...REPORT, severity: "info" },
+      plate_order: { ...REPORT, severity: "blocking" },
     });
-
     await store.validateInputs();
-
-    expect(store.plateOrderFinding?.severity).toBe("info");
     expect(selectPlateOrderSeverity(store)).toBe("info");
+
+    store.setVariantColumn("mutation");
+
+    expect(selectPlateOrderSeverity(store)).toBeNull();
     expect(selectCanRun(store)).toBe(true);
   });
 
@@ -170,7 +180,7 @@ describe("mame inputSlice plate-order gate", () => {
 
   it("clears a previous finding when a later validation finds nothing", async () => {
     const store = makeRunnableStore({
-      plateOrderFinding: { ...REPORT, severity: "blocking" },
+      plateOrderFinding: { ...REPORT, severity: "info" },
     });
     mockSendRequest.mockResolvedValueOnce({ valid: true, errors: [] });
 
@@ -191,19 +201,7 @@ describe("mame inputSlice plate-order gate", () => {
       { path: "D:/project/KURO_expected.xlsx" },
       expect.any(Number),
     );
-    // The RPC answers without a severity; the slice grades it as the sidecar would.
-    expect(store.plateOrderFinding?.severity).toBe("blocking");
-  });
-
-  it("grades a picked workbook as info when the wells come from elsewhere", async () => {
-    const store = makeStore({
-      expectedPath: "D:/project/KURO_expected.xlsx",
-      sampleMapPath: "D:/project/sample_map.xlsx",
-    });
-    mockSendRequest.mockResolvedValueOnce(REPORT);
-
-    await store.checkExpectedPlateOrder("D:/project/KURO_expected.xlsx");
-
+    // The RPC answers without a severity; the slice states it as information.
     expect(store.plateOrderFinding?.severity).toBe("info");
   });
 
@@ -221,8 +219,8 @@ describe("mame inputSlice plate-order gate", () => {
   });
 
   it("stays silent when the check cannot run at all", async () => {
-    // An older sidecar does not know the method. Inventing a block there would
-    // strand the operator on a problem that was never reported.
+    // An older sidecar does not know the method. Inventing a problem there
+    // would strand the operator on one that was never reported.
     const store = makeStore({ expectedPath: "D:/project/KURO_expected.xlsx" });
     mockSendRequest.mockRejectedValueOnce(new Error("unknown method"));
 
@@ -233,7 +231,7 @@ describe("mame inputSlice plate-order gate", () => {
 
   it("drops the finding when another workbook is picked", () => {
     const store = makeRunnableStore({
-      plateOrderFinding: { ...REPORT, severity: "blocking" },
+      plateOrderFinding: { ...REPORT, severity: "info" },
     });
 
     store.setExpectedPath("D:/project/other.xlsx");
@@ -242,22 +240,13 @@ describe("mame inputSlice plate-order gate", () => {
     expect(selectCanRun(store)).toBe(true);
   });
 
-  it("lifts the gate once the operator states the well layout", async () => {
-    // The way out is to say which sample sits in which well, which is exactly
-    // what makes the sheet order irrelevant to the run. Re-graded without a
-    // second round-trip.
+  it("offers no way to build a well layout by hand", () => {
+    // v0.15.6 removed the flow: nobody checked 96 rows, and analyze assigns the
+    // wells on its own whether or not a layout was pinned.
     const store = makeRunnableStore();
-    mockSendRequest.mockResolvedValueOnce({
-      valid: true,
-      errors: [],
-      plate_order: { ...REPORT, severity: "blocking" },
-    });
-    await store.validateInputs();
-    expect(selectCanRun(store)).toBe(false);
 
-    store.confirmWellLayout([{ well: "A1", sample: "K53I" }]);
-
-    expect(selectPlateOrderSeverity(store)).toBe("info");
-    expect(selectCanRun(store)).toBe(true);
+    expect("buildWellLayout" in store).toBe(false);
+    expect("confirmWellLayout" in store).toBe(false);
+    expect("clearWellLayout" in store).toBe(false);
   });
 });

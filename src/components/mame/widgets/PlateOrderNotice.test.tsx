@@ -2,8 +2,11 @@
  * What the operator actually sees when the expected workbook contradicts itself.
  *
  * The incident this guards against is silent, so the assertions are about the
- * facts being on screen (which sheet, which well, what is missing, how to
- * proceed), not about a banner merely existing.
+ * facts being on screen (which sheet, which well, what is missing, what makes
+ * the sheet order irrelevant), not about a banner merely existing.
+ *
+ * Since v0.15.6 the notice never stops a run, and it says nothing once the
+ * operator has named the sheet and column the variant list is read from.
  */
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -33,6 +36,7 @@ describe("PlateOrderNotice", () => {
       expectedPath: "D:/project/KURO_expected.xlsx",
       sampleMapPath: "",
       wellLayout: null,
+      variantSelectionExplicit: false,
     });
   });
 
@@ -41,16 +45,17 @@ describe("PlateOrderNotice", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("states the disagreement and the way out when it blocks the run", () => {
+  it("states the disagreement without stopping anything", () => {
     useMameAppStore.setState({
-      plateOrderFinding: { ...REPORT, severity: "blocking" },
+      plateOrderFinding: { ...REPORT, severity: "info" },
     });
 
     render(<PlateOrderNotice />);
 
     const notice = screen.getByTestId("plate-order-notice");
-    expect(notice).toHaveAttribute("data-severity", "blocking");
-    expect(notice).toHaveAttribute("role", "alert");
+    expect(notice).toHaveAttribute("data-severity", "info");
+    // Information, not an error: the run is allowed either way.
+    expect(notice).toHaveAttribute("role", "status");
     // Which file, which sheet, which well, and what the plate carries that the
     // expected sheet does not.
     expect(notice).toHaveTextContent("KURO_expected.xlsx");
@@ -59,32 +64,15 @@ describe("PlateOrderNotice", () => {
     expect(notice).toHaveTextContent("K53I");
     expect(notice).toHaveTextContent("I92D");
     expect(notice).toHaveTextContent("Q17R");
-    // Not a dead end: the notice names the two inputs that clear it.
+    // The way to take the sheet order out of the run, without mentioning a
+    // Build well layout button that no longer exists.
     expect(notice).toHaveTextContent(/sample map/i);
-    expect(notice).toHaveTextContent(/well layout/i);
+    expect(notice).not.toHaveTextContent(/build well layout/i);
   });
 
-  it("states it without alarm when this run takes its wells from elsewhere", () => {
-    useMameAppStore.setState({
-      plateOrderFinding: { ...REPORT, severity: "info" },
-      sampleMapPath: "D:/project/sample_map.xlsx",
-    });
-
-    render(<PlateOrderNotice />);
-
-    const notice = screen.getByTestId("plate-order-notice");
-    expect(notice).toHaveAttribute("data-severity", "info");
-    expect(notice).toHaveAttribute("role", "status");
-    // No instruction to fix anything before running: this run is unaffected.
-    expect(notice).not.toHaveTextContent(/Settle this before running/i);
-  });
-
-  it("softens a stored blocking finding once the well layout is confirmed", () => {
-    // The finding was graded when no layout existed. Confirming one makes the
-    // sheet order irrelevant to the run, and the notice has to follow.
+  it("keeps a finding the sidecar graded blocking to an informational tone", () => {
     useMameAppStore.setState({
       plateOrderFinding: { ...REPORT, severity: "blocking" },
-      wellLayout: { A1: "K53I" },
     });
 
     render(<PlateOrderNotice />);
@@ -93,5 +81,16 @@ describe("PlateOrderNotice", () => {
       "data-severity",
       "info",
     );
+  });
+
+  it("says nothing once the operator picked the sheet and column themselves", () => {
+    useMameAppStore.setState({
+      plateOrderFinding: { ...REPORT, severity: "blocking" },
+      variantSelectionExplicit: true,
+    });
+
+    const { container } = render(<PlateOrderNotice />);
+
+    expect(container).toBeEmptyDOMElement();
   });
 });
