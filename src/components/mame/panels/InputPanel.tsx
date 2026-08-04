@@ -96,6 +96,10 @@ export function InputPanel() {
       }
       if (!store.expectedPath && detectedPaths.expectedPath) {
         store.setExpectedPath(detectedPaths.expectedPath);
+        // Auto-fill reaches the same state a manual pick does, so it owes the
+        // same two questions about the file it just chose.
+        void store.checkExpectedPlateOrder(detectedPaths.expectedPath);
+        void store.inspectVariantSource(detectedPaths.expectedPath);
         filled.push("expected");
       }
       if (!store.sampleMapPath && detectedPaths.sampleMapPath) {
@@ -134,6 +138,10 @@ export function InputPanel() {
     // may not be chosen yet, and their absence would bury the answer under
     // errors about files the operator has not reached.
     void checkExpectedPlateOrder(selected);
+    // Same moment, same reason: the mapping picker can only offer sheets and
+    // columns it has read, and the auto-detected column it preselects is the
+    // one the backend would read on its own.
+    void inspectVariantSource(selected);
   }
 
   async function browseReference() {
