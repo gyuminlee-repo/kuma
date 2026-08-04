@@ -4,6 +4,7 @@ export type { MamePhase, PhaseSlice } from "./slices/phaseSlice";
 import type {
   AmpliconLengthEstimate,
   AnalyzeSummary,
+  AnalyzeYield,
   DistributionStats,
   DemuxAndFilterResult,
   ReplicateResult,
@@ -160,6 +161,13 @@ export interface AnalysisSlice {
   verdicts: VerdictRecord[];
   replicates: ReplicateResult[];
   summary: AnalyzeSummary | null;
+  /**
+   * Demux yield carried by the last analyze response, or null when the response
+   * reported none (consensus-dir mode). Retained so a run that finished with 0
+   * verdicts can explain itself with backend-reported counts instead of
+   * guessed ones.
+   */
+  analyzeYield: AnalyzeYield | null;
   plateFilter: string;
   searchQuery: string;
   sorting: SortingState;
@@ -171,6 +179,7 @@ export interface AnalysisSlice {
   setVerdicts: (verdicts: VerdictRecord[]) => void;
   setReplicates: (replicates: ReplicateResult[]) => void;
   setSummary: (summary: AnalyzeSummary | null) => void;
+  setAnalyzeYield: (analyzeYield: AnalyzeYield | null) => void;
   setPlateFilter: (filter: string) => void;
   setSearchQuery: (query: string) => void;
   setSorting: (updater: Updater<SortingState>) => void;

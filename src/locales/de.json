@@ -958,7 +958,21 @@
         "analyzing": "Analyzing"
       },
       "etaLabel": "ETA",
-      "progressAria": "Overall analysis progress {{percent}}%"
+      "progressAria": "Overall analysis progress {{percent}}%",
+      "zeroResult": {
+        "title": "Analysis finished with 0 wells",
+        "description": "The run completed, but no well produced a verdict, so the export has no data rows. Check the items below before running again.",
+        "statusLine": "Analysis finished, but produced no results",
+        "metricsHeading": "Reported by the analysis",
+        "metricVerdicts": "Verdicts",
+        "metricInputFiles": "Input files",
+        "metricWellsWithReads": "Wells with reads",
+        "metricAssignedReads": "Assigned reads",
+        "nextStepsHeading": "What to check",
+        "nextStepReference": "Reference: confirm the reference file matches the sequenced amplicon. A reference from a different construct drops every read during alignment.",
+        "nextStepExpected": "Expected mutations: confirm the expected-mutations file covers the variants used in this run.",
+        "nextStepInputFolder": "Input folder: confirm the selected folder is the run for this experiment and that its barcode folders contain reads."
+      }
     },
     "buildEvolvepro": {
       "title": "EVOLVEpro-Eingabe erstellen",

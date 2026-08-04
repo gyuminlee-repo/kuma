@@ -26,6 +26,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   verdicts: [],
   replicates: [],
   summary: null,
+  analyzeYield: null,
   plateFilter: "ALL",
   searchQuery: "",
   sorting: [],
@@ -39,6 +40,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   setVerdicts: (verdicts) => set({ verdicts }),
   setReplicates: (replicates) => set({ replicates }),
   setSummary: (summary) => set({ summary }),
+  setAnalyzeYield: (analyzeYield) => set({ analyzeYield }),
   setPlateFilter: (plateFilter) => set({ plateFilter }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setSorting: (updater) => {
@@ -56,6 +58,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       verdicts: [],
       replicates: [],
       summary: null,
+      analyzeYield: null,
       wells: [],
       selectedWell: null,
       searchQuery: "",
@@ -67,6 +70,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       verdicts: [],
       replicates: [],
       summary: null,
+      analyzeYield: null,
       plateFilter: "ALL",
       searchQuery: "",
       sorting: [],
@@ -250,6 +254,8 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       verdicts: sampleVerdicts(),
       replicates: sampleReplicates(),
       summary: sampleSummary(),
+      // Sample data carries no demux yield; drop any left over from a real run.
+      analyzeYield: null,
       wells,
       selectedWell: wells.find((w) => w.selected) ?? wells[0] ?? null,
       analyzeMessage:

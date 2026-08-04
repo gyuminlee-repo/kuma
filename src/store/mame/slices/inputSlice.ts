@@ -3,6 +3,7 @@ import { cancelAndRespawn, sendRequest } from "@/lib/ipc-mame";
 import { formatError } from "@/lib/utils";
 import { defaultMameExportFilename } from "@/lib/mameFilename";
 import { writeMameResultSnapshot } from "@/lib/mame/resultSnapshot";
+import { pickAnalyzeYield } from "@/lib/mame/analyzeYield";
 import type {
   AmpliconLengthEstimate,
   AnalyzeResult,
@@ -345,6 +346,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     get().setVerdicts(result.verdicts);
     get().setReplicates(result.replicates);
     get().setSummary(result.summary);
+    get().setAnalyzeYield(pickAnalyzeYield(result));
     // Store the folder only (outputPath is now a folder); lastExportPath tracks the full path.
     const outDir = (() => {
       const p = result.output_path.replace(/\\/g, "/");
@@ -450,6 +452,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       get().setVerdicts(result.verdicts);
       get().setReplicates(result.replicates);
       get().setSummary(result.summary);
+      get().setAnalyzeYield(pickAnalyzeYield(result));
       const outDir = (() => {
         const p = result.output_path.replace(/\\/g, "/");
         const i = p.lastIndexOf("/");

@@ -23,6 +23,7 @@ import {
   atomicWriteJson,
 } from "@/lib/autosave";
 import { readMameResultSnapshot } from "@/lib/mame/resultSnapshot";
+import { pickAnalyzeYield } from "@/lib/mame/analyzeYield";
 import { sendRequest as sendMameRequest } from "@/lib/ipc-mame";
 import type { LoadAnalyzeResultResponse } from "@/types/mame/models";
 import { KURO_SCHEMA, buildKuroSnapshot } from "@/lib/kuroSnapshot";
@@ -1502,6 +1503,10 @@ async function restoreMameResult(
   store.setReplicates(result.replicates);
   if (!alive()) return false;
   store.setSummary(result.summary);
+  if (!alive()) return false;
+  // Restored runs must be able to explain a zero-verdict outcome too, so carry
+  // the demux yield out of the persisted response instead of dropping it.
+  store.setAnalyzeYield(pickAnalyzeYield(result));
   if (!alive()) return false;
   store.setDistributionStats(result.distribution_stats ?? null);
   if (!alive()) return false;

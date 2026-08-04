@@ -33,6 +33,7 @@ import { VerdictTable } from "@/components/mame/widgets/VerdictTable";
 import { PlateView } from "@/components/mame/widgets/PlateView";
 import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
 import { PlateClusterAlert } from "@/components/mame/widgets/PlateClusterAlert";
+import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNotice";
 import { InputPanel } from "@/components/mame/panels/InputPanel";
 import { ParameterPanel } from "@/components/mame/panels/ParameterPanel";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,12 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   const analyzeStartedAt = useMameAppStore((s) => s.analyzeStartedAt);
   const validationErrors = useMameAppStore((s) => s.validationErrors);
   const hasResults = useMameAppStore((s) => s.verdicts.length > 0);
+  // "A run finished and its response was applied" marker. `summary` is written
+  // only from an analyze response (run or restored snapshot) and cleared by
+  // Clear/reset, so it separates "not run yet" from "ran and produced nothing".
+  // Those two states used to render the same blank 2.2 view.
+  const analysisCompleted = useMameAppStore((s) => s.summary !== null);
+  const zeroResult = analysisCompleted && !hasResults && !isAnalyzing;
   const cancelAnalysis = useMameAppStore((s) => s.cancelAnalysis);
   const validateInputs = useMameAppStore((s) => s.validateInputs);
   const openExport = useMameAppStore((s) => s.openExport);
@@ -104,16 +111,19 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   useEffect(() => {
     const wasAnalyzing = wasAnalyzingRef.current;
     wasAnalyzingRef.current = isAnalyzing;
+    // Advance on completion, not on "produced verdicts". A zero-verdict run is
+    // still a finished run and its outcome is stated on 2.2; gating on
+    // hasResults left the user on 2.1 with a bare "Analysis complete".
     if (
       subStep === "analyze.inputs" &&
       wasAnalyzing &&
       !isAnalyzing &&
-      hasResults &&
+      analysisCompleted &&
       validationErrors.length === 0
     ) {
       setMameSubStep("analyze.review");
     }
-  }, [hasResults, isAnalyzing, setMameSubStep, subStep, validationErrors.length]);
+  }, [analysisCompleted, isAnalyzing, setMameSubStep, subStep, validationErrors.length]);
 
   // Legacy ids fall through StepRedirectFallback → analyze.inputs.
   if (
@@ -165,7 +175,10 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
           {/* Progress 및 상태 */}
           <div className="space-y-1 px-1">
             <div className="truncate text-body font-medium text-foreground" aria-live="polite">
-              {analyzeMessage || (isAnalyzing ? t("mameSidebar.statusAnalyzing") : canRun ? t("mameSidebar.statusReady") : t("mameSidebar.statusIncomplete"))}
+              {/* A finished run with nothing to show must not read as success. */}
+              {zeroResult
+                ? t("mame.analyze.zeroResult.statusLine")
+                : analyzeMessage || (isAnalyzing ? t("mameSidebar.statusAnalyzing") : canRun ? t("mameSidebar.statusReady") : t("mameSidebar.statusIncomplete"))}
             </div>
             {isAnalyzing && (
               <Progress
@@ -213,6 +226,8 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
             </div>
           )}
 
+          {zeroResult && <EmptyAnalysisNotice />}
+
           {/* Secondary action row: Validate / Clear / Export */}
           <div className="flex gap-2">
             <Button
@@ -253,6 +268,17 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       );
       break;
     case "analyze.review":
+      // A finished run with no verdict has nothing to put in the table, the
+      // plate map, or the chart. Say why instead of rendering three empty
+      // panels that look exactly like the pre-run view.
+      if (zeroResult) {
+        mainContent = (
+          <div className="flex h-full min-h-0 flex-col overflow-auto p-1">
+            <EmptyAnalysisNotice />
+          </div>
+        );
+        break;
+      }
       // Unified review: left = Summary + Verdict table, right = Plate (top) + per-plate verdict chart (bottom).
       // Other RunHealth sections (file-size/throughput/pore-yield/barcode/cross-talk) are still reachable from
       // analyze.inputs's RunHealthPanel and the QC inspector; not duplicated here per PI spec slide 6.

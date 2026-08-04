@@ -83,7 +83,12 @@ vi.mock("react-resizable-panels", () => ({
 
 import { AnalyzeStepView } from "./AnalyzeStepView";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
-import type { RunHealthData, VerdictRecord } from "@/types/mame/models";
+import type {
+  AnalyzeSummary,
+  DistributionStats,
+  RunHealthData,
+  VerdictRecord,
+} from "@/types/mame/models";
 
 const fakeHealth: RunHealthData = {
   per_plate_summary: {},
@@ -125,7 +130,23 @@ const fakeVerdict: VerdictRecord = {
   verdict_notes: "",
 };
 
-describe("AnalyzeStepView (Task #12 — analyze.review)", () => {
+/** `_summarize(verdicts)` shape as the analyze response carries it. */
+const summaryOf = (total: number): AnalyzeSummary => ({
+  total,
+  pass_count: total,
+  ambiguous_count: 0,
+  fail_count: 0,
+});
+
+const fakeDistributionStats: DistributionStats = {
+  n_files: 0,
+  file_size_kb: { min: 0, p05: 0, p25: 0, median: 0, p75: 0, p95: 0, max: 0, mean: 0, std: 0 },
+  suggested_cutoff_kb: 50,
+  suggested_method: "median_minus_2sigma",
+  bimodal: false,
+};
+
+describe("AnalyzeStepView (Task #12, analyze.review)", () => {
   beforeEach(() => {
     useMameAppStore.setState({ currentMameSubStep: "analyze.review" });
   });
@@ -189,6 +210,124 @@ describe("AnalyzeStepView (Task #12 — analyze.review)", () => {
       isAnalyzing: true,
       validationErrors: [],
       verdicts: [],
+      summary: null,
+    });
+    render(<AnalyzeStepView />);
+
+    act(() => {
+      // `summary` lands with the verdicts: both come out of the same analyze
+      // response (inputSlice setSummary + setVerdicts).
+      useMameAppStore.setState({
+        isAnalyzing: false,
+        validationErrors: [],
+        verdicts: [fakeVerdict],
+        summary: summaryOf(1),
+      });
+    });
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
+    });
+  });
+});
+
+/**
+ * Zero-result analysis: "never run" and "ran and produced nothing" must not
+ * render the same blank view. Every count shown comes off the analyze response
+ * (summary.total, distribution_stats.n_files, wells_with_reads, assigned_reads);
+ * a field the response did not carry is not rendered at all.
+ */
+describe("AnalyzeStepView (zero-result analysis)", () => {
+  beforeEach(() => {
+    useMameAppStore.setState({
+      currentMameSubStep: "analyze.review",
+      isAnalyzing: false,
+      validationErrors: [],
+      verdicts: [],
+      summary: null,
+      distributionStats: null,
+      analyzeYield: null,
+      analyzeMessage: "",
+    });
+  });
+
+  it("pre-run analyze.review keeps the result panels and shows no zero-result notice", () => {
+    render(<AnalyzeStepView />);
+    expect(screen.getByTestId("verdict-table")).toBeTruthy();
+    expect(screen.getByTestId("plate-view")).toBeTruthy();
+    expect(screen.queryByTestId("empty-analysis-notice")).toBeNull();
+  });
+
+  it("a run that finished with 0 verdicts replaces the panels with the notice and backend counts", () => {
+    useMameAppStore.setState({
+      summary: summaryOf(0),
+      distributionStats: { ...fakeDistributionStats, n_files: 12 },
+      analyzeYield: { assigned_reads: 0, wells_with_reads: 0 },
+    });
+    render(<AnalyzeStepView runHealth={fakeHealth} />);
+
+    const notice = screen.getByTestId("empty-analysis-notice");
+    expect(notice).toBeTruthy();
+    // Not an error boundary: a completed run is a status, not a failure.
+    expect(notice.getAttribute("role")).toBe("status");
+    // The blank table/plate/chart are gone, replaced by the explanation.
+    expect(screen.queryByTestId("verdict-table")).toBeNull();
+    expect(screen.queryByTestId("plate-view")).toBeNull();
+    expect(screen.queryByTestId("run-health-panel")).toBeNull();
+    // Reported counts, straight off the response fields.
+    expect(screen.getByText("Input files")).toBeTruthy();
+    expect(screen.getByText("12")).toBeTruthy();
+    expect(screen.getByText("Wells with reads")).toBeTruthy();
+    expect(screen.getByText("Assigned reads")).toBeTruthy();
+    // Actionable reason, not just an empty panel.
+    expect(screen.getByText(/reference file matches the sequenced amplicon/i)).toBeTruthy();
+  });
+
+  it("omits demux counts the response did not carry (consensus-dir mode)", () => {
+    useMameAppStore.setState({
+      summary: summaryOf(0),
+      distributionStats: { ...fakeDistributionStats, n_files: 3 },
+      analyzeYield: null,
+    });
+    render(<AnalyzeStepView />);
+
+    expect(screen.getByTestId("empty-analysis-notice")).toBeTruthy();
+    expect(screen.getByText("Input files")).toBeTruthy();
+    expect(screen.queryByText("Wells with reads")).toBeNull();
+    expect(screen.queryByText("Assigned reads")).toBeNull();
+  });
+
+  it("a run that produced verdicts keeps the result panels and shows no notice", () => {
+    useMameAppStore.setState({
+      summary: summaryOf(1),
+      distributionStats: { ...fakeDistributionStats, n_files: 12 },
+      verdicts: [fakeVerdict],
+    });
+    render(<AnalyzeStepView runHealth={fakeHealth} />);
+
+    expect(screen.queryByTestId("empty-analysis-notice")).toBeNull();
+    expect(screen.getByTestId("verdict-table")).toBeTruthy();
+    expect(screen.getByTestId("plate-view")).toBeTruthy();
+  });
+
+  it("analyze.inputs replaces the completion message when the run produced 0 verdicts", () => {
+    useMameAppStore.setState({
+      currentMameSubStep: "analyze.inputs",
+      analyzeMessage: "Analysis complete",
+      summary: summaryOf(0),
+    });
+    render(<AnalyzeStepView />);
+
+    expect(screen.queryByText("Analysis complete")).toBeNull();
+    expect(screen.getByText("Analysis finished, but produced no results")).toBeTruthy();
+    expect(screen.getByTestId("empty-analysis-notice")).toBeTruthy();
+  });
+
+  it("still moves to analyze.review when a run finishes with 0 verdicts", async () => {
+    useMameAppStore.setState({
+      currentMameSubStep: "analyze.inputs",
+      isAnalyzing: true,
+      summary: null,
     });
     render(<AnalyzeStepView />);
 
@@ -196,7 +335,8 @@ describe("AnalyzeStepView (Task #12 — analyze.review)", () => {
       useMameAppStore.setState({
         isAnalyzing: false,
         validationErrors: [],
-        verdicts: [fakeVerdict],
+        verdicts: [],
+        summary: summaryOf(0),
       });
     });
 
