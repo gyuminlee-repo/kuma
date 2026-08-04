@@ -34,6 +34,7 @@ import { PlateView } from "@/components/mame/widgets/PlateView";
 import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
 import { PlateClusterAlert } from "@/components/mame/widgets/PlateClusterAlert";
 import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNotice";
+import { PlateOrderNotice } from "@/components/mame/widgets/PlateOrderNotice";
 import { AnalyzeDurationDialog } from "@/components/mame/dialogs/AnalyzeDurationDialog";
 import { InputPanel } from "@/components/mame/panels/InputPanel";
 import { ParameterPanel } from "@/components/mame/panels/ParameterPanel";
@@ -249,6 +250,12 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               </div>
             </div>
           )}
+
+          {/* Before the errors above in importance, after them in position: a
+              plate disagreement is not a validation error (the backend leaves
+              `valid` true) but it is the one finding that makes an otherwise
+              clean run answer the wrong question. */}
+          <PlateOrderNotice />
 
           {zeroResult && <EmptyAnalysisNotice />}
 

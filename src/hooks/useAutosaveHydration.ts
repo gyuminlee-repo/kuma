@@ -25,7 +25,12 @@ import {
 import { readMameResultSnapshot } from "@/lib/mame/resultSnapshot";
 import { pickAnalyzeYield } from "@/lib/mame/analyzeYield";
 import { sendRequest as sendMameRequest } from "@/lib/ipc-mame";
-import type { LoadAnalyzeResultResponse } from "@/types/mame/models";
+import type { LoadAnalyzeResultResponse, PlateOrderReport } from "@/types/mame/models";
+import {
+  buildPlateOrderMessage,
+  gradePlateOrder,
+  isPlateOrderReportable,
+} from "@/lib/mame/plateOrderMessage";
 import { KURO_SCHEMA, buildKuroSnapshot } from "@/lib/kuroSnapshot";
 import { buildKuroResultResetPatch } from "@/lib/kuroResultReset";
 import { fingerprintSource, fingerprintsEqual, type SourceFingerprint } from "@/lib/sourceFingerprint";
@@ -858,15 +863,6 @@ export async function applyKuroSnapshot(
   return done(resultsDiscarded);
 }
 
-interface PlateOrderReport {
-  comparable: boolean;
-  mismatched: boolean;
-  plate_sheet: string | null;
-  examples: { well: string; plate: string; expected: string }[];
-  missing_from_expected: string[];
-  absent_from_plate: string[];
-}
-
 /**
  * 복원한 expected 워크북이 자기 자신과 어긋나면 알린다.
  *
@@ -876,6 +872,12 @@ interface PlateOrderReport {
  *
  * 검사 자체가 실패하는 것(구버전 사이드카, 읽을 수 없는 파일)은 복원을 막을 이유가
  * 아니므로 조용히 넘어간다. 없는 문제를 만들지도, 있는 문제를 감추지도 않는다.
+ *
+ * 문구는 분석 입력 패널의 PlateOrderNotice 와 같은 `buildPlateOrderMessage` 에서
+ * 나온다. 같은 사실을 두 경로가 다른 말로 하면 사용자는 서로 다른 문제 둘로 읽는다.
+ * 등급은 이 시점의 스토어(sample map / well layout)로 매기므로 두 경로가 다르게
+ * 나올 수 있고, 그것이 이 경로를 남겨 두는 이유다. 복원 직후에는 아직 좌표계가 없어
+ * blocking 이던 것이 사용자가 sample map 을 고르면 info 로 내려간다.
  */
 async function reportPlateOrderMismatch(
   expectedPath: string,
@@ -894,22 +896,18 @@ async function reportPlateOrderMismatch(
   } catch {
     return;
   }
-  if (!report || !isCurrent() || !report.comparable) return;
-  const missing = report.missing_from_expected ?? [];
-  if (!report.mismatched && missing.length === 0) return;
+  if (!report || !isCurrent()) return;
+  if (!isPlateOrderReportable(report)) return;
 
-  const example = (report.examples ?? [])[0];
+  const mameState = useMameAppStore.getState();
+  const severity = gradePlateOrder(report, {
+    hasSampleMap: Boolean(mameState.sampleMapPath),
+    hasWellLayout: mameState.wellLayout !== null,
+  });
   onMessage({
     kind: "mame",
     variant: "plate_order_mismatch",
-    message: i18next.t("autosaveHydration.plateOrderMismatch", {
-      filename: basename(expectedPath),
-      sheet: report.plate_sheet ?? "",
-      well: example?.well ?? "",
-      plate: example?.plate ?? "",
-      expected: example?.expected ?? "",
-      missing: missing.join(", "),
-    }),
+    message: buildPlateOrderMessage({ ...report, severity }, expectedPath).text,
   });
 }
 

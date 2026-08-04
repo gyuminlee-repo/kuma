@@ -5,10 +5,10 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.15.4";
+export const WHATS_NEW_VERSION = "0.15.5";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Changed", detail: "FINAL is the default verdict-table tab. FINAL fills only once replicate selection has run, so a run without a selection would open on an empty table that reads as a broken screen: FINAL degrades to ALL in that case and says so in a status…" },
-  { label: "Changed", detail: "Clicking a variant id in the verdict table, or a well in the plate map, opens the same detail panel in the right inspector. It puts `expected_mutations` beside `observed_aa_changes` (an empty observation reads as \"No change observed\" rathe…" },
-  { label: "Changed", detail: "The expected-variant file field is labelled for both inputs it accepts. The help text states that a KURO export is read from its `expected_mutations` sheet with the status filter applied first, and that any other workbook lets the sheet an…" },
+  { label: "Fixed", detail: "`validate_inputs` runs the same plate-order check on the expected workbook it already has open and returns the finding under `plate_order`, absent when there is nothing to report so `valid` and `errors` keep their meaning. Severity splits…" },
+  { label: "Fixed", detail: "Choosing an expected workbook checks that one file straight away, through `check_plate_order` rather than a full validation, so the answer arrives while the other inputs may still be unchosen and cannot be buried under errors about them. T…" },
+  { label: "Fixed", detail: "The restore-time notice and the analyze-inputs notice are built from one message, so the same disagreement is described the same way in both places instead of reading as two problems. Each names the plate sheet, the disagreeing wells with…" },
 ];

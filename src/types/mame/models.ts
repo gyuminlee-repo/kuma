@@ -216,9 +216,56 @@ export interface ProgressNotification {
   message: string;
 }
 
+/**
+ * Does an expected workbook agree with its own primer plate sheet?
+ *
+ * Wire shape of `plate_order_payload` in
+ * `python-core/sidecar_mame/handlers/barcode_package.py`, returned as-is by the
+ * `check_plate_order` RPC. `examples` carries at most 5 disagreeing wells.
+ */
+export interface PlateOrderReport {
+  comparable: boolean;
+  mismatched: boolean;
+  /** "Fwd List" | "Fwd Plate"; null when the check found no plate sheet. */
+  plate_sheet: string | null;
+  examples: { well: string; plate: string; expected: string }[];
+  missing_from_expected: string[];
+  absent_from_plate: string[];
+}
+
+/**
+ * How much a plate disagreement costs on the run being set up.
+ *
+ * - "blocking": the layout is inferred from `expected_mutations`, so the sheet
+ *   order *is* the well coordinate system and every verdict lands on the wrong
+ *   well. Counts and verdicts still look normal, which is why this gates.
+ * - "info": a sample map or a confirmed well layout supplies the coordinates,
+ *   so the sheet order never reaches a well. The workbook still contradicts
+ *   itself, but this run is unaffected.
+ */
+export type PlateOrderSeverity = "blocking" | "info";
+
+/**
+ * A `PlateOrderReport` graded against the layout inputs of the current run.
+ *
+ * `validate_inputs` grades it server-side (`_plate_order_finding` in
+ * `python-core/sidecar_mame/handlers/analyze.py`); the frontend applies the same
+ * rule to the ungraded `check_plate_order` response and to layout inputs chosen
+ * after a validation.
+ */
+export interface PlateOrderFinding extends PlateOrderReport {
+  severity: PlateOrderSeverity;
+}
+
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
+  /**
+   * Present only when there is something to report: the workbook could be
+   * compared and its sheets disagree. `valid` deliberately stays true, so the
+   * blocking gate is the frontend's job (see `selectPlateOrderSeverity`).
+   */
+  plate_order?: PlateOrderFinding;
 }
 
 export interface ExportResult {

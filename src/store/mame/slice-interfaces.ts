@@ -7,6 +7,7 @@ import type {
   AnalyzeYield,
   DistributionStats,
   DemuxAndFilterResult,
+  PlateOrderFinding,
   ReplicateResult,
   RunHealthData,
   VerdictRecord,
@@ -90,6 +91,12 @@ export interface InputSlice {
   wellLayoutOverflow: { droppedMutantIds: string[]; wtOmitted: boolean } | null;
   // Confirmed well->sample mapping; passed to analyze as highest-priority source.
   wellLayout: WellLayout | null;
+  // Does the chosen expected workbook agree with its own primer plate sheet?
+  // null = nothing to report (agrees, not comparable, or not checked yet). A
+  // "blocking" finding stops the run via selectPlateOrderSeverity/selectCanRun,
+  // because the sheet order is then the well coordinate system and every verdict
+  // lands on the wrong well while still looking normal.
+  plateOrderFinding: PlateOrderFinding | null;
   clearWellLayout: () => void;
   setInputDir: (path: string) => void;
   setExpectedPath: (path: string) => void;
@@ -146,6 +153,10 @@ export interface InputSlice {
   resetEpoch: number;
   bumpResetEpoch: () => void;
   validateInputs: () => Promise<void>;
+  // Check one expected workbook against its own plate sheet and store the graded
+  // result. Called right after the operator picks the file, before any other
+  // input is necessarily chosen. Silent when the check cannot run.
+  checkExpectedPlateOrder: (expectedPath: string) => Promise<void>;
   runDemuxAndFilter: () => Promise<void>;
   runAnalysis: () => Promise<void>;
   cancelAnalysis: () => Promise<void>;

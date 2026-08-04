@@ -47,6 +47,7 @@ export function InputPanel() {
   const verdictCount = useMameAppStore((s) => s.verdicts.length);
   const setInputDir = useMameAppStore((s) => s.setInputDir);
   const setExpectedPath = useMameAppStore((s) => s.setExpectedPath);
+  const checkExpectedPlateOrder = useMameAppStore((s) => s.checkExpectedPlateOrder);
   const setReferencePath = useMameAppStore((s) => s.setReferencePath);
   const setOutputPath = useMameAppStore((s) => s.setOutputPath);
   const setSampleMapPath = useMameAppStore((s) => s.setSampleMapPath);
@@ -134,7 +135,14 @@ export function InputPanel() {
     const selected = toSinglePath(
       await open({ directory: false, filters: [{ name: "Excel", extensions: ["xlsx"] }] }),
     );
-    if (selected) setExpectedPath(selected);
+    if (!selected) return;
+    setExpectedPath(selected);
+    // Ask about this one workbook now, not at analyze time. Picking the file is
+    // where the 2026-08-04 plate mismatch entered and the last moment the answer
+    // is still cheap to act on. Not the full validate_inputs: the other inputs
+    // may not be chosen yet, and their absence would bury the answer under
+    // errors about files the operator has not reached.
+    void checkExpectedPlateOrder(selected);
   }
 
   async function browseReference() {

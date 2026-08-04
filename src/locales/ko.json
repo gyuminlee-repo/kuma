@@ -153,6 +153,14 @@
     "savedAt": "{{time}}에 저장됨"
   },
   "mame": {
+    "plateOrder": {
+      "title": "{{filename}} 의 플레이트 순서가 어긋납니다",
+      "bodyBlocking": "{{sheet}} 시트의 프라이머 플레이트와 expected_mutations 의 순서가 다릅니다. 이번 실행에는 sample map 도 확정된 well layout 도 없어 MAME 가 expected_mutations 의 행 번호로 well 을 정합니다. 이대로 돌리면 모든 well 이 다른 설계로 채점되고, 개수도 판정도 정상으로 보입니다.",
+      "bodyInfo": "{{sheet}} 시트의 프라이머 플레이트와 expected_mutations 의 순서가 다릅니다. 이번 실행은 sample map 또는 확정된 well layout 에서 well 을 가져오므로 판정에는 영향이 없습니다. 다만 워크북 자체는 여전히 서로 다른 두 플레이트를 적고 있습니다.",
+      "example": "well {{well}}: 플레이트는 {{plate}}, expected_mutations 는 {{expected}}",
+      "missing": "플레이트에는 있으나 expected_mutations 에 없는 항목: {{items}}. 하나마다 뒤쪽 well 이 한 칸씩 밀립니다.",
+      "escape": "실행 전에 해결하세요. KURO 에서 다시 export 하거나, 어느 well 에 어느 sample 이 있는지 MAME 에 알려 주세요. sample map 파일을 고르거나 Build well layout 으로 플레이트를 확정하면 시트 순서가 이번 실행과 무관해지고 실행이 열립니다. 어느 시트가 실제로 피펫팅한 플레이트인지는 사용자만 알 수 있으므로 MAME 가 대신 고르지 않습니다."
+    },
     "input": {
       "redetect": "재감지",
       "redetecting": "감지 중..."
@@ -2420,8 +2428,7 @@
     "fieldSampleMap": "샘플 맵",
     "fieldCustomBarcodes": "커스텀 바코드",
     "fieldSequencingSummary": "시퀀싱 요약",
-    "pathsMoved": "이전 경로를 찾을 수 없어 다시 지정해야 합니다: {{fields}}",
-    "plateOrderMismatch": "프로젝트의 expected 파일 {{filename}} 이 자기 자신과 어긋납니다. {{sheet}} 시트의 플레이트 배치와 expected_mutations 순서가 다릅니다(well {{well}}: 플레이트 {{plate}} 대 목록 {{expected}}). MAME 는 행 번호로 well 을 정하므로 이대로 분석하면 모든 well 이 다른 설계로 채점됩니다. KURO 에서 다시 export 하거나 시트를 직접 고르세요."
+    "pathsMoved": "이전 경로를 찾을 수 없어 다시 지정해야 합니다: {{fields}}"
   },
   "phaseC": {
     "majors": {
