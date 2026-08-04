@@ -197,7 +197,9 @@
       "durationDialog": {
         "title": "분석 완료",
         "description": "2.1 분석 실행이 끝났습니다.",
-        "elapsedLabel": "걸린 시간",
+        "elapsedLabel": "걸린 시간"
+      },
+      "duration": {
         "minSec": "{{min}}분 {{sec}}초",
         "minOnly": "{{min}}분",
         "secOnly": "{{sec}}초"
@@ -717,7 +719,8 @@
       "statusReadyToRun": "실행 준비 완료",
       "statusDraft": "설정 중",
       "statusInProgress": "진행 중",
-      "successRateHelp": "Share of designed mutants with at least one PASS replicate. WT controls and UNKNOWN_* groups are excluded. AMBIGUOUS does not count here (unlike Recovered)."
+      "successRateHelp": "Share of designed mutants with at least one PASS replicate. WT controls and UNKNOWN_* groups are excluded. AMBIGUOUS does not count here (unlike Recovered).",
+      "statusElapsed": "{{duration}} 소요"
     },
     "menuBar": {
       "closeBtn": "닫기",

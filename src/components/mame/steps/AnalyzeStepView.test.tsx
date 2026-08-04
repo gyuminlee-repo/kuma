@@ -31,9 +31,19 @@ vi.mock("@/components/ui/Panel", () => ({
     </div>
   ),
 }));
-vi.mock("@/components/mame/widgets/SummaryRow", () => ({
-  SummaryRow: () => <div data-testid="summary-row" />,
-}));
+// Kept real (inside the usual test-id wrapper): the run-duration readout that
+// survives dismissing the completion popup lives on this widget, so stubbing it
+// out would hide the very thing the duration tests assert.
+vi.mock("@/components/mame/widgets/SummaryRow", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/components/mame/widgets/SummaryRow")>();
+  return {
+    SummaryRow: () => (
+      <div data-testid="summary-row">
+        <actual.SummaryRow />
+      </div>
+    ),
+  };
+});
 vi.mock("@/components/mame/widgets/VerdictTable", () => ({
   VerdictTable: () => <div data-testid="verdict-table" />,
 }));
@@ -571,6 +581,57 @@ describe("AnalyzeStepView (run duration popup)", () => {
       useMameAppStore.setState({ analyzeProgress: 100 });
     });
     expect(screen.queryByTestId("analyze-duration-dialog")).toBeNull();
+  });
+
+  it("leaves the elapsed time on the 2.2 SummaryRow after the popup is closed", async () => {
+    render(<AnalyzeStepView />);
+    finishRun(192_000);
+
+    await screen.findByTestId("analyze-duration-dialog");
+    // Same run, same formatter: popup and SummaryRow cannot disagree.
+    expect(screen.getByText("Took 3 min 12 s")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => {
+      expect(screen.queryByTestId("analyze-duration-dialog")).toBeNull();
+    });
+
+    // The popup is gone; the readout is not. That is the whole point of it.
+    expect(screen.getByTestId("summary-row").textContent).toContain("Took 3 min 12 s");
+  });
+
+  it("shows no elapsed-time item on 2.2 before a run has finished", () => {
+    useMameAppStore.setState({ currentMameSubStep: "analyze.review" });
+    render(<AnalyzeStepView />);
+
+    // Absent, not filled with a placeholder duration.
+    expect(screen.getByTestId("summary-row")).toBeTruthy();
+    expect(screen.queryByText(/^Took /)).toBeNull();
+  });
+
+  it("shows no elapsed-time item on 2.2 for a cancelled run", async () => {
+    useMameAppStore.setState({
+      currentMameSubStep: "analyze.review",
+      verdicts: [fakeVerdict],
+      summary: summaryOf(1),
+    });
+    render(<AnalyzeStepView />);
+
+    act(() => {
+      useMameAppStore.setState({ isAnalyzing: true, analyzeDurationMs: null });
+    });
+    act(() => {
+      useMameAppStore.setState({
+        isAnalyzing: false,
+        analyzeMessage: "Analysis cancelled",
+        analyzeDurationMs: null,
+      });
+    });
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().isAnalyzing).toBe(false);
+    });
+    expect(screen.queryByText(/^Took /)).toBeNull();
   });
 
   it("does not reopen for a duration that was already on the store at mount", () => {

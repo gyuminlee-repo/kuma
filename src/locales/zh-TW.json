@@ -584,7 +584,8 @@
       "statusReadyToRun": "可以執行",
       "statusDraft": "草稿設定",
       "statusInProgress": "進行中",
-      "successRateHelp": "Share of designed mutants with at least one PASS replicate. WT controls and UNKNOWN_* groups are excluded. AMBIGUOUS does not count here (unlike Recovered)."
+      "successRateHelp": "Share of designed mutants with at least one PASS replicate. WT controls and UNKNOWN_* groups are excluded. AMBIGUOUS does not count here (unlike Recovered).",
+      "statusElapsed": "Took {{duration}}"
     },
     "menuBar": {
       "restartSidecarConfirm": "分析正在執行。仍要重啟 sidecar 嗎?",
@@ -970,7 +971,9 @@
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",
-        "elapsedLabel": "Elapsed time",
+        "elapsedLabel": "Elapsed time"
+      },
+      "duration": {
         "minSec": "{{min}} min {{sec}} s",
         "minOnly": "{{min}} min",
         "secOnly": "{{sec}} s"
