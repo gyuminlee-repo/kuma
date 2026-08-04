@@ -5,11 +5,9 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.15.2";
+export const WHATS_NEW_VERSION = "0.15.3";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Fixed", detail: "Raw MinKNOW analysis refuses to start when the amplicon span cannot be derived from the custom barcode workbook AND the reference as supplied cannot pass the coverage filter. The two cases are told apart on the data: an alignment cannot sp…" },
-  { label: "Fixed", detail: "`passed_mapq` and `passed_coverage` count their own gate. Both used to be assigned the post-filter total, which made a coverage wipeout indistinguishable from a MAPQ wipeout in the per-barcode statistics and nearly sent the diagnosis above…" },
-  { label: "Fixed", detail: "Completion markers record the identity of what produced the unit, the reference digest and the gates applied, and resume compares it. A unit whose reference or parameters differ from the current run is reprocessed instead of reused, and a…" },
-  { label: "Fixed", detail: "The verdict diff refuses a consensus that ends before the coding sequence it is compared against, naming both lengths and pointing at a stale output directory. Consensus is called one base per reference position, so such a pair cannot shar…" },
+  { label: "Changed", detail: "The analyze response carries the three demux gate counters, `total_reads`, `passed_mapq` and `passed_coverage`, filled by `ingest_run_folder` through a stats sink (pooled, or summed across native barcodes). Consensus-dir mode runs no align…" },
+  { label: "Changed", detail: "The zero-result notice reads those counters and names a cause where the counts prove one. Reads present with none clearing MAPQ is reported as nothing aligning to the reference, the signature of a reference from a different sequence. Reads…" },
 ];

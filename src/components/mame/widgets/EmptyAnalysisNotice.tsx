@@ -13,21 +13,54 @@
  * Every number shown is read straight off the analyze response as stored:
  *   summary.total             , backend `_summarize(verdicts)`
  *   distributionStats.n_files , backend `distribution_stats.n_files`
- *   analyzeYield.*            , backend `wells_with_reads` / `assigned_reads`
+ *   analyzeYield.*            , backend `wells_with_reads` / `assigned_reads` /
+ *                                `total_reads` / `passed_mapq` /
+ *                                `passed_coverage`
  *                                (raw-run mode only; omitted, not defaulted,
  *                                when the response did not carry them)
  * A metric whose field is absent is not rendered at all.
+ *
+ * The demux gate counters also name a likely cause, but only where the counts
+ * themselves carry the evidence (`diagnoseZeroResult`). Where they do not, the
+ * notice states no cause and falls back to the checklist: asserting a cause
+ * with nothing behind it is worse than asking the user to look.
  */
 
 import { AlertTriangle } from "lucide-react";
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import type { AnalyzeYield } from "@/types/mame/models";
 
 interface Metric {
   id: string;
   label: string;
   value: number;
+}
+
+/**
+ * Which of the two demux gates, if either, the counts pin the failure on.
+ *
+ *   "noAlignment"  reads existed and none cleared MAPQ, so nothing aligned to
+ *                  the reference at all: a reference from a different sequence.
+ *   "noCoverage"   reads aligned but none cleared the coverage gate: what a
+ *                  whole-construct reference looks like against amplicon reads,
+ *                  where the alignment covers only a fraction of the reference.
+ *   null           any other combination, including a missing counter. No cause
+ *                  is claimed.
+ */
+type ZeroResultCause = "noAlignment" | "noCoverage";
+
+export function diagnoseZeroResult(analyzeYield: AnalyzeYield | null): ZeroResultCause | null {
+  if (analyzeYield === null) return null;
+  const { total_reads, passed_mapq, passed_coverage } = analyzeYield;
+  if (total_reads !== undefined && passed_mapq !== undefined) {
+    if (total_reads > 0 && passed_mapq === 0) return "noAlignment";
+  }
+  if (passed_mapq !== undefined && passed_coverage !== undefined) {
+    if (passed_mapq > 0 && passed_coverage === 0) return "noCoverage";
+  }
+  return null;
 }
 
 export function EmptyAnalysisNotice() {
@@ -68,6 +101,44 @@ export function EmptyAnalysisNotice() {
       value: assignedReads,
     });
   }
+  const totalReads = analyzeYield?.total_reads;
+  if (totalReads !== undefined) {
+    metrics.push({
+      id: "totalReads",
+      label: t("mame.analyze.zeroResult.metricTotalReads"),
+      value: totalReads,
+    });
+  }
+  const passedMapq = analyzeYield?.passed_mapq;
+  if (passedMapq !== undefined) {
+    metrics.push({
+      id: "passedMapq",
+      label: t("mame.analyze.zeroResult.metricPassedMapq"),
+      value: passedMapq,
+    });
+  }
+  const passedCoverage = analyzeYield?.passed_coverage;
+  if (passedCoverage !== undefined) {
+    metrics.push({
+      id: "passedCoverage",
+      label: t("mame.analyze.zeroResult.metricPassedCoverage"),
+      value: passedCoverage,
+    });
+  }
+
+  // Counts interpolated into the cause text are the response fields themselves,
+  // so the sentence can never disagree with the metric rows above it.
+  const cause = diagnoseZeroResult(analyzeYield);
+  const causeText =
+    cause === "noAlignment"
+      ? t("mame.analyze.zeroResult.causeNoAlignment", {
+          totalReads: (totalReads ?? 0).toLocaleString(),
+        })
+      : cause === "noCoverage"
+        ? t("mame.analyze.zeroResult.causeNoCoverage", {
+            passedMapq: (passedMapq ?? 0).toLocaleString(),
+          })
+        : null;
 
   const nextSteps = [
     { id: "reference", text: t("mame.analyze.zeroResult.nextStepReference") },
@@ -109,6 +180,15 @@ export function EmptyAnalysisNotice() {
                 </div>
               ))}
             </dl>
+          </div>
+        )}
+
+        {causeText !== null && (
+          <div className="space-y-1" data-testid="zero-result-cause" data-cause={cause ?? ""}>
+            <p className="text-caption font-medium text-foreground">
+              {t("mame.analyze.zeroResult.causeHeading")}
+            </p>
+            <p className="break-words text-caption text-muted-foreground">{causeText}</p>
           </div>
         )}
 

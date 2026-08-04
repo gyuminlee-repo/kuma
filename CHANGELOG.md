@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.15.3 (A zero-well MAME run names the gate that emptied it)
+
+A raw run given a reference from another construct still finished with `Analysis complete` and an empty plate. The counts that could have said why (reads read, reads that cleared MAPQ, reads that cleared coverage) existed inside the demux and were dropped at the ingest boundary, so the only way to find the cause was to open the run folder and read the per-barcode statistics by hand.
+
+### Changed
+
+- v0.15.3: The analyze response carries the three demux gate counters, `total_reads`, `passed_mapq` and `passed_coverage`, filled by `ingest_run_folder` through a stats sink (pooled, or summed across native barcodes). Consensus-dir mode runs no aligner, so it produces no gate counters and the keys stay absent rather than zero-filled: a 0 there would read as "every read was rejected", the opposite of "this mode never counted".
+- v0.15.3: The zero-result notice reads those counters and names a cause where the counts prove one. Reads present with none clearing MAPQ is reported as nothing aligning to the reference, the signature of a reference from a different sequence. Reads clearing MAPQ with none clearing coverage is reported as the separate case it is, what a whole-construct reference looks like against amplicon reads. Every other combination, including a run whose `fastq_pass` held no reads and consensus-dir mode where the counters do not exist, names no cause and keeps the checklist: asserting a cause without the counts behind it is worse than asking for a look. The counters themselves are shown as their own rows, and `pickAnalyzeYield` now carries all five yield fields instead of discarding a response that held only gate counts.
+
 ## v0.15.2 (A MAME run that cannot answer says so)
 
 Three ways a raw MAME analysis could finish successfully while reporting nothing usable. v0.15.1 taught the raw path to extract the sequenced amplicon from a whole-plasmid FASTA, but only when the custom barcode workbook yields the shared primer tails; hand a plate map instead and the extraction was skipped without a word, the whole construct went to the aligner, and the coverage gate discarded every read: 180k to 290k reads in, 0 assigned, 0 wells, an empty consensus FASTA, and a completion marker that called it a success. The per-barcode counters could not name the gate that did it, because both carried the same number. And a rerun that swapped the reference resumed the completed units anyway, translating consensus called against the previous reference and reporting about 530 amino-acid changes per well for one real substitution.

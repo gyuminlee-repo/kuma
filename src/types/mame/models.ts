@@ -89,15 +89,28 @@ export interface AnalyzeSummary {
 
 /**
  * Demux yield reported by the analyze response. Raw-run mode only: the handler
- * derives both from the consensus records ingested out of the demux output dir
- * and omits the keys entirely in consensus-dir mode
- * (`python-core/sidecar_mame/handlers/analyze.py`, raw-run branch). Absent
- * fields must stay absent in the UI rather than be defaulted to a number, so a
- * zero-result explanation never shows a count the backend did not report.
+ * derives every field from the demux it just ran and omits the keys entirely in
+ * consensus-dir mode (`python-core/sidecar_mame/handlers/analyze.py`, raw-run
+ * branch). Absent fields must stay absent in the UI rather than be defaulted to
+ * a number, so a zero-result explanation never shows a count the backend did
+ * not report: a 0 would read as "every read was rejected", the opposite of
+ * "this mode never counted".
+ *
+ * The three gate counters narrow a zero-verdict run to a cause, and only in
+ * combination (`DemuxStats` names, kept verbatim):
+ *   total_reads      reads read out of `fastq_pass/`
+ *   passed_mapq      reads that cleared the MAPQ gate; 0 against a non-zero
+ *                    total_reads is the signature of a mismatched reference
+ *   passed_coverage  of those, the reads that also cleared the coverage gate;
+ *                    0 against a non-zero passed_mapq is the signature of a
+ *                    whole-construct reference met with amplicon reads
  */
 export interface AnalyzeYield {
   assigned_reads?: number;
   wells_with_reads?: number;
+  total_reads?: number;
+  passed_mapq?: number;
+  passed_coverage?: number;
 }
 
 export interface AnalyzeResult extends AnalyzeYield {

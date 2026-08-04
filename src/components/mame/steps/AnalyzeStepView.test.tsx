@@ -234,8 +234,9 @@ describe("AnalyzeStepView (Task #12, analyze.review)", () => {
 /**
  * Zero-result analysis: "never run" and "ran and produced nothing" must not
  * render the same blank view. Every count shown comes off the analyze response
- * (summary.total, distribution_stats.n_files, wells_with_reads, assigned_reads);
- * a field the response did not carry is not rendered at all.
+ * (summary.total, distribution_stats.n_files, wells_with_reads, assigned_reads,
+ * total_reads, passed_mapq, passed_coverage); a field the response did not carry
+ * is not rendered at all, and a cause is named only where the counts prove it.
  */
 describe("AnalyzeStepView (zero-result analysis)", () => {
   beforeEach(() => {
@@ -295,6 +296,73 @@ describe("AnalyzeStepView (zero-result analysis)", () => {
     expect(screen.getByText("Input files")).toBeTruthy();
     expect(screen.queryByText("Wells with reads")).toBeNull();
     expect(screen.queryByText("Assigned reads")).toBeNull();
+    // No gate counters either, and with no counts there is no cause to name.
+    expect(screen.queryByText("Reads in fastq_pass")).toBeNull();
+    expect(screen.queryByText("Reads passing MAPQ")).toBeNull();
+    expect(screen.queryByTestId("zero-result-cause")).toBeNull();
+    // The checklist stays: it is what remains when nothing can be concluded.
+    expect(screen.getByText(/reference file matches the sequenced amplicon/i)).toBeTruthy();
+  });
+
+  it("names the reference mismatch when reads existed and none cleared MAPQ", () => {
+    useMameAppStore.setState({
+      summary: summaryOf(0),
+      distributionStats: { ...fakeDistributionStats, n_files: 12 },
+      analyzeYield: {
+        assigned_reads: 0,
+        wells_with_reads: 0,
+        total_reads: 48000,
+        passed_mapq: 0,
+        passed_coverage: 0,
+      },
+    });
+    render(<AnalyzeStepView />);
+
+    const cause = screen.getByTestId("zero-result-cause");
+    expect(cause.getAttribute("data-cause")).toBe("noAlignment");
+    // The count in the sentence is the response field, not a fixed string.
+    expect(cause.textContent).toContain((48000).toLocaleString());
+    expect(cause.textContent).toMatch(/none of them aligned to the reference/i);
+    // Gate counters render as their own rows.
+    expect(screen.getByText("Reads in fastq_pass")).toBeTruthy();
+    expect(screen.getByText("Reads passing MAPQ")).toBeTruthy();
+    expect(screen.getByText("Reads passing coverage")).toBeTruthy();
+  });
+
+  it("names the coverage gate when reads aligned but none cleared coverage", () => {
+    useMameAppStore.setState({
+      summary: summaryOf(0),
+      distributionStats: { ...fakeDistributionStats, n_files: 12 },
+      analyzeYield: {
+        assigned_reads: 0,
+        wells_with_reads: 0,
+        total_reads: 48000,
+        passed_mapq: 31500,
+        passed_coverage: 0,
+      },
+    });
+    render(<AnalyzeStepView />);
+
+    const cause = screen.getByTestId("zero-result-cause");
+    expect(cause.getAttribute("data-cause")).toBe("noCoverage");
+    expect(cause.textContent).toContain((31500).toLocaleString());
+    expect(cause.textContent).toMatch(/covered enough of it to be called/i);
+    // Distinct from the alignment case, not the same sentence with new numbers.
+    expect(cause.textContent).not.toMatch(/none of them aligned to the reference/i);
+  });
+
+  it("claims no cause when the run simply had no reads to begin with", () => {
+    useMameAppStore.setState({
+      summary: summaryOf(0),
+      distributionStats: { ...fakeDistributionStats, n_files: 12 },
+      analyzeYield: { total_reads: 0, passed_mapq: 0, passed_coverage: 0 },
+    });
+    render(<AnalyzeStepView />);
+
+    // total_reads == 0 rules both gates out as explanations: nothing reached them.
+    expect(screen.queryByTestId("zero-result-cause")).toBeNull();
+    expect(screen.getByText("Reads in fastq_pass")).toBeTruthy();
+    expect(screen.getByText(/barcode folders contain reads/i)).toBeTruthy();
   });
 
   it("a run that produced verdicts keeps the result panels and shows no notice", () => {
