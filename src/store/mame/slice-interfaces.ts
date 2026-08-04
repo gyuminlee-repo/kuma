@@ -65,6 +65,14 @@ export interface InputSlice {
   analyzeTotal: number | null;
   analyzeStage: string | null;
   analyzeStartedAt: number | null;
+  // Wall-clock duration of the last analyze run that actually produced a
+  // response, derived from `analyzeStartedAt` at the moment that response was
+  // applied. `analyzeStartedAt` is cleared in the same `set()` that ends a run,
+  // so the elapsed time cannot be recovered afterwards; and only the success
+  // path writes this, which is what separates "finished" from "cancelled"
+  // (cancel leaves a previous run's `summary` in place). null = no completed
+  // run since the current one started.
+  analyzeDurationMs: number | null;
   analyzePhase: "demux" | "analyze" | null;
   demuxProgress: number;
   demuxMessage: string;

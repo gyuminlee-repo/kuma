@@ -34,6 +34,7 @@ import { PlateView } from "@/components/mame/widgets/PlateView";
 import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
 import { PlateClusterAlert } from "@/components/mame/widgets/PlateClusterAlert";
 import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNotice";
+import { AnalyzeDurationDialog } from "@/components/mame/dialogs/AnalyzeDurationDialog";
 import { InputPanel } from "@/components/mame/panels/InputPanel";
 import { ParameterPanel } from "@/components/mame/panels/ParameterPanel";
 import { Button } from "@/components/ui/button";
@@ -80,6 +81,9 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   const analyzeTotal = useMameAppStore((s) => s.analyzeTotal);
   const analyzeStage = useMameAppStore((s) => s.analyzeStage);
   const analyzeStartedAt = useMameAppStore((s) => s.analyzeStartedAt);
+  // Written only where a run applies its response; cleared at run start and on
+  // cancel/failure. So a null -> number edge is exactly one finished run.
+  const analyzeDurationMs = useMameAppStore((s) => s.analyzeDurationMs);
   const validationErrors = useMameAppStore((s) => s.validationErrors);
   const hasResults = useMameAppStore((s) => s.verdicts.length > 0);
   // "A run finished and its response was applied" marker. `summary` is written
@@ -98,6 +102,10 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   const setMameSubStep = useMameAppStore((s) => s.setMameSubStep);
   const wasAnalyzingRef = useRef(isAnalyzing);
   const [plateExpanded, setPlateExpanded] = useState(false);
+  // Duration popup. Held in view state (not the store) so dismissing it does
+  // not erase the run record, and so a remount does not re-open it.
+  const [durationPopupMs, setDurationPopupMs] = useState<number | null>(null);
+  const prevDurationRef = useRef<number | null>(analyzeDurationMs);
   const reviewContainerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!plateExpanded) return;
@@ -124,6 +132,22 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       setMameSubStep("analyze.review");
     }
   }, [analysisCompleted, isAnalyzing, setMameSubStep, subStep, validationErrors.length]);
+
+  // Report how long the finished run took. Keyed on the store's null -> number
+  // edge, so it fires once per run and never on a re-render or a remount that
+  // merely observes an already-reported duration.
+  //
+  // Suppressed for a zero-verdict run: v0.15.3 answers that case with
+  // EmptyAnalysisNotice, and a modal over that notice would make the user
+  // dismiss the less useful message to reach the more useful one. The elapsed
+  // time is also the least of what such a run needs to say.
+  useEffect(() => {
+    const prev = prevDurationRef.current;
+    prevDurationRef.current = analyzeDurationMs;
+    if (prev !== null || analyzeDurationMs === null) return;
+    if (!hasResults) return;
+    setDurationPopupMs(analyzeDurationMs);
+  }, [analyzeDurationMs, hasResults]);
 
   // Legacy ids fall through StepRedirectFallback → analyze.inputs.
   if (
@@ -344,6 +368,11 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   }
 
   return (
+    <>
+    <AnalyzeDurationDialog
+      durationMs={durationPopupMs}
+      onClose={() => setDurationPopupMs(null)}
+    />
     <WizardContainer
       stepIndex={config.index}
       stepTotal={ANALYZE_TOTAL}
@@ -365,5 +394,6 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
     >
       {mainContent}
     </WizardContainer>
+    </>
   );
 }

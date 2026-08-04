@@ -966,6 +966,14 @@
         "nextStepReference": "Reference: confirm the reference file matches the sequenced amplicon. A reference from a different construct drops every read during alignment.",
         "nextStepExpected": "Expected mutations: confirm the expected-mutations file covers the variants used in this run.",
         "nextStepInputFolder": "Input folder: confirm the selected folder is the run for this experiment and that its barcode folders contain reads."
+      },
+      "durationDialog": {
+        "title": "Analysis complete",
+        "description": "The step 2.1 analysis run has finished.",
+        "elapsedLabel": "Elapsed time",
+        "minSec": "{{min}} min {{sec}} s",
+        "minOnly": "{{min}} min",
+        "secOnly": "{{sec}} s"
       }
     },
     "wellLayoutDialog": {
