@@ -565,7 +565,8 @@
         "ngsHelp": "Sequencing genotype check: pass when the called mutation equals the expected design, fail otherwise."
       },
       "recoveredHelp": "A mutant is recovered when at least one of its replicate wells (across all plates) is PASS or AMBIGUOUS.",
-      "tabFinal": "Final"
+      "tabFinal": "Final",
+      "finalFallbackNotice": "No replicate has been selected yet, so FINAL is showing every well (ALL)."
     },
     "summaryRow": {
       "ariaLabel": "Resumen del análisis",
@@ -769,11 +770,11 @@
         "helperText": "Directorio raíz de la corrida MinKNOW (contiene fastq_pass/)"
       },
       "kuroXlsx": {
-        "label": "xlsx de KURO",
+        "label": "Expected variants (xlsx)",
         "placeholder": "Ruta del archivo .xlsx",
         "stateLabel": "Requerido",
-        "helperText": "Hoja expected_mutations de KURO",
-        "helpText": "El archivo .xlsx expected_mutations exportado desde KURO. MAME compara las mutaciones esperadas en este archivo con los resultados de consensus NGS."
+        "helperText": "KURO expected_mutations sheet, or a plain variant list",
+        "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
       "referenceFasta": {
         "label": "Secuencia de referencia",
@@ -1097,6 +1098,44 @@
       "chooseTitle": "Localizar {{name}}",
       "mismatchTitle": "Puede ser un archivo distinto",
       "mismatchBody": "Era {{expected}}, se eligio {{actual}}. Ignore esto si el cambio es intencionado."
+    },
+    "verdictDetail": {
+      "openAriaLabel": "Show details for {{id}} (well {{well}})",
+      "openTitle": "Open well details in the inspector",
+      "wellLabel": "Well",
+      "sectionEvidence": "Verdict evidence",
+      "labelExpected": "Expected",
+      "labelObserved": "Observed",
+      "expectedNone": "No expected mutation",
+      "observedNone": "No change observed",
+      "labelVerdictNotes": "Notes",
+      "labelNoCallAa": "No-call codons",
+      "labelNoCallAaHelp": "Consensus N translated to X, excluded from the observed changes",
+      "sectionReplicates": "Replicate comparison",
+      "selectedPlateBadge": "Selected",
+      "currentWellBadge": "Showing",
+      "labelSelectionReason": "Selection reason",
+      "noSelectedPlate": "No replicate was selected for this variant.",
+      "fallbackTitle": "Fallback selection",
+      "sectionConfidence": "Confidence",
+      "labelReadCount": "Reads (filtered)",
+      "labelInputReads": "Input reads",
+      "labelAlignedReads": "Aligned reads",
+      "labelMapqFailed": "MAPQ drops",
+      "labelSpanFailed": "Span drops",
+      "labelMixedPositions": "Mixed positions",
+      "labelMaxMinorAllele": "Max minor allele",
+      "labelLowDepthPositions": "Low-depth positions",
+      "labelConsensusN": "Consensus N",
+      "labelLowQualityBases": "Low-quality bases",
+      "sectionNtChanges": "Nucleotide changes",
+      "sectionSource": "Source",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copySourcePath": "Copy consensus FASTA path",
+      "copyAaSequence": "Copy amino acid sequence",
+      "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
+      "noVerdictRecord": "No verdict record for this well."
     }
   },
   "home": {

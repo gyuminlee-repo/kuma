@@ -27,7 +27,10 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   replicates: [],
   summary: null,
   analyzeYield: null,
-  plateFilter: "ALL",
+  // FINAL (the per-mutant selected replicate) is the default view: it is the
+  // answer sheet a run is read for. VerdictTable degrades it to ALL while no
+  // replicate has been selected, so the default never shows an empty table.
+  plateFilter: "FINAL",
   searchQuery: "",
   sorting: [],
   showExport: false,
@@ -71,7 +74,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       replicates: [],
       summary: null,
       analyzeYield: null,
-      plateFilter: "ALL",
+      plateFilter: "FINAL",
       searchQuery: "",
       sorting: [],
       showExport: false,
