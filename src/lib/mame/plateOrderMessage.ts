@@ -35,7 +35,11 @@ export interface PlateOrderLayoutInputs {
  * re-grade a stored finding after the operator supplies one of those inputs.
  */
 export function gradePlateOrder(
-  report: PlateOrderReport,
+  // Kept in the signature because grading is a statement about this report, and
+  // every caller has one in hand. The grade itself reads only the inputs: the
+  // sheets disagreeing is what makes a finding, and whether that reaches the
+  // verdicts is decided by where the well coordinates come from.
+  _report: PlateOrderReport,
   inputs: PlateOrderLayoutInputs,
 ): PlateOrderSeverity {
   return inputs.hasSampleMap || inputs.hasWellLayout ? "info" : "blocking";
