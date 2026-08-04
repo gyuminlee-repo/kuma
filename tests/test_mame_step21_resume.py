@@ -24,7 +24,9 @@ from kuma_core.mame.ingest.fasta_parser import load_barcode_directory
 from kuma_core.mame.ingest.stage_marker import (
     MARKER_FILENAME,
     is_unit_complete,
+    marker_inputs_match,
     read_stage_marker,
+    reference_fingerprint,
     validate_marker,
     write_stage_marker,
 )
@@ -39,6 +41,34 @@ def _write_consensus(nb_dir: Path, well: str) -> None:
     (nb_dir / f"{well}.fasta").write_text(
         _CONSENSUS_FASTA.format(well=well), encoding="utf-8"
     )
+
+
+_REFERENCE_FASTA = ">unit_test_ref\nACGTACGTACGTACGTACGTACGTACGTACGT\n"
+
+#: Mirrors the ``run_combinatorial_demux_per_nb`` defaults. A staged marker has
+#: to record the SAME parameters the rerun uses, or the unit is reprocessed on
+#: the parameter check rather than reused; changing a default on purpose is what
+#: makes these tests fail loudly.
+_DEFAULT_MARKER_PARAMS = {
+    "mapq_threshold": 25,
+    "coverage_fraction": 0.98,
+    "trim_flank_bp": 30,
+    "edit_dist_ratio": 0.25,
+    "chimera_split": True,
+}
+
+#: The same idea for ``handle_demux_and_filter`` defaults.
+_HANDLER_MARKER_PARAMS = {
+    "min_mapq": 25,
+    "min_consensus_depth": 1,
+}
+
+
+def _write_reference(tmp_path: Path, name: str = "ref.fasta") -> Path:
+    """Write the reference the resume paths now fingerprint."""
+    path = tmp_path / name
+    path.write_text(_REFERENCE_FASTA, encoding="utf-8")
+    return path
 
 
 # ---------------------------------------------------------------------------
@@ -292,7 +322,17 @@ def test_handler_skips_completed_nb_and_reprocesses_incomplete(
     nb1_out = out_dir / "NB01"
     nb1_out.mkdir()
     _write_consensus(nb1_out, "1_1")
-    write_stage_marker(nb1_out, per_well_counts={"1_1": 5}, consensus=True)
+    # A reference fasta path is required to enter the consensus pipeline, and
+    # its fingerprint has to be in the marker or the unit is reprocessed on the
+    # input-identity check instead of being resume-skipped.
+    ref = _write_reference(tmp_path)
+    write_stage_marker(
+        nb1_out,
+        per_well_counts={"1_1": 5},
+        consensus=True,
+        reference=reference_fingerprint(ref),
+        params=dict(_HANDLER_MARKER_PARAMS),
+    )
 
     demux_calls: list[str] = []
     consensus_calls: list[str] = []
@@ -340,10 +380,6 @@ def test_handler_skips_completed_nb_and_reprocesses_incomplete(
         raising=False,
     )
     monkeypatch.setattr(handler, "_run_consensus_on_dir", _fake_consensus)
-
-    # A reference fasta path is required to enter the consensus pipeline.
-    ref = tmp_path / "ref.fasta"
-    ref.write_text(">ref\nACGTACGTACGTACGTACGT\n", encoding="utf-8")
 
     result = handler.handle_demux_and_filter(
         {
@@ -506,7 +542,8 @@ def _fake_nb_stats(total: int, assigned: int, wells: int) -> dict[str, int]:
 
 
 def _stage_complete_nb(out_dir: Path, sort_name: str, per_well: dict[str, int],
-                       stats: dict[str, int]) -> Path:
+                       stats: dict[str, int],
+                       reference_fasta: Path | None = None) -> Path:
     """Pre-stage a per-NB unit as COMPLETE: root-level consensus FASTA + marker.
 
     The per-NB path runs with well_consensus_at_root=True, so consensus
@@ -517,7 +554,16 @@ def _stage_complete_nb(out_dir: Path, sort_name: str, per_well: dict[str, int],
     for well in per_well:
         _write_consensus(nb_out, well)
     write_stage_marker(
-        nb_out, per_well_counts=per_well, consensus=True, stats=stats
+        nb_out,
+        per_well_counts=per_well,
+        consensus=True,
+        stats=stats,
+        reference=(
+            reference_fingerprint(reference_fasta)
+            if reference_fasta is not None
+            else None
+        ),
+        params=dict(_DEFAULT_MARKER_PARAMS),
     )
     return nb_out
 
@@ -537,6 +583,7 @@ def test_combinatorial_per_nb_skips_completed_and_reprocesses_incomplete(
     monkeypatch.setenv("KUMA_MAME_NB_PARALLEL", "0")
 
     out_dir = tmp_path / "out"
+    reference = _write_reference(tmp_path)
     out_dir.mkdir()
 
     # NB01 -> sort_barcode01, pre-staged complete: 1 well, 3 reads.
@@ -544,6 +591,7 @@ def test_combinatorial_per_nb_skips_completed_and_reprocesses_incomplete(
         out_dir, "sort_barcode01",
         per_well={"1_1": 3},
         stats=_fake_nb_stats(total=4, assigned=3, wells=1),
+        reference_fasta=reference,
     )
 
     worker_calls: list[str] = []
@@ -569,7 +617,7 @@ def test_combinatorial_per_nb_skips_completed_and_reprocesses_incomplete(
     }
     res = cd.run_combinatorial_demux_per_nb(
         nb_to_fastq,
-        reference_fasta=tmp_path / "ref.fasta",
+        reference_fasta=reference,
         barcodes_xlsx=tmp_path / "bc.xlsx",
         output_dir=out_dir,
     )
@@ -604,6 +652,7 @@ def test_combinatorial_per_nb_missing_marker_is_reprocessed(
     monkeypatch.setenv("KUMA_MAME_NB_PARALLEL", "0")
 
     out_dir = tmp_path / "out"
+    reference = _write_reference(tmp_path)
     out_dir.mkdir()
 
     # Pre-stage sort_barcode01 WITHOUT a marker (interrupted before commit).
@@ -631,7 +680,7 @@ def test_combinatorial_per_nb_missing_marker_is_reprocessed(
 
     res = cd.run_combinatorial_demux_per_nb(
         {"NB01": [tmp_path / "NB01" / "a.fastq.gz"]},
-        reference_fasta=tmp_path / "ref.fasta",
+        reference_fasta=reference,
         barcodes_xlsx=tmp_path / "bc.xlsx",
         output_dir=out_dir,
     )
@@ -652,13 +701,18 @@ def test_combinatorial_per_nb_zero_map_marker_is_reprocessed(
 
     monkeypatch.setenv("KUMA_MAME_NB_PARALLEL", "0")
     out_dir = tmp_path / "out"
+    reference = _write_reference(tmp_path)
     nb_out = out_dir / "sort_barcode01"
     nb_out.mkdir(parents=True)
+    # Fingerprint recorded so this unit is reused/rejected on the ALIGNMENT
+    # rule under test, not on the input-identity check.
     write_stage_marker(
         nb_out,
         per_well_counts={},
         consensus=True,
         stats=_fake_nb_stats(total=100, assigned=0, wells=0),
+        reference=reference_fingerprint(reference),
+        params=dict(_DEFAULT_MARKER_PARAMS),
     )
     worker_calls: list[str] = []
 
@@ -677,7 +731,7 @@ def test_combinatorial_per_nb_zero_map_marker_is_reprocessed(
 
     result = cd.run_combinatorial_demux_per_nb(
         {"NB01": [tmp_path / "NB01" / "reads.fastq.gz"]},
-        reference_fasta=tmp_path / "ref.fasta",
+        reference_fasta=reference,
         barcodes_xlsx=tmp_path / "barcodes.xlsx",
         output_dir=out_dir,
     )
@@ -699,6 +753,7 @@ def test_combinatorial_per_nb_mismatched_marker_is_reprocessed(
     monkeypatch.setenv("KUMA_MAME_NB_PARALLEL", "0")
 
     out_dir = tmp_path / "out"
+    reference = _write_reference(tmp_path)
     out_dir.mkdir()
 
     nb_out = out_dir / "sort_barcode01"
@@ -730,7 +785,7 @@ def test_combinatorial_per_nb_mismatched_marker_is_reprocessed(
 
     cd.run_combinatorial_demux_per_nb(
         {"NB01": [tmp_path / "NB01" / "a.fastq.gz"]},
-        reference_fasta=tmp_path / "ref.fasta",
+        reference_fasta=reference,
         barcodes_xlsx=tmp_path / "bc.xlsx",
         output_dir=out_dir,
     )
@@ -754,6 +809,7 @@ def test_combinatorial_per_nb_fully_resumed_equals_fresh(
     monkeypatch.setenv("KUMA_MAME_NB_PARALLEL", "0")
 
     out_dir = tmp_path / "out"
+    reference = _write_reference(tmp_path)
     out_dir.mkdir()
 
     worker_calls: list[str] = []
@@ -780,7 +836,7 @@ def test_combinatorial_per_nb_fully_resumed_equals_fresh(
         "NB02": [tmp_path / "NB02" / "b.fastq.gz"],
     }
     kwargs = dict(
-        reference_fasta=tmp_path / "ref.fasta",
+        reference_fasta=reference,
         barcodes_xlsx=tmp_path / "bc.xlsx",
         output_dir=out_dir,
     )
@@ -805,3 +861,120 @@ def test_combinatorial_per_nb_fully_resumed_equals_fresh(
         [s["nb_name"] for s in fresh["per_nb"]]
     assert {s["nb_name"]: s["per_well_read_counts"] for s in resumed["per_nb"]} == \
         {s["nb_name"]: s["per_well_read_counts"] for s in fresh["per_nb"]}
+
+
+# ---------------------------------------------------------------------------
+# Reference identity: a completed unit is reusable only for the inputs that
+# produced it (2026-08-04: a rerun swapped the reference and resumed anyway,
+# translating 1,683 bp consensus against a 1,715 bp amplicon).
+# ---------------------------------------------------------------------------
+
+
+def test_reference_fingerprint_ignores_header_and_wrapping(tmp_path: Path) -> None:
+    wrapped = tmp_path / "wrapped.fasta"
+    wrapped.write_text(">one name\nACGTACGT\nACGTACGT\n", encoding="utf-8")
+    flat = tmp_path / "flat.fasta"
+    flat.write_text(">another name\nacgtacgtacgtacgt\n", encoding="utf-8")
+    different = tmp_path / "different.fasta"
+    different.write_text(">one name\nACGTACGTACGTACGA\n", encoding="utf-8")
+
+    assert reference_fingerprint(wrapped) == reference_fingerprint(flat)
+    assert reference_fingerprint(wrapped)["length"] == 16
+    assert reference_fingerprint(different) != reference_fingerprint(wrapped)
+
+
+def test_marker_inputs_match_rules(tmp_path: Path) -> None:
+    reference = _write_reference(tmp_path)
+    other = tmp_path / "other.fasta"
+    other.write_text(">other\nACGTACGTACGT\n", encoding="utf-8")
+    fingerprint = reference_fingerprint(reference)
+    params = dict(_DEFAULT_MARKER_PARAMS)
+
+    marker = {
+        "consensus": True,
+        "inputs": {"reference": fingerprint, "params": params},
+    }
+    assert marker_inputs_match(marker, fingerprint, params) == (True, "")
+
+    ok, reason = marker_inputs_match(marker, reference_fingerprint(other), params)
+    assert ok is False
+    assert "reference changed" in reason
+
+    changed = dict(params, coverage_fraction=0.5)
+    ok, reason = marker_inputs_match(marker, fingerprint, changed)
+    assert ok is False
+    assert "coverage_fraction" in reason
+
+    # Schema version 1 marker: no recorded identity, so it is not reusable.
+    ok, reason = marker_inputs_match({"consensus": True}, fingerprint, params)
+    assert ok is False
+    assert "no input identity" in reason
+
+    # A unit written without consensus used no reference: nothing to compare.
+    assert marker_inputs_match({"consensus": False}, fingerprint, params) == (True, "")
+
+
+def test_combinatorial_per_nb_reprocesses_when_the_reference_changed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The exact 2026-08-04 shape: a complete unit plus a swapped reference.
+
+    Inventory still matches disk, so the old guard called the unit complete and
+    reused its consensus. It must now be recomputed instead.
+    """
+    import kuma_core.mame.ingest.combinatorial_demux as cd
+
+    monkeypatch.setenv("KUMA_MAME_NB_PARALLEL", "0")
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    first_reference = _write_reference(tmp_path, "first.fasta")
+    _stage_complete_nb(
+        out_dir, "sort_barcode01",
+        per_well={"1_1": 3},
+        stats=_fake_nb_stats(total=4, assigned=3, wells=1),
+        reference_fasta=first_reference,
+    )
+
+    worker_calls: list[str] = []
+
+    def _fake_worker(payload: dict) -> dict:
+        worker_calls.append(payload["nb_name"])
+        p = Path(payload["output_dir"])
+        p.mkdir(parents=True, exist_ok=True)
+        _write_consensus(p, "1_1")
+        return {
+            "nb_name": payload["nb_name"],
+            "sort_barcode_name": payload["sort_barcode_name"],
+            "output_dir": str(p.resolve()),
+            "stats": _fake_nb_stats(total=4, assigned=3, wells=1),
+            "per_well_read_counts": {"1_1": 3},
+        }
+
+    monkeypatch.setattr(cd, "_demux_one_nb", _fake_worker)
+
+    nb_to_fastq = {"NB01": [tmp_path / "NB01" / "a.fastq.gz"]}
+
+    # Same reference: the unit is reused, exactly as before this guard.
+    cd.run_combinatorial_demux_per_nb(
+        dict(nb_to_fastq),
+        reference_fasta=first_reference,
+        barcodes_xlsx=tmp_path / "bc.xlsx",
+        output_dir=out_dir,
+    )
+    assert worker_calls == []
+
+    # A different reference: the unit is recomputed, and its new marker records
+    # the new reference.
+    second_reference = tmp_path / "second.fasta"
+    second_reference.write_text(">second\nACGTACGTACGTACGTAC\n", encoding="utf-8")
+    cd.run_combinatorial_demux_per_nb(
+        dict(nb_to_fastq),
+        reference_fasta=second_reference,
+        barcodes_xlsx=tmp_path / "bc.xlsx",
+        output_dir=out_dir,
+    )
+    assert worker_calls == ["NB01"]
+
+    marker = read_stage_marker(out_dir / "sort_barcode01")
+    assert marker is not None
+    assert marker["inputs"]["reference"] == reference_fingerprint(second_reference)

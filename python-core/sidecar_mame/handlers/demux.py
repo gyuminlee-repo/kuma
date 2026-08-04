@@ -93,7 +93,9 @@ from kuma_core.mame.ingest.consensus_metadata import (
 )
 from kuma_core.mame.ingest.stage_marker import (
     is_unit_complete,
+    marker_inputs_match,
     read_stage_marker,
+    reference_fingerprint,
     write_stage_marker,
 )
 from kuma_core.mame.ingest.demux import FASTQ_PATTERNS
@@ -376,6 +378,18 @@ def handle_demux_and_filter(params: dict) -> dict:
     min_mapq = int(params.get("min_mapq", 25))
     min_consensus_depth = int(params.get("min_consensus_depth", 1))
 
+    # Identity of the inputs a completed unit was built from. Written into every
+    # marker below and compared before any unit is resume-skipped, so a rerun
+    # against a different reference recalls the consensus instead of reusing
+    # sequences called against the previous one.
+    marker_reference = (
+        reference_fingerprint(reference_fasta) if reference_fasta is not None else None
+    )
+    marker_params = {
+        "min_mapq": min_mapq,
+        "min_consensus_depth": min_consensus_depth,
+    }
+
     # Accept either a pre-built dict ("custom_barcodes") or a file path
     # ("custom_barcodes_path") that is parsed on the sidecar side.
     raw_barcodes = params.get("custom_barcodes")
@@ -500,6 +514,17 @@ def handle_demux_and_filter(params: dict) -> dict:
             if is_unit_complete(nb_out_chk):
                 marker = read_stage_marker(nb_out_chk)
                 if marker is not None:
+                    inputs_ok, inputs_reason = marker_inputs_match(
+                        marker, marker_reference, marker_params
+                    )
+                    if not inputs_ok:
+                        # Reprocess rather than reuse: the recorded reference or
+                        # gates differ from this run, so the consensus on disk
+                        # answers a different question than the one being asked.
+                        _progress(
+                            5, f"Reprocessing {nb_name}: {inputs_reason}"
+                        )
+                        continue
                     completed_nbs.add(nb_name)
                     completed_marker_counts[nb_name] = {
                         str(k): int(v)
@@ -798,6 +823,8 @@ def handle_demux_and_filter(params: dict) -> dict:
                     consensus=True,
                     n_input_reads=per_nb_input.get(nb_dir.name),
                     n_unassigned=per_nb_unassigned.get(nb_dir.name),
+                    reference=marker_reference,
+                    params=marker_params,
                 )
         else:
             # Single-NB: run consensus in the single NB subdir.
@@ -820,6 +847,8 @@ def handle_demux_and_filter(params: dict) -> dict:
                         for well, stat in all_consensus_stats.items()
                     },
                     consensus=True,
+                    reference=marker_reference,
+                    params=marker_params,
                 )
 
         consensus_stats_dict = all_consensus_stats if all_consensus_stats else {}

@@ -163,10 +163,53 @@ def translate_and_diff(
 
     `cds_start` is 0-based inclusive, `cds_end` is 0-based exclusive.
     Reference is used as-is between those coordinates.
+
+    The consensus is in REFERENCE coordinates: the demux calls one base per
+    reference position, so ``len(consensus_seq) == len(reference_seq)`` holds for
+    anything it produced (``ingest/consensus.py`` sizes every consensus by
+    ``ref_len`` and ``ingest/well_consensus.py`` pads a read-less well to
+    ``"N" * ref_len``). Slicing at ``cds_start`` below is only meaningful under
+    that contract.
+
+    A consensus that ends BEFORE ``cds_end`` cannot satisfy it: the CDS window
+    being compared does not exist in the query at all, so the missing tail would
+    be reported as deletions of a coding sequence that was never examined. That
+    is refused. A resumed run produced exactly this on 2026-08-04, translating
+    1,683 bp consensus files (called against the coding sequence) against a
+    1,715 bp amplicon reference whose CDS ends at 1,699, and reported about 530
+    amino-acid changes per well for one real substitution.
+
+    A consensus that reaches the CDS end is accepted even when its total length
+    differs from the reference: an externally supplied consensus may carry
+    insertions past the CDS, and the query is bounded to
+    ``[cds_start, cds_end)`` below precisely so that trailing sequence does not
+    become spurious indels.
+
+    The comparison uses ``cds_end`` clamped to the reference length, matching the
+    ``reference_seq[cds_start:cds_end]`` slice below. A caller may pass a CDS end
+    from an annotation that runs past the sequence it ships with (the test
+    fixture reference is annotated 210 bp and is 177 bp long), and the reference
+    itself decides how much can be compared.
     """
 
+    consensus_seq = record.consensus_seq
+    comparable_cds_end = min(cds_end, len(reference_seq))
+    if len(consensus_seq) < comparable_cds_end:
+        raise ValueError(
+            "Consensus is shorter than the coding sequence it is compared "
+            f"against: consensus {len(consensus_seq)} bp, reference "
+            f"{len(reference_seq)} bp with CDS ending at {comparable_cds_end} "
+            f"(well {record.native_barcode}/{record.custom_barcode}, "
+            f"{record.source_path}). Consensus sequences are called one base per "
+            "reference position, so this pair cannot have come from the same "
+            "reference: existing demux output was most likely reused while the "
+            "reference changed between runs. Clear the analysis output directory "
+            "and run the analysis again so the consensus is recalled against the "
+            "current reference."
+        )
+
     ref_cds = reference_seq[cds_start:cds_end]
-    query_cds_full = record.consensus_seq[cds_start:]
+    query_cds_full = consensus_seq[cds_start:]
     # Bound the query to the CDS window [cds_start, cds_end) for BOTH the AA and the
     # NT diff. Feeding the unbounded query_cds_full to the NT diff emitted one
     # spurious {pos}_INDEL per consensus base past cds_end whenever the reference is

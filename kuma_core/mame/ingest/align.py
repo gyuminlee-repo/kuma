@@ -140,6 +140,27 @@ class AlignmentStats:
     n_passed_filter: int
 
 
+@dataclass(frozen=True)
+class AlignmentGateCounts:
+    """Per-gate read counts for the MAPQ and coverage filters.
+
+    The demux stats carry one counter per gate (``passed_mapq`` and
+    ``passed_coverage``).  Both used to be assigned the same post-filter number,
+    which made it impossible to tell which gate dropped a run's reads.  These
+    counts keep the gates separable:
+
+    ``reads_passed_mapq``
+        Reads with at least one alignment at or above ``min_mapq``, counted
+        BEFORE the coverage/span gate.
+    ``reads_passed_coverage``
+        Subset of those that also cleared the coverage/span gate, i.e. the reads
+        actually returned.  ``reads_passed_coverage <= reads_passed_mapq``.
+    """
+
+    reads_passed_mapq: int = 0
+    reads_passed_coverage: int = 0
+
+
 def _resolve_minimap2() -> str:
     """Locate the minimap2 binary.
 
@@ -453,6 +474,36 @@ def align_reads(
     coverage_fraction: float | None = None,
     name_offset: int = 0,
 ) -> list[Alignment]:
+    """Align reads to a reference, returning the passing alignments only.
+
+    Thin wrapper over :func:`align_reads_with_gate_counts` for callers that do
+    not need the per-gate counts.
+    """
+    alignments, _counts = align_reads_with_gate_counts(
+        reads,
+        reference_fasta,
+        preset=preset,
+        min_mapq=min_mapq,
+        require_full_span=require_full_span,
+        threads=threads,
+        reference_index=reference_index,
+        coverage_fraction=coverage_fraction,
+        name_offset=name_offset,
+    )
+    return alignments
+
+
+def align_reads_with_gate_counts(
+    reads: Iterable[tuple[str, ...]],
+    reference_fasta: Path,
+    preset: str = "map-ont",
+    min_mapq: int = 25,
+    require_full_span: bool = True,
+    threads: int | None = None,
+    reference_index: Path | None = None,
+    coverage_fraction: float | None = None,
+    name_offset: int = 0,
+) -> tuple[list[Alignment], AlignmentGateCounts]:
     """Align reads to a reference using the minimap2 CLI.
 
     Parameters
@@ -483,8 +534,11 @@ def align_reads(
 
     Returns
     -------
-    List of :class:`Alignment` objects that passed all filters, in
-    input order (one primary hit per read at most).
+    ``(alignments, gate_counts)`` where ``alignments`` are the
+    :class:`Alignment` objects that passed all filters, in input order (one
+    primary hit per read at most), and ``gate_counts`` is an
+    :class:`AlignmentGateCounts` separating the MAPQ gate from the
+    coverage/span gate.
 
     Raises
     ------
@@ -504,7 +558,7 @@ def align_reads(
         reads_fasta = Path(tmpdir) / "reads.fasta"
         index_map = _write_reads_fasta(reads, reads_fasta, name_offset=name_offset)
         if not index_map:
-            return []
+            return [], AlignmentGateCounts()
 
         positional_ref = reference_index if reference_index is not None else reference_fasta
         records = _run_minimap2(positional_ref, reads_fasta, preset, threads=threads)
@@ -536,19 +590,28 @@ def align_reads(
                 reference_length=ref_len,
             )
 
-    # Emit in input (index) order, applying filters.
+    # Emit in input (index) order, applying filters.  The MAPQ gate is counted
+    # on its own first so a caller can tell a MAPQ wipeout (wrong/absent
+    # homology) apart from a coverage wipeout (reference longer than the reads).
     results: list[Alignment] = []
+    n_passed_mapq = 0
     for idx in range(len(index_map)):
         aln = primary.get(idx)
         if aln is None:
             continue
+        if aln.mapq < min_mapq:
+            continue
+        n_passed_mapq += 1
         if not _alignment_passes(
             aln, ref_len, min_mapq, require_full_span, coverage_fraction
         ):
             continue
         results.append(aln)
 
-    return results
+    return results, AlignmentGateCounts(
+        reads_passed_mapq=n_passed_mapq,
+        reads_passed_coverage=len(results),
+    )
 
 
 def _alignment_passes(
@@ -771,6 +834,36 @@ def align_reads_multi(
     reference_index: Path | None = None,
     name_offset: int = 0,
 ) -> list[tuple[str, str, list[Alignment]]]:
+    """Align reads and return ALL passing hits per read.
+
+    Thin wrapper over :func:`align_reads_multi_with_gate_counts` for callers
+    that do not need the per-gate counts.
+    """
+    results, _counts = align_reads_multi_with_gate_counts(
+        reads,
+        reference_fasta,
+        preset=preset,
+        min_mapq=min_mapq,
+        coverage_fraction=coverage_fraction,
+        best_n=best_n,
+        threads=threads,
+        reference_index=reference_index,
+        name_offset=name_offset,
+    )
+    return results
+
+
+def align_reads_multi_with_gate_counts(
+    reads: Iterable[tuple[str, ...]],
+    reference_fasta: Path,
+    preset: str = "map-ont",
+    min_mapq: int = 25,
+    coverage_fraction: float = 0.98,
+    best_n: int = 20,
+    threads: int | None = None,
+    reference_index: Path | None = None,
+    name_offset: int = 0,
+) -> tuple[list[tuple[str, str, list[Alignment]]], AlignmentGateCounts]:
     """Align reads and return ALL passing hits per read (chimera/concatemer support).
 
     Unlike :func:`align_reads` which takes only the primary hit, this function
@@ -821,9 +914,12 @@ def align_reads_multi(
 
     Returns
     -------
-    List of ``(read_id, read_seq, hits)`` tuples where ``hits`` is a
-    non-empty list of :class:`Alignment` objects for that read.  Reads with
-    no passing hits are omitted.  Output order follows input order.
+    ``(results, gate_counts)``.  ``results`` is a list of
+    ``(read_id, read_seq, hits)`` tuples where ``hits`` is a non-empty list of
+    :class:`Alignment` objects for that read; reads with no passing hits are
+    omitted and output order follows input order.  ``gate_counts`` reports how
+    many reads cleared the MAPQ gate alone and how many also cleared the
+    coverage gate (the latter equals ``len(results)``).
 
     Notes
     -----
@@ -874,7 +970,7 @@ def align_reads_multi(
         reads_fasta = Path(tmpdir) / "reads.fasta"
         index_map = _write_reads_fasta(reads, reads_fasta, name_offset=name_offset)
         if not index_map:
-            return []
+            return [], AlignmentGateCounts()
 
         positional_ref = reference_index if reference_index is not None else reference_fasta
         records = _run_minimap2(
@@ -886,12 +982,17 @@ def align_reads_multi(
         # QNAMEs carry name_offset; strip it to get back the 0-based index_map
         # position, so nothing downstream sees the offset.
         hits_by_index: dict[int, list[Alignment]] = {}
+        # Read indices with >=1 hit clearing MAPQ, counted BEFORE the coverage
+        # gate so the two demux counters stay independent.  A read with several
+        # hits is counted once, matching the read-level meaning of `results`.
+        mapq_pass_indices: set[int] = set()
         for qname_index, flag, pos, mapq, cigar_str in records:
             read_index = qname_index - name_offset
             if flag & _FLAG_SECONDARY:
                 continue
             if mapq < min_mapq:
                 continue
+            mapq_pass_indices.add(read_index)
             cigar = _parse_cigar(cigar_str)
             r_st, r_en, q_st, q_en = _coords_from_cigar(cigar, pos, bool(flag & _FLAG_REVERSE))
             ref_span = r_en - r_st
@@ -922,7 +1023,10 @@ def align_reads_multi(
             read_id, read_seq, _read_qual = index_map[idx]
             results.append((read_id, read_seq, passing))
 
-    return results
+    return results, AlignmentGateCounts(
+        reads_passed_mapq=len(mapq_pass_indices),
+        reads_passed_coverage=len(results),
+    )
 
 
 def _get_reference_length(reference_fasta: Path) -> int:
@@ -946,9 +1050,12 @@ def _get_reference_length(reference_fasta: Path) -> int:
 
 __all__ = [
     "Alignment",
+    "AlignmentGateCounts",
     "AlignmentStats",
     "align_reads",
     "align_reads_multi",
+    "align_reads_multi_with_gate_counts",
+    "align_reads_with_gate_counts",
     "align_reads_with_stats",
     "_get_reference_length",
 ]
