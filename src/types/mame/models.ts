@@ -87,7 +87,20 @@ export interface AnalyzeSummary {
   fail_count: number;
 }
 
-export interface AnalyzeResult {
+/**
+ * Demux yield reported by the analyze response. Raw-run mode only: the handler
+ * derives both from the consensus records ingested out of the demux output dir
+ * and omits the keys entirely in consensus-dir mode
+ * (`python-core/sidecar_mame/handlers/analyze.py`, raw-run branch). Absent
+ * fields must stay absent in the UI rather than be defaulted to a number, so a
+ * zero-result explanation never shows a count the backend did not report.
+ */
+export interface AnalyzeYield {
+  assigned_reads?: number;
+  wells_with_reads?: number;
+}
+
+export interface AnalyzeResult extends AnalyzeYield {
   verdicts: VerdictRecord[];
   replicates: ReplicateResult[];
   output_path: string;

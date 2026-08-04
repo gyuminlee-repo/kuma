@@ -14,6 +14,7 @@ function makeStore(initial: Partial<AppState> = {}) {
     setVerdicts: vi.fn(),
     setReplicates: vi.fn(),
     setSummary: vi.fn(),
+    setAnalyzeYield: vi.fn(),
     setOutputPath: vi.fn((outputPath: string) => {
       state.outputPath = outputPath;
     }),
