@@ -130,7 +130,14 @@ def _map_parallel(fn, items: list, workers: int) -> list:
     adds measurable dispatch overhead at this granularity.  Round-robin (rather
     than contiguous) slicing keeps every worker spread across all directories, so
     one slower directory does not serialise onto a single thread.
+
+    An empty *items* returns before the pool is built: ``min(workers, 0)`` is 0
+    and ``ThreadPoolExecutor`` rejects that, so a directory holding no consensus
+    files used to raise ``ValueError: max_workers must be greater than 0`` in
+    place of the empty result the callers already handle.
     """
+    if not items:
+        return []
     n = min(workers, len(items))
     slices = [items[i::n] for i in range(n)]
     with ThreadPoolExecutor(max_workers=n) as pool:

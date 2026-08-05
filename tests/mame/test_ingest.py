@@ -7,7 +7,17 @@ from pathlib import Path
 import pytest
 
 from kuma_core.mame.ingest import IngestMode, load_barcode_directory, route_ingest
-from kuma_core.mame.ingest.fasta_parser import parse_fasta_file
+from kuma_core.mame.ingest.fasta_parser import _map_parallel, parse_fasta_file
+
+
+def test_map_parallel_on_no_items_returns_empty_not_valueerror() -> None:
+    """A directory holding no consensus files is an empty result, not a crash.
+
+    ``min(workers, 0)`` is 0 and ``ThreadPoolExecutor`` rejects that, so this
+    used to raise ``ValueError: max_workers must be greater than 0`` from inside
+    the pool constructor, well away from the empty directory that caused it.
+    """
+    assert _map_parallel(lambda x: x, [], 4) == []
 
 
 def test_load_barcode_directory_parses_all_fixtures(mock_fasta_dir: Path) -> None:
