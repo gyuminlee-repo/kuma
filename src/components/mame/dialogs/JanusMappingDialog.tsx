@@ -20,9 +20,11 @@
  * these very settings: keeping them local here would leave every run without a
  * liquid class and therefore without a file.
  *
- * Entered via: the "Janus instrument settings" button on step 2.1 (inputs, where
- * the values can be prepared before a run) and the "Open JANUS export" CTA on
- * step 3. The File menu item was removed in v0.14.7, so no text may point there.
+ * Entered via the "Janus instrument settings" button on step 3.1, the step that
+ * owns the instrument configuration. It used to be reachable from step 2.1
+ * (inputs) and from a CTA on the Activity step; both are gone, so a sequencing-only
+ * run never meets it. The File menu item was removed in v0.14.7, so no text may
+ * point there either.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";

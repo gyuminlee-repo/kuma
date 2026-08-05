@@ -121,8 +121,9 @@ describe("buildMameSnapshot", () => {
     const buildCompletion = createBuildEvolveproCompletion(
       {
         ...BUILD_EVOLVEPRO_DEFAULT_STATE,
-        layoutXlsx: "/proj/layout.xlsx",
-        gcDataXlsx: "/proj/gc.xlsx",
+        activityPath: "/proj/activity.csv",
+        activityScale: "relative_to_wt",
+        verdictXlsx: "/proj/verdict.xlsx",
         outputXlsx: "/proj/evolvepro.xlsx",
       },
       "/proj/evolvepro.xlsx",

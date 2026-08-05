@@ -17,6 +17,8 @@ describe("MameWorkflowRail", () => {
       verdicts: [],
       summary: null,
       buildEvolveproCompletion: null,
+      janusSettings: { ...useMameAppStore.getState().janusSettings, liquidClass: "" },
+      janusMappingAutosave: null,
     });
     useRoundStore.setState({ rounds: [], active_round_id: null });
   });
@@ -57,6 +59,80 @@ describe("MameWorkflowRail", () => {
     expect(
       screen.queryByRole("button", { name: "Barcode Package done" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("numbers Janus as 3.1 and pushes Activity to 4.1 / 4.2", () => {
+    render(<MameWorkflowRail />);
+
+    expect(screen.getByText("3.1")).toBeInTheDocument();
+    expect(screen.getByText("4.1")).toBeInTheDocument();
+    expect(screen.getByText("4.2")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Janus Instrument Settings/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("clicking the Janus step switches to the janus phase", async () => {
+    render(<MameWorkflowRail />);
+
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: /Janus Instrument Settings/i }));
+
+    expect(useMameAppStore.getState().mamePhase).toBe("janus");
+    expect(useMameAppStore.getState().currentMameSubStep).toBe("janus.settings");
+  });
+
+  it("leaves the Janus step not-done for a sequencing-only run", () => {
+    useMameAppStore.setState({
+      currentMameSubStep: "analyze.review",
+      verdicts: [],
+      summary: null,
+    });
+
+    render(<MameWorkflowRail />);
+
+    expect(
+      screen.queryByRole("button", { name: /Janus Instrument Settings done/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("marks the Janus step done once the liquid class is supplied", () => {
+    useMameAppStore.setState({
+      janusSettings: {
+        ...useMameAppStore.getState().janusSettings,
+        liquidClass: "Tip_50_Water",
+      },
+    });
+
+    render(<MameWorkflowRail />);
+
+    expect(
+      screen.getByRole("button", { name: /Janus Instrument Settings done/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("marks the Janus step done when a run already wrote the mapping, with no liquid class", () => {
+    // The second half of the done rule: a written `..._janus.csv` is proof the
+    // instrument sheet exists even though the liquid class was never typed.
+    useMameAppStore.setState({
+      janusMappingAutosave: {
+        status: "saved",
+        output_path: "/project/260804_MAME_96_janus.csv",
+        format: "csv",
+        row_count: 42,
+        excluded: [],
+        excluded_count: 0,
+        warnings: [],
+        errors: [],
+      },
+    });
+
+    render(<MameWorkflowRail />);
+
+    expect(
+      screen.getByRole("button", { name: /Janus Instrument Settings done/i }),
+    ).toBeInTheDocument();
   });
 
   it("marks Activity Data done when the active round has activity evidence", () => {

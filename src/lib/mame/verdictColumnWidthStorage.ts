@@ -7,7 +7,7 @@
  * is the same shape as react-resizable-panels `autoSaveId`
  * (AnalyzeStepView PanelGroup), which also keeps layout in localStorage rather
  * than in the app store, so this follows the existing
- * `*Storage.ts` read/write convention (activityRouteStorage.ts) instead of
+ * `*Storage.ts` read/write convention (buildEvolveproFormStorage.ts) instead of
  * adding view state to the MAME store.
  */
 

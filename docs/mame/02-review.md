@@ -34,4 +34,4 @@ per-barcode mutation verdict 와 96-well plate view 를 나란히 본다.
 - Verdicts table min-height 480 px, Plate plate view min-height 360 px.
 - 또는 resizable splitter 로 두 영역 자유 조절.
 
-→ [Step 3. Activity Data](03-activity.md)
+→ [Step 4. Activity Data](03-activity.md)

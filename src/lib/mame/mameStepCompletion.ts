@@ -16,6 +16,14 @@ export interface MameCompletionState {
   activityComplete: boolean;
   buildEvolveproForm: BuildEvolveproFormState;
   buildEvolveproCompletion: BuildEvolveproCompletionRecord | null;
+  /**
+   * Janus liquid class. The one instrument value with no default and no way to
+   * derive it, so it is what separates "settings were entered" from "shipped
+   * defaults". Blank never blocks a run; it only leaves step 3 not-done.
+   */
+  janusLiquidClass: string;
+  /** A run (or an export) already wrote the instrument mapping file. */
+  janusMappingWritten: boolean;
 }
 
 export function isMameSubStepDone(
@@ -37,6 +45,12 @@ export function isMameSubStepDone(
     id === "analyze.plate"
   ) {
     return state.verdicts.length > 0 || state.summary !== null;
+  }
+  if (id === "janus.settings") {
+    // Optional step: done once the operator supplied the value nothing can
+    // derive, or once a mapping file actually exists. Never a gate for step 2
+    // or step 4 — a sequencing-only run leaves this step untouched.
+    return Boolean(state.janusLiquidClass) || state.janusMappingWritten;
   }
   if (id === "activity.ingest") {
     return (

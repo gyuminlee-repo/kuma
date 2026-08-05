@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.15.12 (A run that only sequences never passes a robot)
+
+MAME asked about the cell-picking robot on the screen that collects a run's inputs. The transfer volume, the instrument settings button and, from the Activity step, a second export CTA all sat inside a workflow whose first two steps are the only ones a genotyping run needs: build the barcode package, read the plate. An operator who wanted a verdict and nothing else had the deck, the liquid class and the rack numbers in front of them on step 2.1 anyway, and nothing said any of it was optional.
+
+### Changed
+
+- v0.15.12: Janus instrument configuration is its own step 3, and the Activity step is step 4. Step 2 is the sequencing verdict and nothing else: the transfer volume, the settings/export dialog, the deck reference and the report of what the run wrote itself all live on the new step, which states in the first line that it can be skipped. The Activity pane's duplicate "Open JANUS export" button is gone, because the step that owns the dialog is now one click away in the rail rather than hidden behind a sub-step condition.
+- v0.15.12: The step stays optional in the strict sense. A run still writes `..._picks.csv` and `..._janus.csv` from whatever is stored, no gate on step 2 or step 4 consults the new step, and step 3 reports itself done only once the liquid class (the one value nothing can derive) is supplied or a mapping file exists. The rail counts six sub-steps, so Activity reads 4.1 and 4.2 where it read 3.1 and 3.2.
+
 ## v0.15.11 (The plate map gets the height it needs, not the share it was assigned)
 
 Step 2.2 stacks the plate map over the verdict breakdown and split them 34/66, a ratio with no idea how tall either one wants to be. The plate map wants 600 to 790 px for eight rows and a well inspector, so it scrolled from row D down on every window size measured, while the panel underneath had room left over: 381 px of grid hidden at 1920x1080, 442 px at 2560x1440. A scrollbar is worth having, but not while the neighbour leaves space unused.
