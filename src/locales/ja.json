@@ -719,12 +719,12 @@
         "volumeLabel": "Volume (µL)",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "例: Cell 100ul",
-        "liquidClassHint": "Liquid class はロボットのピペッティング挙動を決めるため既定値を置きません。入力するまで書き出しはできません。",
+        "liquidClassHint": "liquid class はロボットのピペッティング挙動を決めるため既定値を置きません。空のままなら列は空欄で出力され、書き出しは実行されます。",
         "deckHeading": "Deck 構成",
         "sampleTypeLabel": "type 列の値",
         "sourceRackLabel": "Asp. Rack {{plate}}",
         "destRackLabel": "Dsp. Rack",
-        "rackHint": "想定した rack 番号: ワークブックの labware 順に source plate が先、destination が最後。実際の deck に合わせて変更してください。",
+        "rackHint": "ラック番号はこの実行のプレートに従います。source プレートがプレート順に先頭の番号を取り、destination がその次です (KURO のプライマーシートと同じ)。変更するには数値を入力してください。",
         "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
         "excludedHeading": "除外 {{count}} 件",
         "excludedNone": "除外されたクローンはありません。",
@@ -735,7 +735,8 @@
           "verdict_class": "対象外の verdict class",
           "fallback": "Fallback pick"
         },
-        "selectionNote": "PASS のクローンのみを対象とします。AMBIGUOUS は副次的な indel を伴い、LOWDEPTH は未検証のため除外一覧に表示されます。"
+        "selectionNote": "PASS のクローンのみを対象とします。AMBIGUOUS は副次的な indel を伴い、LOWDEPTH は未検証のため除外一覧に表示されます。",
+        "previewWarned": "以下の内容で書き出されます。書き出しは妨げられません。"
       },
       "runReport": {
         "title": "Run レポートをエクスポート",
@@ -990,7 +991,7 @@
         "secOnly": "{{sec}} s"
       },
       "janusAutosave": {
-        "saved": "Selected clones written next to the result workbook ({{rows}} picks). This is the selection list, not a robot worklist; build that in Janus instrument settings.",
+        "saved": "選抜したクローンを結果ワークブックの隣に保存しました ({{rows}} 件)。これは選抜リストで、装置用シートは隣のファイルです。",
         "skipped": "No clone met the selection criteria, so no selection list was written.",
         "failed": "The selection list was not written.",
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
@@ -998,7 +999,17 @@
       "janusSettings": {
         "open": "Janus instrument settings...",
         "openAriaLabel": "Open Janus instrument settings",
-        "hint": "Optional. Liquid class and deck rack numbers are needed only for the robot worklist; the selection list this run writes needs none of them."
+        "hint": "任意です。ラック番号はこの実行のプレート順に従い、liquid class は未設定なら空欄のまま出力されます。上書きしたいときだけ入力してください。"
+      },
+      "janusMappingAutosave": {
+        "saved": "装置用マッピングを結果ワークブックの隣に保存しました ({{rows}} 行)。ロボットが読む 9 列形式です。",
+        "skipped": "選抜基準を満たすクローンがなく、装置用マッピングは書き出されませんでした。",
+        "failed": "装置用マッピングを書き出せませんでした。",
+        "excluded": "{{clones}} 件のクローンがマッピングから外れました。理由は Janus 装置設定で確認してください。"
+      },
+      "janusVolume": {
+        "label": "移送 volume (µL)",
+        "hint": "この実行が作る装置用マッピングにそのまま入ります。既定の 100 µL は実験室の根拠がない仮定なので、今回の実験で使う値に変更してください。"
       }
     },
     "buildEvolvepro": {

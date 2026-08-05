@@ -212,7 +212,7 @@
         "secOnly": "{{sec}}초"
       },
       "janusAutosave": {
-        "saved": "선정한 클론을 결과 워크북 옆에 저장했습니다 ({{rows}}개). 선정 결과 파일이며 장비용 worklist 가 아닙니다. worklist 는 Janus 장비 설정에서 만듭니다.",
+        "saved": "선정한 클론을 결과 워크북 옆에 저장했습니다 ({{rows}}개). 선정 결과 파일이며, 장비용 시트는 그 옆의 파일입니다.",
         "skipped": "선정 기준을 통과한 클론이 없어 선정 결과 파일을 쓰지 않았습니다.",
         "failed": "선정 결과 파일을 쓰지 못했습니다.",
         "excluded": "{{clones}}개 클론이 선정에서 빠졌습니다. Janus 장비 설정에서 이유를 확인하세요."
@@ -220,7 +220,17 @@
       "janusSettings": {
         "open": "Janus 장비 설정...",
         "openAriaLabel": "Janus 장비 설정 열기",
-        "hint": "선택 사항입니다. liquid class 와 rack 번호는 장비용 worklist 를 만들 때만 필요하며, 이번 실행이 쓰는 선정 결과 파일에는 쓰이지 않습니다."
+        "hint": "선택 사항입니다. rack 번호는 이번 실행의 plate 순서를 따르고 liquid class 는 비워 둔 채 나갑니다. 다른 값을 쓰고 싶을 때만 입력하세요."
+      },
+      "janusMappingAutosave": {
+        "saved": "장비용 매핑 파일을 결과 워크북 옆에 저장했습니다 ({{rows}}행). 로봇이 읽는 9열 형식입니다.",
+        "skipped": "선정 기준을 통과한 클론이 없어 장비용 매핑 파일을 쓰지 않았습니다.",
+        "failed": "장비용 매핑 파일을 쓰지 못했습니다.",
+        "excluded": "{{clones}}개 클론이 매핑에서 빠졌습니다. Janus 장비 설정에서 이유를 확인하세요."
+      },
+      "janusVolume": {
+        "label": "이송 volume (µL)",
+        "hint": "이번 실행이 만드는 장비용 매핑 파일에 그대로 들어갑니다. 기본값 100 µL 는 실험실 근거가 없는 가정이므로 이번 실험에서 쓰는 값으로 바꾸세요."
       }
     },
     "nativeBarcodeDialog": {
@@ -865,12 +875,12 @@
         "volumeLabel": "Volume (µL)",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "예: Cell 100ul",
-        "liquidClassHint": "Liquid class는 로봇의 피펫팅 거동을 결정하므로 기본값을 두지 않습니다. 입력 전까지 내보내기가 막힙니다.",
+        "liquidClassHint": "Liquid class 는 로봇의 피펫팅 거동을 결정하므로 기본값을 두지 않습니다. 비워 두면 해당 칸이 빈 채로 나가며 내보내기는 그대로 진행됩니다.",
         "deckHeading": "Deck 구성",
         "sampleTypeLabel": "type 열 값",
         "sourceRackLabel": "Asp. Rack {{plate}}",
         "destRackLabel": "Dsp. Rack",
-        "rackHint": "가정한 rack 번호: 워크북 labware 순서대로 source plate가 먼저, destination이 마지막. 실제 deck에 맞게 수정하세요.",
+        "rackHint": "Rack 번호는 이번 실행의 plate 를 따릅니다. source plate 가 plate 순서대로 앞 번호를 쓰고 destination 이 그다음 번호입니다 (KURO primer 시트와 동일). 바꾸려면 숫자를 입력하세요.",
         "rackPlatesPending": "plate 이름은 실행에서 나옵니다. 분석 전에는 이전에 저장한 plate 목록이 보이며, 분석을 실행하면 실제 사용한 plate 가 표시됩니다.",
         "excludedHeading": "제외 {{count}}건",
         "excludedNone": "제외된 클론이 없습니다.",
@@ -881,7 +891,8 @@
           "verdict_class": "포함하지 않은 verdict class",
           "fallback": "Fallback pick"
         },
-        "selectionNote": "PASS 클론만 담습니다. AMBIGUOUS는 부수 indel이 있고 LOWDEPTH는 미검증이라 제외 목록에 표시됩니다."
+        "selectionNote": "PASS 클론만 담습니다. AMBIGUOUS는 부수 indel이 있고 LOWDEPTH는 미검증이라 제외 목록에 표시됩니다.",
+        "previewWarned": "아래 내용대로 기록됩니다. 내보내기를 막지는 않습니다."
       },
       "runReport": {
         "title": "실행 보고서 내보내기",

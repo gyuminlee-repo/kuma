@@ -84,6 +84,8 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   const analyzeTotal = useMameAppStore((s) => s.analyzeTotal);
   const analyzeStage = useMameAppStore((s) => s.analyzeStage);
   const analyzeStartedAt = useMameAppStore((s) => s.analyzeStartedAt);
+  const janusSettings = useMameAppStore((s) => s.janusSettings);
+  const setJanusSettings = useMameAppStore((s) => s.setJanusSettings);
   // Written only where a run applies its response; cleared at run start and on
   // cancel/failure. So a null -> number edge is exactly one finished run.
   const analyzeDurationMs = useMameAppStore((s) => s.analyzeDurationMs);
@@ -267,11 +269,43 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               the run's outcome, not a detail of the export dialog. */}
           <JanusAutosaveNotice />
 
-          {/* Janus instrument settings. Optional, and never a run gate: the pick
-              list the run writes needs none of these values. Only an entry point
+          {/* Transfer volume, the one instrument value nothing can derive: how
+              much of a cell stock to move is an experimental condition, unlike
+              the deck numbers (taken from the plates of the run) and the liquid
+              class (left blank when unset). It sits here rather than only in the
+              dialog because the run writes the instrument sheet on its own, and
+              the shipped 100 µL is an assumption with no lab source. */}
+          <div className="space-y-1">
+            <label
+              htmlFor="mame-janus-volume"
+              className="text-caption font-medium text-muted-foreground"
+            >
+              {t("mame.analyze.janusVolume.label")}
+            </label>
+            <input
+              id="mame-janus-volume"
+              type="number"
+              min={0}
+              step="any"
+              value={janusSettings.volume}
+              onChange={(e) => {
+                const parsed = Number.parseFloat(e.target.value);
+                if (Number.isFinite(parsed) && parsed > 0) {
+                  setJanusSettings({ ...janusSettings, volume: parsed });
+                }
+              }}
+              className="h-control w-full rounded-control border border-border bg-background px-2 text-caption"
+            />
+            <p className="text-caption text-muted-foreground">
+              {t("mame.analyze.janusVolume.hint")}
+            </p>
+          </div>
+
+          {/* Janus instrument settings. Optional, and never a run gate: the run
+              writes both files without any of these values. Only an entry point
               lives here (the dialog carries deck preview, row preview and the
               export), so the inputs step stays a step about inputs. Enabled
-              before a run too, so the liquid class can be prepared in advance. */}
+              before a run too, so the values can be prepared in advance. */}
           <div className="space-y-1">
             <Button
               variant="outline"

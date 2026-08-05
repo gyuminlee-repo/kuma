@@ -719,12 +719,12 @@
         "volumeLabel": "Volume (µL)",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "p. ej. Cell 100ul",
-        "liquidClassHint": "La liquid class determina el comportamiento de pipeteo del robot, por eso no hay valor por defecto. La exportación queda bloqueada hasta indicarla.",
+        "liquidClassHint": "La liquid class determina el comportamiento de pipeteo del robot, por lo que no se asume un valor por defecto. Vacia, la columna sale en blanco y la exportacion continua.",
         "deckHeading": "Configuración del deck",
         "sampleTypeLabel": "valor de la columna type",
         "sourceRackLabel": "Asp. Rack {{plate}}",
         "destRackLabel": "Dsp. Rack",
-        "rackHint": "Numeración de rack asumida: placas de origen primero según el orden de labware del libro, destino al final. Ajústela al deck real.",
+        "rackHint": "Los numeros de rack siguen las placas de esta ejecucion: las placas de origen ocupan los primeros racks en orden de placa y el destino el siguiente, como en la hoja de primers de KURO. Escriba un numero para sobrescribir.",
         "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
         "excludedHeading": "Excluidos: {{count}}",
         "excludedNone": "Ningún clon quedó excluido.",
@@ -735,7 +735,8 @@
           "verdict_class": "Verdict class no incluida",
           "fallback": "Selección de respaldo"
         },
-        "selectionNote": "Solo se incluyen los clones PASS. AMBIGUOUS lleva un indel acompañante y LOWDEPTH no está verificado, por eso ambos figuran como excluidos."
+        "selectionNote": "Solo se incluyen los clones PASS. AMBIGUOUS lleva un indel acompañante y LOWDEPTH no está verificado, por eso ambos figuran como excluidos.",
+        "previewWarned": "Se escribira como se indica abajo. Nada de esto bloquea la exportacion."
       },
       "runReport": {
         "title": "Exportar informe de la corrida",
@@ -990,7 +991,7 @@
         "secOnly": "{{sec}} s"
       },
       "janusAutosave": {
-        "saved": "Selected clones written next to the result workbook ({{rows}} picks). This is the selection list, not a robot worklist; build that in Janus instrument settings.",
+        "saved": "Clones seleccionados escritos junto al libro de resultados ({{rows}} selecciones). Esta es la lista de seleccion; la hoja del instrumento esta al lado.",
         "skipped": "No clone met the selection criteria, so no selection list was written.",
         "failed": "The selection list was not written.",
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
@@ -998,7 +999,17 @@
       "janusSettings": {
         "open": "Janus instrument settings...",
         "openAriaLabel": "Open Janus instrument settings",
-        "hint": "Optional. Liquid class and deck rack numbers are needed only for the robot worklist; the selection list this run writes needs none of them."
+        "hint": "Opcional. Los numeros de rack siguen las placas de esta ejecucion y la liquid class sale vacia si no se define; introduzca valores solo para sobrescribir."
+      },
+      "janusMappingAutosave": {
+        "saved": "Mapeo del instrumento escrito junto al libro de resultados ({{rows}} filas), en las 9 columnas que lee el robot.",
+        "skipped": "Ningun clon cumplio los criterios de seleccion, por lo que no se escribio el mapeo del instrumento.",
+        "failed": "No se pudo escribir el mapeo del instrumento.",
+        "excluded": "{{clones}} clon(es) quedaron fuera del mapeo. Abra la configuracion del instrumento Janus para ver por que."
+      },
+      "janusVolume": {
+        "label": "Volumen de transferencia (uL)",
+        "hint": "Se escribe en el mapeo del instrumento que produce esta ejecucion. Los 100 uL de fabrica son una suposicion sin fuente de laboratorio: indique el volumen de este experimento."
       }
     },
     "buildEvolvepro": {

@@ -432,8 +432,12 @@ def test_preview_collects_every_problem_at_once() -> None:
     ]
     # Every entry carries the same shape so consumers never branch on presence.
     for entry in preview["errors"]:
-        assert set(entry.keys()) == {"code", "message", "mutant_ids"}
+        assert set(entry.keys()) == {"code", "severity", "message", "mutant_ids"}
+        assert entry["severity"] == "error"
         assert isinstance(entry["mutant_ids"], list)
+    for entry in preview["warnings"]:
+        assert set(entry.keys()) == {"code", "severity", "message", "mutant_ids"}
+        assert entry["severity"] == "warning"
 
 
 def test_export_still_fails_fast_on_the_same_problems(tmp_path: Path) -> None:

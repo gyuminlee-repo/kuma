@@ -62,9 +62,13 @@ def _janus_settings_from_params(params: dict):
             "legacy5" (kuma-internal 5 columns).
         volume (number): dispense volume in µL (device9 only).
         sample_type (str): ``type`` column value (device9 only).
-        liquid_class (str): liquid/labware class string (device9 only, required).
-        source_racks (dict[str, int]): plate label -> Asp. Rack number.
-        dest_rack (int): Dsp. Rack number.
+        liquid_class (str): liquid/labware class string (device9 only). Blank is
+            allowed: the column ships empty and the preview warns.
+        source_racks (dict[str, int]): plate label -> Asp. Rack number. Operator
+            overrides only; omitted or empty derives the numbers from the plates
+            of the run (``JanusSettings.resolve_deck``).
+        dest_rack (int | None): Dsp. Rack number. ``None`` derives it as one past
+            the last source rack.
 
     Raises ``ValueError`` on any invalid value.
     """
@@ -127,6 +131,8 @@ def _janus_settings_from_params(params: dict):
 
     raw_dest_rack = params.get("dest_rack")
     if raw_dest_rack is None:
+        # Derive it: the operator is asked for nothing here (DEFAULT_DEST_RACK
+        # is None for that reason).
         dest_rack = DEFAULT_DEST_RACK
     else:
         try:
@@ -275,8 +281,7 @@ def handle_export_janus_mapping(params: dict) -> dict:
 
     Raises ``RuntimeError`` if no analyze has been run in this session.
     Raises ``ValueError`` on an invalid argument, or when the core rejects the
-    row set (unresolved well, >96 picks, duplicate dest_well, missing liquid
-    class, unmapped source rack).
+    row set (unresolved well, >96 picks, duplicate dest_well).
 
     Phase 1 note: priority_score column carries file_size_kb as a volume proxy.
     G6/A6 round will replace with actual read_count once fasta_parser exposes
@@ -330,6 +335,9 @@ def handle_export_janus_mapping(params: dict) -> dict:
         "row_count": preview["row_count"],
         "excluded": preview["excluded"],
         "excluded_count": preview["excluded_count"],
+        # What the written file left blank or derived. Reported after the fact
+        # because none of it withholds the file.
+        "warnings": preview["warnings"],
         "settings": preview["settings"],
     }
 
@@ -345,11 +353,14 @@ def handle_export_janus_mapping_dry_run(params: dict) -> dict:
     Params: every selection and instrument param of
     ``_janus_settings_from_params`` (no ``output``: nothing is written).
 
-    Returns ``{"rows", "errors", "row_count", "excluded", "excluded_count",
-    "settings"}``. Each error is ``{"code", "message", "mutant_ids"}`` with code
-    one of ``unresolved_well``, ``plate_capacity``, ``duplicate_dest_well``,
-    ``missing_liquid_class``, ``unknown_source_rack``. Each excluded entry is
-    ``{"mutant_id", "reason", "verdict", "selected_plate", "is_fallback"}``.
+    Returns ``{"rows", "errors", "warnings", "row_count", "excluded",
+    "excluded_count", "settings"}``. Each finding is ``{"code", "severity",
+    "message", "mutant_ids"}``. ``errors`` blocks the export and carries
+    ``unresolved_well``, ``plate_capacity``, ``duplicate_dest_well``.
+    ``warnings`` never blocks and carries ``missing_liquid_class`` (the column
+    ships blank) and ``derived_source_rack`` (deck numbers taken from the run).
+    Each excluded entry is ``{"mutant_id", "reason", "verdict",
+    "selected_plate", "is_fallback"}``.
 
     Raises ``RuntimeError`` if no analyze has been run in this session, and
     ``ValueError`` on an invalid setting.

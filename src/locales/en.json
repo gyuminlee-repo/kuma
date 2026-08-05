@@ -212,7 +212,7 @@
         "secOnly": "{{sec}} s"
       },
       "janusAutosave": {
-        "saved": "Selected clones written next to the result workbook ({{rows}} picks). This is the selection list, not a robot worklist; build that in Janus instrument settings.",
+        "saved": "Selected clones written next to the result workbook ({{rows}} picks). This is the selection list; the instrument sheet is the file beside it.",
         "skipped": "No clone met the selection criteria, so no selection list was written.",
         "failed": "The selection list was not written.",
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
@@ -220,7 +220,17 @@
       "janusSettings": {
         "open": "Janus instrument settings...",
         "openAriaLabel": "Open Janus instrument settings",
-        "hint": "Optional. Liquid class and deck rack numbers are needed only for the robot worklist; the selection list this run writes needs none of them."
+        "hint": "Optional. Deck rack numbers follow the plates of this run and the liquid class ships blank when unset; enter values here only to override them."
+      },
+      "janusMappingAutosave": {
+        "saved": "Instrument mapping written next to the result workbook ({{rows}} rows), in the 9 columns the robot reads.",
+        "skipped": "No clone met the selection criteria, so no instrument mapping was written.",
+        "failed": "The instrument mapping was not written.",
+        "excluded": "{{clones}} clone(s) left out of the mapping. Open Janus instrument settings to see why."
+      },
+      "janusVolume": {
+        "label": "Transfer volume (uL)",
+        "hint": "Written into the instrument mapping this run produces. The shipped 100 uL is an assumption with no lab source, so set the volume this experiment uses."
       }
     },
     "nativeBarcodeDialog": {
@@ -865,12 +875,12 @@
         "volumeLabel": "Volume (µL)",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "e.g. Cell 100ul",
-        "liquidClassHint": "The liquid class drives the pipetting behaviour of the robot, so no default is assumed. Export stays blocked until it is set.",
+        "liquidClassHint": "The liquid class drives the pipetting behaviour of the robot, so no default is assumed. Left empty the column ships blank and the export still runs.",
         "deckHeading": "Deck configuration",
         "sampleTypeLabel": "type column",
         "sourceRackLabel": "Asp. Rack {{plate}}",
         "destRackLabel": "Dsp. Rack",
-        "rackHint": "Assumed rack numbering: source plates first in workbook labware order, destination last. Adjust to match the deck.",
+        "rackHint": "Rack numbers follow the plates of this run: source plates take the first racks in plate order and the destination the next, as in the KURO primer sheet. Type a number to override one.",
         "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
         "excludedHeading": "Excluded: {{count}}",
         "excludedNone": "Every clone made the pick.",
@@ -881,7 +891,8 @@
           "verdict_class": "Verdict class not included",
           "fallback": "Fallback pick"
         },
-        "selectionNote": "Only PASS clones ship. AMBIGUOUS carries a side indel and LOWDEPTH is unverified, so both are listed as excluded."
+        "selectionNote": "Only PASS clones ship. AMBIGUOUS carries a side indel and LOWDEPTH is unverified, so both are listed as excluded.",
+        "previewWarned": "Written as noted below. None of this blocks the export."
       },
       "runReport": {
         "title": "Export Run Report",

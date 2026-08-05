@@ -719,12 +719,12 @@
         "volumeLabel": "Volume (µL)",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "z. B. Cell 100ul",
-        "liquidClassHint": "Die Liquid class steuert das Pipettierverhalten des Roboters, daher gibt es keinen Standardwert. Der Export bleibt bis zur Eingabe gesperrt.",
+        "liquidClassHint": "Die Liquid Class bestimmt das Pipettierverhalten des Roboters, daher gibt es keinen Standardwert. Leer gelassen bleibt die Spalte leer und der Export laeuft trotzdem.",
         "deckHeading": "Deck-Konfiguration",
         "sampleTypeLabel": "type-Spaltenwert",
         "sourceRackLabel": "Asp. Rack {{plate}}",
         "destRackLabel": "Dsp. Rack",
-        "rackHint": "Angenommene Rack-Nummern: Quellplatten zuerst in der Labware-Reihenfolge der Arbeitsmappe, Zielplatte zuletzt. An das Deck anpassen.",
+        "rackHint": "Racknummern folgen den Platten dieses Laufs: Quellplatten belegen die ersten Racks in Plattenreihenfolge, das Ziel das naechste, wie im KURO Primerblatt. Zum Ueberschreiben eine Zahl eingeben.",
         "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
         "excludedHeading": "Ausgeschlossen: {{count}}",
         "excludedNone": "Kein Klon wurde ausgeschlossen.",
@@ -735,7 +735,8 @@
           "verdict_class": "Verdict class nicht einbezogen",
           "fallback": "Fallback-Pick"
         },
-        "selectionNote": "Nur PASS-Klone werden übernommen. AMBIGUOUS trägt ein begleitendes Indel, LOWDEPTH ist ungeprüft, beide erscheinen in der Ausschlussliste."
+        "selectionNote": "Nur PASS-Klone werden übernommen. AMBIGUOUS trägt ein begleitendes Indel, LOWDEPTH ist ungeprüft, beide erscheinen in der Ausschlussliste.",
+        "previewWarned": "Wird wie unten vermerkt geschrieben. Nichts davon blockiert den Export."
       },
       "runReport": {
         "title": "Export Ausführen Report",
@@ -990,7 +991,7 @@
         "secOnly": "{{sec}} s"
       },
       "janusAutosave": {
-        "saved": "Selected clones written next to the result workbook ({{rows}} picks). This is the selection list, not a robot worklist; build that in Janus instrument settings.",
+        "saved": "Ausgewaehlte Klone neben der Ergebnisdatei gespeichert ({{rows}} Picks). Dies ist die Auswahlliste; das Geraeteblatt liegt daneben.",
         "skipped": "No clone met the selection criteria, so no selection list was written.",
         "failed": "The selection list was not written.",
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
@@ -998,7 +999,17 @@
       "janusSettings": {
         "open": "Janus instrument settings...",
         "openAriaLabel": "Open Janus instrument settings",
-        "hint": "Optional. Liquid class and deck rack numbers are needed only for the robot worklist; the selection list this run writes needs none of them."
+        "hint": "Optional. Racknummern folgen den Platten dieses Laufs, die Liquid Class bleibt leer, wenn nicht gesetzt. Werte hier nur zum Ueberschreiben eingeben."
+      },
+      "janusMappingAutosave": {
+        "saved": "Geraete-Mapping neben der Ergebnisdatei gespeichert ({{rows}} Zeilen), in den 9 Spalten, die der Roboter liest.",
+        "skipped": "Kein Klon erfuellte die Auswahlkriterien, daher wurde kein Geraete-Mapping geschrieben.",
+        "failed": "Das Geraete-Mapping wurde nicht geschrieben.",
+        "excluded": "{{clones}} Klon(e) nicht im Mapping. Gruende in den Janus Geraeteeinstellungen."
+      },
+      "janusVolume": {
+        "label": "Transfervolumen (uL)",
+        "hint": "Wird in das Geraete-Mapping dieses Laufs geschrieben. Die ausgelieferten 100 uL sind eine Annahme ohne Laborquelle, also den Wert dieses Experiments setzen."
       }
     },
     "buildEvolvepro": {

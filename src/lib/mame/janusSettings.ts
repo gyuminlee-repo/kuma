@@ -17,11 +17,17 @@ import type { JanusExportSettings } from "@/types/mame/models";
  * Only fully verified clones ship: AMBIGUOUS carries a side indel that would
  * mislabel an activity measurement and LOWDEPTH is unverified, so both stay out
  * unless the operator opts in. A stock plate is a new plate, hence the compact
- * layout. `liquidClass` is deliberately empty: it drives the pipetting
- * behaviour of the robot, so the sidecar blocks the export until it is set.
+ * layout.
  *
- * `volume`, `sampleType`, and the rack numbers are stated assumptions with no
- * lab source in this repository; the dialog surfaces them for editing.
+ * Nothing here is asked of the operator except `volume`. `liquidClass` is
+ * empty because it drives the pipetting behaviour of the robot and nothing may
+ * guess it; the column simply ships blank and the preview warns. `sourceRacks`
+ * is empty and `destRack` is null because the sidecar derives the deck from the
+ * plates of the run, the way KURO already numbers this instrument.
+ *
+ * `volume` is the one value that cannot be derived (how much of a cell stock to
+ * transfer is an experimental condition) and the 100 µL here is a stated
+ * assumption with no lab source in this repository, which the UI says out loud.
  */
 export const DEFAULT_JANUS_SETTINGS: JanusExportSettings = {
   destLayout: "compact",
@@ -31,8 +37,8 @@ export const DEFAULT_JANUS_SETTINGS: JanusExportSettings = {
   volume: 100,
   sampleType: "cell",
   liquidClass: "",
-  sourceRacks: { NB01: 1, NB02: 2, NB03: 3 },
-  destRack: 4,
+  sourceRacks: {},
+  destRack: null,
 };
 
 /**
@@ -62,9 +68,9 @@ export const JANUS_SETTINGS_STORAGE_KEY = "kuma:mame:janusSettings";
 /**
  * Read the stored Janus policy, falling back to {@link DEFAULT_JANUS_SETTINGS}.
  *
- * Persisted because an analyze run now writes the mapping on its own: without a
- * liquid class the sidecar refuses, so an operator who set one in the dialog
- * would otherwise have to set it again before every session's first run.
+ * Persisted because an analyze run writes both files on its own: whatever the
+ * operator set here (volume above all) has to still be in force at the next
+ * session's first run, without reopening the dialog.
  * Unknown or malformed content is ignored rather than repaired; the defaults
  * are the safe reading.
  */

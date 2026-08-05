@@ -27,7 +27,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
-import { AlertCircle, CheckCircle2, Download, FolderOpen } from "lucide-react";
+import { AlertCircle, CheckCircle2, Download, FolderOpen, Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useKumaProject } from "@/state/projectContext";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
@@ -48,7 +48,6 @@ import {
   fetchMameJanusPreview,
   handleExportMameJanusMapping,
 } from "@/lib/mame/janus";
-import { DEFAULT_JANUS_SETTINGS } from "@/lib/mame/janusSettings";
 import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
 import type {
   JanusDestLayout,
@@ -57,6 +56,7 @@ import type {
   JanusExportSettings,
   JanusOutputSchema,
   JanusPreviewResult,
+  JanusSourceRacks,
 } from "@/types/mame/models";
 
 /**
@@ -71,8 +71,9 @@ import type {
  * (`src/lib/mame/nbLabel.ts` holds the JS equivalent where one is needed).
  *
  * Before a run there are no plate names to show (they come from the barcodes of
- * that run), so the fallback is whatever the operator already stored, and the
- * shipped default only when even that is empty.
+ * that run), so the fallback is whatever the operator already stored, and
+ * nothing at all when even that is empty: the shipped settings no longer carry
+ * a deck, because the sidecar derives one from the plates of the run.
  */
 function sourcePlatesFromPreview(
   preview: JanusPreviewResult | null,
@@ -83,8 +84,7 @@ function sourcePlatesFromPreview(
   ];
   if (fromRun.length > 0) return fromRun.sort();
   const stored = Object.keys(settings.sourceRacks);
-  if (stored.length > 0) return stored.sort();
-  return Object.keys(DEFAULT_JANUS_SETTINGS.sourceRacks).sort();
+  return stored.sort();
 }
 
 /** Preview refresh delay, so typing into a text field is one RPC, not one per key. */
@@ -131,11 +131,15 @@ function previewCellValue(
     case "3:no":
       return String(rowIdx + 1);
     case "4:Asp. Rack":
-      return String(settings.source_racks[row.source_plate] ?? "");
+      // The resolved deck, not the operator's overrides alone: a plate nobody
+      // typed a number for still gets one, derived from the run.
+      return String(
+        (settings.resolved_source_racks ?? settings.source_racks)[row.source_plate] ?? "",
+      );
     case "5:Asp. Posi":
       return row.source_well;
     case "6:Dsp. Rack":
-      return String(settings.dest_rack);
+      return String(settings.resolved_dest_rack ?? settings.dest_rack ?? "");
     case "7:Dsp. Posi":
       return row.dest_well;
     case "8:volume":
@@ -208,6 +212,11 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
 
   const previewErrors = preview?.errors ?? [];
   const hasPreviewErrors = previewErrors.length > 0;
+  // Reported, never enforced: a blank liquid class and a derived rack number
+  // are things the operator has to see, not reasons to withhold a file.
+  const previewWarnings = preview?.warnings ?? [];
+  const resolvedRacks: JanusSourceRacks = preview?.settings.resolved_source_racks ?? {};
+  const resolvedDestRack = preview?.settings.resolved_dest_rack ?? null;
   const excluded = preview?.excluded ?? [];
   const isDevice9 = settings.outputSchema === "device9";
   const sourcePlates = sourcePlatesFromPreview(preview, settings);
@@ -486,7 +495,7 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
                           type="number"
                           min={1}
                           step={1}
-                          value={settings.sourceRacks[plate] ?? ""}
+                          value={settings.sourceRacks[plate] ?? resolvedRacks[plate] ?? ""}
                           onChange={(e) => patchSourceRack(plate, e.target.value)}
                           className="h-9 w-full text-sm"
                           disabled={isExporting}
@@ -505,11 +514,11 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
                         type="number"
                         min={1}
                         step={1}
-	                        value={settings.destRack}
-	                        onChange={(e) => {
-	                          const parsed = parsePositiveIntegerInput(e.target.value);
-	                          if (parsed !== null) patchSettings({ destRack: parsed });
-	                        }}
+                        value={settings.destRack ?? resolvedDestRack ?? ""}
+                        onChange={(e) => {
+                          const parsed = parsePositiveIntegerInput(e.target.value);
+                          if (parsed !== null) patchSettings({ destRack: parsed });
+                        }}
                         className="h-9 w-full text-sm"
                         disabled={isExporting}
                       />
@@ -564,6 +573,32 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
                         aria-hidden="true"
                       />
                       <span className="text-caption text-error">{e.message}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Reported, not enforced: Export stays enabled. */}
+            {previewWarnings.length > 0 && (
+              <div
+                data-testid="janus-preview-warnings"
+                className="space-y-1 rounded-control border border-border bg-muted/30 px-3 py-2"
+                role="status"
+                aria-live="polite"
+              >
+                <p className="text-caption font-medium text-muted-foreground">
+                  {t("mame.dialogs.janusMapping.previewWarned")}
+                </p>
+                <ul className="space-y-1">
+                  {previewWarnings.map((w) => (
+                    <li key={w.code} className="flex items-start gap-2">
+                      <Info
+                        size={13}
+                        className="mt-0.5 flex-shrink-0 text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                      <span className="text-caption text-muted-foreground">{w.message}</span>
                     </li>
                   ))}
                 </ul>

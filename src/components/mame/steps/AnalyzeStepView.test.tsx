@@ -106,6 +106,7 @@ vi.mock("react-resizable-panels", () => ({
 
 import { AnalyzeStepView } from "./AnalyzeStepView";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { DEFAULT_JANUS_SETTINGS } from "@/lib/mame/janusSettings";
 import type {
   AnalyzeSummary,
   DistributionStats,
@@ -687,8 +688,9 @@ describe("AnalyzeStepView (run duration popup)", () => {
  *
  * The File menu item that used to open the dialog was removed in v0.14.7, which
  * left the liquid class and the deck rack numbers with no reachable input on the
- * screen that collects the run's other inputs. They stay optional: the pick list
- * a run writes needs none of them.
+ * screen that collects the run's other inputs. They stay optional: the two files
+ * a run writes need none of them, except the transfer volume, which is the one
+ * value nothing can derive and which therefore sits on the step itself.
  */
 describe("AnalyzeStepView (Janus settings entry point)", () => {
   beforeEach(() => {
@@ -700,6 +702,7 @@ describe("AnalyzeStepView (Janus settings entry point)", () => {
       summary: null,
       verdicts: [],
       analyzeDurationMs: null,
+      janusSettings: DEFAULT_JANUS_SETTINGS,
     });
   });
 
@@ -718,6 +721,21 @@ describe("AnalyzeStepView (Janus settings entry point)", () => {
     expect(
       screen.getByRole("button", { name: "Open Janus instrument settings" }),
     ).toBeEnabled();
+  });
+
+  it("puts the transfer volume on the inputs step, labelled as an assumption", () => {
+    // The one instrument value nothing can derive: the deck numbers come from
+    // the plates of the run and the liquid class ships blank, so volume is all
+    // the operator has to decide before the run writes its instrument sheet.
+    render(<AnalyzeStepView />);
+
+    const field = screen.getByLabelText(/Transfer volume/i) as HTMLInputElement;
+    expect(field.value).toBe("100");
+    expect(screen.getByText(/assumption with no lab source/i)).toBeTruthy();
+
+    fireEvent.change(field, { target: { value: "45" } });
+
+    expect(useMameAppStore.getState().janusSettings.volume).toBe(45);
   });
 
   it("leaves the run enabled while the instrument settings are unset", () => {

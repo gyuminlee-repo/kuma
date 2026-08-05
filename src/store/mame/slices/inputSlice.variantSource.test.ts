@@ -6,9 +6,9 @@
  *   - the sheet and column the operator picked have to reach every call that
  *     reads that file. If the validation and the run read different columns,
  *     the run is validated against rows nobody looked at.
- *   - the analyze run writes the Janus mapping itself, and the sidecar refuses
- *     without a liquid class. Sending the dialog settings is the whole
- *     difference between a file and a `missing_liquid_class` failure.
+ *   - the analyze run writes both Janus files itself. The sidecar no longer
+ *     refuses over a blank liquid class, but the operator's settings (volume
+ *     above all) still have to reach the call that writes them.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppState } from "../types";
@@ -43,12 +43,23 @@ const ANALYZE_REPLY = {
   distribution_stats: null,
   janus_autosave: {
     status: "saved",
+    output_path: "D:/project/result_picks.csv",
+    format: "csv",
+    row_count: 12,
+    excluded: [],
+    excluded_count: 0,
+    errors: [],
+    warnings: [],
+  },
+  janus_mapping_autosave: {
+    status: "saved",
     output_path: "D:/project/result_janus.csv",
     format: "csv",
     row_count: 12,
     excluded: [],
     excluded_count: 0,
     errors: [],
+    warnings: [],
   },
 };
 

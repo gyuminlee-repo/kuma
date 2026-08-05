@@ -157,6 +157,7 @@ const mameInputInitialState = {
   variantSelectionExplicit: false,
   janusSettings: loadJanusSettings(),
   janusAutosave: null as JanusAutosaveResult | null,
+  janusMappingAutosave: null as JanusAutosaveResult | null,
 };
 
 /**
@@ -524,10 +525,13 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     })();
     get().setOutputPath(outDir);
     get().setDistributionStats(result.distribution_stats ?? null);
-    // The run wrote (or could not write) its Janus mapping. Kept so the result
+    // The run wrote (or could not write) its two Janus files. Kept so the result
     // view can state it; swallowing it leaves the operator looking for a file
     // that was never created.
-    set({ janusAutosave: result.janus_autosave ?? null });
+    set({
+      janusAutosave: result.janus_autosave ?? null,
+      janusMappingAutosave: result.janus_mapping_autosave ?? null,
+    });
     // Persist the FULL analyze response AS-IS (sibling result file) once on
     // success, so restart can replay it into the sidecar + restore the 2.2
     // review view. Awaited so an immediate app-close does not lose it. Failure
@@ -646,7 +650,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       })();
       get().setOutputPath(outDir);
       get().setDistributionStats(result.distribution_stats ?? null);
-      set({ janusAutosave: result.janus_autosave ?? null });
+      set({
+        janusAutosave: result.janus_autosave ?? null,
+        janusMappingAutosave: result.janus_mapping_autosave ?? null,
+      });
       try {
         await writeMameResultSnapshot(get().projectPath, result);
       } catch (err) {

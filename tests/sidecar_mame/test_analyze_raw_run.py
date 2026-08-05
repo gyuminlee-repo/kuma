@@ -225,14 +225,15 @@ def test_handle_analyze_consensus_dir_backward_compatible(
     # Legacy milestones are present.
     assert {5, 10, 30, 60, 85, 100}.issubset(set(values)), values
 
-    # Response keeps the legacy keys plus two additive ones: `designed_mutant_ids`
+    # Response keeps the legacy keys plus three additive ones: `designed_mutant_ids`
     # (carries the designed-mutant set into the saved workspace so recovery
-    # survives a load_analyze_result reload) and `janus_autosave` (the outcome of
-    # writing the run's Janus mapping, always present so the frontend never has to
-    # tell "not attempted" from "attempted and lost"). Still no raw-run-only keys.
+    # survives a load_analyze_result reload), `janus_autosave` (the pick list) and
+    # `janus_mapping_autosave` (the instrument sheet). Both autosave keys are
+    # always present so the frontend never has to tell "not attempted" from
+    # "attempted and lost". Still no raw-run-only keys.
     assert set(result.keys()) == {
         "verdicts", "replicates", "output_path", "summary", "distribution_stats",
-        "designed_mutant_ids", "janus_autosave",
+        "designed_mutant_ids", "janus_autosave", "janus_mapping_autosave",
     }
     assert "assigned_reads" not in result
     assert "wells_with_reads" not in result

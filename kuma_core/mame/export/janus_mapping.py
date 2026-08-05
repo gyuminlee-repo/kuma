@@ -50,11 +50,12 @@ from __future__ import annotations
 
 import csv
 import datetime
+from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from kuma_core.mame.export.nb_label import nb_label
+from kuma_core.mame.export.nb_label import nb_label, nb_order_key
 from kuma_core.mame.export.well_mapper import seq_to_well
 from kuma_core.mame.models import ReplicateResult, VerdictClass
 
@@ -88,6 +89,12 @@ _JANUS_DEVICE9_HEADER = [
     "volume",
 ]
 
+# Finding severity. ``error`` withholds the file (the rows themselves cannot be
+# written correctly); ``warning`` names a value that shipped blank or derived,
+# which the operator has to see but which is never a reason to produce no file.
+SEVERITY_ERROR = "error"
+SEVERITY_WARNING = "warning"
+
 SCHEMA_DEVICE9 = "device9"
 SCHEMA_LEGACY5 = "legacy5"
 _SCHEMAS = (SCHEMA_DEVICE9, SCHEMA_LEGACY5)
@@ -111,20 +118,28 @@ DEFAULT_VOLUME_UL = 100.0
 # (KURO writes "primer" for primer dispensing). Editable.
 DEFAULT_SAMPLE_TYPE = "cell"
 
-# Assumption: rack numbers follow the labware order of the lab workbook
-# ``layout`` sheet, i.e. the three source plates first and the destination
-# last. The workbook itself was not re-read for cell stock, so both the mapping
-# and the destination number are editable in the export dialog.
+# Deck numbering is derived from the run, not asked for. The lab convention for
+# this instrument is already written down in KURO, which asks the operator for
+# nothing: ``kuma_core/kuro/plate_mapper.py:911`` writes ``Asp. Rack`` 1 for the
+# forward primer plate and ``:927`` writes 2 for the reverse plate, with
+# ``Dsp. Rack`` 3 for the destination. Source plates take the first rack numbers
+# in plate order and the destination takes the next one.
 #
-# Keyed by the same labels the rows carry (``nb_label`` output), because
-# ``_find_unknown_source_racks`` looks a row's ``source_plate`` up in this map.
-# The keys were P1/P2/P3 until v0.15.7, which no row has ever matched.
-DEFAULT_SOURCE_RACKS: dict[str, int] = {"NB01": 1, "NB02": 2, "NB03": 3}
-DEFAULT_DEST_RACK = 4
+# MAME derives the same shape from the plates a run actually used rather than
+# from a fixed dictionary, because which NB plates exist is a property of the
+# run: a fixed ``NB01/NB02/NB03`` map (here until v0.15.7 as P1/P2/P3, then as
+# NB labels) left every other run without a rack number. Whatever the operator
+# types in the export dialog overrides the derived number.
+#
+# Empty tuple / ``None`` on ``JanusSettings`` mean "derive"; see ``resolve_deck``.
+DEFAULT_SOURCE_RACKS: dict[str, int] = {}
+DEFAULT_DEST_RACK: int | None = None
 
-# Deliberately no default: the liquid class drives the pipetting behaviour of
-# the robot, so a guessed value would silently change how cells are handled.
-# device9 output is blocked until the operator supplies one.
+# No default value: the liquid class drives the pipetting behaviour of the
+# robot, so a guessed value would silently change how cells are handled. Left
+# blank the column ships empty, which is what KURO does for a value it does not
+# know, and the operator fills it in the dialog or on the sheet. Blank is
+# reported as a warning, never as a reason to withhold the file.
 DEFAULT_LIQUID_CLASS = ""
 
 
@@ -221,6 +236,7 @@ def _find_unresolved_wells(
     detail = ", ".join(f"{mid} (custom_barcode={cb!r})" for mid, cb in bad_barcodes)
     return {
         "code": "unresolved_well",
+        "severity": SEVERITY_ERROR,
         "message": (
             "Janus mapping: unparseable custom_barcode, well position unknown for "
             f"{len(bad_barcodes)} mutant(s): {detail}. "
@@ -240,6 +256,7 @@ def _find_plate_overflow(rows: list[dict[str, object]]) -> dict[str, object] | N
         return None
     return {
         "code": "plate_capacity",
+        "severity": SEVERITY_ERROR,
         "message": (
             f"Janus mapping: {len(rows)} picks exceed the 96-well destination "
             "plate capacity. Reduce the selection to at most 96 clones."
@@ -276,6 +293,7 @@ def _find_duplicate_dests(rows: list[dict[str, object]]) -> dict[str, object] | 
         mutant_ids.extend(names)
     return {
         "code": "duplicate_dest_well",
+        "severity": SEVERITY_ERROR,
         "message": (
             "Janus mapping: duplicate dest_well would dispense multiple clones "
             f"into the same well: {detail}. "
@@ -388,9 +406,13 @@ class JanusSettings:
     handler builds one instance and passes it to both calls.
 
     Instrument fields (``volume``, ``sample_type``, ``liquid_class``,
-    ``source_racks``, ``dest_rack``) only affect the ``device9`` schema. Their
-    defaults are stated assumptions, documented on the module constants; the
-    liquid class deliberately has none.
+    ``source_racks``, ``dest_rack``) only affect the ``device9`` schema.
+
+    Only ``volume`` needs an operator decision: how much of a cell stock is
+    transferred is an experimental condition that cannot be derived from the
+    run. The rack numbers are derived from the plates of the run
+    (``resolve_deck``), the liquid class ships blank when unset, and both are
+    overridden by anything the operator enters.
     """
 
     dest_layout: str = DEST_LAYOUT_COMPACT
@@ -400,8 +422,10 @@ class JanusSettings:
     volume: float = DEFAULT_VOLUME_UL
     sample_type: str = DEFAULT_SAMPLE_TYPE
     liquid_class: str = DEFAULT_LIQUID_CLASS
-    source_racks: tuple[tuple[str, int], ...] = tuple(DEFAULT_SOURCE_RACKS.items())
-    dest_rack: int = DEFAULT_DEST_RACK
+    #: Operator overrides only. Empty means "derive from the run".
+    source_racks: tuple[tuple[str, int], ...] = ()
+    #: ``None`` means "one past the last source rack".
+    dest_rack: int | None = None
 
     def __post_init__(self) -> None:
         if self.dest_layout not in _DEST_LAYOUTS:
@@ -423,14 +447,40 @@ class JanusSettings:
                 _require_positive_int(
                     rack, f"source rack number for plate {label!r}"
                 )
-            _require_positive_int(self.dest_rack, "dest_rack")
+            if self.dest_rack is not None:
+                _require_positive_int(self.dest_rack, "dest_rack")
         object.__setattr__(
             self, "include_verdicts", normalize_include_verdicts(self.include_verdicts)
         )
 
     @property
     def rack_map(self) -> dict[str, int]:
+        """The operator's overrides alone, echoed back to the dialog unchanged."""
         return dict(self.source_racks)
+
+    def resolve_deck(self, plate_labels: "Iterable[str]") -> tuple[dict[str, int], int]:
+        """Deck numbering for a run whose picks come from *plate_labels*.
+
+        Source plates take rack 1, 2, 3 ... in natural plate order
+        (``nb_order_key``, so NB07 < NB08 < NB10), and the destination takes the
+        number after the last of them. That is the lab convention KURO already
+        writes for this instrument without asking anybody (see the module
+        comment above ``DEFAULT_SOURCE_RACKS``), applied to the plates this run
+        used rather than to a fixed list.
+
+        Anything the operator entered wins: ``source_racks`` overrides the
+        derived number for the plates it names, and an explicit ``dest_rack``
+        replaces the derived one.
+        """
+        ordered = sorted({p for p in plate_labels if p}, key=lambda p: (nb_order_key(p), p))
+        racks = {label: idx for idx, label in enumerate(ordered, start=1)}
+        racks.update(self.rack_map)
+        dest = (
+            self.dest_rack
+            if self.dest_rack is not None
+            else max(racks.values(), default=0) + 1
+        )
+        return racks, dest
 
     @property
     def header(self) -> list[str]:
@@ -470,12 +520,15 @@ def _resolve_settings(
     return resolved
 
 
-def _find_missing_liquid_class(settings: JanusSettings) -> dict[str, object] | None:
-    """Block ``device9`` output until the operator names the liquid class.
+def _find_blank_liquid_class(settings: JanusSettings) -> dict[str, object] | None:
+    """Report, without blocking, a ``device9`` sheet whose liquid class is blank.
 
     The liquid class selects the pipetting behaviour on the instrument, so a
-    guessed value would silently change how the cells are handled. No default
-    exists for that reason, and the export refuses to write without one.
+    guessed value would silently change how the cells are handled and there is
+    still no default. Refusing the file over it was worse: KURO writes the same
+    column without asking anybody, so MAME withholding a whole worklist over one
+    blank cell left the lab with no mapping file at all. The column ships empty
+    and the warning names what is empty.
     """
     if settings.output_schema != SCHEMA_DEVICE9:
         return None
@@ -483,41 +536,53 @@ def _find_missing_liquid_class(settings: JanusSettings) -> dict[str, object] | N
         return None
     return {
         "code": "missing_liquid_class",
+        "severity": SEVERITY_WARNING,
         "message": (
-            "Janus mapping: liquid class is required for the instrument (9-column) "
-            "sheet. It sets the pipetting behaviour of the robot, so no default is "
-            "assumed. Enter the class used for cell stock transfer."
+            "Janus mapping: the liquid class column is blank. It sets the pipetting "
+            "behaviour of the robot, so nothing is assumed on your behalf. The file "
+            "is written with the column empty; fill it in the export dialog or on "
+            "the sheet before the run."
         ),
         "mutant_ids": [],
     }
 
 
-def _find_unknown_source_racks(
+def _find_derived_source_racks(
     rows: list[dict[str, object]],
     settings: JanusSettings,
 ) -> dict[str, object] | None:
-    """Report picks whose source plate has no rack number in the deck map."""
+    """Report which plates got a rack number derived rather than entered.
+
+    Not an error: the derivation follows the lab convention (see
+    ``JanusSettings.resolve_deck``). It is reported so the operator can see
+    which numbers came from the run rather than from the deck in the room.
+    """
     if settings.output_schema != SCHEMA_DEVICE9:
         return None
-    rack_map = settings.rack_map
-    missing: dict[str, list[str]] = {}
-    for row in rows:
-        plate = str(row["source_plate"])
-        if plate not in rack_map:
-            missing.setdefault(plate, []).append(str(row["name"]))
-    if not missing:
+    rack_map, dest_rack = settings.resolve_deck(
+        str(row["source_plate"]) for row in rows
+    )
+    entered = settings.rack_map
+    derived = {
+        plate: rack for plate, rack in sorted(rack_map.items()) if plate not in entered
+    }
+    if not derived and settings.dest_rack is not None:
         return None
-    detail = "; ".join(f"{plate} ({len(names)})" for plate, names in sorted(missing.items()))
-    mutant_ids: list[str] = []
-    for _, names in sorted(missing.items()):
-        mutant_ids.extend(names)
+    detail = ", ".join(f"{plate} -> Asp. Rack {rack}" for plate, rack in derived.items())
+    if settings.dest_rack is None:
+        detail = f"{detail}, destination -> Dsp. Rack {dest_rack}" if detail else (
+            f"destination -> Dsp. Rack {dest_rack}"
+        )
     return {
-        "code": "unknown_source_rack",
+        "code": "derived_source_rack",
+        "severity": SEVERITY_WARNING,
         "message": (
-            "Janus mapping: no Asp. Rack number configured for source plate(s) "
-            f"{detail}. Add the plate to the source rack map before exporting."
+            "Janus mapping: deck positions derived from the plates of this run "
+            f"({detail}). Source plates take the first racks in plate order and the "
+            "destination the next, as in the KURO primer sheet. Enter a number in "
+            "the export dialog to override any of them."
         ),
-        "mutant_ids": mutant_ids,
+        "mutant_ids": [],
     }
 
 
@@ -530,8 +595,14 @@ def project_device9_rows(
     Positional lists, not dicts: ``Dsp. Rack`` occurs twice in the header, which
     a mapping cannot express. ``no`` is the 1-based position in the already
     sorted row list, so the sheet order carries the picking priority.
+
+    Rack numbers come from ``resolve_deck``, so every plate of the run carries
+    one. A plate that somehow still has none writes an empty cell rather than
+    raising: a blank the operator can see beats a file that never arrives.
     """
-    rack_map = settings.rack_map
+    rack_map, dest_rack = settings.resolve_deck(
+        str(row["source_plate"]) for row in rows
+    )
     projected: list[list[object]] = []
     for idx, row in enumerate(rows, start=1):
         plate = str(row["source_plate"])
@@ -541,9 +612,9 @@ def project_device9_rows(
                 settings.sample_type,
                 settings.liquid_class,
                 idx,
-                rack_map[plate],
+                rack_map.get(plate, ""),
                 row["source_well"],
-                settings.dest_rack,
+                dest_rack,
                 row["dest_well"],
                 settings.volume,
             ]
@@ -587,8 +658,8 @@ def _collect_janus_rows(
     # duplicate, so reporting a pre-compaction duplicate would be misleading.
     for finding in (
         _find_duplicate_dests(rows),
-        _find_missing_liquid_class(settings),
-        _find_unknown_source_racks(rows, settings),
+        _find_blank_liquid_class(settings),
+        _find_derived_source_racks(rows, settings),
     ):
         if finding is not None:
             findings.append(finding)
@@ -615,13 +686,15 @@ def _build_janus_rows(
       filling it from the front is the normal case.
     - ``"source"``: ``dest_well`` mirrors ``source_well``.
 
-    Raises ``ValueError`` on empty wells, >96 rows, duplicate destinations, a
-    missing liquid class, or an unmapped source rack.
+    Raises ``ValueError`` on empty wells, >96 rows, or duplicate destinations.
+    A blank liquid class and a derived rack number are warnings, not errors: the
+    file ships and names what it left blank or derived.
     """
     resolved = _resolve_settings(settings, dest_layout)
     rows, _excluded, findings = _collect_janus_rows(replicates, resolved)
     for finding in findings:
-        _raise_if(finding)
+        if finding.get("severity") == SEVERITY_ERROR:
+            _raise_if(finding)
     return rows
 
 
@@ -637,24 +710,39 @@ def build_janus_preview_rows(
     guards come back as structured entries. Showing every problem at once is the
     point: the export path keeps its fail-fast behaviour.
 
-    Returns ``{"rows", "errors", "row_count", "excluded", "excluded_count",
-    "settings"}``. Each error entry is ``{"code", "message", "mutant_ids"}``;
-    each excluded entry is ``{"mutant_id", "reason", "verdict",
-    "selected_plate", "is_fallback"}``.
+    Returns ``{"rows", "errors", "warnings", "row_count", "excluded",
+    "excluded_count", "settings"}``. Each entry of ``errors`` / ``warnings`` is
+    ``{"code", "severity", "message", "mutant_ids"}``; each excluded entry is
+    ``{"mutant_id", "reason", "verdict", "selected_plate", "is_fallback"}``.
+
+    ``errors`` alone blocks the export. ``warnings`` names what shipped blank
+    (liquid class) or derived (rack numbers), which the operator has to see but
+    which never withholds a file.
 
     Rows with an unresolved well are kept with blank ``source_well`` and
     ``dest_well`` so the broken clone stays visible in the preview.
     """
     resolved = _resolve_settings(settings, dest_layout)
     rows, excluded, findings = _collect_janus_rows(replicates, resolved)
+    rack_map, dest_rack = resolved.resolve_deck(
+        str(row["source_plate"]) for row in rows
+    )
+
+    payload = resolved.to_payload()
+    # The deck the file will carry, next to the operator's own entries: the
+    # dialog shows these, and comparing the echoed entries with what it holds is
+    # how it knows the preview is current.
+    payload["resolved_source_racks"] = rack_map
+    payload["resolved_dest_rack"] = dest_rack
 
     return {
         "rows": rows,
-        "errors": findings,
+        "errors": [f for f in findings if f.get("severity") != SEVERITY_WARNING],
+        "warnings": [f for f in findings if f.get("severity") == SEVERITY_WARNING],
         "row_count": len(rows),
         "excluded": excluded,
         "excluded_count": len(excluded),
-        "settings": resolved.to_payload(),
+        "settings": payload,
     }
 
 
@@ -761,8 +849,9 @@ def export_mame_janus_csv(
     *dest_layout* overrides ``settings.dest_layout``: ``"compact"``
     (destinations assigned sequentially from A1 in sorted order, default) or
     ``"source"`` (dest mirrors source position).
-    Raises ``ValueError`` on unresolved wells, >96 picks, duplicate dests, a
-    missing liquid class, or an unmapped source rack.
+    Raises ``ValueError`` on unresolved wells, >96 picks, or duplicate dests.
+    A blank liquid class and derived rack numbers do not withhold the file; they
+    come back as warnings from ``build_janus_preview_rows``.
     """
     resolved = _resolve_settings(settings, dest_layout)
     rows = _build_janus_rows(replicates, settings=resolved)
@@ -851,6 +940,8 @@ def export_mame_janus_xlsx(
 
 __all__ = [
     "JanusSettings",
+    "SEVERITY_ERROR",
+    "SEVERITY_WARNING",
     "build_janus_preview_rows",
     "export_mame_janus_csv",
     "export_mame_janus_xlsx",

@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.15.8 (The mapping file comes out the way KURO already makes it)
+
+The lab asked for one thing: the mapping file has to come out the way KURO makes it, and nobody wants to be asked for a liquid class. MAME was stricter than the program it sits beside. KURO writes its JANUS sheet at the end of a design without asking for anything, filling the deck numbers from the plates it just used; MAME refused to write at all unless an operator first typed a liquid class and a rack number for every plate. A run over `sort_barcode07/08/09` therefore produced no instrument file: those plates matched nothing in the fixed NB01/NB02/NB03 rack map, and v0.15.7 responded by not writing the sheet automatically at all. The one value that genuinely cannot be derived, how much of a cell stock to move, was buried in a dialog behind the two that can.
+
+### Added
+
+- v0.15.8: A finished analyze writes the instrument mapping too, `<result workbook>_janus.csv`, in the nine columns the robot reads. The pick list added in v0.15.7 stays exactly where it is as `<result workbook>_picks.csv`: one records what the run selected and reads without a deck in front of you, the other is the sheet that goes to the robot, and neither answers the other's question. Both outcomes are reported after the run, each naming its own file.
+- v0.15.8: The transfer volume sits on step 2.1, next to the run's other inputs. It is the one instrument value nothing can derive, since how much of a cell stock to move is an experimental condition, and the shipped 100 µL is an assumption with no lab source in this repository, which the field says out loud.
+
+### Changed
+
+- v0.15.8: Deck rack numbers are derived from the plates of the run instead of being asked for. Source plates take the first racks in plate order and the destination takes the next, which is the convention KURO already writes for this instrument without consulting anybody (`Asp. Rack` 1 for the forward plate, 2 for the reverse, `Dsp. Rack` 3 for the destination). A run over `sort_barcode07/08/09` now numbers them 1, 2, 3 with the destination at 4. Anything typed in the export dialog still wins, and the dialog shows the derived numbers so what is on screen is what the file carries.
+- v0.15.8: A blank liquid class no longer withholds the file. It still has no default, because it decides how the robot handles the cells and a guessed value would change that silently, so the column simply ships empty for the operator to fill. Nothing is invented to make a file come out: what shipped blank and what was derived from the run are reported next to the file, on screen and in the RPC response, as warnings that never block a run or an export.
+
 ## v0.15.7 (A finished run leaves the picks, not a worklist for a deck nobody confirmed)
 
 The file every analyze wrote for itself was an instrument sheet: liquid class, dispense volume, and deck rack numbers, none of which have a lab source in this repository. Every exploratory re-run dropped another one in the output folder stating a deck that may not be the deck in the room, and any of them could be carried to the robot. On a real run it did not even get that far: the deck map knows the plate names NB01 to NB03, the run produced `sort_barcode07` and up, and the export refused every clone. The remedy the message named, File > Export Janus Mapping, has not existed since v0.14.7.
