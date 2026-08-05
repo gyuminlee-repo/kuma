@@ -17,7 +17,7 @@
  */
 
 import { create } from "zustand";
-import type { MamePathField } from "./stalePaths";
+import type { MamePathField, RestoredMamePaths } from "./stalePaths";
 
 export interface MissingInput {
   field: MamePathField;
@@ -45,6 +45,22 @@ export const useMissingInputs = create<MissingInputsState>((set) => ({
     set((s) => ({ items: s.items.filter((i) => i.field !== field) })),
   clear: () => set({ items: [] }),
 }));
+
+/**
+ * 주어진 필드 중 현재 값이 비어 있는 것만 남긴다.
+ *
+ * hydration 직후의 `stillMissing`(useAutosaveHydration.ts)과 배너의 실시간
+ * 필터링이 같은 "필드 -> 현재값" 판정을 따로 두면 어긋난다. 실제로 배너가
+ * 평소 MAME 입력 패널에서 다시 채운 값을 못 알아채고 계속 남아 있던 사고가
+ * 있었다. 이 모듈은 store 를 import 하지 않으므로(파일 헤더 참조) 현재값은
+ * 호출부가 store 에서 뽑아 넘긴다.
+ */
+export function filterStillMissing(
+  fields: MamePathField[],
+  current: Partial<RestoredMamePaths>,
+): MamePathField[] {
+  return fields.filter((f) => !current[f]);
+}
 
 /**
  * 경로에서 파일·폴더 이름만 뽑는다.

@@ -23,13 +23,18 @@ import { Button } from "@/components/ui/button";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import {
   basename,
+  filterStillMissing,
   formatSize,
   looksLikeSameTarget,
   useMissingInputs,
   type MissingInput,
 } from "@/lib/mame/missingInputs";
 
-import { MAME_PATH_LABEL_KEYS, type MamePathField } from "@/lib/mame/stalePaths";
+import {
+  MAME_PATH_LABEL_KEYS,
+  type MamePathField,
+  type RestoredMamePaths,
+} from "@/lib/mame/stalePaths";
 
 /** run 폴더만 디렉토리 선택이고 나머지는 파일 선택이다. */
 const DIRECTORY_FIELDS = new Set<MamePathField>(["inputDir"]);
@@ -44,8 +49,32 @@ const FILTERS: Partial<Record<MamePathField, { name: string; extensions: string[
 
 export function MissingInputsBanner() {
   const { t } = useTranslation();
-  const items = useMissingInputs((s) => s.items);
+  const rawItems = useMissingInputs((s) => s.items);
   const resolve = useMissingInputs((s) => s.resolve);
+
+  // 배너에 남은 항목이라도 해당 필드가 지금 채워져 있으면 표에서 뺀다. 사용자가
+  // 배너의 "찾아보기"가 아니라 평소 MAME 입력 패널에서 경로를 다시 잡아도
+  // 배너가 사라져야 한다. `resolve()` 호출부는 이 배너 안 하나뿐이라, 그 경로만
+  // 믿으면 store 값이 이미 유효해도 항목이 그대로 남는다. 필드별로 나눠 구독해
+  // 매 렌더 새 객체를 돌려주는 selector가 불필요한 리렌더를 만들지 않게 한다.
+  const inputDir = useMameAppStore((s) => s.inputDir);
+  const expectedPath = useMameAppStore((s) => s.expectedPath);
+  const referencePath = useMameAppStore((s) => s.referencePath);
+  const sampleMapPath = useMameAppStore((s) => s.sampleMapPath);
+  const customBarcodesPath = useMameAppStore((s) => s.rawRunParams.customBarcodesPath);
+  const sequencingSummaryPath = useMameAppStore((s) => s.rawRunParams.sequencingSummaryPath);
+  const currentPaths: Partial<RestoredMamePaths> = {
+    inputDir,
+    expectedPath,
+    referencePath,
+    sampleMapPath,
+    customBarcodesPath: customBarcodesPath ?? "",
+    sequencingSummaryPath: sequencingSummaryPath ?? "",
+  };
+  const stillMissingFields = new Set(
+    filterStillMissing(rawItems.map((i) => i.field), currentPaths),
+  );
+  const items = rawItems.filter((i) => stillMissingFields.has(i.field));
 
   const applyPath = useCallback(
     (field: MamePathField, path: string) => {

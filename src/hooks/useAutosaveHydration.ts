@@ -38,6 +38,7 @@ import { MAME_SCHEMA } from "@/lib/mame/autosaveSnapshot";
 import { detectProjectFiles, detectFromInputDir } from "@/lib/mame/detectProjectFiles";
 import {
   basename as inputBasename,
+  filterStillMissing,
   useMissingInputs,
   type MissingInput,
 } from "@/lib/mame/missingInputs";
@@ -1144,6 +1145,18 @@ const MAME_SNAPSHOT_KEY: Partial<Record<MamePathField, string>> = {
 };
 
 /**
+ * customBarcodesPath/sequencingSummaryPath 는 input 블록이 아니라
+ * `parameters.raw_run_params` 밑에 저장된다(`autosaveSnapshot.ts`
+ * `portableRawRunParams`). input 블록만 찾던 예전 코드가 이 둘을 못 찾아
+ * "커스텀 바코드  커스텀 바코드"처럼 라벨을 이름 자리에 두 번 출력했다.
+ * raw_run_params 는 snake_case 변환 없이 그대로 저장되므로 키 이름이 같다.
+ */
+const MAME_RAW_RUN_PARAMS_KEY: Partial<Record<MamePathField, string>> = {
+  customBarcodesPath: "customBarcodesPath",
+  sequencingSummaryPath: "sequencingSummaryPath",
+};
+
+/**
  * 되찾지 못한 필드를 배너에 보여줄 형태로 바꾼다.
  *
  * 스냅샷 형식은 `lib/projectPath.ts` 규약이라 프로젝트 밖 값은 절대 경로
@@ -1154,9 +1167,11 @@ const MAME_SNAPSHOT_KEY: Partial<Record<MamePathField, string>> = {
 function describeMissingInput(
   field: MamePathField,
   input: Record<string, unknown> | undefined,
+  rawRunParams: Record<string, unknown> | undefined,
 ): MissingInput {
-  const key = MAME_SNAPSHOT_KEY[field];
-  const stored = key ? input?.[key] : undefined;
+  const inputKey = MAME_SNAPSHOT_KEY[field];
+  const rawKey = MAME_RAW_RUN_PARAMS_KEY[field];
+  const stored = inputKey ? input?.[inputKey] : rawKey ? rawRunParams?.[rawKey] : undefined;
   return typeof stored === "string" && isExternalPath(stored)
     ? { field, name: inputBasename(stored) }
     : { field, name: i18next.t(MAME_PATH_LABEL_KEYS[field]) };
@@ -1165,15 +1180,14 @@ function describeMissingInput(
 /** 자동 감지가 끝난 뒤에도 여전히 비어 있는 필드만 남긴다. */
 function stillMissing(fields: MamePathField[]): MamePathField[] {
   const store = useMameAppStore.getState();
-  const value: Record<MamePathField, string> = {
+  return filterStillMissing(fields, {
     inputDir: store.inputDir,
     expectedPath: store.expectedPath,
     referencePath: store.referencePath,
     sampleMapPath: store.sampleMapPath,
     customBarcodesPath: store.rawRunParams.customBarcodesPath ?? "",
     sequencingSummaryPath: store.rawRunParams.sequencingSummaryPath ?? "",
-  };
-  return fields.filter((f) => !value[f]);
+  });
 }
 
 // ─── Mame 자동 탐지 ──────────────────────────────────────────────────────
@@ -1640,6 +1654,11 @@ export function useAutosaveHydration(
 
     void (async () => {
       setRunPhase("reset");
+      // scratch 진입이나 이후 조기 return 경로에서도 이전 프로젝트의 배너
+      // 항목이 남지 않도록, 프로젝트 전용 setMissing(:1890 부근)보다 먼저 통째로
+      // 비운다. mame 블록에 아예 도달하지 못하는 scratch 세션이 있어서, 그 쪽에
+      // 맡기면 이전 항목이 새 프로젝트로 새어 나간다.
+      useMissingInputs.getState().clear();
       useAppStore.getState().resetAll({ preserveWorkspaceArtifacts: true });
       await resetMameAll({ preserveWorkspaceArtifacts: true });
 
@@ -1893,6 +1912,9 @@ export function useAutosaveHydration(
             field,
             mameResult.status === "ok"
               ? ((mameResult.snapshot as MameAutosaveSnapshot).input as unknown as Record<string, unknown>)
+              : undefined,
+            mameResult.status === "ok"
+              ? ((mameResult.snapshot as MameAutosaveSnapshot).parameters.raw_run_params as unknown as Record<string, unknown>)
               : undefined,
           ),
         ),
