@@ -163,13 +163,16 @@ def test_selection_settings_are_still_honoured(tmp_path: Path) -> None:
     assert [r[source_idx] for r in rows] == ["B1"]
 
 
-def test_a_plate_keeps_the_name_the_run_gave_it(tmp_path: Path) -> None:
-    """Native barcode folders are named per run, and the file must say so.
+def test_a_plate_is_labelled_the_way_every_other_export_labels_it(
+    tmp_path: Path,
+) -> None:
+    """Native barcode folders are named per run, and the label must survive it.
 
     Observed on a real v0.15.6 run: the plates were ``sort_barcode07`` and up,
-    which the P1/P2/P3 deck map has no entry for. The instrument sheet refuses
-    such a plate; the pick list records it, because the operator has to find the
-    clone in the folder that exists.
+    and the Janus export was the one export that did not run them through
+    ``nb_label``. It carried a fixed NB01->P1 dictionary instead, which such a
+    name never matched, so the raw folder name was written while the result
+    workbook said ``NB07`` for the same plate.
     """
     result = _run(tmp_path, {"2_1": _F3W_NT}, plate="sort_barcode07")
 
@@ -177,7 +180,39 @@ def test_a_plate_keeps_the_name_the_run_gave_it(tmp_path: Path) -> None:
     assert autosave["status"] == "saved", autosave
     body = _read_csv(autosave["output_path"])
     plate_idx = body[0].index("source_plate")
-    assert {row[plate_idx] for row in body[1:]} == {"sort_barcode07"}
+    assert {row[plate_idx] for row in body[1:]} == {"NB07"}
+
+
+def test_the_workbook_and_the_pick_list_name_one_plate_one_way(
+    tmp_path: Path,
+) -> None:
+    """The two files of a run are read side by side, so a label split is the bug.
+
+    Both artefacts of the same run are inspected here rather than each against a
+    literal: a future change that moves one label moves it in both, and only
+    comparing them catches a change that moves just one.
+    """
+    result = _run(tmp_path, {"2_1": _F3W_NT}, plate="sort_barcode07")
+
+    plate_idx = _read_csv(result["janus_autosave"]["output_path"])[0].index(
+        "source_plate"
+    )
+    picks_labels = {
+        row[plate_idx] for row in _read_csv(result["janus_autosave"]["output_path"])[1:]
+    }
+
+    workbook = openpyxl.load_workbook(result["output_path"])
+    sheet = workbook["NGS Results"]
+    header = [cell.value for cell in next(sheet.iter_rows(max_row=1))]
+    selected_idx = header.index("selected_NB")
+    workbook_labels = {
+        str(row[selected_idx])
+        for row in sheet.iter_rows(min_row=2, values_only=True)
+        if row[selected_idx]
+    }
+
+    assert picks_labels == workbook_labels
+    assert picks_labels == {"NB07"}
 
 
 def test_no_pass_writes_no_file_and_says_so(tmp_path: Path) -> None:

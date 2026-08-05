@@ -62,12 +62,13 @@ import type {
 /**
  * Source plates the deck map has to cover, named as the sidecar names them.
  *
- * Taken from the preview rows rather than a fixed P1/P2/P3 list: the sidecar
- * maps NB01-NB03 onto P1-P3 and passes every other plate name through unchanged,
- * so a native-barcode run reaches the rack check as `sort_barcode07` and a fixed
- * list left those plates with no rack number and the export refusing to write.
- * The preview is produced by the very function that validates the rack map, so
- * the labels shown here are the keys that get checked.
+ * Taken from the preview rows rather than a fixed list: the sidecar labels a
+ * plate with `nb_label` (`sort_barcode07` -> `NB07`), so which labels exist is a
+ * property of the run, and a fixed list left a native-barcode run's plates with
+ * no rack number and the export refusing to write. The preview is produced by
+ * the very function that validates the rack map, so the labels shown here are
+ * the keys that get checked, and no label conversion is duplicated in TS
+ * (`src/lib/mame/nbLabel.ts` holds the JS equivalent where one is needed).
  *
  * Before a run there are no plate names to show (they come from the barcodes of
  * that run), so the fallback is whatever the operator already stored, and the

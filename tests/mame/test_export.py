@@ -433,13 +433,13 @@ def test_janus_csv_sorted_desc(tmp_path: Path) -> None:
 
 
 def test_janus_csv_plate_label(tmp_path: Path) -> None:
-    """NB01->P1, NB02->P2 mapping must be applied in source_plate column."""
+    """source_plate carries the canonical nb_label, as every export does."""
     out = tmp_path / "janus_plate.csv"
     export_mame_janus_csv(_make_janus_replicates(), out, settings=_LEGACY5)
     with out.open(encoding="utf-8") as fh:
         rows = {r["name"]: r for r in csv.DictReader(fh)}
-    assert rows["V5F"]["source_plate"] == "P1"
-    assert rows["K7R"]["source_plate"] == "P2"
+    assert rows["V5F"]["source_plate"] == "NB01"
+    assert rows["K7R"]["source_plate"] == "NB02"
 
 
 def test_janus_xlsx_sheet_name(tmp_path: Path) -> None:

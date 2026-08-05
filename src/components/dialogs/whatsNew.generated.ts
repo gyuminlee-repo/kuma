@@ -10,7 +10,8 @@ export const WHATS_NEW_VERSION = "0.15.7";
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
   { label: "Changed", detail: "The file an analyze writes beside its result workbook is the selection, not a worklist. Five columns, `name | source_plate | source_well | dest_well | priority_score`: which variant was picked, where it sits, and where it goes when the pic…" },
   { label: "Changed", detail: "The automatic file is named `<result workbook>_picks.csv`, not `_janus.csv`. The old name promised a file that could be handed to the instrument." },
-  { label: "Changed", detail: "The deck map in the Janus dialog names the plates the run actually produced. A run sorted into native barcode folders reaches the export as `sort_barcode07` and up, which the fixed P1/P2/P3 fields had no rack number for, so every clone was…" },
+  { label: "Changed", detail: "The Janus export labels a plate the way every other MAME export labels it. `nb_label` is the declared single source of truth (`sort_barcode07` to `NB07`, padding preserved, a name without digits unchanged) and the result workbook has alway…" },
+  { label: "Changed", detail: "The deck map in the Janus dialog names the plates the run actually produced. A run sorted into native barcode folders reaches the export as `NB07` and up, which the fixed three fields had no rack number for, so every clone was rejected wit…" },
   { label: "Fixed", detail: "The raw-run path no longer reads an amplicon span it has just found missing. The guard sat on the first coordinate branch only, so a resolution reporting extraction without a span fell into the next branch and read `span.end` there, ending…" },
   { label: "Changed", detail: "Janus instrument settings are reachable from step 2.1, the screen that collects the run's other inputs, since the File menu item that used to open them was removed in v0.14.7. They stay optional and gate nothing: a run needs none of them.…" },
 ];

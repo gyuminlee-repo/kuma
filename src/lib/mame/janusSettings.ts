@@ -31,7 +31,7 @@ export const DEFAULT_JANUS_SETTINGS: JanusExportSettings = {
   volume: 100,
   sampleType: "cell",
   liquidClass: "",
-  sourceRacks: { P1: 1, P2: 2, P3: 3 },
+  sourceRacks: { NB01: 1, NB02: 2, NB03: 3 },
   destRack: 4,
 };
 
