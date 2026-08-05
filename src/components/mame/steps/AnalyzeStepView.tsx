@@ -25,6 +25,7 @@ import { computeEtaFromElapsed } from "@/lib/eta";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { useContentFitSplit } from "@/hooks/useContentFitSplit";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { selectCanRun } from "@/store/mame/selectors";
 import { DataPanel } from "@/components/ui/Panel";
@@ -116,6 +117,16 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   const [janusSettingsOpen, setJanusSettingsOpen] = useState(false);
   const prevDurationRef = useRef<number | null>(analyzeDurationMs);
   const reviewContainerRef = useRef<HTMLDivElement>(null);
+  // Plate map over verdict breakdown, sized by what each one needs. minSize here
+  // matches the two Panels below, so a fit can never propose a share the group
+  // would refuse.
+  const reviewSplit = useContentFitSplit({
+    minFirst: 18,
+    minSecond: 30,
+    autoSaveId: "mame.analyze.review.vsplit.v2",
+    // Verdict count changes the plate map, run health changes the breakdown.
+    deps: [subStep, hasResults, runHealth !== null],
+  });
   useEffect(() => {
     if (!plateExpanded) return;
     const onKey = (e: KeyboardEvent) => {
@@ -403,25 +414,37 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               aria-label={t("mame.appLayout.verdictTableTitle")}
             />
             <Panel defaultSize={50} minSize={25}>
-              <PanelGroup direction="vertical" autoSaveId="mame.analyze.review.vsplit.v2">
+              {/* Split by what the two panels need. A fixed ratio gave the plate
+                  map the smaller share on every window size (381 px of grid
+                  hidden at 1920x1080, 442 px at 2560x1440) while the breakdown
+                  below it had room to spare; see useContentFitSplit. */}
+              <PanelGroup
+                ref={reviewSplit.groupRef}
+                direction="vertical"
+                autoSaveId="mame.analyze.review.vsplit.v2"
+              >
                 <Panel defaultSize={34} minSize={18}>
                   {/* PlateView keeps its own scroll containers (the grid area
                       and the selected-well aside), so the panel body stays
                       unscrolled, a second scrollbar here would nest. */}
-                  <DataPanel title={t("mame.appLayout.platePlanTitle")} className="h-full min-h-0">
-                    <div
-                      role="region"
-                      aria-label={t("mame.plateView.expandedRegionAriaLabel")}
-                      className={plateExpanded ? "absolute inset-0 z-40 bg-background overflow-auto" : "h-full"}
-                    >
-                      <PlateView expanded={plateExpanded} onToggleExpand={() => setPlateExpanded((v) => !v)} />
-                    </div>
-                  </DataPanel>
+                  <div ref={reviewSplit.firstRef} className="h-full min-h-0">
+                    <DataPanel title={t("mame.appLayout.platePlanTitle")} className="h-full min-h-0">
+                      <div
+                        role="region"
+                        aria-label={t("mame.plateView.expandedRegionAriaLabel")}
+                        className={plateExpanded ? "absolute inset-0 z-40 bg-background overflow-auto" : "h-full"}
+                      >
+                        <PlateView expanded={plateExpanded} onToggleExpand={() => setPlateExpanded((v) => !v)} />
+                      </div>
+                    </DataPanel>
+                  </div>
                 </Panel>
                 <PanelResizeHandle
                   className="h-2 bg-border hover:bg-border/70 transition-colors"
+                  onDragging={reviewSplit.onDragging}
                 />
                 <Panel defaultSize={66} minSize={30}>
+                  <div ref={reviewSplit.secondRef} className="h-full min-h-0">
                   {/* RunHealthPanel just lays its sections out, so whatever it
                       renders has to fit or be reachable by scrolling: the user
                       can drag the splitter above down to well under the chart's
@@ -444,6 +467,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
                       </div>
                     )}
                   </DataPanel>
+                  </div>
                 </Panel>
               </PanelGroup>
             </Panel>

@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.15.11 (The plate map gets the height it needs, not the share it was assigned)
+
+Step 2.2 stacks the plate map over the verdict breakdown and split them 34/66, a ratio with no idea how tall either one wants to be. The plate map wants 600 to 790 px for eight rows and a well inspector, so it scrolled from row D down on every window size measured, while the panel underneath had room left over: 381 px of grid hidden at 1920x1080, 442 px at 2560x1440. A scrollbar is worth having, but not while the neighbour leaves space unused.
+
+### Changed
+
+- v0.15.11: The two panels on step 2.2 are sized by what they hold. When both fit, the plate map takes exactly the height its rows need and the rest goes to the breakdown; when they do not both fit, the shortfall is split in proportion to what each asked for, so neither is starved by a number written in the source. The plate map goes from 312 px to 490 px at 1920x1080 and from 434 px to 756 px at 2560x1440, showing rows A to F where it used to stop at C.
+- v0.15.11: A split the operator dragged is left alone, and so is one restored from an earlier session. The automatic fit is a starting point, not a correction applied over someone's decision.
+
 ## v0.15.10 (A workbook that writes one plate two ways does not start a run)
 
 A KURO export carries the same plate twice, on `Fwd List` and on `expected_mutations`, and exports written before v0.14.3 wrote the two in different orders. MAME had reported that disagreement since v0.15.6 and then run anyway, on the reasoning that a sample map or a confirmed layout supplied the wells so the sheet order never reached one. That is true of the wells and false of the run: every verdict was still scored against whichever of the workbook's two plates the other input happened to match, with nothing checking that it matched at all. On `260722_Ep_R2-1_platemap.xlsx` the primer list puts `S11I` at A1 while the expected sheet puts `V233I` there, and `V263I` sits on the plate with no row in the list, shifting every well after it by one.
