@@ -5,10 +5,9 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.15.10";
+export const WHATS_NEW_VERSION = "0.15.11";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Changed", detail: "A disagreement between the two plate descriptions in one workbook now fails validation instead of appearing beside a passing one. The run is refused whether or not a sample map or a well layout was chosen, because placing wells is not the…" },
-  { label: "Changed", detail: "The refusal also holds before any validation is asked for. Picking the workbook checks it on its own, so the operator no longer reaches Run through a file picker without passing through validation, which is the route the 2026-08-04 misscor…" },
-  { label: "Changed", detail: "The way out is a workbook whose sheets agree: re-export from KURO v0.14.3 or later, or choose another file. Picking one clears the refusal, and the re-check reinstates it only when the new file disagrees with itself too. Naming the variant…" },
+  { label: "Changed", detail: "The two panels on step 2.2 are sized by what they hold. When both fit, the plate map takes exactly the height its rows need and the rest goes to the breakdown; when they do not both fit, the shortfall is split in proportion to what each as…" },
+  { label: "Changed", detail: "A split the operator dragged is left alone, and so is one restored from an earlier session. The automatic fit is a starting point, not a correction applied over someone's decision." },
 ];
