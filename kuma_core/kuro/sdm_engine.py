@@ -278,6 +278,54 @@ def _check_synthesis_score(result: SdmPrimerResult) -> None:
             result.penalty += (85 - score) * 0.1
 
 
+# 3' G/C clamp window/threshold, enzyme-agnostic (Toyobo KOD One and Thermo
+# DreamTaq manuals, cited in _check_gc_clamp). Fixed constants, not read from
+# PolymeraseProfile: making them per-enzyme would change which candidate wins
+# on penalty ranking for one profile vs another, which
+# test_all_profiles_design_byte_identical_primers guards against. These are
+# warning-only anyway (see _check_gc_clamp), so the constraint is about
+# result.warnings drifting across profiles, not penalty.
+_GC_CLAMP_WINDOW = 5
+_GC_CLAMP_MAX_GC = 3
+
+
+def _check_gc_clamp(result: SdmPrimerResult) -> None:
+    """Warn on 3' end G/C clamp anchoring quality. Warnings only, no penalty.
+
+    Two vendor rules pull in opposite directions:
+
+    Rule A (3' anchor) -- Toyobo KOD One PCR Master Mix instruction manual
+    (KMM-101 / KMM-201), "[4] Primer Design":
+    "The priming efficiency of primers can be promoted by anchoring the
+    3'end of primers with G or C."
+    -> warn when the single terminal base is NOT G/C.
+
+    Rule B (3' G/C excess) -- Thermo Scientific DreamTaq DNA Polymerase
+    manual (MAN0012036), "Guidelines for Primer Design":
+    "Avoid placing more than three G or C nucleotides at the 3'-end to
+    lower the risk of non-specific priming."
+    -> warn when more than _GC_CLAMP_MAX_GC of the last _GC_CLAMP_WINDOW
+    bases are G/C.
+
+    A primer satisfying both simultaneously must have its terminal base be
+    G/C while at most _GC_CLAMP_MAX_GC (i.e. 3) of the last 5 bases total
+    are G/C -- a narrow window, so both warnings firing often on real
+    designs is expected, not a bug (see fixture stats in the module's
+    tests). Neither rule touches result.penalty: they are advisory vendor
+    guidance, not part of the ranking used to pick among candidates.
+    """
+    for label, seq in [("Fwd", result.forward_seq), ("Rev", result.reverse_seq)]:
+        if not seq:
+            continue
+        seq_u = seq.upper()
+        if seq_u[-1] not in "GC":
+            result.warnings.append(f"{label} 3' end {seq_u[-3:]}: no G/C anchor")
+        window = seq_u[-_GC_CLAMP_WINDOW:]
+        gc_count = sum(1 for b in window if b in "GC")
+        if gc_count > _GC_CLAMP_MAX_GC:
+            result.warnings.append(f"{label} 3' end: {gc_count} of last {len(window)} are G/C")
+
+
 def _gc_percent(seq: str) -> float:
     """Calculate GC percentage."""
     if not seq:
@@ -1085,6 +1133,7 @@ def design_single_sdm(
                         continue
                     _check_secondary_structure(c)
                     _check_synthesis_score(c)
+                    _check_gc_clamp(c)
                     surviving.append(c)
 
                 if surviving:
@@ -1147,6 +1196,7 @@ def design_single_sdm(
 
                 _check_secondary_structure(c)
                 _check_synthesis_score(c)
+                _check_gc_clamp(c)
                 surviving.append(c)
 
             if surviving:
@@ -1558,6 +1608,7 @@ def evaluate_custom_primer(
 
     _check_secondary_structure(result)
     _check_synthesis_score(result)
+    _check_gc_clamp(result)
 
     return result
 

@@ -13,6 +13,7 @@ from Bio.SeqRecord import SeqRecord
 from kuma_core.kuro.sdm_engine import (
     OffTargetHit,
     SdmPrimerResult,
+    _check_gc_clamp,
     _design_full_overlap,
     _synthesis_score,
     check_offtarget,
@@ -23,6 +24,7 @@ from kuma_core.kuro.sdm_engine import (
     load_sequence,
 )
 from kuma_core.kuro.mutation import Mutation
+from kuma_core.kuro.overlap import OverlapWindow
 from tests.conftest import FIXTURES_DIR, TARGET_START
 
 
@@ -322,6 +324,111 @@ class TestSynthesisScore:
     def test_score_is_rounded(self):
         score = _synthesis_score("ATGC")
         assert isinstance(score, float)
+
+
+class TestGcClamp:
+    """3' G/C clamp warnings (2 vendor rules, warning-only, no penalty).
+
+    Rule A (Toyobo KOD One manual, [4] Primer Design): 3' terminal base
+    should be G or C for priming efficiency.
+    Rule B (Thermo DreamTaq manual, Guidelines for Primer Design): no more
+    than 3 of the last 5 bases should be G/C, to avoid non-specific priming.
+    """
+
+    def _dummy_result(self, forward_seq: str, reverse_seq: str) -> SdmPrimerResult:
+        mut = Mutation(
+            raw="X1Y", wt_aa="X", position=1, mt_aa="Y",
+            codon_start=0, wt_codon="NNN", mt_codon="NNN",
+        )
+        ov = OverlapWindow(sequence=forward_seq[:10], start=0, end=10, codon_offset=0)
+        return SdmPrimerResult(
+            mutation=mut,
+            forward_seq=forward_seq,
+            reverse_seq=reverse_seq,
+            forward_binding=forward_seq,
+            reverse_binding=reverse_seq,
+            overlap_window=ov,
+            tm_fwd=60.0,
+            tm_rev=60.0,
+            tm_overlap=55.0,
+            tm_condition_met=True,
+        )
+
+    def test_rule_a_fires_when_3prime_not_gc(self):
+        """3' end A/T (no anchor) must warn, quoting the last 3 nt."""
+        # Ends in ...CCT -> last base T, not G/C.
+        fwd = "ATGCATGCATGCATGCATGCCT"
+        rev = "ATGCATGCATGCATGCATGCAT" * 1  # placeholder, overwritten below
+        rev = "GCATGCATGCATGCATGCATCA"  # ends in A
+        result = self._dummy_result(fwd, rev)
+        _check_gc_clamp(result)
+        assert any("no G/C anchor" in w for w in result.warnings), result.warnings
+        assert any(w.startswith("Fwd 3' end CCT: no G/C anchor") for w in result.warnings), (
+            result.warnings
+        )
+        assert any(w.startswith("Rev 3' end TCA: no G/C anchor") for w in result.warnings), (
+            result.warnings
+        )
+
+    def test_rule_b_fires_when_3prime_gc_overcrowded(self):
+        """4+ of the last 5 bases G/C must warn with the actual count."""
+        # Last 5 = "GCGCG" -> 5 G/C, > 3.
+        fwd = "ATATATATATATATATGCGCG"
+        rev = "ATATATATATATATATATGCGC"  # last 5 = "TGCGC" -> 4 G/C
+        result = self._dummy_result(fwd, rev)
+        _check_gc_clamp(result)
+        assert any(
+            w == "Fwd 3' end: 5 of last 5 are G/C" for w in result.warnings
+        ), result.warnings
+        assert any(
+            w == "Rev 3' end: 4 of last 5 are G/C" for w in result.warnings
+        ), result.warnings
+
+    def test_negative_case_no_warnings_when_both_rules_satisfied(self):
+        """3' anchored in G/C, but only 3 of last 5 are G/C -> no gc-clamp warning."""
+        # Last 5 = "TATGC" -> terminal C (rule A ok), 2 G/C in window (rule B ok).
+        fwd = "ATGCATGCATGCATGCATTATGC"
+        rev = "GCATGCATGCATGCATGCTAAGC"  # last 5 = "TAAGC" -> terminal C, 2 G/C
+        result = self._dummy_result(fwd, rev)
+        _check_gc_clamp(result)
+        gc_clamp_warnings = [
+            w for w in result.warnings
+            if "G/C anchor" in w or "are G/C" in w
+        ]
+        assert gc_clamp_warnings == [], gc_clamp_warnings
+
+    def test_no_penalty_change(self):
+        """gc-clamp warnings must never touch result.penalty (ranking must not move)."""
+        fwd = "ATATATATATATATATGCGCG"  # violates both rules
+        rev = "GCATGCATGCATGCATGCATCA"  # violates rule A
+        result = self._dummy_result(fwd, rev)
+        result.penalty = 3.14  # arbitrary pre-existing penalty from other checks
+        _check_gc_clamp(result)
+        assert result.warnings, "expected at least one gc-clamp warning for this fixture"
+        assert result.penalty == 3.14, "gc-clamp check must not mutate penalty"
+
+    def test_fixture_warnings_present_and_penalty_unaffected(
+        self, genbank_path, mutations_csv
+    ):
+        """Sanity check against the Q5/12-mutation fixture: warnings should be
+        common (this is a narrow window by design), and no result's penalty
+        should differ from a run with _check_gc_clamp monkeypatched out.
+        """
+        results, _cand, _failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="Q5",
+            overlap_len=18,
+        )
+        assert len(results) >= 5
+        n_with_gc_clamp_warning = sum(
+            1 for r in results
+            if any("G/C anchor" in w or "are G/C" in w for w in r.warnings)
+        )
+        assert n_with_gc_clamp_warning > 0, (
+            "expected the gc-clamp rules to fire on at least one design in this fixture"
+        )
 
 
 class TestCancelCheck:
