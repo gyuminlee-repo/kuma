@@ -111,12 +111,12 @@ def _validate(expected: Path, mock_fasta_dir: Path, reference: Path, **extra) ->
 
 
 class TestPlateOrderFinding:
-    """A workbook that disagrees with itself is said out loud before the run."""
+    """A workbook that disagrees with itself fails validation."""
 
-    def test_inferred_layout_makes_a_mismatch_blocking(
+    def test_a_mismatch_fails_the_validation(
         self, tmp_path: Path, mock_fasta_dir: Path, reference_fasta_path: Path
     ) -> None:
-        """Without a sample map the expected sheet *is* the well coordinate system."""
+        """The expected sheet and the plate sheet cannot both be the plate."""
         expected = _plate_workbook(
             tmp_path / "reordered.xlsx",
             [("A1", "S11I"), ("B1", "S22T")],
@@ -125,7 +125,13 @@ class TestPlateOrderFinding:
 
         result = _validate(expected, mock_fasta_dir, reference_fasta_path)
 
-        assert result["valid"] is True
+        assert result["valid"] is False
+        # The error names both sheets, so the operator knows which file to fix
+        # rather than which setting to hunt for.
+        assert any(
+            "Fwd List" in message and "expected_mutations" in message
+            for message in result["errors"]
+        )
         finding = result["plate_order"]
         assert finding["severity"] == "blocking"
         assert finding["mismatched"] is True
@@ -136,10 +142,15 @@ class TestPlateOrderFinding:
             "expected": "S22T",
         }
 
-    def test_a_supplied_sample_map_demotes_it_to_information(
+    def test_a_supplied_sample_map_does_not_soften_it(
         self, tmp_path: Path, mock_fasta_dir: Path, reference_fasta_path: Path
     ) -> None:
-        """The sheet order never reaches a well, so this run is unaffected."""
+        """A sample map places wells; it does not say which plate was pipetted.
+
+        This was graded ``info`` and left the run enabled until 2026-08-05. The
+        verdicts were then scored against whichever of the workbook's two plates
+        the sample map happened to agree with, and nothing checked that it did.
+        """
         expected = _plate_workbook(
             tmp_path / "reordered2.xlsx",
             [("A1", "S11I"), ("B1", "S22T")],
@@ -153,9 +164,10 @@ class TestPlateOrderFinding:
             sample_map_xlsx=str(expected),
         )
 
-        assert result["plate_order"]["severity"] == "info"
+        assert result["plate_order"]["severity"] == "blocking"
+        assert result["valid"] is False
 
-    def test_an_explicit_well_layout_demotes_it_too(
+    def test_an_explicit_well_layout_does_not_soften_it_either(
         self, tmp_path: Path, mock_fasta_dir: Path, reference_fasta_path: Path
     ) -> None:
         expected = _plate_workbook(
@@ -171,7 +183,8 @@ class TestPlateOrderFinding:
             well_layout={"A1": "S22T"},
         )
 
-        assert result["plate_order"]["severity"] == "info"
+        assert result["plate_order"]["severity"] == "blocking"
+        assert result["valid"] is False
 
     def test_missing_mutants_are_listed(
         self, tmp_path: Path, mock_fasta_dir: Path, reference_fasta_path: Path

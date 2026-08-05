@@ -248,22 +248,23 @@ export interface PlateOrderReport {
 /**
  * How much a plate disagreement costs on the run being set up.
  *
- * - "blocking": the layout is inferred from `expected_mutations`, so the sheet
- *   order *is* the well coordinate system and every verdict lands on the wrong
- *   well. Counts and verdicts still look normal, which is why this gates.
- * - "info": a sample map or a confirmed well layout supplies the coordinates,
- *   so the sheet order never reaches a well. The workbook still contradicts
- *   itself, but this run is unaffected.
+ * Only "blocking" is produced. A workbook whose primer plate sheet and
+ * `expected_mutations` describe different plates does not record which of the
+ * two was pipetted, so the run is refused until the workbook is replaced.
+ *
+ * "info" remains in the union for responses from a sidecar built before
+ * 2026-08-05, which downgraded the finding when a sample map or a well layout
+ * supplied the coordinates. The frontend does not act on the value it receives
+ * (see `selectPlateOrderSeverity`), so such a response still blocks.
  */
 export type PlateOrderSeverity = "blocking" | "info";
 
 /**
- * A `PlateOrderReport` graded against the layout inputs of the current run.
+ * A `PlateOrderReport` carrying the severity the run applies to it.
  *
  * `validate_inputs` grades it server-side (`_plate_order_finding` in
- * `python-core/sidecar_mame/handlers/analyze.py`); the frontend applies the same
- * rule to the ungraded `check_plate_order` response and to layout inputs chosen
- * after a validation.
+ * `python-core/sidecar_mame/handlers/analyze.py`); the frontend grades the
+ * ungraded `check_plate_order` response the same way.
  */
 export interface PlateOrderFinding extends PlateOrderReport {
   severity: PlateOrderSeverity;
@@ -274,8 +275,9 @@ export interface ValidationResult {
   errors: string[];
   /**
    * Present only when there is something to report: the workbook could be
-   * compared and its sheets disagree. `valid` deliberately stays true, so the
-   * blocking gate is the frontend's job (see `selectPlateOrderSeverity`).
+   * compared and its sheets disagree. `valid` is false and `errors` carries the
+   * same fact in words; this field is the structured form the notice renders
+   * (which wells, which sheet, what is missing).
    */
   plate_order?: PlateOrderFinding;
 }

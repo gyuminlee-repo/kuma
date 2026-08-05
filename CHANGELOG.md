@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.15.10 (A workbook that writes one plate two ways does not start a run)
+
+A KURO export carries the same plate twice, on `Fwd List` and on `expected_mutations`, and exports written before v0.14.3 wrote the two in different orders. MAME had reported that disagreement since v0.15.6 and then run anyway, on the reasoning that a sample map or a confirmed layout supplied the wells so the sheet order never reached one. That is true of the wells and false of the run: every verdict was still scored against whichever of the workbook's two plates the other input happened to match, with nothing checking that it matched at all. On `260722_Ep_R2-1_platemap.xlsx` the primer list puts `S11I` at A1 while the expected sheet puts `V233I` there, and `V263I` sits on the plate with no row in the list, shifting every well after it by one.
+
+### Changed
+
+- v0.15.10: A disagreement between the two plate descriptions in one workbook now fails validation instead of appearing beside a passing one. The run is refused whether or not a sample map or a well layout was chosen, because placing wells is not the same as recording which of the two plates went into the tubes, and no input on the analyze screen records that. The notice states the wells that disagree and what is missing, as before, and now says the run is held.
+- v0.15.10: The refusal also holds before any validation is asked for. Picking the workbook checks it on its own, so the operator no longer reaches Run through a file picker without passing through validation, which is the route the 2026-08-04 misscoring took. A restored project applies the same check to the workbook it comes back with.
+- v0.15.10: The way out is a workbook whose sheets agree: re-export from KURO v0.14.3 or later, or choose another file. Picking one clears the refusal, and the re-check reinstates it only when the new file disagrees with itself too. Naming the variant sheet and column no longer silences the notice, since that answers a different question and left the validation error with nothing on screen to explain it.
+
 ## v0.15.9 (A primer that leaves the manufacturer's range says so)
 
 Each polymerase ships with a primer length and GC range in its own protocol, and KURO knew none of them. A 16 nt primer for KOD, whose manual asks for 22 to 35, designed and ranked exactly like any other; nothing on screen distinguished a primer the enzyme's maker would question from one it would not. The design itself was not wrong, since the ranking already balances Tm, structure and specificity, but the operator had no way to see that a particular oligo sat outside the range printed in the manual they were about to follow.

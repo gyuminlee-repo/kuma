@@ -474,17 +474,25 @@ def _summarize(verdicts: list) -> dict:
 def _plate_order_finding(params: dict, expected_path: Path) -> dict | None:
     """Does the expected workbook agree with its own primer plate sheets?
 
-    ``expected_mutations`` is a well coordinate system to MAME only when the layout
-    is inferred from it: :func:`handle_analyze` falls back to
-    ``build_draft_layout(read_variant_source(...).expected)`` exactly when neither
-    ``well_layout`` nor ``sample_map_xlsx`` is given. With either of those present the
-    sheet order never reaches a well, so the same disagreement is a fact about the
-    file rather than about this run. That split is the ``severity`` field.
+    A workbook that writes one plate two ways is a workbook nobody can read back:
+    which of the two sheets describes the tubes that were pipetted is not recorded
+    anywhere in the file. So this is graded ``blocking`` whenever it is found, and
+    :func:`handle_validate_inputs` turns it into a validation error.
+
+    It used to be downgraded to ``info`` when ``well_layout`` or ``sample_map_xlsx``
+    supplied the coordinates, on the grounds that the sheet order never reached a
+    well in that case. That is true of the wells and false of the file: the run
+    still scores every well against whichever of the two plates the operator's other
+    input happens to agree with, and nothing checks that it agrees at all. The fix
+    is to re-export the workbook, not to route around it (2026-08-05).
+
+    ``params`` is unused now and kept so the call sites stay stable.
 
     Returns ``None`` when there is nothing to say: a workbook the check cannot compare
     (no plate sheet, a plain variant list), one whose sheets agree, or a check that
     failed outright. A failed check is not a reason to hold up validation.
     """
+    del params  # graded the same way whatever this run's layout inputs are
     try:
         from kuma_core.mame.io.plate_order_check import check_plate_order
 
@@ -496,14 +504,25 @@ def _plate_order_finding(params: dict, expected_path: Path) -> dict | None:
     if not report.comparable or report.ok:
         return None
 
-    # Mirrors the layout fallback in handle_analyze: an explicit well_layout wins
-    # even when empty, and sample_map_xlsx only counts when non-blank.
-    infers_layout = params.get("well_layout") is None and not params.get(
-        "sample_map_xlsx"
-    )
     payload = plate_order_payload(report)
-    payload["severity"] = "blocking" if infers_layout else "info"
+    payload["severity"] = "blocking"
     return payload
+
+
+def _plate_order_error(payload: dict) -> str:
+    """The validation error a plate-order disagreement produces.
+
+    Says what disagrees and what ends it. The only way out is a workbook whose two
+    plates match, so the sentence points at the file rather than at a setting: no
+    MAME input can decide which sheet was pipetted.
+    """
+    sheet = payload.get("plate_sheet") or "the primer plate sheet"
+    return (
+        f"expected: {sheet} and expected_mutations describe different plates in the "
+        "same workbook, so the wells this run would score cannot be trusted. "
+        "Re-export the workbook from KURO v0.14.3 or later, or pick one whose "
+        "sheets agree, and validate again."
+    )
 
 
 def handle_validate_inputs(params: dict) -> dict:
@@ -519,13 +538,15 @@ def handle_validate_inputs(params: dict) -> dict:
     failures, only on programmer errors (missing param key).
 
     A readable expected workbook is additionally checked against its own primer plate
-    sheets (see :func:`_plate_order_finding`). The finding rides along under
-    ``plate_order`` and the key is absent when there is nothing to report, so ``valid``
-    and ``errors`` keep meaning exactly what they did.
+    sheets (see :func:`_plate_order_finding`). A disagreement is a validation error
+    like any other: it lands in ``errors`` and ``valid`` is false. The finding also
+    rides along under ``plate_order`` so the frontend can name the wells that
+    disagree, and the key is absent when there is nothing to report.
 
-    Optional ``well_layout`` / ``sample_map_xlsx`` are read only to grade that finding;
-    omitting them (any frontend built before this) grades it as if the layout were
-    inferred, which is the louder of the two answers.
+    Until 2026-08-05 the disagreement was reported under ``plate_order`` alone while
+    ``valid`` stayed true, which left the run enabled over a workbook describing two
+    different plates. Deciding which of the two was pipetted is not something this
+    screen can do, so the answer is to refuse the file, not to annotate it.
     """
     errors: list[str] = []
     plate_order: dict | None = None
@@ -617,6 +638,13 @@ def handle_validate_inputs(params: dict) -> dict:
                 wb.close()
             if expected_readable and is_kuro_export:
                 plate_order = _plate_order_finding(params, expected_path)
+                # A validation error, not a note beside a passing validation: a
+                # workbook that writes one plate two ways cannot say which plate
+                # was pipetted, and no other input on this screen can say it for
+                # the workbook. Reported here so `valid` is false and the run is
+                # refused until the file is replaced (2026-08-05).
+                if plate_order is not None:
+                    errors.append(_plate_order_error(plate_order))
         except (FileNotFoundError, ValueError) as exc:
             errors.append(f"expected: {exc}")
         except Exception as exc:  # noqa: BLE001 — openpyxl surface is broad

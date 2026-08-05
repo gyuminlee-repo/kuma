@@ -155,10 +155,10 @@
   "mame": {
     "plateOrder": {
       "title": "Plate order disagreement in {{filename}}",
-      "bodyInfo": "The primer plate on sheet {{sheet}} and the order of expected_mutations do not match. This run takes its wells from the sample map or the confirmed well layout, so the verdicts are not affected. The workbook still describes two different plates.",
+      "bodyBlocked": "The primer plate on sheet {{sheet}} and the order of expected_mutations do not match, so the same workbook describes two different plates and nothing in it records which one was pipetted. The run is blocked until that is settled.",
       "example": "well {{well}}: {{plate}} on the plate, {{expected}} in expected_mutations",
       "missing": "On the plate but absent from expected_mutations: {{items}}. Each one shifts every later well by one.",
-      "escape": "Which sheet describes the tubes that were pipetted is yours to state: name the sheet and column the variant list is read from, or choose a sample map file. Either one takes the sheet order out of this run. MAME does not pick a sheet for you."
+      "resolution": "Re-export the workbook from KURO v0.14.3 or later, or pick one whose sheets agree, then validate again. MAME does not pick a sheet for you, and no other input on this screen can state which plate went into the tubes."
     },
     "input": {
       "redetect": "重新检测",
