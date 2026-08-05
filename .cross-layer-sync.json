@@ -316,7 +316,7 @@
         "python-core/sidecar_mame/handlers/activity.py",
         "src/types/mame/activity.ts",
         "src/store/mame/activitySlice.ts",
-        "src/components/mame/panels/ActivityPanel.tsx",
+        "src/components/mame/panels/BuildEvolveproInputPanel.tsx",
         "src/store/slices/sequenceSlice.ts"
       ],
       "symbols": [
@@ -327,7 +327,7 @@
         "selectedGene",
         "translation"
       ],
-      "note": "merge_for_evolvepro handler ↔ TS params/response ↔ MAME store action ↔ selected KURO CDS translation forwarded by ActivityPanel",
+      "note": "merge_for_evolvepro handler ↔ TS params/response ↔ MAME store action ↔ selected KURO CDS translation forwarded by ActivityPanel 2026-08-05: ActivityPanel.tsx 가 삭제되고 BuildEvolveproInputPanel.tsx 가 그 흐름을 맡았다.",
       "severity": "blocking"
     },
     {
@@ -654,7 +654,6 @@
         "src/store/mame/slices/mameSubSteps.ts",
         "src/store/mame/slices/navigationSlice.ts",
         "src/components/mame/layout/MameAppLayout.tsx",
-        "src/components/mame/panels/ActivityPanel.tsx",
         "src/components/mame/steps/SetupStepView.tsx",
         "src/components/mame/steps/AnalyzeStepView.tsx",
         "src/components/mame/steps/JanusStepView.tsx",
@@ -668,7 +667,7 @@
         "TabsTrigger",
         "TabsContent"
       ],
-      "note": "MamePhase·ActivityTab·MameSubStepId enum ↔ MameAppLayout TabsTrigger values ↔ ActivityPanel sub-tab values ↔ StepView dispatcher. phase 추가 시 sub-step + TabsContent + StepView 동시 추가",
+      "note": "MamePhase·ActivityTab·MameSubStepId enum ↔ MameAppLayout TabsTrigger values ↔ ActivityPanel sub-tab values ↔ StepView dispatcher. phase 추가 시 sub-step + TabsContent + StepView 동시 추가 2026-08-05: ActivityPanel.tsx 삭제로 항목 제거. sub-tab 값은 ActivityStepView 가 갖는다.",
       "severity": "blocking"
     },
     {
