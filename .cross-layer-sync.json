@@ -430,12 +430,12 @@
         "src/types/mame/models.ts"
       ],
       "symbols": [
-        "janus_autosave_path",
+        "picks_autosave_path",
         "_janus_settings_from_params",
         "DEFAULT_JANUS_SETTINGS",
         "build_janus_preview_rows"
       ],
-      "note": "analyze writes the Janus mapping beside the result workbook and reports it on the janus_autosave response field. The settings default through _janus_settings_from_params, the one resolver the export_janus_mapping RPC also uses, and DEFAULT_JANUS_SETTINGS in the dialog must keep matching it or the automatic file and the dialog file differ for the same run. Changing the janus_autosave keys (status, output_path, format, row_count, excluded, excluded_count, errors) means changing the TS type that renders them.",
+      "note": "analyze writes the pick list beside the result workbook and reports it on the janus_autosave response field. The settings resolve through _janus_settings_from_params, the one resolver the export_janus_mapping RPC also uses, with one deliberate difference: the automatic file pins output_schema to legacy5, so the dialog owns the instrument sheet (device9) and the run owns the selection. Selection fields (dest_layout, include_verdicts, include_fallback) are shared, so DEFAULT_JANUS_SETTINGS in the dialog must keep matching the Python defaults. Changing the janus_autosave keys (status, output_path, format, row_count, excluded, excluded_count, errors) means changing the TS type that renders them.",
       "severity": "warning"
     },
     {

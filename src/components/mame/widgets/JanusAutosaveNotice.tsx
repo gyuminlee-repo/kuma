@@ -1,19 +1,22 @@
 /**
- * JanusAutosaveNotice, what became of the Janus mapping the run wrote itself.
+ * JanusAutosaveNotice, what became of the pick list the run wrote itself.
  *
- * Every finished analyze writes the cell-stock mapping next to its result
- * workbook. That file is the one the robot reads, so its absence has to be as
- * visible as its presence: a run that reports "Analysis complete" while the
- * mapping silently failed sends somebody to a folder that has no file in it.
+ * Every finished analyze writes its picks next to the result workbook: which
+ * variant was selected, on which plate and well it sits, and where it should be
+ * collected. That file is the conclusion of the run, so its absence has to be as
+ * visible as its presence: a run that reports "Analysis complete" while the file
+ * silently failed sends somebody to a folder that has no file in it.
+ *
+ * The text must not read as a robot worklist. That file carries deck and liquid
+ * parameters, is made in the Janus dialog once the deck is confirmed, and the
+ * copy here points there rather than at the File menu, whose Janus item was
+ * removed in v0.14.7.
  *
  * Three outcomes, three tones:
- *   "saved"    path and row count.
+ *   "saved"    path and pick count.
  *   "skipped"  nothing was selected, so nothing was written. Not a failure, but
- *              also not a mapping: said plainly.
- *   "failed"   the reason, verbatim from the sidecar. `missing_liquid_class` is
- *              the common one and points at the Janus dialog, where the liquid
- *              class is set (it decides how the robot handles the cells, so no
- *              default is invented for it).
+ *              also not a pick list: said plainly.
+ *   "failed"   the reason, verbatim from the sidecar.
  */
 
 import { AlertCircle, CheckCircle2, Info } from "lucide-react";

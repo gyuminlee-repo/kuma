@@ -725,6 +725,7 @@
         "sourceRackLabel": "Asp. Rack {{plate}}",
         "destRackLabel": "Dsp. Rack",
         "rackHint": "假定的 rack 编号：按工作簿 labware 顺序，source plate 在前，destination 在后。请按实际 deck 调整。",
+        "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
         "excludedHeading": "已排除 {{count}} 个",
         "excludedNone": "没有被排除的克隆。",
         "excludedReason": {
@@ -989,10 +990,15 @@
         "secOnly": "{{sec}} s"
       },
       "janusAutosave": {
-        "saved": "Janus mapping written next to the result workbook ({{rows}} rows).",
-        "skipped": "No clone met the Janus selection, so no mapping file was written.",
-        "failed": "The Janus mapping was not written.",
-        "excluded": "{{clones}} clone(s) left out of the mapping. Open File > Export Janus Mapping to see why."
+        "saved": "Selected clones written next to the result workbook ({{rows}} picks). This is the selection list, not a robot worklist; build that in Janus instrument settings.",
+        "skipped": "No clone met the selection criteria, so no selection list was written.",
+        "failed": "The selection list was not written.",
+        "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
+      },
+      "janusSettings": {
+        "open": "Janus instrument settings...",
+        "openAriaLabel": "Open Janus instrument settings",
+        "hint": "Optional. Liquid class and deck rack numbers are needed only for the robot worklist; the selection list this run writes needs none of them."
       }
     },
     "buildEvolvepro": {

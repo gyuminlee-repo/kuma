@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.15.7 (A finished run leaves the picks, not a worklist for a deck nobody confirmed)
+
+The file every analyze wrote for itself was an instrument sheet: liquid class, dispense volume, and deck rack numbers, none of which have a lab source in this repository. Every exploratory re-run dropped another one in the output folder stating a deck that may not be the deck in the room, and any of them could be carried to the robot. On a real run it did not even get that far: the deck map knows the plate names NB01 to NB03, the run produced `sort_barcode07` and up, and the export refused every clone. The remedy the message named, File > Export Janus Mapping, has not existed since v0.14.7.
+
+### Changed
+
+- v0.15.7: The file an analyze writes beside its result workbook is the selection, not a worklist. Five columns, `name | source_plate | source_well | dest_well | priority_score`: which variant was picked, where it sits, and where it goes when the picks are gathered. It carries no instrument setting, so it is written whether or not one has been entered, which is the point. The Janus dialog still writes the 9-column instrument sheet and still refuses to write one without a liquid class, and the automatic file deliberately ignores the schema chosen there: the two answer different questions. How the picks are chosen and gathered (`dest_layout`, `include_verdicts`, `include_fallback`) is still the operator's, and is honoured by both.
+- v0.15.7: The automatic file is named `<result workbook>_picks.csv`, not `_janus.csv`. The old name promised a file that could be handed to the instrument.
+- v0.15.7: The Janus export labels a plate the way every other MAME export labels it. `nb_label` is the declared single source of truth (`sort_barcode07` to `NB07`, padding preserved, a name without digits unchanged) and the result workbook has always used it, but the Janus export kept a private NB01 to P1 dictionary that the selected plate, a barcode directory name, never matched, so the raw folder name was written instead. The same run therefore said `NB07` in one file and `sort_barcode07` in the other, and the two could not be read side by side. The dictionary is gone; the deck rack map is keyed by the same labels for the same reason, so what is displayed is what is looked up.
+- v0.15.7: The deck map in the Janus dialog names the plates the run actually produced. A run sorted into native barcode folders reaches the export as `NB07` and up, which the fixed three fields had no rack number for, so every clone was rejected with no field on screen to fix it. The fields are built from the preview the sidecar returns, so the labels are the keys it checks; before a run they fall back to whatever was stored, and say so.
+### Fixed
+
+- v0.15.7: The raw-run path no longer reads an amplicon span it has just found missing. The guard sat on the first coordinate branch only, so a resolution reporting extraction without a span fell into the next branch and read `span.end` there, ending a finished demux with an AttributeError. The four cases now live in one function with the missing span handled first, falling back to the coordinates the resolution reports for itself; the producer never pairs extraction with a missing span, so this is a contract guard, pinned by tests rather than silenced with a type escape.
+
+### Changed
+
+- v0.15.7: Janus instrument settings are reachable from step 2.1, the screen that collects the run's other inputs, since the File menu item that used to open them was removed in v0.14.7. They stay optional and gate nothing: a run needs none of them. The text reporting the automatic file points there too, instead of at a menu that is gone.
+
 ## v0.15.6 (MAME reads the list you point at, and stops asking about the plate it built for nobody)
 
 MAME still treated a KURO export as the only variant list it could analyse, kept a Build well layout button whose 96 rows nobody ever checked, refused a run over two sheets disagreeing inside a workbook the operator had already chosen how to read, and offered two EVOLVEpro-input routes for a workflow that always sequences. The Janus mapping an analyze run writes for itself also failed on every run, because the settings it needs never left the export dialog.

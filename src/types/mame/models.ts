@@ -305,7 +305,10 @@ export type JanusDestLayout = "source" | "compact";
 export type JanusOutputSchema = "device9" | "legacy5";
 
 /**
- * Rack numbers of the source plates on the deck, keyed by plate label (P1/P2/P3).
+ * Rack numbers of the source plates on the deck, keyed by the plate label the
+ * export writes (`nb_label`: "sort_barcode07" -> "NB07"), so a key is looked up
+ * with the same string the row carries. The dialog builds the fields from the
+ * preview rows for that reason.
  *
  * Assumption, editable in the dialog: source plates come first in the labware
  * order of the lab workbook `layout` sheet, with the destination plate last.
@@ -372,7 +375,7 @@ export interface JanusExcludedEntry {
   reason: JanusExclusionReason;
   /** Verdict of the selected plate; empty when no plate was selected. */
   verdict: VerdictClass | "";
-  /** Deck plate label (P1/P2/P3); empty when no plate was selected. */
+  /** Plate label (`nb_label`, e.g. "NB07"); empty when no plate was selected. */
   selected_plate: string;
   is_fallback: boolean;
 }

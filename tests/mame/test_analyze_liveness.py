@@ -273,13 +273,13 @@ def test_handle_analyze_progress_monotonic_with_slow_ingest(
 
     monkeypatch.setattr(analyze_mod, "_HEARTBEAT_INTERVAL_S", 0.02)
 
-    # Single ordered sink merging milestone (_progress) + band/heartbeat
-    # (_send) emissions, so the backward-step glitch (heartbeat emitting a
-    # value ahead of the next milestone) becomes observable.
+    # Single ordered sink over every progress emission, so the backward-step
+    # glitch (heartbeat emitting a value ahead of the next milestone) becomes
+    # observable. `_send` is the whole of it: the handler routes milestones,
+    # bands and heartbeats through its own `_emit`, which writes there. The
+    # module used to also import core's `_progress` and this test patched it,
+    # but nothing had called it since `_emit` was introduced.
     values: list[int] = []
-    monkeypatch.setattr(
-        analyze_mod, "_progress", lambda value, message="": values.append(value)
-    )
     monkeypatch.setattr(
         analyze_mod,
         "_send",

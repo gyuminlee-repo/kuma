@@ -209,9 +209,9 @@ def test_excluded_entry_carries_verdict_and_plate() -> None:
     by_id = {str(e["mutant_id"]): e for e in preview["excluded"]}  # type: ignore[union-attr]
 
     assert by_id["AMBIG"]["verdict"] == "AMBIGUOUS"
-    assert by_id["AMBIG"]["selected_plate"] == "P1"
+    assert by_id["AMBIG"]["selected_plate"] == "NB01"
     assert by_id["FALLBACK"]["verdict"] == "PASS"
-    assert by_id["FALLBACK"]["selected_plate"] == "P2"
+    assert by_id["FALLBACK"]["selected_plate"] == "NB02"
     assert by_id["FALLBACK"]["is_fallback"] is True
 
 
@@ -329,7 +329,7 @@ def test_device9_defaults_are_the_documented_assumptions() -> None:
     assert settings.volume == DEFAULT_VOLUME_UL
     assert settings.sample_type == DEFAULT_SAMPLE_TYPE
     # Source plates first in workbook labware order, destination last.
-    assert settings.rack_map == {"P1": 1, "P2": 2, "P3": 3}
+    assert settings.rack_map == {"NB01": 1, "NB02": 2, "NB03": 3}
     assert settings.dest_rack == 4
 
 
@@ -361,7 +361,7 @@ def test_missing_liquid_class_does_not_block_the_legacy_schema(tmp_path: Path) -
 
 def test_unmapped_source_rack_blocks_the_export(tmp_path: Path) -> None:
     out = tmp_path / "unmapped.csv"
-    settings = JanusSettings(liquid_class="Cell", source_racks=(("P1", 1),))
+    settings = JanusSettings(liquid_class="Cell", source_racks=(("NB01", 1),))
     with pytest.raises(ValueError, match="no Asp. Rack number configured"):
         export_mame_janus_csv(
             [_make_replicate("ONP2", "NB02", "1_1")], out, settings=settings
@@ -381,8 +381,8 @@ def test_non_positive_volume_is_rejected() -> None:
 @pytest.mark.parametrize(
     "kwargs, message",
     [
-        ({"source_racks": (("P1", 1.9),)}, "Invalid source rack number"),
-        ({"source_racks": (("P1", True),)}, "Invalid source rack number"),
+        ({"source_racks": (("NB01", 1.9),)}, "Invalid source rack number"),
+        ({"source_racks": (("NB01", True),)}, "Invalid source rack number"),
         ({"dest_rack": 4.7}, "Invalid dest_rack"),
         ({"dest_rack": False}, "Invalid dest_rack"),
     ],

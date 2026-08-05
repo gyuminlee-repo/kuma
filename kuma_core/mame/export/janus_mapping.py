@@ -3,7 +3,14 @@
 Header design follows the 260428 meeting §2.5 decision:
   name | source_plate | source_well | dest_well | priority_score
 
-- ``source_plate``: P1 / P2 / P3  (NB01→P1, NB02→P2, NB03→P3)
+- ``source_plate``: the plate label ``nb_label`` produces from the barcode
+  directory the replicate was selected from ("sort_barcode07" -> "NB07",
+  "NB01" -> "NB01", a name without digits unchanged). That helper is the single
+  source of truth every MAME export uses, the result workbook included, so the
+  two files a run produces name the same plate the same way. A fixed
+  NB01->P1 / NB02->P2 / NB03->P3 dictionary lived here until v0.15.7 and never
+  matched anything: the selected plate is a barcode directory name, so the
+  lookup missed and the raw name was written.
 - ``source_well``:  well label in the NB plate (e.g. "A1")
 - ``dest_well``:    destination well in the final 96-well plate.
                     Auto-filled from the custom_barcode position.
@@ -47,18 +54,12 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from kuma_core.mame.export.nb_label import nb_label
 from kuma_core.mame.export.well_mapper import seq_to_well
 from kuma_core.mame.models import ReplicateResult, VerdictClass
 
 if TYPE_CHECKING:
     from kuma_core.mame.ingest.run_meta import NgsRunMeta
-
-# NB plate name → Janus deck plate name mapping (meeting §2.5).
-_PLATE_LABEL: dict[str, str] = {
-    "NB01": "P1",
-    "NB02": "P2",
-    "NB03": "P3",
-}
 
 _JANUS_HEADER = [
     "name",
@@ -114,7 +115,11 @@ DEFAULT_SAMPLE_TYPE = "cell"
 # ``layout`` sheet, i.e. the three source plates first and the destination
 # last. The workbook itself was not re-read for cell stock, so both the mapping
 # and the destination number are editable in the export dialog.
-DEFAULT_SOURCE_RACKS: dict[str, int] = {"P1": 1, "P2": 2, "P3": 3}
+#
+# Keyed by the same labels the rows carry (``nb_label`` output), because
+# ``_find_unknown_source_racks`` looks a row's ``source_plate`` up in this map.
+# The keys were P1/P2/P3 until v0.15.7, which no row has ever matched.
+DEFAULT_SOURCE_RACKS: dict[str, int] = {"NB01": 1, "NB02": 2, "NB03": 3}
 DEFAULT_DEST_RACK = 4
 
 # Deliberately no default: the liquid class drives the pipetting behaviour of
@@ -321,9 +326,7 @@ def _assemble_janus_rows(
                     "reason": reason,
                     "verdict": verdict_value,
                     "selected_plate": (
-                        _PLATE_LABEL.get(rr.selected_plate, rr.selected_plate)
-                        if rr.selected_plate
-                        else ""
+                        nb_label(rr.selected_plate) if rr.selected_plate else ""
                     ),
                     "is_fallback": bool(rr.is_fallback),
                 }
@@ -343,7 +346,9 @@ def _assemble_janus_rows(
         else:
             well_label = seq_to_well(seq)
 
-        source_plate = _PLATE_LABEL.get(rr.selected_plate, rr.selected_plate)
+        # nb_label is what every other MAME export writes (the result workbook
+        # included), so the two files a run produces name one plate one way.
+        source_plate = nb_label(rr.selected_plate)
         # G6/A6: read_count preferred; fall back to file_size_kb proxy.
         rc = bc.read_count
         priority_score: float = float(rc) if rc is not None else round(bc.file_size_kb, 3)

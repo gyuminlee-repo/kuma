@@ -74,7 +74,7 @@ const SETTINGS: JanusResolvedSettings = {
   volume: 100,
   sample_type: "cell",
   liquid_class: "Cell 100ul",
-  source_racks: { P1: 1, P2: 2, P3: 3 },
+  source_racks: { NB01: 1, NB02: 2, NB03: 3 },
   dest_rack: 4,
   columns: [
     "name",
@@ -93,14 +93,14 @@ const CLEAN: JanusPreviewResult = {
   rows: [
     {
       name: "HIGH",
-      source_plate: "P1",
+      source_plate: "NB01",
       source_well: "E7",
       dest_well: "E7",
       priority_score: 300,
     },
     {
       name: "LOW",
-      source_plate: "P2",
+      source_plate: "NB02",
       source_well: "H12",
       dest_well: "H12",
       priority_score: 10,
@@ -116,15 +116,15 @@ const CLEAN: JanusPreviewResult = {
 const DUPLICATE: JanusPreviewResult = {
   rows: [
     {
-      name: "P1_A1",
-      source_plate: "P1",
+      name: "NB01_A1",
+      source_plate: "NB01",
       source_well: "A1",
       dest_well: "A1",
       priority_score: 200,
     },
     {
-      name: "P2_A1",
-      source_plate: "P2",
+      name: "NB02_A1",
+      source_plate: "NB02",
       source_well: "A1",
       dest_well: "A1",
       priority_score: 100,
@@ -134,7 +134,7 @@ const DUPLICATE: JanusPreviewResult = {
     {
       code: "duplicate_dest_well",
       message: "Janus mapping: duplicate dest_well would dispense multiple clones",
-      mutant_ids: ["P1_A1", "P2_A1"],
+      mutant_ids: ["NB01_A1", "NB02_A1"],
     },
   ],
   row_count: 2,
@@ -148,21 +148,21 @@ const EXCLUSIONS: JanusExcludedEntry[] = [
     mutant_id: "AMBIG",
     reason: "verdict_class",
     verdict: "AMBIGUOUS",
-    selected_plate: "P1",
+    selected_plate: "NB01",
     is_fallback: false,
   },
   {
     mutant_id: "LOWDEP",
     reason: "verdict_class",
     verdict: "LOWDEPTH",
-    selected_plate: "P1",
+    selected_plate: "NB01",
     is_fallback: false,
   },
   {
     mutant_id: "FB",
     reason: "fallback",
     verdict: "PASS",
-    selected_plate: "P2",
+    selected_plate: "NB02",
     is_fallback: true,
   },
 ];
@@ -262,7 +262,7 @@ describe("JanusMappingDialog preview", () => {
     await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByText("Deck configuration"));
 
-    fireEvent.change(screen.getByLabelText("Asp. Rack P1"), {
+    fireEvent.change(screen.getByLabelText("Asp. Rack NB01"), {
       target: { value: "1.9" },
     });
     fireEvent.change(screen.getByLabelText("Dsp. Rack"), {
@@ -448,5 +448,79 @@ describe("JanusMappingDialog preview", () => {
     expect(
       screen.queryByText(/duplicate dest_well would dispense/i),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("JanusMappingDialog deck map", () => {
+  /**
+   * Observed on a real run: the plates were native barcode folders named
+   * `sort_barcode07` and up, which a fixed P1/P2/P3 field list has no rack for,
+   * so the export refused every clone. The fields must name the plates the run
+   * actually produced.
+   */
+  const NATIVE_BARCODE: JanusPreviewResult = {
+    ...CLEAN,
+    rows: [
+      { ...CLEAN.rows[0], source_plate: "sort_barcode07" },
+      { ...CLEAN.rows[1], source_plate: "sort_barcode08" },
+    ],
+  };
+
+  beforeEach(() => {
+    useMameAppStore.setState({ janusSettings: DEFAULT_JANUS_SETTINGS });
+    mockPreview.mockReset();
+  });
+
+  it("names the rack fields after the plates of the run", async () => {
+    mockPreview.mockImplementation(async (settings) => ({
+      ...NATIVE_BARCODE,
+      settings: resolvedSettingsFromUi(settings),
+    }));
+    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    await waitFor(() => expect(mockPreview).toHaveBeenCalled());
+    fireEvent.click(await screen.findByText("Deck configuration"));
+
+    expect(await screen.findByLabelText("Asp. Rack sort_barcode07")).toBeInTheDocument();
+    expect(screen.getByLabelText("Asp. Rack sort_barcode08")).toBeInTheDocument();
+    // The shipped NB01/NB02/NB03 names belong to no plate of this run.
+    expect(screen.queryByLabelText("Asp. Rack NB01")).not.toBeInTheDocument();
+  });
+
+  it("records the rack number under the plate name the sidecar checks", async () => {
+    mockPreview.mockImplementation(async (settings) => ({
+      ...NATIVE_BARCODE,
+      settings: resolvedSettingsFromUi(settings),
+    }));
+    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(1));
+    fireEvent.click(await screen.findByText("Deck configuration"));
+
+    fireEvent.change(screen.getByLabelText("Asp. Rack sort_barcode07"), {
+      target: { value: "2" },
+    });
+
+    await waitFor(() =>
+      expect(mockPreview).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sourceRacks: expect.objectContaining({ sort_barcode07: 2 }),
+        }),
+      ),
+    );
+  });
+
+  it("says the plate names are still to come when no run has produced any", async () => {
+    mockPreview.mockImplementation(async (settings) => ({
+      rows: [],
+      errors: [],
+      row_count: 0,
+      excluded: [],
+      excluded_count: 0,
+      settings: resolvedSettingsFromUi(settings),
+    }));
+    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    await waitFor(() => expect(mockPreview).toHaveBeenCalled());
+    fireEvent.click(await screen.findByText("Deck configuration"));
+
+    expect(screen.getByText(/Plate names come from the run/i)).toBeInTheDocument();
   });
 });
