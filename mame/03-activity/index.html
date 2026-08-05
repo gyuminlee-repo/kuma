@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#step-3-activity-data" class="md-skip">
+        <a href="#step-4-activity-data" class="md-skip">
           콘텐츠로 이동
         </a>
       
@@ -1022,22 +1022,33 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#31-route" class="md-nav__link">
+  <a href="#41" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3.1 두 갈래 route (배타 선택)
+        4.1 단일 공통 파이프라인
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="3.1 두 갈래 route (배타 선택)">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#42" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 측정값 형식
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.2 측정값 형식">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#genotype-route-ingest" class="md-nav__link">
+  <a href="#long-format" class="md-nav__link">
     <span class="md-ellipsis">
       
-        genotype route: Ingest 입력 포맷
+        범용 long-format 계약
       
     </span>
   </a>
@@ -1050,71 +1061,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#32-platelayout-route" class="md-nav__link">
+  <a href="#43" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3.2 plateLayout route: 두 축
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3.2 plateLayout route: 두 축">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#a-1-1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        축 A: 1반복 1차 스크리닝 (정확히 하나)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#b-n" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        축 B: n반복 확인 측정 (최대 하나)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        공통 선택 입력
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        정규화
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#33" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.3 산출물
+        4.3 선택적 확인 측정
       
     </span>
   </a>
@@ -1122,10 +1072,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#34" class="md-nav__link">
+  <a href="#44-ngs" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3.4 제외 규칙
+        4.4 NGS 판정
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#45" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 출력과 상태
       
     </span>
   </a>
@@ -1715,201 +1676,82 @@
   
 
 
-<h1 id="step-3-activity-data">Step 3. Activity Data<a class="headerlink" href="#step-3-activity-data" title="Permanent link">&para;</a></h1>
-<p>wet-lab activity assay 값을 WT 기준으로 정규화하고, 다음 라운드 EVOLVEpro 입력 xlsx 를 생성한다.</p>
-<h2 id="31-route">3.1 두 갈래 route (배타 선택)<a class="headerlink" href="#31-route" title="Permanent link">&para;</a></h2>
-<p>한 화면에서 <code>ActivityRouteSelector</code> 로 둘 중 하나를 고른다. 두 route 는 서로 독립이며 필요한 입력이 다르다.</p>
+<h1 id="step-4-activity-data">Step 4. Activity Data<a class="headerlink" href="#step-4-activity-data" title="Permanent link">&para;</a></h1>
+<p>Step 4는 <strong>이번 라운드의 활성 측정값</strong>을 같은 라운드의 NGS 판정으로 거른 뒤, WT 정규화와 replicate 병합을 거쳐 EVOLVEpro 입력 xlsx (<code>Variant</code>, <code>activity</code>)로 만든다.</p>
+<h2 id="41">4.1 단일 공통 파이프라인<a class="headerlink" href="#41" title="Permanent link">&para;</a></h2>
+<p>활성값의 출처에 따라 별도 route를 고르지 않는다. 상위 선택은 <strong>측정값 형식</strong>이며, 세 입력 어댑터가 모두 아래 공통 흐름으로 합류한다.</p>
+<ol>
+<li>측정값 읽기</li>
+<li>well 라벨이면 plate layout으로 variant에 매핑</li>
+<li>raw 값이면 같은 plate/cohort의 WT 평균으로 정규화</li>
+<li>replicate 병합</li>
+<li>이번 라운드 NGS verdict 적용</li>
+<li>EVOLVEpro <code>[Variant, activity]</code> export</li>
+</ol>
+<p>Plate layout은 활성값 소스가 아니라 <code>well → variant</code> 매핑 메타데이터다. NGS verdict는 모든 측정값 형식에 필수다.</p>
+<h2 id="42">4.2 측정값 형식<a class="headerlink" href="#42" title="Permanent link">&para;</a></h2>
+<p>한 번의 build에서 다음 중 정확히 하나를 사용한다.</p>
 <table>
 <thead>
 <tr>
-<th>route</th>
-<th>쓰는 때</th>
-<th>입력</th>
-<th>NGS verdict</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>genotype</code></td>
-<td>이번 라운드 NGS 판정과 활성을 well 단위로 묶을 때</td>
-<td>long-format activity 파일 + 현재 라운드 genotype</td>
-<td>필요</td>
-</tr>
-<tr>
-<td><code>plateLayout</code></td>
-<td>plate layout 과 활성 파일만 있을 때</td>
-<td>아래 3.2 참조</td>
-<td>불필요 (선택적으로 gating)</td>
-</tr>
-</tbody>
-</table>
-<p><code>genotype</code> route 는 Ingest → Merge → Export 세 섹션을 순차로 진행한다. <code>plateLayout</code> route 는 <code>BuildEvolveproInputPanel</code> 하나로 끝난다.</p>
-<h3 id="genotype-route-ingest">genotype route: Ingest 입력 포맷<a class="headerlink" href="#genotype-route-ingest" title="Permanent link">&para;</a></h3>
-<p>long-format 만 받는다. 96-well grid 시트는 지원하지 않는다.</p>
-<table>
-<thead>
-<tr>
-<th>컬럼</th>
-<th>필수</th>
-<th>허용 별칭</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>well</td>
-<td>필수</td>
-<td><code>well_id</code>, <code>sample name</code>, <code>sample</code>, <code>well</code>, <code>well pos.</code></td>
-</tr>
-<tr>
-<td>value</td>
-<td>필수</td>
-<td><code>value</code>, <code>area</code>, <code>activity</code></td>
-</tr>
-<tr>
-<td><code>plate_id</code></td>
-<td>조건부</td>
-<td>plate 가 정확히 1개면 생략 가능, 아니면 필수</td>
-</tr>
-<tr>
-<td><code>replicate_idx</code></td>
-<td>선택</td>
-<td>기본 1</td>
-</tr>
-</tbody>
-</table>
-<p>well 컬럼 값은 well 좌표(<code>A1</code> 또는 <code>A01</code>) 이거나 WT 반복 라벨(<code>WT_1</code>, <code>WT1</code> 형태의 <code>^WT_?\d+$</code>) 이다. WT 라벨 행은 well 이 아니라 전용 WT 반복으로 따로 모이며, 라벨의 숫자 접미사가 replicate 번호가 된다 (<code>WT_3</code> 은 3번째 반복). 둘 중 어느 쪽도 아닌 값을 가진 행은 건너뛴다.</p>
-<p>확장자가 <code>.xlsx</code>/<code>.xls</code> 면 excel 로, 그 외는 csv 로 읽는다. 음수와 NaN 행은 건너뛴다.</p>
-<p>분모는 plate 단위로 두 소스 중 우선순위가 높은 쪽을 쓴다. 활성 파일에 <code>WT_1</code>/<code>WT_2</code> 같은 전용 WT 반복 행이 실려 있으면 그 값들의 평균이 그 plate 의 분모다 (reports-mode 와 같은 정의). 전용 WT 행이 없는 plate 만 사용자가 <code>WtWellGrid</code> 에서 좌표로 지정한 WT well 로 역산하며, 이때는 그 plate 의 모든 WT well 의 모든 replicate 를 한데 평균한다. 어느 소스가 쓰였는지는 merge 결과의 <code>n_wt_replicate_rows</code>, <code>n_plates_wt_from_replicates</code> 로 확인한다. 전용 WT 행은 well 좌표가 아니라 라벨이라 변이 well 로 합류하지 않고 EVOLVEpro 산출에도 들어가지 않는다.</p>
-<h2 id="32-platelayout-route">3.2 plateLayout route: 두 축<a class="headerlink" href="#32-platelayout-route" title="Permanent link">&para;</a></h2>
-<p><code>mame.activity.build_evolvepro_input</code> 은 서로 독립인 두 축으로 입력을 받는다. 정확한 계약은 <code>python-core/sidecar_mame/models.py</code> 의 <code>BuildEvolveproInputParams</code> 와 <code>_axis_sources</code> 검증자가 정본이다. 두 축은 서로를 제약하지 않아 A/B 조합은 전부 허용된다. 코드 주석에 남은 rank-mode, reports-mode 라는 이름은 이 조합 중 자주 쓰는 몇 가지의 통칭이며 별개 실행 경로가 아니다.</p>
-<h3 id="a-1-1">축 A: 1반복 1차 스크리닝 (정확히 하나)<a class="headerlink" href="#a-1-1" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>입력</th>
+<th>형식</th>
+<th>요청 필드</th>
 <th>라벨</th>
-<th>딸린 요구</th>
+<th>값 해석</th>
+<th>추가 입력</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>round1_report_xlsx</code></td>
-<td>well 좌표</td>
-<td>raw Agilent FID1B 1차 report. <code>layout_xlsx</code> 필요</td>
+<td>범용 long-format</td>
+<td><code>activity_path</code></td>
+<td>well 또는 variant 중 하나</td>
+<td><code>activity_scale</code>이 <code>raw</code>이면 WT 정규화, <code>relative_to_wt</code>이면 그대로 사용</td>
+<td>well 라벨일 때만 <code>layout_xlsx</code></td>
 </tr>
 <tr>
+<td>GC data</td>
 <td><code>gc_data_xlsx</code></td>
-<td>well 좌표</td>
-<td>사전 정규화된 GC 시트 (<code>Sample Name</code>, <code>Area</code>, 값이 이미 WT 대비 상대값). <code>layout_xlsx</code> 필요</td>
+<td>well</td>
+<td>이미 WT 상대값</td>
+<td><code>layout_xlsx</code> 필수</td>
 </tr>
 <tr>
-<td><code>round1_evolvepro_xlsx</code></td>
-<td>변이 이름</td>
-<td>1차 값이 이미 EVOLVEpro 형식(<code>Variant</code>, <code>activity</code>)일 때. layout 불필요</td>
+<td>raw Agilent report</td>
+<td><code>round1_report_xlsx</code></td>
+<td>well</td>
+<td>FID area를 report의 WT 블록 평균으로 정규화</td>
+<td><code>layout_xlsx</code> 필수</td>
 </tr>
 </tbody>
 </table>
-<p>셋 중 하나도 없거나 둘 이상이면 <code>ValueError</code> 로 거절한다.</p>
-<h3 id="b-n">축 B: n반복 확인 측정 (최대 하나)<a class="headerlink" href="#b-n" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>입력</th>
-<th>라벨</th>
-<th>딸린 요구</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>remeasure_report_xlsx</code></td>
-<td>변이 이름</td>
-<td>variant 라벨 재측정 Agilent report</td>
-</tr>
-<tr>
-<td><code>rep_batch_xlsx</code></td>
-<td>숫자 ID</td>
-<td>Agilent FID1B rep-batch 블록. 숫자 ID 에는 변이 이름이 없어 <code>prev_evolvepro_xlsx</code> 를 rank 소스로 함께 줘야 한다</td>
-</tr>
-</tbody>
-</table>
-<p>축 B 를 아예 생략하면 provisional 결과가 나온다 (축 A 만으로 build 가 성공한다). 축 B 를 주면 재측정이 authoritative 로 병합돼 confirmed 로 올라간다.</p>
-<h3 id="_1">공통 선택 입력<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>입력</th>
-<th>내용</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>layout_xlsx</code></td>
-<td><code>Mutant</code> + <code>Well Pos.</code> (plate layout 형식) 또는 <code>sample_name</code> + <code>well</code> (step 1 에서 생성되는 sample map 형식). 두 쌍이 한 시트에 다 있으면 plate layout 쌍이 우선. 샘플 이름 끝의 반복 접미사 <code>_r&lt;n&gt;</code> (r 대소문자 무시) 은 떼어내고 앞부분을 샘플 이름으로 쓴다 (<code>Q232A_r1</code>/<code>_r2</code>/<code>_r3</code> → 같은 변이 <code>Q232A</code> 의 세 well, <code>WT_r1</code> → WT 대조군, <code>A40P_E61Y_r1</code> → <code>A40P_E61Y</code> 로 이름 안 언더스코어 보존). 샘플 이름이 <code>blank</code> (대소문자 무시) 인 행은 빈 well 이라 결과에서 제외. well 좌표 라벨을 쓰는 축 A 소스에는 필수</td>
-</tr>
-<tr>
-<td><code>verdict_xlsx</code></td>
-<td>주면 non-PASS well 의 변이를 제외</td>
-</tr>
-<tr>
-<td><code>mismatch_threshold</code></td>
-<td>두 축이 같은 변이를 정의할 때 평균 차 임계. 기본 0.1</td>
-</tr>
-<tr>
-<td><code>gc_export_xlsx</code></td>
-<td>raw 1차 report 일 때만, 중간 well 단위 상대활성(<code>Sample Name</code>, <code>Area</code>) 을 따로 남길 경로</td>
-</tr>
-</tbody>
-</table>
-<h3 id="_2">정규화<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
-<p>어느 축 조합이든 WT 대비 선형 상대값을 낸다.</p>
-<div class="highlight"><pre><span></span><code>relative = area / mean(WT block areas)
-</code></pre></div>
-<p>raw Agilent report 소스(<code>round1_report_xlsx</code>, <code>remeasure_report_xlsx</code>)는 replicate 마다 각각 나눈다. WT 블록이 없으면 <code>ValueError</code> 로 즉시 실패하며 조용한 fallback 은 없다. WT 판정은 sample name 이 <code>WT_1</code> / <code>WT1</code> 형태(<code>^WT_?\d+$</code>)일 때다. sample name 이 순수 숫자인 블록은 캘리브레이션으로 보고 건너뛴다.</p>
-<p>재측정과 라운드-1 에 같은 변이가 있으면 재측정을 우선하고, 두 평균 차가 임계(기본 0.1)를 넘으면 mismatch 로 표시한다. 임계를 넘어도 값은 재측정 쪽을 쓰고 표시만 남긴다.</p>
-<h2 id="33">3.3 산출물<a class="headerlink" href="#33" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>산출</th>
-<th>시트 / 컬럼</th>
-<th>값 스케일</th>
-<th>용도</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>build_evolvepro_input</code> xlsx</td>
-<td><code>EVOLVEpro</code> / <code>Variant</code>, <code>activity</code></td>
-<td>선형 상대활성</td>
-<td><strong>다음 라운드 EVOLVEpro 입력 (정본)</strong></td>
-</tr>
-<tr>
-<td><code>export_evolvepro_xlsx</code></td>
-<td>같음</td>
-<td>선형</td>
-<td>genotype route 의 같은 용도 산출</td>
-</tr>
-<tr>
-<td><code>verdict.xlsx</code></td>
-<td>96-well Final Excel (column-major)</td>
-<td>해당 없음</td>
-<td>NGS 판정 확인</td>
-</tr>
-</tbody>
-</table>
-<p><code>Variant</code> 는 앞 아미노산을 뗀 축약 표기다 (<code>V547I</code> → <code>547I</code>). EVOLVEpro 가 받는 실제 형식이 이것이다.</p>
-<p>CSV 산출은 UI 에서 낼 수 없다. <code>export_evolvepro_csv</code> 는 <code>kuma_core/mame/activity/export_evolvepro.py</code> 에 남아 있지만 RPC 로 노출되지 않으며, <code>tests/integration/test_kuma_round_trip.py</code> 가 MAME writer 와 KURO 리더(<code>kuma_core/kuro/evolvepro.py</code>)의 컬럼 합의를 검증하는 데만 쓴다. 값이 log2 이고 컬럼명이 소문자 <code>variant</code>/<code>y_pred</code> 인 것도 그 리더에 맞춘 것이며, 외부 EVOLVEpro 에 넣는 파일이 아니다.</p>
-<p><code>build_evolvepro_input</code> 은 xlsx 옆에 <code>&lt;output&gt;.mapping.json</code> audit 파일을 함께 쓴다. ID 에서 변이로 간 매핑과 경고 목록이 들어간다.</p>
-<h2 id="34">3.4 제외 규칙<a class="headerlink" href="#34" title="Permanent link">&para;</a></h2>
-<p>xlsx 산출에서 다음 행은 빠진다.</p>
+<h3 id="long-format">범용 long-format 계약<a class="headerlink" href="#long-format" title="Permanent link">&para;</a></h3>
+<p>CSV 또는 XLSX에서 다음을 요구한다.</p>
 <ul>
-<li><code>ngs_success</code> 가 아닌 행 (genotype route)</li>
-<li><code>WT</code></li>
-<li>canonical <code>[A-Z]\d+[A-Z]</code> 형태가 아닌 변이</li>
-<li>EVOLVEpro 축약 표기로 변환 불가한 다중 치환 변이 (<code>A40P_E61Y</code> 처럼 위치가 둘 이상). 축약 표기는 위치를 하나만 담아 표현할 자리가 없다. 해당 변이만 빠지고 나머지는 정상 산출되며, 변이 이름과 well 목록이 경고로 남는다</li>
-<li>값이 없는 행</li>
+<li>라벨 열은 정확히 하나: <code>well_id</code>, <code>well</code>, <code>well pos.</code>, <code>sample name</code>, <code>sample</code>, <code>variant</code>, <code>mutation</code>, <code>mutant</code>, <code>mutant_id</code></li>
+<li>값 열은 정확히 하나: <code>value</code>, <code>area</code>, <code>activity</code></li>
+<li>well 라벨과 variant 라벨을 한 파일에서 섞지 않는다.</li>
+<li>raw 값은 음수, NaN, 무한대를 허용하지 않는다.</li>
+<li><code>activity_scale=raw</code>이면 각 <code>plate_id</code>별 <code>WT_1</code>, <code>WT1</code> 형태의 WT 행 평균을 분모로 사용한다. <code>plate_id</code>가 없으면 파일 전체가 한 cohort다.</li>
+<li><code>activity_scale=relative_to_wt</code>이면 다시 정규화하지 않는다.</li>
 </ul>
-<p>CSV 는 제외된 행을 <code>&lt;path&gt;.excluded.csv</code> 로 사유와 함께 따로 남긴다.</p>
+<h2 id="43">4.3 선택적 확인 측정<a class="headerlink" href="#43" title="Permanent link">&para;</a></h2>
+<p><code>remeasure_report_xlsx</code>는 선택 사항이다. sample name이 <code>V5F</code> 또는 <code>5F</code>처럼 <strong>variant로 명시된</strong> raw Agilent report만 받는다. report 안의 WT 행으로 독립 정규화한 replicate 평균이 같은 variant의 1차 측정값을 대체한다.</p>
+<p>숫자 인덱스, activity rank, 이전 EVOLVEpro 파일로 variant 이름을 추론하는 방식은 지원하지 않는다. 이전 저장 상태가 이 방식을 가리키면 KUMA는 실행하지 않고 long-format 또는 명시적 well/variant 라벨로 변환하라는 안내를 표시한다.</p>
+<h2 id="44-ngs">4.4 NGS 판정<a class="headerlink" href="#44-ngs" title="Permanent link">&para;</a></h2>
+<p><code>verdict_xlsx</code>는 필수이며 Analyze가 이번 라운드에 생성한 verdict evidence를 사용한다.</p>
+<p>variant가 export되려면 해당 evidence가 모두 만족되어야 한다.</p>
+<ul>
+<li>verdict가 명시적 <code>PASS</code></li>
+<li><code>failed</code>가 아님</li>
+<li><code>is_fallback</code>이 아님</li>
+<li>중복 row 사이에 verdict, 실패, fallback 또는 mutant identity 충돌이 없음</li>
+<li>well/variant identity가 측정값 및 plate layout과 일치</li>
+</ul>
+<p>판정 누락, 충돌, non-PASS, failed, fallback row는 통과로 추정하지 않고 제외한다. 통과 variant가 하나도 없으면 빈 파일을 성공으로 발행하지 않고 build를 실패시킨다.</p>
+<h2 id="45">4.5 출력과 상태<a class="headerlink" href="#45" title="Permanent link">&para;</a></h2>
+<p>성공 출력은 엄격한 두 열 <code>Variant</code>, <code>activity</code>를 가진다. raw Agilent 형식의 선택적 GC review export를 포함한 산출물 묶음은 임시 파일에 모두 작성된 뒤 함께 publish되므로, 중간 실패가 기존 출력 일부만 덮어쓰지 않는다.</p>
+<p>Step 3 폼 상태는 프로젝트 경로별로 버전 관리해 저장한다. Analyze 완료 시 확보한 <code>verdict_xlsx</code>와 evidence signature는 실행을 시작한 round에 기록되고 Step 3에 연결된다. 측정 입력, verdict evidence 또는 출력 경로가 바뀌면 이전 완료 서명은 무효가 되어 다시 build해야 한다.</p>
 
 
 
