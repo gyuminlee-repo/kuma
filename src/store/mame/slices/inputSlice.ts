@@ -30,6 +30,7 @@ import type { WellLayout } from "@/types/mame/well_layout";
 import type { DetectNativeBarcodesResult } from "@/types/mame/detect_native_barcodes";
 import type { InputSlice, RawRunParams } from "../slice-interfaces";
 import type { AppState } from "../types";
+import { useRoundStore } from "@/store/round/roundSlice";
 const MAME_DEMUX_RPC_TIMEOUT_MS = 1_800_000; // 30 min — demux of large runs (78 FASTQ incident)
 const MAME_ANALYZE_RPC_TIMEOUT_MS = 1_200_000; // 20 min — full analysis pipeline
 const MAME_RAWRUN_RPC_TIMEOUT_MS = 3_000_000; // 50 min >= demux(30m)+analyze(20m) for folded raw-run analyze
@@ -80,6 +81,48 @@ function elapsedSince(startedAt: number | null): number | null {
   if (startedAt === null) return null;
   const elapsed = Date.now() - startedAt;
   return elapsed >= 0 ? elapsed : null;
+}
+function jsonEvidenceSnapshot(value: unknown): unknown {
+  return JSON.parse(JSON.stringify(value) ?? "null") as unknown;
+}
+
+function stableEvidenceSignature(value: unknown): string {
+  const text = JSON.stringify(value) ?? "null";
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return `fnv1a-${(hash >>> 0).toString(16).padStart(8, "0")}`;
+}
+
+function createAnalyzeRunId(): string {
+  return `analyze-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function persistRoundAnalyzeEvidence(
+  targetRoundId: string | null,
+  runId: string,
+  result: AnalyzeResult,
+): void {
+  if (targetRoundId === null) return;
+
+  const completedAt = new Date().toISOString();
+  const evidence = {
+    run_id: runId,
+    round_id: targetRoundId,
+    verdict_xlsx: result.output_path,
+    verdicts: jsonEvidenceSnapshot(result.verdicts),
+    replicates: jsonEvidenceSnapshot(result.replicates),
+    completed_at: completedAt,
+  };
+
+  const roundStore = useRoundStore.getState();
+  roundStore.updateRoundField(targetRoundId, "genotype", {
+    ...evidence,
+    evidence_signature: stableEvidenceSignature(evidence),
+  });
+  roundStore.transitionStatus(targetRoundId, "ngs_done");
 }
 
 /** Join cross-platform path segments. */
@@ -480,6 +523,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       analyzePhase: "demux",
       analyzeMessage: "Demuxing raw MinKNOW run",
     });
+    const targetRoundId = useRoundStore.getState().active_round_id;
+    const runId = createAnalyzeRunId();
 
     const result = await sendRequest<AnalyzeResult>(
       "analyze",
@@ -514,6 +559,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       },
       MAME_RAWRUN_RPC_TIMEOUT_MS,
     );
+    persistRoundAnalyzeEvidence(targetRoundId, runId, result);
 
     get().setVerdicts(result.verdicts);
     get().setReplicates(result.replicates);
@@ -611,6 +657,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       }
 
       // Non-raw_run modes: analyze the inputDir directly (current behaviour).
+      const targetRoundId = useRoundStore.getState().active_round_id;
+      const runId = createAnalyzeRunId();
       const result = await sendRequest<AnalyzeResult>(
         "analyze",
         {
@@ -640,6 +688,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         },
         MAME_ANALYZE_RPC_TIMEOUT_MS,
       );
+      persistRoundAnalyzeEvidence(targetRoundId, runId, result);
 
       get().setVerdicts(result.verdicts);
       get().setReplicates(result.replicates);

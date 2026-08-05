@@ -1,269 +1,169 @@
-"""Tests for optional NGS verdict gating in the reports-mode EVOLVEpro build.
-
-When a verdict xlsx is supplied to build_evolvepro_input_from_reports, variants
-whose layout well carries an explicit non-PASS verdict (NGS-failed designs) are
-excluded from the assembled input. When the verdict file is absent, behaviour is
-unchanged (graceful, layout-trust). A well present in the layout but absent from
-the verdict file is treated as not-assessed and kept.
-
-The verdict source mirrors the Analyze Excel report's Final sheet (header
-includes well_id, mutant_id, verdict). Synthetic fixtures are written in-process
-via openpyxl so the tests carry no machine-specific data paths.
-"""
-
+"""Strict NGS eligibility behavior for unified Step 3 exports."""
 from __future__ import annotations
 
+from pathlib import Path
+
+import pandas as pd
 import pytest
 
-from kuma_core.mame.activity.build_evolvepro_input import (
-    build_evolvepro_input_from_reports,
-)
+openpyxl = pytest.importorskip("openpyxl")
+
+from kuma_core.mame.activity.build_evolvepro_input import build_evolvepro_input
 from kuma_core.mame.activity.evolvepro_xlsx import read_evolvepro_rows
-from kuma_core.mame.activity.verdict_ngs import parse_verdict_wells
+from kuma_core.mame.activity.verdict_ngs import parse_verdict_rows
 
 
-def _write_fid1b(path, pairs):
-    """Write a FID1B 5-row-block standard report. pairs: [(sample_name, area)]."""
-    import openpyxl
-
+def _layout(path: Path) -> Path:
     wb = openpyxl.Workbook()
     ws = wb.active
-    assert ws is not None
-    ws.title = "Page 1"
-    for name, area in pairs:
-        ws.append(["Signal:", None, "FID1B", None, None])
-        ws.append([None, "Area", None, "Sample Name", None])
-        ws.append([None, area, None, name, None])
-        ws.append(["Sum", area, None, None, None])
-        ws.append([None, None, None, None, None])
-    wb.save(path)
-
-
-def _write_layout(path, rows):
-    """Write a plate layout xlsx. rows: [(mutant, well)]."""
-    import openpyxl
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    assert ws is not None
     ws.append(["Mutant", "Well Pos."])
-    for mut, well in rows:
-        ws.append([mut, well])
+    ws.append(["V5F", "A1"])
+    ws.append(["V10L", "B1"])
     wb.save(path)
+    return path
 
 
-def _write_verdict(path, rows):
-    """Write a verdict xlsx Final sheet. rows: [(well_id, mutant_id, verdict)]."""
-    import openpyxl
-
+def _verdict(path: Path, rows: list[tuple[str, str, str]]) -> Path:
     wb = openpyxl.Workbook()
     ws = wb.active
-    assert ws is not None
-    ws.title = "Final"
-    ws.append(
-        [
-            "well_id",
-            "selected_plate",
-            "custom_barcode",
-            "mutant_id",
-            "verdict",
-            "is_fallback",
-            "fallback_reason",
-            "notes",
-        ]
-    )
-    for w, m, v in rows:
-        ws.append([w, "P1", "", m, v, "", "", ""])
+    ws.append(["well_id", "mutant_id", "verdict"])
+    for row in rows:
+        ws.append(row)
     wb.save(path)
+    return path
 
 
-def _standard_inputs(tmp_path):
-    """Build the shared layout + round-1 + re-measure inputs used by G2..G5.
+def _activity(path: Path, rows: list[dict[str, object]] | None = None) -> Path:
+    pd.DataFrame(rows or [
+        {"well": "WT_1", "value": 1.0},
+        {"well": "A1", "value": 1.2},
+        {"well": "B1", "value": 0.8},
+    ]).to_csv(path, index=False)
+    return path
 
-    Layout: 5F -> A1, 10L -> B1. Round-1 (wt_mean 0.5): A1 0.8 -> 1.6,
-    B1 0.4 -> 0.8. Re-measure (wt_mean 0.5): 5F x3 -> [1.6,1.6,1.6],
-    10L x3 -> [0.8,0.8,0.8]. Authoritative means match the round-1 fallbacks
-    so no variant lands in replicate_stats.mismatched.
-    """
-    layout = tmp_path / "layout.xlsx"
-    _write_layout(layout, [("V5F", "A1"), ("V10L", "B1")])
 
-    round1 = tmp_path / "round1.xlsx"
-    _write_fid1b(
-        round1,
-        [
-            ("A1", 0.80),
-            ("B1", 0.40),
-            ("WT_1", 0.50),
-            ("WT_2", 0.50),
-            ("WT_3", 0.50),
-        ],
+def _build(tmp_path: Path, verdict: Path, *, activity: Path | None = None, output: str = "out.xlsx"):
+    return build_evolvepro_input(
+        tmp_path / output,
+        activity_path=activity or _activity(tmp_path / "activity.csv"),
+        layout_xlsx=_layout(tmp_path / "layout.xlsx"),
+        verdict_xlsx=verdict,
     )
 
-    remeasure = tmp_path / "remeasure.xlsx"
-    _write_fid1b(
-        remeasure,
-        [
-            ("5F", 0.80),
-            ("5F", 0.80),
-            ("5F", 0.80),
-            ("10L", 0.40),
-            ("10L", 0.40),
-            ("10L", 0.40),
-            ("WT_1", 0.50),
-            ("WT_2", 0.50),
-            ("WT_3", 0.50),
-        ],
-    )
-    return layout, round1, remeasure
 
-
-# ---------------------------------------------------------------------------
-# G1: parse_verdict_wells basics
-# ---------------------------------------------------------------------------
-
-def test_g1_parse_verdict_wells(tmp_path):
-    vfile = tmp_path / "verdict.xlsx"
-    _write_verdict(
-        vfile,
-        [
-            ("A01", "V5F", "PASS"),
-            ("B01", "V10L", "WRONG_AA"),
-            ("", "", ""),  # fully blank row -> skipped
-        ],
-    )
-
-    result = parse_verdict_wells(vfile)
-    assert result == {"A01": "PASS", "B01": "WRONG_AA"}
-
-
-def test_g1_well_normalises(tmp_path):
-    # 'A1'-style well input is normalised to zero-padded 'A01'.
-    vfile = tmp_path / "verdict.xlsx"
-    _write_verdict(vfile, [("a1", "V5F", "pass"), ("B1", "V10L", "wrong_aa")])
-
-    result = parse_verdict_wells(vfile)
-    assert result == {"A01": "PASS", "B01": "WRONG_AA"}
-
-
-# ---------------------------------------------------------------------------
-# G1b: PASS-priority dedupe
-# ---------------------------------------------------------------------------
-
-def test_g1b_pass_priority_dedupe(tmp_path):
-    vfile = tmp_path / "verdict.xlsx"
-    _write_verdict(
-        vfile,
-        [
-            ("A01", "V5F", "AMBIGUOUS"),
-            ("A01", "V5F", "PASS"),  # PASS wins over the earlier AMBIGUOUS row
-        ],
-    )
-
-    result = parse_verdict_wells(vfile)
-    assert result["A01"] == "PASS"
-
-
-# ---------------------------------------------------------------------------
-# G1c: no qualifying sheet -> ValueError
-# ---------------------------------------------------------------------------
-
-def test_g1c_no_qualifying_sheet_raises(tmp_path):
-    import openpyxl
-
-    vfile = tmp_path / "no_verdict.xlsx"
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    assert ws is not None
-    ws.title = "Other"
-    ws.append(["well_id", "mutant_id", "something_else"])  # no 'verdict' column
-    ws.append(["A01", "V5F", "x"])
-    wb.save(vfile)
-
-    with pytest.raises(ValueError):
-        parse_verdict_wells(vfile)
-
-
-# ---------------------------------------------------------------------------
-# G2: gating excludes a non-PASS variant
-# ---------------------------------------------------------------------------
-
-def test_g2_gating_excludes_non_pass(tmp_path):
-    layout, round1, remeasure = _standard_inputs(tmp_path)
-
-    vfile = tmp_path / "verdict.xlsx"
-    _write_verdict(vfile, [("A01", "V5F", "PASS"), ("B01", "V10L", "WRONG_AA")])
-
-    out = tmp_path / "out.xlsx"
-    result = build_evolvepro_input_from_reports(
-        layout, round1, remeasure, out, verdict_xlsx=vfile
-    )
+def test_only_explicit_pass_evidence_is_eligible(tmp_path: Path):
+    verdict = _verdict(tmp_path / "verdict.xlsx", [
+        ("A01", "V5F", "PASS"),
+        ("B01", "V10L", "FALLBACK"),
+    ])
+    result = _build(tmp_path, verdict)
 
     assert result.n_ngs_excluded == 1
-    assert "10L" in result.ngs_excluded
-    by_variant = {v: a for v, a in read_evolvepro_rows(out)}
-    assert set(by_variant) == {"5F"}
-    assert any("excluded" in w.lower() and "10L" in w for w in result.warnings)
-    # spec 2d: n_authoritative/n_fallback_only describe pre-gating source counts;
-    # both 5F and 10L are in the re-measure report, so n_authoritative stays 2
-    # even though 10L is gated out of the written rows.
-    assert result.n_authoritative == 2
+    assert result.ngs_excluded == ["10L"]
+    assert dict(read_evolvepro_rows(tmp_path / "out.xlsx")) == pytest.approx({"5F": 1.2})
+    assert any("FALLBACK evidence" in warning for warning in result.warnings)
 
 
-# ---------------------------------------------------------------------------
-# G3: graceful absent (verdict_xlsx=None) -> unchanged behaviour
-# ---------------------------------------------------------------------------
+@pytest.mark.parametrize("status", ["WRONG_AA", "FALLBACK"])
+def test_failed_or_fallback_verdict_cannot_pass(tmp_path: Path, status: str):
+    verdict = _verdict(tmp_path / "verdict.xlsx", [
+        ("A01", "V5F", status),
+        ("B01", "V10L", "PASS"),
+    ])
+    result = _build(tmp_path, verdict)
 
-def test_g3_graceful_absent(tmp_path):
-    layout, round1, remeasure = _standard_inputs(tmp_path)
+    assert result.ngs_excluded == ["5F"]
+    assert dict(read_evolvepro_rows(tmp_path / "out.xlsx")) == pytest.approx({"10L": 0.8})
 
-    out = tmp_path / "out.xlsx"
-    result = build_evolvepro_input_from_reports(
-        layout, round1, remeasure, out, verdict_xlsx=None
+
+def test_pass_row_marked_failed_is_excluded(tmp_path: Path):
+    verdict = tmp_path / "verdict.xlsx"
+    workbook = openpyxl.Workbook()
+    worksheet = workbook.active
+    worksheet.append(["well_id", "mutant_id", "verdict", "failed", "is_fallback"])
+    worksheet.append(["A01", "V5F", "PASS", True, False])
+    worksheet.append(["B01", "V10L", "PASS", False, False])
+    workbook.save(verdict)
+
+    result = _build(tmp_path, verdict)
+
+    assert result.ngs_excluded == ["5F"]
+    assert dict(read_evolvepro_rows(tmp_path / "out.xlsx")) == pytest.approx(
+        {"10L": 0.8}
+    )
+    assert any("failed evidence" in warning for warning in result.warnings)
+
+
+def test_missing_verdict_evidence_is_excluded_not_trusted(tmp_path: Path):
+    verdict = _verdict(tmp_path / "verdict.xlsx", [("A01", "V5F", "PASS")])
+    result = _build(tmp_path, verdict)
+
+    assert result.ngs_excluded == ["10L"]
+    assert any("missing evidence" in warning for warning in result.warnings)
+
+
+def test_conflicting_duplicate_well_evidence_is_non_evaluable(tmp_path: Path):
+    verdict = _verdict(tmp_path / "verdict.xlsx", [
+        ("A1", "V5F", "PASS"),
+        ("A01", "V5F", "WRONG_AA"),
+        ("B01", "V10L", "PASS"),
+    ])
+
+    parsed = parse_verdict_rows(verdict)
+    result = _build(tmp_path, verdict)
+
+    assert parsed["A01"].verdict == "CONFLICT"
+    assert result.ngs_excluded == ["5F"]
+    assert dict(read_evolvepro_rows(tmp_path / "out.xlsx")) == pytest.approx({"10L": 0.8})
+
+
+def test_conflicting_duplicates_report_conflict_without_a_layout(tmp_path: Path):
+    activity = _activity(
+        tmp_path / "variants.csv",
+        [
+            {"variant": "WT_1", "value": 1.0},
+            {"variant": "5F", "value": 1.2},
+            {"variant": "10L", "value": 0.8},
+        ],
+    )
+    verdict = _verdict(tmp_path / "verdict.xlsx", [
+        ("A1", "V5F", "PASS"),
+        ("A01", "V5F", "WRONG_AA"),
+        ("B01", "V10L", "PASS"),
+    ])
+
+    result = build_evolvepro_input(
+        tmp_path / "out.xlsx",
+        activity_path=activity,
+        verdict_xlsx=verdict,
     )
 
-    assert result.n_ngs_excluded == 0
-    assert result.ngs_excluded == []
-    by_variant = {v: a for v, a in read_evolvepro_rows(out)}
-    assert set(by_variant) == {"5F", "10L"}
+    assert result.ngs_excluded == ["5F"]
+    assert result.exclusion_reason_counts == {"CONFLICT": 1}
+    assert any("CONFLICT evidence" in warning for warning in result.warnings)
 
 
-# ---------------------------------------------------------------------------
-# G4: PASS kept + unknown well kept
-# ---------------------------------------------------------------------------
+def test_all_non_evaluable_variants_fail_without_writing_output(tmp_path: Path):
+    verdict = _verdict(tmp_path / "verdict.xlsx", [("A01", "V5F", "WRONG_AA")])
 
-def test_g4_pass_and_unknown_well_kept(tmp_path):
-    layout, round1, remeasure = _standard_inputs(tmp_path)
-
-    # Verdict only assesses A01 (5F) as PASS; B01 (10L) is absent (not assessed).
-    vfile = tmp_path / "verdict.xlsx"
-    _write_verdict(vfile, [("A01", "V5F", "PASS")])
-
-    out = tmp_path / "out.xlsx"
-    result = build_evolvepro_input_from_reports(
-        layout, round1, remeasure, out, verdict_xlsx=vfile
-    )
-
-    assert result.n_ngs_excluded == 0
-    by_variant = {v: a for v, a in read_evolvepro_rows(out)}
-    assert set(by_variant) == {"5F", "10L"}
+    with pytest.raises(ValueError, match="No variants with explicit PASS"):
+        _build(tmp_path, verdict)
+    assert not (tmp_path / "out.xlsx").exists()
 
 
-# ---------------------------------------------------------------------------
-# G5: all variants excluded -> ValueError
-# ---------------------------------------------------------------------------
+def test_multi_plate_variant_raw_normalization_is_deterministic(tmp_path: Path):
+    rows = [
+        {"plate_id": "P2", "variant": "5F", "value": 8.0},
+        {"plate_id": "P1", "variant": "10L", "value": 2.0},
+        {"plate_id": "P1", "variant": "WT_1", "value": 2.0},
+        {"plate_id": "P2", "variant": "WT1", "value": 4.0},
+        {"plate_id": "P1", "variant": "5F", "value": 4.0},
+        {"plate_id": "P2", "variant": "10L", "value": 4.0},
+    ]
+    verdict = _verdict(tmp_path / "verdict.xlsx", [("A01", "V5F", "PASS"), ("B01", "V10L", "PASS")])
+    first = _build(tmp_path, verdict, activity=_activity(tmp_path / "first.csv", rows), output="first.xlsx")
+    second = _build(tmp_path, verdict, activity=_activity(tmp_path / "second.csv", list(reversed(rows))), output="second.xlsx")
 
-def test_g5_all_excluded_raises(tmp_path):
-    layout, round1, remeasure = _standard_inputs(tmp_path)
-
-    vfile = tmp_path / "verdict.xlsx"
-    _write_verdict(
-        vfile,
-        [("A01", "V5F", "WRONG_AA"), ("B01", "V10L", "WRONG_AA")],
-    )
-
-    out = tmp_path / "out.xlsx"
-    with pytest.raises(ValueError):
-        build_evolvepro_input_from_reports(
-            layout, round1, remeasure, out, verdict_xlsx=vfile
-        )
+    assert first.n_variants == second.n_variants == 2
+    assert read_evolvepro_rows(tmp_path / "first.xlsx") == read_evolvepro_rows(tmp_path / "second.xlsx")
+    assert dict(read_evolvepro_rows(tmp_path / "first.xlsx")) == pytest.approx({"5F": 2.0, "10L": 1.0})

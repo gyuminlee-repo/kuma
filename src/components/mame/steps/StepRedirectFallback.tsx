@@ -12,11 +12,12 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
 
-type MameMajor = "setup" | "analyze" | "activity";
+type MameMajor = "setup" | "analyze" | "janus" | "activity";
 
 const FIRST_SUB: Record<MameMajor, MameSubStepId> = {
   setup: "setup.files",
   analyze: "analyze.inputs",
+  janus: "janus.settings",
   activity: "activity.ingest",
 };
 

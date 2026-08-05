@@ -348,13 +348,13 @@
         "uploadHeading": "Загрузить данные активности",
         "uploadDesc": "Загрузите long format CSV / Excel файл (колонки well, replicate, value) в текущий Round.",
         "loaded": "✓ {{count}} wells загружено",
-        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
+        "contextSubtitle": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro input.",
         "contextTitle": "Activity Data — Ingest",
         "drawerCenter": "Activity log",
         "drawerLeft": "Activity",
         "drawerLeftDesc": "Wells with measurements",
         "drawerRight": "Next",
-        "drawerRightDesc": "Merge and export",
+        "drawerRightDesc": "Cross-round signals and handoff",
         "inspectorMean": "Mean activity",
         "inspectorNoData": "No activity data loaded",
         "inspectorReplicates": "Replicates",
@@ -404,9 +404,7 @@
         "inspectorStatus": "Status",
         "inspectorSubtitle": "R585A merge summary",
         "inspectorTitle": "Export Inspector",
-        "inspectorVariant": "Variant",
-        "openJanusExport": "Open JANUS export...",
-        "openJanusExportAriaLabel": "Open JANUS cell-stock mapping export dialog"
+        "inspectorVariant": "Variant"
       },
       "wtWells": {
         "title": "WT wells (опорные для normalization)",
@@ -415,13 +413,6 @@
         "alreadySetTooltip": "WT wells уже заданы"
       },
       "route": {
-        "heading": "Activity value source",
-        "ariaLabel": "Choose where this round's activity values come from",
-        "ngsNote": "The NGS verdicts of this run are used either way; only the source of the measured activity changes.",
-        "genotypeLabel": "Activity upload (long format)",
-        "genotypeDesc": "Upload long-format well activity and join it to this round's NGS genotype, then export.",
-        "plateLayoutLabel": "Plate layout + GC data / Agilent report",
-        "plateLayoutDesc": "Read activity per well from a plate layout with GC data or a raw Agilent report, gated by the NGS verdict file.",
         "completeCurrentRoute": "Complete the selected activity source"
       }
     },
@@ -517,7 +508,9 @@
         "wells": "Wells",
         "loaded": "Загружено",
         "passRows": "Строки PASS",
-        "evolveproXlsx": "EVOLVEpro xlsx"
+        "evolveproXlsx": "EVOLVEpro xlsx",
+        "volume": "Объём",
+        "liquidClass": "Liquid class"
       },
       "value": {
         "ready": "Готово",
@@ -629,7 +622,8 @@
       "manifestLoadFailed": "Загрузка manifest не удалась: {{err}}",
       "barcodeSetupTab": "1. Custom Barcode Primer Design",
       "analyzeTab": "2. Sequencing QC",
-      "activityTab": "3. Activity Data",
+      "janusTab": "3. Настройка Janus",
+      "activityTab": "4. Activity Data",
       "verdictTableTitle": "Таблица verdict",
       "platePlanTitle": "Карта планшета",
       "runHealthTitle": "Run health",
@@ -654,6 +648,7 @@
       },
       "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
+      "janusTabTitle": "Настройки прибора Janus — необязательный шаг для отбора клеточных стоков (шаг ③ рабочего процесса PI)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
       "efficiencyChartTitle": "Per-plate verdict breakdown"
     },
@@ -844,6 +839,28 @@
         "final": "Final 96 Deep Well"
       }
     },
+    "janus": {
+      "settings": {
+        "contextTitle": "Настройки прибора Janus",
+        "contextSubtitle": "Объём переноса, стойки дека и liquid class, из которых записывается карта для прибора. Необязательно: запуск только для секвенирования может пропустить этот шаг.",
+        "optionalNote": "Этот шаг необязателен. Запуск анализа сам записывает список пиков и карту для прибора, поэтому запуск, которому нужны только вердикты секвенирования, переходит с шага 2 сразу к шагу 4.",
+        "inspectorTitle": "Inspector прибора",
+        "inspectorSubtitle": "Значения, из которых записывается карта",
+        "inspectorVolume": "Объём переноса (uL)",
+        "inspectorSampleType": "Тип образца",
+        "inspectorLiquidClass": "Liquid class",
+        "inspectorLastMapping": "Последний файл карты",
+        "drawerLeft": "Прибор",
+        "drawerCenter": "Журнал Janus",
+        "drawerRight": "Далее",
+        "drawerRightDesc": "Данные активности и передача в EVOLVEpro",
+        "volumeLabel": "Obyom perenosa (uL)",
+        "volumeHint": "Zapisyvaetsya v kartu dlya pribora, kotoruyu sozdayot etot zapusk. Postavlyaemye 100 uL eto dopushchenie bez laboratornogo istochnika, ukazhite obyom etogo eksperimenta.",
+        "openDialog": "Настройки прибора Janus…",
+        "openDialogAriaLabel": "Открыть настройки прибора Janus",
+        "dialogHint": "Neobyazatelno. Nomera rack sleduyut plastinam etogo zapuska, a liquid class ostayotsya pustym, esli ne zadan. Vvodite znacheniya tolko dlya zameny."
+      }
+    },
     "setup": {
       "files": {
         "railTitle": "MAME Workflow",
@@ -996,108 +1013,77 @@
         "failed": "The selection list was not written.",
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
       },
-      "janusSettings": {
-        "open": "Janus instrument settings...",
-        "openAriaLabel": "Open Janus instrument settings",
-        "hint": "Neobyazatelno. Nomera rack sleduyut plastinam etogo zapuska, a liquid class ostayotsya pustym, esli ne zadan. Vvodite znacheniya tolko dlya zameny."
-      },
       "janusMappingAutosave": {
         "saved": "Kartu dlya pribora zapisali ryadom s knigoi rezultatov ({{rows}} strok) v 9 stolbtsakh, kotorye chitaet robot.",
         "skipped": "Ni odin klon ne proshel kriterii otbora, poetomu karta dlya pribora ne zapisana.",
         "failed": "Kartu dlya pribora zapisat ne udalos.",
         "excluded": "{{clones}} klon(ov) ne voshli v kartu. Otkroite nastroiki pribora Janus, chtoby uznat prichinu."
-      },
-      "janusVolume": {
-        "label": "Obyom perenosa (uL)",
-        "hint": "Zapisyvaetsya v kartu dlya pribora, kotoruyu sozdayot etot zapusk. Postavlyaemye 100 uL eto dopushchenie bez laboratornogo istochnika, ukazhite obyom etogo eksperimenta."
       }
     },
     "buildEvolvepro": {
       "title": "Создание входных данных EVOLVEpro",
-      "subtitle": "Первичный скрининг всех вариантов (1 репликат) служит основой, а повторно измеренные варианты заменяются средним по 3 репликатам.",
+      "subtitle": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro [Variant, activity] input.",
+      "routeNote": "Every measurement format uses the same NGS verdict, normalization, replicate merge, and EVOLVEpro export pipeline.",
       "inputFiles": "Входные файлы",
+      "primarySourceLabel": "Measurement format",
+      "primarySourceLongFormat": "Generic long-format",
+      "primarySourceLongFormatHelper": "CSV/XLSX with exactly one well or variant label column and one value column. Select whether values are raw or already relative to WT.",
+      "primarySourceGcSheet": "GC data sheet",
+      "primarySourceGcSheetHelper": "Pre-normalized relative activity per well (Sample Name, Area), mapped to variants through the plate layout.",
+      "primarySourceRawReport": "Raw Agilent report",
+      "primarySourceRawReportHelper": "Raw Agilent FID1B report with well-labeled samples and WT blocks. The plate layout maps wells to variants.",
+      "activityPath": "Activity CSV/XLSX",
+      "activityPathHelper": "Long-format activity data with one well or variant label column and one value, area, or activity column.",
+      "activityScale": "Activity scale",
+      "activityScaleHelper": "Choose raw to normalize each plate/cohort against its WT rows, or relative when values are already relative to WT.",
+      "activityScaleRaw": "Raw",
+      "activityScaleRelative": "Relative to WT",
       "layoutXlsx": "xlsx раскладки планшета",
-      "layoutXlsxHelper": "Сопоставление Mutant с позицией well. Принимает формат plate layout (колонки Mutant, Well Pos.) или sample map из шага 1 (колонки sample_name, well).",
+      "layoutXlsxHelper": "Required mapping metadata for well-labeled GC data and raw reports. Maps well positions to variants.",
+      "layoutXlsxOptionalHelper": "Required only when the long-format label column contains wells; variant-labeled files do not need a layout.",
       "gcDataXlsx": "xlsx с данными GC",
-      "gcDataXlsxHelper": "Предварительно нормализованная relative activity по каждому well (столбцы Sample Name и Area). Это основа: по одному репликату для каждого варианта на плашке.",
-      "repBatchXlsx": "xlsx подтверждающего отчёта Agilent",
-      "repBatchXlsxHelper": "Блочный отчёт Agilent FID1B для вариантов, перемеренных в 3 replicates, с числовыми базовыми ID и суффиксами replicate. Найденные здесь варианты заменяют значение первичного скрининга; остальные остаются предварительными.",
-      "prevEvolveproXlsx": "Входной xlsx EVOLVEpro в роли rank source",
-      "prevEvolveproXlsxHelper": "Входной xlsx EVOLVEpro, который KUMA собрал в прошлый раз (Variant, activity), а не результирующий CSV самого EVOLVEpro (variant, y_pred). Sample name в подтверждающем отчёте это числовые индексы, поэтому имена вариантов восстанавливаются по убыванию activity в этом файле.",
+      "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
+      "round1ReportXlsx": "Raw Agilent report xlsx",
+      "round1ReportXlsxHelper": "Raw Agilent FID1B report with well positions and WT blocks.",
+      "confirmationSourceLabel": "Optional confirmation",
+      "confirmationSourceNone": "None",
+      "confirmationSourceNoneHelper": "Use the primary measurement value for every NGS-qualified variant.",
+      "confirmationSourceVariantLabels": "Variant-labeled Agilent report",
+      "confirmationSourceVariantLabelsHelper": "Optional raw Agilent report whose sample names are variant labels. Its independently WT-normalized replicate means override matching primary values.",
+      "remeasureReportXlsx": "Confirmation report xlsx (variant-labeled)",
+      "remeasureReportXlsxHelper": "Raw Agilent report with variant-labeled samples and WT rows; numeric or rank-derived labels are not supported.",
+      "verdictXlsx": "NGS verdict xlsx",
+      "verdictXlsxHelper": "Required Analyze verdict evidence for this round. Only explicit PASS rows that are neither failed nor fallback are exported.",
       "outputXlsx": "Выходной xlsx EVOLVEpro",
-      "outputXlsxHelper": "Файл назначения для объединённых входных данных EVOLVEpro.",
+      "outputXlsxHelper": "Destination for the strict two-column [Variant, activity] export.",
       "requiredStateLabel": "Обязательно",
       "optionalLabel": "необязательно",
-      "provisionalLabel": "Предварительно (нет подтверждающих данных)",
-      "confirmedLabel": "Подтверждено (реплики confirmation объединены)",
+      "optionalStateLabel": "Необязательно",
       "builtFromLabel": "Собрано из",
       "chooseOutput": "Выбрать выходной файл",
       "noOutputSelected": "Выходной файл не выбран",
       "build": "Создать входные данные EVOLVEpro",
       "building": "Создание...",
       "resultTitle": "Результат создания",
-      "emptyState": "Выберите входные файлы для указанных источников и путь сохранения, затем соберите входной файл EVOLVEpro.",
+      "emptyState": "Select one measurement format, the required NGS verdict, and an output path.",
       "nVariants": "Записано Variant",
-      "nAuthoritative": "Из confirmation report",
-      "nFallbackOnly": "Только по данным GC",
-      "prevDescendingWarn": "Файл EVOLVEpro предыдущего раунда не упорядочен по убыванию activity. Проверьте аудит сопоставления, прежде чем доверять рангам.",
-      "mappingAuditTitle": "Сопоставление ID с Variant",
-      "mappingAuditPath": "Файл аудита сопоставления",
-      "colId": "ID",
-      "colVariant": "Variant",
-      "colWell": "Well",
+      "nAuthoritative": "Confirmation overrides",
+      "nFallbackOnly": "Primary values",
+      "nNgsExcluded": "NGS-excluded",
       "warningsLabel": "Предупреждения",
-      "swapWarningsLabel": "Предупреждения Label-swap",
-      "mismatchedLabel": "Расхождение Confirmation с первичным скринингом",
-      "mismatchedHint": "Кандидаты, у которых среднее Confirmation по 3 повторам заметно отличается от значения первичного скрининга (1 повтор).",
+      "mismatchedLabel": "Confirmation vs primary mismatch",
+      "mismatchedHint": "Variants whose confirmation mean differs notably from the primary value.",
       "mismatchedAuthoritative": "Confirmation",
-      "mismatchedFallback": "Первичный скрининг",
+      "mismatchedFallback": "Primary",
+      "colVariant": "Variant",
       "toastSuccess": "Входные данные EVOLVEpro созданы",
       "toastSuccessDesc": "Записано Variant: {{count}}.",
       "toastError": "Не удалось создать входные данные EVOLVEpro",
       "openFolder": "Открыть папку вывода",
-      "routeNote": "Этот маршрут читает файлы xlsx напрямую и не использует загрузку activity из маршрута, связанного с genotype.",
-      "primarySourceLabel": "Источник первичного скрининга",
-      "primarySourceRawReport": "Исходный отчёт GC-FID",
-      "primarySourceGcSheet": "GC data sheet",
-      "primarySourcePrevEvolvepro": "Прежний входной файл EVOLVEpro",
-      "primarySourceRawReportHelper": "Исходный отчёт Agilent FID1B, охватывающий все варианты в одном replicate; имена образцов соответствуют позициям well. Plate layout сопоставляет каждый well с вариантом.",
-      "primarySourceGcSheetHelper": "Заранее нормализованная относительная activity по каждому well, сопоставленная с вариантами через plate layout. Используйте, если нормализованный GC data sheet уже есть.",
-      "primarySourcePrevEvolveproHelper": "Входной xlsx EVOLVEpro, ранее собранный KUMA (Variant, activity), используется как полная базовая линия. Plate layout не нужен, если не включена фильтрация по verdict из NGS.",
-      "confirmationSourceLabel": "Источник подтверждения",
-      "confirmationSourceNone": "Нет (предварительно)",
-      "confirmationSourceVariantLabels": "Отчёт с метками вариантов",
-      "confirmationSourceNumericIndex": "Отчёт с числовым индексом",
-      "confirmationSourceNoneHelper": "Подтверждающие данные отсутствуют. Каждый вариант сохраняет значение первичного скрининга, а сборка остаётся предварительной.",
-      "confirmationSourceVariantLabelsHelper": "Отчёт Agilent FID1B, в котором имена образцов представляют собой метки вариантов, поэтому rank source не нужен. Эти средние значения заменяют значения первичного скрининга.",
-      "confirmationSourceNumericIndexHelper": "Отчёт Agilent FID1B, в котором имена образцов представляют собой числовые базовые ID. Для восстановления имени каждого варианта требуется rank source.",
-      "round1EvolveproXlsx": "Входной xlsx EVOLVEpro первичного скрининга",
-      "round1EvolveproXlsxHelper": "Входной xlsx EVOLVEpro, собранный KUMA для этой партии (Variant, activity), с каждым вариантом в одном репликате. Это не результирующий CSV EVOLVEpro (variant, y_pred). Перемеренные варианты заменяются своими подтверждающими средними.",
-      "round1ReportXlsx": "xlsx отчёта первичного скрининга (сырой GC-FID)",
-      "round1ReportXlsxHelper": "Сырой отчёт Agilent FID1B с каждым вариантом в одном репликате; sample name это позиции well (A1..H12), с блоками WT. Plate layout сопоставляет well с вариантами.",
-      "gcExportXlsx": "xlsx экспорта относительной активности (формат GC data)",
-      "gcExportXlsxHelper": "Необязательный артефакт для проверки. Записывает относительную активность primary screen по well (Area / средняя Area WT) в столбцы Sample Name и Area, как в листе GC data.",
-      "remeasureReportXlsx": "xlsx подтверждающего отчёта (с метками вариантов)",
-      "remeasureReportXlsxHelper": "Сырой отчёт Agilent FID1B по отобранным вариантам, перемеренным в 3 репликатах; sample name это метки вариантов (например V5F или 5F), повторяющиеся строки это репликаты. Из-за меток rank source не нужен, и эти средние заменяют значения первичного скрининга.",
-      "verdictXlsx": "xlsx verdict NGS",
-      "verdictXlsxHelper": "Отчёт Excel из Analyze (лист Final: well_id + verdict). Варианты, well которых не PASS, исключаются. Пропустите, чтобы отключить фильтрацию по NGS.",
-      "layoutXlsxOptionalHelper": "Используется только для сопоставления варианта с well при фильтрации по verdict NGS.",
-      "optionalStateLabel": "Необязательно",
-      "nNgsExcluded": "Исключено по NGS",
       "missingInputs": "Ещё требуется",
-      "restoredNotice": "Пути восстановлены на этом устройстве. Очистите их, если они относятся к другому проекту.",
-      "clearRestored": "Очистить восстановленные входы EVOLVEpro",
-      "primarySourceNumericReport": "Отчёт с числовыми ID (весь планшет)",
-      "confirmationSourceNumericSubset": "Подтверждение с числовыми ID (подмножество выше WT)",
-      "primarySourceNumericReportHelper": "Скрининг всего планшета с чисто числовыми именами образцов. ID i соответствует i-му спроектированному мутанту в порядке планшета, поэтому нужен источник порядка.",
-      "confirmationSourceNumericSubsetHelper": "Повторное подтверждение, числовые ID которого нумеруют варианты выше дикого типа в том же порядке планшета. Требуется числовой первичный скрининг.",
-      "round1RepBatchXlsx": "Первичный скрининг (числовые ID)",
-      "round1RepBatchXlsxHelper": "Отчёт Agilent FID1B по всему планшету, по одной реплике на вариант.",
-      "expectedMutationsXlsx": "Дизайн KURO (expected_mutations)",
-      "expectedMutationsXlsxHelper": "Источник порядка прямо из дизайна, без переписанного вручную файла планшета. Предпочтительнее layout.",
-      "remeasureRepBatchXlsx": "Подтверждение (числовые ID)",
-      "remeasureRepBatchXlsxHelper": "Отчёт Agilent FID1B по повторно измеренному подмножеству, несколько реплик на вариант.",
-      "orLabel": "одно из двух"
+      "restoredNotice": "Inputs were restored for this project.",
+      "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
+      "clearRestored": "Очистить восстановленные входы EVOLVEpro"
     },
     "verdictBadge": {
       "help": {
@@ -1712,7 +1698,7 @@
     "kuroInspectorTitle": "Детали Kuro",
     "kuroInspectorBody": "Инспектор показывает параметры шага, выбранные варианты, предупреждения и настройки экспорта.",
     "mameWorkflowTitle": "Рабочий процесс Mame",
-    "mameWorkflowBody": "Пройдите Setup, Analyze и Activity, чтобы преобразовать экспериментальные данные в подготовленную таблицу обучения.",
+    "mameWorkflowBody": "Пройдите Setup, Analyze, необязательный шаг прибора Janus и Activity, чтобы преобразовать экспериментальные данные в подготовленную таблицу обучения.",
     "mameWorkspaceTitle": "Основная область Mame",
     "mameWorkspaceBody": "Загрузите данные, проверьте генотипы и планшеты, затем объедините измерения активности для экспорта.",
     "mameInspectorTitle": "Детали Mame",
@@ -2536,6 +2522,9 @@
       },
       "fallback": {
         "redirecting": "Redirecting…"
+      },
+      "janus": {
+        "settings": "Настройки прибора Janus"
       }
     }
   },
@@ -2573,9 +2562,12 @@
         "review": "Review the verdict table, plate layout, and per-plate verdict distribution in one view."
       },
       "activity": {
-        "ingest": "Загрузите файлы CSV или Excel с активностью и аннотируйте wild-type.",
+        "ingest": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro input from one measurement format.",
         "signals": "Просмотрите сигналы классификации между round и передайте следующему round, когда входные данные EVOLVEpro будут готовы.",
         "mergeExport": "Объедините данные активности с вызовами генотипа и экспортируйте таблицу, затем создайте входные данные EVOLVEpro, объединив активность с одной репликой (GC) и тремя репликами (относительно WT)."
+      },
+      "janus": {
+        "settings": "Подготовьте карту клеточных стоков JANUS: объём переноса, номера стоек дека и liquid class. Необязательно — ничто здесь не блокирует запуск."
       }
     },
     "summary": {

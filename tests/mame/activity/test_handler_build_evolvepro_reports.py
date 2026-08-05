@@ -1,165 +1,135 @@
-"""Handler-level contract test for reports-mode build_evolvepro_input.
-
-Exercises handle_build_evolvepro_input end-to-end (model validation + dispatch +
-response shape), which the core unit tests bypass by calling
-build_evolvepro_input_from_reports directly. Pins the 16-key response contract
-that the TS BuildEvolveproInputResult mirrors, including the reports-mode
-hardcoded values (mapping_audit_path="", swap_warnings=[], prev_descending=True)
-and the PR3 NGS gating fields.
-"""
-
+"""Handler coverage for raw Agilent primary and optional confirmation."""
 from __future__ import annotations
 
-import openpyxl
+from pathlib import Path
+import importlib
 
+import pytest
+
+openpyxl = pytest.importorskip("openpyxl")
+
+from kuma_core.mame.activity.evolvepro_xlsx import read_evolvepro_rows
+from kuma_core.mame.activity.build_evolvepro_input import build_evolvepro_input
+build_module = importlib.import_module("kuma_core.mame.activity.build_evolvepro_input")
 from sidecar_mame.handlers.activity import handle_build_evolvepro_input
 
 
-def _write_fid1b(path, pairs):
+def _fid(path: Path, rows: list[tuple[str, float]]) -> Path:
     wb = openpyxl.Workbook()
     ws = wb.active
-    assert ws is not None
-    ws.title = "Page 1"
-    for name, area in pairs:
-        ws.append(["Signal:", None, "FID1B", None, None])
-        ws.append([None, "Area", None, "Sample Name", None])
-        ws.append([None, area, None, name, None])
-        ws.append(["Sum", area, None, None, None])
-        ws.append([None, None, None, None, None])
+    for sample, area in rows:
+        ws.append(["Signal:", "FID1B"])
+        ws.append(["Area", "Sample Name"])
+        ws.append([area, sample])
+        ws.append(["Sum", area])
+        ws.append([])
     wb.save(path)
+    return path
 
 
-def _write_layout(path, rows):
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    assert ws is not None
-    ws.append(["Mutant", "Well Pos."])
-    for mut, well in rows:
-        ws.append([mut, well])
-    wb.save(path)
-
-
-def _write_verdict(path, rows):
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    assert ws is not None
-    ws.title = "Final"
-    ws.append(
-        ["well_id", "selected_plate", "custom_barcode", "mutant_id",
-         "verdict", "is_fallback", "fallback_reason", "notes"]
-    )
-    for w, m, v in rows:
-        ws.append([w, "P1", "", m, v, "", "", ""])
-    wb.save(path)
-
-
-def _write_prev_evolvepro(path, rows):
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    assert ws is not None
-    ws.append(["Variant", "activity"])
-    for variant, activity in rows:
-        ws.append([variant, activity])
-    wb.save(path)
-
-
-# The 17-key response contract mirrored by TS BuildEvolveproInputResult.
-_RESULT_KEYS = {
-    "output_path", "n_variants", "n_authoritative", "n_fallback_only",
-    "mapping_audit", "mapping_audit_path", "prev_descending", "warnings",
-    "swap_warnings", "mismatched", "mode", "n_ngs_excluded", "ngs_excluded",
-    "gc_export_path", "primary_source", "confirmation_source", "label_audit",
-}
-
-
-def _inputs(tmp_path):
+def _inputs(tmp_path: Path) -> dict[str, Path]:
     layout = tmp_path / "layout.xlsx"
-    _write_layout(layout, [("V5F", "A1"), ("V10L", "B1")])
-    round1 = tmp_path / "round1.xlsx"
-    _write_fid1b(
-        round1,
-        [("A1", 0.80), ("B1", 0.40), ("WT_1", 0.50), ("WT_2", 0.50), ("WT_3", 0.50)],
-    )
-    remeasure = tmp_path / "remeasure.xlsx"
-    _write_fid1b(
-        remeasure,
-        [("5F", 0.60), ("5F", 0.66), ("5F", 0.54),
-         ("10L", 0.50), ("10L", 0.50), ("10L", 0.50),
-         ("WT_1", 0.60), ("WT_2", 0.60), ("WT_3", 0.60)],
-    )
-    out = tmp_path / "out.xlsx"
-    return layout, round1, remeasure, out
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["Mutant", "Well Pos."])
+    ws.append(["V5F", "A1"])
+    ws.append(["V10L", "B1"])
+    wb.save(layout)
 
-
-def test_handler_reports_mode_contract(tmp_path):
-    layout, round1, remeasure, out = _inputs(tmp_path)
-    resp = handle_build_evolvepro_input(
-        {
-            "layout_xlsx": str(layout),
-            "round1_report_xlsx": str(round1),
-            "remeasure_report_xlsx": str(remeasure),
-            "output_xlsx": str(out),
-        }
-    )
-    assert set(resp) == _RESULT_KEYS
-    assert resp["mode"] == "reports"
-    assert isinstance(resp["n_variants"], int) and resp["n_variants"] == 2
-    assert isinstance(resp["n_authoritative"], int)
-    assert isinstance(resp["n_fallback_only"], int)
-    assert isinstance(resp["mapping_audit"], list)
-    assert resp["mapping_audit_path"] == ""
-    assert resp["prev_descending"] is True
-    assert isinstance(resp["warnings"], list)
-    assert resp["swap_warnings"] == []
-    assert isinstance(resp["mismatched"], list)
-    assert resp["n_ngs_excluded"] == 0
-    assert resp["ngs_excluded"] == []
-    assert out.exists()
-
-
-def test_handler_reports_mode_with_ngs_gating(tmp_path):
-    layout, round1, remeasure, out = _inputs(tmp_path)
     verdict = tmp_path / "verdict.xlsx"
-    _write_verdict(verdict, [("A01", "V5F", "PASS"), ("B01", "V10L", "WRONG_AA")])
-    resp = handle_build_evolvepro_input(
-        {
-            "layout_xlsx": str(layout),
-            "round1_report_xlsx": str(round1),
-            "remeasure_report_xlsx": str(remeasure),
-            "verdict_xlsx": str(verdict),
-            "output_xlsx": str(out),
-        }
-    )
-    assert set(resp) == _RESULT_KEYS
-    assert resp["mode"] == "reports"
-    assert resp["n_ngs_excluded"] == 1
-    assert resp["ngs_excluded"] == ["10L"]
-    # only 5F (PASS well A01) survives gating; 10L (B01 WRONG_AA) excluded.
-    assert resp["n_variants"] == 1
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["well_id", "mutant_id", "verdict"])
+    ws.append(["A01", "V5F", "PASS"])
+    ws.append(["B01", "V10L", "PASS"])
+    wb.save(verdict)
+    return {
+        "layout": layout,
+        "verdict": verdict,
+        "round1": _fid(tmp_path / "round1.xlsx", [("WT_1", 0.5), ("WT_2", 0.5), ("A1", 0.8), ("B1", 0.4)]),
+        "remeasure": _fid(tmp_path / "remeasure.xlsx", [("WT_1", 0.5), ("WT_2", 0.5), ("V5F", 0.75)]),
+    }
 
 
-def test_handler_reports_mode_prev_evolvepro(tmp_path):
-    # Round-1 baseline as a prior EVOLVEpro file (no layout / round1 report).
-    prev = tmp_path / "prev.xlsx"
-    _write_prev_evolvepro(prev, [("5F", 1.0), ("10L", 0.9), ("99Z", 0.5)])
-    remeasure = tmp_path / "remeasure.xlsx"
-    _write_fid1b(
-        remeasure,
-        [("V5F", 0.60), ("V5F", 0.66), ("V5F", 0.54),
-         ("WT_1", 1.0), ("WT_2", 1.0), ("WT_3", 1.0)],
-    )
+def test_confirmation_overrides_raw_primary_and_retains_mismatch_diagnostic(tmp_path: Path):
+    files = _inputs(tmp_path)
     out = tmp_path / "out.xlsx"
-    resp = handle_build_evolvepro_input(
-        {
-            "round1_evolvepro_xlsx": str(prev),
-            "remeasure_report_xlsx": str(remeasure),
-            "output_xlsx": str(out),
-        }
-    )
-    assert set(resp) == _RESULT_KEYS
-    assert resp["mode"] == "reports"
-    assert resp["n_authoritative"] == 1   # 5F re-measured
-    assert resp["n_fallback_only"] == 2   # 10L, 99Z kept from prev EVOLVEpro
-    assert resp["n_variants"] == 3
-    assert resp["n_ngs_excluded"] == 0
-    assert out.exists()
+    response = handle_build_evolvepro_input({
+        "round1_report_xlsx": str(files["round1"]),
+        "remeasure_report_xlsx": str(files["remeasure"]),
+        "layout_xlsx": str(files["layout"]),
+        "verdict_xlsx": str(files["verdict"]),
+        "output_xlsx": str(out),
+    })
+
+    assert response["n_authoritative"] == 1
+    assert response["n_fallback_only"] == 1
+    assert response["mismatched"] == [{"variant": "5F", "authoritative": 1.5, "fallback": 1.6}]
+    assert dict(read_evolvepro_rows(out)) == pytest.approx({"5F": 1.5, "10L": 0.8})
+
+
+def test_raw_primary_writes_requested_relative_gc_review_export(tmp_path: Path):
+    files = _inputs(tmp_path)
+    out = tmp_path / "out.xlsx"
+    review = tmp_path / "relative_gc.xlsx"
+    response = handle_build_evolvepro_input({
+        "round1_report_xlsx": str(files["round1"]),
+        "layout_xlsx": str(files["layout"]),
+        "verdict_xlsx": str(files["verdict"]),
+        "output_xlsx": str(out),
+        "gc_export_xlsx": str(review),
+    })
+
+    assert response["gc_export_path"] == str(review)
+    assert review.exists()
+    assert dict(read_evolvepro_rows(out)) == pytest.approx({"5F": 1.6, "10L": 0.8})
+
+
+def test_artifact_bundle_preserves_existing_outputs_when_staging_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    files = _inputs(tmp_path)
+    out = tmp_path / "out.xlsx"
+    review = tmp_path / "relative_gc.xlsx"
+    out.write_bytes(b"existing-output")
+    review.write_bytes(b"existing-review")
+
+    def fail_output(_rows: object, _path: Path) -> None:
+        raise RuntimeError("simulated output writer failure")
+
+    monkeypatch.setattr(build_module, "write_evolvepro_xlsx", fail_output)
+
+    with pytest.raises(RuntimeError, match="simulated output writer failure"):
+        build_evolvepro_input(
+            out,
+            round1_report_xlsx=files["round1"],
+            layout_xlsx=files["layout"],
+            verdict_xlsx=files["verdict"],
+            gc_export_xlsx=review,
+        )
+
+    assert out.read_bytes() == b"existing-output"
+    assert review.read_bytes() == b"existing-review"
+    assert not list(tmp_path.glob(".*.tmp.xlsx"))
+
+def test_handler_reports_exclusions_and_written_output_count(tmp_path: Path):
+    files = _inputs(tmp_path)
+    workbook = openpyxl.load_workbook(files["verdict"])
+    worksheet = workbook.active
+    worksheet["C3"] = "WRONG_AA"
+    workbook.save(files["verdict"])
+    out = tmp_path / "out.xlsx"
+
+    response = handle_build_evolvepro_input({
+        "round1_report_xlsx": str(files["round1"]),
+        "layout_xlsx": str(files["layout"]),
+        "verdict_xlsx": str(files["verdict"]),
+        "output_xlsx": str(out),
+    })
+
+    assert response["n_ngs_excluded"] == 1
+    assert response["ngs_excluded"] == ["10L"]
+    assert response["n_variants"] == 1
+    assert dict(read_evolvepro_rows(out)) == pytest.approx({"5F": 1.6})
+    assert response["n_authoritative"] + response["n_fallback_only"] == response["n_variants"]

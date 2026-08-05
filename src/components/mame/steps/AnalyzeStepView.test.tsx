@@ -684,15 +684,14 @@ describe("AnalyzeStepView (run duration popup)", () => {
 });
 
 /**
- * Janus instrument settings on 2.1.
+ * Janus instrument settings are step 3, not step 2.1.
  *
- * The File menu item that used to open the dialog was removed in v0.14.7, which
- * left the liquid class and the deck rack numbers with no reachable input on the
- * screen that collects the run's other inputs. They stay optional: the two files
- * a run writes need none of them, except the transfer volume, which is the one
- * value nothing can derive and which therefore sits on the step itself.
+ * They used to sit in the inputs pane, which made an operator who only wants a
+ * sequencing verdict walk past a cell-picking robot they are not going to use.
+ * The controls moved to JanusStepView; what stays here is the notice reporting
+ * what the finished run did with the two files it writes itself.
  */
-describe("AnalyzeStepView (Janus settings entry point)", () => {
+describe("AnalyzeStepView (no Janus controls on 2.1)", () => {
   beforeEach(() => {
     useMameAppStore.setState({
       currentMameSubStep: "analyze.inputs",
@@ -706,36 +705,19 @@ describe("AnalyzeStepView (Janus settings entry point)", () => {
     });
   });
 
-  it("opens the Janus settings from the inputs step", () => {
-    render(<AnalyzeStepView />);
-    expect(screen.queryByTestId("janus-mapping-dialog")).toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: "Open Janus instrument settings" }));
-
-    expect(screen.getByTestId("janus-mapping-dialog")).toBeTruthy();
-  });
-
-  it("reaches the settings before a run, when there is nothing to export yet", () => {
+  it("has no instrument settings entry point", () => {
     render(<AnalyzeStepView />);
 
     expect(
-      screen.getByRole("button", { name: "Open Janus instrument settings" }),
-    ).toBeEnabled();
+      screen.queryByRole("button", { name: "Open Janus instrument settings" }),
+    ).toBeNull();
+    expect(screen.queryByTestId("janus-mapping-dialog")).toBeNull();
   });
 
-  it("puts the transfer volume on the inputs step, labelled as an assumption", () => {
-    // The one instrument value nothing can derive: the deck numbers come from
-    // the plates of the run and the liquid class ships blank, so volume is all
-    // the operator has to decide before the run writes its instrument sheet.
+  it("has no transfer volume field", () => {
     render(<AnalyzeStepView />);
 
-    const field = screen.getByLabelText(/Transfer volume/i) as HTMLInputElement;
-    expect(field.value).toBe("100");
-    expect(screen.getByText(/assumption with no lab source/i)).toBeTruthy();
-
-    fireEvent.change(field, { target: { value: "45" } });
-
-    expect(useMameAppStore.getState().janusSettings.volume).toBe(45);
+    expect(screen.queryByLabelText(/Transfer volume/i)).toBeNull();
   });
 
   it("leaves the run enabled while the instrument settings are unset", () => {

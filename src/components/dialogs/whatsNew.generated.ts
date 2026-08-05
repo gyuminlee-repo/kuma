@@ -5,9 +5,9 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.15.11";
+export const WHATS_NEW_VERSION = "0.15.12";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Changed", detail: "The two panels on step 2.2 are sized by what they hold. When both fit, the plate map takes exactly the height its rows need and the rest goes to the breakdown; when they do not both fit, the shortfall is split in proportion to what each as…" },
-  { label: "Changed", detail: "A split the operator dragged is left alone, and so is one restored from an earlier session. The automatic fit is a starting point, not a correction applied over someone's decision." },
+  { label: "Changed", detail: "Janus instrument configuration is its own step 3, and the Activity step is step 4. Step 2 is the sequencing verdict and nothing else: the transfer volume, the settings/export dialog, the deck reference and the report of what the run wrote…" },
+  { label: "Changed", detail: "The step stays optional in the strict sense. A run still writes `..._picks.csv` and `..._janus.csv` from whatever is stored, no gate on step 2 or step 4 consults the new step, and step 3 reports itself done only once the liquid class (the…" },
 ];

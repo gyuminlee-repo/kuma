@@ -64,6 +64,7 @@ describe("MAME_SUBSTEP_ORDER", () => {
       "analyze.inputs",
       "analyze.review",
     ]);
+    expect(MAME_SUBSTEP_ORDER.janus).toEqual(["janus.settings"]);
     expect(MAME_SUBSTEP_ORDER.activity).toEqual([
       "activity.ingest",
       "activity.signals",
@@ -122,14 +123,80 @@ describe("PhaseSlice — setMamePhase sub-step 자동 리셋", () => {
     expect(store.currentMameSubStep).toBe("setup.files");
   });
 
-  it("phase 전환 chain: setup → analyze → activity 순서로 sub-step 리셋", () => {
+  it("phase 전환 chain: setup → analyze → janus → activity 순서로 sub-step 리셋", () => {
     store.setMamePhase("setup");
     expect(store.currentMameSubStep).toBe("setup.files");
 
     store.setMamePhase("analyze");
     expect(store.currentMameSubStep).toBe("analyze.inputs");
 
+    store.setMamePhase("janus");
+    expect(store.currentMameSubStep).toBe("janus.settings");
+
     store.setMamePhase("activity");
     expect(store.currentMameSubStep).toBe("activity.ingest");
+  });
+});
+
+/**
+ * Janus 장비 설정이 step 3 으로 분리되면서 analyze 와 activity 사이에 phase 가 하나
+ * 늘었다. 시퀀싱만 필요한 운용자는 step 2 에서 멈추지만, 순차 이동은 새 단계를
+ * 건너뛰지 않고 지나가야 한다.
+ */
+describe("NavigationSlice — janus phase 경계", () => {
+  let store: AppState;
+
+  beforeEach(() => {
+    localStorageMock.clear();
+    store = makeStore();
+  });
+
+  it("analyze.review 다음은 janus.settings 이다", () => {
+    store.setMamePhase("analyze");
+    store.setMameSubStep("analyze.review");
+
+    store.goToNextStep();
+
+    expect(store.mamePhase).toBe("janus");
+    expect(store.currentMameSubStep).toBe("janus.settings");
+  });
+
+  it("janus.settings 다음은 activity.ingest 이다", () => {
+    store.setMamePhase("janus");
+
+    store.goToNextStep();
+
+    expect(store.mamePhase).toBe("activity");
+    expect(store.currentMameSubStep).toBe("activity.ingest");
+  });
+
+  it("activity.ingest 이전은 janus.settings 이다", () => {
+    store.setMamePhase("activity");
+
+    store.goToPrevStep();
+
+    expect(store.mamePhase).toBe("janus");
+    expect(store.currentMameSubStep).toBe("janus.settings");
+  });
+
+  it("janus.settings 이전은 analyze.review 이다", () => {
+    store.setMamePhase("janus");
+
+    store.goToPrevStep();
+
+    expect(store.mamePhase).toBe("analyze");
+    expect(store.currentMameSubStep).toBe("analyze.review");
+  });
+
+  it("저장된 janus phase 를 그대로 복원한다", () => {
+    localStorageMock.setItem("kuma:mame:phase", "janus");
+    const restored = makeStore();
+    expect(restored.mamePhase).toBe("janus");
+  });
+
+  it("알 수 없는 저장값은 기존과 동일하게 analyze 로 되돌린다", () => {
+    localStorageMock.setItem("kuma:mame:phase", "janus-typo");
+    const restored = makeStore();
+    expect(restored.mamePhase).toBe("analyze");
   });
 });

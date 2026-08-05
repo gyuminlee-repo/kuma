@@ -657,6 +657,7 @@
         "src/components/mame/panels/ActivityPanel.tsx",
         "src/components/mame/steps/SetupStepView.tsx",
         "src/components/mame/steps/AnalyzeStepView.tsx",
+        "src/components/mame/steps/JanusStepView.tsx",
         "src/components/mame/steps/ActivityStepView.tsx"
       ],
       "symbols": [
@@ -870,13 +871,18 @@
       "id": "mame-build-evolvepro-input",
       "files": [
         "kuma_core/mame/activity/build_evolvepro_input.py",
+        "kuma_core/mame/activity/verdict_ngs.py",
         "python-core/sidecar_mame/models.py",
         "python-core/sidecar_mame/dispatcher.py",
         "python-core/sidecar_mame/handlers/activity.py",
         "src/types/mame/build_evolvepro_input.ts",
-        "src/lib/ipc-mame/index.ts"
+        "src/lib/ipc-mame/index.ts",
+        "src/lib/mame/buildEvolveproFormStorage.ts",
+        "src/components/mame/panels/BuildEvolveproInputPanel.tsx",
+        "src/store/mame/slices/inputSlice.ts",
+        "src/store/mame/slices/analysisSlice.ts"
       ],
-      "note": "build_evolvepro_input RPC 4-layer 계약: 조립함수(BuildEvolveproResult 필드) <-> BuildEvolveproInputParams Pydantic <-> dispatcher 등록 <-> handler 응답 dict <-> TS BuildEvolveproInputResult/MismatchedVariant <-> ipc-mame client. 응답 키(mismatched 등) <-> TS 필드명 byte-for-byte 일치 유지",
+      "note": "Step 3 단일 파이프라인 계약: 조립/strict NGS gate <-> Pydantic request <-> dispatcher/handler response <-> TS RPC type/client <-> 프로젝트별 form state/UI <-> Analyze round evidence 연결. primary source는 activity_path, gc_data_xlsx, round1_report_xlsx 중 정확히 하나이고 verdict_xlsx는 필수다. 응답 키와 TS 필드명은 byte-for-byte 일치하며 round evidence signature 변경은 완료 서명을 무효화한다.",
       "severity": "warning"
     },
     {

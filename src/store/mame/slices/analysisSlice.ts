@@ -119,11 +119,9 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       "samples/mame/07_mame_activity_long.csv",
       "samples/mame/02_mame_barcode_seeds.xlsx",
       "samples/mame/egfp_with_flanks.fa",
-      "samples/mame/08_mame_evolvepro_raw.xlsx",
       "samples/mame/09_mame_agilent_rep_batch.xlsx",
       "samples/mame/10_mame_gc_prenormalised.xlsx",
       "samples/mame/11_mame_gc_fid_round1_raw.xlsx",
-      "samples/mame/12_mame_agilent_numeric_index.xlsx",
       "samples/mame/sample_analysis_result.json",
     ];
     const settled = await Promise.allSettled(relPaths.map((p) => resolveResource(p)));
@@ -151,11 +149,9 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       activityCsvPath,
       barcodeSeedsPath,
       designFastaPath,
-      prevEvolveproXlsxPath,
       variantLabelsReportPath,
       gcDataXlsxPath,
       round1ReportXlsxPath,
-      numericIndexXlsxPath,
       analysisResultPath,
     ] = resolved;
 
@@ -186,8 +182,6 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     if (!gcDataXlsxPath) optionalFailures.push("10_mame_gc_prenormalised.xlsx");
     if (!round1ReportXlsxPath)
       optionalFailures.push("11_mame_gc_fid_round1_raw.xlsx");
-    if (!numericIndexXlsxPath)
-      optionalFailures.push("12_mame_agilent_numeric_index.xlsx");
 
     // Populate input store via cross-slice setters (skip ones that failed).
     const state = get();
@@ -291,15 +285,16 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       }
     }
 
-    // Task C: Seed BuildEvolveproInputPanel form fields via localStorage.
-    // Only fills empty fields; existing user selections are preserved.
-    seedBuildEvolveproForm({
-      layoutXlsx: layoutXlsxPath ?? undefined,
-      gcDataXlsx: gcDataXlsxPath ?? undefined,
-      round1ReportXlsx: round1ReportXlsxPath ?? undefined,
-      remeasureReportXlsx: variantLabelsReportPath ?? undefined,
-      repBatchXlsx: numericIndexXlsxPath ?? undefined,
-      prevEvolveproXlsx: prevEvolveproXlsxPath ?? undefined,
-    });
+    // Seed the supported Step 3 inputs for this project only.
+    seedBuildEvolveproForm(
+      {
+        activityPath: activityCsvPath,
+        layoutXlsx: layoutXlsxPath ?? undefined,
+        gcDataXlsx: gcDataXlsxPath ?? undefined,
+        round1ReportXlsx: round1ReportXlsxPath ?? undefined,
+        remeasureReportXlsx: variantLabelsReportPath ?? undefined,
+      },
+      get().projectPath,
+    );
   },
 });
