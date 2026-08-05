@@ -3,8 +3,11 @@
 # Skip in emergencies: git push --no-verify
 set -e
 
-echo "[pre-push] pnpm sync:check"
-pnpm sync:check
+# Same stages as `pnpm sync:check`, minus the one failure a working checkout
+# cannot avoid: the gitignored, build-generated src-tauri/resources/NOTICE.md.
+# CI still runs the strict `pnpm sync:check`. See scripts/pre-push-sync.mjs.
+echo "[pre-push] sync checks"
+node scripts/pre-push-sync.mjs
 
 echo "[pre-push] npx tsc --noEmit"
 npx tsc --noEmit
