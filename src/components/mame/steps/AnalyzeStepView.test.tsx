@@ -78,6 +78,12 @@ vi.mock("@/components/mame/panels/InputPanel", () => ({
 vi.mock("@/components/mame/panels/ParameterPanel", () => ({
   ParameterPanel: () => <div data-testid="parameter-panel" />,
 }));
+// Stubbed to its open/closed state: what matters on 2.1 is that the step can
+// reach it, not what the dialog draws (that is its own test file).
+vi.mock("@/components/mame/dialogs/JanusMappingDialog", () => ({
+  JanusMappingDialog: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="janus-mapping-dialog" /> : null,
+}));
 
 // react-resizable-panels: PanelGroup/Panel/PanelResizeHandle are passthrough wrappers
 vi.mock("react-resizable-panels", () => ({
@@ -673,5 +679,58 @@ describe("AnalyzeStepView (run duration popup)", () => {
     render(<AnalyzeStepView />);
 
     expect(screen.queryByTestId("analyze-duration-dialog")).toBeNull();
+  });
+});
+
+/**
+ * Janus instrument settings on 2.1.
+ *
+ * The File menu item that used to open the dialog was removed in v0.14.7, which
+ * left the liquid class and the deck rack numbers with no reachable input on the
+ * screen that collects the run's other inputs. They stay optional: the pick list
+ * a run writes needs none of them.
+ */
+describe("AnalyzeStepView (Janus settings entry point)", () => {
+  beforeEach(() => {
+    useMameAppStore.setState({
+      currentMameSubStep: "analyze.inputs",
+      isAnalyzing: false,
+      isValidating: false,
+      validationErrors: [],
+      summary: null,
+      verdicts: [],
+      analyzeDurationMs: null,
+    });
+  });
+
+  it("opens the Janus settings from the inputs step", () => {
+    render(<AnalyzeStepView />);
+    expect(screen.queryByTestId("janus-mapping-dialog")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Janus instrument settings" }));
+
+    expect(screen.getByTestId("janus-mapping-dialog")).toBeTruthy();
+  });
+
+  it("reaches the settings before a run, when there is nothing to export yet", () => {
+    render(<AnalyzeStepView />);
+
+    expect(
+      screen.getByRole("button", { name: "Open Janus instrument settings" }),
+    ).toBeEnabled();
+  });
+
+  it("leaves the run enabled while the instrument settings are unset", () => {
+    useMameAppStore.setState({
+      inputMode: "sorted_barcode",
+      inputDir: "/data/consensus",
+      expectedPath: "/data/kuro.xlsx",
+      referencePath: "/data/ref.fasta",
+      outputPath: "/data/out.xlsx",
+      janusSettings: { ...useMameAppStore.getState().janusSettings, liquidClass: "" },
+    });
+    render(<AnalyzeStepView />);
+
+    expect(screen.getByRole("button", { name: "Run" })).toBeEnabled();
   });
 });

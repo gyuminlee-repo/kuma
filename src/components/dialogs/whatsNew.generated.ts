@@ -5,14 +5,12 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.15.6";
+export const WHATS_NEW_VERSION = "0.15.7";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Added", detail: "The analyze path reads a plain variant list, not only a KURO export. `analyze`, `validate_inputs` and `mame.build_well_layout` take optional `variant_sheet` / `variant_column`, absent means the previous behaviour, and `mame.inspect_variant…" },
-  { label: "Added", detail: "The expected-list file field carries a sheet and column picker, following the convention the KURO input step set: the auto-detected column is preselected as a first-class option in the same select, so the mapping on screen is the mapping t…" },
-  { label: "Added", detail: "A finished analyze reports what became of the Janus mapping it wrote beside its result workbook: the path and row count when written, that nothing was selected when there was nothing to write, and the reason when it failed. The run also se…" },
-  { label: "Changed", detail: "Build well layout is gone, along with its confirmation dialog. Confirming 96 rows by hand was never done, and nothing is lost by removing it: analyze assigns the wells itself whether or not a layout was pinned. The `well_layout` parameter…" },
-  { label: "Changed", detail: "A plate-order disagreement no longer stops a run. Now that the operator names the sheet and the column the variant list is read from, the program has no standing to refuse: the finding is stated on the inputs panel and the run proceeds, an…" },
-  { label: "Changed", detail: "The Activity step offers one path instead of two routes. The route selector is now an activity value source: an uploaded long-format activity table joined to the round genotype, or a plate layout with GC data or a raw Agilent report. The p…" },
-  { label: "Changed", detail: "The per-plate verdict breakdown scrolls instead of clipping its last rows." },
+  { label: "Changed", detail: "The file an analyze writes beside its result workbook is the selection, not a worklist. Five columns, `name | source_plate | source_well | dest_well | priority_score`: which variant was picked, where it sits, and where it goes when the pic…" },
+  { label: "Changed", detail: "The automatic file is named `<result workbook>_picks.csv`, not `_janus.csv`. The old name promised a file that could be handed to the instrument." },
+  { label: "Changed", detail: "The deck map in the Janus dialog names the plates the run actually produced. A run sorted into native barcode folders reaches the export as `sort_barcode07` and up, which the fixed P1/P2/P3 fields had no rack number for, so every clone was…" },
+  { label: "Fixed", detail: "The raw-run path no longer reads an amplicon span it has just found missing. The guard sat on the first coordinate branch only, so a resolution reporting extraction without a span fell into the next branch and read `span.end` there, ending…" },
+  { label: "Changed", detail: "Janus instrument settings are reachable from step 2.1, the screen that collects the run's other inputs, since the File menu item that used to open them was removed in v0.14.7. They stay optional and gate nothing: a run needs none of them.…" },
 ];

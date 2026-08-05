@@ -11,19 +11,21 @@ import tempfile
 import threading
 import time
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sidecar_mame.core import (
     _ALLOWED_EXCEL_EXTENSIONS,
     _ALLOWED_FASTA_EXTENSIONS,
     _ALLOWED_SEQUENCE_EXTENSIONS,
-    _progress,
     _send,
     _validate_dirpath,
     _validate_filepath,
     _validate_output_path,
     set_last_analyze,
 )
+
+if TYPE_CHECKING:
+    from kuma_core.mame.ingest.amplicon_reference import AmpliconReferenceResolution
 
 # Keep-alive heartbeat interval for the analyze stage. Re-emits the latest
 # progress state during otherwise-silent stretches (FASTA ingest, the
@@ -66,6 +68,45 @@ def _read_reference_sequence(path: Path) -> str:
 def _read_reference_length(path: Path) -> int:
     """Return total sequence length from a supported reference sequence file."""
     return len(_read_reference_sequence(path))
+
+
+def resolve_amplicon_cds(
+    resolution: AmpliconReferenceResolution,
+    original_cds_start: int,
+    original_cds_end: int,
+) -> tuple[int, int]:
+    """CDS bounds to use once the reference has been cut down to the amplicon.
+
+    The annotation is import-time free (``TYPE_CHECKING`` plus postponed
+    evaluation), so the module keeps its lazy import of the ingest package.
+
+    Four cases, in order:
+
+    1. No span. ``resolve_amplicon_reference`` never reports ``extracted`` with
+       a missing span (its one extracting return slices the sequence by that
+       very span), so this is unreachable today. It is handled rather than
+       asserted because the coordinates the resolution reports are its own
+       answer either way, and reading ``span.end`` here instead would turn a
+       contract change into an ``AttributeError`` in the middle of a finished
+       demux. Handling it also narrows the optional for the branches below.
+    2. The given CDS is stated in whole-reference coordinates and falls inside
+       the amplicon: shift it by the span start.
+    3. The given CDS already fits inside the amplicon length: it was stated in
+       amplicon coordinates, so it is used unchanged.
+    4. Neither: fall back to the ORF the resolution found in the amplicon.
+    """
+    span = resolution.span
+    if span is None:
+        return resolution.cds_start, resolution.cds_end
+    if (
+        original_cds_end > span.start
+        and original_cds_start >= span.start
+        and original_cds_end <= span.end
+    ):
+        return original_cds_start - span.start, original_cds_end - span.start
+    if 0 < original_cds_end <= span.end - span.start:
+        return original_cds_start, original_cds_end
+    return resolution.cds_start, resolution.cds_end
 
 
 def _resolve_cds_end(raw_cds_end: Any, reference_path: Path) -> int:
@@ -207,47 +248,58 @@ def _deserialize_replicate(d: dict) -> Any:
     )
 
 
-#: Token appended to the result workbook stem for the auto-saved Janus mapping.
-_JANUS_AUTOSAVE_SUFFIX = "_janus"
+#: Token appended to the result workbook stem for the auto-saved pick list.
+_PICKS_AUTOSAVE_SUFFIX = "_picks"
 
 
-def janus_autosave_path(output: Path) -> Path:
-    """Where the Janus mapping lands for a run whose workbook is *output*.
+def picks_autosave_path(output: Path) -> Path:
+    """Where the pick list lands for a run whose workbook is *output*.
 
     The result workbook name is built on the frontend (``defaultMameExportFilename``
     in ``src/lib/mameFilename.ts``: date, source token, ``MAME``, verdict count) and
     arrives here fully formed. Deriving from that name rather than rebuilding the
     rule keeps the two artefacts of one run named alike and leaves a single place
     where the rule lives; a second implementation here would drift the first time
-    the rule changed. Same directory, same stem, plus the Janus token.
+    the rule changed. Same directory, same stem, plus the picks token.
+
+    The token says what the file is: the clones this run selected, not a file to
+    hand the instrument. ``_janus`` promised the latter, which the file no longer
+    is (see :func:`_autosave_picks`).
     """
-    return output.with_name(f"{output.stem}{_JANUS_AUTOSAVE_SUFFIX}.csv")
+    return output.with_name(f"{output.stem}{_PICKS_AUTOSAVE_SUFFIX}.csv")
 
 
-def _autosave_janus_mapping(
+def _autosave_picks(
     replicates: list,
     output: Path,
     run_meta: object,
     janus_params: dict,
 ) -> dict:
-    """Write the Janus mapping for a finished run, next to its workbook.
+    """Write the pick list for a finished run, next to its workbook.
 
     The analysis is already done and cached when this runs, so nothing here may
-    raise: a mapping that cannot be written is a fact to report, not a reason to
-    lose a multi-minute run. Every outcome comes back in the same shape.
+    raise: a file that cannot be written is a fact to report, not a reason to lose
+    a multi-minute run. Every outcome comes back in the same shape.
 
-    Settings are resolved by ``_janus_settings_from_params``, the very function
-    the ``export_janus_mapping`` RPC uses, so the automatic file and the one the
-    dialog writes cannot default differently. One consequence is worth stating:
-    the default ``device9`` schema has no default liquid class (it decides how the
-    robot handles the cells, so none is assumed), and the export refuses to write
-    without one. Until a caller supplies ``janus_settings.liquid_class`` this
-    reports ``failed`` with ``missing_liquid_class`` rather than inventing a value
-    or quietly switching to a schema the operator did not choose.
+    The schema is forced to ``legacy5`` and deliberately ignores the dialog's
+    ``output_schema``. The two files answer different questions. This one records
+    the conclusion of the run (which variant sits on which plate and well, and
+    where it should be collected), which is what an operator wants beside the
+    workbook every time. ``device9`` is an instruction sheet for the robot: it
+    carries a liquid class, a volume, and deck rack numbers, and those values are
+    only correct for the deck standing in the room at the moment of the run. Every
+    exploratory re-run would drop another sheet stating a deck that may not exist,
+    and one of them could reach the instrument. Writing that sheet stays with the
+    dialog, where the operator confirms the deck first.
+
+    Selection stays under the operator's control: ``dest_layout``,
+    ``include_verdicts`` and ``include_fallback`` are honoured, because those
+    describe which clones are picked and how they are gathered, not how the robot
+    handles them.
 
     Returns ``{"status", "output_path", "format", "row_count", "excluded",
     "excluded_count", "errors"}``. ``status`` is ``"saved"``, ``"skipped"``
-    (nothing selected: no file is written, because an empty mapping reads like a
+    (nothing selected: no file is written, because an empty pick list reads like a
     finished plate), or ``"failed"``.
     """
     result: dict = {
@@ -261,11 +313,19 @@ def _autosave_janus_mapping(
     }
     try:
         from kuma_core.mame.export import export_mame_janus_csv
-        from kuma_core.mame.export.janus_mapping import build_janus_preview_rows
+        from kuma_core.mame.export.janus_mapping import (
+            SCHEMA_LEGACY5,
+            build_janus_preview_rows,
+        )
 
         from .export import _janus_settings_from_params
 
-        settings = _janus_settings_from_params(janus_params)
+        # The schema is pinned before the params are resolved, not overridden
+        # after, so the instrument fields of a device9 dialog (volume, racks)
+        # cannot fail validation for a file that will not carry them.
+        settings = _janus_settings_from_params(
+            {**janus_params, "output_schema": SCHEMA_LEGACY5}
+        )
         preview = build_janus_preview_rows(replicates, settings=settings)
         result["row_count"] = preview["row_count"]
         result["excluded"] = preview["excluded"]
@@ -278,7 +338,7 @@ def _autosave_janus_mapping(
             result["status"] = "skipped"
             return result
 
-        target = janus_autosave_path(output)
+        target = picks_autosave_path(output)
         export_mame_janus_csv(
             replicates,
             target,
@@ -476,11 +536,13 @@ def handle_validate_inputs(params: dict) -> dict:
 def handle_analyze(params: dict) -> dict:
     """Run the full pipeline and cache the resulting artefacts for downstream RPCs.
 
-    Two files come out of one run: the result workbook at ``output`` and the Janus
-    mapping beside it (see :func:`janus_autosave_path`), written here rather than
+    Two files come out of one run: the result workbook at ``output`` and the pick
+    list beside it (see :func:`picks_autosave_path`), written here rather than
     waiting for the export dialog. Optional ``janus_settings`` carries the same
-    fields the ``export_janus_mapping`` RPC accepts; omitting it means the dialog
-    defaults. The outcome rides back on ``janus_autosave`` and never raises.
+    fields the ``export_janus_mapping`` RPC accepts, but only its selection fields
+    apply here; the schema is pinned to ``legacy5`` (see :func:`_autosave_picks`),
+    so the robot worklist stays a dialog decision. The outcome rides back on
+    ``janus_autosave`` and never raises.
 
     Optional ``variant_sheet`` / ``variant_column`` name the sheet and column of a
     plain expected-variant list. Omitting both is auto-detection, which leaves a
@@ -679,21 +741,9 @@ def handle_analyze(params: dict) -> dict:
             reference = reference_for_pipeline
             original_cds_start = int(params.get("cds_start", 0))
             original_cds_end = int(params.get("cds_end", 0) or 0)
-            span = amplicon_resolution.span
-            if (
-                span is not None
-                and original_cds_end > span.start
-                and original_cds_start >= span.start
-                and original_cds_end <= span.end
-            ):
-                resolved_raw_cds_start = original_cds_start - span.start
-                resolved_raw_cds_end = original_cds_end - span.start
-            elif 0 < original_cds_end <= span.end - span.start:
-                resolved_raw_cds_start = original_cds_start
-                resolved_raw_cds_end = original_cds_end
-            else:
-                resolved_raw_cds_start = amplicon_resolution.cds_start
-                resolved_raw_cds_end = amplicon_resolution.cds_end
+            resolved_raw_cds_start, resolved_raw_cds_end = resolve_amplicon_cds(
+                amplicon_resolution, original_cds_start, original_cds_end
+            )
 
         AnalyzeRawRunParams.model_validate(
             {
@@ -1018,10 +1068,10 @@ def handle_analyze(params: dict) -> dict:
         designed_mutant_ids=dids,
     )
 
-    # The Janus mapping is the second artefact of the same run, so it is written
-    # here rather than waiting for the operator to open the dialog. Cached state
-    # is already set above, so a failure here costs the file, never the analysis.
-    janus_autosave = _autosave_janus_mapping(
+    # The pick list is the second artefact of the same run, so it is written here
+    # rather than waiting for the operator to open the dialog. Cached state is
+    # already set above, so a failure here costs the file, never the analysis.
+    janus_autosave = _autosave_picks(
         replicates, output, run_meta, params.get("janus_settings") or {}
     )
 

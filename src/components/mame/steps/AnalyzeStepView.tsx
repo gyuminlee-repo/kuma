@@ -19,7 +19,7 @@
  *   - Ctrl/Cmd+Enter는 MameAppLayout 레벨에서 독립적으로 처리됨.
  */
 
-import { AlertCircle, Download, ShieldCheck, Trash2 } from "lucide-react";
+import { AlertCircle, Download, Settings2, ShieldCheck, Trash2 } from "lucide-react";
 import { MissingInputsBanner } from "@/components/mame/panels/MissingInputsBanner";
 import { computeEtaFromElapsed } from "@/lib/eta";
 import { useEffect, useRef, useState } from "react";
@@ -37,6 +37,7 @@ import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNoti
 import { PlateOrderNotice } from "@/components/mame/widgets/PlateOrderNotice";
 import { JanusAutosaveNotice } from "@/components/mame/widgets/JanusAutosaveNotice";
 import { AnalyzeDurationDialog } from "@/components/mame/dialogs/AnalyzeDurationDialog";
+import { JanusMappingDialog } from "@/components/mame/dialogs/JanusMappingDialog";
 import { InputPanel } from "@/components/mame/panels/InputPanel";
 import { ParameterPanel } from "@/components/mame/panels/ParameterPanel";
 import { Button } from "@/components/ui/button";
@@ -107,6 +108,10 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   // Duration popup. Held in view state (not the store) so dismissing it does
   // not erase the run record, and so a remount does not re-open it.
   const [durationPopupMs, setDurationPopupMs] = useState<number | null>(null);
+  // Janus instrument settings, reachable from the inputs step. Local state: the
+  // step 3 CTA owns its own instance of the same dialog, and only one of the two
+  // steps is on screen at a time, so no shared open flag is needed.
+  const [janusSettingsOpen, setJanusSettingsOpen] = useState(false);
   const prevDurationRef = useRef<number | null>(analyzeDurationMs);
   const reviewContainerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -258,9 +263,34 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               clean run answer the wrong question. */}
           <PlateOrderNotice />
 
-          {/* The run writes the Janus mapping on its own; whether it did is
-              part of the run's outcome, not a detail of the export dialog. */}
+          {/* The run writes its pick list on its own; whether it did is part of
+              the run's outcome, not a detail of the export dialog. */}
           <JanusAutosaveNotice />
+
+          {/* Janus instrument settings. Optional, and never a run gate: the pick
+              list the run writes needs none of these values. Only an entry point
+              lives here (the dialog carries deck preview, row preview and the
+              export), so the inputs step stays a step about inputs. Enabled
+              before a run too, so the liquid class can be prepared in advance. */}
+          <div className="space-y-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-control w-full gap-1.5 rounded-control text-caption"
+              onClick={() => setJanusSettingsOpen(true)}
+              aria-label={t("mame.analyze.janusSettings.openAriaLabel")}
+            >
+              <Settings2 size={12} aria-hidden="true" />
+              {t("mame.analyze.janusSettings.open")}
+            </Button>
+            <p className="text-caption text-muted-foreground">
+              {t("mame.analyze.janusSettings.hint")}
+            </p>
+          </div>
+          <JanusMappingDialog
+            open={janusSettingsOpen}
+            onOpenChange={setJanusSettingsOpen}
+          />
 
           {zeroResult && <EmptyAnalysisNotice />}
 

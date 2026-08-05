@@ -450,3 +450,77 @@ describe("JanusMappingDialog preview", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("JanusMappingDialog deck map", () => {
+  /**
+   * Observed on a real run: the plates were native barcode folders named
+   * `sort_barcode07` and up, which a fixed P1/P2/P3 field list has no rack for,
+   * so the export refused every clone. The fields must name the plates the run
+   * actually produced.
+   */
+  const NATIVE_BARCODE: JanusPreviewResult = {
+    ...CLEAN,
+    rows: [
+      { ...CLEAN.rows[0], source_plate: "sort_barcode07" },
+      { ...CLEAN.rows[1], source_plate: "sort_barcode08" },
+    ],
+  };
+
+  beforeEach(() => {
+    useMameAppStore.setState({ janusSettings: DEFAULT_JANUS_SETTINGS });
+    mockPreview.mockReset();
+  });
+
+  it("names the rack fields after the plates of the run", async () => {
+    mockPreview.mockImplementation(async (settings) => ({
+      ...NATIVE_BARCODE,
+      settings: resolvedSettingsFromUi(settings),
+    }));
+    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    await waitFor(() => expect(mockPreview).toHaveBeenCalled());
+    fireEvent.click(await screen.findByText("Deck configuration"));
+
+    expect(await screen.findByLabelText("Asp. Rack sort_barcode07")).toBeInTheDocument();
+    expect(screen.getByLabelText("Asp. Rack sort_barcode08")).toBeInTheDocument();
+    // The shipped P1/P2/P3 names belong to no plate of this run.
+    expect(screen.queryByLabelText("Asp. Rack P1")).not.toBeInTheDocument();
+  });
+
+  it("records the rack number under the plate name the sidecar checks", async () => {
+    mockPreview.mockImplementation(async (settings) => ({
+      ...NATIVE_BARCODE,
+      settings: resolvedSettingsFromUi(settings),
+    }));
+    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(1));
+    fireEvent.click(await screen.findByText("Deck configuration"));
+
+    fireEvent.change(screen.getByLabelText("Asp. Rack sort_barcode07"), {
+      target: { value: "2" },
+    });
+
+    await waitFor(() =>
+      expect(mockPreview).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sourceRacks: expect.objectContaining({ sort_barcode07: 2 }),
+        }),
+      ),
+    );
+  });
+
+  it("says the plate names are still to come when no run has produced any", async () => {
+    mockPreview.mockImplementation(async (settings) => ({
+      rows: [],
+      errors: [],
+      row_count: 0,
+      excluded: [],
+      excluded_count: 0,
+      settings: resolvedSettingsFromUi(settings),
+    }));
+    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    await waitFor(() => expect(mockPreview).toHaveBeenCalled());
+    fireEvent.click(await screen.findByText("Deck configuration"));
+
+    expect(screen.getByText(/Plate names come from the run/i)).toBeInTheDocument();
+  });
+});

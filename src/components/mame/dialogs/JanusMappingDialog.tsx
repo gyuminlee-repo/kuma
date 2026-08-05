@@ -20,7 +20,9 @@
  * these very settings: keeping them local here would leave every run without a
  * liquid class and therefore without a file.
  *
- * Entered via: File > Export Janus Mapping… in MenuBar.
+ * Entered via: the "Janus instrument settings" button on step 2.1 (inputs, where
+ * the values can be prepared before a run) and the "Open JANUS export" CTA on
+ * step 3. The File menu item was removed in v0.14.7, so no text may point there.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -46,6 +48,7 @@ import {
   fetchMameJanusPreview,
   handleExportMameJanusMapping,
 } from "@/lib/mame/janus";
+import { DEFAULT_JANUS_SETTINGS } from "@/lib/mame/janusSettings";
 import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
 import type {
   JanusDestLayout,
@@ -56,8 +59,32 @@ import type {
   JanusPreviewResult,
 } from "@/types/mame/models";
 
-/** Source plate labels the deck map can carry, in deck order. */
-const SOURCE_PLATES = ["P1", "P2", "P3"] as const;
+/**
+ * Source plates the deck map has to cover, named as the sidecar names them.
+ *
+ * Taken from the preview rows rather than a fixed P1/P2/P3 list: the sidecar
+ * maps NB01-NB03 onto P1-P3 and passes every other plate name through unchanged,
+ * so a native-barcode run reaches the rack check as `sort_barcode07` and a fixed
+ * list left those plates with no rack number and the export refusing to write.
+ * The preview is produced by the very function that validates the rack map, so
+ * the labels shown here are the keys that get checked.
+ *
+ * Before a run there are no plate names to show (they come from the barcodes of
+ * that run), so the fallback is whatever the operator already stored, and the
+ * shipped default only when even that is empty.
+ */
+function sourcePlatesFromPreview(
+  preview: JanusPreviewResult | null,
+  settings: JanusExportSettings,
+): string[] {
+  const fromRun = [
+    ...new Set((preview?.rows ?? []).map((row) => row.source_plate).filter(Boolean)),
+  ];
+  if (fromRun.length > 0) return fromRun.sort();
+  const stored = Object.keys(settings.sourceRacks);
+  if (stored.length > 0) return stored.sort();
+  return Object.keys(DEFAULT_JANUS_SETTINGS.sourceRacks).sort();
+}
 
 /** Preview refresh delay, so typing into a text field is one RPC, not one per key. */
 const PREVIEW_DEBOUNCE_MS = 300;
@@ -182,6 +209,8 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
   const hasPreviewErrors = previewErrors.length > 0;
   const excluded = preview?.excluded ?? [];
   const isDevice9 = settings.outputSchema === "device9";
+  const sourcePlates = sourcePlatesFromPreview(preview, settings);
+  const platesComeFromRun = (preview?.rows.length ?? 0) > 0;
   const resolvedPath = outputPath || deriveDefaultPath(format);
   const isPreviewCurrent = previewMatchesSettings(preview, settings);
   const previewColumns =
@@ -442,8 +471,8 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
                       disabled={isExporting}
                     />
                   </div>
-                  <div className="flex gap-2">
-                    {SOURCE_PLATES.map((plate) => (
+                  <div className="flex flex-wrap gap-2">
+                    {sourcePlates.map((plate) => (
                       <div key={plate} className="flex-1 min-w-0 space-y-1">
                         <Label
                           htmlFor={`janus-rack-${plate}`}
@@ -488,6 +517,13 @@ export function JanusMappingDialog({ open, onOpenChange }: JanusMappingDialogPro
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {t("mame.dialogs.janusMapping.rackHint")}
                   </p>
+                  {/* The plate names are the run's own; before a run there are
+                      none, so say that instead of implying the list is final. */}
+                  {!platesComeFromRun && (
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {t("mame.dialogs.janusMapping.rackPlatesPending")}
+                    </p>
+                  )}
                 </div>
               </details>
             </fieldset>
