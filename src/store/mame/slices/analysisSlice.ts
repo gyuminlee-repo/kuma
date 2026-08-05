@@ -27,6 +27,8 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   replicates: [],
   summary: null,
   analyzeYield: null,
+  layoutProvenance: null,
+  mappingIntegrity: null,
   // FINAL (the per-mutant selected replicate) is the default view: it is the
   // answer sheet a run is read for. VerdictTable degrades it to ALL while no
   // replicate has been selected, so the default never shows an empty table.
@@ -44,6 +46,8 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   setReplicates: (replicates) => set({ replicates }),
   setSummary: (summary) => set({ summary }),
   setAnalyzeYield: (analyzeYield) => set({ analyzeYield }),
+  setLayoutProvenance: (layoutProvenance) => set({ layoutProvenance }),
+  setMappingIntegrity: (mappingIntegrity) => set({ mappingIntegrity }),
   setPlateFilter: (plateFilter) => set({ plateFilter }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setSorting: (updater) => {
@@ -62,6 +66,8 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       replicates: [],
       summary: null,
       analyzeYield: null,
+      layoutProvenance: null,
+      mappingIntegrity: null,
       wells: [],
       selectedWell: null,
       searchQuery: "",
@@ -74,6 +80,8 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       replicates: [],
       summary: null,
       analyzeYield: null,
+      layoutProvenance: null,
+      mappingIntegrity: null,
       plateFilter: "FINAL",
       searchQuery: "",
       sorting: [],
@@ -257,8 +265,11 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       verdicts: sampleVerdicts(),
       replicates: sampleReplicates(),
       summary: sampleSummary(),
-      // Sample data carries no demux yield; drop any left over from a real run.
+      // Sample data carries no demux yield or mapping provenance; drop any
+      // left over from a real run.
       analyzeYield: null,
+      layoutProvenance: null,
+      mappingIntegrity: null,
       wells,
       selectedWell: wells.find((w) => w.selected) ?? wells[0] ?? null,
       analyzeMessage:

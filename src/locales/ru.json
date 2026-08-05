@@ -937,6 +937,11 @@
         "drawerRightDesc": "Proceed to activity",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "Возможна ошибка сопоставления лунка-вариант",
+        "alertDesc": "Из {{wells}} лунок с наблюдаемым вариантом {{selfPercent}}% совпадают с собственной ожидаемой мутацией, а {{crossPercent}}% совпадают с ожидаемой мутацией другой лунки. Сопоставление лунка-вариант, скорее всего, нарушено; не доверяйте этому результату.",
+        "alertAriaLabel": "Предупреждение о целостности сопоставления лунка-вариант"
       }
     },
     "inspector": {

@@ -34,6 +34,7 @@ import { VerdictTable } from "@/components/mame/widgets/VerdictTable";
 import { PlateView } from "@/components/mame/widgets/PlateView";
 import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
 import { PlateClusterAlert } from "@/components/mame/widgets/PlateClusterAlert";
+import { MappingIntegrityAlert } from "@/components/mame/widgets/MappingIntegrityAlert";
 import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNotice";
 import { PlateOrderNotice } from "@/components/mame/widgets/PlateOrderNotice";
 import { JanusAutosaveNotice } from "@/components/mame/widgets/JanusAutosaveNotice";
@@ -395,6 +396,10 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       // analyze.inputs's RunHealthPanel and the QC inspector; not duplicated here per PI spec slide 6.
       mainContent = (
         <div className="flex h-full min-h-0 flex-col relative" ref={reviewContainerRef}>
+          {/* Above the softer cluster/autosave notices: a suspect mapping is a
+              judgment about whether this whole result can be trusted, not a
+              detail about how it ran. */}
+          <MappingIntegrityAlert />
           <PlateClusterAlert />
           <JanusAutosaveNotice />
           <div className="flex-1 min-h-0">

@@ -937,6 +937,11 @@
         "drawerRightDesc": "Proceed to activity",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "Correspondance well-variant probablement erronée",
+        "alertDesc": "Sur {{wells}} wells présentant une variante observée, {{selfPercent}}% correspondent à leur propre mutation attendue et {{crossPercent}}% correspondent plutôt à la mutation attendue d'un autre well. La correspondance well-variant est très probablement décalée ; ne faites pas confiance à ce résultat.",
+        "alertAriaLabel": "Avertissement d'intégrité de la correspondance well-variant"
       }
     },
     "inspector": {

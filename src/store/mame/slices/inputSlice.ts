@@ -519,6 +519,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     get().setReplicates(result.replicates);
     get().setSummary(result.summary);
     get().setAnalyzeYield(pickAnalyzeYield(result));
+    get().setLayoutProvenance(result.layout_provenance ?? null);
+    get().setMappingIntegrity(result.mapping_integrity ?? null);
     // Store the folder only (outputPath is now a folder); lastExportPath tracks the full path.
     const outDir = (() => {
       const p = result.output_path.replace(/\\/g, "/");
@@ -645,6 +647,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       get().setReplicates(result.replicates);
       get().setSummary(result.summary);
       get().setAnalyzeYield(pickAnalyzeYield(result));
+      get().setLayoutProvenance(result.layout_provenance ?? null);
+      get().setMappingIntegrity(result.mapping_integrity ?? null);
       const outDir = (() => {
         const p = result.output_path.replace(/\\/g, "/");
         const i = p.lastIndexOf("/");

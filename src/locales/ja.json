@@ -937,6 +937,11 @@
         "drawerRightDesc": "活性データへ進む",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "well と変異の対応にずれの疑い",
+        "alertDesc": "観測された変異を持つ well {{wells}} 個のうち、自身の expected と一致するのは {{selfPercent}}%、他の well の expected と一致するのは {{crossPercent}}% でした。well と変異の対応がずれている可能性が非常に高いため、この結果は信頼できません。",
+        "alertAriaLabel": "well-変異マッピング整合性の警告"
       }
     },
     "inspector": {

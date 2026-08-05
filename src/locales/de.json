@@ -937,6 +937,11 @@
         "drawerRightDesc": "Proceed to activity",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "Well-Varianten-Zuordnung wahrscheinlich fehlerhaft",
+        "alertDesc": "Von {{wells}} Wells mit beobachteter Variante stimmen {{selfPercent}}% mit der eigenen erwarteten Mutation überein, {{crossPercent}}% dagegen mit der erwarteten Mutation eines anderen Wells. Die Well-Varianten-Zuordnung ist mit hoher Wahrscheinlichkeit verschoben; diesem Ergebnis ist nicht zu trauen.",
+        "alertAriaLabel": "Warnung zur Well-Varianten-Zuordnungsintegrität"
       }
     },
     "inspector": {

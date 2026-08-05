@@ -5,9 +5,11 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.15.11";
+export const WHATS_NEW_VERSION = "0.15.12";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Changed", detail: "The two panels on step 2.2 are sized by what they hold. When both fit, the plate map takes exactly the height its rows need and the rest goes to the breakdown; when they do not both fit, the shortfall is split in proportion to what each as…" },
-  { label: "Changed", detail: "A split the operator dragged is left alone, and so is one restored from an earlier session. The automatic fit is a starting point, not a correction applied over someone's decision." },
+  { label: "Added", detail: "MAME compares each well against its own expected variant and against every other one after the run, and says so on the review screen when the second agreement is high and the first is near zero. The message carries the counts it was comput…" },
+  { label: "Added", detail: "Every run records how the wells were placed, whether from a layout that was given, a sample map, or the order of the expected sheet, along with the workbook it read. A verdict table that looks ordinary is now traceable to the decision that…" },
+  { label: "Fixed", detail: "A well layout MAME inferred for one run no longer comes back from a restored project as though the operator had chosen it. It used to be stored with the verdicts, restored into the input state, and sent to the next run as a layout that was…" },
+  { label: "Fixed", detail: "An amplicon that cannot be extracted says which of the three reasons applied. It reported every case as primer boundaries that were not unique, including the ordinary one where a bare CDS reference simply does not contain the primer tails,…" },
 ];

@@ -937,6 +937,11 @@
         "drawerRightDesc": "Proceed to activity",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "Possível erro no mapeamento well-variante",
+        "alertDesc": "Dos {{wells}} wells com variante observada, {{selfPercent}}% correspondem à própria mutação esperada e {{crossPercent}}% correspondem, em vez disso, à mutação esperada de outro well. É muito provável que o mapeamento well-variante esteja incorreto; não confie neste resultado.",
+        "alertAriaLabel": "Aviso de integridade do mapeamento well-variante"
       }
     },
     "inspector": {

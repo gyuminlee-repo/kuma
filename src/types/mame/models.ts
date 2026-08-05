@@ -88,6 +88,39 @@ export interface AnalyzeSummary {
 }
 
 /**
+ * Which of the three well->sample sources an `analyze` run actually scored
+ * wells against, mirrored from `python-core/sidecar_mame/handlers/analyze.py`
+ * (`layout_source` assignment). An `inferred_draft_layout` result was guessed
+ * from whatever `expected` happened to be current at analyze time, not stated
+ * by the operator or a saved sample map -- the failure shape of the 2026-08
+ * mapping-integrity incident (a stale `expected` produced a plausible-looking
+ * inferred layout with nothing in the result to say so). Frontend code that
+ * persists or replays a well_layout MUST check `source` first: promoting an
+ * inferred layout to an explicit one on the next run launders exactly the
+ * provenance this field exists to keep (`useAutosaveHydration.ts`).
+ */
+export interface LayoutProvenance {
+  source: "explicit_well_layout" | "sample_map_xlsx" | "inferred_draft_layout";
+  expected_path: string;
+  sample_map_path: string | null;
+}
+
+/**
+ * Whole-run mapping sanity check (`kuma_core/mame/qc/mapping_integrity.py`).
+ * `suspect` is a signal to surface prominently, not a hard failure: the run
+ * already finished and the workbook the operator has may be the only record
+ * of what was actually pipetted. Rates are 0..1 fractions, not percentages.
+ */
+export interface MappingIntegrity {
+  wells_considered: number;
+  self_match: number;
+  cross_match: number;
+  self_rate: number;
+  cross_rate: number;
+  suspect: boolean;
+}
+
+/**
  * Demux yield reported by the analyze response. Raw-run mode only: the handler
  * derives every field from the demux it just ran and omits the keys entirely in
  * consensus-dir mode (`python-core/sidecar_mame/handlers/analyze.py`, raw-run
@@ -141,6 +174,19 @@ export interface AnalyzeResult extends AnalyzeYield {
    * `..._picks.csv`.
    */
   janus_mapping_autosave?: JanusAutosaveResult;
+  /**
+   * Which well->sample source this run scored against, and the files it came
+   * from. A live sidecar always sends it; optional on the type only because a
+   * result persisted before this field existed is replayed verbatim on
+   * restart and has no value to fall back to.
+   */
+  layout_provenance?: LayoutProvenance;
+  /**
+   * Whole-run mapping sanity check. Same optionality reasoning as
+   * `layout_provenance`: always sent by a live sidecar, absent on results
+   * persisted before this field existed.
+   */
+  mapping_integrity?: MappingIntegrity;
 }
 
 /**

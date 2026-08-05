@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.15.12 (A finished run is checked against itself, not just against the workbook it came from)
+
+The v0.15.10 refusal reads the workbook, so it only catches a plate that describes itself two ways. It cannot see a run whose verdicts were scored before the operator swapped the file underneath them. That is the shape the 2026-08-04 misscoring arrived in when the snapshot reached us: the expected path pointed at a re-exported workbook whose sheets agree, while the 288 verdicts beside it had been scored against the earlier one. Nothing on screen separated that from a run that simply went badly, because the well count, the plate map and the verdict tally all render the same either way. The finished analysis already carries the answer: of the 244 wells with an observed amino-acid change, none matched the variant assigned to that well and 241 matched the variant assigned to some other well. A permutation null over the same plate averages 2.49.
+
+### Added
+
+- v0.15.12: MAME compares each well against its own expected variant and against every other one after the run, and says so on the review screen when the second agreement is high and the first is near zero. The message carries the counts it was computed from rather than a fixed threshold, and it does not gate anything: the run is over by then, and what it can still do is stop the numbers from being read as biology. The check needs 24 wells before it will speak, so a small plate is not accused on thin evidence.
+- v0.15.12: Every run records how the wells were placed, whether from a layout that was given, a sample map, or the order of the expected sheet, along with the workbook it read. A verdict table that looks ordinary is now traceable to the decision that produced it.
+
+### Fixed
+
+- v0.15.12: A well layout MAME inferred for one run no longer comes back from a restored project as though the operator had chosen it. It used to be stored with the verdicts, restored into the input state, and sent to the next run as a layout that was given, which told validation the sheet order never reached a well and lowered the warning it would otherwise raise. A layout with no recorded origin is treated as inferred for the same reason.
+- v0.15.12: An amplicon that cannot be extracted says which of the three reasons applied. It reported every case as primer boundaries that were not unique, including the ordinary one where a bare CDS reference simply does not contain the primer tails, which sent the reader looking for duplicate binding sites that were never there.
+
 ## v0.15.11 (The plate map gets the height it needs, not the share it was assigned)
 
 Step 2.2 stacks the plate map over the verdict breakdown and split them 34/66, a ratio with no idea how tall either one wants to be. The plate map wants 600 to 790 px for eight rows and a well inspector, so it scrolled from row D down on every window size measured, while the panel underneath had room left over: 381 px of grid hidden at 1920x1080, 442 px at 2560x1440. A scrollbar is worth having, but not while the neighbour leaves space unused.
