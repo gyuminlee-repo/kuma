@@ -484,6 +484,7 @@ class TestMinVariantSupport:
         assert result.consensus_seq[7] == "A"
         assert result.n_variant_positions == 2
         assert result.min_variant_support == pytest.approx(0.70)
+        assert result.min_variant_support_depth == 100
 
     def test_wt_identical_consensus_reports_none(self) -> None:
         """No substitution called means unknown support, not zero support."""
@@ -495,6 +496,7 @@ class TestMinVariantSupport:
         assert result.consensus_seq == ref
         assert result.n_variant_positions == 0
         assert result.min_variant_support is None
+        assert result.min_variant_support_depth == 0
 
     def test_shallow_positions_do_not_set_support(self) -> None:
         """A support fraction off a handful of reads is not evidence either way."""

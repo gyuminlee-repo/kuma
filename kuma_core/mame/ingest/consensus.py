@@ -217,6 +217,8 @@ class ConsensusCall:
     # same as zero support and must not be compared as if it were.
     min_variant_support: float | None = None
     n_variant_positions: int = 0
+    # ACGT depth at the position ``min_variant_support`` was measured on.
+    min_variant_support_depth: int = 0
     # Per-well insertion-event evidence. Insertions are discarded from the
     # reference-length consensus (same as samtools consensus default), so
     # variant clones with only an in-frame insertion reach a WT-identical
@@ -484,10 +486,17 @@ def call_consensus_with_metrics(
     )
     n_variant_positions = int(called_sub.sum())
     if n_variant_positions:
-        support = best_count[called_sub] / np.maximum(base_total[called_sub], 1)
-        min_variant_support: float | None = float(support.min())
+        sub_depth = base_total[called_sub]
+        support = best_count[called_sub] / np.maximum(sub_depth, 1)
+        weakest = int(np.argmin(support))
+        min_variant_support: float | None = float(support[weakest])
+        # The depth behind that fraction travels with it. A support of 0.98 read
+        # off 12 reads and one read off 562 are the same number and not the same
+        # evidence, and the picker needs to tell them apart (see best_pick.py).
+        min_variant_support_depth = int(sub_depth[weakest])
     else:
         min_variant_support = None
+        min_variant_support_depth = 0
 
     return ConsensusCall(
         consensus_seq=consensus_seq,
@@ -503,6 +512,7 @@ def call_consensus_with_metrics(
         median_read_net_indel_bp=median_read_net_indel_bp,
         min_variant_support=min_variant_support,
         n_variant_positions=n_variant_positions,
+        min_variant_support_depth=min_variant_support_depth,
     )
 
 

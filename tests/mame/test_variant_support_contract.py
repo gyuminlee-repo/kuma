@@ -14,6 +14,7 @@ import pytest
 
 from kuma_core.mame.ingest.consensus_metadata import (
     MIN_VARIANT_SUPPORT,
+    MIN_VARIANT_SUPPORT_DEPTH,
     VARIANT_POSITIONS,
     ConsensusMetadata,
     format_consensus_fasta_record,
@@ -45,11 +46,14 @@ def _write(tmp_path: Path, metadata: ConsensusMetadata) -> Path:
 
 
 def test_support_survives_a_write_read_round_trip(tmp_path: Path) -> None:
-    metadata = _metadata(min_variant_support=0.809, variant_positions=2)
+    metadata = _metadata(
+        min_variant_support=0.809, variant_positions=2, min_variant_support_depth=67
+    )
     record = parse_fasta_file(_write(tmp_path, metadata), "NB07")
 
     assert record.min_variant_support == pytest.approx(0.809)
     assert record.n_variant_positions == 2
+    assert record.min_variant_support_depth == 67
 
 
 def test_absent_keys_read_back_as_unknown_not_zero(tmp_path: Path) -> None:
@@ -57,8 +61,10 @@ def test_absent_keys_read_back_as_unknown_not_zero(tmp_path: Path) -> None:
     header = _metadata().header_suffix()
     assert MIN_VARIANT_SUPPORT not in header
     assert VARIANT_POSITIONS not in header
+    assert MIN_VARIANT_SUPPORT_DEPTH not in header
 
     record = parse_fasta_file(_write(tmp_path, _metadata()), "NB07")
 
     assert record.min_variant_support is None
     assert record.n_variant_positions == 0
+    assert record.min_variant_support_depth == 0

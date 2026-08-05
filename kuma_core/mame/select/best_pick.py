@@ -3,20 +3,29 @@
 Priority: PASS > AMBIGUOUS > LOWDEPTH. WRONG_AA / FRAMESHIFT / MANY / MIXED /
 NO_CALL are unpickable (fallback-eligible only).
 
-Tiebreaker on equal class: weakest-variant-support descending, then native
-barcode number ascending (NB01 wins). Verdict class alone cannot separate two
-replicates that both call the designed substitution, because the only purity
-input to the verdict is the mixed-position gate and everything below that gate
-reads PASS. Measured on the 260729 ispS run, that left plates carrying 19% and
-18% wild-type reads selected over sibling plates at 98% purity purely because
-they sat at a lower native barcode number. Support decides first now; NB order
-survives as the deterministic tiebreak within ``_SUPPORT_TIE_MARGIN``, so a
-difference inside consensus noise does not reshuffle picks between runs.
+Tiebreaker on equal class: the Wilson score lower bound on the weakest support
+among the substitutions each consensus calls, highest first.
+
+Verdict class alone cannot separate two replicates that both call the designed
+substitution, because the only purity input to the verdict is the mixed-position
+gate and everything below that gate reads PASS. Measured on the 260729 ispS run,
+that left plates carrying 19% and 18% wild-type reads picked over sibling plates
+at 98% purity, on nothing but a lower native barcode number.
+
+The raw support fraction is not enough on its own either: 0.98 off 12 reads and
+0.98 off 562 reads are the same number and not the same evidence. The Wilson
+bound folds depth into the value, so a shallow plate has to be visibly purer to
+outrank a deep one, and the ordering does not chase consensus noise without any
+hand-set margin to tune.
+
+Native barcode number breaks exact ties and nothing else. It carries no quality
+meaning; it is there so that two genuinely indistinguishable replicates resolve
+the same way on every run.
 
 Replicates whose consensus file predates the support metric, and wells whose
 consensus carries no substitution at all, report ``None``. Ordering falls back
-to NB-ascending whenever any candidate is in that state, so an old result set
-picks exactly what it picked before.
+to NB-ascending whenever any candidate is in that state, so an older run picks
+exactly what it picked before.
 
 N50 is not available from the current consensus FASTA input, so it is not used.
 
@@ -27,6 +36,8 @@ carry no useful identity info (e.g. empty plate_verdicts) are excluded.
 """
 
 from __future__ import annotations
+
+import math
 
 from kuma_core.mame.models import ReplicateResult, VerdictClass, VerdictRecord
 
@@ -70,24 +81,29 @@ def _volume_key(vr: VerdictRecord) -> float:
     return vr.translated.barcode.file_size_kb
 
 
-# Support differences at or below this are treated as equal and handed back to
-# NB order. ONT consensus support wobbles by a percent or two between replicates
-# of the same clone, and letting that wobble decide the pick would make the
-# selected plate change from run to run for no biological reason.
-_SUPPORT_TIE_MARGIN = 0.02
+# Two-sided 95% z, read one-sided below, which is the conservative direction for
+# a pick: it asks how low the support could plausibly be, not how high.
+_Z_95 = 1.959963984540054
 
 
-def _variant_support(vr: VerdictRecord) -> float | None:
-    """Weakest support among the substitutions this replicate calls.
+def _support_lower_bound(vr: VerdictRecord) -> float | None:
+    """Wilson score lower bound on the weakest called-substitution support.
 
-    ``None`` when the metric is unavailable (consensus file predates it) or the
-    consensus carries no substitution, which is not the same as zero support and
-    must not be ordered as if it were.
+    ``None`` when the metric is unavailable (consensus file predates it), the
+    consensus carries no substitution, or no depth was recorded. That is not the
+    same as zero support and must not be ordered as if it were.
     """
     bc = vr.translated.barcode
-    if bc.min_variant_support is None or bc.n_variant_positions <= 0:
+    support = bc.min_variant_support
+    depth = bc.min_variant_support_depth
+    if support is None or bc.n_variant_positions <= 0 or depth <= 0:
         return None
-    return float(bc.min_variant_support)
+    z2 = _Z_95 * _Z_95
+    centre = support + z2 / (2 * depth)
+    spread = _Z_95 * math.sqrt(
+        support * (1.0 - support) / depth + z2 / (4 * depth * depth)
+    )
+    return (centre - spread) / (1.0 + z2 / depth)
 
 
 def _pick_rank(verdict: VerdictClass) -> int:
@@ -159,21 +175,14 @@ def pick_best_replicate(
         if not candidates:
             continue
         candidates.sort(key=_nb_order_key)
-        supports = {plate: _variant_support(verdicts[plate]) for plate in candidates}
-        if len(candidates) > 1 and all(v is not None for v in supports.values()):
-            best_support = max(supports.values())
-            # Everything within the noise margin of the best stays in contention and
-            # is settled by NB order, which ``candidates`` already carries.
-            contenders = [
-                plate
-                for plate in candidates
-                if best_support - supports[plate] <= _SUPPORT_TIE_MARGIN
-            ]
-            winner = contenders[0]
-            shown = ", ".join(f"{p}={supports[p]:.3f}" for p in candidates)
+        bounds = {plate: _support_lower_bound(verdicts[plate]) for plate in candidates}
+        if len(candidates) > 1 and all(v is not None for v in bounds.values()):
+            # ``candidates`` is NB-ascending and ``max`` keeps the first maximal
+            # element, so an exact tie resolves to the lowest NB deterministically.
+            winner = max(candidates, key=lambda plate: bounds[plate])
+            shown = ", ".join(f"{p}={bounds[p]:.3f}" for p in candidates)
             reason = (
-                f"verdict={cls.value}; tiebreak=variant-support ({shown}) "
-                f"then NB-ascending among {contenders}"
+                f"verdict={cls.value}; tiebreak=variant-support lower bound ({shown})"
             )
         else:
             winner = candidates[0]

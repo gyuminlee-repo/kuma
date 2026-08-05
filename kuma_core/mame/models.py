@@ -64,6 +64,8 @@ class BarcodeRecord:
     # substitution at all. Never treat it as 0.0; see select/best_pick.py.
     min_variant_support: float | None = None
     n_variant_positions: int = 0
+    # ACGT depth behind ``min_variant_support``. 0 when unknown.
+    min_variant_support_depth: int = 0
     # Longest contiguous deletion-majority run (informational; see ConsensusCall).
     # 0 = insertion-driven, 1 = isolated single position (artifact suspect),
     # >=2 = N-bp contiguous deletion.

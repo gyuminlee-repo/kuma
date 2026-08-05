@@ -6,7 +6,8 @@ MAME keeps three replicate plates per variant and ships one. Verdict class decid
 
 ### Changed
 
-- v0.15.13: A consensus reports the weakest read support among the substitutions it calls, and the replicate picker reads that before barcode order. Two plates that both pass are separated by how solidly each one carries its mutation. Differences within two points count as equal and still fall to barcode order, so the picks in a run do not move on consensus noise.
+- v0.15.13: A consensus reports the weakest read support among the substitutions it calls, together with the depth that fraction was measured on. The replicate picker orders equal-verdict plates by the Wilson score lower bound on that support, so a plate has to be both purer and backed by enough reads to win. A support of 0.98 taken from 12 reads no longer outranks the same figure taken from 562, and no hand-set margin is left in the code to tune.
+- v0.15.13: Native barcode number breaks exact ties and nothing else now, and the module says so in as many words. It never carried quality meaning; it had been standing in for a measure that did not exist yet.
 - v0.15.13: The value travels in the consensus FASTA header. It is absent for a well that calls no substitution and for files written before this release, and absent means unknown rather than zero, so an older run picks exactly what it picked before.
 
 ## v0.15.12 (A run that only sequences never passes a robot)

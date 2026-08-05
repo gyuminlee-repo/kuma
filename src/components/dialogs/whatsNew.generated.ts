@@ -8,6 +8,7 @@ export interface WhatsNewItem {
 export const WHATS_NEW_VERSION = "0.15.13";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Changed", detail: "A consensus reports the weakest read support among the substitutions it calls, and the replicate picker reads that before barcode order. Two plates that both pass are separated by how solidly each one carries its mutation. Differences with…" },
+  { label: "Changed", detail: "A consensus reports the weakest read support among the substitutions it calls, together with the depth that fraction was measured on. The replicate picker orders equal-verdict plates by the Wilson score lower bound on that support, so a pl…" },
+  { label: "Changed", detail: "Native barcode number breaks exact ties and nothing else now, and the module says so in as many words. It never carried quality meaning; it had been standing in for a measure that did not exist yet." },
   { label: "Changed", detail: "The value travels in the consensus FASTA header. It is absent for a well that calls no substitution and for files written before this release, and absent means unknown rather than zero, so an older run picks exactly what it picked before." },
 ];

@@ -47,6 +47,8 @@ BASIS_COVERED = "covered"
 # means "unknown or no substitution", never "zero support".
 MIN_VARIANT_SUPPORT = "min_variant_support"
 VARIANT_POSITIONS = "variant_positions"
+# Depth the support fraction was measured on, so a reader can weigh it.
+MIN_VARIANT_SUPPORT_DEPTH = "min_variant_support_depth"
 
 
 @dataclass(frozen=True)
@@ -77,6 +79,7 @@ class ConsensusMetadata:
     # a value exists.  A reader must treat "missing" as unknown, never as 0.0.
     min_variant_support: float | None = None
     variant_positions: int = 0
+    min_variant_support_depth: int = 0
 
     def header_items(self) -> Iterable[tuple[str, str]]:
         """Yield metadata pairs in the stable FASTA-header order."""
@@ -100,6 +103,7 @@ class ConsensusMetadata:
         if self.min_variant_support is not None:
             yield MIN_VARIANT_SUPPORT, f"{self.min_variant_support:.3f}"
             yield VARIANT_POSITIONS, str(self.variant_positions)
+            yield MIN_VARIANT_SUPPORT_DEPTH, str(self.min_variant_support_depth)
 
     def header_suffix(self) -> str:
         """Return ``key=value`` metadata joined for a FASTA header."""
@@ -129,6 +133,7 @@ __all__ = [
     "MAPQ_FAILED",
     "MAX_MINOR_ALLELE_FRACTION",
     "MIN_VARIANT_SUPPORT",
+    "MIN_VARIANT_SUPPORT_DEPTH",
     "MIXED_POSITIONS",
     "SPAN_FAILED",
     "VARIANT_POSITIONS",

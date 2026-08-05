@@ -244,6 +244,7 @@ def _vr_support(
     verdict: VerdictClass,
     min_variant_support: float | None,
     n_variant_positions: int = 1,
+    depth: int = 500,
 ) -> VerdictRecord:
     """VerdictRecord carrying the called-substitution support metric."""
     barcode = BarcodeRecord(
@@ -254,6 +255,7 @@ def _vr_support(
         source_path=Path("/tmp/mock.fasta"),
         min_variant_support=min_variant_support,
         n_variant_positions=n_variant_positions,
+        min_variant_support_depth=depth,
     )
     translated = TranslatedRecord(
         barcode=barcode,
@@ -277,27 +279,47 @@ def test_variant_support_beats_nb_order() -> None:
     plate to the liquid handler.
     """
     verdicts = {
-        "NB07": _vr_support("NB07", VerdictClass.PASS, 0.809),
-        "NB08": _vr_support("NB08", VerdictClass.PASS, 0.982),
-        "NB09": _vr_support("NB09", VerdictClass.PASS, 0.946),
+        "NB07": _vr_support("NB07", VerdictClass.PASS, 0.821, depth=67),
+        "NB08": _vr_support("NB08", VerdictClass.PASS, 0.944, depth=562),
+        "NB09": _vr_support("NB09", VerdictClass.PASS, 0.904, depth=242),
     }
     result = pick_best_replicate("I555L", verdicts)
     assert result.selected_plate == "NB08"
-    assert "variant-support" in result.selection_reason
+    assert "variant-support lower bound" in result.selection_reason
 
 
-def test_variant_support_ties_fall_back_to_nb_order() -> None:
-    """Differences inside the noise margin must not reshuffle the pick."""
+def test_depth_decides_between_equal_support() -> None:
+    """Identical fractions are not identical evidence; the deeper plate wins."""
     verdicts = {
-        "NB08": _vr_support("NB08", VerdictClass.PASS, 0.981),
-        "NB07": _vr_support("NB07", VerdictClass.PASS, 0.975),
+        "NB07": _vr_support("NB07", VerdictClass.PASS, 0.98, depth=12),
+        "NB08": _vr_support("NB08", VerdictClass.PASS, 0.98, depth=562),
+    }
+    result = pick_best_replicate("V5F", verdicts)
+    assert result.selected_plate == "NB08"
+
+
+def test_shallow_plate_needs_to_be_visibly_purer_to_win() -> None:
+    """A thin lead on few reads does not outrank a deep, slightly lower plate."""
+    verdicts = {
+        "NB07": _vr_support("NB07", VerdictClass.PASS, 0.900, depth=1000),
+        "NB08": _vr_support("NB08", VerdictClass.PASS, 0.930, depth=30),
+    }
+    result = pick_best_replicate("V5F", verdicts)
+    assert result.selected_plate == "NB07"
+
+
+def test_exact_tie_resolves_to_lowest_nb_deterministically() -> None:
+    """NB order settles genuine ties and carries no quality meaning of its own."""
+    verdicts = {
+        "NB09": _vr_support("NB09", VerdictClass.PASS, 0.95, depth=400),
+        "NB07": _vr_support("NB07", VerdictClass.PASS, 0.95, depth=400),
     }
     result = pick_best_replicate("V5F", verdicts)
     assert result.selected_plate == "NB07"
 
 
 def test_missing_support_keeps_legacy_nb_order() -> None:
-    """A result set predating the metric picks exactly what it picked before."""
+    """An older run picks exactly what it picked before."""
     verdicts = {
         "NB07": _vr_support("NB07", VerdictClass.PASS, None),
         "NB08": _vr_support("NB08", VerdictClass.PASS, 0.982),
@@ -313,6 +335,7 @@ def test_zero_variant_positions_is_not_zero_support() -> None:
         "NB07": _vr_support("NB07", VerdictClass.PASS, 0.99, n_variant_positions=0),
         "NB08": _vr_support("NB08", VerdictClass.PASS, 0.60),
     }
+    # Falls back to NB order because one candidate has no comparable value.
     result = pick_best_replicate("V5F", verdicts)
     assert result.selected_plate == "NB07"
 
@@ -320,8 +343,8 @@ def test_zero_variant_positions_is_not_zero_support() -> None:
 def test_verdict_class_still_outranks_support() -> None:
     """A purer AMBIGUOUS plate must not beat a PASS plate."""
     verdicts = {
-        "NB07": _vr_support("NB07", VerdictClass.PASS, 0.70),
-        "NB08": _vr_support("NB08", VerdictClass.AMBIGUOUS, 0.99),
+        "NB07": _vr_support("NB07", VerdictClass.PASS, 0.70, depth=500),
+        "NB08": _vr_support("NB08", VerdictClass.AMBIGUOUS, 0.99, depth=500),
     }
     result = pick_best_replicate("V5F", verdicts)
     assert result.selected_plate == "NB07"

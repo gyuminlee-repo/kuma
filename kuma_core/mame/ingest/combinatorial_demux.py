@@ -2117,6 +2117,7 @@ def _run_combinatorial_demux_body(
             read_net_indel,
             min_variant_support,
             variant_positions,
+            min_variant_support_depth,
         ) = _compute_well_consensus(
             well_name, reads, alignments, ref_seq, ref_len, min_depth,
         )
@@ -2140,6 +2141,7 @@ def _run_combinatorial_demux_body(
             read_net_indel,
             min_variant_support,
             variant_positions,
+            min_variant_support_depth,
         )
 
     _consensus_done = 0
@@ -2215,6 +2217,7 @@ def _run_combinatorial_demux_body(
                         read_net_indel,
                         min_variant_support,
                         variant_positions,
+                        min_variant_support_depth,
                     ) = fut.result()
                     per_well_consensus[wn] = seq
                     atomic_write_text(
@@ -2241,6 +2244,7 @@ def _run_combinatorial_demux_body(
                                 consensus_n_fraction_basis=BASIS_COVERED,
                                 min_variant_support=min_variant_support,
                                 variant_positions=variant_positions,
+                                min_variant_support_depth=min_variant_support_depth,
                             ),
                         ),
                         # fsync=False here, one fsync_directory below instead. Per-file
@@ -2320,7 +2324,7 @@ def _compute_well_consensus(
     min_depth: int,
 ) -> tuple[
     str, int, int, float, int, float, int, int, int, int, int, int, float, int,
-    int, int, float | None, int,
+    int, int, float | None, int, int,
 ]:
     """Call consensus for one well from its (pre-computed) alignments.
 
@@ -2344,6 +2348,9 @@ def _compute_well_consensus(
             0,
             0.0,
             0,
+            0,
+            0,
+            None,
             0,
             0,
         )
@@ -2370,6 +2377,7 @@ def _compute_well_consensus(
             0,
             0,
             None,
+            0,
             0,
         )
 
@@ -2398,6 +2406,7 @@ def _compute_well_consensus(
         consensus_call.median_read_net_indel_bp,
         consensus_call.min_variant_support,
         consensus_call.n_variant_positions,
+        consensus_call.min_variant_support_depth,
     )
 
 
