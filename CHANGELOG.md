@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.15.13 (The replicate that reads cleanest is the one that ships)
+
+MAME keeps three replicate plates per variant and ships one. Verdict class decides first, and below the mixed-position gate every plate reads PASS, so the pick fell to native barcode order. On the 260729 ispS run that sent a plate whose designed substitution rested on 82 percent of reads while its sibling sat at 98 percent, twice, for no reason other than a lower barcode number.
+
+### Changed
+
+- v0.15.13: A consensus reports the weakest read support among the substitutions it calls, together with the depth that fraction was measured on. The replicate picker orders equal-verdict plates by the Wilson score lower bound on that support, so a plate has to be both purer and backed by enough reads to win. A support of 0.98 taken from 12 reads no longer outranks the same figure taken from 562, and no hand-set margin is left in the code to tune.
+- v0.15.13: Native barcode number breaks exact ties and nothing else now, and the module says so in as many words. It never carried quality meaning; it had been standing in for a measure that did not exist yet.
+- v0.15.13: Both per-plate sheets and the Final sheet carry the purity evidence behind a pick: the weakest called-substitution support, the depth it was measured on, the lower bound the picker ordered by, and the fraction of reads carrying an indel. A cell left empty means unknown, so nothing reads as zero purity by accident.
+- v0.15.13: A `review` column names the wells whose numbers stand out, judged against the plate they sit on rather than against a fixed gate. Each plate supplies its own median and median absolute deviation, and a well more than three MAD out is reported with the measured value and the baseline beside it. Nothing is excluded and no verdict changes; the operator decides. On the 260729 run this reports well G3, whose substitution reads 99% designed while 22% of its reads carry a 1 bp deletion, a frameshifted subpopulation the substitution view alone cannot see.
+- v0.15.13: The value travels in the consensus FASTA header. It is absent for a well that calls no substitution and for files written before this release, and absent means unknown rather than zero, so an older run picks exactly what it picked before.
+
 ## v0.15.12 (A run that only sequences never passes a robot)
 
 MAME asked about the cell-picking robot on the screen that collects a run's inputs. The transfer volume, the instrument settings button and, from the Activity step, a second export CTA all sat inside a workflow whose first two steps are the only ones a genotyping run needs: build the barcode package, read the plate. An operator who wanted a verdict and nothing else had the deck, the liquid class and the rack numbers in front of them on step 2.1 anyway, and nothing said any of it was optional.

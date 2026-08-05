@@ -14,6 +14,8 @@ Tests cover:
 
 from __future__ import annotations
 
+import pytest
+
 from kuma_core.mame.ingest.align import (
     Alignment,
     _CIGAR_D,
@@ -459,3 +461,51 @@ class TestNetIndelMetric:
         result = call_consensus_with_metrics(reads, ref)
         assert result.consensus_net_indel_bp == -3
         assert result.consensus_net_indel_bp % 3 == 0
+
+
+class TestMinVariantSupport:
+    """Support for the substitutions the consensus actually calls."""
+
+    def test_reports_weakest_support_among_called_substitutions(self) -> None:
+        """Two called substitutions, one shakier: the weaker one is reported."""
+        ref = "ATGCATGCATGC"
+        # Position 2 mutated in 90 of 100 reads, position 7 in 70 of 100.
+        strong = ref[:2] + "T" + ref[3:]
+        both = strong[:7] + "A" + strong[8:]
+        reads = (
+            [_make_aln(both, len(ref)) for _ in range(70)]
+            + [_make_aln(strong, len(ref)) for _ in range(20)]
+            + [_make_aln(ref, len(ref)) for _ in range(10)]
+        )
+
+        result = call_consensus_with_metrics(reads, ref, mix_min_depth=10)
+
+        assert result.consensus_seq[2] == "T"
+        assert result.consensus_seq[7] == "A"
+        assert result.n_variant_positions == 2
+        assert result.min_variant_support == pytest.approx(0.70)
+        assert result.min_variant_support_depth == 100
+
+    def test_wt_identical_consensus_reports_none(self) -> None:
+        """No substitution called means unknown support, not zero support."""
+        ref = "ATGCATGCATGC"
+        reads = [_make_aln(ref, len(ref)) for _ in range(50)]
+
+        result = call_consensus_with_metrics(reads, ref, mix_min_depth=10)
+
+        assert result.consensus_seq == ref
+        assert result.n_variant_positions == 0
+        assert result.min_variant_support is None
+        assert result.min_variant_support_depth == 0
+
+    def test_shallow_positions_do_not_set_support(self) -> None:
+        """A support fraction off a handful of reads is not evidence either way."""
+        ref = "ATGCATGCATGC"
+        mut = ref[:2] + "T" + ref[3:]
+        reads = [_make_aln(mut, len(ref)) for _ in range(4)]
+
+        result = call_consensus_with_metrics(reads, ref, mix_min_depth=10)
+
+        assert result.consensus_seq[2] == "T"
+        assert result.n_variant_positions == 0
+        assert result.min_variant_support is None
