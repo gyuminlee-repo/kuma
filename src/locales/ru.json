@@ -337,7 +337,7 @@
       "variantSheet": "List so spiskom variantov",
       "variantColumn": "Stolbec variantov",
       "variantColumnPlaceholder": "Vyberite stolbec",
-      "variantColumnHelper": "Poryadok strok etogo stolbca zapolnyaet 96-lunochnyy planshet. Stroka WT sluzhit kontrolem.",
+      "variantColumnHelper": "Строки заполняют 96-луночный планшет в порядке этого столбца, сверху вниз по каждому столбцу планшета: A1, B1, C1 до H1, затем A2. Строка WT служит контролем, отдельная строка не добавляется.",
       "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
     },
     "activity": {
@@ -684,7 +684,7 @@
         },
         "destLayoutHint": {
           "source": "dest_well повторяет позицию source plate. Экспорт завершится ошибкой, если два pick попадут в один well.",
-          "compact": "dest_well назначается последовательно с A1 в порядке priority, без пустых well."
+          "compact": "dest_well назначается последовательно с A1 в порядке приоритета, сверху вниз по каждому столбцу (A1, B1, C1 до H1, затем A2), без пустых лунок."
         },
         "outputPathLabel": "Путь к выходному файлу",
         "outputPathPlaceholder": "Путь к целевому файлу .{{ext}}",
@@ -824,7 +824,7 @@
         "columnAuto": "Auto-detect",
         "suggested": "Auto-detected column: {{column}}",
         "noSuggestion": "No column was recognised automatically. Choose the one holding the variant labels.",
-        "helper": "Wells are filled in this column's order, one variant per row. A KURO export needs no mapping and hides these controls."
+        "helper": "Лунки заполняются в порядке этого столбца, по одному варианту в строке: сверху вниз по каждому столбцу планшета, A1, B1, C1 до H1, затем A2. Экспорт KURO не требует маппинга и скрывает эти поля."
       }
     },
     "janusDeck": {
@@ -2282,7 +2282,15 @@
   "whatsNewDialog": {
     "title": "Что нового в v{{version}}",
     "description": "Основные изменения последнего обновления.",
-    "gotItBtn": "Понятно"
+    "gotItBtn": "Понятно",
+    "highlights": [
+      "«Что нового» теперь показывает короткую заметку к выпуску, а не обрезанную копию журнала изменений.",
+      "Эти заметки переведены на все десять языков, и выпуск не выйдет с устаревшим переводом.",
+      "Подсказка в маппинге списка вариантов теперь указывает порядок заполнения лунок: A1, B1, C1 до H1, затем A2.",
+      "Хук post-commit, обновляющий версию, больше не завершается ошибкой из-за удалённого пути.",
+      "Длинная заметка к выпуску теперь прокручивается внутри диалога, а не уходит за нижний край."
+    ],
+    "highlightsStamp": "0.15.12+fe8e6f21"
   },
   "primerDisplay": {
     "copySeqTitle": "Копировать sequence",

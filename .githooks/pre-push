@@ -1,12 +1,101 @@
 #!/usr/bin/env bash
 # Local pre-push gate. Mirrors what tag-only CI used to catch on every push.
 # Skip in emergencies: git push --no-verify
+#
+# Every step runs `node` against files that already exist in the repo. No
+# package manager and no on-demand package fetcher: this is a Windows-target
+# checkout on a shared folder, so a WSL-side install would replace
+# node_modules with Linux binaries and leave the app unable to start.
 set -e
 
-echo "[pre-push] pnpm sync:check"
-pnpm sync:check
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
 
-echo "[pre-push] npx tsc --noEmit"
-npx tsc --noEmit
+# A worktree carries no dependencies of its own, so fall back to the main
+# checkout. `--git-common-dir` points at the shared git dir (.git of the main
+# checkout), whose parent is that checkout. It is relative in the main
+# checkout and absolute in a worktree, so normalize before use.
+common_dir=$(git rev-parse --git-common-dir)
+case "$common_dir" in
+  /*) ;;
+  *) common_dir="$repo_root/$common_dir" ;;
+esac
+main_root=$(cd "$common_dir/.." && pwd)
+
+tsc=""
+for candidate in "$repo_root" "$main_root"; do
+  if [ -f "$candidate/node_modules/typescript/bin/tsc" ]; then
+    tsc="$candidate/node_modules/typescript/bin/tsc"
+    break
+  fi
+done
+
+if [ -z "$tsc" ]; then
+  echo "[pre-push] FAIL: typescript is not installed in this repository." >&2
+  echo "[pre-push] Looked for node_modules/typescript/bin/tsc under:" >&2
+  echo "[pre-push]   $repo_root" >&2
+  echo "[pre-push]   $main_root" >&2
+  echo "[pre-push] Install dependencies once in the main checkout" >&2
+  echo "[pre-push] ($main_root) from a Windows-native terminal, then push again." >&2
+  echo "[pre-push] Worktrees intentionally share that install; do not run a" >&2
+  echo "[pre-push] package manager from WSL on this drive." >&2
+  echo "[pre-push] Emergency bypass: git push --no-verify" >&2
+  exit 1
+fi
+
+# sync:check's generated-models stage shells out to `json2ts`. The vendored
+# scripts/gen-models.mjs looks for it at <cwd>/node_modules/.bin and otherwise
+# falls back to a bare `json2ts` on PATH. A worktree has no node_modules and
+# PATH has no json2ts either, so spawnSync returns status null and the whole
+# first step fails before tsc and i18n:check ever run. Point PATH at the main
+# checkout's bin dir. That shim is a plain `exec node <local cli.js>` against
+# the pnpm store that is already on disk, so this only resolves an installed
+# binary; it runs no package manager and fetches nothing.
+bin_dir="$main_root/node_modules/.bin"
+if [ -d "$bin_dir" ]; then
+  PATH="$bin_dir:$PATH"
+  export PATH
+fi
+
+# The tauri-resources check asserts every path in tauri.conf.json's
+# bundle.resources exists on disk. resources/NOTICE.md is gitignored: it is
+# assembled by scripts/build-notice.mjs out of NOTICE-{rust,node,python}.md,
+# which are themselves gitignored outputs of cargo-about, pnpm licenses and
+# pip-licenses. So the generator cannot run here either, and the check fails on
+# any tree that has not been through a full build. ci.yml stubs this one file
+# for exactly that reason before running the same check. Do the same, with two
+# limits: never touch an existing file, so a real generated notice is left
+# alone, and drop the stub again on the way out, so a later local `tauri build`
+# cannot bundle a placeholder in place of the real licenses. Every other
+# declared resource is still checked for real.
+notice_rel="src-tauri/resources/NOTICE.md"
+notice_stubbed=""
+if [ ! -e "$repo_root/$notice_rel" ]; then
+  mkdir -p "$repo_root/src-tauri/resources"
+  printf '# Third-party notices\n\n(placeholder; real content generated at build time by scripts/build-notice.mjs)\n' \
+    > "$repo_root/$notice_rel"
+  notice_stubbed=1
+  echo "[pre-push] stubbed $notice_rel for the tauri-resources check (removed on exit)"
+fi
+
+drop_notice_stub() {
+  if [ -n "$notice_stubbed" ]; then
+    rm -f "$repo_root/$notice_rel"
+  fi
+}
+trap drop_notice_stub EXIT
+
+echo "[pre-push] sync:check -> node scripts/sync-check-all.mjs"
+node scripts/sync-check-all.mjs
+
+echo "[pre-push] tsc --noEmit -> node $tsc"
+node "$tsc" --noEmit
+
+# sync:check reads en.json only, so a locale left on the previous release's
+# What's New wording is invisible to it. i18n:check (i18n-lint + i18n-parity)
+# is what compares the nine translations against en's highlightsStamp.
+echo "[pre-push] i18n:check -> node scripts/i18n-lint.mjs + scripts/i18n-parity.mjs"
+node scripts/i18n-lint.mjs
+node scripts/i18n-parity.mjs
 
 echo "[pre-push] ok"

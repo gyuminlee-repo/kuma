@@ -4,12 +4,15 @@
  *
  * Writes the post-commit hook that runs scripts/sync-version.sh (which keeps
  * package.json / src-tauri/tauri.conf.json / src-tauri/Cargo.toml / pyproject.toml
- * / src/components/dialogs/whatsNew.generated.ts aligned after a `vX.Y.Z: ...`
- * release commit).
+ * / the What's New highlights in src/locales/en.json aligned after a
+ * `vX.Y.Z: ...` release commit).
  *
  * .git/hooks is not tracked by git, so a fresh clone has no post-commit hook
- * until this script runs once. It is wired to the "prepare" package.json
- * script so `pnpm install` installs it automatically; it can also be run by
+ * until this script runs once. It is not a package.json lifecycle script:
+ * .npmrc sets ignore-scripts=true for supply-chain hardening, so a "prepare"
+ * or "postinstall" entry would never fire. What runs it is
+ * scripts/safe-install.mjs (the "setup" package script), which calls this file
+ * explicitly once its install attempt has succeeded; it can also be run by
  * hand with `node scripts/install-git-hooks.mjs`.
  *
  * Safe by construction:

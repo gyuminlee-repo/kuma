@@ -337,7 +337,7 @@
       "variantSheet": "变异列表工作表",
       "variantColumn": "变异列",
       "variantColumnPlaceholder": "选择列",
-      "variantColumnHelper": "按此列的行顺序填入 96 孔板。若存在 WT 行，则以其作为对照。",
+      "variantColumnHelper": "各行按此列的顺序填入 96-well plate，先自上而下填满 plate 的一列再进入下一列：A1、B1、C1 直到 H1，然后是 A2。若存在 WT 行，则以其作为对照，不再另行追加。",
       "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
     },
     "activity": {
@@ -684,7 +684,7 @@
         },
         "destLayoutHint": {
           "source": "dest_well 沿用 source plate 的位置。若两个 pick 落在同一个 well，导出将失败。",
-          "compact": "dest_well 按 priority 顺序从 A1 起依次分配，不留空 well。"
+          "compact": "dest_well 按 priority 顺序从 A1 起依次分配，先自上而下填满一列再进入下一列（A1、B1、C1 直到 H1，然后是 A2），不留空 well。"
         },
         "outputPathLabel": "输出文件路径",
         "outputPathPlaceholder": "目标 .{{ext}} 文件路径",
@@ -824,7 +824,7 @@
         "columnAuto": "Auto-detect",
         "suggested": "Auto-detected column: {{column}}",
         "noSuggestion": "No column was recognised automatically. Choose the one holding the variant labels.",
-        "helper": "Wells are filled in this column's order, one variant per row. A KURO export needs no mapping and hides these controls."
+        "helper": "well 按此列的顺序填充，每行一个 variant，在 plate 上先自上而下填满一列再进入下一列：A1、B1、C1 直到 H1，然后是 A2。KURO 导出无需映射，并会隐藏这些控件。"
       }
     },
     "janusDeck": {
@@ -2282,7 +2282,15 @@
   "whatsNewDialog": {
     "title": "v{{version}} 新功能",
     "description": "最新更新亮点。",
-    "gotItBtn": "知道了"
+    "gotItBtn": "知道了",
+    "highlights": [
+      "新功能对话框现在按版本显示一段简短说明，不再展示被截断的 changelog 摘录。",
+      "这些说明会翻译成全部十种语言，翻译过期时无法发布新版本。",
+      "Variant list mapping 的说明现在写明 well 的填充方向：A1、B1、C1 直到 H1，然后是 A2。",
+      "post-commit 版本同步钩子不再因引用已删除的路径而中断。",
+      "较长的版本说明现在可在对话框内滚动，不会再溢出到底部之外。"
+    ],
+    "highlightsStamp": "0.15.12+fe8e6f21"
   },
   "primerDisplay": {
     "copySeqTitle": "复制序列",

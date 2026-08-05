@@ -337,7 +337,7 @@
       "variantSheet": "Planilha de variantes",
       "variantColumn": "Coluna de variantes",
       "variantColumnPlaceholder": "Escolher uma coluna",
-      "variantColumnHelper": "A ordem das linhas desta coluna preenche a placa de 96 pocos. Uma linha WT serve de controle.",
+      "variantColumnHelper": "As linhas preenchem a placa de 96 wells na ordem desta coluna, descendo cada coluna da placa: A1, B1, C1 até H1, depois A2. Uma linha WT é usada como controle, em vez de acrescentar uma.",
       "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
     },
     "activity": {
@@ -684,7 +684,7 @@
         },
         "destLayoutHint": {
           "source": "dest_well replica a posição da source plate. A exportação falha se dois picks caírem no mesmo well.",
-          "compact": "dest_well é atribuído sequencialmente a partir de A1 na ordem de priority, sem deixar wells vazios."
+          "compact": "dest_well é atribuído sequencialmente a partir de A1 na ordem de priority, descendo cada coluna (A1, B1, C1 até H1, depois A2), sem deixar wells vazios."
         },
         "outputPathLabel": "Caminho do arquivo de saída",
         "outputPathPlaceholder": "Caminho do arquivo .{{ext}} de destino",
@@ -824,7 +824,7 @@
         "columnAuto": "Auto-detect",
         "suggested": "Auto-detected column: {{column}}",
         "noSuggestion": "No column was recognised automatically. Choose the one holding the variant labels.",
-        "helper": "Wells are filled in this column's order, one variant per row. A KURO export needs no mapping and hides these controls."
+        "helper": "Os wells são preenchidos na ordem desta coluna, uma variante por linha, descendo cada coluna da placa: A1, B1, C1 até H1, depois A2. Uma exportação do KURO não precisa de mapeamento e oculta estes controles."
       }
     },
     "janusDeck": {
@@ -2282,7 +2282,15 @@
   "whatsNewDialog": {
     "title": "Novidades na v{{version}}",
     "description": "Destaques da última atualização.",
-    "gotItBtn": "Entendi"
+    "gotItBtn": "Entendi",
+    "highlights": [
+      "As Novidades agora mostram uma nota curta por versão, em vez de uma cópia truncada do changelog.",
+      "Essas notas são traduzidas para os dez idiomas, e uma versão não pode ser publicada com uma tradução desatualizada.",
+      "A ajuda do Variant list mapping agora diz em que ordem os wells são preenchidos: A1, B1, C1 até H1, depois A2.",
+      "O hook post-commit de versão não falha mais em um caminho que foi removido.",
+      "Uma nota de versão longa agora rola dentro da janela, em vez de ultrapassar a borda inferior."
+    ],
+    "highlightsStamp": "0.15.12+fe8e6f21"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",

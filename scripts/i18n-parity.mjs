@@ -1,10 +1,31 @@
 #!/usr/bin/env node
 /**
- * i18n-parity — Verify all locale files have identical key structure as en.json.
+ * i18n-parity: verify that all locale files have the same key structure as
+ * en.json, and that their What's New highlights were translated for this release.
+ *
+ * The structural check flattens each file, so an array is compared as
+ * `whatsNewDialog.highlights.0`, `.1` and so on: it sees a differing element
+ * count and an empty string, and nothing else. A locale whose highlights still
+ * hold the previous release's wording has the right count and non-empty values,
+ * and scripts/gen-whatsnew.mjs --check only ever looks at en.json, so that
+ * locale would ship last release's notes with every gate green. The stamp check
+ * below closes that: scripts/gen-whatsnew.mjs writes
+ * `whatsNewDialog.highlightsStamp` into en.json as "<version>+<digest8>", where
+ * the digest is a sha256 over the English bullets themselves, and every other
+ * locale must carry the same value. Because the digest moves on any wording
+ * edit, not only at a release boundary, matching it means someone retranslated
+ * against the English text that is actually shipping.
+ *
+ * The authoring rules on the English bullets are enforced by
+ * scripts/gen-whatsnew.mjs, which never sees a translation. The translated
+ * arrays are checked here instead: no backticks, and at most 200 characters
+ * (looser than the 140 imposed on English, since a translation of the same
+ * sentence runs longer).
  *
  * Exit codes:
  *   0  pass
- *   1  fail (key mismatch or empty values)
+ *   1  fail (key mismatch, empty values, a stale highlightsStamp, or a
+ *      translated highlight that breaks the authoring rules)
  */
 import { readFileSync, readdirSync } from "node:fs";
 
@@ -31,9 +52,43 @@ const localeFiles = readdirSync(LOCALES_DIR)
   .filter((f) => f.endsWith(".json") && f !== "en.json")
   .sort();
 
+// What's New freshness stamp. en.json's value is written by
+// scripts/gen-whatsnew.mjs as "<version>+<digest8>"; every other locale copies it.
+const enStamp = en.whatsNewDialog?.highlightsStamp;
+const staleStamps = [];
+
+// Authoring rules for the TRANSLATED bullets. gen-whatsnew.mjs applies the
+// English ones (140 chars) and never reads a translation; 200 leaves room for
+// a language that says the same thing in more characters.
+const MAX_TRANSLATED_LENGTH = 200;
+
 for (const file of localeFiles) {
   const lang = file.replace(/\.json$/, "");
   const data = JSON.parse(readFileSync(`${LOCALES_DIR}${file}`, "utf8"));
+  const stamp = data.whatsNewDialog?.highlightsStamp;
+  if (stamp !== enStamp) {
+    staleStamps.push({ lang, stamp });
+  }
+
+  const translated = data.whatsNewDialog?.highlights;
+  if (Array.isArray(translated)) {
+    translated.forEach((text, index) => {
+      if (typeof text !== "string") return;
+      if (text.includes("`")) {
+        ok = false;
+        console.error(
+          `  ${lang} whatsNewDialog.highlights[${index}]: backtick / code identifier not allowed: ${text}`,
+        );
+      }
+      if (text.length > MAX_TRANSLATED_LENGTH) {
+        ok = false;
+        console.error(
+          `  ${lang} whatsNewDialog.highlights[${index}]: ${text.length} chars ` +
+            `(max ${MAX_TRANSLATED_LENGTH}). The modal shows it verbatim and never truncates it: ${text}`,
+        );
+      }
+    });
+  }
   const fl = flatten(data);
   const keysL = new Set(Object.keys(fl));
   const onlyEn = [...keysE].filter((k) => !keysL.has(k));
@@ -55,6 +110,32 @@ for (const file of localeFiles) {
     console.error(`  ${lang} empty values: ${empty.length}`);
     empty.slice(0, 5).forEach((k) => console.error(`    - ${k}`));
   }
+}
+
+if (enStamp === undefined) {
+  ok = false;
+  console.error(
+    "  en.json has no whatsNewDialog.highlightsStamp, so nothing can tell whether the other " +
+      "locales translated the English highlights that are actually shipping. Run " +
+      "`node scripts/gen-whatsnew.mjs` to write it.",
+  );
+} else if (staleStamps.length) {
+  ok = false;
+  console.error(
+    `  whatsNewDialog.highlightsStamp: ${staleStamps.length} locale(s) not at en's "${enStamp}"`,
+  );
+  for (const { lang, stamp } of staleStamps) {
+    console.error(`    - ${lang}: ${stamp === undefined ? "(key missing)" : JSON.stringify(stamp)}`);
+  }
+  console.error(
+    "  The English whatsNewDialog.highlights changed, so those locales are showing wording that " +
+      "no longer matches. The stamp is \"<version>+<sha256 of the English bullets>\", so it moves " +
+      "on any edit to the English text, not only on a version bump: a mismatch means retranslate, " +
+      "not merely rebuild. For each locale, translate en.json's whatsNewDialog.highlights into " +
+      "that language, replacing the array element by element, then set its " +
+      `whatsNewDialog.highlightsStamp to "${enStamp}". Do not copy the stamp on its own: it is ` +
+      "the only signal that the translation was actually redone.",
+  );
 }
 
 console.log(ok ? "i18n-parity: ok" : "i18n-parity: FAIL");

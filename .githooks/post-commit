@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Auto-sync version from commit message (vX.Y.Z:) to the version manifests
+exec "$(git rev-parse --show-toplevel)/scripts/sync-version.sh"

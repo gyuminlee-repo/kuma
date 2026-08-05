@@ -337,7 +337,7 @@
       "variantSheet": "Variantenblatt",
       "variantColumn": "Variantenspalte",
       "variantColumnPlaceholder": "Spalte waehlen",
-      "variantColumnHelper": "Die Zeilenreihenfolge dieser Spalte fuellt die 96-Well-Platte. Eine WT-Zeile dient als Kontrolle.",
+      "variantColumnHelper": "Die Zeilen füllen die 96-Well-Platte in der Reihenfolge dieser Spalte, dabei jede Plattenspalte von oben nach unten: A1, B1, C1 bis H1, dann A2. Eine WT-Zeile dient als Kontrolle, statt eine anzuhängen.",
       "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
     },
     "activity": {
@@ -684,7 +684,7 @@
         },
         "destLayoutHint": {
           "source": "dest_well übernimmt die Position der source plate. Der Export schlägt fehl, wenn zwei picks im selben well landen.",
-          "compact": "dest_well wird in priority Reihenfolge ab A1 fortlaufend vergeben, ohne leere wells."
+          "compact": "dest_well wird in priority-Reihenfolge ab A1 fortlaufend vergeben, dabei jede Plattenspalte von oben nach unten (A1, B1, C1 bis H1, dann A2), ohne leere Wells."
         },
         "outputPathLabel": "Ausgabe-Dateipfad",
         "outputPathPlaceholder": "Target .{{ext}} Datei Pfad",
@@ -824,7 +824,7 @@
         "columnAuto": "Auto-detect",
         "suggested": "Auto-detected column: {{column}}",
         "noSuggestion": "No column was recognised automatically. Choose the one holding the variant labels.",
-        "helper": "Wells are filled in this column's order, one variant per row. A KURO export needs no mapping and hides these controls."
+        "helper": "Die Wells werden in der Reihenfolge dieser Spalte befüllt, eine Variante pro Zeile, dabei jede Plattenspalte von oben nach unten: A1, B1, C1 bis H1, dann A2. Ein KURO-Export braucht kein Mapping und blendet diese Auswahlfelder aus."
       }
     },
     "janusDeck": {
@@ -2280,9 +2280,17 @@
     "exportBtn": "Exportieren"
   },
   "whatsNewDialog": {
-    "title": "What's Neu in v{{version}}",
-    "description": "Highlights von die latest update.",
-    "gotItBtn": "Verstanden"
+    "title": "Was ist neu in v{{version}}",
+    "description": "Die wichtigsten Neuerungen des letzten Updates.",
+    "gotItBtn": "Verstanden",
+    "highlights": [
+      "Was ist neu zeigt jetzt eine kurze Notiz pro Release statt einer abgeschnittenen Kopie des Changelogs.",
+      "Diese Notizen sind in alle zehn Sprachen übersetzt, und ein Release kann nicht mit einer veralteten Fassung ausgeliefert werden.",
+      "Die Hilfe unter Variant list mapping nennt jetzt die Füllrichtung der Wells: A1, B1, C1 bis H1, dann A2.",
+      "Der post-commit-Hook für die Versionsnummer bricht nicht mehr an einem entfernten Pfad ab.",
+      "Eine lange Notiz lässt sich jetzt im Dialog scrollen, statt unten über den Rand hinauszulaufen."
+    ],
+    "highlightsStamp": "0.15.12+fe8e6f21"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",

@@ -23,7 +23,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { WHATS_NEW_ITEMS } from "./whatsNew.generated";
 
 declare const __APP_VERSION__: string;
 
@@ -38,6 +37,19 @@ interface WhatsNewDialogProps {
 export function WhatsNewDialog({ onDismiss }: WhatsNewDialogProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+
+  // The release notes live in the locale files as a string array
+  // (whatsNewDialog.highlights), generated into en.json from the CHANGELOG
+  // "### Highlights" block and translated into the other locales.
+  // `defaultValue: []` keeps a missing or malformed key from rendering the raw
+  // key string, and the guards below keep a non-array value from crashing.
+  const rawHighlights = t("whatsNewDialog.highlights", {
+    returnObjects: true,
+    defaultValue: [],
+  });
+  const highlights: string[] = Array.isArray(rawHighlights)
+    ? rawHighlights.filter((item): item is string => typeof item === "string")
+    : [];
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -59,29 +71,54 @@ export function WhatsNewDialog({ onDismiss }: WhatsNewDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) handleDismiss(); }}>
+      {/*
+        The bullets are the only part allowed to grow: the modal is capped at
+        85vh and laid out as a column, the header and the footer refuse to
+        shrink, and the list takes whatever is left and scrolls. Without this
+        the modal grew with its content and a long enough set of highlights
+        pushed the "Got it" button off screen with no way to reach it. The
+        English bullets run to about 93 characters and their translations to
+        125 (fr) and 120 (pt-BR), so the overflow arrives in some languages and
+        not others.
+      */}
       <DialogContent
-        className="max-w-sm"
+        className="flex max-h-[85vh] max-w-sm flex-col"
         aria-describedby="whats-new-desc"
       >
-        <DialogHeader>
+        <DialogHeader className="shrink-0">
           <DialogTitle>{t("whatsNewDialog.title", { version: __APP_VERSION__ })}</DialogTitle>
           <DialogDescription id="whats-new-desc">
             {t("whatsNewDialog.description")}
           </DialogDescription>
         </DialogHeader>
 
-        <ul className="space-y-2" role="list">
-          {WHATS_NEW_ITEMS.map((item) => (
-            <li key={item.label} className="flex flex-col gap-0.5">
-              <span className="text-sm font-semibold text-foreground">
-                {item.label}
-              </span>
-              <span className="text-xs text-muted-foreground">{item.detail}</span>
-            </li>
-          ))}
-        </ul>
+        {/*
+          tabIndex makes the scroll container itself focusable (WCAG 2.1.1).
+          It scrolls, it holds no focusable descendant, and Radix traps focus in
+          the dialog while autoFocus puts it on "Got it", so without a tab stop
+          of its own a keyboard-only user has no way to reach the overflow. The
+          stop goes on the <ul> rather than on a wrapper: a focusable wrapper
+          would need its own role and name, which a screen reader announces on
+          top of the list it contains. Nothing else is added here either, since
+          an aria-label would have to be an untranslated literal (the locale
+          files are generated and hand-translated, not written here), and the
+          dialog title and description already say what the list is.
+        */}
+        {highlights.length > 0 && (
+          <ul
+            className="min-h-0 list-disc space-y-1.5 overflow-y-auto pl-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+            role="list"
+            tabIndex={0}
+          >
+            {highlights.map((highlight, index) => (
+              <li key={`${index}-${highlight}`} className="text-sm text-foreground">
+                {highlight}
+              </li>
+            ))}
+          </ul>
+        )}
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0">
           <Button size="sm" onClick={handleDismiss} autoFocus>
             {t("whatsNewDialog.gotItBtn")}
           </Button>

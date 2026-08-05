@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.15.12 (What's New says a few short things, in the language the app is set to)
+
+The What's New modal pasted the changelog into itself. It read the Added, Changed and Fixed bullets of the latest release, cut each one at 240 characters and showed the pieces: six of the seven notes that shipped with v0.15.6 ended mid-word, and what did fit was prose written for someone reading a diff, backticked parameter names and all. All seven were in English whatever language the app was set to, because the array was compiled into a TypeScript module that i18n never read. Two smaller faults travelled in the same area: three MAME help texts named a well-filling order without saying which way it goes, and the post-commit hook that keeps the version manifests in step died on a path that no longer exists.
+
+### Highlights
+
+- What's New now shows a short note per release instead of a cut-off copy of the changelog.
+- Those notes are translated into all ten languages, and a release cannot ship with a stale one.
+- The variant mapping help now says which way wells are filled: A1, B1, C1 to H1, then A2.
+- The post-commit version hook no longer breaks on a path that was removed.
+- A long release note now scrolls inside the dialog instead of running off the bottom.
+
+### Added
+
+- v0.15.12: A release can no longer ship a stale translation of those notes. `scripts/gen-whatsnew.mjs` writes `whatsNewDialog.highlightsStamp` into `en.json` as `<version>+<digest8>`, the version in `package.json` followed by the first eight hex characters of a sha256 over the English bullets, and `scripts/i18n-parity.mjs` fails when any of the ten locales carries a different value. The digest half is what makes it bite inside a release: a version-only stamp moves at a release boundary and nowhere else, so rewording a bullet after the bump, which this branch did twice while settling the v0.15.6 wording, would leave nine translations describing text that is no longer shipping while every gate stays green. Nothing else can see that, because `gen-whatsnew.mjs --check` reads `en.json` alone and key parity flattens an array to `highlights.0`, `highlights.1` and so on, where the previous release wording has the same element count and the same non-empty values.
+- v0.15.12: `scripts/i18n-parity.mjs` applies authoring rules to the translated bullets too, which the generator never sees: no backticks, and at most 200 characters. That is looser than the 140 imposed on English because the same sentence runs longer in most of these languages, and the set shipping here shows the gap is real (94 characters at most in English, against 115 in Brazilian Portuguese, 121 in French and 128 in German). A violation names the locale and the array index.
+- v0.15.12: `.githooks/pre-push` gained a third stage that runs `node scripts/i18n-lint.mjs` and `node scripts/i18n-parity.mjs`. The three scripts behind `sync:check` look at `en.json` alone, so a locale left on the previous release wording was invisible to every local gate and would have surfaced only in CI. The hook calls `node` directly at every stage, on `scripts/sync-check-all.mjs` and then on a `tsc` resolved from the checkout's own `node_modules`, falling back to the main checkout because a worktree carries no dependencies of its own and failing with both paths named when neither has one. No stage calls a package manager or an on-demand package runner: this is a Windows-target checkout on a shared folder, where a WSL-side install replaces `node_modules` with Linux binaries and leaves the app unable to start.
+- v0.15.12: Fourteen fixture tests for the two scripts, under `tests/scripts/`. Nine cover `scripts/gen-whatsnew.mjs`: the length and backtick rules with the reported figure checked, a bullet wrapped over two lines joined into one, all three cases that exit 2 rather than 1, and a one-character edit moving the stamp digest and failing `--check`. Five cover `scripts/i18n-parity.mjs`: a clean set, a locale still holding the previous stamp, a missing stamp in `en.json`, and the two translated-bullet rules. Each case runs the real script against a temporary repo tree, so the checks that gate a release are themselves checked.
+- v0.15.12: `.cross-layer-sync.json` carries a `whats-new-highlights` group naming `CHANGELOG.md` and all ten locale files, so editing a highlight reports the other files that have to move with it. It is `warning` rather than `blocking` on purpose: enforcement already lives in `gen-whatsnew.mjs --check` and `scripts/i18n-parity.mjs`, and the group is there to say so at edit time, not to check the same thing a second time.
+
+### Changed
+
+- v0.15.12: What's New shows a short note per release instead of a cut-off copy of the changelog. `scripts/gen-whatsnew.mjs` reads a `### Highlights` block written for the modal, at most five bullets of at most 140 characters each, no backticks and no `vX.Y.Z:` prefix, and a bullet that breaks a rule fails the build instead of being trimmed, because these bullets are shown verbatim and are never truncated. A bullet wrapped over several lines in `CHANGELOG.md` is joined back into one string with single spaces before the rules apply, so wrapping cannot buy extra length and cannot drop the rest of a note without saying so. The latest release section needs such a block now: the generator slices the top `## ` heading down to the next one and reads that alone, so a missing block there, or one with no bullets, exits 2 and fails `sync:check` with it, while the sections below are never inspected.
+- v0.15.12: The notes are translated into all ten languages. `src/components/dialogs/whatsNew.generated.ts` is deleted and `whatsNewDialog.highlights` in `src/locales/*.json` is what the modal reads through `t()`, generated into `en.json` and hand-translated into the nine others. The array used to be a TypeScript module compiled into the bundle, which is why every user read English regardless of the app language. The component keeps only string elements and renders no list at all when the value is missing or malformed, rather than printing a raw key.
+- v0.15.12: The modal is capped at 85% of the viewport height and its list scrolls. Header and footer refuse to shrink and the bullets take what is left, so a long set of notes can no longer push the Got it button past the bottom of the screen with no way back to it. The list is a tab stop of its own, since it scrolls, holds nothing focusable, and Radix keeps focus inside the dialog, which together left a keyboard-only user no way to reach the overflow. The margin is thinner than it looks: the bullets shipping here run to 94 characters in English and to 128 in German.
+- v0.15.12: Three MAME help texts state which way the wells are filled. `mame.inputPanel.variantMapping.helper`, `mame.barcodeSetup.variantColumnHelper` and `mame.dialogs.janusMapping.destLayoutHint.compact` each named an order without giving its direction, so a reader could take the same plate as A1, A2, A3 or as A1, B1, C1. The mapping has always been column-major (`seq_to_well` in `kuma_core/mame/export/well_mapper.py` sends 1 to 10 to A1 B1 C1 D1 E1 F1 G1 H1 A2 B2), and the three strings now spell that out as A1, B1, C1 to H1, then A2.
+- v0.15.12: The CI step name and the comments around it say what actually runs. The i18n step was called "i18n en/ko key parity" while reading all ten locales, and the `sync:check` comment still described a generated bundle file. `AGENTS.md` gains the highlights authoring rules, the stamp and its digest, the multi-line bullet behaviour, and the point that the i18n lint and parity scripts, not `sync:check`, are what read the other nine locales.
+
+### Fixed
+
+- v0.15.12: `scripts/sync-version.sh` no longer stages a file that was deleted. Its `git add` list still held `src/components/dialogs/whatsNew.generated.ts`, and under `set -euo pipefail` that failing command killed the post-commit hook after it had already rewritten the four version manifests in the working tree. What survived was a release commit whose message carried a version that the manifests it committed did not, which is the drift the hook exists to prevent. It stages `src/locales/en.json` instead, and the recovery commands it prints on failure name the same path.
+- v0.15.12: The German heading of the dialog is German now. `src/locales/de.json` had `whatsNewDialog.title` as "What's Neu in v{{version}}" and `whatsNewDialog.description` as "Highlights von die latest update.", English sentences with a few German words dropped into them, shown to every German user each time the dialog opened. They now read "Was ist neu in v{{version}}" and "Die wichtigsten Neuerungen des letzten Updates." Those two keys are hand-written, not generated, so no gate had anything to compare them against; the other nine locales carry sound wording for both keys and were left alone.
+
 ## v0.15.11 (The plate map gets the height it needs, not the share it was assigned)
 
 Step 2.2 stacks the plate map over the verdict breakdown and split them 34/66, a ratio with no idea how tall either one wants to be. The plate map wants 600 to 790 px for eight rows and a well inspector, so it scrolled from row D down on every window size measured, while the panel underneath had room left over: 381 px of grid hidden at 1920x1080, 442 px at 2560x1440. A scrollbar is worth having, but not while the neighbour leaves space unused.
@@ -64,9 +97,18 @@ The file every analyze wrote for itself was an instrument sheet: liquid class, d
 
 - v0.15.7: Janus instrument settings are reachable from step 2.1, the screen that collects the run's other inputs, since the File menu item that used to open them was removed in v0.14.7. They stay optional and gate nothing: a run needs none of them. The text reporting the automatic file points there too, instead of at a menu that is gone.
 
+
 ## v0.15.6 (MAME reads the list you point at, and stops asking about the plate it built for nobody)
 
 MAME still treated a KURO export as the only variant list it could analyse, kept a Build well layout button whose 96 rows nobody ever checked, refused a run over two sheets disagreeing inside a workbook the operator had already chosen how to read, and offered two EVOLVEpro-input routes for a workflow that always sequences. The Janus mapping an analyze run writes for itself also failed on every run, because the settings it needs never left the export dialog.
+
+### Highlights
+
+- MAME analyses any variant list, not just a KURO export. Pick the sheet and column yourself.
+- The Expected variants field now lets the sheet and the variant column be chosen before a run.
+- Build well layout is gone. Analyze assigns the wells on its own.
+- A plate-order mismatch warns instead of stopping the run.
+- The Activity Data step asks one thing: where the activity values come from.
 
 ### Added
 

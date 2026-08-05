@@ -406,7 +406,7 @@
       "variantSheet": "Variant sheet",
       "variantColumn": "Variant column",
       "variantColumnPlaceholder": "Select a column",
-      "variantColumnHelper": "Rows fill the 96-well plate in this column's order. A WT row is used as the control instead of appending one.",
+      "variantColumnHelper": "Rows fill the 96-well plate in this column's order, down each plate column: A1, B1, C1 to H1, then A2. A WT row is used as the control instead of appending one.",
       "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
     },
     "activity": {
@@ -840,7 +840,7 @@
         },
         "destLayoutHint": {
           "source": "dest_well mirrors the source plate position. Export fails if two picks land on the same well.",
-          "compact": "dest_well is assigned sequentially from A1 in priority order, leaving no empty wells."
+          "compact": "dest_well is assigned sequentially from A1 in priority order, down each column (A1, B1, C1 to H1, then A2), leaving no empty wells."
         },
         "outputPathLabel": "Output file path",
         "outputPathPlaceholder": "Target .{{ext}} file path",
@@ -980,7 +980,7 @@
         "columnAuto": "Auto-detect",
         "suggested": "Auto-detected column: {{column}}",
         "noSuggestion": "No column was recognised automatically. Choose the one holding the variant labels.",
-        "helper": "Wells are filled in this column's order, one variant per row. A KURO export needs no mapping and hides these controls."
+        "helper": "Wells are filled in this column's order, one variant per row, down each plate column: A1, B1, C1 to H1, then A2. A KURO export needs no mapping and hides these controls."
       }
     },
     "setup": {
@@ -2315,7 +2315,15 @@
   "whatsNewDialog": {
     "title": "What's New in v{{version}}",
     "description": "Highlights from the latest update.",
-    "gotItBtn": "Got it"
+    "gotItBtn": "Got it",
+    "highlights": [
+      "What's New now shows a short note per release instead of a cut-off copy of the changelog.",
+      "Those notes are translated into all ten languages, and a release cannot ship with a stale one.",
+      "The variant mapping help now says which way wells are filled: A1, B1, C1 to H1, then A2.",
+      "The post-commit version hook no longer breaks on a path that was removed.",
+      "A long release note now scrolls inside the dialog instead of running off the bottom."
+    ],
+    "highlightsStamp": "0.15.12+fe8e6f21"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",
