@@ -30,7 +30,7 @@
 ## Popover
 
 - **Fwd / Rev 셀 클릭** → 상위 10개 후보 비교 popover ([후보 교체](candidate-swap.md))
-- **HP 배지 클릭** → hairpin / homodimer / heterodimer ΔG 세부
+- **HP 배지 클릭** → 4행 세부: hairpin ΔG(forward, reverse)와 homodimer ΔG(forward, reverse). heterodimer(fwd×rev) 행은 없음, Kuro의 fwd/rev 프라이머는 Gibson overlap을 공유하도록 설계되어 서로 5' 대 5'로 상보하고 양쪽 3' 말단이 유리(dangling)된 구조라, polymerase가 연장할 수 없어 primer-dimer 산물이 되지 않는다 (Kwok et al. 1990, NAR 18(4):999-1005, PMID 2179874, sdm_engine.py에 이미 인용된 extendability 기준과 일치).
 
 ## 실패 행
 
