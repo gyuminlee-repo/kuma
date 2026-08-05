@@ -1,5 +1,27 @@
 import { describe, it, expect } from "vitest";
-import { adaptEchoRows, adaptJanusRows } from "./echoJanusAdapter";
+import {
+  adaptEchoRows,
+  adaptJanusRows,
+  adaptDestCellsJanus,
+  type JanusDryRunRow,
+} from "./echoJanusAdapter";
+
+/** A Janus dry-run row with every field set; specs override what they exercise. */
+function janusRow(over: Partial<JanusDryRunRow> = {}): JanusDryRunRow {
+  return {
+    name: "M1A-F",
+    type: "primer",
+    dsp_rack_label: "Oligo 5pmol/ul",
+    no: 1,
+    asp_rack: 1,
+    asp_posi: "A1",
+    dsp_rack: 3,
+    dsp_posi: "A1",
+    volume: 2.0,
+    mutation: "M1A",
+    ...over,
+  };
+}
 
 describe("adaptEchoRows", () => {
   it("parses 384-well coord A01 row=A col=1 isFwd=true", () => {
@@ -89,6 +111,8 @@ describe("adaptEchoRows", () => {
 });
 
 describe("adaptJanusRows", () => {
+  // Fallback path: rows without `role` (a sidecar built before the field
+  // existed) still split on the KURO default deck numbers.
   it("splits rack 1 (asp_rack=1) and rack 2 (asp_rack=2) by asp_rack value", () => {
     const { rack1, rack2 } = adaptJanusRows([
       {
@@ -189,5 +213,71 @@ describe("adaptJanusRows", () => {
       rowLetter: "H",
       colNumber: 12,
     });
+  });
+
+  it("uses role when present, ignoring the rack number", () => {
+    const { rack1, rack2 } = adaptJanusRows([
+      janusRow({ name: "M1A-F", role: "fwd", asp_rack: 2, asp_posi: "A1" }),
+      janusRow({ name: "M1A-R", role: "rev", asp_rack: 1, asp_posi: "B2" }),
+    ]);
+    expect(rack1.map((c) => c.name)).toEqual(["M1A-F"]);
+    expect(rack2.map((c) => c.name)).toEqual(["M1A-R"]);
+  });
+
+  // Regression: the whole point of the `role` field. A lab that renumbers the
+  // deck (KURO_PRIMER_DECK fwd_rack/rev_rack no longer 1/2) used to have F and
+  // R silently swapped or dropped, because direction was read off the rack.
+  it("keeps direction on a non-standard deck (fwd=5, rev=6)", () => {
+    const { rack1, rack2 } = adaptJanusRows([
+      janusRow({ name: "M1A-F", role: "fwd", asp_rack: 5, asp_posi: "C3" }),
+      janusRow({ name: "M1A-R", role: "rev", asp_rack: 6, asp_posi: "D4" }),
+    ]);
+    expect(rack1).toHaveLength(1);
+    expect(rack2).toHaveLength(1);
+    expect(rack1[0]).toMatchObject({ name: "M1A-F", well: "C3", rack: 1 });
+    expect(rack2[0]).toMatchObject({ name: "M1A-R", well: "D4", rack: 2 });
+  });
+
+  it("skips a row with neither role nor a known deck rack", () => {
+    const { rack1, rack2 } = adaptJanusRows([
+      janusRow({ asp_rack: 5, asp_posi: "C3" }),
+    ]);
+    expect(rack1).toHaveLength(0);
+    expect(rack2).toHaveLength(0);
+  });
+});
+
+describe("adaptDestCellsJanus", () => {
+  it("falls back to the deck rack numbers when role is absent", () => {
+    const [cell] = adaptDestCellsJanus([
+      janusRow({ asp_rack: 1, asp_posi: "A1", dsp_posi: "A1", volume: 2 }),
+      janusRow({ asp_rack: 2, asp_posi: "B2", dsp_posi: "A1", volume: 3 }),
+    ]);
+    expect(cell).toMatchObject({
+      mutation: "M1A",
+      hasF: true,
+      hasR: true,
+      fwdVol: 2,
+      revVol: 3,
+      fwdSource: "A1",
+      revSource: "B2",
+    });
+  });
+
+  it("keeps F/R on a non-standard deck when role is present", () => {
+    const [cell] = adaptDestCellsJanus([
+      janusRow({ role: "fwd", asp_rack: 5, asp_posi: "C3", volume: 2 }),
+      janusRow({ role: "rev", asp_rack: 6, asp_posi: "D4", volume: 3 }),
+    ]);
+    expect(cell).toMatchObject({
+      hasF: true,
+      hasR: true,
+      fwdSource: "C3",
+      revSource: "D4",
+    });
+  });
+
+  it("skips a row whose direction cannot be established", () => {
+    expect(adaptDestCellsJanus([janusRow({ asp_rack: 7 })])).toEqual([]);
   });
 });

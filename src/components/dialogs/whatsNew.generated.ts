@@ -5,11 +5,10 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.15.8";
+export const WHATS_NEW_VERSION = "0.15.9";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Added", detail: "A finished analyze writes the instrument mapping too, `<result workbook>_janus.csv`, in the nine columns the robot reads. The pick list added in v0.15.7 stays exactly where it is as `<result workbook>_picks.csv`: one records what the run s…" },
-  { label: "Added", detail: "The transfer volume sits on step 2.1, next to the run's other inputs. It is the one instrument value nothing can derive, since how much of a cell stock to move is an experimental condition, and the shipped 100 µL is an assumption with no l…" },
-  { label: "Changed", detail: "Deck rack numbers are derived from the plates of the run instead of being asked for. Source plates take the first racks in plate order and the destination takes the next, which is the convention KURO already writes for this instrument with…" },
-  { label: "Changed", detail: "A blank liquid class no longer withholds the file. It still has no default, because it decides how the robot handles the cells and a guessed value would change that silently, so the column simply ships empty for the operator to fill. Nothi…" },
+  { label: "Added", detail: "A designed primer that falls outside the polymerase manufacturer's recommended length or GC range is now flagged, naming the range and the document it comes from (NEB M0267 for Taq, M0530 for Phusion, M0491 for Q5, Toyobo KMM-101/201 for K…" },
+  { label: "Added", detail: "Where a manual does not document a range, nothing is flagged for it. PrimeSTAR GXL publishes no GC range, so GC is never questioned for that enzyme rather than borrowing a number from a different one." },
+  { label: "Changed", detail: "The JANUS deck the instrument files describe now has one definition instead of a copy in each writer. The mapping CSV, the workbook sheet and the on-screen preview built the same nine columns separately, each with its own rack numbers and…" },
 ];

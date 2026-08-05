@@ -718,6 +718,10 @@ export interface RpcMethodMap {
         dsp_posi: string;
         volume: number;
         mutation: string;
+        // Stated direction of the transfer (kuma_core/kuro/plate_mapper.py
+        // build_janus_rows). Optional: a packaged sidecar predating the field
+        // omits it, and the preview adapter falls back to the deck rack number.
+        role?: "fwd" | "rev";
       }>;
       total: number;
       transfer_vol: number;

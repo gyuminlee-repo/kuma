@@ -2,8 +2,10 @@
 // Assumptions:
 // - Echo source plate is 384-well. Well code format "<RowLetter><2-digit col>" e.g. "A01".."P24".
 // - Rows alternate fwd/rev: A(idx 0)=fwd, B(idx 1)=rev, ... P(idx 15)=rev. isFwd = rowIndex % 2 === 0.
-// - Janus uses 96-well racks (A1..H12). Row's asp_rack value (1 or 2) determines target rack;
-//   rack 1 = forward primer source, rack 2 = reverse primer source. Other asp_rack values are skipped.
+// - Janus uses 96-well racks (A1..H12). Direction comes from the row's `role`
+//   field ("fwd"/"rev"), which the sidecar states outright; rack numbers are
+//   deck policy and are not read as a direction marker. A row whose direction
+//   cannot be established is skipped.
 // - Dest mapping: rows are grouped by `mutation` to form a 96-well destination cell.
 //   Both Echo and Janus dry-run rows carry `mutation` directly from the sidecar (Phase 1/2).
 
@@ -23,6 +25,11 @@ export interface JanusCell {
   well: string;
   rowLetter: string;
   colNumber: number;
+  /**
+   * Which of the two preview panels the cell belongs to: 1 = forward source,
+   * 2 = reverse source. A panel index, not the deck rack number the instrument
+   * aspirates from; that number stays on the source row (`asp_rack`).
+   */
   rack: 1 | 2;
   name: string;
   volumeUl: number;
@@ -53,6 +60,8 @@ export interface EchoDryRunRow {
   mutation: string;
 }
 
+export type JanusRole = "fwd" | "rev";
+
 export interface JanusDryRunRow {
   name: string;
   type: string;
@@ -64,6 +73,36 @@ export interface JanusDryRunRow {
   dsp_posi: string;
   volume: number;
   mutation: string;
+  /**
+   * Direction of the transfer, stated by the sidecar (`build_janus_rows`).
+   * Optional because a sidecar built before this field existed omits it; see
+   * {@link janusRole}.
+   */
+  role?: JanusRole;
+}
+
+// KURO default deck rack numbers. The single source of truth is
+// `KURO_PRIMER_DECK` in kuma_core/shared/janus_deck.py (fwd_rack=1, rev_rack=2);
+// these copies exist only for the fallback below and are not consulted when the
+// row states its `role`.
+const DEFAULT_FWD_SOURCE_RACK = 1;
+const DEFAULT_REV_SOURCE_RACK = 2;
+
+/**
+ * Direction of a Janus row.
+ *
+ * `role` first: the sidecar states the direction, so a lab that renumbers the
+ * deck cannot flip F/R in the preview. The rack comparison is only a fallback
+ * for a packaged sidecar predating the field, and it is wrong the moment the
+ * deck moves, which is exactly why it is not the primary path. `null` means the
+ * direction could not be established and the row is left out rather than
+ * guessed.
+ */
+export function janusRole(row: JanusDryRunRow): JanusRole | null {
+  if (row.role === "fwd" || row.role === "rev") return row.role;
+  if (row.asp_rack === DEFAULT_FWD_SOURCE_RACK) return "fwd";
+  if (row.asp_rack === DEFAULT_REV_SOURCE_RACK) return "rev";
+  return null;
 }
 
 function parseWell(code: string): { rowLetter: string; colNumber: number } {
@@ -120,19 +159,23 @@ export function adaptJanusRows(rows: JanusDryRunRow[]): {
   const rack1: JanusCell[] = [];
   const rack2: JanusCell[] = [];
   for (const r of rows) {
-    if (r.asp_rack !== 1 && r.asp_rack !== 2) continue;
+    const role = janusRole(r);
+    if (role === null) continue;
     const { rowLetter, colNumber } = parseWell(r.asp_posi);
     if (!rowLetter) continue;
+    // The two returned arrays are the forward and reverse source panels, so
+    // membership follows the direction, not the deck number. `rack` repeats the
+    // panel index for the view's grid key.
     const cell: JanusCell = {
       well: r.asp_posi,
       rowLetter,
       colNumber,
-      rack: r.asp_rack === 1 ? 1 : 2,
+      rack: role === "fwd" ? 1 : 2,
       name: r.name,
       volumeUl: r.volume,
       mutation: r.mutation,
     };
-    if (r.asp_rack === 1) rack1.push(cell);
+    if (role === "fwd") rack1.push(cell);
     else rack2.push(cell);
   }
   return { rack1, rack2 };
@@ -189,18 +232,20 @@ export function adaptDestCellsEcho(rows: EchoDryRunRow[]): DestCell[] {
 
 /**
  * Build a `DestCell[]` from Janus dry-run rows. Groups by `mutation`.
- * Janus rows distinguish fwd/rev via `asp_rack` (1=fwd source, 2=rev source).
+ * Janus rows distinguish fwd/rev via {@link janusRole}.
  */
 export function adaptDestCellsJanus(rows: JanusDryRunRow[]): DestCell[] {
   const map = new Map<string, DestCell>();
   for (const r of rows) {
     if (!r.mutation) continue;
+    const role = janusRole(r);
+    if (role === null) continue;
     const cell = ensureDest(map, r.mutation, r.dsp_posi);
-    if (r.asp_rack === 1) {
+    if (role === "fwd") {
       cell.hasF = true;
       cell.fwdVol = r.volume;
       cell.fwdSource = r.asp_posi;
-    } else if (r.asp_rack === 2) {
+    } else {
       cell.hasR = true;
       cell.revVol = r.volume;
       cell.revSource = r.asp_posi;

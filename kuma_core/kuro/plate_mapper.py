@@ -6,6 +6,12 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from kuma_core.shared.janus_deck import (
+    JANUS_DEVICE9_HEADER,
+    KURO_PRIMER_DECK,
+    JanusDeck,
+)
+
 from .sdm_engine import SdmPrimerResult
 
 
@@ -862,6 +868,107 @@ def export_echo_mapping_csv(
                 ])
 
 
+# Row dict key per instrument column, in ``JANUS_DEVICE9_HEADER`` order. The
+# header repeats ``Dsp. Rack``, so the header itself cannot key a dict; this
+# list is what lets every writer emit the nine columns in one order without
+# restating them.
+_JANUS_ROW_KEYS: list[str] = [
+    "name",
+    "type",
+    "dsp_rack_label",
+    "no",
+    "asp_rack",
+    "asp_posi",
+    "dsp_rack",
+    "dsp_posi",
+    "volume",
+]
+
+
+def build_janus_rows(
+    fwd_mappings: list[PlateMapping],
+    rev_mappings: list[PlateMapping],
+    rev_groups: dict[str, list[str]] | None = None,
+    transfer_vol: float = 2.0,
+    deck: JanusDeck = KURO_PRIMER_DECK,
+) -> list[dict]:
+    """Build JANUS transfer rows, one dict per transfer event.
+
+    Single source of the row content behind the CSV export, the XLSX
+    "primer_mapping file" sheet and the sidecar preview, so the three cannot
+    drift apart. Row order is forward primers first (in ``fwd_mappings`` order),
+    then reverse primers expanded so that every forward mutation gets its own
+    reverse transfer row, aspirating from the shared source position when the
+    reverse primer is shared. ``no`` runs 1..N across both blocks.
+
+    Keys are the sidecar preview field names, plus:
+      - ``mutation``: the mutation the row belongs to (not an instrument column).
+      - ``role``: ``"fwd"`` or ``"rev"``. Stated so consumers do not have to
+        infer direction from the rack number, which is deck policy and not a
+        stable direction marker.
+
+    Args:
+        fwd_mappings: Forward primer plate mappings.
+        rev_mappings: Deduplicated reverse primer plate mappings.
+        rev_groups: Reverse deduplication map {seq: [mutation_names]}.
+        transfer_vol: Dispense volume in µL.
+        deck: Rack/liquid-class policy. Defaults to the KURO primer deck.
+    """
+    fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
+        fwd_mappings, rev_mappings, rev_groups,
+    )
+
+    rows: list[dict] = []
+    seq_no = 1
+
+    for m in fwd_mappings:
+        rows.append({
+            "name": f"{m.mutation}-F",
+            "type": deck.sample_type,
+            "dsp_rack_label": deck.liquid_class,
+            "no": seq_no,
+            "asp_rack": deck.fwd_rack,
+            "asp_posi": m.well,
+            "dsp_rack": deck.dest_rack,
+            "dsp_posi": m.well,
+            "volume": transfer_vol,
+            "mutation": m.mutation,
+            "role": "fwd",
+        })
+        seq_no += 1
+
+    for fwd_m in fwd_mappings:
+        rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
+        if rev_seq is None:
+            continue
+        rev_m = rev_by_seq.get(rev_seq)
+        if rev_m is None:
+            continue
+
+        dest_well = fwd_by_mut.get(fwd_m.mutation, fwd_m.well)
+        rows.append({
+            "name": f"{fwd_m.mutation}-R",
+            "type": deck.sample_type,
+            "dsp_rack_label": deck.liquid_class,
+            "no": seq_no,
+            "asp_rack": deck.rev_rack,
+            "asp_posi": rev_m.well,
+            "dsp_rack": deck.dest_rack,
+            "dsp_posi": dest_well,
+            "volume": transfer_vol,
+            "mutation": fwd_m.mutation,
+            "role": "rev",
+        })
+        seq_no += 1
+
+    return rows
+
+
+def janus_row_values(row: dict) -> list:
+    """Flatten one ``build_janus_rows`` dict into ``JANUS_DEVICE9_HEADER`` order."""
+    return [row[key] for key in _JANUS_ROW_KEYS]
+
+
 def export_janus_mapping_csv(
     fwd_mappings: list[PlateMapping],
     rev_mappings: list[PlateMapping],
@@ -869,13 +976,13 @@ def export_janus_mapping_csv(
     transfer_vol: float = 2.0,
     rev_groups: dict[str, list[str]] | None = None,
     encoding: str = "utf-8",
+    deck: JanusDeck = KURO_PRIMER_DECK,
 ) -> None:
     """Export JANUS liquid handler mapping CSV.
 
-    Uses two source racks and a separate destination rack:
-      - Asp. Rack 1: forward primers (96-well deep well plate).
-      - Asp. Rack 2: reverse primers (96-well deep well plate).
-      - Dsp. Rack 3: destination PCR plate.
+    Rows come from :func:`build_janus_rows`, so this file, the XLSX
+    "primer_mapping file" sheet and the sidecar preview always describe the same
+    transfers. Which rack holds what is the *deck* argument, not a literal here.
 
     Shared reverse primers produce one row per destination well,
     all aspirating from the same source position.
@@ -887,46 +994,19 @@ def export_janus_mapping_csv(
         transfer_vol: Dispense volume in µL (default 2.0).
         rev_groups: Reverse deduplication map {seq: [mutation_names]}.
         encoding: File encoding (default "utf-8"; use "utf-8-sig" for BOM).
+        deck: Rack/liquid-class policy. Defaults to the KURO primer deck.
     """
     import csv
 
-    fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
-        fwd_mappings, rev_mappings, rev_groups,
+    rows = build_janus_rows(
+        fwd_mappings, rev_mappings, rev_groups, transfer_vol, deck,
     )
 
     with open(output_path, "w", newline="", encoding=encoding) as f:
         writer = csv.writer(f)
-        # Header matches JANUS format exactly (Dsp. Rack appears twice)
-        writer.writerow([
-            "name", "type", "Dsp. Rack", "no",
-            "Asp. Rack", "Asp. Posi", "Dsp. Rack", "Dsp. Posi", "volume",
-        ])
-
-        seq_no = 1
-
-        # Forward primers (Asp. Rack = 1, Dsp. Rack = 3)
-        for m in fwd_mappings:
-            writer.writerow([
-                f"{m.mutation}-F", "primer", "Oligo 5pmol/ul", seq_no,
-                1, m.well, 3, m.well, transfer_vol,
-            ])
-            seq_no += 1
-
-        # Reverse primers (Asp. Rack = 2, Dsp. Rack = 3), expanding shared primers
-        for fwd_m in fwd_mappings:
-            rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
-            if rev_seq is None:
-                continue
-            rev_m = rev_by_seq.get(rev_seq)
-            if rev_m is None:
-                continue
-
-            dest_well = fwd_by_mut.get(fwd_m.mutation, fwd_m.well)
-            writer.writerow([
-                f"{fwd_m.mutation}-R", "primer", "Oligo 5pmol/ul", seq_no,
-                2, rev_m.well, 3, dest_well, transfer_vol,
-            ])
-            seq_no += 1
+        writer.writerow(JANUS_DEVICE9_HEADER)
+        for row in rows:
+            writer.writerow(janus_row_values(row))
 
 
 # ---------------------------------------------------------------------------
@@ -1238,18 +1318,23 @@ def export_janus_mapping_xlsx(
     output_path: Path,
     transfer_vol: float = 2.0,
     rev_groups: dict[str, list[str]] | None = None,
+    deck: JanusDeck = KURO_PRIMER_DECK,
 ) -> None:
     """Export JANUS mapping as XLSX matching the lab reference format.
 
     Sheets:
       - layout: Fwd 96-well plate + Rev 96-well plate
                 + 96-well PCR mixture (destination) on a single sheet.
-      - primer_mapping file: one row per transfer event.
+      - primer_mapping file: one row per transfer event, from
+        :func:`build_janus_rows` (same rows the CSV export and the sidecar
+        preview use).
     """
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill
 
-    fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
+    # The mapping rows come from ``build_janus_rows``; these lookups feed the
+    # layout sheet reverse-usage table only.
+    _, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
         fwd_mappings, rev_mappings, rev_groups,
     )
     bold = Font(bold=True)
@@ -1291,43 +1376,18 @@ def export_janus_mapping_xlsx(
 
     # ---- Sheet 2: primer_mapping file ----
     ws2 = wb.create_sheet("primer_mapping file")
-    headers = [
-        "name", "type", "Dsp. Rack", "no",
-        "Asp. Rack", "Asp. Posi", "Dsp. Rack", "Dsp. Posi", "volume",
-    ]
     header_fill = PatternFill(start_color="D9E1F2", fill_type="solid")
-    for col_idx, h in enumerate(headers, 1):
+    for col_idx, h in enumerate(JANUS_DEVICE9_HEADER, 1):
         cell = ws2.cell(row=1, column=col_idx, value=h)
         cell.font = bold
         cell.fill = header_fill
 
-    row_num = 2
-    seq_no = 1
-
-    for m in fwd_mappings:
-        for ci, val in enumerate([
-            f"{m.mutation}-F", "primer", "Oligo 5pmol/ul", seq_no,
-            1, m.well, 3, m.well, transfer_vol,
-        ], 1):
+    for row_num, row in enumerate(
+        build_janus_rows(fwd_mappings, rev_mappings, rev_groups, transfer_vol, deck),
+        2,
+    ):
+        for ci, val in enumerate(janus_row_values(row), 1):
             ws2.cell(row=row_num, column=ci, value=val)
-        row_num += 1
-        seq_no += 1
-
-    for fwd_m in fwd_mappings:
-        rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
-        if rev_seq is None:
-            continue
-        rev_m = rev_by_seq.get(rev_seq)
-        if rev_m is None:
-            continue
-        dest_well = fwd_by_mut.get(fwd_m.mutation, fwd_m.well)
-        for ci, val in enumerate([
-            f"{fwd_m.mutation}-R", "primer", "Oligo 5pmol/ul", seq_no,
-            2, rev_m.well, 3, dest_well, transfer_vol,
-        ], 1):
-            ws2.cell(row=row_num, column=ci, value=val)
-        row_num += 1
-        seq_no += 1
 
     for col in ws2.columns:
         max_len = max(len(str(cell.value or "")) for cell in col)

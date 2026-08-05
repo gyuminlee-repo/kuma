@@ -55,6 +55,12 @@
       "type": "command",
       "run": "node scripts/gen-models.mjs --check",
       "label": "src/types/models.generated.ts up to date"
+    },
+    {
+      "id": "janus-defaults",
+      "type": "command",
+      "run": "node scripts/sync-check-janus-defaults.mjs",
+      "label": "DEFAULT_JANUS_SETTINGS matches JanusSettings() defaults"
     }
   ],
   "genModels": [
@@ -427,6 +433,7 @@
         "python-core/sidecar_mame/handlers/analyze.py",
         "python-core/sidecar_mame/handlers/export.py",
         "src/lib/mame/janus.ts",
+        "src/lib/mame/janusSettings.ts",
         "src/types/mame/models.ts"
       ],
       "symbols": [
@@ -435,7 +442,7 @@
         "DEFAULT_JANUS_SETTINGS",
         "build_janus_preview_rows"
       ],
-      "note": "analyze writes two files beside the result workbook: the pick list (legacy5, reported on janus_autosave) and the instrument mapping (device9, reported on janus_mapping_autosave). Both resolve their settings through _janus_settings_from_params, the one resolver the export_janus_mapping RPC also uses; each pins its own output_schema, so the schema is not a setting. DEFAULT_JANUS_SETTINGS in the dialog must keep matching the Python defaults, empty sourceRacks and null destRack included: those mean 'derive the deck from the plates of the run' (JanusSettings.resolve_deck). Changing the autosave keys (status, output_path, format, row_count, excluded, excluded_count, errors, warnings) means changing the TS type that renders them.",
+      "note": "analyze writes two files beside the result workbook: the pick list (legacy5, reported on janus_autosave) and the instrument mapping (device9, reported on janus_mapping_autosave). Both resolve their settings through _janus_settings_from_params, the one resolver the export_janus_mapping RPC also uses; each pins its own output_schema, so the schema is not a setting. DEFAULT_JANUS_SETTINGS (src/lib/mame/janusSettings.ts) in the dialog must keep matching the Python defaults, empty sourceRacks and null destRack included: those mean 'derive the deck from the plates of the run' (JanusSettings.resolve_deck). That one is no longer left to the reader: the janus-defaults check in checks[] pushes the TS defaults through the toRpcParams mapping and compares them with JanusSettings().to_payload(), so a value moving on one side alone fails sync:check. Changing the autosave keys (status, output_path, format, row_count, excluded, excluded_count, errors, warnings) means changing the TS type that renders them.",
       "severity": "warning"
     },
     {

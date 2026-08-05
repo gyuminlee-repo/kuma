@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.15.9 (A primer that leaves the manufacturer's range says so)
+
+Each polymerase ships with a primer length and GC range in its own protocol, and KURO knew none of them. A 16 nt primer for KOD, whose manual asks for 22 to 35, designed and ranked exactly like any other; nothing on screen distinguished a primer the enzyme's maker would question from one it would not. The design itself was not wrong, since the ranking already balances Tm, structure and specificity, but the operator had no way to see that a particular oligo sat outside the range printed in the manual they were about to follow.
+
+### Added
+
+- v0.15.9: A designed primer that falls outside the polymerase manufacturer's recommended length or GC range is now flagged, naming the range and the document it comes from (NEB M0267 for Taq, M0530 for Phusion, M0491 for Q5, Toyobo KMM-101/201 for KOD, Thermo MAN0012036 for DreamTaq, Takara R050A for PrimeSTAR GXL). These are warnings only. Ranking, penalties and the designed sequences are untouched, because vendor guidance is advisory and the existing scoring already weighs what actually drives a reaction.
+- v0.15.9: Where a manual does not document a range, nothing is flagged for it. PrimeSTAR GXL publishes no GC range, so GC is never questioned for that enzyme rather than borrowing a number from a different one.
+
+### Changed
+
+- v0.15.9: The JANUS deck the instrument files describe now has one definition instead of a copy in each writer. The mapping CSV, the workbook sheet and the on-screen preview built the same nine columns separately, each with its own rack numbers and liquid class, so an edit to one left the other two describing a different bench. The files themselves are unchanged, byte for byte, and the preview no longer works out which direction a transfer goes by reading the rack number back, which would have swapped forward and reverse on screen the first time anyone renumbered the deck.
+
 ## v0.15.8 (The mapping file comes out the way KURO already makes it)
 
 The lab asked for one thing: the mapping file has to come out the way KURO makes it, and nobody wants to be asked for a liquid class. MAME was stricter than the program it sits beside. KURO writes its JANUS sheet at the end of a design without asking for anything, filling the deck numbers from the plates it just used; MAME refused to write at all unless an operator first typed a liquid class and a rack number for every plate. A run over `sort_barcode07/08/09` therefore produced no instrument file: those plates matched nothing in the fixed NB01/NB02/NB03 rack map, and v0.15.7 responded by not writing the sheet automatically at all. The one value that genuinely cannot be derived, how much of a cell stock to move, was buried in a dialog behind the two that can.

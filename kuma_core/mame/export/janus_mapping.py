@@ -58,6 +58,7 @@ from typing import TYPE_CHECKING
 from kuma_core.mame.export.nb_label import nb_label, nb_order_key
 from kuma_core.mame.export.well_mapper import seq_to_well
 from kuma_core.mame.models import ReplicateResult, VerdictClass
+from kuma_core.shared.janus_deck import JANUS_DEVICE9_HEADER
 
 if TYPE_CHECKING:
     from kuma_core.mame.ingest.run_meta import NgsRunMeta
@@ -70,24 +71,14 @@ _JANUS_HEADER = [
     "priority_score",
 ]
 
-# Instrument-native worksheet header, transcribed from the workbook the lab
-# imports ("Project2-2. primer dispensing (JANUS).xlsx"). ``Dsp. Rack`` twice is
-# in the source workbook, not a transcription slip, and the third column carries
-# a liquid/labware class string rather than a rack number.
-# Pinned against tests/fixtures/liquid_handler/reference_format.json by
-# tests/mame/test_janus_device_format.py; the literal lives here because
-# production code must not read from tests/.
-_JANUS_DEVICE9_HEADER = [
-    "name",
-    "type",
-    "Dsp. Rack",
-    "no",
-    "Asp. Rack",
-    "Asp. Posi",
-    "Dsp. Rack",
-    "Dsp. Posi",
-    "volume",
-]
+# Instrument-native worksheet header. The literal moved to
+# ``kuma_core/shared/janus_deck.py`` so KURO and MAME write the same nine
+# columns from one definition; the provenance comment (source workbook, the
+# intentional duplicate ``Dsp. Rack``, and the fixture that pins it) lives
+# alongside it there. Pinned against
+# tests/fixtures/liquid_handler/reference_format.json by
+# tests/mame/test_janus_device_format.py.
+_JANUS_DEVICE9_HEADER = JANUS_DEVICE9_HEADER
 
 # Finding severity. ``error`` withholds the file (the rows themselves cannot be
 # written correctly); ``warning`` names a value that shipped blank or derived,
