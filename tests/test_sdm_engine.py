@@ -14,6 +14,7 @@ from kuma_core.kuro.sdm_engine import (
     OffTargetHit,
     SdmPrimerResult,
     _check_gc_clamp,
+    _check_vendor_spec,
     _design_full_overlap,
     _synthesis_score,
     check_offtarget,
@@ -25,6 +26,7 @@ from kuma_core.kuro.sdm_engine import (
 )
 from kuma_core.kuro.mutation import Mutation
 from kuma_core.kuro.overlap import OverlapWindow
+from kuma_core.kuro.polymerase import PolymeraseRegistry
 from tests.conftest import FIXTURES_DIR, TARGET_START
 
 
@@ -428,6 +430,147 @@ class TestGcClamp:
         )
         assert n_with_gc_clamp_warning > 0, (
             "expected the gc-clamp rules to fire on at least one design in this fixture"
+        )
+
+
+class TestVendorSpec:
+    """Manufacturer-recommended length/GC warnings (warning-only, no penalty).
+
+    Data source: kuma_core/kuro/resources/polymerase_profiles.json
+    ``vendor_spec`` block (NEB M0530 for Phusion, Toyobo KMM-101/201 for
+    KOD, Takara R050A for TAKARA_GXL -- GXL has no documented GC range).
+    """
+
+    def _dummy_result(self, forward_seq: str, reverse_seq: str) -> SdmPrimerResult:
+        mut = Mutation(
+            raw="X1Y", wt_aa="X", position=1, mt_aa="Y",
+            codon_start=0, wt_codon="NNN", mt_codon="NNN",
+        )
+        ov = OverlapWindow(sequence=forward_seq[:10], start=0, end=10, codon_offset=0)
+        return SdmPrimerResult(
+            mutation=mut,
+            forward_seq=forward_seq,
+            reverse_seq=reverse_seq,
+            forward_binding=forward_seq,
+            reverse_binding=reverse_seq,
+            overlap_window=ov,
+            tm_fwd=60.0,
+            tm_rev=60.0,
+            tm_overlap=55.0,
+            tm_condition_met=True,
+        )
+
+    def test_none_profile_is_noop(self):
+        """profile=None (custom profile without a spec) must not warn or crash."""
+        result = self._dummy_result("ATGCATGCATGCATGCATGCATGC", "ATGCATGCATGCATGCATGCATGC")
+        _check_vendor_spec(result, None)
+        assert result.warnings == []
+
+    def test_gxl_null_gc_spec_never_warns_on_gc(self):
+        """TAKARA_GXL has no documented GC range (vendor_spec.gc_min/gc_max are
+        null): GC must never be flagged, at any GC content, only length.
+        """
+        registry = PolymeraseRegistry()
+        profile = registry.get("TAKARA_GXL")
+        assert profile.vendor_spec["gc_min"] is None
+        assert profile.vendor_spec["gc_max"] is None
+        # All-GC 22-mer: extreme GC%, in-range length (20-25) -> no warnings at all.
+        seq = "G" * 22
+        result = self._dummy_result(seq, seq)
+        _check_vendor_spec(result, profile)
+        assert result.warnings == [], result.warnings
+
+    def test_boundary_lengths_do_not_warn(self):
+        """Exactly at min/max length must not warn (inclusive range)."""
+        registry = PolymeraseRegistry()
+        profile = registry.get("Phusion")
+        spec = profile.vendor_spec
+        assert spec["length_min"] == 17 and spec["length_max"] == 25
+        fwd_min = ("ATGC" * 5)[:17]  # 17 nt, GC% 50% (in [40,60])
+        assert len(fwd_min) == 17
+        rev_max = ("ATGC" * 7)[:25]  # 25 nt, GC% 48% (in [40,60])
+        assert len(rev_max) == 25
+        result = self._dummy_result(fwd_min, rev_max)
+        _check_vendor_spec(result, profile)
+        assert not any("length" in w for w in result.warnings), result.warnings
+
+    def test_length_below_min_warns_with_enzyme_and_source(self):
+        registry = PolymeraseRegistry()
+        profile = registry.get("Phusion")
+        fwd = "ATGC" * 4  # 16 nt, below Phusion min (17)
+        assert len(fwd) == 16
+        rev = ("ATGC" * 5) + "A"  # 21 nt, in range
+        assert len(rev) == 21
+        result = self._dummy_result(fwd, rev)
+        _check_vendor_spec(result, profile)
+        assert any(
+            "Fwd length 16 nt is below Phusion recommended 17-25 nt (NEB M0530 PCR protocol)" == w
+            for w in result.warnings
+        ), result.warnings
+
+    def test_length_above_max_warns_with_enzyme_and_source(self):
+        registry = PolymeraseRegistry()
+        profile = registry.get("Phusion")
+        fwd = ("ATGC" * 7) + "A"  # 29 nt, above Phusion max (25)
+        assert len(fwd) == 29
+        rev = ("ATGC" * 5) + "A"  # 21 nt, in range
+        assert len(rev) == 21
+        result = self._dummy_result(fwd, rev)
+        _check_vendor_spec(result, profile)
+        assert any(
+            "Fwd length 29 nt exceeds Phusion recommended 17-25 nt (NEB M0530 PCR protocol)" == w
+            for w in result.warnings
+        ), result.warnings
+
+    def test_gc_out_of_range_warns(self):
+        registry = PolymeraseRegistry()
+        profile = registry.get("Taq")  # GC range 40-60
+        # 20 nt, 100% GC -> above max.
+        fwd = "GCGCGCGCGCGCGCGCGCGC"
+        assert len(fwd) == 20
+        rev = "ATGCATGCATGCATGCATGC"  # 20 nt, 50% GC, in Taq range (20-40 nt, 40-60% GC)
+        assert len(rev) == 20
+        result = self._dummy_result(fwd, rev)
+        _check_vendor_spec(result, profile)
+        assert any(
+            "Fwd GC 100.0% exceeds Taq recommended 40-60% (NEB M0267 PCR protocol)" == w
+            for w in result.warnings
+        ), result.warnings
+        assert not any(w.startswith("Rev") for w in result.warnings), result.warnings
+
+    def test_no_penalty_change(self):
+        """Vendor-spec warnings must never touch result.penalty (ranking must not move)."""
+        registry = PolymeraseRegistry()
+        profile = registry.get("Phusion")
+        fwd = "ATGCATGCATGCATGCATGCATGCATG"  # 28 nt, out of range
+        rev = "ATGCATGCATGCATGCATGCATGCATG"
+        result = self._dummy_result(fwd, rev)
+        result.penalty = 2.71  # arbitrary pre-existing penalty from other checks
+        _check_vendor_spec(result, profile)
+        assert result.warnings, "expected at least one vendor-spec warning for this fixture"
+        assert result.penalty == 2.71, "vendor-spec check must not mutate penalty"
+
+    def test_fixture_warnings_present_for_kod_out_of_range_lengths(
+        self, genbank_path, mutations_csv
+    ):
+        """Sanity check against the Q5-designed/12-mutation fixture re-evaluated
+        under KOD (22-35 nt): the shorter primers in this fixture fall below
+        KOD's minimum, so length warnings must fire.
+        """
+        results, _cand, _failed = design_sdm_primers(
+            fasta_path=genbank_path,
+            target_start=TARGET_START,
+            mutations_csv=mutations_csv,
+            polymerase="KOD",
+            overlap_len=18,
+        )
+        assert len(results) >= 5
+        n_with_length_warning = sum(
+            1 for r in results
+            if any("recommended" in w and "nt (" in w for w in r.warnings)
+        )
+        assert n_with_length_warning > 0, (
+            "expected KOD vendor-spec length warnings to fire on this fixture"
         )
 
 

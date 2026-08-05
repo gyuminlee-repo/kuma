@@ -51,6 +51,12 @@ class PolymeraseProfile:
     # profiles without a rule). Data-driven; consumed by kuro.annealing only.
     # Never affects design-time Tm scale or primer selection.
     ta_rule: dict | None = None
+    # Manufacturer-recommended primer length/GC spec (optional; None for
+    # custom profiles without a documented spec, or fields inside it can be
+    # None when the manufacturer manual does not state a value, e.g. GXL GC).
+    # Warning-only, consumed by sdm_engine._check_vendor_spec. Never affects
+    # design-time Tm scale, candidate search, or penalty/ranking.
+    vendor_spec: dict | None = None
 
 
 def _resource_path(relative_path: str) -> Path:
@@ -96,6 +102,7 @@ def _dict_to_profile(data: dict) -> PolymeraseProfile:
         rev_len_max=int(data["rev_len_max"]) if data.get("rev_len_max") is not None else None,
         default_overlap_mode=data.get("default_overlap_mode"),
         ta_rule=data.get("ta_rule"),
+        vendor_spec=data.get("vendor_spec"),
     )
 
 

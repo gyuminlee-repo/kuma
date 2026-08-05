@@ -326,6 +326,55 @@ def _check_gc_clamp(result: SdmPrimerResult) -> None:
             result.warnings.append(f"{label} 3' end: {gc_count} of last {len(window)} are G/C")
 
 
+def _check_vendor_spec(result: SdmPrimerResult, profile: PolymeraseProfile | None) -> None:
+    """Warn when a primer falls outside the polymerase manufacturer's
+    recommended length/GC spec. Warnings only, no penalty -- advisory
+    vendor guidance, not part of candidate ranking (see PolymeraseProfile
+    docstring and polymerase_profiles.json for the per-enzyme source
+    documents this reads).
+
+    ``profile.vendor_spec`` is optional: custom profiles, or a profile whose
+    manual does not document a field (e.g. TAKARA_GXL has no documented GC
+    range), leave that field ``None`` and this function skips it rather than
+    guessing or borrowing a value from another enzyme.
+    """
+    if profile is None or profile.vendor_spec is None:
+        return
+    spec = profile.vendor_spec
+    length_min = spec.get("length_min")
+    length_max = spec.get("length_max")
+    gc_min = spec.get("gc_min")
+    gc_max = spec.get("gc_max")
+
+    for label, seq in [("Fwd", result.forward_seq), ("Rev", result.reverse_seq)]:
+        if not seq:
+            continue
+        length = len(seq)
+        if length_min is not None and length < length_min:
+            result.warnings.append(
+                f"{label} length {length} nt is below {profile.name} recommended "
+                f"{length_min}-{length_max} nt ({spec.get('source')})"
+            )
+        elif length_max is not None and length > length_max:
+            result.warnings.append(
+                f"{label} length {length} nt exceeds {profile.name} recommended "
+                f"{length_min}-{length_max} nt ({spec.get('source')})"
+            )
+
+        if gc_min is not None and gc_max is not None:
+            gc = _gc_percent(seq)
+            if gc < gc_min:
+                result.warnings.append(
+                    f"{label} GC {gc:.1f}% is below {profile.name} recommended "
+                    f"{gc_min:.0f}-{gc_max:.0f}% ({spec.get('source')})"
+                )
+            elif gc > gc_max:
+                result.warnings.append(
+                    f"{label} GC {gc:.1f}% exceeds {profile.name} recommended "
+                    f"{gc_min:.0f}-{gc_max:.0f}% ({spec.get('source')})"
+                )
+
+
 def _gc_percent(seq: str) -> float:
     """Calculate GC percentage."""
     if not seq:
@@ -1134,6 +1183,7 @@ def design_single_sdm(
                     _check_secondary_structure(c)
                     _check_synthesis_score(c)
                     _check_gc_clamp(c)
+                    _check_vendor_spec(c, profile)
                     surviving.append(c)
 
                 if surviving:
@@ -1197,6 +1247,7 @@ def design_single_sdm(
                 _check_secondary_structure(c)
                 _check_synthesis_score(c)
                 _check_gc_clamp(c)
+                _check_vendor_spec(c, profile)
                 surviving.append(c)
 
             if surviving:
@@ -1609,6 +1660,7 @@ def evaluate_custom_primer(
     _check_secondary_structure(result)
     _check_synthesis_score(result)
     _check_gc_clamp(result)
+    _check_vendor_spec(result, profile)
 
     return result
 
