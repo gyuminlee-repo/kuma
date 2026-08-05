@@ -10,5 +10,7 @@ export const WHATS_NEW_VERSION = "0.15.13";
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
   { label: "Changed", detail: "A consensus reports the weakest read support among the substitutions it calls, together with the depth that fraction was measured on. The replicate picker orders equal-verdict plates by the Wilson score lower bound on that support, so a pl…" },
   { label: "Changed", detail: "Native barcode number breaks exact ties and nothing else now, and the module says so in as many words. It never carried quality meaning; it had been standing in for a measure that did not exist yet." },
+  { label: "Changed", detail: "Both per-plate sheets and the Final sheet carry the purity evidence behind a pick: the weakest called-substitution support, the depth it was measured on, the lower bound the picker ordered by, and the fraction of reads carrying an indel. A…" },
+  { label: "Changed", detail: "A `review` column names the wells whose numbers stand out, judged against the plate they sit on rather than against a fixed gate. Each plate supplies its own median and median absolute deviation, and a well more than three MAD out is repor…" },
   { label: "Changed", detail: "The value travels in the consensus FASTA header. It is absent for a well that calls no substitution and for files written before this release, and absent means unknown rather than zero, so an older run picks exactly what it picked before." },
 ];

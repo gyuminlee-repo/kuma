@@ -37,9 +37,8 @@ carry no useful identity info (e.g. empty plate_verdicts) are excluded.
 
 from __future__ import annotations
 
-import math
-
 from kuma_core.mame.models import ReplicateResult, VerdictClass, VerdictRecord
+from kuma_core.mame.select.purity import support_lower_bound
 
 PRIORITY_ORDER: list[VerdictClass] = [
     VerdictClass.PASS,
@@ -81,29 +80,13 @@ def _volume_key(vr: VerdictRecord) -> float:
     return vr.translated.barcode.file_size_kb
 
 
-# Two-sided 95% z, read one-sided below, which is the conservative direction for
-# a pick: it asks how low the support could plausibly be, not how high.
-_Z_95 = 1.959963984540054
-
-
 def _support_lower_bound(vr: VerdictRecord) -> float | None:
     """Wilson score lower bound on the weakest called-substitution support.
 
-    ``None`` when the metric is unavailable (consensus file predates it), the
-    consensus carries no substitution, or no depth was recorded. That is not the
-    same as zero support and must not be ordered as if it were.
+    Thin wrapper over :func:`kuma_core.mame.select.purity.support_lower_bound` so
+    the picker and the workbook report the same number from the same code.
     """
-    bc = vr.translated.barcode
-    support = bc.min_variant_support
-    depth = bc.min_variant_support_depth
-    if support is None or bc.n_variant_positions <= 0 or depth <= 0:
-        return None
-    z2 = _Z_95 * _Z_95
-    centre = support + z2 / (2 * depth)
-    spread = _Z_95 * math.sqrt(
-        support * (1.0 - support) / depth + z2 / (4 * depth * depth)
-    )
-    return (centre - spread) / (1.0 + z2 / depth)
+    return support_lower_bound(vr.translated.barcode)
 
 
 def _pick_rank(verdict: VerdictClass) -> int:
