@@ -421,10 +421,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       set({ plateOrderFinding: null });
       return;
     }
-    // Always informational. Since v0.15.6 the operator names the sheet and the
-    // column to read, so a disagreement between two sheets of one workbook is
-    // something to state, not a reason to refuse the run.
-    set({ plateOrderFinding: { ...report, severity: "info" } });
+    // Blocking, and stored before any validation runs: `selectCanRun` reads this
+    // field directly, so picking the workbook is enough to hold the run. Which
+    // of the workbook's two plates was pipetted is written nowhere on this
+    // screen, so there is no input that answers it and no grade below blocking.
+    set({ plateOrderFinding: { ...report, severity: "blocking" } });
   },
   validateInputs: async () => {
     set({ isValidating: true, validationErrors: [] });
@@ -437,9 +438,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         // Raw-run guard in the backend validate_inputs needs the barcodes xlsx
         // to recognise a configured raw MinKNOW run folder; empty in non-raw mode.
         custom_barcodes_xlsx: get().rawRunParams.customBarcodesPath,
-        // Read only to grade the plate_order finding, under the same names
-        // analyze uses. Omitting them grades every disagreement as blocking,
-        // including the ones this run's layout inputs make harmless.
+        // Sent under the same names analyze uses, so validation reads the run
+        // the operator is about to start. They no longer soften a plate-order
+        // disagreement: placing wells is not the same as certifying which of a
+        // workbook's two plates was pipetted (2026-08-05).
         sample_map_xlsx: get().sampleMapPath || null,
         well_layout: get().wellLayout ?? null,
         ...variantSourceParams(get()),

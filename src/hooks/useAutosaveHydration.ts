@@ -874,9 +874,12 @@ export async function applyKuroSnapshot(
  *
  * 문구는 분석 입력 패널의 PlateOrderNotice 와 같은 `buildPlateOrderMessage` 에서
  * 나온다. 같은 사실을 두 경로가 다른 말로 하면 사용자는 서로 다른 문제 둘로 읽는다.
- * v0.15.6 부터 등급은 없다. 사용자가 변이 목록의 시트·열을 지목하는 이상 프로그램이
- * 실행을 막을 근거가 없으므로, 두 경로 모두 info 로 알리기만 한다. 이미 시트·열을
- * 직접 지정했다면 아무 말도 하지 않는다(PlateOrderNotice 와 같은 기준).
+ *
+ * 2026-08-05 부터 알리는 데서 그치지 않고 `plateOrderFinding` 을 스토어에 써서
+ * `selectCanRun` 이 실행을 막는다. 복원 직후는 경로가 모두 채워져 Run 이 바로
+ * 눌리는 시점이라, 알림만 띄우면 워크북이 서로 다른 두 플레이트를 적고 있는 채로
+ * 한 번의 클릭에 실행됐다. 등급은 blocking 하나뿐이다. 어느 시트가 실제로 분주한
+ * 튜브인지는 이 화면의 어떤 입력에도 적혀 있지 않으므로 낮출 근거가 없다.
  */
 async function reportPlateOrderMismatch(
   expectedPath: string,
@@ -898,11 +901,15 @@ async function reportPlateOrderMismatch(
   if (!report || !isCurrent()) return;
   if (!isPlateOrderReportable(report)) return;
 
-  if (useMameAppStore.getState().variantSelectionExplicit) return;
+  const finding = { ...report, severity: "blocking" as const };
+  // 말하는 것과 막는 것을 한자리에서 한다. 스토어에 쓰지 않으면 복원된 세션만
+  // 게이트가 빠져, 같은 워크북이 새로 고른 경우에는 막히고 이어받은 경우에는
+  // 실행되는 상태가 된다.
+  useMameAppStore.setState({ plateOrderFinding: finding });
   onMessage({
     kind: "mame",
     variant: "plate_order_mismatch",
-    message: buildPlateOrderMessage({ ...report, severity: "info" }, expectedPath).text,
+    message: buildPlateOrderMessage(finding, expectedPath).text,
   });
 }
 

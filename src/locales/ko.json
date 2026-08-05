@@ -155,10 +155,10 @@
   "mame": {
     "plateOrder": {
       "title": "{{filename}} 의 플레이트 순서가 어긋납니다",
-      "bodyInfo": "{{sheet}} 시트의 프라이머 플레이트와 expected_mutations 의 순서가 다릅니다. 이번 실행은 sample map 또는 확정된 well layout 에서 well 을 가져오므로 판정에는 영향이 없습니다. 다만 워크북 자체는 여전히 서로 다른 두 플레이트를 적고 있습니다.",
+      "bodyBlocked": "{{sheet}} 시트의 프라이머 플레이트와 expected_mutations 의 순서가 다릅니다. 한 워크북이 서로 다른 두 플레이트를 적고 있고, 실제로 분주한 쪽이 어느 것인지는 파일 어디에도 없습니다. 정리될 때까지 실행을 막습니다.",
       "example": "well {{well}}: 플레이트는 {{plate}}, expected_mutations 는 {{expected}}",
       "missing": "플레이트에는 있으나 expected_mutations 에 없는 항목: {{items}}. 하나마다 뒤쪽 well 이 한 칸씩 밀립니다.",
-      "escape": "실제로 분주한 튜브를 어느 시트가 적었는지는 사용자가 정합니다. 변이 목록을 읽을 시트와 열을 지정하거나 sample map 파일을 고르세요. 둘 중 하나면 이번 실행에서 시트 순서가 빠집니다. MAME 가 대신 시트를 고르지는 않습니다."
+      "resolution": "KURO v0.14.3 이상에서 워크북을 다시 export 하거나 두 시트가 일치하는 파일을 고른 뒤 다시 검증하세요. MAME 가 대신 시트를 고르지는 않으며, 이 화면의 어떤 입력도 어느 플레이트가 튜브에 들어갔는지 말해 주지 못합니다."
     },
     "input": {
       "redetect": "재감지",

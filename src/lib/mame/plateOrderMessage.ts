@@ -6,13 +6,17 @@
  * used to have separate copy, which reads as two different problems. Both go
  * through here now, so the same disagreement is always described the same way.
  *
- * Informational since v0.15.6: the operator names the sheet and the column the
- * variant list is read from, so this states what the workbook says about itself
- * and stops there.
+ * Blocking since 2026-08-05: `validate_inputs` reports the disagreement as an
+ * error and `selectCanRun` holds the button, so this says why the run is refused
+ * and what ends the refusal. It was informational between v0.15.6 and then, on
+ * the reasoning that a sample map or a confirmed layout made the sheet order
+ * irrelevant. It does not: placing wells is not the same as recording which of
+ * the workbook's two plates went into the tubes.
  *
  * Nothing here repairs anything. Which sheet describes the tubes that were
  * actually pipetted is the operator's call, not a guess this layer can make
- * (see the module docstring of `kuma_core/mame/io/plate_order_check.py`).
+ * (see the module docstring of `kuma_core/mame/io/plate_order_check.py`), and
+ * the workbook is the only place that call can be recorded.
  */
 import i18next from "i18next";
 import type {
@@ -37,8 +41,8 @@ export interface PlateOrderMessage {
   examples: string[];
   /** Mutants on the plate with no row in expected_mutations; null when none. */
   missing: string | null;
-  /** How to take the sheet order out of the run. */
-  escape: string;
+  /** What ends the refusal: a workbook whose two plates agree. */
+  resolution: string;
   /** Everything above as one paragraph, for single-string channels. */
   text: string;
 }
@@ -75,14 +79,12 @@ export function buildPlateOrderMessage(
         t("mame.plateOrder.missing", { items: missingItems.join(", ") })
       : null;
   const title = t("mame.plateOrder.title", { filename });
-  const body = t("mame.plateOrder.bodyInfo", { sheet });
-  // Always offered, never demanded. The finding does not stop a run any more
-  // (v0.15.6), so this reads as the way to make the sheet order irrelevant
-  // rather than as a precondition: name the sheet and column to read, or state
-  // the wells with a sample map.
-  const escape = t("mame.plateOrder.escape");
-  const text = [title, body, ...examples, missing, escape]
+  const body = t("mame.plateOrder.bodyBlocked", { sheet });
+  // Names the one thing that clears it. No setting on this screen does, so this
+  // points at the workbook: re-export it, or pick one whose sheets agree.
+  const resolution = t("mame.plateOrder.resolution");
+  const text = [title, body, ...examples, missing, resolution]
     .filter((part): part is string => Boolean(part))
     .join(" ");
-  return { severity: finding.severity, title, body, examples, missing, escape, text };
+  return { severity: finding.severity, title, body, examples, missing, resolution, text };
 }

@@ -5,10 +5,10 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.15.9";
+export const WHATS_NEW_VERSION = "0.15.10";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Added", detail: "A designed primer that falls outside the polymerase manufacturer's recommended length or GC range is now flagged, naming the range and the document it comes from (NEB M0267 for Taq, M0530 for Phusion, M0491 for Q5, Toyobo KMM-101/201 for K…" },
-  { label: "Added", detail: "Where a manual does not document a range, nothing is flagged for it. PrimeSTAR GXL publishes no GC range, so GC is never questioned for that enzyme rather than borrowing a number from a different one." },
-  { label: "Changed", detail: "The JANUS deck the instrument files describe now has one definition instead of a copy in each writer. The mapping CSV, the workbook sheet and the on-screen preview built the same nine columns separately, each with its own rack numbers and…" },
+  { label: "Changed", detail: "A disagreement between the two plate descriptions in one workbook now fails validation instead of appearing beside a passing one. The run is refused whether or not a sample map or a well layout was chosen, because placing wells is not the…" },
+  { label: "Changed", detail: "The refusal also holds before any validation is asked for. Picking the workbook checks it on its own, so the operator no longer reaches Run through a file picker without passing through validation, which is the route the 2026-08-04 misscor…" },
+  { label: "Changed", detail: "The way out is a workbook whose sheets agree: re-export from KURO v0.14.3 or later, or choose another file. Picking one clears the refusal, and the re-check reinstates it only when the new file disagrees with itself too. Naming the variant…" },
 ];
