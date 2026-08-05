@@ -130,11 +130,17 @@ export interface AnalyzeResult extends AnalyzeYield {
     readonly note: string;
   };
   /**
-   * What became of the Janus mapping this run wrote beside its workbook.
+   * What became of the pick list this run wrote beside its workbook.
    * Optional on the type because a snapshot persisted before the field existed
    * is replayed verbatim; a live sidecar always sends it.
    */
   janus_autosave?: JanusAutosaveResult;
+  /**
+   * What became of the instrument (9-column) mapping the same run wrote. Same
+   * shape, same optionality, different file: `..._janus.csv` next to
+   * `..._picks.csv`.
+   */
+  janus_mapping_autosave?: JanusAutosaveResult;
 }
 
 /**
@@ -333,10 +339,18 @@ export interface JanusExportSettings {
   volume: number;
   /** `type` column value (device9 only). */
   sampleType: string;
-  /** Liquid class string (device9 only). No default: export is blocked while empty. */
+  /**
+   * Liquid class string (device9 only). No default, and blank does not block:
+   * the column ships empty and the preview warns.
+   */
   liquidClass: string;
+  /**
+   * Operator overrides only. An empty map lets the sidecar derive the numbers
+   * from the plates of the run, which is what the shipped default does.
+   */
   sourceRacks: JanusSourceRacks;
-  destRack: number;
+  /** `null` derives it as one past the last source rack. */
+  destRack: number | null;
 }
 
 /** Resolved settings echoed back by the sidecar, in RPC (snake_case) form. */
@@ -348,10 +362,15 @@ export interface JanusResolvedSettings {
   volume: number;
   sample_type: string;
   liquid_class: string;
+  /** The operator's overrides, echoed back unchanged. */
   source_racks: JanusSourceRacks;
-  dest_rack: number;
+  /** The operator's override, echoed back unchanged; `null` means derived. */
+  dest_rack: number | null;
   /** Header of the file this policy writes, in order. */
   columns: string[];
+  /** The deck the file carries: overrides applied on top of the derived numbers. */
+  resolved_source_racks?: JanusSourceRacks;
+  resolved_dest_rack?: number;
 }
 
 /**
@@ -386,6 +405,8 @@ export interface JanusExportResult {
   row_count: number;
   excluded: JanusExcludedEntry[];
   excluded_count: number;
+  /** What the written file left blank or derived. */
+  warnings: JanusPreviewError[];
   settings: JanusResolvedSettings;
 }
 
@@ -409,10 +430,18 @@ export type JanusPreviewErrorCode =
   | "plate_capacity"
   | "duplicate_dest_well"
   | "missing_liquid_class"
-  | "unknown_source_rack";
+  | "derived_source_rack"
+  | "autosave_failed";
+
+/**
+ * "error" withholds the file; "warning" names a value that shipped blank or
+ * derived, which is never a reason to produce no file.
+ */
+export type JanusFindingSeverity = "error" | "warning";
 
 export interface JanusPreviewError {
   code: JanusPreviewErrorCode;
+  severity: JanusFindingSeverity;
   message: string;
   mutant_ids: string[];
 }
@@ -425,7 +454,10 @@ export interface JanusPreviewError {
  */
 export interface JanusPreviewResult {
   rows: JanusPreviewRow[];
+  /** Blocks the export. */
   errors: JanusPreviewError[];
+  /** Never blocks: what shipped blank (liquid class) or derived (rack numbers). */
+  warnings: JanusPreviewError[];
   row_count: number;
   /** Clones left out of the pick, with the reason for each. */
   excluded: JanusExcludedEntry[];
@@ -444,9 +476,10 @@ export interface JanusPreviewResult {
  * - "saved": the file exists at `output_path` and carries `row_count` rows.
  * - "skipped": nothing was selected, so no file was written (an empty mapping
  *   reads like a finished plate).
- * - "failed": `errors` says why. `missing_liquid_class` is the common one: the
- *   device9 schema has no default liquid class because it decides how the robot
- *   handles the cells.
+ * - "failed": `errors` says why.
+ *
+ * `warnings` never changes the status: a blank liquid class and rack numbers
+ * derived from the run are reported, not enforced.
  */
 export interface JanusAutosaveResult {
   status: "saved" | "skipped" | "failed";
@@ -456,6 +489,7 @@ export interface JanusAutosaveResult {
   excluded: JanusExcludedEntry[];
   excluded_count: number;
   errors: JanusPreviewError[];
+  warnings: JanusPreviewError[];
 }
 
 export type RunReportFormat = "html" | "pdf";

@@ -719,12 +719,12 @@
         "volumeLabel": "Volume (µL)",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "例如：Cell 100ul",
-        "liquidClassHint": "Liquid class 決定機器人的移液行為，因此不設預設值。未填寫前無法匯出。",
+        "liquidClassHint": "liquid class 決定機器人的移液行為，因此不設預設值。留空時該欄為空白，匯出照常進行。",
         "deckHeading": "Deck 配置",
         "sampleTypeLabel": "type 欄位值",
         "sourceRackLabel": "Asp. Rack {{plate}}",
         "destRackLabel": "Dsp. Rack",
-        "rackHint": "假設的 rack 編號：依活頁簿 labware 順序，source plate 在前，destination 在後。請依實際 deck 調整。",
+        "rackHint": "機架編號依本次執行的盤推導：來源盤按盤順序占用前面編號，目標盤取下一個編號（與 KURO 引子表一致）。輸入數字即可覆寫。",
         "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
         "excludedHeading": "已排除 {{count}} 個",
         "excludedNone": "沒有被排除的選殖株。",
@@ -735,7 +735,8 @@
           "verdict_class": "未納入的 verdict class",
           "fallback": "Fallback pick"
         },
-        "selectionNote": "僅納入 PASS 選殖株。AMBIGUOUS 帶有附帶 indel，LOWDEPTH 未經驗證，兩者都會列在排除清單中。"
+        "selectionNote": "僅納入 PASS 選殖株。AMBIGUOUS 帶有附帶 indel，LOWDEPTH 未經驗證，兩者都會列在排除清單中。",
+        "previewWarned": "將依下列說明寫入，這些都不會阻擋匯出。"
       },
       "runReport": {
         "title": "匯出執行報告",
@@ -990,7 +991,7 @@
         "secOnly": "{{sec}} s"
       },
       "janusAutosave": {
-        "saved": "Selected clones written next to the result workbook ({{rows}} picks). This is the selection list, not a robot worklist; build that in Janus instrument settings.",
+        "saved": "已在結果活頁簿旁寫入選取的選殖株（{{rows}} 個）。這是選擇清單，儀器表單是旁邊的檔案。",
         "skipped": "No clone met the selection criteria, so no selection list was written.",
         "failed": "The selection list was not written.",
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
@@ -998,7 +999,17 @@
       "janusSettings": {
         "open": "Janus instrument settings...",
         "openAriaLabel": "Open Janus instrument settings",
-        "hint": "Optional. Liquid class and deck rack numbers are needed only for the robot worklist; the selection list this run writes needs none of them."
+        "hint": "選填。機架編號依本次執行的盤順序推導，liquid class 未設定時留空輸出；僅在需要覆寫時填寫。"
+      },
+      "janusMappingAutosave": {
+        "saved": "已在結果活頁簿旁寫入儀器對應檔（{{rows}} 列），採用機器人讀取的 9 欄格式。",
+        "skipped": "沒有選殖株符合選擇條件，因此未寫入儀器對應檔。",
+        "failed": "未能寫入儀器對應檔。",
+        "excluded": "{{clones}} 個選殖株未進入對應檔。可在 Janus 儀器設定中查看原因。"
+      },
+      "janusVolume": {
+        "label": "轉移體積 (µL)",
+        "hint": "此值會直接寫入本次執行產生的儀器對應檔。預設 100 µL 是沒有實驗室依據的假設，請改成本次實驗實際使用的體積。"
       }
     },
     "buildEvolvepro": {

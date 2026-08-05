@@ -315,35 +315,57 @@ def test_device9_row_values(tmp_path: Path) -> None:
     with out.open(encoding="utf-8") as fh:
         rows = list(csv.reader(fh))[1:]
 
+    # Two plates in the run, so they take racks 1 and 2 and the destination 3.
     assert rows[0] == [
-        "HIGH", "glycerol stock", "Cell 100ul", "1", "1", "E7", "4", "A1", "75.0",
+        "HIGH", "glycerol stock", "Cell 100ul", "1", "1", "E7", "3", "A1", "75.0",
     ]
     # `no` counts up in the sorted order, so the sheet carries the pick priority.
     assert rows[1] == [
-        "LOW", "glycerol stock", "Cell 100ul", "2", "3", "H12", "4", "B1", "75.0",
+        "LOW", "glycerol stock", "Cell 100ul", "2", "2", "H12", "3", "B1", "75.0",
     ]
 
 
-def test_device9_defaults_are_the_documented_assumptions() -> None:
+def test_device9_defaults_ask_the_operator_for_nothing_but_volume() -> None:
     settings = JanusSettings()
     assert settings.volume == DEFAULT_VOLUME_UL
     assert settings.sample_type == DEFAULT_SAMPLE_TYPE
-    # Source plates first in workbook labware order, destination last.
-    assert settings.rack_map == {"NB01": 1, "NB02": 2, "NB03": 3}
-    assert settings.dest_rack == 4
+    # No stored deck: the numbers come from the plates of the run.
+    assert settings.rack_map == {}
+    assert settings.dest_rack is None
 
 
-def test_missing_liquid_class_blocks_the_export(tmp_path: Path) -> None:
-    """A guessed liquid class would change how the robot handles the cells."""
+def test_deck_numbers_follow_the_plates_of_the_run() -> None:
+    """The KURO convention (sources first in plate order, destination next).
+
+    ``sort_barcode07/08/09`` is the run that produced no file at all before this:
+    none of its plates appeared in the fixed NB01/NB02/NB03 map.
+    """
+    racks, dest = JanusSettings().resolve_deck(["NB09", "NB07", "NB08"])
+    assert racks == {"NB07": 1, "NB08": 2, "NB09": 3}
+    assert dest == 4
+
+
+def test_operator_rack_numbers_override_the_derived_ones() -> None:
+    racks, dest = JanusSettings(
+        source_racks=(("NB08", 6),), dest_rack=9
+    ).resolve_deck(["NB07", "NB08", "NB09"])
+    assert racks == {"NB07": 1, "NB08": 6, "NB09": 3}
+    assert dest == 9
+
+
+def test_a_blank_liquid_class_still_writes_the_file(tmp_path: Path) -> None:
+    """Blocking over it left the lab with no mapping file; the column ships blank."""
     out = tmp_path / "no_class.csv"
-    with pytest.raises(ValueError, match="liquid class is required"):
-        export_mame_janus_csv([_make_replicate("V5F", "NB01", "1_1")], out)
-    assert not out.exists()
+    export_mame_janus_csv([_make_replicate("V5F", "NB01", "1_1")], out)
+    with out.open(encoding="utf-8") as fh:
+        body = list(csv.reader(fh))[1:]
+    assert body[0][2] == ""
 
 
-def test_missing_liquid_class_is_visible_in_the_preview() -> None:
+def test_a_blank_liquid_class_is_a_warning_not_an_error() -> None:
     preview = build_janus_preview_rows([_make_replicate("V5F", "NB01", "1_1")])
-    assert [e["code"] for e in preview["errors"]] == ["missing_liquid_class"]  # type: ignore[union-attr]
+    assert preview["errors"] == []
+    assert "missing_liquid_class" in [w["code"] for w in preview["warnings"]]  # type: ignore[union-attr]
 
 
 def test_missing_liquid_class_does_not_block_the_legacy_schema(tmp_path: Path) -> None:
@@ -359,13 +381,19 @@ def test_missing_liquid_class_does_not_block_the_legacy_schema(tmp_path: Path) -
         ]
 
 
-def test_unmapped_source_rack_blocks_the_export(tmp_path: Path) -> None:
+def test_a_plate_outside_the_stored_deck_still_gets_a_rack(tmp_path: Path) -> None:
+    """The v0.15.6 failure: a run whose plates the stored map does not name."""
     out = tmp_path / "unmapped.csv"
     settings = JanusSettings(liquid_class="Cell", source_racks=(("NB01", 1),))
-    with pytest.raises(ValueError, match="no Asp. Rack number configured"):
-        export_mame_janus_csv(
-            [_make_replicate("ONP2", "NB02", "1_1")], out, settings=settings
-        )
+    export_mame_janus_csv(
+        [_make_replicate("ONP2", "NB02", "1_1")], out, settings=settings
+    )
+    with out.open(encoding="utf-8") as fh:
+        body = list(csv.reader(fh))[1:]
+    # NB02 is the only plate of this run, so it takes rack 1 unless the operator
+    # said otherwise, and the destination takes the next number.
+    assert body[0][4] == "1"
+    assert body[0][6] == "2"
 
 
 def test_invalid_output_schema_is_rejected() -> None:

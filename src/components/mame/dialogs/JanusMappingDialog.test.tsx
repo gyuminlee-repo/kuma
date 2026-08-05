@@ -107,6 +107,7 @@ const CLEAN: JanusPreviewResult = {
     },
   ],
   errors: [],
+  warnings: [],
   row_count: 2,
   excluded: [],
   excluded_count: 0,
@@ -133,10 +134,12 @@ const DUPLICATE: JanusPreviewResult = {
   errors: [
     {
       code: "duplicate_dest_well",
+      severity: "error",
       message: "Janus mapping: duplicate dest_well would dispense multiple clones",
       mutant_ids: ["NB01_A1", "NB02_A1"],
     },
   ],
+  warnings: [],
   row_count: 2,
   excluded: [],
   excluded_count: 0,
@@ -181,6 +184,13 @@ function resolvedSettingsFromUi(
     liquid_class: settings.liquidClass,
     source_racks: settings.sourceRacks,
     dest_rack: settings.destRack,
+    // The sidecar derives the deck when nothing was entered; the dialog reads
+    // these when it fills the rack inputs and the device9 preview cells.
+    resolved_source_racks:
+      Object.keys(settings.sourceRacks).length > 0
+        ? settings.sourceRacks
+        : { NB01: 1, NB02: 2 },
+    resolved_dest_rack: settings.destRack ?? 3,
     columns:
       settings.outputSchema === "device9"
         ? [
@@ -325,9 +335,12 @@ describe("JanusMappingDialog preview", () => {
           .getAllByRole("cell")
           .map((c) => c.textContent),
       );
+    // Two plates in the run, so the deck derives to racks 1 and 2 with the
+    // destination at 3; the cells show the resolved deck, not the (empty)
+    // operator overrides.
     expect(cells).toEqual([
-      ["HIGH", "cell", "", "1", "1", "E7", "4", "E7", "100"],
-      ["LOW", "cell", "", "2", "2", "H12", "4", "H12", "100"],
+      ["HIGH", "cell", "", "1", "1", "E7", "3", "E7", "100"],
+      ["LOW", "cell", "", "2", "2", "H12", "3", "H12", "100"],
     ]);
     const header = within(table)
       .getAllByRole("columnheader")
@@ -413,6 +426,7 @@ describe("JanusMappingDialog preview", () => {
     mockPreview.mockImplementation(async (settings) => ({
       rows: [],
       errors: [],
+      warnings: [],
       row_count: 0,
       excluded: [],
       excluded_count: 0,
@@ -448,6 +462,66 @@ describe("JanusMappingDialog preview", () => {
     expect(
       screen.queryByText(/duplicate dest_well would dispense/i),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("JanusMappingDialog warnings", () => {
+  /**
+   * v0.15.8: a blank liquid class and a derived rack number used to be errors,
+   * which meant the lab got no mapping file at all. They are reported now, and
+   * the Export button must stay live while they are on screen.
+   */
+  const WARNED: JanusPreviewResult = {
+    ...CLEAN,
+    warnings: [
+      {
+        code: "missing_liquid_class",
+        severity: "warning",
+        message: "Janus mapping: the liquid class column is blank.",
+        mutant_ids: [],
+      },
+      {
+        code: "derived_source_rack",
+        severity: "warning",
+        message: "Janus mapping: deck positions derived from the plates of this run.",
+        mutant_ids: [],
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    useMameAppStore.setState({ janusSettings: DEFAULT_JANUS_SETTINGS });
+    mockPreview.mockReset();
+    mockExport.mockReset();
+  });
+
+  it("shows what shipped blank or derived without blocking the export", async () => {
+    mockPreview.mockImplementation(async (settings) => ({
+      ...WARNED,
+      settings: resolvedSettingsFromUi(settings),
+    }));
+    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+
+    const warned = await screen.findByTestId("janus-preview-warnings");
+    expect(warned).toHaveTextContent(/liquid class column is blank/i);
+    expect(warned).toHaveTextContent(/derived from the plates of this run/i);
+    // Reported, not enforced.
+    expect(warned).toHaveAttribute("role", "status");
+    await waitFor(() => expect(exportButton()).toBeEnabled());
+  });
+
+  it("still exports while the warnings are on screen", async () => {
+    mockPreview.mockImplementation(async (settings) => ({
+      ...WARNED,
+      settings: resolvedSettingsFromUi(settings),
+    }));
+    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    await screen.findByTestId("janus-preview-warnings");
+    await waitFor(() => expect(exportButton()).toBeEnabled());
+
+    fireEvent.click(exportButton());
+
+    await waitFor(() => expect(mockExport).toHaveBeenCalled());
   });
 });
 
@@ -512,6 +586,7 @@ describe("JanusMappingDialog deck map", () => {
     mockPreview.mockImplementation(async (settings) => ({
       rows: [],
       errors: [],
+      warnings: [],
       row_count: 0,
       excluded: [],
       excluded_count: 0,

@@ -1,13 +1,13 @@
 /**
- * The automatic pick list, as reported after a run.
+ * The two automatic files, as reported after a run.
  *
- * A run that says "Analysis complete" while its file failed sends somebody to a
- * folder with no file in it, so all three outcomes have to be legible: written,
- * nothing to write, and could not write (with the reason).
+ * A run that says "Analysis complete" while a file failed sends somebody to a
+ * folder with no file in it, so all three outcomes have to be legible for each:
+ * written, nothing to write, and could not write (with the reason).
  *
- * The wording carries a second duty. The file is the selection, not a robot
- * worklist, and the place that builds a worklist is the Janus settings dialog,
- * not the File menu it was removed from in v0.14.7.
+ * The instrument mapping is written without a confirmed deck, so what it left
+ * blank or derived has to be readable here, and none of it may look like a
+ * failure.
  */
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -28,11 +28,12 @@ const BASE = {
   excluded: [],
   excluded_count: 0,
   errors: [],
+  warnings: [],
 };
 
 describe("JanusAutosaveNotice", () => {
   beforeEach(() => {
-    useMameAppStore.setState({ janusAutosave: null });
+    useMameAppStore.setState({ janusAutosave: null, janusMappingAutosave: null });
   });
 
   it("renders nothing before a run has reported one", () => {
@@ -58,25 +59,85 @@ describe("JanusAutosaveNotice", () => {
     expect(notice).toHaveTextContent("260804_MAME_96_picks.csv");
   });
 
-  it("calls the file a selection and points the worklist elsewhere", () => {
-    // The file carries no liquid class, no volume and no rack number, so a
-    // reader who takes it for a worklist takes it to the instrument.
+  it("names the instrument mapping as its own file", () => {
     useMameAppStore.setState({
-      janusAutosave: {
+      janusMappingAutosave: {
         ...BASE,
         status: "saved",
-        output_path: "D:/project/260804_MAME_96_picks.csv",
+        output_path: "D:/project/260804_MAME_96_janus.csv",
         row_count: 42,
       },
     });
 
     render(<JanusAutosaveNotice />);
 
-    const notice = screen.getByTestId("janus-autosave-notice");
-    expect(notice).toHaveTextContent(/selection list, not a robot worklist/i);
-    expect(notice).toHaveTextContent(/Janus instrument settings/i);
+    const notice = screen.getByTestId("janus-mapping-autosave-notice");
+    expect(notice).toHaveAttribute("data-status", "saved");
+    expect(notice).toHaveTextContent("260804_MAME_96_janus.csv");
+    expect(notice).toHaveTextContent(/instrument mapping/i);
     // The File menu item is gone; no copy may still send anyone there.
     expect(notice).not.toHaveTextContent(/File > Export Janus Mapping/i);
+  });
+
+  it("reports a blank liquid class without calling the run a failure", () => {
+    // The v0.15.8 change: the sheet ships with the column empty and says so.
+    useMameAppStore.setState({
+      janusMappingAutosave: {
+        ...BASE,
+        status: "saved",
+        output_path: "D:/project/260804_MAME_96_janus.csv",
+        row_count: 3,
+        warnings: [
+          {
+            code: "missing_liquid_class",
+            severity: "warning",
+            message: "the liquid class column is blank",
+            mutant_ids: [],
+          },
+          {
+            code: "derived_source_rack",
+            severity: "warning",
+            message: "deck positions derived from the plates of this run",
+            mutant_ids: [],
+          },
+        ],
+      },
+    });
+
+    render(<JanusAutosaveNotice />);
+
+    const notice = screen.getByTestId("janus-mapping-autosave-notice");
+    // Saved, not failed: the warning describes the file, it does not withhold it.
+    expect(notice).toHaveAttribute("data-status", "saved");
+    expect(notice).toHaveAttribute("role", "status");
+    expect(notice).toHaveTextContent(/liquid class column is blank/i);
+    expect(notice).toHaveTextContent(/derived from the plates of this run/i);
+  });
+
+  it("shows both files at once, each with its own outcome", () => {
+    useMameAppStore.setState({
+      janusAutosave: {
+        ...BASE,
+        status: "saved",
+        output_path: "D:/project/run_picks.csv",
+        row_count: 2,
+      },
+      janusMappingAutosave: {
+        ...BASE,
+        status: "saved",
+        output_path: "D:/project/run_janus.csv",
+        row_count: 2,
+      },
+    });
+
+    render(<JanusAutosaveNotice />);
+
+    expect(screen.getByTestId("janus-autosave-notice")).toHaveTextContent(
+      "run_picks.csv",
+    );
+    expect(screen.getByTestId("janus-mapping-autosave-notice")).toHaveTextContent(
+      "run_janus.csv",
+    );
   });
 
   it("says plainly that nothing was written when nothing was selected", () => {
@@ -89,17 +150,16 @@ describe("JanusAutosaveNotice", () => {
     expect(notice).toHaveTextContent(/no selection list was written/i);
   });
 
-  it("surfaces the reason a mapping could not be written", () => {
-    // The common one: device9 has no default liquid class, because that value
-    // decides how the robot handles the cells.
+  it("surfaces the reason a file could not be written", () => {
     useMameAppStore.setState({
       janusAutosave: {
         ...BASE,
         status: "failed",
         errors: [
           {
-            code: "missing_liquid_class",
-            message: "liquid_class is required for the device9 schema",
+            code: "autosave_failed",
+            severity: "error",
+            message: "disk went away",
             mutant_ids: [],
           },
         ],
@@ -111,7 +171,7 @@ describe("JanusAutosaveNotice", () => {
     const notice = screen.getByTestId("janus-autosave-notice");
     expect(notice).toHaveAttribute("data-status", "failed");
     expect(notice).toHaveAttribute("role", "alert");
-    expect(notice).toHaveTextContent(/liquid_class is required/i);
+    expect(notice).toHaveTextContent(/disk went away/i);
   });
 
   it("reports clones left out of the mapping", () => {

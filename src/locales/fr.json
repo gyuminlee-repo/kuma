@@ -719,12 +719,12 @@
         "volumeLabel": "Volume (µL)",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "ex. Cell 100ul",
-        "liquidClassHint": "La liquid class pilote le comportement de pipetage du robot, aucune valeur par défaut n'est donc supposée. L'export reste bloqué tant qu'elle est vide.",
+        "liquidClassHint": "La liquid class determine le comportement de pipetage du robot, aucune valeur par defaut n'est donc supposee. Laissee vide, la colonne reste vide et l'export se poursuit.",
         "deckHeading": "Configuration du deck",
         "sampleTypeLabel": "valeur de la colonne type",
         "sourceRackLabel": "Asp. Rack {{plate}}",
         "destRackLabel": "Dsp. Rack",
-        "rackHint": "Numérotation de rack supposée : plaques source d'abord, dans l'ordre labware du classeur, destination en dernier. À ajuster au deck.",
+        "rackHint": "Les numeros de rack suivent les plaques de cette execution : les plaques source occupent les premiers racks dans l'ordre des plaques et la destination le suivant, comme dans la feuille d'amorces KURO. Saisir un nombre pour remplacer.",
         "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
         "excludedHeading": "Exclus : {{count}}",
         "excludedNone": "Aucun clone n'a été exclu.",
@@ -735,7 +735,8 @@
           "verdict_class": "Verdict class non incluse",
           "fallback": "Choix de repli"
         },
-        "selectionNote": "Seuls les clones PASS sont retenus. AMBIGUOUS porte un indel associé et LOWDEPTH n'est pas vérifié, les deux apparaissent donc comme exclus."
+        "selectionNote": "Seuls les clones PASS sont retenus. AMBIGUOUS porte un indel associé et LOWDEPTH n'est pas vérifié, les deux apparaissent donc comme exclus.",
+        "previewWarned": "Ecrit comme indique ci-dessous. Rien de tout cela ne bloque l'export."
       },
       "runReport": {
         "title": "Exporter le rapport de run",
@@ -990,7 +991,7 @@
         "secOnly": "{{sec}} s"
       },
       "janusAutosave": {
-        "saved": "Selected clones written next to the result workbook ({{rows}} picks). This is the selection list, not a robot worklist; build that in Janus instrument settings.",
+        "saved": "Clones selectionnes ecrits a cote du classeur de resultats ({{rows}} selections). Ceci est la liste de selection ; la feuille instrument est le fichier voisin.",
         "skipped": "No clone met the selection criteria, so no selection list was written.",
         "failed": "The selection list was not written.",
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
@@ -998,7 +999,17 @@
       "janusSettings": {
         "open": "Janus instrument settings...",
         "openAriaLabel": "Open Janus instrument settings",
-        "hint": "Optional. Liquid class and deck rack numbers are needed only for the robot worklist; the selection list this run writes needs none of them."
+        "hint": "Optionnel. Les numeros de rack suivent les plaques de cette execution et la liquid class reste vide si non definie ; saisir une valeur uniquement pour remplacer."
+      },
+      "janusMappingAutosave": {
+        "saved": "Mapping instrument ecrit a cote du classeur de resultats ({{rows}} lignes), dans les 9 colonnes que lit le robot.",
+        "skipped": "Aucun clone n'a satisfait aux criteres de selection, aucun mapping instrument n'a donc ete ecrit.",
+        "failed": "Le mapping instrument n'a pas ete ecrit.",
+        "excluded": "{{clones}} clone(s) exclus du mapping. Ouvrir les reglages instrument Janus pour en connaitre la raison."
+      },
+      "janusVolume": {
+        "label": "Volume de transfert (uL)",
+        "hint": "Ecrit dans le mapping instrument produit par cette execution. Les 100 uL fournis sont une hypothese sans source de laboratoire : indiquez le volume de cette experience."
       }
     },
     "buildEvolvepro": {

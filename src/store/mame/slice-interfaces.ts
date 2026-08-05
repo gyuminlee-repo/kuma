@@ -115,6 +115,7 @@ export interface InputSlice {
   janusSettings: JanusExportSettings;
   // What became of that automatic mapping on the last run. null = no run yet.
   janusAutosave: JanusAutosaveResult | null;
+  janusMappingAutosave: JanusAutosaveResult | null;
   inspectVariantSource: (path: string) => Promise<void>;
   setVariantSheet: (sheet: string | null) => void;
   setVariantColumn: (column: string | null) => void;

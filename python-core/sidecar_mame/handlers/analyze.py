@@ -251,6 +251,9 @@ def _deserialize_replicate(d: dict) -> Any:
 #: Token appended to the result workbook stem for the auto-saved pick list.
 _PICKS_AUTOSAVE_SUFFIX = "_picks"
 
+#: Token for the auto-saved instrument (9-column) mapping.
+_MAPPING_AUTOSAVE_SUFFIX = "_janus"
+
 
 def picks_autosave_path(output: Path) -> Path:
     """Where the pick list lands for a run whose workbook is *output*.
@@ -262,11 +265,89 @@ def picks_autosave_path(output: Path) -> Path:
     where the rule lives; a second implementation here would drift the first time
     the rule changed. Same directory, same stem, plus the picks token.
 
-    The token says what the file is: the clones this run selected, not a file to
-    hand the instrument. ``_janus`` promised the latter, which the file no longer
-    is (see :func:`_autosave_picks`).
+    The token says what the file is: the clones this run selected. The
+    instrument sheet is the other file the run writes, and it keeps the
+    ``_janus`` token (:func:`mapping_autosave_path`).
     """
     return output.with_name(f"{output.stem}{_PICKS_AUTOSAVE_SUFFIX}.csv")
+
+
+def mapping_autosave_path(output: Path) -> Path:
+    """Where the instrument (9-column) mapping lands, beside the pick list.
+
+    Same derivation as :func:`picks_autosave_path` and a different token, so a
+    run leaves two files nobody can confuse: ``..._picks.csv`` records what was
+    selected, ``..._janus.csv`` is the sheet the robot reads.
+    """
+    return output.with_name(f"{output.stem}{_MAPPING_AUTOSAVE_SUFFIX}.csv")
+
+
+def _autosave_janus(
+    replicates: list,
+    target: Path,
+    run_meta: object,
+    settings: object,
+) -> dict:
+    """Write one Janus file for a finished run and report what happened.
+
+    The analysis is already done and cached when this runs, so nothing here may
+    raise: a file that cannot be written is a fact to report, not a reason to
+    lose a multi-minute run. Every outcome comes back in the same shape.
+
+    Returns ``{"status", "output_path", "format", "row_count", "excluded",
+    "excluded_count", "errors", "warnings"}``. ``status`` is ``"saved"``,
+    ``"skipped"`` (nothing selected: no file is written, because an empty pick
+    list reads like a finished plate), or ``"failed"``.
+
+    ``warnings`` (a blank liquid class, deck numbers derived from the run) never
+    stops the file. Only ``errors`` does.
+    """
+    result: dict = {
+        "status": "failed",
+        "output_path": None,
+        "format": "csv",
+        "row_count": 0,
+        "excluded": [],
+        "excluded_count": 0,
+        "errors": [],
+        "warnings": [],
+    }
+    try:
+        from kuma_core.mame.export import export_mame_janus_csv
+        from kuma_core.mame.export.janus_mapping import build_janus_preview_rows
+
+        preview = build_janus_preview_rows(replicates, settings=settings)  # type: ignore[arg-type]
+        result["row_count"] = preview["row_count"]
+        result["excluded"] = preview["excluded"]
+        result["excluded_count"] = preview["excluded_count"]
+        result["warnings"] = preview["warnings"]
+
+        if preview["errors"]:
+            result["errors"] = preview["errors"]
+            return result
+        if preview["row_count"] == 0:
+            result["status"] = "skipped"
+            return result
+
+        export_mame_janus_csv(
+            replicates,
+            target,
+            ngs_run_meta=run_meta,  # type: ignore[arg-type]
+            settings=settings,  # type: ignore[arg-type]
+        )
+        result["status"] = "saved"
+        result["output_path"] = str(target)
+        return result
+    except Exception as exc:  # noqa: BLE001 - the run must survive any failure here
+        result["errors"] = [
+            {
+                "code": "autosave_failed",
+                "severity": "error",
+                "message": str(exc),
+                "mutant_ids": [],
+            }
+        ]
+        return result
 
 
 def _autosave_picks(
@@ -277,82 +358,102 @@ def _autosave_picks(
 ) -> dict:
     """Write the pick list for a finished run, next to its workbook.
 
-    The analysis is already done and cached when this runs, so nothing here may
-    raise: a file that cannot be written is a fact to report, not a reason to lose
-    a multi-minute run. Every outcome comes back in the same shape.
-
     The schema is forced to ``legacy5`` and deliberately ignores the dialog's
-    ``output_schema``. The two files answer different questions. This one records
-    the conclusion of the run (which variant sits on which plate and well, and
-    where it should be collected), which is what an operator wants beside the
-    workbook every time. ``device9`` is an instruction sheet for the robot: it
-    carries a liquid class, a volume, and deck rack numbers, and those values are
-    only correct for the deck standing in the room at the moment of the run. Every
-    exploratory re-run would drop another sheet stating a deck that may not exist,
-    and one of them could reach the instrument. Writing that sheet stays with the
-    dialog, where the operator confirms the deck first.
+    ``output_schema``. This file records the conclusion of the run (which variant
+    sits on which plate and well, and where it should be collected), which is
+    what an operator wants beside the workbook every time, and it stays readable
+    without a deck in front of you. The instrument sheet is the other file
+    (:func:`_autosave_mapping`); neither replaces the other, and the lab asked
+    for the instrument sheet by name.
 
     Selection stays under the operator's control: ``dest_layout``,
     ``include_verdicts`` and ``include_fallback`` are honoured, because those
     describe which clones are picked and how they are gathered, not how the robot
     handles them.
-
-    Returns ``{"status", "output_path", "format", "row_count", "excluded",
-    "excluded_count", "errors"}``. ``status`` is ``"saved"``, ``"skipped"``
-    (nothing selected: no file is written, because an empty pick list reads like a
-    finished plate), or ``"failed"``.
     """
-    result: dict = {
-        "status": "failed",
-        "output_path": None,
-        "format": "csv",
-        "row_count": 0,
-        "excluded": [],
-        "excluded_count": 0,
-        "errors": [],
-    }
+    from kuma_core.mame.export.janus_mapping import SCHEMA_LEGACY5
+
+    from .export import _janus_settings_from_params
+
     try:
-        from kuma_core.mame.export import export_mame_janus_csv
-        from kuma_core.mame.export.janus_mapping import (
-            SCHEMA_LEGACY5,
-            build_janus_preview_rows,
-        )
-
-        from .export import _janus_settings_from_params
-
         # The schema is pinned before the params are resolved, not overridden
         # after, so the instrument fields of a device9 dialog (volume, racks)
         # cannot fail validation for a file that will not carry them.
         settings = _janus_settings_from_params(
             {**janus_params, "output_schema": SCHEMA_LEGACY5}
         )
-        preview = build_janus_preview_rows(replicates, settings=settings)
-        result["row_count"] = preview["row_count"]
-        result["excluded"] = preview["excluded"]
-        result["excluded_count"] = preview["excluded_count"]
+    except Exception as exc:  # noqa: BLE001 - never lose the run over a setting
+        return {
+            "status": "failed",
+            "output_path": None,
+            "format": "csv",
+            "row_count": 0,
+            "excluded": [],
+            "excluded_count": 0,
+            "errors": [
+                {
+                    "code": "autosave_failed",
+                    "severity": "error",
+                    "message": str(exc),
+                    "mutant_ids": [],
+                }
+            ],
+            "warnings": [],
+        }
+    return _autosave_janus(
+        replicates, picks_autosave_path(output), run_meta, settings
+    )
 
-        if preview["errors"]:
-            result["errors"] = preview["errors"]
-            return result
-        if preview["row_count"] == 0:
-            result["status"] = "skipped"
-            return result
 
-        target = picks_autosave_path(output)
-        export_mame_janus_csv(
-            replicates,
-            target,
-            ngs_run_meta=run_meta,  # type: ignore[arg-type]
-            settings=settings,
+def _autosave_mapping(
+    replicates: list,
+    output: Path,
+    run_meta: object,
+    janus_params: dict,
+) -> dict:
+    """Write the instrument (9-column) mapping for a finished run.
+
+    The file the lab actually asked for: "the mapping file only has to come out
+    the way KURO already makes it". KURO writes its JANUS sheet at the end of a
+    design without asking anybody for a liquid class or a rack number
+    (``kuma_core/kuro/plate_mapper.py:897`` onwards), so MAME writing one at the
+    end of a run is the same habit, not a new promise.
+
+    Nothing is invented to make it come out: rack numbers follow the plates of
+    the run (``JanusSettings.resolve_deck``), a liquid class the operator has not
+    set ships blank, and both facts come back in ``warnings``. ``volume`` is the
+    one value that cannot be derived, which is why the dialog asks for it and
+    the default is labelled an assumption.
+    """
+    from kuma_core.mame.export.janus_mapping import SCHEMA_DEVICE9
+
+    from .export import _janus_settings_from_params
+
+    try:
+        settings = _janus_settings_from_params(
+            {**janus_params, "output_schema": SCHEMA_DEVICE9}
         )
-        result["status"] = "saved"
-        result["output_path"] = str(target)
-        return result
-    except Exception as exc:  # noqa: BLE001 - the run must survive any failure here
-        result["errors"] = [
-            {"code": "autosave_failed", "message": str(exc), "mutant_ids": []}
-        ]
-        return result
+    except Exception as exc:  # noqa: BLE001 - never lose the run over a setting
+        return {
+            "status": "failed",
+            "output_path": None,
+            "format": "csv",
+            "row_count": 0,
+            "excluded": [],
+            "excluded_count": 0,
+            "errors": [
+                {
+                    "code": "autosave_failed",
+                    "severity": "error",
+                    "message": str(exc),
+                    "mutant_ids": [],
+                }
+            ],
+            "warnings": [],
+        }
+    return _autosave_janus(
+        replicates, mapping_autosave_path(output), run_meta, settings
+    )
 
 
 def _summarize(verdicts: list) -> dict:
@@ -536,13 +637,14 @@ def handle_validate_inputs(params: dict) -> dict:
 def handle_analyze(params: dict) -> dict:
     """Run the full pipeline and cache the resulting artefacts for downstream RPCs.
 
-    Two files come out of one run: the result workbook at ``output`` and the pick
-    list beside it (see :func:`picks_autosave_path`), written here rather than
-    waiting for the export dialog. Optional ``janus_settings`` carries the same
-    fields the ``export_janus_mapping`` RPC accepts, but only its selection fields
-    apply here; the schema is pinned to ``legacy5`` (see :func:`_autosave_picks`),
-    so the robot worklist stays a dialog decision. The outcome rides back on
-    ``janus_autosave`` and never raises.
+    Three files come out of one run: the result workbook at ``output``, the pick
+    list beside it (:func:`picks_autosave_path`), and the instrument mapping
+    (:func:`mapping_autosave_path`), all written here rather than waiting for the
+    export dialog. Optional ``janus_settings`` carries the same fields the
+    ``export_janus_mapping`` RPC accepts; the pick list pins ``legacy5`` and the
+    mapping pins ``device9``, so which schema each file uses is not a setting.
+    The two outcomes ride back on ``janus_autosave`` and
+    ``janus_mapping_autosave`` and never raise.
 
     Optional ``variant_sheet`` / ``variant_column`` name the sheet and column of a
     plain expected-variant list. Omitting both is auto-detection, which leaves a
@@ -1071,8 +1173,14 @@ def handle_analyze(params: dict) -> dict:
     # The pick list is the second artefact of the same run, so it is written here
     # rather than waiting for the operator to open the dialog. Cached state is
     # already set above, so a failure here costs the file, never the analysis.
-    janus_autosave = _autosave_picks(
-        replicates, output, run_meta, params.get("janus_settings") or {}
+    janus_params = params.get("janus_settings") or {}
+    janus_autosave = _autosave_picks(replicates, output, run_meta, janus_params)
+    # The mapping file the lab asked for by name: same run, same picks, the
+    # instrument columns. Written unconditionally because KURO writes its JANUS
+    # sheet the same way, and because the two files answer different questions
+    # (what was selected vs. what the robot should do about it).
+    janus_mapping_autosave = _autosave_mapping(
+        replicates, output, run_meta, janus_params
     )
 
     response = {
@@ -1080,6 +1188,7 @@ def handle_analyze(params: dict) -> dict:
         "replicates": [_serialize_replicate(r) for r in replicates],
         "output_path": str(output),
         "janus_autosave": janus_autosave,
+        "janus_mapping_autosave": janus_mapping_autosave,
         "designed_mutant_ids": sorted(dids),
         "summary": _summarize(verdicts),
         "distribution_stats": {

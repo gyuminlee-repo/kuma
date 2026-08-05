@@ -262,29 +262,146 @@ def test_autosaved_file_carries_only_the_selected_replicate(tmp_path: Path) -> N
     assert len(_read_csv(autosave["output_path"])) == 2
 
 
-def test_the_dialog_still_writes_the_instrument_sheet_and_still_refuses_without_one(
+def test_the_dialog_writes_the_instrument_sheet_with_or_without_a_liquid_class(
     tmp_path: Path,
 ) -> None:
-    """The worklist path is unchanged: device9 by default, liquid class required.
+    """device9 by default, and a blank liquid class no longer withholds the file.
 
     Same session as the run above, so this is the very state the dialog exports
-    from. Splitting the automatic file off must not have relaxed the guard that
-    keeps a guessed pipetting behaviour off the instrument.
+    from. Refusing over the blank column left the lab with no mapping file at
+    all, which is worse than a column they fill in themselves; the warning names
+    it instead.
     """
     _run(tmp_path, {"1_2": _G2A_NT, "2_1": _F3W_NT})
     from sidecar_mame.handlers.export import handle_export_janus_mapping
 
-    target = tmp_path / "worklist.csv"
-    with pytest.raises(ValueError, match="liquid class"):
-        handle_export_janus_mapping({"output": str(target)})
-    assert not target.exists()
+    blank = tmp_path / "worklist_blank.csv"
+    written_blank = handle_export_janus_mapping({"output": str(blank)})
+    assert Path(written_blank["output_path"]).exists()
+    assert len(_read_csv(written_blank["output_path"])[0]) == 9
+    assert [w["code"] for w in written_blank["warnings"]] == [
+        "missing_liquid_class",
+        "derived_source_rack",
+    ]
+    # Blank means blank: nothing was invented for the column.
+    assert _read_csv(written_blank["output_path"])[1][2] == ""
 
+    target = tmp_path / "worklist.csv"
     written = handle_export_janus_mapping(
         {"output": str(target), "liquid_class": _LIQUID_CLASS}
     )
     assert Path(written["output_path"]).exists()
     # Nine instrument columns, the point of that file.
     assert len(_read_csv(written["output_path"])[0]) == 9
+    assert _read_csv(written["output_path"])[1][2] == _LIQUID_CLASS
+
+
+# Column-major well order over the expected-mutation sheet: seq 1 ("1_1"),
+# seq 2 ("2_1"), seq 3 ("3_1").
+_M1L_NT = "CTGGGGTTT"  # well A01, custom_barcode "1_1"
+
+
+def _make_three_mutant_xlsx(dest: Path) -> Path:
+    """Expected-mutation sheet for the three-plate run below."""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.title = "expected_mutations"
+    ws.append(["mutant_id", "position", "wt_aa", "mt_aa", "wt_codon", "mt_codon",
+               "group_id", "primer_set_ref", "notation_type", "status"])
+    ws.append(["M1L", 1, "M", "L", "ATG", "CTG", "", "M1L", "substitution", "DESIGNED"])
+    ws.append(["G2A", 2, "G", "A", "GGG", "GCG", "", "G2A", "substitution", "DESIGNED"])
+    ws.append(["F3W", 3, "F", "W", "TTT", "TGG", "", "F3W", "substitution", "DESIGNED"])
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    wb.save(dest)
+    return dest
+
+
+def test_a_three_plate_native_barcode_run_writes_the_instrument_sheet(
+    tmp_path: Path,
+) -> None:
+    """``sort_barcode07/08/09``, the run that produced no mapping file at all.
+
+    Its plates matched nothing in the fixed NB01/NB02/NB03 rack map, so v0.15.6
+    refused to write and v0.15.7 stopped writing an instrument sheet
+    automatically at all. Nothing is configured here: no liquid class, no rack
+    numbers, no dest rack. The file has to come out anyway, with the deck taken
+    from the plates of the run.
+    """
+    ingest = tmp_path / "consensus"
+    _write_fasta(ingest / "sort_barcode07" / "1_1.fasta", "1_1", _M1L_NT)
+    _write_fasta(ingest / "sort_barcode08" / "2_1.fasta", "2_1", _G2A_NT)
+    _write_fasta(ingest / "sort_barcode09" / "3_1.fasta", "3_1", _F3W_NT)
+
+    from sidecar_mame.handlers.analyze import handle_analyze
+
+    result = handle_analyze(
+        {
+            "input_dir": str(ingest),
+            "reference": str(_make_reference_fasta(tmp_path)),
+            "expected": str(_make_three_mutant_xlsx(tmp_path / "kuro.xlsx")),
+            "output": str(tmp_path / "260804_ref_MAME.xlsx"),
+            "cds_start": 0,
+            "cds_end": 9,
+            "min_file_size_kb": 0.0,
+            "ingest_mode": "barcode",
+        }
+    )
+
+    mapping = result["janus_mapping_autosave"]
+    assert mapping["status"] == "saved", mapping
+    written = Path(mapping["output_path"])
+    assert written == tmp_path / "260804_ref_MAME_janus.csv"
+    assert written.exists()
+
+    body = _read_csv(str(written))
+    assert len(body[0]) == 9
+    rows = body[1:]
+    assert len(rows) == 3
+    # Asp. Rack (index 4) by plate, Dsp. Rack (index 6) the next number.
+    by_name = {row[0]: row for row in rows}
+    assert by_name["M1L"][4] == "1"
+    assert by_name["G2A"][4] == "2"
+    assert by_name["F3W"][4] == "3"
+    assert {row[6] for row in rows} == {"4"}
+    # Nothing invented for the column nobody set.
+    assert {row[2] for row in rows} == {""}
+    assert sorted(w["code"] for w in mapping["warnings"]) == [
+        "derived_source_rack",
+        "missing_liquid_class",
+    ]
+
+    # The pick list is still written beside it: two files, two questions.
+    picks = result["janus_autosave"]
+    assert picks["status"] == "saved", picks
+    assert Path(picks["output_path"]) == tmp_path / "260804_ref_MAME_picks.csv"
+    assert len(_read_csv(picks["output_path"])[0]) == 5
+
+
+def test_operator_rack_numbers_reach_the_automatic_instrument_sheet(
+    tmp_path: Path,
+) -> None:
+    """A number entered in the dialog wins over the derived one."""
+    result = _run(
+        tmp_path,
+        {"1_2": _G2A_NT, "2_1": _F3W_NT},
+        janus_settings={
+            "liquid_class": _LIQUID_CLASS,
+            "source_racks": {"NB01": 5},
+            "dest_rack": 8,
+            "volume": 40.0,
+        },
+    )
+
+    mapping = result["janus_mapping_autosave"]
+    assert mapping["status"] == "saved", mapping
+    rows = _read_csv(mapping["output_path"])[1:]
+    assert {row[4] for row in rows} == {"5"}
+    assert {row[6] for row in rows} == {"8"}
+    assert {row[2] for row in rows} == {_LIQUID_CLASS}
+    assert {row[8] for row in rows} == {"40.0"}
+    # Everything was supplied, so nothing is reported as blank or derived.
+    assert mapping["warnings"] == []
 
 
 def test_an_export_failure_does_not_cost_the_analysis(
