@@ -756,56 +756,19 @@ def _build_janus_preview_rows(
 ) -> list[dict]:
     """Build JANUS mapping preview rows in-memory (no file I/O).
 
-    Dsp. Rack is always 3 (destination PCR plate); ``mapping_range`` is
-    accepted for parity with the Echo dry-run preview but JANUS layout
-    uses 96-well source/dest so the range only flows through if/when the
-    plate_mapper Janus paths consume it (currently unused, kept future-proof).
+    Delegates to ``build_janus_rows``, the same builder the CSV and XLSX
+    exports use, so the preview cannot describe a different run than the file
+    the operator ends up loading onto the instrument. Rack numbers and the
+    liquid class come from the deck policy, not from literals here.
+
+    ``mapping_range`` is accepted for parity with the Echo dry-run preview but
+    JANUS layout uses 96-well source/dest so the range only flows through
+    if/when the plate_mapper Janus paths consume it (currently unused, kept
+    future-proof).
     """
-    from kuma_core.kuro.plate_mapper import _build_rev_lookups
+    from kuma_core.kuro.plate_mapper import build_janus_rows
 
-    fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(fwd, rev, rev_groups)
-
-    rows: list[dict] = []
-    seq_no = 1
-
-    for m in fwd:
-        rows.append({
-            "name": f"{m.mutation}-F",
-            "type": "primer",
-            "dsp_rack_label": "Oligo 5pmol/ul",
-            "no": seq_no,
-            "asp_rack": 1,
-            "asp_posi": m.well,
-            "dsp_rack": 3,
-            "dsp_posi": m.well,
-            "volume": transfer_vol,
-            "mutation": m.mutation,
-        })
-        seq_no += 1
-
-    for fwd_m in fwd:
-        rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
-        if rev_seq is None:
-            continue
-        rev_m = rev_by_seq.get(rev_seq)
-        if rev_m is None:
-            continue
-        dest_well = fwd_by_mut.get(fwd_m.mutation, fwd_m.well)
-        rows.append({
-            "name": f"{fwd_m.mutation}-R",
-            "type": "primer",
-            "dsp_rack_label": "Oligo 5pmol/ul",
-            "no": seq_no,
-            "asp_rack": 2,
-            "asp_posi": rev_m.well,
-            "dsp_rack": 3,
-            "dsp_posi": dest_well,
-            "volume": transfer_vol,
-            "mutation": fwd_m.mutation,
-        })
-        seq_no += 1
-
-    return rows
+    return build_janus_rows(fwd, rev, rev_groups, transfer_vol)
 
 
 def handle_export_echo_mapping_dry_run(params: dict) -> dict:

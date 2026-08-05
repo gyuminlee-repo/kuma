@@ -14,6 +14,12 @@ import type { JanusExportSettings } from "@/types/mame/models";
  * Default export policy, mirroring ``JanusSettings``
  * (kuma_core/mame/export/janus_mapping.py).
  *
+ * Hand-written, not generated, but no longer on trust:
+ * `scripts/sync-check-janus-defaults.mjs` pushes these values through
+ * {@link toRpcParams} and compares the result with `JanusSettings().to_payload()`,
+ * and `pnpm sync:check` fails if either side moves alone. Editing a value here
+ * means editing the matching constant there in the same change.
+ *
  * Only fully verified clones ship: AMBIGUOUS carries a side indel that would
  * mislabel an activity measurement and LOWDEPTH is unverified, so both stay out
  * unless the operator opts in. A stock plate is a new plate, hence the compact
