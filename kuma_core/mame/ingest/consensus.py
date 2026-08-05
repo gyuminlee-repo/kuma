@@ -211,6 +211,12 @@ class ConsensusCall:
     n_low_depth_positions: int = 0
     consensus_n_fraction: float = 0.0
     n_low_quality_bases: int = 0
+    # Weakest read support among the substitutions the consensus calls, and how
+    # many such positions there are.  ``None`` when the consensus matches the
+    # reference everywhere at usable depth (a WT control well), which is not the
+    # same as zero support and must not be compared as if it were.
+    min_variant_support: float | None = None
+    n_variant_positions: int = 0
     # Per-well insertion-event evidence. Insertions are discarded from the
     # reference-length consensus (same as samtools consensus default), so
     # variant clones with only an in-frame insertion reach a WT-identical
@@ -457,6 +463,32 @@ def call_consensus_with_metrics(
         inserted_bp = int(np.rint(bp / np.maximum(ev, 1)).sum())
     consensus_net_indel_bp = inserted_bp - n_del_majority
 
+    # Support for the substitutions this consensus actually calls.
+    #
+    # ``max_minor_allele_fraction`` is a maximum over every position, so it is
+    # driven by whichever position is noisiest and says nothing about the variant
+    # the well exists for. This metric is the opposite end: the WEAKEST support
+    # among the positions where the consensus departs from the reference. Two
+    # replicates that both call the designed substitution are indistinguishable by
+    # verdict class even when one rests on 81% of reads and the other on 98%, and
+    # the replicate picker needs to prefer the latter (see select/best_pick.py).
+    #
+    # Denominator is ACGT depth, matching the mixed-position metric above, and
+    # positions below ``mix_min_depth`` are skipped for the same reason: a support
+    # fraction off three reads is not evidence either way.
+    ref_arr = np.frombuffer(reference_seq.upper().encode("ascii"), dtype=np.uint8)
+    if ref_arr.shape[0] != ref_len:
+        ref_arr = np.resize(ref_arr, ref_len)
+    called_sub = (
+        covered & ~no_call & (out_chars != ref_arr) & (base_total >= mix_min_depth)
+    )
+    n_variant_positions = int(called_sub.sum())
+    if n_variant_positions:
+        support = best_count[called_sub] / np.maximum(base_total[called_sub], 1)
+        min_variant_support: float | None = float(support.min())
+    else:
+        min_variant_support = None
+
     return ConsensusCall(
         consensus_seq=consensus_seq,
         n_mixed_positions=n_mixed_positions,
@@ -469,6 +501,8 @@ def call_consensus_with_metrics(
         max_del_run_length=max_del_run,
         consensus_net_indel_bp=consensus_net_indel_bp,
         median_read_net_indel_bp=median_read_net_indel_bp,
+        min_variant_support=min_variant_support,
+        n_variant_positions=n_variant_positions,
     )
 
 

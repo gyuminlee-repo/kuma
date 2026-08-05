@@ -1,8 +1,23 @@
-"""Best-of-3 replicate picker with NB-ordered tiebreaker.
+"""Best-of-3 replicate picker with variant-support then NB-ordered tiebreaker.
 
 Priority: PASS > AMBIGUOUS > LOWDEPTH. WRONG_AA / FRAMESHIFT / MANY / MIXED /
 NO_CALL are unpickable (fallback-eligible only).
-Tiebreaker on equal class: native barcode number ascending (NB01 wins).
+
+Tiebreaker on equal class: weakest-variant-support descending, then native
+barcode number ascending (NB01 wins). Verdict class alone cannot separate two
+replicates that both call the designed substitution, because the only purity
+input to the verdict is the mixed-position gate and everything below that gate
+reads PASS. Measured on the 260729 ispS run, that left plates carrying 19% and
+18% wild-type reads selected over sibling plates at 98% purity purely because
+they sat at a lower native barcode number. Support decides first now; NB order
+survives as the deterministic tiebreak within ``_SUPPORT_TIE_MARGIN``, so a
+difference inside consensus noise does not reshuffle picks between runs.
+
+Replicates whose consensus file predates the support metric, and wells whose
+consensus carries no substitution at all, report ``None``. Ordering falls back
+to NB-ascending whenever any candidate is in that state, so an old result set
+picks exactly what it picked before.
+
 N50 is not available from the current consensus FASTA input, so it is not used.
 
 Fallback (G1): when all pickable-class candidates are absent (filtered out by
@@ -53,6 +68,26 @@ def _volume_key(vr: VerdictRecord) -> float:
     if rc is not None:
         return float(rc)
     return vr.translated.barcode.file_size_kb
+
+
+# Support differences at or below this are treated as equal and handed back to
+# NB order. ONT consensus support wobbles by a percent or two between replicates
+# of the same clone, and letting that wobble decide the pick would make the
+# selected plate change from run to run for no biological reason.
+_SUPPORT_TIE_MARGIN = 0.02
+
+
+def _variant_support(vr: VerdictRecord) -> float | None:
+    """Weakest support among the substitutions this replicate calls.
+
+    ``None`` when the metric is unavailable (consensus file predates it) or the
+    consensus carries no substitution, which is not the same as zero support and
+    must not be ordered as if it were.
+    """
+    bc = vr.translated.barcode
+    if bc.min_variant_support is None or bc.n_variant_positions <= 0:
+        return None
+    return float(bc.min_variant_support)
 
 
 def _pick_rank(verdict: VerdictClass) -> int:
@@ -124,8 +159,25 @@ def pick_best_replicate(
         if not candidates:
             continue
         candidates.sort(key=_nb_order_key)
-        winner = candidates[0]
-        reason = f"verdict={cls.value}; tiebreak=NB-ascending among {candidates}"
+        supports = {plate: _variant_support(verdicts[plate]) for plate in candidates}
+        if len(candidates) > 1 and all(v is not None for v in supports.values()):
+            best_support = max(supports.values())
+            # Everything within the noise margin of the best stays in contention and
+            # is settled by NB order, which ``candidates`` already carries.
+            contenders = [
+                plate
+                for plate in candidates
+                if best_support - supports[plate] <= _SUPPORT_TIE_MARGIN
+            ]
+            winner = contenders[0]
+            shown = ", ".join(f"{p}={supports[p]:.3f}" for p in candidates)
+            reason = (
+                f"verdict={cls.value}; tiebreak=variant-support ({shown}) "
+                f"then NB-ascending among {contenders}"
+            )
+        else:
+            winner = candidates[0]
+            reason = f"verdict={cls.value}; tiebreak=NB-ascending among {candidates}"
         return ReplicateResult(
             mutant_id=mutant_id,
             plate_verdicts=dict(verdicts),

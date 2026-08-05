@@ -5,9 +5,9 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.15.12";
+export const WHATS_NEW_VERSION = "0.15.13";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
-  { label: "Changed", detail: "Janus instrument configuration is its own step 3, and the Activity step is step 4. Step 2 is the sequencing verdict and nothing else: the transfer volume, the settings/export dialog, the deck reference and the report of what the run wrote…" },
-  { label: "Changed", detail: "The step stays optional in the strict sense. A run still writes `..._picks.csv` and `..._janus.csv` from whatever is stored, no gate on step 2 or step 4 consults the new step, and step 3 reports itself done only once the liquid class (the…" },
+  { label: "Changed", detail: "A consensus reports the weakest read support among the substitutions it calls, and the replicate picker reads that before barcode order. Two plates that both pass are separated by how solidly each one carries its mutation. Differences with…" },
+  { label: "Changed", detail: "The value travels in the consensus FASTA header. It is absent for a well that calls no substitution and for files written before this release, and absent means unknown rather than zero, so an older run picks exactly what it picked before." },
 ];

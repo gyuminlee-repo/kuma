@@ -237,3 +237,91 @@ def test_within_plate_unpickable_keeps_highest_volume_for_fallback() -> None:
     hi = _vr_rc("3_2", VerdictClass.WRONG_AA, read_count=8000, well="D4")
     assert _collapse([lo, hi])["3_2"].translated.barcode.read_count == 8000
     assert _collapse([hi, lo])["3_2"].translated.barcode.read_count == 8000
+
+
+def _vr_support(
+    nb: str,
+    verdict: VerdictClass,
+    min_variant_support: float | None,
+    n_variant_positions: int = 1,
+) -> VerdictRecord:
+    """VerdictRecord carrying the called-substitution support metric."""
+    barcode = BarcodeRecord(
+        native_barcode=nb,
+        custom_barcode="1_1",
+        consensus_seq="",
+        file_size_kb=60.0,
+        source_path=Path("/tmp/mock.fasta"),
+        min_variant_support=min_variant_support,
+        n_variant_positions=n_variant_positions,
+    )
+    translated = TranslatedRecord(
+        barcode=barcode,
+        aa_sequence="",
+        observed_nt_changes=[],
+        observed_aa_changes=[],
+    )
+    return VerdictRecord(
+        translated=translated,
+        expected_mutations=[],
+        verdict=verdict,
+        verdict_notes="",
+    )
+
+
+def test_variant_support_beats_nb_order() -> None:
+    """The purer replicate wins even though it sits at a higher NB number.
+
+    Reproduces the 260729 ispS case: NB07 called the designed substitution off
+    81% of reads and NB08 off 98%, both PASS, and NB order alone shipped the 81%
+    plate to the liquid handler.
+    """
+    verdicts = {
+        "NB07": _vr_support("NB07", VerdictClass.PASS, 0.809),
+        "NB08": _vr_support("NB08", VerdictClass.PASS, 0.982),
+        "NB09": _vr_support("NB09", VerdictClass.PASS, 0.946),
+    }
+    result = pick_best_replicate("I555L", verdicts)
+    assert result.selected_plate == "NB08"
+    assert "variant-support" in result.selection_reason
+
+
+def test_variant_support_ties_fall_back_to_nb_order() -> None:
+    """Differences inside the noise margin must not reshuffle the pick."""
+    verdicts = {
+        "NB08": _vr_support("NB08", VerdictClass.PASS, 0.981),
+        "NB07": _vr_support("NB07", VerdictClass.PASS, 0.975),
+    }
+    result = pick_best_replicate("V5F", verdicts)
+    assert result.selected_plate == "NB07"
+
+
+def test_missing_support_keeps_legacy_nb_order() -> None:
+    """A result set predating the metric picks exactly what it picked before."""
+    verdicts = {
+        "NB07": _vr_support("NB07", VerdictClass.PASS, None),
+        "NB08": _vr_support("NB08", VerdictClass.PASS, 0.982),
+    }
+    result = pick_best_replicate("V5F", verdicts)
+    assert result.selected_plate == "NB07"
+    assert "NB-ascending" in result.selection_reason
+
+
+def test_zero_variant_positions_is_not_zero_support() -> None:
+    """A WT-identical consensus reports no support, not the worst support."""
+    verdicts = {
+        "NB07": _vr_support("NB07", VerdictClass.PASS, 0.99, n_variant_positions=0),
+        "NB08": _vr_support("NB08", VerdictClass.PASS, 0.60),
+    }
+    result = pick_best_replicate("V5F", verdicts)
+    assert result.selected_plate == "NB07"
+
+
+def test_verdict_class_still_outranks_support() -> None:
+    """A purer AMBIGUOUS plate must not beat a PASS plate."""
+    verdicts = {
+        "NB07": _vr_support("NB07", VerdictClass.PASS, 0.70),
+        "NB08": _vr_support("NB08", VerdictClass.AMBIGUOUS, 0.99),
+    }
+    result = pick_best_replicate("V5F", verdicts)
+    assert result.selected_plate == "NB07"

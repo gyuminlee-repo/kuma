@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.15.13 (The replicate that reads cleanest is the one that ships)
+
+MAME keeps three replicate plates per variant and ships one. Verdict class decides first, and below the mixed-position gate every plate reads PASS, so the pick fell to native barcode order. On the 260729 ispS run that sent a plate whose designed substitution rested on 82 percent of reads while its sibling sat at 98 percent, twice, for no reason other than a lower barcode number.
+
+### Changed
+
+- v0.15.13: A consensus reports the weakest read support among the substitutions it calls, and the replicate picker reads that before barcode order. Two plates that both pass are separated by how solidly each one carries its mutation. Differences within two points count as equal and still fall to barcode order, so the picks in a run do not move on consensus noise.
+- v0.15.13: The value travels in the consensus FASTA header. It is absent for a well that calls no substitution and for files written before this release, and absent means unknown rather than zero, so an older run picks exactly what it picked before.
+
 ## v0.15.12 (A run that only sequences never passes a robot)
 
 MAME asked about the cell-picking robot on the screen that collects a run's inputs. The transfer volume, the instrument settings button and, from the Activity step, a second export CTA all sat inside a workflow whose first two steps are the only ones a genotyping run needs: build the barcode package, read the plate. An operator who wanted a verdict and nothing else had the deck, the liquid class and the rack numbers in front of them on step 2.1 anyway, and nothing said any of it was optional.

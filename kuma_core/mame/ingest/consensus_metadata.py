@@ -42,6 +42,11 @@ NET_INDEL = "net_indel"
 CONSENSUS_N_FRACTION_BASIS = "consensus_n_fraction_basis"
 # Denominator = positions whose pileup depth reached ``min_depth``.
 BASIS_COVERED = "covered"
+# Weakest read support among the substitutions the consensus calls, and the
+# number of those positions. Written only when a substitution exists, so absence
+# means "unknown or no substitution", never "zero support".
+MIN_VARIANT_SUPPORT = "min_variant_support"
+VARIANT_POSITIONS = "variant_positions"
 
 
 @dataclass(frozen=True)
@@ -66,6 +71,12 @@ class ConsensusMetadata:
     # Denominator that produced ``consensus_n_fraction``. Always written so any
     # file produced from here on is self-describing.
     consensus_n_fraction_basis: str = BASIS_COVERED
+    # Weakest read support among the substitutions the consensus calls.  Absent
+    # from files written before this key existed, and absent for a well whose
+    # consensus matches the reference everywhere, so the key is only emitted when
+    # a value exists.  A reader must treat "missing" as unknown, never as 0.0.
+    min_variant_support: float | None = None
+    variant_positions: int = 0
 
     def header_items(self) -> Iterable[tuple[str, str]]:
         """Yield metadata pairs in the stable FASTA-header order."""
@@ -86,6 +97,9 @@ class ConsensusMetadata:
         yield CONSENSUS_NET_INDEL, str(self.consensus_net_indel)
         yield READ_NET_INDEL, str(self.read_net_indel)
         yield CONSENSUS_N_FRACTION_BASIS, self.consensus_n_fraction_basis
+        if self.min_variant_support is not None:
+            yield MIN_VARIANT_SUPPORT, f"{self.min_variant_support:.3f}"
+            yield VARIANT_POSITIONS, str(self.variant_positions)
 
     def header_suffix(self) -> str:
         """Return ``key=value`` metadata joined for a FASTA header."""
@@ -114,8 +128,10 @@ __all__ = [
     "LOW_QUALITY_BASES",
     "MAPQ_FAILED",
     "MAX_MINOR_ALLELE_FRACTION",
+    "MIN_VARIANT_SUPPORT",
     "MIXED_POSITIONS",
     "SPAN_FAILED",
+    "VARIANT_POSITIONS",
     "ConsensusMetadata",
     "format_consensus_fasta_record",
     "INDEL_EVENT_POSITIONS",
