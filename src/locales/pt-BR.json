@@ -997,6 +997,7 @@
         "title": "Leituras extraviadas",
         "subtitle": "Medido em relação aos {{wells}} poços ocupados ({{source}}).",
         "notMeasured": "não medido",
+        "signalAbsent": "Esta versão não traz esse sinal, portanto o run não diz nada a respeito.",
         "wellList": "Poços: {{list}}",
         "more": "e mais {{count}}.",
         "source": {
@@ -1008,7 +1009,7 @@
           "unexpected_well_reads": "Leituras em um poço desocupado dos índices em uso",
           "ambiguity_rate": "Leituras descartadas como ambíguas, dentre as que chegaram ao barcode matching",
           "chimera_rate": "Atribuições extras de poço vindas de leituras divididas, por leitura atribuída",
-          "leak_well_sharing": "Poços com leituras extraviadas",
+          "leak_well_sharing": "Poços em uma combinação não ocupada de índices em uso",
           "plate_yield_skew": "Menor cópia de placa sobre a maior, em leituras atribuídas"
         },
         "sharing": {

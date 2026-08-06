@@ -103,6 +103,40 @@ describe("ContaminationPanel", () => {
     expect(unavailable.textContent).toContain("pooled its reads into one plate");
   });
 
+  it("draws a row for a signal the report does not carry at all", () => {
+    // A result file written by a build whose signal set differed:
+    // `restoreMameResult` puts the block on disk into the store unchecked, so
+    // the panel meets a hole here. Reading `.state` off it threw and took the
+    // whole review screen with it.
+    const holed = report();
+    delete (holed.signals as Partial<ContaminationReport["signals"]>)
+      .leak_well_sharing;
+    useMameAppStore.setState({ contamination: holed });
+
+    render(<ContaminationPanel />);
+
+    const row = screen.getByTestId("contamination-signal-leak_well_sharing");
+    expect(row).toHaveAttribute("data-state", "missing");
+    expect(row.textContent).not.toContain("0");
+    // The rows around it still render their own measurements.
+    expect(
+      screen.getByTestId("contamination-signal-unexpected_well_reads").textContent,
+    ).toContain("20");
+  });
+
+  it("shows no number for an ok signal that carries none", () => {
+    // The pair `value ?? 0` collapses: `state: "ok"` with no value is not a
+    // measurement, and 0 would read as a clean plate.
+    useMameAppStore.setState({
+      contamination: report({ unexpected_well_reads: { state: "ok" } }),
+    });
+
+    render(<ContaminationPanel />);
+
+    const row = screen.getByTestId("contamination-signal-unexpected_well_reads");
+    expect(row.textContent).not.toContain("0");
+  });
+
   it("renders every signal the contract names, in order", () => {
     useMameAppStore.setState({ contamination: report() });
 

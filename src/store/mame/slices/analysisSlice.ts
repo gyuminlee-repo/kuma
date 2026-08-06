@@ -292,6 +292,14 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       // Sample data is a consensus-dir fixture and never demuxed, so there is
       // no matrix behind it. null, not an empty report.
       contamination: null,
+      // The replicate axis goes with them. The sample verdicts carry
+      // `barcode1`, `barcode2`, ... as their native_barcode (lib/mame/
+      // sampleData.ts), so a `sort_barcodeNN` selection left over from a real
+      // run marks EVERY sample well `missing_replicate` and has
+      // ReplicateModeNotice compare that run's barcode count against this
+      // fixture. null is "no axis stated", deliberately not `[]` ("pooled").
+      selectedNativeBarcodes: null,
+      detectedBarcodeCount: null,
       wells,
       selectedWell: wells.find((w) => w.selected) ?? wells[0] ?? null,
       analyzeMessage:

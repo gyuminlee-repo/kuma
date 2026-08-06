@@ -1070,6 +1070,7 @@
         "title": "엉뚱한 자리에 떨어진 read",
         "subtitle": "점유 웰 {{wells}}개를 기준으로 측정했다 ({{source}}).",
         "notMeasured": "측정 불가",
+        "signalAbsent": "이 빌드에는 해당 signal 이 없어, 이번 run 은 그에 대해 아무것도 말하지 않는다.",
         "wellList": "웰: {{list}}",
         "more": "외 {{count}}개.",
         "source": {
@@ -1081,7 +1082,7 @@
           "unexpected_well_reads": "쓰고 있는 index 조합 중 비어 있는 웰에 붙은 read",
           "ambiguity_rate": "바코드 매칭까지 간 read 중 모호로 버려진 비율",
           "chimera_rate": "assign 된 read 당 분할 read 가 만든 추가 웰 배정",
-          "leak_well_sharing": "엉뚱한 read 가 붙은 웰 수",
+          "leak_well_sharing": "쓰고 있는 index 조합 중 비어 있는 웰 수",
           "plate_yield_skew": "assigned read 기준 최소 plate 사본 / 최대 plate 사본"
         },
         "sharing": {

@@ -997,6 +997,7 @@
         "title": "Lecturas descarriadas",
         "subtitle": "Medido frente a los {{wells}} pocillos ocupados ({{source}}).",
         "notMeasured": "no medido",
+        "signalAbsent": "Esta versión no incluye esa señal, por lo que el run no dice nada al respecto.",
         "wellList": "Pocillos: {{list}}",
         "more": "y {{count}} más.",
         "source": {
@@ -1008,7 +1009,7 @@
           "unexpected_well_reads": "Lecturas en un pocillo desocupado de los índices en uso",
           "ambiguity_rate": "Lecturas descartadas por ambiguas, sobre las que llegaron al barcode matching",
           "chimera_rate": "Asignaciones de pocillo adicionales de lecturas divididas, por lectura asignada",
-          "leak_well_sharing": "Pocillos con lecturas descarriadas",
+          "leak_well_sharing": "Pocillos en una combinación no ocupada de índices en uso",
           "plate_yield_skew": "Copia de placa menor sobre la mayor, en lecturas asignadas"
         },
         "sharing": {

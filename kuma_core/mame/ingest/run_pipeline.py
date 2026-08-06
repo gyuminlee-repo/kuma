@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Callable
 
 from kuma_core.mame.ingest.combinatorial_demux import (
+    CONSENSUS_SUBDIR,
     run_combinatorial_demux,
     run_combinatorial_demux_per_nb,
 )
@@ -221,6 +222,7 @@ def ingest_run_folder(
                 }
                 for summary in per_nb["per_nb"]
             )
+        units = [str(summary["sort_barcode_name"]) for summary in per_nb["per_nb"]]
     else:
         fastq_paths = _collect_pool_fastq(run_dir)
         pooled = run_combinatorial_demux(
@@ -257,5 +259,12 @@ def ingest_run_folder(
                     },
                 }
             )
+        units = [CONSENSUS_SUBDIR]
 
-    return load_barcode_directory(demux_output_dir)
+    # Read back the units THIS run wrote, not whatever the directory holds.
+    # ``demux_output_dir`` is stable so a re-run can resume, and nothing removes
+    # what an earlier run left: analysing the same folder per native barcode and
+    # then pooled leaves ``sort_barcode06/`` and ``sort_barcode20/`` beside
+    # ``consensus/``, and reading all three would put three plates in the
+    # verdicts while ``per_nb_out`` states one. One response, one plate count.
+    return load_barcode_directory(demux_output_dir, units=units)

@@ -38,8 +38,8 @@ const NAMED_WELL_LIMIT = 6;
 /** Signals whose value is a 0..1 fraction rather than a read count. */
 const RATE_SIGNALS: ReadonlySet<string> = new Set(["ambiguity_rate", "chimera_rate"]);
 
-function formatValue(name: ContaminationSignalName, signal: ContaminationSignal): string {
-  const value = signal.value ?? 0;
+/** Takes the number, never the signal: there is no `value ?? 0` to reach for. */
+function formatValue(name: ContaminationSignalName, value: number): string {
   if (RATE_SIGNALS.has(name)) return `${(value * 100).toFixed(2)}%`;
   if (name === "plate_yield_skew") return value.toFixed(2);
   if (name === "leak_well_sharing") return String(Math.round(value));
@@ -51,17 +51,30 @@ function SignalRow({
   signal,
 }: {
   name: ContaminationSignalName;
-  signal: ContaminationSignal;
+  /**
+   * `undefined` when the report on hand carries no such signal at all. That is
+   * a restored result file: `useAutosaveHydration.restoreMameResult` puts the
+   * `contamination` block from disk into the store as-is, and a file written by
+   * a build whose signal set differed has a hole here. It is the same "no
+   * measurement" the panel already draws, so it draws it rather than
+   * dereferencing its way to a blank screen.
+   */
+  signal: ContaminationSignal | undefined;
 }) {
   const { t } = useTranslation();
-  const unavailable = signal.state !== "ok";
-  const named = (signal.wells ?? []).slice(0, NAMED_WELL_LIMIT);
-  const remaining = (signal.wells ?? []).length - named.length;
+  // A measurement is a state of `ok` AND a number. Anything else, including an
+  // `ok` with no value, is not one: see the file header for why 0 is not an
+  // option here. Held as `number | null` so the number itself is what the
+  // branches below test, leaving no reading path that could substitute one.
+  const value =
+    signal?.state === "ok" && typeof signal.value === "number" ? signal.value : null;
+  const named = (signal?.wells ?? []).slice(0, NAMED_WELL_LIMIT);
+  const remaining = (signal?.wells ?? []).length - named.length;
 
   return (
     <div
       data-testid={`contamination-signal-${name}`}
-      data-state={signal.state}
+      data-state={signal?.state ?? "missing"}
       className="flex flex-col gap-0.5 border-t border-border/60 py-1.5 first:border-t-0 first:pt-0"
     >
       <div className="flex items-baseline justify-between gap-3">
@@ -70,22 +83,26 @@ function SignalRow({
         </span>
         <span
           className={`flex-shrink-0 text-caption tabular-nums ${
-            unavailable ? "text-muted-foreground" : "text-foreground"
+            value !== null ? "text-foreground" : "text-muted-foreground"
           }`}
         >
           {/* An unavailable signal shows a dash, never 0: see the file header. */}
-          {unavailable ? t("mame.qc.contamination.notMeasured") : formatValue(name, signal)}
+          {value !== null
+            ? formatValue(name, value)
+            : t("mame.qc.contamination.notMeasured")}
         </span>
       </div>
-      {unavailable ? (
-        <p className="text-caption text-muted-foreground">{signal.reason}</p>
+      {value === null ? (
+        <p className="text-caption text-muted-foreground">
+          {signal?.reason ?? t("mame.qc.contamination.signalAbsent")}
+        </p>
       ) : null}
-      {!unavailable && signal.label ? (
+      {value !== null && signal?.label ? (
         <p className="text-caption text-muted-foreground">
           {t(`mame.qc.contamination.sharing.${signal.label}`)}
         </p>
       ) : null}
-      {!unavailable && named.length > 0 ? (
+      {value !== null && named.length > 0 ? (
         <p className="break-words text-caption text-muted-foreground">
           {t("mame.qc.contamination.wellList", {
             list: named.map((w) => `${w.well} (${w.reads.toLocaleString()})`).join(", "),
@@ -129,6 +146,8 @@ export function ContaminationPanel() {
         </div>
       </header>
       <div className="mt-1.5">
+        {/* The index type promises a signal per name; a report restored from
+            disk need not keep that promise, so SignalRow takes `undefined`. */}
         {CONTAMINATION_SIGNAL_NAMES.map((name) => (
           <SignalRow key={name} name={name} signal={contamination.signals[name]} />
         ))}

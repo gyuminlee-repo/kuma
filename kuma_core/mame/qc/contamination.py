@@ -295,6 +295,14 @@ def analyze_contamination(
         )
         signals["unused_index_reads"] = no_occupancy
         signals["unexpected_well_reads"] = no_occupancy
+        # The same answer, and it has to be given here rather than left to
+        # _leak_well_sharing. With no occupancy every combination that carried a
+        # read is outside it, so that function would report the campaign's own
+        # wells as a leak while ``_off_layout_records``, reading the same absent
+        # layout, reports zero records out of scope (see
+        # ``python-core/sidecar_mame/handlers/analyze.py::_off_layout_records``).
+        # One response must not hold two definitions of occupancy.
+        leak = no_occupancy
     else:
         # Room for the signal to exist at all, asked before it is measured, and
         # asked separately for each because the two run out of room at different
@@ -329,6 +337,13 @@ def analyze_contamination(
                 f"the campaign occupies all {PLATE_CAPACITY} wells, so no read "
                 "can arrive on a well nobody pipetted"
             )
+
+        # The leak bucket only. Handing both buckets over would sum them behind
+        # one ``shared_reads`` and list both sets of wells on one row, which is
+        # the merge the split above exists to prevent: a read carrying an index
+        # the campaign never used did not leak out of any well of this plate,
+        # so it has nothing to say about whether a leak repeats across copies.
+        leak = _leak_well_sharing(unexpected, pooled, replicate_count)
 
     totals = {
         key: sum(int((p.get("stats") or {}).get(key, 0)) for p in plates)
@@ -368,7 +383,7 @@ def analyze_contamination(
             "read to have been split against"
         )
 
-    signals["leak_well_sharing"] = _leak_well_sharing(strays, pooled, replicate_count)
+    signals["leak_well_sharing"] = leak
     signals["plate_yield_skew"] = _plate_yield_skew(plates, plate_names, pooled)
 
     return {
@@ -381,13 +396,20 @@ def analyze_contamination(
 
 
 def _leak_well_sharing(
-    strays: Sequence[_StrayWell], pooled: bool, replicate_count: int
+    leaks: Sequence[_StrayWell], pooled: bool, replicate_count: int
 ) -> Signal:
     """Does the leak repeat across plate copies, or sit in one of them?
 
-    The two answers point at different benches. A stray well carrying reads in
+    ``leaks`` is the ``unexpected`` bucket alone, never both buckets: only a
+    read on a combination whose two indices are both in use elsewhere can have
+    come out of a well of this plate, and this function is about where such a
+    read repeats. Passing the other bucket in too would put a foreign sample and
+    a well-to-well leak on one row and one ``shared_reads`` total, which is the
+    merge the split in :func:`analyze_contamination` exists to prevent.
+
+    The two answers point at different benches. A leak well carrying reads in
     every replicate is a property of the barcode chemistry or the run: whatever
-    put reads there did it again for each copy. A stray well carrying reads in
+    put reads there did it again for each copy. A leak well carrying reads in
     one replicate only is a property of that copy: a splash, a mis-pipette, one
     contaminated tube.
 
@@ -406,18 +428,18 @@ def _leak_well_sharing(
             "this run scored one plate copy, so a leak cannot be compared "
             "across replicates"
         )
-    if not strays:
+    if not leaks:
         return _unavailable(
-            "no read landed outside the occupied wells, so there is no leak to "
-            "attribute"
+            "no read landed on an unoccupied combination of the indices this "
+            "campaign uses, so there is no leak between wells to attribute"
         )
 
-    shared_reads = sum(s.total for s in strays if s.plates_with_reads >= 2)
-    single_reads = sum(s.total for s in strays if s.plates_with_reads == 1)
+    shared_reads = sum(s.total for s in leaks if s.plates_with_reads >= 2)
+    single_reads = sum(s.total for s in leaks if s.plates_with_reads == 1)
     label = SHARING_SHARED if shared_reads > single_reads else SHARING_SINGLE
     return Signal(
         state=STATE_OK,
-        value=float(len(strays)),
+        value=float(len(leaks)),
         detail={
             "label": label,
             "shared_reads": shared_reads,
@@ -434,7 +456,7 @@ def _leak_well_sharing(
                         else SHARING_SINGLE
                     ),
                 }
-                for s in strays
+                for s in leaks
             ],
         },
     )

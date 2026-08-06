@@ -6,6 +6,10 @@
  * absolute read floor, and the two disagree in both directions. And a run that
  * cannot state which plates it scored gets `null` for missing_replicate rather
  * than a `false` that reads as "checked, nothing missing".
+ *
+ * The row order is asserted on tokens that vary both axes at once, since a
+ * fixture holding one of them constant reads the same under the column-major
+ * rule and under its transpose.
  */
 
 import { describe, expect, it } from "vitest";
@@ -72,6 +76,26 @@ describe("computeReplicateConcordance, pivot key", () => {
       expect(well.presentPlates).toEqual(TWO_PLATES);
       expect(well.missingReplicate).toBe(false);
     }
+  });
+
+  it("orders wells down the column before across the row", () => {
+    // Every token here varies BOTH axes, which is what makes the assertion
+    // evidence: `wellSortKey` returns [F, R] (column first), so B1 (2_1) comes
+    // before A2 (1_2) and A10 (1_10) comes last. A row-major key would give
+    // 1_2, 1_10, 2_1, and a lexicographic one would put 1_10 before 1_2. A
+    // fixture holding one axis constant agrees with all three.
+    const verdicts = [
+      verdict("sort_barcode07", "1_10", "M1"),
+      verdict("sort_barcode07", "1_2", "M2"),
+      verdict("sort_barcode07", "2_1", "M3"),
+      verdict("sort_barcode08", "1_10", "M1"),
+      verdict("sort_barcode08", "1_2", "M2"),
+      verdict("sort_barcode08", "2_1", "M3"),
+    ];
+
+    const result = computeReplicateConcordance(verdicts, TWO_PLATES);
+
+    expect(result.wells.map((w) => w.well)).toEqual(["2_1", "1_2", "1_10"]);
   });
 
   it("flags a well whose plate copies were called differently", () => {

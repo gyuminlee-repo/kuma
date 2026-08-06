@@ -1070,6 +1070,7 @@
         "title": "Stray reads",
         "subtitle": "Measured against the {{wells}} occupied wells ({{source}}).",
         "notMeasured": "not measured",
+        "signalAbsent": "This build does not carry that signal, so the run states nothing about it.",
         "wellList": "Wells: {{list}}",
         "more": "and {{count}} more.",
         "source": {
@@ -1081,7 +1082,7 @@
           "unexpected_well_reads": "Reads on an unoccupied well of the indices in use",
           "ambiguity_rate": "Reads dropped as ambiguous, of those that reached barcode matching",
           "chimera_rate": "Extra well assignments from split reads, per assigned read",
-          "leak_well_sharing": "Wells carrying stray reads",
+          "leak_well_sharing": "Wells on an unoccupied combination of used indices",
           "plate_yield_skew": "Smallest plate copy over the largest, by assigned reads"
         },
         "sharing": {

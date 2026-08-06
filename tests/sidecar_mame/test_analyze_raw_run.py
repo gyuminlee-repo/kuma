@@ -568,7 +568,15 @@ def test_handle_analyze_raw_run_reports_what_the_demux_matrix_saw(
     # 100 ambiguous of the 800 reads that reached barcode matching.
     assert signals["ambiguity_rate"]["value"] == pytest.approx(0.125)
     assert signals["chimera_rate"]["assigned_reads"] == 650
-    assert signals["leak_well_sharing"]["label"] == "shared_across_replicates"
+    # The sharing signal reads the leak bucket alone. Handing it both buckets
+    # gives 2 wells and 75 shared reads (20 + 55), which is the sum this whole
+    # report exists to avoid printing on one line.
+    sharing = signals["leak_well_sharing"]
+    assert sharing["label"] == "shared_across_replicates"
+    assert sharing["value"] == 1.0
+    assert [w["well"] for w in sharing["wells"]] == ["A03"]
+    assert sharing["shared_reads"] == 20
+    assert sharing["single_replicate_reads"] == 0
     assert signals["plate_yield_skew"]["value"] == pytest.approx(323 / 327)
 
 

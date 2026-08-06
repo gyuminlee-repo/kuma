@@ -220,6 +220,24 @@ describe("mame analysisSlice.loadSampleData", () => {
     expect(store.analyzeMessage).not.toMatch(/activity RPC unavailable/);
   });
 
+  it("drops the replicate axis of the previous run", async () => {
+    // The fixture verdicts carry `barcode1`, `barcode2`, ... as their
+    // native_barcode, so a `sort_barcodeNN` selection left over from a real run
+    // marks every sample well missing_replicate and has ReplicateModeNotice
+    // compare that run's barcode count against this fixture. null is "no axis
+    // stated", which is what a consensus-dir fixture can say; `[]` would claim
+    // the fixture was pooled.
+    const store = makeStore({
+      selectedNativeBarcodes: ["sort_barcode06", "sort_barcode20"],
+      detectedBarcodeCount: 3,
+    });
+
+    await store.loadSampleData();
+
+    expect(store.selectedNativeBarcodes).toBeNull();
+    expect(store.detectedBarcodeCount).toBeNull();
+  });
+
   it("falls back to mock results when activity RPC throws", async () => {
     mockSendRequest.mockRejectedValueOnce(new Error("sidecar down"));
     const store = makeStore();

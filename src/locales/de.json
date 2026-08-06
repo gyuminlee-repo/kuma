@@ -997,6 +997,7 @@
         "title": "Verirrte Reads",
         "subtitle": "Gemessen gegen die {{wells}} belegten Wells ({{source}}).",
         "notMeasured": "nicht gemessen",
+        "signalAbsent": "Dieser Build kennt dieses Signal nicht, der Run sagt also nichts darüber aus.",
         "wellList": "Wells: {{list}}",
         "more": "und {{count}} weitere.",
         "source": {
@@ -1008,7 +1009,7 @@
           "unexpected_well_reads": "Reads auf einem unbelegten Well der verwendeten Indizes",
           "ambiguity_rate": "Als mehrdeutig verworfene Reads, bezogen auf die Reads im Barcode-Matching",
           "chimera_rate": "Zusätzliche Well-Zuordnungen aus geteilten Reads, je zugeordnetem Read",
-          "leak_well_sharing": "Wells mit verirrten Reads",
+          "leak_well_sharing": "Wells auf einer unbelegten Kombination genutzter Indizes",
           "plate_yield_skew": "Kleinste Plattenkopie geteilt durch die größte, nach zugeordneten Reads"
         },
         "sharing": {

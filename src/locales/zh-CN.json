@@ -997,6 +997,7 @@
         "title": "落在意外位置的 read",
         "subtitle": "以 {{wells}} 个占用孔为基准测量（{{source}}）。",
         "notMeasured": "无法测量",
+        "signalAbsent": "此版本不包含该 signal，因此本次 run 未对其作出任何说明。",
         "wellList": "孔位: {{list}}",
         "more": "另有 {{count}} 个。",
         "source": {
@@ -1008,7 +1009,7 @@
           "unexpected_well_reads": "落在已用 index 组合中空闲孔上的 read",
           "ambiguity_rate": "到达 barcode matching 的 read 中被判为 ambiguous 而丢弃的比例",
           "chimera_rate": "每条 assigned read 中，拆分 read 产生的额外孔位分配",
-          "leak_well_sharing": "带有意外 read 的孔数",
+          "leak_well_sharing": "使用中索引的未占用孔数",
           "plate_yield_skew": "按 assigned read 计算的最小板副本 / 最大板副本"
         },
         "sharing": {

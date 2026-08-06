@@ -29,8 +29,12 @@ import { Label } from "@/components/ui/label";
  * Three outcomes, and all three are stated rather than implied:
  *   - per-barcode  → the ticked barcodes become replicates
  *   - pooled       → every read in one pool, one plate, no replicate axis.
- *                    Promoted to a radio because it used to be reachable only
- *                    by cancelling, which is the opposite instruction.
+ *                    Promoted to a radio because a folder holding two or more
+ *                    native barcodes had no way to state it: this dialog opens
+ *                    on exactly that folder, its confirm returned early on an
+ *                    empty selection, and cancelling aborted the run instead of
+ *                    pooling it. Pooling was reachable only for a folder with
+ *                    one barcode or none, where the dialog never opens.
  *   - cancel       → the analysis stops. The X button and Escape both route
  *                    here (`close` → `cancelNativeBarcodeSelection`), which
  *                    clears `isAnalyzing` and leaves nothing running.

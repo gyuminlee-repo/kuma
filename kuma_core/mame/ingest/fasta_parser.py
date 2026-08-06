@@ -32,7 +32,7 @@ import logging
 import os
 import re
 import time
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -458,8 +458,18 @@ def parse_fasta_file(
     )
 
 
-def load_barcode_directory(input_dir: Path) -> list[BarcodeRecord]:
+def load_barcode_directory(
+    input_dir: Path, *, units: Iterable[str] | None = None
+) -> list[BarcodeRecord]:
     """Load all NBxx consensus FASTA files under ``input_dir``.
+
+    ``units`` names the top-level subdirectories to read, by directory name. The
+    default (``None``) reads every one of them, which is what an externally
+    sorted directory needs. A caller that produced the directory itself passes
+    the units it wrote, because the demux output directory is stable across
+    re-runs and nothing removes what an earlier run left there: a run pooled
+    into a folder that already holds ``sort_barcode06/`` and ``sort_barcode20/``
+    would otherwise read those two back as plates of a run that declared one.
 
     Asymmetric completion-marker guard (per NB subdir):
 
@@ -486,9 +496,15 @@ def load_barcode_directory(input_dir: Path) -> list[BarcodeRecord]:
     # inventory guard and the per-well file size. ``entry.is_dir()`` here reads
     # the readdir type field where the platform supplies it, so the top-level
     # walk no longer stats every child either.
+    wanted = None if units is None else set(units)
     with os.scandir(input_dir) as top:
         nb_dirs = sorted(
-            (input_dir / e.name for e in top if e.is_dir()), key=lambda p: p.name
+            (
+                input_dir / e.name
+                for e in top
+                if e.is_dir() and (wanted is None or e.name in wanted)
+            ),
+            key=lambda p: p.name,
         )
     scanned = [(nb_dir, scan_unit_dir(nb_dir)) for nb_dir in nb_dirs]
 

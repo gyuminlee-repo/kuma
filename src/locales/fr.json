@@ -997,6 +997,7 @@
         "title": "Lectures égarées",
         "subtitle": "Mesuré sur les {{wells}} puits occupés ({{source}}).",
         "notMeasured": "non mesuré",
+        "signalAbsent": "Cette version ne porte pas ce signal, le run n'en dit donc rien.",
         "wellList": "Puits : {{list}}",
         "more": "et {{count}} de plus.",
         "source": {
@@ -1008,7 +1009,7 @@
           "unexpected_well_reads": "Lectures sur un puits inoccupé des index en usage",
           "ambiguity_rate": "Lectures écartées comme ambiguës, parmi celles arrivées au barcode matching",
           "chimera_rate": "Affectations de puits supplémentaires issues des lectures scindées, par lecture affectée",
-          "leak_well_sharing": "Puits porteurs de lectures égarées",
+          "leak_well_sharing": "Puits sur une combinaison inoccupée d'index utilisés",
           "plate_yield_skew": "Plus petite copie de plaque sur la plus grande, en lectures affectées"
         },
         "sharing": {

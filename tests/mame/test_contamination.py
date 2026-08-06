@@ -10,7 +10,9 @@ passing test evidence:
   the label is the discriminator. A diagonal token would agree with both.
 - Buckets: an implementation that sums "reads outside the occupancy" into one
   number passes nothing here, because the two buckets are asserted separately
-  and each has a fixture where the other is empty.
+  and each has a fixture where the other is empty. The replicate-sharing signal
+  is held to the same split, on a fixture where feeding it both buckets flips
+  its label as well as its counts.
 - Zero: ``unexpected_well_reads`` has a fixture whose answer is a specific
   non-zero count, so "always return 0" fails.
 - Replicates: the shared and single-replicate leaks carry the SAME total, so an
@@ -211,6 +213,62 @@ def test_leak_sharing_reads_the_matrix_per_replicate_not_the_total(
     assert sharing["label"] == expected_label
     assert sharing["wells"][0]["well"] == "B03"
     assert sharing["wells"][0]["reads"] == sum(per_replicate)
+
+
+def test_leak_sharing_reads_the_leak_bucket_and_not_the_foreign_one() -> None:
+    """The two buckets stay apart here too, not only in the two count signals.
+
+    Occupancy A1/B1/B3 puts R in {1,2} and F in {1,3}. ``1_3`` (A03) is an
+    unoccupied combination of indices this campaign uses, so it is a leak
+    between wells and it carries reads on BOTH copies. ``1_9`` (A09) carries a
+    forward index nobody used, so it cannot have leaked out of a well of this
+    plate, and its 55 reads sit in one copy.
+
+    An implementation that hands both buckets to the sharing signal reports
+    2 wells, 20 shared + 55 single reads and labels the leak
+    ``single_replicate``, which is the foreign sample speaking for the leak.
+    """
+    plates = [
+        _plate("sort_barcode01", {"1_1": 100, "1_3": 12, "1_9": 55}),
+        _plate("sort_barcode02", {"1_1": 110, "1_3": 8}),
+    ]
+    report = analyze_contamination(
+        plates, ["A1", "B1", "B3"], occupancy_source="explicit_well_layout"
+    )
+
+    assert _signal(report, "unexpected_well_reads")["value"] == 20
+    assert _signal(report, "unused_index_reads")["value"] == 55
+
+    sharing = _signal(report, "leak_well_sharing")
+    assert sharing["state"] == "ok"
+    assert sharing["value"] == 1.0
+    assert [w["well"] for w in sharing["wells"]] == ["A03"]
+    assert sharing["shared_reads"] == 20
+    assert sharing["single_replicate_reads"] == 0
+    assert sharing["label"] == SHARING_SHARED
+
+
+def test_a_run_stating_no_occupied_wells_reports_no_leak_either() -> None:
+    """No occupancy means no stray, for all three well-scoped signals.
+
+    With nothing declared, every combination that carried a read is "outside the
+    occupancy", so a sharing signal computed from that set names the campaign's
+    own wells as a leak. The handler's ``_off_layout_records`` answers 0 for the
+    same absent layout, and one response cannot hold both answers.
+    """
+    plates = [
+        _plate("sort_barcode01", {"1_1": 100, "2_3": 90}),
+        _plate("sort_barcode02", {"1_1": 110, "2_3": 80}),
+    ]
+    report = analyze_contamination(plates, [], occupancy_source="inferred_draft_layout")
+
+    for name in ("unused_index_reads", "unexpected_well_reads", "leak_well_sharing"):
+        signal = _signal(report, name)
+        assert signal["state"] == "unavailable", name
+        assert "states no occupied wells" in signal["reason"], name
+        assert "value" not in signal, name
+    # The signals that do not read the occupancy are unaffected.
+    assert _signal(report, "plate_yield_skew")["state"] == "unavailable"
 
 
 def test_plate_yield_skew_is_the_smallest_copy_over_the_largest() -> None:

@@ -102,6 +102,37 @@ def test_layout_contract_load_barcode_directory_one_level(tmp_path: Path) -> Non
     assert "1_1" in sb06, f"sort_barcode06 custom_barcodes: {sb06}"
 
 
+def test_units_scopes_the_read_to_what_this_run_wrote(tmp_path: Path) -> None:
+    """A pooled re-run must not read the per-NB output an earlier run left.
+
+    The demux output directory is stable so a re-run can resume, and nothing
+    removes what an earlier run put there. Analysing one folder per native
+    barcode and then pooled leaves::
+
+        demux_filtered/sort_barcode06/1_1.fasta
+        demux_filtered/sort_barcode20/1_1.fasta
+        demux_filtered/consensus/1_1.fasta      <- the pooled run
+
+    Unscoped, the pooled run reads three plates while its own per-NB summary
+    states one, so one analyze response holds two replicate counts. ``units``
+    names the directories the run wrote, and the unscoped read is asserted here
+    too so the scoping is what makes the difference.
+    """
+    parent = tmp_path / "demux_filtered"
+    _write(parent / "sort_barcode06" / "1_1.fasta", _SINGLE_RECORD)
+    _write(parent / "sort_barcode20" / "1_1.fasta", _SINGLE_RECORD)
+    _write(parent / "consensus" / "1_1.fasta", _SINGLE_RECORD)
+
+    unscoped = {r.native_barcode for r in load_barcode_directory(parent)}
+    assert unscoped == {"sort_barcode06", "sort_barcode20", "consensus"}
+
+    pooled = load_barcode_directory(parent, units=["consensus"])
+    assert {r.native_barcode for r in pooled} == {"consensus"}
+
+    per_nb = load_barcode_directory(parent, units=["sort_barcode06", "sort_barcode20"])
+    assert {r.native_barcode for r in per_nb} == {"sort_barcode06", "sort_barcode20"}
+
+
 # ===========================================================================
 # B) ORCHESTRATION TEST (no minimap2): monkeypatch the heavy worker
 # ===========================================================================

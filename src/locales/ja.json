@@ -997,6 +997,7 @@
         "title": "想定外の位置に落ちた read",
         "subtitle": "占有ウェル {{wells}} 個を基準に測定した ({{source}})。",
         "notMeasured": "測定不可",
+        "signalAbsent": "このビルドはその signal を持たないため、この run は何も述べていません。",
         "wellList": "ウェル: {{list}}",
         "more": "ほか {{count}} 件。",
         "source": {
@@ -1008,7 +1009,7 @@
           "unexpected_well_reads": "使用中の index の組み合わせで空きウェルに付いた read",
           "ambiguity_rate": "barcode matching に到達した read のうち ambiguous として破棄された割合",
           "chimera_rate": "assign された read あたり、分割 read が生んだ追加ウェル割り当て",
-          "leak_well_sharing": "想定外の read を持つウェル数",
+          "leak_well_sharing": "使用中インデックスの未占有ウェル数",
           "plate_yield_skew": "assigned read で見た最小プレート複製 / 最大プレート複製"
         },
         "sharing": {
