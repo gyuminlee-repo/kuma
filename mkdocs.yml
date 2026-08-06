@@ -55,7 +55,7 @@ nav:
     - 개요: mame/index.md
     - 1. Run Setup: mame/01-setup.md
     - 2. Sequencing Review: mame/02-review.md
-    - 3. Activity Data: mame/03-activity.md
+    - 4. Activity Data: mame/04-activity.md
   - 입력 파일:
     - 서열: inputs/sequence.md
     - 변이 입력: inputs/mutations.md
