@@ -87,8 +87,17 @@ describe("useMameAutosave", () => {
       useMameAppStore.getState().setInputDir("/runs/2026-05-26");
     });
 
+    // setInputDir issues two set() calls when the folder actually changes:
+    // one for inputDir itself, one from the clearResults() it triggers to
+    // invalidate the previous run's outputs (see inputSlice.ts setInputDir).
+    // clearResults writes fresh `[]`/`null` even over fields already at that
+    // value, so the subscriber's reference-equality check sees a second
+    // "change" and schedules again. scheduleAutosave is debounced (see
+    // DEBOUNCE_MS in lib/autosave.ts): a second call in the same tick cancels
+    // and re-arms the pending timer rather than writing twice, so this is a
+    // redundant schedule, not a duplicate write.
     await waitFor(() => {
-      expect(autosaveMocks.scheduleAutosave).toHaveBeenCalledTimes(1);
+      expect(autosaveMocks.scheduleAutosave).toHaveBeenCalledTimes(2);
     });
     expect(autosaveMocks.scheduleAutosave).toHaveBeenCalledWith(
       expect.objectContaining({ projectPath: "/tmp/kuma-project", scratch: false }),
