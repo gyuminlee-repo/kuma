@@ -189,8 +189,12 @@ describe("mame analysisSlice.loadSampleData", () => {
     ]);
     expect(round.activity?.records.length).toBeGreaterThan(0);
 
-    // 4. 입력 경로 store populated
-    expect(store.referencePath).toBe("/resolved/samples/mame/reference.fasta");
+    // 4. 입력 경로 store populated. The analyze reference is the flanked
+    // construct, not the bare CDS: the demo's barcode workbook was designed
+    // against `egfp_with_flanks.fa`, so only that file contains the primer
+    // tails `resolve_amplicon_reference` looks for. Pointing this at
+    // `reference.fasta` puts the demo back on the NOT_FOUND path.
+    expect(store.referencePath).toBe("/resolved/samples/mame/egfp_with_flanks.fa");
     expect(store.expectedPath).toBe(
       "/resolved/samples/mame/03_mame_expected_mutations.xlsx",
     );
@@ -248,7 +252,7 @@ describe("mame analysisSlice.loadSampleData", () => {
     await store.loadSampleData();
 
     // 입력 경로 여전히 설정됨
-    expect(store.referencePath).toBe("/resolved/samples/mame/reference.fasta");
+    expect(store.referencePath).toBe("/resolved/samples/mame/egfp_with_flanks.fa");
     expect(store.rawRunParams.customBarcodesPath).toBe(
       "/resolved/samples/mame/04_mame_custom_barcodes.xlsx",
     );

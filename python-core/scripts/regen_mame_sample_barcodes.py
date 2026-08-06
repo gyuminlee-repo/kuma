@@ -32,6 +32,13 @@ outside the CDS, so ``resolve_amplicon_reference`` reports NOT_FOUND against it.
 That is the documented normal path for a bare-CDS reference (see the
 ``_SpanReason`` comments in ``kuma_core/mame/ingest/amplicon_reference.py``), not
 a defect introduced by this script.
+
+It is, however, the wrong file to hand the demo as its analyze reference, which
+is why ``loadSampleData`` (``src/store/mame/slices/analysisSlice.ts``) points
+that at ``egfp_with_flanks.fa`` instead: the workbook this script writes and the
+reference the demo analyzes have to be the same construct, or the demo can only
+ever show the NOT_FOUND path. ``reference.fasta`` remains bundled as the
+bare-CDS sample and as that prefill's fallback.
 """
 
 from __future__ import annotations

@@ -28,10 +28,17 @@
  *      translated highlight that breaks the authoring rules)
  */
 import { readFileSync, readdirSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const ROOT = new URL("..", import.meta.url).pathname;
-const LOCALES_DIR = `${ROOT}src/locales/`;
-const en = JSON.parse(readFileSync(`${LOCALES_DIR}en.json`, "utf8"));
+// A file: URL is not a path. `.pathname` keeps the leading slash a Windows URL
+// carries ("/C:/repo") and leaves percent-escapes in place, so on Windows the
+// joined path was relative and resolved against cwd ("C:\C:\repo\src\..."),
+// and any directory with a space in its name broke everywhere. fileURLToPath is
+// the conversion, and it is what every other script under scripts/ already uses.
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const LOCALES_DIR = join(ROOT, "src", "locales");
+const en = JSON.parse(readFileSync(join(LOCALES_DIR, "en.json"), "utf8"));
 
 function flatten(obj, prefix = "") {
   const out = {};
@@ -64,7 +71,7 @@ const MAX_TRANSLATED_LENGTH = 200;
 
 for (const file of localeFiles) {
   const lang = file.replace(/\.json$/, "");
-  const data = JSON.parse(readFileSync(`${LOCALES_DIR}${file}`, "utf8"));
+  const data = JSON.parse(readFileSync(join(LOCALES_DIR, file), "utf8"));
   const stamp = data.whatsNewDialog?.highlightsStamp;
   if (stamp !== enStamp) {
     staleStamps.push({ lang, stamp });

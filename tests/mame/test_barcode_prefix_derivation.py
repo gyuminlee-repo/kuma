@@ -580,6 +580,47 @@ def test_the_shipped_sample_workbook_states_its_own_tail(relative: str) -> None:
     assert recovered == wanted
 
 
+def test_the_demo_reference_and_the_demo_barcodes_yield_an_amplicon(
+    tmp_path: Path,
+) -> None:
+    """The shipped demo pair has to reach the SUCCESS path, not just a valid one.
+
+    ``loadSampleData`` (``src/store/mame/slices/analysisSlice.ts``) hands the
+    analyze step ``egfp_with_flanks.fa``, and it must be that file rather than
+    ``reference.fasta``: the flanking primers in
+    ``04_mame_custom_barcodes.xlsx`` were designed in the synthetic flanks by
+    ``python-core/scripts/regen_mame_sample_barcodes.py``, so against the bare
+    720 bp CDS the tails are absent and every demo run reported
+    ``_SpanReason.NOT_FOUND``. That outcome is legitimate for a bare-CDS
+    reference, which is exactly why nothing failed and nobody noticed; what was
+    wrong is that the demo could never show extraction working. Both halves are
+    pinned here, since the point is the contrast between them.
+    """
+    from kuma_core.mame.ingest.amplicon_reference import resolve_amplicon_reference
+
+    samples = Path(__file__).resolve().parents[2] / "src-tauri" / "samples" / "mame"
+    barcodes = samples / "04_mame_custom_barcodes.xlsx"
+
+    resolution = resolve_amplicon_reference(
+        samples / "egfp_with_flanks.fa", barcodes, tmp_path / "flanked"
+    )
+
+    assert resolution.extracted
+    assert resolution.span is not None
+    # The construct is 1620 bp with the CDS at 450..1170; the amplicon runs from
+    # the forward primer site to the end of the reverse primer site.
+    assert resolution.original_length == 1620
+    assert (resolution.span.start, resolution.span.end) == (50, 1275)
+    assert resolution.reference_fasta.read_text(encoding="utf-8").count("\n") > 1
+
+    bare = resolve_amplicon_reference(
+        samples / "reference.fasta", barcodes, tmp_path / "bare"
+    )
+
+    assert not bare.extracted
+    assert bare.span is None
+
+
 # ---------------------------------------------------------------------------
 # One rule, two readers
 # ---------------------------------------------------------------------------
