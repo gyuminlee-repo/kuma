@@ -993,6 +993,29 @@
         "desc": "Estos pocillos no formaban parte de la disposición, así que no se esperaba nada de ellos. Las lecturas indican un pocillo llenado después de todo, o diafonía de código de barras de un vecino. Pocillos:  {{list}}",
         "more": "y {{count}} más."
       },
+      "contamination": {
+        "title": "Lecturas descarriadas",
+        "subtitle": "Medido frente a los {{wells}} pocillos ocupados ({{source}}).",
+        "notMeasured": "no medido",
+        "wellList": "Pocillos: {{list}}",
+        "more": "y {{count}} más.",
+        "source": {
+          "inferred_draft_layout": "disposición inferida de la lista expected",
+          "explicit_well_layout": "disposición indicada para este run"
+        },
+        "signal": {
+          "unused_index_reads": "Lecturas con un índice de barcode que esta campaña nunca usó",
+          "unexpected_well_reads": "Lecturas en un pocillo desocupado de los índices en uso",
+          "ambiguity_rate": "Lecturas descartadas por ambiguas, sobre las que llegaron al barcode matching",
+          "chimera_rate": "Asignaciones de pocillo adicionales de lecturas divididas, por lectura asignada",
+          "leak_well_sharing": "Pocillos con lecturas descarriadas",
+          "plate_yield_skew": "Copia de placa menor sobre la mayor, en lecturas asignadas"
+        },
+        "sharing": {
+          "shared_across_replicates": "Las lecturas descarriadas se repiten en todas las copias de placa.",
+          "single_replicate": "Las lecturas descarriadas están en una sola copia de placa."
+        }
+      },
       "legacySampleMap": {
         "title": "{{file}} coincide con la disposición calculada",
         "desc": "Los {{wells}} pocillos coinciden, así que no hay nada que cambiar. El sample map ya no se lee como entrada y este archivo puede borrarse cuando quiera; hasta entonces se deja como está.",

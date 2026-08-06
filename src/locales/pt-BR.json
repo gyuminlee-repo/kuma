@@ -993,6 +993,29 @@
         "desc": "Esses poços não faziam parte do arranjo da corrida, então nada era esperado deles. Leituras indicam um poço de fato pipetado ou diafonia de código de barras de um vizinho. Poços:  {{list}}",
         "more": "e mais {{count}}."
       },
+      "contamination": {
+        "title": "Leituras extraviadas",
+        "subtitle": "Medido em relação aos {{wells}} poços ocupados ({{source}}).",
+        "notMeasured": "não medido",
+        "wellList": "Poços: {{list}}",
+        "more": "e mais {{count}}.",
+        "source": {
+          "inferred_draft_layout": "layout inferido da lista expected",
+          "explicit_well_layout": "layout informado para este run"
+        },
+        "signal": {
+          "unused_index_reads": "Leituras com um índice de barcode que esta campanha nunca usou",
+          "unexpected_well_reads": "Leituras em um poço desocupado dos índices em uso",
+          "ambiguity_rate": "Leituras descartadas como ambíguas, dentre as que chegaram ao barcode matching",
+          "chimera_rate": "Atribuições extras de poço vindas de leituras divididas, por leitura atribuída",
+          "leak_well_sharing": "Poços com leituras extraviadas",
+          "plate_yield_skew": "Menor cópia de placa sobre a maior, em leituras atribuídas"
+        },
+        "sharing": {
+          "shared_across_replicates": "As leituras extraviadas se repetem entre as cópias da placa.",
+          "single_replicate": "As leituras extraviadas estão em uma única cópia da placa."
+        }
+      },
       "legacySampleMap": {
         "title": "{{file}} concorda com o layout calculado",
         "desc": "Todos os {{wells}} poços coincidem, então nada precisa mudar. O sample map não é mais lido como entrada e este arquivo pode ser apagado quando quiser; até lá permanece onde está.",

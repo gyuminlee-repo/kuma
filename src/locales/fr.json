@@ -993,6 +993,29 @@
         "desc": "Ces puits ne faisaient pas partie de la disposition, rien n'en était attendu. Des lectures signifient soit un puits finalement rempli, soit une diaphonie de code-barres d'un voisin. Puits :  {{list}}",
         "more": "et {{count}} de plus."
       },
+      "contamination": {
+        "title": "Lectures égarées",
+        "subtitle": "Mesuré sur les {{wells}} puits occupés ({{source}}).",
+        "notMeasured": "non mesuré",
+        "wellList": "Puits : {{list}}",
+        "more": "et {{count}} de plus.",
+        "source": {
+          "inferred_draft_layout": "plan déduit de la liste expected",
+          "explicit_well_layout": "plan fourni pour ce run"
+        },
+        "signal": {
+          "unused_index_reads": "Lectures portant un index de barcode que cette campagne n'a jamais utilisé",
+          "unexpected_well_reads": "Lectures sur un puits inoccupé des index en usage",
+          "ambiguity_rate": "Lectures écartées comme ambiguës, parmi celles arrivées au barcode matching",
+          "chimera_rate": "Affectations de puits supplémentaires issues des lectures scindées, par lecture affectée",
+          "leak_well_sharing": "Puits porteurs de lectures égarées",
+          "plate_yield_skew": "Plus petite copie de plaque sur la plus grande, en lectures affectées"
+        },
+        "sharing": {
+          "shared_across_replicates": "Les lectures égarées se répètent sur toutes les copies de plaque.",
+          "single_replicate": "Les lectures égarées se trouvent dans une seule copie de plaque."
+        }
+      },
       "legacySampleMap": {
         "title": "{{file}} concorde avec la disposition calculée",
         "desc": "Les {{wells}} puits concordent tous, rien à corriger. La sample map n'est plus lue comme entrée et ce fichier peut être supprimé quand vous le souhaitez ; il reste en place jusque-là.",

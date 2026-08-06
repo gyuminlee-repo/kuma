@@ -33,6 +33,12 @@ from kuma_core.mame.ingest.combinatorial_demux import (
 from kuma_core.mame.ingest.demux import FASTQ_PATTERNS
 from kuma_core.mame.ingest.fasta_parser import load_barcode_directory
 from kuma_core.mame.models import BarcodeRecord
+
+# The name a pooled run files its single pseudo-plate under. Imported from the
+# consumer rather than restated here: "pool" is the token that tells the
+# contamination report a run has no replicate axis, and two spellings of it
+# would let the producer and the consumer disagree in silence.
+from kuma_core.mame.qc.contamination import POOLED_PLATE_NAME as _POOLED_PLATE_NAME
 from kuma_core.shared.fs_walk import rglob_entries
 
 ProgressCallback = Callable[[int, int, str], None]
@@ -119,6 +125,7 @@ def ingest_run_folder(
     min_depth: int = 3,
     progress_callback: ProgressCallback | None = None,
     stats_out: dict[str, int] | None = None,
+    per_nb_out: list[dict] | None = None,
 ) -> list[BarcodeRecord]:
     """Ingest a raw MinKNOW run folder into per-well consensus records.
 
@@ -147,6 +154,26 @@ def ingest_run_folder(
         same signature.  These counters exist only because this function runs
         the demux; a caller that consumes an already-demuxed consensus
         directory has no equivalent source for them.
+    per_nb_out:
+        Optional sink for the per-native-barcode demux summaries, same shape of
+        contract as ``stats_out``: a container the caller owns, extended in
+        place, so the return value keeps its type. Each entry is one plate copy
+        and carries ``nb_name``, ``sort_barcode_name``, ``stats`` (the same 8
+        ``DemuxStats`` counters, for that copy alone) and
+        ``per_well_read_counts`` (``{R}_{F}`` token -> reads assigned to it).
+
+        That last mapping is the reason this sink exists. The demux already
+        counts reads for every barcode combination it saw, including the ones
+        no well of the campaign occupies, and until now the whole matrix was
+        computed and dropped on the floor here: only the summed counters
+        reached the caller. Reads landing on a combination nobody pipetted are
+        the one direct measurement of stray reads this pipeline makes, and a
+        sum cannot say where they landed.
+
+        Single-pool mode contributes exactly one entry, a pseudo-plate named
+        ``"pool"`` on both name fields. Pooling is one plate as far as the
+        matrix is concerned; giving it zero entries would make "pooled" and
+        "no demux ran" the same observation.
 
     Returns
     -------
@@ -177,6 +204,23 @@ def ingest_run_folder(
             stats_out.update(
                 {k: int(v) for k, v in per_nb["merged_stats"].items()}
             )
+        if per_nb_out is not None:
+            # Copied out rather than handed over: the summaries are the demux
+            # orchestrator's own working state (a resume reseeds entries from
+            # markers into the same list), and a caller that held a reference to
+            # it would be reading a structure that is not its to keep.
+            per_nb_out.extend(
+                {
+                    "nb_name": str(summary["nb_name"]),
+                    "sort_barcode_name": str(summary["sort_barcode_name"]),
+                    "stats": {k: int(v) for k, v in summary["stats"].items()},
+                    "per_well_read_counts": {
+                        str(well): int(count)
+                        for well, count in summary["per_well_read_counts"].items()
+                    },
+                }
+                for summary in per_nb["per_nb"]
+            )
     else:
         fastq_paths = _collect_pool_fastq(run_dir)
         pooled = run_combinatorial_demux(
@@ -195,6 +239,23 @@ def ingest_run_folder(
         if stats_out is not None:
             stats_out.update(
                 {k: int(v) for k, v in asdict(pooled.stats).items()}
+            )
+        if per_nb_out is not None:
+            # One pseudo-plate. Pooling puts every read of the folder onto one
+            # plate, so the matrix has one column; what it cannot have is a
+            # replicate axis, and the consumer decides what that costs each
+            # signal rather than being handed an empty list it would have to
+            # tell apart from "no demux ran".
+            per_nb_out.append(
+                {
+                    "nb_name": _POOLED_PLATE_NAME,
+                    "sort_barcode_name": _POOLED_PLATE_NAME,
+                    "stats": {k: int(v) for k, v in asdict(pooled.stats).items()},
+                    "per_well_read_counts": {
+                        str(well): int(count)
+                        for well, count in pooled.per_well_read_counts.items()
+                    },
+                }
             )
 
     return load_barcode_directory(demux_output_dir)

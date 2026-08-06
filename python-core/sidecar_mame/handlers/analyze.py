@@ -1206,6 +1206,12 @@ def handle_analyze(params: dict) -> dict:
     # there is nothing to report. Left empty rather than zero-filled so the
     # response omits the keys instead of claiming "0 reads passed".
     demux_gate_counts: dict[str, int] = {}
+    # The per-plate demux matrix, same raw-run-only reasoning as the counters
+    # above. Each entry is one plate copy with its own DemuxStats and its
+    # {R}_{F} -> reads mapping. This is the only measurement MAME makes of reads
+    # that landed on a barcode combination the campaign never pipetted, and it
+    # used to be computed inside ``ingest_run_folder`` and dropped there.
+    demux_per_nb: list[dict] = []
     # Latest demux progress, mirrored by _emit_demux so the demux-phase heartbeat
     # can re-emit a liveness pulse during long, low-event per-NB demux stretches.
     _demux_state = {"value": 0, "message": "Demuxing raw MinKNOW run", "current": 0, "total": 0}
@@ -1447,6 +1453,7 @@ def handle_analyze(params: dict) -> dict:
                     done, total, stage_str
                 ),
                 stats_out=demux_gate_counts,
+                per_nb_out=demux_per_nb,
             )
         finally:
             _demux_done_evt.set()
@@ -1777,6 +1784,29 @@ def handle_analyze(params: dict) -> dict:
 
     _mapping_integrity = check_mapping_integrity(observations_from_verdicts(verdicts))
 
+    # What the demux matrix says about reads that landed outside the campaign.
+    # Raw-run only: a consensus-dir run never demuxed, so there is no matrix and
+    # no counter, and the key stays absent rather than reporting six unavailable
+    # signals that would all say the same thing about the mode rather than
+    # about the run.
+    #
+    # The occupancy handed over is ``well_layout``'s own keys, which is the set
+    # the pipeline scored these verdicts against. Deliberately NOT the declared
+    # selection: ``layout_provenance.selected_wells`` can be wider than the
+    # campaign (``unused_wells`` names the surplus), and taking it here would
+    # let one response carry two different answers to "which wells were
+    # occupied" -- ``off_layout_records`` already reads the layout, and a read
+    # would be off-layout there and on-layout here.
+    contamination = None
+    if is_raw:
+        from kuma_core.mame.qc.contamination import analyze_contamination
+
+        contamination = analyze_contamination(
+            demux_per_nb,
+            list(well_layout or {}),
+            occupancy_source=layout_source,
+        )
+
     janus_params = params.get("janus_settings") or {}
     janus_autosave = _autosave_picks(replicates, output, run_meta, janus_params)
 
@@ -1822,6 +1852,13 @@ def handle_analyze(params: dict) -> dict:
         # Reported so an operator can see it rather than having it disappear
         # into an UNKNOWN_* group.
         "off_layout_records": _off_layout_records(verdicts, well_layout),
+        # Stray-read signals read straight off the demux matrix
+        # (kuma_core.mame.qc.contamination). Raw-run only, so the key is absent
+        # in consensus-dir mode. Every signal inside is either a measurement or
+        # an explicit ``state: "unavailable"`` with a reason: none is
+        # zero-filled, because a 0 from a question that could not be asked reads
+        # as a clean plate.
+        **({"contamination": contamination} if contamination is not None else {}),
         # Whole-run mapping sanity check (kuma_core.mame.qc.mapping_integrity).
         # ``suspect`` is a signal to surface prominently, not a hard failure:
         # the run already finished and the workbook the operator has may be

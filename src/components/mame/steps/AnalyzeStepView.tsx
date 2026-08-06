@@ -41,6 +41,7 @@ import { MappingIntegrityAlert } from "@/components/mame/widgets/MappingIntegrit
 import { OffLayoutRecordsNotice } from "@/components/mame/widgets/OffLayoutRecordsNotice";
 import { LegacySampleMapNotice } from "@/components/mame/widgets/LegacySampleMapNotice";
 import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNotice";
+import { ContaminationPanel } from "@/components/mame/widgets/ContaminationPanel";
 import { PlateOrderNotice } from "@/components/mame/widgets/PlateOrderNotice";
 import { ReplicateModeNotice } from "@/components/mame/widgets/ReplicateModeNotice";
 import { RestoredResultNotice } from "@/components/mame/widgets/RestoredResultNotice";
@@ -334,6 +335,12 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
         mainContent = (
           <div className="flex h-full min-h-0 flex-col overflow-auto p-1">
             <EmptyAnalysisNotice />
+            {/* A run that produced no verdict is exactly where the stray-read
+                view earns its place: the reads went somewhere, and the matrix
+                is the only thing that can say whether it was a well nobody
+                pipetted. Mounted here as well as on the normal review because
+                this branch replaces the whole review, panels included. */}
+            <ContaminationPanel />
           </div>
         );
         break;
@@ -350,6 +357,11 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               detail about how it ran. */}
           <MappingIntegrityAlert />
           <OffLayoutRecordsNotice />
+          {/* Beside the off-layout notice because the two answer the same
+              question from opposite ends: that one counts SCORED records from
+              undeclared wells, this one counts READS on barcode combinations
+              nobody pipetted, including the ones that never became a record. */}
+          <ContaminationPanel />
           <PlateClusterAlert />
           <RestoredResultNotice onRunRequest={onRunRequest} />
           {/* The right column decides how tall this row is, because both panels

@@ -251,6 +251,10 @@ def test_handle_analyze_consensus_dir_backward_compatible(
     assert "total_reads" not in result
     assert "passed_mapq" not in result
     assert "passed_coverage" not in result
+    # Same rule for the stray-read report: it is read off the demux matrix, and
+    # this mode has no matrix. Absent, not six unavailable signals that would
+    # describe the mode rather than the run.
+    assert "contamination" not in result
 
 
 def test_handle_analyze_auto_scopes_from_expected_when_layout_omitted(
@@ -481,6 +485,146 @@ def test_handle_analyze_raw_run_reports_gate_counts_from_demux(
     # The pre-existing raw-run yield keys are untouched by the addition.
     assert result["wells_with_reads"] == 1
     assert result["assigned_reads"] == 0
+
+
+def test_handle_analyze_raw_run_reports_what_the_demux_matrix_saw(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The per-NB matrix reaches the response as a ``contamination`` block.
+
+    Stubbed for the same reason as the gate-counter test above: the contract
+    under test is the wiring (``per_nb_out`` sink -> qc.contamination ->
+    response key), not minimap2.
+
+    The run declares A1/B1/B3, so the barcode indices in play are R1, R2, F1 and
+    F3. That leaves ``1_3`` (A3) as a combination whose two indices are both on
+    this plate but whose well nobody pipetted, while ``1_9`` carries a forward
+    index the campaign never used at all. Those are the two different questions
+    the report keeps apart, and this fixture answers both at once.
+    """
+    from kuma_core.mame import ingest as ingest_mod
+    from kuma_core.mame import pipeline as pipeline_mod
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    barcodes_xlsx = tmp_path / "barcodes.xlsx"
+    _make_barcodes_xlsx(barcodes_xlsx)
+
+    monkeypatch.setattr(
+        ingest_mod,
+        "route_ingest",
+        lambda _input_dir, _mode: [SimpleNamespace(file_size_kb=1.0, read_count=0)],
+    )
+
+    def fake_ingest_run_folder(**kwargs):
+        kwargs["per_nb_out"].extend([
+            {
+                "nb_name": "barcode01",
+                "sort_barcode_name": "sort_barcode01",
+                "stats": {
+                    "total_reads": 900, "passed_mapq": 500, "passed_coverage": 400,
+                    "assigned_reads": 327, "ambiguous_dropped": 40,
+                    "chimera_splits": 10, "wells_with_reads": 5,
+                    "wells_with_min_reads": 3,
+                },
+                "per_well_read_counts": {
+                    "1_1": 100, "2_1": 90, "2_3": 95, "1_3": 12, "1_9": 30,
+                },
+            },
+            {
+                "nb_name": "barcode02",
+                "sort_barcode_name": "sort_barcode02",
+                "stats": {
+                    "total_reads": 880, "passed_mapq": 480, "passed_coverage": 400,
+                    "assigned_reads": 323, "ambiguous_dropped": 60,
+                    "chimera_splits": 6, "wells_with_reads": 5,
+                    "wells_with_min_reads": 3,
+                },
+                "per_well_read_counts": {
+                    "1_1": 110, "2_1": 88, "2_3": 92, "1_3": 8, "1_9": 25,
+                },
+            },
+        ])
+
+    monkeypatch.setattr(ingest_mod, "ingest_run_folder", fake_ingest_run_folder)
+    monkeypatch.setattr(pipeline_mod, "run_analyze", lambda **_kwargs: ([], []))
+    _capture_progress(monkeypatch)
+
+    params = _raw_run_params(run_dir, tmp_path, barcodes_xlsx)
+    params["selected_wells"] = ["A1", "B1", "B3"]
+    result = analyze_mod.handle_analyze(params)
+
+    contamination = result["contamination"]
+    # The occupancy this was measured against, and where it came from.
+    assert contamination["occupancy_source"] == result["layout_provenance"]["source"]
+    assert contamination["occupied_wells"] == 3
+    assert contamination["replicates"] == 2
+
+    signals = contamination["signals"]
+    assert signals["unexpected_well_reads"]["value"] == 20
+    assert [w["well"] for w in signals["unexpected_well_reads"]["wells"]] == ["A03"]
+    assert signals["unused_index_reads"]["value"] == 55
+    assert [w["well"] for w in signals["unused_index_reads"]["wells"]] == ["A09"]
+    # 100 ambiguous of the 800 reads that reached barcode matching.
+    assert signals["ambiguity_rate"]["value"] == pytest.approx(0.125)
+    assert signals["chimera_rate"]["assigned_reads"] == 650
+    assert signals["leak_well_sharing"]["label"] == "shared_across_replicates"
+    assert signals["plate_yield_skew"]["value"] == pytest.approx(323 / 327)
+
+
+def test_handle_analyze_raw_run_says_when_a_signal_cannot_be_measured(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A run that produced nothing still reports every signal, with reasons.
+
+    Zero reads is the state where an operator most needs the stray-read view, so
+    the block is present and each signal that cannot be computed carries a
+    reason instead of a 0 that would read as a clean plate.
+    """
+    from kuma_core.mame import ingest as ingest_mod
+    from kuma_core.mame import pipeline as pipeline_mod
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    barcodes_xlsx = tmp_path / "barcodes.xlsx"
+    _make_barcodes_xlsx(barcodes_xlsx)
+
+    monkeypatch.setattr(
+        ingest_mod,
+        "route_ingest",
+        lambda _input_dir, _mode: [SimpleNamespace(file_size_kb=1.0, read_count=0)],
+    )
+
+    def fake_ingest_run_folder(**kwargs):
+        kwargs["per_nb_out"].append({
+            "nb_name": "pool",
+            "sort_barcode_name": "pool",
+            "stats": dict.fromkeys(
+                (
+                    "total_reads", "passed_mapq", "passed_coverage",
+                    "assigned_reads", "ambiguous_dropped", "chimera_splits",
+                    "wells_with_reads", "wells_with_min_reads",
+                ),
+                0,
+            ),
+            "per_well_read_counts": {},
+        })
+
+    monkeypatch.setattr(ingest_mod, "ingest_run_folder", fake_ingest_run_folder)
+    monkeypatch.setattr(pipeline_mod, "run_analyze", lambda **_kwargs: ([], []))
+    _capture_progress(monkeypatch)
+
+    result = analyze_mod.handle_analyze(_raw_run_params(run_dir, tmp_path, barcodes_xlsx))
+
+    signals = result["contamination"]["signals"]
+    assert set(signals) == {
+        "unused_index_reads", "unexpected_well_reads", "ambiguity_rate",
+        "chimera_rate", "leak_well_sharing", "plate_yield_skew",
+    }
+    for name in ("ambiguity_rate", "chimera_rate", "leak_well_sharing", "plate_yield_skew"):
+        assert signals[name]["state"] == "unavailable", name
+        assert signals[name]["reason"], name
+        assert "value" not in signals[name], name
 
 
 def _stub_demux(monkeypatch: pytest.MonkeyPatch) -> None:

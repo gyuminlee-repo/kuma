@@ -1593,6 +1593,15 @@ async function restoreMameResult(
   if (!alive()) return false;
   store.setMappingIntegrity(result.mapping_integrity ?? null);
   if (!alive()) return false;
+  // The stray-read report of the run being restored. `?? null` covers both
+  // reasons it can be missing: a result persisted before the key existed, and a
+  // consensus-dir run, which never demuxed. Both are "not measured", which is
+  // exactly what null means to ContaminationPanel; neither is a clean plate.
+  // Restored from the result file rather than the workspace snapshot, for the
+  // same reason as `mapping_integrity` above: it describes what a run measured,
+  // and it is the result file that carries what a run produced.
+  store.setContamination(result.contamination ?? null);
+  if (!alive()) return false;
   store.setDistributionStats(result.distribution_stats ?? null);
   if (!alive()) return false;
   await store.loadPlateData();

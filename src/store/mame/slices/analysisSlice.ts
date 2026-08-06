@@ -30,6 +30,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   layoutProvenance: null,
   mappingIntegrity: null,
   offLayoutRecords: null,
+  contamination: null,
   restoredResultProvenance: null,
   // FINAL (the per-mutant selected replicate) is the default view: it is the
   // answer sheet a run is read for. VerdictTable degrades it to ALL while no
@@ -51,6 +52,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   setLayoutProvenance: (layoutProvenance) => set({ layoutProvenance }),
   setMappingIntegrity: (mappingIntegrity) => set({ mappingIntegrity }),
   setOffLayoutRecords: (offLayoutRecords) => set({ offLayoutRecords }),
+  setContamination: (contamination) => set({ contamination }),
   setRestoredResultProvenance: (restoredResultProvenance) =>
     set({ restoredResultProvenance }),
   setPlateFilter: (plateFilter) => set({ plateFilter }),
@@ -84,6 +86,9 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       layoutProvenance: null,
       mappingIntegrity: null,
       offLayoutRecords: null,
+      // Measured against the wells THESE verdicts were scored on, so it stops
+      // meaning anything the moment they go.
+      contamination: null,
       // The restored-result notice describes the results being cleared here, so
       // it must not outlive them: a fresh run or an input change makes whatever
       // an older build produced irrelevant.
@@ -284,6 +289,9 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       layoutProvenance: null,
       mappingIntegrity: null,
       offLayoutRecords: null,
+      // Sample data is a consensus-dir fixture and never demuxed, so there is
+      // no matrix behind it. null, not an empty report.
+      contamination: null,
       wells,
       selectedWell: wells.find((w) => w.selected) ?? wells[0] ?? null,
       analyzeMessage:

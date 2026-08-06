@@ -993,6 +993,29 @@
         "desc": "Diese Wells gehörten nicht zum Layout des Laufs, es wurde also nichts von ihnen erwartet. Reads bedeuten entweder ein doch befülltes Well oder Barcode-Übersprechen vom Nachbarn. Wells:  {{list}}",
         "more": "und {{count}} weitere."
       },
+      "contamination": {
+        "title": "Verirrte Reads",
+        "subtitle": "Gemessen gegen die {{wells}} belegten Wells ({{source}}).",
+        "notMeasured": "nicht gemessen",
+        "wellList": "Wells: {{list}}",
+        "more": "und {{count}} weitere.",
+        "source": {
+          "inferred_draft_layout": "aus der expected-Liste abgeleitetes Layout",
+          "explicit_well_layout": "für diesen Run vorgegebenes Layout"
+        },
+        "signal": {
+          "unused_index_reads": "Reads mit einem Barcode-Index, den diese Kampagne nie verwendet hat",
+          "unexpected_well_reads": "Reads auf einem unbelegten Well der verwendeten Indizes",
+          "ambiguity_rate": "Als mehrdeutig verworfene Reads, bezogen auf die Reads im Barcode-Matching",
+          "chimera_rate": "Zusätzliche Well-Zuordnungen aus geteilten Reads, je zugeordnetem Read",
+          "leak_well_sharing": "Wells mit verirrten Reads",
+          "plate_yield_skew": "Kleinste Plattenkopie geteilt durch die größte, nach zugeordneten Reads"
+        },
+        "sharing": {
+          "shared_across_replicates": "Die verirrten Reads wiederholen sich über die Plattenkopien hinweg.",
+          "single_replicate": "Die verirrten Reads liegen in einer einzigen Plattenkopie."
+        }
+      },
       "legacySampleMap": {
         "title": "{{file}} stimmt mit dem berechneten Layout überein",
         "desc": "Alle {{wells}} Wells stimmen überein, es ist also nichts zu ändern. Die Sample Map wird nicht mehr als Eingabe gelesen, und diese Datei kann jederzeit gelöscht werden; bis dahin bleibt sie unangetastet.",

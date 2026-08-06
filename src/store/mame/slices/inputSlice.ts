@@ -691,6 +691,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     get().setLayoutProvenance(result.layout_provenance ?? null);
     get().setMappingIntegrity(result.mapping_integrity ?? null);
     get().setOffLayoutRecords(result.off_layout_records ?? null);
+    get().setContamination(result.contamination ?? null);
     // Store the folder only (outputPath is now a folder); lastExportPath tracks the full path.
     const outDir = (() => {
       const p = result.output_path.replace(/\\/g, "/");
@@ -838,6 +839,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       get().setLayoutProvenance(result.layout_provenance ?? null);
       get().setMappingIntegrity(result.mapping_integrity ?? null);
       get().setOffLayoutRecords(result.off_layout_records ?? null);
+      get().setContamination(result.contamination ?? null);
       const outDir = (() => {
         const p = result.output_path.replace(/\\/g, "/");
         const i = p.lastIndexOf("/");

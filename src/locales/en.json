@@ -1066,6 +1066,29 @@
         "desc": "These wells were not part of the run layout, so nothing was expected from them. Reads here mean either a well that was pipetted after all, or barcode crosstalk from a neighbour. Wells:  {{list}}",
         "more": "and {{count}} more."
       },
+      "contamination": {
+        "title": "Stray reads",
+        "subtitle": "Measured against the {{wells}} occupied wells ({{source}}).",
+        "notMeasured": "not measured",
+        "wellList": "Wells: {{list}}",
+        "more": "and {{count}} more.",
+        "source": {
+          "inferred_draft_layout": "layout inferred from the expected list",
+          "explicit_well_layout": "layout supplied for this run"
+        },
+        "signal": {
+          "unused_index_reads": "Reads carrying a barcode index this campaign never used",
+          "unexpected_well_reads": "Reads on an unoccupied well of the indices in use",
+          "ambiguity_rate": "Reads dropped as ambiguous, of those that reached barcode matching",
+          "chimera_rate": "Extra well assignments from split reads, per assigned read",
+          "leak_well_sharing": "Wells carrying stray reads",
+          "plate_yield_skew": "Smallest plate copy over the largest, by assigned reads"
+        },
+        "sharing": {
+          "shared_across_replicates": "The stray reads repeat across the plate copies.",
+          "single_replicate": "The stray reads sit in a single plate copy."
+        }
+      },
       "legacySampleMap": {
         "title": "{{file}} agrees with the computed layout",
         "desc": "All {{wells}} wells match, so nothing needs changing. The sample map is no longer read as an input, and this file can be deleted whenever you like; it is left where it is until you do.",

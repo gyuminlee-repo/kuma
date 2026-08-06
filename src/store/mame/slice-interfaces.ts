@@ -14,6 +14,7 @@ import type {
   LayoutProvenance,
   LegacySampleMapFinding,
   MappingIntegrity,
+  ContaminationReport,
   OffLayoutRecords,
   PlateOrderFinding,
   ReplicateResult,
@@ -309,6 +310,14 @@ export interface AnalysisSlice {
    */
   offLayoutRecords: OffLayoutRecords | null;
   /**
+   * What the demux matrix said about reads outside the campaign, or null when
+   * no run has completed since the last reset AND when the completed run could
+   * not measure it (a consensus-dir run never demuxes, so it has no matrix).
+   * The two are deliberately the same value here: neither is a clean plate, and
+   * the panel says "not measured" for both.
+   */
+  contamination: ContaminationReport | null;
+  /**
    * Set when the results on screen were restored from a snapshot this build did
    * not write, so the review screen can say whose engine produced them. Null
    * for a run made in this session and for a same-version restore, which is the
@@ -330,6 +339,7 @@ export interface AnalysisSlice {
   setLayoutProvenance: (layoutProvenance: LayoutProvenance | null) => void;
   setMappingIntegrity: (mappingIntegrity: MappingIntegrity | null) => void;
   setOffLayoutRecords: (offLayoutRecords: OffLayoutRecords | null) => void;
+  setContamination: (contamination: ContaminationReport | null) => void;
   setRestoredResultProvenance: (
     provenance: RestoredResultProvenance | null,
   ) => void;

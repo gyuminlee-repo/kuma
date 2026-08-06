@@ -993,6 +993,29 @@
         "desc": "これらのウェルは run レイアウトに含まれず、何も期待していない位置である。read が出た場合は実際に分注されたか、隣接ウェルのバーコードクロストークである。ウェル:  {{list}}",
         "more": "ほか {{count}} 件。"
       },
+      "contamination": {
+        "title": "想定外の位置に落ちた read",
+        "subtitle": "占有ウェル {{wells}} 個を基準に測定した ({{source}})。",
+        "notMeasured": "測定不可",
+        "wellList": "ウェル: {{list}}",
+        "more": "ほか {{count}} 件。",
+        "source": {
+          "inferred_draft_layout": "expected リストから推定した配置",
+          "explicit_well_layout": "この run に指定された配置"
+        },
+        "signal": {
+          "unused_index_reads": "このキャンペーンが使っていない barcode index を持つ read",
+          "unexpected_well_reads": "使用中の index の組み合わせで空きウェルに付いた read",
+          "ambiguity_rate": "barcode matching に到達した read のうち ambiguous として破棄された割合",
+          "chimera_rate": "assign された read あたり、分割 read が生んだ追加ウェル割り当て",
+          "leak_well_sharing": "想定外の read を持つウェル数",
+          "plate_yield_skew": "assigned read で見た最小プレート複製 / 最大プレート複製"
+        },
+        "sharing": {
+          "shared_across_replicates": "想定外の read がプレート複製全体で繰り返されている。",
+          "single_replicate": "想定外の read が 1 つのプレート複製にのみある。"
+        }
+      },
       "legacySampleMap": {
         "title": "{{file}} は計算されたレイアウトと一致する",
         "desc": "{{wells}} 個のウェルがすべて一致するため、変更は不要。sample map は入力として読まれなくなり、このファイルはいつでも削除してよい。削除するまではそのまま残る。",

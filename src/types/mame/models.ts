@@ -139,6 +139,84 @@ export interface OffLayoutRecords {
 }
 
 /**
+ * The six stray-read signals `kuma_core/mame/qc/contamination.py` reports, in
+ * the order the panel shows them: the two well-scoped counts first (they name
+ * wells an operator can go and look at), then the two run-wide rates, then the
+ * two that need a replicate axis.
+ */
+export const CONTAMINATION_SIGNAL_NAMES = [
+  "unused_index_reads",
+  "unexpected_well_reads",
+  "ambiguity_rate",
+  "chimera_rate",
+  "leak_well_sharing",
+  "plate_yield_skew",
+] as const;
+
+export type ContaminationSignalName = (typeof CONTAMINATION_SIGNAL_NAMES)[number];
+
+/** One well that carried reads the layout did not ask for. */
+export interface ContaminationLeakWell {
+  well: string;
+  reads: number;
+  /** Only on `leak_well_sharing`: how many plate copies saw reads here. */
+  replicates_with_reads?: number;
+  /** Only on `leak_well_sharing`: the per-copy counts, in plate order. */
+  per_replicate?: number[];
+  label?: "shared_across_replicates" | "single_replicate";
+}
+
+/**
+ * One signal: a measurement, or the reason there is none.
+ *
+ * `state` is the discriminator and it must be read first. An `unavailable`
+ * signal carries NO `value`, deliberately: a question that could not be asked
+ * has no answer, and a 0 in its place would read as a clean plate. The UI must
+ * therefore never fall back to `value ?? 0`.
+ */
+export interface ContaminationSignal {
+  state: "ok" | "unavailable";
+  /** Present iff `state === "ok"`. A read count, a 0..1 rate, or a well count. */
+  value?: number;
+  /** Present iff `state === "unavailable"`. A sentence, already phrased for display. */
+  reason?: string;
+  /** `unused_index_reads`, `unexpected_well_reads`, `leak_well_sharing`. */
+  wells?: ContaminationLeakWell[];
+  /** `leak_well_sharing`: where the stray reads sit relative to the copies. */
+  label?: "shared_across_replicates" | "single_replicate";
+  ambiguous_dropped?: number;
+  passed_coverage?: number;
+  chimera_splits?: number;
+  assigned_reads?: number;
+  shared_reads?: number;
+  single_replicate_reads?: number;
+  /** `plate_yield_skew`: the assigned-read total of each plate copy. */
+  per_replicate?: { plate: string; assigned_reads: number }[];
+}
+
+/**
+ * What the demux matrix says about reads that landed outside the campaign
+ * (`kuma_core/mame/qc/contamination.py`).
+ *
+ * Raw-run only: the handler omits the key entirely in consensus-dir mode, which
+ * never demuxed and so has no matrix to read. Absent therefore means "this run
+ * could not measure it", never "this run measured nothing".
+ *
+ * `occupancy_source` is `layout_provenance.source` verbatim. Every signal is
+ * measured against the occupied wells, so a reader who does not know whether
+ * those wells were declared by the operator or inferred from `expected` cannot
+ * weigh any of the numbers.
+ */
+export interface ContaminationReport {
+  occupancy_source: LayoutProvenance["source"];
+  occupied_wells: number;
+  /** Plate copies scored. 0 for a pooled run, which has no replicate axis. */
+  replicates: number;
+  plate_names: string[];
+  signals: Record<ContaminationSignalName, ContaminationSignal>;
+}
+
+/**
  * Whole-run mapping sanity check (`kuma_core/mame/qc/mapping_integrity.py`).
  * `suspect` is a signal to surface prominently, not a hard failure: the run
  * already finished and the workbook the operator has may be the only record
@@ -219,6 +297,13 @@ export interface AnalyzeResult extends AnalyzeYield {
    * `layout_provenance`.
    */
   off_layout_records?: OffLayoutRecords;
+  /**
+   * Stray-read signals read off the demux matrix. Optional for TWO reasons,
+   * unlike the fields above: a result persisted before the key existed, AND a
+   * consensus-dir run, which never demuxed and so has no matrix. Both read as
+   * "not measured"; neither may be shown as zero.
+   */
+  contamination?: ContaminationReport;
 }
 
 /**

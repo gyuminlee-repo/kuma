@@ -1016,6 +1016,43 @@
       ],
       "note": "What an analyze run produces vs the revision table that dates it. Changing verdicts, replicate selection, ordering or a refusal without adding a revision leaves every older project silently trusted.",
       "severity": "warning"
+    },
+    {
+      "id": "mame-run-health",
+      "files": [
+        "kuma_core/mame/health.py",
+        "python-core/sidecar_mame/handlers/health.py",
+        "src/components/mame/widgets/RunHealthPanel.tsx"
+      ],
+      "symbols": [
+        "build_run_health",
+        "detect_cross_talk_with_status",
+        "cross_talk_candidates",
+        "cross_talk_status",
+        "barcode_distribution"
+      ],
+      "note": "RunHealthData travels core -> handler dict -> panel with no schema between them, so a renamed or dropped field surfaces as an empty section rather than an error. The cross-talk fields are the reason this group exists: detect_cross_talk reads barcode_distribution and returns a status instead of raising when that mapping is keyed by native barcode, which is what the raw-run path produces, so the check reports not_run and the panel shows nothing. Whoever changes what fills barcode_distribution has to say what the panel then displays. Stray-read counting no longer lives here at all: it reads the demux matrix (kuma_core/mame/qc/contamination.py, analyze response `contamination`).",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-contamination",
+      "files": [
+        "kuma_core/mame/qc/contamination.py",
+        "kuma_core/mame/ingest/run_pipeline.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "src/types/mame/models.ts",
+        "src/store/mame/slices/analysisSlice.ts",
+        "src/components/mame/widgets/ContaminationPanel.tsx"
+      ],
+      "symbols": [
+        "analyze_contamination",
+        "per_nb_out",
+        "POOLED_PLATE_NAME",
+        "ContaminationReport",
+        "CONTAMINATION_SIGNAL_NAMES"
+      ],
+      "note": "Stray-read signals: the per-NB demux matrix (per_nb_out sink) -> qc.contamination -> raw-run-only `contamination` response key -> TS ContaminationReport -> store field -> panel. Signal names are a fixed list on both sides; adding one on the Python side without extending CONTAMINATION_SIGNAL_NAMES drops it before the panel. Every signal is `ok` with a value or `unavailable` with a reason, never zero-filled, so nothing in this chain may substitute 0 for a missing measurement.",
+      "severity": "blocking"
     }
   ]
 }

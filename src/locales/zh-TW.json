@@ -993,6 +993,29 @@
         "desc": "這些孔位不在本次執行的佈局中，本不應有內容。出現讀數表示該孔實際被加樣，或來自相鄰孔的條碼串擾。孔位:  {{list}}",
         "more": "另有 {{count}} 個。"
       },
+      "contamination": {
+        "title": "落在意外位置的 read",
+        "subtitle": "以 {{wells}} 個占用孔為基準測量（{{source}}）。",
+        "notMeasured": "無法測量",
+        "wellList": "孔位: {{list}}",
+        "more": "另有 {{count}} 個。",
+        "source": {
+          "inferred_draft_layout": "由 expected 清單推斷的配置",
+          "explicit_well_layout": "本次 run 指定的配置"
+        },
+        "signal": {
+          "unused_index_reads": "帶有本批次從未使用的 barcode index 的 read",
+          "unexpected_well_reads": "落在已用 index 組合中空閒孔上的 read",
+          "ambiguity_rate": "抵達 barcode matching 的 read 中被判為 ambiguous 而丟棄的比例",
+          "chimera_rate": "每條 assigned read 中，拆分 read 產生的額外孔位配置",
+          "leak_well_sharing": "帶有意外 read 的孔數",
+          "plate_yield_skew": "以 assigned read 計算的最小板副本 / 最大板副本"
+        },
+        "sharing": {
+          "shared_across_replicates": "意外的 read 在各板副本中重複出現。",
+          "single_replicate": "意外的 read 只出現在一個板副本中。"
+        }
+      },
       "legacySampleMap": {
         "title": "{{file}} 與計算出的佈局一致",
         "desc": "全部 {{wells}} 個孔位皆一致，無需修改。sample map 不再作為輸入讀取，此檔案可隨時刪除；在刪除前會原樣保留。",
