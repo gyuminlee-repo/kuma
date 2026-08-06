@@ -124,6 +124,20 @@ export interface DataPanelProps extends PanelBaseProps {
    * resizable PanelGroup has no height the child can count on.
    */
   scrollBody?: boolean;
+  /**
+   * Size the panel to its content instead of to the box it sits in.
+   *
+   * The default shape assumes a parent with a height to divide: the panel clips
+   * at that height and the child scrolls inside it. That is right for a panel in
+   * a split view and wrong for one on a page that scrolls as a whole, where the
+   * same rules crop the child at whatever the row happens to be. MAME 2.2 showed
+   * the failure clearly: the plate map got a box far shorter than its eight rows
+   * and hid most of the plate behind an inner scrollbar.
+   *
+   * Mutually exclusive with ``scrollBody``: nothing overflows a panel that is as
+   * tall as its content, so a scroll container here would never engage.
+   */
+  autoHeight?: boolean;
 }
 
 export function DataPanel({
@@ -133,6 +147,7 @@ export function DataPanel({
   className,
   children,
   scrollBody = false,
+  autoHeight = false,
   onError: _onError,
 }: DataPanelProps) {
   const { t } = useTranslation();
@@ -151,14 +166,20 @@ export function DataPanel({
   return (
     <section
       className={cn(
-        "flex min-h-0 flex-col overflow-hidden rounded-container border border-border bg-card",
+        "flex flex-col rounded-container border border-border bg-card",
+        autoHeight ? "min-h-fit" : "min-h-0 overflow-hidden",
         className,
       )}
+      data-auto-height={autoHeight ? "true" : undefined}
     >
       <PanelHeader title={title} description={description} right={headerSlot} />
       <div
-        className={cn("min-h-0 flex-1", scrollBody ? "overflow-auto" : "overflow-hidden")}
-        data-scroll-body={scrollBody ? "true" : undefined}
+        className={cn(
+          autoHeight
+            ? "flex-none"
+            : cn("min-h-0 flex-1", scrollBody ? "overflow-auto" : "overflow-hidden"),
+        )}
+        data-scroll-body={!autoHeight && scrollBody ? "true" : undefined}
       >
         <ErrorBoundary fallback={fallback}>{children}</ErrorBoundary>
       </div>

@@ -35,9 +35,19 @@ interface PlateViewProps {
   /** When provided, renders an expand/collapse toggle button in the header. */
   expanded?: boolean;
   onToggleExpand?: () => void;
+  /**
+   * Draw the whole plate instead of fitting it to the box.
+   *
+   * The default fills its parent and scrolls the grid inside, which is right
+   * when a parent hands down a height. On a page that scrolls as a whole there
+   * is no such height, and the same rules cropped the plate to whatever the row
+   * gave it: eight rows of wells behind an inner scrollbar that started at row D.
+   * With this on, the grid is as tall as its rows and the page carries the scroll.
+   */
+  autoHeight?: boolean;
 }
 
-export function PlateView({ wellColorOf, wells: externalWells, expanded, onToggleExpand }: PlateViewProps = {}) {
+export function PlateView({ wellColorOf, wells: externalWells, expanded, onToggleExpand, autoHeight = false }: PlateViewProps = {}) {
   const { t } = useTranslation();
   const verdicts = useMameAppStore((state) => state.verdicts);
   const storeWells = useMameAppStore((state) => state.wells);
@@ -98,7 +108,7 @@ export function PlateView({ wellColorOf, wells: externalWells, expanded, onToggl
   }, [externalWells, loadPlateData, verdicts.length, storeWells.length]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+    <div className={autoHeight ? "flex flex-col" : "flex h-full min-h-0 flex-col overflow-hidden"}>
       <div className="flex items-center justify-between border-b border-border px-3 py-1.5">
         <div className="flex items-center gap-2 text-caption text-muted-foreground">
           <span>
@@ -144,8 +154,14 @@ export function PlateView({ wellColorOf, wells: externalWells, expanded, onToggl
         </div>
       </div>
 
-      <div className="grid flex-1 min-h-0 grid-cols-[1fr_164px] gap-2 overflow-hidden p-2">
-        <div className="min-h-0 overflow-auto">
+      <div
+        className={
+          autoHeight
+            ? "grid grid-cols-[1fr_164px] items-start gap-2 p-2"
+            : "grid flex-1 min-h-0 grid-cols-[1fr_164px] gap-2 overflow-hidden p-2"
+        }
+      >
+        <div className={autoHeight ? undefined : "min-h-0 overflow-auto"}>
           <WellPlate
             wells={displayWells}
             selectedWellId={selectedWell?.well}
@@ -240,7 +256,11 @@ export function PlateView({ wellColorOf, wells: externalWells, expanded, onToggl
         </div>
 
         <aside
-          className="flex min-h-0 flex-col overflow-auto rounded-control border border-border bg-background p-2"
+          className={
+            autoHeight
+              ? "flex flex-col rounded-control border border-border bg-background p-2"
+              : "flex min-h-0 flex-col overflow-auto rounded-control border border-border bg-background p-2"
+          }
           aria-live="polite"
           aria-label={t("mame.plateView.selectedWellAriaLabel")}
         >

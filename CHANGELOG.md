@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.15.18 (Step 2.2 stops dividing a window it was never bound by)
+
+The plate map and the verdict breakdown were sized to the window and scrolled inside whatever share they got, so the plate sat cropped at row D behind an inner scrollbar while the operator scrolled three separate boxes to read one result. Three releases went into redistributing that share: a content fit in v0.15.11, a repair in v0.15.14 for the stored layout that suppressed it, and neither addressed the premise. The screen is a page, not a split view, and a page has no fixed height to divide.
+
+### Highlights
+
+- The plate map and the verdict breakdown now draw whole instead of scrolling inside a box far shorter than they need.
+- Step 2.2 scrolls as one page, so the two of them and the verdict table read in a single pass.
+- The verdict table keeps its own scroll, bounded to about the height of the two panels beside it.
+
+### Changed
+
+- v0.15.18: The plate map and the per-plate breakdown are drawn at the height their content needs. `DataPanel` and `PlateView` take an `autoHeight` mode that drops the fill-and-clip rules meant for a parent with a height to hand down, and step 2.2 uses it for both. The plate grid, the well inspector and the breakdown lose their inner scroll containers with it.
+- v0.15.18: The left column takes its height from the right one instead of adding to it. Its contents are absolutely positioned, so the verdict table, virtualised and up to 96 rows, reports no intrinsic height and cannot stretch the grid row; it fills what the plate map and the breakdown define and scrolls inside that. Below the `lg` breakpoint the columns stack and the table takes an explicit viewport-relative height, since there is no row to borrow from.
+- v0.15.18: The resizable splitters on 2.2 are gone, along with `useContentFitSplit` and the layout it persisted. Measuring panel heights in a `ResizeObserver` and writing the result back was re-deriving what the box model states directly, and it was the source of both earlier defects. Nothing else used the hook.
+
 ## v0.15.17 (A threshold nobody had measured against)
 
 The mixed-position gate fires at a fixed 0.20 minor-allele fraction, and until now the workbook reported only how bad the worst position in a well was. That says nothing about whether 0.20 is a lot or a little for the run in front of you.

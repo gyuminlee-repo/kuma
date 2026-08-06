@@ -2272,10 +2272,11 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein Well meldet jetzt neben seiner schlechtesten Position auch sein typisches Grundrauschen, sodass das Mixed-Gate am jeweiligen Run gemessen werden kann.",
-      "Im Run 260729 liegt dieses Gate etwa sechzigmal ueber einer typischen Position und viermal ueber der lautesten beobachteten."
+      "Plattenkarte und Verdict-Verteilung werden jetzt vollstaendig gezeichnet, statt in einem viel zu niedrigen Kasten zu scrollen.",
+      "Schritt 2.2 scrollt als eine Seite, sodass beide zusammen mit der Verdict-Tabelle in einem Durchgang lesbar sind.",
+      "Die Verdict-Tabelle behaelt ihren eigenen Scroll, begrenzt auf etwa die Hoehe der beiden Panels daneben."
     ],
-    "highlightsStamp": "0.15.17+6ee369a3"
+    "highlightsStamp": "0.15.18+992e2c6b"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",
