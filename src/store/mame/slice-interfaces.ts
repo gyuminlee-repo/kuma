@@ -1,5 +1,6 @@
 import type { SortingState, Updater } from "@tanstack/react-table";
 import type { BuildEvolveproCompletionRecord } from "@/lib/mame/buildEvolveproFormStorage";
+import type { RestoredResultProvenance } from "@/lib/mame/resultProvenance";
 export type { MamePhase, PhaseSlice } from "./slices/phaseSlice";
 import type {
   AmpliconLengthEstimate,
@@ -226,6 +227,13 @@ export interface AnalysisSlice {
    * null when no run has completed since the last reset.
    */
   mappingIntegrity: MappingIntegrity | null;
+  /**
+   * Set when the results on screen were restored from a snapshot this build did
+   * not write, so the review screen can say whose engine produced them. Null
+   * for a run made in this session and for a same-version restore, which is the
+   * case that must look exactly as it did before.
+   */
+  restoredResultProvenance: RestoredResultProvenance | null;
   plateFilter: string;
   searchQuery: string;
   sorting: SortingState;
@@ -240,6 +248,9 @@ export interface AnalysisSlice {
   setAnalyzeYield: (analyzeYield: AnalyzeYield | null) => void;
   setLayoutProvenance: (layoutProvenance: LayoutProvenance | null) => void;
   setMappingIntegrity: (mappingIntegrity: MappingIntegrity | null) => void;
+  setRestoredResultProvenance: (
+    provenance: RestoredResultProvenance | null,
+  ) => void;
   setPlateFilter: (filter: string) => void;
   setSearchQuery: (query: string) => void;
   setSorting: (updater: Updater<SortingState>) => void;

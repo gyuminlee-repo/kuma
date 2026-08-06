@@ -839,6 +839,14 @@
         "final": "Final 96 Deep Well"
       }
     },
+    "restoredResult": {
+      "title": "Estes resultados vêm de outra versão do kuma",
+      "bodyOlder": "Restaurados de um snapshot escrito pelo kuma v{{version}}. Esta versão avalia execuções de forma diferente: execute novamente para ver o resultado atual ou continue vendo o salvo.",
+      "bodyNewer": "Restaurados de um snapshot escrito pelo kuma v{{version}}, mais novo que esta versão. Ela pode não avaliar a execução da mesma forma: execute novamente ou continue vendo o resultado salvo.",
+      "bodyUnknown": "Restaurados de um snapshot sem versão do kuma registrada, portanto indistinguível de uma execução antiga. Execute novamente ou continue vendo o resultado salvo.",
+      "rerun": "Executar a análise novamente",
+      "keep": "Manter estes resultados"
+    },
     "janus": {
       "settings": {
         "contextTitle": "Configurações do instrumento Janus",
@@ -2272,11 +2280,12 @@
     "description": "Destaques da última atualização.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Um arquivo de codigos de barras nao numerado para uma placa 8 x 12 agora interrompe a execucao e nomeia os codigos em falta, em vez de deixar pocos sem nome.",
-      "Uma lacuna na numeracao tambem e detectada. Antes ela deslocava cada codigo seguinte para a linha ou coluna errada.",
-      "O formato da placa passa a ser declarado uma unica vez em vez de repetido em cada mapeamento de poco."
+      "Uma execução restaurada de um kuma anterior agora informa qual versão a avaliou, em vez de parecer um resultado desta versão.",
+      "Você decide o próximo passo: executar novamente para um resultado desta versão ou manter o salvo. Nada é apagado nem executado por você.",
+      "Manter é lembrado por projeto e por versão, então o aviso fica quieto até aparecer outro snapshot.",
+      "Um snapshot sem versão registrada, ou de uma versão mais nova, é informado em vez de ser presumido correto."
     ],
-    "highlightsStamp": "0.15.19+23a13b2a"
+    "highlightsStamp": "0.15.20+ae44e5c0"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",

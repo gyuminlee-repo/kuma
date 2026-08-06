@@ -839,6 +839,14 @@
         "final": "Final 96 Deep Well"
       }
     },
+    "restoredResult": {
+      "title": "Ces résultats proviennent d'une autre version de kuma",
+      "bodyOlder": "Restaurés depuis un instantané écrit par kuma v{{version}}. Cette version évalue les runs différemment : relancez pour voir ce qu'elle produirait, ou gardez le résultat enregistré.",
+      "bodyNewer": "Restaurés depuis un instantané écrit par kuma v{{version}}, plus récent que cette version. Elle peut ne pas évaluer le run de la même façon : relancez, ou gardez le résultat enregistré.",
+      "bodyUnknown": "Restaurés depuis un instantané sans version kuma enregistrée, donc indiscernables d'une exécution ancienne. Relancez, ou gardez le résultat enregistré.",
+      "rerun": "Relancer l'analyse",
+      "keep": "Garder ces résultats"
+    },
     "janus": {
       "settings": {
         "contextTitle": "Réglages de l'instrument Janus",
@@ -2272,11 +2280,12 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Un fichier de codes-barres non numerote pour une plaque 8 x 12 arrete maintenant l execution et nomme les codes en cause, au lieu de laisser des puits sans nom.",
-      "Un trou dans la numerotation est aussi detecte. Il decalait auparavant chaque code suivant vers une ligne ou une colonne erronee.",
-      "La forme de la plaque est desormais declaree une seule fois au lieu d etre reecrite a chaque mappage de puits."
+      "Une exécution restaurée depuis un kuma plus ancien indique désormais la version qui l'a évaluée, au lieu de passer pour un résultat de cette version.",
+      "Vous choisissez la suite : relancer pour un résultat de cette version, ou garder celui qui est enregistré. Rien n'est supprimé ni relancé à votre place.",
+      "Le choix de garder est mémorisé par projet et par version : l'avis se tait jusqu'à ce qu'un autre instantané apparaisse.",
+      "Un instantané sans version enregistrée, ou issu d'une version plus récente, est signalé plutôt que présumé fiable."
     ],
-    "highlightsStamp": "0.15.19+23a13b2a"
+    "highlightsStamp": "0.15.20+ae44e5c0"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",
