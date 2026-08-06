@@ -1697,25 +1697,27 @@
 <tr>
 <td><code>..._janus.csv</code></td>
 <td>step 3 에서 내보내기를 눌렀을 때만</td>
-<td>로봇이 읽는 9열 시트 (<code>device9</code>)</td>
+<td>로봇이 읽는 8열 시트 (<code>device</code>)</td>
 </tr>
 </tbody>
 </table>
-<p>분석은 pick 목록까지만 만든다. 로봇 시트는 deck 배치와 liquid class 를 함께 적는 파일이고 이 값들은 내보내는 시점의 실험실 상태를 진술한다. 재실행할 때마다 자동으로 다시 쓰면 그때 적힌 값이 지금도 맞다고 주장하는 셈이라, 사람이 누를 때만 만든다.</p>
+<p>분석은 pick 목록까지만 만든다. 로봇 시트는 deck 배치를 적는 파일이고 이 값은 내보내는 시점의 실험실 상태를 진술한다. 재실행할 때마다 자동으로 다시 쓰면 그때 적힌 값이 지금도 맞다고 주장하는 셈이라 사람이 누를 때만 만든다.</p>
+<p>시트의 8열은 <code>name</code>, <code>type</code>, <code>no</code>, <code>Asp. Rack</code>, <code>Asp. Posi</code>, <code>Dsp. Rack</code>, <code>Dsp. Posi</code>, <code>volume</code> 이다. 두 rack 열에는 deck 번호가 아니라 플레이트 이름이 들어간다. JANUS 소프트웨어가 labware 를 슬롯 위치가 아니라 이름으로 찾기 때문이다. liquid class 를 적을 열은 없다.</p>
+<p><code>device9</code> 는 이 시트가 9열이던 시절의 이름이다. 그때 저장된 프로젝트가 그 이름으로 요청해도 열리도록 사이드카와 화면 양쪽이 <code>device</code> 로 접어 읽는다. 새로 쓸 때 쓰는 이름은 아니다.</p>
 <h2 id="_2">화면 구성<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <p>step 3 은 전용 화면이므로 설정이 페이지에 그대로 펼쳐진다. v0.15.13 까지는 "Janus 장비 설정 열기" 버튼이 다이얼로그를 띄웠다. 미리보기를 모달 안에서 읽어야 했고 화면이 남는데도 좁았다.</p>
 <ul>
 <li><strong>형식</strong>: CSV 또는 XLSX</li>
 <li><strong>대상 배치</strong>, <strong>출력 열 구성</strong>: 목적지 플레이트 배치와 내보낼 열 구성</li>
 <li><strong>장비 설정</strong>: Volume (µL), Liquid class</li>
-<li><strong>Deck 구성</strong>: sample type, 소스 rack 번호(플레이트별), 목적지 rack 번호</li>
+<li><strong>Deck 구성</strong>: <code>type</code> 열에 쓸 sample type. rack 열의 플레이트 이름은 이번 실행에서 생성되므로 입력란이 없다</li>
 <li><strong>미리보기</strong>: 실제로 나갈 행을 보여준다. 차단·경고 항목이 있으면 함께 표시한다</li>
 <li><strong>제외 N건</strong>: 선정에서 빠진 클론과 그 이유</li>
 <li><strong>내보내기</strong></li>
 </ul>
 <h2 id="_3">값을 비워 두면<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
-<p><strong>Liquid class 는 기본값이 없다.</strong> 로봇의 피펫팅 거동을 결정하는 값이라 프로그램이 대신 정하지 않는다. 비워 두면 그 칸이 빈 채로 나가고 내보내기는 진행된다. 실행 전에 내보내기 화면이나 시트에서 채운다.</p>
-<p><strong>Deck 번호는 이번 실행의 플레이트에서 유도한다.</strong> 소스 플레이트가 플레이트 순서대로 앞쪽 rack 을 받고 목적지가 그다음을 받는다. KURO 프라이머 시트와 같은 규칙이다. 내보내기 화면에서 숫자를 입력하면 각각 덮어쓸 수 있다.</p>
+<p><strong>Liquid class 는 기본값이 없다.</strong> 로봇의 피펫팅 거동을 결정하는 값이라 프로그램이 대신 정하지 않는다. 시트에는 이 값을 적을 열이 없다. 입력한 값은 실행 기록에만 남고 어떤 파일에도 쓰이지 않으므로 비워 두어도 내보내기는 그대로 진행된다.</p>
+<p><strong>플레이트 이름은 이번 실행의 플레이트에서 생성한다.</strong> 소스는 플레이트 순서대로 <code>Stock plate1</code>, <code>Stock plate2</code> 를 받고 목적지는 하나뿐이라 <code>final culture plate</code> 가 된다. 실험실이 가져다 쓰는 seeding 워크북과 같은 이름이다. 숫자는 이번 실행 안의 순번일 뿐 플레이트 번호가 아니다. NB07 과 NB10 으로 돌린 실행도 <code>Stock plate1</code>, <code>Stock plate2</code> 가 된다. 생성된 이름은 행 미리보기에서 확인하고 deck 의 labware 라벨을 거기에 맞춘다.</p>
 <h2 id="_4">완료 표시<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>내보내기가 성공하면 step 3 이 완료로 표시된다. v0.15.13 까지는 실행이 매핑 파일을 자동으로 써서 이 표시가 실행 직후에 켜졌다. 이제는 사람이 내보낸 뒤에 켜진다.</p>
 <p>→ <a href="../02-review/">Step 2. Sequencing Review</a> | <a href="../04-activity/">Step 4. Activity Data</a></p>
