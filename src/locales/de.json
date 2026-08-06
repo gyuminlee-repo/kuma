@@ -579,7 +579,7 @@
       "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
       "resetColumnWidths": "Reset column widths",
       "replicateFlags": {
-        "header": "Replicates",
+        "header": "Übereinstimmung",
         "help": "Stimmen die Plate-Kopien dieses Wells überein? Pro Well ermittelt, über alle Plates des Laufs.",
         "agree": "OK",
         "disagreementShort": "abweichend",

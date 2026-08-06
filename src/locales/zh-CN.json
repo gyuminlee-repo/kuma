@@ -579,7 +579,7 @@
       "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
       "resetColumnWidths": "Reset column widths",
       "replicateFlags": {
-        "header": "Replicate",
+        "header": "一致性",
         "help": "该 well 的各 plate 副本是否一致。按 well 计算，覆盖本次运行的全部 plate。",
         "agree": "一致",
         "disagreementShort": "不一致",

@@ -704,7 +704,7 @@
       "resizeColumnHint": "끌어서 너비를 조절합니다. 더블클릭 또는 Home 키로 초기화합니다.",
       "resetColumnWidths": "열 너비 초기화",
       "replicateFlags": {
-        "header": "Replicate",
+        "header": "사본 일치",
         "help": "이 well 의 plate 사본들이 서로 일치하는가. well 단위로, 실행에 포함된 모든 plate 를 통틀어 계산한다.",
         "agree": "일치",
         "disagreementShort": "불일치",

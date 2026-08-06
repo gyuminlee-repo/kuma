@@ -579,7 +579,7 @@
       "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
       "resetColumnWidths": "Reset column widths",
       "replicateFlags": {
-        "header": "Replicate",
+        "header": "Согласованность",
         "help": "Совпадают ли копии этого well на разных plate? Считается по well по всем plate запуска.",
         "agree": "OK",
         "disagreementShort": "расхождение",

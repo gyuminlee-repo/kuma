@@ -579,7 +579,7 @@
       "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
       "resetColumnWidths": "Reset column widths",
       "replicateFlags": {
-        "header": "Replicate",
+        "header": "一致性",
         "help": "この well の plate コピーどうしが一致しているか。well 単位で、実行に含まれる全 plate を対象に判定する。",
         "agree": "一致",
         "disagreementShort": "不一致",

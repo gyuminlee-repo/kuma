@@ -2,7 +2,7 @@
  * analysisSlice.loadSampleData.test.ts
  *
  * MAME loadSampleData() 동작 검증:
- * - resolveResource 12개 경로 호출 (Phase 1 setup prefill seeds + EVOLVEpro form + fixture 포함)
+ * - resolveResource 11개 경로 호출 (Phase 1 setup prefill seeds + EVOLVEpro form + fixture 포함)
  * - activity.set_plate_meta + activity.upload RPC 호출 파라미터
  * - 입력 경로 setter + hardcoded sample 결과 populate
  * - activity RPC 실패 시 fallback (결과는 populate, 메시지 변경)
@@ -106,7 +106,7 @@ describe("mame analysisSlice.loadSampleData", () => {
     useRoundStore.setState({ rounds: [], active_round_id: null });
   });
 
-  it("resolves 12 bundled resources, creates round + WT-well plate meta, calls activity RPCs, populates input + results", async () => {
+  it("resolves 11 bundled resources, creates round + WT-well plate meta, calls activity RPCs, populates input + results", async () => {
     // activity.upload returns records + plate_meta; hydrated into round.activity
     mockSendRequest.mockImplementation((method: string) => {
       if (method === "activity.upload") {
@@ -140,7 +140,10 @@ describe("mame analysisSlice.loadSampleData", () => {
       "samples/mame/11_mame_gc_fid_round1_raw.xlsx",
       "samples/mame/sample_analysis_result.json",
     ];
-    expect(resolveResource).toHaveBeenCalledTimes(12);
+    // One per entry of `expectedPaths` and nothing else: the sample map
+    // (`05_mame_sample_map.xlsx`) was dropped along with the field it filled,
+    // so this run resolves 11 where it used to resolve 12.
+    expect(resolveResource).toHaveBeenCalledTimes(expectedPaths.length);
     for (const p of expectedPaths) {
       expect(resolveResource).toHaveBeenCalledWith(p);
     }

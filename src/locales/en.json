@@ -704,7 +704,7 @@
       "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
       "resetColumnWidths": "Reset column widths",
       "replicateFlags": {
-        "header": "Replicates",
+        "header": "Agreement",
         "help": "Do the plate copies of this well agree? Measured per well, across every plate of the run.",
         "agree": "OK",
         "disagreementShort": "disagree",

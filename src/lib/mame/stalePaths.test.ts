@@ -66,7 +66,8 @@ describe("findStaleMamePaths", () => {
   it("labels every field it can report", async () => {
     const stale = await findStaleMamePaths(ALL_PRESENT, async () => false);
 
-    expect(stale).toHaveLength(6);
+    // Six until `sampleMapPath` was removed from MAME_PATH_FIELDS.
+    expect(stale).toHaveLength(5);
     for (const field of stale) {
       expect(MAME_PATH_LABEL_KEYS[field]).toMatch(/^autosaveHydration\.field/);
     }
