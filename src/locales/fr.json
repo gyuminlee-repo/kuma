@@ -2397,13 +2397,13 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Le fichier de mapping JANUS correspond désormais au classeur à partir duquel le laboratoire ensemence : huit colonnes, avec des plaques nommées plutôt que numérotées.",
-      "L'étape 3 ne demande plus qu'un seul volume de transfert au lieu de deux, avec par défaut les 70 uL utilisés par ce laboratoire.",
-      "Cliquer sur un replicate dans l'inspecteur de revue ouvre cette copie de plaque, comme le faisaient déjà un clic sur son puits ou sur sa ligne de tableau.",
-      "Chaque métrique de confiance ouvre maintenant une fenêtre indiquant ce qu'elle compte et le seuil, s'il y en avait un, auquel l'exécution a été comparée.",
-      "Les entrées de la légende des verdicts s'expliquent au survol, dans votre langue, aux deux endroits où elles apparaissent."
+      "Les données d'exemple n'annoncent plus un contrôle cross-talk comme propre alors que ce contrôle n'a jamais été exécuté.",
+      "La fixture d'analyse d'exemple est fournie avec l'application, si bien que la démo la lit dans une version publiée et non plus seulement en développement.",
+      "La réouverture d'une exécution enregistrée ramène son nombre d'enregistrements hors disposition au lieu de ne rien afficher du tout.",
+      "La barre de récupération et l'en-tête au-dessus d'elle ne peuvent plus afficher des chiffres provenant de deux exécutions différentes.",
+      "L'aperçu des plaques KURO n'étiquette plus ses deux panneaux comme des racks de deck, puisque ce sont désormais des noms de plaque."
     ],
-    "highlightsStamp": "0.16.1+3b52e4c8"
+    "highlightsStamp": "0.16.2+b043584b"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",

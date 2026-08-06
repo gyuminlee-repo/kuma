@@ -2430,13 +2430,13 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The JANUS mapping file now matches the workbook the lab seeds from: eight columns, with plates named rather than numbered.",
-      "Step 3 asks for one transfer volume instead of two, defaulting to the 70 uL this lab uses.",
-      "Clicking a replicate in the review inspector opens that copy, the way clicking its well or its table row already did.",
-      "Each confidence metric now opens a popup stating what it counts and which threshold, if any, the run was judged against.",
-      "Verdict legend entries explain themselves on hover, in your own language, at both places they appear."
+      "The bundled sample no longer reports a cross-talk check as clean when that check never ran.",
+      "The sample analysis fixture is bundled with the app, so the demo reads it in a released build rather than only in development.",
+      "Reopening a saved run brings back its off-layout record count instead of showing nothing.",
+      "The recovery bar and the header above it can no longer show figures from two different runs.",
+      "The KURO plate preview stops labelling its two panels as deck racks, which are plate names now."
     ],
-    "highlightsStamp": "0.16.1+3b52e4c8"
+    "highlightsStamp": "0.16.2+b043584b"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",
