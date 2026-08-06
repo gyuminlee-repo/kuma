@@ -4,6 +4,8 @@ Date: 2026-05-18
 Author: brainstorming session
 Scope: 2 independent features bundled (separate PRs if needed)
 
+> **정정 (2026-08-06)**: 아래 "Plate Format Reference" 표와 Janus dry-run row 항목, 그리고 JanusPlateView 스케치를 현재 코드에 맞게 고쳤다. 이 문서는 두 plans 문서가 근거 문서로 인용하고 있어 현행 참조로 읽히므로, 틀린 서술을 남겨 두지 않는다. 고친 내용은 두 갈래다. (1) JANUS 시트는 8열이고 두 rack 열에는 deck 번호가 아니라 플레이트 이름이 들어간다. liquid class 열은 없다. 원문은 9열 payload 와 정수 rack 을 적고 있었고 v0.16.1 이 이를 무너뜨렸다. (2) "Rack 2 = dest" 와 `-fw`/`-rv` 접미사는 그보다 앞선 F/R 재작업(v0.10.0.13, 183d2139)이 무너뜨린 서술이다. 두 번째 패널은 목적지가 아니라 reverse 소스이며 목적지는 별도 DestPlateView 가 그린다. 접미사는 `-F`/`-R` 이다. "Open Items" 와 컴포넌트 props 스케치는 2026-05-18 시점 기록이라 그대로 둔다. 그 목록의 "Rack 1/Rack 2 라벨" 항목이 실제 출고 라벨 문구가 됐고, 라벨 자체는 이 문서가 아니라 로케일에서 고친다.
+
 ## Context
 
 요청 2건.
@@ -17,15 +19,18 @@ Scope: 2 independent features bundled (separate PRs if needed)
 | 시스템 | Source | Dest | row 규약 |
 |---|---|---|---|
 | Echo 525 | 384-well (16×24, A-P × 01-24) | 96-well (8×12) | source rows: odd(A,C,E,G,I,K,M,O) = fwd, even(B,D,F,H,J,L,N,P) = rev |
-| JANUS | 96-well Rack 1 = fwd | 96-well Rack 2 (dest) | rack 분리, row split 없음 |
+| JANUS | 96-well "fw plate" (fwd) + 96-well "rv plate" (rev) | 96-well "PCR mixture plate" | 소스 두 장이 방향으로 갈린다. row split 없음 |
 
-근거: 옵시디언 `weekly_260417_gyumin.md:33`, `260428_mame_PPTX_gap_analysis.md:113-122`, 코드 `kuma_core/kuro/plate_mapper.py:507-544,582-585,656-659`.
+근거: 옵시디언 `weekly_260417_gyumin.md:33`, `260428_mame_PPTX_gap_analysis.md:113-122`, 코드 `kuma_core/kuro/plate_mapper.py:727-785` (Echo 384-well fwd/rev row 배정), `:889-967` (`build_janus_rows`), `kuma_core/shared/janus_deck.py:37-46,86-92` (8열 헤더와 KURO 플레이트 이름).
 
-Echo dry-run row (`python-core/sidecar_kuro/handlers/export.py:605-668`):
+Echo dry-run row (`python-core/sidecar_kuro/handlers/export.py:680`):
 - source_plate, source_well_name, source_well (384 format A01), dest_plate, dest_well_name, dest_well (96 format A1), transfer_vol (nL, split if >100)
 
-Janus dry-run row (`:671-720`):
-- name (-fw|-rv), type, dsp_rack_label, no, asp_rack(1|2), asp_posi (96 A1), dsp_rack(2), dsp_posi (96 A1), volume (µL)
+Janus dry-run row (`python-core/sidecar_kuro/handlers/export.py:750`):
+- 계기 시트 8열을 `JANUS_DEVICE_HEADER` 순서 그대로 싣는다 (`kuma_core/shared/janus_deck.py:37-46`, row dict 키는 `kuma_core/kuro/plate_mapper.py:877-886`): name (`-F`|`-R`), type, no, asp_rack, asp_posi (96 A1), dsp_rack, dsp_posi (96 A1), volume (µL)
+- `asp_rack` 과 `dsp_rack` 은 정수 deck 번호가 아니라 플레이트 이름 문자열이다. JANUS 소프트웨어가 labware 를 슬롯 위치가 아니라 이름으로 찾기 때문이다. KURO 는 `"fw plate"` / `"rv plate"` / `"PCR mixture plate"` 를 쓰고 (`janus_deck.py:86-92`), MAME 는 이번 실행이 쓴 플레이트에서 이름을 만든다 (`kuma_core/mame/export/janus_mapping.py:135-136`).
+- liquid class 열은 없다. `dsp_rack_label` 열도 없다. 둘 다 9열이던 옛 워크북에 있던 열이다.
+- row dict 은 여기에 `mutation` 과 `role`(`"fwd"`|`"rev"`) 을 더 싣는다. 파일에는 쓰이지 않는 미리보기 전용 필드이고, `role` 이 현재 미리보기의 유일한 방향 신호다 (`src/lib/echoJanusAdapter.ts:79-101`).
 
 ## Architecture, Feature 1 (Echo/Janus Plate Preview)
 
@@ -40,7 +45,8 @@ src/components/widgets/EchoPlateView.tsx (NEW, 384-well 전용)
   ├── source plate + dest plate 좌우 PanelGroup. dest는 96-well이므로 기존 WellPlate 재사용
 
 src/components/widgets/JanusPlateView.tsx (NEW, 96-well 2-rack 표시)
-  ├── 기존 WellPlate 2개를 좌우 배치 (Rack 1 = fwd, Rack 2 = dest)
+  ├── 기존 WellPlate 2개를 좌우 배치 (왼쪽 = forward 소스 플레이트, 오른쪽 = reverse 소스 플레이트)
+  ├── 목적지 플레이트는 이 컴포넌트가 아니라 DestPlateView 가 따로 그린다
   ├── props: { rack1Rows: JanusRow[], rack2Rows: JanusRow[] }
   ├── 셀 hover tooltip: name, volume (µL)
 

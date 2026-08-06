@@ -17,7 +17,7 @@ MAME 는 4개 major step 으로 구성되며, 각 major 는 하위 sub-step 을 
 
 Janus 장비 설정은 v0.15.12 에서 step 2.1 밖으로 나와 자체 major step 3 이 되었다. Activity 는 4.x 로 밀렸다. 시퀀싱 판정만 필요한 운용자가 쓰지 않을 로봇 설정을 지나치지 않도록 한 분리이며 step 3 은 어떤 실행도 막지 않는다.
 
-## step 3 (v0.15.14 기준)
+## step 3 (v0.16.1 기준)
 
 실행이 스스로 쓰는 Janus 파일은 선정 클론 pick 목록(`..._picks.csv`) 하나다. 로봇이 읽는 8열 매핑 시트(`..._janus.csv`)는 step 3 의 export 를 눌렀을 때만 만들어진다. 로봇 시트는 deck 을 적는 파일이고 이 값은 export 시점의 실험실 상태를 진술하므로 재실행마다 자동으로 다시 쓰지 않는다. 두 rack 열에는 deck 번호가 아니라 플레이트 이름이 들어가고 liquid class 열은 없다.
 

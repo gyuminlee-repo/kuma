@@ -36,7 +36,7 @@ well_id = ROW_LETTER[r-1] + f"{c:02d}"
 {well_id}_F{f_idx}_R{r_idx}.fasta
 ```
 
-## Sample map (v0.15.24 에 제거)
+## Sample map (v0.16.0 에 제거)
 
 well_id -> 변이체 이름 매핑을 손으로 적는 xlsx 였다. 웰 배치는 변이 목록에서 계산하므로 더 이상 입력이 아니다. 플레이트를 두 번 적는 구조였고, 둘 중 하나는 늘 아무도 갱신하지 않은 쪽이었다.
 

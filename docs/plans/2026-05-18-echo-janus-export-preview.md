@@ -1,6 +1,8 @@
 # Echo/Janus Export Plate Preview 구현 계획
 
 > **Status: completed** (구현 머지 PR #12, v0.9.9.0)
+>
+> **주의 (2026-08-06)**: 아래 본문은 v0.9.9.0 시점의 계획 기록이며 그대로 둔다. JANUS payload 는 그 뒤 두 번 바뀌었으므로 여기 적힌 row 형식을 현재 형식으로 읽지 말 것. (1) v0.10.0.13 (183d2139) 의 F/R 재작업으로 두 번째 패널이 목적지가 아니라 reverse 소스가 됐고 name 접미사가 `-fw`/`-rv` 에서 `-F`/`-R` 로 바뀌었다. (2) v0.16.1 에서 시트가 9열에서 8열이 됐다. `dsp_rack_label` 열이 사라지고 `asp_rack`·`dsp_rack` 이 정수 deck 번호에서 플레이트 이름 문자열이 됐으며 liquid class 열은 없다. 현재 형식의 정본은 `kuma_core/shared/janus_deck.py:37-46` (8열 헤더), `kuma_core/kuro/plate_mapper.py:877-886` (row dict 키 순서), `src/lib/echoJanusAdapter.ts:79-101` (TS 미러). 현재 어댑터 테스트 픽스처는 `src/lib/echoJanusAdapter.test.ts` 에 있다.
 
 **목표:** KURO Export 탭 메인 최상단에 Echo 384-well + Janus 96-well plate 시각화 추가, Design Report 기존 미리보기 제거
 
