@@ -38,3 +38,24 @@ export const VERDICT_LABEL: Record<VerdictClass, string> = {
   LOWDEPTH: "Low depth",
   NO_CALL: "No call",
 };
+
+/**
+ * Locale KEY (not text) of the one-line explanation for each verdict class.
+ *
+ * The explanations themselves stay in `src/locales/*.json` under
+ * `mame.verdictBadge.help.*` so they can be translated; only the key lives
+ * here. Two things this buys over the `t(\`...${verdict}\`)` template literal it
+ * replaces: the Record type refuses to compile if a class is missing, and every
+ * key appears in the source as a literal string that key-extraction tooling can
+ * actually find.
+ */
+export const VERDICT_HELP_KEY: Record<VerdictClass, string> = {
+  PASS: "mame.verdictBadge.help.PASS",
+  AMBIGUOUS: "mame.verdictBadge.help.AMBIGUOUS",
+  MIXED: "mame.verdictBadge.help.MIXED",
+  WRONG_AA: "mame.verdictBadge.help.WRONG_AA",
+  FRAMESHIFT: "mame.verdictBadge.help.FRAMESHIFT",
+  MANY: "mame.verdictBadge.help.MANY",
+  LOWDEPTH: "mame.verdictBadge.help.LOWDEPTH",
+  NO_CALL: "mame.verdictBadge.help.NO_CALL",
+};

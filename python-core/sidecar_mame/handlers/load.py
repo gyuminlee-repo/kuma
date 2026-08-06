@@ -57,6 +57,15 @@ class LoadAnalyzeResultParams(BaseModel):
     # keys anyway; these are declared for an explicit, self-documenting contract.
     summary: dict[str, Any] | None = None
     distribution_stats: dict[str, Any] | None = None
+    # Thresholds the original run was judged against (analyze response
+    # ``compare_params``). Same treatment as the two above: accepted so the
+    # analyze response can be replayed verbatim, but NOT stored, because
+    # re-injecting state does not re-run the classifier and SidecarState holds
+    # no CompareParams. Declared rather than left to ``extra="ignore"`` so a
+    # caller replaying a full response can see the key is understood: silence
+    # here reads as "this key is unknown", which is how a replay starts
+    # dropping fields it was meant to carry.
+    compare_params: dict[str, Any] | None = None
 
 
 def _rebuild_run_meta(run_meta: dict[str, Any] | None) -> Any | None:

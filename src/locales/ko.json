@@ -1068,14 +1068,14 @@
     },
     "verdictBadge": {
       "help": {
-        "PASS": "Observed amino-acid changes exactly match the expected design.",
-        "AMBIGUOUS": "All expected mutations matched, plus an extra AA change within the indel window of an expected site. Still counts as detected/recovered.",
-        "MIXED": "Within-well contamination: a substantial second allele in the consensus signal.",
-        "WRONG_AA": "An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window.",
-        "FRAMESHIFT": "Two or more nucleotide indels within the frameshift window.",
-        "MANY": "More observed AA changes than both the design and the many-mutation cutoff.",
-        "LOWDEPTH": "Too few reads to call this well reliably.",
-        "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
+        "PASS": "관측된 아미노산 변화가 설계와 정확히 일치합니다.",
+        "AMBIGUOUS": "기대한 변이는 모두 일치했고, 기대 위치의 indel window 안에서 아미노산 변화가 하나 더 관측됐습니다. 검출(회수)로 계산합니다.",
+        "MIXED": "well 내 오염입니다. consensus 신호에 두 번째 대립유전자가 상당량 섞여 있습니다.",
+        "WRONG_AA": "기대 위치의 아미노산이 다르거나, 기대한 변이가 없거나, window 밖에 예상치 못한 변화가 있습니다.",
+        "FRAMESHIFT": "consensus 의 순 삽입 또는 결실 길이가 3 의 배수가 아니어서 reading frame 이 어긋났습니다.",
+        "MANY": "관측된 아미노산 변화 수가 설계 개수와 다중 변이 상한을 모두 넘었습니다.",
+        "LOWDEPTH": "이 well 을 신뢰성 있게 판정하기에는 read 가 너무 적습니다.",
+        "NO_CALL": "consensus 에 모호한 (N) 위치가 너무 많아 아미노산 판정을 신뢰할 수 없습니다."
       }
     },
     "missingInputs": {
@@ -1099,6 +1099,8 @@
       "labelNoCallAa": "no-call 코돈",
       "labelNoCallAaHelp": "consensus N 이 X 로 번역되어 관측 변화에서 제외된 코돈 수",
       "sectionReplicates": "Replicate 비교",
+      "replicateRowAriaLabel": "{{plate}} 플레이트, well {{well}} 보기",
+      "replicateRowTitle": "이 플레이트 사본을 인스펙터에 표시",
       "selectedPlateBadge": "선정됨",
       "currentWellBadge": "현재 well",
       "labelSelectionReason": "선정 사유",
@@ -1115,6 +1117,78 @@
       "labelLowDepthPositions": "저 coverage 위치 수",
       "labelConsensusN": "consensus N 비율",
       "labelLowQualityBases": "저품질 염기 수",
+      "metricInfo": {
+        "openAria": "{{metric}} 설명 보기",
+        "whatLabel": "무엇을 센 값인가",
+        "stageLabel": "어느 단계 값인가",
+        "effectLabel": "판정에 미치는 영향",
+        "thresholdLabel": "비교 기준",
+        "contextLabel": "함께 볼 값",
+        "thresholdUnknown": "이 실행은 임계값을 보고하지 않아 어떤 기준으로 판정했는지 알 수 없습니다.",
+        "readCount": {
+          "what": "정렬 필터를 통과해 이 well 의 consensus pileup 에 들어간 read 수입니다. consensus FASTA 의 depth=N 헤더에서 읽습니다.",
+          "stage": "consensus 호출 단계, MAPQ 와 span 필터 이후.",
+          "effect": "판정을 결정합니다. depth 하한 미만이면 LOWDEPTH 로 확정되고 이후 검사는 실행되지 않습니다. 혼합 위치가 있어도 depth 가 혼합 판정 하한 미만이면 MIXED 가 아니라 LOWDEPTH 로 보고합니다. 그 depth 에서는 두 번째 대립유전자를 시퀀싱 오류와 구분할 수 없기 때문입니다.",
+          "thresholdDepth": "read {{count}} 개 미만이면 LOWDEPTH.",
+          "thresholdDepthOff": "이 실행에서는 read depth 게이트가 비활성이었습니다.",
+          "thresholdMixed": "MIXED 를 확정하려면 read 가 {{count}} 개 이상이어야 합니다 (depth 하한의 {{factor}} 배).",
+          "thresholdMixedOff": "read depth 게이트가 비활성이라 혼합 판정 하한도 없습니다.",
+          "thresholdFileSize": "depth 헤더가 아예 없는 well 은 consensus 파일 크기 {{size}} KB 를 대체 기준으로 씁니다."
+        },
+        "inputReads": {
+          "what": "정렬 이전에 이 well 로 배정된 read 수입니다.",
+          "stage": "바코드 demultiplexing 단계, 정렬 이전. raw read 가 아니라 consensus FASTA 로 분석한 실행에서는 비어 있습니다.",
+          "effect": "진단용입니다. 어떤 게이트도 이 값을 읽지 않습니다. 정렬된 read, 필터 후 read 와 비교하면 read 가 어디서 줄었는지 보입니다."
+        },
+        "alignedReads": {
+          "what": "레퍼런스에 최소 한 번 정렬된 read 수로, MAPQ 와 span 필터 이전 값입니다.",
+          "stage": "정렬 단계, 필터 이전. raw read 가 아니라 consensus FASTA 로 분석한 실행에서는 비어 있습니다.",
+          "effect": "진단용입니다. 어떤 게이트도 이 값을 읽지 않습니다. 입력 read 대비 크게 줄었다면 레퍼런스가 틀렸거나 well 에 표적 외 물질이 섞였다는 신호입니다."
+        },
+        "mapqFailed": {
+          "what": "정렬 품질(MAPQ) 하한에 못 미쳐 제외된 read 수입니다.",
+          "stage": "정렬 필터 단계, 정렬된 read 와 필터 후 read 사이. consensus FASTA 로 분석한 실행에서는 0 입니다.",
+          "effect": "진단용입니다. 어떤 게이트도 이 값을 읽지 않습니다. 값이 크면 read 가 모호하게 정렬된다는 뜻이며 보통 반복 서열이거나 레퍼런스가 틀린 경우입니다."
+        },
+        "spanFailed": {
+          "what": "정렬 구간이 레퍼런스 전체 길이를 덮지 못해 제외된 read 수입니다.",
+          "stage": "정렬 필터 단계, MAPQ 필터 다음. consensus FASTA 로 분석한 실행에서는 0 입니다.",
+          "effect": "진단용입니다. 어떤 게이트도 이 값을 읽지 않습니다. 값이 크면 read 가 잘렸거나 amplicon 이 레퍼런스보다 짧다는 뜻입니다."
+        },
+        "mixedPositions": {
+          "what": "pileup depth 가 충분한 위치 중 두 번째 A/C/G/T 염기가 minor allele 임계를 넘은 위치 수입니다. 51/49 로 섞인 well 은 다수결 consensus 에서는 정상으로 보이며 이 값이 그것을 드러냅니다.",
+          "stage": "consensus 호출 단계, 위치별 pileup 에서 산출.",
+          "effect": "판정을 결정합니다. 0 보다 크면 MIXED 가 되며, 다만 depth 가 혼합 판정 하한 미만이면 MIXED 대신 LOWDEPTH 로 보고합니다.",
+          "thresholdDepth": "MIXED 는 read {{count}} 개 이상일 때만 보고하며 그 미만은 LOWDEPTH 입니다.",
+          "thresholdDepthOff": "이 실행은 read depth 게이트가 비활성이라 혼합 판정 하한이 없습니다."
+        },
+        "maxMinorAllele": {
+          "what": "이 well 의 모든 위치 중 두 번째 염기 비율이 가장 높은 값, 즉 가장 지저분한 위치 하나의 값입니다.",
+          "stage": "consensus 호출 단계, 위치별 pileup 에서 산출.",
+          "effect": "진단용입니다. 어떤 게이트도 이 값을 직접 읽지 않으며, MIXED 게이트가 쓰는 것은 위의 혼합 위치 수입니다. 가장 큰 경쟁 신호의 크기로 읽으십시오.",
+          "noiseFloor": "이 well 의 보통 위치는 {{value}} 수준입니다 (중앙값). 최대값이 중앙값에 가까우면 배경 잡음이고, 크게 벗어나면 실제 두 번째 대립유전자입니다.",
+          "noiseFloorUnknown": "이 실행은 minor allele 비율 중앙값을 보고하지 않아 최대값을 견줄 잡음 기준선이 없습니다."
+        },
+        "lowDepthPositions": {
+          "what": "pileup depth 가 최소치에 못 미쳐 read 로부터 염기를 부를 수 없었던 레퍼런스 위치 수입니다.",
+          "stage": "consensus 호출 단계, 위치별 pileup 에서 산출.",
+          "effect": "진단용입니다. 어떤 게이트도 이 값을 읽지 않습니다. NO_CALL 판정 옆에 함께 보고되어, 모호함이 read 품질이 아니라 coverage 부족에서 왔음을 보여줍니다."
+        },
+        "consensusN": {
+          "what": "coverage 가 확보된 consensus 위치 중 N (no call) 으로 출력된 비율입니다. 분자와 분모 모두 read 가 도달한 위치만 대상으로 하므로, read 가 닿지 않은 레퍼런스 위치가 비율을 희석하지 않습니다.",
+          "stage": "consensus 호출 단계, 다수결 이후.",
+          "effect": "판정을 결정합니다. 상한을 넘으면 NO_CALL 이 되고 아미노산 판정을 신뢰하지 않습니다. LOWDEPTH 와는 다릅니다. depth 가 충분해도 consensus 가 no-call 염기로 채워질 수 있습니다.",
+          "threshold": "{{value}} 를 넘으면 NO_CALL.",
+          "thresholdOff": "이 실행에서는 N 비율 게이트가 비활성이었습니다.",
+          "notEvaluable": "이 consensus 파일에는 coverage 범위로 정의된 N 비율이 없어, 표시된 값은 대체된 0.0 이며 NO_CALL 게이트는 건너뛰었습니다. consensus 호출을 다시 실행하면 복구됩니다.",
+          "evaluableUnknown": "이 결과는 N 비율 평가 가능 여부를 보고하기 이전에 저장되어, NO_CALL 게이트가 실행됐는지 알 수 없습니다."
+        },
+        "lowQualityBases": {
+          "what": "FASTQ 품질이 최소치에 못 미쳐 pileup 투표에서 제외된 개별 염기 수입니다.",
+          "stage": "consensus 호출 단계, pileup 누적 중. 품질 점수가 없는 입력(FASTA 만 있는 consensus 파일 등)에서는 0 입니다.",
+          "effect": "진단용입니다. 어떤 게이트도 이 값을 읽지 않습니다. NO_CALL 판정 옆에 함께 보고되어, 모호함이 coverage 부족이 아니라 염기 품질에서 왔음을 보여줍니다."
+        }
+      },
       "sectionNtChanges": "염기 수준 변화",
       "sectionSource": "원본",
       "copy": "복사",

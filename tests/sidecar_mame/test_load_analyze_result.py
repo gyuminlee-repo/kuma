@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from kuma_core.mame.models import (
     BarcodeRecord,
     ReplicateResult,
@@ -25,7 +27,10 @@ from sidecar_mame.handlers.analyze import (
     _serialize_verdict,
 )
 from sidecar_mame.handlers.export import handle_get_plate_data
-from sidecar_mame.handlers.load import handle_load_analyze_result
+from sidecar_mame.handlers.load import (
+    LoadAnalyzeResultParams,
+    handle_load_analyze_result,
+)
 
 
 def _make_verdict(
@@ -86,6 +91,122 @@ def test_verdict_serialize_roundtrip_lossless() -> None:
     assert rebuilt.verdict is VerdictClass.MIXED
     assert rebuilt.translated.barcode.custom_barcode == "1_1"
     assert rebuilt.translated.barcode.read_count == 123
+
+
+def test_verdict_roundtrip_keeps_noise_floor_and_n_fraction_basis() -> None:
+    """Two fields that a symmetric round-trip check cannot see.
+
+    ``test_verdict_serialize_roundtrip_lossless`` compares one serialization
+    against another, so a field dropped by BOTH sides passes it: that is how
+    ``median_minor_allele_fraction`` and ``consensus_n_fraction_evaluable``
+    reached the workbook while never reaching the UI. This asserts the values
+    themselves, against non-defaults, so a drop fails.
+    """
+    vr = _make_verdict("NB01", "1_1", VerdictClass.MIXED)
+    vr.translated.barcode.median_minor_allele_fraction = 0.0031
+    vr.translated.barcode.consensus_n_fraction_evaluable = False
+
+    payload = _serialize_verdict(vr)
+    assert payload["median_minor_allele_fraction"] == pytest.approx(0.0031)
+    assert payload["consensus_n_fraction_evaluable"] is False
+
+    rebuilt = _deserialize_verdict(payload)
+    assert rebuilt.translated.barcode.median_minor_allele_fraction == pytest.approx(
+        0.0031
+    )
+    assert rebuilt.translated.barcode.consensus_n_fraction_evaluable is False
+
+
+def test_verdict_deserialize_defaults_match_barcode_record() -> None:
+    """A payload persisted before the two fields existed restores as it does today.
+
+    The defaults are BarcodeRecord's own: an unknown noise floor is 0.0 and an
+    absent basis flag means the N fraction is evaluable, which is what every
+    pre-existing snapshot already restores as. A different default here would
+    silently re-judge old runs.
+    """
+    payload = _serialize_verdict(_make_verdict("NB01", "1_1", VerdictClass.PASS))
+    del payload["median_minor_allele_fraction"]
+    del payload["consensus_n_fraction_evaluable"]
+
+    rebuilt = _deserialize_verdict(payload)
+    assert rebuilt.translated.barcode.median_minor_allele_fraction == 0.0
+    assert rebuilt.translated.barcode.consensus_n_fraction_evaluable is True
+
+
+def test_replayed_run_restores_noise_floor_and_n_fraction_basis() -> None:
+    """The replay path, not just the serializer pair.
+
+    ``load_analyze_result`` is how a saved run comes back after a sidecar
+    restart, and it is the whole reason a dropped field is invisible: nothing
+    fails, the run simply returns with a noise floor of 0.0 and an N fraction
+    that claims to be trustworthy. Both wells here carry non-defaults, one
+    standalone and one nested inside a replicate's ``plate_verdicts``, because
+    the nested path has its own coverage gap:
+    ``test_replicate_serialize_roundtrip_lossless`` compares one serialization
+    against another and therefore passes when a field is dropped by both sides.
+    """
+    standalone = _make_verdict("NB01", "1_1", VerdictClass.MIXED)
+    standalone.translated.barcode.median_minor_allele_fraction = 0.0042
+    standalone.translated.barcode.consensus_n_fraction_evaluable = False
+
+    nested = _make_verdict("NB02", "1_2", VerdictClass.PASS, size_kb=90.0)
+    nested.translated.barcode.median_minor_allele_fraction = 0.0117
+    nested.translated.barcode.consensus_n_fraction_evaluable = False
+    rr = ReplicateResult(
+        mutant_id="M1",
+        plate_verdicts={"NB02": nested},
+        selected_plate="NB02",
+        selection_reason="only replicate",
+    )
+
+    # Distinct non-zero medians, and False on both: True is the dataclass
+    # default, so asserting True would pass on a dropped field.
+    payload = {
+        "verdicts": [_serialize_verdict(standalone)],
+        "replicates": [_serialize_replicate(rr)],
+        "output_path": "/tmp/out_noise.xlsx",
+    }
+    ack = handle_load_analyze_result(payload)
+    assert ack["restored"] is True
+
+    st = get_state()
+    assert st.last_verdicts is not None and st.last_replicates is not None
+
+    restored = st.last_verdicts[0].translated.barcode
+    assert restored.median_minor_allele_fraction == pytest.approx(0.0042)
+    assert restored.consensus_n_fraction_evaluable is False
+
+    restored_nested = st.last_replicates[0].plate_verdicts["NB02"].translated.barcode
+    assert restored_nested.median_minor_allele_fraction == pytest.approx(0.0117)
+    assert restored_nested.consensus_n_fraction_evaluable is False
+
+
+def test_load_params_accept_compare_params_without_storing_it() -> None:
+    """``compare_params`` is a declared key, not an ignored one.
+
+    ``LoadAnalyzeResultParams`` uses ``extra="ignore"``, so an undeclared key
+    would be dropped in silence and the contract would say nothing about it.
+    Like ``summary`` / ``distribution_stats`` it is accepted so a persisted
+    analyze response can be replayed verbatim, and like them it is not stored:
+    a replay re-injects state, it does not re-run the classifier.
+    """
+    params = LoadAnalyzeResultParams.model_validate(
+        {
+            "verdicts": [],
+            "replicates": [],
+            "output_path": "/tmp/out.xlsx",
+            "compare_params": {"min_read_count": 30},
+        }
+    )
+    assert params.compare_params == {"min_read_count": 30}
+
+    # Omitted stays None rather than becoming an empty dict, so "the run did not
+    # report thresholds" and "the thresholds were empty" stay distinguishable.
+    bare = LoadAnalyzeResultParams.model_validate(
+        {"verdicts": [], "replicates": [], "output_path": "/tmp/out.xlsx"}
+    )
+    assert bare.compare_params is None
 
 
 def test_replicate_serialize_roundtrip_lossless() -> None:

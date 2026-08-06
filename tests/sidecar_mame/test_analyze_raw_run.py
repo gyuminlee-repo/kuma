@@ -225,19 +225,22 @@ def test_handle_analyze_consensus_dir_backward_compatible(
     # Legacy milestones are present.
     assert {5, 10, 30, 60, 85, 100}.issubset(set(values)), values
 
-    # Response keeps the legacy keys plus four additive ones: `designed_mutant_ids`
+    # Response keeps the legacy keys plus five additive ones: `designed_mutant_ids`
     # (carries the designed-mutant set into the saved workspace so recovery
     # survives a load_analyze_result reload), `janus_autosave` (the pick list,
     # always present so the frontend never has to tell "not attempted" from
-    # "attempted and lost"), and `layout_provenance` / `mapping_integrity`, which
+    # "attempted and lost"), `layout_provenance` / `mapping_integrity`, which
     # are unconditional because a run that omitted them would be a run whose
-    # wells nobody can trace or check. No `janus_mapping_autosave`: the
-    # instrument sheet is written only by a manual `export_janus_mapping` call,
-    # not by analyze. Still no raw-run-only keys.
+    # wells nobody can trace or check, and `compare_params`, the thresholds the
+    # run was judged against (unconditional for the same reason: every other
+    # number here is a measurement, and a measurement with no threshold beside
+    # it cannot be read). No `janus_mapping_autosave`: the instrument sheet is
+    # written only by a manual `export_janus_mapping` call, not by analyze.
+    # Still no raw-run-only keys.
     assert set(result.keys()) == {
         "verdicts", "replicates", "output_path", "summary", "distribution_stats",
         "designed_mutant_ids", "janus_autosave", "layout_provenance",
-        "mapping_integrity",
+        "mapping_integrity", "compare_params",
     }
     assert "assigned_reads" not in result
     assert "wells_with_reads" not in result
@@ -247,6 +250,170 @@ def test_handle_analyze_consensus_dir_backward_compatible(
     assert "total_reads" not in result
     assert "passed_mapq" not in result
     assert "passed_coverage" not in result
+
+
+def test_compare_params_reports_the_thresholds_that_actually_applied(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The response states the numbers the run was judged against.
+
+    The frontend never sends ``min_read_count`` (``inputSlice.ts``), so the
+    backend default governs and there is nothing in the store to read it from.
+    A caller that wants to say why a well failed therefore has to be told, and
+    told by the run rather than by a literal.
+    """
+    from kuma_core.mame.compare.verdict import _MIXED_CONFIDENT_DEPTH_FACTOR
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    ingest_dir = _make_consensus_dir(tmp_path)
+    reference = _make_reference_fasta(tmp_path)
+    kuro_xlsx = tmp_path / "kuro.xlsx"
+    _make_kuro_xlsx(kuro_xlsx)
+    _capture_progress(monkeypatch)
+
+    # min_read_count / max_consensus_n_fraction / many_cutoff omitted on
+    # purpose: this is the shape the frontend actually sends.
+    result = analyze_mod.handle_analyze({
+        "input_dir": str(ingest_dir),
+        "reference": str(reference),
+        "expected": str(kuro_xlsx),
+        "output": str(tmp_path / "out.xlsx"),
+        "cds_start": 0,
+        "cds_end": 9,
+        "min_file_size_kb": 0.0,
+        "ingest_mode": "barcode",
+    })
+
+    assert result["compare_params"] == {
+        "min_file_size_kb": 0.0,
+        "min_read_count": 30,
+        "max_consensus_n_fraction": 0.0,
+        "many_mutation_cutoff": 5,
+        "mixed_confident_depth_factor": _MIXED_CONFIDENT_DEPTH_FACTOR,
+        "mixed_confident_read_count": 30 * _MIXED_CONFIDENT_DEPTH_FACTOR,
+    }
+
+    # An explicit value is reported instead of the default, and disabling the
+    # read-count gate is reported as disabled rather than as some number: a
+    # floor of 0 would read as "any depth passed a gate that ran".
+    explicit = analyze_mod.handle_analyze({
+        "input_dir": str(ingest_dir),
+        "reference": str(reference),
+        "expected": str(kuro_xlsx),
+        "output": str(tmp_path / "out2.xlsx"),
+        "cds_start": 0,
+        "cds_end": 9,
+        "min_file_size_kb": 0.0,
+        "min_read_count": None,
+        "many_cutoff": 9,
+        "ingest_mode": "barcode",
+    })
+    assert explicit["compare_params"]["min_read_count"] is None
+    assert explicit["compare_params"]["mixed_confident_read_count"] is None
+    assert explicit["compare_params"]["many_mutation_cutoff"] == 9
+
+
+def test_compare_params_equals_what_the_pipeline_was_handed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The reported thresholds are the ones the classifier actually ran with.
+
+    The test above pins the VALUES (the 30 default in particular). This one
+    pins the far easier thing to lose: that the report and the pipeline read the
+    same resolution of ``params``. The snapshot is taken where the four values
+    are resolved rather than at the response for exactly this reason, but
+    nothing about the response shape enforces it -- a later refactor could
+    rebuild the dict from ``params`` down at the response, still emit 30 by
+    default, still pass the test above, and report a threshold that is not what
+    ``run_analyze`` was given. Compared here against the kwargs the pipeline
+    received, with no expected number written into this file.
+    """
+    from kuma_core.mame import pipeline as pipeline_mod
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    ingest_dir = _make_consensus_dir(tmp_path)
+    reference = _make_reference_fasta(tmp_path)
+    kuro_xlsx = tmp_path / "kuro.xlsx"
+    _make_kuro_xlsx(kuro_xlsx)
+    _capture_progress(monkeypatch)
+
+    # ``handle_analyze`` imports ``run_analyze`` lazily inside the call, so the
+    # module attribute is what it resolves and patching it here is enough. The
+    # real pipeline still runs; this only records what it was asked for.
+    recorded: dict[str, object] = {}
+    real_run_analyze = pipeline_mod.run_analyze
+
+    def _recording_run_analyze(**kwargs: object) -> object:
+        recorded.update(kwargs)
+        return real_run_analyze(**kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(pipeline_mod, "run_analyze", _recording_run_analyze)
+
+    # Non-default on every gate, so a report that silently fell back to the
+    # defaults disagrees with the recorded kwargs instead of coincidentally
+    # matching them.
+    result = analyze_mod.handle_analyze({
+        "input_dir": str(ingest_dir),
+        "reference": str(reference),
+        "expected": str(kuro_xlsx),
+        "output": str(tmp_path / "out.xlsx"),
+        "cds_start": 0,
+        "cds_end": 9,
+        "min_file_size_kb": 1.5,
+        "min_read_count": 12,
+        "max_consensus_n_fraction": 0.02,
+        "many_cutoff": 7,
+        "ingest_mode": "barcode",
+    })
+
+    assert recorded, "run_analyze was never called"
+    cp = result["compare_params"]
+    # Left side is the report, right side is what the pipeline built its
+    # CompareParams from (kuma_core/mame/pipeline.py).
+    assert cp["min_file_size_kb"] == recorded["min_file_size_kb"]
+    assert cp["min_read_count"] == recorded["min_read_count"]
+    assert cp["max_consensus_n_fraction"] == recorded["max_consensus_n_fraction"]
+    assert cp["many_mutation_cutoff"] == recorded["many_cutoff"]
+    # And the caller's values reached both, rather than both agreeing on a
+    # default because the payload was dropped on the floor.
+    assert recorded["min_read_count"] == 12
+    assert recorded["many_cutoff"] == 7
+
+
+def test_serialized_verdict_carries_noise_floor_and_n_fraction_basis(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Both fields reach the response, not just the workbook.
+
+    ``median_minor_allele_fraction`` is what makes
+    ``max_minor_allele_fraction`` readable, and
+    ``consensus_n_fraction_evaluable`` is the difference between a measured 0.0
+    and a substituted one. Both were computed and written to Excel while never
+    reaching the UI.
+    """
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    ingest_dir = _make_consensus_dir(tmp_path)
+    reference = _make_reference_fasta(tmp_path)
+    kuro_xlsx = tmp_path / "kuro.xlsx"
+    _make_kuro_xlsx(kuro_xlsx)
+    _capture_progress(monkeypatch)
+
+    result = analyze_mod.handle_analyze({
+        "input_dir": str(ingest_dir),
+        "reference": str(reference),
+        "expected": str(kuro_xlsx),
+        "output": str(tmp_path / "out.xlsx"),
+        "cds_start": 0,
+        "cds_end": 9,
+        "min_file_size_kb": 0.0,
+        "ingest_mode": "barcode",
+    })
+
+    assert result["verdicts"], "expected at least one well"
+    for well in result["verdicts"]:
+        assert isinstance(well["median_minor_allele_fraction"], float)
+        assert isinstance(well["consensus_n_fraction_evaluable"], bool)
 
 
 def test_handle_analyze_auto_scopes_from_expected_when_sample_map_omitted(

@@ -629,6 +629,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     })();
     get().setOutputPath(outDir);
     get().setDistributionStats(result.distribution_stats ?? null);
+    // What this run judged its wells against, so the Confidence metric popups
+    // can state a threshold instead of a literal. `?? null` covers a sidecar
+    // older than the field, which must read as unknown.
+    get().setCompareParams(result.compare_params ?? null);
     // The run wrote (or could not write) its pick list. Kept so the result
     // view can state it; swallowing it leaves the operator looking for a file
     // that was never created. The instrument mapping has no autosave counterpart
@@ -761,6 +765,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       })();
       get().setOutputPath(outDir);
       get().setDistributionStats(result.distribution_stats ?? null);
+      get().setCompareParams(result.compare_params ?? null);
       // See the non-raw-run branch above: no `janus_mapping_autosave` from the
       // sidecar to read here either, so `janusMappingAutosave` stays whatever
       // this run's `clearResults()` already left it (null).

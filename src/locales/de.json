@@ -1068,14 +1068,14 @@
     },
     "verdictBadge": {
       "help": {
-        "PASS": "Observed amino-acid changes exactly match the expected design.",
-        "AMBIGUOUS": "All expected mutations matched, plus an extra AA change within the indel window of an expected site. Still counts as detected/recovered.",
-        "MIXED": "Within-well contamination: a substantial second allele in the consensus signal.",
-        "WRONG_AA": "An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window.",
-        "FRAMESHIFT": "Two or more nucleotide indels within the frameshift window.",
-        "MANY": "More observed AA changes than both the design and the many-mutation cutoff.",
-        "LOWDEPTH": "Too few reads to call this well reliably.",
-        "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
+        "PASS": "Die beobachteten Aminosäureänderungen entsprechen exakt dem geplanten Design.",
+        "AMBIGUOUS": "Alle erwarteten Mutationen stimmen überein, dazu eine weitere Aminosäureänderung innerhalb des Indel-Fensters einer erwarteten Stelle. Zählt weiterhin als nachgewiesen.",
+        "MIXED": "Kontamination innerhalb des Wells: ein erhebliches zweites Allel im Consensus-Signal.",
+        "WRONG_AA": "Eine erwartete Stelle zeigt eine andere Aminosäure, eine erwartete Mutation fehlt, oder eine zusätzliche unerwartete Änderung liegt außerhalb des Fensters.",
+        "FRAMESHIFT": "Der Consensus trägt eine Netto-Insertion oder -Deletion, deren Länge kein Vielfaches von 3 ist, sodass das Leseraster verschoben ist.",
+        "MANY": "Mehr beobachtete Aminosäureänderungen als sowohl das Design als auch die Obergrenze für Mehrfachmutationen.",
+        "LOWDEPTH": "Zu wenige Reads, um dieses Well verlässlich zu beurteilen.",
+        "NO_CALL": "Der Consensus hat zu viele mehrdeutige (N) Positionen, um den Aminosäure-Aufrufen zu vertrauen."
       }
     },
     "missingInputs": {
@@ -1099,6 +1099,8 @@
       "labelNoCallAa": "No-call codons",
       "labelNoCallAaHelp": "Consensus N translated to X, excluded from the observed changes",
       "sectionReplicates": "Replicate comparison",
+      "replicateRowAriaLabel": "Platte {{plate}}, Well {{well}} anzeigen",
+      "replicateRowTitle": "Diese Plattenkopie im Inspektor anzeigen",
       "selectedPlateBadge": "Selected",
       "currentWellBadge": "Showing",
       "labelSelectionReason": "Selection reason",
@@ -1115,6 +1117,78 @@
       "labelLowDepthPositions": "Low-depth positions",
       "labelConsensusN": "Consensus N",
       "labelLowQualityBases": "Low-quality bases",
+      "metricInfo": {
+        "openAria": "Erläuterung zu {{metric}} öffnen",
+        "whatLabel": "Was gezählt wird",
+        "stageLabel": "Woher der Wert stammt",
+        "effectLabel": "Wirkung auf das Urteil",
+        "thresholdLabel": "Verglichen mit",
+        "contextLabel": "Dazu lesen",
+        "thresholdUnknown": "Dieser Lauf hat seine Schwellenwerte nicht gemeldet, daher ist unbekannt, wogegen dieser Wert geprüft wurde.",
+        "readCount": {
+          "what": "Reads, die die Alignment-Filter passiert haben und in den Consensus-Pileup dieses Wells eingegangen sind, gelesen aus dem depth=N Header der Consensus-FASTA.",
+          "stage": "Consensus-Berechnung, nach den MAPQ- und Span-Filtern.",
+          "effect": "Entscheidet über das Urteil. Unterhalb der Tiefenschwelle gilt das Well als LOWDEPTH und keine weitere Prüfung läuft. Ein Well mit gemischten Positionen, dessen Tiefe unter der Schwelle für eine sichere MIXED-Aussage liegt, wird ebenfalls als LOWDEPTH gemeldet, weil sich ein zweites Allel dort nicht von Sequenzierfehlern trennen lässt.",
+          "thresholdDepth": "LOWDEPTH unter {{count}} Reads.",
+          "thresholdDepthOff": "Die Lesetiefen-Prüfung war in diesem Lauf abgeschaltet.",
+          "thresholdMixed": "Eine sichere MIXED-Aussage braucht mindestens {{count}} Reads (Tiefenschwelle mal {{factor}}).",
+          "thresholdMixedOff": "Keine Tiefenschwelle für MIXED, da die Lesetiefen-Prüfung abgeschaltet war.",
+          "thresholdFileSize": "Wells ganz ohne depth-Header werden ersatzweise an einer Consensus-Dateigröße von {{size}} KB gemessen."
+        },
+        "inputReads": {
+          "what": "Reads, die diesem Well vor dem Alignment zugeordnet wurden.",
+          "stage": "Barcode-Demultiplexing, vor dem Alignment. Leer, wenn der Lauf aus Consensus-FASTA statt aus Rohreads ausgewertet wurde.",
+          "effect": "Nur diagnostisch. Keine Prüfung liest diesen Wert. Im Vergleich mit den alignierten und gefilterten Zahlen zeigt er, wo Reads verloren gingen."
+        },
+        "alignedReads": {
+          "what": "Reads mit mindestens einem Alignment gegen die Referenz, gezählt vor den MAPQ- und Span-Filtern.",
+          "stage": "Alignment, vor der Filterung. Leer, wenn der Lauf aus Consensus-FASTA statt aus Rohreads ausgewertet wurde.",
+          "effect": "Nur diagnostisch. Keine Prüfung liest diesen Wert. Ein großer Abfall gegenüber den Eingangsreads deutet auf die falsche Referenz oder auf Fremdmaterial im Well."
+        },
+        "mapqFailed": {
+          "what": "Reads, die verworfen wurden, weil ihr Alignment die Mapping-Qualität (MAPQ) nicht erreicht hat.",
+          "stage": "Alignment-Filterung, zwischen alignierten und gefilterten Reads. Null, wenn der Lauf aus Consensus-FASTA ausgewertet wurde.",
+          "effect": "Nur diagnostisch. Keine Prüfung liest diesen Wert. Ein hoher Wert bedeutet mehrdeutig mappende Reads, meist eine Wiederholung oder die falsche Referenz."
+        },
+        "spanFailed": {
+          "what": "Reads, die verworfen wurden, weil ihr Alignment nicht die gesamte Referenzlänge abdeckt.",
+          "stage": "Alignment-Filterung, nach dem MAPQ-Filter. Null, wenn der Lauf aus Consensus-FASTA ausgewertet wurde.",
+          "effect": "Nur diagnostisch. Keine Prüfung liest diesen Wert. Ein hoher Wert bedeutet meist abgeschnittene Reads oder ein Amplikon, das kürzer als die Referenz ist."
+        },
+        "mixedPositions": {
+          "what": "Positionen, an denen eine zweite A/C/G/T-Base bei ausreichender Pileup-Tiefe über der Minor-Allel-Schwelle liegt. Ein 51/49 gemischtes Well sieht im Mehrheits-Consensus exakt aus, und dieser Wert deckt es auf.",
+          "stage": "Consensus-Berechnung, aus dem positionsweisen Pileup.",
+          "effect": "Entscheidet über das Urteil. Jeder Wert über null macht das Well MIXED, außer die Tiefe liegt unter der Schwelle für eine sichere MIXED-Aussage, dann wird stattdessen LOWDEPTH gemeldet.",
+          "thresholdDepth": "MIXED wird erst ab {{count}} Reads gemeldet, darunter gilt LOWDEPTH.",
+          "thresholdDepthOff": "Keine Tiefenschwelle für MIXED, da die Lesetiefen-Prüfung in diesem Lauf abgeschaltet war."
+        },
+        "maxMinorAllele": {
+          "what": "Der größte Anteil einer zweiten Base über alle Positionen dieses Wells, also die eine lauteste Position.",
+          "stage": "Consensus-Berechnung, aus dem positionsweisen Pileup.",
+          "effect": "Nur diagnostisch. Keine Prüfung liest diesen Wert direkt; die MIXED-Prüfung nutzt die Zahl gemischter Positionen darüber. Zu lesen als Stärke des stärksten konkurrierenden Signals.",
+          "noiseFloor": "Eine gewöhnliche Position in diesem Well liegt bei {{value}} (Median). Ein Maximum nahe diesem Median ist Hintergrund, eines weit darüber ist ein echtes zweites Allel.",
+          "noiseFloorUnknown": "Dieser Lauf hat keinen Median der Minor-Allel-Fraktion gemeldet, daher fehlt die Rauschgrenze, gegen die das Maximum zu lesen wäre."
+        },
+        "lowDepthPositions": {
+          "what": "Referenzpositionen, deren Pileup-Tiefe unter dem Minimum blieb, sodass dort keine Base aus Reads bestimmt werden konnte.",
+          "stage": "Consensus-Berechnung, aus dem positionsweisen Pileup.",
+          "effect": "Nur diagnostisch. Keine Prüfung liest diesen Wert. Er wird neben einem NO_CALL-Urteil gemeldet und zeigt, dass die Mehrdeutigkeit aus fehlender Abdeckung stammt und nicht aus schlechten Reads."
+        },
+        "consensusN": {
+          "what": "Anteil der abgedeckten Consensus-Positionen, die als N (kein Aufruf) ausgegeben wurden. Zähler und Nenner umfassen nur Positionen, die die Reads erreicht haben, sodass nie gelesene Referenzpositionen den Wert nicht verdünnen.",
+          "stage": "Consensus-Berechnung, nach der Mehrheitsentscheidung.",
+          "effect": "Entscheidet über das Urteil. Oberhalb der Obergrenze gilt das Well als NO_CALL und seinen Aminosäure-Aufrufen wird nicht vertraut. Anders als LOWDEPTH: Die Tiefe kann reichlich sein, während der Consensus dennoch von N-Basen bestimmt ist.",
+          "threshold": "NO_CALL über {{value}}.",
+          "thresholdOff": "Die Prüfung der N-Fraktion war in diesem Lauf abgeschaltet.",
+          "notEvaluable": "Diese Consensus-Datei enthält keine auf die Abdeckung bezogene N-Fraktion, daher ist der angezeigte Wert eine ersatzweise 0.0 und die NO_CALL-Prüfung wurde übersprungen. Ein erneuter Consensus-Lauf stellt sie wieder her.",
+          "evaluableUnknown": "Dieses Ergebnis wurde gespeichert, bevor der Lauf meldete, ob die N-Fraktion auswertbar war; ob die NO_CALL-Prüfung lief, ist daher unbekannt."
+        },
+        "lowQualityBases": {
+          "what": "Einzelne Basenaufrufe, die wegen zu geringer FASTQ-Qualität von der Pileup-Abstimmung ausgeschlossen wurden.",
+          "stage": "Consensus-Berechnung, während der Pileup aufgebaut wird. Null für Eingaben ohne Qualitätswerte, etwa reine FASTA-Consensus-Dateien.",
+          "effect": "Nur diagnostisch. Keine Prüfung liest diesen Wert. Er wird neben einem NO_CALL-Urteil gemeldet und zeigt, dass die Mehrdeutigkeit aus der Basenqualität stammt und nicht aus fehlender Abdeckung."
+        }
+      },
       "sectionNtChanges": "Nucleotide changes",
       "sectionSource": "Source",
       "copy": "Copy",

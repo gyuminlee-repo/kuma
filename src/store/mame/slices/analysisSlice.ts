@@ -29,6 +29,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   analyzeYield: null,
   layoutProvenance: null,
   mappingIntegrity: null,
+  compareParams: null,
   restoredResultProvenance: null,
   // FINAL (the per-mutant selected replicate) is the default view: it is the
   // answer sheet a run is read for. VerdictTable degrades it to ALL while no
@@ -49,6 +50,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   setAnalyzeYield: (analyzeYield) => set({ analyzeYield }),
   setLayoutProvenance: (layoutProvenance) => set({ layoutProvenance }),
   setMappingIntegrity: (mappingIntegrity) => set({ mappingIntegrity }),
+  setCompareParams: (compareParams) => set({ compareParams }),
   setRestoredResultProvenance: (restoredResultProvenance) =>
     set({ restoredResultProvenance }),
   setPlateFilter: (plateFilter) => set({ plateFilter }),
@@ -81,6 +83,10 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       analyzeYield: null,
       layoutProvenance: null,
       mappingIntegrity: null,
+      // Thresholds describe the run that produced the verdicts being cleared;
+      // keeping them would let a metric popup state what an input the operator
+      // has since changed would have been judged against.
+      compareParams: null,
       // The restored-result notice describes the results being cleared here, so
       // it must not outlive them: a fresh run or an input change makes whatever
       // an older build produced irrelevant.

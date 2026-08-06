@@ -1068,14 +1068,14 @@
     },
     "verdictBadge": {
       "help": {
-        "PASS": "Observed amino-acid changes exactly match the expected design.",
-        "AMBIGUOUS": "All expected mutations matched, plus an extra AA change within the indel window of an expected site. Still counts as detected/recovered.",
-        "MIXED": "Within-well contamination: a substantial second allele in the consensus signal.",
-        "WRONG_AA": "An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window.",
-        "FRAMESHIFT": "Two or more nucleotide indels within the frameshift window.",
-        "MANY": "More observed AA changes than both the design and the many-mutation cutoff.",
-        "LOWDEPTH": "Too few reads to call this well reliably.",
-        "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
+        "PASS": "As mudanças de aminoácido observadas correspondem exatamente ao design esperado.",
+        "AMBIGUOUS": "Todas as mutações esperadas foram encontradas, mais uma mudança extra de aminoácido dentro da janela de indel de um sítio esperado. Ainda conta como detectado.",
+        "MIXED": "Contaminação dentro do poço: um segundo alelo substancial no sinal de consenso.",
+        "WRONG_AA": "Um sítio esperado mostra um aminoácido diferente, uma mutação esperada está ausente, ou uma mudança extra inesperada está fora da janela.",
+        "FRAMESHIFT": "O consenso traz uma inserção ou deleção líquida cujo comprimento não é múltiplo de 3, deslocando a fase de leitura.",
+        "MANY": "Mais mudanças de aminoácido observadas do que o design e do que o limite de múltiplas mutações.",
+        "LOWDEPTH": "Reads insuficientes para julgar este poço de forma confiável.",
+        "NO_CALL": "O consenso tem posições ambíguas (N) demais para confiar nas chamadas de aminoácidos."
       }
     },
     "missingInputs": {
@@ -1099,6 +1099,8 @@
       "labelNoCallAa": "No-call codons",
       "labelNoCallAaHelp": "Consensus N translated to X, excluded from the observed changes",
       "sectionReplicates": "Replicate comparison",
+      "replicateRowAriaLabel": "Mostrar a placa {{plate}}, poço {{well}}",
+      "replicateRowTitle": "Mostrar esta cópia de placa no inspetor",
       "selectedPlateBadge": "Selected",
       "currentWellBadge": "Showing",
       "labelSelectionReason": "Selection reason",
@@ -1115,6 +1117,78 @@
       "labelLowDepthPositions": "Low-depth positions",
       "labelConsensusN": "Consensus N",
       "labelLowQualityBases": "Low-quality bases",
+      "metricInfo": {
+        "openAria": "Abrir a explicação de {{metric}}",
+        "whatLabel": "O que é contado",
+        "stageLabel": "De onde vem",
+        "effectLabel": "Efeito no veredito",
+        "thresholdLabel": "Comparado com",
+        "contextLabel": "Leia junto com",
+        "thresholdUnknown": "Esta execução não informou seus limiares, portanto não se sabe contra o que este valor foi julgado.",
+        "readCount": {
+          "what": "Reads que passaram pelos filtros de alinhamento e alimentaram o pileup de consenso deste poço, lidos do cabeçalho depth=N do FASTA de consenso.",
+          "stage": "Chamada de consenso, após os filtros de MAPQ e de cobertura total (span).",
+          "effect": "Decide o veredito. Abaixo do piso de profundidade o poço é LOWDEPTH e nenhuma outra verificação é executada. Um poço com posições mistas cuja profundidade fica abaixo do piso de confiança para MIXED também é relatado como LOWDEPTH, pois ali um segundo alelo não se distingue do erro de sequenciamento.",
+          "thresholdDepth": "LOWDEPTH abaixo de {{count}} reads.",
+          "thresholdDepthOff": "A verificação de profundidade de leitura estava desativada nesta execução.",
+          "thresholdMixed": "Uma chamada MIXED confiável exige ao menos {{count}} reads (o piso de profundidade vezes {{factor}}).",
+          "thresholdMixedOff": "Sem piso de profundidade para MIXED, pois a verificação de profundidade de leitura estava desativada.",
+          "thresholdFileSize": "Poços sem qualquer cabeçalho depth são avaliados de forma supletiva por um tamanho de arquivo de consenso de {{size}} KB."
+        },
+        "inputReads": {
+          "what": "Reads atribuídos a este poço antes do alinhamento.",
+          "stage": "Demultiplexação de códigos de barras, antes do alinhamento. Vazio quando a execução partiu de FASTA de consenso em vez de reads brutos.",
+          "effect": "Apenas diagnóstico. Nenhuma verificação lê este número. Compare-o com as contagens alinhada e filtrada para ver onde os reads se perderam."
+        },
+        "alignedReads": {
+          "what": "Reads que produziram ao menos um alinhamento contra a referência, contados antes dos filtros de MAPQ e cobertura.",
+          "stage": "Alinhamento, antes da filtragem. Vazio quando a execução partiu de FASTA de consenso em vez de reads brutos.",
+          "effect": "Apenas diagnóstico. Nenhuma verificação lê este número. Uma queda grande em relação aos reads de entrada aponta para a referência errada ou material fora do alvo no poço."
+        },
+        "mapqFailed": {
+          "what": "Reads descartados porque o alinhamento não atingiu o mínimo de qualidade de mapeamento (MAPQ).",
+          "stage": "Filtragem de alinhamento, entre a contagem alinhada e a filtrada. Zero quando a execução partiu de FASTA de consenso.",
+          "effect": "Apenas diagnóstico. Nenhuma verificação lê este número. Valor alto indica reads que mapeiam de forma ambígua, tipicamente uma região repetida ou a referência errada."
+        },
+        "spanFailed": {
+          "what": "Reads descartados porque o alinhamento não cobre todo o comprimento da referência.",
+          "stage": "Filtragem de alinhamento, após o filtro de MAPQ. Zero quando a execução partiu de FASTA de consenso.",
+          "effect": "Apenas diagnóstico. Nenhuma verificação lê este número. Valor alto costuma indicar reads truncados ou um amplicon mais curto que a referência."
+        },
+        "mixedPositions": {
+          "what": "Posições em que uma segunda base A/C/G/T ultrapassa o limiar de alelo minoritário com profundidade de pileup suficiente. Um poço misturado 51/49 parece exato no consenso por maioria, e é este valor que o revela.",
+          "stage": "Chamada de consenso, a partir do pileup posição a posição.",
+          "effect": "Decide o veredito. Qualquer valor acima de zero torna o poço MIXED, a menos que a profundidade fique abaixo do piso de confiança para MIXED, caso em que se relata LOWDEPTH.",
+          "thresholdDepth": "MIXED só é relatado a partir de {{count}} reads; abaixo disso o poço é LOWDEPTH.",
+          "thresholdDepthOff": "Sem piso de profundidade para MIXED, pois a verificação de profundidade de leitura estava desativada nesta execução."
+        },
+        "maxMinorAllele": {
+          "what": "A maior fração de segunda base entre todas as posições deste poço, ou seja, a única posição mais ruidosa.",
+          "stage": "Chamada de consenso, a partir do pileup posição a posição.",
+          "effect": "Apenas diagnóstico. Nenhuma verificação lê este número diretamente; a verificação de MIXED usa a contagem de posições mistas acima. Leia-o como o tamanho do sinal concorrente mais forte.",
+          "noiseFloor": "Uma posição comum deste poço fica em {{value}} (mediana). Um máximo próximo dessa mediana é ruído de fundo; muito acima dela é um segundo alelo real.",
+          "noiseFloorUnknown": "Esta execução não informou uma mediana de alelo minoritário, portanto não há piso de ruído para comparar com o máximo."
+        },
+        "lowDepthPositions": {
+          "what": "Posições da referência cuja profundidade de pileup ficou abaixo do mínimo, de modo que nenhuma base pôde ser chamada a partir dos reads.",
+          "stage": "Chamada de consenso, a partir do pileup posição a posição.",
+          "effect": "Apenas diagnóstico. Nenhuma verificação lê este número. Ele é relatado ao lado de um veredito NO_CALL para mostrar que a ambiguidade veio de falta de cobertura e não de reads ruins."
+        },
+        "consensusN": {
+          "what": "Proporção das posições de consenso cobertas emitidas como N (sem chamada). Numerador e denominador abrangem apenas posições que os reads alcançaram, de modo que posições de referência nunca lidas não diluem o valor.",
+          "stage": "Chamada de consenso, após o voto por maioria.",
+          "effect": "Decide o veredito. Acima do teto o poço é NO_CALL e suas chamadas de aminoácidos não são confiáveis. Diferente de LOWDEPTH: a profundidade pode ser ampla enquanto o consenso continua dominado por bases sem chamada.",
+          "threshold": "NO_CALL acima de {{value}}.",
+          "thresholdOff": "A verificação da fração de N estava desativada nesta execução.",
+          "notEvaluable": "Este arquivo de consenso não traz uma fração de N referida à região coberta, então o valor exibido é um 0.0 substituto e a verificação NO_CALL foi ignorada. Execute a chamada de consenso novamente para restaurá-la.",
+          "evaluableUnknown": "Este resultado foi salvo antes de a execução informar se a fração de N era avaliável, portanto não se sabe se a verificação NO_CALL chegou a rodar."
+        },
+        "lowQualityBases": {
+          "what": "Bases individuais excluídas da votação do pileup porque a qualidade FASTQ ficou abaixo do mínimo.",
+          "stage": "Chamada de consenso, durante a acumulação do pileup. Zero para entradas sem escores de qualidade, como arquivos de consenso apenas em FASTA.",
+          "effect": "Apenas diagnóstico. Nenhuma verificação lê este número. Ele é relatado ao lado de um veredito NO_CALL para mostrar que a ambiguidade veio da qualidade das bases e não da falta de cobertura."
+        }
+      },
       "sectionNtChanges": "Nucleotide changes",
       "sectionSource": "Source",
       "copy": "Copy",

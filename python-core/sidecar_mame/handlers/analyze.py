@@ -146,8 +146,21 @@ def _serialize_verdict(vr: Any) -> dict:
         "read_count": b.read_count,
         "n_mixed_positions": b.n_mixed_positions,
         "max_minor_allele_fraction": b.max_minor_allele_fraction,
+        # The noise floor this well ran at. ``max_minor_allele_fraction`` alone
+        # cannot be read: 0.04 is a clean well when ordinary positions sit at
+        # 0.03 and a contaminated one when they sit at 0.002. Written to the
+        # workbook since v0.15.14 (export/excel_writer.py) and carried here so
+        # the same comparison is available on screen.
+        "median_minor_allele_fraction": b.median_minor_allele_fraction,
         "n_low_depth_positions": b.n_low_depth_positions,
         "consensus_n_fraction": b.consensus_n_fraction,
+        # False when the consensus predates the covered-scoped N-fraction
+        # definition, in which case ``consensus_n_fraction`` means nothing and
+        # the NO_CALL gate was skipped for this well (compare/verdict.py).
+        # Without the flag a reader cannot tell a measured 0.0 from a
+        # substituted one, which is a 0.0 that was never measured being read as
+        # a clean well.
+        "consensus_n_fraction_evaluable": b.consensus_n_fraction_evaluable,
         "n_low_quality_bases": b.n_low_quality_bases,
         "n_input_reads": b.n_input_reads,
         "n_aligned_reads": b.n_aligned_reads,
@@ -205,8 +218,18 @@ def _deserialize_verdict(d: dict) -> Any:
         read_count=d.get("read_count"),
         n_mixed_positions=int(d.get("n_mixed_positions", 0)),
         max_minor_allele_fraction=float(d.get("max_minor_allele_fraction", 0.0)),
+        # Absent in payloads persisted before these two were serialized. The
+        # defaults are BarcodeRecord's own (0.0 = noise floor unknown,
+        # True = the N fraction means what it says), so a legacy payload
+        # restores exactly as it does today and no gate changes.
+        median_minor_allele_fraction=float(
+            d.get("median_minor_allele_fraction", 0.0)
+        ),
         n_low_depth_positions=int(d.get("n_low_depth_positions", 0)),
         consensus_n_fraction=float(d.get("consensus_n_fraction", 0.0)),
+        consensus_n_fraction_evaluable=bool(
+            d.get("consensus_n_fraction_evaluable", True)
+        ),
         n_low_quality_bases=int(d.get("n_low_quality_bases", 0)),
         n_input_reads=d.get("n_input_reads"),
         n_aligned_reads=d.get("n_aligned_reads"),
@@ -1076,6 +1099,30 @@ def handle_analyze(params: dict) -> dict:
     )
     many_cutoff = int(params.get("many_cutoff", 5))
 
+    # Snapshot of the four thresholds just resolved, taken here rather than at
+    # the response so it cannot be rebuilt from a different reading of
+    # ``params`` than the one ``run_analyze`` was given. Rides out on
+    # ``compare_params``; see the response for why these four and no others.
+    #
+    # ``_MIXED_CONFIDENT_DEPTH_FACTOR`` is imported from the classifier instead
+    # of restated, so the reported floor is the floor that fired. The floor is
+    # derived here too, by the classifier's own rule (None when the read-count
+    # gate is off), so that reading it never means re-implementing the rule.
+    from kuma_core.mame.compare.verdict import _MIXED_CONFIDENT_DEPTH_FACTOR
+
+    compare_params = {
+        "min_file_size_kb": min_file_size_kb,
+        "min_read_count": min_read_count,
+        "max_consensus_n_fraction": max_consensus_n_fraction,
+        "many_mutation_cutoff": many_cutoff,
+        "mixed_confident_depth_factor": _MIXED_CONFIDENT_DEPTH_FACTOR,
+        "mixed_confident_read_count": (
+            min_read_count * _MIXED_CONFIDENT_DEPTH_FACTOR
+            if min_read_count is not None
+            else None
+        ),
+    }
+
     sample_map_raw = params.get("sample_map_xlsx")
     sample_map_path = None
     if sample_map_raw:
@@ -1375,6 +1422,28 @@ def handle_analyze(params: dict) -> dict:
             "suggested_method": dist_stats.suggested_method,
             "bimodal": dist_stats.bimodal,
         },
+        # The thresholds this run was actually judged against. Every per-well
+        # number in the response is a measurement, and a measurement without
+        # the number it was compared to cannot be read: the caller has no way
+        # to know that read_count=22 failed and 31 passed, because the default
+        # applies whenever the caller omits the field (which the frontend does
+        # for min_read_count) and nothing on the wire said so.
+        #
+        # Only the four values resolved above and handed to ``run_analyze``
+        # appear here, plus the depth factor the MIXED gate multiplies
+        # min_read_count by. ``CompareParams`` also carries
+        # ``indel_window_codon`` / ``frameshift_window_bp`` /
+        # ``max_indel_event_fraction``, and those are deliberately absent
+        # because the handler never resolves them from ``params``: they sit at
+        # their dataclass defaults on every run, so reporting them here would
+        # state a caller decision nobody made. ``max_indel_event_fraction``
+        # additionally gates a measurement that is not serialized at all
+        # (``max_indel_event_fraction`` on BarcodeRecord), so its threshold
+        # would have no number to stand beside.
+        #
+        # Reporting only. Values are read off the same locals the pipeline
+        # received, so this key cannot drift from what judged the run.
+        "compare_params": compare_params,
         # Raw-run only: surface demux yield derived from the consensus records
         # ingested out of the demux output dir (``raw_records`` above). Absent
         # in consensus-dir mode so that response shape stays byte-identical.

@@ -1068,14 +1068,14 @@
     },
     "verdictBadge": {
       "help": {
-        "PASS": "Observed amino-acid changes exactly match the expected design.",
-        "AMBIGUOUS": "All expected mutations matched, plus an extra AA change within the indel window of an expected site. Still counts as detected/recovered.",
-        "MIXED": "Within-well contamination: a substantial second allele in the consensus signal.",
-        "WRONG_AA": "An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window.",
-        "FRAMESHIFT": "Two or more nucleotide indels within the frameshift window.",
-        "MANY": "More observed AA changes than both the design and the many-mutation cutoff.",
-        "LOWDEPTH": "Too few reads to call this well reliably.",
-        "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
+        "PASS": "觀測到的胺基酸變化與設計完全一致。",
+        "AMBIGUOUS": "所有預期突變皆相符，另在預期位點的 indel window 內多出一個胺基酸變化。仍計為已偵測 (回收)。",
+        "MIXED": "well 內污染：consensus 訊號中存在相當比例的第二等位。",
+        "WRONG_AA": "預期位點出現了不同的胺基酸，或缺少某個預期突變，或 window 之外存在額外的非預期變化。",
+        "FRAMESHIFT": "consensus 的淨插入或缺失長度不是 3 的倍數，導致讀框位移。",
+        "MANY": "觀測到的胺基酸變化數同時超過設計數量與多突變上限。",
+        "LOWDEPTH": "reads 太少，無法可靠判定此 well。",
+        "NO_CALL": "consensus 中歧義 (N) 位點過多，胺基酸判讀不可信。"
       }
     },
     "missingInputs": {
@@ -1099,6 +1099,8 @@
       "labelNoCallAa": "No-call codons",
       "labelNoCallAaHelp": "Consensus N translated to X, excluded from the observed changes",
       "sectionReplicates": "Replicate comparison",
+      "replicateRowAriaLabel": "顯示盤 {{plate}} 的 well {{well}}",
+      "replicateRowTitle": "在檢視器中顯示此盤副本",
       "selectedPlateBadge": "Selected",
       "currentWellBadge": "Showing",
       "labelSelectionReason": "Selection reason",
@@ -1115,6 +1117,78 @@
       "labelLowDepthPositions": "Low-depth positions",
       "labelConsensusN": "Consensus N",
       "labelLowQualityBases": "Low-quality bases",
+      "metricInfo": {
+        "openAria": "開啟 {{metric}} 的說明",
+        "whatLabel": "統計的是什麼",
+        "stageLabel": "來自哪個階段",
+        "effectLabel": "對判定的影響",
+        "thresholdLabel": "比較基準",
+        "contextLabel": "需一併對照的值",
+        "thresholdUnknown": "本次執行未回報閾值，因此無法確定此數值是依什麼標準判定的。",
+        "readCount": {
+          "what": "通過比對過濾、進入本 well consensus pileup 的 reads 數，取自 consensus FASTA 的 depth=N 標頭。",
+          "stage": "consensus 產生階段，位於 MAPQ 與 span 過濾之後。",
+          "effect": "決定判定結果。低於深度下限即判為 LOWDEPTH，後續檢查不再執行。即使存在混合位點，若深度低於混合判定下限，也回報為 LOWDEPTH 而非 MIXED，因為在該深度下無法將第二等位與定序錯誤區分開。",
+          "thresholdDepth": "reads 少於 {{count}} 判為 LOWDEPTH。",
+          "thresholdDepthOff": "本次執行停用了讀取深度門檻。",
+          "thresholdMixed": "確認 MIXED 需要至少 {{count}} 條 reads (深度下限的 {{factor}} 倍)。",
+          "thresholdMixedOff": "讀取深度門檻已停用，因此沒有混合判定下限。",
+          "thresholdFileSize": "完全沒有 depth 標頭的 well 改以 consensus 檔案大小 {{size}} KB 作為替代基準。"
+        },
+        "inputReads": {
+          "what": "比對之前分配到本 well 的 reads 數。",
+          "stage": "條碼 demultiplexing 階段，比對之前。若本次分析的輸入是 consensus FASTA 而非原始 reads，則為空。",
+          "effect": "僅供診斷，沒有任何門檻讀取此值。與比對後及過濾後的數量對照，可看出 reads 在哪一步流失。"
+        },
+        "alignedReads": {
+          "what": "至少產生一次參考序列比對的 reads 數，統計於 MAPQ 與 span 過濾之前。",
+          "stage": "比對階段，過濾之前。若本次分析的輸入是 consensus FASTA 而非原始 reads，則為空。",
+          "effect": "僅供診斷，沒有任何門檻讀取此值。相對輸入 reads 大幅下降，通常表示參考序列不對或 well 中混有非目標物質。"
+        },
+        "mapqFailed": {
+          "what": "因比對品質 (MAPQ) 未達下限而被剔除的 reads 數。",
+          "stage": "比對過濾階段，介於比對 reads 與過濾後 reads 之間。若輸入為 consensus FASTA，則為 0。",
+          "effect": "僅供診斷，沒有任何門檻讀取此值。數值偏高表示 reads 比對位置不明確，通常是重複序列或參考序列錯誤。"
+        },
+        "spanFailed": {
+          "what": "因比對區間未涵蓋參考序列全長而被剔除的 reads 數。",
+          "stage": "比對過濾階段，在 MAPQ 過濾之後。若輸入為 consensus FASTA，則為 0。",
+          "effect": "僅供診斷，沒有任何門檻讀取此值。數值偏高通常表示 reads 被截斷，或 amplicon 短於參考序列。"
+        },
+        "mixedPositions": {
+          "what": "在 pileup 深度足夠的位點中，第二多的 A/C/G/T 鹼基超過 minor allele 閾值的位點數。51/49 混合的 well 在多數決 consensus 中看起來完全正常，正是此值將其暴露出來。",
+          "stage": "consensus 產生階段，來自逐位點 pileup。",
+          "effect": "決定判定結果。大於 0 即判為 MIXED，但若深度低於混合判定下限，則改報 LOWDEPTH。",
+          "thresholdDepth": "只有在 reads 達到 {{count}} 以上時才回報 MIXED，低於此值回報 LOWDEPTH。",
+          "thresholdDepthOff": "本次執行停用了讀取深度門檻，因此沒有混合判定下限。"
+        },
+        "maxMinorAllele": {
+          "what": "本 well 所有位點中第二鹼基占比的最大值，即雜訊最嚴重的那一個位點。",
+          "stage": "consensus 產生階段，來自逐位點 pileup。",
+          "effect": "僅供診斷，沒有任何門檻直接讀取此值，MIXED 門檻使用的是上方的混合位點數。可將其視為最強競爭訊號的強度。",
+          "noiseFloor": "本 well 的一般位點約為 {{value}} (中位數)。最大值接近中位數屬於背景雜訊，遠高於中位數則是真實的第二等位。",
+          "noiseFloorUnknown": "本次執行未回報 minor allele 比例的中位數，因此沒有可與最大值對照的雜訊基線。"
+        },
+        "lowDepthPositions": {
+          "what": "pileup 深度未達最低要求、無法由 reads 定出鹼基的參考位點數。",
+          "stage": "consensus 產生階段，來自逐位點 pileup。",
+          "effect": "僅供診斷，沒有任何門檻讀取此值。它與 NO_CALL 判定一併回報，用以說明歧義來自覆蓋不足而非 reads 品質。"
+        },
+        "consensusN": {
+          "what": "在有覆蓋的 consensus 位點中輸出為 N (no call) 的比例。分子與分母都只統計 reads 實際到達的位點，因此未被讀到的參考位點不會稀釋此比例。",
+          "stage": "consensus 產生階段，多數決之後。",
+          "effect": "決定判定結果。超過上限即判為 NO_CALL，其胺基酸判讀不予採信。這與 LOWDEPTH 不同：深度充足時 consensus 仍可能被 no-call 鹼基主導。",
+          "threshold": "超過 {{value}} 判為 NO_CALL。",
+          "thresholdOff": "本次執行停用了 N 比例門檻。",
+          "notEvaluable": "此 consensus 檔案不含依覆蓋範圍定義的 N 比例，因此顯示的數值是替代的 0.0，NO_CALL 門檻被略過。重新產生 consensus 可恢復。",
+          "evaluableUnknown": "此結果儲存於執行回報 N 比例是否可評估之前，因此無法確定 NO_CALL 門檻是否執行過。"
+        },
+        "lowQualityBases": {
+          "what": "因 FASTQ 品質未達最低要求而被排除在 pileup 投票之外的個別鹼基數。",
+          "stage": "consensus 產生階段，於累積 pileup 時統計。對不帶品質值的輸入 (例如僅有 FASTA 的 consensus 檔案) 為 0。",
+          "effect": "僅供診斷，沒有任何門檻讀取此值。它與 NO_CALL 判定一併回報，用以說明歧義來自鹼基品質而非覆蓋不足。"
+        }
+      },
       "sectionNtChanges": "Nucleotide changes",
       "sectionSource": "Source",
       "copy": "Copy",

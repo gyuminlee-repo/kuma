@@ -6,6 +6,7 @@ import type {
   AmpliconLengthEstimate,
   AnalyzeSummary,
   AnalyzeYield,
+  CompareParams,
   DistributionStats,
   DemuxAndFilterResult,
   JanusAutosaveResult,
@@ -228,6 +229,19 @@ export interface AnalysisSlice {
    */
   mappingIntegrity: MappingIntegrity | null;
   /**
+   * The thresholds the last analyze response says it judged its wells against.
+   * Read by the Confidence metric popups, which state what a number was
+   * compared to; every one of those thresholds has a backend default that
+   * applies when the caller omits it (`min_read_count` is omitted on every
+   * run), so the store's own input fields cannot answer the question and a
+   * literal in the TSX would silently drift from the engine.
+   *
+   * null = no run has completed since the last reset, OR the results on screen
+   * were restored from a snapshot written before the sidecar reported this.
+   * Both cases must render as "unknown", never as a default value.
+   */
+  compareParams: CompareParams | null;
+  /**
    * Set when the results on screen were restored from a snapshot this build did
    * not write, so the review screen can say whose engine produced them. Null
    * for a run made in this session and for a same-version restore, which is the
@@ -248,6 +262,7 @@ export interface AnalysisSlice {
   setAnalyzeYield: (analyzeYield: AnalyzeYield | null) => void;
   setLayoutProvenance: (layoutProvenance: LayoutProvenance | null) => void;
   setMappingIntegrity: (mappingIntegrity: MappingIntegrity | null) => void;
+  setCompareParams: (compareParams: CompareParams | null) => void;
   setRestoredResultProvenance: (
     provenance: RestoredResultProvenance | null,
   ) => void;

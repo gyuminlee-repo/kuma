@@ -22,7 +22,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { VERDICT_FILL, VERDICT_LABEL } from "@/lib/mame/verdictColors";
+import { VERDICT_FILL, VERDICT_HELP_KEY, VERDICT_LABEL } from "@/lib/mame/verdictColors";
 import { nbLabel, nbOrderKey } from "@/lib/mame/nbLabel";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type {
@@ -30,6 +30,7 @@ import type {
   RunHealthBreakdown,
   RunHealthData,
   RunHealthThroughputPoint,
+  VerdictClass,
 } from "@/types/mame/models";
 
 // ── Colour palette — CSS variable references only ────────────────────────────
@@ -51,19 +52,26 @@ const C = {
 // to 100% height so the verdict MIX is comparable across plates; the absolute
 // count is labelled below. "fallback" is a replicate-level overlay (shown as a
 // caption), not a verdict class, so it is not a stack segment.
+//
+// `key` is the lowercase snake field of RunHealthBreakdown; `cls` is the
+// uppercase VerdictClass the same segment stands for. They are carried as two
+// explicit fields rather than derived from one another by case-munging, so a
+// future class whose two spellings do not line up cannot silently look up the
+// wrong help text.
 const VERDICT_SEGMENTS: {
   key: "pass" | "ambiguous" | "mixed" | "wrong_aa" | "frameshift" | "many" | "lowdepth" | "no_call";
+  cls: VerdictClass;
   label: string;
   fill: string;
 }[] = [
-  { key: "pass", label: VERDICT_LABEL.PASS, fill: VERDICT_FILL.PASS.bg },
-  { key: "ambiguous", label: VERDICT_LABEL.AMBIGUOUS, fill: VERDICT_FILL.AMBIGUOUS.bg },
-  { key: "mixed", label: VERDICT_LABEL.MIXED, fill: VERDICT_FILL.MIXED.bg },
-  { key: "wrong_aa", label: VERDICT_LABEL.WRONG_AA, fill: VERDICT_FILL.WRONG_AA.bg },
-  { key: "frameshift", label: VERDICT_LABEL.FRAMESHIFT, fill: VERDICT_FILL.FRAMESHIFT.bg },
-  { key: "many", label: VERDICT_LABEL.MANY, fill: VERDICT_FILL.MANY.bg },
-  { key: "lowdepth", label: VERDICT_LABEL.LOWDEPTH, fill: VERDICT_FILL.LOWDEPTH.bg },
-  { key: "no_call", label: VERDICT_LABEL.NO_CALL, fill: VERDICT_FILL.NO_CALL.bg },
+  { key: "pass", cls: "PASS", label: VERDICT_LABEL.PASS, fill: VERDICT_FILL.PASS.bg },
+  { key: "ambiguous", cls: "AMBIGUOUS", label: VERDICT_LABEL.AMBIGUOUS, fill: VERDICT_FILL.AMBIGUOUS.bg },
+  { key: "mixed", cls: "MIXED", label: VERDICT_LABEL.MIXED, fill: VERDICT_FILL.MIXED.bg },
+  { key: "wrong_aa", cls: "WRONG_AA", label: VERDICT_LABEL.WRONG_AA, fill: VERDICT_FILL.WRONG_AA.bg },
+  { key: "frameshift", cls: "FRAMESHIFT", label: VERDICT_LABEL.FRAMESHIFT, fill: VERDICT_FILL.FRAMESHIFT.bg },
+  { key: "many", cls: "MANY", label: VERDICT_LABEL.MANY, fill: VERDICT_FILL.MANY.bg },
+  { key: "lowdepth", cls: "LOWDEPTH", label: VERDICT_LABEL.LOWDEPTH, fill: VERDICT_FILL.LOWDEPTH.bg },
+  { key: "no_call", cls: "NO_CALL", label: VERDICT_LABEL.NO_CALL, fill: VERDICT_FILL.NO_CALL.bg },
 ];
 
 // ── Tiny helpers ─────────────────────────────────────────────────────────────
@@ -161,8 +169,9 @@ function VerdictBreakdown({
   }, [replicates, totalMutants, t]);
 
   // AC10: run-level per-class counts summed across every plate.
-  const classCounts = VERDICT_SEGMENTS.map(({ key, label, fill }) => ({
+  const classCounts = VERDICT_SEGMENTS.map(({ key, cls, label, fill }) => ({
     key,
+    cls,
     label,
     fill,
     count: plates.reduce((acc, [, b]) => acc + (b[key] ?? 0), 0),
@@ -309,9 +318,15 @@ function VerdictBreakdown({
           </tr>
         </thead>
         <tbody>
-          {classCounts.map(({ key, label, fill, count }) => (
+          {classCounts.map(({ key, cls, label, fill, count }) => (
             <tr key={key}>
-              <th scope="row" className="py-0.5 pr-2 font-normal text-foreground">
+              {/* The explanation rides on the row header as a title, never as
+                  visible text: the label cell is queried by its exact text. */}
+              <th
+                scope="row"
+                className="py-0.5 pr-2 font-normal text-foreground cursor-help"
+                title={t(VERDICT_HELP_KEY[cls])}
+              >
                 <span className="flex items-center gap-1.5">
                   <span
                     aria-hidden="true"
@@ -634,8 +649,13 @@ function Legend() {
       aria-label={t("mame.runHealth.legendAriaLabel")}
       role="list"
     >
-      {VERDICT_SEGMENTS.map(({ key, label, fill }) => (
-        <div key={key} className="flex items-center gap-1.5" role="listitem">
+      {VERDICT_SEGMENTS.map(({ key, cls, label, fill }) => (
+        <div
+          key={key}
+          className="flex items-center gap-1.5 cursor-help"
+          role="listitem"
+          title={t(VERDICT_HELP_KEY[cls])}
+        >
           <span
             className="h-2.5 w-2.5 flex-shrink-0 rounded-sm"
             style={{ backgroundColor: fill }}
