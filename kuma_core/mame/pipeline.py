@@ -17,6 +17,7 @@ from kuma_core.mame.ingest.sort_barcode import parse_sample_map
 from kuma_core.mame.io.kuro_reader import expected_to_labels
 from kuma_core.mame.io.variant_list import read_variant_source
 from kuma_core.mame.perf import TIMER
+from kuma_core.mame.plate_geometry import norm_well as _norm_well
 from kuma_core.mame.models import (
     BarcodeRecord,
     CompareParams,
@@ -26,14 +27,6 @@ from kuma_core.mame.models import (
 )
 from kuma_core.mame.select import pick_best_replicate, prefer_within_plate
 from kuma_core.mame.translate import translate_and_diff
-
-
-def _norm_well(w: str) -> str:
-    """Normalise a well label to zero-padded form (e.g. 'A2' -> 'A02', 'A02' -> 'A02')."""
-    w = str(w).strip().upper()
-    if len(w) >= 2 and w[1:].isdigit():
-        return f"{w[0]}{int(w[1:]):02d}"
-    return w
 
 
 def _read_reference_fasta(path: Path) -> str:

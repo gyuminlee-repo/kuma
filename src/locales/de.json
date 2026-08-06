@@ -166,7 +166,7 @@
     },
     "nativeBarcodeDialog": {
       "title": "Mehrere native barcodes erkannt",
-      "description": "Dieser Lauf enthält mehr als einen MinKNOW native barcode. Wählen Sie die zu demultiplexenden barcodes aus; jeder ausgewählte barcode wird in einen eigenen Ausgabeordner verarbeitet.",
+      "description": "Dieser Lauf enthält mehr als einen MinKNOW native barcode. Wählen Sie die zu demultiplexenden barcodes aus; jeder ausgewählte barcode wird in einen eigenen Ausgabeordner verarbeitet. Ein Analyse-Lauf bewertet eine plate: die hier ausgewählten barcodes werden als replicates derselben plate bewertet, nicht als getrennte plates.",
       "shareHeader": "Anteil",
       "selectAriaLabel": "Native barcode {{name}} auswählen",
       "selectedCount": "{{count}} barcode(s) ausgewählt",
@@ -796,7 +796,8 @@
         "placeholder": ".xlsx / .csv Datei Pfad",
         "stateLabel": "Erforderlich",
         "helperText": "Kombinatorische Barcode-Definition vor Analyse",
-        "helpText": "Raw MinKNOW ausführen Modus uses this Datei zu assign reads zu per-well FASTA outputs before analysis."
+        "helpText": "Raw MinKNOW ausführen Modus uses this Datei zu assign reads zu per-well FASTA outputs before analysis.",
+        "axisCounts": "Barcode-Datei: {{forward}} forward x {{reverse}} reverse seeds, {{wells}} wells auf einer plate."
       },
       "sampleMap": {
         "label": "Sample Map (optional)",
@@ -2288,12 +2289,13 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein Projekt verlangt eine Neuanalyse nur, wenn diese Version den Lauf wirklich anders bewerten würde, nicht weil die Versionsnummer gestiegen ist.",
-      "Wenn sie es verlangt, nennt sie die Änderungen, die den gespeicherten Lauf veralten lassen: die Stunde Neuanalyse hat einen genannten Grund.",
-      "Ein von einer anderen Version bewerteter Lauf wird gar nicht mehr gezeigt: keine Verdict-Tabelle, keine Platte, kein Export und keine Option, die Ergebnisse zu behalten.",
-      "Nichts wird gelöscht. Der gespeicherte Lauf bleibt im Projektordner und wird durch einen neuen Lauf ersetzt."
+      "Die Regel, die ein Barcode-Paar in ein Platten-Well uebersetzt, liegt an einer Stelle statt an vier, sodass die vier nicht auseinanderlaufen koennen.",
+      "Ein Design, das die Platte genau fuellt und keinen Platz fuer ein wild-type Well laesst, wird dafuer nicht mehr abgelehnt.",
+      "Beim Laden einer Barcode-Datei wird angezeigt, wie viele forward und reverse Barcodes sie enthaelt und wie viele Wells sie beschreiben.",
+      "Der native-barcode Dialog sagt, was er auswaehlt: Replikate einer Platte statt getrennter Platten.",
+      "Ein Lauf, der die Platte ueberfuellt, wird vor dem Start des Demux abgelehnt, nicht nachdem Wells geschrieben wurden."
     ],
-    "highlightsStamp": "0.15.22+0d6b2595"
+    "highlightsStamp": "0.15.23+0c028fbf"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",

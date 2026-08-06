@@ -166,7 +166,7 @@
     },
     "nativeBarcodeDialog": {
       "title": "Plusieurs native barcodes détectés",
-      "description": "Ce run contient plusieurs native barcodes MinKNOW. Sélectionnez les barcodes à démultiplexer ; chaque barcode sélectionné est traité dans son propre dossier de sortie.",
+      "description": "Ce run contient plusieurs native barcodes MinKNOW. Sélectionnez les barcodes à démultiplexer ; chaque barcode sélectionné est traité dans son propre dossier de sortie. Un run d'analyse évalue une seule plate : les barcodes sélectionnés ici sont évalués comme des replicates de cette même plate, et non comme des plates distinctes.",
       "shareHeader": "Proportion",
       "selectAriaLabel": "Sélectionner le native barcode {{name}}",
       "selectedCount": "{{count}} barcode(s) sélectionné(s)",
@@ -796,7 +796,8 @@
         "placeholder": "Chemin du fichier .xlsx / .csv",
         "stateLabel": "Requis",
         "helperText": "Définition combinatoire de barcodes utilisée avant l'analyse",
-        "helpText": "Le mode raw run MinKNOW utilise ce fichier pour assigner les reads aux FASTA par well avant l'analyse."
+        "helpText": "Le mode raw run MinKNOW utilise ce fichier pour assigner les reads aux FASTA par well avant l'analyse.",
+        "axisCounts": "Fichier de barcodes : {{forward}} forward x {{reverse}} reverse seeds, {{wells}} wells sur une plate."
       },
       "sampleMap": {
         "label": "Sample Map (optionnel)",
@@ -2288,12 +2289,13 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Un projet ne demande une réanalyse que si cette version évaluerait vraiment le run autrement, pas parce que le numéro de version a bougé.",
-      "Quand elle la demande, elle indique les changements qui rendent le run enregistré obsolète : l'heure de réanalyse a une raison énoncée.",
-      "Un run évalué par une autre version n'est plus affiché du tout : ni table de verdicts, ni plaque, ni export, et aucune option pour le garder.",
-      "Rien n'est supprimé. Le run enregistré reste dans le dossier du projet et un nouveau run le remplace."
+      "La regle qui transforme une paire de codes-barres en puits de plaque tient en un seul endroit au lieu de quatre, si bien que les quatre ne peuvent plus diverger.",
+      "Un plan qui remplit exactement la plaque et ne laisse pas de place pour un puits wild-type n est plus refuse pour cette raison.",
+      "Le chargement d un fichier de codes-barres indique combien de forward et de reverse il contient et combien de puits ils decrivent.",
+      "La boite de dialogue native barcode dit ce qu elle choisit: des replicats d une plaque, et non des plaques distinctes.",
+      "Une execution qui deborde la plaque est refusee avant le demarrage du demux, pas apres l ecriture des puits."
     ],
-    "highlightsStamp": "0.15.22+0d6b2595"
+    "highlightsStamp": "0.15.23+0c028fbf"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",
