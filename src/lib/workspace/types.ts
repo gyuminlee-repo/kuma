@@ -14,8 +14,7 @@ export type ArtifactType =
   | "mame_barcodes_xlsx"
   | "mame_context_json"
   | "mame_consensus_fasta"
-  | "mame_reference_fasta"
-  | "mame_sample_map_xlsx";
+  | "mame_reference_fasta";
 
 export interface ManifestArtifact {
   id: string;

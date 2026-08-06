@@ -390,7 +390,6 @@
       "generatedFileLabels": {
         "barcodes": "Barcode table (xlsx)",
         "amplicon": "Amplicon reference (FASTA)",
-        "sampleMapTemplate": "Sample map template (xlsx)",
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "Could not open the folder.",
@@ -398,7 +397,8 @@
       "variantColumn": "Variant column",
       "variantColumnPlaceholder": "Select a column",
       "variantColumnHelper": "Rows fill the 96-well plate in this column's order, down each plate column: A1, B1, C1 to H1, then A2. A WT row is used as the control instead of appending one.",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "outputLocationStateLabel": "Optional"
     },
     "activity": {
       "ingest": {
@@ -924,13 +924,6 @@
         "helpText": "Raw MinKNOW run mode uses this file to assign reads to per-well FASTA outputs before analysis.",
         "axisCounts": "Barcode file: {{forward}} forward x {{reverse}} reverse seeds, {{wells}} wells on one plate."
       },
-      "sampleMap": {
-        "label": "Sample Map (optional)",
-        "placeholder": ".xlsx file path (mutants well layout)",
-        "stateLabel": "Optional",
-        "helperText": "Well-to-sample name mapping — adds mutant name to sorted FASTA filenames (e.g. A01_V5F_F1_R1.fasta)",
-        "helpText": "Col A: sample name, Col B: well position (e.g. A1). Compatible with KURO mutants.xlsx layout."
-      },
       "exportDest": {
         "label": "Export destination folder",
         "placeholder": "Choose a folder; {{filename}} will be created",
@@ -1046,6 +1039,16 @@
         "alertTitle": "Well-variant mapping likely mismatched",
         "alertDesc": "Of {{wells}} wells with an observed variant, {{selfPercent}}% match their own expected mutation and {{crossPercent}}% match another well's expected mutation instead. The well-to-variant mapping is very likely off; do not trust this result.",
         "alertAriaLabel": "Well-variant mapping integrity warning"
+      },
+      "offLayoutRecords": {
+        "title": "{{records}} records from {{wells}} wells outside the layout",
+        "desc": "These wells were not part of the run layout, so nothing was expected from them. Reads here mean either a well that was pipetted after all, or barcode crosstalk from a neighbour. Wells:  {{list}}",
+        "more": "and {{count}} more."
+      },
+      "legacySampleMap": {
+        "title": "{{file}} agrees with the computed layout",
+        "desc": "All {{wells}} wells match, so nothing needs changing. The sample map is no longer read as an input, and this file can be deleted whenever you like; it is left where it is until you do.",
+        "dismiss": "Dismiss this notice"
       }
     },
     "inspector": {
@@ -1161,6 +1164,23 @@
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well."
+    },
+    "wellSelection": {
+      "title": "Wells used",
+      "description": "The draft placement, drawn on the plate. Variants fill the selected wells in plate order (A1, B1, ... H1, A2). Leave it alone to use the first wells, or pick the wells this campaign actually occupies.",
+      "counts": "{{selected}} of {{capacity}} wells selected for {{occupants}} samples (variants plus the WT control).",
+      "tooFewWells": "{{selected}} wells selected but {{occupants}} samples have to go somewhere. Select more wells or shorten the variant list.",
+      "selectAll": "Select all ({{count}})",
+      "selectDefault": "Just the samples ({{count}})",
+      "clearAll": "Clear selection",
+      "gridLabel": "96-well plate, select the wells this campaign uses",
+      "toggleAllLabel": "Toggle every well",
+      "toggleRowLabel": "Toggle row {{row}}",
+      "toggleColumnLabel": "Toggle column {{column}}",
+      "wellWithSample": "Well {{well}}, {{sample}}",
+      "wellEmpty": "Well {{well}}, empty",
+      "keyboardHint": "Arrow keys move, Space toggles, Shift with an arrow key extends the selection. Drag across wells to paint.",
+      "loadFailed": "Could not read the variant list to draw the plate: {{error}}"
     }
   },
   "home": {
@@ -2454,7 +2474,6 @@
     "fieldRunFolder": "run folder",
     "fieldReference": "reference",
     "fieldExpected": "expected",
-    "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
     "pathsMoved": "These inputs moved and need to be picked again: {{fields}}"

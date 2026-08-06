@@ -69,8 +69,8 @@ describe("inputSlice: clearing stale run outputs on input change", () => {
     expect(store.clearResults).toHaveBeenCalledTimes(1);
   });
 
-  it("setSampleMapPath clears results when the sample map changes", () => {
-    store.setSampleMapPath("/map/sample.xlsx");
+  it("setSelectedWells clears results when the declared wells change", () => {
+    store.setSelectedWells(["A1", "B1"]);
     expect(store.clearResults).toHaveBeenCalledTimes(1);
   });
 

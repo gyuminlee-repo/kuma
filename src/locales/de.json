@@ -330,7 +330,6 @@
       "generatedFileLabels": {
         "barcodes": "Barcode-Tabelle (xlsx)",
         "amplicon": "Amplicon-Referenz (FASTA)",
-        "sampleMapTemplate": "Sample-map-Vorlage (xlsx)",
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "Ordner konnte nicht geöffnet werden.",
@@ -338,7 +337,8 @@
       "variantColumn": "Variantenspalte",
       "variantColumnPlaceholder": "Spalte waehlen",
       "variantColumnHelper": "Die Zeilen füllen die 96-Well-Platte in der Reihenfolge dieser Spalte, dabei jede Plattenspalte von oben nach unten: A1, B1, C1 bis H1, dann A2. Eine WT-Zeile dient als Kontrolle, statt eine anzuhängen.",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "outputLocationStateLabel": "Optional"
     },
     "activity": {
       "sectionIngest": "Activity hochladen",
@@ -799,13 +799,6 @@
         "helpText": "Raw MinKNOW ausführen Modus uses this Datei zu assign reads zu per-well FASTA outputs before analysis.",
         "axisCounts": "Barcode-Datei: {{forward}} forward x {{reverse}} reverse seeds, {{wells}} wells auf einer plate."
       },
-      "sampleMap": {
-        "label": "Sample Map (optional)",
-        "placeholder": ".xlsx Datei Pfad (mutants well layout)",
-        "stateLabel": "Optional",
-        "helperText": "Well-zu-sample name mapping — adds mutant name zu sorted FASTA filenames (e.g. A01_V5F_F1_R1.fasta)",
-        "helpText": "Col A: sample name, Col B: well position (e.g. A1). Compatible mit KURO mutants.xlsx layout."
-      },
       "exportDest": {
         "label": "Export destination Ordner",
         "placeholder": "Wählen ein Ordner; {{filename}} will be created",
@@ -973,6 +966,16 @@
         "alertTitle": "Well-Varianten-Zuordnung wahrscheinlich fehlerhaft",
         "alertDesc": "Von {{wells}} Wells mit beobachteter Variante stimmen {{selfPercent}}% mit der eigenen erwarteten Mutation überein, {{crossPercent}}% dagegen mit der erwarteten Mutation eines anderen Wells. Die Well-Varianten-Zuordnung ist mit hoher Wahrscheinlichkeit verschoben; diesem Ergebnis ist nicht zu trauen.",
         "alertAriaLabel": "Warnung zur Well-Varianten-Zuordnungsintegrität"
+      },
+      "offLayoutRecords": {
+        "title": "{{records}} Datensätze aus {{wells}} Wells außerhalb des Layouts",
+        "desc": "Diese Wells gehörten nicht zum Layout des Laufs, es wurde also nichts von ihnen erwartet. Reads bedeuten entweder ein doch befülltes Well oder Barcode-Übersprechen vom Nachbarn. Wells:  {{list}}",
+        "more": "und {{count}} weitere."
+      },
+      "legacySampleMap": {
+        "title": "{{file}} stimmt mit dem berechneten Layout überein",
+        "desc": "Alle {{wells}} Wells stimmen überein, es ist also nichts zu ändern. Die Sample Map wird nicht mehr als Eingabe gelesen, und diese Datei kann jederzeit gelöscht werden; bis dahin bleibt sie unangetastet.",
+        "dismiss": "Hinweis schließen"
       }
     },
     "inspector": {
@@ -1161,6 +1164,23 @@
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well."
+    },
+    "wellSelection": {
+      "title": "Verwendete Wells",
+      "description": "Die berechnete Belegung, auf der Platte gezeichnet. Varianten füllen die ausgewählten Wells in Plattenreihenfolge (A1, B1, ... H1, A2). Ohne Eingriff werden die vorderen Wells verwendet.",
+      "counts": "{{selected}} von {{capacity}} Wells für {{occupants}} Proben ausgewählt (Varianten plus WT-Kontrolle).",
+      "tooFewWells": "{{selected}} Wells ausgewählt, aber {{occupants}} Proben müssen untergebracht werden. Mehr Wells wählen oder Variantenliste kürzen.",
+      "selectAll": "Alle auswählen ({{count}})",
+      "selectDefault": "Nur die Proben ({{count}})",
+      "clearAll": "Auswahl aufheben",
+      "gridLabel": "96-Well-Platte, Wells dieser Kampagne auswählen",
+      "toggleAllLabel": "Alle Wells umschalten",
+      "toggleRowLabel": "Reihe {{row}} umschalten",
+      "toggleColumnLabel": "Spalte {{column}} umschalten",
+      "wellWithSample": "Well {{well}}, {{sample}}",
+      "wellEmpty": "Well {{well}}, leer",
+      "keyboardHint": "Pfeiltasten bewegen, Leertaste schaltet um, Umschalt mit Pfeiltaste erweitert die Auswahl. Ziehen malt über mehrere Wells.",
+      "loadFailed": "Variantenliste zum Zeichnen der Platte nicht lesbar: {{error}}"
     }
   },
   "home": {
@@ -2421,7 +2441,6 @@
     "fieldRunFolder": "ausführen Ordner",
     "fieldReference": "Referenz",
     "fieldExpected": "expected",
-    "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
     "pathsMoved": "Diese Eingaben wurden verschoben und muessen neu ausgewaehlt werden: {{fields}}"

@@ -390,7 +390,6 @@
       "generatedFileLabels": {
         "barcodes": "바코드 표 (xlsx)",
         "amplicon": "Amplicon 레퍼런스 (FASTA)",
-        "sampleMapTemplate": "Sample map 템플릿 (xlsx)",
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "폴더를 열지 못했습니다.",
@@ -398,7 +397,8 @@
       "variantColumn": "변이 열",
       "variantColumnPlaceholder": "열 선택",
       "variantColumnHelper": "이 열의 행 순서대로 96-well에 배치됩니다. 채우는 방향은 플레이트의 세로 방향입니다. A1, B1, C1 순으로 H1까지 내려간 다음 A2로 넘어갑니다. WT 행이 있으면 그 자리를 대조군으로 쓰고, 대조군 행을 따로 추가하지 않습니다.",
-      "variantColumnKuroHelper": "KURO export 판독 시트를 고르면 열은 mutant_id 로 고정되고 status 필터가 먼저 적용됩니다. 플레이트를 적은 다른 시트를 고르면 열을 직접 지정할 수 있습니다."
+      "variantColumnKuroHelper": "KURO export 판독 시트를 고르면 열은 mutant_id 로 고정되고 status 필터가 먼저 적용됩니다. 플레이트를 적은 다른 시트를 고르면 열을 직접 지정할 수 있습니다.",
+      "outputLocationStateLabel": "선택"
     },
     "activity": {
       "ingest": {
@@ -924,13 +924,6 @@
         "helpText": "Raw MinKNOW 실행 모드에서 reads를 well별 FASTA 출력에 할당하는 데 사용합니다.",
         "axisCounts": "Barcode 파일: forward {{forward}} x reverse {{reverse}} seed, plate 한 장에서 {{wells}} well."
       },
-      "sampleMap": {
-        "label": "샘플 맵 (선택)",
-        "placeholder": ".xlsx 파일 경로 (변이체 well 레이아웃)",
-        "stateLabel": "선택",
-        "helperText": "Well-to-sample 이름 매핑. 정렬된 FASTA 파일명에 변이체 이름 추가 (예: A01_V5F_F1_R1.fasta)",
-        "helpText": "A열: 샘플 이름, B열: well 위치 (예: A1). KURO mutants.xlsx 레이아웃과 호환됩니다."
-      },
       "exportDest": {
         "label": "내보내기 대상 폴더",
         "placeholder": "폴더 선택; {{filename}} 파일이 생성됩니다",
@@ -1046,6 +1039,16 @@
         "alertTitle": "well-변이 대응 오류 의심",
         "alertDesc": "관측 변이가 있는 well {{wells}}개 중 자기 expected와 일치 {{selfPercent}}%, 다른 well의 expected와 일치 {{crossPercent}}%. well과 변이의 대응이 어긋났을 가능성이 매우 높으니 이 결과를 신뢰하지 마십시오.",
         "alertAriaLabel": "well-변이 매핑 무결성 경고"
+      },
+      "offLayoutRecords": {
+        "title": "레이아웃 밖 웰 {{wells}}개에서 레코드 {{records}}건",
+        "desc": "이 웰들은 run 레이아웃에 없어서 아무것도 기대하지 않은 자리다. read 가 나왔다면 실제로 분주된 웰이거나 이웃 웰의 바코드 crosstalk 다. 웰:  {{list}}",
+        "more": "외 {{count}}개."
+      },
+      "legacySampleMap": {
+        "title": "{{file}} 이 계산된 배치와 일치한다",
+        "desc": "웰 {{wells}}개가 모두 일치하므로 고칠 것이 없다. sample map 은 더 이상 입력으로 읽지 않으며, 이 파일은 원할 때 지우면 된다. 지우기 전까지는 그대로 둔다.",
+        "dismiss": "안내 닫기"
       }
     },
     "inspector": {
@@ -1161,6 +1164,23 @@
       "copyAaSequence": "아미노산 서열 복사",
       "aaSequenceLength": "아미노산 서열 ({{count}} aa)",
       "noVerdictRecord": "이 well 의 판정 레코드를 찾을 수 없습니다."
+    },
+    "wellSelection": {
+      "title": "사용할 웰",
+      "description": "계산된 배치를 플레이트 위에 그린 것이다. 변이는 선택된 웰을 플레이트 순서(A1, B1, ... H1, A2)대로 채운다. 손대지 않으면 앞쪽 웰을 쓰고, 이 캠페인이 실제로 쓰는 웰을 직접 고를 수도 있다.",
+      "counts": "샘플 {{occupants}}개(변이 + WT 대조군)에 대해 {{capacity}}개 중 {{selected}}개 웰 선택됨.",
+      "tooFewWells": "웰 {{selected}}개를 선택했는데 샘플은 {{occupants}}개다. 웰을 더 고르거나 변이 목록을 줄여라.",
+      "selectAll": "전체 선택 ({{count}})",
+      "selectDefault": "샘플 수만큼 ({{count}})",
+      "clearAll": "전체 해제",
+      "gridLabel": "96웰 플레이트, 이 캠페인이 쓰는 웰 선택",
+      "toggleAllLabel": "모든 웰 토글",
+      "toggleRowLabel": "{{row}}행 토글",
+      "toggleColumnLabel": "{{column}}열 토글",
+      "wellWithSample": "웰 {{well}}, {{sample}}",
+      "wellEmpty": "웰 {{well}}, 비어 있음",
+      "keyboardHint": "방향키로 이동, Space 로 토글, Shift + 방향키로 범위 선택. 드래그하면 이어서 칠해진다.",
+      "loadFailed": "플레이트를 그리기 위한 변이 목록을 읽지 못했다: {{error}}"
     }
   },
   "home": {
@@ -2454,7 +2474,6 @@
     "fieldRunFolder": "실행 폴더",
     "fieldReference": "레퍼런스",
     "fieldExpected": "예상 유전형",
-    "fieldSampleMap": "샘플 맵",
     "fieldCustomBarcodes": "커스텀 바코드",
     "fieldSequencingSummary": "시퀀싱 요약",
     "pathsMoved": "이전 경로를 찾을 수 없어 다시 지정해야 합니다: {{fields}}"

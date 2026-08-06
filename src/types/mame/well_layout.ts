@@ -26,31 +26,29 @@ export interface WellLayoutRow {
 /** Result of a mame.build_well_layout RPC call. */
 export interface BuildWellLayoutResult {
   /**
-   * Draft layout rows in column-major order (WT control last when it fits the
-   * 96-well plate). Editable by the user before being passed back to analyze.
+   * Draft layout rows in column-major order, with the WT control at the
+   * ordinal the source stated and last when it stated none. Empty when the set
+   * does not fit one plate.
    */
   draft: WellLayoutRow[]
-  /** Number of draft rows (mutant wells + optional WT well). */
+  /** Number of draft rows (mutant wells plus the one WT well). */
   count: number
   /**
-   * mutant_id values past the 96th well. The combinatorial barcode space is
-   * 12 fwd x 8 rev, so a 97th well cannot be told apart in the reads. One
-   * analyze run scores one plate; native barcodes are replicates of that plate,
-   * so larger campaigns are split across plates and run one plate at a time,
-   * with one layout per plate. Non-empty means the draft does not cover the
-   * full set.
+   * mutant_id values that do not fit alongside the WT control, so more than 95
+   * mutants. The combinatorial barcode space is 12 fwd x 8 rev, so a 97th well
+   * cannot be told apart in the reads. One analyze run scores one plate; native
+   * barcodes are replicates of that plate, so larger campaigns are split across
+   * plates and run one plate at a time, with one layout per plate. Non-empty
+   * means nothing was placed.
    */
   dropped_mutant_ids: string[]
-  /**
-   * True when the plate is exactly full and no well was left for the WT
-   * control, which costs the clean-control check.
-   */
-  wt_omitted: boolean
 }
 
 /**
- * well_id -> sample_name override consumed by the analyze RPC as the
- * highest-priority well->sample source (takes precedence over sample_map_xlsx).
+ * well_id -> sample_name override consumed by the analyze RPC. Since v0.15.24
+ * it is the only source that outranks the computed draft: the sample-map xlsx
+ * it used to take precedence over is gone, because it stated the plate a second
+ * time and nothing kept the two statements in step.
  * Key: well coordinate (e.g. "A1"); value: mutant_id or "WT".
  */
 export type WellLayout = Record<string, string>

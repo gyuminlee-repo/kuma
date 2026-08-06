@@ -231,13 +231,17 @@ def test_handle_analyze_consensus_dir_backward_compatible(
     # always present so the frontend never has to tell "not attempted" from
     # "attempted and lost"), and `layout_provenance` / `mapping_integrity`, which
     # are unconditional because a run that omitted them would be a run whose
-    # wells nobody can trace or check. No `janus_mapping_autosave`: the
-    # instrument sheet is written only by a manual `export_janus_mapping` call,
-    # not by analyze. Still no raw-run-only keys.
+    # wells nobody can trace or check. `off_layout_records` joins them for the
+    # same reason: a run that declares which wells it occupies has to be able to
+    # say that reads arrived from the others, and a key present only when the
+    # count is non-zero cannot be told apart from an older sidecar that never
+    # counted. No `janus_mapping_autosave`: the instrument sheet is written only
+    # by a manual `export_janus_mapping` call, not by analyze. Still no
+    # raw-run-only keys.
     assert set(result.keys()) == {
         "verdicts", "replicates", "output_path", "summary", "distribution_stats",
         "designed_mutant_ids", "janus_autosave", "layout_provenance",
-        "mapping_integrity",
+        "mapping_integrity", "off_layout_records",
     }
     assert "assigned_reads" not in result
     assert "wells_with_reads" not in result
@@ -249,7 +253,7 @@ def test_handle_analyze_consensus_dir_backward_compatible(
     assert "passed_coverage" not in result
 
 
-def test_handle_analyze_auto_scopes_from_expected_when_sample_map_omitted(
+def test_handle_analyze_auto_scopes_from_expected_when_layout_omitted(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from sidecar_mame.handlers import analyze as analyze_mod

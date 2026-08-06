@@ -186,7 +186,6 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
   const [seqLength, setSeqLength] = useState<number | null>(null);
   const setParams = useMameAppStore((s) => s.setParams);
   const setReferencePath = useMameAppStore((s) => s.setReferencePath);
-  const setSampleMapPath = useMameAppStore((s) => s.setSampleMapPath);
   // KURO expected_mutations xlsx. When already selected, the generated sample-map
   // template is pre-filled with a draft well placement instead of headers only,
   // so the operator verifies a draft rather than authoring the map from scratch.
@@ -531,7 +530,6 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
       const res = await rpc<MamePackageResult>("mame", "generate_mame_package", params);
       setResult(res);
       setReferencePath(res.amplicon_fa);
-      setSampleMapPath(res.sample_map_template);
       setParams({
         cdsStart: 0,
         cdsEnd: geneEndNum - geneStartNum,
@@ -554,12 +552,6 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
           step: "setup",
           type: "mame_reference_fasta",
           absolutePath: res.amplicon_fa,
-        },
-        {
-          app: "mame",
-          step: "setup",
-          type: "mame_sample_map_xlsx",
-          absolutePath: res.sample_map_template,
         },
         {
           app: "mame",
@@ -990,7 +982,7 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
             onChange={(v) => setForm({ outputDir: v })}
             onBrowse={browseOutputDir}
             placeholder={t("mame.barcodeSetup.outputLocationPlaceholder")}
-            stateLabel={t("mame.inputPanel.sampleMap.stateLabel")}
+            stateLabel={t("mame.barcodeSetup.outputLocationStateLabel")}
             filled={Boolean(form.outputDir)}
             helperText={t("mame.barcodeSetup.outputLocationHelper")}
             helpText={t("mame.barcodeSetup.outputLocationHelper")}
@@ -1034,7 +1026,6 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
                 [
                   { label: t("mame.barcodeSetup.generatedFileLabels.barcodes"), path: result.barcodes_xlsx },
                   { label: t("mame.barcodeSetup.generatedFileLabels.amplicon"), path: result.amplicon_fa },
-                  { label: t("mame.barcodeSetup.generatedFileLabels.sampleMapTemplate"), path: result.sample_map_template },
                   { label: t("mame.barcodeSetup.generatedFileLabels.contextJson"), path: result.context_json },
                 ] as const
               ).map(({ label, path }) => (

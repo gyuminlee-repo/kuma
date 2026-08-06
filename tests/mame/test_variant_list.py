@@ -66,7 +66,7 @@ class TestPlainList:
         )
 
         result = read_variant_source(path)
-        draft = build_draft_layout(result.expected, include_wt=not result.has_explicit_wt)
+        draft = build_draft_layout(result.expected, wt_ordinal=result.wt_ordinal)
 
         assert list(draft.layout.values())[:3] == ["V5F", "K53N", "T10A"]
         assert draft.is_complete
@@ -118,13 +118,15 @@ class TestPlainList:
         assert [m.mutant_id for m in result.expected] == ["V5F"]
         assert result.sheet == "round2"
 
-    def test_blank_rows_are_skipped_not_placed(self, tmp_path):
+    def test_internal_blank_rows_are_refused_rather_than_skipped(self, tmp_path):
+        """예전에는 조용히 흡수했다. 그게 K53N 을 한 칸 앞으로 당겼다."""
         path = _write_sheet(
             tmp_path / "v.xlsx",
             [["variant"], ["V5F"], [None], [""], ["K53N"]],
         )
 
-        assert [m.mutant_id for m in read_variant_source(path).expected] == ["V5F", "K53N"]
+        with pytest.raises(ValueError, match="row 3.*row 4"):
+            read_variant_source(path)
 
     def test_csv_is_accepted(self, tmp_path):
         path = tmp_path / "v.csv"
@@ -137,7 +139,13 @@ class TestPlainList:
 
 
 class TestWildTypeRow:
-    def test_explicit_wt_row_is_reported_not_parsed(self, tmp_path):
+    def test_explicit_wt_row_keeps_its_place_in_the_order(self, tmp_path):
+        """WT 행은 버려지지 않고 배치 서수를 갖는다.
+
+        예전에는 이 행을 ``continue`` 로 버려서, WT 뒤의 변이가 전부 한 칸씩
+        앞으로 당겨졌다. 결과는 꽉 찬 정상 플레이트처럼 보였고 어디에도
+        밀렸다는 표시가 없었다.
+        """
         path = _write_sheet(
             tmp_path / "v.xlsx",
             [["variant"], ["V5F"], ["WT"], ["K53N"]],
@@ -145,26 +153,96 @@ class TestWildTypeRow:
 
         result = read_variant_source(path)
 
+        assert result.wt_ordinal == 2
         assert result.has_explicit_wt is True
         assert [m.mutant_id for m in result.expected] == ["V5F", "K53N"]
+
+    def test_the_wells_after_an_explicit_wt_do_not_move_up(self, tmp_path):
+        """The regression, stated as wells rather than as an ordinal."""
+        path = _write_sheet(
+            tmp_path / "v.xlsx",
+            [["variant"], ["V5F"], ["WT"], ["K53N"]],
+        )
+
+        result = read_variant_source(path)
+        draft = build_draft_layout(result.expected, wt_ordinal=result.wt_ordinal)
+
+        assert list(draft.layout.items()) == [
+            ("A1", "V5F"),
+            ("B1", "WT"),
+            ("C1", "K53N"),
+        ]
 
     def test_plate_gets_one_wt_well_not_two(self, tmp_path):
         path = _write_sheet(tmp_path / "v.xlsx", [["variant"], ["V5F"], ["WT"]])
 
         result = read_variant_source(path)
-        draft = build_draft_layout(result.expected, include_wt=not result.has_explicit_wt)
+        draft = build_draft_layout(result.expected, wt_ordinal=result.wt_ordinal)
 
-        assert list(draft.layout.values()).count("WT") == 0
-        assert list(draft.layout.values()) == ["V5F"]
+        assert list(draft.layout.values()).count("WT") == 1
+        assert list(draft.layout.values()) == ["V5F", "WT"]
 
-    def test_wt_is_still_appended_when_the_list_omits_it(self, tmp_path):
+    def test_wt_is_appended_when_the_list_omits_it(self, tmp_path):
         path = _write_sheet(tmp_path / "v.xlsx", [["variant"], ["V5F"]])
 
         result = read_variant_source(path)
-        draft = build_draft_layout(result.expected, include_wt=not result.has_explicit_wt)
+        draft = build_draft_layout(result.expected, wt_ordinal=result.wt_ordinal)
 
+        assert result.wt_ordinal is None
         assert result.has_explicit_wt is False
         assert list(draft.layout.values()) == ["V5F", "WT"]
+
+    def test_two_wt_rows_name_both_of_them(self, tmp_path):
+        """One plate carries one WT well, so the file has to say which row it is."""
+        path = _write_sheet(
+            tmp_path / "v.xlsx",
+            [["variant"], ["V5F"], ["WT"], ["K53N"], ["wt"]],
+        )
+
+        with pytest.raises(ValueError, match="rows 3 and 5"):
+            read_variant_source(path)
+
+
+class TestRowsThatCannotBePlaced:
+    """행 순서가 곧 플레이트 순서이므로, 읽고 배치하지 못한 행은 거절된다."""
+
+    def test_internal_blank_row_is_named_and_refused(self, tmp_path):
+        path = _write_sheet(
+            tmp_path / "v.xlsx",
+            [["variant"], ["V5F"], [None], ["K53N"]],
+        )
+
+        with pytest.raises(ValueError, match="row 3"):
+            read_variant_source(path)
+
+    def test_trailing_blank_rows_are_openpyxl_phantoms_and_ignored(self, tmp_path):
+        """마지막 값 뒤의 빈 행은 아무것도 밀지 않으므로 보고하지 않는다."""
+        path = _write_sheet(
+            tmp_path / "v.xlsx",
+            [["variant"], ["V5F"], ["K53N"], [None], [None]],
+        )
+
+        result = read_variant_source(path)
+
+        assert [m.mutant_id for m in result.expected] == ["V5F", "K53N"]
+
+    def test_kuro_status_filter_drops_are_named_and_refused(self, tmp_path):
+        """두 판독기가 서로 다른 행 집합을 보던 자리.
+
+        ``plate_order_check._expected_order`` 는 status 를 보지 않으므로,
+        조용히 걸러진 행 하나가 두 판독기의 웰 번호를 통째로 어긋나게 했다.
+        """
+        path = _write_kuro_export(
+            tmp_path / "kuro.xlsx",
+            [
+                ("V5F", 5, "V", "F", "DESIGNED"),
+                ("Z9Z", 9, "Z", "Z", "FAILED"),
+                ("K53N", 53, "K", "N", "DESIGNED"),
+            ],
+        )
+
+        with pytest.raises(ValueError, match="row 3.*FAILED"):
+            read_variant_source(path)
 
 
 class TestRefusals:
@@ -217,7 +295,10 @@ class TestKuroExportStillWorks:
         # 강한 판독 경로를 그대로 타므로 codon 이 살아 있다.
         assert result.expected[0].wt_codon == "GTG"
 
-    def test_kuro_status_filter_is_unchanged(self, tmp_path):
+    def test_kuro_status_filter_itself_is_unchanged(self, tmp_path):
+        """필터 규칙은 그대로다. 달라진 것은 조용하지 않다는 것뿐이다."""
+        from kuma_core.mame.io.kuro_reader import read_expected_mutations_with_rows
+
         path = _write_kuro_export(
             tmp_path / "kuro.xlsx",
             [
@@ -227,14 +308,42 @@ class TestKuroExportStillWorks:
             ],
         )
 
+        read = read_expected_mutations_with_rows(path)
+
+        assert [m.mutant_id for m in read.expected] == ["V5F", "K53N"]
+        assert read.row_numbers == [2, 4]
+        assert read.dropped_rows == [(3, "FAILED")]
+
+    def test_kuro_export_wt_row_follows_the_same_rule_as_a_plain_list(self, tmp_path):
+        """두 분기의 WT 규칙이 통일됐다.
+
+        KURO 분기는 ``has_explicit_wt=False`` 를 하드코딩하고 있었다. 그래서
+        자기 WT 행을 가진 KURO 시트에 대조군 웰이 하나 더 붙었고, 그 행 뒤의
+        웰은 전부 한 칸 밀렸다.
+        """
+        path = _write_kuro_export(
+            tmp_path / "kuro.xlsx",
+            [
+                ("V5F", 5, "V", "F", "DESIGNED"),
+                ("WT", 0, "A", "A", "DESIGNED"),
+                ("K53N", 53, "K", "N", "DESIGNED"),
+            ],
+        )
+
         result = read_variant_source(path)
+        draft = build_draft_layout(result.expected, wt_ordinal=result.wt_ordinal)
 
-        assert [m.mutant_id for m in result.expected] == ["V5F", "K53N"]
+        assert result.wt_ordinal == 2
+        assert list(draft.layout.items()) == [
+            ("A1", "V5F"),
+            ("B1", "WT"),
+            ("C1", "K53N"),
+        ]
 
-    def test_kuro_export_never_reports_an_explicit_wt(self, tmp_path):
+    def test_kuro_export_without_a_wt_row_reports_none(self, tmp_path):
         path = _write_kuro_export(tmp_path / "kuro.xlsx", [("V5F", 5, "V", "F", "DESIGNED")])
 
-        assert read_variant_source(path).has_explicit_wt is False
+        assert read_variant_source(path).wt_ordinal is None
 
 
 class TestInspect:

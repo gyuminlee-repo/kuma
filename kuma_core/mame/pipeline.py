@@ -13,7 +13,6 @@ from kuma_core.mame.export import WellMapper, write_excel
 from kuma_core.mame.export.excel_writer import _custom_barcode_to_seq
 from kuma_core.mame.export.well_mapper import seq_to_well
 from kuma_core.mame.ingest import IngestMode, route_ingest
-from kuma_core.mame.ingest.sort_barcode import parse_sample_map
 from kuma_core.mame.io.kuro_reader import expected_to_labels
 from kuma_core.mame.io.variant_list import read_variant_source
 from kuma_core.mame.perf import TIMER
@@ -49,11 +48,11 @@ def _assign_mutant_ids(
     """Group verdict records by the best-matching mutant_id.
 
     When *well_to_mutant* is provided (keyed by normalised well_id, e.g. "A02"),
-    a well is attributed to the mutant physically placed there according to the
-    sample_map (ground truth), overriding observation-based heuristics.  This
-    makes Final/matrix grouping coherent with the per-well verdict scoping that
-    uses the same sample_map.  Falls through to the observation-based heuristics
-    for wells with a non-R_F custom_barcode or no sample_map entry.
+    a well is attributed to the mutant placed there by the run layout (ground
+    truth), overriding observation-based heuristics.  This makes Final/matrix
+    grouping coherent with the per-well verdict scoping that reads the same
+    layout.  Falls through to the observation-based heuristics for wells with a
+    non-R_F custom_barcode or no layout entry.
 
     Strategy (observation-based fallback): attach a verdict whose observed AA set
     contains an expected substitution label, then a verdict observing an expected
@@ -100,8 +99,8 @@ def _assign_mutant_ids(
             # carries no evidence of which mutant it belongs to, so it stays
             # unattributed: attributing it (previously `expected[idx % len]`,
             # i.e. list position deciding the mutant) reports a guess as fact and
-            # pollutes per-mutant replicate counts. Supply sample_map/well_layout
-            # to place these wells.
+            # pollutes per-mutant replicate counts. Supply a well_layout to
+            # place these wells.
             matched_id = (
                 f"UNKNOWN_{vr.translated.barcode.native_barcode}_"
                 f"{vr.translated.barcode.custom_barcode}"
@@ -125,7 +124,6 @@ def run_analyze(
     max_consensus_n_fraction: float | None = 0.0,
     many_cutoff: int = 5,
     ingest_mode: IngestMode = IngestMode.BARCODE,
-    sample_map_path: Path | None = None,
     well_layout: dict[str, str] | None = None,
     progress_callback: Callable[[int, int], None] | None = None,
     designed_mutant_ids: frozenset[str] | None = None,
@@ -182,24 +180,21 @@ def run_analyze(
     for m in expected_mutations:
         mutant_to_labels[m.mutant_id].append(f"{m.wt_aa}{m.position}{m.mt_aa}")
 
-    # Build well_id -> scoped label list from a well->sample source.
-    # - If neither well_layout nor sample_map_path is given (amplicon / non-
-    #   combinatorial modes): well_to_labels stays None and every well is compared
-    #   against the full expected_labels list, preserving byte-identical legacy
-    #   behaviour.
+    # Build well_id -> scoped label list from the run layout.
+    # - If no well_layout is given (amplicon / non-combinatorial modes):
+    #   well_to_labels stays None and every well is compared against the full
+    #   expected_labels list, preserving byte-identical legacy behaviour.
     # - If a well's custom_barcode cannot be resolved to a well coordinate (non-R_F
     #   barcode format), _custom_barcode_to_seq returns None -> fallback to full list.
-    # - If a well_id appears in the source but the sample name is not a known
+    # - If a well_id appears in the layout but the sample name is not a known
     #   mutant_id (and not "WT"), it is omitted -> verdict-time lookup returns None
     #   -> fallback to full list (defensive "unknown well" path; the well will
     #   receive WRONG_AA, the correct result when the intended mutation is unknown).
-    # well->sample source priority: (a) well_layout override, (b) sample_map_path,
-    # (c) None (full-scope comparison, byte-identical legacy behaviour).
-    well_to_sample: dict[str, str] | None = None
-    if well_layout is not None:
-        well_to_sample = well_layout
-    elif sample_map_path is not None:
-        well_to_sample = parse_sample_map(sample_map_path)   # {"A01": "V5F", ...}
+    # There used to be a second source here, a sample-map xlsx of (sample, well)
+    # pairs. It is gone: the computed draft states the same thing without a file
+    # to keep in step with the variant list, and two sources for one plate meant
+    # one of them was always the one nobody had updated.
+    well_to_sample: dict[str, str] | None = well_layout
 
     well_to_labels: dict[str, list[str]] | None = None
     well_to_mutant: dict[str, str] | None = None
@@ -252,7 +247,7 @@ def run_analyze(
         )
         _t1 = time.perf_counter()
         _t_translate += _t1 - _t0
-        # Scope verdict to this well's own expected label(s) when a sample_map is
+        # Scope verdict to this well's own expected label(s) when a layout is
         # available.  Falls back to the full expected_labels list for wells whose
         # custom_barcode cannot be parsed or whose sample name is not a known mutant.
         scoped_labels = expected_labels

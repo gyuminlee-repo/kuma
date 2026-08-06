@@ -37,7 +37,6 @@ describe("PlateOrderNotice", () => {
     useMameAppStore.setState({
       plateOrderFinding: null,
       expectedPath: "D:/project/KURO_expected.xlsx",
-      sampleMapPath: "",
       wellLayout: null,
       variantSelectionExplicit: false,
     });

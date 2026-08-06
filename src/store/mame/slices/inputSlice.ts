@@ -20,6 +20,7 @@ import type {
   JanusAutosaveResult,
   JanusExportSettings,
   BarcodeAxisCounts,
+  LegacySampleMapFinding,
   PlateOrderFinding,
   PlateOrderReport,
   ValidationResult,
@@ -155,7 +156,9 @@ const mameInputInitialState = {
   expectedPath: "",
   referencePath: "",
   outputPath: "",
-  sampleMapPath: "",
+  selectedWells: null as string[] | null,
+  wellSelectionOccupants: null as number | null,
+  legacySampleMapPath: null as string | null,
   projectPath: null as string | null,
   mode: "amplicon" as const,
   ingestMode: "barcode" as const,
@@ -195,6 +198,7 @@ const mameInputInitialState = {
   resetEpoch: 0,
   wellLayout: null as WellLayout | null,
   plateOrderFinding: null as PlateOrderFinding | null,
+  legacySampleMapFinding: null as LegacySampleMapFinding | null,
   barcodeAxisCounts: null as BarcodeAxisCounts | null,
   variantSourceInfo: null as VariantSourceInfo | null,
   variantSheet: null as string | null,
@@ -288,6 +292,13 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   // The expected-mutations workbook also names what a completed run's
   // verdicts were graded against, so swapping it invalidates that run's
   // outputs the same way a swapped inputDir does (see `setInputDir` above).
+  //
+  // It also decides who is on the plate, which is why the well selection goes
+  // with it. The assignment rule is "occupant i takes the i-th selected well",
+  // so a selection made for one variant list places a DIFFERENT list when the
+  // file changes: the wells look deliberate and every one of them holds
+  // something else. Dropping it back to null re-seats the new list on the
+  // leading wells, which is the only placement the new file states.
   setExpectedPath: (expectedPath) => {
     const changed = get().expectedPath !== expectedPath;
     set({
@@ -298,6 +309,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       variantSheet: null,
       variantColumn: null,
       variantSelectionExplicit: false,
+      selectedWells: null,
+      wellSelectionOccupants: null,
     });
     if (changed) get().clearResults();
   },
@@ -342,7 +355,13 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       set({ variantSourceInfo: null });
     }
   },
-  setVariantSheet: (variantSheet) =>
+  // The sheet and the column decide WHICH ROWS are read, so they decide who is
+  // on the plate just as much as the workbook path does. The well selection
+  // therefore goes with them, for the reason spelled out in `setExpectedPath`:
+  // occupant i takes the i-th selected well, and a selection made for one
+  // reading silently re-seats another. Routed through `setSelectedWells` so
+  // there is one rule for what a dropped selection invalidates.
+  setVariantSheet: (variantSheet) => {
     set({
       variantSheet,
       // The headers differ per sheet, so the column chosen for the old one
@@ -350,9 +369,19 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       variantColumn: null,
       variantSelectionExplicit: true,
       validationErrors: [],
-    }),
-  setVariantColumn: (variantColumn) =>
-    set({ variantColumn, variantSelectionExplicit: true, validationErrors: [] }),
+      wellSelectionOccupants: null,
+    });
+    get().setSelectedWells(null);
+  },
+  setVariantColumn: (variantColumn) => {
+    set({
+      variantColumn,
+      variantSelectionExplicit: true,
+      validationErrors: [],
+      wellSelectionOccupants: null,
+    });
+    get().setSelectedWells(null);
+  },
   setJanusSettings: (janusSettings: JanusExportSettings) => {
     saveJanusSettings(janusSettings);
     set({ janusSettings });
@@ -373,13 +402,29 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   // Just where the export lands, not what was analyzed. Does not invalidate
   // a completed run's outputs.
   setOutputPath: (outputPath) => set({ outputPath, validationErrors: [] }),
-  // Sent as sample_map_xlsx, the highest-priority well->sample source; a swap
-  // changes what a completed run's per-well verdicts would even mean.
-  setSampleMapPath: (sampleMapPath) => {
-    const changed = get().sampleMapPath !== sampleMapPath;
-    set({ sampleMapPath });
+  // Which wells the campaign occupies. Sent as `selected_wells` and decides
+  // where every variant lands, so a change invalidates a completed run's
+  // per-well verdicts the same way swapping an input file does.
+  setSelectedWells: (selectedWells) => {
+    const before = get().selectedWells;
+    const changed =
+      (before === null) !== (selectedWells === null) ||
+      (before !== null &&
+        selectedWells !== null &&
+        (before.length !== selectedWells.length ||
+          before.some((well, i) => well !== selectedWells[i])));
+    set({ selectedWells });
     if (changed) get().clearResults();
   },
+  // How many things the variant list puts on the plate, as the draft RPC read
+  // it. Display state on its own; `selectCanRun` is what makes it matter, by
+  // holding the run when the declared wells cannot seat them all.
+  setWellSelectionOccupants: (wellSelectionOccupants) =>
+    set({ wellSelectionOccupants }),
+  // Migration only, and never an input: the run does not read this file, it is
+  // compared against the computed layout. Setting it therefore invalidates
+  // nothing.
+  setLegacySampleMapPath: (legacySampleMapPath) => set({ legacySampleMapPath }),
   setProjectPath: (projectPath) => set({ projectPath }),
   // mode/cdsStart/cdsEnd/minFileSizeKb/manyCutoff/maxConsensusNFraction and
   // rawRunParams are all sent verbatim as analyze/demux RPC params, so a
@@ -546,14 +591,20 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         // the operator is about to start. They no longer soften a plate-order
         // disagreement: placing wells is not the same as certifying which of a
         // workbook's two plates was pipetted (2026-08-05).
-        sample_map_xlsx: get().sampleMapPath || null,
         well_layout: get().wellLayout ?? null,
+        selected_wells: get().selectedWells,
+        // Not an input. The backend compares it against the layout this run
+        // would use and refuses when the two name different plates.
+        legacy_sample_map_xlsx: get().legacySampleMapPath,
         ...variantSourceParams(get()),
       });
       set({
         validationErrors: result.errors,
         // Absent key = nothing to report, which has to clear a previous finding.
         plateOrderFinding: result.plate_order ?? null,
+        // Same absent-clears rule: a project whose sample map was deleted
+        // between validations must not keep showing the old answer.
+        legacySampleMapFinding: result.legacy_sample_map ?? null,
         // Same rule: absent means no workbook was read this time, so a line
         // left over from a previous file would describe the wrong one.
         barcodeAxisCounts: result.barcode_axes ?? null,
@@ -604,8 +655,14 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         min_file_size_kb: state.minFileSizeKb,
         many_cutoff: state.manyCutoff,
         max_consensus_n_fraction: state.maxConsensusNFraction,
-        sample_map_xlsx: state.sampleMapPath || null,
         well_layout: state.wellLayout ?? null,
+        selected_wells: state.selectedWells,
+        // Not an input. The backend compares it against the layout this run
+        // would use and refuses before the demux when the two name different
+        // plates. Sent from here as well as from `validateInputs` because an
+        // operator can press Run without ever validating, and the file on disk
+        // would then contradict the run in silence.
+        legacy_sample_map_xlsx: state.legacySampleMapPath,
         // Same reading of the variant list the validation used, and the same
         // Janus policy the export dialog holds.
         ...variantSourceParams(state),
@@ -631,6 +688,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     get().setAnalyzeYield(pickAnalyzeYield(result));
     get().setLayoutProvenance(result.layout_provenance ?? null);
     get().setMappingIntegrity(result.mapping_integrity ?? null);
+    get().setOffLayoutRecords(result.off_layout_records ?? null);
     // Store the folder only (outputPath is now a folder); lastExportPath tracks the full path.
     const outDir = (() => {
       const p = result.output_path.replace(/\\/g, "/");
@@ -744,8 +802,12 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           // ("missing expected" for the variants it does not carry). The
           // raw-run path (_demuxAndAnalyze) already forwards both; the non-raw
           // path must too, or the plate plan shows PASS wells as fails.
-          sample_map_xlsx: state.sampleMapPath || null,
           well_layout: state.wellLayout ?? null,
+          selected_wells: state.selectedWells,
+          // See `_demuxAndAnalyze`: compared against the computed layout, never
+          // read as one, and both analyze paths have to send it or the run that
+          // skipped the validate button scores a plate the file contradicts.
+          legacy_sample_map_xlsx: state.legacySampleMapPath,
           ...variantSourceParams(state),
           // The sidecar writes the pick list at the end of every run
           // (`_autosave_picks`, forced to legacy5), which honours dest_layout
@@ -764,6 +826,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       get().setAnalyzeYield(pickAnalyzeYield(result));
       get().setLayoutProvenance(result.layout_provenance ?? null);
       get().setMappingIntegrity(result.mapping_integrity ?? null);
+      get().setOffLayoutRecords(result.off_layout_records ?? null);
       const outDir = (() => {
         const p = result.output_path.replace(/\\/g, "/");
         const i = p.lastIndexOf("/");

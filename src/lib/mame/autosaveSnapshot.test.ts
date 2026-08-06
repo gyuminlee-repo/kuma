@@ -134,7 +134,7 @@ describe("buildMameSnapshot", () => {
       expectedPath: "/proj/expected.xlsx",
       referencePath: "/proj/ref.fa",
       outputPath: "/proj/out",
-      sampleMapPath: "/proj/sample_map.xlsx",
+      selectedWells: ["A1", "B1"],
       mode: "amplicon",
       ingestMode: "barcode",
       inputMode: "raw_run",
@@ -200,7 +200,7 @@ describe("buildMameSnapshot 경로 이식성", () => {
     expectedPath: "/proj/expected.xlsx",
     referencePath: "/proj/ref.fa",
     outputPath: "/proj/out",
-    sampleMapPath: "/proj/sample_map.xlsx",
+    selectedWells: ["A1", "B1"],
     mode: "amplicon",
     ingestMode: "barcode",
     inputMode: "raw_run",
@@ -244,7 +244,7 @@ describe("buildMameSnapshot 경로 이식성", () => {
       expected_path: "project://expected.xlsx",
       reference_path: "project://ref.fa",
       output_path: "project://out",
-      sample_map_path: "project://sample_map.xlsx",
+      selected_wells: ["A1", "B1"],
     });
   });
 
@@ -266,10 +266,10 @@ describe("buildMameSnapshot 경로 이식성", () => {
     expect(snapshot.input.expected_path).toBe("/proj/expected.xlsx");
   });
 
-  it("빈 경로는 빈 문자열로 유지한다", () => {
-    const snapshot = buildMameSnapshot(pathState({ sampleMapPath: "" }), undefined, "/proj");
+  it("선언한 웰이 없으면 null 로 유지한다", () => {
+    const snapshot = buildMameSnapshot(pathState({ selectedWells: null }), undefined, "/proj");
 
-    expect(snapshot.input.sample_map_path).toBe("");
+    expect(snapshot.input.selected_wells).toBeNull();
   });
 
   it("schema 를 4 로 올려 구 빌드가 새 스냅샷을 잘못 읽지 않게 한다", () => {
@@ -287,7 +287,7 @@ describe("buildMameSnapshot raw run params portability", () => {
       expectedPath: "",
       referencePath: "",
       outputPath: "",
-      sampleMapPath: "",
+      selectedWells: null,
       mode: "amplicon",
       ingestMode: "barcode",
       inputMode: "raw_run",

@@ -1110,7 +1110,6 @@ async function clearStaleMamePaths(): Promise<MamePathField[]> {
       inputDir: store.inputDir,
       expectedPath: store.expectedPath,
       referencePath: store.referencePath,
-      sampleMapPath: store.sampleMapPath,
       customBarcodesPath: store.rawRunParams.customBarcodesPath ?? "",
       sequencingSummaryPath: store.rawRunParams.sequencingSummaryPath ?? "",
     },
@@ -1130,9 +1129,6 @@ async function clearStaleMamePaths(): Promise<MamePathField[]> {
       case "referencePath":
         fresh.setReferencePath("");
         break;
-      case "sampleMapPath":
-        fresh.setSampleMapPath("");
-        break;
       case "customBarcodesPath":
         fresh.setParams({ rawRunParams: { customBarcodesPath: "" } });
         break;
@@ -1149,7 +1145,6 @@ const MAME_SNAPSHOT_KEY: Partial<Record<MamePathField, string>> = {
   inputDir: "input_dir",
   expectedPath: "expected_path",
   referencePath: "reference_path",
-  sampleMapPath: "sample_map_path",
 };
 
 /**
@@ -1192,7 +1187,6 @@ function stillMissing(fields: MamePathField[]): MamePathField[] {
     inputDir: store.inputDir,
     expectedPath: store.expectedPath,
     referencePath: store.referencePath,
-    sampleMapPath: store.sampleMapPath,
     customBarcodesPath: store.rawRunParams.customBarcodesPath ?? "",
     sequencingSummaryPath: store.rawRunParams.sequencingSummaryPath ?? "",
   });
@@ -1249,10 +1243,12 @@ export async function applyMameAutoDetect(
     store.setExpectedPath(detected.expectedPath);
     filled.push(i18next.t("autosaveHydration.fieldExpected"));
   }
-  if (!store.sampleMapPath && detected.sampleMapPath) {
+  // An existing project's sample map. Recorded, never announced as a filled
+  // input: it is not one. `validate_inputs` compares it against the layout the
+  // run would use and refuses when they name different plates.
+  if (!store.legacySampleMapPath && detected.legacySampleMapPath) {
     if (!alive()) return;
-    store.setSampleMapPath(detected.sampleMapPath);
-    filled.push(i18next.t("autosaveHydration.fieldSampleMap"));
+    store.setLegacySampleMapPath(detected.legacySampleMapPath);
   }
   if (!store.rawRunParams.customBarcodesPath && detected.customBarcodesPath) {
     if (!alive()) return;
@@ -1282,11 +1278,6 @@ export async function applyMameAutoDetect(
       if (!alive()) return;
       storeAfter.setExpectedPath(fromInputDir.expectedPath);
       filled.push(i18next.t("autosaveHydration.fieldExpected"));
-    }
-    if (!storeAfter.sampleMapPath && fromInputDir.sampleMapPath) {
-      if (!alive()) return;
-      storeAfter.setSampleMapPath(fromInputDir.sampleMapPath);
-      filled.push(i18next.t("autosaveHydration.fieldSampleMap"));
     }
     if (!storeAfter.rawRunParams.customBarcodesPath && fromInputDir.customBarcodesPath) {
       if (!alive()) return;
@@ -1368,8 +1359,12 @@ function applyMameSnapshot(
   store.setExpectedPath(resolveMame(input.expected_path));
   store.setReferencePath(resolveMame(input.reference_path));
   store.setOutputPath(resolveMame(input.output_path));
-  const sampleMapPath = resolveMame(input.sample_map_path);
-  if (sampleMapPath) store.setSampleMapPath(sampleMapPath);
+  // Wells the campaign occupies. Absent on a snapshot saved before the field
+  // existed, and null there means the same thing it means now: the leading
+  // wells, which is what those runs used.
+  store.setSelectedWells(
+    Array.isArray(input.selected_wells) ? input.selected_wells : null,
+  );
 
   if (Array.isArray(snapshot.rounds)) {
     useRoundStore.setState({

@@ -109,7 +109,6 @@ def _run_once(demux_dir: Path, inputs: Path) -> tuple[dict, float]:
         "input_dir": str(demux_dir),
         "reference": str(inputs / "ispS.fasta"),
         "expected": str(inputs / "260526_mame_input_96mutants.xlsx"),
-        "sample_map_xlsx": str(inputs / "sample_map.xlsx"),
         "output": str(out_dir / "result.xlsx"),
         "mode": "amplicon",
         "ingest_mode": "barcode",

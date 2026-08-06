@@ -417,9 +417,9 @@
         "handle_build_well_layout",
         "BuildWellLayoutResult",
         "dropped_mutant_ids",
-        "wt_omitted"
+        "wt_ordinal"
       ],
-      "note": "mame.build_well_layout: core func <-> Pydantic model <-> handler dict <-> TS interfaces. analyze.py 와 models.ts 를 2026-08-06 에 추가했다. 실제 의존은 RPC 하나가 아니라 DraftLayout 의 두 필드다: analyze 는 build_draft_layout 을 같은 include_wt 규칙으로 다시 부르고, dropped_mutant_ids 가 비지 않으면 demux 이전에 run 을 거부하며, wt_omitted 를 layout_provenance(LayoutProvenance in models.ts)에 실어 보고한다. 거부 조건을 is_complete 로 넓히면 DESIGNED 96 + WT 행 없음(오늘 정상 채점되는 96칸 완전 레이아웃)이 막히므로, 두 필드의 의미를 바꿀 때 이 다섯 지점을 함께 본다.",
+      "note": "mame.build_well_layout: core func <-> Pydantic model <-> handler dict <-> TS interfaces. analyze.py 와 models.ts 를 2026-08-06 에 추가했다. 실제 의존은 RPC 하나가 아니라 DraftLayout 이다: analyze 는 build_draft_layout 을 같은 wt_ordinal 로 다시 부르고, dropped_mutant_ids 가 비지 않으면 demux 이전에 run 을 거부한다. 플레이트 점유량은 변이 N 이 아니라 N+1 이다(WT 도 시퀀싱 대상이고 웰 하나를 쓴다). 그래서 용량 판정은 배치 전에 N+1 로 하고, 초과하면 layout 을 통째로 비운다. wt_omitted 는 2026-08-07 에 사라졌다: WT 를 뺀 96칸 플레이트라는 상태 자체가 없어졌기 때문이다.",
       "severity": "blocking"
     },
     {
@@ -466,7 +466,7 @@
         "variant_column",
         "has_explicit_wt"
       ],
-      "note": "expected-variant input accepts a KURO export or a plain variant list, and every RPC that reads it must offer the same choice: read_variant_source <-> the sample map, well layout, and analyze paths <-> variant_sheet/variant_column params on generate_mame_package, mame.build_well_layout, analyze, and validate_inputs <-> the TS params and the sheet/column picker. Adding the param to one RPC and not the others makes one file read two ways in one run, which places wells from a list nobody chose. has_explicit_wt travels with the read: any path that calls build_draft_layout must pass include_wt=not has_explicit_wt, or a source carrying its own WT row gets a second control well.",
+      "note": "expected-variant input accepts a KURO export or a plain variant list, and every RPC that reads it must offer the same choice: read_variant_source <-> the sample map, well layout, and analyze paths <-> variant_sheet/variant_column params on generate_mame_package, mame.build_well_layout, analyze, and validate_inputs <-> the TS params and the sheet/column picker. Adding the param to one RPC and not the others makes one file read two ways in one run, which places wells from a list nobody chose. wt_ordinal travels with the read: any path that calls build_draft_layout must pass wt_ordinal=read.wt_ordinal. has_explicit_wt is now a property derived from it and kept only as this cross-layer name. 2026-08-07 이전에는 WT 행을 버리고 has_explicit_wt 만 넘겨서, 명시 WT 행 뒤의 모든 웰이 한 칸씩 밀렸다.",
       "severity": "blocking"
     },
     {
@@ -534,7 +534,7 @@
         "check_plate_order",
         "missing_from_expected"
       ],
-      "note": "validate_inputs 와 check_plate_order 는 같은 plate_order_payload 모양을 돌려주고, validate_inputs 쪽만 severity 를 덧붙인다. 2026-08-05 부터 등급은 blocking 하나뿐이고 well_layout/sample_map_xlsx 로 낮추지 않는다(어느 시트가 분주된 플레이트인지는 그 두 입력이 말해 주지 못한다). validate_inputs 는 이 불일치를 errors 에도 넣어 valid=false 로 만들고, 프론트는 plateOrderFinding 존재만으로 selectCanRun 을 막는다. payload 필드를 바꾸면 ValidationResult 와 useAutosaveHydration 의 PlateOrderReport 를 함께 고칠 것.",
+      "note": "validate_inputs 와 check_plate_order 는 같은 plate_order_payload 모양을 돌려주고, validate_inputs 쪽만 severity 를 덧붙인다. 2026-08-05 부터 등급은 blocking 하나뿐이고 well_layout 으로 낮추지 않는다(어느 시트가 분주된 플레이트인지는 그 입력이 말해 주지 못한다). 2026-08-07 부터 handle_analyze 도 같은 검사를 직접 돌려 거절한다. 그 전까지 유일한 호출부가 handle_validate_inputs 였고, 실제 방어선은 프론트의 selectCanRun 뿐이라 CLI·하네스·스크립트 경로는 그냥 통과했다. validate_inputs 는 이 불일치를 errors 에도 넣어 valid=false 로 만든다. payload 필드를 바꾸면 ValidationResult 와 useAutosaveHydration 의 PlateOrderReport 를 함께 고칠 것.",
       "severity": "blocking"
     },
     {
@@ -752,15 +752,18 @@
       "id": "mame-context",
       "files": [
         "src/types/mame/mame_context.ts",
-        "src/lib/mame/detectProjectFiles.ts"
+        "src/lib/mame/detectProjectFiles.ts",
+        "kuma_core/mame/ingest/barcode_package.py"
       ],
       "symbols": [
         "MameContext",
+        "MAME_CONTEXT_SCHEMA",
+        "legacySampleMapPointer",
         "custom_barcodes_path",
         "reference_path",
         "sample_map_template_path"
       ],
-      "note": "mame_context.json 스키마 ↔ TS MameContext interface ↔ detectProjectFiles field mapping. 스키마 버전 bump 시 마이그레이션 로직 필요",
+      "note": "mame_context.json 스키마 ↔ TS MameContext interface ↔ detectProjectFiles field mapping. 쓰는 쪽은 barcode_package._write_mame_context_json 이고 MAME_CONTEXT_SCHEMA 와 숫자를 맞춰야 한다. 스키마 2(2026-08-07)는 sample_map_template_path 를 뺐다. 그 키는 스키마 1 프로젝트를 위해 타입에 남아 있고, legacySampleMapPointer 가 스키마 번호로만 분기해 마이그레이션 경로에서 읽는다(웰 배치에는 쓰지 않는다). isMameContext 는 typeof schema === number 만 보므로 번호를 올리는 것 자체로는 어떤 분기도 생기지 않는다. 새 스키마를 낼 때는 번호를 읽는 분기를 반드시 따로 추가할 것.",
       "severity": "blocking"
     },
     {

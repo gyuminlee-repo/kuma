@@ -293,22 +293,9 @@ class TestCombinatorialDemuxParamsValidation:
                 }
             )
 
-    def test_sample_map_xlsx_accepted(
-        self, run_dir: Path, barcodes_xlsx: Path, reference_fasta: Path, tmp_path: Path
-    ) -> None:
-        """PR-B: sample_map_xlsx is now accepted (no longer raises NotImplementedError)."""
-        sample_map = tmp_path / "sample_map.xlsx"
-        sample_map.touch()
-        p = CombinatorialDemuxParams.model_validate(
-            {
-                "minknow_run_dir": str(run_dir),
-                "custom_barcodes_xlsx": str(barcodes_xlsx),
-                "reference_fasta": str(reference_fasta),
-                "output_dir": str(tmp_path / "out"),
-                "sample_map_xlsx": str(sample_map),
-            }
-        )
-        assert p.sample_map_xlsx == str(sample_map)
+    # ``test_sample_map_xlsx_accepted`` stood here. The parameter is gone: the
+    # plate is computed from the variant list, so there is no second file for
+    # the demux to be handed. The kuro_xlsx case below is unaffected.
 
     def test_kuro_xlsx_accepted(
         self, run_dir: Path, barcodes_xlsx: Path, reference_fasta: Path, tmp_path: Path

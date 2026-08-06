@@ -12,7 +12,9 @@ import type {
   JanusAutosaveResult,
   JanusExportSettings,
   LayoutProvenance,
+  LegacySampleMapFinding,
   MappingIntegrity,
+  OffLayoutRecords,
   PlateOrderFinding,
   ReplicateResult,
   RunHealthData,
@@ -48,7 +50,38 @@ export interface InputSlice {
   expectedPath: string;
   referencePath: string;
   outputPath: string;
-  sampleMapPath: string;
+  /**
+   * Wells this campaign occupies, in plate order, or null for "the leading
+   * ones". Null is the default and produces exactly the layout every run
+   * produced before this field existed, so an operator who never opens the
+   * grid sees no change at all.
+   *
+   * A campaign smaller than the plate leaves wells empty and no input file
+   * says which. Declaring them is what lets a read arriving from an empty well
+   * be reported as a read from an empty well rather than scored as whatever
+   * the draft happened to place there.
+   */
+  selectedWells: string[] | null;
+  /**
+   * How many things the current variant list puts on the plate (variants plus
+   * the one WT control), or null when nothing has read it yet.
+   *
+   * Written by `WellSelectionPanel` off the same `build_well_layout` RPC that
+   * draws the grid, and read by `selectCanRun`: a selection shorter than this
+   * is refused by the sidecar, so the button has to be held before the run
+   * starts rather than after. Cleared with every input that changes which rows
+   * are read, because a count from the previous workbook would gate the next
+   * one.
+   */
+  wellSelectionOccupants: number | null;
+  /**
+   * An existing project's `sample_map_template.xlsx`, named by its schema-1
+   * `mame_context.json`. NOT an input: the sample map was removed because it
+   * stated the plate a second time and nothing kept the two in step. Sent to
+   * `validate_inputs` so the backend can compare it against the computed
+   * layout and name the wells where they disagree.
+   */
+  legacySampleMapPath: string | null;
   // Project root, bridged from useKumaProject() context via useMameAutosave so
   // analyze-result persistence (resultSnapshot.ts) can write from the slice,
   // which has no React context access. null/scratch -> no result file written.
@@ -103,6 +136,11 @@ export interface InputSlice {
   // v0.15.6 the operator points at the list to read, so the program has no
   // ground left to refuse the run.
   plateOrderFinding: PlateOrderFinding | null;
+  // Does an existing project's pre-removal `sample_map_template.xlsx` agree
+  // with the layout this run would use? null = no such file, or not validated
+  // yet. `"differs"` is also an entry in `validationErrors` and blocks there;
+  // `"matches"` is announced once so the operator can delete the file.
+  legacySampleMapFinding: LegacySampleMapFinding | null;
   // What the barcode workbook the last validation read actually contains: seeds
   // per axis and the wells they can name. null = no workbook, unreadable, or
   // not validated yet. Display only, never an input: the axis roles and the
@@ -139,7 +177,9 @@ export interface InputSlice {
   setExpectedPath: (path: string) => void;
   setReferencePath: (path: string) => void;
   setOutputPath: (path: string) => void;
-  setSampleMapPath: (path: string) => void;
+  setSelectedWells: (wells: string[] | null) => void;
+  setWellSelectionOccupants: (count: number | null) => void;
+  setLegacySampleMapPath: (path: string | null) => void;
   setProjectPath: (path: string | null) => void;
   setParams: (
     params: Partial<{
@@ -234,6 +274,13 @@ export interface AnalysisSlice {
    */
   mappingIntegrity: MappingIntegrity | null;
   /**
+   * Reads that arrived from wells the run layout does not name, or null when no
+   * run has completed since the last reset. Reported, never a gate: the same
+   * counts appear for a well the operator declared empty and for barcode
+   * crosstalk, and nothing in the number separates the two.
+   */
+  offLayoutRecords: OffLayoutRecords | null;
+  /**
    * Set when the results on screen were restored from a snapshot this build did
    * not write, so the review screen can say whose engine produced them. Null
    * for a run made in this session and for a same-version restore, which is the
@@ -254,6 +301,7 @@ export interface AnalysisSlice {
   setAnalyzeYield: (analyzeYield: AnalyzeYield | null) => void;
   setLayoutProvenance: (layoutProvenance: LayoutProvenance | null) => void;
   setMappingIntegrity: (mappingIntegrity: MappingIntegrity | null) => void;
+  setOffLayoutRecords: (offLayoutRecords: OffLayoutRecords | null) => void;
   setRestoredResultProvenance: (
     provenance: RestoredResultProvenance | null,
   ) => void;

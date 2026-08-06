@@ -166,7 +166,7 @@ describe("mame inputSlice", () => {
     });
   });
 
-  it("forwards well_layout and sample_map_xlsx in the non-raw analyze path", async () => {
+  it("forwards well_layout and selected_wells in the non-raw analyze path", async () => {
     // Regression: the consensus/sorted_barcode path used to omit per-well
     // scoping inputs, so every well was compared against the FULL expected
     // list and the plate plan rendered PASS wells as WRONG_AA.
@@ -178,7 +178,7 @@ describe("mame inputSlice", () => {
       outputPath: "D:/project",
       inputMode: "consensus",
       ingestMode: "barcode",
-      sampleMapPath: "D:/project/05_mame_sample_map.xlsx",
+      selectedWells: ["A1", "B1"],
       wellLayout,
       cdsEnd: 900,
     });
@@ -200,7 +200,7 @@ describe("mame inputSlice", () => {
       "analyze",
       expect.objectContaining({
         input_dir: "D:/project/consensus",
-        sample_map_xlsx: "D:/project/05_mame_sample_map.xlsx",
+        selected_wells: ["A1", "B1"],
         well_layout: wellLayout,
       }),
       expect.anything(),

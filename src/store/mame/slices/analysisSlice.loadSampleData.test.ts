@@ -48,7 +48,6 @@ function makeStore(initial: Partial<AppState> = {}) {
   const state: Partial<AppState> = {
     referencePath: "",
     expectedPath: "",
-    sampleMapPath: "",
     rawRunParams: {
       customBarcodesPath: "",
       sequencingSummaryPath: "",
@@ -66,9 +65,6 @@ function makeStore(initial: Partial<AppState> = {}) {
     }),
     setExpectedPath: vi.fn((p: string) => {
       state.expectedPath = p;
-    }),
-    setSampleMapPath: vi.fn((p: string) => {
-      state.sampleMapPath = p;
     }),
     setParams: vi.fn((params: { rawRunParams?: Partial<AppState["rawRunParams"]> }) => {
       if (params.rawRunParams) {
@@ -135,7 +131,6 @@ describe("mame analysisSlice.loadSampleData", () => {
       "samples/mame/reference.fasta",
       "samples/mame/03_mame_expected_mutations.xlsx",
       "samples/mame/04_mame_custom_barcodes.xlsx",
-      "samples/mame/05_mame_sample_map.xlsx",
       "samples/mame/06_mame_plate_layout.xlsx",
       "samples/mame/07_mame_activity_long.csv",
       "samples/mame/02_mame_barcode_seeds.xlsx",
@@ -195,9 +190,6 @@ describe("mame analysisSlice.loadSampleData", () => {
     expect(store.referencePath).toBe("/resolved/samples/mame/reference.fasta");
     expect(store.expectedPath).toBe(
       "/resolved/samples/mame/03_mame_expected_mutations.xlsx",
-    );
-    expect(store.sampleMapPath).toBe(
-      "/resolved/samples/mame/05_mame_sample_map.xlsx",
     );
     expect(store.rawRunParams.customBarcodesPath).toBe(
       "/resolved/samples/mame/04_mame_custom_barcodes.xlsx",

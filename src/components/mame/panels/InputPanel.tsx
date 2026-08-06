@@ -43,7 +43,6 @@ export function InputPanel() {
   const expectedPath = useMameAppStore((s) => s.expectedPath);
   const referencePath = useMameAppStore((s) => s.referencePath);
   const outputPath = useMameAppStore((s) => s.outputPath);
-  const sampleMapPath = useMameAppStore((s) => s.sampleMapPath);
   const rawRunParams = useMameAppStore((s) => s.rawRunParams);
   const barcodeAxisCounts = useMameAppStore((s) => s.barcodeAxisCounts);
   const verdictCount = useMameAppStore((s) => s.verdicts.length);
@@ -52,7 +51,6 @@ export function InputPanel() {
   const checkExpectedPlateOrder = useMameAppStore((s) => s.checkExpectedPlateOrder);
   const setReferencePath = useMameAppStore((s) => s.setReferencePath);
   const setOutputPath = useMameAppStore((s) => s.setOutputPath);
-  const setSampleMapPath = useMameAppStore((s) => s.setSampleMapPath);
   const setParams = useMameAppStore((s) => s.setParams);
   const inspectVariantSource = useMameAppStore((s) => s.inspectVariantSource);
 
@@ -103,9 +101,11 @@ export function InputPanel() {
         void store.inspectVariantSource(detectedPaths.expectedPath);
         filled.push("expected");
       }
-      if (!store.sampleMapPath && detectedPaths.sampleMapPath) {
-        store.setSampleMapPath(detectedPaths.sampleMapPath);
-        filled.push("sample map");
+      // An existing project's sample map is recorded, not filled in as an
+      // input: nothing places wells from it any more. `validate_inputs`
+      // compares it against the computed layout and refuses a disagreement.
+      if (!store.legacySampleMapPath && detectedPaths.legacySampleMapPath) {
+        store.setLegacySampleMapPath(detectedPaths.legacySampleMapPath);
       }
       if (!store.rawRunParams.customBarcodesPath && detectedPaths.customBarcodesPath) {
         store.setParams({ rawRunParams: { customBarcodesPath: detectedPaths.customBarcodesPath } });
@@ -174,17 +174,6 @@ export function InputPanel() {
       }),
     );
     if (selected) updateRaw({ customBarcodesPath: selected });
-  }
-
-  async function browseSampleMap() {
-    const selected = toSinglePath(
-      await open({
-        directory: false,
-        filters: [{ name: "Sample map", extensions: ["xlsx"] }],
-        title: "Select sample map (mutants well layout)",
-      }),
-    );
-    if (selected) setSampleMapPath(selected);
   }
 
   const inputDirKeys = INPUT_DIR_CONFIG_KEYS[inputMode];
@@ -266,20 +255,6 @@ export function InputPanel() {
               })}
             </p>
           )}
-          <FileField
-            label={t("mame.inputPanel.sampleMap.label")}
-            value={sampleMapPath}
-            onChange={setSampleMapPath}
-            onBrowse={browseSampleMap}
-            placeholder={t("mame.inputPanel.sampleMap.placeholder")}
-            stateLabel={t("mame.inputPanel.sampleMap.stateLabel")}
-            filled={Boolean(sampleMapPath)}
-            helperText={t("mame.inputPanel.sampleMap.helperText")}
-            helpText={t("mame.inputPanel.sampleMap.helpText")}
-            noPathLabel={noPathLabel}
-            readyLabel={readyLabel}
-            browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.inputPanel.sampleMap.label") })}
-          />
         </>
       )}
       <FileField

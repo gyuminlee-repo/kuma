@@ -330,7 +330,6 @@
       "generatedFileLabels": {
         "barcodes": "Tabela de barcodes (xlsx)",
         "amplicon": "Referência do amplicon (FASTA)",
-        "sampleMapTemplate": "Modelo de sample map (xlsx)",
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "Não foi possível abrir a pasta.",
@@ -338,7 +337,8 @@
       "variantColumn": "Coluna de variantes",
       "variantColumnPlaceholder": "Escolher uma coluna",
       "variantColumnHelper": "As linhas preenchem a placa de 96 wells na ordem desta coluna, descendo cada coluna da placa: A1, B1, C1 até H1, depois A2. Uma linha WT é usada como controle, em vez de acrescentar uma.",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "outputLocationStateLabel": "Opcional"
     },
     "activity": {
       "sectionIngest": "Enviar activity",
@@ -799,13 +799,6 @@
         "helpText": "O modo raw run do MinKNOW usa este arquivo para atribuir read a saídas FASTA por well antes da análise.",
         "axisCounts": "Arquivo de barcodes: {{forward}} forward x {{reverse}} reverse seeds, {{wells}} wells em uma plate."
       },
-      "sampleMap": {
-        "label": "Sample Map (opcional)",
-        "placeholder": "Caminho do arquivo .xlsx (layout de wells de mutantes)",
-        "stateLabel": "Opcional",
-        "helperText": "Mapeamento de well para nome de amostra, adiciona o nome do mutante aos nomes de arquivo FASTA ordenados (ex.: A01_V5F_F1_R1.fasta)",
-        "helpText": "Col A: nome da amostra, Col B: posição do well (ex.: A1). Compatível com o layout mutants.xlsx do KURO."
-      },
       "exportDest": {
         "label": "Pasta de destino da exportação",
         "placeholder": "Escolher uma pasta; {{filename}} será criado",
@@ -973,6 +966,16 @@
         "alertTitle": "Possível erro no mapeamento well-variante",
         "alertDesc": "Dos {{wells}} wells com variante observada, {{selfPercent}}% correspondem à própria mutação esperada e {{crossPercent}}% correspondem, em vez disso, à mutação esperada de outro well. É muito provável que o mapeamento well-variante esteja incorreto; não confie neste resultado.",
         "alertAriaLabel": "Aviso de integridade do mapeamento well-variante"
+      },
+      "offLayoutRecords": {
+        "title": "{{records}} registros de {{wells}} poços fora do arranjo",
+        "desc": "Esses poços não faziam parte do arranjo da corrida, então nada era esperado deles. Leituras indicam um poço de fato pipetado ou diafonia de código de barras de um vizinho. Poços:  {{list}}",
+        "more": "e mais {{count}}."
+      },
+      "legacySampleMap": {
+        "title": "{{file}} concorda com o layout calculado",
+        "desc": "Todos os {{wells}} poços coincidem, então nada precisa mudar. O sample map não é mais lido como entrada e este arquivo pode ser apagado quando quiser; até lá permanece onde está.",
+        "dismiss": "Fechar este aviso"
       }
     },
     "inspector": {
@@ -1161,6 +1164,23 @@
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well."
+    },
+    "wellSelection": {
+      "title": "Poços usados",
+      "description": "O arranjo calculado, desenhado sobre a placa. As variantes preenchem os poços selecionados na ordem da placa (A1, B1, ... H1, A2). Sem mexer, os primeiros poços são usados.",
+      "counts": "{{selected}} de {{capacity}} poços selecionados para {{occupants}} amostras (variantes mais o controle WT).",
+      "tooFewWells": "{{selected}} poços selecionados mas há {{occupants}} amostras. Selecione mais poços ou encurte a lista de variantes.",
+      "selectAll": "Selecionar tudo ({{count}})",
+      "selectDefault": "Apenas as amostras ({{count}})",
+      "clearAll": "Limpar seleção",
+      "gridLabel": "Placa de 96 poços, selecione os poços usados",
+      "toggleAllLabel": "Alternar todos os poços",
+      "toggleRowLabel": "Alternar linha {{row}}",
+      "toggleColumnLabel": "Alternar coluna {{column}}",
+      "wellWithSample": "Poço {{well}}, {{sample}}",
+      "wellEmpty": "Poço {{well}}, vazio",
+      "keyboardHint": "Setas movem, Espaço alterna, Shift com seta estende a seleção. Arraste para pintar.",
+      "loadFailed": "Não foi possível ler a lista de variantes para desenhar a placa: {{error}}"
     }
   },
   "home": {
@@ -2421,7 +2441,6 @@
     "fieldRunFolder": "pasta da execução",
     "fieldReference": "referência",
     "fieldExpected": "expected",
-    "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
     "pathsMoved": "Estas entradas foram movidas e precisam ser selecionadas novamente: {{fields}}"

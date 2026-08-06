@@ -330,7 +330,6 @@
       "generatedFileLabels": {
         "barcodes": "Tabla de barcodes (xlsx)",
         "amplicon": "Referencia de amplicon (FASTA)",
-        "sampleMapTemplate": "Plantilla de sample map (xlsx)",
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "No se pudo abrir la carpeta.",
@@ -338,7 +337,8 @@
       "variantColumn": "Columna de variantes",
       "variantColumnPlaceholder": "Elegir una columna",
       "variantColumnHelper": "Las filas llenan la placa de 96 wells en el orden de esta columna, bajando por cada columna de la placa: A1, B1, C1 hasta H1, y luego A2. Una fila WT se usa como control en lugar de añadir una.",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "outputLocationStateLabel": "Opcional"
     },
     "activity": {
       "sectionIngest": "Subir activity",
@@ -799,13 +799,6 @@
         "helpText": "El modo raw run de MinKNOW usa este archivo para asignar reads a salidas FASTA por well antes del análisis.",
         "axisCounts": "Archivo de barcodes: {{forward}} forward x {{reverse}} reverse seeds, {{wells}} wells en una plate."
       },
-      "sampleMap": {
-        "label": "Sample Map (opcional)",
-        "placeholder": "Ruta del archivo .xlsx (layout de wells de mutantes)",
-        "stateLabel": "Opcional",
-        "helperText": "Mapeo de well a nombre de muestra, añade el nombre del mutante a los nombres de archivo FASTA ordenados (p. ej. A01_V5F_F1_R1.fasta)",
-        "helpText": "Col A: nombre de la muestra, Col B: posición del well (p. ej. A1). Compatible con el layout mutants.xlsx de KURO."
-      },
       "exportDest": {
         "label": "Carpeta de destino de exportación",
         "placeholder": "Elegir una carpeta; se creará {{filename}}",
@@ -973,6 +966,16 @@
         "alertTitle": "Posible error en la correspondencia well-variante",
         "alertDesc": "De {{wells}} wells con una variante observada, el {{selfPercent}}% coincide con su propia mutación esperada y el {{crossPercent}}% coincide en cambio con la mutación esperada de otro well. Es muy probable que la correspondencia well-variante esté desalineada; no confíe en este resultado.",
         "alertAriaLabel": "Advertencia de integridad de la correspondencia well-variante"
+      },
+      "offLayoutRecords": {
+        "title": "{{records}} registros de {{wells}} pocillos fuera de la disposición",
+        "desc": "Estos pocillos no formaban parte de la disposición, así que no se esperaba nada de ellos. Las lecturas indican un pocillo llenado después de todo, o diafonía de código de barras de un vecino. Pocillos:  {{list}}",
+        "more": "y {{count}} más."
+      },
+      "legacySampleMap": {
+        "title": "{{file}} coincide con la disposición calculada",
+        "desc": "Los {{wells}} pocillos coinciden, así que no hay nada que cambiar. El sample map ya no se lee como entrada y este archivo puede borrarse cuando quiera; hasta entonces se deja como está.",
+        "dismiss": "Cerrar este aviso"
       }
     },
     "inspector": {
@@ -1161,6 +1164,23 @@
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well."
+    },
+    "wellSelection": {
+      "title": "Pocillos usados",
+      "description": "La disposición calculada, dibujada sobre la placa. Las variantes llenan los pocillos seleccionados en orden de placa (A1, B1, ... H1, A2). Sin tocar nada se usan los primeros pocillos.",
+      "counts": "{{selected}} de {{capacity}} pocillos seleccionados para {{occupants}} muestras (variantes más el control WT).",
+      "tooFewWells": "{{selected}} pocillos seleccionados pero hay {{occupants}} muestras. Seleccione más pocillos o acorte la lista de variantes.",
+      "selectAll": "Seleccionar todo ({{count}})",
+      "selectDefault": "Solo las muestras ({{count}})",
+      "clearAll": "Borrar selección",
+      "gridLabel": "Placa de 96 pocillos, seleccione los pocillos usados",
+      "toggleAllLabel": "Alternar todos los pocillos",
+      "toggleRowLabel": "Alternar fila {{row}}",
+      "toggleColumnLabel": "Alternar columna {{column}}",
+      "wellWithSample": "Pocillo {{well}}, {{sample}}",
+      "wellEmpty": "Pocillo {{well}}, vacío",
+      "keyboardHint": "Las flechas mueven, Espacio alterna, Mayús con flecha extiende la selección. Arrastre para pintar.",
+      "loadFailed": "No se pudo leer la lista de variantes para dibujar la placa: {{error}}"
     }
   },
   "home": {
@@ -2421,7 +2441,6 @@
     "fieldRunFolder": "carpeta de la corrida",
     "fieldReference": "referencia",
     "fieldExpected": "expected",
-    "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
     "pathsMoved": "Estas entradas se movieron y deben seleccionarse de nuevo: {{fields}}"

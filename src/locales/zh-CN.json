@@ -330,7 +330,6 @@
       "generatedFileLabels": {
         "barcodes": "条形码表 (xlsx)",
         "amplicon": "Amplicon 参考序列 (FASTA)",
-        "sampleMapTemplate": "Sample map 模板 (xlsx)",
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "无法打开文件夹。",
@@ -338,7 +337,8 @@
       "variantColumn": "变异列",
       "variantColumnPlaceholder": "选择列",
       "variantColumnHelper": "各行按此列的顺序填入 96-well plate，先自上而下填满 plate 的一列再进入下一列：A1、B1、C1 直到 H1，然后是 A2。若存在 WT 行，则以其作为对照，不再另行追加。",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "outputLocationStateLabel": "可选"
     },
     "activity": {
       "sectionIngest": "上传 activity 数据",
@@ -799,13 +799,6 @@
         "helpText": "Raw MinKNOW run 模式使用此文件,在分析前将 read 分配到每个 well 的 FASTA 输出。",
         "axisCounts": "Barcode 文件：forward {{forward}} x reverse {{reverse}} seeds，一块 plate 上 {{wells}} 个 well。"
       },
-      "sampleMap": {
-        "label": "Sample Map (可选)",
-        "placeholder": ".xlsx 文件路径 (mutants well 布局)",
-        "stateLabel": "可选",
-        "helperText": "Well 到 sample 名的映射 — 在已分拣 FASTA 文件名中添加 mutant 名 (例如 A01_V5F_F1_R1.fasta)",
-        "helpText": "A 列: sample 名, B 列: well 位置 (例如 A1)。兼容 KURO mutants.xlsx 布局。"
-      },
       "exportDest": {
         "label": "导出目标文件夹",
         "placeholder": "选择一个文件夹;将创建 {{filename}}",
@@ -973,6 +966,16 @@
         "alertTitle": "well 与变异对应关系可能有误",
         "alertDesc": "在 {{wells}} 个观测到变异的 well 中，{{selfPercent}}% 与自身 expected 匹配，{{crossPercent}}% 却与其他 well 的 expected 匹配。well 与变异的对应关系极有可能出错，请勿信任此结果。",
         "alertAriaLabel": "well-变异映射完整性警告"
+      },
+      "offLayoutRecords": {
+        "title": "布局之外的 {{wells}} 个孔位有 {{records}} 条记录",
+        "desc": "这些孔位不在本次运行的布局中，本不应有内容。出现读数意味着该孔实际被加样，或来自相邻孔的条码串扰。孔位:  {{list}}",
+        "more": "另有 {{count}} 个。"
+      },
+      "legacySampleMap": {
+        "title": "{{file}} 与计算出的布局一致",
+        "desc": "全部 {{wells}} 个孔位均一致，无需修改。sample map 不再作为输入读取，此文件可随时删除；在删除前会原样保留。",
+        "dismiss": "关闭此提示"
       }
     },
     "inspector": {
@@ -1161,6 +1164,23 @@
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well."
+    },
+    "wellSelection": {
+      "title": "使用的孔位",
+      "description": "在板上绘制的计算布局。变异按板顺序(A1, B1, ... H1, A2)填入所选孔位。不做任何操作则使用前面的孔位。",
+      "counts": "{{occupants}} 个样品(变异加 WT 对照)已选 {{capacity}} 中的 {{selected}} 个孔位。",
+      "tooFewWells": "已选 {{selected}} 个孔位，但有 {{occupants}} 个样品。请增加孔位或缩短变异列表。",
+      "selectAll": "全选 ({{count}})",
+      "selectDefault": "仅样品数 ({{count}})",
+      "clearAll": "清除选择",
+      "gridLabel": "96 孔板，选择本次实验使用的孔位",
+      "toggleAllLabel": "切换全部孔位",
+      "toggleRowLabel": "切换第 {{row}} 行",
+      "toggleColumnLabel": "切换第 {{column}} 列",
+      "wellWithSample": "孔位 {{well}}, {{sample}}",
+      "wellEmpty": "孔位 {{well}}, 空",
+      "keyboardHint": "方向键移动，空格切换，Shift 加方向键扩展选择。拖动可连续选择。",
+      "loadFailed": "无法读取变异列表以绘制板图: {{error}}"
     }
   },
   "home": {
@@ -2421,7 +2441,6 @@
     "fieldRunFolder": "run 文件夹",
     "fieldReference": "reference",
     "fieldExpected": "expected",
-    "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
     "pathsMoved": "以下输入的路径已失效，需要重新选择: {{fields}}"

@@ -330,7 +330,6 @@
       "generatedFileLabels": {
         "barcodes": "Table de barcodes (xlsx)",
         "amplicon": "Référence amplicon (FASTA)",
-        "sampleMapTemplate": "Modèle de sample map (xlsx)",
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "Impossible d'ouvrir le dossier.",
@@ -338,7 +337,8 @@
       "variantColumn": "Colonne des variants",
       "variantColumnPlaceholder": "Choisir une colonne",
       "variantColumnHelper": "L'ordre des lignes de cette colonne remplit la plaque 96-well, en descendant chaque colonne de la plaque : A1, B1, C1 jusqu'à H1, puis A2. Une ligne WT sert de contrôle au lieu d'en ajouter une.",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "outputLocationStateLabel": "Facultatif"
     },
     "activity": {
       "sectionIngest": "Téléverser l'activity",
@@ -799,13 +799,6 @@
         "helpText": "Le mode raw run MinKNOW utilise ce fichier pour assigner les reads aux FASTA par well avant l'analyse.",
         "axisCounts": "Fichier de barcodes : {{forward}} forward x {{reverse}} reverse seeds, {{wells}} wells sur une plate."
       },
-      "sampleMap": {
-        "label": "Sample Map (optionnel)",
-        "placeholder": "Chemin de fichier .xlsx (layout mutants/wells)",
-        "stateLabel": "Optionnel",
-        "helperText": "Mapping well vers nom d'échantillon, ajoute le nom du mutant aux noms de fichiers FASTA triés (ex. A01_V5F_F1_R1.fasta)",
-        "helpText": "Col A : nom d'échantillon, Col B : position du well (ex. A1). Compatible avec le layout mutants.xlsx de KURO."
-      },
       "exportDest": {
         "label": "Dossier de destination d'export",
         "placeholder": "Choisir un dossier ; {{filename}} y sera créé",
@@ -973,6 +966,16 @@
         "alertTitle": "Correspondance well-variant probablement erronée",
         "alertDesc": "Sur {{wells}} wells présentant une variante observée, {{selfPercent}}% correspondent à leur propre mutation attendue et {{crossPercent}}% correspondent plutôt à la mutation attendue d'un autre well. La correspondance well-variant est très probablement décalée ; ne faites pas confiance à ce résultat.",
         "alertAriaLabel": "Avertissement d'intégrité de la correspondance well-variant"
+      },
+      "offLayoutRecords": {
+        "title": "{{records}} enregistrements de {{wells}} puits hors disposition",
+        "desc": "Ces puits ne faisaient pas partie de la disposition, rien n'en était attendu. Des lectures signifient soit un puits finalement rempli, soit une diaphonie de code-barres d'un voisin. Puits :  {{list}}",
+        "more": "et {{count}} de plus."
+      },
+      "legacySampleMap": {
+        "title": "{{file}} concorde avec la disposition calculée",
+        "desc": "Les {{wells}} puits concordent tous, rien à corriger. La sample map n'est plus lue comme entrée et ce fichier peut être supprimé quand vous le souhaitez ; il reste en place jusque-là.",
+        "dismiss": "Fermer cet avis"
       }
     },
     "inspector": {
@@ -1161,6 +1164,23 @@
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well."
+    },
+    "wellSelection": {
+      "title": "Puits utilisés",
+      "description": "La disposition calculée, dessinée sur la plaque. Les variants remplissent les puits sélectionnés dans l'ordre de la plaque (A1, B1, ... H1, A2). Sans intervention, les premiers puits sont utilisés.",
+      "counts": "{{selected}} puits sur {{capacity}} sélectionnés pour {{occupants}} échantillons (variants plus le contrôle WT).",
+      "tooFewWells": "{{selected}} puits sélectionnés pour {{occupants}} échantillons. Sélectionnez plus de puits ou raccourcissez la liste de variants.",
+      "selectAll": "Tout sélectionner ({{count}})",
+      "selectDefault": "Seulement les échantillons ({{count}})",
+      "clearAll": "Effacer la sélection",
+      "gridLabel": "Plaque 96 puits, sélectionner les puits utilisés",
+      "toggleAllLabel": "Basculer tous les puits",
+      "toggleRowLabel": "Basculer la rangée {{row}}",
+      "toggleColumnLabel": "Basculer la colonne {{column}}",
+      "wellWithSample": "Puits {{well}}, {{sample}}",
+      "wellEmpty": "Puits {{well}}, vide",
+      "keyboardHint": "Les flèches déplacent, Espace bascule, Maj avec une flèche étend la sélection. Faites glisser pour peindre.",
+      "loadFailed": "Impossible de lire la liste de variants pour dessiner la plaque : {{error}}"
     }
   },
   "home": {
@@ -2421,7 +2441,6 @@
     "fieldRunFolder": "dossier de run",
     "fieldReference": "référence",
     "fieldExpected": "attendu",
-    "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
     "pathsMoved": "Ces entrees ont ete deplacees et doivent etre selectionnees a nouveau: {{fields}}"

@@ -25,7 +25,6 @@ export interface RestoredMamePaths {
   inputDir: string;
   expectedPath: string;
   referencePath: string;
-  sampleMapPath: string;
   customBarcodesPath: string;
   sequencingSummaryPath: string;
 }
@@ -37,7 +36,6 @@ export const MAME_PATH_LABEL_KEYS: Record<MamePathField, string> = {
   inputDir: "autosaveHydration.fieldRunFolder",
   expectedPath: "autosaveHydration.fieldExpected",
   referencePath: "autosaveHydration.fieldReference",
-  sampleMapPath: "autosaveHydration.fieldSampleMap",
   customBarcodesPath: "autosaveHydration.fieldCustomBarcodes",
   sequencingSummaryPath: "autosaveHydration.fieldSequencingSummary",
 };
@@ -46,7 +44,6 @@ const ALL_FIELDS: MamePathField[] = [
   "inputDir",
   "expectedPath",
   "referencePath",
-  "sampleMapPath",
   "customBarcodesPath",
   "sequencingSummaryPath",
 ];

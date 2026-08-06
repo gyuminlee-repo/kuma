@@ -27,17 +27,16 @@ Response schema
 ---------------
 ``draft`` (list) Ordered ``[{"well": str, "sample": str}, ...]`` rows in
                  column-major order (well coordinates from ``seq_to_well``),
-                 with the WT control as the final entry when it fits the plate.
-``count`` (int)  Number of draft rows (mutant wells + optional WT well).
-``dropped_mutant_ids`` (list[str]) ``mutant_id`` values past the 96th well. The
-                 barcode space is 12 fwd x 8 rev, so a 97th well cannot be told
-                 apart in the reads. One analyze run scores one plate; native
-                 barcodes are replicates of that plate, so such campaigns are
-                 split across plates and run one plate at a time, with one
-                 layout per plate. A non-empty list means this draft does not
-                 describe the full set.
-``wt_omitted`` (bool) True when the plate is exactly full and no well was left
-                 for the WT control, which costs the clean-control check.
+                 with the WT control at the ordinal the source stated, or last
+                 when it stated none. Empty when the set does not fit.
+``count`` (int)  Number of draft rows (mutant wells plus the one WT well).
+``dropped_mutant_ids`` (list[str]) ``mutant_id`` values that do not fit
+                 alongside the WT control, so at most 95 mutants. The barcode
+                 space is 12 fwd x 8 rev, so a 97th well cannot be told apart in
+                 the reads. One analyze run scores one plate; native barcodes
+                 are replicates of that plate, so such campaigns are split
+                 across plates and run one plate at a time, with one layout per
+                 plate. A non-empty list means nothing was placed.
 """
 
 from __future__ import annotations
@@ -72,10 +71,10 @@ def handle_build_well_layout(params: dict) -> dict:
         sheet=p.variant_sheet,
         variant_column=p.variant_column,
     )
-    # A source that lists its own WT row must not also get an appended one, or the
-    # plate carries two controls and the second is mis-attributed. Same rule the
-    # sample map template follows in ``_build_sample_map_rows``.
-    result = build_draft_layout(read.expected, include_wt=not read.has_explicit_wt)
+    # A source that named its own WT row gets the control at that ordinal, not a
+    # second one appended. Dropping the row instead moved every later mutant one
+    # well up and reported nothing.
+    result = build_draft_layout(read.expected, wt_ordinal=read.wt_ordinal)
 
     # ``result.layout`` is an insertion-ordered dict[well_id, sample_name] in
     # column-major order (WT last when present); preserve that order.
@@ -86,7 +85,6 @@ def handle_build_well_layout(params: dict) -> dict:
         "draft": draft,
         "count": len(draft),
         "dropped_mutant_ids": result.dropped_mutant_ids,
-        "wt_omitted": result.wt_omitted,
     }
 
 

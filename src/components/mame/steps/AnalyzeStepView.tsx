@@ -38,12 +38,15 @@ import { PlateView } from "@/components/mame/widgets/PlateView";
 import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
 import { PlateClusterAlert } from "@/components/mame/widgets/PlateClusterAlert";
 import { MappingIntegrityAlert } from "@/components/mame/widgets/MappingIntegrityAlert";
+import { OffLayoutRecordsNotice } from "@/components/mame/widgets/OffLayoutRecordsNotice";
+import { LegacySampleMapNotice } from "@/components/mame/widgets/LegacySampleMapNotice";
 import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNotice";
 import { PlateOrderNotice } from "@/components/mame/widgets/PlateOrderNotice";
 import { RestoredResultNotice } from "@/components/mame/widgets/RestoredResultNotice";
 import { AnalyzeDurationDialog } from "@/components/mame/dialogs/AnalyzeDurationDialog";
 import { InputPanel } from "@/components/mame/panels/InputPanel";
 import { ParameterPanel } from "@/components/mame/panels/ParameterPanel";
+import { WellSelectionPanel } from "@/components/mame/panels/WellSelectionPanel";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { WizardContainer } from "@/components/steps/WizardContainer";
@@ -307,6 +310,11 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
           </div>
 
           <InputPanel />
+          {/* An old project's sample map, once it has been compared against the
+              layout that replaced it. A disagreement is a validation error and
+              shows with the others; this is the other outcome. */}
+          <LegacySampleMapNotice />
+          <WellSelectionPanel />
           <ParameterPanel />
         </div>
       );
@@ -332,6 +340,7 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               judgment about whether this whole result can be trusted, not a
               detail about how it ran. */}
           <MappingIntegrityAlert />
+          <OffLayoutRecordsNotice />
           <PlateClusterAlert />
           <RestoredResultNotice onRunRequest={onRunRequest} />
           {/* The right column decides how tall this row is, because both panels

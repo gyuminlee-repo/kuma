@@ -330,7 +330,6 @@
       "generatedFileLabels": {
         "barcodes": "バーコード表 (xlsx)",
         "amplicon": "Amplicon リファレンス (FASTA)",
-        "sampleMapTemplate": "Sample map テンプレート (xlsx)",
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "フォルダーを開けませんでした。",
@@ -338,7 +337,8 @@
       "variantColumn": "変異の列",
       "variantColumnPlaceholder": "列を選択",
       "variantColumnHelper": "この列の行順で 96 well プレートに配置します。プレートは縦方向に進み、A1, B1, C1 から H1 まで、その次が A2 です。WT 行がある場合は、新たに追加せずその行を対照として使います。",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "outputLocationStateLabel": "任意"
     },
     "activity": {
       "sectionIngest": "活性データのアップロード",
@@ -799,13 +799,6 @@
         "helpText": "Raw MinKNOW run モードでは、このファイルを使って解析前に read を well 単位 FASTA 出力へ割り当てます。",
         "axisCounts": "Barcode ファイル: forward {{forward}} x reverse {{reverse}} seeds、1 枚の plate で {{wells}} wells。"
       },
-      "sampleMap": {
-        "label": "Sample Map (任意)",
-        "placeholder": ".xlsx ファイルパス (mutants well レイアウト)",
-        "stateLabel": "任意",
-        "helperText": "Well からサンプル名へのマッピング — sorted FASTA ファイル名に mutant 名を追加 (例: A01_V5F_F1_R1.fasta)",
-        "helpText": "Col A: サンプル名、Col B: well 位置 (例: A1)。KURO mutants.xlsx レイアウトと互換。"
-      },
       "exportDest": {
         "label": "エクスポート先フォルダ",
         "placeholder": "フォルダを選択 — {{filename}} が作成されます",
@@ -973,6 +966,16 @@
         "alertTitle": "well と変異の対応にずれの疑い",
         "alertDesc": "観測された変異を持つ well {{wells}} 個のうち、自身の expected と一致するのは {{selfPercent}}%、他の well の expected と一致するのは {{crossPercent}}% でした。well と変異の対応がずれている可能性が非常に高いため、この結果は信頼できません。",
         "alertAriaLabel": "well-変異マッピング整合性の警告"
+      },
+      "offLayoutRecords": {
+        "title": "レイアウト外の {{wells}} ウェルから {{records}} 件のレコード",
+        "desc": "これらのウェルは run レイアウトに含まれず、何も期待していない位置である。read が出た場合は実際に分注されたか、隣接ウェルのバーコードクロストークである。ウェル:  {{list}}",
+        "more": "ほか {{count}} 件。"
+      },
+      "legacySampleMap": {
+        "title": "{{file}} は計算されたレイアウトと一致する",
+        "desc": "{{wells}} 個のウェルがすべて一致するため、変更は不要。sample map は入力として読まれなくなり、このファイルはいつでも削除してよい。削除するまではそのまま残る。",
+        "dismiss": "この通知を閉じる"
       }
     },
     "inspector": {
@@ -1161,6 +1164,23 @@
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well."
+    },
+    "wellSelection": {
+      "title": "使用するウェル",
+      "description": "計算した配置をプレート上に描いたもの。変異はプレート順(A1, B1, ... H1, A2)で選択したウェルを埋める。触らなければ先頭のウェルを使う。",
+      "counts": "サンプル {{occupants}} 件(変異 + WT 対照)に対し {{capacity}} 中 {{selected}} ウェルを選択。",
+      "tooFewWells": "{{selected}} ウェルを選択したがサンプルは {{occupants}} 件ある。ウェルを増やすか変異リストを短くすること。",
+      "selectAll": "すべて選択 ({{count}})",
+      "selectDefault": "サンプル数だけ ({{count}})",
+      "clearAll": "選択解除",
+      "gridLabel": "96 ウェルプレート、使用するウェルを選択",
+      "toggleAllLabel": "すべてのウェルを切り替え",
+      "toggleRowLabel": "行 {{row}} を切り替え",
+      "toggleColumnLabel": "列 {{column}} を切り替え",
+      "wellWithSample": "ウェル {{well}}, {{sample}}",
+      "wellEmpty": "ウェル {{well}}, 空",
+      "keyboardHint": "矢印キーで移動、Space で切り替え、Shift + 矢印キーで範囲選択。ドラッグで連続選択。",
+      "loadFailed": "プレート描画のための変異リストを読めなかった: {{error}}"
     }
   },
   "home": {
@@ -2421,7 +2441,6 @@
     "fieldRunFolder": "run フォルダ",
     "fieldReference": "reference",
     "fieldExpected": "expected",
-    "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
     "pathsMoved": "以前のパスが見つからないため再指定が必要です: {{fields}}"

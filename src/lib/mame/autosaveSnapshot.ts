@@ -23,7 +23,7 @@ export type MameSnapshotState = Pick<
   | "expectedPath"
   | "referencePath"
   | "outputPath"
-  | "sampleMapPath"
+  | "selectedWells"
   | "mode"
   | "ingestMode"
   | "inputMode"
@@ -66,7 +66,7 @@ export interface MameAutosaveSnapshot extends AutosaveSnapshot {
     expected_path: string;
     reference_path: string;
     output_path: string;
-    sample_map_path: string;
+    selected_wells: string[] | null;
   };
   parameters: {
     mode: string;
@@ -138,7 +138,7 @@ export function buildMameSnapshot(
       expected_path: portable(state.expectedPath),
       reference_path: portable(state.referencePath),
       output_path: portable(state.outputPath),
-      sample_map_path: portable(state.sampleMapPath),
+      selected_wells: state.selectedWells,
     },
     parameters: {
       mode: state.mode,

@@ -34,23 +34,17 @@ Optional
     file is not a KURO export and the sheet cannot be inferred.
   variant_column (str, default None) -- column holding the variant labels, for
     the same case.
-  expected_mutations_path (str, default None) -- variant list xlsx. When given,
-                         sample_map_template.xlsx is pre-filled with a draft
-                         well placement (one designed mutant per well in
-                         column-major order, WT control last) instead of
-                         headers only.
+  expected_mutations_path (str, default None) -- accepted and unused. It used
+                         to pre-fill a sample-map template; the plate is
+                         computed from the variant list at analyze time now, so
+                         nothing writes it down.
 
 Response schema
 ---------------
   barcodes_xlsx         (str) -- absolute path
   amplicon_fa           (str) -- absolute path
-  sample_map_template   (str) -- absolute path
   context_json          (str) -- absolute path
   warnings              (list[str]) -- non-critical messages from primer design
-  sample_map_prefilled_rows (int) -- pre-filled data rows in the template
-                         (0 = header only, or template left untouched)
-  sample_map_preserved  (bool) -- true when an existing template already held
-                         well assignments and was therefore not rewritten
 """
 
 from __future__ import annotations
@@ -286,12 +280,9 @@ def handle_generate_mame_package(params: dict) -> dict:
     return {
         "barcodes_xlsx": str(result.barcodes_xlsx),
         "amplicon_fa": str(result.amplicon_fa),
-        "sample_map_template": str(result.sample_map_template),
         "context_json": str(result.context_json),
         "warnings": result.warnings,
         "amplicon_length": result.amplicon_length,
-        "sample_map_prefilled_rows": result.sample_map_prefilled_rows,
-        "sample_map_preserved": result.sample_map_preserved,
     }
 
 

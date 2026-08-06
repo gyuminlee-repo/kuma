@@ -16,7 +16,6 @@ const ALL_PRESENT = {
   inputDir: "/proj/run",
   expectedPath: "/proj/expected.xlsx",
   referencePath: "/proj/ref.fasta",
-  sampleMapPath: "/proj/samples.xlsx",
   customBarcodesPath: "/proj/barcodes.xlsx",
   sequencingSummaryPath: "/proj/sequencing_summary.txt",
 };
