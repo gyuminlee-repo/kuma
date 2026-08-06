@@ -4,20 +4,26 @@ import type { AppState } from "./types";
 /**
  * Whether the stored plate-order finding is worth saying out loud right now.
  *
- * Always "info" when it is: since v0.15.6 the operator picks the sheet and the
- * column the variant list is read from, so the program has no standing to call
- * a disagreement between two sheets of one workbook an error. It reports what
- * it saw and leaves the reading to the person who chose it.
+ * Always "blocking" when there is one. A workbook whose primer plate sheet and
+ * `expected_mutations` describe different plates does not record which of the two
+ * was pipetted, and nothing on this screen can supply that: a sample map or a
+ * confirmed layout places wells, it does not certify which plate the tubes came
+ * from. So the finding is stated as a refusal and the run waits for a workbook
+ * whose sheets agree.
  *
- * null = nothing to say. That covers no finding at all, and the case where the
- * operator named the sheet and column themselves: they already stated which
- * rows to read, and repeating "these two sheets differ" back at them adds
- * nothing they did not just decide.
+ * It graded itself "info" between v0.15.6 and 2026-08-05 whenever a sample map
+ * or a well layout supplied the coordinates, on the reasoning that the sheet
+ * order never reached a well. True of the wells, false of the run: the verdicts
+ * were still scored against whichever of the two plates the other input happened
+ * to match, unchecked.
+ *
+ * null = no finding. The `variantSelectionExplicit` exemption is gone with the
+ * grading: `handle_validate_inputs` now errors on the disagreement whatever the
+ * operator named, and a notice that hid itself while validation failed left the
+ * failure unexplained.
  */
 export function selectPlateOrderSeverity(s: AppState): PlateOrderSeverity | null {
-  if (!s.plateOrderFinding) return null;
-  if (s.variantSelectionExplicit) return null;
-  return "info";
+  return s.plateOrderFinding ? "blocking" : null;
 }
 
 export function selectCanRun(s: AppState): boolean {
@@ -34,12 +40,21 @@ export function selectCanRun(s: AppState): boolean {
   } else {
     pathsReady = Boolean(s.inputDir && s.expectedPath && s.referencePath && s.outputPath);
   }
-  // A plate-order disagreement no longer appears here. It is stated on the
-  // inputs panel and the run proceeds; see selectPlateOrderSeverity.
+  // A plate-order disagreement stops the run. `validate_inputs` reports it as an
+  // error too, so most of the time `validationErrors` would already be holding
+  // the button; this covers the window that error does not reach, which is where
+  // the 2026-08-04 incident lived: picking the workbook runs `check_plate_order`
+  // on its own, and the operator can press Run without ever validating.
+  //
+  // Cleared by picking another expected workbook (`setExpectedPath` drops the
+  // finding, and the re-check writes one back only if the new file disagrees
+  // with itself too). Nothing else clears it, by design: which sheet was
+  // pipetted is recorded in no input on this screen.
   return (
     pathsReady &&
     !s.isAnalyzing &&
     !s.isValidating &&
-    s.validationErrors.length === 0
+    s.validationErrors.length === 0 &&
+    s.plateOrderFinding === null
   );
 }

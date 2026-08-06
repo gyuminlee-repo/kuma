@@ -763,10 +763,19 @@ def test_sheet1_header_includes_marker_columns() -> None:
 
 
 def test_final_header_includes_marker_columns() -> None:
-    """Regression: _FINAL_HEADER carries the fallback/notes/observed_aa columns."""
-    assert _FINAL_HEADER[-4:] == [
-        "is_fallback",
-        "fallback_reason",
-        "notes",
-        "observed_aa",
+    """Regression: _FINAL_HEADER carries the fallback/notes/observed_aa columns.
+
+    Anchored by name rather than by tail position so appending purity columns
+    does not read as losing these.
+    """
+    for name in ("is_fallback", "fallback_reason", "notes", "observed_aa"):
+        assert name in _FINAL_HEADER
+
+
+def test_final_header_carries_purity_evidence() -> None:
+    """A reader can audit a pick without rerunning the analysis."""
+    assert _FINAL_HEADER[-3:] == [
+        "support_lower_bound",
+        "max_indel_event_fraction",
+        "review",
     ]

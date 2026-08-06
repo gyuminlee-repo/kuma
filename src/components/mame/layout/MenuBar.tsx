@@ -77,7 +77,6 @@ const THEME_ITEMS: { value: Theme; labelKey: string }[] = [
 
 interface MenuBarProps {
   onClearRequest: () => void;
-  /** JANUS export dialog 열기, MameAppLayout에서 janusOpen 상태 소유. */
 }
 
 export function MenuBar({ onClearRequest }: MenuBarProps) {
@@ -254,8 +253,9 @@ export function MenuBar({ onClearRequest }: MenuBarProps) {
         onRestartSidecar={() => { void killSidecar("mame"); }}
         extraItems={
           /*
-            MAME 고유 항목만 남긴다. JANUS export 는 MameAppLayout 의 "Open JANUS
-            export" 버튼과 중복이라 제외했다. Run report 는 이 메뉴가 유일한 진입점이다.
+            MAME 고유 항목만 남긴다. JANUS export 는 step 3.1 (JanusStepView) 의
+            "Janus instrument settings" 버튼과 중복이라 제외했다. Run report 는 이
+            메뉴가 유일한 진입점이다.
           */
           <DropdownMenuItem onClick={() => setRunReportOpen(true)} disabled={!hasResults}>
             <span className="flex-1">{t("export.runReport")}</span>

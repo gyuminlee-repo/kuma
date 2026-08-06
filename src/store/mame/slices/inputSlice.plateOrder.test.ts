@@ -6,17 +6,19 @@
  * expected sheet's row order, every verdict lands on the wrong well and nothing
  * in the output says so (2026-08-04, 94 wells).
  *
- * v0.15.6 changed what follows from that. The operator now names the sheet and
- * the column the variant list is read from, so the disagreement is reported and
- * the run proceeds: refusing would be the program overruling a statement it
- * asked for. These cover that the finding is still asked for and stored, that
- * it no longer stops anything, and that it goes quiet once the operator has
- * pointed at the rows themselves.
+ * v0.15.6 let such a run proceed with a note beside it, on the reasoning that
+ * the operator names the rows to read. 2026-08-05 took that back: naming rows
+ * is not the same as recording which of the workbook's two plates went into the
+ * tubes, and no input on the screen records it. So the finding blocks the run
+ * and the way out is a different workbook. These cover that the finding is
+ * asked for, that it holds the run whichever path stored it, and that picking
+ * another file releases it.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppState } from "../types";
 import { selectCanRun, selectPlateOrderSeverity } from "../selectors";
 import { createInputSlice } from "./inputSlice";
+import { createAnalysisSliceDoubles } from "./testHelpers/analysisSliceDoubles";
 
 const mockSendRequest = vi.fn();
 
@@ -37,14 +39,7 @@ const REPORT = {
 
 function makeStore(initial: Partial<AppState> = {}) {
   const state: Partial<AppState> = {
-    setVerdicts: vi.fn(),
-    setReplicates: vi.fn(),
-    setSummary: vi.fn(),
-    setAnalyzeYield: vi.fn(),
-    setOutputPath: vi.fn(),
-    setDistributionStats: vi.fn(),
-    loadPlateData: vi.fn().mockResolvedValue(undefined),
-    loadRunHealth: vi.fn().mockResolvedValue(undefined),
+    ...createAnalysisSliceDoubles(),
     ...initial,
   };
   const set = (
@@ -110,61 +105,51 @@ describe("mame inputSlice plate-order finding", () => {
     );
   });
 
-  it("stores a finding the sidecar graded blocking, and still lets the run start", async () => {
-    // The backend keeps its own grading vocabulary; the frontend stopped acting
-    // on it. Nothing about a disagreeing workbook disables Run any more.
+  it("stores the finding the validation reported, and holds the run", async () => {
+    // The sidecar reports the disagreement in `errors` as well, so either field
+    // alone would disable Run here. Both are asserted because they cover
+    // different moments: the error goes away on the next validation, the
+    // finding survives until the workbook is replaced.
     const store = makeRunnableStore();
     mockSendRequest.mockResolvedValueOnce({
-      valid: true,
-      errors: [],
+      valid: false,
+      errors: ["expected: Fwd List and expected_mutations describe different plates"],
       plate_order: { ...REPORT, severity: "blocking" },
     });
 
     await store.validateInputs();
 
     expect(store.plateOrderFinding).not.toBeNull();
-    expect(selectPlateOrderSeverity(store)).toBe("info");
-    expect(selectCanRun(store)).toBe(true);
+    expect(selectPlateOrderSeverity(store)).toBe("blocking");
+    expect(selectCanRun(store)).toBe(false);
   });
 
-  it("runs an analyze with a disagreeing workbook instead of refusing it", async () => {
+  it("refuses an analyze while a finding stands, even with validation clean", async () => {
+    // The path the 2026-08-04 incident took: picking the workbook stores the
+    // finding on its own, and the operator can press Run without validating.
     const store = makeRunnableStore({
       plateOrderFinding: { ...REPORT, severity: "blocking" },
-    });
-    mockSendRequest.mockResolvedValueOnce({
-      verdicts: [],
-      replicates: [],
-      summary: {},
-      output_path: "D:/project/result.xlsx",
-      distribution_stats: null,
+      validationErrors: [],
     });
 
-    await store.runAnalysis();
-
-    expect(mockSendRequest).toHaveBeenCalledWith(
-      "analyze",
-      expect.anything(),
-      expect.any(Number),
-    );
-    expect(store.validationErrors).toEqual([]);
+    expect(selectCanRun(store)).toBe(false);
   });
 
-  it("says nothing at all once the operator named the sheet and column", async () => {
-    // Their statement about which rows to read is the answer to the question
-    // the notice would ask. Repeating it back adds nothing.
+  it("keeps blocking after the operator names the sheet and column", async () => {
+    // Naming the rows to read says nothing about which of the workbook's two
+    // plates was pipetted, so it is not an answer to this and does not clear it.
     const store = makeRunnableStore();
     mockSendRequest.mockResolvedValueOnce({
-      valid: true,
-      errors: [],
+      valid: false,
+      errors: ["expected: Fwd List and expected_mutations describe different plates"],
       plate_order: { ...REPORT, severity: "blocking" },
     });
     await store.validateInputs();
-    expect(selectPlateOrderSeverity(store)).toBe("info");
 
     store.setVariantColumn("mutation");
 
-    expect(selectPlateOrderSeverity(store)).toBeNull();
-    expect(selectCanRun(store)).toBe(true);
+    expect(selectPlateOrderSeverity(store)).toBe("blocking");
+    expect(selectCanRun(store)).toBe(false);
   });
 
   it("reports nothing when the response carries no plate_order key", async () => {
@@ -180,7 +165,7 @@ describe("mame inputSlice plate-order finding", () => {
 
   it("clears a previous finding when a later validation finds nothing", async () => {
     const store = makeRunnableStore({
-      plateOrderFinding: { ...REPORT, severity: "info" },
+      plateOrderFinding: { ...REPORT, severity: "blocking" },
     });
     mockSendRequest.mockResolvedValueOnce({ valid: true, errors: [] });
 
@@ -201,8 +186,10 @@ describe("mame inputSlice plate-order finding", () => {
       { path: "D:/project/KURO_expected.xlsx" },
       expect.any(Number),
     );
-    // The RPC answers without a severity; the slice states it as information.
-    expect(store.plateOrderFinding?.severity).toBe("info");
+    // The RPC answers without a severity; the slice grades it blocking, which is
+    // what holds Run before any validation has been asked for.
+    expect(store.plateOrderFinding?.severity).toBe("blocking");
+    expect(selectCanRun(store)).toBe(false);
   });
 
   it("stays silent when the workbook agrees with itself", async () => {
@@ -231,7 +218,7 @@ describe("mame inputSlice plate-order finding", () => {
 
   it("drops the finding when another workbook is picked", () => {
     const store = makeRunnableStore({
-      plateOrderFinding: { ...REPORT, severity: "info" },
+      plateOrderFinding: { ...REPORT, severity: "blocking" },
     });
 
     store.setExpectedPath("D:/project/other.xlsx");

@@ -88,6 +88,39 @@ export interface AnalyzeSummary {
 }
 
 /**
+ * Which of the three well->sample sources an `analyze` run actually scored
+ * wells against, mirrored from `python-core/sidecar_mame/handlers/analyze.py`
+ * (`layout_source` assignment). An `inferred_draft_layout` result was guessed
+ * from whatever `expected` happened to be current at analyze time, not stated
+ * by the operator or a saved sample map -- the failure shape of the 2026-08
+ * mapping-integrity incident (a stale `expected` produced a plausible-looking
+ * inferred layout with nothing in the result to say so). Frontend code that
+ * persists or replays a well_layout MUST check `source` first: promoting an
+ * inferred layout to an explicit one on the next run launders exactly the
+ * provenance this field exists to keep (`useAutosaveHydration.ts`).
+ */
+export interface LayoutProvenance {
+  source: "explicit_well_layout" | "sample_map_xlsx" | "inferred_draft_layout";
+  expected_path: string;
+  sample_map_path: string | null;
+}
+
+/**
+ * Whole-run mapping sanity check (`kuma_core/mame/qc/mapping_integrity.py`).
+ * `suspect` is a signal to surface prominently, not a hard failure: the run
+ * already finished and the workbook the operator has may be the only record
+ * of what was actually pipetted. Rates are 0..1 fractions, not percentages.
+ */
+export interface MappingIntegrity {
+  wells_considered: number;
+  self_match: number;
+  cross_match: number;
+  self_rate: number;
+  cross_rate: number;
+  suspect: boolean;
+}
+
+/**
  * Demux yield reported by the analyze response. Raw-run mode only: the handler
  * derives every field from the demux it just ran and omits the keys entirely in
  * consensus-dir mode (`python-core/sidecar_mame/handlers/analyze.py`, raw-run
@@ -136,11 +169,18 @@ export interface AnalyzeResult extends AnalyzeYield {
    */
   janus_autosave?: JanusAutosaveResult;
   /**
-   * What became of the instrument (9-column) mapping the same run wrote. Same
-   * shape, same optionality, different file: `..._janus.csv` next to
-   * `..._picks.csv`.
+   * Which well->sample source this run scored against, and the files it came
+   * from. A live sidecar always sends it; optional on the type only because a
+   * result persisted before this field existed is replayed verbatim on
+   * restart and has no value to fall back to.
    */
-  janus_mapping_autosave?: JanusAutosaveResult;
+  layout_provenance?: LayoutProvenance;
+  /**
+   * Whole-run mapping sanity check. Same optionality reasoning as
+   * `layout_provenance`: always sent by a live sidecar, absent on results
+   * persisted before this field existed.
+   */
+  mapping_integrity?: MappingIntegrity;
 }
 
 /**
@@ -248,22 +288,23 @@ export interface PlateOrderReport {
 /**
  * How much a plate disagreement costs on the run being set up.
  *
- * - "blocking": the layout is inferred from `expected_mutations`, so the sheet
- *   order *is* the well coordinate system and every verdict lands on the wrong
- *   well. Counts and verdicts still look normal, which is why this gates.
- * - "info": a sample map or a confirmed well layout supplies the coordinates,
- *   so the sheet order never reaches a well. The workbook still contradicts
- *   itself, but this run is unaffected.
+ * Only "blocking" is produced. A workbook whose primer plate sheet and
+ * `expected_mutations` describe different plates does not record which of the
+ * two was pipetted, so the run is refused until the workbook is replaced.
+ *
+ * "info" remains in the union for responses from a sidecar built before
+ * 2026-08-05, which downgraded the finding when a sample map or a well layout
+ * supplied the coordinates. The frontend does not act on the value it receives
+ * (see `selectPlateOrderSeverity`), so such a response still blocks.
  */
 export type PlateOrderSeverity = "blocking" | "info";
 
 /**
- * A `PlateOrderReport` graded against the layout inputs of the current run.
+ * A `PlateOrderReport` carrying the severity the run applies to it.
  *
  * `validate_inputs` grades it server-side (`_plate_order_finding` in
- * `python-core/sidecar_mame/handlers/analyze.py`); the frontend applies the same
- * rule to the ungraded `check_plate_order` response and to layout inputs chosen
- * after a validation.
+ * `python-core/sidecar_mame/handlers/analyze.py`); the frontend grades the
+ * ungraded `check_plate_order` response the same way.
  */
 export interface PlateOrderFinding extends PlateOrderReport {
   severity: PlateOrderSeverity;
@@ -274,8 +315,9 @@ export interface ValidationResult {
   errors: string[];
   /**
    * Present only when there is something to report: the workbook could be
-   * compared and its sheets disagree. `valid` deliberately stays true, so the
-   * blocking gate is the frontend's job (see `selectPlateOrderSeverity`).
+   * compared and its sheets disagree. `valid` is false and `errors` carries the
+   * same fact in words; this field is the structured form the notice renders
+   * (which wells, which sheet, what is missing).
    */
   plate_order?: PlateOrderFinding;
 }
@@ -467,15 +509,18 @@ export interface JanusPreviewResult {
 }
 
 /**
- * Outcome of the Janus mapping written automatically at the end of an analyze.
- *
- * Mirrors ``_autosave_janus_mapping`` in
- * `python-core/sidecar_mame/handlers/analyze.py`, which never raises: a mapping
- * that could not be written is a fact to report, not a reason to lose the run.
+ * Outcome of writing a Janus file: the pick list analyze writes automatically
+ * at the end of a run (``_autosave_janus`` via ``_autosave_picks`` in
+ * `python-core/sidecar_mame/handlers/analyze.py`, format always `"csv"`), or
+ * the instrument mapping a manual export from `JanusMappingPanel` writes
+ * (`setJanusMappingAutosave`, format follows the operator's format choice).
+ * The automatic path never raises: a file that could not be written is a fact
+ * to report, not a reason to lose the run.
  *
  * - "saved": the file exists at `output_path` and carries `row_count` rows.
- * - "skipped": nothing was selected, so no file was written (an empty mapping
- *   reads like a finished plate).
+ * - "skipped": nothing was selected, so no file was written (an empty pick
+ *   list reads like a finished plate). Only the automatic path produces this;
+ *   a manual export with nothing to write disables the Export button instead.
  * - "failed": `errors` says why.
  *
  * `warnings` never changes the status: a blank liquid class and rack numbers
@@ -484,7 +529,7 @@ export interface JanusPreviewResult {
 export interface JanusAutosaveResult {
   status: "saved" | "skipped" | "failed";
   output_path: string | null;
-  format: "csv";
+  format: JanusExportFormat;
   row_count: number;
   excluded: JanusExcludedEntry[];
   excluded_count: number;

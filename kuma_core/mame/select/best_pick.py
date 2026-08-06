@@ -1,8 +1,32 @@
-"""Best-of-3 replicate picker with NB-ordered tiebreaker.
+"""Best-of-3 replicate picker with variant-support then NB-ordered tiebreaker.
 
 Priority: PASS > AMBIGUOUS > LOWDEPTH. WRONG_AA / FRAMESHIFT / MANY / MIXED /
 NO_CALL are unpickable (fallback-eligible only).
-Tiebreaker on equal class: native barcode number ascending (NB01 wins).
+
+Tiebreaker on equal class: the Wilson score lower bound on the weakest support
+among the substitutions each consensus calls, highest first.
+
+Verdict class alone cannot separate two replicates that both call the designed
+substitution, because the only purity input to the verdict is the mixed-position
+gate and everything below that gate reads PASS. Measured on the 260729 ispS run,
+that left plates carrying 19% and 18% wild-type reads picked over sibling plates
+at 98% purity, on nothing but a lower native barcode number.
+
+The raw support fraction is not enough on its own either: 0.98 off 12 reads and
+0.98 off 562 reads are the same number and not the same evidence. The Wilson
+bound folds depth into the value, so a shallow plate has to be visibly purer to
+outrank a deep one, and the ordering does not chase consensus noise without any
+hand-set margin to tune.
+
+Native barcode number breaks exact ties and nothing else. It carries no quality
+meaning; it is there so that two genuinely indistinguishable replicates resolve
+the same way on every run.
+
+Replicates whose consensus file predates the support metric, and wells whose
+consensus carries no substitution at all, report ``None``. Ordering falls back
+to NB-ascending whenever any candidate is in that state, so an older run picks
+exactly what it picked before.
+
 N50 is not available from the current consensus FASTA input, so it is not used.
 
 Fallback (G1): when all pickable-class candidates are absent (filtered out by
@@ -14,6 +38,7 @@ carry no useful identity info (e.g. empty plate_verdicts) are excluded.
 from __future__ import annotations
 
 from kuma_core.mame.models import ReplicateResult, VerdictClass, VerdictRecord
+from kuma_core.mame.select.purity import support_lower_bound
 
 PRIORITY_ORDER: list[VerdictClass] = [
     VerdictClass.PASS,
@@ -53,6 +78,15 @@ def _volume_key(vr: VerdictRecord) -> float:
     if rc is not None:
         return float(rc)
     return vr.translated.barcode.file_size_kb
+
+
+def _support_lower_bound(vr: VerdictRecord) -> float | None:
+    """Wilson score lower bound on the weakest called-substitution support.
+
+    Thin wrapper over :func:`kuma_core.mame.select.purity.support_lower_bound` so
+    the picker and the workbook report the same number from the same code.
+    """
+    return support_lower_bound(vr.translated.barcode)
 
 
 def _pick_rank(verdict: VerdictClass) -> int:
@@ -124,8 +158,18 @@ def pick_best_replicate(
         if not candidates:
             continue
         candidates.sort(key=_nb_order_key)
-        winner = candidates[0]
-        reason = f"verdict={cls.value}; tiebreak=NB-ascending among {candidates}"
+        bounds = {plate: _support_lower_bound(verdicts[plate]) for plate in candidates}
+        if len(candidates) > 1 and all(v is not None for v in bounds.values()):
+            # ``candidates`` is NB-ascending and ``max`` keeps the first maximal
+            # element, so an exact tie resolves to the lowest NB deterministically.
+            winner = max(candidates, key=lambda plate: bounds[plate])
+            shown = ", ".join(f"{p}={bounds[p]:.3f}" for p in candidates)
+            reason = (
+                f"verdict={cls.value}; tiebreak=variant-support lower bound ({shown})"
+            )
+        else:
+            winner = candidates[0]
+            reason = f"verdict={cls.value}; tiebreak=NB-ascending among {candidates}"
         return ReplicateResult(
             mutant_id=mutant_id,
             plate_verdicts=dict(verdicts),

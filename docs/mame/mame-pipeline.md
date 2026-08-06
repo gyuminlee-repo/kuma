@@ -40,6 +40,20 @@ MinKNOW run dir (fastq_pass/)
     출력: {unit_dir}/{r_idx}_{f_idx}.fasta
 ```
 
+## Reference amplicon 추출
+
+`raw_run` 은 정렬 전에 reference FASTA 에서 amplicon 구간만 잘라낸다(`kuma_core/mame/ingest/amplicon_reference.py`). 바코드 워크북의 forward/reverse 프라이머가 공유하는 tail 을 reference 에서 찾아 그 사이를 span 으로 삼고 `{stem}.amplicon.fa` 로 쓴다. 잘라내지 못하면 reference 를 그대로 쓴다.
+
+v0.15.14 부터 실패 사유를 세 가지로 나눠 보고한다. 예전에는 어느 경우든 "primer boundaries were not unique" 한 문장이었고 이 문구는 사용자를 중복 프라이머 자리 찾기로 보냈다.
+
+| 사유 | 뜻 | 대응 |
+|---|---|---|
+| 미발견 | tail 이 reference 에 없다 | CDS 만 담긴 reference 에서는 정상이다. 프라이머 tail 이 벡터 백본에 있어 CDS 밖에 놓인다 |
+| 중복 | tail 이 reference 의 여러 위치에 맞는다 | reference 가 모호하다. 반복 구간을 확인한다 |
+| 순서역전 | forward 자리가 reverse 자리보다 뒤에 있다 | reference 방향 또는 프라이머 지정을 확인한다 |
+
+잘라내기를 건너뛴 경우 남은 reference 길이로 coverage gate 를 통과할 수 있는지 먼저 확인한다. 가장 긴 read 가 `coverage_fraction` x reference 길이보다 짧으면 어떤 read 도 통과할 수 없으므로 실행을 시작하지 않고 거절한다.
+
 ## 파라미터 가이드
 
 | 파라미터 | 기본값 | 범위 | 설명 |

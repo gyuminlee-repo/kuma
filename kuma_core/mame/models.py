@@ -58,6 +58,14 @@ class BarcodeRecord:
     # See ConsensusCall for calibration details.
     n_indel_event_positions: int = 0
     max_indel_event_fraction: float = 0.0
+    # Weakest read support among the substitutions this consensus calls, and how
+    # many such positions exist. ``None`` means the value is unknown (a consensus
+    # file written before the metric existed) or the consensus carries no
+    # substitution at all. Never treat it as 0.0; see select/best_pick.py.
+    min_variant_support: float | None = None
+    n_variant_positions: int = 0
+    # ACGT depth behind ``min_variant_support``. 0 when unknown.
+    min_variant_support_depth: int = 0
     # Longest contiguous deletion-majority run (informational; see ConsensusCall).
     # 0 = insertion-driven, 1 = isolated single position (artifact suspect),
     # >=2 = N-bp contiguous deletion.

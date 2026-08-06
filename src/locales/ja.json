@@ -155,10 +155,10 @@
   "mame": {
     "plateOrder": {
       "title": "Plate order disagreement in {{filename}}",
-      "bodyInfo": "The primer plate on sheet {{sheet}} and the order of expected_mutations do not match. This run takes its wells from the sample map or the confirmed well layout, so the verdicts are not affected. The workbook still describes two different plates.",
+      "bodyBlocked": "The primer plate on sheet {{sheet}} and the order of expected_mutations do not match, so the same workbook describes two different plates and nothing in it records which one was pipetted. The run is blocked until that is settled.",
       "example": "well {{well}}: {{plate}} on the plate, {{expected}} in expected_mutations",
       "missing": "On the plate but absent from expected_mutations: {{items}}. Each one shifts every later well by one.",
-      "escape": "Which sheet describes the tubes that were pipetted is yours to state: name the sheet and column the variant list is read from, or choose a sample map file. Either one takes the sheet order out of this run. MAME does not pick a sheet for you."
+      "resolution": "Re-export the workbook from KURO v0.14.3 or later, or pick one whose sheets agree, then validate again. MAME does not pick a sheet for you, and no other input on this screen can state which plate went into the tubes."
     },
     "input": {
       "redetect": "再検出",
@@ -348,13 +348,13 @@
         "uploadHeading": "活性データをアップロード",
         "uploadDesc": "long format の CSV / Excel ファイル (well, replicate, value カラム) を現在の Round に読み込み。",
         "loaded": "✓ {{count}} wells 読み込み完了",
-        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
+        "contextSubtitle": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro input.",
         "contextTitle": "Activity Data — Ingest",
         "drawerCenter": "活性ログ",
         "drawerLeft": "活性",
         "drawerLeftDesc": "Wells with measurements",
         "drawerRight": "次へ",
-        "drawerRightDesc": "マージしてエクスポート",
+        "drawerRightDesc": "Cross-round signals and handoff",
         "inspectorMean": "Mean activity",
         "inspectorNoData": "No activity data loaded",
         "inspectorReplicates": "Replicates",
@@ -404,9 +404,7 @@
         "inspectorStatus": "Status",
         "inspectorSubtitle": "R585A merge summary",
         "inspectorTitle": "Export Inspector",
-        "inspectorVariant": "Variant",
-        "openJanusExport": "Open JANUS export...",
-        "openJanusExportAriaLabel": "Open JANUS cell-stock mapping export dialog"
+        "inspectorVariant": "Variant"
       },
       "wtWells": {
         "title": "WT wells (normalization 基準)",
@@ -415,13 +413,6 @@
         "alreadySetTooltip": "WT wells は既に設定済み"
       },
       "route": {
-        "heading": "Activity value source",
-        "ariaLabel": "Choose where this round's activity values come from",
-        "ngsNote": "The NGS verdicts of this run are used either way; only the source of the measured activity changes.",
-        "genotypeLabel": "Activity upload (long format)",
-        "genotypeDesc": "Upload long-format well activity and join it to this round's NGS genotype, then export.",
-        "plateLayoutLabel": "Plate layout + GC data / Agilent report",
-        "plateLayoutDesc": "Read activity per well from a plate layout with GC data or a raw Agilent report, gated by the NGS verdict file.",
         "completeCurrentRoute": "Complete the selected activity source"
       }
     },
@@ -517,7 +508,9 @@
         "wells": "Well",
         "loaded": "読み込み済み",
         "passRows": "PASS 行",
-        "evolveproXlsx": "EVOLVEpro xlsx"
+        "evolveproXlsx": "EVOLVEpro xlsx",
+        "volume": "移送量",
+        "liquidClass": "リキッドクラス"
       },
       "value": {
         "ready": "準備完了",
@@ -629,7 +622,8 @@
       "manifestLoadFailed": "Manifest 読み込み失敗: {{err}}",
       "barcodeSetupTab": "1. Custom Barcode Primer Design",
       "analyzeTab": "2. Sequencing QC",
-      "activityTab": "3. Activity Data",
+      "janusTab": "3. Janus 装置設定",
+      "activityTab": "4. Activity Data",
       "verdictTableTitle": "Verdict テーブル",
       "platePlanTitle": "プレートマップ",
       "runHealthTitle": "Run health",
@@ -654,6 +648,7 @@
       },
       "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
+      "janusTabTitle": "Janus 装置設定 — セルストック分注用の任意ステップ (PI ワークフロー ステップ③)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
       "efficiencyChartTitle": "Per-plate verdict breakdown"
     },
@@ -844,6 +839,25 @@
         "final": "Final 96 Deep Well"
       }
     },
+    "janus": {
+      "settings": {
+        "contextTitle": "Janus 装置設定",
+        "contextSubtitle": "装置マッピングに書き出される移送量・デッキラック・リキッドクラスを設定します。シーケンシング判定のみの実行では省略できます。",
+        "optionalNote": "このステップは任意です。解析実行はピックリストを自動で書き出しますが、装置マッピングはここでエクスポートしたときだけ書き出されます。シーケンシング判定だけが必要な場合はステップ 2 からステップ 4 に直接進めます。",
+        "inspectorTitle": "装置 Inspector",
+        "inspectorSubtitle": "マッピングに書き出される値",
+        "inspectorVolume": "移送量 (uL)",
+        "inspectorSampleType": "サンプル種別",
+        "inspectorLiquidClass": "リキッドクラス",
+        "inspectorLastMapping": "最後のマッピングファイル",
+        "drawerLeft": "装置",
+        "drawerCenter": "Janus ログ",
+        "drawerRight": "次へ",
+        "drawerRightDesc": "活性データと EVOLVEpro への引き継ぎ",
+        "volumeLabel": "移送 volume (µL)",
+        "volumeHint": "この実行が作る装置用マッピングにそのまま入ります。既定の 100 µL は実験室の根拠がない仮定なので、今回の実験で使う値に変更してください。"
+      }
+    },
     "setup": {
       "files": {
         "railTitle": "MAME Workflow",
@@ -937,6 +951,11 @@
         "drawerRightDesc": "活性データへ進む",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "well と変異の対応にずれの疑い",
+        "alertDesc": "観測された変異を持つ well {{wells}} 個のうち、自身の expected と一致するのは {{selfPercent}}%、他の well の expected と一致するのは {{crossPercent}}% でした。well と変異の対応がずれている可能性が非常に高いため、この結果は信頼できません。",
+        "alertAriaLabel": "well-変異マッピング整合性の警告"
       }
     },
     "inspector": {
@@ -996,108 +1015,77 @@
         "failed": "The selection list was not written.",
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
       },
-      "janusSettings": {
-        "open": "Janus instrument settings...",
-        "openAriaLabel": "Open Janus instrument settings",
-        "hint": "任意です。ラック番号はこの実行のプレート順に従い、liquid class は未設定なら空欄のまま出力されます。上書きしたいときだけ入力してください。"
-      },
       "janusMappingAutosave": {
         "saved": "装置用マッピングを結果ワークブックの隣に保存しました ({{rows}} 行)。ロボットが読む 9 列形式です。",
         "skipped": "選抜基準を満たすクローンがなく、装置用マッピングは書き出されませんでした。",
         "failed": "装置用マッピングを書き出せませんでした。",
         "excluded": "{{clones}} 件のクローンがマッピングから外れました。理由は Janus 装置設定で確認してください。"
-      },
-      "janusVolume": {
-        "label": "移送 volume (µL)",
-        "hint": "この実行が作る装置用マッピングにそのまま入ります。既定の 100 µL は実験室の根拠がない仮定なので、今回の実験で使う値に変更してください。"
       }
     },
     "buildEvolvepro": {
       "title": "EVOLVEpro 入力の生成",
-      "subtitle": "全 variant の一次スクリーニング（1 replicate）をベースに置き、再測定した variant だけを 3 replicate の確認測定平均で置き換えます。",
+      "subtitle": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro [Variant, activity] input.",
+      "routeNote": "Every measurement format uses the same NGS verdict, normalization, replicate merge, and EVOLVEpro export pipeline.",
       "inputFiles": "入力ファイル",
+      "primarySourceLabel": "Measurement format",
+      "primarySourceLongFormat": "Generic long-format",
+      "primarySourceLongFormatHelper": "CSV/XLSX with exactly one well or variant label column and one value column. Select whether values are raw or already relative to WT.",
+      "primarySourceGcSheet": "GC data sheet",
+      "primarySourceGcSheetHelper": "Pre-normalized relative activity per well (Sample Name, Area), mapped to variants through the plate layout.",
+      "primarySourceRawReport": "Raw Agilent report",
+      "primarySourceRawReportHelper": "Raw Agilent FID1B report with well-labeled samples and WT blocks. The plate layout maps wells to variants.",
+      "activityPath": "Activity CSV/XLSX",
+      "activityPathHelper": "Long-format activity data with one well or variant label column and one value, area, or activity column.",
+      "activityScale": "Activity scale",
+      "activityScaleHelper": "Choose raw to normalize each plate/cohort against its WT rows, or relative when values are already relative to WT.",
+      "activityScaleRaw": "Raw",
+      "activityScaleRelative": "Relative to WT",
       "layoutXlsx": "プレートレイアウト xlsx",
-      "layoutXlsxHelper": "Mutant から well 位置へのマッピング。plate layout 形式 (Mutant、Well Pos. 列) と step 1 で作成した sample map (sample_name、well 列) の両方に対応します。",
+      "layoutXlsxHelper": "Required mapping metadata for well-labeled GC data and raw reports. Maps well positions to variants.",
+      "layoutXlsxOptionalHelper": "Required only when the long-format label column contains wells; variant-labeled files do not need a layout.",
       "gcDataXlsx": "GC データ xlsx",
-      "gcDataXlsxHelper": "well ごとに事前正規化された relative activity（Sample Name、Area 列）。プレート上の全 variant を 1 replicate で収めたベースです。",
-      "repBatchXlsx": "Agilent 確認測定レポート xlsx",
-      "repBatchXlsxHelper": "3 replicate で再測定した variant の Agilent FID1B ブロックレポート。数値ベース ID と replicate サフィックスを含みます。ここに含まれる variant は一次スクリーニングの値を置き換え、含まれない variant は暫定のままです。",
-      "prevEvolveproXlsx": "rank source 用 EVOLVEpro 入力 xlsx",
-      "prevEvolveproXlsxHelper": "KUMA が前回作成した EVOLVEpro 入力 xlsx（Variant、activity）であり、EVOLVEpro が出力する結果 CSV（variant、y_pred）ではありません。確認測定レポートの sample name は数値インデックスのため、このファイルの activity 降順から variant 名をたどります。",
+      "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
+      "round1ReportXlsx": "Raw Agilent report xlsx",
+      "round1ReportXlsxHelper": "Raw Agilent FID1B report with well positions and WT blocks.",
+      "confirmationSourceLabel": "Optional confirmation",
+      "confirmationSourceNone": "None",
+      "confirmationSourceNoneHelper": "Use the primary measurement value for every NGS-qualified variant.",
+      "confirmationSourceVariantLabels": "Variant-labeled Agilent report",
+      "confirmationSourceVariantLabelsHelper": "Optional raw Agilent report whose sample names are variant labels. Its independently WT-normalized replicate means override matching primary values.",
+      "remeasureReportXlsx": "Confirmation report xlsx (variant-labeled)",
+      "remeasureReportXlsxHelper": "Raw Agilent report with variant-labeled samples and WT rows; numeric or rank-derived labels are not supported.",
+      "verdictXlsx": "NGS verdict xlsx",
+      "verdictXlsxHelper": "Required Analyze verdict evidence for this round. Only explicit PASS rows that are neither failed nor fallback are exported.",
       "outputXlsx": "出力 EVOLVEpro xlsx",
-      "outputXlsxHelper": "統合した EVOLVEpro 入力の保存先ファイル。",
+      "outputXlsxHelper": "Destination for the strict two-column [Variant, activity] export.",
       "requiredStateLabel": "必須",
       "optionalLabel": "任意",
-      "provisionalLabel": "暫定（確認測定の入力なし）",
-      "confirmedLabel": "確証（confirmation レプリケート統合）",
+      "optionalStateLabel": "任意",
       "builtFromLabel": "作成元",
       "chooseOutput": "出力ファイルを選択",
       "noOutputSelected": "出力ファイルが未選択です",
       "build": "EVOLVEpro 入力を生成",
       "building": "生成中…",
       "resultTitle": "生成結果",
-      "emptyState": "選択したソースの入力ファイルと出力先を指定してから、EVOLVEpro 入力を作成してください。",
+      "emptyState": "Select one measurement format, the required NGS verdict, and an output path.",
       "nVariants": "記録された variant",
-      "nAuthoritative": "confirmation レポート由来",
-      "nFallbackOnly": "GC データのみ由来",
-      "prevDescendingWarn": "以前の EVOLVEpro ファイルが activity の降順になっていません。rank を信頼する前にマッピング監査表を確認してください。",
-      "mappingAuditTitle": "ID と variant の対応",
-      "mappingAuditPath": "マッピング監査ファイル",
-      "colId": "ID",
-      "colVariant": "Variant",
-      "colWell": "Well",
+      "nAuthoritative": "Confirmation overrides",
+      "nFallbackOnly": "Primary values",
+      "nNgsExcluded": "NGS-excluded",
       "warningsLabel": "警告",
-      "swapWarningsLabel": "Label-swap の警告",
-      "mismatchedLabel": "Confirmation と一次スクリーンの不一致",
-      "mismatchedHint": "3 replicate の confirmation 平均が、1 replicate の一次スクリーン値と大きく異なる候補です。",
+      "mismatchedLabel": "Confirmation vs primary mismatch",
+      "mismatchedHint": "Variants whose confirmation mean differs notably from the primary value.",
       "mismatchedAuthoritative": "Confirmation",
-      "mismatchedFallback": "一次スクリーン",
+      "mismatchedFallback": "Primary",
+      "colVariant": "Variant",
       "toastSuccess": "EVOLVEpro 入力の生成が完了しました",
       "toastSuccessDesc": "{{count}} 件の variant を記録しました。",
       "toastError": "EVOLVEpro 入力の生成に失敗しました",
       "openFolder": "出力フォルダを開く",
-      "routeNote": "この経路は xlsx ファイルを直接読み込み、genotype 連携経路の activity アップロードは使用しません。",
-      "primarySourceLabel": "一次スクリーニングのソース",
-      "primarySourceRawReport": "GC-FID raw レポート",
-      "primarySourceGcSheet": "GC data sheet",
-      "primarySourcePrevEvolvepro": "以前の EVOLVEpro 入力",
-      "primarySourceRawReportHelper": "1 replicate 分で全 variant を含む Agilent FID1B raw レポート。サンプル名は well 位置で、plate layout により well と variant が対応します。",
-      "primarySourceGcSheetHelper": "well ごとに正規化済みの相対 activity を、plate layout を通じて variant に対応させます。正規化済みの GC data sheet が既にある場合に使用します。",
-      "primarySourcePrevEvolveproHelper": "KUMA が以前に作成した EVOLVEpro 入力 xlsx（Variant, activity）を全体のベースラインとして使用します。NGS verdict によるゲーティングを使う場合を除き、plate layout は不要です。",
-      "confirmationSourceLabel": "確認測定のソース",
-      "confirmationSourceNone": "なし（暫定）",
-      "confirmationSourceVariantLabels": "variant ラベル付きレポート",
-      "confirmationSourceNumericIndex": "数値インデックスのレポート",
-      "confirmationSourceNoneHelper": "確認測定の入力なし。すべての variant は一次スクリーニングの値を保持し、ビルドは暫定のままです。",
-      "confirmationSourceVariantLabelsHelper": "サンプル名が variant ラベルの Agilent FID1B レポート。rank source は不要です。これらの平均値が一次スクリーニングの値を置き換えます。",
-      "confirmationSourceNumericIndexHelper": "サンプル名が数値ベース ID の Agilent FID1B レポート。各 variant 名を復元するために rank source が必要です。",
-      "round1EvolveproXlsx": "一次スクリーニングの EVOLVEpro 入力 xlsx",
-      "round1EvolveproXlsxHelper": "今回のバッチ用に KUMA が作成した EVOLVEpro 入力 xlsx（Variant、activity）で、全 variant を 1 replicate で収めます。EVOLVEpro が出力する結果 CSV（variant、y_pred）ではありません。再測定された variant は確認測定の平均値に置き換えられます。",
-      "round1ReportXlsx": "一次スクリーニングのレポート xlsx（GC-FID raw）",
-      "round1ReportXlsxHelper": "全 variant を 1 replicate で収めた Agilent FID1B raw レポート。sample name は well 位置（A1..H12）で WT ブロックを含み、プレートレイアウトが well を variant に対応付けます。",
-      "gcExportXlsx": "相対活性 export xlsx（GC data 形式）",
-      "gcExportXlsxHelper": "任意のレビュー用成果物。primary screen の well ごとの相対活性（area / WT 平均 area）を Sample Name と Area 列で保存し、GC data シートと同じ形式になります。",
-      "remeasureReportXlsx": "確認測定レポート xlsx（variant ラベル）",
-      "remeasureReportXlsxHelper": "選抜した variant を 3 replicate で再測定した Agilent FID1B raw レポート。sample name は variant ラベル（例: V5F または 5F）で、繰り返し行が replicate です。ラベル付きのため rank source は不要で、この平均値が一次スクリーニング値を置き換えます。",
-      "verdictXlsx": "NGS verdict xlsx",
-      "verdictXlsxHelper": "Analyze Excel レポート（Final シート: well_id + verdict）。well が PASS でない variant は除外されます。省略すると NGS ゲーティングをスキップします。",
-      "layoutXlsxOptionalHelper": "NGS verdict ゲーティングで variant を well に対応付ける場合にのみ使用します。",
-      "optionalStateLabel": "任意",
-      "nNgsExcluded": "NGS 除外",
       "missingInputs": "不足しているファイル",
-      "restoredNotice": "このデバイスに保存されていたパスを復元しました。別プロジェクトのファイルならクリアしてください。",
-      "clearRestored": "復元された EVOLVEpro 入力をクリア",
-      "primarySourceNumericReport": "数値IDレポート (プレート全体)",
-      "confirmationSourceNumericSubset": "数値ID確認測定 (WT超過サブセット)",
-      "primarySourceNumericReportHelper": "サンプル名が数値のみの全プレート測定。id i はプレート順の i 番目の設計変異なので、順序ソースが必要です。",
-      "confirmationSourceNumericSubsetHelper": "一次スクリーニングで WT を上回った変異に同じプレート順で番号を振った反復確認測定。数値ID一次スクリーニングが必要です。",
-      "round1RepBatchXlsx": "一次スクリーニング (数値ID)",
-      "round1RepBatchXlsxHelper": "プレート全体の Agilent FID1B レポート、変異あたり1反復。",
-      "expectedMutationsXlsx": "KURO 設計 (expected_mutations)",
-      "expectedMutationsXlsxHelper": "設計から直接得る順序ソースで、プレートファイルを手書き転記しません。layout より優先されます。",
-      "remeasureRepBatchXlsx": "確認測定 (数値ID)",
-      "remeasureRepBatchXlsxHelper": "再測定サブセットの Agilent FID1B レポート、変異あたり複数反復。",
-      "orLabel": "いずれか一つ"
+      "restoredNotice": "Inputs were restored for this project.",
+      "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
+      "clearRestored": "復元された EVOLVEpro 入力をクリア"
     },
     "verdictBadge": {
       "help": {
@@ -1712,7 +1700,7 @@
     "kuroInspectorTitle": "Kuro の詳細を確認",
     "kuroInspectorBody": "インスペクターでステップ別パラメーター、選択変異、警告、出力設定を確認します。",
     "mameWorkflowTitle": "Mame ワークフローを進める",
-    "mameWorkflowBody": "Setup、Analyze、Activity を通じて実験データを整理された学習テーブルに変換します。",
+    "mameWorkflowBody": "Setup、Analyze、任意の Janus 装置設定、Activity を通じて実験データを整理された学習テーブルに変換します。",
     "mameWorkspaceTitle": "Mame のメイン領域",
     "mameWorkspaceBody": "ランデータを読み込み、遺伝子型判定とプレート結果を確認し、活性測定値を統合して出力します。",
     "mameInspectorTitle": "Mame の詳細を確認",
@@ -2536,6 +2524,9 @@
       },
       "fallback": {
         "redirecting": "Redirecting…"
+      },
+      "janus": {
+        "settings": "Janus 装置設定"
       }
     }
   },
@@ -2573,9 +2564,12 @@
         "review": "Review the verdict table, plate layout, and per-plate verdict distribution in one view."
       },
       "activity": {
-        "ingest": "活性 CSV または Excel ファイルをアップロードし、wild-type をアノテート。",
+        "ingest": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro input from one measurement format.",
         "signals": "ラウンド間の分類シグナルを確認し、EVOLVEpro 入力の準備ができたら次のラウンドへ引き継ぎます。",
         "mergeExport": "活性データを遺伝型コールとマージしてテーブルをエクスポートし、単一反復 (GC) と 3 反復 (WT 相対) の活性を組み合わせて EVOLVEpro 入力を生成します。"
+      },
+      "janus": {
+        "settings": "JANUS セルストックマッピングを準備します: 移送量、デッキラック番号、リキッドクラス。任意であり、実行を止めることはありません。"
       }
     },
     "summary": {

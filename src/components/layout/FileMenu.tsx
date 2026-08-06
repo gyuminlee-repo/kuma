@@ -15,8 +15,8 @@
  * absent. A second path to the same action is a second place for behaviour to
  * diverge, and the panel versions carry guards the menu ones did not: the sequence
  * Browse button in `SequenceInput` rejects a FASTA with an explanation where
- * `handleOpenSequence` accepted it, and `MameAppLayout` already opens the JANUS
- * export dialog from the pane that has the data in front of the operator.
+ * `handleOpenSequence` accepted it, and MAME's step 3.1 (`JanusStepView`) already
+ * opens the JANUS export dialog from the step that owns the instrument settings.
  */
 
 import { getCurrentWindow } from "@tauri-apps/api/window";

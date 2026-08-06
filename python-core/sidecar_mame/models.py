@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class DemuxParamsBase(BaseModel):
@@ -308,128 +308,44 @@ class BuildWellLayoutParams(BaseModel):
 
 
 class BuildEvolveproInputParams(BaseModel):
-    """Parameters for the ``mame.activity.build_evolvepro_input`` RPC method.
+    """Strict request contract for the unified MAME Step 3 builder."""
 
-    Assembles an EVOLVEpro input xlsx for one MAME activity round from two
-    independent axes, enforced by ``_axis_sources``.
+    model_config = ConfigDict(extra="forbid")
 
-    Axis A, the 1-replicate primary screen (exactly one)
-        ``round1_report_xlsx`` (raw Agilent report, well labels, needs
-        ``layout_xlsx``), ``gc_data_xlsx`` (pre-normalised GC sheet, well
-        labels, needs ``layout_xlsx``) or ``round1_evolvepro_xlsx`` (previous
-        EVOLVEpro file, variant labels, no layout needed).
-    Axis B, the n-replicate confirmation (at most one)
-        ``remeasure_report_xlsx`` (variant labels) or ``rep_batch_xlsx``
-        (numeric base IDs, needs ``prev_evolvepro_xlsx`` as the rank source and
-        emits the rank mapping audit). Omitting axis B yields a provisional
-        build. The two axes do not constrain each other, so every A/B pair is
-        accepted.
-
-    Always required
-    ---------------
-    output_xlsx
-        Destination xlsx. Parent directory must exist; the file may not.
-
-    Mode fields (all optional at the field level)
-    --------------------------------------------
-    layout_xlsx
-        Plate layout xlsx with 'Mutant' and 'Well Pos.' columns, or the sample
-        map xlsx with 'sample_name' and 'well' columns. Required for rank-mode
-        and for raw-report reports-mode.
-    gc_data_xlsx
-        Pre-normalised GC data xlsx with 'Sample Name' (well) and 'Area'
-        (relative activity) columns. Axis A source.
-    rep_batch_xlsx
-        Agilent FID1B rep-batch xlsx with numeric base IDs and '-2'/'-3'
-        replicate suffixes plus WT blocks. Axis B numeric-index source.
-    prev_evolvepro_xlsx
-        Previous-round EVOLVEpro xlsx with 'Variant' and 'activity' columns,
-        ordered by descending activity. Axis B rank source, required by and
-        only valid with ``rep_batch_xlsx``.
-    remeasure_report_xlsx
-        Variant-labeled re-measure Agilent report. Axis B variant-label source.
-    round1_report_xlsx
-        Raw Agilent round-1 report. Axis A source.
-    round1_evolvepro_xlsx
-        Round-1 baseline already in EVOLVEpro form. Axis A source.
-    verdict_xlsx
-        NGS verdict xlsx. When provided, variants whose well carries a
-        non-PASS verdict are excluded.
-
-    Optional fields
-    ---------------
-    mismatch_threshold
-        Absolute mean-difference threshold above which a variant present in
-        both sources is flagged as mismatched. Range (0.0, inclusive].
-        Default 0.1.
-    mapping_audit_path
-        Where to write the ID-to-variant JSON audit artifact. Defaults to
-        '<output>.mapping.json' next to ``output_xlsx`` when omitted.
-    gc_export_xlsx
-        Where to write the intermediate round-1 well-level relative activity
-        ('Sample Name', 'Area'). Raw round-1 report only; on the other axis A
-        sources the build records a warning instead.
-    allow_label_mismatch
-        When False (default), a closed-permutation well<->well label swap or
-        a severity="error" numeric-index label-swap warning aborts the build
-        with a ValueError before anything is written. Set True to proceed
-        once the flagged wells/variants have been reviewed.
-    """
-
-    # Optional: required for rank-mode and raw-reports-mode, but not for
-    # prev-EVOLVEpro reports-mode (round-1 already in EVOLVEpro form).
+    activity_path: str | None = None
+    activity_scale: str = "raw"
+    gc_data_xlsx: str | None = None
+    round1_report_xlsx: str | None = None
+    remeasure_report_xlsx: str | None = None
+    verdict_xlsx: str
     layout_xlsx: str | None = None
     output_xlsx: str
-    gc_data_xlsx: str | None = None
-    rep_batch_xlsx: str | None = None
-    prev_evolvepro_xlsx: str | None = None
-    round1_report_xlsx: str | None = None
-    # Reports-mode round-1 baseline as a prior EVOLVEpro file (Variant, activity),
-    # an alternative to round1_report_xlsx when the full round-1 already exists in
-    # EVOLVEpro form rather than as a raw Agilent report.
-    round1_evolvepro_xlsx: str | None = None
-    remeasure_report_xlsx: str | None = None
-    # Numeric-ID pair, the format the lab exports from 2026-07. Sample names are
-    # bare numbers, so the variants come from an order source: the KURO design
-    # (expected_mutations_xlsx, preferred) or the hand-written plate layout.
-    round1_rep_batch_xlsx: str | None = None
-    expected_mutations_xlsx: str | None = None
-    remeasure_rep_batch_xlsx: str | None = None
-    # Optional NGS verdict input (reports-mode only in practice; not enforced
-    # here). When provided, variants whose well has a non-PASS verdict are
-    # excluded. Absent leaves the build unchanged (layout-trust).
-    verdict_xlsx: str | None = None
     mismatch_threshold: float = Field(default=0.1, gt=0.0)
-    mapping_audit_path: str | None = None
-    # Optional reports-mode audit artifact: where to write the intermediate
-    # round-1 well-level relative activity ('Sample Name', 'Area'). Output path,
-    # so it is validated like output_xlsx and never as an existing input.
     gc_export_xlsx: str | None = None
-    # When False (default), a closed-permutation well<->well label swap
-    # detected by the label audit (kuma_core.mame.activity.label_audit) or a
-    # severity="error" numeric-index label-swap warning aborts the build with
-    # a ValueError. Set True to proceed once the flagged wells/variants have
-    # been reviewed.
     allow_label_mismatch: bool = False
 
+    @field_validator("activity_path", mode="after")
+    @classmethod
+    def _check_activity_path(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if p.suffix.lower() not in {".csv", ".xlsx", ".xls"}:
+            raise ValueError(f"activity_path must be .csv, .xlsx, or .xls: {v}")
+        if not p.exists():
+            raise ValueError(f"activity_path not found: {v}")
+        return v
+
     @field_validator(
-        "layout_xlsx",
-        "gc_data_xlsx",
-        "rep_batch_xlsx",
-        "prev_evolvepro_xlsx",
-        "round1_report_xlsx",
-        "round1_evolvepro_xlsx",
-        "remeasure_report_xlsx",
-        "round1_rep_batch_xlsx",
-        "expected_mutations_xlsx",
-        "remeasure_rep_batch_xlsx",
-        "verdict_xlsx",
-        mode="after",
+        "gc_data_xlsx", "round1_report_xlsx", "remeasure_report_xlsx",
+        "verdict_xlsx", "layout_xlsx", mode="after",
     )
     @classmethod
     def _check_input_xlsx(cls, v: str | None) -> str | None:
         if v is None:
-            return v
+            return None
         p = Path(v)
         if ".." in p.parts:
             raise ValueError(f"Path traversal not allowed: {v}")
@@ -439,143 +355,47 @@ class BuildEvolveproInputParams(BaseModel):
             raise ValueError(f"Input xlsx not found: {v}")
         return v
 
+    @field_validator("activity_scale")
+    @classmethod
+    def _check_activity_scale(cls, v: str) -> str:
+        if v not in {"raw", "relative_to_wt"}:
+            raise ValueError("activity_scale must be 'raw' or 'relative_to_wt'")
+        return v
+
     @model_validator(mode="after")
-    def _axis_sources(self) -> "BuildEvolveproInputParams":
-        """Enforce the two independent input axes.
-
-        Axis A, the primary screen (exactly one): ``round1_report_xlsx`` (raw
-        report, well-labeled), ``gc_data_xlsx`` (pre-normalised GC sheet,
-        well-labeled) or ``round1_evolvepro_xlsx`` (previous EVOLVEpro file,
-        variant-labeled). The two well-labeled sources need ``layout_xlsx`` to
-        name their variants.
-
-        Axis B, the confirmation (at most one): ``remeasure_report_xlsx``
-        (variant labels) or ``rep_batch_xlsx`` (numeric index). The numeric
-        index carries no variant names, so it needs ``prev_evolvepro_xlsx`` as
-        the rank source. Omitting axis B entirely yields a provisional build.
-        """
-        primary = [
-            name
-            for name, value in (
-                ("round1_report_xlsx", self.round1_report_xlsx),
+    def _primary_source(self) -> "BuildEvolveproInputParams":
+        sources = [
+            name for name, value in (
+                ("activity_path", self.activity_path),
                 ("gc_data_xlsx", self.gc_data_xlsx),
-                ("round1_evolvepro_xlsx", self.round1_evolvepro_xlsx),
-                ("round1_rep_batch_xlsx", self.round1_rep_batch_xlsx),
-            )
-            if value
+                ("round1_report_xlsx", self.round1_report_xlsx),
+            ) if value
         ]
-        if not primary:
+        if len(sources) != 1:
             raise ValueError(
-                "no primary screen source: provide exactly one of "
-                "round1_report_xlsx (raw report), gc_data_xlsx (pre-normalised "
-                "GC sheet), round1_evolvepro_xlsx (previous EVOLVEpro file) or "
-                "round1_rep_batch_xlsx (numeric sample IDs)"
-            )
-        if len(primary) > 1:
-            raise ValueError(
-                f"multiple primary screen sources ({', '.join(primary)}): "
-                "provide exactly one of round1_report_xlsx, gc_data_xlsx, "
-                "round1_evolvepro_xlsx, round1_rep_batch_xlsx"
-            )
-        if self.round1_rep_batch_xlsx and not (
-            self.expected_mutations_xlsx or self.layout_xlsx
-        ):
-            raise ValueError(
-                "numeric primary screen (round1_rep_batch_xlsx) needs an order "
-                "to index into: provide expected_mutations_xlsx (the KURO "
-                "design, preferred) or layout_xlsx. The sample IDs carry no "
-                "variant information on their own"
-            )
-        if self.expected_mutations_xlsx and not self.round1_rep_batch_xlsx:
-            raise ValueError(
-                "expected_mutations_xlsx is the order source for the numeric "
-                "primary screen and needs round1_rep_batch_xlsx alongside it"
-            )
-        if self.round1_report_xlsx and not self.layout_xlsx:
-            raise ValueError(
-                "raw round-1 (round1_report_xlsx) requires layout_xlsx"
+                "provide exactly one primary source: activity_path, gc_data_xlsx, "
+                "or round1_report_xlsx"
             )
         if self.gc_data_xlsx and not self.layout_xlsx:
+            raise ValueError("gc_data_xlsx is well-labeled and requires layout_xlsx")
+        if self.round1_report_xlsx and not self.layout_xlsx:
             raise ValueError(
-                "rank-mode requires layout_xlsx: pre-normalised GC data "
-                "(gc_data_xlsx) is keyed by well position"
-            )
-
-        confirmation = [
-            name
-            for name, value in (
-                ("remeasure_report_xlsx", self.remeasure_report_xlsx),
-                ("remeasure_rep_batch_xlsx", self.remeasure_rep_batch_xlsx),
-                ("rep_batch_xlsx", self.rep_batch_xlsx),
-            )
-            if value
-        ]
-        if len(confirmation) > 1:
-            raise ValueError(
-                f"multiple confirmation sources ({', '.join(confirmation)}): "
-                "provide at most one of remeasure_report_xlsx (variant labels), "
-                "remeasure_rep_batch_xlsx (numeric IDs into the above-WT "
-                "subset) or rep_batch_xlsx (numeric index)"
-            )
-        if self.remeasure_rep_batch_xlsx and not self.round1_rep_batch_xlsx:
-            raise ValueError(
-                "numeric-subset confirmation (remeasure_rep_batch_xlsx) "
-                "requires round1_rep_batch_xlsx: its IDs index the above-WT "
-                "subset of that primary screen, which no other primary source "
-                "produces"
-            )
-        if self.rep_batch_xlsx and not self.prev_evolvepro_xlsx:
-            raise ValueError(
-                "numeric-index confirmation (rep_batch_xlsx) requires "
-                "prev_evolvepro_xlsx as the rank source: the numeric base IDs "
-                "are ranks into a previous EVOLVEpro file"
-            )
-        if self.prev_evolvepro_xlsx and not self.rep_batch_xlsx:
-            raise ValueError(
-                "prev_evolvepro_xlsx is the rank source for numeric-index "
-                "confirmation and needs rep_batch_xlsx; for a previous-round "
-                "baseline use round1_evolvepro_xlsx instead"
+                "round1_report_xlsx is well-labeled and requires layout_xlsx"
             )
         return self
 
-    @field_validator("output_xlsx", mode="after")
+    @field_validator("output_xlsx", "gc_export_xlsx", mode="after")
     @classmethod
-    def _check_output_xlsx(cls, v: str) -> str:
-        p = Path(v)
-        if ".." in p.parts:
-            raise ValueError(f"Path traversal not allowed: {v}")
-        if p.suffix.lower() != ".xlsx":
-            raise ValueError(f"output_xlsx must be an .xlsx file: {v}")
-        if not p.parent.exists():
-            raise ValueError(f"Parent of output_xlsx does not exist: {p.parent}")
-        return v
-
-    @field_validator("gc_export_xlsx", mode="after")
-    @classmethod
-    def _check_gc_export_xlsx(cls, v: str | None) -> str | None:
+    def _check_output_xlsx(cls, v: str | None) -> str | None:
         if v is None:
             return None
         p = Path(v)
         if ".." in p.parts:
             raise ValueError(f"Path traversal not allowed: {v}")
         if p.suffix.lower() != ".xlsx":
-            raise ValueError(f"gc_export_xlsx must be an .xlsx file: {v}")
+            raise ValueError(f"Output must be an .xlsx file: {v}")
         if not p.parent.exists():
-            raise ValueError(f"Parent of gc_export_xlsx does not exist: {p.parent}")
-        return v
-
-    @field_validator("mapping_audit_path", mode="after")
-    @classmethod
-    def _check_mapping_audit_path(cls, v: str | None) -> str | None:
-        if v is None:
-            return None
-        p = Path(v)
-        if ".." in p.parts:
-            raise ValueError(f"Path traversal not allowed: {v}")
-        if not p.parent.exists():
-            raise ValueError(
-                f"Parent of mapping_audit_path does not exist: {p.parent}"
-            )
+            raise ValueError(f"Parent of output path does not exist: {p.parent}")
         return v
 
 

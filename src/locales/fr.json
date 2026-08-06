@@ -155,10 +155,10 @@
   "mame": {
     "plateOrder": {
       "title": "Plate order disagreement in {{filename}}",
-      "bodyInfo": "The primer plate on sheet {{sheet}} and the order of expected_mutations do not match. This run takes its wells from the sample map or the confirmed well layout, so the verdicts are not affected. The workbook still describes two different plates.",
+      "bodyBlocked": "The primer plate on sheet {{sheet}} and the order of expected_mutations do not match, so the same workbook describes two different plates and nothing in it records which one was pipetted. The run is blocked until that is settled.",
       "example": "well {{well}}: {{plate}} on the plate, {{expected}} in expected_mutations",
       "missing": "On the plate but absent from expected_mutations: {{items}}. Each one shifts every later well by one.",
-      "escape": "Which sheet describes the tubes that were pipetted is yours to state: name the sheet and column the variant list is read from, or choose a sample map file. Either one takes the sheet order out of this run. MAME does not pick a sheet for you."
+      "resolution": "Re-export the workbook from KURO v0.14.3 or later, or pick one whose sheets agree, then validate again. MAME does not pick a sheet for you, and no other input on this screen can state which plate went into the tubes."
     },
     "input": {
       "redetect": "Redétecter",
@@ -348,13 +348,13 @@
         "uploadHeading": "Téléverser les données d'activité",
         "uploadDesc": "Charger un fichier CSV / Excel au long format (colonnes well, replicate, value) dans le Round courant.",
         "loaded": "✓ {{count}} wells chargés",
-        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
+        "contextSubtitle": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro input.",
         "contextTitle": "Activity Data — Ingest",
         "drawerCenter": "Activity log",
         "drawerLeft": "Activity",
         "drawerLeftDesc": "Wells with measurements",
         "drawerRight": "Next",
-        "drawerRightDesc": "Merge and export",
+        "drawerRightDesc": "Cross-round signals and handoff",
         "inspectorMean": "Mean activity",
         "inspectorNoData": "No activity data loaded",
         "inspectorReplicates": "Replicates",
@@ -404,9 +404,7 @@
         "inspectorStatus": "Status",
         "inspectorSubtitle": "R585A merge summary",
         "inspectorTitle": "Export Inspector",
-        "inspectorVariant": "Variant",
-        "openJanusExport": "Open JANUS export...",
-        "openJanusExportAriaLabel": "Open JANUS cell-stock mapping export dialog"
+        "inspectorVariant": "Variant"
       },
       "wtWells": {
         "title": "WT wells (référence de normalisation)",
@@ -415,13 +413,6 @@
         "alreadySetTooltip": "WT wells déjà définis"
       },
       "route": {
-        "heading": "Activity value source",
-        "ariaLabel": "Choose where this round's activity values come from",
-        "ngsNote": "The NGS verdicts of this run are used either way; only the source of the measured activity changes.",
-        "genotypeLabel": "Activity upload (long format)",
-        "genotypeDesc": "Upload long-format well activity and join it to this round's NGS genotype, then export.",
-        "plateLayoutLabel": "Plate layout + GC data / Agilent report",
-        "plateLayoutDesc": "Read activity per well from a plate layout with GC data or a raw Agilent report, gated by the NGS verdict file.",
         "completeCurrentRoute": "Complete the selected activity source"
       }
     },
@@ -517,7 +508,9 @@
         "wells": "Wells",
         "loaded": "Chargé",
         "passRows": "Lignes PASS",
-        "evolveproXlsx": "EVOLVEpro xlsx"
+        "evolveproXlsx": "EVOLVEpro xlsx",
+        "volume": "Volume",
+        "liquidClass": "Liquid class"
       },
       "value": {
         "ready": "Prêt",
@@ -629,7 +622,8 @@
       "manifestLoadFailed": "Échec du chargement du manifest : {{err}}",
       "barcodeSetupTab": "1. Custom Barcode Primer Design",
       "analyzeTab": "2. QC séquençage",
-      "activityTab": "3. Données d'activité",
+      "janusTab": "3. Configuration Janus",
+      "activityTab": "4. Données d'activité",
       "verdictTableTitle": "Table de verdicts",
       "platePlanTitle": "Carte de plaque",
       "runHealthTitle": "Santé du run",
@@ -654,6 +648,7 @@
       },
       "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
+      "janusTabTitle": "Réglages de l'instrument Janus — étape optionnelle pour le prélèvement de stocks cellulaires (étape ③ du flux PI)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
       "efficiencyChartTitle": "Per-plate verdict breakdown"
     },
@@ -844,6 +839,25 @@
         "final": "Final 96 Deep Well"
       }
     },
+    "janus": {
+      "settings": {
+        "contextTitle": "Réglages de l'instrument Janus",
+        "contextSubtitle": "Volume de transfert, racks du deck et liquid class à partir desquels le mapping instrument est écrit. Optionnel : un run purement séquençage peut sauter cette étape.",
+        "optionalNote": "Cette etape est optionnelle. Un run d'analyse ecrit lui-meme la liste de picks ; le mapping instrument n'est ecrit que lors d'un export ici, donc un run qui n'a besoin que des verdicts de sequencage passe de l'etape 2 directement a l'etape 4.",
+        "inspectorTitle": "Inspector instrument",
+        "inspectorSubtitle": "Valeurs utilisées pour écrire le mapping",
+        "inspectorVolume": "Volume de transfert (uL)",
+        "inspectorSampleType": "Type d'échantillon",
+        "inspectorLiquidClass": "Liquid class",
+        "inspectorLastMapping": "Dernier fichier de mapping",
+        "drawerLeft": "Instrument",
+        "drawerCenter": "Journal Janus",
+        "drawerRight": "Suivant",
+        "drawerRightDesc": "Données d'activité et transfert vers EVOLVEpro",
+        "volumeLabel": "Volume de transfert (uL)",
+        "volumeHint": "Ecrit dans le mapping instrument produit par cette execution. Les 100 uL fournis sont une hypothese sans source de laboratoire : indiquez le volume de cette experience."
+      }
+    },
     "setup": {
       "files": {
         "railTitle": "MAME Workflow",
@@ -937,6 +951,11 @@
         "drawerRightDesc": "Proceed to activity",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "Correspondance well-variant probablement erronée",
+        "alertDesc": "Sur {{wells}} wells présentant une variante observée, {{selfPercent}}% correspondent à leur propre mutation attendue et {{crossPercent}}% correspondent plutôt à la mutation attendue d'un autre well. La correspondance well-variant est très probablement décalée ; ne faites pas confiance à ce résultat.",
+        "alertAriaLabel": "Avertissement d'intégrité de la correspondance well-variant"
       }
     },
     "inspector": {
@@ -996,108 +1015,77 @@
         "failed": "The selection list was not written.",
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
       },
-      "janusSettings": {
-        "open": "Janus instrument settings...",
-        "openAriaLabel": "Open Janus instrument settings",
-        "hint": "Optionnel. Les numeros de rack suivent les plaques de cette execution et la liquid class reste vide si non definie ; saisir une valeur uniquement pour remplacer."
-      },
       "janusMappingAutosave": {
         "saved": "Mapping instrument ecrit a cote du classeur de resultats ({{rows}} lignes), dans les 9 colonnes que lit le robot.",
         "skipped": "Aucun clone n'a satisfait aux criteres de selection, aucun mapping instrument n'a donc ete ecrit.",
         "failed": "Le mapping instrument n'a pas ete ecrit.",
         "excluded": "{{clones}} clone(s) exclus du mapping. Ouvrir les reglages instrument Janus pour en connaitre la raison."
-      },
-      "janusVolume": {
-        "label": "Volume de transfert (uL)",
-        "hint": "Ecrit dans le mapping instrument produit par cette execution. Les 100 uL fournis sont une hypothese sans source de laboratoire : indiquez le volume de cette experience."
       }
     },
     "buildEvolvepro": {
       "title": "Créer l'entrée EVOLVEpro",
-      "subtitle": "Le criblage primaire de toutes les variantes (1 réplicat) sert de base, puis seules les variantes remesurées sont remplacées par leur moyenne sur 3 réplicats.",
+      "subtitle": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro [Variant, activity] input.",
+      "routeNote": "Every measurement format uses the same NGS verdict, normalization, replicate merge, and EVOLVEpro export pipeline.",
       "inputFiles": "Fichiers d'entrée",
+      "primarySourceLabel": "Measurement format",
+      "primarySourceLongFormat": "Generic long-format",
+      "primarySourceLongFormatHelper": "CSV/XLSX with exactly one well or variant label column and one value column. Select whether values are raw or already relative to WT.",
+      "primarySourceGcSheet": "GC data sheet",
+      "primarySourceGcSheetHelper": "Pre-normalized relative activity per well (Sample Name, Area), mapped to variants through the plate layout.",
+      "primarySourceRawReport": "Raw Agilent report",
+      "primarySourceRawReportHelper": "Raw Agilent FID1B report with well-labeled samples and WT blocks. The plate layout maps wells to variants.",
+      "activityPath": "Activity CSV/XLSX",
+      "activityPathHelper": "Long-format activity data with one well or variant label column and one value, area, or activity column.",
+      "activityScale": "Activity scale",
+      "activityScaleHelper": "Choose raw to normalize each plate/cohort against its WT rows, or relative when values are already relative to WT.",
+      "activityScaleRaw": "Raw",
+      "activityScaleRelative": "Relative to WT",
       "layoutXlsx": "xlsx de disposition de plaque",
-      "layoutXlsxHelper": "Mappage de Mutant vers la position du well. Accepte le format plate layout (colonnes Mutant, Well Pos.) ou le sample map de l'étape 1 (colonnes sample_name, well).",
+      "layoutXlsxHelper": "Required mapping metadata for well-labeled GC data and raw reports. Maps well positions to variants.",
+      "layoutXlsxOptionalHelper": "Required only when the long-format label column contains wells; variant-labeled files do not need a layout.",
       "gcDataXlsx": "xlsx de données GC",
-      "gcDataXlsxHelper": "Relative activity prénormalisée par well (colonnes Sample Name et Area). Voilà la base : un réplicat pour chaque variante de la plaque.",
-      "repBatchXlsx": "xlsx de rapport de confirmation Agilent",
-      "repBatchXlsxHelper": "Rapport de bloc Agilent FID1B pour les variantes remesurées en 3 replicates, avec identifiants numériques de base et suffixes de replicate. Les variantes présentes ici remplacent leur valeur du criblage primaire ; les autres restent provisoires.",
-      "prevEvolveproXlsx": "xlsx d'entrée EVOLVEpro servant de rank source",
-      "prevEvolveproXlsxHelper": "Le xlsx d'entrée EVOLVEpro produit par KUMA la fois précédente (Variant, activity), et non le CSV de résultats écrit par EVOLVEpro (variant, y_pred). Les sample name du rapport de confirmation sont des indices numériques : ce fichier retrouve donc chaque nom de variante en suivant l'ordre décroissant d'activity.",
+      "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
+      "round1ReportXlsx": "Raw Agilent report xlsx",
+      "round1ReportXlsxHelper": "Raw Agilent FID1B report with well positions and WT blocks.",
+      "confirmationSourceLabel": "Optional confirmation",
+      "confirmationSourceNone": "None",
+      "confirmationSourceNoneHelper": "Use the primary measurement value for every NGS-qualified variant.",
+      "confirmationSourceVariantLabels": "Variant-labeled Agilent report",
+      "confirmationSourceVariantLabelsHelper": "Optional raw Agilent report whose sample names are variant labels. Its independently WT-normalized replicate means override matching primary values.",
+      "remeasureReportXlsx": "Confirmation report xlsx (variant-labeled)",
+      "remeasureReportXlsxHelper": "Raw Agilent report with variant-labeled samples and WT rows; numeric or rank-derived labels are not supported.",
+      "verdictXlsx": "NGS verdict xlsx",
+      "verdictXlsxHelper": "Required Analyze verdict evidence for this round. Only explicit PASS rows that are neither failed nor fallback are exported.",
       "outputXlsx": "xlsx EVOLVEpro de sortie",
-      "outputXlsxHelper": "Fichier de destination pour l'entrée EVOLVEpro fusionnée.",
+      "outputXlsxHelper": "Destination for the strict two-column [Variant, activity] export.",
       "requiredStateLabel": "Requis",
       "optionalLabel": "optionnel",
-      "provisionalLabel": "Provisoire (aucune donnée de confirmation)",
-      "confirmedLabel": "Confirmé (réplicats de confirmation fusionnés)",
+      "optionalStateLabel": "Facultatif",
       "builtFromLabel": "Construit à partir de",
       "chooseOutput": "Choisir le fichier de sortie",
       "noOutputSelected": "Aucun fichier de sortie sélectionné",
       "build": "Créer l'entrée EVOLVEpro",
       "building": "Création...",
       "resultTitle": "Résultat de la création",
-      "emptyState": "Sélectionnez les fichiers d'entrée des sources choisies et un chemin de sortie, puis construisez l'entrée EVOLVEpro.",
+      "emptyState": "Select one measurement format, the required NGS verdict, and an output path.",
       "nVariants": "Variants écrits",
-      "nAuthoritative": "Du confirmation report",
-      "nFallbackOnly": "D'après les données GC uniquement",
-      "prevDescendingWarn": "Le fichier EVOLVEpro précédent n'est pas trié par activity décroissante. Vérifiez l'audit de mappage avant de vous fier aux rangs.",
-      "mappingAuditTitle": "Mappage ID vers variant",
-      "mappingAuditPath": "Fichier d'audit de mappage",
-      "colId": "ID",
-      "colVariant": "Variant",
-      "colWell": "Well",
+      "nAuthoritative": "Confirmation overrides",
+      "nFallbackOnly": "Primary values",
+      "nNgsExcluded": "NGS-excluded",
       "warningsLabel": "Avertissements",
-      "swapWarningsLabel": "Avertissements Label-swap",
-      "mismatchedLabel": "Écart entre Confirmation et criblage primaire",
-      "mismatchedHint": "Candidats dont la moyenne de confirmation à 3 réplicats diffère sensiblement de la valeur du criblage primaire (1 réplicat).",
+      "mismatchedLabel": "Confirmation vs primary mismatch",
+      "mismatchedHint": "Variants whose confirmation mean differs notably from the primary value.",
       "mismatchedAuthoritative": "Confirmation",
-      "mismatchedFallback": "Criblage primaire",
+      "mismatchedFallback": "Primary",
+      "colVariant": "Variant",
       "toastSuccess": "Entrée EVOLVEpro créée",
       "toastSuccessDesc": "{{count}} variants écrits.",
       "toastError": "Échec de la création de l'entrée EVOLVEpro",
       "openFolder": "Ouvrir le dossier de sortie",
-      "routeNote": "Ce parcours lit directement les fichiers xlsx et n'utilise pas le téléversement d'activity du parcours lié au genotype.",
-      "primarySourceLabel": "Source du criblage primaire",
-      "primarySourceRawReport": "Rapport GC-FID brut",
-      "primarySourceGcSheet": "GC data sheet",
-      "primarySourcePrevEvolvepro": "Entrée EVOLVEpro précédente",
-      "primarySourceRawReportHelper": "Rapport Agilent FID1B brut couvrant toutes les variantes pour un replicate ; les noms d'échantillons sont des positions de well. Le plate layout associe les wells aux variantes.",
-      "primarySourceGcSheetHelper": "activity relative déjà normalisée par well, associée aux variantes via le plate layout. À utiliser lorsqu'un GC data sheet normalisé existe déjà.",
-      "primarySourcePrevEvolveproHelper": "Un xlsx d'entrée EVOLVEpro généré précédemment par KUMA (Variant, activity), utilisé comme référence complète. Aucun plate layout n'est nécessaire, sauf si le filtrage par verdict NGS est activé.",
-      "confirmationSourceLabel": "Source de confirmation",
-      "confirmationSourceNone": "Aucune (provisoire)",
-      "confirmationSourceVariantLabels": "Rapport étiqueté par variante",
-      "confirmationSourceNumericIndex": "Rapport à index numérique",
-      "confirmationSourceNoneHelper": "Aucune donnée de confirmation. Chaque variante conserve sa valeur du criblage primaire et la construction reste provisoire.",
-      "confirmationSourceVariantLabelsHelper": "Rapport Agilent FID1B dont les noms d'échantillons sont des étiquettes de variante, aucune rank source n'est donc requise. Ces moyennes remplacent les valeurs du criblage primaire.",
-      "confirmationSourceNumericIndexHelper": "Rapport Agilent FID1B dont les noms d'échantillons sont des identifiants numériques de base. Une rank source est requise pour retrouver le nom de chaque variante.",
-      "round1EvolveproXlsx": "xlsx d'entrée EVOLVEpro du criblage primaire",
-      "round1EvolveproXlsxHelper": "Le xlsx d'entrée EVOLVEpro produit par KUMA pour ce lot (Variant, activity), avec chaque variante en un réplicat. Ce n'est pas le CSV de résultats écrit par EVOLVEpro (variant, y_pred). Les variantes remesurées sont remplacées par leurs moyennes de confirmation.",
-      "round1ReportXlsx": "xlsx de rapport du criblage primaire (GC-FID brut)",
-      "round1ReportXlsxHelper": "Rapport FID1B Agilent brut couvrant chaque variante en un réplicat ; les sample name sont des positions de well (A1..H12), avec des blocs WT. Le plate layout relie les wells aux variantes.",
-      "gcExportXlsx": "xlsx d'export de l'activité relative (forme GC data)",
-      "gcExportXlsxHelper": "Artefact de revue optionnel. Écrit l'activité relative par well du du primary screen (Area / Area WT moyenne) dans les colonnes Sample Name et Area, au format de la feuille GC data.",
-      "remeasureReportXlsx": "xlsx de rapport de confirmation (étiqueté par variante)",
-      "remeasureReportXlsxHelper": "Rapport FID1B Agilent brut des variantes sélectionnées et remesurées en 3 réplicats ; les sample name sont des étiquettes de variante (par ex. V5F ou 5F) et les lignes répétées sont les réplicats. Comme il est étiqueté, aucune rank source n'est nécessaire, et ces moyennes remplacent les valeurs du criblage primaire.",
-      "verdictXlsx": "xlsx de verdict NGS",
-      "verdictXlsxHelper": "Rapport Excel Analyze (feuille Final : well_id + verdict). Les variants dont le well n'est pas PASS sont exclus. Omettez-le pour ignorer le filtrage NGS.",
-      "layoutXlsxOptionalHelper": "Sert uniquement à associer chaque variant à son well pour le filtrage par verdict NGS.",
-      "optionalStateLabel": "Facultatif",
-      "nNgsExcluded": "Exclus par NGS",
       "missingInputs": "Encore nécessaire",
-      "restoredNotice": "Des chemins ont été restaurés sur cet appareil. Effacez-les s’ils appartiennent à un autre projet.",
-      "clearRestored": "Effacer les entrées EVOLVEpro restaurées",
-      "primarySourceNumericReport": "Rapport à ID numériques (plaque entière)",
-      "confirmationSourceNumericSubset": "Confirmation à ID numériques (sous-ensemble au-dessus du WT)",
-      "primarySourceNumericReportHelper": "Criblage de plaque entière dont les noms d'échantillon sont de simples nombres. L'ID i est le i-ème mutant conçu dans l'ordre de la plaque, une source d'ordre est donc requise.",
-      "confirmationSourceNumericSubsetHelper": "Confirmation répliquée dont les ID numériques numérotent les variants dépassant le type sauvage, dans le même ordre de plaque. Nécessite le criblage primaire numérique.",
-      "round1RepBatchXlsx": "Criblage primaire (ID numériques)",
-      "round1RepBatchXlsxHelper": "Rapport Agilent FID1B de la plaque entière, un réplicat par variant.",
-      "expectedMutationsXlsx": "Conception KURO (expected_mutations)",
-      "expectedMutationsXlsxHelper": "Source d'ordre issue directement de la conception, sans fichier de plaque recopié à la main. Préférée au layout.",
-      "remeasureRepBatchXlsx": "Confirmation (ID numériques)",
-      "remeasureRepBatchXlsxHelper": "Rapport Agilent FID1B du sous-ensemble remesuré, plusieurs réplicats par variant.",
-      "orLabel": "l'un ou l'autre"
+      "restoredNotice": "Inputs were restored for this project.",
+      "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
+      "clearRestored": "Effacer les entrées EVOLVEpro restaurées"
     },
     "verdictBadge": {
       "help": {
@@ -1712,7 +1700,7 @@
     "kuroInspectorTitle": "Examiner les détails Kuro",
     "kuroInspectorBody": "L’inspecteur affiche les paramètres, variants sélectionnés, avertissements et contrôles d’exportation.",
     "mameWorkflowTitle": "Suivre le workflow Mame",
-    "mameWorkflowBody": "Parcourez Setup, Analyze et Activity pour transformer les preuves expérimentales en table d’apprentissage organisée.",
+    "mameWorkflowBody": "Parcourez Setup, Analyze, l'étape optionnelle de l'instrument Janus et Activity pour transformer les preuves expérimentales en table d’apprentissage organisée.",
     "mameWorkspaceTitle": "Travailler dans la zone principale Mame",
     "mameWorkspaceBody": "Chargez les données, examinez les verdicts et plaques, puis fusionnez les mesures d’activité pour l’exportation.",
     "mameInspectorTitle": "Examiner les détails Mame",
@@ -2536,6 +2524,9 @@
       },
       "fallback": {
         "redirecting": "Redirecting…"
+      },
+      "janus": {
+        "settings": "Réglages de l'instrument Janus"
       }
     }
   },
@@ -2573,9 +2564,12 @@
         "review": "Review the verdict table, plate layout, and per-plate verdict distribution in one view."
       },
       "activity": {
-        "ingest": "Téléverser des fichiers CSV ou Excel d'activity et annoter le wild-type.",
+        "ingest": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro input from one measurement format.",
         "signals": "Examiner les signaux de classification inter-rounds et transmettre au round suivant une fois l'entrée EVOLVEpro prête.",
         "mergeExport": "Fusionnez les données d'activité avec les appels de génotype et exportez le tableau fusionné, puis créez l'entrée EVOLVEpro en combinant l'activité à réplicat unique (GC) et à triple réplicat (relative au WT)."
+      },
+      "janus": {
+        "settings": "Préparer le mapping de stocks cellulaires JANUS : volume de transfert, numéros de racks du deck et liquid class. Optionnel — rien ici ne bloque un run."
       }
     },
     "summary": {

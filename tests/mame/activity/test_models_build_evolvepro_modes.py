@@ -1,14 +1,4 @@
-"""Validate BuildEvolveproInputParams rank-mode / reports-mode XOR contract.
-
-The model accepts EITHER rank mode (gc_data_xlsx + rep_batch_xlsx +
-prev_evolvepro_xlsx) OR reports mode (round1_report_xlsx +
-remeasure_report_xlsx). Providing both modes or neither is rejected by the
-mode_xor model_validator.
-
-_check_input_xlsx only verifies suffix + existence + traversal, so empty .xlsx
-files created via openpyxl are sufficient for these validation tests.
-"""
-
+"""Validation contract for the unified Step 3 request."""
 from __future__ import annotations
 
 import pytest
@@ -17,111 +7,79 @@ from pydantic import ValidationError
 from sidecar_mame.models import BuildEvolveproInputParams
 
 
-def _touch_xlsx(path):
+def _xlsx(path):
     import openpyxl
 
-    wb = openpyxl.Workbook()
-    wb.save(path)
+    openpyxl.Workbook().save(path)
     return str(path)
 
 
 @pytest.fixture
 def files(tmp_path):
+    (tmp_path / "activity.csv").write_text("variant,value\n5F,1\n", encoding="utf-8")
     return {
-        "layout": _touch_xlsx(tmp_path / "layout.xlsx"),
-        "gc": _touch_xlsx(tmp_path / "gc.xlsx"),
-        "rep": _touch_xlsx(tmp_path / "rep.xlsx"),
-        "prev": _touch_xlsx(tmp_path / "prev.xlsx"),
-        "round1": _touch_xlsx(tmp_path / "round1.xlsx"),
-        "remeasure": _touch_xlsx(tmp_path / "remeasure.xlsx"),
+        "activity": str(tmp_path / "activity.csv"),
+        "gc": _xlsx(tmp_path / "gc.xlsx"),
+        "round1": _xlsx(tmp_path / "round1.xlsx"),
+        "verdict": _xlsx(tmp_path / "verdict.xlsx"),
+        "layout": _xlsx(tmp_path / "layout.xlsx"),
         "out": str(tmp_path / "out.xlsx"),
     }
 
 
-# M1: rank mode validates.
-def test_m1_rank_mode_validates(files):
-    p = BuildEvolveproInputParams.model_validate(
-        {
-            "layout_xlsx": files["layout"],
-            "gc_data_xlsx": files["gc"],
-            "rep_batch_xlsx": files["rep"],
-            "prev_evolvepro_xlsx": files["prev"],
+def test_accepts_each_single_supported_primary_source(files):
+    for source, value in (
+        ("activity_path", files["activity"]),
+        ("gc_data_xlsx", files["gc"]),
+        ("round1_report_xlsx", files["round1"]),
+    ):
+        if source == "activity_path":
+            with open(value, "w", encoding="utf-8") as handle:
+                handle.write("variant,value\n5F,1\n")
+        params = {
+            source: value,
+            "verdict_xlsx": files["verdict"],
             "output_xlsx": files["out"],
         }
-    )
-    assert p.gc_data_xlsx == files["gc"]
-    assert p.round1_report_xlsx is None
-    assert p.remeasure_report_xlsx is None
+        if source != "activity_path":
+            params["layout_xlsx"] = files["layout"]
+        validated = BuildEvolveproInputParams.model_validate(params)
+        assert getattr(validated, source) == value
 
 
-# M2: reports mode validates.
-def test_m2_reports_mode_validates(files):
-    p = BuildEvolveproInputParams.model_validate(
-        {
-            "layout_xlsx": files["layout"],
-            "round1_report_xlsx": files["round1"],
-            "remeasure_report_xlsx": files["remeasure"],
-            "output_xlsx": files["out"],
-        }
-    )
-    assert p.round1_report_xlsx == files["round1"]
-    assert p.remeasure_report_xlsx == files["remeasure"]
-    assert p.gc_data_xlsx is None
-    assert p.rep_batch_xlsx is None
-    assert p.prev_evolvepro_xlsx is None
+@pytest.mark.parametrize("primary", [None, "two"])
+def test_requires_exactly_one_primary_source(files, primary):
+    params = {"verdict_xlsx": files["verdict"], "output_xlsx": files["out"]}
+    if primary == "two":
+        params.update(activity_path=files["activity"], gc_data_xlsx=files["gc"], layout_xlsx=files["layout"])
+    with pytest.raises(ValidationError, match="exactly one primary source"):
+        BuildEvolveproInputParams.model_validate(params)
 
 
-# M3a: both modes provided -> rejected.
-def test_m3a_both_modes_rejected(files):
+@pytest.mark.parametrize("missing", ["verdict_xlsx", "output_xlsx"])
+def test_verdict_and_output_are_required(files, missing):
+    params = {"activity_path": files["activity"], "verdict_xlsx": files["verdict"], "output_xlsx": files["out"]}
+    params.pop(missing)
     with pytest.raises(ValidationError):
-        BuildEvolveproInputParams.model_validate(
-            {
-                "layout_xlsx": files["layout"],
-                "gc_data_xlsx": files["gc"],
-                "rep_batch_xlsx": files["rep"],
-                "prev_evolvepro_xlsx": files["prev"],
-                "round1_report_xlsx": files["round1"],
-                "remeasure_report_xlsx": files["remeasure"],
-                "output_xlsx": files["out"],
-            }
-        )
+        BuildEvolveproInputParams.model_validate(params)
 
 
-# M3b: neither mode provided -> rejected.
-def test_m3b_neither_mode_rejected(files):
-    with pytest.raises(ValidationError):
-        BuildEvolveproInputParams.model_validate(
-            {
-                "layout_xlsx": files["layout"],
-                "output_xlsx": files["out"],
-            }
-        )
-
-
-# M4: rank mode with layout + GC data only (no rep_batch / prev_evolvepro)
-# validates. This is the provisional-build path; it must stay accepted.
-def test_m4_rank_mode_two_files_validates(files):
-    p = BuildEvolveproInputParams.model_validate(
-        {
-            "layout_xlsx": files["layout"],
-            "gc_data_xlsx": files["gc"],
+@pytest.mark.parametrize("removed", ["rep_batch_xlsx", "prev_evolvepro_xlsx", "round1_evolvepro_xlsx", "round1_rep_batch_xlsx"])
+def test_removed_prior_and_numeric_fields_are_forbidden_extras(files, removed):
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        BuildEvolveproInputParams.model_validate({
+            "activity_path": files["activity"],
+            "verdict_xlsx": files["verdict"],
             "output_xlsx": files["out"],
-        }
-    )
-    assert p.layout_xlsx == files["layout"]
-    assert p.gc_data_xlsx == files["gc"]
-    assert p.rep_batch_xlsx is None
-    assert p.prev_evolvepro_xlsx is None
-    assert p.round1_report_xlsx is None
-    assert p.remeasure_report_xlsx is None
+            removed: files["gc"],
+        })
 
 
-# M5: rank mode without layout_xlsx -> rejected.
-def test_m5_rank_mode_without_layout_rejected(files):
-    with pytest.raises(ValidationError, match="rank-mode requires layout_xlsx"):
-        BuildEvolveproInputParams.model_validate(
-            {
-                "gc_data_xlsx": files["gc"],
+def test_well_labeled_primary_sources_require_layout(files):
+    for source in ("gc_data_xlsx", "round1_report_xlsx"):
+        with pytest.raises(ValidationError, match="requires layout_xlsx"):
+            BuildEvolveproInputParams.model_validate({
+                source: files["gc"] if source == "gc_data_xlsx" else files["round1"],
+                "verdict_xlsx": files["verdict"],
                 "output_xlsx": files["out"],
-            }
-        )
+            })

@@ -700,7 +700,13 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     expect(st.selectedWell).toEqual(WELL);
     expect(st.runHealth).toEqual(RUN_HEALTH);
     expect(st.buildEvolveproCompletion).toEqual(buildCompletion);
-    expect(st.wellLayout).toEqual({ A01: "V5F" });
+    // This fixture's `results` has no `layout_provenance` (pre-existing schema
+    // 2 shape), so the promotion guard in applyMameSnapshot treats it as
+    // "unknown, not stated explicit" and does NOT promote well_layout to
+    // state.wellLayout -- the safe default per the 2026-08 mapping-integrity
+    // incident (an inferred layout must never launder itself into an explicit
+    // one on restore). See useAutosaveHydration.ts applyMameSnapshot.
+    expect(st.wellLayout).toBeNull();
     expect(useRoundStore.getState().rounds).toEqual([ROUND]);
     expect(useRoundStore.getState().active_round_id).toBe("round_1");
   });
@@ -723,6 +729,126 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     await waitFor(() => {
       expect(useMissingInputs.getState().items).toEqual([]);
     });
+  });
+
+  // ── well_layout promotion guard (2026-08 mapping-integrity incident) ────
+
+  function mameSnapshotWithLayoutProvenance(
+    layoutProvenance: { source: string; expected_path: string; sample_map_path: string | null } | undefined,
+  ) {
+    return {
+      status: "ok" as const,
+      snapshot: {
+        schema: 4,
+        saved_at: new Date().toISOString(),
+        kuma_version: "0.0.0-test",
+        rounds: [],
+        active_round_id: null,
+        input: {
+          input_dir: "/proj/run",
+          expected_path: "/proj/expected.xlsx",
+          reference_path: "/proj/ref.fa",
+          output_path: "/proj/out",
+          sample_map_path: "",
+        },
+        parameters: {
+          mode: "amplicon",
+          ingest_mode: "barcode",
+          input_mode: "raw_run",
+          raw_run_params: {
+            customBarcodesPath: "",
+            sequencingSummaryPath: "",
+            minQscore: 10,
+            lengthMin: 0,
+            lengthMax: 0,
+            targetLength: null,
+            lengthToleranceBp: 50,
+            normalizeHeaders: true,
+            coverageFraction: 0.98,
+            editDistRatio: 0.25,
+            chimeraSplit: true,
+          },
+          cds_start: 1,
+          cds_end: 900,
+          min_file_size_kb: 50,
+          many_cutoff: 5,
+        },
+        results: {
+          verdicts: [VERDICT],
+          replicates: [REPLICATE],
+          summary: ANALYZE_RESULT.summary,
+          distribution_stats: ANALYZE_RESULT.distribution_stats,
+          wells: [WELL],
+          selected_well: WELL,
+          run_health: RUN_HEALTH,
+          build_evolvepro_completion: null,
+          demux_result: null,
+          amplicon_length_estimate: null,
+          well_layout: { A01: "V5F" },
+          layout_provenance: layoutProvenance,
+        },
+      },
+    };
+  }
+
+  it("promotes well_layout to state when layout_provenance says the operator supplied it explicitly", async () => {
+    hooks.readAutosave.mockImplementation((_path: string, kind: string) =>
+      Promise.resolve(
+        kind === "mame"
+          ? mameSnapshotWithLayoutProvenance({
+              source: "explicit_well_layout",
+              expected_path: "/proj/expected.xlsx",
+              sample_map_path: null,
+            })
+          : { status: "missing" },
+      ),
+    );
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
+    });
+    expect(useMameAppStore.getState().wellLayout).toEqual({ A01: "V5F" });
+  });
+
+  it("does NOT promote well_layout when layout_provenance says the pipeline inferred it (2026-08 incident guard)", async () => {
+    hooks.readAutosave.mockImplementation((_path: string, kind: string) =>
+      Promise.resolve(
+        kind === "mame"
+          ? mameSnapshotWithLayoutProvenance({
+              source: "inferred_draft_layout",
+              expected_path: "/proj/expected.xlsx",
+              sample_map_path: null,
+            })
+          : { status: "missing" },
+      ),
+    );
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
+    });
+    expect(useMameAppStore.getState().wellLayout).toBeNull();
+  });
+
+  it("does NOT promote well_layout when layout_provenance is absent (pre-2026-08 snapshot shape)", async () => {
+    hooks.readAutosave.mockImplementation((_path: string, kind: string) =>
+      Promise.resolve(
+        kind === "mame" ? mameSnapshotWithLayoutProvenance(undefined) : { status: "missing" },
+      ),
+    );
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
+    });
+    expect(useMameAppStore.getState().wellLayout).toBeNull();
   });
 });
 

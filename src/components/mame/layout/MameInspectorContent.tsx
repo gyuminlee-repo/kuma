@@ -139,6 +139,32 @@ function QcPlateInspector() {
   return <VerdictDetailInspector />;
 }
 
+/** 화면 3.1: MAME Janus 장비 설정, Instrument Inspector.
+ *
+ * The three values the sheet is written from, and what the last manual export
+ * (from JanusMappingPanel) did with the mapping file. A blank liquid class is
+ * stated as blank rather than hidden: it is the one value the sidecar cannot
+ * derive. */
+function JanusSettingsInspector() {
+  const { t } = useTranslation();
+  const janusSettings = useMameAppStore((s) => s.janusSettings);
+  const janusMappingAutosave = useMameAppStore((s) => s.janusMappingAutosave);
+
+  const mappingPath = janusMappingAutosave?.output_path ?? null;
+  const mappingFile = mappingPath
+    ? (mappingPath.replace(/\\/g, "/").split("/").filter(Boolean).pop() ?? mappingPath)
+    : null;
+
+  return (
+    <div>
+      <KVRow label={t("mame.janus.settings.inspectorVolume")} value={janusSettings.volume} />
+      <KVRow label={t("mame.janus.settings.inspectorSampleType")} value={janusSettings.sampleType} />
+      <KVRow label={t("mame.janus.settings.inspectorLiquidClass")} value={janusSettings.liquidClass} />
+      <KVRow label={t("mame.janus.settings.inspectorLastMapping")} value={mappingFile} />
+    </div>
+  );
+}
+
 /** 화면 6: MAME Activity/Ingest — Activity Inspector */
 function ActivityIngestInspector() {
   const { t } = useTranslation();
@@ -199,6 +225,7 @@ const INSPECTOR_MAP: Record<MameSubStepId, React.ComponentType> = {
   "analyze.verdict": QcVerdictInspector,
   "analyze.plate": QcPlateInspector,
   "activity.ingest": ActivityIngestInspector,
+  "janus.settings": JanusSettingsInspector,
   "activity.signals": ActivityMergeExportInspector,
   "activity.mergeExport": ActivityMergeExportInspector,
 };
@@ -244,6 +271,10 @@ export function useMameInspectorMeta(): { title: string; subtitle: string } {
     "activity.ingest": {
       titleKey: "mame.activity.ingest.inspectorTitle",
       subtitleKey: "mame.activity.ingest.inspectorSubtitle",
+    },
+    "janus.settings": {
+      titleKey: "mame.janus.settings.inspectorTitle",
+      subtitleKey: "mame.janus.settings.inspectorSubtitle",
     },
     "activity.signals": {
       titleKey: "mame.activity.mergeExport.inspectorTitle",

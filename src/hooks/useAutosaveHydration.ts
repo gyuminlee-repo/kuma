@@ -875,9 +875,12 @@ export async function applyKuroSnapshot(
  *
  * 문구는 분석 입력 패널의 PlateOrderNotice 와 같은 `buildPlateOrderMessage` 에서
  * 나온다. 같은 사실을 두 경로가 다른 말로 하면 사용자는 서로 다른 문제 둘로 읽는다.
- * v0.15.6 부터 등급은 없다. 사용자가 변이 목록의 시트·열을 지목하는 이상 프로그램이
- * 실행을 막을 근거가 없으므로, 두 경로 모두 info 로 알리기만 한다. 이미 시트·열을
- * 직접 지정했다면 아무 말도 하지 않는다(PlateOrderNotice 와 같은 기준).
+ *
+ * 2026-08-05 부터 알리는 데서 그치지 않고 `plateOrderFinding` 을 스토어에 써서
+ * `selectCanRun` 이 실행을 막는다. 복원 직후는 경로가 모두 채워져 Run 이 바로
+ * 눌리는 시점이라, 알림만 띄우면 워크북이 서로 다른 두 플레이트를 적고 있는 채로
+ * 한 번의 클릭에 실행됐다. 등급은 blocking 하나뿐이다. 어느 시트가 실제로 분주한
+ * 튜브인지는 이 화면의 어떤 입력에도 적혀 있지 않으므로 낮출 근거가 없다.
  */
 async function reportPlateOrderMismatch(
   expectedPath: string,
@@ -899,11 +902,15 @@ async function reportPlateOrderMismatch(
   if (!report || !isCurrent()) return;
   if (!isPlateOrderReportable(report)) return;
 
-  if (useMameAppStore.getState().variantSelectionExplicit) return;
+  const finding = { ...report, severity: "blocking" as const };
+  // 말하는 것과 막는 것을 한자리에서 한다. 스토어에 쓰지 않으면 복원된 세션만
+  // 게이트가 빠져, 같은 워크북이 새로 고른 경우에는 막히고 이어받은 경우에는
+  // 실행되는 상태가 된다.
+  useMameAppStore.setState({ plateOrderFinding: finding });
   onMessage({
     kind: "mame",
     variant: "plate_order_mismatch",
-    message: buildPlateOrderMessage({ ...report, severity: "info" }, expectedPath).text,
+    message: buildPlateOrderMessage(finding, expectedPath).text,
   });
 }
 
@@ -1412,8 +1419,39 @@ function applyMameSnapshot(
   if (typeof results.amplicon_length_estimate === "object") {
     patch.ampliconLengthEstimate = results.amplicon_length_estimate as MameAppState["ampliconLengthEstimate"];
   }
+  // The layout this well_layout came from. Absent on a snapshot saved before
+  // this field existed (schema had no layout_provenance yet); present but
+  // null when a run genuinely had nothing to report.
+  const layoutProvenance = results.layout_provenance as
+    | MameAppState["layoutProvenance"]
+    | undefined;
+  if (typeof layoutProvenance === "object" && layoutProvenance !== null) {
+    patch.layoutProvenance = layoutProvenance;
+  }
   if (typeof results.well_layout === "object") {
-    patch.wellLayout = results.well_layout as MameAppState["wellLayout"];
+    // A well_layout the pipeline INFERRED (no explicit input, no sample map)
+    // must never be promoted to `state.wellLayout`: that field is sent back
+    // as the explicit `well_layout` RPC param on the next analyze call, which
+    // would turn `layout_source` into "explicit_well_layout" and hide the
+    // very fact that flagged this result as a guess (2026-08 mapping-integrity
+    // incident -- a stale `expected` produced a plausible-looking inferred
+    // layout that then re-entered as if the operator had supplied it).
+    //
+    // A snapshot saved before `layout_provenance` existed carries no opinion
+    // either way. The safe read here is to treat "unknown" the same as
+    // "inferred": do not promote. The well_layout that DID reach an old
+    // snapshot's `results.well_layout` was always written by the pre-v0.15.6
+    // manual layout UI (explicit by construction, per inputSlice.ts's comment
+    // on `wellLayout`), so this only affects the one shape that UI's removal
+    // already stopped producing, and getting it wrong would be silent, not
+    // loud, in exactly the way this whole feature exists to prevent.
+    const isInferredOrUnknown =
+      layoutProvenance === undefined ||
+      layoutProvenance === null ||
+      layoutProvenance.source === "inferred_draft_layout";
+    if (!isInferredOrUnknown) {
+      patch.wellLayout = results.well_layout as MameAppState["wellLayout"];
+    }
   }
   if (hasReviewResults) {
     patch.mamePhase = "analyze";
@@ -1514,6 +1552,15 @@ async function restoreMameResult(
   // Restored runs must be able to explain a zero-verdict outcome too, so carry
   // the demux yield out of the persisted response instead of dropping it.
   store.setAnalyzeYield(pickAnalyzeYield(result));
+  if (!alive()) return false;
+  // Carry the mapping-integrity warning (Task C) and layout provenance
+  // through a restart. `?? null` covers a result persisted before these
+  // fields existed. NOT used to decide well_layout promotion here --
+  // applyMameSnapshot (input snapshot) already made that call above, from its
+  // own `layout_provenance`, before this result file is even read.
+  store.setLayoutProvenance(result.layout_provenance ?? null);
+  if (!alive()) return false;
+  store.setMappingIntegrity(result.mapping_integrity ?? null);
   if (!alive()) return false;
   store.setDistributionStats(result.distribution_stats ?? null);
   if (!alive()) return false;

@@ -316,7 +316,7 @@
         "python-core/sidecar_mame/handlers/activity.py",
         "src/types/mame/activity.ts",
         "src/store/mame/activitySlice.ts",
-        "src/components/mame/panels/ActivityPanel.tsx",
+        "src/components/mame/panels/BuildEvolveproInputPanel.tsx",
         "src/store/slices/sequenceSlice.ts"
       ],
       "symbols": [
@@ -327,7 +327,7 @@
         "selectedGene",
         "translation"
       ],
-      "note": "merge_for_evolvepro handler ↔ TS params/response ↔ MAME store action ↔ selected KURO CDS translation forwarded by ActivityPanel",
+      "note": "merge_for_evolvepro handler ↔ TS params/response ↔ MAME store action ↔ selected KURO CDS translation forwarded by ActivityPanel 2026-08-05: ActivityPanel.tsx 가 삭제되고 BuildEvolveproInputPanel.tsx 가 그 흐름을 맡았다.",
       "severity": "blocking"
     },
     {
@@ -434,7 +434,8 @@
         "python-core/sidecar_mame/handlers/export.py",
         "src/lib/mame/janus.ts",
         "src/lib/mame/janusSettings.ts",
-        "src/types/mame/models.ts"
+        "src/types/mame/models.ts",
+        "src/components/mame/widgets/JanusMappingPanel.tsx"
       ],
       "symbols": [
         "picks_autosave_path",
@@ -442,7 +443,7 @@
         "DEFAULT_JANUS_SETTINGS",
         "build_janus_preview_rows"
       ],
-      "note": "analyze writes two files beside the result workbook: the pick list (legacy5, reported on janus_autosave) and the instrument mapping (device9, reported on janus_mapping_autosave). Both resolve their settings through _janus_settings_from_params, the one resolver the export_janus_mapping RPC also uses; each pins its own output_schema, so the schema is not a setting. DEFAULT_JANUS_SETTINGS (src/lib/mame/janusSettings.ts) in the dialog must keep matching the Python defaults, empty sourceRacks and null destRack included: those mean 'derive the deck from the plates of the run' (JanusSettings.resolve_deck). That one is no longer left to the reader: the janus-defaults check in checks[] pushes the TS defaults through the toRpcParams mapping and compares them with JanusSettings().to_payload(), so a value moving on one side alone fails sync:check. Changing the autosave keys (status, output_path, format, row_count, excluded, excluded_count, errors, warnings) means changing the TS type that renders them.",
+      "note": "analyze writes one file beside the result workbook automatically: the pick list (legacy5, reported on janus_autosave). The instrument mapping (device9) is written only by a manual export_janus_mapping call from JanusMappingPanel (src/components/mame/widgets/JanusMappingPanel.tsx), which on success calls setJanusMappingAutosave to report it on the same janusMappingAutosave store field (removed from the analyze response's janus_mapping_autosave key in v0.15.14, since a robot worklist states a deck and a liquid class that describe the room at export time, not at analyze time). Both the automatic pick list and the manual export resolve their settings through _janus_settings_from_params, the one resolver export_janus_mapping and export_janus_mapping_dry_run also use; each pins its own output_schema, so the schema is not a setting. DEFAULT_JANUS_SETTINGS (src/lib/mame/janusSettings.ts) in the panel must keep matching the Python defaults, empty sourceRacks and null destRack included: those mean 'derive the deck from the plates of the run' (JanusSettings.resolve_deck). That one is no longer left to the reader: the janus-defaults check in checks[] pushes the TS defaults through the toRpcParams mapping and compares them with JanusSettings().to_payload(), so a value moving on one side alone fails sync:check. Changing the autosave keys (status, output_path, format, row_count, excluded, excluded_count, errors, warnings) means changing the TS type that renders them.",
       "severity": "warning"
     },
     {
@@ -490,7 +491,7 @@
         "check_plate_order",
         "missing_from_expected"
       ],
-      "note": "validate_inputs 와 check_plate_order 는 같은 plate_order_payload 모양을 돌려주고, validate_inputs 쪽만 severity(blocking|info)를 덧붙인다. severity 는 well_layout/sample_map_xlsx 유무로 갈리므로 inputSlice 가 그 두 값을 함께 보내지 않으면 정보 수준 불일치가 차단으로 잘못 표시된다. payload 필드를 바꾸면 ValidationResult 와 useAutosaveHydration 의 PlateOrderReport 를 함께 고칠 것.",
+      "note": "validate_inputs 와 check_plate_order 는 같은 plate_order_payload 모양을 돌려주고, validate_inputs 쪽만 severity 를 덧붙인다. 2026-08-05 부터 등급은 blocking 하나뿐이고 well_layout/sample_map_xlsx 로 낮추지 않는다(어느 시트가 분주된 플레이트인지는 그 두 입력이 말해 주지 못한다). validate_inputs 는 이 불일치를 errors 에도 넣어 valid=false 로 만들고, 프론트는 plateOrderFinding 존재만으로 selectCanRun 을 막는다. payload 필드를 바꾸면 ValidationResult 와 useAutosaveHydration 의 PlateOrderReport 를 함께 고칠 것.",
       "severity": "blocking"
     },
     {
@@ -654,9 +655,9 @@
         "src/store/mame/slices/mameSubSteps.ts",
         "src/store/mame/slices/navigationSlice.ts",
         "src/components/mame/layout/MameAppLayout.tsx",
-        "src/components/mame/panels/ActivityPanel.tsx",
         "src/components/mame/steps/SetupStepView.tsx",
         "src/components/mame/steps/AnalyzeStepView.tsx",
+        "src/components/mame/steps/JanusStepView.tsx",
         "src/components/mame/steps/ActivityStepView.tsx"
       ],
       "symbols": [
@@ -667,7 +668,7 @@
         "TabsTrigger",
         "TabsContent"
       ],
-      "note": "MamePhase·ActivityTab·MameSubStepId enum ↔ MameAppLayout TabsTrigger values ↔ ActivityPanel sub-tab values ↔ StepView dispatcher. phase 추가 시 sub-step + TabsContent + StepView 동시 추가",
+      "note": "MamePhase·ActivityTab·MameSubStepId enum ↔ MameAppLayout TabsTrigger values ↔ ActivityPanel sub-tab values ↔ StepView dispatcher. phase 추가 시 sub-step + TabsContent + StepView 동시 추가 2026-08-05: ActivityPanel.tsx 삭제로 항목 제거. sub-tab 값은 ActivityStepView 가 갖는다.",
       "severity": "blocking"
     },
     {
@@ -870,14 +871,35 @@
       "id": "mame-build-evolvepro-input",
       "files": [
         "kuma_core/mame/activity/build_evolvepro_input.py",
+        "kuma_core/mame/activity/verdict_ngs.py",
         "python-core/sidecar_mame/models.py",
         "python-core/sidecar_mame/dispatcher.py",
         "python-core/sidecar_mame/handlers/activity.py",
         "src/types/mame/build_evolvepro_input.ts",
-        "src/lib/ipc-mame/index.ts"
+        "src/lib/ipc-mame/index.ts",
+        "src/lib/mame/buildEvolveproFormStorage.ts",
+        "src/components/mame/panels/BuildEvolveproInputPanel.tsx",
+        "src/store/mame/slices/inputSlice.ts",
+        "src/store/mame/slices/analysisSlice.ts"
       ],
-      "note": "build_evolvepro_input RPC 4-layer 계약: 조립함수(BuildEvolveproResult 필드) <-> BuildEvolveproInputParams Pydantic <-> dispatcher 등록 <-> handler 응답 dict <-> TS BuildEvolveproInputResult/MismatchedVariant <-> ipc-mame client. 응답 키(mismatched 등) <-> TS 필드명 byte-for-byte 일치 유지",
+      "note": "Step 3 단일 파이프라인 계약: 조립/strict NGS gate <-> Pydantic request <-> dispatcher/handler response <-> TS RPC type/client <-> 프로젝트별 form state/UI <-> Analyze round evidence 연결. primary source는 activity_path, gc_data_xlsx, round1_report_xlsx 중 정확히 하나이고 verdict_xlsx는 필수다. 응답 키와 TS 필드명은 byte-for-byte 일치하며 round evidence signature 변경은 완료 서명을 무효화한다.",
       "severity": "warning"
+    },
+    {
+      "id": "mame-mapping-integrity",
+      "files": [
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "src/types/mame/models.ts",
+        "src/components/mame/widgets/MappingIntegrityAlert.tsx"
+      ],
+      "symbols": [
+        "layout_provenance",
+        "mapping_integrity",
+        "LayoutProvenance",
+        "MappingIntegrity"
+      ],
+      "note": "analyze response always carries layout_provenance (which of the three well->sample sources scored this run) and mapping_integrity (whole-run self/cross mapping sanity check, kuma_core/mame/qc/mapping_integrity.py) <-> TS LayoutProvenance/MappingIntegrity <-> the review-screen alert reading mapping_integrity.suspect. useAutosaveHydration.ts's well_layout promotion guard also depends on layout_provenance.source; do not drop the field without checking that guard.",
+      "severity": "blocking"
     },
     {
       "id": "shared-file-menu",

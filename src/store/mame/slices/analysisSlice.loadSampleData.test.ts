@@ -110,7 +110,7 @@ describe("mame analysisSlice.loadSampleData", () => {
     useRoundStore.setState({ rounds: [], active_round_id: null });
   });
 
-  it("resolves 8 bundled resources, creates round + WT-well plate meta, calls activity RPCs, populates input + results", async () => {
+  it("resolves 12 bundled resources, creates round + WT-well plate meta, calls activity RPCs, populates input + results", async () => {
     // activity.upload returns records + plate_meta; hydrated into round.activity
     mockSendRequest.mockImplementation((method: string) => {
       if (method === "activity.upload") {
@@ -127,7 +127,7 @@ describe("mame analysisSlice.loadSampleData", () => {
       }
       return Promise.resolve({});
     });
-    const store = makeStore();
+    const store = makeStore({ projectPath: "/project" });
 
     await store.loadSampleData();
 
@@ -140,14 +140,12 @@ describe("mame analysisSlice.loadSampleData", () => {
       "samples/mame/07_mame_activity_long.csv",
       "samples/mame/02_mame_barcode_seeds.xlsx",
       "samples/mame/egfp_with_flanks.fa",
-      "samples/mame/08_mame_evolvepro_raw.xlsx",
       "samples/mame/09_mame_agilent_rep_batch.xlsx",
       "samples/mame/10_mame_gc_prenormalised.xlsx",
       "samples/mame/11_mame_gc_fid_round1_raw.xlsx",
-      "samples/mame/12_mame_agilent_numeric_index.xlsx",
       "samples/mame/sample_analysis_result.json",
     ];
-    expect(resolveResource).toHaveBeenCalledTimes(14);
+    expect(resolveResource).toHaveBeenCalledTimes(12);
     for (const p of expectedPaths) {
       expect(resolveResource).toHaveBeenCalledWith(p);
     }
@@ -212,18 +210,18 @@ describe("mame analysisSlice.loadSampleData", () => {
     expect(store.wells).toEqual(sampleWells());
     expect(store.selectedWell).not.toBeNull();
 
-    expect(seedBuildEvolveproForm).toHaveBeenCalledWith({
-      layoutXlsx: "/resolved/samples/mame/06_mame_plate_layout.xlsx",
-      gcDataXlsx: "/resolved/samples/mame/10_mame_gc_prenormalised.xlsx",
-      round1ReportXlsx:
-        "/resolved/samples/mame/11_mame_gc_fid_round1_raw.xlsx",
-      remeasureReportXlsx:
-        "/resolved/samples/mame/09_mame_agilent_rep_batch.xlsx",
-      repBatchXlsx:
-        "/resolved/samples/mame/12_mame_agilent_numeric_index.xlsx",
-      prevEvolveproXlsx:
-        "/resolved/samples/mame/08_mame_evolvepro_raw.xlsx",
-    });
+    expect(seedBuildEvolveproForm).toHaveBeenCalledWith(
+      {
+        activityPath: "/resolved/samples/mame/07_mame_activity_long.csv",
+        layoutXlsx: "/resolved/samples/mame/06_mame_plate_layout.xlsx",
+        gcDataXlsx: "/resolved/samples/mame/10_mame_gc_prenormalised.xlsx",
+        round1ReportXlsx:
+          "/resolved/samples/mame/11_mame_gc_fid_round1_raw.xlsx",
+        remeasureReportXlsx:
+          "/resolved/samples/mame/09_mame_agilent_rep_batch.xlsx",
+      },
+      "/project",
+    );
 
     // 6. 성공 메시지
     expect(store.analyzeMessage).toMatch(/loaded/i);
