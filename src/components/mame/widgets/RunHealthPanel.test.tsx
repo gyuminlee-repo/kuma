@@ -1,7 +1,9 @@
 import { render, screen, within } from "@testing-library/react";
+import { useTranslation } from "react-i18next";
 import { describe, expect, it } from "vitest";
 import en from "@/locales/en.json";
 import { VERDICT_LABEL } from "@/lib/mame/verdictColors";
+import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { RunHealthBreakdown, RunHealthData, VerdictClass } from "@/types/mame/models";
 import { RunHealthPanel } from "./RunHealthPanel";
 
@@ -69,6 +71,20 @@ function closestOrThrow(node: HTMLElement, sel: string): HTMLElement {
   const found = node.closest(sel);
   if (!found) throw new Error(`no ${sel} at or above "${node.textContent}"`);
   return found as HTMLElement;
+}
+
+/**
+ * Records the identity of the two mutant-recovery-bar dependencies this file
+ * cannot control directly, so the recovery test below can assert its own
+ * premise instead of assuming it. Rendered as a sibling of the panel: `t` and
+ * the store selection behave the same wherever they are read.
+ */
+function DepIdentityProbe({ sink }: { sink: { t: unknown[]; replicates: unknown[] } }) {
+  const { t } = useTranslation();
+  const replicates = useMameAppStore((state) => state.replicates);
+  sink.t.push(t);
+  sink.replicates.push(replicates);
+  return null;
 }
 
 describe("RunHealthPanel, recovery / detected / class table", () => {
@@ -172,5 +188,57 @@ describe("RunHealthPanel, recovery / detected / class table", () => {
     expect(
       screen.getByRole("heading", { name: "Verdict breakdown" }).className,
     ).toContain("sr-only");
+  });
+
+  /**
+   * The mutant-recovery bar is memoised. Before `recoveredMutants` joined its
+   * dependency list, a re-analysis that moved only the recovered count left the
+   * bar (and its "not recovered" legend) on the previous run while the recovery
+   * header above it already showed the new one, which is exactly the
+   * contradiction the comment above that memo promises cannot happen.
+   *
+   * The fixture is built so the memo has one changed input and no others:
+   *  - total_mutants stays 4. Moving it too would recompute through a
+   *    dependency that was already listed, and the test would pass either way.
+   *    Holding it fixed is also the realistic case: total_mutants is derived
+   *    from the expected-mutations workbook, and changing that workbook clears
+   *    the results instead of re-rendering with them.
+   *  - the store is never written, so `replicates` keeps its identity, and `t`
+   *    is stable across a rerender.
+   * The last two are asserted from the probe rather than assumed, so a store or
+   * i18n change that breaks the premise fails here loudly instead of quietly
+   * turning this into a test that cannot fail.
+   */
+  it("moves the not-recovered figure when only the recovered count changed", () => {
+    const sink = { t: [] as unknown[], replicates: [] as unknown[] };
+    const tree = (recovered: number) => (
+      <>
+        <DepIdentityProbe sink={sink} />
+        <RunHealthPanel
+          health={makeHealth({
+            recovered_mutants: recovered,
+            recovery_rate: recovered / 4,
+          })}
+          sections={["verdict-breakdown"]}
+        />
+      </>
+    );
+
+    const { rerender } = render(tree(3));
+    expect(screen.getByTestId("run-health-recovery")).toHaveTextContent("3/4 (75%)");
+    // 4 designed - 3 recovered.
+    expect(screen.getByText("Not recovered: 1")).toBeInTheDocument();
+
+    rerender(tree(2));
+
+    // Premise: every other input to the memo held its identity across the
+    // rerender, so a moved figure can only come from the added dependency.
+    expect(sink.t.length).toBeGreaterThan(1);
+    expect(new Set(sink.t).size).toBe(1);
+    expect(new Set(sink.replicates).size).toBe(1);
+
+    expect(screen.getByTestId("run-health-recovery")).toHaveTextContent("2/4 (50%)");
+    expect(screen.getByText("Not recovered: 2")).toBeInTheDocument();
+    expect(screen.queryByText("Not recovered: 1")).not.toBeInTheDocument();
   });
 });

@@ -2397,13 +2397,13 @@
     "description": "最新更新亮点。",
     "gotItBtn": "知道了",
     "highlights": [
-      "JANUS 映射文件现在与实验室接种所用的工作簿一致：8 列，板以名称而非编号写入。",
-      "步骤 3 只需填写一个转移体积，不再是两处，默认值为本实验室使用的 70 uL。",
-      "在判定检查器中点击 replicate 会打开该板副本，与点击其 well 或表格行的效果一致。",
-      "点击每个置信度指标会弹出说明，写明它统计的是什么，以及本次运行是与哪个阈值比较的（若有）。",
-      "Verdict 图例的每一项在鼠标悬停时会以您使用的语言自我说明，出现图例的两处都是如此。"
+      "示例数据不再把从未执行过的 cross-talk 检查报告为正常，未执行就显示未执行。",
+      "示例分析 fixture 已作为打包资源随应用一同发布，因此 demo 在发布版本中也能读取，而不再只限于开发环境。",
+      "重新打开已保存的运行会一并恢复其布局之外的记录条数，而不是什么都不显示。",
+      "回收率进度条与其上方的标题栏不会再同时显示来自两次不同运行的数值。",
+      "KURO 板预览不再把两个面板标注为 deck rack，那里现在填的是板名称。"
     ],
-    "highlightsStamp": "0.16.1+3b52e4c8"
+    "highlightsStamp": "0.16.2+b043584b"
   },
   "primerDisplay": {
     "copySeqTitle": "复制序列",
@@ -2862,12 +2862,12 @@
     "empty": "No mapping to preview. Design primers first.",
     "echoTab": "Echo 525 (384-well)",
     "janusTab": "JANUS (96-well x 2)",
-    "rack1Label": "Rack 1 (Forward source)",
-    "rack2Label": "Rack 2 (Reverse source)",
+    "forwardSourceLabel": "Forward primer 源板",
+    "reverseSourceLabel": "Reverse primer 源板",
     "legend": "Color legend",
-    "legendForward": "Forward primer (Echo source / Janus Rack 1)",
-    "legendReverse": "Reverse primer (Echo source / Janus Rack 2)",
-    "legendDest": "Destination (Echo dest / Janus Rack 3)",
+    "legendForward": "Forward primer (Echo source / JANUS forward 源板)",
+    "legendReverse": "Reverse primer (Echo source / JANUS reverse 源板)",
+    "legendDest": "目标 (Echo dest / JANUS 目标板)",
     "legendDestMerged": "Both F+R arrived",
     "legendDestPartial": "Only F or R arrived",
     "mappingRange": "Mapping range",

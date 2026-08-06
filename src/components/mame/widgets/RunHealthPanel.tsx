@@ -166,7 +166,14 @@ function VerdictBreakdown({
         </div>
       </div>
     );
-  }, [replicates, totalMutants, t]);
+    // recoveredMutants must stay listed. total_mutants is derived from the
+    // expected-mutations workbook alone, and changing that workbook clears the
+    // results, so a re-analysis of the same workbook (a different native-barcode
+    // subset, or the same run folder after more reads landed) moves the
+    // recovered count with every other input here identical. While it was
+    // missing, such a re-run left this bar and its "not recovered" count on the
+    // previous run while the recovery header above it already showed the new one.
+  }, [replicates, totalMutants, recoveredMutants, t]);
 
   // AC10: run-level per-class counts summed across every plate.
   const classCounts = VERDICT_SEGMENTS.map(({ key, cls, label, fill }) => ({

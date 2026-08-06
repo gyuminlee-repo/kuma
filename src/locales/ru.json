@@ -2397,13 +2397,13 @@
     "description": "Основные изменения последнего обновления.",
     "gotItBtn": "Понятно",
     "highlights": [
-      "Файл сопоставления JANUS теперь совпадает с книгой, по которой лаборатория делает посев: восемь столбцов, планшеты названы, а не пронумерованы.",
-      "Шаг 3 запрашивает один объём переноса вместо двух, по умолчанию 70 uL, которые использует эта лаборатория.",
-      "Щелчок по реплике в инспекторе разбора открывает эту копию планшета, как это уже делал щелчок по её лунке или по строке таблицы.",
-      "Каждый показатель достоверности теперь открывает всплывающее окно: что он считает и с каким порогом, если он был, сравнивался запуск.",
-      "Записи легенды verdict поясняют себя при наведении, на вашем языке, в обоих местах, где они появляются."
+      "Пример данных больше не сообщает, что проверка cross-talk чиста, если эта проверка вообще не выполнялась.",
+      "Фикстура примерного анализа поставляется вместе с приложением как упакованный ресурс, поэтому demo читает её и в собранном релизе, а не только при разработке.",
+      "При повторном открытии сохранённого запуска возвращается и число его записей вне раскладки, а не пустое место.",
+      "Полоса восстановления и заголовок над ней больше не могут показывать значения из двух разных запусков.",
+      "Предпросмотр планшетов KURO больше не подписывает свои две панели как deck rack: там теперь стоят имена планшетов."
     ],
-    "highlightsStamp": "0.16.1+3b52e4c8"
+    "highlightsStamp": "0.16.2+b043584b"
   },
   "primerDisplay": {
     "copySeqTitle": "Копировать sequence",
@@ -2862,12 +2862,12 @@
     "empty": "No mapping to preview. Design primers first.",
     "echoTab": "Echo 525 (384-well)",
     "janusTab": "JANUS (96-well x 2)",
-    "rack1Label": "Rack 1 (Forward source)",
-    "rack2Label": "Rack 2 (Reverse source)",
+    "forwardSourceLabel": "Планшет-источник forward-праймеров",
+    "reverseSourceLabel": "Планшет-источник reverse-праймеров",
     "legend": "Color legend",
-    "legendForward": "Forward primer (Echo source / Janus Rack 1)",
-    "legendReverse": "Reverse primer (Echo source / Janus Rack 2)",
-    "legendDest": "Destination (Echo dest / Janus Rack 3)",
+    "legendForward": "Forward-праймер (Echo source / планшет-источник forward JANUS)",
+    "legendReverse": "Reverse-праймер (Echo source / планшет-источник reverse JANUS)",
+    "legendDest": "Назначение (Echo dest / целевой планшет JANUS)",
     "legendDestMerged": "Both F+R arrived",
     "legendDestPartial": "Only F or R arrived",
     "mappingRange": "Mapping range",

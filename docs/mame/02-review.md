@@ -12,28 +12,36 @@ per-barcode mutation verdict 와 96-well plate view 를 나란히 본다.
 | `WRONG_AA` | 기대 위치 변이 불일치, 기대 변이 누락, 또는 window 밖 예상외 변이 |
 | `AMBIGUOUS` | 기대 변이는 모두 일치하나 인접(±codon window) 추가 변이 또는 indel 이벤트 신호 |
 | `MIXED` | well 내 혼합 (유의한 2nd allele) |
-| `FRAMESHIFT` | frameshift window 내 연속 nucleotide indel |
+| `FRAMESHIFT` | consensus 의 순 삽입·결실 길이가 3 의 배수가 아니어서 reading frame 이 어긋남 |
 | `MANY` | cutoff·설계를 모두 초과한 과다 AA 변이 |
 | `LOWDEPTH` | read depth 미달 (또는 depth 헤더 부재 시 file-size fallback) |
 | `NO_CALL` | consensus N(no-call) 과다로 AA call 신뢰 불가 |
 
 ## 2.1 Inputs
 
-실행 입력(run 폴더, expected 워크북, reference FASTA, sample map)을 고르고 Run 또는 Validate 를 누른다. Janus 장비 설정은 이 화면에 없다. step 3 소관이다.
+실행 입력(run 폴더, expected 워크북, reference FASTA, 그리고 이 run 이 점유한다고 선언하는 웰)을 고르고 Run 또는 Validate 를 누른다. 웰 선택은 "사용할 웰" 패널에서 하고, 손대지 않으면 앞쪽 웰을 쓴다. sample map 은 v0.16.0 에 입력에서 빠졌다. Janus 장비 설정은 이 화면에 없다. step 3 소관이다.
 
 ### 입력을 바꾸면 이전 결과가 지워진다 (v0.15.14)
 
-run 폴더, expected 워크북, reference FASTA, sample map 중 하나라도 바꾸면 이전 실행이 만든 것이 지워진다. verdict 와 플레이트 맵, 산출물 안내가 모두 사라지고 2.2 는 실행 전 상태로 돌아간다. 끝난 실행의 화면이 새 입력의 결과처럼 보이는 것을 막기 위한 동작이다. 같은 경로를 다시 골랐을 때는 아무 일도 일어나지 않는다. 백엔드로 보내는 분석 파라미터(mode, CDS 좌표, raw run 파라미터 등)도 같은 규칙을 따른다. 출력 경로는 입력이 아니므로 무효화하지 않으며 화면 표시용 임계값인 `minFilteredDepth` 도 마찬가지다.
+run 폴더, expected 워크북, reference FASTA, 선언한 웰 중 하나라도 바꾸면 이전 실행이 만든 것이 지워진다. verdict 와 플레이트 맵, 산출물 안내가 모두 사라지고 2.2 는 실행 전 상태로 돌아간다. 끝난 실행의 화면이 새 입력의 결과처럼 보이는 것을 막기 위한 동작이다. 같은 경로를 다시 골랐을 때는 아무 일도 일어나지 않는다. 백엔드로 보내는 분석 파라미터(mode, CDS 좌표, raw run 파라미터 등)도 같은 규칙을 따른다. 출력 경로는 입력이 아니므로 무효화하지 않으며 화면 표시용 임계값인 `minFilteredDepth` 도 마찬가지다.
 
 ## 2.2 Review
 
-좌측: verdict table (NB01/NB02/NB03/ALL 필터). 우측: 96-well plate map (colorblind-safe toggle).
+좌측: verdict table. 우측: 96-well plate map (colorblind-safe toggle).
+
+verdict table 위의 탭은 `FINAL`, `ALL`, 그리고 이번 실행에 실제로 있는 native barcode 다(`src/components/mame/widgets/VerdictTable.tsx`). barcode 탭은 실행이 낸 verdict 에서 만들어지므로 NB01/NB02/NB03 으로 고정돼 있지 않다. `FINAL` 은 변이마다 선정된 replicate 의 웰만 남긴다.
 
 ### Per-plate verdict bar (NGS 효율 그래프)
 
 각 plate 별 verdict 비율 stacked bar chart. PPT slide 6 의 "NGS 효율" 그래프와 동일 표현.
 
 <!-- TODO: insert screenshot of verdict bar chart -->
+
+### 판정 근거를 화면에서 여는 법 (v0.16.1)
+
+- **replicate 비교 행**: verdict 상세의 replicate 목록이 버튼이다. 행을 누르면 그 플레이트 복제본이 선택되고, 상세와 플레이트 강조와 verdict table 이 함께 따라 움직인다. 다른 화면에서 같은 웰을 누른 것과 같은 동작이다.
+- **confidence 지표 팝업**: 지표 이름을 누르면 무엇을 센 값인지, 파이프라인 어느 단계에서 센 값인지, 판정을 움직일 수 있는 값인지가 나온다. 이번 실행이 대조한 임계값도 함께 적는다. 열 개 지표 중 일곱 개는 진단용이고 판정을 바꾸지 않으며, 팝업이 그렇게 적는다. 사이드카가 임계값을 보고하기 전에 저장된 결과를 복원했다면 숫자를 지어내지 않고 알 수 없다고 적는다.
+- **verdict 범례 설명**: 플레이트 맵 범례와 plate 별 verdict bar 양쪽에서 클래스에 hover 하면 그 클래스의 뜻이 나온다. 웰이 하나도 없는 클래스도 마찬가지다. 문구는 위 8-class 표와 같은 내용이며 10개 로케일로 번역돼 있다.
 
 ### 매핑 정합성 경고 (v0.15.14)
 
@@ -52,7 +60,7 @@ analyze 응답에 `layout_provenance` 가 항상 실린다. well 과 sample 의 
 | `explicit_well_layout` | 운용자가 준 well layout |
 | `inferred_draft_layout` | 실행 시점의 변이 목록에서 계산한 초안 |
 
-세 번째 값 `sample_map_xlsx` 는 v0.15.24 에 사라졌다. sample map 은 플레이트를 한 번 더 적는 파일이었고 변이 목록과 나란히 유지되지 못했다.
+세 번째 값 `sample_map_xlsx` 는 v0.16.0 에 사라졌다. sample map 은 플레이트를 한 번 더 적는 파일이었고 변이 목록과 나란히 유지되지 못했다.
 
 읽은 워크북 경로(`expected_path`)와 이 run 이 점유한다고 선언한 웰(`selected_wells`)이 함께 실린다. `selected_wells` 가 null 이면 앞쪽 N+1 웰을 쓴 것이고, 이는 이 필드가 생기기 전 모든 run 의 동작과 같다. 추론된 레이아웃이 운용자가 지정한 레이아웃처럼 보이지 않게 하려는 필드다.
 

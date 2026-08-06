@@ -1,5 +1,7 @@
 # Changelog
 
+> **주의 (2026-08-07)**: 아래는 각 버전 시점의 기록이며 그대로 둔다. JANUS 관련 항목(v0.9.9.0 의 "JANUS (96-well, 2 rack) 매핑 미리보기", v0.9.9.3 의 "JANUS 어댑터 rack 할당")은 그 뒤 두 번 무너졌으므로 현재 동작으로 읽지 말 것. 어댑터는 `asp_rack` 을 되읽지 않고 `role` 로 분기하며(`src/lib/echoJanusAdapter.ts:79-101`), rack 값은 정수 deck 번호가 아니라 플레이트 이름 문자열이다. 현재 형식의 정본은 `kuma_core/shared/janus_deck.py:37-46` (8열 헤더) 과 [MAME step 3 문서](../mame/03-janus.md) 다.
+
 ## v0.13.12: reference-sequence domains, guided onboarding, update recommendations
 
 - 새 프로젝트 최초 진입 시 공통 내비게이션과 Kuro의 워크플로·작업 영역·인스펙터를 순서대로 강조하는 spotlight 투어가 표시됩니다. Mame은 처음 진입할 때 별도 투어를 제공합니다.

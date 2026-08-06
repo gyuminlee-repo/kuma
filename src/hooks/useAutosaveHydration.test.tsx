@@ -8,7 +8,7 @@ import { RESULT_CONTRACT } from "@/lib/mame/resultContract";
 import { useRoundStore } from "@/store/round/roundSlice";
 import type { AutosaveSnapshot } from "@/lib/autosave";
 import type { SdmPrimerResult } from "@/types/models";
-import type { AnalyzeResult, ReplicateResult, RunHealthData, VerdictRecord, WellEntry } from "@/types/mame/models";
+import type { AnalyzeResult, OffLayoutRecords, ReplicateResult, RunHealthData, VerdictRecord, WellEntry } from "@/types/mame/models";
 import type { Round } from "@/types/round";
 import { BUILD_EVOLVEPRO_DEFAULT_STATE, createBuildEvolveproCompletion } from "@/lib/mame/buildEvolveproFormStorage";
 import { useMissingInputs } from "@/lib/mame/missingInputs";
@@ -145,6 +145,12 @@ const ANALYZE_RESULT: AnalyzeResult = {
     suggested_method: "fixed_50",
     bimodal: false,
   },
+};
+
+/** A run that counted reads in a well its layout never named. */
+const OFF_LAYOUT_RECORDS: OffLayoutRecords = {
+  count: 7,
+  wells: [{ well: "H12", records: 7 }],
 };
 
 const WELL: WellEntry = {
@@ -310,6 +316,29 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     expect(st.replicates).toEqual([REPLICATE]);
     expect(st.summary).toEqual(ANALYZE_RESULT.summary);
     expect(st.distributionStats).toEqual(ANALYZE_RESULT.distribution_stats);
+  });
+
+  it("carries the off-layout records of the saved run through a restart", async () => {
+    // The saved run counted reads from wells its layout does not name. Restoring
+    // the rest of the report but not this leaves OffLayoutRecordsNotice silent,
+    // and its silence already means "no stray wells" -- so a dropped value does
+    // not read as missing, it reads as a clean plate.
+    hooks.readMameResultSnapshot.mockResolvedValue({
+      status: "ok",
+      snapshot: {
+        schema: 1,
+        saved_at: new Date().toISOString(),
+        kuma_version: "0.0.0-test",
+        result: { ...ANALYZE_RESULT, off_layout_records: OFF_LAYOUT_RECORDS },
+      },
+    });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
+    });
+    expect(useMameAppStore.getState().offLayoutRecords).toEqual(OFF_LAYOUT_RECORDS);
   });
 
   it("skips restore silently when no result file exists", async () => {

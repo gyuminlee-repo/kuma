@@ -125,68 +125,33 @@ def _build_consensus_dir(workdir: Path) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Serialisers (mirrors python-core/sidecar_mame/handlers/analyze.py)
+# Serialisers and run health: taken from the sidecar handlers, never copied
 # ---------------------------------------------------------------------------
-
-def _serialize_verdict(vr) -> dict:
-    t = vr.translated
-    b = t.barcode
-    return {
-        "native_barcode": b.native_barcode,
-        "custom_barcode": b.custom_barcode,
-        "file_size_kb": b.file_size_kb,
-        "read_count": b.read_count,
-        "n_mixed_positions": b.n_mixed_positions,
-        "max_minor_allele_fraction": b.max_minor_allele_fraction,
-        "n_low_depth_positions": b.n_low_depth_positions,
-        "consensus_n_fraction": b.consensus_n_fraction,
-        "n_low_quality_bases": b.n_low_quality_bases,
-        "n_input_reads": b.n_input_reads,
-        "n_aligned_reads": b.n_aligned_reads,
-        "n_mapq_failed": b.n_mapq_failed,
-        "n_span_failed": b.n_span_failed,
-        "source_path": str(b.source_path),
-        "aa_sequence": t.aa_sequence,
-        "observed_nt_changes": list(t.observed_nt_changes),
-        "observed_aa_changes": list(t.observed_aa_changes),
-        "n_no_call_aa": t.n_no_call_aa,
-        "expected_mutations": list(vr.expected_mutations),
-        "mutant_id": getattr(vr, "mutant_id", ""),
-        "verdict": vr.verdict.value,
-        "verdict_notes": vr.verdict_notes,
-    }
-
-
-def _serialize_replicate(rr) -> dict:
-    return {
-        "mutant_id": rr.mutant_id,
-        "selected_plate": rr.selected_plate,
-        "selection_reason": rr.selection_reason,
-        "failed": bool(rr.failed),
-        "plate_keys": list(rr.plate_verdicts.keys()),
-        "plate_verdicts": {
-            plate: _serialize_verdict(vr)
-            for plate, vr in rr.plate_verdicts.items()
-        },
-        "is_fallback": bool(getattr(rr, "is_fallback", False)),
-        "fallback_reason": getattr(rr, "fallback_reason", None),
-    }
-
-
-def _summarize(verdicts: list) -> dict:
-    total = len(verdicts)
-    pass_count = sum(1 for v in verdicts if v.verdict.value == "PASS")
-    amb = sum(1 for v in verdicts if v.verdict.value == "AMBIGUOUS")
-    mixed = sum(1 for v in verdicts if v.verdict.value == "MIXED")
-    fail = total - pass_count - amb
-    return {
-        "total": total,
-        "pass_count": pass_count,
-        "ambiguous_count": amb,
-        "mixed_count": mixed,
-        "fail_count": fail,
-    }
-
+#
+# This module used to carry its own copy of these three functions, and the copy
+# went stale without anything failing: v0.16.1 added
+# ``median_minor_allele_fraction`` and ``consensus_n_fraction_evaluable`` to the
+# real ``_serialize_verdict`` and the fixture kept shipping 22 keys, so a user
+# exploring the app with sample data saw a Confidence popup that could not state
+# its noise floor. The three functions are pure over the verdict records: they
+# read no sidecar state, send no notifications and take no params, so there is
+# nothing a copy buys. Importing them makes that class of drift impossible
+# rather than merely detectable.
+#
+# ``handle_get_run_health`` is here for the same reason. This module used to
+# mirror its response dict by hand, and the mirror lost ``cross_talk_status``
+# (added v0.13.23.0): the fixture then shipped an empty candidate list with no
+# status, which the panel reads as "the check ran and the plate is clean" when
+# the truth is that no barcode distribution existed and the check never ran.
+# The handler reads the analyze artefacts out of the module-global sidecar
+# state this script already populates for ``handle_get_plate_data``, so calling
+# it needs nothing a hand-built dict does not.
+from sidecar_mame.handlers.analyze import (
+    _serialize_replicate,
+    _serialize_verdict,
+    _summarize,
+)
+from sidecar_mame.handlers.health import handle_get_run_health
 
 # ---------------------------------------------------------------------------
 # State reset helper for in-process runs (sidecar state is module-global)
@@ -267,52 +232,12 @@ def main() -> None:
         wells = plate_result["wells"]
         print(f"  wells: {len(wells)}")
 
-        # get_run_health via kuma_core directly
-        from kuma_core.mame.distribution import compute_distribution_stats
-        from kuma_core.mame.health import build_run_health
-
-        dist = compute_distribution_stats(
-            [v.translated.barcode.file_size_kb for v in verdicts]
-        )
-
-        health = build_run_health(
-            verdicts=verdicts,
-            replicates=replicates,
-            run_meta=None,           # no MinKNOW CSV data for synthetic fixture
-            distribution_stats=dist,
-            designed_mutant_ids=None,
-        )
-
-        # Serialise RunHealthData to match handle_get_run_health response shape
-        cross_talk_payload = [
-            {
-                "well": c.well,
-                "custom_barcode": c.custom_barcode,
-                "read_count": c.read_count,
-                "neighbor_avg": c.neighbor_avg,
-                "z_score": c.z_score,
-                "severity": c.severity,
-                "note": c.note,
-            }
-            for c in health.cross_talk_candidates
-        ]
-
-        run_health_dict = {
-            "per_plate_summary": health.per_plate_summary,
-            "file_size_distribution": health.file_size_distribution,
-            "suggested_cutoff_kb": health.suggested_cutoff_kb,
-            "bimodal": health.bimodal,
-            "suggested_method": health.suggested_method,
-            "pore_yield_pct": health.pore_yield_pct,
-            "throughput_timeline": health.throughput_timeline,
-            "barcode_distribution": health.barcode_distribution,
-            "cross_talk_candidates": cross_talk_payload,
-            "recovered_mutants": health.recovered_mutants,
-            "total_mutants": health.total_mutants,
-            "recovery_rate": health.recovery_rate,
-        }
+        # get_run_health off the same cached state, via the same handler the app
+        # calls over JSON-RPC.
+        run_health_dict = handle_get_run_health({})
 
         print(f"  per_plate_summary keys: {list(run_health_dict['per_plate_summary'].keys())}")
+        print(f"  cross_talk_status: {run_health_dict['cross_talk_status']}")
 
         # Build fixture JSON
         fixture = {

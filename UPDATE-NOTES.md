@@ -2,6 +2,8 @@
 
 [한국어](UPDATE-NOTES.ko.md) | **English**
 
+This archive stops at v0.13.30. Releases from v0.14 onward are recorded in [CHANGELOG.md](CHANGELOG.md), not here, so every note below describes the release it sits under rather than current behaviour.
+
 ---
 
 ## v0.13.30 (2026-07-29)

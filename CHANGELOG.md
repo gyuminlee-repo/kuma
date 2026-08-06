@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.16.2 (What the demo shows, what a reopened run remembers, and what the docs still claimed)
+
+v0.16.1 shipped the eight column instrument sheet and the review popups. Checking what it left behind turned up four things, none of them in the code it changed.
+
+The sample run health panel was telling users that a check had passed when the check had never run. The fixture generator kept its own copy of the run health response and had been missing `cross_talk_status` since v0.13.23.0; the panel reads a missing status as normal, finds no candidates, and prints "No cross-talk candidates detected". The generator now calls the real handler instead of mirroring it by hand, the same repair applied to the verdict serializer, and the fixture states `not_run`. That fixture was also never declared in the bundle, so a packaged build could not read it at all. The gap that hid this is closed too: the cross-layer rule requiring every sample file to be declared existed in writing but nothing enforced it, and now something does.
+
+Reopening a saved run lost its off-layout record count. The value was in the saved file the whole time; only the read was missing, and the notice renders nothing for a null count exactly as it does for a count of zero, so a restored run looked clean on that axis rather than looking unmeasured.
+
+The recovery bar could contradict the header above it. Run health is fetched without being awaited, so a second analysis navigates to the review screen while the previous run health is still on screen, the memo computes once against the old recovered count, and the arriving value does not invalidate it because the other dependencies did not change. The header recomputes on every render, the bar does not, and the two disagreed.
+
+The documentation still described a sample map input removed in v0.16.0, still explained FRAMESHIFT by a code path the engine documents as unreachable, and cited a version that was never released.
+
+### Highlights
+
+- The bundled sample no longer reports a cross-talk check as clean when that check never ran.
+- The sample analysis fixture is bundled with the app, so the demo reads it in a released build rather than only in development.
+- Reopening a saved run brings back its off-layout record count instead of showing nothing.
+- The recovery bar and the header above it can no longer show figures from two different runs.
+- The KURO plate preview stops labelling its two panels as deck racks, which are plate names now.
+
+### Fixed
+
+- v0.16.2: The MAME sample fixture reports `cross_talk_status`. The generator now imports the real run health handler rather than assembling the response by hand, so the class of drift that hid this cannot recur; a test pins the handler identity and the key set.
+- v0.16.2: `samples/mame/sample_analysis_result.json` is declared in the bundle resources. It never was, so a packaged build silently failed to read it and the sample run health panel stayed empty.
+- v0.16.2: A saved run restores its off-layout record count. The count was already written to the result file; only the read was missing, and the notice cannot distinguish a null from a zero, so the omission was silent.
+- v0.16.2: The per-plate recovery bar recomputes when the recovered count changes. It previously kept the figure from the previous run whenever run health arrived after the review screen had already drawn, which showed a bar and a header describing different runs.
+- v0.16.2: The KURO Janus plate preview no longer calls its two panels Rack 1 and Rack 2. Those are panel indices, and since v0.16.1 a deck rack is a plate name, so the numbers read as deck positions that do not exist.
+- v0.16.2: The sample verdict mock carries the noise floor and the evaluable flag, so the confidence popups demonstrate what they do when the app is opened with sample data.
+
+### Changed
+
+- v0.16.2: Documentation corrected in several places: the sample map removed in v0.16.0 was still listed as an analyze input, including in the step contract agents read; the FRAMESHIFT explanation described a code path the verdict engine documents as unreachable rather than the net indel length rule that actually fires; two pages cited v0.15.24, a version that was never released.
+
 ## v0.16.1 (The robot gets the sheet the lab actually uses, and the review screen explains itself)
 
 The JANUS mapping file was transcribed from a primer dispensing workbook and had nine columns, one of them carrying a liquid class string and two of them carrying integer deck positions. The workbook the lab now seeds cells from has eight: the liquid class column is gone, and the racks are plate names, which is what the JANUS software matches on. A file describing deck position 1 to an instrument that looks up "Stock plate1" is a file the operator has to fix by hand. KURO and MAME share one definition of that sheet, so both now write the new shape.

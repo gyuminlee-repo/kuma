@@ -1345,12 +1345,12 @@
     "empty": "미리보기 없음. 먼저 프라이머를 디자인하세요.",
     "echoTab": "Echo 매핑 파일",
     "janusTab": "Janus 매핑 파일",
-    "rack1Label": "Rack 1 (Forward source)",
-    "rack2Label": "Rack 2 (Reverse source)",
+    "forwardSourceLabel": "Forward 프라이머 소스 플레이트",
+    "reverseSourceLabel": "Reverse 프라이머 소스 플레이트",
     "legend": "색상 범례",
-    "legendForward": "Forward 프라이머 (Echo source / Janus Rack 1)",
-    "legendReverse": "Reverse 프라이머 (Echo source / Janus Rack 2)",
-    "legendDest": "Destination (Echo dest / Janus Rack 3)",
+    "legendForward": "Forward 프라이머 (Echo source / JANUS forward 소스 플레이트)",
+    "legendReverse": "Reverse 프라이머 (Echo source / JANUS reverse 소스 플레이트)",
+    "legendDest": "대상 (Echo dest / JANUS 대상 플레이트)",
     "legendDestMerged": "F+R primer 모두 도착",
     "legendDestPartial": "F 또는 R 한쪽만 도착",
     "mappingRange": "매핑 범위",
@@ -2430,13 +2430,13 @@
     "description": "최신 업데이트의 주요 변경 사항입니다.",
     "gotItBtn": "확인",
     "highlights": [
-      "JANUS 매핑 파일이 실험실에서 접종에 쓰는 워크북과 같은 형태가 됐습니다. 8열이고, plate 는 번호가 아니라 이름으로 들어갑니다.",
-      "스텝 3 은 이송 부피를 두 군데가 아니라 한 번만 묻습니다. 기본값은 이 실험실이 쓰는 70 uL 입니다.",
-      "판정 인스펙터에서 replicate 를 클릭하면 그 plate 사본이 열립니다. well 이나 테이블 행을 클릭했을 때와 같습니다.",
-      "각 신뢰도 지표를 누르면 그 값이 무엇을 센 것인지, 실행이 어떤 임계값과 비교됐는지(있는 경우) 알려주는 팝업이 열립니다.",
-      "판정 범례의 각 항목은 마우스를 올리면 사용 중인 언어로 스스로를 설명합니다. 범례가 나오는 두 곳 모두에서 그렇습니다."
+      "샘플 데이터가 한 번도 실행되지 않은 cross-talk 검사를 이상 없음으로 보고하지 않습니다. 미실행이면 미실행이라고 표시합니다.",
+      "샘플 분석 fixture 가 앱에 함께 묶이는 리소스로 선언됐습니다. 개발 빌드에서만이 아니라 릴리스 빌드에서도 데모가 이 파일을 읽습니다.",
+      "저장한 run 을 다시 열면 레이아웃 밖 레코드 건수도 함께 돌아옵니다. 전에는 아무것도 표시되지 않아 0 건처럼 보였습니다.",
+      "재현율 막대와 그 위 헤더가 서로 다른 두 실행의 수치를 동시에 보여주는 일이 없어졌습니다.",
+      "KURO 플레이트 미리보기가 두 패널을 deck rack 으로 부르지 않습니다. 이제 그 자리에 들어가는 것은 플레이트 이름입니다."
     ],
-    "highlightsStamp": "0.16.1+3b52e4c8"
+    "highlightsStamp": "0.16.2+b043584b"
   },
   "primerDisplay": {
     "copySeqTitle": "서열 복사",

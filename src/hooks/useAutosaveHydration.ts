@@ -1593,6 +1593,15 @@ async function restoreMameResult(
   if (!alive()) return false;
   store.setMappingIntegrity(result.mapping_integrity ?? null);
   if (!alive()) return false;
+  // Records that landed outside the run layout. Unlike `contamination` below,
+  // null here has no "not measured" reading: OffLayoutRecordsNotice renders
+  // nothing for null and nothing for a zero count, so leaving it unset made a
+  // restored run look like a plate with no stray wells instead of a plate
+  // nobody asked about. `?? null` covers a result persisted before the key
+  // existed. Ordered between mapping_integrity and contamination to match the
+  // two live analyze paths in inputSlice.
+  store.setOffLayoutRecords(result.off_layout_records ?? null);
+  if (!alive()) return false;
   // The stray-read report of the run being restored. `?? null` covers both
   // reasons it can be missing: a result persisted before the key existed, and a
   // consensus-dir run, which never demuxed. Both are "not measured", which is

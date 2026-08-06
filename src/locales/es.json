@@ -2397,13 +2397,13 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El archivo de mapeo JANUS ya coincide con el libro desde el que siembra el laboratorio: ocho columnas, con las placas nombradas en vez de numeradas.",
-      "El paso 3 pide un solo volumen de transferencia en lugar de dos, con los 70 uL que usa este laboratorio como valor por defecto.",
-      "Hacer clic en un replicate en el inspector de revisión abre esa copia de placa, igual que ya lo hacía hacer clic en su well o en su fila de la tabla.",
-      "Cada métrica de confianza abre ahora una ventana emergente que indica qué cuenta y frente a qué umbral, si lo hubo, se juzgó la ejecución.",
-      "Las entradas de la leyenda de verdict se explican al pasar el cursor, en su idioma, en los dos sitios donde aparecen."
+      "Los datos de ejemplo ya no informan de una comprobación de cross-talk como limpia cuando esa comprobación nunca se ejecutó.",
+      "El fixture del análisis de ejemplo se empaqueta con la aplicación, de modo que la demo lo lee en una compilación publicada y no solo en desarrollo.",
+      "Al reabrir una ejecución guardada vuelve su recuento de registros fuera de la disposición, en lugar de no mostrarse nada.",
+      "La barra de recuperación y el encabezado que está sobre ella ya no pueden mostrar cifras de dos ejecuciones distintas.",
+      "La vista previa de placas de KURO deja de etiquetar sus dos paneles como racks de deck, porque ahí ahora van nombres de placa."
     ],
-    "highlightsStamp": "0.16.1+3b52e4c8"
+    "highlightsStamp": "0.16.2+b043584b"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",
@@ -2862,12 +2862,12 @@
     "empty": "No mapping to preview. Design primers first.",
     "echoTab": "Echo 525 (384-well)",
     "janusTab": "JANUS (96-well x 2)",
-    "rack1Label": "Rack 1 (Forward source)",
-    "rack2Label": "Rack 2 (Reverse source)",
+    "forwardSourceLabel": "Placa de origen del primer forward",
+    "reverseSourceLabel": "Placa de origen del primer reverse",
     "legend": "Color legend",
-    "legendForward": "Forward primer (Echo source / Janus Rack 1)",
-    "legendReverse": "Reverse primer (Echo source / Janus Rack 2)",
-    "legendDest": "Destination (Echo dest / Janus Rack 3)",
+    "legendForward": "Primer forward (Echo source / placa de origen forward de JANUS)",
+    "legendReverse": "Primer reverse (Echo source / placa de origen reverse de JANUS)",
+    "legendDest": "Destino (Echo dest / placa de destino de JANUS)",
     "legendDestMerged": "Both F+R arrived",
     "legendDestPartial": "Only F or R arrived",
     "mappingRange": "Mapping range",

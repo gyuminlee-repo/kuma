@@ -119,7 +119,7 @@ Given a Kuro-exported `expected_mutations.xlsx`, a reference FASTA, and MAME-gen
 
 #### Verdict & QC evidence
 
-- **8-class verdict**: Each barcode classified into one of eight outcomes, `PASS` (observed AA changes exactly match the design), `WRONG_AA` (expected position mismatched, an expected change missing, or an unexpected extra change), `AMBIGUOUS` (all expected changes matched but a near-window extra change or an indel-event signal), `MIXED` (substantial within-well second allele), `FRAMESHIFT` (consecutive NT indels inside the frame window), `MANY` (more AA changes than both the cutoff and the design), `LOWDEPTH` (read depth below the minimum), `NO_CALL` (consensus dominated by N bases).
+- **8-class verdict**: Each barcode classified into one of eight outcomes, `PASS` (observed AA changes exactly match the design), `WRONG_AA` (expected position mismatched, an expected change missing, or an unexpected extra change), `AMBIGUOUS` (all expected changes matched but a near-window extra change or an indel-event signal), `MIXED` (substantial within-well second allele), `FRAMESHIFT` (a consensus net insertion or deletion whose length is not a multiple of three), `MANY` (more AA changes than both the cutoff and the design), `LOWDEPTH` (read depth below the minimum), `NO_CALL` (consensus dominated by N bases).
 - **Mixed-well guard**: Consensus headers can carry minor-allele metrics; wells with substantial within-well mixture are surfaced as `MIXED` instead of silently passing on the majority allele.
 - **Explainable QC evidence**: Verdict tables and Excel exports carry read depth, N fraction, low-depth positions, low-quality base exclusions, and MAPQ/span drop counters.
 - **3-replicate best pick**: Among triplicate barcodes, the best-scoring clone is selected.
@@ -128,7 +128,7 @@ Given a Kuro-exported `expected_mutations.xlsx`, a reference FASTA, and MAME-gen
 #### Output & workbench
 
 - **96-well Final Excel export**: Column-major 96-well layout with verdict per well. Synchronized with Kuro's plate map ordering.
-- **Single-view workbench**: Input files panel, parameter panel (mode, CDS end, cutoffs), verdict table with NB01/NB02/NB03/ALL filter, 96-well map with colorblind-safe toggle.
+- **Single-view workbench**: Input files panel, parameter panel (mode, CDS end, cutoffs), verdict table with FINAL / ALL / per-plate tabs derived from the barcodes the run produced, 96-well map with colorblind-safe toggle.
 
 </details>
 

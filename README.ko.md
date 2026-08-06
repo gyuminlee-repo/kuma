@@ -116,7 +116,7 @@ Kuro가 만든 `expected_mutations.xlsx`, 참조 FASTA, MAME가 생성한 barcod
 
 #### 판정 & QC 근거
 
-- **8-class 판정**: 각 바코드를 8가지로 분류, `PASS`(관찰 변이가 설계와 정확 일치), `WRONG_AA`(기대 위치 불일치·기대 변이 누락·예상밖 추가 변이), `AMBIGUOUS`(기대 변이는 모두 일치하나 인접 window 추가 변이 또는 indel 이벤트 신호), `MIXED`(well 내 유의한 2nd allele 혼합), `FRAMESHIFT`(frame window 내 연속 nucleotide indel), `MANY`(cutoff·설계를 모두 초과한 과다 변이), `LOWDEPTH`(read depth 미달), `NO_CALL`(consensus N 과다)
+- **8-class 판정**: 각 바코드를 8가지로 분류, `PASS`(관찰 변이가 설계와 정확 일치), `WRONG_AA`(기대 위치 불일치·기대 변이 누락·예상밖 추가 변이), `AMBIGUOUS`(기대 변이는 모두 일치하나 인접 window 추가 변이 또는 indel 이벤트 신호), `MIXED`(well 내 유의한 2nd allele 혼합), `FRAMESHIFT`(consensus 의 순 삽입·결실 길이가 3 의 배수가 아님), `MANY`(cutoff·설계를 모두 초과한 과다 변이), `LOWDEPTH`(read depth 미달), `NO_CALL`(consensus N 과다)
 - **Mixed-well guard**: minor-allele metric이 있는 consensus는 within-well mixture 근거가 충분할 때 다수결 PASS 대신 `MIXED`로 표시한다.
 - **Explainable QC evidence**: 판정 테이블과 Excel export에 read depth, N fraction, low-depth 위치, low-quality base 제외 수, MAPQ/span drop counter를 표시한다.
 - **3-replicate best pick**: 삼중 바코드 중 최고 점수 클론 선택
@@ -125,7 +125,7 @@ Kuro가 만든 `expected_mutations.xlsx`, 참조 FASTA, MAME가 생성한 barcod
 #### 출력 & 워크벤치
 
 - **96-well Final Excel**: column-major 96-well 레이아웃에 웰별 판정. Kuro의 plate map 순서와 동기화
-- **Single-view 워크벤치**: 입력 파일 패널, 파라미터 패널(mode / CDS end / cutoffs), NB01/NB02/NB03/ALL 필터가 있는 판정 테이블, 색맹 친화 토글이 있는 96-well 맵
+- **Single-view 워크벤치**: 입력 파일 패널, 파라미터 패널(mode / CDS end / cutoffs), FINAL / ALL 과 실행이 만든 바코드에서 나온 plate 별 탭이 있는 판정 테이블, 색맹 친화 토글이 있는 96-well 맵
 
 </details>
 

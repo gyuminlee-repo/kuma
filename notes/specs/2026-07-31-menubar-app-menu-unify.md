@@ -5,6 +5,8 @@
 - 범위: `src/components/layout/MenuBar.tsx`, `src/components/mame/layout/MenuBar.tsx`, `src/components/mame/layout/MameAppLayout.tsx`, `src/locales/*.json`
 - 범위 밖: Edit / View / Run / Help 메뉴, 두 MenuBar 컴포넌트의 공통 추출
 
+> **주의 (2026-08-07)**: 아래 표와 메뉴 스케치에서 "Export Janus Mapping" 을 유지하기로 한 결정은 그 뒤 뒤집혔다. 패널이 이미 수행하는 항목은 메뉴에 두지 않는다는 규칙이 서면서 이 항목이 File 메뉴에서 빠졌다(`src/components/layout/FileMenu.tsx:14-19`, 부재를 단언하는 테스트는 `FileMenu.test.tsx:63`). 본문은 2026-07-31 시점 기록이므로 그대로 둔다.
+
 ## 1. 문제
 
 앱 이름이 한 화면에 3중으로 표시된다.
