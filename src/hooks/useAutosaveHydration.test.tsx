@@ -10,6 +10,7 @@ import type { SdmPrimerResult } from "@/types/models";
 import type { AnalyzeResult, ReplicateResult, RunHealthData, VerdictRecord, WellEntry } from "@/types/mame/models";
 import type { Round } from "@/types/round";
 import { BUILD_EVOLVEPRO_DEFAULT_STATE, createBuildEvolveproCompletion } from "@/lib/mame/buildEvolveproFormStorage";
+import { useMissingInputs } from "@/lib/mame/missingInputs";
 import { applyKuroSnapshot, useAutosaveHydration, type AutosaveHydrationHandle } from "./useAutosaveHydration";
 
 // ── Mocks ────────────────────────────────────────────────────────────────
@@ -423,6 +424,61 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     expect(useMameAppStore.getState().inputDir).toBe("");
   });
 
+  it("names a missing raw-run-params field (customBarcodesPath) by its basename, not the field label twice", async () => {
+    // customBarcodesPath/sequencingSummaryPath live under parameters.raw_run_params,
+    // not the input block. describeMissingInput must look there too or it falls
+    // back to the field label as the name (double-label regression).
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) => {
+      if (kind === "mame") {
+        return Promise.resolve({
+          status: "ok",
+          snapshot: {
+            schema: 4,
+            saved_at: new Date().toISOString(),
+            kuma_version: "0.0.0-test",
+            input: {
+              input_dir: "",
+              expected_path: "",
+              reference_path: "",
+              output_path: "",
+              sample_map_path: "",
+            },
+            parameters: {
+              mode: "amplicon",
+              ingest_mode: "barcode",
+              input_mode: "raw_run",
+              raw_run_params: {
+                customBarcodesPath: "/old-machine/barcodes.xlsx",
+                sequencingSummaryPath: "",
+                minQscore: 12,
+              },
+              cds_start: 0,
+              cds_end: 0,
+              min_file_size_kb: 50,
+              many_cutoff: 5,
+            },
+          },
+        });
+      }
+      return Promise.resolve({ status: "missing" });
+    });
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+    // The file is gone from disk (project moved), and there is nothing to
+    // re-detect inside the project folder.
+    hooks.exists.mockResolvedValue(false);
+    hooks.detectProjectFiles.mockResolvedValue({});
+
+    renderHydration();
+
+    await waitFor(() => {
+      const item = useMissingInputs
+        .getState()
+        .items.find((i) => i.field === "customBarcodesPath");
+      expect(item).toBeDefined();
+      expect(item?.name).toBe("barcodes.xlsx");
+    });
+  });
+
   it("resolves project-relative raw run params against the project that is open now", async () => {
     // The snapshot was written on another machine, so the stored value is
     // relative. Restoring must rebuild it against the current folder rather
@@ -653,6 +709,26 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     expect(st.wellLayout).toBeNull();
     expect(useRoundStore.getState().rounds).toEqual([ROUND]);
     expect(useRoundStore.getState().active_round_id).toBe("round_1");
+  });
+
+  it("clears leftover missing-inputs items on the very first reset step, even on a scratch entry that never reaches the mame block", async () => {
+    // Simulate a stale banner entry left over from a previous project.
+    useMissingInputs.getState().setMissing([
+      { field: "customBarcodesPath", name: "barcodes.xlsx" },
+    ]);
+
+    render(
+      <ProjectProvider value={{ path: "/scratch-target", name: "Scratch", scratch: true }}>
+        <Harness />
+      </ProjectProvider>,
+    );
+
+    // Scratch entry returns before the mame block ever runs (applyScratchKuroSnapshot
+    // is the last step), so if setMissing/clear happened only in the mame block, this
+    // item would survive. It must not: the reset step clears it up front.
+    await waitFor(() => {
+      expect(useMissingInputs.getState().items).toEqual([]);
+    });
   });
 
   // ── well_layout promotion guard (2026-08 mapping-integrity incident) ────
