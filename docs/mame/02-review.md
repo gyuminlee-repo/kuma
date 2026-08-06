@@ -45,15 +45,20 @@ run 폴더, expected 워크북, reference FASTA, sample map 중 하나라도 바
 
 ### 레이아웃 출처 (v0.15.14)
 
-analyze 응답에 `layout_provenance` 가 항상 실린다. well 과 sample 의 대응을 무엇이 만들었는지 기록하는 필드이며 값은 세 가지다.
+analyze 응답에 `layout_provenance` 가 항상 실린다. well 과 sample 의 대응을 무엇이 만들었는지 기록하는 필드이며 값은 두 가지다.
 
 | `source` | 의미 |
 |---|---|
 | `explicit_well_layout` | 운용자가 준 well layout |
-| `sample_map_xlsx` | sample map 워크북 |
-| `inferred_draft_layout` | 실행 시점의 expected 목록에서 추론한 초안 |
+| `inferred_draft_layout` | 실행 시점의 변이 목록에서 계산한 초안 |
 
-읽은 워크북 경로(`expected_path`, `sample_map_path`)도 함께 실린다. 추론된 레이아웃이 운용자가 지정한 레이아웃처럼 보이지 않게 하려는 필드다.
+세 번째 값 `sample_map_xlsx` 는 v0.15.24 에 사라졌다. sample map 은 플레이트를 한 번 더 적는 파일이었고 변이 목록과 나란히 유지되지 못했다.
+
+읽은 워크북 경로(`expected_path`)와 이 run 이 점유한다고 선언한 웰(`selected_wells`)이 함께 실린다. `selected_wells` 가 null 이면 앞쪽 N+1 웰을 쓴 것이고, 이는 이 필드가 생기기 전 모든 run 의 동작과 같다. 추론된 레이아웃이 운용자가 지정한 레이아웃처럼 보이지 않게 하려는 필드다.
+
+선언한 웰이 점유자보다 많으면 남는 쪽은 `unused_wells` 로 함께 실린다. 거절이 아니다(선언이 캠페인보다 넓은 것 자체는 벤치에 대한 거짓말이 아니다). 다만 조용히 자르면 결과만 보고는 선언한 적 없는 웰과 구분할 수 없어서 이름을 적는다. 반대 방향, 즉 점유자보다 웰이 적은 선언은 거절이며 demux 앞에서 막힌다.
+
+레이아웃이 이름을 대지 않은 웰에서 온 레코드 수는 `off_layout_records` 로 함께 실린다. 거절이 아니라 보고다. 비었다고 선언한 웰에서 read 가 나오는 것과 바코드 crosstalk 는 같은 신호를 내고, 개수만으로는 둘을 가를 수 없다.
 
 ## Layout
 

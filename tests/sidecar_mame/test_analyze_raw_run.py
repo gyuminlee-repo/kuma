@@ -225,7 +225,7 @@ def test_handle_analyze_consensus_dir_backward_compatible(
     # Legacy milestones are present.
     assert {5, 10, 30, 60, 85, 100}.issubset(set(values)), values
 
-    # Response keeps the legacy keys plus five additive ones: `designed_mutant_ids`
+    # Response keeps the legacy keys plus six additive ones: `designed_mutant_ids`
     # (carries the designed-mutant set into the saved workspace so recovery
     # survives a load_analyze_result reload), `janus_autosave` (the pick list,
     # always present so the frontend never has to tell "not attempted" from
@@ -234,13 +234,17 @@ def test_handle_analyze_consensus_dir_backward_compatible(
     # wells nobody can trace or check, and `compare_params`, the thresholds the
     # run was judged against (unconditional for the same reason: every other
     # number here is a measurement, and a measurement with no threshold beside
-    # it cannot be read). No `janus_mapping_autosave`: the instrument sheet is
-    # written only by a manual `export_janus_mapping` call, not by analyze.
-    # Still no raw-run-only keys.
+    # it cannot be read). `off_layout_records` joins them for the
+    # same reason: a run that declares which wells it occupies has to be able to
+    # say that reads arrived from the others, and a key present only when the
+    # count is non-zero cannot be told apart from an older sidecar that never
+    # counted. No `janus_mapping_autosave`: the instrument sheet is written only
+    # by a manual `export_janus_mapping` call, not by analyze. Still no
+    # raw-run-only keys.
     assert set(result.keys()) == {
         "verdicts", "replicates", "output_path", "summary", "distribution_stats",
         "designed_mutant_ids", "janus_autosave", "layout_provenance",
-        "mapping_integrity", "compare_params",
+        "mapping_integrity", "compare_params", "off_layout_records",
     }
     assert "assigned_reads" not in result
     assert "wells_with_reads" not in result
@@ -250,6 +254,10 @@ def test_handle_analyze_consensus_dir_backward_compatible(
     assert "total_reads" not in result
     assert "passed_mapq" not in result
     assert "passed_coverage" not in result
+    # Same rule for the stray-read report: it is read off the demux matrix, and
+    # this mode has no matrix. Absent, not six unavailable signals that would
+    # describe the mode rather than the run.
+    assert "contamination" not in result
 
 
 def test_compare_params_reports_the_thresholds_that_actually_applied(
@@ -416,7 +424,7 @@ def test_serialized_verdict_carries_noise_floor_and_n_fraction_basis(
         assert isinstance(well["consensus_n_fraction_evaluable"], bool)
 
 
-def test_handle_analyze_auto_scopes_from_expected_when_sample_map_omitted(
+def test_handle_analyze_auto_scopes_from_expected_when_layout_omitted(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from sidecar_mame.handlers import analyze as analyze_mod
@@ -644,6 +652,154 @@ def test_handle_analyze_raw_run_reports_gate_counts_from_demux(
     # The pre-existing raw-run yield keys are untouched by the addition.
     assert result["wells_with_reads"] == 1
     assert result["assigned_reads"] == 0
+
+
+def test_handle_analyze_raw_run_reports_what_the_demux_matrix_saw(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The per-NB matrix reaches the response as a ``contamination`` block.
+
+    Stubbed for the same reason as the gate-counter test above: the contract
+    under test is the wiring (``per_nb_out`` sink -> qc.contamination ->
+    response key), not minimap2.
+
+    The run declares A1/B1/B3, so the barcode indices in play are R1, R2, F1 and
+    F3. That leaves ``1_3`` (A3) as a combination whose two indices are both on
+    this plate but whose well nobody pipetted, while ``1_9`` carries a forward
+    index the campaign never used at all. Those are the two different questions
+    the report keeps apart, and this fixture answers both at once.
+    """
+    from kuma_core.mame import ingest as ingest_mod
+    from kuma_core.mame import pipeline as pipeline_mod
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    barcodes_xlsx = tmp_path / "barcodes.xlsx"
+    _make_barcodes_xlsx(barcodes_xlsx)
+
+    monkeypatch.setattr(
+        ingest_mod,
+        "route_ingest",
+        lambda _input_dir, _mode: [SimpleNamespace(file_size_kb=1.0, read_count=0)],
+    )
+
+    def fake_ingest_run_folder(**kwargs):
+        kwargs["per_nb_out"].extend([
+            {
+                "nb_name": "barcode01",
+                "sort_barcode_name": "sort_barcode01",
+                "stats": {
+                    "total_reads": 900, "passed_mapq": 500, "passed_coverage": 400,
+                    "assigned_reads": 327, "ambiguous_dropped": 40,
+                    "chimera_splits": 10, "wells_with_reads": 5,
+                    "wells_with_min_reads": 3,
+                },
+                "per_well_read_counts": {
+                    "1_1": 100, "2_1": 90, "2_3": 95, "1_3": 12, "1_9": 30,
+                },
+            },
+            {
+                "nb_name": "barcode02",
+                "sort_barcode_name": "sort_barcode02",
+                "stats": {
+                    "total_reads": 880, "passed_mapq": 480, "passed_coverage": 400,
+                    "assigned_reads": 323, "ambiguous_dropped": 60,
+                    "chimera_splits": 6, "wells_with_reads": 5,
+                    "wells_with_min_reads": 3,
+                },
+                "per_well_read_counts": {
+                    "1_1": 110, "2_1": 88, "2_3": 92, "1_3": 8, "1_9": 25,
+                },
+            },
+        ])
+
+    monkeypatch.setattr(ingest_mod, "ingest_run_folder", fake_ingest_run_folder)
+    monkeypatch.setattr(pipeline_mod, "run_analyze", lambda **_kwargs: ([], []))
+    _capture_progress(monkeypatch)
+
+    params = _raw_run_params(run_dir, tmp_path, barcodes_xlsx)
+    params["selected_wells"] = ["A1", "B1", "B3"]
+    result = analyze_mod.handle_analyze(params)
+
+    contamination = result["contamination"]
+    # The occupancy this was measured against, and where it came from.
+    assert contamination["occupancy_source"] == result["layout_provenance"]["source"]
+    assert contamination["occupied_wells"] == 3
+    assert contamination["replicates"] == 2
+
+    signals = contamination["signals"]
+    assert signals["unexpected_well_reads"]["value"] == 20
+    assert [w["well"] for w in signals["unexpected_well_reads"]["wells"]] == ["A03"]
+    assert signals["unused_index_reads"]["value"] == 55
+    assert [w["well"] for w in signals["unused_index_reads"]["wells"]] == ["A09"]
+    # 100 ambiguous of the 800 reads that reached barcode matching.
+    assert signals["ambiguity_rate"]["value"] == pytest.approx(0.125)
+    assert signals["chimera_rate"]["assigned_reads"] == 650
+    # The sharing signal reads the leak bucket alone. Handing it both buckets
+    # gives 2 wells and 75 shared reads (20 + 55), which is the sum this whole
+    # report exists to avoid printing on one line.
+    sharing = signals["leak_well_sharing"]
+    assert sharing["label"] == "shared_across_replicates"
+    assert sharing["value"] == 1.0
+    assert [w["well"] for w in sharing["wells"]] == ["A03"]
+    assert sharing["shared_reads"] == 20
+    assert sharing["single_replicate_reads"] == 0
+    assert signals["plate_yield_skew"]["value"] == pytest.approx(323 / 327)
+
+
+def test_handle_analyze_raw_run_says_when_a_signal_cannot_be_measured(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A run that produced nothing still reports every signal, with reasons.
+
+    Zero reads is the state where an operator most needs the stray-read view, so
+    the block is present and each signal that cannot be computed carries a
+    reason instead of a 0 that would read as a clean plate.
+    """
+    from kuma_core.mame import ingest as ingest_mod
+    from kuma_core.mame import pipeline as pipeline_mod
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    barcodes_xlsx = tmp_path / "barcodes.xlsx"
+    _make_barcodes_xlsx(barcodes_xlsx)
+
+    monkeypatch.setattr(
+        ingest_mod,
+        "route_ingest",
+        lambda _input_dir, _mode: [SimpleNamespace(file_size_kb=1.0, read_count=0)],
+    )
+
+    def fake_ingest_run_folder(**kwargs):
+        kwargs["per_nb_out"].append({
+            "nb_name": "pool",
+            "sort_barcode_name": "pool",
+            "stats": dict.fromkeys(
+                (
+                    "total_reads", "passed_mapq", "passed_coverage",
+                    "assigned_reads", "ambiguous_dropped", "chimera_splits",
+                    "wells_with_reads", "wells_with_min_reads",
+                ),
+                0,
+            ),
+            "per_well_read_counts": {},
+        })
+
+    monkeypatch.setattr(ingest_mod, "ingest_run_folder", fake_ingest_run_folder)
+    monkeypatch.setattr(pipeline_mod, "run_analyze", lambda **_kwargs: ([], []))
+    _capture_progress(monkeypatch)
+
+    result = analyze_mod.handle_analyze(_raw_run_params(run_dir, tmp_path, barcodes_xlsx))
+
+    signals = result["contamination"]["signals"]
+    assert set(signals) == {
+        "unused_index_reads", "unexpected_well_reads", "ambiguity_rate",
+        "chimera_rate", "leak_well_sharing", "plate_yield_skew",
+    }
+    for name in ("ambiguity_rate", "chimera_rate", "leak_well_sharing", "plate_yield_skew"):
+        assert signals[name]["state"] == "unavailable", name
+        assert signals[name]["reason"], name
+        assert "value" not in signals[name], name
 
 
 def _stub_demux(monkeypatch: pytest.MonkeyPatch) -> None:

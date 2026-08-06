@@ -1,12 +1,15 @@
 """barcode_package -- Generate MAME input package from barcode seeds and a CDS FASTA.
 
-This module produces three output files and a context JSON:
+This module produces two output files and a context JSON:
 - ``barcodes_sequence.xlsx``    : 20-row combinatorial barcode table (12 fwd + 8 rev)
 - ``{sanitized_gene_name}_amplicon.fa`` : single-entry FASTA for the target gene region
-- ``sample_map_template.xlsx``  : well-map template for the MAME operator (blank
-  headers, or pre-filled with a draft placement when ``expected_mutations_path``
-  is supplied)
-- ``mame_context.json``         : machine-readable pointer file (schema 1)
+- ``mame_context.json``         : machine-readable pointer file (schema 2)
+
+It used to write a third file, ``sample_map_template.xlsx``, a (sample, well)
+sheet the operator confirmed by hand. That file stated the plate a second time,
+so a campaign carried two answers to one question and analyze had to pick one.
+The computed draft says the same thing from the variant list alone, so the
+template is gone and schema 2 no longer points at one.
 
 Typical call site::
 
@@ -592,17 +595,9 @@ class MamePackageResult:
     """Paths produced by :func:`generate_mame_package`."""
     barcodes_xlsx: Path
     amplicon_fa: Path
-    sample_map_template: Path
     context_json: Path
     warnings: list[str] = field(default_factory=list)
     amplicon_length: int | None = None
-    #: Number of pre-filled data rows in ``sample_map_template`` (0 = header
-    #: only, i.e. no ``expected_mutations_path`` was supplied). The UI reports
-    #: this so an operator can tell a drafted template from a blank one.
-    sample_map_prefilled_rows: int = 0
-    #: True when an existing ``sample_map_template.xlsx`` already carried well
-    #: assignments and was therefore left untouched instead of regenerated.
-    sample_map_preserved: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -643,12 +638,7 @@ def generate_mame_package(
        is derived from the ``gene_name`` parameter via
        :func:`_sanitize_gene_prefix`.
     5. Write ``{sanitized_gene_name}_amplicon.fa`` containing the target gene region.
-    6. Write ``sample_map_template.xlsx`` (column A "sample_name", column B
-       "well"). Header-only by default; pre-filled with a draft placement when
-       ``expected_mutations_path`` is supplied. An existing template that
-       already holds data rows is left untouched (operator well assignments
-       cannot be regenerated) and reported via ``sample_map_preserved``.
-    7. Write ``mame_context.json`` at ``project_root`` with schema 1.
+    6. Write ``mame_context.json`` at ``project_root`` with schema 2.
 
     Parameters
     ----------
@@ -700,19 +690,14 @@ def generate_mame_package(
         Column holding the variant labels, for the same case. Ignored for KURO
         exports and unnecessary when the header is a recognised name.
     expected_mutations_path:
-        Optional path to a variant list. A KURO results xlsx carrying an
-        ``expected_mutations``
-        sheet. When given, ``sample_map_template.xlsx`` is pre-filled with one
-        row per designed mutant in column-major well order plus a trailing
-        ``WT`` control row, so the operator verifies a draft instead of
-        authoring the map from scratch. The placement is the same draft
-        assumption used by ``mame.build_well_layout`` and still requires
-        reconciliation against the physical plate. Omit for a header-only
-        template.
+        Accepted and unused. The sample-map template this once pre-filled is
+        gone: the plate is computed from the variant list at analyze time, so
+        nothing here needs to write it down. Kept as a parameter so a caller
+        built against the previous signature keeps working.
 
     Returns
     -------
-    :class:`MamePackageResult` with absolute paths of all four output files
+    :class:`MamePackageResult` with absolute paths of all three output files
     and a (possibly empty) ``warnings`` list.
 
     Raises
@@ -776,46 +761,18 @@ def generate_mame_package(
         gene_name=gene_prefix,
     )
 
-    # Step 6: sample map template. Pre-filled with a draft well placement when
-    # a KURO expected_mutations xlsx is supplied, header-only otherwise.
+    # Step 6: mame_context.json
     #
-    # An existing template that already carries data rows is left untouched: it
-    # holds hand-entered well assignments, and regeneration is routinely re-run
-    # to adjust the gene range or polymerase. The caller confirms overwriting
-    # output_dir as a whole, which is not informed consent for discarding the
-    # one file in it that only the operator can reproduce.
-    template_path = output_dir / "sample_map_template.xlsx"
-    sample_map_rows: list[tuple[str, str]] = []
-    sample_map_preserved = _sample_map_has_data(template_path)
-    if expected_mutations_path is not None and not sample_map_preserved:
-        sample_map_rows = _build_sample_map_rows(
-            Path(expected_mutations_path),
-            variant_sheet=variant_sheet,
-            variant_column=variant_column,
-        )
-    if sample_map_preserved:
-        pkg_warnings.append(
-            f"sample_map_template.xlsx already contains well assignments and was "
-            f"left unchanged ({template_path}). Delete or rename it to regenerate "
-            "a draft template."
-        )
-    else:
-        if sample_map_rows:
-            pkg_warnings.append(
-                f"sample_map_template.xlsx pre-filled with {len(sample_map_rows)} draft "
-                "rows from expected_mutations (column-major placement, WT last). "
-                "Verify against the physical plate before running analyze."
-            )
-        _write_sample_map_template(template_path, rows=sample_map_rows or None)
-
-    # Step 7: mame_context.json
+    # There is no step for a sample-map template any more. The variant list plus
+    # the fill rule is the plate, and writing a second copy of it into a
+    # spreadsheet only created a file that could disagree with the first.
+    del expected_mutations_path, variant_sheet, variant_column
     context_json_path = project_root / "mame_context.json"
     _write_mame_context_json(
         path=context_json_path,
         project_root=project_root,
         barcodes_xlsx=barcodes_xlsx_path,
         amplicon_fa=amplicon_fa_path,
-        sample_map_template=template_path,
     )
 
     amplicon_length = _compute_amplicon_length(
@@ -827,12 +784,9 @@ def generate_mame_package(
     return MamePackageResult(
         barcodes_xlsx=barcodes_xlsx_path,
         amplicon_fa=amplicon_fa_path,
-        sample_map_template=template_path,
         context_json=context_json_path,
         warnings=pkg_warnings,
         amplicon_length=amplicon_length,
-        sample_map_prefilled_rows=len(sample_map_rows),
-        sample_map_preserved=sample_map_preserved,
     )
 
 
@@ -922,145 +876,6 @@ def _write_amplicon_fasta(
             fh.write(amplicon[i:i + 60] + "\n")
 
 
-def _write_sample_map_template(
-    path: Path,
-    rows: list[tuple[str, str]] | None = None,
-) -> None:
-    """Write the sample-map xlsx consumed by MAME ``analyze``.
-
-    With ``rows`` omitted the sheet carries the header only, leaving the
-    operator to author every well by hand. With ``rows`` supplied (see
-    :func:`_build_sample_map_rows`) the sheet is pre-filled with one
-    ``(sample_name, well)`` pair per row, turning the operator task into
-    "verify and correct" instead of "author from scratch".
-
-    The pre-filled placement is a *draft*: it assumes KURO row order maps to
-    column-major wells with a single WT control after the last mutant. The
-    operator remains responsible for reconciling it with the physical plate.
-    """
-    import openpyxl  # local import
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    if ws is None:
-        ws = wb.create_sheet()
-    ws.title = "SampleMap"
-    ws.append(["sample_name", "well"])
-    for sample_name, well in rows or []:
-        ws.append([sample_name, well])
-    wb.save(str(path))
-
-
-def _sample_map_has_data(path: Path) -> bool:
-    """Return True if ``path`` is an xlsx carrying at least one data row.
-
-    Used to decide whether re-running package generation may overwrite an
-    existing ``sample_map_template.xlsx``. A header-only sheet holds no operator
-    work and is safe to replace; a sheet with data rows holds hand-entered well
-    assignments and must survive. An unreadable or corrupt file is treated as
-    "no data" so a broken template never blocks regeneration.
-    """
-    if not path.exists():
-        return False
-
-    import openpyxl  # local import
-
-    try:
-        wb = openpyxl.load_workbook(str(path), read_only=True, data_only=True)
-    except Exception:  # noqa: BLE001 - unreadable file: fall through to rewrite
-        return False
-    try:
-        ws = wb.worksheets[0]
-        for i, row in enumerate(ws.iter_rows(values_only=True)):
-            if i == 0:  # header
-                continue
-            if any(c is not None and str(c).strip() != "" for c in row):
-                return True
-        return False
-    finally:
-        wb.close()
-
-
-def _build_sample_map_rows(
-    expected_mutations_path: Path,
-    variant_sheet: str | None = None,
-    variant_column: str | None = None,
-) -> list[tuple[str, str]]:
-    """Return draft ``(sample_name, well)`` rows from a KURO results xlsx.
-
-    Delegates placement to :func:`kuma_core.mame.layout.build_draft_layout` so
-    the template and the ``mame.build_well_layout`` RPC cannot drift apart:
-    column-major wells for the designed mutants, then a single ``WT`` control.
-
-    Raises
-    ------
-    FileNotFoundError
-        If ``expected_mutations_path`` does not exist.
-    ValueError
-        If the xlsx carries no ``expected_mutations`` sheet or no DESIGNED rows,
-        or if the mutation set does not fit one 96-well plate. Callers pass this
-        path deliberately, so an unusable file is an error rather than a reason
-        to emit a misleading template.
-    """
-    # Local imports: keep module import cost off the barcode-only code path.
-    from kuma_core.mame.io.variant_list import read_variant_source
-    from kuma_core.mame.layout import build_draft_layout
-
-    # Accepts a KURO export or a plain variant list. The KURO shape is detected
-    # and routed to the strict reader, so its behaviour is unchanged.
-    read = read_variant_source(
-        Path(expected_mutations_path),
-        sheet=variant_sheet,
-        variant_column=variant_column,
-    )
-    expected = read.expected
-    if not expected:
-        raise ValueError(
-            f"No DESIGNED expected mutations found in {expected_mutations_path}; "
-            "cannot pre-fill the sample map template. Omit "
-            "expected_mutations_path to emit a header-only template."
-        )
-    # A source that lists its own WT row must not also get an appended one.
-    draft = build_draft_layout(expected, include_wt=not read.has_explicit_wt)
-    # A clamped draft is refused rather than written. The template is a file the
-    # operator edits with no confirmation step in between, and a truncated sheet
-    # reads as a correct full plate, so writing one would hide the truncation
-    # until wells past the cut are mis-scored.
-    if not draft.is_complete:
-        detail = (
-            f"{len(draft.dropped_mutant_ids)} mutants past well 96 "
-            f"({', '.join(draft.dropped_mutant_ids[:5])}"
-            f"{', ...' if len(draft.dropped_mutant_ids) > 5 else ''})"
-            if draft.dropped_mutant_ids
-            else "no well left for the WT control"
-        )
-        # The advice used to read "split the campaign across plates (MAME
-        # separates plates by native barcode) and supply one sample map per
-        # plate". MAME does not do that, and following it fails quietly: a run
-        # carries one sample map keyed by well alone (``pipeline.run_analyze``),
-        # and the native barcode is the REPLICATE axis, folded away by
-        # ``pick_best_replicate``. Two plates in one run therefore score plate 1
-        # A01 and plate 2 A01 as repeats of one mutant, and the disagreement
-        # between two different variants reads as a bad replicate rather than as
-        # two wells. So the sentence now says what MAME can actually do: one
-        # plate per run.
-        raise ValueError(
-            f"{len(expected)} designed mutations do not fit one 96-well plate: "
-            f"{detail}. The combinatorial barcode space is 12 fwd x 8 rev, so "
-            "wells past the 96th cannot be told apart in the reads. MAME reads "
-            "one plate per run: the sample map is keyed by well alone, and the "
-            "native barcode is a replicate axis over that same plate, so a "
-            "second plate's A01 would be scored as a repeat of the first "
-            "plate's A01. Split the campaign into one plate per run, each with "
-            "its own expected-mutation list and sample map, or omit "
-            "expected_mutations_path for a header-only template."
-        )
-    # build_draft_layout returns an insertion-ordered dict[well, sample] in
-    # column-major order (WT last when it fits); the sheet stores the columns
-    # in sample_name/well order, matching parse_sample_map.
-    return [(sample, well) for well, sample in draft.layout.items()]
-
-
 def _ctx_path(p: Path, root: Path) -> str:
     """Return relative posix path if inside root, else absolute posix path."""
     rp = p.resolve()
@@ -1075,18 +890,21 @@ def _write_mame_context_json(
     project_root: Path,
     barcodes_xlsx: Path,
     amplicon_fa: Path,
-    sample_map_template: Path,
 ) -> None:
     """Write mame_context.json with relative paths for files inside project_root,
     or absolute paths for files outside it.
+
+    Schema 2 dropped ``sample_map_template_path``. The number is bumped rather
+    than the key quietly omitted because a reader has to be able to tell "this
+    project has no sample map" from "this file was written before the pointer
+    existed", and only the schema number says which.
     """
     root = project_root.resolve()
     context = {
-        "schema": 1,
+        "schema": 2,
         "published_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "custom_barcodes_path": _ctx_path(barcodes_xlsx, root),
         "reference_path": _ctx_path(amplicon_fa, root),
-        "sample_map_template_path": _ctx_path(sample_map_template, root),
     }
     path.write_text(
         json.dumps(context, indent=2, ensure_ascii=False),

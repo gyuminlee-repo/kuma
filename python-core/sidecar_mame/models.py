@@ -128,10 +128,6 @@ class CombinatorialDemuxParams(DemuxParamsBase):
 
     Optional fields
     ---------------
-    sample_map_xlsx
-        When provided, a per-well sample-name mapping xlsx (col A: name,
-        col B: well position e.g. "A1").  Loaded into metadata; the core
-        pipeline uses it to annotate output filenames with mutant names.
     kuro_xlsx
         Path to a KURO results xlsx containing an ``expected_mutations``
         sheet.  Stored in params metadata for downstream stages; combinatorial
@@ -156,8 +152,7 @@ class CombinatorialDemuxParams(DemuxParamsBase):
     minknow_run_dir: str
     output_dir: str
 
-    # Optional - sample mapping and KURO metadata
-    sample_map_xlsx: str | None = None
+    # Optional - KURO metadata
     kuro_xlsx: str | None = None
 
     # Path existence validators
@@ -184,18 +179,6 @@ class CombinatorialDemuxParams(DemuxParamsBase):
             raise ValueError(
                 f"Parent of output_dir does not exist: {p.parent}"
             )
-        return v
-
-    @field_validator("sample_map_xlsx", mode="after")
-    @classmethod
-    def _check_sample_map_xlsx(cls, v: str | None) -> str | None:
-        if v is None:
-            return None
-        p = Path(v)
-        if ".." in p.parts:
-            raise ValueError(f"Path traversal not allowed: {v}")
-        if not p.exists():
-            raise ValueError(f"sample_map_xlsx not found: {v}")
         return v
 
     @field_validator("kuro_xlsx", mode="after")
@@ -278,8 +261,8 @@ class BuildWellLayoutParams(BaseModel):
         ``expected_mutations`` sheet, or a plain variant list (one variant per
         row, in plate order). Read via ``read_variant_source`` and turned into a
         draft 96-well plate layout by ``build_draft_layout`` (one mutant per well
-        in column-major order, followed by a single WT control well, which is
-        skipped when the source listed its own wild-type row).
+        in column-major order plus exactly one WT control well, at the ordinal
+        the source stated or after the last mutant when it stated none).
 
     Optional fields
     ---------------
@@ -288,8 +271,8 @@ class BuildWellLayoutParams(BaseModel):
         layout cannot be told apart on its own. Both default to ``None``, which
         is auto-detection: a caller that omits them (any frontend built before
         this) gets exactly the previous behaviour on a KURO export. They mirror
-        the ``generate_mame_package`` params of the same names so the layout and
-        the sample map template are read off the same rows.
+        the ``generate_mame_package`` params of the same names so this layout and
+        every other read of the file come off the same rows.
     """
 
     expected_mutations_xlsx: str

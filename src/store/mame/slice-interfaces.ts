@@ -13,7 +13,10 @@ import type {
   JanusAutosaveResult,
   JanusExportSettings,
   LayoutProvenance,
+  LegacySampleMapFinding,
   MappingIntegrity,
+  ContaminationReport,
+  OffLayoutRecords,
   PlateOrderFinding,
   ReplicateResult,
   RunHealthData,
@@ -49,7 +52,38 @@ export interface InputSlice {
   expectedPath: string;
   referencePath: string;
   outputPath: string;
-  sampleMapPath: string;
+  /**
+   * Wells this campaign occupies, in plate order, or null for "the leading
+   * ones". Null is the default and produces exactly the layout every run
+   * produced before this field existed, so an operator who never opens the
+   * grid sees no change at all.
+   *
+   * A campaign smaller than the plate leaves wells empty and no input file
+   * says which. Declaring them is what lets a read arriving from an empty well
+   * be reported as a read from an empty well rather than scored as whatever
+   * the draft happened to place there.
+   */
+  selectedWells: string[] | null;
+  /**
+   * How many things the current variant list puts on the plate (variants plus
+   * the one WT control), or null when nothing has read it yet.
+   *
+   * Written by `WellSelectionPanel` off the same `build_well_layout` RPC that
+   * draws the grid, and read by `selectCanRun`: a selection shorter than this
+   * is refused by the sidecar, so the button has to be held before the run
+   * starts rather than after. Cleared with every input that changes which rows
+   * are read, because a count from the previous workbook would gate the next
+   * one.
+   */
+  wellSelectionOccupants: number | null;
+  /**
+   * An existing project's `sample_map_template.xlsx`, named by its schema-1
+   * `mame_context.json`. NOT an input: the sample map was removed because it
+   * stated the plate a second time and nothing kept the two in step. Sent to
+   * `validate_inputs` so the backend can compare it against the computed
+   * layout and name the wells where they disagree.
+   */
+  legacySampleMapPath: string | null;
   // Project root, bridged from useKumaProject() context via useMameAutosave so
   // analyze-result persistence (resultSnapshot.ts) can write from the slice,
   // which has no React context access. null/scratch -> no result file written.
@@ -92,6 +126,34 @@ export interface InputSlice {
   // null = no dialog open; non-null = show the confirm dialog with these rows.
   detectedNativeBarcodes: NativeBarcodeUsage[] | null;
   isDetectingBarcodes: boolean;
+  /**
+   * The replicate axis the current results were produced on, as
+   * `native_barcode` (`sort_barcodeNN`) names, NOT the MinKNOW directory names
+   * (`barcodeNN`) the dialog checks off.
+   *
+   * The two namespaces are different and the records use the sort form: the
+   * demux writes one output directory per native barcode named by
+   * `_nb_to_sort_barcode_name` (kuma_core/mame/ingest/combinatorial_demux.py),
+   * and `load_barcode_directory` takes each record's `native_barcode` from that
+   * directory name (kuma_core/mame/ingest/fasta_parser.py). Storing the
+   * MinKNOW form here would make every well look absent from every plate.
+   *
+   * `[]` = pooled: one plate, all reads in one pool. null = no raw-run
+   * selection applies (consensus-directory run, or nothing run yet), which is
+   * what makes `missing_replicate` undecidable.
+   *
+   * Cleared by `clearResults`, together with the verdicts it describes: after
+   * an input change the previous run's replicate axis describes nothing on
+   * screen.
+   */
+  selectedNativeBarcodes: string[] | null;
+  /**
+   * How many native barcodes the detect step counted in the run folder
+   * (`detect.total_count`), regardless of how many were then selected. Kept so
+   * the review screen can say that a run covered fewer replicates than the
+   * folder holds. Cleared by `clearResults` for the same reason as above.
+   */
+  detectedBarcodeCount: number | null;
   // Well->sample mapping passed to analyze as the highest-priority source.
   // v0.15.6 removed the UI that built one (nobody checked 96 rows by hand, and
   // analyze assigns wells on its own regardless), so this is non-null only
@@ -104,6 +166,11 @@ export interface InputSlice {
   // v0.15.6 the operator points at the list to read, so the program has no
   // ground left to refuse the run.
   plateOrderFinding: PlateOrderFinding | null;
+  // Does an existing project's pre-removal `sample_map_template.xlsx` agree
+  // with the layout this run would use? null = no such file, or not validated
+  // yet. `"differs"` is also an entry in `validationErrors` and blocks there;
+  // `"matches"` is announced once so the operator can delete the file.
+  legacySampleMapFinding: LegacySampleMapFinding | null;
   // What the barcode workbook the last validation read actually contains: seeds
   // per axis and the wells they can name. null = no workbook, unreadable, or
   // not validated yet. Display only, never an input: the axis roles and the
@@ -140,7 +207,9 @@ export interface InputSlice {
   setExpectedPath: (path: string) => void;
   setReferencePath: (path: string) => void;
   setOutputPath: (path: string) => void;
-  setSampleMapPath: (path: string) => void;
+  setSelectedWells: (wells: string[] | null) => void;
+  setWellSelectionOccupants: (count: number | null) => void;
+  setLegacySampleMapPath: (path: string | null) => void;
   setProjectPath: (path: string | null) => void;
   setParams: (
     params: Partial<{
@@ -248,6 +317,21 @@ export interface AnalysisSlice {
    */
   compareParams: CompareParams | null;
   /**
+   * Reads that arrived from wells the run layout does not name, or null when no
+   * run has completed since the last reset. Reported, never a gate: the same
+   * counts appear for a well the operator declared empty and for barcode
+   * crosstalk, and nothing in the number separates the two.
+   */
+  offLayoutRecords: OffLayoutRecords | null;
+  /**
+   * What the demux matrix said about reads outside the campaign, or null when
+   * no run has completed since the last reset AND when the completed run could
+   * not measure it (a consensus-dir run never demuxes, so it has no matrix).
+   * The two are deliberately the same value here: neither is a clean plate, and
+   * the panel says "not measured" for both.
+   */
+  contamination: ContaminationReport | null;
+  /**
    * Set when the results on screen were restored from a snapshot this build did
    * not write, so the review screen can say whose engine produced them. Null
    * for a run made in this session and for a same-version restore, which is the
@@ -269,6 +353,8 @@ export interface AnalysisSlice {
   setLayoutProvenance: (layoutProvenance: LayoutProvenance | null) => void;
   setMappingIntegrity: (mappingIntegrity: MappingIntegrity | null) => void;
   setCompareParams: (compareParams: CompareParams | null) => void;
+  setOffLayoutRecords: (offLayoutRecords: OffLayoutRecords | null) => void;
+  setContamination: (contamination: ContaminationReport | null) => void;
   setRestoredResultProvenance: (
     provenance: RestoredResultProvenance | null,
   ) => void;

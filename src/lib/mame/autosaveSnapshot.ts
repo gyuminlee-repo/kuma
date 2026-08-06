@@ -23,7 +23,7 @@ export type MameSnapshotState = Pick<
   | "expectedPath"
   | "referencePath"
   | "outputPath"
-  | "sampleMapPath"
+  | "selectedWells"
   | "mode"
   | "ingestMode"
   | "inputMode"
@@ -44,6 +44,8 @@ export type MameSnapshotState = Pick<
   | "ampliconLengthEstimate"
   | "wellLayout"
   | "layoutProvenance"
+  | "selectedNativeBarcodes"
+  | "detectedBarcodeCount"
 >;
 
 export interface MameRoundSnapshotState {
@@ -66,7 +68,7 @@ export interface MameAutosaveSnapshot extends AutosaveSnapshot {
     expected_path: string;
     reference_path: string;
     output_path: string;
-    sample_map_path: string;
+    selected_wells: string[] | null;
   };
   parameters: {
     mode: string;
@@ -94,6 +96,18 @@ export interface MameAutosaveSnapshot extends AutosaveSnapshot {
     // layout apart from one the operator or a sample map actually supplied.
     // See useAutosaveHydration.ts applyMameSnapshot for the guard this feeds.
     layout_provenance: AppState["layoutProvenance"];
+    /**
+     * The replicate axis these verdicts were scored on, as native_barcode
+     * (`sort_barcodeNN`) names, and how many native barcodes the run folder
+     * held. Filed under `results` rather than `input` because that is what they
+     * are: `clearResults` drops both, so a restore that put them back with the
+     * input setters would have them wiped by the very next setter call. Absent
+     * on snapshots written before these fields existed, which reads as "no axis
+     * stated" and leaves `missing_replicate` undecidable, the same answer those
+     * runs would give today. No schema bump for that reason.
+     */
+    selected_native_barcodes?: AppState["selectedNativeBarcodes"];
+    detected_barcode_count?: AppState["detectedBarcodeCount"];
   };
 }
 
@@ -138,7 +152,7 @@ export function buildMameSnapshot(
       expected_path: portable(state.expectedPath),
       reference_path: portable(state.referencePath),
       output_path: portable(state.outputPath),
-      sample_map_path: portable(state.sampleMapPath),
+      selected_wells: state.selectedWells,
     },
     parameters: {
       mode: state.mode,
@@ -163,6 +177,8 @@ export function buildMameSnapshot(
       amplicon_length_estimate: state.ampliconLengthEstimate,
       well_layout: state.wellLayout,
       layout_provenance: state.layoutProvenance,
+      selected_native_barcodes: state.selectedNativeBarcodes,
+      detected_barcode_count: state.detectedBarcodeCount,
     },
   };
 }

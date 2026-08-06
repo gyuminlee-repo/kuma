@@ -165,13 +165,20 @@
       "redetecting": "検出中..."
     },
     "nativeBarcodeDialog": {
-      "title": "複数の native barcode が検出されました",
-      "description": "この run には MinKNOW native barcode が複数含まれています。demultiplex する barcode を選択してください。選択した各 barcode はそれぞれ専用の出力フォルダーに処理されます。1 回の解析 run が採点する plate は 1 枚です。ここで選んだ barcode は別々の plate ではなく、同じ plate の replicate として採点されます。",
+      "title": "この実行の replicate 軸を選ぶ",
+      "description": "この run フォルダには MinKNOW native barcode が複数ある。1 回の実行が判定するのは plate 1 枚で、native barcode はその plate の replicate にあたる。選んだ barcode はそれぞれ demux され、パイプラインが変異ごとに最良の replicate を選ぶ。キャンセルすると解析は中止される。",
       "shareHeader": "割合",
       "selectAriaLabel": "native barcode {{name}} を選択",
-      "selectedCount": "barcode を {{count}} 件選択中",
-      "confirm": "選択を実行",
-      "confirming": "実行中…"
+      "confirm": "実行",
+      "confirming": "実行中…",
+      "modeLegend": "Replicate 軸",
+      "modePerBarcode": "選んだ barcode をそれぞれ replicate として扱う",
+      "modePerBarcodeHelp": "barcode ごとに demux を 1 回ずつ実行する。各 well を選んだ plate 間で比較できるようになる。",
+      "modePooled": "すべての barcode を 1 枚の plate にまとめる",
+      "modePooledHelp": "すべての read を 1 つの pool にする。plate は 1 枚で、比較する replicate はない。",
+      "replicateCount": "replicate を {{count}} 件選択",
+      "pooledCount": "barcode {{count}} 件を 1 枚の plate に統合",
+      "cancel": "実行を中止"
     },
     "parameters": {
       "title": "パラメータ",
@@ -330,7 +337,6 @@
       "generatedFileLabels": {
         "barcodes": "バーコード表 (xlsx)",
         "amplicon": "Amplicon リファレンス (FASTA)",
-        "sampleMapTemplate": "Sample map テンプレート (xlsx)",
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "フォルダーを開けませんでした。",
@@ -338,7 +344,8 @@
       "variantColumn": "変異の列",
       "variantColumnPlaceholder": "列を選択",
       "variantColumnHelper": "この列の行順で 96 well プレートに配置します。プレートは縦方向に進み、A1, B1, C1 から H1 まで、その次が A2 です。WT 行がある場合は、新たに追加せずその行を対照として使います。",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "outputLocationStateLabel": "任意"
     },
     "activity": {
       "sectionIngest": "活性データのアップロード",
@@ -570,7 +577,21 @@
       "finalFallbackNotice": "No replicate has been selected yet, so FINAL is showing every well (ALL).",
       "resizeColumnAriaLabel": "Resize column {{column}}",
       "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
-      "resetColumnWidths": "Reset column widths"
+      "resetColumnWidths": "Reset column widths",
+      "replicateFlags": {
+        "header": "一致性",
+        "help": "この well の plate コピーどうしが一致しているか。well 単位で、実行に含まれる全 plate を対象に判定する。",
+        "agree": "一致",
+        "disagreementShort": "不一致",
+        "disagreementHelp": "この well の plate コピーが同じ判定にならなかった。",
+        "depthShort": "depth",
+        "depthHelp": "あるコピーの read 数が最も深いコピーの 5 分の 1 未満である。この場合の判定差は生物学的な違いではなく depth の差である可能性がある。",
+        "missingShort": "欠落",
+        "missingHelp": "{{plates}} にはこの well の記録がない。",
+        "missingUnknown": "この実行はどの plate を判定したかを示していないため、欠落したコピーは判定できない。",
+        "filterLabel": "該当 ({{count}})",
+        "filterHelp": "replicate が不一致、depth が偏っている、またはコピーが欠けている well だけを表示する。"
+      }
     },
     "summaryRow": {
       "ariaLabel": "解析サマリー",
@@ -781,13 +802,6 @@
         "helpText": "Raw MinKNOW run モードでは、このファイルを使って解析前に read を well 単位 FASTA 出力へ割り当てます。",
         "axisCounts": "Barcode ファイル: forward {{forward}} x reverse {{reverse}} seeds、1 枚の plate で {{wells}} wells。"
       },
-      "sampleMap": {
-        "label": "Sample Map (任意)",
-        "placeholder": ".xlsx ファイルパス (mutants well レイアウト)",
-        "stateLabel": "任意",
-        "helperText": "Well からサンプル名へのマッピング — sorted FASTA ファイル名に mutant 名を追加 (例: A01_V5F_F1_R1.fasta)",
-        "helpText": "Col A: サンプル名、Col B: well 位置 (例: A1)。KURO mutants.xlsx レイアウトと互換。"
-      },
       "exportDest": {
         "label": "エクスポート先フォルダ",
         "placeholder": "フォルダを選択 — {{filename}} が作成されます",
@@ -936,6 +950,40 @@
         "alertTitle": "well と変異の対応にずれの疑い",
         "alertDesc": "観測された変異を持つ well {{wells}} 個のうち、自身の expected と一致するのは {{selfPercent}}%、他の well の expected と一致するのは {{crossPercent}}% でした。well と変異の対応がずれている可能性が非常に高いため、この結果は信頼できません。",
         "alertAriaLabel": "well-変異マッピング整合性の警告"
+      },
+      "offLayoutRecords": {
+        "title": "レイアウト外の {{wells}} ウェルから {{records}} 件のレコード",
+        "desc": "これらのウェルは run レイアウトに含まれず、何も期待していない位置である。read が出た場合は実際に分注されたか、隣接ウェルのバーコードクロストークである。ウェル:  {{list}}",
+        "more": "ほか {{count}} 件。"
+      },
+      "contamination": {
+        "title": "想定外の位置に落ちた read",
+        "subtitle": "占有ウェル {{wells}} 個を基準に測定した ({{source}})。",
+        "notMeasured": "測定不可",
+        "signalAbsent": "このビルドはその signal を持たないため、この run は何も述べていません。",
+        "wellList": "ウェル: {{list}}",
+        "more": "ほか {{count}} 件。",
+        "source": {
+          "inferred_draft_layout": "expected リストから推定した配置",
+          "explicit_well_layout": "この run に指定された配置"
+        },
+        "signal": {
+          "unused_index_reads": "このキャンペーンが使っていない barcode index を持つ read",
+          "unexpected_well_reads": "使用中の index の組み合わせで空きウェルに付いた read",
+          "ambiguity_rate": "barcode matching に到達した read のうち ambiguous として破棄された割合",
+          "chimera_rate": "assign された read あたり、分割 read が生んだ追加ウェル割り当て",
+          "leak_well_sharing": "使用中インデックスの未占有ウェル数",
+          "plate_yield_skew": "assigned read で見た最小プレート複製 / 最大プレート複製"
+        },
+        "sharing": {
+          "shared_across_replicates": "想定外の read がプレート複製全体で繰り返されている。",
+          "single_replicate": "想定外の read が 1 つのプレート複製にのみある。"
+        }
+      },
+      "legacySampleMap": {
+        "title": "{{file}} は計算されたレイアウトと一致する",
+        "desc": "{{wells}} 個のウェルがすべて一致するため、変更は不要。sample map は入力として読まれなくなり、このファイルはいつでも削除してよい。削除するまではそのまま残る。",
+        "dismiss": "この通知を閉じる"
       }
     },
     "inspector": {
@@ -1197,7 +1245,30 @@
       "copySourcePath": "Copy consensus FASTA path",
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
-      "noVerdictRecord": "No verdict record for this well."
+      "noVerdictRecord": "No verdict record for this well.",
+      "replicateReads": "read {{reads}}",
+      "replicateAligned": "アラインメント {{aligned}}"
+    },
+    "wellSelection": {
+      "title": "使用するウェル",
+      "description": "計算した配置をプレート上に描いたもの。変異はプレート順(A1, B1, ... H1, A2)で選択したウェルを埋める。触らなければ先頭のウェルを使う。",
+      "counts": "サンプル {{occupants}} 件(変異 + WT 対照)に対し {{capacity}} 中 {{selected}} ウェルを選択。",
+      "tooFewWells": "{{selected}} ウェルを選択したがサンプルは {{occupants}} 件ある。ウェルを増やすか変異リストを短くすること。",
+      "selectAll": "すべて選択 ({{count}})",
+      "selectDefault": "サンプル数だけ ({{count}})",
+      "clearAll": "選択解除",
+      "gridLabel": "96 ウェルプレート、使用するウェルを選択",
+      "toggleAllLabel": "すべてのウェルを切り替え",
+      "toggleRowLabel": "行 {{row}} を切り替え",
+      "toggleColumnLabel": "列 {{column}} を切り替え",
+      "wellWithSample": "ウェル {{well}}, {{sample}}",
+      "wellEmpty": "ウェル {{well}}, 空",
+      "keyboardHint": "矢印キーで移動、Space で切り替え、Shift + 矢印キーで範囲選択。ドラッグで連続選択。",
+      "loadFailed": "プレート描画のための変異リストを読めなかった: {{error}}"
+    },
+    "replicateModeNotice": {
+      "pooled": "この実行は native barcode {{detected}} 件を 1 枚の plate にまとめたため、比較できる replicate がない。",
+      "subset": "この run フォルダには native barcode が {{detected}} 件あり、そのうち {{replicates}} 件を replicate として判定した。残りはこの結果に含まれない。"
     }
   },
   "home": {
@@ -2326,13 +2397,13 @@
     "description": "最新アップデートのハイライト。",
     "gotItBtn": "了解",
     "highlights": [
-      "バーコードの組をプレートの well に変える規則が 4 か所ではなく 1 か所にあります。4 つが食い違うことがなくなります。",
-      "プレートをちょうど埋めて wild-type well の空きが残らない設計を、その理由で拒否しなくなりました。",
-      "バーコードファイルを読み込むと forward と reverse が各何本で、何 well を記述するかを表示します。",
-      "native barcode ダイアログが何を選んでいるかを述べます。別々のプレートではなく、1 枚のプレートの replicate です。",
-      "プレート容量を超える run は、well が書かれた後ではなく demux 開始前に拒否されます。"
+      "sample map を廃止しました。MAME が変異リストそのものからプレートを配置し、残っているファイルは従うのではなく照合します。",
+      "run が使った well を 96 マスのグリッドで選びます。クリック、ドラッグ、行や列のヘッダークリックで選択できます。",
+      "変異リスト途中の空行や 2 つ目の wild-type 行は実行を止めます。以降の well が全部ずれる動作をなくしました。",
+      "native barcode を選ぶことが何を選ぶことなのかを述べます。1 枚のプレートの replicate です。replicate が食い違う well には印が付きます。",
+      "宣言した well の外に落ちた read を報告します。そのバーコードインデックスをキャンペーンが使ったことがあるかで分けて示します。"
     ],
-    "highlightsStamp": "0.15.23+0c028fbf"
+    "highlightsStamp": "0.16.0+b2281961"
   },
   "primerDisplay": {
     "copySeqTitle": "配列をコピー",
@@ -2458,7 +2529,6 @@
     "fieldRunFolder": "run フォルダ",
     "fieldReference": "reference",
     "fieldExpected": "expected",
-    "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
     "pathsMoved": "以前のパスが見つからないため再指定が必要です: {{fields}}"

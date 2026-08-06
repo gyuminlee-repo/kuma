@@ -166,7 +166,7 @@ describe("mame inputSlice", () => {
     });
   });
 
-  it("forwards well_layout and sample_map_xlsx in the non-raw analyze path", async () => {
+  it("forwards well_layout and selected_wells in the non-raw analyze path", async () => {
     // Regression: the consensus/sorted_barcode path used to omit per-well
     // scoping inputs, so every well was compared against the FULL expected
     // list and the plate plan rendered PASS wells as WRONG_AA.
@@ -178,7 +178,7 @@ describe("mame inputSlice", () => {
       outputPath: "D:/project",
       inputMode: "consensus",
       ingestMode: "barcode",
-      sampleMapPath: "D:/project/05_mame_sample_map.xlsx",
+      selectedWells: ["A1", "B1"],
       wellLayout,
       cdsEnd: 900,
     });
@@ -200,7 +200,7 @@ describe("mame inputSlice", () => {
       "analyze",
       expect.objectContaining({
         input_dir: "D:/project/consensus",
-        sample_map_xlsx: "D:/project/05_mame_sample_map.xlsx",
+        selected_wells: ["A1", "B1"],
         well_layout: wellLayout,
       }),
       expect.anything(),
@@ -360,6 +360,133 @@ describe("mame inputSlice", () => {
     expect(store.isAnalyzing).toBe(false);
     expect(store.analyzeMessage).toBe("Analysis complete");
   });
+  it("records the replicate axis in the namespace the records use", async () => {
+    // The bug this pins: the dialog hands over MinKNOW directory names
+    // (`barcode07`), which is what the demux needs to find
+    // `fastq_pass/barcode07/`, while every record that comes back is stamped
+    // with the demux OUTPUT directory (`sort_barcode07`). Storing the MinKNOW
+    // form as the run's replicate axis makes every well look absent from every
+    // plate. The two strings differ here on purpose.
+    const store = makeStore({
+      inputDir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
+      expectedPath: "D:/project/KURO_expected.xlsx",
+      referencePath: "D:/project/ref.fasta",
+      outputPath: "D:/project",
+      inputMode: "raw_run",
+      rawRunParams: {
+        ...makeStore().rawRunParams,
+        customBarcodesPath: "D:/project/barcodes.xlsx",
+      },
+    });
+
+    mockSendRequest.mockResolvedValueOnce({
+      fastq_pass: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e/fastq_pass",
+      min_share: 0.05,
+      native_barcodes: [
+        {
+          name: "barcode07",
+          sort_barcode_name: "sort_barcode07",
+          fastq_bytes: 7_000_000,
+          fastq_mb: 7.0,
+          share: 0.5,
+          is_used: true,
+        },
+        {
+          name: "barcode08",
+          sort_barcode_name: "sort_barcode08",
+          fastq_bytes: 5_000_000,
+          fastq_mb: 5.0,
+          share: 0.35,
+          is_used: true,
+        },
+        {
+          name: "barcode09",
+          sort_barcode_name: "sort_barcode09",
+          fastq_bytes: 2_000_000,
+          fastq_mb: 2.0,
+          share: 0.15,
+          is_used: false,
+        },
+      ],
+      used_count: 2,
+      total_count: 3,
+    });
+
+    await store.runAnalysis();
+    expect(store.detectedBarcodeCount).toBe(3);
+
+    mockSendRequest.mockResolvedValueOnce({
+      verdicts: [],
+      replicates: [],
+      output_path: "D:/project/mame_result.xlsx",
+      summary: { total: 0, pass_count: 0, ambiguous_count: 0, fail_count: 0 },
+      distribution_stats: distributionStats,
+    });
+
+    await store.confirmNativeBarcodeSelection(["barcode07", "barcode08"]);
+
+    // The RPC keeps the MinKNOW names: that is where the FASTQ lives.
+    expect(mockSendRequest).toHaveBeenNthCalledWith(
+      2,
+      "analyze",
+      expect.objectContaining({ native_barcodes: ["barcode07", "barcode08"] }),
+      3_000_000,
+    );
+    // The stored axis is the sort form, which is what verdict records carry.
+    expect(store.selectedNativeBarcodes).toEqual([
+      "sort_barcode07",
+      "sort_barcode08",
+    ]);
+    expect(store.detectedBarcodeCount).toBe(3);
+  });
+
+  it("sends no native_barcodes at all when the operator pools the run", async () => {
+    // Pooled is a stated answer, not a cancellation. The store keeps `[]`
+    // (one plate), while the RPC gets null: the Pydantic validator on
+    // `native_barcodes` rejects an empty list.
+    const store = makeStore({
+      inputDir: "D:/runs/20260212_2227_X4_FBF10847_e7145f8e",
+      expectedPath: "D:/project/KURO_expected.xlsx",
+      referencePath: "D:/project/ref.fasta",
+      outputPath: "D:/project",
+      inputMode: "raw_run",
+      rawRunParams: {
+        ...makeStore().rawRunParams,
+        customBarcodesPath: "D:/project/barcodes.xlsx",
+      },
+      detectedNativeBarcodes: [
+        {
+          name: "barcode07",
+          sort_barcode_name: "sort_barcode07",
+          fastq_bytes: 7_000_000,
+          fastq_mb: 7.0,
+          share: 0.6,
+          is_used: true,
+        },
+      ],
+      detectedBarcodeCount: 3,
+    });
+
+    mockSendRequest.mockResolvedValueOnce({
+      verdicts: [],
+      replicates: [],
+      output_path: "D:/project/mame_result.xlsx",
+      summary: { total: 0, pass_count: 0, ambiguous_count: 0, fail_count: 0 },
+      distribution_stats: distributionStats,
+    });
+
+    await store.confirmNativeBarcodeSelection([]);
+
+    expect(mockSendRequest).toHaveBeenNthCalledWith(
+      1,
+      "analyze",
+      expect.objectContaining({ native_barcodes: null }),
+      3_000_000,
+    );
+    expect(store.selectedNativeBarcodes).toEqual([]);
+    expect(store.detectedBarcodeCount).toBe(3);
+  });
+
   it("keeps an in-flight ordinary analysis bound to its originating round", async () => {
     const store = makeStore({
       inputDir: "D:/project/consensus",

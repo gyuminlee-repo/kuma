@@ -41,7 +41,6 @@ const DIRECTORY_FIELDS = new Set<MamePathField>(["inputDir"]);
 
 const FILTERS: Partial<Record<MamePathField, { name: string; extensions: string[] }>> = {
   expectedPath: { name: "Excel", extensions: ["xlsx"] },
-  sampleMapPath: { name: "Excel", extensions: ["xlsx"] },
   referencePath: { name: "Sequence", extensions: ["fa", "fasta", "fna"] },
   customBarcodesPath: { name: "Table", extensions: ["xlsx", "csv"] },
   sequencingSummaryPath: { name: "Summary", extensions: ["txt", "tsv"] },
@@ -60,14 +59,12 @@ export function MissingInputsBanner() {
   const inputDir = useMameAppStore((s) => s.inputDir);
   const expectedPath = useMameAppStore((s) => s.expectedPath);
   const referencePath = useMameAppStore((s) => s.referencePath);
-  const sampleMapPath = useMameAppStore((s) => s.sampleMapPath);
   const customBarcodesPath = useMameAppStore((s) => s.rawRunParams.customBarcodesPath);
   const sequencingSummaryPath = useMameAppStore((s) => s.rawRunParams.sequencingSummaryPath);
   const currentPaths: Partial<RestoredMamePaths> = {
     inputDir,
     expectedPath,
     referencePath,
-    sampleMapPath,
     customBarcodesPath: customBarcodesPath ?? "",
     sequencingSummaryPath: sequencingSummaryPath ?? "",
   };
@@ -88,9 +85,6 @@ export function MissingInputsBanner() {
           break;
         case "referencePath":
           store.setReferencePath(path);
-          break;
-        case "sampleMapPath":
-          store.setSampleMapPath(path);
           break;
         case "customBarcodesPath":
           store.setParams({ rawRunParams: { customBarcodesPath: path } });

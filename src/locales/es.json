@@ -165,13 +165,20 @@
       "redetecting": "Detectando..."
     },
     "nativeBarcodeDialog": {
-      "title": "Se detectaron varios native barcodes",
-      "description": "Esta corrida contiene más de un native barcode de MinKNOW. Seleccione los barcodes que desea demultiplexar; cada barcode seleccionado se procesa en su propia carpeta de salida. Una corrida de análisis evalúa una plate: los barcodes seleccionados aquí se evalúan como replicates de esa misma plate, no como plates distintas.",
+      "title": "Elegir el eje replicate de esta ejecución",
+      "description": "Esta carpeta de run contiene más de un native barcode de MinKNOW. Una ejecución evalúa una plate, y sus native barcodes son replicates de esa plate: cada barcode seleccionado se demultiplexa por separado y después el pipeline elige el mejor replicate por variante. Cancelar detiene el análisis.",
       "shareHeader": "Proporción",
       "selectAriaLabel": "Seleccionar native barcode {{name}}",
-      "selectedCount": "{{count}} barcode(s) seleccionado(s)",
-      "confirm": "Ejecutar selección",
-      "confirming": "Ejecutando…"
+      "confirm": "Ejecutar",
+      "confirming": "Ejecutando…",
+      "modeLegend": "Eje replicate",
+      "modePerBarcode": "Cada barcode seleccionado es un replicate",
+      "modePerBarcodeHelp": "Un demux por barcode. Así cada well puede compararse entre las plates seleccionadas.",
+      "modePooled": "Agrupar todos los barcodes en una sola plate",
+      "modePooledHelp": "Todas las reads en un solo pool. Una plate y ningún replicate que comparar.",
+      "replicateCount": "{{count}} replicate(s) seleccionados",
+      "pooledCount": "{{count}} barcode(s) agrupados en una plate",
+      "cancel": "Cancelar ejecución"
     },
     "parameters": {
       "title": "Parámetros",
@@ -330,7 +337,6 @@
       "generatedFileLabels": {
         "barcodes": "Tabla de barcodes (xlsx)",
         "amplicon": "Referencia de amplicon (FASTA)",
-        "sampleMapTemplate": "Plantilla de sample map (xlsx)",
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "No se pudo abrir la carpeta.",
@@ -338,7 +344,8 @@
       "variantColumn": "Columna de variantes",
       "variantColumnPlaceholder": "Elegir una columna",
       "variantColumnHelper": "Las filas llenan la placa de 96 wells en el orden de esta columna, bajando por cada columna de la placa: A1, B1, C1 hasta H1, y luego A2. Una fila WT se usa como control en lugar de añadir una.",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "outputLocationStateLabel": "Opcional"
     },
     "activity": {
       "sectionIngest": "Subir activity",
@@ -570,7 +577,21 @@
       "finalFallbackNotice": "No replicate has been selected yet, so FINAL is showing every well (ALL).",
       "resizeColumnAriaLabel": "Resize column {{column}}",
       "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
-      "resetColumnWidths": "Reset column widths"
+      "resetColumnWidths": "Reset column widths",
+      "replicateFlags": {
+        "header": "Concordancia",
+        "help": "¿Coinciden las copias de plate de este well? Se calcula por well, sobre todas las plates de la ejecución.",
+        "agree": "OK",
+        "disagreementShort": "discrepan",
+        "disagreementHelp": "Las copias de plate de este well no recibieron el mismo veredicto.",
+        "depthShort": "depth",
+        "depthHelp": "Una copia tiene menos de un quinto de las reads de la copia más profunda, así que una discrepancia puede deberse a la depth y no a la biología.",
+        "missingShort": "falta",
+        "missingHelp": "No hay registro de este well en {{plates}}.",
+        "missingUnknown": "Esta ejecución no indica qué plates evaluó, por lo que no puede detectarse una copia ausente.",
+        "filterLabel": "Marcados ({{count}})",
+        "filterHelp": "Mostrar solo los wells cuyos replicates discrepan, tienen la depth desequilibrada o les falta una copia."
+      }
     },
     "summaryRow": {
       "ariaLabel": "Resumen del análisis",
@@ -781,13 +802,6 @@
         "helpText": "El modo raw run de MinKNOW usa este archivo para asignar reads a salidas FASTA por well antes del análisis.",
         "axisCounts": "Archivo de barcodes: {{forward}} forward x {{reverse}} reverse seeds, {{wells}} wells en una plate."
       },
-      "sampleMap": {
-        "label": "Sample Map (opcional)",
-        "placeholder": "Ruta del archivo .xlsx (layout de wells de mutantes)",
-        "stateLabel": "Opcional",
-        "helperText": "Mapeo de well a nombre de muestra, añade el nombre del mutante a los nombres de archivo FASTA ordenados (p. ej. A01_V5F_F1_R1.fasta)",
-        "helpText": "Col A: nombre de la muestra, Col B: posición del well (p. ej. A1). Compatible con el layout mutants.xlsx de KURO."
-      },
       "exportDest": {
         "label": "Carpeta de destino de exportación",
         "placeholder": "Elegir una carpeta; se creará {{filename}}",
@@ -936,6 +950,40 @@
         "alertTitle": "Posible error en la correspondencia well-variante",
         "alertDesc": "De {{wells}} wells con una variante observada, el {{selfPercent}}% coincide con su propia mutación esperada y el {{crossPercent}}% coincide en cambio con la mutación esperada de otro well. Es muy probable que la correspondencia well-variante esté desalineada; no confíe en este resultado.",
         "alertAriaLabel": "Advertencia de integridad de la correspondencia well-variante"
+      },
+      "offLayoutRecords": {
+        "title": "{{records}} registros de {{wells}} pocillos fuera de la disposición",
+        "desc": "Estos pocillos no formaban parte de la disposición, así que no se esperaba nada de ellos. Las lecturas indican un pocillo llenado después de todo, o diafonía de código de barras de un vecino. Pocillos:  {{list}}",
+        "more": "y {{count}} más."
+      },
+      "contamination": {
+        "title": "Lecturas descarriadas",
+        "subtitle": "Medido frente a los {{wells}} pocillos ocupados ({{source}}).",
+        "notMeasured": "no medido",
+        "signalAbsent": "Esta versión no incluye esa señal, por lo que el run no dice nada al respecto.",
+        "wellList": "Pocillos: {{list}}",
+        "more": "y {{count}} más.",
+        "source": {
+          "inferred_draft_layout": "disposición inferida de la lista expected",
+          "explicit_well_layout": "disposición indicada para este run"
+        },
+        "signal": {
+          "unused_index_reads": "Lecturas con un índice de barcode que esta campaña nunca usó",
+          "unexpected_well_reads": "Lecturas en un pocillo desocupado de los índices en uso",
+          "ambiguity_rate": "Lecturas descartadas por ambiguas, sobre las que llegaron al barcode matching",
+          "chimera_rate": "Asignaciones de pocillo adicionales de lecturas divididas, por lectura asignada",
+          "leak_well_sharing": "Pocillos en una combinación no ocupada de índices en uso",
+          "plate_yield_skew": "Copia de placa menor sobre la mayor, en lecturas asignadas"
+        },
+        "sharing": {
+          "shared_across_replicates": "Las lecturas descarriadas se repiten en todas las copias de placa.",
+          "single_replicate": "Las lecturas descarriadas están en una sola copia de placa."
+        }
+      },
+      "legacySampleMap": {
+        "title": "{{file}} coincide con la disposición calculada",
+        "desc": "Los {{wells}} pocillos coinciden, así que no hay nada que cambiar. El sample map ya no se lee como entrada y este archivo puede borrarse cuando quiera; hasta entonces se deja como está.",
+        "dismiss": "Cerrar este aviso"
       }
     },
     "inspector": {
@@ -1197,7 +1245,30 @@
       "copySourcePath": "Copy consensus FASTA path",
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
-      "noVerdictRecord": "No verdict record for this well."
+      "noVerdictRecord": "No verdict record for this well.",
+      "replicateReads": "{{reads}} reads",
+      "replicateAligned": "{{aligned}} alineadas"
+    },
+    "wellSelection": {
+      "title": "Pocillos usados",
+      "description": "La disposición calculada, dibujada sobre la placa. Las variantes llenan los pocillos seleccionados en orden de placa (A1, B1, ... H1, A2). Sin tocar nada se usan los primeros pocillos.",
+      "counts": "{{selected}} de {{capacity}} pocillos seleccionados para {{occupants}} muestras (variantes más el control WT).",
+      "tooFewWells": "{{selected}} pocillos seleccionados pero hay {{occupants}} muestras. Seleccione más pocillos o acorte la lista de variantes.",
+      "selectAll": "Seleccionar todo ({{count}})",
+      "selectDefault": "Solo las muestras ({{count}})",
+      "clearAll": "Borrar selección",
+      "gridLabel": "Placa de 96 pocillos, seleccione los pocillos usados",
+      "toggleAllLabel": "Alternar todos los pocillos",
+      "toggleRowLabel": "Alternar fila {{row}}",
+      "toggleColumnLabel": "Alternar columna {{column}}",
+      "wellWithSample": "Pocillo {{well}}, {{sample}}",
+      "wellEmpty": "Pocillo {{well}}, vacío",
+      "keyboardHint": "Las flechas mueven, Espacio alterna, Mayús con flecha extiende la selección. Arrastre para pintar.",
+      "loadFailed": "No se pudo leer la lista de variantes para dibujar la placa: {{error}}"
+    },
+    "replicateModeNotice": {
+      "pooled": "Esta ejecución agrupó {{detected}} native barcodes en una sola plate, así que no hay replicates que comparar.",
+      "subset": "Esta carpeta de run tiene {{detected}} native barcodes y {{replicates}} de ellos se evaluaron como replicates. El resto no está en estos resultados."
     }
   },
   "home": {
@@ -2326,13 +2397,13 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "La regla que convierte un par de codigos de barras en un pocillo de la placa vive en un solo lugar en vez de cuatro, de modo que los cuatro no pueden divergir.",
-      "Un diseno que llena la placa exactamente y no deja sitio para un pocillo wild-type ya no se rechaza por ello.",
-      "Al cargar un archivo de codigos de barras se muestra cuantos forward y reverse contiene y cuantos pocillos describen.",
-      "El dialogo de native barcode dice que esta eligiendo: replicas de una placa, no placas distintas.",
-      "Una ejecucion que desborda la placa se rechaza antes de que empiece el demux, no despues de escribir los pocillos."
+      "El sample map desaparece. MAME coloca la placa a partir de la propia lista de variantes, y un archivo sobrante se compara en vez de obedecerse.",
+      "Elija en una rejilla de 96 pocillos cuales uso la ejecucion: haciendo clic, arrastrando o pulsando una cabecera de fila o columna.",
+      "Una lista de variantes con una fila vacia en medio, o una segunda fila wild-type, detiene la ejecucion en vez de desplazar cada pocillo posterior.",
+      "Elegir native barcodes ahora dice que esta eligiendo: replicas de una placa. Los pocillos cuyas replicas discrepan quedan marcados.",
+      "La ejecucion informa de las lecturas que cayeron fuera de los pocillos declarados, separadas segun si esos indices se usaron alguna vez."
     ],
-    "highlightsStamp": "0.15.23+0c028fbf"
+    "highlightsStamp": "0.16.0+b2281961"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",
@@ -2458,7 +2529,6 @@
     "fieldRunFolder": "carpeta de la corrida",
     "fieldReference": "referencia",
     "fieldExpected": "expected",
-    "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
     "pathsMoved": "Estas entradas se movieron y deben seleccionarse de nuevo: {{fields}}"

@@ -54,7 +54,7 @@ Round 2 EVOLVEpro pred        ── 다음 라운드 (이 폴더 범위 밖)
 
 ## Cross-file 일관성 검증 (검증 완료)
 
-- 22 wells 모두 #5 sample_map, #6 plate_layout, #7 activity_long 일치
+- 22 wells 모두 #6 plate_layout, #7 activity_long 일치
 - Measured variant set {WT, S65T, Y66H, T203Y, F64L, A206K, S65A}: #6/#8/#9/#10/#11/#12 일치
 - #3 expected mutations 는 plate subset 보다 넓은 9개 EGFP single 후보를 담고, #6 이후 activity/Step 3 파일은 실제 측정된 6개 후보만 담는다
 - True activity 값 통일: WT=1.00, S65T=1.85, Y66H=0.48, T203Y=2.33, F64L=1.55, A206K=1.20, S65A=3.11
@@ -67,8 +67,7 @@ Round 2 EVOLVEpro pred        ── 다음 라운드 (이 폴더 범위 밖)
 | 1 | `01_kuro_evolvepro_pred.csv` | KURO | Stage 2 | `variant`, `y_pred` | 없음 (csv) |
 | 3 | `03_mame_expected_mutations.xlsx` | MAME | Stage 3 | `mutant_id`, `position`, `wt_aa`, `mt_aa`, `wt_codon`, `mt_codon`, `group_id`, `primer_set_ref`, `notation_type`, `status` | `expected_mutations` |
 | 4 | `04_mame_custom_barcodes.xlsx` | MAME | Stage 4 | A=`isps_f_1..12`/`isps_r_1..8`, B=서열 | `barcodes` |
-| 5 | `05_mame_sample_map.xlsx` | MAME | Stage 4 (선택) | A=sample 이름, B=well. 반복은 `<이름>_r<n>` (`WT_r1`, `S65T_r2`), 빈 well 은 `blank` 로 적고 activity 파싱에서 제외 | `sample_map` |
-| 6 | `06_mame_plate_layout.xlsx` | MAME activity | plateLayout route `layout_xlsx` | `Mutant`, `Well Pos.` (5번 sample map 의 `sample_name`+`well` 도 대신 쓸 수 있음). `_r<n>` 반복 접미사와 `blank` 행 처리는 5번과 동일 | `Plate Layout` |
+| 6 | `06_mame_plate_layout.xlsx` | MAME activity | plateLayout route `layout_xlsx` | `Mutant`, `Well Pos.` (`sample_name`+`well` 헤더도 대신 쓸 수 있음). `_r<n>` 반복 접미사는 반복 웰을, `blank` 행은 빈 웰을 뜻하고 activity 파싱에서 제외된다 | `Plate Layout` |
 | 7a | `07_mame_activity_long.csv` | MAME activity | genotype route `activity.upload` | `well_id`, `value` (별칭은 아래 비고), opt `plate_id`, opt `replicate_idx` | 없음 (csv) |
 | 7b | `07_mame_activity_long.xlsx` | MAME activity | genotype route `activity.upload` (xlsx 변형) | 동일 | `activity_long` |
 | 8 | `08_mame_evolvepro_raw.xlsx` | MAME activity | plateLayout route `round1_evolvepro_xlsx` (축 A) 또는 Step 3 `prev_evolvepro_xlsx` (`rep_batch_xlsx` 의 rank 소스) | `Variant`, `activity` (EVOLVEpro short form, activity 내림차순) | `EVOLVEpro` |

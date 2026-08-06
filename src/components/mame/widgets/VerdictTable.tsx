@@ -17,6 +17,11 @@ import { useRoundStore, type RoundSlice } from "@/store/round/roundSlice";
 import type { VerdictRecord, WellEntry } from "@/types/mame/models";
 import type { MergedRow } from "@/types/mame/activity";
 import { nbLabel, nbOrderKey, wellSortKey } from "@/lib/mame/nbLabel";
+import {
+  computeReplicateConcordance,
+  isFlagged,
+  type WellConcordance,
+} from "@/lib/mame/replicateConcordance";
 import { VerdictBadge } from "./VerdictBadge";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -116,6 +121,7 @@ export function selectActiveMergedTable(state: RoundSlice): MergedRow[] {
 // the defaults a resized column returns to (react-table column `size`).
 const COLUMN_WIDTHS: Record<string, number> = {
   custom_barcode: 96,
+  replicate_flags: 92,
   mutant_id: 120,
   verdict: 132,
   recovered: 84,
@@ -149,6 +155,78 @@ function getVerdictRowTone(verdict: VerdictRow["verdict"]): string {
   }
 }
 
+/**
+ * Replicate concordance badges for one well.
+ *
+ * Each badge is a fact about the well's plate copies, not about this row, and
+ * an undecidable `missing_replicate` (a run that cannot state its plates) shows
+ * nothing rather than an "all present" tick that was never checked.
+ */
+function ReplicateFlagCell({ well }: { well: WellConcordance | undefined }) {
+  const { t } = useTranslation();
+  if (!well) return <span className="text-caption text-muted-foreground">-</span>;
+
+  const badges: { key: string; label: string; title: string; tone: string }[] = [];
+  if (well.verdictDisagreement) {
+    badges.push({
+      key: "disagreement",
+      label: t("mame.verdictTable.replicateFlags.disagreementShort"),
+      title: t("mame.verdictTable.replicateFlags.disagreementHelp"),
+      tone: "border-destructive text-destructive",
+    });
+  }
+  if (well.depthImbalance) {
+    badges.push({
+      key: "depth",
+      label: t("mame.verdictTable.replicateFlags.depthShort"),
+      title: t("mame.verdictTable.replicateFlags.depthHelp"),
+      tone: "border-warning text-warning",
+    });
+  }
+  if (well.missingReplicate === true) {
+    badges.push({
+      key: "missing",
+      label: t("mame.verdictTable.replicateFlags.missingShort"),
+      title: t("mame.verdictTable.replicateFlags.missingHelp", {
+        plates: well.missingPlates.map(nbLabel).join(", "),
+      }),
+      tone: "border-warning text-warning",
+    });
+  }
+
+  if (badges.length === 0) {
+    return (
+      <span
+        data-testid="replicate-flags-cell"
+        className="text-caption text-muted-foreground"
+        title={
+          well.missingReplicate === null
+            ? t("mame.verdictTable.replicateFlags.missingUnknown")
+            : undefined
+        }
+      >
+        {well.cells.length >= 2 ? t("mame.verdictTable.replicateFlags.agree") : "-"}
+      </span>
+    );
+  }
+
+  return (
+    <span data-testid="replicate-flags-cell" className="flex flex-wrap items-center gap-0.5">
+      {badges.map((badge) => (
+        <Badge
+          key={badge.key}
+          variant="outline"
+          data-flag={badge.key}
+          title={badge.title}
+          className={cn("cursor-help px-1 py-0 text-[10px]", badge.tone)}
+        >
+          {badge.label}
+        </Badge>
+      ))}
+    </span>
+  );
+}
+
 export function VerdictTable() {
   const { t } = useTranslation();
   const verdicts = useMameAppStore((state) => state.verdicts);
@@ -180,6 +258,21 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
   const wells = useMameAppStore((state) => state.wells);
   const setSelectedWell = useMameAppStore((state) => state.setSelectedWell);
   const selectedWell = useMameAppStore((state) => state.selectedWell);
+  // The replicate axis this run was scored on, as native_barcode names. null
+  // when no raw-run selection applies, which leaves `missing_replicate`
+  // undecidable (see lib/mame/replicateConcordance.ts).
+  const selectedNativeBarcodes = useMameAppStore(
+    (state) => state.selectedNativeBarcodes ?? null,
+  );
+
+  // Do the plate copies of each well agree? Computed over ALL verdicts, not the
+  // filtered rows: a well's copies live on different plates, so restricting to
+  // one plate tab would hide exactly the comparison being made.
+  const concordance = useMemo(
+    () => computeReplicateConcordance(verdicts, selectedNativeBarcodes),
+    [verdicts, selectedNativeBarcodes],
+  );
+  const [flaggedOnly, setFlaggedOnly] = useState(false);
 
   // Activity data from the active round merged_table
   // Join key: well_id == custom_barcode (MAME barcode label = well position)
@@ -319,15 +412,18 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
   }, [activeFilter, replicates, verdicts, mergedByWell, finalSet]);
 
   const filteredRows = useMemo(() => {
-    if (!searchQuery.trim()) return rows;
+    const flagFiltered = flaggedOnly
+      ? rows.filter((row) => isFlagged(concordance.byWell.get(row.custom_barcode)))
+      : rows;
+    if (!searchQuery.trim()) return flagFiltered;
     const query = searchQuery.trim().toLowerCase();
-    return rows.filter((row) =>
+    return flagFiltered.filter((row) =>
       [row.custom_barcode, row.native_barcode, row.mutant_id, row.verdict_notes, row.observed_aa_changes.join(",")]
         .join(" ")
         .toLowerCase()
         .includes(query),
     );
-  }, [rows, searchQuery]);
+  }, [rows, searchQuery, flaggedOnly, concordance]);
 
   // Per-mutant FINAL recovered status: a variant is recovered if ANY of its
   // replicate wells (across ALL native barcodes, tab-independent) is detected
@@ -390,6 +486,23 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
         header: t("mame.verdictTable.colBarcode"),
         cell: ({ getValue }) => (
           <span className="font-mono text-xs text-foreground">{getValue<string>()}</span>
+        ),
+      },
+      {
+        // Whether this well's plate copies agree with each other. The row is
+        // one copy; the badges describe the set it belongs to, which is why
+        // they are keyed by custom_barcode and not by this record.
+        id: "replicate_flags",
+        header: () => (
+          <span className="cursor-help" title={t("mame.verdictTable.replicateFlags.help")}>
+            {t("mame.verdictTable.replicateFlags.header")}
+          </span>
+        ),
+        // Sort flagged wells first; ties keep the table's own ordering.
+        accessorFn: (row) =>
+          isFlagged(concordance.byWell.get(row.custom_barcode)) ? 1 : 0,
+        cell: ({ row }) => (
+          <ReplicateFlagCell well={concordance.byWell.get(row.original.custom_barcode)} />
         ),
       },
       {
@@ -683,7 +796,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
         },
       },
     ],
-    [t, recoveredByMutant, selectedSet, openWellDetail, selectedWell],
+    [t, recoveredByMutant, selectedSet, openWellDetail, selectedWell, concordance],
   );
 
   // Each column carries its default width as react-table `size`, so a resized
@@ -737,6 +850,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
   const columnLabels = useMemo<Record<string, string>>(
     () => ({
       custom_barcode: t("mame.verdictTable.colBarcode"),
+      replicate_flags: t("mame.verdictTable.replicateFlags.header"),
       mutant_id: t("mame.verdictTable.colMutantId"),
       verdict: t("mame.verdictTable.colVerdict"),
       recovered: t("mame.verdictTable.colRecovered"),
@@ -803,6 +917,25 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
               aria-label={t("mame.verdictTable.searchAriaLabel")}
             />
           </div>
+          {/* Flagged-only, next to the search box because it is the same kind
+              of narrowing. Held in view state: it describes what the reader
+              wants to look at right now, not what the run produced. */}
+          <Button
+            type="button"
+            variant={flaggedOnly ? "default" : "outline"}
+            size="sm"
+            data-testid="replicate-flag-filter"
+            aria-pressed={flaggedOnly}
+            disabled={concordance.flaggedWells === 0 && !flaggedOnly}
+            onClick={() => setFlaggedOnly((v) => !v)}
+            title={t("mame.verdictTable.replicateFlags.filterHelp")}
+            className="h-7 shrink-0 gap-1 px-2 text-xs"
+          >
+            <AlertTriangle size={12} aria-hidden="true" />
+            {t("mame.verdictTable.replicateFlags.filterLabel", {
+              count: concordance.flaggedWells,
+            })}
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

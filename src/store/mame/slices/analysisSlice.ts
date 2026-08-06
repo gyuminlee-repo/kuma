@@ -30,6 +30,8 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   layoutProvenance: null,
   mappingIntegrity: null,
   compareParams: null,
+  offLayoutRecords: null,
+  contamination: null,
   restoredResultProvenance: null,
   // FINAL (the per-mutant selected replicate) is the default view: it is the
   // answer sheet a run is read for. VerdictTable degrades it to ALL while no
@@ -51,6 +53,8 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   setLayoutProvenance: (layoutProvenance) => set({ layoutProvenance }),
   setMappingIntegrity: (mappingIntegrity) => set({ mappingIntegrity }),
   setCompareParams: (compareParams) => set({ compareParams }),
+  setOffLayoutRecords: (offLayoutRecords) => set({ offLayoutRecords }),
+  setContamination: (contamination) => set({ contamination }),
   setRestoredResultProvenance: (restoredResultProvenance) =>
     set({ restoredResultProvenance }),
   setPlateFilter: (plateFilter) => set({ plateFilter }),
@@ -87,6 +91,10 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       // keeping them would let a metric popup state what an input the operator
       // has since changed would have been judged against.
       compareParams: null,
+      offLayoutRecords: null,
+      // Measured against the wells THESE verdicts were scored on, so it stops
+      // meaning anything the moment they go.
+      contamination: null,
       // The restored-result notice describes the results being cleared here, so
       // it must not outlive them: a fresh run or an input change makes whatever
       // an older build produced irrelevant.
@@ -98,6 +106,14 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       buildEvolveproCompletion: null,
       janusAutosave: null,
       janusMappingAutosave: null,
+      // The replicate axis is a property of the results, not of the form: it
+      // says which plate copies the verdicts above were scored on. Once those
+      // verdicts are gone it describes nothing, and a stale axis would have
+      // ReplicateModeNotice and the concordance flags speak about a run that is
+      // no longer on screen. Both drop back to null ("no axis stated"), which
+      // is deliberately not `[]` ("pooled, one plate").
+      selectedNativeBarcodes: null,
+      detectedBarcodeCount: null,
     }),
   resetAnalysis: () => {
     get().clearResults();
@@ -138,7 +154,6 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       "samples/mame/reference.fasta",
       "samples/mame/03_mame_expected_mutations.xlsx",
       "samples/mame/04_mame_custom_barcodes.xlsx",
-      "samples/mame/05_mame_sample_map.xlsx",
       "samples/mame/06_mame_plate_layout.xlsx",
       "samples/mame/07_mame_activity_long.csv",
       "samples/mame/02_mame_barcode_seeds.xlsx",
@@ -164,11 +179,12 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       }
       return "resource missing";
     };
+    // Index-sensitive: `reasonAt` below indexes into `settled`, which is
+    // `relPaths` in order, so a removed entry renumbers every later one.
     const [
       refPath,
       expectedPath,
       barcodesPath,
-      sampleMapPath,
       layoutXlsxPath,
       activityCsvPath,
       barcodeSeedsPath,
@@ -189,7 +205,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     }
     if (!activityCsvPath) {
       set({
-        analyzeMessage: `Sample load failed: samples/mame/07_mame_activity_long.csv (${reasonAt(5)})`,
+        analyzeMessage: `Sample load failed: samples/mame/07_mame_activity_long.csv (${reasonAt(4)})`,
       });
       return;
     }
@@ -198,7 +214,6 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     const optionalFailures: string[] = [];
     if (!expectedPath) optionalFailures.push("03_mame_expected_mutations.xlsx");
     if (!barcodesPath) optionalFailures.push("04_mame_custom_barcodes.xlsx");
-    if (!sampleMapPath) optionalFailures.push("05_mame_sample_map.xlsx");
     if (!barcodeSeedsPath) optionalFailures.push("02_mame_barcode_seeds.xlsx");
     if (!designFastaPath) optionalFailures.push("egfp_with_flanks.fa");
     if (!variantLabelsReportPath)
@@ -211,7 +226,6 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     const state = get();
     state.setReferencePath(refPath);
     if (expectedPath) state.setExpectedPath(expectedPath);
-    if (sampleMapPath) state.setSampleMapPath(sampleMapPath);
     if (barcodesPath)
       state.setParams({ rawRunParams: { customBarcodesPath: barcodesPath } });
 
@@ -234,7 +248,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     });
 
     // Activity pipeline: create round + set plate meta (WT wells) + upload measurements.
-    // WT wells A1/A2/A3 derived from 05_mame_sample_map.xlsx (rows 2-4 → WT_r1/r2/r3).
+    // WT wells A1/A2/A3 derived from 06_mame_plate_layout.xlsx (rows 2-4 → WT_r1/r2/r3).
     // Round entity is required so WtWellGrid / ActivityPanel can surface the
     // pre-annotated WT wells without forcing the user to redo the click-grid.
     // Partial-success allowed per Wave B1 spec: RPC failure must not block the
@@ -280,6 +294,18 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       analyzeYield: null,
       layoutProvenance: null,
       mappingIntegrity: null,
+      offLayoutRecords: null,
+      // Sample data is a consensus-dir fixture and never demuxed, so there is
+      // no matrix behind it. null, not an empty report.
+      contamination: null,
+      // The replicate axis goes with them. The sample verdicts carry
+      // `barcode1`, `barcode2`, ... as their native_barcode (lib/mame/
+      // sampleData.ts), so a `sort_barcodeNN` selection left over from a real
+      // run marks EVERY sample well `missing_replicate` and has
+      // ReplicateModeNotice compare that run's barcode count against this
+      // fixture. null is "no axis stated", deliberately not `[]` ("pooled").
+      selectedNativeBarcodes: null,
+      detectedBarcodeCount: null,
       wells,
       selectedWell: wells.find((w) => w.selected) ?? wells[0] ?? null,
       analyzeMessage:

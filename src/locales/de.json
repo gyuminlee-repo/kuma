@@ -165,13 +165,20 @@
       "redetecting": "Erkenne..."
     },
     "nativeBarcodeDialog": {
-      "title": "Mehrere native barcodes erkannt",
-      "description": "Dieser Lauf enthält mehr als einen MinKNOW native barcode. Wählen Sie die zu demultiplexenden barcodes aus; jeder ausgewählte barcode wird in einen eigenen Ausgabeordner verarbeitet. Ein Analyse-Lauf bewertet eine plate: die hier ausgewählten barcodes werden als replicates derselben plate bewertet, nicht als getrennte plates.",
+      "title": "Replicate-Achse für diesen Lauf wählen",
+      "description": "Dieser Run-Ordner enthält mehr als einen MinKNOW native barcode. Ein Lauf bewertet eine Plate, und deren native barcodes sind Replicates dieser Plate: jeder gewählte Barcode wird einzeln demultiplext, danach wählt die Pipeline pro Variante das beste Replicate. Abbrechen beendet die Analyse.",
       "shareHeader": "Anteil",
       "selectAriaLabel": "Native barcode {{name}} auswählen",
-      "selectedCount": "{{count}} barcode(s) ausgewählt",
-      "confirm": "Auswahl ausführen",
-      "confirming": "Wird ausgeführt…"
+      "confirm": "Starten",
+      "confirming": "Wird ausgeführt…",
+      "modeLegend": "Replicate-Achse",
+      "modePerBarcode": "Jeder gewählte Barcode ist ein Replicate",
+      "modePerBarcodeHelp": "Ein Demux pro Barcode. Jedes Well lässt sich danach über die gewählten Plates hinweg vergleichen.",
+      "modePooled": "Alle Barcodes zu einer Plate zusammenfassen",
+      "modePooledHelp": "Alle Reads in einem Pool. Eine Plate, keine Replicates zum Vergleichen.",
+      "replicateCount": "{{count}} Replicate ausgewählt",
+      "pooledCount": "{{count}} Barcodes zu einer Plate zusammengefasst",
+      "cancel": "Lauf abbrechen"
     },
     "parameters": {
       "title": "Parameter",
@@ -330,7 +337,6 @@
       "generatedFileLabels": {
         "barcodes": "Barcode-Tabelle (xlsx)",
         "amplicon": "Amplicon-Referenz (FASTA)",
-        "sampleMapTemplate": "Sample-map-Vorlage (xlsx)",
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "Ordner konnte nicht geöffnet werden.",
@@ -338,7 +344,8 @@
       "variantColumn": "Variantenspalte",
       "variantColumnPlaceholder": "Spalte waehlen",
       "variantColumnHelper": "Die Zeilen füllen die 96-Well-Platte in der Reihenfolge dieser Spalte, dabei jede Plattenspalte von oben nach unten: A1, B1, C1 bis H1, dann A2. Eine WT-Zeile dient als Kontrolle, statt eine anzuhängen.",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "outputLocationStateLabel": "Optional"
     },
     "activity": {
       "sectionIngest": "Activity hochladen",
@@ -570,7 +577,21 @@
       "finalFallbackNotice": "No replicate has been selected yet, so FINAL is showing every well (ALL).",
       "resizeColumnAriaLabel": "Resize column {{column}}",
       "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
-      "resetColumnWidths": "Reset column widths"
+      "resetColumnWidths": "Reset column widths",
+      "replicateFlags": {
+        "header": "Übereinstimmung",
+        "help": "Stimmen die Plate-Kopien dieses Wells überein? Pro Well ermittelt, über alle Plates des Laufs.",
+        "agree": "OK",
+        "disagreementShort": "abweichend",
+        "disagreementHelp": "Die Plate-Kopien dieses Wells wurden nicht gleich bewertet.",
+        "depthShort": "Depth",
+        "depthHelp": "Eine Kopie trägt weniger als ein Fünftel der Reads der tiefsten Kopie; eine Abweichung kann hier an der Depth statt an der Biologie liegen.",
+        "missingShort": "fehlt",
+        "missingHelp": "Auf {{plates}} gibt es keinen Eintrag für dieses Well.",
+        "missingUnknown": "Dieser Lauf nennt die bewerteten Plates nicht, daher lässt sich eine fehlende Kopie nicht erkennen.",
+        "filterLabel": "Markiert ({{count}})",
+        "filterHelp": "Nur Wells zeigen, deren Replicates abweichen, deren Depth unausgewogen ist oder denen eine Kopie fehlt."
+      }
     },
     "summaryRow": {
       "ariaLabel": "Analyse-Zusammenfassung",
@@ -781,13 +802,6 @@
         "helpText": "Raw MinKNOW ausführen Modus uses this Datei zu assign reads zu per-well FASTA outputs before analysis.",
         "axisCounts": "Barcode-Datei: {{forward}} forward x {{reverse}} reverse seeds, {{wells}} wells auf einer plate."
       },
-      "sampleMap": {
-        "label": "Sample Map (optional)",
-        "placeholder": ".xlsx Datei Pfad (mutants well layout)",
-        "stateLabel": "Optional",
-        "helperText": "Well-zu-sample name mapping — adds mutant name zu sorted FASTA filenames (e.g. A01_V5F_F1_R1.fasta)",
-        "helpText": "Col A: sample name, Col B: well position (e.g. A1). Compatible mit KURO mutants.xlsx layout."
-      },
       "exportDest": {
         "label": "Export destination Ordner",
         "placeholder": "Wählen ein Ordner; {{filename}} will be created",
@@ -936,6 +950,40 @@
         "alertTitle": "Well-Varianten-Zuordnung wahrscheinlich fehlerhaft",
         "alertDesc": "Von {{wells}} Wells mit beobachteter Variante stimmen {{selfPercent}}% mit der eigenen erwarteten Mutation überein, {{crossPercent}}% dagegen mit der erwarteten Mutation eines anderen Wells. Die Well-Varianten-Zuordnung ist mit hoher Wahrscheinlichkeit verschoben; diesem Ergebnis ist nicht zu trauen.",
         "alertAriaLabel": "Warnung zur Well-Varianten-Zuordnungsintegrität"
+      },
+      "offLayoutRecords": {
+        "title": "{{records}} Datensätze aus {{wells}} Wells außerhalb des Layouts",
+        "desc": "Diese Wells gehörten nicht zum Layout des Laufs, es wurde also nichts von ihnen erwartet. Reads bedeuten entweder ein doch befülltes Well oder Barcode-Übersprechen vom Nachbarn. Wells:  {{list}}",
+        "more": "und {{count}} weitere."
+      },
+      "contamination": {
+        "title": "Verirrte Reads",
+        "subtitle": "Gemessen gegen die {{wells}} belegten Wells ({{source}}).",
+        "notMeasured": "nicht gemessen",
+        "signalAbsent": "Dieser Build kennt dieses Signal nicht, der Run sagt also nichts darüber aus.",
+        "wellList": "Wells: {{list}}",
+        "more": "und {{count}} weitere.",
+        "source": {
+          "inferred_draft_layout": "aus der expected-Liste abgeleitetes Layout",
+          "explicit_well_layout": "für diesen Run vorgegebenes Layout"
+        },
+        "signal": {
+          "unused_index_reads": "Reads mit einem Barcode-Index, den diese Kampagne nie verwendet hat",
+          "unexpected_well_reads": "Reads auf einem unbelegten Well der verwendeten Indizes",
+          "ambiguity_rate": "Als mehrdeutig verworfene Reads, bezogen auf die Reads im Barcode-Matching",
+          "chimera_rate": "Zusätzliche Well-Zuordnungen aus geteilten Reads, je zugeordnetem Read",
+          "leak_well_sharing": "Wells auf einer unbelegten Kombination genutzter Indizes",
+          "plate_yield_skew": "Kleinste Plattenkopie geteilt durch die größte, nach zugeordneten Reads"
+        },
+        "sharing": {
+          "shared_across_replicates": "Die verirrten Reads wiederholen sich über die Plattenkopien hinweg.",
+          "single_replicate": "Die verirrten Reads liegen in einer einzigen Plattenkopie."
+        }
+      },
+      "legacySampleMap": {
+        "title": "{{file}} stimmt mit dem berechneten Layout überein",
+        "desc": "Alle {{wells}} Wells stimmen überein, es ist also nichts zu ändern. Die Sample Map wird nicht mehr als Eingabe gelesen, und diese Datei kann jederzeit gelöscht werden; bis dahin bleibt sie unangetastet.",
+        "dismiss": "Hinweis schließen"
       }
     },
     "inspector": {
@@ -1197,7 +1245,30 @@
       "copySourcePath": "Copy consensus FASTA path",
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
-      "noVerdictRecord": "No verdict record for this well."
+      "noVerdictRecord": "No verdict record for this well.",
+      "replicateReads": "{{reads}} Reads",
+      "replicateAligned": "{{aligned}} aligned"
+    },
+    "wellSelection": {
+      "title": "Verwendete Wells",
+      "description": "Die berechnete Belegung, auf der Platte gezeichnet. Varianten füllen die ausgewählten Wells in Plattenreihenfolge (A1, B1, ... H1, A2). Ohne Eingriff werden die vorderen Wells verwendet.",
+      "counts": "{{selected}} von {{capacity}} Wells für {{occupants}} Proben ausgewählt (Varianten plus WT-Kontrolle).",
+      "tooFewWells": "{{selected}} Wells ausgewählt, aber {{occupants}} Proben müssen untergebracht werden. Mehr Wells wählen oder Variantenliste kürzen.",
+      "selectAll": "Alle auswählen ({{count}})",
+      "selectDefault": "Nur die Proben ({{count}})",
+      "clearAll": "Auswahl aufheben",
+      "gridLabel": "96-Well-Platte, Wells dieser Kampagne auswählen",
+      "toggleAllLabel": "Alle Wells umschalten",
+      "toggleRowLabel": "Reihe {{row}} umschalten",
+      "toggleColumnLabel": "Spalte {{column}} umschalten",
+      "wellWithSample": "Well {{well}}, {{sample}}",
+      "wellEmpty": "Well {{well}}, leer",
+      "keyboardHint": "Pfeiltasten bewegen, Leertaste schaltet um, Umschalt mit Pfeiltaste erweitert die Auswahl. Ziehen malt über mehrere Wells.",
+      "loadFailed": "Variantenliste zum Zeichnen der Platte nicht lesbar: {{error}}"
+    },
+    "replicateModeNotice": {
+      "pooled": "Dieser Lauf hat {{detected}} native barcodes zu einer Plate zusammengefasst und hat daher keine Replicates zum Vergleichen.",
+      "subset": "Dieser Run-Ordner enthält {{detected}} native barcodes, davon wurden {{replicates}} als Replicates bewertet. Der Rest steckt nicht in diesen Ergebnissen."
     }
   },
   "home": {
@@ -2326,13 +2397,13 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die Regel, die ein Barcode-Paar in ein Platten-Well uebersetzt, liegt an einer Stelle statt an vier, sodass die vier nicht auseinanderlaufen koennen.",
-      "Ein Design, das die Platte genau fuellt und keinen Platz fuer ein wild-type Well laesst, wird dafuer nicht mehr abgelehnt.",
-      "Beim Laden einer Barcode-Datei wird angezeigt, wie viele forward und reverse Barcodes sie enthaelt und wie viele Wells sie beschreiben.",
-      "Der native-barcode Dialog sagt, was er auswaehlt: Replikate einer Platte statt getrennter Platten.",
-      "Ein Lauf, der die Platte ueberfuellt, wird vor dem Start des Demux abgelehnt, nicht nachdem Wells geschrieben wurden."
+      "Die sample map entfaellt. MAME legt die Platte aus der Variantenliste selbst, und eine uebrig gebliebene Datei wird verglichen statt befolgt.",
+      "Waehlen Sie auf einem 96er Raster, welche Wells ein Lauf benutzt hat: durch Klicken, Ziehen oder Klick auf einen Zeilen- oder Spaltenkopf.",
+      "Eine Variantenliste mit einer Leerzeile in der Mitte oder einer zweiten wild-type Zeile stoppt den Lauf, statt jedes spaetere Well zu verschieben.",
+      "Die Auswahl der native barcodes sagt jetzt, was sie auswaehlt: Replikate einer Platte. Wells mit widerspruechlichen Replikaten werden markiert.",
+      "Ein Lauf meldet Reads ausserhalb der deklarierten Wells, getrennt danach, ob diese Barcode-Indizes ueberhaupt benutzt wurden."
     ],
-    "highlightsStamp": "0.15.23+0c028fbf"
+    "highlightsStamp": "0.16.0+b2281961"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",
@@ -2458,7 +2529,6 @@
     "fieldRunFolder": "ausführen Ordner",
     "fieldReference": "Referenz",
     "fieldExpected": "expected",
-    "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
     "pathsMoved": "Diese Eingaben wurden verschoben und muessen neu ausgewaehlt werden: {{fields}}"

@@ -12,15 +12,26 @@
 
 import { readDir, readTextFile } from "@tauri-apps/plugin-fs";
 import { join } from "@tauri-apps/api/path";
-import { isMameContext, type MameContext } from "@/types/mame/mame_context";
+import {
+  isMameContext,
+  legacySampleMapPointer,
+  type MameContext,
+} from "@/types/mame/mame_context";
 
 export interface DetectedPaths {
   /** MinKNOW run 디렉토리 (YYYYMMDD_HHMM_* 패턴) */
   inputDir?: string;
   /** custom barcodes xlsx/csv */
   customBarcodesPath?: string;
-  /** mutants/well-map xlsx → sample_map_path */
-  sampleMapPath?: string;
+  /**
+   * 스키마 1 mame_context.json 이 가리키는 옛 sample_map_template.xlsx.
+   *
+   * 입력이 아니다. 웰 배치는 변이 목록에서 계산하며, 이 값은
+   * `validate_inputs` 가 그 계산 결과와 파일을 대조해 불일치 웰을 지목하는
+   * 마이그레이션 경로에만 쓰인다. 파일명 추측으로 찾지 않는다: 옛 규칙은
+   * `mutant[s]?.*\.xlsx` 까지 매칭해 변이 목록 파일을 집어 왔다.
+   */
+  legacySampleMapPath?: string;
   /** reference FASTA (.fa / .fasta) */
   referencePath?: string;
   /** expected genotype xlsx */
@@ -31,7 +42,6 @@ export interface DetectedPaths {
 
 const MINKNOW_DIR_RE = /^\d{8}_\d{4}_/;
 const BARCODES_RE = /^(custom_)?barcode[s]?.*\.(xlsx|csv)$/i;
-const SAMPLE_MAP_RE = /^(mutant[s]?|sample_map|well_map|plate_map).*\.xlsx$/i;
 const REFERENCE_RE = /\.(fa|fasta|fna)$/i;
 const EXPECTED_RE = /^(expected|genotype|template).*\.(xlsx|csv)$/i;
 const SEQ_SUMMARY_RE = /^sequencing_summary.*\.(txt|tsv)$/i;
@@ -92,8 +102,11 @@ function isAbsolutePath(p: string): boolean {
 async function resolveContextPaths(
   projectPath: string,
   context: MameContext,
-): Promise<Pick<DetectedPaths, "customBarcodesPath" | "referencePath" | "sampleMapPath">> {
-  const resolved: Pick<DetectedPaths, "customBarcodesPath" | "referencePath" | "sampleMapPath"> = {};
+): Promise<Pick<DetectedPaths, "customBarcodesPath" | "referencePath" | "legacySampleMapPath">> {
+  const resolved: Pick<
+    DetectedPaths,
+    "customBarcodesPath" | "referencePath" | "legacySampleMapPath"
+  > = {};
 
   if (context.custom_barcodes_path) {
     try {
@@ -113,11 +126,12 @@ async function resolveContextPaths(
       console.warn("[detectProjectFiles] mame_context.json: failed to resolve reference_path");
     }
   }
-  if (context.sample_map_template_path) {
+  const legacyPointer = legacySampleMapPointer(context);
+  if (legacyPointer) {
     try {
-      resolved.sampleMapPath = isAbsolutePath(context.sample_map_template_path)
-        ? context.sample_map_template_path
-        : await join(projectPath, context.sample_map_template_path);
+      resolved.legacySampleMapPath = isAbsolutePath(legacyPointer)
+        ? legacyPointer
+        : await join(projectPath, legacyPointer);
     } catch {
       console.warn("[detectProjectFiles] mame_context.json: failed to resolve sample_map_template_path");
     }
@@ -161,14 +175,14 @@ export async function detectProjectFiles(projectPath: string): Promise<DetectedP
     if (contextPaths.referencePath) {
       detected.referencePath = contextPaths.referencePath;
     }
-    if (contextPaths.sampleMapPath) {
-      detected.sampleMapPath = contextPaths.sampleMapPath;
+    if (contextPaths.legacySampleMapPath) {
+      detected.legacySampleMapPath = contextPaths.legacySampleMapPath;
     }
   }
 
   // ── readDir 스캔 (inputDir, expectedPath, sequencingSummaryPath는 mame_context.json에 없으므로 항상 실행)
 
-  // 프로젝트 디렉토리 스캔 (barcodes, sample map, reference, expected)
+  // 프로젝트 디렉토리 스캔 (barcodes, reference, expected)
   const projectEntries = await safeReadDir(projectPath);
   for (const entry of projectEntries) {
     if (!entry.name) continue;
@@ -176,9 +190,6 @@ export async function detectProjectFiles(projectPath: string): Promise<DetectedP
     if (entry.isFile) {
       if (!detected.customBarcodesPath && BARCODES_RE.test(entry.name)) {
         detected.customBarcodesPath = fullPath;
-      }
-      if (!detected.sampleMapPath && SAMPLE_MAP_RE.test(entry.name)) {
-        detected.sampleMapPath = fullPath;
       }
       if (!detected.referencePath && REFERENCE_RE.test(entry.name)) {
         detected.referencePath = fullPath;
@@ -211,9 +222,6 @@ export async function detectProjectFiles(projectPath: string): Promise<DetectedP
       if (entry.isFile) {
         if (!detected.customBarcodesPath && BARCODES_RE.test(entry.name)) {
           detected.customBarcodesPath = fullPath;
-        }
-        if (!detected.sampleMapPath && SAMPLE_MAP_RE.test(entry.name)) {
-          detected.sampleMapPath = fullPath;
         }
         if (!detected.referencePath && REFERENCE_RE.test(entry.name)) {
           detected.referencePath = fullPath;
@@ -256,9 +264,6 @@ export async function detectFromInputDir(
     if (entry.isFile) {
       if (!detected.customBarcodesPath && BARCODES_RE.test(entry.name)) {
         detected.customBarcodesPath = fullPath;
-      }
-      if (!detected.sampleMapPath && SAMPLE_MAP_RE.test(entry.name)) {
-        detected.sampleMapPath = fullPath;
       }
       if (!detected.referencePath && REFERENCE_RE.test(entry.name)) {
         detected.referencePath = fullPath;

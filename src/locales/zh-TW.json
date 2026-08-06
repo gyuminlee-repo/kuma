@@ -165,13 +165,20 @@
       "redetecting": "檢測中..."
     },
     "nativeBarcodeDialog": {
-      "title": "偵測到多個 native barcode",
-      "description": "本次 run 包含多個 MinKNOW native barcode。請選擇要 demultiplex 的 barcode；每個所選 barcode 都會處理到各自的輸出資料夾。一次分析 run 只評判一片 plate：這裡所選的 barcode 會作為同一片 plate 的 replicate 評判，而不是各自獨立的 plate。",
+      "title": "選擇本次執行的 replicate 軸",
+      "description": "此 run 資料夾含有多個 MinKNOW native barcode。一次執行只判定一塊 plate，其 native barcode 即為該 plate 的 replicate：所選的每個 barcode 會各自 demux，接著流程為每個變異挑出最佳 replicate。取消則中止分析。",
       "shareHeader": "占比",
       "selectAriaLabel": "選擇 native barcode {{name}}",
-      "selectedCount": "已選擇 {{count}} 個 barcode",
-      "confirm": "執行所選",
-      "confirming": "執行中…"
+      "confirm": "執行",
+      "confirming": "執行中…",
+      "modeLegend": "Replicate 軸",
+      "modePerBarcode": "將所選的每個 barcode 視為一個 replicate",
+      "modePerBarcodeHelp": "每個 barcode 各 demux 一次。如此每個 well 都能在所選 plate 之間比較。",
+      "modePooled": "將所有 barcode 併為一塊 plate",
+      "modePooledHelp": "所有 read 併入同一個 pool。只有一塊 plate，沒有可比較的 replicate。",
+      "replicateCount": "已選擇 {{count}} 個 replicate",
+      "pooledCount": "已將 {{count}} 個 barcode 併為一塊 plate",
+      "cancel": "取消執行"
     },
     "parameters": {
       "title": "引數",
@@ -330,7 +337,6 @@
       "generatedFileLabels": {
         "barcodes": "條碼表 (xlsx)",
         "amplicon": "Amplicon 參考序列 (FASTA)",
-        "sampleMapTemplate": "Sample map 範本 (xlsx)",
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "無法開啟資料夾。",
@@ -338,7 +344,8 @@
       "variantColumn": "變異欄",
       "variantColumnPlaceholder": "選擇欄位",
       "variantColumnHelper": "依此欄的列順序填入 96 孔盤，在盤上先由上往下填滿一欄再換下一欄：A1、B1、C1 到 H1，接著 A2。若有 WT 列，則以其作為對照，不會另行追加。",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "outputLocationStateLabel": "選填"
     },
     "activity": {
       "sectionIngest": "上傳 activity 資料",
@@ -570,7 +577,21 @@
       "finalFallbackNotice": "No replicate has been selected yet, so FINAL is showing every well (ALL).",
       "resizeColumnAriaLabel": "Resize column {{column}}",
       "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
-      "resetColumnWidths": "Reset column widths"
+      "resetColumnWidths": "Reset column widths",
+      "replicateFlags": {
+        "header": "一致性",
+        "help": "此 well 的各 plate 副本是否一致。以 well 為單位，涵蓋本次執行的所有 plate。",
+        "agree": "一致",
+        "disagreementShort": "不一致",
+        "disagreementHelp": "此 well 的各 plate 副本判定結果不同。",
+        "depthShort": "depth",
+        "depthHelp": "某個副本的 read 數不足最深副本的五分之一，此時判定差異可能來自 depth 而非生物學差異。",
+        "missingShort": "缺漏",
+        "missingHelp": "{{plates}} 上沒有此 well 的紀錄。",
+        "missingUnknown": "本次執行未說明判定了哪些 plate，因此無法判斷副本是否缺漏。",
+        "filterLabel": "已標記 ({{count}})",
+        "filterHelp": "只顯示 replicate 不一致、depth 失衡或缺少副本的 well。"
+      }
     },
     "summaryRow": {
       "ariaLabel": "分析摘要",
@@ -781,13 +802,6 @@
         "helpText": "Raw MinKNOW run 模式使用此檔案,在分析前將 read 分配到每個 well 的 FASTA 輸出。",
         "axisCounts": "Barcode 檔案：forward {{forward}} x reverse {{reverse}} seeds，一片 plate 上 {{wells}} 個 well。"
       },
-      "sampleMap": {
-        "label": "Sample Map (可選)",
-        "placeholder": ".xlsx 檔案路徑 (mutants well 佈局)",
-        "stateLabel": "可選",
-        "helperText": "Well 到 sample 名的對映 — 在已分揀 FASTA 檔名中新增 mutant 名 (例如 A01_V5F_F1_R1.fasta)",
-        "helpText": "A 列: sample 名, B 列: well 位置 (例如 A1)。相容 KURO mutants.xlsx 佈局。"
-      },
       "exportDest": {
         "label": "匯出目標資料夾",
         "placeholder": "選擇一個資料夾;將建立 {{filename}}",
@@ -936,6 +950,40 @@
         "alertTitle": "well 與變異對應關係可能有誤",
         "alertDesc": "在 {{wells}} 個觀測到變異的 well 中，{{selfPercent}}% 與自身 expected 相符，{{crossPercent}}% 卻與其他 well 的 expected 相符。well 與變異的對應關係極有可能出錯，請勿信任此結果。",
         "alertAriaLabel": "well-變異映射完整性警告"
+      },
+      "offLayoutRecords": {
+        "title": "佈局之外的 {{wells}} 個孔位有 {{records}} 筆記錄",
+        "desc": "這些孔位不在本次執行的佈局中，本不應有內容。出現讀數表示該孔實際被加樣，或來自相鄰孔的條碼串擾。孔位:  {{list}}",
+        "more": "另有 {{count}} 個。"
+      },
+      "contamination": {
+        "title": "落在意外位置的 read",
+        "subtitle": "以 {{wells}} 個占用孔為基準測量（{{source}}）。",
+        "notMeasured": "無法測量",
+        "signalAbsent": "此版本不包含該 signal，因此本次 run 未對其作出任何說明。",
+        "wellList": "孔位: {{list}}",
+        "more": "另有 {{count}} 個。",
+        "source": {
+          "inferred_draft_layout": "由 expected 清單推斷的配置",
+          "explicit_well_layout": "本次 run 指定的配置"
+        },
+        "signal": {
+          "unused_index_reads": "帶有本批次從未使用的 barcode index 的 read",
+          "unexpected_well_reads": "落在已用 index 組合中空閒孔上的 read",
+          "ambiguity_rate": "抵達 barcode matching 的 read 中被判為 ambiguous 而丟棄的比例",
+          "chimera_rate": "每條 assigned read 中，拆分 read 產生的額外孔位配置",
+          "leak_well_sharing": "使用中索引的未占用孔數",
+          "plate_yield_skew": "以 assigned read 計算的最小板副本 / 最大板副本"
+        },
+        "sharing": {
+          "shared_across_replicates": "意外的 read 在各板副本中重複出現。",
+          "single_replicate": "意外的 read 只出現在一個板副本中。"
+        }
+      },
+      "legacySampleMap": {
+        "title": "{{file}} 與計算出的佈局一致",
+        "desc": "全部 {{wells}} 個孔位皆一致，無需修改。sample map 不再作為輸入讀取，此檔案可隨時刪除；在刪除前會原樣保留。",
+        "dismiss": "關閉此提示"
       }
     },
     "inspector": {
@@ -1197,7 +1245,30 @@
       "copySourcePath": "Copy consensus FASTA path",
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
-      "noVerdictRecord": "No verdict record for this well."
+      "noVerdictRecord": "No verdict record for this well.",
+      "replicateReads": "{{reads}} reads",
+      "replicateAligned": "比對 {{aligned}}"
+    },
+    "wellSelection": {
+      "title": "使用的孔位",
+      "description": "在盤上繪製的計算佈局。變異依盤順序(A1, B1, ... H1, A2)填入所選孔位。不做任何操作則使用前面的孔位。",
+      "counts": "{{occupants}} 個樣品(變異加 WT 對照)已選 {{capacity}} 中的 {{selected}} 個孔位。",
+      "tooFewWells": "已選 {{selected}} 個孔位，但有 {{occupants}} 個樣品。請增加孔位或縮短變異列表。",
+      "selectAll": "全選 ({{count}})",
+      "selectDefault": "僅樣品數 ({{count}})",
+      "clearAll": "清除選擇",
+      "gridLabel": "96 孔盤，選擇本次實驗使用的孔位",
+      "toggleAllLabel": "切換全部孔位",
+      "toggleRowLabel": "切換第 {{row}} 列",
+      "toggleColumnLabel": "切換第 {{column}} 行",
+      "wellWithSample": "孔位 {{well}}, {{sample}}",
+      "wellEmpty": "孔位 {{well}}, 空",
+      "keyboardHint": "方向鍵移動，空白鍵切換，Shift 加方向鍵擴展選擇。拖曳可連續選擇。",
+      "loadFailed": "無法讀取變異列表以繪製盤圖: {{error}}"
+    },
+    "replicateModeNotice": {
+      "pooled": "本次執行將 {{detected}} 個 native barcode 併為一塊 plate，因此沒有可比較的 replicate。",
+      "subset": "此 run 資料夾有 {{detected}} 個 native barcode，其中 {{replicates}} 個被判定為 replicate。其餘不在本結果中。"
     }
   },
   "home": {
@@ -2326,13 +2397,13 @@
     "description": "最新更新亮點。",
     "gotItBtn": "知道了",
     "highlights": [
-      "把條碼對轉換為盤孔的規則現在只在一處，而不是四處，四者不會再彼此偏離。",
-      "剛好填滿盤面、沒有為 wild-type 孔留下空位的設計，不再因此被拒絕。",
-      "載入條碼檔案後會顯示 forward 與 reverse 各有多少條，以及它們描述多少個 well。",
-      "native barcode 對話框會說明它在選擇什麼：同一塊盤的 replicate，而不是不同的盤。",
-      "超出盤面容量的執行會在 demux 開始前被拒絕，而不是在孔位寫入之後。"
+      "移除了 sample map。MAME 直接依據變異清單排布盤面，殘留的檔案只用於比對而不再被遵從。",
+      "在 96 格網格上選擇本次執行使用的 well：點擊、拖曳，或點擊行列標頭。",
+      "變異清單中間的空行或第二個 wild-type 行現在會中止執行，不再讓其後所有 well 整體錯位。",
+      "選擇 native barcode 時會說明它在選什麼：同一塊盤的 replicate。replicate 彼此不一致的 well 會被標記。",
+      "執行會回報落在已宣告 well 之外的 read，並按這些條碼索引本次是否用過來區分。"
     ],
-    "highlightsStamp": "0.15.23+0c028fbf"
+    "highlightsStamp": "0.16.0+b2281961"
   },
   "primerDisplay": {
     "copySeqTitle": "複製序列",
@@ -2458,7 +2529,6 @@
     "fieldRunFolder": "run 資料夾",
     "fieldReference": "reference",
     "fieldExpected": "expected",
-    "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
     "pathsMoved": "以下輸入的路徑已失效，需要重新選擇: {{fields}}"

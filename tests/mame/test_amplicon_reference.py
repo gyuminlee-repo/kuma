@@ -168,8 +168,18 @@ def test_analyze_refuses_a_whole_plasmid_reference_with_platemap_barcodes(
     reference.write_text(">plasmid\n" + "ACGT" * 1625 + "\n", encoding="utf-8")
     barcodes = tmp_path / "platemap.xlsx"
     _write_platemap_barcodes(barcodes)
+    # A readable variant list, because this test is about the reference and the
+    # barcodes. An empty workbook stands in for nothing: the plate-capacity gate
+    # reads the expected list before the raw-run block and refuses a file it
+    # cannot place, so the fixture would be answered with a sentence about the
+    # wrong input.
     expected = tmp_path / "expected.xlsx"
-    openpyxl.Workbook().save(expected)
+    variants = openpyxl.Workbook()
+    variant_sheet = variants.active
+    assert variant_sheet is not None
+    variant_sheet.append(["variant"])
+    variant_sheet.append(["A2G"])
+    variants.save(expected)
     run_dir = _write_run(tmp_path / "run", read_length=1700)
 
     with pytest.raises(ValueError) as excinfo:

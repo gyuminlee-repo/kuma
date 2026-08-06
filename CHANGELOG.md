@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.16.0 (The plate says where the samples are, and the run says what landed outside it)
+
+MAME asked for a sample map: a workbook naming which variant sits in which well. That file was never observed from the data. It was a transcription of a placement that MAME can compute, because the placement is deterministic once the plate conventions are fixed, and they are. The reverse barcode indexes the row, the forward barcode indexes the column, wells fill down a column before moving right, and the origin is A1. Every one of those is a property of a 96 well plate and of how an eight channel pipette moves across it, not a choice a run gets to make.
+
+So the sample map is removed. The placement comes from the variant list in the order the list states, with the wild-type control taking the ordinal its own row declares. A project that still carries a sample map file is not ignored: the run compares it against the computed placement and names the wells that disagree, rather than letting a stale file quietly decide the scoring.
+
+Removing it exposed three defects in the reader that the file had been covering. A wild-type row was dropped on read, which shifted every later well by one. The capacity check counted variants rather than occupied wells, so a design of exactly 96 reached a coordinate that does not exist and died naming no file. Blank rows in the middle of a list, and rows filtered out by status, vanished without a word, which meant two readers of the same workbook saw different rows. All three now stop the run and say which row is at fault, and they stop it before the demux rather than after.
+
+Not every plate is full. A run that uses part of the plate can now say which part: a 96 well grid where wells are picked by clicking, dragging, or clicking a row or column header. Leaving it alone gives the placement MAME always assumed. Reads that land outside the declared wells are counted and reported, split by whether the barcode indices involved were ever used by this campaign, because a read on an index nobody ordered is a different problem from a read on an unoccupied combination of indices that were.
+
+Choosing native barcodes now says what that choice is. A native barcode is a replicate of one plate, not a separate plate, and the dialog, the verdict table and the well inspector now say so together: which replicates were read, how deep each one was, why one was picked, and which wells have replicates that disagree.
+
+### Highlights
+
+- The sample map is gone. MAME places the plate from the variant list itself, and a leftover file is compared rather than obeyed.
+- Pick which wells a run used on a 96 well grid, by clicking, dragging, or clicking a row or column header.
+- A variant list with a blank row in the middle, or a second wild-type row, stops the run instead of shifting every later well.
+- Choosing native barcodes now says what it is choosing: replicates of one plate. Wells whose replicates disagree are flagged.
+- A run reports reads that landed outside the declared wells, split by whether those barcode indices were ever used.
+
 ## v0.15.23 (One home for the rule that turns a barcode pair into a well)
 
 A well is named from the combinatorial barcode as `{R}_{F}`, and the arithmetic that turns that pair into a plate coordinate had been written out four times: in the workbook writer, in the robot mapping, in the sidecar export handler, and in the plate geometry module itself. Four copies of one rule is four chances to drift, and a drift here files a read under a well it did not come from. The rule now lives in `plate_geometry` alone, as a frozen addressing value that names the row axis and the fill order rather than leaving them implicit. The other three call it.

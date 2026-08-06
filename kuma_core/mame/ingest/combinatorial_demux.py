@@ -182,6 +182,12 @@ _CONSENSUS_WORKERS: int = int(
 # downstream tools that expect one multi-record FASTA keep working.
 _COMBINED_CONSENSUS_FILENAME = "consensus_all_dna.fasta"
 
+#: Subdirectory of a pooled run's output_dir that holds the per-well consensus
+#: FASTA. Named here rather than spelled again by each caller: it is the unit
+#: directory a pooled run produces, and the reader has to be told which units a
+#: run wrote.
+CONSENSUS_SUBDIR = "consensus"
+
 # Modules the forkserver helper imports once, so every forked demux worker
 # starts with them already resident. Only this module is listed: importing it
 # pulls the whole worker-side chain (align, consensus -> numpy, edlib, ...).
@@ -1995,7 +2001,7 @@ def _run_combinatorial_demux_body(
         consensus_dir = output_dir
         combined_path = final_dir / _COMBINED_CONSENSUS_FILENAME
     else:
-        consensus_dir = output_dir / "consensus"
+        consensus_dir = output_dir / CONSENSUS_SUBDIR
         consensus_dir.mkdir(exist_ok=True)
         reads_dir = output_dir
         combined_path = output_dir / _COMBINED_CONSENSUS_FILENAME

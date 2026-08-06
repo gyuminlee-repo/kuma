@@ -203,9 +203,18 @@ def test_blank_rows_excluded(tmp_path: Path):
     assert entries[0].mutant == "Q232A"
 
 
-def test_template_sample_map_replicate_notation():
-    """templates/05_mame_sample_map.xlsx parses into the experimenter layout."""
-    path = Path(__file__).resolve().parents[3] / "templates" / "05_mame_sample_map.xlsx"
+def test_template_plate_layout_replicate_notation():
+    """templates/06_mame_plate_layout.xlsx parses into the experimenter layout.
+
+    This used to be asserted of `05_mame_sample_map.xlsx`, with a second test
+    checking that the two templates agreed. The 05 template went with the sample
+    map, and 06 carries the same plate, so the assertions move here rather than
+    being dropped: `_r<n>` replicates and `blank` rows are activity-layout
+    behaviour and have nothing to do with the removed analyze input.
+    """
+    path = (
+        Path(__file__).resolve().parents[3] / "templates" / "06_mame_plate_layout.xlsx"
+    )
     entries = parse_plate_layout_xlsx(path)
 
     assert len(entries) == 21
@@ -228,14 +237,6 @@ def test_template_sample_map_replicate_notation():
         wells = [e.well_id for e in entries if e.mutant == name]
         assert len(wells) == 3
         assert len(set(wells)) == 3
-
-
-def test_sample_map_and_plate_layout_templates_agree():
-    """The 05 and 06 templates describe the same plate after parsing."""
-    root = Path(__file__).resolve().parents[3] / "templates"
-    sample_map = parse_plate_layout_xlsx(root / "05_mame_sample_map.xlsx")
-    plate_layout = parse_plate_layout_xlsx(root / "06_mame_plate_layout.xlsx")
-    assert sample_map == plate_layout
 
 
 # ---------------------------------------------------------------------------
@@ -313,14 +314,6 @@ def test_both_pairs_prefers_plate_layout(tmp_path: Path):
     assert len(entries) == 1
     assert entries[0].mutant == "F89W"
     assert entries[0].well_id == "A01"
-
-
-def test_template_sample_map_parses():
-    """templates/05_mame_sample_map.xlsx is accepted by the parser."""
-    path = Path(__file__).resolve().parents[3] / "templates" / "05_mame_sample_map.xlsx"
-    entries = parse_plate_layout_xlsx(path)
-    assert len(entries) > 0
-    assert all(len(e.well_id) == 3 for e in entries)
 
 
 def test_template_plate_layout_parses():
