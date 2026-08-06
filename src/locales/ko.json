@@ -397,7 +397,7 @@
       "variantSheet": "변이 목록 시트",
       "variantColumn": "변이 열",
       "variantColumnPlaceholder": "열 선택",
-      "variantColumnHelper": "이 열의 행 순서대로 96-well에 배치됩니다. WT 행이 있으면 그 자리를 대조군으로 씁니다.",
+      "variantColumnHelper": "이 열의 행 순서대로 96-well에 배치됩니다. 채우는 방향은 플레이트의 세로 방향입니다. A1, B1, C1 순으로 H1까지 내려간 다음 A2로 넘어갑니다. WT 행이 있으면 그 자리를 대조군으로 쓰고, 대조군 행을 따로 추가하지 않습니다.",
       "variantColumnKuroHelper": "KURO export 판독 시트를 고르면 열은 mutant_id 로 고정되고 status 필터가 먼저 적용됩니다. 플레이트를 적은 다른 시트를 고르면 열을 직접 지정할 수 있습니다."
     },
     "activity": {
@@ -804,7 +804,7 @@
         },
         "destLayoutHint": {
           "source": "dest_well이 source plate 위치를 그대로 따릅니다. 두 pick이 같은 well에 겹치면 내보내기가 실패합니다.",
-          "compact": "dest_well을 priority 순서대로 A1부터 순차 배정하여 빈 well을 남기지 않습니다."
+          "compact": "dest_well을 priority 순서대로 A1부터 세로로 순차 배정합니다. A1, B1, C1 순으로 H1까지 내려간 다음 A2로 넘어갑니다. 빈 well은 남기지 않습니다."
         },
         "outputPathLabel": "출력 파일 경로",
         "outputPathPlaceholder": "저장할 .{{ext}} 파일 경로",
@@ -944,7 +944,7 @@
         "columnAuto": "자동 감지",
         "suggested": "자동 감지된 열: {{column}}",
         "noSuggestion": "자동으로 인식된 열이 없습니다. 변이 라벨이 있는 열을 고르세요.",
-        "helper": "이 열의 순서대로 한 행에 한 변이씩 well 에 배정됩니다. KURO export 는 매핑이 필요 없어 이 컨트롤이 표시되지 않습니다."
+        "helper": "이 열의 순서대로 한 행에 한 변이씩 well 에 배정됩니다. 채우는 방향은 플레이트의 세로 방향입니다. A1, B1, C1 순으로 H1까지 내려간 다음 A2로 넘어갑니다. KURO export 는 매핑이 필요 없어 이 컨트롤이 표시되지 않습니다."
       }
     },
     "setup": {
@@ -2303,7 +2303,15 @@
   "whatsNewDialog": {
     "title": "v{{version}} 새로운 기능",
     "description": "최신 업데이트의 주요 변경 사항입니다.",
-    "gotItBtn": "확인"
+    "gotItBtn": "확인",
+    "highlights": [
+      "새로운 기능 창이 변경 내역을 잘라 붙이지 않고 릴리스마다 짧은 안내를 보여줍니다.",
+      "이 안내는 10개 언어로 모두 번역되며, 번역이 낡은 채로는 릴리스할 수 없습니다.",
+      "변이 목록 매핑 도움말이 well 을 채우는 방향을 알려줍니다. A1, B1, C1 순으로 H1까지 내려간 다음 A2입니다.",
+      "post-commit 버전 훅이 삭제된 경로 때문에 멈추지 않습니다.",
+      "릴리스 노트가 길면 창 밖으로 넘치지 않고 안에서 스크롤됩니다."
+    ],
+    "highlightsStamp": "0.15.16+fe8e6f21"
   },
   "primerDisplay": {
     "copySeqTitle": "서열 복사",

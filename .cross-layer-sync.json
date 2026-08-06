@@ -886,6 +886,24 @@
       "severity": "warning"
     },
     {
+      "id": "whats-new-highlights",
+      "files": [
+        "CHANGELOG.md",
+        "src/locales/en.json",
+        "src/locales/ko.json",
+        "src/locales/ja.json",
+        "src/locales/zh-CN.json",
+        "src/locales/zh-TW.json",
+        "src/locales/de.json",
+        "src/locales/es.json",
+        "src/locales/fr.json",
+        "src/locales/pt-BR.json",
+        "src/locales/ru.json"
+      ],
+      "note": "The '### Highlights' block of the latest CHANGELOG.md section generates src/locales/en.json whatsNewDialog.highlights plus highlightsStamp ('<version>+<sha256 digest8 of the English bullets>'), and the nine other locales hand-translate that array and copy the stamp. Editing a bullet, in a new release or inside one, means regenerating en.json (node scripts/gen-whatsnew.mjs) and retranslating all nine. Enforcement is elsewhere and stays there: gen-whatsnew.mjs --check owns CHANGELOG-to-en drift, scripts/i18n-parity.mjs owns the nine stamps and the translated authoring rules. This group is the co-edit reminder, hence warning. Deliberately no 'symbols': scripts/sync-check.mjs only checks symbols on blocking groups, so listing them here would read as enforcement that never runs.",
+      "severity": "warning"
+    },
+    {
       "id": "mame-mapping-integrity",
       "files": [
         "python-core/sidecar_mame/handlers/analyze.py",

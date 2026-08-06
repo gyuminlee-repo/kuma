@@ -337,7 +337,7 @@
       "variantSheet": "変異リストのシート",
       "variantColumn": "変異の列",
       "variantColumnPlaceholder": "列を選択",
-      "variantColumnHelper": "この列の行順で 96 well に配置します。WT 行があればそれを対照に使います。",
+      "variantColumnHelper": "この列の行順で 96 well プレートに配置します。プレートは縦方向に進み、A1, B1, C1 から H1 まで、その次が A2 です。WT 行がある場合は、新たに追加せずその行を対照として使います。",
       "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
     },
     "activity": {
@@ -679,7 +679,7 @@
         },
         "destLayoutHint": {
           "source": "dest_well が source plate の位置をそのまま使用します。2 つの pick が同じ well になるとエクスポートは失敗します。",
-          "compact": "dest_well を priority 順に A1 から順次割り当て、空の well を残しません。"
+          "compact": "dest_well を priority 順に A1 から順次割り当てます。縦方向に進むため A1, B1, C1 から H1 まで、その次が A2 となり、空の well は残しません。"
         },
         "outputPathLabel": "出力ファイルパス",
         "outputPathPlaceholder": "ターゲット .{{ext}} ファイルパス",
@@ -819,7 +819,7 @@
         "columnAuto": "Auto-detect",
         "suggested": "Auto-detected column: {{column}}",
         "noSuggestion": "No column was recognised automatically. Choose the one holding the variant labels.",
-        "helper": "Wells are filled in this column's order, one variant per row. A KURO export needs no mapping and hides these controls."
+        "helper": "この列の順に、1 行 1 変異で well へ割り当てます。プレートは縦方向に進み、A1, B1, C1 から H1 まで、その次が A2 です。KURO のエクスポートは mapping が不要なため、これらの選択欄は表示されません。"
       }
     },
     "janusDeck": {
@@ -2270,7 +2270,15 @@
   "whatsNewDialog": {
     "title": "v{{version}} の新機能",
     "description": "最新アップデートのハイライト。",
-    "gotItBtn": "了解"
+    "gotItBtn": "了解",
+    "highlights": [
+      "「新機能」ダイアログは、変更履歴を途中で切った内容ではなく、リリースごとの短い説明を表示するようになりました。",
+      "この説明は 10 言語すべてに翻訳されます。翻訳が古いままの状態ではリリースできません。",
+      "「Variant list mapping」の説明に、well を埋める順序を明記しました。縦方向に進み、A1, B1, C1 から H1 まで、その次が A2 です。",
+      "post-commit のバージョン更新フックが、削除されたパスを参照して失敗することはなくなりました。",
+      "長いリリースノートは、下にはみ出さずダイアログ内でスクロールするようになりました。"
+    ],
+    "highlightsStamp": "0.15.16+fe8e6f21"
   },
   "primerDisplay": {
     "copySeqTitle": "配列をコピー",

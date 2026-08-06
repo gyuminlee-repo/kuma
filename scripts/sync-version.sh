@@ -16,7 +16,7 @@ TAURI="$REPO_ROOT/src-tauri/tauri.conf.json"
 CARGO="$REPO_ROOT/src-tauri/Cargo.toml"
 PYPROJECT="$REPO_ROOT/pyproject.toml"
 LOCK="$REPO_ROOT/src-tauri/Cargo.lock"
-GENERATED="$REPO_ROOT/src/components/dialogs/whatsNew.generated.ts"
+LOCALE_EN="$REPO_ROOT/src/locales/en.json"
 GEN_SCRIPT="$REPO_ROOT/scripts/gen-whatsnew.mjs"
 
 CURRENT=$(python3 - <<'PY' "$PKG"
@@ -71,7 +71,7 @@ if command -v cargo >/dev/null 2>&1; then
   if [ "$LOCK_STATUS" -ne 0 ]; then
     echo "[sync-version] error: cargo update -p kuma failed (exit $LOCK_STATUS):" >&2
     echo "$LOCK_OUTPUT" >&2
-    echo "[sync-version] the four version manifests are already edited in the working tree, but the commit was NOT amended. Fix src-tauri/Cargo.lock manually, then run: node scripts/gen-whatsnew.mjs && git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml pyproject.toml src-tauri/Cargo.lock src/components/dialogs/whatsNew.generated.ts && git commit --amend --no-edit --no-verify" >&2
+    echo "[sync-version] the four version manifests are already edited in the working tree, but the commit was NOT amended. Fix src-tauri/Cargo.lock manually, then run: node scripts/gen-whatsnew.mjs && git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml pyproject.toml src-tauri/Cargo.lock src/locales/en.json && git commit --amend --no-edit --no-verify" >&2
     exit 1
   fi
   if ! git diff --quiet -- "$LOCK"; then
@@ -82,19 +82,39 @@ else
   echo "[sync-version] on a machine with cargo, run: cargo update -p kuma --offline --manifest-path src-tauri/Cargo.toml && git add src-tauri/Cargo.lock && git commit --amend --no-edit --no-verify" >&2
 fi
 
-# package.json's new version is a generation input for whatsNew.generated.ts
-# (scripts/gen-whatsnew.mjs). Regenerate it here so the amended commit below
-# does not amend package.json's version without also amending the derived
-# file, which is exactly the drift that made v0.13.24 and v0.13.25 fail
-# `pnpm run sync:check` in quality-gates.
+# package.json's new version is a generation input for scripts/gen-whatsnew.mjs,
+# which rewrites `whatsNewDialog.highlights` in src/locales/en.json from the
+# latest CHANGELOG.md "### Highlights" block. Regenerate it here so the amended
+# commit below does not amend package.json's version without also amending the
+# derived highlights, which is exactly the drift that made v0.13.24 and v0.13.25
+# fail `pnpm run sync:check` in quality-gates.
 #
-# gen-whatsnew.mjs exits 2 specifically when CHANGELOG.md's latest section
-# does not yet mention the new version (a plain code commit whose message
-# happens to carry a `vX.Y.Z:` label but adds no CHANGELOG section). That is
-# not this hook's problem to fix: warn and leave the generated file
-# untouched (it never got written, since the guard fires before the write),
-# then continue amending the four version manifests. Any other nonzero exit
-# is a real generator failure: do not swallow it, do not amend, fail loudly.
+# Only en.json is generated. The nine other src/locales/*.json highlights arrays
+# are hand-translated, so a release that changes the bullets still needs a manual
+# translation pass, plus the matching whatsNewDialog.highlightsStamp on each
+# locale. That stamp is "<version>+<digest8>", the version followed by a sha256
+# over the English bullets, so editing the wording inside one version moves it
+# too and the nine translations are caught the same way a version bump catches
+# them. `pnpm sync:check` does NOT catch a missed pass: its three stages
+# are sync-check.mjs, sync-check-groups.mjs and gen-whatsnew.mjs --check, and the
+# last of those reads en.json alone. The check that reads all ten locales is
+# scripts/i18n-parity.mjs, run by `pnpm i18n:check` locally and by CI
+# (.github/workflows/ci.yml, .github/workflows/build.yml).
+#
+# gen-whatsnew.mjs exits 2 when CHANGELOG.md's latest section is not ready for
+# this release: it does not mention the new version, or it has no
+# "### Highlights" block, or that block has no bullets (a plain code commit whose
+# message happens to carry a `vX.Y.Z:` label but adds no CHANGELOG section hits
+# the first case). That is not this hook's problem to fix: warn and leave
+# en.json untouched (it never got written, since the guard fires before the
+# write), then continue amending the four version manifests.
+#
+# Exit 1 is the loud case, and it is now reachable from a CHANGELOG typo as well
+# as from a broken generator: a "### Highlights" bullet over 140 characters, one
+# carrying a backtick, one prefixed `vX.Y.Z:`, or more than five of them all fail
+# there, because those bullets are shown verbatim in the modal and are never
+# truncated. Do not swallow it, do not amend, fail loudly, and print how to get
+# back to a good state.
 set +e
 GEN_OUTPUT=$(node "$GEN_SCRIPT" 2>&1)
 GEN_STATUS=$?
@@ -105,13 +125,16 @@ if [ "$LOCK_CHANGED" -eq 1 ]; then
   ADD_PATHS+=("$LOCK")
 fi
 if [ "$GEN_STATUS" -eq 0 ]; then
-  ADD_PATHS+=("$GENERATED")
+  ADD_PATHS+=("$LOCALE_EN")
 elif [ "$GEN_STATUS" -eq 2 ]; then
-  echo "[sync-version] warning: scripts/gen-whatsnew.mjs left whatsNew.generated.ts untouched (CHANGELOG.md has no section for v$VERSION yet):" >&2
+  echo "[sync-version] warning: scripts/gen-whatsnew.mjs left src/locales/en.json untouched (CHANGELOG.md has no ready '### Highlights' section for v$VERSION yet):" >&2
   echo "$GEN_OUTPUT" >&2
 else
   echo "[sync-version] error: scripts/gen-whatsnew.mjs failed (exit $GEN_STATUS):" >&2
   echo "$GEN_OUTPUT" >&2
+  echo "[sync-version] the four version manifests are already edited in the working tree, but the commit was NOT amended and src/locales/en.json was not regenerated, so nothing is lost by fixing this and rerunning." >&2
+  echo "[sync-version] read the message above first: an authoring complaint means the '### Highlights' bullets in the v$VERSION CHANGELOG.md section break a rule (at most 5 bullets, at most 140 characters each, no backticks, no 'vX.Y.Z:' prefix), so rewrite the offending bullet in CHANGELOG.md. Anything else is a generator or environment fault." >&2
+  echo "[sync-version] then run: node scripts/gen-whatsnew.mjs && git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml pyproject.toml src-tauri/Cargo.lock src/locales/en.json CHANGELOG.md && git commit --amend --no-edit --no-verify" >&2
   exit 1
 fi
 
