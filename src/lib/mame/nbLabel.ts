@@ -31,10 +31,21 @@ export function nbOrderKey(raw: string): number {
 }
 
 /**
- * Numeric sort key for a "{R}_{F}" custom barcode: "1_10" → [1, 10]. Keeps the
- * well order natural (1_2 before 1_10) instead of lexicographic string order.
+ * Column-major sort key for a "{R}_{F}" custom barcode: "1_10" → [10, 1].
+ *
+ * R is the reverse index (plate row 1..8) and F is the forward index (plate
+ * column 1..12), so the key is [F, R]: column first, row second. That is the
+ * same axis every placement rule uses, and the key is monotonic in the
+ * sequence index those rules consume (seq = (F - 1) * 8 + R, see
+ * kuma_core/mame/export/well_mapper.py seq_to_well and
+ * excel_writer._custom_barcode_to_seq), so sorting by it reproduces the
+ * seq_to_well order A1, B1, … H1, A2, …, matching the Excel NGS Results /
+ * Final (matrix) / Final (legacy grid) sheets.
+ *
+ * Parts are compared numerically so the order stays natural (1_2 before 1_10)
+ * instead of lexicographic string order.
  */
 export function wellSortKey(customBarcode: string): [number, number] {
   const [r, f] = customBarcode.split("_");
-  return [parseInt(r, 10) || 0, parseInt(f, 10) || 0];
+  return [parseInt(f, 10) || 0, parseInt(r, 10) || 0];
 }

@@ -707,7 +707,11 @@ def _data_rows(ws, key_col: int):
 
 
 def test_all_sheets_natural_well_sort(tmp_path: Path) -> None:
-    """AC-2.1: NGS Results, Final (matrix), Sheet1, and Final use natural well order."""
+    """AC-2.1: NGS Results, Final (matrix), Sheet1, and Final use natural well order.
+
+    Numeric-vs-lexicographic only (every R is 1 here, so this cannot detect the
+    sort axis). test_all_sheets_column_major_well_sort covers the axis.
+    """
     # Intentionally unsorted; wells 1_1, 1_2, 1_10 -> natural (not lexicographic).
     rr10 = _make_replicate("M10", "NB01", "1_10")
     rr2 = _make_replicate("M2", "NB01", "1_2")
@@ -755,6 +759,60 @@ def test_all_sheets_natural_well_sort(tmp_path: Path) -> None:
     assert placed["A1"] == "1_1"
     assert placed["A2"] == "1_2"
     assert placed["A10"] == "1_10"
+
+
+def test_all_sheets_column_major_well_sort(tmp_path: Path) -> None:
+    """Row order of the flat sheets uses the column-major placement axis.
+
+    Off-diagonal wells are required: with every R equal (as in
+    test_all_sheets_natural_well_sort) a row-major (R, F) key and the
+    column-major (F, R) key produce the same order, so that fixture cannot
+    tell them apart. Here B1 ("2_1") must land between A1 and A2, matching
+    seq_to_well / the Final (legacy grid) placement.
+    """
+    rr_a2 = _make_replicate("Ma2", "NB01", "1_2")  # A2, seq 9
+    rr_b1 = _make_replicate("Mb1", "NB01", "2_1")  # B1, seq 2
+    rr_a1 = _make_replicate("Ma1", "NB01", "1_1")  # A1, seq 1
+    rrs = [rr_a2, rr_b1, rr_a1]
+    vrs = [rr.plate_verdicts["NB01"] for rr in rrs]
+    out = tmp_path / "colmajor.xlsx"
+    write_excel(verdict_records=vrs, replicate_results=rrs, output_path=out)
+    wb = openpyxl.load_workbook(out)
+
+    expected_customs = ["1_1", "2_1", "1_2"]
+
+    # (1) NGS Results
+    ngs = wb["NGS Results"]
+    cb_col = _col(ngs, "custom_barcode")
+    idx_col = _col(ngs, "index")
+    rows = _data_rows(ngs, idx_col)
+    assert [r[cb_col].value for r in rows] == expected_customs
+    assert [r[idx_col].value for r in rows] == [1, 2, 3]
+
+    # (2) Final (matrix)
+    matrix = wb["Final (matrix)"]
+    well_col = _col(matrix, "well")
+    midx_col = _col(matrix, "index")
+    mrows = _data_rows(matrix, midx_col)
+    assert [r[well_col].value for r in mrows] == ["A1", "B1", "A2"]
+
+    # (3) per-NB Sheet1
+    nb01 = wb["NB01"]
+    s1_cb = _col(nb01, "custom_barcode")
+    assert [r[s1_cb].value for r in nb01.iter_rows(min_row=2)] == expected_customs
+
+    # (4) Final (legacy grid): same axis, placement unchanged by the sort key.
+    final = wb["Final"]
+    f_well = _col(final, "well_id")
+    f_cb = _col(final, "custom_barcode")
+    placed = {
+        r[f_well].value: r[f_cb].value
+        for r in final.iter_rows(min_row=2)
+        if r[f_cb].value not in ("", None)
+    }
+    assert placed["A1"] == "1_1"
+    assert placed["B1"] == "2_1"
+    assert placed["A2"] == "1_2"
 
 
 def test_sheet1_header_includes_marker_columns() -> None:
