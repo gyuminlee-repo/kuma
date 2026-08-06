@@ -77,6 +77,20 @@ pnpm sync:check                     # cross-layer + groups + What's New drift
 - **번역 문구에도 규칙이 걸린다.** `i18n-parity.mjs` 가 9개 로케일의 `highlights` 원소마다 백틱 금지와 200자 상한(영문 140자보다 느슨, 번역은 길어진다)을 검사하고 위반 시 로케일과 인덱스를 지목하며 exit 1 한다.
 - **CHANGELOG 불릿은 여러 줄로 감아도 된다.** 이어지는 줄은 공백 하나로 합쳐져 한 불릿이 되고, 빈 줄이나 다음 `- ` 또는 `###` 에서 끝난다. 합친 뒤에 140자·백틱 규칙이 적용되므로 두 줄로 나눠 길이 제한을 우회할 수는 없다.
 
+### 프런트엔드 테스트를 WSL 에서 돌리는 법
+
+`tsc` 는 순수 JS 라 위 pre-commit 명령대로 `node` 로 직접 돌아가고, worktree 에 `node_modules` 가 없으면 main checkout 것으로 폴백한다. **vitest 는 그렇지 않다.** 네이티브 esbuild 바이너리가 필요한데 공유 폴더의 `node_modules` 는 Windows 설치본이라 WSL 에서 실행되지 않는다.
+
+그래서 vitest 는 Windows 쪽에서 돌린다. `wsl-pnpm-guard.sh` 가 이 경로만 예외로 통과시킨다.
+
+```bash
+W=$HOME/.claude/skills/win-build/scripts/win-build.sh
+bash $W pnpm install --frozen-lockfile --cwd <워크트리 절대경로>
+bash $W pnpm exec vitest run --cwd <워크트리 절대경로>
+```
+
+worktree 의 `node_modules` 는 main checkout 과 경로가 달라 Windows 설치본을 덮지 않는다(설치 전후로 main checkout 의 mtime 과 `.bin/*.CMD` 가 그대로인 것을 확인했다). 2026-08-06 에 이 경로를 모르고 vitest 를 CI 에만 맡겼다가 타입 오류 4건과 테스트 실패 9건을 push 두 번으로 나눠 받았다.
+
 로컬에서 `sync-check.mjs` 의 `tauri-resources` 가 `resources/NOTICE.md` 부재로 실패하는 것은 환경 문제가 아니라 구조다. 그 파일은 `scripts/build-notice.mjs` 가 릴리스 빌드 때 만들고 `.gitignore` 에 있으므로 새 체크아웃에는 절대 없다. pre-push 는 `scripts/pre-push-sync.mjs` 를 거쳐 이 한 건만 경고로 낮추고 나머지는 그대로 막는다. CI 는 빌드 후 검사하므로 `pnpm sync:check` 를 엄격하게 그대로 쓴다.
 
 `generated-models` 실패는 false-positive 가 아니다. `json2ts` 를 실행하지 못한다는 뜻이며, 보통 원인은 node_modules 가 없는 worktree 에서 돌린 것이다. 정상 체크아웃에서 실패하면 진짜 drift 이므로 `pnpm gen:models` 로 재생성해 함께 커밋한다. (2026-08-05 정정: 이전 판은 두 건 모두 "dev false-positive" 로 적어 두어, pre-push 를 `--no-verify` 로 넘기는 것이 관행이 돼 있었다.)
@@ -96,6 +110,8 @@ python -m pytest tests/ -v          # Run all tests
 python -m pytest tests/test_sdm_engine.py -v          # Single file
 python -m pytest tests/test_sdm_engine.py::test_name  # Single test
 ```
+
+하위 디렉터리만 돌린 결과로 통과를 선언하지 말 것. 완료 선언 전에는 `tests/` 전체를 돌린다. 2026-08-06 에 `tests/mame` 만 돌려 1105 통과를 받고 보고했는데, `analyze` 응답에 키 두 개를 더한 변경이 응답 키 집합을 정확히 대조하는 `tests/sidecar_mame/test_analyze_raw_run.py` 를 깨고 있었다. 뒤이어 그 실패를 본 서브에이전트도 자기 변경 이전부터 있었다는 이유로 "pre-existing" 이라 분류했다. 기준선을 `tests/` 전체로 잡았으면 둘 다 없었을 오판이다.
 
 ### CI (`ci.yml`)
 - Runs on every pull request against `main`, on `v*` tags, and on manual dispatch. Before 2026-08 it fired on tags only, so cross-layer drift could reach `main` unchecked and surface as a failed tagged build.
