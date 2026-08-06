@@ -1,0 +1,7 @@
+Version label correction: this commit ships as v0.15.17, not v0.15.14.
+
+The squash subject kept the branch's original headline. v0.15.14 was already
+released (tag v0.15.14 -> 6b4ac315, the step 2.2 content-fit repair) before this
+branch was renumbered. The authoritative label is v0.15.17: CHANGELOG.md and the
+four version manifests at this commit all read 0.15.17, and PR #251 is titled
+v0.15.17.
