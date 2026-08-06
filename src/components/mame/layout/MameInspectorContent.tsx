@@ -139,11 +139,12 @@ function QcPlateInspector() {
   return <VerdictDetailInspector />;
 }
 
-/** 화면 3.1: MAME Janus 장비 설정 — Instrument Inspector.
+/** 화면 3.1: MAME Janus 장비 설정, Instrument Inspector.
  *
- * The three values the sheet is written from, and what the last run did with
- * the mapping file. A blank liquid class is stated as blank rather than hidden:
- * it is the one value the sidecar cannot derive. */
+ * The three values the sheet is written from, and what the last manual export
+ * (from JanusMappingPanel) did with the mapping file. A blank liquid class is
+ * stated as blank rather than hidden: it is the one value the sidecar cannot
+ * derive. */
 function JanusSettingsInspector() {
   const { t } = useTranslation();
   const janusSettings = useMameAppStore((s) => s.janusSettings);

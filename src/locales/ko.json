@@ -1040,6 +1040,11 @@
         "drawerRightDesc": "활성 데이터로 진행",
         "inspectorTitle": "검토 Inspector",
         "inspectorSubtitle": "well 선택 시 well 정보, 미선택 시 판정 요약"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "well-변이 대응 오류 의심",
+        "alertDesc": "관측 변이가 있는 well {{wells}}개 중 자기 expected와 일치 {{selfPercent}}%, 다른 well의 expected와 일치 {{crossPercent}}%. well과 변이의 대응이 어긋났을 가능성이 매우 높으니 이 결과를 신뢰하지 마십시오.",
+        "alertAriaLabel": "well-변이 매핑 무결성 경고"
       }
     },
     "inspector": {
@@ -1067,7 +1072,7 @@
       "settings": {
         "contextTitle": "Janus 장비 설정",
         "contextSubtitle": "장비 매핑 파일에 기록되는 이송 부피·데크 랙·리퀴드 클래스를 설정합니다. 시퀀싱 판정만 필요하면 건너뛸 수 있습니다.",
-        "optionalNote": "선택 단계입니다. 분석 실행이 픽 리스트와 장비 매핑을 스스로 기록하므로, 시퀀싱 판정만 필요하면 스텝 2에서 스텝 4로 바로 넘어가면 됩니다.",
+        "optionalNote": "선택 단계입니다. 분석 실행은 픽 리스트를 스스로 기록하지만, 장비 매핑은 여기서 내보낼 때만 기록됩니다. 시퀀싱 판정만 필요하면 스텝 2에서 스텝 4로 바로 넘어가면 됩니다.",
         "inspectorTitle": "장비 Inspector",
         "inspectorSubtitle": "매핑에 기록되는 값",
         "inspectorVolume": "이송 부피 (uL)",
@@ -1079,10 +1084,7 @@
         "drawerRight": "다음",
         "drawerRightDesc": "활성 데이터와 EVOLVEpro 핸드오프",
         "volumeLabel": "이송 volume (µL)",
-        "volumeHint": "이번 실행이 만드는 장비용 매핑 파일에 그대로 들어갑니다. 기본값 100 µL 는 실험실 근거가 없는 가정이므로 이번 실험에서 쓰는 값으로 바꾸세요.",
-        "openDialog": "Janus 장비 설정…",
-        "openDialogAriaLabel": "Janus 장비 설정 열기",
-        "dialogHint": "선택 사항입니다. rack 번호는 이번 실행의 plate 순서를 따르고 liquid class 는 비워 둔 채 나갑니다. 다른 값을 쓰고 싶을 때만 입력하세요."
+        "volumeHint": "이번 실행이 만드는 장비용 매핑 파일에 그대로 들어갑니다. 기본값 100 µL 는 실험실 근거가 없는 가정이므로 이번 실험에서 쓰는 값으로 바꾸세요."
       }
     },
     "verdictBadge": {

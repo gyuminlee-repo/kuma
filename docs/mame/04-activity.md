@@ -60,4 +60,4 @@ variant가 export되려면 해당 evidence가 모두 만족되어야 한다.
 
 성공 출력은 엄격한 두 열 `Variant`, `activity`를 가진다. raw Agilent 형식의 선택적 GC review export를 포함한 산출물 묶음은 임시 파일에 모두 작성된 뒤 함께 publish되므로, 중간 실패가 기존 출력 일부만 덮어쓰지 않는다.
 
-Step 3 폼 상태는 프로젝트 경로별로 버전 관리해 저장한다. Analyze 완료 시 확보한 `verdict_xlsx`와 evidence signature는 실행을 시작한 round에 기록되고 Step 3에 연결된다. 측정 입력, verdict evidence 또는 출력 경로가 바뀌면 이전 완료 서명은 무효가 되어 다시 build해야 한다.
+Step 4 폼 상태는 프로젝트 경로별로 버전 관리해 저장한다. Analyze 완료 시 확보한 `verdict_xlsx`와 evidence signature는 실행을 시작한 round에 기록되고 Step 4에 연결된다. 측정 입력, verdict evidence 또는 출력 경로가 바뀌면 이전 완료 서명은 무효가 되어 다시 build해야 한다.

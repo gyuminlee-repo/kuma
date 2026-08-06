@@ -164,7 +164,10 @@ cross-layer 의존은 **`.cross-layer-sync.json` `groups[]`** 로 관리. 단일
 - Export destination controls must use a save-file dialog, not an open-file dialog.
 - Pre-run MAME result tables should render an empty state instead of surfacing an error boundary.
 - If a Tauri close handler calls `preventDefault()`, shutdown/autosave work must be bounded by timeouts and the window must still close in a `finally` path.
-- MAME major steps are 1. Barcode Setup / 2. Analyze / 3. Janus instrument settings / 4. Activity Data. Step 3 is optional: an operator who only wants a sequencing verdict stops at step 2, so no Janus value may gate a run, step 2, or step 4, and Janus controls do not belong on the analyze screens.
+- MAME major steps are 1. Barcode Setup / 2. Analyze / 3. Janus instrument settings / 4. Activity Data. Step 3 is optional: an operator who only wants a sequencing verdict stops at step 2, so no Janus value may gate a run, step 2, or step 4, and Janus controls do not belong on the analyze screens. Nothing about Janus belongs there, including notices about what a run wrote.
+- An analyze run writes the pick list (`..._picks.csv`, `legacy5`) automatically and nothing else for the instrument. The 9-column robot sheet (`..._janus.csv`, `device9`) is written only by a manual `export_janus_mapping` call from the step 3 mapping panel, because a worklist states a deck and a liquid class that describe the room at export time and must not be reasserted by every re-run.
+- Step 3 renders its mapping panel inline on the page. Do not reintroduce a dialog for it: step 3 is already a dedicated screen.
+- Changing an analyze input (run folder, expected workbook, reference FASTA, sample map, or any parameter sent to the sidecar) clears the previous run outputs. Re-picking the same value changes nothing, and the output path is a destination rather than an input, so it does not clear anything.
 
 ### Tauri resource bundling
 - No glob patterns (`**`) in `tauri.conf.json` resources — use explicit file-to-file mappings

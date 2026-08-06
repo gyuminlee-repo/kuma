@@ -42,6 +42,7 @@ export type MameSnapshotState = Pick<
   | "demuxResult"
   | "ampliconLengthEstimate"
   | "wellLayout"
+  | "layoutProvenance"
 >;
 
 export interface MameRoundSnapshotState {
@@ -82,6 +83,10 @@ export interface MameAutosaveSnapshot extends AutosaveSnapshot {
     demux_result: AppState["demuxResult"];
     amplicon_length_estimate: AppState["ampliconLengthEstimate"];
     well_layout: AppState["wellLayout"];
+    // Rides alongside well_layout so a restore can tell an inferred draft
+    // layout apart from one the operator or a sample map actually supplied.
+    // See useAutosaveHydration.ts applyMameSnapshot for the guard this feeds.
+    layout_provenance: AppState["layoutProvenance"];
   };
 }
 
@@ -149,6 +154,7 @@ export function buildMameSnapshot(
       demux_result: state.demuxResult,
       amplicon_length_estimate: state.ampliconLengthEstimate,
       well_layout: state.wellLayout,
+      layout_provenance: state.layoutProvenance,
     },
   };
 }

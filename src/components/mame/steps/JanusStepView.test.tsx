@@ -15,11 +15,10 @@ vi.mock("@/lib/ipc-mame", () => ({
   setProgressHandler: vi.fn(),
   cancelAndRespawn: vi.fn(),
 }));
-// Stubbed to its open/closed state: what matters here is that the step reaches
-// the dialog, not what the dialog draws (that is its own test file).
-vi.mock("@/components/mame/dialogs/JanusMappingDialog", () => ({
-  JanusMappingDialog: ({ open }: { open: boolean }) =>
-    open ? <div data-testid="janus-mapping-dialog" /> : null,
+// Stubbed: what matters here is that the step renders the panel, not what the
+// panel draws (that is its own test file, JanusMappingPanel.test.tsx).
+vi.mock("@/components/mame/widgets/JanusMappingPanel", () => ({
+  JanusMappingPanel: () => <div data-testid="janus-mapping-panel" />,
 }));
 
 import { JanusStepView } from "./JanusStepView";
@@ -50,23 +49,10 @@ describe("JanusStepView", () => {
     expect(useMameAppStore.getState().janusSettings.volume).toBe(45);
   });
 
-  it("opens the instrument settings dialog", () => {
-    render(<JanusStepView />);
-    expect(screen.queryByTestId("janus-mapping-dialog")).toBeNull();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Open Janus instrument settings" }),
-    );
-
-    expect(screen.getByTestId("janus-mapping-dialog")).toBeTruthy();
-  });
-
-  it("reaches the settings before a run, when there is nothing to export yet", () => {
+  it("renders the mapping panel inline, not behind a dialog", () => {
     render(<JanusStepView />);
 
-    expect(
-      screen.getByRole("button", { name: "Open Janus instrument settings" }),
-    ).toBeEnabled();
+    expect(screen.getByTestId("janus-mapping-panel")).toBeTruthy();
   });
 
   it("says the step can be skipped", () => {

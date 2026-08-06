@@ -251,6 +251,25 @@ describe("AnalyzeStepView (Task #12, analyze.review)", () => {
     expect(queryByTestId("run-health-panel")).toBeNull();
   });
 
+  it("analyze.review does not render JanusAutosaveNotice even when a run wrote one", () => {
+    // Stated on step 3 (see JanusStepView.test.tsx): the analyze screens no
+    // longer render it, so this store state must not surface the testids here
+    // regardless of janusAutosave/janusMappingAutosave.
+    useMameAppStore.setState({
+      janusAutosave: {
+        status: "saved", row_count: 94, output_path: "/tmp/x_picks.csv",
+        format: "csv", excluded: [], excluded_count: 0, errors: [], warnings: [],
+      },
+      janusMappingAutosave: {
+        status: "skipped", row_count: 0, output_path: null,
+        format: "csv", excluded: [], excluded_count: 2, errors: [], warnings: [],
+      },
+    });
+    render(<AnalyzeStepView />);
+    expect(screen.queryByTestId("janus-autosave-notice")).toBeNull();
+    expect(screen.queryByTestId("janus-mapping-autosave-notice")).toBeNull();
+  });
+
   it("moves from analyze.inputs to analyze.review after analysis succeeds", async () => {
     useMameAppStore.setState({
       currentMameSubStep: "analyze.inputs",

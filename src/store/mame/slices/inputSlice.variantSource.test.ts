@@ -1,18 +1,20 @@
 /**
- * Reading a plain variant list, and writing the Janus mapping, at the store
+ * Reading a plain variant list, and writing the Janus pick list, at the store
  * layer.
  *
  * Two facts this covers, both of which are silent when they go wrong:
  *   - the sheet and column the operator picked have to reach every call that
  *     reads that file. If the validation and the run read different columns,
  *     the run is validated against rows nobody looked at.
- *   - the analyze run writes both Janus files itself. The sidecar no longer
- *     refuses over a blank liquid class, but the operator's settings (volume
- *     above all) still have to reach the call that writes them.
+ *   - the analyze run writes the pick list itself (the instrument mapping is
+ *     written only by a manual export, not covered here). The sidecar no
+ *     longer refuses over a blank liquid class, but the operator's settings
+ *     (volume above all) still have to reach the call that writes it.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppState } from "../types";
 import { createInputSlice } from "./inputSlice";
+import { createAnalysisSliceDoubles } from "./testHelpers/analysisSliceDoubles";
 
 const mockSendRequest = vi.fn();
 
@@ -51,16 +53,6 @@ const ANALYZE_REPLY = {
     errors: [],
     warnings: [],
   },
-  janus_mapping_autosave: {
-    status: "saved",
-    output_path: "D:/project/result_janus.csv",
-    format: "csv",
-    row_count: 12,
-    excluded: [],
-    excluded_count: 0,
-    errors: [],
-    warnings: [],
-  },
 };
 
 /**
@@ -84,14 +76,7 @@ function makeStore(initial: Partial<AppState> = {}) {
     ...initial,
   };
   const state: Partial<AppState> = {
-    setVerdicts: vi.fn(),
-    setReplicates: vi.fn(),
-    setSummary: vi.fn(),
-    setAnalyzeYield: vi.fn(),
-    setOutputPath: vi.fn(),
-    setDistributionStats: vi.fn(),
-    loadPlateData: vi.fn().mockResolvedValue(undefined),
-    loadRunHealth: vi.fn().mockResolvedValue(undefined),
+    ...createAnalysisSliceDoubles(),
     ...seed,
   };
   const set = (

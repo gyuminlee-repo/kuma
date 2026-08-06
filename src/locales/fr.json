@@ -843,7 +843,7 @@
       "settings": {
         "contextTitle": "Réglages de l'instrument Janus",
         "contextSubtitle": "Volume de transfert, racks du deck et liquid class à partir desquels le mapping instrument est écrit. Optionnel : un run purement séquençage peut sauter cette étape.",
-        "optionalNote": "Cette étape est optionnelle. Un run d'analyse écrit lui-même la liste de picks et le mapping instrument ; un run qui n'a besoin que des verdicts de séquençage passe donc de l'étape 2 directement à l'étape 4.",
+        "optionalNote": "Cette etape est optionnelle. Un run d'analyse ecrit lui-meme la liste de picks ; le mapping instrument n'est ecrit que lors d'un export ici, donc un run qui n'a besoin que des verdicts de sequencage passe de l'etape 2 directement a l'etape 4.",
         "inspectorTitle": "Inspector instrument",
         "inspectorSubtitle": "Valeurs utilisées pour écrire le mapping",
         "inspectorVolume": "Volume de transfert (uL)",
@@ -855,10 +855,7 @@
         "drawerRight": "Suivant",
         "drawerRightDesc": "Données d'activité et transfert vers EVOLVEpro",
         "volumeLabel": "Volume de transfert (uL)",
-        "volumeHint": "Ecrit dans le mapping instrument produit par cette execution. Les 100 uL fournis sont une hypothese sans source de laboratoire : indiquez le volume de cette experience.",
-        "openDialog": "Réglages de l'instrument Janus…",
-        "openDialogAriaLabel": "Ouvrir les réglages de l'instrument Janus",
-        "dialogHint": "Optionnel. Les numeros de rack suivent les plaques de cette execution et la liquid class reste vide si non definie ; saisir une valeur uniquement pour remplacer."
+        "volumeHint": "Ecrit dans le mapping instrument produit par cette execution. Les 100 uL fournis sont une hypothese sans source de laboratoire : indiquez le volume de cette experience."
       }
     },
     "setup": {
@@ -954,6 +951,11 @@
         "drawerRightDesc": "Proceed to activity",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "Correspondance well-variant probablement erronée",
+        "alertDesc": "Sur {{wells}} wells présentant une variante observée, {{selfPercent}}% correspondent à leur propre mutation attendue et {{crossPercent}}% correspondent plutôt à la mutation attendue d'un autre well. La correspondance well-variant est très probablement décalée ; ne faites pas confiance à ce résultat.",
+        "alertAriaLabel": "Avertissement d'intégrité de la correspondance well-variant"
       }
     },
     "inspector": {

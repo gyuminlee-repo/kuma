@@ -843,7 +843,7 @@
       "settings": {
         "contextTitle": "Janus-Geräteeinstellungen",
         "contextSubtitle": "Transfervolumen, Deck-Racks und Liquid Class, aus denen das Geräte-Mapping geschrieben wird. Optional: ein Lauf, der nur Sequenzierung braucht, kann diesen Schritt überspringen.",
-        "optionalNote": "Dieser Schritt ist optional. Ein Analyselauf schreibt Pickliste und Geräte-Mapping selbst, daher kann ein Lauf, der nur Sequenzier-Verdicts braucht, von Schritt 2 direkt zu Schritt 4 gehen.",
+        "optionalNote": "Dieser Schritt ist optional. Ein Analyselauf schreibt die Pickliste von selbst; das Geraete-Mapping wird nur geschrieben, wenn es hier exportiert wird. Ein Lauf, der nur Sequenzier-Verdicts braucht, kann daher von Schritt 2 direkt zu Schritt 4 gehen.",
         "inspectorTitle": "Geräte-Inspector",
         "inspectorSubtitle": "Werte, aus denen das Mapping geschrieben wird",
         "inspectorVolume": "Transfervolumen (uL)",
@@ -855,10 +855,7 @@
         "drawerRight": "Weiter",
         "drawerRightDesc": "Aktivitätsdaten und EVOLVEpro-Übergabe",
         "volumeLabel": "Transfervolumen (uL)",
-        "volumeHint": "Wird in das Geraete-Mapping dieses Laufs geschrieben. Die ausgelieferten 100 uL sind eine Annahme ohne Laborquelle, also den Wert dieses Experiments setzen.",
-        "openDialog": "Janus-Geräteeinstellungen …",
-        "openDialogAriaLabel": "Janus-Geräteeinstellungen öffnen",
-        "dialogHint": "Optional. Racknummern folgen den Platten dieses Laufs, die Liquid Class bleibt leer, wenn nicht gesetzt. Werte hier nur zum Ueberschreiben eingeben."
+        "volumeHint": "Wird in das Geraete-Mapping dieses Laufs geschrieben. Die ausgelieferten 100 uL sind eine Annahme ohne Laborquelle, also den Wert dieses Experiments setzen."
       }
     },
     "setup": {
@@ -954,6 +951,11 @@
         "drawerRightDesc": "Proceed to activity",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "Well-Varianten-Zuordnung wahrscheinlich fehlerhaft",
+        "alertDesc": "Von {{wells}} Wells mit beobachteter Variante stimmen {{selfPercent}}% mit der eigenen erwarteten Mutation überein, {{crossPercent}}% dagegen mit der erwarteten Mutation eines anderen Wells. Die Well-Varianten-Zuordnung ist mit hoher Wahrscheinlichkeit verschoben; diesem Ergebnis ist nicht zu trauen.",
+        "alertAriaLabel": "Warnung zur Well-Varianten-Zuordnungsintegrität"
       }
     },
     "inspector": {

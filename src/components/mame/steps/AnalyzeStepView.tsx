@@ -18,9 +18,10 @@
  *   - analyze.review: Next = 일반 다음 sub-step 이동.
  *   - Ctrl/Cmd+Enter는 MameAppLayout 레벨에서 독립적으로 처리됨.
  *
- * Janus 장비 설정은 step 3 (JanusStepView) 소관이다. 시퀀싱 판정만 필요한 운용자가
- * 장비 설정을 지나칠 필요가 없도록 분리했고, 이 화면은 실행이 무엇을 썼는지 알리는
- * JanusAutosaveNotice 만 유지한다.
+ * Janus 는 이 화면에 없다. 설정도, 실행이 장비용 파일을 썼다는 안내도 step 3
+ * (JanusStepView) 소관이다. 시퀀싱 판정만 필요한 운용자는 step 2 에서 멈추므로,
+ * 그 경로에 장비 이야기가 끼어들 이유가 없다. 안내만 남겨 두었더니 입력을 바꾼 뒤에도
+ * 이전 실행이 쓴 파일을 계속 알리는 자리가 되어, 화면이 끝난 실행을 현재로 보이게 했다.
  */
 
 import { AlertCircle, Download, ShieldCheck, Trash2 } from "lucide-react";
@@ -38,9 +39,9 @@ import { VerdictTable } from "@/components/mame/widgets/VerdictTable";
 import { PlateView } from "@/components/mame/widgets/PlateView";
 import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
 import { PlateClusterAlert } from "@/components/mame/widgets/PlateClusterAlert";
+import { MappingIntegrityAlert } from "@/components/mame/widgets/MappingIntegrityAlert";
 import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNotice";
 import { PlateOrderNotice } from "@/components/mame/widgets/PlateOrderNotice";
-import { JanusAutosaveNotice } from "@/components/mame/widgets/JanusAutosaveNotice";
 import { AnalyzeDurationDialog } from "@/components/mame/dialogs/AnalyzeDurationDialog";
 import { InputPanel } from "@/components/mame/panels/InputPanel";
 import { ParameterPanel } from "@/components/mame/panels/ParameterPanel";
@@ -273,9 +274,6 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               clean run answer the wrong question. */}
           <PlateOrderNotice />
 
-          {/* The run writes its pick list on its own; whether it did is part of
-              the run's outcome, not a detail of the export dialog. */}
-          <JanusAutosaveNotice />
 
           {zeroResult && <EmptyAnalysisNotice />}
 
@@ -335,8 +333,11 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       // analyze.inputs's RunHealthPanel and the QC inspector; not duplicated here per PI spec slide 6.
       mainContent = (
         <div className="flex h-full min-h-0 flex-col relative" ref={reviewContainerRef}>
+          {/* Above the softer cluster/autosave notices: a suspect mapping is a
+              judgment about whether this whole result can be trusted, not a
+              detail about how it ran. */}
+          <MappingIntegrityAlert />
           <PlateClusterAlert />
-          <JanusAutosaveNotice />
           <div className="flex-1 min-h-0">
           <PanelGroup direction="horizontal" autoSaveId="mame.analyze.review.split">
             <Panel defaultSize={50} minSize={25}>

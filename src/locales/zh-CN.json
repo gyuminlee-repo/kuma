@@ -843,7 +843,7 @@
       "settings": {
         "contextTitle": "Janus 设备设置",
         "contextSubtitle": "设置写入设备映射文件的转移体积、deck 架位与 liquid class。可选：只需测序判定的运行可以跳过此步骤。",
-        "optionalNote": "此步骤为可选。分析运行会自行写出挑取清单和设备映射，因此只需测序判定的运行可以从步骤 2 直接进入步骤 4。",
+        "optionalNote": "此步骤为可选。分析运行会自行写出挑取清单；设备映射仅在此处导出时才会写出，因此只需测序判定的运行可以从步骤 2 直接进入步骤 4。",
         "inspectorTitle": "设备 Inspector",
         "inspectorSubtitle": "写入映射所用的值",
         "inspectorVolume": "转移体积 (uL)",
@@ -855,10 +855,7 @@
         "drawerRight": "下一步",
         "drawerRightDesc": "活性数据与 EVOLVEpro 交接",
         "volumeLabel": "转移体积 (µL)",
-        "volumeHint": "该值会直接写入本次运行生成的仪器映射文件。默认 100 µL 是没有实验室依据的假设，请改成本次实验实际使用的体积。",
-        "openDialog": "Janus 设备设置…",
-        "openDialogAriaLabel": "打开 Janus 设备设置",
-        "dialogHint": "可选。机架编号按本次运行的板顺序推导，liquid class 未设置时留空输出；仅在需要覆盖时填写。"
+        "volumeHint": "该值会直接写入本次运行生成的仪器映射文件。默认 100 µL 是没有实验室依据的假设，请改成本次实验实际使用的体积。"
       }
     },
     "setup": {
@@ -954,6 +951,11 @@
         "drawerRightDesc": "Proceed to activity",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "well 与变异对应关系可能有误",
+        "alertDesc": "在 {{wells}} 个观测到变异的 well 中，{{selfPercent}}% 与自身 expected 匹配，{{crossPercent}}% 却与其他 well 的 expected 匹配。well 与变异的对应关系极有可能出错，请勿信任此结果。",
+        "alertAriaLabel": "well-变异映射完整性警告"
       }
     },
     "inspector": {

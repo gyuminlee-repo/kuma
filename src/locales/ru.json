@@ -843,7 +843,7 @@
       "settings": {
         "contextTitle": "Настройки прибора Janus",
         "contextSubtitle": "Объём переноса, стойки дека и liquid class, из которых записывается карта для прибора. Необязательно: запуск только для секвенирования может пропустить этот шаг.",
-        "optionalNote": "Этот шаг необязателен. Запуск анализа сам записывает список пиков и карту для прибора, поэтому запуск, которому нужны только вердикты секвенирования, переходит с шага 2 сразу к шагу 4.",
+        "optionalNote": "Этот шаг необязателен. Запуск анализа сам записывает список пиков; карта для прибора записывается только при экспорте здесь, поэтому запуск, которому нужны только вердикты секвенирования, переходит с шага 2 сразу к шагу 4.",
         "inspectorTitle": "Inspector прибора",
         "inspectorSubtitle": "Значения, из которых записывается карта",
         "inspectorVolume": "Объём переноса (uL)",
@@ -855,10 +855,7 @@
         "drawerRight": "Далее",
         "drawerRightDesc": "Данные активности и передача в EVOLVEpro",
         "volumeLabel": "Obyom perenosa (uL)",
-        "volumeHint": "Zapisyvaetsya v kartu dlya pribora, kotoruyu sozdayot etot zapusk. Postavlyaemye 100 uL eto dopushchenie bez laboratornogo istochnika, ukazhite obyom etogo eksperimenta.",
-        "openDialog": "Настройки прибора Janus…",
-        "openDialogAriaLabel": "Открыть настройки прибора Janus",
-        "dialogHint": "Neobyazatelno. Nomera rack sleduyut plastinam etogo zapuska, a liquid class ostayotsya pustym, esli ne zadan. Vvodite znacheniya tolko dlya zameny."
+        "volumeHint": "Zapisyvaetsya v kartu dlya pribora, kotoruyu sozdayot etot zapusk. Postavlyaemye 100 uL eto dopushchenie bez laboratornogo istochnika, ukazhite obyom etogo eksperimenta."
       }
     },
     "setup": {
@@ -954,6 +951,11 @@
         "drawerRightDesc": "Proceed to activity",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "Возможна ошибка сопоставления лунка-вариант",
+        "alertDesc": "Из {{wells}} лунок с наблюдаемым вариантом {{selfPercent}}% совпадают с собственной ожидаемой мутацией, а {{crossPercent}}% совпадают с ожидаемой мутацией другой лунки. Сопоставление лунка-вариант, скорее всего, нарушено; не доверяйте этому результату.",
+        "alertAriaLabel": "Предупреждение о целостности сопоставления лунка-вариант"
       }
     },
     "inspector": {
