@@ -23,6 +23,7 @@ import {
   atomicWriteJson,
 } from "@/lib/autosave";
 import { readMameResultSnapshot } from "@/lib/mame/resultSnapshot";
+import { provenanceFor } from "@/lib/mame/resultProvenance";
 import { pickAnalyzeYield } from "@/lib/mame/analyzeYield";
 import { sendRequest as sendMameRequest } from "@/lib/ipc-mame";
 import type { LoadAnalyzeResultResponse, PlateOrderReport } from "@/types/mame/models";
@@ -1533,6 +1534,15 @@ async function restoreMameResult(
   const { result } = read.snapshot;
   const store = useMameAppStore.getState();
 
+  // Whose engine produced what is about to be replayed. The payload is restored
+  // either way -- a saved run is the operator's work and is not thrown away --
+  // but a result this build would not have produced must not be presented as
+  // though it had. Same-version restores record nothing, so they behave exactly
+  // as they did before this guard existed.
+  store.setRestoredResultProvenance(
+    provenanceFor(read.snapshot.kuma_version, __APP_VERSION__),
+  );
+
   await sendMameRequest<LoadAnalyzeResultResponse>("load_analyze_result", {
     verdicts: result.verdicts,
     replicates: result.replicates,
@@ -1913,11 +1923,24 @@ export function useAutosaveHydration(
           // 결과 파일이 없거나 못 읽었다. 화면에는 스냅샷의 verdict 표가 이미
           // 복원돼 있으므로, 사이드카만 비워 두면 리포트·Excel 내보내기가
           // "No prior analyze result" 로 거부된다. 같은 값으로 채워 맞춘다.
-          await injectSnapshotResultsIntoSidecar(
+          const injected = await injectSnapshotResultsIntoSidecar(
             mameResult.snapshot as MameAutosaveSnapshot,
             path,
             isCurrent,
           );
+          // Same rule as the result file: results carried by an input snapshot
+          // an older build wrote are still that build's output, and the review
+          // screen has to say so rather than pass them off as current.
+          if (injected) {
+            useMameAppStore
+              .getState()
+              .setRestoredResultProvenance(
+                provenanceFor(
+                  (mameResult.snapshot as MameAutosaveSnapshot).kuma_version,
+                  __APP_VERSION__,
+                ),
+              );
+          }
         }
       } catch (err) {
         console.warn("[autosave] mame: analyze-result restore failed", err);

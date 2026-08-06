@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.15.20 (A restored run says which version scored it)
+
+A project folder outlives the app that made it: sequencing turnaround is weeks, and a run saved in v0.15.9 is opened in whatever is installed today. The restore is faithful to a fault. It replays the analyze response verbatim into the sidecar and the screen, and until now the review step presented those verdicts as though this build had just produced them. Between v0.15.10 and v0.15.18 MAME changed what a run produces more than once: a workbook that describes one plate two ways is refused, replicate picks are ordered by measured purity, a finished run is checked against itself, and result rows follow the plate column. A result scored before those changes is not what this build would produce, and nothing on screen said so. The snapshot had recorded `kuma_version` since it was introduced; nothing ever read it.
+
+### Highlights
+
+- A run restored from an older kuma now says which version scored it, instead of appearing as if this build had just produced it.
+- You choose what happens next: re-run for a result this build stands behind, or keep the saved one. Nothing is deleted or re-run for you.
+- Keeping is remembered per project and per version, so the notice stays quiet until a different snapshot turns up.
+- A snapshot with no recorded version, or one from a newer build, is reported rather than trusted.
+
+### Added
+
+- v0.15.20: A run restored from a snapshot another build wrote is labelled with the version that produced it, on both the inputs step and the review step. The two ways out are stated rather than chosen for the operator: re-run, which is the only thing that yields a result this build stands behind, or keep the saved one. Keeping is remembered per project and per producing version, so the notice does not reappear every restart but does speak up for a different snapshot.
+- v0.15.20: A snapshot that records no version at all, written before the field existed, is treated as suspect rather than current, because it cannot be told apart from an old run. A snapshot written by a newer build says so too.
+
+### Changed
+
+- v0.15.20: Nothing is discarded and nothing is re-run without being asked. The saved verdicts, plate and summary are still restored and still exportable, because deleting an operator's run or starting a long analysis unasked are both worse than showing the run with its origin stated. A snapshot this build wrote behaves exactly as before: no notice, no extra click.
+
 ## v0.15.19 (A barcode file that does not describe the plate stops the run)
 
 MAME names a well from the combinatorial barcode as `{R}_{F}`: the reverse index is the plate row, the forward index is the plate column. Nothing checked that the file being read is numbered that way, and both ways it can fail are silent. A set numbered past the plate loses the coordinate, and the well id reaches the workbook as an empty cell that reads like a well which failed to sequence. A gap in the numbering is worse: the loader sorts by index and then keeps position, so a set numbered 1, 2, 5 makes the matcher call the third barcode F3, and every read carrying `_f_5` is filed under plate column 3 with nothing to show for it.
