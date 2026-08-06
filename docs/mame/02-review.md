@@ -60,6 +60,6 @@ analyze 응답에 `layout_provenance` 가 항상 실린다. well 과 sample 의 
 - Verdicts table min-height 480 px, Plate plate view min-height 360 px.
 - 또는 resizable splitter 로 두 영역 자유 조절.
 
-→ Step 3 (Janus 장비 설정) 은 선택 단계다. 개요는 [Major.Sub 워크플로우](index.md) 참조.
+→ [Step 3. Janus 장비 설정](03-janus.md) 은 선택 단계다. 시퀀싱 판정만 필요하면 여기서 멈춰도 된다.
 
 → [Step 4. Activity Data](04-activity.md)
