@@ -348,13 +348,13 @@
         "uploadHeading": "上传 activity 数据",
         "uploadDesc": "将 long-format CSV / Excel 文件 (well, replicate, value 列) 加载到当前 Round。",
         "loaded": "✓ 已加载 {{count}} wells",
-        "contextSubtitle": "Upload wet-lab activity measurements for this round.",
+        "contextSubtitle": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro input.",
         "contextTitle": "Activity Data — Ingest",
         "drawerCenter": "Activity log",
         "drawerLeft": "Activity",
         "drawerLeftDesc": "Wells with measurements",
         "drawerRight": "Next",
-        "drawerRightDesc": "Merge and export",
+        "drawerRightDesc": "Cross-round signals and handoff",
         "inspectorMean": "Mean activity",
         "inspectorNoData": "No activity data loaded",
         "inspectorReplicates": "Replicates",
@@ -404,9 +404,7 @@
         "inspectorStatus": "Status",
         "inspectorSubtitle": "R585A merge summary",
         "inspectorTitle": "Export Inspector",
-        "inspectorVariant": "Variant",
-        "openJanusExport": "Open JANUS export...",
-        "openJanusExportAriaLabel": "Open JANUS cell-stock mapping export dialog"
+        "inspectorVariant": "Variant"
       },
       "wtWells": {
         "title": "WT wells (normalization 参考)",
@@ -415,13 +413,6 @@
         "alreadySetTooltip": "WT wells 已设置"
       },
       "route": {
-        "heading": "Activity value source",
-        "ariaLabel": "Choose where this round's activity values come from",
-        "ngsNote": "The NGS verdicts of this run are used either way; only the source of the measured activity changes.",
-        "genotypeLabel": "Activity upload (long format)",
-        "genotypeDesc": "Upload long-format well activity and join it to this round's NGS genotype, then export.",
-        "plateLayoutLabel": "Plate layout + GC data / Agilent report",
-        "plateLayoutDesc": "Read activity per well from a plate layout with GC data or a raw Agilent report, gated by the NGS verdict file.",
         "completeCurrentRoute": "Complete the selected activity source"
       }
     },
@@ -517,7 +508,9 @@
         "wells": "孔位",
         "loaded": "已加载",
         "passRows": "PASS 行",
-        "evolveproXlsx": "EVOLVEpro xlsx"
+        "evolveproXlsx": "EVOLVEpro xlsx",
+        "volume": "体积",
+        "liquidClass": "Liquid class"
       },
       "value": {
         "ready": "就绪",
@@ -629,7 +622,8 @@
       "manifestLoadFailed": "Manifest 加载失败: {{err}}",
       "barcodeSetupTab": "1. Custom Barcode Primer Design",
       "analyzeTab": "2. Sequencing QC",
-      "activityTab": "3. Activity Data",
+      "janusTab": "3. Janus 设备设置",
+      "activityTab": "4. Activity Data",
       "verdictTableTitle": "Verdict 表",
       "platePlanTitle": "板图",
       "runHealthTitle": "Run health",
@@ -654,6 +648,7 @@
       },
       "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
+      "janusTabTitle": "Janus 设备设置 — 细胞库挑取的可选步骤 (PI 工作流步骤③)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
       "efficiencyChartTitle": "Per-plate verdict breakdown"
     },
@@ -844,6 +839,25 @@
         "final": "Final 96 Deep Well"
       }
     },
+    "janus": {
+      "settings": {
+        "contextTitle": "Janus 设备设置",
+        "contextSubtitle": "设置写入设备映射文件的转移体积、deck 架位与 liquid class。可选：只需测序判定的运行可以跳过此步骤。",
+        "optionalNote": "此步骤为可选。分析运行会自行写出挑取清单；设备映射仅在此处导出时才会写出，因此只需测序判定的运行可以从步骤 2 直接进入步骤 4。",
+        "inspectorTitle": "设备 Inspector",
+        "inspectorSubtitle": "写入映射所用的值",
+        "inspectorVolume": "转移体积 (uL)",
+        "inspectorSampleType": "样品类型",
+        "inspectorLiquidClass": "Liquid class",
+        "inspectorLastMapping": "最近的映射文件",
+        "drawerLeft": "设备",
+        "drawerCenter": "Janus 日志",
+        "drawerRight": "下一步",
+        "drawerRightDesc": "活性数据与 EVOLVEpro 交接",
+        "volumeLabel": "转移体积 (µL)",
+        "volumeHint": "该值会直接写入本次运行生成的仪器映射文件。默认 100 µL 是没有实验室依据的假设，请改成本次实验实际使用的体积。"
+      }
+    },
     "setup": {
       "files": {
         "railTitle": "MAME Workflow",
@@ -937,6 +951,11 @@
         "drawerRightDesc": "Proceed to activity",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "well 与变异对应关系可能有误",
+        "alertDesc": "在 {{wells}} 个观测到变异的 well 中，{{selfPercent}}% 与自身 expected 匹配，{{crossPercent}}% 却与其他 well 的 expected 匹配。well 与变异的对应关系极有可能出错，请勿信任此结果。",
+        "alertAriaLabel": "well-变异映射完整性警告"
       }
     },
     "inspector": {
@@ -996,108 +1015,77 @@
         "failed": "The selection list was not written.",
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
       },
-      "janusSettings": {
-        "open": "Janus instrument settings...",
-        "openAriaLabel": "Open Janus instrument settings",
-        "hint": "可选。机架编号按本次运行的板顺序推导，liquid class 未设置时留空输出；仅在需要覆盖时填写。"
-      },
       "janusMappingAutosave": {
         "saved": "已在结果工作簿旁写入仪器映射文件（{{rows}} 行），采用机器人读取的 9 列格式。",
         "skipped": "没有克隆符合选择条件，因此未写入仪器映射文件。",
         "failed": "未能写入仪器映射文件。",
         "excluded": "{{clones}} 个克隆未进入映射文件。可在 Janus 仪器设置中查看原因。"
-      },
-      "janusVolume": {
-        "label": "转移体积 (µL)",
-        "hint": "该值会直接写入本次运行生成的仪器映射文件。默认 100 µL 是没有实验室依据的假设，请改成本次实验实际使用的体积。"
       }
     },
     "buildEvolvepro": {
       "title": "生成 EVOLVEpro 输入",
-      "subtitle": "以全部 variant 的初筛值（1 个 replicate）为底，仅把复测过的 variant 替换为其 3 个 replicate 的确认均值。",
+      "subtitle": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro [Variant, activity] input.",
+      "routeNote": "Every measurement format uses the same NGS verdict, normalization, replicate merge, and EVOLVEpro export pipeline.",
       "inputFiles": "输入文件",
+      "primarySourceLabel": "Measurement format",
+      "primarySourceLongFormat": "Generic long-format",
+      "primarySourceLongFormatHelper": "CSV/XLSX with exactly one well or variant label column and one value column. Select whether values are raw or already relative to WT.",
+      "primarySourceGcSheet": "GC data sheet",
+      "primarySourceGcSheetHelper": "Pre-normalized relative activity per well (Sample Name, Area), mapped to variants through the plate layout.",
+      "primarySourceRawReport": "Raw Agilent report",
+      "primarySourceRawReportHelper": "Raw Agilent FID1B report with well-labeled samples and WT blocks. The plate layout maps wells to variants.",
+      "activityPath": "Activity CSV/XLSX",
+      "activityPathHelper": "Long-format activity data with one well or variant label column and one value, area, or activity column.",
+      "activityScale": "Activity scale",
+      "activityScaleHelper": "Choose raw to normalize each plate/cohort against its WT rows, or relative when values are already relative to WT.",
+      "activityScaleRaw": "Raw",
+      "activityScaleRelative": "Relative to WT",
       "layoutXlsx": "板布局 xlsx",
-      "layoutXlsxHelper": "Mutant to well 位置映射。支持 plate layout 格式（Mutant、Well Pos. 列）或步骤 1 生成的 sample map（sample_name、well 列）。",
+      "layoutXlsxHelper": "Required mapping metadata for well-labeled GC data and raw reports. Maps well positions to variants.",
+      "layoutXlsxOptionalHelper": "Required only when the long-format label column contains wells; variant-labeled files do not need a layout.",
       "gcDataXlsx": "GC 数据 xlsx",
-      "gcDataXlsxHelper": "按 well 预先归一化的 relative activity（Sample Name、Area 列）。这就是底稿：板上每个 variant 各 1 个 replicate。",
-      "repBatchXlsx": "Agilent 确认报告 xlsx",
-      "repBatchXlsxHelper": "以 3 个 replicate 重新测定的 variant 的 Agilent FID1B 分块报告，含数字基础 ID 与 replicate 后缀。此处出现的 variant 将替换其初筛数值；未包含的 variant 保持暂定。",
-      "prevEvolveproXlsx": "作为 rank source 的 EVOLVEpro 输入 xlsx",
-      "prevEvolveproXlsxHelper": "KUMA 上一次生成的 EVOLVEpro 输入 xlsx（Variant、activity），而非 EVOLVEpro 输出的结果 CSV（variant、y_pred）。确认报告中的 sample name 是数字索引，因此需要按本文件 activity 由高到低的顺序回溯出 variant 名称。",
+      "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
+      "round1ReportXlsx": "Raw Agilent report xlsx",
+      "round1ReportXlsxHelper": "Raw Agilent FID1B report with well positions and WT blocks.",
+      "confirmationSourceLabel": "Optional confirmation",
+      "confirmationSourceNone": "None",
+      "confirmationSourceNoneHelper": "Use the primary measurement value for every NGS-qualified variant.",
+      "confirmationSourceVariantLabels": "Variant-labeled Agilent report",
+      "confirmationSourceVariantLabelsHelper": "Optional raw Agilent report whose sample names are variant labels. Its independently WT-normalized replicate means override matching primary values.",
+      "remeasureReportXlsx": "Confirmation report xlsx (variant-labeled)",
+      "remeasureReportXlsxHelper": "Raw Agilent report with variant-labeled samples and WT rows; numeric or rank-derived labels are not supported.",
+      "verdictXlsx": "NGS verdict xlsx",
+      "verdictXlsxHelper": "Required Analyze verdict evidence for this round. Only explicit PASS rows that are neither failed nor fallback are exported.",
       "outputXlsx": "输出 EVOLVEpro xlsx",
-      "outputXlsxHelper": "合并后 EVOLVEpro 输入的保存文件。",
+      "outputXlsxHelper": "Destination for the strict two-column [Variant, activity] export.",
       "requiredStateLabel": "必填",
       "optionalLabel": "可选",
-      "provisionalLabel": "暂定（无确认测定输入）",
-      "confirmedLabel": "已确证（合并 confirmation 重复）",
+      "optionalStateLabel": "可选",
       "builtFromLabel": "构建来源",
       "chooseOutput": "选择输出文件",
       "noOutputSelected": "未选择输出文件",
       "build": "生成 EVOLVEpro 输入",
       "building": "生成中...",
       "resultTitle": "生成结果",
-      "emptyState": "为所选来源选择输入文件并指定输出路径，然后构建 EVOLVEpro 输入文件。",
+      "emptyState": "Select one measurement format, the required NGS verdict, and an output path.",
       "nVariants": "已写入的 variant",
-      "nAuthoritative": "以 confirmation report 为准",
-      "nFallbackOnly": "仅来自 GC 数据",
-      "prevDescendingWarn": "上一轮 EVOLVEpro 文件未按 activity 降序排列。在信任 rank 之前，请先核查映射审计表。",
-      "mappingAuditTitle": "ID to variant 映射",
-      "mappingAuditPath": "映射审计文件",
-      "colId": "ID",
-      "colVariant": "Variant",
-      "colWell": "Well",
+      "nAuthoritative": "Confirmation overrides",
+      "nFallbackOnly": "Primary values",
+      "nNgsExcluded": "NGS-excluded",
       "warningsLabel": "警告",
-      "swapWarningsLabel": "Label-swap 警告",
-      "mismatchedLabel": "Confirmation 与初筛不一致",
-      "mismatchedHint": "3 次重复 confirmation 均值与 1 次重复初筛值明显不同的候选。",
+      "mismatchedLabel": "Confirmation vs primary mismatch",
+      "mismatchedHint": "Variants whose confirmation mean differs notably from the primary value.",
       "mismatchedAuthoritative": "Confirmation",
-      "mismatchedFallback": "初筛",
+      "mismatchedFallback": "Primary",
+      "colVariant": "Variant",
       "toastSuccess": "EVOLVEpro 输入生成完成",
       "toastSuccessDesc": "已写入 {{count}} 个 variant。",
       "toastError": "EVOLVEpro 输入生成失败",
       "openFolder": "打开输出文件夹",
-      "routeNote": "此路径直接读取 xlsx 文件，不使用 genotype 关联路径的 activity 上传。",
-      "primarySourceLabel": "初筛数据来源",
-      "primarySourceRawReport": "GC-FID 原始报告",
-      "primarySourceGcSheet": "GC data sheet",
-      "primarySourcePrevEvolvepro": "先前的 EVOLVEpro 输入文件",
-      "primarySourceRawReportHelper": "涵盖全部 variant、对应单个 replicate 的 Agilent FID1B 原始报告；样品名为 well 位置，由 plate layout 将 well 对应到 variant。",
-      "primarySourceGcSheetHelper": "每个 well 已归一化的相对 activity，通过 plate layout 对应到 variant。适用于已有归一化 GC data sheet 的情况。",
-      "primarySourcePrevEvolveproHelper": "KUMA 先前生成的 EVOLVEpro 输入 xlsx（Variant, activity），作为完整基线使用。除非启用 NGS verdict 过滤，否则无需 plate layout。",
-      "confirmationSourceLabel": "确认测定来源",
-      "confirmationSourceNone": "无（暂定）",
-      "confirmationSourceVariantLabels": "带 variant 标签的报告",
-      "confirmationSourceNumericIndex": "数字索引报告",
-      "confirmationSourceNoneHelper": "没有确认测定输入。所有 variant 保留初筛数值，构建结果保持暂定状态。",
-      "confirmationSourceVariantLabelsHelper": "样品名即 variant 标签的 Agilent FID1B 报告，因此无需 rank source。这些均值将替换初筛数值。",
-      "confirmationSourceNumericIndexHelper": "样品名为数字基础 ID 的 Agilent FID1B 报告。需要 rank source 才能还原每个 variant 名称。",
-      "round1EvolveproXlsx": "初筛的 EVOLVEpro 输入 xlsx",
-      "round1EvolveproXlsxHelper": "KUMA 为本批次生成的 EVOLVEpro 输入 xlsx（Variant、activity），每个 variant 各 1 个 replicate。不是 EVOLVEpro 输出的结果 CSV（variant、y_pred）。复测过的 variant 会被其确认均值替换。",
-      "round1ReportXlsx": "初筛报告 xlsx（GC-FID 原始）",
-      "round1ReportXlsxHelper": "覆盖每个 variant 各 1 个 replicate 的 Agilent FID1B 原始报告；sample name 为 well 位置（A1..H12），含 WT 块。plate layout 负责把 well 对应到 variant。",
-      "gcExportXlsx": "相对活性导出 xlsx（GC data 形式）",
-      "gcExportXlsxHelper": "可选的审阅产物。将 primary screen 各 well 的相对活性（area / WT 平均 area）以 Sample Name 与 Area 两列写出，与 GC data 工作表形式一致。",
-      "remeasureReportXlsx": "确认报告 xlsx（带 variant 标签）",
-      "remeasureReportXlsxHelper": "所选 variant 以 3 个 replicate 复测的 Agilent FID1B 原始报告；sample name 为 variant 标签（如 V5F 或 5F），重复行即 replicate。因为已带标签，无需 rank source，这些均值会替换初筛值。",
-      "verdictXlsx": "NGS verdict xlsx",
-      "verdictXlsxHelper": "Analyze Excel 报告（Final 工作表：well_id + verdict）。well 非 PASS 的变体将被排除。留空则跳过 NGS 筛除。",
-      "layoutXlsxOptionalHelper": "仅用于在 NGS verdict 筛除时将变体映射到 well。",
-      "optionalStateLabel": "可选",
-      "nNgsExcluded": "NGS 排除",
       "missingInputs": "仍需提供",
-      "restoredNotice": "已恢复此设备上的路径。如果它们属于其他项目，请清除。",
-      "clearRestored": "清除已恢复的 EVOLVEpro 输入",
-      "primarySourceNumericReport": "数字ID报告（整板）",
-      "confirmationSourceNumericSubset": "数字ID验证（高于WT的子集）",
-      "primarySourceNumericReportHelper": "样品名仅为数字的整板测定。id i 对应板序中第 i 个设计突变，因此需要顺序来源。",
-      "confirmationSourceNumericSubsetHelper": "对初筛中高于野生型的突变按相同板序编号的重复验证测定。需要数字ID初筛。",
-      "round1RepBatchXlsx": "初筛（数字ID）",
-      "round1RepBatchXlsxHelper": "整板 Agilent FID1B 报告，每个突变一个重复。",
-      "expectedMutationsXlsx": "KURO 设计 (expected_mutations)",
-      "expectedMutationsXlsxHelper": "直接来自设计的顺序来源，无需手工誊写板文件。优先于 layout。",
-      "remeasureRepBatchXlsx": "验证测定（数字ID）",
-      "remeasureRepBatchXlsxHelper": "重测子集的 Agilent FID1B 报告，每个突变多个重复。",
-      "orLabel": "二选一"
+      "restoredNotice": "Inputs were restored for this project.",
+      "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
+      "clearRestored": "清除已恢复的 EVOLVEpro 输入"
     },
     "verdictBadge": {
       "help": {
@@ -1712,7 +1700,7 @@
     "kuroInspectorTitle": "查看 Kuro 详情",
     "kuroInspectorBody": "在检查器中查看步骤参数、所选变体、警告和导出控件。",
     "mameWorkflowTitle": "遵循 Mame 工作流",
-    "mameWorkflowBody": "依次完成 Setup、Analyze 和 Activity，将实验数据整理为学习表。",
+    "mameWorkflowBody": "依次完成 Setup、Analyze、可选的 Janus 设备设置和 Activity，将实验数据整理为学习表。",
     "mameWorkspaceTitle": "Mame 主工作区",
     "mameWorkspaceBody": "加载运行数据，检查基因型判定和孔板结果，然后合并活性测量值进行导出。",
     "mameInspectorTitle": "查看 Mame 详情",
@@ -2290,7 +2278,7 @@
       "post-commit 版本同步钩子不再因引用已删除的路径而中断。",
       "较长的版本说明现在可在对话框内滚动，不会再溢出到底部之外。"
     ],
-    "highlightsStamp": "0.15.12+fe8e6f21"
+    "highlightsStamp": "0.15.16+fe8e6f21"
   },
   "primerDisplay": {
     "copySeqTitle": "复制序列",
@@ -2544,6 +2532,9 @@
       },
       "fallback": {
         "redirecting": "Redirecting…"
+      },
+      "janus": {
+        "settings": "Janus 设备设置"
       }
     }
   },
@@ -2581,9 +2572,12 @@
         "review": "Review the verdict table, plate layout, and per-plate verdict distribution in one view."
       },
       "activity": {
-        "ingest": "上传 activity CSV 或 Excel 文件并标注野生型。",
+        "ingest": "Convert this round's activity measurements into an NGS-qualified EVOLVEpro input from one measurement format.",
         "signals": "查看跨轮次分类信号，待 EVOLVEpro 输入准备就绪后交接给下一轮。",
         "mergeExport": "将活性数据与基因型判定合并并导出表格，然后通过组合单次重复 (GC) 与三次重复 (相对 WT) 活性来构建 EVOLVEpro 输入。"
+      },
+      "janus": {
+        "settings": "准备 JANUS 细胞库映射：转移体积、deck 架位编号与 liquid class。可选 — 其中任何一项都不会阻止运行。"
       }
     },
     "summary": {

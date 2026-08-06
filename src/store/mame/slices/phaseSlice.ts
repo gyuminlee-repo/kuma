@@ -1,5 +1,5 @@
 /**
- * MAME Phase slice: 1. Barcode Setup / 2. Analyze 탭 전환 상태.
+ * MAME Phase slice: 1. Barcode Setup / 2. Analyze / 3. Janus / 4. Activity 탭 전환 상태.
  *
  * Phase는 localStorage key `kuma:mame:phase`에 영속화된다.
  * 초기값: localStorage에 저장된 값이 있으면 사용, 없으면 "analyze" (기존 동작 보존).
@@ -11,7 +11,7 @@ import { MAME_SUBSTEP_ORDER } from "./mameSubSteps";
 
 const PHASE_STORAGE_KEY = "kuma:mame:phase";
 
-export type MamePhase = "setup" | "analyze" | "activity";
+export type MamePhase = "setup" | "analyze" | "janus" | "activity";
 export type ActivityTab = "ingest" | "merge" | "export";
 const ACTIVITY_TAB_STORAGE_KEY = "kuma:mame:activityTab";
 
@@ -39,7 +39,14 @@ const ACTIVITY_TAB_INITIAL: ActivityTab = "ingest";
 function readPhaseFromStorage(): MamePhase {
   try {
     const stored = localStorage.getItem(PHASE_STORAGE_KEY);
-    if (stored === "setup" || stored === "analyze" || stored === "activity") return stored;
+    if (
+      stored === "setup" ||
+      stored === "analyze" ||
+      stored === "janus" ||
+      stored === "activity"
+    ) {
+      return stored;
+    }
   } catch {
     // localStorage 접근 실패 시 기본값 사용
   }

@@ -1,7 +1,8 @@
 /**
  * MameWorkflowRail — MAME 전용 WorkflowRail 래퍼.
  *
- * 5 sub-step을 MAME_SUBSTEP_ORDER 순서로 나열하고, 현재 sub-step 기준으로
+ * 6 sub-step(setup 1 + analyze 2 + janus 1 + activity 2)을 MAME_SUBSTEP_ORDER
+ * 순서로 나열하고, 현재 sub-step 기준으로
  * progress %와 step 상태(done/active/lock)를 계산한다.
  *
  * [source: v5-strategy.md §3 Sidebar (WorkflowRail)]
@@ -16,19 +17,22 @@ import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
 import type { MamePhase } from "@/store/mame/slices/phaseSlice";
 import { isMameSubStepDone } from "@/lib/mame/mameStepCompletion";
 import { loadBuildEvolveproFromStorage } from "@/lib/mame/buildEvolveproFormStorage";
+import { useKumaProject } from "@/state/projectContext";
 
 const ALL_SUBSTEPS: MameSubStepId[] = [
   "setup.files",
   "analyze.inputs",
   "analyze.review",
+  "janus.settings",
   "activity.ingest",
   "activity.signals",
 ];
 
-const STEP_TOTAL = ALL_SUBSTEPS.length; // 5
+const STEP_TOTAL = ALL_SUBSTEPS.length; // 6
 
 /** Major.Sub 표기 (spec §5.2). KURO는 단일 카운트, MAME는 Major.Sub.
- * Legacy analyze.verdict/plate retained as 2.2 alias for migration/redirect rendering. */
+ * Legacy analyze.verdict/plate retained as 2.2 alias for migration/redirect rendering.
+ * Janus instrument settings took 3.1, so Activity moved to 4.x. */
 const SUBSTEP_DISPLAY: Record<MameSubStepId, string> = {
   "setup.files": "1.1",
   "setup.design": "1.2",
@@ -36,19 +40,21 @@ const SUBSTEP_DISPLAY: Record<MameSubStepId, string> = {
   "analyze.review": "2.2",
   "analyze.verdict": "2.2",
   "analyze.plate": "2.2",
-  "activity.ingest": "3.1",
-  "activity.signals": "3.2",
-  "activity.mergeExport": "3.2",
+  "janus.settings": "3.1",
+  "activity.ingest": "4.1",
+  "activity.signals": "4.2",
+  "activity.mergeExport": "4.2",
 };
 
 /** 각 sub-step이 속한 major group. */
-const SUBSTEP_MAJOR: Record<MameSubStepId, "setup" | "analyze" | "activity"> = {
+const SUBSTEP_MAJOR: Record<MameSubStepId, MamePhase> = {
   "setup.files": "setup",
   "setup.design": "setup",
   "analyze.inputs": "analyze",
   "analyze.review": "analyze",
   "analyze.verdict": "analyze",
   "analyze.plate": "analyze",
+  "janus.settings": "janus",
   "activity.ingest": "activity",
   "activity.signals": "activity",
   "activity.mergeExport": "activity",
@@ -56,10 +62,11 @@ const SUBSTEP_MAJOR: Record<MameSubStepId, "setup" | "analyze" | "activity"> = {
 
 /** Major group labels reuse the existing `mame.appLayout.*Tab` strings (without the
  * leading "1. "/"2. "/"3. " prefix; the rail prepends its own numbering). */
-const MAJOR_ORDER: Array<{ id: "setup" | "analyze" | "activity"; num: number; labelKey: string }> = [
+const MAJOR_ORDER: Array<{ id: MamePhase; num: number; labelKey: string }> = [
   { id: "setup", num: 1, labelKey: "mame.appLayout.barcodeSetupTab" },
   { id: "analyze", num: 2, labelKey: "mame.appLayout.analyzeTab" },
-  { id: "activity", num: 3, labelKey: "mame.appLayout.activityTab" },
+  { id: "janus", num: 3, labelKey: "mame.appLayout.janusTab" },
+  { id: "activity", num: 4, labelKey: "mame.appLayout.activityTab" },
 ];
 
 /** Strip a leading numeric prefix like "1. " from translated major labels so the
@@ -79,21 +86,21 @@ const STEP_LABEL_KEYS: Record<MameSubStepId, string> = {
   "activity.ingest": "phaseC.mameSubSteps.activity.ingest",
   "activity.signals": "phaseC.mameSubSteps.activity.signals",
   "activity.mergeExport": "phaseC.mameSubSteps.activity.mergeExport",
+  "janus.settings": "phaseC.mameSubSteps.janus.settings",
 };
 
 function computeProgress(activeIndex: number): number {
-  // index 0 → 20%, index 4 → 100%
+  // index 0 → 17%, index 5 → 100%
   return Math.round(((activeIndex + 1) / STEP_TOTAL) * 100);
 }
 
 function phaseOfSubStep(id: MameSubStepId): MamePhase {
-  if (id.startsWith("setup.")) return "setup";
-  if (id.startsWith("analyze.")) return "analyze";
-  return "activity";
+  return SUBSTEP_MAJOR[id];
 }
 
 export function MameWorkflowRail() {
   const { t } = useTranslation();
+  const project = useKumaProject();
   const currentSubStep = useMameAppStore((s) => s.currentMameSubStep);
   const setMamePhase = useMameAppStore((s) => s.setMamePhase);
   const setMameSubStep = useMameAppStore((s) => s.setMameSubStep);
@@ -106,6 +113,8 @@ export function MameWorkflowRail() {
   const buildEvolveproCompletion = useMameAppStore(
     (s) => s.buildEvolveproCompletion,
   );
+  const janusSettings = useMameAppStore((s) => s.janusSettings);
+  const janusMappingAutosave = useMameAppStore((s) => s.janusMappingAutosave);
   const activeRoundId = useRoundStore((s) => s.active_round_id);
   const rounds = useRoundStore((s) => s.rounds);
   const activeRound = rounds.find((round) => round.id === activeRoundId);
@@ -142,8 +151,10 @@ export function MameWorkflowRail() {
         verdicts,
         summary,
         activityComplete,
-        buildEvolveproForm: loadBuildEvolveproFromStorage(),
+        buildEvolveproForm: loadBuildEvolveproFromStorage(project?.path),
         buildEvolveproCompletion,
+        janusLiquidClass: janusSettings.liquidClass,
+        janusMappingWritten: janusMappingAutosave?.status === "saved",
       });
       let state: WorkflowStep["state"];
       if (done) state = "done";

@@ -46,6 +46,8 @@ export function useMameDrawerProps(): SlotProps {
   const summary = useMameAppStore((s) => s.summary);
   const wells = useMameAppStore((s) => s.wells);
   const selectedWell = useMameAppStore((s) => s.selectedWell);
+  const janusSettings = useMameAppStore((s) => s.janusSettings);
+  const janusMappingAutosave = useMameAppStore((s) => s.janusMappingAutosave);
 
   // 파생 값
   const runFolderName = inputDir
@@ -56,6 +58,11 @@ export function useMameDrawerProps(): SlotProps {
     : "—";
   const passCount = verdicts.filter((v) => v.verdict === "PASS").length;
   const selectedCount = wells.filter((w) => w.selected).length;
+  const janusMappingPath = janusMappingAutosave?.output_path ?? null;
+  const janusMappingFile = janusMappingPath
+    ? (janusMappingPath.replace(/\\/g, "/").split("/").filter(Boolean).pop() ??
+      janusMappingPath)
+    : null;
 
   const MAP: Record<MameSubStepId, SlotProps> = {
     "setup.files": {
@@ -229,6 +236,40 @@ export function useMameDrawerProps(): SlotProps {
       },
     },
 
+    "janus.settings": {
+      left: {
+        title: t("mame.janus.settings.drawerLeft"),
+        children: (
+          <div className="space-y-0.5">
+            <StatLine label={t("mame.drawer.stat.volume")} value={janusSettings.volume} />
+            <StatLine
+              label={t("mame.drawer.stat.liquidClass")}
+              value={janusSettings.liquidClass || t("mame.drawer.value.notSet")}
+            />
+          </div>
+        ),
+      },
+      center: {
+        title: t("mame.janus.settings.drawerCenter"),
+        children: (
+          <div className="space-y-0.5">
+            <LogLine
+              text={
+                janusMappingFile
+                  ? `[DONE] Wrote: ${janusMappingFile}`
+                  : "[INFO] The run writes the mapping on its own"
+              }
+            />
+            <LogLine text="[INFO] Optional step: a sequencing-only run can skip it" />
+          </div>
+        ),
+      },
+      right: {
+        title: t("mame.janus.settings.drawerRight"),
+        children: <LogLine text={t("mame.janus.settings.drawerRightDesc")} />,
+      },
+    },
+
     "activity.ingest": {
       left: {
         title: t("mame.activity.ingest.drawerLeft"),
@@ -246,8 +287,8 @@ export function useMameDrawerProps(): SlotProps {
         title: t("mame.activity.ingest.drawerCenter"),
         children: (
           <div className="space-y-0.5">
-            <LogLine text="[INFO] Upload CSV/Excel with activity measurements" />
-            <LogLine text="[INFO] Required columns: well, replicate, value" />
+            <LogLine text="[INFO] Pick one measurement format: long-format, GC data, or raw Agilent" />
+            <LogLine text="[INFO] NGS verdict evidence is required for every format" />
           </div>
         ),
       },
@@ -288,7 +329,7 @@ export function useMameDrawerProps(): SlotProps {
       },
     },
 
-    // 3.2 signals & handoff step reuses the legacy mergeExport drawer copy
+    // 4.2 signals & handoff step reuses the legacy mergeExport drawer copy
     // (merge/export progress + handoff bridge context still applies here).
     "activity.signals": {
       left: {

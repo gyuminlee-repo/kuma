@@ -36,6 +36,12 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.workbook import Workbook
 
 from kuma_core.mame.export.well_mapper import WellMapper, seq_to_well
+from kuma_core.mame.select.purity import (
+    PlateBaseline,
+    plate_baseline,
+    review_reason,
+    support_lower_bound,
+)
 from kuma_core.mame.models import ReplicateResult, VerdictClass, VerdictRecord
 from kuma_core.mame.detected import compute_recovery, replicate_is_recovered
 from kuma_core.mame.export.nb_label import nb_label, nb_order_key, well_sort_key
@@ -72,6 +78,11 @@ _SHEET1_HEADER = [
     "low_quality_bases",
     "mixed_positions",
     "max_minor_allele_fraction",
+    "min_variant_support",
+    "min_variant_support_depth",
+    "support_lower_bound",
+    "max_indel_event_fraction",
+    "review",
     "custom_barcode",
     "observed_mutations",
     "observed_aa",
@@ -92,6 +103,9 @@ _FINAL_HEADER = [
     "fallback_reason",
     "notes",
     "observed_aa",
+    "support_lower_bound",
+    "max_indel_event_fraction",
+    "review",
 ]
 
 # Reference-format "NGS Results" / "Final (matrix)" sheets adapt to the actual
@@ -206,12 +220,27 @@ def _custom_barcode_to_seq(custom: str) -> int | None:
     return (f - 1) * 8 + r
 
 
+_EMPTY_BASELINE = PlateBaseline(None, 0.0, None, 0.0)
+
+
+def _round_or_blank(value: float | None, digits: int) -> float | str:
+    """Round for the sheet, or leave the cell empty when the value is unknown.
+
+    An unknown purity must not read as 0.0 in a spreadsheet someone sorts on.
+    """
+    return "" if value is None else round(value, digits)
+
+
 def _write_sheet1(
     wb: Workbook,
     native_barcode: str,
     records: Iterable[VerdictRecord],
     replicate_results: Iterable[ReplicateResult] = (),
 ) -> None:
+    records = list(records)
+    # The baseline is this plate judging itself; see select/purity.py for why a
+    # fixed gate was not used.
+    baseline = plate_baseline(vr.translated.barcode for vr in records)
     ws = wb.create_sheet(nb_label(native_barcode))
     ws.append(_SHEET1_HEADER)
     _style_header(ws)
@@ -258,6 +287,11 @@ def _write_sheet1(
             br.n_low_quality_bases,
             br.n_mixed_positions,
             round(br.max_minor_allele_fraction, 4),
+            _round_or_blank(br.min_variant_support, 4),
+            br.min_variant_support_depth or "",
+            _round_or_blank(support_lower_bound(br), 4),
+            round(br.max_indel_event_fraction, 4),
+            review_reason(br, baseline),
             br.custom_barcode,
             ", ".join(vr.translated.observed_nt_changes),
             ", ".join(vr.translated.observed_aa_changes),
@@ -279,6 +313,15 @@ def _write_final(
     replicate_results: Iterable[ReplicateResult],
     mapper: WellMapper,
 ) -> None:
+    replicate_results = list(replicate_results)
+    # One baseline per plate, built from every well that plate reported, so the
+    # Final sheet judges a pick against its own plate rather than a fixed gate.
+    by_plate: dict[str, list] = {}
+    for rr in replicate_results:
+        for plate, vr in rr.plate_verdicts.items():
+            by_plate.setdefault(plate, []).append(vr.translated.barcode)
+    baselines = {plate: plate_baseline(recs) for plate, recs in by_plate.items()}
+
     ws = wb.create_sheet("Final")
     ws.append(_FINAL_HEADER)
     _style_header(ws)
@@ -315,7 +358,7 @@ def _write_final(
         well = mapper.seq_to_well(seq)
         rr = replicate_by_seq.get(seq)
         if rr is None:
-            ws.append([well, "", "", "", "", "", "", "", ""])
+            ws.append([well] + [""] * (len(_FINAL_HEADER) - 1))
             _highlight_well_cell(ws, ws.max_row)
             continue
 
@@ -323,7 +366,10 @@ def _write_final(
             failed_wells.append(well)
             failed_count += 1
             redo_targets.append(rr.mutant_id)
-            ws.append([well, "FAILED", "-", rr.mutant_id, "-", "", "", "", ""])
+            ws.append(
+                [well, "FAILED", "-", rr.mutant_id, "-"]
+                + [""] * (len(_FINAL_HEADER) - 5)
+            )
             for cell in ws[ws.max_row]:
                 cell.fill = _fill(FAILED_FILL)
         else:
@@ -339,6 +385,14 @@ def _write_final(
                     (rr.fallback_reason or "") if rr.is_fallback else "",
                     vr.verdict_notes,
                     ", ".join(vr.translated.observed_aa_changes),
+                    _round_or_blank(
+                        support_lower_bound(vr.translated.barcode), 4
+                    ),
+                    round(vr.translated.barcode.max_indel_event_fraction, 4),
+                    review_reason(
+                        vr.translated.barcode,
+                        baselines.get(rr.selected_plate, _EMPTY_BASELINE),
+                    ),
                 ]
             )
             row_idx = ws.max_row
@@ -371,11 +425,8 @@ def _write_final(
                     "",
                     rr.mutant_id,
                     rr.selection_reason,
-                    "",
-                    "",
-                    "",
-                    "",
                 ]
+                + [""] * (len(_FINAL_HEADER) - 5)
             )
     _finalize(ws)
 

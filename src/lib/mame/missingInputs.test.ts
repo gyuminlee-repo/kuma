@@ -9,6 +9,7 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  filterStillMissing,
   formatSize,
   looksLikeSameTarget,
   useMissingInputs,
@@ -55,6 +56,36 @@ describe("formatSize", () => {
     expect(formatSize(undefined)).toBeNull();
     expect(formatSize(Number.NaN)).toBeNull();
     expect(formatSize(-1)).toBeNull();
+  });
+});
+
+describe("filterStillMissing", () => {
+  it("drops a field whose current value is filled", () => {
+    expect(
+      filterStillMissing(["inputDir", "referencePath"], {
+        inputDir: "/proj/run",
+        referencePath: "",
+      }),
+    ).toEqual(["referencePath"]);
+  });
+
+  it("keeps a field whose current value is still empty", () => {
+    expect(
+      filterStillMissing(["inputDir"], { inputDir: "" }),
+    ).toEqual(["inputDir"]);
+  });
+
+  it("treats a field absent from the current-value map the same as empty", () => {
+    expect(filterStillMissing(["inputDir"], {})).toEqual(["inputDir"]);
+  });
+
+  it("covers both raw_run_params fields (customBarcodesPath, sequencingSummaryPath)", () => {
+    expect(
+      filterStillMissing(
+        ["customBarcodesPath", "sequencingSummaryPath"],
+        { customBarcodesPath: "/proj/barcodes.xlsx", sequencingSummaryPath: "" },
+      ),
+    ).toEqual(["sequencingSummaryPath"]);
   });
 });
 

@@ -13,8 +13,11 @@ Properties pinned here, the later ones mattering more than the first: no
 instrument setting may block the automatic file, an empty pick list must not be
 written (an empty file reads like a finished plate), a plate keeps the name the
 run gave it, and a file that cannot be built must not cost the analysis, which by
-then has already run to completion. The dialog path keeps its old behaviour, and
-that contrast is tested here too.
+then has already run to completion. The instrument (``device9``) sheet is a
+different file: it is never written by ``handle_analyze`` (v0.15.14 removed that
+autosave, since a robot worklist states a deck and a liquid class that describe
+the room at the moment it is written, not at analyze time), only by a manual
+``export_janus_mapping`` call, and that contrast is tested here too.
 
 Fixtures are self-contained barcode-mode consensus FASTA, shared byte-for-byte
 with ``test_analyze_liveness``: no minimap2 needed.
@@ -317,16 +320,18 @@ def _make_three_mutant_xlsx(dest: Path) -> Path:
     return dest
 
 
-def test_a_three_plate_native_barcode_run_writes_the_instrument_sheet(
+def test_a_three_plate_native_barcode_run_writes_the_instrument_sheet_on_export(
     tmp_path: Path,
 ) -> None:
     """``sort_barcode07/08/09``, the run that produced no mapping file at all.
 
     Its plates matched nothing in the fixed NB01/NB02/NB03 rack map, so v0.15.6
     refused to write and v0.15.7 stopped writing an instrument sheet
-    automatically at all. Nothing is configured here: no liquid class, no rack
-    numbers, no dest rack. The file has to come out anyway, with the deck taken
-    from the plates of the run.
+    automatically at all; v0.15.14 stopped analyze from writing one altogether
+    (only a manual ``export_janus_mapping`` call does now, tested here directly
+    the way the dialog path already is above). Nothing is configured here: no
+    liquid class, no rack numbers, no dest rack. The file has to come out
+    anyway, with the deck taken from the plates of the run.
     """
     ingest = tmp_path / "consensus"
     _write_fasta(ingest / "sort_barcode07" / "1_1.fasta", "1_1", _M1L_NT)
@@ -334,6 +339,7 @@ def test_a_three_plate_native_barcode_run_writes_the_instrument_sheet(
     _write_fasta(ingest / "sort_barcode09" / "3_1.fasta", "3_1", _F3W_NT)
 
     from sidecar_mame.handlers.analyze import handle_analyze
+    from sidecar_mame.handlers.export import handle_export_janus_mapping
 
     result = handle_analyze(
         {
@@ -347,11 +353,14 @@ def test_a_three_plate_native_barcode_run_writes_the_instrument_sheet(
             "ingest_mode": "barcode",
         }
     )
+    # Analyze wrote no instrument sheet at all: only the pick list.
+    assert "janus_mapping_autosave" not in result
+    assert not (tmp_path / "260804_ref_MAME_janus.csv").exists()
 
-    mapping = result["janus_mapping_autosave"]
-    assert mapping["status"] == "saved", mapping
+    target = tmp_path / "worklist.csv"
+    mapping = handle_export_janus_mapping({"output": str(target)})
     written = Path(mapping["output_path"])
-    assert written == tmp_path / "260804_ref_MAME_janus.csv"
+    assert written == target
     assert written.exists()
 
     body = _read_csv(str(written))
@@ -371,30 +380,32 @@ def test_a_three_plate_native_barcode_run_writes_the_instrument_sheet(
         "missing_liquid_class",
     ]
 
-    # The pick list is still written beside it: two files, two questions.
+    # The pick list was written beside the workbook by analyze itself, no
+    # export needed: two files, two writers, two questions.
     picks = result["janus_autosave"]
     assert picks["status"] == "saved", picks
     assert Path(picks["output_path"]) == tmp_path / "260804_ref_MAME_picks.csv"
     assert len(_read_csv(picks["output_path"])[0]) == 5
 
 
-def test_operator_rack_numbers_reach_the_automatic_instrument_sheet(
+def test_operator_rack_numbers_reach_the_exported_instrument_sheet(
     tmp_path: Path,
 ) -> None:
-    """A number entered in the dialog wins over the derived one."""
-    result = _run(
-        tmp_path,
-        {"1_2": _G2A_NT, "2_1": _F3W_NT},
-        janus_settings={
+    """A number entered for the export wins over the derived one."""
+    _run(tmp_path, {"1_2": _G2A_NT, "2_1": _F3W_NT})
+    from sidecar_mame.handlers.export import handle_export_janus_mapping
+
+    target = tmp_path / "worklist.csv"
+    mapping = handle_export_janus_mapping(
+        {
+            "output": str(target),
             "liquid_class": _LIQUID_CLASS,
             "source_racks": {"NB01": 5},
             "dest_rack": 8,
             "volume": 40.0,
-        },
+        }
     )
 
-    mapping = result["janus_mapping_autosave"]
-    assert mapping["status"] == "saved", mapping
     rows = _read_csv(mapping["output_path"])[1:]
     assert {row[4] for row in rows} == {"5"}
     assert {row[6] for row in rows} == {"8"}

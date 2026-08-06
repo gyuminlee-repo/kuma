@@ -507,185 +507,70 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# A-pipeline: 4-file EVOLVEpro input build (layout + GC + rep-batch + prev EP)
+# Unified Step 3 EVOLVEpro input build
 # ---------------------------------------------------------------------------
 
 def _serialise_label_audit(audit: Any) -> dict | None:
-    """Flatten a ``LabelAudit`` (frozen dataclass, nested findings + tuples)
-    into a JSON-serialisable dict, or ``None`` when no audit was run (no
-    verdict_xlsx / layout_xlsx supplied).
-    """
     if audit is None:
         return None
     return {
         "discordant": [
             {
-                "well": f.well,
-                "expected": f.expected,
-                "observed": list(f.observed),
-                "category": f.category,
-                "verdict": f.verdict,
+                "well": finding.well,
+                "expected": finding.expected,
+                "observed": list(finding.observed),
+                "category": finding.category,
+                "verdict": finding.verdict,
             }
-            for f in audit.discordant
+            for finding in audit.discordant
         ],
         "n_checked": audit.n_checked,
         "n_unevaluable": audit.n_unevaluable,
         "is_closed_permutation": audit.is_closed_permutation,
-        "cycles": [list(c) for c in audit.cycles],
+        "cycles": [list(cycle) for cycle in audit.cycles],
         "geometry": audit.geometry,
     }
 
 
 def handle_build_evolvepro_input(params: dict) -> dict:
-    """``mame.activity.build_evolvepro_input`` build one EVOLVEpro input xlsx.
-
-    Wires one MAME activity round into a single EVOLVEpro input file by
-    combining two independent input axes in the short EVOLVEpro variant space
-    (no ref_seq needed).
-
-    Axis A, the 1-replicate primary screen (exactly one, enforced by the params
-    model):
-        round1_report_xlsx     raw Agilent report (well labels) + layout_xlsx
-        gc_data_xlsx           pre-normalised GC sheet (well labels) + layout_xlsx
-        round1_evolvepro_xlsx  previous EVOLVEpro file (variant labels)
-
-    Axis B, the n-replicate confirmation that overrides the baseline (at most
-    one):
-        remeasure_report_xlsx  variant-labeled Agilent report
-        rep_batch_xlsx         numeric base IDs, needs prev_evolvepro_xlsx as
-                               the rank source (emits the mapping audit)
-        (neither)              provisional build, baseline only
-
-    Params (validated by BuildEvolveproInputParams):
-        layout_xlsx (str, axis A raw-report / GC-sheet only)
-        output_xlsx (str)
-        gc_data_xlsx (str, axis A)
-        round1_report_xlsx (str, axis A)
-        round1_evolvepro_xlsx (str, axis A)
-        remeasure_report_xlsx (str, axis B)
-        rep_batch_xlsx (str, axis B)
-        prev_evolvepro_xlsx (str, axis B rank source)
-        verdict_xlsx (str, optional NGS verdict gating)
-        mismatch_threshold (float, optional, default 0.1)
-        mapping_audit_path (str, optional)
-        gc_export_xlsx (str, optional, raw round-1 report only)
-        allow_label_mismatch (bool, optional, default False; set True to
-            proceed past a closed-permutation/severity=error label swap)
-
-    Returns:
-        {
-          "output_path": str,
-          "n_variants": int,
-          "n_authoritative": int,
-          "n_fallback_only": int,
-          "mapping_audit": [{"id": int, "variant": str, "well": str | None}],
-          "mapping_audit_path": str,
-          "gc_export_path": str,
-          "prev_descending": bool,
-          "warnings": [str],
-          "swap_warnings": [SwapWarning],
-          "confidence": str (rank mode only),
-          "mismatched": [{"variant": str, "authoritative": float,
-                          "fallback": float}],
-          "n_ngs_excluded": int,
-          "ngs_excluded": [str],
-          "mode": str,
-          "primary_source": str (PRIMARY_* axis A constant),
-          "confirmation_source": str (CONFIRM_* axis B constant),
-          "label_audit": LabelAudit dict | null (well<->mutant discordance
-              audit; null unless both verdict_xlsx and layout_xlsx were given)
-        }
-
-    Raises:
-        ValueError(-32602): invalid params or empty sources (WT areas missing,
-            empty replicate list, no variants to write, or, unless
-            allow_label_mismatch=True, a closed-permutation/severity=error
-            label-swap warning on the numeric-index confirmation axis).
-        FileNotFoundError(-32602): an input is missing or the output directory
-            does not exist.
-    """
-    from pathlib import Path
-
-    from kuma_core.mame.activity.build_evolvepro_input import (
-        build_evolvepro_input_axes,
-    )
+    """Build the strict single-path MAME Step 3 EVOLVEpro input workbook."""
+    from kuma_core.mame.activity.build_evolvepro_input import build_evolvepro_input
     from sidecar_mame.models import BuildEvolveproInputParams
 
     p = BuildEvolveproInputParams.model_validate(params)
-
-    # Legacy "mode" label kept for the frontend: the well-labeled GC primary
-    # screen and the numeric-index confirmation are the rank-mode inputs; any
-    # other axis combination reports as reports-mode. The axis pair is exposed
-    # separately via primary_source / confirmation_source.
-    is_rank = bool(
-        p.gc_data_xlsx
-        or p.round1_rep_batch_xlsx
-        or p.remeasure_rep_batch_xlsx
-        or p.rep_batch_xlsx
-    )
-    audit_path = p.mapping_audit_path
-    if is_rank and audit_path is None:
-        audit_path = str(Path(p.output_xlsx).with_suffix(".mapping.json"))
-
-    r = build_evolvepro_input_axes(
+    result = build_evolvepro_input(
         p.output_xlsx,
-        round1_report_xlsx=p.round1_report_xlsx,
+        activity_path=p.activity_path,
+        activity_scale=p.activity_scale,
         gc_data_xlsx=p.gc_data_xlsx,
-        round1_evolvepro_xlsx=p.round1_evolvepro_xlsx,
-        round1_rep_batch_xlsx=p.round1_rep_batch_xlsx,
-        layout_xlsx=p.layout_xlsx,
-        expected_mutations_xlsx=p.expected_mutations_xlsx,
+        round1_report_xlsx=p.round1_report_xlsx,
         remeasure_report_xlsx=p.remeasure_report_xlsx,
-        remeasure_rep_batch_xlsx=p.remeasure_rep_batch_xlsx,
-        rep_batch_xlsx=p.rep_batch_xlsx,
-        rank_evolvepro_xlsx=p.prev_evolvepro_xlsx,
-        mismatch_threshold=p.mismatch_threshold,
         verdict_xlsx=p.verdict_xlsx,
-        mapping_audit_path=audit_path,
+        layout_xlsx=p.layout_xlsx,
+        mismatch_threshold=p.mismatch_threshold,
         gc_export_xlsx=p.gc_export_xlsx,
         allow_label_mismatch=p.allow_label_mismatch,
     )
-
-    if r.mapping.rows:
-        mapping_audit = [
-            {"id": m.id, "variant": m.variant, "well": m.well}
-            for m in r.mapping.rows
-        ]
-    else:
-        mapping_audit = [
-            {"id": i + 1, "variant": v, "well": w}
-            for i, (v, w) in enumerate(r.well_by_variant.items())
-        ]
-
-    response: dict = {
-        "output_path": str(r.output_path),
-        "n_variants": r.n_variants,
-        "n_authoritative": r.n_authoritative,
-        "n_fallback_only": r.n_fallback_only,
-        "mapping_audit": mapping_audit,
-        "mapping_audit_path": (
-            str(r.mapping_audit_path) if r.mapping_audit_path else ""
-        ),
-        "prev_descending": r.mapping.prev_descending,
-        "warnings": r.warnings,
-        "swap_warnings": [w.__dict__ for w in r.swap_warnings],
-        "mismatched": r.mismatched,
-        "n_ngs_excluded": r.n_ngs_excluded,
-        "ngs_excluded": r.ngs_excluded,
-        "gc_export_path": str(r.gc_export_path) if r.gc_export_path else "",
-        "mode": "rank" if is_rank else "reports",
-        # The axis pair that actually built this table. Unlike "mode" (a legacy
-        # two-way label) these name the selected axis A and axis B builders, so
-        # a caller can report the combination and can tell a provisional build
-        # apart on every primary source, not only the rank-mode ones.
-        "primary_source": r.primary_source,
-        "confirmation_source": r.confirmation_source,
-        "label_audit": _serialise_label_audit(r.label_audit),
+    return {
+        "output_path": str(result.output_path),
+        "n_variants": result.n_variants,
+        "n_authoritative": result.n_authoritative,
+        "n_fallback_only": result.n_fallback_only,
+        "warnings": result.warnings,
+        "mismatched": result.mismatched,
+        "n_ngs_excluded": result.n_ngs_excluded,
+        "ngs_excluded": result.ngs_excluded,
+        "gc_export_path": str(result.gc_export_path) if result.gc_export_path else "",
+        "label_audit": _serialise_label_audit(result.label_audit),
+        "manifest_path": str(result.manifest_path) if result.manifest_path else "",
+        "primary_format": result.primary_format,
+        "input_count": result.input_count,
+        "evaluable_count": result.evaluable_count,
+        "exclusion_reason_counts": result.exclusion_reason_counts,
+        "normalization_sources": result.normalization_sources,
+        "evidence_hash": result.evidence_hash,
+        "artifact_hashes": result.artifact_hashes,
     }
-    if is_rank:
-        # Rank-mode only, matching the field set the frontend already reads.
-        response["confidence"] = r.confidence
-    return response
 
 
 __all__ = [

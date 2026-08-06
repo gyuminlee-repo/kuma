@@ -38,6 +38,7 @@ import { StatusBar } from "./StatusBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SetupStepView } from "@/components/mame/steps/SetupStepView";
 import { AnalyzeStepView } from "@/components/mame/steps/AnalyzeStepView";
+import { JanusStepView } from "@/components/mame/steps/JanusStepView";
 import { ActivityStepView } from "@/components/mame/steps/ActivityStepView";
 import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
 import type { MamePhase } from "@/store/mame/slices/phaseSlice";
@@ -47,7 +48,6 @@ import { useMameDrawerProps } from "./MameDrawerContent";
 import { InspectorPanel } from "@/components/widgets/InspectorPanel";
 import { ContextHeader } from "@/components/widgets/ContextHeader";
 import { DrawerStrip } from "@/components/widgets/DrawerStrip";
-import { JanusMappingDialog } from "@/components/mame/dialogs/JanusMappingDialog";
 import { useMameAutosave } from "@/hooks/useMameAutosave";
 
 // Activity store는 RoundStore를 주입받아 초기화 (lazy singleton).
@@ -66,6 +66,7 @@ const CONTEXT_TITLE_KEYS: Record<MameSubStepId, { title: string; subtitle: strin
   // Legacy ids (Task #12 통합 후 redirect 진입 표시용)
   "analyze.verdict":    { title: "mame.qc.review.contextTitle",           subtitle: "mame.qc.review.contextSubtitle" },
   "analyze.plate":      { title: "mame.qc.review.contextTitle",           subtitle: "mame.qc.review.contextSubtitle" },
+  "janus.settings":     { title: "mame.janus.settings.contextTitle",      subtitle: "mame.janus.settings.contextSubtitle" },
   "activity.ingest":    { title: "mame.activity.ingest.contextTitle",     subtitle: "mame.activity.ingest.contextSubtitle" },
   "activity.signals":   { title: "mame.activity.mergeExport.contextTitle", subtitle: "mame.activity.mergeExport.contextSubtitle" },
   "activity.mergeExport": { title: "mame.activity.mergeExport.contextTitle", subtitle: "mame.activity.mergeExport.contextSubtitle" },
@@ -257,14 +258,6 @@ export function MameAppLayout() {
   // DrawerStrip props
   const drawerProps = useMameDrawerProps();
 
-  const hasResults = useMameAppStore((s) => s.verdicts.length > 0);
-
-  // JANUS dialog 상태 — Layout이 단독 소유. MenuBar와 CTA 버튼이 같은 setter 공유.
-  const [janusOpen, setJanusOpen] = useState(false);
-
-  // JANUS CTA shows anywhere inside the Activity step. Pinning it to a single
-  // sub-step let it disappear whenever the step 3 sub-step ids were reshaped.
-  const showJanusCta = currentSubStep.startsWith("activity.");
 
   return (
     <Tabs
@@ -287,6 +280,9 @@ export function MameAppLayout() {
               </TabsTrigger>
               <TabsTrigger value="analyze" title={t("mame.appLayout.analyzeTabTitle")}>
                 {t("mame.appLayout.analyzeTab")}
+              </TabsTrigger>
+              <TabsTrigger value="janus" title={t("mame.appLayout.janusTabTitle")}>
+                {t("mame.appLayout.janusTab")}
               </TabsTrigger>
               <TabsTrigger value="activity" title={t("mame.appLayout.activityTabTitle")}>
                 {t("mame.appLayout.activityTab")}
@@ -335,24 +331,15 @@ export function MameAppLayout() {
               />
             </TabsContent>
 
-            {/* Phase 3: Activity */}
+            {/* Phase 3: Janus instrument settings — the whole step owns the
+                dialog now, so the Activity pane no longer carries a CTA for it. */}
+            <TabsContent value="janus" className="flex-1 min-h-0 overflow-hidden mt-0">
+              <JanusStepView />
+            </TabsContent>
+
+            {/* Phase 4: Activity */}
             <TabsContent value="activity" className="flex-1 min-h-0 overflow-hidden mt-0">
               <ActivityStepView />
-              {/* Merge & Export 화면 JANUS CTA (GAP P1) — MenuBar가 dialog 소유 */}
-              {showJanusCta && (
-                <div className="shrink-0 border-t border-border px-4 py-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => setJanusOpen(true)}
-                    disabled={!hasResults}
-                    aria-label={t("mame.activity.mergeExport.openJanusExportAriaLabel")}
-                  >
-                    {t("mame.activity.mergeExport.openJanusExport")}
-                  </Button>
-                </div>
-              )}
             </TabsContent>
 
             {/* DrawerStrip — 하단 3-슬롯 */}
@@ -463,8 +450,6 @@ export function MameAppLayout() {
         {/* §5 Output Persistence: 덮어쓰기 confirm */}
         <OverwriteConfirmDialog />
 
-        {/* JANUS CTA 진입 dialog — main pane "Open JANUS export..." 버튼 전용 (GAP P1) */}
-        <JanusMappingDialog open={janusOpen} onOpenChange={setJanusOpen} />
       </AppShell>
     </Tabs>
   );

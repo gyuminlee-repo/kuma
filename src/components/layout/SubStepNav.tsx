@@ -27,6 +27,7 @@ import {
   BUILD_EVOLVEPRO_DEFAULT_STATE,
   loadBuildEvolveproFromStorage,
 } from "@/lib/mame/buildEvolveproFormStorage";
+import { useKumaProject } from "@/state/projectContext";
 
 export interface SubNavItem {
   id: SubStepId | MameSubStepId;
@@ -119,6 +120,9 @@ function MameSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
   const buildEvolveproCompletion = useMameAppStore(
     (s) => s.buildEvolveproCompletion,
   );
+  const janusSettings = useMameAppStore((s) => s.janusSettings);
+  const janusMappingAutosave = useMameAppStore((s) => s.janusMappingAutosave);
+  const project = useKumaProject();
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   function handleKeyDown(e: KeyboardEvent<HTMLButtonElement>, idx: number) {
@@ -149,8 +153,10 @@ function MameSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
           buildEvolveproForm:
             typeof window === "undefined"
               ? BUILD_EVOLVEPRO_DEFAULT_STATE
-              : loadBuildEvolveproFromStorage(),
+              : loadBuildEvolveproFromStorage(project?.path),
           buildEvolveproCompletion,
+          janusLiquidClass: janusSettings.liquidClass,
+          janusMappingWritten: janusMappingAutosave?.status === "saved",
         });
         const badgeStatus: "done" | "active" | "pending" = isDone
           ? "done"

@@ -19,7 +19,7 @@ import type { MamePhase } from "./phaseSlice";
 export type { MameSubStepId };
 export { MAME_SUBSTEP_ORDER } from "./mameSubSteps";
 
-const PHASE_ORDER: MamePhase[] = ["setup", "analyze", "activity"];
+const PHASE_ORDER: MamePhase[] = ["setup", "analyze", "janus", "activity"];
 
 /** 전체 sub-step 목록 (phase 순서대로 평탄화) */
 const ALL_SUBSTEPS: MameSubStepId[] = PHASE_ORDER.flatMap(

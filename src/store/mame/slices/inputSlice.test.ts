@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppState } from "../types";
 import { createInputSlice } from "./inputSlice";
+import { createAnalysisSliceDoubles } from "./testHelpers/analysisSliceDoubles";
+import { useRoundStore } from "@/store/round/roundSlice";
 
 const mockSendRequest = vi.fn();
 
@@ -11,16 +13,7 @@ vi.mock("@/lib/ipc-mame", () => ({
 
 function makeStore(initial: Partial<AppState> = {}) {
   const state: Partial<AppState> = {
-    setVerdicts: vi.fn(),
-    setReplicates: vi.fn(),
-    setSummary: vi.fn(),
-    setAnalyzeYield: vi.fn(),
-    setOutputPath: vi.fn((outputPath: string) => {
-      state.outputPath = outputPath;
-    }),
-    setDistributionStats: vi.fn(),
-    loadPlateData: vi.fn().mockResolvedValue(undefined),
-    loadRunHealth: vi.fn().mockResolvedValue(undefined),
+    ...createAnalysisSliceDoubles(),
     ...initial,
   };
 
@@ -66,6 +59,7 @@ const distributionStats = {
 describe("mame inputSlice", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useRoundStore.setState({ rounds: [], active_round_id: null });
   });
 
   it("defaults new analyses to raw MinKNOW run folders", () => {
@@ -86,6 +80,7 @@ describe("mame inputSlice", () => {
       },
       cdsEnd: 900,
     });
+    const targetRoundId = useRoundStore.getState().addRound({ plate_meta: { plates: [] } });
 
     const demuxOutputDir = "D:/project/demux_filtered";
     // Detect runs FIRST (call #1). total_count: 1 keeps the single-pool linear
@@ -160,6 +155,15 @@ describe("mame inputSlice", () => {
     expect(phaseAtAnalyze).toBe("demux");
     expect(store.isAnalyzing).toBe(false);
     expect(store.analyzeMessage).toBe("Analysis complete");
+    const targetRound = useRoundStore.getState().rounds.find((round) => round.id === targetRoundId);
+    expect(targetRound?.status).toBe("ngs_done");
+    expect(targetRound?.genotype).toMatchObject({
+      round_id: targetRoundId,
+      verdict_xlsx: "D:/project/mame_result.xlsx",
+      verdicts: [],
+      replicates: [],
+      evidence_signature: expect.stringMatching(/^fnv1a-[0-9a-f]{8}$/),
+    });
   });
 
   it("forwards well_layout and sample_map_xlsx in the non-raw analyze path", async () => {
@@ -178,6 +182,7 @@ describe("mame inputSlice", () => {
       wellLayout,
       cdsEnd: 900,
     });
+    const targetRoundId = useRoundStore.getState().addRound({ plate_meta: { plates: [] } });
 
     mockSendRequest.mockResolvedValueOnce({
       verdicts: [],
@@ -202,6 +207,16 @@ describe("mame inputSlice", () => {
     );
     expect(store.isAnalyzing).toBe(false);
     expect(store.analyzeMessage).toBe("Analysis complete");
+    const targetRound = useRoundStore.getState().rounds.find((round) => round.id === targetRoundId);
+    expect(targetRound?.status).toBe("ngs_done");
+    expect(targetRound?.genotype).toMatchObject({
+      round_id: targetRoundId,
+      verdict_xlsx: "D:/project/mame_result.xlsx",
+      verdicts: [],
+      replicates: [],
+      completed_at: expect.any(String),
+      evidence_signature: expect.stringMatching(/^fnv1a-[0-9a-f]{8}$/),
+    });
   });
 
   it("forwards custom_barcodes_xlsx to validate_inputs so the raw-run guard sees it", async () => {
@@ -343,6 +358,92 @@ describe("mame inputSlice", () => {
       3_000_000,
     );
     expect(store.isAnalyzing).toBe(false);
+    expect(store.analyzeMessage).toBe("Analysis complete");
+  });
+  it("keeps an in-flight ordinary analysis bound to its originating round", async () => {
+    const store = makeStore({
+      inputDir: "D:/project/consensus",
+      expectedPath: "D:/project/KURO_expected.xlsx",
+      referencePath: "D:/project/ref.fasta",
+      outputPath: "D:/project",
+      inputMode: "consensus",
+    });
+    const firstRoundId = useRoundStore.getState().addRound({ plate_meta: { plates: [] } });
+    const result = {
+      verdicts: [],
+      replicates: [],
+      output_path: "D:/project/mame_result.xlsx",
+      summary: { total: 0, pass_count: 0, ambiguous_count: 0, fail_count: 0 },
+      distribution_stats: distributionStats,
+    };
+    let resolveAnalyze = (_result: typeof result) => {};
+    mockSendRequest.mockImplementationOnce(
+      () =>
+        new Promise<typeof result>((resolve) => {
+          resolveAnalyze = resolve;
+        }),
+    );
+
+    const pending = store.runAnalysis();
+    await Promise.resolve();
+    const secondRoundId = useRoundStore.getState().addRound({ plate_meta: { plates: [] } });
+    resolveAnalyze(result);
+    await pending;
+
+    const rounds = useRoundStore.getState().rounds;
+    expect(rounds.find((round) => round.id === firstRoundId)).toMatchObject({
+      status: "ngs_done",
+      genotype: expect.objectContaining({
+        round_id: firstRoundId,
+        verdict_xlsx: "D:/project/mame_result.xlsx",
+      }),
+    });
+    expect(rounds.find((round) => round.id === secondRoundId)).toMatchObject({
+      status: "design",
+      genotype: {},
+    });
+  });
+
+  it("does not overwrite existing round evidence when analysis fails", async () => {
+    const store = makeStore({
+      inputDir: "D:/project/consensus",
+      expectedPath: "D:/project/KURO_expected.xlsx",
+      referencePath: "D:/project/ref.fasta",
+      outputPath: "D:/project",
+      inputMode: "consensus",
+    });
+    const targetRoundId = useRoundStore.getState().addRound({ plate_meta: { plates: [] } });
+    const existingEvidence = { verdict_xlsx: "D:/project/previous.xlsx", run_id: "previous" };
+    useRoundStore.getState().updateRoundField(targetRoundId, "genotype", existingEvidence);
+    mockSendRequest.mockRejectedValueOnce(new Error("sidecar failed"));
+
+    await store.runAnalysis();
+
+    expect(useRoundStore.getState().rounds.find((round) => round.id === targetRoundId)).toMatchObject({
+      status: "design",
+      genotype: existingEvidence,
+    });
+  });
+
+  it("completes without writing round evidence when no round is active", async () => {
+    const store = makeStore({
+      inputDir: "D:/project/consensus",
+      expectedPath: "D:/project/KURO_expected.xlsx",
+      referencePath: "D:/project/ref.fasta",
+      outputPath: "D:/project",
+      inputMode: "consensus",
+    });
+    mockSendRequest.mockResolvedValueOnce({
+      verdicts: [],
+      replicates: [],
+      output_path: "D:/project/mame_result.xlsx",
+      summary: { total: 0, pass_count: 0, ambiguous_count: 0, fail_count: 0 },
+      distribution_stats: distributionStats,
+    });
+
+    await store.runAnalysis();
+
+    expect(useRoundStore.getState().rounds).toEqual([]);
     expect(store.analyzeMessage).toBe("Analysis complete");
   });
 });

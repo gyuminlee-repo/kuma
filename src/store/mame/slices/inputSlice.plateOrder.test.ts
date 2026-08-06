@@ -18,6 +18,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppState } from "../types";
 import { selectCanRun, selectPlateOrderSeverity } from "../selectors";
 import { createInputSlice } from "./inputSlice";
+import { createAnalysisSliceDoubles } from "./testHelpers/analysisSliceDoubles";
 
 const mockSendRequest = vi.fn();
 
@@ -38,14 +39,7 @@ const REPORT = {
 
 function makeStore(initial: Partial<AppState> = {}) {
   const state: Partial<AppState> = {
-    setVerdicts: vi.fn(),
-    setReplicates: vi.fn(),
-    setSummary: vi.fn(),
-    setAnalyzeYield: vi.fn(),
-    setOutputPath: vi.fn(),
-    setDistributionStats: vi.fn(),
-    loadPlateData: vi.fn().mockResolvedValue(undefined),
-    loadRunHealth: vi.fn().mockResolvedValue(undefined),
+    ...createAnalysisSliceDoubles(),
     ...initial,
   };
   const set = (

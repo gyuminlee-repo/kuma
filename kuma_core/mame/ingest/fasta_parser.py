@@ -51,10 +51,13 @@ from kuma_core.mame.ingest.consensus_metadata import (
     MAX_DEL_RUN_LENGTH,
     MAX_INDEL_EVENT_FRACTION,
     MAX_MINOR_ALLELE_FRACTION,
+    MIN_VARIANT_SUPPORT,
+    MIN_VARIANT_SUPPORT_DEPTH,
     MIXED_POSITIONS,
     NET_INDEL,
     READ_NET_INDEL,
     SPAN_FAILED,
+    VARIANT_POSITIONS,
 )
 from kuma_core.mame.ingest.stage_marker import (
     DirEntryMap,
@@ -414,6 +417,14 @@ def parse_fasta_file(
     if median_read_net_indel_bp is None:
         median_read_net_indel_bp = _read_int_metadata(metadata, NET_INDEL)
 
+    # Absent key means unknown, so the float helper's None is kept rather than
+    # coerced to 0.0: a legacy file must not look like a zero-support well.
+    min_variant_support = _read_float_metadata(metadata, MIN_VARIANT_SUPPORT)
+    n_variant_positions = _read_int_metadata(metadata, VARIANT_POSITIONS) or 0
+    min_variant_support_depth = (
+        _read_int_metadata(metadata, MIN_VARIANT_SUPPORT_DEPTH) or 0
+    )
+
     return BarcodeRecord(
         native_barcode=native_barcode,
         custom_barcode=custom_barcode,
@@ -434,6 +445,9 @@ def parse_fasta_file(
         n_indel_event_positions=n_indel_event_positions,
         max_indel_event_fraction=max_indel_event_fraction,
         max_del_run_length=max_del_run_length,
+        min_variant_support=min_variant_support,
+        n_variant_positions=n_variant_positions,
+        min_variant_support_depth=min_variant_support_depth,
         consensus_net_indel_bp=consensus_net_indel_bp,
         median_read_net_indel_bp=median_read_net_indel_bp,
     )

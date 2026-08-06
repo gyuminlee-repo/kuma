@@ -1,23 +1,29 @@
 /**
- * JanusAutosaveNotice, what became of the two files the run wrote itself.
+ * JanusAutosaveNotice, what became of the two Janus files.
  *
- * Every finished analyze writes both beside the result workbook: the pick list
- * (`..._picks.csv`, which variant was selected and where it sits) and the
- * instrument mapping (`..._janus.csv`, the 9-column sheet the robot reads).
- * They are the conclusion of the run, so their absence has to be as visible as
- * their presence: a run that reports "Analysis complete" while a file silently
- * failed sends somebody to a folder that has no file in it.
- *
- * The instrument sheet is written without asking for a deck, the way KURO
- * already writes its own. Whatever it left blank or derived comes back in
- * `warnings` and is shown here, because a value nobody set is exactly what the
- * operator has to know before the sheet reaches the robot.
+ * The two files answer different questions and are written at different
+ * times:
+ *  - the pick list (`..._picks.csv`, which variant was selected and where it
+ *    sits) is written by every finished analyze, unconditionally. Absence has
+ *    to be as visible as presence: a run that reports "Analysis complete"
+ *    while the file silently failed sends somebody to a folder with nothing
+ *    in it.
+ *  - the instrument mapping (`..._janus.csv`, the 9-column sheet the robot
+ *    reads) is written only when the operator exports one from the step 3
+ *    mapping panel. Whatever it left blank or derived (deck numbers, an unset
+ *    liquid class) comes back in `warnings` and is shown here, because a
+ *    value nobody set is exactly what the operator has to know before the
+ *    sheet reaches the robot.
  *
  * Three outcomes, three tones:
  *   "saved"    path and pick count.
  *   "skipped"  nothing was selected, so nothing was written. Not a failure, but
- *              also not a pick list: said plainly.
- *   "failed"   the reason, verbatim from the sidecar.
+ *              also not a pick list: said plainly. Only the automatic pick
+ *              list can reach this state; the mapping export disables its own
+ *              button instead of writing an empty file.
+ *   "failed"   the reason, verbatim from the sidecar. Only the automatic pick
+ *              list writes this status; a failed manual export shows its error
+ *              inline on the mapping panel instead of here.
  */
 
 import { AlertCircle, CheckCircle2, Info } from "lucide-react";

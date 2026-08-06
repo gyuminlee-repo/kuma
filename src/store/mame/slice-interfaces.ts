@@ -9,6 +9,8 @@ import type {
   DemuxAndFilterResult,
   JanusAutosaveResult,
   JanusExportSettings,
+  LayoutProvenance,
+  MappingIntegrity,
   PlateOrderFinding,
   ReplicateResult,
   RunHealthData,
@@ -110,16 +112,22 @@ export interface InputSlice {
   // statement about which rows to read outranks any disagreement the program
   // spots between two sheets of the same workbook.
   variantSelectionExplicit: boolean;
-  // Janus policy the analyze run writes its automatic mapping with, shared with
-  // the export dialog so both files describe the same plate.
+  // Janus policy the analyze run writes its automatic pick list with, shared
+  // with the mapping panel so both files describe the same plate.
   janusSettings: JanusExportSettings;
-  // What became of that automatic mapping on the last run. null = no run yet.
+  // What became of that automatic pick list on the last run. null = no run yet.
   janusAutosave: JanusAutosaveResult | null;
+  // What became of the instrument mapping. Unlike janusAutosave this is never
+  // written by analyze: only a manual export from the step 3 mapping panel
+  // sets it (setJanusMappingAutosave), because a robot worklist states a deck
+  // and a liquid class that describe the room at export time, not at analyze
+  // time. null = nothing exported yet for this run's inputs.
   janusMappingAutosave: JanusAutosaveResult | null;
   inspectVariantSource: (path: string) => Promise<void>;
   setVariantSheet: (sheet: string | null) => void;
   setVariantColumn: (column: string | null) => void;
   setJanusSettings: (settings: JanusExportSettings) => void;
+  setJanusMappingAutosave: (result: JanusAutosaveResult | null) => void;
   setInputDir: (path: string) => void;
   setExpectedPath: (path: string) => void;
   setReferencePath: (path: string) => void;
@@ -206,6 +214,18 @@ export interface AnalysisSlice {
    * guessed ones.
    */
   analyzeYield: AnalyzeYield | null;
+  /**
+   * Which well->sample source the last analyze response scored against, or
+   * null when no run has completed since the last reset. See
+   * `LayoutProvenance` (`@/types/mame/models`) for why this must not be
+   * silently promoted into an explicit well_layout on restore.
+   */
+  layoutProvenance: LayoutProvenance | null;
+  /**
+   * Whole-run mapping sanity check carried by the last analyze response, or
+   * null when no run has completed since the last reset.
+   */
+  mappingIntegrity: MappingIntegrity | null;
   plateFilter: string;
   searchQuery: string;
   sorting: SortingState;
@@ -218,6 +238,8 @@ export interface AnalysisSlice {
   setReplicates: (replicates: ReplicateResult[]) => void;
   setSummary: (summary: AnalyzeSummary | null) => void;
   setAnalyzeYield: (analyzeYield: AnalyzeYield | null) => void;
+  setLayoutProvenance: (layoutProvenance: LayoutProvenance | null) => void;
+  setMappingIntegrity: (mappingIntegrity: MappingIntegrity | null) => void;
   setPlateFilter: (filter: string) => void;
   setSearchQuery: (query: string) => void;
   setSorting: (updater: Updater<SortingState>) => void;

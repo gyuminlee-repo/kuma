@@ -16,14 +16,18 @@ export type MameSubStepId =
   | "setup.design"
   | "activity.ingest"
   | "activity.signals"
+  // 3.1 Janus instrument settings. Optional major step: a sequencing-only run
+  // never has to enter it, and nothing downstream gates on it.
+  | "janus.settings"
   // activity.mergeExport merged into the single activity.ingest step; kept as legacy redirect id.
   | "activity.mergeExport";
 
 export const MAME_SUBSTEP_ORDER: Record<
-  "setup" | "analyze" | "activity",
+  "setup" | "analyze" | "janus" | "activity",
   MameSubStepId[]
 > = {
   setup: ["setup.files"],
   analyze: ["analyze.inputs", "analyze.review"],
+  janus: ["janus.settings"],
   activity: ["activity.ingest", "activity.signals"],
 };

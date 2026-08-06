@@ -1,3 +1,16 @@
 #!/usr/bin/env bash
-# Auto-sync version from commit message (vX.Y.Z:) to the version manifests
-exec "$(git rev-parse --show-toplevel)/scripts/sync-version.sh"
+# Keep the three version manifests on the version the commit message declares.
+#
+# `bin/install-git-hooks.sh` points core.hooksPath at this directory, and that
+# setting shadows .git/hooks entirely. sync-version.sh had been living there, so
+# installing the hooks silently switched the automatic version bump off: commits
+# named vX.Y.Z landed with package.json, tauri.conf.json and Cargo.toml still on
+# the previous version, which `pnpm sync:check` only catches at tag time
+# (2026-08-05, v0.15.10 and v0.15.11 both had to be bumped by hand).
+#
+# sync-version.sh is a no-op unless the HEAD subject starts with vX.Y.Z and the
+# manifests disagree with it, so this costs nothing on an ordinary commit.
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+exec bash "$REPO_ROOT/scripts/sync-version.sh"

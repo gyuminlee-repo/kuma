@@ -217,20 +217,11 @@
         "failed": "선정 결과 파일을 쓰지 못했습니다.",
         "excluded": "{{clones}}개 클론이 선정에서 빠졌습니다. Janus 장비 설정에서 이유를 확인하세요."
       },
-      "janusSettings": {
-        "open": "Janus 장비 설정...",
-        "openAriaLabel": "Janus 장비 설정 열기",
-        "hint": "선택 사항입니다. rack 번호는 이번 실행의 plate 순서를 따르고 liquid class 는 비워 둔 채 나갑니다. 다른 값을 쓰고 싶을 때만 입력하세요."
-      },
       "janusMappingAutosave": {
         "saved": "장비용 매핑 파일을 결과 워크북 옆에 저장했습니다 ({{rows}}행). 로봇이 읽는 9열 형식입니다.",
         "skipped": "선정 기준을 통과한 클론이 없어 장비용 매핑 파일을 쓰지 않았습니다.",
         "failed": "장비용 매핑 파일을 쓰지 못했습니다.",
         "excluded": "{{clones}}개 클론이 매핑에서 빠졌습니다. Janus 장비 설정에서 이유를 확인하세요."
-      },
-      "janusVolume": {
-        "label": "이송 volume (µL)",
-        "hint": "이번 실행이 만드는 장비용 매핑 파일에 그대로 들어갑니다. 기본값 100 µL 는 실험실 근거가 없는 가정이므로 이번 실험에서 쓰는 값으로 바꾸세요."
       }
     },
     "nativeBarcodeDialog": {
@@ -412,12 +403,12 @@
     "activity": {
       "ingest": {
         "contextTitle": "활성 데이터",
-        "contextSubtitle": "활성 측정값을 업로드하고 verdict과 병합해 다음 라운드 EVOLVEpro 입력을 내보냅니다.",
+        "contextSubtitle": "이번 라운드의 활성 측정값을 NGS 판정으로 거른 EVOLVEpro 입력으로 변환합니다.",
         "drawerLeft": "활성",
         "drawerLeftDesc": "측정값이 있는 well",
         "drawerCenter": "활성 로그",
         "drawerRight": "다음",
-        "drawerRightDesc": "병합 및 내보내기",
+        "drawerRightDesc": "라운드 간 신호와 핸드오프",
         "inspectorTitle": "활성 Inspector",
         "inspectorSubtitle": "반복 통계",
         "inspectorMean": "평균 활성",
@@ -436,13 +427,6 @@
         "alreadySetTooltip": "WT wells가 이미 설정됨"
       },
       "route": {
-        "heading": "활성값 소스",
-        "ariaLabel": "이번 라운드의 활성값을 어디서 가져올지 선택",
-        "ngsNote": "어느 쪽을 골라도 이번 실행의 NGS 판정은 함께 쓰입니다. 측정 활성값의 출처만 달라집니다.",
-        "genotypeLabel": "활성값 업로드 (long format)",
-        "genotypeDesc": "long-format well 활성값을 업로드해 이번 라운드 NGS genotype 과 합친 뒤 export 합니다.",
-        "plateLayoutLabel": "Plate layout + GC data / Agilent report",
-        "plateLayoutDesc": "plate layout + GC data 또는 raw Agilent report 에서 well 별 활성값을 읽고, NGS verdict 파일로 거릅니다.",
         "completeCurrentRoute": "선택한 활성값 소스를 완료하세요"
       },
       "mergeExport": {
@@ -461,9 +445,7 @@
         "inspectorStatus": "상태",
         "inspectorBridgeCallout": "양방향 브리지",
         "inspectorBridgeDesc": "병합된 테이블이 다음 설계 라운드를 위해 EVOLVEpro 입력으로 KURO에 전달됩니다.",
-        "inspectorNoMerge": "병합이 수행되지 않음",
-        "openJanusExport": "JANUS 내보내기 열기...",
-        "openJanusExportAriaLabel": "JANUS 세포 재고 매핑 내보내기 대화상자 열기"
+        "inspectorNoMerge": "병합이 수행되지 않음"
       },
       "export": {
         "btn": "EVOLVEpro xlsx 내보내기",
@@ -495,91 +477,69 @@
       "sectionExport": "EVOLVEpro 입력 내보내기"
     },
     "buildEvolvepro": {
-      "title": "EVOLVEpro 입력 생성",
-      "subtitle": "1차 전수 측정(1 replicate)을 베이스로 깔고, 재측정한 variant만 3 replicate 확정 측정 평균으로 대체합니다.",
+      "title": "EVOLVEpro 입력 만들기",
+      "subtitle": "이번 라운드의 활성 측정값을 NGS 판정으로 거른 EVOLVEpro [Variant, activity] 입력으로 변환합니다.",
+      "routeNote": "모든 측정값 형식은 같은 NGS 판정, 정규화, replicate 병합, EVOLVEpro export 파이프라인을 사용합니다.",
       "inputFiles": "입력 파일",
-      "layoutXlsx": "플레이트 레이아웃 xlsx",
-      "layoutXlsxHelper": "Mutant to well 위치 매핑. plate layout 형식 (Mutant, Well Pos. 열) 또는 step 1에서 만든 sample map (sample_name, well 열) 둘 다 받습니다.",
-      "gcDataXlsx": "GC 데이터 xlsx",
-      "gcDataXlsxHelper": "well별 사전 정규화된 relative activity (Sample Name, Area 열). 플레이트의 모든 variant를 1 replicate로 담은 베이스입니다.",
-      "repBatchXlsx": "Agilent 확정 측정 리포트 xlsx",
-      "repBatchXlsxHelper": "3 replicate로 재측정한 variant의 Agilent FID1B 블록 리포트. 숫자 base ID와 replicate 접미사를 가진다. 여기에 있는 variant는 1차 측정값을 대체하고, 빠진 variant는 잠정으로 남는다.",
-      "prevEvolveproXlsx": "Rank source EVOLVEpro 입력 xlsx",
-      "prevEvolveproXlsxHelper": "KUMA가 지난번에 만든 EVOLVEpro 입력 xlsx (Variant, activity)이며, EVOLVEpro가 출력하는 결과 CSV (variant, y_pred)가 아닙니다. 확정 측정 리포트의 sample name이 숫자 인덱스라, 이 파일의 activity 내림차순 순서로 variant 이름을 되짚습니다.",
+      "primarySourceLabel": "측정값 형식",
+      "primarySourceLongFormat": "범용 long-format",
+      "primarySourceLongFormatHelper": "well 또는 variant 라벨 열 하나와 값 열 하나를 가진 CSV/XLSX입니다. 값이 raw인지 WT 상대값인지 선택하세요.",
+      "primarySourceGcSheet": "GC data",
+      "primarySourceGcSheetHelper": "well별 사전 정규화 상대 활성값(Sample Name, Area)을 plate layout으로 variant에 매핑합니다.",
+      "primarySourceRawReport": "Raw Agilent report",
+      "primarySourceRawReportHelper": "well 라벨 sample과 WT 블록이 있는 raw Agilent FID1B report입니다. plate layout으로 variant에 매핑합니다.",
+      "activityPath": "활성값 CSV/XLSX",
+      "activityPathHelper": "well 또는 variant 라벨 열 하나와 value, area, activity 중 값 열 하나를 가진 long-format 데이터입니다.",
+      "activityScale": "활성값 스케일",
+      "activityScaleHelper": "raw는 plate/cohort별 WT 행으로 정규화하고, relative는 이미 WT 상대값인 경우 선택합니다.",
+      "activityScaleRaw": "Raw",
+      "activityScaleRelative": "WT 상대값",
+      "layoutXlsx": "Plate layout xlsx",
+      "layoutXlsxHelper": "well 라벨 GC data와 raw report에 필요한 매핑 메타데이터입니다. well 위치를 variant에 연결합니다.",
+      "layoutXlsxOptionalHelper": "long-format 라벨이 well일 때만 필요합니다. variant 라벨 파일에는 필요하지 않습니다.",
+      "gcDataXlsx": "GC data xlsx",
+      "gcDataXlsxHelper": "well별 사전 정규화 상대 활성값(Sample Name, Area 열)입니다.",
+      "round1ReportXlsx": "Raw Agilent report xlsx",
+      "round1ReportXlsxHelper": "well 위치와 WT 블록이 있는 raw Agilent FID1B report입니다.",
+      "confirmationSourceLabel": "선택적 확인 측정",
+      "confirmationSourceNone": "없음",
+      "confirmationSourceNoneHelper": "NGS를 통과한 모든 variant에 1차 측정값을 사용합니다.",
+      "confirmationSourceVariantLabels": "Variant 라벨 Agilent report",
+      "confirmationSourceVariantLabelsHelper": "sample name이 variant 라벨인 선택적 raw Agilent report입니다. 독립적으로 WT 정규화한 replicate 평균이 해당 1차 값을 대체합니다.",
+      "remeasureReportXlsx": "확인 측정 report xlsx (variant 라벨)",
+      "remeasureReportXlsxHelper": "variant 라벨 sample과 WT 행이 있는 raw Agilent report입니다. 숫자 또는 rank 기반 라벨은 지원하지 않습니다.",
+      "verdictXlsx": "NGS 판정 xlsx",
+      "verdictXlsxHelper": "이번 라운드 Analyze 판정 근거가 필수입니다. failed나 fallback이 아닌 명시적 PASS만 export합니다.",
       "outputXlsx": "출력 EVOLVEpro xlsx",
-      "outputXlsxHelper": "병합된 EVOLVEpro 입력의 저장 파일.",
+      "outputXlsxHelper": "엄격한 2열 [Variant, activity] export 저장 경로입니다.",
       "requiredStateLabel": "필수",
       "optionalLabel": "선택",
-      "provisionalLabel": "잠정 (확정 측정 입력 없음)",
-      "confirmedLabel": "확증 (confirmation replicate 병합)",
-      "builtFromLabel": "빌드 소스",
+      "optionalStateLabel": "선택",
+      "builtFromLabel": "입력 출처",
       "chooseOutput": "출력 파일 선택",
-      "noOutputSelected": "출력 파일 미선택",
-      "build": "EVOLVEpro 입력 생성",
-      "building": "생성 중...",
+      "noOutputSelected": "출력 파일을 선택하지 않음",
+      "build": "EVOLVEpro 입력 만들기",
+      "building": "만드는 중...",
       "resultTitle": "생성 결과",
-      "emptyState": "선택한 소스에 필요한 입력 파일과 출력 경로를 지정한 뒤 EVOLVEpro 입력을 빌드하세요.",
-      "nVariants": "기록된 variant",
-      "nAuthoritative": "confirmation 리포트 기준",
-      "nFallbackOnly": "GC 데이터 단독",
-      "prevDescendingWarn": "이전 EVOLVEpro 파일이 activity 내림차순이 아닙니다. rank를 신뢰하기 전에 매핑 감사표를 확인하세요.",
-      "mappingAuditTitle": "ID to variant 매핑",
-      "mappingAuditPath": "매핑 감사 파일",
-      "colId": "ID",
-      "colVariant": "Variant",
-      "colWell": "Well",
+      "emptyState": "측정값 형식 하나, 필수 NGS 판정, 출력 경로를 선택하세요.",
+      "nVariants": "저장된 variant",
+      "nAuthoritative": "확인 측정 대체",
+      "nFallbackOnly": "1차 측정값",
+      "nNgsExcluded": "NGS 제외",
       "warningsLabel": "경고",
-      "swapWarningsLabel": "Label-swap 경고",
-      "mismatchedLabel": "Confirmation vs 1차 스크린 불일치",
-      "mismatchedHint": "3반복 confirmation 평균이 1차 스크린(1반복) 값과 크게 달라진 후보입니다.",
-      "mismatchedAuthoritative": "Confirmation",
-      "mismatchedFallback": "1차 스크린",
+      "mismatchedLabel": "확인 측정과 1차 값 불일치",
+      "mismatchedHint": "확인 측정 평균이 1차 값과 크게 다른 variant입니다.",
+      "mismatchedAuthoritative": "확인 측정",
+      "mismatchedFallback": "1차 측정",
+      "colVariant": "Variant",
       "toastSuccess": "EVOLVEpro 입력 생성 완료",
-      "toastSuccessDesc": "{{count}}개 variant를 기록했습니다.",
+      "toastSuccessDesc": "{{count}}개 variant를 저장했습니다.",
       "toastError": "EVOLVEpro 입력 생성 실패",
       "openFolder": "출력 폴더 열기",
-      "routeNote": "이 경로는 xlsx 파일을 직접 읽으며, genotype 연동 경로의 activity 업로드를 사용하지 않습니다.",
-      "primarySourceLabel": "1차 전수 측정 소스",
-      "primarySourceRawReport": "GC-FID raw 리포트",
-      "primarySourceGcSheet": "GC data 시트",
-      "primarySourcePrevEvolvepro": "이전 EVOLVEpro 입력",
-      "primarySourceRawReportHelper": "모든 variant를 1 replicate로 측정한 Agilent FID1B raw 리포트. 샘플명이 well 위치라서 plate layout으로 well을 variant에 대응시킨다.",
-      "primarySourceGcSheetHelper": "well별로 이미 정규화된 상대 activity. plate layout을 거쳐 variant에 대응시킨다. 정규화된 GC data 시트가 이미 있을 때 사용한다.",
-      "primarySourcePrevEvolveproHelper": "KUMA가 앞서 만든 EVOLVEpro 입력 xlsx(Variant, activity)를 전수 베이스라인으로 사용한다. NGS verdict 게이팅을 켜지 않으면 plate layout은 필요 없다.",
-      "confirmationSourceLabel": "확정 측정 소스",
-      "confirmationSourceNone": "없음 (잠정)",
-      "confirmationSourceVariantLabels": "variant 라벨 리포트",
-      "confirmationSourceNumericIndex": "숫자 인덱스 리포트",
-      "confirmationSourceNoneHelper": "확정 측정 입력이 없다. 모든 variant가 1차 측정값을 그대로 유지하고 결과는 잠정으로 남는다.",
-      "confirmationSourceVariantLabelsHelper": "샘플명이 variant 라벨인 Agilent FID1B 리포트라서 rank source가 필요 없다. 여기의 평균이 1차 측정값을 대체한다.",
-      "confirmationSourceNumericIndexHelper": "샘플명이 숫자 base ID인 Agilent FID1B 리포트. variant 이름을 복원하려면 rank source가 함께 필요하다.",
-      "round1EvolveproXlsx": "1차 전수 측정 EVOLVEpro 입력 xlsx",
-      "round1EvolveproXlsxHelper": "이번 배치용으로 KUMA가 만든 EVOLVEpro 입력 xlsx (Variant, activity)로, 모든 variant를 1 replicate로 담습니다. EVOLVEpro가 출력하는 결과 CSV (variant, y_pred)가 아닙니다. 재측정된 variant는 확정 측정 평균으로 대체됩니다.",
-      "round1ReportXlsx": "1차 전수 측정 리포트 xlsx (GC-FID raw)",
-      "round1ReportXlsxHelper": "모든 variant를 1 replicate로 담은 Agilent FID1B raw 리포트. sample name이 well 위치(A1..H12)이며 WT 블록을 포함하고, 플레이트 레이아웃이 well을 variant로 매핑합니다.",
-      "gcExportXlsx": "상대활성 export xlsx (GC data 형태)",
-      "gcExportXlsxHelper": "선택 검토용 산출물. 1차 측정 well별 상대활성(area / WT 평균 area)을 Sample Name, Area 열로 저장하며 GC data 시트와 같은 형태입니다.",
-      "remeasureReportXlsx": "확정 측정 리포트 xlsx (variant 라벨)",
-      "remeasureReportXlsxHelper": "선별한 variant를 3 replicate로 재측정한 Agilent FID1B raw 리포트. sample name이 variant 라벨(예: V5F 또는 5F)이며 반복 행이 replicate입니다. 라벨이 붙어 있어 rank source가 필요 없고, 이 평균이 1차 전수 측정값을 대체합니다.",
-      "verdictXlsx": "NGS verdict xlsx",
-      "verdictXlsxHelper": "Analyze Excel 리포트(Final 시트: well_id + verdict). well이 PASS가 아닌 variant는 제외됩니다. 생략하면 NGS 게이팅을 건너뜁니다.",
-      "layoutXlsxOptionalHelper": "NGS verdict 게이팅에서 variant를 well에 매핑할 때만 사용합니다.",
-      "optionalStateLabel": "선택",
-      "nNgsExcluded": "NGS 제외",
-      "missingInputs": "아직 필요한 파일",
-      "restoredNotice": "이 장치에 저장된 경로를 복구했습니다. 다른 프로젝트의 파일이면 초기화하세요.",
-      "clearRestored": "복구된 EVOLVEpro 입력 초기화",
-      "primarySourceNumericReport": "숫자 ID 리포트 (전체 플레이트)",
-      "confirmationSourceNumericSubset": "숫자 ID 확인 측정 (WT 초과 집합)",
-      "primarySourceNumericReportHelper": "샘플명이 숫자뿐인 전체 플레이트 측정. id i 는 plate 순서상 i 번째 설계 변이이므로 순서 소스가 필요합니다.",
-      "confirmationSourceNumericSubsetHelper": "1차 스크리닝에서 WT 를 넘은 변이들에 같은 plate 순서로 번호를 매긴 반복 확인 측정. 숫자 ID 1차 스크리닝이 필요합니다.",
-      "round1RepBatchXlsx": "1차 스크리닝 (숫자 ID)",
-      "round1RepBatchXlsxHelper": "플레이트 전체 Agilent FID1B 리포트, 변이당 1반복.",
-      "expectedMutationsXlsx": "KURO 설계 (expected_mutations)",
-      "expectedMutationsXlsxHelper": "설계에서 바로 가져오는 순서 소스라 plate 파일을 손으로 옮겨 적지 않습니다. layout 보다 우선합니다.",
-      "remeasureRepBatchXlsx": "확인 측정 (숫자 ID)",
-      "remeasureRepBatchXlsxHelper": "재측정 집합의 Agilent FID1B 리포트, 변이당 여러 반복.",
-      "orLabel": "둘 중 하나"
+      "missingInputs": "추가 필요",
+      "restoredNotice": "이 프로젝트의 입력값을 복원했습니다.",
+      "migrationUnsupported": "저장된 Step 4 방식은 더 이상 지원하지 않습니다. 범용 long-format 활성값으로 변환하거나 명시적 well/variant 라벨로 export한 뒤 계속하세요.",
+      "clearRestored": "복원된 EVOLVEpro 입력 지우기"
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",
@@ -673,7 +633,9 @@
         "wells": "Well",
         "loaded": "로드됨",
         "passRows": "PASS 행",
-        "evolveproXlsx": "EVOLVEpro xlsx"
+        "evolveproXlsx": "EVOLVEpro xlsx",
+        "volume": "부피",
+        "liquidClass": "리퀴드 클래스"
       },
       "value": {
         "ready": "준비됨",
@@ -785,7 +747,8 @@
       "manifestLoadFailed": "Manifest 로드 실패: {{err}}",
       "barcodeSetupTab": "1. 커스텀 바코드 프라이머 설계",
       "analyzeTab": "2. 시퀀싱 QC",
-      "activityTab": "3. 활성도 데이터",
+      "janusTab": "3. Janus 장비 설정",
+      "activityTab": "4. 활성도 데이터",
       "verdictTableTitle": "판정 테이블",
       "platePlanTitle": "플레이트 맵",
       "efficiencyChartTitle": "플레이트별 판정 분포",
@@ -811,6 +774,7 @@
       },
       "activityTabTitle": "활성 데이터 — EVOLVEpro 입력 변환 (PI 워크플로우 단계 ④)",
       "analyzeTabTitle": "시퀀싱 QC — NGS 검증의 일부 (PI 워크플로우 단계 ②)",
+      "janusTabTitle": "Janus 장비 설정 — 셀 스톡 피킹용 선택 단계 (PI 워크플로우 단계 ③)",
       "barcodeSetupTabTitle": "실행 설정 — NGS 검증의 일부 (PI 워크플로우 단계 ②)"
     },
     "dialogs": {
@@ -1076,6 +1040,11 @@
         "drawerRightDesc": "활성 데이터로 진행",
         "inspectorTitle": "검토 Inspector",
         "inspectorSubtitle": "well 선택 시 well 정보, 미선택 시 판정 요약"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "well-변이 대응 오류 의심",
+        "alertDesc": "관측 변이가 있는 well {{wells}}개 중 자기 expected와 일치 {{selfPercent}}%, 다른 well의 expected와 일치 {{crossPercent}}%. well과 변이의 대응이 어긋났을 가능성이 매우 높으니 이 결과를 신뢰하지 마십시오.",
+        "alertAriaLabel": "well-변이 매핑 무결성 경고"
       }
     },
     "inspector": {
@@ -1098,6 +1067,25 @@
         "waste": "폐기물"
       },
       "title": "JANUS 덱 레이아웃"
+    },
+    "janus": {
+      "settings": {
+        "contextTitle": "Janus 장비 설정",
+        "contextSubtitle": "장비 매핑 파일에 기록되는 이송 부피·데크 랙·리퀴드 클래스를 설정합니다. 시퀀싱 판정만 필요하면 건너뛸 수 있습니다.",
+        "optionalNote": "선택 단계입니다. 분석 실행은 픽 리스트를 스스로 기록하지만, 장비 매핑은 여기서 내보낼 때만 기록됩니다. 시퀀싱 판정만 필요하면 스텝 2에서 스텝 4로 바로 넘어가면 됩니다.",
+        "inspectorTitle": "장비 Inspector",
+        "inspectorSubtitle": "매핑에 기록되는 값",
+        "inspectorVolume": "이송 부피 (uL)",
+        "inspectorSampleType": "샘플 타입",
+        "inspectorLiquidClass": "리퀴드 클래스",
+        "inspectorLastMapping": "최근 매핑 파일",
+        "drawerLeft": "장비",
+        "drawerCenter": "Janus 로그",
+        "drawerRight": "다음",
+        "drawerRightDesc": "활성 데이터와 EVOLVEpro 핸드오프",
+        "volumeLabel": "이송 volume (µL)",
+        "volumeHint": "이번 실행이 만드는 장비용 매핑 파일에 그대로 들어갑니다. 기본값 100 µL 는 실험실 근거가 없는 가정이므로 이번 실험에서 쓰는 값으로 바꾸세요."
+      }
     },
     "verdictBadge": {
       "help": {
@@ -1733,7 +1721,7 @@
     "kuroInspectorTitle": "Kuro 세부 정보 검토",
     "kuroInspectorBody": "인스펙터에서 단계별 매개변수, 선택 변이, 경고 및 내보내기 설정을 확인합니다.",
     "mameWorkflowTitle": "Mame 워크플로 진행",
-    "mameWorkflowBody": "Setup, Analyze, Activity를 거쳐 실험 증거를 정리된 학습 테이블로 변환합니다.",
+    "mameWorkflowBody": "Setup, Analyze, 선택 단계인 Janus 장비 설정, Activity 를 거쳐 실험 증거를 정리된 학습 테이블로 변환합니다.",
     "mameWorkspaceTitle": "Mame 주 작업 영역",
     "mameWorkspaceBody": "런 데이터를 불러오고 유전자형 판정과 플레이트 결과를 검토한 뒤 활성 측정값을 병합해 내보냅니다.",
     "mameInspectorTitle": "Mame 세부 정보 검토",
@@ -2323,7 +2311,7 @@
       "post-commit 버전 훅이 삭제된 경로 때문에 멈추지 않습니다.",
       "릴리스 노트가 길면 창 밖으로 넘치지 않고 안에서 스크롤됩니다."
     ],
-    "highlightsStamp": "0.15.12+fe8e6f21"
+    "highlightsStamp": "0.15.16+fe8e6f21"
   },
   "primerDisplay": {
     "copySeqTitle": "서열 복사",
@@ -2577,6 +2565,9 @@
       },
       "fallback": {
         "redirecting": "탭으로 이동 중…"
+      },
+      "janus": {
+        "settings": "Janus 장비 설정"
       }
     }
   },
@@ -2626,7 +2617,7 @@
     },
     "mameDescriptions": {
       "activity": {
-        "ingest": "활성 측정값을 업로드한 뒤 verdict과 병합해 다음 라운드 EVOLVEpro 입력을 내보냅니다 (단일 반복 GC + 3중 반복 WT 상대).",
+        "ingest": "이번 라운드의 활성 측정값을 하나의 측정값 형식에서 NGS 판정으로 거른 EVOLVEpro 입력으로 변환합니다.",
         "signals": "라운드 간 분류 신호를 검토하고, EVOLVEpro 입력이 준비되면 다음 라운드로 핸드오프합니다.",
         "mergeExport": "활성 데이터를 유전형 콜과 병합해 테이블을 내보낸 뒤, 단일 반복(GC)과 3중 반복(WT 상대) 활성을 결합해 EVOLVEpro 입력을 생성합니다."
       },
@@ -2639,6 +2630,9 @@
       "setup": {
         "design": "프라이머 설계 매개변수를 구성하고 바코드 패키지를 생성합니다.",
         "files": "CDS 서열과 바코드 시드를 입력하고 프라이머 설계 파라미터를 설정한 뒤, 출력 폴더를 선택하고 바코드 패키지를 생성합니다."
+      },
+      "janus": {
+        "settings": "JANUS 셀 스톡 매핑을 준비합니다: 이송 부피, 데크 랙 번호, 리퀴드 클래스. 선택 단계이며 실행을 막지 않습니다."
       }
     }
   },

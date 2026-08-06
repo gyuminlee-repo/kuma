@@ -77,7 +77,9 @@ pnpm sync:check                     # cross-layer + groups + What's New drift
 - **번역 문구에도 규칙이 걸린다.** `i18n-parity.mjs` 가 9개 로케일의 `highlights` 원소마다 백틱 금지와 200자 상한(영문 140자보다 느슨, 번역은 길어진다)을 검사하고 위반 시 로케일과 인덱스를 지목하며 exit 1 한다.
 - **CHANGELOG 불릿은 여러 줄로 감아도 된다.** 이어지는 줄은 공백 하나로 합쳐져 한 불릿이 되고, 빈 줄이나 다음 `- ` 또는 `###` 에서 끝난다. 합친 뒤에 140자·백틱 규칙이 적용되므로 두 줄로 나눠 길이 제한을 우회할 수는 없다.
 
-로컬에서 `sync-check.mjs` 의 `tauri-resources`(`resources/NOTICE.md` 부재)와 `generated-models`(Node 버전) 2건은 dev 환경 false-positive 이며 CI 에서는 통과한다.
+로컬에서 `sync-check.mjs` 의 `tauri-resources` 가 `resources/NOTICE.md` 부재로 실패하는 것은 환경 문제가 아니라 구조다. 그 파일은 `scripts/build-notice.mjs` 가 릴리스 빌드 때 만들고 `.gitignore` 에 있으므로 새 체크아웃에는 절대 없다. pre-push 는 `scripts/pre-push-sync.mjs` 를 거쳐 이 한 건만 경고로 낮추고 나머지는 그대로 막는다. CI 는 빌드 후 검사하므로 `pnpm sync:check` 를 엄격하게 그대로 쓴다.
+
+`generated-models` 실패는 false-positive 가 아니다. `json2ts` 를 실행하지 못한다는 뜻이며, 보통 원인은 node_modules 가 없는 worktree 에서 돌린 것이다. 정상 체크아웃에서 실패하면 진짜 drift 이므로 `pnpm gen:models` 로 재생성해 함께 커밋한다. (2026-08-05 정정: 이전 판은 두 건 모두 "dev false-positive" 로 적어 두어, pre-push 를 `--no-verify` 로 넘기는 것이 관행이 돼 있었다.)
 
 태그를 찍기 직전 두 가지를 더 확인한다.
 
@@ -169,6 +171,10 @@ cross-layer 의존은 **`.cross-layer-sync.json` `groups[]`** 로 관리. 단일
 - Export destination controls must use a save-file dialog, not an open-file dialog.
 - Pre-run MAME result tables should render an empty state instead of surfacing an error boundary.
 - If a Tauri close handler calls `preventDefault()`, shutdown/autosave work must be bounded by timeouts and the window must still close in a `finally` path.
+- MAME major steps are 1. Barcode Setup / 2. Analyze / 3. Janus instrument settings / 4. Activity Data. Step 3 is optional: an operator who only wants a sequencing verdict stops at step 2, so no Janus value may gate a run, step 2, or step 4, and Janus controls do not belong on the analyze screens. Nothing about Janus belongs there, including notices about what a run wrote.
+- An analyze run writes the pick list (`..._picks.csv`, `legacy5`) automatically and nothing else for the instrument. The 9-column robot sheet (`..._janus.csv`, `device9`) is written only by a manual `export_janus_mapping` call from the step 3 mapping panel, because a worklist states a deck and a liquid class that describe the room at export time and must not be reasserted by every re-run.
+- Step 3 renders its mapping panel inline on the page. Do not reintroduce a dialog for it: step 3 is already a dedicated screen.
+- Changing an analyze input (run folder, expected workbook, reference FASTA, sample map, or any parameter sent to the sidecar) clears the previous run outputs. Re-picking the same value changes nothing, and the output path is a destination rather than an input, so it does not clear anything.
 
 ### Tauri resource bundling
 - No glob patterns (`**`) in `tauri.conf.json` resources — use explicit file-to-file mappings
