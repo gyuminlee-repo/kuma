@@ -9,9 +9,13 @@
  * Allowlist: src/components/ui/LocaleToggle.tsx — `ko: "한국어"` self-label.
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+// See the same conversion in scripts/i18n-parity.mjs: `.pathname` on a file:
+// URL is not a filesystem path (it keeps Windows's leading slash and any
+// percent-escapes), so it has to go through fileURLToPath.
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = join(ROOT, "src");
 const KOREAN = /[가-힯]/;
 const JSX_COMMENT = /^\s*\{\s*\/\*.*\*\/\s*\}\s*$/;
