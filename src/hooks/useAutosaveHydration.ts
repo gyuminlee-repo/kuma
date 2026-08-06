@@ -1405,8 +1405,39 @@ function applyMameSnapshot(
   if (typeof results.amplicon_length_estimate === "object") {
     patch.ampliconLengthEstimate = results.amplicon_length_estimate as MameAppState["ampliconLengthEstimate"];
   }
+  // The layout this well_layout came from. Absent on a snapshot saved before
+  // this field existed (schema had no layout_provenance yet); present but
+  // null when a run genuinely had nothing to report.
+  const layoutProvenance = results.layout_provenance as
+    | MameAppState["layoutProvenance"]
+    | undefined;
+  if (typeof layoutProvenance === "object" && layoutProvenance !== null) {
+    patch.layoutProvenance = layoutProvenance;
+  }
   if (typeof results.well_layout === "object") {
-    patch.wellLayout = results.well_layout as MameAppState["wellLayout"];
+    // A well_layout the pipeline INFERRED (no explicit input, no sample map)
+    // must never be promoted to `state.wellLayout`: that field is sent back
+    // as the explicit `well_layout` RPC param on the next analyze call, which
+    // would turn `layout_source` into "explicit_well_layout" and hide the
+    // very fact that flagged this result as a guess (2026-08 mapping-integrity
+    // incident -- a stale `expected` produced a plausible-looking inferred
+    // layout that then re-entered as if the operator had supplied it).
+    //
+    // A snapshot saved before `layout_provenance` existed carries no opinion
+    // either way. The safe read here is to treat "unknown" the same as
+    // "inferred": do not promote. The well_layout that DID reach an old
+    // snapshot's `results.well_layout` was always written by the pre-v0.15.6
+    // manual layout UI (explicit by construction, per inputSlice.ts's comment
+    // on `wellLayout`), so this only affects the one shape that UI's removal
+    // already stopped producing, and getting it wrong would be silent, not
+    // loud, in exactly the way this whole feature exists to prevent.
+    const isInferredOrUnknown =
+      layoutProvenance === undefined ||
+      layoutProvenance === null ||
+      layoutProvenance.source === "inferred_draft_layout";
+    if (!isInferredOrUnknown) {
+      patch.wellLayout = results.well_layout as MameAppState["wellLayout"];
+    }
   }
   if (hasReviewResults) {
     patch.mamePhase = "analyze";
@@ -1507,6 +1538,15 @@ async function restoreMameResult(
   // Restored runs must be able to explain a zero-verdict outcome too, so carry
   // the demux yield out of the persisted response instead of dropping it.
   store.setAnalyzeYield(pickAnalyzeYield(result));
+  if (!alive()) return false;
+  // Carry the mapping-integrity warning (Task C) and layout provenance
+  // through a restart. `?? null` covers a result persisted before these
+  // fields existed. NOT used to decide well_layout promotion here --
+  // applyMameSnapshot (input snapshot) already made that call above, from its
+  // own `layout_provenance`, before this result file is even read.
+  store.setLayoutProvenance(result.layout_provenance ?? null);
+  if (!alive()) return false;
+  store.setMappingIntegrity(result.mapping_integrity ?? null);
   if (!alive()) return false;
   store.setDistributionStats(result.distribution_stats ?? null);
   if (!alive()) return false;

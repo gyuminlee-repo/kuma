@@ -1040,6 +1040,11 @@
         "drawerRightDesc": "활성 데이터로 진행",
         "inspectorTitle": "검토 Inspector",
         "inspectorSubtitle": "well 선택 시 well 정보, 미선택 시 판정 요약"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "well-변이 대응 오류 의심",
+        "alertDesc": "관측 변이가 있는 well {{wells}}개 중 자기 expected와 일치 {{selfPercent}}%, 다른 well의 expected와 일치 {{crossPercent}}%. well과 변이의 대응이 어긋났을 가능성이 매우 높으니 이 결과를 신뢰하지 마십시오.",
+        "alertAriaLabel": "well-변이 매핑 무결성 경고"
       }
     },
     "inspector": {

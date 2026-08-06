@@ -1040,6 +1040,11 @@
         "drawerRightDesc": "Proceed to activity",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "Well-variant mapping likely mismatched",
+        "alertDesc": "Of {{wells}} wells with an observed variant, {{selfPercent}}% match their own expected mutation and {{crossPercent}}% match another well's expected mutation instead. The well-to-variant mapping is very likely off; do not trust this result.",
+        "alertAriaLabel": "Well-variant mapping integrity warning"
       }
     },
     "inspector": {

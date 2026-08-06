@@ -9,6 +9,8 @@ import type {
   DemuxAndFilterResult,
   JanusAutosaveResult,
   JanusExportSettings,
+  LayoutProvenance,
+  MappingIntegrity,
   PlateOrderFinding,
   ReplicateResult,
   RunHealthData,
@@ -206,6 +208,18 @@ export interface AnalysisSlice {
    * guessed ones.
    */
   analyzeYield: AnalyzeYield | null;
+  /**
+   * Which well->sample source the last analyze response scored against, or
+   * null when no run has completed since the last reset. See
+   * `LayoutProvenance` (`@/types/mame/models`) for why this must not be
+   * silently promoted into an explicit well_layout on restore.
+   */
+  layoutProvenance: LayoutProvenance | null;
+  /**
+   * Whole-run mapping sanity check carried by the last analyze response, or
+   * null when no run has completed since the last reset.
+   */
+  mappingIntegrity: MappingIntegrity | null;
   plateFilter: string;
   searchQuery: string;
   sorting: SortingState;
@@ -218,6 +232,8 @@ export interface AnalysisSlice {
   setReplicates: (replicates: ReplicateResult[]) => void;
   setSummary: (summary: AnalyzeSummary | null) => void;
   setAnalyzeYield: (analyzeYield: AnalyzeYield | null) => void;
+  setLayoutProvenance: (layoutProvenance: LayoutProvenance | null) => void;
+  setMappingIntegrity: (mappingIntegrity: MappingIntegrity | null) => void;
   setPlateFilter: (filter: string) => void;
   setSearchQuery: (query: string) => void;
   setSorting: (updater: Updater<SortingState>) => void;

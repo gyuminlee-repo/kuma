@@ -27,6 +27,8 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   replicates: [],
   summary: null,
   analyzeYield: null,
+  layoutProvenance: null,
+  mappingIntegrity: null,
   // FINAL (the per-mutant selected replicate) is the default view: it is the
   // answer sheet a run is read for. VerdictTable degrades it to ALL while no
   // replicate has been selected, so the default never shows an empty table.
@@ -44,6 +46,8 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   setReplicates: (replicates) => set({ replicates }),
   setSummary: (summary) => set({ summary }),
   setAnalyzeYield: (analyzeYield) => set({ analyzeYield }),
+  setLayoutProvenance: (layoutProvenance) => set({ layoutProvenance }),
+  setMappingIntegrity: (mappingIntegrity) => set({ mappingIntegrity }),
   setPlateFilter: (plateFilter) => set({ plateFilter }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setSorting: (updater) => {
@@ -56,33 +60,40 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   setSelectedWell: (selectedWell) => set({ selectedWell }),
   setBuildEvolveproCompletion: (buildEvolveproCompletion) =>
     set({ buildEvolveproCompletion }),
+  // Single definition of "everything the last completed analyze run produced".
+  // Both a fresh analysis (resetAnalysis, via resetMameAll) and an input change
+  // that invalidates a prior run (inputSlice setters) call this, so a new
+  // result field only ever needs to be added here once. `set`'s state type
+  // parameter is the full AppState (see mameAppStore.ts's shared-args combine
+  // pattern), so this may legally write janusAutosave/janusMappingAutosave too
+  // even though they are declared on InputSlice: they describe what the LAST
+  // run wrote to disk, which is exactly a run output, not an input field. A
+  // stale autosave banner describing a file no longer connected to the picked
+  // inputs was the 2026-08-06 incident this consolidation closes.
   clearResults: () =>
     set({
       verdicts: [],
       replicates: [],
       summary: null,
       analyzeYield: null,
+      layoutProvenance: null,
+      mappingIntegrity: null,
       wells: [],
       selectedWell: null,
       searchQuery: "",
       runHealth: null,
       buildEvolveproCompletion: null,
+      janusAutosave: null,
+      janusMappingAutosave: null,
     }),
-  resetAnalysis: () =>
+  resetAnalysis: () => {
+    get().clearResults();
     set({
-      verdicts: [],
-      replicates: [],
-      summary: null,
-      analyzeYield: null,
       plateFilter: "FINAL",
-      searchQuery: "",
       sorting: [],
       showExport: false,
-      wells: [],
-      selectedWell: null,
-      runHealth: null,
-      buildEvolveproCompletion: null,
-    }),
+    });
+  },
   loadPlateData: async () => {
     try {
       const result = await sendRequest<PlateDataResult>("get_plate_data", {});
@@ -251,8 +262,11 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       verdicts: sampleVerdicts(),
       replicates: sampleReplicates(),
       summary: sampleSummary(),
-      // Sample data carries no demux yield; drop any left over from a real run.
+      // Sample data carries no demux yield or mapping provenance; drop any
+      // left over from a real run.
       analyzeYield: null,
+      layoutProvenance: null,
+      mappingIntegrity: null,
       wells,
       selectedWell: wells.find((w) => w.selected) ?? wells[0] ?? null,
       analyzeMessage:

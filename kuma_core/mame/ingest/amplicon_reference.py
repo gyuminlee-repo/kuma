@@ -104,6 +104,37 @@ def _common_tail(sequences: list[str]) -> str | None:
     return sequences[0][-length:]
 
 
+#: Why ``_unique_span`` returned ``None``. Distinct from "not unique" (found
+#: more than once) because the two point an operator in opposite directions:
+#: "not found" is normal and expected for a bare-CDS reference (the primer
+#: tail sits in vector backbone outside the CDS, see ``_span_reason``'s
+#: docstring), while "not unique" or "out of order" means the reference
+#: itself is ambiguous or malformed. Collapsing all three into one message
+#: previously sent operators hunting for duplicate primer sites when the
+#: reference simply did not contain the tail at all (2026-08 incident).
+class _SpanReason:
+    NOT_FOUND = "not_found"
+    NOT_UNIQUE = "not_unique"
+    OUT_OF_ORDER = "out_of_order"
+
+
+def _span_reason(sequence: str, forward_tail: str, reverse_tail: str) -> str | None:
+    """Classify why a span could not be derived; ``None`` when it can be."""
+    reverse_site = _reverse_complement(reverse_tail)
+    forward_start = sequence.find(forward_tail)
+    reverse_start = sequence.find(reverse_site)
+    if forward_start < 0 or reverse_start < 0:
+        return _SpanReason.NOT_FOUND
+    if sequence.find(forward_tail, forward_start + 1) >= 0:
+        return _SpanReason.NOT_UNIQUE
+    if sequence.find(reverse_site, reverse_start + 1) >= 0:
+        return _SpanReason.NOT_UNIQUE
+    end = reverse_start + len(reverse_site)
+    if forward_start >= end:
+        return _SpanReason.OUT_OF_ORDER
+    return None
+
+
 def _unique_span(sequence: str, forward_tail: str, reverse_tail: str) -> AmpliconSpan | None:
     reverse_site = _reverse_complement(reverse_tail)
     forward_start = sequence.find(forward_tail)
@@ -157,9 +188,26 @@ def resolve_amplicon_reference(
         )
     span = _unique_span(sequence, forward_tail, reverse_tail)
     if span is None:
+        reason = _span_reason(sequence, forward_tail, reverse_tail)
+        if reason == _SpanReason.NOT_FOUND:
+            note = (
+                "Amplicon extraction skipped because the primer tail sequence was "
+                "not found in the reference. This is expected when the reference is "
+                "a bare CDS and the primer tail sits in vector backbone outside it; "
+                "the whole reference is used unmodified in that case."
+            )
+        elif reason == _SpanReason.NOT_UNIQUE:
+            note = (
+                "Amplicon extraction skipped because a primer tail sequence "
+                "matched more than one position in the reference."
+            )
+        else:
+            note = (
+                "Amplicon extraction skipped because the forward and reverse "
+                "primer sites were found out of order in the reference."
+            )
         return AmpliconReferenceResolution(
-            reference_fasta, False, None, len(sequence), 0, 0,
-            "Amplicon extraction skipped because primer boundaries were not unique in the reference.",
+            reference_fasta, False, None, len(sequence), 0, 0, note,
         )
     amplicon = sequence[span.start:span.end]
     coding_bounds = _longest_forward_orf(amplicon)

@@ -885,6 +885,22 @@
       "severity": "warning"
     },
     {
+      "id": "mame-mapping-integrity",
+      "files": [
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "src/types/mame/models.ts",
+        "src/components/mame/widgets/MappingIntegrityAlert.tsx"
+      ],
+      "symbols": [
+        "layout_provenance",
+        "mapping_integrity",
+        "LayoutProvenance",
+        "MappingIntegrity"
+      ],
+      "note": "analyze response always carries layout_provenance (which of the three well->sample sources scored this run) and mapping_integrity (whole-run self/cross mapping sanity check, kuma_core/mame/qc/mapping_integrity.py) <-> TS LayoutProvenance/MappingIntegrity <-> the review-screen alert reading mapping_integrity.suspect. useAutosaveHydration.ts's well_layout promotion guard also depends on layout_provenance.source; do not drop the field without checking that guard.",
+      "severity": "blocking"
+    },
+    {
       "id": "shared-file-menu",
       "files": [
         "src/components/layout/FileMenu.tsx",

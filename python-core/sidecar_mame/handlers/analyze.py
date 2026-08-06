@@ -989,8 +989,19 @@ def handle_analyze(params: dict) -> dict:
     # well_layout: optional well_id -> sample_name override (highest-priority
     # well->sample source; takes precedence over sample_map_path in run_analyze).
     # Fail-fast on a malformed payload rather than silently ignoring it.
+    #
+    # ``layout_source`` records WHICH of the three branches actually produced
+    # the mapping this run scored wells against, and rides into the response
+    # as ``layout_provenance``. Without it a result cannot say whether a well
+    # was placed by the operator, by a saved sample map, or guessed by
+    # ``build_draft_layout`` from whatever ``expected`` happens to be current
+    # -- the last of which is exactly the failure shape of the 2026-08
+    # incident this file's mapping-integrity check was written for: a stale
+    # ``expected`` produces a plausible-looking inferred layout with nothing
+    # in the result to say it was inferred at all, let alone from what file.
     well_layout_raw = params.get("well_layout")
     well_layout: dict[str, str] | None = None
+    layout_source: str
     if well_layout_raw is not None:
         if not isinstance(well_layout_raw, dict) or not all(
             isinstance(k, str) and isinstance(v, str)
@@ -998,7 +1009,10 @@ def handle_analyze(params: dict) -> dict:
         ):
             raise ValueError("well_layout must be a mapping of well_id (str) to sample_name (str)")
         well_layout = well_layout_raw
-    elif sample_map_path is None:
+        layout_source = "explicit_well_layout"
+    elif sample_map_path is not None:
+        layout_source = "sample_map_xlsx"
+    else:
         from kuma_core.mame.io.variant_list import read_variant_source
         from kuma_core.mame.layout import build_draft_layout
 
@@ -1010,6 +1024,7 @@ def handle_analyze(params: dict) -> dict:
         well_layout = build_draft_layout(
             _inferred.expected, include_wt=not _inferred.has_explicit_wt
         ).layout
+        layout_source = "inferred_draft_layout"
 
     _emit(10, "Ingesting FASTA files...")
 
@@ -1201,6 +1216,16 @@ def handle_analyze(params: dict) -> dict:
     # The pick list is the second artefact of the same run, so it is written here
     # rather than waiting for the operator to open the dialog. Cached state is
     # already set above, so a failure here costs the file, never the analysis.
+    # Post-hoc mapping sanity check (kuma_core.mame.qc): this is the ONLY place
+    # left, after classification, that can see the failure signature a stale or
+    # mis-drawn well_layout leaves behind -- every well individually classifies
+    # fine against whatever expected set it was scoped to, and only comparing
+    # observed changes across the whole plate exposes a systematic swap (see
+    # kuma_core/mame/qc/mapping_integrity.py for the incident this guards).
+    from kuma_core.mame.qc import check_mapping_integrity, observations_from_verdicts
+
+    _mapping_integrity = check_mapping_integrity(observations_from_verdicts(verdicts))
+
     janus_params = params.get("janus_settings") or {}
     janus_autosave = _autosave_picks(replicates, output, run_meta, janus_params)
     # The mapping file the lab asked for by name: same run, same picks, the
@@ -1219,6 +1244,30 @@ def handle_analyze(params: dict) -> dict:
         "janus_mapping_autosave": janus_mapping_autosave,
         "designed_mutant_ids": sorted(dids),
         "summary": _summarize(verdicts),
+        # Which of the three well->sample sources this run actually scored
+        # wells against, and the expected/sample-map files it came from. See
+        # the ``layout_source`` assignment above for why this exists: an
+        # inferred layout must not be able to pass itself off, downstream, as
+        # one the operator supplied.
+        "layout_provenance": {
+            "source": layout_source,
+            "expected_path": str(expected),
+            "sample_map_path": (
+                str(sample_map_path) if sample_map_path is not None else None
+            ),
+        },
+        # Whole-run mapping sanity check (kuma_core.mame.qc.mapping_integrity).
+        # ``suspect`` is a signal to surface prominently, not a hard failure:
+        # the run already finished and the workbook the operator has may be
+        # the only record of what was actually pipetted.
+        "mapping_integrity": {
+            "wells_considered": _mapping_integrity.wells_considered,
+            "self_match": _mapping_integrity.self_match,
+            "cross_match": _mapping_integrity.cross_match,
+            "self_rate": _mapping_integrity.self_rate,
+            "cross_rate": _mapping_integrity.cross_rate,
+            "suspect": _mapping_integrity.suspect,
+        },
         "distribution_stats": {
             "n_files": dist_stats.n_files,
             "file_size_kb": dist_stats.file_size_kb,

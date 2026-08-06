@@ -954,6 +954,11 @@
         "drawerRightDesc": "Proceed to activity",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "well 與變異對應關係可能有誤",
+        "alertDesc": "在 {{wells}} 個觀測到變異的 well 中，{{selfPercent}}% 與自身 expected 相符，{{crossPercent}}% 卻與其他 well 的 expected 相符。well 與變異的對應關係極有可能出錯，請勿信任此結果。",
+        "alertAriaLabel": "well-變異映射完整性警告"
       }
     },
     "inspector": {
