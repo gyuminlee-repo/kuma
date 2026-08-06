@@ -1,25 +1,33 @@
 # Changelog
 
-## v0.15.14 (A finished run is checked against itself, and stops describing the file it no longer reads)
+## v0.15.15 (A finished run is checked against itself, and stops describing the file it no longer reads)
 
 The v0.15.10 refusal reads the workbook, so it only catches a plate that describes itself two ways. It cannot see a run whose verdicts were scored before the operator swapped the file underneath them. That is the shape the 2026-08-04 misscoring arrived in when the snapshot reached us: the expected path pointed at a re-exported workbook whose sheets agree, while the 288 verdicts beside it had been scored against the earlier one. Nothing on screen separated that from a run that simply went badly, because the well count, the plate map and the verdict tally all render the same either way. The finished analysis already carries the answer: of the 244 wells with an observed amino-acid change, none matched the variant assigned to that well and 241 matched the variant assigned to some other well. A permutation null over the same plate averages 2.49.
 
 ### Added
 
-- v0.15.14: MAME compares each well against its own expected variant and against every other one after the run, and says so on the review screen when the second agreement is high and the first is near zero. The message carries the counts it was computed from rather than a fixed threshold, and it does not gate anything: the run is over by then, and what it can still do is stop the numbers from being read as biology. The check needs 24 wells before it will speak, so a small plate is not accused on thin evidence.
-- v0.15.14: Every run records how the wells were placed, whether from a layout that was given, a sample map, or the order of the expected sheet, along with the workbook it read. A verdict table that looks ordinary is now traceable to the decision that produced it.
+- v0.15.15: MAME compares each well against its own expected variant and against every other one after the run, and says so on the review screen when the second agreement is high and the first is near zero. The message carries the counts it was computed from rather than a fixed threshold, and it does not gate anything: the run is over by then, and what it can still do is stop the numbers from being read as biology. The check needs 24 wells before it will speak, so a small plate is not accused on thin evidence.
+- v0.15.15: Every run records how the wells were placed, whether from a layout that was given, a sample map, or the order of the expected sheet, along with the workbook it read. A verdict table that looks ordinary is now traceable to the decision that produced it.
 
 ### Changed
 
-- v0.15.14: Choosing a different run folder, expected workbook, reference or sample map clears what the previous run produced. The screen used to keep the verdicts, the plate map and the two instrument-file notices next to inputs that no longer made them, which reads as a description of the file now selected. Re-picking the same path changes nothing, and the export destination is not an input, so neither clears anything.
-- v0.15.14: The analyze screens carry no Janus text at all. The instrument controls moved to step 3 in v0.15.12 but the notice about the files a run wrote stayed behind, which is the one thing an operator who stops at a sequencing verdict has no use for. It is stated in step 3, where the rest of the instrument work already lives.
-- v0.15.14: Step 3 shows the instrument settings on the page instead of behind a button that opened a dialog. The deck preview and the row preview are what the operator checks before an export, and they were being read through a modal on a screen that exists to hold them. Nothing was gained by the extra click, and the preview had less room than the step had to give.
-- v0.15.14: A run no longer writes the instrument mapping file. Analyzing produced the 9-column robot sheet next to the workbook whether or not anyone intended to touch a robot, which made step 3 a formality for an operator who only wanted a sequencing verdict. The pick list is still written by the run, since selecting clones is what the run is for, and the mapping file is written when it is exported from step 3.
+- v0.15.15: Choosing a different run folder, expected workbook, reference or sample map clears what the previous run produced. The screen used to keep the verdicts, the plate map and the two instrument-file notices next to inputs that no longer made them, which reads as a description of the file now selected. Re-picking the same path changes nothing, and the export destination is not an input, so neither clears anything.
+- v0.15.15: The analyze screens carry no Janus text at all. The instrument controls moved to step 3 in v0.15.12 but the notice about the files a run wrote stayed behind, which is the one thing an operator who stops at a sequencing verdict has no use for. It is stated in step 3, where the rest of the instrument work already lives.
+- v0.15.15: Step 3 shows the instrument settings on the page instead of behind a button that opened a dialog. The deck preview and the row preview are what the operator checks before an export, and they were being read through a modal on a screen that exists to hold them. Nothing was gained by the extra click, and the preview had less room than the step had to give.
+- v0.15.15: A run no longer writes the instrument mapping file. Analyzing produced the 9-column robot sheet next to the workbook whether or not anyone intended to touch a robot, which made step 3 a formality for an operator who only wanted a sequencing verdict. The pick list is still written by the run, since selecting clones is what the run is for, and the mapping file is written when it is exported from step 3.
 
 ### Fixed
 
-- v0.15.14: A well layout MAME inferred for one run no longer comes back from a restored project as though the operator had chosen it. It used to be stored with the verdicts, restored into the input state, and sent to the next run as a layout that was given, which told validation the sheet order never reached a well and lowered the warning it would otherwise raise. A layout with no recorded origin is treated as inferred for the same reason.
-- v0.15.14: An amplicon that cannot be extracted says which of the three reasons applied. It reported every case as primer boundaries that were not unique, including the ordinary one where a bare CDS reference simply does not contain the primer tails, which sent the reader looking for duplicate binding sites that were never there.
+- v0.15.15: A well layout MAME inferred for one run no longer comes back from a restored project as though the operator had chosen it. It used to be stored with the verdicts, restored into the input state, and sent to the next run as a layout that was given, which told validation the sheet order never reached a well and lowered the warning it would otherwise raise. A layout with no recorded origin is treated as inferred for the same reason.
+- v0.15.15: An amplicon that cannot be extracted says which of the three reasons applied. It reported every case as primer boundaries that were not unique, including the ordinary one where a bare CDS reference simply does not contain the primer tails, which sent the reader looking for duplicate binding sites that were never there.
+
+## v0.15.14 (The step 2.2 height fix reaches the people who needed it)
+
+The panel sizing shipped in v0.15.11 did nothing on any machine that had opened step 2.2 before. It skipped the fit whenever a stored layout existed for the panel group, reading that as a size the operator had chosen. The panel library writes that entry on mount for its own default layout, so it was there for everyone who had ever opened the step, and the fix sat inert behind it. Reinstalling the app did not clear it either: the store lives in the webview profile, not in the installed files.
+
+### Fixed
+
+- v0.15.14: Only a drag counts as a size the operator chose, and it is recorded under its own key. A layout the panel library persisted on its own no longer suppresses the content fit, so the plate map takes the height its rows need on machines that had used step 2.2 before v0.15.11. A split someone actually dragged is still left alone, across restarts.
 
 ## v0.15.13 (The replicate that reads cleanest is the one that ships)
 
