@@ -2272,13 +2272,10 @@
     "description": "Destaques da última atualização.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "As Novidades agora mostram uma nota curta por versão, em vez de uma cópia truncada do changelog.",
-      "Essas notas são traduzidas para os dez idiomas, e uma versão não pode ser publicada com uma tradução desatualizada.",
-      "A ajuda do Variant list mapping agora diz em que ordem os wells são preenchidos: A1, B1, C1 até H1, depois A2.",
-      "O hook post-commit de versão não falha mais em um caminho que foi removido.",
-      "Uma nota de versão longa agora rola dentro da janela, em vez de ultrapassar a borda inferior."
+      "Cada poco agora informa seu ruido de fundo tipico ao lado da pior posicao, de modo que o mixed gate pode ser avaliado diante do run atual.",
+      "No run 260729 esse limite fica cerca de sessenta vezes acima de uma posicao tipica e quatro vezes acima da mais ruidosa observada."
     ],
-    "highlightsStamp": "0.15.16+fe8e6f21"
+    "highlightsStamp": "0.15.17+6ee369a3"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",

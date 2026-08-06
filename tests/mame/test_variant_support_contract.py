@@ -68,3 +68,28 @@ def test_absent_keys_read_back_as_unknown_not_zero(tmp_path: Path) -> None:
     assert record.min_variant_support is None
     assert record.n_variant_positions == 0
     assert record.min_variant_support_depth == 0
+
+
+def test_noise_floor_survives_the_round_trip(tmp_path: Path) -> None:
+    """The threshold the mixed gate uses is only auditable if the floor travels.
+
+    ``max_minor_allele_fraction`` says how bad the worst position is;
+    ``median_minor_allele_fraction`` says what an ordinary position looks like,
+    which is what a fixed gate has to clear to mean anything.
+    """
+    metadata = _metadata(median_minor_allele_fraction=0.0031)
+    record = parse_fasta_file(_write(tmp_path, metadata), "NB07")
+
+    assert record.median_minor_allele_fraction == pytest.approx(0.0031)
+
+
+def test_noise_floor_absent_reads_back_as_zero(tmp_path: Path) -> None:
+    """A file predating the metric carries no floor, and 0.0 is the honest value.
+
+    Unlike the support metric this one has no "unknown" state to protect: a
+    missing floor cannot be mistaken for a purity claim, it just means the gate
+    cannot be audited for that file.
+    """
+    record = parse_fasta_file(_write(tmp_path, _metadata()), "NB07")
+
+    assert record.median_minor_allele_fraction == 0.0

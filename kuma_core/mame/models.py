@@ -66,6 +66,9 @@ class BarcodeRecord:
     n_variant_positions: int = 0
     # ACGT depth behind ``min_variant_support``. 0 when unknown.
     min_variant_support_depth: int = 0
+    # Noise floor the well ran at (median minor-allele fraction). 0.0 when
+    # unknown, including consensus files written before this metric existed.
+    median_minor_allele_fraction: float = 0.0
     # Longest contiguous deletion-majority run (informational; see ConsensusCall).
     # 0 = insertion-driven, 1 = isolated single position (artifact suspect),
     # >=2 = N-bp contiguous deletion.

@@ -2305,13 +2305,10 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "What's New now shows a short note per release instead of a cut-off copy of the changelog.",
-      "Those notes are translated into all ten languages, and a release cannot ship with a stale one.",
-      "The variant mapping help now says which way wells are filled: A1, B1, C1 to H1, then A2.",
-      "The post-commit version hook no longer breaks on a path that was removed.",
-      "A long release note now scrolls inside the dialog instead of running off the bottom."
+      "A well now reports its typical background noise beside its worst position, so the mixed gate can be judged against the run at hand.",
+      "On the 260729 run that gate sits about sixty times above a typical position and four times above the noisiest one observed."
     ],
-    "highlightsStamp": "0.15.16+fe8e6f21"
+    "highlightsStamp": "0.15.17+6ee369a3"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

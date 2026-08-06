@@ -2272,13 +2272,10 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El diálogo Novedades ahora muestra una nota breve por versión en lugar de una copia cortada del registro de cambios.",
-      "Esas notas están traducidas a los diez idiomas, y una versión no puede publicarse con una traducción desactualizada.",
-      "La ayuda del mapeo de la lista de variantes ahora indica cómo se llenan los wells: A1, B1, C1 hasta H1, y luego A2.",
-      "El hook post-commit de versión ya no falla por una ruta que se eliminó.",
-      "Una nota de versión larga ahora se desplaza dentro del diálogo en lugar de salirse por abajo."
+      "Cada well informa ahora su ruido de fondo tipico junto a su peor posicion, de modo que el mixed gate puede evaluarse frente al run en curso.",
+      "En el run 260729 ese gate queda unas sesenta veces por encima de una posicion tipica y cuatro veces por encima de la mas ruidosa observada."
     ],
-    "highlightsStamp": "0.15.16+fe8e6f21"
+    "highlightsStamp": "0.15.17+6ee369a3"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",

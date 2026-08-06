@@ -2118,6 +2118,7 @@ def _run_combinatorial_demux_body(
             min_variant_support,
             variant_positions,
             min_variant_support_depth,
+            median_minor_fraction,
         ) = _compute_well_consensus(
             well_name, reads, alignments, ref_seq, ref_len, min_depth,
         )
@@ -2142,6 +2143,7 @@ def _run_combinatorial_demux_body(
             min_variant_support,
             variant_positions,
             min_variant_support_depth,
+            median_minor_fraction,
         )
 
     _consensus_done = 0
@@ -2218,6 +2220,7 @@ def _run_combinatorial_demux_body(
                         min_variant_support,
                         variant_positions,
                         min_variant_support_depth,
+                        median_minor_fraction,
                     ) = fut.result()
                     per_well_consensus[wn] = seq
                     atomic_write_text(
@@ -2245,6 +2248,7 @@ def _run_combinatorial_demux_body(
                                 min_variant_support=min_variant_support,
                                 variant_positions=variant_positions,
                                 min_variant_support_depth=min_variant_support_depth,
+                                median_minor_allele_fraction=median_minor_fraction,
                             ),
                         ),
                         # fsync=False here, one fsync_directory below instead. Per-file
@@ -2324,7 +2328,7 @@ def _compute_well_consensus(
     min_depth: int,
 ) -> tuple[
     str, int, int, float, int, float, int, int, int, int, int, int, float, int,
-    int, int, float | None, int, int,
+    int, int, float | None, int, int, float,
 ]:
     """Call consensus for one well from its (pre-computed) alignments.
 
@@ -2353,6 +2357,7 @@ def _compute_well_consensus(
             None,
             0,
             0,
+            0.0,
         )
 
     if not well_alignments:
@@ -2379,6 +2384,7 @@ def _compute_well_consensus(
             None,
             0,
             0,
+            0.0,
         )
 
     with TIMER.phase("well_consensus.compute_sum"):
@@ -2407,6 +2413,7 @@ def _compute_well_consensus(
         consensus_call.min_variant_support,
         consensus_call.n_variant_positions,
         consensus_call.min_variant_support_depth,
+        consensus_call.median_minor_allele_fraction,
     )
 
 

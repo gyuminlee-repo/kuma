@@ -2272,13 +2272,10 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Was ist neu zeigt jetzt eine kurze Notiz pro Release statt einer abgeschnittenen Kopie des Changelogs.",
-      "Diese Notizen sind in alle zehn Sprachen übersetzt, und ein Release kann nicht mit einer veralteten Fassung ausgeliefert werden.",
-      "Die Hilfe unter Variant list mapping nennt jetzt die Füllrichtung der Wells: A1, B1, C1 bis H1, dann A2.",
-      "Der post-commit-Hook für die Versionsnummer bricht nicht mehr an einem entfernten Pfad ab.",
-      "Eine lange Notiz lässt sich jetzt im Dialog scrollen, statt unten über den Rand hinauszulaufen."
+      "Ein Well meldet jetzt neben seiner schlechtesten Position auch sein typisches Grundrauschen, sodass das Mixed-Gate am jeweiligen Run gemessen werden kann.",
+      "Im Run 260729 liegt dieses Gate etwa sechzigmal ueber einer typischen Position und viermal ueber der lautesten beobachteten."
     ],
-    "highlightsStamp": "0.15.16+fe8e6f21"
+    "highlightsStamp": "0.15.17+6ee369a3"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",

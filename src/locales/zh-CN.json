@@ -2272,13 +2272,10 @@
     "description": "最新更新亮点。",
     "gotItBtn": "知道了",
     "highlights": [
-      "新功能对话框现在按版本显示一段简短说明，不再展示被截断的 changelog 摘录。",
-      "这些说明会翻译成全部十种语言，翻译过期时无法发布新版本。",
-      "Variant list mapping 的说明现在写明 well 的填充方向：A1、B1、C1 直到 H1，然后是 A2。",
-      "post-commit 版本同步钩子不再因引用已删除的路径而中断。",
-      "较长的版本说明现在可在对话框内滚动，不会再溢出到底部之外。"
+      "每个 well 现在会在最差位置旁报告其典型背景噪声，因此可以针对当前 run 判断 mixed gate。",
+      "在 260729 run 中，该 gate 约为典型位置的六十倍，约为观测到的最嘈杂位置的四倍。"
     ],
-    "highlightsStamp": "0.15.16+fe8e6f21"
+    "highlightsStamp": "0.15.17+6ee369a3"
   },
   "primerDisplay": {
     "copySeqTitle": "复制序列",

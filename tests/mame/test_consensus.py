@@ -247,6 +247,10 @@ class TestCallConsensus:
         assert result.consensus_seq[2] == "G"
         assert result.n_mixed_positions == 1
         assert result.max_minor_allele_fraction == 0.49
+        # Only the mixed position carries two distinct bases, so it is the only
+        # eligible position and the floor equals the peak. A real well has noise
+        # everywhere and the two separate; see TestNoiseFloor.
+        assert result.median_minor_allele_fraction == 0.49
         assert result.n_low_depth_positions == 0
         assert result.consensus_n_fraction == 0.0
 
@@ -509,3 +513,40 @@ class TestMinVariantSupport:
         assert result.consensus_seq[2] == "T"
         assert result.n_variant_positions == 0
         assert result.min_variant_support is None
+
+
+class TestNoiseFloor:
+    """median_minor_allele_fraction: what an ordinary position looks like."""
+
+    def test_floor_sits_far_below_a_genuinely_mixed_position(self) -> None:
+        """The gate is only meaningful if the mixture stands above the noise.
+
+        Every position carries a low-level minority base, as an ONT well does,
+        and one position is a real 50/50 mixture. The floor has to report the
+        background rather than the outlier, otherwise a fixed gate cannot be
+        judged against it.
+        """
+        ref = "ATGCATGCATGCATGCATGC"
+        noisy = "".join("A" if c != "A" else "C" for c in ref)
+        mixed = ref[:5] + ("T" if ref[5] != "T" else "G") + ref[6:]
+        reads = (
+            [_make_aln(ref, len(ref)) for _ in range(90)]
+            + [_make_aln(noisy, len(ref)) for _ in range(10)]
+            + [_make_aln(mixed, len(ref)) for _ in range(90)]
+        )
+
+        result = call_consensus_with_metrics(reads, ref, mix_min_depth=10)
+
+        assert result.median_minor_allele_fraction < 0.10
+        assert result.max_minor_allele_fraction > 0.40
+        assert result.median_minor_allele_fraction < result.max_minor_allele_fraction
+
+    def test_no_eligible_position_reports_zero(self) -> None:
+        """A well where every position agreed has no floor to report."""
+        ref = "ATGCATGCATGC"
+        reads = [_make_aln(ref, len(ref)) for _ in range(30)]
+
+        result = call_consensus_with_metrics(reads, ref, mix_min_depth=10)
+
+        assert result.median_minor_allele_fraction == 0.0
+        assert result.n_mixed_positions == 0

@@ -2272,13 +2272,10 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "La boîte de dialogue Nouveautés affiche désormais une note courte par version, au lieu d'une copie tronquée du changelog.",
-      "Ces notes sont traduites dans les dix langues, et une version ne peut plus être publiée avec une traduction obsolète.",
-      "L'aide du Variant list mapping indique désormais le sens de remplissage des wells : A1, B1, C1 jusqu'à H1, puis A2.",
-      "Le hook post-commit de version n'échoue plus sur un chemin supprimé.",
-      "Une note de version longue défile maintenant dans la boîte de dialogue au lieu de dépasser en bas."
+      "Un puits indique maintenant son bruit de fond habituel a cote de sa pire position, ce qui permet de juger le mixed gate au regard du run en cours.",
+      "Sur le run 260729, ce seuil se situe environ soixante fois au-dessus d une position typique et quatre fois au-dessus de la plus bruitee observee."
     ],
-    "highlightsStamp": "0.15.16+fe8e6f21"
+    "highlightsStamp": "0.15.17+6ee369a3"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",

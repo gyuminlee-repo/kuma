@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.15.17 (A threshold nobody had measured against)
+
+The mixed-position gate fires at a fixed 0.20 minor-allele fraction, and until now the workbook reported only how bad the worst position in a well was. That says nothing about whether 0.20 is a lot or a little for the run in front of you.
+
+### Highlights
+
+- A well now reports its typical background noise beside its worst position, so the mixed gate can be judged against the run at hand.
+- On the 260729 run that gate sits about sixty times above a typical position and four times above the noisiest one observed.
+
+### Changed
+
+- v0.15.17: A consensus reports the median minor-allele fraction over its eligible positions, the noise floor the well actually ran at, and the workbook carries it beside the peak. Measured on the 260729 ispS run the per-position median across 94 wells is 0.003 and the noisiest context-driven position is 0.054, so the gate sits about four times above the worst position observed and sixty times above a typical one. That margin is now visible per run rather than assumed.
+
 ## v0.15.16 (What's New says a few short things, in the language the app is set to)
 
 The What's New modal pasted the changelog into itself. It read the Added, Changed and Fixed bullets of the latest release, cut each one at 240 characters and showed the pieces: six of the seven notes that shipped with v0.15.6 ended mid-word, and what did fit was prose written for someone reading a diff, backticked parameter names and all. All seven were in English whatever language the app was set to, because the array was compiled into a TypeScript module that i18n never read. Two smaller faults travelled in the same area: three MAME help texts named a well-filling order without saying which way it goes, and the post-commit hook that keeps the version manifests in step died on a path that no longer exists.

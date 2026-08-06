@@ -208,6 +208,10 @@ class ConsensusCall:
     consensus_seq: str
     n_mixed_positions: int = 0
     max_minor_allele_fraction: float = 0.0
+    # Median minor-allele fraction over eligible positions: the noise floor this
+    # well ran at, and the number ``mix_minor_fraction_threshold`` is judged
+    # against. See call_consensus_with_metrics for the measured calibration.
+    median_minor_allele_fraction: float = 0.0
     n_low_depth_positions: int = 0
     consensus_n_fraction: float = 0.0
     n_low_quality_bases: int = 0
@@ -360,10 +364,22 @@ def call_consensus_with_metrics(
     mix_eligible = covered & (base_total >= mix_min_depth) & (n_distinct_bases >= 2)
     n_mixed_positions = 0
     max_minor_allele_fraction = 0.0
+    median_minor_allele_fraction = 0.0
     if bool(mix_eligible.any()):
         second = np.sort(acgt[mix_eligible], axis=1)[:, -2]
         minor_fraction = second / base_total[mix_eligible]
         max_minor_allele_fraction = float(minor_fraction.max())
+        # The noise floor this well actually ran at. ``max_`` above answers "how
+        # bad is the worst position", which is driven by whichever position is
+        # noisiest; the median answers "what does an ordinary position look
+        # like here", which is the number the mixed-position threshold has to
+        # clear to mean anything. Measured on the 260729 ispS run: the
+        # per-position median across 94 wells is 0.003 and the worst
+        # context-driven position is 0.054, so the 0.20 gate sits about four
+        # times above the noisiest position observed and roughly sixty times
+        # above a typical one. Reporting it makes that margin auditable per run
+        # instead of assumed.
+        median_minor_allele_fraction = float(np.median(minor_fraction))
         n_mixed_positions = int(
             (minor_fraction >= mix_minor_fraction_threshold).sum()
         )
@@ -502,6 +518,7 @@ def call_consensus_with_metrics(
         consensus_seq=consensus_seq,
         n_mixed_positions=n_mixed_positions,
         max_minor_allele_fraction=max_minor_allele_fraction,
+        median_minor_allele_fraction=median_minor_allele_fraction,
         n_low_depth_positions=n_low_depth_positions,
         consensus_n_fraction=consensus_n_fraction,
         n_low_quality_bases=n_low_quality_bases,
