@@ -267,13 +267,27 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   setSharedFastaPath: (sharedFastaPath) => set({ sharedFastaPath }),
   setSharedEvolveproCsvPath: (sharedEvolveproCsvPath) => set({ sharedEvolveproCsvPath }),
   bumpResetEpoch: () => set((s) => ({ resetEpoch: s.resetEpoch + 1 })),
-  setInputDir: (inputDir) => set({ inputDir, validationErrors: [] }),
+  // A completed run's outputs (verdicts, wells, the Janus autosave banners,
+  // ...) describe the PREVIOUS inputDir. Re-picking the same folder changes
+  // nothing about what those outputs mean, so only an actual change clears
+  // them; picking the same value twice (e.g. re-confirming via the same
+  // dialog) must not wipe a result the operator has not touched yet.
+  setInputDir: (inputDir) => {
+    const changed = get().inputDir !== inputDir;
+    set({ inputDir, validationErrors: [] });
+    if (changed) get().clearResults();
+  },
   // A finding describes one workbook, and a mapping names columns of one file.
   // Pointing at another file makes both statements about a file nobody is
   // running: the sheet and column chosen for the previous one would silently
   // name rows in this one. The panel re-checks and re-inspects the new file
   // right after (see `checkExpectedPlateOrder`, `inspectVariantSource`).
-  setExpectedPath: (expectedPath) =>
+  //
+  // The expected-mutations workbook also names what a completed run's
+  // verdicts were graded against, so swapping it invalidates that run's
+  // outputs the same way a swapped inputDir does (see `setInputDir` above).
+  setExpectedPath: (expectedPath) => {
+    const changed = get().expectedPath !== expectedPath;
     set({
       expectedPath,
       validationErrors: [],
@@ -282,7 +296,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       variantSheet: null,
       variantColumn: null,
       variantSelectionExplicit: false,
-    }),
+    });
+    if (changed) get().clearResults();
+  },
   /**
    * Ask what the picked variant list offers, and preselect what the backend
    * would read on its own.
@@ -339,22 +355,58 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     saveJanusSettings(janusSettings);
     set({ janusSettings });
   },
+  // Set by the mapping panel (JanusMappingPanel) after a successful manual
+  // export, the only writer of the instrument mapping now that analyze does
+  // not write it automatically. Feeds the same "done" signal and drawer/
+  // inspector displays that used to read the automatic file.
+  setJanusMappingAutosave: (janusMappingAutosave) => set({ janusMappingAutosave }),
+  // Every analyze/demux call sends this as the amplicon reference, so a swap
+  // invalidates a completed run's verdicts (same reasoning as setInputDir).
   setReferencePath: (referencePath) => {
+    const changed = get().referencePath !== referencePath;
     set({ referencePath, validationErrors: [] });
     void get().refreshAnalyzeCdsCandidates(referencePath);
+    if (changed) get().clearResults();
   },
+  // Just where the export lands, not what was analyzed. Does not invalidate
+  // a completed run's outputs.
   setOutputPath: (outputPath) => set({ outputPath, validationErrors: [] }),
-  setSampleMapPath: (sampleMapPath) => set({ sampleMapPath }),
+  // Sent as sample_map_xlsx, the highest-priority well->sample source; a swap
+  // changes what a completed run's per-well verdicts would even mean.
+  setSampleMapPath: (sampleMapPath) => {
+    const changed = get().sampleMapPath !== sampleMapPath;
+    set({ sampleMapPath });
+    if (changed) get().clearResults();
+  },
   setProjectPath: (projectPath) => set({ projectPath }),
-  setParams: (params) =>
-    set((state) => ({
+  // mode/cdsStart/cdsEnd/minFileSizeKb/manyCutoff/maxConsensusNFraction and
+  // rawRunParams are all sent verbatim as analyze/demux RPC params, so a
+  // change here invalidates a completed run the same way the file setters
+  // above do. minFilteredDepth is excluded: it is a display-only threshold,
+  // never sent to the backend, so changing it does not change what the last
+  // run's outputs mean.
+  setParams: (params) => {
+    const state = get();
+    const nextRawRunParams =
+      params.rawRunParams != null
+        ? { ...state.rawRunParams, ...params.rawRunParams }
+        : state.rawRunParams;
+    const changed =
+      (params.mode !== undefined && params.mode !== state.mode) ||
+      (params.ingestMode !== undefined && params.ingestMode !== state.ingestMode) ||
+      (params.inputMode !== undefined && params.inputMode !== state.inputMode) ||
+      (params.cdsStart !== undefined && params.cdsStart !== state.cdsStart) ||
+      (params.cdsEnd !== undefined && params.cdsEnd !== state.cdsEnd) ||
+      (params.minFileSizeKb !== undefined && params.minFileSizeKb !== state.minFileSizeKb) ||
+      (params.manyCutoff !== undefined && params.manyCutoff !== state.manyCutoff) ||
+      (params.maxConsensusNFraction !== undefined &&
+        params.maxConsensusNFraction !== state.maxConsensusNFraction) ||
+      JSON.stringify(nextRawRunParams) !== JSON.stringify(state.rawRunParams);
+    set({
       mode: params.mode ?? state.mode,
       ingestMode: params.ingestMode ?? state.ingestMode,
       inputMode: params.inputMode ?? state.inputMode,
-      rawRunParams:
-        params.rawRunParams != null
-          ? { ...state.rawRunParams, ...params.rawRunParams }
-          : state.rawRunParams,
+      rawRunParams: nextRawRunParams,
       cdsStart: params.cdsStart ?? state.cdsStart,
       cdsEnd: params.cdsEnd ?? state.cdsEnd,
       minFileSizeKb: params.minFileSizeKb ?? state.minFileSizeKb,
@@ -362,7 +414,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       manyCutoff: params.manyCutoff ?? state.manyCutoff,
       maxConsensusNFraction: params.maxConsensusNFraction ?? state.maxConsensusNFraction,
       validationErrors: [],
-    })),
+    });
+    if (changed) get().clearResults();
+  },
   setValidationErrors: (validationErrors) => set({ validationErrors }),
   setIsAnalyzing: (isAnalyzing) => set({ isAnalyzing }),
   setIsDemuxing: (isDemuxing) => set({ isDemuxing }),
@@ -565,6 +619,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     get().setReplicates(result.replicates);
     get().setSummary(result.summary);
     get().setAnalyzeYield(pickAnalyzeYield(result));
+    get().setLayoutProvenance(result.layout_provenance ?? null);
+    get().setMappingIntegrity(result.mapping_integrity ?? null);
     // Store the folder only (outputPath is now a folder); lastExportPath tracks the full path.
     const outDir = (() => {
       const p = result.output_path.replace(/\\/g, "/");
@@ -573,13 +629,13 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     })();
     get().setOutputPath(outDir);
     get().setDistributionStats(result.distribution_stats ?? null);
-    // The run wrote (or could not write) its two Janus files. Kept so the result
+    // The run wrote (or could not write) its pick list. Kept so the result
     // view can state it; swallowing it leaves the operator looking for a file
-    // that was never created.
-    set({
-      janusAutosave: result.janus_autosave ?? null,
-      janusMappingAutosave: result.janus_mapping_autosave ?? null,
-    });
+    // that was never created. The instrument mapping has no autosave counterpart
+    // here: `janusMappingAutosave` was already cleared by this run's
+    // `clearResults()` and stays null until the operator exports one from
+    // `JanusMappingPanel`.
+    set({ janusAutosave: result.janus_autosave ?? null });
     // Persist the FULL analyze response AS-IS (sibling result file) once on
     // success, so restart can replay it into the sidecar + restore the 2.2
     // review view. Awaited so an immediate app-close does not lose it. Failure
@@ -681,9 +737,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           sample_map_xlsx: state.sampleMapPath || null,
           well_layout: state.wellLayout ?? null,
           ...variantSourceParams(state),
-          // The sidecar writes the Janus mapping at the end of every run, and
-          // refuses without a liquid class. Sending the dialog's settings is
-          // what turns that refusal into a file.
+          // The sidecar writes the pick list at the end of every run
+          // (`_autosave_picks`, forced to legacy5), which honours dest_layout
+          // and include_verdicts/include_fallback from these settings but
+          // never the instrument fields; the instrument mapping is written
+          // only by a manual export from JanusMappingPanel.
           janus_settings: toRpcParams(state.janusSettings),
         },
         MAME_ANALYZE_RPC_TIMEOUT_MS,
@@ -694,6 +752,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       get().setReplicates(result.replicates);
       get().setSummary(result.summary);
       get().setAnalyzeYield(pickAnalyzeYield(result));
+      get().setLayoutProvenance(result.layout_provenance ?? null);
+      get().setMappingIntegrity(result.mapping_integrity ?? null);
       const outDir = (() => {
         const p = result.output_path.replace(/\\/g, "/");
         const i = p.lastIndexOf("/");
@@ -701,10 +761,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       })();
       get().setOutputPath(outDir);
       get().setDistributionStats(result.distribution_stats ?? null);
-      set({
-        janusAutosave: result.janus_autosave ?? null,
-        janusMappingAutosave: result.janus_mapping_autosave ?? null,
-      });
+      // See the non-raw-run branch above: no `janus_mapping_autosave` from the
+      // sidecar to read here either, so `janusMappingAutosave` stays whatever
+      // this run's `clearResults()` already left it (null).
+      set({ janusAutosave: result.janus_autosave ?? null });
       try {
         await writeMameResultSnapshot(get().projectPath, result);
       } catch (err) {

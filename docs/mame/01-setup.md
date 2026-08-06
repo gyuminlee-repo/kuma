@@ -31,7 +31,10 @@ MAME가 생성한 consensus FASTA header는 다음 metadata를 가질 수 있다
 - `mixed_positions`, `max_minor_allele_fraction`: 51/49 같은 within-well mixture가 clean PASS로 숨지 않도록 AMBIGUOUS 판정에 사용.
 - `mapq_failed`, `span_failed`: 정렬 품질/coverage filter에서 탈락한 read 수. Verdict table과 Excel QC 컬럼에 표시된다.
 
-## 1.2 Expected Mutations
+## Expected mutations 워크북
+
+step 1 의 sub-step 은 1.1 하나다. 예전 1.2 는 1.1 에 병합되었고(`setup.design` 은 redirect 용 legacy id 로만 남아 있다) expected 워크북은 2.1 Inputs 에서 고른다.
+
 
 | 입력 | 포맷 | 필수 |
 |---|---|---|
@@ -42,7 +45,7 @@ KURO 가 만든 xlsx 는 `__kuma_meta__` 숨김 시트로 프로젝트와 자동
 
 ## v0.9.2.x 변경
 
-- 사이드바 자유 navigate. 미입력 상태에서 1.2 진입 시 "Reference FASTA required" empty state.
+- 사이드바 자유 navigate. 미입력 상태 진입 시 "Reference FASTA required" empty state.
 - Next 버튼은 missing input Dialog (validation.missing.reference 등) 표시.
 
 → [Step 2. Sequencing Review](02-review.md)

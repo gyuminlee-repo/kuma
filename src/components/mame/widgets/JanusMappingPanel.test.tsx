@@ -1,11 +1,11 @@
 /**
- * JanusMappingDialog: dry-run preview gating.
+ * JanusMappingPanel: dry-run preview gating.
  *
- * The export writes a file with no way to inspect it first, so the dialog must
- * fetch the preview on open and on every destination-layout change, and it must
- * refuse to export while the preview reports a plate-layout problem. A preview
- * that merely failed to load is a different thing: export keeps its own
- * fail-fast guards, so a broken preview must not brick a working export.
+ * The export writes a file with no way to inspect it first, so the panel must
+ * fetch the preview on mount and on every destination-layout change, and it
+ * must refuse to export while the preview reports a plate-layout problem. A
+ * preview that merely failed to load is a different thing: export keeps its
+ * own fail-fast guards, so a broken preview must not brick a working export.
  */
 
 import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
@@ -29,16 +29,17 @@ vi.mock("@/lib/mame/janus", async (importOriginal) => {
 vi.mock("@/state/projectContext", () => ({
   useKumaProject: () => ({ path: "/tmp/proj", name: "proj" }),
 }));
-// The dialog reads its Janus policy from the store now (an analyze run writes
-// its own mapping with the same settings), so the double has to be a real
-// store: a plain selector over a frozen object would never re-render on edit.
+// The panel reads its Janus policy from the store, so the double has to be a
+// real store: a plain selector over a frozen object would never re-render on edit.
 vi.mock("@/store/mame/mameAppStore", async () => {
   const { create } = await import("zustand");
   const { DEFAULT_JANUS_SETTINGS } = await import("@/lib/mame/janusSettings");
   const useMameAppStore = create<JanusStoreDouble>()((set) => ({
     isExporting: false,
     janusSettings: DEFAULT_JANUS_SETTINGS,
+    janusMappingAutosave: null,
     setJanusSettings: (janusSettings: JanusExportSettings) => set({ janusSettings }),
+    setJanusMappingAutosave: (janusMappingAutosave) => set({ janusMappingAutosave }),
   }));
   return { useMameAppStore };
 });
@@ -50,17 +51,20 @@ import {
 import { DEFAULT_JANUS_SETTINGS } from "@/lib/mame/janusSettings";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type {
+  JanusAutosaveResult,
   JanusExcludedEntry,
   JanusExportSettings,
   JanusPreviewResult,
   JanusResolvedSettings,
 } from "@/types/mame/models";
-import { JanusMappingDialog } from "./JanusMappingDialog";
+import { JanusMappingPanel } from "./JanusMappingPanel";
 
 interface JanusStoreDouble {
   isExporting: boolean;
   janusSettings: JanusExportSettings;
+  janusMappingAutosave: JanusAutosaveResult | null;
   setJanusSettings: (settings: JanusExportSettings) => void;
+  setJanusMappingAutosave: (result: JanusAutosaveResult | null) => void;
 }
 
 const mockPreview = vi.mocked(fetchMameJanusPreview);
@@ -224,9 +228,9 @@ beforeEach(() => {
   mockPreview.mockImplementation(async (settings) => cleanPreviewFor(settings));
 });
 
-describe("JanusMappingDialog preview", () => {
-  it("fetches the preview when the dialog opens", async () => {
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+describe("JanusMappingPanel preview", () => {
+  it("fetches the preview on mount", async () => {
+    render(<JanusMappingPanel />);
     await waitFor(() =>
       expect(mockPreview).toHaveBeenCalledWith(
         expect.objectContaining({ destLayout: "compact", outputSchema: "device9" }),
@@ -236,13 +240,8 @@ describe("JanusMappingDialog preview", () => {
     expect(screen.getByText("2 rows")).toBeInTheDocument();
   });
 
-  it("does not fetch while the dialog is closed", () => {
-    render(<JanusMappingDialog open={false} onOpenChange={() => {}} />);
-    expect(mockPreview).not.toHaveBeenCalled();
-  });
-
   it("refetches when the destination layout changes", async () => {
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
     await waitFor(() => expect(mockPreview).toHaveBeenCalled());
 
     fireEvent.click(screen.getByLabelText("Source position"));
@@ -254,7 +253,7 @@ describe("JanusMappingDialog preview", () => {
   });
 
   it("refetches when the liquid class is typed in", async () => {
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
     await waitFor(() => expect(mockPreview).toHaveBeenCalled());
 
     fireEvent.change(screen.getByLabelText("Liquid class"), {
@@ -268,7 +267,7 @@ describe("JanusMappingDialog preview", () => {
   });
 
   it("ignores fractional rack edits instead of truncating them", async () => {
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
     await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByText("Deck configuration"));
 
@@ -284,7 +283,7 @@ describe("JanusMappingDialog preview", () => {
   });
 
   it("sends the same settings to the export that the preview was built with", async () => {
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
     // Wait for the first (debounced) preview before editing, so the edit is a
     // second request rather than a reset of the pending timer.
     await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(1));
@@ -308,7 +307,7 @@ describe("JanusMappingDialog preview", () => {
       excluded_count: EXCLUSIONS.length,
       settings: resolvedSettingsFromUi(settings),
     }));
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
 
     expect(await screen.findByText("Excluded: 3")).toBeInTheDocument();
     const verdictRow = screen.getByText("Verdict class not included").closest("li");
@@ -318,14 +317,14 @@ describe("JanusMappingDialog preview", () => {
   });
 
   it("says so when nothing was excluded", async () => {
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
     expect(
       await screen.findByText("Every clone made the pick."),
     ).toBeInTheDocument();
   });
 
   it("shows the exact rows the export would write", async () => {
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
     const table = await screen.findByRole("table");
     const cells = within(table)
       .getAllByRole("row")
@@ -359,7 +358,7 @@ describe("JanusMappingDialog preview", () => {
   });
 
   it("blocks export while the visible preview is stale for edited settings", async () => {
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
     await waitFor(() => expect(exportButton()).toBeEnabled());
 
     fireEvent.change(screen.getByLabelText("Liquid class"), {
@@ -376,7 +375,7 @@ describe("JanusMappingDialog preview", () => {
 
   it("blocks the export and shows the problem when validation fails", async () => {
     mockPreview.mockResolvedValue(DUPLICATE);
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
 
     expect(
       await screen.findByText(/duplicate dest_well would dispense/i),
@@ -391,7 +390,7 @@ describe("JanusMappingDialog preview", () => {
     mockPreview
       .mockResolvedValueOnce(DUPLICATE)
       .mockImplementationOnce(async (settings) => cleanPreviewFor(settings));
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
     expect(
       await screen.findByText(/duplicate dest_well would dispense/i),
     ).toBeInTheDocument();
@@ -404,7 +403,7 @@ describe("JanusMappingDialog preview", () => {
 
   it("blocks export when the preview itself fails to load", async () => {
     mockPreview.mockRejectedValue(new Error("sidecar unavailable"));
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
 
     await waitFor(() => expect(mockPreview).toHaveBeenCalled());
     expect(await screen.findByText(/sidecar unavailable/i)).toBeInTheDocument();
@@ -415,7 +414,7 @@ describe("JanusMappingDialog preview", () => {
     mockPreview
       .mockRejectedValueOnce(new Error("sidecar unavailable"))
       .mockImplementationOnce(async (settings) => cleanPreviewFor(settings));
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
     await screen.findByText(/sidecar unavailable/i);
 
     fireEvent.click(screen.getByRole("button", { name: "Retry preview" }));
@@ -432,7 +431,7 @@ describe("JanusMappingDialog preview", () => {
       excluded_count: 0,
       settings: resolvedSettingsFromUi(settings),
     }));
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
 
     expect(
       await screen.findByText("No confirmed picks to export."),
@@ -451,7 +450,7 @@ describe("JanusMappingDialog preview", () => {
       )
       .mockImplementationOnce(async (settings) => cleanPreviewFor(settings));
 
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
     await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByLabelText("Source position"));
     await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(2));
@@ -465,7 +464,7 @@ describe("JanusMappingDialog preview", () => {
   });
 });
 
-describe("JanusMappingDialog warnings", () => {
+describe("JanusMappingPanel warnings", () => {
   /**
    * v0.15.8: a blank liquid class and a derived rack number used to be errors,
    * which meant the lab got no mapping file at all. They are reported now, and
@@ -500,7 +499,7 @@ describe("JanusMappingDialog warnings", () => {
       ...WARNED,
       settings: resolvedSettingsFromUi(settings),
     }));
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
 
     const warned = await screen.findByTestId("janus-preview-warnings");
     expect(warned).toHaveTextContent(/liquid class column is blank/i);
@@ -515,7 +514,7 @@ describe("JanusMappingDialog warnings", () => {
       ...WARNED,
       settings: resolvedSettingsFromUi(settings),
     }));
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
     await screen.findByTestId("janus-preview-warnings");
     await waitFor(() => expect(exportButton()).toBeEnabled());
 
@@ -525,7 +524,7 @@ describe("JanusMappingDialog warnings", () => {
   });
 });
 
-describe("JanusMappingDialog deck map", () => {
+describe("JanusMappingPanel deck map", () => {
   /**
    * Observed on a real run: the plates were native barcode folders named
    * `sort_barcode07` and up, which a fixed P1/P2/P3 field list has no rack for,
@@ -550,7 +549,7 @@ describe("JanusMappingDialog deck map", () => {
       ...NATIVE_BARCODE,
       settings: resolvedSettingsFromUi(settings),
     }));
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
     await waitFor(() => expect(mockPreview).toHaveBeenCalled());
     fireEvent.click(await screen.findByText("Deck configuration"));
 
@@ -565,7 +564,7 @@ describe("JanusMappingDialog deck map", () => {
       ...NATIVE_BARCODE,
       settings: resolvedSettingsFromUi(settings),
     }));
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
     await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(1));
     fireEvent.click(await screen.findByText("Deck configuration"));
 
@@ -592,7 +591,7 @@ describe("JanusMappingDialog deck map", () => {
       excluded_count: 0,
       settings: resolvedSettingsFromUi(settings),
     }));
-    render(<JanusMappingDialog open onOpenChange={() => {}} />);
+    render(<JanusMappingPanel />);
     await waitFor(() => expect(mockPreview).toHaveBeenCalled());
     fireEvent.click(await screen.findByText("Deck configuration"));
 

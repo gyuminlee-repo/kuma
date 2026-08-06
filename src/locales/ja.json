@@ -337,7 +337,7 @@
       "variantSheet": "変異リストのシート",
       "variantColumn": "変異の列",
       "variantColumnPlaceholder": "列を選択",
-      "variantColumnHelper": "この列の行順で 96 well に配置します。WT 行があればそれを対照に使います。",
+      "variantColumnHelper": "この列の行順で 96 well プレートに配置します。プレートは縦方向に進み、A1, B1, C1 から H1 まで、その次が A2 です。WT 行がある場合は、新たに追加せずその行を対照として使います。",
       "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
     },
     "activity": {
@@ -679,7 +679,7 @@
         },
         "destLayoutHint": {
           "source": "dest_well が source plate の位置をそのまま使用します。2 つの pick が同じ well になるとエクスポートは失敗します。",
-          "compact": "dest_well を priority 順に A1 から順次割り当て、空の well を残しません。"
+          "compact": "dest_well を priority 順に A1 から順次割り当てます。縦方向に進むため A1, B1, C1 から H1 まで、その次が A2 となり、空の well は残しません。"
         },
         "outputPathLabel": "出力ファイルパス",
         "outputPathPlaceholder": "ターゲット .{{ext}} ファイルパス",
@@ -819,7 +819,7 @@
         "columnAuto": "Auto-detect",
         "suggested": "Auto-detected column: {{column}}",
         "noSuggestion": "No column was recognised automatically. Choose the one holding the variant labels.",
-        "helper": "Wells are filled in this column's order, one variant per row. A KURO export needs no mapping and hides these controls."
+        "helper": "この列の順に、1 行 1 変異で well へ割り当てます。プレートは縦方向に進み、A1, B1, C1 から H1 まで、その次が A2 です。KURO のエクスポートは mapping が不要なため、これらの選択欄は表示されません。"
       }
     },
     "janusDeck": {
@@ -843,7 +843,7 @@
       "settings": {
         "contextTitle": "Janus 装置設定",
         "contextSubtitle": "装置マッピングに書き出される移送量・デッキラック・リキッドクラスを設定します。シーケンシング判定のみの実行では省略できます。",
-        "optionalNote": "このステップは任意です。解析実行がピックリストと装置マッピングを自動で書き出すため、シーケンシング判定だけが必要な場合はステップ 2 からステップ 4 に直接進めます。",
+        "optionalNote": "このステップは任意です。解析実行はピックリストを自動で書き出しますが、装置マッピングはここでエクスポートしたときだけ書き出されます。シーケンシング判定だけが必要な場合はステップ 2 からステップ 4 に直接進めます。",
         "inspectorTitle": "装置 Inspector",
         "inspectorSubtitle": "マッピングに書き出される値",
         "inspectorVolume": "移送量 (uL)",
@@ -855,10 +855,7 @@
         "drawerRight": "次へ",
         "drawerRightDesc": "活性データと EVOLVEpro への引き継ぎ",
         "volumeLabel": "移送 volume (µL)",
-        "volumeHint": "この実行が作る装置用マッピングにそのまま入ります。既定の 100 µL は実験室の根拠がない仮定なので、今回の実験で使う値に変更してください。",
-        "openDialog": "Janus 装置設定…",
-        "openDialogAriaLabel": "Janus 装置設定を開く",
-        "dialogHint": "任意です。ラック番号はこの実行のプレート順に従い、liquid class は未設定なら空欄のまま出力されます。上書きしたいときだけ入力してください。"
+        "volumeHint": "この実行が作る装置用マッピングにそのまま入ります。既定の 100 µL は実験室の根拠がない仮定なので、今回の実験で使う値に変更してください。"
       }
     },
     "setup": {
@@ -954,6 +951,11 @@
         "drawerRightDesc": "活性データへ進む",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "well と変異の対応にずれの疑い",
+        "alertDesc": "観測された変異を持つ well {{wells}} 個のうち、自身の expected と一致するのは {{selfPercent}}%、他の well の expected と一致するのは {{crossPercent}}% でした。well と変異の対応がずれている可能性が非常に高いため、この結果は信頼できません。",
+        "alertAriaLabel": "well-変異マッピング整合性の警告"
       }
     },
     "inspector": {
@@ -2268,7 +2270,12 @@
   "whatsNewDialog": {
     "title": "v{{version}} の新機能",
     "description": "最新アップデートのハイライト。",
-    "gotItBtn": "了解"
+    "gotItBtn": "了解",
+    "highlights": [
+      "各 well が最悪の位置に加えて通常の background noise も報告するようになり、mixed gate をその run に照らして判断できます。",
+      "260729 run では、その gate は通常の位置の約60倍、観測された最も雑音の多い位置の約4倍の高さにあります。"
+    ],
+    "highlightsStamp": "0.15.17+6ee369a3"
   },
   "primerDisplay": {
     "copySeqTitle": "配列をコピー",

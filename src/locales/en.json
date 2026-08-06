@@ -397,7 +397,7 @@
       "variantSheet": "Variant sheet",
       "variantColumn": "Variant column",
       "variantColumnPlaceholder": "Select a column",
-      "variantColumnHelper": "Rows fill the 96-well plate in this column's order. A WT row is used as the control instead of appending one.",
+      "variantColumnHelper": "Rows fill the 96-well plate in this column's order, down each plate column: A1, B1, C1 to H1, then A2. A WT row is used as the control instead of appending one.",
       "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
     },
     "activity": {
@@ -804,7 +804,7 @@
         },
         "destLayoutHint": {
           "source": "dest_well mirrors the source plate position. Export fails if two picks land on the same well.",
-          "compact": "dest_well is assigned sequentially from A1 in priority order, leaving no empty wells."
+          "compact": "dest_well is assigned sequentially from A1 in priority order, down each column (A1, B1, C1 to H1, then A2), leaving no empty wells."
         },
         "outputPathLabel": "Output file path",
         "outputPathPlaceholder": "Target .{{ext}} file path",
@@ -944,7 +944,7 @@
         "columnAuto": "Auto-detect",
         "suggested": "Auto-detected column: {{column}}",
         "noSuggestion": "No column was recognised automatically. Choose the one holding the variant labels.",
-        "helper": "Wells are filled in this column's order, one variant per row. A KURO export needs no mapping and hides these controls."
+        "helper": "Wells are filled in this column's order, one variant per row, down each plate column: A1, B1, C1 to H1, then A2. A KURO export needs no mapping and hides these controls."
       }
     },
     "setup": {
@@ -1040,6 +1040,11 @@
         "drawerRightDesc": "Proceed to activity",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "Well-variant mapping likely mismatched",
+        "alertDesc": "Of {{wells}} wells with an observed variant, {{selfPercent}}% match their own expected mutation and {{crossPercent}}% match another well's expected mutation instead. The well-to-variant mapping is very likely off; do not trust this result.",
+        "alertAriaLabel": "Well-variant mapping integrity warning"
       }
     },
     "inspector": {
@@ -1067,7 +1072,7 @@
       "settings": {
         "contextTitle": "Janus instrument settings",
         "contextSubtitle": "Transfer volume, deck racks and liquid class the instrument mapping is written from. Optional: a sequencing-only run can skip this step.",
-        "optionalNote": "This step is optional. An analyze run writes the pick list and the instrument mapping on its own, so a run that only needs sequencing verdicts can go from step 2 straight to step 4.",
+        "optionalNote": "This step is optional. An analyze run writes the pick list on its own; the instrument mapping is written only when exported here, so a run that only needs sequencing verdicts can go from step 2 straight to step 4.",
         "inspectorTitle": "Instrument Inspector",
         "inspectorSubtitle": "Values the mapping is written from",
         "inspectorVolume": "Transfer volume (uL)",
@@ -1079,10 +1084,7 @@
         "drawerRight": "Next",
         "drawerRightDesc": "Activity data and EVOLVEpro handoff",
         "volumeLabel": "Transfer volume (uL)",
-        "volumeHint": "Written into the instrument mapping this run produces. The shipped 100 uL is an assumption with no lab source, so set the volume this experiment uses.",
-        "openDialog": "Janus instrument settings...",
-        "openDialogAriaLabel": "Open Janus instrument settings",
-        "dialogHint": "Optional. Deck rack numbers follow the plates of this run and the liquid class ships blank when unset; enter values here only to override them."
+        "volumeHint": "Written into the instrument mapping this run produces. The shipped 100 uL is an assumption with no lab source, so set the volume this experiment uses."
       }
     },
     "verdictBadge": {
@@ -2301,7 +2303,12 @@
   "whatsNewDialog": {
     "title": "What's New in v{{version}}",
     "description": "Highlights from the latest update.",
-    "gotItBtn": "Got it"
+    "gotItBtn": "Got it",
+    "highlights": [
+      "A well now reports its typical background noise beside its worst position, so the mixed gate can be judged against the run at hand.",
+      "On the 260729 run that gate sits about sixty times above a typical position and four times above the noisiest one observed."
+    ],
+    "highlightsStamp": "0.15.17+6ee369a3"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

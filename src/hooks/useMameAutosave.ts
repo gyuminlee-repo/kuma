@@ -48,6 +48,7 @@ function selectMameInputs(s: ReturnType<typeof useMameAppStore.getState>) {
     s.demuxResult,
     s.ampliconLengthEstimate,
     s.wellLayout,
+    s.layoutProvenance,
   ] as const;
 }
 

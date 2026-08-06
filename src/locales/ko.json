@@ -397,7 +397,7 @@
       "variantSheet": "변이 목록 시트",
       "variantColumn": "변이 열",
       "variantColumnPlaceholder": "열 선택",
-      "variantColumnHelper": "이 열의 행 순서대로 96-well에 배치됩니다. WT 행이 있으면 그 자리를 대조군으로 씁니다.",
+      "variantColumnHelper": "이 열의 행 순서대로 96-well에 배치됩니다. 채우는 방향은 플레이트의 세로 방향입니다. A1, B1, C1 순으로 H1까지 내려간 다음 A2로 넘어갑니다. WT 행이 있으면 그 자리를 대조군으로 쓰고, 대조군 행을 따로 추가하지 않습니다.",
       "variantColumnKuroHelper": "KURO export 판독 시트를 고르면 열은 mutant_id 로 고정되고 status 필터가 먼저 적용됩니다. 플레이트를 적은 다른 시트를 고르면 열을 직접 지정할 수 있습니다."
     },
     "activity": {
@@ -804,7 +804,7 @@
         },
         "destLayoutHint": {
           "source": "dest_well이 source plate 위치를 그대로 따릅니다. 두 pick이 같은 well에 겹치면 내보내기가 실패합니다.",
-          "compact": "dest_well을 priority 순서대로 A1부터 순차 배정하여 빈 well을 남기지 않습니다."
+          "compact": "dest_well을 priority 순서대로 A1부터 세로로 순차 배정합니다. A1, B1, C1 순으로 H1까지 내려간 다음 A2로 넘어갑니다. 빈 well은 남기지 않습니다."
         },
         "outputPathLabel": "출력 파일 경로",
         "outputPathPlaceholder": "저장할 .{{ext}} 파일 경로",
@@ -944,7 +944,7 @@
         "columnAuto": "자동 감지",
         "suggested": "자동 감지된 열: {{column}}",
         "noSuggestion": "자동으로 인식된 열이 없습니다. 변이 라벨이 있는 열을 고르세요.",
-        "helper": "이 열의 순서대로 한 행에 한 변이씩 well 에 배정됩니다. KURO export 는 매핑이 필요 없어 이 컨트롤이 표시되지 않습니다."
+        "helper": "이 열의 순서대로 한 행에 한 변이씩 well 에 배정됩니다. 채우는 방향은 플레이트의 세로 방향입니다. A1, B1, C1 순으로 H1까지 내려간 다음 A2로 넘어갑니다. KURO export 는 매핑이 필요 없어 이 컨트롤이 표시되지 않습니다."
       }
     },
     "setup": {
@@ -1040,6 +1040,11 @@
         "drawerRightDesc": "활성 데이터로 진행",
         "inspectorTitle": "검토 Inspector",
         "inspectorSubtitle": "well 선택 시 well 정보, 미선택 시 판정 요약"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "well-변이 대응 오류 의심",
+        "alertDesc": "관측 변이가 있는 well {{wells}}개 중 자기 expected와 일치 {{selfPercent}}%, 다른 well의 expected와 일치 {{crossPercent}}%. well과 변이의 대응이 어긋났을 가능성이 매우 높으니 이 결과를 신뢰하지 마십시오.",
+        "alertAriaLabel": "well-변이 매핑 무결성 경고"
       }
     },
     "inspector": {
@@ -1067,7 +1072,7 @@
       "settings": {
         "contextTitle": "Janus 장비 설정",
         "contextSubtitle": "장비 매핑 파일에 기록되는 이송 부피·데크 랙·리퀴드 클래스를 설정합니다. 시퀀싱 판정만 필요하면 건너뛸 수 있습니다.",
-        "optionalNote": "선택 단계입니다. 분석 실행이 픽 리스트와 장비 매핑을 스스로 기록하므로, 시퀀싱 판정만 필요하면 스텝 2에서 스텝 4로 바로 넘어가면 됩니다.",
+        "optionalNote": "선택 단계입니다. 분석 실행은 픽 리스트를 스스로 기록하지만, 장비 매핑은 여기서 내보낼 때만 기록됩니다. 시퀀싱 판정만 필요하면 스텝 2에서 스텝 4로 바로 넘어가면 됩니다.",
         "inspectorTitle": "장비 Inspector",
         "inspectorSubtitle": "매핑에 기록되는 값",
         "inspectorVolume": "이송 부피 (uL)",
@@ -1079,10 +1084,7 @@
         "drawerRight": "다음",
         "drawerRightDesc": "활성 데이터와 EVOLVEpro 핸드오프",
         "volumeLabel": "이송 volume (µL)",
-        "volumeHint": "이번 실행이 만드는 장비용 매핑 파일에 그대로 들어갑니다. 기본값 100 µL 는 실험실 근거가 없는 가정이므로 이번 실험에서 쓰는 값으로 바꾸세요.",
-        "openDialog": "Janus 장비 설정…",
-        "openDialogAriaLabel": "Janus 장비 설정 열기",
-        "dialogHint": "선택 사항입니다. rack 번호는 이번 실행의 plate 순서를 따르고 liquid class 는 비워 둔 채 나갑니다. 다른 값을 쓰고 싶을 때만 입력하세요."
+        "volumeHint": "이번 실행이 만드는 장비용 매핑 파일에 그대로 들어갑니다. 기본값 100 µL 는 실험실 근거가 없는 가정이므로 이번 실험에서 쓰는 값으로 바꾸세요."
       }
     },
     "verdictBadge": {
@@ -2301,7 +2303,12 @@
   "whatsNewDialog": {
     "title": "v{{version}} 새로운 기능",
     "description": "최신 업데이트의 주요 변경 사항입니다.",
-    "gotItBtn": "확인"
+    "gotItBtn": "확인",
+    "highlights": [
+      "이제 각 well 이 최악 위치와 함께 평상시 background noise 도 보고하므로, mixed gate 를 해당 run 기준으로 판단할 수 있습니다.",
+      "260729 run 에서 그 gate 는 일반적인 위치보다 약 60배, 관측된 가장 시끄러운 위치보다 약 4배 높은 곳에 있습니다."
+    ],
+    "highlightsStamp": "0.15.17+6ee369a3"
   },
   "primerDisplay": {
     "copySeqTitle": "서열 복사",

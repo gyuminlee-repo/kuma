@@ -1,12 +1,89 @@
 # Changelog
 
-## v0.15.14 (A threshold nobody had measured against)
+## v0.15.17 (A threshold nobody had measured against)
 
 The mixed-position gate fires at a fixed 0.20 minor-allele fraction, and until now the workbook reported only how bad the worst position in a well was. That says nothing about whether 0.20 is a lot or a little for the run in front of you.
 
+### Highlights
+
+- A well now reports its typical background noise beside its worst position, so the mixed gate can be judged against the run at hand.
+- On the 260729 run that gate sits about sixty times above a typical position and four times above the noisiest one observed.
+
 ### Changed
 
-- v0.15.14: A consensus reports the median minor-allele fraction over its eligible positions, the noise floor the well actually ran at, and the workbook carries it beside the peak. Measured on the 260729 ispS run the per-position median across 94 wells is 0.003 and the noisiest context-driven position is 0.054, so the gate sits about four times above the worst position observed and sixty times above a typical one. That margin is now visible per run rather than assumed.
+- v0.15.17: A consensus reports the median minor-allele fraction over its eligible positions, the noise floor the well actually ran at, and the workbook carries it beside the peak. Measured on the 260729 ispS run the per-position median across 94 wells is 0.003 and the noisiest context-driven position is 0.054, so the gate sits about four times above the worst position observed and sixty times above a typical one. That margin is now visible per run rather than assumed.
+
+## v0.15.16 (What's New says a few short things, in the language the app is set to)
+
+The What's New modal pasted the changelog into itself. It read the Added, Changed and Fixed bullets of the latest release, cut each one at 240 characters and showed the pieces: six of the seven notes that shipped with v0.15.6 ended mid-word, and what did fit was prose written for someone reading a diff, backticked parameter names and all. All seven were in English whatever language the app was set to, because the array was compiled into a TypeScript module that i18n never read. Two smaller faults travelled in the same area: three MAME help texts named a well-filling order without saying which way it goes, and the post-commit hook that keeps the version manifests in step died on a path that no longer exists.
+
+### Highlights
+
+- What's New now shows a short note per release instead of a cut-off copy of the changelog.
+- Those notes are translated into all ten languages, and a release cannot ship with a stale one.
+- The variant mapping help now says which way wells are filled: A1, B1, C1 to H1, then A2.
+- The post-commit version hook no longer breaks on a path that was removed.
+- A long release note now scrolls inside the dialog instead of running off the bottom.
+
+### Added
+
+- v0.15.16: A release can no longer ship a stale translation of those notes. `scripts/gen-whatsnew.mjs` writes `whatsNewDialog.highlightsStamp` into `en.json` as `<version>+<digest8>`, the version in `package.json` followed by the first eight hex characters of a sha256 over the English bullets, and `scripts/i18n-parity.mjs` fails when any of the ten locales carries a different value. The digest half is what makes it bite inside a release: a version-only stamp moves at a release boundary and nowhere else, so rewording a bullet after the bump, which this branch did twice while settling the v0.15.6 wording, would leave nine translations describing text that is no longer shipping while every gate stays green. Nothing else can see that, because `gen-whatsnew.mjs --check` reads `en.json` alone and key parity flattens an array to `highlights.0`, `highlights.1` and so on, where the previous release wording has the same element count and the same non-empty values.
+- v0.15.16: `scripts/i18n-parity.mjs` applies authoring rules to the translated bullets too, which the generator never sees: no backticks, and at most 200 characters. That is looser than the 140 imposed on English because the same sentence runs longer in most of these languages, and the set shipping here shows the gap is real (94 characters at most in English, against 115 in Brazilian Portuguese, 121 in French and 128 in German). A violation names the locale and the array index.
+- v0.15.16: `.githooks/pre-push` gained a third stage that runs `node scripts/i18n-lint.mjs` and `node scripts/i18n-parity.mjs`. The three scripts behind `sync:check` look at `en.json` alone, so a locale left on the previous release wording was invisible to every local gate and would have surfaced only in CI. The hook calls `node` directly at every stage, on `scripts/sync-check-all.mjs` and then on a `tsc` resolved from the checkout's own `node_modules`, falling back to the main checkout because a worktree carries no dependencies of its own and failing with both paths named when neither has one. No stage calls a package manager or an on-demand package runner: this is a Windows-target checkout on a shared folder, where a WSL-side install replaces `node_modules` with Linux binaries and leaves the app unable to start.
+- v0.15.16: Fourteen fixture tests for the two scripts, under `tests/scripts/`. Nine cover `scripts/gen-whatsnew.mjs`: the length and backtick rules with the reported figure checked, a bullet wrapped over two lines joined into one, all three cases that exit 2 rather than 1, and a one-character edit moving the stamp digest and failing `--check`. Five cover `scripts/i18n-parity.mjs`: a clean set, a locale still holding the previous stamp, a missing stamp in `en.json`, and the two translated-bullet rules. Each case runs the real script against a temporary repo tree, so the checks that gate a release are themselves checked.
+- v0.15.16: `.cross-layer-sync.json` carries a `whats-new-highlights` group naming `CHANGELOG.md` and all ten locale files, so editing a highlight reports the other files that have to move with it. It is `warning` rather than `blocking` on purpose: enforcement already lives in `gen-whatsnew.mjs --check` and `scripts/i18n-parity.mjs`, and the group is there to say so at edit time, not to check the same thing a second time.
+
+### Changed
+
+- v0.15.16: What's New shows a short note per release instead of a cut-off copy of the changelog. `scripts/gen-whatsnew.mjs` reads a `### Highlights` block written for the modal, at most five bullets of at most 140 characters each, no backticks and no `vX.Y.Z:` prefix, and a bullet that breaks a rule fails the build instead of being trimmed, because these bullets are shown verbatim and are never truncated. A bullet wrapped over several lines in `CHANGELOG.md` is joined back into one string with single spaces before the rules apply, so wrapping cannot buy extra length and cannot drop the rest of a note without saying so. The latest release section needs such a block now: the generator slices the top `## ` heading down to the next one and reads that alone, so a missing block there, or one with no bullets, exits 2 and fails `sync:check` with it, while the sections below are never inspected.
+- v0.15.16: The notes are translated into all ten languages. `src/components/dialogs/whatsNew.generated.ts` is deleted and `whatsNewDialog.highlights` in `src/locales/*.json` is what the modal reads through `t()`, generated into `en.json` and hand-translated into the nine others. The array used to be a TypeScript module compiled into the bundle, which is why every user read English regardless of the app language. The component keeps only string elements and renders no list at all when the value is missing or malformed, rather than printing a raw key.
+- v0.15.16: The modal is capped at 85% of the viewport height and its list scrolls. Header and footer refuse to shrink and the bullets take what is left, so a long set of notes can no longer push the Got it button past the bottom of the screen with no way back to it. The list is a tab stop of its own, since it scrolls, holds nothing focusable, and Radix keeps focus inside the dialog, which together left a keyboard-only user no way to reach the overflow. The margin is thinner than it looks: the bullets shipping here run to 94 characters in English and to 128 in German.
+- v0.15.16: Three MAME help texts state which way the wells are filled. `mame.inputPanel.variantMapping.helper`, `mame.barcodeSetup.variantColumnHelper` and `mame.dialogs.janusMapping.destLayoutHint.compact` each named an order without giving its direction, so a reader could take the same plate as A1, A2, A3 or as A1, B1, C1. The mapping has always been column-major (`seq_to_well` in `kuma_core/mame/export/well_mapper.py` sends 1 to 10 to A1 B1 C1 D1 E1 F1 G1 H1 A2 B2), and the three strings now spell that out as A1, B1, C1 to H1, then A2.
+- v0.15.16: The CI step name and the comments around it say what actually runs. The i18n step was called "i18n en/ko key parity" while reading all ten locales, and the `sync:check` comment still described a generated bundle file. `AGENTS.md` gains the highlights authoring rules, the stamp and its digest, the multi-line bullet behaviour, and the point that the i18n lint and parity scripts, not `sync:check`, are what read the other nine locales.
+
+### Fixed
+
+- v0.15.16: `scripts/sync-version.sh` no longer stages a file that was deleted. Its `git add` list still held `src/components/dialogs/whatsNew.generated.ts`, and under `set -euo pipefail` that failing command killed the post-commit hook after it had already rewritten the four version manifests in the working tree. What survived was a release commit whose message carried a version that the manifests it committed did not, which is the drift the hook exists to prevent. It stages `src/locales/en.json` instead, and the recovery commands it prints on failure name the same path.
+- v0.15.16: The German heading of the dialog is German now. `src/locales/de.json` had `whatsNewDialog.title` as "What's Neu in v{{version}}" and `whatsNewDialog.description` as "Highlights von die latest update.", English sentences with a few German words dropped into them, shown to every German user each time the dialog opened. They now read "Was ist neu in v{{version}}" and "Die wichtigsten Neuerungen des letzten Updates." Those two keys are hand-written, not generated, so no gate had anything to compare them against; the other nine locales carry sound wording for both keys and were left alone.
+
+## v0.15.15.01 (The banner about inputs a restore lost stops describing a project it already left)
+
+MAME lists the inputs a restore could not recover so the operator can point at them again. Nothing ever took an entry off that list except the browse button on the banner itself, and the list was only ever built once per hydration. Picking the file again in the normal input panel left the warning up, and a scratch entry inherited whatever the previous project had failed to find, because that path returns before the block that rebuilds the list. What the banner named was true at one moment and then kept being displayed as though it were still true.
+
+### Fixed
+
+- v0.15.15.01: An entry disappears as soon as its field holds a path again, whichever control filled it. The hydration hook and the banner now read one shared function instead of each carrying a copy of the field-to-value mapping.
+- v0.15.15.01: The list is cleared at the start of every hydration, ahead of the scratch early return, so entering a scratch session no longer shows what a different project was missing.
+- v0.15.15.01: Custom barcodes and sequencing summary are named by their file rather than by their own label twice. Both live under `parameters.raw_run_params` in the snapshot, and the lookup only searched the `input` block, so it found nothing and fell back to the label.
+
+## v0.15.15 (A finished run is checked against itself, and stops describing the file it no longer reads)
+
+The v0.15.10 refusal reads the workbook, so it only catches a plate that describes itself two ways. It cannot see a run whose verdicts were scored before the operator swapped the file underneath them. That is the shape the 2026-08-04 misscoring arrived in when the snapshot reached us: the expected path pointed at a re-exported workbook whose sheets agree, while the 288 verdicts beside it had been scored against the earlier one. Nothing on screen separated that from a run that simply went badly, because the well count, the plate map and the verdict tally all render the same either way. The finished analysis already carries the answer: of the 244 wells with an observed amino-acid change, none matched the variant assigned to that well and 241 matched the variant assigned to some other well. A permutation null over the same plate averages 2.49.
+
+### Added
+
+- v0.15.15: MAME compares each well against its own expected variant and against every other one after the run, and says so on the review screen when the second agreement is high and the first is near zero. The message carries the counts it was computed from rather than a fixed threshold, and it does not gate anything: the run is over by then, and what it can still do is stop the numbers from being read as biology. The check needs 24 wells before it will speak, so a small plate is not accused on thin evidence.
+- v0.15.15: Every run records how the wells were placed, whether from a layout that was given, a sample map, or the order of the expected sheet, along with the workbook it read. A verdict table that looks ordinary is now traceable to the decision that produced it.
+
+### Changed
+
+- v0.15.15: Choosing a different run folder, expected workbook, reference or sample map clears what the previous run produced. The screen used to keep the verdicts, the plate map and the two instrument-file notices next to inputs that no longer made them, which reads as a description of the file now selected. Re-picking the same path changes nothing, and the export destination is not an input, so neither clears anything.
+- v0.15.15: The analyze screens carry no Janus text at all. The instrument controls moved to step 3 in v0.15.12 but the notice about the files a run wrote stayed behind, which is the one thing an operator who stops at a sequencing verdict has no use for. It is stated in step 3, where the rest of the instrument work already lives.
+- v0.15.15: Step 3 shows the instrument settings on the page instead of behind a button that opened a dialog. The deck preview and the row preview are what the operator checks before an export, and they were being read through a modal on a screen that exists to hold them. Nothing was gained by the extra click, and the preview had less room than the step had to give.
+- v0.15.15: A run no longer writes the instrument mapping file. Analyzing produced the 9-column robot sheet next to the workbook whether or not anyone intended to touch a robot, which made step 3 a formality for an operator who only wanted a sequencing verdict. The pick list is still written by the run, since selecting clones is what the run is for, and the mapping file is written when it is exported from step 3.
+
+### Fixed
+
+- v0.15.15: A well layout MAME inferred for one run no longer comes back from a restored project as though the operator had chosen it. It used to be stored with the verdicts, restored into the input state, and sent to the next run as a layout that was given, which told validation the sheet order never reached a well and lowered the warning it would otherwise raise. A layout with no recorded origin is treated as inferred for the same reason.
+- v0.15.15: An amplicon that cannot be extracted says which of the three reasons applied. It reported every case as primer boundaries that were not unique, including the ordinary one where a bare CDS reference simply does not contain the primer tails, which sent the reader looking for duplicate binding sites that were never there.
+
+## v0.15.14 (The step 2.2 height fix reaches the people who needed it)
+
+The panel sizing shipped in v0.15.11 did nothing on any machine that had opened step 2.2 before. It skipped the fit whenever a stored layout existed for the panel group, reading that as a size the operator had chosen. The panel library writes that entry on mount for its own default layout, so it was there for everyone who had ever opened the step, and the fix sat inert behind it. Reinstalling the app did not clear it either: the store lives in the webview profile, not in the installed files.
+
+### Fixed
+
+- v0.15.14: Only a drag counts as a size the operator chose, and it is recorded under its own key. A layout the panel library persisted on its own no longer suppresses the content fit, so the plate map takes the height its rows need on machines that had used step 2.2 before v0.15.11. A split someone actually dragged is still left alone, across restarts.
 
 ## v0.15.13 (The replicate that reads cleanest is the one that ships)
 

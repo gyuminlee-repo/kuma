@@ -337,7 +337,7 @@
       "variantSheet": "List so spiskom variantov",
       "variantColumn": "Stolbec variantov",
       "variantColumnPlaceholder": "Vyberite stolbec",
-      "variantColumnHelper": "Poryadok strok etogo stolbca zapolnyaet 96-lunochnyy planshet. Stroka WT sluzhit kontrolem.",
+      "variantColumnHelper": "Строки заполняют 96-луночный планшет в порядке этого столбца, сверху вниз по каждому столбцу планшета: A1, B1, C1 до H1, затем A2. Строка WT служит контролем, отдельная строка не добавляется.",
       "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
     },
     "activity": {
@@ -679,7 +679,7 @@
         },
         "destLayoutHint": {
           "source": "dest_well повторяет позицию source plate. Экспорт завершится ошибкой, если два pick попадут в один well.",
-          "compact": "dest_well назначается последовательно с A1 в порядке priority, без пустых well."
+          "compact": "dest_well назначается последовательно с A1 в порядке приоритета, сверху вниз по каждому столбцу (A1, B1, C1 до H1, затем A2), без пустых лунок."
         },
         "outputPathLabel": "Путь к выходному файлу",
         "outputPathPlaceholder": "Путь к целевому файлу .{{ext}}",
@@ -819,7 +819,7 @@
         "columnAuto": "Auto-detect",
         "suggested": "Auto-detected column: {{column}}",
         "noSuggestion": "No column was recognised automatically. Choose the one holding the variant labels.",
-        "helper": "Wells are filled in this column's order, one variant per row. A KURO export needs no mapping and hides these controls."
+        "helper": "Лунки заполняются в порядке этого столбца, по одному варианту в строке: сверху вниз по каждому столбцу планшета, A1, B1, C1 до H1, затем A2. Экспорт KURO не требует маппинга и скрывает эти поля."
       }
     },
     "janusDeck": {
@@ -843,7 +843,7 @@
       "settings": {
         "contextTitle": "Настройки прибора Janus",
         "contextSubtitle": "Объём переноса, стойки дека и liquid class, из которых записывается карта для прибора. Необязательно: запуск только для секвенирования может пропустить этот шаг.",
-        "optionalNote": "Этот шаг необязателен. Запуск анализа сам записывает список пиков и карту для прибора, поэтому запуск, которому нужны только вердикты секвенирования, переходит с шага 2 сразу к шагу 4.",
+        "optionalNote": "Этот шаг необязателен. Запуск анализа сам записывает список пиков; карта для прибора записывается только при экспорте здесь, поэтому запуск, которому нужны только вердикты секвенирования, переходит с шага 2 сразу к шагу 4.",
         "inspectorTitle": "Inspector прибора",
         "inspectorSubtitle": "Значения, из которых записывается карта",
         "inspectorVolume": "Объём переноса (uL)",
@@ -855,10 +855,7 @@
         "drawerRight": "Далее",
         "drawerRightDesc": "Данные активности и передача в EVOLVEpro",
         "volumeLabel": "Obyom perenosa (uL)",
-        "volumeHint": "Zapisyvaetsya v kartu dlya pribora, kotoruyu sozdayot etot zapusk. Postavlyaemye 100 uL eto dopushchenie bez laboratornogo istochnika, ukazhite obyom etogo eksperimenta.",
-        "openDialog": "Настройки прибора Janus…",
-        "openDialogAriaLabel": "Открыть настройки прибора Janus",
-        "dialogHint": "Neobyazatelno. Nomera rack sleduyut plastinam etogo zapuska, a liquid class ostayotsya pustym, esli ne zadan. Vvodite znacheniya tolko dlya zameny."
+        "volumeHint": "Zapisyvaetsya v kartu dlya pribora, kotoruyu sozdayot etot zapusk. Postavlyaemye 100 uL eto dopushchenie bez laboratornogo istochnika, ukazhite obyom etogo eksperimenta."
       }
     },
     "setup": {
@@ -954,6 +951,11 @@
         "drawerRightDesc": "Proceed to activity",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "Возможна ошибка сопоставления лунка-вариант",
+        "alertDesc": "Из {{wells}} лунок с наблюдаемым вариантом {{selfPercent}}% совпадают с собственной ожидаемой мутацией, а {{crossPercent}}% совпадают с ожидаемой мутацией другой лунки. Сопоставление лунка-вариант, скорее всего, нарушено; не доверяйте этому результату.",
+        "alertAriaLabel": "Предупреждение о целостности сопоставления лунка-вариант"
       }
     },
     "inspector": {
@@ -2268,7 +2270,12 @@
   "whatsNewDialog": {
     "title": "Что нового в v{{version}}",
     "description": "Основные изменения последнего обновления.",
-    "gotItBtn": "Понятно"
+    "gotItBtn": "Понятно",
+    "highlights": [
+      "Лунка теперь сообщает свой обычный фоновый шум рядом с худшей позицией, поэтому mixed gate можно оценивать применительно к текущему run.",
+      "В run 260729 этот порог примерно в шестьдесят раз выше типичной позиции и в четыре раза выше самой шумной из наблюдавшихся."
+    ],
+    "highlightsStamp": "0.15.17+6ee369a3"
   },
   "primerDisplay": {
     "copySeqTitle": "Копировать sequence",

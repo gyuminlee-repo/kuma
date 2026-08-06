@@ -38,6 +38,7 @@ import { MAME_SCHEMA } from "@/lib/mame/autosaveSnapshot";
 import { detectProjectFiles, detectFromInputDir } from "@/lib/mame/detectProjectFiles";
 import {
   basename as inputBasename,
+  filterStillMissing,
   useMissingInputs,
   type MissingInput,
 } from "@/lib/mame/missingInputs";
@@ -1151,6 +1152,18 @@ const MAME_SNAPSHOT_KEY: Partial<Record<MamePathField, string>> = {
 };
 
 /**
+ * customBarcodesPath/sequencingSummaryPath 는 input 블록이 아니라
+ * `parameters.raw_run_params` 밑에 저장된다(`autosaveSnapshot.ts`
+ * `portableRawRunParams`). input 블록만 찾던 예전 코드가 이 둘을 못 찾아
+ * "커스텀 바코드  커스텀 바코드"처럼 라벨을 이름 자리에 두 번 출력했다.
+ * raw_run_params 는 snake_case 변환 없이 그대로 저장되므로 키 이름이 같다.
+ */
+const MAME_RAW_RUN_PARAMS_KEY: Partial<Record<MamePathField, string>> = {
+  customBarcodesPath: "customBarcodesPath",
+  sequencingSummaryPath: "sequencingSummaryPath",
+};
+
+/**
  * 되찾지 못한 필드를 배너에 보여줄 형태로 바꾼다.
  *
  * 스냅샷 형식은 `lib/projectPath.ts` 규약이라 프로젝트 밖 값은 절대 경로
@@ -1161,9 +1174,11 @@ const MAME_SNAPSHOT_KEY: Partial<Record<MamePathField, string>> = {
 function describeMissingInput(
   field: MamePathField,
   input: Record<string, unknown> | undefined,
+  rawRunParams: Record<string, unknown> | undefined,
 ): MissingInput {
-  const key = MAME_SNAPSHOT_KEY[field];
-  const stored = key ? input?.[key] : undefined;
+  const inputKey = MAME_SNAPSHOT_KEY[field];
+  const rawKey = MAME_RAW_RUN_PARAMS_KEY[field];
+  const stored = inputKey ? input?.[inputKey] : rawKey ? rawRunParams?.[rawKey] : undefined;
   return typeof stored === "string" && isExternalPath(stored)
     ? { field, name: inputBasename(stored) }
     : { field, name: i18next.t(MAME_PATH_LABEL_KEYS[field]) };
@@ -1172,15 +1187,14 @@ function describeMissingInput(
 /** 자동 감지가 끝난 뒤에도 여전히 비어 있는 필드만 남긴다. */
 function stillMissing(fields: MamePathField[]): MamePathField[] {
   const store = useMameAppStore.getState();
-  const value: Record<MamePathField, string> = {
+  return filterStillMissing(fields, {
     inputDir: store.inputDir,
     expectedPath: store.expectedPath,
     referencePath: store.referencePath,
     sampleMapPath: store.sampleMapPath,
     customBarcodesPath: store.rawRunParams.customBarcodesPath ?? "",
     sequencingSummaryPath: store.rawRunParams.sequencingSummaryPath ?? "",
-  };
-  return fields.filter((f) => !value[f]);
+  });
 }
 
 // ─── Mame 자동 탐지 ──────────────────────────────────────────────────────
@@ -1405,8 +1419,39 @@ function applyMameSnapshot(
   if (typeof results.amplicon_length_estimate === "object") {
     patch.ampliconLengthEstimate = results.amplicon_length_estimate as MameAppState["ampliconLengthEstimate"];
   }
+  // The layout this well_layout came from. Absent on a snapshot saved before
+  // this field existed (schema had no layout_provenance yet); present but
+  // null when a run genuinely had nothing to report.
+  const layoutProvenance = results.layout_provenance as
+    | MameAppState["layoutProvenance"]
+    | undefined;
+  if (typeof layoutProvenance === "object" && layoutProvenance !== null) {
+    patch.layoutProvenance = layoutProvenance;
+  }
   if (typeof results.well_layout === "object") {
-    patch.wellLayout = results.well_layout as MameAppState["wellLayout"];
+    // A well_layout the pipeline INFERRED (no explicit input, no sample map)
+    // must never be promoted to `state.wellLayout`: that field is sent back
+    // as the explicit `well_layout` RPC param on the next analyze call, which
+    // would turn `layout_source` into "explicit_well_layout" and hide the
+    // very fact that flagged this result as a guess (2026-08 mapping-integrity
+    // incident -- a stale `expected` produced a plausible-looking inferred
+    // layout that then re-entered as if the operator had supplied it).
+    //
+    // A snapshot saved before `layout_provenance` existed carries no opinion
+    // either way. The safe read here is to treat "unknown" the same as
+    // "inferred": do not promote. The well_layout that DID reach an old
+    // snapshot's `results.well_layout` was always written by the pre-v0.15.6
+    // manual layout UI (explicit by construction, per inputSlice.ts's comment
+    // on `wellLayout`), so this only affects the one shape that UI's removal
+    // already stopped producing, and getting it wrong would be silent, not
+    // loud, in exactly the way this whole feature exists to prevent.
+    const isInferredOrUnknown =
+      layoutProvenance === undefined ||
+      layoutProvenance === null ||
+      layoutProvenance.source === "inferred_draft_layout";
+    if (!isInferredOrUnknown) {
+      patch.wellLayout = results.well_layout as MameAppState["wellLayout"];
+    }
   }
   if (hasReviewResults) {
     patch.mamePhase = "analyze";
@@ -1507,6 +1552,15 @@ async function restoreMameResult(
   // Restored runs must be able to explain a zero-verdict outcome too, so carry
   // the demux yield out of the persisted response instead of dropping it.
   store.setAnalyzeYield(pickAnalyzeYield(result));
+  if (!alive()) return false;
+  // Carry the mapping-integrity warning (Task C) and layout provenance
+  // through a restart. `?? null` covers a result persisted before these
+  // fields existed. NOT used to decide well_layout promotion here --
+  // applyMameSnapshot (input snapshot) already made that call above, from its
+  // own `layout_provenance`, before this result file is even read.
+  store.setLayoutProvenance(result.layout_provenance ?? null);
+  if (!alive()) return false;
+  store.setMappingIntegrity(result.mapping_integrity ?? null);
   if (!alive()) return false;
   store.setDistributionStats(result.distribution_stats ?? null);
   if (!alive()) return false;
@@ -1647,6 +1701,11 @@ export function useAutosaveHydration(
 
     void (async () => {
       setRunPhase("reset");
+      // scratch 진입이나 이후 조기 return 경로에서도 이전 프로젝트의 배너
+      // 항목이 남지 않도록, 프로젝트 전용 setMissing(:1890 부근)보다 먼저 통째로
+      // 비운다. mame 블록에 아예 도달하지 못하는 scratch 세션이 있어서, 그 쪽에
+      // 맡기면 이전 항목이 새 프로젝트로 새어 나간다.
+      useMissingInputs.getState().clear();
       useAppStore.getState().resetAll({ preserveWorkspaceArtifacts: true });
       await resetMameAll({ preserveWorkspaceArtifacts: true });
 
@@ -1900,6 +1959,9 @@ export function useAutosaveHydration(
             field,
             mameResult.status === "ok"
               ? ((mameResult.snapshot as MameAutosaveSnapshot).input as unknown as Record<string, unknown>)
+              : undefined,
+            mameResult.status === "ok"
+              ? ((mameResult.snapshot as MameAutosaveSnapshot).parameters.raw_run_params as unknown as Record<string, unknown>)
               : undefined,
           ),
         ),

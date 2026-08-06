@@ -337,7 +337,7 @@
       "variantSheet": "Variantenblatt",
       "variantColumn": "Variantenspalte",
       "variantColumnPlaceholder": "Spalte waehlen",
-      "variantColumnHelper": "Die Zeilenreihenfolge dieser Spalte fuellt die 96-Well-Platte. Eine WT-Zeile dient als Kontrolle.",
+      "variantColumnHelper": "Die Zeilen füllen die 96-Well-Platte in der Reihenfolge dieser Spalte, dabei jede Plattenspalte von oben nach unten: A1, B1, C1 bis H1, dann A2. Eine WT-Zeile dient als Kontrolle, statt eine anzuhängen.",
       "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
     },
     "activity": {
@@ -679,7 +679,7 @@
         },
         "destLayoutHint": {
           "source": "dest_well übernimmt die Position der source plate. Der Export schlägt fehl, wenn zwei picks im selben well landen.",
-          "compact": "dest_well wird in priority Reihenfolge ab A1 fortlaufend vergeben, ohne leere wells."
+          "compact": "dest_well wird in priority-Reihenfolge ab A1 fortlaufend vergeben, dabei jede Plattenspalte von oben nach unten (A1, B1, C1 bis H1, dann A2), ohne leere Wells."
         },
         "outputPathLabel": "Ausgabe-Dateipfad",
         "outputPathPlaceholder": "Target .{{ext}} Datei Pfad",
@@ -819,7 +819,7 @@
         "columnAuto": "Auto-detect",
         "suggested": "Auto-detected column: {{column}}",
         "noSuggestion": "No column was recognised automatically. Choose the one holding the variant labels.",
-        "helper": "Wells are filled in this column's order, one variant per row. A KURO export needs no mapping and hides these controls."
+        "helper": "Die Wells werden in der Reihenfolge dieser Spalte befüllt, eine Variante pro Zeile, dabei jede Plattenspalte von oben nach unten: A1, B1, C1 bis H1, dann A2. Ein KURO-Export braucht kein Mapping und blendet diese Auswahlfelder aus."
       }
     },
     "janusDeck": {
@@ -843,7 +843,7 @@
       "settings": {
         "contextTitle": "Janus-Geräteeinstellungen",
         "contextSubtitle": "Transfervolumen, Deck-Racks und Liquid Class, aus denen das Geräte-Mapping geschrieben wird. Optional: ein Lauf, der nur Sequenzierung braucht, kann diesen Schritt überspringen.",
-        "optionalNote": "Dieser Schritt ist optional. Ein Analyselauf schreibt Pickliste und Geräte-Mapping selbst, daher kann ein Lauf, der nur Sequenzier-Verdicts braucht, von Schritt 2 direkt zu Schritt 4 gehen.",
+        "optionalNote": "Dieser Schritt ist optional. Ein Analyselauf schreibt die Pickliste von selbst; das Geraete-Mapping wird nur geschrieben, wenn es hier exportiert wird. Ein Lauf, der nur Sequenzier-Verdicts braucht, kann daher von Schritt 2 direkt zu Schritt 4 gehen.",
         "inspectorTitle": "Geräte-Inspector",
         "inspectorSubtitle": "Werte, aus denen das Mapping geschrieben wird",
         "inspectorVolume": "Transfervolumen (uL)",
@@ -855,10 +855,7 @@
         "drawerRight": "Weiter",
         "drawerRightDesc": "Aktivitätsdaten und EVOLVEpro-Übergabe",
         "volumeLabel": "Transfervolumen (uL)",
-        "volumeHint": "Wird in das Geraete-Mapping dieses Laufs geschrieben. Die ausgelieferten 100 uL sind eine Annahme ohne Laborquelle, also den Wert dieses Experiments setzen.",
-        "openDialog": "Janus-Geräteeinstellungen …",
-        "openDialogAriaLabel": "Janus-Geräteeinstellungen öffnen",
-        "dialogHint": "Optional. Racknummern folgen den Platten dieses Laufs, die Liquid Class bleibt leer, wenn nicht gesetzt. Werte hier nur zum Ueberschreiben eingeben."
+        "volumeHint": "Wird in das Geraete-Mapping dieses Laufs geschrieben. Die ausgelieferten 100 uL sind eine Annahme ohne Laborquelle, also den Wert dieses Experiments setzen."
       }
     },
     "setup": {
@@ -954,6 +951,11 @@
         "drawerRightDesc": "Proceed to activity",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "Well-Varianten-Zuordnung wahrscheinlich fehlerhaft",
+        "alertDesc": "Von {{wells}} Wells mit beobachteter Variante stimmen {{selfPercent}}% mit der eigenen erwarteten Mutation überein, {{crossPercent}}% dagegen mit der erwarteten Mutation eines anderen Wells. Die Well-Varianten-Zuordnung ist mit hoher Wahrscheinlichkeit verschoben; diesem Ergebnis ist nicht zu trauen.",
+        "alertAriaLabel": "Warnung zur Well-Varianten-Zuordnungsintegrität"
       }
     },
     "inspector": {
@@ -2266,9 +2268,14 @@
     "exportBtn": "Exportieren"
   },
   "whatsNewDialog": {
-    "title": "What's Neu in v{{version}}",
-    "description": "Highlights von die latest update.",
-    "gotItBtn": "Verstanden"
+    "title": "Was ist neu in v{{version}}",
+    "description": "Die wichtigsten Neuerungen des letzten Updates.",
+    "gotItBtn": "Verstanden",
+    "highlights": [
+      "Ein Well meldet jetzt neben seiner schlechtesten Position auch sein typisches Grundrauschen, sodass das Mixed-Gate am jeweiligen Run gemessen werden kann.",
+      "Im Run 260729 liegt dieses Gate etwa sechzigmal ueber einer typischen Position und viermal ueber der lautesten beobachteten."
+    ],
+    "highlightsStamp": "0.15.17+6ee369a3"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",

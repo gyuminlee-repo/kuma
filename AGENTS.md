@@ -59,16 +59,23 @@ pnpm run build:all        # sidecar:build + tauri build (full release)
 DMG bundle 단계 실패 시 `pnpm run sidecar:hash:postbuild` 단독 실행으로 sidecar 재서명 + manifest 갱신 + DMG 재생성. 풀 재빌드 불필요. integrity check 자체는 비활성 금지 (공급망 방어).
 
 ### Git hooks (new machine setup)
-`bash bin/install-git-hooks.sh` — wires `.githooks/pre-push` (runs `pnpm sync:check && npx tsc --noEmit`). Emergency bypass: `git push --no-verify`.
+`bash bin/install-git-hooks.sh` 가 `git config core.hooksPath .githooks` 를 걸어 `.githooks/pre-push` 를 활성화한다. 훅은 세 단계를 전부 `node` 로 돌린다: `node scripts/sync-check-all.mjs`, 체크아웃 안에서 찾은 `node_modules/typescript/bin/tsc --noEmit`, 그리고 `node scripts/i18n-lint.mjs` 와 `node scripts/i18n-parity.mjs`. 패키지 매니저도 온디맨드 실행기도 부르지 않으므로 공유 폴더 WSL 체크아웃에서도 안전하다. worktree 는 자체 의존성이 없어 main checkout 의 `node_modules` 로 폴백하고, 양쪽 어디에도 typescript 가 없으면 훅이 그 두 경로를 출력하고 exit 1 한다. 긴급 우회: `git push --no-verify`.
 
 ### Pre-commit checks (must pass before tagging)
 ```bash
-npx tsc --noEmit                    # TypeScript typecheck
+node node_modules/typescript/bin/tsc --noEmit   # TypeScript typecheck
 cd src-tauri && cargo check         # Rust compile check
 pnpm sync:check                     # cross-layer + groups + What's New drift
 ```
 
-`sync:check` 는 세 스크립트를 이어 돌린다: `sync-check.mjs`, `sync-check-groups.mjs`, `gen-whatsnew.mjs --check`. **첫 번째만 돌리고 통과로 판단하지 말 것.** 세 번째가 `whatsNew.generated.ts` 의 CHANGELOG 대비 drift 를 잡으며, 이걸 빠뜨려 v0.13.30 첫 태그 빌드가 quality-gates 에서 실패했다 (그 결과 `build` 와 `release` 가 skip). WSL 에서는 `pnpm` 대신 세 스크립트를 `node` 로 직접 실행한다. CHANGELOG 를 고쳤으면 `node scripts/gen-whatsnew.mjs` 로 재생성해 함께 커밋한다.
+`sync:check` 는 세 스크립트를 이어 돌린다: `sync-check.mjs`, `sync-check-groups.mjs`, `gen-whatsnew.mjs --check`. **첫 번째만 돌리고 통과로 판단하지 말 것.** 세 번째가 `src/locales/en.json` 의 `whatsNewDialog.highlights` 가 CHANGELOG 최신 섹션의 `### Highlights` 블록과 어긋났는지 잡으며, 이걸 빠뜨려 v0.13.30 첫 태그 빌드가 quality-gates 에서 실패했다 (그 결과 `build` 와 `release` 가 skip). WSL 에서는 `pnpm` 대신 세 스크립트를 `node` 로 직접 실행한다.
+
+여기에 What's New 모달 때문에 네 가지 강제 사항이 붙는다.
+
+- **CHANGELOG 최상단(최신) 릴리스 섹션은 `### Highlights` 블록을 가져야 한다.** `gen-whatsnew.mjs` 는 첫 `## ` 헤딩부터 다음 `## ` 직전까지 한 섹션만 잘라 읽으므로(`scripts/gen-whatsnew.mjs:107-131`) 그 아래 과거 섹션은 검사 대상이 아니다. 최상단 섹션에 블록이 없거나 불릿이 0개면 `gen-whatsnew.mjs` 가 exit 2 로 생성을 거부하고 `sync:check` 도 같이 실패한다. 블록 규칙은 불릿 5개 이하, 각 140자 이하, 백틱 금지, `vX.Y.Z:` 접두사 금지이고 위반은 exit 1 이다 (불릿은 모달에 그대로 표시되고 잘리지 않으므로 다듬지 않고 실패시킨다). `### Highlights` 를 고쳤으면 `node scripts/gen-whatsnew.mjs` 로 en.json 을 재생성해 함께 커밋한다.
+- **하이라이트를 바꾸면 9개 로케일 번역과 스탬프를 같이 갱신해야 한다.** `gen-whatsnew.mjs` 는 en.json 에 `whatsNewDialog.highlightsStamp` 도 쓴다. 값은 `<version>+<digest8>` 이고 digest8 은 영문 highlights 배열을 `JSON.stringify` 한 문자열의 sha256 앞 8자리다(배열 순서가 의미를 가지므로 정렬하지 않는다). 나머지 로케일은 `whatsNewDialog.highlights` 를 손으로 번역한 뒤 각 파일의 `highlightsStamp` 를 같은 값으로 맞춰야 `node scripts/i18n-parity.mjs` 가 통과한다. 이 검사는 `sync:check` 밖에서 돈다: 로컬에서는 `.githooks/pre-push` 3단계(`node scripts/i18n-lint.mjs` + `node scripts/i18n-parity.mjs`), CI 에서는 `ci.yml` 이 두 스크립트를 각각 `node` 로, `build.yml` 이 `i18n:check` 패키지 스크립트로 부른다. 스탬프가 없으면 낡은 번역을 아무도 못 잡는다: `gen-whatsnew.mjs --check` 는 en.json 만 보고, parity 는 평탄화 키 집합을 비교하므로 배열에서는 원소 개수와 빈 문자열만 보인다. 지난 릴리스 문구가 그대로 남아 있어도 개수와 값이 멀쩡해 모든 게이트가 초록으로 통과한다. 스탬프에 내용 해시를 넣은 이유는 버전만으로는 **같은 버전 안의 문구 수정**을 못 잡기 때문이다(v0.15.6 하이라이트 2번과 5번을 릴리스 사이에 고친 전례). 한 글자만 고쳐도 digest 가 바뀌어 9개 로케일이 전부 불일치로 잡힌다.
+- **번역 문구에도 규칙이 걸린다.** `i18n-parity.mjs` 가 9개 로케일의 `highlights` 원소마다 백틱 금지와 200자 상한(영문 140자보다 느슨, 번역은 길어진다)을 검사하고 위반 시 로케일과 인덱스를 지목하며 exit 1 한다.
+- **CHANGELOG 불릿은 여러 줄로 감아도 된다.** 이어지는 줄은 공백 하나로 합쳐져 한 불릿이 되고, 빈 줄이나 다음 `- ` 또는 `###` 에서 끝난다. 합친 뒤에 140자·백틱 규칙이 적용되므로 두 줄로 나눠 길이 제한을 우회할 수는 없다.
 
 로컬에서 `sync-check.mjs` 의 `tauri-resources` 가 `resources/NOTICE.md` 부재로 실패하는 것은 환경 문제가 아니라 구조다. 그 파일은 `scripts/build-notice.mjs` 가 릴리스 빌드 때 만들고 `.gitignore` 에 있으므로 새 체크아웃에는 절대 없다. pre-push 는 `scripts/pre-push-sync.mjs` 를 거쳐 이 한 건만 경고로 낮추고 나머지는 그대로 막는다. CI 는 빌드 후 검사하므로 `pnpm sync:check` 를 엄격하게 그대로 쓴다.
 
@@ -164,7 +171,10 @@ cross-layer 의존은 **`.cross-layer-sync.json` `groups[]`** 로 관리. 단일
 - Export destination controls must use a save-file dialog, not an open-file dialog.
 - Pre-run MAME result tables should render an empty state instead of surfacing an error boundary.
 - If a Tauri close handler calls `preventDefault()`, shutdown/autosave work must be bounded by timeouts and the window must still close in a `finally` path.
-- MAME major steps are 1. Barcode Setup / 2. Analyze / 3. Janus instrument settings / 4. Activity Data. Step 3 is optional: an operator who only wants a sequencing verdict stops at step 2, so no Janus value may gate a run, step 2, or step 4, and Janus controls do not belong on the analyze screens.
+- MAME major steps are 1. Barcode Setup / 2. Analyze / 3. Janus instrument settings / 4. Activity Data. Step 3 is optional: an operator who only wants a sequencing verdict stops at step 2, so no Janus value may gate a run, step 2, or step 4, and Janus controls do not belong on the analyze screens. Nothing about Janus belongs there, including notices about what a run wrote.
+- An analyze run writes the pick list (`..._picks.csv`, `legacy5`) automatically and nothing else for the instrument. The 9-column robot sheet (`..._janus.csv`, `device9`) is written only by a manual `export_janus_mapping` call from the step 3 mapping panel, because a worklist states a deck and a liquid class that describe the room at export time and must not be reasserted by every re-run.
+- Step 3 renders its mapping panel inline on the page. Do not reintroduce a dialog for it: step 3 is already a dedicated screen.
+- Changing an analyze input (run folder, expected workbook, reference FASTA, sample map, or any parameter sent to the sidecar) clears the previous run outputs. Re-picking the same value changes nothing, and the output path is a destination rather than an input, so it does not clear anything.
 
 ### Tauri resource bundling
 - No glob patterns (`**`) in `tauri.conf.json` resources — use explicit file-to-file mappings

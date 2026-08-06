@@ -166,6 +166,7 @@ describe("buildMameSnapshot", () => {
       demuxResult: null,
       ampliconLengthEstimate: null,
       wellLayout: { A01: "V5F" },
+      layoutProvenance: null,
     }, {
       rounds: [round],
       activeRoundId: "round_1",
@@ -186,6 +187,7 @@ describe("buildMameSnapshot", () => {
         demux_result: null,
         amplicon_length_estimate: null,
         well_layout: { A01: "V5F" },
+        layout_provenance: null,
       },
     });
   });
@@ -230,6 +232,7 @@ describe("buildMameSnapshot 경로 이식성", () => {
     demuxResult: null,
     ampliconLengthEstimate: null,
     wellLayout: null,
+    layoutProvenance: null,
     ...overrides,
   });
 

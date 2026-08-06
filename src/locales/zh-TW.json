@@ -337,7 +337,7 @@
       "variantSheet": "變異清單工作表",
       "variantColumn": "變異欄",
       "variantColumnPlaceholder": "選擇欄位",
-      "variantColumnHelper": "依此欄的列順序填入 96 孔盤。若有 WT 列，則以其作為對照。",
+      "variantColumnHelper": "依此欄的列順序填入 96 孔盤，在盤上先由上往下填滿一欄再換下一欄：A1、B1、C1 到 H1，接著 A2。若有 WT 列，則以其作為對照，不會另行追加。",
       "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
     },
     "activity": {
@@ -679,7 +679,7 @@
         },
         "destLayoutHint": {
           "source": "dest_well 沿用 source plate 的位置。若兩個 pick 落在同一個 well，匯出將失敗。",
-          "compact": "dest_well 依 priority 順序從 A1 起依序分配，不留空 well。"
+          "compact": "dest_well 依 priority 順序從 A1 起依序分配，先由上往下填滿一欄再換下一欄（A1、B1、C1 到 H1，接著 A2），不留空 well。"
         },
         "outputPathLabel": "輸出檔案路徑",
         "outputPathPlaceholder": "目標 .{{ext}} 檔案路徑",
@@ -819,7 +819,7 @@
         "columnAuto": "Auto-detect",
         "suggested": "Auto-detected column: {{column}}",
         "noSuggestion": "No column was recognised automatically. Choose the one holding the variant labels.",
-        "helper": "Wells are filled in this column's order, one variant per row. A KURO export needs no mapping and hides these controls."
+        "helper": "Well 依此欄的列順序填入，一列一個變異；在孔盤上先由上往下填滿一欄再換下一欄：A1、B1、C1 到 H1，接著 A2。KURO 匯出檔不需對應，並會隱藏這些控制項。"
       }
     },
     "janusDeck": {
@@ -843,7 +843,7 @@
       "settings": {
         "contextTitle": "Janus 設備設定",
         "contextSubtitle": "設定寫入設備對應檔的轉移體積、deck 架位與 liquid class。選用：只需定序判定的執行可略過此步驟。",
-        "optionalNote": "此步驟為選用。分析執行會自行寫出挑取清單與設備對應檔，因此只需定序判定的執行可從步驟 2 直接進入步驟 4。",
+        "optionalNote": "此步驟為選用。分析執行會自行寫出挑取清單；設備對應檔僅在此處匯出時才會寫出，因此只需定序判定的執行可從步驟 2 直接進入步驟 4。",
         "inspectorTitle": "設備 Inspector",
         "inspectorSubtitle": "寫入對應檔所用的值",
         "inspectorVolume": "轉移體積 (uL)",
@@ -855,10 +855,7 @@
         "drawerRight": "下一步",
         "drawerRightDesc": "活性資料與 EVOLVEpro 交接",
         "volumeLabel": "轉移體積 (µL)",
-        "volumeHint": "此值會直接寫入本次執行產生的儀器對應檔。預設 100 µL 是沒有實驗室依據的假設，請改成本次實驗實際使用的體積。",
-        "openDialog": "Janus 設備設定…",
-        "openDialogAriaLabel": "開啟 Janus 設備設定",
-        "dialogHint": "選填。機架編號依本次執行的盤順序推導，liquid class 未設定時留空輸出；僅在需要覆寫時填寫。"
+        "volumeHint": "此值會直接寫入本次執行產生的儀器對應檔。預設 100 µL 是沒有實驗室依據的假設，請改成本次實驗實際使用的體積。"
       }
     },
     "setup": {
@@ -954,6 +951,11 @@
         "drawerRightDesc": "Proceed to activity",
         "inspectorTitle": "Review Inspector",
         "inspectorSubtitle": "Shows well details when a well is selected, otherwise verdict summary"
+      },
+      "mappingIntegrity": {
+        "alertTitle": "well 與變異對應關係可能有誤",
+        "alertDesc": "在 {{wells}} 個觀測到變異的 well 中，{{selfPercent}}% 與自身 expected 相符，{{crossPercent}}% 卻與其他 well 的 expected 相符。well 與變異的對應關係極有可能出錯，請勿信任此結果。",
+        "alertAriaLabel": "well-變異映射完整性警告"
       }
     },
     "inspector": {
@@ -2268,7 +2270,12 @@
   "whatsNewDialog": {
     "title": "v{{version}} 新功能",
     "description": "最新更新亮點。",
-    "gotItBtn": "知道了"
+    "gotItBtn": "知道了",
+    "highlights": [
+      "每個 well 現在會在最差位置旁報告其典型背景雜訊，因此可以針對當前 run 判斷 mixed gate。",
+      "在 260729 run 中，該 gate 約為典型位置的六十倍，約為觀測到最吵雜位置的四倍。"
+    ],
+    "highlightsStamp": "0.15.17+6ee369a3"
   },
   "primerDisplay": {
     "copySeqTitle": "複製序列",

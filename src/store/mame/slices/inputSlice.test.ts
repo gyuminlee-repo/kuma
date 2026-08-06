@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppState } from "../types";
 import { createInputSlice } from "./inputSlice";
+import { createAnalysisSliceDoubles } from "./testHelpers/analysisSliceDoubles";
 import { useRoundStore } from "@/store/round/roundSlice";
 
 const mockSendRequest = vi.fn();
@@ -12,16 +13,7 @@ vi.mock("@/lib/ipc-mame", () => ({
 
 function makeStore(initial: Partial<AppState> = {}) {
   const state: Partial<AppState> = {
-    setVerdicts: vi.fn(),
-    setReplicates: vi.fn(),
-    setSummary: vi.fn(),
-    setAnalyzeYield: vi.fn(),
-    setOutputPath: vi.fn((outputPath: string) => {
-      state.outputPath = outputPath;
-    }),
-    setDistributionStats: vi.fn(),
-    loadPlateData: vi.fn().mockResolvedValue(undefined),
-    loadRunHealth: vi.fn().mockResolvedValue(undefined),
+    ...createAnalysisSliceDoubles(),
     ...initial,
   };
 

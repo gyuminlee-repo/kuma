@@ -1,5 +1,5 @@
 /**
- * JanusStepView — "janus" mame phase, step 3.1 (Janus instrument settings).
+ * JanusStepView, "janus" mame phase, step 3.1 (Janus instrument settings).
  *
  * The instrument configuration used to sit inside step 2.1 (inputs), which made
  * an operator who only wants a sequencing verdict walk past a cell-picking robot
@@ -7,27 +7,27 @@
  * verdict, step 3 is the instrument, step 4 is the activity data.
  *
  * The step stays optional in the strict sense: nothing here gates a run and
- * nothing downstream gates on it. An analyze run writes `..._picks.csv` and
- * `..._janus.csv` on its own from whatever is stored, so skipping this step
- * costs the liquid class (which ships blank) and nothing else.
+ * nothing downstream gates on it. An analyze run writes `..._picks.csv` on its
+ * own from whatever is stored (the selection, `legacy5`); the instrument
+ * mapping (`..._janus.csv`, `device9`) is written only from here, by the export
+ * button in `JanusMappingPanel` below, because a robot worklist states a deck
+ * and a liquid class that describe the room at export time, and analyze has no
+ * reason to assert either on every re-run.
  *
  * What lives here:
  *   - transfer volume, the one instrument value nothing can derive
  *   - the deck reference, so the plate names on screen are the ones the JANUS
  *     software matches
- *   - the settings/export dialog (deck rack numbers, liquid class, row preview,
- *     excluded clones, and the mapping export itself)
- *   - what the last run did with the two files it writes
+ *   - the mapping panel (deck rack numbers, liquid class, row preview, excluded
+ *     clones, and the mapping export itself). Used to be a dialog opened from a
+ *     button here; step 3 is already a dedicated screen, so it is inlined now.
+ *   - what the last run did with the pick list it writes automatically
  */
 
-import { useState } from "react";
-import { Settings2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { WizardContainer } from "@/components/steps/WizardContainer";
-import { Button } from "@/components/ui/button";
-import { JanusMappingDialog } from "@/components/mame/dialogs/JanusMappingDialog";
-import { JanusDeckPreview } from "@/components/mame/widgets/JanusDeckPreview";
+import { JanusMappingPanel } from "@/components/mame/widgets/JanusMappingPanel";
 import { JanusAutosaveNotice } from "@/components/mame/widgets/JanusAutosaveNotice";
 import { StepRedirectFallback } from "./StepRedirectFallback";
 
@@ -41,7 +41,6 @@ export function JanusStepView() {
   const goToNextStep = useMameAppStore((s) => s.goToNextStep);
   const janusSettings = useMameAppStore((s) => s.janusSettings);
   const setJanusSettings = useMameAppStore((s) => s.setJanusSettings);
-  const [dialogOpen, setDialogOpen] = useState(false);
 
   if (subStep !== "janus.settings") {
     return (
@@ -76,9 +75,9 @@ export function JanusStepView() {
         {/* Transfer volume, the one instrument value nothing can derive: how
             much of a cell stock to move is an experimental condition, unlike
             the deck numbers (taken from the plates of the run) and the liquid
-            class (left blank when unset). It sits on the step rather than only
-            in the dialog because the run writes the instrument sheet on its
-            own, and the shipped 100 µL is an assumption with no lab source. */}
+            class (left blank when unset). The shipped 100 µL is an assumption
+            with no lab source, so it is set here rather than left as a hidden
+            default the export panel just inherits. */}
         <div className="max-w-sm space-y-1">
           <label
             htmlFor="mame-janus-volume"
@@ -105,31 +104,17 @@ export function JanusStepView() {
           </p>
         </div>
 
-        {/* The dialog carries the deck rack numbers, the liquid class, the row
-            preview, the excluded clones and the export. Enabled before a run
-            too, so the values can be prepared in advance. */}
-        <div className="max-w-sm space-y-1">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-control w-full gap-1.5 rounded-control text-caption"
-            onClick={() => setDialogOpen(true)}
-            aria-label={t("mame.janus.settings.openDialogAriaLabel")}
-          >
-            <Settings2 size={12} aria-hidden="true" />
-            {t("mame.janus.settings.openDialog")}
-          </Button>
-          <p className="text-caption text-muted-foreground">
-            {t("mame.janus.settings.dialogHint")}
-          </p>
-        </div>
-
-        {/* What the last run did with the two files it writes itself. */}
+        {/* What the last run did with the pick list it writes itself. The
+            instrument mapping has no autosave notice: it is only ever
+            written by the export button below, so there is nothing
+            automatic to report on. */}
         <JanusAutosaveNotice />
 
-        <JanusDeckPreview className="max-w-xl" />
-
-        <JanusMappingDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+        {/* Was a button that opened a modal carrying this same content. Step
+            3 is already its own screen, so the panel (deck preview, rack
+            numbers, liquid class, row preview, excluded clones and the
+            export itself) renders directly here now. */}
+        <JanusMappingPanel />
       </div>
     </WizardContainer>
   );
