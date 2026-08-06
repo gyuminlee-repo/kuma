@@ -13,8 +13,10 @@ export function sampleVerdicts(): VerdictRecord[] {
     | "read_count"
     | "n_mixed_positions"
     | "max_minor_allele_fraction"
+    | "median_minor_allele_fraction"
     | "n_low_depth_positions"
     | "consensus_n_fraction"
+    | "consensus_n_fraction_evaluable"
     | "n_low_quality_bases"
     | "n_input_reads"
     | "n_aligned_reads"
@@ -39,8 +41,17 @@ export function sampleVerdicts(): VerdictRecord[] {
     read_count: null,
     n_mixed_positions: v.verdict === "AMBIGUOUS" ? 1 : 0,
     max_minor_allele_fraction: v.verdict === "AMBIGUOUS" ? 0.49 : 0,
+    // The floor the line above is read against. One position at 49% over a
+    // 0.3% floor is the mixed trace; a well whose max is 0 has every position
+    // at 0, so its median is 0 as well.
+    median_minor_allele_fraction: v.verdict === "AMBIGUOUS" ? 0.003 : 0,
     n_low_depth_positions: v.verdict === "LOWDEPTH" ? 12 : 0,
     consensus_n_fraction: v.verdict === "LOWDEPTH" ? 0.08 : 0,
+    // FRAMESHIFT is the one well whose 0 above is substituted rather than
+    // measured, so the popup shows its skipped-gate wording. Every other well
+    // carries a measured fraction (LOWDEPTH) or reaches the N-fraction gate,
+    // which would have written a skip advisory into verdict_notes.
+    consensus_n_fraction_evaluable: v.verdict !== "FRAMESHIFT",
     n_low_quality_bases: v.verdict === "LOWDEPTH" ? 24 : 0,
     n_input_reads: 160 + i * 8,
     n_aligned_reads: 155 + i * 7,

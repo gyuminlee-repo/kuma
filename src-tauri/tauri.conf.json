@@ -67,6 +67,7 @@
       "samples/mame/10_mame_gc_prenormalised.xlsx": "samples/mame/10_mame_gc_prenormalised.xlsx",
       "samples/mame/11_mame_gc_fid_round1_raw.xlsx": "samples/mame/11_mame_gc_fid_round1_raw.xlsx",
       "samples/mame/12_mame_agilent_numeric_index.xlsx": "samples/mame/12_mame_agilent_numeric_index.xlsx",
+      "samples/mame/sample_analysis_result.json": "samples/mame/sample_analysis_result.json",
       "resources/NOTICE.md": "resources/NOTICE.md",
       "sidecar-hashes.json": "sidecar-hashes.json"
     },
