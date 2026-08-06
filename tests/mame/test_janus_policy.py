@@ -334,6 +334,29 @@ def test_device9_defaults_ask_the_operator_for_nothing_but_volume() -> None:
     assert settings.dest_rack is None
 
 
+def test_the_shipped_volume_is_the_lab_value(tmp_path: Path) -> None:
+    """70 uL is the cell-stock volume this lab transfers for this run, given by
+    the operator who runs the instrument, and it stays editable in the export
+    dialog for a run that transfers something else.
+
+    The literal is pinned here because the assert above compares the constant to
+    itself and so holds for any number, and because
+    ``scripts/sync-check-janus-defaults.mjs`` only proves the TypeScript and
+    Python sides agree: both could move together with every gate green. The
+    written column is checked too, since the operator reads the number off the
+    file, not off the constant.
+    """
+    assert DEFAULT_VOLUME_UL == 70.0
+    assert JanusSettings().volume == 70.0
+
+    out = tmp_path / "default_volume.csv"
+    export_mame_janus_csv([_make_replicate("V5F", "NB01", "1_1")], out, settings=_DEVICE)
+
+    with out.open(encoding="utf-8") as fh:
+        body = list(csv.reader(fh))[1:]
+    assert body[0][8] == "70.0"
+
+
 def test_deck_numbers_follow_the_plates_of_the_run() -> None:
     """The KURO convention (sources first in plate order, destination next).
 

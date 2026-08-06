@@ -137,6 +137,12 @@ def test_a_device9_choice_in_the_dialog_does_not_reach_the_automatic_file(
 
     An operator who set up the instrument sheet in the dialog still gets the
     selection beside the workbook, not a second worklist.
+
+    The step 3 panel no longer offers an output-column choice and always sends
+    ``device9``, which is exactly the payload below, so this case is the only
+    thing standing between the automatic pick list and the instrument schema.
+    ``SCHEMA_LEGACY5`` in ``kuma_core`` is therefore live code, not a dead path
+    left over from the removed control.
     """
     result = _run(
         tmp_path,

@@ -99,11 +99,14 @@ _DEST_LAYOUTS = (DEST_LAYOUT_SOURCE, DEST_LAYOUT_COMPACT)
 # measurement would be mislabelled; LOWDEPTH is simply unverified.
 DEFAULT_INCLUDE_VERDICTS: tuple[str, ...] = (VerdictClass.PASS.value,)
 
-# Assumption, not a measured lab value: no cell-stock transfer volume exists
-# anywhere in this repository, and the KURO default (2.0 µL) is primer
-# dispensing, which is not comparable. Editable in the export dialog; the
-# preview shows the value that will be written.
-DEFAULT_VOLUME_UL = 100.0
+# The cell-stock transfer volume this lab uses for this run, given by the
+# operator who runs the instrument. It is not derived from anything else in this
+# repository: the KURO default (2.0 µL) is primer dispensing, a different
+# operation with a different volume, so the two numbers are not comparable and
+# neither one can be read off the other. Still editable in the export dialog for
+# a run that transfers something else; the preview shows the value that will be
+# written.
+DEFAULT_VOLUME_UL = 70.0
 
 # Assumption: ``type`` labels the transferred material on the instrument sheet
 # (KURO writes "primer" for primer dispensing). Editable.

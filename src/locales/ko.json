@@ -793,9 +793,7 @@
       },
       "janusMapping": {
         "title": "Janus 매핑 내보내기",
-        "description": "최종 cell-stock Janus 매핑 파일 (K4 spec)을 CSV 또는 XLSX로 내보냅니다.",
-        "formatLabel": "형식",
-        "formatAriaLabel": "Janus 매핑 내보내기 형식",
+        "description": "최종 cell-stock Janus 매핑 파일 (K4 spec)을 CSV로 내보냅니다.",
         "destLayoutLabel": "대상 배치",
         "destLayoutAriaLabel": "Janus 대상 well 배치",
         "destLayoutOption": {
@@ -807,13 +805,10 @@
           "compact": "dest_well을 priority 순서대로 A1부터 세로로 순차 배정합니다. A1, B1, C1 순으로 H1까지 내려간 다음 A2로 넘어갑니다. 빈 well은 남기지 않습니다."
         },
         "outputPathLabel": "출력 파일 경로",
-        "outputPathPlaceholder": "저장할 .{{ext}} 파일 경로",
+        "outputPathPlaceholder": "저장할 .csv 파일 경로",
         "outputPathAriaLabel": "Janus 매핑 출력 파일 경로",
         "browseAriaLabel": "Janus 매핑 저장 경로 찾아보기",
-        "columnsNote": {
-          "device9": "열 구성: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "열 구성: name, source_plate, source_well, dest_well, priority_score."
-        },
+        "columnsNote": "열 구성: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
         "exportJanus": "Janus 매핑 내보내기",
         "exporting": "내보내는 중…",
         "exported": "내보내기 완료",
@@ -825,18 +820,9 @@
         "previewFailed": "미리보기를 불러오지 못했습니다: {{message}}",
         "previewRetry": "미리보기 다시 시도",
         "previewBlocked": "아래 문제를 해결한 뒤 내보내기가 가능합니다.",
-        "schemaLabel": "출력 열 구성",
-        "schemaAriaLabel": "Janus 출력 열 스키마",
-        "schemaOption": {
-          "device9": "장비 양식 (9열)",
-          "legacy5": "kuma 양식 (5열)"
-        },
-        "schemaHint": {
-          "device9": "장비 워크북 열을 그대로 씁니다: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "kuma 내부 열을 씁니다: name, source_plate, source_well, dest_well, priority_score."
-        },
         "instrumentHeading": "장비 설정",
         "volumeLabel": "Volume (µL)",
+        "volumeHint": "이번 내보내기가 만드는 장비용 매핑 파일에 그대로 들어갑니다.",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "예: Cell 100ul",
         "liquidClassHint": "Liquid class 는 로봇의 피펫팅 거동을 결정하므로 기본값을 두지 않습니다. 비워 두면 해당 칸이 빈 채로 나가며 내보내기는 그대로 진행됩니다.",
@@ -1051,23 +1037,6 @@
       "kvEmpty": "—",
       "noDataPlaceholder": "데이터 없음"
     },
-    "janusDeck": {
-      "ariaLabel": "JANUS 덱 레이아웃 미리보기",
-      "aspDspNote": "흡입 위치 = 분배 위치 (동일 좌표).",
-      "deckImageAriaLabel": "JANUS 덱 슬롯 위치: 상단 열 팁 플러시, 소스 플레이트 P1 P2 P3; 하단 열 폐기물, 빈 슬롯 2개, 최종 96 딥웰",
-      "headFixedNote": "헤드 위치 고정",
-      "matchByNameNote": "JANUS 소프트웨어는 이름으로 플레이트를 매칭합니다; 여기 표시된 덱 슬롯 위치는 일반적인 레이아웃입니다.",
-      "slot": {
-        "blank": "빈 슬롯",
-        "final": "최종 96 딥웰",
-        "p1": "스톡 플레이트 P1",
-        "p2": "스톡 플레이트 P2",
-        "p3": "스톡 플레이트 P3",
-        "tipFlush": "팁 플러시",
-        "waste": "폐기물"
-      },
-      "title": "JANUS 덱 레이아웃"
-    },
     "restoredResult": {
       "title": "이 프로젝트에 저장된 실행은 다른 버전의 kuma 가 판정했습니다",
       "bodyOlder": "저장된 실행은 kuma v{{version}} 이 만든 것이고 판정 방식이 현재 버전과 달라 표시하지 않습니다. 현재 버전이 보증하는 결과를 보려면 분석을 다시 실행하십시오.",
@@ -1098,9 +1067,7 @@
         "drawerLeft": "장비",
         "drawerCenter": "Janus 로그",
         "drawerRight": "다음",
-        "drawerRightDesc": "활성 데이터와 EVOLVEpro 핸드오프",
-        "volumeLabel": "이송 volume (µL)",
-        "volumeHint": "이번 실행이 만드는 장비용 매핑 파일에 그대로 들어갑니다. 기본값 100 µL 는 실험실 근거가 없는 가정이므로 이번 실험에서 쓰는 값으로 바꾸세요."
+        "drawerRightDesc": "활성 데이터와 EVOLVEpro 핸드오프"
       }
     },
     "verdictBadge": {

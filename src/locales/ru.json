@@ -668,9 +668,7 @@
       },
       "janusMapping": {
         "title": "Экспорт Janus Mapping",
-        "description": "Экспортировать финальный файл cell-stock Janus mapping (K4 spec) как CSV или XLSX.",
-        "formatLabel": "Формат",
-        "formatAriaLabel": "Формат экспорта Janus mapping",
+        "description": "Экспортировать финальный файл cell-stock Janus mapping (K4 spec) как CSV.",
         "destLayoutLabel": "Схема назначения",
         "destLayoutAriaLabel": "Схема well назначения Janus",
         "destLayoutOption": {
@@ -682,13 +680,10 @@
           "compact": "dest_well назначается последовательно с A1 в порядке приоритета, сверху вниз по каждому столбцу (A1, B1, C1 до H1, затем A2), без пустых лунок."
         },
         "outputPathLabel": "Путь к выходному файлу",
-        "outputPathPlaceholder": "Путь к целевому файлу .{{ext}}",
+        "outputPathPlaceholder": "Путь к целевому файлу .csv",
         "outputPathAriaLabel": "Путь к выходному файлу Janus mapping",
         "browseAriaLabel": "Выбрать путь сохранения Janus mapping",
-        "columnsNote": {
-          "device9": "Столбцы: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "Столбцы: name, source_plate, source_well, dest_well, priority_score."
-        },
+        "columnsNote": "Столбцы: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
         "exportJanus": "Экспорт Janus Mapping",
         "exporting": "Экспорт…",
         "exported": "Экспорт успешно завершён",
@@ -700,18 +695,9 @@
         "previewFailed": "Предпросмотр недоступен: {{message}}",
         "previewRetry": "Повторить предпросмотр",
         "previewBlocked": "Устраните проблемы ниже перед экспортом.",
-        "schemaLabel": "Столбцы вывода",
-        "schemaAriaLabel": "Схема столбцов вывода Janus",
-        "schemaOption": {
-          "device9": "Формат прибора (9 столбцов)",
-          "legacy5": "Формат kuma (5 столбцов)"
-        },
-        "schemaHint": {
-          "device9": "Записывает столбцы книги прибора: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "Записывает столбцы kuma: name, source_plate, source_well, dest_well, priority_score."
-        },
         "instrumentHeading": "Настройки прибора",
         "volumeLabel": "Volume (µL)",
+        "volumeHint": "Записывается в файл карты для прибора, который создаёт этот экспорт.",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "например, Cell 100ul",
         "liquidClassHint": "Liquid class opredelyaet povedenie pipetirovaniya robota, poetomu znachenie po umolchaniyu ne zadayotsya. Ostavlennyi pustym stolbets ostayotsya pustym, a eksport prodolzhaetsya.",
@@ -822,23 +808,6 @@
         "helper": "Лунки заполняются в порядке этого столбца, по одному варианту в строке: сверху вниз по каждому столбцу планшета, A1, B1, C1 до H1, затем A2. Экспорт KURO не требует маппинга и скрывает эти поля."
       }
     },
-    "janusDeck": {
-      "title": "JANUS Deck Layout",
-      "ariaLabel": "JANUS deck layout preview",
-      "deckImageAriaLabel": "JANUS deck slot positions: top row tip flush, source plates P1 P2 P3; bottom row waste, two blank slots, final 96 deep well",
-      "headFixedNote": "Head position fixed",
-      "aspDspNote": "Aspirate position = Dispense position (same coordinate).",
-      "matchByNameNote": "JANUS software matches plates by name; deck slot positions shown here are the conventional layout.",
-      "slot": {
-        "tipFlush": "Tip Flush",
-        "p1": "Stock Plate P1",
-        "p2": "Stock Plate P2",
-        "p3": "Stock Plate P3",
-        "waste": "Waste",
-        "blank": "Blank",
-        "final": "Final 96 Deep Well"
-      }
-    },
     "restoredResult": {
       "title": "Сохранённый запуск этого проекта оценивала другая версия kuma",
       "bodyOlder": "Сохранённый запуск сделан в kuma v{{version}}, которая оценивает иначе, чем текущая сборка, поэтому он не показывается. Выполните анализ заново, чтобы получить результат, за который отвечает эта версия.",
@@ -869,9 +838,7 @@
         "drawerLeft": "Прибор",
         "drawerCenter": "Журнал Janus",
         "drawerRight": "Далее",
-        "drawerRightDesc": "Данные активности и передача в EVOLVEpro",
-        "volumeLabel": "Obyom perenosa (uL)",
-        "volumeHint": "Zapisyvaetsya v kartu dlya pribora, kotoruyu sozdayot etot zapusk. Postavlyaemye 100 uL eto dopushchenie bez laboratornogo istochnika, ukazhite obyom etogo eksperimenta."
+        "drawerRightDesc": "Данные активности и передача в EVOLVEpro"
       }
     },
     "setup": {

@@ -32,15 +32,22 @@ import type { JanusExportSettings } from "@/types/mame/models";
  * plates of the run, the way KURO already numbers this instrument.
  *
  * `volume` is the one value that cannot be derived (how much of a cell stock to
- * transfer is an experimental condition) and the 100 µL here is a stated
- * assumption with no lab source in this repository, which the UI says out loud.
+ * transfer is an experimental condition). The 70 µL here is the volume this lab
+ * transfers for this run, given by the operator who runs the instrument, and it
+ * stays editable in the Volume field of the mapping panel, whose row preview
+ * shows the number the file will carry.
+ *
+ * `outputSchema` is fixed at "device9" in practice: the instrument reads the
+ * 9-column sheet, so the panel offers no choice. The field stays because the
+ * sidecar still takes it and the analyze run pins "legacy5" for the automatic
+ * pick list, a different file from the one this policy writes.
  */
 export const DEFAULT_JANUS_SETTINGS: JanusExportSettings = {
   destLayout: "compact",
   includeVerdicts: ["PASS"],
   includeFallback: false,
   outputSchema: "device9",
-  volume: 100,
+  volume: 70,
   sampleType: "cell",
   liquidClass: "",
   sourceRacks: {},
@@ -79,6 +86,12 @@ export const JANUS_SETTINGS_STORAGE_KEY = "kuma:mame:janusSettings";
  * session's first run, without reopening the dialog.
  * Unknown or malformed content is ignored rather than repaired; the defaults
  * are the safe reading.
+ *
+ * Two stored values are promoted rather than merged, because a merge over the
+ * defaults would leave a machine pinned to something the panel no longer offers
+ * any way to change. Both promotions are written on a copy, never on
+ * {@link DEFAULT_JANUS_SETTINGS}, which this function hands back by reference
+ * when there is nothing stored.
  */
 export function loadJanusSettings(): JanusExportSettings {
   try {
@@ -86,7 +99,25 @@ export function loadJanusSettings(): JanusExportSettings {
     if (!raw) return DEFAULT_JANUS_SETTINGS;
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return DEFAULT_JANUS_SETTINGS;
-    return { ...DEFAULT_JANUS_SETTINGS, ...(parsed as Partial<JanusExportSettings>) };
+    const merged = { ...DEFAULT_JANUS_SETTINGS, ...(parsed as Partial<JanusExportSettings>) };
+
+    // A stored 100 is the old shipped default, which the UI itself used to call
+    // an assumption with no lab source, so it reads as never chosen rather than
+    // as a decision. The lab asked for 70, and without this a machine that ran
+    // the earlier build would keep writing 100 into the mapping file. Any other
+    // number is an operator decision and survives untouched.
+    if (merged.volume === 100) merged.volume = DEFAULT_JANUS_SETTINGS.volume;
+
+    // The instrument reads the 9-column sheet, so the panel dropped the schema
+    // choice. A machine that picked the 5-column kuma sheet before would
+    // otherwise keep exporting it with no control left to switch back. The
+    // 5-column file is not lost: the analyze run still writes the pick list in
+    // that shape on its own.
+    if (merged.outputSchema === "legacy5") {
+      merged.outputSchema = DEFAULT_JANUS_SETTINGS.outputSchema;
+    }
+
+    return merged;
   } catch {
     return DEFAULT_JANUS_SETTINGS;
   }

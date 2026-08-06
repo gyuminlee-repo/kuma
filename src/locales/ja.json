@@ -668,9 +668,7 @@
       },
       "janusMapping": {
         "title": "Janus マッピングをエクスポート",
-        "description": "最終 cell-stock Janus マッピングファイル (K4 仕様) を CSV または XLSX でエクスポート。",
-        "formatLabel": "形式",
-        "formatAriaLabel": "Janus マッピングエクスポート形式",
+        "description": "最終 cell-stock Janus マッピングファイル (K4 仕様) を CSV でエクスポート。",
         "destLayoutLabel": "配置先レイアウト",
         "destLayoutAriaLabel": "Janus 配置先 well レイアウト",
         "destLayoutOption": {
@@ -682,13 +680,10 @@
           "compact": "dest_well を priority 順に A1 から順次割り当てます。縦方向に進むため A1, B1, C1 から H1 まで、その次が A2 となり、空の well は残しません。"
         },
         "outputPathLabel": "出力ファイルパス",
-        "outputPathPlaceholder": "ターゲット .{{ext}} ファイルパス",
+        "outputPathPlaceholder": "ターゲット .csv ファイルパス",
         "outputPathAriaLabel": "Janus マッピング出力ファイルパス",
         "browseAriaLabel": "Janus マッピング保存先を参照",
-        "columnsNote": {
-          "device9": "列: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "列: name, source_plate, source_well, dest_well, priority_score."
-        },
+        "columnsNote": "列: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
         "exportJanus": "Janus マッピングをエクスポート",
         "exporting": "エクスポート中…",
         "exported": "エクスポートが完了しました",
@@ -700,18 +695,9 @@
         "previewFailed": "プレビューを取得できません: {{message}}",
         "previewRetry": "プレビューを再試行",
         "previewBlocked": "以下の問題を解決してからエクスポートしてください。",
-        "schemaLabel": "出力列の構成",
-        "schemaAriaLabel": "Janus 出力列スキーマ",
-        "schemaOption": {
-          "device9": "装置様式 (9列)",
-          "legacy5": "kuma 様式 (5列)"
-        },
-        "schemaHint": {
-          "device9": "装置ワークブックの列をそのまま出力します: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "kuma 内部の列を出力します: name, source_plate, source_well, dest_well, priority_score."
-        },
         "instrumentHeading": "装置設定",
         "volumeLabel": "Volume (µL)",
+        "volumeHint": "この書き出しが作る装置用マッピングファイルにそのまま入ります。",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "例: Cell 100ul",
         "liquidClassHint": "liquid class はロボットのピペッティング挙動を決めるため既定値を置きません。空のままなら列は空欄で出力され、書き出しは実行されます。",
@@ -822,23 +808,6 @@
         "helper": "この列の順に、1 行 1 変異で well へ割り当てます。プレートは縦方向に進み、A1, B1, C1 から H1 まで、その次が A2 です。KURO のエクスポートは mapping が不要なため、これらの選択欄は表示されません。"
       }
     },
-    "janusDeck": {
-      "title": "JANUS Deck Layout",
-      "ariaLabel": "JANUS deck layout preview",
-      "deckImageAriaLabel": "JANUS deck slot positions: top row tip flush, source plates P1 P2 P3; bottom row waste, two blank slots, final 96 deep well",
-      "headFixedNote": "Head position fixed",
-      "aspDspNote": "Aspirate position = Dispense position (same coordinate).",
-      "matchByNameNote": "JANUS software matches plates by name; deck slot positions shown here are the conventional layout.",
-      "slot": {
-        "tipFlush": "Tip Flush",
-        "p1": "Stock Plate P1",
-        "p2": "Stock Plate P2",
-        "p3": "Stock Plate P3",
-        "waste": "Waste",
-        "blank": "Blank",
-        "final": "Final 96 Deep Well"
-      }
-    },
     "restoredResult": {
       "title": "このプロジェクトの保存済み実行は別バージョンの kuma が判定しました",
       "bodyOlder": "保存された実行は kuma v{{version}} が作成し、判定方法が現在のビルドと異なるため表示しません。現在のバージョンが保証する結果を得るには解析を再実行してください。",
@@ -869,9 +838,7 @@
         "drawerLeft": "装置",
         "drawerCenter": "Janus ログ",
         "drawerRight": "次へ",
-        "drawerRightDesc": "活性データと EVOLVEpro への引き継ぎ",
-        "volumeLabel": "移送 volume (µL)",
-        "volumeHint": "この実行が作る装置用マッピングにそのまま入ります。既定の 100 µL は実験室の根拠がない仮定なので、今回の実験で使う値に変更してください。"
+        "drawerRightDesc": "活性データと EVOLVEpro への引き継ぎ"
       }
     },
     "setup": {

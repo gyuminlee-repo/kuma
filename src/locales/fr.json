@@ -668,9 +668,7 @@
       },
       "janusMapping": {
         "title": "Exporter le mapping Janus",
-        "description": "Exporter le fichier final de mapping Janus cell-stock (spec K4) au format CSV ou XLSX.",
-        "formatLabel": "Format",
-        "formatAriaLabel": "Format d'export du mapping Janus",
+        "description": "Exporter le fichier final de mapping Janus cell-stock (spec K4) au format CSV.",
         "destLayoutLabel": "Disposition de destination",
         "destLayoutAriaLabel": "Disposition du well de destination Janus",
         "destLayoutOption": {
@@ -682,13 +680,10 @@
           "compact": "dest_well est attribué séquentiellement depuis A1 par ordre de priority, en descendant chaque colonne (A1, B1, C1 jusqu'à H1, puis A2), sans laisser de well vide."
         },
         "outputPathLabel": "Chemin du fichier de sortie",
-        "outputPathPlaceholder": "Chemin du fichier .{{ext}} cible",
+        "outputPathPlaceholder": "Chemin du fichier .csv cible",
         "outputPathAriaLabel": "Chemin du fichier de sortie pour le mapping Janus",
         "browseAriaLabel": "Parcourir le chemin d'enregistrement pour le mapping Janus",
-        "columnsNote": {
-          "device9": "Colonnes : name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "Colonnes : name, source_plate, source_well, dest_well, priority_score."
-        },
+        "columnsNote": "Colonnes : name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
         "exportJanus": "Exporter le mapping Janus",
         "exporting": "Export en cours…",
         "exported": "Exporté avec succès",
@@ -700,18 +695,9 @@
         "previewFailed": "Aperçu indisponible : {{message}}",
         "previewRetry": "Réessayer l'aperçu",
         "previewBlocked": "Corrigez les problèmes ci-dessous avant d'exporter.",
-        "schemaLabel": "Colonnes de sortie",
-        "schemaAriaLabel": "Schéma des colonnes de sortie Janus",
-        "schemaOption": {
-          "device9": "Format de l'appareil (9 colonnes)",
-          "legacy5": "Format kuma (5 colonnes)"
-        },
-        "schemaHint": {
-          "device9": "Écrit les colonnes du classeur de l'appareil : name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "Écrit les colonnes kuma : name, source_plate, source_well, dest_well, priority_score."
-        },
         "instrumentHeading": "Réglages de l'appareil",
         "volumeLabel": "Volume (µL)",
+        "volumeHint": "Écrit dans le fichier de mapping instrument produit par cet export.",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "ex. Cell 100ul",
         "liquidClassHint": "La liquid class determine le comportement de pipetage du robot, aucune valeur par defaut n'est donc supposee. Laissee vide, la colonne reste vide et l'export se poursuit.",
@@ -822,23 +808,6 @@
         "helper": "Les wells sont remplis dans l'ordre de cette colonne, un variant par ligne, en descendant chaque colonne de la plaque : A1, B1, C1 jusqu'à H1, puis A2. Un export KURO ne nécessite aucun mapping et masque ces contrôles."
       }
     },
-    "janusDeck": {
-      "title": "JANUS Deck Layout",
-      "ariaLabel": "JANUS deck layout preview",
-      "deckImageAriaLabel": "JANUS deck slot positions: top row tip flush, source plates P1 P2 P3; bottom row waste, two blank slots, final 96 deep well",
-      "headFixedNote": "Head position fixed",
-      "aspDspNote": "Aspirate position = Dispense position (same coordinate).",
-      "matchByNameNote": "JANUS software matches plates by name; deck slot positions shown here are the conventional layout.",
-      "slot": {
-        "tipFlush": "Tip Flush",
-        "p1": "Stock Plate P1",
-        "p2": "Stock Plate P2",
-        "p3": "Stock Plate P3",
-        "waste": "Waste",
-        "blank": "Blank",
-        "final": "Final 96 Deep Well"
-      }
-    },
     "restoredResult": {
       "title": "Le run enregistré de ce projet a été évalué par une autre version de kuma",
       "bodyOlder": "Le run enregistré vient de kuma v{{version}}, qui évalue différemment de cette version : il n'est pas affiché. Relancez l'analyse pour obtenir un résultat dont cette version répond.",
@@ -869,9 +838,7 @@
         "drawerLeft": "Instrument",
         "drawerCenter": "Journal Janus",
         "drawerRight": "Suivant",
-        "drawerRightDesc": "Données d'activité et transfert vers EVOLVEpro",
-        "volumeLabel": "Volume de transfert (uL)",
-        "volumeHint": "Ecrit dans le mapping instrument produit par cette execution. Les 100 uL fournis sont une hypothese sans source de laboratoire : indiquez le volume de cette experience."
+        "drawerRightDesc": "Données d'activité et transfert vers EVOLVEpro"
       }
     },
     "setup": {

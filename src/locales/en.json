@@ -793,9 +793,7 @@
       },
       "janusMapping": {
         "title": "Export Janus Mapping",
-        "description": "Export the final cell-stock Janus mapping file (K4 spec) as CSV or XLSX.",
-        "formatLabel": "Format",
-        "formatAriaLabel": "Janus mapping export format",
+        "description": "Export the final cell-stock Janus mapping file (K4 spec) as CSV.",
         "destLayoutLabel": "Destination layout",
         "destLayoutAriaLabel": "Janus destination well layout",
         "destLayoutOption": {
@@ -807,13 +805,10 @@
           "compact": "dest_well is assigned sequentially from A1 in priority order, down each column (A1, B1, C1 to H1, then A2), leaving no empty wells."
         },
         "outputPathLabel": "Output file path",
-        "outputPathPlaceholder": "Target .{{ext}} file path",
+        "outputPathPlaceholder": "Target .csv file path",
         "outputPathAriaLabel": "Output file path for Janus mapping",
         "browseAriaLabel": "Browse save path for Janus mapping",
-        "columnsNote": {
-          "device9": "Columns: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "Columns: name, source_plate, source_well, dest_well, priority_score."
-        },
+        "columnsNote": "Columns: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
         "exportJanus": "Export Janus Mapping",
         "exporting": "Exporting…",
         "exported": "Exported successfully",
@@ -825,18 +820,9 @@
         "previewFailed": "Preview unavailable: {{message}}",
         "previewRetry": "Retry preview",
         "previewBlocked": "Fix the problems below before exporting.",
-        "schemaLabel": "Output columns",
-        "schemaAriaLabel": "Janus output column schema",
-        "schemaOption": {
-          "device9": "Instrument (9 columns)",
-          "legacy5": "kuma (5 columns)"
-        },
-        "schemaHint": {
-          "device9": "Writes the instrument worksheet columns: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "Writes the kuma columns: name, source_plate, source_well, dest_well, priority_score."
-        },
         "instrumentHeading": "Instrument settings",
         "volumeLabel": "Volume (µL)",
+        "volumeHint": "Written into the instrument mapping file this export produces.",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "e.g. Cell 100ul",
         "liquidClassHint": "The liquid class drives the pipetting behaviour of the robot, so no default is assumed. Left empty the column ships blank and the export still runs.",
@@ -1051,23 +1037,6 @@
       "kvEmpty": "—",
       "noDataPlaceholder": "No data available"
     },
-    "janusDeck": {
-      "ariaLabel": "JANUS deck layout preview",
-      "aspDspNote": "Aspirate position = Dispense position (same coordinate).",
-      "deckImageAriaLabel": "JANUS deck slot positions: top row tip flush, source plates P1 P2 P3; bottom row waste, two blank slots, final 96 deep well",
-      "headFixedNote": "Head position fixed",
-      "matchByNameNote": "JANUS software matches plates by name; deck slot positions shown here are the conventional layout.",
-      "slot": {
-        "blank": "Blank",
-        "final": "Final 96 Deep Well",
-        "p1": "Stock Plate P1",
-        "p2": "Stock Plate P2",
-        "p3": "Stock Plate P3",
-        "tipFlush": "Tip Flush",
-        "waste": "Waste"
-      },
-      "title": "JANUS Deck Layout"
-    },
     "restoredResult": {
       "title": "This project's saved run was scored by another version of kuma",
       "bodyOlder": "The saved run was produced by kuma v{{version}}, which scores runs differently from this build, so it is not shown. Re-run the analysis to get a result this version stands behind.",
@@ -1098,9 +1067,7 @@
         "drawerLeft": "Instrument",
         "drawerCenter": "Janus log",
         "drawerRight": "Next",
-        "drawerRightDesc": "Activity data and EVOLVEpro handoff",
-        "volumeLabel": "Transfer volume (uL)",
-        "volumeHint": "Written into the instrument mapping this run produces. The shipped 100 uL is an assumption with no lab source, so set the volume this experiment uses."
+        "drawerRightDesc": "Activity data and EVOLVEpro handoff"
       }
     },
     "verdictBadge": {

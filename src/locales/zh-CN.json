@@ -668,9 +668,7 @@
       },
       "janusMapping": {
         "title": "导出 Janus Mapping",
-        "description": "将最终的 cell-stock Janus mapping 文件 (K4 spec) 导出为 CSV 或 XLSX。",
-        "formatLabel": "格式",
-        "formatAriaLabel": "Janus mapping 导出格式",
+        "description": "将最终的 cell-stock Janus mapping 文件 (K4 spec) 导出为 CSV。",
         "destLayoutLabel": "目标布局",
         "destLayoutAriaLabel": "Janus 目标 well 布局",
         "destLayoutOption": {
@@ -682,13 +680,10 @@
           "compact": "dest_well 按 priority 顺序从 A1 起依次分配，先自上而下填满一列再进入下一列（A1、B1、C1 直到 H1，然后是 A2），不留空 well。"
         },
         "outputPathLabel": "输出文件路径",
-        "outputPathPlaceholder": "目标 .{{ext}} 文件路径",
+        "outputPathPlaceholder": "目标 .csv 文件路径",
         "outputPathAriaLabel": "Janus mapping 的输出文件路径",
         "browseAriaLabel": "浏览 Janus mapping 的保存路径",
-        "columnsNote": {
-          "device9": "列：name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume。",
-          "legacy5": "列：name, source_plate, source_well, dest_well, priority_score。"
-        },
+        "columnsNote": "列：name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume。",
         "exportJanus": "导出 Janus Mapping",
         "exporting": "导出中…",
         "exported": "导出成功",
@@ -700,18 +695,9 @@
         "previewFailed": "无法加载预览：{{message}}",
         "previewRetry": "重试预览",
         "previewBlocked": "请先解决以下问题再导出。",
-        "schemaLabel": "输出列结构",
-        "schemaAriaLabel": "Janus 输出列结构",
-        "schemaOption": {
-          "device9": "仪器格式（9 列）",
-          "legacy5": "kuma 格式（5 列）"
-        },
-        "schemaHint": {
-          "device9": "按仪器工作簿列输出：name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume。",
-          "legacy5": "按 kuma 内部列输出：name, source_plate, source_well, dest_well, priority_score。"
-        },
         "instrumentHeading": "仪器设置",
         "volumeLabel": "Volume (µL)",
+        "volumeHint": "该值会写入本次导出生成的仪器映射文件。",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "例如：Cell 100ul",
         "liquidClassHint": "liquid class 决定机器人的移液行为，因此不设默认值。留空时该列为空白，导出照常进行。",
@@ -822,23 +808,6 @@
         "helper": "well 按此列的顺序填充，每行一个 variant，在 plate 上先自上而下填满一列再进入下一列：A1、B1、C1 直到 H1，然后是 A2。KURO 导出无需映射，并会隐藏这些控件。"
       }
     },
-    "janusDeck": {
-      "title": "JANUS Deck Layout",
-      "ariaLabel": "JANUS deck layout preview",
-      "deckImageAriaLabel": "JANUS deck slot positions: top row tip flush, source plates P1 P2 P3; bottom row waste, two blank slots, final 96 deep well",
-      "headFixedNote": "Head position fixed",
-      "aspDspNote": "Aspirate position = Dispense position (same coordinate).",
-      "matchByNameNote": "JANUS software matches plates by name; deck slot positions shown here are the conventional layout.",
-      "slot": {
-        "tipFlush": "Tip Flush",
-        "p1": "Stock Plate P1",
-        "p2": "Stock Plate P2",
-        "p3": "Stock Plate P3",
-        "waste": "Waste",
-        "blank": "Blank",
-        "final": "Final 96 Deep Well"
-      }
-    },
     "restoredResult": {
       "title": "该项目保存的运行由另一个版本的 kuma 判定",
       "bodyOlder": "保存的运行由 kuma v{{version}} 产出，其判定方式与当前版本不同，因此不予显示。请重新运行分析，以获得当前版本负责的结果。",
@@ -869,9 +838,7 @@
         "drawerLeft": "设备",
         "drawerCenter": "Janus 日志",
         "drawerRight": "下一步",
-        "drawerRightDesc": "活性数据与 EVOLVEpro 交接",
-        "volumeLabel": "转移体积 (µL)",
-        "volumeHint": "该值会直接写入本次运行生成的仪器映射文件。默认 100 µL 是没有实验室依据的假设，请改成本次实验实际使用的体积。"
+        "drawerRightDesc": "活性数据与 EVOLVEpro 交接"
       }
     },
     "setup": {
