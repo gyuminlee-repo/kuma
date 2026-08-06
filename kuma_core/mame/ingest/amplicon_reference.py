@@ -8,12 +8,12 @@ from pathlib import Path
 
 import openpyxl
 
+from kuma_core.mame.ingest.barcode_tail import common_tail
 from kuma_core.shared.atomic_write import atomic_write_text
 
 _FORWARD_NAME = re.compile(r".+_f_\d+$", re.IGNORECASE)
 _REVERSE_NAME = re.compile(r".+_r_\d+$", re.IGNORECASE)
 _COMPLEMENT = str.maketrans("ACGTacgtNn", "TGCAtgcaNn")
-_MIN_TAIL_LENGTH = 12
 _STOP_CODONS = frozenset({"TAA", "TAG", "TGA"})
 
 #: Human-readable form of the primer naming rule the barcode workbook must use
@@ -88,20 +88,6 @@ def _barcode_sequences(path: Path) -> tuple[list[str], list[str]]:
         return forward, reverse
     finally:
         workbook.close()
-
-
-def _common_tail(sequences: list[str]) -> str | None:
-    if len(sequences) < 2:
-        return None
-    reversed_sequences = [sequence[::-1] for sequence in sequences]
-    length = 0
-    for bases in zip(*reversed_sequences, strict=False):
-        if len(set(bases)) != 1:
-            break
-        length += 1
-    if length < _MIN_TAIL_LENGTH or any(len(sequence) <= length for sequence in sequences):
-        return None
-    return sequences[0][-length:]
 
 
 #: Why ``_unique_span`` returned ``None``. Distinct from "not unique" (found
@@ -179,8 +165,10 @@ def resolve_amplicon_reference(
     reference_fasta = Path(reference_fasta)
     sequence = _read_fasta(reference_fasta)
     forward, reverse = _barcode_sequences(Path(barcodes_xlsx))
-    forward_tail = _common_tail(forward)
-    reverse_tail = _common_tail(reverse)
+    # Same derivation the demux uses to find where a seed ends, so the span cut
+    # here and the prefixes matched there cannot disagree about the file.
+    forward_tail = common_tail(forward)
+    reverse_tail = common_tail(reverse)
     if forward_tail is None or reverse_tail is None:
         return AmpliconReferenceResolution(
             reference_fasta, False, None, len(sequence), 0, 0,

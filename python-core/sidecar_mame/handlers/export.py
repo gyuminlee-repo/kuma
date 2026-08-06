@@ -187,6 +187,10 @@ def handle_export_excel(params: dict) -> dict:
         ngs_run_meta=state.last_run_meta,  # type: ignore[arg-type]  — NgsRunMeta | None
         kuma_version=KUMA_VERSION,
         designed_mutant_ids=state.last_designed_mutant_ids,
+        # A re-export is the same run's numbers, so it carries the same
+        # statement about how the barcode seeds were cut. Dropping it here would
+        # make the record of the cut depend on which button wrote the file.
+        barcode_prefix_note=state.last_barcode_prefix_note,
     )
 
     set_last_analyze(
@@ -194,6 +198,7 @@ def handle_export_excel(params: dict) -> dict:
         state.last_replicates,
         str(output),
         run_meta=state.last_run_meta,
+        barcode_prefix_note=state.last_barcode_prefix_note,
     )
 
     return {"output_path": str(output)}

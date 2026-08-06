@@ -2,8 +2,6 @@
 """Unit tests for kuma_core.mame.ingest.combinatorial_demux.
 
 Coverage:
-- _extract_barcode_prefix: tail present / tail absent fallback
-- _extract_f_prefix / _extract_r_prefix: tail stripping
 - load_barcode_prefixes: F/R prefix extraction from xlsx-like data
 - load_barcodes: full-sequence loading (legacy backward compat)
 - _find_best_barcode: exact match, 1-mismatch fuzzy, ambiguous drop
@@ -28,7 +26,6 @@ import pytest
 from kuma_core.mame.ingest.combinatorial_demux import (
     _demux_read,
     _demux_read_anchored,
-    _extract_barcode_prefix,
     _find_best_barcode,
     _reverse_complement,
     load_barcode_prefixes,
@@ -139,33 +136,14 @@ def _build_read(r_idx: int, f_idx: int, amplicon: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Unit tests: _extract_barcode_prefix
-# ---------------------------------------------------------------------------
-
-
-class TestExtractBarcodePrefix:
-    def test_tail_present_returns_prefix(self) -> None:
-        seq = "AATCCCACTACcacaggaggttaaacc"
-        result = _extract_barcode_prefix(seq, "cacaggaggttaaacc")
-        assert result == "AATCCCACTAC"
-
-    def test_tail_absent_returns_first_11(self) -> None:
-        seq = "AATCCCACTACXXXX"
-        result = _extract_barcode_prefix(seq, "cacaggaggttaaacc")
-        assert result == "AATCCCACTAC"
-
-    def test_tail_case_insensitive(self) -> None:
-        seq = "TTCTATGGGGtgcgttgcgctctag"
-        result = _extract_barcode_prefix(seq, "tgcgttgcgctctag")
-        assert result == "TTCTATGGGG"
-
-    def test_short_seq_no_tail_returns_full(self) -> None:
-        seq = "ABCDE"
-        result = _extract_barcode_prefix(seq, "cacaggaggttaaacc")
-        assert result == "ABCDE"
-
-
-# ---------------------------------------------------------------------------
+# ``_extract_barcode_prefix`` used to be unit-tested here: "tail present returns
+# the prefix", "tail absent returns the first 11 bp". The second case is exactly
+# the fallback that was removed, and the function went with it. Deriving the
+# tail from the axis is now the only rule, and it is tested against files rather
+# than against a single sequence in
+# ``tests/mame/test_barcode_prefix_derivation.py``, including the refusals that
+# replaced those fallbacks.
+#
 # Unit tests: load_barcode_prefixes
 # ---------------------------------------------------------------------------
 

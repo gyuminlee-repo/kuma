@@ -162,6 +162,18 @@ def handle_run_combinatorial_demux(params: dict) -> dict:
     output_dir = Path(p.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # The second way a barcode file numbered past the 8x12 plate reaches a
+    # result: demux here, then point ``analyze`` at this output_dir in
+    # consensus-dir mode. Well names come out of the directory tree at that
+    # point, so a "13_1" well reaches ``_custom_barcode_to_seq``, gets no
+    # coordinate, and lands in the workbook with an empty well id. Same check
+    # the analyze handler runs, same message, one small read-only workbook read.
+    from .analyze import _barcode_layout_error
+
+    layout_error = _barcode_layout_error(barcodes_xlsx)
+    if layout_error is not None:
+        raise ValueError(layout_error)
+
     if p.native_barcodes:
         # --- PER-NB MODE: one demux per selected native barcode, in parallel ---
         fastq_pass = run_dir / "fastq_pass"

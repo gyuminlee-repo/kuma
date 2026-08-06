@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.15.20 (The barcode annealing tail is read from the file, not from one gene)
+
+MAME cut a barcode into seed and annealing tail using two sequences hardcoded from the ispS raw data, plus a fixed prefix length reverse-engineered from that same set. Every barcode package the app generates carries a flanking primer that primer3 designs per gene, so those two sequences are never present in a file MAME made itself. The reader found no tail, said nothing, and fell back to cutting at 11 bases forward and 10 reverse. On the shipped seed template, whose reverse seeds are 11 bases, that silently removed the last base of all eight reverse barcodes, and the reverse index is the plate row. A seed longer than eleven lost more.
+
+The tail is now derived from the data: the longest suffix every barcode on an axis shares. On the ispS set this reproduces the old constants to the base, so a legacy file is cut where it always was. On a generated package it recovers every seed intact. A file whose tail cannot be derived no longer guesses. It stops the run, names the axis, states how far short the shared suffix fell, and points at the rows that end differently when the rest of the axis agrees. The same reader now backs the Validate Inputs button, so a file that would fail the run fails the check.
+
+The bundled barcode sample and its template copy were regenerated, because both carried twenty sequences that shared nothing and only loaded through the fallback. The error text that told an operator to split a campaign across plates and supply one sample map per plate was corrected too: a native barcode is a replicate of one plate, not a second plate.
+
+### Highlights
+
+- The barcode annealing tail is now read from the file itself, so a barcode set designed for any gene gets cut in the right place.
+- A file whose tail cannot be read stops the run, instead of guessing a cut point and filing reads into wells they do not belong to.
+- Reverse barcodes no longer lose their last base, which had been narrowing the evidence used to pick a plate row.
+- The result workbook records which annealing tail was derived, so a finished run can be audited later.
+- The bundled barcode sample was rebuilt to carry the seed plus shared tail structure the reader expects.
+
 ## v0.15.19 (A barcode file that does not describe the plate stops the run)
 
 MAME names a well from the combinatorial barcode as `{R}_{F}`: the reverse index is the plate row, the forward index is the plate column. Nothing checked that the file being read is numbered that way, and both ways it can fail are silent. A set numbered past the plate loses the coordinate, and the well id reaches the workbook as an empty cell that reads like a well which failed to sequence. A gap in the numbering is worse: the loader sorts by index and then keeps position, so a set numbered 1, 2, 5 makes the matcher call the third barcode F3, and every read carrying `_f_5` is filed under plate column 3 with nothing to show for it.

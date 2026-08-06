@@ -2272,11 +2272,13 @@
     "description": "Destaques da última atualização.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Um arquivo de codigos de barras nao numerado para uma placa 8 x 12 agora interrompe a execucao e nomeia os codigos em falta, em vez de deixar pocos sem nome.",
-      "Uma lacuna na numeracao tambem e detectada. Antes ela deslocava cada codigo seguinte para a linha ou coluna errada.",
-      "O formato da placa passa a ser declarado uma unica vez em vez de repetido em cada mapeamento de poco."
+      "O annealing tail de um codigo de barras agora e lido do proprio arquivo, de modo que um conjunto desenhado para qualquer gene e cortado no lugar certo.",
+      "Um arquivo cujo tail nao pode ser lido interrompe a execucao, em vez de adivinhar o corte e colocar reads em wells que nao sao deles.",
+      "Codigos de barras reverse nao perdem mais sua ultima base, o que vinha estreitando a evidencia usada para escolher a linha da placa.",
+      "A planilha de resultados registra qual annealing tail foi deduzido, de modo que uma execucao concluida possa ser auditada depois.",
+      "A amostra de codigos de barras incluida foi regerada para levar a estrutura de seed mais tail comum que o leitor espera."
     ],
-    "highlightsStamp": "0.15.19+23a13b2a"
+    "highlightsStamp": "0.15.20+8d129891"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",

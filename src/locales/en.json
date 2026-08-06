@@ -2305,11 +2305,13 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A barcode file not numbered for an 8 by 12 plate now stops the run and names the barcodes at fault, instead of leaving wells unnamed.",
-      "A gap in the barcode numbering is caught too, which used to shift every later barcode into the wrong row or column.",
-      "The plate shape is now stated once instead of being written out at each place that maps a well."
+      "The barcode annealing tail is now read from the file itself, so a barcode set designed for any gene gets cut in the right place.",
+      "A file whose tail cannot be read stops the run, instead of guessing a cut point and filing reads into wells they do not belong to.",
+      "Reverse barcodes no longer lose their last base, which had been narrowing the evidence used to pick a plate row.",
+      "The result workbook records which annealing tail was derived, so a finished run can be audited later.",
+      "The bundled barcode sample was rebuilt to carry the seed plus shared tail structure the reader expects."
     ],
-    "highlightsStamp": "0.15.19+23a13b2a"
+    "highlightsStamp": "0.15.20+8d129891"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

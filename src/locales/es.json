@@ -2272,11 +2272,13 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Un archivo de codigos de barras no numerado para una placa de 8 x 12 ahora detiene la ejecucion y nombra los codigos en falta, en vez de dejar pocillos sin nombre.",
-      "Tambien se detecta un hueco en la numeracion, que antes desplazaba cada codigo posterior a una fila o columna equivocada.",
-      "La forma de la placa se declara una sola vez en lugar de repetirse en cada mapeo de pocillo."
+      "El annealing tail de un codigo de barras ahora se lee del propio archivo, de modo que un juego disenado para cualquier gen se corta en el lugar correcto.",
+      "Un archivo cuyo tail no se puede leer detiene la ejecucion, en lugar de adivinar el corte y colocar reads en wells que no les corresponden.",
+      "Los codigos de barras reverse ya no pierden su ultima base, lo que venia estrechando la evidencia usada para elegir la fila de la placa.",
+      "El libro de resultados registra que annealing tail se dedujo, de modo que una ejecucion terminada puede auditarse despues.",
+      "La muestra de codigos de barras incluida se regenero para llevar la estructura de seed mas tail comun que espera el lector."
     ],
-    "highlightsStamp": "0.15.19+23a13b2a"
+    "highlightsStamp": "0.15.20+8d129891"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",

@@ -2272,11 +2272,13 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Un fichier de codes-barres non numerote pour une plaque 8 x 12 arrete maintenant l execution et nomme les codes en cause, au lieu de laisser des puits sans nom.",
-      "Un trou dans la numerotation est aussi detecte. Il decalait auparavant chaque code suivant vers une ligne ou une colonne erronee.",
-      "La forme de la plaque est desormais declaree une seule fois au lieu d etre reecrite a chaque mappage de puits."
+      "Le annealing tail d un code-barres est desormais lu depuis le fichier lui-meme, si bien qu un jeu concu pour n importe quel gene est coupe au bon endroit.",
+      "Un fichier dont le tail est illisible arrete l execution, au lieu de deviner la coupe et de classer des reads dans des wells qui ne sont pas les leurs.",
+      "Les codes-barres reverse ne perdent plus leur derniere base, ce qui restreignait jusqu ici la base de choix de la ligne de plaque.",
+      "Le classeur de resultats note quel annealing tail a ete deduit, de sorte qu une execution terminee reste verifiable ensuite.",
+      "L echantillon de codes-barres fourni a ete regenere pour porter la structure seed plus tail commun attendue par le lecteur."
     ],
-    "highlightsStamp": "0.15.19+23a13b2a"
+    "highlightsStamp": "0.15.20+8d129891"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",

@@ -5,6 +5,8 @@ Verifies that the frozen (PyInstaller) MAME sidecar binary correctly handles:
   - ProcessPoolExecutor(mp_context=spawn) + multiprocessing.freeze_support()
   - per-NB parallel combinatorial demux over JSON-RPC 2.0
   - per-read ProcessPool demux (single native barcode, lowered threshold)
+  - a barcode workbook whose annealing tail is NOT the ispS constant, i.e.
+    the shape every package `barcode_package` generates per gene
 
 Usage:
     python frozen_mame_smoke.py <path-to-frozen-mame-sidecar>
@@ -64,6 +66,46 @@ _R_BARCODES = [
 
 _F_TAIL = "cacaggaggttaaacc"
 _R_TAIL = "tgcgttgcgctctag"
+
+# ---------------------------------------------------------------------------
+# Non-ispS fixture (mirrored from tests/mame/test_barcode_prefix_derivation.py)
+#
+# Every barcode above is the ispS shape, which is why this smoke passed for as
+# long as the demux held the ispS annealing tail as a constant: the frozen
+# binary never once read a workbook that constant could not explain. Every
+# package `barcode_package` generates is such a workbook, because it designs a
+# fresh flanking primer per gene.
+#
+# So a second, non-ispS plate is exercised alongside the first rather than
+# instead of it. Seeds are 9 bp forward and 13 bp reverse, neither of which was
+# the fallback length (11 / 10), and R1 and R2 share their first 10 bases: under
+# the fallback both cut to the same string and every read carrying either was
+# dropped as ambiguous, leaving 4 wells of the 12 that went in. Measured on this
+# exact fixture: 12 wells / 24 reads derived, 4 wells / 8 reads under the
+# fallback. The fallback is deleted now (a workbook stating no shared tail is
+# refused), so this step no longer distinguishes two behaviours; it pins that
+# the frozen binary derives a per-gene tail at all, which is the case the ispS
+# steps above cannot reach.
+# ---------------------------------------------------------------------------
+
+_GENE_F_TAIL = "GGTTCAGACGTATCCTGA"  # 18 bp, shares nothing with _F_TAIL
+_GENE_R_TAIL = "AACCTGGTATCGAGCTTA"  # 18 bp, shares nothing with _R_TAIL
+
+_GENE_F_SEEDS = [
+    "AACGTTCAG", "TTGCAACGT", "CGATTGCAA", "GCTAACGTT", "TACGGTTCA",
+    "ATCCGTTAG", "CCATGGATC", "GGTACCTAG", "TGACCAGTT", "AGTCCTGAA",
+    "CTGAAGGTC", "GACTTCCAG",
+]
+_GENE_R_SEEDS = [
+    "AACCGGTTACGAT", "AACCGGTTACTCA", "CGGATCCATTAGC", "GCCTAGGTAACGT",
+    "TACCGGATCCAAG", "ATGCCATGGTTCA", "CCGGTTAACCGAT", "GGCCAATTGGCTA",
+]
+
+#: Rows and columns the non-ispS fixture puts on the plate, and the reads each
+#: well gets. 3 x 4 x 2 = 24 reads over 12 wells.
+_GENE_ROWS = (1, 2, 3)
+_GENE_COLS = (1, 2, 3, 4)
+_GENE_READS_PER_WELL = 2
 
 
 def _reverse_complement(seq: str) -> str:
@@ -141,6 +183,48 @@ def _build_run_dir(workdir: Path) -> Path:
     run_dir = workdir / "RUN"
     for barcode in ("barcode06", "barcode20"):
         _build_fastq_gz(run_dir / "fastq_pass" / barcode)
+    return run_dir
+
+
+def _build_gene_read(r_idx: int, f_idx: int, amplicon: str) -> str:
+    """The same library layout as ``_build_read``, with the non-ispS flanks."""
+    return (
+        _GENE_F_SEEDS[f_idx - 1] + _GENE_F_TAIL
+        + amplicon
+        + _reverse_complement(_GENE_R_TAIL) + _reverse_complement(_GENE_R_SEEDS[r_idx - 1])
+    )
+
+
+def _build_gene_barcodes_xlsx(workdir: Path) -> Path:
+    """A barcode workbook of the shape ``barcode_package`` writes per gene."""
+    import openpyxl
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+
+    for i, seed in enumerate(_GENE_F_SEEDS, start=1):
+        ws.append([f"mygene_f_{i}", seed + _GENE_F_TAIL.lower()])
+    for i, seed in enumerate(_GENE_R_SEEDS, start=1):
+        ws.append([f"mygene_r_{i}", seed + _GENE_R_TAIL.lower()])
+
+    path = workdir / "barcodes_gene.xlsx"
+    wb.save(path)
+    return path
+
+
+def _build_gene_run_dir(workdir: Path) -> Path:
+    """A one-native-barcode run whose reads carry the non-ispS plate."""
+    run_dir = workdir / "RUN_GENE"
+    barcode_dir = run_dir / "fastq_pass" / "barcode06"
+    barcode_dir.mkdir(parents=True, exist_ok=True)
+    fastq_path = barcode_dir / "reads.fastq.gz"
+    with gzip.open(fastq_path, "wt", encoding="utf-8") as fh:
+        for r_idx in _GENE_ROWS:
+            for f_idx in _GENE_COLS:
+                for k in range(_GENE_READS_PER_WELL):
+                    seq = _build_gene_read(r_idx, f_idx, _REF_SEQ)
+                    fh.write(f"@gene_{r_idx}_{f_idx}_{k}\n{seq}\n+\n{'I' * len(seq)}\n")
     return run_dir
 
 
@@ -323,13 +407,15 @@ def run_smoke(binary: Path) -> None:
         xlsx = _build_barcodes_xlsx(workdir)
         run_dir = _build_run_dir(workdir)
         single_run_dir = _build_single_nb_run_dir(workdir)
+        gene_xlsx = _build_gene_barcodes_xlsx(workdir)
+        gene_run_dir = _build_gene_run_dir(workdir)
         expected_xlsx = _build_expected_mutations_xlsx(workdir)
         out_dir = workdir / "output"
         out_dir.mkdir()
 
-        # KUMA_MAME_PERREAD_THRESHOLD=1 lets step [5/6] (single native barcode)
+        # KUMA_MAME_PERREAD_THRESHOLD=1 lets step [5/7] (single native barcode)
         # reach the per-read spawn ProcessPool with the tiny synthetic fixture.
-        # Steps [3/6] and [4/6] use two native barcodes, where per_read_parallel
+        # Steps [3/7] and [4/7] use two native barcodes, where per_read_parallel
         # is False regardless of the threshold, so they stay on the serial
         # per-read path and are unaffected.
         # KUMA_MAME_TIMING_JSON gives a frozen-safe positive signal: the
@@ -342,7 +428,7 @@ def run_smoke(binary: Path) -> None:
         sio = SidecarIO(binary, stderr_path, env=child_env)
 
         # --- ping ---
-        print("[1/6] ping ...")
+        print("[1/7] ping ...")
         sio.send(_rpc(1, "ping", {}))
         try:
             ping_resp = sio.recv(1, timeout=30.0)
@@ -354,7 +440,7 @@ def run_smoke(binary: Path) -> None:
             failures.append(f"ping timed out or process died: {exc}")
 
         # --- detect ---
-        print("[2/6] mame.detect_native_barcodes ...")
+        print("[2/7] mame.detect_native_barcodes ...")
         sio.send(_rpc(2, "mame.detect_native_barcodes", {
             "minknow_run_dir": str(run_dir),
         }))
@@ -374,7 +460,7 @@ def run_smoke(binary: Path) -> None:
             failures.append(f"detect timed out or process died: {exc}")
 
         # --- per-NB parallel demux ---
-        print("[3/6] mame.run_combinatorial_demux (per-NB parallel) ...")
+        print("[3/7] mame.run_combinatorial_demux (per-NB parallel) ...")
         sio.send(_rpc(3, "mame.run_combinatorial_demux", {
             "minknow_run_dir": str(run_dir),
             "custom_barcodes_xlsx": str(xlsx),
@@ -404,7 +490,7 @@ def run_smoke(binary: Path) -> None:
 
         # --- analyze (raw MinKNOW run folder: folds demux + analyze) ---
         analyze_out = workdir / "analyze_out.xlsx"
-        print("[4/6] mame.analyze (raw MinKNOW run folder) ...")
+        print("[4/7] mame.analyze (raw MinKNOW run folder) ...")
         sio.send(_rpc(4, "analyze", {
             "input_dir": str(run_dir),
             "reference": str(ref_fasta),
@@ -450,7 +536,7 @@ def run_smoke(binary: Path) -> None:
         # worker re-entered the RPC loop it would print a second one.
         perread_out = workdir / "output_perread"
         perread_out.mkdir()
-        print("[5/6] mame.run_combinatorial_demux (per-read ProcessPool, 1 NB) ...")
+        print("[5/7] mame.run_combinatorial_demux (per-read ProcessPool, 1 NB) ...")
         sio.send(_rpc(5, "mame.run_combinatorial_demux", {
             "minknow_run_dir": str(single_run_dir),
             "custom_barcodes_xlsx": str(xlsx),
@@ -509,11 +595,54 @@ def run_smoke(binary: Path) -> None:
                 "step did not exercise the path it is meant to cover"
             )
 
-        # --- shutdown ---
-        print("[6/6] shutdown ...")
-        sio.send(_rpc(6, "shutdown", {}))
+        # --- non-ispS barcode plate ---
+        # Every step above feeds the frozen binary an ispS-shaped workbook, so
+        # none of them ever exercised the barcode reader on a file the ispS tail
+        # constants cannot explain. That is the whole population of packages
+        # `barcode_package` generates. The counts asserted here are the ones the
+        # derived tail produces; the deleted fixed-length fallback collapsed R1
+        # and R2 into one string and returned 4 wells / 8 reads.
+        gene_out = workdir / "output_gene"
+        gene_out.mkdir()
+        print("[6/7] mame.run_combinatorial_demux (non-ispS barcode plate) ...")
+        sio.send(_rpc(6, "mame.run_combinatorial_demux", {
+            "minknow_run_dir": str(gene_run_dir),
+            "custom_barcodes_xlsx": str(gene_xlsx),
+            "reference_fasta": str(ref_fasta),
+            "output_dir": str(gene_out),
+            "native_barcodes": ["barcode06"],
+        }))
+        expected_wells = len(_GENE_ROWS) * len(_GENE_COLS)
+        expected_reads = expected_wells * _GENE_READS_PER_WELL
         try:
-            sio.recv(6, timeout=15.0)
+            gene_resp = sio.recv(6, timeout=300.0)
+            if "error" in gene_resp:
+                failures.append(f"non-ispS demux RPC error: {gene_resp['error']}")
+            else:
+                gene_result = gene_resp.get("result", {})
+                gene_wells = gene_result.get("wells_with_reads")
+                gene_reads = gene_result.get("assigned_reads")
+                if gene_wells != expected_wells or gene_reads != expected_reads:
+                    failures.append(
+                        "non-ispS demux: expected "
+                        f"{expected_wells} wells / {expected_reads} assigned reads, "
+                        f"got {gene_wells!r} wells / {gene_reads!r} reads. The "
+                        "barcode seeds were not cut at the tail derived from the "
+                        "workbook, so this plate was read with the wrong seeds."
+                    )
+                else:
+                    print(
+                        f"      non-ispS demux OK, wells_with_reads={gene_wells}, "
+                        f"assigned_reads={gene_reads}"
+                    )
+        except (TimeoutError, RuntimeError) as exc:
+            failures.append(f"non-ispS demux timed out or process died: {exc}")
+
+        # --- shutdown ---
+        print("[7/7] shutdown ...")
+        sio.send(_rpc(7, "shutdown", {}))
+        try:
+            sio.recv(7, timeout=15.0)
             print("      shutdown ack received")
         except (TimeoutError, RuntimeError) as exc:
             # Shutdown ack may not arrive before EOF; process exit is the criterion

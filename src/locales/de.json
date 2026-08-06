@@ -2272,11 +2272,13 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Eine Barcode-Datei, die nicht fuer eine 8 x 12 Platte nummeriert ist, stoppt jetzt den Lauf und benennt die fehlerhaften Barcodes, statt Wells unbenannt zu lassen.",
-      "Auch eine Luecke in der Nummerierung wird erkannt. Bisher verschob sie jeden folgenden Barcode in die falsche Zeile oder Spalte.",
-      "Die Plattenform steht jetzt an einer Stelle statt in jeder Well-Zuordnung erneut."
+      "Der annealing tail eines Barcodes wird jetzt aus der Datei selbst gelesen, sodass ein fuer jedes Gen entworfener Barcode-Satz an der richtigen Stelle getrennt wird.",
+      "Eine Datei, deren tail nicht lesbar ist, stoppt den Lauf, statt eine Trennstelle zu raten und reads in fremde wells einzuordnen.",
+      "Reverse-Barcodes verlieren ihre letzte Base nicht mehr, was bisher die Grundlage fuer die Wahl der Plattenzeile verschmaelert hat.",
+      "Die Ergebnis-Arbeitsmappe haelt fest, welcher annealing tail abgeleitet wurde, sodass ein fertiger Lauf spaeter geprueft werden kann.",
+      "Das mitgelieferte Barcode-Beispiel wurde neu erzeugt und traegt nun die vom Leser erwartete Struktur aus seed und gemeinsamem tail."
     ],
-    "highlightsStamp": "0.15.19+23a13b2a"
+    "highlightsStamp": "0.15.20+8d129891"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",
