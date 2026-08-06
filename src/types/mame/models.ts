@@ -169,12 +169,6 @@ export interface AnalyzeResult extends AnalyzeYield {
    */
   janus_autosave?: JanusAutosaveResult;
   /**
-   * What became of the instrument (9-column) mapping the same run wrote. Same
-   * shape, same optionality, different file: `..._janus.csv` next to
-   * `..._picks.csv`.
-   */
-  janus_mapping_autosave?: JanusAutosaveResult;
-  /**
    * Which well->sample source this run scored against, and the files it came
    * from. A live sidecar always sends it; optional on the type only because a
    * result persisted before this field existed is replayed verbatim on
@@ -515,15 +509,18 @@ export interface JanusPreviewResult {
 }
 
 /**
- * Outcome of the Janus mapping written automatically at the end of an analyze.
- *
- * Mirrors ``_autosave_janus_mapping`` in
- * `python-core/sidecar_mame/handlers/analyze.py`, which never raises: a mapping
- * that could not be written is a fact to report, not a reason to lose the run.
+ * Outcome of writing a Janus file: the pick list analyze writes automatically
+ * at the end of a run (``_autosave_janus`` via ``_autosave_picks`` in
+ * `python-core/sidecar_mame/handlers/analyze.py`, format always `"csv"`), or
+ * the instrument mapping a manual export from `JanusMappingPanel` writes
+ * (`setJanusMappingAutosave`, format follows the operator's format choice).
+ * The automatic path never raises: a file that could not be written is a fact
+ * to report, not a reason to lose the run.
  *
  * - "saved": the file exists at `output_path` and carries `row_count` rows.
- * - "skipped": nothing was selected, so no file was written (an empty mapping
- *   reads like a finished plate).
+ * - "skipped": nothing was selected, so no file was written (an empty pick
+ *   list reads like a finished plate). Only the automatic path produces this;
+ *   a manual export with nothing to write disables the Export button instead.
  * - "failed": `errors` says why.
  *
  * `warnings` never changes the status: a blank liquid class and rack numbers
@@ -532,7 +529,7 @@ export interface JanusPreviewResult {
 export interface JanusAutosaveResult {
   status: "saved" | "skipped" | "failed";
   output_path: string | null;
-  format: "csv";
+  format: JanusExportFormat;
   row_count: number;
   excluded: JanusExcludedEntry[];
   excluded_count: number;

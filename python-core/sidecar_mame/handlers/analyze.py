@@ -251,9 +251,6 @@ def _deserialize_replicate(d: dict) -> Any:
 #: Token appended to the result workbook stem for the auto-saved pick list.
 _PICKS_AUTOSAVE_SUFFIX = "_picks"
 
-#: Token for the auto-saved instrument (9-column) mapping.
-_MAPPING_AUTOSAVE_SUFFIX = "_janus"
-
 
 def picks_autosave_path(output: Path) -> Path:
     """Where the pick list lands for a run whose workbook is *output*.
@@ -266,20 +263,10 @@ def picks_autosave_path(output: Path) -> Path:
     the rule changed. Same directory, same stem, plus the picks token.
 
     The token says what the file is: the clones this run selected. The
-    instrument sheet is the other file the run writes, and it keeps the
-    ``_janus`` token (:func:`mapping_autosave_path`).
+    instrument sheet (``_janus`` token) is a separate file, written only on a
+    manual ``export_janus_mapping`` call, not derived from this path.
     """
     return output.with_name(f"{output.stem}{_PICKS_AUTOSAVE_SUFFIX}.csv")
-
-
-def mapping_autosave_path(output: Path) -> Path:
-    """Where the instrument (9-column) mapping lands, beside the pick list.
-
-    Same derivation as :func:`picks_autosave_path` and a different token, so a
-    run leaves two files nobody can confuse: ``..._picks.csv`` records what was
-    selected, ``..._janus.csv`` is the sheet the robot reads.
-    """
-    return output.with_name(f"{output.stem}{_MAPPING_AUTOSAVE_SUFFIX}.csv")
 
 
 def _autosave_janus(
@@ -358,13 +345,15 @@ def _autosave_picks(
 ) -> dict:
     """Write the pick list for a finished run, next to its workbook.
 
-    The schema is forced to ``legacy5`` and deliberately ignores the dialog's
-    ``output_schema``. This file records the conclusion of the run (which variant
-    sits on which plate and well, and where it should be collected), which is
-    what an operator wants beside the workbook every time, and it stays readable
-    without a deck in front of you. The instrument sheet is the other file
-    (:func:`_autosave_mapping`); neither replaces the other, and the lab asked
-    for the instrument sheet by name.
+    The schema is forced to ``legacy5`` and deliberately ignores the export
+    settings' ``output_schema``. This file records the conclusion of the run
+    (which variant sits on which plate and well, and where it should be
+    collected), which is what an operator wants beside the workbook every
+    time, and it stays readable without a deck in front of you. The
+    instrument sheet is a separate file, written only by a manual
+    ``export_janus_mapping`` call (``device9``); a robot worklist states a
+    deck and a liquid class that describe the room at export time, and this
+    automatic write has no reason to assert either on every re-run.
 
     Selection stays under the operator's control: ``dest_layout``,
     ``include_verdicts`` and ``include_fallback`` are honoured, because those
@@ -402,57 +391,6 @@ def _autosave_picks(
         }
     return _autosave_janus(
         replicates, picks_autosave_path(output), run_meta, settings
-    )
-
-
-def _autosave_mapping(
-    replicates: list,
-    output: Path,
-    run_meta: object,
-    janus_params: dict,
-) -> dict:
-    """Write the instrument (9-column) mapping for a finished run.
-
-    The file the lab actually asked for: "the mapping file only has to come out
-    the way KURO already makes it". KURO writes its JANUS sheet at the end of a
-    design without asking anybody for a liquid class or a rack number
-    (``kuma_core/kuro/plate_mapper.py:897`` onwards), so MAME writing one at the
-    end of a run is the same habit, not a new promise.
-
-    Nothing is invented to make it come out: rack numbers follow the plates of
-    the run (``JanusSettings.resolve_deck``), a liquid class the operator has not
-    set ships blank, and both facts come back in ``warnings``. ``volume`` is the
-    one value that cannot be derived, which is why the dialog asks for it and
-    the default is labelled an assumption.
-    """
-    from kuma_core.mame.export.janus_mapping import SCHEMA_DEVICE9
-
-    from .export import _janus_settings_from_params
-
-    try:
-        settings = _janus_settings_from_params(
-            {**janus_params, "output_schema": SCHEMA_DEVICE9}
-        )
-    except Exception as exc:  # noqa: BLE001 - never lose the run over a setting
-        return {
-            "status": "failed",
-            "output_path": None,
-            "format": "csv",
-            "row_count": 0,
-            "excluded": [],
-            "excluded_count": 0,
-            "errors": [
-                {
-                    "code": "autosave_failed",
-                    "severity": "error",
-                    "message": str(exc),
-                    "mutant_ids": [],
-                }
-            ],
-            "warnings": [],
-        }
-    return _autosave_janus(
-        replicates, mapping_autosave_path(output), run_meta, settings
     )
 
 
@@ -665,14 +603,19 @@ def handle_validate_inputs(params: dict) -> dict:
 def handle_analyze(params: dict) -> dict:
     """Run the full pipeline and cache the resulting artefacts for downstream RPCs.
 
-    Three files come out of one run: the result workbook at ``output``, the pick
-    list beside it (:func:`picks_autosave_path`), and the instrument mapping
-    (:func:`mapping_autosave_path`), all written here rather than waiting for the
-    export dialog. Optional ``janus_settings`` carries the same fields the
-    ``export_janus_mapping`` RPC accepts; the pick list pins ``legacy5`` and the
-    mapping pins ``device9``, so which schema each file uses is not a setting.
-    The two outcomes ride back on ``janus_autosave`` and
-    ``janus_mapping_autosave`` and never raise.
+    Two files come out of one run: the result workbook at ``output`` and the
+    pick list beside it (:func:`picks_autosave_path`), written here rather
+    than waiting for a manual export. Optional ``janus_settings`` carries the
+    same fields the ``export_janus_mapping`` RPC accepts; the pick list pins
+    ``output_schema`` to ``legacy5`` regardless of what the settings say, so
+    the file only ever states the selection, never instrument columns. The
+    outcome rides back on ``janus_autosave`` and never raises.
+
+    The instrument mapping (``device9``, the 9-column sheet the robot reads)
+    is not written here. It states a deck and a liquid class that describe the
+    room at the moment it is written, so unlike the pick list it must not be
+    reasserted by every re-run; only a manual ``export_janus_mapping`` call
+    writes it (see ``handlers/export.py``).
 
     Optional ``variant_sheet`` / ``variant_column`` name the sheet and column of a
     plain expected-variant list. Omitting both is auto-detection, which leaves a
@@ -1214,8 +1157,8 @@ def handle_analyze(params: dict) -> dict:
     )
 
     # The pick list is the second artefact of the same run, so it is written here
-    # rather than waiting for the operator to open the dialog. Cached state is
-    # already set above, so a failure here costs the file, never the analysis.
+    # rather than waiting for a manual export. Cached state is already set
+    # above, so a failure here costs the file, never the analysis.
     # Post-hoc mapping sanity check (kuma_core.mame.qc): this is the ONLY place
     # left, after classification, that can see the failure signature a stale or
     # mis-drawn well_layout leaves behind -- every well individually classifies
@@ -1228,20 +1171,12 @@ def handle_analyze(params: dict) -> dict:
 
     janus_params = params.get("janus_settings") or {}
     janus_autosave = _autosave_picks(replicates, output, run_meta, janus_params)
-    # The mapping file the lab asked for by name: same run, same picks, the
-    # instrument columns. Written unconditionally because KURO writes its JANUS
-    # sheet the same way, and because the two files answer different questions
-    # (what was selected vs. what the robot should do about it).
-    janus_mapping_autosave = _autosave_mapping(
-        replicates, output, run_meta, janus_params
-    )
 
     response = {
         "verdicts": [_serialize_verdict(v) for v in verdicts],
         "replicates": [_serialize_replicate(r) for r in replicates],
         "output_path": str(output),
         "janus_autosave": janus_autosave,
-        "janus_mapping_autosave": janus_mapping_autosave,
         "designed_mutant_ids": sorted(dids),
         "summary": _summarize(verdicts),
         # Which of the three well->sample sources this run actually scored

@@ -355,6 +355,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     saveJanusSettings(janusSettings);
     set({ janusSettings });
   },
+  // Set by the mapping panel (JanusMappingPanel) after a successful manual
+  // export, the only writer of the instrument mapping now that analyze does
+  // not write it automatically. Feeds the same "done" signal and drawer/
+  // inspector displays that used to read the automatic file.
+  setJanusMappingAutosave: (janusMappingAutosave) => set({ janusMappingAutosave }),
   // Every analyze/demux call sends this as the amplicon reference, so a swap
   // invalidates a completed run's verdicts (same reasoning as setInputDir).
   setReferencePath: (referencePath) => {
@@ -624,13 +629,13 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     })();
     get().setOutputPath(outDir);
     get().setDistributionStats(result.distribution_stats ?? null);
-    // The run wrote (or could not write) its two Janus files. Kept so the result
+    // The run wrote (or could not write) its pick list. Kept so the result
     // view can state it; swallowing it leaves the operator looking for a file
-    // that was never created.
-    set({
-      janusAutosave: result.janus_autosave ?? null,
-      janusMappingAutosave: result.janus_mapping_autosave ?? null,
-    });
+    // that was never created. The instrument mapping has no autosave counterpart
+    // here: `janusMappingAutosave` was already cleared by this run's
+    // `clearResults()` and stays null until the operator exports one from
+    // `JanusMappingPanel`.
+    set({ janusAutosave: result.janus_autosave ?? null });
     // Persist the FULL analyze response AS-IS (sibling result file) once on
     // success, so restart can replay it into the sidecar + restore the 2.2
     // review view. Awaited so an immediate app-close does not lose it. Failure
@@ -732,9 +737,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           sample_map_xlsx: state.sampleMapPath || null,
           well_layout: state.wellLayout ?? null,
           ...variantSourceParams(state),
-          // The sidecar writes the Janus mapping at the end of every run, and
-          // refuses without a liquid class. Sending the dialog's settings is
-          // what turns that refusal into a file.
+          // The sidecar writes the pick list at the end of every run
+          // (`_autosave_picks`, forced to legacy5), which honours dest_layout
+          // and include_verdicts/include_fallback from these settings but
+          // never the instrument fields; the instrument mapping is written
+          // only by a manual export from JanusMappingPanel.
           janus_settings: toRpcParams(state.janusSettings),
         },
         MAME_ANALYZE_RPC_TIMEOUT_MS,
@@ -754,10 +761,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       })();
       get().setOutputPath(outDir);
       get().setDistributionStats(result.distribution_stats ?? null);
-      set({
-        janusAutosave: result.janus_autosave ?? null,
-        janusMappingAutosave: result.janus_mapping_autosave ?? null,
-      });
+      // See the non-raw-run branch above: no `janus_mapping_autosave` from the
+      // sidecar to read here either, so `janusMappingAutosave` stays whatever
+      // this run's `clearResults()` already left it (null).
+      set({ janusAutosave: result.janus_autosave ?? null });
       try {
         await writeMameResultSnapshot(get().projectPath, result);
       } catch (err) {

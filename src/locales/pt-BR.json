@@ -843,7 +843,7 @@
       "settings": {
         "contextTitle": "Configurações do instrumento Janus",
         "contextSubtitle": "Volume de transferência, racks do deck e liquid class usados para escrever o mapeamento do instrumento. Opcional: uma execução apenas de sequenciamento pode pular esta etapa.",
-        "optionalNote": "Esta etapa é opcional. Uma execução de análise escreve sozinha a lista de picks e o mapeamento do instrumento, então uma execução que só precisa dos verdicts de sequenciamento vai da etapa 2 direto para a etapa 4.",
+        "optionalNote": "Esta etapa e opcional. Uma execucao de analise escreve sozinha a lista de picks; o mapeamento do instrumento so e escrito ao ser exportado aqui, entao uma execucao que so precisa dos verdicts de sequenciamento vai da etapa 2 direto para a etapa 4.",
         "inspectorTitle": "Inspector do instrumento",
         "inspectorSubtitle": "Valores usados para escrever o mapeamento",
         "inspectorVolume": "Volume de transferência (uL)",
@@ -855,10 +855,7 @@
         "drawerRight": "Próximo",
         "drawerRightDesc": "Dados de atividade e handoff para o EVOLVEpro",
         "volumeLabel": "Volume de transferencia (uL)",
-        "volumeHint": "Gravado no mapeamento do instrumento que esta execucao produz. Os 100 uL padrao sao uma suposicao sem fonte de laboratorio: defina o volume deste experimento.",
-        "openDialog": "Configurações do instrumento Janus…",
-        "openDialogAriaLabel": "Abrir as configurações do instrumento Janus",
-        "dialogHint": "Opcional. Os numeros de rack seguem as placas desta execucao e a liquid class sai em branco se nao definida; informe valores apenas para sobrescrever."
+        "volumeHint": "Gravado no mapeamento do instrumento que esta execucao produz. Os 100 uL padrao sao uma suposicao sem fonte de laboratorio: defina o volume deste experimento."
       }
     },
     "setup": {

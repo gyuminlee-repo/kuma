@@ -843,7 +843,7 @@
       "settings": {
         "contextTitle": "Janus 設備設定",
         "contextSubtitle": "設定寫入設備對應檔的轉移體積、deck 架位與 liquid class。選用：只需定序判定的執行可略過此步驟。",
-        "optionalNote": "此步驟為選用。分析執行會自行寫出挑取清單與設備對應檔，因此只需定序判定的執行可從步驟 2 直接進入步驟 4。",
+        "optionalNote": "此步驟為選用。分析執行會自行寫出挑取清單；設備對應檔僅在此處匯出時才會寫出，因此只需定序判定的執行可從步驟 2 直接進入步驟 4。",
         "inspectorTitle": "設備 Inspector",
         "inspectorSubtitle": "寫入對應檔所用的值",
         "inspectorVolume": "轉移體積 (uL)",
@@ -855,10 +855,7 @@
         "drawerRight": "下一步",
         "drawerRightDesc": "活性資料與 EVOLVEpro 交接",
         "volumeLabel": "轉移體積 (µL)",
-        "volumeHint": "此值會直接寫入本次執行產生的儀器對應檔。預設 100 µL 是沒有實驗室依據的假設，請改成本次實驗實際使用的體積。",
-        "openDialog": "Janus 設備設定…",
-        "openDialogAriaLabel": "開啟 Janus 設備設定",
-        "dialogHint": "選填。機架編號依本次執行的盤順序推導，liquid class 未設定時留空輸出；僅在需要覆寫時填寫。"
+        "volumeHint": "此值會直接寫入本次執行產生的儀器對應檔。預設 100 µL 是沒有實驗室依據的假設，請改成本次實驗實際使用的體積。"
       }
     },
     "setup": {
