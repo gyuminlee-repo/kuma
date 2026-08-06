@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.15.13.01 (The step 2.2 height fix reaches the people who needed it)
+
+The panel sizing shipped in v0.15.11 did nothing on any machine that had opened step 2.2 before. It skipped the fit whenever a stored layout existed for the panel group, reading that as a size the operator had chosen. The panel library writes that entry on mount for its own default layout, so it was there for everyone who had ever opened the step, and the fix sat inert behind it. Reinstalling the app did not clear it either: the store lives in the webview profile, not in the installed files.
+
+### Fixed
+
+- v0.15.13.01: Only a drag counts as a size the operator chose, and it is recorded under its own key. A layout the panel library persisted on its own no longer suppresses the content fit, so the plate map takes the height its rows need on machines that had used step 2.2 before v0.15.11. A split someone actually dragged is still left alone, across restarts.
+
 ## v0.15.13 (The replicate that reads cleanest is the one that ships)
 
 MAME keeps three replicate plates per variant and ships one. Verdict class decides first, and below the mixed-position gate every plate reads PASS, so the pick fell to native barcode order. On the 260729 ispS run that sent a plate whose designed substitution rested on 82 percent of reads while its sibling sat at 98 percent, twice, for no reason other than a lower barcode number.
