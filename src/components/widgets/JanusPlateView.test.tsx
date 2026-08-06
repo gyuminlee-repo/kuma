@@ -4,22 +4,22 @@ import { describe, it, expect } from "vitest";
 import { JanusPlateView } from "./JanusPlateView";
 
 describe("JanusPlateView", () => {
-  it("renders 2 racks of 96 cells (192 total)", () => {
+  it("renders 2 source plate panels of 96 cells (192 total)", () => {
     const { container } = render(<JanusPlateView rack1={[]} rack2={[]} />);
     expect(container.querySelectorAll("[data-testid='janus-cell']")).toHaveLength(192);
   });
 
-  it("renders rack 1 with 96 cells (8 rows x 12 cols)", () => {
+  it("renders the forward source panel with 96 cells (8 rows x 12 cols)", () => {
     const { container } = render(<JanusPlateView rack1={[]} rack2={[]} />);
     expect(container.querySelectorAll("[data-rack='1']")).toHaveLength(96);
   });
 
-  it("renders rack 2 with 96 cells (8 rows x 12 cols)", () => {
+  it("renders the reverse source panel with 96 cells (8 rows x 12 cols)", () => {
     const { container } = render(<JanusPlateView rack1={[]} rack2={[]} />);
     expect(container.querySelectorAll("[data-rack='2']")).toHaveLength(96);
   });
 
-  it("renders boundary well H12 in both racks", () => {
+  it("renders boundary well H12 in both panels", () => {
     const { container } = render(<JanusPlateView rack1={[]} rack2={[]} />);
     const rack1Last = container.querySelector("[data-rack='1'][data-well='H12']");
     const rack2Last = container.querySelector("[data-rack='2'][data-well='H12']");
@@ -59,12 +59,16 @@ describe("JanusPlateView", () => {
     expect(screen.getByTitle(/P1-dest/)).toBeInTheDocument();
   });
 
-  it("renders rack labels via i18n keys", () => {
+  it("renders source plate labels via i18n keys", () => {
     const { container } = render(<JanusPlateView rack1={[]} rack2={[]} />);
     // Labels rendered via t(); since keys not yet in locale, i18next returns key as fallback.
     // Look for label elements by data-testid so test stays robust whether key is resolved or not.
-    expect(container.querySelector("[data-testid='janus-rack1-label']")).not.toBeNull();
-    expect(container.querySelector("[data-testid='janus-rack2-label']")).not.toBeNull();
+    expect(
+      container.querySelector("[data-testid='janus-forward-source-label']"),
+    ).not.toBeNull();
+    expect(
+      container.querySelector("[data-testid='janus-reverse-source-label']"),
+    ).not.toBeNull();
   });
 
   it("renders mutation code and F/R tag in each well", () => {
@@ -100,9 +104,13 @@ describe("JanusPlateView", () => {
     await userEvent.click(screen.getByText("Q232A"));
     expect(await screen.findByText(/Q232A-fw/)).toBeInTheDocument();
     expect(screen.getByText(/2(\.0)? ?[μu]L/i)).toBeInTheDocument();
+    // The popover used to print "Rack: 1", the index of the panel the cell sits
+    // in. The deck is addressed by plate name, so a number there named a
+    // position the instrument does not have. Nothing on this view says rack.
+    expect(screen.queryByText(/rack/i)).toBeNull();
   });
 
-  it("empty racks still render the full grid", () => {
+  it("empty panels still render the full grid", () => {
     const { container } = render(<JanusPlateView rack1={[]} rack2={[]} />);
     const cells = container.querySelectorAll("[data-testid='janus-cell']");
     expect(cells).toHaveLength(192);

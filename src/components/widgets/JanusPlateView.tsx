@@ -20,12 +20,14 @@ const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
 const COLS = Array.from({ length: 12 }, (_, i) => i + 1);
 
 /**
- * Resolve display mutation + F/R tag for a rack cell.
+ * Resolve display mutation + F/R tag for a preview cell.
  *
- * Tag comes from rack number (Rack 1 = forward source, Rack 2 = reverse
- * source, per Phase 1 layout). Mutation prefers `cell.mutation` (backend
- * canonical key from Phase 2) and falls back to `parseJanusName(cell.name)`
- * for legacy fixtures lacking the field.
+ * The tag follows `JanusCell.rack`, which is the index of the panel the cell
+ * is drawn in (1 = forward source, 2 = reverse source) and never a deck
+ * position: the instrument addresses its plates by name (`asp_rack`), so a
+ * number here would name nothing on the deck. Mutation prefers `cell.mutation`
+ * (backend canonical key from Phase 2) and falls back to
+ * `parseJanusName(cell.name)` for legacy fixtures lacking the field.
  */
 function rackTag(rack: 1 | 2): "F" | "R" {
   return rack === 1 ? "F" : "R";
@@ -127,7 +129,6 @@ function Rack({
                     <div className="space-y-1">
                       <div className="font-mono font-medium">{cell.name}</div>
                       <div>Well: {cell.well}</div>
-                      <div>Rack: {cell.rack}</div>
                       <div>Volume: {cell.volumeUl} µL</div>
                     </div>
                   </PopoverContent>
@@ -148,15 +149,15 @@ export function JanusPlateView({ rack1, rack2, className }: Props) {
       <Rack
         rack={1}
         cells={rack1}
-        label={t("exportPreview.rack1Label")}
-        labelTestId="janus-rack1-label"
+        label={t("exportPreview.forwardSourceLabel")}
+        labelTestId="janus-forward-source-label"
         tone="fwd"
       />
       <Rack
         rack={2}
         cells={rack2}
-        label={t("exportPreview.rack2Label")}
-        labelTestId="janus-rack2-label"
+        label={t("exportPreview.reverseSourceLabel")}
+        labelTestId="janus-reverse-source-label"
         tone="rev"
       />
     </div>
