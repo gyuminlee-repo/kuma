@@ -166,7 +166,7 @@
     },
     "nativeBarcodeDialog": {
       "title": "複数の native barcode が検出されました",
-      "description": "この run には MinKNOW native barcode が複数含まれています。demultiplex する barcode を選択してください。選択した各 barcode はそれぞれ専用の出力フォルダーに処理されます。",
+      "description": "この run には MinKNOW native barcode が複数含まれています。demultiplex する barcode を選択してください。選択した各 barcode はそれぞれ専用の出力フォルダーに処理されます。1 回の解析 run が採点する plate は 1 枚です。ここで選んだ barcode は別々の plate ではなく、同じ plate の replicate として採点されます。",
       "shareHeader": "割合",
       "selectAriaLabel": "native barcode {{name}} を選択",
       "selectedCount": "barcode を {{count}} 件選択中",
@@ -796,7 +796,8 @@
         "placeholder": ".xlsx / .csv ファイルパス",
         "stateLabel": "必須",
         "helperText": "解析前に使用する組み合わせ barcode 定義",
-        "helpText": "Raw MinKNOW run モードでは、このファイルを使って解析前に read を well 単位 FASTA 出力へ割り当てます。"
+        "helpText": "Raw MinKNOW run モードでは、このファイルを使って解析前に read を well 単位 FASTA 出力へ割り当てます。",
+        "axisCounts": "Barcode ファイル: forward {{forward}} x reverse {{reverse}} seeds、1 枚の plate で {{wells}} wells。"
       },
       "sampleMap": {
         "label": "Sample Map (任意)",

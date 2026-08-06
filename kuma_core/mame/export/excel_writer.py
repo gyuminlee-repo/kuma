@@ -45,7 +45,7 @@ from kuma_core.mame.select.purity import (
 from kuma_core.mame.models import ReplicateResult, VerdictClass, VerdictRecord
 from kuma_core.mame.detected import compute_recovery, replicate_is_recovered
 from kuma_core.mame.export.nb_label import nb_label, nb_order_key, well_sort_key
-from kuma_core.mame.plate_geometry import PLATE_COLS, PLATE_ROWS
+from kuma_core.mame.plate_geometry import DEFAULT_ADDRESSING, token_to_seq
 
 if TYPE_CHECKING:
     from kuma_core.mame.ingest.run_meta import NgsRunMeta
@@ -202,24 +202,12 @@ def _finalize(
         ws.freeze_panes = freeze
 
 
-def _custom_barcode_to_seq(custom: str) -> int | None:
-    """`{R}_{F}` -> 1-based column-major sequence index.
-
-    Uses F as the well column (1..12) and R as the row contribution within the
-    column. Returns None if the label cannot be parsed.
-    """
-
-    parts = custom.split("_")
-    if len(parts) != 2:
-        return None
-    try:
-        r = int(parts[0])
-        f = int(parts[1])
-    except ValueError:
-        return None
-    if not (1 <= r <= PLATE_ROWS and 1 <= f <= PLATE_COLS):
-        return None
-    return (f - 1) * PLATE_ROWS + r
+#: `{R}_{F}` -> 1-based column-major sequence index, or None when the label
+#: names no well on the plate. The name is kept because ``pipeline``,
+#: ``qc.mapping_integrity`` and several tests import the mapping from here,
+#: which is where it used to be defined; the rule itself now lives once in
+#: ``plate_geometry`` alongside the inverse ``seq_to_well``.
+_custom_barcode_to_seq = token_to_seq
 
 
 _EMPTY_BASELINE = PlateBaseline(None, 0.0, None, 0.0)
@@ -266,7 +254,7 @@ def _write_sheet1(
         key=lambda r: well_sort_key(r.translated.barcode.custom_barcode),
     ):
         br = vr.translated.barcode
-        seq = _custom_barcode_to_seq(br.custom_barcode)
+        seq = token_to_seq(br.custom_barcode)
         well_id = seq_to_well(seq) if seq else ""
         sel_rr = selected_lookup.get((native_barcode, br.custom_barcode))
         selected_marker = "Y" if sel_rr is not None else ""
@@ -339,12 +327,12 @@ def _write_final(
         if rr.selected_plate is not None:
             vr = rr.plate_verdicts.get(rr.selected_plate)
             if vr is not None:
-                seq = _custom_barcode_to_seq(vr.translated.barcode.custom_barcode)
+                seq = token_to_seq(vr.translated.barcode.custom_barcode)
         else:
             # Failed — try to borrow a well from any available verdict to place
             # a FAILED marker.
             for vr in rr.plate_verdicts.values():
-                s = _custom_barcode_to_seq(vr.translated.barcode.custom_barcode)
+                s = token_to_seq(vr.translated.barcode.custom_barcode)
                 if s is not None:
                     seq = s
                     break
@@ -357,7 +345,7 @@ def _write_final(
     failed_count = 0
     redo_targets: list[str] = []
 
-    for seq in range(1, 97):
+    for seq in range(1, DEFAULT_ADDRESSING.capacity + 1):
         well = mapper.seq_to_well(seq)
         rr = replicate_by_seq.get(seq)
         if rr is None:
@@ -409,7 +397,8 @@ def _write_final(
     # Summary footer.
     ws.append([])
     summary = (
-        f"confirmed: {confirmed}/96 | FAILED: {failed_count} | "
+        f"confirmed: {confirmed}/{DEFAULT_ADDRESSING.capacity} | "
+        f"FAILED: {failed_count} | "
         f"REDO targets: {', '.join(redo_targets) if redo_targets else '(none)'}"
     )
     ws.append([summary])
@@ -502,9 +491,9 @@ def _build_unified_ngs_data(
         cb: str = ""
         if ref_vr is not None:
             cb = ref_vr.translated.barcode.custom_barcode
-            seq = _custom_barcode_to_seq(cb)
+            seq = token_to_seq(cb)
 
-        well_id = seq_to_well(seq) if seq is not None and 1 <= seq <= 96 else ""
+        well_id = seq_to_well(seq) if seq is not None else ""
 
         selected_nb = (
             nb_label(rr.selected_plate)
@@ -621,9 +610,9 @@ def _write_final_matrix_sheet(
 
         seq: int | None = None
         if ref_vr is not None:
-            seq = _custom_barcode_to_seq(ref_vr.translated.barcode.custom_barcode)
+            seq = token_to_seq(ref_vr.translated.barcode.custom_barcode)
 
-        well_id = seq_to_well(seq) if seq is not None and 1 <= seq <= 96 else ""
+        well_id = seq_to_well(seq) if seq is not None else ""
 
         selected_nb = (
             nb_label(rr.selected_plate)

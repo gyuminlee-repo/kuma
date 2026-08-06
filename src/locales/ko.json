@@ -226,7 +226,7 @@
     },
     "nativeBarcodeDialog": {
       "title": "여러 native barcode가 감지되었습니다",
-      "description": "이 run에는 MinKNOW native barcode가 둘 이상 포함되어 있습니다. demultiplex할 barcode를 선택하세요. 선택한 barcode는 각각 별도의 출력 폴더로 처리됩니다.",
+      "description": "이 run에는 MinKNOW native barcode가 둘 이상 포함되어 있습니다. demultiplex할 barcode를 선택하세요. 선택한 barcode는 각각 별도의 출력 폴더로 처리됩니다. 한 번의 분석 run은 plate 한 장을 채점합니다. 여기서 고른 barcode는 서로 다른 plate가 아니라 같은 plate의 replicate로 채점됩니다.",
       "shareHeader": "비율",
       "selectAriaLabel": "native barcode {{name}} 선택",
       "selectedCount": "barcode {{count}}개 선택됨",
@@ -921,7 +921,8 @@
         "placeholder": ".xlsx / .csv 파일 경로",
         "stateLabel": "필수",
         "helperText": "분석 전에 사용하는 조합 barcode 정의 파일",
-        "helpText": "Raw MinKNOW 실행 모드에서 reads를 well별 FASTA 출력에 할당하는 데 사용합니다."
+        "helpText": "Raw MinKNOW 실행 모드에서 reads를 well별 FASTA 출력에 할당하는 데 사용합니다.",
+        "axisCounts": "Barcode 파일: forward {{forward}} x reverse {{reverse}} seed, plate 한 장에서 {{wells}} well."
       },
       "sampleMap": {
         "label": "샘플 맵 (선택)",

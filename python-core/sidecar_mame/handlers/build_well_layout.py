@@ -31,9 +31,11 @@ Response schema
 ``count`` (int)  Number of draft rows (mutant wells + optional WT well).
 ``dropped_mutant_ids`` (list[str]) ``mutant_id`` values past the 96th well. The
                  barcode space is 12 fwd x 8 rev, so a 97th well cannot be told
-                 apart in the reads; such campaigns are split across plates
-                 (separated by native barcode) with one layout per plate. A
-                 non-empty list means this draft does not describe the full set.
+                 apart in the reads. One analyze run scores one plate; native
+                 barcodes are replicates of that plate, so such campaigns are
+                 split across plates and run one plate at a time, with one
+                 layout per plate. A non-empty list means this draft does not
+                 describe the full set.
 ``wt_omitted`` (bool) True when the plate is exactly full and no well was left
                  for the WT control, which costs the clean-control check.
 """

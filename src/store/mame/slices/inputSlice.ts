@@ -19,6 +19,7 @@ import type {
   DistributionStats,
   JanusAutosaveResult,
   JanusExportSettings,
+  BarcodeAxisCounts,
   PlateOrderFinding,
   PlateOrderReport,
   ValidationResult,
@@ -194,6 +195,7 @@ const mameInputInitialState = {
   resetEpoch: 0,
   wellLayout: null as WellLayout | null,
   plateOrderFinding: null as PlateOrderFinding | null,
+  barcodeAxisCounts: null as BarcodeAxisCounts | null,
   variantSourceInfo: null as VariantSourceInfo | null,
   variantSheet: null as string | null,
   variantColumn: null as string | null,
@@ -414,6 +416,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       manyCutoff: params.manyCutoff ?? state.manyCutoff,
       maxConsensusNFraction: params.maxConsensusNFraction ?? state.maxConsensusNFraction,
       validationErrors: [],
+      // The counts describe the barcode workbook the last validation read, and
+      // customBarcodesPath lives in rawRunParams, so any change here can mean a
+      // different file. Cleared with the errors rather than left to describe a
+      // workbook nobody picked any more.
+      barcodeAxisCounts: null,
     });
     if (changed) get().clearResults();
   },
@@ -547,6 +554,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         validationErrors: result.errors,
         // Absent key = nothing to report, which has to clear a previous finding.
         plateOrderFinding: result.plate_order ?? null,
+        // Same rule: absent means no workbook was read this time, so a line
+        // left over from a previous file would describe the wrong one.
+        barcodeAxisCounts: result.barcode_axes ?? null,
         isValidating: false,
         analyzeMessage: result.valid ? "Validation complete" : "Validation errors found",
       });

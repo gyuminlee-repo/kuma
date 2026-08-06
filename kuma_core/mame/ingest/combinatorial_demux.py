@@ -104,6 +104,7 @@ from kuma_core.mame.ingest.stage_marker import (
 )
 from kuma_core.mame.ingest.well_consensus import _read_reference_seq
 from kuma_core.mame.perf import TIMER, timed_iter
+from kuma_core.mame.plate_geometry import DEFAULT_ADDRESSING
 from kuma_core.shared.atomic_write import atomic_write_text, fsync_directory
 
 T = TypeVar("T")
@@ -148,6 +149,25 @@ _FWD_ROW_RE = re.compile(r"^(?P<prefix>.+?)_f_(?P<n>\d+)$")
 _REV_ROW_RE = re.compile(r"^(?P<prefix>.+?)_r_(?P<n>\d+)$")
 
 _COMP = str.maketrans("ACGTacgtNn", "TGCAtgcaNn")
+
+
+def _warn_axis_counts(f_count: int, r_count: int) -> None:
+    """Note a barcode set that does not fill the plate, on both readers.
+
+    A full set has one seed per plate column on the forward axis and one per
+    plate row on the reverse axis, so the expected counts are the plate itself
+    rather than two numbers to keep in step by hand. Advisory only: a partial
+    set is a partial plate, which is legitimate, and the file is refused (with a
+    sentence naming the wells at stake) by ``plate_geometry.check_barcode_layout``
+    when its numbering runs off the plate instead.
+    """
+    expected_f = DEFAULT_ADDRESSING.forward_axis_size
+    expected_r = DEFAULT_ADDRESSING.reverse_axis_size
+    if f_count != expected_f:
+        log.warning("Expected %d F barcodes, got %d", expected_f, f_count)
+    if r_count != expected_r:
+        log.warning("Expected %d R barcodes, got %d", expected_r, r_count)
+
 
 # Default worker count for per-well consensus ThreadPool.
 # KUMA_MAME_CONSENSUS_WORKERS env var takes priority.
@@ -626,10 +646,9 @@ def load_barcode_prefixes_with_provenance(
             barcodes_xlsx,
         )
 
-    if len(resolution.forward.barcodes) != 12:
-        log.warning("Expected 12 F barcodes, got %d", len(resolution.forward.barcodes))
-    if len(resolution.reverse.barcodes) != 8:
-        log.warning("Expected 8 R barcodes, got %d", len(resolution.reverse.barcodes))
+    _warn_axis_counts(
+        len(resolution.forward.barcodes), len(resolution.reverse.barcodes)
+    )
 
     return resolution
 
@@ -766,10 +785,7 @@ def load_barcodes(barcodes_xlsx: Path) -> tuple[list[str], list[str]]:
     f_barcodes = [s for _, s in f_entries]
     r_barcodes = [s for _, s in r_entries]
 
-    if len(f_barcodes) != 12:
-        log.warning("Expected 12 F barcodes, got %d", len(f_barcodes))
-    if len(r_barcodes) != 8:
-        log.warning("Expected 8 R barcodes, got %d", len(r_barcodes))
+    _warn_axis_counts(len(f_barcodes), len(r_barcodes))
 
     return f_barcodes, r_barcodes
 

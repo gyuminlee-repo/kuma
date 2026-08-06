@@ -166,7 +166,7 @@
     },
     "nativeBarcodeDialog": {
       "title": "Обнаружено несколько native barcode",
-      "description": "Этот запуск содержит более одного native barcode MinKNOW. Выберите barcode для demultiplex; каждый выбранный barcode обрабатывается в отдельную папку вывода.",
+      "description": "Этот запуск содержит более одного native barcode MinKNOW. Выберите barcode для demultiplex; каждый выбранный barcode обрабатывается в отдельную папку вывода. Один запуск анализа оценивает одну plate: выбранные здесь barcode оцениваются как replicate этой же plate, а не как отдельные plate.",
       "shareHeader": "Доля",
       "selectAriaLabel": "Выбрать native barcode {{name}}",
       "selectedCount": "Выбрано barcode: {{count}}",
@@ -796,7 +796,8 @@
         "placeholder": "путь к .xlsx / .csv",
         "stateLabel": "Обязательно",
         "helperText": "Определение комбинаторных barcode перед анализом",
-        "helpText": "Режим raw MinKNOW run использует этот файл для назначения reads в per-well FASTA выходы перед анализом."
+        "helpText": "Режим raw MinKNOW run использует этот файл для назначения reads в per-well FASTA выходы перед анализом.",
+        "axisCounts": "Файл barcode: {{forward}} forward x {{reverse}} reverse seeds, {{wells}} wells на одной plate."
       },
       "sampleMap": {
         "label": "Sample Map (опционально)",

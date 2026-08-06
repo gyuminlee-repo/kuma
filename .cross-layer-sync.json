@@ -406,16 +406,43 @@
       "files": [
         "kuma_core/mame/layout.py",
         "python-core/sidecar_mame/handlers/build_well_layout.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
         "python-core/sidecar_mame/models.py",
-        "src/types/mame/well_layout.ts"
+        "src/types/mame/well_layout.ts",
+        "src/types/mame/models.ts"
       ],
       "symbols": [
         "build_draft_layout",
         "BuildWellLayoutParams",
         "handle_build_well_layout",
-        "BuildWellLayoutResult"
+        "BuildWellLayoutResult",
+        "dropped_mutant_ids",
+        "wt_omitted"
       ],
-      "note": "mame.build_well_layout: core func <-> Pydantic model <-> handler dict <-> TS interfaces",
+      "note": "mame.build_well_layout: core func <-> Pydantic model <-> handler dict <-> TS interfaces. analyze.py 와 models.ts 를 2026-08-06 에 추가했다. 실제 의존은 RPC 하나가 아니라 DraftLayout 의 두 필드다: analyze 는 build_draft_layout 을 같은 include_wt 규칙으로 다시 부르고, dropped_mutant_ids 가 비지 않으면 demux 이전에 run 을 거부하며, wt_omitted 를 layout_provenance(LayoutProvenance in models.ts)에 실어 보고한다. 거부 조건을 is_complete 로 넓히면 DESIGNED 96 + WT 행 없음(오늘 정상 채점되는 96칸 완전 레이아웃)이 막히므로, 두 필드의 의미를 바꿀 때 이 다섯 지점을 함께 본다.",
+      "severity": "blocking"
+    },
+    {
+      "id": "mame-plate-addressing",
+      "files": [
+        "kuma_core/mame/plate_geometry.py",
+        "kuma_core/mame/export/well_mapper.py",
+        "kuma_core/mame/export/nb_label.py",
+        "kuma_core/mame/export/excel_writer.py",
+        "kuma_core/mame/export/janus_mapping.py",
+        "kuma_core/mame/ingest/combinatorial_demux.py",
+        "python-core/sidecar_mame/handlers/export.py",
+        "src/lib/mame/nbLabel.ts"
+      ],
+      "symbols": [
+        "PlateAddressing",
+        "DEFAULT_ADDRESSING",
+        "token_to_seq",
+        "seq_to_well",
+        "well_sort_key",
+        "wellSortKey"
+      ],
+      "note": "(R,F) barcode token -> plate well 규칙의 단일 정본. plate_geometry.PlateAddressing 이 두 결정(row_axis: 어느 축이 행인가, traversal: column-major/row-major)을 값으로 들고 있고 DEFAULT_ADDRESSING 이 MAME 의 규약(reverse=행, 원점 A1, column-major)이다. 나머지 파일은 전부 위임한다: well_mapper 의 seq_to_well/well_to_seq, nb_label 의 well_sort_key, excel_writer/janus_mapping/사이드카 export 핸들러의 _custom_barcode_to_seq, combinatorial_demux 의 축 개수 경고. 2026-08-06 이전에는 같은 합 ((F-1)*8+R) 이 네 곳에 따로 적혀 있었고 사이드카 핸들러만 옛 규칙에 남을 수 있었다. src/lib/mame/nbLabel.ts 의 wellSortKey 는 Python well_sort_key 의 미러이며 tests/mame/test_nb_label.py 와 src/lib/mame/nbLabel.test.ts 가 같은 골든 표를 단언한다. 축·순서를 바꾸는 변경은 대각선 아닌 토큰(예: 2_5)과 seq 값으로 검증할 것: 웰 라벨만 보는 테스트는 두 traversal 을 구분하지 못한다. 이 그룹의 범위는 (R,F) 토큰 -> seq -> 웰 라벨 경로 하나뿐이다. 96웰 격자 자체를 따로 들고 있는 코드가 밖에 남아 있다: kuma_core/mame/cross_talk.py 의 _ROW_LABELS/_COL_RANGE/_neighbour_keys 는 이웃 웰을 A~H x 1~12 로 직접 계산하고, kuma_core/kuro/plate_mapper.py 는 프라이머 소스 플레이트를 다룬다(MAME 의 대상 플레이트가 아니므로 여기 묶지 않는다). 격자 크기를 바꾸려면 이 그룹만으로는 부족하다.",
       "severity": "blocking"
     },
     {

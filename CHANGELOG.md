@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.15.23 (One home for the rule that turns a barcode pair into a well)
+
+A well is named from the combinatorial barcode as `{R}_{F}`, and the arithmetic that turns that pair into a plate coordinate had been written out four times: in the workbook writer, in the robot mapping, in the sidecar export handler, and in the plate geometry module itself. Four copies of one rule is four chances to drift, and a drift here files a read under a well it did not come from. The rule now lives in `plate_geometry` alone, as a frozen addressing value that names the row axis and the fill order rather than leaving them implicit. The other three call it.
+
+Nothing about the plate changed: the reverse index is still the row, the forward index is still the column, and wells still fill down a column before moving right. The tests that pin it were rewritten so they fail when either axis moves, which the previous ones did not do.
+
+The plate capacity guard was also narrowed. It ran before, it refused a design that exactly filled the plate with no room left for a wild-type well, and that design scores correctly. It now refuses only a design with more variants than the plate holds, reports the missing wild-type well instead of refusing it, and leaves a run alone when the operator supplied the layout directly. Loading a barcode file now says how many forward and reverse barcodes it holds and how many wells they describe.
+
+### Highlights
+
+- The rule that turns a barcode pair into a plate well lives in one place instead of four, so the four cannot drift apart.
+- A design that fills the plate exactly, leaving no room for a wild-type well, is no longer refused for it.
+- Loading a barcode file shows how many forward and reverse barcodes it holds, and how many wells they describe.
+- The native barcode dialog says what it is choosing: replicates of one plate, rather than separate plates.
+- A run that overflows the plate is refused before the demux starts, not after wells have been written.
+
 ## v0.15.21 (The barcode annealing tail is read from the file, not from one gene)
 
 MAME cut a barcode into seed and annealing tail using two sequences hardcoded from the ispS raw data, plus a fixed prefix length reverse-engineered from that same set. Every barcode package the app generates carries a flanking primer that primer3 designs per gene, so those two sequences are never present in a file MAME made itself. The reader found no tail, said nothing, and fell back to cutting at 11 bases forward and 10 reverse. On the shipped seed template, whose reverse seeds are 11 bases, that silently removed the last base of all eight reverse barcodes, and the reverse index is the plate row. A seed longer than eleven lost more.

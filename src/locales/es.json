@@ -166,7 +166,7 @@
     },
     "nativeBarcodeDialog": {
       "title": "Se detectaron varios native barcodes",
-      "description": "Esta corrida contiene más de un native barcode de MinKNOW. Seleccione los barcodes que desea demultiplexar; cada barcode seleccionado se procesa en su propia carpeta de salida.",
+      "description": "Esta corrida contiene más de un native barcode de MinKNOW. Seleccione los barcodes que desea demultiplexar; cada barcode seleccionado se procesa en su propia carpeta de salida. Una corrida de análisis evalúa una plate: los barcodes seleccionados aquí se evalúan como replicates de esa misma plate, no como plates distintas.",
       "shareHeader": "Proporción",
       "selectAriaLabel": "Seleccionar native barcode {{name}}",
       "selectedCount": "{{count}} barcode(s) seleccionado(s)",
@@ -796,7 +796,8 @@
         "placeholder": "Ruta del archivo .xlsx / .csv",
         "stateLabel": "Requerido",
         "helperText": "Definición combinatoria de barcodes usada antes del análisis",
-        "helpText": "El modo raw run de MinKNOW usa este archivo para asignar reads a salidas FASTA por well antes del análisis."
+        "helpText": "El modo raw run de MinKNOW usa este archivo para asignar reads a salidas FASTA por well antes del análisis.",
+        "axisCounts": "Archivo de barcodes: {{forward}} forward x {{reverse}} reverse seeds, {{wells}} wells en una plate."
       },
       "sampleMap": {
         "label": "Sample Map (opcional)",

@@ -166,7 +166,7 @@
     },
     "nativeBarcodeDialog": {
       "title": "偵測到多個 native barcode",
-      "description": "本次 run 包含多個 MinKNOW native barcode。請選擇要 demultiplex 的 barcode；每個所選 barcode 都會處理到各自的輸出資料夾。",
+      "description": "本次 run 包含多個 MinKNOW native barcode。請選擇要 demultiplex 的 barcode；每個所選 barcode 都會處理到各自的輸出資料夾。一次分析 run 只評判一片 plate：這裡所選的 barcode 會作為同一片 plate 的 replicate 評判，而不是各自獨立的 plate。",
       "shareHeader": "占比",
       "selectAriaLabel": "選擇 native barcode {{name}}",
       "selectedCount": "已選擇 {{count}} 個 barcode",
@@ -796,7 +796,8 @@
         "placeholder": ".xlsx / .csv 檔案路徑",
         "stateLabel": "必填",
         "helperText": "分析前使用的組合 barcode 定義",
-        "helpText": "Raw MinKNOW run 模式使用此檔案,在分析前將 read 分配到每個 well 的 FASTA 輸出。"
+        "helpText": "Raw MinKNOW run 模式使用此檔案,在分析前將 read 分配到每個 well 的 FASTA 輸出。",
+        "axisCounts": "Barcode 檔案：forward {{forward}} x reverse {{reverse}} seeds，一片 plate 上 {{wells}} 個 well。"
       },
       "sampleMap": {
         "label": "Sample Map (可選)",

@@ -56,8 +56,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from kuma_core.mame.export.nb_label import nb_label, nb_order_key
-from kuma_core.mame.export.well_mapper import seq_to_well
 from kuma_core.mame.models import ReplicateResult, VerdictClass
+from kuma_core.mame.plate_geometry import DEFAULT_ADDRESSING, PlateAddressing
 from kuma_core.shared.janus_deck import JANUS_DEVICE9_HEADER
 
 if TYPE_CHECKING:
@@ -140,21 +140,6 @@ def _require_positive_int(value: object, label: str) -> int:
     return value
 
 
-def _custom_barcode_to_seq(custom: str) -> int | None:
-    """`{R}_{F}` -> 1-based column-major sequence index."""
-    parts = custom.split("_")
-    if len(parts) != 2:
-        return None
-    try:
-        r = int(parts[0])
-        f = int(parts[1])
-    except ValueError:
-        return None
-    if not (1 <= r <= 8 and 1 <= f <= 12):
-        return None
-    return (f - 1) * 8 + r
-
-
 def normalize_include_verdicts(raw: object | None) -> tuple[str, ...]:
     """Validate and normalise the requested verdict classes.
 
@@ -216,11 +201,16 @@ def _exclusion_reason(
 
 def _find_unresolved_wells(
     bad_barcodes: list[tuple[str, str]],
+    addressing: PlateAddressing = DEFAULT_ADDRESSING,
 ) -> dict[str, object] | None:
     """Report rows whose ``custom_barcode`` could not be mapped to a well.
 
     A blank well silently shipped to JANUS is an unusable instruction, so the
     export refuses it (no silent fallback) and the preview surfaces it.
+
+    The plate comes in the same way it does for the row builder that produced
+    ``bad_barcodes``, so the range this message quotes is the range that
+    rejected them rather than a second copy of the grid.
     """
     if not bad_barcodes:
         return None
@@ -231,28 +221,34 @@ def _find_unresolved_wells(
         "message": (
             "Janus mapping: unparseable custom_barcode, well position unknown for "
             f"{len(bad_barcodes)} mutant(s): {detail}. "
-            "Expected '<row>_<col>' with row 1-8 and col 1-12."
+            f"Expected '<row>_<col>' with row 1-{addressing.rows} "
+            f"and col 1-{addressing.cols}."
         ),
         "mutant_ids": [mid for mid, _ in bad_barcodes],
     }
 
 
-def _find_plate_overflow(rows: list[dict[str, object]]) -> dict[str, object] | None:
-    """Report selections larger than one 96-well destination plate.
+def _find_plate_overflow(
+    rows: list[dict[str, object]],
+    addressing: PlateAddressing = DEFAULT_ADDRESSING,
+) -> dict[str, object] | None:
+    """Report selections larger than one destination plate.
 
     Evaluated before compact reassignment so the message names the real problem
     rather than surfacing ``seq_to_well``'s internal range error.
     """
-    if len(rows) <= 96:
+    capacity = addressing.capacity
+    if len(rows) <= capacity:
         return None
     return {
         "code": "plate_capacity",
         "severity": SEVERITY_ERROR,
         "message": (
-            f"Janus mapping: {len(rows)} picks exceed the 96-well destination "
-            "plate capacity. Reduce the selection to at most 96 clones."
+            f"Janus mapping: {len(rows)} picks exceed the {capacity}-well "
+            f"destination plate capacity. Reduce the selection to at most "
+            f"{capacity} clones."
         ),
-        "mutant_ids": [str(row["name"]) for row in rows[96:]],
+        "mutant_ids": [str(row["name"]) for row in rows[capacity:]],
     }
 
 
@@ -305,6 +301,7 @@ def _assemble_janus_rows(
     dest_layout: str,
     include_verdicts: tuple[str, ...] = DEFAULT_INCLUDE_VERDICTS,
     include_fallback: bool = False,
+    addressing: PlateAddressing = DEFAULT_ADDRESSING,
 ) -> tuple[list[dict[str, object]], list[tuple[str, str]], list[dict[str, object]]]:
     """Build and sort rows without validating them.
 
@@ -348,12 +345,12 @@ def _assemble_janus_rows(
 
         bc = vr.translated.barcode
         custom_barcode = bc.custom_barcode
-        seq = _custom_barcode_to_seq(custom_barcode)
-        if seq is None or not (1 <= seq <= 96):
+        seq = addressing.token_to_seq(custom_barcode)
+        if seq is None:
             well_label = ""
             bad_barcodes.append((rr.mutant_id, custom_barcode))
         else:
-            well_label = seq_to_well(seq)
+            well_label = addressing.seq_to_well(seq)
 
         # nb_label is what every other MAME export writes (the result workbook
         # included), so the two files a run produces name one plate one way.
@@ -377,15 +374,24 @@ def _assemble_janus_rows(
     return rows, bad_barcodes, excluded
 
 
-def _apply_compact_layout(rows: list[dict[str, object]]) -> None:
+def _apply_compact_layout(
+    rows: list[dict[str, object]],
+    addressing: PlateAddressing = DEFAULT_ADDRESSING,
+) -> None:
     """Reassign ``dest_well`` sequentially from A1, in place.
 
-    Only the first 96 rows get a destination; ``seq_to_well`` rejects anything
-    past 96. Overflow rows keep a blank destination and are reported by
-    ``_find_plate_overflow``.
+    Only the first ``addressing.capacity`` rows get a destination;
+    ``seq_to_well`` rejects anything past the plate. Overflow rows keep a blank
+    destination and are reported by ``_find_plate_overflow``.
+
+    The plate is passed in rather than read from anywhere: ``kuma_core`` does
+    not import the sidecar, and a destination plate that depended on sidecar
+    state would make the same picks land differently depending on which process
+    wrote them.
     """
+    capacity = addressing.capacity
     for idx, row in enumerate(rows):
-        row["dest_well"] = seq_to_well(idx + 1) if idx < 96 else ""
+        row["dest_well"] = addressing.seq_to_well(idx + 1) if idx < capacity else ""
 
 
 @dataclass(frozen=True)

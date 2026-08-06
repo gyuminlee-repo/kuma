@@ -226,7 +226,7 @@
     },
     "nativeBarcodeDialog": {
       "title": "Multiple native barcodes detected",
-      "description": "This run contains more than one MinKNOW native barcode. Select which barcodes to demultiplex; each selected barcode is processed into its own output folder.",
+      "description": "This run contains more than one MinKNOW native barcode. Select which barcodes to demultiplex; each selected barcode is processed into its own output folder. One analyze run scores one plate: the barcodes selected here are scored as replicates of that same plate, not as separate plates.",
       "shareHeader": "Share",
       "selectAriaLabel": "Select native barcode {{name}}",
       "selectedCount": "{{count}} barcode(s) selected",
@@ -921,7 +921,8 @@
         "placeholder": ".xlsx / .csv file path",
         "stateLabel": "Required",
         "helperText": "Combinatorial barcode definition used before analysis",
-        "helpText": "Raw MinKNOW run mode uses this file to assign reads to per-well FASTA outputs before analysis."
+        "helpText": "Raw MinKNOW run mode uses this file to assign reads to per-well FASTA outputs before analysis.",
+        "axisCounts": "Barcode file: {{forward}} forward x {{reverse}} reverse seeds, {{wells}} wells on one plate."
       },
       "sampleMap": {
         "label": "Sample Map (optional)",
@@ -2313,13 +2314,13 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The barcode annealing tail is now read from the file itself, so a barcode set designed for any gene gets cut in the right place.",
-      "A file whose tail cannot be read stops the run, instead of guessing a cut point and filing reads into wells they do not belong to.",
-      "Reverse barcodes no longer lose their last base, which had been narrowing the evidence used to pick a plate row.",
-      "The result workbook records which annealing tail was derived, so a finished run can be audited later.",
-      "The bundled barcode sample was rebuilt to carry the seed plus shared tail structure the reader expects."
+      "The rule that turns a barcode pair into a plate well lives in one place instead of four, so the four cannot drift apart.",
+      "A design that fills the plate exactly, leaving no room for a wild-type well, is no longer refused for it.",
+      "Loading a barcode file shows how many forward and reverse barcodes it holds, and how many wells they describe.",
+      "The native barcode dialog says what it is choosing: replicates of one plate, rather than separate plates.",
+      "A run that overflows the plate is refused before the demux starts, not after wells have been written."
     ],
-    "highlightsStamp": "0.15.21+8d129891"
+    "highlightsStamp": "0.15.23+0c028fbf"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

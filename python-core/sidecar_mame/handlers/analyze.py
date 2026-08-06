@@ -26,6 +26,7 @@ from sidecar_mame.core import (
 
 if TYPE_CHECKING:
     from kuma_core.mame.ingest.amplicon_reference import AmpliconReferenceResolution
+    from kuma_core.mame.layout import DraftLayout
 
 # Keep-alive heartbeat interval for the analyze stage. Re-emits the latest
 # progress state during otherwise-silent stretches (FASTA ingest, the
@@ -473,6 +474,116 @@ def _barcode_layout_error(barcodes_path: Path) -> str | None:
     )
 
 
+def _barcode_axis_counts(barcodes_path: Path) -> dict | None:
+    """How many seeds each axis carries, and how many wells they can name.
+
+    Read-only and cheap (the same two columns :func:`_barcode_layout_error`
+    opens). Reported so the operator can see what the file actually contains
+    before starting a run, rather than inferring it from the absence of an
+    error. ``None`` when the file cannot be read, which the caller has already
+    reported some other way.
+
+    Also ``None`` for a set that does not fit the plate, and that is the point
+    rather than a shortcut. The counts are every index the file carries while
+    ``describable_wells`` counts only the in-range combinations, so a 13F x 9R
+    workbook would render "13 forward x 9 reverse seeds, 96 wells" -- three
+    numbers that do not multiply, printed beside the layout error that already
+    names F13 and R9. One statement about such a file is enough, and it is the
+    one that says what is wrong with it.
+    """
+    try:
+        from kuma_core.mame.ingest.combinatorial_demux import read_barcode_indices
+        from kuma_core.mame.plate_geometry import check_barcode_layout
+
+        r_idx, f_idx = read_barcode_indices(barcodes_path)
+    except Exception:  # noqa: BLE001 - openpyxl surface is broad
+        return None
+    report = check_barcode_layout(r_idx, f_idx)
+    if not report.fits:
+        return None
+    return {
+        "forward_count": len(report.f_indices),
+        "reverse_count": len(report.r_indices),
+        "wells": report.describable_wells,
+    }
+
+
+def _layout_is_inferred(params: dict) -> bool:
+    """Will this run place wells by reading ``expected``, or was it told where?
+
+    The same three-way decision ``handle_analyze`` makes when it sets
+    ``layout_source``, asked early and off the raw params so the checks that
+    have to run before the demux can ask it too. Kept as one function because
+    two copies of it would be two chances for a check to guard a branch the run
+    does not take.
+    """
+    return params.get("well_layout") is None and not params.get("sample_map_xlsx")
+
+
+def _plate_capacity_finding(
+    expected_path: Path,
+    variant_sheet: str | None,
+    variant_column: str | None,
+) -> tuple[str | None, "DraftLayout | None"]:
+    """Does the designed list fit the one plate a *drafted* layout would place?
+
+    Returns ``(error, draft)``. The draft is handed back rather than a summary
+    of it so the caller can place wells with the very object this graded; a
+    second ``build_draft_layout`` over the same file is a second chance to
+    disagree with the check that let the run start.
+
+    Only ask this when the run has no layout of its own. A designed list is the
+    campaign, and ``well_layout`` / ``sample_map_xlsx`` are what name the plate
+    cut out of it: the pipeline scopes each well through ``well_to_sample``
+    (``kuma_core/mame/pipeline.py``), so a longer list is a lookup table with
+    spare rows, not an overflowing plate. :func:`_layout_is_inferred` is the
+    gate, and without it this refuses a configuration that ran correctly before
+    the check existed.
+
+    ``wt_omitted`` on the returned draft is a plate carrying exactly as many
+    designed mutants as it has wells, which leaves no room to append a WT
+    control well: that is a layout MAME scores correctly today, so refusing it
+    would block a working configuration. It is reported on
+    ``layout_provenance`` instead.
+
+    A workbook this cannot read produces ``(None, None)``. Reading the expected
+    list is not this check's job, it happens further down and in the raw-run
+    refusals, each of which says more about what is wrong with a file than
+    "could not open it" would.
+    """
+    try:
+        from kuma_core.mame.io.variant_list import read_variant_source
+        from kuma_core.mame.layout import build_draft_layout
+        from kuma_core.mame.plate_geometry import PLATE_CAPACITY
+
+        read = read_variant_source(
+            expected_path, sheet=variant_sheet, variant_column=variant_column
+        )
+        draft = build_draft_layout(
+            read.expected, include_wt=not read.has_explicit_wt
+        )
+    except Exception:  # noqa: BLE001 - openpyxl / reader surface is broad
+        return None, None
+
+    if not draft.dropped_mutant_ids:
+        return None, draft
+
+    listed = ", ".join(draft.dropped_mutant_ids[:5])
+    if len(draft.dropped_mutant_ids) > 5:
+        listed += f", and {len(draft.dropped_mutant_ids) - 5} more"
+    return (
+        f"expected: {expected_path.name} lists {len(read.expected)} designed "
+        f"mutants, more than the {PLATE_CAPACITY} wells one plate has, and this "
+        "run was given no well layout or sample map to say which of them are on "
+        "the plate. One analyze run scores one plate; native barcodes are "
+        f"replicates of that plate, so a mutant past well {PLATE_CAPACITY} "
+        "carries no barcode of its own and would be scored as a repeat of an "
+        "earlier well. Supply a well layout or sample map for this plate, or "
+        "split the campaign and run one plate at a time. Past the plate: "
+        f"{listed}."
+    ), draft
+
+
 def _barcode_seed_rule_error(barcodes_path: Path) -> str | None:
     """Does this barcode file say where its seeds end?
 
@@ -584,6 +695,7 @@ def handle_validate_inputs(params: dict) -> dict:
     """
     errors: list[str] = []
     plate_order: dict | None = None
+    barcode_axes: dict | None = None
 
     input_dir = params.get("input_dir")
     reference = params.get("reference")
@@ -624,6 +736,12 @@ def handle_validate_inputs(params: dict) -> dict:
                 except (FileNotFoundError, ValueError) as exc:
                     errors.append(f"custom_barcodes_xlsx: {exc}")
                 else:
+                    # What the file contains, whether or not it passes. Stated
+                    # rather than inferred from a silent validation: two axes and
+                    # a well count is the whole shape of the plate this run can
+                    # name, and reading it back is how an operator confirms the
+                    # workbook they picked is the one they meant.
+                    barcode_axes = _barcode_axis_counts(barcodes_path)
                     layout_error = _barcode_layout_error(barcodes_path)
                     if layout_error is not None:
                         errors.append(layout_error)
@@ -696,6 +814,22 @@ def handle_validate_inputs(params: dict) -> dict:
                 # refused until the file is replaced (2026-08-05).
                 if plate_order is not None:
                     errors.append(_plate_order_error(plate_order))
+
+            # The same plate-capacity gate the run applies, asked here for the
+            # reason every other pre-run refusal in this handler is mirrored:
+            # without it the workbook passes validation, the operator starts a
+            # multi-minute demux, and the refusal arrives where it costs the
+            # most. Same condition too, read off the params the frontend already
+            # sends under the analyze names, so the button and the run agree
+            # about which runs draft their own layout.
+            if expected_readable and _layout_is_inferred(params):
+                capacity_error, _ = _plate_capacity_finding(
+                    expected_path,
+                    _optional_str(params.get("variant_sheet")),
+                    _optional_str(params.get("variant_column")),
+                )
+                if capacity_error is not None:
+                    errors.append(capacity_error)
         except (FileNotFoundError, ValueError) as exc:
             errors.append(f"expected: {exc}")
         except Exception as exc:  # noqa: BLE001 — openpyxl surface is broad
@@ -710,6 +844,12 @@ def handle_validate_inputs(params: dict) -> dict:
     result: dict = {"valid": not errors, "errors": errors}
     if plate_order is not None:
         result["plate_order"] = plate_order
+    # Absent when no barcode workbook was given or it could not be read. The
+    # frontend shows it as a line of text, never as something to change: which
+    # axis is the plate row and which way the plate fills are properties of how
+    # the barcodes were prepared, not of a run.
+    if barcode_axes is not None:
+        result["barcode_axes"] = barcode_axes
     return result
 
 
@@ -775,6 +915,37 @@ def handle_analyze(params: dict) -> dict:
     output = _validate_output_path(
         params["output"], allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
     )
+
+    # Plate capacity, decided before the demux rather than after it. When this
+    # run has to draft its own layout out of ``expected``, a designed list longer
+    # than one plate has no answer it can give: the sample map is keyed by well
+    # alone and the native barcode is a replicate axis over that same plate, so a
+    # mutant past the last well carries nothing to tell it apart and is scored as
+    # a repeat of an earlier one. One read-only workbook read here costs a
+    # fraction of the multi-minute demux it stops, which is why it sits ahead of
+    # the raw-run block rather than inside it.
+    #
+    # ONLY asked when the layout is drafted. A run given ``well_layout`` or
+    # ``sample_map_xlsx`` was told which wells it scores, and the designed list
+    # is then a lookup table those wells index into, so a longer one is not an
+    # overflowing plate and refusing it would block a configuration that ran
+    # correctly before this check existed.
+    #
+    # ONLY a list that overflows refuses. ``wt_omitted`` (a plate whose designed
+    # mutants fill every well, leaving none for an appended WT control) is
+    # reported and not refused: that is a layout MAME scores correctly today, and
+    # ``DraftLayout.is_complete`` being false for it makes it an inviting but
+    # wrong trigger.
+    #
+    # The graded draft is kept and reused as the layout further down, so the
+    # object that passed the check is the object that places the wells.
+    drafted_layout: DraftLayout | None = None
+    if _layout_is_inferred(params):
+        plate_capacity_error, drafted_layout = _plate_capacity_finding(
+            expected, variant_sheet, variant_column
+        )
+        if plate_capacity_error is not None:
+            raise ValueError(plate_capacity_error)
 
     # Raw-run gate: a MinKNOW run folder (has ``fastq_pass/``) needs demux first;
     # a pre-demuxed consensus dir takes the legacy path untouched.
@@ -1108,17 +1279,23 @@ def handle_analyze(params: dict) -> dict:
     elif sample_map_path is not None:
         layout_source = "sample_map_xlsx"
     else:
-        from kuma_core.mame.io.variant_list import read_variant_source
-        from kuma_core.mame.layout import build_draft_layout
+        # The draft the plate-capacity gate above already graded, reused rather
+        # than rebuilt: same read and the same WT rule as
+        # ``mame.build_well_layout``, and building it twice would be two chances
+        # to disagree about the same file. ``None`` only when that read failed,
+        # which the refusals further down report in their own words; an empty
+        # layout there behaves as it did before the gate existed.
+        if drafted_layout is None:
+            from kuma_core.mame.io.variant_list import read_variant_source
+            from kuma_core.mame.layout import build_draft_layout
 
-        # Same read and the same WT rule as ``mame.build_well_layout``: the two
-        # produce the layout for the same file and must not disagree about it.
-        _inferred = read_variant_source(
-            expected, sheet=variant_sheet, variant_column=variant_column
-        )
-        well_layout = build_draft_layout(
-            _inferred.expected, include_wt=not _inferred.has_explicit_wt
-        ).layout
+            _inferred = read_variant_source(
+                expected, sheet=variant_sheet, variant_column=variant_column
+            )
+            drafted_layout = build_draft_layout(
+                _inferred.expected, include_wt=not _inferred.has_explicit_wt
+            )
+        well_layout = drafted_layout.layout
         layout_source = "inferred_draft_layout"
 
     _emit(10, "Ingesting FASTA files...")
@@ -1354,6 +1531,20 @@ def handle_analyze(params: dict) -> dict:
             "expected_path": str(expected),
             "sample_map_path": (
                 str(sample_map_path) if sample_map_path is not None else None
+            ),
+            # The designed list fills every well, so no well was left for an
+            # appended WT control. Reported, never a refusal: the run scores
+            # correctly either way, but without a declared WT well the clean
+            # control is attributed as UNKNOWN_* and that check is lost, which
+            # is worth saying out loud on the result.
+            #
+            # null unless this run drafted the layout itself. It is a fact about
+            # ``build_draft_layout`` running out of wells, and a run handed a
+            # ``well_layout`` or a sample map never asked it: that layout may
+            # well declare a WT well of its own, so answering true or false here
+            # would put a claim about a layout nobody built onto a stored result.
+            "wt_omitted": (
+                drafted_layout.wt_omitted if drafted_layout is not None else None
             ),
         },
         # Whole-run mapping sanity check (kuma_core.mame.qc.mapping_integrity).

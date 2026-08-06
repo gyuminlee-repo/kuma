@@ -34,9 +34,11 @@ export interface BuildWellLayoutResult {
   count: number
   /**
    * mutant_id values past the 96th well. The combinatorial barcode space is
-   * 12 fwd x 8 rev, so a 97th well cannot be told apart in the reads; larger
-   * campaigns are split across plates (separated by native barcode) with one
-   * layout per plate. Non-empty means the draft does not cover the full set.
+   * 12 fwd x 8 rev, so a 97th well cannot be told apart in the reads. One
+   * analyze run scores one plate; native barcodes are replicates of that plate,
+   * so larger campaigns are split across plates and run one plate at a time,
+   * with one layout per plate. Non-empty means the draft does not cover the
+   * full set.
    */
   dropped_mutant_ids: string[]
   /**

@@ -32,21 +32,6 @@ def _parse_positive_int(value: object, label: str) -> int:
     return parsed
 
 
-def _custom_barcode_to_seq(custom: str) -> int | None:
-    """``{R}_{F}`` -> 1-based column-major sequence index (mirrors excel_writer)."""
-    parts = custom.split("_")
-    if len(parts) != 2:
-        return None
-    try:
-        r = int(parts[0])
-        f = int(parts[1])
-    except ValueError:
-        return None
-    if not (1 <= r <= 8 and 1 <= f <= 12):
-        return None
-    return (f - 1) * 8 + r
-
-
 def _janus_settings_from_params(params: dict):
     """Build the one ``JanusSettings`` both Janus handlers resolve behaviour from.
 
@@ -206,7 +191,11 @@ def handle_export_excel(params: dict) -> dict:
 
 def handle_get_plate_data(_params: dict) -> dict:
     """Emit 96-well grid data derived from cached ``analyze`` verdicts."""
-    from kuma_core.mame.export import seq_to_well
+    # Both directions come from the one plate convention in kuma_core. This
+    # handler used to carry its own copy of the ``{R}_{F}`` -> seq sum, which
+    # meant the sidecar could keep answering by the old rule after the core
+    # changed and nothing would have said so.
+    from kuma_core.mame.plate_geometry import seq_to_well, token_to_seq
 
     state = get_state()
     if state.last_verdicts is None:
@@ -238,7 +227,7 @@ def handle_get_plate_data(_params: dict) -> dict:
     wells: list[dict] = []
     for vr in state.last_verdicts:
         b = vr.translated.barcode
-        seq = _custom_barcode_to_seq(b.custom_barcode)
+        seq = token_to_seq(b.custom_barcode)
         well = seq_to_well(seq) if seq else ""
         # A verdict is the "selected" replicate iff its (native, custom) pair
         # matches a chosen-replicate pair built above. Pair-keyed so EVERY
