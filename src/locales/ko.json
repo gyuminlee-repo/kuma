@@ -225,13 +225,20 @@
       }
     },
     "nativeBarcodeDialog": {
-      "title": "여러 native barcode가 감지되었습니다",
-      "description": "이 run에는 MinKNOW native barcode가 둘 이상 포함되어 있습니다. demultiplex할 barcode를 선택하세요. 선택한 barcode는 각각 별도의 출력 폴더로 처리됩니다. 한 번의 분석 run은 plate 한 장을 채점합니다. 여기서 고른 barcode는 서로 다른 plate가 아니라 같은 plate의 replicate로 채점됩니다.",
+      "title": "이번 실행의 replicate 축 선택",
+      "description": "이 run 폴더에 MinKNOW native barcode 가 둘 이상 있다. 한 번의 실행은 plate 하나를 판정하고, native barcode 는 그 plate 의 replicate 다. 선택한 barcode 는 각각 demux 되며, 파이프라인이 변이마다 가장 좋은 replicate 를 고른다. 취소하면 분석이 중단된다.",
       "shareHeader": "비율",
       "selectAriaLabel": "native barcode {{name}} 선택",
-      "selectedCount": "barcode {{count}}개 선택됨",
-      "confirm": "선택 항목 실행",
-      "confirming": "실행 중…"
+      "confirm": "실행",
+      "confirming": "실행 중…",
+      "modeLegend": "Replicate 축",
+      "modePerBarcode": "선택한 barcode 각각을 replicate 로 본다",
+      "modePerBarcodeHelp": "barcode 마다 demux 를 한 번씩 돌린다. 그러면 각 well 을 선택한 plate 들 사이에서 비교할 수 있다.",
+      "modePooled": "모든 barcode 를 하나의 plate 로 합친다",
+      "modePooledHelp": "모든 read 를 한 pool 로 합친다. plate 는 하나이고 비교할 replicate 가 없다.",
+      "replicateCount": "replicate {{count}}개 선택됨",
+      "pooledCount": "barcode {{count}}개를 plate 하나로 합침",
+      "cancel": "실행 취소"
     },
     "parameters": {
       "title": "파라미터",
@@ -695,7 +702,21 @@
       "finalFallbackNotice": "선정된 replicate 가 아직 없어 FINAL 대신 전체(ALL) well 을 표시합니다.",
       "resizeColumnAriaLabel": "{{column}} 열 너비 조절",
       "resizeColumnHint": "끌어서 너비를 조절합니다. 더블클릭 또는 Home 키로 초기화합니다.",
-      "resetColumnWidths": "열 너비 초기화"
+      "resetColumnWidths": "열 너비 초기화",
+      "replicateFlags": {
+        "header": "Replicate",
+        "help": "이 well 의 plate 사본들이 서로 일치하는가. well 단위로, 실행에 포함된 모든 plate 를 통틀어 계산한다.",
+        "agree": "일치",
+        "disagreementShort": "불일치",
+        "disagreementHelp": "이 well 의 plate 사본들이 서로 다른 판정을 받았다.",
+        "depthShort": "depth",
+        "depthHelp": "한 사본의 read 수가 가장 깊은 사본의 5분의 1에 못 미친다. 이런 경우 판정 차이는 생물학적 차이가 아니라 depth 차이일 수 있다.",
+        "missingShort": "누락",
+        "missingHelp": "{{plates}} 에는 이 well 의 기록이 없다.",
+        "missingUnknown": "이 실행은 어떤 plate 를 판정했는지 명시하지 않으므로 누락된 사본을 판별할 수 없다.",
+        "filterLabel": "표시됨 ({{count}})",
+        "filterHelp": "replicate 가 불일치하거나 depth 가 치우쳤거나 사본이 빠진 well 만 보여준다."
+      }
     },
     "summaryRow": {
       "ariaLabel": "분석 요약",
@@ -1163,7 +1184,9 @@
       "copySourcePath": "consensus FASTA 경로 복사",
       "copyAaSequence": "아미노산 서열 복사",
       "aaSequenceLength": "아미노산 서열 ({{count}} aa)",
-      "noVerdictRecord": "이 well 의 판정 레코드를 찾을 수 없습니다."
+      "noVerdictRecord": "이 well 의 판정 레코드를 찾을 수 없습니다.",
+      "replicateReads": "read {{reads}}",
+      "replicateAligned": "정렬 {{aligned}}"
     },
     "wellSelection": {
       "title": "사용할 웰",
@@ -1181,6 +1204,10 @@
       "wellEmpty": "웰 {{well}}, 비어 있음",
       "keyboardHint": "방향키로 이동, Space 로 토글, Shift + 방향키로 범위 선택. 드래그하면 이어서 칠해진다.",
       "loadFailed": "플레이트를 그리기 위한 변이 목록을 읽지 못했다: {{error}}"
+    },
+    "replicateModeNotice": {
+      "pooled": "이 실행은 native barcode {{detected}}개를 plate 하나로 합쳤다. 비교할 replicate 가 없다.",
+      "subset": "이 run 폴더에는 native barcode 가 {{detected}}개 있고 그중 {{replicates}}개만 replicate 로 판정했다. 나머지는 이 결과에 없다."
     }
   },
   "home": {

@@ -225,13 +225,20 @@
       }
     },
     "nativeBarcodeDialog": {
-      "title": "Multiple native barcodes detected",
-      "description": "This run contains more than one MinKNOW native barcode. Select which barcodes to demultiplex; each selected barcode is processed into its own output folder. One analyze run scores one plate: the barcodes selected here are scored as replicates of that same plate, not as separate plates.",
+      "title": "Select the replicate axis for this run",
+      "description": "This run folder holds more than one MinKNOW native barcode. A run scores one plate, and its native barcodes are replicates of that plate: each selected barcode is demultiplexed on its own, and the pipeline then picks the best replicate per variant. Cancel stops the analysis.",
       "shareHeader": "Share",
       "selectAriaLabel": "Select native barcode {{name}}",
-      "selectedCount": "{{count}} barcode(s) selected",
-      "confirm": "Run selected",
-      "confirming": "Running…"
+      "confirm": "Run",
+      "confirming": "Running…",
+      "modeLegend": "Replicate axis",
+      "modePerBarcode": "Each selected barcode is a replicate",
+      "modePerBarcodeHelp": "One demux per barcode. Every well is then comparable across the selected plates.",
+      "modePooled": "Pool every barcode into one plate",
+      "modePooledHelp": "All reads in a single pool. One plate, no replicates to compare.",
+      "replicateCount": "{{count}} replicate(s) selected",
+      "pooledCount": "{{count}} barcode(s) pooled into one plate",
+      "cancel": "Cancel run"
     },
     "parameters": {
       "title": "Parameters",
@@ -695,7 +702,21 @@
       "finalFallbackNotice": "No replicate has been selected yet, so FINAL is showing every well (ALL).",
       "resizeColumnAriaLabel": "Resize column {{column}}",
       "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
-      "resetColumnWidths": "Reset column widths"
+      "resetColumnWidths": "Reset column widths",
+      "replicateFlags": {
+        "header": "Replicates",
+        "help": "Do the plate copies of this well agree? Measured per well, across every plate of the run.",
+        "agree": "OK",
+        "disagreementShort": "disagree",
+        "disagreementHelp": "The plate copies of this well were not called the same.",
+        "depthShort": "depth",
+        "depthHelp": "One copy carries less than a fifth of the reads of the deepest copy, so a disagreement here can be depth rather than biology.",
+        "missingShort": "missing",
+        "missingHelp": "No record for this well on {{plates}}.",
+        "missingUnknown": "This run does not state which plates it scored, so a missing copy cannot be detected.",
+        "filterLabel": "Flagged ({{count}})",
+        "filterHelp": "Show only wells whose replicates disagree, are depth-imbalanced, or are missing a copy."
+      }
     },
     "summaryRow": {
       "ariaLabel": "Analysis summary",
@@ -1163,7 +1184,9 @@
       "copySourcePath": "Copy consensus FASTA path",
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
-      "noVerdictRecord": "No verdict record for this well."
+      "noVerdictRecord": "No verdict record for this well.",
+      "replicateReads": "{{reads}} reads",
+      "replicateAligned": "{{aligned}} aligned"
     },
     "wellSelection": {
       "title": "Wells used",
@@ -1181,6 +1204,10 @@
       "wellEmpty": "Well {{well}}, empty",
       "keyboardHint": "Arrow keys move, Space toggles, Shift with an arrow key extends the selection. Drag across wells to paint.",
       "loadFailed": "Could not read the variant list to draw the plate: {{error}}"
+    },
+    "replicateModeNotice": {
+      "pooled": "This run pooled {{detected}} native barcodes into one plate, so it has no replicates to compare.",
+      "subset": "This run folder holds {{detected}} native barcodes and {{replicates}} of them were scored as replicates. The rest are not in these results."
     }
   },
   "home": {

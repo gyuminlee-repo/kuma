@@ -42,6 +42,7 @@ import { OffLayoutRecordsNotice } from "@/components/mame/widgets/OffLayoutRecor
 import { LegacySampleMapNotice } from "@/components/mame/widgets/LegacySampleMapNotice";
 import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNotice";
 import { PlateOrderNotice } from "@/components/mame/widgets/PlateOrderNotice";
+import { ReplicateModeNotice } from "@/components/mame/widgets/ReplicateModeNotice";
 import { RestoredResultNotice } from "@/components/mame/widgets/RestoredResultNotice";
 import { AnalyzeDurationDialog } from "@/components/mame/dialogs/AnalyzeDurationDialog";
 import { InputPanel } from "@/components/mame/panels/InputPanel";
@@ -266,6 +267,12 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               clean run answer the wrong question. */}
           <PlateOrderNotice />
 
+          {/* Which replicates the results on screen were scored on. Next to the
+              plate notice because both answer "what plate is this?": one about
+              which plate the workbook describes, one about how many copies of
+              it the run actually covered. */}
+          <ReplicateModeNotice />
+
           {/* Whose engine produced the verdicts currently on screen. Rendered on
               both 2.1 and 2.2 (one sub-step is on screen at a time): the inputs
               step is where a re-run starts, and the review step is where the
@@ -332,8 +339,10 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
         break;
       }
       // Unified review: left = Summary + Verdict table, right = Plate (top) + per-plate verdict chart (bottom).
-      // Other RunHealth sections (file-size/throughput/pore-yield/barcode/cross-talk) are still reachable from
-      // analyze.inputs's RunHealthPanel and the QC inspector; not duplicated here per PI spec slide 6.
+      // The only RunHealthPanel on this screen is the one below, and it renders
+      // the verdict breakdown alone. The other sections (file-size / throughput
+      // / pore-yield / barcode / cross-talk) live in the QC inspector; 2.1 has
+      // no RunHealthPanel to reach them from, whatever this comment used to say.
       mainContent = (
         <div className="relative flex flex-col" ref={reviewContainerRef}>
           {/* Above the softer cluster/autosave notices: a suspect mapping is a

@@ -165,13 +165,20 @@
       "redetecting": "検出中..."
     },
     "nativeBarcodeDialog": {
-      "title": "複数の native barcode が検出されました",
-      "description": "この run には MinKNOW native barcode が複数含まれています。demultiplex する barcode を選択してください。選択した各 barcode はそれぞれ専用の出力フォルダーに処理されます。1 回の解析 run が採点する plate は 1 枚です。ここで選んだ barcode は別々の plate ではなく、同じ plate の replicate として採点されます。",
+      "title": "この実行の replicate 軸を選ぶ",
+      "description": "この run フォルダには MinKNOW native barcode が複数ある。1 回の実行が判定するのは plate 1 枚で、native barcode はその plate の replicate にあたる。選んだ barcode はそれぞれ demux され、パイプラインが変異ごとに最良の replicate を選ぶ。キャンセルすると解析は中止される。",
       "shareHeader": "割合",
       "selectAriaLabel": "native barcode {{name}} を選択",
-      "selectedCount": "barcode を {{count}} 件選択中",
-      "confirm": "選択を実行",
-      "confirming": "実行中…"
+      "confirm": "実行",
+      "confirming": "実行中…",
+      "modeLegend": "Replicate 軸",
+      "modePerBarcode": "選んだ barcode をそれぞれ replicate として扱う",
+      "modePerBarcodeHelp": "barcode ごとに demux を 1 回ずつ実行する。各 well を選んだ plate 間で比較できるようになる。",
+      "modePooled": "すべての barcode を 1 枚の plate にまとめる",
+      "modePooledHelp": "すべての read を 1 つの pool にする。plate は 1 枚で、比較する replicate はない。",
+      "replicateCount": "replicate を {{count}} 件選択",
+      "pooledCount": "barcode {{count}} 件を 1 枚の plate に統合",
+      "cancel": "実行を中止"
     },
     "parameters": {
       "title": "パラメータ",
@@ -570,7 +577,21 @@
       "finalFallbackNotice": "No replicate has been selected yet, so FINAL is showing every well (ALL).",
       "resizeColumnAriaLabel": "Resize column {{column}}",
       "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
-      "resetColumnWidths": "Reset column widths"
+      "resetColumnWidths": "Reset column widths",
+      "replicateFlags": {
+        "header": "Replicate",
+        "help": "この well の plate コピーどうしが一致しているか。well 単位で、実行に含まれる全 plate を対象に判定する。",
+        "agree": "一致",
+        "disagreementShort": "不一致",
+        "disagreementHelp": "この well の plate コピーが同じ判定にならなかった。",
+        "depthShort": "depth",
+        "depthHelp": "あるコピーの read 数が最も深いコピーの 5 分の 1 未満である。この場合の判定差は生物学的な違いではなく depth の差である可能性がある。",
+        "missingShort": "欠落",
+        "missingHelp": "{{plates}} にはこの well の記録がない。",
+        "missingUnknown": "この実行はどの plate を判定したかを示していないため、欠落したコピーは判定できない。",
+        "filterLabel": "該当 ({{count}})",
+        "filterHelp": "replicate が不一致、depth が偏っている、またはコピーが欠けている well だけを表示する。"
+      }
     },
     "summaryRow": {
       "ariaLabel": "解析サマリー",
@@ -1163,7 +1184,9 @@
       "copySourcePath": "Copy consensus FASTA path",
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
-      "noVerdictRecord": "No verdict record for this well."
+      "noVerdictRecord": "No verdict record for this well.",
+      "replicateReads": "read {{reads}}",
+      "replicateAligned": "アラインメント {{aligned}}"
     },
     "wellSelection": {
       "title": "使用するウェル",
@@ -1181,6 +1204,10 @@
       "wellEmpty": "ウェル {{well}}, 空",
       "keyboardHint": "矢印キーで移動、Space で切り替え、Shift + 矢印キーで範囲選択。ドラッグで連続選択。",
       "loadFailed": "プレート描画のための変異リストを読めなかった: {{error}}"
+    },
+    "replicateModeNotice": {
+      "pooled": "この実行は native barcode {{detected}} 件を 1 枚の plate にまとめたため、比較できる replicate がない。",
+      "subset": "この run フォルダには native barcode が {{detected}} 件あり、そのうち {{replicates}} 件を replicate として判定した。残りはこの結果に含まれない。"
     }
   },
   "home": {

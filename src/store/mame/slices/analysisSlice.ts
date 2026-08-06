@@ -95,6 +95,14 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       buildEvolveproCompletion: null,
       janusAutosave: null,
       janusMappingAutosave: null,
+      // The replicate axis is a property of the results, not of the form: it
+      // says which plate copies the verdicts above were scored on. Once those
+      // verdicts are gone it describes nothing, and a stale axis would have
+      // ReplicateModeNotice and the concordance flags speak about a run that is
+      // no longer on screen. Both drop back to null ("no axis stated"), which
+      // is deliberately not `[]` ("pooled, one plate").
+      selectedNativeBarcodes: null,
+      detectedBarcodeCount: null,
     }),
   resetAnalysis: () => {
     get().clearResults();

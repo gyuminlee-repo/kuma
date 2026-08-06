@@ -165,13 +165,20 @@
       "redetecting": "Detectando..."
     },
     "nativeBarcodeDialog": {
-      "title": "Vários native barcodes detectados",
-      "description": "Esta execução contém mais de um native barcode do MinKNOW. Selecione os barcodes a demultiplexar; cada barcode selecionado é processado em sua própria pasta de saída. Uma execução de análise avalia uma plate: os barcodes selecionados aqui são avaliados como replicates dessa mesma plate, não como plates separadas.",
+      "title": "Escolher o eixo replicate desta execução",
+      "description": "Esta pasta de run contém mais de um native barcode do MinKNOW. Uma execução avalia uma plate, e seus native barcodes são replicates dessa plate: cada barcode selecionado é demultiplexado separadamente e o pipeline escolhe o melhor replicate por variante. Cancelar interrompe a análise.",
       "shareHeader": "Proporção",
       "selectAriaLabel": "Selecionar native barcode {{name}}",
-      "selectedCount": "{{count}} barcode(s) selecionado(s)",
-      "confirm": "Executar seleção",
-      "confirming": "Executando…"
+      "confirm": "Executar",
+      "confirming": "Executando…",
+      "modeLegend": "Eixo replicate",
+      "modePerBarcode": "Cada barcode selecionado é um replicate",
+      "modePerBarcodeHelp": "Um demux por barcode. Assim cada well pode ser comparado entre as plates selecionadas.",
+      "modePooled": "Juntar todos os barcodes em uma única plate",
+      "modePooledHelp": "Todas as reads em um único pool. Uma plate e nenhum replicate para comparar.",
+      "replicateCount": "{{count}} replicate(s) selecionados",
+      "pooledCount": "{{count}} barcode(s) juntados em uma plate",
+      "cancel": "Cancelar execução"
     },
     "parameters": {
       "title": "Parâmetros",
@@ -570,7 +577,21 @@
       "finalFallbackNotice": "No replicate has been selected yet, so FINAL is showing every well (ALL).",
       "resizeColumnAriaLabel": "Resize column {{column}}",
       "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
-      "resetColumnWidths": "Reset column widths"
+      "resetColumnWidths": "Reset column widths",
+      "replicateFlags": {
+        "header": "Replicates",
+        "help": "As cópias de plate deste well concordam? Calculado por well, sobre todas as plates da execução.",
+        "agree": "OK",
+        "disagreementShort": "divergem",
+        "disagreementHelp": "As cópias de plate deste well não receberam o mesmo veredito.",
+        "depthShort": "depth",
+        "depthHelp": "Uma cópia tem menos de um quinto das reads da cópia mais profunda, então a divergência pode vir da depth e não da biologia.",
+        "missingShort": "ausente",
+        "missingHelp": "Não há registro deste well em {{plates}}.",
+        "missingUnknown": "Esta execução não informa quais plates avaliou, portanto uma cópia ausente não pode ser detectada.",
+        "filterLabel": "Marcados ({{count}})",
+        "filterHelp": "Mostrar apenas os wells cujos replicates divergem, cuja depth está desequilibrada ou aos quais falta uma cópia."
+      }
     },
     "summaryRow": {
       "ariaLabel": "Resumo da análise",
@@ -1163,7 +1184,9 @@
       "copySourcePath": "Copy consensus FASTA path",
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
-      "noVerdictRecord": "No verdict record for this well."
+      "noVerdictRecord": "No verdict record for this well.",
+      "replicateReads": "{{reads}} reads",
+      "replicateAligned": "{{aligned}} alinhadas"
     },
     "wellSelection": {
       "title": "Poços usados",
@@ -1181,6 +1204,10 @@
       "wellEmpty": "Poço {{well}}, vazio",
       "keyboardHint": "Setas movem, Espaço alterna, Shift com seta estende a seleção. Arraste para pintar.",
       "loadFailed": "Não foi possível ler a lista de variantes para desenhar a placa: {{error}}"
+    },
+    "replicateModeNotice": {
+      "pooled": "Esta execução juntou {{detected}} native barcodes em uma única plate, portanto não há replicates para comparar.",
+      "subset": "Esta pasta de run tem {{detected}} native barcodes e {{replicates}} deles foram avaliados como replicates. Os demais não estão nestes resultados."
     }
   },
   "home": {

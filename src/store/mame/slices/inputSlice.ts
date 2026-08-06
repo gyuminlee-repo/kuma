@@ -189,6 +189,8 @@ const mameInputInitialState = {
   ampliconLengthEstimate: null,
   detectedNativeBarcodes: null as DetectNativeBarcodesResult["native_barcodes"] | null,
   isDetectingBarcodes: false,
+  selectedNativeBarcodes: null as string[] | null,
+  detectedBarcodeCount: null as number | null,
   cdsCandidates: [],
   selectedCdsIndex: 0,
   analyzeCdsCandidates: [] as CdsCandidate[],
@@ -767,15 +769,24 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         if (detect.total_count > 1) {
           // Pause and surface the confirm dialog. Leave isAnalyzing true so the
           // UI knows an analysis is pending; the dialog drives the next step.
+          // The count is recorded here, before the selection exists: it is what
+          // the folder holds, and the notice compares the two.
           set({
             detectedNativeBarcodes: detect.native_barcodes,
+            detectedBarcodeCount: detect.total_count,
             isDetectingBarcodes: false,
           });
           return;
         }
 
         // Single pool (0 or 1 native barcode): proceed exactly as before.
-        set({ isDetectingBarcodes: false });
+        // `[]` records that the run covers one plate, which is not the same
+        // statement as null (no raw-run selection applies at all).
+        set({
+          isDetectingBarcodes: false,
+          detectedBarcodeCount: detect.total_count,
+          selectedNativeBarcodes: [],
+        });
         await get()._demuxAndAnalyze(null);
         return;
       }
@@ -871,10 +882,32 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     }
   },
   confirmNativeBarcodeSelection: async (selected: string[]) => {
+    // Two namespaces, one selection. The RPC needs the MinKNOW directory names
+    // (`barcode06`), because the demux reads `fastq_pass/<name>/`
+    // (kuma_core/mame/ingest/run_pipeline.py::_collect_per_nb_fastq). Every
+    // record that comes back is stamped with the OUTPUT directory name
+    // (`sort_barcode06`), so the axis the results are read on is the sort form
+    // (combinatorial_demux.py `_nb_to_sort_barcode_name`, fasta_parser.py
+    // `load_barcode_directory`). The mapping is taken from the detect payload
+    // rather than recomputed here, so there is no second copy of the naming
+    // rule to drift; a name the payload does not carry is stored as-is.
+    const detected = get().detectedNativeBarcodes ?? [];
+    const sortNames = selected.map(
+      (name) => detected.find((nb) => nb.name === name)?.sort_barcode_name ?? name,
+    );
+    // Empty selection = pooled: one plate, all reads in one pool. The RPC takes
+    // null for that (an empty list is rejected by the Pydantic validator on
+    // `native_barcodes`), while the store keeps `[]` to distinguish "pooled"
+    // from "no raw-run selection applies".
+    const requested = selected.length > 0 ? selected : null;
     // Close the dialog and resume per-NB demux+analyze with the selection.
-    set({ detectedNativeBarcodes: null, isDetectingBarcodes: false });
+    set({
+      detectedNativeBarcodes: null,
+      isDetectingBarcodes: false,
+      selectedNativeBarcodes: sortNames,
+    });
     try {
-      await get()._demuxAndAnalyze(selected);
+      await get()._demuxAndAnalyze(requested);
     } catch (error) {
       set({
         isAnalyzing: false,
@@ -889,6 +922,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   cancelNativeBarcodeSelection: () => {
     set({
       detectedNativeBarcodes: null,
+      // Cancel aborts the analysis, so no run is going to be scored on the axis
+      // this detect found. Leaving the count behind would have the notice
+      // describe a run that never started.
+      detectedBarcodeCount: null,
       isAnalyzing: false,
       isDetectingBarcodes: false,
       analyzeMessage: "",

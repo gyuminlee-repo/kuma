@@ -1415,6 +1415,18 @@ function applyMameSnapshot(
   if (typeof results.amplicon_length_estimate === "object") {
     patch.ampliconLengthEstimate = results.amplicon_length_estimate as MameAppState["ampliconLengthEstimate"];
   }
+  // The replicate axis these verdicts were scored on. Restored here, in the
+  // results patch, rather than through a setter: every input setter above runs
+  // `clearResults` when the value changed, and `clearResults` drops both of
+  // these fields. Absent (a snapshot written before they existed) leaves them
+  // null, which reads as "no axis stated" and keeps `missing_replicate`
+  // undecidable instead of inventing an axis for an old run.
+  if (Array.isArray(results.selected_native_barcodes)) {
+    patch.selectedNativeBarcodes = results.selected_native_barcodes as string[];
+  }
+  if (typeof results.detected_barcode_count === "number") {
+    patch.detectedBarcodeCount = results.detected_barcode_count;
+  }
   // The layout this well_layout came from. Absent on a snapshot saved before
   // this field existed (schema had no layout_provenance yet); present but
   // null when a run genuinely had nothing to report.

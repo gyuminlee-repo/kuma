@@ -165,13 +165,20 @@
       "redetecting": "檢測中..."
     },
     "nativeBarcodeDialog": {
-      "title": "偵測到多個 native barcode",
-      "description": "本次 run 包含多個 MinKNOW native barcode。請選擇要 demultiplex 的 barcode；每個所選 barcode 都會處理到各自的輸出資料夾。一次分析 run 只評判一片 plate：這裡所選的 barcode 會作為同一片 plate 的 replicate 評判，而不是各自獨立的 plate。",
+      "title": "選擇本次執行的 replicate 軸",
+      "description": "此 run 資料夾含有多個 MinKNOW native barcode。一次執行只判定一塊 plate，其 native barcode 即為該 plate 的 replicate：所選的每個 barcode 會各自 demux，接著流程為每個變異挑出最佳 replicate。取消則中止分析。",
       "shareHeader": "占比",
       "selectAriaLabel": "選擇 native barcode {{name}}",
-      "selectedCount": "已選擇 {{count}} 個 barcode",
-      "confirm": "執行所選",
-      "confirming": "執行中…"
+      "confirm": "執行",
+      "confirming": "執行中…",
+      "modeLegend": "Replicate 軸",
+      "modePerBarcode": "將所選的每個 barcode 視為一個 replicate",
+      "modePerBarcodeHelp": "每個 barcode 各 demux 一次。如此每個 well 都能在所選 plate 之間比較。",
+      "modePooled": "將所有 barcode 併為一塊 plate",
+      "modePooledHelp": "所有 read 併入同一個 pool。只有一塊 plate，沒有可比較的 replicate。",
+      "replicateCount": "已選擇 {{count}} 個 replicate",
+      "pooledCount": "已將 {{count}} 個 barcode 併為一塊 plate",
+      "cancel": "取消執行"
     },
     "parameters": {
       "title": "引數",
@@ -570,7 +577,21 @@
       "finalFallbackNotice": "No replicate has been selected yet, so FINAL is showing every well (ALL).",
       "resizeColumnAriaLabel": "Resize column {{column}}",
       "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
-      "resetColumnWidths": "Reset column widths"
+      "resetColumnWidths": "Reset column widths",
+      "replicateFlags": {
+        "header": "Replicate",
+        "help": "此 well 的各 plate 副本是否一致。以 well 為單位，涵蓋本次執行的所有 plate。",
+        "agree": "一致",
+        "disagreementShort": "不一致",
+        "disagreementHelp": "此 well 的各 plate 副本判定結果不同。",
+        "depthShort": "depth",
+        "depthHelp": "某個副本的 read 數不足最深副本的五分之一，此時判定差異可能來自 depth 而非生物學差異。",
+        "missingShort": "缺漏",
+        "missingHelp": "{{plates}} 上沒有此 well 的紀錄。",
+        "missingUnknown": "本次執行未說明判定了哪些 plate，因此無法判斷副本是否缺漏。",
+        "filterLabel": "已標記 ({{count}})",
+        "filterHelp": "只顯示 replicate 不一致、depth 失衡或缺少副本的 well。"
+      }
     },
     "summaryRow": {
       "ariaLabel": "分析摘要",
@@ -1163,7 +1184,9 @@
       "copySourcePath": "Copy consensus FASTA path",
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
-      "noVerdictRecord": "No verdict record for this well."
+      "noVerdictRecord": "No verdict record for this well.",
+      "replicateReads": "{{reads}} reads",
+      "replicateAligned": "比對 {{aligned}}"
     },
     "wellSelection": {
       "title": "使用的孔位",
@@ -1181,6 +1204,10 @@
       "wellEmpty": "孔位 {{well}}, 空",
       "keyboardHint": "方向鍵移動，空白鍵切換，Shift 加方向鍵擴展選擇。拖曳可連續選擇。",
       "loadFailed": "無法讀取變異列表以繪製盤圖: {{error}}"
+    },
+    "replicateModeNotice": {
+      "pooled": "本次執行將 {{detected}} 個 native barcode 併為一塊 plate，因此沒有可比較的 replicate。",
+      "subset": "此 run 資料夾有 {{detected}} 個 native barcode，其中 {{replicates}} 個被判定為 replicate。其餘不在本結果中。"
     }
   },
   "home": {

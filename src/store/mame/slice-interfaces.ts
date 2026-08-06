@@ -124,6 +124,34 @@ export interface InputSlice {
   // null = no dialog open; non-null = show the confirm dialog with these rows.
   detectedNativeBarcodes: NativeBarcodeUsage[] | null;
   isDetectingBarcodes: boolean;
+  /**
+   * The replicate axis the current results were produced on, as
+   * `native_barcode` (`sort_barcodeNN`) names, NOT the MinKNOW directory names
+   * (`barcodeNN`) the dialog checks off.
+   *
+   * The two namespaces are different and the records use the sort form: the
+   * demux writes one output directory per native barcode named by
+   * `_nb_to_sort_barcode_name` (kuma_core/mame/ingest/combinatorial_demux.py),
+   * and `load_barcode_directory` takes each record's `native_barcode` from that
+   * directory name (kuma_core/mame/ingest/fasta_parser.py). Storing the
+   * MinKNOW form here would make every well look absent from every plate.
+   *
+   * `[]` = pooled: one plate, all reads in one pool. null = no raw-run
+   * selection applies (consensus-directory run, or nothing run yet), which is
+   * what makes `missing_replicate` undecidable.
+   *
+   * Cleared by `clearResults`, together with the verdicts it describes: after
+   * an input change the previous run's replicate axis describes nothing on
+   * screen.
+   */
+  selectedNativeBarcodes: string[] | null;
+  /**
+   * How many native barcodes the detect step counted in the run folder
+   * (`detect.total_count`), regardless of how many were then selected. Kept so
+   * the review screen can say that a run covered fewer replicates than the
+   * folder holds. Cleared by `clearResults` for the same reason as above.
+   */
+  detectedBarcodeCount: number | null;
   // Well->sample mapping passed to analyze as the highest-priority source.
   // v0.15.6 removed the UI that built one (nobody checked 96 rows by hand, and
   // analyze assigns wells on its own regardless), so this is non-null only

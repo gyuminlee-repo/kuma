@@ -165,13 +165,20 @@
       "redetecting": "Определение..."
     },
     "nativeBarcodeDialog": {
-      "title": "Обнаружено несколько native barcode",
-      "description": "Этот запуск содержит более одного native barcode MinKNOW. Выберите barcode для demultiplex; каждый выбранный barcode обрабатывается в отдельную папку вывода. Один запуск анализа оценивает одну plate: выбранные здесь barcode оцениваются как replicate этой же plate, а не как отдельные plate.",
+      "title": "Выбор оси replicate для этого запуска",
+      "description": "В этой папке run больше одного native barcode MinKNOW. Один запуск оценивает одну plate, а её native barcode являются replicate этой plate: каждый выбранный barcode демультиплексируется отдельно, затем конвейер выбирает лучший replicate для каждого варианта. Отмена прекращает анализ.",
       "shareHeader": "Доля",
       "selectAriaLabel": "Выбрать native barcode {{name}}",
-      "selectedCount": "Выбрано barcode: {{count}}",
-      "confirm": "Запустить выбранные",
-      "confirming": "Выполнение…"
+      "confirm": "Запустить",
+      "confirming": "Выполнение…",
+      "modeLegend": "Ось replicate",
+      "modePerBarcode": "Каждый выбранный barcode это replicate",
+      "modePerBarcodeHelp": "По одному demux на barcode. После этого каждый well сравним между выбранными plate.",
+      "modePooled": "Объединить все barcode в одну plate",
+      "modePooledHelp": "Все read в одном пуле. Одна plate, сравнивать нечего.",
+      "replicateCount": "Выбрано replicate: {{count}}",
+      "pooledCount": "Объединено в одну plate barcode: {{count}}",
+      "cancel": "Отменить запуск"
     },
     "parameters": {
       "title": "Параметры",
@@ -570,7 +577,21 @@
       "finalFallbackNotice": "No replicate has been selected yet, so FINAL is showing every well (ALL).",
       "resizeColumnAriaLabel": "Resize column {{column}}",
       "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
-      "resetColumnWidths": "Reset column widths"
+      "resetColumnWidths": "Reset column widths",
+      "replicateFlags": {
+        "header": "Replicate",
+        "help": "Совпадают ли копии этого well на разных plate? Считается по well по всем plate запуска.",
+        "agree": "OK",
+        "disagreementShort": "расхождение",
+        "disagreementHelp": "Копии этого well на разных plate получили разные вердикты.",
+        "depthShort": "depth",
+        "depthHelp": "В одной копии меньше пятой части read самой глубокой копии, поэтому расхождение может объясняться depth, а не биологией.",
+        "missingShort": "нет копии",
+        "missingHelp": "На {{plates}} записи для этого well нет.",
+        "missingUnknown": "Этот запуск не указывает, какие plate он оценивал, поэтому пропущенную копию определить нельзя.",
+        "filterLabel": "Отмечено ({{count}})",
+        "filterHelp": "Показывать только well с расхождением replicate, перекосом depth или отсутствующей копией."
+      }
     },
     "summaryRow": {
       "ariaLabel": "Сводка анализа",
@@ -1163,7 +1184,9 @@
       "copySourcePath": "Copy consensus FASTA path",
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
-      "noVerdictRecord": "No verdict record for this well."
+      "noVerdictRecord": "No verdict record for this well.",
+      "replicateReads": "{{reads}} read",
+      "replicateAligned": "выровнено {{aligned}}"
     },
     "wellSelection": {
       "title": "Используемые лунки",
@@ -1181,6 +1204,10 @@
       "wellEmpty": "Лунка {{well}}, пустая",
       "keyboardHint": "Стрелки перемещают, Пробел переключает, Shift со стрелкой расширяет выделение. Перетаскивание закрашивает.",
       "loadFailed": "Не удалось прочитать список вариантов для отрисовки планшета: {{error}}"
+    },
+    "replicateModeNotice": {
+      "pooled": "Этот запуск объединил native barcode в количестве {{detected}} в одну plate, поэтому сравнивать replicate не с чем.",
+      "subset": "В этой папке run {{detected}} native barcode, из них как replicate оценено {{replicates}}. Остальные в эти результаты не вошли."
     }
   },
   "home": {

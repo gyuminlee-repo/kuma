@@ -167,6 +167,8 @@ describe("buildMameSnapshot", () => {
       ampliconLengthEstimate: null,
       wellLayout: { A01: "V5F" },
       layoutProvenance: null,
+      selectedNativeBarcodes: ["sort_barcode07", "sort_barcode08"],
+      detectedBarcodeCount: 3,
     }, {
       rounds: [round],
       activeRoundId: "round_1",
@@ -188,6 +190,10 @@ describe("buildMameSnapshot", () => {
         amplicon_length_estimate: null,
         well_layout: { A01: "V5F" },
         layout_provenance: null,
+        // The replicate axis rides with the results it describes, because
+        // `clearResults` drops it with them.
+        selected_native_barcodes: ["sort_barcode07", "sort_barcode08"],
+        detected_barcode_count: 3,
       },
     });
   });
@@ -233,6 +239,8 @@ describe("buildMameSnapshot 경로 이식성", () => {
     ampliconLengthEstimate: null,
     wellLayout: null,
     layoutProvenance: null,
+    selectedNativeBarcodes: null,
+    detectedBarcodeCount: null,
     ...overrides,
   });
 
