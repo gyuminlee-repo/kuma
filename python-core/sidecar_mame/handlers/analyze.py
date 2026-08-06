@@ -511,13 +511,80 @@ def _barcode_axis_counts(barcodes_path: Path) -> dict | None:
 def _layout_is_inferred(params: dict) -> bool:
     """Will this run place wells by reading ``expected``, or was it told where?
 
-    The same three-way decision ``handle_analyze`` makes when it sets
+    The same two-way decision ``handle_analyze`` makes when it sets
     ``layout_source``, asked early and off the raw params so the checks that
     have to run before the demux can ask it too. Kept as one function because
     two copies of it would be two chances for a check to guard a branch the run
     does not take.
+
+    ``selected_wells`` does not make a layout explicit. It says which wells the
+    campaign occupies, not what sits in them, and the contents still come from
+    reading ``expected``: the capacity and plate-order checks below have exactly
+    as much to say about such a run as about one with no selection at all.
     """
-    return params.get("well_layout") is None and not params.get("sample_map_xlsx")
+    return params.get("well_layout") is None
+
+
+def _selected_wells_param(params: dict) -> list[str] | None:
+    """The wells this run declares as occupied, or ``None`` for "all of them".
+
+    A campaign smaller than the plate leaves wells empty, and no input file says
+    which. Absent means the layout fills the leading wells, which is what every
+    run did before this parameter existed, so an unset selection produces the
+    same bytes it always did.
+
+    A malformed payload raises rather than being ignored: this parameter decides
+    where every variant lands, and silently falling back to the default would
+    place the plate somewhere the operator did not ask for.
+    """
+    raw = params.get("selected_wells")
+    if raw is None:
+        return None
+    if not isinstance(raw, list) or not all(isinstance(w, str) for w in raw):
+        raise ValueError("selected_wells must be a list of well ids (str)")
+    if not raw:
+        raise ValueError(
+            "selected_wells is empty. A run with no wells has nothing to score; "
+            "omit the parameter to use the whole plate."
+        )
+    return raw
+
+
+def _off_layout_records(verdicts: list, well_layout: dict[str, str] | None) -> dict:
+    """How many scored records came from wells the layout does not name.
+
+    Reported, never refused. An operator who declares which wells the campaign
+    occupies is stating that the rest are empty, and reads from an empty well
+    are worth seeing. But the same counts appear when barcode crosstalk leaks
+    reads across wells, and nothing in the count separates the two, so this
+    hands the operator the wells and lets them decide.
+
+    ``None`` layout means no well was declared and every record is in scope, so
+    the count is zero rather than "all of them".
+    """
+    from kuma_core.mame.export.excel_writer import _custom_barcode_to_seq
+    from kuma_core.mame.export.well_mapper import seq_to_well
+    from kuma_core.mame.plate_geometry import norm_well
+
+    if not well_layout:
+        return {"count": 0, "wells": []}
+    declared = {norm_well(well) for well in well_layout}
+    off: dict[str, int] = {}
+    for vr in verdicts:
+        seq = _custom_barcode_to_seq(vr.translated.barcode.custom_barcode)
+        if seq is None:
+            continue
+        well = seq_to_well(seq)
+        if norm_well(well) in declared:
+            continue
+        off[well] = off.get(well, 0) + 1
+    return {
+        "count": sum(off.values()),
+        "wells": [
+            {"well": well, "records": count}
+            for well, count in sorted(off.items(), key=lambda pair: pair[0])
+        ],
+    }
 
 
 def _plate_capacity_finding(
@@ -533,37 +600,53 @@ def _plate_capacity_finding(
     disagree with the check that let the run start.
 
     Only ask this when the run has no layout of its own. A designed list is the
-    campaign, and ``well_layout`` / ``sample_map_xlsx`` are what name the plate
-    cut out of it: the pipeline scopes each well through ``well_to_sample``
+    campaign, and ``well_layout`` is what names the plate cut out of it: the
+    pipeline scopes each well through ``well_to_sample``
     (``kuma_core/mame/pipeline.py``), so a longer list is a lookup table with
     spare rows, not an overflowing plate. :func:`_layout_is_inferred` is the
     gate, and without it this refuses a configuration that ran correctly before
     the check existed.
 
-    ``wt_omitted`` on the returned draft is a plate carrying exactly as many
-    designed mutants as it has wells, which leaves no room to append a WT
-    control well: that is a layout MAME scores correctly today, so refusing it
-    would block a working configuration. It is reported on
-    ``layout_provenance`` instead.
+    The plate holds ``N + 1`` occupants, not ``N``: the WT control is a
+    sequencing target and takes a well of its own. Judging on ``N`` alone let a
+    96-mutant list through and then asked ``seq_to_well`` for well 97 in the
+    middle of a run.
 
-    A workbook this cannot read produces ``(None, None)``. Reading the expected
-    list is not this check's job, it happens further down and in the raw-run
-    refusals, each of which says more about what is wrong with a file than
-    "could not open it" would.
+    A workbook this cannot be OPENED produces ``(None, None)``: a file that will
+    not open says nothing about the plate, and the path validation the caller
+    already ran reports it in better words than "could not open it" would.
+
+    Every refusal the reader itself raises travels up instead. Those are
+    judgements about the contents (a row read and not placed, a second WT row, a
+    duplicate variant, a column that cannot be identified), and each of them is
+    a mis-scored plate if let through. Swallowing them here is what put them
+    after the demux: with ``draft`` back as ``None`` the caller re-read the same
+    workbook further down and raised there, by which point the multi-minute
+    ingest this check exists to precede had already run. The catch is deliberately
+    narrow now, and widening it again re-creates that bug.
     """
-    try:
-        from kuma_core.mame.io.variant_list import read_variant_source
-        from kuma_core.mame.layout import build_draft_layout
-        from kuma_core.mame.plate_geometry import PLATE_CAPACITY
+    from kuma_core.mame.io.variant_list import read_variant_source
+    from kuma_core.mame.layout import MUTANT_CAPACITY, build_draft_layout
+    from kuma_core.mame.plate_geometry import PLATE_CAPACITY
 
+    try:
         read = read_variant_source(
             expected_path, sheet=variant_sheet, variant_column=variant_column
         )
-        draft = build_draft_layout(
-            read.expected, include_wt=not read.has_explicit_wt
-        )
-    except Exception:  # noqa: BLE001 - openpyxl / reader surface is broad
+    except ValueError:
+        # The reader's own verdict on the contents. ``read_variant_source``
+        # documents ValueError as the type every one of its refusals takes, so
+        # this is the whole of "the file is readable and says something that
+        # cannot be placed". Raised, never swallowed.
+        raise
+    except Exception:  # noqa: BLE001 - "will not open" has no single type
+        # Everything else: a missing path (FileNotFoundError), a file that is
+        # not a workbook (zipfile.BadZipFile, which derives straight from
+        # Exception rather than OSError), whatever openpyxl reaches for on a
+        # truncated one. None of them is a statement about the plate, and the
+        # caller's path validation already reported the file.
         return None, None
+    draft = build_draft_layout(read.expected, wt_ordinal=read.wt_ordinal)
 
     if not draft.dropped_mutant_ids:
         return None, draft
@@ -573,14 +656,14 @@ def _plate_capacity_finding(
         listed += f", and {len(draft.dropped_mutant_ids) - 5} more"
     return (
         f"expected: {expected_path.name} lists {len(read.expected)} designed "
-        f"mutants, more than the {PLATE_CAPACITY} wells one plate has, and this "
-        "run was given no well layout or sample map to say which of them are on "
-        "the plate. One analyze run scores one plate; native barcodes are "
-        f"replicates of that plate, so a mutant past well {PLATE_CAPACITY} "
-        "carries no barcode of its own and would be scored as a repeat of an "
-        "earlier well. Supply a well layout or sample map for this plate, or "
-        "split the campaign and run one plate at a time. Past the plate: "
-        f"{listed}."
+        f"mutants. One plate has {PLATE_CAPACITY} wells and the WT control "
+        f"takes one of them, so it can carry {MUTANT_CAPACITY} mutants, and "
+        "this run was given no well layout to say which of them are on the "
+        "plate. One analyze run scores one plate; native barcodes are "
+        "replicates of that plate, so a mutant past the last well carries no "
+        "barcode of its own and would be scored as a repeat of an earlier "
+        "well. Supply a well layout for this plate, or split the campaign and "
+        f"run one plate at a time. Past the plate: {listed}."
     ), draft
 
 
@@ -624,7 +707,7 @@ def _plate_order_finding(params: dict, expected_path: Path) -> dict | None:
     anywhere in the file. So this is graded ``blocking`` whenever it is found, and
     :func:`handle_validate_inputs` turns it into a validation error.
 
-    It used to be downgraded to ``info`` when ``well_layout`` or ``sample_map_xlsx``
+    It used to be downgraded to ``info`` when ``well_layout``
     supplied the coordinates, on the grounds that the sheet order never reached a
     well in that case. That is true of the wells and false of the file: the run
     still scores every well against whichever of the two plates the operator's other
@@ -652,6 +735,103 @@ def _plate_order_finding(params: dict, expected_path: Path) -> dict | None:
     payload = plate_order_payload(report)
     payload["severity"] = "blocking"
     return payload
+
+
+def _place_on_selected_wells(
+    draft: "DraftLayout",
+    selected_wells: list[str] | None,
+) -> "DraftLayout":
+    """Seat the draft's occupants on the declared wells, or leave it alone.
+
+    One function so every caller applies the selection at the same point and in
+    the same way. ``None`` means nothing was declared, which is the leading
+    ``N + 1`` wells, so the draft comes back untouched and byte-identical to
+    what a run produced before this parameter existed.
+
+    Raises:
+        ValueError: too few wells for the occupants (see ``apply_well_selection``).
+            Callers that run this before the demux turn that into a refusal the
+            operator gets in seconds rather than after a multi-minute ingest.
+    """
+    if selected_wells is None:
+        return draft
+    from kuma_core.mame.layout import apply_well_selection
+
+    return apply_well_selection(draft, selected_wells)
+
+
+def _legacy_sample_map_finding(
+    legacy_path: str | None,
+    placed: "DraftLayout",
+) -> dict | None:
+    """Does an old project's sample map say the same plate the draft does?
+
+    The sample map is gone as an input. A project that already has one still has
+    a file on disk stating where every variant sits, written and checked by
+    hand, and quietly ignoring it is the one option that cannot be defended: if
+    the two disagree, one of them describes the tubes that were pipetted and
+    the run would score the plate the operator did not build.
+
+    So the file is read and compared, well by well, against the layout this run
+    would use. Agreement is reported and the run proceeds; disagreement is named
+    down to the well and refused. Either way the file is left alone: deleting an
+    operator's record of the bench is not this handler's call.
+
+    ``placed`` is the layout AFTER the well selection has been applied, because
+    that is the plate the run will score. The selection used to be applied in
+    here, which meant this function also had to decide what to do about a
+    selection too short for the draft, and it decided to say nothing at all.
+
+    Returns ``None`` when there is no legacy file, when it cannot be read, or
+    when it holds no rows. ``{"path", "status", "differences", "wells_compared"}``
+    otherwise, with ``status`` either ``"matches"`` or ``"differs"``.
+    """
+    if not legacy_path:
+        return None
+    try:
+        from kuma_core.mame.ingest.sort_barcode import parse_sample_map
+        from kuma_core.mame.plate_geometry import norm_well
+
+        from_file = parse_sample_map(Path(legacy_path))
+    except Exception:  # noqa: BLE001 - a legacy file that cannot be read is silent
+        return None
+    if not from_file:
+        return None
+
+    from_draft = {norm_well(well): sample for well, sample in placed.layout.items()}
+
+    differences = [
+        {
+            "well": well,
+            "file": from_file[well],
+            "draft": from_draft.get(well, ""),
+        }
+        for well in sorted(set(from_file) | set(from_draft))
+        if from_file.get(well, "") != from_draft.get(well, "")
+    ]
+    return {
+        "path": str(legacy_path),
+        "status": "differs" if differences else "matches",
+        "differences": differences[:10],
+        "wells_compared": len(set(from_file) | set(from_draft)),
+    }
+
+
+def _legacy_sample_map_error(payload: dict) -> str:
+    """The validation error a disagreeing legacy sample map produces."""
+    listed = "; ".join(
+        f"{d['well']}: file says {d['file'] or '(empty)'}, "
+        f"layout says {d['draft'] or '(empty)'}"
+        for d in payload["differences"][:5]
+    )
+    return (
+        f"sample map: {Path(payload['path']).name} disagrees with the layout "
+        "this run would use. That file is no longer an input, so the run cannot "
+        "follow it, and it is the only record of what was pipetted, so the run "
+        "cannot ignore it either. Check which of the two describes the plate "
+        "and fix the variant list or the well selection to match, then delete "
+        f"the file. Disagreements: {listed}."
+    )
 
 
 def _plate_order_error(payload: dict) -> str:
@@ -696,6 +876,19 @@ def handle_validate_inputs(params: dict) -> dict:
     errors: list[str] = []
     plate_order: dict | None = None
     barcode_axes: dict | None = None
+    legacy_sample_map: dict | None = None
+
+    # Parsed here, at the top, and reported under its own name. It used to be
+    # parsed inside the ``expected`` block, where the enclosing
+    # ``except ValueError`` relabelled "selected_wells is empty" as an
+    # ``expected:`` problem and sent the operator to the wrong file. The
+    # messages this raises already name the parameter, so they are appended
+    # verbatim.
+    try:
+        selected_wells = _selected_wells_param(params)
+    except ValueError as exc:
+        selected_wells = None
+        errors.append(str(exc))
 
     input_dir = params.get("input_dir")
     reference = params.get("reference")
@@ -823,13 +1016,36 @@ def handle_validate_inputs(params: dict) -> dict:
             # sends under the analyze names, so the button and the run agree
             # about which runs draft their own layout.
             if expected_readable and _layout_is_inferred(params):
-                capacity_error, _ = _plate_capacity_finding(
+                capacity_error, _draft = _plate_capacity_finding(
                     expected_path,
                     _optional_str(params.get("variant_sheet")),
                     _optional_str(params.get("variant_column")),
                 )
                 if capacity_error is not None:
                     errors.append(capacity_error)
+                elif _draft is not None:
+                    # The wells the run would seat the occupants on, decided
+                    # here as well as in the run. A selection with fewer wells
+                    # than occupants is a refusal, and this screen used to
+                    # swallow it and answer "Validation complete" over a run
+                    # that could not start.
+                    placed: "DraftLayout | None" = None
+                    try:
+                        placed = _place_on_selected_wells(_draft, selected_wells)
+                    except ValueError as exc:
+                        errors.append(f"well selection: {exc}")
+                    if placed is not None:
+                        # An old project's sample map, compared against the
+                        # layout that replaced it rather than deleted or
+                        # ignored. See :func:`_legacy_sample_map_finding`.
+                        legacy_sample_map = _legacy_sample_map_finding(
+                            _optional_str(params.get("legacy_sample_map_xlsx")),
+                            placed,
+                        )
+                        if legacy_sample_map is not None and legacy_sample_map[
+                            "status"
+                        ] == "differs":
+                            errors.append(_legacy_sample_map_error(legacy_sample_map))
         except (FileNotFoundError, ValueError) as exc:
             errors.append(f"expected: {exc}")
         except Exception as exc:  # noqa: BLE001 — openpyxl surface is broad
@@ -850,6 +1066,10 @@ def handle_validate_inputs(params: dict) -> dict:
     # the barcodes were prepared, not of a run.
     if barcode_axes is not None:
         result["barcode_axes"] = barcode_axes
+    # Absent when this project carries no legacy sample map, which is every
+    # project created from here on.
+    if legacy_sample_map is not None:
+        result["legacy_sample_map"] = legacy_sample_map
     return result
 
 
@@ -873,6 +1093,12 @@ def handle_analyze(params: dict) -> dict:
     Optional ``variant_sheet`` / ``variant_column`` name the sheet and column of a
     plain expected-variant list. Omitting both is auto-detection, which leaves a
     KURO export on the path it always took.
+
+    Optional ``selected_wells`` says which wells the campaign occupies, and
+    optional ``legacy_sample_map_xlsx`` points at an old project's sample map.
+    Neither is read as a layout: the first re-seats the drafted one, the second
+    is only compared against it. Both are handled before the demux, so a run
+    they refuse is refused in seconds.
     """
     # Lazy import: keeps the sidecar cold-start < 200 ms and lets the module
     # import during unit tests that stub mame.
@@ -912,30 +1138,25 @@ def handle_analyze(params: dict) -> dict:
 
     variant_sheet = _optional_str(params.get("variant_sheet"))
     variant_column = _optional_str(params.get("variant_column"))
+    selected_wells = _selected_wells_param(params)
     output = _validate_output_path(
         params["output"], allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
     )
 
     # Plate capacity, decided before the demux rather than after it. When this
     # run has to draft its own layout out of ``expected``, a designed list longer
-    # than one plate has no answer it can give: the sample map is keyed by well
-    # alone and the native barcode is a replicate axis over that same plate, so a
+    # than one plate has no answer it can give: the layout is keyed by well alone
+    # and the native barcode is a replicate axis over that same plate, so a
     # mutant past the last well carries nothing to tell it apart and is scored as
     # a repeat of an earlier one. One read-only workbook read here costs a
     # fraction of the multi-minute demux it stops, which is why it sits ahead of
     # the raw-run block rather than inside it.
     #
-    # ONLY asked when the layout is drafted. A run given ``well_layout`` or
-    # ``sample_map_xlsx`` was told which wells it scores, and the designed list
-    # is then a lookup table those wells index into, so a longer one is not an
-    # overflowing plate and refusing it would block a configuration that ran
-    # correctly before this check existed.
-    #
-    # ONLY a list that overflows refuses. ``wt_omitted`` (a plate whose designed
-    # mutants fill every well, leaving none for an appended WT control) is
-    # reported and not refused: that is a layout MAME scores correctly today, and
-    # ``DraftLayout.is_complete`` being false for it makes it an inviting but
-    # wrong trigger.
+    # ONLY asked when the layout is drafted. A run given ``well_layout`` was
+    # told which wells it scores, and the designed list is then a lookup table
+    # those wells index into, so a longer one is not an overflowing plate and
+    # refusing it would block a configuration that ran correctly before this
+    # check existed.
     #
     # The graded draft is kept and reused as the layout further down, so the
     # object that passed the check is the object that places the wells.
@@ -946,6 +1167,35 @@ def handle_analyze(params: dict) -> dict:
         )
         if plate_capacity_error is not None:
             raise ValueError(plate_capacity_error)
+        if drafted_layout is not None:
+            # Which wells the campaign occupies, seated here rather than after
+            # the demux. Too few wells for the occupants is a refusal, and a
+            # refusal that waits for the ingest costs the operator the very run
+            # it exists to stop. Absent selection returns the draft untouched,
+            # so a run that declares nothing is byte-identical to one from
+            # before this parameter existed.
+            drafted_layout = _place_on_selected_wells(drafted_layout, selected_wells)
+            # An old project's sample map, compared against the layout this run
+            # would use, on the run and not only behind the validate button.
+            # Same reason ``check_plate_order`` moved down here: nothing that
+            # skips the button (a CLI call, a harness, a script, an operator who
+            # never validated) went past this at all, and the file on disk names
+            # a plate the run would otherwise contradict in silence.
+            _legacy = _legacy_sample_map_finding(
+                _optional_str(params.get("legacy_sample_map_xlsx")), drafted_layout
+            )
+            if _legacy is not None and _legacy["status"] == "differs":
+                raise ValueError(_legacy_sample_map_error(_legacy))
+
+    # A workbook that writes one plate two ways, refused here as well as on the
+    # validate button. ``handle_validate_inputs`` was the only caller of
+    # ``check_plate_order``, which left the run itself defended by nothing but
+    # the frontend's ``selectCanRun``: a CLI call, a harness, or a script went
+    # straight past it and scored every well against whichever of the two sheets
+    # the reader happened to pick. Read-only and cheap, and ahead of the demux.
+    _plate_order = _plate_order_finding(params, expected)
+    if _plate_order is not None:
+        raise ValueError(_plate_order_error(_plate_order))
 
     # Raw-run gate: a MinKNOW run folder (has ``fastq_pass/``) needs demux first;
     # a pre-demuxed consensus dir takes the legacy path untouched.
@@ -956,6 +1206,12 @@ def handle_analyze(params: dict) -> dict:
     # there is nothing to report. Left empty rather than zero-filled so the
     # response omits the keys instead of claiming "0 reads passed".
     demux_gate_counts: dict[str, int] = {}
+    # The per-plate demux matrix, same raw-run-only reasoning as the counters
+    # above. Each entry is one plate copy with its own DemuxStats and its
+    # {R}_{F} -> reads mapping. This is the only measurement MAME makes of reads
+    # that landed on a barcode combination the campaign never pipetted, and it
+    # used to be computed inside ``ingest_run_folder`` and dropped there.
+    demux_per_nb: list[dict] = []
     # Latest demux progress, mirrored by _emit_demux so the demux-phase heartbeat
     # can re-emit a liveness pulse during long, low-event per-NB demux stretches.
     _demux_state = {"value": 0, "message": "Demuxing raw MinKNOW run", "current": 0, "total": 0}
@@ -1197,6 +1453,7 @@ def handle_analyze(params: dict) -> dict:
                     done, total, stage_str
                 ),
                 stats_out=demux_gate_counts,
+                per_nb_out=demux_per_nb,
             )
         finally:
             _demux_done_evt.set()
@@ -1247,27 +1504,33 @@ def handle_analyze(params: dict) -> dict:
     )
     many_cutoff = int(params.get("many_cutoff", 5))
 
-    sample_map_raw = params.get("sample_map_xlsx")
-    sample_map_path = None
-    if sample_map_raw:
-        sample_map_path = _validate_filepath(sample_map_raw, allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS)
-
-    # well_layout: optional well_id -> sample_name override (highest-priority
-    # well->sample source; takes precedence over sample_map_path in run_analyze).
-    # Fail-fast on a malformed payload rather than silently ignoring it.
+    # well_layout: optional well_id -> sample_name override. Fail-fast on a
+    # malformed payload rather than silently ignoring it.
     #
-    # ``layout_source`` records WHICH of the three branches actually produced
-    # the mapping this run scored wells against, and rides into the response
-    # as ``layout_provenance``. Without it a result cannot say whether a well
-    # was placed by the operator, by a saved sample map, or guessed by
-    # ``build_draft_layout`` from whatever ``expected`` happens to be current
-    # -- the last of which is exactly the failure shape of the 2026-08
-    # incident this file's mapping-integrity check was written for: a stale
-    # ``expected`` produces a plausible-looking inferred layout with nothing
-    # in the result to say it was inferred at all, let alone from what file.
+    # ``layout_source`` records WHICH of the two branches actually produced the
+    # mapping this run scored wells against, and rides into the response as
+    # ``layout_provenance``. Without it a result cannot say whether a well was
+    # placed by the operator or guessed by ``build_draft_layout`` from whatever
+    # ``expected`` happens to be current -- the latter is exactly the failure
+    # shape of the 2026-08 incident this file's mapping-integrity check was
+    # written for: a stale ``expected`` produces a plausible-looking inferred
+    # layout with nothing in the result to say it was inferred at all, let alone
+    # from what file.
+    #
+    # There used to be a third branch, a sample-map xlsx. It stated the plate a
+    # second time and nothing kept the two statements in step, so it is gone.
+    # An old project's file is not ignored: both this handler (above, before the
+    # demux) and ``validate_inputs`` compare it against the layout the run would
+    # use and name the wells where they disagree.
     well_layout_raw = params.get("well_layout")
     well_layout: dict[str, str] | None = None
     layout_source: str
+    # What this run declared and what came of it, both filled by the drafted
+    # branch below. An explicit ``well_layout`` places the wells itself and no
+    # selection is applied to it, so a result from that branch reports neither
+    # rather than reporting a choice that did not reach a well.
+    declared_wells: list[str] | None = None
+    unused_wells: list[str] = []
     if well_layout_raw is not None:
         if not isinstance(well_layout_raw, dict) or not all(
             isinstance(k, str) and isinstance(v, str)
@@ -1276,8 +1539,6 @@ def handle_analyze(params: dict) -> dict:
             raise ValueError("well_layout must be a mapping of well_id (str) to sample_name (str)")
         well_layout = well_layout_raw
         layout_source = "explicit_well_layout"
-    elif sample_map_path is not None:
-        layout_source = "sample_map_xlsx"
     else:
         # The draft the plate-capacity gate above already graded, reused rather
         # than rebuilt: same read and the same WT rule as
@@ -1292,10 +1553,24 @@ def handle_analyze(params: dict) -> dict:
             _inferred = read_variant_source(
                 expected, sheet=variant_sheet, variant_column=variant_column
             )
-            drafted_layout = build_draft_layout(
-                _inferred.expected, include_wt=not _inferred.has_explicit_wt
+            drafted_layout = _place_on_selected_wells(
+                build_draft_layout(
+                    _inferred.expected, wt_ordinal=_inferred.wt_ordinal
+                ),
+                selected_wells,
             )
+        # The selection is already seated: the block above did it for a draft
+        # the capacity gate handed over, and this fallback does it for the one
+        # it could not. Doing it here instead put the refusal for too few wells
+        # after the demux.
         well_layout = drafted_layout.layout
+        unused_wells = list(drafted_layout.unused_wells)
+        if selected_wells is not None:
+            from kuma_core.mame.layout import normalise_selected_wells
+
+            # The declaration in the column-major form the placement rule uses,
+            # whatever order the caller sent it in.
+            declared_wells = normalise_selected_wells(selected_wells)
         layout_source = "inferred_draft_layout"
 
     _emit(10, "Ingesting FASTA files...")
@@ -1438,7 +1713,6 @@ def handle_analyze(params: dict) -> dict:
                     max_consensus_n_fraction=max_consensus_n_fraction,
                     many_cutoff=many_cutoff,
                     ingest_mode=ingest_mode_enum,
-                    sample_map_path=sample_map_path,
                     well_layout=well_layout,
                     progress_callback=_band_callback,
                     records=raw_records,
@@ -1461,7 +1735,6 @@ def handle_analyze(params: dict) -> dict:
                 max_consensus_n_fraction=max_consensus_n_fraction,
                 many_cutoff=many_cutoff,
                 ingest_mode=ingest_mode_enum,
-                sample_map_path=sample_map_path,
                 well_layout=well_layout,
                 progress_callback=_band_callback,
                 records=raw_records,
@@ -1511,6 +1784,29 @@ def handle_analyze(params: dict) -> dict:
 
     _mapping_integrity = check_mapping_integrity(observations_from_verdicts(verdicts))
 
+    # What the demux matrix says about reads that landed outside the campaign.
+    # Raw-run only: a consensus-dir run never demuxed, so there is no matrix and
+    # no counter, and the key stays absent rather than reporting six unavailable
+    # signals that would all say the same thing about the mode rather than
+    # about the run.
+    #
+    # The occupancy handed over is ``well_layout``'s own keys, which is the set
+    # the pipeline scored these verdicts against. Deliberately NOT the declared
+    # selection: ``layout_provenance.selected_wells`` can be wider than the
+    # campaign (``unused_wells`` names the surplus), and taking it here would
+    # let one response carry two different answers to "which wells were
+    # occupied" -- ``off_layout_records`` already reads the layout, and a read
+    # would be off-layout there and on-layout here.
+    contamination = None
+    if is_raw:
+        from kuma_core.mame.qc.contamination import analyze_contamination
+
+        contamination = analyze_contamination(
+            demux_per_nb,
+            list(well_layout or {}),
+            occupancy_source=layout_source,
+        )
+
     janus_params = params.get("janus_settings") or {}
     janus_autosave = _autosave_picks(replicates, output, run_meta, janus_params)
 
@@ -1529,24 +1825,40 @@ def handle_analyze(params: dict) -> dict:
         "layout_provenance": {
             "source": layout_source,
             "expected_path": str(expected),
-            "sample_map_path": (
-                str(sample_map_path) if sample_map_path is not None else None
-            ),
-            # The designed list fills every well, so no well was left for an
-            # appended WT control. Reported, never a refusal: the run scores
-            # correctly either way, but without a declared WT well the clean
-            # control is attributed as UNKNOWN_* and that check is lost, which
-            # is worth saying out loud on the result.
+            # The wells this run declared as occupied, in plate order. Stamped
+            # onto the result rather than left in the frontend store because a
+            # selection is what makes an empty well mean "nothing was pipetted
+            # here" instead of "the draft ran out", and a result that cannot say
+            # which wells were declared cannot be reproduced. null when the run
+            # declared none, which reads as the leading N+1 wells.
             #
-            # null unless this run drafted the layout itself. It is a fact about
-            # ``build_draft_layout`` running out of wells, and a run handed a
-            # ``well_layout`` or a sample map never asked it: that layout may
-            # well declare a WT well of its own, so answering true or false here
-            # would put a claim about a layout nobody built onto a stored result.
-            "wt_omitted": (
-                drafted_layout.wt_omitted if drafted_layout is not None else None
-            ),
+            # The DECLARATION, not the subset that found an occupant. Reporting
+            # the placed wells made a declaration wider than the campaign
+            # unreadable off the result: 96 wells declared against 31 occupants
+            # came back as 31 wells, which is also what declaring exactly those
+            # 31 looks like.
+            "selected_wells": declared_wells,
+            # Declared wells no occupant took, in plate order. Empty for every
+            # run that declared none or declared exactly enough. Not a refusal:
+            # selecting a column that turned out to hold fewer variants than
+            # planned says nothing false about the bench, but dropping the
+            # surplus in silence would leave the result unable to say the
+            # declaration and the campaign were different sizes.
+            "unused_wells": unused_wells,
         },
+        # Reads that arrived from wells the layout does not name. NOT a refusal:
+        # a declared-empty well producing reads is the same signal as barcode
+        # crosstalk, and which of the two it is cannot be decided from the count.
+        # Reported so an operator can see it rather than having it disappear
+        # into an UNKNOWN_* group.
+        "off_layout_records": _off_layout_records(verdicts, well_layout),
+        # Stray-read signals read straight off the demux matrix
+        # (kuma_core.mame.qc.contamination). Raw-run only, so the key is absent
+        # in consensus-dir mode. Every signal inside is either a measurement or
+        # an explicit ``state: "unavailable"`` with a reason: none is
+        # zero-filled, because a 0 from a question that could not be asked reads
+        # as a clean plate.
+        **({"contamination": contamination} if contamination is not None else {}),
         # Whole-run mapping sanity check (kuma_core.mame.qc.mapping_integrity).
         # ``suspect`` is a signal to surface prominently, not a hard failure:
         # the run already finished and the workbook the operator has may be

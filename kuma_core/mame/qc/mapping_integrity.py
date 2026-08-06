@@ -154,7 +154,7 @@ def observations_from_verdicts(verdicts: list) -> list[WellObservation]:
 
     ``VerdictRecord.expected_mutations`` is already the per-well SCOPED
     expected set the verdict was classified against (the full designed-set
-    fallback when no well_layout/sample_map was supplied), so no separate
+    fallback when no well_layout was supplied), so no separate
     well->expected map has to be threaded in here. A verdict whose
     custom_barcode does not resolve to a plate coordinate (non-R_F format,
     e.g. a non-combinatorial ingest mode) is skipped: this check is about

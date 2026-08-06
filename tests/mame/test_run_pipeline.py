@@ -21,6 +21,7 @@ from kuma_core.mame.export.excel_writer import _custom_barcode_to_seq
 from kuma_core.mame.export.well_mapper import seq_to_well
 from kuma_core.mame.ingest.combinatorial_demux import DemuxStats
 from kuma_core.mame.ingest.run_pipeline import ingest_run_folder, is_minknow_run_dir
+from kuma_core.mame.qc.contamination import POOLED_PLATE_NAME
 
 # ---------------------------------------------------------------------------
 # Synthetic constants (mirrored from tests/mame/test_combinatorial_demux.py)
@@ -241,9 +242,47 @@ class TestIngestSinglePool:
         # Coverage is the stricter of the two gates and counts its own subset.
         assert stats["passed_coverage"] <= stats["passed_mapq"] <= stats["total_reads"]
 
+    def test_per_nb_out_reports_a_pool_as_one_pseudo_plate(
+        self, tmp_path: Path
+    ) -> None:
+        """Pooling is one plate, not zero.
+
+        An empty sink would be indistinguishable from "no demux ran", and the
+        consumer would have no way to say that the well-scoped signals are still
+        answerable while the replicate-scoped ones are not.
+        """
+        _require_minimap2()
+        ref = _build_reference(tmp_path)
+        xlsx = _build_barcodes_xlsx(tmp_path)
+        run_dir = _build_single_pool_run(tmp_path)
+        out_dir = tmp_path / "demux_pool_matrix"
+        per_nb: list[dict] = []
+
+        ingest_run_folder(
+            run_dir,
+            xlsx,
+            ref,
+            out_dir,
+            mapq_threshold=0,
+            coverage_fraction=0.5,
+            trim_flank_bp=30,
+            min_depth=1,
+            per_nb_out=per_nb,
+        )
+
+        assert len(per_nb) == 1
+        assert per_nb[0]["nb_name"] == POOLED_PLATE_NAME
+        assert per_nb[0]["sort_barcode_name"] == POOLED_PLATE_NAME
+        assert set(per_nb[0]["stats"]) == {f.name for f in fields(DemuxStats)}
+        # The matrix carries the seeded wells as {R}_{F} tokens with counts.
+        counts = per_nb[0]["per_well_read_counts"]
+        assert counts
+        assert all(isinstance(v, int) and v > 0 for v in counts.values()), counts
+        assert {f"{r}_{f}" for r, f in _WELLS} <= set(counts)
+
 
 # ---------------------------------------------------------------------------
-# ingest_run_folder — per native barcode
+# ingest_run_folder, per native barcode
 # ---------------------------------------------------------------------------
 
 
@@ -329,6 +368,93 @@ class TestIngestPerNb:
             }
 
         assert _key(first) == _key(second)
+
+    def test_per_nb_out_receives_one_matrix_per_native_barcode(
+        self, tmp_path: Path
+    ) -> None:
+        """The sink carries the per-plate breakdown the merged counters hide."""
+        _require_minimap2()
+        ref = _build_reference(tmp_path)
+        xlsx = _build_barcodes_xlsx(tmp_path)
+        nb_names = ["barcode06", "barcode20"]
+        run_dir = _build_per_nb_run(tmp_path, nb_names)
+        out_dir = tmp_path / "demux_nb_matrix"
+        stats: dict[str, int] = {}
+        per_nb: list[dict] = []
+
+        ingest_run_folder(
+            run_dir, xlsx, ref, out_dir, native_barcodes=nb_names,
+            mapq_threshold=0, coverage_fraction=0.5, trim_flank_bp=30,
+            stats_out=stats, per_nb_out=per_nb,
+        )
+
+        assert [p["nb_name"] for p in per_nb] == nb_names
+        # The output-dir namespace, which is what the consensus records carry as
+        # native_barcode and what the pipeline groups replicates by.
+        assert [p["sort_barcode_name"] for p in per_nb] == [
+            "sort_barcode06", "sort_barcode20"
+        ]
+        # Per-plate counters sum to the merged ones the other sink reports, so
+        # the two sinks cannot disagree about the same run.
+        for key in (f.name for f in fields(DemuxStats)):
+            assert sum(p["stats"][key] for p in per_nb) == stats[key], key
+        for plate in per_nb:
+            assert {f"{r}_{f}" for r, f in _WELLS} <= set(plate["per_well_read_counts"])
+
+    def test_resume_reproduces_the_same_contamination_block(
+        self, tmp_path: Path
+    ) -> None:
+        """A resumed run answers the stray-read question identically.
+
+        The matrix a resumed unit contributes comes from its stage marker rather
+        than from a fresh demux, so this is the test that the marker carries
+        enough to rebuild it. The marker's own input fingerprint is compared
+        before and after: a resume that reproduced the report by REWRITING the
+        markers would be reprocessing, not resuming.
+        """
+        from kuma_core.mame.ingest.stage_marker import read_stage_marker
+        from kuma_core.mame.qc.contamination import analyze_contamination
+
+        _require_minimap2()
+        ref = _build_reference(tmp_path)
+        xlsx = _build_barcodes_xlsx(tmp_path)
+        nb_names = ["barcode06", "barcode20"]
+        run_dir = _build_per_nb_run(tmp_path, nb_names)
+        out_dir = tmp_path / "demux_resume_matrix"
+        occupied = sorted(_expected_wells())
+
+        first: list[dict] = []
+        ingest_run_folder(
+            run_dir, xlsx, ref, out_dir, native_barcodes=nb_names,
+            mapq_threshold=0, coverage_fraction=0.5, trim_flank_bp=30,
+            per_nb_out=first,
+        )
+        markers_before = {
+            name: read_stage_marker(out_dir / name)
+            for name in ("sort_barcode06", "sort_barcode20")
+        }
+
+        second: list[dict] = []
+        ingest_run_folder(
+            run_dir, xlsx, ref, out_dir, native_barcodes=nb_names,
+            mapq_threshold=0, coverage_fraction=0.5, trim_flank_bp=30,
+            per_nb_out=second,
+        )
+        markers_after = {
+            name: read_stage_marker(out_dir / name)
+            for name in ("sort_barcode06", "sort_barcode20")
+        }
+
+        assert first == second
+        assert analyze_contamination(
+            first, occupied, occupancy_source="inferred_draft_layout"
+        ) == analyze_contamination(
+            second, occupied, occupancy_source="inferred_draft_layout"
+        )
+        for name, marker in markers_before.items():
+            assert marker is not None
+            assert markers_after[name] is not None
+            assert markers_after[name]["inputs"] == marker["inputs"]
 
 
 # ---------------------------------------------------------------------------

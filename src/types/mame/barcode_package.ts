@@ -39,10 +39,9 @@ export interface GenerateMamePackageParams {
   /** Require GC clamp on 3-prime end. Default: true. */
   require_gc_clamp?: boolean
   /**
-   * Optional variant list. When set, sample_map_template.xlsx is pre-filled with
-   * a draft placement (one variant per well in column-major order, WT control
-   * last) instead of headers only. The draft still needs verification against
-   * the physical plate.
+   * Optional variant list. Accepted and unused: it once pre-filled a sample-map
+   * template, and the plate is computed from the variant list at analyze time
+   * now, so nothing writes it down.
    *
    * A KURO results xlsx carrying an expected_mutations sheet is detected and
    * read with its own strict reader. Any other workbook or csv is read as a
@@ -89,19 +88,10 @@ export interface MamePackageResult {
   barcodes_xlsx: string
   /** Absolute path to generated amplicon FASTA. */
   amplicon_fa: string
-  /** Absolute path to generated sample map template xlsx. */
-  sample_map_template: string
   /** Absolute path to generated mame context JSON. */
   context_json: string
   /** Non-critical warnings from primer design. */
   warnings: string[]
   /** Computed PCR amplicon length (bp) from primer binding positions, or null if unresolved. */
   amplicon_length: number | null
-  /** Pre-filled data rows in sample_map_template (0 = header only, or preserved). */
-  sample_map_prefilled_rows: number
-  /**
-   * True when an existing sample_map_template.xlsx already held well
-   * assignments and was left untouched rather than regenerated.
-   */
-  sample_map_preserved: boolean
 }

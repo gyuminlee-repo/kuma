@@ -5,8 +5,7 @@ Coverage
 --------
 - _nb_to_sort_barcode_name: native barcode dir -> sort_barcode dir name
 - parse_combinatorial_barcodes: xlsx -> 96-well (fwd, rev) map
-- parse_sample_map: xlsx -> well_id -> sample_name dict
-- _make_well_filename: build per-well FASTA filename stem
+- parse_sample_map: xlsx -> well_id -> sample_name dict (migration reader only)
 
 The combinatorial read-sorting algorithm (sort_barcode_run) was removed in
 PR-B.  Canonical pipeline: kuma_core.mame.ingest.combinatorial_demux.
@@ -22,7 +21,6 @@ import pytest
 openpyxl = pytest.importorskip("openpyxl", reason="openpyxl not installed")
 
 from kuma_core.mame.ingest.sort_barcode import (
-    _make_well_filename,
     _nb_to_sort_barcode_name,
     parse_combinatorial_barcodes,
     parse_sample_map,
@@ -245,21 +243,8 @@ class TestParseSampleMap:
             parse_sample_map(tmp_path / "missing.xlsx")
 
 
-# ---------------------------------------------------------------------------
-# Unit tests: _make_well_filename
-# ---------------------------------------------------------------------------
-
-
-class TestMakeWellFilename:
-    def test_without_sample_map(self) -> None:
-        assert _make_well_filename("A01", 1, 1, None) == "A01_F1_R1"
-
-    def test_with_sample_map_match(self) -> None:
-        assert _make_well_filename("A01", 1, 1, {"A01": "V5F"}) == "A01_V5F_F1_R1"
-
-    def test_with_sample_map_no_match(self) -> None:
-        assert _make_well_filename("C05", 5, 3, {"A01": "V5F"}) == "C05_F5_R3"
-
-    def test_fwd_rev_indices_in_name(self) -> None:
-        stem = _make_well_filename("H12", 12, 8, {"H12": "WT"})
-        assert stem == "H12_WT_F12_R8"
+# ``_make_well_filename`` used to live here and build a per-well FASTA stem out
+# of a sample map. It went with the sample map: nothing in the package ever
+# called it (its definition, its ``__all__`` entry and this test file were the
+# only mentions), so keeping it would have kept a naming convention alive that
+# no writer follows.

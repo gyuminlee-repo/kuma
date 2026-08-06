@@ -165,13 +165,20 @@
       "redetecting": "Détection..."
     },
     "nativeBarcodeDialog": {
-      "title": "Plusieurs native barcodes détectés",
-      "description": "Ce run contient plusieurs native barcodes MinKNOW. Sélectionnez les barcodes à démultiplexer ; chaque barcode sélectionné est traité dans son propre dossier de sortie. Un run d'analyse évalue une seule plate : les barcodes sélectionnés ici sont évalués comme des replicates de cette même plate, et non comme des plates distinctes.",
+      "title": "Choisir l'axe replicate de cette analyse",
+      "description": "Ce dossier de run contient plusieurs native barcodes MinKNOW. Une analyse évalue une plate, et ses native barcodes en sont les replicates : chaque barcode sélectionné est démultiplexé séparément, puis le pipeline retient le meilleur replicate par variant. Annuler interrompt l'analyse.",
       "shareHeader": "Proportion",
       "selectAriaLabel": "Sélectionner le native barcode {{name}}",
-      "selectedCount": "{{count}} barcode(s) sélectionné(s)",
-      "confirm": "Exécuter la sélection",
-      "confirming": "Exécution…"
+      "confirm": "Lancer",
+      "confirming": "Exécution…",
+      "modeLegend": "Axe replicate",
+      "modePerBarcode": "Chaque barcode sélectionné est un replicate",
+      "modePerBarcodeHelp": "Un demux par barcode. Chaque well devient alors comparable entre les plates sélectionnées.",
+      "modePooled": "Regrouper tous les barcodes en une seule plate",
+      "modePooledHelp": "Toutes les reads dans un seul pool. Une plate, aucun replicate à comparer.",
+      "replicateCount": "{{count}} replicate(s) sélectionné(s)",
+      "pooledCount": "{{count}} barcode(s) regroupés en une plate",
+      "cancel": "Annuler l'analyse"
     },
     "parameters": {
       "title": "Paramètres",
@@ -330,7 +337,6 @@
       "generatedFileLabels": {
         "barcodes": "Table de barcodes (xlsx)",
         "amplicon": "Référence amplicon (FASTA)",
-        "sampleMapTemplate": "Modèle de sample map (xlsx)",
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "Impossible d'ouvrir le dossier.",
@@ -338,7 +344,8 @@
       "variantColumn": "Colonne des variants",
       "variantColumnPlaceholder": "Choisir une colonne",
       "variantColumnHelper": "L'ordre des lignes de cette colonne remplit la plaque 96-well, en descendant chaque colonne de la plaque : A1, B1, C1 jusqu'à H1, puis A2. Une ligne WT sert de contrôle au lieu d'en ajouter une.",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "outputLocationStateLabel": "Facultatif"
     },
     "activity": {
       "sectionIngest": "Téléverser l'activity",
@@ -570,7 +577,21 @@
       "finalFallbackNotice": "No replicate has been selected yet, so FINAL is showing every well (ALL).",
       "resizeColumnAriaLabel": "Resize column {{column}}",
       "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
-      "resetColumnWidths": "Reset column widths"
+      "resetColumnWidths": "Reset column widths",
+      "replicateFlags": {
+        "header": "Concordance",
+        "help": "Les copies de plate de ce well concordent-elles ? Calculé par well, sur toutes les plates de l'analyse.",
+        "agree": "OK",
+        "disagreementShort": "divergent",
+        "disagreementHelp": "Les copies de plate de ce well n'ont pas reçu le même verdict.",
+        "depthShort": "depth",
+        "depthHelp": "Une copie porte moins d'un cinquième des reads de la copie la plus profonde : une divergence peut alors venir de la depth et non de la biologie.",
+        "missingShort": "absent",
+        "missingHelp": "Aucun enregistrement pour ce well sur {{plates}}.",
+        "missingUnknown": "Cette analyse n'indique pas les plates évaluées, une copie absente ne peut donc pas être détectée.",
+        "filterLabel": "Signalés ({{count}})",
+        "filterHelp": "N'afficher que les wells dont les replicates divergent, dont la depth est déséquilibrée ou auxquels il manque une copie."
+      }
     },
     "summaryRow": {
       "ariaLabel": "Résumé de l'analyse",
@@ -799,13 +820,6 @@
         "helpText": "Le mode raw run MinKNOW utilise ce fichier pour assigner les reads aux FASTA par well avant l'analyse.",
         "axisCounts": "Fichier de barcodes : {{forward}} forward x {{reverse}} reverse seeds, {{wells}} wells sur une plate."
       },
-      "sampleMap": {
-        "label": "Sample Map (optionnel)",
-        "placeholder": "Chemin de fichier .xlsx (layout mutants/wells)",
-        "stateLabel": "Optionnel",
-        "helperText": "Mapping well vers nom d'échantillon, ajoute le nom du mutant aux noms de fichiers FASTA triés (ex. A01_V5F_F1_R1.fasta)",
-        "helpText": "Col A : nom d'échantillon, Col B : position du well (ex. A1). Compatible avec le layout mutants.xlsx de KURO."
-      },
       "exportDest": {
         "label": "Dossier de destination d'export",
         "placeholder": "Choisir un dossier ; {{filename}} y sera créé",
@@ -973,6 +987,40 @@
         "alertTitle": "Correspondance well-variant probablement erronée",
         "alertDesc": "Sur {{wells}} wells présentant une variante observée, {{selfPercent}}% correspondent à leur propre mutation attendue et {{crossPercent}}% correspondent plutôt à la mutation attendue d'un autre well. La correspondance well-variant est très probablement décalée ; ne faites pas confiance à ce résultat.",
         "alertAriaLabel": "Avertissement d'intégrité de la correspondance well-variant"
+      },
+      "offLayoutRecords": {
+        "title": "{{records}} enregistrements de {{wells}} puits hors disposition",
+        "desc": "Ces puits ne faisaient pas partie de la disposition, rien n'en était attendu. Des lectures signifient soit un puits finalement rempli, soit une diaphonie de code-barres d'un voisin. Puits :  {{list}}",
+        "more": "et {{count}} de plus."
+      },
+      "contamination": {
+        "title": "Lectures égarées",
+        "subtitle": "Mesuré sur les {{wells}} puits occupés ({{source}}).",
+        "notMeasured": "non mesuré",
+        "signalAbsent": "Cette version ne porte pas ce signal, le run n'en dit donc rien.",
+        "wellList": "Puits : {{list}}",
+        "more": "et {{count}} de plus.",
+        "source": {
+          "inferred_draft_layout": "plan déduit de la liste expected",
+          "explicit_well_layout": "plan fourni pour ce run"
+        },
+        "signal": {
+          "unused_index_reads": "Lectures portant un index de barcode que cette campagne n'a jamais utilisé",
+          "unexpected_well_reads": "Lectures sur un puits inoccupé des index en usage",
+          "ambiguity_rate": "Lectures écartées comme ambiguës, parmi celles arrivées au barcode matching",
+          "chimera_rate": "Affectations de puits supplémentaires issues des lectures scindées, par lecture affectée",
+          "leak_well_sharing": "Puits sur une combinaison inoccupée d'index utilisés",
+          "plate_yield_skew": "Plus petite copie de plaque sur la plus grande, en lectures affectées"
+        },
+        "sharing": {
+          "shared_across_replicates": "Les lectures égarées se répètent sur toutes les copies de plaque.",
+          "single_replicate": "Les lectures égarées se trouvent dans une seule copie de plaque."
+        }
+      },
+      "legacySampleMap": {
+        "title": "{{file}} concorde avec la disposition calculée",
+        "desc": "Les {{wells}} puits concordent tous, rien à corriger. La sample map n'est plus lue comme entrée et ce fichier peut être supprimé quand vous le souhaitez ; il reste en place jusque-là.",
+        "dismiss": "Fermer cet avis"
       }
     },
     "inspector": {
@@ -1160,7 +1208,30 @@
       "copySourcePath": "Copy consensus FASTA path",
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
-      "noVerdictRecord": "No verdict record for this well."
+      "noVerdictRecord": "No verdict record for this well.",
+      "replicateReads": "{{reads}} reads",
+      "replicateAligned": "{{aligned}} alignées"
+    },
+    "wellSelection": {
+      "title": "Puits utilisés",
+      "description": "La disposition calculée, dessinée sur la plaque. Les variants remplissent les puits sélectionnés dans l'ordre de la plaque (A1, B1, ... H1, A2). Sans intervention, les premiers puits sont utilisés.",
+      "counts": "{{selected}} puits sur {{capacity}} sélectionnés pour {{occupants}} échantillons (variants plus le contrôle WT).",
+      "tooFewWells": "{{selected}} puits sélectionnés pour {{occupants}} échantillons. Sélectionnez plus de puits ou raccourcissez la liste de variants.",
+      "selectAll": "Tout sélectionner ({{count}})",
+      "selectDefault": "Seulement les échantillons ({{count}})",
+      "clearAll": "Effacer la sélection",
+      "gridLabel": "Plaque 96 puits, sélectionner les puits utilisés",
+      "toggleAllLabel": "Basculer tous les puits",
+      "toggleRowLabel": "Basculer la rangée {{row}}",
+      "toggleColumnLabel": "Basculer la colonne {{column}}",
+      "wellWithSample": "Puits {{well}}, {{sample}}",
+      "wellEmpty": "Puits {{well}}, vide",
+      "keyboardHint": "Les flèches déplacent, Espace bascule, Maj avec une flèche étend la sélection. Faites glisser pour peindre.",
+      "loadFailed": "Impossible de lire la liste de variants pour dessiner la plaque : {{error}}"
+    },
+    "replicateModeNotice": {
+      "pooled": "Cette analyse a regroupé {{detected}} native barcodes en une seule plate : aucun replicate à comparer.",
+      "subset": "Ce dossier de run contient {{detected}} native barcodes, dont {{replicates}} ont été évalués comme replicates. Les autres ne figurent pas dans ces résultats."
     }
   },
   "home": {
@@ -2289,13 +2360,13 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "La regle qui transforme une paire de codes-barres en puits de plaque tient en un seul endroit au lieu de quatre, si bien que les quatre ne peuvent plus diverger.",
-      "Un plan qui remplit exactement la plaque et ne laisse pas de place pour un puits wild-type n est plus refuse pour cette raison.",
-      "Le chargement d un fichier de codes-barres indique combien de forward et de reverse il contient et combien de puits ils decrivent.",
-      "La boite de dialogue native barcode dit ce qu elle choisit: des replicats d une plaque, et non des plaques distinctes.",
-      "Une execution qui deborde la plaque est refusee avant le demarrage du demux, pas apres l ecriture des puits."
+      "La sample map disparait. MAME dispose la plaque a partir de la liste de variants elle-meme, et un fichier restant est compare plutot que suivi.",
+      "Choisissez sur une grille de 96 puits ceux qu une execution a utilises: en cliquant, en glissant, ou en cliquant un en-tete de ligne ou de colonne.",
+      "Une liste de variants avec une ligne vide au milieu, ou une seconde ligne wild-type, arrete l execution au lieu de decaler chaque puits suivant.",
+      "Le choix des native barcodes dit maintenant ce qu il choisit: des replicats d une plaque. Les puits dont les replicats divergent sont signales.",
+      "Une execution signale les lectures tombees hors des puits declares, separees selon que ces index de code-barres ont deja servi ou non."
     ],
-    "highlightsStamp": "0.15.23+0c028fbf"
+    "highlightsStamp": "0.16.0+b2281961"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",
@@ -2421,7 +2492,6 @@
     "fieldRunFolder": "dossier de run",
     "fieldReference": "référence",
     "fieldExpected": "attendu",
-    "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
     "pathsMoved": "Ces entrees ont ete deplacees et doivent etre selectionnees a nouveau: {{fields}}"

@@ -1,8 +1,8 @@
-"""Per-well verdict scoping via sample_map (pipeline.py fix verification).
+"""Per-well verdict scoping via the run layout (pipeline.py fix verification).
 
 The discriminating test proves that scoping does the work:
-- With sample_map: a well whose observation matches its assigned mutant -> PASS
-- Without sample_map (full expected list): same well is missing the OTHER expected
+- With a layout: a well whose observation matches its assigned mutant -> PASS
+- Without a layout (full expected list): same well is missing the OTHER expected
   mutant -> WRONG_AA
 
 Fixtures are self-contained (no dependency on create_fixtures.py or minimap2).
@@ -75,21 +75,6 @@ def _make_kuro_xlsx(dest: Path) -> None:
     wb.save(dest)
 
 
-def _make_sample_map_xlsx(dest: Path) -> None:
-    """Sample map assigning well A2->G2A and well B1->F3W (non-zero-padded input).
-
-    parse_sample_map normalises A2->A02, B1->B01; this exercises the normalisation.
-    """
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    assert ws is not None
-    # Column A: sample name, Column B: well position
-    ws.append(["G2A", "A2"])   # well A02 (non-zero-padded to exercise normalisation)
-    ws.append(["F3W", "B1"])   # well B01 (non-zero-padded to exercise normalisation)
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    wb.save(dest)
-
-
 def _make_input_dir(tmp_path: Path) -> Path:
     """Create a barcode-mode ingest dir: NB01/1_2.fasta (G2A) and NB01/2_1.fasta (F3W)."""
     ingest_dir = tmp_path / "consensus"
@@ -111,28 +96,30 @@ def _make_reference_fasta(tmp_path: Path) -> Path:
 # ---------------------------------------------------------------------------
 
 def test_per_well_scoping_pass_vs_wrong_aa(tmp_path: pytest.FixtureDef) -> None:
-    """Core discriminating test: PASS with sample_map, WRONG_AA without.
+    """Core discriminating test: PASS with a layout, WRONG_AA without.
 
     - Well A02 (custom_barcode "1_2") observes G2A only.
     - Well B01 (custom_barcode "2_1") observes F3W only.
     - Full expected list = ["G2A", "F3W"]; each well misses one -> WRONG_AA.
-    - Scoped list (via sample_map): each well scoped to its own mutant -> PASS.
+    - Scoped list (via well_layout): each well scoped to its own mutant -> PASS.
     The wells are off-diagonal (A02 != B01) so a row/col transposition would
     scope the wrong mutant and flip PASS -> WRONG_AA, catching the bug.
+
+    The mapping used to be able to arrive as a sample-map xlsx as well. That
+    parameter is gone and the scoping mechanism is untouched, so the assertions
+    are unchanged and only the source of the mapping moved.
     """
     ingest_dir = _make_input_dir(tmp_path)
     reference = _make_reference_fasta(tmp_path)
     kuro_xlsx = tmp_path / "kuro.xlsx"
-    sample_map = tmp_path / "sample_map.xlsx"
     output_no_map = tmp_path / "out_no_map.xlsx"
     output_with_map = tmp_path / "out_with_map.xlsx"
 
     _make_kuro_xlsx(kuro_xlsx)
-    _make_sample_map_xlsx(sample_map)
 
     from kuma_core.mame.ingest import IngestMode
 
-    # ── Without sample_map: full list -> both wells WRONG_AA ──────────────
+    # Without a layout: full list -> both wells WRONG_AA ──────────────
     verdicts_no_map, _ = run_analyze(
         input_dir=ingest_dir,
         reference_path=reference,
@@ -142,19 +129,19 @@ def test_per_well_scoping_pass_vs_wrong_aa(tmp_path: pytest.FixtureDef) -> None:
         cds_end=9,
         min_file_size_kb=0.0,
         ingest_mode=IngestMode.BARCODE,
-        sample_map_path=None,
+        well_layout=None,
     )
     by_custom = {v.translated.barcode.custom_barcode: v for v in verdicts_no_map}
     assert by_custom["1_2"].verdict is VerdictClass.WRONG_AA, (
-        "Without sample_map, A02 (G2A-only) vs full list [G2A, F3W] must be WRONG_AA "
+        "Without a layout, A02 (G2A-only) vs full list [G2A, F3W] must be WRONG_AA "
         f"(missing F3W); got {by_custom['1_2'].verdict}"
     )
     assert by_custom["2_1"].verdict is VerdictClass.WRONG_AA, (
-        "Without sample_map, B01 (F3W-only) vs full list [G2A, F3W] must be WRONG_AA "
+        "Without a layout, B01 (F3W-only) vs full list [G2A, F3W] must be WRONG_AA "
         f"(missing G2A); got {by_custom['2_1'].verdict}"
     )
 
-    # ── With sample_map: scoped -> both wells PASS ─────────────────────────
+    # With a layout: scoped -> both wells PASS ─────────────────────────
     verdicts_with_map, _ = run_analyze(
         input_dir=ingest_dir,
         reference_path=reference,
@@ -164,15 +151,15 @@ def test_per_well_scoping_pass_vs_wrong_aa(tmp_path: pytest.FixtureDef) -> None:
         cds_end=9,
         min_file_size_kb=0.0,
         ingest_mode=IngestMode.BARCODE,
-        sample_map_path=sample_map,
+        well_layout={"A2": "G2A", "B1": "F3W"},
     )
     by_custom_map = {v.translated.barcode.custom_barcode: v for v in verdicts_with_map}
     assert by_custom_map["1_2"].verdict is VerdictClass.PASS, (
-        "With sample_map, A02 scoped to [G2A] must PASS; "
+        "With a layout, A02 scoped to [G2A] must PASS; "
         f"got {by_custom_map['1_2'].verdict}: {by_custom_map['1_2'].verdict_notes}"
     )
     assert by_custom_map["2_1"].verdict is VerdictClass.PASS, (
-        "With sample_map, B01 scoped to [F3W] must PASS; "
+        "With a layout, B01 scoped to [F3W] must PASS; "
         f"got {by_custom_map['2_1'].verdict}: {by_custom_map['2_1'].verdict_notes}"
     )
 
@@ -182,26 +169,18 @@ def test_per_well_scoping_pass_vs_wrong_aa(tmp_path: pytest.FixtureDef) -> None:
 # ---------------------------------------------------------------------------
 
 def test_unmapped_well_falls_back_to_full_list(tmp_path: pytest.FixtureDef) -> None:
-    """A well not in the sample_map falls back to the full expected_labels list.
+    """A well the layout does not name falls back to the full expected list.
 
-    Uses a sample_map that only covers A2->G2A (omits B1). Well B01 (F3W-only)
+    Uses a layout that only covers A2->G2A (omits B1). Well B01 (F3W-only)
     is therefore unmapped: it receives the full list [G2A, F3W] -> WRONG_AA
     (missing G2A).  Well A02 (G2A-only) is mapped -> PASS.
     """
     ingest_dir = _make_input_dir(tmp_path)
     reference = _make_reference_fasta(tmp_path)
     kuro_xlsx = tmp_path / "kuro.xlsx"
-    sample_map_partial = tmp_path / "sample_map_partial.xlsx"
     output = tmp_path / "out_partial.xlsx"
 
     _make_kuro_xlsx(kuro_xlsx)
-
-    # Partial sample_map: only A2 entry
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    assert ws is not None
-    ws.append(["G2A", "A2"])
-    wb.save(sample_map_partial)
 
     from kuma_core.mame.ingest import IngestMode
 
@@ -214,7 +193,7 @@ def test_unmapped_well_falls_back_to_full_list(tmp_path: pytest.FixtureDef) -> N
         cds_end=9,
         min_file_size_kb=0.0,
         ingest_mode=IngestMode.BARCODE,
-        sample_map_path=sample_map_partial,
+        well_layout={"A2": "G2A"},
     )
     by_custom = {v.translated.barcode.custom_barcode: v for v in verdicts}
     assert by_custom["1_2"].verdict is VerdictClass.PASS, (
@@ -245,6 +224,11 @@ def test_norm_well_lookup_matches_parse_sample_map_keys(tmp_path: Path) -> None:
     parse_sample_map zero-pads entries (A2->A02, B1->B01).
     seq_to_well produces non-padded labels (A2, B1, H12).
     _norm_well bridges the two so lookup succeeds.
+
+    ``parse_sample_map`` is a migration reader now, and this is what its one
+    remaining caller depends on: ``validate_inputs`` compares an old project's
+    file against the computed draft well by well, so the two spellings of a well
+    have to normalise to the same key or every well reads as a disagreement.
     """
     from kuma_core.mame.export.well_mapper import seq_to_well
     from kuma_core.mame.ingest.sort_barcode import parse_sample_map

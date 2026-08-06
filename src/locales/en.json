@@ -225,13 +225,20 @@
       }
     },
     "nativeBarcodeDialog": {
-      "title": "Multiple native barcodes detected",
-      "description": "This run contains more than one MinKNOW native barcode. Select which barcodes to demultiplex; each selected barcode is processed into its own output folder. One analyze run scores one plate: the barcodes selected here are scored as replicates of that same plate, not as separate plates.",
+      "title": "Select the replicate axis for this run",
+      "description": "This run folder holds more than one MinKNOW native barcode. A run scores one plate, and its native barcodes are replicates of that plate: each selected barcode is demultiplexed on its own, and the pipeline then picks the best replicate per variant. Cancel stops the analysis.",
       "shareHeader": "Share",
       "selectAriaLabel": "Select native barcode {{name}}",
-      "selectedCount": "{{count}} barcode(s) selected",
-      "confirm": "Run selected",
-      "confirming": "Running…"
+      "confirm": "Run",
+      "confirming": "Running…",
+      "modeLegend": "Replicate axis",
+      "modePerBarcode": "Each selected barcode is a replicate",
+      "modePerBarcodeHelp": "One demux per barcode. Every well is then comparable across the selected plates.",
+      "modePooled": "Pool every barcode into one plate",
+      "modePooledHelp": "All reads in a single pool. One plate, no replicates to compare.",
+      "replicateCount": "{{count}} replicate(s) selected",
+      "pooledCount": "{{count}} barcode(s) pooled into one plate",
+      "cancel": "Cancel run"
     },
     "parameters": {
       "title": "Parameters",
@@ -390,7 +397,6 @@
       "generatedFileLabels": {
         "barcodes": "Barcode table (xlsx)",
         "amplicon": "Amplicon reference (FASTA)",
-        "sampleMapTemplate": "Sample map template (xlsx)",
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "Could not open the folder.",
@@ -398,7 +404,8 @@
       "variantColumn": "Variant column",
       "variantColumnPlaceholder": "Select a column",
       "variantColumnHelper": "Rows fill the 96-well plate in this column's order, down each plate column: A1, B1, C1 to H1, then A2. A WT row is used as the control instead of appending one.",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "outputLocationStateLabel": "Optional"
     },
     "activity": {
       "ingest": {
@@ -695,7 +702,21 @@
       "finalFallbackNotice": "No replicate has been selected yet, so FINAL is showing every well (ALL).",
       "resizeColumnAriaLabel": "Resize column {{column}}",
       "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
-      "resetColumnWidths": "Reset column widths"
+      "resetColumnWidths": "Reset column widths",
+      "replicateFlags": {
+        "header": "Agreement",
+        "help": "Do the plate copies of this well agree? Measured per well, across every plate of the run.",
+        "agree": "OK",
+        "disagreementShort": "disagree",
+        "disagreementHelp": "The plate copies of this well were not called the same.",
+        "depthShort": "depth",
+        "depthHelp": "One copy carries less than a fifth of the reads of the deepest copy, so a disagreement here can be depth rather than biology.",
+        "missingShort": "missing",
+        "missingHelp": "No record for this well on {{plates}}.",
+        "missingUnknown": "This run does not state which plates it scored, so a missing copy cannot be detected.",
+        "filterLabel": "Flagged ({{count}})",
+        "filterHelp": "Show only wells whose replicates disagree, are depth-imbalanced, or are missing a copy."
+      }
     },
     "summaryRow": {
       "ariaLabel": "Analysis summary",
@@ -924,13 +945,6 @@
         "helpText": "Raw MinKNOW run mode uses this file to assign reads to per-well FASTA outputs before analysis.",
         "axisCounts": "Barcode file: {{forward}} forward x {{reverse}} reverse seeds, {{wells}} wells on one plate."
       },
-      "sampleMap": {
-        "label": "Sample Map (optional)",
-        "placeholder": ".xlsx file path (mutants well layout)",
-        "stateLabel": "Optional",
-        "helperText": "Well-to-sample name mapping — adds mutant name to sorted FASTA filenames (e.g. A01_V5F_F1_R1.fasta)",
-        "helpText": "Col A: sample name, Col B: well position (e.g. A1). Compatible with KURO mutants.xlsx layout."
-      },
       "exportDest": {
         "label": "Export destination folder",
         "placeholder": "Choose a folder; {{filename}} will be created",
@@ -1046,6 +1060,40 @@
         "alertTitle": "Well-variant mapping likely mismatched",
         "alertDesc": "Of {{wells}} wells with an observed variant, {{selfPercent}}% match their own expected mutation and {{crossPercent}}% match another well's expected mutation instead. The well-to-variant mapping is very likely off; do not trust this result.",
         "alertAriaLabel": "Well-variant mapping integrity warning"
+      },
+      "offLayoutRecords": {
+        "title": "{{records}} records from {{wells}} wells outside the layout",
+        "desc": "These wells were not part of the run layout, so nothing was expected from them. Reads here mean either a well that was pipetted after all, or barcode crosstalk from a neighbour. Wells:  {{list}}",
+        "more": "and {{count}} more."
+      },
+      "contamination": {
+        "title": "Stray reads",
+        "subtitle": "Measured against the {{wells}} occupied wells ({{source}}).",
+        "notMeasured": "not measured",
+        "signalAbsent": "This build does not carry that signal, so the run states nothing about it.",
+        "wellList": "Wells: {{list}}",
+        "more": "and {{count}} more.",
+        "source": {
+          "inferred_draft_layout": "layout inferred from the expected list",
+          "explicit_well_layout": "layout supplied for this run"
+        },
+        "signal": {
+          "unused_index_reads": "Reads carrying a barcode index this campaign never used",
+          "unexpected_well_reads": "Reads on an unoccupied well of the indices in use",
+          "ambiguity_rate": "Reads dropped as ambiguous, of those that reached barcode matching",
+          "chimera_rate": "Extra well assignments from split reads, per assigned read",
+          "leak_well_sharing": "Wells on an unoccupied combination of used indices",
+          "plate_yield_skew": "Smallest plate copy over the largest, by assigned reads"
+        },
+        "sharing": {
+          "shared_across_replicates": "The stray reads repeat across the plate copies.",
+          "single_replicate": "The stray reads sit in a single plate copy."
+        }
+      },
+      "legacySampleMap": {
+        "title": "{{file}} agrees with the computed layout",
+        "desc": "All {{wells}} wells match, so nothing needs changing. The sample map is no longer read as an input, and this file can be deleted whenever you like; it is left where it is until you do.",
+        "dismiss": "Dismiss this notice"
       }
     },
     "inspector": {
@@ -1160,7 +1208,30 @@
       "copySourcePath": "Copy consensus FASTA path",
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
-      "noVerdictRecord": "No verdict record for this well."
+      "noVerdictRecord": "No verdict record for this well.",
+      "replicateReads": "{{reads}} reads",
+      "replicateAligned": "{{aligned}} aligned"
+    },
+    "wellSelection": {
+      "title": "Wells used",
+      "description": "The draft placement, drawn on the plate. Variants fill the selected wells in plate order (A1, B1, ... H1, A2). Leave it alone to use the first wells, or pick the wells this campaign actually occupies.",
+      "counts": "{{selected}} of {{capacity}} wells selected for {{occupants}} samples (variants plus the WT control).",
+      "tooFewWells": "{{selected}} wells selected but {{occupants}} samples have to go somewhere. Select more wells or shorten the variant list.",
+      "selectAll": "Select all ({{count}})",
+      "selectDefault": "Just the samples ({{count}})",
+      "clearAll": "Clear selection",
+      "gridLabel": "96-well plate, select the wells this campaign uses",
+      "toggleAllLabel": "Toggle every well",
+      "toggleRowLabel": "Toggle row {{row}}",
+      "toggleColumnLabel": "Toggle column {{column}}",
+      "wellWithSample": "Well {{well}}, {{sample}}",
+      "wellEmpty": "Well {{well}}, empty",
+      "keyboardHint": "Arrow keys move, Space toggles, Shift with an arrow key extends the selection. Drag across wells to paint.",
+      "loadFailed": "Could not read the variant list to draw the plate: {{error}}"
+    },
+    "replicateModeNotice": {
+      "pooled": "This run pooled {{detected}} native barcodes into one plate, so it has no replicates to compare.",
+      "subset": "This run folder holds {{detected}} native barcodes and {{replicates}} of them were scored as replicates. The rest are not in these results."
     }
   },
   "home": {
@@ -2322,13 +2393,13 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The rule that turns a barcode pair into a plate well lives in one place instead of four, so the four cannot drift apart.",
-      "A design that fills the plate exactly, leaving no room for a wild-type well, is no longer refused for it.",
-      "Loading a barcode file shows how many forward and reverse barcodes it holds, and how many wells they describe.",
-      "The native barcode dialog says what it is choosing: replicates of one plate, rather than separate plates.",
-      "A run that overflows the plate is refused before the demux starts, not after wells have been written."
+      "The sample map is gone. MAME places the plate from the variant list itself, and a leftover file is compared rather than obeyed.",
+      "Pick which wells a run used on a 96 well grid, by clicking, dragging, or clicking a row or column header.",
+      "A variant list with a blank row in the middle, or a second wild-type row, stops the run instead of shifting every later well.",
+      "Choosing native barcodes now says what it is choosing: replicates of one plate. Wells whose replicates disagree are flagged.",
+      "A run reports reads that landed outside the declared wells, split by whether those barcode indices were ever used."
     ],
-    "highlightsStamp": "0.15.23+0c028fbf"
+    "highlightsStamp": "0.16.0+b2281961"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",
@@ -2454,7 +2525,6 @@
     "fieldRunFolder": "run folder",
     "fieldReference": "reference",
     "fieldExpected": "expected",
-    "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
     "pathsMoved": "These inputs moved and need to be picked again: {{fields}}"

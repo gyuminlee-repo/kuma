@@ -77,7 +77,7 @@ describe("mame inputSlice plate-order finding", () => {
 
   it("sends the layout inputs with validate_inputs", async () => {
     const store = makeRunnableStore({
-      sampleMapPath: "D:/project/sample_map.xlsx",
+      selectedWells: ["A1", "B1"],
       wellLayout: { A1: "K53I" },
     });
     mockSendRequest.mockResolvedValueOnce({ valid: true, errors: [] });
@@ -87,7 +87,7 @@ describe("mame inputSlice plate-order finding", () => {
     expect(mockSendRequest).toHaveBeenCalledWith(
       "validate_inputs",
       expect.objectContaining({
-        sample_map_xlsx: "D:/project/sample_map.xlsx",
+        selected_wells: ["A1", "B1"],
         well_layout: { A1: "K53I" },
       }),
     );
@@ -101,7 +101,7 @@ describe("mame inputSlice plate-order finding", () => {
 
     expect(mockSendRequest).toHaveBeenCalledWith(
       "validate_inputs",
-      expect.objectContaining({ sample_map_xlsx: null, well_layout: null }),
+      expect.objectContaining({ selected_wells: null, well_layout: null }),
     );
   });
 
@@ -235,5 +235,93 @@ describe("mame inputSlice plate-order finding", () => {
     expect("buildWellLayout" in store).toBe(false);
     expect("confirmWellLayout" in store).toBe(false);
     expect("clearWellLayout" in store).toBe(false);
+  });
+});
+
+/**
+ * The well-selection gate.
+ *
+ * `apply_well_selection` refuses a selection shorter than the plate occupants,
+ * so a run started from one cannot finish. The panel drew the warning and the
+ * Run button stayed enabled beside it, which put the refusal after the click
+ * (and, for the empty selection the "Clear selection" button produces, under a
+ * label naming the expected workbook).
+ */
+describe("mame well selection gate", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("holds the run when fewer wells are declared than there are samples", () => {
+    const store = makeRunnableStore({
+      selectedWells: ["A1", "B1"],
+      wellSelectionOccupants: 5,
+    });
+
+    expect(selectCanRun(store)).toBe(false);
+  });
+
+  it("holds the run on an empty declaration even before the count is known", () => {
+    // What "Clear selection" sends. Refused by the sidecar whatever the variant
+    // list turns out to hold, so this clause does not need the count.
+    const store = makeRunnableStore({
+      selectedWells: [],
+      wellSelectionOccupants: null,
+    });
+
+    expect(selectCanRun(store)).toBe(false);
+  });
+
+  it("lets a declaration wider than the campaign run", () => {
+    // Not a mistake, and the surplus comes back on the result as unused_wells.
+    const store = makeRunnableStore({
+      selectedWells: ["A1", "B1", "C1"],
+      wellSelectionOccupants: 2,
+    });
+
+    expect(selectCanRun(store)).toBe(true);
+  });
+
+  it("does not gate a run that declared nothing", () => {
+    const store = makeRunnableStore({
+      selectedWells: null,
+      wellSelectionOccupants: 5,
+    });
+
+    expect(selectCanRun(store)).toBe(true);
+  });
+
+  it("drops the selection when the expected workbook changes", () => {
+    // Occupant i takes the i-th selected well, so a selection made for one
+    // variant list seats a different list on the same wells.
+    const store = makeRunnableStore({
+      selectedWells: ["A1", "C1"],
+      wellSelectionOccupants: 2,
+    });
+
+    store.setExpectedPath("D:/project/other.xlsx");
+
+    expect(store.selectedWells).toBeNull();
+    expect(store.wellSelectionOccupants).toBeNull();
+  });
+
+  it("drops the selection when the sheet or the column changes", () => {
+    // Same argument: those choose which rows are read, so they choose who is
+    // on the plate.
+    const sheet = makeRunnableStore({
+      selectedWells: ["A1", "C1"],
+      wellSelectionOccupants: 2,
+    });
+    sheet.setVariantSheet("Notes");
+    expect(sheet.selectedWells).toBeNull();
+    expect(sheet.wellSelectionOccupants).toBeNull();
+
+    const column = makeRunnableStore({
+      selectedWells: ["A1", "C1"],
+      wellSelectionOccupants: 2,
+    });
+    column.setVariantColumn("mutation");
+    expect(column.selectedWells).toBeNull();
+    expect(column.wellSelectionOccupants).toBeNull();
   });
 });

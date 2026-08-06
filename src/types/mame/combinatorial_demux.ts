@@ -77,12 +77,6 @@ export interface CombinatorialDemuxParams {
   /** Destination directory for per-well FASTA and consensus files. */
   output_dir: string
   /**
-   * Per-well sample-name mapping xlsx (col A: name, col B: well e.g. "A1").
-   * Not yet implemented in PR-A; will raise an error if provided.
-   * Deferred to PR-B.
-   */
-  sample_map_xlsx?: string | null
-  /**
    * KURO results xlsx with expected_mutations sheet.
    * Not yet implemented in PR-A; will raise an error if provided.
    * Deferred to PR-B.

@@ -11,6 +11,16 @@ The script is re-runnable and overwrites the fixture each time.  It requires no
 minimap2 binary because it feeds pre-built consensus FASTA files directly into
 the analyze pipeline (consensus-dir / barcode-ingest mode), bypassing the raw-run
 demux path entirely.
+
+That bypass is why the fixture carries no ``contamination`` block.  The
+stray-read signals (``kuma_core/mame/qc/contamination.py``) are read off the
+per-native-barcode demux matrix, and this fixture never demuxes, so there is no
+matrix to read.  Fabricating one here would put numbers on screen that no run
+produced, which is precisely what those signals exist to avoid; the sample
+loader therefore sets ``contamination`` to null and the panel stays hidden
+(``src/store/mame/slices/analysisSlice.ts``, ``loadSampleData``).  Wiring a raw
+run into this script would mean shipping a minimap2 dependency and a synthetic
+FASTQ set for a fixture whose only consumer is the run-health graphs.
 """
 
 from __future__ import annotations

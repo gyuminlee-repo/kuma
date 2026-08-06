@@ -10,9 +10,8 @@ Remaining public API
 parse_combinatorial_barcodes
     Read isps_f_* / isps_r_* barcodes from xlsx, expand to 96-well map.
 parse_sample_map
-    Read well_id -> sample_name mapping from xlsx.
-_make_well_filename
-    Build per-well FASTA filename stem.
+    Read well_id -> sample_name mapping from a legacy sample-map xlsx. Kept for
+    migration only; nothing places wells from it any more.
 _nb_to_sort_barcode_name
     Convert native-barcode dir basename to sort_barcode dir name.
 
@@ -42,9 +41,6 @@ _NB_DIR_PATTERN = re.compile(r"^(?:barcode|NB)(\d{1,3})$", re.IGNORECASE)
 # compatible with legacy ``isps_f_*`` / ``isps_r_*`` xlsx files.
 _FWD_ROW_RE = re.compile(r"^(?P<prefix>.+?)_f_(?P<n>\d+)$")
 _REV_ROW_RE = re.compile(r"^(?P<prefix>.+?)_r_(?P<n>\d+)$")
-
-# Regex for normalising sample map well positions (e.g. "A1" -> "A01").
-_WELL_POS_RE = re.compile(r"^([A-Ha-h])(\d{1,2})$")
 
 
 # ---------------------------------------------------------------------------
@@ -84,7 +80,15 @@ def _nb_to_sort_barcode_name(nb_basename: str) -> str:
 
 
 def parse_sample_map(path: Path) -> dict[str, str]:
-    """Parse a sample/mutant -> well-position xlsx into a well_id -> sample dict.
+    """Parse a legacy sample-map xlsx into a well_id -> sample dict.
+
+    MIGRATION READER. Nothing places wells from this file any more: the run
+    layout is computed from the variant list, and the sample map was the second
+    statement of the same plate that nobody kept in step with the first. It is
+    read only so ``validate_inputs`` can compare an old project's file against
+    the computed draft and name the wells where the two disagree, which is a
+    better answer than deleting the file or ignoring it. Expected to be removed
+    a release after the projects that carry one have been opened once.
 
     File format (Sheet1)
     --------------------
@@ -92,7 +96,9 @@ def parse_sample_map(path: Path) -> dict[str, str]:
     Column B: well position in plate notation (e.g. ``A1``, ``H12``)
 
     Well positions are normalised to zero-padded format (``A1`` -> ``A01``).
-    Rows with missing or malformed well positions are silently skipped.
+    Rows with missing or malformed well positions are silently skipped, which is
+    safe here for the reason it was not safe in the variant list: this file no
+    longer decides where anything goes.
 
     Returns
     -------
@@ -108,6 +114,8 @@ def parse_sample_map(path: Path) -> dict[str, str]:
 
     import openpyxl  # local import: keeps cold-start fast
 
+    from kuma_core.mame.plate_geometry import PLATE_COLS, PLATE_ROWS, norm_well
+
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     try:
         ws = wb.worksheets[0]
@@ -121,33 +129,18 @@ def parse_sample_map(path: Path) -> dict[str, str]:
             well_raw = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
             if not well_raw:
                 continue
-            m = _WELL_POS_RE.match(well_raw)
-            if m is None:
+            well_id = norm_well(well_raw)
+            if len(well_id) != 3 or not well_id[1:].isdigit():
                 continue
-            well_id = f"{m.group(1).upper()}{int(m.group(2)):02d}"
+            if not ("A" <= well_id[0] < chr(ord("A") + PLATE_ROWS)):
+                continue
+            if not 1 <= int(well_id[1:]) <= PLATE_COLS:
+                continue
             if well_id not in result:
                 result[well_id] = sample_raw
         return result
     finally:
         wb.close()
-
-
-def _make_well_filename(
-    well_id: str,
-    fwd_idx: int,
-    rev_idx: int,
-    well_to_sample: dict[str, str] | None,
-) -> str:
-    """Build the FASTA filename stem for a well assignment.
-
-    With sample map:    ``{well_id}_{sample}_F{fwd_idx}_R{rev_idx}``
-    Without sample map: ``{well_id}_F{fwd_idx}_R{rev_idx}``
-    """
-    if well_to_sample:
-        sample = well_to_sample.get(well_id)
-        if sample:
-            return f"{well_id}_{sample}_F{fwd_idx}_R{rev_idx}"
-    return f"{well_id}_F{fwd_idx}_R{rev_idx}"
 
 
 # ---------------------------------------------------------------------------
@@ -248,7 +241,9 @@ def parse_combinatorial_barcodes(path: Path) -> dict[str, tuple[str, str]]:
 
 __all__ = [
     "parse_combinatorial_barcodes",
+    # Migration reader only. The sample map no longer places wells; this stays
+    # one release so an existing project's file can be compared against the
+    # computed draft and its disagreements named, then goes.
     "parse_sample_map",
     "_nb_to_sort_barcode_name",
-    "_make_well_filename",
 ]

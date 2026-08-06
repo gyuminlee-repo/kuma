@@ -38,12 +38,17 @@ import { PlateView } from "@/components/mame/widgets/PlateView";
 import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
 import { PlateClusterAlert } from "@/components/mame/widgets/PlateClusterAlert";
 import { MappingIntegrityAlert } from "@/components/mame/widgets/MappingIntegrityAlert";
+import { OffLayoutRecordsNotice } from "@/components/mame/widgets/OffLayoutRecordsNotice";
+import { LegacySampleMapNotice } from "@/components/mame/widgets/LegacySampleMapNotice";
 import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNotice";
+import { ContaminationPanel } from "@/components/mame/widgets/ContaminationPanel";
 import { PlateOrderNotice } from "@/components/mame/widgets/PlateOrderNotice";
+import { ReplicateModeNotice } from "@/components/mame/widgets/ReplicateModeNotice";
 import { RestoredResultNotice } from "@/components/mame/widgets/RestoredResultNotice";
 import { AnalyzeDurationDialog } from "@/components/mame/dialogs/AnalyzeDurationDialog";
 import { InputPanel } from "@/components/mame/panels/InputPanel";
 import { ParameterPanel } from "@/components/mame/panels/ParameterPanel";
+import { WellSelectionPanel } from "@/components/mame/panels/WellSelectionPanel";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { WizardContainer } from "@/components/steps/WizardContainer";
@@ -263,6 +268,12 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               clean run answer the wrong question. */}
           <PlateOrderNotice />
 
+          {/* Which replicates the results on screen were scored on. Next to the
+              plate notice because both answer "what plate is this?": one about
+              which plate the workbook describes, one about how many copies of
+              it the run actually covered. */}
+          <ReplicateModeNotice />
+
           {/* Whose engine produced the verdicts currently on screen. Rendered on
               both 2.1 and 2.2 (one sub-step is on screen at a time): the inputs
               step is where a re-run starts, and the review step is where the
@@ -307,6 +318,11 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
           </div>
 
           <InputPanel />
+          {/* An old project's sample map, once it has been compared against the
+              layout that replaced it. A disagreement is a validation error and
+              shows with the others; this is the other outcome. */}
+          <LegacySampleMapNotice />
+          <WellSelectionPanel />
           <ParameterPanel />
         </div>
       );
@@ -319,19 +335,33 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
         mainContent = (
           <div className="flex h-full min-h-0 flex-col overflow-auto p-1">
             <EmptyAnalysisNotice />
+            {/* A run that produced no verdict is exactly where the stray-read
+                view earns its place: the reads went somewhere, and the matrix
+                is the only thing that can say whether it was a well nobody
+                pipetted. Mounted here as well as on the normal review because
+                this branch replaces the whole review, panels included. */}
+            <ContaminationPanel />
           </div>
         );
         break;
       }
       // Unified review: left = Summary + Verdict table, right = Plate (top) + per-plate verdict chart (bottom).
-      // Other RunHealth sections (file-size/throughput/pore-yield/barcode/cross-talk) are still reachable from
-      // analyze.inputs's RunHealthPanel and the QC inspector; not duplicated here per PI spec slide 6.
+      // The only RunHealthPanel on this screen is the one below, and it renders
+      // the verdict breakdown alone. The other sections (file-size / throughput
+      // / pore-yield / barcode / cross-talk) live in the QC inspector; 2.1 has
+      // no RunHealthPanel to reach them from, whatever this comment used to say.
       mainContent = (
         <div className="relative flex flex-col" ref={reviewContainerRef}>
           {/* Above the softer cluster/autosave notices: a suspect mapping is a
               judgment about whether this whole result can be trusted, not a
               detail about how it ran. */}
           <MappingIntegrityAlert />
+          <OffLayoutRecordsNotice />
+          {/* Beside the off-layout notice because the two answer the same
+              question from opposite ends: that one counts SCORED records from
+              undeclared wells, this one counts READS on barcode combinations
+              nobody pipetted, including the ones that never became a record. */}
+          <ContaminationPanel />
           <PlateClusterAlert />
           <RestoredResultNotice onRunRequest={onRunRequest} />
           {/* The right column decides how tall this row is, because both panels

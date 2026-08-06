@@ -347,7 +347,7 @@ describe("useAutosaveHydration: analyze-result restore", () => {
               expected_path: "",
               reference_path: "/proj/ref.fasta",
               output_path: "",
-              sample_map_path: "",
+              selected_wells: null,
             },
             parameters: {
               mode: "amplicon",
@@ -393,7 +393,7 @@ describe("useAutosaveHydration: analyze-result restore", () => {
               expected_path: "",
               reference_path: "",
               output_path: "",
-              sample_map_path: "",
+              selected_wells: null,
             },
             parameters: {
               mode: "amplicon",
@@ -442,7 +442,7 @@ describe("useAutosaveHydration: analyze-result restore", () => {
               expected_path: "",
               reference_path: "",
               output_path: "",
-              sample_map_path: "",
+              selected_wells: null,
             },
             parameters: {
               mode: "amplicon",
@@ -497,7 +497,7 @@ describe("useAutosaveHydration: analyze-result restore", () => {
               expected_path: "",
               reference_path: "",
               output_path: "",
-              sample_map_path: "",
+              selected_wells: null,
             },
             parameters: {
               mode: "amplicon",
@@ -579,7 +579,7 @@ describe("useAutosaveHydration: analyze-result restore", () => {
               expected_path: "/proj/manual_expected.xlsx",
               reference_path: "",
               output_path: "",
-              sample_map_path: "",
+              selected_wells: null,
             },
             parameters: {
               mode: "amplicon",
@@ -643,7 +643,7 @@ describe("useAutosaveHydration: analyze-result restore", () => {
               expected_path: "/proj/expected.xlsx",
               reference_path: "/proj/ref.fa",
               output_path: "/proj/out",
-              sample_map_path: "/proj/sample_map.xlsx",
+              selected_wells: null,
             },
             parameters: {
               mode: "amplicon",
@@ -735,7 +735,9 @@ describe("useAutosaveHydration: analyze-result restore", () => {
   // ── well_layout promotion guard (2026-08 mapping-integrity incident) ────
 
   function mameSnapshotWithLayoutProvenance(
-    layoutProvenance: { source: string; expected_path: string; sample_map_path: string | null } | undefined,
+    layoutProvenance:
+      | { source: string; expected_path: string; selected_wells: string[] | null }
+      | undefined,
   ) {
     return {
       status: "ok" as const,
@@ -750,7 +752,7 @@ describe("useAutosaveHydration: analyze-result restore", () => {
           expected_path: "/proj/expected.xlsx",
           reference_path: "/proj/ref.fa",
           output_path: "/proj/out",
-          sample_map_path: "",
+          selected_wells: null,
         },
         parameters: {
           mode: "amplicon",
@@ -799,7 +801,7 @@ describe("useAutosaveHydration: analyze-result restore", () => {
           ? mameSnapshotWithLayoutProvenance({
               source: "explicit_well_layout",
               expected_path: "/proj/expected.xlsx",
-              sample_map_path: null,
+              selected_wells: null,
             })
           : { status: "missing" },
       ),
@@ -821,7 +823,7 @@ describe("useAutosaveHydration: analyze-result restore", () => {
           ? mameSnapshotWithLayoutProvenance({
               source: "inferred_draft_layout",
               expected_path: "/proj/expected.xlsx",
-              sample_map_path: null,
+              selected_wells: null,
             })
           : { status: "missing" },
       ),
@@ -1675,7 +1677,7 @@ describe("useAutosaveHydration: 결과 파일 없이도 사이드카를 채운�
           expected_path: "",
           reference_path: "",
           output_path: "project://out",
-          sample_map_path: "",
+          selected_wells: null,
         },
         parameters: {
           mode: "amplicon",
@@ -1914,7 +1916,7 @@ describe("useAutosaveHydration — saved runs from another build", () => {
                 expected_path: "",
                 reference_path: "",
                 output_path: "project://out",
-                sample_map_path: "",
+                selected_wells: null,
               },
               parameters: {
                 mode: "amplicon",

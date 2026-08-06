@@ -33,7 +33,7 @@ export interface VerdictRecord {
   n_no_call_aa: number;
   expected_mutations: string[];
   /**
-   * Per-well variant identity assigned by the pipeline (sample_map ground truth
+   * Per-well variant identity assigned by the pipeline (run-layout ground truth
    * in combinatorial-sort runs, else the observation/heuristic grouping result).
    * Authoritative per-well source for the verdict table's mutant-id column.
    * Empty string for legacy payloads persisted before this field existed.
@@ -88,11 +88,11 @@ export interface AnalyzeSummary {
 }
 
 /**
- * Which of the three well->sample sources an `analyze` run actually scored
+ * Which of the two well->sample sources an `analyze` run actually scored
  * wells against, mirrored from `python-core/sidecar_mame/handlers/analyze.py`
- * (`layout_source` assignment). An `inferred_draft_layout` result was guessed
+ * (`layout_source` assignment). An `inferred_draft_layout` result was drafted
  * from whatever `expected` happened to be current at analyze time, not stated
- * by the operator or a saved sample map -- the failure shape of the 2026-08
+ * by the operator -- the failure shape of the 2026-08
  * mapping-integrity incident (a stale `expected` produced a plausible-looking
  * inferred layout with nothing in the result to say so). Frontend code that
  * persists or replays a well_layout MUST check `source` first: promoting an
@@ -100,24 +100,120 @@ export interface AnalyzeSummary {
  * provenance this field exists to keep (`useAutosaveHydration.ts`).
  */
 export interface LayoutProvenance {
-  source: "explicit_well_layout" | "sample_map_xlsx" | "inferred_draft_layout";
+  source: "explicit_well_layout" | "inferred_draft_layout";
   expected_path: string;
-  sample_map_path: string | null;
   /**
-   * The designed list filled every well of the plate, so no well was left for
-   * an appended WT control. Reported, never a refusal: the run scores such a
-   * plate correctly, but without a declared WT well the clean control is
-   * attributed as `UNKNOWN_*` and that check is lost.
-   *
-   * `null` when `source` is not `inferred_draft_layout`. The field is a fact
-   * about `build_draft_layout` running out of wells, and a run handed a
-   * `well_layout` or a sample map never asked it, so neither `true` nor
-   * `false` would be a statement about the layout that actually placed the
-   * wells.
+   * Wells this run declared as occupied, in plate order, or null when it
+   * declared none (which reads as the leading N+1). Stamped onto the result
+   * because a selection is what makes an empty well mean "nothing was pipetted
+   * here" rather than "the draft ran out", and a result that cannot say which
+   * wells were declared cannot be reproduced.
    *
    * Optional: absent on results persisted before this field existed.
    */
-  wt_omitted?: boolean | null;
+  selected_wells?: string[] | null;
+  /**
+   * Declared wells no sample took, in plate order. Empty for a run that
+   * declared none or declared exactly enough.
+   *
+   * Selecting more wells than the campaign fills is not a mistake (a column
+   * that turned out to hold fewer variants than planned says nothing false
+   * about the bench), so it runs. It must not run in silence: the placement
+   * rule uses the leading wells, and without this the rest read exactly like
+   * wells that were never declared at all.
+   *
+   * Optional for the same reason as `selected_wells`.
+   */
+  unused_wells?: string[];
+}
+
+/**
+ * Records that arrived from wells the run layout does not name.
+ *
+ * Reported, never a refusal. A declared-empty well producing reads is the same
+ * signal as barcode crosstalk, and the count alone does not say which it is.
+ */
+export interface OffLayoutRecords {
+  count: number;
+  wells: { well: string; records: number }[];
+}
+
+/**
+ * The six stray-read signals `kuma_core/mame/qc/contamination.py` reports, in
+ * the order the panel shows them: the two well-scoped counts first (they name
+ * wells an operator can go and look at), then the two run-wide rates, then the
+ * two that need a replicate axis.
+ */
+export const CONTAMINATION_SIGNAL_NAMES = [
+  "unused_index_reads",
+  "unexpected_well_reads",
+  "ambiguity_rate",
+  "chimera_rate",
+  "leak_well_sharing",
+  "plate_yield_skew",
+] as const;
+
+export type ContaminationSignalName = (typeof CONTAMINATION_SIGNAL_NAMES)[number];
+
+/** One well that carried reads the layout did not ask for. */
+export interface ContaminationLeakWell {
+  well: string;
+  reads: number;
+  /** Only on `leak_well_sharing`: how many plate copies saw reads here. */
+  replicates_with_reads?: number;
+  /** Only on `leak_well_sharing`: the per-copy counts, in plate order. */
+  per_replicate?: number[];
+  label?: "shared_across_replicates" | "single_replicate";
+}
+
+/**
+ * One signal: a measurement, or the reason there is none.
+ *
+ * `state` is the discriminator and it must be read first. An `unavailable`
+ * signal carries NO `value`, deliberately: a question that could not be asked
+ * has no answer, and a 0 in its place would read as a clean plate. The UI must
+ * therefore never fall back to `value ?? 0`.
+ */
+export interface ContaminationSignal {
+  state: "ok" | "unavailable";
+  /** Present iff `state === "ok"`. A read count, a 0..1 rate, or a well count. */
+  value?: number;
+  /** Present iff `state === "unavailable"`. A sentence, already phrased for display. */
+  reason?: string;
+  /** `unused_index_reads`, `unexpected_well_reads`, `leak_well_sharing`. */
+  wells?: ContaminationLeakWell[];
+  /** `leak_well_sharing`: where the stray reads sit relative to the copies. */
+  label?: "shared_across_replicates" | "single_replicate";
+  ambiguous_dropped?: number;
+  passed_coverage?: number;
+  chimera_splits?: number;
+  assigned_reads?: number;
+  shared_reads?: number;
+  single_replicate_reads?: number;
+  /** `plate_yield_skew`: the assigned-read total of each plate copy. */
+  per_replicate?: { plate: string; assigned_reads: number }[];
+}
+
+/**
+ * What the demux matrix says about reads that landed outside the campaign
+ * (`kuma_core/mame/qc/contamination.py`).
+ *
+ * Raw-run only: the handler omits the key entirely in consensus-dir mode, which
+ * never demuxed and so has no matrix to read. Absent therefore means "this run
+ * could not measure it", never "this run measured nothing".
+ *
+ * `occupancy_source` is `layout_provenance.source` verbatim. Every signal is
+ * measured against the occupied wells, so a reader who does not know whether
+ * those wells were declared by the operator or inferred from `expected` cannot
+ * weigh any of the numbers.
+ */
+export interface ContaminationReport {
+  occupancy_source: LayoutProvenance["source"];
+  occupied_wells: number;
+  /** Plate copies scored. 0 for a pooled run, which has no replicate axis. */
+  replicates: number;
+  plate_names: string[];
+  signals: Record<ContaminationSignalName, ContaminationSignal>;
 }
 
 /**
@@ -196,6 +292,18 @@ export interface AnalyzeResult extends AnalyzeYield {
    * persisted before this field existed.
    */
   mapping_integrity?: MappingIntegrity;
+  /**
+   * Reads from wells the layout does not name. Same optionality reasoning as
+   * `layout_provenance`.
+   */
+  off_layout_records?: OffLayoutRecords;
+  /**
+   * Stray-read signals read off the demux matrix. Optional for TWO reasons,
+   * unlike the fields above: a result persisted before the key existed, AND a
+   * consensus-dir run, which never demuxed and so has no matrix. Both read as
+   * "not measured"; neither may be shown as zero.
+   */
+  contamination?: ContaminationReport;
 }
 
 /**
@@ -308,7 +416,7 @@ export interface PlateOrderReport {
  * two was pipetted, so the run is refused until the workbook is replaced.
  *
  * "info" remains in the union for responses from a sidecar built before
- * 2026-08-05, which downgraded the finding when a sample map or a well layout
+ * 2026-08-05, which downgraded the finding when a well layout
  * supplied the coordinates. The frontend does not act on the value it receives
  * (see `selectPlateOrderSeverity`), so such a response still blocks.
  */
@@ -355,6 +463,23 @@ export interface ValidationResult {
    * previously shown line has to be cleared rather than left standing.
    */
   barcode_axes?: BarcodeAxisCounts;
+  /**
+   * Present only when this project carries a `sample_map_template.xlsx` from
+   * before the sample map was removed. `"differs"` means the file and the
+   * layout this run would use name different plates, which is also an entry in
+   * `errors`; `"matches"` is a one-time notice that the two agree and the file
+   * can be deleted.
+   */
+  legacy_sample_map?: LegacySampleMapFinding;
+}
+
+/** A pre-removal sample map, compared against the layout that replaced it. */
+export interface LegacySampleMapFinding {
+  path: string;
+  status: "matches" | "differs";
+  /** Up to ten wells where the two disagree. */
+  differences: { well: string; file: string; draft: string }[];
+  wells_compared: number;
 }
 
 export interface ExportResult {

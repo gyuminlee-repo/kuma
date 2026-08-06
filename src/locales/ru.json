@@ -165,13 +165,20 @@
       "redetecting": "Определение..."
     },
     "nativeBarcodeDialog": {
-      "title": "Обнаружено несколько native barcode",
-      "description": "Этот запуск содержит более одного native barcode MinKNOW. Выберите barcode для demultiplex; каждый выбранный barcode обрабатывается в отдельную папку вывода. Один запуск анализа оценивает одну plate: выбранные здесь barcode оцениваются как replicate этой же plate, а не как отдельные plate.",
+      "title": "Выбор оси replicate для этого запуска",
+      "description": "В этой папке run больше одного native barcode MinKNOW. Один запуск оценивает одну plate, а её native barcode являются replicate этой plate: каждый выбранный barcode демультиплексируется отдельно, затем конвейер выбирает лучший replicate для каждого варианта. Отмена прекращает анализ.",
       "shareHeader": "Доля",
       "selectAriaLabel": "Выбрать native barcode {{name}}",
-      "selectedCount": "Выбрано barcode: {{count}}",
-      "confirm": "Запустить выбранные",
-      "confirming": "Выполнение…"
+      "confirm": "Запустить",
+      "confirming": "Выполнение…",
+      "modeLegend": "Ось replicate",
+      "modePerBarcode": "Каждый выбранный barcode это replicate",
+      "modePerBarcodeHelp": "По одному demux на barcode. После этого каждый well сравним между выбранными plate.",
+      "modePooled": "Объединить все barcode в одну plate",
+      "modePooledHelp": "Все read в одном пуле. Одна plate, сравнивать нечего.",
+      "replicateCount": "Выбрано replicate: {{count}}",
+      "pooledCount": "Объединено в одну plate barcode: {{count}}",
+      "cancel": "Отменить запуск"
     },
     "parameters": {
       "title": "Параметры",
@@ -330,7 +337,6 @@
       "generatedFileLabels": {
         "barcodes": "Таблица barcode (xlsx)",
         "amplicon": "Референс amplicon (FASTA)",
-        "sampleMapTemplate": "Шаблон sample map (xlsx)",
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "Не удалось открыть папку.",
@@ -338,7 +344,8 @@
       "variantColumn": "Stolbec variantov",
       "variantColumnPlaceholder": "Vyberite stolbec",
       "variantColumnHelper": "Строки заполняют 96-луночный планшет в порядке этого столбца, сверху вниз по каждому столбцу планшета: A1, B1, C1 до H1, затем A2. Строка WT служит контролем, отдельная строка не добавляется.",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself."
+      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "outputLocationStateLabel": "Необязательно"
     },
     "activity": {
       "sectionIngest": "Загрузить activity",
@@ -570,7 +577,21 @@
       "finalFallbackNotice": "No replicate has been selected yet, so FINAL is showing every well (ALL).",
       "resizeColumnAriaLabel": "Resize column {{column}}",
       "resizeColumnHint": "Drag to resize. Double-click or press Home to reset.",
-      "resetColumnWidths": "Reset column widths"
+      "resetColumnWidths": "Reset column widths",
+      "replicateFlags": {
+        "header": "Согласованность",
+        "help": "Совпадают ли копии этого well на разных plate? Считается по well по всем plate запуска.",
+        "agree": "OK",
+        "disagreementShort": "расхождение",
+        "disagreementHelp": "Копии этого well на разных plate получили разные вердикты.",
+        "depthShort": "depth",
+        "depthHelp": "В одной копии меньше пятой части read самой глубокой копии, поэтому расхождение может объясняться depth, а не биологией.",
+        "missingShort": "нет копии",
+        "missingHelp": "На {{plates}} записи для этого well нет.",
+        "missingUnknown": "Этот запуск не указывает, какие plate он оценивал, поэтому пропущенную копию определить нельзя.",
+        "filterLabel": "Отмечено ({{count}})",
+        "filterHelp": "Показывать только well с расхождением replicate, перекосом depth или отсутствующей копией."
+      }
     },
     "summaryRow": {
       "ariaLabel": "Сводка анализа",
@@ -799,13 +820,6 @@
         "helpText": "Режим raw MinKNOW run использует этот файл для назначения reads в per-well FASTA выходы перед анализом.",
         "axisCounts": "Файл barcode: {{forward}} forward x {{reverse}} reverse seeds, {{wells}} wells на одной plate."
       },
-      "sampleMap": {
-        "label": "Sample Map (опционально)",
-        "placeholder": "путь к .xlsx (mutants well layout)",
-        "stateLabel": "Опционально",
-        "helperText": "Маппинг well-в-имя sample, добавляет имя mutant в имена sorted FASTA (например A01_V5F_F1_R1.fasta)",
-        "helpText": "Кол. A: имя sample, кол. B: позиция well (например A1). Совместимо с layout KURO mutants.xlsx."
-      },
       "exportDest": {
         "label": "Папка назначения экспорта",
         "placeholder": "Выберите папку; {{filename}} будет создан",
@@ -973,6 +987,40 @@
         "alertTitle": "Возможна ошибка сопоставления лунка-вариант",
         "alertDesc": "Из {{wells}} лунок с наблюдаемым вариантом {{selfPercent}}% совпадают с собственной ожидаемой мутацией, а {{crossPercent}}% совпадают с ожидаемой мутацией другой лунки. Сопоставление лунка-вариант, скорее всего, нарушено; не доверяйте этому результату.",
         "alertAriaLabel": "Предупреждение о целостности сопоставления лунка-вариант"
+      },
+      "offLayoutRecords": {
+        "title": "{{records}} записей из {{wells}} лунок вне раскладки",
+        "desc": "Эти лунки не входили в раскладку запуска, от них ничего не ожидалось. Чтения означают либо лунку, которую всё же заполнили, либо перекрёстные помехи штрихкода от соседа. Лунки:  {{list}}",
+        "more": "и ещё {{count}}."
+      },
+      "contamination": {
+        "title": "Заблудившиеся риды",
+        "subtitle": "Измерено относительно {{wells}} занятых лунок ({{source}}).",
+        "notMeasured": "не измерено",
+        "signalAbsent": "Эта сборка не содержит такой сигнал, поэтому run ничего о нём не сообщает.",
+        "wellList": "Лунки: {{list}}",
+        "more": "и ещё {{count}}.",
+        "source": {
+          "inferred_draft_layout": "раскладка, выведенная из списка expected",
+          "explicit_well_layout": "раскладка, заданная для этого run"
+        },
+        "signal": {
+          "unused_index_reads": "Риды с индексом barcode, который эта кампания не использовала",
+          "unexpected_well_reads": "Риды в незанятой лунке из используемых индексов",
+          "ambiguity_rate": "Риды, отброшенные как неоднозначные, среди дошедших до barcode matching",
+          "chimera_rate": "Дополнительные назначения лунок от разделённых ридов, на один назначенный рид",
+          "leak_well_sharing": "Лунки на незанятой комбинации используемых индексов",
+          "plate_yield_skew": "Наименьшая копия планшета к наибольшей, по назначенным ридам"
+        },
+        "sharing": {
+          "shared_across_replicates": "Заблудившиеся риды повторяются во всех копиях планшета.",
+          "single_replicate": "Заблудившиеся риды находятся в одной копии планшета."
+        }
+      },
+      "legacySampleMap": {
+        "title": "{{file}} совпадает с вычисленной раскладкой",
+        "desc": "Все {{wells}} лунок совпадают, менять нечего. Sample map больше не читается как входные данные, и этот файл можно удалить в любой момент; до этого он остаётся на месте.",
+        "dismiss": "Закрыть уведомление"
       }
     },
     "inspector": {
@@ -1160,7 +1208,30 @@
       "copySourcePath": "Copy consensus FASTA path",
       "copyAaSequence": "Copy amino acid sequence",
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
-      "noVerdictRecord": "No verdict record for this well."
+      "noVerdictRecord": "No verdict record for this well.",
+      "replicateReads": "{{reads}} read",
+      "replicateAligned": "выровнено {{aligned}}"
+    },
+    "wellSelection": {
+      "title": "Используемые лунки",
+      "description": "Рассчитанная раскладка, нарисованная на планшете. Варианты заполняют выбранные лунки в порядке планшета (A1, B1, ... H1, A2). Без вмешательства используются первые лунки.",
+      "counts": "Выбрано {{selected}} из {{capacity}} лунок для {{occupants}} образцов (варианты плюс контроль WT).",
+      "tooFewWells": "Выбрано {{selected}} лунок, а образцов {{occupants}}. Выберите больше лунок или сократите список вариантов.",
+      "selectAll": "Выбрать все ({{count}})",
+      "selectDefault": "Только образцы ({{count}})",
+      "clearAll": "Снять выделение",
+      "gridLabel": "96-луночный планшет, выберите используемые лунки",
+      "toggleAllLabel": "Переключить все лунки",
+      "toggleRowLabel": "Переключить ряд {{row}}",
+      "toggleColumnLabel": "Переключить колонку {{column}}",
+      "wellWithSample": "Лунка {{well}}, {{sample}}",
+      "wellEmpty": "Лунка {{well}}, пустая",
+      "keyboardHint": "Стрелки перемещают, Пробел переключает, Shift со стрелкой расширяет выделение. Перетаскивание закрашивает.",
+      "loadFailed": "Не удалось прочитать список вариантов для отрисовки планшета: {{error}}"
+    },
+    "replicateModeNotice": {
+      "pooled": "Этот запуск объединил native barcode в количестве {{detected}} в одну plate, поэтому сравнивать replicate не с чем.",
+      "subset": "В этой папке run {{detected}} native barcode, из них как replicate оценено {{replicates}}. Остальные в эти результаты не вошли."
     }
   },
   "home": {
@@ -2289,13 +2360,13 @@
     "description": "Основные изменения последнего обновления.",
     "gotItBtn": "Понятно",
     "highlights": [
-      "Правило, превращающее пару штрихкодов в лунку планшета, теперь живёт в одном месте, а не в четырёх, так что четыре копии не разойдутся.",
-      "Схема, которая заполняет планшет ровно и не оставляет места для лунки wild-type, больше не отклоняется по этой причине.",
-      "При загрузке файла штрихкодов показывается, сколько в нём forward и reverse и сколько лунок они описывают.",
-      "Диалог native barcode говорит, что именно выбирается: реплики одного планшета, а не разные планшеты.",
-      "Запуск, переполняющий планшет, отклоняется до начала demux, а не после записи лунок."
+      "Sample map удалён. MAME размещает планшет по самому списку вариантов, а оставшийся файл сверяется, а не исполняется.",
+      "Выберите на сетке из 96 лунок те, что использовал запуск: щелчком, перетаскиванием или щелчком по заголовку строки либо столбца.",
+      "Список вариантов с пустой строкой посередине или со второй строкой wild-type останавливает запуск, вместо того чтобы сдвинуть все последующие лунки.",
+      "Выбор native barcode теперь говорит, что именно выбирается: реплики одного планшета. Лунки с расходящимися репликами помечаются.",
+      "Запуск сообщает о ридах, попавших вне объявленных лунок, разделяя их по тому, использовались ли эти индексы штрихкодов вообще."
     ],
-    "highlightsStamp": "0.15.23+0c028fbf"
+    "highlightsStamp": "0.16.0+b2281961"
   },
   "primerDisplay": {
     "copySeqTitle": "Копировать sequence",
@@ -2421,7 +2492,6 @@
     "fieldRunFolder": "папка run",
     "fieldReference": "reference",
     "fieldExpected": "expected",
-    "fieldSampleMap": "sample map",
     "fieldCustomBarcodes": "custom barcodes",
     "fieldSequencingSummary": "sequencing summary",
     "pathsMoved": "Эти входные файлы перемещены, выберите их заново: {{fields}}"

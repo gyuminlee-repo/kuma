@@ -60,11 +60,8 @@ afterEach(removeSelectShims);
 const RESULT: MamePackageResult = {
   barcodes_xlsx: "/proj/design/custom_barcodes.xlsx",
   amplicon_fa: "/proj/design/amplicon.fa",
-  sample_map_template: "/proj/design/sample_map_template.xlsx",
   context_json: "/proj/design/mame_context.json",
   amplicon_length: 534,
-  sample_map_prefilled_rows: 1,
-  sample_map_preserved: false,
   warnings: [],
 };
 
@@ -154,19 +151,12 @@ describe("BarcodeSetupPanel project artifacts", () => {
         {
           app: "mame",
           step: "setup",
-          type: "mame_sample_map_xlsx",
-          absolutePath: RESULT.sample_map_template,
-        },
-        {
-          app: "mame",
-          step: "setup",
           type: "mame_context_json",
           absolutePath: RESULT.context_json,
         },
       ]);
     });
     expect(useMameAppStore.getState().referencePath).toBe(RESULT.amplicon_fa);
-    expect(useMameAppStore.getState().sampleMapPath).toBe(RESULT.sample_map_template);
     expect(useMameAppStore.getState().rawRunParams.customBarcodesPath).toBe(
       RESULT.barcodes_xlsx,
     );

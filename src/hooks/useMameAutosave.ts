@@ -20,7 +20,7 @@ function selectMameInputs(s: ReturnType<typeof useMameAppStore.getState>) {
     s.expectedPath,
     s.referencePath,
     s.outputPath,
-    s.sampleMapPath,
+    s.selectedWells,
     s.mode,
     s.ingestMode,
     s.inputMode,
@@ -49,6 +49,11 @@ function selectMameInputs(s: ReturnType<typeof useMameAppStore.getState>) {
     s.ampliconLengthEstimate,
     s.wellLayout,
     s.layoutProvenance,
+    // The replicate axis a run was scored on. Watched here (not only written
+    // with the verdicts) because a pooled or subset run is a fact about the
+    // result that has to survive a restart, and clearing it is a change too.
+    s.selectedNativeBarcodes,
+    s.detectedBarcodeCount,
   ] as const;
 }
 

@@ -11,6 +11,14 @@
  * The fields copied here are the contract with `AnalyzeYield` and, through it,
  * with the response keys the handler emits. A counter added on the Python side
  * but not copied here is dropped before it reaches EmptyAnalysisNotice.
+ *
+ * `contamination` does NOT belong here even though it is raw-run-only for the
+ * same reason. This narrowing exists to feed one widget a set of scalar counts,
+ * and the stray-read report is neither scalar nor about yield: it is a set of
+ * per-signal records with their own availability, carried on its own store
+ * field (`contamination`) and rendered by its own panel. Folding it in would
+ * make `AnalyzeYield` two things at once, and the zero-result notice would have
+ * to decide what to do with a nested object it has nothing to say about.
  */
 import type { AnalyzeYield } from "@/types/mame/models";
 

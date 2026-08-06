@@ -5,6 +5,7 @@ malformed workbook before a run starts): everything here inspects a finished
 run's own verdicts for a signature no single-well check can see.
 """
 
+from kuma_core.mame.qc.contamination import Signal, analyze_contamination
 from kuma_core.mame.qc.mapping_integrity import (
     MappingIntegrityReport,
     WellObservation,
@@ -14,7 +15,9 @@ from kuma_core.mame.qc.mapping_integrity import (
 
 __all__ = [
     "MappingIntegrityReport",
+    "Signal",
     "WellObservation",
+    "analyze_contamination",
     "check_mapping_integrity",
     "observations_from_verdicts",
 ]

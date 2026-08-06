@@ -155,6 +155,34 @@ function ReplicateComparison({
                   </span>
                 )}
               </div>
+              {/* How much sequence each copy is built on. Without it a
+                  disagreement between two plates reads as a biological
+                  difference, when it is as often one copy being ten times
+                  shallower than the other. Both counts come from the same
+                  serialized verdict as everything else here, and a null drops
+                  its half rather than printing a zero that was never measured. */}
+              {(record.read_count !== null || record.n_aligned_reads !== null) && (
+                <p
+                  data-testid="replicate-depth"
+                  className="mt-1 font-mono text-caption tabular-nums text-muted-foreground"
+                >
+                  {record.read_count !== null && (
+                    <span title={t("mame.verdictDetail.labelReadCount")}>
+                      {t("mame.verdictDetail.replicateReads", {
+                        reads: record.read_count.toLocaleString(),
+                      })}
+                    </span>
+                  )}
+                  {record.n_aligned_reads !== null && (
+                    <span title={t("mame.verdictDetail.labelAlignedReads")}>
+                      {record.read_count !== null ? " · " : ""}
+                      {t("mame.verdictDetail.replicateAligned", {
+                        aligned: record.n_aligned_reads.toLocaleString(),
+                      })}
+                    </span>
+                  )}
+                </p>
+              )}
               {record.observed_aa_changes.length > 0 && (
                 <p className="mt-1 break-all font-mono text-caption text-muted-foreground">
                   {record.observed_aa_changes.join(", ")}

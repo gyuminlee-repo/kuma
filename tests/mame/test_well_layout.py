@@ -17,7 +17,11 @@ import openpyxl
 import pytest
 
 from kuma_core.mame.ingest import IngestMode
-from kuma_core.mame.layout import build_draft_layout
+from kuma_core.mame.layout import (
+    apply_well_selection,
+    build_draft_layout,
+    normalise_selected_wells,
+)
 from kuma_core.mame.models import ExpectedMutation, VerdictClass
 from kuma_core.mame.pipeline import _norm_well, run_analyze
 
@@ -56,34 +60,121 @@ def test_build_draft_layout_column_major_order_and_wt_position() -> None:
     assert len(draft.layout) == 4
     assert draft.is_complete
     assert draft.dropped_mutant_ids == []
-    assert draft.wt_omitted is False
 
 
-def test_build_draft_layout_wt_omitted_at_full_plate() -> None:
-    """N == 96: every well is a mutant, WT well (97) is omitted and reported."""
+def test_build_draft_layout_places_wt_at_the_ordinal_the_source_stated() -> None:
+    """An explicit WT row takes its own well and moves the rest one down.
+
+    The regression this pins: the reader used to discard the WT row, so the
+    mutants after it each moved one well UP and the result read as a correct
+    plate. M2 belongs in C1 here because WT sits in B1, not in B1 itself.
+    """
+    expected = [_em("M1", 1, "A", "B"), _em("M2", 2, "C", "D"), _em("M3", 3, "E", "F")]
+    draft = build_draft_layout(expected, wt_ordinal=2)
+    assert list(draft.layout.items()) == [
+        ("A1", "M1"),
+        ("B1", "WT"),
+        ("C1", "M2"),
+        ("D1", "M3"),
+    ]
+    assert draft.is_complete
+
+
+def test_build_draft_layout_wt_first_is_the_same_rule() -> None:
+    """WT at ordinal 1 is not a special case, just the first occupant."""
+    expected = [_em("M1", 1, "A", "B"), _em("M2", 2, "C", "D")]
+    draft = build_draft_layout(expected, wt_ordinal=1)
+    assert list(draft.layout.items()) == [("A1", "WT"), ("B1", "M1"), ("C1", "M2")]
+
+
+def test_build_draft_layout_refuses_96_mutants_because_wt_needs_a_well() -> None:
+    """N == 96 does not fit: the WT control is a 97th occupant.
+
+    Judging capacity on N alone let this through, and the placement loop then
+    asked ``seq_to_well`` for well 97 and raised mid-run. Nothing partial comes
+    back, because a 96-row layout missing its last mutant reads as a full plate.
+    """
     expected = [_em(f"M{i}", i, "A", "B") for i in range(1, 97)]
     draft = build_draft_layout(expected)
-    assert len(draft.layout) == 96
-    assert "WT" not in draft.layout.values()
-    # Losing the WT well is consequential, so it must not be silent: without a
-    # declared WT the control is attributed UNKNOWN_* and the clean check is lost.
-    assert draft.wt_omitted is True
-    assert draft.dropped_mutant_ids == []
+    assert draft.layout == {}
+    assert draft.dropped_mutant_ids == ["M96"]
     assert not draft.is_complete
 
 
-def test_build_draft_layout_clamps_mutants_above_96() -> None:
-    """N > 96: only the first 96 mutants are placed, and the rest are named."""
-    expected = [_em(f"M{i}", i, "A", "B") for i in range(1, 110)]
+def test_build_draft_layout_95_mutants_plus_wt_is_exactly_full() -> None:
+    """The largest set that fits, and it fills the plate to H12."""
+    expected = [_em(f"M{i}", i, "A", "B") for i in range(1, 96)]
     draft = build_draft_layout(expected)
     assert len(draft.layout) == 96
-    assert "WT" not in draft.layout.values()
-    assert draft.layout["A1"] == "M1"
-    # A truncated draft reads as a correct full plate, so the dropped mutants are
-    # reported by id rather than only by a count that a caller may ignore.
-    assert draft.dropped_mutant_ids == [f"M{i}" for i in range(97, 110)]
-    assert draft.wt_omitted is True
+    assert draft.layout["H12"] == "WT"
+    assert draft.is_complete
+
+
+def test_build_draft_layout_names_every_mutant_that_does_not_fit() -> None:
+    """N > 95: nothing is placed, and the overflow is named rather than counted."""
+    expected = [_em(f"M{i}", i, "A", "B") for i in range(1, 110)]
+    draft = build_draft_layout(expected)
+    assert draft.layout == {}
+    # A truncated draft reads as a correct full plate, so the mutants that do not
+    # fit are reported by id rather than only by a count a caller may ignore.
+    assert draft.dropped_mutant_ids == [f"M{i}" for i in range(96, 110)]
     assert not draft.is_complete
+
+
+# ---------------------------------------------------------------------------
+# Declaring which wells the campaign occupies
+# ---------------------------------------------------------------------------
+
+def test_selecting_the_leading_wells_reproduces_the_draft_exactly() -> None:
+    """The default has to be a no-op, or every existing run changes.
+
+    ``selected_wells`` defaults to absent, and absent means the leading N+1
+    wells. Selecting those explicitly must therefore produce the same mapping,
+    byte for byte, that the draft already had.
+    """
+    expected = [_em("M1", 1, "A", "B"), _em("M2", 2, "C", "D")]
+    draft = build_draft_layout(expected)
+
+    reseated = apply_well_selection(draft, ["A1", "B1", "C1"])
+
+    assert reseated.layout == draft.layout
+
+
+def test_occupants_follow_the_selection_in_plate_order() -> None:
+    """Occupant i takes the ith selected well, and WT rides along as an occupant."""
+    expected = [_em("M1", 1, "A", "B"), _em("M2", 2, "C", "D")]
+    draft = build_draft_layout(expected)
+
+    reseated = apply_well_selection(draft, ["A1", "C1", "E1"])
+
+    assert reseated.layout == {"A1": "M1", "C1": "M2", "E1": "WT"}
+
+
+def test_the_selection_order_the_caller_sent_does_not_matter() -> None:
+    """Plate order is imposed here, so a click order cannot re-place the plate."""
+    expected = [_em("M1", 1, "A", "B"), _em("M2", 2, "C", "D")]
+    draft = build_draft_layout(expected)
+
+    scrambled = apply_well_selection(draft, ["E1", "A1", "C1"])
+    ordered = apply_well_selection(draft, ["A1", "C1", "E1"])
+
+    assert scrambled.layout == ordered.layout
+
+
+def test_a_selection_smaller_than_the_campaign_is_refused() -> None:
+    """A prefix placement would hand back something that reads as a whole plate."""
+    expected = [_em("M1", 1, "A", "B"), _em("M2", 2, "C", "D")]
+    draft = build_draft_layout(expected)
+
+    with pytest.raises(ValueError, match="3 plate occupants"):
+        apply_well_selection(draft, ["A1", "B1"])
+
+
+def test_normalise_selected_wells_sorts_dedupes_and_bounds() -> None:
+    assert normalise_selected_wells(["B1", "A1", "A1", " a2 "]) == ["A1", "B1", "A2"]
+    # Off-plate labels are dropped rather than raising: a caller that cares
+    # compares the length it sent with the length it got back.
+    assert normalise_selected_wells(["A1", "I1", "A13", "nonsense"]) == ["A1"]
 
 
 # ---------------------------------------------------------------------------
@@ -270,18 +361,24 @@ def test_build_well_layout_reads_a_plain_variant_list(tmp_path: Path) -> None:
 
 
 def test_build_well_layout_does_not_append_a_second_wt(tmp_path: Path) -> None:
-    """A source carrying its own WT row gets no appended control well."""
+    """A source carrying its own WT row gets exactly one control well: that one.
+
+    Not zero, which is what dropping the row produced. The row states where the
+    control sits, so it takes the well its position names and the mutants after
+    it stay where they were.
+    """
     from sidecar_mame.handlers.build_well_layout import handle_build_well_layout
 
-    path = _make_variant_list_xlsx(tmp_path / "with_wt.xlsx", ["G2A", "F3W", "WT"])
+    path = _make_variant_list_xlsx(tmp_path / "with_wt.xlsx", ["G2A", "WT", "F3W"])
 
     result = handle_build_well_layout({"expected_mutations_xlsx": str(path)})
 
     assert result["draft"] == [
         {"well": "A1", "sample": "G2A"},
-        {"well": "B1", "sample": "F3W"},
+        {"well": "B1", "sample": "WT"},
+        {"well": "C1", "sample": "F3W"},
     ]
-    assert [row["sample"] for row in result["draft"]].count("WT") == 0
+    assert [row["sample"] for row in result["draft"]].count("WT") == 1
 
 
 def test_build_well_layout_honours_an_explicit_sheet_and_column(tmp_path: Path) -> None:
@@ -323,7 +420,6 @@ def test_build_well_layout_kuro_export_is_unchanged(tmp_path: Path) -> None:
         ],
         "count": 3,
         "dropped_mutant_ids": [],
-        "wt_omitted": False,
     }
 
 
@@ -426,10 +522,9 @@ def test_inferred_layout_follows_the_workbook_row_order_and_nothing_else(
 ) -> None:
     """Reorder the workbook's rows and the wells move with them.
 
-    ``test_handle_analyze_auto_scopes_from_expected_when_sample_map_omitted``
-    (tests/sidecar_mame/test_analyze_raw_run.py) already pins that a run given
-    neither ``well_layout`` nor ``sample_map_xlsx`` places wells from the chosen
-    workbook. It reads one workbook, whose rows happen to be in residue-position
+    ``test_handle_analyze_auto_scopes_from_expected_when_layout_omitted``
+    (tests/sidecar_mame/test_analyze_raw_run.py) already pins that a run given no
+    ``well_layout`` places wells from the chosen workbook. It reads one workbook, whose rows happen to be in residue-position
     order, so it cannot say WHICH property of that file the placement followed.
 
     This varies only the row order, holding the reads and the plate fixed. The
@@ -466,7 +561,7 @@ def test_inferred_layout_follows_the_workbook_row_order_and_nothing_else(
     # The run has to name this branch, or a layout it derived itself could pass
     # downstream as one the operator supplied.
     assert result["layout_provenance"]["source"] == "inferred_draft_layout"
-    assert result["layout_provenance"]["sample_map_path"] is None
+    assert result["layout_provenance"]["selected_wells"] is None
 
     by_custom = {v["custom_barcode"]: v for v in result["verdicts"]}
     assert by_custom["1_1"]["expected_mutations"] == ["F3W"], by_custom["1_1"]

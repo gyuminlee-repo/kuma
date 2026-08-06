@@ -2,7 +2,7 @@
  * analysisSlice.loadSampleData.test.ts
  *
  * MAME loadSampleData() 동작 검증:
- * - resolveResource 12개 경로 호출 (Phase 1 setup prefill seeds + EVOLVEpro form + fixture 포함)
+ * - resolveResource 11개 경로 호출 (Phase 1 setup prefill seeds + EVOLVEpro form + fixture 포함)
  * - activity.set_plate_meta + activity.upload RPC 호출 파라미터
  * - 입력 경로 setter + hardcoded sample 결과 populate
  * - activity RPC 실패 시 fallback (결과는 populate, 메시지 변경)
@@ -48,7 +48,6 @@ function makeStore(initial: Partial<AppState> = {}) {
   const state: Partial<AppState> = {
     referencePath: "",
     expectedPath: "",
-    sampleMapPath: "",
     rawRunParams: {
       customBarcodesPath: "",
       sequencingSummaryPath: "",
@@ -66,9 +65,6 @@ function makeStore(initial: Partial<AppState> = {}) {
     }),
     setExpectedPath: vi.fn((p: string) => {
       state.expectedPath = p;
-    }),
-    setSampleMapPath: vi.fn((p: string) => {
-      state.sampleMapPath = p;
     }),
     setParams: vi.fn((params: { rawRunParams?: Partial<AppState["rawRunParams"]> }) => {
       if (params.rawRunParams) {
@@ -110,7 +106,7 @@ describe("mame analysisSlice.loadSampleData", () => {
     useRoundStore.setState({ rounds: [], active_round_id: null });
   });
 
-  it("resolves 12 bundled resources, creates round + WT-well plate meta, calls activity RPCs, populates input + results", async () => {
+  it("resolves 11 bundled resources, creates round + WT-well plate meta, calls activity RPCs, populates input + results", async () => {
     // activity.upload returns records + plate_meta; hydrated into round.activity
     mockSendRequest.mockImplementation((method: string) => {
       if (method === "activity.upload") {
@@ -135,7 +131,6 @@ describe("mame analysisSlice.loadSampleData", () => {
       "samples/mame/reference.fasta",
       "samples/mame/03_mame_expected_mutations.xlsx",
       "samples/mame/04_mame_custom_barcodes.xlsx",
-      "samples/mame/05_mame_sample_map.xlsx",
       "samples/mame/06_mame_plate_layout.xlsx",
       "samples/mame/07_mame_activity_long.csv",
       "samples/mame/02_mame_barcode_seeds.xlsx",
@@ -145,7 +140,10 @@ describe("mame analysisSlice.loadSampleData", () => {
       "samples/mame/11_mame_gc_fid_round1_raw.xlsx",
       "samples/mame/sample_analysis_result.json",
     ];
-    expect(resolveResource).toHaveBeenCalledTimes(12);
+    // One per entry of `expectedPaths` and nothing else: the sample map
+    // (`05_mame_sample_map.xlsx`) was dropped along with the field it filled,
+    // so this run resolves 11 where it used to resolve 12.
+    expect(resolveResource).toHaveBeenCalledTimes(expectedPaths.length);
     for (const p of expectedPaths) {
       expect(resolveResource).toHaveBeenCalledWith(p);
     }
@@ -196,9 +194,6 @@ describe("mame analysisSlice.loadSampleData", () => {
     expect(store.expectedPath).toBe(
       "/resolved/samples/mame/03_mame_expected_mutations.xlsx",
     );
-    expect(store.sampleMapPath).toBe(
-      "/resolved/samples/mame/05_mame_sample_map.xlsx",
-    );
     expect(store.rawRunParams.customBarcodesPath).toBe(
       "/resolved/samples/mame/04_mame_custom_barcodes.xlsx",
     );
@@ -226,6 +221,24 @@ describe("mame analysisSlice.loadSampleData", () => {
     // 6. 성공 메시지
     expect(store.analyzeMessage).toMatch(/loaded/i);
     expect(store.analyzeMessage).not.toMatch(/activity RPC unavailable/);
+  });
+
+  it("drops the replicate axis of the previous run", async () => {
+    // The fixture verdicts carry `barcode1`, `barcode2`, ... as their
+    // native_barcode, so a `sort_barcodeNN` selection left over from a real run
+    // marks every sample well missing_replicate and has ReplicateModeNotice
+    // compare that run's barcode count against this fixture. null is "no axis
+    // stated", which is what a consensus-dir fixture can say; `[]` would claim
+    // the fixture was pooled.
+    const store = makeStore({
+      selectedNativeBarcodes: ["sort_barcode06", "sort_barcode20"],
+      detectedBarcodeCount: 3,
+    });
+
+    await store.loadSampleData();
+
+    expect(store.selectedNativeBarcodes).toBeNull();
+    expect(store.detectedBarcodeCount).toBeNull();
   });
 
   it("falls back to mock results when activity RPC throws", async () => {

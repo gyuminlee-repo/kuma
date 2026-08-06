@@ -1,23 +1,24 @@
 """The analyze plate-capacity refusal, and what it deliberately does NOT refuse.
 
-Three fixtures that separate the two conditions ``DraftLayout`` reports:
+Fixtures that put the boundary where the plate actually is. A plate holds 96
+wells and the WT control is a sequencing target that takes one of them, so a
+designed list of N occupies N + 1 wells:
 
-* 95 designed + no WT row  -> fits, WT well appended, nothing to say
-* 96 designed + no WT row  -> fits, WT well omitted, REPORTED and allowed
-* 97 designed              -> does not fit, refused before the demux
+* 95 designed + no WT row  -> 96 occupants, exactly full, runs
+* 96 designed + no WT row  -> 97 occupants, refused before the demux
+* 97 designed              -> refused, and every mutant past the plate is named
 
-The middle case is the whole point. ``DraftLayout.is_complete`` is false for it,
-which makes it an inviting refusal trigger, but a plate of 96 designed mutants
-with no explicit WT row is a layout MAME scores correctly today. Refusing on it
-would break a working configuration, so it is reported on ``layout_provenance``
-and the run proceeds.
+The middle case is the whole point, and it used to be the bug. Capacity was
+judged on ``len(expected)`` against 96, so 96 designed rows passed the gate and
+the placement loop then asked ``seq_to_well`` for well 97 and raised in the
+middle of the run. Judging on total occupancy BEFORE anything is placed is what
+turns that into a refusal an operator can act on.
 
-The fourth condition is orthogonal to all three and outranks them: the refusal
-is only asked of a run that has to DRAFT its layout out of ``expected``. A run
-given ``well_layout`` or ``sample_map_xlsx`` was told which wells it scores, so
-a longer designed list is a lookup table with spare rows rather than an
-overflowing plate, and refusing it would break a configuration that ran
-correctly before this check existed.
+The other condition is orthogonal to all three and outranks them: the refusal is
+only asked of a run that has to DRAFT its layout out of ``expected``. A run given
+``well_layout`` was told which wells it scores, so a longer designed list is a
+lookup table with spare rows rather than an overflowing plate, and refusing it
+would break a configuration that ran correctly before this check existed.
 
 Also covers the axis counts ``validate_inputs`` reads back off the barcode
 workbook, which are display only: nothing here is a value the operator sets.
@@ -82,18 +83,27 @@ def test_95_designed_fits_and_keeps_its_wt_well(tmp_path: Path) -> None:
 
     assert error is None
     assert draft is not None
-    assert draft.wt_omitted is False
+    assert len(draft.layout) == 96
+    assert draft.layout["H12"] == "WT"
 
 
-def test_96_designed_fits_and_only_reports_the_missing_wt_well(tmp_path: Path) -> None:
-    """The trap: is_complete is false here, and this must still be allowed."""
+def test_96_designed_does_not_fit_because_the_wt_control_needs_a_well(
+    tmp_path: Path,
+) -> None:
+    """The old boundary was off by exactly the control well.
+
+    ``len(expected) <= 96`` passed this, and ``build_draft_layout`` then asked
+    ``seq_to_well`` for well 97 while placing. The refusal has to come out of the
+    occupancy arithmetic, before anything is placed.
+    """
     expected = _write_expected(tmp_path / "expected.xlsx", 96)
 
     error, draft = _plate_capacity_finding(expected, None, None)
 
-    assert error is None
+    assert error is not None
+    assert "M96" in error
     assert draft is not None
-    assert draft.wt_omitted is True
+    assert draft.layout == {}
 
 
 def test_the_graded_draft_is_the_layout_the_run_would_place(tmp_path: Path) -> None:
@@ -121,18 +131,37 @@ def test_97_designed_is_refused_and_the_message_states_both_numbers(
     assert "replicates" in error
     assert "M97" in error
     # And the way out that does not involve splitting the campaign.
-    assert "well layout or sample map" in error
+    assert "well layout" in error
 
 
-def test_an_unreadable_expected_workbook_is_not_this_checks_business(
+def test_a_file_that_will_not_open_is_not_this_checks_business(
     tmp_path: Path,
 ) -> None:
-    """A file this cannot read gets a better error further down the handler."""
+    """A path that is not a workbook says nothing about the plate."""
+    junk = tmp_path / "junk.xlsx"
+    junk.write_bytes(b"not a workbook")
+
+    assert _plate_capacity_finding(junk, None, None) == (None, None)
+    assert _plate_capacity_finding(tmp_path / "absent.xlsx", None, None) == (None, None)
+
+
+def test_the_readers_own_refusal_travels_up_instead_of_being_swallowed(
+    tmp_path: Path,
+) -> None:
+    """The bug this check existed to prevent, re-created by its own except.
+
+    A workbook that opens and says something unplaceable (here: nothing at all)
+    is a refusal, not an unreadable file. Returning ``(None, None)`` for it sent
+    the caller back to ``read_variant_source`` further down the handler, which
+    raised the same message AFTER the multi-minute demux. Every refusal added to
+    the reader (a row read and not placed, a second WT row, a duplicate variant)
+    left through the same hole.
+    """
     empty = tmp_path / "empty.xlsx"
     openpyxl.Workbook().save(str(empty))
 
-    assert _plate_capacity_finding(empty, None, None) == (None, None)
-    assert _plate_capacity_finding(tmp_path / "absent.xlsx", None, None) == (None, None)
+    with pytest.raises(ValueError, match="is empty"):
+        _plate_capacity_finding(empty, None, None)
 
 
 # ---------------------------------------------------------------------------
@@ -142,13 +171,14 @@ def test_an_unreadable_expected_workbook_is_not_this_checks_business(
 
 def test_only_a_run_without_a_layout_of_its_own_drafts_one() -> None:
     assert _layout_is_inferred({}) is True
-    assert _layout_is_inferred({"well_layout": None, "sample_map_xlsx": None}) is True
+    assert _layout_is_inferred({"well_layout": None}) is True
     assert _layout_is_inferred({"well_layout": {"A1": "M1"}}) is False
-    assert _layout_is_inferred({"sample_map_xlsx": "/tmp/map.xlsx"}) is False
-    # An empty mapping is still a layout the caller supplied, and an empty
-    # string is how the frontend spells "no sample map".
+    # An empty mapping is still a layout the caller supplied.
     assert _layout_is_inferred({"well_layout": {}}) is False
-    assert _layout_is_inferred({"sample_map_xlsx": ""}) is True
+    # A well selection says which wells the campaign occupies, not what sits in
+    # them. The contents still come from reading ``expected``, so the capacity
+    # question is exactly as live as it is for a run with no selection.
+    assert _layout_is_inferred({"selected_wells": ["A1", "B1"]}) is True
 
 
 # ---------------------------------------------------------------------------
@@ -179,13 +209,22 @@ def test_analyze_refuses_a_campaign_larger_than_one_plate(tmp_path: Path) -> Non
     assert "96" in message
 
 
-def test_analyze_does_not_refuse_a_full_plate_without_a_wt_row(tmp_path: Path) -> None:
-    """A 96-well plate with no room for a WT control runs, and says so."""
+def test_analyze_refuses_96_designed_rows_before_placing_anything(
+    tmp_path: Path,
+) -> None:
+    """The refusal replaces a ValueError raised from inside the placement loop.
+
+    Before the occupancy fix this reached ``seq_to_well(97)`` and surfaced as
+    ``seq must be in [1, 96]``, which names no file, no mutant, and no way out.
+    """
     expected = _write_expected(tmp_path / "expected.xlsx", 96)
 
-    result = handle_analyze(_analyze_params(tmp_path, expected))
+    with pytest.raises(ValueError) as excinfo:
+        handle_analyze(_analyze_params(tmp_path, expected))
 
-    assert result["layout_provenance"]["wt_omitted"] is True
+    message = str(excinfo.value)
+    assert "seq must be in" not in message
+    assert "M96" in message
 
 
 def test_a_campaign_larger_than_one_plate_runs_when_a_layout_names_the_plate(
@@ -207,42 +246,24 @@ def test_a_campaign_larger_than_one_plate_runs_when_a_layout_names_the_plate(
     assert result["layout_provenance"]["source"] == "explicit_well_layout"
 
 
-def test_a_sample_map_also_names_the_plate_and_lifts_the_refusal(
+def test_selected_wells_says_nothing_about_a_layout_it_did_not_build(
     tmp_path: Path,
 ) -> None:
-    expected = _write_expected(tmp_path / "expected.xlsx", 200)
-    sample_map = tmp_path / "map.xlsx"
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    assert ws is not None
-    ws.append(["well", "sample"])
-    ws.append(["A01", "M1"])
-    wb.save(str(sample_map))
-    params = _analyze_params(tmp_path, expected)
-    params["sample_map_xlsx"] = str(sample_map)
+    """An operator layout is not a selection, and must not be reported as one.
 
-    result = handle_analyze(params)
-
-    assert result["layout_provenance"]["source"] == "sample_map_xlsx"
-
-
-def test_wt_omitted_says_nothing_about_a_layout_it_did_not_build(
-    tmp_path: Path,
-) -> None:
-    """96 designed rows, and an operator layout that declares its own WT well.
-
-    Reporting ``true`` here would be a claim about ``build_draft_layout``
-    running out of wells, applied to a layout that never asked it and that does
-    carry the clean control the field warns about losing.
+    ``selected_wells`` is a statement about a drafted layout: which of the 96
+    wells this campaign occupies. A run handed an explicit ``well_layout`` never
+    drafted one, so naming its wells here would put a claim about a choice
+    nobody made onto a stored result.
     """
-    expected = _write_expected(tmp_path / "expected.xlsx", 96)
+    expected = _write_expected(tmp_path / "expected.xlsx", 95)
     params = _analyze_params(tmp_path, expected)
     params["well_layout"] = {"A1": "M1", "H12": "WT"}
 
     result = handle_analyze(params)
 
     assert result["layout_provenance"]["source"] == "explicit_well_layout"
-    assert result["layout_provenance"]["wt_omitted"] is None
+    assert result["layout_provenance"]["selected_wells"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -287,14 +308,94 @@ def test_validate_inputs_accepts_what_the_run_accepts(tmp_path: Path) -> None:
     assert result["errors"] == []
 
 
-def test_a_plate_that_keeps_its_wt_well_reports_nothing_omitted(
-    tmp_path: Path,
-) -> None:
+def test_a_run_that_declares_no_wells_stamps_no_selection(tmp_path: Path) -> None:
+    """The default has to stay indistinguishable from the pre-selection runs."""
     expected = _write_expected(tmp_path / "expected.xlsx", 95)
 
     result = handle_analyze(_analyze_params(tmp_path, expected))
 
-    assert result["layout_provenance"]["wt_omitted"] is False
+    assert result["layout_provenance"]["source"] == "inferred_draft_layout"
+    assert result["layout_provenance"]["selected_wells"] is None
+
+
+def test_a_declared_selection_is_stamped_onto_the_result(tmp_path: Path) -> None:
+    """A run that cannot say which wells it declared cannot be reproduced."""
+    expected = _write_expected(tmp_path / "expected.xlsx", 2)
+    params = _analyze_params(tmp_path, expected)
+    # Deliberately out of plate order, and skipping B1: the response has to come
+    # back column-major, because that is the order the assignment rule uses.
+    params["selected_wells"] = ["D1", "A1", "C1"]
+
+    result = handle_analyze(params)
+
+    assert result["layout_provenance"]["selected_wells"] == ["A1", "C1", "D1"]
+    assert result["layout_provenance"]["unused_wells"] == []
+
+
+def test_wells_declared_beyond_the_campaign_are_named_rather_than_dropped(
+    tmp_path: Path,
+) -> None:
+    """Selecting more wells than there are samples is not on its own a mistake.
+
+    So it runs. What it must not do is run in silence: the placement rule uses
+    up the leading wells and the rest are declarations the result would
+    otherwise be unable to distinguish from never having been made.
+    """
+    expected = _write_expected(tmp_path / "expected.xlsx", 2)
+    params = _analyze_params(tmp_path, expected)
+    params["selected_wells"] = ["A1", "B1", "C1", "D1", "E1"]
+
+    result = handle_analyze(params)
+
+    provenance = result["layout_provenance"]
+    # Two mutants plus the WT control take A1..C1; D1 and E1 are declared and
+    # unused, and the declaration is reported whole rather than trimmed to fit.
+    assert provenance["selected_wells"] == ["A1", "B1", "C1", "D1", "E1"]
+    assert provenance["unused_wells"] == ["D1", "E1"]
+
+
+def test_too_few_wells_is_refused_by_the_button_and_by_the_run(
+    tmp_path: Path,
+) -> None:
+    """It used to be refused by neither.
+
+    ``validate_inputs`` swallowed the ValueError and answered "valid", and the
+    run applied the selection after the demux, so the operator paid for the
+    ingest before hearing about it.
+    """
+    expected = _write_expected(tmp_path / "expected.xlsx", 4)
+    validate = _validate_params(tmp_path, expected)
+    validate["selected_wells"] = ["A1", "B1"]
+
+    result = handle_validate_inputs(validate)
+
+    assert result["valid"] is False
+    assert any("2 wells selected for 5 plate occupants" in e for e in result["errors"])
+
+    analyze = _analyze_params(tmp_path, expected)
+    analyze["selected_wells"] = ["A1", "B1"]
+    with pytest.raises(ValueError, match="plate occupants"):
+        handle_analyze(analyze)
+
+
+def test_an_empty_selection_is_reported_as_a_selection_problem(
+    tmp_path: Path,
+) -> None:
+    """The "Clear selection" button sends this, and it was labelled ``expected:``.
+
+    The parameter was parsed inside the block that reports the expected
+    workbook, so its message came back attached to a file that is perfectly
+    fine and sent the operator to the wrong screen.
+    """
+    expected = _write_expected(tmp_path / "expected.xlsx", 2)
+    params = _validate_params(tmp_path, expected)
+    params["selected_wells"] = []
+
+    result = handle_validate_inputs(params)
+
+    assert result["valid"] is False
+    assert any(e.startswith("selected_wells is empty") for e in result["errors"])
+    assert not any(e.startswith("expected:") for e in result["errors"])
 
 
 # ---------------------------------------------------------------------------

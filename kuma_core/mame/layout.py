@@ -2,8 +2,8 @@
 
 Given the list of designed expected mutations (KURO ``expected_mutations`` sheet
 order), produce a draft 96-well plate layout that places one mutant per well in
-column-major order (matching ``seq_to_well``), followed by a single WT control
-well immediately after the last mutant.
+column-major order (matching ``seq_to_well``), with exactly one WT control well
+at the ordinal the source stated, or after the last mutant when it stated none.
 
 The draft layout maps ``well_id -> sample_name`` and is consumed by the pipeline
 as a ``well_layout`` override (highest-priority well->sample source). "WT" wells
@@ -23,32 +23,35 @@ away in silence.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 
-from kuma_core.mame.export.well_mapper import seq_to_well
+from kuma_core.mame.export.well_mapper import seq_to_well, well_to_seq
 from kuma_core.mame.models import ExpectedMutation
 from kuma_core.mame.plate_geometry import PLATE_CAPACITY as _PLATE_CAPACITY
 
 
 @dataclass(frozen=True)
 class DraftLayout:
-    """A draft placement plus whatever the 96-well ceiling forced out of it."""
+    """A draft placement, or the refusal that stopped one from being built."""
 
-    #: Insertion-ordered ``{well_id: sample_name}`` in column-major order, WT last
-    #: when it fits. Well labels are not zero-padded; the pipeline normalises them.
+    #: Insertion-ordered ``{well_id: sample_name}`` in column-major order, with the
+    #: WT control at its own ordinal. Well labels are not zero-padded; the pipeline
+    #: normalises them. Empty when the set does not fit: a partial plate reads like
+    #: a whole one, so nothing is placed rather than some of it.
     layout: dict[str, str]
-    #: ``mutant_id`` values past the 96th well, in sheet order. Non-empty means the
-    #: draft does not describe the full mutation set and cannot be used as-is.
+    #: ``mutant_id`` values that do not fit alongside the WT control, in sheet
+    #: order. Non-empty means nothing was placed and the draft cannot be used.
     dropped_mutant_ids: list[str] = field(default_factory=list)
-    #: True when the plate is exactly full and the WT control well had to be
-    #: omitted. Consequential on its own: without a declared WT well the control
-    #: is attributed as ``UNKNOWN_*`` and the clean-control check is lost.
-    wt_omitted: bool = False
+    #: Wells the caller declared that no occupant took, in plate order. Only
+    #: :func:`apply_well_selection` fills it; a draft that placed itself
+    #: declared nothing, so the list is empty there.
+    unused_wells: list[str] = field(default_factory=list)
 
     @property
     def is_complete(self) -> bool:
         """True when the draft covers every mutant and carries a WT control."""
-        return not self.dropped_mutant_ids and not self.wt_omitted
+        return not self.dropped_mutant_ids
 
 
 def canonical_plate_order(
@@ -71,52 +74,136 @@ def canonical_plate_order(
     return sorted(expected_mutations, key=lambda m: m.position)
 
 
+#: Wells one plate has left for mutants once the WT control takes its own.
+MUTANT_CAPACITY = _PLATE_CAPACITY - 1
+
+
 def build_draft_layout(
     expected_mutations: list[ExpectedMutation],
-    include_wt: bool = True,
+    wt_ordinal: int | None = None,
 ) -> DraftLayout:
-    """Build a column-major draft layout: well i -> mutant_id, well N+1 -> "WT".
+    """Build a column-major draft layout over ``N + 1`` occupants.
 
-    well ``i`` (1-based, column-major via ``seq_to_well``) is assigned
-    ``expected_mutations[i-1].mutant_id`` for ``i = 1..N`` where ``N`` is the
-    number of expected mutations. A single WT control occupies well ``N+1``.
+    The plate occupants are the ``N`` mutations plus exactly one WT control, in
+    that order unless the source said otherwise. Occupant ``j`` takes well ``j``
+    (1-based, column-major via ``seq_to_well``).
 
-    ``include_wt=False`` skips that control well. Pass it when the source list
-    already carried a wild-type row (see ``io/variant_list.py``), which the
-    generic reader strips out and reports rather than parsing as a mutation.
+    ``wt_ordinal`` is the 1-based occupant position of the WT control, as read
+    off the source by ``io/variant_list.read_variant_source``. ``None`` appends
+    it after the last mutant. A source that named its own WT row at position
+    *k* puts WT in well *k* and moves the mutants from *k* on one well down;
+    dropping that row instead (which is what happened before) moved every well
+    after it one place up and said nothing about it.
 
-    The caller decides the order. Pass :func:`canonical_plate_order` output to get
-    the plate the bench actually fills; the list as given keeps KURO sheet order.
+    The caller decides the mutant order. Pass :func:`canonical_plate_order`
+    output to get the plate the bench actually fills; the list as given keeps
+    KURO sheet order.
 
-    Clamping (reported via the returned :class:`DraftLayout`, never silent):
-    - ``N + 1 > 96`` (i.e. ``N >= 96``): the WT well is omitted -> ``wt_omitted``.
-    - ``N > 96``: mutants beyond the 96th are omitted -> ``dropped_mutant_ids``.
-
-    Callers must decide what a clamped draft means for them. A truncated draft
-    looks like a correct full plate to anyone reading only the rows, so treating
-    ``dropped_mutant_ids`` as cosmetic mis-scores every well past the cut.
+    Capacity is decided on total occupancy (``N + 1``) BEFORE anything is
+    placed, because ``N`` alone is the wrong question: 96 mutants plus a control
+    is 97 wells, and placing first and clamping afterwards asked ``seq_to_well``
+    for well 97. Over capacity, ``layout`` comes back empty and the mutants that
+    do not fit are named in ``dropped_mutant_ids``. Nothing partial is returned:
+    a truncated draft reads as a correct full plate to anyone looking at the
+    rows, so every well past the cut would be mis-scored in silence.
     """
-    layout: dict[str, str] = {}
-    n_mutants = min(len(expected_mutations), _PLATE_CAPACITY)
-    for i in range(1, n_mutants + 1):
-        layout[seq_to_well(i)] = expected_mutations[i - 1].mutant_id
-    if not include_wt:
-        # The source listed its own WT row, so appending one here would put two
-        # controls on the plate and mis-attribute the second.
+    n = len(expected_mutations)
+    if n > MUTANT_CAPACITY:
         return DraftLayout(
-            layout=layout,
-            dropped_mutant_ids=[m.mutant_id for m in expected_mutations[_PLATE_CAPACITY:]],
-            wt_omitted=False,
+            layout={},
+            dropped_mutant_ids=[
+                m.mutant_id for m in expected_mutations[MUTANT_CAPACITY:]
+            ],
         )
-    wt_seq = len(expected_mutations) + 1
-    wt_omitted = wt_seq > _PLATE_CAPACITY
-    if not wt_omitted:
-        layout[seq_to_well(wt_seq)] = "WT"
+
+    wt_seq = n + 1 if wt_ordinal is None else max(1, min(wt_ordinal, n + 1))
+    layout: dict[str, str] = {}
+    remaining = iter(expected_mutations)
+    for seq in range(1, n + 2):
+        if seq == wt_seq:
+            layout[seq_to_well(seq)] = "WT"
+        else:
+            layout[seq_to_well(seq)] = next(remaining).mutant_id
+    return DraftLayout(layout=layout)
+
+
+def normalise_selected_wells(selected_wells: Iterable[str]) -> list[str]:
+    """Column-major, de-duplicated, plate-bounded well labels.
+
+    The selection arrives as whatever the caller assembled, and the assignment
+    rule ("occupant *i* goes to the *i*th selected well") only means something
+    once the wells are in the plate order the bench fills. Sorting here rather
+    than trusting the incoming order is what makes the frontend grid and the run
+    agree without either of them having to preserve click order.
+
+    Labels outside the plate are dropped. A caller that cares whether that
+    happened compares the length it sent with the length it got back.
+    """
+    seen: dict[int, str] = {}
+    for label in selected_wells:
+        try:
+            seq = well_to_seq(str(label).strip())
+        except (ValueError, IndexError):
+            continue
+        if 1 <= seq <= _PLATE_CAPACITY and seq not in seen:
+            seen[seq] = seq_to_well(seq)
+    return [seen[seq] for seq in sorted(seen)]
+
+
+def apply_well_selection(
+    draft: DraftLayout,
+    selected_wells: Iterable[str],
+) -> DraftLayout:
+    """Re-seat a draft's occupants onto the wells the operator declared.
+
+    A campaign smaller than the plate leaves wells empty, and which wells those
+    are is a fact about the bench that no file states. Declaring them is the
+    only way the run can know that a read arriving from one of them is a signal
+    rather than a sample: an undeclared well is scored as whatever the draft
+    happened to place there.
+
+    Occupant *i* of *draft* (its own column-major order, WT included at its
+    ordinal) takes the *i*th selected well. Selecting exactly the leading
+    ``N + 1`` wells therefore reproduces the draft unchanged, which is what the
+    default selection is.
+
+    Too few wells is a refusal; too many is a report. The two directions are not
+    symmetric. Fewer wells than occupants means some variant has nowhere to go,
+    and placing a prefix would hand back a layout that reads like a whole plate.
+    More wells than occupants is a declaration the run cannot use up, which is
+    not on its own a mistake: an operator selecting the two columns they filled,
+    or the whole plate out of habit, has said nothing false about the bench. So
+    the surplus is named in ``unused_wells`` and the run proceeds. Silence was
+    the wrong answer for the same reason it is everywhere else here: 96 wells
+    selected against 31 occupants dropped 65 declarations with nothing on the
+    result to say it happened.
+
+    Raises:
+        ValueError: when fewer wells are selected than the draft has occupants.
+            Placing a prefix and dropping the rest would hand back a layout that
+            reads like a whole plate.
+    """
+    wells = normalise_selected_wells(selected_wells)
+    occupants = list(draft.layout.values())
+    if len(wells) < len(occupants):
+        raise ValueError(
+            f"{len(wells)} wells selected for {len(occupants)} plate occupants "
+            f"({len(occupants) - 1} variants plus the WT control). Select at "
+            "least as many wells as there are things to sequence, or shorten "
+            "the variant list."
+        )
     return DraftLayout(
-        layout=layout,
-        dropped_mutant_ids=[m.mutant_id for m in expected_mutations[_PLATE_CAPACITY:]],
-        wt_omitted=wt_omitted,
+        layout={well: sample for well, sample in zip(wells, occupants)},
+        dropped_mutant_ids=list(draft.dropped_mutant_ids),
+        unused_wells=wells[len(occupants) :],
     )
 
 
-__all__ = ["DraftLayout", "build_draft_layout", "canonical_plate_order"]
+__all__ = [
+    "MUTANT_CAPACITY",
+    "DraftLayout",
+    "apply_well_selection",
+    "build_draft_layout",
+    "canonical_plate_order",
+    "normalise_selected_wells",
+]

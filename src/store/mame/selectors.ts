@@ -26,6 +26,30 @@ export function selectPlateOrderSeverity(s: AppState): PlateOrderSeverity | null
   return s.plateOrderFinding ? "blocking" : null;
 }
 
+/**
+ * Can this run seat everything the variant list puts on the plate?
+ *
+ * The rule is the sidecar's (`apply_well_selection`): occupant i takes the i-th
+ * declared well, so fewer wells than occupants is a refusal rather than a
+ * partial plate. Asked here so the button is held before the run starts, not
+ * after: `WellSelectionPanel` drew the warning from the moment the selection
+ * got too short while Run stayed enabled beside it.
+ *
+ * An empty declaration is refused whatever the occupant count is, which is why
+ * it is a separate clause: "Clear selection" sends `[]` and the occupant count
+ * may not have been read yet.
+ *
+ * `null` selection is the default (the leading wells) and never blocks. A null
+ * occupant count means nothing has read the variant list yet, so there is no
+ * number to compare against and only the empty-declaration clause applies.
+ */
+function selectionSeatsEveryone(s: AppState): boolean {
+  const wells = s.selectedWells;
+  if (wells === null) return true;
+  if (wells.length === 0) return false;
+  return s.wellSelectionOccupants === null || wells.length >= s.wellSelectionOccupants;
+}
+
 export function selectCanRun(s: AppState): boolean {
   let pathsReady: boolean;
   if (s.inputMode === "raw_run") {
@@ -55,6 +79,7 @@ export function selectCanRun(s: AppState): boolean {
     !s.isAnalyzing &&
     !s.isValidating &&
     s.validationErrors.length === 0 &&
-    s.plateOrderFinding === null
+    s.plateOrderFinding === null &&
+    selectionSeatsEveryone(s)
   );
 }
