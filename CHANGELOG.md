@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.15.15.01 (The banner about inputs a restore lost stops describing a project it already left)
+
+MAME lists the inputs a restore could not recover so the operator can point at them again. Nothing ever took an entry off that list except the browse button on the banner itself, and the list was only ever built once per hydration. Picking the file again in the normal input panel left the warning up, and a scratch entry inherited whatever the previous project had failed to find, because that path returns before the block that rebuilds the list. What the banner named was true at one moment and then kept being displayed as though it were still true.
+
+### Fixed
+
+- v0.15.15.01: An entry disappears as soon as its field holds a path again, whichever control filled it. The hydration hook and the banner now read one shared function instead of each carrying a copy of the field-to-value mapping.
+- v0.15.15.01: The list is cleared at the start of every hydration, ahead of the scratch early return, so entering a scratch session no longer shows what a different project was missing.
+- v0.15.15.01: Custom barcodes and sequencing summary are named by their file rather than by their own label twice. Both live under `parameters.raw_run_params` in the snapshot, and the lookup only searched the `input` block, so it found nothing and fell back to the label.
+
 ## v0.15.15 (A finished run is checked against itself, and stops describing the file it no longer reads)
 
 The v0.15.10 refusal reads the workbook, so it only catches a plate that describes itself two ways. It cannot see a run whose verdicts were scored before the operator swapped the file underneath them. That is the shape the 2026-08-04 misscoring arrived in when the snapshot reached us: the expected path pointed at a re-exported workbook whose sheets agree, while the 288 verdicts beside it had been scored against the earlier one. Nothing on screen separated that from a run that simply went badly, because the well count, the plate map and the verdict tally all render the same either way. The finished analysis already carries the answer: of the 244 wells with an observed amino-acid change, none matched the variant assigned to that well and 241 matched the variant assigned to some other well. A permutation null over the same plate averages 2.49.
