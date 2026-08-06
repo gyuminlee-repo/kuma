@@ -2360,13 +2360,13 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "La regla que convierte un par de codigos de barras en un pocillo de la placa vive en un solo lugar en vez de cuatro, de modo que los cuatro no pueden divergir.",
-      "Un diseno que llena la placa exactamente y no deja sitio para un pocillo wild-type ya no se rechaza por ello.",
-      "Al cargar un archivo de codigos de barras se muestra cuantos forward y reverse contiene y cuantos pocillos describen.",
-      "El dialogo de native barcode dice que esta eligiendo: replicas de una placa, no placas distintas.",
-      "Una ejecucion que desborda la placa se rechaza antes de que empiece el demux, no despues de escribir los pocillos."
+      "El sample map desaparece. MAME coloca la placa a partir de la propia lista de variantes, y un archivo sobrante se compara en vez de obedecerse.",
+      "Elija en una rejilla de 96 pocillos cuales uso la ejecucion: haciendo clic, arrastrando o pulsando una cabecera de fila o columna.",
+      "Una lista de variantes con una fila vacia en medio, o una segunda fila wild-type, detiene la ejecucion en vez de desplazar cada pocillo posterior.",
+      "Elegir native barcodes ahora dice que esta eligiendo: replicas de una placa. Los pocillos cuyas replicas discrepan quedan marcados.",
+      "La ejecucion informa de las lecturas que cayeron fuera de los pocillos declarados, separadas segun si esos indices se usaron alguna vez."
     ],
-    "highlightsStamp": "0.15.23+0c028fbf"
+    "highlightsStamp": "0.16.0+b2281961"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",

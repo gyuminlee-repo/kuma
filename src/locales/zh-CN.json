@@ -2360,13 +2360,13 @@
     "description": "最新更新亮点。",
     "gotItBtn": "知道了",
     "highlights": [
-      "把条形码对转换为板孔的规则现在只在一处，而不是四处，四者不会再彼此偏离。",
-      "刚好填满板、没有为 wild-type 孔留下空位的设计，不再因此被拒绝。",
-      "载入条形码文件后会显示 forward 与 reverse 各有多少条，以及它们描述多少个 well。",
-      "native barcode 对话框会说明它在选择什么：同一块板的 replicate，而不是不同的板。",
-      "超出板容量的运行会在 demux 开始前被拒绝，而不是在孔位写入之后。"
+      "移除了 sample map。MAME 直接依据变异列表排布板面，残留的文件只用于比对而不再被遵从。",
+      "在 96 格网格上选择本次运行使用的 well：点击、拖动，或点击行列表头。",
+      "变异列表中间的空行或第二个 wild-type 行现在会中止运行，不再让其后所有 well 整体错位。",
+      "选择 native barcode 时会说明它在选什么：同一块板的 replicate。replicate 彼此不一致的 well 会被标记。",
+      "运行会报告落在已声明 well 之外的 read，并按这些条形码索引本次是否用过来区分。"
     ],
-    "highlightsStamp": "0.15.23+0c028fbf"
+    "highlightsStamp": "0.16.0+b2281961"
   },
   "primerDisplay": {
     "copySeqTitle": "复制序列",

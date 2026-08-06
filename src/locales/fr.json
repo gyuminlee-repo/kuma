@@ -2360,13 +2360,13 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "La regle qui transforme une paire de codes-barres en puits de plaque tient en un seul endroit au lieu de quatre, si bien que les quatre ne peuvent plus diverger.",
-      "Un plan qui remplit exactement la plaque et ne laisse pas de place pour un puits wild-type n est plus refuse pour cette raison.",
-      "Le chargement d un fichier de codes-barres indique combien de forward et de reverse il contient et combien de puits ils decrivent.",
-      "La boite de dialogue native barcode dit ce qu elle choisit: des replicats d une plaque, et non des plaques distinctes.",
-      "Une execution qui deborde la plaque est refusee avant le demarrage du demux, pas apres l ecriture des puits."
+      "La sample map disparait. MAME dispose la plaque a partir de la liste de variants elle-meme, et un fichier restant est compare plutot que suivi.",
+      "Choisissez sur une grille de 96 puits ceux qu une execution a utilises: en cliquant, en glissant, ou en cliquant un en-tete de ligne ou de colonne.",
+      "Une liste de variants avec une ligne vide au milieu, ou une seconde ligne wild-type, arrete l execution au lieu de decaler chaque puits suivant.",
+      "Le choix des native barcodes dit maintenant ce qu il choisit: des replicats d une plaque. Les puits dont les replicats divergent sont signales.",
+      "Une execution signale les lectures tombees hors des puits declares, separees selon que ces index de code-barres ont deja servi ou non."
     ],
-    "highlightsStamp": "0.15.23+0c028fbf"
+    "highlightsStamp": "0.16.0+b2281961"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",

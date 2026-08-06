@@ -2393,13 +2393,13 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The rule that turns a barcode pair into a plate well lives in one place instead of four, so the four cannot drift apart.",
-      "A design that fills the plate exactly, leaving no room for a wild-type well, is no longer refused for it.",
-      "Loading a barcode file shows how many forward and reverse barcodes it holds, and how many wells they describe.",
-      "The native barcode dialog says what it is choosing: replicates of one plate, rather than separate plates.",
-      "A run that overflows the plate is refused before the demux starts, not after wells have been written."
+      "The sample map is gone. MAME places the plate from the variant list itself, and a leftover file is compared rather than obeyed.",
+      "Pick which wells a run used on a 96 well grid, by clicking, dragging, or clicking a row or column header.",
+      "A variant list with a blank row in the middle, or a second wild-type row, stops the run instead of shifting every later well.",
+      "Choosing native barcodes now says what it is choosing: replicates of one plate. Wells whose replicates disagree are flagged.",
+      "A run reports reads that landed outside the declared wells, split by whether those barcode indices were ever used."
     ],
-    "highlightsStamp": "0.15.23+0c028fbf"
+    "highlightsStamp": "0.16.0+b2281961"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

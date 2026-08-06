@@ -2360,13 +2360,13 @@
     "description": "Destaques da última atualização.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "A regra que transforma um par de codigos de barras em um poco da placa fica em um unico lugar em vez de quatro, de modo que os quatro nao podem divergir.",
-      "Um desenho que preenche a placa exatamente e nao deixa espaco para um poco wild-type nao e mais recusado por isso.",
-      "Ao carregar um arquivo de codigos de barras, mostra quantos forward e reverse ele tem e quantos pocos eles descrevem.",
-      "A caixa de dialogo native barcode diz o que esta escolhendo: replicatas de uma placa, e nao placas separadas.",
-      "Uma execucao que excede a placa e recusada antes de o demux comecar, nao depois que os pocos foram escritos."
+      "O sample map foi removido. O MAME posiciona a placa a partir da propria lista de variantes, e um arquivo remanescente e comparado em vez de obedecido.",
+      "Escolha numa grade de 96 pocos quais a execucao usou: clicando, arrastando ou clicando num cabecalho de linha ou coluna.",
+      "Uma lista de variantes com uma linha vazia no meio, ou uma segunda linha wild-type, interrompe a execucao em vez de deslocar todos os pocos seguintes.",
+      "Escolher native barcodes agora diz o que esta escolhendo: replicatas de uma placa. Pocos cujas replicatas divergem ficam sinalizados.",
+      "A execucao relata leituras que cairam fora dos pocos declarados, separadas conforme esses indices de codigo de barras ja tenham sido usados."
     ],
-    "highlightsStamp": "0.15.23+0c028fbf"
+    "highlightsStamp": "0.16.0+b2281961"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",
