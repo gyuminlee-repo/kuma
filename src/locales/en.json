@@ -222,6 +222,9 @@
         "skipped": "No clone met the selection criteria, so no instrument mapping was written.",
         "failed": "The instrument mapping was not written.",
         "excluded": "{{clones}} clone(s) left out of the mapping. Open Janus instrument settings to see why."
+      },
+      "demuxResume": {
+        "line": "{{reused}} of {{total}} demux units reused from earlier output in this folder; {{recomputed}} recomputed."
       }
     },
     "nativeBarcodeDialog": {
@@ -935,7 +938,9 @@
         "placeholder": "Choose a folder; {{filename}} will be created",
         "stateLabel": "Save to",
         "helperText": "Analysis report will use a KURO-style rule-based .xlsx filename",
-        "helpText": "Folder where the analysis result Excel will be saved. The filename is auto-generated using KURO-style rules combining date, reference/input tokens, MAME target, and result count tokens."
+        "helpText": "Folder where the analysis result Excel will be saved. The filename is auto-generated using KURO-style rules combining date, reference/input tokens, MAME target, and result count tokens.",
+        "reuseNotice": "If this folder already holds output from a previous run, matching units are reused and the rest is overwritten.",
+        "overwriteConfirmDir": "{{dir}} already holds output from a previous analysis (demux_filtered/). Matching units will be reused and the rest overwritten. Do you want to continue?"
       },
       "variantMapping": {
         "heading": "Variant list mapping",
@@ -1067,6 +1072,14 @@
         "waste": "Waste"
       },
       "title": "JANUS Deck Layout"
+    },
+    "restoredResult": {
+      "title": "These results came from another version of kuma",
+      "bodyOlder": "Restored from a snapshot written by kuma v{{version}}. This build scores runs differently, so re-run to see what it would produce, or keep viewing the saved result.",
+      "bodyNewer": "Restored from a snapshot written by kuma v{{version}}, which is newer than this build. This version may not score the run the same way; re-run to produce a result this build stands behind, or keep viewing the saved one.",
+      "bodyUnknown": "Restored from a snapshot that records no kuma version, so it cannot be told apart from an older run. Re-run to produce a result this build stands behind, or keep viewing the saved one.",
+      "rerun": "Re-run analysis",
+      "keep": "Keep these results"
     },
     "janus": {
       "settings": {
@@ -2305,11 +2318,12 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A barcode file not numbered for an 8 by 12 plate now stops the run and names the barcodes at fault, instead of leaving wells unnamed.",
-      "A gap in the barcode numbering is caught too, which used to shift every later barcode into the wrong row or column.",
-      "The plate shape is now stated once instead of being written out at each place that maps a well."
+      "A run restored from an older kuma now says which version scored it, instead of appearing as if this build had just produced it.",
+      "You choose what happens next: re-run for a result this build stands behind, or keep the saved one. Nothing is deleted or re-run for you.",
+      "Keeping is remembered per project and per version, so the notice stays quiet until a different snapshot turns up.",
+      "A snapshot with no recorded version, or one from a newer build, is reported rather than trusted."
     ],
-    "highlightsStamp": "0.15.19+23a13b2a"
+    "highlightsStamp": "0.15.20+ae44e5c0"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

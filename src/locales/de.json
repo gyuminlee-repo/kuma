@@ -810,7 +810,9 @@
         "placeholder": "Wählen ein Ordner; {{filename}} will be created",
         "stateLabel": "Speichern zu",
         "helperText": "Analysis report will use ein KURO-style rule-based .xlsx filename",
-        "helpText": "Ordner where die analysis result Excel will be saved. The filename ist auto-generated using KURO-style rules combining Datum, Referenz/Eingabe tokens, MAME target, und result count tokens."
+        "helpText": "Ordner where die analysis result Excel will be saved. The filename ist auto-generated using KURO-style rules combining Datum, Referenz/Eingabe tokens, MAME target, und result count tokens.",
+        "reuseNotice": "Enthält dieser Ordner bereits Ergebnisse eines früheren Laufs, werden passende Einheiten wiederverwendet und der Rest überschrieben.",
+        "overwriteConfirmDir": "{{dir}} enthält bereits Ergebnisse einer früheren Analyse (demux_filtered/). Passende Einheiten werden wiederverwendet, der Rest wird überschrieben. Möchten Sie fortfahren?"
       },
       "variantMapping": {
         "heading": "Variant list mapping",
@@ -838,6 +840,14 @@
         "blank": "Blank",
         "final": "Final 96 Deep Well"
       }
+    },
+    "restoredResult": {
+      "title": "Diese Ergebnisse stammen aus einer anderen kuma-Version",
+      "bodyOlder": "Wiederhergestellt aus einem Snapshot von kuma v{{version}}. Dieser Build bewertet Läufe anders: neu ausführen, um das aktuelle Ergebnis zu sehen, oder das gespeicherte weiter ansehen.",
+      "bodyNewer": "Wiederhergestellt aus einem Snapshot von kuma v{{version}}, neuer als dieser Build. Diese Version bewertet den Lauf womöglich anders: neu ausführen oder das gespeicherte Ergebnis weiter ansehen.",
+      "bodyUnknown": "Wiederhergestellt aus einem Snapshot ohne kuma-Versionsangabe, also nicht von einem älteren Lauf zu unterscheiden. Neu ausführen oder das gespeicherte Ergebnis weiter ansehen.",
+      "rerun": "Analyse erneut ausführen",
+      "keep": "Ergebnisse behalten"
     },
     "janus": {
       "settings": {
@@ -1020,6 +1030,9 @@
         "skipped": "Kein Klon erfuellte die Auswahlkriterien, daher wurde kein Geraete-Mapping geschrieben.",
         "failed": "Das Geraete-Mapping wurde nicht geschrieben.",
         "excluded": "{{clones}} Klon(e) nicht im Mapping. Gruende in den Janus Geraeteeinstellungen."
+      },
+      "demuxResume": {
+        "line": "{{reused}} von {{total}} Demux-Einheiten aus früheren Ergebnissen in diesem Ordner wiederverwendet; {{recomputed}} neu berechnet."
       }
     },
     "buildEvolvepro": {
@@ -2272,11 +2285,12 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Eine Barcode-Datei, die nicht fuer eine 8 x 12 Platte nummeriert ist, stoppt jetzt den Lauf und benennt die fehlerhaften Barcodes, statt Wells unbenannt zu lassen.",
-      "Auch eine Luecke in der Nummerierung wird erkannt. Bisher verschob sie jeden folgenden Barcode in die falsche Zeile oder Spalte.",
-      "Die Plattenform steht jetzt an einer Stelle statt in jeder Well-Zuordnung erneut."
+      "Ein aus einem älteren kuma wiederhergestellter Lauf nennt jetzt die Version, die ihn bewertet hat, statt wie ein Ergebnis dieses Builds auszusehen.",
+      "Sie entscheiden, was folgt: neu ausführen für ein Ergebnis dieses Builds oder das gespeicherte behalten. Nichts wird gelöscht oder ungefragt gestartet.",
+      "Das Behalten wird pro Projekt und Version gemerkt, der Hinweis bleibt also still, bis ein anderer Snapshot auftaucht.",
+      "Ein Snapshot ohne Versionsangabe oder aus einem neueren Build wird gemeldet statt vorausgesetzt."
     ],
-    "highlightsStamp": "0.15.19+23a13b2a"
+    "highlightsStamp": "0.15.20+ae44e5c0"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",

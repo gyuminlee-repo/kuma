@@ -810,7 +810,9 @@
         "placeholder": "選擇一個資料夾;將建立 {{filename}}",
         "stateLabel": "儲存到",
         "helperText": "分析報告將使用 KURO 風格的規則生成 .xlsx 檔名",
-        "helpText": "儲存分析結果 Excel 的資料夾。檔名透過 KURO 風格規則自動生成,結合日期、reference/input token、MAME 目標和結果計數 token。"
+        "helpText": "儲存分析結果 Excel 的資料夾。檔名透過 KURO 風格規則自動生成,結合日期、reference/input token、MAME 目標和結果計數 token。",
+        "reuseNotice": "如果該資料夾已有先前執行的輸出，符合條件的單元將被重複使用，其餘內容將被覆蓋。",
+        "overwriteConfirmDir": "{{dir}} 中已有先前分析的輸出 (demux_filtered/)。符合條件的單元將被重複使用，其餘內容將被覆蓋。是否繼續?"
       },
       "variantMapping": {
         "heading": "Variant list mapping",
@@ -838,6 +840,14 @@
         "blank": "Blank",
         "final": "Final 96 Deep Well"
       }
+    },
+    "restoredResult": {
+      "title": "這些結果來自另一個版本的 kuma",
+      "bodyOlder": "從 kuma v{{version}} 寫入的快照還原。目前版本的判定方式已不同：重新執行以查看目前結果，或繼續檢視已儲存的結果。",
+      "bodyNewer": "從比目前版本更新的 kuma v{{version}} 寫入的快照還原。該版本的判定方式可能不同：重新執行，或繼續檢視已儲存的結果。",
+      "bodyUnknown": "從未記錄 kuma 版本的快照還原，無法與舊版執行區分。重新執行，或繼續檢視已儲存的結果。",
+      "rerun": "重新執行分析",
+      "keep": "保留這些結果"
     },
     "janus": {
       "settings": {
@@ -1020,6 +1030,9 @@
         "skipped": "沒有選殖株符合選擇條件，因此未寫入儀器對應檔。",
         "failed": "未能寫入儀器對應檔。",
         "excluded": "{{clones}} 個選殖株未進入對應檔。可在 Janus 儀器設定中查看原因。"
+      },
+      "demuxResume": {
+        "line": "已從該資料夾的先前輸出中重複使用 {{total}} 個 demux 單元中的 {{reused}} 個；重新計算 {{recomputed}} 個。"
       }
     },
     "buildEvolvepro": {
@@ -2272,11 +2285,12 @@
     "description": "最新更新亮點。",
     "gotItBtn": "知道了",
     "highlights": [
-      "未按 8 x 12 孔盤編號的條碼檔案現在會中止執行並指出有問題的條碼，避免孔位沒有名稱。",
-      "條碼編號中的缺號也會被發現。此前其後的條碼會整體錯位一格，進入錯誤的列或行。",
-      "孔盤形狀現在只定義一次，不再在每處孔位對應中重複書寫。"
+      "從舊版 kuma 還原的執行現在會標明是哪個版本判定的，不再看起來像目前版本剛產出的結果。",
+      "下一步由你決定：重新執行以取得目前版本的結果，或保留已儲存的結果。不會替你刪除或執行。",
+      "「保留」會依專案與版本記住，因此在出現另一個快照之前不會再提示。",
+      "沒有記錄版本的快照，或來自更新版本的快照，都會被指出而不是直接採信。"
     ],
-    "highlightsStamp": "0.15.19+23a13b2a"
+    "highlightsStamp": "0.15.20+ae44e5c0"
   },
   "primerDisplay": {
     "copySeqTitle": "複製序列",

@@ -146,6 +146,24 @@ export interface AnalyzeYield {
   passed_coverage?: number;
 }
 
+/**
+ * Resume split reported by the demux this run drove
+ * (`kuma_core/mame/ingest/combinatorial_demux.py`, per-NB path). A "unit" is
+ * one native barcode's output dir, reseeded from its completion marker instead
+ * of being re-demuxed when the marker's reference/parameter fingerprint matches
+ * this run (`marker_inputs_match`).
+ *
+ * Reuse is already gated on that fingerprint, so this is provenance, not a
+ * correctness warning: it is the only place the operator can see that part of
+ * the result predates this run. Absent (not zero-filled) in consensus-dir and
+ * single-pool modes, which have no per-unit markers, for the same reason the
+ * `AnalyzeYield` counters are absent there.
+ */
+export interface DemuxResume {
+  reused_units: number;
+  recomputed_units: number;
+}
+
 export interface AnalyzeResult extends AnalyzeYield {
   verdicts: VerdictRecord[];
   replicates: ReplicateResult[];
@@ -181,6 +199,13 @@ export interface AnalyzeResult extends AnalyzeYield {
    * persisted before this field existed.
    */
   mapping_integrity?: MappingIntegrity;
+  /**
+   * How much of this result was reseeded from a previous run's demux output.
+   * Optional for two independent reasons: the sidecar omits it outside per-NB
+   * raw-run mode, and a result persisted before this field existed replays
+   * without it.
+   */
+  demux_resume?: DemuxResume;
 }
 
 /**

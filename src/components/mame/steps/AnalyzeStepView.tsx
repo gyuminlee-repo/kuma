@@ -38,8 +38,10 @@ import { PlateView } from "@/components/mame/widgets/PlateView";
 import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
 import { PlateClusterAlert } from "@/components/mame/widgets/PlateClusterAlert";
 import { MappingIntegrityAlert } from "@/components/mame/widgets/MappingIntegrityAlert";
+import { DemuxResumeNotice } from "@/components/mame/widgets/DemuxResumeNotice";
 import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNotice";
 import { PlateOrderNotice } from "@/components/mame/widgets/PlateOrderNotice";
+import { RestoredResultNotice } from "@/components/mame/widgets/RestoredResultNotice";
 import { AnalyzeDurationDialog } from "@/components/mame/dialogs/AnalyzeDurationDialog";
 import { InputPanel } from "@/components/mame/panels/InputPanel";
 import { ParameterPanel } from "@/components/mame/panels/ParameterPanel";
@@ -262,6 +264,11 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               clean run answer the wrong question. */}
           <PlateOrderNotice />
 
+          {/* Whose engine produced the verdicts currently on screen. Rendered on
+              both 2.1 and 2.2 (one sub-step is on screen at a time): the inputs
+              step is where a re-run starts, and the review step is where the
+              restored verdicts are actually read. */}
+          <RestoredResultNotice onRunRequest={onRunRequest} />
 
           {zeroResult && <EmptyAnalysisNotice />}
 
@@ -310,8 +317,12 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       // panels that look exactly like the pre-run view.
       if (zeroResult) {
         mainContent = (
-          <div className="flex h-full min-h-0 flex-col overflow-auto p-1">
+          <div className="flex h-full min-h-0 flex-col gap-2 overflow-auto p-1">
             <EmptyAnalysisNotice />
+            {/* The zero-verdict view is where "why does this look wrong" is
+                actually asked, so the reuse line belongs here too, not only on
+                the populated one. */}
+            <DemuxResumeNotice />
           </div>
         );
         break;
@@ -326,6 +337,12 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               detail about how it ran. */}
           <MappingIntegrityAlert />
           <PlateClusterAlert />
+          <RestoredResultNotice onRunRequest={onRunRequest} />
+          {/* Below the notices that judge the result, above the panels that
+              show it: how much of what follows was reseeded from a previous
+              run in the same export folder. Renders nothing when nothing was
+              reused. */}
+          <DemuxResumeNotice />
           {/* The right column decides how tall this row is, because both panels
               in it draw at the size their content needs: the whole plate, and
               the whole breakdown. Sizing them to the window is what kept showing

@@ -810,7 +810,9 @@
         "placeholder": "Elegir una carpeta; se creará {{filename}}",
         "stateLabel": "Guardar en",
         "helperText": "El informe del análisis usará un nombre de archivo .xlsx basado en reglas estilo KURO",
-        "helpText": "Carpeta donde se guardará el Excel con el resultado del análisis. El nombre del archivo se genera automáticamente usando reglas estilo KURO que combinan fecha, tokens de referencia/entrada, target MAME y tokens de conteo de resultados."
+        "helpText": "Carpeta donde se guardará el Excel con el resultado del análisis. El nombre del archivo se genera automáticamente usando reglas estilo KURO que combinan fecha, tokens de referencia/entrada, target MAME y tokens de conteo de resultados.",
+        "reuseNotice": "Si esta carpeta ya contiene resultados de una ejecución anterior, las unidades coincidentes se reutilizan y el resto se sobrescribe.",
+        "overwriteConfirmDir": "{{dir}} ya contiene resultados de un análisis anterior (demux_filtered/). Las unidades coincidentes se reutilizarán y el resto se sobrescribirá. ¿Desea continuar?"
       },
       "variantMapping": {
         "heading": "Variant list mapping",
@@ -838,6 +840,14 @@
         "blank": "Blank",
         "final": "Final 96 Deep Well"
       }
+    },
+    "restoredResult": {
+      "title": "Estos resultados vienen de otra versión de kuma",
+      "bodyOlder": "Restaurados desde una instantánea escrita por kuma v{{version}}. Esta versión evalúa las ejecuciones de otra forma: vuelva a ejecutar para ver su resultado o siga viendo el guardado.",
+      "bodyNewer": "Restaurados desde una instantánea escrita por kuma v{{version}}, más reciente que esta versión. Puede que no evalúe la ejecución igual: vuelva a ejecutar o siga viendo el resultado guardado.",
+      "bodyUnknown": "Restaurados desde una instantánea sin versión de kuma registrada, así que no se distingue de una ejecución antigua. Vuelva a ejecutar o siga viendo el resultado guardado.",
+      "rerun": "Volver a ejecutar el análisis",
+      "keep": "Conservar estos resultados"
     },
     "janus": {
       "settings": {
@@ -1020,6 +1030,9 @@
         "skipped": "Ningun clon cumplio los criterios de seleccion, por lo que no se escribio el mapeo del instrumento.",
         "failed": "No se pudo escribir el mapeo del instrumento.",
         "excluded": "{{clones}} clon(es) quedaron fuera del mapeo. Abra la configuracion del instrumento Janus para ver por que."
+      },
+      "demuxResume": {
+        "line": "{{reused}} de {{total}} unidades de demux reutilizadas de resultados anteriores en esta carpeta; {{recomputed}} recalculadas."
       }
     },
     "buildEvolvepro": {
@@ -2272,11 +2285,12 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Un archivo de codigos de barras no numerado para una placa de 8 x 12 ahora detiene la ejecucion y nombra los codigos en falta, en vez de dejar pocillos sin nombre.",
-      "Tambien se detecta un hueco en la numeracion, que antes desplazaba cada codigo posterior a una fila o columna equivocada.",
-      "La forma de la placa se declara una sola vez en lugar de repetirse en cada mapeo de pocillo."
+      "Una ejecución restaurada desde un kuma anterior ahora indica qué versión la evaluó, en vez de parecer un resultado de esta versión.",
+      "Usted decide lo siguiente: volver a ejecutar para un resultado de esta versión o conservar el guardado. Nada se borra ni se ejecuta por usted.",
+      "Conservar se recuerda por proyecto y por versión, así que el aviso calla hasta que aparece otra instantánea.",
+      "Una instantánea sin versión registrada, o de una versión más reciente, se informa en lugar de darse por buena."
     ],
-    "highlightsStamp": "0.15.19+23a13b2a"
+    "highlightsStamp": "0.15.20+ae44e5c0"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",

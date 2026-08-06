@@ -13,6 +13,7 @@ import { FileField } from "./FileField";
 import { VariantColumnMapping } from "./VariantColumnMapping";
 import { Spinner } from "@/components/ui/Spinner";
 import { defaultMameExportFilename } from "@/lib/filename";
+import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
 
 const INPUT_DIR_CONFIG_KEYS: Record<InputMode, { labelKey: string; helperTextKey: string; placeholderKey: string }> = {
   consensus: {
@@ -161,7 +162,29 @@ export function InputPanel() {
 
   async function browseOutput() {
     const selected = toSinglePath(await open({ directory: true, title: "Select export folder" }));
-    if (selected) setOutputPath(selected);
+    if (!selected) return;
+    // §5 directory-level overwrite confirm, same shape as BarcodeSetupPanel's
+    // design/ check. The probe is `demux_filtered/` and not the folder itself:
+    // an empty (or merely chosen) export folder is the normal case, while
+    // `demux_filtered/` is where the per-barcode units that resume reuses live,
+    // so its presence is exactly the condition the operator needs to be told
+    // about. Reuse is gated on a matching reference/parameter fingerprint
+    // (`marker_inputs_match`), so this is not a correctness gate; it is the
+    // heads-up that was missing when a stale-looking result took too long to
+    // explain. Cancelling leaves outputPath untouched, so the previous choice
+    // (or none) stands.
+    // Same `<folder>/demux_filtered` the run itself derives (inputSlice's
+    // deriveDemuxOutputDir); separator picked from the chosen path so a Windows
+    // dialog result stays all-backslash.
+    const demuxDir = `${selected}${selected.includes("\\") ? "\\" : "/"}demux_filtered`;
+    if (await fileExists(demuxDir)) {
+      const decision = await requestOverwriteConfirm(
+        selected,
+        t("mame.inputPanel.exportDest.overwriteConfirmDir", { dir: selected }),
+      );
+      if (decision === "cancel") return;
+    }
+    setOutputPath(selected);
   }
 
   async function browseCustomBarcodes() {
@@ -308,7 +331,9 @@ export function InputPanel() {
         })}
         stateLabel={t("mame.inputPanel.exportDest.stateLabel")}
         filled={Boolean(outputPath)}
-        helperText={t("mame.inputPanel.exportDest.helperText")}
+        helperText={`${t("mame.inputPanel.exportDest.helperText")} ${t(
+          "mame.inputPanel.exportDest.reuseNotice",
+        )}`}
         helpText={t("mame.inputPanel.exportDest.helpText")}
         noPathLabel={noPathLabel}
         readyLabel={readyLabel}

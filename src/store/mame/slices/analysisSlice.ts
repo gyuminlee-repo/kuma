@@ -29,6 +29,8 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   analyzeYield: null,
   layoutProvenance: null,
   mappingIntegrity: null,
+  demuxResume: null,
+  restoredResultProvenance: null,
   // FINAL (the per-mutant selected replicate) is the default view: it is the
   // answer sheet a run is read for. VerdictTable degrades it to ALL while no
   // replicate has been selected, so the default never shows an empty table.
@@ -48,6 +50,9 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   setAnalyzeYield: (analyzeYield) => set({ analyzeYield }),
   setLayoutProvenance: (layoutProvenance) => set({ layoutProvenance }),
   setMappingIntegrity: (mappingIntegrity) => set({ mappingIntegrity }),
+  setDemuxResume: (demuxResume) => set({ demuxResume }),
+  setRestoredResultProvenance: (restoredResultProvenance) =>
+    set({ restoredResultProvenance }),
   setPlateFilter: (plateFilter) => set({ plateFilter }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setSorting: (updater) => {
@@ -78,6 +83,11 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       analyzeYield: null,
       layoutProvenance: null,
       mappingIntegrity: null,
+      demuxResume: null,
+      // The restored-result notice describes the results being cleared here, so
+      // it must not outlive them: a fresh run or an input change makes whatever
+      // an older build produced irrelevant.
+      restoredResultProvenance: null,
       wells: [],
       selectedWell: null,
       searchQuery: "",
@@ -267,6 +277,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       analyzeYield: null,
       layoutProvenance: null,
       mappingIntegrity: null,
+      demuxResume: null,
       wells,
       selectedWell: wells.find((w) => w.selected) ?? wells[0] ?? null,
       analyzeMessage:
