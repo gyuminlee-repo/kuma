@@ -166,7 +166,7 @@
     },
     "nativeBarcodeDialog": {
       "title": "偵測到多個 native barcode",
-      "description": "本次 run 包含多個 MinKNOW native barcode。請選擇要 demultiplex 的 barcode；每個所選 barcode 都會處理到各自的輸出資料夾。",
+      "description": "本次 run 包含多個 MinKNOW native barcode。請選擇要 demultiplex 的 barcode；每個所選 barcode 都會處理到各自的輸出資料夾。一次分析 run 只評判一片 plate：這裡所選的 barcode 會作為同一片 plate 的 replicate 評判，而不是各自獨立的 plate。",
       "shareHeader": "占比",
       "selectAriaLabel": "選擇 native barcode {{name}}",
       "selectedCount": "已選擇 {{count}} 個 barcode",
@@ -778,7 +778,8 @@
         "placeholder": ".xlsx / .csv 檔案路徑",
         "stateLabel": "必填",
         "helperText": "分析前使用的組合 barcode 定義",
-        "helpText": "Raw MinKNOW run 模式使用此檔案,在分析前將 read 分配到每個 well 的 FASTA 輸出。"
+        "helpText": "Raw MinKNOW run 模式使用此檔案,在分析前將 read 分配到每個 well 的 FASTA 輸出。",
+        "axisCounts": "Barcode 檔案：forward {{forward}} x reverse {{reverse}} seeds，一片 plate 上 {{wells}} 個 well。"
       },
       "sampleMap": {
         "label": "Sample Map (可選)",
@@ -2325,12 +2326,13 @@
     "description": "最新更新亮點。",
     "gotItBtn": "知道了",
     "highlights": [
-      "只有目前版本確實會給出不同判定時，專案才要求重新分析，不會因為版本號變了就詢問。",
-      "要求時會列出讓已儲存執行過時的變更，因此這一小時的重新分析有明確理由。",
-      "由其他版本判定的執行不再顯示：沒有判定表、沒有板圖、不能匯出，也沒有保留結果的選項。",
-      "不會刪除任何東西。已儲存的執行仍在專案資料夾裡，重新執行會取代它。"
+      "把條碼對轉換為盤孔的規則現在只在一處，而不是四處，四者不會再彼此偏離。",
+      "剛好填滿盤面、沒有為 wild-type 孔留下空位的設計，不再因此被拒絕。",
+      "載入條碼檔案後會顯示 forward 與 reverse 各有多少條，以及它們描述多少個 well。",
+      "native barcode 對話框會說明它在選擇什麼：同一塊盤的 replicate，而不是不同的盤。",
+      "超出盤面容量的執行會在 demux 開始前被拒絕，而不是在孔位寫入之後。"
     ],
-    "highlightsStamp": "0.15.22+0d6b2595"
+    "highlightsStamp": "0.15.23+0c028fbf"
   },
   "primerDisplay": {
     "copySeqTitle": "複製序列",

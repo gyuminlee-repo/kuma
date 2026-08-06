@@ -226,7 +226,7 @@
     },
     "nativeBarcodeDialog": {
       "title": "여러 native barcode가 감지되었습니다",
-      "description": "이 run에는 MinKNOW native barcode가 둘 이상 포함되어 있습니다. demultiplex할 barcode를 선택하세요. 선택한 barcode는 각각 별도의 출력 폴더로 처리됩니다.",
+      "description": "이 run에는 MinKNOW native barcode가 둘 이상 포함되어 있습니다. demultiplex할 barcode를 선택하세요. 선택한 barcode는 각각 별도의 출력 폴더로 처리됩니다. 한 번의 분석 run은 plate 한 장을 채점합니다. 여기서 고른 barcode는 서로 다른 plate가 아니라 같은 plate의 replicate로 채점됩니다.",
       "shareHeader": "비율",
       "selectAriaLabel": "native barcode {{name}} 선택",
       "selectedCount": "barcode {{count}}개 선택됨",
@@ -903,7 +903,8 @@
         "placeholder": ".xlsx / .csv 파일 경로",
         "stateLabel": "필수",
         "helperText": "분석 전에 사용하는 조합 barcode 정의 파일",
-        "helpText": "Raw MinKNOW 실행 모드에서 reads를 well별 FASTA 출력에 할당하는 데 사용합니다."
+        "helpText": "Raw MinKNOW 실행 모드에서 reads를 well별 FASTA 출력에 할당하는 데 사용합니다.",
+        "axisCounts": "Barcode 파일: forward {{forward}} x reverse {{reverse}} seed, plate 한 장에서 {{wells}} well."
       },
       "sampleMap": {
         "label": "샘플 맵 (선택)",
@@ -2358,12 +2359,13 @@
     "description": "최신 업데이트의 주요 변경 사항입니다.",
     "gotItBtn": "확인",
     "highlights": [
-      "프로젝트는 현재 버전이 실제로 다르게 판정할 때만 재분석을 요구합니다. 버전 번호가 올랐다는 이유만으로는 묻지 않습니다.",
-      "요구할 때는 저장된 실행을 낡게 만든 변경 사항을 함께 제시하므로, 재분석에 쓰는 시간에 근거가 있습니다.",
-      "다른 버전이 판정한 실행은 아예 표시하지 않습니다. 판정 테이블도 플레이트도 내보내기도 없고, 결과 유지 선택지도 없습니다.",
-      "삭제되는 것은 없습니다. 저장된 실행은 프로젝트 폴더에 남아 있고, 다시 실행하면 교체됩니다."
+      "바코드 쌍을 플레이트 웰로 바꾸는 규칙이 네 곳이 아니라 한 곳에 있습니다. 넷이 서로 어긋날 수 없습니다.",
+      "플레이트를 정확히 채워 wild-type 웰 자리가 남지 않는 설계를 더는 그 이유로 거부하지 않습니다.",
+      "바코드 파일을 불러오면 forward 와 reverse 가 각각 몇 개이고 몇 개 웰을 기술하는지 보여줍니다.",
+      "native barcode 대화상자가 무엇을 고르는 것인지 말합니다. 서로 다른 플레이트가 아니라 한 플레이트의 replicate 입니다.",
+      "플레이트 용량을 넘는 run 은 웰이 쓰인 뒤가 아니라 demux 시작 전에 거부됩니다."
     ],
-    "highlightsStamp": "0.15.22+0d6b2595"
+    "highlightsStamp": "0.15.23+0c028fbf"
   },
   "primerDisplay": {
     "copySeqTitle": "서열 복사",

@@ -127,6 +127,21 @@ export interface LayoutProvenance {
   source: "explicit_well_layout" | "sample_map_xlsx" | "inferred_draft_layout";
   expected_path: string;
   sample_map_path: string | null;
+  /**
+   * The designed list filled every well of the plate, so no well was left for
+   * an appended WT control. Reported, never a refusal: the run scores such a
+   * plate correctly, but without a declared WT well the clean control is
+   * attributed as `UNKNOWN_*` and that check is lost.
+   *
+   * `null` when `source` is not `inferred_draft_layout`. The field is a fact
+   * about `build_draft_layout` running out of wells, and a run handed a
+   * `well_layout` or a sample map never asked it, so neither `true` nor
+   * `false` would be a statement about the layout that actually placed the
+   * wells.
+   *
+   * Optional: absent on results persisted before this field existed.
+   */
+  wt_omitted?: boolean | null;
 }
 
 /**
@@ -404,6 +419,21 @@ export interface PlateOrderFinding extends PlateOrderReport {
   severity: PlateOrderSeverity;
 }
 
+/**
+ * What the barcode workbook contains, read back so the operator can confirm it.
+ *
+ * `forward_count` and `reverse_count` are the seeds each axis carries and
+ * `wells` is how many wells they can name between them (the in-range
+ * combinations). Display only: which axis is the plate row and which way the
+ * plate fills are properties of how the barcodes were prepared, so there is no
+ * control here and no value to choose.
+ */
+export interface BarcodeAxisCounts {
+  forward_count: number;
+  reverse_count: number;
+  wells: number;
+}
+
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
@@ -414,6 +444,11 @@ export interface ValidationResult {
    * (which wells, which sheet, what is missing).
    */
   plate_order?: PlateOrderFinding;
+  /**
+   * Absent when no barcode workbook was supplied or it could not be read, so a
+   * previously shown line has to be cleared rather than left standing.
+   */
+  barcode_axes?: BarcodeAxisCounts;
 }
 
 export interface ExportResult {

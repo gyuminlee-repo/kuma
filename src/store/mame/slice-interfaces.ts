@@ -8,6 +8,7 @@ import type {
   AnalyzeYield,
   CompareParams,
   DistributionStats,
+  BarcodeAxisCounts,
   DemuxAndFilterResult,
   JanusAutosaveResult,
   JanusExportSettings,
@@ -103,6 +104,11 @@ export interface InputSlice {
   // v0.15.6 the operator points at the list to read, so the program has no
   // ground left to refuse the run.
   plateOrderFinding: PlateOrderFinding | null;
+  // What the barcode workbook the last validation read actually contains: seeds
+  // per axis and the wells they can name. null = no workbook, unreadable, or
+  // not validated yet. Display only, never an input: the axis roles and the
+  // fill order are properties of how the barcodes were prepared.
+  barcodeAxisCounts: BarcodeAxisCounts | null;
   // What the picked variant list offers (sheets, headers, the column the
   // backend would choose). null = not inspected, or the sidecar could not.
   variantSourceInfo: VariantSourceInfo | null;

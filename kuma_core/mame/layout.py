@@ -12,10 +12,13 @@ variant fails).
 
 96 is the hard ceiling, not a tunable: the combinatorial custom barcode is
 ``{R}_{F}`` with ``R`` in 1..8 and ``F`` in 1..12 (12 fwd + 8 rev seeds), so a
-97th well has no distinguishing sequence in the reads. Campaigns larger than 96
-mutants are split across plates, which MAME separates by *native* barcode, and
-one layout describes one plate. Anything this generator has to drop is reported
-rather than clamped away in silence.
+97th well has no distinguishing sequence in the reads. One analyze run scores
+one plate; native barcodes are replicates of that plate. A campaign larger than
+96 mutants is therefore split across plates and run one plate at a time, not
+folded into the native-barcode axis: that axis says which repeat of a well a
+read came from, so a second plate's A1 would be scored as a repeat of the first
+plate's A1. Anything this generator has to drop is reported rather than clamped
+away in silence.
 """
 
 from __future__ import annotations

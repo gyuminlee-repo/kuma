@@ -45,6 +45,7 @@ export function InputPanel() {
   const outputPath = useMameAppStore((s) => s.outputPath);
   const sampleMapPath = useMameAppStore((s) => s.sampleMapPath);
   const rawRunParams = useMameAppStore((s) => s.rawRunParams);
+  const barcodeAxisCounts = useMameAppStore((s) => s.barcodeAxisCounts);
   const verdictCount = useMameAppStore((s) => s.verdicts.length);
   const setInputDir = useMameAppStore((s) => s.setInputDir);
   const setExpectedPath = useMameAppStore((s) => s.setExpectedPath);
@@ -253,6 +254,18 @@ export function InputPanel() {
             readyLabel={readyLabel}
             browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.inputPanel.customBarcodes.label") })}
           />
+          {/* What the workbook contains, read back after a validation. A line of
+              text and nothing more: the plate convention is fixed in the code,
+              so there is no value here for the operator to choose. */}
+          {barcodeAxisCounts && (
+            <p className="text-xs text-muted-foreground -mt-2 pl-1">
+              {t("mame.inputPanel.customBarcodes.axisCounts", {
+                forward: barcodeAxisCounts.forward_count,
+                reverse: barcodeAxisCounts.reverse_count,
+                wells: barcodeAxisCounts.wells,
+              })}
+            </p>
+          )}
           <FileField
             label={t("mame.inputPanel.sampleMap.label")}
             value={sampleMapPath}

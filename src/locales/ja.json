@@ -166,7 +166,7 @@
     },
     "nativeBarcodeDialog": {
       "title": "複数の native barcode が検出されました",
-      "description": "この run には MinKNOW native barcode が複数含まれています。demultiplex する barcode を選択してください。選択した各 barcode はそれぞれ専用の出力フォルダーに処理されます。",
+      "description": "この run には MinKNOW native barcode が複数含まれています。demultiplex する barcode を選択してください。選択した各 barcode はそれぞれ専用の出力フォルダーに処理されます。1 回の解析 run が採点する plate は 1 枚です。ここで選んだ barcode は別々の plate ではなく、同じ plate の replicate として採点されます。",
       "shareHeader": "割合",
       "selectAriaLabel": "native barcode {{name}} を選択",
       "selectedCount": "barcode を {{count}} 件選択中",
@@ -778,7 +778,8 @@
         "placeholder": ".xlsx / .csv ファイルパス",
         "stateLabel": "必須",
         "helperText": "解析前に使用する組み合わせ barcode 定義",
-        "helpText": "Raw MinKNOW run モードでは、このファイルを使って解析前に read を well 単位 FASTA 出力へ割り当てます。"
+        "helpText": "Raw MinKNOW run モードでは、このファイルを使って解析前に read を well 単位 FASTA 出力へ割り当てます。",
+        "axisCounts": "Barcode ファイル: forward {{forward}} x reverse {{reverse}} seeds、1 枚の plate で {{wells}} wells。"
       },
       "sampleMap": {
         "label": "Sample Map (任意)",
@@ -2325,12 +2326,13 @@
     "description": "最新アップデートのハイライト。",
     "gotItBtn": "了解",
     "highlights": [
-      "現在のバージョンが実際に異なる判定をする場合にのみ、再解析を求めます。バージョン番号が上がっただけでは尋ねません。",
-      "求めるときは、保存された実行を古くしている変更点を提示するので、再解析の時間に理由があります。",
-      "別のバージョンが判定した実行は一切表示しません。判定表もプレートもエクスポートもなく、結果を保持する選択肢もありません。",
-      "削除されるものはありません。保存された実行はプロジェクトフォルダーに残り、再実行すると置き換わります。"
+      "バーコードの組をプレートの well に変える規則が 4 か所ではなく 1 か所にあります。4 つが食い違うことがなくなります。",
+      "プレートをちょうど埋めて wild-type well の空きが残らない設計を、その理由で拒否しなくなりました。",
+      "バーコードファイルを読み込むと forward と reverse が各何本で、何 well を記述するかを表示します。",
+      "native barcode ダイアログが何を選んでいるかを述べます。別々のプレートではなく、1 枚のプレートの replicate です。",
+      "プレート容量を超える run は、well が書かれた後ではなく demux 開始前に拒否されます。"
     ],
-    "highlightsStamp": "0.15.22+0d6b2595"
+    "highlightsStamp": "0.15.23+0c028fbf"
   },
   "primerDisplay": {
     "copySeqTitle": "配列をコピー",

@@ -11,6 +11,8 @@ equivalence is asserted in tests/mame/test_nb_label.py / src/lib/mame/nbLabel.te
 
 import re
 
+from kuma_core.mame.plate_geometry import DEFAULT_ADDRESSING
+
 
 def nb_label(raw: str) -> str:
     """Friendly plate label: "sort_barcode06" -> "NB06".
@@ -51,8 +53,12 @@ def well_sort_key(custom: str) -> tuple[int, int]:
 
     Parts are compared numerically so the order stays natural (1_2 before
     1_10) instead of lexicographic. Missing / non-numeric parts default to 0.
+
+    Both the axis and the column-first order come from
+    :data:`~kuma_core.mame.plate_geometry.DEFAULT_ADDRESSING` rather than being
+    re-derived here, so this key cannot disagree with ``seq_to_well`` about
+    which way the plate runs. It did once: the key ran row-major from June to
+    August 2026 and four ordering tests passed anyway, because every fixture
+    held the row index at 1 and both readings agree on those.
     """
-    parts = custom.split("_")
-    r = int(parts[0]) if len(parts) > 1 and parts[0].isdigit() else 0
-    f = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0
-    return (f, r)
+    return DEFAULT_ADDRESSING.sort_key(custom)

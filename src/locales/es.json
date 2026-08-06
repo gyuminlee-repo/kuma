@@ -166,7 +166,7 @@
     },
     "nativeBarcodeDialog": {
       "title": "Se detectaron varios native barcodes",
-      "description": "Esta corrida contiene más de un native barcode de MinKNOW. Seleccione los barcodes que desea demultiplexar; cada barcode seleccionado se procesa en su propia carpeta de salida.",
+      "description": "Esta corrida contiene más de un native barcode de MinKNOW. Seleccione los barcodes que desea demultiplexar; cada barcode seleccionado se procesa en su propia carpeta de salida. Una corrida de análisis evalúa una plate: los barcodes seleccionados aquí se evalúan como replicates de esa misma plate, no como plates distintas.",
       "shareHeader": "Proporción",
       "selectAriaLabel": "Seleccionar native barcode {{name}}",
       "selectedCount": "{{count}} barcode(s) seleccionado(s)",
@@ -778,7 +778,8 @@
         "placeholder": "Ruta del archivo .xlsx / .csv",
         "stateLabel": "Requerido",
         "helperText": "Definición combinatoria de barcodes usada antes del análisis",
-        "helpText": "El modo raw run de MinKNOW usa este archivo para asignar reads a salidas FASTA por well antes del análisis."
+        "helpText": "El modo raw run de MinKNOW usa este archivo para asignar reads a salidas FASTA por well antes del análisis.",
+        "axisCounts": "Archivo de barcodes: {{forward}} forward x {{reverse}} reverse seeds, {{wells}} wells en una plate."
       },
       "sampleMap": {
         "label": "Sample Map (opcional)",
@@ -2325,12 +2326,13 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Un proyecto solo pide volver a analizar cuando esta versión evaluaría la ejecución de otra forma, no porque haya subido el número de versión.",
-      "Cuando lo pide, enumera los cambios que dejan obsoleta la ejecución guardada: la hora de reanálisis tiene un motivo dicho.",
-      "Una ejecución evaluada por otra versión ya no se muestra: ni tabla de verdicts, ni placa, ni exportación, ni opción de conservarla.",
-      "No se borra nada. La ejecución guardada sigue en la carpeta del proyecto y una nueva la reemplaza."
+      "La regla que convierte un par de codigos de barras en un pocillo de la placa vive en un solo lugar en vez de cuatro, de modo que los cuatro no pueden divergir.",
+      "Un diseno que llena la placa exactamente y no deja sitio para un pocillo wild-type ya no se rechaza por ello.",
+      "Al cargar un archivo de codigos de barras se muestra cuantos forward y reverse contiene y cuantos pocillos describen.",
+      "El dialogo de native barcode dice que esta eligiendo: replicas de una placa, no placas distintas.",
+      "Una ejecucion que desborda la placa se rechaza antes de que empiece el demux, no despues de escribir los pocillos."
     ],
-    "highlightsStamp": "0.15.22+0d6b2595"
+    "highlightsStamp": "0.15.23+0c028fbf"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",
