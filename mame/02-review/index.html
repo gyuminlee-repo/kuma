@@ -14,7 +14,7 @@
         <link rel="prev" href="../01-setup/">
       
       
-        <link rel="next" href="../03-activity/">
+        <link rel="next" href="../03-janus/">
       
       
         
@@ -1005,24 +1005,80 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#21-verdict-plate" class="md-nav__link">
+  <a href="#21-inputs" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2.1 Verdict + Plate
+        2.1 Inputs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.1 Inputs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#v01514" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        입력을 바꾸면 이전 결과가 지워진다 (v0.15.14)
       
     </span>
   </a>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
-  <a href="#22-per-plate-verdict-bar-ngs" class="md-nav__link">
+  <a href="#22-review" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2.2 Per-plate verdict bar (NGS 효율 그래프)
+        2.2 Review
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="2.2 Review">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#per-plate-verdict-bar-ngs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-plate verdict bar (NGS 효율 그래프)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v01514_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        매핑 정합성 경고 (v0.15.14)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v01514_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        레이아웃 출처 (v0.15.14)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1053,14 +1109,42 @@
   
   
     <li class="md-nav__item">
-      <a href="../03-activity/" class="md-nav__link">
+      <a href="../03-janus/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    3. Activity Data
+    3. Janus 장비 설정
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-activity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4. Activity Data
   
 
     
@@ -1694,21 +1778,55 @@
 </tr>
 </tbody>
 </table>
-<h2 id="21-verdict-plate">2.1 Verdict + Plate<a class="headerlink" href="#21-verdict-plate" title="Permanent link">&para;</a></h2>
+<h2 id="21-inputs">2.1 Inputs<a class="headerlink" href="#21-inputs" title="Permanent link">&para;</a></h2>
+<p>실행 입력(run 폴더, expected 워크북, reference FASTA, sample map)을 고르고 Run 또는 Validate 를 누른다. Janus 장비 설정은 이 화면에 없다. step 3 소관이다.</p>
+<h3 id="v01514">입력을 바꾸면 이전 결과가 지워진다 (v0.15.14)<a class="headerlink" href="#v01514" title="Permanent link">&para;</a></h3>
+<p>run 폴더, expected 워크북, reference FASTA, sample map 중 하나라도 바꾸면 이전 실행이 만든 것이 지워진다. verdict 와 플레이트 맵, 산출물 안내가 모두 사라지고 2.2 는 실행 전 상태로 돌아간다. 끝난 실행의 화면이 새 입력의 결과처럼 보이는 것을 막기 위한 동작이다. 같은 경로를 다시 골랐을 때는 아무 일도 일어나지 않는다. 백엔드로 보내는 분석 파라미터(mode, CDS 좌표, raw run 파라미터 등)도 같은 규칙을 따른다. 출력 경로는 입력이 아니므로 무효화하지 않으며 화면 표시용 임계값인 <code>minFilteredDepth</code> 도 마찬가지다.</p>
+<h2 id="22-review">2.2 Review<a class="headerlink" href="#22-review" title="Permanent link">&para;</a></h2>
 <p>좌측: verdict table (NB01/NB02/NB03/ALL 필터). 우측: 96-well plate map (colorblind-safe toggle).</p>
-<h2 id="22-per-plate-verdict-bar-ngs">2.2 Per-plate verdict bar (NGS 효율 그래프)<a class="headerlink" href="#22-per-plate-verdict-bar-ngs" title="Permanent link">&para;</a></h2>
+<h3 id="per-plate-verdict-bar-ngs">Per-plate verdict bar (NGS 효율 그래프)<a class="headerlink" href="#per-plate-verdict-bar-ngs" title="Permanent link">&para;</a></h3>
 <p>각 plate 별 verdict 비율 stacked bar chart. PPT slide 6 의 "NGS 효율" 그래프와 동일 표현.</p>
-<blockquote>
-<p>본 sub-step 은 v0.9.2.x Task #12 에서 통합·재정렬 진행 중이다.</p>
-</blockquote>
 <!-- TODO: insert screenshot of verdict bar chart -->
 
+<h3 id="v01514_1">매핑 정합성 경고 (v0.15.14)<a class="headerlink" href="#v01514_1" title="Permanent link">&para;</a></h3>
+<p>실행이 끝나면 각 well 의 관측 아미노산 변화를 그 well 자신의 expected 변이 및 다른 well 의 expected 변이와 대조한다(<code>kuma_core/mame/qc/mapping_integrity.py</code>). 자기 일치율이 낮고 교차 일치율이 높으면 well 과 변이의 대응이 어긋난 상태로 판정하고 2.2 상단에 경고를 띄운다. 변이가 관측된 well 수, 자기 일치율, 교차 일치율을 함께 표시한다.</p>
+<ul>
+<li>실행을 막지 않는다. 이미 끝난 결과에 대한 판단이므로 경고만 띄운다.</li>
+<li>변이가 관측된 well 이 24개 미만이면 판정하지 않는다. 표본이 작으면 우연한 라벨 겹침이 신호와 구분되지 않는다.</li>
+<li>개별 well 은 각자의 expected 집합에 대해 정상적으로 분류되므로 실행 전 입력 검사로는 이 실패를 잡을 수 없다. 플레이트 전체를 함께 봐야 드러난다.</li>
+</ul>
+<h3 id="v01514_2">레이아웃 출처 (v0.15.14)<a class="headerlink" href="#v01514_2" title="Permanent link">&para;</a></h3>
+<p>analyze 응답에 <code>layout_provenance</code> 가 항상 실린다. well 과 sample 의 대응을 무엇이 만들었는지 기록하는 필드이며 값은 세 가지다.</p>
+<table>
+<thead>
+<tr>
+<th><code>source</code></th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>explicit_well_layout</code></td>
+<td>운용자가 준 well layout</td>
+</tr>
+<tr>
+<td><code>sample_map_xlsx</code></td>
+<td>sample map 워크북</td>
+</tr>
+<tr>
+<td><code>inferred_draft_layout</code></td>
+<td>실행 시점의 expected 목록에서 추론한 초안</td>
+</tr>
+</tbody>
+</table>
+<p>읽은 워크북 경로(<code>expected_path</code>, <code>sample_map_path</code>)도 함께 실린다. 추론된 레이아웃이 운용자가 지정한 레이아웃처럼 보이지 않게 하려는 필드다.</p>
 <h2 id="layout">Layout<a class="headerlink" href="#layout" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Verdicts table min-height 480 px, Plate plate view min-height 360 px.</li>
 <li>또는 resizable splitter 로 두 영역 자유 조절.</li>
 </ul>
-<p>→ <a href="../03-activity/">Step 4. Activity Data</a></p>
+<p>→ <a href="../03-janus/">Step 3. Janus 장비 설정</a> 은 선택 단계다. 시퀀싱 판정만 필요하면 여기서 멈춰도 된다.</p>
+<p>→ <a href="../04-activity/">Step 4. Activity Data</a></p>
 
 
 

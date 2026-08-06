@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://gyuminlee-repo.github.io/kuma/mame/03-activity/">
+        <link rel="canonical" href="https://gyuminlee-repo.github.io/kuma/mame/03-janus/">
       
       
         <link rel="prev" href="../02-review/">
       
       
-        <link rel="next" href="../../inputs/sequence/">
+        <link rel="next" href="../04-activity/">
       
       
         
@@ -25,7 +25,7 @@
     
     
       
-        <title>3. Activity Data - KUMA — KURO & MAME User Guide</title>
+        <title>3. Janus 장비 설정 - KUMA — KURO & MAME User Guide</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#step-4-activity-data" class="md-skip">
+        <a href="#step-3-janus" class="md-skip">
           콘텐츠로 이동
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              3. Activity Data
+              3. Janus 장비 설정
             
           </span>
         </div>
@@ -978,7 +978,7 @@
   <span class="md-ellipsis">
     
   
-    3. Activity Data
+    3. Janus 장비 설정
   
 
     
@@ -996,7 +996,7 @@
   <span class="md-ellipsis">
     
   
-    3. Activity Data
+    3. Janus 장비 설정
   
 
     
@@ -1022,10 +1022,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#41" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4.1 단일 공통 파이프라인
+        실행이 쓰는 파일과 여기서 쓰는 파일
       
     </span>
   </a>
@@ -1033,38 +1033,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#42" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4.2 측정값 형식
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="4.2 측정값 형식">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#long-format" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        범용 long-format 계약
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#43" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4.3 선택적 확인 측정
+        화면 구성
       
     </span>
   </a>
@@ -1072,10 +1044,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#44-ngs" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4.4 NGS 판정
+        값을 비워 두면
       
     </span>
   </a>
@@ -1083,10 +1055,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#45" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4.5 출력과 상태
+        완료 표시
       
     </span>
   </a>
@@ -1097,6 +1069,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-activity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4. Activity Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1676,82 +1676,49 @@
   
 
 
-<h1 id="step-4-activity-data">Step 4. Activity Data<a class="headerlink" href="#step-4-activity-data" title="Permanent link">&para;</a></h1>
-<p>Step 4는 <strong>이번 라운드의 활성 측정값</strong>을 같은 라운드의 NGS 판정으로 거른 뒤, WT 정규화와 replicate 병합을 거쳐 EVOLVEpro 입력 xlsx (<code>Variant</code>, <code>activity</code>)로 만든다.</p>
-<h2 id="41">4.1 단일 공통 파이프라인<a class="headerlink" href="#41" title="Permanent link">&para;</a></h2>
-<p>활성값의 출처에 따라 별도 route를 고르지 않는다. 상위 선택은 <strong>측정값 형식</strong>이며, 세 입력 어댑터가 모두 아래 공통 흐름으로 합류한다.</p>
-<ol>
-<li>측정값 읽기</li>
-<li>well 라벨이면 plate layout으로 variant에 매핑</li>
-<li>raw 값이면 같은 plate/cohort의 WT 평균으로 정규화</li>
-<li>replicate 병합</li>
-<li>이번 라운드 NGS verdict 적용</li>
-<li>EVOLVEpro <code>[Variant, activity]</code> export</li>
-</ol>
-<p>Plate layout은 활성값 소스가 아니라 <code>well → variant</code> 매핑 메타데이터다. NGS verdict는 모든 측정값 형식에 필수다.</p>
-<h2 id="42">4.2 측정값 형식<a class="headerlink" href="#42" title="Permanent link">&para;</a></h2>
-<p>한 번의 build에서 다음 중 정확히 하나를 사용한다.</p>
+<h1 id="step-3-janus">Step 3. Janus 장비 설정<a class="headerlink" href="#step-3-janus" title="Permanent link">&para;</a></h1>
+<p>선정된 클론을 로봇이 집을 수 있는 형태로 바꾸는 단계다. 선택 단계이며 어떤 실행도 막지 않는다. 시퀀싱 판정만 필요하면 step 2 에서 멈추면 된다.</p>
+<p>v0.15.12 에서 step 2.1 밖으로 분리됐고 v0.15.14 에서 팝업이 사라졌다.</p>
+<h2 id="_1">실행이 쓰는 파일과 여기서 쓰는 파일<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>형식</th>
-<th>요청 필드</th>
-<th>라벨</th>
-<th>값 해석</th>
-<th>추가 입력</th>
+<th>파일</th>
+<th>누가 쓰나</th>
+<th>내용</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>범용 long-format</td>
-<td><code>activity_path</code></td>
-<td>well 또는 variant 중 하나</td>
-<td><code>activity_scale</code>이 <code>raw</code>이면 WT 정규화, <code>relative_to_wt</code>이면 그대로 사용</td>
-<td>well 라벨일 때만 <code>layout_xlsx</code></td>
+<td><code>..._picks.csv</code></td>
+<td>step 2 의 실행이 자동으로</td>
+<td>선정 클론 목록 (<code>legacy5</code>)</td>
 </tr>
 <tr>
-<td>GC data</td>
-<td><code>gc_data_xlsx</code></td>
-<td>well</td>
-<td>이미 WT 상대값</td>
-<td><code>layout_xlsx</code> 필수</td>
-</tr>
-<tr>
-<td>raw Agilent report</td>
-<td><code>round1_report_xlsx</code></td>
-<td>well</td>
-<td>FID area를 report의 WT 블록 평균으로 정규화</td>
-<td><code>layout_xlsx</code> 필수</td>
+<td><code>..._janus.csv</code></td>
+<td>step 3 에서 내보내기를 눌렀을 때만</td>
+<td>로봇이 읽는 9열 시트 (<code>device9</code>)</td>
 </tr>
 </tbody>
 </table>
-<h3 id="long-format">범용 long-format 계약<a class="headerlink" href="#long-format" title="Permanent link">&para;</a></h3>
-<p>CSV 또는 XLSX에서 다음을 요구한다.</p>
+<p>분석은 pick 목록까지만 만든다. 로봇 시트는 deck 배치와 liquid class 를 함께 적는 파일이고 이 값들은 내보내는 시점의 실험실 상태를 진술한다. 재실행할 때마다 자동으로 다시 쓰면 그때 적힌 값이 지금도 맞다고 주장하는 셈이라, 사람이 누를 때만 만든다.</p>
+<h2 id="_2">화면 구성<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>step 3 은 전용 화면이므로 설정이 페이지에 그대로 펼쳐진다. v0.15.13 까지는 "Janus 장비 설정 열기" 버튼이 다이얼로그를 띄웠다. 미리보기를 모달 안에서 읽어야 했고 화면이 남는데도 좁았다.</p>
 <ul>
-<li>라벨 열은 정확히 하나: <code>well_id</code>, <code>well</code>, <code>well pos.</code>, <code>sample name</code>, <code>sample</code>, <code>variant</code>, <code>mutation</code>, <code>mutant</code>, <code>mutant_id</code></li>
-<li>값 열은 정확히 하나: <code>value</code>, <code>area</code>, <code>activity</code></li>
-<li>well 라벨과 variant 라벨을 한 파일에서 섞지 않는다.</li>
-<li>raw 값은 음수, NaN, 무한대를 허용하지 않는다.</li>
-<li><code>activity_scale=raw</code>이면 각 <code>plate_id</code>별 <code>WT_1</code>, <code>WT1</code> 형태의 WT 행 평균을 분모로 사용한다. <code>plate_id</code>가 없으면 파일 전체가 한 cohort다.</li>
-<li><code>activity_scale=relative_to_wt</code>이면 다시 정규화하지 않는다.</li>
+<li><strong>형식</strong>: CSV 또는 XLSX</li>
+<li><strong>대상 배치</strong>, <strong>출력 열 구성</strong>: 목적지 플레이트 배치와 내보낼 열 구성</li>
+<li><strong>장비 설정</strong>: Volume (µL), Liquid class</li>
+<li><strong>Deck 구성</strong>: sample type, 소스 rack 번호(플레이트별), 목적지 rack 번호</li>
+<li><strong>미리보기</strong>: 실제로 나갈 행을 보여준다. 차단·경고 항목이 있으면 함께 표시한다</li>
+<li><strong>제외 N건</strong>: 선정에서 빠진 클론과 그 이유</li>
+<li><strong>내보내기</strong></li>
 </ul>
-<h2 id="43">4.3 선택적 확인 측정<a class="headerlink" href="#43" title="Permanent link">&para;</a></h2>
-<p><code>remeasure_report_xlsx</code>는 선택 사항이다. sample name이 <code>V5F</code> 또는 <code>5F</code>처럼 <strong>variant로 명시된</strong> raw Agilent report만 받는다. report 안의 WT 행으로 독립 정규화한 replicate 평균이 같은 variant의 1차 측정값을 대체한다.</p>
-<p>숫자 인덱스, activity rank, 이전 EVOLVEpro 파일로 variant 이름을 추론하는 방식은 지원하지 않는다. 이전 저장 상태가 이 방식을 가리키면 KUMA는 실행하지 않고 long-format 또는 명시적 well/variant 라벨로 변환하라는 안내를 표시한다.</p>
-<h2 id="44-ngs">4.4 NGS 판정<a class="headerlink" href="#44-ngs" title="Permanent link">&para;</a></h2>
-<p><code>verdict_xlsx</code>는 필수이며 Analyze가 이번 라운드에 생성한 verdict evidence를 사용한다.</p>
-<p>variant가 export되려면 해당 evidence가 모두 만족되어야 한다.</p>
-<ul>
-<li>verdict가 명시적 <code>PASS</code></li>
-<li><code>failed</code>가 아님</li>
-<li><code>is_fallback</code>이 아님</li>
-<li>중복 row 사이에 verdict, 실패, fallback 또는 mutant identity 충돌이 없음</li>
-<li>well/variant identity가 측정값 및 plate layout과 일치</li>
-</ul>
-<p>판정 누락, 충돌, non-PASS, failed, fallback row는 통과로 추정하지 않고 제외한다. 통과 variant가 하나도 없으면 빈 파일을 성공으로 발행하지 않고 build를 실패시킨다.</p>
-<h2 id="45">4.5 출력과 상태<a class="headerlink" href="#45" title="Permanent link">&para;</a></h2>
-<p>성공 출력은 엄격한 두 열 <code>Variant</code>, <code>activity</code>를 가진다. raw Agilent 형식의 선택적 GC review export를 포함한 산출물 묶음은 임시 파일에 모두 작성된 뒤 함께 publish되므로, 중간 실패가 기존 출력 일부만 덮어쓰지 않는다.</p>
-<p>Step 3 폼 상태는 프로젝트 경로별로 버전 관리해 저장한다. Analyze 완료 시 확보한 <code>verdict_xlsx</code>와 evidence signature는 실행을 시작한 round에 기록되고 Step 3에 연결된다. 측정 입력, verdict evidence 또는 출력 경로가 바뀌면 이전 완료 서명은 무효가 되어 다시 build해야 한다.</p>
+<h2 id="_3">값을 비워 두면<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<p><strong>Liquid class 는 기본값이 없다.</strong> 로봇의 피펫팅 거동을 결정하는 값이라 프로그램이 대신 정하지 않는다. 비워 두면 그 칸이 빈 채로 나가고 내보내기는 진행된다. 실행 전에 내보내기 화면이나 시트에서 채운다.</p>
+<p><strong>Deck 번호는 이번 실행의 플레이트에서 유도한다.</strong> 소스 플레이트가 플레이트 순서대로 앞쪽 rack 을 받고 목적지가 그다음을 받는다. KURO 프라이머 시트와 같은 규칙이다. 내보내기 화면에서 숫자를 입력하면 각각 덮어쓸 수 있다.</p>
+<h2 id="_4">완료 표시<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>내보내기가 성공하면 step 3 이 완료로 표시된다. v0.15.13 까지는 실행이 매핑 파일을 자동으로 써서 이 표시가 실행 직후에 켜졌다. 이제는 사람이 내보낸 뒤에 켜진다.</p>
+<p>→ <a href="../02-review/">Step 2. Sequencing Review</a> | <a href="../04-activity/">Step 4. Activity Data</a></p>
 
 
 

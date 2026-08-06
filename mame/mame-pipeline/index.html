@@ -953,14 +953,42 @@
   
   
     <li class="md-nav__item">
-      <a href="../03-activity/" class="md-nav__link">
+      <a href="../03-janus/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    3. Activity Data
+    3. Janus 장비 설정
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-activity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4. Activity Data
   
 
     
@@ -1584,6 +1612,36 @@ quality를 보존한 뒤, 자체 demux/consensus/verdict 레이어에서 품질 
     - mixed allele, low-depth, low-quality base 지표 기록
     출력: {unit_dir}/{r_idx}_{f_idx}.fasta
 </code></pre></div>
+<h2 id="reference-amplicon">Reference amplicon 추출<a class="headerlink" href="#reference-amplicon" title="Permanent link">&para;</a></h2>
+<p><code>raw_run</code> 은 정렬 전에 reference FASTA 에서 amplicon 구간만 잘라낸다(<code>kuma_core/mame/ingest/amplicon_reference.py</code>). 바코드 워크북의 forward/reverse 프라이머가 공유하는 tail 을 reference 에서 찾아 그 사이를 span 으로 삼고 <code>{stem}.amplicon.fa</code> 로 쓴다. 잘라내지 못하면 reference 를 그대로 쓴다.</p>
+<p>v0.15.14 부터 실패 사유를 세 가지로 나눠 보고한다. 예전에는 어느 경우든 "primer boundaries were not unique" 한 문장이었고 이 문구는 사용자를 중복 프라이머 자리 찾기로 보냈다.</p>
+<table>
+<thead>
+<tr>
+<th>사유</th>
+<th>뜻</th>
+<th>대응</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>미발견</td>
+<td>tail 이 reference 에 없다</td>
+<td>CDS 만 담긴 reference 에서는 정상이다. 프라이머 tail 이 벡터 백본에 있어 CDS 밖에 놓인다</td>
+</tr>
+<tr>
+<td>중복</td>
+<td>tail 이 reference 의 여러 위치에 맞는다</td>
+<td>reference 가 모호하다. 반복 구간을 확인한다</td>
+</tr>
+<tr>
+<td>순서역전</td>
+<td>forward 자리가 reverse 자리보다 뒤에 있다</td>
+<td>reference 방향 또는 프라이머 지정을 확인한다</td>
+</tr>
+</tbody>
+</table>
+<p>잘라내기를 건너뛴 경우 남은 reference 길이로 coverage gate 를 통과할 수 있는지 먼저 확인한다. 가장 긴 read 가 <code>coverage_fraction</code> x reference 길이보다 짧으면 어떤 read 도 통과할 수 없으므로 실행을 시작하지 않고 거절한다.</p>
 <h2 id="_2">파라미터 가이드<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

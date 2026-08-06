@@ -1005,10 +1005,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#12-expected-mutations" class="md-nav__link">
+  <a href="#expected-mutations" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1.2 Expected Mutations
+        Expected mutations 워크북
       
     </span>
   </a>
@@ -1070,14 +1070,42 @@
   
   
     <li class="md-nav__item">
-      <a href="../03-activity/" class="md-nav__link">
+      <a href="../03-janus/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    3. Activity Data
+    3. Janus 장비 설정
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-activity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4. Activity Data
   
 
     
@@ -1720,7 +1748,8 @@
 <li><code>mixed_positions</code>, <code>max_minor_allele_fraction</code>: 51/49 같은 within-well mixture가 clean PASS로 숨지 않도록 AMBIGUOUS 판정에 사용.</li>
 <li><code>mapq_failed</code>, <code>span_failed</code>: 정렬 품질/coverage filter에서 탈락한 read 수. Verdict table과 Excel QC 컬럼에 표시된다.</li>
 </ul>
-<h2 id="12-expected-mutations">1.2 Expected Mutations<a class="headerlink" href="#12-expected-mutations" title="Permanent link">&para;</a></h2>
+<h2 id="expected-mutations">Expected mutations 워크북<a class="headerlink" href="#expected-mutations" title="Permanent link">&para;</a></h2>
+<p>step 1 의 sub-step 은 1.1 하나다. 예전 1.2 는 1.1 에 병합되었고(<code>setup.design</code> 은 redirect 용 legacy id 로만 남아 있다) expected 워크북은 2.1 Inputs 에서 고른다.</p>
 <table>
 <thead>
 <tr>
@@ -1745,7 +1774,7 @@
 <p>KURO 가 만든 xlsx 는 <code>__kuma_meta__</code> 숨김 시트로 프로젝트와 자동 매칭된다. 다른 프로젝트의 expected 를 드롭하면 mismatch 경고.</p>
 <h2 id="v092x">v0.9.2.x 변경<a class="headerlink" href="#v092x" title="Permanent link">&para;</a></h2>
 <ul>
-<li>사이드바 자유 navigate. 미입력 상태에서 1.2 진입 시 "Reference FASTA required" empty state.</li>
+<li>사이드바 자유 navigate. 미입력 상태 진입 시 "Reference FASTA required" empty state.</li>
 <li>Next 버튼은 missing input Dialog (validation.missing.reference 등) 표시.</li>
 </ul>
 <p>→ <a href="../02-review/">Step 2. Sequencing Review</a></p>
