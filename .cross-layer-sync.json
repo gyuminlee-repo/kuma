@@ -956,16 +956,36 @@
         "src/lib/mame/resultSnapshot.ts",
         "src/lib/mame/autosaveSnapshot.ts",
         "src/lib/mame/resultProvenance.ts",
+        "src/lib/mame/resultContract.ts",
         "src/hooks/useAutosaveHydration.ts",
         "src/components/mame/widgets/RestoredResultNotice.tsx"
       ],
       "symbols": [
         "kuma_version",
+        "result_contract",
+        "RESULT_CONTRACT",
+        "RESULT_CONTRACT_REVISIONS",
         "classifyResultVersion",
         "restoredResultProvenance"
       ],
-      "note": "Snapshot writers stamp kuma_version; hydration classifies it and the notice states it. A writer that stops stamping, or a hydration path that replays a result without classifying, puts an older engine's output on screen as if it were current.",
+      "note": "Snapshot writers stamp result_contract; hydration compares it and refuses to show another contract's run. A change to what analyze produces must add a RESULT_CONTRACT_REVISIONS entry, or an obsolete saved run keeps being presented as current.",
       "severity": "blocking"
+    },
+    {
+      "id": "mame-analyze-result-contract",
+      "files": [
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "kuma_core/mame/pipeline.py",
+        "kuma_core/mame/select",
+        "src/lib/mame/resultContract.ts"
+      ],
+      "symbols": [
+        "RESULT_CONTRACT_REVISIONS",
+        "VerdictRecord",
+        "ReplicateResult"
+      ],
+      "note": "What an analyze run produces vs the revision table that dates it. Changing verdicts, replicate selection, ordering or a refusal without adding a revision leaves every older project silently trusted.",
+      "severity": "warning"
     }
   ]
 }

@@ -840,12 +840,20 @@
       }
     },
     "restoredResult": {
-      "title": "Diese Ergebnisse stammen aus einer anderen kuma-Version",
-      "bodyOlder": "Wiederhergestellt aus einem Snapshot von kuma v{{version}}. Dieser Build bewertet Läufe anders: neu ausführen, um das aktuelle Ergebnis zu sehen, oder das gespeicherte weiter ansehen.",
-      "bodyNewer": "Wiederhergestellt aus einem Snapshot von kuma v{{version}}, neuer als dieser Build. Diese Version bewertet den Lauf womöglich anders: neu ausführen oder das gespeicherte Ergebnis weiter ansehen.",
-      "bodyUnknown": "Wiederhergestellt aus einem Snapshot ohne kuma-Versionsangabe, also nicht von einem älteren Lauf zu unterscheiden. Neu ausführen oder das gespeicherte Ergebnis weiter ansehen.",
+      "title": "Der gespeicherte Lauf dieses Projekts wurde von einer anderen kuma-Version bewertet",
+      "bodyOlder": "Der gespeicherte Lauf stammt von kuma v{{version}} und wird anders bewertet als in diesem Build, deshalb wird er nicht angezeigt. Führen Sie die Analyse erneut aus, um ein Ergebnis dieser Version zu erhalten.",
+      "bodyNewer": "Der gespeicherte Lauf stammt von kuma v{{version}}, neuer als dieser Build, deshalb wird er nicht angezeigt. Führen Sie die Analyse hier erneut aus oder öffnen Sie das Projekt in jener Version.",
+      "bodyUnknown": "Der gespeicherte Lauf nennt keine kuma-Version, ist damit von einem veralteten nicht zu unterscheiden und wird nicht angezeigt. Führen Sie die Analyse erneut aus.",
+      "fileKept": "Nichts wurde gelöscht: der gespeicherte Lauf liegt weiterhin im Projektordner.",
       "rerun": "Analyse erneut ausführen",
-      "keep": "Ergebnisse behalten"
+      "why": "Seitdem hat dieser Build verändert, was ein Lauf produziert:",
+      "change": {
+        "plateDisagreementRefused": "Eine Arbeitsmappe, die eine Platte zweifach beschreibt, stoppt den Lauf, statt gegen die falsche Liste zu bewerten.",
+        "replicatePurityOrder": "Das Replikat mit der gemessen saubersten Ablesung wird ausgeliefert, geordnet nach Reinheit.",
+        "selfConsistencyCheck": "Nach dem Lauf wird jedes Well gegen die eigene erwartete Variante und gegen alle anderen geprüft.",
+        "plateColumnRowOrder": "Ergebniszeilen folgen der Plattenspalte, wie jede andere Platzierungsregel.",
+        "barcodePlateShapeRefused": "Eine Barcode-Datei, die keine 8-mal-12-Platte beschreibt, stoppt den Lauf."
+      }
     },
     "janus": {
       "settings": {
@@ -2280,13 +2288,12 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Der annealing tail eines Barcodes wird jetzt aus der Datei selbst gelesen, sodass ein fuer jedes Gen entworfener Barcode-Satz an der richtigen Stelle getrennt wird.",
-      "Eine Datei, deren tail nicht lesbar ist, stoppt den Lauf, statt eine Trennstelle zu raten und reads in fremde wells einzuordnen.",
-      "Reverse-Barcodes verlieren ihre letzte Base nicht mehr, was bisher die Grundlage fuer die Wahl der Plattenzeile verschmaelert hat.",
-      "Die Ergebnis-Arbeitsmappe haelt fest, welcher annealing tail abgeleitet wurde, sodass ein fertiger Lauf spaeter geprueft werden kann.",
-      "Das mitgelieferte Barcode-Beispiel wurde neu erzeugt und traegt nun die vom Leser erwartete Struktur aus seed und gemeinsamem tail."
+      "Ein Projekt verlangt eine Neuanalyse nur, wenn diese Version den Lauf wirklich anders bewerten würde, nicht weil die Versionsnummer gestiegen ist.",
+      "Wenn sie es verlangt, nennt sie die Änderungen, die den gespeicherten Lauf veralten lassen: die Stunde Neuanalyse hat einen genannten Grund.",
+      "Ein von einer anderen Version bewerteter Lauf wird gar nicht mehr gezeigt: keine Verdict-Tabelle, keine Platte, kein Export und keine Option, die Ergebnisse zu behalten.",
+      "Nichts wird gelöscht. Der gespeicherte Lauf bleibt im Projektordner und wird durch einen neuen Lauf ersetzt."
     ],
-    "highlightsStamp": "0.15.21+8d129891"
+    "highlightsStamp": "0.15.22+0d6b2595"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",

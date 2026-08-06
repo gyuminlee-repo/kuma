@@ -1,88 +1,56 @@
 /**
- * RestoredResultNotice — says which build produced the results on screen.
+ * RestoredResultNotice — a saved run this build will not show.
  *
- * A restored project replays the analyze response it saved, so the review
- * screen can show verdicts nobody ran in this session. That is the feature:
- * sequencing turnaround is measured in weeks. It stops being harmless the
- * moment the two builds disagree, and between v0.15.10 and v0.15.18 they did:
- * a workbook that writes one plate two ways is now refused, replicate picks are
- * ordered by measured purity, a finished run is checked against itself, and
- * result rows follow the plate column. A result scored before those changes is
- * not what this build would produce.
+ * A project folder outlives the app that made it, and MAME keeps changing what
+ * a run produces: a workbook that describes one plate two ways is refused,
+ * replicate picks are ordered by measured purity, a finished run is checked
+ * against itself, result rows follow the plate column, a barcode file that does
+ * not describe the plate stops the run. A result scored before those changes is
+ * another build's answer.
  *
- * The result is still restored and still exported: throwing away an operator's
- * run because the app updated would be worse than showing it. What changes is
- * that the screen states the origin and offers the two honest ways out, re-run
- * or keep. "Keep" is remembered per project and per producing version, so the
- * notice does not nag every restart but does speak up for a different snapshot.
+ * The list is the argument: an operator told to spend an hour re-analysing is
+ * owed the changes that make the saved run obsolete.
  *
- * Deliberately not an error: the data is intact and may well be correct. It is
- * a warning about provenance, which is why it renders as one.
+ * v0.15.20 showed it anyway, with a warning and a "keep these results" button.
+ * That was wrong: a result the app lets you go on reading is a result the app
+ * is telling you to trust, and the button quietly recommended running the lab
+ * on an obsolete engine. There is no keep. The saved file is left on disk
+ * untouched, the screen shows no verdicts, and the way to a result is a re-run
+ * by this build.
+ *
+ * Not an error boundary: nothing failed and nothing was lost. It is a statement
+ * about what the app is willing to present as current.
  */
 
-import { useMemo, useState } from "react";
-import { History, RefreshCw, X } from "lucide-react";
+import { History, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import {
-  acknowledgeResultVersion,
-  hasAcknowledgedResultVersion,
-} from "@/lib/mame/resultProvenance";
-import { useKumaProject } from "@/state/projectContext";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 
 interface RestoredResultNoticeProps {
   /**
    * Re-run trigger, wired to the same pre-flighted callback the Run button
    * uses. Omitted where a run cannot be started from that screen, in which case
-   * the notice still states the origin and offers only "keep".
+   * the notice still states why nothing is shown.
    */
   onRunRequest?: () => void;
 }
 
 export function RestoredResultNotice({ onRunRequest }: RestoredResultNoticeProps = {}) {
   const { t } = useTranslation();
-  const project = useKumaProject();
   const provenance = useMameAppStore((s) => s.restoredResultProvenance);
   const isAnalyzing = useMameAppStore((s) => s.isAnalyzing);
-  const setProvenance = useMameAppStore((s) => s.setRestoredResultProvenance);
-  const projectPath = project?.path ?? null;
-  const version = provenance?.version ?? null;
-  // Bumped by the Keep button. The stored answer is re-read whenever the
-  // project or the producing version changes, because this component stays
-  // mounted while the operator switches projects: a mount-time latch would
-  // carry one project's dismissal into the next project's stale snapshot.
-  const [ackTick, setAckTick] = useState(0);
-  const dismissed = useMemo(
-    () =>
-      provenance !== null &&
-      projectPath !== null &&
-      hasAcknowledgedResultVersion(projectPath, version),
-    // ackTick is the invalidation signal for the localStorage read.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [provenance, projectPath, version, ackTick],
-  );
+  const canRun = useMameAppStore((s) => s.verdicts.length === 0);
 
-  if (!provenance || dismissed) return null;
+  if (!provenance) return null;
 
+  const version = provenance.version;
   const body =
     provenance.relation === "unknown" || version === null
       ? t("mame.restoredResult.bodyUnknown")
       : provenance.relation === "newer"
         ? t("mame.restoredResult.bodyNewer", { version })
         : t("mame.restoredResult.bodyOlder", { version });
-
-  function keepThem() {
-    if (projectPath) acknowledgeResultVersion(projectPath, version);
-    setAckTick((tick) => tick + 1);
-  }
-
-  function rerun() {
-    // The run itself clears the restored result (clearResults), but clearing the
-    // flag here too keeps the notice from lingering while the run starts.
-    setProvenance(null);
-    onRunRequest?.();
-  }
 
   return (
     <div
@@ -96,29 +64,35 @@ export function RestoredResultNotice({ onRunRequest }: RestoredResultNoticeProps
       <div className="min-w-0 flex-1 space-y-1 text-caption text-foreground">
         <p className="font-medium break-words">{t("mame.restoredResult.title")}</p>
         <p className="break-words text-muted-foreground">{body}</p>
-        <div className="flex flex-wrap gap-2 pt-0.5">
-          {onRunRequest && (
+        {provenance.changes.length > 0 && (
+          <p className="break-words text-muted-foreground">{t("mame.restoredResult.why")}</p>
+        )}
+        {provenance.changes.length > 0 && (
+          <ul className="list-disc space-y-0.5 pl-4 text-muted-foreground">
+            {provenance.changes.map((change) => (
+              <li key={change.revision} className="break-words">
+                {t(`mame.restoredResult.change.${change.key}`)}
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="break-words text-muted-foreground">
+          {t("mame.restoredResult.fileKept")}
+        </p>
+        {onRunRequest && canRun && (
+          <div className="pt-0.5">
             <Button
               variant="outline"
               size="sm"
               className="h-control gap-1.5 rounded-control text-caption"
-              onClick={rerun}
+              onClick={onRunRequest}
               disabled={isAnalyzing}
             >
               <RefreshCw size={12} aria-hidden="true" />
               {t("mame.restoredResult.rerun")}
             </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-control gap-1.5 rounded-control text-caption"
-            onClick={keepThem}
-          >
-            <X size={12} aria-hidden="true" />
-            {t("mame.restoredResult.keep")}
-          </Button>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

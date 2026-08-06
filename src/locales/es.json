@@ -840,12 +840,20 @@
       }
     },
     "restoredResult": {
-      "title": "Estos resultados vienen de otra versión de kuma",
-      "bodyOlder": "Restaurados desde una instantánea escrita por kuma v{{version}}. Esta versión evalúa las ejecuciones de otra forma: vuelva a ejecutar para ver su resultado o siga viendo el guardado.",
-      "bodyNewer": "Restaurados desde una instantánea escrita por kuma v{{version}}, más reciente que esta versión. Puede que no evalúe la ejecución igual: vuelva a ejecutar o siga viendo el resultado guardado.",
-      "bodyUnknown": "Restaurados desde una instantánea sin versión de kuma registrada, así que no se distingue de una ejecución antigua. Vuelva a ejecutar o siga viendo el resultado guardado.",
+      "title": "La ejecución guardada de este proyecto la evaluó otra versión de kuma",
+      "bodyOlder": "La ejecución guardada la produjo kuma v{{version}}, que evalúa de forma distinta a esta versión, así que no se muestra. Vuelva a ejecutar el análisis para obtener un resultado del que esta versión responde.",
+      "bodyNewer": "La ejecución guardada la produjo kuma v{{version}}, más reciente que esta versión, así que no se muestra. Vuelva a ejecutar aquí o abra el proyecto en esa versión.",
+      "bodyUnknown": "La ejecución guardada no registra versión de kuma, no se puede distinguir de una obsoleta y no se muestra. Vuelva a ejecutar el análisis.",
+      "fileKept": "No se borró nada: la ejecución guardada sigue en la carpeta del proyecto.",
       "rerun": "Volver a ejecutar el análisis",
-      "keep": "Conservar estos resultados"
+      "why": "Desde entonces esta versión cambió lo que produce una ejecución:",
+      "change": {
+        "plateDisagreementRefused": "Un libro que describe una placa de dos formas detiene la ejecución en vez de evaluar contra la lista equivocada.",
+        "replicatePurityOrder": "Se entrega la réplica que se lee más limpia, ordenada por pureza medida.",
+        "selfConsistencyCheck": "Tras la ejecución, cada pocillo se comprueba contra su variante esperada y contra los demás.",
+        "plateColumnRowOrder": "Las filas de resultado siguen la columna de la placa, como cualquier otra regla de colocación.",
+        "barcodePlateShapeRefused": "Un archivo de barcodes que no describe una placa de 8 por 12 detiene la ejecución."
+      }
     },
     "janus": {
       "settings": {
@@ -2280,13 +2288,12 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El annealing tail de un codigo de barras ahora se lee del propio archivo, de modo que un juego disenado para cualquier gen se corta en el lugar correcto.",
-      "Un archivo cuyo tail no se puede leer detiene la ejecucion, en lugar de adivinar el corte y colocar reads en wells que no les corresponden.",
-      "Los codigos de barras reverse ya no pierden su ultima base, lo que venia estrechando la evidencia usada para elegir la fila de la placa.",
-      "El libro de resultados registra que annealing tail se dedujo, de modo que una ejecucion terminada puede auditarse despues.",
-      "La muestra de codigos de barras incluida se regenero para llevar la estructura de seed mas tail comun que espera el lector."
+      "Un proyecto solo pide volver a analizar cuando esta versión evaluaría la ejecución de otra forma, no porque haya subido el número de versión.",
+      "Cuando lo pide, enumera los cambios que dejan obsoleta la ejecución guardada: la hora de reanálisis tiene un motivo dicho.",
+      "Una ejecución evaluada por otra versión ya no se muestra: ni tabla de verdicts, ni placa, ni exportación, ni opción de conservarla.",
+      "No se borra nada. La ejecución guardada sigue en la carpeta del proyecto y una nueva la reemplaza."
     ],
-    "highlightsStamp": "0.15.21+8d129891"
+    "highlightsStamp": "0.15.22+0d6b2595"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",
