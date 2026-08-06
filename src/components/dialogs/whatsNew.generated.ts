@@ -5,7 +5,7 @@ export interface WhatsNewItem {
   detail: string;
 }
 
-export const WHATS_NEW_VERSION = "0.15.13";
+export const WHATS_NEW_VERSION = "0.15.14";
 
 export const WHATS_NEW_ITEMS: WhatsNewItem[] = [
   { label: "Fixed", detail: "Only a drag counts as a size the operator chose, and it is recorded under its own key. A layout the panel library persisted on its own no longer suppresses the content fit, so the plate map takes the height its rows need on machines that h…" },
