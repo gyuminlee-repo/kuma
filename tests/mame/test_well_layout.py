@@ -396,3 +396,80 @@ def test_validate_inputs_reports_why_a_file_cannot_be_read(tmp_path: Path) -> No
     (message,) = result["errors"]
     assert "which column holds the variants" in message
     assert "8c47037" not in message
+
+
+# ---------------------------------------------------------------------------
+# The inferred layout follows the workbook's own row order
+# ---------------------------------------------------------------------------
+
+def _expected_xlsx_in_order(dest: Path, mutant_ids: list[str]) -> Path:
+    """A KURO export whose ``expected_mutations`` rows appear in *mutant_ids* order."""
+    rows = {
+        "G2A": ["G2A", 2, "G", "A", "GGG", "GCG", "", "G2A", "substitution", "DESIGNED"],
+        "F3W": ["F3W", 3, "F", "W", "TTT", "TGG", "", "F3W", "substitution", "DESIGNED"],
+    }
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.title = "expected_mutations"
+    ws.append(["mutant_id", "position", "wt_aa", "mt_aa", "wt_codon", "mt_codon",
+               "group_id", "primer_set_ref", "notation_type", "status"])
+    for mutant_id in mutant_ids:
+        ws.append(rows[mutant_id])
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    wb.save(dest)
+    return dest
+
+
+def test_inferred_layout_follows_the_workbook_row_order_and_nothing_else(
+    tmp_path: Path,
+) -> None:
+    """Reorder the workbook's rows and the wells move with them.
+
+    ``test_handle_analyze_auto_scopes_from_expected_when_sample_map_omitted``
+    (tests/sidecar_mame/test_analyze_raw_run.py) already pins that a run given
+    neither ``well_layout`` nor ``sample_map_xlsx`` places wells from the chosen
+    workbook. It reads one workbook, whose rows happen to be in residue-position
+    order, so it cannot say WHICH property of that file the placement followed.
+
+    This varies only the row order, holding the reads and the plate fixed. The
+    designed rows are written F3W (position 3) before G2A (position 2), so sheet
+    order and position order now disagree and the wells must follow the sheet:
+    A01 declared F3W while its reads carry G2A, B01 the reverse, both failing.
+    Sorting by position instead -- ``canonical_plate_order`` is one import away
+    and its docstring offers "the plate the bench actually fills" -- would leave
+    every other test in the suite green while silently re-placing every well of
+    any workbook not already position-ordered.
+
+    That is the 2026-08-06 shape exactly: a 95-well layout in design-ranking
+    order scored a plate filled in position order, agreed with it at 0 of 95
+    wells, and reported 0 PASS from sequencing that was in fact 262/285 correct.
+    """
+    from sidecar_mame.handlers.analyze import handle_analyze
+
+    ingest = tmp_path / "consensus"
+    _write_fasta(ingest / "NB01" / "1_1.fasta", "1_1", _G2A_NT)   # A01 observes G2A
+    _write_fasta(ingest / "NB01" / "2_1.fasta", "2_1", _F3W_NT)   # B01 observes F3W
+
+    result = handle_analyze({
+        "input_dir": str(ingest),
+        "reference": str(_make_reference_fasta(tmp_path)),
+        "expected": str(_expected_xlsx_in_order(tmp_path / "expected.xlsx", ["F3W", "G2A"])),
+        "output": str(tmp_path / "out.xlsx"),
+        "cds_start": 0,
+        "cds_end": 9,
+        "min_file_size_kb": 0.0,
+        "min_read_count": 0,
+        "ingest_mode": "barcode",
+    })
+
+    # The run has to name this branch, or a layout it derived itself could pass
+    # downstream as one the operator supplied.
+    assert result["layout_provenance"]["source"] == "inferred_draft_layout"
+    assert result["layout_provenance"]["sample_map_path"] is None
+
+    by_custom = {v["custom_barcode"]: v for v in result["verdicts"]}
+    assert by_custom["1_1"]["expected_mutations"] == ["F3W"], by_custom["1_1"]
+    assert by_custom["2_1"]["expected_mutations"] == ["G2A"], by_custom["2_1"]
+    assert by_custom["1_1"]["verdict"] != "PASS", by_custom["1_1"]
+    assert by_custom["2_1"]["verdict"] != "PASS", by_custom["2_1"]
