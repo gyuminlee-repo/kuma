@@ -2280,12 +2280,13 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Una ejecución restaurada desde un kuma anterior ahora indica qué versión la evaluó, en vez de parecer un resultado de esta versión.",
-      "Usted decide lo siguiente: volver a ejecutar para un resultado de esta versión o conservar el guardado. Nada se borra ni se ejecuta por usted.",
-      "Conservar se recuerda por proyecto y por versión, así que el aviso calla hasta que aparece otra instantánea.",
-      "Una instantánea sin versión registrada, o de una versión más reciente, se informa en lugar de darse por buena."
+      "El annealing tail de un codigo de barras ahora se lee del propio archivo, de modo que un juego disenado para cualquier gen se corta en el lugar correcto.",
+      "Un archivo cuyo tail no se puede leer detiene la ejecucion, en lugar de adivinar el corte y colocar reads en wells que no les corresponden.",
+      "Los codigos de barras reverse ya no pierden su ultima base, lo que venia estrechando la evidencia usada para elegir la fila de la placa.",
+      "El libro de resultados registra que annealing tail se dedujo, de modo que una ejecucion terminada puede auditarse despues.",
+      "La muestra de codigos de barras incluida se regenero para llevar la estructura de seed mas tail comun que espera el lector."
     ],
-    "highlightsStamp": "0.15.20+ae44e5c0"
+    "highlightsStamp": "0.15.21+8d129891"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",

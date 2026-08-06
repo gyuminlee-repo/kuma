@@ -875,6 +875,41 @@ class TestSampleMapTemplatePrefill:
                 expected_mutations_path=expected_xlsx,
             )
 
+    def test_over_plate_message_does_not_advise_two_plates_in_one_run(
+        self, tmp_path: Path
+    ) -> None:
+        """The way out has to be a way MAME supports.
+
+        The message used to say "split the campaign across plates (MAME
+        separates plates by native barcode) and supply one sample map per
+        plate". Analyze carries one sample map per run, keyed by well alone
+        (``pipeline.run_analyze``), and treats the native barcode as the
+        replicate axis (``pick_best_replicate``). Following that advice puts two
+        different mutants in one mutant_id as replicates of each other, and the
+        run reports a replicate disagreement rather than a mistake.
+        """
+        fasta, seeds, project_root = _make_project(tmp_path)
+        expected_xlsx = project_root / "kuro_results.xlsx"
+        _make_expected_mutations_xlsx(
+            expected_xlsx, [(f"M{i}", i, "A", "G") for i in range(1, 110)]
+        )
+        with pytest.raises(ValueError) as excinfo:
+            generate_mame_package(
+                fasta_path=fasta,
+                gene_start=500,
+                gene_end=800,
+                barcode_seeds_path=seeds,
+                output_dir=project_root / "design",
+                project_root=project_root,
+                gene_name="test_gene",
+                expected_mutations_path=expected_xlsx,
+            )
+
+        message = str(excinfo.value)
+        assert "MAME separates plates by native barcode" not in message
+        assert "one plate per run" in message
+        assert "replicate axis" in message
+
     def test_exactly_full_plate_raises_for_missing_wt(self, tmp_path: Path) -> None:
         """N == 96 leaves no WT well, which costs the clean-control check."""
         fasta, seeds, project_root = _make_project(tmp_path)

@@ -280,6 +280,50 @@ def test_excel_kuma_meta_sheet_none_meta(tmp_path: Path) -> None:
     assert len(all_values) >= 3
 
 
+def test_excel_kuma_meta_carries_barcode_prefix_rule(tmp_path: Path) -> None:
+    """How the barcode seeds were cut reaches the workbook the operator keeps.
+
+    The sidecar log says it too, but nobody opens that file, and a seed cut at a
+    guessed length names the wrong plate row while every other cell of the result
+    looks ordinary. The row is written next to the run metadata because it is the
+    same kind of fact: what this file was produced from.
+    """
+    vr = _make_verdict("NB01", "1_1", VerdictClass.PASS)
+    out = tmp_path / "prefix_rule.xlsx"
+    note = "Barcode seeds on axis R were cut at a fixed length because ..."
+
+    write_excel(
+        verdict_records=[vr],
+        replicate_results=[],
+        output_path=out,
+        ngs_run_meta=None,
+        barcode_prefix_note=note,
+    )
+
+    ws = openpyxl.load_workbook(out)["__kuma_meta__"]
+    kv = {row[0]: row[1] for row in ws.iter_rows(min_row=2, values_only=True) if row[0]}
+    assert kv.get("barcode_prefix_rule") == note
+
+
+def test_excel_kuma_meta_omits_barcode_prefix_rule_without_a_barcode_file(
+    tmp_path: Path,
+) -> None:
+    """Consensus-dir mode reads no barcode workbook, so it claims nothing."""
+    vr = _make_verdict("NB01", "1_1", VerdictClass.PASS)
+    out = tmp_path / "no_prefix_rule.xlsx"
+
+    write_excel(
+        verdict_records=[vr],
+        replicate_results=[],
+        output_path=out,
+        ngs_run_meta=None,
+    )
+
+    ws = openpyxl.load_workbook(out)["__kuma_meta__"]
+    keys = {row[0] for row in ws.iter_rows(min_row=2, values_only=True) if row[0]}
+    assert "barcode_prefix_rule" not in keys
+
+
 def test_excel_legacy_sheets_preserved(tmp_path: Path) -> None:
     """Existing legacy sheets (NB01, Final, NGS Results, Final (matrix)) are unaffected."""
     vr = _make_verdict("NB01", "1_1", VerdictClass.PASS)

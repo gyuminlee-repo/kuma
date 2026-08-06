@@ -473,6 +473,38 @@ def _barcode_layout_error(barcodes_path: Path) -> str | None:
     )
 
 
+def _barcode_seed_rule_error(barcodes_path: Path) -> str | None:
+    """Does this barcode file say where its seeds end?
+
+    The run derives the annealing tail from the file and refuses the workbook
+    when neither axis states one; there is no fallback seed length any more
+    (``combinatorial_demux._resolve_axis_prefixes``). Asking the same reader
+    here is what keeps the button and the run from disagreeing: without it a
+    workbook passes validation, the operator starts a multi-minute demux, and
+    the refusal arrives at the point where it costs the most. The reader is the
+    check rather than a copy of its rules, so the two cannot drift apart, and
+    it reports the reader's own sentence, which names the axis, the arithmetic
+    and (when a majority of rows agree) the rows at fault.
+
+    Returns the message to put in front of the operator, or ``None`` when the
+    file states its rule. Anything other than a refusal is not this check's
+    business: a file that cannot be opened at all is reported by the path
+    validation the caller already ran, and duplicating it here would put two
+    sentences about one problem on the screen.
+    """
+    try:
+        from kuma_core.mame.ingest.combinatorial_demux import (
+            load_barcode_prefixes_with_provenance,
+        )
+
+        load_barcode_prefixes_with_provenance(barcodes_path)
+    except ValueError as exc:
+        return str(exc)
+    except Exception:  # noqa: BLE001 - openpyxl surface is broad
+        return None
+    return None
+
+
 def _plate_order_finding(params: dict, expected_path: Path) -> dict | None:
     """Does the expected workbook agree with its own primer plate sheets?
 
@@ -572,12 +604,13 @@ def handle_validate_inputs(params: dict) -> dict:
             from kuma_core.mame.ingest import is_minknow_run_dir
 
             custom_barcodes_xlsx = params.get("custom_barcodes_xlsx")
+            is_raw_run = is_minknow_run_dir(input_path)
             if input_path.name == "fastq_pass":
                 errors.append(
                     "Select the MinKNOW run folder (the parent of fastq_pass/), "
                     "not fastq_pass/ itself."
                 )
-            elif is_minknow_run_dir(input_path) and not custom_barcodes_xlsx:
+            elif is_raw_run and not custom_barcodes_xlsx:
                 errors.append(
                     "custom_barcodes_xlsx is required when input_dir is a raw "
                     "MinKNOW run folder"
@@ -594,6 +627,18 @@ def handle_validate_inputs(params: dict) -> dict:
                     layout_error = _barcode_layout_error(barcodes_path)
                     if layout_error is not None:
                         errors.append(layout_error)
+                    elif is_raw_run:
+                        # Only for a raw run, because that is the only mode
+                        # that cuts seeds out of this file; a sorted-directory
+                        # analysis never opens it, and refusing a workbook the
+                        # run would not have read would block a correct job.
+                        # After the layout check rather than beside it, for the
+                        # reason the run orders them the same way: a workbook
+                        # with no primer rows fails both, and the layout
+                        # sentence names the row-naming rule.
+                        seed_rule_error = _barcode_seed_rule_error(barcodes_path)
+                        if seed_rule_error is not None:
+                            errors.append(seed_rule_error)
 
     if not reference:
         errors.append("reference is required")
@@ -711,6 +756,10 @@ def handle_analyze(params: dict) -> dict:
     )
     reference_for_pipeline = reference
     amplicon_resolution = None
+    # Raw-run only: which annealing tail the barcode workbook stated, and the
+    # seed lengths cutting it left. Stays None in consensus-dir mode, which
+    # reads no barcode file, so the response key is absent there.
+    barcode_prefix_resolution = None
     resolved_raw_cds_start: int | None = None
     resolved_raw_cds_end: int | None = None
     expected = _validate_filepath(
@@ -877,6 +926,41 @@ def handle_analyze(params: dict) -> dict:
                         amplicon_resolution.reference_fasta,
                     )
                 )
+        # Plate-fit check, run on the run rather than only on the validate
+        # button: ``inputSlice._demuxAndAnalyze`` calls this RPC directly, so a
+        # file numbered past the 8x12 plate otherwise reaches a multi-minute
+        # demux and comes back with wells that have no coordinate. One small
+        # read-only workbook read, and still before the demux.
+        #
+        # Deliberately AFTER the amplicon and coverage refusal above. A workbook
+        # with no primer rows at all fails both checks, and the coverage message
+        # is the better of the two: it names the row-naming rule and shows the
+        # arithmetic that will drop every read. Running this first would replace
+        # it with the narrower "carries no barcode rows".
+        layout_error = _barcode_layout_error(Path(raw_custom_barcodes_xlsx))
+        if layout_error is not None:
+            raise ValueError(layout_error)
+
+        # How the barcode seeds are about to be cut, read before the demux so
+        # the answer is on the response and in the result workbook. This also
+        # refuses, by raising out of the reader, a workbook whose axes state no
+        # shared annealing tail: there is no fallback seed length any more, and
+        # a multi-minute demux over guessed seeds was the failure this whole
+        # path exists to stop.
+        #
+        # Deliberately AFTER the amplicon, coverage and layout refusals above,
+        # for the same reason the layout check is: a workbook with no primer
+        # rows at all fails several of these, and the earlier messages name the
+        # row-naming rule and show the arithmetic, which is the more useful of
+        # the two answers.
+        from kuma_core.mame.ingest.combinatorial_demux import (
+            load_barcode_prefixes_with_provenance,
+        )
+
+        barcode_prefix_resolution = load_barcode_prefixes_with_provenance(
+            Path(raw_custom_barcodes_xlsx)
+        )
+
         reference_for_pipeline = amplicon_resolution.reference_fasta
         if amplicon_resolution.extracted:
             reference = reference_for_pipeline
@@ -1144,6 +1228,16 @@ def handle_analyze(params: dict) -> dict:
             ).expected
         dids = _designed_ids(expected_mutations)
 
+        # The provenance sentence goes into the workbook as well as onto the
+        # response. The response key is for a caller that reads it; the workbook
+        # row is what an operator opening the result actually sees, and the cut
+        # itself is invisible in every other cell of it.
+        _barcode_prefix_note = (
+            barcode_prefix_resolution.note
+            if barcode_prefix_resolution is not None
+            else None
+        )
+
         _emit(30, "Translating sequences...")
         _holder["value"] = 30
         _holder["message"] = "Translating sequences..."
@@ -1174,6 +1268,7 @@ def handle_analyze(params: dict) -> dict:
                     expected_mutations=expected_mutations,
                     designed_mutant_ids=dids,
                     perf_scope=None,
+                    barcode_prefix_note=_barcode_prefix_note,
                 )
         else:
             verdicts, replicates = run_analyze(
@@ -1196,6 +1291,7 @@ def handle_analyze(params: dict) -> dict:
                 expected_mutations=expected_mutations,
                 designed_mutant_ids=dids,
                 perf_scope=None,
+                barcode_prefix_note=_barcode_prefix_note,
             )
     finally:
         # Stop and join the heartbeat BEFORE the terminal milestones so a stale
@@ -1222,6 +1318,7 @@ def handle_analyze(params: dict) -> dict:
         str(output),
         run_meta=run_meta,
         designed_mutant_ids=dids,
+        barcode_prefix_note=_barcode_prefix_note,
     )
 
     # The pick list is the second artefact of the same run, so it is written here
@@ -1327,6 +1424,22 @@ def handle_analyze(params: dict) -> dict:
                 }
             }
             if amplicon_resolution is not None
+            else {}
+        ),
+        # Raw-run only. Says what was cut off the barcode seeds this run matched
+        # against: the tail derived from the workbook, per axis, and the seed
+        # lengths it left behind. There is one rule and no alternatives to name,
+        # because a workbook that states no tail is refused before the demux
+        # starts, so this payload is the cut itself rather than a label for
+        # which of several rules was picked. It is worth carrying because the
+        # cut is otherwise invisible: the operator can check the tail and the
+        # seed lengths against the seed workbook the primers were ordered from.
+        # The same sentence goes into the result workbook as the
+        # ``barcode_prefix_rule`` row of ``__kuma_meta__``, which is the copy an
+        # operator actually sees; this key is for a caller that reads it.
+        **(
+            {"barcode_prefix_resolution": barcode_prefix_resolution.as_dict()}
+            if barcode_prefix_resolution is not None
             else {}
         ),
     }

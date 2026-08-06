@@ -479,6 +479,161 @@ def test_handle_analyze_raw_run_reports_gate_counts_from_demux(
     assert result["assigned_reads"] == 0
 
 
+def _stub_demux(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Replace demux and analyze so only the handler's own wiring is under test."""
+    from kuma_core.mame import ingest as ingest_mod
+    from kuma_core.mame import pipeline as pipeline_mod
+
+    monkeypatch.setattr(
+        ingest_mod,
+        "route_ingest",
+        lambda _input_dir, _mode: [SimpleNamespace(file_size_kb=1.0, read_count=0)],
+    )
+    monkeypatch.setattr(ingest_mod, "ingest_run_folder", lambda **_kwargs: None)
+    monkeypatch.setattr(pipeline_mod, "run_analyze", lambda **_kwargs: ([], []))
+    _capture_progress(monkeypatch)
+
+
+def _raw_run_params(run_dir: Path, tmp_path: Path, barcodes_xlsx: Path) -> dict:
+    reference = _make_reference_fasta(tmp_path, seq=_RAW_REF_SEQ)
+    expected_xlsx = tmp_path / "expected.xlsx"
+    _make_kuro_xlsx(expected_xlsx)
+    return {
+        "input_dir": str(run_dir),
+        "reference": str(reference),
+        "expected": str(expected_xlsx),
+        "output": str(tmp_path / "out.xlsx"),
+        "custom_barcodes_xlsx": str(barcodes_xlsx),
+        "cds_start": 0,
+        "cds_end": 60,
+        "min_file_size_kb": 0.0,
+        "min_read_count": 0,
+        "ingest_mode": "barcode",
+    }
+
+
+def test_handle_analyze_raw_run_reports_how_the_barcode_seeds_were_cut(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The response says what was cut off the primers, and what is left.
+
+    An ispS workbook is read by the tail derived from the file, and the derived
+    tail is the old constant to the base. The payload carries the tail itself,
+    its length and the seed lengths it left, because those are the numbers an
+    operator can check against the seed workbook they ordered primers from.
+    """
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    barcodes_xlsx = tmp_path / "barcodes.xlsx"
+    _make_barcodes_xlsx(barcodes_xlsx)
+    _stub_demux(monkeypatch)
+
+    result = analyze_mod.handle_analyze(
+        _raw_run_params(run_dir, tmp_path, barcodes_xlsx)
+    )
+
+    provenance = result["barcode_prefix_resolution"]
+    assert provenance["forward"]["tail"] == _F_TAIL.upper()
+    assert provenance["forward"]["tail_length"] == len(_F_TAIL)
+    assert provenance["forward"]["barcode_count"] == 12
+    assert provenance["reverse"]["tail"] == _R_TAIL.upper()
+    assert provenance["reverse"]["seed_lengths"] == [10] * 8
+
+
+def test_handle_analyze_raw_run_refuses_a_barcode_file_with_no_shared_tail(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Was: the run proceeds and admits it guessed. Now: the run does not start.
+
+    Before the admission existed, a barcode file with no derivable and no
+    recognisable tail was cut at 11 bp / 10 bp with nothing said anywhere.
+    Admitting it was not enough: the run still finished, still wrote a workbook
+    full of plausible wells, and the reverse axis is the plate row, so the wells
+    it named were the wrong ones. The refusal happens before the demux, so the
+    operator loses a click rather than an hour.
+    """
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    barcodes_xlsx = tmp_path / "unshared.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    bases = "ACGT"
+    for i in range(1, 13):
+        body = "".join(bases[(i + p) % 4] for p in range(22))
+        ws.append([f"odd_f_{i}", body + bases[i % 4] + bases[(i // 4) % 4]])
+    for i in range(1, 9):
+        body = "".join(bases[(i + p) % 4] for p in range(22))
+        ws.append([f"odd_r_{i}", body + bases[i % 4] + bases[(i // 4) % 4]])
+    wb.save(barcodes_xlsx)
+    _stub_demux(monkeypatch)
+
+    with pytest.raises(ValueError, match="does not state where its"):
+        analyze_mod.handle_analyze(_raw_run_params(run_dir, tmp_path, barcodes_xlsx))
+
+
+def test_handle_analyze_raw_run_hands_the_seed_rule_to_the_workbook(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The same sentence goes into the result file, not only the response.
+
+    A response key is read by whatever calls the RPC; the workbook is read by the
+    person holding the plate. A seed cut at a guessed length shows up nowhere
+    else in that file, so the run has to write down which rule cut it.
+    """
+    from kuma_core.mame import pipeline as pipeline_mod
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    barcodes_xlsx = tmp_path / "barcodes.xlsx"
+    _make_barcodes_xlsx(barcodes_xlsx)
+    _stub_demux(monkeypatch)
+
+    seen: dict = {}
+
+    def _capture(**kwargs):
+        seen.update(kwargs)
+        return [], []
+
+    monkeypatch.setattr(pipeline_mod, "run_analyze", _capture)
+
+    result = analyze_mod.handle_analyze(
+        _raw_run_params(run_dir, tmp_path, barcodes_xlsx)
+    )
+
+    assert seen["barcode_prefix_note"] == result["barcode_prefix_resolution"]["note"]
+
+
+def test_handle_analyze_raw_run_refuses_a_barcode_file_past_the_plate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The plate-fit check runs on the run, not only on the validate button.
+
+    ``inputSlice._demuxAndAnalyze`` calls this RPC directly, so validation is a
+    step an operator can skip. A thirteenth forward barcode has no plate column,
+    and every well it names would come back with an empty coordinate.
+    """
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    barcodes_xlsx = tmp_path / "too_wide.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    for i, bc in enumerate(_F_BARCODES, start=1):
+        ws.append([f"isps_f_{i}", bc.lower() + _F_TAIL])
+    ws.append(["isps_f_13", "ACGTACGTAC" + _F_TAIL])
+    for i, bc in enumerate(_R_BARCODES, start=1):
+        ws.append([f"isps_r_{i}", bc.lower() + _R_TAIL])
+    wb.save(barcodes_xlsx)
+    _stub_demux(monkeypatch)
+
+    with pytest.raises(ValueError, match="numbered past the plate"):
+        analyze_mod.handle_analyze(_raw_run_params(run_dir, tmp_path, barcodes_xlsx))
+
+
 def test_handle_analyze_raw_run_materializes_snapgene_reference_before_demux(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -698,6 +853,92 @@ def test_validate_inputs_rejects_fastq_pass_selection(tmp_path: Path) -> None:
 
     assert result["valid"] is False
     assert any("parent of fastq_pass" in e for e in result["errors"]), result["errors"]
+
+
+def test_validate_inputs_refuses_a_workbook_the_run_would_refuse(
+    tmp_path: Path,
+) -> None:
+    """The check button and the run have to answer the same question.
+
+    A workbook whose axes state no shared annealing tail is refused by the
+    reader, and the run reads it after the demux has been set up. If validation
+    stayed silent about it, the operator would get a green check, start a
+    multi-minute job and be told at the end that the file was never readable.
+    Both checks call the same reader, so the two cannot drift apart.
+    """
+    from sidecar_mame.handlers.analyze import handle_validate_inputs
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    reference = _make_reference_fasta(tmp_path, seq=_RAW_REF_SEQ)
+    expected_xlsx = tmp_path / "expected.xlsx"
+    _make_kuro_xlsx(expected_xlsx)
+
+    # Right plate shape (12 F, 8 R, no gaps), so the layout check passes; the
+    # 3' ends agree on nothing, so the seed rule cannot be read off it.
+    alphabet = "ACGT"
+    barcodes_xlsx = tmp_path / "no_shared_tail.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    for i in range(1, 13):
+        body = "".join(alphabet[(i + p) % 4] for p in range(22))
+        ws.append([f"isps_f_{i}", body + alphabet[i % 4] + alphabet[(i // 4) % 4]])
+    for i in range(1, 9):
+        body = "".join(alphabet[(i + p) % 4] for p in range(22))
+        ws.append([f"isps_r_{i}", body + alphabet[i % 4] + alphabet[(i // 4) % 4]])
+    wb.save(barcodes_xlsx)
+
+    result = handle_validate_inputs({
+        "input_dir": str(run_dir),
+        "reference": str(reference),
+        "expected": str(expected_xlsx),
+        "custom_barcodes_xlsx": str(barcodes_xlsx),
+    })
+
+    assert result["valid"] is False
+    assert any(
+        "does not state where its" in e for e in result["errors"]
+    ), result["errors"]
+
+
+def test_validate_inputs_leaves_a_sorted_dir_run_alone(tmp_path: Path) -> None:
+    """The seed check runs only where the seeds are cut.
+
+    A sorted-barcode input never opens the barcode workbook, so refusing one
+    here would block a job that would have finished. The check is therefore
+    gated on the raw-run test rather than on the parameter being present.
+    """
+    from sidecar_mame.handlers.analyze import handle_validate_inputs
+
+    sorted_dir = tmp_path / "sorted"
+    (sorted_dir / "1_1").mkdir(parents=True)
+    reference = _make_reference_fasta(tmp_path, seq=_RAW_REF_SEQ)
+    expected_xlsx = tmp_path / "expected.xlsx"
+    _make_kuro_xlsx(expected_xlsx)
+
+    alphabet = "ACGT"
+    barcodes_xlsx = tmp_path / "no_shared_tail.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    for i in range(1, 13):
+        body = "".join(alphabet[(i + p) % 4] for p in range(22))
+        ws.append([f"isps_f_{i}", body + alphabet[i % 4] + alphabet[(i // 4) % 4]])
+    for i in range(1, 9):
+        body = "".join(alphabet[(i + p) % 4] for p in range(22))
+        ws.append([f"isps_r_{i}", body + alphabet[i % 4] + alphabet[(i // 4) % 4]])
+    wb.save(barcodes_xlsx)
+
+    result = handle_validate_inputs({
+        "input_dir": str(sorted_dir),
+        "reference": str(reference),
+        "expected": str(expected_xlsx),
+        "custom_barcodes_xlsx": str(barcodes_xlsx),
+    })
+
+    assert not any(
+        "does not state where its" in e for e in result["errors"]
+    ), result["errors"]
 
 
 def test_validate_inputs_raw_run_with_barcodes_ok(tmp_path: Path) -> None:

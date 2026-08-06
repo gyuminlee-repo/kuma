@@ -346,6 +346,22 @@
       "severity": "blocking"
     },
     {
+      "id": "mame-barcode-tail",
+      "files": [
+        "kuma_core/mame/ingest/barcode_tail.py",
+        "kuma_core/mame/ingest/amplicon_reference.py",
+        "kuma_core/mame/ingest/combinatorial_demux.py"
+      ],
+      "symbols": [
+        "common_tail",
+        "common_suffix_length",
+        "MIN_TAIL_LENGTH",
+        "MIN_SEED_LENGTH"
+      ],
+      "note": "barcode annealing tail 유도 규칙 단일 정본. amplicon span 절단(amplicon_reference)과 demux seed 절단(combinatorial_demux)이 같은 common_tail + 두 하한을 공유하므로, 하한이나 유도 방식을 바꾸면 앰플리콘 추출과 seed 매칭이 함께 바뀐다. 한쪽만 고치면 같은 워크북을 두 리더가 다르게 자른다",
+      "severity": "blocking"
+    },
+    {
       "id": "mame-combinatorial-barcode-xlsx",
       "files": [
         "kuma_core/mame/ingest/sort_barcode.py"

@@ -29,11 +29,17 @@ if str(_REPO_ROOT) not in sys.path:
 
 from kuma_core.mame.ingest import combinatorial_demux as cd  # noqa: E402
 from kuma_core.mame.ingest.combinatorial_demux import (  # noqa: E402
-    _F_TAIL,
-    _R_TAIL,
     _demux_read_anchored,
     _reverse_complement,
 )
+
+# The ispS annealing sequences. Fixture data for the synthetic reads below, not
+# a reading rule: the demux derives the tail from the workbook it is handed and
+# refuses a workbook that states none, so it holds no campaign constant of its
+# own any more. Kept verbatim here so the benchmark keeps timing reads of the
+# same shape as before.
+_F_TAIL = "cacaggaggttaaacc"
+_R_TAIL = "tgcgttgcgctctag"
 
 # The pipeline hoists read-invariant barcode preprocessing into a plan built
 # once per run and passes it to every _demux_read_anchored call. Older revisions

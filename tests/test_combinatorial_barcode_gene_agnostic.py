@@ -22,6 +22,15 @@ def _make_barcode_xlsx(tmp_path, prefix: str) -> "Path":
 
     F rows: <prefix>_f_1 .. <prefix>_f_12  (unique 10bp body + F tail)
     R rows: <prefix>_r_1 .. <prefix>_r_8   (unique 10bp body + R tail)
+
+    The index sits at the 3' end of the body, not the 5' end. It used to be the
+    other way round ("F01AAAAAAA"), which left all twelve bodies ending in the
+    same seven bases, so the shared suffix of the axis ran 7 bp past the tail
+    and only 3 bp of seed was left in front of it. The reader now refuses that
+    (a 3 bp seed cannot tell twelve wells apart), and it used to be rescued by
+    the ispS constant this fixture happens to use. What the tests below are
+    about is the row-NAME prefix being gene-agnostic, so the bodies are made
+    well-formed instead of leaning on a fallback that no longer exists.
     """
     import openpyxl
 
@@ -29,11 +38,11 @@ def _make_barcode_xlsx(tmp_path, prefix: str) -> "Path":
     ws = wb.active
 
     for i in range(1, 13):
-        seq = f"F{i:02d}AAAAAAA" + _F_TAIL  # unique prefix "F01AAAAAAA" .. "F12AAAAAAA"
+        seq = f"AAAAAAAF{i:02d}" + _F_TAIL  # unique bodies "AAAAAAAF01" .. "AAAAAAAF12"
         ws.append([f"{prefix}_f_{i}", seq])
 
     for i in range(1, 9):
-        seq = f"R{i:02d}BBBBBBB" + _R_TAIL
+        seq = f"BBBBBBBR{i:02d}" + _R_TAIL
         ws.append([f"{prefix}_r_{i}", seq])
 
     path = tmp_path / f"barcodes_{prefix}.xlsx"

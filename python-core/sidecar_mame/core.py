@@ -68,6 +68,11 @@ class SidecarState:
     last_output_path: str | None = None
     last_run_meta: object | None = None      # NgsRunMeta | None — discovered at analyze time
     last_designed_mutant_ids: frozenset[str] | None = None  # designed-mutant set for recovery (재현율); None = unavailable
+    # How this run cut the barcode seeds (BarcodePrefixResolution.note), so a
+    # re-export writes the same __kuma_meta__ row the analyze run wrote. Stays
+    # None after ``load_analyze_result``, which restores a payload that does not
+    # carry it: an omitted row is honest, a row copied from another run is not.
+    last_barcode_prefix_note: str | None = None
 
 
 _state = SidecarState()
@@ -85,6 +90,7 @@ def set_last_analyze(
     output_path: str,
     run_meta: object | None = None,
     designed_mutant_ids: frozenset[str] | None = None,
+    barcode_prefix_note: str | None = None,
 ) -> None:
     with _state_lock:
         _state.last_verdicts = verdicts
@@ -92,6 +98,7 @@ def set_last_analyze(
         _state.last_output_path = output_path
         _state.last_run_meta = run_meta
         _state.last_designed_mutant_ids = designed_mutant_ids
+        _state.last_barcode_prefix_note = barcode_prefix_note
 
 
 def reset_state() -> None:
@@ -102,6 +109,7 @@ def reset_state() -> None:
         _state.last_output_path = None
         _state.last_run_meta = None
         _state.last_designed_mutant_ids = None
+        _state.last_barcode_prefix_note = None
 
 # ---------------------------------------------------------------------------
 # stdout JSON-RPC framing. Thread-safe writer.

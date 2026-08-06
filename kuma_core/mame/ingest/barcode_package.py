@@ -1034,12 +1034,25 @@ def _build_sample_map_rows(
             if draft.dropped_mutant_ids
             else "no well left for the WT control"
         )
+        # The advice used to read "split the campaign across plates (MAME
+        # separates plates by native barcode) and supply one sample map per
+        # plate". MAME does not do that, and following it fails quietly: a run
+        # carries one sample map keyed by well alone (``pipeline.run_analyze``),
+        # and the native barcode is the REPLICATE axis, folded away by
+        # ``pick_best_replicate``. Two plates in one run therefore score plate 1
+        # A01 and plate 2 A01 as repeats of one mutant, and the disagreement
+        # between two different variants reads as a bad replicate rather than as
+        # two wells. So the sentence now says what MAME can actually do: one
+        # plate per run.
         raise ValueError(
             f"{len(expected)} designed mutations do not fit one 96-well plate: "
             f"{detail}. The combinatorial barcode space is 12 fwd x 8 rev, so "
-            "wells past the 96th cannot be told apart in the reads. Split the "
-            "campaign across plates (MAME separates plates by native barcode) "
-            "and supply one sample map per plate, or omit "
+            "wells past the 96th cannot be told apart in the reads. MAME reads "
+            "one plate per run: the sample map is keyed by well alone, and the "
+            "native barcode is a replicate axis over that same plate, so a "
+            "second plate's A01 would be scored as a repeat of the first "
+            "plate's A01. Split the campaign into one plate per run, each with "
+            "its own expected-mutation list and sample map, or omit "
             "expected_mutations_path for a header-only template."
         )
     # build_draft_layout returns an insertion-ordered dict[well, sample] in

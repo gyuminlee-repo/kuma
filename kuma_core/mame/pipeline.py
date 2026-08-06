@@ -141,6 +141,7 @@ def run_analyze(
     perf_scope: str | None = "analyze",
     variant_sheet: str | None = None,
     variant_column: str | None = None,
+    barcode_prefix_note: str | None = None,
 ) -> tuple[list[VerdictRecord], list[ReplicateResult]]:
     """Run the full pipeline and write the Excel output. Returns in-memory results.
 
@@ -310,6 +311,9 @@ def run_analyze(
             mapper=WellMapper(),
             mode="amplicon" if mode == "amplicon" else "plasmid",
             designed_mutant_ids=designed,
+            # Provenance for the seeds this run matched against; the caller that
+            # read the barcode workbook is the only layer that knows it.
+            barcode_prefix_note=barcode_prefix_note,
         )
 
     if perf_scope is not None and _perf_base is not None:

@@ -665,12 +665,21 @@ def _write_kuma_meta_sheet(
     wb: Workbook,
     meta: "NgsRunMeta | None",
     kuma_version: str,
+    barcode_prefix_note: str | None = None,
 ) -> None:
     """Append a ``__kuma_meta__`` sheet to *wb*.
 
     Row format: col-A = key, col-B = value.
     When *meta* is ``None``, only the ``kuma_version`` and a ``ngs_run_meta``
     placeholder row are written so the sheet is always present.
+
+    *barcode_prefix_note* is the one sentence
+    ``combinatorial_demux.BarcodePrefixResolution.note`` produces about how the
+    barcode seeds were cut. It lands here because the sentence has to reach the
+    person reading the result, and this workbook is the artefact they keep: the
+    sidecar log is a file nobody opens, and the tail that was cut is the one thing
+    about a finished plate that no other cell in the sheet records.
+    Omitted when there was no barcode file to read (consensus-dir mode).
     """
     ws = wb.create_sheet("__kuma_meta__")
     ws.column_dimensions["A"].width = 24
@@ -687,8 +696,13 @@ def _write_kuma_meta_sheet(
         datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     ])
 
+    # Written before the run-meta branch so it survives a run with no MinKNOW
+    # folder: the two answers are independent.
+    if barcode_prefix_note is not None:
+        ws.append(["barcode_prefix_rule", barcode_prefix_note])
+
     if meta is None:
-        ws.append(["ngs_run_meta", "(not found — no MinKNOW run folder detected)"])
+        ws.append(["ngs_run_meta", "(not found, no MinKNOW run folder detected)"])
         _finalize(ws, freeze=None, autofit=False)
         return
 
@@ -720,6 +734,7 @@ def write_excel(
     ngs_run_meta: "NgsRunMeta | None" = None,
     kuma_version: str = "",
     designed_mutant_ids: frozenset[str] | None = None,
+    barcode_prefix_note: str | None = None,
 ) -> Path:
     """Write the combined Excel report to ``output_path``. Returns the path.
 
@@ -735,6 +750,11 @@ def write_excel(
         Distinct designed ``mutant_id`` set used to compute the recovery
         (재현율) summary in the "NGS Results" sheet.  ``None`` → recovery is
         rendered as ``n/a`` (designed set unavailable).
+    barcode_prefix_note:
+        How the barcode seeds were cut for this run, from
+        ``combinatorial_demux.BarcodePrefixResolution.note``.  Written as a
+        ``barcode_prefix_rule`` row in ``__kuma_meta__``.  ``None`` when the run
+        read no barcode workbook, in which case no row is written.
     """
 
     del mode  # Phase 1: mode does not alter Excel layout.
@@ -761,7 +781,7 @@ def write_excel(
     _write_final_matrix_sheet(wb, replicate_results, nbs)
 
     # A11 / G3: MinKNOW run metadata sheet — always present, content optional.
-    _write_kuma_meta_sheet(wb, ngs_run_meta, kuma_version)
+    _write_kuma_meta_sheet(wb, ngs_run_meta, kuma_version, barcode_prefix_note)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(output_path)

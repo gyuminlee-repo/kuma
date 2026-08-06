@@ -2280,12 +2280,13 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Une exécution restaurée depuis un kuma plus ancien indique désormais la version qui l'a évaluée, au lieu de passer pour un résultat de cette version.",
-      "Vous choisissez la suite : relancer pour un résultat de cette version, ou garder celui qui est enregistré. Rien n'est supprimé ni relancé à votre place.",
-      "Le choix de garder est mémorisé par projet et par version : l'avis se tait jusqu'à ce qu'un autre instantané apparaisse.",
-      "Un instantané sans version enregistrée, ou issu d'une version plus récente, est signalé plutôt que présumé fiable."
+      "Le annealing tail d un code-barres est desormais lu depuis le fichier lui-meme, si bien qu un jeu concu pour n importe quel gene est coupe au bon endroit.",
+      "Un fichier dont le tail est illisible arrete l execution, au lieu de deviner la coupe et de classer des reads dans des wells qui ne sont pas les leurs.",
+      "Les codes-barres reverse ne perdent plus leur derniere base, ce qui restreignait jusqu ici la base de choix de la ligne de plaque.",
+      "Le classeur de resultats note quel annealing tail a ete deduit, de sorte qu une execution terminee reste verifiable ensuite.",
+      "L echantillon de codes-barres fourni a ete regenere pour porter la structure seed plus tail commun attendue par le lecteur."
     ],
-    "highlightsStamp": "0.15.20+ae44e5c0"
+    "highlightsStamp": "0.15.21+8d129891"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",

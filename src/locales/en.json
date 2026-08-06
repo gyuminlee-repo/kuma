@@ -2313,12 +2313,13 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A run restored from an older kuma now says which version scored it, instead of appearing as if this build had just produced it.",
-      "You choose what happens next: re-run for a result this build stands behind, or keep the saved one. Nothing is deleted or re-run for you.",
-      "Keeping is remembered per project and per version, so the notice stays quiet until a different snapshot turns up.",
-      "A snapshot with no recorded version, or one from a newer build, is reported rather than trusted."
+      "The barcode annealing tail is now read from the file itself, so a barcode set designed for any gene gets cut in the right place.",
+      "A file whose tail cannot be read stops the run, instead of guessing a cut point and filing reads into wells they do not belong to.",
+      "Reverse barcodes no longer lose their last base, which had been narrowing the evidence used to pick a plate row.",
+      "The result workbook records which annealing tail was derived, so a finished run can be audited later.",
+      "The bundled barcode sample was rebuilt to carry the seed plus shared tail structure the reader expects."
     ],
-    "highlightsStamp": "0.15.20+ae44e5c0"
+    "highlightsStamp": "0.15.21+8d129891"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",
