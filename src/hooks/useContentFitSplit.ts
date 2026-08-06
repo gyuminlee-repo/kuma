@@ -14,17 +14,51 @@
  * shortfall is shared in proportion to what each asked for, so neither is starved
  * by a number written in the source.
  *
- * Deliberately does nothing in two cases:
- *   - a layout the operator dragged, reported through `onDragging`; their split
- *     is a decision, not a default to recompute.
- *   - a layout `autoSaveId` already restored, which is the same decision from an
- *     earlier session.
+ * Deliberately does nothing for a layout the operator dragged, reported through
+ * `onDragging`; their split is a decision, not a default to recompute. A drag is
+ * recorded under its own key so the decision survives a restart.
+ *
+ * That flag is deliberately not read off the `autoSaveId` entry, which was the
+ * first attempt and was wrong. react-resizable-panels persists on every layout
+ * change, including the default it applies on mount, so the entry exists for
+ * anyone who has merely opened the view. Treating it as a decision meant the fit
+ * never ran for any operator who had opened step 2.2 on an earlier build, which
+ * is every operator who had used the step at all, and reinstalling the app does
+ * not clear it because the store lives in the webview profile rather than in the
+ * installed files (2026-08-06).
  */
 import { useCallback, useEffect, useRef } from "react";
 import type { ImperativePanelGroupHandle } from "react-resizable-panels";
 
-/** Where react-resizable-panels keeps an `autoSaveId` layout. */
-const STORAGE_PREFIX = "react-resizable-panels:";
+/** Where a recorded drag is kept, keyed per group. */
+const SIZED_PREFIX = "kuma.contentFitSplit.userSized:";
+
+/**
+ * Has the operator sized this group themselves, in this session or an earlier one?
+ *
+ * Only a recorded drag counts. The `react-resizable-panels:` entry for the same
+ * group does not, however tempting it looks: the library writes it on mount for
+ * the default layout too, so it marks a view that was opened, not a size that was
+ * chosen.
+ */
+export function hasOperatorChoice(autoSaveId: string): boolean {
+  try {
+    return localStorage.getItem(`${SIZED_PREFIX}${autoSaveId}`) !== null;
+  } catch {
+    // Storage can be unavailable (private mode, a locked-down webview). Fitting
+    // by content is still better than the fixed ratio, so carry on.
+    return false;
+  }
+}
+
+/** Record that the operator dragged this group, so later sessions leave it alone. */
+export function rememberOperatorChoice(autoSaveId: string): void {
+  try {
+    localStorage.setItem(`${SIZED_PREFIX}${autoSaveId}`, "1");
+  } catch {
+    // The drag still holds for this session; only its survival is lost.
+  }
+}
 
 /**
  * Height this section would need to show everything it holds.
@@ -73,7 +107,7 @@ export interface ContentFitSplitOptions {
   minFirst: number;
   /** Smallest share the second panel may be given, in percent. */
   minSecond: number;
-  /** `autoSaveId` of the group, so a restored layout is left alone. */
+  /** Identifies the group, so a drag recorded earlier is left alone. */
   autoSaveId: string;
   /** Recompute when these change (data that alters how tall a panel wants to be). */
   deps: readonly unknown[];
@@ -98,20 +132,18 @@ export function useContentFitSplit({
   const secondRef = useRef<HTMLDivElement | null>(null);
   const operatorChose = useRef(false);
 
-  const onDragging = useCallback((isDragging: boolean) => {
-    if (isDragging) operatorChose.current = true;
-  }, []);
+  const onDragging = useCallback(
+    (isDragging: boolean) => {
+      if (!isDragging) return;
+      operatorChose.current = true;
+      rememberOperatorChoice(autoSaveId);
+    },
+    [autoSaveId],
+  );
 
   useEffect(() => {
-    // A restored layout is a choice made earlier; treat it like a drag.
-    try {
-      if (localStorage.getItem(`${STORAGE_PREFIX}${autoSaveId}`) !== null) {
-        operatorChose.current = true;
-      }
-    } catch {
-      // Storage can be unavailable (private mode, a locked-down webview). Fitting
-      // by content is still better than the fixed ratio, so carry on.
-    }
+    // A drag recorded earlier is the same decision, made in a previous session.
+    if (hasOperatorChoice(autoSaveId)) operatorChose.current = true;
   }, [autoSaveId]);
 
   useEffect(() => {

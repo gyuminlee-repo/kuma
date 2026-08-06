@@ -6,8 +6,15 @@
  * and the old ratio gave the plate map 312 px, hiding 381 px of grid while the
  * panel below it had room left over (2026-08-05).
  */
-import { describe, expect, it } from "vitest";
-import { fitShare } from "./useContentFitSplit";
+import { renderHook, act } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+  fitShare,
+  hasOperatorChoice,
+  useContentFitSplit,
+} from "./useContentFitSplit";
+
+const GROUP = "mame.analyze.review.vsplit.v2";
 
 const MIN_FIRST = 18;
 const MIN_SECOND = 30;
@@ -41,5 +48,45 @@ describe("fitShare", () => {
 
   it("is stable when the two panels want the same height", () => {
     expect(fitShare(800, 800, 900, MIN_FIRST, MIN_SECOND)).toBeCloseTo(50, 5);
+  });
+});
+
+/**
+ * What counts as "the operator sized this themselves".
+ *
+ * The first version of this read the `react-resizable-panels:` entry and treated
+ * its presence as a decision. react-resizable-panels writes that entry on mount
+ * for the default layout, so it was present for anyone who had ever opened step
+ * 2.2, and the fit that v0.15.11 shipped never ran for them. Reinstalling did not
+ * help: the entry lives in the webview profile, not in the installed files.
+ */
+describe("hasOperatorChoice", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("is false on a group nobody has touched", () => {
+    expect(hasOperatorChoice(GROUP)).toBe(false);
+  });
+
+  it("stays false when only the library persisted a layout", () => {
+    // Exactly what a pre-v0.15.11 build left behind on first open.
+    localStorage.setItem(
+      `react-resizable-panels:${GROUP}`,
+      JSON.stringify({ "34,66": { layout: [34, 66] } }),
+    );
+    expect(hasOperatorChoice(GROUP)).toBe(false);
+  });
+
+  it("becomes true once a drag is recorded, and survives a remount", () => {
+    const first = renderHook(() => useContentFitSplit({ minFirst: 18, minSecond: 30, autoSaveId: GROUP, deps: [] }));
+    act(() => first.result.current.onDragging(true));
+    expect(hasOperatorChoice(GROUP)).toBe(true);
+    first.unmount();
+    expect(hasOperatorChoice(GROUP)).toBe(true);
+  });
+
+  it("does not record a drag that never started", () => {
+    const { result } = renderHook(() => useContentFitSplit({ minFirst: 18, minSecond: 30, autoSaveId: GROUP, deps: [] }));
+    act(() => result.current.onDragging(false));
+    expect(hasOperatorChoice(GROUP)).toBe(false);
   });
 });
