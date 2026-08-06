@@ -839,6 +839,14 @@
         "final": "Final 96 Deep Well"
       }
     },
+    "restoredResult": {
+      "title": "Estos resultados vienen de otra versión de kuma",
+      "bodyOlder": "Restaurados desde una instantánea escrita por kuma v{{version}}. Esta versión evalúa las ejecuciones de otra forma: vuelva a ejecutar para ver su resultado o siga viendo el guardado.",
+      "bodyNewer": "Restaurados desde una instantánea escrita por kuma v{{version}}, más reciente que esta versión. Puede que no evalúe la ejecución igual: vuelva a ejecutar o siga viendo el resultado guardado.",
+      "bodyUnknown": "Restaurados desde una instantánea sin versión de kuma registrada, así que no se distingue de una ejecución antigua. Vuelva a ejecutar o siga viendo el resultado guardado.",
+      "rerun": "Volver a ejecutar el análisis",
+      "keep": "Conservar estos resultados"
+    },
     "janus": {
       "settings": {
         "contextTitle": "Ajustes del instrumento Janus",
@@ -2278,7 +2286,7 @@
       "El libro de resultados registra que annealing tail se dedujo, de modo que una ejecucion terminada puede auditarse despues.",
       "La muestra de codigos de barras incluida se regenero para llevar la estructura de seed mas tail comun que espera el lector."
     ],
-    "highlightsStamp": "0.15.20+8d129891"
+    "highlightsStamp": "0.15.21+8d129891"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",

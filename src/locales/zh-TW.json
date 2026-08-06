@@ -839,6 +839,14 @@
         "final": "Final 96 Deep Well"
       }
     },
+    "restoredResult": {
+      "title": "這些結果來自另一個版本的 kuma",
+      "bodyOlder": "從 kuma v{{version}} 寫入的快照還原。目前版本的判定方式已不同：重新執行以查看目前結果，或繼續檢視已儲存的結果。",
+      "bodyNewer": "從比目前版本更新的 kuma v{{version}} 寫入的快照還原。該版本的判定方式可能不同：重新執行，或繼續檢視已儲存的結果。",
+      "bodyUnknown": "從未記錄 kuma 版本的快照還原，無法與舊版執行區分。重新執行，或繼續檢視已儲存的結果。",
+      "rerun": "重新執行分析",
+      "keep": "保留這些結果"
+    },
     "janus": {
       "settings": {
         "contextTitle": "Janus 設備設定",
@@ -2278,7 +2286,7 @@
       "結果工作簿會記錄推導出的 annealing tail，已完成的執行之後也能查核。",
       "重新產生了隨附的條碼範例，使其具備讀取器所需的 seed 加共用 tail 結構。"
     ],
-    "highlightsStamp": "0.15.20+8d129891"
+    "highlightsStamp": "0.15.21+8d129891"
   },
   "primerDisplay": {
     "copySeqTitle": "複製序列",

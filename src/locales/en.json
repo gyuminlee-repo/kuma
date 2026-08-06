@@ -1068,6 +1068,14 @@
       },
       "title": "JANUS Deck Layout"
     },
+    "restoredResult": {
+      "title": "These results came from another version of kuma",
+      "bodyOlder": "Restored from a snapshot written by kuma v{{version}}. This build scores runs differently, so re-run to see what it would produce, or keep viewing the saved result.",
+      "bodyNewer": "Restored from a snapshot written by kuma v{{version}}, which is newer than this build. This version may not score the run the same way; re-run to produce a result this build stands behind, or keep viewing the saved one.",
+      "bodyUnknown": "Restored from a snapshot that records no kuma version, so it cannot be told apart from an older run. Re-run to produce a result this build stands behind, or keep viewing the saved one.",
+      "rerun": "Re-run analysis",
+      "keep": "Keep these results"
+    },
     "janus": {
       "settings": {
         "contextTitle": "Janus instrument settings",
@@ -2311,7 +2319,7 @@
       "The result workbook records which annealing tail was derived, so a finished run can be audited later.",
       "The bundled barcode sample was rebuilt to carry the seed plus shared tail structure the reader expects."
     ],
-    "highlightsStamp": "0.15.20+8d129891"
+    "highlightsStamp": "0.15.21+8d129891"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

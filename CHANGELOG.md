@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.15.20 (The barcode annealing tail is read from the file, not from one gene)
+## v0.15.21 (The barcode annealing tail is read from the file, not from one gene)
 
 MAME cut a barcode into seed and annealing tail using two sequences hardcoded from the ispS raw data, plus a fixed prefix length reverse-engineered from that same set. Every barcode package the app generates carries a flanking primer that primer3 designs per gene, so those two sequences are never present in a file MAME made itself. The reader found no tail, said nothing, and fell back to cutting at 11 bases forward and 10 reverse. On the shipped seed template, whose reverse seeds are 11 bases, that silently removed the last base of all eight reverse barcodes, and the reverse index is the plate row. A seed longer than eleven lost more.
 
@@ -15,6 +15,25 @@ The bundled barcode sample and its template copy were regenerated, because both 
 - Reverse barcodes no longer lose their last base, which had been narrowing the evidence used to pick a plate row.
 - The result workbook records which annealing tail was derived, so a finished run can be audited later.
 - The bundled barcode sample was rebuilt to carry the seed plus shared tail structure the reader expects.
+## v0.15.20 (A restored run says which version scored it)
+
+A project folder outlives the app that made it: sequencing turnaround is weeks, and a run saved in v0.15.9 is opened in whatever is installed today. The restore is faithful to a fault. It replays the analyze response verbatim into the sidecar and the screen, and until now the review step presented those verdicts as though this build had just produced them. Between v0.15.10 and v0.15.18 MAME changed what a run produces more than once: a workbook that describes one plate two ways is refused, replicate picks are ordered by measured purity, a finished run is checked against itself, and result rows follow the plate column. A result scored before those changes is not what this build would produce, and nothing on screen said so. The snapshot had recorded `kuma_version` since it was introduced; nothing ever read it.
+
+### Highlights
+
+- A run restored from an older kuma now says which version scored it, instead of appearing as if this build had just produced it.
+- You choose what happens next: re-run for a result this build stands behind, or keep the saved one. Nothing is deleted or re-run for you.
+- Keeping is remembered per project and per version, so the notice stays quiet until a different snapshot turns up.
+- A snapshot with no recorded version, or one from a newer build, is reported rather than trusted.
+
+### Added
+
+- v0.15.20: A run restored from a snapshot another build wrote is labelled with the version that produced it, on both the inputs step and the review step. The two ways out are stated rather than chosen for the operator: re-run, which is the only thing that yields a result this build stands behind, or keep the saved one. Keeping is remembered per project and per producing version, so the notice does not reappear every restart but does speak up for a different snapshot.
+- v0.15.20: A snapshot that records no version at all, written before the field existed, is treated as suspect rather than current, because it cannot be told apart from an old run. A snapshot written by a newer build says so too.
+
+### Changed
+
+- v0.15.20: Nothing is discarded and nothing is re-run without being asked. The saved verdicts, plate and summary are still restored and still exportable, because deleting an operator's run or starting a long analysis unasked are both worse than showing the run with its origin stated. A snapshot this build wrote behaves exactly as before: no notice, no extra click.
 
 ## v0.15.19 (A barcode file that does not describe the plate stops the run)
 

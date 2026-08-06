@@ -1761,3 +1761,146 @@ describe("useAutosaveHydration: 결과 파일 없이도 사이드카를 채운�
     expect(calls).toHaveLength(1);
   });
 });
+
+/**
+ * Whose build produced the restored result.
+ *
+ * A project opened weeks later replays the analyze response it saved, and until
+ * v0.15.18 the review screen presented it as though this build had just
+ * produced it. Between v0.15.10 and v0.15.17 MAME changed what a run produces
+ * more than once, so the origin has to be stated. The payload is still restored
+ * in every case: the guard is about provenance, not about withholding work.
+ */
+describe("useAutosaveHydration — restored result provenance", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useMameAppStore.getState().resetInput();
+    useMameAppStore.getState().resetAnalysis();
+    hooks.readAutosave.mockResolvedValue({ status: "missing" });
+    hooks.detectProjectFiles.mockResolvedValue({});
+  });
+
+  function resultSnapshotFrom(version: string | undefined) {
+    return {
+      status: "ok",
+      snapshot: {
+        schema: 1,
+        saved_at: new Date().toISOString(),
+        ...(version === undefined ? {} : { kuma_version: version }),
+        result: ANALYZE_RESULT,
+      },
+    };
+  }
+
+  async function hydrateWith(version: string | undefined) {
+    hooks.readMameResultSnapshot.mockResolvedValue(resultSnapshotFrom(version));
+    renderHydration();
+    await waitFor(() => {
+      expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
+    });
+    return useMameAppStore.getState();
+  }
+
+  it("says nothing when this build wrote the snapshot", async () => {
+    const st = await hydrateWith("0.0.0-test");
+    expect(st.restoredResultProvenance).toBeNull();
+    // The restore itself is unchanged: same-version projects must look exactly
+    // as they did before the guard existed.
+    expect(st.verdicts).toEqual(ANALYZE_RESULT.verdicts);
+  });
+
+  /**
+   * Note on relations here: vitest defines `__APP_VERSION__` as `0.0.0-test`,
+   * which is not a dotted number, so anything that is not an exact string match
+   * degrades to `unknown` in this environment. That is the correct fail-closed
+   * answer for an unidentifiable build; the numeric older/newer ordering that a
+   * shipped build produces is proven directly in
+   * `src/lib/mame/resultProvenance.test.ts`.
+   */
+  it("flags a snapshot written by a different build, and still restores it", async () => {
+    const st = await hydrateWith("0.15.9");
+    expect(st.restoredResultProvenance).toEqual({
+      version: "0.15.9",
+      relation: "unknown",
+    });
+    expect(st.verdicts).toEqual(ANALYZE_RESULT.verdicts);
+  });
+
+  it("carries the recorded version through so the notice can name it", async () => {
+    const st = await hydrateWith("9.9.9");
+    expect(st.restoredResultProvenance?.version).toBe("9.9.9");
+    expect(st.restoredResultProvenance?.relation).not.toBe("same");
+  });
+
+  it("flags a snapshot that records no version at all", async () => {
+    // Written before the field existed: indistinguishable from an old run, so
+    // it is reported rather than trusted.
+    const st = await hydrateWith(undefined);
+    expect(st.restoredResultProvenance).toEqual({
+      version: null,
+      relation: "unknown",
+    });
+  });
+
+  it("clears the flag when the results it describes are cleared", async () => {
+    await hydrateWith("0.15.9");
+    expect(useMameAppStore.getState().restoredResultProvenance).not.toBeNull();
+
+    useMameAppStore.getState().clearResults();
+
+    expect(useMameAppStore.getState().restoredResultProvenance).toBeNull();
+  });
+
+  it("flags the input-snapshot fallback too, when there is no result file", async () => {
+    // Second restore path: no `.autosave/mame-result.json`, so the results ride
+    // in on the input snapshot. An older build wrote those just the same.
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) =>
+      kind === "mame"
+        ? Promise.resolve({
+            status: "ok",
+            snapshot: {
+              schema: 4,
+              saved_at: new Date().toISOString(),
+              kuma_version: "0.15.9",
+              input: {
+                input_dir: "project://run",
+                expected_path: "",
+                reference_path: "",
+                output_path: "project://out",
+                sample_map_path: "",
+              },
+              parameters: {
+                mode: "amplicon",
+                ingest_mode: "barcode",
+                input_mode: "raw_run",
+                raw_run_params: undefined,
+                cds_start: 1,
+                cds_end: 900,
+                min_file_size_kb: 50,
+                many_cutoff: 5,
+              },
+              results: {
+                verdicts: [VERDICT],
+                replicates: [REPLICATE],
+                summary: ANALYZE_RESULT.summary,
+                distribution_stats: ANALYZE_RESULT.distribution_stats,
+              },
+            },
+          })
+        : Promise.resolve({ status: "missing" }),
+    );
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(
+        hooks.sendMameRequest.mock.calls.some((c) => c[0] === "load_analyze_result"),
+      ).toBe(true);
+    });
+    await waitFor(() => {
+      expect(useMameAppStore.getState().restoredResultProvenance).not.toBeNull();
+    });
+    expect(useMameAppStore.getState().restoredResultProvenance?.version).toBe("0.15.9");
+  });
+});

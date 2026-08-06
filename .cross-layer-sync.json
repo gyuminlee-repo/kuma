@@ -949,6 +949,23 @@
       ],
       "note": "File 메뉴는 FileMenu 하나가 그린다. 두 메뉴바는 앱 고유 항목만 extraItems 로 넘긴다. 한쪽 메뉴바만 고치면 v0.13.35.1 처럼 이름만 같고 내용이 갈린다. 라벨 키도 menu.file/menu.edit 로 공유한다.",
       "severity": "warning"
+    },
+    {
+      "id": "mame-restored-result-provenance",
+      "files": [
+        "src/lib/mame/resultSnapshot.ts",
+        "src/lib/mame/autosaveSnapshot.ts",
+        "src/lib/mame/resultProvenance.ts",
+        "src/hooks/useAutosaveHydration.ts",
+        "src/components/mame/widgets/RestoredResultNotice.tsx"
+      ],
+      "symbols": [
+        "kuma_version",
+        "classifyResultVersion",
+        "restoredResultProvenance"
+      ],
+      "note": "Snapshot writers stamp kuma_version; hydration classifies it and the notice states it. A writer that stops stamping, or a hydration path that replays a result without classifying, puts an older engine's output on screen as if it were current.",
+      "severity": "blocking"
     }
   ]
 }

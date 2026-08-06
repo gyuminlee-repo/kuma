@@ -839,6 +839,14 @@
         "final": "Final 96 Deep Well"
       }
     },
+    "restoredResult": {
+      "title": "Diese Ergebnisse stammen aus einer anderen kuma-Version",
+      "bodyOlder": "Wiederhergestellt aus einem Snapshot von kuma v{{version}}. Dieser Build bewertet Läufe anders: neu ausführen, um das aktuelle Ergebnis zu sehen, oder das gespeicherte weiter ansehen.",
+      "bodyNewer": "Wiederhergestellt aus einem Snapshot von kuma v{{version}}, neuer als dieser Build. Diese Version bewertet den Lauf womöglich anders: neu ausführen oder das gespeicherte Ergebnis weiter ansehen.",
+      "bodyUnknown": "Wiederhergestellt aus einem Snapshot ohne kuma-Versionsangabe, also nicht von einem älteren Lauf zu unterscheiden. Neu ausführen oder das gespeicherte Ergebnis weiter ansehen.",
+      "rerun": "Analyse erneut ausführen",
+      "keep": "Ergebnisse behalten"
+    },
     "janus": {
       "settings": {
         "contextTitle": "Janus-Geräteeinstellungen",
@@ -2278,7 +2286,7 @@
       "Die Ergebnis-Arbeitsmappe haelt fest, welcher annealing tail abgeleitet wurde, sodass ein fertiger Lauf spaeter geprueft werden kann.",
       "Das mitgelieferte Barcode-Beispiel wurde neu erzeugt und traegt nun die vom Leser erwartete Struktur aus seed und gemeinsamem tail."
     ],
-    "highlightsStamp": "0.15.20+8d129891"
+    "highlightsStamp": "0.15.21+8d129891"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",
