@@ -22,17 +22,20 @@ vi.mock("@/components/ui/Panel", () => ({
     className,
     title,
     scrollBody,
+    autoHeight,
   }: {
     children: React.ReactNode;
     className?: string;
     title?: string;
     scrollBody?: boolean;
+    autoHeight?: boolean;
   }) => (
     <div
       data-testid="data-panel"
       data-class-name={className ?? ""}
       data-title={title ?? ""}
       data-scroll-body={scrollBody ? "true" : "false"}
+      data-auto-height={autoHeight ? "true" : "false"}
     >
       {children}
     </div>
@@ -58,11 +61,17 @@ vi.mock("@/components/mame/widgets/PlateView", () => ({
   PlateView: ({
     expanded,
     onToggleExpand,
+    autoHeight,
   }: {
     expanded?: boolean;
     onToggleExpand?: () => void;
+    autoHeight?: boolean;
   }) => (
-    <div data-testid="plate-view" data-expanded={String(!!expanded)}>
+    <div
+      data-testid="plate-view"
+      data-expanded={String(!!expanded)}
+      data-auto-height={String(!!autoHeight)}
+    >
       <button type="button" data-testid="plate-toggle" onClick={onToggleExpand}>
         toggle
       </button>
@@ -185,19 +194,22 @@ describe("AnalyzeStepView (Task #12, analyze.review)", () => {
   it("analyze.review toggles plate wrapper to fullscreen overlay (absolute inset-0 z-40) on expand", () => {
     render(<AnalyzeStepView />);
     const region = screen.getByRole("region", { name: "Expanded plate view" });
-    // Default collapsed: no overlay classes, just h-full.
-    expect(region.className).toContain("h-full");
-    expect(region.className).not.toContain("absolute");
+    // Collapsed the plate draws at its own height inside the page, so the
+    // wrapper carries no sizing of its own.
+    expect(region.className).toBe("");
     // Click PlateView's toggle (forwarded onToggleExpand lifts plateExpanded).
     fireEvent.click(screen.getByTestId("plate-toggle"));
     expect(region.className).toContain("absolute");
     expect(region.className).toContain("inset-0");
     expect(region.className).toContain("z-40");
     expect(screen.getByTestId("plate-view")).toHaveAttribute("data-expanded", "true");
+    // Expanded it fills a fixed overlay instead, so it goes back to sizing
+    // itself to that box and scrolling inside it.
+    expect(screen.getByTestId("plate-view")).toHaveAttribute("data-auto-height", "false");
     // Toggle back collapses.
     fireEvent.click(screen.getByTestId("plate-toggle"));
-    expect(region.className).toContain("h-full");
-    expect(region.className).not.toContain("absolute");
+    expect(region.className).toBe("");
+    expect(screen.getByTestId("plate-view")).toHaveAttribute("data-auto-height", "true");
   });
 
   it("analyze.review with runHealth mounts RunHealthPanel (per-plate verdict chart)", () => {
@@ -205,44 +217,44 @@ describe("AnalyzeStepView (Task #12, analyze.review)", () => {
     expect(getByTestId("run-health-panel")).toBeTruthy();
   });
 
-  it("analyze.review gives verdict table and per-plate breakdown enough vertical space", () => {
+  it("draws the plate map and the breakdown at the height their content needs", () => {
     render(<AnalyzeStepView runHealth={fakeHealth} />);
 
     const panels = screen.getAllByTestId("data-panel");
-    const verdictPanel = panels.find((panel) => panel.dataset.title === "Verdict table");
-    const resizablePanels = screen.getAllByTestId("resizable-panel");
-
-    expect(verdictPanel).toHaveAttribute("data-class-name", expect.stringContaining("min-h-[240px]"));
-    expect(resizablePanels).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ dataset: expect.objectContaining({ defaultSize: "34", minSize: "18" }) }),
-        expect.objectContaining({ dataset: expect.objectContaining({ defaultSize: "66", minSize: "30" }) }),
-      ]),
-    );
-  });
-
-  it("lets the per-plate breakdown scroll instead of clipping it", () => {
-    render(<AnalyzeStepView runHealth={fakeHealth} />);
-
-    const panels = screen.getAllByTestId("data-panel");
+    const platePanel = panels.find((panel) => panel.dataset.title === "Plate map");
     const breakdownPanel = panels.find(
       (panel) => panel.dataset.title === "Per-plate verdict breakdown",
     );
-    const platePanel = panels.find((panel) => panel.dataset.title === "Plate map");
+
+    // Both used to be sized to the window, which showed a plate cropped at row D
+    // with the rest behind an inner scrollbar. They draw whole now and the page
+    // carries the scroll.
+    expect(platePanel).toHaveAttribute("data-auto-height", "true");
+    expect(breakdownPanel).toHaveAttribute("data-auto-height", "true");
+    // Nothing overflows a panel as tall as its content, so neither asks for a
+    // scroll container of its own.
+    expect(platePanel).toHaveAttribute("data-scroll-body", "false");
+    expect(breakdownPanel).toHaveAttribute("data-scroll-body", "false");
+    // The splitters those two used to sit in are gone with them.
+    expect(screen.queryAllByTestId("resizable-panel")).toHaveLength(0);
+    expect(screen.queryAllByTestId("resize-handle")).toHaveLength(0);
+  });
+
+  it("bounds the verdict table so the row is sized by the right column, not by 96 rows", () => {
+    render(<AnalyzeStepView runHealth={fakeHealth} />);
+
+    const panels = screen.getAllByTestId("data-panel");
     const verdictPanel = panels.find((panel) => panel.dataset.title === "Verdict table");
 
-    // RunHealthPanel has no scroll container of its own, so the panel body has
-    // to provide one: without it the chart is cut off with no way to reach it.
-    expect(breakdownPanel).toHaveAttribute("data-scroll-body", "true");
-    // A px floor would push the section past a splitter dragged below it.
-    expect(breakdownPanel?.dataset.className).not.toContain("min-h-[240px]");
-    // The panel body owns the overflow now; the outer section must not also
-    // declare one, or the two overflow classes race in the stylesheet.
-    expect(breakdownPanel?.dataset.className).not.toContain("overflow-");
-
-    // Children that scroll themselves stay opted out (no nested scrollbars).
-    expect(platePanel).toHaveAttribute("data-scroll-body", "false");
-    expect(platePanel?.dataset.className).not.toContain("overflow-");
+    // The table is virtualised and owns its scroll, so it needs a height handed
+    // down rather than one of its own: flex-1 inside the absolutely positioned
+    // left column, min-h-0 so it may shrink under its content.
+    expect(verdictPanel?.dataset.className).toContain("flex-1");
+    expect(verdictPanel?.dataset.className).toContain("min-h-0");
+    // Drawing it at content height would make the grid row 96 rows tall and drag
+    // the plate map down with it.
+    expect(verdictPanel).toHaveAttribute("data-auto-height", "false");
+    // Its own scroll container is the one that engages, not the panel body.
     expect(verdictPanel).toHaveAttribute("data-scroll-body", "false");
   });
 

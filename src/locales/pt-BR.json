@@ -2272,10 +2272,11 @@
     "description": "Destaques da última atualização.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Cada poco agora informa seu ruido de fundo tipico ao lado da pior posicao, de modo que o mixed gate pode ser avaliado diante do run atual.",
-      "No run 260729 esse limite fica cerca de sessenta vezes acima de uma posicao tipica e quatro vezes acima da mais ruidosa observada."
+      "O mapa da placa e a distribuicao de veredictos sao desenhados por inteiro, em vez de rolar dentro de uma caixa bem menor que o necessario.",
+      "O passo 2.2 rola como uma unica pagina, de modo que os dois e a tabela de veredictos sao lidos de uma vez.",
+      "A tabela de veredictos mantem a propria rolagem, limitada a altura dos dois paineis ao lado."
     ],
-    "highlightsStamp": "0.15.17+6ee369a3"
+    "highlightsStamp": "0.15.18+992e2c6b"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",

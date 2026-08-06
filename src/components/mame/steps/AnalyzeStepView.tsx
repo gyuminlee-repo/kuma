@@ -29,8 +29,6 @@ import { MissingInputsBanner } from "@/components/mame/panels/MissingInputsBanne
 import { computeEtaFromElapsed } from "@/lib/eta";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { useContentFitSplit } from "@/hooks/useContentFitSplit";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { selectCanRun } from "@/store/mame/selectors";
 import { DataPanel } from "@/components/ui/Panel";
@@ -115,16 +113,6 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
   const [durationPopupMs, setDurationPopupMs] = useState<number | null>(null);
   const prevDurationRef = useRef<number | null>(analyzeDurationMs);
   const reviewContainerRef = useRef<HTMLDivElement>(null);
-  // Plate map over verdict breakdown, sized by what each one needs. minSize here
-  // matches the two Panels below, so a fit can never propose a share the group
-  // would refuse.
-  const reviewSplit = useContentFitSplit({
-    minFirst: 18,
-    minSecond: 30,
-    autoSaveId: "mame.analyze.review.vsplit.v2",
-    // Verdict count changes the plate map, run health changes the breakdown.
-    deps: [subStep, hasResults, runHealth !== null],
-  });
   useEffect(() => {
     if (!plateExpanded) return;
     const onKey = (e: KeyboardEvent) => {
@@ -332,87 +320,69 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       // Other RunHealth sections (file-size/throughput/pore-yield/barcode/cross-talk) are still reachable from
       // analyze.inputs's RunHealthPanel and the QC inspector; not duplicated here per PI spec slide 6.
       mainContent = (
-        <div className="flex h-full min-h-0 flex-col relative" ref={reviewContainerRef}>
+        <div className="relative flex flex-col" ref={reviewContainerRef}>
           {/* Above the softer cluster/autosave notices: a suspect mapping is a
               judgment about whether this whole result can be trusted, not a
               detail about how it ran. */}
           <MappingIntegrityAlert />
           <PlateClusterAlert />
-          <div className="flex-1 min-h-0">
-          <PanelGroup direction="horizontal" autoSaveId="mame.analyze.review.split">
-            <Panel defaultSize={50} minSize={25}>
-              <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
+          {/* The right column decides how tall this row is, because both panels
+              in it draw at the size their content needs: the whole plate, and
+              the whole breakdown. Sizing them to the window is what kept showing
+              a plate cropped at row D with a scrollbar over the rest.
+
+              The left column takes that height rather than adding to it. Its
+              contents are absolutely positioned, so the verdict table (up to 96
+              rows, virtualised, with its own scroll container) reports no
+              intrinsic height and cannot stretch the row. The operator sees
+              roughly a right-column worth of rows and scrolls the table for the
+              rest, while the page carries one scrollbar for everything else.
+
+              Below `lg` the columns stack and the absolute trick has no row to
+              borrow from, so the table gets an explicit viewport-relative height
+              instead. */}
+          <div className="mt-3 grid gap-3 lg:grid-cols-2 lg:items-stretch">
+            <div className="relative h-[70vh] lg:h-auto">
+              <div className="absolute inset-0 flex flex-col gap-3">
                 <div className="flex-shrink-0">
                   <SummaryRow />
                 </div>
-                <DataPanel title={t("mame.appLayout.verdictTableTitle")} className="flex-1 min-h-[240px]">
+                <DataPanel
+                  title={t("mame.appLayout.verdictTableTitle")}
+                  className="min-h-0 flex-1"
+                >
                   <VerdictTable />
                 </DataPanel>
               </div>
-            </Panel>
-            <PanelResizeHandle
-              className="w-2 bg-border hover:bg-border/70 transition-colors"
-              aria-label={t("mame.appLayout.verdictTableTitle")}
-            />
-            <Panel defaultSize={50} minSize={25}>
-              {/* Split by what the two panels need. A fixed ratio gave the plate
-                  map the smaller share on every window size (381 px of grid
-                  hidden at 1920x1080, 442 px at 2560x1440) while the breakdown
-                  below it had room to spare; see useContentFitSplit. */}
-              <PanelGroup
-                ref={reviewSplit.groupRef}
-                direction="vertical"
-                autoSaveId="mame.analyze.review.vsplit.v2"
-              >
-                <Panel defaultSize={34} minSize={18}>
-                  {/* PlateView keeps its own scroll containers (the grid area
-                      and the selected-well aside), so the panel body stays
-                      unscrolled, a second scrollbar here would nest. */}
-                  <div ref={reviewSplit.firstRef} className="h-full min-h-0">
-                    <DataPanel title={t("mame.appLayout.platePlanTitle")} className="h-full min-h-0">
-                      <div
-                        role="region"
-                        aria-label={t("mame.plateView.expandedRegionAriaLabel")}
-                        className={plateExpanded ? "absolute inset-0 z-40 bg-background overflow-auto" : "h-full"}
-                      >
-                        <PlateView expanded={plateExpanded} onToggleExpand={() => setPlateExpanded((v) => !v)} />
-                      </div>
-                    </DataPanel>
+            </div>
+            <div className="flex flex-col gap-3">
+              <DataPanel title={t("mame.appLayout.platePlanTitle")} autoHeight>
+                <div
+                  role="region"
+                  aria-label={t("mame.plateView.expandedRegionAriaLabel")}
+                  className={plateExpanded ? "absolute inset-0 z-40 bg-background overflow-auto" : undefined}
+                >
+                  <PlateView
+                    expanded={plateExpanded}
+                    autoHeight={!plateExpanded}
+                    onToggleExpand={() => setPlateExpanded((v) => !v)}
+                  />
+                </div>
+              </DataPanel>
+              <DataPanel title={t("mame.appLayout.efficiencyChartTitle")} autoHeight>
+                {runHealth !== null ? (
+                  <RunHealthPanel
+                    health={runHealth}
+                    sections={["verdict-breakdown"]}
+                    showSectionHeadings={false}
+                  />
+                ) : (
+                  <div className="p-4 text-caption text-muted-foreground">
+                    {t("mameSidebar.statusIncomplete")}
                   </div>
-                </Panel>
-                <PanelResizeHandle
-                  className="h-2 bg-border hover:bg-border/70 transition-colors"
-                  onDragging={reviewSplit.onDragging}
-                />
-                <Panel defaultSize={66} minSize={30}>
-                  <div ref={reviewSplit.secondRef} className="h-full min-h-0">
-                  {/* RunHealthPanel just lays its sections out, so whatever it
-                      renders has to fit or be reachable by scrolling: the user
-                      can drag the splitter above down to well under the chart's
-                      natural height. `min-h-0` (not a px floor) because the
-                      panel really can be shorter than the content. */}
-                  <DataPanel
-                    title={t("mame.appLayout.efficiencyChartTitle")}
-                    className="h-full min-h-0"
-                    scrollBody
-                  >
-                    {runHealth !== null ? (
-                      <RunHealthPanel
-                        health={runHealth}
-                        sections={["verdict-breakdown"]}
-                        showSectionHeadings={false}
-                      />
-                    ) : (
-                      <div className="p-4 text-caption text-muted-foreground">
-                        {t("mameSidebar.statusIncomplete")}
-                      </div>
-                    )}
-                  </DataPanel>
-                  </div>
-                </Panel>
-              </PanelGroup>
-            </Panel>
-          </PanelGroup>
+                )}
+              </DataPanel>
+            </div>
           </div>
         </div>
       );

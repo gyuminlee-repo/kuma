@@ -2272,10 +2272,11 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Un puits indique maintenant son bruit de fond habituel a cote de sa pire position, ce qui permet de juger le mixed gate au regard du run en cours.",
-      "Sur le run 260729, ce seuil se situe environ soixante fois au-dessus d une position typique et quatre fois au-dessus de la plus bruitee observee."
+      "La carte de plaque et la distribution des verdicts sont dessinees en entier, au lieu de defiler dans un cadre bien trop bas.",
+      "L etape 2.2 defile comme une seule page, si bien que ces deux vues et le tableau des verdicts se lisent d un seul tenant.",
+      "Le tableau des verdicts garde son propre defilement, borne a la hauteur des deux panneaux voisins."
     ],
-    "highlightsStamp": "0.15.17+6ee369a3"
+    "highlightsStamp": "0.15.18+992e2c6b"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",

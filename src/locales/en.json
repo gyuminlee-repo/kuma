@@ -2305,10 +2305,11 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A well now reports its typical background noise beside its worst position, so the mixed gate can be judged against the run at hand.",
-      "On the 260729 run that gate sits about sixty times above a typical position and four times above the noisiest one observed."
+      "The plate map and the verdict breakdown now draw whole instead of scrolling inside a box far shorter than they need.",
+      "Step 2.2 scrolls as one page, so the two of them and the verdict table read in a single pass.",
+      "The verdict table keeps its own scroll, bounded to about the height of the two panels beside it."
     ],
-    "highlightsStamp": "0.15.17+6ee369a3"
+    "highlightsStamp": "0.15.18+992e2c6b"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",
