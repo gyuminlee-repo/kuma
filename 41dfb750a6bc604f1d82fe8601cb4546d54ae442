@@ -1,0 +1,7 @@
+Version label correction: this commit ships as v0.15.16, not v0.15.12.
+
+The squash subject kept the branch's original headline. v0.15.12 was already
+released (tag v0.15.12, a run that only sequences never passes a robot) before
+this branch was renumbered. The authoritative label is v0.15.16: CHANGELOG.md
+and the four version manifests at this commit all read 0.15.16, and PR #246 is
+titled v0.15.16.
