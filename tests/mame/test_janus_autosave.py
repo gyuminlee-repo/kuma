@@ -3,21 +3,25 @@
 A run produces two artefacts: the result workbook and the pick list beside it,
 recording which variant was selected, where it sits, and where it should be
 collected. Until v0.15.6 that automatic file was written in the instrument
-``device9`` schema, which made it a robot worklist carrying a liquid class, a
-volume and deck rack numbers. Those values describe the deck standing in the room
-at that moment, so a file stating them was produced by every exploratory re-run
-and none of them could be trusted later. The automatic file is now ``legacy5``:
-the conclusion of the run and nothing about the instrument.
+schema (then named ``device9``), which made it a robot worklist carrying a
+volume and a deck. Those values describe the deck standing in the room at that
+moment, so a file stating them was produced by every exploratory re-run and none
+of them could be trusted later. The automatic file is now ``legacy5``: the
+conclusion of the run and nothing about the instrument.
 
 Properties pinned here, the later ones mattering more than the first: no
 instrument setting may block the automatic file, an empty pick list must not be
 written (an empty file reads like a finished plate), a plate keeps the name the
 run gave it, and a file that cannot be built must not cost the analysis, which by
-then has already run to completion. The instrument (``device9``) sheet is a
+then has already run to completion. The instrument (``device``) sheet is a
 different file: it is never written by ``handle_analyze`` (v0.15.14 removed that
-autosave, since a robot worklist states a deck and a liquid class that describe
-the room at the moment it is written, not at analyze time), only by a manual
+autosave, since a robot worklist states a deck that describes the room at the
+moment it is written, not at analyze time), only by a manual
 ``export_janus_mapping`` call, and that contrast is tested here too.
+
+``device9`` is the former name of the instrument schema, kept alive at the wire
+edge so a saved project asking for it still resolves. It appears below only in
+payloads standing in for such a client.
 
 Fixtures are self-contained barcode-mode consensus FASTA, shared byte-for-byte
 with ``test_analyze_liveness``: no minimap2 needed.
@@ -40,9 +44,10 @@ _PAD = "\n" * (52 * 1024)
 # The five columns of the automatic file, as declared by the core module.
 _LEGACY5_HEADER = ["name", "source_plate", "source_well", "dest_well", "priority_score"]
 
-# The liquid class has no default: it sets the pipetting behaviour of the robot,
-# so the instrument sheet refuses to be written without one. The automatic file
-# does not carry it, which is exactly why it no longer needs it.
+# The liquid class has no default: it describes how the operator pipetted this
+# run. The eight column instrument sheet has no column for it, so it is recorded
+# on the settings and written to neither file. It appears below only to prove it
+# reaches no cell.
 _LIQUID_CLASS = "cell_stock_100"
 
 
@@ -113,7 +118,7 @@ def test_pick_list_is_written_next_to_the_result_workbook(tmp_path: Path) -> Non
 def test_the_automatic_file_carries_the_selection_not_instrument_columns(
     tmp_path: Path,
 ) -> None:
-    """legacy5, so no liquid class, no volume and no rack number is stated."""
+    """legacy5, so no volume and no plate name is stated."""
     result = _run(tmp_path, {"1_2": _G2A_NT, "2_1": _F3W_NT})
 
     body = _read_csv(result["janus_autosave"]["output_path"])
@@ -130,18 +135,33 @@ def test_no_liquid_class_no_longer_blocks_the_automatic_file(tmp_path: Path) -> 
     assert autosave["errors"] == []
 
 
-def test_a_device9_choice_in_the_dialog_does_not_reach_the_automatic_file(
-    tmp_path: Path,
+@pytest.mark.parametrize("stored_schema", ["device", "device9"])
+def test_an_instrument_choice_in_the_dialog_does_not_reach_the_automatic_file(
+    tmp_path: Path, stored_schema: str
 ) -> None:
     """The two files answer different questions, so the schema is not shared.
 
     An operator who set up the instrument sheet in the dialog still gets the
     selection beside the workbook, not a second worklist.
+
+    The step 3 panel no longer offers an output-column choice and always sends
+    the instrument schema, which is exactly the payload below, so this case is
+    the only thing standing between the automatic pick list and that schema.
+    ``SCHEMA_LEGACY5`` in ``kuma_core`` is therefore live code, not a dead path
+    left over from the removed control.
+
+    Both names are run because the former name is folded into the current one at
+    the wire edge. A fold written loosely enough to catch ``legacy5`` too would
+    turn the pick list into a worklist, and the ``device9`` case is what would
+    catch that.
     """
     result = _run(
         tmp_path,
         {"1_2": _G2A_NT, "2_1": _F3W_NT},
-        janus_settings={"output_schema": "device9", "liquid_class": _LIQUID_CLASS},
+        janus_settings={
+            "output_schema": stored_schema,
+            "liquid_class": _LIQUID_CLASS,
+        },
     )
 
     autosave = result["janus_autosave"]
@@ -265,15 +285,17 @@ def test_autosaved_file_carries_only_the_selected_replicate(tmp_path: Path) -> N
     assert len(_read_csv(autosave["output_path"])) == 2
 
 
-def test_the_dialog_writes_the_instrument_sheet_with_or_without_a_liquid_class(
+def test_the_dialog_writes_the_instrument_sheet_and_never_the_liquid_class(
     tmp_path: Path,
 ) -> None:
-    """device9 by default, and a blank liquid class no longer withholds the file.
+    """The instrument schema by default, and the liquid class reaches no cell.
 
     Same session as the run above, so this is the very state the dialog exports
-    from. Refusing over the blank column left the lab with no mapping file at
-    all, which is worse than a column they fill in themselves; the warning names
-    it instead.
+    from. The sheet once refused to be written without a liquid class, then
+    shipped a blank column and warned about it; now the column is gone, so the
+    value is recorded on the settings and written nowhere. Exporting with and
+    without one has to produce the same eight columns, and neither file may
+    contain the string.
     """
     _run(tmp_path, {"1_2": _G2A_NT, "2_1": _F3W_NT})
     from sidecar_mame.handlers.export import handle_export_janus_mapping
@@ -281,22 +303,21 @@ def test_the_dialog_writes_the_instrument_sheet_with_or_without_a_liquid_class(
     blank = tmp_path / "worklist_blank.csv"
     written_blank = handle_export_janus_mapping({"output": str(blank)})
     assert Path(written_blank["output_path"]).exists()
-    assert len(_read_csv(written_blank["output_path"])[0]) == 9
-    assert [w["code"] for w in written_blank["warnings"]] == [
-        "missing_liquid_class",
-        "derived_source_rack",
-    ]
-    # Blank means blank: nothing was invented for the column.
-    assert _read_csv(written_blank["output_path"])[1][2] == ""
+    assert len(_read_csv(written_blank["output_path"])[0]) == 8
+    # Nothing is said about a value that reaches no file.
+    assert [w["code"] for w in written_blank["warnings"]] == ["derived_source_rack"]
 
     target = tmp_path / "worklist.csv"
     written = handle_export_janus_mapping(
         {"output": str(target), "liquid_class": _LIQUID_CLASS}
     )
     assert Path(written["output_path"]).exists()
-    # Nine instrument columns, the point of that file.
-    assert len(_read_csv(written["output_path"])[0]) == 9
-    assert _read_csv(written["output_path"])[1][2] == _LIQUID_CLASS
+    # Eight instrument columns, the point of that file.
+    assert len(_read_csv(written["output_path"])[0]) == 8
+    # Scanning every cell, rather than the column it used to sit in, is what
+    # catches the liquid class reappearing somewhere else.
+    rows = _read_csv(written["output_path"])
+    assert not [r for r in rows if _LIQUID_CLASS in r]
 
 
 # Column-major well order over the expected-mutation sheet: seq 1 ("1_1"),
@@ -330,8 +351,12 @@ def test_a_three_plate_native_barcode_run_writes_the_instrument_sheet_on_export(
     automatically at all; v0.15.14 stopped analyze from writing one altogether
     (only a manual ``export_janus_mapping`` call does now, tested here directly
     the way the dialog path already is above). Nothing is configured here: no
-    liquid class, no rack numbers, no dest rack. The file has to come out
-    anyway, with the deck taken from the plates of the run.
+    liquid class, no plate names. The file has to come out anyway, with the
+    deck taken from the plates of the run.
+
+    Three plates also separates the naming rule from the plate number: the run
+    is sort_barcode07/08/09, so the plates are the first, second and third stock
+    plate rather than the seventh, eighth and ninth.
     """
     ingest = tmp_path / "consensus"
     _write_fasta(ingest / "sort_barcode07" / "1_1.fasta", "1_1", _M1L_NT)
@@ -364,21 +389,18 @@ def test_a_three_plate_native_barcode_run_writes_the_instrument_sheet_on_export(
     assert written.exists()
 
     body = _read_csv(str(written))
-    assert len(body[0]) == 9
+    assert len(body[0]) == 8
     rows = body[1:]
     assert len(rows) == 3
-    # Asp. Rack (index 4) by plate, Dsp. Rack (index 6) the next number.
+    # Asp. Rack (index 3) by plate, Dsp. Rack (index 5) the one culture plate.
     by_name = {row[0]: row for row in rows}
-    assert by_name["M1L"][4] == "1"
-    assert by_name["G2A"][4] == "2"
-    assert by_name["F3W"][4] == "3"
-    assert {row[6] for row in rows} == {"4"}
-    # Nothing invented for the column nobody set.
-    assert {row[2] for row in rows} == {""}
-    assert sorted(w["code"] for w in mapping["warnings"]) == [
-        "derived_source_rack",
-        "missing_liquid_class",
-    ]
+    assert by_name["M1L"][3] == "Stock plate1"
+    assert by_name["G2A"][3] == "Stock plate2"
+    assert by_name["F3W"][3] == "Stock plate3"
+    assert {row[5] for row in rows} == {"final culture plate"}
+    # Every row is a cell stock, the word the seeding workbook uses.
+    assert {row[1] for row in rows} == {"cell stock"}
+    assert sorted(w["code"] for w in mapping["warnings"]) == ["derived_source_rack"]
 
     # The pick list was written beside the workbook by analyze itself, no
     # export needed: two files, two writers, two questions.
@@ -388,10 +410,10 @@ def test_a_three_plate_native_barcode_run_writes_the_instrument_sheet_on_export(
     assert len(_read_csv(picks["output_path"])[0]) == 5
 
 
-def test_operator_rack_numbers_reach_the_exported_instrument_sheet(
+def test_operator_plate_names_reach_the_exported_instrument_sheet(
     tmp_path: Path,
 ) -> None:
-    """A number entered for the export wins over the derived one."""
+    """A plate name supplied for the export wins over the generated one."""
     _run(tmp_path, {"1_2": _G2A_NT, "2_1": _F3W_NT})
     from sidecar_mame.handlers.export import handle_export_janus_mapping
 
@@ -400,19 +422,46 @@ def test_operator_rack_numbers_reach_the_exported_instrument_sheet(
         {
             "output": str(target),
             "liquid_class": _LIQUID_CLASS,
-            "source_racks": {"NB01": 5},
-            "dest_rack": 8,
+            "source_racks": {"NB01": "bench stock plate"},
+            "dest_rack": "bench culture plate",
             "volume": 40.0,
         }
     )
 
     rows = _read_csv(mapping["output_path"])[1:]
-    assert {row[4] for row in rows} == {"5"}
-    assert {row[6] for row in rows} == {"8"}
-    assert {row[2] for row in rows} == {_LIQUID_CLASS}
-    assert {row[8] for row in rows} == {"40.0"}
-    # Everything was supplied, so nothing is reported as blank or derived.
+    assert {row[3] for row in rows} == {"bench stock plate"}
+    assert {row[5] for row in rows} == {"bench culture plate"}
+    assert {row[7] for row in rows} == {"40.0"}
+    assert not [r for r in rows if _LIQUID_CLASS in r]
+    # Every name was supplied, so nothing is reported as derived.
     assert mapping["warnings"] == []
+
+
+def test_a_rack_number_left_over_from_the_old_deck_is_dropped_not_written(
+    tmp_path: Path,
+) -> None:
+    """The one way this migration could silently undo itself.
+
+    A client that stored its deck while the columns carried numbers sends
+    integers. Writing ``str(5)`` would put a bare "5" where the robot expects a
+    labware name, and every gate would stay green because a written cell is a
+    written cell. The stale value is dropped instead, which restores the
+    generated name, and the export still produces a file rather than failing an
+    operator for what an older build saved.
+    """
+    _run(tmp_path, {"1_2": _G2A_NT, "2_1": _F3W_NT})
+    from sidecar_mame.handlers.export import handle_export_janus_mapping
+
+    target = tmp_path / "worklist.csv"
+    mapping = handle_export_janus_mapping(
+        {"output": str(target), "source_racks": {"NB01": 5}, "dest_rack": 8}
+    )
+
+    rows = _read_csv(mapping["output_path"])[1:]
+    assert rows
+    assert {row[3] for row in rows} == {"Stock plate1"}
+    assert {row[5] for row in rows} == {"final culture plate"}
+    assert not [r for r in rows if "5" in r or "8" in r]
 
 
 def test_an_export_failure_does_not_cost_the_analysis(

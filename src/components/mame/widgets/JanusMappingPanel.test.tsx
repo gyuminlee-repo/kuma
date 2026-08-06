@@ -44,6 +44,7 @@ vi.mock("@/store/mame/mameAppStore", async () => {
   return { useMameAppStore };
 });
 
+import { save } from "@tauri-apps/plugin-dialog";
 import {
   fetchMameJanusPreview,
   handleExportMameJanusMapping,
@@ -69,28 +70,50 @@ interface JanusStoreDouble {
 
 const mockPreview = vi.mocked(fetchMameJanusPreview);
 const mockExport = vi.mocked(handleExportMameJanusMapping);
+const mockSave = vi.mocked(save);
 
+/**
+ * The instrument sheet header, in the order the writer emits it
+ * (`JANUS_DEVICE_HEADER`, kuma_core/shared/janus_deck.py).
+ *
+ * Written out here rather than imported from the panel: this list is what the
+ * file assertions are pinned to, and importing the panel's own fallback would
+ * let the two move together with every gate still green.
+ */
+const INSTRUMENT_COLUMNS = [
+  "name",
+  "type",
+  "no",
+  "Asp. Rack",
+  "Asp. Posi",
+  "Dsp. Rack",
+  "Dsp. Posi",
+  "volume",
+];
+
+/**
+ * A preview reply for the shipped defaults, carrying the deck the sidecar
+ * generated for a two plate run.
+ *
+ * `source_racks` and `dest_rack` are empty because the panel offers no way to
+ * name a plate by hand; the names the file carries live in the `resolved_`
+ * pair, which is what the table reads.
+ */
 const SETTINGS: JanusResolvedSettings = {
   dest_layout: "compact",
   include_verdicts: ["PASS"],
   include_fallback: false,
-  output_schema: "device9",
-  volume: 100,
-  sample_type: "cell",
-  liquid_class: "Cell 100ul",
-  source_racks: { NB01: 1, NB02: 2, NB03: 3 },
-  dest_rack: 4,
-  columns: [
-    "name",
-    "type",
-    "Dsp. Rack",
-    "no",
-    "Asp. Rack",
-    "Asp. Posi",
-    "Dsp. Rack",
-    "Dsp. Posi",
-    "volume",
-  ],
+  output_schema: "device",
+  volume: 70,
+  sample_type: "cell stock",
+  // Recorded with the run and written to no file: the eight column sheet has no
+  // liquid class column, which is why no preview cell below carries this.
+  liquid_class: "",
+  source_racks: {},
+  dest_rack: null,
+  resolved_source_racks: { NB01: "Stock plate1", NB02: "Stock plate2" },
+  resolved_dest_rack: "final culture plate",
+  columns: [...INSTRUMENT_COLUMNS],
 };
 
 const CLEAN: JanusPreviewResult = {
@@ -188,27 +211,17 @@ function resolvedSettingsFromUi(
     liquid_class: settings.liquidClass,
     source_racks: settings.sourceRacks,
     dest_rack: settings.destRack,
-    // The sidecar derives the deck when nothing was entered; the dialog reads
-    // these when it fills the rack inputs and the device9 preview cells.
+    // The sidecar names every plate of the run whether or not anything was
+    // entered, so these are what the preview cells read. Nothing in the panel
+    // fills the override maps above.
     resolved_source_racks:
       Object.keys(settings.sourceRacks).length > 0
         ? settings.sourceRacks
-        : { NB01: 1, NB02: 2 },
-    resolved_dest_rack: settings.destRack ?? 3,
-    columns:
-      settings.outputSchema === "device9"
-        ? [
-            "name",
-            "type",
-            "Dsp. Rack",
-            "no",
-            "Asp. Rack",
-            "Asp. Posi",
-            "Dsp. Rack",
-            "Dsp. Posi",
-            "volume",
-          ]
-        : ["name", "source_plate", "source_well", "dest_well", "priority_score"],
+        : { NB01: "Stock plate1", NB02: "Stock plate2" },
+    resolved_dest_rack: settings.destRack ?? "final culture plate",
+    // One sheet, so no branch: the 5-column `legacy5` file is written by
+    // analyze as the pick list and never from this panel.
+    columns: [...INSTRUMENT_COLUMNS],
   };
 }
 
@@ -225,6 +238,7 @@ beforeEach(() => {
   useMameAppStore.setState({ janusSettings: DEFAULT_JANUS_SETTINGS });
   mockPreview.mockReset();
   mockExport.mockReset();
+  mockSave.mockReset();
   mockPreview.mockImplementation(async (settings) => cleanPreviewFor(settings));
 });
 
@@ -233,7 +247,7 @@ describe("JanusMappingPanel preview", () => {
     render(<JanusMappingPanel />);
     await waitFor(() =>
       expect(mockPreview).toHaveBeenCalledWith(
-        expect.objectContaining({ destLayout: "compact", outputSchema: "device9" }),
+        expect.objectContaining({ destLayout: "compact", outputSchema: "device" }),
       ),
     );
     expect(await screen.findByText("HIGH")).toBeInTheDocument();
@@ -264,22 +278,6 @@ describe("JanusMappingPanel preview", () => {
         expect.objectContaining({ liquidClass: "Cell 100ul" }),
       ),
     );
-  });
-
-  it("ignores fractional rack edits instead of truncating them", async () => {
-    render(<JanusMappingPanel />);
-    await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getByText("Deck configuration"));
-
-    fireEvent.change(screen.getByLabelText("Asp. Rack NB01"), {
-      target: { value: "1.9" },
-    });
-    fireEvent.change(screen.getByLabelText("Dsp. Rack"), {
-      target: { value: "4.7" },
-    });
-
-    await new Promise((resolve) => setTimeout(resolve, 350));
-    expect(mockPreview).toHaveBeenCalledTimes(1);
   });
 
   it("sends the same settings to the export that the preview was built with", async () => {
@@ -334,27 +332,58 @@ describe("JanusMappingPanel preview", () => {
           .getAllByRole("cell")
           .map((c) => c.textContent),
       );
-    // Two plates in the run, so the deck derives to racks 1 and 2 with the
-    // destination at 3; the cells show the resolved deck, not the (empty)
-    // operator overrides.
+    // Two plates in the run, so the sidecar names them in plate order and
+    // dispenses both into the one culture plate; the cells show those generated
+    // names, not the (empty) operator overrides.
+    // The last cell is the shipped 70 uL, the volume this lab transfers.
     expect(cells).toEqual([
-      ["HIGH", "cell", "", "1", "1", "E7", "3", "E7", "100"],
-      ["LOW", "cell", "", "2", "2", "H12", "3", "H12", "100"],
+      ["HIGH", "cell stock", "1", "Stock plate1", "E7", "final culture plate", "E7", "70"],
+      ["LOW", "cell stock", "2", "Stock plate2", "H12", "final culture plate", "H12", "70"],
     ]);
     const header = within(table)
       .getAllByRole("columnheader")
       .map((c) => c.textContent);
-    expect(header).toEqual([
-      "name",
-      "type",
-      "Dsp. Rack",
-      "no",
-      "Asp. Rack",
-      "Asp. Posi",
-      "Dsp. Rack",
-      "Dsp. Posi",
-      "volume",
-    ]);
+    expect(header).toEqual(INSTRUMENT_COLUMNS);
+  });
+
+  it("pins the eight instrument columns and fills every one of them", async () => {
+    // The header the table draws comes from the preview reply, so this is the
+    // shape of the file rather than a restatement of the panel's fallback.
+    render(<JanusMappingPanel />);
+    const table = await screen.findByRole("table");
+
+    const header = within(table)
+      .getAllByRole("columnheader")
+      .map((c) => c.textContent);
+    expect(header).toEqual(INSTRUMENT_COLUMNS);
+    expect(header).toHaveLength(8);
+    // The nine column sheet named `Dsp. Rack` twice, which is why the panel used
+    // to address cells by position as well as by name. Nothing may bring the
+    // repeat back without this failing.
+    expect(new Set(header).size).toBe(header.length);
+
+    const cells = within(within(table).getAllByRole("row")[1])
+      .getAllByRole("cell")
+      .map((c) => c.textContent);
+    expect(cells).toHaveLength(8);
+    // A column the panel does not recognise renders blank rather than throwing,
+    // so an empty cell is the only symptom a renamed column would leave. That
+    // makes the emptiness itself the thing to assert on.
+    expect(cells.filter((value) => value === "")).toEqual([]);
+  });
+
+  it("names each rack column once in the note describing the file", async () => {
+    // The note is the panel's own account of what it writes, and it is what
+    // went stale while the sheet had nine columns: it named `Dsp. Rack` twice
+    // and a liquid class column between them. Counting the rack names rather
+    // than matching the sentence survives a reword and a translation, and the
+    // count is exactly what separates the two sheets.
+    render(<JanusMappingPanel />);
+    await screen.findByRole("table");
+
+    const note = screen.getByText(/^Columns:/).textContent ?? "";
+    expect(note.match(/Dsp\. Rack/g)).toHaveLength(1);
+    expect(note.match(/Asp\. Rack/g)).toHaveLength(1);
   });
 
   it("blocks export while the visible preview is stale for edited settings", async () => {
@@ -466,23 +495,24 @@ describe("JanusMappingPanel preview", () => {
 
 describe("JanusMappingPanel warnings", () => {
   /**
-   * v0.15.8: a blank liquid class and a derived rack number used to be errors,
-   * which meant the lab got no mapping file at all. They are reported now, and
-   * the Export button must stay live while they are on screen.
+   * v0.15.8: a derived deck used to be an error, which meant the lab got no
+   * mapping file at all. It is reported now, and the Export button must stay
+   * live while it is on screen.
+   *
+   * The blank liquid class that used to be reported beside it is gone with the
+   * column it described: the eight column sheet has none, so there is nothing
+   * left to ship blank and nothing to warn about.
    */
   const WARNED: JanusPreviewResult = {
     ...CLEAN,
     warnings: [
       {
-        code: "missing_liquid_class",
-        severity: "warning",
-        message: "Janus mapping: the liquid class column is blank.",
-        mutant_ids: [],
-      },
-      {
         code: "derived_source_rack",
         severity: "warning",
-        message: "Janus mapping: deck positions derived from the plates of this run.",
+        message:
+          "Janus mapping: plate names generated from the plates of this run " +
+          "(NB01 -> Stock plate1, NB02 -> Stock plate2, destination -> " +
+          "final culture plate). Label the labware on the deck to match.",
         mutant_ids: [],
       },
     ],
@@ -494,7 +524,7 @@ describe("JanusMappingPanel warnings", () => {
     mockExport.mockReset();
   });
 
-  it("shows what shipped blank or derived without blocking the export", async () => {
+  it("shows what the export named for itself without blocking it", async () => {
     mockPreview.mockImplementation(async (settings) => ({
       ...WARNED,
       settings: resolvedSettingsFromUi(settings),
@@ -502,8 +532,11 @@ describe("JanusMappingPanel warnings", () => {
     render(<JanusMappingPanel />);
 
     const warned = await screen.findByTestId("janus-preview-warnings");
-    expect(warned).toHaveTextContent(/liquid class column is blank/i);
-    expect(warned).toHaveTextContent(/derived from the plates of this run/i);
+    expect(warned).toHaveTextContent(/generated from the plates of this run/i);
+    // The names are what the operator has to label the deck with, so the
+    // warning has to carry them rather than only saying that it derived some.
+    expect(warned).toHaveTextContent(/Stock plate1/);
+    expect(warned).toHaveTextContent(/final culture plate/);
     // Reported, not enforced.
     expect(warned).toHaveAttribute("role", "status");
     await waitFor(() => expect(exportButton()).toBeEnabled());
@@ -524,12 +557,18 @@ describe("JanusMappingPanel warnings", () => {
   });
 });
 
-describe("JanusMappingPanel deck map", () => {
+describe("JanusMappingPanel generated plate names", () => {
   /**
    * Observed on a real run: the plates were native barcode folders named
-   * `sort_barcode07` and up, which a fixed P1/P2/P3 field list has no rack for,
-   * so the export refused every clone. The fields must name the plates the run
-   * actually produced.
+   * `sort_barcode07` and up, which a fixed P1/P2/P3 field list had no rack for,
+   * so the export refused every clone. The operator fields that regression was
+   * about are gone (the sidecar names the plates now), but the same plate
+   * labels still key the generated names, so the lookup has to hold for
+   * whatever labels the run produced rather than for a shipped list.
+   *
+   * The panel reads the name with `row.source_plate`, and a key it cannot find
+   * renders an empty cell, so a lookup keyed on anything else fails silently.
+   * That is what this pins.
    */
   const NATIVE_BARCODE: JanusPreviewResult = {
     ...CLEAN,
@@ -544,57 +583,195 @@ describe("JanusMappingPanel deck map", () => {
     mockPreview.mockReset();
   });
 
-  it("names the rack fields after the plates of the run", async () => {
+  it("shows the generated name for whatever plate the run produced", async () => {
     mockPreview.mockImplementation(async (settings) => ({
       ...NATIVE_BARCODE,
-      settings: resolvedSettingsFromUi(settings),
+      settings: {
+        ...resolvedSettingsFromUi(settings),
+        resolved_source_racks: {
+          sort_barcode07: "Stock plate1",
+          sort_barcode08: "Stock plate2",
+        },
+      },
     }));
+    render(<JanusMappingPanel />);
+    const table = await screen.findByRole("table");
+
+    const header = within(table)
+      .getAllByRole("columnheader")
+      .map((c) => c.textContent);
+    const aspRack = header.indexOf("Asp. Rack");
+    const names = within(table)
+      .getAllByRole("row")
+      .slice(1)
+      .map((row) => within(row).getAllByRole("cell")[aspRack].textContent);
+
+    expect(names).toEqual(["Stock plate1", "Stock plate2"]);
+  });
+});
+
+describe("JanusMappingPanel volume", () => {
+  /**
+   * Step 3 used to ask for the transfer volume above the panel, and that input
+   * wrote the same stored `janusSettings.volume` this field writes, so the
+   * operator answered one question twice. This is the field that stayed, and
+   * nothing exercised it before, so its whole edit path is pinned here.
+   */
+
+  it("is the only volume field on the step", async () => {
     render(<JanusMappingPanel />);
     await waitFor(() => expect(mockPreview).toHaveBeenCalled());
-    fireEvent.click(await screen.findByText("Deck configuration"));
 
-    expect(await screen.findByLabelText("Asp. Rack sort_barcode07")).toBeInTheDocument();
-    expect(screen.getByLabelText("Asp. Rack sort_barcode08")).toBeInTheDocument();
-    // The shipped NB01/NB02/NB03 names belong to no plate of this run.
-    expect(screen.queryByLabelText("Asp. Rack NB01")).not.toBeInTheDocument();
+    expect(screen.getAllByLabelText(/volume/i)).toHaveLength(1);
   });
 
-  it("records the rack number under the plate name the sidecar checks", async () => {
-    mockPreview.mockImplementation(async (settings) => ({
-      ...NATIVE_BARCODE,
-      settings: resolvedSettingsFromUi(settings),
-    }));
+  it("sends the shipped 70 uL to the sidecar, not just to the constant", async () => {
     render(<JanusMappingPanel />);
-    await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(1));
-    fireEvent.click(await screen.findByText("Deck configuration"));
-
-    fireEvent.change(screen.getByLabelText("Asp. Rack sort_barcode07"), {
-      target: { value: "2" },
-    });
 
     await waitFor(() =>
       expect(mockPreview).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sourceRacks: expect.objectContaining({ sort_barcode07: 2 }),
-        }),
+        expect.objectContaining({ volume: 70 }),
+      ),
+    );
+    expect((screen.getByLabelText(/^Volume/) as HTMLInputElement).value).toBe("70");
+  });
+
+  it("writes a volume edit to the store and refetches the preview", async () => {
+    render(<JanusMappingPanel />);
+    // Wait for the first (debounced) preview so the edit is a second request
+    // rather than a reset of the pending timer.
+    await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(1));
+
+    fireEvent.change(screen.getByLabelText(/^Volume/), { target: { value: "45" } });
+
+    expect(useMameAppStore.getState().janusSettings.volume).toBe(45);
+    await waitFor(() =>
+      expect(mockPreview).toHaveBeenCalledWith(
+        expect.objectContaining({ volume: 45 }),
       ),
     );
   });
 
-  it("says the plate names are still to come when no run has produced any", async () => {
-    mockPreview.mockImplementation(async (settings) => ({
-      rows: [],
-      errors: [],
-      warnings: [],
-      row_count: 0,
-      excluded: [],
-      excluded_count: 0,
-      settings: resolvedSettingsFromUi(settings),
-    }));
+  it("says where the volume goes without calling it a guess", async () => {
     render(<JanusMappingPanel />);
     await waitFor(() => expect(mockPreview).toHaveBeenCalled());
-    fireEvent.click(await screen.findByText("Deck configuration"));
 
-    expect(screen.getByText(/Plate names come from the run/i)).toBeInTheDocument();
+    // The hint the deleted step input carried had to survive the move; the
+    // sentence calling the shipped volume a baseless assumption did not, since
+    // 70 uL is the number the lab gave.
+    expect(
+      screen.getByText(/Written into the instrument mapping file/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/assumption/i)).toBeNull();
+    expect(screen.queryByText(/100 ?uL/i)).toBeNull();
+  });
+});
+
+describe("JanusMappingPanel fixed choices", () => {
+  /**
+   * Four things this panel used to offer had no second answer in this lab: the
+   * file format (the instrument reads CSV), the output columns (it reads the
+   * instrument sheet), a static deck picture stating a slot layout the JANUS
+   * software never reads since it matches plates by name, and the rack number
+   * fields that replaced that picture, which stated an address the software
+   * does not use either.
+   *
+   * None of the removed controls was queried by any test, so without these the
+   * removal would be silent and so would a revert.
+   */
+
+  it("offers no format choice: the instrument takes CSV", async () => {
+    render(<JanusMappingPanel />);
+    await waitFor(() => expect(mockPreview).toHaveBeenCalled());
+
+    expect(screen.queryByLabelText("CSV")).toBeNull();
+    expect(screen.queryByLabelText("XLSX")).toBeNull();
+    expect(screen.queryByText("Format")).toBeNull();
+    // The placeholder used to interpolate the chosen extension.
+    expect(
+      screen.getByLabelText("Output file path for Janus mapping"),
+    ).toHaveAttribute("placeholder", "Target .csv file path");
+  });
+
+  it("writes CSV and offers to save nothing else", async () => {
+    render(<JanusMappingPanel />);
+    await waitFor(() => expect(exportButton()).toBeEnabled());
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Browse save path for Janus mapping" }),
+    );
+    await waitFor(() => expect(mockSave).toHaveBeenCalled());
+    expect(mockSave.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ filters: [{ name: "CSV", extensions: ["csv"] }] }),
+    );
+
+    fireEvent.click(exportButton());
+    await waitFor(() => expect(mockExport).toHaveBeenCalled());
+    // Stated rather than defaulted: the sidecar still knows how to write xlsx,
+    // and this call site is the reason it never will from here.
+    expect(mockExport.mock.calls[0][1]).toBe("csv");
+    expect(mockExport.mock.calls[0][0]).toMatch(/\.csv$/);
+  });
+
+  it("fixes the output columns to the instrument sheet", async () => {
+    render(<JanusMappingPanel />);
+    await waitFor(() => expect(mockPreview).toHaveBeenCalled());
+
+    // Queried by role rather than by the labels the removed radios carried, so
+    // that a revert is caught whatever it decides to call the two sheets.
+    expect(screen.queryByRole("radio", { name: /columns/i })).toBeNull();
+    expect(screen.queryByText("Output columns")).toBeNull();
+    // Destination layout is the one radio group left.
+    expect(screen.getAllByRole("radiogroup")).toHaveLength(1);
+    // The instrument fieldset used to be hidden behind the 5-column choice and
+    // renders unconditionally now, with nothing toggled first.
+    expect(screen.getByLabelText(/^Volume/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Liquid class")).toBeInTheDocument();
+  });
+
+  it("sends the instrument schema with the export", async () => {
+    render(<JanusMappingPanel />);
+    await waitFor(() => expect(exportButton()).toBeEnabled());
+
+    fireEvent.click(exportButton());
+
+    await waitFor(() => expect(mockExport).toHaveBeenCalled());
+    expect(mockExport.mock.calls[0][2]).toEqual(
+      expect.objectContaining({ outputSchema: "device" }),
+    );
+  });
+
+  it("falls back to the instrument header when the sidecar sends no columns", async () => {
+    // The fallback used to be the 5 kuma columns, which named a file this panel
+    // no longer writes. No fixture reaches this path otherwise: every other one
+    // comes back with columns filled in.
+    mockPreview.mockImplementation(async (settings) => ({
+      ...CLEAN,
+      settings: { ...resolvedSettingsFromUi(settings), columns: [] },
+    }));
+    render(<JanusMappingPanel />);
+
+    const table = await screen.findByRole("table");
+    const header = within(table)
+      .getAllByRole("columnheader")
+      .map((c) => c.textContent);
+    expect(header).toEqual(INSTRUMENT_COLUMNS);
+  });
+
+  it("drops the deck picture and the rack number fields with it", async () => {
+    render(<JanusMappingPanel />);
+    await waitFor(() => expect(mockPreview).toHaveBeenCalled());
+
+    expect(screen.queryByRole("img", { name: /deck/i })).toBeNull();
+    expect(screen.queryByText("JANUS Deck Layout")).toBeNull();
+    // The rack fields outlived the picture for a while, since a number did
+    // reach the file where a picture never did. A plate name reaches it now,
+    // and the sidecar generates that from the plates of the run, so there is
+    // nothing left here to ask an operator. The disclosure they sat behind went
+    // with them rather than staying to head a single unrelated field.
+    expect(screen.queryByText("Deck configuration")).toBeNull();
+    expect(screen.queryByRole("spinbutton", { name: /Rack/i })).toBeNull();
+    // The generated names are read back in the row preview instead.
+    expect(screen.getByLabelText(/^Volume/)).toBeInTheDocument();
   });
 });

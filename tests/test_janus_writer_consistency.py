@@ -28,7 +28,7 @@ from kuma_core.kuro.plate_mapper import (
     janus_row_values,
 )
 from kuma_core.shared.janus_deck import (
-    JANUS_DEVICE9_HEADER,
+    JANUS_DEVICE_HEADER,
     KURO_PRIMER_DECK,
     JanusDeck,
 )
@@ -110,8 +110,8 @@ class TestWritersAgree:
         csv_header, _ = _csv_rows(csv_path)
         xlsx_header, _ = _xlsx_rows(xlsx_path)
 
-        assert csv_header == JANUS_DEVICE9_HEADER
-        assert xlsx_header == JANUS_DEVICE9_HEADER
+        assert csv_header == JANUS_DEVICE_HEADER
+        assert xlsx_header == JANUS_DEVICE_HEADER
 
     def test_csv_xlsx_and_preview_write_the_same_rows(
         self, shared_rev_mappings, tmp_path
@@ -166,7 +166,7 @@ class TestWritersAgree:
 
         for row in preview:
             # janus_row_values raises KeyError if an instrument column is absent.
-            assert len(janus_row_values(row)) == len(JANUS_DEVICE9_HEADER)
+            assert len(janus_row_values(row)) == len(JANUS_DEVICE_HEADER)
             assert row["mutation"]
             assert row["role"] in ("fwd", "rev")
 
@@ -179,9 +179,9 @@ class TestDeckPolicyReachesEveryWriter:
     ):
         fwd, rev, groups = shared_rev_mappings
         other = JanusDeck(
-            fwd_rack=7,
-            rev_rack=8,
-            dest_rack=9,
+            fwd_rack="probe fw plate",
+            rev_rack="probe rv plate",
+            dest_rack="probe assay plate",
             liquid_class="Test 1pmol/ul",
             sample_type="probe",
         )
@@ -203,13 +203,25 @@ class TestDeckPolicyReachesEveryWriter:
 
         assert [_as_text(r) for r in csv_raw] == expected
         assert [_as_text(r) for r in xlsx_raw] == expected
-        assert {r[4] for r in csv_raw} == {"7", "8"}
-        assert {r[6] for r in csv_raw} == {"9"}
-        assert {r[2] for r in csv_raw} == {"Test 1pmol/ul"}
+        # Index 3 is Asp. Rack and index 5 Dsp. Rack in the eight column sheet.
+        assert {r[3] for r in csv_raw} == {"probe fw plate", "probe rv plate"}
+        assert {r[5] for r in csv_raw} == {"probe assay plate"}
         assert {r[1] for r in csv_raw} == {"probe"}
+        # The deck states a liquid class and the sheet has no column for it, so
+        # it must reach no cell. Asserting its absence everywhere, rather than
+        # dropping the old index 2 assertion, is what catches it reappearing in
+        # some other column.
+        assert not any(other.liquid_class in r for r in csv_raw)
 
-    def test_role_is_stated_not_inferred_from_rack_number(self, shared_rev_mappings):
-        """The frontend infers direction from asp_rack; ``role`` frees it to stop."""
+    def test_role_is_stated_not_inferred_from_the_source_plate(
+        self, shared_rev_mappings
+    ):
+        """A consumer could read direction off the source plate; ``role`` frees it.
+
+        The frontend once inferred direction by comparing the aspirate rack to
+        the deck. Plate names make that comparison worse, not better, so this
+        pins that a swapped deck leaves ``role`` describing the primer.
+        """
         fwd, rev, groups = shared_rev_mappings
         swapped = JanusDeck(
             fwd_rack=KURO_PRIMER_DECK.rev_rack,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { AlertTriangle, Maximize2, Minimize2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
@@ -7,7 +7,7 @@ import { WellPlate } from "./WellPlate";
 import type { WellColorOverride } from "./WellPlate";
 import { cn } from "@/lib/utils";
 import type { VerdictClass, WellEntry } from "@/types/mame/models";
-import { VERDICT_LABEL } from "@/lib/mame/verdictColors";
+import { VERDICT_HELP_KEY, VERDICT_LABEL } from "@/lib/mame/verdictColors";
 import { nbLabel, nbOrderKey } from "@/lib/mame/nbLabel";
 import { collapseWells } from "@/lib/mame/plateWells";
 
@@ -58,6 +58,10 @@ export function PlateView({ wellColorOf, wells: externalWells, expanded, onToggl
 
   // Use external wells if provided (kuro mode), otherwise fall back to mame store wells
   const wells = externalWells ?? storeWells;
+
+  // Prefix for the per-class sr-only help ids. Generated rather than hardcoded
+  // so two PlateView instances on one page cannot collide on the same id.
+  const legendHelpId = useId();
 
   const [colorblindMode, setColorblindMode] = useState(false);
   // Legend-class filter: clicking a verdict class dims non-matching wells.
@@ -193,29 +197,50 @@ export function PlateView({ wellColorOf, wells: externalWells, expanded, onToggl
               const active = activeClass === verdict;
               const count = verdictCounts.get(verdict) ?? 0;
               const hasData = count > 0;
+              const help = t(VERDICT_HELP_KEY[verdict]);
+              const helpId = `${legendHelpId}-${verdict}`;
+              // The title sits on the WRAPPER, not on the button. A disabled
+              // control dispatches no mouse events for itself or its
+              // descendants in Chromium, so the badge title inside never
+              // surfaced on the six classes that are typically zero, exactly
+              // the ones whose meaning is unclear. The button keeps `disabled`
+              // (and with it aria-pressed and the dead onClick), and only gives
+              // up pointer-events so the hover lands on the wrapper instead.
               return (
-                <button
+                <span
                   key={verdict}
-                  type="button"
-                  disabled={!hasData}
-                  onClick={() =>
-                    setActiveClass((prev) => (prev === verdict ? null : verdict))
-                  }
-                  aria-pressed={active}
-                  aria-label={t("mame.plateView.verdictFilterAriaLabel", { verdict })}
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-control border px-0.5 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
-                    active
-                      ? "border-primary bg-primary/10"
-                      : "border-transparent",
-                    hasData ? "hover:bg-muted/60" : "cursor-not-allowed opacity-40",
-                  )}
+                  title={help}
+                  className={cn("inline-flex", hasData ? "cursor-help" : "cursor-not-allowed")}
                 >
-                  <VerdictBadge verdict={verdict} className="text-caption" />
-                  <span className="text-caption font-medium tabular-nums text-muted-foreground">
-                    {count}
+                  <button
+                    type="button"
+                    disabled={!hasData}
+                    onClick={() =>
+                      setActiveClass((prev) => (prev === verdict ? null : verdict))
+                    }
+                    aria-pressed={active}
+                    aria-label={t("mame.plateView.verdictFilterAriaLabel", { verdict })}
+                    // aria-label wins the accessible NAME computation, so the
+                    // badge title is invisible to a screen reader. The same
+                    // sentence is attached as a DESCRIPTION instead.
+                    aria-describedby={helpId}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-control border px-0.5 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                      active
+                        ? "border-primary bg-primary/10"
+                        : "border-transparent",
+                      hasData ? "hover:bg-muted/60" : "pointer-events-none opacity-40",
+                    )}
+                  >
+                    <VerdictBadge verdict={verdict} className="text-caption" />
+                    <span className="text-caption font-medium tabular-nums text-muted-foreground">
+                      {count}
+                    </span>
+                  </button>
+                  <span id={helpId} className="sr-only">
+                    {help}
                   </span>
-                </button>
+                </span>
               );
             })}
           </div>

@@ -19,8 +19,32 @@ export interface VerdictRecord {
   read_count: number | null;
   n_mixed_positions: number;
   max_minor_allele_fraction: number;
+  /**
+   * The noise floor this well ran at: the median minor-allele fraction across
+   * its positions. `max_minor_allele_fraction` cannot be read without it --
+   * 0.04 is a clean well when ordinary positions sit at 0.03 and a
+   * contaminated one when they sit at 0.002.
+   *
+   * Optional because results persisted before the field was serialized are
+   * replayed verbatim; a live sidecar always sends it. `undefined` means the
+   * floor is unknown and must be shown as unknown, never as 0.
+   */
+  median_minor_allele_fraction?: number;
   n_low_depth_positions: number;
   consensus_n_fraction: number;
+  /**
+   * Whether `consensus_n_fraction` means anything for this well. `false` is a
+   * consensus written before the covered-scoped N-fraction definition: the
+   * number could not be recovered, 0.0 was substituted, and the NO_CALL gate
+   * was skipped rather than run against a value that measures something else
+   * (`kuma_core/mame/compare/verdict.py`). Reading a substituted 0.0 as a
+   * measured 0.0 reports an unmeasurable well as a clean one.
+   *
+   * Optional for the same replay reason as above. `undefined` is "this result
+   * predates the flag", which is distinct from `false`, so it must not be
+   * collapsed into either boolean.
+   */
+  consensus_n_fraction_evaluable?: boolean;
   n_low_quality_bases: number;
   n_input_reads: number | null;
   n_aligned_reads: number | null;
@@ -232,6 +256,60 @@ export interface MappingIntegrity {
 }
 
 /**
+ * The thresholds an `analyze` run was actually judged against, mirrored from
+ * `python-core/sidecar_mame/handlers/analyze.py` (`compare_params`). Every
+ * per-well number on `VerdictRecord` is a measurement; this is what each one
+ * was compared to. Without it a reader cannot say why `read_count = 22`
+ * failed, because the backend default applies whenever the caller omits the
+ * field -- which is exactly what happens for `min_read_count`
+ * (`src/store/mame/slices/inputSlice.ts` never sends it, so the backend
+ * default of 30 governs and the store has no value to show).
+ *
+ * These are the only thresholds reported, because they are the only ones the
+ * handler resolves from caller params and hands to the pipeline. The
+ * classifier's indel and frameshift windows sit at their dataclass defaults on
+ * every run, so they are absent here rather than reported as decisions nobody
+ * made.
+ *
+ * Note what is NOT here: `minFilteredDepth` (store state, value 15) is a
+ * display filter for the plate view and gates nothing. It must never be
+ * rendered as a threshold a verdict was judged against.
+ */
+export interface CompareParams {
+  /**
+   * Fallback volume gate, in KB. Applies only to wells that carry no
+   * `read_count` at all; a well with real depth is judged by `min_read_count`
+   * and never by this.
+   */
+  min_file_size_kb: number;
+  /**
+   * Read-depth gate. `null` means the caller disabled it, and then the
+   * file-size proxy above is the only depth gate that ran.
+   */
+  min_read_count: number | null;
+  /** Consensus N-fraction ceiling (a 0..1 fraction). `null` disables the gate. */
+  max_consensus_n_fraction: number | null;
+  /**
+   * AA-change count above which a well is MANY. An excess gate, not an
+   * absolute one: a well is never MANY when it carries no more changes than
+   * its own design calls for.
+   */
+  many_mutation_cutoff: number;
+  /**
+   * What `min_read_count` is multiplied by to get the depth a MIXED call needs
+   * before it is reported as contamination rather than as LOWDEPTH.
+   */
+  mixed_confident_depth_factor: number;
+  /**
+   * That product, resolved by the backend using the classifier's own rule.
+   * `null` when `min_read_count` is `null`, in which case the floor does not
+   * apply. Read this instead of multiplying the two fields, so the rule lives
+   * in one place.
+   */
+  mixed_confident_read_count: number | null;
+}
+
+/**
  * Demux yield reported by the analyze response. Raw-run mode only: the handler
  * derives every field from the demux it just ran and omits the keys entirely in
  * consensus-dir mode (`python-core/sidecar_mame/handlers/analyze.py`, raw-run
@@ -293,6 +371,14 @@ export interface AnalyzeResult extends AnalyzeYield {
    */
   mapping_integrity?: MappingIntegrity;
   /**
+   * The thresholds this run was judged against. Same optionality reasoning as
+   * the two above: always sent by a live sidecar, absent on results persisted
+   * before this field existed. When it is absent the UI has no threshold and
+   * must say so rather than fall back to a literal -- a hardcoded 30 would
+   * keep reading as correct long after the backend default moved.
+   */
+  compare_params?: CompareParams;
+  /**
    * Reads from wells the layout does not name. Same optionality reasoning as
    * `layout_provenance`.
    */
@@ -319,6 +405,14 @@ export interface LoadAnalyzeResultRequest {
   run_meta?: Record<string, unknown> | null;
   summary?: AnalyzeSummary | null;
   distribution_stats?: DistributionStats | null;
+  /**
+   * Accepted so a persisted response can be replayed verbatim. Like `summary`
+   * and `distribution_stats` it is not stored by the sidecar: re-injecting
+   * state does not re-run the classifier, so there is nothing for a threshold
+   * to govern. The displayed values come from the persisted snapshot, not
+   * from this call's response.
+   */
+  compare_params?: CompareParams | null;
 }
 
 /** Ack returned by `load_analyze_result`. Counts only; store data comes from
@@ -504,24 +598,31 @@ export type JanusDestLayout = "source" | "compact";
 /**
  * Column set written to the file.
  *
- * - "device9" (default): the instrument-native worksheet columns transcribed
- *   from the workbook the lab imports (`name | type | Dsp. Rack | no |
- *   Asp. Rack | Asp. Posi | Dsp. Rack | Dsp. Posi | volume`).
+ * - "device" (default): the instrument-native worksheet columns transcribed
+ *   from the workbook the lab imports (`name | type | no | Asp. Rack |
+ *   Asp. Posi | Dsp. Rack | Dsp. Posi | volume`).
  * - "legacy5": the kuma-internal columns (`name | source_plate | source_well |
  *   dest_well | priority_score`).
+ *
+ * The first was called "device9" while the sheet had nine columns, one of them
+ * a liquid class. The lab replaced that sheet with an eight column one, so the
+ * count came out of the name rather than being corrected to another number that
+ * would age the same way. A stored "device9" is promoted on load
+ * (`src/lib/mame/janusSettings.ts`) and the sidecar accepts it too.
  */
-export type JanusOutputSchema = "device9" | "legacy5";
+export type JanusOutputSchema = "device" | "legacy5";
 
 /**
- * Rack numbers of the source plates on the deck, keyed by the plate label the
- * export writes (`nb_label`: "sort_barcode07" -> "NB07"), so a key is looked up
- * with the same string the row carries. The dialog builds the fields from the
- * preview rows for that reason.
+ * Plate NAMES written into `Asp. Rack`, keyed by the plate label the export
+ * writes (`nb_label`: "sort_barcode07" -> "NB07"), so a key is looked up with
+ * the same string the row carries.
  *
- * Assumption, editable in the dialog: source plates come first in the labware
- * order of the lab workbook `layout` sheet, with the destination plate last.
+ * Names rather than deck numbers because the JANUS software matches labware by
+ * name. Nothing in the panel fills this map: the sidecar generates the names
+ * from the plates of the run, in the same plate order that used to decide rack
+ * numbers, and the row preview is where the operator reads them back.
  */
-export type JanusSourceRacks = Record<string, number>;
+export type JanusSourceRacks = Record<string, string>;
 
 /**
  * Everything both the export and the preview resolve their behaviour from.
@@ -537,22 +638,24 @@ export interface JanusExportSettings {
   /** Keep fallback picks (off by default: a fallback pick is not verified). */
   includeFallback: boolean;
   outputSchema: JanusOutputSchema;
-  /** Dispense volume in µL (device9 only). */
+  /** Dispense volume in µL (instrument sheet only). */
   volume: number;
-  /** `type` column value (device9 only). */
+  /** `type` column value (instrument sheet only). */
   sampleType: string;
   /**
-   * Liquid class string (device9 only). No default, and blank does not block:
-   * the column ships empty and the preview warns.
+   * Liquid class, recorded with the run and written to no file. The instrument
+   * sheet has no column for it, and the file format is followed exactly, so the
+   * value describes how the run was pipetted without reaching the robot.
    */
   liquidClass: string;
   /**
-   * Operator overrides only. An empty map lets the sidecar derive the numbers
-   * from the plates of the run, which is what the shipped default does.
+   * Overrides only, and the panel offers no way to set one: the sidecar
+   * generates the plate names from the plates of the run. An empty map is the
+   * shipped default and leaves those generated names in force.
    */
   sourceRacks: JanusSourceRacks;
-  /** `null` derives it as one past the last source rack. */
-  destRack: number | null;
+  /** `null` leaves the destination plate name to the sidecar. */
+  destRack: string | null;
 }
 
 /** Resolved settings echoed back by the sidecar, in RPC (snake_case) form. */
@@ -566,13 +669,13 @@ export interface JanusResolvedSettings {
   liquid_class: string;
   /** The operator's overrides, echoed back unchanged. */
   source_racks: JanusSourceRacks;
-  /** The operator's override, echoed back unchanged; `null` means derived. */
-  dest_rack: number | null;
+  /** The operator's override, echoed back unchanged; `null` means generated. */
+  dest_rack: string | null;
   /** Header of the file this policy writes, in order. */
   columns: string[];
-  /** The deck the file carries: overrides applied on top of the derived numbers. */
+  /** The plate names the file carries: overrides applied on top of the generated ones. */
   resolved_source_racks?: JanusSourceRacks;
-  resolved_dest_rack?: number;
+  resolved_dest_rack?: string;
 }
 
 /**

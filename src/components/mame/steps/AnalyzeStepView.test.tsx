@@ -745,10 +745,14 @@ describe("AnalyzeStepView (no Janus controls on 2.1)", () => {
     expect(screen.queryByTestId("janus-mapping-dialog")).toBeNull();
   });
 
-  it("has no transfer volume field", () => {
+  it("has no volume field", () => {
     render(<AnalyzeStepView />);
 
-    expect(screen.queryByLabelText(/Transfer volume/i)).toBeNull();
+    // Matched loosely on purpose. This used to read /Transfer volume/i, the
+    // label of the step 3 input that has since been deleted, so it would have
+    // stayed green whatever appeared here. The one volume control left in the
+    // app is the panel's "Volume (µL)", which this catches.
+    expect(screen.queryByLabelText(/volume/i)).toBeNull();
   });
 
   it("leaves the run enabled while the instrument settings are unset", () => {

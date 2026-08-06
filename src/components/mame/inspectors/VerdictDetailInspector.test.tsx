@@ -12,6 +12,7 @@ import { VerdictTable } from "@/components/mame/widgets/VerdictTable";
 import { PlateView } from "@/components/mame/widgets/PlateView";
 import { useMameAppStore, type AppState } from "@/store/mame/mameAppStore";
 import type {
+  CompareParams,
   ReplicateResult,
   VerdictRecord,
   WellEntry,
@@ -100,6 +101,20 @@ const wells: WellEntry[] = [
   },
 ];
 
+/**
+ * Thresholds deliberately unlike every backend default (30 reads / 50 KB /
+ * 0.0 N / cutoff 5): a popup that printed a literal instead of reading the
+ * run's own reported values would still show the default and pass.
+ */
+const compareParams: CompareParams = {
+  min_file_size_kb: 77,
+  min_read_count: 42,
+  max_consensus_n_fraction: 0.05,
+  many_mutation_cutoff: 7,
+  mixed_confident_depth_factor: 3,
+  mixed_confident_read_count: 126,
+};
+
 function seedStore(overrides: Partial<AppState> = {}) {
   useMameAppStore.setState({
     verdicts: [selectedVerdict, rejectedVerdict],
@@ -109,6 +124,9 @@ function seedStore(overrides: Partial<AppState> = {}) {
     plateFilter: "FINAL",
     searchQuery: "",
     sorting: [],
+    // Explicit so a test that leaves thresholds behind cannot make the next
+    // one pass: the store is the real one and setState merges.
+    compareParams,
     ...overrides,
   });
 }
@@ -232,5 +250,242 @@ describe("VerdictDetailInspector", () => {
     expect(
       screen.getByRole("button", { name: "Copy consensus FASTA path" }),
     ).toBeInTheDocument();
+  });
+});
+
+// ── Replicate rows select their plate copy ─────────────────────────────────
+//
+// The comparison list is the third entry point into `selectedWell`, next to the
+// plate map well and the verdict table row, and it must land on the same state
+// as either of those. What separates a real selection from a redraw is which
+// WellEntry ends up in the store, so these assert the store rather than the DOM.
+
+describe("VerdictDetailInspector replicate rows", () => {
+  beforeEach(() => {
+    seedStore();
+  });
+
+  it("selects the plate copy using the store well entry when one exists", () => {
+    useMameAppStore.setState({ selectedWell: wells[0]! });
+    render(<VerdictDetailInspector />);
+
+    const rows = screen.getAllByTestId("replicate-row");
+    // Sorted by native barcode, so NB01 then NB02.
+    fireEvent.click(within(rows[1]!).getByRole("button"));
+
+    const selected = useMameAppStore.getState().selectedWell;
+    expect(selected).toEqual(wells[1]!);
+    // The discriminator: only the plate-map entry carries the plate position
+    // ("B2"). A rebuilt literal would put the custom barcode ("1_2") there and
+    // the header would name a well that is not where the sample sits.
+    expect(selected?.well).toBe("B2");
+  });
+
+  it("builds the entry from the verdict record when plate data never loaded", () => {
+    // Reachable, not defensive padding: `loadPlateData` clears `wells` to []
+    // whenever `get_plate_data` fails (analysisSlice.ts), while the verdict
+    // table still opens this panel from the record alone (VerdictTable
+    // `openWellDetail`). The comparison rows are live in exactly that state.
+    seedStore({ wells: [] });
+    render(
+      <>
+        <VerdictTable />
+        <VerdictDetailInspector />
+      </>,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show details for F89W (well 1_1)" }),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show plate NB02, well 1_2" }),
+    );
+
+    expect(useMameAppStore.getState().selectedWell).toEqual({
+      well: "1_2",
+      barcode: "1_2",
+      native_barcode: "sort_barcode02",
+      verdict: "NO_CALL",
+      mutant_id: "F89W",
+      selected: false,
+      notes: "",
+      is_fallback: false,
+      fallback_reason: null,
+    });
+
+    // `selected` is the plate map's own rule (selected plate, replicate not
+    // failed) narrowed to this one copy, so the winner comes back marked.
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show plate NB01, well 1_1" }),
+    );
+    expect(useMameAppStore.getState().selectedWell?.selected).toBe(true);
+  });
+
+  it("marks the row for the well on screen and re-clicking it is a no-op", () => {
+    useMameAppStore.setState({ selectedWell: wells[0]! });
+    render(<VerdictDetailInspector />);
+
+    const rows = screen.getAllByTestId("replicate-row");
+    const current = within(rows[0]!).getByRole("button");
+    expect(current).toHaveAttribute("aria-current", "true");
+    expect(within(rows[1]!).getByRole("button")).not.toHaveAttribute("aria-current");
+    // Enabled on purpose: a disabled row would drop out of the tab order
+    // mid-list, so `aria-current` is what marks it instead.
+    expect(current).toBeEnabled();
+
+    fireEvent.click(current);
+
+    expect(useMameAppStore.getState().selectedWell).toEqual(wells[0]!);
+    expect(screen.getAllByTestId("replicate-row")).toHaveLength(2);
+    expect(within(rows[0]!).getByRole("button")).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+  });
+});
+
+// ── Confidence metric popups ───────────────────────────────────────────────
+//
+// Every threshold in these panels has a backend default that applies when the
+// caller omits it (`min_read_count` is omitted on every run), so a literal in
+// the TSX would read as correct until the engine moved. These pin that the text
+// tracks `compareParams` and says "unknown" when the run reported nothing.
+
+describe("VerdictDetailInspector confidence metric popups", () => {
+  beforeEach(() => {
+    seedStore({ selectedWell: wells[0]! });
+  });
+
+  it("opens a metric panel from the keyboard and closes it on Escape", () => {
+    render(<VerdictDetailInspector />);
+
+    const trigger = screen.getByTestId("metric-info-readCount-trigger");
+    expect(trigger.tagName).toBe("BUTTON");
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    // A native button is in the tab order, so the explanation is reachable
+    // without a pointer.
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+    expect(screen.queryByTestId("metric-info-readCount")).toBeNull();
+
+    fireEvent.click(trigger);
+    expect(screen.getByTestId("metric-info-readCount")).toBeInTheDocument();
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByTestId("metric-info-readCount")).toBeNull();
+    // Focus comes back to where the reader left it, not to the document body.
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it("closes on Escape pressed while the trigger itself holds focus", () => {
+    // Separate from the test above on purpose, and it is the case that
+    // actually happens. A keystroke that starts on the trigger never reaches
+    // the panel's document-level listener: the trigger's own onKeyDown calls
+    // stopPropagation, React 19 dispatches from the root container, and its
+    // synthetic stopPropagation also stops the native event there (measured
+    // against react-dom 19 + jsdom, 0 document calls). The trigger is exactly
+    // where focus sits after opening the panel from the keyboard, and where
+    // closing it puts focus back, so firing Escape at `document` alone would
+    // pass while the reader who needs Escape cannot use it.
+    render(<VerdictDetailInspector />);
+
+    const trigger = screen.getByTestId("metric-info-readCount-trigger");
+    trigger.focus();
+    fireEvent.click(trigger);
+    expect(screen.getByTestId("metric-info-readCount")).toBeInTheDocument();
+
+    fireEvent.keyDown(trigger, { key: "Escape" });
+
+    expect(screen.queryByTestId("metric-info-readCount")).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it("closes a metric panel on an outside click but not on a click inside it", () => {
+    render(<VerdictDetailInspector />);
+
+    const trigger = screen.getByTestId("metric-info-readCount-trigger");
+    fireEvent.click(trigger);
+    const panel = screen.getByTestId("metric-info-readCount");
+
+    // A click inside is a reader selecting text, not a dismissal.
+    fireEvent.mouseDown(panel);
+    expect(screen.getByTestId("metric-info-readCount")).toBeInTheDocument();
+
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByTestId("metric-info-readCount")).toBeNull();
+  });
+
+  it("states the gated thresholds this run reported, and none for a diagnostic metric", () => {
+    render(<VerdictDetailInspector />);
+
+    fireEvent.click(screen.getByTestId("metric-info-readCount-trigger"));
+    const gated = screen.getByTestId("metric-info-readCount").textContent ?? "";
+    expect(gated).toContain("Judged against");
+    expect(gated).toContain("LOWDEPTH below 42 reads.");
+    expect(gated).toContain(
+      "A confident MIXED call needs 126 reads or more (the depth floor times 3).",
+    );
+    expect(gated).toContain(
+      "Wells that carry no depth header at all fall back to a consensus file size of 77 KB.",
+    );
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    // 7 of the 10 metrics gate nothing, and the panel says so rather than
+    // leaving the reader to assume a silent threshold.
+    fireEvent.click(screen.getByTestId("metric-info-mapqFailed-trigger"));
+    const diagnostic = screen.getByTestId("metric-info-mapqFailed").textContent ?? "";
+    expect(diagnostic).toContain("Diagnostic only. No gate reads this number.");
+    expect(diagnostic).not.toContain("Judged against");
+  });
+
+  it("says the thresholds are unknown rather than printing a default", () => {
+    // A result restored from a snapshot written before the sidecar reported its
+    // thresholds. The engine default (30 reads) must not appear here.
+    seedStore({ selectedWell: wells[0]!, compareParams: null });
+    render(<VerdictDetailInspector />);
+
+    fireEvent.click(screen.getByTestId("metric-info-readCount-trigger"));
+    const panel = screen.getByTestId("metric-info-readCount").textContent ?? "";
+    expect(panel).toContain("did not report its thresholds");
+    expect(panel).not.toContain("LOWDEPTH below");
+  });
+
+  it("says the N-fraction gate was skipped instead of showing a clean 0.0%", () => {
+    useMameAppStore.setState({
+      verdicts: [makeVerdict({ consensus_n_fraction_evaluable: false })],
+      selectedWell: wells[0]!,
+    });
+    render(<VerdictDetailInspector />);
+
+    // The row still shows the substituted number, because that is what the
+    // record holds; the panel is where it is told not to be trusted.
+    const detail = screen.getByTestId("verdict-detail");
+    expect(within(detail).getByText("0.0%")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("metric-info-consensusN-trigger"));
+    const panel = screen.getByTestId("metric-info-consensusN").textContent ?? "";
+    expect(panel).toContain("the value shown is a substituted 0.0");
+    expect(panel).toContain("the NO_CALL gate was skipped");
+    // The threshold is still reported: the ceiling existed, the well just
+    // could not be measured against it.
+    expect(panel).toContain("NO_CALL above 5.0%.");
+  });
+
+  it("keeps an unreported evaluability flag distinct from a false one", () => {
+    // Saved before the flag existed: whether the gate ran is unknown, which is
+    // not the same claim as "the gate was skipped".
+    useMameAppStore.setState({
+      verdicts: [makeVerdict()],
+      selectedWell: wells[0]!,
+    });
+    render(<VerdictDetailInspector />);
+
+    fireEvent.click(screen.getByTestId("metric-info-consensusN-trigger"));
+    const panel = screen.getByTestId("metric-info-consensusN").textContent ?? "";
+    expect(panel).toContain(
+      "saved before the run reported whether the N fraction could be evaluated",
+    );
+    expect(panel).not.toContain("the value shown is a substituted 0.0");
   });
 });

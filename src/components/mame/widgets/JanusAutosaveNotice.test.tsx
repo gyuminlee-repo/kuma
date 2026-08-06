@@ -79,8 +79,11 @@ describe("JanusAutosaveNotice", () => {
     expect(notice).not.toHaveTextContent(/File > Export Janus Mapping/i);
   });
 
-  it("reports a blank liquid class without calling the run a failure", () => {
-    // The v0.15.8 change: the sheet ships with the column empty and says so.
+  it("reports a generated deck without calling the run a failure", () => {
+    // The v0.15.8 change: what the export worked out for itself is reported
+    // rather than refused. The blank liquid class that used to be reported
+    // beside this went with its column, so the generated plate names are the
+    // warning the export still raises.
     useMameAppStore.setState({
       janusMappingAutosave: {
         ...BASE,
@@ -89,15 +92,11 @@ describe("JanusAutosaveNotice", () => {
         row_count: 3,
         warnings: [
           {
-            code: "missing_liquid_class",
-            severity: "warning",
-            message: "the liquid class column is blank",
-            mutant_ids: [],
-          },
-          {
             code: "derived_source_rack",
             severity: "warning",
-            message: "deck positions derived from the plates of this run",
+            message:
+              "plate names generated from the plates of this run " +
+              "(NB01 -> Stock plate1, destination -> final culture plate)",
             mutant_ids: [],
           },
         ],
@@ -110,8 +109,8 @@ describe("JanusAutosaveNotice", () => {
     // Saved, not failed: the warning describes the file, it does not withhold it.
     expect(notice).toHaveAttribute("data-status", "saved");
     expect(notice).toHaveAttribute("role", "status");
-    expect(notice).toHaveTextContent(/liquid class column is blank/i);
-    expect(notice).toHaveTextContent(/derived from the plates of this run/i);
+    expect(notice).toHaveTextContent(/generated from the plates of this run/i);
+    expect(notice).toHaveTextContent(/Stock plate1/);
   });
 
   it("shows both files at once, each with its own outcome", () => {

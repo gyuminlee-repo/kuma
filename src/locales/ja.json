@@ -689,9 +689,7 @@
       },
       "janusMapping": {
         "title": "Janus マッピングをエクスポート",
-        "description": "最終 cell-stock Janus マッピングファイル (K4 仕様) を CSV または XLSX でエクスポート。",
-        "formatLabel": "形式",
-        "formatAriaLabel": "Janus マッピングエクスポート形式",
+        "description": "最終 cell-stock Janus マッピングファイル (K4 仕様) を CSV でエクスポート。",
         "destLayoutLabel": "配置先レイアウト",
         "destLayoutAriaLabel": "Janus 配置先 well レイアウト",
         "destLayoutOption": {
@@ -703,13 +701,10 @@
           "compact": "dest_well を priority 順に A1 から順次割り当てます。縦方向に進むため A1, B1, C1 から H1 まで、その次が A2 となり、空の well は残しません。"
         },
         "outputPathLabel": "出力ファイルパス",
-        "outputPathPlaceholder": "ターゲット .{{ext}} ファイルパス",
+        "outputPathPlaceholder": "ターゲット .csv ファイルパス",
         "outputPathAriaLabel": "Janus マッピング出力ファイルパス",
         "browseAriaLabel": "Janus マッピング保存先を参照",
-        "columnsNote": {
-          "device9": "列: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "列: name, source_plate, source_well, dest_well, priority_score."
-        },
+        "columnsNote": "列: name, type, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
         "exportJanus": "Janus マッピングをエクスポート",
         "exporting": "エクスポート中…",
         "exported": "エクスポートが完了しました",
@@ -721,27 +716,14 @@
         "previewFailed": "プレビューを取得できません: {{message}}",
         "previewRetry": "プレビューを再試行",
         "previewBlocked": "以下の問題を解決してからエクスポートしてください。",
-        "schemaLabel": "出力列の構成",
-        "schemaAriaLabel": "Janus 出力列スキーマ",
-        "schemaOption": {
-          "device9": "装置様式 (9列)",
-          "legacy5": "kuma 様式 (5列)"
-        },
-        "schemaHint": {
-          "device9": "装置ワークブックの列をそのまま出力します: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "kuma 内部の列を出力します: name, source_plate, source_well, dest_well, priority_score."
-        },
         "instrumentHeading": "装置設定",
         "volumeLabel": "Volume (µL)",
+        "volumeHint": "この書き出しが作る装置用マッピングファイルにそのまま入ります。",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "例: Cell 100ul",
-        "liquidClassHint": "liquid class はロボットのピペッティング挙動を決めるため既定値を置きません。空のままなら列は空欄で出力され、書き出しは実行されます。",
-        "deckHeading": "Deck 構成",
+        "liquidClassHint": "liquid class はロボットのピペッティング挙動を決めるため既定値を置きません。この値は実行の記録として残るだけで、装置シートには該当する列がないため書き出されません。",
         "sampleTypeLabel": "type 列の値",
-        "sourceRackLabel": "Asp. Rack {{plate}}",
-        "destRackLabel": "Dsp. Rack",
-        "rackHint": "ラック番号はこの実行のプレートに従います。source プレートがプレート順に先頭の番号を取り、destination がその次です (KURO のプライマーシートと同じ)。変更するには数値を入力してください。",
-        "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
+        "plateNamesNote": "Asp. Rack と Dsp. Rack には deck 番号ではなく、この実行のプレートから生成したプレート名が入ります。ここで確認し、deck のラベルを同じ名前にそろえてください。",
         "excludedHeading": "除外 {{count}} 件",
         "excludedNone": "除外されたクローンはありません。",
         "excludedReason": {
@@ -837,23 +819,6 @@
         "helper": "この列の順に、1 行 1 変異で well へ割り当てます。プレートは縦方向に進み、A1, B1, C1 から H1 まで、その次が A2 です。KURO のエクスポートは mapping が不要なため、これらの選択欄は表示されません。"
       }
     },
-    "janusDeck": {
-      "title": "JANUS Deck Layout",
-      "ariaLabel": "JANUS deck layout preview",
-      "deckImageAriaLabel": "JANUS deck slot positions: top row tip flush, source plates P1 P2 P3; bottom row waste, two blank slots, final 96 deep well",
-      "headFixedNote": "Head position fixed",
-      "aspDspNote": "Aspirate position = Dispense position (same coordinate).",
-      "matchByNameNote": "JANUS software matches plates by name; deck slot positions shown here are the conventional layout.",
-      "slot": {
-        "tipFlush": "Tip Flush",
-        "p1": "Stock Plate P1",
-        "p2": "Stock Plate P2",
-        "p3": "Stock Plate P3",
-        "waste": "Waste",
-        "blank": "Blank",
-        "final": "Final 96 Deep Well"
-      }
-    },
     "restoredResult": {
       "title": "このプロジェクトの保存済み実行は別バージョンの kuma が判定しました",
       "bodyOlder": "保存された実行は kuma v{{version}} が作成し、判定方法が現在のビルドと異なるため表示しません。現在のバージョンが保証する結果を得るには解析を再実行してください。",
@@ -873,7 +838,7 @@
     "janus": {
       "settings": {
         "contextTitle": "Janus 装置設定",
-        "contextSubtitle": "装置マッピングに書き出される移送量・デッキラック・リキッドクラスを設定します。シーケンシング判定のみの実行では省略できます。",
+        "contextSubtitle": "装置マッピングに書き出される移送量・リキッドクラス・type 列の値を設定します。シーケンシング判定のみの実行では省略できます。",
         "optionalNote": "このステップは任意です。解析実行はピックリストを自動で書き出しますが、装置マッピングはここでエクスポートしたときだけ書き出されます。シーケンシング判定だけが必要な場合はステップ 2 からステップ 4 に直接進めます。",
         "inspectorTitle": "装置 Inspector",
         "inspectorSubtitle": "マッピングに書き出される値",
@@ -884,9 +849,7 @@
         "drawerLeft": "装置",
         "drawerCenter": "Janus ログ",
         "drawerRight": "次へ",
-        "drawerRightDesc": "活性データと EVOLVEpro への引き継ぎ",
-        "volumeLabel": "移送 volume (µL)",
-        "volumeHint": "この実行が作る装置用マッピングにそのまま入ります。既定の 100 µL は実験室の根拠がない仮定なので、今回の実験で使う値に変更してください。"
+        "drawerRightDesc": "活性データと EVOLVEpro への引き継ぎ"
       }
     },
     "setup": {
@@ -1081,7 +1044,7 @@
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
       },
       "janusMappingAutosave": {
-        "saved": "装置用マッピングを結果ワークブックの隣に保存しました ({{rows}} 行)。ロボットが読む 9 列形式です。",
+        "saved": "装置用マッピングを結果ワークブックの隣に保存しました ({{rows}} 行)。ロボットが読む 8 列形式です。",
         "skipped": "選抜基準を満たすクローンがなく、装置用マッピングは書き出されませんでした。",
         "failed": "装置用マッピングを書き出せませんでした。",
         "excluded": "{{clones}} 件のクローンがマッピングから外れました。理由は Janus 装置設定で確認してください。"
@@ -1154,14 +1117,14 @@
     },
     "verdictBadge": {
       "help": {
-        "PASS": "Observed amino-acid changes exactly match the expected design.",
-        "AMBIGUOUS": "All expected mutations matched, plus an extra AA change within the indel window of an expected site. Still counts as detected/recovered.",
-        "MIXED": "Within-well contamination: a substantial second allele in the consensus signal.",
-        "WRONG_AA": "An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window.",
-        "FRAMESHIFT": "Two or more nucleotide indels within the frameshift window.",
-        "MANY": "More observed AA changes than both the design and the many-mutation cutoff.",
-        "LOWDEPTH": "Too few reads to call this well reliably.",
-        "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
+        "PASS": "観測されたアミノ酸変化が設計と完全に一致します。",
+        "AMBIGUOUS": "期待した変異はすべて一致し、期待部位の indel window 内に追加のアミノ酸変化が 1 つあります。検出 (回収) として扱います。",
+        "MIXED": "well 内の汚染です。consensus シグナルに第二アレルがかなり混ざっています。",
+        "WRONG_AA": "期待部位のアミノ酸が異なる、期待した変異がない、または window の外に想定外の変化があります。",
+        "FRAMESHIFT": "consensus の正味の挿入または欠失の長さが 3 の倍数でないため、読み枠がずれています。",
+        "MANY": "観測されたアミノ酸変化の数が、設計の数と多変異の上限の両方を超えています。",
+        "LOWDEPTH": "この well を確実に判定するにはリードが少なすぎます。",
+        "NO_CALL": "consensus に曖昧な (N) 位置が多すぎて、アミノ酸の判定を信頼できません。"
       }
     },
     "missingInputs": {
@@ -1185,6 +1148,8 @@
       "labelNoCallAa": "No-call codons",
       "labelNoCallAaHelp": "Consensus N translated to X, excluded from the observed changes",
       "sectionReplicates": "Replicate comparison",
+      "replicateRowAriaLabel": "プレート {{plate}} の well {{well}} を表示",
+      "replicateRowTitle": "このプレートのコピーをインスペクタに表示",
       "selectedPlateBadge": "Selected",
       "currentWellBadge": "Showing",
       "labelSelectionReason": "Selection reason",
@@ -1201,6 +1166,78 @@
       "labelLowDepthPositions": "Low-depth positions",
       "labelConsensusN": "Consensus N",
       "labelLowQualityBases": "Low-quality bases",
+      "metricInfo": {
+        "openAria": "{{metric}} の説明を開く",
+        "whatLabel": "何を数えた値か",
+        "stageLabel": "どの段階の値か",
+        "effectLabel": "判定への影響",
+        "thresholdLabel": "比較した基準",
+        "contextLabel": "併せて見る値",
+        "thresholdUnknown": "この実行はしきい値を報告していないため、何を基準に判定したかは不明です。",
+        "readCount": {
+          "what": "アラインメントのフィルタを通過し、この well の consensus pileup に使われたリード数です。consensus FASTA の depth=N ヘッダから読み取ります。",
+          "stage": "consensus 作成の段階、MAPQ と span のフィルタの後。",
+          "effect": "判定を左右します。depth の下限を下回ると LOWDEPTH で確定し、以降の検査は行われません。mixed の位置があっても depth が mixed 判定の下限を下回る場合は、MIXED ではなく LOWDEPTH として報告します。その depth では第二アレルをシーケンスエラーと区別できないためです。",
+          "thresholdDepth": "リードが {{count}} 未満なら LOWDEPTH。",
+          "thresholdDepthOff": "この実行では read depth のゲートが無効でした。",
+          "thresholdMixed": "MIXED と確定するにはリードが {{count}} 以上必要です (depth 下限の {{factor}} 倍)。",
+          "thresholdMixedOff": "read depth のゲートが無効なため、mixed 判定の下限もありません。",
+          "thresholdFileSize": "depth ヘッダを持たない well は consensus ファイルサイズ {{size}} KB を代替基準とします。"
+        },
+        "inputReads": {
+          "what": "アラインメント前にこの well に割り当てられたリード数です。",
+          "stage": "バーコード demultiplexing の段階、アラインメント前。raw リードではなく consensus FASTA から解析した実行では空になります。",
+          "effect": "診断用です。どのゲートもこの値を読みません。アラインメント後およびフィルタ後の数と比べると、どこでリードが失われたかが分かります。"
+        },
+        "alignedReads": {
+          "what": "リファレンスに少なくとも 1 回アラインしたリード数で、MAPQ と span のフィルタ前の値です。",
+          "stage": "アラインメントの段階、フィルタ前。raw リードではなく consensus FASTA から解析した実行では空になります。",
+          "effect": "診断用です。どのゲートもこの値を読みません。入力リードから大きく減っている場合は、リファレンスが誤っているか well に標的外の物質が混入しています。"
+        },
+        "mapqFailed": {
+          "what": "マッピング品質 (MAPQ) の下限に届かず除外されたリード数です。",
+          "stage": "アラインメントのフィルタ段階、アラインしたリード数とフィルタ後リード数の間。consensus FASTA から解析した実行では 0 です。",
+          "effect": "診断用です。どのゲートもこの値を読みません。値が大きい場合はリードが曖昧にマップされており、多くは繰り返し配列かリファレンスの誤りです。"
+        },
+        "spanFailed": {
+          "what": "アラインメントがリファレンス全長を覆わず除外されたリード数です。",
+          "stage": "アラインメントのフィルタ段階、MAPQ フィルタの後。consensus FASTA から解析した実行では 0 です。",
+          "effect": "診断用です。どのゲートもこの値を読みません。値が大きい場合はリードが途中で切れているか、amplicon がリファレンスより短いことを意味します。"
+        },
+        "mixedPositions": {
+          "what": "pileup の depth が十分な位置のうち、2 番目に多い A/C/G/T 塩基が minor allele のしきい値を超えた位置の数です。51/49 で混ざった well は多数決 consensus では正常に見え、この値がそれを明らかにします。",
+          "stage": "consensus 作成の段階、位置ごとの pileup から算出。",
+          "effect": "判定を左右します。0 を超えると MIXED になりますが、depth が mixed 判定の下限を下回る場合は MIXED ではなく LOWDEPTH として報告します。",
+          "thresholdDepth": "MIXED はリードが {{count}} 以上のときのみ報告し、それ未満は LOWDEPTH です。",
+          "thresholdDepthOff": "この実行は read depth のゲートが無効なため、mixed 判定の下限がありません。"
+        },
+        "maxMinorAllele": {
+          "what": "この well の全位置のうち 2 番目の塩基の割合が最も高い値、つまり最も雑音の多い 1 か所の値です。",
+          "stage": "consensus 作成の段階、位置ごとの pileup から算出。",
+          "effect": "診断用です。どのゲートもこの値を直接読みません。MIXED ゲートが使うのは上の mixed 位置数です。最大の競合シグナルの大きさとして読んでください。",
+          "noiseFloor": "この well の通常の位置は {{value}} 程度です (中央値)。最大値が中央値に近ければ背景ノイズ、大きく離れていれば実際の第二アレルです。",
+          "noiseFloorUnknown": "この実行は minor allele 割合の中央値を報告していないため、最大値を比べるノイズの基準がありません。"
+        },
+        "lowDepthPositions": {
+          "what": "pileup の depth が最小値に届かず、リードから塩基を決められなかったリファレンス位置の数です。",
+          "stage": "consensus 作成の段階、位置ごとの pileup から算出。",
+          "effect": "診断用です。どのゲートもこの値を読みません。NO_CALL 判定と併せて報告され、曖昧さがリード品質ではなくカバレッジ不足に由来することを示します。"
+        },
+        "consensusN": {
+          "what": "カバレッジのある consensus 位置のうち N (no call) として出力された割合です。分子も分母もリードが到達した位置だけを対象とするため、リードが届かないリファレンス位置が割合を薄めません。",
+          "stage": "consensus 作成の段階、多数決の後。",
+          "effect": "判定を左右します。上限を超えると NO_CALL となり、アミノ酸の判定は信頼しません。LOWDEPTH とは別物で、depth が十分でも consensus が no-call 塩基で占められることがあります。",
+          "threshold": "{{value}} を超えると NO_CALL。",
+          "thresholdOff": "この実行では N 割合のゲートが無効でした。",
+          "notEvaluable": "この consensus ファイルにはカバレッジ範囲で定義された N 割合がないため、表示されている値は代替の 0.0 で、NO_CALL ゲートはスキップされました。consensus を再作成すると復元されます。",
+          "evaluableUnknown": "この結果は N 割合を評価できたかどうかを報告する以前に保存されたため、NO_CALL ゲートが実行されたかは不明です。"
+        },
+        "lowQualityBases": {
+          "what": "FASTQ の品質が最小値に届かず、pileup の投票から除外された個々の塩基の数です。",
+          "stage": "consensus 作成の段階、pileup の集計中。品質値を持たない入力 (FASTA のみの consensus ファイルなど) では 0 です。",
+          "effect": "診断用です。どのゲートもこの値を読みません。NO_CALL 判定と併せて報告され、曖昧さがカバレッジ不足ではなく塩基品質に由来することを示します。"
+        }
+      },
       "sectionNtChanges": "Nucleotide changes",
       "sectionSource": "Source",
       "copy": "Copy",
@@ -2360,13 +2397,13 @@
     "description": "最新アップデートのハイライト。",
     "gotItBtn": "了解",
     "highlights": [
-      "sample map を廃止しました。MAME が変異リストそのものからプレートを配置し、残っているファイルは従うのではなく照合します。",
-      "run が使った well を 96 マスのグリッドで選びます。クリック、ドラッグ、行や列のヘッダークリックで選択できます。",
-      "変異リスト途中の空行や 2 つ目の wild-type 行は実行を止めます。以降の well が全部ずれる動作をなくしました。",
-      "native barcode を選ぶことが何を選ぶことなのかを述べます。1 枚のプレートの replicate です。replicate が食い違う well には印が付きます。",
-      "宣言した well の外に落ちた read を報告します。そのバーコードインデックスをキャンペーンが使ったことがあるかで分けて示します。"
+      "JANUS マッピングファイルが、研究室が播種に使うワークブックと同じ形になりました。8 列で、プレートは番号ではなく名前で入ります。",
+      "ステップ 3 で入力する移送量は 2 か所ではなく 1 つになり、この研究室が使う 70 uL が初期値です。",
+      "判定画面のインスペクタで replicate をクリックすると、そのプレートのコピーが開きます。well やテーブル行をクリックしたときと同じ動きです。",
+      "各信頼性指標をクリックすると、その値が何を数えたものか、実行がどの閾値と比較されたか (ある場合) を示すポップアップが開きます。",
+      "Verdict 凡例の各項目は、カーソルを重ねるとお使いの言語で説明を表示します。凡例が出る 2 か所のどちらでも同じです。"
     ],
-    "highlightsStamp": "0.16.0+b2281961"
+    "highlightsStamp": "0.16.1+3b52e4c8"
   },
   "primerDisplay": {
     "copySeqTitle": "配列をコピー",
@@ -2664,7 +2701,7 @@
         "mergeExport": "活性データを遺伝型コールとマージしてテーブルをエクスポートし、単一反復 (GC) と 3 反復 (WT 相対) の活性を組み合わせて EVOLVEpro 入力を生成します。"
       },
       "janus": {
-        "settings": "JANUS セルストックマッピングを準備します: 移送量、デッキラック番号、リキッドクラス。任意であり、実行を止めることはありません。"
+        "settings": "JANUS セルストックマッピングを準備します: 移送量、リキッドクラス、type 列の値。任意であり、実行を止めることはありません。"
       }
     },
     "summary": {

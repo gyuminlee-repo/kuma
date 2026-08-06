@@ -1,11 +1,9 @@
 /**
- * JanusMappingPanel, export final cell-stock Janus mapping (K4 spec).
+ * JanusMappingPanel, writes the final cell-stock Janus mapping (K4 spec).
  *
  * Provides:
- *  - CSV / XLSX format selection (radio group)
- *  - Output schema selection (instrument-native 9 columns vs kuma 5 columns)
  *  - Destination layout selection (compact from A1 vs source position)
- *  - Instrument settings: volume, type, liquid class, and the four rack numbers
+ *  - Instrument settings: volume, liquid class, and the `type` column value
  *  - Row preview via the `export_janus_mapping_dry_run` RPC, refreshed on
  *    mount and whenever any setting changes
  *  - The clones left out of the pick, with the reason for each
@@ -13,6 +11,34 @@
  *  - Export button that calls sidecar `export_janus_mapping` RPC, blocked while
  *    the preview reports a problem
  *  - Success / error feedback inline
+ *
+ * Two choices this panel used to offer are gone, because in this lab neither
+ * had a second answer:
+ *  - file format. The instrument reads CSV only, so the panel writes CSV: the
+ *    derived path, the Browse filter and the export call all pin that
+ *    extension. The sidecar still accepts `xlsx` and `JanusExportResult.format`
+ *    still reports what was written, so the type stays; only the operator's
+ *    radio group is gone.
+ *  - output columns. The instrument sheet is the only file this panel writes,
+ *    so `outputSchema` stays `device` and the instrument fieldset below renders
+ *    unconditionally. The 5-column `legacy5` sheet is still written,
+ *    automatically by analyze, as the pick list (`..._picks.csv`). That is why
+ *    `kuma_core` keeps the schema, and it is why removing the choice here
+ *    removes nothing from the backend: the 5-column file was never this panel's
+ *    to write.
+ *
+ * The transfer volume input that used to sit above this panel on step 3 went
+ * with them. It wrote `janusSettings.volume`, the same stored value the Volume
+ * field below writes, so one number was being asked for twice; the hint it
+ * carried moved under the surviving field.
+ *
+ * So did the static deck picture that used to open the panel, and the rack
+ * number fields that replaced it. The sheet names plates instead of numbering
+ * deck slots, and the names are generated from the plates of the run, so there
+ * is nothing here for an operator to answer: a picture of slots states a layout
+ * the JANUS software does not read, and a rack number states an address it does
+ * not use. The generated names are read back in the row preview, which is what
+ * the operator approves before exporting.
  *
  * Preview and export send the same settings object, so what the operator
  * approves here is what the exported file describes. The object lives in the
@@ -22,8 +48,7 @@
  * Was `JanusMappingDialog` until v0.15.14, a modal opened from a button on
  * this same step. Step 3 (`JanusStepView`) is already its own full-screen
  * step, so a second, smaller surface inside it added a click and cramped the
- * deck preview and the row table for no reason. The body below is unchanged
- * from the dialog; only the shell is gone:
+ * row table for no reason. Only the shell went:
  *  - open/close, ESC, focus trap: nothing to replace. The panel is mounted
  *    for as long as step 3 is showing, so there is no "closed" state that
  *    used to hold stale preview rows; the mount-time load below replaces the
@@ -49,7 +74,6 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { JanusDeckPreview } from "@/components/mame/widgets/JanusDeckPreview";
 import {
   buildJanusDefaultPath,
   fetchMameJanusPreview,
@@ -59,43 +83,31 @@ import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
 import type {
   JanusDestLayout,
   JanusExclusionReason,
-  JanusExportFormat,
   JanusExportSettings,
-  JanusOutputSchema,
   JanusPreviewResult,
-  JanusSourceRacks,
 } from "@/types/mame/models";
-
-/**
- * Source plates the deck map has to cover, named as the sidecar names them.
- *
- * Taken from the preview rows rather than a fixed list: the sidecar labels a
- * plate with `nb_label` (`sort_barcode07` -> `NB07`), so which labels exist is a
- * property of the run, and a fixed list left a native-barcode run's plates with
- * no rack number and the export refusing to write. The preview is produced by
- * the very function that validates the rack map, so the labels shown here are
- * the keys that get checked, and no label conversion is duplicated in TS
- * (`src/lib/mame/nbLabel.ts` holds the JS equivalent where one is needed).
- *
- * Before a run there are no plate names to show (they come from the barcodes of
- * that run), so the fallback is whatever the operator already stored, and
- * nothing at all when even that is empty: the shipped settings no longer carry
- * a deck, because the sidecar derives one from the plates of the run.
- */
-function sourcePlatesFromPreview(
-  preview: JanusPreviewResult | null,
-  settings: JanusExportSettings,
-): string[] {
-  const fromRun = [
-    ...new Set((preview?.rows ?? []).map((row) => row.source_plate).filter(Boolean)),
-  ];
-  if (fromRun.length > 0) return fromRun.sort();
-  const stored = Object.keys(settings.sourceRacks);
-  return stored.sort();
-}
 
 /** Preview refresh delay, so typing into a text field is one RPC, not one per key. */
 const PREVIEW_DEBOUNCE_MS = 300;
+
+/**
+ * The instrument sheet header, in the order the writer emits it
+ * (`JANUS_DEVICE_HEADER` in `kuma_core/shared/janus_deck.py`).
+ *
+ * Only a fallback: a preview reply states its own columns, and those are what
+ * the table renders. It is this header rather than anything else because this
+ * panel writes no other file.
+ */
+const INSTRUMENT_COLUMNS = [
+  "name",
+  "type",
+  "no",
+  "Asp. Rack",
+  "Asp. Posi",
+  "Dsp. Rack",
+  "Dsp. Posi",
+  "volume",
+];
 
 function previewMatchesSettings(
   preview: JanusPreviewResult | null,
@@ -117,48 +129,52 @@ function previewMatchesSettings(
   );
 }
 
+/**
+ * One cell of the instrument sheet, addressed by column NAME.
+ *
+ * It used to be addressed by position and name together, because the nine
+ * column sheet named `Dsp. Rack` twice and the name alone did not say which
+ * value belonged in it. The eight column sheet has no repeat, so the position
+ * is no longer needed to disambiguate, and dropping it is what stops the table
+ * from drifting: the columns come from the preview reply
+ * (`JanusSettings.header`), so a column the writer moves arrives here already
+ * moved, and only a column the writer RENAMES can go unrecognised.
+ *
+ * An unrecognised column renders empty rather than throwing, since a blank cell
+ * beside eight filled ones is a visible symptom and a thrown render is not.
+ *
+ * Only the instrument sheet is rendered. The 5-column `legacy5` file exists,
+ * but analyze writes it on its own as the pick list and this panel never
+ * produces it, so there is no branch for it here.
+ */
 function previewCellValue(
   row: JanusPreviewResult["rows"][number],
   rowIdx: number,
-  idx: number,
   column: string,
   settings: JanusPreviewResult["settings"],
 ): string {
-  if (settings.output_schema === "legacy5") {
-    if (column === "priority_score") return String(row.priority_score);
-    return String(row[column as keyof typeof row] ?? "");
-  }
-  switch (`${idx}:${column}`) {
-    case "0:name":
+  switch (column) {
+    case "name":
       return row.name;
-    case "1:type":
+    case "type":
       return settings.sample_type;
-    case "2:Dsp. Rack":
-      return settings.liquid_class;
-    case "3:no":
+    case "no":
       return String(rowIdx + 1);
-    case "4:Asp. Rack":
+    case "Asp. Rack":
       // The resolved deck, not the operator's overrides alone: a plate nobody
-      // typed a number for still gets one, derived from the run.
-      return String(
-        (settings.resolved_source_racks ?? settings.source_racks)[row.source_plate] ?? "",
-      );
-    case "5:Asp. Posi":
+      // named still gets a name, generated from the plates of the run.
+      return (settings.resolved_source_racks ?? settings.source_racks)[row.source_plate] ?? "";
+    case "Asp. Posi":
       return row.source_well;
-    case "6:Dsp. Rack":
-      return String(settings.resolved_dest_rack ?? settings.dest_rack ?? "");
-    case "7:Dsp. Posi":
+    case "Dsp. Rack":
+      return settings.resolved_dest_rack ?? settings.dest_rack ?? "";
+    case "Dsp. Posi":
       return row.dest_well;
-    case "8:volume":
+    case "volume":
       return String(settings.volume);
     default:
       return "";
   }
-}
-
-function parsePositiveIntegerInput(raw: string): number | null {
-  if (!/^[1-9]\d*$/.test(raw)) return null;
-  return Number.parseInt(raw, 10);
 }
 
 export function JanusMappingPanel() {
@@ -169,7 +185,6 @@ export function JanusMappingPanel() {
   const settings = useMameAppStore((s) => s.janusSettings);
   const setSettings = useMameAppStore((s) => s.setJanusSettings);
   const setJanusMappingAutosave = useMameAppStore((s) => s.setJanusMappingAutosave);
-  const [format, setFormat] = useState<JanusExportFormat>("csv");
   const [outputPath, setOutputPath] = useState<string>("");
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -210,21 +225,16 @@ export function JanusMappingPanel() {
 
   const previewErrors = preview?.errors ?? [];
   const hasPreviewErrors = previewErrors.length > 0;
-  // Reported, never enforced: a blank liquid class and a derived rack number
-  // are things the operator has to see, not reasons to withhold a file.
+  // Reported, never enforced: what the export derived for itself is something
+  // the operator has to see, not a reason to withhold a file.
   const previewWarnings = preview?.warnings ?? [];
-  const resolvedRacks: JanusSourceRacks = preview?.settings.resolved_source_racks ?? {};
-  const resolvedDestRack = preview?.settings.resolved_dest_rack ?? null;
   const excluded = preview?.excluded ?? [];
-  const isDevice9 = settings.outputSchema === "device9";
-  const sourcePlates = sourcePlatesFromPreview(preview, settings);
-  const platesComeFromRun = (preview?.rows.length ?? 0) > 0;
-  const resolvedPath = outputPath || deriveDefaultPath(format);
+  const resolvedPath = outputPath || deriveDefaultPath();
   const isPreviewCurrent = previewMatchesSettings(preview, settings);
   const previewColumns =
     preview?.settings.columns && preview.settings.columns.length > 0
       ? preview.settings.columns
-      : ["name", "source_plate", "source_well", "dest_well", "priority_score"];
+      : INSTRUMENT_COLUMNS;
   const canExport =
     Boolean(resolvedPath) &&
     !isExporting &&
@@ -246,39 +256,22 @@ export function JanusMappingPanel() {
     setSettings({ ...settings, ...partial });
   }
 
-  function patchSourceRack(plate: string, raw: string) {
-    const parsed = parsePositiveIntegerInput(raw);
-    if (parsed === null) return;
-    setSettings({
-      ...settings,
-      sourceRacks: { ...settings.sourceRacks, [plate]: parsed },
-    });
-  }
-
-  function deriveDefaultPath(fmt: JanusExportFormat): string {
+  /** Always `.csv`: the instrument reads nothing else, so there is no extension to vary. */
+  function deriveDefaultPath(): string {
     if (!project) return "";
-    return buildJanusDefaultPath(project.path, project.name, fmt);
-  }
-
-  function handleFormatChange(next: JanusExportFormat) {
-    setFormat(next);
-    // Update path extension when format toggles if path is still the auto-generated default.
-    if (outputPath === "" || outputPath === deriveDefaultPath(format)) {
-      setOutputPath(deriveDefaultPath(next));
-    }
+    return buildJanusDefaultPath(project.path, project.name, "csv");
   }
 
   async function browseOutput() {
-    const ext = format === "xlsx" ? "xlsx" : "csv";
     const selected = await save({
-      filters: [{ name: ext.toUpperCase(), extensions: [ext] }],
-      defaultPath: outputPath || deriveDefaultPath(format) || undefined,
+      filters: [{ name: "CSV", extensions: ["csv"] }],
+      defaultPath: outputPath || deriveDefaultPath() || undefined,
     });
     if (selected) setOutputPath(selected);
   }
 
   async function doExport() {
-    const target = outputPath || deriveDefaultPath(format);
+    const target = outputPath || deriveDefaultPath();
     if (!target) {
       setExportError(t("mame.dialogs.janusMapping.exportErrorPathRequired"));
       return;
@@ -291,7 +284,9 @@ export function JanusMappingPanel() {
     setIsExporting(true);
     setExportError(null);
     try {
-      const result = await handleExportMameJanusMapping(target, format, settings);
+      // Format stated rather than defaulted: the sidecar still knows how to
+      // write xlsx, and this call site is the reason it never will from here.
+      const result = await handleExportMameJanusMapping(target, "csv", settings);
       setLastExportPath(result.output_path);
       setOutputPath(result.output_path);
       // Only writer of the instrument mapping now that analyze does not write
@@ -324,35 +319,6 @@ export function JanusMappingPanel() {
           {t("mame.dialogs.janusMapping.description")}
         </p>
       </div>
-
-      {/* Deck preview (PI hmk4 slide 5) */}
-      <JanusDeckPreview />
-
-      {/* Format selection */}
-      <fieldset className="space-y-1.5">
-        <legend className="text-xs font-medium text-muted-foreground">
-          {t("mame.dialogs.janusMapping.formatLabel")}
-        </legend>
-        <div className="flex gap-4" role="radiogroup" aria-label={t("mame.dialogs.janusMapping.formatAriaLabel")}>
-          {(["csv", "xlsx"] as const).map((fmt) => (
-            <label
-              key={fmt}
-              className="flex cursor-pointer items-center gap-2 text-sm"
-            >
-              <input
-                type="radio"
-                name="janus-format"
-                value={fmt}
-                checked={format === fmt}
-                onChange={() => handleFormatChange(fmt)}
-                className="accent-primary"
-                aria-label={fmt.toUpperCase()}
-              />
-              <span className="font-medium uppercase">{fmt}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
 
       <fieldset className="space-y-1.5">
         <legend className="text-xs font-medium text-muted-foreground">
@@ -388,167 +354,86 @@ export function JanusMappingPanel() {
         </p>
       </fieldset>
 
-      <fieldset className="space-y-1.5">
-        <legend className="text-xs font-medium text-muted-foreground">
-          {t("mame.dialogs.janusMapping.schemaLabel")}
+      {/* Unconditional: the instrument sheet is the only file written from
+          here. This used to be hidden behind the 5-column choice, which no
+          longer exists. Volume and type reach the file; the liquid class is
+          recorded beside them and reaches nothing, which is why its hint says
+          so rather than leaving the operator to assume a column. */}
+      <fieldset className="space-y-2 rounded-control border border-border px-3 py-2.5">
+        <legend className="px-1 text-xs font-medium text-muted-foreground">
+          {t("mame.dialogs.janusMapping.instrumentHeading")}
         </legend>
-        <div
-          className="flex gap-4"
-          role="radiogroup"
-          aria-label={t("mame.dialogs.janusMapping.schemaAriaLabel")}
-        >
-          {(["device9", "legacy5"] as const).map((schema: JanusOutputSchema) => (
-            <label
-              key={schema}
-              className="flex cursor-pointer items-center gap-2 text-sm"
+
+        <div className="flex gap-2">
+          <div className="flex-1 min-w-0 space-y-1">
+            <Label
+              htmlFor="janus-volume"
+              className="text-xs font-medium text-muted-foreground"
             >
-              <input
-                type="radio"
-                name="janus-output-schema"
-                value={schema}
-                checked={settings.outputSchema === schema}
-                onChange={() => patchSettings({ outputSchema: schema })}
-                className="accent-primary"
-                aria-label={t(`mame.dialogs.janusMapping.schemaOption.${schema}`)}
-              />
-              <span className="font-medium">
-                {t(`mame.dialogs.janusMapping.schemaOption.${schema}`)}
-              </span>
-            </label>
-          ))}
+              {t("mame.dialogs.janusMapping.volumeLabel")}
+            </Label>
+            <Input
+              id="janus-volume"
+              type="number"
+              min={0}
+              step="any"
+              value={settings.volume}
+              onChange={(e) => {
+                const parsed = Number.parseFloat(e.target.value);
+                if (!Number.isNaN(parsed)) patchSettings({ volume: parsed });
+              }}
+              className="h-9 w-full text-sm"
+              disabled={isExporting}
+            />
+            {/* The only volume field on the step now. Says where the number
+                goes, because step 3 used to ask for it again above the panel
+                and that duplicate is what carried this sentence. */}
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {t("mame.dialogs.janusMapping.volumeHint")}
+            </p>
+          </div>
+          <div className="flex-1 min-w-0 space-y-1">
+            <Label
+              htmlFor="janus-liquid-class"
+              className="text-xs font-medium text-muted-foreground"
+            >
+              {t("mame.dialogs.janusMapping.liquidClassLabel")}
+            </Label>
+            <Input
+              id="janus-liquid-class"
+              value={settings.liquidClass}
+              onChange={(e) => patchSettings({ liquidClass: e.target.value })}
+              placeholder={t("mame.dialogs.janusMapping.liquidClassPlaceholder")}
+              className="h-9 w-full min-w-0 text-sm"
+              disabled={isExporting}
+            />
+          </div>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          {t(`mame.dialogs.janusMapping.schemaHint.${settings.outputSchema}`)}
+          {t("mame.dialogs.janusMapping.liquidClassHint")}
         </p>
+
+        {/* The `type` column, in the open rather than behind a "Deck
+            configuration" disclosure. That disclosure existed for the rack
+            number fields, and the racks are plate names generated from the run
+            now, so the only thing left under it was this one field and a
+            heading naming the very thing that is no longer configurable. */}
+        <div className="space-y-1">
+          <Label
+            htmlFor="janus-sample-type"
+            className="text-xs font-medium text-muted-foreground"
+          >
+            {t("mame.dialogs.janusMapping.sampleTypeLabel")}
+          </Label>
+          <Input
+            id="janus-sample-type"
+            value={settings.sampleType}
+            onChange={(e) => patchSettings({ sampleType: e.target.value })}
+            className="h-9 w-full min-w-0 text-sm"
+            disabled={isExporting}
+          />
+        </div>
       </fieldset>
-
-      {isDevice9 && (
-        <fieldset className="space-y-2 rounded-control border border-border px-3 py-2.5">
-          <legend className="px-1 text-xs font-medium text-muted-foreground">
-            {t("mame.dialogs.janusMapping.instrumentHeading")}
-          </legend>
-
-          <div className="flex gap-2">
-            <div className="flex-1 min-w-0 space-y-1">
-              <Label
-                htmlFor="janus-volume"
-                className="text-xs font-medium text-muted-foreground"
-              >
-                {t("mame.dialogs.janusMapping.volumeLabel")}
-              </Label>
-              <Input
-                id="janus-volume"
-                type="number"
-                min={0}
-                step="any"
-                value={settings.volume}
-                onChange={(e) => {
-                  const parsed = Number.parseFloat(e.target.value);
-                  if (!Number.isNaN(parsed)) patchSettings({ volume: parsed });
-                }}
-                className="h-9 w-full text-sm"
-                disabled={isExporting}
-              />
-            </div>
-            <div className="flex-1 min-w-0 space-y-1">
-              <Label
-                htmlFor="janus-liquid-class"
-                className="text-xs font-medium text-muted-foreground"
-              >
-                {t("mame.dialogs.janusMapping.liquidClassLabel")}
-              </Label>
-              <Input
-                id="janus-liquid-class"
-                value={settings.liquidClass}
-                onChange={(e) => patchSettings({ liquidClass: e.target.value })}
-                placeholder={t("mame.dialogs.janusMapping.liquidClassPlaceholder")}
-                className="h-9 w-full min-w-0 text-sm"
-                aria-required="true"
-                disabled={isExporting}
-              />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            {t("mame.dialogs.janusMapping.liquidClassHint")}
-          </p>
-
-          <details className="group">
-            <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
-              {t("mame.dialogs.janusMapping.deckHeading")}
-            </summary>
-            <div className="mt-2 space-y-2">
-              <div className="space-y-1">
-                <Label
-                  htmlFor="janus-sample-type"
-                  className="text-xs font-medium text-muted-foreground"
-                >
-                  {t("mame.dialogs.janusMapping.sampleTypeLabel")}
-                </Label>
-                <Input
-                  id="janus-sample-type"
-                  value={settings.sampleType}
-                  onChange={(e) => patchSettings({ sampleType: e.target.value })}
-                  className="h-9 w-full min-w-0 text-sm"
-                  disabled={isExporting}
-                />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {sourcePlates.map((plate) => (
-                  <div key={plate} className="flex-1 min-w-0 space-y-1">
-                    <Label
-                      htmlFor={`janus-rack-${plate}`}
-                      className="text-xs font-medium text-muted-foreground"
-                    >
-                      {t("mame.dialogs.janusMapping.sourceRackLabel", { plate })}
-                    </Label>
-                    <Input
-                      id={`janus-rack-${plate}`}
-                      type="number"
-                      min={1}
-                      step={1}
-                      value={settings.sourceRacks[plate] ?? resolvedRacks[plate] ?? ""}
-                      onChange={(e) => patchSourceRack(plate, e.target.value)}
-                      className="h-9 w-full text-sm"
-                      disabled={isExporting}
-                    />
-                  </div>
-                ))}
-                <div className="flex-1 min-w-0 space-y-1">
-                  <Label
-                    htmlFor="janus-dest-rack"
-                    className="text-xs font-medium text-muted-foreground"
-                  >
-                    {t("mame.dialogs.janusMapping.destRackLabel")}
-                  </Label>
-                  <Input
-                    id="janus-dest-rack"
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={settings.destRack ?? resolvedDestRack ?? ""}
-                    onChange={(e) => {
-                      const parsed = parsePositiveIntegerInput(e.target.value);
-                      if (parsed !== null) patchSettings({ destRack: parsed });
-                    }}
-                    className="h-9 w-full text-sm"
-                    disabled={isExporting}
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {t("mame.dialogs.janusMapping.rackHint")}
-              </p>
-              {/* The plate names are the run's own; before a run there are
-                  none, so say that instead of implying the list is final. */}
-              {!platesComeFromRun && (
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {t("mame.dialogs.janusMapping.rackPlatesPending")}
-                </p>
-              )}
-            </div>
-          </details>
-        </fieldset>
-      )}
 
       {/* Row preview, what the export would write, before it writes it. */}
       <section className="space-y-1.5" aria-label={t("mame.dialogs.janusMapping.previewHeading")}>
@@ -685,7 +570,7 @@ export function JanusMappingPanel() {
                         key={`${column}-${columnIdx}`}
                         className="px-2 py-1 font-mono tabular-nums"
                       >
-                        {previewCellValue(row, idx, columnIdx, column, preview.settings)}
+                        {previewCellValue(row, idx, column, preview.settings)}
                       </td>
                     ))}
                   </tr>
@@ -693,6 +578,16 @@ export function JanusMappingPanel() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* The plate names are generated, so this table is the only place the
+            operator reads them back before the file is written. Rendered with
+            the table rather than with the settings above, because there is no
+            field up there to attach it to. */}
+        {preview && preview.rows.length > 0 && (
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {t("mame.dialogs.janusMapping.plateNamesNote")}
+          </p>
         )}
 
         {preview && !previewLoading && (
@@ -738,7 +633,7 @@ export function JanusMappingPanel() {
             id="janus-output-path"
             value={resolvedPath}
             onChange={(e) => setOutputPath(e.target.value)}
-            placeholder={t("mame.dialogs.janusMapping.outputPathPlaceholder", { ext: format })}
+            placeholder={t("mame.dialogs.janusMapping.outputPathPlaceholder")}
             className="h-9 flex-1 min-w-0 text-sm font-mono"
             aria-label={t("mame.dialogs.janusMapping.outputPathAriaLabel")}
             disabled={isExporting}
@@ -757,9 +652,11 @@ export function JanusMappingPanel() {
         </div>
       </div>
 
-      {/* Column info note */}
+      {/* Column info note. One string, not one per schema: the file this panel
+          writes always has the instrument columns. It names them in the order
+          the writer emits them, so it moves whenever the sheet does. */}
       <p className="text-xs text-muted-foreground leading-relaxed">
-        {t(`mame.dialogs.janusMapping.columnsNote.${settings.outputSchema}`)}
+        {t("mame.dialogs.janusMapping.columnsNote")}
         <br />
         <span className="text-warning">
           {t("mame.dialogs.janusMapping.selectionNote")}

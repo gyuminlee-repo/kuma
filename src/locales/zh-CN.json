@@ -689,9 +689,7 @@
       },
       "janusMapping": {
         "title": "导出 Janus Mapping",
-        "description": "将最终的 cell-stock Janus mapping 文件 (K4 spec) 导出为 CSV 或 XLSX。",
-        "formatLabel": "格式",
-        "formatAriaLabel": "Janus mapping 导出格式",
+        "description": "将最终的 cell-stock Janus mapping 文件 (K4 spec) 导出为 CSV。",
         "destLayoutLabel": "目标布局",
         "destLayoutAriaLabel": "Janus 目标 well 布局",
         "destLayoutOption": {
@@ -703,13 +701,10 @@
           "compact": "dest_well 按 priority 顺序从 A1 起依次分配，先自上而下填满一列再进入下一列（A1、B1、C1 直到 H1，然后是 A2），不留空 well。"
         },
         "outputPathLabel": "输出文件路径",
-        "outputPathPlaceholder": "目标 .{{ext}} 文件路径",
+        "outputPathPlaceholder": "目标 .csv 文件路径",
         "outputPathAriaLabel": "Janus mapping 的输出文件路径",
         "browseAriaLabel": "浏览 Janus mapping 的保存路径",
-        "columnsNote": {
-          "device9": "列：name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume。",
-          "legacy5": "列：name, source_plate, source_well, dest_well, priority_score。"
-        },
+        "columnsNote": "列：name, type, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume。",
         "exportJanus": "导出 Janus Mapping",
         "exporting": "导出中…",
         "exported": "导出成功",
@@ -721,27 +716,14 @@
         "previewFailed": "无法加载预览：{{message}}",
         "previewRetry": "重试预览",
         "previewBlocked": "请先解决以下问题再导出。",
-        "schemaLabel": "输出列结构",
-        "schemaAriaLabel": "Janus 输出列结构",
-        "schemaOption": {
-          "device9": "仪器格式（9 列）",
-          "legacy5": "kuma 格式（5 列）"
-        },
-        "schemaHint": {
-          "device9": "按仪器工作簿列输出：name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume。",
-          "legacy5": "按 kuma 内部列输出：name, source_plate, source_well, dest_well, priority_score。"
-        },
         "instrumentHeading": "仪器设置",
         "volumeLabel": "Volume (µL)",
+        "volumeHint": "该值会写入本次导出生成的仪器映射文件。",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "例如：Cell 100ul",
-        "liquidClassHint": "liquid class 决定机器人的移液行为，因此不设默认值。留空时该列为空白，导出照常进行。",
-        "deckHeading": "Deck 配置",
+        "liquidClassHint": "liquid class 决定机器人的移液行为，因此不设默认值。该值只随本次运行记录，仪器表格中没有对应的列，因此不会写入文件。",
         "sampleTypeLabel": "type 列取值",
-        "sourceRackLabel": "Asp. Rack {{plate}}",
-        "destRackLabel": "Dsp. Rack",
-        "rackHint": "机架编号按本次运行的板推导：源板按板顺序占用靠前编号，目标板取下一个编号（与 KURO 引物表一致）。输入数字即可覆盖。",
-        "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
+        "plateNamesNote": "Asp. Rack 与 Dsp. Rack 填写的是根据本次运行的板生成的板名称，而不是 deck 编号。请在此核对，并按相同名称标注 deck。",
         "excludedHeading": "已排除 {{count}} 个",
         "excludedNone": "没有被排除的克隆。",
         "excludedReason": {
@@ -837,23 +819,6 @@
         "helper": "well 按此列的顺序填充，每行一个 variant，在 plate 上先自上而下填满一列再进入下一列：A1、B1、C1 直到 H1，然后是 A2。KURO 导出无需映射，并会隐藏这些控件。"
       }
     },
-    "janusDeck": {
-      "title": "JANUS Deck Layout",
-      "ariaLabel": "JANUS deck layout preview",
-      "deckImageAriaLabel": "JANUS deck slot positions: top row tip flush, source plates P1 P2 P3; bottom row waste, two blank slots, final 96 deep well",
-      "headFixedNote": "Head position fixed",
-      "aspDspNote": "Aspirate position = Dispense position (same coordinate).",
-      "matchByNameNote": "JANUS software matches plates by name; deck slot positions shown here are the conventional layout.",
-      "slot": {
-        "tipFlush": "Tip Flush",
-        "p1": "Stock Plate P1",
-        "p2": "Stock Plate P2",
-        "p3": "Stock Plate P3",
-        "waste": "Waste",
-        "blank": "Blank",
-        "final": "Final 96 Deep Well"
-      }
-    },
     "restoredResult": {
       "title": "该项目保存的运行由另一个版本的 kuma 判定",
       "bodyOlder": "保存的运行由 kuma v{{version}} 产出，其判定方式与当前版本不同，因此不予显示。请重新运行分析，以获得当前版本负责的结果。",
@@ -873,7 +838,7 @@
     "janus": {
       "settings": {
         "contextTitle": "Janus 设备设置",
-        "contextSubtitle": "设置写入设备映射文件的转移体积、deck 架位与 liquid class。可选：只需测序判定的运行可以跳过此步骤。",
+        "contextSubtitle": "设置写入设备映射文件的转移体积、liquid class 与 type 列取值。可选：只需测序判定的运行可以跳过此步骤。",
         "optionalNote": "此步骤为可选。分析运行会自行写出挑取清单；设备映射仅在此处导出时才会写出，因此只需测序判定的运行可以从步骤 2 直接进入步骤 4。",
         "inspectorTitle": "设备 Inspector",
         "inspectorSubtitle": "写入映射所用的值",
@@ -884,9 +849,7 @@
         "drawerLeft": "设备",
         "drawerCenter": "Janus 日志",
         "drawerRight": "下一步",
-        "drawerRightDesc": "活性数据与 EVOLVEpro 交接",
-        "volumeLabel": "转移体积 (µL)",
-        "volumeHint": "该值会直接写入本次运行生成的仪器映射文件。默认 100 µL 是没有实验室依据的假设，请改成本次实验实际使用的体积。"
+        "drawerRightDesc": "活性数据与 EVOLVEpro 交接"
       }
     },
     "setup": {
@@ -1081,7 +1044,7 @@
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
       },
       "janusMappingAutosave": {
-        "saved": "已在结果工作簿旁写入仪器映射文件（{{rows}} 行），采用机器人读取的 9 列格式。",
+        "saved": "已在结果工作簿旁写入仪器映射文件（{{rows}} 行），采用机器人读取的 8 列格式。",
         "skipped": "没有克隆符合选择条件，因此未写入仪器映射文件。",
         "failed": "未能写入仪器映射文件。",
         "excluded": "{{clones}} 个克隆未进入映射文件。可在 Janus 仪器设置中查看原因。"
@@ -1154,14 +1117,14 @@
     },
     "verdictBadge": {
       "help": {
-        "PASS": "Observed amino-acid changes exactly match the expected design.",
-        "AMBIGUOUS": "All expected mutations matched, plus an extra AA change within the indel window of an expected site. Still counts as detected/recovered.",
-        "MIXED": "Within-well contamination: a substantial second allele in the consensus signal.",
-        "WRONG_AA": "An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window.",
-        "FRAMESHIFT": "Two or more nucleotide indels within the frameshift window.",
-        "MANY": "More observed AA changes than both the design and the many-mutation cutoff.",
-        "LOWDEPTH": "Too few reads to call this well reliably.",
-        "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
+        "PASS": "观测到的氨基酸变化与设计完全一致。",
+        "AMBIGUOUS": "所有预期突变均匹配，另在预期位点的 indel window 内多出一个氨基酸变化。仍计为已检出 (回收)。",
+        "MIXED": "well 内污染：consensus 信号中存在相当比例的第二等位。",
+        "WRONG_AA": "预期位点出现了不同的氨基酸，或缺少某个预期突变，或 window 之外存在额外的意外变化。",
+        "FRAMESHIFT": "consensus 的净插入或缺失长度不是 3 的倍数，导致阅读框移位。",
+        "MANY": "观测到的氨基酸变化数同时超过设计数量和多突变上限。",
+        "LOWDEPTH": "reads 太少，无法可靠判定该 well。",
+        "NO_CALL": "consensus 中歧义 (N) 位点过多，氨基酸判读不可信。"
       }
     },
     "missingInputs": {
@@ -1185,6 +1148,8 @@
       "labelNoCallAa": "No-call codons",
       "labelNoCallAaHelp": "Consensus N translated to X, excluded from the observed changes",
       "sectionReplicates": "Replicate comparison",
+      "replicateRowAriaLabel": "显示板 {{plate}} 的 well {{well}}",
+      "replicateRowTitle": "在检查器中显示该板副本",
       "selectedPlateBadge": "Selected",
       "currentWellBadge": "Showing",
       "labelSelectionReason": "Selection reason",
@@ -1201,6 +1166,78 @@
       "labelLowDepthPositions": "Low-depth positions",
       "labelConsensusN": "Consensus N",
       "labelLowQualityBases": "Low-quality bases",
+      "metricInfo": {
+        "openAria": "打开 {{metric}} 的说明",
+        "whatLabel": "统计的是什么",
+        "stageLabel": "来自哪个阶段",
+        "effectLabel": "对判定的影响",
+        "thresholdLabel": "比较基准",
+        "contextLabel": "需一并对照的值",
+        "thresholdUnknown": "本次运行未报告阈值，因此无法确定该数值是按什么标准判定的。",
+        "readCount": {
+          "what": "通过比对过滤、进入本 well consensus pileup 的 reads 数，取自 consensus FASTA 的 depth=N 头信息。",
+          "stage": "consensus 生成阶段，位于 MAPQ 与 span 过滤之后。",
+          "effect": "决定判定结果。低于深度下限即判为 LOWDEPTH，后续检查不再执行。即使存在混合位点，若深度低于混合判定下限，也报告为 LOWDEPTH 而非 MIXED，因为在该深度下无法把第二等位与测序错误区分开。",
+          "thresholdDepth": "reads 少于 {{count}} 判为 LOWDEPTH。",
+          "thresholdDepthOff": "本次运行禁用了读取深度门限。",
+          "thresholdMixed": "确认 MIXED 需要至少 {{count}} 条 reads (深度下限的 {{factor}} 倍)。",
+          "thresholdMixedOff": "读取深度门限已禁用，因此没有混合判定下限。",
+          "thresholdFileSize": "完全没有 depth 头信息的 well 改用 consensus 文件大小 {{size}} KB 作为替代基准。"
+        },
+        "inputReads": {
+          "what": "比对之前分配到本 well 的 reads 数。",
+          "stage": "条形码 demultiplexing 阶段，比对之前。若本次分析的输入是 consensus FASTA 而非原始 reads，则为空。",
+          "effect": "仅供诊断，没有任何门限读取该值。与比对后和过滤后的数量对照，可看出 reads 在哪一步流失。"
+        },
+        "alignedReads": {
+          "what": "至少产生一次参考序列比对的 reads 数，统计于 MAPQ 与 span 过滤之前。",
+          "stage": "比对阶段，过滤之前。若本次分析的输入是 consensus FASTA 而非原始 reads，则为空。",
+          "effect": "仅供诊断，没有任何门限读取该值。相对输入 reads 大幅下降，通常说明参考序列不对或 well 中混有非目标物质。"
+        },
+        "mapqFailed": {
+          "what": "因比对质量 (MAPQ) 未达下限而被剔除的 reads 数。",
+          "stage": "比对过滤阶段，介于比对 reads 与过滤后 reads 之间。若输入为 consensus FASTA，则为 0。",
+          "effect": "仅供诊断，没有任何门限读取该值。数值偏高说明 reads 比对位置不明确，通常是重复序列或参考序列错误。"
+        },
+        "spanFailed": {
+          "what": "因比对区间未覆盖参考序列全长而被剔除的 reads 数。",
+          "stage": "比对过滤阶段，在 MAPQ 过滤之后。若输入为 consensus FASTA，则为 0。",
+          "effect": "仅供诊断，没有任何门限读取该值。数值偏高通常说明 reads 被截断，或 amplicon 短于参考序列。"
+        },
+        "mixedPositions": {
+          "what": "在 pileup 深度足够的位点中，第二多的 A/C/G/T 碱基超过 minor allele 阈值的位点数。51/49 混合的 well 在多数决 consensus 中看起来完全正常，正是该值将其暴露出来。",
+          "stage": "consensus 生成阶段，来自逐位点 pileup。",
+          "effect": "决定判定结果。大于 0 即判为 MIXED，但若深度低于混合判定下限，则改报 LOWDEPTH。",
+          "thresholdDepth": "只有在 reads 达到 {{count}} 及以上时才报告 MIXED，低于该值报 LOWDEPTH。",
+          "thresholdDepthOff": "本次运行禁用了读取深度门限，因此没有混合判定下限。"
+        },
+        "maxMinorAllele": {
+          "what": "本 well 所有位点中第二碱基占比的最大值，即噪声最严重的那一个位点。",
+          "stage": "consensus 生成阶段，来自逐位点 pileup。",
+          "effect": "仅供诊断，没有任何门限直接读取该值，MIXED 门限使用的是上面的混合位点数。可将其视为最强竞争信号的强度。",
+          "noiseFloor": "本 well 的普通位点约为 {{value}} (中位数)。最大值接近中位数属于背景噪声，远高于中位数则是真实的第二等位。",
+          "noiseFloorUnknown": "本次运行未报告 minor allele 比例的中位数，因此没有可与最大值对照的噪声基线。"
+        },
+        "lowDepthPositions": {
+          "what": "pileup 深度未达最低要求、无法由 reads 定出碱基的参考位点数。",
+          "stage": "consensus 生成阶段，来自逐位点 pileup。",
+          "effect": "仅供诊断，没有任何门限读取该值。它与 NO_CALL 判定一并报告，用以说明歧义来自覆盖不足而非 reads 质量。"
+        },
+        "consensusN": {
+          "what": "在有覆盖的 consensus 位点中输出为 N (no call) 的比例。分子与分母都只统计 reads 实际到达的位点，因此未被读到的参考位点不会稀释该比例。",
+          "stage": "consensus 生成阶段，多数决之后。",
+          "effect": "决定判定结果。超过上限即判为 NO_CALL，其氨基酸判读不予采信。这与 LOWDEPTH 不同：深度充足时 consensus 仍可能被 no-call 碱基主导。",
+          "threshold": "超过 {{value}} 判为 NO_CALL。",
+          "thresholdOff": "本次运行禁用了 N 比例门限。",
+          "notEvaluable": "该 consensus 文件不含按覆盖范围定义的 N 比例，因此显示的数值是替代的 0.0，NO_CALL 门限被跳过。重新生成 consensus 可恢复。",
+          "evaluableUnknown": "该结果保存于运行报告 N 比例是否可评估之前，因此无法确定 NO_CALL 门限是否执行过。"
+        },
+        "lowQualityBases": {
+          "what": "因 FASTQ 质量未达最低要求而被排除在 pileup 投票之外的单个碱基数。",
+          "stage": "consensus 生成阶段，在累积 pileup 时统计。对不带质量值的输入 (例如仅有 FASTA 的 consensus 文件) 为 0。",
+          "effect": "仅供诊断，没有任何门限读取该值。它与 NO_CALL 判定一并报告，用以说明歧义来自碱基质量而非覆盖不足。"
+        }
+      },
       "sectionNtChanges": "Nucleotide changes",
       "sectionSource": "Source",
       "copy": "Copy",
@@ -2360,13 +2397,13 @@
     "description": "最新更新亮点。",
     "gotItBtn": "知道了",
     "highlights": [
-      "移除了 sample map。MAME 直接依据变异列表排布板面，残留的文件只用于比对而不再被遵从。",
-      "在 96 格网格上选择本次运行使用的 well：点击、拖动，或点击行列表头。",
-      "变异列表中间的空行或第二个 wild-type 行现在会中止运行，不再让其后所有 well 整体错位。",
-      "选择 native barcode 时会说明它在选什么：同一块板的 replicate。replicate 彼此不一致的 well 会被标记。",
-      "运行会报告落在已声明 well 之外的 read，并按这些条形码索引本次是否用过来区分。"
+      "JANUS 映射文件现在与实验室接种所用的工作簿一致：8 列，板以名称而非编号写入。",
+      "步骤 3 只需填写一个转移体积，不再是两处，默认值为本实验室使用的 70 uL。",
+      "在判定检查器中点击 replicate 会打开该板副本，与点击其 well 或表格行的效果一致。",
+      "点击每个置信度指标会弹出说明，写明它统计的是什么，以及本次运行是与哪个阈值比较的（若有）。",
+      "Verdict 图例的每一项在鼠标悬停时会以您使用的语言自我说明，出现图例的两处都是如此。"
     ],
-    "highlightsStamp": "0.16.0+b2281961"
+    "highlightsStamp": "0.16.1+3b52e4c8"
   },
   "primerDisplay": {
     "copySeqTitle": "复制序列",
@@ -2664,7 +2701,7 @@
         "mergeExport": "将活性数据与基因型判定合并并导出表格，然后通过组合单次重复 (GC) 与三次重复 (相对 WT) 活性来构建 EVOLVEpro 输入。"
       },
       "janus": {
-        "settings": "准备 JANUS 细胞库映射：转移体积、deck 架位编号与 liquid class。可选 — 其中任何一项都不会阻止运行。"
+        "settings": "准备 JANUS 细胞库映射：转移体积、liquid class 与 type 列取值。可选，其中任何一项都不会阻止运行。"
       }
     },
     "summary": {

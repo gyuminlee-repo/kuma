@@ -19,14 +19,23 @@
  * or "-", so an absent measurement never reads as a measured zero.
  */
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { AlertTriangle, Copy, Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { VerdictBadge } from "@/components/mame/widgets/VerdictBadge";
+import { InfoPopover } from "@/components/ui/InfoPopover";
 import { nbLabel, nbOrderKey } from "@/lib/mame/nbLabel";
-import type { ReplicateResult, VerdictRecord, WellEntry } from "@/types/mame/models";
+import type {
+  CompareParams,
+  ReplicateResult,
+  VerdictRecord,
+  WellEntry,
+} from "@/types/mame/models";
 import { cn } from "@/lib/utils";
+
+/** `t` as this file uses it: a key plus optional interpolation, in and a string out. */
+type TFunc = ReturnType<typeof useTranslation>["t"];
 
 /** Key of a well: the replicate copies share a custom_barcode, so both parts matter. */
 function wellKey(nativeBarcode: string, customBarcode: string): string {
@@ -44,22 +53,46 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-/** KV row. Renders nothing when the backend reported no value for the field. */
+/**
+ * KV row. Renders nothing when the backend reported no value for the field.
+ *
+ * Pass `info` to turn the label into a popup trigger: the number alone does not
+ * say what was counted or what it was judged against, and a `title=` tooltip
+ * cannot hold that (it waits a second, never opens from the keyboard, and
+ * clips at the viewport edge). Rows without `info` keep the plain span.
+ */
 function MetricRow({
   label,
   value,
   title,
+  info,
+  infoAriaLabel,
+  infoTestId,
 }: {
   label: string;
   value: string | number | null | undefined;
   title?: string;
+  info?: ReactNode;
+  infoAriaLabel?: string;
+  infoTestId?: string;
 }) {
   if (value === null || value === undefined || value === "") return null;
   return (
     <div className="flex items-start justify-between gap-2 border-b border-border/50 py-1 last:border-0">
-      <span className="shrink-0 text-caption text-muted-foreground" title={title}>
-        {label}
-      </span>
+      {info ? (
+        <InfoPopover
+          label={label}
+          ariaLabel={infoAriaLabel ?? label}
+          testId={infoTestId}
+          className="shrink-0 text-caption text-muted-foreground"
+        >
+          {info}
+        </InfoPopover>
+      ) : (
+        <span className="shrink-0 text-caption text-muted-foreground" title={title}>
+          {label}
+        </span>
+      )}
       <span className="min-w-0 break-all text-right text-caption font-medium tabular-nums text-foreground">
         {value}
       </span>
@@ -113,10 +146,39 @@ function ReplicateComparison({
   currentKey: string;
 }) {
   const { t } = useTranslation();
+  const wells = useMameAppStore((s) => s.wells);
+  const setSelectedWell = useMameAppStore((s) => s.setSelectedWell);
   const plates = Object.entries(replicate.plate_verdicts).sort(
     ([a], [b]) => nbOrderKey(a) - nbOrderKey(b) || a.localeCompare(b),
   );
   if (plates.length === 0) return null;
+
+  // Select a plate copy, exactly as clicking its well on the plate map or its
+  // row in the verdict table does: one `selectedWell` field drives all three,
+  // so the map highlight and the table follow this click for free.
+  //
+  // The store lookup can miss and the literal below is the answer, not padding:
+  // `loadPlateData` clears `wells` to [] whenever `get_plate_data` fails
+  // (analysisSlice.ts), and the inspector still has the full verdict record in
+  // hand. `selected` restates the plate map's own rule (a selected replicate
+  // that did not fail) against this one replicate.
+  function openPlateCopy(plate: string, record: VerdictRecord): void {
+    const match = wells.find(
+      (w) => w.native_barcode === plate && w.barcode === record.custom_barcode,
+    );
+    const entry: WellEntry = match ?? {
+      well: record.custom_barcode,
+      barcode: record.custom_barcode,
+      native_barcode: plate,
+      verdict: record.verdict,
+      mutant_id: record.mutant_id,
+      selected: replicate.selected_plate === plate && !replicate.failed,
+      notes: record.verdict_notes,
+      is_fallback: replicate.is_fallback,
+      fallback_reason: replicate.fallback_reason,
+    };
+    setSelectedWell(entry);
+  }
 
   return (
     <Section title={t("mame.verdictDetail.sectionReplicates")}>
@@ -125,69 +187,87 @@ function ReplicateComparison({
           const isSelected = replicate.selected_plate === plate;
           const isCurrent = wellKey(plate, record.custom_barcode) === currentKey;
           return (
-            <li
-              key={plate}
-              data-testid="replicate-row"
-              className={cn(
-                "rounded-control border px-2 py-1.5",
-                isSelected ? "border-primary/40 bg-primary/5" : "border-border/70",
-                isCurrent && "ring-1 ring-ring",
-              )}
-            >
-              <div className="flex items-center justify-between gap-1.5">
-                <span className="text-caption font-semibold text-foreground">
-                  {nbLabel(plate)}
-                </span>
-                <VerdictBadge verdict={record.verdict} />
-              </div>
-              <div className="mt-1 flex flex-wrap items-center gap-1">
-                <span className="rounded-full border border-border/70 bg-muted px-1.5 py-0.5 text-caption text-muted-foreground">
-                  {record.custom_barcode}
-                </span>
-                {isSelected && (
-                  <span className="rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-caption font-medium text-primary">
-                    {t("mame.verdictDetail.selectedPlateBadge")}
-                  </span>
+            <li key={plate} data-testid="replicate-row">
+              {/*
+                The button is inside the li rather than the li being clickable,
+                so the control is a real button for the keyboard and for
+                assistive tech. The current row stays enabled: re-clicking it is
+                a no-op that keeps the panel where it is, and a disabled row
+                would drop out of the tab order mid-list. `aria-current` is what
+                marks it instead.
+              */}
+              <button
+                type="button"
+                onClick={() => openPlateCopy(plate, record)}
+                aria-current={isCurrent ? "true" : undefined}
+                aria-label={t("mame.verdictDetail.replicateRowAriaLabel", {
+                  plate: nbLabel(plate),
+                  well: record.custom_barcode,
+                })}
+                title={t("mame.verdictDetail.replicateRowTitle")}
+                className={cn(
+                  "block w-full rounded-control border px-2 py-1.5 text-left transition-colors",
+                  "hover:border-primary/50 hover:bg-muted/50",
+                  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                  isSelected ? "border-primary/40 bg-primary/5" : "border-border/70",
+                  isCurrent && "ring-1 ring-ring",
                 )}
-                {isCurrent && (
-                  <span className="rounded-full border border-border bg-background px-1.5 py-0.5 text-caption text-muted-foreground">
-                    {t("mame.verdictDetail.currentWellBadge")}
+              >
+                <span className="flex items-center justify-between gap-1.5">
+                  <span className="text-caption font-semibold text-foreground">
+                    {nbLabel(plate)}
                   </span>
-                )}
-              </div>
-              {/* How much sequence each copy is built on. Without it a
-                  disagreement between two plates reads as a biological
-                  difference, when it is as often one copy being ten times
-                  shallower than the other. Both counts come from the same
-                  serialized verdict as everything else here, and a null drops
-                  its half rather than printing a zero that was never measured. */}
-              {(record.read_count !== null || record.n_aligned_reads !== null) && (
-                <p
-                  data-testid="replicate-depth"
-                  className="mt-1 font-mono text-caption tabular-nums text-muted-foreground"
-                >
-                  {record.read_count !== null && (
-                    <span title={t("mame.verdictDetail.labelReadCount")}>
-                      {t("mame.verdictDetail.replicateReads", {
-                        reads: record.read_count.toLocaleString(),
-                      })}
+                  <VerdictBadge verdict={record.verdict} />
+                </span>
+                <span className="mt-1 flex flex-wrap items-center gap-1">
+                  <span className="rounded-full border border-border/70 bg-muted px-1.5 py-0.5 text-caption text-muted-foreground">
+                    {record.custom_barcode}
+                  </span>
+                  {isSelected && (
+                    <span className="rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-caption font-medium text-primary">
+                      {t("mame.verdictDetail.selectedPlateBadge")}
                     </span>
                   )}
-                  {record.n_aligned_reads !== null && (
-                    <span title={t("mame.verdictDetail.labelAlignedReads")}>
-                      {record.read_count !== null ? " · " : ""}
-                      {t("mame.verdictDetail.replicateAligned", {
-                        aligned: record.n_aligned_reads.toLocaleString(),
-                      })}
+                  {isCurrent && (
+                    <span className="rounded-full border border-border bg-background px-1.5 py-0.5 text-caption text-muted-foreground">
+                      {t("mame.verdictDetail.currentWellBadge")}
                     </span>
                   )}
-                </p>
-              )}
-              {record.observed_aa_changes.length > 0 && (
-                <p className="mt-1 break-all font-mono text-caption text-muted-foreground">
-                  {record.observed_aa_changes.join(", ")}
-                </p>
-              )}
+                </span>
+                {/* How much sequence each copy is built on. Without it a
+                    disagreement between two plates reads as a biological
+                    difference, when it is as often one copy being ten times
+                    shallower than the other. Both counts come from the same
+                    serialized verdict as everything else here, and a null drops
+                    its half rather than printing a zero that was never measured. */}
+                {(record.read_count !== null || record.n_aligned_reads !== null) && (
+                  <span
+                    data-testid="replicate-depth"
+                    className="mt-1 block font-mono text-caption tabular-nums text-muted-foreground"
+                  >
+                    {record.read_count !== null && (
+                      <span title={t("mame.verdictDetail.labelReadCount")}>
+                        {t("mame.verdictDetail.replicateReads", {
+                          reads: record.read_count.toLocaleString(),
+                        })}
+                      </span>
+                    )}
+                    {record.n_aligned_reads !== null && (
+                      <span title={t("mame.verdictDetail.labelAlignedReads")}>
+                        {record.read_count !== null ? " · " : ""}
+                        {t("mame.verdictDetail.replicateAligned", {
+                          aligned: record.n_aligned_reads.toLocaleString(),
+                        })}
+                      </span>
+                    )}
+                  </span>
+                )}
+                {record.observed_aa_changes.length > 0 && (
+                  <span className="mt-1 block break-all font-mono text-caption text-muted-foreground">
+                    {record.observed_aa_changes.join(", ")}
+                  </span>
+                )}
+              </button>
             </li>
           );
         })}
@@ -370,51 +450,297 @@ function EvidenceSection({ record }: { record: VerdictRecord }) {
   );
 }
 
+/**
+ * The ten Confidence metrics, each with the three things a reader needs before
+ * the number means anything: what was counted, at which stage, and whether it
+ * can move the verdict. Seven of the ten are diagnostic and move nothing; their
+ * `effect` copy says so plainly rather than leaving the reader to guess.
+ *
+ * A `Record` keyed by the metric union (not a lookup by template literal) so
+ * the type checker fails a metric added here without copy, and so every key is
+ * a literal string that greps.
+ */
+type MetricKey =
+  | "readCount"
+  | "inputReads"
+  | "alignedReads"
+  | "mapqFailed"
+  | "spanFailed"
+  | "mixedPositions"
+  | "maxMinorAllele"
+  | "lowDepthPositions"
+  | "consensusN"
+  | "lowQualityBases";
+
+interface MetricCopy {
+  /** Row label, reused as the popup heading. */
+  label: string;
+  what: string;
+  stage: string;
+  effect: string;
+}
+
+const METRIC_COPY: Record<MetricKey, MetricCopy> = {
+  readCount: {
+    label: "mame.verdictDetail.labelReadCount",
+    what: "mame.verdictDetail.metricInfo.readCount.what",
+    stage: "mame.verdictDetail.metricInfo.readCount.stage",
+    effect: "mame.verdictDetail.metricInfo.readCount.effect",
+  },
+  inputReads: {
+    label: "mame.verdictDetail.labelInputReads",
+    what: "mame.verdictDetail.metricInfo.inputReads.what",
+    stage: "mame.verdictDetail.metricInfo.inputReads.stage",
+    effect: "mame.verdictDetail.metricInfo.inputReads.effect",
+  },
+  alignedReads: {
+    label: "mame.verdictDetail.labelAlignedReads",
+    what: "mame.verdictDetail.metricInfo.alignedReads.what",
+    stage: "mame.verdictDetail.metricInfo.alignedReads.stage",
+    effect: "mame.verdictDetail.metricInfo.alignedReads.effect",
+  },
+  mapqFailed: {
+    label: "mame.verdictDetail.labelMapqFailed",
+    what: "mame.verdictDetail.metricInfo.mapqFailed.what",
+    stage: "mame.verdictDetail.metricInfo.mapqFailed.stage",
+    effect: "mame.verdictDetail.metricInfo.mapqFailed.effect",
+  },
+  spanFailed: {
+    label: "mame.verdictDetail.labelSpanFailed",
+    what: "mame.verdictDetail.metricInfo.spanFailed.what",
+    stage: "mame.verdictDetail.metricInfo.spanFailed.stage",
+    effect: "mame.verdictDetail.metricInfo.spanFailed.effect",
+  },
+  mixedPositions: {
+    label: "mame.verdictDetail.labelMixedPositions",
+    what: "mame.verdictDetail.metricInfo.mixedPositions.what",
+    stage: "mame.verdictDetail.metricInfo.mixedPositions.stage",
+    effect: "mame.verdictDetail.metricInfo.mixedPositions.effect",
+  },
+  maxMinorAllele: {
+    label: "mame.verdictDetail.labelMaxMinorAllele",
+    what: "mame.verdictDetail.metricInfo.maxMinorAllele.what",
+    stage: "mame.verdictDetail.metricInfo.maxMinorAllele.stage",
+    effect: "mame.verdictDetail.metricInfo.maxMinorAllele.effect",
+  },
+  lowDepthPositions: {
+    label: "mame.verdictDetail.labelLowDepthPositions",
+    what: "mame.verdictDetail.metricInfo.lowDepthPositions.what",
+    stage: "mame.verdictDetail.metricInfo.lowDepthPositions.stage",
+    effect: "mame.verdictDetail.metricInfo.lowDepthPositions.effect",
+  },
+  consensusN: {
+    label: "mame.verdictDetail.labelConsensusN",
+    what: "mame.verdictDetail.metricInfo.consensusN.what",
+    stage: "mame.verdictDetail.metricInfo.consensusN.stage",
+    effect: "mame.verdictDetail.metricInfo.consensusN.effect",
+  },
+  lowQualityBases: {
+    label: "mame.verdictDetail.labelLowQualityBases",
+    what: "mame.verdictDetail.metricInfo.lowQualityBases.what",
+    stage: "mame.verdictDetail.metricInfo.lowQualityBases.stage",
+    effect: "mame.verdictDetail.metricInfo.lowQualityBases.effect",
+  },
+};
+
+/**
+ * What this run judged the metric against, from the run's own reported
+ * thresholds. Empty for a metric no threshold governs.
+ *
+ * `compareParams` is null for a result restored from a snapshot written before
+ * the sidecar reported its thresholds, and the answer there is to say they are
+ * unknown. Substituting a literal would keep reading as correct long after the
+ * backend default moved, and `min_read_count` is exactly that case: the store
+ * never sends one, so the number in force is the backend's, not the operator's.
+ */
+function thresholdLines(
+  metric: MetricKey,
+  compareParams: CompareParams | null,
+  t: TFunc,
+): string[] {
+  const unknown = [t("mame.verdictDetail.metricInfo.thresholdUnknown")];
+  switch (metric) {
+    case "readCount": {
+      if (!compareParams) return unknown;
+      return [
+        compareParams.min_read_count === null
+          ? t("mame.verdictDetail.metricInfo.readCount.thresholdDepthOff")
+          : t("mame.verdictDetail.metricInfo.readCount.thresholdDepth", {
+              count: compareParams.min_read_count,
+            }),
+        compareParams.mixed_confident_read_count === null
+          ? t("mame.verdictDetail.metricInfo.readCount.thresholdMixedOff")
+          : t("mame.verdictDetail.metricInfo.readCount.thresholdMixed", {
+              count: compareParams.mixed_confident_read_count,
+              factor: compareParams.mixed_confident_depth_factor,
+            }),
+        t("mame.verdictDetail.metricInfo.readCount.thresholdFileSize", {
+          size: compareParams.min_file_size_kb,
+        }),
+      ];
+    }
+    case "mixedPositions": {
+      if (!compareParams) return unknown;
+      return [
+        compareParams.mixed_confident_read_count === null
+          ? t("mame.verdictDetail.metricInfo.mixedPositions.thresholdDepthOff")
+          : t("mame.verdictDetail.metricInfo.mixedPositions.thresholdDepth", {
+              count: compareParams.mixed_confident_read_count,
+            }),
+      ];
+    }
+    case "consensusN": {
+      if (!compareParams) return unknown;
+      return [
+        compareParams.max_consensus_n_fraction === null
+          ? t("mame.verdictDetail.metricInfo.consensusN.thresholdOff")
+          : t("mame.verdictDetail.metricInfo.consensusN.threshold", {
+              value: percent(compareParams.max_consensus_n_fraction),
+            }),
+      ];
+    }
+    default:
+      return [];
+  }
+}
+
+/**
+ * The other number this one has to be read next to. Only the max minor allele
+ * fraction has one: it is a maximum over positions and no threshold judges it,
+ * so 4% is a clean well when ordinary positions sit at 3% and a contaminated
+ * one when they sit at 0.2%. The median is that floor.
+ */
+function contextLines(metric: MetricKey, record: VerdictRecord, t: TFunc): string[] {
+  if (metric !== "maxMinorAllele") return [];
+  return [
+    record.median_minor_allele_fraction === undefined
+      ? t("mame.verdictDetail.metricInfo.maxMinorAllele.noiseFloorUnknown")
+      : t("mame.verdictDetail.metricInfo.maxMinorAllele.noiseFloor", {
+          value: percent(record.median_minor_allele_fraction),
+        }),
+  ];
+}
+
+/**
+ * Why the number in front of the reader may not mean what it looks like.
+ *
+ * The three states of `consensus_n_fraction_evaluable` stay three: `false` is a
+ * consensus whose N fraction could not be recovered, so 0.0 was substituted and
+ * the NO_CALL gate was skipped; `undefined` is a result saved before the flag
+ * existed, so whether the gate ran is simply unknown. Collapsing either into
+ * "clean" reports an unmeasurable well as a measured one.
+ */
+function caveatLines(metric: MetricKey, record: VerdictRecord, t: TFunc): string[] {
+  if (metric !== "consensusN") return [];
+  if (record.consensus_n_fraction_evaluable === false) {
+    return [t("mame.verdictDetail.metricInfo.consensusN.notEvaluable")];
+  }
+  if (record.consensus_n_fraction_evaluable === undefined) {
+    return [t("mame.verdictDetail.metricInfo.consensusN.evaluableUnknown")];
+  }
+  return [];
+}
+
+function InfoBlock({ label, lines }: { label: string; lines: string[] }) {
+  return (
+    <div>
+      <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      {lines.map((line) => (
+        <p key={line} className="text-popover-foreground">
+          {line}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+/** Popup body for one Confidence metric. */
+function MetricInfo({
+  metric,
+  record,
+  compareParams,
+}: {
+  metric: MetricKey;
+  record: VerdictRecord;
+  compareParams: CompareParams | null;
+}) {
+  const { t } = useTranslation();
+  const copy = METRIC_COPY[metric];
+  const thresholds = thresholdLines(metric, compareParams, t);
+  const context = contextLines(metric, record, t);
+  const caveats = caveatLines(metric, record, t);
+  return (
+    <div className="space-y-2">
+      <InfoBlock
+        label={t("mame.verdictDetail.metricInfo.whatLabel")}
+        lines={[t(copy.what)]}
+      />
+      <InfoBlock
+        label={t("mame.verdictDetail.metricInfo.stageLabel")}
+        lines={[t(copy.stage)]}
+      />
+      <InfoBlock
+        label={t("mame.verdictDetail.metricInfo.effectLabel")}
+        lines={[t(copy.effect)]}
+      />
+      {thresholds.length > 0 && (
+        <InfoBlock
+          label={t("mame.verdictDetail.metricInfo.thresholdLabel")}
+          lines={thresholds}
+        />
+      )}
+      {context.length > 0 && (
+        <InfoBlock
+          label={t("mame.verdictDetail.metricInfo.contextLabel")}
+          lines={context}
+        />
+      )}
+      {caveats.map((line) => (
+        <p key={line} className="font-medium text-warning">
+          {line}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 /** Priority 3: "can this PASS be trusted?" counters. */
 function ConfidenceSection({ record }: { record: VerdictRecord }) {
   const { t } = useTranslation();
+  // The thresholds the run that produced this record judged it against, never
+  // the current input fields: an operator may have changed those since, and
+  // min_read_count has no input field at all.
+  const compareParams = useMameAppStore((s) => s.compareParams);
+
+  function row(metric: MetricKey, value: string | number | null) {
+    const label = t(METRIC_COPY[metric].label);
+    return (
+      <MetricRow
+        label={label}
+        value={value}
+        info={
+          <MetricInfo metric={metric} record={record} compareParams={compareParams} />
+        }
+        infoAriaLabel={t("mame.verdictDetail.metricInfo.openAria", { metric: label })}
+        infoTestId={`metric-info-${metric}`}
+      />
+    );
+  }
+
   return (
     <Section title={t("mame.verdictDetail.sectionConfidence")}>
-      <MetricRow
-        label={t("mame.verdictDetail.labelReadCount")}
-        value={record.read_count?.toLocaleString() ?? null}
-      />
-      <MetricRow
-        label={t("mame.verdictDetail.labelInputReads")}
-        value={record.n_input_reads?.toLocaleString() ?? null}
-      />
-      <MetricRow
-        label={t("mame.verdictDetail.labelAlignedReads")}
-        value={record.n_aligned_reads?.toLocaleString() ?? null}
-      />
-      <MetricRow
-        label={t("mame.verdictDetail.labelMapqFailed")}
-        value={record.n_mapq_failed}
-      />
-      <MetricRow
-        label={t("mame.verdictDetail.labelSpanFailed")}
-        value={record.n_span_failed}
-      />
-      <MetricRow
-        label={t("mame.verdictDetail.labelMixedPositions")}
-        value={record.n_mixed_positions}
-      />
-      <MetricRow
-        label={t("mame.verdictDetail.labelMaxMinorAllele")}
-        value={percent(record.max_minor_allele_fraction)}
-      />
-      <MetricRow
-        label={t("mame.verdictDetail.labelLowDepthPositions")}
-        value={record.n_low_depth_positions}
-      />
-      <MetricRow
-        label={t("mame.verdictDetail.labelConsensusN")}
-        value={percent(record.consensus_n_fraction)}
-      />
-      <MetricRow
-        label={t("mame.verdictDetail.labelLowQualityBases")}
-        value={record.n_low_quality_bases}
-      />
+      {row("readCount", record.read_count?.toLocaleString() ?? null)}
+      {row("inputReads", record.n_input_reads?.toLocaleString() ?? null)}
+      {row("alignedReads", record.n_aligned_reads?.toLocaleString() ?? null)}
+      {row("mapqFailed", record.n_mapq_failed)}
+      {row("spanFailed", record.n_span_failed)}
+      {row("mixedPositions", record.n_mixed_positions)}
+      {row("maxMinorAllele", percent(record.max_minor_allele_fraction))}
+      {row("lowDepthPositions", record.n_low_depth_positions)}
+      {row("consensusN", percent(record.consensus_n_fraction))}
+      {row("lowQualityBases", record.n_low_quality_bases)}
     </Section>
   );
 }

@@ -689,9 +689,7 @@
       },
       "janusMapping": {
         "title": "Exporter le mapping Janus",
-        "description": "Exporter le fichier final de mapping Janus cell-stock (spec K4) au format CSV ou XLSX.",
-        "formatLabel": "Format",
-        "formatAriaLabel": "Format d'export du mapping Janus",
+        "description": "Exporter le fichier final de mapping Janus cell-stock (spec K4) au format CSV.",
         "destLayoutLabel": "Disposition de destination",
         "destLayoutAriaLabel": "Disposition du well de destination Janus",
         "destLayoutOption": {
@@ -703,13 +701,10 @@
           "compact": "dest_well est attribué séquentiellement depuis A1 par ordre de priority, en descendant chaque colonne (A1, B1, C1 jusqu'à H1, puis A2), sans laisser de well vide."
         },
         "outputPathLabel": "Chemin du fichier de sortie",
-        "outputPathPlaceholder": "Chemin du fichier .{{ext}} cible",
+        "outputPathPlaceholder": "Chemin du fichier .csv cible",
         "outputPathAriaLabel": "Chemin du fichier de sortie pour le mapping Janus",
         "browseAriaLabel": "Parcourir le chemin d'enregistrement pour le mapping Janus",
-        "columnsNote": {
-          "device9": "Colonnes : name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "Colonnes : name, source_plate, source_well, dest_well, priority_score."
-        },
+        "columnsNote": "Colonnes : name, type, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
         "exportJanus": "Exporter le mapping Janus",
         "exporting": "Export en cours…",
         "exported": "Exporté avec succès",
@@ -721,27 +716,14 @@
         "previewFailed": "Aperçu indisponible : {{message}}",
         "previewRetry": "Réessayer l'aperçu",
         "previewBlocked": "Corrigez les problèmes ci-dessous avant d'exporter.",
-        "schemaLabel": "Colonnes de sortie",
-        "schemaAriaLabel": "Schéma des colonnes de sortie Janus",
-        "schemaOption": {
-          "device9": "Format de l'appareil (9 colonnes)",
-          "legacy5": "Format kuma (5 colonnes)"
-        },
-        "schemaHint": {
-          "device9": "Écrit les colonnes du classeur de l'appareil : name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "Écrit les colonnes kuma : name, source_plate, source_well, dest_well, priority_score."
-        },
         "instrumentHeading": "Réglages de l'appareil",
         "volumeLabel": "Volume (µL)",
+        "volumeHint": "Écrit dans le fichier de mapping instrument produit par cet export.",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "ex. Cell 100ul",
-        "liquidClassHint": "La liquid class determine le comportement de pipetage du robot, aucune valeur par defaut n'est donc supposee. Laissee vide, la colonne reste vide et l'export se poursuit.",
-        "deckHeading": "Configuration du deck",
+        "liquidClassHint": "La liquid class détermine le comportement de pipetage du robot, aucune valeur par défaut n'est donc supposée. Elle est consignée avec l'exécution mais n'est pas écrite : la feuille instrument n'a pas de colonne pour elle.",
         "sampleTypeLabel": "valeur de la colonne type",
-        "sourceRackLabel": "Asp. Rack {{plate}}",
-        "destRackLabel": "Dsp. Rack",
-        "rackHint": "Les numeros de rack suivent les plaques de cette execution : les plaques source occupent les premiers racks dans l'ordre des plaques et la destination le suivant, comme dans la feuille d'amorces KURO. Saisir un nombre pour remplacer.",
-        "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
+        "plateNamesNote": "Asp. Rack et Dsp. Rack contiennent des noms de plaque générés à partir des plaques de cette exécution, et non des numéros de deck. Vérifiez-les ici et étiquetez le deck en conséquence.",
         "excludedHeading": "Exclus : {{count}}",
         "excludedNone": "Aucun clone n'a été exclu.",
         "excludedReason": {
@@ -837,23 +819,6 @@
         "helper": "Les wells sont remplis dans l'ordre de cette colonne, un variant par ligne, en descendant chaque colonne de la plaque : A1, B1, C1 jusqu'à H1, puis A2. Un export KURO ne nécessite aucun mapping et masque ces contrôles."
       }
     },
-    "janusDeck": {
-      "title": "JANUS Deck Layout",
-      "ariaLabel": "JANUS deck layout preview",
-      "deckImageAriaLabel": "JANUS deck slot positions: top row tip flush, source plates P1 P2 P3; bottom row waste, two blank slots, final 96 deep well",
-      "headFixedNote": "Head position fixed",
-      "aspDspNote": "Aspirate position = Dispense position (same coordinate).",
-      "matchByNameNote": "JANUS software matches plates by name; deck slot positions shown here are the conventional layout.",
-      "slot": {
-        "tipFlush": "Tip Flush",
-        "p1": "Stock Plate P1",
-        "p2": "Stock Plate P2",
-        "p3": "Stock Plate P3",
-        "waste": "Waste",
-        "blank": "Blank",
-        "final": "Final 96 Deep Well"
-      }
-    },
     "restoredResult": {
       "title": "Le run enregistré de ce projet a été évalué par une autre version de kuma",
       "bodyOlder": "Le run enregistré vient de kuma v{{version}}, qui évalue différemment de cette version : il n'est pas affiché. Relancez l'analyse pour obtenir un résultat dont cette version répond.",
@@ -873,7 +838,7 @@
     "janus": {
       "settings": {
         "contextTitle": "Réglages de l'instrument Janus",
-        "contextSubtitle": "Volume de transfert, racks du deck et liquid class à partir desquels le mapping instrument est écrit. Optionnel : un run purement séquençage peut sauter cette étape.",
+        "contextSubtitle": "Volume de transfert, liquid class et valeur de la colonne type à partir desquels le mapping instrument est écrit. Optionnel : un run purement séquençage peut sauter cette étape.",
         "optionalNote": "Cette etape est optionnelle. Un run d'analyse ecrit lui-meme la liste de picks ; le mapping instrument n'est ecrit que lors d'un export ici, donc un run qui n'a besoin que des verdicts de sequencage passe de l'etape 2 directement a l'etape 4.",
         "inspectorTitle": "Inspector instrument",
         "inspectorSubtitle": "Valeurs utilisées pour écrire le mapping",
@@ -884,9 +849,7 @@
         "drawerLeft": "Instrument",
         "drawerCenter": "Journal Janus",
         "drawerRight": "Suivant",
-        "drawerRightDesc": "Données d'activité et transfert vers EVOLVEpro",
-        "volumeLabel": "Volume de transfert (uL)",
-        "volumeHint": "Ecrit dans le mapping instrument produit par cette execution. Les 100 uL fournis sont une hypothese sans source de laboratoire : indiquez le volume de cette experience."
+        "drawerRightDesc": "Données d'activité et transfert vers EVOLVEpro"
       }
     },
     "setup": {
@@ -1081,7 +1044,7 @@
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
       },
       "janusMappingAutosave": {
-        "saved": "Mapping instrument ecrit a cote du classeur de resultats ({{rows}} lignes), dans les 9 colonnes que lit le robot.",
+        "saved": "Mapping instrument ecrit a cote du classeur de resultats ({{rows}} lignes), dans les 8 colonnes que lit le robot.",
         "skipped": "Aucun clone n'a satisfait aux criteres de selection, aucun mapping instrument n'a donc ete ecrit.",
         "failed": "Le mapping instrument n'a pas ete ecrit.",
         "excluded": "{{clones}} clone(s) exclus du mapping. Ouvrir les reglages instrument Janus pour en connaitre la raison."
@@ -1154,14 +1117,14 @@
     },
     "verdictBadge": {
       "help": {
-        "PASS": "Observed amino-acid changes exactly match the expected design.",
-        "AMBIGUOUS": "All expected mutations matched, plus an extra AA change within the indel window of an expected site. Still counts as detected/recovered.",
-        "MIXED": "Within-well contamination: a substantial second allele in the consensus signal.",
-        "WRONG_AA": "An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window.",
-        "FRAMESHIFT": "Two or more nucleotide indels within the frameshift window.",
-        "MANY": "More observed AA changes than both the design and the many-mutation cutoff.",
-        "LOWDEPTH": "Too few reads to call this well reliably.",
-        "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
+        "PASS": "Les changements d'acides aminés observés correspondent exactement au design attendu.",
+        "AMBIGUOUS": "Toutes les mutations attendues correspondent, plus un changement d'acide aminé supplémentaire dans la fenêtre d'indel d'un site attendu. Compte toujours comme détecté.",
+        "MIXED": "Contamination au sein du puits: un second allèle important dans le signal de consensus.",
+        "WRONG_AA": "Un site attendu montre un acide aminé différent, une mutation attendue est absente, ou un changement inattendu supplémentaire se situe hors de la fenêtre.",
+        "FRAMESHIFT": "Le consensus porte une insertion ou une délétion nette dont la longueur n'est pas un multiple de 3, ce qui décale le cadre de lecture.",
+        "MANY": "Plus de changements d'acides aminés observés que le design et que le seuil de mutations multiples.",
+        "LOWDEPTH": "Trop peu de reads pour juger ce puits de façon fiable.",
+        "NO_CALL": "Le consensus comporte trop de positions ambiguës (N) pour se fier aux appels d'acides aminés."
       }
     },
     "missingInputs": {
@@ -1185,6 +1148,8 @@
       "labelNoCallAa": "No-call codons",
       "labelNoCallAaHelp": "Consensus N translated to X, excluded from the observed changes",
       "sectionReplicates": "Replicate comparison",
+      "replicateRowAriaLabel": "Afficher la plaque {{plate}}, puits {{well}}",
+      "replicateRowTitle": "Afficher cette copie de plaque dans l'inspecteur",
       "selectedPlateBadge": "Selected",
       "currentWellBadge": "Showing",
       "labelSelectionReason": "Selection reason",
@@ -1201,6 +1166,78 @@
       "labelLowDepthPositions": "Low-depth positions",
       "labelConsensusN": "Consensus N",
       "labelLowQualityBases": "Low-quality bases",
+      "metricInfo": {
+        "openAria": "Ouvrir l'explication de {{metric}}",
+        "whatLabel": "Ce qui est compté",
+        "stageLabel": "Origine de la valeur",
+        "effectLabel": "Effet sur le verdict",
+        "thresholdLabel": "Comparé à",
+        "contextLabel": "À lire avec",
+        "thresholdUnknown": "Cette exécution n'a pas transmis ses seuils, la référence de comparaison est donc inconnue.",
+        "readCount": {
+          "what": "Reads ayant passé les filtres d'alignement et alimenté le pileup de consensus de ce puits, lus dans l'en-tête depth=N du FASTA de consensus.",
+          "stage": "Appel du consensus, après les filtres MAPQ et de couverture (span).",
+          "effect": "Décide du verdict. Sous le seuil de profondeur, le puits est LOWDEPTH et aucune autre vérification n'est effectuée. Un puits présentant des positions mixtes mais dont la profondeur est inférieure au seuil de confiance MIXED est également signalé LOWDEPTH, car un second allèle n'y est pas distinguable d'une erreur de séquençage.",
+          "thresholdDepth": "LOWDEPTH en dessous de {{count}} reads.",
+          "thresholdDepthOff": "Le contrôle de profondeur de lecture était désactivé pour cette exécution.",
+          "thresholdMixed": "Un appel MIXED fiable exige au moins {{count}} reads (seuil de profondeur multiplié par {{factor}}).",
+          "thresholdMixedOff": "Aucun seuil de profondeur pour MIXED, le contrôle de profondeur de lecture étant désactivé.",
+          "thresholdFileSize": "Les puits totalement dépourvus d'en-tête depth sont évalués par défaut sur une taille de fichier de consensus de {{size}} Ko."
+        },
+        "inputReads": {
+          "what": "Reads attribués à ce puits avant alignement.",
+          "stage": "Démultiplexage des codes-barres, avant alignement. Vide lorsque l'exécution part d'un FASTA de consensus et non de reads bruts.",
+          "effect": "Diagnostic seulement. Aucun contrôle ne lit cette valeur. Comparez-la aux comptes alignés et filtrés pour voir où les reads ont été perdus."
+        },
+        "alignedReads": {
+          "what": "Reads ayant produit au moins un alignement sur la référence, comptés avant les filtres MAPQ et de couverture.",
+          "stage": "Alignement, avant filtrage. Vide lorsque l'exécution part d'un FASTA de consensus et non de reads bruts.",
+          "effect": "Diagnostic seulement. Aucun contrôle ne lit cette valeur. Une forte chute par rapport aux reads d'entrée indique une mauvaise référence ou du matériel hors cible dans le puits."
+        },
+        "mapqFailed": {
+          "what": "Reads écartés parce que leur alignement n'atteint pas le seuil de qualité de mapping (MAPQ).",
+          "stage": "Filtrage d'alignement, entre le compte aligné et le compte filtré. Zéro lorsque l'exécution part d'un FASTA de consensus.",
+          "effect": "Diagnostic seulement. Aucun contrôle ne lit cette valeur. Un compte élevé signale des reads qui s'alignent de façon ambiguë, typiquement une région répétée ou une mauvaise référence."
+        },
+        "spanFailed": {
+          "what": "Reads écartés parce que leur alignement ne couvre pas toute la longueur de la référence.",
+          "stage": "Filtrage d'alignement, après le filtre MAPQ. Zéro lorsque l'exécution part d'un FASTA de consensus.",
+          "effect": "Diagnostic seulement. Aucun contrôle ne lit cette valeur. Un compte élevé traduit généralement des reads tronqués ou un amplicon plus court que la référence."
+        },
+        "mixedPositions": {
+          "what": "Positions où une seconde base A/C/G/T dépasse le seuil d'allèle minoritaire à une profondeur de pileup suffisante. Un puits mélangé à 51/49 paraît exact dans le consensus majoritaire, et c'est cette valeur qui le révèle.",
+          "stage": "Appel du consensus, à partir du pileup position par position.",
+          "effect": "Décide du verdict. Toute valeur supérieure à zéro rend le puits MIXED, sauf si la profondeur est inférieure au seuil de confiance MIXED, auquel cas LOWDEPTH est signalé à la place.",
+          "thresholdDepth": "MIXED n'est signalé qu'à partir de {{count}} reads; en dessous, le puits est LOWDEPTH.",
+          "thresholdDepthOff": "Aucun seuil de profondeur pour MIXED, le contrôle de profondeur de lecture étant désactivé pour cette exécution."
+        },
+        "maxMinorAllele": {
+          "what": "La plus forte proportion de seconde base sur toutes les positions de ce puits, c'est-à-dire la position la plus bruitée.",
+          "stage": "Appel du consensus, à partir du pileup position par position.",
+          "effect": "Diagnostic seulement. Aucun contrôle ne lit directement cette valeur; le contrôle MIXED utilise le nombre de positions mixtes ci-dessus. À lire comme l'ampleur du signal concurrent le plus fort.",
+          "noiseFloor": "Une position ordinaire de ce puits se situe à {{value}} (médiane). Un maximum proche de cette médiane relève du bruit de fond; très au-dessus, il s'agit d'un second allèle réel.",
+          "noiseFloorUnknown": "Cette exécution n'a pas transmis de médiane d'allèle minoritaire, il n'y a donc pas de niveau de bruit auquel comparer le maximum."
+        },
+        "lowDepthPositions": {
+          "what": "Positions de la référence dont la profondeur de pileup est restée sous le minimum, si bien qu'aucune base n'a pu y être appelée à partir des reads.",
+          "stage": "Appel du consensus, à partir du pileup position par position.",
+          "effect": "Diagnostic seulement. Aucun contrôle ne lit cette valeur. Elle accompagne un verdict NO_CALL et montre que l'ambiguïté vient d'une couverture manquante et non de reads de mauvaise qualité."
+        },
+        "consensusN": {
+          "what": "Part des positions de consensus couvertes émises en N (absence d'appel). Numérateur et dénominateur ne portent que sur les positions atteintes par les reads, si bien que les positions jamais lues ne diluent pas la valeur.",
+          "stage": "Appel du consensus, après le vote majoritaire.",
+          "effect": "Décide du verdict. Au-dessus du plafond, le puits est NO_CALL et ses appels d'acides aminés ne sont pas fiables. À distinguer de LOWDEPTH: la profondeur peut être largement suffisante alors que le consensus reste dominé par des bases non appelées.",
+          "threshold": "NO_CALL au-dessus de {{value}}.",
+          "thresholdOff": "Le contrôle de la fraction de N était désactivé pour cette exécution.",
+          "notEvaluable": "Ce fichier de consensus ne porte pas de fraction de N rapportée à la zone couverte; la valeur affichée est un 0.0 de substitution et le contrôle NO_CALL a été ignoré. Relancez l'appel du consensus pour la rétablir.",
+          "evaluableUnknown": "Ce résultat a été enregistré avant que l'exécution n'indique si la fraction de N était évaluable; on ignore donc si le contrôle NO_CALL a été appliqué."
+        },
+        "lowQualityBases": {
+          "what": "Bases individuelles exclues du vote de pileup parce que leur qualité FASTQ est inférieure au minimum.",
+          "stage": "Appel du consensus, pendant la constitution du pileup. Zéro pour les entrées sans scores de qualité, comme les fichiers de consensus FASTA seuls.",
+          "effect": "Diagnostic seulement. Aucun contrôle ne lit cette valeur. Elle accompagne un verdict NO_CALL et montre que l'ambiguïté vient de la qualité des bases et non d'une couverture manquante."
+        }
+      },
       "sectionNtChanges": "Nucleotide changes",
       "sectionSource": "Source",
       "copy": "Copy",
@@ -2360,13 +2397,13 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "La sample map disparait. MAME dispose la plaque a partir de la liste de variants elle-meme, et un fichier restant est compare plutot que suivi.",
-      "Choisissez sur une grille de 96 puits ceux qu une execution a utilises: en cliquant, en glissant, ou en cliquant un en-tete de ligne ou de colonne.",
-      "Une liste de variants avec une ligne vide au milieu, ou une seconde ligne wild-type, arrete l execution au lieu de decaler chaque puits suivant.",
-      "Le choix des native barcodes dit maintenant ce qu il choisit: des replicats d une plaque. Les puits dont les replicats divergent sont signales.",
-      "Une execution signale les lectures tombees hors des puits declares, separees selon que ces index de code-barres ont deja servi ou non."
+      "Le fichier de mapping JANUS correspond désormais au classeur à partir duquel le laboratoire ensemence : huit colonnes, avec des plaques nommées plutôt que numérotées.",
+      "L'étape 3 ne demande plus qu'un seul volume de transfert au lieu de deux, avec par défaut les 70 uL utilisés par ce laboratoire.",
+      "Cliquer sur un replicate dans l'inspecteur de revue ouvre cette copie de plaque, comme le faisaient déjà un clic sur son puits ou sur sa ligne de tableau.",
+      "Chaque métrique de confiance ouvre maintenant une fenêtre indiquant ce qu'elle compte et le seuil, s'il y en avait un, auquel l'exécution a été comparée.",
+      "Les entrées de la légende des verdicts s'expliquent au survol, dans votre langue, aux deux endroits où elles apparaissent."
     ],
-    "highlightsStamp": "0.16.0+b2281961"
+    "highlightsStamp": "0.16.1+3b52e4c8"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",
@@ -2664,7 +2701,7 @@
         "mergeExport": "Fusionnez les données d'activité avec les appels de génotype et exportez le tableau fusionné, puis créez l'entrée EVOLVEpro en combinant l'activité à réplicat unique (GC) et à triple réplicat (relative au WT)."
       },
       "janus": {
-        "settings": "Préparer le mapping de stocks cellulaires JANUS : volume de transfert, numéros de racks du deck et liquid class. Optionnel — rien ici ne bloque un run."
+        "settings": "Préparer le mapping de stocks cellulaires JANUS : volume de transfert, liquid class et valeur de la colonne type. Optionnel, rien ici ne bloque un run."
       }
     },
     "summary": {

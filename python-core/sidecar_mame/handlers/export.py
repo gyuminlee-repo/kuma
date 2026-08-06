@@ -18,20 +18,6 @@ from sidecar_mame.core import (
 _ALLOWED_JANUS_EXTENSIONS = {".csv", ".xlsx"}
 
 
-def _parse_positive_int(value: object, label: str) -> int:
-    if isinstance(value, bool):
-        raise ValueError(f"Invalid {label} {value!r}. Expected a positive integer.")
-    if isinstance(value, int):
-        parsed = value
-    elif isinstance(value, str) and value.strip().isdigit():
-        parsed = int(value.strip())
-    else:
-        raise ValueError(f"Invalid {label} {value!r}. Expected a positive integer.")
-    if parsed < 1:
-        raise ValueError(f"Invalid {label} {value!r}. Expected a positive integer.")
-    return parsed
-
-
 def _janus_settings_from_params(params: dict):
     """Build the one ``JanusSettings`` both Janus handlers resolve behaviour from.
 
@@ -43,17 +29,18 @@ def _janus_settings_from_params(params: dict):
         dest_layout (str): "compact" (default) or "source".
         include_verdicts (list[str]): verdict classes to keep. Default ["PASS"].
         include_fallback (bool): keep fallback picks. Default false.
-        output_schema (str): "device9" (default, instrument-native 9 columns) or
-            "legacy5" (kuma-internal 5 columns).
-        volume (number): dispense volume in µL (device9 only).
-        sample_type (str): ``type`` column value (device9 only).
-        liquid_class (str): liquid/labware class string (device9 only). Blank is
-            allowed: the column ships empty and the preview warns.
-        source_racks (dict[str, int]): plate label -> Asp. Rack number. Operator
-            overrides only; omitted or empty derives the numbers from the plates
-            of the run (``JanusSettings.resolve_deck``).
-        dest_rack (int | None): Dsp. Rack number. ``None`` derives it as one past
-            the last source rack.
+        output_schema (str): "device" (default, the instrument-native sheet) or
+            "legacy5" (kuma-internal 5 columns). The former name of the
+            instrument schema is accepted; see below.
+        volume (number): dispense volume in µL (device only).
+        sample_type (str): ``type`` column value (device only).
+        liquid_class (str): liquid/labware class string. Recorded with the run
+            and written to no file: the sheet has no column for it.
+        source_racks (dict[str, str]): plate label -> ``Asp. Rack`` plate name.
+            Operator overrides only; omitted or empty generates the names from
+            the plates of the run (``JanusSettings.resolve_deck``).
+        dest_rack (str | None): ``Dsp. Rack`` plate name. ``None`` uses the
+            generated destination plate name.
 
     Raises ``ValueError`` on any invalid value.
     """
@@ -64,14 +51,23 @@ def _janus_settings_from_params(params: dict):
         DEFAULT_SOURCE_RACKS,
         DEFAULT_VOLUME_UL,
         DEST_LAYOUT_COMPACT,
-        SCHEMA_DEVICE9,
+        SCHEMA_DEVICE,
+        SCHEMA_DEVICE_FORMER_NAME,
         JanusSettings,
         normalize_include_verdicts,
     )
 
     # `or` (not a get default) so an explicit JSON null also falls back.
     dest_layout = str(params.get("dest_layout") or DEST_LAYOUT_COMPACT).lower()
-    output_schema = str(params.get("output_schema") or SCHEMA_DEVICE9).lower()
+    output_schema = str(params.get("output_schema") or SCHEMA_DEVICE).lower()
+    # A project saved while the sheet had nine columns asks for the instrument
+    # schema by its old name, and so does a request already in flight when the
+    # build changed under it. It is the same sheet, so the old name is folded
+    # into the current one here rather than being rejected by the whitelist in
+    # ``JanusSettings.__post_init__``. ``legacy5`` is unaffected: that name did
+    # not change, and it is the schema the automatic pick list pins.
+    if output_schema == SCHEMA_DEVICE_FORMER_NAME:
+        output_schema = SCHEMA_DEVICE
     include_verdicts = normalize_include_verdicts(params.get("include_verdicts"))
     include_fallback = bool(params.get("include_fallback") or False)
 
@@ -93,39 +89,34 @@ def _janus_settings_from_params(params: dict):
         else DEFAULT_LIQUID_CLASS
     )
 
+    # A deck stored while the two rack columns carried numbers holds integers
+    # here. A number is not a labware name and cannot be repaired into one, so a
+    # non-string value is dropped rather than written, which restores the
+    # generated plate name. Same in-flight window as the schema name above: the
+    # client clears its own stored numbers on load, and this covers a request
+    # that left before it did.
     raw_racks = params.get("source_racks")
     if raw_racks is None:
         source_racks = tuple(DEFAULT_SOURCE_RACKS.items())
     else:
         if not isinstance(raw_racks, dict):
             raise ValueError(
-                "source_racks must be an object mapping plate label to rack number."
+                "source_racks must be an object mapping plate label to plate name."
             )
-        pairs: list[tuple[str, int]] = []
-        for label, rack in raw_racks.items():
-            try:
-                pairs.append(
-                    (str(label), _parse_positive_int(rack, f"rack number for source plate {label!r}"))
-                )
-            except ValueError as exc:
-                raise ValueError(
-                    f"Invalid rack number {rack!r} for source plate {label!r}. "
-                    "Expected a positive integer."
-                ) from exc
-        source_racks = tuple(pairs)
+        source_racks = tuple(
+            (str(label), name)
+            for label, name in raw_racks.items()
+            if isinstance(name, str)
+        )
 
     raw_dest_rack = params.get("dest_rack")
-    if raw_dest_rack is None:
-        # Derive it: the operator is asked for nothing here (DEFAULT_DEST_RACK
-        # is None for that reason).
-        dest_rack = DEFAULT_DEST_RACK
+    if isinstance(raw_dest_rack, str):
+        dest_rack = raw_dest_rack
     else:
-        try:
-            dest_rack = _parse_positive_int(raw_dest_rack, "dest_rack")
-        except ValueError as exc:
-            raise ValueError(
-                f"Invalid dest_rack {raw_dest_rack!r}. Expected a positive integer."
-            ) from exc
+        # ``None`` generates the destination plate name (DEFAULT_DEST_RACK is
+        # None for that reason); anything else is a stored rack number, dropped
+        # for the reason above.
+        dest_rack = DEFAULT_DEST_RACK
 
     # JanusSettings.__post_init__ validates dest_layout, output_schema, volume.
     return JanusSettings(
@@ -351,8 +342,8 @@ def handle_export_janus_mapping_dry_run(params: dict) -> dict:
     "excluded_count", "settings"}``. Each finding is ``{"code", "severity",
     "message", "mutant_ids"}``. ``errors`` blocks the export and carries
     ``unresolved_well``, ``plate_capacity``, ``duplicate_dest_well``.
-    ``warnings`` never blocks and carries ``missing_liquid_class`` (the column
-    ships blank) and ``derived_source_rack`` (deck numbers taken from the run).
+    ``warnings`` never blocks and carries ``derived_source_rack`` (plate names
+    generated from the plates of the run).
     Each excluded entry is ``{"mutant_id", "reason", "verdict",
     "selected_plate", "is_fallback"}``.
 

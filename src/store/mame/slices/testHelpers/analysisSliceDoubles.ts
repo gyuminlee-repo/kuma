@@ -28,6 +28,7 @@ export function createAnalysisSliceDoubles(): Partial<AppState> {
     setContamination: vi.fn(),
     setOutputPath: vi.fn(),
     setDistributionStats: vi.fn(),
+    setCompareParams: vi.fn(),
     clearResults: vi.fn(),
     loadPlateData: vi.fn().mockResolvedValue(undefined),
     loadRunHealth: vi.fn().mockResolvedValue(undefined),

@@ -23,17 +23,15 @@
     }
   },
   "janus": {
-    "source_file": "Project2-2. primer dispensing (JANUS).xlsx",
-    "sha256": "152d9cf090a3c879464f5a417a6e898f138370892c4069faf63d926ae283d68a",
+    "source_file": "Project3_seeding mapping file (JANUS).xlsx",
+    "sha256": "48910ee0fd276f71cbd6b45ab9016ecebbc0eb9770f79714bb84a1e09b8eed8e",
     "sheet_names": [
-      "layout",
       "primer_mapping file"
     ],
     "mapping_sheet": "primer_mapping file",
     "mapping_header": [
       "name",
       "type",
-      "Dsp. Rack",
       "no",
       "Asp. Rack",
       "Asp. Posi",
@@ -41,10 +39,18 @@
       "Dsp. Posi",
       "volume"
     ],
-    "layout_anchors": {
-      "title": "Project 2-2. Primer dispensing using JANUS",
-      "labware_label": "lab ware",
-      "labware_value": "96 deep well"
+    "rack_names": {
+      "mame_source_prefix": "Stock plate",
+      "mame_dest": "final culture plate",
+      "kuro_fwd": "fw plate",
+      "kuro_rev": "rv plate",
+      "kuro_dest": "PCR mixture plate"
+    },
+    "kuro_layout_source": {
+      "source_file": "Project2-2. primer dispensing (JANUS).xlsx",
+      "sha256": "152d9cf090a3c879464f5a417a6e898f138370892c4069faf63d926ae283d68a",
+      "sheet": "layout",
+      "note": "KURO plate names come from this older workbook layout sheet (C2/C13/C25). The new instrument workbook has no layout sheet, so the three names keep their own provenance here."
     }
   }
 }

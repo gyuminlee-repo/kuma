@@ -29,6 +29,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   analyzeYield: null,
   layoutProvenance: null,
   mappingIntegrity: null,
+  compareParams: null,
   offLayoutRecords: null,
   contamination: null,
   restoredResultProvenance: null,
@@ -51,6 +52,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   setAnalyzeYield: (analyzeYield) => set({ analyzeYield }),
   setLayoutProvenance: (layoutProvenance) => set({ layoutProvenance }),
   setMappingIntegrity: (mappingIntegrity) => set({ mappingIntegrity }),
+  setCompareParams: (compareParams) => set({ compareParams }),
   setOffLayoutRecords: (offLayoutRecords) => set({ offLayoutRecords }),
   setContamination: (contamination) => set({ contamination }),
   setRestoredResultProvenance: (restoredResultProvenance) =>
@@ -85,6 +87,10 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       analyzeYield: null,
       layoutProvenance: null,
       mappingIntegrity: null,
+      // Thresholds describe the run that produced the verdicts being cleared;
+      // keeping them would let a metric popup state what an input the operator
+      // has since changed would have been judged against.
+      compareParams: null,
       offLayoutRecords: null,
       // Measured against the wells THESE verdicts were scored on, so it stops
       // meaning anything the moment they go.

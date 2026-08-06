@@ -7,7 +7,7 @@
  * (kuma_core/mame/export/janus_mapping.py): DEFAULT_VOLUME_UL,
  * DEFAULT_SAMPLE_TYPE, DEFAULT_LIQUID_CLASS, DEFAULT_SOURCE_RACKS,
  * DEFAULT_DEST_RACK, DEFAULT_INCLUDE_VERDICTS, DEST_LAYOUT_COMPACT and
- * SCHEMA_DEVICE9. The TS comment said "mirroring JanusSettings" and nothing
+ * SCHEMA_DEVICE. The TS comment said "mirroring JanusSettings" and nothing
  * enforced it, so one side could move and the operator would approve a plate in
  * the dialog that the sidecar does not write.
  *

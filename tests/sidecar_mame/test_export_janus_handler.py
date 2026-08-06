@@ -68,10 +68,10 @@ def seeded_state():
     reset_state()
 
 
-# The handler defaults to the instrument-native 9-column sheet with a compact
-# destination layout. Cases that assert the kuma-internal 5-column output at the
-# source position pass this explicitly; the defaults themselves are asserted by
-# the test_default_* cases below.
+# The handler defaults to the instrument-native eight column sheet with a
+# compact destination layout. Cases that assert the kuma-internal 5-column
+# output at the source position pass this explicitly; the defaults themselves
+# are asserted by the test_default_* cases below.
 _LEGACY_SOURCE = {"output_schema": "legacy5", "dest_layout": "source"}
 
 
@@ -133,28 +133,91 @@ def test_invalid_dest_layout_rejected(tmp_path: Path, seeded_state) -> None:
 
 
 @pytest.mark.parametrize(
-    "params, message",
+    "params",
     [
-        ({"source_racks": {"P1": 0, "P2": 2, "P3": 3}}, "Invalid rack number"),
-        ({"source_racks": {"P1": 1.9, "P2": 2, "P3": 3}}, "Invalid rack number"),
-        ({"dest_rack": 0}, "Invalid dest_rack"),
-        ({"dest_rack": 4.7}, "Invalid dest_rack"),
+        {"source_racks": {"NB01": 1, "NB02": 2}},
+        {"source_racks": {"NB01": 1.9}},
+        {"dest_rack": 4},
+        {"dest_rack": 4.7},
     ],
 )
-def test_device9_rejects_non_positive_rack_numbers(
+def test_a_stale_numeric_deck_is_dropped_rather_than_written(
     tmp_path: Path,
     seeded_state,
     params,
-    message: str,
 ) -> None:
-    out = tmp_path / "bad-rack.csv"
-    with pytest.raises(ValueError, match=message):
-        handle_export_janus_mapping({
-            "output": str(out),
-            "liquid_class": "Cell 100ul",
-            **params,
-        })
-    assert not out.exists()
+    """A deck saved when the columns held numbers must not reach the sheet.
+
+    The handler is the wire edge, so it faces a client that stored its settings
+    under the old format. Writing ``str(1)`` would put a bare number where the
+    robot expects a labware name and every gate would stay green, so the stale
+    value is dropped and the generated plate name stands. Failing the export
+    instead would punish the operator for what an older build saved.
+
+    ``JanusSettings`` does the opposite with the same value and raises, because
+    in-process an integer rack is a programming error rather than old state.
+    That pair is pinned in tests/mame/test_janus_policy.py.
+    """
+    out = tmp_path / "stale-rack.csv"
+    handle_export_janus_mapping({
+        "output": str(out),
+        "liquid_class": "Cell 100ul",
+        **params,
+    })
+
+    with out.open(encoding="utf-8") as fh:
+        rows = list(csv.reader(fh))[1:]
+    assert rows
+    assert {r[3] for r in rows} == {"Stock plate1", "Stock plate2"}
+    assert {r[5] for r in rows} == {"final culture plate"}
+
+
+def test_a_project_saved_under_the_former_schema_name_still_resolves(
+    tmp_path: Path, seeded_state
+) -> None:
+    """``device9`` named the instrument schema before it lost its ninth column.
+
+    A saved project, and a request already in flight when the build changed
+    under it, ask for the sheet by that name. It is the same sheet, so the old
+    name is folded into the current one at the wire edge rather than being
+    rejected by the whitelist. Without this the dialog raises on a value the
+    client itself stored, so the export dies at the point the operator uses it.
+    """
+    out = tmp_path / "former-name.csv"
+    result = handle_export_janus_mapping(
+        {"output": str(out), "output_schema": "device9"}
+    )
+
+    assert Path(result["output_path"]).exists()
+    with out.open(encoding="utf-8") as fh:
+        rows = list(csv.reader(fh))
+    assert len(rows[0]) == 8
+    assert result["settings"]["output_schema"] == "device"
+
+    # The same file the current name writes, byte for byte.
+    current = tmp_path / "current-name.csv"
+    handle_export_janus_mapping({"output": str(current), "output_schema": "device"})
+    assert out.read_bytes() == current.read_bytes()
+
+
+def test_the_former_schema_name_does_not_leak_into_the_pick_list_name(
+    tmp_path: Path, seeded_state
+) -> None:
+    """Folding the old name must not fold ``legacy5`` with it.
+
+    ``legacy5`` did not change, and it is the schema the automatic pick list
+    pins, so a normalisation that treated any stored schema string loosely would
+    silently turn the pick list into an instrument worklist.
+    """
+    out = tmp_path / "legacy.csv"
+    result = handle_export_janus_mapping(
+        {"output": str(out), "output_schema": "legacy5"}
+    )
+    assert result["settings"]["output_schema"] == "legacy5"
+    with out.open(encoding="utf-8") as fh:
+        assert next(csv.reader(fh)) == [
+            "name", "source_plate", "source_well", "dest_well", "priority_score",
+        ]
 
 
 def test_duplicate_dest_surfaces_through_handler(tmp_path: Path) -> None:

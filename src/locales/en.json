@@ -218,7 +218,7 @@
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
       },
       "janusMappingAutosave": {
-        "saved": "Instrument mapping written next to the result workbook ({{rows}} rows), in the 9 columns the robot reads.",
+        "saved": "Instrument mapping written next to the result workbook ({{rows}} rows), in the 8 columns the robot reads.",
         "skipped": "No clone met the selection criteria, so no instrument mapping was written.",
         "failed": "The instrument mapping was not written.",
         "excluded": "{{clones}} clone(s) left out of the mapping. Open Janus instrument settings to see why."
@@ -814,9 +814,7 @@
       },
       "janusMapping": {
         "title": "Export Janus Mapping",
-        "description": "Export the final cell-stock Janus mapping file (K4 spec) as CSV or XLSX.",
-        "formatLabel": "Format",
-        "formatAriaLabel": "Janus mapping export format",
+        "description": "Export the final cell-stock Janus mapping file (K4 spec) as CSV.",
         "destLayoutLabel": "Destination layout",
         "destLayoutAriaLabel": "Janus destination well layout",
         "destLayoutOption": {
@@ -828,13 +826,10 @@
           "compact": "dest_well is assigned sequentially from A1 in priority order, down each column (A1, B1, C1 to H1, then A2), leaving no empty wells."
         },
         "outputPathLabel": "Output file path",
-        "outputPathPlaceholder": "Target .{{ext}} file path",
+        "outputPathPlaceholder": "Target .csv file path",
         "outputPathAriaLabel": "Output file path for Janus mapping",
         "browseAriaLabel": "Browse save path for Janus mapping",
-        "columnsNote": {
-          "device9": "Columns: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "Columns: name, source_plate, source_well, dest_well, priority_score."
-        },
+        "columnsNote": "Columns: name, type, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
         "exportJanus": "Export Janus Mapping",
         "exporting": "Exporting…",
         "exported": "Exported successfully",
@@ -846,27 +841,14 @@
         "previewFailed": "Preview unavailable: {{message}}",
         "previewRetry": "Retry preview",
         "previewBlocked": "Fix the problems below before exporting.",
-        "schemaLabel": "Output columns",
-        "schemaAriaLabel": "Janus output column schema",
-        "schemaOption": {
-          "device9": "Instrument (9 columns)",
-          "legacy5": "kuma (5 columns)"
-        },
-        "schemaHint": {
-          "device9": "Writes the instrument worksheet columns: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "Writes the kuma columns: name, source_plate, source_well, dest_well, priority_score."
-        },
         "instrumentHeading": "Instrument settings",
         "volumeLabel": "Volume (µL)",
+        "volumeHint": "Written into the instrument mapping file this export produces.",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "e.g. Cell 100ul",
-        "liquidClassHint": "The liquid class drives the pipetting behaviour of the robot, so no default is assumed. Left empty the column ships blank and the export still runs.",
-        "deckHeading": "Deck configuration",
+        "liquidClassHint": "The liquid class drives the pipetting behaviour of the robot, so no default is assumed. It is recorded with the run and nothing is written for it: the instrument sheet has no column for the liquid class.",
         "sampleTypeLabel": "type column",
-        "sourceRackLabel": "Asp. Rack {{plate}}",
-        "destRackLabel": "Dsp. Rack",
-        "rackHint": "Rack numbers follow the plates of this run: source plates take the first racks in plate order and the destination the next, as in the KURO primer sheet. Type a number to override one.",
-        "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
+        "plateNamesNote": "Asp. Rack and Dsp. Rack carry plate names generated from the plates of this run, not deck numbers. Read them back here and label the deck to match.",
         "excludedHeading": "Excluded: {{count}}",
         "excludedNone": "Every clone made the pick.",
         "excludedReason": {
@@ -1100,23 +1082,6 @@
       "kvEmpty": "—",
       "noDataPlaceholder": "No data available"
     },
-    "janusDeck": {
-      "ariaLabel": "JANUS deck layout preview",
-      "aspDspNote": "Aspirate position = Dispense position (same coordinate).",
-      "deckImageAriaLabel": "JANUS deck slot positions: top row tip flush, source plates P1 P2 P3; bottom row waste, two blank slots, final 96 deep well",
-      "headFixedNote": "Head position fixed",
-      "matchByNameNote": "JANUS software matches plates by name; deck slot positions shown here are the conventional layout.",
-      "slot": {
-        "blank": "Blank",
-        "final": "Final 96 Deep Well",
-        "p1": "Stock Plate P1",
-        "p2": "Stock Plate P2",
-        "p3": "Stock Plate P3",
-        "tipFlush": "Tip Flush",
-        "waste": "Waste"
-      },
-      "title": "JANUS Deck Layout"
-    },
     "restoredResult": {
       "title": "This project's saved run was scored by another version of kuma",
       "bodyOlder": "The saved run was produced by kuma v{{version}}, which scores runs differently from this build, so it is not shown. Re-run the analysis to get a result this version stands behind.",
@@ -1136,7 +1101,7 @@
     "janus": {
       "settings": {
         "contextTitle": "Janus instrument settings",
-        "contextSubtitle": "Transfer volume, deck racks and liquid class the instrument mapping is written from. Optional: a sequencing-only run can skip this step.",
+        "contextSubtitle": "Transfer volume, liquid class and the type column the instrument mapping is written from. Optional: a sequencing-only run can skip this step.",
         "optionalNote": "This step is optional. An analyze run writes the pick list on its own; the instrument mapping is written only when exported here, so a run that only needs sequencing verdicts can go from step 2 straight to step 4.",
         "inspectorTitle": "Instrument Inspector",
         "inspectorSubtitle": "Values the mapping is written from",
@@ -1147,9 +1112,7 @@
         "drawerLeft": "Instrument",
         "drawerCenter": "Janus log",
         "drawerRight": "Next",
-        "drawerRightDesc": "Activity data and EVOLVEpro handoff",
-        "volumeLabel": "Transfer volume (uL)",
-        "volumeHint": "Written into the instrument mapping this run produces. The shipped 100 uL is an assumption with no lab source, so set the volume this experiment uses."
+        "drawerRightDesc": "Activity data and EVOLVEpro handoff"
       }
     },
     "verdictBadge": {
@@ -1158,7 +1121,7 @@
         "AMBIGUOUS": "All expected mutations matched, plus an extra AA change within the indel window of an expected site. Still counts as detected/recovered.",
         "MIXED": "Within-well contamination: a substantial second allele in the consensus signal.",
         "WRONG_AA": "An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window.",
-        "FRAMESHIFT": "Two or more nucleotide indels within the frameshift window.",
+        "FRAMESHIFT": "The consensus carries a net insertion or deletion whose length is not a multiple of 3, so the reading frame is shifted.",
         "MANY": "More observed AA changes than both the design and the many-mutation cutoff.",
         "LOWDEPTH": "Too few reads to call this well reliably.",
         "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
@@ -1185,6 +1148,8 @@
       "labelNoCallAa": "No-call codons",
       "labelNoCallAaHelp": "Consensus N translated to X, excluded from the observed changes",
       "sectionReplicates": "Replicate comparison",
+      "replicateRowAriaLabel": "Show plate {{plate}}, well {{well}}",
+      "replicateRowTitle": "Show this plate copy in the inspector",
       "selectedPlateBadge": "Selected",
       "currentWellBadge": "Showing",
       "labelSelectionReason": "Selection reason",
@@ -1201,6 +1166,78 @@
       "labelLowDepthPositions": "Low-depth positions",
       "labelConsensusN": "Consensus N",
       "labelLowQualityBases": "Low-quality bases",
+      "metricInfo": {
+        "openAria": "Explain {{metric}}",
+        "whatLabel": "What it counts",
+        "stageLabel": "Where it comes from",
+        "effectLabel": "Effect on the verdict",
+        "thresholdLabel": "Judged against",
+        "contextLabel": "Read it against",
+        "thresholdUnknown": "This run did not report its thresholds, so what this value was judged against is unknown.",
+        "readCount": {
+          "what": "Reads that passed the alignment filters and fed the consensus pileup for this well, read from the depth=N header of the consensus FASTA.",
+          "stage": "Consensus calling, after the MAPQ and span filters.",
+          "effect": "Gates the verdict. Below the depth floor the well is LOWDEPTH and no further check runs. A well with mixed positions whose depth sits below the mixed-call floor is also reported LOWDEPTH rather than MIXED, because a second allele cannot be told apart from sequencing error there.",
+          "thresholdDepth": "LOWDEPTH below {{count}} reads.",
+          "thresholdDepthOff": "The read-depth gate was disabled for this run.",
+          "thresholdMixed": "A confident MIXED call needs {{count}} reads or more (the depth floor times {{factor}}).",
+          "thresholdMixedOff": "No mixed-call depth floor, because the read-depth gate was disabled.",
+          "thresholdFileSize": "Wells that carry no depth header at all fall back to a consensus file size of {{size}} KB."
+        },
+        "inputReads": {
+          "what": "Reads assigned to this well before alignment.",
+          "stage": "Barcode demultiplexing, before alignment. Empty when the run was analyzed from consensus FASTA instead of raw reads.",
+          "effect": "Diagnostic only. No gate reads this number. Compare it with the aligned and filtered counts to see where reads were lost."
+        },
+        "alignedReads": {
+          "what": "Reads that produced at least one alignment to the reference, counted before the MAPQ and span filters.",
+          "stage": "Alignment, before filtering. Empty when the run was analyzed from consensus FASTA instead of raw reads.",
+          "effect": "Diagnostic only. No gate reads this number. A large drop from the input reads points at the wrong reference or at off-target material in the well."
+        },
+        "mapqFailed": {
+          "what": "Reads dropped because their alignment did not reach the mapping-quality (MAPQ) floor.",
+          "stage": "Alignment filtering, between the aligned count and the filtered read count. Zero when the run was analyzed from consensus FASTA.",
+          "effect": "Diagnostic only. No gate reads this number. A high count means the reads map ambiguously, typically a repeat or the wrong reference."
+        },
+        "spanFailed": {
+          "what": "Reads dropped because their alignment does not cover the full reference length.",
+          "stage": "Alignment filtering, applied after the MAPQ filter. Zero when the run was analyzed from consensus FASTA.",
+          "effect": "Diagnostic only. No gate reads this number. A high count usually means truncated reads or an amplicon shorter than the reference."
+        },
+        "mixedPositions": {
+          "what": "Positions where a second A/C/G/T base rises above the minor-allele threshold at sufficient pileup depth. A 51/49 well looks exact in the majority consensus and this is what exposes it.",
+          "stage": "Consensus calling, from the per-position pileup.",
+          "effect": "Gates the verdict. Any count above zero makes the well MIXED, unless depth sits below the mixed-call floor, in which case LOWDEPTH is reported instead.",
+          "thresholdDepth": "MIXED is reported only at {{count}} reads or more; below that the well is LOWDEPTH.",
+          "thresholdDepthOff": "No mixed-call depth floor, because the read-depth gate was disabled for this run."
+        },
+        "maxMinorAllele": {
+          "what": "The largest second-base fraction across all positions in this well, that is, the single noisiest position.",
+          "stage": "Consensus calling, from the per-position pileup.",
+          "effect": "Diagnostic only. No gate reads this number directly; the mixed-position count above is what the MIXED gate uses. Read it as the size of the strongest competing signal.",
+          "noiseFloor": "An ordinary position in this well sits at {{value}} (median). A maximum near that median is background; one far above it is a real second allele.",
+          "noiseFloorUnknown": "This run reported no median minor-allele fraction, so there is no noise floor to read the maximum against."
+        },
+        "lowDepthPositions": {
+          "what": "Reference positions whose pileup depth stayed below the minimum, so no base could be called from reads there.",
+          "stage": "Consensus calling, from the per-position pileup.",
+          "effect": "Diagnostic only. No gate reads this number. It is reported next to a NO_CALL verdict to show the ambiguity came from missing coverage rather than from poor reads."
+        },
+        "consensusN": {
+          "what": "Share of covered consensus positions emitted as N (no call). Numerator and denominator both range over positions the reads reached, so reference positions never read do not dilute it.",
+          "stage": "Consensus calling, after the majority vote.",
+          "effect": "Gates the verdict. Above the ceiling the well is NO_CALL and its amino-acid calls are not trusted. Distinct from LOWDEPTH: depth can be ample while the consensus is still dominated by no-call bases.",
+          "threshold": "NO_CALL above {{value}}.",
+          "thresholdOff": "The N-fraction gate was disabled for this run.",
+          "notEvaluable": "This consensus file carries no covered-scoped N fraction, so the value shown is a substituted 0.0 and the NO_CALL gate was skipped. Re-run consensus calling to restore it.",
+          "evaluableUnknown": "This result was saved before the run reported whether the N fraction could be evaluated, so whether the NO_CALL gate ran is unknown."
+        },
+        "lowQualityBases": {
+          "what": "Individual base calls excluded from the pileup vote because their FASTQ quality was below the minimum.",
+          "stage": "Consensus calling, while the pileup is accumulated. Zero for inputs that carry no quality scores, such as FASTA-only consensus files.",
+          "effect": "Diagnostic only. No gate reads this number. It is reported next to a NO_CALL verdict to show the ambiguity came from base quality rather than from missing coverage."
+        }
+      },
       "sectionNtChanges": "Nucleotide changes",
       "sectionSource": "Source",
       "copy": "Copy",
@@ -2393,13 +2430,13 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The sample map is gone. MAME places the plate from the variant list itself, and a leftover file is compared rather than obeyed.",
-      "Pick which wells a run used on a 96 well grid, by clicking, dragging, or clicking a row or column header.",
-      "A variant list with a blank row in the middle, or a second wild-type row, stops the run instead of shifting every later well.",
-      "Choosing native barcodes now says what it is choosing: replicates of one plate. Wells whose replicates disagree are flagged.",
-      "A run reports reads that landed outside the declared wells, split by whether those barcode indices were ever used."
+      "The JANUS mapping file now matches the workbook the lab seeds from: eight columns, with plates named rather than numbered.",
+      "Step 3 asks for one transfer volume instead of two, defaulting to the 70 uL this lab uses.",
+      "Clicking a replicate in the review inspector opens that copy, the way clicking its well or its table row already did.",
+      "Each confidence metric now opens a popup stating what it counts and which threshold, if any, the run was judged against.",
+      "Verdict legend entries explain themselves on hover, in your own language, at both places they appear."
     ],
-    "highlightsStamp": "0.16.0+b2281961"
+    "highlightsStamp": "0.16.1+3b52e4c8"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",
@@ -2719,7 +2756,7 @@
         "files": "Provide the CDS sequence and barcode seeds, set primer design parameters, choose an output folder, and generate the barcode package."
       },
       "janus": {
-        "settings": "Prepare the JANUS cell-stock mapping: transfer volume, deck rack numbers and liquid class. Optional — nothing here gates a run."
+        "settings": "Prepare the JANUS cell-stock mapping: transfer volume, liquid class and the type column. Optional, nothing here gates a run."
       }
     }
   },

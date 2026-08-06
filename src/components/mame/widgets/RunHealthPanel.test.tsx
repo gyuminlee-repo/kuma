@@ -1,6 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { RunHealthBreakdown, RunHealthData } from "@/types/mame/models";
+import en from "@/locales/en.json";
+import { VERDICT_LABEL } from "@/lib/mame/verdictColors";
+import type { RunHealthBreakdown, RunHealthData, VerdictClass } from "@/types/mame/models";
 import { RunHealthPanel } from "./RunHealthPanel";
 
 function breakdown(overrides: Partial<RunHealthBreakdown> = {}): RunHealthBreakdown {
@@ -43,7 +45,33 @@ function makeHealth(overrides: Partial<RunHealthData> = {}): RunHealthData {
   };
 }
 
-describe("RunHealthPanel — recovery / detected / class table", () => {
+const ALL_CLASSES: VerdictClass[] = [
+  "PASS",
+  "AMBIGUOUS",
+  "MIXED",
+  "WRONG_AA",
+  "FRAMESHIFT",
+  "MANY",
+  "LOWDEPTH",
+  "NO_CALL",
+];
+
+/**
+ * The eight explanations, read from the locale source instead of retyped here,
+ * so a reworded sentence needs no test edit and a surface wired to the wrong
+ * VERDICT_HELP_KEY entry still fails (the expectation does not come from that
+ * same map).
+ */
+const HELP = en.mame.verdictBadge.help;
+
+/** Nearest self-or-ancestor matching `sel`; throws rather than returning null. */
+function closestOrThrow(node: HTMLElement, sel: string): HTMLElement {
+  const found = node.closest(sel);
+  if (!found) throw new Error(`no ${sel} at or above "${node.textContent}"`);
+  return found as HTMLElement;
+}
+
+describe("RunHealthPanel, recovery / detected / class table", () => {
   // AC8: recovery header shows "R/T (Z%)" when data is available.
   it("renders the recovery header with R/T (Z%)", () => {
     render(<RunHealthPanel health={makeHealth()} sections={["verdict-breakdown"]} />);
@@ -98,6 +126,31 @@ describe("RunHealthPanel — recovery / detected / class table", () => {
     const noCallRow = within(table).getByText("No call").closest("tr");
     expect(noCallRow).not.toBeNull();
     expect(within(noCallRow as HTMLElement).getByText("0")).toBeInTheDocument();
+  });
+
+  // (D) Both places the verdict legend appears in this panel explain themselves
+  // on hover. jsdom renders no native tooltip, so the hover itself cannot be
+  // observed: these assert the `title` attribute a browser turns into one.
+  // Attribute contracts, not rendering tests.
+  it("gives every chart-legend item its explanation as a hover title", () => {
+    render(<RunHealthPanel health={makeHealth()} sections={["verdict-breakdown"]} />);
+    const legend = screen.getByRole("list", { name: en.mame.runHealth.legendAriaLabel });
+    for (const cls of ALL_CLASSES) {
+      const item = closestOrThrow(within(legend).getByText(VERDICT_LABEL[cls]), '[role="listitem"]');
+      expect(item).toHaveAttribute("title", HELP[cls]);
+    }
+  });
+
+  it("gives every class-count row header the same explanation, without visible text", () => {
+    render(<RunHealthPanel health={makeHealth()} sections={["verdict-breakdown"]} />);
+    const table = screen.getByTestId("run-health-class-counts");
+    for (const cls of ALL_CLASSES) {
+      const header = closestOrThrow(within(table).getByText(VERDICT_LABEL[cls]), "th");
+      expect(header).toHaveAttribute("title", HELP[cls]);
+      // The sentence must stay in the attribute. Rendering it as text would
+      // break the exact-text lookups the class-count test above depends on.
+      expect(header).not.toHaveTextContent(HELP[cls]);
+    }
   });
 
   // #5: when embedded under a titled DataPanel, the per-section heading is

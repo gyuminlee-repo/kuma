@@ -1604,6 +1604,13 @@ async function restoreMameResult(
   if (!alive()) return false;
   store.setDistributionStats(result.distribution_stats ?? null);
   if (!alive()) return false;
+  // Carry the thresholds the persisted run was judged against, so a restored
+  // result explains its Confidence numbers the same way a fresh one does.
+  // `?? null` covers a snapshot written before the sidecar reported them; that
+  // must read as unknown rather than borrow this session's input values, which
+  // belong to inputs the operator may have changed since.
+  store.setCompareParams(result.compare_params ?? null);
+  if (!alive()) return false;
   await store.loadPlateData();
   if (!alive()) return false;
   // A8: the run-health panel ("Plate별 verdict 분포") reads get_run_health from the

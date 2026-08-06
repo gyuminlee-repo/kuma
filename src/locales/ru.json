@@ -689,9 +689,7 @@
       },
       "janusMapping": {
         "title": "Экспорт Janus Mapping",
-        "description": "Экспортировать финальный файл cell-stock Janus mapping (K4 spec) как CSV или XLSX.",
-        "formatLabel": "Формат",
-        "formatAriaLabel": "Формат экспорта Janus mapping",
+        "description": "Экспортировать финальный файл cell-stock Janus mapping (K4 spec) как CSV.",
         "destLayoutLabel": "Схема назначения",
         "destLayoutAriaLabel": "Схема well назначения Janus",
         "destLayoutOption": {
@@ -703,13 +701,10 @@
           "compact": "dest_well назначается последовательно с A1 в порядке приоритета, сверху вниз по каждому столбцу (A1, B1, C1 до H1, затем A2), без пустых лунок."
         },
         "outputPathLabel": "Путь к выходному файлу",
-        "outputPathPlaceholder": "Путь к целевому файлу .{{ext}}",
+        "outputPathPlaceholder": "Путь к целевому файлу .csv",
         "outputPathAriaLabel": "Путь к выходному файлу Janus mapping",
         "browseAriaLabel": "Выбрать путь сохранения Janus mapping",
-        "columnsNote": {
-          "device9": "Столбцы: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "Столбцы: name, source_plate, source_well, dest_well, priority_score."
-        },
+        "columnsNote": "Столбцы: name, type, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
         "exportJanus": "Экспорт Janus Mapping",
         "exporting": "Экспорт…",
         "exported": "Экспорт успешно завершён",
@@ -721,27 +716,14 @@
         "previewFailed": "Предпросмотр недоступен: {{message}}",
         "previewRetry": "Повторить предпросмотр",
         "previewBlocked": "Устраните проблемы ниже перед экспортом.",
-        "schemaLabel": "Столбцы вывода",
-        "schemaAriaLabel": "Схема столбцов вывода Janus",
-        "schemaOption": {
-          "device9": "Формат прибора (9 столбцов)",
-          "legacy5": "Формат kuma (5 столбцов)"
-        },
-        "schemaHint": {
-          "device9": "Записывает столбцы книги прибора: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "Записывает столбцы kuma: name, source_plate, source_well, dest_well, priority_score."
-        },
         "instrumentHeading": "Настройки прибора",
         "volumeLabel": "Volume (µL)",
+        "volumeHint": "Записывается в файл карты для прибора, который создаёт этот экспорт.",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "например, Cell 100ul",
-        "liquidClassHint": "Liquid class opredelyaet povedenie pipetirovaniya robota, poetomu znachenie po umolchaniyu ne zadayotsya. Ostavlennyi pustym stolbets ostayotsya pustym, a eksport prodolzhaetsya.",
-        "deckHeading": "Конфигурация deck",
+        "liquidClassHint": "Liquid class определяет поведение пипетирования робота, поэтому значение по умолчанию не задаётся. Оно сохраняется вместе с запуском, но не записывается: в листе для прибора нет такого столбца.",
         "sampleTypeLabel": "значение столбца type",
-        "sourceRackLabel": "Asp. Rack {{plate}}",
-        "destRackLabel": "Dsp. Rack",
-        "rackHint": "Nomera rack sleduyut plastinam etogo zapuska: iskhodnye plastiny zanimayut pervye rack v poryadke plastin, a naznachenie sleduyushchii, kak v liste praimerov KURO. Vvedite chislo, chtoby zamenit.",
-        "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
+        "plateNamesNote": "В Asp. Rack и Dsp. Rack попадают имена планшетов, созданные из планшетов этого запуска, а не номера deck. Проверьте их здесь и подпишите deck так же.",
         "excludedHeading": "Исключено: {{count}}",
         "excludedNone": "Ни один клон не исключён.",
         "excludedReason": {
@@ -837,23 +819,6 @@
         "helper": "Лунки заполняются в порядке этого столбца, по одному варианту в строке: сверху вниз по каждому столбцу планшета, A1, B1, C1 до H1, затем A2. Экспорт KURO не требует маппинга и скрывает эти поля."
       }
     },
-    "janusDeck": {
-      "title": "JANUS Deck Layout",
-      "ariaLabel": "JANUS deck layout preview",
-      "deckImageAriaLabel": "JANUS deck slot positions: top row tip flush, source plates P1 P2 P3; bottom row waste, two blank slots, final 96 deep well",
-      "headFixedNote": "Head position fixed",
-      "aspDspNote": "Aspirate position = Dispense position (same coordinate).",
-      "matchByNameNote": "JANUS software matches plates by name; deck slot positions shown here are the conventional layout.",
-      "slot": {
-        "tipFlush": "Tip Flush",
-        "p1": "Stock Plate P1",
-        "p2": "Stock Plate P2",
-        "p3": "Stock Plate P3",
-        "waste": "Waste",
-        "blank": "Blank",
-        "final": "Final 96 Deep Well"
-      }
-    },
     "restoredResult": {
       "title": "Сохранённый запуск этого проекта оценивала другая версия kuma",
       "bodyOlder": "Сохранённый запуск сделан в kuma v{{version}}, которая оценивает иначе, чем текущая сборка, поэтому он не показывается. Выполните анализ заново, чтобы получить результат, за который отвечает эта версия.",
@@ -873,7 +838,7 @@
     "janus": {
       "settings": {
         "contextTitle": "Настройки прибора Janus",
-        "contextSubtitle": "Объём переноса, стойки дека и liquid class, из которых записывается карта для прибора. Необязательно: запуск только для секвенирования может пропустить этот шаг.",
+        "contextSubtitle": "Объём переноса, liquid class и значение столбца type, из которых записывается карта для прибора. Необязательно: запуск только для секвенирования может пропустить этот шаг.",
         "optionalNote": "Этот шаг необязателен. Запуск анализа сам записывает список пиков; карта для прибора записывается только при экспорте здесь, поэтому запуск, которому нужны только вердикты секвенирования, переходит с шага 2 сразу к шагу 4.",
         "inspectorTitle": "Inspector прибора",
         "inspectorSubtitle": "Значения, из которых записывается карта",
@@ -884,9 +849,7 @@
         "drawerLeft": "Прибор",
         "drawerCenter": "Журнал Janus",
         "drawerRight": "Далее",
-        "drawerRightDesc": "Данные активности и передача в EVOLVEpro",
-        "volumeLabel": "Obyom perenosa (uL)",
-        "volumeHint": "Zapisyvaetsya v kartu dlya pribora, kotoruyu sozdayot etot zapusk. Postavlyaemye 100 uL eto dopushchenie bez laboratornogo istochnika, ukazhite obyom etogo eksperimenta."
+        "drawerRightDesc": "Данные активности и передача в EVOLVEpro"
       }
     },
     "setup": {
@@ -1081,7 +1044,7 @@
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
       },
       "janusMappingAutosave": {
-        "saved": "Kartu dlya pribora zapisali ryadom s knigoi rezultatov ({{rows}} strok) v 9 stolbtsakh, kotorye chitaet robot.",
+        "saved": "Kartu dlya pribora zapisali ryadom s knigoi rezultatov ({{rows}} strok) v 8 stolbtsakh, kotorye chitaet robot.",
         "skipped": "Ni odin klon ne proshel kriterii otbora, poetomu karta dlya pribora ne zapisana.",
         "failed": "Kartu dlya pribora zapisat ne udalos.",
         "excluded": "{{clones}} klon(ov) ne voshli v kartu. Otkroite nastroiki pribora Janus, chtoby uznat prichinu."
@@ -1154,14 +1117,14 @@
     },
     "verdictBadge": {
       "help": {
-        "PASS": "Observed amino-acid changes exactly match the expected design.",
-        "AMBIGUOUS": "All expected mutations matched, plus an extra AA change within the indel window of an expected site. Still counts as detected/recovered.",
-        "MIXED": "Within-well contamination: a substantial second allele in the consensus signal.",
-        "WRONG_AA": "An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window.",
-        "FRAMESHIFT": "Two or more nucleotide indels within the frameshift window.",
-        "MANY": "More observed AA changes than both the design and the many-mutation cutoff.",
-        "LOWDEPTH": "Too few reads to call this well reliably.",
-        "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
+        "PASS": "Наблюдаемые аминокислотные замены точно совпадают с заданным дизайном.",
+        "AMBIGUOUS": "Все ожидаемые мутации совпали, плюс ещё одна аминокислотная замена внутри indel-окна ожидаемого сайта. По-прежнему считается обнаруженной.",
+        "MIXED": "Загрязнение внутри лунки: заметный второй аллель в сигнале консенсуса.",
+        "WRONG_AA": "В ожидаемом сайте другая аминокислота, либо ожидаемая мутация отсутствует, либо лишняя незапланированная замена лежит вне окна.",
+        "FRAMESHIFT": "Консенсус несёт суммарную вставку или делецию, длина которой не кратна 3, поэтому рамка считывания сдвинута.",
+        "MANY": "Наблюдаемых аминокислотных замен больше, чем и в дизайне, и чем порог множественных мутаций.",
+        "LOWDEPTH": "Слишком мало ридов, чтобы надёжно оценить эту лунку.",
+        "NO_CALL": "В консенсусе слишком много неоднозначных (N) позиций, чтобы доверять аминокислотным вызовам."
       }
     },
     "missingInputs": {
@@ -1185,6 +1148,8 @@
       "labelNoCallAa": "No-call codons",
       "labelNoCallAaHelp": "Consensus N translated to X, excluded from the observed changes",
       "sectionReplicates": "Replicate comparison",
+      "replicateRowAriaLabel": "Показать планшет {{plate}}, лунка {{well}}",
+      "replicateRowTitle": "Показать эту копию планшета в инспекторе",
       "selectedPlateBadge": "Selected",
       "currentWellBadge": "Showing",
       "labelSelectionReason": "Selection reason",
@@ -1201,6 +1166,78 @@
       "labelLowDepthPositions": "Low-depth positions",
       "labelConsensusN": "Consensus N",
       "labelLowQualityBases": "Low-quality bases",
+      "metricInfo": {
+        "openAria": "Открыть пояснение к {{metric}}",
+        "whatLabel": "Что подсчитано",
+        "stageLabel": "Откуда значение",
+        "effectLabel": "Влияние на вердикт",
+        "thresholdLabel": "С чем сравнивается",
+        "contextLabel": "Читать вместе с",
+        "thresholdUnknown": "Этот запуск не сообщил пороговые значения, поэтому неизвестно, с чем сравнивалась эта величина.",
+        "readCount": {
+          "what": "Риды, прошедшие фильтры выравнивания и вошедшие в pileup консенсуса этой лунки; берутся из заголовка depth=N файла консенсуса FASTA.",
+          "stage": "Построение консенсуса, после фильтров MAPQ и полного перекрытия (span).",
+          "effect": "Определяет вердикт. Ниже порога глубины лунка получает LOWDEPTH, и дальнейшие проверки не выполняются. Лунка со смешанными позициями, глубина которой ниже порога уверенного MIXED, также помечается LOWDEPTH, поскольку при такой глубине второй аллель неотличим от ошибки секвенирования.",
+          "thresholdDepth": "LOWDEPTH при менее чем {{count}} ридах.",
+          "thresholdDepthOff": "Проверка глубины прочтения была отключена в этом запуске.",
+          "thresholdMixed": "Уверенный вывод MIXED требует не менее {{count}} ридов (порог глубины, умноженный на {{factor}}).",
+          "thresholdMixedOff": "Порога глубины для MIXED нет, так как проверка глубины прочтения отключена.",
+          "thresholdFileSize": "Лунки вовсе без заголовка depth оцениваются резервно по размеру файла консенсуса {{size}} КБ."
+        },
+        "inputReads": {
+          "what": "Риды, отнесённые к этой лунке до выравнивания.",
+          "stage": "Демультиплексирование штрихкодов, до выравнивания. Пусто, если запуск анализировался из консенсусного FASTA, а не из сырых ридов.",
+          "effect": "Только диагностика. Ни одна проверка не читает это значение. Сравните его с числом выровненных и отфильтрованных ридов, чтобы понять, где риды потерялись."
+        },
+        "alignedReads": {
+          "what": "Риды, давшие хотя бы одно выравнивание на референс; подсчитаны до фильтров MAPQ и перекрытия.",
+          "stage": "Выравнивание, до фильтрации. Пусто, если запуск анализировался из консенсусного FASTA, а не из сырых ридов.",
+          "effect": "Только диагностика. Ни одна проверка не читает это значение. Резкое падение относительно входных ридов указывает на неверный референс или на посторонний материал в лунке."
+        },
+        "mapqFailed": {
+          "what": "Риды, отброшенные из-за того, что качество картирования (MAPQ) не достигло минимума.",
+          "stage": "Фильтрация выравнивания, между числом выровненных и числом отфильтрованных ридов. Ноль, если запуск анализировался из консенсусного FASTA.",
+          "effect": "Только диагностика. Ни одна проверка не читает это значение. Высокое число означает неоднозначное картирование ридов, обычно повтор или неверный референс."
+        },
+        "spanFailed": {
+          "what": "Риды, отброшенные из-за того, что их выравнивание не покрывает всю длину референса.",
+          "stage": "Фильтрация выравнивания, после фильтра MAPQ. Ноль, если запуск анализировался из консенсусного FASTA.",
+          "effect": "Только диагностика. Ни одна проверка не читает это значение. Высокое число обычно означает обрезанные риды или ампликон короче референса."
+        },
+        "mixedPositions": {
+          "what": "Позиции, где вторая по частоте база A/C/G/T превышает порог минорного аллеля при достаточной глубине pileup. Лунка со смесью 51/49 выглядит безупречной в мажоритарном консенсусе, и именно это значение её выдаёт.",
+          "stage": "Построение консенсуса, по позиционному pileup.",
+          "effect": "Определяет вердикт. Любое значение больше нуля делает лунку MIXED, кроме случая, когда глубина ниже порога уверенного MIXED: тогда сообщается LOWDEPTH.",
+          "thresholdDepth": "MIXED сообщается только при {{count}} ридах и более; ниже лунка получает LOWDEPTH.",
+          "thresholdDepthOff": "Порога глубины для MIXED нет, так как проверка глубины прочтения отключена в этом запуске."
+        },
+        "maxMinorAllele": {
+          "what": "Наибольшая доля второй базы среди всех позиций этой лунки, то есть единственная самая шумная позиция.",
+          "stage": "Построение консенсуса, по позиционному pileup.",
+          "effect": "Только диагностика. Ни одна проверка не читает это значение напрямую; проверка MIXED использует число смешанных позиций выше. Читайте его как силу самого сильного конкурирующего сигнала.",
+          "noiseFloor": "Обычная позиция в этой лунке находится на уровне {{value}} (медиана). Максимум вблизи медианы это фон, а максимум далеко выше неё это настоящий второй аллель.",
+          "noiseFloorUnknown": "Этот запуск не сообщил медиану доли минорного аллеля, поэтому уровня шума для сравнения с максимумом нет."
+        },
+        "lowDepthPositions": {
+          "what": "Позиции референса, глубина pileup в которых осталась ниже минимума, так что база по ридам там не определена.",
+          "stage": "Построение консенсуса, по позиционному pileup.",
+          "effect": "Только диагностика. Ни одна проверка не читает это значение. Оно сообщается рядом с вердиктом NO_CALL и показывает, что неоднозначность вызвана нехваткой покрытия, а не качеством ридов."
+        },
+        "consensusN": {
+          "what": "Доля покрытых позиций консенсуса, выданных как N (без вызова). Числитель и знаменатель охватывают только позиции, до которых дошли риды, поэтому непрочитанные позиции референса не разбавляют значение.",
+          "stage": "Построение консенсуса, после мажоритарного голосования.",
+          "effect": "Определяет вердикт. Выше потолка лунка получает NO_CALL, и её аминокислотным вызовам не доверяют. Это не то же, что LOWDEPTH: глубина может быть достаточной, а консенсус всё равно заполнен базами без вызова.",
+          "threshold": "NO_CALL выше {{value}}.",
+          "thresholdOff": "Проверка доли N была отключена в этом запуске.",
+          "notEvaluable": "Этот файл консенсуса не содержит доли N, отнесённой к покрытой области, поэтому показанное значение это подставленный 0.0, а проверка NO_CALL пропущена. Пересоберите консенсус, чтобы её восстановить.",
+          "evaluableUnknown": "Этот результат сохранён до того, как запуск начал сообщать, поддаётся ли доля N оценке, поэтому неизвестно, выполнялась ли проверка NO_CALL."
+        },
+        "lowQualityBases": {
+          "what": "Отдельные базы, исключённые из голосования pileup из-за качества FASTQ ниже минимума.",
+          "stage": "Построение консенсуса, во время накопления pileup. Ноль для входных данных без оценок качества, например для консенсусных файлов только в формате FASTA.",
+          "effect": "Только диагностика. Ни одна проверка не читает это значение. Оно сообщается рядом с вердиктом NO_CALL и показывает, что неоднозначность вызвана качеством баз, а не нехваткой покрытия."
+        }
+      },
       "sectionNtChanges": "Nucleotide changes",
       "sectionSource": "Source",
       "copy": "Copy",
@@ -2360,13 +2397,13 @@
     "description": "Основные изменения последнего обновления.",
     "gotItBtn": "Понятно",
     "highlights": [
-      "Sample map удалён. MAME размещает планшет по самому списку вариантов, а оставшийся файл сверяется, а не исполняется.",
-      "Выберите на сетке из 96 лунок те, что использовал запуск: щелчком, перетаскиванием или щелчком по заголовку строки либо столбца.",
-      "Список вариантов с пустой строкой посередине или со второй строкой wild-type останавливает запуск, вместо того чтобы сдвинуть все последующие лунки.",
-      "Выбор native barcode теперь говорит, что именно выбирается: реплики одного планшета. Лунки с расходящимися репликами помечаются.",
-      "Запуск сообщает о ридах, попавших вне объявленных лунок, разделяя их по тому, использовались ли эти индексы штрихкодов вообще."
+      "Файл сопоставления JANUS теперь совпадает с книгой, по которой лаборатория делает посев: восемь столбцов, планшеты названы, а не пронумерованы.",
+      "Шаг 3 запрашивает один объём переноса вместо двух, по умолчанию 70 uL, которые использует эта лаборатория.",
+      "Щелчок по реплике в инспекторе разбора открывает эту копию планшета, как это уже делал щелчок по её лунке или по строке таблицы.",
+      "Каждый показатель достоверности теперь открывает всплывающее окно: что он считает и с каким порогом, если он был, сравнивался запуск.",
+      "Записи легенды verdict поясняют себя при наведении, на вашем языке, в обоих местах, где они появляются."
     ],
-    "highlightsStamp": "0.16.0+b2281961"
+    "highlightsStamp": "0.16.1+3b52e4c8"
   },
   "primerDisplay": {
     "copySeqTitle": "Копировать sequence",
@@ -2664,7 +2701,7 @@
         "mergeExport": "Объедините данные активности с вызовами генотипа и экспортируйте таблицу, затем создайте входные данные EVOLVEpro, объединив активность с одной репликой (GC) и тремя репликами (относительно WT)."
       },
       "janus": {
-        "settings": "Подготовьте карту клеточных стоков JANUS: объём переноса, номера стоек дека и liquid class. Необязательно — ничто здесь не блокирует запуск."
+        "settings": "Подготовьте карту клеточных стоков JANUS: объём переноса, liquid class и значение столбца type. Необязательно, ничто здесь не блокирует запуск."
       }
     },
     "summary": {

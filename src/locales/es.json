@@ -689,9 +689,7 @@
       },
       "janusMapping": {
         "title": "Exportar mapeo Janus",
-        "description": "Exportar el archivo final de mapeo Janus de cell-stock (K4 spec) como CSV o XLSX.",
-        "formatLabel": "Formato",
-        "formatAriaLabel": "Formato de exportación del mapeo Janus",
+        "description": "Exportar el archivo final de mapeo Janus de cell-stock (K4 spec) como CSV.",
         "destLayoutLabel": "Disposición de destino",
         "destLayoutAriaLabel": "Disposición del well de destino de Janus",
         "destLayoutOption": {
@@ -703,13 +701,10 @@
           "compact": "dest_well se asigna secuencialmente desde A1 por orden de priority, bajando por cada columna (A1, B1, C1 hasta H1, y luego A2), sin dejar wells vacíos."
         },
         "outputPathLabel": "Ruta del archivo de salida",
-        "outputPathPlaceholder": "Ruta del archivo .{{ext}} de destino",
+        "outputPathPlaceholder": "Ruta del archivo .csv de destino",
         "outputPathAriaLabel": "Ruta del archivo de salida para el mapeo Janus",
         "browseAriaLabel": "Explorar ruta de guardado para el mapeo Janus",
-        "columnsNote": {
-          "device9": "Columnas: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "Columnas: name, source_plate, source_well, dest_well, priority_score."
-        },
+        "columnsNote": "Columnas: name, type, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
         "exportJanus": "Exportar mapeo Janus",
         "exporting": "Exportando…",
         "exported": "Exportado correctamente",
@@ -721,27 +716,14 @@
         "previewFailed": "Vista previa no disponible: {{message}}",
         "previewRetry": "Reintentar vista previa",
         "previewBlocked": "Resuelva los problemas siguientes antes de exportar.",
-        "schemaLabel": "Columnas de salida",
-        "schemaAriaLabel": "Esquema de columnas de salida de Janus",
-        "schemaOption": {
-          "device9": "Formato del equipo (9 columnas)",
-          "legacy5": "Formato kuma (5 columnas)"
-        },
-        "schemaHint": {
-          "device9": "Escribe las columnas del libro del equipo: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
-          "legacy5": "Escribe las columnas de kuma: name, source_plate, source_well, dest_well, priority_score."
-        },
         "instrumentHeading": "Ajustes del equipo",
         "volumeLabel": "Volume (µL)",
+        "volumeHint": "Se escribe en el archivo de mapeo del instrumento que produce esta exportación.",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "p. ej. Cell 100ul",
-        "liquidClassHint": "La liquid class determina el comportamiento de pipeteo del robot, por lo que no se asume un valor por defecto. Vacia, la columna sale en blanco y la exportacion continua.",
-        "deckHeading": "Configuración del deck",
+        "liquidClassHint": "La liquid class determina el comportamiento de pipeteo del robot, por lo que no se asume un valor por defecto. Queda registrada con la ejecución pero no se escribe: la hoja del instrumento no tiene columna para ella.",
         "sampleTypeLabel": "valor de la columna type",
-        "sourceRackLabel": "Asp. Rack {{plate}}",
-        "destRackLabel": "Dsp. Rack",
-        "rackHint": "Los numeros de rack siguen las placas de esta ejecucion: las placas de origen ocupan los primeros racks en orden de placa y el destino el siguiente, como en la hoja de primers de KURO. Escriba un numero para sobrescribir.",
-        "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
+        "plateNamesNote": "Asp. Rack y Dsp. Rack llevan nombres de placa generados a partir de las placas de esta ejecución, no números de deck. Compruébelos aquí y etiquete el deck igual.",
         "excludedHeading": "Excluidos: {{count}}",
         "excludedNone": "Ningún clon quedó excluido.",
         "excludedReason": {
@@ -837,23 +819,6 @@
         "helper": "Los wells se llenan en el orden de esta columna, una variante por fila, bajando por cada columna de la placa: A1, B1, C1 hasta H1, y luego A2. Una exportación de KURO no necesita mapeo y oculta estos controles."
       }
     },
-    "janusDeck": {
-      "title": "JANUS Deck Layout",
-      "ariaLabel": "JANUS deck layout preview",
-      "deckImageAriaLabel": "JANUS deck slot positions: top row tip flush, source plates P1 P2 P3; bottom row waste, two blank slots, final 96 deep well",
-      "headFixedNote": "Head position fixed",
-      "aspDspNote": "Aspirate position = Dispense position (same coordinate).",
-      "matchByNameNote": "JANUS software matches plates by name; deck slot positions shown here are the conventional layout.",
-      "slot": {
-        "tipFlush": "Tip Flush",
-        "p1": "Stock Plate P1",
-        "p2": "Stock Plate P2",
-        "p3": "Stock Plate P3",
-        "waste": "Waste",
-        "blank": "Blank",
-        "final": "Final 96 Deep Well"
-      }
-    },
     "restoredResult": {
       "title": "La ejecución guardada de este proyecto la evaluó otra versión de kuma",
       "bodyOlder": "La ejecución guardada la produjo kuma v{{version}}, que evalúa de forma distinta a esta versión, así que no se muestra. Vuelva a ejecutar el análisis para obtener un resultado del que esta versión responde.",
@@ -873,7 +838,7 @@
     "janus": {
       "settings": {
         "contextTitle": "Ajustes del instrumento Janus",
-        "contextSubtitle": "Volumen de transferencia, racks del deck y liquid class con los que se escribe el mapeo del instrumento. Opcional: una ejecución solo de secuenciación puede omitir este paso.",
+        "contextSubtitle": "Volumen de transferencia, liquid class y valor de la columna type con los que se escribe el mapeo del instrumento. Opcional: una ejecución solo de secuenciación puede omitir este paso.",
         "optionalNote": "Este paso es opcional. Una ejecucion de analisis escribe por si misma la lista de picks; el mapeo del instrumento solo se escribe al exportarlo aqui, asi que una ejecucion que solo necesita verdicts de secuenciacion puede ir del paso 2 directamente al paso 4.",
         "inspectorTitle": "Inspector del instrumento",
         "inspectorSubtitle": "Valores con los que se escribe el mapeo",
@@ -884,9 +849,7 @@
         "drawerLeft": "Instrumento",
         "drawerCenter": "Registro Janus",
         "drawerRight": "Siguiente",
-        "drawerRightDesc": "Datos de actividad y entrega a EVOLVEpro",
-        "volumeLabel": "Volumen de transferencia (uL)",
-        "volumeHint": "Se escribe en el mapeo del instrumento que produce esta ejecucion. Los 100 uL de fabrica son una suposicion sin fuente de laboratorio: indique el volumen de este experimento."
+        "drawerRightDesc": "Datos de actividad y entrega a EVOLVEpro"
       }
     },
     "setup": {
@@ -1081,7 +1044,7 @@
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
       },
       "janusMappingAutosave": {
-        "saved": "Mapeo del instrumento escrito junto al libro de resultados ({{rows}} filas), en las 9 columnas que lee el robot.",
+        "saved": "Mapeo del instrumento escrito junto al libro de resultados ({{rows}} filas), en las 8 columnas que lee el robot.",
         "skipped": "Ningun clon cumplio los criterios de seleccion, por lo que no se escribio el mapeo del instrumento.",
         "failed": "No se pudo escribir el mapeo del instrumento.",
         "excluded": "{{clones}} clon(es) quedaron fuera del mapeo. Abra la configuracion del instrumento Janus para ver por que."
@@ -1154,14 +1117,14 @@
     },
     "verdictBadge": {
       "help": {
-        "PASS": "Observed amino-acid changes exactly match the expected design.",
-        "AMBIGUOUS": "All expected mutations matched, plus an extra AA change within the indel window of an expected site. Still counts as detected/recovered.",
-        "MIXED": "Within-well contamination: a substantial second allele in the consensus signal.",
-        "WRONG_AA": "An expected site shows a different amino acid, an expected mutation is missing, or an unexpected extra change sits outside the window.",
-        "FRAMESHIFT": "Two or more nucleotide indels within the frameshift window.",
-        "MANY": "More observed AA changes than both the design and the many-mutation cutoff.",
-        "LOWDEPTH": "Too few reads to call this well reliably.",
-        "NO_CALL": "Consensus has too many ambiguous (N) positions to trust the amino-acid calls."
+        "PASS": "Los cambios de aminoácido observados coinciden exactamente con el diseño previsto.",
+        "AMBIGUOUS": "Todas las mutaciones esperadas coinciden, más un cambio de aminoácido adicional dentro de la ventana de indel de un sitio esperado. Sigue contando como detectado.",
+        "MIXED": "Contaminación dentro del pocillo: un segundo alelo considerable en la señal de consenso.",
+        "WRONG_AA": "Un sitio esperado muestra un aminoácido distinto, falta una mutación esperada, o un cambio adicional inesperado queda fuera de la ventana.",
+        "FRAMESHIFT": "El consenso lleva una inserción o deleción neta cuya longitud no es múltiplo de 3, por lo que el marco de lectura queda desplazado.",
+        "MANY": "Más cambios de aminoácido observados que los del diseño y que el límite de mutaciones múltiples.",
+        "LOWDEPTH": "Hay muy pocos reads para juzgar este pocillo con fiabilidad.",
+        "NO_CALL": "El consenso tiene demasiadas posiciones ambiguas (N) para confiar en las llamadas de aminoácidos."
       }
     },
     "missingInputs": {
@@ -1185,6 +1148,8 @@
       "labelNoCallAa": "No-call codons",
       "labelNoCallAaHelp": "Consensus N translated to X, excluded from the observed changes",
       "sectionReplicates": "Replicate comparison",
+      "replicateRowAriaLabel": "Mostrar la placa {{plate}}, pocillo {{well}}",
+      "replicateRowTitle": "Mostrar esta copia de placa en el inspector",
       "selectedPlateBadge": "Selected",
       "currentWellBadge": "Showing",
       "labelSelectionReason": "Selection reason",
@@ -1201,6 +1166,78 @@
       "labelLowDepthPositions": "Low-depth positions",
       "labelConsensusN": "Consensus N",
       "labelLowQualityBases": "Low-quality bases",
+      "metricInfo": {
+        "openAria": "Abrir la explicación de {{metric}}",
+        "whatLabel": "Qué cuenta",
+        "stageLabel": "De dónde procede",
+        "effectLabel": "Efecto sobre el veredicto",
+        "thresholdLabel": "Comparado con",
+        "contextLabel": "Léalo junto a",
+        "thresholdUnknown": "Esta ejecución no informó de sus umbrales, por lo que se desconoce con qué se comparó este valor.",
+        "readCount": {
+          "what": "Reads que superaron los filtros de alineamiento y entraron en el pileup de consenso de este pocillo, tomados de la cabecera depth=N del FASTA de consenso.",
+          "stage": "Llamada de consenso, tras los filtros de MAPQ y de cobertura completa (span).",
+          "effect": "Decide el veredicto. Por debajo del umbral de profundidad el pocillo es LOWDEPTH y no se ejecuta ninguna comprobación más. Un pocillo con posiciones mixtas cuya profundidad no alcanza el umbral de confianza para MIXED también se informa como LOWDEPTH, porque allí un segundo alelo no puede distinguirse del error de secuenciación.",
+          "thresholdDepth": "LOWDEPTH por debajo de {{count}} reads.",
+          "thresholdDepthOff": "La comprobación de profundidad de lectura estaba desactivada en esta ejecución.",
+          "thresholdMixed": "Una llamada MIXED fiable requiere al menos {{count}} reads (el umbral de profundidad por {{factor}}).",
+          "thresholdMixedOff": "Sin umbral de profundidad para MIXED, ya que la comprobación de profundidad de lectura estaba desactivada.",
+          "thresholdFileSize": "Los pocillos que no llevan cabecera depth se evalúan de forma supletoria con un tamaño de archivo de consenso de {{size}} KB."
+        },
+        "inputReads": {
+          "what": "Reads asignados a este pocillo antes del alineamiento.",
+          "stage": "Demultiplexado de códigos de barras, antes del alineamiento. Vacío cuando la ejecución partió de FASTA de consenso en lugar de reads sin procesar.",
+          "effect": "Solo diagnóstico. Ninguna comprobación lee este número. Compárelo con los recuentos alineado y filtrado para ver dónde se perdieron los reads."
+        },
+        "alignedReads": {
+          "what": "Reads que produjeron al menos un alineamiento contra la referencia, contados antes de los filtros de MAPQ y cobertura.",
+          "stage": "Alineamiento, antes del filtrado. Vacío cuando la ejecución partió de FASTA de consenso en lugar de reads sin procesar.",
+          "effect": "Solo diagnóstico. Ninguna comprobación lee este número. Una caída grande respecto a los reads de entrada apunta a una referencia equivocada o a material ajeno en el pocillo."
+        },
+        "mapqFailed": {
+          "what": "Reads descartados porque su alineamiento no alcanza el mínimo de calidad de mapeo (MAPQ).",
+          "stage": "Filtrado del alineamiento, entre el recuento alineado y el filtrado. Cero cuando la ejecución partió de FASTA de consenso.",
+          "effect": "Solo diagnóstico. Ninguna comprobación lee este número. Un valor alto indica reads que mapean de forma ambigua, normalmente una región repetida o una referencia equivocada."
+        },
+        "spanFailed": {
+          "what": "Reads descartados porque su alineamiento no cubre toda la longitud de la referencia.",
+          "stage": "Filtrado del alineamiento, después del filtro de MAPQ. Cero cuando la ejecución partió de FASTA de consenso.",
+          "effect": "Solo diagnóstico. Ninguna comprobación lee este número. Un valor alto suele indicar reads truncados o un amplicón más corto que la referencia."
+        },
+        "mixedPositions": {
+          "what": "Posiciones donde una segunda base A/C/G/T supera el umbral de alelo minoritario con profundidad de pileup suficiente. Un pocillo mezclado 51/49 parece exacto en el consenso por mayoría, y este es el valor que lo delata.",
+          "stage": "Llamada de consenso, a partir del pileup por posición.",
+          "effect": "Decide el veredicto. Cualquier valor mayor que cero convierte el pocillo en MIXED, salvo que la profundidad quede por debajo del umbral de confianza para MIXED, en cuyo caso se informa LOWDEPTH.",
+          "thresholdDepth": "MIXED solo se informa a partir de {{count}} reads; por debajo el pocillo es LOWDEPTH.",
+          "thresholdDepthOff": "Sin umbral de profundidad para MIXED, ya que la comprobación de profundidad de lectura estaba desactivada en esta ejecución."
+        },
+        "maxMinorAllele": {
+          "what": "La mayor fracción de segunda base entre todas las posiciones de este pocillo, es decir, la posición más ruidosa.",
+          "stage": "Llamada de consenso, a partir del pileup por posición.",
+          "effect": "Solo diagnóstico. Ninguna comprobación lee este número directamente; la comprobación de MIXED usa el recuento de posiciones mixtas de arriba. Léalo como el tamaño de la señal competidora más fuerte.",
+          "noiseFloor": "Una posición corriente de este pocillo se sitúa en {{value}} (mediana). Un máximo cercano a esa mediana es ruido de fondo; muy por encima es un segundo alelo real.",
+          "noiseFloorUnknown": "Esta ejecución no informó de una mediana de alelo minoritario, así que no hay nivel de ruido con el que contrastar el máximo."
+        },
+        "lowDepthPositions": {
+          "what": "Posiciones de la referencia cuya profundidad de pileup quedó por debajo del mínimo, de modo que allí no pudo llamarse ninguna base a partir de los reads.",
+          "stage": "Llamada de consenso, a partir del pileup por posición.",
+          "effect": "Solo diagnóstico. Ninguna comprobación lee este número. Se informa junto a un veredicto NO_CALL para mostrar que la ambigüedad viene de falta de cobertura y no de reads de mala calidad."
+        },
+        "consensusN": {
+          "what": "Proporción de posiciones de consenso cubiertas que se emitieron como N (sin llamada). Numerador y denominador abarcan solo las posiciones que los reads alcanzaron, de modo que las posiciones de referencia nunca leídas no diluyen el valor.",
+          "stage": "Llamada de consenso, tras el voto por mayoría.",
+          "effect": "Decide el veredicto. Por encima del techo el pocillo es NO_CALL y no se confía en sus llamadas de aminoácidos. Es distinto de LOWDEPTH: la profundidad puede ser amplia mientras el consenso sigue dominado por bases sin llamada.",
+          "threshold": "NO_CALL por encima de {{value}}.",
+          "thresholdOff": "La comprobación de la fracción de N estaba desactivada en esta ejecución.",
+          "notEvaluable": "Este archivo de consenso no lleva una fracción de N referida a la zona cubierta, por lo que el valor mostrado es un 0.0 sustituido y la comprobación NO_CALL se omitió. Vuelva a ejecutar la llamada de consenso para recuperarla.",
+          "evaluableUnknown": "Este resultado se guardó antes de que la ejecución informara de si la fracción de N era evaluable, así que se desconoce si la comprobación NO_CALL llegó a aplicarse."
+        },
+        "lowQualityBases": {
+          "what": "Bases individuales excluidas del voto del pileup porque su calidad FASTQ estaba por debajo del mínimo.",
+          "stage": "Llamada de consenso, mientras se acumula el pileup. Cero para entradas sin puntuaciones de calidad, como los archivos de consenso solo en FASTA.",
+          "effect": "Solo diagnóstico. Ninguna comprobación lee este número. Se informa junto a un veredicto NO_CALL para mostrar que la ambigüedad viene de la calidad de las bases y no de falta de cobertura."
+        }
+      },
       "sectionNtChanges": "Nucleotide changes",
       "sectionSource": "Source",
       "copy": "Copy",
@@ -2360,13 +2397,13 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El sample map desaparece. MAME coloca la placa a partir de la propia lista de variantes, y un archivo sobrante se compara en vez de obedecerse.",
-      "Elija en una rejilla de 96 pocillos cuales uso la ejecucion: haciendo clic, arrastrando o pulsando una cabecera de fila o columna.",
-      "Una lista de variantes con una fila vacia en medio, o una segunda fila wild-type, detiene la ejecucion en vez de desplazar cada pocillo posterior.",
-      "Elegir native barcodes ahora dice que esta eligiendo: replicas de una placa. Los pocillos cuyas replicas discrepan quedan marcados.",
-      "La ejecucion informa de las lecturas que cayeron fuera de los pocillos declarados, separadas segun si esos indices se usaron alguna vez."
+      "El archivo de mapeo JANUS ya coincide con el libro desde el que siembra el laboratorio: ocho columnas, con las placas nombradas en vez de numeradas.",
+      "El paso 3 pide un solo volumen de transferencia en lugar de dos, con los 70 uL que usa este laboratorio como valor por defecto.",
+      "Hacer clic en un replicate en el inspector de revisión abre esa copia de placa, igual que ya lo hacía hacer clic en su well o en su fila de la tabla.",
+      "Cada métrica de confianza abre ahora una ventana emergente que indica qué cuenta y frente a qué umbral, si lo hubo, se juzgó la ejecución.",
+      "Las entradas de la leyenda de verdict se explican al pasar el cursor, en su idioma, en los dos sitios donde aparecen."
     ],
-    "highlightsStamp": "0.16.0+b2281961"
+    "highlightsStamp": "0.16.1+3b52e4c8"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",
@@ -2664,7 +2701,7 @@
         "mergeExport": "Combine los datos de actividad con las llamadas de genotipo y exporte la tabla combinada; luego cree la entrada de EVOLVEpro combinando la actividad de réplica única (GC) y de triple réplica (relativa al WT)."
       },
       "janus": {
-        "settings": "Prepara el mapeo de stocks celulares de JANUS: volumen de transferencia, números de rack del deck y liquid class. Opcional: nada de esto bloquea una ejecución."
+        "settings": "Prepara el mapeo de stocks celulares de JANUS: volumen de transferencia, liquid class y valor de la columna type. Opcional: nada de esto bloquea una ejecución."
       }
     },
     "summary": {
