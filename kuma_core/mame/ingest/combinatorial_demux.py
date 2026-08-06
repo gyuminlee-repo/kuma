@@ -348,6 +348,55 @@ def load_barcode_prefixes(
     return r_barcodes, f_barcodes
 
 
+def read_barcode_indices(barcodes_xlsx: Path) -> tuple[list[int], list[int]]:
+    """Read the numeric suffixes off the barcode rows, without the sequences.
+
+    Returns ``(r_indices, f_indices)`` as written in the file, so a caller can
+    tell 1,2,5 from 1,2,3 before a run starts.
+
+    :func:`load_barcode_prefixes` cannot answer that: it sorts by index and then
+    keeps position only, so a set numbered 1,2,5 comes back as three entries and
+    the matcher reports the third as F3. The read that carried ``isps_f_5`` is
+    then filed under plate column 3, silently. Nothing downstream can notice,
+    because by then the file's own numbering is gone.
+
+    Cheap enough to run during input validation: it opens the workbook read-only
+    and looks at two columns.
+    """
+    try:
+        import openpyxl  # type: ignore[import]
+    except ImportError as exc:  # pragma: no cover - same guard as the loader
+        raise ImportError(
+            "openpyxl is required for barcode loading. "
+            "Install with: pip install openpyxl"
+        ) from exc
+
+    wb = openpyxl.load_workbook(barcodes_xlsx, read_only=True)
+    try:
+        ws = wb.active
+        if ws is None:
+            raise ValueError("Empty workbook: no active sheet in " + str(barcodes_xlsx))
+        r_idx: list[int] = []
+        f_idx: list[int] = []
+        for row in ws.iter_rows(values_only=True):
+            if not row or row[0] is None:
+                continue
+            name = str(row[0]).strip().lower()
+            seq_val = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
+            if not seq_val:
+                continue
+            m_f = _FWD_ROW_RE.match(name)
+            if m_f is not None:
+                f_idx.append(int(m_f.group("n")))
+                continue
+            m_r = _REV_ROW_RE.match(name)
+            if m_r is not None:
+                r_idx.append(int(m_r.group("n")))
+    finally:
+        wb.close()
+    return r_idx, f_idx
+
+
 def _extract_f_prefix(seq: str) -> str:
     """Strip F annealing tail; fallback to first _F_FALLBACK_LEN bases."""
     idx = seq.lower().find(_F_TAIL.lower())
@@ -2095,9 +2144,18 @@ def _run_combinatorial_demux_body(
         alignments: list[Alignment],
     ) -> tuple[
         str, str, int, int, float, int, float, int, int, int, int, int, int, float,
-        int, int, int,
+        int, int, int, float | None, int, int, float,
     ]:
-        """Worker: returns consensus sequence, depth, and mix metrics."""
+        """Worker: returns the well name followed by the whole consensus tuple.
+
+        The trailing four (``min_variant_support``, ``variant_positions``,
+        ``min_variant_support_depth``, ``median_minor_fraction``) arrived with
+        v0.15.13 and v0.15.17 and were returned but never declared: this said 17
+        elements while the body returned 21 and the caller unpacked 21. Runtime
+        was fine and the annotation was four releases stale, which is worse than
+        no annotation, because anyone who trusts it and edits the unpacking gets
+        a silent shift.
+        """
         (
             seq,
             depth,

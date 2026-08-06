@@ -2272,11 +2272,11 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El mapa de placa y la distribucion de veredictos se dibujan completos, en lugar de desplazarse dentro de una caja mucho mas baja de lo necesario.",
-      "El paso 2.2 se desplaza como una sola pagina, de modo que ambos y la tabla de veredictos se leen de una vez.",
-      "La tabla de veredictos conserva su propio desplazamiento, acotada a la altura de los dos paneles contiguos."
+      "Un archivo de codigos de barras no numerado para una placa de 8 x 12 ahora detiene la ejecucion y nombra los codigos en falta, en vez de dejar pocillos sin nombre.",
+      "Tambien se detecta un hueco en la numeracion, que antes desplazaba cada codigo posterior a una fila o columna equivocada.",
+      "La forma de la placa se declara una sola vez en lugar de repetirse en cada mapeo de pocillo."
     ],
-    "highlightsStamp": "0.15.18+992e2c6b"
+    "highlightsStamp": "0.15.19+23a13b2a"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",

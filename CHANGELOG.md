@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.15.19 (A barcode file that does not describe the plate stops the run)
+
+MAME names a well from the combinatorial barcode as `{R}_{F}`: the reverse index is the plate row, the forward index is the plate column. Nothing checked that the file being read is numbered that way, and both ways it can fail are silent. A set numbered past the plate loses the coordinate, and the well id reaches the workbook as an empty cell that reads like a well which failed to sequence. A gap in the numbering is worse: the loader sorts by index and then keeps position, so a set numbered 1, 2, 5 makes the matcher call the third barcode F3, and every read carrying `_f_5` is filed under plate column 3 with nothing to show for it.
+
+### Highlights
+
+- A barcode file not numbered for an 8 by 12 plate now stops the run and names the barcodes at fault, instead of leaving wells unnamed.
+- A gap in the barcode numbering is caught too, which used to shift every later barcode into the wrong row or column.
+- The plate shape is now stated once instead of being written out at each place that maps a well.
+
+### Added
+
+- v0.15.19: Input validation reads the barcode file and refuses a set that cannot describe the plate, naming the indices at fault (`R9`, `F13`) or the gap (`F3, F4`) and restating the rule. It runs before the multi-minute demux, alongside the plate-order check on the expected workbook.
+- v0.15.19: `kuma_core/mame/plate_geometry.py` holds `PLATE_ROWS`, `PLATE_COLS` and `PLATE_CAPACITY` plus `check_barcode_layout`. `well_mapper`, `excel_writer` and `layout` read the constants instead of writing 8, 12 and 96 out again, so the assumption is stated where it can be checked rather than repeated where it cannot.
+- v0.15.19: `read_barcode_indices` reads the numeric suffixes off the barcode rows without the sequences, which is what makes a gap visible: `load_barcode_prefixes` discards the file's own numbering, so by the time the matcher runs there is nothing left to compare against.
+
+### Fixed
+
+- v0.15.19: The per-well consensus worker declared a 17-element return and returned 21. The four that arrived with v0.15.13 and v0.15.17 (`min_variant_support`, `variant_positions`, `min_variant_support_depth`, `median_minor_fraction`) were never added to the annotation. Runtime was unaffected because the caller unpacks all 21, but an annotation four releases stale is worse than none: anyone trusting it while editing the unpacking gets a silent shift.
+
 ## v0.15.18 (Step 2.2 stops dividing a window it was never bound by)
 
 The plate map and the verdict breakdown were sized to the window and scrolled inside whatever share they got, so the plate sat cropped at row D behind an inner scrollbar while the operator scrolled three separate boxes to read one result. Three releases went into redistributing that share: a content fit in v0.15.11, a repair in v0.15.14 for the stored layout that suppressed it, and neither addressed the premise. The screen is a page, not a split view, and a page has no fixed height to divide.

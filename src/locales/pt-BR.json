@@ -2272,11 +2272,11 @@
     "description": "Destaques da última atualização.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "O mapa da placa e a distribuicao de veredictos sao desenhados por inteiro, em vez de rolar dentro de uma caixa bem menor que o necessario.",
-      "O passo 2.2 rola como uma unica pagina, de modo que os dois e a tabela de veredictos sao lidos de uma vez.",
-      "A tabela de veredictos mantem a propria rolagem, limitada a altura dos dois paineis ao lado."
+      "Um arquivo de codigos de barras nao numerado para uma placa 8 x 12 agora interrompe a execucao e nomeia os codigos em falta, em vez de deixar pocos sem nome.",
+      "Uma lacuna na numeracao tambem e detectada. Antes ela deslocava cada codigo seguinte para a linha ou coluna errada.",
+      "O formato da placa passa a ser declarado uma unica vez em vez de repetido em cada mapeamento de poco."
     ],
-    "highlightsStamp": "0.15.18+992e2c6b"
+    "highlightsStamp": "0.15.19+23a13b2a"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",
