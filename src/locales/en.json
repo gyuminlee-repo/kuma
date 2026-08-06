@@ -2430,13 +2430,13 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The sample map is gone. MAME places the plate from the variant list itself, and a leftover file is compared rather than obeyed.",
-      "Pick which wells a run used on a 96 well grid, by clicking, dragging, or clicking a row or column header.",
-      "A variant list with a blank row in the middle, or a second wild-type row, stops the run instead of shifting every later well.",
-      "Choosing native barcodes now says what it is choosing: replicates of one plate. Wells whose replicates disagree are flagged.",
-      "A run reports reads that landed outside the declared wells, split by whether those barcode indices were ever used."
+      "The JANUS mapping file now matches the workbook the lab seeds from: eight columns, with plates named rather than numbered.",
+      "Step 3 asks for one transfer volume instead of two, defaulting to the 70 uL this lab uses.",
+      "Clicking a replicate in the review inspector opens that copy, the way clicking its well or its table row already did.",
+      "Each confidence metric now opens a popup stating what it counts and which threshold, if any, the run was judged against.",
+      "Verdict legend entries explain themselves on hover, in your own language, at both places they appear."
     ],
-    "highlightsStamp": "0.16.0+b2281961"
+    "highlightsStamp": "0.16.1+3b52e4c8"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

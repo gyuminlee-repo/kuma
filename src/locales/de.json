@@ -2397,13 +2397,13 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die sample map entfaellt. MAME legt die Platte aus der Variantenliste selbst, und eine uebrig gebliebene Datei wird verglichen statt befolgt.",
-      "Waehlen Sie auf einem 96er Raster, welche Wells ein Lauf benutzt hat: durch Klicken, Ziehen oder Klick auf einen Zeilen- oder Spaltenkopf.",
-      "Eine Variantenliste mit einer Leerzeile in der Mitte oder einer zweiten wild-type Zeile stoppt den Lauf, statt jedes spaetere Well zu verschieben.",
-      "Die Auswahl der native barcodes sagt jetzt, was sie auswaehlt: Replikate einer Platte. Wells mit widerspruechlichen Replikaten werden markiert.",
-      "Ein Lauf meldet Reads ausserhalb der deklarierten Wells, getrennt danach, ob diese Barcode-Indizes ueberhaupt benutzt wurden."
+      "Die JANUS-Mapping-Datei entspricht jetzt der Arbeitsmappe, aus der das Labor animpft: acht Spalten, mit benannten statt nummerierten Platten.",
+      "Schritt 3 fragt nur noch ein Transfervolumen ab statt zwei, voreingestellt auf die 70 uL, die dieses Labor verwendet.",
+      "Ein Klick auf ein Replikat im Inspektor der Auswertung öffnet diese Plattenkopie, so wie es ein Klick auf ihr Well oder ihre Tabellenzeile schon tat.",
+      "Jede Vertrauensmetrik öffnet jetzt ein Popup, das sagt, was sie zählt und gegen welchen Schwellenwert der Lauf beurteilt wurde, falls es einen gab.",
+      "Einträge der Verdict-Legende erklären sich beim Überfahren mit der Maus, in Ihrer Sprache, an beiden Stellen, an denen sie erscheinen."
     ],
-    "highlightsStamp": "0.16.0+b2281961"
+    "highlightsStamp": "0.16.1+3b52e4c8"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",

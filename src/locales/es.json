@@ -2397,13 +2397,13 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El sample map desaparece. MAME coloca la placa a partir de la propia lista de variantes, y un archivo sobrante se compara en vez de obedecerse.",
-      "Elija en una rejilla de 96 pocillos cuales uso la ejecucion: haciendo clic, arrastrando o pulsando una cabecera de fila o columna.",
-      "Una lista de variantes con una fila vacia en medio, o una segunda fila wild-type, detiene la ejecucion en vez de desplazar cada pocillo posterior.",
-      "Elegir native barcodes ahora dice que esta eligiendo: replicas de una placa. Los pocillos cuyas replicas discrepan quedan marcados.",
-      "La ejecucion informa de las lecturas que cayeron fuera de los pocillos declarados, separadas segun si esos indices se usaron alguna vez."
+      "El archivo de mapeo JANUS ya coincide con el libro desde el que siembra el laboratorio: ocho columnas, con las placas nombradas en vez de numeradas.",
+      "El paso 3 pide un solo volumen de transferencia en lugar de dos, con los 70 uL que usa este laboratorio como valor por defecto.",
+      "Hacer clic en un replicate en el inspector de revisión abre esa copia de placa, igual que ya lo hacía hacer clic en su well o en su fila de la tabla.",
+      "Cada métrica de confianza abre ahora una ventana emergente que indica qué cuenta y frente a qué umbral, si lo hubo, se juzgó la ejecución.",
+      "Las entradas de la leyenda de verdict se explican al pasar el cursor, en su idioma, en los dos sitios donde aparecen."
     ],
-    "highlightsStamp": "0.16.0+b2281961"
+    "highlightsStamp": "0.16.1+3b52e4c8"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",

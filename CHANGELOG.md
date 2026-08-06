@@ -1,5 +1,40 @@
 # Changelog
 
+## v0.16.1 (The robot gets the sheet the lab actually uses, and the review screen explains itself)
+
+The JANUS mapping file was transcribed from a primer dispensing workbook and had nine columns, one of them carrying a liquid class string and two of them carrying integer deck positions. The workbook the lab now seeds cells from has eight: the liquid class column is gone, and the racks are plate names, which is what the JANUS software matches on. A file describing deck position 1 to an instrument that looks up "Stock plate1" is a file the operator has to fix by hand. KURO and MAME share one definition of that sheet, so both now write the new shape.
+
+Step 3 was also asking for the same number twice. The transfer volume at the top of the step and the Volume field in the mapping panel wrote to one stored value, so two inputs disagreed on screen while agreeing underneath. There is one now, defaulting to the 70 uL this lab transfers rather than the 100 uL that was an assumption with no source. The format and column-layout choices are gone with it: the instrument reads CSV, and it reads one column layout.
+
+The review screen had a different problem. It showed ten confidence numbers and explained none of them, and the sidecar never told the frontend what any of them was judged against, so nothing on screen could have said. The analyze response now reports those thresholds, plus the per-well noise floor that makes the minor-allele number readable and a flag distinguishing a measured zero from a gate that was skipped. Clicking a metric opens what it counts, at what stage, and whether it can move a verdict at all: seven of the ten cannot.
+
+Two smaller repairs came out of the same work. The verdict legend already had explanations, but they were English in all ten locales and did not appear at all on a class with zero wells, which is exactly the class an operator looks up. And the shipped FRAMESHIFT text described a code path the engine documents as unreachable.
+
+### Highlights
+
+- The JANUS mapping file now matches the workbook the lab seeds from: eight columns, with plates named rather than numbered.
+- Step 3 asks for one transfer volume instead of two, defaulting to the 70 uL this lab uses.
+- Clicking a replicate in the review inspector opens that copy, the way clicking its well or its table row already did.
+- Each confidence metric now opens a popup stating what it counts and which threshold, if any, the run was judged against.
+- Verdict legend entries explain themselves on hover, in your own language, at both places they appear.
+
+### Added
+
+- v0.16.1: The analyze response reports the thresholds a run was judged against, so the review screen can state a number instead of repeating one. Every one of them has a backend default that applies when the caller omits it, and the frontend omits the read-depth floor on every run, so its own input fields could not have answered the question.
+- v0.16.1: Each verdict carries the per-well median minor allele fraction, the noise floor the mixed-position gate is measured against, and a flag saying whether the consensus N fraction was evaluable at all. Without the flag a well that could not be measured and a well that measured clean both read as 0.0 per cent.
+- v0.16.1: Confidence metrics open a detail popup on click, stating what the number counts, at which stage it was measured, and whether it can produce a verdict class. Seven of the ten are diagnostic and say so. The two alignment drop counters say when the input mode does not populate them, because a zero there is not a measurement.
+
+### Changed
+
+- v0.16.1: The JANUS sheet is eight columns for both KURO and MAME. The liquid class column is gone, since the new workbook has no cell for it, and the aspirate and dispense racks carry plate names: MAME generates them from the plates of the run, KURO names the forward, reverse and destination plates its layout sheet already names. The liquid class is still recorded and shown; it simply is not part of the instrument file.
+- v0.16.1: Step 3 has one volume field, one output format and one column layout. The duplicate transfer volume input, the CSV and XLSX choice, the nine and five column choice, and the static deck picture are all gone. A stored volume of 100 uL, the old shipped default, is raised to 70; any other stored value is the operator's and is left alone.
+- v0.16.1: Replicate comparison rows in the review inspector are buttons. Clicking one selects that plate copy, which moves the inspector, the plate highlight and the verdict table together, as clicking the same well anywhere else already did.
+- v0.16.1: The verdict legend explains each class on hover in the per-plate breakdown as well as on the plate map, including classes with no wells, which were unreachable because the chip was disabled. The eight explanations are translated into all ten locales; they had been English everywhere since June, which the key-set parity check cannot see.
+
+### Fixed
+
+- v0.16.1: The FRAMESHIFT explanation described a code path the verdict engine documents as unreachable and omitted the gate that actually fires. It now states the rule the engine applies: a net insertion or deletion length that is not a multiple of three.
+
 ## v0.16.0 (The plate says where the samples are, and the run says what landed outside it)
 
 MAME asked for a sample map: a workbook naming which variant sits in which well. That file was never observed from the data. It was a transcription of a placement that MAME can compute, because the placement is deterministic once the plate conventions are fixed, and they are. The reverse barcode indexes the row, the forward barcode indexes the column, wells fill down a column before moving right, and the origin is A1. Every one of those is a property of a 96 well plate and of how an eight channel pipette moves across it, not a choice a run gets to make.

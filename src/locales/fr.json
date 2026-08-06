@@ -2397,13 +2397,13 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "La sample map disparait. MAME dispose la plaque a partir de la liste de variants elle-meme, et un fichier restant est compare plutot que suivi.",
-      "Choisissez sur une grille de 96 puits ceux qu une execution a utilises: en cliquant, en glissant, ou en cliquant un en-tete de ligne ou de colonne.",
-      "Une liste de variants avec une ligne vide au milieu, ou une seconde ligne wild-type, arrete l execution au lieu de decaler chaque puits suivant.",
-      "Le choix des native barcodes dit maintenant ce qu il choisit: des replicats d une plaque. Les puits dont les replicats divergent sont signales.",
-      "Une execution signale les lectures tombees hors des puits declares, separees selon que ces index de code-barres ont deja servi ou non."
+      "Le fichier de mapping JANUS correspond désormais au classeur à partir duquel le laboratoire ensemence : huit colonnes, avec des plaques nommées plutôt que numérotées.",
+      "L'étape 3 ne demande plus qu'un seul volume de transfert au lieu de deux, avec par défaut les 70 uL utilisés par ce laboratoire.",
+      "Cliquer sur un replicate dans l'inspecteur de revue ouvre cette copie de plaque, comme le faisaient déjà un clic sur son puits ou sur sa ligne de tableau.",
+      "Chaque métrique de confiance ouvre maintenant une fenêtre indiquant ce qu'elle compte et le seuil, s'il y en avait un, auquel l'exécution a été comparée.",
+      "Les entrées de la légende des verdicts s'expliquent au survol, dans votre langue, aux deux endroits où elles apparaissent."
     ],
-    "highlightsStamp": "0.16.0+b2281961"
+    "highlightsStamp": "0.16.1+3b52e4c8"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",

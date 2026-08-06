@@ -2397,13 +2397,13 @@
     "description": "Destaques da última atualização.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "O sample map foi removido. O MAME posiciona a placa a partir da propria lista de variantes, e um arquivo remanescente e comparado em vez de obedecido.",
-      "Escolha numa grade de 96 pocos quais a execucao usou: clicando, arrastando ou clicando num cabecalho de linha ou coluna.",
-      "Uma lista de variantes com uma linha vazia no meio, ou uma segunda linha wild-type, interrompe a execucao em vez de deslocar todos os pocos seguintes.",
-      "Escolher native barcodes agora diz o que esta escolhendo: replicatas de uma placa. Pocos cujas replicatas divergem ficam sinalizados.",
-      "A execucao relata leituras que cairam fora dos pocos declarados, separadas conforme esses indices de codigo de barras ja tenham sido usados."
+      "O arquivo de mapeamento JANUS agora corresponde à planilha de onde o laboratório semeia: oito colunas, com as placas nomeadas em vez de numeradas.",
+      "A etapa 3 pede um único volume de transferência em vez de dois, com os 70 uL usados por este laboratório como padrão.",
+      "Clicar em um replicate no inspetor de revisão abre aquela cópia de placa, do mesmo modo que clicar no well ou na linha da tabela já fazia.",
+      "Cada métrica de confiança agora abre uma janela que informa o que ela conta e contra qual limiar, se houver, a execução foi julgada.",
+      "As entradas da legenda de verdict se explicam ao passar o cursor, no seu idioma, nos dois lugares em que aparecem."
     ],
-    "highlightsStamp": "0.16.0+b2281961"
+    "highlightsStamp": "0.16.1+3b52e4c8"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",
