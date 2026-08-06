@@ -2272,11 +2272,11 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "La carte de plaque et la distribution des verdicts sont dessinees en entier, au lieu de defiler dans un cadre bien trop bas.",
-      "L etape 2.2 defile comme une seule page, si bien que ces deux vues et le tableau des verdicts se lisent d un seul tenant.",
-      "Le tableau des verdicts garde son propre defilement, borne a la hauteur des deux panneaux voisins."
+      "Un fichier de codes-barres non numerote pour une plaque 8 x 12 arrete maintenant l execution et nomme les codes en cause, au lieu de laisser des puits sans nom.",
+      "Un trou dans la numerotation est aussi detecte. Il decalait auparavant chaque code suivant vers une ligne ou une colonne erronee.",
+      "La forme de la plaque est desormais declaree une seule fois au lieu d etre reecrite a chaque mappage de puits."
     ],
-    "highlightsStamp": "0.15.18+992e2c6b"
+    "highlightsStamp": "0.15.19+23a13b2a"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",

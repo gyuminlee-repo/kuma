@@ -45,6 +45,7 @@ from kuma_core.mame.select.purity import (
 from kuma_core.mame.models import ReplicateResult, VerdictClass, VerdictRecord
 from kuma_core.mame.detected import compute_recovery, replicate_is_recovered
 from kuma_core.mame.export.nb_label import nb_label, nb_order_key, well_sort_key
+from kuma_core.mame.plate_geometry import PLATE_COLS, PLATE_ROWS
 
 if TYPE_CHECKING:
     from kuma_core.mame.ingest.run_meta import NgsRunMeta
@@ -216,9 +217,9 @@ def _custom_barcode_to_seq(custom: str) -> int | None:
         f = int(parts[1])
     except ValueError:
         return None
-    if not (1 <= r <= 8 and 1 <= f <= 12):
+    if not (1 <= r <= PLATE_ROWS and 1 <= f <= PLATE_COLS):
         return None
-    return (f - 1) * 8 + r
+    return (f - 1) * PLATE_ROWS + r
 
 
 _EMPTY_BASELINE = PlateBaseline(None, 0.0, None, 0.0)

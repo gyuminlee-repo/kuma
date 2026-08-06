@@ -24,8 +24,7 @@ from dataclasses import dataclass, field
 
 from kuma_core.mame.export.well_mapper import seq_to_well
 from kuma_core.mame.models import ExpectedMutation
-
-_PLATE_CAPACITY = 96
+from kuma_core.mame.plate_geometry import PLATE_CAPACITY as _PLATE_CAPACITY
 
 
 @dataclass(frozen=True)

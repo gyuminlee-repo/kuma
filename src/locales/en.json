@@ -2305,11 +2305,11 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The plate map and the verdict breakdown now draw whole instead of scrolling inside a box far shorter than they need.",
-      "Step 2.2 scrolls as one page, so the two of them and the verdict table read in a single pass.",
-      "The verdict table keeps its own scroll, bounded to about the height of the two panels beside it."
+      "A barcode file not numbered for an 8 by 12 plate now stops the run and names the barcodes at fault, instead of leaving wells unnamed.",
+      "A gap in the barcode numbering is caught too, which used to shift every later barcode into the wrong row or column.",
+      "The plate shape is now stated once instead of being written out at each place that maps a well."
     ],
-    "highlightsStamp": "0.15.18+992e2c6b"
+    "highlightsStamp": "0.15.19+23a13b2a"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

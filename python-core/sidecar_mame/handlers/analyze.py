@@ -409,6 +409,70 @@ def _summarize(verdicts: list) -> dict:
     }
 
 
+def _barcode_layout_error(barcodes_path: Path) -> str | None:
+    """Does this barcode file describe wells on the plate MAME can name?
+
+    The combinatorial custom barcode is ``{R}_{F}`` with R the plate row and F
+    the plate column, so a set has to number its reverse seeds 1..8 and its
+    forward seeds 1..12, with no gaps. Neither condition was checked anywhere,
+    and both fail quietly:
+
+    * An index past the plate makes ``_custom_barcode_to_seq`` return ``None``,
+      and the well id goes into the workbook as an empty string. On a sheet where
+      other rows have coordinates, that reads as a well that failed to sequence.
+    * A gap renumbers everything after it. ``load_barcode_prefixes`` sorts by
+      index and then keeps position, so a set numbered 1, 2, 5 hands the matcher
+      three barcodes and it reports the third as F3. Reads carrying ``_f_5`` are
+      filed under plate column 3 with nothing to show for it.
+
+    Returns the message to put in front of the operator, or ``None`` when the
+    file fits. A file that cannot be opened is not this check's business; the
+    caller has already validated the path, and a read failure here would only
+    duplicate whatever the run reports.
+    """
+    try:
+        from kuma_core.mame.ingest.combinatorial_demux import read_barcode_indices
+        from kuma_core.mame.plate_geometry import (
+            PLATE_COLS,
+            PLATE_ROWS,
+            check_barcode_layout,
+        )
+
+        r_idx, f_idx = read_barcode_indices(barcodes_path)
+    except Exception:  # noqa: BLE001 - openpyxl surface is broad
+        return None
+
+    if not r_idx and not f_idx:
+        return (
+            f"custom_barcodes_xlsx: {barcodes_path.name} carries no barcode rows. "
+            "Rows are named <prefix>_f_<n> and <prefix>_r_<n>, for example "
+            "isps_f_1 and isps_r_1."
+        )
+
+    report = check_barcode_layout(r_idx, f_idx)
+    problems: list[str] = []
+    if report.out_of_range:
+        listed = ", ".join(f"{axis}{n}" for axis, n in report.out_of_range)
+        problems.append(
+            f"numbered past the plate ({listed}); a well is named {{R}}_{{F}} with "
+            f"R the row 1..{PLATE_ROWS} and F the column 1..{PLATE_COLS}, so those "
+            "wells would come out of the run with no coordinate"
+        )
+    if report.gaps:
+        listed = ", ".join(f"{axis}{n}" for axis, n in report.gaps)
+        problems.append(
+            f"missing {listed}; a gap shifts every later barcode down one place, "
+            "so reads land in the wrong plate column or row without saying so"
+        )
+    if not problems:
+        return None
+    return (
+        f"custom_barcodes_xlsx: {barcodes_path.name} is "
+        + "; and it is ".join(problems)
+        + f". Read {len(report.r_indices)} R and {len(report.f_indices)} F barcodes."
+    )
+
+
 def _plate_order_finding(params: dict, expected_path: Path) -> dict | None:
     """Does the expected workbook agree with its own primer plate sheets?
 
@@ -520,12 +584,16 @@ def handle_validate_inputs(params: dict) -> dict:
                 )
             if custom_barcodes_xlsx:
                 try:
-                    _validate_filepath(
+                    barcodes_path = _validate_filepath(
                         custom_barcodes_xlsx,
                         allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS,
                     )
                 except (FileNotFoundError, ValueError) as exc:
                     errors.append(f"custom_barcodes_xlsx: {exc}")
+                else:
+                    layout_error = _barcode_layout_error(barcodes_path)
+                    if layout_error is not None:
+                        errors.append(layout_error)
 
     if not reference:
         errors.append("reference is required")
