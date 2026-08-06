@@ -49,6 +49,8 @@ MIN_VARIANT_SUPPORT = "min_variant_support"
 VARIANT_POSITIONS = "variant_positions"
 # Depth the support fraction was measured on, so a reader can weigh it.
 MIN_VARIANT_SUPPORT_DEPTH = "min_variant_support_depth"
+# Noise floor the well ran at, so the mixed-position gate can be audited.
+MEDIAN_MINOR_ALLELE_FRACTION = "median_minor_allele_fraction"
 
 
 @dataclass(frozen=True)
@@ -80,6 +82,7 @@ class ConsensusMetadata:
     min_variant_support: float | None = None
     variant_positions: int = 0
     min_variant_support_depth: int = 0
+    median_minor_allele_fraction: float = 0.0
 
     def header_items(self) -> Iterable[tuple[str, str]]:
         """Yield metadata pairs in the stable FASTA-header order."""
@@ -91,6 +94,7 @@ class ConsensusMetadata:
         yield SPAN_FAILED, str(self.span_failed)
         yield MIXED_POSITIONS, str(self.mixed_positions)
         yield MAX_MINOR_ALLELE_FRACTION, f"{self.max_minor_allele_fraction:.3f}"
+        yield MEDIAN_MINOR_ALLELE_FRACTION, f"{self.median_minor_allele_fraction:.4f}"
         yield LOW_DEPTH_POSITIONS, str(self.low_depth_positions)
         yield CONSENSUS_N_FRACTION, f"{self.consensus_n_fraction:.3f}"
         yield LOW_QUALITY_BASES, str(self.low_quality_bases)
@@ -132,6 +136,7 @@ __all__ = [
     "LOW_QUALITY_BASES",
     "MAPQ_FAILED",
     "MAX_MINOR_ALLELE_FRACTION",
+    "MEDIAN_MINOR_ALLELE_FRACTION",
     "MIN_VARIANT_SUPPORT",
     "MIN_VARIANT_SUPPORT_DEPTH",
     "MIXED_POSITIONS",

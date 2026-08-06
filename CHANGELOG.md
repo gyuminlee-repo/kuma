@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.15.14 (A threshold nobody had measured against)
+
+The mixed-position gate fires at a fixed 0.20 minor-allele fraction, and until now the workbook reported only how bad the worst position in a well was. That says nothing about whether 0.20 is a lot or a little for the run in front of you.
+
+### Changed
+
+- v0.15.14: A consensus reports the median minor-allele fraction over its eligible positions, the noise floor the well actually ran at, and the workbook carries it beside the peak. Measured on the 260729 ispS run the per-position median across 94 wells is 0.003 and the noisiest context-driven position is 0.054, so the gate sits about four times above the worst position observed and sixty times above a typical one. That margin is now visible per run rather than assumed.
+
 ## v0.15.13 (The replicate that reads cleanest is the one that ships)
 
 MAME keeps three replicate plates per variant and ships one. Verdict class decides first, and below the mixed-position gate every plate reads PASS, so the pick fell to native barcode order. On the 260729 ispS run that sent a plate whose designed substitution rested on 82 percent of reads while its sibling sat at 98 percent, twice, for no reason other than a lower barcode number.

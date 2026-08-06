@@ -51,6 +51,7 @@ from kuma_core.mame.ingest.consensus_metadata import (
     MAX_DEL_RUN_LENGTH,
     MAX_INDEL_EVENT_FRACTION,
     MAX_MINOR_ALLELE_FRACTION,
+    MEDIAN_MINOR_ALLELE_FRACTION,
     MIN_VARIANT_SUPPORT,
     MIN_VARIANT_SUPPORT_DEPTH,
     MIXED_POSITIONS,
@@ -424,6 +425,9 @@ def parse_fasta_file(
     min_variant_support_depth = (
         _read_int_metadata(metadata, MIN_VARIANT_SUPPORT_DEPTH) or 0
     )
+    median_minor_allele_fraction = (
+        _read_float_metadata(metadata, MEDIAN_MINOR_ALLELE_FRACTION) or 0.0
+    )
 
     return BarcodeRecord(
         native_barcode=native_barcode,
@@ -448,6 +452,7 @@ def parse_fasta_file(
         min_variant_support=min_variant_support,
         n_variant_positions=n_variant_positions,
         min_variant_support_depth=min_variant_support_depth,
+        median_minor_allele_fraction=median_minor_allele_fraction,
         consensus_net_indel_bp=consensus_net_indel_bp,
         median_read_net_indel_bp=median_read_net_indel_bp,
     )
