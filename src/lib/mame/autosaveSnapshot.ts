@@ -13,6 +13,7 @@ import type { AppState } from "@/store/mame/types";
 import type { RawRunParams } from "@/store/mame/slice-interfaces";
 import type { Round } from "@/types/round";
 import { toPortablePath } from "@/lib/projectPath";
+import { RESULT_CONTRACT } from "@/lib/mame/resultContract";
 
 export const MAME_SCHEMA = 4;
 
@@ -52,6 +53,12 @@ export interface MameRoundSnapshotState {
 
 export interface MameAutosaveSnapshot extends AutosaveSnapshot {
   schema: typeof MAME_SCHEMA;
+  /**
+   * Revision of what an analyze run produces, carried because this snapshot also
+   * restores results when the sibling result file is missing. Absent before
+   * v0.15.21.
+   */
+  result_contract?: number;
   rounds?: Round[];
   active_round_id?: string | null;
   input: {
@@ -123,6 +130,7 @@ export function buildMameSnapshot(
     schema: MAME_SCHEMA,
     saved_at: new Date().toISOString(),
     kuma_version: __APP_VERSION__,
+    result_contract: RESULT_CONTRACT,
     rounds: roundState?.rounds ?? [],
     active_round_id: roundState?.activeRoundId ?? null,
     input: {

@@ -1,9 +1,11 @@
 /**
- * RestoredResultNotice — the provenance warning on a restored run.
+ * RestoredResultNotice — the statement that replaces another build's result.
  *
  * The contract this pins: silent for a run this build produced, explicit about
- * the version when it did not, never destructive, and never nagging once the
- * operator has answered for that snapshot.
+ * the version when it did not, offering only a re-run, and never suggesting the
+ * saved result can go on being read. It also promises out loud that nothing was
+ * deleted, because an operator who sees their verdicts vanish will assume the
+ * opposite.
  */
 
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -14,23 +16,21 @@ vi.mock("@/lib/ipc-mame", () => ({
   setProgressHandler: vi.fn(),
   cancelAndRespawn: vi.fn(),
 }));
-// Reassigned by the project-switch test: the MAME layout stays mounted while
-// the operator opens another project, so the notice has to re-read the stored
-// answer instead of latching it at mount.
-let currentProject = { path: "/projects/qa", name: "qa", scratch: false };
 vi.mock("@/state/projectContext", () => ({
-  useKumaProject: () => currentProject,
+  useKumaProject: () => ({ path: "/projects/qa", name: "qa", scratch: false }),
 }));
 
 import { useMameAppStore } from "@/store/mame/mameAppStore";
-import { hasAcknowledgedResultVersion } from "@/lib/mame/resultProvenance";
+import { RESULT_CONTRACT_REVISIONS } from "@/lib/mame/resultContract";
 import { RestoredResultNotice } from "./RestoredResultNotice";
 
 describe("RestoredResultNotice", () => {
   beforeEach(() => {
-    localStorage.clear();
-    currentProject = { path: "/projects/qa", name: "qa", scratch: false };
-    useMameAppStore.setState({ restoredResultProvenance: null, isAnalyzing: false });
+    useMameAppStore.setState({
+      restoredResultProvenance: null,
+      isAnalyzing: false,
+      verdicts: [],
+    });
   });
 
   it("renders nothing for a result this build produced", () => {
@@ -40,7 +40,12 @@ describe("RestoredResultNotice", () => {
 
   it("names the version that produced an older result", () => {
     useMameAppStore.setState({
-      restoredResultProvenance: { version: "0.15.9", relation: "older" },
+      restoredResultProvenance: {
+        version: "0.15.9",
+        contract: 0,
+        relation: "older",
+        changes: [...RESULT_CONTRACT_REVISIONS],
+      },
     });
 
     render(<RestoredResultNotice />);
@@ -50,9 +55,49 @@ describe("RestoredResultNotice", () => {
     expect(notice.textContent).toContain("0.15.9");
   });
 
+  it("offers no way to keep reading the saved result", () => {
+    // v0.15.20 had a "keep these results" button. Offering it told the operator
+    // to run the lab on an obsolete engine, so it is gone for good.
+    useMameAppStore.setState({
+      restoredResultProvenance: {
+        version: "0.15.9",
+        contract: 0,
+        relation: "older",
+        changes: [...RESULT_CONTRACT_REVISIONS],
+      },
+    });
+
+    render(<RestoredResultNotice onRunRequest={vi.fn()} />);
+
+    expect(screen.queryByRole("button", { name: /keep/i })).toBeNull();
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+  });
+
+  it("says the saved run was not deleted", () => {
+    useMameAppStore.setState({
+      restoredResultProvenance: {
+        version: "0.15.9",
+        contract: 0,
+        relation: "older",
+        changes: [...RESULT_CONTRACT_REVISIONS],
+      },
+    });
+
+    render(<RestoredResultNotice />);
+
+    expect(screen.getByTestId("restored-result-notice").textContent).toMatch(
+      /nothing was deleted/i,
+    );
+  });
+
   it("says so when the snapshot recorded no version", () => {
     useMameAppStore.setState({
-      restoredResultProvenance: { version: null, relation: "unknown" },
+      restoredResultProvenance: {
+        version: null,
+        contract: null,
+        relation: "unknown",
+        changes: [],
+      },
     });
 
     render(<RestoredResultNotice />);
@@ -62,9 +107,31 @@ describe("RestoredResultNotice", () => {
     expect(notice.textContent).toMatch(/no kuma version/i);
   });
 
-  it("offers a re-run only when a run can be started from the screen", () => {
+  it("points a newer snapshot at the version that wrote it", () => {
     useMameAppStore.setState({
-      restoredResultProvenance: { version: "0.15.9", relation: "older" },
+      restoredResultProvenance: {
+        version: "9.9.9",
+        contract: 99,
+        relation: "newer",
+        changes: [],
+      },
+    });
+
+    render(<RestoredResultNotice />);
+
+    expect(screen.getByTestId("restored-result-notice").textContent).toMatch(
+      /newer than this build/i,
+    );
+  });
+
+  it("starts a re-run from the screen that can start one", () => {
+    useMameAppStore.setState({
+      restoredResultProvenance: {
+        version: "0.15.9",
+        contract: 0,
+        relation: "older",
+        changes: [...RESULT_CONTRACT_REVISIONS],
+      },
     });
 
     const { rerender } = render(<RestoredResultNotice />);
@@ -75,13 +142,16 @@ describe("RestoredResultNotice", () => {
     fireEvent.click(screen.getByRole("button", { name: /Re-run analysis/i }));
 
     expect(onRunRequest).toHaveBeenCalledTimes(1);
-    // The flag goes with the results the run is about to replace.
-    expect(useMameAppStore.getState().restoredResultProvenance).toBeNull();
   });
 
-  it("does not start a run while one is already going", () => {
+  it("does not offer a re-run while one is already going", () => {
     useMameAppStore.setState({
-      restoredResultProvenance: { version: "0.15.9", relation: "older" },
+      restoredResultProvenance: {
+        version: "0.15.9",
+        contract: 0,
+        relation: "older",
+        changes: [...RESULT_CONTRACT_REVISIONS],
+      },
       isAnalyzing: true,
     });
 
@@ -90,65 +160,21 @@ describe("RestoredResultNotice", () => {
     expect(screen.getByRole("button", { name: /Re-run analysis/i })).toBeDisabled();
   });
 
-  it("keeps the results, records the choice, and stops nagging", () => {
+  it("stops offering a re-run once this build has produced verdicts", () => {
+    // A finished run clears the provenance, but a race that left both set must
+    // not show a re-run button over a result that is already current.
     useMameAppStore.setState({
-      restoredResultProvenance: { version: "0.15.9", relation: "older" },
+      restoredResultProvenance: {
+        version: "0.15.9",
+        contract: 0,
+        relation: "older",
+        changes: [...RESULT_CONTRACT_REVISIONS],
+      },
+      verdicts: [{ barcode: "NB01", verdict: "PASS" } as never],
     });
 
-    render(<RestoredResultNotice />);
-    fireEvent.click(screen.getByRole("button", { name: /Keep these results/i }));
+    render(<RestoredResultNotice onRunRequest={vi.fn()} />);
 
-    expect(screen.queryByTestId("restored-result-notice")).toBeNull();
-    expect(hasAcknowledgedResultVersion("/projects/qa", "0.15.9")).toBe(true);
-    // Keeping is not discarding: the results themselves are untouched.
-    expect(useMameAppStore.getState().restoredResultProvenance).not.toBeNull();
-  });
-
-  it("stays quiet on a later restore of the same snapshot", () => {
-    useMameAppStore.setState({
-      restoredResultProvenance: { version: "0.15.9", relation: "older" },
-    });
-    const first = render(<RestoredResultNotice />);
-    fireEvent.click(screen.getByRole("button", { name: /Keep these results/i }));
-    first.unmount();
-
-    render(<RestoredResultNotice />);
-
-    expect(screen.queryByTestId("restored-result-notice")).toBeNull();
-  });
-
-  it("speaks up again for a snapshot from a different version", () => {
-    useMameAppStore.setState({
-      restoredResultProvenance: { version: "0.15.9", relation: "older" },
-    });
-    const first = render(<RestoredResultNotice />);
-    fireEvent.click(screen.getByRole("button", { name: /Keep these results/i }));
-    first.unmount();
-
-    useMameAppStore.setState({
-      restoredResultProvenance: { version: "0.15.14", relation: "older" },
-    });
-    render(<RestoredResultNotice />);
-
-    expect(screen.getByTestId("restored-result-notice").textContent).toContain("0.15.14");
-  });
-  it("keeps speaking up after an in-session switch to another project", () => {
-    // The MAME layout does not unmount between projects, so a dismissal latched
-    // at mount would silence a second project's stale snapshot.
-    useMameAppStore.setState({
-      restoredResultProvenance: { version: "0.15.9", relation: "older" },
-    });
-    const { rerender } = render(<RestoredResultNotice />);
-    fireEvent.click(screen.getByRole("button", { name: /Keep these results/i }));
-    expect(screen.queryByTestId("restored-result-notice")).toBeNull();
-
-    currentProject = { path: "/projects/other", name: "other", scratch: false };
-    useMameAppStore.setState({
-      restoredResultProvenance: { version: "0.15.9", relation: "older" },
-    });
-    rerender(<RestoredResultNotice />);
-
-    expect(screen.getByTestId("restored-result-notice")).toBeTruthy();
-    expect(hasAcknowledgedResultVersion("/projects/other", "0.15.9")).toBe(false);
+    expect(screen.queryByRole("button", { name: /Re-run analysis/i })).toBeNull();
   });
 });

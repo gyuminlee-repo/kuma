@@ -841,12 +841,20 @@
       }
     },
     "restoredResult": {
-      "title": "Ces résultats proviennent d'une autre version de kuma",
-      "bodyOlder": "Restaurés depuis un instantané écrit par kuma v{{version}}. Cette version évalue les runs différemment : relancez pour voir ce qu'elle produirait, ou gardez le résultat enregistré.",
-      "bodyNewer": "Restaurés depuis un instantané écrit par kuma v{{version}}, plus récent que cette version. Elle peut ne pas évaluer le run de la même façon : relancez, ou gardez le résultat enregistré.",
-      "bodyUnknown": "Restaurés depuis un instantané sans version kuma enregistrée, donc indiscernables d'une exécution ancienne. Relancez, ou gardez le résultat enregistré.",
+      "title": "Le run enregistré de ce projet a été évalué par une autre version de kuma",
+      "bodyOlder": "Le run enregistré vient de kuma v{{version}}, qui évalue différemment de cette version : il n'est pas affiché. Relancez l'analyse pour obtenir un résultat dont cette version répond.",
+      "bodyNewer": "Le run enregistré vient de kuma v{{version}}, plus récent que cette version : il n'est pas affiché. Relancez l'analyse ici, ou ouvrez le projet dans cette version-là.",
+      "bodyUnknown": "Le run enregistré n'indique aucune version de kuma ; impossible de le distinguer d'un run obsolète, il n'est donc pas affiché. Relancez l'analyse.",
+      "fileKept": "Rien n'a été supprimé : le run enregistré est toujours dans le dossier du projet.",
       "rerun": "Relancer l'analyse",
-      "keep": "Garder ces résultats"
+      "why": "Depuis, cette version a changé ce qu'un run produit :",
+      "change": {
+        "plateDisagreementRefused": "Un classeur qui décrit une plaque de deux façons arrête le run au lieu d'évaluer contre la mauvaise liste.",
+        "replicatePurityOrder": "Le réplicat dont la lecture est la plus propre est retenu, trié par pureté mesurée.",
+        "selfConsistencyCheck": "Après le run, chaque puits est vérifié contre son variant attendu et contre tous les autres.",
+        "plateColumnRowOrder": "Les lignes de résultat suivent la colonne de la plaque, comme toute autre règle de placement.",
+        "barcodePlateShapeRefused": "Un fichier de barcodes qui ne décrit pas une plaque 8 par 12 arrête le run."
+      }
     },
     "janus": {
       "settings": {
@@ -2281,13 +2289,13 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Le annealing tail d un code-barres est desormais lu depuis le fichier lui-meme, si bien qu un jeu concu pour n importe quel gene est coupe au bon endroit.",
-      "Un fichier dont le tail est illisible arrete l execution, au lieu de deviner la coupe et de classer des reads dans des wells qui ne sont pas les leurs.",
-      "Les codes-barres reverse ne perdent plus leur derniere base, ce qui restreignait jusqu ici la base de choix de la ligne de plaque.",
-      "Le classeur de resultats note quel annealing tail a ete deduit, de sorte qu une execution terminee reste verifiable ensuite.",
-      "L echantillon de codes-barres fourni a ete regenere pour porter la structure seed plus tail commun attendue par le lecteur."
+      "La regle qui transforme une paire de codes-barres en puits de plaque tient en un seul endroit au lieu de quatre, si bien que les quatre ne peuvent plus diverger.",
+      "Un plan qui remplit exactement la plaque et ne laisse pas de place pour un puits wild-type n est plus refuse pour cette raison.",
+      "Le chargement d un fichier de codes-barres indique combien de forward et de reverse il contient et combien de puits ils decrivent.",
+      "La boite de dialogue native barcode dit ce qu elle choisit: des replicats d une plaque, et non des plaques distinctes.",
+      "Une execution qui deborde la plaque est refusee avant le demarrage du demux, pas apres l ecriture des puits."
     ],
-    "highlightsStamp": "0.15.21+8d129891"
+    "highlightsStamp": "0.15.23+0c028fbf"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",

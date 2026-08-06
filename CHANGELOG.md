@@ -15,6 +15,26 @@ The plate capacity guard was also narrowed. It ran before, it refused a design t
 - Loading a barcode file shows how many forward and reverse barcodes it holds, and how many wells they describe.
 - The native barcode dialog says what it is choosing: replicates of one plate, rather than separate plates.
 - A run that overflows the plate is refused before the demux starts, not after wells have been written.
+## v0.15.22 (A saved run is judged by what changed, not by what version wrote it)
+
+v0.15.20 asked the wrong question and then gave the wrong answer to it. It compared version strings, so a release that moved a panel or added a translation made a perfectly current run look suspect; and when it did find an older run it showed the verdicts anyway behind a "keep these results" button. Twenty releases shipped in the 0.15 line and five of them changed what a run produces. Warning on the other fifteen teaches an operator to dismiss the warning, and a button that offers to keep reading an obsolete result is the app recommending an obsolete engine.
+
+### Highlights
+
+- A project only asks to be re-analysed when this version would actually score the run differently, not because the version number moved.
+- When it does ask, it says which changes make the saved run obsolete, so the hour of re-analysis has a stated reason.
+- A run scored by another version is no longer shown at all: no verdict table, no plate, no export. There is no "keep these results".
+- Nothing is deleted. The saved run stays in the project folder, and a re-run replaces it.
+
+### Added
+
+- v0.15.22: Analyze results carry a result contract: a revision that moves only when the meaning of a result moves, recorded in the snapshot next to the version. Projects saved before this release are dated by mapping their version onto the revision that was current at the time, so an old project is still judged by behaviour rather than by release cadence. The five revisions so far are the v0.15.10 plate-disagreement refusal, the v0.15.13 replicate purity order, the v0.15.15 self-consistency check, the v0.15.17.03 plate-column row order and the v0.15.19 barcode plate-shape refusal.
+- v0.15.22: A cross-layer group and a table test tie the revision list to the analyze handlers, so a change to what a run produces cannot ship without dating itself. The test also fails when a revision has no copy explaining it, because a re-run demand with no argument is worse than none.
+
+### Changed
+
+- v0.15.22: A saved run from a different result contract is not replayed: not into the sidecar, not into the verdict table, and the project does not open on the review step. The screen states which version produced it, lists what has changed since, and offers a re-run. The saved file is untouched on disk, and the notice says so, because an operator who watches their verdicts disappear will otherwise assume the app deleted them.
+- v0.15.22: The "keep these results" button from v0.15.20 is gone, along with the acknowledgement it recorded.
 
 ## v0.15.21 (The barcode annealing tail is read from the file, not from one gene)
 

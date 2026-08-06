@@ -841,12 +841,20 @@
       }
     },
     "restoredResult": {
-      "title": "Estes resultados vêm de outra versão do kuma",
-      "bodyOlder": "Restaurados de um snapshot escrito pelo kuma v{{version}}. Esta versão avalia execuções de forma diferente: execute novamente para ver o resultado atual ou continue vendo o salvo.",
-      "bodyNewer": "Restaurados de um snapshot escrito pelo kuma v{{version}}, mais novo que esta versão. Ela pode não avaliar a execução da mesma forma: execute novamente ou continue vendo o resultado salvo.",
-      "bodyUnknown": "Restaurados de um snapshot sem versão do kuma registrada, portanto indistinguível de uma execução antiga. Execute novamente ou continue vendo o resultado salvo.",
+      "title": "A execução salva deste projeto foi avaliada por outra versão do kuma",
+      "bodyOlder": "A execução salva foi produzida pelo kuma v{{version}}, que avalia de forma diferente desta versão, então não é exibida. Execute a análise novamente para obter um resultado pelo qual esta versão responde.",
+      "bodyNewer": "A execução salva foi produzida pelo kuma v{{version}}, mais novo que esta versão, então não é exibida. Execute novamente aqui ou abra o projeto naquela versão.",
+      "bodyUnknown": "A execução salva não registra versão do kuma, não dá para distinguir de uma obsoleta e não é exibida. Execute a análise novamente.",
+      "fileKept": "Nada foi apagado: a execução salva continua na pasta do projeto.",
       "rerun": "Executar a análise novamente",
-      "keep": "Manter estes resultados"
+      "why": "Desde então esta versão mudou o que uma execução produz:",
+      "change": {
+        "plateDisagreementRefused": "Uma planilha que descreve uma placa de dois jeitos para a execução em vez de avaliar contra a lista errada.",
+        "replicatePurityOrder": "A réplica de leitura mais limpa é a que vale, ordenada pela pureza medida.",
+        "selfConsistencyCheck": "Depois da execução, cada poço é conferido contra a própria variante esperada e contra os demais.",
+        "plateColumnRowOrder": "As linhas de resultado seguem a coluna da placa, como qualquer outra regra de posicionamento.",
+        "barcodePlateShapeRefused": "Um arquivo de barcodes que não descreve uma placa 8 por 12 para a execução."
+      }
     },
     "janus": {
       "settings": {
@@ -2281,13 +2289,13 @@
     "description": "Destaques da última atualização.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "O annealing tail de um codigo de barras agora e lido do proprio arquivo, de modo que um conjunto desenhado para qualquer gene e cortado no lugar certo.",
-      "Um arquivo cujo tail nao pode ser lido interrompe a execucao, em vez de adivinhar o corte e colocar reads em wells que nao sao deles.",
-      "Codigos de barras reverse nao perdem mais sua ultima base, o que vinha estreitando a evidencia usada para escolher a linha da placa.",
-      "A planilha de resultados registra qual annealing tail foi deduzido, de modo que uma execucao concluida possa ser auditada depois.",
-      "A amostra de codigos de barras incluida foi regerada para levar a estrutura de seed mais tail comum que o leitor espera."
+      "A regra que transforma um par de codigos de barras em um poco da placa fica em um unico lugar em vez de quatro, de modo que os quatro nao podem divergir.",
+      "Um desenho que preenche a placa exatamente e nao deixa espaco para um poco wild-type nao e mais recusado por isso.",
+      "Ao carregar um arquivo de codigos de barras, mostra quantos forward e reverse ele tem e quantos pocos eles descrevem.",
+      "A caixa de dialogo native barcode diz o que esta escolhendo: replicatas de uma placa, e nao placas separadas.",
+      "Uma execucao que excede a placa e recusada antes de o demux comecar, nao depois que os pocos foram escritos."
     ],
-    "highlightsStamp": "0.15.21+8d129891"
+    "highlightsStamp": "0.15.23+0c028fbf"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",

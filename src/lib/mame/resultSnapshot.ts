@@ -17,6 +17,7 @@
 import { exists, readTextFile, rename } from "@tauri-apps/plugin-fs";
 import { ensureAutosaveDir, atomicWriteJson } from "@/lib/autosave";
 import type { AnalyzeResult } from "@/types/mame/models";
+import { RESULT_CONTRACT } from "@/lib/mame/resultContract";
 
 /** Result snapshot schema. Bumped independently of the input snapshot schema. */
 export const MAME_RESULT_SCHEMA = 1;
@@ -43,6 +44,12 @@ export interface MameResultSnapshot {
   schema: typeof MAME_RESULT_SCHEMA;
   saved_at: string; // ISO8601
   kuma_version: string;
+  /**
+   * Revision of what an analyze run produces (see resultContract.ts). Absent in
+   * snapshots written before v0.15.21, whose revision is derived from
+   * `kuma_version` instead.
+   */
+  result_contract?: number;
   result: AnalyzeResult;
 }
 
@@ -62,6 +69,7 @@ export async function writeMameResultSnapshot(
     schema: MAME_RESULT_SCHEMA,
     saved_at: new Date().toISOString(),
     kuma_version: __APP_VERSION__,
+    result_contract: RESULT_CONTRACT,
     result,
   };
   await atomicWriteJson(mameResultPath(projectPath), snapshot);

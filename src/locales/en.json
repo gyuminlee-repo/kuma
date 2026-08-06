@@ -1070,12 +1070,20 @@
       "title": "JANUS Deck Layout"
     },
     "restoredResult": {
-      "title": "These results came from another version of kuma",
-      "bodyOlder": "Restored from a snapshot written by kuma v{{version}}. This build scores runs differently, so re-run to see what it would produce, or keep viewing the saved result.",
-      "bodyNewer": "Restored from a snapshot written by kuma v{{version}}, which is newer than this build. This version may not score the run the same way; re-run to produce a result this build stands behind, or keep viewing the saved one.",
-      "bodyUnknown": "Restored from a snapshot that records no kuma version, so it cannot be told apart from an older run. Re-run to produce a result this build stands behind, or keep viewing the saved one.",
+      "title": "This project's saved run was scored by another version of kuma",
+      "bodyOlder": "The saved run was produced by kuma v{{version}}, which scores runs differently from this build, so it is not shown. Re-run the analysis to get a result this version stands behind.",
+      "bodyNewer": "The saved run was produced by kuma v{{version}}, which is newer than this build, so it is not shown. Re-run the analysis here, or open the project in that version.",
+      "bodyUnknown": "The saved run records no kuma version, so it cannot be told apart from an obsolete one and is not shown. Re-run the analysis to get a result this version stands behind.",
+      "fileKept": "Nothing was deleted: the saved run is still in the project folder.",
       "rerun": "Re-run analysis",
-      "keep": "Keep these results"
+      "why": "Since then this build changed what a run produces:",
+      "change": {
+        "plateDisagreementRefused": "A workbook that describes one plate two ways stops the run instead of scoring against the wrong list.",
+        "replicatePurityOrder": "The replicate that reads cleanest is the one that ships, ordered by measured purity.",
+        "selfConsistencyCheck": "After the run, every well is checked against its own expected variant and against the others.",
+        "plateColumnRowOrder": "Result rows follow the plate column, like every other placement rule.",
+        "barcodePlateShapeRefused": "A barcode file that does not describe an 8 by 12 plate stops the run."
+      }
     },
     "janus": {
       "settings": {
