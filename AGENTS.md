@@ -191,6 +191,7 @@ Three files must have matching version on release:
 - Commit format: `vX.X.X: summary in English`
 - Tags: `vX.X.X` (semver)
 - Version bump 시 `git tag` 최신값뿐 아니라 `git log --oneline -5`의 커밋 메시지 `vX.X.X.YY` 시퀀스도 함께 확인 (태그 없이 커밋만 진행된 구간이 있으면 역행 위험)
+- **오래 열려 있던 PR 을 개번했으면 squash 제목까지 바꾼다.** squash 머지는 브랜치 원본 커밋의 제목을 그대로 쓴다. PR 제목만 고치고 머지하면 main 로그에 옛 라벨이 남고, 그 라벨이 이미 발행된 버전이면 `git log` 에 같은 번호가 두 번 보인다. 머지 시 `gh pr merge <N> --squash --subject "vX.Y.Z: ..."` 로 제목을 명시할 것. 브랜치 커밋을 `--amend` 하는 방법도 있으나 이미 push 된 브랜치를 다시 쓰게 되므로 `--subject` 가 낫다. 사후에는 고칠 수 없다. 커밋 메시지는 API 로 수정 불가이고 main 재작성은 금지이므로, 남는 수단은 `git notes` 로 정정 사실을 붙이는 것뿐이다 (2026-08-06, #246 이 v0.15.12, #251 이 v0.15.14 로 남아 둘 다 이미 발행된 번호와 겹쳤다. 정본은 각각 v0.15.16, v0.15.17 이고 매니페스트와 CHANGELOG 는 정확하다).
 - `Cargo.lock` is committed (binary app needs reproducible builds)
 - CI pins `ubuntu-22.04` (not `ubuntu-latest`) for WebKit dependency compatibility
 
