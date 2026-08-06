@@ -683,7 +683,7 @@
         "outputPathPlaceholder": "ターゲット .csv ファイルパス",
         "outputPathAriaLabel": "Janus マッピング出力ファイルパス",
         "browseAriaLabel": "Janus マッピング保存先を参照",
-        "columnsNote": "列: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+        "columnsNote": "列: name, type, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
         "exportJanus": "Janus マッピングをエクスポート",
         "exporting": "エクスポート中…",
         "exported": "エクスポートが完了しました",
@@ -700,13 +700,9 @@
         "volumeHint": "この書き出しが作る装置用マッピングファイルにそのまま入ります。",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "例: Cell 100ul",
-        "liquidClassHint": "liquid class はロボットのピペッティング挙動を決めるため既定値を置きません。空のままなら列は空欄で出力され、書き出しは実行されます。",
-        "deckHeading": "Deck 構成",
+        "liquidClassHint": "liquid class はロボットのピペッティング挙動を決めるため既定値を置きません。この値は実行の記録として残るだけで、装置シートには該当する列がないため書き出されません。",
         "sampleTypeLabel": "type 列の値",
-        "sourceRackLabel": "Asp. Rack {{plate}}",
-        "destRackLabel": "Dsp. Rack",
-        "rackHint": "ラック番号はこの実行のプレートに従います。source プレートがプレート順に先頭の番号を取り、destination がその次です (KURO のプライマーシートと同じ)。変更するには数値を入力してください。",
-        "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
+        "plateNamesNote": "Asp. Rack と Dsp. Rack には deck 番号ではなく、この実行のプレートから生成したプレート名が入ります。ここで確認し、deck のラベルを同じ名前にそろえてください。",
         "excludedHeading": "除外 {{count}} 件",
         "excludedNone": "除外されたクローンはありません。",
         "excludedReason": {
@@ -827,7 +823,7 @@
     "janus": {
       "settings": {
         "contextTitle": "Janus 装置設定",
-        "contextSubtitle": "装置マッピングに書き出される移送量・デッキラック・リキッドクラスを設定します。シーケンシング判定のみの実行では省略できます。",
+        "contextSubtitle": "装置マッピングに書き出される移送量・リキッドクラス・type 列の値を設定します。シーケンシング判定のみの実行では省略できます。",
         "optionalNote": "このステップは任意です。解析実行はピックリストを自動で書き出しますが、装置マッピングはここでエクスポートしたときだけ書き出されます。シーケンシング判定だけが必要な場合はステップ 2 からステップ 4 に直接進めます。",
         "inspectorTitle": "装置 Inspector",
         "inspectorSubtitle": "マッピングに書き出される値",
@@ -999,7 +995,7 @@
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
       },
       "janusMappingAutosave": {
-        "saved": "装置用マッピングを結果ワークブックの隣に保存しました ({{rows}} 行)。ロボットが読む 9 列形式です。",
+        "saved": "装置用マッピングを結果ワークブックの隣に保存しました ({{rows}} 行)。ロボットが読む 8 列形式です。",
         "skipped": "選抜基準を満たすクローンがなく、装置用マッピングは書き出されませんでした。",
         "failed": "装置用マッピングを書き出せませんでした。",
         "excluded": "{{clones}} 件のクローンがマッピングから外れました。理由は Janus 装置設定で確認してください。"
@@ -2559,7 +2555,7 @@
         "mergeExport": "活性データを遺伝型コールとマージしてテーブルをエクスポートし、単一反復 (GC) と 3 反復 (WT 相対) の活性を組み合わせて EVOLVEpro 入力を生成します。"
       },
       "janus": {
-        "settings": "JANUS セルストックマッピングを準備します: 移送量、デッキラック番号、リキッドクラス。任意であり、実行を止めることはありません。"
+        "settings": "JANUS セルストックマッピングを準備します: 移送量、リキッドクラス、type 列の値。任意であり、実行を止めることはありません。"
       }
     },
     "summary": {

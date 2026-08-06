@@ -707,20 +707,26 @@ export interface RpcMethodMap {
       mapping_range?: { row_start: string; row_end: string } | null;
     };
     result: {
+      // The first eight fields are the instrument sheet columns, in
+      // JANUS_DEVICE_HEADER order (kuma_core/shared/janus_deck.py); `mutation`
+      // and `role` ride along for the UI and are never written to a file. The
+      // sheet has no liquid class column, so no field carries one.
       rows: Array<{
         name: string;
         type: string;
-        dsp_rack_label: string;
         no: number;
-        asp_rack: number;
+        // `Asp. Rack` / `Dsp. Rack`: plate NAMES ("fw plate", "rv plate",
+        // "PCR mixture plate"), not deck slot numbers.
+        asp_rack: string;
         asp_posi: string;
-        dsp_rack: number;
+        dsp_rack: string;
         dsp_posi: string;
         volume: number;
         mutation: string;
         // Stated direction of the transfer (kuma_core/kuro/plate_mapper.py
         // build_janus_rows). Optional: a packaged sidecar predating the field
-        // omits it, and the preview adapter falls back to the deck rack number.
+        // omits it, and the preview then leaves the row out, since a plate name
+        // chosen by deck policy cannot be read back as a direction.
         role?: "fwd" | "rev";
       }>;
       total: number;

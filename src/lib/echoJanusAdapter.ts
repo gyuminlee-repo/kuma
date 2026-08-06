@@ -3,9 +3,9 @@
 // - Echo source plate is 384-well. Well code format "<RowLetter><2-digit col>" e.g. "A01".."P24".
 // - Rows alternate fwd/rev: A(idx 0)=fwd, B(idx 1)=rev, ... P(idx 15)=rev. isFwd = rowIndex % 2 === 0.
 // - Janus uses 96-well racks (A1..H12). Direction comes from the row's `role`
-//   field ("fwd"/"rev"), which the sidecar states outright; rack numbers are
-//   deck policy and are not read as a direction marker. A row whose direction
-//   cannot be established is skipped.
+//   field ("fwd"/"rev"), which the sidecar states outright; the rack fields hold
+//   plate names set by deck policy and are not read as a direction marker. A row
+//   whose direction is not stated is skipped.
 // - Dest mapping: rows are grouped by `mutation` to form a 96-well destination cell.
 //   Both Echo and Janus dry-run rows carry `mutation` directly from the sidecar (Phase 1/2).
 
@@ -27,8 +27,8 @@ export interface JanusCell {
   colNumber: number;
   /**
    * Which of the two preview panels the cell belongs to: 1 = forward source,
-   * 2 = reverse source. A panel index, not the deck rack number the instrument
-   * aspirates from; that number stays on the source row (`asp_rack`).
+   * 2 = reverse source. A panel index, not the deck plate the instrument
+   * aspirates from; that plate is named on the source row (`asp_rack`).
    */
   rack: 1 | 2;
   name: string;
@@ -60,48 +60,57 @@ export interface EchoDryRunRow {
   mutation: string;
 }
 
+/**
+ * Direction of a transfer, as the sidecar states it. The only way this preview
+ * learns whether a row is a forward or a reverse transfer.
+ */
 export type JanusRole = "fwd" | "rev";
 
+/**
+ * One row of the JANUS dry-run payload, field for field with the dicts
+ * `build_janus_rows` returns (`kuma_core/kuro/plate_mapper.py`), which
+ * `_build_janus_preview_rows` passes through untouched
+ * (`python-core/sidecar_kuro/handlers/export.py`).
+ *
+ * The first eight fields are the instrument sheet columns, in
+ * `JANUS_DEVICE_HEADER` order (`kuma_core/shared/janus_deck.py`); `mutation`
+ * and `role` ride along for the UI and are never written to a file.
+ */
 export interface JanusDryRunRow {
   name: string;
   type: string;
-  dsp_rack_label: string;
   no: number;
-  asp_rack: number;
+  /**
+   * `Asp. Rack`: the NAME of the source plate ("fw plate", "rv plate", or a
+   * name a MAME run generated), not a deck slot number. Deck policy, never a
+   * direction marker.
+   */
+  asp_rack: string;
   asp_posi: string;
-  dsp_rack: number;
+  /** `Dsp. Rack`: the name of the destination plate, e.g. "PCR mixture plate". */
+  dsp_rack: string;
   dsp_posi: string;
   volume: number;
   mutation: string;
   /**
-   * Direction of the transfer, stated by the sidecar (`build_janus_rows`).
-   * Optional because a sidecar built before this field existed omits it; see
-   * {@link janusRole}.
+   * Direction of the transfer, stated by the sidecar (`build_janus_rows`, which
+   * always sets it). Optional so that a payload missing it still parses; such a
+   * row is skipped rather than guessed at. See {@link janusRole}.
    */
   role?: JanusRole;
 }
 
-// KURO default deck rack numbers. The single source of truth is
-// `KURO_PRIMER_DECK` in kuma_core/shared/janus_deck.py (fwd_rack=1, rev_rack=2);
-// these copies exist only for the fallback below and are not consulted when the
-// row states its `role`.
-const DEFAULT_FWD_SOURCE_RACK = 1;
-const DEFAULT_REV_SOURCE_RACK = 2;
-
 /**
  * Direction of a Janus row.
  *
- * `role` first: the sidecar states the direction, so a lab that renumbers the
- * deck cannot flip F/R in the preview. The rack comparison is only a fallback
- * for a packaged sidecar predating the field, and it is wrong the moment the
- * deck moves, which is exactly why it is not the primary path. `null` means the
- * direction could not be established and the row is left out rather than
- * guessed.
+ * `role` is the only source: the sidecar states the direction, so relabelling
+ * the deck cannot flip F/R in the preview. Nothing else on the row carries the
+ * direction. `Asp. Rack` holds a plate name chosen by deck policy, so there is
+ * no value left to compare against. `null` means the direction was not stated
+ * and the row is left out rather than guessed.
  */
 export function janusRole(row: JanusDryRunRow): JanusRole | null {
   if (row.role === "fwd" || row.role === "rev") return row.role;
-  if (row.asp_rack === DEFAULT_FWD_SOURCE_RACK) return "fwd";
-  if (row.asp_rack === DEFAULT_REV_SOURCE_RACK) return "rev";
   return null;
 }
 

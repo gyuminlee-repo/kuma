@@ -683,7 +683,7 @@
         "outputPathPlaceholder": "目标 .csv 文件路径",
         "outputPathAriaLabel": "Janus mapping 的输出文件路径",
         "browseAriaLabel": "浏览 Janus mapping 的保存路径",
-        "columnsNote": "列：name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume。",
+        "columnsNote": "列：name, type, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume。",
         "exportJanus": "导出 Janus Mapping",
         "exporting": "导出中…",
         "exported": "导出成功",
@@ -700,13 +700,9 @@
         "volumeHint": "该值会写入本次导出生成的仪器映射文件。",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "例如：Cell 100ul",
-        "liquidClassHint": "liquid class 决定机器人的移液行为，因此不设默认值。留空时该列为空白，导出照常进行。",
-        "deckHeading": "Deck 配置",
+        "liquidClassHint": "liquid class 决定机器人的移液行为，因此不设默认值。该值只随本次运行记录，仪器表格中没有对应的列，因此不会写入文件。",
         "sampleTypeLabel": "type 列取值",
-        "sourceRackLabel": "Asp. Rack {{plate}}",
-        "destRackLabel": "Dsp. Rack",
-        "rackHint": "机架编号按本次运行的板推导：源板按板顺序占用靠前编号，目标板取下一个编号（与 KURO 引物表一致）。输入数字即可覆盖。",
-        "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
+        "plateNamesNote": "Asp. Rack 与 Dsp. Rack 填写的是根据本次运行的板生成的板名称，而不是 deck 编号。请在此核对，并按相同名称标注 deck。",
         "excludedHeading": "已排除 {{count}} 个",
         "excludedNone": "没有被排除的克隆。",
         "excludedReason": {
@@ -827,7 +823,7 @@
     "janus": {
       "settings": {
         "contextTitle": "Janus 设备设置",
-        "contextSubtitle": "设置写入设备映射文件的转移体积、deck 架位与 liquid class。可选：只需测序判定的运行可以跳过此步骤。",
+        "contextSubtitle": "设置写入设备映射文件的转移体积、liquid class 与 type 列取值。可选：只需测序判定的运行可以跳过此步骤。",
         "optionalNote": "此步骤为可选。分析运行会自行写出挑取清单；设备映射仅在此处导出时才会写出，因此只需测序判定的运行可以从步骤 2 直接进入步骤 4。",
         "inspectorTitle": "设备 Inspector",
         "inspectorSubtitle": "写入映射所用的值",
@@ -999,7 +995,7 @@
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
       },
       "janusMappingAutosave": {
-        "saved": "已在结果工作簿旁写入仪器映射文件（{{rows}} 行），采用机器人读取的 9 列格式。",
+        "saved": "已在结果工作簿旁写入仪器映射文件（{{rows}} 行），采用机器人读取的 8 列格式。",
         "skipped": "没有克隆符合选择条件，因此未写入仪器映射文件。",
         "failed": "未能写入仪器映射文件。",
         "excluded": "{{clones}} 个克隆未进入映射文件。可在 Janus 仪器设置中查看原因。"
@@ -2559,7 +2555,7 @@
         "mergeExport": "将活性数据与基因型判定合并并导出表格，然后通过组合单次重复 (GC) 与三次重复 (相对 WT) 活性来构建 EVOLVEpro 输入。"
       },
       "janus": {
-        "settings": "准备 JANUS 细胞库映射：转移体积、deck 架位编号与 liquid class。可选 — 其中任何一项都不会阻止运行。"
+        "settings": "准备 JANUS 细胞库映射：转移体积、liquid class 与 type 列取值。可选，其中任何一项都不会阻止运行。"
       }
     },
     "summary": {

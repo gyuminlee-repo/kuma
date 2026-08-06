@@ -28,7 +28,7 @@ from kuma_core.mame.models import (
 )
 
 
-# The export now defaults to the instrument-native 9-column sheet with a compact
+# The export now defaults to the instrument-native eight column sheet with a compact
 # destination layout. This module targets the row builder, so every case here
 # goes through the kuma-internal 5-column schema at the source position; the
 # wrappers below pin that policy in one place. The new defaults themselves are

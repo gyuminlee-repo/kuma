@@ -387,7 +387,7 @@ def test_fallback_ambiguous_selection_no_matrix_o(tmp_path: Path) -> None:
 # Janus mapping export (K4)
 # ---------------------------------------------------------------------------
 
-# The Janus export now defaults to the instrument-native 9-column sheet with a
+# The Janus export now defaults to the instrument-native eight column sheet with a
 # compact destination layout. The cases below predate both defaults and assert
 # the kuma-internal 5-column output at the source position, so they pin that
 # policy explicitly. New-default behaviour lives in tests/mame/test_janus_policy.py.

@@ -4,9 +4,9 @@
 5-column output at the source position, which is what that module was written
 for. This module covers what the export now does by default: keep only fully
 verified clones, report every clone it drops and why, fill the destination plate
-from A1, and write the instrument-native 9-column worksheet.
+from A1, and write the instrument-native eight column worksheet.
 
-The 9-column header is asserted against
+The header is asserted against
 ``tests/fixtures/liquid_handler/reference_format.json``, the transcription of
 the workbook the lab imports, in the same way
 ``test_plate_mapper_reference_format.py`` pins the KURO exporter.
@@ -46,8 +46,9 @@ _REFERENCE = (
     / "reference_format.json"
 )
 
-# A complete instrument policy: everything the 9-column sheet needs, so a case
-# that is not about the liquid-class guard is not blocked by it.
+# A complete instrument policy. The liquid class is set because an operator sets
+# one and the settings object still records it, not because any column or guard
+# needs it: the eight column sheet has neither.
 _DEVICE = JanusSettings(liquid_class="Cell 100ul")
 
 
@@ -267,16 +268,16 @@ def test_default_layout_is_compact() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Instrument-native 9-column schema
+# Instrument-native schema
 # ---------------------------------------------------------------------------
 
 
-def test_default_schema_is_device9() -> None:
-    assert JanusSettings().output_schema == "device9"
+def test_default_schema_is_the_instrument_schema() -> None:
+    assert JanusSettings().output_schema == "device"
 
 
-def test_device9_csv_header_matches_the_workbook(reference, tmp_path: Path) -> None:
-    out = tmp_path / "device9.csv"
+def test_instrument_csv_header_matches_the_workbook(reference, tmp_path: Path) -> None:
+    out = tmp_path / "device.csv"
     export_mame_janus_csv([_make_replicate("V5F", "NB01", "1_1")], out, settings=_DEVICE)
 
     with out.open(encoding="utf-8") as fh:
@@ -285,8 +286,8 @@ def test_device9_csv_header_matches_the_workbook(reference, tmp_path: Path) -> N
     assert header == reference["janus"]["mapping_header"]
 
 
-def test_device9_xlsx_header_matches_the_workbook(reference, tmp_path: Path) -> None:
-    out = tmp_path / "device9.xlsx"
+def test_instrument_xlsx_header_matches_the_workbook(reference, tmp_path: Path) -> None:
+    out = tmp_path / "device.xlsx"
     export_mame_janus_xlsx(
         [_make_replicate("V5F", "NB01", "1_1")], out, settings=_DEVICE
     )
@@ -296,13 +297,32 @@ def test_device9_xlsx_header_matches_the_workbook(reference, tmp_path: Path) -> 
     assert header == reference["janus"]["mapping_header"]
 
 
-def test_device9_repeats_the_dsp_rack_column() -> None:
-    """Two ``Dsp. Rack`` columns is the workbook, so a dict writer cannot serve."""
-    assert JanusSettings().header.count("Dsp. Rack") == 2
+def test_the_instrument_header_is_exactly_these_eight_columns() -> None:
+    """Pin the list itself, in order, so a shape change has to be typed out.
+
+    The two tests above compare a writer to the fixture, so an edit moving the
+    fixture and the writer together passes both. The predecessor sheet named
+    ``Dsp. Rack`` twice and carried a liquid class in its third column, and a
+    test once pinned that repetition as deliberate; this states the opposite,
+    which is why the negative assertions are here rather than deleted.
+    """
+    header = JanusSettings().header
+    assert header == [
+        "name",
+        "type",
+        "no",
+        "Asp. Rack",
+        "Asp. Posi",
+        "Dsp. Rack",
+        "Dsp. Posi",
+        "volume",
+    ]
+    assert len(header) == len(set(header))
+    assert not [c for c in header if "class" in c.lower()]
 
 
-def test_device9_row_values(tmp_path: Path) -> None:
-    out = tmp_path / "device9_rows.csv"
+def test_instrument_row_values(tmp_path: Path) -> None:
+    out = tmp_path / "device_rows.csv"
     replicates = [
         _make_replicate("HIGH", "NB01", "5_7", size_kb=300.0),
         _make_replicate("LOW", "NB03", "8_12", size_kb=10.0),
@@ -315,23 +335,37 @@ def test_device9_row_values(tmp_path: Path) -> None:
     with out.open(encoding="utf-8") as fh:
         rows = list(csv.reader(fh))[1:]
 
-    # Two plates in the run, so they take racks 1 and 2 and the destination 3.
+    # Two plates in the run, so they are the first and second stock plate and
+    # everything goes into the one culture plate.
     assert rows[0] == [
-        "HIGH", "glycerol stock", "Cell 100ul", "1", "1", "E7", "3", "A1", "75.0",
+        "HIGH", "glycerol stock", "1", "Stock plate1", "E7",
+        "final culture plate", "A1", "75.0",
     ]
     # `no` counts up in the sorted order, so the sheet carries the pick priority.
     assert rows[1] == [
-        "LOW", "glycerol stock", "Cell 100ul", "2", "2", "H12", "3", "B1", "75.0",
+        "LOW", "glycerol stock", "2", "Stock plate2", "H12",
+        "final culture plate", "B1", "75.0",
     ]
 
 
-def test_device9_defaults_ask_the_operator_for_nothing_but_volume() -> None:
+def test_instrument_defaults_ask_the_operator_for_nothing_but_volume() -> None:
     settings = JanusSettings()
     assert settings.volume == DEFAULT_VOLUME_UL
     assert settings.sample_type == DEFAULT_SAMPLE_TYPE
-    # No stored deck: the numbers come from the plates of the run.
+    # No stored deck: the plate names come from the plates of the run.
     assert settings.rack_map == {}
     assert settings.dest_rack is None
+
+
+def test_the_shipped_sample_type_is_the_workbook_word() -> None:
+    """``cell stock`` is what the seeding workbook writes in the type column.
+
+    The constant is compared to a literal because the assert above compares it
+    to itself and so holds for any word, and because
+    ``scripts/sync-check-janus-defaults.mjs`` only proves the TypeScript and
+    Python sides agree: both could move together with every gate green.
+    """
+    assert DEFAULT_SAMPLE_TYPE == "cell stock"
 
 
 def test_the_shipped_volume_is_the_lab_value(tmp_path: Path) -> None:
@@ -354,41 +388,89 @@ def test_the_shipped_volume_is_the_lab_value(tmp_path: Path) -> None:
 
     with out.open(encoding="utf-8") as fh:
         body = list(csv.reader(fh))[1:]
-    assert body[0][8] == "70.0"
+    assert body[0][7] == "70.0"
 
 
-def test_deck_numbers_follow_the_plates_of_the_run() -> None:
-    """The KURO convention (sources first in plate order, destination next).
+def test_plate_names_follow_the_plates_of_the_run() -> None:
+    """Sources are named in plate order; everything shares one culture plate.
 
     ``sort_barcode07/08/09`` is the run that produced no file at all before this:
-    none of its plates appeared in the fixed NB01/NB02/NB03 map.
+    none of its plates appeared in the fixed NB01/NB02/NB03 map. The input is
+    given out of order to show the sort, not the argument order, decides.
     """
     racks, dest = JanusSettings().resolve_deck(["NB09", "NB07", "NB08"])
-    assert racks == {"NB07": 1, "NB08": 2, "NB09": 3}
-    assert dest == 4
+    assert racks == {
+        "NB07": "Stock plate1",
+        "NB08": "Stock plate2",
+        "NB09": "Stock plate3",
+    }
+    assert dest == "final culture plate"
 
 
-def test_operator_rack_numbers_override_the_derived_ones() -> None:
+def test_the_stock_plate_number_is_a_rank_not_a_plate_number() -> None:
+    """The trap in the naming rule, given its own case.
+
+    Every other fixture here uses NB01, NB02, NB03, where the rank and the plate
+    number agree, so all of them would pass a writer that read the digits off
+    the barcode instead of counting. A run of NB07 and NB10 separates the two:
+    the plates are the first and second of the run, not the seventh and tenth.
+    """
+    racks, dest = JanusSettings().resolve_deck(["NB10", "NB07"])
+    assert racks == {"NB07": "Stock plate1", "NB10": "Stock plate2"}
+    assert dest == "final culture plate"
+
+
+def test_plates_are_ordered_numerically_not_as_text() -> None:
+    """Unpadded labels are the only input where the two orders disagree.
+
+    ``nb_label`` copies the digit run verbatim, so a run folder written without
+    zero padding gives NB9 rather than NB09. Padded labels hide the question
+    entirely, since "NB07" sorts before "NB10" as text as well as by value; only
+    an unpadded pair separates the rules, because "NB10" sorts before "NB9" as
+    text and would make the tenth plate the first stock plate.
+    """
+    racks, _ = JanusSettings().resolve_deck(["NB10", "NB9"])
+    assert racks == {"NB9": "Stock plate1", "NB10": "Stock plate2"}
+
+
+def test_operator_plate_names_override_the_derived_ones() -> None:
     racks, dest = JanusSettings(
-        source_racks=(("NB08", 6),), dest_rack=9
+        source_racks=(("NB08", "spare stock plate"),), dest_rack="assay plate"
     ).resolve_deck(["NB07", "NB08", "NB09"])
-    assert racks == {"NB07": 1, "NB08": 6, "NB09": 3}
-    assert dest == 9
+    assert racks == {
+        "NB07": "Stock plate1",
+        "NB08": "spare stock plate",
+        "NB09": "Stock plate3",
+    }
+    assert dest == "assay plate"
 
 
-def test_a_blank_liquid_class_still_writes_the_file(tmp_path: Path) -> None:
-    """Blocking over it left the lab with no mapping file; the column ships blank."""
+def test_the_liquid_class_reaches_no_cell(tmp_path: Path) -> None:
+    """The sheet has no column for it, and the format is followed exactly.
+
+    Checking every cell rather than the column it used to sit in is what
+    catches it reappearing somewhere else.
+    """
     out = tmp_path / "no_class.csv"
-    export_mame_janus_csv([_make_replicate("V5F", "NB01", "1_1")], out)
+    export_mame_janus_csv([_make_replicate("V5F", "NB01", "1_1")], out, settings=_DEVICE)
     with out.open(encoding="utf-8") as fh:
-        body = list(csv.reader(fh))[1:]
-    assert body[0][2] == ""
+        rows = list(csv.reader(fh))
+
+    assert _DEVICE.liquid_class
+    assert not [r for r in rows if _DEVICE.liquid_class in r]
 
 
-def test_a_blank_liquid_class_is_a_warning_not_an_error() -> None:
+def test_a_blank_liquid_class_is_not_reported_at_all() -> None:
+    """Warning about a value that reaches no file is noise, so the warning went.
+
+    It used to be reported so the operator knew the third column would ship
+    blank. There is no such column now, so the report described nothing the
+    operator could act on.
+    """
     preview = build_janus_preview_rows([_make_replicate("V5F", "NB01", "1_1")])
     assert preview["errors"] == []
-    assert "missing_liquid_class" in [w["code"] for w in preview["warnings"]]  # type: ignore[union-attr]
+    codes = [w["code"] for w in preview["warnings"]]  # type: ignore[union-attr]
+    assert "missing_liquid_class" not in codes
 
 
 def test_missing_liquid_class_does_not_block_the_legacy_schema(tmp_path: Path) -> None:
@@ -404,19 +486,21 @@ def test_missing_liquid_class_does_not_block_the_legacy_schema(tmp_path: Path) -
         ]
 
 
-def test_a_plate_outside_the_stored_deck_still_gets_a_rack(tmp_path: Path) -> None:
+def test_a_plate_outside_the_stored_deck_still_gets_a_name(tmp_path: Path) -> None:
     """The v0.15.6 failure: a run whose plates the stored map does not name."""
     out = tmp_path / "unmapped.csv"
-    settings = JanusSettings(liquid_class="Cell", source_racks=(("NB01", 1),))
+    settings = JanusSettings(
+        liquid_class="Cell", source_racks=(("NB01", "some other plate"),)
+    )
     export_mame_janus_csv(
         [_make_replicate("ONP2", "NB02", "1_1")], out, settings=settings
     )
     with out.open(encoding="utf-8") as fh:
         body = list(csv.reader(fh))[1:]
-    # NB02 is the only plate of this run, so it takes rack 1 unless the operator
-    # said otherwise, and the destination takes the next number.
-    assert body[0][4] == "1"
-    assert body[0][6] == "2"
+    # NB02 is the only plate of this run, so it is the first stock plate unless
+    # the operator said otherwise, and the destination is the culture plate.
+    assert body[0][3] == "Stock plate1"
+    assert body[0][5] == "final culture plate"
 
 
 def test_invalid_output_schema_is_rejected() -> None:
@@ -432,13 +516,17 @@ def test_non_positive_volume_is_rejected() -> None:
 @pytest.mark.parametrize(
     "kwargs, message",
     [
-        ({"source_racks": (("NB01", 1.9),)}, "Invalid source rack number"),
-        ({"source_racks": (("NB01", True),)}, "Invalid source rack number"),
-        ({"dest_rack": 4.7}, "Invalid dest_rack"),
-        ({"dest_rack": False}, "Invalid dest_rack"),
+        # A deck stored while the columns carried numbers holds integers. Inside
+        # the process that is a programming error and must fail loudly; the
+        # handler at the wire edge drops the same value instead, so a stale
+        # client still gets a file. See test_export_janus_handler.py.
+        ({"source_racks": (("NB01", 1),)}, "Invalid source plate name"),
+        ({"source_racks": (("NB01", ""),)}, "Invalid source plate name"),
+        ({"dest_rack": 4}, "Invalid dest_rack"),
+        ({"dest_rack": "   "}, "Invalid dest_rack"),
     ],
 )
-def test_device9_rack_numbers_must_be_positive_integers(kwargs, message: str) -> None:
+def test_instrument_plate_names_must_be_non_empty_strings(kwargs, message: str) -> None:
     with pytest.raises(ValueError, match=message):
         JanusSettings(liquid_class="Cell", **kwargs)
 
@@ -479,7 +567,7 @@ def test_preview_reports_the_settings_it_used() -> None:
     preview = build_janus_preview_rows([], settings=_DEVICE)
     reported = preview["settings"]
 
-    assert reported["output_schema"] == "device9"  # type: ignore[index]
+    assert reported["output_schema"] == "device"  # type: ignore[index]
     assert reported["liquid_class"] == "Cell 100ul"  # type: ignore[index]
     assert reported["volume"] == DEFAULT_VOLUME_UL  # type: ignore[index]
     assert reported["columns"] == JanusSettings(liquid_class="x").header  # type: ignore[index]

@@ -683,7 +683,7 @@
         "outputPathPlaceholder": "Pfad zur .csv-Zieldatei",
         "outputPathAriaLabel": "Ausgabe Datei Pfad für Janus mapping",
         "browseAriaLabel": "Durchsuchen speichern Pfad für Janus mapping",
-        "columnsNote": "Spalten: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+        "columnsNote": "Spalten: name, type, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
         "exportJanus": "Janus-Mapping exportieren",
         "exporting": "Exportiere…",
         "exported": "Erfolgreich exportiert",
@@ -700,13 +700,9 @@
         "volumeHint": "Wird in die Geräte-Mapping-Datei geschrieben, die dieser Export erzeugt.",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "z. B. Cell 100ul",
-        "liquidClassHint": "Die Liquid Class bestimmt das Pipettierverhalten des Roboters, daher gibt es keinen Standardwert. Leer gelassen bleibt die Spalte leer und der Export laeuft trotzdem.",
-        "deckHeading": "Deck-Konfiguration",
+        "liquidClassHint": "Die Liquid Class bestimmt das Pipettierverhalten des Roboters, daher gibt es keinen Standardwert. Der Wert wird zum Lauf vermerkt, aber nicht geschrieben: das Geräteblatt hat keine Spalte dafür.",
         "sampleTypeLabel": "type-Spaltenwert",
-        "sourceRackLabel": "Asp. Rack {{plate}}",
-        "destRackLabel": "Dsp. Rack",
-        "rackHint": "Racknummern folgen den Platten dieses Laufs: Quellplatten belegen die ersten Racks in Plattenreihenfolge, das Ziel das naechste, wie im KURO Primerblatt. Zum Ueberschreiben eine Zahl eingeben.",
-        "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
+        "plateNamesNote": "Asp. Rack und Dsp. Rack enthalten Plattennamen, die aus den Platten dieses Laufs erzeugt werden, keine Decknummern. Hier nachlesen und das Deck entsprechend beschriften.",
         "excludedHeading": "Ausgeschlossen: {{count}}",
         "excludedNone": "Kein Klon wurde ausgeschlossen.",
         "excludedReason": {
@@ -827,7 +823,7 @@
     "janus": {
       "settings": {
         "contextTitle": "Janus-Geräteeinstellungen",
-        "contextSubtitle": "Transfervolumen, Deck-Racks und Liquid Class, aus denen das Geräte-Mapping geschrieben wird. Optional: ein Lauf, der nur Sequenzierung braucht, kann diesen Schritt überspringen.",
+        "contextSubtitle": "Transfervolumen, Liquid Class und type-Spaltenwert, aus denen das Geräte-Mapping geschrieben wird. Optional: ein Lauf, der nur Sequenzierung braucht, kann diesen Schritt überspringen.",
         "optionalNote": "Dieser Schritt ist optional. Ein Analyselauf schreibt die Pickliste von selbst; das Geraete-Mapping wird nur geschrieben, wenn es hier exportiert wird. Ein Lauf, der nur Sequenzier-Verdicts braucht, kann daher von Schritt 2 direkt zu Schritt 4 gehen.",
         "inspectorTitle": "Geräte-Inspector",
         "inspectorSubtitle": "Werte, aus denen das Mapping geschrieben wird",
@@ -999,7 +995,7 @@
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
       },
       "janusMappingAutosave": {
-        "saved": "Geraete-Mapping neben der Ergebnisdatei gespeichert ({{rows}} Zeilen), in den 9 Spalten, die der Roboter liest.",
+        "saved": "Geraete-Mapping neben der Ergebnisdatei gespeichert ({{rows}} Zeilen), in den 8 Spalten, die der Roboter liest.",
         "skipped": "Kein Klon erfuellte die Auswahlkriterien, daher wurde kein Geraete-Mapping geschrieben.",
         "failed": "Das Geraete-Mapping wurde nicht geschrieben.",
         "excluded": "{{clones}} Klon(e) nicht im Mapping. Gruende in den Janus Geraeteeinstellungen."
@@ -2559,7 +2555,7 @@
         "mergeExport": "Führen Sie die Aktivitätsdaten mit den Genotyp-Calls zusammen und exportieren Sie die Tabelle; erstellen Sie dann die EVOLVEpro-Eingabe, indem Sie Einzelreplikat- (GC) und Dreifachreplikat-Aktivität (WT-relativ) kombinieren."
       },
       "janus": {
-        "settings": "JANUS-Zellstock-Mapping vorbereiten: Transfervolumen, Deck-Rack-Nummern und Liquid Class. Optional — nichts davon blockiert einen Lauf."
+        "settings": "JANUS-Zellstock-Mapping vorbereiten: Transfervolumen, Liquid Class und type-Spaltenwert. Optional, nichts davon blockiert einen Lauf."
       }
     },
     "summary": {

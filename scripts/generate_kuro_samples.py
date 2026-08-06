@@ -12,8 +12,14 @@ Outputs (under src-tauri/samples/kuro/dmpR_sample_20260519/):
     run.json
 
 Inputs (reuse existing fixtures, not fabricated):
-    fixtures/pSHCE-dmpR.fa
+    fixtures/pSHCE-dmpR.gb
     fixtures/mutation_list_insilico_test.csv
+
+The sequence input is the GenBank record rather than the FASTA beside it
+because ``load_sequence`` now refuses a file that carries no CDS annotation.
+The two hold the same sequence, so the designed primers are unchanged: the
+first run off the GenBank record reproduced the committed echo.csv and
+primers.fasta byte for byte.
 
 Idempotent: removes the target subfolder before regenerating so re-runs
 produce identical output. The 6 (plus xlsx variants = 8) flat files are
@@ -47,7 +53,7 @@ from sidecar_kuro.handlers.export import handle_export_all  # noqa: E402
 
 PROJECT_NAME = "dmpR_sample"
 TARGET_START = 1790  # CDS start of DmpR in pSHCE-dmpR (tests/conftest.py)
-FASTA = _REPO_ROOT / "fixtures" / "pSHCE-dmpR.fa"
+FASTA = _REPO_ROOT / "fixtures" / "pSHCE-dmpR.gb"
 MUTATIONS_CSV = _REPO_ROOT / "fixtures" / "mutation_list_insilico_test.csv"
 OUT_DIR = _REPO_ROOT / "src-tauri" / "samples" / "kuro"
 

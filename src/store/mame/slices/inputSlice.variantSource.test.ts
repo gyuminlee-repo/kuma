@@ -224,7 +224,7 @@ describe("mame inputSlice variant source", () => {
       janus_settings: Record<string, unknown>;
     };
     expect(params.janus_settings.liquid_class).toBe("Cells_100");
-    expect(params.janus_settings.output_schema).toBe("device9");
+    expect(params.janus_settings.output_schema).toBe("device");
   });
 
   it("keeps what became of that mapping instead of dropping it", async () => {

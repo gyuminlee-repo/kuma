@@ -683,7 +683,7 @@
         "outputPathPlaceholder": "Caminho do arquivo .csv de destino",
         "outputPathAriaLabel": "Caminho do arquivo de saída para o mapeamento Janus",
         "browseAriaLabel": "Procurar caminho de salvamento para o mapeamento Janus",
-        "columnsNote": "Colunas: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+        "columnsNote": "Colunas: name, type, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
         "exportJanus": "Exportar mapeamento Janus",
         "exporting": "Exportando…",
         "exported": "Exportado com sucesso",
@@ -700,13 +700,9 @@
         "volumeHint": "Gravado no arquivo de mapeamento do instrumento que esta exportação produz.",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "ex.: Cell 100ul",
-        "liquidClassHint": "A liquid class define o comportamento de pipetagem do robo, por isso nao ha valor padrao. Em branco, a coluna sai vazia e a exportacao prossegue.",
-        "deckHeading": "Configuração do deck",
+        "liquidClassHint": "A liquid class define o comportamento de pipetagem do robô, por isso não há valor padrão. Ela fica registrada com a execução mas não é gravada: a folha do instrumento não tem coluna para ela.",
         "sampleTypeLabel": "valor da coluna type",
-        "sourceRackLabel": "Asp. Rack {{plate}}",
-        "destRackLabel": "Dsp. Rack",
-        "rackHint": "Os numeros de rack seguem as placas desta execucao: as placas de origem ocupam os primeiros racks na ordem das placas e o destino o seguinte, como na folha de primers do KURO. Digite um numero para sobrescrever.",
-        "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
+        "plateNamesNote": "Asp. Rack e Dsp. Rack trazem nomes de placa gerados a partir das placas desta execução, não números de deck. Confira-os aqui e rotule o deck da mesma forma.",
         "excludedHeading": "Excluídos: {{count}}",
         "excludedNone": "Nenhum clone foi excluído.",
         "excludedReason": {
@@ -827,7 +823,7 @@
     "janus": {
       "settings": {
         "contextTitle": "Configurações do instrumento Janus",
-        "contextSubtitle": "Volume de transferência, racks do deck e liquid class usados para escrever o mapeamento do instrumento. Opcional: uma execução apenas de sequenciamento pode pular esta etapa.",
+        "contextSubtitle": "Volume de transferência, liquid class e valor da coluna type usados para escrever o mapeamento do instrumento. Opcional: uma execução apenas de sequenciamento pode pular esta etapa.",
         "optionalNote": "Esta etapa e opcional. Uma execucao de analise escreve sozinha a lista de picks; o mapeamento do instrumento so e escrito ao ser exportado aqui, entao uma execucao que so precisa dos verdicts de sequenciamento vai da etapa 2 direto para a etapa 4.",
         "inspectorTitle": "Inspector do instrumento",
         "inspectorSubtitle": "Valores usados para escrever o mapeamento",
@@ -999,7 +995,7 @@
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
       },
       "janusMappingAutosave": {
-        "saved": "Mapeamento do instrumento gravado ao lado da planilha de resultados ({{rows}} linhas), nas 9 colunas que o robo le.",
+        "saved": "Mapeamento do instrumento gravado ao lado da planilha de resultados ({{rows}} linhas), nas 8 colunas que o robo le.",
         "skipped": "Nenhum clone atendeu aos criterios de selecao, portanto nenhum mapeamento do instrumento foi gravado.",
         "failed": "O mapeamento do instrumento nao foi gravado.",
         "excluded": "{{clones}} clone(s) ficaram fora do mapeamento. Abra as configuracoes do instrumento Janus para ver o motivo."
@@ -2559,7 +2555,7 @@
         "mergeExport": "Combine os dados de atividade com as chamadas de genótipo e exporte a tabela combinada; em seguida, crie a entrada do EVOLVEpro combinando a atividade de réplica única (GC) e de tripla réplica (relativa ao WT)."
       },
       "janus": {
-        "settings": "Prepare o mapeamento de estoques celulares do JANUS: volume de transferência, números de rack do deck e liquid class. Opcional — nada aqui bloqueia uma execução."
+        "settings": "Prepare o mapeamento de estoques celulares do JANUS: volume de transferência, liquid class e valor da coluna type. Opcional, nada aqui bloqueia uma execução."
       }
     },
     "summary": {

@@ -683,7 +683,7 @@
         "outputPathPlaceholder": "Путь к целевому файлу .csv",
         "outputPathAriaLabel": "Путь к выходному файлу Janus mapping",
         "browseAriaLabel": "Выбрать путь сохранения Janus mapping",
-        "columnsNote": "Столбцы: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+        "columnsNote": "Столбцы: name, type, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
         "exportJanus": "Экспорт Janus Mapping",
         "exporting": "Экспорт…",
         "exported": "Экспорт успешно завершён",
@@ -700,13 +700,9 @@
         "volumeHint": "Записывается в файл карты для прибора, который создаёт этот экспорт.",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "например, Cell 100ul",
-        "liquidClassHint": "Liquid class opredelyaet povedenie pipetirovaniya robota, poetomu znachenie po umolchaniyu ne zadayotsya. Ostavlennyi pustym stolbets ostayotsya pustym, a eksport prodolzhaetsya.",
-        "deckHeading": "Конфигурация deck",
+        "liquidClassHint": "Liquid class определяет поведение пипетирования робота, поэтому значение по умолчанию не задаётся. Оно сохраняется вместе с запуском, но не записывается: в листе для прибора нет такого столбца.",
         "sampleTypeLabel": "значение столбца type",
-        "sourceRackLabel": "Asp. Rack {{plate}}",
-        "destRackLabel": "Dsp. Rack",
-        "rackHint": "Nomera rack sleduyut plastinam etogo zapuska: iskhodnye plastiny zanimayut pervye rack v poryadke plastin, a naznachenie sleduyushchii, kak v liste praimerov KURO. Vvedite chislo, chtoby zamenit.",
-        "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
+        "plateNamesNote": "В Asp. Rack и Dsp. Rack попадают имена планшетов, созданные из планшетов этого запуска, а не номера deck. Проверьте их здесь и подпишите deck так же.",
         "excludedHeading": "Исключено: {{count}}",
         "excludedNone": "Ни один клон не исключён.",
         "excludedReason": {
@@ -827,7 +823,7 @@
     "janus": {
       "settings": {
         "contextTitle": "Настройки прибора Janus",
-        "contextSubtitle": "Объём переноса, стойки дека и liquid class, из которых записывается карта для прибора. Необязательно: запуск только для секвенирования может пропустить этот шаг.",
+        "contextSubtitle": "Объём переноса, liquid class и значение столбца type, из которых записывается карта для прибора. Необязательно: запуск только для секвенирования может пропустить этот шаг.",
         "optionalNote": "Этот шаг необязателен. Запуск анализа сам записывает список пиков; карта для прибора записывается только при экспорте здесь, поэтому запуск, которому нужны только вердикты секвенирования, переходит с шага 2 сразу к шагу 4.",
         "inspectorTitle": "Inspector прибора",
         "inspectorSubtitle": "Значения, из которых записывается карта",
@@ -999,7 +995,7 @@
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
       },
       "janusMappingAutosave": {
-        "saved": "Kartu dlya pribora zapisali ryadom s knigoi rezultatov ({{rows}} strok) v 9 stolbtsakh, kotorye chitaet robot.",
+        "saved": "Kartu dlya pribora zapisali ryadom s knigoi rezultatov ({{rows}} strok) v 8 stolbtsakh, kotorye chitaet robot.",
         "skipped": "Ni odin klon ne proshel kriterii otbora, poetomu karta dlya pribora ne zapisana.",
         "failed": "Kartu dlya pribora zapisat ne udalos.",
         "excluded": "{{clones}} klon(ov) ne voshli v kartu. Otkroite nastroiki pribora Janus, chtoby uznat prichinu."
@@ -2559,7 +2555,7 @@
         "mergeExport": "Объедините данные активности с вызовами генотипа и экспортируйте таблицу, затем создайте входные данные EVOLVEpro, объединив активность с одной репликой (GC) и тремя репликами (относительно WT)."
       },
       "janus": {
-        "settings": "Подготовьте карту клеточных стоков JANUS: объём переноса, номера стоек дека и liquid class. Необязательно — ничто здесь не блокирует запуск."
+        "settings": "Подготовьте карту клеточных стоков JANUS: объём переноса, liquid class и значение столбца type. Необязательно, ничто здесь не блокирует запуск."
       }
     },
     "summary": {

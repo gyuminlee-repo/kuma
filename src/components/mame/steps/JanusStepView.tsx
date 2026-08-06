@@ -9,14 +9,14 @@
  * The step stays optional in the strict sense: nothing here gates a run and
  * nothing downstream gates on it. An analyze run writes `..._picks.csv` on its
  * own from whatever is stored (the selection, `legacy5`); the instrument
- * mapping (`..._janus.csv`, `device9`) is written only from here, by the export
+ * mapping (`..._janus.csv`, `device`) is written only from here, by the export
  * button in `JanusMappingPanel` below, because a robot worklist states a deck
  * and a liquid class that describe the room at export time, and analyze has no
  * reason to assert either on every re-run.
  *
  * What lives here:
  *   - what the last run did with the pick list it writes automatically
- *   - the mapping panel (transfer volume, liquid class, deck rack numbers, row
+ *   - the mapping panel (transfer volume, liquid class, the `type` column, row
  *     preview, excluded clones, and the mapping export itself). Used to be a
  *     dialog opened from a button here; step 3 is already a dedicated screen,
  *     so it is inlined now.

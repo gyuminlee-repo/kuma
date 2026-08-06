@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from kuma_core.shared.janus_deck import (
-    JANUS_DEVICE9_HEADER,
+    JANUS_DEVICE_HEADER,
     KURO_PRIMER_DECK,
     JanusDeck,
 )
@@ -868,14 +868,15 @@ def export_echo_mapping_csv(
                 ])
 
 
-# Row dict key per instrument column, in ``JANUS_DEVICE9_HEADER`` order. The
-# header repeats ``Dsp. Rack``, so the header itself cannot key a dict; this
-# list is what lets every writer emit the nine columns in one order without
-# restating them.
+# Row dict key per instrument column, in ``JANUS_DEVICE_HEADER`` order. The
+# header carries the instrument spellings ("Asp. Rack") while the row dicts are
+# keyed by the sidecar preview field names, so neither can be derived from the
+# other. This list is the single place the two orders are tied together, which
+# is what lets the CSV, the XLSX sheet and the preview emit the same eight
+# columns without any of them restating the order.
 _JANUS_ROW_KEYS: list[str] = [
     "name",
     "type",
-    "dsp_rack_label",
     "no",
     "asp_rack",
     "asp_posi",
@@ -904,15 +905,17 @@ def build_janus_rows(
     Keys are the sidecar preview field names, plus:
       - ``mutation``: the mutation the row belongs to (not an instrument column).
       - ``role``: ``"fwd"`` or ``"rev"``. Stated so consumers do not have to
-        infer direction from the rack number, which is deck policy and not a
-        stable direction marker.
+        infer direction from the source plate name, which is deck policy and not
+        a stable direction marker.
 
     Args:
         fwd_mappings: Forward primer plate mappings.
         rev_mappings: Deduplicated reverse primer plate mappings.
         rev_groups: Reverse deduplication map {seq: [mutation_names]}.
         transfer_vol: Dispense volume in µL.
-        deck: Rack/liquid-class policy. Defaults to the KURO primer deck.
+        deck: Plate-name and sample-type policy. Defaults to the KURO primer
+            deck. ``deck.liquid_class`` is not written: the sheet has no column
+            for it.
     """
     fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
         fwd_mappings, rev_mappings, rev_groups,
@@ -925,7 +928,6 @@ def build_janus_rows(
         rows.append({
             "name": f"{m.mutation}-F",
             "type": deck.sample_type,
-            "dsp_rack_label": deck.liquid_class,
             "no": seq_no,
             "asp_rack": deck.fwd_rack,
             "asp_posi": m.well,
@@ -949,7 +951,6 @@ def build_janus_rows(
         rows.append({
             "name": f"{fwd_m.mutation}-R",
             "type": deck.sample_type,
-            "dsp_rack_label": deck.liquid_class,
             "no": seq_no,
             "asp_rack": deck.rev_rack,
             "asp_posi": rev_m.well,
@@ -965,7 +966,7 @@ def build_janus_rows(
 
 
 def janus_row_values(row: dict) -> list:
-    """Flatten one ``build_janus_rows`` dict into ``JANUS_DEVICE9_HEADER`` order."""
+    """Flatten one ``build_janus_rows`` dict into ``JANUS_DEVICE_HEADER`` order."""
     return [row[key] for key in _JANUS_ROW_KEYS]
 
 
@@ -982,7 +983,7 @@ def export_janus_mapping_csv(
 
     Rows come from :func:`build_janus_rows`, so this file, the XLSX
     "primer_mapping file" sheet and the sidecar preview always describe the same
-    transfers. Which rack holds what is the *deck* argument, not a literal here.
+    transfers. Which plate holds what is the *deck* argument, not a literal here.
 
     Shared reverse primers produce one row per destination well,
     all aspirating from the same source position.
@@ -994,7 +995,8 @@ def export_janus_mapping_csv(
         transfer_vol: Dispense volume in µL (default 2.0).
         rev_groups: Reverse deduplication map {seq: [mutation_names]}.
         encoding: File encoding (default "utf-8"; use "utf-8-sig" for BOM).
-        deck: Rack/liquid-class policy. Defaults to the KURO primer deck.
+        deck: Plate-name and sample-type policy. Defaults to the KURO primer
+            deck.
     """
     import csv
 
@@ -1004,7 +1006,7 @@ def export_janus_mapping_csv(
 
     with open(output_path, "w", newline="", encoding=encoding) as f:
         writer = csv.writer(f)
-        writer.writerow(JANUS_DEVICE9_HEADER)
+        writer.writerow(JANUS_DEVICE_HEADER)
         for row in rows:
             writer.writerow(janus_row_values(row))
 
@@ -1377,7 +1379,7 @@ def export_janus_mapping_xlsx(
     # ---- Sheet 2: primer_mapping file ----
     ws2 = wb.create_sheet("primer_mapping file")
     header_fill = PatternFill(start_color="D9E1F2", fill_type="solid")
-    for col_idx, h in enumerate(JANUS_DEVICE9_HEADER, 1):
+    for col_idx, h in enumerate(JANUS_DEVICE_HEADER, 1):
         cell = ws2.cell(row=1, column=col_idx, value=h)
         cell.font = bold
         cell.fill = header_fill

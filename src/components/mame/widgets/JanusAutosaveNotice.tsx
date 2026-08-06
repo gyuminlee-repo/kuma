@@ -8,12 +8,12 @@
  *    to be as visible as presence: a run that reports "Analysis complete"
  *    while the file silently failed sends somebody to a folder with nothing
  *    in it.
- *  - the instrument mapping (`..._janus.csv`, the 9-column sheet the robot
+ *  - the instrument mapping (`..._janus.csv`, the 8-column sheet the robot
  *    reads) is written only when the operator exports one from the step 3
- *    mapping panel. Whatever it left blank or derived (deck numbers, an unset
- *    liquid class) comes back in `warnings` and is shown here, because a
- *    value nobody set is exactly what the operator has to know before the
- *    sheet reaches the robot.
+ *    mapping panel. Whatever it derived rather than being told (the plate
+ *    names in the two rack columns, generated from the plates of the run)
+ *    comes back in `warnings` and is shown here, because a value nobody set is
+ *    exactly what the operator has to know before the sheet reaches the robot.
  *
  * Three outcomes, three tones:
  *   "saved"    path and pick count.

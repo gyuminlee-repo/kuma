@@ -1,21 +1,21 @@
-name,type,Dsp. Rack,no,Asp. Rack,Asp. Posi,Dsp. Rack,Dsp. Posi,volume
-Q232A-fw,primer,Oligo 5pmol/ul,1,1,A1,2,A1,2.0
-Y233A-fw,primer,Oligo 5pmol/ul,2,1,B1,2,B1,2.0
-E335A-fw,primer,Oligo 5pmol/ul,3,1,C1,2,C1,2.0
-K200A-fw,primer,Oligo 5pmol/ul,4,1,D1,2,D1,2.0
-F203A-fw,primer,Oligo 5pmol/ul,5,1,E1,2,E1,2.0
-D227A-fw,primer,Oligo 5pmol/ul,6,1,F1,2,F1,2.0
-G237A-fw,primer,Oligo 5pmol/ul,7,1,G1,2,G1,2.0
-P240A-fw,primer,Oligo 5pmol/ul,8,1,H1,2,H1,2.0
-Y155A-fw,primer,Oligo 5pmol/ul,9,1,A2,2,A2,2.0
-C175A-fw,primer,Oligo 5pmol/ul,10,1,B2,2,B2,2.0
-Q232A-rv,primer,Oligo 5pmol/ul,11,2,A1,2,A1,2.0
-Y233A-rv,primer,Oligo 5pmol/ul,12,2,B1,2,B1,2.0
-E335A-rv,primer,Oligo 5pmol/ul,13,2,C1,2,C1,2.0
-K200A-rv,primer,Oligo 5pmol/ul,14,2,D1,2,D1,2.0
-F203A-rv,primer,Oligo 5pmol/ul,15,2,E1,2,E1,2.0
-D227A-rv,primer,Oligo 5pmol/ul,16,2,F1,2,F1,2.0
-G237A-rv,primer,Oligo 5pmol/ul,17,2,G1,2,G1,2.0
-P240A-rv,primer,Oligo 5pmol/ul,18,2,H1,2,H1,2.0
-Y155A-rv,primer,Oligo 5pmol/ul,19,2,A2,2,A2,2.0
-C175A-rv,primer,Oligo 5pmol/ul,20,2,B2,2,B2,2.0
+name,type,no,Asp. Rack,Asp. Posi,Dsp. Rack,Dsp. Posi,volume
+Q232A-F,primer,1,fw plate,A1,PCR mixture plate,A1,2.0
+Y233A-F,primer,2,fw plate,B1,PCR mixture plate,B1,2.0
+E335A-F,primer,3,fw plate,C1,PCR mixture plate,C1,2.0
+K200A-F,primer,4,fw plate,D1,PCR mixture plate,D1,2.0
+F203A-F,primer,5,fw plate,E1,PCR mixture plate,E1,2.0
+D227A-F,primer,6,fw plate,F1,PCR mixture plate,F1,2.0
+G237A-F,primer,7,fw plate,G1,PCR mixture plate,G1,2.0
+P240A-F,primer,8,fw plate,H1,PCR mixture plate,H1,2.0
+Y155A-F,primer,9,fw plate,A2,PCR mixture plate,A2,2.0
+C175A-F,primer,10,fw plate,B2,PCR mixture plate,B2,2.0
+Q232A-R,primer,11,rv plate,A1,PCR mixture plate,A1,2.0
+Y233A-R,primer,12,rv plate,B1,PCR mixture plate,B1,2.0
+E335A-R,primer,13,rv plate,C1,PCR mixture plate,C1,2.0
+K200A-R,primer,14,rv plate,D1,PCR mixture plate,D1,2.0
+F203A-R,primer,15,rv plate,E1,PCR mixture plate,E1,2.0
+D227A-R,primer,16,rv plate,F1,PCR mixture plate,F1,2.0
+G237A-R,primer,17,rv plate,G1,PCR mixture plate,G1,2.0
+P240A-R,primer,18,rv plate,H1,PCR mixture plate,H1,2.0
+Y155A-R,primer,19,rv plate,A2,PCR mixture plate,A2,2.0
+C175A-R,primer,20,rv plate,B2,PCR mixture plate,B2,2.0

@@ -758,8 +758,9 @@ def _build_janus_preview_rows(
 
     Delegates to ``build_janus_rows``, the same builder the CSV and XLSX
     exports use, so the preview cannot describe a different run than the file
-    the operator ends up loading onto the instrument. Rack numbers and the
-    liquid class come from the deck policy, not from literals here.
+    the operator ends up loading onto the instrument. The plate names written
+    into ``Asp. Rack`` and ``Dsp. Rack`` come from the deck policy, not from
+    literals here.
 
     ``mapping_range`` is accepted for parity with the Echo dry-run preview but
     JANUS layout uses 96-well source/dest so the range only flows through

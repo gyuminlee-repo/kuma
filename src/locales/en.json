@@ -218,7 +218,7 @@
         "excluded": "{{clones}} clone(s) left out of the selection. Open Janus instrument settings to see why."
       },
       "janusMappingAutosave": {
-        "saved": "Instrument mapping written next to the result workbook ({{rows}} rows), in the 9 columns the robot reads.",
+        "saved": "Instrument mapping written next to the result workbook ({{rows}} rows), in the 8 columns the robot reads.",
         "skipped": "No clone met the selection criteria, so no instrument mapping was written.",
         "failed": "The instrument mapping was not written.",
         "excluded": "{{clones}} clone(s) left out of the mapping. Open Janus instrument settings to see why."
@@ -808,7 +808,7 @@
         "outputPathPlaceholder": "Target .csv file path",
         "outputPathAriaLabel": "Output file path for Janus mapping",
         "browseAriaLabel": "Browse save path for Janus mapping",
-        "columnsNote": "Columns: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+        "columnsNote": "Columns: name, type, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
         "exportJanus": "Export Janus Mapping",
         "exporting": "Exporting…",
         "exported": "Exported successfully",
@@ -825,13 +825,9 @@
         "volumeHint": "Written into the instrument mapping file this export produces.",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "e.g. Cell 100ul",
-        "liquidClassHint": "The liquid class drives the pipetting behaviour of the robot, so no default is assumed. Left empty the column ships blank and the export still runs.",
-        "deckHeading": "Deck configuration",
+        "liquidClassHint": "The liquid class drives the pipetting behaviour of the robot, so no default is assumed. It is recorded with the run and nothing is written for it: the instrument sheet has no column for the liquid class.",
         "sampleTypeLabel": "type column",
-        "sourceRackLabel": "Asp. Rack {{plate}}",
-        "destRackLabel": "Dsp. Rack",
-        "rackHint": "Rack numbers follow the plates of this run: source plates take the first racks in plate order and the destination the next, as in the KURO primer sheet. Type a number to override one.",
-        "rackPlatesPending": "Plate names come from the run. Before an analysis this list shows the plates stored earlier; run the analysis to see the plates it actually used.",
+        "plateNamesNote": "Asp. Rack and Dsp. Rack carry plate names generated from the plates of this run, not deck numbers. Read them back here and label the deck to match.",
         "excludedHeading": "Excluded: {{count}}",
         "excludedNone": "Every clone made the pick.",
         "excludedReason": {
@@ -1056,7 +1052,7 @@
     "janus": {
       "settings": {
         "contextTitle": "Janus instrument settings",
-        "contextSubtitle": "Transfer volume, deck racks and liquid class the instrument mapping is written from. Optional: a sequencing-only run can skip this step.",
+        "contextSubtitle": "Transfer volume, liquid class and the type column the instrument mapping is written from. Optional: a sequencing-only run can skip this step.",
         "optionalNote": "This step is optional. An analyze run writes the pick list on its own; the instrument mapping is written only when exported here, so a run that only needs sequencing verdicts can go from step 2 straight to step 4.",
         "inspectorTitle": "Instrument Inspector",
         "inspectorSubtitle": "Values the mapping is written from",
@@ -2614,7 +2610,7 @@
         "files": "Provide the CDS sequence and barcode seeds, set primer design parameters, choose an output folder, and generate the barcode package."
       },
       "janus": {
-        "settings": "Prepare the JANUS cell-stock mapping: transfer volume, deck rack numbers and liquid class. Optional — nothing here gates a run."
+        "settings": "Prepare the JANUS cell-stock mapping: transfer volume, liquid class and the type column. Optional, nothing here gates a run."
       }
     }
   },

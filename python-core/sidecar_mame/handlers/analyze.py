@@ -351,9 +351,9 @@ def _autosave_picks(
     collected), which is what an operator wants beside the workbook every
     time, and it stays readable without a deck in front of you. The
     instrument sheet is a separate file, written only by a manual
-    ``export_janus_mapping`` call (``device9``); a robot worklist states a
-    deck and a liquid class that describe the room at export time, and this
-    automatic write has no reason to assert either on every re-run.
+    ``export_janus_mapping`` call (``device``); a robot worklist states a deck
+    that describes the room at export time, and this automatic write has no
+    reason to assert it on every re-run.
 
     Selection stays under the operator's control: ``dest_layout``,
     ``include_verdicts`` and ``include_fallback`` are honoured, because those
@@ -366,7 +366,7 @@ def _autosave_picks(
 
     try:
         # The schema is pinned before the params are resolved, not overridden
-        # after, so the instrument fields of a device9 dialog (volume, racks)
+        # after, so the instrument fields of a device dialog (volume, racks)
         # cannot fail validation for a file that will not carry them.
         settings = _janus_settings_from_params(
             {**janus_params, "output_schema": SCHEMA_LEGACY5}
@@ -724,11 +724,11 @@ def handle_analyze(params: dict) -> dict:
     the file only ever states the selection, never instrument columns. The
     outcome rides back on ``janus_autosave`` and never raises.
 
-    The instrument mapping (``device9``, the 9-column sheet the robot reads)
-    is not written here. It states a deck and a liquid class that describe the
-    room at the moment it is written, so unlike the pick list it must not be
-    reasserted by every re-run; only a manual ``export_janus_mapping`` call
-    writes it (see ``handlers/export.py``).
+    The instrument mapping (``device``, the 8-column sheet the robot reads) is
+    not written here. It states a deck that describes the room at the moment it
+    is written, so unlike the pick list it must not be reasserted by every
+    re-run; only a manual ``export_janus_mapping`` call writes it (see
+    ``handlers/export.py``).
 
     Optional ``variant_sheet`` / ``variant_column`` name the sheet and column of a
     plain expected-variant list. Omitting both is auto-detection, which leaves a

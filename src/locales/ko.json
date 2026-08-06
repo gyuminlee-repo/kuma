@@ -218,7 +218,7 @@
         "excluded": "{{clones}}개 클론이 선정에서 빠졌습니다. Janus 장비 설정에서 이유를 확인하세요."
       },
       "janusMappingAutosave": {
-        "saved": "장비용 매핑 파일을 결과 워크북 옆에 저장했습니다 ({{rows}}행). 로봇이 읽는 9열 형식입니다.",
+        "saved": "장비용 매핑 파일을 결과 워크북 옆에 저장했습니다 ({{rows}}행). 로봇이 읽는 8열 형식입니다.",
         "skipped": "선정 기준을 통과한 클론이 없어 장비용 매핑 파일을 쓰지 않았습니다.",
         "failed": "장비용 매핑 파일을 쓰지 못했습니다.",
         "excluded": "{{clones}}개 클론이 매핑에서 빠졌습니다. Janus 장비 설정에서 이유를 확인하세요."
@@ -808,7 +808,7 @@
         "outputPathPlaceholder": "저장할 .csv 파일 경로",
         "outputPathAriaLabel": "Janus 매핑 출력 파일 경로",
         "browseAriaLabel": "Janus 매핑 저장 경로 찾아보기",
-        "columnsNote": "열 구성: name, type, Dsp. Rack, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
+        "columnsNote": "열 구성: name, type, no, Asp. Rack, Asp. Posi, Dsp. Rack, Dsp. Posi, volume.",
         "exportJanus": "Janus 매핑 내보내기",
         "exporting": "내보내는 중…",
         "exported": "내보내기 완료",
@@ -825,13 +825,9 @@
         "volumeHint": "이번 내보내기가 만드는 장비용 매핑 파일에 그대로 들어갑니다.",
         "liquidClassLabel": "Liquid class",
         "liquidClassPlaceholder": "예: Cell 100ul",
-        "liquidClassHint": "Liquid class 는 로봇의 피펫팅 거동을 결정하므로 기본값을 두지 않습니다. 비워 두면 해당 칸이 빈 채로 나가며 내보내기는 그대로 진행됩니다.",
-        "deckHeading": "Deck 구성",
+        "liquidClassHint": "Liquid class 는 로봇의 피펫팅 거동을 결정하므로 기본값을 두지 않습니다. 이 값은 실행 기록으로만 남습니다. 장비 시트에는 해당 열이 없어 파일에는 쓰이지 않습니다.",
         "sampleTypeLabel": "type 열 값",
-        "sourceRackLabel": "Asp. Rack {{plate}}",
-        "destRackLabel": "Dsp. Rack",
-        "rackHint": "Rack 번호는 이번 실행의 plate 를 따릅니다. source plate 가 plate 순서대로 앞 번호를 쓰고 destination 이 그다음 번호입니다 (KURO primer 시트와 동일). 바꾸려면 숫자를 입력하세요.",
-        "rackPlatesPending": "plate 이름은 실행에서 나옵니다. 분석 전에는 이전에 저장한 plate 목록이 보이며, 분석을 실행하면 실제 사용한 plate 가 표시됩니다.",
+        "plateNamesNote": "Asp. Rack 과 Dsp. Rack 에는 deck 번호가 아니라 이번 실행의 plate 에서 생성한 plate 이름이 들어갑니다. 여기서 확인한 뒤 deck 라벨을 같게 맞추세요.",
         "excludedHeading": "제외 {{count}}건",
         "excludedNone": "제외된 클론이 없습니다.",
         "excludedReason": {
@@ -1056,7 +1052,7 @@
     "janus": {
       "settings": {
         "contextTitle": "Janus 장비 설정",
-        "contextSubtitle": "장비 매핑 파일에 기록되는 이송 부피·데크 랙·리퀴드 클래스를 설정합니다. 시퀀싱 판정만 필요하면 건너뛸 수 있습니다.",
+        "contextSubtitle": "장비 매핑 파일에 기록되는 이송 부피·리퀴드 클래스·type 열 값을 설정합니다. 시퀀싱 판정만 필요하면 건너뛸 수 있습니다.",
         "optionalNote": "선택 단계입니다. 분석 실행은 픽 리스트를 스스로 기록하지만, 장비 매핑은 여기서 내보낼 때만 기록됩니다. 시퀀싱 판정만 필요하면 스텝 2에서 스텝 4로 바로 넘어가면 됩니다.",
         "inspectorTitle": "장비 Inspector",
         "inspectorSubtitle": "매핑에 기록되는 값",
@@ -2614,7 +2610,7 @@
         "files": "CDS 서열과 바코드 시드를 입력하고 프라이머 설계 파라미터를 설정한 뒤, 출력 폴더를 선택하고 바코드 패키지를 생성합니다."
       },
       "janus": {
-        "settings": "JANUS 셀 스톡 매핑을 준비합니다: 이송 부피, 데크 랙 번호, 리퀴드 클래스. 선택 단계이며 실행을 막지 않습니다."
+        "settings": "JANUS 셀 스톡 매핑을 준비합니다: 이송 부피, 리퀴드 클래스, type 열 값. 선택 단계이며 실행을 막지 않습니다."
       }
     }
   },

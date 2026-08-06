@@ -344,24 +344,31 @@ export type JanusDestLayout = "source" | "compact";
 /**
  * Column set written to the file.
  *
- * - "device9" (default): the instrument-native worksheet columns transcribed
- *   from the workbook the lab imports (`name | type | Dsp. Rack | no |
- *   Asp. Rack | Asp. Posi | Dsp. Rack | Dsp. Posi | volume`).
+ * - "device" (default): the instrument-native worksheet columns transcribed
+ *   from the workbook the lab imports (`name | type | no | Asp. Rack |
+ *   Asp. Posi | Dsp. Rack | Dsp. Posi | volume`).
  * - "legacy5": the kuma-internal columns (`name | source_plate | source_well |
  *   dest_well | priority_score`).
+ *
+ * The first was called "device9" while the sheet had nine columns, one of them
+ * a liquid class. The lab replaced that sheet with an eight column one, so the
+ * count came out of the name rather than being corrected to another number that
+ * would age the same way. A stored "device9" is promoted on load
+ * (`src/lib/mame/janusSettings.ts`) and the sidecar accepts it too.
  */
-export type JanusOutputSchema = "device9" | "legacy5";
+export type JanusOutputSchema = "device" | "legacy5";
 
 /**
- * Rack numbers of the source plates on the deck, keyed by the plate label the
- * export writes (`nb_label`: "sort_barcode07" -> "NB07"), so a key is looked up
- * with the same string the row carries. The dialog builds the fields from the
- * preview rows for that reason.
+ * Plate NAMES written into `Asp. Rack`, keyed by the plate label the export
+ * writes (`nb_label`: "sort_barcode07" -> "NB07"), so a key is looked up with
+ * the same string the row carries.
  *
- * Assumption, editable in the dialog: source plates come first in the labware
- * order of the lab workbook `layout` sheet, with the destination plate last.
+ * Names rather than deck numbers because the JANUS software matches labware by
+ * name. Nothing in the panel fills this map: the sidecar generates the names
+ * from the plates of the run, in the same plate order that used to decide rack
+ * numbers, and the row preview is where the operator reads them back.
  */
-export type JanusSourceRacks = Record<string, number>;
+export type JanusSourceRacks = Record<string, string>;
 
 /**
  * Everything both the export and the preview resolve their behaviour from.
@@ -377,22 +384,24 @@ export interface JanusExportSettings {
   /** Keep fallback picks (off by default: a fallback pick is not verified). */
   includeFallback: boolean;
   outputSchema: JanusOutputSchema;
-  /** Dispense volume in µL (device9 only). */
+  /** Dispense volume in µL (instrument sheet only). */
   volume: number;
-  /** `type` column value (device9 only). */
+  /** `type` column value (instrument sheet only). */
   sampleType: string;
   /**
-   * Liquid class string (device9 only). No default, and blank does not block:
-   * the column ships empty and the preview warns.
+   * Liquid class, recorded with the run and written to no file. The instrument
+   * sheet has no column for it, and the file format is followed exactly, so the
+   * value describes how the run was pipetted without reaching the robot.
    */
   liquidClass: string;
   /**
-   * Operator overrides only. An empty map lets the sidecar derive the numbers
-   * from the plates of the run, which is what the shipped default does.
+   * Overrides only, and the panel offers no way to set one: the sidecar
+   * generates the plate names from the plates of the run. An empty map is the
+   * shipped default and leaves those generated names in force.
    */
   sourceRacks: JanusSourceRacks;
-  /** `null` derives it as one past the last source rack. */
-  destRack: number | null;
+  /** `null` leaves the destination plate name to the sidecar. */
+  destRack: string | null;
 }
 
 /** Resolved settings echoed back by the sidecar, in RPC (snake_case) form. */
@@ -406,13 +415,13 @@ export interface JanusResolvedSettings {
   liquid_class: string;
   /** The operator's overrides, echoed back unchanged. */
   source_racks: JanusSourceRacks;
-  /** The operator's override, echoed back unchanged; `null` means derived. */
-  dest_rack: number | null;
+  /** The operator's override, echoed back unchanged; `null` means generated. */
+  dest_rack: string | null;
   /** Header of the file this policy writes, in order. */
   columns: string[];
-  /** The deck the file carries: overrides applied on top of the derived numbers. */
+  /** The plate names the file carries: overrides applied on top of the generated ones. */
   resolved_source_racks?: JanusSourceRacks;
-  resolved_dest_rack?: number;
+  resolved_dest_rack?: string;
 }
 
 /**

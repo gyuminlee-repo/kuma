@@ -21,6 +21,7 @@ from kuma_core.kuro.plate_mapper import (
     _to_384_well_rev,
 )
 from kuma_core.kuro.sdm_engine import SdmPrimerResult, design_sdm_primers
+from kuma_core.shared.janus_deck import KURO_PRIMER_DECK
 from tests.conftest import FIXTURES_DIR, TARGET_START
 
 
@@ -320,11 +321,16 @@ class TestJanusMappingExport:
             header = next(csv.reader(f))
 
         assert header == [
-            "name", "type", "Dsp. Rack", "no",
+            "name", "type", "no",
             "Asp. Rack", "Asp. Posi", "Dsp. Rack", "Dsp. Posi", "volume",
         ]
 
-    def test_asp_rack_separation(self, sdm_results, tmp_path):
+    def test_the_two_primer_plates_are_named_apart(self, sdm_results, tmp_path):
+        """Forward and reverse aspirate from different plates, named not numbered.
+
+        The columns are still headed "Rack" but the instrument matches labware
+        by name, so what separates the two sources is now the plate name.
+        """
         fwd, rev = generate_plate_map(sdm_results, deduplicate_rev=True)
         csv_path = tmp_path / "janus.csv"
         export_janus_mapping_csv(fwd, rev, csv_path)
@@ -336,9 +342,10 @@ class TestJanusMappingExport:
 
         fw_rows = [r for r in rows if r[0].endswith("-F")]
         rv_rows = [r for r in rows if r[0].endswith("-R")]
-        assert all(r[4] == "1" for r in fw_rows), "fw rows must use Asp. Rack 1"
-        assert all(r[4] == "2" for r in rv_rows), "rv rows must use Asp. Rack 2"
-        assert all(r[6] == "3" for r in fw_rows + rv_rows), "all rows must use Dsp. Rack 3"
+        assert fw_rows and rv_rows
+        assert all(r[3] == "fw plate" for r in fw_rows)
+        assert all(r[3] == "rv plate" for r in rv_rows)
+        assert all(r[5] == "PCR mixture plate" for r in fw_rows + rv_rows)
 
     def test_transfer_vol_default(self, sdm_results, tmp_path):
         fwd, rev = generate_plate_map(sdm_results, deduplicate_rev=True)
@@ -349,7 +356,23 @@ class TestJanusMappingExport:
             reader = csv.reader(f)
             next(reader)
             for row in reader:
-                assert float(row[8]) == 2.0
+                assert float(row[7]) == 2.0
+
+    def test_no_cell_carries_the_liquid_class(self, sdm_results, tmp_path):
+        """The deck still records one and the sheet has no column for it.
+
+        Checking every cell rather than the column the liquid class used to sit
+        in is what catches it reappearing somewhere else.
+        """
+        fwd, rev = generate_plate_map(sdm_results, deduplicate_rev=True)
+        csv_path = tmp_path / "janus.csv"
+        export_janus_mapping_csv(fwd, rev, csv_path)
+
+        with open(csv_path, encoding="utf-8") as f:
+            rows = list(csv.reader(f))
+
+        assert KURO_PRIMER_DECK.liquid_class
+        assert not [r for r in rows if KURO_PRIMER_DECK.liquid_class in r]
 
 
 def _shared_rev_fixture() -> tuple[list[PlateMapping], list[PlateMapping], dict[str, list[str]]]:
