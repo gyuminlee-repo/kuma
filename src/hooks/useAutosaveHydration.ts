@@ -1534,14 +1534,28 @@ async function restoreMameResult(
   const { result } = read.snapshot;
   const store = useMameAppStore.getState();
 
-  // Whose engine produced what is about to be replayed. The payload is restored
-  // either way -- a saved run is the operator's work and is not thrown away --
-  // but a result this build would not have produced must not be presented as
-  // though it had. Same-version restores record nothing, so they behave exactly
-  // as they did before this guard existed.
-  store.setRestoredResultProvenance(
-    provenanceFor(read.snapshot.kuma_version, __APP_VERSION__),
+  // Whose engine produced this. A result another build scored is not this
+  // build's answer, so it is not replayed at all: not into the sidecar, not
+  // into the verdict table, and the run does not land on the review step. The
+  // file stays on disk untouched -- the operator's run is not deleted -- but
+  // the only way back to a result on screen is a re-run by this build. Showing
+  // it with a warning was v0.15.20's answer and it was the wrong one: a result
+  // you are allowed to keep reading is a result you are being told to trust.
+  // A same-version restore records nothing and behaves exactly as before.
+  const provenance = provenanceFor(
+    read.snapshot.kuma_version,
+    __APP_VERSION__,
+    read.snapshot.result_contract,
   );
+  if (provenance) {
+    // `applyMameSnapshot` may already have put the snapshot's verdicts on
+    // screen; clearing first means the review table never shows another
+    // build's answer. `clearResults` also resets the provenance flag, so the
+    // flag is set after it.
+    store.clearResults();
+    store.setRestoredResultProvenance(provenance);
+    return false;
+  }
 
   await sendMameRequest<LoadAnalyzeResultResponse>("load_analyze_result", {
     verdicts: result.verdicts,
@@ -1923,23 +1937,27 @@ export function useAutosaveHydration(
           // 결과 파일이 없거나 못 읽었다. 화면에는 스냅샷의 verdict 표가 이미
           // 복원돼 있으므로, 사이드카만 비워 두면 리포트·Excel 내보내기가
           // "No prior analyze result" 로 거부된다. 같은 값으로 채워 맞춘다.
-          const injected = await injectSnapshotResultsIntoSidecar(
-            mameResult.snapshot as MameAutosaveSnapshot,
-            path,
-            isCurrent,
+          // Same rule as the result file, one step earlier: results carried by
+          // an input snapshot another build wrote are that build's output.
+          // `applyMameSnapshot` has already put them on screen, so they are
+          // taken back off before anything reaches the sidecar. The snapshot
+          // file is left alone; only the screen refuses to present another
+          // build's answer as this build's.
+          const snapshotProvenance = provenanceFor(
+            (mameResult.snapshot as MameAutosaveSnapshot).kuma_version,
+            __APP_VERSION__,
+            (mameResult.snapshot as MameAutosaveSnapshot).result_contract,
           );
-          // Same rule as the result file: results carried by an input snapshot
-          // an older build wrote are still that build's output, and the review
-          // screen has to say so rather than pass them off as current.
-          if (injected) {
-            useMameAppStore
-              .getState()
-              .setRestoredResultProvenance(
-                provenanceFor(
-                  (mameResult.snapshot as MameAutosaveSnapshot).kuma_version,
-                  __APP_VERSION__,
-                ),
-              );
+          if (snapshotProvenance) {
+            const staleStore = useMameAppStore.getState();
+            staleStore.clearResults();
+            staleStore.setRestoredResultProvenance(snapshotProvenance);
+          } else {
+            await injectSnapshotResultsIntoSidecar(
+              mameResult.snapshot as MameAutosaveSnapshot,
+              path,
+              isCurrent,
+            );
           }
         }
       } catch (err) {

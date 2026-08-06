@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectProvider } from "@/state/projectContext";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { RESULT_CONTRACT } from "@/lib/mame/resultContract";
 import { useRoundStore } from "@/store/round/roundSlice";
 import type { AutosaveSnapshot } from "@/lib/autosave";
 import type { SdmPrimerResult } from "@/types/models";
@@ -1763,15 +1764,16 @@ describe("useAutosaveHydration: 결과 파일 없이도 사이드카를 채운�
 });
 
 /**
- * Whose build produced the restored result.
+ * Whose build produced the saved run, and what this build does about it.
  *
- * A project opened weeks later replays the analyze response it saved, and until
- * v0.15.18 the review screen presented it as though this build had just
- * produced it. Between v0.15.10 and v0.15.17 MAME changed what a run produces
- * more than once, so the origin has to be stated. The payload is still restored
- * in every case: the guard is about provenance, not about withholding work.
+ * The rule is not "another version, another answer": it is "another result
+ * contract". A release that moved a panel leaves the saved run alone and the
+ * project opens exactly as it did. A release that changed what a run produces
+ * makes the saved run another build's answer, so it is not replayed at all --
+ * no sidecar call, no verdict table, no review step -- and the file on disk is
+ * left untouched for the operator to re-run against.
  */
-describe("useAutosaveHydration — restored result provenance", () => {
+describe("useAutosaveHydration — saved runs from another build", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useMameAppStore.getState().resetInput();
@@ -1780,80 +1782,125 @@ describe("useAutosaveHydration — restored result provenance", () => {
     hooks.detectProjectFiles.mockResolvedValue({});
   });
 
-  function resultSnapshotFrom(version: string | undefined) {
+  function resultSnapshotFrom(version: string | undefined, contract?: number) {
     return {
       status: "ok",
       snapshot: {
         schema: 1,
         saved_at: new Date().toISOString(),
         ...(version === undefined ? {} : { kuma_version: version }),
+        ...(contract === undefined ? {} : { result_contract: contract }),
         result: ANALYZE_RESULT,
       },
     };
   }
 
-  async function hydrateWith(version: string | undefined) {
-    hooks.readMameResultSnapshot.mockResolvedValue(resultSnapshotFrom(version));
+  function loadAnalyzeCalls() {
+    return hooks.sendMameRequest.mock.calls.filter((c) => c[0] === "load_analyze_result");
+  }
+
+  it("restores a run this build produced, untouched", async () => {
+    hooks.readMameResultSnapshot.mockResolvedValue(resultSnapshotFrom("0.0.0-test"));
+
     renderHydration();
+
     await waitFor(() => {
       expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
     });
-    return useMameAppStore.getState();
-  }
-
-  it("says nothing when this build wrote the snapshot", async () => {
-    const st = await hydrateWith("0.0.0-test");
+    const st = useMameAppStore.getState();
     expect(st.restoredResultProvenance).toBeNull();
-    // The restore itself is unchanged: same-version projects must look exactly
-    // as they did before the guard existed.
     expect(st.verdicts).toEqual(ANALYZE_RESULT.verdicts);
   });
 
-  /**
-   * Note on relations here: vitest defines `__APP_VERSION__` as `0.0.0-test`,
-   * which is not a dotted number, so anything that is not an exact string match
-   * degrades to `unknown` in this environment. That is the correct fail-closed
-   * answer for an unidentifiable build; the numeric older/newer ordering that a
-   * shipped build produces is proven directly in
-   * `src/lib/mame/resultProvenance.test.ts`.
-   */
-  it("flags a snapshot written by a different build, and still restores it", async () => {
-    const st = await hydrateWith("0.15.9");
-    expect(st.restoredResultProvenance).toEqual({
-      version: "0.15.9",
-      relation: "unknown",
+  it("restores a run from a release that changed nothing about results", async () => {
+    // v0.15.19 is the newest recorded result change, so a run saved by it is
+    // this build's answer even though the version strings differ.
+    hooks.readMameResultSnapshot.mockResolvedValue(resultSnapshotFrom("0.15.19"));
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
     });
-    expect(st.verdicts).toEqual(ANALYZE_RESULT.verdicts);
+    expect(useMameAppStore.getState().restoredResultProvenance).toBeNull();
+    expect(useMameAppStore.getState().verdicts).toEqual(ANALYZE_RESULT.verdicts);
   });
 
-  it("carries the recorded version through so the notice can name it", async () => {
-    const st = await hydrateWith("9.9.9");
-    expect(st.restoredResultProvenance?.version).toBe("9.9.9");
-    expect(st.restoredResultProvenance?.relation).not.toBe("same");
-  });
+  it("honours a stamped contract over the version string", async () => {
+    hooks.readMameResultSnapshot.mockResolvedValue(
+      resultSnapshotFrom("0.15.9", RESULT_CONTRACT),
+    );
 
-  it("flags a snapshot that records no version at all", async () => {
-    // Written before the field existed: indistinguishable from an old run, so
-    // it is reported rather than trusted.
-    const st = await hydrateWith(undefined);
-    expect(st.restoredResultProvenance).toEqual({
-      version: null,
-      relation: "unknown",
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
     });
-  });
-
-  it("clears the flag when the results it describes are cleared", async () => {
-    await hydrateWith("0.15.9");
-    expect(useMameAppStore.getState().restoredResultProvenance).not.toBeNull();
-
-    useMameAppStore.getState().clearResults();
-
     expect(useMameAppStore.getState().restoredResultProvenance).toBeNull();
   });
 
-  it("flags the input-snapshot fallback too, when there is no result file", async () => {
+  it("refuses to show a run scored before a result change", async () => {
+    hooks.readMameResultSnapshot.mockResolvedValue(resultSnapshotFrom("0.15.9"));
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().restoredResultProvenance).not.toBeNull();
+    });
+    const st = useMameAppStore.getState();
+    expect(st.restoredResultProvenance?.version).toBe("0.15.9");
+    expect(st.restoredResultProvenance?.relation).toBe("older");
+    // Not replayed anywhere: no verdicts on screen, no sidecar state, and the
+    // run does not land on the review step.
+    expect(st.verdicts).toEqual([]);
+    expect(st.currentMameSubStep).not.toBe("analyze.review");
+    expect(loadAnalyzeCalls()).toHaveLength(0);
+  });
+
+  it("names the changes that make the saved run obsolete", async () => {
+    hooks.readMameResultSnapshot.mockResolvedValue(resultSnapshotFrom("0.15.9"));
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().restoredResultProvenance).not.toBeNull();
+    });
+    expect(
+      useMameAppStore.getState().restoredResultProvenance?.changes.length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("refuses a run that records no version at all", async () => {
+    // Written before the field existed: indistinguishable from an obsolete run.
+    hooks.readMameResultSnapshot.mockResolvedValue(resultSnapshotFrom(undefined));
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().restoredResultProvenance).not.toBeNull();
+    });
+    expect(useMameAppStore.getState().restoredResultProvenance).toMatchObject({
+      version: null,
+      relation: "unknown",
+    });
+    expect(loadAnalyzeCalls()).toHaveLength(0);
+  });
+
+  it("clears the flag when the results it describes are cleared", async () => {
+    hooks.readMameResultSnapshot.mockResolvedValue(resultSnapshotFrom("0.15.9"));
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().restoredResultProvenance).not.toBeNull();
+    });
+    useMameAppStore.getState().clearResults();
+    expect(useMameAppStore.getState().restoredResultProvenance).toBeNull();
+  });
+
+  it("takes the input-snapshot fallback off screen too", async () => {
     // Second restore path: no `.autosave/mame-result.json`, so the results ride
-    // in on the input snapshot. An older build wrote those just the same.
+    // in on the input snapshot and applyMameSnapshot has already shown them.
     hooks.readAutosave.mockImplementation((_p: string, kind: string) =>
       kind === "mame"
         ? Promise.resolve({
@@ -1894,13 +1941,9 @@ describe("useAutosaveHydration — restored result provenance", () => {
     renderHydration();
 
     await waitFor(() => {
-      expect(
-        hooks.sendMameRequest.mock.calls.some((c) => c[0] === "load_analyze_result"),
-      ).toBe(true);
-    });
-    await waitFor(() => {
       expect(useMameAppStore.getState().restoredResultProvenance).not.toBeNull();
     });
-    expect(useMameAppStore.getState().restoredResultProvenance?.version).toBe("0.15.9");
+    expect(useMameAppStore.getState().verdicts).toEqual([]);
+    expect(loadAnalyzeCalls()).toHaveLength(0);
   });
 });
