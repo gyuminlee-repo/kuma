@@ -2438,11 +2438,11 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The design count stops at 96 variants, one plate worth, and names the refused number instead of accepting a count the plate cannot hold.",
-      "A saved project or autosave snapshot carrying a larger count is corrected when it is opened, not rejected.",
-      "Well labels past the end of a plate name the next plate, matching what the Python exporter has always produced."
+      "The final culture plate now lines up with the stock plate it came from, instead of pulling later picks forward into a dropped clone's well.",
+      "Packing the final plate from A1 stays available as a layout choice; only the default changed, and a prior choice of it survives the upgrade.",
+      "The exported mapping CSV always starts with the header row, instead of a metadata comment line pushing it to row two."
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+d17b6783"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

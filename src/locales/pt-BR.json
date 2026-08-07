@@ -2405,11 +2405,11 @@
     "description": "Destaques da última atualização.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "A contagem de designs para em 96 variantes, uma placa completa, e informa o número recusado em vez de aceitar uma contagem que a placa não comporta.",
-      "Um projeto ou instantâneo de salvamento automático com uma contagem maior é corrigido ao ser aberto, não recusado.",
-      "Os rótulos de well além do fim de uma placa nomeiam a placa seguinte, como a exportação em Python sempre fez."
+      "A placa de cultura final agora fica alinhada, coordenada por coordenada, à placa de estoque da qual veio, em vez de puxar os picks seguintes para o well de um clone descartado.",
+      "Preencher a placa final a partir de A1 continua disponível como opção de layout; só o padrão mudou, e uma escolha anterior desse layout é mantida após a atualização.",
+      "O CSV de mapeamento exportado agora sempre começa pela linha de cabeçalho, em vez de uma linha de comentário de metadados que a empurrava para a linha dois."
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+d17b6783"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",

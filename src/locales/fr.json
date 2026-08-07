@@ -2405,11 +2405,11 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Le nombre de designs s'arrête à 96 variants, soit une plaque, et nomme le nombre refusé au lieu d'accepter un compte que la plaque ne peut pas contenir.",
-      "Un projet ou un instantané de sauvegarde automatique portant un nombre plus grand est corrigé à l'ouverture, pas rejeté.",
-      "Les étiquettes de well au-delà de la fin d'une plaque nomment la plaque suivante, comme l'export Python l'a toujours fait."
+      "La plaque de culture finale correspond désormais, coordonnée par coordonnée, à la plaque stock d'origine, au lieu de faire avancer les picks suivants dans le well d'un clone écarté.",
+      "Remplir la plaque finale à partir de A1 reste disponible comme choix de disposition ; seul le réglage par défaut a changé, et un choix antérieur de cette disposition survit à la mise à jour.",
+      "Le CSV de mapping exporté commence désormais toujours par la ligne d'en-tête, au lieu d'une ligne de commentaire de métadonnées qui la repoussait à la ligne deux."
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+d17b6783"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",

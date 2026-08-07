@@ -2405,11 +2405,11 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die Designanzahl endet bei 96 Varianten, einer Platte voll, und nennt die abgelehnte Zahl, statt eine Anzahl anzunehmen, die auf keine Platte passt.",
-      "Ein Projekt oder ein Autosave-Snapshot mit einer größeren Anzahl wird beim Öffnen korrigiert, nicht abgewiesen.",
-      "Well-Bezeichnungen jenseits des Plattenendes nennen die nächste Platte, wie es der Python-Export schon immer getan hat."
+      "Die finale Kulturplatte liegt jetzt auf denselben Koordinaten wie die Stammplatte, aus der sie stammt, statt spätere Picks in das Well eines verworfenen Klons vorzuziehen.",
+      "Das Befüllen der finalen Platte ab A1 bleibt als Layout-Option verfügbar; nur der Standard hat sich geändert, und eine zuvor getroffene Wahl dieses Layouts bleibt nach dem Update erhalten.",
+      "Die exportierte Mapping-CSV beginnt jetzt immer mit der Kopfzeile, statt einer Metadaten-Kommentarzeile, die sie in Zeile zwei verschob."
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+d17b6783"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",

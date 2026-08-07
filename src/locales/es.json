@@ -2405,11 +2405,11 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El recuento de diseños se detiene en 96 variantes, una placa completa, y nombra el número rechazado en lugar de aceptar un recuento que la placa no puede contener.",
-      "Un proyecto o una instantánea de autoguardado con un recuento mayor se corrige al abrirlo, no se rechaza.",
-      "Las etiquetas de well más allá del final de una placa nombran la placa siguiente, igual que siempre ha hecho la exportación de Python."
+      "La placa de cultivo final ahora coincide en coordenadas con la placa stock de la que proviene, en lugar de adelantar los picks siguientes al well de un clon descartado.",
+      "Rellenar la placa final desde A1 sigue disponible como opción de diseño; solo cambió el valor por defecto, y una elección previa de esa opción se conserva tras la actualización.",
+      "El CSV de mapping exportado siempre empieza con la fila de encabezado, en lugar de una línea de comentario de metadatos que la desplazaba a la fila dos."
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+d17b6783"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",
