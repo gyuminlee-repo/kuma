@@ -1284,15 +1284,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#sample-map-v01524" class="md-nav__link">
+  <a href="#sample-map-v0160" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Sample map (v0.15.24 에 제거)
+        Sample map (v0.16.0 에 제거)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Sample map (v0.15.24 에 제거)">
+    <nav class="md-nav" aria-label="Sample map (v0.16.0 에 제거)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1772,7 +1772,7 @@
 <h3 id="_2">출력 파일명<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>{well_id}_F{f_idx}_R{r_idx}.fasta
 </code></pre></div>
-<h2 id="sample-map-v01524">Sample map (v0.15.24 에 제거)<a class="headerlink" href="#sample-map-v01524" title="Permanent link">&para;</a></h2>
+<h2 id="sample-map-v0160">Sample map (v0.16.0 에 제거)<a class="headerlink" href="#sample-map-v0160" title="Permanent link">&para;</a></h2>
 <p>well_id -&gt; 변이체 이름 매핑을 손으로 적는 xlsx 였다. 웰 배치는 변이 목록에서 계산하므로 더 이상 입력이 아니다. 플레이트를 두 번 적는 구조였고, 둘 중 하나는 늘 아무도 갱신하지 않은 쪽이었다.</p>
 <p>기존 프로젝트의 파일은 조용히 무시하지 않는다. <code>validate_inputs</code> 와 <code>analyze</code> 가 각각 계산된 배치와 웰 단위로 대조해서, 불일치하면 웰을 지목하며 run 을 막고 전부 일치하면 한 번 알린 뒤 통과시킨다. 두 곳 모두에서 대조하는 이유는 validate 버튼을 누르지 않는 경로(CLI·하네스·스크립트, 그리고 바로 Run 을 누른 조작자)가 있기 때문이고, analyze 쪽 대조는 demux 앞에 있다. 파일은 지우지 않는다.</p>
 <h3 id="_3">발견 경로는 포인터 하나뿐 (의도된 한계)<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>

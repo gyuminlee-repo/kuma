@@ -1992,6 +1992,9 @@
 
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>주의 (2026-08-07)</strong>: 아래는 각 버전 시점의 기록이며 그대로 둔다. JANUS 관련 항목(v0.9.9.0 의 "JANUS (96-well, 2 rack) 매핑 미리보기", v0.9.9.3 의 "JANUS 어댑터 rack 할당")은 그 뒤 두 번 무너졌으므로 현재 동작으로 읽지 말 것. 어댑터는 <code>asp_rack</code> 을 되읽지 않고 <code>role</code> 로 분기하며(<code>src/lib/echoJanusAdapter.ts:79-101</code>), rack 값은 정수 deck 번호가 아니라 플레이트 이름 문자열이다. 현재 형식의 정본은 <code>kuma_core/shared/janus_deck.py:37-46</code> (8열 헤더) 과 <a href="../../mame/03-janus/">MAME step 3 문서</a> 다.</p>
+</blockquote>
 <h2 id="v01312-reference-sequence-domains-guided-onboarding-update-recommendations">v0.13.12: reference-sequence domains, guided onboarding, update recommendations<a class="headerlink" href="#v01312-reference-sequence-domains-guided-onboarding-update-recommendations" title="Permanent link">&para;</a></h2>
 <ul>
 <li>새 프로젝트 최초 진입 시 공통 내비게이션과 Kuro의 워크플로·작업 영역·인스펙터를 순서대로 강조하는 spotlight 투어가 표시됩니다. Mame은 처음 진입할 때 별도 투어를 제공합니다.</li>

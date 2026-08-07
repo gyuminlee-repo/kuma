@@ -1707,14 +1707,14 @@
 <h2 id="_2">화면 구성<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <p>step 3 은 전용 화면이므로 설정이 페이지에 그대로 펼쳐진다. v0.15.13 까지는 "Janus 장비 설정 열기" 버튼이 다이얼로그를 띄웠다. 미리보기를 모달 안에서 읽어야 했고 화면이 남는데도 좁았다.</p>
 <ul>
-<li><strong>형식</strong>: CSV 또는 XLSX</li>
-<li><strong>대상 배치</strong>, <strong>출력 열 구성</strong>: 목적지 플레이트 배치와 내보낼 열 구성</li>
-<li><strong>장비 설정</strong>: Volume (µL), Liquid class</li>
-<li><strong>Deck 구성</strong>: <code>type</code> 열에 쓸 sample type. rack 열의 플레이트 이름은 이번 실행에서 생성되므로 입력란이 없다</li>
+<li><strong>대상 배치</strong>: 목적지 웰을 소스 위치 그대로 둘지, A1 부터 우선순위 순서로 채울지 고른다</li>
+<li><strong>장비 설정</strong>: Volume (µL), Liquid class, <code>type</code> 열에 쓸 sample type. rack 열의 플레이트 이름은 이번 실행에서 생성되므로 입력란이 없다</li>
 <li><strong>미리보기</strong>: 실제로 나갈 행을 보여준다. 차단·경고 항목이 있으면 함께 표시한다</li>
 <li><strong>제외 N건</strong>: 선정에서 빠진 클론과 그 이유</li>
+<li><strong>출력 파일 경로</strong>: Browse 로 저장 위치를 고른다. 확장자는 <code>.csv</code> 고정이다</li>
 <li><strong>내보내기</strong></li>
 </ul>
+<p>v0.16.1 에서 선택지 두 개가 사라졌다. <strong>형식</strong>(CSV / XLSX)과 <strong>출력 열 구성</strong>이다. 이 화면이 쓰는 파일은 장비가 읽는 8열 CSV 하나뿐이라 둘 다 답이 하나였다. 5열 pick 목록은 step 2 의 실행이 자동으로 쓴다. 예전에 5열 시트를 골라 둔 프로젝트를 열면 그 설정을 8열로 올려 읽는다. 되돌릴 스위치가 없는 상태로 옛 선택이 계속 나가는 것을 막기 위해서다.</p>
 <h2 id="_3">값을 비워 두면<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <p><strong>Liquid class 는 기본값이 없다.</strong> 로봇의 피펫팅 거동을 결정하는 값이라 프로그램이 대신 정하지 않는다. 시트에는 이 값을 적을 열이 없다. 입력한 값은 실행 기록에만 남고 어떤 파일에도 쓰이지 않으므로 비워 두어도 내보내기는 그대로 진행된다.</p>
 <p><strong>플레이트 이름은 이번 실행의 플레이트에서 생성한다.</strong> 소스는 플레이트 순서대로 <code>Stock plate1</code>, <code>Stock plate2</code> 를 받고 목적지는 하나뿐이라 <code>final culture plate</code> 가 된다. 실험실이 가져다 쓰는 seeding 워크북과 같은 이름이다. 숫자는 이번 실행 안의 순번일 뿐 플레이트 번호가 아니다. NB07 과 NB10 으로 돌린 실행도 <code>Stock plate1</code>, <code>Stock plate2</code> 가 된다. 생성된 이름은 행 미리보기에서 확인하고 deck 의 labware 라벨을 거기에 맞춘다.</p>
