@@ -23,6 +23,10 @@
         {
           "path": "src-tauri/Cargo.lock",
           "extract": "regex:^name = \"kuma\"\\nversion = \"([^\"]+)\""
+        },
+        {
+          "path": "kuma_core/shared/version.py",
+          "extract": "regex:^KUMA_VERSION = \"([^\"]+)\""
         }
       ]
     },

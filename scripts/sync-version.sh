@@ -16,6 +16,11 @@ TAURI="$REPO_ROOT/src-tauri/tauri.conf.json"
 CARGO="$REPO_ROOT/src-tauri/Cargo.toml"
 PYPROJECT="$REPO_ROOT/pyproject.toml"
 LOCK="$REPO_ROOT/src-tauri/Cargo.lock"
+# kuma_core/shared/version.py stamps KUMA_VERSION into every .run.json, every
+# hidden __kuma_meta__ sheet and every MAME run report, and
+# .cross-layer-sync.json now checks it alongside the five release manifests, so leaving
+# it out here would fail `pnpm run sync:check` on every bump.
+VERSION_PY="$REPO_ROOT/kuma_core/shared/version.py"
 LOCALE_EN="$REPO_ROOT/src/locales/en.json"
 GEN_SCRIPT="$REPO_ROOT/scripts/gen-whatsnew.mjs"
 
@@ -29,13 +34,13 @@ if [ "$CURRENT" = "$VERSION" ]; then
   exit 0
 fi
 
-python3 - <<'PY' "$VERSION" "$PKG" "$TAURI" "$CARGO" "$PYPROJECT"
+python3 - <<'PY' "$VERSION" "$PKG" "$TAURI" "$CARGO" "$PYPROJECT" "$VERSION_PY"
 import json
 import re
 import sys
 from pathlib import Path
 
-version, pkg_path, tauri_path, cargo_path, pyproject_path = sys.argv[1:]
+version, pkg_path, tauri_path, cargo_path, pyproject_path, version_py_path = sys.argv[1:]
 
 for json_path in (pkg_path, tauri_path):
     path = Path(json_path)
@@ -50,6 +55,16 @@ for toml_path in (cargo_path, pyproject_path):
     if updated == content:
         raise SystemExit(f"Failed to update version in {toml_path}")
     path.write_text(updated, encoding="utf-8")
+
+# KUMA_VERSION only. KURO_MODULE_VERSION sits on the next line and names the
+# KURO export contract rather than the release, so the pattern is anchored to
+# the constant name and rewrites exactly one line.
+version_py = Path(version_py_path)
+content = version_py.read_text(encoding="utf-8")
+updated, count = re.subn(r'(?m)^KUMA_VERSION = "[^"]+"', f'KUMA_VERSION = "{version}"', content, count=1)
+if count != 1:
+    raise SystemExit(f"Failed to update KUMA_VERSION in {version_py_path}")
+version_py.write_text(updated, encoding="utf-8")
 PY
 
 # Cargo.lock pins the kuma package version alongside Cargo.toml, and
@@ -71,7 +86,7 @@ if command -v cargo >/dev/null 2>&1; then
   if [ "$LOCK_STATUS" -ne 0 ]; then
     echo "[sync-version] error: cargo update -p kuma failed (exit $LOCK_STATUS):" >&2
     echo "$LOCK_OUTPUT" >&2
-    echo "[sync-version] the four version manifests are already edited in the working tree, but the commit was NOT amended. Fix src-tauri/Cargo.lock manually, then run: node scripts/gen-whatsnew.mjs && git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml pyproject.toml src-tauri/Cargo.lock src/locales/en.json && git commit --amend --no-edit --no-verify" >&2
+    echo "[sync-version] the version files are already edited in the working tree, but the commit was NOT amended. Fix src-tauri/Cargo.lock manually, then run: node scripts/gen-whatsnew.mjs && git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml pyproject.toml src-tauri/Cargo.lock kuma_core/shared/version.py src/locales/en.json && git commit --amend --no-edit --no-verify" >&2
     exit 1
   fi
   if ! git diff --quiet -- "$LOCK"; then
@@ -107,7 +122,7 @@ fi
 # message happens to carry a `vX.Y.Z:` label but adds no CHANGELOG section hits
 # the first case). That is not this hook's problem to fix: warn and leave
 # en.json untouched (it never got written, since the guard fires before the
-# write), then continue amending the four version manifests.
+# write), then continue amending the version files.
 #
 # Exit 1 is the loud case, and it is now reachable from a CHANGELOG typo as well
 # as from a broken generator: a "### Highlights" bullet over 140 characters, one
@@ -120,7 +135,7 @@ GEN_OUTPUT=$(node "$GEN_SCRIPT" 2>&1)
 GEN_STATUS=$?
 set -e
 
-ADD_PATHS=("$PKG" "$TAURI" "$CARGO" "$PYPROJECT")
+ADD_PATHS=("$PKG" "$TAURI" "$CARGO" "$PYPROJECT" "$VERSION_PY")
 if [ "$LOCK_CHANGED" -eq 1 ]; then
   ADD_PATHS+=("$LOCK")
 fi
@@ -132,9 +147,9 @@ elif [ "$GEN_STATUS" -eq 2 ]; then
 else
   echo "[sync-version] error: scripts/gen-whatsnew.mjs failed (exit $GEN_STATUS):" >&2
   echo "$GEN_OUTPUT" >&2
-  echo "[sync-version] the four version manifests are already edited in the working tree, but the commit was NOT amended and src/locales/en.json was not regenerated, so nothing is lost by fixing this and rerunning." >&2
+  echo "[sync-version] the version files are already edited in the working tree, but the commit was NOT amended and src/locales/en.json was not regenerated, so nothing is lost by fixing this and rerunning." >&2
   echo "[sync-version] read the message above first: an authoring complaint means the '### Highlights' bullets in the v$VERSION CHANGELOG.md section break a rule (at most 5 bullets, at most 140 characters each, no backticks, no 'vX.Y.Z:' prefix), so rewrite the offending bullet in CHANGELOG.md. Anything else is a generator or environment fault." >&2
-  echo "[sync-version] then run: node scripts/gen-whatsnew.mjs && git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml pyproject.toml src-tauri/Cargo.lock src/locales/en.json CHANGELOG.md && git commit --amend --no-edit --no-verify" >&2
+  echo "[sync-version] then run: node scripts/gen-whatsnew.mjs && git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml pyproject.toml src-tauri/Cargo.lock kuma_core/shared/version.py src/locales/en.json CHANGELOG.md && git commit --amend --no-edit --no-verify" >&2
   exit 1
 fi
 

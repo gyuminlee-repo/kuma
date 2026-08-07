@@ -11,6 +11,9 @@ output and Mame ingestion is verified at the data layer.
 """
 from __future__ import annotations
 
+import tomllib
+from pathlib import Path
+
 import openpyxl
 import pytest
 
@@ -19,6 +22,25 @@ from sidecar_kuro.handlers.export import handle_export_excel
 from sidecar_mame.handlers.kuma_meta import handle_read_kuma_meta
 from kuma_core.mame.io.kuma_meta import read_kuma_meta
 from kuma_core.shared.version import KUMA_VERSION, KURO_MODULE_VERSION
+
+
+def _release_version() -> str:
+    """The release version as recorded by pyproject.toml.
+
+    KUMA_VERSION is stamped into lab provenance that outlives the session, so a
+    test that only compares it against itself passes for any value, including
+    the 0.1.0 it sat at while the manifests reached 0.16.5. pyproject.toml is
+    one of the files scripts/sync-version.sh rewrites and
+    .cross-layer-sync.json (version-sync) compares, so reading it here pins the
+    constant to the release rather than to itself.
+    """
+    root = Path(__file__).resolve().parents[2]
+    with (root / "pyproject.toml").open("rb") as fh:
+        return tomllib.load(fh)["project"]["version"]
+
+
+def test_kuma_version_matches_release_manifest():
+    assert KUMA_VERSION == _release_version()
 
 
 @pytest.fixture
@@ -134,4 +156,6 @@ def test_kuma_version_defaults_when_omitted(tmp_path, clean_state):
     wb = openpyxl.load_workbook(out)
     sheet = wb["__kuma_meta__"]
     kv = {row[0].value: row[1].value for row in sheet.iter_rows(max_col=2)}
-    assert kv["kuma_version"] == KUMA_VERSION
+    # Compared against the release manifest, not against the constant the
+    # handler falls back to, so the assertion cannot pass on a stale constant.
+    assert kv["kuma_version"] == KUMA_VERSION == _release_version()
