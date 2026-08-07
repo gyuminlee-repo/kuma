@@ -21,15 +21,17 @@ from __future__ import annotations
 import gzip
 import json
 import os
-import queue
 import shutil
-import subprocess
 import sys
 import tempfile
-import threading
-import time
 from pathlib import Path
-from typing import Any
+
+# Sibling import. Normally sys.path[0] is already this directory, but an
+# explicit insert keeps the import working under -P / PYTHONSAFEPATH and from
+# any working directory.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from smoke_sidecar_io import SidecarIO, rpc_request as _rpc  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Synthetic constants (mirrored from tests/mame/test_combinatorial_demux.py)
@@ -278,117 +280,6 @@ def _build_expected_mutations_xlsx(workdir: Path) -> Path:
     path = workdir / "expected_mutations.xlsx"
     wb.save(path)
     return path
-
-
-# ---------------------------------------------------------------------------
-# JSON-RPC request builder — json.dumps() ensures backslash paths are safe
-# ---------------------------------------------------------------------------
-
-def _rpc(id_: int, method: str, params: dict[str, Any]) -> str:
-    return json.dumps({"jsonrpc": "2.0", "id": id_, "method": method, "params": params})
-
-
-# ---------------------------------------------------------------------------
-# Cross-platform sidecar I/O: daemon reader thread + queue
-#
-# Uses queue.Queue to avoid select() (broken on Windows named-pipe handles)
-# and signal.alarm() (Unix-only). The reader thread blocks on proc.stdout and
-# pushes each decoded JSON object into self._q; EOF pushes sentinel None.
-# ---------------------------------------------------------------------------
-
-class SidecarIO:
-
-    def __init__(
-        self,
-        binary: Path,
-        stderr_path: Path,
-        env: dict[str, str] | None = None,
-    ) -> None:
-        self._stderr_fh = open(stderr_path, "w", encoding="utf-8")
-        self.proc = subprocess.Popen(
-            [str(binary)],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=self._stderr_fh,
-            text=True,
-            bufsize=1,
-            env=env,
-        )
-        self._q: queue.Queue[dict[str, Any] | None] = queue.Queue()
-        self._reader = threading.Thread(target=self._read_loop, daemon=True)
-        self._reader.start()
-
-    def _read_loop(self) -> None:
-        assert self.proc.stdout is not None
-        try:
-            # readline() loop (not `for line in stdout`) so a response is not
-            # held in the iterator's read-ahead buffer until more output arrives.
-            while True:
-                raw_line = self.proc.stdout.readline()
-                if not raw_line:  # EOF
-                    break
-                raw_line = raw_line.strip()
-                if not raw_line:
-                    continue
-                try:
-                    obj = json.loads(raw_line)
-                except json.JSONDecodeError as exc:
-                    print(f"[reader] JSONDecodeError on line {raw_line!r}: {exc}",
-                          file=sys.stderr)
-                    continue
-                self._q.put(obj)
-        finally:
-            self._q.put(None)  # sentinel: reader done (EOF or exception)
-
-    def send(self, payload: str) -> None:
-        assert self.proc.stdin is not None
-        self.proc.stdin.write(payload + "\n")
-        self.proc.stdin.flush()
-
-    def recv(self, req_id: int, timeout: float) -> dict[str, Any]:
-        """Block until a response with matching id arrives, skipping notifications.
-
-        Raises TimeoutError on timeout; raises RuntimeError on process EOF.
-        """
-        t0 = time.monotonic()
-        while True:
-            elapsed = time.monotonic() - t0
-            remaining = timeout - elapsed
-            if remaining <= 0:
-                raise TimeoutError(f"No response for id={req_id} within {timeout}s")
-            try:
-                obj = self._q.get(timeout=min(remaining, 1.0))
-            except queue.Empty:
-                # Check again next iteration
-                continue
-            if obj is None:
-                raise RuntimeError(
-                    f"Sidecar stdout closed before response id={req_id}"
-                )
-            # Skip JSON-RPC notifications (ready, progress, etc.)
-            if "method" in obj:
-                continue
-            if obj.get("id") == req_id:
-                return obj
-            # Response for an unexpected id — skip and continue
-            print(f"[recv] skipping unexpected id={obj.get('id')!r} while waiting for {req_id}",
-                  file=sys.stderr)
-
-    def close(self, timeout: float = 10.0) -> int:
-        """Close stdin, wait for process exit; kill if stuck. Returns exit code."""
-        if self.proc.stdin:
-            try:
-                self.proc.stdin.close()
-            except OSError as exc:
-                print(f"[close] stdin close error (ignored): {exc}", file=sys.stderr)
-        try:
-            rc = self.proc.wait(timeout=timeout)
-        except subprocess.TimeoutExpired:
-            self.proc.kill()
-            rc = self.proc.wait()
-        self._stderr_fh.flush()
-        self._stderr_fh.close()
-        return rc
 
 
 # ---------------------------------------------------------------------------
