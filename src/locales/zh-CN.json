@@ -2928,6 +2928,7 @@
     "missingInputsNote": "在缺少{{missing}}的情况下作出判定，因此饱和判断仅依据 hit rate 趋势。",
     "notAssessableBadge": "无法判定",
     "notAssessableSummary": "信号指向一次转变，但确认它需要{{missing}}，而这些文件并不包含。基于该输入无法回答{{blocked}}，只能判断是否继续 walking。",
+    "notAssessableInsufficientSummary": "信号指向一次转变，但确认它至少需要 {{required}} 个{{missing}}，而本轮仅记录了 {{count}} 个。少于该数量就得不到噪声估计，饱和判断只能依据 hit rate 趋势，因而无法回答{{blocked}}。",
     "prefillFromRounds": "已填入步骤 4.1 生成的 {{n}} 个轮次产物。可自由添加或移除条目。",
     "prefillFromManifest": "已填入本项目最后记录的 EVOLVEpro 输入。该文件早于按轮次记录，没有轮次编号，因此排在首位。",
     "reloadFromRounds": "从轮次重新载入",

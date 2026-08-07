@@ -2928,6 +2928,7 @@
     "missingInputsNote": "Jugé sans {{missing}} : la saturation repose donc uniquement sur la tendance du hit rate.",
     "notAssessableBadge": "Non évaluable",
     "notAssessableSummary": "Les signaux indiquent une transition, mais la confirmer exige {{missing}}, absentes de ces fichiers. {{blocked}} ne peut pas être tranché à partir de cette entrée ; seule la question de la poursuite de la marche peut l'être.",
+    "notAssessableInsufficientSummary": "Les signaux indiquent une transition, mais la confirmer exige au moins {{required}} {{missing}} et cette manche en compte {{count}}. En dessous, aucune estimation du bruit ne sert de référence : la saturation ne repose plus que sur la tendance du hit rate, et {{blocked}} ne peut pas en être déduit.",
     "prefillFromRounds": "Prerempli avec {{n}} sortie(s) de tour produites a l'etape 4.1. Les entrees restent librement modifiables.",
     "prefillFromManifest": "Prerempli avec la derniere entree EVOLVEpro enregistree pour ce projet. Ce fichier est anterieur au suivi par tour, ne porte aucun numero de tour et a donc ete place en tete.",
     "reloadFromRounds": "Recharger depuis les tours",

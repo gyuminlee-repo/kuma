@@ -301,10 +301,17 @@ export function BuildEvolveproInputPanel() {
       // File it on the round so step 4.2 can rebuild the series. The workspace
       // manifest below keeps only the newest EVOLVEpro input of the project
       // (one `app::step::type` slot), which is what KURO imports from.
+      //
+      // The wild-type replicates are filed with it rather than beside it: the
+      // workbook drops the WT rows, and step 4.2 needs them to run the
+      // bootstrap behind switch_combinatorial and stop. Keeping them in the
+      // same record means a rebuild replaces the file and the replicates
+      // together, so a stale spread can never be read against a fresh file.
       if (activeRoundId) {
         useRoundStore.getState().updateRoundField(activeRoundId, "evolvepro_input", {
           path: res.output_path,
           produced_at: new Date().toISOString(),
+          wt_values: res.wt_values,
         });
       }
       await registerArtifacts([

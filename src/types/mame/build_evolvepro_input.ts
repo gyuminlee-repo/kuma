@@ -65,4 +65,20 @@ export interface BuildEvolveproInputResult {
   normalization_sources: string[]
   evidence_hash: string
   artifact_hashes: Record<string, string>
+  /**
+   * Wild-type replicates behind this workbook, on the scale of its activity
+   * column: each WT measurement over the mean WT of its own cohort, the same
+   * division every variant measurement went through.
+   *
+   * The workbook holds one row per designed variant and the WT rows are
+   * filtered out on the way in, so this response is the only route out of the
+   * build. Step 4.2 needs them to run the bootstrap behind
+   * switch_combinatorial and stop, and reads them back off the round
+   * (`Round.evolvepro_input.wt_values`).
+   *
+   * Empty when the primary source carried no WT rows, which is the
+   * pre-normalized GC sheet: its WT mean was taken upstream and the replicates
+   * behind it never reach this app.
+   */
+  wt_values: number[]
 }

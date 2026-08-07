@@ -34,6 +34,28 @@ class RoundArtifact(BaseModel):
     produced_at: datetime
 
 
+class EvolveproInputArtifact(RoundArtifact):
+    """The step 4.1 workbook, plus the wild-type replicates behind it.
+
+    The exported activity column is each variant measurement over the mean WT
+    of its cohort, so the same division applied to the WT rows states the assay
+    spread on that scale.  Those rows are filtered out of the workbook, which
+    holds one row per designed variant for EVOLVEpro, leaving nothing in the
+    file for step 4.2 to read them back from.
+
+    They ride on the artifact rather than beside it so that a rebuild replaces
+    the path, the timestamp, and the replicates in one move.  Split across two
+    fields, a rebuild could leave one round replicate list attached to another
+    round file.
+
+    Empty when the primary source carried no WT rows (the pre-normalized GC
+    sheet), and on every round built before this field existed.  Empty reads as
+    "none on record", which is what those rounds have.
+    """
+
+    wt_values: list[float] = []
+
+
 class Round(BaseModel):
     id: str
     n: int
@@ -48,7 +70,7 @@ class Round(BaseModel):
     # The EVOLVEpro input MAME step 4.1 built for this round.  Defaults to None
     # because rounds saved before the field existed do not carry it, and absent
     # means the round produced nothing, which is what those rounds report.
-    evolvepro_input: RoundArtifact | None = None
+    evolvepro_input: EvolveproInputArtifact | None = None
     # The last advisory answer computed while this round was active, as the
     # strategy.classify_round response plus the files and the moment it came
     # from (see RoundAdvisoryRecord in src/types/round.ts).  Kept as a plain

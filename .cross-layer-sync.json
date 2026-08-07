@@ -1091,6 +1091,33 @@
       ],
       "note": "Stray-read signals: the per-NB demux matrix (per_nb_out sink) -> qc.contamination -> raw-run-only `contamination` response key -> TS ContaminationReport -> store field -> panel. Signal names are a fixed list on both sides; adding one on the Python side without extending CONTAMINATION_SIGNAL_NAMES drops it before the panel. Every signal is `ok` with a value or `unavailable` with a reason, never zero-filled, so nothing in this chain may substitute 0 for a missing measurement.",
       "severity": "blocking"
+    },
+    {
+      "id": "mame-transition-backtest-rationale",
+      "files": [
+        "kuma_core/strategy/classify.py",
+        "docs/2026-06-08-mame-transition-backtest.md"
+      ],
+      "symbols": [
+        "_decide_core",
+        "any_true",
+        "all_na"
+      ],
+      "note": "_decide_core가 T2/T3/T_model과 T1만 결정에 쓰고 T4/T_active/T_unused를 informational로 강등한 근거는 2026-06-08 backtest다. 그 근거 문서는 원래 kuma 밖 형제 저장소(mame_backtest, 리모트 없음)의 report_final.md만 가리키고 있어서 다른 머신에서 해석 불가능했다. docs/ 안으로 옮겨 적어 코드와 함께 이동하게 했다. 결정 트리에서 어떤 신호가 쓰이는지 바꾸면 이 문서의 '코드가 여기에 의존하는 지점' 절도 같이 고쳐야 한다. 반대로 문서만 고치고 코드를 안 고치면 강등 근거와 실제 동작이 어긋난다.",
+      "severity": "warning"
+    },
+    {
+      "id": "mame-classify-round-rpc",
+      "files": [
+        "python-core/sidecar_mame/handlers/classify_round.py",
+        "src/types/mame/strategy.ts",
+        "src/lib/ipc.ts",
+        "src/components/round/AdvisoryDecisionCard.tsx",
+        "src/lib/round/roundArtifacts.ts",
+        "src/lib/mame/mameStepCompletion.ts"
+      ],
+      "note": "strategy.classify_round 계약: 핸들러 응답 두 형태(decision / not_assessable)와 그 키·reason 코드 <-> TS 타입 <-> RPC 클라이언트 <-> 카드 렌더 <-> round_files 조립 <-> step 완료 판정. round_files 항목은 {n, path, wt_values?} 이고 wt_values 는 가장 큰 n 항목만 읽힌다(부트스트랩은 현재 라운드를 리샘플한다). not_assessable 의 reason 은 wt_replicates_missing(0개)과 wt_replicates_insufficient(부족)로 갈리고 wt_replicate_count/wt_replicate_min 을 함께 싣는다. 문서만 남고 코드가 갈라지는 사고가 실제로 있었다: 4.2 가 WT 반복값을 받을 수 있게 된 뒤에도 ipc.ts 의 @param 과 mameStepCompletion.ts 의 주석이 'xlsx 포맷이 그 입력을 담을 수 없다'로 남아 있었다.",
+      "severity": "warning"
     }
   ]
 }

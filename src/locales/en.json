@@ -2439,7 +2439,7 @@
       "The drawer stops reporting a merged row count it never counted, and reopening a project reports recovery instead of n/a.",
       "Files the sidecar accepts are no longer refused by the pickers, and provenance files carry one release version instead of three."
     ],
-    "highlightsStamp": "0.16.8+46abfd1a"
+    "highlightsStamp": "0.16.9+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",
@@ -2947,6 +2947,7 @@
     "missingInputsNote": "Judged without {{missing}}, so saturation rests on the hit-rate trend alone.",
     "notAssessableBadge": "Cannot be assessed",
     "notAssessableSummary": "The signals point at a transition, but confirming one needs {{missing}}, which these files do not carry. {{blocked}} cannot be answered from this input; only the keep-walking check can.",
+    "notAssessableInsufficientSummary": "The signals point at a transition, but confirming one needs at least {{required}} {{missing}} and this round has {{count}} on record. Below that there is no noise estimate to test against, so saturation rests on the hit-rate trend alone and {{blocked}} cannot be answered from it.",
     "prefillFromRounds": "Prefilled with {{n}} round output(s) built in step 4.1. Add or remove entries freely.",
     "prefillFromManifest": "Prefilled with the last EVOLVEpro input recorded for this project. It predates per-round tracking, so it carries no round number and was placed first.",
     "reloadFromRounds": "Reload from rounds",

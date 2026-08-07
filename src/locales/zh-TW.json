@@ -2928,6 +2928,7 @@
     "missingInputsNote": "在缺少{{missing}}的情況下作出判定，因此飽和判斷僅依據 hit rate 趨勢。",
     "notAssessableBadge": "無法判定",
     "notAssessableSummary": "訊號指向一次轉變，但確認它需要{{missing}}，而這些檔案並不包含。基於此輸入無法回答{{blocked}}，只能判斷是否繼續 walking。",
+    "notAssessableInsufficientSummary": "訊號指向一次轉變，但確認它至少需要 {{required}} 個{{missing}}，而本輪僅記錄了 {{count}} 個。少於該數量就得不到雜訊估計，飽和判斷只能依據 hit rate 趨勢，因此無法回答{{blocked}}。",
     "prefillFromRounds": "已填入步驟 4.1 產生的 {{n}} 個輪次產物。可自由新增或移除項目。",
     "prefillFromManifest": "已填入本專案最後記錄的 EVOLVEpro 輸入。該檔案早於逐輪記錄，沒有輪次編號，因此排在最前面。",
     "reloadFromRounds": "從輪次重新載入",

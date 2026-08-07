@@ -2928,6 +2928,7 @@
     "missingInputsNote": "{{missing}} なしで判定しました。飽和の判断は hit rate の推移のみに基づきます。",
     "notAssessableBadge": "判定不可",
     "notAssessableSummary": "シグナルは移行を示していますが、確認には {{missing}} が必要で、これらのファイルには含まれていません。この入力では {{blocked}} を答えられず、継続するかどうかのみ判定できます。",
+    "notAssessableInsufficientSummary": "シグナルは移行を示していますが、確認には {{missing}} が最低 {{required}} 個必要で、このラウンドに記録されているのは {{count}} 個です。それを下回るとノイズの推定値が得られず、飽和の判断が hit rate の推移だけに依存するため、{{blocked}} は答えられません。",
     "prefillFromRounds": "4.1 で作成したラウンド出力 {{n}} 件を入力しました。項目は自由に追加・削除できます。",
     "prefillFromManifest": "このプロジェクトに最後に記録された EVOLVEpro 入力を使用しました。ラウンド別記録より前のファイルでラウンド番号がないため、先頭に配置しています。",
     "reloadFromRounds": "ラウンドから再読み込み",
