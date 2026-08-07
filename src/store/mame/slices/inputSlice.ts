@@ -692,6 +692,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     get().setMappingIntegrity(result.mapping_integrity ?? null);
     get().setOffLayoutRecords(result.off_layout_records ?? null);
     get().setContamination(result.contamination ?? null);
+    // Which reference this run actually read. Only the raw-run path resolves
+    // one, so this is the branch that can carry a real value; `?? null` still
+    // covers a sidecar older than the field, which must read as "no run
+    // reported one" rather than as "the whole file was used".
+    get().setReferenceResolution(result.reference_resolution ?? null);
     // Store the folder only (outputPath is now a folder); lastExportPath tracks the full path.
     const outDir = (() => {
       const p = result.output_path.replace(/\\/g, "/");
@@ -844,6 +849,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       get().setMappingIntegrity(result.mapping_integrity ?? null);
       get().setOffLayoutRecords(result.off_layout_records ?? null);
       get().setContamination(result.contamination ?? null);
+      // See the raw-run branch. This path never resolves a reference (the
+      // sidecar only does it for a MinKNOW run folder), so the value here is
+      // always null; written anyway so both branches state every result field
+      // and neither can be read as forgetting one.
+      get().setReferenceResolution(result.reference_resolution ?? null);
       const outDir = (() => {
         const p = result.output_path.replace(/\\/g, "/");
         const i = p.lastIndexOf("/");

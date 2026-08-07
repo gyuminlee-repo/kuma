@@ -39,6 +39,7 @@ import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
 import { PlateClusterAlert } from "@/components/mame/widgets/PlateClusterAlert";
 import { MappingIntegrityAlert } from "@/components/mame/widgets/MappingIntegrityAlert";
 import { OffLayoutRecordsNotice } from "@/components/mame/widgets/OffLayoutRecordsNotice";
+import { ReferenceResolutionNotice } from "@/components/mame/widgets/ReferenceResolutionNotice";
 import { LegacySampleMapNotice } from "@/components/mame/widgets/LegacySampleMapNotice";
 import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNotice";
 import { ContaminationPanel } from "@/components/mame/widgets/ContaminationPanel";
@@ -335,6 +336,12 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
         mainContent = (
           <div className="flex h-full min-h-0 flex-col overflow-auto p-1">
             <EmptyAnalysisNotice />
+            {/* Mounted here for the same reason as the panel below: this branch
+                replaces the whole review. A run that produced no verdict is
+                also where "which reference did it read" is the first question,
+                so the one screen that can answer it must not be the one screen
+                that drops it. */}
+            <ReferenceResolutionNotice />
             {/* A run that produced no verdict is exactly where the stray-read
                 view earns its place: the reads went somewhere, and the matrix
                 is the only thing that can say whether it was a well nobody
@@ -356,6 +363,11 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               judgment about whether this whole result can be trusted, not a
               detail about how it ran. */}
           <MappingIntegrityAlert />
+          {/* Which reference the verdicts above were actually scored against.
+              On the review screen rather than the inputs screen because it is
+              an answer about a finished run, not a property of the file in the
+              form: the slice exists only once a run has cut it. */}
+          <ReferenceResolutionNotice />
           <OffLayoutRecordsNotice />
           {/* Beside the off-layout notice because the two answer the same
               question from opposite ends: that one counts SCORED records from

@@ -32,6 +32,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   compareParams: null,
   offLayoutRecords: null,
   contamination: null,
+  referenceResolution: null,
   restoredResultProvenance: null,
   // FINAL (the per-mutant selected replicate) is the default view: it is the
   // answer sheet a run is read for. VerdictTable degrades it to ALL while no
@@ -55,6 +56,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   setCompareParams: (compareParams) => set({ compareParams }),
   setOffLayoutRecords: (offLayoutRecords) => set({ offLayoutRecords }),
   setContamination: (contamination) => set({ contamination }),
+  setReferenceResolution: (referenceResolution) => set({ referenceResolution }),
   setRestoredResultProvenance: (restoredResultProvenance) =>
     set({ restoredResultProvenance }),
   setPlateFilter: (plateFilter) => set({ plateFilter }),
@@ -95,6 +97,10 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       // Measured against the wells THESE verdicts were scored on, so it stops
       // meaning anything the moment they go.
       contamination: null,
+      // Which reference the run being cleared actually read. It describes that
+      // run, not the file currently in the form, so a notice about a slice
+      // must not survive into the next set of inputs.
+      referenceResolution: null,
       // The restored-result notice describes the results being cleared here, so
       // it must not outlive them: a fresh run or an input change makes whatever
       // an older build produced irrelevant.
@@ -313,6 +319,11 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       // Sample data is a consensus-dir fixture and never demuxed, so there is
       // no matrix behind it. null, not an empty report.
       contamination: null,
+      // Same reason: the fixture resolves no reference, so nothing here was
+      // measured. null is "no run reported one", which is what the fixture is;
+      // leaving a real run's slice would have the notice describe a reference
+      // these sample verdicts were never scored against.
+      referenceResolution: null,
       // The replicate axis goes with them. The sample verdicts carry
       // `barcode1`, `barcode2`, ... as their native_barcode (lib/mame/
       // sampleData.ts), so a `sort_barcodeNN` selection left over from a real

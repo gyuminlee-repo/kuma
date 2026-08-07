@@ -153,6 +153,37 @@ const OFF_LAYOUT_RECORDS: OffLayoutRecords = {
   wells: [{ well: "H12", records: 7 }],
 };
 
+/**
+ * A run whose reference was cut down to the amplicon the barcode primers
+ * bracket: a 1620 bp construct analysed over positions 451-1170.
+ */
+const REFERENCE_RESOLUTION: NonNullable<AnalyzeResult["reference_resolution"]> = {
+  path: "/proj/out/demux_filtered/construct.amplicon.fa",
+  extracted: true,
+  span_start: 451,
+  span_end: 1170,
+  original_length: 1620,
+  cds_start: 0,
+  cds_end: 720,
+  note: "Amplicon extracted from reference positions 451-1170 (720 bp).",
+};
+
+/**
+ * A run that DID resolve the reference and cut nothing: the primer tails were
+ * not found, so the whole file was used. Measured, and deliberately not the
+ * same value as "no run reported one", which is what makes it worth persisting.
+ */
+const WHOLE_FILE_RESOLUTION: NonNullable<AnalyzeResult["reference_resolution"]> = {
+  path: "/proj/ref/construct.fa",
+  extracted: false,
+  span_start: null,
+  span_end: null,
+  original_length: 1620,
+  cds_start: 0,
+  cds_end: 0,
+  note: "Amplicon extraction skipped because the primer tail sequence was not found in the reference.",
+};
+
 const WELL: WellEntry = {
   well: "A01",
   barcode: "1_1",
@@ -339,6 +370,109 @@ describe("useAutosaveHydration: analyze-result restore", () => {
       expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
     });
     expect(useMameAppStore.getState().offLayoutRecords).toEqual(OFF_LAYOUT_RECORDS);
+  });
+
+  it("carries the reference slice the saved run analysed through a restart", async () => {
+    // The saved run did not read the file named in the form: it read the
+    // amplicon cut out of it, and every restored verdict was scored against
+    // that slice. Dropping this on restore puts the verdicts back on screen
+    // with nothing saying which reference produced them, which is the same
+    // omission that left the off-layout count silent above.
+    hooks.readMameResultSnapshot.mockResolvedValue({
+      status: "ok",
+      snapshot: {
+        schema: 1,
+        saved_at: new Date().toISOString(),
+        kuma_version: "0.0.0-test",
+        result: { ...ANALYZE_RESULT, reference_resolution: REFERENCE_RESOLUTION },
+      },
+    });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
+    });
+    expect(useMameAppStore.getState().referenceResolution).toEqual(REFERENCE_RESOLUTION);
+  });
+
+  it("drops a previous run's slice when the restored run reports none", async () => {
+    // The dangerous direction, and the reason the writer is unconditional
+    // rather than "set it when present": a resolution left over from an earlier
+    // run would sit above the RESTORED verdicts and name a reference they were
+    // never scored against. Silence is the honest state here, so a snapshot
+    // carrying no resolution has to actively clear one.
+    //
+    // `kuma_version` must stay equal to __APP_VERSION__ ("0.0.0-test") for this
+    // to test anything: the only `clearResults()` in restoreMameResult sits on
+    // the other-build refusal path and returns early, so a version that trips
+    // provenance would null the store before the writer ever runs and the
+    // assertion would hold no matter what the writer did.
+    useMameAppStore.setState({ referenceResolution: REFERENCE_RESOLUTION });
+    hooks.readMameResultSnapshot.mockResolvedValue({
+      status: "ok",
+      snapshot: {
+        schema: 1,
+        saved_at: new Date().toISOString(),
+        kuma_version: "0.0.0-test",
+        // ANALYZE_RESULT carries no reference_resolution: a non-raw run, or a
+        // result persisted before the sidecar sent the field.
+        result: ANALYZE_RESULT,
+      },
+    });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
+    });
+    expect(useMameAppStore.getState().referenceResolution).toBeNull();
+  });
+
+  it("keeps a restored run that measured the reference and cut nothing", async () => {
+    // The distinction has to survive the disk round-trip, not just the store:
+    // `extracted: false` is a run that looked and found no primer tails, which
+    // is NOT the null above. Both render nothing, so only the stored value can
+    // tell a reader which one a reopened project is showing.
+    hooks.readMameResultSnapshot.mockResolvedValue({
+      status: "ok",
+      snapshot: {
+        schema: 1,
+        saved_at: new Date().toISOString(),
+        kuma_version: "0.0.0-test",
+        result: { ...ANALYZE_RESULT, reference_resolution: WHOLE_FILE_RESOLUTION },
+      },
+    });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
+    });
+    expect(useMameAppStore.getState().referenceResolution).toEqual(WHOLE_FILE_RESOLUTION);
+    expect(useMameAppStore.getState().referenceResolution).not.toBeNull();
+  });
+
+  it("clears the slice when the results it describes are cleared", async () => {
+    // It describes the run being cleared, not the file currently in the form,
+    // so it must not outlive those verdicts into the next set of inputs.
+    hooks.readMameResultSnapshot.mockResolvedValue({
+      status: "ok",
+      snapshot: {
+        schema: 1,
+        saved_at: new Date().toISOString(),
+        kuma_version: "0.0.0-test",
+        result: { ...ANALYZE_RESULT, reference_resolution: REFERENCE_RESOLUTION },
+      },
+    });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().referenceResolution).not.toBeNull();
+    });
+    useMameAppStore.getState().clearResults();
+    expect(useMameAppStore.getState().referenceResolution).toBeNull();
   });
 
   it("skips restore silently when no result file exists", async () => {
