@@ -2399,11 +2399,13 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El recuento de diseños se detiene en 96 variantes, una placa completa, y nombra el número rechazado en lugar de aceptar un recuento que la placa no puede contener.",
-      "Un proyecto o una instantánea de autoguardado con un recuento mayor se corrige al abrirlo, no se rechaza.",
-      "Las etiquetas de well más allá del final de una placa nombran la placa siguiente, igual que siempre ha hecho la exportación de Python."
+      "El paso 4.2 ahora distingue un veredicto retenido de una pregunta que nunca pudo hacer, y nombra la entrada que le faltaba.",
+      "El paso 4.2 llena su lista con lo que produjo cada ronda, en vez de pedir el archivo que el paso 4.1 acaba de escribir.",
+      "Un veredicto guardado se muestra como sustituido cuando sus entradas se reconstruyen, en lugar de pasar por la respuesta actual.",
+      "La marca de finalizacion del paso 4.2 sobrevive a un reinicio y ya no aparece solo tras abrir la pantalla.",
+      "El boton de traspaso del paso 4.2 se elimina; el paso que cumplia su condicion previa se quito en v0.15.12."
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+68b4bacb"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",

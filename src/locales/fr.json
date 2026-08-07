@@ -2399,11 +2399,13 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Le nombre de designs s'arrête à 96 variants, soit une plaque, et nomme le nombre refusé au lieu d'accepter un compte que la plaque ne peut pas contenir.",
-      "Un projet ou un instantané de sauvegarde automatique portant un nombre plus grand est corrigé à l'ouverture, pas rejeté.",
-      "Les étiquettes de well au-delà de la fin d'une plaque nomment la plaque suivante, comme l'export Python l'a toujours fait."
+      "L etape 4.2 distingue desormais un verdict retenu d une question qu elle n a jamais pu poser, et nomme l entree qui manquait.",
+      "L etape 4.2 remplit sa liste avec ce que chaque cycle a produit, au lieu de reclamer le fichier que l etape 4.1 vient d ecrire.",
+      "Un verdict enregistre est affiche comme remplace des que ses entrees sont reconstruites, au lieu de passer pour la reponse actuelle.",
+      "La marque d achevement de l etape 4.2 survit a un redemarrage et n apparait plus seulement apres ouverture de l ecran.",
+      "Le bouton de passage de relais de l etape 4.2 est retire; l etape qui remplissait sa condition a ete supprimee en v0.15.12."
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+68b4bacb"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",

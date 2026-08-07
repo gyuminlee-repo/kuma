@@ -2399,11 +2399,13 @@
     "description": "Destaques da última atualização.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "A contagem de designs para em 96 variantes, uma placa completa, e informa o número recusado em vez de aceitar uma contagem que a placa não comporta.",
-      "Um projeto ou instantâneo de salvamento automático com uma contagem maior é corrigido ao ser aberto, não recusado.",
-      "Os rótulos de well além do fim de uma placa nomeiam a placa seguinte, como a exportação em Python sempre fez."
+      "A etapa 4.2 agora distingue um veredicto retido de uma pergunta que nunca pode fazer, e nomeia a entrada que faltava.",
+      "A etapa 4.2 preenche sua lista com o que cada rodada produziu, em vez de pedir o arquivo que a etapa 4.1 acabou de escrever.",
+      "Um veredicto salvo aparece como substituido assim que suas entradas sao refeitas, em vez de passar pela resposta atual.",
+      "A marca de conclusao da etapa 4.2 sobrevive a um reinicio e nao surge apenas depois de abrir a tela.",
+      "O botao de repasse da etapa 4.2 foi removido; a etapa que cumpria sua condicao previa saiu na v0.15.12."
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+68b4bacb"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",

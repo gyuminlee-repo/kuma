@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.16.6 (Step 4.2 says what it was asked, what it answered, and when)
+
+The advisory in step 4.2 reads several rounds at once and says whether single-mutant walking still pays. It could not say the one thing it exists to say. The classifier needs wild-type replicate measurements to gate a switch, the handler passed none, and the gate turned every switch or stop candidate back into a deferral. Two labels remained reachable, `continue_walking` and `deferred`, and both mean carry on. An advisory that can only agree with inertia carries no information.
+
+A missing input is now a different answer from a withheld verdict. When the classifier was never asked, the response carries no label and no confidence at all, because it made no judgement. It names the input it lacked and the decisions that input would have unblocked, and the screen draws that as its own state rather than as a verdict.
+
+Step 4.1 writes the file step 4.2 reads, with the same two columns, and used to make the operator go find it again. Each round now records what it produced, the advisory fills its list from those records, and hand-picked files still work: adding or removing one takes the list over, and a button puts the round list back.
+
+A verdict is kept with the inputs that produced it and the time it was decided. Rebuilding a round writes the same path with different contents, so a stored verdict is compared against when its inputs were last produced, and one that predates them is shown as superseded instead of as the current answer. The completion mark reads the same stored record, so it no longer depends on having opened the screen.
+
+The handoff button on 4.2 is gone. The step that filled its precondition was removed in v0.15.12, so the button had been permanently disabled, under a tooltip pointing at a screen that no longer existed.
+
+### Highlights
+
+- Step 4.2 now distinguishes a verdict it withheld from a question it was never able to ask, and names the input it was missing.
+- Step 4.2 fills its file list from what each round produced, instead of asking for the file step 4.1 just wrote.
+- A stored advisory verdict is shown as superseded once its inputs are rebuilt, rather than passing as the current answer.
+- The step 4.2 completion mark survives a restart instead of appearing only after the screen is opened.
+- The handoff button on step 4.2 is removed; the step that filled its precondition was taken out in v0.15.12.
+
 ## v0.16.5 (A design run stops at one plate of variants)
 
 The design count had no upper bound. The field advertised a ceiling of 10000 and the label beside it offered to spread that across however many plates it took, but neither figure was enforced. The value is committed from the raw text of the field, so a typed 500 reached the store unchanged, and a saved project could carry any number at all.

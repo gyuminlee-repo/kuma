@@ -2432,11 +2432,13 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The design count stops at 96 variants, one plate worth, and names the refused number instead of accepting a count the plate cannot hold.",
-      "A saved project or autosave snapshot carrying a larger count is corrected when it is opened, not rejected.",
-      "Well labels past the end of a plate name the next plate, matching what the Python exporter has always produced."
+      "Step 4.2 now distinguishes a verdict it withheld from a question it was never able to ask, and names the input it was missing.",
+      "Step 4.2 fills its file list from what each round produced, instead of asking for the file step 4.1 just wrote.",
+      "A stored advisory verdict is shown as superseded once its inputs are rebuilt, rather than passing as the current answer.",
+      "The step 4.2 completion mark survives a restart instead of appearing only after the screen is opened.",
+      "The handoff button on step 4.2 is removed; the step that filled its precondition was taken out in v0.15.12."
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+68b4bacb"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

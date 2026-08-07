@@ -2399,11 +2399,13 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die Designanzahl endet bei 96 Varianten, einer Platte voll, und nennt die abgelehnte Zahl, statt eine Anzahl anzunehmen, die auf keine Platte passt.",
-      "Ein Projekt oder ein Autosave-Snapshot mit einer größeren Anzahl wird beim Öffnen korrigiert, nicht abgewiesen.",
-      "Well-Bezeichnungen jenseits des Plattenendes nennen die nächste Platte, wie es der Python-Export schon immer getan hat."
+      "Schritt 4.2 unterscheidet nun ein zurueckgehaltenes Urteil von einer Frage, die nie gestellt werden konnte, und nennt die fehlende Eingabe.",
+      "Schritt 4.2 fuellt seine Dateiliste aus dem, was jede Runde erzeugt hat, statt nach der Datei zu fragen, die Schritt 4.1 gerade schrieb.",
+      "Ein gespeichertes Urteil wird als ueberholt angezeigt, sobald seine Eingaben neu erzeugt wurden, statt als aktuelle Antwort zu gelten.",
+      "Die Abschlussmarkierung von Schritt 4.2 ueberlebt einen Neustart und erscheint nicht erst beim Oeffnen des Bildschirms.",
+      "Die Uebergabe-Schaltflaeche in Schritt 4.2 entfaellt; der Schritt, der ihre Voraussetzung fuellte, wurde in v0.15.12 entfernt."
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+68b4bacb"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",
