@@ -100,7 +100,7 @@ const INSTRUMENT_COLUMNS = [
  * pair, which is what the table reads.
  */
 const SETTINGS: JanusResolvedSettings = {
-  dest_layout: "compact",
+  dest_layout: "source",
   include_verdicts: ["PASS"],
   include_fallback: false,
   output_schema: "device",
@@ -247,7 +247,7 @@ describe("JanusMappingPanel preview", () => {
     render(<JanusMappingPanel />);
     await waitFor(() =>
       expect(mockPreview).toHaveBeenCalledWith(
-        expect.objectContaining({ destLayout: "compact", outputSchema: "device" }),
+        expect.objectContaining({ destLayout: "source", outputSchema: "device" }),
       ),
     );
     expect(await screen.findByText("HIGH")).toBeInTheDocument();
@@ -258,10 +258,10 @@ describe("JanusMappingPanel preview", () => {
     render(<JanusMappingPanel />);
     await waitFor(() => expect(mockPreview).toHaveBeenCalled());
 
-    fireEvent.click(screen.getByLabelText("Source position"));
+    fireEvent.click(screen.getByLabelText("Plate order from A1"));
     await waitFor(() =>
       expect(mockPreview).toHaveBeenCalledWith(
-        expect.objectContaining({ destLayout: "source" }),
+        expect.objectContaining({ destLayout: "compact" }),
       ),
     );
   });
@@ -425,7 +425,7 @@ describe("JanusMappingPanel preview", () => {
     ).toBeInTheDocument();
     expect(exportButton()).toBeDisabled();
 
-    fireEvent.click(screen.getByLabelText("Source position"));
+    fireEvent.click(screen.getByLabelText("Plate order from A1"));
     await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(exportButton()).toBeEnabled());
   });
@@ -481,10 +481,10 @@ describe("JanusMappingPanel preview", () => {
 
     render(<JanusMappingPanel />);
     await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getByLabelText("Source position"));
+    fireEvent.click(screen.getByLabelText("Plate order from A1"));
     await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(2));
 
-    // The first (compact-layout) call now lands late carrying a duplicate error.
+    // The first (source-layout) call now lands late carrying a duplicate error.
     resolveFirst?.(DUPLICATE);
     await waitFor(() => expect(exportButton()).toBeEnabled());
     expect(
