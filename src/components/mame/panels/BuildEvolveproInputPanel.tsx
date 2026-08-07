@@ -7,7 +7,7 @@
  * it overrides the primary measurement.
  */
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { mkdir } from "@tauri-apps/plugin-fs";
@@ -20,6 +20,11 @@ import { useRoundStore } from "@/store/round/roundSlice";
 import { describeRpcError, extractMissingMethod } from "@/lib/errors";
 import { revealInOSFolder } from "@/lib/openFolder";
 import { registerArtifacts } from "@/lib/workspace";
+import {
+  EVOLVEPRO_INPUT_FOLDER,
+  evolveproInputFilename,
+  roundOwningOutput,
+} from "@/lib/round/roundArtifacts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InlineHelp } from "@/components/ui/InlineHelp";
@@ -73,6 +78,10 @@ export function BuildEvolveproInputPanel() {
   const { t } = useTranslation();
   const project = useKumaProject();
   const activeRoundId = useRoundStore((s) => s.active_round_id);
+  const rounds = useRoundStore((s) => s.rounds);
+  const activeRoundNumber = useRoundStore(
+    (s) => s.rounds.find((candidate) => candidate.id === s.active_round_id)?.n ?? 1,
+  );
   const roundVerdictPath = useRoundStore((s) => {
     const round = s.rounds.find((candidate) => candidate.id === s.active_round_id);
     const value = round?.genotype.verdict_xlsx;
@@ -118,11 +127,36 @@ export function BuildEvolveproInputPanel() {
     });
   }
 
+  // The default destination carries the round number so building round 2 does
+  // not write over what round 1 produced, which is the series step 4.2 reads.
+  // It is re-derived when the active round changes, but only while the path is
+  // still one this panel generated: `outputXlsxRoundId` names that round, and
+  // browsing clears it, so a hand-picked destination is never rewritten under
+  // the operator. A path restored from an older project also has no round id
+  // and is left alone for the same reason; the collision notice below is what
+  // catches it once a round has recorded that file as its output.
   useEffect(() => {
-    if (!project?.path || form.outputXlsx || form.migrationNotice) return;
-    setForm({ outputXlsx: projectFile(project.path, "activity", "evolvepro_input.xlsx") });
+    if (!project?.path || form.migrationNotice || !activeRoundId) return;
+    const panelOwnsPath = !form.outputXlsx || Boolean(form.outputXlsxRoundId);
+    if (!panelOwnsPath) return;
+    if (form.outputXlsx && form.outputXlsxRoundId === activeRoundId) return;
+    setForm({
+      outputXlsx: projectFile(
+        project.path,
+        EVOLVEPRO_INPUT_FOLDER,
+        evolveproInputFilename(activeRoundNumber),
+      ),
+      outputXlsxRoundId: activeRoundId,
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project?.path, form.outputXlsx]);
+  }, [
+    project?.path,
+    form.outputXlsx,
+    form.outputXlsxRoundId,
+    form.migrationNotice,
+    activeRoundId,
+    activeRoundNumber,
+  ]);
 
   useEffect(() => {
     setResult(null);
@@ -174,15 +208,30 @@ export function BuildEvolveproInputPanel() {
 
   const browseOutput = useCallback(async () => {
     const defaultPath = project?.path
-      ? form.outputXlsx || projectFile(project.path, "activity", "evolvepro_input.xlsx")
+      ? form.outputXlsx ||
+        projectFile(
+          project.path,
+          EVOLVEPRO_INPUT_FOLDER,
+          evolveproInputFilename(activeRoundNumber),
+        )
       : form.outputXlsx || undefined;
     const selected = await save({
       defaultPath,
       filters: [{ name: "Excel", extensions: ["xlsx"] }],
       title: t("mame.buildEvolvepro.chooseOutput"),
     });
-    if (selected) setForm({ outputXlsx: selected });
-  }, [form.outputXlsx, project?.path, t]);
+    // Clearing the round id marks the path as the operator choice, which the
+    // effect above never rewrites.
+    if (selected) setForm({ outputXlsx: selected, outputXlsxRoundId: "" });
+  }, [activeRoundNumber, form.outputXlsx, project?.path, t]);
+
+  // A destination another round already recorded. Building writes over that
+  // round measurements while its entry still points at the file, so say so
+  // instead of letting the overwrite happen quietly.
+  const collidingRound = useMemo(
+    () => roundOwningOutput(rounds, form.outputXlsx, activeRoundId),
+    [rounds, form.outputXlsx, activeRoundId],
+  );
 
   const missing: { label: string; fieldId: string }[] = [];
   const need = (key: string, fieldId: string) =>
@@ -249,6 +298,15 @@ export function BuildEvolveproInputPanel() {
       setBuildEvolveproCompletion(
         createBuildEvolveproCompletion(form, res.output_path),
       );
+      // File it on the round so step 4.2 can rebuild the series. The workspace
+      // manifest below keeps only the newest EVOLVEpro input of the project
+      // (one `app::step::type` slot), which is what KURO imports from.
+      if (activeRoundId) {
+        useRoundStore.getState().updateRoundField(activeRoundId, "evolvepro_input", {
+          path: res.output_path,
+          produced_at: new Date().toISOString(),
+        });
+      }
       await registerArtifacts([
         {
           app: "mame",
@@ -501,6 +559,16 @@ export function BuildEvolveproInputPanel() {
           <p className="text-xs text-muted-foreground/90">
             {t("mame.buildEvolvepro.outputXlsxHelper")}
           </p>
+          {collidingRound && (
+            <p
+              role="status"
+              className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400"
+            >
+              {t("mame.buildEvolvepro.outputCollidesRound", {
+                round: collidingRound.n,
+              })}
+            </p>
+          )}
         </div>
       </section>
 

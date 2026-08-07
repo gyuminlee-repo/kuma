@@ -546,7 +546,8 @@
       "missingInputs": "추가 필요",
       "restoredNotice": "이 프로젝트의 입력값을 복원했습니다.",
       "migrationUnsupported": "저장된 Step 4 방식은 더 이상 지원하지 않습니다. 범용 long-format 활성값으로 변환하거나 명시적 well/variant 라벨로 export한 뒤 계속하세요.",
-      "clearRestored": "복원된 EVOLVEpro 입력 지우기"
+      "clearRestored": "복원된 EVOLVEpro 입력 지우기",
+      "outputCollidesRound": "라운드 {{round}} 가 이미 이 파일을 산출물로 기록했습니다. 여기에 만들면 그 라운드 측정값을 덮어씁니다."
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",
@@ -2942,7 +2943,10 @@
     },
     "missingInputsNote": "{{missing}} 없이 판정했습니다. 포화 판단은 hit rate 추세에만 근거합니다.",
     "notAssessableBadge": "판정 불가",
-    "notAssessableSummary": "신호는 전환을 가리키지만, 확인하려면 {{missing}}이 필요하고 이 파일들에는 그 값이 없습니다. 이 입력으로는 {{blocked}}을 답할 수 없고, 계속 걷기 여부만 판정할 수 있습니다."
+    "notAssessableSummary": "신호는 전환을 가리키지만, 확인하려면 {{missing}}이 필요하고 이 파일들에는 그 값이 없습니다. 이 입력으로는 {{blocked}}을 답할 수 없고, 계속 걷기 여부만 판정할 수 있습니다.",
+    "prefillFromRounds": "4.1 에서 만든 라운드 산출물 {{n}} 개로 채웠습니다. 항목은 자유롭게 추가·제거할 수 있습니다.",
+    "prefillFromManifest": "이 프로젝트에 마지막으로 기록된 EVOLVEpro 입력으로 채웠습니다. 라운드별 기록 이전 파일이라 라운드 번호가 없어 맨 앞에 두었습니다.",
+    "reloadFromRounds": "라운드에서 다시 불러오기"
   },
   "selection3d": {
     "title": "Candidate 3D structure analysis",

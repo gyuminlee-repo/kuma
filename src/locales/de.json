@@ -1118,7 +1118,8 @@
       "missingInputs": "Noch erforderlich",
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
-      "clearRestored": "Wiederhergestellte EVOLVEpro-Eingaben löschen"
+      "clearRestored": "Wiederhergestellte EVOLVEpro-Eingaben löschen",
+      "outputCollidesRound": "Runde {{round}} hat diese Datei bereits als ihr Ergebnis erfasst. Ein Build hier ueberschreibt die Messwerte jener Runde."
     },
     "verdictBadge": {
       "help": {
@@ -2923,7 +2924,10 @@
     },
     "missingInputsNote": "Beurteilt ohne {{missing}}, die Sättigung stützt sich daher allein auf den Verlauf der Hit-Rate.",
     "notAssessableBadge": "Nicht beurteilbar",
-    "notAssessableSummary": "Die Signale deuten auf einen Übergang hin, doch dessen Bestätigung erfordert {{missing}}, die in diesen Dateien nicht enthalten sind. {{blocked}} lässt sich mit dieser Eingabe nicht beantworten; möglich ist nur die Prüfung auf Weiterlaufen."
+    "notAssessableSummary": "Die Signale deuten auf einen Übergang hin, doch dessen Bestätigung erfordert {{missing}}, die in diesen Dateien nicht enthalten sind. {{blocked}} lässt sich mit dieser Eingabe nicht beantworten; möglich ist nur die Prüfung auf Weiterlaufen.",
+    "prefillFromRounds": "Mit {{n}} in Schritt 4.1 erzeugten Rundenergebnissen vorbelegt. Eintraege lassen sich frei hinzufuegen oder entfernen.",
+    "prefillFromManifest": "Mit der zuletzt fuer dieses Projekt erfassten EVOLVEpro-Eingabe vorbelegt. Die Datei stammt aus der Zeit vor der rundenweisen Erfassung, traegt keine Rundennummer und steht deshalb an erster Stelle.",
+    "reloadFromRounds": "Aus Runden neu laden"
   },
   "validation": {
     "missing": {

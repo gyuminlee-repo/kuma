@@ -1118,7 +1118,8 @@
       "missingInputs": "Ещё требуется",
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
-      "clearRestored": "Очистить восстановленные входы EVOLVEpro"
+      "clearRestored": "Очистить восстановленные входы EVOLVEpro",
+      "outputCollidesRound": "Раунд {{round}} уже записал этот файл как свой результат. Сборка сюда перезапишет измерения того раунда."
     },
     "verdictBadge": {
       "help": {
@@ -2923,7 +2924,10 @@
     },
     "missingInputsNote": "Оценка сделана без {{missing}}, поэтому насыщение опирается только на динамику hit rate.",
     "notAssessableBadge": "Оценить нельзя",
-    "notAssessableSummary": "Сигналы указывают на переход, но для его подтверждения нужны {{missing}}, которых в этих файлах нет. По такому входу нельзя ответить на {{blocked}}; доступна только проверка того, стоит ли продолжать обход."
+    "notAssessableSummary": "Сигналы указывают на переход, но для его подтверждения нужны {{missing}}, которых в этих файлах нет. По такому входу нельзя ответить на {{blocked}}; доступна только проверка того, стоит ли продолжать обход.",
+    "prefillFromRounds": "Заполнено результатами раундов из шага 4.1: {{n}}. Записи можно свободно добавлять и удалять.",
+    "prefillFromManifest": "Заполнено последним входом EVOLVEpro, записанным для этого проекта. Файл создан до учёта по раундам, номера раунда не имеет и поэтому поставлен первым.",
+    "reloadFromRounds": "Перезагрузить из раундов"
   },
   "validation": {
     "missing": {

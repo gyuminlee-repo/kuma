@@ -97,6 +97,7 @@ export const createRoundStore = () =>
         genotype: {},
         activity: null,
         merged_table: [],
+        evolvepro_input: null,
       }
       set((state) => ({
         rounds: [...state.rounds, round],
@@ -169,6 +170,7 @@ export const createRoundStore = () =>
         genotype: {},
         activity: null,
         merged_table: [],
+        evolvepro_input: null,
       }
       set((s) => ({
         rounds: [...s.rounds, newRound],

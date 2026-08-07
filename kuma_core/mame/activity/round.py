@@ -27,6 +27,13 @@ class RoundErrorInfo(BaseModel):
     occurred_at: datetime
 
 
+class RoundArtifact(BaseModel):
+    """A file one round produced, with the moment it was written."""
+
+    path: str
+    produced_at: datetime
+
+
 class Round(BaseModel):
     id: str
     n: int
@@ -38,3 +45,7 @@ class Round(BaseModel):
     genotype: dict
     activity: ActivityTable | None
     merged_table: list[MergedRow]
+    # The EVOLVEpro input MAME step 4.1 built for this round.  Defaults to None
+    # because rounds saved before the field existed do not carry it, and absent
+    # means the round produced nothing, which is what those rounds report.
+    evolvepro_input: RoundArtifact | None = None

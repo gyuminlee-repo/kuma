@@ -1118,7 +1118,8 @@
       "missingInputs": "不足しているファイル",
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
-      "clearRestored": "復元された EVOLVEpro 入力をクリア"
+      "clearRestored": "復元された EVOLVEpro 入力をクリア",
+      "outputCollidesRound": "ラウンド {{round}} がこのファイルを出力として記録済みです。ここに作成するとそのラウンドの測定値を上書きします。"
     },
     "verdictBadge": {
       "help": {
@@ -2923,7 +2924,10 @@
     },
     "missingInputsNote": "{{missing}} なしで判定しました。飽和の判断は hit rate の推移のみに基づきます。",
     "notAssessableBadge": "判定不可",
-    "notAssessableSummary": "シグナルは移行を示していますが、確認には {{missing}} が必要で、これらのファイルには含まれていません。この入力では {{blocked}} を答えられず、継続するかどうかのみ判定できます。"
+    "notAssessableSummary": "シグナルは移行を示していますが、確認には {{missing}} が必要で、これらのファイルには含まれていません。この入力では {{blocked}} を答えられず、継続するかどうかのみ判定できます。",
+    "prefillFromRounds": "4.1 で作成したラウンド出力 {{n}} 件を入力しました。項目は自由に追加・削除できます。",
+    "prefillFromManifest": "このプロジェクトに最後に記録された EVOLVEpro 入力を使用しました。ラウンド別記録より前のファイルでラウンド番号がないため、先頭に配置しています。",
+    "reloadFromRounds": "ラウンドから再読み込み"
   },
   "validation": {
     "missing": {

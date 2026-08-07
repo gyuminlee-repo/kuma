@@ -1118,7 +1118,8 @@
       "missingInputs": "尚需提供",
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
-      "clearRestored": "清除已復原的 EVOLVEpro 輸入"
+      "clearRestored": "清除已復原的 EVOLVEpro 輸入",
+      "outputCollidesRound": "輪次 {{round}} 已將此檔案記錄為其產物。在此產生會覆寫該輪次的測量值。"
     },
     "verdictBadge": {
       "help": {
@@ -2923,7 +2924,10 @@
     },
     "missingInputsNote": "在缺少{{missing}}的情況下作出判定，因此飽和判斷僅依據 hit rate 趨勢。",
     "notAssessableBadge": "無法判定",
-    "notAssessableSummary": "訊號指向一次轉變，但確認它需要{{missing}}，而這些檔案並不包含。基於此輸入無法回答{{blocked}}，只能判斷是否繼續 walking。"
+    "notAssessableSummary": "訊號指向一次轉變，但確認它需要{{missing}}，而這些檔案並不包含。基於此輸入無法回答{{blocked}}，只能判斷是否繼續 walking。",
+    "prefillFromRounds": "已填入步驟 4.1 產生的 {{n}} 個輪次產物。可自由新增或移除項目。",
+    "prefillFromManifest": "已填入本專案最後記錄的 EVOLVEpro 輸入。該檔案早於逐輪記錄，沒有輪次編號，因此排在最前面。",
+    "reloadFromRounds": "從輪次重新載入"
   },
   "validation": {
     "missing": {

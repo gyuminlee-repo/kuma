@@ -25,6 +25,12 @@ export interface RoundErrorInfo {
   occurred_at: string
 }
 
+/** A file one round produced, with the moment it was written. */
+export interface RoundArtifact {
+  path: string
+  produced_at: string
+}
+
 export interface Round {
   id: string
   n: number
@@ -36,4 +42,14 @@ export interface Round {
   genotype: Record<string, unknown>
   activity: { records: ActivityRecord[]; plate_meta: PlateMeta } | null
   merged_table: MergedRow[]
+  /**
+   * The EVOLVEpro input step 4.1 built for this round, which step 4.2 reads
+   * back as one entry of the round series (lib/round/roundArtifacts.ts).
+   *
+   * Optional because rounds restored from a snapshot written before this field
+   * existed simply do not have it. Absent reads as "this round produced
+   * nothing", which is the same answer those projects give today, so no
+   * snapshot schema bump is warranted.
+   */
+  evolvepro_input?: RoundArtifact | null
 }

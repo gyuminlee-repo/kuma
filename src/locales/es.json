@@ -1118,7 +1118,8 @@
       "missingInputs": "Todavía falta",
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
-      "clearRestored": "Borrar entradas EVOLVEpro restauradas"
+      "clearRestored": "Borrar entradas EVOLVEpro restauradas",
+      "outputCollidesRound": "La ronda {{round}} ya registro este archivo como su salida. Generar aqui sobrescribe las mediciones de esa ronda."
     },
     "verdictBadge": {
       "help": {
@@ -2923,7 +2924,10 @@
     },
     "missingInputsNote": "Evaluado sin {{missing}}, de modo que la saturación se basa únicamente en la tendencia de la hit rate.",
     "notAssessableBadge": "No evaluable",
-    "notAssessableSummary": "Las señales apuntan a una transición, pero confirmarla requiere {{missing}}, que estos archivos no contienen. Con esta entrada no se puede responder {{blocked}}; solo cabe comprobar si conviene seguir caminando."
+    "notAssessableSummary": "Las señales apuntan a una transición, pero confirmarla requiere {{missing}}, que estos archivos no contienen. Con esta entrada no se puede responder {{blocked}}; solo cabe comprobar si conviene seguir caminando.",
+    "prefillFromRounds": "Rellenado con {{n}} salida(s) de ronda generadas en el paso 4.1. Las entradas se pueden anadir o quitar libremente.",
+    "prefillFromManifest": "Rellenado con la ultima entrada EVOLVEpro registrada para este proyecto. Es anterior al registro por ronda, no lleva numero de ronda y por eso se coloco primero.",
+    "reloadFromRounds": "Recargar desde las rondas"
   },
   "validation": {
     "missing": {

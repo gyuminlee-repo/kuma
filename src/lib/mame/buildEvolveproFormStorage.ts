@@ -18,6 +18,12 @@ export interface BuildEvolveproFormState {
   verdictXlsx: string;
   verdictEvidenceSignature: string;
   outputXlsx: string;
+  /**
+   * The round id `outputXlsx` was generated for, or "" when the operator
+   * browsed to it. Non-empty means this panel wrote the path and may rewrite it
+   * for the next round; empty means hands off.
+   */
+  outputXlsxRoundId: string;
   migrationNotice: boolean;
 }
 
@@ -33,6 +39,7 @@ export const BUILD_EVOLVEPRO_DEFAULT_STATE: BuildEvolveproFormState = {
   verdictXlsx: "",
   verdictEvidenceSignature: "",
   outputXlsx: "",
+  outputXlsxRoundId: "",
   migrationNotice: false,
 };
 
@@ -137,6 +144,10 @@ function readState(
     verdictXlsx: fromPortablePath(stringValue(payload, "verdictXlsx"), projectPath),
     verdictEvidenceSignature: stringValue(payload, "verdictEvidenceSignature"),
     outputXlsx: fromPortablePath(stringValue(payload, "outputXlsx"), projectPath),
+    // Absent on records saved before per-round output paths existed, and empty
+    // is the safe reading of those: treat the stored path as hand-picked and
+    // leave it alone rather than rewriting a destination this build never set.
+    outputXlsxRoundId: stringValue(payload, "outputXlsxRoundId"),
     migrationNotice: Boolean(payload.migrationNotice),
   };
 }
@@ -205,8 +216,20 @@ export function isBuildEvolveproFormReady(state: BuildEvolveproFormState): boole
 
 export interface BuildEvolveproCompletionRecord { outputPath: string; signature: string; }
 
+/**
+ * Identity of the request this form describes.
+ *
+ * `outputXlsxRoundId` is excluded alongside `migrationNotice`: it records which
+ * round the panel derived the path for, and is not sent to the sidecar. Letting
+ * it into the signature would mark a finished build stale the moment the active
+ * round changed, without any input having moved.
+ */
 export function buildEvolveproFormSignature(state: BuildEvolveproFormState): string {
-  const { migrationNotice: _migrationNotice, ...requestState } = state;
+  const {
+    migrationNotice: _migrationNotice,
+    outputXlsxRoundId: _outputXlsxRoundId,
+    ...requestState
+  } = state;
   return JSON.stringify(requestState);
 }
 

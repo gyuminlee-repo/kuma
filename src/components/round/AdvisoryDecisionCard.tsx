@@ -23,12 +23,15 @@
  * format, not of how many WT replicates a round happens to have.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
-import { InfoIcon, FileSpreadsheet, X, PlayCircle } from "lucide-react";
+import { InfoIcon, FileSpreadsheet, RotateCcw, X, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { classifyRound } from "@/lib/ipc";
+import { listArtifacts } from "@/lib/workspace";
+import { roundEvolveproFiles } from "@/lib/round/roundArtifacts";
+import { useRoundStore } from "@/store/round/roundSlice";
 import { Button } from "@/components/ui/button";
 import type {
   ClassifyDecisionResult,
@@ -41,6 +44,9 @@ import type {
 
 /** Narrowed shape of the i18next translator this file needs. */
 type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+/** Where the list on screen came from, which the note under it states. */
+type PrefillSource = "none" | "rounds" | "manifest" | "manual";
 
 /**
  * Reason codes kuma_core/strategy/classify.py can emit, each with a phrase in
@@ -251,11 +257,13 @@ export interface AdvisoryDecisionCardProps {
 /**
  * AdvisoryDecisionCard (Fork D)
  *
- * Self-contained file-picker + advisory classification card.
- * User adds per-round xlsx files; the component calls classifyRound() on demand.
+ * File list + advisory classification card. The list is prefilled with what the
+ * rounds produced in step 4.1 (lib/round/roundArtifacts.ts) and stays fully
+ * editable, so an older project or a file from outside this workspace can still
+ * be classified.
  *
  * States: idle | loading | result | error
- * Read-only. No Confirm button, no PI decision persistence.
+ * Read-only advice. No Confirm button, no PI decision recorded as a choice.
  */
 export function AdvisoryDecisionCard({
   className,
@@ -263,15 +271,59 @@ export function AdvisoryDecisionCard({
 }: AdvisoryDecisionCardProps) {
   const { t } = useTranslation();
 
+  const rounds = useRoundStore((s) => s.rounds);
+  const roundFiles = useMemo(() => roundEvolveproFiles(rounds), [rounds]);
+
   const [files, setFiles] = useState<RoundFileEntry[]>([]);
+  const [prefillSource, setPrefillSource] = useState<PrefillSource>("none");
   const [result, setResult] = useState<ClassifyRoundResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * Whether the operator has touched the list. Prefill fills an untouched list
+   * and stops there: a proposal must never overwrite a hand-built selection,
+   * which is what lets a past project or an outside file be classified. The
+   * reload button below puts the round list back on demand.
+   */
+  const edited = useRef(false);
 
-  /** Renumbers entries 1..N in current order (gap-free). */
-  function reindex(entries: { path: string }[]): RoundFileEntry[] {
-    return entries.map((e, i) => ({ n: i + 1, path: e.path }));
-  }
+  useEffect(() => {
+    if (edited.current || roundFiles.length === 0) return;
+    setFiles(roundFiles);
+    setPrefillSource("rounds");
+  }, [roundFiles]);
+
+  // Projects built before rounds recorded their outputs have nothing to offer
+  // above, but they do have the workspace manifest entry step 4.1 registered.
+  // It is one slot with no round number, so it is offered as a single leading
+  // entry and the note says where it came from rather than implying it is
+  // round 1 of a series.
+  useEffect(() => {
+    if (edited.current || roundFiles.length > 0) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const artifacts = await listArtifacts({ app: "mame", type: "evolvepro_csv" });
+        if (cancelled || edited.current || artifacts.length === 0) return;
+        const newest = artifacts
+          .slice()
+          .sort((a, b) => b.producedAt.localeCompare(a.producedAt))[0];
+        setFiles([{ n: 1, path: newest.path }]);
+        setPrefillSource("manifest");
+      } catch {
+        // No workspace open, or no manifest to read. Nothing to prefill.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [roundFiles.length]);
+
+  const clearAnswer = useCallback(() => {
+    setResult(null);
+    setError(null);
+    onResult?.(null);
+  }, [onResult]);
 
   const handleAddFiles = useCallback(async () => {
     const selected = await open({
@@ -282,25 +334,39 @@ export function AdvisoryDecisionCard({
     });
     if (!selected) return;
     const paths = Array.isArray(selected) ? selected : [selected];
+    // Appended after the highest number in the list instead of renumbering the
+    // whole thing. A prefilled entry carries the number of the round that
+    // produced it, and renumbering would relabel round 3 as round 2 the moment
+    // an outside file joined. The handler sorts by n and counts entries, so a
+    // gap orders correctly and does not inflate the round count.
     setFiles((prev) => {
       const existing = new Set(prev.map((e) => e.path));
       const newPaths = paths.filter((p) => !existing.has(p));
-      return reindex([...prev, ...newPaths.map((p) => ({ path: p }))]);
+      if (newPaths.length === 0) return prev;
+      edited.current = true;
+      setPrefillSource("manual");
+      const highest = prev.reduce((max, entry) => Math.max(max, entry.n), 0);
+      return [...prev, ...newPaths.map((path, i) => ({ n: highest + i + 1, path }))];
     });
-    setResult(null);
-    setError(null);
-    onResult?.(null);
-  }, [t, onResult]);
+    clearAnswer();
+  }, [t, clearAnswer]);
 
   const handleRemove = useCallback(
     (n: number) => {
-      setFiles((prev) => reindex(prev.filter((e) => e.n !== n)));
-      setResult(null);
-      setError(null);
-      onResult?.(null);
+      edited.current = true;
+      setPrefillSource("manual");
+      setFiles((prev) => prev.filter((e) => e.n !== n));
+      clearAnswer();
     },
-    [onResult],
+    [clearAnswer],
   );
+
+  const handleReloadRounds = useCallback(() => {
+    edited.current = false;
+    setFiles(roundFiles);
+    setPrefillSource("rounds");
+    clearAnswer();
+  }, [roundFiles, clearAnswer]);
 
   const handleClassify = useCallback(async () => {
     if (files.length === 0 || loading) return;
@@ -347,6 +413,17 @@ export function AdvisoryDecisionCard({
         </ul>
       )}
 
+      {files.length > 0 && prefillSource === "rounds" && (
+        <p className="text-[11px] text-muted-foreground">
+          {t("advisoryDecision.prefillFromRounds", { n: files.length })}
+        </p>
+      )}
+      {files.length > 0 && prefillSource === "manifest" && (
+        <p className="text-[11px] text-muted-foreground">
+          {t("advisoryDecision.prefillFromManifest")}
+        </p>
+      )}
+
       <div className="flex items-center gap-2">
         <Button
           type="button"
@@ -360,6 +437,19 @@ export function AdvisoryDecisionCard({
           <FileSpreadsheet size={12} aria-hidden="true" />
           {t("advisoryDecision.addFiles")}
         </Button>
+        {roundFiles.length > 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleReloadRounds}
+            disabled={loading}
+            className="h-7 gap-1.5 text-xs"
+          >
+            <RotateCcw size={12} aria-hidden="true" />
+            {t("advisoryDecision.reloadFromRounds")}
+          </Button>
+        )}
         <Button
           type="button"
           size="sm"
