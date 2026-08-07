@@ -264,16 +264,18 @@ def test_included_clones_never_appear_in_the_exclusion_list() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_default_layout_is_compact() -> None:
-    """A stock plate is a new plate, so picks are packed from A1."""
-    assert JanusSettings().dest_layout == "compact"
+def test_default_layout_is_source() -> None:
+    """A non-PASS clone drops out before layout is chosen, so the default
+    mirrors the source position: a dropped well stays blank on both plates
+    instead of being closed up by a compact pack of the survivors."""
+    assert JanusSettings().dest_layout == "source"
 
     replicates = [
         _make_replicate("HIGH", "NB01", "5_7", size_kb=300.0),
         _make_replicate("LOW", "NB02", "8_12", size_kb=10.0),
     ]
     rows = _build_janus_rows(replicates, settings=_DEVICE)
-    assert [r["dest_well"] for r in rows] == ["A1", "B1"]
+    assert [r["dest_well"] for r in rows] == ["E7", "H12"]
     assert [r["source_well"] for r in rows] == ["E7", "H12"]
 
 
@@ -346,16 +348,19 @@ def test_instrument_row_values(tmp_path: Path) -> None:
         rows = list(csv.reader(fh))[1:]
 
     # Two plates in the run, so they are the first and second stock plate and
-    # everything goes into the one culture plate.
+    # everything goes into the one culture plate. dest_layout is the "source"
+    # default, so the destination well (Dsp. Posi) mirrors the source well
+    # (Asp. Posi): the stock plate and the final culture plate share one
+    # coordinate system.
     assert rows[0] == [
         "HIGH", "glycerol stock", "1", "Stock plate1", "E7",
-        "final culture plate", "A1", "75.0",
+        "final culture plate", "E7", "75.0",
     ]
     # `no` counts up in the row order, so the sheet counts off the transfers in
     # the order the plate is filled (E7 before H12, whatever the depths say).
     assert rows[1] == [
         "LOW", "glycerol stock", "2", "Stock plate2", "H12",
-        "final culture plate", "B1", "75.0",
+        "final culture plate", "H12", "75.0",
     ]
 
 
@@ -553,7 +558,13 @@ def test_instrument_plate_names_must_be_non_empty_strings(kwargs, message: str) 
         _DEVICE,
         JanusSettings(liquid_class="Cell", dest_layout="source"),
         JanusSettings(liquid_class="Cell", include_verdicts=("PASS", "AMBIGUOUS")),
-        JanusSettings(liquid_class="Cell", include_fallback=True),
+        # dest_layout is explicit here (unlike the cases above, which rely on
+        # the default): NB01's PASS_HI and NB02's FALLBACK both sit at well A1,
+        # and the default "source" layout would mirror both onto dest A1 and
+        # raise duplicate_dest_well before agreement is even checked. That
+        # collision is real (tests/mame/test_janus_autosave.py covers it); it is
+        # simply not what this case is testing.
+        JanusSettings(liquid_class="Cell", include_fallback=True, dest_layout="compact"),
         JanusSettings(output_schema="legacy5"),
     ],
 )

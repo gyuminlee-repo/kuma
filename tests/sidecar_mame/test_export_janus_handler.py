@@ -69,9 +69,9 @@ def seeded_state():
 
 
 # The handler defaults to the instrument-native eight column sheet with a
-# compact destination layout. Cases that assert the kuma-internal 5-column
-# output at the source position pass this explicitly; the defaults themselves
-# are asserted by the test_default_* cases below.
+# source destination layout. Cases that assert the kuma-internal 5-column
+# output pass this explicitly; the defaults themselves are asserted by the
+# test_default_* cases below.
 _LEGACY_SOURCE = {"output_schema": "legacy5", "dest_layout": "source"}
 
 
@@ -87,14 +87,16 @@ def test_source_layout_mirrors_source(tmp_path: Path, seeded_state) -> None:
     assert [r["dest_well"] for r in rows] == ["E7", "H12"]
 
 
-def test_default_layout_is_compact(tmp_path: Path, seeded_state) -> None:
-    """A stock plate is a new plate, so the default fills it from A1."""
+def test_default_layout_is_source(tmp_path: Path, seeded_state) -> None:
+    """A dropped non-PASS clone should leave its well blank on both plates, so
+    the default mirrors the source position rather than packing survivors from
+    A1."""
     out = tmp_path / "default.csv"
     handle_export_janus_mapping(
         {"output": str(out), "output_schema": "legacy5", "liquid_class": "Cell"}
     )
     rows = _read_csv(out)
-    assert [r["dest_well"] for r in rows] == ["A1", "B1"]
+    assert [r["dest_well"] for r in rows] == ["E7", "H12"]
     assert [r["source_well"] for r in rows] == ["E7", "H12"]
 
 
@@ -265,10 +267,10 @@ def test_dry_run_passes_dest_layout_to_core(seeded_state) -> None:
     assert [r["source_well"] for r in result["rows"]] == ["E7", "H12"]
 
 
-def test_dry_run_treats_null_dest_layout_as_compact(seeded_state) -> None:
+def test_dry_run_treats_null_dest_layout_as_source(seeded_state) -> None:
     """An explicit JSON null must land on the default, not on a rejected value."""
     result = handle_export_janus_mapping_dry_run({"dest_layout": None})
-    assert [r["dest_well"] for r in result["rows"]] == ["A1", "B1"]
+    assert [r["dest_well"] for r in result["rows"]] == ["E7", "H12"]
 
 
 def test_dry_run_rejects_invalid_dest_layout(seeded_state) -> None:

@@ -499,9 +499,19 @@ class JanusSettings:
     transferred is an experimental condition that cannot be derived from the
     run. The plate names are derived from the plates of the run
     (``resolve_deck``) and overridden by anything the operator enters.
+
+    ``dest_layout`` defaults to ``"source"``: a clone that failed QC (or any
+    other non-PASS verdict) is dropped from the rows before a layout is ever
+    chosen, and compact packing would then pull every later pick forward to
+    close that gap. The final culture plate an operator fills by hand would
+    then read at a different well than the stock plate it was seeded from
+    (observed: source F3/H3/A4 exported as dest F3/G3/H3). Mirroring the
+    source position instead leaves the dropped well blank on both plates, so
+    the two plates share one coordinate system. ``"compact"`` stays available
+    for a run where a from-A1 fill matters more than positional agreement.
     """
 
-    dest_layout: str = DEST_LAYOUT_COMPACT
+    dest_layout: str = DEST_LAYOUT_SOURCE
     include_verdicts: tuple[str, ...] = DEFAULT_INCLUDE_VERDICTS
     include_fallback: bool = False
     output_schema: str = SCHEMA_DEVICE
@@ -746,12 +756,15 @@ def _build_janus_rows(
 
     ``settings.dest_layout`` controls ``dest_well`` assignment:
 
-    - ``"compact"`` (default): destinations are assigned sequentially from A1 in
-      that same source order, following the column-major ``seq_to_well``
+    - ``"source"`` (default): ``dest_well`` mirrors ``source_well``, so a well
+      a non-PASS clone leaves behind stays blank on the destination plate too
+      instead of being closed up by the next pick. That keeps the final
+      culture plate an operator fills by hand on the same coordinates as the
+      stock plate it was seeded from.
+    - ``"compact"``: destinations are assigned sequentially from A1 in that
+      same source order, following the column-major ``seq_to_well``
       convention (A1, B1, ... H1, A2, ...), so the destination plate reads the
-      way the source plate map does with the holes closed. A stock plate is a
-      new plate, so filling it from the front is the normal case.
-    - ``"source"``: ``dest_well`` mirrors ``source_well``.
+      way the source plate map does with the holes closed.
 
     Raises ``ValueError`` on empty wells, >96 rows, or duplicate destinations.
     A generated plate name is a warning, not an error: the file ships and names
@@ -896,9 +909,9 @@ def export_mame_janus_csv(
     Phase 1: priority_score = file_size_kb proxy.
     G6/A6 round: replace with BarcodeRecord.read_count when available.
 
-    *dest_layout* overrides ``settings.dest_layout``: ``"compact"``
-    (destinations assigned sequentially from A1 in sorted order, default) or
-    ``"source"`` (dest mirrors source position).
+    *dest_layout* overrides ``settings.dest_layout``: ``"source"`` (dest
+    mirrors source position, default) or ``"compact"`` (destinations assigned
+    sequentially from A1 in sorted order).
     Raises ``ValueError`` on unresolved wells, >96 picks, or duplicate dests.
     Generated plate names do not withhold the file; they come back as warnings
     from ``build_janus_preview_rows``.
