@@ -1118,7 +1118,8 @@
       "missingInputs": "仍需提供",
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
-      "clearRestored": "清除已恢复的 EVOLVEpro 输入"
+      "clearRestored": "清除已恢复的 EVOLVEpro 输入",
+      "outputCollidesRound": "轮次 {{round}} 已将该文件记录为其产物。在此生成会覆盖该轮次的测量数据。"
     },
     "verdictBadge": {
       "help": {
@@ -2194,13 +2195,6 @@
       "hide": "{{label}}: {{text}} (hide full text)"
     }
   },
-  "round": {
-    "handoffButton": {
-      "label": "开始 Round {{n}}",
-      "ariaLabel": "开始 Round {{n}}",
-      "disabledTitle": "请先将 activity 数据与 genotype 合并以启用 handoff"
-    }
-  },
   "roundSummary": {
     "exportBlocked": "导出被阻止 — 检测到 {{count}} 个 label-swap 错误。",
     "warningsListAria": "Label-swap 警告列表",
@@ -2405,11 +2399,13 @@
     "description": "最新更新亮点。",
     "gotItBtn": "知道了",
     "highlights": [
-      "设计数量在 96 个变异，即一块板的量处停止，并告知被拒绝的数值，而不是接受一块板装不下的数量。",
-      "携带更大数值的项目或自动保存快照在打开时会被修正，而不是被拒绝。",
-      "超出板末尾的 well 标签会标出下一块板，与 Python 导出一直给出的结果一致。"
+      "step 4.2 现在区分它保留的判定与它根本无法提出的问题，并说明缺少哪项输入。",
+      "step 4.2 依据各轮次产出的文件填充列表，不再要求重新查找 step 4.1 刚写的文件。",
+      "已保存的建议判定在其输入被重建后显示为已被取代，而不是当前答案。",
+      "step 4.2 的完成标记在重启后依然保留，不再需要先打开该页面才出现。",
+      "移除了 step 4.2 的交接按钮，其前置步骤已在 v0.15.12 中被删除。"
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+68b4bacb"
   },
   "primerDisplay": {
     "copySeqTitle": "复制序列",
@@ -2908,11 +2904,36 @@
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
-    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
-    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
-    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
-    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
-    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+    "labels": {
+      "continue_walking": "继续 walking",
+      "switch_combinatorial": "转入 combinatorial",
+      "stop": "停止",
+      "deferred": "暂缓"
+    },
+    "reasons": {
+      "calibration_period": "目前不足 3 轮，分类器仍处于校准期。",
+      "insufficient_data": "无法从这些轮次中评估出任何饱和信号。",
+      "mixed_signals": "各饱和信号之间相互矛盾。",
+      "no_saturation_signal": "本轮没有饱和信号：single-mutant walking 仍有收益。",
+      "hysteresis_pending": "本轮出现饱和但上一轮没有，而这需要连续两轮。",
+      "low_confidence": "转入 combinatorial 与信号相符，但 bootstrap 检验未能支持。",
+      "stop_low_confidence": "停止与信号相符，但 bootstrap 检验未能支持，因此继续 walking。",
+      "saturated_with_throughput": "连续两轮饱和，且下一块板还有余量执行 combinatorial 步骤。",
+      "saturated_no_throughput": "连续两轮饱和，且已无通量可用于 combinatorial 步骤。"
+    },
+    "missingInputs": {
+      "wt_replicates": "野生型重复测量值"
+    },
+    "missingInputsNote": "在缺少{{missing}}的情况下作出判定，因此饱和判断仅依据 hit rate 趋势。",
+    "notAssessableBadge": "无法判定",
+    "notAssessableSummary": "信号指向一次转变，但确认它需要{{missing}}，而这些文件并不包含。基于该输入无法回答{{blocked}}，只能判断是否继续 walking。",
+    "prefillFromRounds": "已填入步骤 4.1 生成的 {{n}} 个轮次产物。可自由添加或移除条目。",
+    "prefillFromManifest": "已填入本项目最后记录的 EVOLVEpro 输入。该文件早于按轮次记录，没有轮次编号，因此排在首位。",
+    "reloadFromRounds": "从轮次重新载入",
+    "restoredNote": "已恢复的结论，于 {{when}} 由上述 {{n}} 个文件算出。",
+    "restoredUnverifiedNote": "{{files}} 不是本应用写入的，因此无法确认其后是否发生过改动。",
+    "rebuiltNote": "{{when}} 的早前结论是在步骤 4.1 重新生成之前，由这些相同文件（{{files}}）算出的。它描述的是上一次生成的结果，因此仅作为历史保留；如需当前结果，请重新运行分类。",
+    "supersededNote": "{{when}} 的早前结论是由另一组文件（{{files}}）算出的。它并未说明当前所选文件，因此不予显示。"
   },
   "validation": {
     "missing": {

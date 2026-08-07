@@ -546,7 +546,8 @@
       "missingInputs": "Still needed",
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
-      "clearRestored": "Clear restored EVOLVEpro inputs"
+      "clearRestored": "Clear restored EVOLVEpro inputs",
+      "outputCollidesRound": "Round {{round}} already recorded this file as its output. Building here overwrites that round measurements."
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",
@@ -2215,13 +2216,6 @@
       "hide": "{{label}}: {{text}} (hide full text)"
     }
   },
-  "round": {
-    "handoffButton": {
-      "label": "Start Round {{n}}",
-      "ariaLabel": "Start Round {{n}}",
-      "disabledTitle": "Merge activity data with genotype first to enable handoff"
-    }
-  },
   "roundSummary": {
     "exportBlocked": "Export blocked — {{count}} label-swap error(s) detected.",
     "warningsListAria": "Label-swap warning list",
@@ -2438,11 +2432,13 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The design count stops at 96 variants, one plate worth, and names the refused number instead of accepting a count the plate cannot hold.",
-      "A saved project or autosave snapshot carrying a larger count is corrected when it is opened, not rejected.",
-      "Well labels past the end of a plate name the next plate, matching what the Python exporter has always produced."
+      "Step 4.2 now distinguishes a verdict it withheld from a question it was never able to ask, and names the input it was missing.",
+      "Step 4.2 fills its file list from what each round produced, instead of asking for the file step 4.1 just wrote.",
+      "A stored advisory verdict is shown as superseded once its inputs are rebuilt, rather than passing as the current answer.",
+      "The step 4.2 completion mark survives a restart instead of appearing only after the screen is opened.",
+      "The handoff button on step 4.2 is removed; the step that filled its precondition was taken out in v0.15.12."
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+68b4bacb"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",
@@ -2927,11 +2923,36 @@
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
-    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
-    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
-    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
-    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
-    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+    "labels": {
+      "continue_walking": "Keep walking",
+      "switch_combinatorial": "Switch to combinatorial",
+      "stop": "Stop",
+      "deferred": "Deferred"
+    },
+    "reasons": {
+      "calibration_period": "Fewer than 3 rounds so far, so the classifier is still in its calibration period.",
+      "insufficient_data": "None of the saturation signals could be evaluated from these rounds.",
+      "mixed_signals": "The saturation signals disagree with each other.",
+      "no_saturation_signal": "No saturation signal this round: single-mutant walking is still paying off.",
+      "hysteresis_pending": "Saturation showed up this round but not the previous one, and two consecutive rounds are required.",
+      "low_confidence": "A switch to combinatorial fit the signals, but the bootstrap test did not back it up.",
+      "stop_low_confidence": "Stopping fit the signals, but the bootstrap test did not back it up, so keep walking.",
+      "saturated_with_throughput": "Saturated for two consecutive rounds, and the next plate has room for the combinatorial step.",
+      "saturated_no_throughput": "Saturated for two consecutive rounds, with no throughput left for a combinatorial step."
+    },
+    "missingInputs": {
+      "wt_replicates": "wild-type replicate measurements"
+    },
+    "missingInputsNote": "Judged without {{missing}}, so saturation rests on the hit-rate trend alone.",
+    "notAssessableBadge": "Cannot be assessed",
+    "notAssessableSummary": "The signals point at a transition, but confirming one needs {{missing}}, which these files do not carry. {{blocked}} cannot be answered from this input; only the keep-walking check can.",
+    "prefillFromRounds": "Prefilled with {{n}} round output(s) built in step 4.1. Add or remove entries freely.",
+    "prefillFromManifest": "Prefilled with the last EVOLVEpro input recorded for this project. It predates per-round tracking, so it carries no round number and was placed first.",
+    "reloadFromRounds": "Reload from rounds",
+    "restoredNote": "Restored answer, computed {{when}} from the {{n}} file(s) above.",
+    "restoredUnverifiedNote": "This app did not write {{files}}, so it cannot confirm they are unchanged since then.",
+    "rebuiltNote": "An earlier answer from {{when}} was computed from these same files ({{files}}) before step 4.1 rebuilt them, so it describes the previous build and is kept as history. Run the classification again for the current one.",
+    "supersededNote": "An earlier answer from {{when}} was computed from a different list ({{files}}). It says nothing about the files selected now, so it is not shown."
   },
   "selection3d": {
     "title": "Candidate 3D structure analysis",

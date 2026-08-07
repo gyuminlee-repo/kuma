@@ -20,13 +20,25 @@ Params::
     round_files must be ordered by round number (ascending).
     c_next: capacity of the next combinatorial plate (used to derive K_throughput).
 
-Returns (on success)::
+Returns one of two shapes, discriminated by ``advisory``.
+
+The classifier answered::
 
     {
         "advisory": "decision",
         "label": str,       # DecisionLabel value
         "reason": str,
         "confidence": float | null,
+        "missing_inputs": [str],     # inputs this file format cannot supply
+    }
+
+The classifier was never asked::
+
+    {
+        "advisory": "not_assessable",
+        "reason": str,               # which input is absent
+        "missing_inputs": [str],
+        "blocked_decisions": [str],  # labels unreachable without it
     }
 
 Raises (via dispatcher error codes):
@@ -41,9 +53,14 @@ T2 and T_model are NA as a consequence.  T3 operates on hit_rates derived
 from the imported rounds.  The decision engine runs on T1/T3 only.
 
 sigma/T2 is deferred until WT replicate import is wired.
-current_round_activities (log2_fc) is populated for bootstrap
-readiness but bootstrap is only entered for switch/stop labels,
-which require wt_values != None (never reached without WT import).
+current_round_activities (log2_fc) is populated for bootstrap readiness, but
+bootstrap is only entered for switch/stop labels, and those need wt_values,
+which this file format does not carry.  classify() answers that case with
+deferred("bootstrap_inputs_missing").  Passing that through as-is would report
+a withheld judgement, since deferred otherwise means the classifier weighed the
+evidence and declined (insufficient_data, low_confidence).  It never got the
+question.  This handler converts that one case into the separate
+"not_assessable" shape above and leaves every genuine deferred untouched.
 
 EMA_2 definition: exponential moving average with span=2 (alpha = 2/3).
   EMA_0 = delta_0 (first inter-round delta treated as initialisation).
@@ -62,6 +79,17 @@ import re
 from typing import Any, Optional
 
 _VARIANT_RE = re.compile(r"^(\d+)")
+
+# Inputs the purified per-round xlsx cannot supply.  It holds one measured
+# activity per designed variant and no wild-type replicate column, so
+# wt_values stays None and sigma_assay cannot be computed from it.  This is a
+# property of the file format, not a judgement the classifier made.
+_MISSING_INPUTS = ["wt_replicates"]
+
+# Labels classify() gates behind the bootstrap confidence test, which needs
+# wt_values.  Without that input these two are unreachable, so a run over these
+# files can only ever answer "keep walking".
+_BOOTSTRAP_GATED_LABELS = ["switch_combinatorial", "stop"]
 
 
 # ---------------------------------------------------------------------------
@@ -424,11 +452,26 @@ def handle_classify_round(params: dict) -> dict:
 
     decision = classify(round_state, registered)
 
+    if decision.label == "deferred" and decision.reason == "bootstrap_inputs_missing":
+        # classify() only reaches this reason after the core decision tree has
+        # already proposed switch_combinatorial or stop and then found no
+        # bootstrap inputs to confirm it with.  Two facts are worth reporting
+        # and neither survives the "deferred" label: the signals did point at a
+        # transition, and the confirming question was never put to the
+        # classifier.  Report them as their own state.
+        return {
+            "advisory": "not_assessable",
+            "reason": "wt_replicates_missing",
+            "missing_inputs": list(_MISSING_INPUTS),
+            "blocked_decisions": list(_BOOTSTRAP_GATED_LABELS),
+        }
+
     return {
         "advisory": "decision",
         "label": decision.label,
         "reason": decision.reason,
         "confidence": decision.confidence,
+        "missing_inputs": list(_MISSING_INPUTS),
     }
 
 

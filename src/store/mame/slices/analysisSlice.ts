@@ -110,6 +110,12 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       searchQuery: "",
       runHealth: null,
       buildEvolveproCompletion: null,
+      // Nothing here touches what step 4.2 answered. That answer is computed
+      // from per-round xlsx files the operator picks, not from the analyze
+      // inputs being invalidated here, and it lives on the round rather than in
+      // this store. It is not deleted anywhere: whether it still describes its
+      // files is decided by comparing them (lib/round/roundArtifacts.ts), so an
+      // answer that no longer holds reads as history instead of disappearing.
       janusAutosave: null,
       janusMappingAutosave: null,
       // The replicate axis is a property of the results, not of the form: it

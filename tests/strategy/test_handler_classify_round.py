@@ -18,7 +18,9 @@ Fixture design (AC3 rationale):
     - n_rounds >= N_min=3 to pass calibration gate
     - hit_rate rising -> T3=False -> no saturation -> continue_walking
   switch_combinatorial/stop require wt_values (bootstrap gate); unreachable
-  without WT import -- this is correct per spec (sigma deferred).
+  without WT import -- this is correct per spec (sigma deferred).  The handler
+  reports that case as advisory="not_assessable" rather than as a deferred
+  decision, so a question never asked is not counted as a judgement withheld.
 
 anti-fallback: missing columns, bad Variant, activity<=0 all raise;
   no fabricated defaults.
@@ -247,6 +249,16 @@ class TestMultiRound:
         result = handle_classify_round({"round_files": self._make_3round_files(tmp_path)})
         assert result["advisory"] == "decision"
 
+    def test_3round_declares_missing_inputs(self, tmp_path):
+        """An answered decision still reports which inputs were unavailable.
+
+        continue_walking is reached without the bootstrap gate, so the absent
+        WT replicates never blocked anything here.  They still shaped the
+        answer (T2 and T_model were NA), and the caller is told so.
+        """
+        result = handle_classify_round({"round_files": self._make_3round_files(tmp_path)})
+        assert result["missing_inputs"] == ["wt_replicates"]
+
     def test_3round_label_is_valid(self, tmp_path):
         result = handle_classify_round({"round_files": self._make_3round_files(tmp_path)})
         assert result["label"] in _VALID_LABELS
@@ -354,10 +366,12 @@ class TestDecliningSaturation:
     (0.4->0.2 in window 2-3) signals saturation.  classify() enters
     switch/stop evaluation.  wt_values=None triggers the bootstrap gate:
       Decision(label="deferred", reason="bootstrap_inputs_missing").
+    The handler translates that one case into advisory="not_assessable".
 
     This test proves:
       (a) previous_signals chaining fires correctly (T3 reads prior signals).
-      (b) saturated-looking data yields deferred rather than a fabricated label.
+      (b) saturated-looking data yields an explicit "cannot be asked" state
+          rather than a fabricated label or a withheld-judgement label.
     """
 
     def _make_declining_3round(self, tmp_path):
@@ -376,24 +390,32 @@ class TestDecliningSaturation:
             {"n": 3, "path": str(r3)},
         ]
 
-    def test_declining_hit_rate_returns_deferred(self, tmp_path):
-        """T3 saturation signal -> bootstrap gate -> deferred."""
+    def test_declining_hit_rate_is_not_assessable(self, tmp_path):
+        """T3 saturation signal -> bootstrap gate -> not_assessable."""
         result = handle_classify_round(
             {"round_files": self._make_declining_3round(tmp_path)}
         )
-        assert result["advisory"] == "decision"
-        assert result["label"] == "deferred", (
-            f"Expected 'deferred' from saturation path; got {result['label']!r} "
+        assert result["advisory"] == "not_assessable", (
+            f"Expected the missing-input state; got {result['advisory']!r} "
             f"reason={result.get('reason')!r}"
         )
-        assert result["reason"] == "bootstrap_inputs_missing", (
-            f"Expected bootstrap_inputs_missing; got {result['reason']!r}"
+        assert result["reason"] == "wt_replicates_missing", (
+            f"Expected wt_replicates_missing; got {result['reason']!r}"
         )
 
-    def test_declining_confidence_is_none(self, tmp_path):
-        """Deferred decisions carry no confidence score."""
+    def test_declining_names_the_missing_input(self, tmp_path):
+        """The state says what is absent and what that costs."""
         result = handle_classify_round(
             {"round_files": self._make_declining_3round(tmp_path)}
         )
-        assert result["confidence"] is None
+        assert result["missing_inputs"] == ["wt_replicates"]
+        assert result["blocked_decisions"] == ["switch_combinatorial", "stop"]
+
+    def test_declining_carries_no_decision_fields(self, tmp_path):
+        """A question never asked has no label, reason code, or confidence."""
+        result = handle_classify_round(
+            {"round_files": self._make_declining_3round(tmp_path)}
+        )
+        assert "label" not in result
+        assert "confidence" not in result
 

@@ -1118,7 +1118,8 @@
       "missingInputs": "Encore nécessaire",
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
-      "clearRestored": "Effacer les entrées EVOLVEpro restaurées"
+      "clearRestored": "Effacer les entrées EVOLVEpro restaurées",
+      "outputCollidesRound": "Le tour {{round}} a deja enregistre ce fichier comme sa sortie. Construire ici ecrase les mesures de ce tour."
     },
     "verdictBadge": {
       "help": {
@@ -2194,13 +2195,6 @@
       "hide": "{{label}}: {{text}} (hide full text)"
     }
   },
-  "round": {
-    "handoffButton": {
-      "label": "Démarrer le Round {{n}}",
-      "ariaLabel": "Démarrer le Round {{n}}",
-      "disabledTitle": "Fusionner d'abord les données d'activity avec le genotype pour activer le handoff"
-    }
-  },
   "roundSummary": {
     "exportBlocked": "Export bloqué — {{count}} erreur(s) label-swap détectée(s).",
     "warningsListAria": "Liste d'avertissements label-swap",
@@ -2405,11 +2399,13 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Le nombre de designs s'arrête à 96 variants, soit une plaque, et nomme le nombre refusé au lieu d'accepter un compte que la plaque ne peut pas contenir.",
-      "Un projet ou un instantané de sauvegarde automatique portant un nombre plus grand est corrigé à l'ouverture, pas rejeté.",
-      "Les étiquettes de well au-delà de la fin d'une plaque nomment la plaque suivante, comme l'export Python l'a toujours fait."
+      "L etape 4.2 distingue desormais un verdict retenu d une question qu elle n a jamais pu poser, et nomme l entree qui manquait.",
+      "L etape 4.2 remplit sa liste avec ce que chaque cycle a produit, au lieu de reclamer le fichier que l etape 4.1 vient d ecrire.",
+      "Un verdict enregistre est affiche comme remplace des que ses entrees sont reconstruites, au lieu de passer pour la reponse actuelle.",
+      "La marque d achevement de l etape 4.2 survit a un redemarrage et n apparait plus seulement apres ouverture de l ecran.",
+      "Le bouton de passage de relais de l etape 4.2 est retire; l etape qui remplissait sa condition a ete supprimee en v0.15.12."
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+68b4bacb"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",
@@ -2908,11 +2904,36 @@
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
-    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
-    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
-    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
-    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
-    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+    "labels": {
+      "continue_walking": "Continuer la marche",
+      "switch_combinatorial": "Passer au combinatorial",
+      "stop": "Arrêter",
+      "deferred": "Différé"
+    },
+    "reasons": {
+      "calibration_period": "Moins de 3 cycles à ce stade, le classifieur est encore en période de calibration.",
+      "insufficient_data": "Aucun signal de saturation n'a pu être évalué à partir de ces cycles.",
+      "mixed_signals": "Les signaux de saturation se contredisent.",
+      "no_saturation_signal": "Aucun signal de saturation ce cycle : le single-mutant walking reste productif.",
+      "hysteresis_pending": "La saturation apparaît ce cycle mais pas au précédent, or deux cycles consécutifs sont requis.",
+      "low_confidence": "Un passage au combinatorial correspondait aux signaux, mais le test bootstrap ne l'a pas confirmé.",
+      "stop_low_confidence": "Un arrêt correspondait aux signaux, mais le test bootstrap ne l'a pas confirmé, la marche continue donc.",
+      "saturated_with_throughput": "Saturé sur deux cycles consécutifs, et la plaque suivante offre la place pour l'étape combinatorial.",
+      "saturated_no_throughput": "Saturé sur deux cycles consécutifs, sans débit restant pour une étape combinatorial."
+    },
+    "missingInputs": {
+      "wt_replicates": "mesures de réplicats du type sauvage"
+    },
+    "missingInputsNote": "Jugé sans {{missing}} : la saturation repose donc uniquement sur la tendance du hit rate.",
+    "notAssessableBadge": "Non évaluable",
+    "notAssessableSummary": "Les signaux indiquent une transition, mais la confirmer exige {{missing}}, absentes de ces fichiers. {{blocked}} ne peut pas être tranché à partir de cette entrée ; seule la question de la poursuite de la marche peut l'être.",
+    "prefillFromRounds": "Prerempli avec {{n}} sortie(s) de tour produites a l'etape 4.1. Les entrees restent librement modifiables.",
+    "prefillFromManifest": "Prerempli avec la derniere entree EVOLVEpro enregistree pour ce projet. Ce fichier est anterieur au suivi par tour, ne porte aucun numero de tour et a donc ete place en tete.",
+    "reloadFromRounds": "Recharger depuis les tours",
+    "restoredNote": "Reponse restauree, calculee le {{when}} a partir des {{n}} fichiers ci-dessus.",
+    "restoredUnverifiedNote": "Cette application n'a pas ecrit {{files}} et ne peut donc pas confirmer que ces fichiers sont restes inchanges depuis.",
+    "rebuiltNote": "Une reponse anterieure du {{when}} a ete calculee a partir de ces memes fichiers ({{files}}) avant que l'etape 4.1 ne les regenere. Elle decrit la version precedente et reste conservee comme historique. Relancez la classification pour la version actuelle.",
+    "supersededNote": "Une reponse anterieure du {{when}} a ete calculee a partir d'une autre liste ({{files}}). Elle ne dit rien des fichiers actuellement selectionnes et n'est donc pas affichee."
   },
   "validation": {
     "missing": {

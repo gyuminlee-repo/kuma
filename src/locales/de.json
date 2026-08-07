@@ -1118,7 +1118,8 @@
       "missingInputs": "Noch erforderlich",
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
-      "clearRestored": "Wiederhergestellte EVOLVEpro-Eingaben löschen"
+      "clearRestored": "Wiederhergestellte EVOLVEpro-Eingaben löschen",
+      "outputCollidesRound": "Runde {{round}} hat diese Datei bereits als ihr Ergebnis erfasst. Ein Build hier ueberschreibt die Messwerte jener Runde."
     },
     "verdictBadge": {
       "help": {
@@ -2194,13 +2195,6 @@
       "hide": "{{label}}: {{text}} (hide full text)"
     }
   },
-  "round": {
-    "handoffButton": {
-      "label": "Starten Round {{n}}",
-      "ariaLabel": "Starten Round {{n}}",
-      "disabledTitle": "Merge Activity data mit Genotype first zu enable handoff"
-    }
-  },
   "roundSummary": {
     "exportBlocked": "Export blockiert — {{count}} label-swap Fehler(s) detected.",
     "warningsListAria": "Label-swap Warnung list",
@@ -2405,11 +2399,13 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die Designanzahl endet bei 96 Varianten, einer Platte voll, und nennt die abgelehnte Zahl, statt eine Anzahl anzunehmen, die auf keine Platte passt.",
-      "Ein Projekt oder ein Autosave-Snapshot mit einer größeren Anzahl wird beim Öffnen korrigiert, nicht abgewiesen.",
-      "Well-Bezeichnungen jenseits des Plattenendes nennen die nächste Platte, wie es der Python-Export schon immer getan hat."
+      "Schritt 4.2 unterscheidet nun ein zurueckgehaltenes Urteil von einer Frage, die nie gestellt werden konnte, und nennt die fehlende Eingabe.",
+      "Schritt 4.2 fuellt seine Dateiliste aus dem, was jede Runde erzeugt hat, statt nach der Datei zu fragen, die Schritt 4.1 gerade schrieb.",
+      "Ein gespeichertes Urteil wird als ueberholt angezeigt, sobald seine Eingaben neu erzeugt wurden, statt als aktuelle Antwort zu gelten.",
+      "Die Abschlussmarkierung von Schritt 4.2 ueberlebt einen Neustart und erscheint nicht erst beim Oeffnen des Bildschirms.",
+      "Die Uebergabe-Schaltflaeche in Schritt 4.2 entfaellt; der Schritt, der ihre Voraussetzung fuellte, wurde in v0.15.12 entfernt."
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+68b4bacb"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",
@@ -2908,11 +2904,36 @@
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
-    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
-    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
-    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
-    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
-    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+    "labels": {
+      "continue_walking": "Weiterlaufen",
+      "switch_combinatorial": "Auf combinatorial umstellen",
+      "stop": "Stopp",
+      "deferred": "Zurückgestellt"
+    },
+    "reasons": {
+      "calibration_period": "Bisher weniger als 3 Runden, der Klassifikator befindet sich noch in der Kalibrierungsphase.",
+      "insufficient_data": "Aus diesen Runden ließ sich kein einziges Sättigungssignal auswerten.",
+      "mixed_signals": "Die Sättigungssignale widersprechen einander.",
+      "no_saturation_signal": "Kein Sättigungssignal in dieser Runde: Single-mutant walking lohnt sich weiterhin.",
+      "hysteresis_pending": "Sättigung trat in dieser Runde auf, in der vorherigen jedoch nicht; zwei aufeinanderfolgende Runden sind erforderlich.",
+      "low_confidence": "Ein Wechsel zu combinatorial passte zu den Signalen, der Bootstrap-Test bestätigte ihn jedoch nicht.",
+      "stop_low_confidence": "Ein Stopp passte zu den Signalen, der Bootstrap-Test bestätigte ihn jedoch nicht, daher weiterlaufen.",
+      "saturated_with_throughput": "Zwei Runden in Folge gesättigt, und die nächste Platte bietet Platz für den combinatorial-Schritt.",
+      "saturated_no_throughput": "Zwei Runden in Folge gesättigt, ohne verbleibenden Durchsatz für einen combinatorial-Schritt."
+    },
+    "missingInputs": {
+      "wt_replicates": "Wildtyp-Replikatmessungen"
+    },
+    "missingInputsNote": "Beurteilt ohne {{missing}}, die Sättigung stützt sich daher allein auf den Verlauf der Hit-Rate.",
+    "notAssessableBadge": "Nicht beurteilbar",
+    "notAssessableSummary": "Die Signale deuten auf einen Übergang hin, doch dessen Bestätigung erfordert {{missing}}, die in diesen Dateien nicht enthalten sind. {{blocked}} lässt sich mit dieser Eingabe nicht beantworten; möglich ist nur die Prüfung auf Weiterlaufen.",
+    "prefillFromRounds": "Mit {{n}} in Schritt 4.1 erzeugten Rundenergebnissen vorbelegt. Eintraege lassen sich frei hinzufuegen oder entfernen.",
+    "prefillFromManifest": "Mit der zuletzt fuer dieses Projekt erfassten EVOLVEpro-Eingabe vorbelegt. Die Datei stammt aus der Zeit vor der rundenweisen Erfassung, traegt keine Rundennummer und steht deshalb an erster Stelle.",
+    "reloadFromRounds": "Aus Runden neu laden",
+    "restoredNote": "Wiederhergestellte Antwort, berechnet am {{when}} aus den {{n}} Dateien oben.",
+    "restoredUnverifiedNote": "Diese Anwendung hat {{files}} nicht geschrieben und kann daher nicht bestaetigen, dass diese Dateien seitdem unveraendert sind.",
+    "rebuiltNote": "Eine fruehere Antwort vom {{when}} wurde aus genau diesen Dateien ({{files}}) berechnet, bevor Schritt 4.1 sie neu erzeugt hat. Sie beschreibt den vorherigen Stand und bleibt als Verlauf erhalten. Fuer den aktuellen Stand die Klassifikation erneut ausfuehren.",
+    "supersededNote": "Eine fruehere Antwort vom {{when}} wurde aus einer anderen Liste berechnet ({{files}}). Sie sagt nichts ueber die jetzt gewaehlten Dateien und wird deshalb nicht angezeigt."
   },
   "validation": {
     "missing": {

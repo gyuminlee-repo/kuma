@@ -1118,7 +1118,8 @@
       "missingInputs": "不足しているファイル",
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
-      "clearRestored": "復元された EVOLVEpro 入力をクリア"
+      "clearRestored": "復元された EVOLVEpro 入力をクリア",
+      "outputCollidesRound": "ラウンド {{round}} がこのファイルを出力として記録済みです。ここに作成するとそのラウンドの測定値を上書きします。"
     },
     "verdictBadge": {
       "help": {
@@ -2194,13 +2195,6 @@
       "hide": "{{label}}: {{text}} (hide full text)"
     }
   },
-  "round": {
-    "handoffButton": {
-      "label": "Round {{n}} を開始",
-      "ariaLabel": "Round {{n}} を開始",
-      "disabledTitle": "Handoff を有効化するには、先に活性データを genotype とマージしてください"
-    }
-  },
   "roundSummary": {
     "exportBlocked": "Export ブロック — {{count}} 件の label-swap エラーを検出。",
     "warningsListAria": "Label-swap 警告一覧",
@@ -2405,11 +2399,13 @@
     "description": "最新アップデートのハイライト。",
     "gotItBtn": "了解",
     "highlights": [
-      "設計数は変異 96 個、plate 1 枚分で止まり、plate に収まらない数を受け入れる代わりに拒否した値を知らせる。",
-      "より大きな数を持つプロジェクトや自動保存スナップショットは、開くときに拒否されず補正される。",
-      "plate の終わりを越えた well ラベルが次の plate 名を付け、Python の書き出しが常に返してきた値と一致する。"
+      "step 4.2 が保留した判定と、そもそも問えなかった質問を区別します。何が足りずに問えなかったかも述べます。",
+      "step 4.2 が各ラウンドの産出ファイルから一覧を埋めます。step 4.1 が今書いたファイルを探し直させません。",
+      "保存された助言判定は、入力が作り直されると現在の答えではなく置き換え済みとして表示されます。",
+      "step 4.2 の完了表示が再起動後も残ります。画面を開かないと付かない動作をなくしました。",
+      "step 4.2 のハンドオフボタンを削除しました。その前提を満たす段階は v0.15.12 で外れています。"
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+68b4bacb"
   },
   "primerDisplay": {
     "copySeqTitle": "配列をコピー",
@@ -2908,11 +2904,36 @@
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
-    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
-    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
-    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
-    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
-    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+    "labels": {
+      "continue_walking": "継続",
+      "switch_combinatorial": "Combinatorial へ移行",
+      "stop": "中止",
+      "deferred": "保留"
+    },
+    "reasons": {
+      "calibration_period": "ラウンドが 3 回未満のため、分類器はまだ較正期間にあります。",
+      "insufficient_data": "これらのラウンドからは飽和シグナルを 1 つも評価できませんでした。",
+      "mixed_signals": "飽和シグナルどうしが食い違っています。",
+      "no_saturation_signal": "今回のラウンドに飽和シグナルはありません。single-mutant walking はまだ有効です。",
+      "hysteresis_pending": "今回のラウンドでは飽和が見られましたが前回はなく、連続 2 ラウンドが必要です。",
+      "low_confidence": "シグナルは combinatorial への移行と整合しましたが、bootstrap 検定が裏付けませんでした。",
+      "stop_low_confidence": "シグナルは中止と整合しましたが、bootstrap 検定が裏付けなかったため継続します。",
+      "saturated_with_throughput": "2 ラウンド連続で飽和しており、次のプレートに combinatorial 段階を入れる余裕があります。",
+      "saturated_no_throughput": "2 ラウンド連続で飽和しており、combinatorial 段階に回せるスループットが残っていません。"
+    },
+    "missingInputs": {
+      "wt_replicates": "野生型のレプリケート測定値"
+    },
+    "missingInputsNote": "{{missing}} なしで判定しました。飽和の判断は hit rate の推移のみに基づきます。",
+    "notAssessableBadge": "判定不可",
+    "notAssessableSummary": "シグナルは移行を示していますが、確認には {{missing}} が必要で、これらのファイルには含まれていません。この入力では {{blocked}} を答えられず、継続するかどうかのみ判定できます。",
+    "prefillFromRounds": "4.1 で作成したラウンド出力 {{n}} 件を入力しました。項目は自由に追加・削除できます。",
+    "prefillFromManifest": "このプロジェクトに最後に記録された EVOLVEpro 入力を使用しました。ラウンド別記録より前のファイルでラウンド番号がないため、先頭に配置しています。",
+    "reloadFromRounds": "ラウンドから再読み込み",
+    "restoredNote": "復元した回答です。{{when}} に上記 {{n}} 件のファイルから算出しました。",
+    "restoredUnverifiedNote": "{{files}} はこのアプリが書き出したものではないため、その後変更されていないかは確認できません。",
+    "rebuiltNote": "{{when}} の以前の回答は、4.1 が再作成する前の同じファイル（{{files}}）から算出したものです。前回の作成物についての回答なので履歴として残します。現在の内容については分類をもう一度実行してください。",
+    "supersededNote": "{{when}} の以前の回答は別のファイル一覧（{{files}}）から算出したものです。現在選択中のファイルについては何も述べていないため表示しません。"
   },
   "validation": {
     "missing": {
