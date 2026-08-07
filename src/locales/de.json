@@ -2407,11 +2407,12 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die Designanzahl endet bei 96 Varianten, einer Platte voll, und nennt die abgelehnte Zahl, statt eine Anzahl anzunehmen, die auf keine Platte passt.",
-      "Ein Projekt oder ein Autosave-Snapshot mit einer größeren Anzahl wird beim Öffnen korrigiert, nicht abgewiesen.",
-      "Well-Bezeichnungen jenseits des Plattenendes nennen die nächste Platte, wie es der Python-Export schon immer getan hat."
+      "Ein Echo-Zeilenbauer speist csv, xlsx-Worklist und Vorschau, sodass alle drei unter einem Quadranten dasselbe Source-Well nennen.",
+      "Ein Lauf ohne vorheriges Validate überspringt nicht mehr die Prüfung gegen den fastq_pass-Ordner statt des Run-Ordners.",
+      "Die Leiste meldet keine Merge-Zeilenzahl mehr, die sie nie gezählt hat, und ein erneut geöffnetes Projekt zeigt Recovery statt n/a.",
+      "Dateien, die der Sidecar annimmt, werden von den Pickern nicht mehr abgelehnt, und Provenance-Dateien tragen eine Version statt drei."
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",

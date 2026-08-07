@@ -2407,11 +2407,12 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El recuento de diseños se detiene en 96 variantes, una placa completa, y nombra el número rechazado en lugar de aceptar un recuento que la placa no puede contener.",
-      "Un proyecto o una instantánea de autoguardado con un recuento mayor se corrige al abrirlo, no se rechaza.",
-      "Las etiquetas de well más allá del final de una placa nombran la placa siguiente, igual que siempre ha hecho la exportación de Python."
+      "Un único generador de filas Echo alimenta el csv, la worklist xlsx y la vista previa, que nombran el mismo well de origen bajo un cuadrante.",
+      "Ejecutar sin pulsar Validate ya no omite la comprobación que impide elegir la carpeta fastq_pass en lugar de la carpeta del run.",
+      "El panel deja de informar un recuento de filas fusionadas que nunca contó, y reabrir un proyecto muestra recovery en vez de n/a.",
+      "Los archivos que el sidecar acepta ya no se rechazan en los selectores, y los archivos de procedencia llevan una versión en lugar de tres."
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",

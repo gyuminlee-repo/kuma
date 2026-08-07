@@ -2440,11 +2440,12 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The design count stops at 96 variants, one plate worth, and names the refused number instead of accepting a count the plate cannot hold.",
-      "A saved project or autosave snapshot carrying a larger count is corrected when it is opened, not rejected.",
-      "Well labels past the end of a plate name the next plate, matching what the Python exporter has always produced."
+      "One Echo row builder feeds the csv, the xlsx worklist and the preview, so all three name the same source well under a quadrant.",
+      "Starting a run without pressing Validate no longer skips the guard against picking the fastq_pass folder instead of the run folder.",
+      "The drawer stops reporting a merged row count it never counted, and reopening a project reports recovery instead of n/a.",
+      "Files the sidecar accepts are no longer refused by the pickers, and provenance files carry one release version instead of three."
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

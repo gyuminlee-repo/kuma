@@ -1,5 +1,45 @@
 # Changelog
 
+## v0.16.6 (Fourteen places where one rule had two implementations that no longer agreed)
+
+An audit of the whole codebase looked for a single rule stated in more than one place, then measured whether the statements still matched. Forty were found and sixteen had already drifted. This release closes fourteen of them, ordered by what the drift does to an operator rather than by what it costs to repair.
+
+Three of them reach the bench. One export run wrote an Echo csv and an Echo xlsx into the same folder naming different source wells for the same primer, because three separate loops built those rows and only one of them applied the quadrant. The preview rendered directly above the quadrant selector ignored it too, so the check an operator makes before loading the deck could not see the disagreement. The guard that refuses a `fastq_pass` directory in place of the run folder above it existed on the Validate button and, in the run path, only as a comment, so a run started without pressing Validate completed a plausible workbook over the wrong folder. And the benchmark screen that exists to choose between selection strategies scored a position cap rule the product does not run, disagreeing with the shipped rule on 160 of 200 synthetic landscapes.
+
+Others corrupt a number rather than a coordinate. The drawer reported `[DONE] 171 rows merged` for a merge that wrote about 60, because it counted verdict records while the merge admits one row per variant. Reopening a project reported recovery as n/a forever, because the restore call dropped the field the recovery figure is measured against. A plate map cell in the HTML report took its colour from whichever plate happened to be traversed first. And the release version existed as three different values, all three of which are stamped into laboratory provenance files, so comparing two real releases reported no version difference at all.
+
+Four were loud rather than silent, which is better but still wrong: a front end refusing files the sidecar accepts, a Run button enabled on a configuration that cannot start, a numeric field offering the one value its model rejects, and a file picker advertising extensions the backend does not take while hiding four it does.
+
+Where a repair removed a copy, a check now holds the remaining ones together. Two new cross-layer checks read the Python definitions and compare them to the TypeScript, and both were verified by breaking them on purpose and confirming they fail.
+
+### Highlights
+
+- One Echo row builder feeds the csv, the xlsx worklist and the preview, so all three name the same source well under a quadrant.
+- Starting a run without pressing Validate no longer skips the guard against picking the fastq_pass folder instead of the run folder.
+- The drawer stops reporting a merged row count it never counted, and reopening a project reports recovery instead of n/a.
+- Files the sidecar accepts are no longer refused by the pickers, and provenance files carry one release version instead of three.
+
+### Fixed
+
+- v0.16.6: Echo transfer rows are built once, by `build_echo_rows`, for the csv, the xlsx worklist sheet and the dry-run preview. Previously the csv applied both `quadrant` and `mapping_range`, the xlsx worklist applied neither, and the preview applied only `mapping_range`, so a single `export_all` left two files disagreeing about which well feeds each transfer. `ExportMappingDryRunParams` gained `quadrant` and `used_quadrants`, which the preview had no way to receive. The xlsx layout sheet keeps its row-doubled view, and a test pins every drawn cell of it against a quadrant run.
+- v0.16.6: `handle_analyze` and `handle_validate_inputs` share one `_acceptance_findings`. The `fastq_pass` misselection guard existed only in the validate path, and `is_minknow_run_dir` returns false for that directory, so a run pointed at it fell through to the pre-aligned consensus branch instead of stopping. Output path checking existed only in the run path.
+- v0.16.6: The `position_cap` benchmark row calls the shipped `_position_filter_with_tiebreak` instead of a second implementation that broke ties by landscape order and capped combination variants the shipped rule exempts. On 200 synthetic landscapes the two chose different variant sets 160 times. The duplicated position regex is gone with it.
+- v0.16.6: Restoring an analyze result sends `designed_mutant_ids`, the denominator recovery is measured against. Without it the sidecar cleared the stored value and the panel and the exported report read n/a after every reopen.
+- v0.16.6: The HTML report plate map derives cell colour from the same priority it uses to pick a verdict, so a well covered by an AMBIGUOUS plate and a MIXED plate no longer changes colour with traversal order.
+- v0.16.6: The drawer and the inspector stop presenting a record-level PASS count as a merged row count. The merge admits one row per variant under `verdict == PASS and not failed and not is_fallback`, so on three replicates per variant the old label overstated it roughly threefold. The drawer now reports that the merge ran and leaves the counts to the panel that receives them.
+- v0.16.6: The activity csv gate accepts the column names the ingest actually reads, including `sample name`, `sample`, `well`, `well pos.`, `area` and `activity`, and no longer requires `plate_id`, which is derived from the plate metadata. A raw GC-FID export was refused as a csv and accepted as an xlsx, which reads as a corrupt file.
+- v0.16.6: MAME file extension filters come from one module. The pickers offered csv for two inputs that only accept xlsx, and the missing-inputs banner offered three sequence formats out of the seven the backend reads, so a project whose reference was a GenBank file could not be repaired from the banner and dropping the file on the window did nothing at all. An unroutable drop now says what it was and what is accepted.
+- v0.16.6: The Run button requires the expected workbook on raw runs, which the sidecar validates before it branches on run type and reads while scoring. The comment claiming the file arrives through a `kuro_xlsx` parameter described a field of a different RPC that the front end never sends.
+- v0.16.6: The demux edit-distance ratio field stops offering 0, the one value its model refuses, which failed only after the output directory was created and the reads were sampled. The third statement of the same range, in a store comment, is gone.
+- v0.16.6: Reopening a project restores the JANUS pick-list notice, including its failed state. A failed autosave and a successful one were indistinguishable after a restart, which is the case the notice exists for.
+- v0.16.6: The About dialog asks the MAME sidecar for `health_info`, the method the dispatcher registers, and reads fields it returns. It asked for `health`, which does not exist, for `sidecar_version`, which nothing emits, and swallowed the error, so every MAME crash report ever copied read `Sidecar : unknown`.
+- v0.16.6: The two release smoke scripts share one `SidecarIO`. The MAME copy had dropped the ready-notification tracking that separates a sidecar that never started from one that died mid-call, which is the distinction those scripts exist to make.
+
+### Changed
+
+- v0.16.6: The release version is one value. `kuma_core/shared/version.py` joins the manifests `version-sync` compares and is updated by `scripts/sync-version.sh`, and the export slice stamps `__APP_VERSION__` rather than a literal. Provenance files carried `0.1.0` or `0.02.02` depending on which writer produced them, so a diff of two real releases reported no version change. `KURO_MODULE_VERSION` stays separate, with its reason recorded next to it.
+- v0.16.6: Two cross-layer checks were added, `mame-activity-csv-schema` and `mame-extensions`, each reading the Python definition and comparing it to the TypeScript. Both were confirmed to fail when the two are made to disagree.
+
 ## v0.16.5 (A design run stops at one plate of variants)
 
 The design count had no upper bound. The field advertised a ceiling of 10000 and the label beside it offered to spread that across however many plates it took, but neither figure was enforced. The value is committed from the raw text of the field, so a typed 500 reached the store unchanged, and a saved project could carry any number at all.

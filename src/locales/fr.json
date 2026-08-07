@@ -2407,11 +2407,12 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Le nombre de designs s'arrête à 96 variants, soit une plaque, et nomme le nombre refusé au lieu d'accepter un compte que la plaque ne peut pas contenir.",
-      "Un projet ou un instantané de sauvegarde automatique portant un nombre plus grand est corrigé à l'ouverture, pas rejeté.",
-      "Les étiquettes de well au-delà de la fin d'une plaque nomment la plaque suivante, comme l'export Python l'a toujours fait."
+      "Un seul constructeur de lignes Echo alimente le csv, la worklist xlsx et l'aperçu, qui nomment le même well source sous un quadrant.",
+      "Lancer sans passer par Validate ne saute plus le garde qui empêche de choisir le dossier fastq_pass au lieu du dossier du run.",
+      "Le tiroir cesse d'annoncer un nombre de lignes fusionnées qu'il ne comptait pas, et rouvrir un projet affiche le recovery au lieu de n/a.",
+      "Les fichiers que le sidecar accepte ne sont plus refusés par les sélecteurs, et les fichiers de provenance portent une version au lieu de trois."
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",

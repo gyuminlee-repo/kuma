@@ -2407,11 +2407,12 @@
     "description": "最新更新亮点。",
     "gotItBtn": "知道了",
     "highlights": [
-      "设计数量在 96 个变异，即一块板的量处停止，并告知被拒绝的数值，而不是接受一块板装不下的数量。",
-      "携带更大数值的项目或自动保存快照在打开时会被修正，而不是被拒绝。",
-      "超出板末尾的 well 标签会标出下一块板，与 Python 导出一直给出的结果一致。"
+      "Echo 转移行由一处生成，csv、xlsx 工作单与预览在 quadrant 下指向同一个 source well。",
+      "未点 Validate 直接运行时，不再跳过防止选中 fastq_pass 文件夹而非 run 文件夹的检查。",
+      "抽屉不再报告它从未统计的合并行数，重新打开项目会显示 recovery 而不是 n/a。",
+      "sidecar 接受的文件不再被选择器拒绝，provenance 文件只带一个发布版本而不是三个。"
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "复制序列",

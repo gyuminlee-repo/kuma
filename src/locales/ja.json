@@ -2407,11 +2407,12 @@
     "description": "最新アップデートのハイライト。",
     "gotItBtn": "了解",
     "highlights": [
-      "設計数は変異 96 個、plate 1 枚分で止まり、plate に収まらない数を受け入れる代わりに拒否した値を知らせる。",
-      "より大きな数を持つプロジェクトや自動保存スナップショットは、開くときに拒否されず補正される。",
-      "plate の終わりを越えた well ラベルが次の plate 名を付け、Python の書き出しが常に返してきた値と一致する。"
+      "Echo の転送行を 1 か所で作り、csv と xlsx ワークリストとプレビューが quadrant の下でも同じ source well を指す。",
+      "Validate を押さずに実行しても、run フォルダの代わりに fastq_pass フォルダを選ぶことを防ぐガードが効く。",
+      "ドロワーが数えてもいないマージ行数の報告をやめ、プロジェクトを開き直すと再現率が n/a ではなく値で出る。",
+      "sidecar が受け付けるファイルをピッカーが拒まなくなり、provenance ファイルのリリースバージョンが 3 つでなく 1 つになる。"
     ],
-    "highlightsStamp": "0.16.5+2d205d9d"
+    "highlightsStamp": "0.16.6+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "配列をコピー",
