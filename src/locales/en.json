@@ -2435,12 +2435,10 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The instrument sheet fills the final plate in the same order the step 2.2 plate map reads, instead of by sequencing depth.",
-      "The reference sequence field asks for the construct that carries the primer binding regions, which is what the pipeline has always needed.",
-      "A run that extracted its amplicon now says so, naming the region it analysed.",
-      "The pooled barcode option states that it merges every read in the folder, not only the ticked barcodes."
+      "The well selection grid draws the plate again instead of reporting that a sidecar method was not found.",
+      "A campaign that occupies part of the plate can declare its wells again, rather than falling back to the leading ones."
     ],
-    "highlightsStamp": "0.16.3+75eb7d5d"
+    "highlightsStamp": "0.16.4+69232919"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

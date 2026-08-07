@@ -74,7 +74,7 @@ export function WellSelectionPanel() {
     }
     void (async () => {
       try {
-        const result = await sendRequest<BuildWellLayoutResult>("build_well_layout", {
+        const result = await sendRequest<BuildWellLayoutResult>("mame.build_well_layout", {
           expected_mutations_xlsx: expectedPath,
           variant_sheet: variantSheet ?? undefined,
           variant_column: variantColumn ?? undefined,

@@ -2402,12 +2402,10 @@
     "description": "Destaques da última atualização.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "A folha do instrumento preenche a placa final na mesma ordem em que o mapa de placa da etapa 2.2 é lido, e não mais por profundidade de sequenciamento.",
-      "O campo de sequência de referência pede o construct que traz as regiões de ligação dos primers, que é o que o pipeline sempre precisou.",
-      "Uma execução que extraiu seu amplicon agora informa isso e nomeia a região analisada.",
-      "A opção de barcodes agrupados informa que junta todas as reads da pasta, não apenas os barcodes marcados."
+      "A grade de seleção de poços volta a desenhar a placa em vez de informar que um método do sidecar não foi encontrado.",
+      "Uma campanha que ocupa parte da placa pode declarar seus poços novamente, em vez de recorrer aos primeiros."
     ],
-    "highlightsStamp": "0.16.3+75eb7d5d"
+    "highlightsStamp": "0.16.4+69232919"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",

@@ -2402,12 +2402,10 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Das Geräteblatt füllt die finale Platte in derselben Reihenfolge, in der die Plattenübersicht aus Schritt 2.2 gelesen wird, statt nach Sequenziertiefe.",
-      "Das Feld für die Referenzsequenz verlangt das Construct mit den Primer-Bindungsstellen, also genau das, was die Pipeline immer schon gebraucht hat.",
-      "Ein Lauf, der sein Amplicon herausgeschnitten hat, sagt das jetzt und benennt die analysierte Region.",
-      "Die Pool-Option für Barcodes sagt, dass sie alle Reads im Ordner zusammenfasst, nicht nur die angehakten Barcodes."
+      "Das Raster zur Well-Auswahl zeichnet die Platte wieder, statt eine nicht gefundene Sidecar-Methode zu melden.",
+      "Eine Kampagne, die nur einen Teil der Platte belegt, kann ihre Wells wieder angeben, statt auf die vorderen Wells zurückzufallen."
     ],
-    "highlightsStamp": "0.16.3+75eb7d5d"
+    "highlightsStamp": "0.16.4+69232919"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",
