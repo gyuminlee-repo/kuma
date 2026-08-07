@@ -174,10 +174,10 @@
       "modeLegend": "Replicate 轴",
       "modePerBarcode": "把所选的每个 barcode 当作一个 replicate",
       "modePerBarcodeHelp": "每个 barcode 各 demux 一次。这样每个 well 都能在所选 plate 之间比较。",
-      "modePooled": "把所有 barcode 合并为一块 plate",
-      "modePooledHelp": "所有 read 合入同一个 pool。只有一块 plate，没有可比较的 replicate。",
+      "modePooled": "把整个 run 文件夹合并为一块 plate",
+      "modePooledHelp": "fastq_pass 下的所有 read 合入同一个 pool，包括此处未勾选的 barcode 和 unclassified。只有一块 plate，没有可比较的 replicate。",
       "replicateCount": "已选择 {{count}} 个 replicate",
-      "pooledCount": "已将 {{count}} 个 barcode 合并为一块 plate",
+      "pooledCount": "合并文件夹内全部 read，而不仅是列出的 {{count}} 个 barcode",
       "cancel": "取消运行"
     },
     "parameters": {
@@ -694,11 +694,11 @@
         "destLayoutAriaLabel": "Janus 目标 well 布局",
         "destLayoutOption": {
           "source": "Source 位置",
-          "compact": "从 A1 顺序排列"
+          "compact": "按板图顺序从 A1 起"
         },
         "destLayoutHint": {
           "source": "dest_well 沿用 source plate 的位置。若两个 pick 落在同一个 well，导出将失败。",
-          "compact": "dest_well 按 priority 顺序从 A1 起依次分配，先自上而下填满一列再进入下一列（A1、B1、C1 直到 H1，然后是 A2），不留空 well。"
+          "compact": "dest_well 按板图的顺序从 A1 起分配，先自上而下填满一列再进入下一列 (A1、B1、C1 直到 H1，然后是 A2)，不留空 well。source well 排在最前的 pick 进入 A1，测序 depth 不再决定顺序。"
         },
         "outputPathLabel": "输出文件路径",
         "outputPathPlaceholder": "目标 .csv 文件路径",
@@ -788,11 +788,11 @@
         "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
       "referenceFasta": {
-        "label": "参考序列",
+        "label": "参考 construct 序列",
         "placeholder": ".fasta / .fa / .gbk / .dna 文件路径",
         "stateLabel": "必填",
-        "helperText": "用于对 consensus 做 variant calling 的参考核酸序列(CDS)",
-        "helpText": "用作 variant calling 基线的参考序列。支持 FASTA、GenBank 和 SnapGene 文件。建议使用与 KURO 设计相同的 reference。必须是用于 read 比对的核酸(DNA/CDS)序列，而非蛋白质序列。"
+        "helperText": "包含 Custom Barcodes 文件中 primer 结合区域的 construct。MAME 从中切出 amplicon 使用。",
+        "helpText": "实际测序的 construct，必须包含 Custom Barcodes 文件中 primer 的结合区域，通常与设计 barcode package 时使用的一致。MAME 会找到这些 primer 位置并切出其间的 amplicon。只给 CDS 无法工作: primer 位置在其之外，barcode demux 会丢弃全部 read。必须是核酸序列，而非蛋白质序列。"
       },
       "customBarcodes": {
         "label": "Custom Barcodes (xlsx 或 csv)",
@@ -950,6 +950,11 @@
         "alertTitle": "well 与变异对应关系可能有误",
         "alertDesc": "在 {{wells}} 个观测到变异的 well 中，{{selfPercent}}% 与自身 expected 匹配，{{crossPercent}}% 却与其他 well 的 expected 匹配。well 与变异的对应关系极有可能出错，请勿信任此结果。",
         "alertAriaLabel": "well-变异映射完整性警告"
+      },
+      "referenceResolution": {
+        "title": "使用的是 amplicon 区段，而非整个文件",
+        "desc": "reference 文件为 {{originalLength}} bp。本次运行读取的是其中 {{spanStart}}-{{spanEnd}} 位置 ({{sliceLength}} bp)，即 barcode primer 两端夹住的区段。",
+        "normal": "对 run 文件夹而言这是正常路径: read 覆盖的是 amplicon，因此 construct 会被裁剪到实际测序的区段。"
       },
       "offLayoutRecords": {
         "title": "布局之外的 {{wells}} 个孔位有 {{records}} 条记录",

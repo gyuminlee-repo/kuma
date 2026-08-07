@@ -234,10 +234,10 @@
       "modeLegend": "Replicate axis",
       "modePerBarcode": "Each selected barcode is a replicate",
       "modePerBarcodeHelp": "One demux per barcode. Every well is then comparable across the selected plates.",
-      "modePooled": "Pool every barcode into one plate",
-      "modePooledHelp": "All reads in a single pool. One plate, no replicates to compare.",
+      "modePooled": "Pool the whole run folder into one plate",
+      "modePooledHelp": "Every read under fastq_pass goes into one pool, including barcodes left unticked here and unclassified. One plate, no replicates to compare.",
       "replicateCount": "{{count}} replicate(s) selected",
-      "pooledCount": "{{count}} barcode(s) pooled into one plate",
+      "pooledCount": "Every read in the folder pooled, not only the {{count}} barcode(s) listed",
       "cancel": "Cancel run"
     },
     "parameters": {
@@ -819,11 +819,11 @@
         "destLayoutAriaLabel": "Janus destination well layout",
         "destLayoutOption": {
           "source": "Source position",
-          "compact": "Compact from A1"
+          "compact": "Plate order from A1"
         },
         "destLayoutHint": {
           "source": "dest_well mirrors the source plate position. Export fails if two picks land on the same well.",
-          "compact": "dest_well is assigned sequentially from A1 in priority order, down each column (A1, B1, C1 to H1, then A2), leaving no empty wells."
+          "compact": "dest_well is filled from A1 in plate map order, down each column (A1, B1, C1 to H1, then A2), leaving no empty wells. The pick from the first source well takes A1; sequencing depth no longer sets the order."
         },
         "outputPathLabel": "Output file path",
         "outputPathPlaceholder": "Target .csv file path",
@@ -913,11 +913,11 @@
         "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
       "referenceFasta": {
-        "label": "Reference sequence",
+        "label": "Reference construct",
         "placeholder": ".fasta / .fa / .gbk / .dna file path",
         "stateLabel": "Required",
-        "helperText": "Reference nucleotide (CDS) sequence used for variant calling against consensus",
-        "helpText": "Reference sequence used as the baseline for variant calling. FASTA, GenBank, and SnapGene files are supported. Using the same reference as KURO design is recommended. It must be a nucleotide (DNA/CDS) sequence used for read alignment, not a protein sequence."
+        "helperText": "Construct covering the primer binding regions from the Custom Barcodes file. MAME extracts the amplicon from it.",
+        "helpText": "The construct that was sequenced, including the regions where the Custom Barcodes primers bind, normally the same construct the barcode package was designed from. MAME finds those sites and extracts the amplicon between them. A bare CDS will not work: the primer sites sit outside it, so barcode demux keeps nothing. Nucleotide, not protein."
       },
       "customBarcodes": {
         "label": "Custom Barcodes (xlsx or csv)",
@@ -1042,6 +1042,11 @@
         "alertTitle": "Well-variant mapping likely mismatched",
         "alertDesc": "Of {{wells}} wells with an observed variant, {{selfPercent}}% match their own expected mutation and {{crossPercent}}% match another well's expected mutation instead. The well-to-variant mapping is very likely off; do not trust this result.",
         "alertAriaLabel": "Well-variant mapping integrity warning"
+      },
+      "referenceResolution": {
+        "title": "Amplicon region used, not the whole file",
+        "desc": "The reference file is {{originalLength}} bp. The run read positions {{spanStart}}-{{spanEnd}} of it ({{sliceLength}} bp), the stretch the barcode primers bracket.",
+        "normal": "This is the normal path for a run folder: the reads cover the amplicon, so the construct is cut down to the region that was sequenced."
       },
       "offLayoutRecords": {
         "title": "{{records}} records from {{wells}} wells outside the layout",

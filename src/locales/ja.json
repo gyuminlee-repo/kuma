@@ -174,10 +174,10 @@
       "modeLegend": "Replicate 軸",
       "modePerBarcode": "選んだ barcode をそれぞれ replicate として扱う",
       "modePerBarcodeHelp": "barcode ごとに demux を 1 回ずつ実行する。各 well を選んだ plate 間で比較できるようになる。",
-      "modePooled": "すべての barcode を 1 枚の plate にまとめる",
-      "modePooledHelp": "すべての read を 1 つの pool にする。plate は 1 枚で、比較する replicate はない。",
+      "modePooled": "run フォルダ全体を 1 枚の plate にまとめる",
+      "modePooledHelp": "fastq_pass 配下のすべての read を 1 つの pool にまとめる。ここでチェックしていない barcode も unclassified も含まれる。plate は 1 枚で、比較する replicate はない。",
       "replicateCount": "replicate を {{count}} 件選択",
-      "pooledCount": "barcode {{count}} 件を 1 枚の plate に統合",
+      "pooledCount": "フォルダ内のすべての read を統合。一覧の barcode {{count}} 件だけではない",
       "cancel": "実行を中止"
     },
     "parameters": {
@@ -694,11 +694,11 @@
         "destLayoutAriaLabel": "Janus 配置先 well レイアウト",
         "destLayoutOption": {
           "source": "Source 位置",
-          "compact": "A1 から順次配置"
+          "compact": "プレートマップ順に A1 から"
         },
         "destLayoutHint": {
           "source": "dest_well が source plate の位置をそのまま使用します。2 つの pick が同じ well になるとエクスポートは失敗します。",
-          "compact": "dest_well を priority 順に A1 から順次割り当てます。縦方向に進むため A1, B1, C1 から H1 まで、その次が A2 となり、空の well は残しません。"
+          "compact": "dest_well をプレートマップと同じ順序で A1 から縦方向に割り当てます。A1, B1, C1 と H1 まで下り、その次が A2 となり、空の well は残しません。source well が最も先頭の pick が A1 に入り、シーケンス depth は順序を決めません。"
         },
         "outputPathLabel": "出力ファイルパス",
         "outputPathPlaceholder": "ターゲット .csv ファイルパス",
@@ -788,11 +788,11 @@
         "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
       "referenceFasta": {
-        "label": "Reference 配列",
+        "label": "Reference construct 配列",
         "placeholder": ".fasta / .fa / .gbk / .dna ファイルパス",
         "stateLabel": "必須",
-        "helperText": "consensus に対する variant calling の基準となる reference 塩基配列(CDS)",
-        "helpText": "Variant calling の基準となる reference 配列。FASTA、GenBank、SnapGene ファイルに対応しています。KURO 設計と同じ reference の使用を推奨します。read alignment に使用する塩基配列(DNA/CDS)であり、protein 配列は使用できません。"
+        "helperText": "Custom Barcodes ファイルの primer が結合する領域まで含む construct。MAME がここから amplicon を切り出して使用します。",
+        "helpText": "実際にシーケンスした construct で、Custom Barcodes ファイルの primer が結合する領域を含む必要があります。通常は barcode package の設計に使った construct と同じです。MAME がその primer 位置を見つけ、間の amplicon を切り出します。CDS だけでは primer 位置がその外側にあるため、barcode demux で read がすべて失われます。protein ではなく塩基配列を指定してください。"
       },
       "customBarcodes": {
         "label": "Custom Barcodes (xlsx または csv)",
@@ -950,6 +950,11 @@
         "alertTitle": "well と変異の対応にずれの疑い",
         "alertDesc": "観測された変異を持つ well {{wells}} 個のうち、自身の expected と一致するのは {{selfPercent}}%、他の well の expected と一致するのは {{crossPercent}}% でした。well と変異の対応がずれている可能性が非常に高いため、この結果は信頼できません。",
         "alertAriaLabel": "well-変異マッピング整合性の警告"
+      },
+      "referenceResolution": {
+        "title": "ファイル全体ではなく amplicon 領域を使用",
+        "desc": "reference ファイルは {{originalLength}} bp。今回の実行はそのうち {{spanStart}}-{{spanEnd}} の位置 ({{sliceLength}} bp)、barcode primer が挟む区間を読んでいる。",
+        "normal": "run フォルダではこれが正常な経路である。read が amplicon を覆うため、construct は実際にシーケンスした領域まで切り詰められる。"
       },
       "offLayoutRecords": {
         "title": "レイアウト外の {{wells}} ウェルから {{records}} 件のレコード",

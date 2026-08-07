@@ -234,10 +234,10 @@
       "modeLegend": "Replicate 축",
       "modePerBarcode": "선택한 barcode 각각을 replicate 로 본다",
       "modePerBarcodeHelp": "barcode 마다 demux 를 한 번씩 돌린다. 그러면 각 well 을 선택한 plate 들 사이에서 비교할 수 있다.",
-      "modePooled": "모든 barcode 를 하나의 plate 로 합친다",
-      "modePooledHelp": "모든 read 를 한 pool 로 합친다. plate 는 하나이고 비교할 replicate 가 없다.",
+      "modePooled": "run 폴더 전체를 하나의 plate 로 합친다",
+      "modePooledHelp": "fastq_pass 아래의 모든 read 를 한 pool 로 합친다. 여기서 체크하지 않은 barcode 와 unclassified 도 함께 들어간다. plate 는 하나이고 비교할 replicate 가 없다.",
       "replicateCount": "replicate {{count}}개 선택됨",
-      "pooledCount": "barcode {{count}}개를 plate 하나로 합침",
+      "pooledCount": "폴더의 모든 read 를 합침. 목록의 barcode {{count}}개만이 아니다",
       "cancel": "실행 취소"
     },
     "parameters": {
@@ -819,11 +819,11 @@
         "destLayoutAriaLabel": "Janus 대상 well 배치",
         "destLayoutOption": {
           "source": "Source 위치",
-          "compact": "A1부터 순차 배치"
+          "compact": "플레이트 맵 순서로 A1부터"
         },
         "destLayoutHint": {
           "source": "dest_well이 source plate 위치를 그대로 따릅니다. 두 pick이 같은 well에 겹치면 내보내기가 실패합니다.",
-          "compact": "dest_well을 priority 순서대로 A1부터 세로로 순차 배정합니다. A1, B1, C1 순으로 H1까지 내려간 다음 A2로 넘어갑니다. 빈 well은 남기지 않습니다."
+          "compact": "dest_well을 플레이트 맵과 같은 순서로 A1부터 세로로 배정합니다. A1, B1, C1 순으로 H1까지 내려간 다음 A2로 넘어가며 빈 well은 남기지 않습니다. source well이 가장 앞선 pick이 A1에 오고, 시퀀싱 depth는 더 이상 순서를 정하지 않습니다."
         },
         "outputPathLabel": "출력 파일 경로",
         "outputPathPlaceholder": "저장할 .csv 파일 경로",
@@ -913,11 +913,11 @@
         "helpText": "KURO 에서 내보낸 워크북이면 expected_mutations 시트를 자동으로 읽고 status 필터를 먼저 적용합니다. 그 외 워크북이면 시트와 변이 열을 직접 고를 수 있습니다."
       },
       "referenceFasta": {
-        "label": "참조 서열",
+        "label": "참조 construct 서열",
         "placeholder": ".fasta / .fa / .gbk / .dna 파일 경로",
         "stateLabel": "필수",
-        "helperText": "consensus 대비 변이 호출에 사용하는 참조 염기서열(CDS)",
-        "helpText": "변이 호출 기준이 되는 참조 서열입니다. FASTA, GenBank, SnapGene 파일을 사용할 수 있으며 KURO 설계에 사용한 참조 서열과 동일하게 설정하는 것을 권장합니다. read 정렬에 사용되는 염기서열(DNA/CDS)이어야 하며, 단백질 서열은 사용할 수 없습니다."
+        "helperText": "Custom Barcodes 파일의 primer가 결합하는 구간까지 포함한 construct입니다. MAME가 여기서 amplicon을 잘라내 사용합니다.",
+        "helpText": "실제로 시퀀싱한 construct이며, Custom Barcodes 파일의 primer가 결합하는 구간을 포함해야 합니다. 보통 barcode package를 설계할 때 쓴 construct와 같습니다. MAME가 그 primer 위치를 찾아 사이의 amplicon을 잘라냅니다. CDS만 넣으면 primer 위치가 그 바깥이라 barcode demux에서 read가 전부 버려집니다. 단백질이 아닌 염기서열이어야 합니다."
       },
       "customBarcodes": {
         "label": "Custom Barcode (xlsx 또는 csv)",
@@ -1042,6 +1042,11 @@
         "alertTitle": "well-변이 대응 오류 의심",
         "alertDesc": "관측 변이가 있는 well {{wells}}개 중 자기 expected와 일치 {{selfPercent}}%, 다른 well의 expected와 일치 {{crossPercent}}%. well과 변이의 대응이 어긋났을 가능성이 매우 높으니 이 결과를 신뢰하지 마십시오.",
         "alertAriaLabel": "well-변이 매핑 무결성 경고"
+      },
+      "referenceResolution": {
+        "title": "파일 전체가 아니라 amplicon 구간을 썼다",
+        "desc": "Reference 파일은 {{originalLength}} bp 다. 이번 실행은 그중 {{spanStart}}-{{spanEnd}} 위치 ({{sliceLength}} bp), barcode primer 가 양쪽에서 감싸는 구간을 읽었다.",
+        "normal": "run 폴더에서는 이게 정상 경로다. read 가 amplicon 을 덮으므로 construct 를 실제로 시퀀싱한 구간까지 잘라 쓴다."
       },
       "offLayoutRecords": {
         "title": "레이아웃 밖 웰 {{wells}}개에서 레코드 {{records}}건",

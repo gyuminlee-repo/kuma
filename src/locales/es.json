@@ -174,10 +174,10 @@
       "modeLegend": "Eje replicate",
       "modePerBarcode": "Cada barcode seleccionado es un replicate",
       "modePerBarcodeHelp": "Un demux por barcode. Así cada well puede compararse entre las plates seleccionadas.",
-      "modePooled": "Agrupar todos los barcodes en una sola plate",
-      "modePooledHelp": "Todas las reads en un solo pool. Una plate y ningún replicate que comparar.",
+      "modePooled": "Agrupar toda la carpeta de run en una sola plate",
+      "modePooledHelp": "Todas las reads bajo fastq_pass van a un solo pool, incluidos los barcodes sin marcar aquí y unclassified. Una plate y ningún replicate que comparar.",
       "replicateCount": "{{count}} replicate(s) seleccionados",
-      "pooledCount": "{{count}} barcode(s) agrupados en una plate",
+      "pooledCount": "Se agrupan todas las reads de la carpeta, no solo los {{count}} barcode(s) listados",
       "cancel": "Cancelar ejecución"
     },
     "parameters": {
@@ -694,11 +694,11 @@
         "destLayoutAriaLabel": "Disposición del well de destino de Janus",
         "destLayoutOption": {
           "source": "Posición de source",
-          "compact": "Compacto desde A1"
+          "compact": "Orden de placa desde A1"
         },
         "destLayoutHint": {
           "source": "dest_well replica la posición de la source plate. La exportación falla si dos picks caen en el mismo well.",
-          "compact": "dest_well se asigna secuencialmente desde A1 por orden de priority, bajando por cada columna (A1, B1, C1 hasta H1, y luego A2), sin dejar wells vacíos."
+          "compact": "dest_well se asigna desde A1 en el orden del mapa de placa, bajando por cada columna (A1, B1, C1 hasta H1, y luego A2), sin dejar wells vacíos. El pick cuyo source well va primero ocupa A1; la profundidad de secuenciación ya no fija el orden."
         },
         "outputPathLabel": "Ruta del archivo de salida",
         "outputPathPlaceholder": "Ruta del archivo .csv de destino",
@@ -788,11 +788,11 @@
         "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
       "referenceFasta": {
-        "label": "Secuencia de referencia",
+        "label": "Construct de referencia",
         "placeholder": "Ruta del archivo .fasta / .fa / .gbk / .dna",
         "stateLabel": "Requerido",
-        "helperText": "Secuencia de referencia nucleotídica (CDS) usada para variant calling contra el consensus",
-        "helpText": "Secuencia de referencia usada como baseline para variant calling. Se admiten archivos FASTA, GenBank y SnapGene. Se recomienda usar la misma referencia que el diseño KURO. Debe ser una secuencia nucleotídica (DNA/CDS) usada para el alineamiento de reads, no una secuencia de proteína."
+        "helperText": "Construct que cubre las regiones de unión de los primers del archivo Custom Barcodes. MAME extrae de él el amplicon.",
+        "helpText": "El construct que se secuenció, incluidas las regiones donde se unen los primers del archivo Custom Barcodes, normalmente el mismo con el que se diseñó el barcode package. MAME localiza esos sitios y extrae el amplicon que queda entre ellos. Una CDS sola no funciona: los sitios de unión quedan fuera de ella, así que el demux de barcodes no conserva nada. Secuencia nucleotídica, no proteica."
       },
       "customBarcodes": {
         "label": "Custom Barcodes (xlsx o csv)",
@@ -950,6 +950,11 @@
         "alertTitle": "Posible error en la correspondencia well-variante",
         "alertDesc": "De {{wells}} wells con una variante observada, el {{selfPercent}}% coincide con su propia mutación esperada y el {{crossPercent}}% coincide en cambio con la mutación esperada de otro well. Es muy probable que la correspondencia well-variante esté desalineada; no confíe en este resultado.",
         "alertAriaLabel": "Advertencia de integridad de la correspondencia well-variante"
+      },
+      "referenceResolution": {
+        "title": "Se usó la región del amplicon, no el archivo completo",
+        "desc": "El archivo de referencia tiene {{originalLength}} bp. La ejecución leyó de él las posiciones {{spanStart}}-{{spanEnd}} ({{sliceLength}} bp), el tramo que enmarcan los primers de barcode.",
+        "normal": "Para una carpeta de run este es el camino normal: las reads cubren el amplicon, así que el construct se recorta a la región realmente secuenciada."
       },
       "offLayoutRecords": {
         "title": "{{records}} registros de {{wells}} pocillos fuera de la disposición",
