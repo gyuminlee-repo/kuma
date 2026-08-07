@@ -2402,12 +2402,10 @@
     "description": "最新更新亮點。",
     "gotItBtn": "知道了",
     "highlights": [
-      "儀器表單現在依步驟 2.2 板圖的讀取順序填入最終盤，而不再依定序 depth 排序。",
-      "參考序列欄位要求提供帶有 primer 結合區域的 construct，這正是 pipeline 一直需要的。",
-      "切出 amplicon 的執行現在會說明這一點，並指出所分析的區段。",
-      "barcode 合併選項寫明它會合併資料夾內的全部 read，而不僅是已勾選的 barcode。"
+      "孔位選擇格線重新繪製盤面，而不再顯示找不到 sidecar 方法。",
+      "只使用部分盤位的實驗可以重新指定所用孔位，而不是退回前面的孔位。"
     ],
-    "highlightsStamp": "0.16.3+75eb7d5d"
+    "highlightsStamp": "0.16.4+69232919"
   },
   "primerDisplay": {
     "copySeqTitle": "複製序列",

@@ -2402,12 +2402,10 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "La hoja del instrumento llena la placa final en el mismo orden en que se lee el mapa de placa del paso 2.2, y ya no por profundidad de secuenciación.",
-      "El campo de secuencia de referencia pide el construct que lleva las regiones de unión de los primers, que es lo que el pipeline siempre necesitó.",
-      "Una ejecución que extrajo su amplicon ahora lo indica y nombra la región analizada.",
-      "La opción de barcodes agrupados indica que junta todas las reads de la carpeta, no solo los barcodes marcados."
+      "La cuadrícula de selección de pocillos vuelve a dibujar la placa en lugar de informar que no se encontró un método del sidecar.",
+      "Una campaña que ocupa parte de la placa puede volver a declarar sus pocillos, en vez de recurrir a los primeros."
     ],
-    "highlightsStamp": "0.16.3+75eb7d5d"
+    "highlightsStamp": "0.16.4+69232919"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",

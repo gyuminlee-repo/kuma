@@ -2402,12 +2402,10 @@
     "description": "最新更新亮点。",
     "gotItBtn": "知道了",
     "highlights": [
-      "仪器表格现在按步骤 2.2 板图的读取顺序填充最终板，而不再按测序 depth 排序。",
-      "参考序列字段要求提供带有 primer 结合区域的 construct，这正是 pipeline 一直需要的。",
-      "切出了 amplicon 的运行现在会说明这一点，并指出所分析的区段。",
-      "barcode 合并选项写明它会合并文件夹内的全部 read，而不仅是已勾选的 barcode。"
+      "孔位选择网格重新绘制板图，而不再提示未找到 sidecar 方法。",
+      "只占用部分板位的实验可以重新指定所用孔位，而不是退回到前面的孔位。"
     ],
-    "highlightsStamp": "0.16.3+75eb7d5d"
+    "highlightsStamp": "0.16.4+69232919"
   },
   "primerDisplay": {
     "copySeqTitle": "复制序列",

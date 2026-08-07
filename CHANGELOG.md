@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.16.4 (The plate grid asks the sidecar by the name the sidecar answers to)
+
+The well selection grid on the analyze screen could not draw anything. Where the plate should be, it printed "Method not found" and the error code the sidecar returns for a method it does not recognise. The grid asks for the draft layout over the same RPC the run itself uses, but it asked for `build_well_layout` while the sidecar registers that handler as `mame.build_well_layout`, so the request reached no handler at all.
+
+Nothing caught it. The cross-layer rule for that method names only the sidecar dispatcher file, so it checked the registration against itself, and no test rendered the panel. The panel now carries one, and it fails on the bare name.
+
+The consequence for an operator was not cosmetic. With no grid, a campaign smaller than the plate had no way to declare which wells it occupies, so the run fell back to the leading wells and an empty well kept whatever the draft placed there.
+
+### Highlights
+
+- The well selection grid draws the plate again instead of reporting that a sidecar method was not found.
+- A campaign that occupies part of the plate can declare its wells again, rather than falling back to the leading ones.
+
+### Fixed
+
+- v0.16.4: The well selection panel calls `mame.build_well_layout`, the name the MAME dispatcher registers, instead of the bare `build_well_layout` that reached no handler. A rendering test now pins the method name, which the previous cross-layer check could not: it compares the dispatcher symbol against the dispatcher file alone.
+
 ## v0.16.3 (The final plate reads like the plate map, and three inputs stop misdescribing themselves)
 
 The instrument sheet laid its picks down by sequencing depth. The deepest-sequenced clone took A1, the next took B1, and so on, which meant the file read in an order with no relationship to the plate the operator was looking at. Filling a plate by hand against a list sorted on a hidden axis is how a clone ends up in the wrong well. Picks are now laid down in plate-map order, column-major, the same direction the result table already sorts and the same direction an eight channel pipette moves. Depth is still recorded on every row; it just no longer decides position.

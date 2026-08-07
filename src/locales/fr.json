@@ -2402,12 +2402,10 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "La feuille instrument remplit la plaque finale dans l'ordre où se lit la carte de plaque de l'étape 2.2, et non plus par profondeur de séquençage.",
-      "Le champ de séquence de référence demande le construct qui porte les régions de fixation des primers, ce dont le pipeline a toujours eu besoin.",
-      "Une exécution qui a extrait son amplicon le signale désormais et nomme la région analysée.",
-      "L'option de barcodes regroupés précise qu'elle fusionne toutes les reads du dossier, pas seulement les barcodes cochés."
+      "La grille de sélection des puits redessine la plaque au lieu de signaler qu'une méthode du sidecar est introuvable.",
+      "Une campagne qui occupe une partie de la plaque peut de nouveau déclarer ses puits, au lieu de se rabattre sur les premiers."
     ],
-    "highlightsStamp": "0.16.3+75eb7d5d"
+    "highlightsStamp": "0.16.4+69232919"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",
