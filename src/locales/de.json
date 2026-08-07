@@ -2402,13 +2402,12 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die Beispieldaten melden eine Cross-Talk-Prüfung nicht mehr als sauber, wenn diese Prüfung nie ausgeführt wurde.",
-      "Die Fixture der Beispielauswertung ist als Ressource mit der App gebündelt, sodass die Demo sie auch im Release-Build liest und nicht mehr nur in der Entwicklung.",
-      "Beim erneuten Öffnen eines gespeicherten Laufs kommt dessen Anzahl der Datensätze außerhalb des Layouts zurück, statt dass gar nichts angezeigt wird.",
-      "Der Wiederfindungs-Balken und die Kopfzeile darüber können keine Werte aus zwei verschiedenen Läufen mehr gleichzeitig anzeigen.",
-      "Die KURO-Plattenvorschau beschriftet ihre beiden Bereiche nicht mehr als Deck-Racks, denn dort stehen jetzt Plattennamen."
+      "Das Geräteblatt füllt die finale Platte in derselben Reihenfolge, in der die Plattenübersicht aus Schritt 2.2 gelesen wird, statt nach Sequenziertiefe.",
+      "Das Feld für die Referenzsequenz verlangt das Construct mit den Primer-Bindungsstellen, also genau das, was die Pipeline immer schon gebraucht hat.",
+      "Ein Lauf, der sein Amplicon herausgeschnitten hat, sagt das jetzt und benennt die analysierte Region.",
+      "Die Pool-Option für Barcodes sagt, dass sie alle Reads im Ordner zusammenfasst, nicht nur die angehakten Barcodes."
     ],
-    "highlightsStamp": "0.16.2+b043584b"
+    "highlightsStamp": "0.16.3+75eb7d5d"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",

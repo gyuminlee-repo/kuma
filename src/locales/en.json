@@ -2435,13 +2435,12 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The bundled sample no longer reports a cross-talk check as clean when that check never ran.",
-      "The sample analysis fixture is bundled with the app, so the demo reads it in a released build rather than only in development.",
-      "Reopening a saved run brings back its off-layout record count instead of showing nothing.",
-      "The recovery bar and the header above it can no longer show figures from two different runs.",
-      "The KURO plate preview stops labelling its two panels as deck racks, which are plate names now."
+      "The instrument sheet fills the final plate in the same order the step 2.2 plate map reads, instead of by sequencing depth.",
+      "The reference sequence field asks for the construct that carries the primer binding regions, which is what the pipeline has always needed.",
+      "A run that extracted its amplicon now says so, naming the region it analysed.",
+      "The pooled barcode option states that it merges every read in the folder, not only the ticked barcodes."
     ],
-    "highlightsStamp": "0.16.2+b043584b"
+    "highlightsStamp": "0.16.3+75eb7d5d"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

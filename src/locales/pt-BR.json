@@ -2402,13 +2402,12 @@
     "description": "Destaques da última atualização.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Os dados de exemplo não relatam mais uma verificação de cross-talk como limpa quando essa verificação nunca foi executada.",
-      "O fixture da análise de exemplo é empacotado junto com o aplicativo, então a demo o lê em uma compilação publicada e não apenas em desenvolvimento.",
-      "Reabrir uma execução salva traz de volta a contagem de registros fora do arranjo, em vez de não mostrar nada.",
-      "A barra de recuperação e o cabeçalho acima dela não podem mais exibir números de duas execuções diferentes.",
-      "A prévia de placas do KURO deixa de rotular seus dois painéis como racks de deck, pois ali agora vão nomes de placa."
+      "A folha do instrumento preenche a placa final na mesma ordem em que o mapa de placa da etapa 2.2 é lido, e não mais por profundidade de sequenciamento.",
+      "O campo de sequência de referência pede o construct que traz as regiões de ligação dos primers, que é o que o pipeline sempre precisou.",
+      "Uma execução que extraiu seu amplicon agora informa isso e nomeia a região analisada.",
+      "A opção de barcodes agrupados informa que junta todas as reads da pasta, não apenas os barcodes marcados."
     ],
-    "highlightsStamp": "0.16.2+b043584b"
+    "highlightsStamp": "0.16.3+75eb7d5d"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",

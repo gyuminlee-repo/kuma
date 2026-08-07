@@ -2402,13 +2402,12 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les données d'exemple n'annoncent plus un contrôle cross-talk comme propre alors que ce contrôle n'a jamais été exécuté.",
-      "La fixture d'analyse d'exemple est fournie avec l'application, si bien que la démo la lit dans une version publiée et non plus seulement en développement.",
-      "La réouverture d'une exécution enregistrée ramène son nombre d'enregistrements hors disposition au lieu de ne rien afficher du tout.",
-      "La barre de récupération et l'en-tête au-dessus d'elle ne peuvent plus afficher des chiffres provenant de deux exécutions différentes.",
-      "L'aperçu des plaques KURO n'étiquette plus ses deux panneaux comme des racks de deck, puisque ce sont désormais des noms de plaque."
+      "La feuille instrument remplit la plaque finale dans l'ordre où se lit la carte de plaque de l'étape 2.2, et non plus par profondeur de séquençage.",
+      "Le champ de séquence de référence demande le construct qui porte les régions de fixation des primers, ce dont le pipeline a toujours eu besoin.",
+      "Une exécution qui a extrait son amplicon le signale désormais et nomme la région analysée.",
+      "L'option de barcodes regroupés précise qu'elle fusionne toutes les reads du dossier, pas seulement les barcodes cochés."
     ],
-    "highlightsStamp": "0.16.2+b043584b"
+    "highlightsStamp": "0.16.3+75eb7d5d"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",
