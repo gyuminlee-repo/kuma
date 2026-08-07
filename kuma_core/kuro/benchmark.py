@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import random
-import re
 from collections.abc import Mapping, Sequence
 from itertools import combinations
 from typing import Any
@@ -11,7 +10,12 @@ from typing import Any
 from typing_extensions import TypedDict
 
 from .alphafold import ca_max_dist, pairwise_ca_distance
-from .evolvepro import domain_aware_select, pareto_diversity_select
+from .evolvepro import (
+    _POS_RE,
+    _position_filter_with_tiebreak,
+    domain_aware_select,
+    pareto_diversity_select,
+)
 
 
 class SelectionMetrics(TypedDict, total=False):
@@ -27,31 +31,9 @@ class SelectionMetrics(TypedDict, total=False):
     threshold: float
     n_trials: int
 
-_POS_RE = re.compile(r"[A-Z](\d+)[A-Z]")
-
-
 def _variant_pos(variant: str) -> int | None:
     match = _POS_RE.search(variant)
     return int(match.group(1)) if match else None
-
-
-def _apply_position_cap(
-    fitness_landscape: list[tuple[str, float]],
-    max_per_position: int,
-) -> list[tuple[str, float]]:
-    counts: dict[int, int] = {}
-    selected: list[tuple[str, float]] = []
-    for variant, fitness in fitness_landscape:
-        pos = _variant_pos(variant)
-        if pos is None:
-            selected.append((variant, fitness))
-            continue
-        used = counts.get(pos, 0)
-        if used >= max_per_position:
-            continue
-        counts[pos] = used + 1
-        selected.append((variant, fitness))
-    return selected
 
 
 def _structural_spread(
@@ -101,7 +83,10 @@ def simulate_selection(
         sampler = rng.sample if rng is not None else random.sample
         return sampler(fitness_landscape, min(n_select, len(fitness_landscape)))
     if strategy == "position_cap":
-        capped = _apply_position_cap(fitness_landscape, max_per_position)
+        # Same function the product ships (load_evolvepro_csv calls it), so a
+        # benchmark row named position_cap scores the rule that actually runs:
+        # 2 % Grantham tie-break, and combo variants exempt from the cap.
+        capped = _position_filter_with_tiebreak(fitness_landscape, max_per_position)
         return capped[:n_select]
     if strategy == "domain":
         selected, _ = domain_aware_select(

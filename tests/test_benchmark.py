@@ -483,3 +483,43 @@ class TestAutoRelaxTolMax:
         sig = inspect.signature(design_single_sdm)
         assert "tol_max" in sig.parameters
         assert sig.parameters["tol_max"].default == 4.0
+
+
+class TestPositionCapScoresTheShippedRule:
+    """The ``position_cap`` benchmark row must score the rule the product runs.
+
+    ``load_evolvepro_csv`` caps positions with
+    ``_position_filter_with_tiebreak``. The benchmark used to carry its own
+    copy that differed on two axes, so a user comparing strategies on the
+    benchmark screen was reading a rule no round would ever apply. Both
+    fixtures below are chosen so the two candidate rules disagree; a fixture
+    they both answer the same way would prove nothing.
+    """
+
+    def test_tie_band_is_broken_by_grantham_not_by_input_order(self):
+        """Three-way tie at one position, cap 1.
+
+        The old benchmark copy kept the first landscape row (A10C). The
+        shipped rule takes the 2 % tie band {A10C, A10D, A10E} and picks the
+        most conservative substitution by Grantham distance:
+        A->C 195, A->D 126, A->E 107, so A10E wins.
+        """
+        landscape = [("A10C", 1.0), ("A10D", 1.0), ("A10E", 0.99)]
+        selected = simulate_selection(
+            landscape, n_select=3, strategy="position_cap", max_per_position=1
+        )
+        assert [v for v, _ in selected] == ["A10E"]
+
+    def test_combo_variants_are_exempt_from_the_cap(self):
+        """Two combos sharing position 59, cap 1.
+
+        The old benchmark copy read the first position out of a combo with a
+        searching regex and capped the pair down to one. The shipped rule
+        anchors on a single-substitution pattern, so a combo has no position
+        to cap and passes through.
+        """
+        landscape = [("L59M:W60T", 1.0), ("L59K:W60T", 0.9), ("B20F", 0.5)]
+        selected = simulate_selection(
+            landscape, n_select=3, strategy="position_cap", max_per_position=1
+        )
+        assert sorted(v for v, _ in selected) == ["B20F", "L59K:W60T", "L59M:W60T"]
