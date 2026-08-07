@@ -1388,6 +1388,8 @@
     "plates_one": "{{count}} plate",
     "plates_other": "{{count}} plates",
     "csvVariantWarning": "CSV には {{count}} variants しか含まれていません",
+    "mutationCapTitle": "設計数を plate 1 枚分の変異数に制限しました",
+    "mutationCapMessage": "入力値は {{requested}} です。1 回の設計で扱う変異は最大 {{max}} 個、plate 1 枚分のため、設計数を {{max}} に設定しました。forward と reverse の primer はそれぞれ plate 1 枚を使います。",
     "advancedToggleShow": "詳細オプション",
     "tmSectionLabel": "Tm",
     "tmSectionTitle": "融解温度目標。SantaLucia 1998 パラメータ。",
@@ -2103,7 +2105,8 @@
     "titleBlock": "入力サイズ警告 (非常に大きなジョブ)",
     "continueLabel": "続行",
     "continueLabelBlock": "それでも続行",
-    "cancelLabel": "キャンセル"
+    "cancelLabel": "キャンセル",
+    "acknowledgeLabel": "OK"
   },
   "roundPrompt": {
     "title": "Set EVOLVEpro round",
@@ -2402,10 +2405,11 @@
     "description": "最新アップデートのハイライト。",
     "gotItBtn": "了解",
     "highlights": [
-      "ウェル選択グリッドがサイドカーのメソッド未検出を表示する代わりに、再びプレートを描画する。",
-      "プレートの一部だけを使うキャンペーンが、先頭のウェルに固定されずに使用するウェルを指定できる。"
+      "設計数は変異 96 個、plate 1 枚分で止まり、plate に収まらない数を受け入れる代わりに拒否した値を知らせる。",
+      "より大きな数を持つプロジェクトや自動保存スナップショットは、開くときに拒否されず補正される。",
+      "plate の終わりを越えた well ラベルが次の plate 名を付け、Python の書き出しが常に返してきた値と一致する。"
     ],
-    "highlightsStamp": "0.16.4+69232919"
+    "highlightsStamp": "0.16.5+2d205d9d"
   },
   "primerDisplay": {
     "copySeqTitle": "配列をコピー",

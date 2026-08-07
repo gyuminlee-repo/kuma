@@ -3,6 +3,7 @@ import type { StateCreator } from "zustand";
 import type { SortingState, Updater } from "@tanstack/react-table";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { getSortedMutations, reorderMappings, wellName } from "../../lib/plate-utils";
+import { clampMaxPrimers } from "../../lib/inputThresholds";
 import { formatError } from "../../lib/utils";
 import { notifyJobDone, notifyJobError } from "../../lib/toast";
 import { registerArtifacts, ensureWorkspaceFromExportPath, getActiveWorkspace } from "../../lib/workspace";
@@ -591,7 +592,11 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     let evolveproReloadError: string | null = null;
     if (inputs.evolveproCsvPath) {
       try {
-        const sendCount = settings.maxPrimers ?? 95;
+        // Same clamp as the `maxPrimers` write below. A saved file can carry a
+        // count from before the one-plate bound, and asking the sidecar for a
+        // pool sized off the raw value loads a multiple of what the run can
+        // ever place on a plate.
+        const sendCount = clampMaxPrimers(settings.maxPrimers ?? 95);
         const result = await sendRequest("load_evolvepro_csv", {
           filepath: inputs.evolveproCsvPath,
           top_n: (settings.fillOnFailure ?? true) ? sendCount * 2 : sendCount,
@@ -640,7 +645,11 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       selectedGene: restoredGene,
       backendDesignStateSynced: false,
       codonStrategy: settings.codonStrategy ?? "closest",
-      maxPrimers: settings.maxPrimers ?? 95,
+      // A saved project can carry a count from before the one-plate bound
+      // existed, or a hand-edited one. Clamped here rather than rejected in
+      // the workspace validator: refusing to open an old project over a
+      // number the app can correct is a worse outcome than correcting it.
+      maxPrimers: clampMaxPrimers(settings.maxPrimers ?? 95),
       designResults: restoredDesignResults,
       ...(restoredDesignResults.length > 0
         ? {

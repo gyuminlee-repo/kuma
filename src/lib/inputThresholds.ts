@@ -6,6 +6,36 @@
  */
 
 import i18next from "i18next";
+import { PLATE_WELL_COUNT } from "./plate-utils";
+
+/**
+ * Mutations a single design run may produce, pinned to one plate.
+ *
+ * Separate name from `PLATE_WELL_COUNT` because they answer different
+ * questions: that one is how many wells a plate has, this one is how many of
+ * them one run is allowed to fill. They are tied to the same number because a
+ * run that designs more primers than a plate holds puts the overflow on a
+ * plate nobody prepared, and the well label for it (`P2-A1`) names a plate
+ * that does not exist in the run.
+ */
+export const MAX_MUTATIONS_PER_RUN = PLATE_WELL_COUNT;
+
+/**
+ * The one place the design-count bound is applied.
+ *
+ * Every write into `maxPrimers` calls this, including the ones that bypass
+ * `setMaxPrimers` (workspace restore, autosave rehydration), because a value
+ * that entered through a file is exactly the one nothing else checks. Copies
+ * of a rule have drifted apart in this repo before, so there is no second
+ * implementation of the bound anywhere.
+ *
+ * Fractions are truncated: the count indexes an array of designed primers, and
+ * `parseFloat` on a text input accepts `"95.7"`.
+ */
+export function clampMaxPrimers(n: number): number {
+  if (Number.isNaN(n)) return MAX_MUTATIONS_PER_RUN;
+  return Math.min(MAX_MUTATIONS_PER_RUN, Math.max(1, Math.floor(n)));
+}
 
 export const KURO_INPUT_THRESHOLDS = {
   /** mutation 행 수 경고 임계 */

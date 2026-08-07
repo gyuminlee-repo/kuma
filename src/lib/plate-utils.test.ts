@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getSortedMutations, reorderMappings } from "./plate-utils";
+import { PLATE_WELL_COUNT, getSortedMutations, reorderMappings, wellName } from "./plate-utils";
 import type { PlateMapping, SdmPrimerResult } from "../types/models";
 
 function result(mutation: string, aaPosition: number, penalty: number): SdmPrimerResult {
@@ -37,6 +37,32 @@ function mapping(mutation: string, primerType: PlateMapping["primer_type"], sequ
     mutation,
   };
 }
+
+describe("wellName overflow", () => {
+  // Expected values were produced by running the Python side, not derived by
+  // hand: `python3 -c "from kuma_core.kuro.plate_mapper import _assign_well;
+  // print([_assign_well(i) for i in (95, 96, 191, 192)])"` prints
+  // ['H12', 'P2-A1', 'P2-H12', 'P3-A1'].
+  //
+  // 95 is the last well of a plate and is the only one of these four a plain
+  // column walk also gets right; it is here as the boundary anchor. The other
+  // three are the ones that distinguish the two candidate rules. A column walk
+  // answers "A13", "H24" and "A25" there, which are silent failures rather
+  // than errors because all three are real coordinates on a 384 plate.
+  it("matches Python _assign_well at and past the end of a plate", () => {
+    expect(wellName(95)).toBe("H12");
+    expect(wellName(96)).toBe("P2-A1");
+    expect(wellName(191)).toBe("P2-H12");
+    expect(wellName(192)).toBe("P3-A1");
+  });
+
+  it("fills a plate before rolling to the next one", () => {
+    const labels = Array.from({ length: PLATE_WELL_COUNT }, (_, i) => wellName(i));
+    expect(labels.filter((label) => label.includes("-"))).toEqual([]);
+    expect(new Set(labels).size).toBe(PLATE_WELL_COUNT);
+    expect(wellName(PLATE_WELL_COUNT)).toContain("P2-");
+  });
+});
 
 describe("plate-utils", () => {
   it("keeps original tie order when sorting descending", () => {

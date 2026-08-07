@@ -1388,6 +1388,8 @@
     "plates_one": "{{count}} placa",
     "plates_other": "{{count}} placas",
     "csvVariantWarning": "O CSV contém apenas {{count}} variants",
+    "mutationCapTitle": "Contagem de designs limitada a uma placa de variantes",
+    "mutationCapMessage": "Você digitou {{requested}}. Uma execução projeta no máximo {{max}} variantes, uma placa, então a contagem foi ajustada para {{max}}. Os primers forward e reverse ocupam uma placa cada um.",
     "advancedToggleShow": "Opções avançadas",
     "tmSectionLabel": "Tm",
     "tmSectionTitle": "Alvos de melting temperature. Parâmetros SantaLucia 1998.",
@@ -2103,7 +2105,8 @@
     "titleBlock": "Aviso de tamanho de entrada (tarefa muito grande)",
     "continueLabel": "Continuar",
     "continueLabelBlock": "Continuar mesmo assim",
-    "cancelLabel": "Cancelar"
+    "cancelLabel": "Cancelar",
+    "acknowledgeLabel": "OK"
   },
   "roundPrompt": {
     "title": "Set EVOLVEpro round",
@@ -2402,10 +2405,11 @@
     "description": "Destaques da última atualização.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "A grade de seleção de poços volta a desenhar a placa em vez de informar que um método do sidecar não foi encontrado.",
-      "Uma campanha que ocupa parte da placa pode declarar seus poços novamente, em vez de recorrer aos primeiros."
+      "A contagem de designs para em 96 variantes, uma placa completa, e informa o número recusado em vez de aceitar uma contagem que a placa não comporta.",
+      "Um projeto ou instantâneo de salvamento automático com uma contagem maior é corrigido ao ser aberto, não recusado.",
+      "Os rótulos de well além do fim de uma placa nomeiam a placa seguinte, como a exportação em Python sempre fez."
     ],
-    "highlightsStamp": "0.16.4+69232919"
+    "highlightsStamp": "0.16.5+2d205d9d"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",

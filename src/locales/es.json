@@ -1388,6 +1388,8 @@
     "plates_one": "{{count}} placa",
     "plates_other": "{{count}} placas",
     "csvVariantWarning": "El CSV contiene sólo {{count}} variantes",
+    "mutationCapTitle": "Recuento de diseños limitado a una placa de variantes",
+    "mutationCapMessage": "Has introducido {{requested}}. Una ejecución diseña como máximo {{max}} variantes, una placa, así que el recuento se ajustó a {{max}}. Los primers forward y reverse ocupan una placa cada uno.",
     "advancedToggleShow": "Opciones avanzadas",
     "tmSectionLabel": "Tm",
     "tmSectionTitle": "Objetivos de melting temperature. Parámetros SantaLucia 1998.",
@@ -2103,7 +2105,8 @@
     "titleBlock": "Advertencia de tamaño de entrada (trabajo muy grande)",
     "continueLabel": "Continuar",
     "continueLabelBlock": "Continuar de todas formas",
-    "cancelLabel": "Cancelar"
+    "cancelLabel": "Cancelar",
+    "acknowledgeLabel": "Aceptar"
   },
   "roundPrompt": {
     "title": "Set EVOLVEpro round",
@@ -2402,10 +2405,11 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "La cuadrícula de selección de pocillos vuelve a dibujar la placa en lugar de informar que no se encontró un método del sidecar.",
-      "Una campaña que ocupa parte de la placa puede volver a declarar sus pocillos, en vez de recurrir a los primeros."
+      "El recuento de diseños se detiene en 96 variantes, una placa completa, y nombra el número rechazado en lugar de aceptar un recuento que la placa no puede contener.",
+      "Un proyecto o una instantánea de autoguardado con un recuento mayor se corrige al abrirlo, no se rechaza.",
+      "Las etiquetas de well más allá del final de una placa nombran la placa siguiente, igual que siempre ha hecho la exportación de Python."
     ],
-    "highlightsStamp": "0.16.4+69232919"
+    "highlightsStamp": "0.16.5+2d205d9d"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",

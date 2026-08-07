@@ -1388,6 +1388,8 @@
     "plates_one": "{{count}} 板",
     "plates_other": "{{count}} 板",
     "csvVariantWarning": "CSV 仅包含 {{count}} 个 variant",
+    "mutationCapTitle": "设计数量已限制为一块板的变异数",
+    "mutationCapMessage": "您输入了 {{requested}}。一次设计最多处理 {{max}} 个变异，即一块板的量，因此设计数量已设为 {{max}}。forward 与 reverse primer 各占一块板。",
     "advancedToggleShow": "高级选项",
     "tmSectionLabel": "Tm",
     "tmSectionTitle": "Melting temperature 目标。SantaLucia 1998 参数。",
@@ -2103,7 +2105,8 @@
     "titleBlock": "输入大小警告 (作业非常大)",
     "continueLabel": "继续",
     "continueLabelBlock": "仍然继续",
-    "cancelLabel": "取消"
+    "cancelLabel": "取消",
+    "acknowledgeLabel": "确定"
   },
   "roundPrompt": {
     "title": "Set EVOLVEpro round",
@@ -2402,10 +2405,11 @@
     "description": "最新更新亮点。",
     "gotItBtn": "知道了",
     "highlights": [
-      "孔位选择网格重新绘制板图，而不再提示未找到 sidecar 方法。",
-      "只占用部分板位的实验可以重新指定所用孔位，而不是退回到前面的孔位。"
+      "设计数量在 96 个变异，即一块板的量处停止，并告知被拒绝的数值，而不是接受一块板装不下的数量。",
+      "携带更大数值的项目或自动保存快照在打开时会被修正，而不是被拒绝。",
+      "超出板末尾的 well 标签会标出下一块板，与 Python 导出一直给出的结果一致。"
     ],
-    "highlightsStamp": "0.16.4+69232919"
+    "highlightsStamp": "0.16.5+2d205d9d"
   },
   "primerDisplay": {
     "copySeqTitle": "复制序列",

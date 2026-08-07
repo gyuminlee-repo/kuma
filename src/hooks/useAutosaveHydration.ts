@@ -32,6 +32,7 @@ import {
   isPlateOrderReportable,
 } from "@/lib/mame/plateOrderMessage";
 import { KURO_SCHEMA, buildKuroSnapshot } from "@/lib/kuroSnapshot";
+import { clampMaxPrimers } from "@/lib/inputThresholds";
 import { buildKuroResultResetPatch } from "@/lib/kuroResultReset";
 import { fingerprintSource, fingerprintsEqual, type SourceFingerprint } from "@/lib/sourceFingerprint";
 import { MAJOR_ORDER, SUBSTEP_ORDER, type MajorStepId, type StepStatus, type SubStepId } from "@/store/slices/navigationSlice";
@@ -459,7 +460,10 @@ export async function applyKuroSnapshot(
     patch.codonStrategy = params.codon_strategy;
   }
   if (typeof params?.max_primers === "number") {
-    patch.maxPrimers = params.max_primers;
+    // Clamped, not dropped. REDESIGN_SENSITIVE_PARAM_KEYS asks whether the key
+    // is present in the patch, so omitting it on an out-of-range value would
+    // silently send the restore down the full re-derivation path.
+    patch.maxPrimers = clampMaxPrimers(params.max_primers);
   }
   if (typeof params?.tm_fwd_target === "number") {
     patch.tmFwdTarget = params.tm_fwd_target;

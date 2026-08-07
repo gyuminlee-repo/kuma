@@ -14,6 +14,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/store/appStore";
+import { PLATE_WELL_COUNT } from "@/lib/plate-utils";
 export function OrderSummary() {
   const { t } = useTranslation();
   const totalCount = useAppStore((s) => s.totalCount);
@@ -30,10 +31,10 @@ export function OrderSummary() {
   const plateEstimate =
     mutationInputMode === "evolvepro"
       ? includedSuccessCount > 0
-        ? Math.ceil(includedSuccessCount / 96)
+        ? Math.ceil(includedSuccessCount / PLATE_WELL_COUNT)
         : null
       : totalCount > 0
-        ? Math.ceil(totalCount / 96)
+        ? Math.ceil(totalCount / PLATE_WELL_COUNT)
         : null;
 
   const mutationCount = useMemo(() => {
