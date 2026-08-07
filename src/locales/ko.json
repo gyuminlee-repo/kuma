@@ -1409,6 +1409,8 @@
     "plates_one": "{{count}}개 플레이트",
     "plates_other": "{{count}}개 플레이트",
     "csvVariantWarning": "CSV에 변이가 {{count}}개뿐입니다",
+    "mutationCapTitle": "설계 후보 수를 한 플레이트 분량으로 제한했습니다",
+    "mutationCapMessage": "입력한 값은 {{requested}} 입니다. 한 번의 설계가 다루는 변이는 최대 {{max}} 개, 곧 플레이트 한 장 분량이므로 설계 후보 수를 {{max}} 로 설정했습니다. forward 와 reverse 프라이머는 각각 플레이트 한 장씩 씁니다.",
     "advancedToggleShow": "고급 옵션",
     "tmSectionLabel": "Tm",
     "tmSectionTitle": "Tm 목표값. SantaLucia 1998 파라미터 기반.",
@@ -2118,7 +2120,8 @@
     "titleBlock": "입력 크기 경고 (매우 큰 작업)",
     "continueLabel": "계속",
     "continueLabelBlock": "그래도 계속",
-    "cancelLabel": "취소"
+    "cancelLabel": "취소",
+    "acknowledgeLabel": "확인"
   },
   "roundPrompt": {
     "title": "EVOLVEpro round 설정",
@@ -2435,10 +2438,11 @@
     "description": "최신 업데이트의 주요 변경 사항입니다.",
     "gotItBtn": "확인",
     "highlights": [
-      "웰 선택 그리드가 사이드카 메서드를 찾지 못했다고 알리는 대신 다시 플레이트를 그린다.",
-      "플레이트 일부만 쓰는 캠페인이 앞쪽 웰로 밀려나지 않고 사용할 웰을 다시 지정할 수 있다."
+      "설계 후보 수가 변이 96 개, 곧 플레이트 한 장 분량에서 멈추고, 플레이트가 담을 수 없는 수를 받아들이는 대신 거부한 값을 알려준다.",
+      "더 큰 수가 담긴 프로젝트나 자동저장 스냅샷은 열 때 거부되지 않고 맞춰진다.",
+      "플레이트 끝을 넘어선 웰 라벨이 다음 플레이트 이름을 달아, Python 내보내기가 늘 내던 값과 일치한다."
     ],
-    "highlightsStamp": "0.16.4+69232919"
+    "highlightsStamp": "0.16.5+2d205d9d"
   },
   "primerDisplay": {
     "copySeqTitle": "서열 복사",

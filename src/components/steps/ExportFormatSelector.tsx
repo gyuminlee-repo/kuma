@@ -29,11 +29,11 @@ import { useAppStore } from "@/store/appStore";
 import type { AppState } from "@/store/appStore";
 import { validateExportAll } from "@/store/validation";
 import { localeIsKorean } from "@/lib/localeUtils";
+import { PLATE_WELL_COUNT } from "@/lib/plate-utils";
 const PLATE_NAME_RE = /^[A-Za-z0-9_-]{1,20}$/;
 const PROJECT_NAME_RE = /^[A-Za-z0-9가-힣_\-]{0,40}$/;
 const ECHO_RANGE = { min: 25, max: 500, step: 1, unit: "nL" } as const;
 const JANUS_RANGE = { min: 0.5, max: 10, step: 0.1, unit: "μL" } as const;
-const WELL_LIMIT = 96;
 
 export function ExportFormatSelector() {
   const { t, i18n } = useTranslation();
@@ -65,7 +65,7 @@ export function ExportFormatSelector() {
   const fwdValid = fwdPlate === "" || PLATE_NAME_RE.test(fwdPlate);
   const rvsValid = rvsPlate === "" || PLATE_NAME_RE.test(rvsPlate);
   const projectNameValid = PROJECT_NAME_RE.test(projectName);
-  const wellOverflow = wellCount > WELL_LIMIT;
+  const wellOverflow = wellCount > PLATE_WELL_COUNT;
   const canExport = !wellOverflow && !running && projectNameValid;
 
   const onExport = async () => {

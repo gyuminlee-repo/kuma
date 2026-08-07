@@ -18,6 +18,7 @@ import { InspectorPanel } from "@/components/widgets/InspectorPanel";
 import { KvList } from "@/components/inspectors/kuro/shared/KvList";
 import { InspectorCallout } from "@/components/inspectors/kuro/shared/InspectorCallout";
 import { InspectorEmptyState } from "@/components/inspectors/kuro/shared/InspectorEmptyState";
+import { PLATE_WELL_COUNT } from "@/lib/plate-utils";
 export function ExportInspector() {
   const { t } = useTranslation();
 
@@ -42,7 +43,7 @@ export function ExportInspector() {
 
   const variantCount = designResults.length;
   const plateCount =
-    plateMappings.length > 0 ? Math.ceil(plateMappings.length / 96) : 1;
+    plateMappings.length > 0 ? Math.ceil(plateMappings.length / PLATE_WELL_COUNT) : 1;
   const staleValue = evolveproCsvPath ? t("kuro.inspector.stalenessLinked") : "--";
 
   return (

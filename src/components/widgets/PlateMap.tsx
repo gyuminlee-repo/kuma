@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "../../store/appStore";
-import { reorderMappings, getSortedMutations, wellName } from "../../lib/plate-utils";
+import { reorderMappings, getSortedMutations, wellName, PLATE_WELL_COUNT } from "../../lib/plate-utils";
 import type { PlateMapping } from "../../types/models";
 import { StateView } from "../ui/StateView";
 
@@ -62,7 +62,7 @@ function buildPairsFromStore(
     let current: PlateMapping[] = [];
     for (const m of items) {
       current.push(m);
-      if (current.length >= 96) {
+      if (current.length >= PLATE_WELL_COUNT) {
         plates.push(current);
         current = [];
       }

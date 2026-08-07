@@ -1409,6 +1409,8 @@
     "plates_one": "{{count}} plate",
     "plates_other": "{{count}} plates",
     "csvVariantWarning": "CSV contains only {{count}} variants",
+    "mutationCapTitle": "Design count limited to one plate of variants",
+    "mutationCapMessage": "You entered {{requested}}. A run designs at most {{max}} variants, one plate worth, so the design count has been set to {{max}}. Forward and reverse primers each fill their own plate.",
     "advancedToggleShow": "Advanced options",
     "tmSectionLabel": "Tm",
     "tmSectionTitle": "Melting temperature targets. SantaLucia 1998 parameters.",
@@ -2124,7 +2126,8 @@
     "titleBlock": "Input size warning (very large job)",
     "continueLabel": "Continue",
     "continueLabelBlock": "Continue anyway",
-    "cancelLabel": "Cancel"
+    "cancelLabel": "Cancel",
+    "acknowledgeLabel": "OK"
   },
   "roundPrompt": {
     "title": "Set EVOLVEpro round",
@@ -2435,10 +2438,11 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The well selection grid draws the plate again instead of reporting that a sidecar method was not found.",
-      "A campaign that occupies part of the plate can declare its wells again, rather than falling back to the leading ones."
+      "The design count stops at 96 variants, one plate worth, and names the refused number instead of accepting a count the plate cannot hold.",
+      "A saved project or autosave snapshot carrying a larger count is corrected when it is opened, not rejected.",
+      "Well labels past the end of a plate name the next plate, matching what the Python exporter has always produced."
     ],
-    "highlightsStamp": "0.16.4+69232919"
+    "highlightsStamp": "0.16.5+2d205d9d"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

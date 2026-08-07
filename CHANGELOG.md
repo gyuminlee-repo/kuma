@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.16.5 (A design run stops at one plate of variants)
+
+The design count had no upper bound. The field advertised a ceiling of 10000 and the label beside it offered to spread that across however many plates it took, but neither figure was enforced. The value is committed from the raw text of the field, so a typed 500 reached the store unchanged, and a saved project could carry any number at all.
+
+Past the end of a plate the well labels stopped describing a plate. The label generator walked columns without ever rolling onto a second one, so the 97th primer was placed at A13. That is a real coordinate on a 384 plate, which is why nothing downstream rejected it, and it is not a coordinate the 96 to 384 mapping ever fills. The Python exporter names the same position P2-A1. An Echo run built from the first form aspirates a well that was never filled.
+
+The count is now bounded at one plate of variants. Entering more refuses the number and says which number was refused and why, rather than silently accepting a count the plate cannot hold. Forward and reverse primers each occupy a plate of their own, so the bound counts variants and the export screens continue to report two plates for a full run.
+
+The bound is applied in one function, and every path that writes the count calls it, including the two that never went through the setter: opening a saved project and restoring an autosave snapshot. A file written before the bound existed is corrected on load rather than refused, because refusing to open a project over a number the app can correct is the worse outcome.
+
+### Highlights
+
+- The design count stops at 96 variants, one plate worth, and names the refused number instead of accepting a count the plate cannot hold.
+- A saved project or autosave snapshot carrying a larger count is corrected when it is opened, not rejected.
+- Well labels past the end of a plate name the next plate, matching what the Python exporter has always produced.
+
+### Changed
+
+- v0.16.5: The design count is bounded at one plate of variants. The bound lives in a single function that every write calls, including opening a saved project and restoring an autosave snapshot, which previously bypassed the setter entirely. Fractions are truncated, since the field parses as a float and the count indexes an array.
+- v0.16.5: Entering a count above the bound opens a dialog naming the entered value and the bound, with no continue button, and the field returns to the bound. The dialog reuses the existing input size warning rather than adding a third copy of it, and the props are a discriminated union so a caller that omits the continue handler without asking for the acknowledge form still fails to compile.
+
+### Fixed
+
+- v0.16.5: Well labels past the end of a plate roll onto the next plate as `P2-A1` instead of continuing into columns a 96 well plate does not have. The previous form produced `A13`, which is a valid coordinate on a 384 plate and therefore passed unnoticed through export. The Python `_assign_well` has always produced the rolled form, and a test now pins the two against each other.
+- v0.16.5: Opening a project saved with a count above the bound no longer requests a candidate pool sized from the stored number. That one read was left unbounded while the write beside it was corrected.
+
 ## v0.16.4 (The plate grid asks the sidecar by the name the sidecar answers to)
 
 The well selection grid on the analyze screen could not draw anything. Where the plate should be, it printed "Method not found" and the error code the sidecar returns for a method it does not recognise. The grid asks for the draft layout over the same RPC the run itself uses, but it asked for `build_well_layout` while the sidecar registers that handler as `mame.build_well_layout`, so the request reached no handler at all.

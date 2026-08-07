@@ -1749,6 +1749,14 @@ describe("applyKuroSnapshot: 지문 기반 재도출 건너뛰기 (schema 5)", (
     expect(useAppStore.getState().designResults).toEqual([]);
   });
 
+  it("max_primers가 한 플레이트 용량을 넘는 스냅샷은 96으로 잘려 복원된다", async () => {
+    // 95짜리 픽스처만 있으면 clamp 유무로 답이 갈리지 않는다. 96을 넘는 값이라야
+    // clampMaxPrimers를 지우는 회귀가 이 테스트를 실제로 깨뜨린다.
+    await applyKuroSnapshot(fastPathSnapshot({ parameters: { max_primers: 500 } }));
+
+    expect(useAppStore.getState().maxPrimers).toBe(96);
+  });
+
   it("(c) 화면 위치(navigation)가 저장된 값으로 복원된다", async () => {
     await applyKuroSnapshot(
       fastPathSnapshot({

@@ -1388,6 +1388,8 @@
     "plates_one": "{{count}} Platte",
     "plates_other": "{{count}} Platten",
     "csvVariantWarning": "CSV contains only {{count}} Varianten",
+    "mutationCapTitle": "Designanzahl auf eine Platte Varianten begrenzt",
+    "mutationCapMessage": "Eingegeben wurde {{requested}}. Ein Lauf entwirft höchstens {{max}} Varianten, eine Platte voll, daher wurde die Anzahl auf {{max}} gesetzt. Forward- und Reverse-Primer belegen je eine Platte.",
     "advancedToggleShow": "Erweiterte Optionen",
     "tmSectionLabel": "Tm",
     "tmSectionTitle": "Melting-Temperature-Ziele. SantaLucia-1998-Parameter.",
@@ -2103,7 +2105,8 @@
     "titleBlock": "Eingabe size Warnung (very large job)",
     "continueLabel": "Fortfahren",
     "continueLabelBlock": "Fortfahren anyway",
-    "cancelLabel": "Abbrechen"
+    "cancelLabel": "Abbrechen",
+    "acknowledgeLabel": "OK"
   },
   "roundPrompt": {
     "title": "Set EVOLVEpro round",
@@ -2402,10 +2405,11 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Das Raster zur Well-Auswahl zeichnet die Platte wieder, statt eine nicht gefundene Sidecar-Methode zu melden.",
-      "Eine Kampagne, die nur einen Teil der Platte belegt, kann ihre Wells wieder angeben, statt auf die vorderen Wells zurückzufallen."
+      "Die Designanzahl endet bei 96 Varianten, einer Platte voll, und nennt die abgelehnte Zahl, statt eine Anzahl anzunehmen, die auf keine Platte passt.",
+      "Ein Projekt oder ein Autosave-Snapshot mit einer größeren Anzahl wird beim Öffnen korrigiert, nicht abgewiesen.",
+      "Well-Bezeichnungen jenseits des Plattenendes nennen die nächste Platte, wie es der Python-Export schon immer getan hat."
     ],
-    "highlightsStamp": "0.16.4+69232919"
+    "highlightsStamp": "0.16.5+2d205d9d"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",

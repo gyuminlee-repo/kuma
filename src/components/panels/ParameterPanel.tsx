@@ -8,6 +8,9 @@ import { Button } from "../ui/button";
 import { HelpTip } from "./InputPanel/DiversitySections";
 import { InlineHelp } from "../ui/InlineHelp";
 import { AdvancedSection } from "../ui/AdvancedSection";
+import { InputSizeWarningDialog } from "../dialogs/InputSizeWarningDialog";
+import { MAX_MUTATIONS_PER_RUN, clampMaxPrimers } from "../../lib/inputThresholds";
+import { PLATE_WELL_COUNT } from "../../lib/plate-utils";
 import { useAppStore } from "../../store/appStore";
 
 /** Local string state synced with a numeric store value. Commits on blur/Enter. */
@@ -41,7 +44,11 @@ export function ParameterPanel() {
   const mutationInputMode = useAppStore((s) => s.mutationInputMode);
   const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
   const isEvolvepro = mutationInputMode === "evolvepro";
-  const maxLimit = isEvolvepro && evolveproTotalCount > 0 ? evolveproTotalCount : 10000;
+  // One run fills one plate, so that is the ceiling. A loaded CSV with fewer
+  // variants than a plate lowers it further, but never raises it.
+  const maxLimit = isEvolvepro && evolveproTotalCount > 0
+    ? Math.min(MAX_MUTATIONS_PER_RUN, evolveproTotalCount)
+    : MAX_MUTATIONS_PER_RUN;
   const overLimit = isEvolvepro && evolveproTotalCount > 0 && maxPrimers > evolveproTotalCount;
 
   const tmFwd = useAppStore((s) => s.tmFwdTarget);
@@ -99,7 +106,23 @@ export function ParameterPanel() {
   // Full mode: single length range mirrors to both fwd and rev (engine intersects fwd/rev limits).
   const fullLenMinInput = useLocalNum(fwdLenMin, 17, (v) => setPrimerLenRange(v, fwdLenMax, v, fwdLenMax));
   const fullLenMaxInput = useLocalNum(fwdLenMax, 39, (v) => setPrimerLenRange(fwdLenMin, v, fwdLenMin, v));
-  const maxPrimersInput = useLocalNum(maxPrimers, 95, setMaxPrimers);
+  // The design count is not a `useLocalNum` input. That hook only pushes the
+  // store value back into the field when the store changes, and a rejected
+  // entry above the cap often leaves the store unchanged (already at the cap),
+  // which would leave the rejected number sitting in the field.
+  const [maxPrimersStr, setMaxPrimersStr] = useState(String(maxPrimers));
+  useEffect(() => setMaxPrimersStr(String(maxPrimers)), [maxPrimers]);
+  /** Entered count above the cap, held so the dialog can quote it back. */
+  const [rejectedCount, setRejectedCount] = useState<number | null>(null);
+
+  const commitMaxPrimers = () => {
+    const parsed = parseFloat(maxPrimersStr);
+    const requested = Number.isFinite(parsed) ? parsed : 95;
+    const clamped = clampMaxPrimers(requested);
+    if (requested > MAX_MUTATIONS_PER_RUN) setRejectedCount(requested);
+    setMaxPrimers(clamped);
+    setMaxPrimersStr(String(clamped));
+  };
 
   const gcInvalid = gcMin >= gcMax;
 
@@ -226,10 +249,13 @@ export function ParameterPanel() {
           className={`h-control w-20 rounded-control border px-2 text-center text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
             overLimit ? "border-warning focus:ring-warning" : "border-border"
           }`}
-          {...maxPrimersInput}
+          value={maxPrimersStr}
+          onChange={(e) => setMaxPrimersStr(e.target.value)}
+          onBlur={commitMaxPrimers}
+          onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
         />
         <span className="text-caption text-muted-foreground">
-          {t("parameterPanel.plates", { count: Math.ceil(maxPrimers / 96) })}
+          {t("parameterPanel.plates", { count: Math.ceil(maxPrimers / PLATE_WELL_COUNT) })}
         </span>
       </label>
       {overLimit && (
@@ -425,6 +451,18 @@ export function ParameterPanel() {
           </div>
         </div>
       </AdvancedSection>
+
+      <InputSizeWarningDialog
+        open={rejectedCount !== null}
+        level="block"
+        acknowledgeOnly
+        title={t("parameterPanel.mutationCapTitle")}
+        message={t("parameterPanel.mutationCapMessage", {
+          requested: rejectedCount ?? 0,
+          max: MAX_MUTATIONS_PER_RUN,
+        })}
+        onCancel={() => setRejectedCount(null)}
+      />
 
       <PolymeraseEditor
         open={polymeraseEditorOpen}

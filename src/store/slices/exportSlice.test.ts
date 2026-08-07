@@ -38,6 +38,7 @@ vi.mock("@/store/round/roundSlice", () => ({
 }))
 
 import { createExportSlice } from "./exportSlice"
+import { MAX_MUTATIONS_PER_RUN } from "@/lib/inputThresholds"
 import type { PlateMapping, SdmPrimerResult, WorkspaceV3 } from "@/types/models"
 
 // 최소 Zustand store 생성 helper
@@ -285,6 +286,90 @@ describe("exportSlice — schema_version 0.3", () => {
     })
     expect(store.state.currentMajor).toBe("output")
     expect(store.state.currentSubStep).toBe("output.summary")
+  })
+
+  it("restoreWorkspace caps a saved design count to one plate", async () => {
+    // A project saved before the bound existed, or one edited by hand, is the
+    // case nothing else checks: this path calls `set` directly and never goes
+    // through setMaxPrimers. The file must still open, with the count fixed.
+    const workspace: WorkspaceV3 = {
+      schema_version: "0.3",
+      rounds: [],
+      active_round_id: null,
+      inputs: {
+        fastaPath: "",
+        mutationInputMode: "evolvepro",
+        mutationText: "",
+        evolveproCsvPath: "",
+        selectedGene: "",
+      },
+      settings: {
+        codonStrategy: "closest",
+        maxPrimers: 500,
+        tmFwdTarget: 62,
+        tmRevTarget: 58,
+        tmOverlapTarget: 42,
+        gcMin: 40,
+        gcMax: 60,
+        autoRedesignOnLoad: false,
+      },
+      results: {
+        designResults: [],
+        successCount: 0,
+        totalCount: 0,
+        failedMutations: [],
+        plateMappings: [],
+        dedupInfo: {},
+        manuallySwapped: {},
+        customCandidates: {},
+      },
+      ui: { tableSorting: [] },
+    }
+
+    await store.slice.restoreWorkspace(workspace)
+
+    expect(store.state.maxPrimers).toBe(MAX_MUTATIONS_PER_RUN)
+    expect(MAX_MUTATIONS_PER_RUN).toBe(96)
+  })
+
+  it("restoreWorkspace keeps a saved design count that already fits a plate", async () => {
+    const workspace: WorkspaceV3 = {
+      schema_version: "0.3",
+      rounds: [],
+      active_round_id: null,
+      inputs: {
+        fastaPath: "",
+        mutationInputMode: "evolvepro",
+        mutationText: "",
+        evolveproCsvPath: "",
+        selectedGene: "",
+      },
+      settings: {
+        codonStrategy: "closest",
+        maxPrimers: 40,
+        tmFwdTarget: 62,
+        tmRevTarget: 58,
+        tmOverlapTarget: 42,
+        gcMin: 40,
+        gcMax: 60,
+        autoRedesignOnLoad: false,
+      },
+      results: {
+        designResults: [],
+        successCount: 0,
+        totalCount: 0,
+        failedMutations: [],
+        plateMappings: [],
+        dedupInfo: {},
+        manuallySwapped: {},
+        customCandidates: {},
+      },
+      ui: { tableSorting: [] },
+    }
+
+    await store.slice.restoreWorkspace(workspace)
+
+    expect(store.state.maxPrimers).toBe(40)
   })
 
   it("restoreWorkspace remaps a retired Benchling selection to KOD and keeps its GC range", async () => {

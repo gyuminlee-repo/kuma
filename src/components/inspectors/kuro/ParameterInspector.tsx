@@ -18,6 +18,7 @@ import { useAppStore } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
 import { InspectorPanel } from "@/components/widgets/InspectorPanel";
 import { InspectorCallout } from "@/components/inspectors/kuro/shared/InspectorCallout";
+import { PLATE_WELL_COUNT } from "@/lib/plate-utils";
 
 type MetricCardProps = {
   label: string;
@@ -59,7 +60,7 @@ export function ParameterInspector() {
 
   // Count unique plate names from plate mappings
   const plateSet = new Set(plateMappings.map((m) => m.primer_name.split("_")[0]));
-  const plateCount = plateMappings.length > 0 ? String(plateSet.size > 0 ? Math.ceil(plateMappings.length / 96) : 1) : "--";
+  const plateCount = plateMappings.length > 0 ? String(plateSet.size > 0 ? Math.ceil(plateMappings.length / PLATE_WELL_COUNT) : 1) : "--";
 
   const warnCount = designResults.reduce(
     (acc, r) => acc + (r.warnings.length > 0 ? 1 : 0),

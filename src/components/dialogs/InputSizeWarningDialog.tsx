@@ -20,26 +20,57 @@ import {
 import { Button } from "../ui/button";
 import type { InputSizeLevel } from "@/lib/inputThresholds";
 
-interface InputSizeWarningDialogProps {
+interface InputSizeWarningDialogBaseProps {
   open: boolean;
   level: InputSizeLevel;
   message: string;
-  onContinue: () => void;
+  /** Replaces the level-derived title when the limit is not about input size. */
+  title?: string;
   onCancel: () => void;
 }
+
+/**
+ * `onContinue` is required exactly when the dialog renders a continue button.
+ *
+ * A union rather than an optional prop with a JSDoc note: the note cannot fail
+ * a build, and a caller that forgets `onContinue` without `acknowledgeOnly`
+ * renders `onClick={undefined}`, a button that looks live and does nothing.
+ * `onContinue?: never` on the acknowledge-only arm also rejects passing a
+ * handler that would never be reachable.
+ */
+type InputSizeWarningDialogProps = InputSizeWarningDialogBaseProps &
+  (
+    | {
+        /**
+         * Acknowledge-only: a single confirm button and no continue action, for
+         * a limit the user cannot proceed past. A "continue anyway" button
+         * would be a lie there, and a second dialog component would be the
+         * third copy of this one (PreflightDialog is already the second).
+         */
+        acknowledgeOnly: true;
+        onContinue?: never;
+      }
+    | {
+        acknowledgeOnly?: false;
+        onContinue: () => void;
+      }
+  );
 
 export function InputSizeWarningDialog({
   open,
   level,
   message,
+  title: titleOverride,
+  acknowledgeOnly = false,
   onContinue,
   onCancel,
 }: InputSizeWarningDialogProps) {
   const { t } = useTranslation();
   const title =
-    level === "block"
+    titleOverride ??
+    (level === "block"
       ? t("inputSizeWarning.titleBlock")
-      : t("inputSizeWarning.title");
+      : t("inputSizeWarning.title"));
 
   const continueLabel =
     level === "block" ? t("inputSizeWarning.continueLabelBlock") : t("inputSizeWarning.continueLabel");
@@ -60,21 +91,29 @@ export function InputSizeWarningDialog({
         </DialogHeader>
 
         <DialogFooter className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onCancel}
-          >
-            {t("inputSizeWarning.cancelLabel")}
-          </Button>
-          <Button
-            size="sm"
-            variant={level === "block" ? "outline" : "default"}
-            className={level === "block" ? "text-warning border-warning/40 hover:bg-warning/8" : ""}
-            onClick={onContinue}
-          >
-            {continueLabel}
-          </Button>
+          {acknowledgeOnly ? (
+            <Button size="sm" onClick={onCancel}>
+              {t("inputSizeWarning.acknowledgeLabel")}
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onCancel}
+              >
+                {t("inputSizeWarning.cancelLabel")}
+              </Button>
+              <Button
+                size="sm"
+                variant={level === "block" ? "outline" : "default"}
+                className={level === "block" ? "text-warning border-warning/40 hover:bg-warning/8" : ""}
+                onClick={onContinue}
+              >
+                {continueLabel}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

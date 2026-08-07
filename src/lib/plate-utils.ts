@@ -6,10 +6,35 @@ import type { SortingState } from "@tanstack/react-table";
 
 const ROWS = "ABCDEFGH";
 
+/**
+ * Wells on one plate: `ROWS.length` rows by 12 columns. Geometry, not policy.
+ *
+ * Python states the same number in `kuma_core/kuro/plate_mapper.py`
+ * (`_assign_well`, `_capacity_for_range`, `_chunk_by_plate`). The two are one
+ * rule with two implementations and are registered as such in
+ * `.cross-layer-sync.json` (group `plate-well-capacity`).
+ */
+export const PLATE_WELL_COUNT = 96;
+
+/**
+ * 0-based primer index to well label, column-major (A1, B1, ... H1, A2).
+ *
+ * Indices past the end of a plate roll onto the next one exactly as
+ * `_assign_well` does on the Python side: index 96 is `"P2-A1"`, not the
+ * `"A13"` a plain column walk produces. `"A13"` is the failure that matters,
+ * because it is a real coordinate on a 384 plate, so nothing downstream
+ * rejects it and the instrument aspirates an empty well.
+ *
+ * Subtracting the plate offset instead of using `%` keeps the floor-division
+ * pairing Python has, so negative indices agree too rather than diverging.
+ */
 function wellName(idx: number): string {
-  const col = Math.floor(idx / 8) + 1;
-  const row = idx % 8;
-  return `${ROWS[row]}${col}`;
+  const plateNum = Math.floor(idx / PLATE_WELL_COUNT);
+  const local = idx - plateNum * PLATE_WELL_COUNT;
+  const col = Math.floor(local / ROWS.length) + 1;
+  const row = local % ROWS.length;
+  const well = `${ROWS[row]}${col}`;
+  return plateNum === 0 ? well : `P${plateNum + 1}-${well}`;
 }
 
 /**
@@ -158,10 +183,10 @@ export function reorderMappings(
     for (const mut of muts) mutToRevSeq.set(mut, seq);
   }
 
-  // Chunk fwd by 96, pair rev per chunk
+  // Chunk fwd by plate, pair rev per chunk
   const result: PlateMapping[] = [];
-  for (let start = 0; start < allFwd.length; start += 96) {
-    const fwdChunk = allFwd.slice(start, start + 96);
+  for (let start = 0; start < allFwd.length; start += PLATE_WELL_COUNT) {
+    const fwdChunk = allFwd.slice(start, start + PLATE_WELL_COUNT);
 
     // Assign fwd wells (0-based per plate)
     for (let i = 0; i < fwdChunk.length; i++) {

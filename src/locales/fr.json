@@ -1388,6 +1388,8 @@
     "plates_one": "{{count}} plaque",
     "plates_other": "{{count}} plaques",
     "csvVariantWarning": "Le CSV ne contient que {{count}} variants",
+    "mutationCapTitle": "Nombre de designs limité à une plaque de variants",
+    "mutationCapMessage": "Vous avez saisi {{requested}}. Une exécution conçoit au maximum {{max}} variants, soit une plaque, le nombre a donc été fixé à {{max}}. Les primers forward et reverse occupent une plaque chacun.",
     "advancedToggleShow": "Options avancées",
     "tmSectionLabel": "Tm",
     "tmSectionTitle": "Cibles de température de fusion. Paramètres SantaLucia 1998.",
@@ -2103,7 +2105,8 @@
     "titleBlock": "Avertissement de taille d'entrée (tâche très volumineuse)",
     "continueLabel": "Continuer",
     "continueLabelBlock": "Continuer quand même",
-    "cancelLabel": "Annuler"
+    "cancelLabel": "Annuler",
+    "acknowledgeLabel": "OK"
   },
   "roundPrompt": {
     "title": "Set EVOLVEpro round",
@@ -2402,10 +2405,11 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "La grille de sélection des puits redessine la plaque au lieu de signaler qu'une méthode du sidecar est introuvable.",
-      "Une campagne qui occupe une partie de la plaque peut de nouveau déclarer ses puits, au lieu de se rabattre sur les premiers."
+      "Le nombre de designs s'arrête à 96 variants, soit une plaque, et nomme le nombre refusé au lieu d'accepter un compte que la plaque ne peut pas contenir.",
+      "Un projet ou un instantané de sauvegarde automatique portant un nombre plus grand est corrigé à l'ouverture, pas rejeté.",
+      "Les étiquettes de well au-delà de la fin d'une plaque nomment la plaque suivante, comme l'export Python l'a toujours fait."
     ],
-    "highlightsStamp": "0.16.4+69232919"
+    "highlightsStamp": "0.16.5+2d205d9d"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",

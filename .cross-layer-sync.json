@@ -789,6 +789,28 @@
       "severity": "blocking"
     },
     {
+      "id": "plate-well-capacity",
+      "files": [
+        "src/lib/plate-utils.ts",
+        "src/lib/inputThresholds.ts",
+        "kuma_core/kuro/plate_mapper.py",
+        "src/components/inspectors/kuro/ParameterInspector.tsx",
+        "src/components/inspectors/kuro/ExportInspector.tsx",
+        "src/components/steps/OutputStepView.tsx",
+        "src/components/steps/OrderSummary.tsx",
+        "src/components/steps/ExportFormatSelector.tsx",
+        "src/components/widgets/PlateMap.tsx"
+      ],
+      "symbols": [
+        "PLATE_WELL_COUNT",
+        "MAX_MUTATIONS_PER_RUN",
+        "clampMaxPrimers",
+        "_assign_well"
+      ],
+      "note": "플레이트 용량 96 은 TS 와 Python 에 두 번 적힌 하나의 규칙이다. plate-utils.ts 의 PLATE_WELL_COUNT 와 wellName, plate_mapper.py 의 _assign_well/_well_name/_chunk_by_plate 가 그 두 사본이다. 둘이 갈라지면 로봇 파일이 비어 있는 well 을 가리키는데, 어긋난 값(A13)이 384 플레이트에 실재하는 좌표라 예외도 로그도 남지 않는다. inputThresholds.ts 의 MAX_MUTATIONS_PER_RUN 은 그 기하에 묶인 정책(1회 1플레이트)이고, clampMaxPrimers 는 maxPrimers 로 들어오는 모든 쓰기가 지나는 단 하나의 지점이다(setMaxPrimers, 워크스페이스 복원, 자동저장 재수화). 용량을 바꾸면 세 파일을 함께 고치고, 검증은 96 경계를 넘는 인덱스(95, 96, 191, 192)로 한다. 96 미만만 쓰는 픽스처는 두 구현이 같은 답을 내므로 아무것도 증명하지 못한다. MAME 대상 플레이트의 (R,F) 토큰 주소 규칙은 별개이며 mame-plate-addressing 이 담당한다. 2026-08-07 에 96 리터럴 사본 7곳(ParameterInspector, ExportInspector, OutputStepView, OrderSummary 2곳, PlateMap, ExportFormatSelector 의 WELL_LIMIT)을 PLATE_WELL_COUNT import 로 바꾸고 이 그룹에 등록했다. 이들은 정본을 읽기만 하는 소비자이므로 값 자체를 다시 적지 말 것.",
+      "severity": "blocking"
+    },
+    {
       "id": "sidebar-resize-flow",
       "files": [
         "src/components/shell/AppShell.tsx",

@@ -4,6 +4,7 @@ import { notifyJobDone, notifyJobError } from "../../lib/toast";
 import { startKeepAwake, stopKeepAwake } from "../../lib/keepAwake";
 import { cancelAndRespawn, sendRequest } from "../../lib/ipc-kuro";
 import { wellName } from "../../lib/plate-utils";
+import { clampMaxPrimers } from "../../lib/inputThresholds";
 import { formatError } from "../../lib/utils";
 import { suggestRetryParams, getStageParams } from "../../lib/primerSuggestion";
 import {
@@ -477,7 +478,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
 
   setCodonStrategy: (strategy) => set({ codonStrategy: strategy }),
   setMaxPrimers: (n) => {
-    const clamped = Math.max(1, n);
+    const clamped = clampMaxPrimers(n);
     const state = get();
     const prev = state.maxPrimers;
     set({ maxPrimers: clamped });

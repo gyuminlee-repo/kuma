@@ -26,6 +26,7 @@ import { WizardContainer } from "./WizardContainer";
 import { StateView } from "@/components/ui/StateView";
 import { KURO_STEP_INDEX, TOTAL_KURO_STEPS } from "./constants";
 import { Selection3DPanel } from "@/components/panels/Selection3DPanel";
+import { PLATE_WELL_COUNT } from "@/lib/plate-utils";
 
 
 const SPLIT_KEY = "kuro.output.split";
@@ -74,7 +75,7 @@ export function OutputStepView() {
 
   const primerCount = designResults.length;
   const plateCount =
-    Math.ceil(plateMappings.filter((m) => m.primer_type === "forward").length / 96) || 0;
+    Math.ceil(plateMappings.filter((m) => m.primer_type === "forward").length / PLATE_WELL_COUNT) || 0;
   const failedCount = failedMutations.length;
   const rescueCount =
     (rescueStats?.pool_cascade ?? 0) + (rescueStats?.auto_relax ?? 0);
