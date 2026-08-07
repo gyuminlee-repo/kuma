@@ -48,7 +48,12 @@ export interface RoundAdvisoryRecord {
   inputs: RoundFileEntry[]
   /** ISO timestamp of when the answer came back. */
   decided_at: string
-  /** Identity of `inputs`, from roundFilesSignature (lib/round/roundArtifacts.ts). */
+  /**
+   * Identity of `inputs` including their contents, from roundFilesSignature
+   * (lib/round/roundArtifacts.ts): each entry carries the moment the app wrote
+   * that file, so rebuilding a round over the same path no longer looks like
+   * the list the answer was computed from.
+   */
   input_signature: string
 }
 

@@ -2929,6 +2929,8 @@
     "prefillFromManifest": "Mit der zuletzt fuer dieses Projekt erfassten EVOLVEpro-Eingabe vorbelegt. Die Datei stammt aus der Zeit vor der rundenweisen Erfassung, traegt keine Rundennummer und steht deshalb an erster Stelle.",
     "reloadFromRounds": "Aus Runden neu laden",
     "restoredNote": "Wiederhergestellte Antwort, berechnet am {{when}} aus den {{n}} Dateien oben.",
+    "restoredUnverifiedNote": "Diese Anwendung hat {{files}} nicht geschrieben und kann daher nicht bestaetigen, dass diese Dateien seitdem unveraendert sind.",
+    "rebuiltNote": "Eine fruehere Antwort vom {{when}} wurde aus genau diesen Dateien ({{files}}) berechnet, bevor Schritt 4.1 sie neu erzeugt hat. Sie beschreibt den vorherigen Stand und bleibt als Verlauf erhalten. Fuer den aktuellen Stand die Klassifikation erneut ausfuehren.",
     "supersededNote": "Eine fruehere Antwort vom {{when}} wurde aus einer anderen Liste berechnet ({{files}}). Sie sagt nichts ueber die jetzt gewaehlten Dateien und wird deshalb nicht angezeigt."
   },
   "validation": {

@@ -220,9 +220,11 @@ export interface BuildEvolveproCompletionRecord { outputPath: string; signature:
  * Identity of the request this form describes.
  *
  * `outputXlsxRoundId` is excluded alongside `migrationNotice`: it records which
- * round the panel derived the path for, and is not sent to the sidecar. Letting
- * it into the signature would mark a finished build stale the moment the active
- * round changed, without any input having moved.
+ * round the panel derived `outputXlsx` for, and is not sent to the sidecar. It
+ * says nothing the signature does not already carry, since a round change that
+ * moves the destination rewrites `outputXlsx` itself (BuildEvolveproInputPanel)
+ * and that field is in the signature. Excluding it keeps the signature a
+ * description of the request rather than of how the path was arrived at.
  */
 export function buildEvolveproFormSignature(state: BuildEvolveproFormState): string {
   const {

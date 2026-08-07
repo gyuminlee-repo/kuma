@@ -2929,6 +2929,8 @@
     "prefillFromManifest": "已填入本專案最後記錄的 EVOLVEpro 輸入。該檔案早於逐輪記錄，沒有輪次編號，因此排在最前面。",
     "reloadFromRounds": "從輪次重新載入",
     "restoredNote": "已還原的結論，於 {{when}} 由上述 {{n}} 個檔案算出。",
+    "restoredUnverifiedNote": "{{files}} 並非本應用程式寫入，因此無法確認其後是否有變動。",
+    "rebuiltNote": "{{when}} 的先前結論是在步驟 4.1 重新產生之前，由這些相同檔案（{{files}}）算出的。它描述的是上一次產生的結果，因此僅作為歷史保留；若需目前結果，請重新執行分類。",
     "supersededNote": "{{when}} 的先前結論是由另一組檔案（{{files}}）算出的。它並未說明目前所選檔案，因此不予顯示。"
   },
   "validation": {

@@ -45,7 +45,6 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   selectedWell: null,
   runHealth: null,
   buildEvolveproCompletion: null,
-  advisoryDecision: null,
   mameSamplePrefill: null,
   consumeMameSamplePrefill: () => set({ mameSamplePrefill: null }),
   setVerdicts: (verdicts) => set({ verdicts }),
@@ -72,7 +71,6 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   setSelectedWell: (selectedWell) => set({ selectedWell }),
   setBuildEvolveproCompletion: (buildEvolveproCompletion) =>
     set({ buildEvolveproCompletion }),
-  setAdvisoryDecision: (advisoryDecision) => set({ advisoryDecision }),
   // Single definition of "everything the last completed analyze run produced".
   // Both a fresh analysis (resetAnalysis, via resetMameAll) and an input change
   // that invalidates a prior run (inputSlice setters) call this, so a new
@@ -112,11 +110,12 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       searchQuery: "",
       runHealth: null,
       buildEvolveproCompletion: null,
-      // advisoryDecision is deliberately absent. It is computed from per-round
-      // xlsx files the operator picks in step 4.2, not from the analyze inputs
-      // being invalidated here, so changing a run folder or a reference says
-      // nothing about whether that advisory still holds. resetAnalysis clears
-      // it below, which is the case where the whole project starts over.
+      // Nothing here touches what step 4.2 answered. That answer is computed
+      // from per-round xlsx files the operator picks, not from the analyze
+      // inputs being invalidated here, and it lives on the round rather than in
+      // this store. It is not deleted anywhere: whether it still describes its
+      // files is decided by comparing them (lib/round/roundArtifacts.ts), so an
+      // answer that no longer holds reads as history instead of disappearing.
       janusAutosave: null,
       janusMappingAutosave: null,
       // The replicate axis is a property of the results, not of the form: it
@@ -134,7 +133,6 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       plateFilter: "FINAL",
       sorting: [],
       showExport: false,
-      advisoryDecision: null,
     });
   },
   loadPlateData: async () => {

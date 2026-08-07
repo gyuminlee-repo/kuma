@@ -2948,6 +2948,8 @@
     "prefillFromManifest": "Prefilled with the last EVOLVEpro input recorded for this project. It predates per-round tracking, so it carries no round number and was placed first.",
     "reloadFromRounds": "Reload from rounds",
     "restoredNote": "Restored answer, computed {{when}} from the {{n}} file(s) above.",
+    "restoredUnverifiedNote": "This app did not write {{files}}, so it cannot confirm they are unchanged since then.",
+    "rebuiltNote": "An earlier answer from {{when}} was computed from these same files ({{files}}) before step 4.1 rebuilt them, so it describes the previous build and is kept as history. Run the classification again for the current one.",
     "supersededNote": "An earlier answer from {{when}} was computed from a different list ({{files}}). It says nothing about the files selected now, so it is not shown."
   },
   "selection3d": {

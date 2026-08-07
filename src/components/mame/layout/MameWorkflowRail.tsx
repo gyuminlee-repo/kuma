@@ -16,6 +16,7 @@ import { useRoundStore } from "@/store/round/roundSlice";
 import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
 import type { MamePhase } from "@/store/mame/slices/phaseSlice";
 import { isMameSubStepDone } from "@/lib/mame/mameStepCompletion";
+import { currentRoundAdvisory } from "@/lib/round/roundArtifacts";
 import { loadBuildEvolveproFromStorage } from "@/lib/mame/buildEvolveproFormStorage";
 import { useKumaProject } from "@/state/projectContext";
 
@@ -115,10 +116,12 @@ export function MameWorkflowRail() {
   );
   const janusSettings = useMameAppStore((s) => s.janusSettings);
   const janusMappingAutosave = useMameAppStore((s) => s.janusMappingAutosave);
-  const advisoryDecision = useMameAppStore((s) => s.advisoryDecision);
   const activeRoundId = useRoundStore((s) => s.active_round_id);
   const rounds = useRoundStore((s) => s.rounds);
   const activeRound = rounds.find((round) => round.id === activeRoundId);
+  // Step 4.2 is reported from what the round holds, so it reads the same before
+  // and after a restart and without the screen having been opened.
+  const advisory = currentRoundAdvisory(rounds, activeRoundId);
   const activityComplete = Boolean(
     activeRound?.activity ||
       (activeRound?.merged_table && activeRound.merged_table.length > 0),
@@ -156,7 +159,7 @@ export function MameWorkflowRail() {
         buildEvolveproCompletion,
         janusLiquidClass: janusSettings.liquidClass,
         janusMappingWritten: janusMappingAutosave?.status === "saved",
-        advisoryDecision,
+        advisory,
       });
       let state: WorkflowStep["state"];
       if (done) state = "done";

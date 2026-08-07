@@ -5,7 +5,7 @@ import type {
 } from "@/lib/mame/buildEvolveproFormStorage";
 import { hasCompletedBuildEvolveproOutput } from "@/lib/mame/buildEvolveproFormStorage";
 import type { AnalyzeSummary, VerdictRecord } from "@/types/mame/models";
-import type { ClassifyRoundResult } from "@/types/mame/strategy";
+import type { RoundAdvisoryRecord } from "@/types/round";
 
 export interface MameCompletionState {
   inputDir: string;
@@ -25,8 +25,13 @@ export interface MameCompletionState {
   janusLiquidClass: string;
   /** A run (or an export) already wrote the instrument mapping file. */
   janusMappingWritten: boolean;
-  /** What the last advisory classification answered, or null if none has run. */
-  advisoryDecision: ClassifyRoundResult | null;
+  /**
+   * The advisory answer the active round holds, already checked against the
+   * files it was computed from. Callers get it from currentRoundAdvisory
+   * (lib/round/roundArtifacts.ts), which returns null when no answer was ever
+   * computed and when the round outputs behind one have been rebuilt since.
+   */
+  advisory: RoundAdvisoryRecord | null;
 }
 
 export function isMameSubStepDone(
@@ -65,7 +70,8 @@ export function isMameSubStepDone(
     );
   }
   if (id === "activity.signals") {
-    // Done means the classifier answered, not that it recommended anything.
+    // Done means the round holds a classifier answer that current round data
+    // does not contradict, not that the classifier recommended anything.
     //
     // 4.2 is advisory: it reads per-round xlsx files and reports where the
     // signals stand. There is nothing for the operator to produce, so the only
@@ -78,13 +84,16 @@ export function isMameSubStepDone(
     // leave the step permanently unfinished, since the purified xlsx format
     // cannot carry the inputs those labels are gated behind.
     //
-    // A run that threw, or one still in flight, leaves this null and the step
-    // open. So does clearing the picked files, which resets the stored answer.
+    // A run that threw, or one still in flight, records nothing and leaves the
+    // step open. So does a rebuild in step 4.1 of a file the answer was
+    // computed from: currentRoundAdvisory stops returning that answer, here and
+    // in the card alike, and the operator is asked to run it again.
     //
-    // The answer survives a restart: AdvisoryDecisionCard files it on the round
-    // with the files it was computed from, and republishes it here on restore
-    // only while those files are still the ones selected.
-    return state.advisoryDecision !== null;
+    // The single source is the record on the round (Round.advisory), which
+    // rides in the mame autosave snapshot with rounds[]. Nothing is published
+    // by the card into the app store, so a restarted app reports the step from
+    // what is on disk instead of waiting for the screen to be opened.
+    return state.advisory !== null;
   }
   return false;
 }

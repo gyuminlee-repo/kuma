@@ -2929,6 +2929,8 @@
     "prefillFromManifest": "Preenchido com a ultima entrada EVOLVEpro registrada neste projeto. Ela e anterior ao registro por rodada, nao traz numero de rodada e por isso foi colocada em primeiro lugar.",
     "reloadFromRounds": "Recarregar das rodadas",
     "restoredNote": "Resposta restaurada, calculada em {{when}} a partir dos {{n}} arquivos acima.",
+    "restoredUnverifiedNote": "Este aplicativo nao gravou {{files}}, portanto nao pode confirmar que continuam inalterados desde entao.",
+    "rebuiltNote": "Uma resposta anterior de {{when}} foi calculada a partir destes mesmos arquivos ({{files}}) antes de a etapa 4.1 os regerar. Ela descreve a versao anterior e fica como historico. Execute a classificacao novamente para a versao atual.",
     "supersededNote": "Uma resposta anterior de {{when}} foi calculada a partir de outra lista ({{files}}). Ela nao diz nada sobre os arquivos selecionados agora, por isso nao e exibida."
   },
   "validation": {

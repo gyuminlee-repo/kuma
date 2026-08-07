@@ -24,7 +24,6 @@ import type {
   VerdictRecord,
   WellEntry,
 } from "@/types/mame/models";
-import type { ClassifyRoundResult } from "@/types/mame/strategy";
 import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
 import type { NativeBarcodeUsage } from "@/types/mame/detect_native_barcodes";
 import type { VariantSourceInfo } from "@/types/mame/barcode_package";
@@ -377,16 +376,14 @@ export interface AnalysisSlice {
   selectedWell: WellEntry | null;
   runHealth: RunHealthData | null;
   buildEvolveproCompletion: BuildEvolveproCompletionRecord | null;
-  /**
-   * What the last advisory run in step 4.2 answered, verbatim.
-   *
-   * Both shapes are kept: "not_assessable" is as much an answer as a verdict
-   * is, and storing only decisions would make the step look unfinished on the
-   * one input the operator can actually supply today. Held here rather than in
-   * the card so the workflow rail can see it; persisting it across sessions is
-   * a separate change.
+  /*
+   * There is no advisory field here on purpose. What step 4.2 answered lives on
+   * the round (Round.advisory) with the files it was computed from, which is
+   * both what rides in the autosave snapshot and what the workflow rail reads
+   * through currentRoundAdvisory (lib/round/roundArtifacts.ts). A copy here
+   * would only ever be filled by mounting the card, so the step would report
+   * itself unfinished after a restart until the screen was opened.
    */
-  advisoryDecision: ClassifyRoundResult | null;
   setVerdicts: (verdicts: VerdictRecord[]) => void;
   setReplicates: (replicates: ReplicateResult[]) => void;
   setSummary: (summary: AnalyzeSummary | null) => void;
@@ -412,7 +409,6 @@ export interface AnalysisSlice {
   setBuildEvolveproCompletion: (
     completion: BuildEvolveproCompletionRecord | null,
   ) => void;
-  setAdvisoryDecision: (result: ClassifyRoundResult | null) => void;
   loadPlateData: () => Promise<void>;
   loadRunHealth: () => Promise<void>;
   clearResults: () => void;

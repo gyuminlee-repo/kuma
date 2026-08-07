@@ -2929,6 +2929,8 @@
     "prefillFromManifest": "Prerempli avec la derniere entree EVOLVEpro enregistree pour ce projet. Ce fichier est anterieur au suivi par tour, ne porte aucun numero de tour et a donc ete place en tete.",
     "reloadFromRounds": "Recharger depuis les tours",
     "restoredNote": "Reponse restauree, calculee le {{when}} a partir des {{n}} fichiers ci-dessus.",
+    "restoredUnverifiedNote": "Cette application n'a pas ecrit {{files}} et ne peut donc pas confirmer que ces fichiers sont restes inchanges depuis.",
+    "rebuiltNote": "Une reponse anterieure du {{when}} a ete calculee a partir de ces memes fichiers ({{files}}) avant que l'etape 4.1 ne les regenere. Elle decrit la version precedente et reste conservee comme historique. Relancez la classification pour la version actuelle.",
     "supersededNote": "Une reponse anterieure du {{when}} a ete calculee a partir d'une autre liste ({{files}}). Elle ne dit rien des fichiers actuellement selectionnes et n'est donc pas affichee."
   },
   "validation": {

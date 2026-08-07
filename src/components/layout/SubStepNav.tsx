@@ -19,10 +19,12 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
+import { useRoundStore } from "@/store/round/roundSlice";
 import { StepBadge } from "./StepBadge";
 import type { MajorStepId, SubStepId } from "@/store/slices/navigationSlice";
 import type { MameSubStepId } from "@/store/mame/slices/mameSubSteps";
 import { isMameSubStepDone } from "@/lib/mame/mameStepCompletion";
+import { currentRoundAdvisory } from "@/lib/round/roundArtifacts";
 import {
   BUILD_EVOLVEPRO_DEFAULT_STATE,
   loadBuildEvolveproFromStorage,
@@ -122,7 +124,11 @@ function MameSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
   );
   const janusSettings = useMameAppStore((s) => s.janusSettings);
   const janusMappingAutosave = useMameAppStore((s) => s.janusMappingAutosave);
-  const advisoryDecision = useMameAppStore((s) => s.advisoryDecision);
+  const activeRoundId = useRoundStore((s) => s.active_round_id);
+  const rounds = useRoundStore((s) => s.rounds);
+  // Same source the workflow rail reads: the answer on the round, dropped once
+  // step 4.1 has rebuilt a file it was computed from.
+  const advisory = currentRoundAdvisory(rounds, activeRoundId);
   const project = useKumaProject();
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -158,7 +164,7 @@ function MameSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
           buildEvolveproCompletion,
           janusLiquidClass: janusSettings.liquidClass,
           janusMappingWritten: janusMappingAutosave?.status === "saved",
-          advisoryDecision,
+          advisory,
         });
         const badgeStatus: "done" | "active" | "pending" = isDone
           ? "done"

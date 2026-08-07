@@ -7,8 +7,12 @@
  *  - Calls strategy.classify_round RPC with RoundFileEntry list.
  *  - Advisory only: no Confirm button, and nothing here is a PI decision. The
  *    answer itself is kept on the round with the files and the time it came
- *    from, so it can be re-examined later; a stored answer whose file list has
- *    since changed is shown as history, never as the current verdict.
+ *    from, so it can be re-examined later; a stored answer is shown as history,
+ *    never as the current verdict, once the list on screen differs from the one
+ *    it was computed from or step 4.1 has rebuilt any file in that list.
+ *  - The answer on the round is also what marks step 4.2 done (lib/mame/
+ *    mameStepCompletion.ts). This card publishes nothing to the app store, so
+ *    opening the screen cannot make the step look finished.
  *  - anti-fallback: never fabricates a result; JSON-RPC errors are shown explicitly.
  *
  * Two success states, drawn differently on purpose:
@@ -35,8 +39,12 @@ import { cn } from "@/lib/utils";
 import { classifyRound } from "@/lib/ipc";
 import { listArtifacts } from "@/lib/workspace";
 import {
+  normalizePath,
   roundEvolveproFiles,
+  roundFilesPathSignature,
   roundFilesSignature,
+  roundOutputStamps,
+  unstampedFiles,
 } from "@/lib/round/roundArtifacts";
 import { useRoundStore } from "@/store/round/roundSlice";
 import { Button } from "@/components/ui/button";
@@ -260,14 +268,6 @@ function FileRow({ entry, onRemove }: FileRowProps) {
 
 export interface AdvisoryDecisionCardProps {
   className?: string;
-  /**
-   * Called with every answer the sidecar returns, including not_assessable,
-   * with a stored answer that still matches the picked files, and with null
-   * whenever the picked files change or the stored answer no longer describes
-   * them. An answer describes the files it was computed from, so it must not
-   * outlive them.
-   */
-  onResult?: (result: ClassifyRoundResult | null) => void;
 }
 
 /**
@@ -283,12 +283,14 @@ export interface AdvisoryDecisionCardProps {
  */
 export function AdvisoryDecisionCard({
   className,
-  onResult,
 }: AdvisoryDecisionCardProps) {
   const { t } = useTranslation();
 
   const rounds = useRoundStore((s) => s.rounds);
   const roundFiles = useMemo(() => roundEvolveproFiles(rounds), [rounds]);
+  // When the app wrote each round file. A rebuild moves the stamp, which is how
+  // a stored answer is told apart from one about the file now at that path.
+  const stamps = useMemo(() => roundOutputStamps(rounds), [rounds]);
 
   const [files, setFiles] = useState<RoundFileEntry[]>([]);
   const [prefillSource, setPrefillSource] = useState<PrefillSource>("none");
@@ -338,8 +340,7 @@ export function AdvisoryDecisionCard({
   const clearAnswer = useCallback(() => {
     setResult(null);
     setError(null);
-    onResult?.(null);
-  }, [onResult]);
+  }, []);
 
   const handleAddFiles = useCallback(async () => {
     const selected = await open({
@@ -350,8 +351,11 @@ export function AdvisoryDecisionCard({
     });
     if (!selected) return;
     const paths = Array.isArray(selected) ? selected : [selected];
-    const existing = new Set(files.map((entry) => entry.path));
-    const added = paths.filter((path) => !existing.has(path));
+    // Compared the way every other path comparison here is: separators and case
+    // folded. Raw string equality lets the same file in twice under two
+    // spellings on Windows, and the handler counts entries as rounds.
+    const existing = new Set(files.map((entry) => normalizePath(entry.path)));
+    const added = paths.filter((path) => !existing.has(normalizePath(path)));
     if (added.length === 0) return;
     // Appended after the highest number in the list instead of renumbering the
     // whole thing. A prefilled entry carries the number of the round that
@@ -390,7 +394,6 @@ export function AdvisoryDecisionCard({
     try {
       const res = await classifyRound(files);
       setResult(res);
-      onResult?.(res);
       // File the answer on the round together with what it was computed from,
       // so it can be re-examined after a restart instead of vanishing with this
       // component local state. A run that threw records nothing: there is no
@@ -402,7 +405,7 @@ export function AdvisoryDecisionCard({
           result: res,
           inputs: files,
           decided_at: new Date().toISOString(),
-          input_signature: roundFilesSignature(files),
+          input_signature: roundFilesSignature(files, stamps),
         };
         roundStore.updateRoundField(roundId, "advisory", record);
       }
@@ -411,16 +414,20 @@ export function AdvisoryDecisionCard({
     } finally {
       setLoading(false);
     }
-  }, [files, loading, onResult]);
+  }, [files, loading, stamps]);
 
   // What the round already has on record, and whether it still describes the
-  // list on screen. A stored answer is about one ordered set of files, so a
-  // changed list demotes it to history: it is never redrawn as the current
-  // verdict, only mentioned with the time and the files it came from.
+  // list on screen. A stored answer is about one ordered set of file contents,
+  // so either a changed list or a rebuild of a file still in it demotes the
+  // answer to history: it is never redrawn as the current verdict, only
+  // mentioned with the time and the files it came from.
   const storedRecord = useRoundStore(
     (s) => s.rounds.find((r) => r.id === s.active_round_id)?.advisory ?? null,
   );
-  const currentSignature = useMemo(() => roundFilesSignature(files), [files]);
+  const currentSignature = useMemo(
+    () => roundFilesSignature(files, stamps),
+    [files, stamps],
+  );
   const restoredRecord =
     storedRecord && storedRecord.input_signature === currentSignature
       ? storedRecord
@@ -430,16 +437,22 @@ export function AdvisoryDecisionCard({
   // files would be flashing a comparison against nothing.
   const supersededRecord =
     storedRecord && !restoredRecord && files.length > 0 ? storedRecord : null;
-
-  // Step 4.2 counts as done once an answer is on record (lib/mame/
-  // mameStepCompletion.ts), so a restored answer has to reach the store the
-  // same way a fresh one does. Only a matching one does: a superseded answer
-  // describes files that are no longer selected and must not mark the step
-  // done. A fresh answer from this session already went out above and wins.
-  useEffect(() => {
-    if (result !== null) return;
-    onResult?.(restoredRecord ? restoredRecord.result : null);
-  }, [restoredRecord, result, onResult]);
+  // Which of the two things happened, because the operator sees the same file
+  // names either way. Same round numbers and paths as the list on screen means
+  // step 4.1 wrote over them since the answer was computed; anything else means
+  // the list itself is a different one.
+  const supersededByRebuild =
+    supersededRecord !== null &&
+    roundFilesPathSignature(supersededRecord.inputs) ===
+      roundFilesPathSignature(files);
+  // Entries in a restored answer that no round produced. Their paths match, so
+  // the answer is shown, but nothing recorded here says the file behind such a
+  // path still holds what it held then, and the note below says so rather than
+  // presenting the whole list as verified.
+  const unverifiedInputs = useMemo(
+    () => (restoredRecord ? unstampedFiles(restoredRecord.inputs, stamps) : []),
+    [restoredRecord, stamps],
+  );
 
   const shownResult = result ?? restoredRecord?.result ?? null;
 
@@ -548,17 +561,34 @@ export function AdvisoryDecisionCard({
             when: formatDecidedAt(restoredRecord.decided_at),
             n: restoredRecord.inputs.length,
           })}
+          {unverifiedInputs.length > 0 && (
+            <>
+              {" "}
+              {t("advisoryDecision.restoredUnverifiedNote", {
+                files: unverifiedInputs
+                  .map((entry) => basename(entry.path))
+                  .join(", "),
+              })}
+            </>
+          )}
         </p>
       )}
 
       {supersededRecord && (
         <p className="rounded-md border border-dashed border-muted-foreground/40 px-3 py-2 text-[11px] text-muted-foreground">
-          {t("advisoryDecision.supersededNote", {
-            when: formatDecidedAt(supersededRecord.decided_at),
-            files: supersededRecord.inputs
-              .map((entry) => basename(entry.path))
-              .join(", "),
-          })}
+          {supersededByRebuild
+            ? t("advisoryDecision.rebuiltNote", {
+                when: formatDecidedAt(supersededRecord.decided_at),
+                files: supersededRecord.inputs
+                  .map((entry) => basename(entry.path))
+                  .join(", "),
+              })
+            : t("advisoryDecision.supersededNote", {
+                when: formatDecidedAt(supersededRecord.decided_at),
+                files: supersededRecord.inputs
+                  .map((entry) => basename(entry.path))
+                  .join(", "),
+              })}
         </p>
       )}
 

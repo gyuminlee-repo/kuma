@@ -74,10 +74,9 @@ function ActivityIngestStep() {
 }
 
 function ActivitySignalsStep() {
-  const setAdvisoryDecision = useMameAppStore((s) => s.setAdvisoryDecision);
   return (
     <div className="space-y-6">
-      <AdvisoryDecisionCard onResult={setAdvisoryDecision} />
+      <AdvisoryDecisionCard />
     </div>
   );
 }
