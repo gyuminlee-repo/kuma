@@ -5,6 +5,7 @@ import type {
 } from "@/lib/mame/buildEvolveproFormStorage";
 import { hasCompletedBuildEvolveproOutput } from "@/lib/mame/buildEvolveproFormStorage";
 import type { AnalyzeSummary, VerdictRecord } from "@/types/mame/models";
+import type { ClassifyRoundResult } from "@/types/mame/strategy";
 
 export interface MameCompletionState {
   inputDir: string;
@@ -24,6 +25,8 @@ export interface MameCompletionState {
   janusLiquidClass: string;
   /** A run (or an export) already wrote the instrument mapping file. */
   janusMappingWritten: boolean;
+  /** What the last advisory classification answered, or null if none has run. */
+  advisoryDecision: ClassifyRoundResult | null;
 }
 
 export function isMameSubStepDone(
@@ -60,6 +63,24 @@ export function isMameSubStepDone(
         state.buildEvolveproCompletion,
       )
     );
+  }
+  if (id === "activity.signals") {
+    // Done means the classifier answered, not that it recommended anything.
+    //
+    // 4.2 is advisory: it reads per-round xlsx files and reports where the
+    // signals stand. There is nothing for the operator to produce, so the only
+    // thing "done" can mean is that an answer came back and is on record.
+    //
+    // Both answer shapes count, including "not_assessable". That shape says the
+    // signals reached a transition candidate and the confirming test had no WT
+    // replicates to run on, which is a real finding about these inputs rather
+    // than a failed run. Requiring a switch_combinatorial or stop verdict would
+    // leave the step permanently unfinished, since the purified xlsx format
+    // cannot carry the inputs those labels are gated behind.
+    //
+    // A run that threw, or one still in flight, leaves this null and the step
+    // open. So does clearing the picked files, which resets the stored answer.
+    return state.advisoryDecision !== null;
   }
   return false;
 }

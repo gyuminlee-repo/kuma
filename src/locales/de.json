@@ -2194,13 +2194,6 @@
       "hide": "{{label}}: {{text}} (hide full text)"
     }
   },
-  "round": {
-    "handoffButton": {
-      "label": "Starten Round {{n}}",
-      "ariaLabel": "Starten Round {{n}}",
-      "disabledTitle": "Merge Activity data mit Genotype first zu enable handoff"
-    }
-  },
   "roundSummary": {
     "exportBlocked": "Export blockiert — {{count}} label-swap Fehler(s) detected.",
     "warningsListAria": "Label-swap Warnung list",

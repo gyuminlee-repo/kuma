@@ -122,6 +122,7 @@ function MameSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
   );
   const janusSettings = useMameAppStore((s) => s.janusSettings);
   const janusMappingAutosave = useMameAppStore((s) => s.janusMappingAutosave);
+  const advisoryDecision = useMameAppStore((s) => s.advisoryDecision);
   const project = useKumaProject();
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -157,6 +158,7 @@ function MameSubStepNav({ subSteps }: { subSteps: SubNavItem[] }) {
           buildEvolveproCompletion,
           janusLiquidClass: janusSettings.liquidClass,
           janusMappingWritten: janusMappingAutosave?.status === "saved",
+          advisoryDecision,
         });
         const badgeStatus: "done" | "active" | "pending" = isDone
           ? "done"

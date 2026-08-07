@@ -2194,13 +2194,6 @@
       "hide": "{{label}}: {{text}} (hide full text)"
     }
   },
-  "round": {
-    "handoffButton": {
-      "label": "Round {{n}} を開始",
-      "ariaLabel": "Round {{n}} を開始",
-      "disabledTitle": "Handoff を有効化するには、先に活性データを genotype とマージしてください"
-    }
-  },
   "roundSummary": {
     "exportBlocked": "Export ブロック — {{count}} 件の label-swap エラーを検出。",
     "warningsListAria": "Label-swap 警告一覧",

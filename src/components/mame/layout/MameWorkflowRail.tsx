@@ -115,6 +115,7 @@ export function MameWorkflowRail() {
   );
   const janusSettings = useMameAppStore((s) => s.janusSettings);
   const janusMappingAutosave = useMameAppStore((s) => s.janusMappingAutosave);
+  const advisoryDecision = useMameAppStore((s) => s.advisoryDecision);
   const activeRoundId = useRoundStore((s) => s.active_round_id);
   const rounds = useRoundStore((s) => s.rounds);
   const activeRound = rounds.find((round) => round.id === activeRoundId);
@@ -155,6 +156,7 @@ export function MameWorkflowRail() {
         buildEvolveproCompletion,
         janusLiquidClass: janusSettings.liquidClass,
         janusMappingWritten: janusMappingAutosave?.status === "saved",
+        advisoryDecision,
       });
       let state: WorkflowStep["state"];
       if (done) state = "done";

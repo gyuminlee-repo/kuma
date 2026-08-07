@@ -64,7 +64,13 @@ export interface RoundSliceActions {
    * 5. 성공 시 setActiveRound(newRoundId) + onHandoffSuccess 콜백
    *
    * KURO inputSlice와의 결합을 피하기 위해 loadRoundActivity를 콜백으로 주입.
-   * UI 레이어(RoundHandoffButton)에서 useAppStore().loadRoundActivity를 전달할 것.
+   * 호출자가 useAppStore().loadRoundActivity를 전달한다.
+   *
+   * 이 액션을 감싸던 RoundHandoffButton 은 제거됐다. 활성 조건이
+   * prevRound.merged_table 인데 그것을 채우던 MergeSection 이 ac0229c6
+   * (v0.15.12) 에서 사라져 정상 흐름에서 영구 disabled 였기 때문이다. 액션
+   * 자체는 남긴다. 동작은 roundSlice.test.ts 가 덮고 있고, 라운드 전진을 다시
+   * 노출할 때 재작성 대상이 아니다.
    */
   handoffNextRound: (prevRoundId: string, opts: HandoffOptions) => HandoffResult
 }

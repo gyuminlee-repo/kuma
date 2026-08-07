@@ -2194,13 +2194,6 @@
       "hide": "{{label}}: {{text}} (hide full text)"
     }
   },
-  "round": {
-    "handoffButton": {
-      "label": "開始 Round {{n}}",
-      "ariaLabel": "開始 Round {{n}}",
-      "disabledTitle": "請先將 activity 資料與 genotype 合併以啟用 handoff"
-    }
-  },
   "roundSummary": {
     "exportBlocked": "匯出被阻止 — 檢測到 {{count}} 個 label-swap 錯誤。",
     "warningsListAria": "Label-swap 警告列表",

@@ -2215,13 +2215,6 @@
       "hide": "{{label}}: {{text}} (전문 닫기)"
     }
   },
-  "round": {
-    "handoffButton": {
-      "label": "Round {{n}} 시작",
-      "ariaLabel": "Round {{n}} 시작",
-      "disabledTitle": "핸드오프를 활성화하려면 먼저 활성 데이터를 유전형과 병합하세요"
-    }
-  },
   "roundSummary": {
     "exportBlocked": "내보내기 차단: {{count}}건의 라벨 교체 오류가 감지되었습니다.",
     "warningsListAria": "라벨 교체 경고 목록",

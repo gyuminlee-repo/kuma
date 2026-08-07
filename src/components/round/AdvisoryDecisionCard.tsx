@@ -240,8 +240,12 @@ function FileRow({ entry, onRemove }: FileRowProps) {
 
 export interface AdvisoryDecisionCardProps {
   className?: string;
-  /** Called with every answer the sidecar returns, including not_assessable. */
-  onResult?: (result: ClassifyRoundResult) => void;
+  /**
+   * Called with every answer the sidecar returns, including not_assessable,
+   * and with null whenever the picked files change. An answer describes the
+   * files it was computed from, so it must not outlive them.
+   */
+  onResult?: (result: ClassifyRoundResult | null) => void;
 }
 
 /**
@@ -285,13 +289,18 @@ export function AdvisoryDecisionCard({
     });
     setResult(null);
     setError(null);
-  }, [t]);
+    onResult?.(null);
+  }, [t, onResult]);
 
-  const handleRemove = useCallback((n: number) => {
-    setFiles((prev) => reindex(prev.filter((e) => e.n !== n)));
-    setResult(null);
-    setError(null);
-  }, []);
+  const handleRemove = useCallback(
+    (n: number) => {
+      setFiles((prev) => reindex(prev.filter((e) => e.n !== n)));
+      setResult(null);
+      setError(null);
+      onResult?.(null);
+    },
+    [onResult],
+  );
 
   const handleClassify = useCallback(async () => {
     if (files.length === 0 || loading) return;
