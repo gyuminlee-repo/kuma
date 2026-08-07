@@ -2908,11 +2908,29 @@
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
-    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
-    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
-    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
-    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
-    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+    "labels": {
+      "continue_walking": "Продолжать обход",
+      "switch_combinatorial": "Перейти к combinatorial",
+      "stop": "Остановить",
+      "deferred": "Отложено"
+    },
+    "reasons": {
+      "calibration_period": "Пока пройдено меньше 3 раундов, классификатор всё ещё в периоде калибровки.",
+      "insufficient_data": "По этим раундам не удалось оценить ни один сигнал насыщения.",
+      "mixed_signals": "Сигналы насыщения противоречат друг другу.",
+      "no_saturation_signal": "В этом раунде сигнала насыщения нет: single-mutant walking всё ещё приносит результат.",
+      "hysteresis_pending": "Насыщение появилось в этом раунде, но не в предыдущем, а требуются два подряд.",
+      "low_confidence": "Переход к combinatorial согласовался с сигналами, но bootstrap-проверка его не подтвердила.",
+      "stop_low_confidence": "Остановка согласовалась с сигналами, но bootstrap-проверка её не подтвердила, поэтому обход продолжается.",
+      "saturated_with_throughput": "Насыщение два раунда подряд, и на следующем планшете есть место для этапа combinatorial.",
+      "saturated_no_throughput": "Насыщение два раунда подряд, и пропускной способности на этап combinatorial не осталось."
+    },
+    "missingInputs": {
+      "wt_replicates": "повторные измерения дикого типа"
+    },
+    "missingInputsNote": "Оценка сделана без {{missing}}, поэтому насыщение опирается только на динамику hit rate.",
+    "notAssessableBadge": "Оценить нельзя",
+    "notAssessableSummary": "Сигналы указывают на переход, но для его подтверждения нужны {{missing}}, которых в этих файлах нет. По такому входу нельзя ответить на {{blocked}}; доступна только проверка того, стоит ли продолжать обход."
   },
   "validation": {
     "missing": {

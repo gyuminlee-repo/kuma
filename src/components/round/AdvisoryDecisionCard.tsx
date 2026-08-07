@@ -1,17 +1,26 @@
 /**
- * AdvisoryDecisionCard -- read-only display of the classify() advisory output.
+ * AdvisoryDecisionCard -- read-only display of the strategy.classify_round output.
  *
  * Scope (Fork D):
  *  - User imports per-round xlsx files (Variant + activity fold-change columns).
  *  - Calls strategy.classify_round RPC with RoundFileEntry list.
- *  - Shows label / reason / confidence from response.
  *  - Read-only: no Confirm button, no PI decision persistence.
  *  - anti-fallback: never fabricates a result; JSON-RPC errors are shown explicitly.
  *
- * Constraint (hard, non-negotiable):
- *  The classifier never emits switch_combinatorial confidently (WT replicate
- *  limit is 3 per round). Possible labels: continue_walking or deferred.
- *  The UI reflects this honestly.
+ * Two success states, drawn differently on purpose:
+ *  - advisory "decision": the classifier answered. Coloured label badge, the
+ *    reason behind it, and the confidence when the bootstrap gate produced one.
+ *  - advisory "not_assessable": the classifier was never asked. Neutral outlined
+ *    badge, no label, and a sentence naming the absent input together with the
+ *    labels it puts out of reach. Drawing this as another "deferred" badge would
+ *    claim a judgement was weighed and withheld.
+ *
+ * Why switch_combinatorial and stop are never seen today: the handler passes
+ * wt_values=None (python-core/sidecar_mame/handlers/classify_round.py), because
+ * the purified per-round xlsx carries no wild-type replicate column. Both labels
+ * sit behind a bootstrap confidence gate that needs those values, so both are
+ * unreachable and result.confidence is always null. That is a limit of the input
+ * format, not of how many WT replicates a round happens to have.
  */
 
 import { useState, useCallback } from "react";
@@ -23,13 +32,32 @@ import { classifyRound } from "@/lib/ipc";
 import { Button } from "@/components/ui/button";
 import type {
   ClassifyDecisionResult,
+  ClassifyNotAssessableResult,
+  ClassifyRoundResult,
   DecisionLabel,
+  MissingClassifierInput,
   RoundFileEntry,
 } from "@/types/mame/strategy";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+/** Narrowed shape of the i18next translator this file needs. */
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+/**
+ * Reason codes kuma_core/strategy/classify.py can emit, each with a phrase in
+ * the locale files. bootstrap_inputs_missing is absent on purpose: the handler
+ * converts that one into the not_assessable state before it reaches the UI.
+ */
+const REASON_CODES: ReadonlySet<string> = new Set([
+  "calibration_period",
+  "insufficient_data",
+  "mixed_signals",
+  "no_saturation_signal",
+  "hysteresis_pending",
+  "low_confidence",
+  "stop_low_confidence",
+  "saturated_with_throughput",
+  "saturated_no_throughput",
+]);
 
 /** Maps DecisionLabel to a Tailwind color pair (bg/text). */
 function labelColorClass(label: DecisionLabel): string {
@@ -47,22 +75,63 @@ function labelColorClass(label: DecisionLabel): string {
   }
 }
 
+/** Last-resort rendering for a code with no phrase, so no snake_case reaches the user. */
+function humanize(code: string): string {
+  return code.replace(/_/g, " ");
+}
+
+function labelText(label: DecisionLabel, t: Translate): string {
+  return t(`advisoryDecision.labels.${label}`);
+}
+
+function reasonText(reason: string, t: Translate): string {
+  return REASON_CODES.has(reason)
+    ? t(`advisoryDecision.reasons.${reason}`)
+    : humanize(reason);
+}
+
+function missingInputsText(
+  inputs: MissingClassifierInput[],
+  t: Translate,
+): string {
+  return inputs.map((input) => t(`advisoryDecision.missingInputs.${input}`)).join(", ");
+}
+
+function blockedLabelsText(labels: DecisionLabel[], t: Translate): string {
+  return labels.map((label) => labelText(label, t)).join(", ");
+}
+
 /** Extract filename from an absolute path for display. */
 function basename(path: string): string {
   return path.split(/[\\/]/).pop() ?? path;
 }
 
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-function DecisionDisplay({
-  result,
+/**
+ * Footnote carried by an answered decision.
+ *
+ * The classifier reached a verdict, but some of its signals were unavailable
+ * the whole time, so the verdict rests on a narrower base than the full model.
+ * Saying which inputs were absent keeps that visible without implying the
+ * verdict is in doubt.
+ */
+function MissingInputsNote({
+  missing,
 }: {
-  result: ClassifyDecisionResult;
+  missing: MissingClassifierInput[];
 }) {
   const { t } = useTranslation();
-  const reason = mapReasonText(result.label, result.reason, t);
+  if (missing.length === 0) return null;
+  return (
+    <p className="text-[11px] text-muted-foreground">
+      {t("advisoryDecision.missingInputsNote", {
+        missing: missingInputsText(missing, t),
+      })}
+    </p>
+  );
+}
+
+function DecisionDisplay({ result }: { result: ClassifyDecisionResult }) {
+  const { t } = useTranslation();
 
   return (
     <div className="flex flex-col gap-2">
@@ -73,11 +142,17 @@ function DecisionDisplay({
             labelColorClass(result.label),
           )}
           aria-label={t("advisoryDecision.labelAriaLabel", {
-            label: result.label,
+            label: labelText(result.label, t),
           })}
         >
-          {result.label}
+          {labelText(result.label, t)}
         </span>
+        {/*
+          Confidence only exists on the bootstrap-gated branches, all of which
+          need wt_values. With the current xlsx input this never renders. It is
+          kept because wiring WT replicates into the handler brings it back with
+          no UI change; delete it only if that path is abandoned.
+        */}
         {result.confidence != null && (
           <span className="text-[11px] text-muted-foreground">
             {t("advisoryDecision.confidence", {
@@ -86,43 +161,49 @@ function DecisionDisplay({
           </span>
         )}
       </div>
-      <p className="text-xs text-muted-foreground">{reason}</p>
+      <p className="text-xs text-muted-foreground">
+        {reasonText(result.reason, t)}
+      </p>
+      <MissingInputsNote missing={result.missing_inputs} />
     </div>
   );
 }
 
 /**
- * Returns a user-friendly reason string for any label.
- * continue_walking prepends a recommendation line.
- * For deferred labels, maps known reason codes to explicit messages.
- * Falls back to the raw reason string for unknown codes.
+ * The classifier was never asked.
+ *
+ * Reaching this state means the core decision tree did propose a transition,
+ * which is the only way the bootstrap gate gets evaluated at all. The gate then
+ * found nothing to test with. Both halves of that are stated: the signals point
+ * somewhere, and the confirming question cannot be put.
  */
-function mapReasonText(
-  label: DecisionLabel,
-  reason: string,
-  t: (key: string) => string,
-): string {
-  if (label === "continue_walking") {
-    return `${t("advisoryDecision.continueWalkingRecommendation")} ${reason}`.trim();
-  }
-  if (label !== "deferred") return reason;
-  switch (reason) {
-    case "bootstrap_inputs_missing":
-      return t("advisoryDecision.deferredBootstrapInputsMissing");
-    case "calibration_period":
-      return t("advisoryDecision.deferredCalibrationPeriod");
-    case "insufficient_data":
-      return t("advisoryDecision.deferredInsufficientData");
-    case "mixed_signals":
-      return t("advisoryDecision.deferredMixedSignals");
-    default:
-      return reason;
-  }
-}
+function NotAssessableDisplay({
+  result,
+}: {
+  result: ClassifyNotAssessableResult;
+}) {
+  const { t } = useTranslation();
+  const badge = t("advisoryDecision.notAssessableBadge");
 
-// ---------------------------------------------------------------------------
-// File picker sub-component
-// ---------------------------------------------------------------------------
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <span
+          className="rounded-full border border-dashed border-muted-foreground/60 px-2.5 py-0.5 text-xs font-semibold text-muted-foreground"
+          aria-label={t("advisoryDecision.labelAriaLabel", { label: badge })}
+        >
+          {badge}
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {t("advisoryDecision.notAssessableSummary", {
+          missing: missingInputsText(result.missing_inputs, t),
+          blocked: blockedLabelsText(result.blocked_decisions, t),
+        })}
+      </p>
+    </div>
+  );
+}
 
 interface FileRowProps {
   entry: RoundFileEntry;
@@ -157,12 +238,10 @@ function FileRow({ entry, onRemove }: FileRowProps) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
-
 export interface AdvisoryDecisionCardProps {
   className?: string;
+  /** Called with every answer the sidecar returns, including not_assessable. */
+  onResult?: (result: ClassifyRoundResult) => void;
 }
 
 /**
@@ -176,18 +255,14 @@ export interface AdvisoryDecisionCardProps {
  */
 export function AdvisoryDecisionCard({
   className,
+  onResult,
 }: AdvisoryDecisionCardProps) {
   const { t } = useTranslation();
 
-  // File list state: entries are kept sorted by n; n is 1..N, re-assigned on every change.
   const [files, setFiles] = useState<RoundFileEntry[]>([]);
-  const [result, setResult] = useState<ClassifyDecisionResult | null>(null);
+  const [result, setResult] = useState<ClassifyRoundResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // -------------------------------------------------------------------------
-  // File management
-  // -------------------------------------------------------------------------
 
   /** Renumbers entries 1..N in current order (gap-free). */
   function reindex(entries: { path: string }[]): RoundFileEntry[] {
@@ -208,7 +283,6 @@ export function AdvisoryDecisionCard({
       const newPaths = paths.filter((p) => !existing.has(p));
       return reindex([...prev, ...newPaths.map((p) => ({ path: p }))]);
     });
-    // Reset result when file list changes
     setResult(null);
     setError(null);
   }, [t]);
@@ -219,10 +293,6 @@ export function AdvisoryDecisionCard({
     setError(null);
   }, []);
 
-  // -------------------------------------------------------------------------
-  // Classify
-  // -------------------------------------------------------------------------
-
   const handleClassify = useCallback(async () => {
     if (files.length === 0 || loading) return;
     setLoading(true);
@@ -231,23 +301,19 @@ export function AdvisoryDecisionCard({
     try {
       const res = await classifyRound(files);
       setResult(res);
+      onResult?.(res);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
-  }, [files, loading]);
-
-  // -------------------------------------------------------------------------
-  // Render
-  // -------------------------------------------------------------------------
+  }, [files, loading, onResult]);
 
   return (
     <section
       aria-labelledby="advisory-decision-heading"
       className={cn("flex flex-col gap-3", className)}
     >
-      {/* Heading */}
       <h4
         id="advisory-decision-heading"
         className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
@@ -261,7 +327,6 @@ export function AdvisoryDecisionCard({
         </span>
       </h4>
 
-      {/* File list */}
       {files.length > 0 && (
         <ul
           aria-label={t("advisoryDecision.fileListAriaLabel")}
@@ -273,7 +338,6 @@ export function AdvisoryDecisionCard({
         </ul>
       )}
 
-      {/* File picker + run buttons */}
       <div className="flex items-center gap-2">
         <Button
           type="button"
@@ -300,7 +364,6 @@ export function AdvisoryDecisionCard({
         </Button>
       </div>
 
-      {/* States */}
       {loading && (
         <p className="text-xs text-muted-foreground" aria-live="polite">
           {t("advisoryDecision.loading")}
@@ -322,6 +385,9 @@ export function AdvisoryDecisionCard({
       )}
 
       {result?.advisory === "decision" && <DecisionDisplay result={result} />}
+      {result?.advisory === "not_assessable" && (
+        <NotAssessableDisplay result={result} />
+      )}
     </section>
   );
 }

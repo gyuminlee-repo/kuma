@@ -2908,11 +2908,29 @@
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
-    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
-    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
-    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
-    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
-    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+    "labels": {
+      "continue_walking": "繼續 walking",
+      "switch_combinatorial": "轉入 combinatorial",
+      "stop": "停止",
+      "deferred": "暫緩"
+    },
+    "reasons": {
+      "calibration_period": "目前不足 3 輪，分類器仍處於校準期。",
+      "insufficient_data": "無法從這些輪次中評估出任何飽和訊號。",
+      "mixed_signals": "各飽和訊號之間互相矛盾。",
+      "no_saturation_signal": "本輪沒有飽和訊號：single-mutant walking 仍有收益。",
+      "hysteresis_pending": "本輪出現飽和但上一輪沒有，而這需要連續兩輪。",
+      "low_confidence": "轉入 combinatorial 與訊號相符，但 bootstrap 檢定未能支持。",
+      "stop_low_confidence": "停止與訊號相符，但 bootstrap 檢定未能支持，因此繼續 walking。",
+      "saturated_with_throughput": "連續兩輪飽和，且下一塊盤還有餘量執行 combinatorial 步驟。",
+      "saturated_no_throughput": "連續兩輪飽和，且已無通量可用於 combinatorial 步驟。"
+    },
+    "missingInputs": {
+      "wt_replicates": "野生型重複測量值"
+    },
+    "missingInputsNote": "在缺少{{missing}}的情況下作出判定，因此飽和判斷僅依據 hit rate 趨勢。",
+    "notAssessableBadge": "無法判定",
+    "notAssessableSummary": "訊號指向一次轉變，但確認它需要{{missing}}，而這些檔案並不包含。基於此輸入無法回答{{blocked}}，只能判斷是否繼續 walking。"
   },
   "validation": {
     "missing": {

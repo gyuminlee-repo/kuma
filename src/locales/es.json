@@ -2908,11 +2908,29 @@
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
-    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
-    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
-    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
-    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
-    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+    "labels": {
+      "continue_walking": "Seguir caminando",
+      "switch_combinatorial": "Cambiar a combinatorial",
+      "stop": "Detener",
+      "deferred": "Aplazado"
+    },
+    "reasons": {
+      "calibration_period": "Menos de 3 rondas hasta ahora, el clasificador sigue en su periodo de calibración.",
+      "insufficient_data": "No se pudo evaluar ninguna señal de saturación a partir de estas rondas.",
+      "mixed_signals": "Las señales de saturación se contradicen entre sí.",
+      "no_saturation_signal": "Sin señal de saturación en esta ronda: el single-mutant walking sigue dando resultado.",
+      "hysteresis_pending": "Hubo saturación en esta ronda pero no en la anterior, y se requieren dos rondas consecutivas.",
+      "low_confidence": "Cambiar a combinatorial encajaba con las señales, pero la prueba bootstrap no lo respaldó.",
+      "stop_low_confidence": "Detener encajaba con las señales, pero la prueba bootstrap no lo respaldó, así que se sigue caminando.",
+      "saturated_with_throughput": "Saturado durante dos rondas consecutivas, y la siguiente placa tiene espacio para el paso combinatorial.",
+      "saturated_no_throughput": "Saturado durante dos rondas consecutivas, sin capacidad restante para un paso combinatorial."
+    },
+    "missingInputs": {
+      "wt_replicates": "mediciones de réplicas del tipo silvestre"
+    },
+    "missingInputsNote": "Evaluado sin {{missing}}, de modo que la saturación se basa únicamente en la tendencia de la hit rate.",
+    "notAssessableBadge": "No evaluable",
+    "notAssessableSummary": "Las señales apuntan a una transición, pero confirmarla requiere {{missing}}, que estos archivos no contienen. Con esta entrada no se puede responder {{blocked}}; solo cabe comprobar si conviene seguir caminando."
   },
   "validation": {
     "missing": {

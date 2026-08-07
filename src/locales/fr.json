@@ -2908,11 +2908,29 @@
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
-    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
-    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
-    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
-    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
-    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+    "labels": {
+      "continue_walking": "Continuer la marche",
+      "switch_combinatorial": "Passer au combinatorial",
+      "stop": "Arrêter",
+      "deferred": "Différé"
+    },
+    "reasons": {
+      "calibration_period": "Moins de 3 cycles à ce stade, le classifieur est encore en période de calibration.",
+      "insufficient_data": "Aucun signal de saturation n'a pu être évalué à partir de ces cycles.",
+      "mixed_signals": "Les signaux de saturation se contredisent.",
+      "no_saturation_signal": "Aucun signal de saturation ce cycle : le single-mutant walking reste productif.",
+      "hysteresis_pending": "La saturation apparaît ce cycle mais pas au précédent, or deux cycles consécutifs sont requis.",
+      "low_confidence": "Un passage au combinatorial correspondait aux signaux, mais le test bootstrap ne l'a pas confirmé.",
+      "stop_low_confidence": "Un arrêt correspondait aux signaux, mais le test bootstrap ne l'a pas confirmé, la marche continue donc.",
+      "saturated_with_throughput": "Saturé sur deux cycles consécutifs, et la plaque suivante offre la place pour l'étape combinatorial.",
+      "saturated_no_throughput": "Saturé sur deux cycles consécutifs, sans débit restant pour une étape combinatorial."
+    },
+    "missingInputs": {
+      "wt_replicates": "mesures de réplicats du type sauvage"
+    },
+    "missingInputsNote": "Jugé sans {{missing}} : la saturation repose donc uniquement sur la tendance du hit rate.",
+    "notAssessableBadge": "Non évaluable",
+    "notAssessableSummary": "Les signaux indiquent une transition, mais la confirmer exige {{missing}}, absentes de ces fichiers. {{blocked}} ne peut pas être tranché à partir de cette entrée ; seule la question de la poursuite de la marche peut l'être."
   },
   "validation": {
     "missing": {

@@ -2908,11 +2908,29 @@
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
-    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
-    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
-    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
-    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
-    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+    "labels": {
+      "continue_walking": "Weiterlaufen",
+      "switch_combinatorial": "Auf combinatorial umstellen",
+      "stop": "Stopp",
+      "deferred": "Zurückgestellt"
+    },
+    "reasons": {
+      "calibration_period": "Bisher weniger als 3 Runden, der Klassifikator befindet sich noch in der Kalibrierungsphase.",
+      "insufficient_data": "Aus diesen Runden ließ sich kein einziges Sättigungssignal auswerten.",
+      "mixed_signals": "Die Sättigungssignale widersprechen einander.",
+      "no_saturation_signal": "Kein Sättigungssignal in dieser Runde: Single-mutant walking lohnt sich weiterhin.",
+      "hysteresis_pending": "Sättigung trat in dieser Runde auf, in der vorherigen jedoch nicht; zwei aufeinanderfolgende Runden sind erforderlich.",
+      "low_confidence": "Ein Wechsel zu combinatorial passte zu den Signalen, der Bootstrap-Test bestätigte ihn jedoch nicht.",
+      "stop_low_confidence": "Ein Stopp passte zu den Signalen, der Bootstrap-Test bestätigte ihn jedoch nicht, daher weiterlaufen.",
+      "saturated_with_throughput": "Zwei Runden in Folge gesättigt, und die nächste Platte bietet Platz für den combinatorial-Schritt.",
+      "saturated_no_throughput": "Zwei Runden in Folge gesättigt, ohne verbleibenden Durchsatz für einen combinatorial-Schritt."
+    },
+    "missingInputs": {
+      "wt_replicates": "Wildtyp-Replikatmessungen"
+    },
+    "missingInputsNote": "Beurteilt ohne {{missing}}, die Sättigung stützt sich daher allein auf den Verlauf der Hit-Rate.",
+    "notAssessableBadge": "Nicht beurteilbar",
+    "notAssessableSummary": "Die Signale deuten auf einen Übergang hin, doch dessen Bestätigung erfordert {{missing}}, die in diesen Dateien nicht enthalten sind. {{blocked}} lässt sich mit dieser Eingabe nicht beantworten; möglich ist nur die Prüfung auf Weiterlaufen."
   },
   "validation": {
     "missing": {

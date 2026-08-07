@@ -2908,11 +2908,29 @@
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
-    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
-    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
-    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
-    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
-    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+    "labels": {
+      "continue_walking": "継続",
+      "switch_combinatorial": "Combinatorial へ移行",
+      "stop": "中止",
+      "deferred": "保留"
+    },
+    "reasons": {
+      "calibration_period": "ラウンドが 3 回未満のため、分類器はまだ較正期間にあります。",
+      "insufficient_data": "これらのラウンドからは飽和シグナルを 1 つも評価できませんでした。",
+      "mixed_signals": "飽和シグナルどうしが食い違っています。",
+      "no_saturation_signal": "今回のラウンドに飽和シグナルはありません。single-mutant walking はまだ有効です。",
+      "hysteresis_pending": "今回のラウンドでは飽和が見られましたが前回はなく、連続 2 ラウンドが必要です。",
+      "low_confidence": "シグナルは combinatorial への移行と整合しましたが、bootstrap 検定が裏付けませんでした。",
+      "stop_low_confidence": "シグナルは中止と整合しましたが、bootstrap 検定が裏付けなかったため継続します。",
+      "saturated_with_throughput": "2 ラウンド連続で飽和しており、次のプレートに combinatorial 段階を入れる余裕があります。",
+      "saturated_no_throughput": "2 ラウンド連続で飽和しており、combinatorial 段階に回せるスループットが残っていません。"
+    },
+    "missingInputs": {
+      "wt_replicates": "野生型のレプリケート測定値"
+    },
+    "missingInputsNote": "{{missing}} なしで判定しました。飽和の判断は hit rate の推移のみに基づきます。",
+    "notAssessableBadge": "判定不可",
+    "notAssessableSummary": "シグナルは移行を示していますが、確認には {{missing}} が必要で、これらのファイルには含まれていません。この入力では {{blocked}} を答えられず、継続するかどうかのみ判定できます。"
   },
   "validation": {
     "missing": {
