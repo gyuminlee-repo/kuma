@@ -104,14 +104,18 @@ def _render_plate_map(data: RunReportData) -> str:
     """8×12 well grid coloured by dominant verdict per well position.
 
     The verdicts are keyed by custom_barcode ``{R}_{F}`` where R=row(1-8),
-    F=col(1-12). We build a 96-element colour map from the first PASS > AMBIGUOUS
-    > FAIL verdict found for each well position across all plates.
+    F=col(1-12). We build a 96-element colour map by keeping, for each well
+    position across all plates, the best of PASS > AMBIGUOUS > FAIL. The result
+    does not depend on the order the plates are visited.
     """
     # Build a well -> colour map.
     well_color: dict[str, str] = {}
-    # Priority: PASS > AMBIGUOUS > FAIL (lower number = higher priority kept)
-    _PRIORITY = {"PASS": 0, "AMBIGUOUS": 1, "MIXED": 1, "LOWDEPTH": 2, "NO_CALL": 2,
-                 "MANY": 2, "WRONG_AA": 2, "FRAMESHIFT": 2}
+    # Priority is DERIVED from the colour bucket, never listed separately. A
+    # second verdict->rank table is how the same well came out green-amber-red
+    # depending on plate iteration order: MIXED sat at AMBIGUOUS rank while it
+    # painted the FAIL colour, so an AMBIGUOUS plate and a MIXED plate covering
+    # one well kept whichever arrived first. Three buckets, one table.
+    _RANK = {_CLR_PASS: 0, _CLR_AMBIGUOUS: 1, _CLR_FAIL: 2}
 
     for vr in getattr(data, "_raw_verdicts", []):
         b = vr.translated.barcode
@@ -122,13 +126,9 @@ def _render_plate_map(data: RunReportData) -> str:
             else _CLR_AMBIGUOUS if verdict == "AMBIGUOUS"
             else _CLR_FAIL
         )
-        cur_priority = _PRIORITY.get(
-            well_color.get(key + "__v", "FAIL"), 2  # type: ignore[arg-type]
-        )
-        new_priority = _PRIORITY.get(verdict, 2)
-        if key not in well_color or new_priority < cur_priority:
+        cur = well_color.get(key)
+        if cur is None or _RANK[clr] < _RANK[cur]:
             well_color[key] = clr
-            well_color[key + "__v"] = verdict  # type: ignore[assignment]
 
     rows = "ABCDEFGH"
     cell_size = 20

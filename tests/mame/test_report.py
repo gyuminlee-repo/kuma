@@ -293,3 +293,48 @@ class TestPdfExport:
         result = export_pdf(self._build_data(), output)
         for key in ("output_path", "format", "weasyprint_available", "error"):
             assert key in result
+
+
+class TestPlateMapColourIsOrderIndependent:
+    """A well covered by two plates must get the same colour either way.
+
+    MIXED used to sit at the AMBIGUOUS rank while painting the FAIL colour, so
+    the strict ``new < current`` replacement kept whichever verdict the
+    iteration happened to reach first.
+    """
+
+    @staticmethod
+    def _plate_map(verdicts: list) -> str:
+        from kuma_core.mame.report.html_renderer import _render_plate_map
+
+        return _render_plate_map(SimpleNamespace(_raw_verdicts=verdicts))
+
+    def test_ambiguous_then_mixed_matches_mixed_then_ambiguous(self) -> None:
+        ambiguous = _make_verdict("barcode01", "1_1", 120.0, "AMBIGUOUS")
+        mixed = _make_verdict("barcode02", "1_1", 120.0, "MIXED")
+
+        forward = self._plate_map([ambiguous, mixed])
+        reverse = self._plate_map([mixed, ambiguous])
+
+        assert forward == reverse
+
+    def test_ambiguous_wins_over_mixed_in_both_orders(self) -> None:
+        """AMBIGUOUS outranks every FAIL-coloured verdict, MIXED included."""
+        from kuma_core.mame.report.html_renderer import _CLR_AMBIGUOUS, _CLR_FAIL
+
+        ambiguous = _make_verdict("barcode01", "1_1", 120.0, "AMBIGUOUS")
+        mixed = _make_verdict("barcode02", "1_1", 120.0, "MIXED")
+
+        for order in ([ambiguous, mixed], [mixed, ambiguous]):
+            svg = self._plate_map(order)
+            assert svg.count(f'fill="{_CLR_AMBIGUOUS}"') == 1
+            assert f'fill="{_CLR_FAIL}"' not in svg
+
+    def test_pass_still_outranks_ambiguous_in_both_orders(self) -> None:
+        from kuma_core.mame.report.html_renderer import _CLR_PASS
+
+        passing = _make_verdict("barcode01", "1_1", 120.0, "PASS")
+        ambiguous = _make_verdict("barcode02", "1_1", 120.0, "AMBIGUOUS")
+
+        for order in ([passing, ambiguous], [ambiguous, passing]):
+            assert self._plate_map(order).count(f'fill="{_CLR_PASS}"') == 1
