@@ -345,8 +345,14 @@ def test_excel_legacy_sheets_preserved(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_janus_csv_comment_line_with_meta(tmp_path: Path) -> None:
-    """When ngs_run_meta is provided, CSV first line starts with '# kuma_run_meta:'."""
+def test_janus_csv_header_is_line_one_with_meta(tmp_path: Path) -> None:
+    """A ``ngs_run_meta`` still exports, but writes no comment line above the header.
+
+    v0.16.6 dropped the ``# kuma_run_meta: ...`` line: it pushed the header (and
+    every data row after it) down to line 2, which broke a plain
+    ``csv.DictReader``/spreadsheet import, the way the lab actually opens this
+    file.
+    """
     rr = _make_replicate("V5F", "NB01", "1_1", size_kb=100.0)
     out = tmp_path / "janus_meta.csv"
     meta = NgsRunMeta(
@@ -362,16 +368,12 @@ def test_janus_csv_comment_line_with_meta(tmp_path: Path) -> None:
     export_mame_janus_csv([rr], out, ngs_run_meta=meta, settings=_LEGACY5)
 
     lines = out.read_text(encoding="utf-8").splitlines()
-    assert lines[0].startswith("# kuma_run_meta:"), f"Expected comment line, got: {lines[0]}"
-    assert "FAW12345" in lines[0]
-    assert "SQK-LSK109" in lines[0]
+    assert lines[0].split(",")[0] == "name", f"Expected header row first, got: {lines[0]}"
+    assert not lines[0].startswith("#")
 
 
 def test_janus_csv_no_comment_when_meta_none(tmp_path: Path) -> None:
-    """When ngs_run_meta=None, CSV starts with header row (no comment line).
-
-    This preserves backward compatibility with csv.DictReader consumers.
-    """
+    """When ngs_run_meta=None, CSV starts with header row (no comment line)."""
     rr = _make_replicate("V5F", "NB01", "1_1", size_kb=100.0)
     out = tmp_path / "janus_no_comment.csv"
     export_mame_janus_csv([rr], out, ngs_run_meta=None, settings=_LEGACY5)
@@ -384,8 +386,8 @@ def test_janus_csv_no_comment_when_meta_none(tmp_path: Path) -> None:
         )
 
 
-def test_janus_csv_comment_dict_reader_skips_correctly(tmp_path: Path) -> None:
-    """DictReader reading a CSV with comment line must skip it to get data rows."""
+def test_janus_csv_dict_reader_reads_rows_directly_no_skip_needed(tmp_path: Path) -> None:
+    """No comment line to skip: DictReader reads the data row on the first pass."""
     rr = _make_replicate("V5F", "NB01", "1_1", size_kb=100.0)
     out = tmp_path / "janus_skip.csv"
     meta = NgsRunMeta(
@@ -396,9 +398,6 @@ def test_janus_csv_comment_dict_reader_skips_correctly(tmp_path: Path) -> None:
     export_mame_janus_csv([rr], out, ngs_run_meta=meta, settings=_LEGACY5)
 
     with out.open(encoding="utf-8") as fh:
-        # Skip comment line before handing to DictReader
-        first_line = fh.readline()
-        assert first_line.startswith("#")
         reader = csv.DictReader(fh)
         rows = list(reader)
     assert len(rows) == 1

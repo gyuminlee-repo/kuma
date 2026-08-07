@@ -57,13 +57,12 @@ G3 run-meta embedding
 ``export_mame_janus_csv`` and ``export_mame_janus_xlsx`` accept an optional
 ``ngs_run_meta`` argument (``NgsRunMeta | None``).
 
-- CSV: when *ngs_run_meta* is not ``None``, a single comment line is prepended
-  before the header row::
-
-      # kuma_run_meta: flow_cell=PAX12345, kit=SQK-LSK109, started=2024-01-01T00:00:00Z
-
-  When ``None`` no comment line is written, preserving backward compatibility
-  with existing tests that use ``csv.DictReader`` directly.
+- CSV: the header row is always line 1. A ``# kuma_run_meta: ...`` comment
+  used to be prepended above it when *ngs_run_meta* was given; v0.16.6 removed
+  that line because it pushed every data row down by one for a plain
+  ``csv.DictReader`` or spreadsheet import, which is how the lab reads this
+  file. *ngs_run_meta* is still accepted for signature parity with the XLSX
+  writer but written nowhere in the CSV.
 
 - XLSX: a ``__kuma_meta__`` sheet is appended with key/value rows.  The sheet
   is always present; content is optional (placeholder when meta is ``None``).
@@ -814,26 +813,6 @@ def build_janus_preview_rows(
     }
 
 
-def _meta_comment_line(meta: "NgsRunMeta") -> str:
-    """Build a single-line CSV comment from *meta* (G3 spec).
-
-    Format: ``# kuma_run_meta: flow_cell=X, kit=Y, started=Z``
-    Fields that are ``None`` are omitted from the comment.
-    """
-    parts: list[str] = []
-    if meta.flow_cell_id:
-        parts.append(f"flow_cell={meta.flow_cell_id}")
-    if meta.kit:
-        parts.append(f"kit={meta.kit}")
-    if meta.started:
-        parts.append(f"started={meta.started}")
-    if meta.instrument:
-        parts.append(f"instrument={meta.instrument}")
-    if meta.position:
-        parts.append(f"position={meta.position}")
-    return "# kuma_run_meta: " + ", ".join(parts)
-
-
 def _write_janus_kuma_meta_sheet(
     wb: "object",
     meta: "NgsRunMeta | None",
@@ -907,9 +886,12 @@ def export_mame_janus_csv(
     ``build_janus_preview_rows`` for the same ``settings``, which the RPC
     handler calls alongside this function.
 
-    G3: when *ngs_run_meta* is not ``None``, a ``# kuma_run_meta: ...`` comment
-    line is prepended before the header row.  When *ngs_run_meta* is ``None``
-    no comment is written (backward-compatible with existing consumers).
+    *ngs_run_meta* is accepted for signature parity with
+    :func:`export_mame_janus_xlsx` but written nowhere in the CSV: v0.16.6
+    dropped the ``# kuma_run_meta: ...`` comment line this function used to
+    prepend, because it pushed the header row down to line 2 for every reader
+    that opens the file directly. Run metadata reaches the operator through
+    the XLSX ``__kuma_meta__`` sheet instead.
 
     Phase 1: priority_score = file_size_kb proxy.
     G6/A6 round: replace with BarcodeRecord.read_count when available.
@@ -926,8 +908,12 @@ def export_mame_janus_csv(
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", newline="", encoding="utf-8") as fh:
-        if ngs_run_meta is not None:
-            fh.write(_meta_comment_line(ngs_run_meta) + "\n")
+        # No comment line: the lab reads this file with a plain DictReader /
+        # spreadsheet import, and a "# kuma_run_meta: ..." line before the
+        # header pushed every column one row down for that reader. Run
+        # metadata still reaches the operator through the XLSX
+        # ``__kuma_meta__`` sheet below, which has its own row for it and
+        # never shifts the data rows.
         if resolved.output_schema == SCHEMA_DEVICE:
             # Positional writer: the canonical row dict does not carry the
             # instrument cells, so ``project_device_rows`` builds them in header
