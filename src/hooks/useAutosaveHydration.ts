@@ -1572,8 +1572,14 @@ async function restoreMameResult(
     verdicts: result.verdicts,
     replicates: result.replicates,
     output_path: result.output_path,
+    // The recovery denominator. Without it the sidecar stores None and
+    // build_run_health reports recovery_rate / total_mutants /
+    // recovered_mutants as n/a on every restart, even though the persisted
+    // analyze response has carried the set all along.
+    designed_mutant_ids: result.designed_mutant_ids ?? null,
     summary: result.summary ?? null,
     distribution_stats: result.distribution_stats ?? null,
+    compare_params: result.compare_params ?? null,
   });
   // RPC를 기다리는 동안 취소됐으면 store 반영은 하지 않는다.
   if (!alive()) return false;

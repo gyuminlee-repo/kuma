@@ -341,6 +341,13 @@ export interface AnalyzeResult extends AnalyzeYield {
   output_path: string;
   summary: AnalyzeSummary;
   distribution_stats: DistributionStats;
+  /**
+   * Distinct designed mutant_ids, sorted. The denominator recovery (재현율) is
+   * measured against; a live sidecar always sends it. Optional on the type
+   * only because a result persisted before the field existed is replayed
+   * verbatim, and there recovery reads as n/a rather than as 0 %.
+   */
+  designed_mutant_ids?: string[];
   reference_resolution?: {
     readonly path: string;
     readonly extracted: boolean;
@@ -403,6 +410,13 @@ export interface LoadAnalyzeResultRequest {
   replicates: ReplicateResult[];
   output_path: string;
   run_meta?: Record<string, unknown> | null;
+  /**
+   * The recovery denominator, replayed so a restored run can report recovery
+   * (재현율) instead of n/a. Unlike the three fields below this one IS stored
+   * by the sidecar (`SidecarState.last_designed_mutant_ids`), so omitting it
+   * silently disables recovery for the rest of the session.
+   */
+  designed_mutant_ids?: string[] | null;
   summary?: AnalyzeSummary | null;
   distribution_stats?: DistributionStats | null;
   /**

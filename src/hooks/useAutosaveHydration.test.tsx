@@ -349,6 +349,37 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     expect(st.distributionStats).toEqual(ANALYZE_RESULT.distribution_stats);
   });
 
+  it("sends designed_mutant_ids so a restored run can still report recovery", async () => {
+    // The sidecar stores this one (unlike summary / distribution_stats), and
+    // without it build_run_health reports recovery_rate, total_mutants and
+    // recovered_mutants as null -- Run Health and the exported report then say
+    // n/a on every reopen. Asserted at the real call site: the handler-side
+    // round-trip test builds its own payload and passes even when the caller
+    // drops the field.
+    const designed = ["mut_a", "mut_b"];
+    hooks.readMameResultSnapshot.mockResolvedValue({
+      status: "ok",
+      snapshot: {
+        schema: 1,
+        saved_at: new Date().toISOString(),
+        kuma_version: "0.0.0-test",
+        result: { ...ANALYZE_RESULT, designed_mutant_ids: designed },
+      },
+    });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(
+        hooks.sendMameRequest.mock.calls.some((c) => c[0] === "load_analyze_result"),
+      ).toBe(true);
+    });
+    const [, params] = hooks.sendMameRequest.mock.calls.find(
+      (c) => c[0] === "load_analyze_result",
+    ) as [string, { designed_mutant_ids: string[] | null }];
+    expect(params.designed_mutant_ids).toEqual(designed);
+  });
+
   it("carries the off-layout records of the saved run through a restart", async () => {
     // The saved run counted reads from wells its layout does not name. Restoring
     // the rest of the report but not this leaves OffLayoutRecordsNotice silent,
