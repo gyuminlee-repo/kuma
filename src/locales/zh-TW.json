@@ -2406,7 +2406,7 @@
       "抽屜不再報告它從未統計的合併列數，重新開啟專案會顯示 recovery 而不是 n/a。",
       "sidecar 接受的檔案不再被選擇器拒絕，provenance 檔案只帶一個發布版本而不是三個。"
     ],
-    "highlightsStamp": "0.16.6+46abfd1a"
+    "highlightsStamp": "0.16.8+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "複製序列",

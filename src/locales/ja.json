@@ -2406,7 +2406,7 @@
       "ドロワーが数えてもいないマージ行数の報告をやめ、プロジェクトを開き直すと再現率が n/a ではなく値で出る。",
       "sidecar が受け付けるファイルをピッカーが拒まなくなり、provenance ファイルのリリースバージョンが 3 つでなく 1 つになる。"
     ],
-    "highlightsStamp": "0.16.6+46abfd1a"
+    "highlightsStamp": "0.16.8+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "配列をコピー",
