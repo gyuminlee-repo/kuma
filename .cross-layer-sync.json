@@ -65,6 +65,18 @@
       "type": "command",
       "run": "node scripts/sync-check-janus-defaults.mjs",
       "label": "DEFAULT_JANUS_SETTINGS matches JanusSettings() defaults"
+    },
+    {
+      "id": "mame-activity-csv-schema",
+      "type": "command",
+      "run": "node scripts/sync-check-mame-activity-schema.mjs",
+      "label": "MAME_ACTIVITY_CSV_SCHEMA matches ingest_long_csv column aliases"
+    },
+    {
+      "id": "mame-extensions",
+      "type": "command",
+      "run": "node scripts/sync-check-mame-extensions.mjs",
+      "label": "MAME input extension sets match sidecar_mame.core"
     }
   ],
   "genModels": [

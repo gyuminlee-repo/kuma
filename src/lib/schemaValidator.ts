@@ -126,10 +126,24 @@ export const EVOLVEPRO_CSV_SCHEMA: SchemaSpec = {
  * mame activity long CSV 스키마.
  *
  * 출처: kuma_core/mame/activity/ingest_long_csv.py
- * - plate_id, well_id, value 필수
- * - replicate_idx 선택
+ * - well 열 필수: canonical well_id, 아니면 WELL_COL_ALIASES (:36)
+ * - value 열 필수: canonical value, 아니면 VALUE_COL_ALIASES (:37)
+ * - plate_id 는 선택. 없으면 plate_meta 에서 유도한다 (:102-114)
+ * - replicate_idx 선택 (없으면 1)
+ *
+ * 이 게이트는 sendRequest 이전(src/store/mame/activitySlice.ts:138)에서 막으므로,
+ * 여기가 좁으면 Python 별칭 로직이 GUI 에서 아예 도달 불가능해진다. raw GC-FID
+ * export 의 "Sample Name"/"Area" 헤더가 정확히 그 경우였다.
+ *
+ * 별칭 목록은 Python 정본에서 그대로 옮긴 것이고,
+ * `.cross-layer-sync.json` 의 `mame-activity-csv-schema` check 가 강제한다
+ * (scripts/sync-check-mame-activity-schema.mjs).
  */
 export const MAME_ACTIVITY_CSV_SCHEMA: SchemaSpec = {
-  required: ["plate_id", "well_id", "value"],
-  optional: ["replicate_idx"],
+  required: ["well_id", "value"],
+  optional: ["plate_id", "replicate_idx"],
+  alternatives: {
+    well_id: ["sample name", "sample", "well", "well pos."],
+    value: ["area", "activity"],
+  },
 };
