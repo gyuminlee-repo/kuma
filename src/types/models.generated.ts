@@ -571,7 +571,9 @@ export interface ExportMappingDryRunParams {
   } | null;
   mapping_range?: MappingRange | null;
   mappings?: PlateMappingItem[] | null;
+  quadrant?: ("A1" | "A2" | "B1" | "B2") | null;
   transfer_vol?: number | null;
+  used_quadrants?: ("A1" | "A2" | "B1" | "B2")[] | null;
   [k: string]: unknown;
 }
 /**

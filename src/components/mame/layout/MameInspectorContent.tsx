@@ -85,6 +85,15 @@ function QcInputsInspector() {
   const minFilteredDepth = useMameAppStore((s) => s.minFilteredDepth);
   const verdicts = useMameAppStore((s) => s.verdicts);
 
+  // Record-level retention estimate: PASS records over all records, one entry
+  // per VerdictRecord, so a well sequenced across several replicates counts
+  // several times. That is the intended question here (what share of the reads
+  // that came back are usable), and it is deliberately none of the other two
+  // PASS quantities in this app: SummaryRow reports the variant-level success
+  // rate, and the backend merge admits a variant once under `verdict == PASS
+  // and not failed and not is_fallback`
+  // (kuma_core/mame/activity/build_evolvepro_input.py:224). Do not present this
+  // number as a merge row count.
   const totalWells = verdicts.length;
   const passCount = verdicts.filter((v) => v.verdict === "PASS").length;
   const estRetention =
@@ -195,6 +204,13 @@ function ActivityMergeExportInspector() {
     return <EmptyState message={t("mame.activity.mergeExport.inspectorNoMerge")} />;
   }
 
+  // PASS verdict records, not merged rows. The merge admits one row per variant
+  // under `verdict == PASS and not failed and not is_fallback`
+  // (kuma_core/mame/activity/build_evolvepro_input.py:224), so on a run with
+  // three replicates per variant this count runs about threefold higher. The
+  // real counts (n_variants, n_ngs_excluded, exclusion_reason_counts) come back
+  // from the RPC into BuildEvolveproInputPanel and never reach this inspector,
+  // so the label states what this number is instead of predicting the merge.
   const passVerdicts = verdicts.filter((v) => v.verdict === "PASS");
 
   return (

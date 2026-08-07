@@ -261,7 +261,7 @@
       "coverageFractionHelp": "Minimum fraction of the reference sequence that must be covered by each alignment hit (0.5 to 1.0). Higher values require more complete alignments.",
       "coverageFractionAriaLabel": "Minimum coverage fraction for alignment hits",
       "editDistRatio": "Edit Distance Ratio",
-      "editDistRatioHelp": "Maximum edit distance as a fraction of the barcode prefix length (0.0 to 0.5). Lower values require stricter barcode matches.",
+      "editDistRatioHelp": "Максимальное расстояние редактирования как доля длины префикса штрихкода (от 0.01 до 0.5). Меньшие значения требуют более строгого совпадения штрихкодов.",
       "editDistRatioAriaLabel": "Maximum edit distance ratio for barcode matching",
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
@@ -406,7 +406,7 @@
         "inspectorActivity": "Activity",
         "inspectorBridgeCallout": "Bidirectional bridge",
         "inspectorBridgeDesc": "Merged table flows back to KURO as EVOLVEpro input for the next design round.",
-        "inspectorMergedRows": "Merged rows",
+        "inspectorMergedRows": "Записи PASS (до merge)",
         "inspectorNoMerge": "No merge performed yet",
         "inspectorStatus": "Status",
         "inspectorSubtitle": "R585A merge summary",
@@ -671,7 +671,9 @@
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
       "janusTabTitle": "Настройки прибора Janus — необязательный шаг для отбора клеточных стоков (шаг ③ рабочего процесса PI)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
-      "efficiencyChartTitle": "Per-plate verdict breakdown"
+      "efficiencyChartTitle": "Per-plate verdict breakdown",
+      "dropUnsupported": "Этот файл здесь использовать нельзя: {{ext}} не принимается. Допустимые: {{allowed}}",
+      "dropNoExtension": "без расширения"
     },
     "dialogs": {
       "export": {
@@ -2399,12 +2401,12 @@
     "description": "Основные изменения последнего обновления.",
     "gotItBtn": "Понятно",
     "highlights": [
-      "Шаг 4.2 теперь получает повторы дикого типа, измеренные шагом 4.1, вместо сообщения о том, что их нет.",
-      "Книга без столбца дикого типа и книга со слишком малым числом повторов теперь разные ответы, и экран называет, какой именно.",
-      "Повторы попадают в классификатор только когда их хватает для оценки шума, чтобы вердикт не опирался на один сигнал с полной уверенностью.",
-      "Бэктест, определяющий какие сигналы движут рекомендацией, теперь лежит в репозитории, а не цитируется одним лишь именем файла."
+      "Один построитель строк Echo питает csv, xlsx worklist и предпросмотр, и все три называют один и тот же source well под quadrant.",
+      "Запуск без нажатия Validate больше не пропускает проверку против выбора папки fastq_pass вместо папки run.",
+      "Панель перестала сообщать число объединенных строк, которое она не считала, а повторное открытие проекта показывает recovery вместо n/a.",
+      "Файлы, которые принимает sidecar, больше не отклоняются в выборе файлов, а файлы provenance несут одну версию вместо трех."
     ],
-    "highlightsStamp": "0.16.8+2cb0acdc"
+    "highlightsStamp": "0.16.9+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "Копировать sequence",

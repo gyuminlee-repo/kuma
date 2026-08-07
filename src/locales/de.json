@@ -261,7 +261,7 @@
       "coverageFractionHelp": "Minimum fraction of the reference sequence that must be covered by each alignment hit (0.5 to 1.0). Higher values require more complete alignments.",
       "coverageFractionAriaLabel": "Minimum coverage fraction for alignment hits",
       "editDistRatio": "Edit Distance Ratio",
-      "editDistRatioHelp": "Maximum edit distance as a fraction of the barcode prefix length (0.0 to 0.5). Lower values require stricter barcode matches.",
+      "editDistRatioHelp": "Maximale Editierdistanz als Anteil der Barcode-Präfixlänge (0.01 bis 0.5). Niedrigere Werte erfordern strengere Barcode-Übereinstimmungen.",
       "editDistRatioAriaLabel": "Maximum edit distance ratio for barcode matching",
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
@@ -406,7 +406,7 @@
         "inspectorActivity": "Activity",
         "inspectorBridgeCallout": "Bidirectional bridge",
         "inspectorBridgeDesc": "Merged table flows back to KURO as EVOLVEpro input for the next design round.",
-        "inspectorMergedRows": "Merged rows",
+        "inspectorMergedRows": "PASS-Datensätze (vor dem Merge)",
         "inspectorNoMerge": "No merge performed yet",
         "inspectorStatus": "Status",
         "inspectorSubtitle": "R585A merge summary",
@@ -671,7 +671,9 @@
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
       "janusTabTitle": "Janus-Geräteeinstellungen — optionaler Schritt für die Zellstock-Entnahme (Schritt ③ des PI-Workflows)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
-      "efficiencyChartTitle": "Per-plate verdict breakdown"
+      "efficiencyChartTitle": "Per-plate verdict breakdown",
+      "dropUnsupported": "Diese Datei kann hier nicht verwendet werden: {{ext}} wird nicht akzeptiert. Erlaubt: {{allowed}}",
+      "dropNoExtension": "keine Dateiendung"
     },
     "dialogs": {
       "export": {
@@ -2399,12 +2401,12 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Schritt 4.2 erhaelt nun die Wildtyp-Replikate, die Schritt 4.1 gemessen hat, statt zu hoeren, es gebe keine.",
-      "Eine Arbeitsmappe ohne Wildtyp-Spalte und eine mit zu wenigen Replikaten sind verschiedene Antworten, und der Bildschirm nennt den Fall.",
-      "Replikate erreichen den Klassifikator nur, wenn sie fuer eine Rauschschaetzung ausreichen, damit kein Urteil bei voller Konfidenz auf einem Signal beruht.",
-      "Der Backtest, der festlegt welche Signale die Empfehlung treiben, liegt jetzt im Repository statt nur als Dateiname zitiert zu werden."
+      "Ein Echo-Zeilenbauer speist csv, xlsx-Worklist und Vorschau, sodass alle drei unter einem Quadranten dasselbe Source-Well nennen.",
+      "Ein Lauf ohne vorheriges Validate überspringt nicht mehr die Prüfung gegen den fastq_pass-Ordner statt des Run-Ordners.",
+      "Die Leiste meldet keine Merge-Zeilenzahl mehr, die sie nie gezählt hat, und ein erneut geöffnetes Projekt zeigt Recovery statt n/a.",
+      "Dateien, die der Sidecar annimmt, werden von den Pickern nicht mehr abgelehnt, und Provenance-Dateien tragen eine Version statt drei."
     ],
-    "highlightsStamp": "0.16.8+2cb0acdc"
+    "highlightsStamp": "0.16.9+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",

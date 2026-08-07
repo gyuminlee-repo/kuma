@@ -683,6 +683,14 @@ export interface RpcMethodMap {
       mappings?: PlateMapping[];
       dedup_info?: Record<string, string[]>;
       mapping_range?: { row_start: string; row_end: string } | null;
+      /**
+       * Same placement parameters export_mapping takes, so the preview and the
+       * exported csv name the same source wells. quadrant outranks
+       * mapping_range, and a quadrant already listed in used_quadrants is
+       * refused here as it is on export.
+       */
+      quadrant?: EchoQuadrant | null;
+      used_quadrants?: EchoQuadrant[];
     };
     result: {
       rows: Array<{

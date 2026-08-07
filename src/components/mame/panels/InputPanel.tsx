@@ -13,6 +13,11 @@ import { FileField } from "./FileField";
 import { VariantColumnMapping } from "./VariantColumnMapping";
 import { Spinner } from "@/components/ui/Spinner";
 import { defaultMameExportFilename } from "@/lib/filename";
+import {
+  MAME_EXCEL_EXTENSIONS,
+  MAME_SEQUENCE_EXTENSIONS,
+  toDialogExtensions,
+} from "@/lib/mame/fileExtensions";
 
 const INPUT_DIR_CONFIG_KEYS: Record<InputMode, { labelKey: string; helperTextKey: string; placeholderKey: string }> = {
   consensus: {
@@ -128,7 +133,11 @@ export function InputPanel() {
     const selected = toSinglePath(
       await open({
         directory: false,
-        filters: [{ name: "Variant list (Excel / CSV)", extensions: ["xlsx", "csv"] }],
+        // csv 는 사이드카가 거부한다 ("Unsupported file extension '.csv'.
+        // Allowed: ['.xlsx']"). picker 가 넓으면 고른 뒤에야 거부가 온다.
+        filters: [
+          { name: "Variant list (Excel)", extensions: toDialogExtensions(MAME_EXCEL_EXTENSIONS) },
+        ],
       }),
     );
     if (!selected) return;
@@ -152,7 +161,7 @@ export function InputPanel() {
         filters: [
           {
             name: "Sequence (FASTA / GenBank / SnapGene)",
-            extensions: ["fasta", "fa", "fna", "gb", "gbk", "gbff", "dna"],
+            extensions: toDialogExtensions(MAME_SEQUENCE_EXTENSIONS),
           },
         ],
       }),
@@ -169,7 +178,11 @@ export function InputPanel() {
     const selected = toSinglePath(
       await open({
         directory: false,
-        filters: [{ name: "Barcode files", extensions: ["xlsx", "csv"] }],
+        // custom_barcodes_xlsx 도 xlsx 전용이다
+        // (python-core/sidecar_mame/handlers/analyze.py:1013).
+        filters: [
+          { name: "Barcode workbook (Excel)", extensions: toDialogExtensions(MAME_EXCEL_EXTENSIONS) },
+        ],
         title: "Select custom barcode file",
       }),
     );

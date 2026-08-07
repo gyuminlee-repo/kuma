@@ -194,17 +194,33 @@ export function SharedAboutDialog({
     let text = entries;
     if (kind === "mame") {
       // §4 Error UX: include reproduction metadata header for MAME.
-      let sidecarVersion = "unknown";
+      //
+      // The method is `health_info` (see sidecar_mame/dispatcher.py `_METHODS`),
+      // and its result is {pid, rss_bytes, py_version}. There is no
+      // `sidecar_version` field anywhere in python-core, so do not ask for one.
+      //
+      // A failed probe must be visible in the pasted report: "sidecar dead" and
+      // "diagnostics collection broke" are different bugs and a single "unknown"
+      // hides both. The failure reason goes into the clipboard text, not just
+      // the console.
+      let sidecarLine: string;
       try {
-        const health = await rpc<{ sidecar_version: string }>("mame", "health", {});
-        sidecarVersion = health.sidecar_version;
-      } catch {
-        // sidecar may be unavailable during crash reporting — ignore
+        const health = await rpc<{
+          pid: number;
+          rss_bytes: number;
+          py_version: string;
+        }>("mame", "health_info", {});
+        const rssMb = Math.round(health.rss_bytes / (1024 * 1024));
+        sidecarLine = `alive (pid ${health.pid}, python ${health.py_version}, rss ${rssMb} MB)`;
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        console.warn("[SharedAboutDialog] health_info probe failed:", err);
+        sidecarLine = `health_info probe failed: ${reason}`;
       }
       const header = [
         "=== MAME Crash Report ===",
         `App version  : ${typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "unknown"}`,
-        `Sidecar      : ${sidecarVersion}`,
+        `Sidecar      : ${sidecarLine}`,
         `OS           : ${navigator.userAgent}`,
         `Timestamp    : ${new Date().toISOString()}`,
         "",

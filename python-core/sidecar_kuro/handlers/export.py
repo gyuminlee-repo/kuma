@@ -425,8 +425,13 @@ def handle_export_mapping(params: dict) -> dict:
     if p.format == "echo":
         vol = int(_resolve_mapping_transfer_volume(p.format, p.transfer_vol))
         if use_xlsx:
+            # Same placement parameters as the csv branch: one export_mapping
+            # call must not answer differently for .xlsx than for .csv.
             export_echo_mapping_xlsx(fwd_mappings, rev_mappings, resolved,
-                                     transfer_vol=vol, rev_groups=rev_groups)
+                                     transfer_vol=vol, rev_groups=rev_groups,
+                                     mapping_range=mapping_range,
+                                     quadrant=p.quadrant,
+                                     used_quadrants=list(p.used_quadrants or []))
         else:
             export_echo_mapping_csv(fwd_mappings, rev_mappings, resolved,
                                     transfer_vol=vol, rev_groups=rev_groups,
@@ -683,68 +688,25 @@ def _build_echo_preview_rows(
     transfer_vol: int,
     rev_groups: dict,
     mapping_range: tuple[str, str] | None = None,
+    quadrant: str | None = None,
+    used_quadrants: list[str] | None = None,
 ) -> list[dict]:
     """Build Echo mapping preview rows in-memory (no file I/O).
 
-    Mirrors the row schema of ``export_echo_mapping_csv``. When
-    ``mapping_range`` is provided, 384-well source positions are restricted
-    to the given inclusive row range (forwarded to ``_to_384_well_fwd/rev``).
+    Delegates to ``build_echo_rows``, the same builder the CSV and XLSX exports
+    use, so the preview cannot describe a different plate than the file the
+    operator ends up loading onto the instrument. It used to re-derive the rows
+    and honour ``mapping_range`` alone, which put the preview above the quadrant
+    selector in ExportStepView showing wells the exported csv would not use.
     """
-    from kuma_core.kuro.plate_mapper import (
-        _build_rev_lookups,
-        _parse_well_plate,
-        _to_384_well_fwd,
-        _to_384_well_rev,
-        _split_echo_volume,
+    from kuma_core.kuro.plate_mapper import build_echo_rows
+
+    return build_echo_rows(
+        fwd, rev, rev_groups, transfer_vol,
+        mapping_range=mapping_range,
+        quadrant=quadrant,
+        used_quadrants=used_quadrants,
     )
-
-    fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(fwd, rev, rev_groups)
-
-    rows: list[dict] = []
-    for m in fwd:
-        plate_idx, base_well = _parse_well_plate(m.well)
-        src_plate = f"Source [{plate_idx + 1}]"
-        dest_plate = f"Destination [{plate_idx + 1}]"
-        src_well = _to_384_well_fwd(base_well, mapping_range=mapping_range)
-        for vol in _split_echo_volume(transfer_vol):
-            rows.append({
-                "source_plate": src_plate,
-                "source_well_name": m.primer_name,
-                "source_well": src_well,
-                "dest_plate": dest_plate,
-                "dest_well_name": m.mutation,
-                "dest_well": base_well,
-                "transfer_vol": vol,
-                "mutation": m.mutation,
-            })
-
-    for fwd_m in fwd:
-        rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
-        if rev_seq is None:
-            continue
-        rev_m = rev_by_seq.get(rev_seq)
-        if rev_m is None:
-            continue
-
-        fwd_plate_idx, _ = _parse_well_plate(fwd_m.well)
-        src_plate = f"Source [{fwd_plate_idx + 1}]"
-        dest_plate = f"Destination [{fwd_plate_idx + 1}]"
-        _, rev_base_well = _parse_well_plate(rev_m.well)
-        src_well = _to_384_well_rev(rev_base_well, mapping_range=mapping_range)
-        _, dest_well = _parse_well_plate(fwd_by_mut.get(fwd_m.mutation, fwd_m.well))
-
-        for vol in _split_echo_volume(transfer_vol):
-            rows.append({
-                "source_plate": src_plate,
-                "source_well_name": rev_m.primer_name,
-                "source_well": src_well,
-                "dest_plate": dest_plate,
-                "dest_well_name": fwd_m.mutation,
-                "dest_well": dest_well,
-                "transfer_vol": vol,
-                "mutation": fwd_m.mutation,
-            })
-    return rows
 
 
 def _build_janus_preview_rows(
@@ -812,7 +774,10 @@ def handle_export_echo_mapping_dry_run(params: dict) -> dict:
             )
     fwd, rev = _split_fwd_rev(mappings)
     rows = _build_echo_preview_rows(
-        fwd, rev, int(vol), rev_groups, mapping_range=mapping_range,
+        fwd, rev, int(vol), rev_groups,
+        mapping_range=mapping_range,
+        quadrant=p.quadrant,
+        used_quadrants=list(p.used_quadrants or []),
     )
     return {"rows": rows, "total": len(rows), "transfer_vol": int(vol)}
 
@@ -950,10 +915,15 @@ def handle_export_all(params: dict) -> dict:
         used_quadrants=list(p.used_quadrants or []),
     ))
 
+    # The same quadrant the csv above is written with. One export_all used to
+    # leave a csv and an xlsx naming different source wells for the same primer,
+    # and nothing in either file says which one the plate was stamped from.
     _try(ECHO_XLSX, lambda: export_echo_mapping_xlsx(
         fwd, rev, target_dir / ECHO_XLSX,
         transfer_vol=int(p.echo_transfer_vol),
         rev_groups=rev_groups,
+        quadrant=p.quadrant,
+        used_quadrants=list(p.used_quadrants or []),
     ))
 
     _try(JANUS_CSV, lambda: _export_janus_for_all(

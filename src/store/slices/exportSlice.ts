@@ -403,7 +403,12 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         dedup_info: dedupInfo,
         report_data: reportData,
         ...(benchmarkRaw ? { benchmark_raw: benchmarkRaw } : {}),
-        ...(projectId ? { project_id: projectId, kuma_version: "0.02.02" } : {}),
+        // __APP_VERSION__ is the build's release version (vite.config.ts:69), the
+        // same idiom as kuroSnapshot.ts:144, autosaveSnapshot.ts:146 and
+        // resultSnapshot.ts:71. This value is stamped into the hidden
+        // __kuma_meta__ sheet of the exported workbook and is what manifestDiff.ts
+        // compares across releases, so a literal froze every export at one string.
+        ...(projectId ? { project_id: projectId, kuma_version: __APP_VERSION__ } : {}),
         ...(rescuedInfo ? { rescued_info: rescuedInfo } : {}),
       });
       set({ statusMessage: `Exported Excel: ${filepath}` });

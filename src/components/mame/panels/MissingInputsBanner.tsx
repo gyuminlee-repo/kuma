@@ -31,6 +31,12 @@ import {
 } from "@/lib/mame/missingInputs";
 
 import {
+  MAME_EXCEL_EXTENSIONS,
+  MAME_SEQUENCE_EXTENSIONS,
+  toDialogExtensions,
+} from "@/lib/mame/fileExtensions";
+
+import {
   MAME_PATH_LABEL_KEYS,
   type MamePathField,
   type RestoredMamePaths,
@@ -39,10 +45,16 @@ import {
 /** run 폴더만 디렉토리 선택이고 나머지는 파일 선택이다. */
 const DIRECTORY_FIELDS = new Set<MamePathField>(["inputDir"]);
 
+/**
+ * 필터는 사이드카가 실제로 받는 집합이어야 한다. 넓으면 고른 뒤에야 거부가
+ * 오고(csv), 좁으면 되찾을 방법이 사라진다. 복원 직후 reference 가 .gb 였던
+ * 조작자는 fa/fasta/fna 필터로는 자기 파일을 볼 수조차 없었다.
+ * sequencingSummaryPath 는 3집합에 대응하는 정본이 없어 그대로 둔다.
+ */
 const FILTERS: Partial<Record<MamePathField, { name: string; extensions: string[] }>> = {
-  expectedPath: { name: "Excel", extensions: ["xlsx"] },
-  referencePath: { name: "Sequence", extensions: ["fa", "fasta", "fna"] },
-  customBarcodesPath: { name: "Table", extensions: ["xlsx", "csv"] },
+  expectedPath: { name: "Excel", extensions: toDialogExtensions(MAME_EXCEL_EXTENSIONS) },
+  referencePath: { name: "Sequence", extensions: toDialogExtensions(MAME_SEQUENCE_EXTENSIONS) },
+  customBarcodesPath: { name: "Excel", extensions: toDialogExtensions(MAME_EXCEL_EXTENSIONS) },
   sequencingSummaryPath: { name: "Summary", extensions: ["txt", "tsv"] },
 };
 

@@ -604,6 +604,12 @@ class ExportMappingDryRunParams(BaseModel):
     mappings: Optional[list[PlateMappingItem]] = None
     dedup_info: Optional[dict[str, list[str]]] = None
     mapping_range: Optional[MappingRange] = None
+    #: Same placement parameters the Echo export takes. The preview sits above
+    #: the quadrant selector in the export step, so a preview that ignored them
+    #: had the operator checking wells the exported csv would not use. Echo only;
+    #: the JANUS dry run accepts and ignores them, as it does ``mapping_range``.
+    quadrant: Optional[Literal["A1", "A2", "B1", "B2"]] = None
+    used_quadrants: Optional[list[Literal["A1", "A2", "B1", "B2"]]] = None
 
 
 class SaveWorkspaceParams(BaseModel):

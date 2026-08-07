@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { toast } from "sonner";
+import {
+  MAME_EXCEL_EXTENSIONS,
+  MAME_SEQUENCE_EXTENSIONS,
+  hasExtension,
+} from "@/lib/mame/fileExtensions";
 import { AppShell } from "@/components/shell/AppShell";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { resetMameAll } from "@/store/mame/resetAll";
@@ -54,8 +60,10 @@ import { useMameAutosave } from "@/hooks/useMameAutosave";
 // MameAppLayout 모듈 로드 시 단 한 번만 실행.
 initActivityStore(useRoundStore);
 
-const SEQUENCE_EXTENSIONS = new Set([".fa", ".fasta", ".fna"]);
-const XLSX_EXTENSIONS = new Set([".xlsx"]);
+// 드롭으로 받는 확장자는 사이드카가 받는 것과 같아야 한다. 이전에는 여기가
+// FASTA 3종뿐이라 .gb / .dna reference 를 창에 떨어뜨려도 조용히 아무 일도
+// 일어나지 않았다. 정본은 python-core/sidecar_mame/core.py:139-141.
+const DROPPABLE_EXTENSIONS = [...MAME_SEQUENCE_EXTENSIONS, ...MAME_EXCEL_EXTENSIONS];
 
 // ContextHeader 제목/부제 — sub-step별 i18n 키 매핑
 const CONTEXT_TITLE_KEYS: Record<MameSubStepId, { title: string; subtitle: string }> = {
@@ -171,19 +179,34 @@ export function MameAppLayout() {
             void tryHandleManifestDrop(paths).then(async (result) => {
               if (!result.handled) {
                 // 기존 파일 처리 흐름
+                let routed = false;
                 for (const filePath of paths) {
-                  const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
-                  if (SEQUENCE_EXTENSIONS.has(ext)) {
+                  if (hasExtension(filePath, MAME_SEQUENCE_EXTENSIONS)) {
                     useMameAppStore.getState().setReferencePath(filePath);
+                    routed = true;
                     break;
                   }
-                  if (XLSX_EXTENSIONS.has(ext)) {
+                  if (hasExtension(filePath, MAME_EXCEL_EXTENSIONS)) {
                     window.dispatchEvent(
                       new CustomEvent("kuma:mame-xlsx-dropped", { detail: { path: filePath } }),
                     );
                     useMameAppStore.getState().setExpectedPath(filePath);
+                    routed = true;
                     break;
                   }
+                }
+                // 받을 수 없는 확장자를 조용히 흘려보내면 조작자는 드롭이 먹힌
+                // 줄 알고 다음 단계로 넘어간다. 무엇이 문제인지 말해 준다.
+                if (!routed && paths.length > 0) {
+                  const first = paths[0] ?? "";
+                  const dot = first.lastIndexOf(".");
+                  const ext = dot === -1 ? "" : first.slice(dot).toLowerCase();
+                  toast.error(
+                    t("mame.appLayout.dropUnsupported", {
+                      ext: ext || t("mame.appLayout.dropNoExtension"),
+                      allowed: DROPPABLE_EXTENSIONS.join(", "),
+                    }),
+                  );
                 }
                 return;
               }

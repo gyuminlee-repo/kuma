@@ -261,7 +261,7 @@
       "coverageFractionHelp": "Minimum fraction of the reference sequence that must be covered by each alignment hit (0.5 to 1.0). Higher values require more complete alignments.",
       "coverageFractionAriaLabel": "Minimum coverage fraction for alignment hits",
       "editDistRatio": "Edit Distance Ratio",
-      "editDistRatioHelp": "Maximum edit distance as a fraction of the barcode prefix length (0.0 to 0.5). Lower values require stricter barcode matches.",
+      "editDistRatioHelp": "Distance d'édition maximale exprimée en fraction de la longueur du préfixe de code-barres (0.01 à 0.5). Des valeurs plus faibles imposent des correspondances de code-barres plus strictes.",
       "editDistRatioAriaLabel": "Maximum edit distance ratio for barcode matching",
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
@@ -406,7 +406,7 @@
         "inspectorActivity": "Activity",
         "inspectorBridgeCallout": "Bidirectional bridge",
         "inspectorBridgeDesc": "Merged table flows back to KURO as EVOLVEpro input for the next design round.",
-        "inspectorMergedRows": "Merged rows",
+        "inspectorMergedRows": "Enregistrements PASS (avant le merge)",
         "inspectorNoMerge": "No merge performed yet",
         "inspectorStatus": "Status",
         "inspectorSubtitle": "R585A merge summary",
@@ -671,7 +671,9 @@
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
       "janusTabTitle": "Réglages de l'instrument Janus — étape optionnelle pour le prélèvement de stocks cellulaires (étape ③ du flux PI)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
-      "efficiencyChartTitle": "Per-plate verdict breakdown"
+      "efficiencyChartTitle": "Per-plate verdict breakdown",
+      "dropUnsupported": "Ce fichier ne peut pas être utilisé ici : {{ext}} n'est pas accepté. Autorisés : {{allowed}}",
+      "dropNoExtension": "sans extension"
     },
     "dialogs": {
       "export": {
@@ -2399,12 +2401,12 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "L etape 4.2 recoit desormais les replicats de type sauvage mesures par l etape 4.1, au lieu de s entendre dire qu il n y en a aucun.",
-      "Un classeur sans colonne de type sauvage et un classeur avec trop peu de replicats sont deux reponses distinctes, et l ecran precise laquelle.",
-      "Les replicats atteignent le classifieur uniquement quand ils suffisent a estimer le bruit, afin qu aucun verdict ne repose sur un seul signal en pleine confiance.",
-      "Le backtest qui determine quels signaux guident la recommandation se trouve maintenant dans le depot, et non cite par simple nom de fichier."
+      "Un seul constructeur de lignes Echo alimente le csv, la worklist xlsx et l'aperçu, qui nomment le même well source sous un quadrant.",
+      "Lancer sans passer par Validate ne saute plus le garde qui empêche de choisir le dossier fastq_pass au lieu du dossier du run.",
+      "Le tiroir cesse d'annoncer un nombre de lignes fusionnées qu'il ne comptait pas, et rouvrir un projet affiche le recovery au lieu de n/a.",
+      "Les fichiers que le sidecar accepte ne sont plus refusés par les sélecteurs, et les fichiers de provenance portent une version au lieu de trois."
     ],
-    "highlightsStamp": "0.16.8+2cb0acdc"
+    "highlightsStamp": "0.16.9+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",

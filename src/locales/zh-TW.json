@@ -261,7 +261,7 @@
       "coverageFractionHelp": "Minimum fraction of the reference sequence that must be covered by each alignment hit (0.5 to 1.0). Higher values require more complete alignments.",
       "coverageFractionAriaLabel": "Minimum coverage fraction for alignment hits",
       "editDistRatio": "Edit Distance Ratio",
-      "editDistRatioHelp": "Maximum edit distance as a fraction of the barcode prefix length (0.0 to 0.5). Lower values require stricter barcode matches.",
+      "editDistRatioHelp": "編輯距離相對條碼前綴長度的最大比例 (0.01 至 0.5)。數值越小，條碼比對越嚴格。",
       "editDistRatioAriaLabel": "Maximum edit distance ratio for barcode matching",
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
@@ -406,7 +406,7 @@
         "inspectorActivity": "Activity",
         "inspectorBridgeCallout": "Bidirectional bridge",
         "inspectorBridgeDesc": "Merged table flows back to KURO as EVOLVEpro input for the next design round.",
-        "inspectorMergedRows": "Merged rows",
+        "inspectorMergedRows": "PASS 記錄（合併前）",
         "inspectorNoMerge": "No merge performed yet",
         "inspectorStatus": "Status",
         "inspectorSubtitle": "R585A merge summary",
@@ -671,7 +671,9 @@
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
       "janusTabTitle": "Janus 設備設定 — 細胞庫挑取的選用步驟 (PI 工作流程步驟③)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
-      "efficiencyChartTitle": "Per-plate verdict breakdown"
+      "efficiencyChartTitle": "Per-plate verdict breakdown",
+      "dropUnsupported": "此處無法使用該檔案，不接受 {{ext}}。允許的類型: {{allowed}}",
+      "dropNoExtension": "無副檔名"
     },
     "dialogs": {
       "export": {
@@ -2399,12 +2401,12 @@
     "description": "最新更新亮點。",
     "gotItBtn": "知道了",
     "highlights": [
-      "step 4.2 現在接收 step 4.1 測得的 wild-type 重複值，不再被告知它們不存在。",
-      "缺少 wild-type 欄的活頁簿與重複數不足的活頁簿是不同的答案，介面會說明屬於哪一種。",
-      "只有重複數足以估計雜訊時才傳給分類器，避免讓依賴單一訊號的判定以滿信心顯示。",
-      "決定哪些訊號驅動該建議的 backtest 已進入儲存庫，不再僅以檔名引用。"
+      "Echo 轉移列由一處生成，csv、xlsx 工作單與預覽在 quadrant 下指向同一個 source well。",
+      "未按 Validate 直接執行時，不再跳過防止選中 fastq_pass 資料夾而非 run 資料夾的檢查。",
+      "抽屜不再報告它從未統計的合併列數，重新開啟專案會顯示 recovery 而不是 n/a。",
+      "sidecar 接受的檔案不再被選擇器拒絕，provenance 檔案只帶一個發布版本而不是三個。"
     ],
-    "highlightsStamp": "0.16.8+2cb0acdc"
+    "highlightsStamp": "0.16.9+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "複製序列",

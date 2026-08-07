@@ -349,6 +349,37 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     expect(st.distributionStats).toEqual(ANALYZE_RESULT.distribution_stats);
   });
 
+  it("sends designed_mutant_ids so a restored run can still report recovery", async () => {
+    // The sidecar stores this one (unlike summary / distribution_stats), and
+    // without it build_run_health reports recovery_rate, total_mutants and
+    // recovered_mutants as null -- Run Health and the exported report then say
+    // n/a on every reopen. Asserted at the real call site: the handler-side
+    // round-trip test builds its own payload and passes even when the caller
+    // drops the field.
+    const designed = ["mut_a", "mut_b"];
+    hooks.readMameResultSnapshot.mockResolvedValue({
+      status: "ok",
+      snapshot: {
+        schema: 1,
+        saved_at: new Date().toISOString(),
+        kuma_version: "0.0.0-test",
+        result: { ...ANALYZE_RESULT, designed_mutant_ids: designed },
+      },
+    });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(
+        hooks.sendMameRequest.mock.calls.some((c) => c[0] === "load_analyze_result"),
+      ).toBe(true);
+    });
+    const [, params] = hooks.sendMameRequest.mock.calls.find(
+      (c) => c[0] === "load_analyze_result",
+    ) as [string, { designed_mutant_ids: string[] | null }];
+    expect(params.designed_mutant_ids).toEqual(designed);
+  });
+
   it("carries the off-layout records of the saved run through a restart", async () => {
     // The saved run counted reads from wells its layout does not name. Restoring
     // the rest of the report but not this leaves OffLayoutRecordsNotice silent,
@@ -370,6 +401,51 @@ describe("useAutosaveHydration: analyze-result restore", () => {
       expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
     });
     expect(useMameAppStore.getState().offLayoutRecords).toEqual(OFF_LAYOUT_RECORDS);
+  });
+
+  it("carries a failed pick-list autosave through a restart", async () => {
+    // The pick list is written by every finished analyze, so its absence has to
+    // be as visible as its presence. A run whose file failed still reported
+    // "Analysis complete", and JanusAutosaveNotice was the only thing on screen
+    // saying otherwise; before this was restored, reopening the project made
+    // that run indistinguishable from one that wrote its picks and sent the
+    // operator to an empty folder.
+    const failed = {
+      status: "failed" as const,
+      output_path: null,
+      format: "csv" as const,
+      row_count: 0,
+      excluded: [],
+      excluded_count: 0,
+      errors: [
+        {
+          code: "autosave_failed" as const,
+          severity: "error" as const,
+          message: "permission denied",
+          mutant_ids: [],
+        },
+      ],
+      warnings: [],
+    };
+    hooks.readMameResultSnapshot.mockResolvedValue({
+      status: "ok",
+      snapshot: {
+        schema: 1,
+        saved_at: new Date().toISOString(),
+        kuma_version: "0.0.0-test",
+        result: { ...ANALYZE_RESULT, janus_autosave: failed },
+      },
+    });
+
+    renderHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
+    });
+    expect(useMameAppStore.getState().janusAutosave).toEqual(failed);
+    // The instrument mapping is deliberately not reasserted: it is written only
+    // by a manual export and states a deck describing the room at that moment.
+    expect(useMameAppStore.getState().janusMappingAutosave).toBeNull();
   });
 
   it("carries the reference slice the saved run analysed through a restart", async () => {

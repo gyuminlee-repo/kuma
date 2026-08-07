@@ -261,7 +261,7 @@
       "coverageFractionHelp": "Minimum fraction of the reference sequence that must be covered by each alignment hit (0.5 to 1.0). Higher values require more complete alignments.",
       "coverageFractionAriaLabel": "Minimum coverage fraction for alignment hits",
       "editDistRatio": "Edit Distance Ratio",
-      "editDistRatioHelp": "Maximum edit distance as a fraction of the barcode prefix length (0.0 to 0.5). Lower values require stricter barcode matches.",
+      "editDistRatioHelp": "Distancia de edición máxima como fracción de la longitud del prefijo del código de barras (0.01 a 0.5). Los valores más bajos exigen coincidencias de código de barras más estrictas.",
       "editDistRatioAriaLabel": "Maximum edit distance ratio for barcode matching",
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
@@ -406,7 +406,7 @@
         "inspectorActivity": "Activity",
         "inspectorBridgeCallout": "Bidirectional bridge",
         "inspectorBridgeDesc": "Merged table flows back to KURO as EVOLVEpro input for the next design round.",
-        "inspectorMergedRows": "Merged rows",
+        "inspectorMergedRows": "Registros PASS (antes del merge)",
         "inspectorNoMerge": "No merge performed yet",
         "inspectorStatus": "Status",
         "inspectorSubtitle": "R585A merge summary",
@@ -671,7 +671,9 @@
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
       "janusTabTitle": "Ajustes del instrumento Janus — paso opcional para la toma de stocks celulares (paso ③ del flujo del PI)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
-      "efficiencyChartTitle": "Per-plate verdict breakdown"
+      "efficiencyChartTitle": "Per-plate verdict breakdown",
+      "dropUnsupported": "No se puede usar ese archivo aquí: {{ext}} no se acepta. Permitidos: {{allowed}}",
+      "dropNoExtension": "sin extensión"
     },
     "dialogs": {
       "export": {
@@ -2399,12 +2401,12 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El paso 4.2 ahora recibe las replicas de tipo silvestre que midio el paso 4.1, en vez de que se le diga que no existen.",
-      "Un libro sin columna de tipo silvestre y otro con muy pocas replicas son respuestas distintas, y la pantalla indica cual es.",
-      "Las replicas llegan al clasificador solo cuando bastan para estimar el ruido, asi ningun veredicto se apoya en una sola senal con plena confianza.",
-      "El backtest que decide que senales guian la recomendacion ya esta en el repositorio, y no citado solo por nombre de archivo."
+      "Un único generador de filas Echo alimenta el csv, la worklist xlsx y la vista previa, que nombran el mismo well de origen bajo un cuadrante.",
+      "Ejecutar sin pulsar Validate ya no omite la comprobación que impide elegir la carpeta fastq_pass en lugar de la carpeta del run.",
+      "El panel deja de informar un recuento de filas fusionadas que nunca contó, y reabrir un proyecto muestra recovery en vez de n/a.",
+      "Los archivos que el sidecar acepta ya no se rechazan en los selectores, y los archivos de procedencia llevan una versión en lugar de tres."
     ],
-    "highlightsStamp": "0.16.8+2cb0acdc"
+    "highlightsStamp": "0.16.9+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",

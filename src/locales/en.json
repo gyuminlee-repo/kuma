@@ -321,7 +321,7 @@
       "coverageFractionHelp": "Minimum fraction of the reference sequence that must be covered by each alignment hit (0.5 to 1.0). Higher values require more complete alignments.",
       "coverageFractionAriaLabel": "Minimum coverage fraction for alignment hits",
       "editDistRatio": "Edit Distance Ratio",
-      "editDistRatioHelp": "Maximum edit distance as a fraction of the barcode prefix length (0.0 to 0.5). Lower values require stricter barcode matches.",
+      "editDistRatioHelp": "Maximum edit distance as a fraction of the barcode prefix length (0.01 to 0.5). Lower values require stricter barcode matches.",
       "editDistRatioAriaLabel": "Maximum edit distance ratio for barcode matching",
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
@@ -448,7 +448,7 @@
         "inspectorSubtitle": "R585A merge summary",
         "inspectorVariant": "Variant",
         "inspectorActivity": "Activity",
-        "inspectorMergedRows": "Merged rows",
+        "inspectorMergedRows": "PASS records (pre-merge)",
         "inspectorStatus": "Status",
         "inspectorBridgeCallout": "Bidirectional bridge",
         "inspectorBridgeDesc": "Merged table flows back to KURO as EVOLVEpro input for the next design round.",
@@ -797,7 +797,9 @@
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
       "janusTabTitle": "Janus instrument settings — optional cell-stock picking setup (step ③ of PI workflow)",
-      "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)"
+      "barcodeSetupTabTitle": "Run Setup — part of NGS Validation (step ② of PI workflow)",
+      "dropUnsupported": "Cannot use that file here: {{ext}} is not accepted. Allowed: {{allowed}}",
+      "dropNoExtension": "no extension"
     },
     "dialogs": {
       "export": {
@@ -2432,12 +2434,12 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Step 4.2 now receives the wild-type replicates that step 4.1 measured, instead of being told none exist.",
-      "A workbook with no wild-type column and one with too few replicates are different answers, and the screen says which it is.",
-      "Replicates reach the classifier only when there are enough to estimate assay noise, so no verdict rests on one signal at full confidence.",
-      "The backtest that decides which signals drive the advisory is now in the repository, not cited by filename alone."
+      "One Echo row builder feeds the csv, the xlsx worklist and the preview, so all three name the same source well under a quadrant.",
+      "Starting a run without pressing Validate no longer skips the guard against picking the fastq_pass folder instead of the run folder.",
+      "The drawer stops reporting a merged row count it never counted, and reopening a project reports recovery instead of n/a.",
+      "Files the sidecar accepts are no longer refused by the pickers, and provenance files carry one release version instead of three."
     ],
-    "highlightsStamp": "0.16.8+2cb0acdc"
+    "highlightsStamp": "0.16.9+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

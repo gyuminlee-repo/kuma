@@ -261,7 +261,7 @@
       "coverageFractionHelp": "Minimum fraction of the reference sequence that must be covered by each alignment hit (0.5 to 1.0). Higher values require more complete alignments.",
       "coverageFractionAriaLabel": "Minimum coverage fraction for alignment hits",
       "editDistRatio": "Edit Distance Ratio",
-      "editDistRatioHelp": "Maximum edit distance as a fraction of the barcode prefix length (0.0 to 0.5). Lower values require stricter barcode matches.",
+      "editDistRatioHelp": "バーコードのプレフィックス長に対する編集距離の最大割合 (0.01～0.5)。値が小さいほどバーコードの一致条件が厳しくなります。",
       "editDistRatioAriaLabel": "Maximum edit distance ratio for barcode matching",
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
@@ -406,7 +406,7 @@
         "inspectorActivity": "Activity",
         "inspectorBridgeCallout": "Bidirectional bridge",
         "inspectorBridgeDesc": "Merged table flows back to KURO as EVOLVEpro input for the next design round.",
-        "inspectorMergedRows": "Merged rows",
+        "inspectorMergedRows": "PASS レコード (マージ前)",
         "inspectorNoMerge": "No merge performed yet",
         "inspectorStatus": "Status",
         "inspectorSubtitle": "R585A merge summary",
@@ -671,7 +671,9 @@
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
       "janusTabTitle": "Janus 装置設定 — セルストック分注用の任意ステップ (PI ワークフロー ステップ③)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
-      "efficiencyChartTitle": "Per-plate verdict breakdown"
+      "efficiencyChartTitle": "Per-plate verdict breakdown",
+      "dropUnsupported": "このファイルはここでは使えません。{{ext}} は受け付けません。使用可能: {{allowed}}",
+      "dropNoExtension": "拡張子なし"
     },
     "dialogs": {
       "export": {
@@ -2399,12 +2401,12 @@
     "description": "最新アップデートのハイライト。",
     "gotItBtn": "了解",
     "highlights": [
-      "step 4.2 が step 4.1 の測定した wild-type 反復値を受け取ります。存在しないと伝えられていた動作をなくしました。",
-      "wild-type 列がないワークブックと反復数が足りないワークブックが別の答えになります。どちらかを画面が示します。",
-      "ノイズを推定できる反復数があるときだけ分類器に渡します。単一シグナルに載った判定が最大確信で表示されません。",
-      "どのシグナルが助言を動かすかを決めた backtest がリポジトリ内に入りました。ファイル名だけの引用ではなくなりました。"
+      "Echo の転送行を 1 か所で作り、csv と xlsx ワークリストとプレビューが quadrant の下でも同じ source well を指す。",
+      "Validate を押さずに実行しても、run フォルダの代わりに fastq_pass フォルダを選ぶことを防ぐガードが効く。",
+      "ドロワーが数えてもいないマージ行数の報告をやめ、プロジェクトを開き直すと再現率が n/a ではなく値で出る。",
+      "sidecar が受け付けるファイルをピッカーが拒まなくなり、provenance ファイルのリリースバージョンが 3 つでなく 1 つになる。"
     ],
-    "highlightsStamp": "0.16.8+2cb0acdc"
+    "highlightsStamp": "0.16.9+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "配列をコピー",
