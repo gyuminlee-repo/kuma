@@ -873,6 +873,72 @@ def _plate_order_error(payload: dict) -> str:
     )
 
 
+def _acceptance_findings(params: dict) -> list[str]:
+    """Refusals the Validate button and the run itself have to agree on.
+
+    Returned as a list rather than raised, because the two entry points need
+    different shapes: :func:`handle_validate_inputs` collects the lot so the
+    operator sees every problem at once, and :func:`handle_analyze` raises the
+    first. Sharing the *collector* and not the raise is what stops the button
+    and the run from grading the same inputs differently, which they did until
+    2026-08-07: the run refused an ``output`` the button never looked at, and
+    the button refused a ``fastq_pass/`` selection the run walked straight past.
+
+    That second one loses data rather than time. ``is_minknow_run_dir`` asks
+    whether ``path/fastq_pass`` exists, so a run pointed at ``fastq_pass/``
+    itself answers False, takes the pre-sorted consensus branch and scores
+    whatever it finds there in silence.
+
+    Asked on the run and not only behind the button for the same reason every
+    other pre-run refusal here is mirrored: a CLI call, a harness, a script, an
+    operator who never validated all go past the button, and the frontend's
+    ``selectCanRun`` is not a defence the run can rely on.
+
+    ``input_dir`` / ``output`` shape errors (missing, traversal, wrong
+    extension) are left to the callers, which already report them under their
+    own names; this collector only speaks where the two disagreed.
+    """
+    findings: list[str] = []
+
+    input_dir = params.get("input_dir")
+    if input_dir:
+        try:
+            input_path = _validate_dirpath(input_dir)
+        except (FileNotFoundError, ValueError):
+            input_path = None
+        if input_path is not None:
+            # Raw-run guardrails: catch the two most common misselections
+            # before a multi-minute demux is kicked off.
+            from kuma_core.mame.ingest import is_minknow_run_dir
+
+            if input_path.name == "fastq_pass":
+                findings.append(
+                    "Select the MinKNOW run folder (the parent of fastq_pass/), "
+                    "not fastq_pass/ itself."
+                )
+            elif is_minknow_run_dir(input_path) and not params.get(
+                "custom_barcodes_xlsx"
+            ):
+                findings.append(
+                    "custom_barcodes_xlsx is required when input_dir is a raw "
+                    "MinKNOW run folder"
+                )
+
+    # Only when the caller states one. The MAME input screen picks an output
+    # directory and names the workbook at run time, so a validation asked
+    # before that is not missing an answer, it has not been asked the question.
+    output = params.get("output")
+    if output:
+        try:
+            _validate_output_path(
+                output, allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
+            )
+        except (FileNotFoundError, ValueError) as exc:
+            findings.append(f"output: {exc}")
+
+    return findings
+
+
 def handle_validate_inputs(params: dict) -> dict:
     """Check that all required paths exist and the expected-variant list is readable.
 
@@ -901,6 +967,11 @@ def handle_validate_inputs(params: dict) -> dict:
     barcode_axes: dict | None = None
     legacy_sample_map: dict | None = None
 
+    # The refusals this screen shares with the run itself. Collected from the
+    # one function both entry points call, so a green check here cannot mean
+    # something the run will reject (see :func:`_acceptance_findings`).
+    errors.extend(_acceptance_findings(params))
+
     # Parsed here, at the top, and reported under its own name. It used to be
     # parsed inside the ``expected`` block, where the enclosing
     # ``except ValueError`` relabelled "selected_wells is empty" as an
@@ -927,22 +998,14 @@ def handle_validate_inputs(params: dict) -> dict:
         except (FileNotFoundError, ValueError) as exc:
             errors.append(f"input_dir: {exc}")
         else:
-            # Raw-run guardrails: catch the two most common misselections before
-            # a multi-minute demux is kicked off.
+            # The raw-run misselection guards live in ``_acceptance_findings``,
+            # already collected above, because the run has to make the same two
+            # refusals. What is left here is the barcode workbook itself, whose
+            # contents this screen reports and the run reads for seeds.
             from kuma_core.mame.ingest import is_minknow_run_dir
 
             custom_barcodes_xlsx = params.get("custom_barcodes_xlsx")
             is_raw_run = is_minknow_run_dir(input_path)
-            if input_path.name == "fastq_pass":
-                errors.append(
-                    "Select the MinKNOW run folder (the parent of fastq_pass/), "
-                    "not fastq_pass/ itself."
-                )
-            elif is_raw_run and not custom_barcodes_xlsx:
-                errors.append(
-                    "custom_barcodes_xlsx is required when input_dir is a raw "
-                    "MinKNOW run folder"
-                )
             if custom_barcodes_xlsx:
                 try:
                     barcodes_path = _validate_filepath(
@@ -1134,6 +1197,13 @@ def handle_analyze(params: dict) -> dict:
     )
     from kuma_core.mame.perf import TIMER
     from kuma_core.mame.pipeline import run_analyze
+
+    # The refusals this run shares with the Validate button, from the one
+    # function both call. Raised at the first finding because a run has nowhere
+    # to put a list, and asked before anything is read because the cheapest
+    # refusal is the one that happens before the demux.
+    for finding in _acceptance_findings(params):
+        raise ValueError(finding)
 
     input_dir = _validate_dirpath(params["input_dir"])
     # Preserve the caller-supplied directory: in raw-run mode ``input_dir`` is

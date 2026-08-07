@@ -1289,3 +1289,93 @@ def test_validate_inputs_raw_run_with_barcodes_ok(tmp_path: Path) -> None:
         e.startswith("custom_barcodes_xlsx:") for e in result["errors"]
     ), result["errors"]
     assert result["valid"] is True, result["errors"]
+
+
+# ---------------------------------------------------------------------------
+# The Validate button and the run have to refuse the same inputs
+#
+# Both entry points collect their shared refusals from ``_acceptance_findings``.
+# Every test below is written as a pair, because a one-sided assertion is what
+# let the two drift in the first place: the button refused a ``fastq_pass/``
+# selection the run walked past, and the run refused an ``output`` the button
+# never looked at.
+# ---------------------------------------------------------------------------
+
+
+def _analyze_params(tmp_path: Path, **overrides) -> dict:
+    """A parameter set whose only problem is the one a test introduces."""
+    params = {
+        "input_dir": str(_make_consensus_dir(tmp_path)),
+        "reference": str(_make_reference_fasta(tmp_path)),
+        "expected": str(tmp_path / "expected.xlsx"),
+        "output": str(tmp_path / "out.xlsx"),
+    }
+    _make_kuro_xlsx(Path(params["expected"]))
+    params.update(overrides)
+    return params
+
+
+def test_analyze_rejects_fastq_pass_selection(tmp_path: Path) -> None:
+    """The run refuses it too, and this is the misselection that loses data.
+
+    ``is_minknow_run_dir`` asks whether ``path/fastq_pass`` exists, so a run
+    pointed at ``fastq_pass/`` itself answers False and takes the pre-sorted
+    consensus branch, scoring whatever it finds there without a word. Until
+    2026-08-07 the refusal lived in a comment on that branch, not in code.
+    """
+    from sidecar_mame.handlers.analyze import handle_analyze
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    params = _analyze_params(tmp_path, input_dir=str(run_dir / "fastq_pass"))
+
+    with pytest.raises(ValueError, match="parent of fastq_pass"):
+        handle_analyze(params)
+
+
+def test_analyze_rejects_a_raw_run_with_no_barcode_workbook(tmp_path: Path) -> None:
+    from sidecar_mame.handlers.analyze import handle_analyze
+
+    params = _analyze_params(tmp_path, input_dir=str(_make_minknow_run_dir(tmp_path)))
+
+    with pytest.raises(ValueError, match="custom_barcodes_xlsx is required"):
+        handle_analyze(params)
+
+
+@pytest.mark.parametrize(
+    ("bad_output", "reason"),
+    [
+        pytest.param("out.txt", "wrong extension", id="not-an-xlsx"),
+        pytest.param("no_such_dir/out.xlsx", "missing parent", id="parent-absent"),
+    ],
+)
+def test_validate_and_analyze_agree_about_the_output_path(
+    tmp_path: Path, bad_output: str, reason: str
+) -> None:
+    """Same path, same verdict at both entry points.
+
+    ``handle_validate_inputs`` used to contain no mention of ``output`` at all,
+    so it answered "Validation complete" over a path the run then refused after
+    the operator had committed to it.
+    """
+    from sidecar_mame.handlers.analyze import handle_analyze, handle_validate_inputs
+
+    params = _analyze_params(tmp_path, output=str(tmp_path / bad_output))
+
+    result = handle_validate_inputs(params)
+    assert result["valid"] is False, (reason, result["errors"])
+    assert any(e.startswith("output:") for e in result["errors"]), result["errors"]
+
+    with pytest.raises((ValueError, FileNotFoundError)):
+        handle_analyze(params)
+
+
+def test_a_good_output_path_is_accepted_by_both(tmp_path: Path) -> None:
+    """The negative control. Without it the pair above would also pass if the
+    shared collector simply refused every output it was shown.
+    """
+    from sidecar_mame.handlers.analyze import handle_validate_inputs
+
+    params = _analyze_params(tmp_path)
+
+    result = handle_validate_inputs(params)
+    assert not any(e.startswith("output:") for e in result["errors"]), result["errors"]
