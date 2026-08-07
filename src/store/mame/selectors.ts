@@ -53,11 +53,24 @@ function selectionSeatsEveryone(s: AppState): boolean {
 export function selectCanRun(s: AppState): boolean {
   let pathsReady: boolean;
   if (s.inputMode === "raw_run") {
-    // Combinatorial demux: needs inputDir + customBarcodesPath + referencePath + outputPath.
-    // expectedPath (KURO xlsx) is optional, provided via kuro_xlsx param when available.
+    // Combinatorial demux needs the barcode workbook on top of what every mode
+    // needs, and it needs `expectedPath` just the same. `handle_analyze` reads
+    // `params["expected"]` through `_validate_filepath` before it ever asks
+    // whether the input dir is a MinKNOW run (`analyze.py:1224`), and the
+    // raw-run body then reads that workbook to score the wells; an empty string
+    // there raises `filepath is required` from inside the sidecar, with no field
+    // to point the operator at.
+    //
+    // It was excluded here until 2026-08-07 on the reasoning that a raw run
+    // supplies the KURO workbook through a `kuro_xlsx` parameter instead. That
+    // field belongs to `CombinatorialDemuxParams` (`models.py:156`), a different
+    // RPC, and nothing in `src/` sends it. `_demuxAndAnalyze` sends
+    // `expected: state.expectedPath` (`inputSlice.ts:651`) like every other
+    // path, so the button was enabled over a configuration that could not start.
     pathsReady = Boolean(
       s.inputDir &&
       s.rawRunParams.customBarcodesPath &&
+      s.expectedPath &&
       s.referencePath &&
       s.outputPath,
     );

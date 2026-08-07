@@ -1640,6 +1640,24 @@ async function restoreMameResult(
   // belong to inputs the operator may have changed since.
   store.setCompareParams(result.compare_params ?? null);
   if (!alive()) return false;
+  // What became of the pick list this run wrote beside its workbook. Both live
+  // analyze paths store it (`inputSlice.ts:718` raw-run, `:868` non-raw) and
+  // `JanusAutosaveNotice.tsx:42` is the only reader, so leaving it out here
+  // made the notice disappear on reopen. The status that must survive is
+  // `failed`: a run whose pick list did not get written reported "Analysis
+  // complete" all the same, and without this line a restart erases the one
+  // thing on screen that separated it from a run that did write one.
+  // `?? null` covers a result persisted before the key existed, which the
+  // notice renders as nothing -- correct, because no such run recorded an
+  // outcome to state.
+  //
+  // `janusMappingAutosave` is deliberately NOT restored beside it. Per
+  // `slice-interfaces.ts:206` that file is written only by a manual
+  // `export_janus_mapping` call and it states a deck describing the room at
+  // the moment it was written; reasserting that on reopen would claim a
+  // mapping this session never exported.
+  useMameAppStore.setState({ janusAutosave: result.janus_autosave ?? null });
+  if (!alive()) return false;
   await store.loadPlateData();
   if (!alive()) return false;
   // A8: the run-health panel ("Plate별 verdict 분포") reads get_run_health from the

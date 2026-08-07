@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppState } from "@/store/mame/mameAppStore";
@@ -145,6 +145,47 @@ describe("ParameterPanel", () => {
 
     const chimeraSplit = screen.getByRole("switch", { name: /chimeraSplitAriaLabel/i });
     expect(chimeraSplit.getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("refuses an edit-distance ratio the demux model rejects", async () => {
+    // `DemuxParamsBase.edit_dist_ratio` is `gt=0.0` (`models.py:64`), so 0 is
+    // the one value the model names illegal. The field used to clamp to
+    // exactly that: the panel accepted it, the store kept it, and
+    // `AnalyzeRawRunParams.model_validate` killed the run only after the demux
+    // output dir was made and the FASTQ sampled.
+    const setParams = vi.fn();
+    mockStore({
+      inputMode: "raw_run",
+      mode: "amplicon",
+      ingestMode: "barcode",
+      cdsStart: 0,
+      cdsEnd: 0,
+      analyzeCdsCandidates: [],
+      selectedAnalyzeCdsIndex: null,
+      referencePath: "",
+      minFileSizeKb: 50,
+      minFilteredDepth: 15,
+      manyCutoff: 5,
+      distributionStats: null,
+      isDemuxing: false,
+      demuxProgress: 0,
+      demuxMessage: "",
+      demuxResult: null,
+      ampliconLengthEstimate: null,
+      setParams,
+      setSelectedAnalyzeCdsIndex: vi.fn(),
+    });
+
+    render(<ParameterPanel />);
+    await userEvent.click(screen.getByText(/advancedOptions/i));
+
+    const editDistInput = screen.getByLabelText(/editDistRatioAriaLabel/i) as HTMLInputElement;
+    // The browser's own guard, for the arrows and the validity state.
+    expect(editDistInput.getAttribute("min")).toBe("0.01");
+
+    // And the clamp behind it, for a typed value the arrows never produced.
+    fireEvent.change(editDistInput, { target: { value: "0" } });
+    expect(setParams).toHaveBeenCalledWith({ rawRunParams: { editDistRatio: 0.01 } });
   });
 
   it("shows ingest mode selector when inputMode is not raw_run", () => {

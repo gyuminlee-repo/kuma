@@ -52,9 +52,14 @@ export interface RawRunParams {
   lengthToleranceBp: number;         // ± window around targetLength
   // R6.5: header normalization
   normalizeHeaders: boolean;         // write >{well} FASTA headers
-  // PR-A: combinatorial demux advanced params
-  coverageFraction: number;          // min fraction of ref covered [0.5, 1.0], default 0.98
-  editDistRatio: number;             // max edit dist fraction of barcode prefix [0, 0.5], default 0.25
+  // PR-A: combinatorial demux advanced params.
+  // Ranges are stated once, in `ParameterPanel`, next to the inputs that
+  // enforce them and the comment explaining which bounds restate
+  // `DemuxParamsBase` and which narrow it. A second copy here said [0, 0.5] for
+  // `editDistRatio` long after the model settled on `gt=0.0`, and a range
+  // written where nothing reads it goes stale without anything noticing.
+  coverageFraction: number;          // min fraction of ref covered, default 0.98
+  editDistRatio: number;             // max edit dist as fraction of barcode prefix, default 0.25
   chimeraSplit: boolean;             // evaluate all alignment hits per read, default true
 }
 

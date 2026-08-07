@@ -234,6 +234,15 @@ function RawRunParamPanel() {
         onToggle={() => setShowAdvanced((v) => !v)}
         id="mame-params-advanced"
       >
+        {/* The two ranges below are narrower than `DemuxParamsBase` accepts
+            (`models.py:62-64`: coverage (0.0, 1.0], edit distance (0.0, 1.0)),
+            and deliberately so: a coverage floor under 0.5 accepts alignments
+            covering less than half the reference, and an edit-distance ceiling
+            over 0.5 lets a barcode match something more different from it than
+            alike. Both are runs that finish and mean nothing. The bounds that
+            merely restate the model (edit-distance floor, coverage ceiling)
+            track it exactly, so a value this panel accepts is a value
+            `model_validate` accepts. */}
         <div className="space-y-3">
           {/* Coverage Fraction */}
           <div className="space-y-1">
@@ -277,13 +286,13 @@ function RawRunParamPanel() {
             <Input
               id="edit-dist-ratio"
               type="number"
-              min={0.0}
+              min={0.01}
               max={0.5}
               step={0.01}
               value={rawRunParams.editDistRatio}
               onChange={(e) => {
                 const n = Number(e.target.value);
-                if (Number.isFinite(n)) updateRaw({ editDistRatio: Math.max(0.0, Math.min(0.5, n)) });
+                if (Number.isFinite(n)) updateRaw({ editDistRatio: Math.max(0.01, Math.min(0.5, n)) });
               }}
               disabled={isDemuxing}
               className="h-8 text-xs"
