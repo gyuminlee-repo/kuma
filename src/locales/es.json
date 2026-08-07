@@ -2406,7 +2406,7 @@
       "El panel deja de informar un recuento de filas fusionadas que nunca contó, y reabrir un proyecto muestra recovery en vez de n/a.",
       "Los archivos que el sidecar acepta ya no se rechazan en los selectores, y los archivos de procedencia llevan una versión en lugar de tres."
     ],
-    "highlightsStamp": "0.16.8+46abfd1a"
+    "highlightsStamp": "0.16.9+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",

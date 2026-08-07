@@ -2406,7 +2406,7 @@
       "A gaveta deixa de informar uma contagem de linhas mescladas que nunca contou, e reabrir um projeto mostra recovery em vez de n/a.",
       "Arquivos que o sidecar aceita não são mais recusados pelos seletores, e arquivos de procedência levam uma versão em vez de três."
     ],
-    "highlightsStamp": "0.16.8+46abfd1a"
+    "highlightsStamp": "0.16.9+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",

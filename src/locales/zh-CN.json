@@ -2406,7 +2406,7 @@
       "抽屉不再报告它从未统计的合并行数，重新打开项目会显示 recovery 而不是 n/a。",
       "sidecar 接受的文件不再被选择器拒绝，provenance 文件只带一个发布版本而不是三个。"
     ],
-    "highlightsStamp": "0.16.8+46abfd1a"
+    "highlightsStamp": "0.16.9+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "复制序列",

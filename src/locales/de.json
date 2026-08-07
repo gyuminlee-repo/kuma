@@ -2406,7 +2406,7 @@
       "Die Leiste meldet keine Merge-Zeilenzahl mehr, die sie nie gezählt hat, und ein erneut geöffnetes Projekt zeigt Recovery statt n/a.",
       "Dateien, die der Sidecar annimmt, werden von den Pickern nicht mehr abgelehnt, und Provenance-Dateien tragen eine Version statt drei."
     ],
-    "highlightsStamp": "0.16.8+46abfd1a"
+    "highlightsStamp": "0.16.9+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",

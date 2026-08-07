@@ -2406,7 +2406,7 @@
       "Le tiroir cesse d'annoncer un nombre de lignes fusionnées qu'il ne comptait pas, et rouvrir un projet affiche le recovery au lieu de n/a.",
       "Les fichiers que le sidecar accepte ne sont plus refusés par les sélecteurs, et les fichiers de provenance portent une version au lieu de trois."
     ],
-    "highlightsStamp": "0.16.8+46abfd1a"
+    "highlightsStamp": "0.16.9+46abfd1a"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",
