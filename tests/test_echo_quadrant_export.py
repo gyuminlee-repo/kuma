@@ -2,6 +2,9 @@
 
 The source-plate addresses have to land inside the chosen interleaved set,
 because that set is what one 96-head stamp can physically fill.
+
+Whether the CSV, the XLSX worklist sheet and the sidecar preview name the same
+wells is a separate question, asked in tests/test_echo_writer_consistency.py.
 """
 
 from __future__ import annotations

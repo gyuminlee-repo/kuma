@@ -82,7 +82,7 @@ export function ExportPlatePreview() {
   // Debounced range applied to RPC calls; updates 250 ms after the user stops adjusting.
   const [appliedRange, setAppliedRange] = useState<MappingRange | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { designResults, plateMappings, dedupInfo, tableSorting, yPredMap, customCandidates, echoTransferVol, janusTransferVol } = useAppStore(
+  const { designResults, plateMappings, dedupInfo, tableSorting, yPredMap, customCandidates, echoTransferVol, janusTransferVol, echoQuadrant, echoUsedQuadrants } = useAppStore(
     useShallow((s) => ({
       designResults: s.designResults,
       plateMappings: s.plateMappings,
@@ -92,6 +92,12 @@ export function ExportPlatePreview() {
       customCandidates: s.customCandidates,
       echoTransferVol: s.echoTransferVol,
       janusTransferVol: s.janusTransferVol,
+      // This preview renders above the quadrant selector in ExportStepView, so
+      // an operator picks a quadrant and then checks it against the plate drawn
+      // here. Until the selection reached the RPC, that check was against wells
+      // the exported csv would not use.
+      echoQuadrant: s.echoQuadrant,
+      echoUsedQuadrants: s.echoUsedQuadrants,
     })),
   );
 
@@ -108,6 +114,10 @@ export function ExportPlatePreview() {
         mappings: sortedMappings,
         dedup_info: dedupInfo,
         transfer_vol: echoTransferVol,
+        // Echo only. quadrant outranks mapping_range on the backend, so both
+        // are sent and the sidecar decides, exactly as the export does.
+        quadrant: echoQuadrant,
+        used_quadrants: echoUsedQuadrants,
       };
       const janusParams: Record<string, unknown> = {
         mappings: sortedMappings,
@@ -133,7 +143,7 @@ export function ExportPlatePreview() {
     } finally {
       setLoading(false);
     }
-  }, [sortedMappings, dedupInfo, echoTransferVol, janusTransferVol, appliedRange]);
+  }, [sortedMappings, dedupInfo, echoTransferVol, janusTransferVol, appliedRange, echoQuadrant, echoUsedQuadrants]);
 
   useEffect(() => {
     void load();

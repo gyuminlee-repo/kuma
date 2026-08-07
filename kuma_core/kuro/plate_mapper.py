@@ -783,6 +783,142 @@ def _to_384_well_rev(
     return f"{_ROWS_384[s + sub * 2 + 1]}{well_96[1:]}"
 
 
+#: Echo worklist columns, in the order the instrument reads them.
+ECHO_DEVICE_HEADER: list[str] = [
+    "Source Plate Name", "Source Well Name", "Source Well",
+    "Dest Plate Name", "Dest Well Name", "Dest Well", "Transfer Vol",
+]
+
+# Row dict key per instrument column, in ``ECHO_DEVICE_HEADER`` order. The
+# header carries the instrument spellings ("Source Well Name") while the row
+# dicts are keyed by the sidecar preview field names, so neither can be derived
+# from the other. This list is the single place the two orders are tied
+# together, which is what lets the CSV, the XLSX worklist sheet and the preview
+# emit the same seven columns without any of them restating the order.
+_ECHO_ROW_KEYS: list[str] = [
+    "source_plate",
+    "source_well_name",
+    "source_well",
+    "dest_plate",
+    "dest_well_name",
+    "dest_well",
+    "transfer_vol",
+]
+
+
+def build_echo_rows(
+    fwd_mappings: list[PlateMapping],
+    rev_mappings: list[PlateMapping],
+    rev_groups: dict[str, list[str]] | None = None,
+    transfer_vol: int = 100,
+    mapping_range: tuple[str, str] | None = None,
+    quadrant: str | None = None,
+    used_quadrants: list[str] | None = None,
+) -> list[dict]:
+    """Build Echo 525 transfer rows, one dict per transfer event.
+
+    Single source of the row content behind the CSV export, the XLSX
+    "Echo mapping file" sheet and the sidecar preview, so the three cannot drift
+    apart. They did drift: the CSV honoured both ``quadrant`` and
+    ``mapping_range``, the XLSX worklist sheet honoured neither and the preview
+    only ``mapping_range``, so one ``export_all`` left two files naming
+    different source wells for the same primer while the preview the operator
+    checked agreed with neither.
+
+    Source plate layout: 384-well (Eco 384PP).
+      - Default: forward primers occupy odd rows (A, C, E, ...), reverse
+        primers the even rows, both keeping the 96-well column ordering.
+      - ``mapping_range`` restricts those rows to an inclusive A-P band.
+      - ``quadrant`` places forward primers in one interleaved 96-head set and
+        reverse primers in its row-paired partner. Takes precedence over
+        ``mapping_range``, which cannot express a column offset.
+
+    Row order is forward primers first (in ``fwd_mappings`` order), then reverse
+    primers expanded so every forward mutation gets its own transfer row,
+    aspirating from the shared source well when the reverse primer is shared.
+    A volume above the Echo per-transfer ceiling is split into several rows.
+
+    Keys are the sidecar preview field names, plus ``mutation`` (the mutation
+    the row belongs to, not an instrument column).
+
+    Args:
+        fwd_mappings: Forward primer plate mappings (96-well coordinates).
+        rev_mappings: Deduplicated reverse primer plate mappings (96-well).
+        rev_groups: Reverse deduplication map {seq: [mutation_names]}.
+            Used to expand shared primers to all destination wells.
+        transfer_vol: Transfer volume in nL (default 100).
+        mapping_range: Inclusive 384 row band (row_start, row_end).
+        quadrant: Forward-primer quadrant (A1/A2/B1/B2).
+        used_quadrants: Quadrants already spent on a part-used plate.
+    """
+    if quadrant is not None:
+        # 이미 쓴 quadrant 위에 덮어쓰면 그 안의 프라이머가 사라진다. 경고가 아니라
+        # 거부다. 판단 근거는 작업자가 입력한 현재 plate 상태뿐이다. 여기에 두어야
+        # preview 도 같은 거부를 내고, 작업자가 못 쓸 배치를 검산하지 않는다.
+        from kuma_core.kuro.plate_quadrant import check_quadrants_available
+
+        check_quadrants_available(quadrant, used_quadrants)
+
+    fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
+        fwd_mappings, rev_mappings, rev_groups,
+    )
+
+    rows: list[dict] = []
+
+    # Forward: one row per mutation (split if over the per-transfer ceiling)
+    for m in fwd_mappings:
+        plate_idx, base_well = _parse_well_plate(m.well)
+        src_well = _to_384_well_fwd(
+            base_well, mapping_range=mapping_range, quadrant=quadrant,
+        )
+        for vol in _split_echo_volume(transfer_vol):
+            rows.append({
+                "source_plate": f"Source [{plate_idx + 1}]",
+                "source_well_name": m.primer_name,
+                "source_well": src_well,
+                "dest_plate": f"Destination [{plate_idx + 1}]",
+                "dest_well_name": m.mutation,
+                "dest_well": base_well,
+                "transfer_vol": vol,
+                "mutation": m.mutation,
+            })
+
+    # Reverse: one row per (primer, dest_well) pair
+    for fwd_m in fwd_mappings:
+        rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
+        if rev_seq is None:
+            continue
+        rev_m = rev_by_seq.get(rev_seq)
+        if rev_m is None:
+            continue
+
+        fwd_plate_idx, _ = _parse_well_plate(fwd_m.well)
+        _, rev_base_well = _parse_well_plate(rev_m.well)
+        src_well = _to_384_well_rev(
+            rev_base_well, mapping_range=mapping_range, quadrant=quadrant,
+        )
+        _, dest_well = _parse_well_plate(fwd_by_mut.get(fwd_m.mutation, fwd_m.well))
+
+        for vol in _split_echo_volume(transfer_vol):
+            rows.append({
+                "source_plate": f"Source [{fwd_plate_idx + 1}]",
+                "source_well_name": rev_m.primer_name,
+                "source_well": src_well,
+                "dest_plate": f"Destination [{fwd_plate_idx + 1}]",
+                "dest_well_name": fwd_m.mutation,
+                "dest_well": dest_well,
+                "transfer_vol": vol,
+                "mutation": fwd_m.mutation,
+            })
+
+    return rows
+
+
+def echo_row_values(row: dict) -> list:
+    """Flatten one ``build_echo_rows`` dict into ``ECHO_DEVICE_HEADER`` order."""
+    return [row[key] for key in _ECHO_ROW_KEYS]
+
+
 def export_echo_mapping_csv(
     fwd_mappings: list[PlateMapping],
     rev_mappings: list[PlateMapping],
@@ -796,13 +932,10 @@ def export_echo_mapping_csv(
 ) -> None:
     """Export Echo 525 acoustic dispenser mapping CSV.
 
-    Source plate layout: 384-well (Eco 384PP).
-      - Forward primers occupy odd rows (A, C, E, G, I, K, M, O).
-      - Reverse primers occupy even rows (B, D, F, H, J, L, N, P).
-      - Both use column-first well ordering matching the 96-well plate layout.
-
-    Each row in the output corresponds to one transfer event.
-    Shared reverse primers produce one row per destination well.
+    Rows come from :func:`build_echo_rows`, so this file, the XLSX
+    "Echo mapping file" sheet and the sidecar preview always describe the same
+    transfers. Where the source wells land (default row-doubled,
+    ``mapping_range`` band, or ``quadrant`` set) is decided there, not here.
 
     Args:
         fwd_mappings: Forward primer plate mappings (96-well coordinates).
@@ -812,60 +945,25 @@ def export_echo_mapping_csv(
         rev_groups: Reverse deduplication map {seq: [mutation_names]}.
             Used to expand shared primers to all destination wells.
         encoding: File encoding (default "utf-8"; use "utf-8-sig" for BOM).
+        mapping_range: Inclusive 384 row band (row_start, row_end).
+        quadrant: Forward-primer quadrant (A1/A2/B1/B2).
+        used_quadrants: Quadrants already spent on a part-used plate. A clash is
+            refused before the file is opened, so nothing is written.
     """
     import csv
 
-    if quadrant is not None:
-        # 이미 쓴 quadrant 위에 덮어쓰면 그 안의 프라이머가 사라진다. 경고가 아니라
-        # 거부다. 판단 근거는 작업자가 입력한 현재 plate 상태뿐이다.
-        from kuma_core.kuro.plate_quadrant import check_quadrants_available
-
-        check_quadrants_available(quadrant, used_quadrants)
-
-    fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
-        fwd_mappings, rev_mappings, rev_groups,
+    rows = build_echo_rows(
+        fwd_mappings, rev_mappings, rev_groups, transfer_vol,
+        mapping_range=mapping_range,
+        quadrant=quadrant,
+        used_quadrants=used_quadrants,
     )
 
     with open(output_path, "w", newline="", encoding=encoding) as f:
         writer = csv.writer(f)
-        writer.writerow([
-            "Source Plate Name", "Source Well Name", "Source Well",
-            "Dest Plate Name", "Dest Well Name", "Dest Well", "Transfer Vol",
-        ])
-
-        # Forward: one row per mutation (split if > 500 nL)
-        for m in fwd_mappings:
-            plate_idx, base_well = _parse_well_plate(m.well)
-            src_plate = f"Source [{plate_idx + 1}]"
-            dest_plate = f"Destination [{plate_idx + 1}]"
-            src_well = _to_384_well_fwd(base_well, mapping_range=mapping_range, quadrant=quadrant)
-            for vol in _split_echo_volume(transfer_vol):
-                writer.writerow([
-                    src_plate, m.primer_name, src_well,
-                    dest_plate, m.mutation, base_well, vol,
-                ])
-
-        # Reverse: one row per (primer, dest_well) pair (split if > 500 nL)
-        for fwd_m in fwd_mappings:
-            rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
-            if rev_seq is None:
-                continue
-            rev_m = rev_by_seq.get(rev_seq)
-            if rev_m is None:
-                continue
-
-            fwd_plate_idx, _ = _parse_well_plate(fwd_m.well)
-            src_plate = f"Source [{fwd_plate_idx + 1}]"
-            dest_plate = f"Destination [{fwd_plate_idx + 1}]"
-            _, rev_base_well = _parse_well_plate(rev_m.well)
-            src_well = _to_384_well_rev(rev_base_well, mapping_range=mapping_range, quadrant=quadrant)
-            _, dest_well = _parse_well_plate(fwd_by_mut.get(fwd_m.mutation, fwd_m.well))
-
-            for vol in _split_echo_volume(transfer_vol):
-                writer.writerow([
-                    src_plate, rev_m.primer_name, src_well,
-                    dest_plate, fwd_m.mutation, dest_well, vol,
-                ])
+        writer.writerow(ECHO_DEVICE_HEADER)
+        for row in rows:
+            writer.writerow(echo_row_values(row))
 
 
 # Row dict key per instrument column, in ``JANUS_DEVICE_HEADER`` order. The
@@ -1183,19 +1281,39 @@ def export_echo_mapping_xlsx(
     output_path: Path,
     transfer_vol: int = 100,
     rev_groups: dict[str, list[str]] | None = None,
+    mapping_range: tuple[str, str] | None = None,
+    quadrant: str | None = None,
+    used_quadrants: list[str] | None = None,
 ) -> None:
     """Export Echo 525 mapping as XLSX matching the lab reference format.
 
     Sheets:
       - layout: 384-well source plate (Fwd odd rows + Rev even rows)
                 + 96-well destination plate.
-      - Echo mapping file: one row per transfer event.
+      - Echo mapping file: one row per transfer event, from
+        :func:`build_echo_rows` (the same rows the CSV export and the sidecar
+        preview show), so a single ``export_all`` cannot leave a csv and an xlsx
+        that name different source wells for the same primer.
+
+    ``mapping_range`` / ``quadrant`` / ``used_quadrants`` reach the worklist
+    sheet only. The layout sheet keeps the row-doubled 384 view it always drew,
+    which is a picture of the default plate and not of this transfer list.
     """
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
 
-    fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
+    # Only the reverse-usage table below reads these; the transfer rows come
+    # from ``build_echo_rows``, which builds its own.
+    _, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
         fwd_mappings, rev_mappings, rev_groups,
+    )
+    # Built before the workbook so a spent-quadrant refusal happens with no file
+    # written, the way the CSV export already behaved.
+    echo_rows = build_echo_rows(
+        fwd_mappings, rev_mappings, rev_groups, transfer_vol,
+        mapping_range=mapping_range,
+        quadrant=quadrant,
+        used_quadrants=used_quadrants,
     )
     bold = Font(bold=True)
     center = Alignment(horizontal="center")
@@ -1261,51 +1379,15 @@ def export_echo_mapping_xlsx(
 
     # ---- Sheet 2: Echo mapping file ----
     ws2 = wb.create_sheet("Echo mapping file")
-    headers = [
-        "Source Plate Name", "Source Well Name", "Source Well",
-        "Dest Plate Name", "Dest Well Name", "Dest Well", "Transfer Vol",
-    ]
     header_fill = PatternFill(start_color="D9E1F2", fill_type="solid")
-    for col_idx, h in enumerate(headers, 1):
+    for col_idx, h in enumerate(ECHO_DEVICE_HEADER, 1):
         cell = ws2.cell(row=1, column=col_idx, value=h)
         cell.font = bold
         cell.fill = header_fill
 
-    row_num = 2
-
-    for m in fwd_mappings:
-        plate_idx, base_well = _parse_well_plate(m.well)
-        src_plate = f"Source [{plate_idx + 1}]"
-        dest_plate = f"Destination [{plate_idx + 1}]"
-        src_well = _to_384_well_fwd(base_well)
-        for vol in _split_echo_volume(transfer_vol):
-            for ci, val in enumerate([
-                src_plate, m.primer_name, src_well,
-                dest_plate, m.mutation, base_well, vol,
-            ], 1):
-                ws2.cell(row=row_num, column=ci, value=val)
-            row_num += 1
-
-    for fwd_m in fwd_mappings:
-        rev_seq = mut_to_rev_seq.get(fwd_m.mutation)
-        if rev_seq is None:
-            continue
-        rev_m = rev_by_seq.get(rev_seq)
-        if rev_m is None:
-            continue
-        fwd_plate_idx, _ = _parse_well_plate(fwd_m.well)
-        src_plate = f"Source [{fwd_plate_idx + 1}]"
-        dest_plate = f"Destination [{fwd_plate_idx + 1}]"
-        _, rev_base_well = _parse_well_plate(rev_m.well)
-        src_well = _to_384_well_rev(rev_base_well)
-        _, dest_well = _parse_well_plate(fwd_by_mut.get(fwd_m.mutation, fwd_m.well))
-        for vol in _split_echo_volume(transfer_vol):
-            for ci, val in enumerate([
-                src_plate, rev_m.primer_name, src_well,
-                dest_plate, fwd_m.mutation, dest_well, vol,
-            ], 1):
-                ws2.cell(row=row_num, column=ci, value=val)
-            row_num += 1
+    for row_num, row in enumerate(echo_rows, 2):
+        for ci, val in enumerate(echo_row_values(row), 1):
+            ws2.cell(row=row_num, column=ci, value=val)
 
     for col in ws2.columns:
         max_len = max(len(str(cell.value or "")) for cell in col)
