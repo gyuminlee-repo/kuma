@@ -8,6 +8,7 @@
  */
 
 import type { PlateMeta, ActivityRecord, MergedRow } from "./mame/activity"
+import type { ClassifyRoundResult, RoundFileEntry } from "./mame/strategy"
 
 export type RoundStatus =
   | "design"
@@ -31,6 +32,26 @@ export interface RoundArtifact {
   produced_at: string
 }
 
+/**
+ * An advisory answer, kept with the inputs that produced it.
+ *
+ * The answer alone cannot be re-examined later: it is a statement about one
+ * ordered set of round files at one moment. Storing the files and the time
+ * alongside it is what lets a restored answer say what it was about, and
+ * `input_signature` is what lets the screen tell whether the list in front of
+ * the operator is still that same list.
+ */
+export interface RoundAdvisoryRecord {
+  /** The sidecar response verbatim, decision or not_assessable. */
+  result: ClassifyRoundResult
+  /** The files it was computed from, with the round numbers they were sent as. */
+  inputs: RoundFileEntry[]
+  /** ISO timestamp of when the answer came back. */
+  decided_at: string
+  /** Identity of `inputs`, from roundFilesSignature (lib/round/roundArtifacts.ts). */
+  input_signature: string
+}
+
 export interface Round {
   id: string
   n: number
@@ -52,4 +73,12 @@ export interface Round {
    * snapshot schema bump is warranted.
    */
   evolvepro_input?: RoundArtifact | null
+  /**
+   * The last advisory answer computed while this round was active.
+   *
+   * Optional for the same reason as `evolvepro_input`: absent on rounds
+   * restored from an older snapshot, and absent means no advisory has been run,
+   * which is what those projects report today.
+   */
+  advisory?: RoundAdvisoryRecord | null
 }

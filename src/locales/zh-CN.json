@@ -2927,7 +2927,9 @@
     "notAssessableSummary": "信号指向一次转变，但确认它需要{{missing}}，而这些文件并不包含。基于该输入无法回答{{blocked}}，只能判断是否继续 walking。",
     "prefillFromRounds": "已填入步骤 4.1 生成的 {{n}} 个轮次产物。可自由添加或移除条目。",
     "prefillFromManifest": "已填入本项目最后记录的 EVOLVEpro 输入。该文件早于按轮次记录，没有轮次编号，因此排在首位。",
-    "reloadFromRounds": "从轮次重新载入"
+    "reloadFromRounds": "从轮次重新载入",
+    "restoredNote": "已恢复的结论，于 {{when}} 由上述 {{n}} 个文件算出。",
+    "supersededNote": "{{when}} 的早前结论是由另一组文件（{{files}}）算出的。它并未说明当前所选文件，因此不予显示。"
   },
   "validation": {
     "missing": {

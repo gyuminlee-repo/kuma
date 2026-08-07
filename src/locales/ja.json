@@ -2927,7 +2927,9 @@
     "notAssessableSummary": "シグナルは移行を示していますが、確認には {{missing}} が必要で、これらのファイルには含まれていません。この入力では {{blocked}} を答えられず、継続するかどうかのみ判定できます。",
     "prefillFromRounds": "4.1 で作成したラウンド出力 {{n}} 件を入力しました。項目は自由に追加・削除できます。",
     "prefillFromManifest": "このプロジェクトに最後に記録された EVOLVEpro 入力を使用しました。ラウンド別記録より前のファイルでラウンド番号がないため、先頭に配置しています。",
-    "reloadFromRounds": "ラウンドから再読み込み"
+    "reloadFromRounds": "ラウンドから再読み込み",
+    "restoredNote": "復元した回答です。{{when}} に上記 {{n}} 件のファイルから算出しました。",
+    "supersededNote": "{{when}} の以前の回答は別のファイル一覧（{{files}}）から算出したものです。現在選択中のファイルについては何も述べていないため表示しません。"
   },
   "validation": {
     "missing": {

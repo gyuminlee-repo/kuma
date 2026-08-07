@@ -2946,7 +2946,9 @@
     "notAssessableSummary": "신호는 전환을 가리키지만, 확인하려면 {{missing}}이 필요하고 이 파일들에는 그 값이 없습니다. 이 입력으로는 {{blocked}}을 답할 수 없고, 계속 걷기 여부만 판정할 수 있습니다.",
     "prefillFromRounds": "4.1 에서 만든 라운드 산출물 {{n}} 개로 채웠습니다. 항목은 자유롭게 추가·제거할 수 있습니다.",
     "prefillFromManifest": "이 프로젝트에 마지막으로 기록된 EVOLVEpro 입력으로 채웠습니다. 라운드별 기록 이전 파일이라 라운드 번호가 없어 맨 앞에 두었습니다.",
-    "reloadFromRounds": "라운드에서 다시 불러오기"
+    "reloadFromRounds": "라운드에서 다시 불러오기",
+    "restoredNote": "복원된 답변입니다. {{when}} 에 위 {{n}} 개 파일로 산출했습니다.",
+    "supersededNote": "{{when}} 의 이전 답변은 다른 파일 목록({{files}})으로 산출한 것입니다. 지금 선택한 파일에 대해서는 아무 말도 하지 않으므로 표시하지 않습니다."
   },
   "selection3d": {
     "title": "Candidate 3D structure analysis",

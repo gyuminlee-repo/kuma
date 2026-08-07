@@ -98,6 +98,7 @@ export const createRoundStore = () =>
         activity: null,
         merged_table: [],
         evolvepro_input: null,
+        advisory: null,
       }
       set((state) => ({
         rounds: [...state.rounds, round],
@@ -171,6 +172,7 @@ export const createRoundStore = () =>
         activity: null,
         merged_table: [],
         evolvepro_input: null,
+        advisory: null,
       }
       set((s) => ({
         rounds: [...s.rounds, newRound],

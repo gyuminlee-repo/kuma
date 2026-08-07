@@ -2927,7 +2927,9 @@
     "notAssessableSummary": "Os sinais apontam para uma transição, mas confirmá-la exige {{missing}}, que estes arquivos não trazem. Com esta entrada não é possível responder {{blocked}}; só cabe verificar se vale continuar caminhando.",
     "prefillFromRounds": "Preenchido com {{n}} saida(s) de rodada geradas na etapa 4.1. As entradas podem ser adicionadas ou removidas livremente.",
     "prefillFromManifest": "Preenchido com a ultima entrada EVOLVEpro registrada neste projeto. Ela e anterior ao registro por rodada, nao traz numero de rodada e por isso foi colocada em primeiro lugar.",
-    "reloadFromRounds": "Recarregar das rodadas"
+    "reloadFromRounds": "Recarregar das rodadas",
+    "restoredNote": "Resposta restaurada, calculada em {{when}} a partir dos {{n}} arquivos acima.",
+    "supersededNote": "Uma resposta anterior de {{when}} foi calculada a partir de outra lista ({{files}}). Ela nao diz nada sobre os arquivos selecionados agora, por isso nao e exibida."
   },
   "validation": {
     "missing": {

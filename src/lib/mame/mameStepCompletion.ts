@@ -80,6 +80,10 @@ export function isMameSubStepDone(
     //
     // A run that threw, or one still in flight, leaves this null and the step
     // open. So does clearing the picked files, which resets the stored answer.
+    //
+    // The answer survives a restart: AdvisoryDecisionCard files it on the round
+    // with the files it was computed from, and republishes it here on restore
+    // only while those files are still the ones selected.
     return state.advisoryDecision !== null;
   }
   return false;

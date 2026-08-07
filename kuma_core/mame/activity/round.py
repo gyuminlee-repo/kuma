@@ -49,3 +49,9 @@ class Round(BaseModel):
     # because rounds saved before the field existed do not carry it, and absent
     # means the round produced nothing, which is what those rounds report.
     evolvepro_input: RoundArtifact | None = None
+    # The last advisory answer computed while this round was active, as the
+    # strategy.classify_round response plus the files and the moment it came
+    # from (see RoundAdvisoryRecord in src/types/round.ts).  Kept as a plain
+    # dict like design and genotype above: the response is a two-shape union
+    # owned by the handler, and no Python caller reads this field.
+    advisory: dict | None = None

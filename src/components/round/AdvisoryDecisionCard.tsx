@@ -2,9 +2,13 @@
  * AdvisoryDecisionCard -- read-only display of the strategy.classify_round output.
  *
  * Scope (Fork D):
- *  - User imports per-round xlsx files (Variant + activity fold-change columns).
+ *  - The list of per-round xlsx files (Variant + activity fold-change columns)
+ *    is prefilled from what the rounds produced in step 4.1 and stays editable.
  *  - Calls strategy.classify_round RPC with RoundFileEntry list.
- *  - Read-only: no Confirm button, no PI decision persistence.
+ *  - Advisory only: no Confirm button, and nothing here is a PI decision. The
+ *    answer itself is kept on the round with the files and the time it came
+ *    from, so it can be re-examined later; a stored answer whose file list has
+ *    since changed is shown as history, never as the current verdict.
  *  - anti-fallback: never fabricates a result; JSON-RPC errors are shown explicitly.
  *
  * Two success states, drawn differently on purpose:
@@ -30,7 +34,10 @@ import { InfoIcon, FileSpreadsheet, RotateCcw, X, PlayCircle } from "lucide-reac
 import { cn } from "@/lib/utils";
 import { classifyRound } from "@/lib/ipc";
 import { listArtifacts } from "@/lib/workspace";
-import { roundEvolveproFiles } from "@/lib/round/roundArtifacts";
+import {
+  roundEvolveproFiles,
+  roundFilesSignature,
+} from "@/lib/round/roundArtifacts";
 import { useRoundStore } from "@/store/round/roundSlice";
 import { Button } from "@/components/ui/button";
 import type {
@@ -41,6 +48,7 @@ import type {
   MissingClassifierInput,
   RoundFileEntry,
 } from "@/types/mame/strategy";
+import type { RoundAdvisoryRecord } from "@/types/round";
 
 /** Narrowed shape of the i18next translator this file needs. */
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -110,6 +118,12 @@ function blockedLabelsText(labels: DecisionLabel[], t: Translate): string {
 /** Extract filename from an absolute path for display. */
 function basename(path: string): string {
   return path.split(/[\\/]/).pop() ?? path;
+}
+
+/** A stored timestamp in the reader locale, or the raw value if it will not parse. */
+function formatDecidedAt(iso: string): string {
+  const at = new Date(iso);
+  return Number.isNaN(at.getTime()) ? iso : at.toLocaleString();
 }
 
 /**
@@ -248,8 +262,10 @@ export interface AdvisoryDecisionCardProps {
   className?: string;
   /**
    * Called with every answer the sidecar returns, including not_assessable,
-   * and with null whenever the picked files change. An answer describes the
-   * files it was computed from, so it must not outlive them.
+   * with a stored answer that still matches the picked files, and with null
+   * whenever the picked files change or the stored answer no longer describes
+   * them. An answer describes the files it was computed from, so it must not
+   * outlive them.
    */
   onResult?: (result: ClassifyRoundResult | null) => void;
 }
@@ -334,22 +350,20 @@ export function AdvisoryDecisionCard({
     });
     if (!selected) return;
     const paths = Array.isArray(selected) ? selected : [selected];
+    const existing = new Set(files.map((entry) => entry.path));
+    const added = paths.filter((path) => !existing.has(path));
+    if (added.length === 0) return;
     // Appended after the highest number in the list instead of renumbering the
     // whole thing. A prefilled entry carries the number of the round that
     // produced it, and renumbering would relabel round 3 as round 2 the moment
     // an outside file joined. The handler sorts by n and counts entries, so a
     // gap orders correctly and does not inflate the round count.
-    setFiles((prev) => {
-      const existing = new Set(prev.map((e) => e.path));
-      const newPaths = paths.filter((p) => !existing.has(p));
-      if (newPaths.length === 0) return prev;
-      edited.current = true;
-      setPrefillSource("manual");
-      const highest = prev.reduce((max, entry) => Math.max(max, entry.n), 0);
-      return [...prev, ...newPaths.map((path, i) => ({ n: highest + i + 1, path }))];
-    });
+    const highest = files.reduce((max, entry) => Math.max(max, entry.n), 0);
+    edited.current = true;
+    setPrefillSource("manual");
+    setFiles([...files, ...added.map((path, i) => ({ n: highest + i + 1, path }))]);
     clearAnswer();
-  }, [t, clearAnswer]);
+  }, [files, t, clearAnswer]);
 
   const handleRemove = useCallback(
     (n: number) => {
@@ -377,12 +391,57 @@ export function AdvisoryDecisionCard({
       const res = await classifyRound(files);
       setResult(res);
       onResult?.(res);
+      // File the answer on the round together with what it was computed from,
+      // so it can be re-examined after a restart instead of vanishing with this
+      // component local state. A run that threw records nothing: there is no
+      // answer to keep, and the error is on screen.
+      const roundStore = useRoundStore.getState();
+      const roundId = roundStore.active_round_id;
+      if (roundId) {
+        const record: RoundAdvisoryRecord = {
+          result: res,
+          inputs: files,
+          decided_at: new Date().toISOString(),
+          input_signature: roundFilesSignature(files),
+        };
+        roundStore.updateRoundField(roundId, "advisory", record);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
   }, [files, loading, onResult]);
+
+  // What the round already has on record, and whether it still describes the
+  // list on screen. A stored answer is about one ordered set of files, so a
+  // changed list demotes it to history: it is never redrawn as the current
+  // verdict, only mentioned with the time and the files it came from.
+  const storedRecord = useRoundStore(
+    (s) => s.rounds.find((r) => r.id === s.active_round_id)?.advisory ?? null,
+  );
+  const currentSignature = useMemo(() => roundFilesSignature(files), [files]);
+  const restoredRecord =
+    storedRecord && storedRecord.input_signature === currentSignature
+      ? storedRecord
+      : null;
+  // Held back while the list is empty: on mount it is empty for one frame
+  // before prefill lands, and a note saying the stored answer describes other
+  // files would be flashing a comparison against nothing.
+  const supersededRecord =
+    storedRecord && !restoredRecord && files.length > 0 ? storedRecord : null;
+
+  // Step 4.2 counts as done once an answer is on record (lib/mame/
+  // mameStepCompletion.ts), so a restored answer has to reach the store the
+  // same way a fresh one does. Only a matching one does: a superseded answer
+  // describes files that are no longer selected and must not mark the step
+  // done. A fresh answer from this session already went out above and wins.
+  useEffect(() => {
+    if (result !== null) return;
+    onResult?.(restoredRecord ? restoredRecord.result : null);
+  }, [restoredRecord, result, onResult]);
+
+  const shownResult = result ?? restoredRecord?.result ?? null;
 
   return (
     <section
@@ -483,9 +542,31 @@ export function AdvisoryDecisionCard({
         </div>
       )}
 
-      {result?.advisory === "decision" && <DecisionDisplay result={result} />}
-      {result?.advisory === "not_assessable" && (
-        <NotAssessableDisplay result={result} />
+      {result === null && restoredRecord && (
+        <p className="text-[11px] text-muted-foreground">
+          {t("advisoryDecision.restoredNote", {
+            when: formatDecidedAt(restoredRecord.decided_at),
+            n: restoredRecord.inputs.length,
+          })}
+        </p>
+      )}
+
+      {supersededRecord && (
+        <p className="rounded-md border border-dashed border-muted-foreground/40 px-3 py-2 text-[11px] text-muted-foreground">
+          {t("advisoryDecision.supersededNote", {
+            when: formatDecidedAt(supersededRecord.decided_at),
+            files: supersededRecord.inputs
+              .map((entry) => basename(entry.path))
+              .join(", "),
+          })}
+        </p>
+      )}
+
+      {shownResult?.advisory === "decision" && (
+        <DecisionDisplay result={shownResult} />
+      )}
+      {shownResult?.advisory === "not_assessable" && (
+        <NotAssessableDisplay result={shownResult} />
       )}
     </section>
   );
