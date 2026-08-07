@@ -2925,6 +2925,7 @@
     "missingInputsNote": "Evaluado sin {{missing}}, de modo que la saturación se basa únicamente en la tendencia de la hit rate.",
     "notAssessableBadge": "No evaluable",
     "notAssessableSummary": "Las señales apuntan a una transición, pero confirmarla requiere {{missing}}, que estos archivos no contienen. Con esta entrada no se puede responder {{blocked}}; solo cabe comprobar si conviene seguir caminando.",
+    "notAssessableInsufficientSummary": "Las señales apuntan a una transición, pero confirmarla requiere al menos {{required}} {{missing}} y en esta ronda constan {{count}}. Por debajo de esa cifra no hay estimación de ruido con la que contrastar, así que la saturación se basa solo en la tendencia de la hit rate y con ella no se puede responder {{blocked}}.",
     "prefillFromRounds": "Rellenado con {{n}} salida(s) de ronda generadas en el paso 4.1. Las entradas se pueden anadir o quitar libremente.",
     "prefillFromManifest": "Rellenado con la ultima entrada EVOLVEpro registrada para este proyecto. Es anterior al registro por ronda, no lleva numero de ronda y por eso se coloco primero.",
     "reloadFromRounds": "Recargar desde las rondas",

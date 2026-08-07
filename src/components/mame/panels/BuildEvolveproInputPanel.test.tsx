@@ -49,6 +49,7 @@ const RESULT: BuildEvolveproInputResult = {
   normalization_sources: ["activity_path:relative_to_wt"],
   evidence_hash: "sha256:evidence",
   artifact_hashes: { "/project/activity/evolvepro_input.xlsx": "sha256:output" },
+  wt_values: [1.02, 0.97, 1.04, 0.99],
 };
 
 const readyForm = (overrides: Partial<BuildEvolveproFormState> = {}): BuildEvolveproFormState => ({

@@ -33,6 +33,29 @@ export interface RoundArtifact {
 }
 
 /**
+ * The step 4.1 workbook, plus the wild-type replicates behind it.
+ *
+ * The exported activity column is each variant measurement over the mean WT of
+ * its cohort, so the same division applied to the WT rows states the assay
+ * spread on that scale. Those rows are filtered out of the workbook, which
+ * holds one row per designed variant for EVOLVEpro, so nothing in the file
+ * lets step 4.2 read them back.
+ *
+ * They ride on the artifact rather than beside it so a rebuild replaces the
+ * path, the timestamp, and the replicates in one move. Split across two
+ * fields, a rebuild could leave one round replicate list attached to another
+ * round file.
+ *
+ * Optional and empty carry the same meaning, "none on record": absent on
+ * rounds restored from a snapshot written before this field existed, empty
+ * when the primary source was a pre-normalized GC sheet whose WT mean was
+ * taken upstream.
+ */
+export interface EvolveproInputArtifact extends RoundArtifact {
+  wt_values?: number[]
+}
+
+/**
  * An advisory answer, kept with the inputs that produced it.
  *
  * The answer alone cannot be re-examined later: it is a statement about one
@@ -77,7 +100,7 @@ export interface Round {
    * nothing", which is the same answer those projects give today, so no
    * snapshot schema bump is warranted.
    */
-  evolvepro_input?: RoundArtifact | null
+  evolvepro_input?: EvolveproInputArtifact | null
   /**
    * The last advisory answer computed while this round was active.
    *

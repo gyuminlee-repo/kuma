@@ -42,13 +42,16 @@ export async function isSidecarRunning(kind: SidecarKind): Promise<boolean> {
 /**
  * Advisory classify() call with per-round xlsx file references.
  *
- * @param roundFiles - Ordered list of {n, path} xlsx file entries.
- *   n is 1-based round number; handler sorts by n internally.
+ * @param roundFiles - Ordered list of {n, path, wt_values?} xlsx file entries.
+ *   n is 1-based round number; handler sorts by n internally. wt_values are the
+ *   wild-type replicates step 4.1 recorded for that round, which the file
+ *   itself cannot carry; only the highest-numbered entry is read.
  * @param cNext - Optional capacity of the next combinatorial plate (wells).
  *   Used to derive K_throughput = floor((1+sqrt(1+8*cNext))/2). Defaults to 96.
  * @returns ClassifyDecisionResult when the classifier answered, or
- *   ClassifyNotAssessableResult when an input it needs is absent from the file
- *   format and the question could not be put to it. Discriminate on `advisory`.
+ *   ClassifyNotAssessableResult when the bootstrap gate was reached with too
+ *   few wild-type replicates to run on, so the question could not be put to it.
+ *   Discriminate on `advisory`.
  *   Throws a JSON-RPC error (-32602 / -32002) on bad input or missing/malformed files.
  *
  * Read-only, no confirmation button, no PI decision persistence.

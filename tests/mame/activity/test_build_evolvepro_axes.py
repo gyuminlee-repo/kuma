@@ -173,3 +173,132 @@ def test_activity_file_without_measurement_rows_reports_the_real_cause(tmp_path:
             activity_path=activity,
             verdict_xlsx=verdict,
         )
+
+
+# ---------------------------------------------------------------------------
+# WT replicates carried out of the build
+#
+# The workbook holds one row per designed variant and the WT rows are filtered
+# out on the way in, so the replicates behind the normalization only survive on
+# the result. Step 4.2 reads them from there through the round record.
+# ---------------------------------------------------------------------------
+
+def test_raw_generic_wt_replicates_leave_on_the_exported_scale(tmp_path: Path):
+    """Each WT over its own cohort mean, the division the variants went through."""
+    activity = tmp_path / "activity.csv"
+    pd.DataFrame([
+        {"mutation": "WT_1", "activity": 8},
+        {"mutation": "WT_2", "activity": 12},
+        {"mutation": "WT_3", "activity": 10},
+        {"mutation": "WT_4", "activity": 10},
+        {"mutation": "V5F", "activity": 20},
+    ]).to_csv(activity, index=False)
+    verdict = _verdict(tmp_path / "verdict.xlsx", [("A1", "V5F", "PASS")])
+
+    result = build_evolvepro_input(
+        tmp_path / "out.xlsx", activity_path=activity, verdict_xlsx=verdict
+    )
+
+    assert result.wt_values == pytest.approx([0.8, 1.2, 1.0, 1.0])
+
+
+def test_multi_cohort_wt_replicates_are_each_relative_to_their_own_plate(tmp_path: Path):
+    activity = tmp_path / "activity.csv"
+    pd.DataFrame([
+        {"plate_id": "P1", "mutation": "WT_1", "activity": 10},
+        {"plate_id": "P1", "mutation": "WT_2", "activity": 10},
+        {"plate_id": "P1", "mutation": "V5F", "activity": 20},
+        {"plate_id": "P2", "mutation": "WT_1", "activity": 40},
+        {"plate_id": "P2", "mutation": "WT_2", "activity": 60},
+        {"plate_id": "P2", "mutation": "V10L", "activity": 50},
+    ]).to_csv(activity, index=False)
+    verdict = _verdict(
+        tmp_path / "verdict.xlsx", [("A1", "V5F", "PASS"), ("B1", "V10L", "PASS")]
+    )
+
+    result = build_evolvepro_input(
+        tmp_path / "out.xlsx", activity_path=activity, verdict_xlsx=verdict
+    )
+
+    assert result.wt_values == pytest.approx([1.0, 1.0, 0.8, 1.2])
+
+
+def test_relative_generic_wt_rows_are_carried_without_a_second_division(tmp_path: Path):
+    # The WT mean here is 1.1, not 1.0, so carrying the rows through and
+    # dividing them by their own mean give different answers. A fixture whose
+    # WT mean lands on 1.0 cannot tell the two apart.
+    activity = tmp_path / "activity.csv"
+    pd.DataFrame([
+        {"variant": "WT_1", "value": 0.9},
+        {"variant": "WT_2", "value": 1.3},
+        {"variant": "5F", "value": 1.4},
+    ]).to_csv(activity, index=False)
+    verdict = _verdict(tmp_path / "verdict.xlsx", [("A1", "V5F", "PASS")])
+
+    result = build_evolvepro_input(
+        tmp_path / "out.xlsx",
+        activity_path=activity,
+        activity_scale="relative_to_wt",
+        verdict_xlsx=verdict,
+    )
+
+    assert result.wt_values == pytest.approx([0.9, 1.3])
+
+
+def test_raw_report_wt_block_areas_leave_relative_to_their_mean(tmp_path: Path):
+    report = _agilent(
+        tmp_path / "round1.xlsx",
+        [("WT_1", 8.0), ("WT_2", 12.0), ("A1", 20.0)],
+    )
+    layout = _layout(tmp_path / "layout.xlsx", [("V5F", "A1")])
+    verdict = _verdict(tmp_path / "verdict.xlsx", [("A01", "V5F", "PASS")])
+
+    result = build_evolvepro_input(
+        tmp_path / "out.xlsx",
+        round1_report_xlsx=report,
+        layout_xlsx=layout,
+        verdict_xlsx=verdict,
+    )
+
+    assert result.wt_values == pytest.approx([0.8, 1.2])
+
+
+def test_wt_of_a_cohort_that_measured_nothing_is_left_out(tmp_path: Path):
+    """A WT block whose plate produced no variant row normalized nothing here."""
+    activity = tmp_path / "activity.csv"
+    pd.DataFrame([
+        {"plate_id": "P1", "mutation": "WT_1", "activity": 8},
+        {"plate_id": "P1", "mutation": "WT_2", "activity": 12},
+        {"plate_id": "P1", "mutation": "V5F", "activity": 20},
+        {"plate_id": "P2", "mutation": "WT_1", "activity": 100},
+        {"plate_id": "P2", "mutation": "WT_2", "activity": 300},
+    ]).to_csv(activity, index=False)
+    verdict = _verdict(tmp_path / "verdict.xlsx", [("A1", "V5F", "PASS")])
+
+    result = build_evolvepro_input(
+        tmp_path / "out.xlsx", activity_path=activity, verdict_xlsx=verdict
+    )
+
+    # P2 would have contributed [0.5, 1.5], a spread three times P1 own.
+    assert result.wt_values == pytest.approx([0.8, 1.2])
+
+
+def test_prenormalized_gc_sheet_records_no_replicates(tmp_path: Path):
+    """The WT mean was taken upstream, so no replicate ever reaches this app."""
+    gc = tmp_path / "gc.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["Sample Name", "Area"])
+    ws.append(["A1", 1.25])
+    wb.save(gc)
+    layout = _layout(tmp_path / "layout.xlsx", [("V5F", "A1")])
+    verdict = _verdict(tmp_path / "verdict.xlsx", [("A01", "V5F", "PASS")])
+
+    result = build_evolvepro_input(
+        tmp_path / "out.xlsx",
+        gc_data_xlsx=gc,
+        layout_xlsx=layout,
+        verdict_xlsx=verdict,
+    )
+
+    assert result.wt_values == []

@@ -2925,6 +2925,7 @@
     "missingInputsNote": "Beurteilt ohne {{missing}}, die Sättigung stützt sich daher allein auf den Verlauf der Hit-Rate.",
     "notAssessableBadge": "Nicht beurteilbar",
     "notAssessableSummary": "Die Signale deuten auf einen Übergang hin, doch dessen Bestätigung erfordert {{missing}}, die in diesen Dateien nicht enthalten sind. {{blocked}} lässt sich mit dieser Eingabe nicht beantworten; möglich ist nur die Prüfung auf Weiterlaufen.",
+    "notAssessableInsufficientSummary": "Die Signale deuten auf einen Übergang hin, doch dessen Bestätigung erfordert mindestens {{required}} {{missing}}, und für diese Runde sind {{count}} erfasst. Darunter gibt es keine Rauschschätzung als Prüfgröße, die Sättigung stützt sich damit allein auf den Verlauf der Hit-Rate, und {{blocked}} lässt sich daraus nicht beantworten.",
     "prefillFromRounds": "Mit {{n}} in Schritt 4.1 erzeugten Rundenergebnissen vorbelegt. Eintraege lassen sich frei hinzufuegen oder entfernen.",
     "prefillFromManifest": "Mit der zuletzt fuer dieses Projekt erfassten EVOLVEpro-Eingabe vorbelegt. Die Datei stammt aus der Zeit vor der rundenweisen Erfassung, traegt keine Rundennummer und steht deshalb an erster Stelle.",
     "reloadFromRounds": "Aus Runden neu laden",
