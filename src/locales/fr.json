@@ -2399,13 +2399,11 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "L etape 4.2 distingue desormais un verdict retenu d une question qu elle n a jamais pu poser, et nomme l entree qui manquait.",
-      "L etape 4.2 remplit sa liste avec ce que chaque cycle a produit, au lieu de reclamer le fichier que l etape 4.1 vient d ecrire.",
-      "Un verdict enregistre est affiche comme remplace des que ses entrees sont reconstruites, au lieu de passer pour la reponse actuelle.",
-      "La marque d achevement de l etape 4.2 survit a un redemarrage et n apparait plus seulement apres ouverture de l ecran.",
-      "Le bouton de passage de relais de l etape 4.2 est retire; l etape qui remplissait sa condition a ete supprimee en v0.15.12."
+      "La case vide laissee par un clone ecarte n est plus comblee en avancant les picks suivants, et la plaque de culture finale correspond aux coordonnees de la plaque stock d origine.",
+      "Le remplissage sequentiel depuis A1 reste disponible comme choix de disposition; seule la valeur par defaut a change, et un choix anterieur de cette disposition est conserve apres la mise a jour.",
+      "Le CSV de correspondance exporte ne comporte plus de ligne de commentaire de metadonnees qui repousse l en-tete a la deuxieme ligne; l en-tete est toujours sur la premiere ligne."
     ],
-    "highlightsStamp": "0.16.6+68b4bacb"
+    "highlightsStamp": "0.16.7+d17b6783"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",

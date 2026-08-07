@@ -2399,13 +2399,11 @@
     "description": "Destaques da última atualização.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "A etapa 4.2 agora distingue um veredicto retido de uma pergunta que nunca pode fazer, e nomeia a entrada que faltava.",
-      "A etapa 4.2 preenche sua lista com o que cada rodada produziu, em vez de pedir o arquivo que a etapa 4.1 acabou de escrever.",
-      "Um veredicto salvo aparece como substituido assim que suas entradas sao refeitas, em vez de passar pela resposta atual.",
-      "A marca de conclusao da etapa 4.2 sobrevive a um reinicio e nao surge apenas depois de abrir a tela.",
-      "O botao de repasse da etapa 4.2 foi removido; a etapa que cumpria sua condicao previa saiu na v0.15.12."
+      "O poco vazio deixado por um clone descartado nao e mais preenchido avancando os picks seguintes, e a placa de cultura final corresponde as coordenadas da placa stock de origem.",
+      "O preenchimento sequencial a partir de A1 continua disponivel como opcao de layout; apenas o padrao mudou, e uma escolha anterior dessa opcao e mantida apos a atualizacao.",
+      "O CSV de mapeamento exportado nao tem mais uma linha de comentario de metadados que empurra o cabecalho para a segunda linha; o cabecalho sempre fica na primeira linha."
     ],
-    "highlightsStamp": "0.16.6+68b4bacb"
+    "highlightsStamp": "0.16.7+d17b6783"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",
