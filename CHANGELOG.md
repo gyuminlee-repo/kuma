@@ -40,6 +40,26 @@ Where a repair removed a copy, a check now holds the remaining ones together. Tw
 - v0.16.8: The release version is one value. `kuma_core/shared/version.py` joins the manifests `version-sync` compares and is updated by `scripts/sync-version.sh`, and the export slice stamps `__APP_VERSION__` rather than a literal. Provenance files carried `0.1.0` or `0.02.02` depending on which writer produced them, so a diff of two real releases reported no version change. `KURO_MODULE_VERSION` stays separate, with its reason recorded next to it.
 - v0.16.8: Two cross-layer checks were added, `mame-activity-csv-schema` and `mame-extensions`, each reading the Python definition and comparing it to the TypeScript. Both were confirmed to fail when the two are made to disagree.
 
+## v0.16.7 (The final plate keeps the stock plate coordinates, and the mapping CSV keeps its header on line one)
+
+The final culture plate an operator fills by hand could land at a different well than the stock plate it was seeded from. A non-PASS clone (failed QC, ambiguous, low depth) drops out of the pick list before a destination layout is ever chosen, and the old default packed the survivors from A1, pulling every later pick forward to close the gap that clone left. Observed on a real run: source wells F3, H3, A4 came back as destination wells F3, G3, H3. The destination layout now defaults to mirroring the source position instead, so a dropped well stays blank on both plates and the two plates share one coordinate system. Packing from A1 is still available as a choice in the panel for a run where that matters more than positional agreement. A machine already running the previous default migrates its saved choice once, on first load of this build, and an operator who deliberately picks the from-A1 layout afterwards keeps it.
+
+The exported mapping CSV also carried a `# kuma_run_meta: ...` comment line above the header whenever run metadata was available, which pushed every column and every data row down by one line for a plain spreadsheet import or `csv.DictReader`. That comment line is gone; the header is always line one. This writer serves both the device-schema CSV and the analyze step's autosaved pick list, so the comment line is gone from both. Run metadata still reaches the operator through the `__kuma_meta__` sheet of the XLSX export.
+
+### Highlights
+
+- The final culture plate now lines up with the stock plate it came from, instead of pulling later picks forward into a dropped clone's well.
+- Packing the final plate from A1 stays available as a layout choice; only the default changed, and a prior choice of it survives the upgrade.
+- The exported mapping CSV always starts with the header row, instead of a metadata comment line pushing it to row two.
+
+### Changed
+
+- v0.16.7: The Janus mapping default destination layout changed from packing sequentially from A1 to mirroring the source well position, so a non-PASS clone dropped from the pick list leaves its well blank on the final plate rather than being closed up by the next pick. A machine holding the previous default migrates its stored choice once, to a new storage key, and a deliberate choice of the from-A1 layout made afterwards is never overwritten again.
+
+### Fixed
+
+- v0.16.7: The Janus mapping CSV no longer writes a `# kuma_run_meta: ...` comment line above the header. The header row is always line one, matching how a plain `csv.DictReader` or spreadsheet import reads the file. Run metadata is unaffected in the XLSX export, which carries it on its own `__kuma_meta__` sheet.
+
 ## v0.16.6 (Step 4.2 says what it was asked, what it answered, and when)
 
 The advisory in step 4.2 reads several rounds at once and says whether single-mutant walking still pays. It could not say the one thing it exists to say. The classifier needs wild-type replicate measurements to gate a switch, the handler passed none, and the gate turned every switch or stop candidate back into a deferral. Two labels remained reachable, `continue_walking` and `deferred`, and both mean carry on. An advisory that can only agree with inertia carries no information.

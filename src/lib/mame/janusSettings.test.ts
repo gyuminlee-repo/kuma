@@ -30,6 +30,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   DEFAULT_JANUS_SETTINGS,
   JANUS_SETTINGS_STORAGE_KEY,
+  JANUS_SETTINGS_STORAGE_KEY_V2,
   loadJanusSettings,
   saveJanusSettings,
 } from "./janusSettings";
@@ -188,6 +189,13 @@ describe("loadJanusSettings", () => {
     storePolicy({ sampleType: "cell" });
     expect(loadJanusSettings().sampleType).toBe("cell stock");
 
+    // Two independent scenarios, not a sequence: the load above already
+    // migrated the legacy key to v2 (see the destLayout migration describe
+    // block below), and v2 is checked first once it exists, so a second
+    // legacy-key write alone would go unread. Clearing first is what makes
+    // this the same "nothing stored yet" starting point as the first half.
+    localStorage.clear();
+
     // An operator saying what the plate holds is stating something the shipped
     // default cannot know, so it survives.
     storePolicy({ sampleType: "glycerol stock" });
@@ -238,6 +246,39 @@ describe("loadJanusSettings", () => {
 
     storePolicy(null);
     expect(loadJanusSettings()).toEqual(DEFAULT_JANUS_SETTINGS);
+  });
+
+  describe("destLayout migration (v0.16.6: compact -> source default)", () => {
+    it("promotes a stored compact + an operator volume from the legacy key, and writes the v2 key", () => {
+      storePolicy({ destLayout: "compact", volume: 85 });
+
+      const loaded = loadJanusSettings();
+
+      expect(loaded.destLayout).toBe("source");
+      expect(loaded.volume).toBe(85);
+      // Written once to the new key so every later load, this one included in
+      // spirit, stops re-reading the legacy key.
+      const v2Raw = localStorage.getItem(JANUS_SETTINGS_STORAGE_KEY_V2);
+      expect(v2Raw).not.toBeNull();
+      expect(JSON.parse(v2Raw as string)).toMatchObject({
+        destLayout: "source",
+        volume: 85,
+      });
+    });
+
+    it("leaves a compact stored under the v2 key alone: it is not re-promoted", () => {
+      localStorage.setItem(
+        JANUS_SETTINGS_STORAGE_KEY_V2,
+        JSON.stringify({ ...DEFAULT_JANUS_SETTINGS, destLayout: "compact" }),
+      );
+
+      expect(loadJanusSettings().destLayout).toBe("compact");
+    });
+
+    it("ships the new default when nothing was ever stored", () => {
+      expect(loadJanusSettings().destLayout).toBe("source");
+      expect(loadJanusSettings()).toEqual(DEFAULT_JANUS_SETTINGS);
+    });
   });
 
   it("reads back what saveJanusSettings wrote", () => {
