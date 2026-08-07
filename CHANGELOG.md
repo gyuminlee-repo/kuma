@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.16.8 (Step 4.2 receives the wild-type replicates step 4.1 measured)
+
+Step 4.1 reads the wild-type wells to normalize every other measurement, and then dropped them. The workbook it writes for EVOLVEpro excludes wild-type rows by construction, so step 4.2 had no route back to them, and the handler told the classifier there were none. The classifier gates its two transition verdicts behind a bootstrap that needs those replicates, so no assay could produce a run that reached one. The advisory could only ever agree with carrying on.
+
+Those replicates now leave step 4.1 on the round record that already states what it produced, on the same scale as the exported column, and reach the classifier with the round files. They are forwarded only when there are enough of them to estimate assay noise. Below that count nothing is passed and the advisory still declines to answer, because without a noise estimate two of the three saturation signals are unavailable and the remaining one would carry the verdict by itself. A verdict resting on a single signal is reported at full confidence, since confidence measures agreement between the estimate and its resamples rather than the sufficiency of the evidence, and that is worse than declining.
+
+A workbook that carries no wild-type column and one that carries too few replicates were previously the same answer. They are now distinguishable: the response states how many it had and how many the noise estimate needs, so the screen names which of the two situations applies rather than sending an operator to look for data they already have.
+
+Separately, the backtest that decided which signals drive this advisory now lives in the repository. It was cited twice inside the classifier by filename alone, and the file sits in a different repository with no remote, so the reason a live decision rule ignores three of its own signals was reachable only from the machine that ran the analysis.
+
+### Highlights
+
+- Step 4.2 now receives the wild-type replicates that step 4.1 measured, instead of being told none exist.
+- A workbook with no wild-type column and one with too few replicates are different answers, and the screen says which it is.
+- Replicates reach the classifier only when there are enough to estimate assay noise, so no verdict rests on one signal at full confidence.
+- The backtest that decides which signals drive the advisory is now in the repository, not cited by filename alone.
+
 ## v0.16.7 (The final plate keeps the stock plate coordinates, and the mapping CSV keeps its header on line one)
 
 The final culture plate an operator fills by hand could land at a different well than the stock plate it was seeded from. A non-PASS clone (failed QC, ambiguous, low depth) drops out of the pick list before a destination layout is ever chosen, and the old default packed the survivors from A1, pulling every later pick forward to close the gap that clone left. Observed on a real run: source wells F3, H3, A4 came back as destination wells F3, G3, H3. The destination layout now defaults to mirroring the source position instead, so a dropped well stays blank on both plates and the two plates share one coordinate system. Packing from A1 is still available as a choice in the panel for a run where that matters more than positional agreement. A machine already running the previous default migrates its saved choice once, on first load of this build, and an operator who deliberately picks the from-A1 layout afterwards keeps it.

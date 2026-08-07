@@ -2399,11 +2399,12 @@
     "description": "Points clés de la dernière mise à jour.",
     "gotItBtn": "Compris",
     "highlights": [
-      "La case vide laissee par un clone ecarte n est plus comblee en avancant les picks suivants, et la plaque de culture finale correspond aux coordonnees de la plaque stock d origine.",
-      "Le remplissage sequentiel depuis A1 reste disponible comme choix de disposition; seule la valeur par defaut a change, et un choix anterieur de cette disposition est conserve apres la mise a jour.",
-      "Le CSV de correspondance exporte ne comporte plus de ligne de commentaire de metadonnees qui repousse l en-tete a la deuxieme ligne; l en-tete est toujours sur la premiere ligne."
+      "L etape 4.2 recoit desormais les replicats de type sauvage mesures par l etape 4.1, au lieu de s entendre dire qu il n y en a aucun.",
+      "Un classeur sans colonne de type sauvage et un classeur avec trop peu de replicats sont deux reponses distinctes, et l ecran precise laquelle.",
+      "Les replicats atteignent le classifieur uniquement quand ils suffisent a estimer le bruit, afin qu aucun verdict ne repose sur un seul signal en pleine confiance.",
+      "Le backtest qui determine quels signaux guident la recommandation se trouve maintenant dans le depot, et non cite par simple nom de fichier."
     ],
-    "highlightsStamp": "0.16.7+d17b6783"
+    "highlightsStamp": "0.16.8+2cb0acdc"
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",

@@ -2432,11 +2432,12 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The final culture plate now lines up with the stock plate it came from, instead of pulling later picks forward into a dropped clone's well.",
-      "Packing the final plate from A1 stays available as a layout choice; only the default changed, and a prior choice of it survives the upgrade.",
-      "The exported mapping CSV always starts with the header row, instead of a metadata comment line pushing it to row two."
+      "Step 4.2 now receives the wild-type replicates that step 4.1 measured, instead of being told none exist.",
+      "A workbook with no wild-type column and one with too few replicates are different answers, and the screen says which it is.",
+      "Replicates reach the classifier only when there are enough to estimate assay noise, so no verdict rests on one signal at full confidence.",
+      "The backtest that decides which signals drive the advisory is now in the repository, not cited by filename alone."
     ],
-    "highlightsStamp": "0.16.7+d17b6783"
+    "highlightsStamp": "0.16.8+2cb0acdc"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

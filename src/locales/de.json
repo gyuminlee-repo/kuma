@@ -2399,11 +2399,12 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die leere Vertiefung eines ausgeschiedenen Klons wird nicht mehr durch Vorruecken der Picks aufgefuellt; die Endplatte stimmt mit den Koordinaten der Stock-Platte ueberein.",
-      "Die sequentielle Befuellung ab A1 bleibt als Layout-Option verfuegbar; nur der Standardwert hat sich geaendert, eine zuvor gewaehlte Einstellung bleibt nach dem Update erhalten.",
-      "Die exportierte Zuordnungs-CSV enthaelt keine Metadaten-Kommentarzeile mehr, die die Kopfzeile in die zweite Zeile verschiebt; die Kopfzeile steht immer in der ersten Zeile."
+      "Schritt 4.2 erhaelt nun die Wildtyp-Replikate, die Schritt 4.1 gemessen hat, statt zu hoeren, es gebe keine.",
+      "Eine Arbeitsmappe ohne Wildtyp-Spalte und eine mit zu wenigen Replikaten sind verschiedene Antworten, und der Bildschirm nennt den Fall.",
+      "Replikate erreichen den Klassifikator nur, wenn sie fuer eine Rauschschaetzung ausreichen, damit kein Urteil bei voller Konfidenz auf einem Signal beruht.",
+      "Der Backtest, der festlegt welche Signale die Empfehlung treiben, liegt jetzt im Repository statt nur als Dateiname zitiert zu werden."
     ],
-    "highlightsStamp": "0.16.7+d17b6783"
+    "highlightsStamp": "0.16.8+2cb0acdc"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",

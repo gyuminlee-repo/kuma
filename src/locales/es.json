@@ -2399,11 +2399,12 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El pocillo vacio de un clon descartado ya no se rellena adelantando los siguientes picks, y la placa de cultivo final coincide con las coordenadas de la placa stock de origen.",
-      "El llenado secuencial desde A1 sigue disponible como opcion de layout; solo cambio el valor por defecto, y una eleccion previa de esa opcion se conserva tras la actualizacion.",
-      "El CSV de mapeo exportado ya no tiene una linea de comentario de metadatos que empuje el encabezado a la segunda fila; el encabezado siempre esta en la primera linea."
+      "El paso 4.2 ahora recibe las replicas de tipo silvestre que midio el paso 4.1, en vez de que se le diga que no existen.",
+      "Un libro sin columna de tipo silvestre y otro con muy pocas replicas son respuestas distintas, y la pantalla indica cual es.",
+      "Las replicas llegan al clasificador solo cuando bastan para estimar el ruido, asi ningun veredicto se apoya en una sola senal con plena confianza.",
+      "El backtest que decide que senales guian la recomendacion ya esta en el repositorio, y no citado solo por nombre de archivo."
     ],
-    "highlightsStamp": "0.16.7+d17b6783"
+    "highlightsStamp": "0.16.8+2cb0acdc"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",
