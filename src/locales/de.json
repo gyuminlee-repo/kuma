@@ -174,10 +174,10 @@
       "modeLegend": "Replicate-Achse",
       "modePerBarcode": "Jeder gewählte Barcode ist ein Replicate",
       "modePerBarcodeHelp": "Ein Demux pro Barcode. Jedes Well lässt sich danach über die gewählten Plates hinweg vergleichen.",
-      "modePooled": "Alle Barcodes zu einer Plate zusammenfassen",
-      "modePooledHelp": "Alle Reads in einem Pool. Eine Plate, keine Replicates zum Vergleichen.",
+      "modePooled": "Den gesamten Run-Ordner zu einer Plate zusammenfassen",
+      "modePooledHelp": "Alle Reads unter fastq_pass kommen in einen Pool, auch die hier nicht angehakten Barcodes und unclassified. Eine Plate, keine Replicates zum Vergleichen.",
       "replicateCount": "{{count}} Replicate ausgewählt",
-      "pooledCount": "{{count}} Barcodes zu einer Plate zusammengefasst",
+      "pooledCount": "Alle Reads im Ordner zusammengefasst, nicht nur die {{count}} aufgeführten Barcodes",
       "cancel": "Lauf abbrechen"
     },
     "parameters": {
@@ -694,11 +694,11 @@
         "destLayoutAriaLabel": "Janus Ziel well Layout",
         "destLayoutOption": {
           "source": "Source Position",
-          "compact": "Kompakt ab A1"
+          "compact": "Plattenreihenfolge ab A1"
         },
         "destLayoutHint": {
           "source": "dest_well übernimmt die Position der source plate. Der Export schlägt fehl, wenn zwei picks im selben well landen.",
-          "compact": "dest_well wird in priority-Reihenfolge ab A1 fortlaufend vergeben, dabei jede Plattenspalte von oben nach unten (A1, B1, C1 bis H1, dann A2), ohne leere Wells."
+          "compact": "dest_well wird ab A1 in der Reihenfolge der Plattenübersicht vergeben, jede Spalte von oben nach unten (A1, B1, C1 bis H1, dann A2), ohne leere Wells. Der Pick mit dem vordersten source well bekommt A1; die Sequenziertiefe bestimmt die Reihenfolge nicht mehr."
         },
         "outputPathLabel": "Ausgabe-Dateipfad",
         "outputPathPlaceholder": "Pfad zur .csv-Zieldatei",
@@ -788,11 +788,11 @@
         "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
       "referenceFasta": {
-        "label": "Referenzsequenz",
+        "label": "Referenz-Construct",
         "placeholder": ".fasta / .fa / .gbk / .dna Datei Pfad",
         "stateLabel": "Erforderlich",
-        "helperText": "Referenz Nukleotidsequenz (CDS) used für Variante calling against Consensus",
-        "helpText": "Referenz sequence used as die baseline für Variante calling. FASTA, GenBank, and SnapGene files are supported. Using die same Referenz as KURO design ist empfohlen. Muss eine Nukleotidsequenz (DNA/CDS) für das Read-Alignment sein, keine Proteinsequenz."
+        "helperText": "Construct, das die Primer-Bindungsstellen aus der Custom-Barcodes-Datei enthält. MAME schneidet daraus das Amplicon heraus.",
+        "helpText": "Das tatsächlich sequenzierte Construct, einschließlich der Regionen, an denen die Primer aus der Custom-Barcodes-Datei binden, in der Regel dasselbe Construct, aus dem das Barcode-Package entworfen wurde. MAME findet diese Stellen und schneidet das Amplicon dazwischen heraus. Eine reine CDS funktioniert nicht: die Primer-Stellen liegen außerhalb, der Barcode-Demux behält dann nichts. Nukleotid, kein Protein."
       },
       "customBarcodes": {
         "label": "Benutzerdefiniert Barcodes (xlsx oder csv)",
@@ -950,6 +950,11 @@
         "alertTitle": "Well-Varianten-Zuordnung wahrscheinlich fehlerhaft",
         "alertDesc": "Von {{wells}} Wells mit beobachteter Variante stimmen {{selfPercent}}% mit der eigenen erwarteten Mutation überein, {{crossPercent}}% dagegen mit der erwarteten Mutation eines anderen Wells. Die Well-Varianten-Zuordnung ist mit hoher Wahrscheinlichkeit verschoben; diesem Ergebnis ist nicht zu trauen.",
         "alertAriaLabel": "Warnung zur Well-Varianten-Zuordnungsintegrität"
+      },
+      "referenceResolution": {
+        "title": "Amplicon-Region verwendet, nicht die ganze Datei",
+        "desc": "Die Referenzdatei hat {{originalLength}} bp. Der Lauf hat davon die Positionen {{spanStart}}-{{spanEnd}} gelesen ({{sliceLength}} bp), den Abschnitt zwischen den Barcode-Primern.",
+        "normal": "Für einen Run-Ordner ist das der normale Weg: die Reads decken das Amplicon ab, also wird das Construct auf die tatsächlich sequenzierte Region gekürzt."
       },
       "offLayoutRecords": {
         "title": "{{records}} Datensätze aus {{wells}} Wells außerhalb des Layouts",
@@ -2397,13 +2402,12 @@
     "description": "Die wichtigsten Neuerungen des letzten Updates.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die Beispieldaten melden eine Cross-Talk-Prüfung nicht mehr als sauber, wenn diese Prüfung nie ausgeführt wurde.",
-      "Die Fixture der Beispielauswertung ist als Ressource mit der App gebündelt, sodass die Demo sie auch im Release-Build liest und nicht mehr nur in der Entwicklung.",
-      "Beim erneuten Öffnen eines gespeicherten Laufs kommt dessen Anzahl der Datensätze außerhalb des Layouts zurück, statt dass gar nichts angezeigt wird.",
-      "Der Wiederfindungs-Balken und die Kopfzeile darüber können keine Werte aus zwei verschiedenen Läufen mehr gleichzeitig anzeigen.",
-      "Die KURO-Plattenvorschau beschriftet ihre beiden Bereiche nicht mehr als Deck-Racks, denn dort stehen jetzt Plattennamen."
+      "Das Geräteblatt füllt die finale Platte in derselben Reihenfolge, in der die Plattenübersicht aus Schritt 2.2 gelesen wird, statt nach Sequenziertiefe.",
+      "Das Feld für die Referenzsequenz verlangt das Construct mit den Primer-Bindungsstellen, also genau das, was die Pipeline immer schon gebraucht hat.",
+      "Ein Lauf, der sein Amplicon herausgeschnitten hat, sagt das jetzt und benennt die analysierte Region.",
+      "Die Pool-Option für Barcodes sagt, dass sie alle Reads im Ordner zusammenfasst, nicht nur die angehakten Barcodes."
     ],
-    "highlightsStamp": "0.16.2+b043584b"
+    "highlightsStamp": "0.16.3+75eb7d5d"
   },
   "primerDisplay": {
     "copySeqTitle": "Kopieren sequence",

@@ -56,6 +56,23 @@ const distributionStats = {
   bimodal: false,
 };
 
+/**
+ * What the raw-run path reports about the reference it actually read: the
+ * pipeline finds the barcode primer tails inside the picked file and analyses
+ * the amplicon between them, so the file named in the form is not the file the
+ * run read. Only this branch resolves one.
+ */
+const referenceResolution = {
+  path: "D:/project/demux_filtered/ref.amplicon.fa",
+  extracted: true,
+  span_start: 451,
+  span_end: 1170,
+  original_length: 1620,
+  cds_start: 61,
+  cds_end: 660,
+  note: "Amplicon extracted from reference positions 451-1170 (720 bp).",
+};
+
 describe("mame inputSlice", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -113,6 +130,7 @@ describe("mame inputSlice", () => {
           output_path: "D:/project/mame_result.xlsx",
           summary: { total: 0, pass_count: 0, ambiguous_count: 0, fail_count: 0 },
           distribution_stats: distributionStats,
+          reference_resolution: referenceResolution,
         };
       });
 
@@ -155,6 +173,12 @@ describe("mame inputSlice", () => {
     expect(phaseAtAnalyze).toBe("demux");
     expect(store.isAnalyzing).toBe(false);
     expect(store.analyzeMessage).toBe("Analysis complete");
+    // Which reference the run actually read, routed from the response to the
+    // store so the review screen can say the verdicts were scored against a
+    // slice. This is the live path; the restore path is covered in
+    // useAutosaveHydration.test.tsx. Carried through verbatim rather than
+    // reshaped, so the notice and the sidecar cannot disagree about the span.
+    expect(store.setReferenceResolution).toHaveBeenCalledWith(referenceResolution);
     const targetRound = useRoundStore.getState().rounds.find((round) => round.id === targetRoundId);
     expect(targetRound?.status).toBe("ngs_done");
     expect(targetRound?.genotype).toMatchObject({

@@ -18,8 +18,31 @@ Header design follows the 260428 meeting §2.5 decision:
 - ``priority_score``: ``read_count`` when available (G6/A6+); otherwise
                       ``file_size_kb`` as a volume proxy (Phase 1 fallback).
 
-Sorted by ``priority_score`` DESC (highest-volume clones first), per §2.5
-recommended placement order.
+Row order: the plate map, not sequencing depth
+-----------------------------------------------
+Rows are laid down in ``source_well`` order, column-major (A1, B1 ... H1, then
+A2), which is the one traversal
+:data:`~kuma_core.mame.plate_geometry.DEFAULT_ADDRESSING` defines and the one
+the result table already reads. The operator fills the final plate by hand with
+the step 2.2 plate map in front of them, so this file has to run in the same
+direction as the plate they are reading; screen, file and bench then agree on
+one axis.
+
+It sorted by ``priority_score`` DESC before (the §2.5 note of the 260428
+meeting recommended placing the highest-volume clones first). That put the
+deepest-sequenced clone in A1 regardless of where it sat on the source plate,
+which turned every next well into a search back through the plate map. The
+score itself is unchanged and still written: it ranks depth, which is worth
+reading, it just no longer decides where anything goes.
+
+Ties are only reachable across plates, since one plate holds at most one pick
+per position, and they break by plate order (``nb_order_key`` then the label),
+the same order ``JanusSettings.resolve_deck`` numbers the stock plates in. A
+pick whose ``custom_barcode`` names no well has no position to be placed by and
+sorts before every placed pick, as
+:meth:`~kuma_core.mame.plate_geometry.PlateAddressing.sort_key` does for the
+same reason: at the top it is seen. It is never only sorted, either, since
+``_find_unresolved_wells`` names each one as an error.
 
 read_count policy (G6/A6)
 --------------------------
@@ -230,6 +253,11 @@ def _find_unresolved_wells(
     The plate comes in the same way it does for the row builder that produced
     ``bad_barcodes``, so the range this message quotes is the range that
     rejected them rather than a second copy of the grid.
+
+    The message also states where these rows sit, because rows are now ordered
+    by source position and these have none. Landing at the top of the list is a
+    consequence of that, not a ranking, and saying so is what keeps it from
+    reading as one.
     """
     if not bad_barcodes:
         return None
@@ -241,7 +269,9 @@ def _find_unresolved_wells(
             "Janus mapping: unparseable custom_barcode, well position unknown for "
             f"{len(bad_barcodes)} mutant(s): {detail}. "
             f"Expected '<row>_<col>' with row 1-{addressing.rows} "
-            f"and col 1-{addressing.cols}."
+            f"and col 1-{addressing.cols}. "
+            "Rows are ordered by source well, so these are listed first, "
+            "having no position to be ordered by."
         ),
         "mutant_ids": [mid for mid, _ in bad_barcodes],
     }
@@ -322,11 +352,14 @@ def _assemble_janus_rows(
     include_fallback: bool = False,
     addressing: PlateAddressing = DEFAULT_ADDRESSING,
 ) -> tuple[list[dict[str, object]], list[tuple[str, str]], list[dict[str, object]]]:
-    """Build and sort rows without validating them.
+    """Build rows in plate-map order without validating them.
 
     Returns ``(rows, bad_barcodes, excluded)``. Destinations still mirror the
     source position; compact reassignment is applied by the caller so that both
     the export and the preview can decide what to do about capacity first.
+
+    Rows come back in ``source_well`` order, column-major, with the reasoning at
+    the sort call below.
 
     Every replicate that does not make the cut lands in *excluded* with the
     reason, its verdict class, and the plate it was selected from, so a retry
@@ -337,7 +370,10 @@ def _assemble_janus_rows(
             f"Invalid dest_layout {dest_layout!r}. Expected 'source' or 'compact'."
         )
 
-    rows: list[dict[str, object]] = []
+    # ``(order key, row)`` pairs rather than a key on the row: the row dict is
+    # written to the file verbatim by ``csv.DictWriter``, so it carries the five
+    # columns of the schema and nothing else. The ordering value rides beside it.
+    keyed: list[tuple[tuple[int, int, str], dict[str, object]]] = []
     bad_barcodes: list[tuple[str, str]] = []
     excluded: list[dict[str, object]] = []
 
@@ -378,18 +414,48 @@ def _assemble_janus_rows(
         rc = bc.read_count
         priority_score: float = float(rc) if rc is not None else round(bc.file_size_kb, 3)
 
-        rows.append(
-            {
-                "name": rr.mutant_id,
-                "source_plate": source_plate,
-                "source_well": well_label,
-                "dest_well": well_label,  # default = same position; user may override
-                "priority_score": priority_score,
-            }
+        # 0 for a pick with no readable position, so it sorts before every
+        # placed pick. ``PlateAddressing.sort_key`` makes the same choice for
+        # the same reason: an unreadable token is not dropped and not hidden at
+        # the bottom of a long list, it is put where the operator opens the
+        # preview. It is never only sorted, either: ``_find_unresolved_wells``
+        # names each one as an error, which withholds the exported file
+        # entirely and lists the clone in the preview.
+        order_seq = seq if seq is not None else 0
+
+        keyed.append(
+            (
+                (order_seq, nb_order_key(source_plate), source_plate),
+                {
+                    "name": rr.mutant_id,
+                    "source_plate": source_plate,
+                    "source_well": well_label,
+                    "dest_well": well_label,  # default = same position; user may override
+                    "priority_score": priority_score,
+                },
+            )
         )
 
-    # Sort by priority DESC (high-volume first per §2.5 recommendation).
-    rows.sort(key=lambda r: float(r["priority_score"]), reverse=True)  # type: ignore[arg-type]
+    # Plate-map order, column-major (A1, B1 ... H1, A2), not sequencing depth:
+    # the operator fills the final plate by hand while reading the step 2.2
+    # plate map, so this file has to run in the same direction as the plate in
+    # front of them. Sorting by priority_score DESC (the §2.5 recommendation
+    # this used to follow) put the deepest-sequenced clone in A1 wherever it
+    # sat on the source plate, and every next well had to be looked up. The
+    # score keeps its value and its column; it just no longer places anything.
+    #
+    # The traversal is not re-derived here: ``order_seq`` came from
+    # ``addressing.token_to_seq`` above, so this order is plate_geometry's one
+    # rule and cannot drift from the result table or from ``seq_to_well``.
+    #
+    # Ties are reachable only across plates, since one plate holds at most one
+    # pick per position. They break by plate, in the ``(nb_order_key, label)``
+    # order ``JanusSettings.resolve_deck`` numbers the stock plates in, so a
+    # position held on two plates is poured Stock plate1 first. A same-plate
+    # tie would need one barcode map to give two clones one well; if that ever
+    # arrives, the stable sort leaves them in the order *replicates* came in.
+    keyed.sort(key=lambda pair: pair[0])
+    rows: list[dict[str, object]] = [row for _, row in keyed]
     return rows, bad_barcodes, excluded
 
 
@@ -398,6 +464,10 @@ def _apply_compact_layout(
     addressing: PlateAddressing = DEFAULT_ADDRESSING,
 ) -> None:
     """Reassign ``dest_well`` sequentially from A1, in place.
+
+    Rows arrive in source-plate order, so pouring them out in list order is what
+    makes the destination plate read the way the source plate map does: the pick
+    from the lowest source position takes A1, the next B1, and holes close.
 
     Only the first ``addressing.capacity`` rows get a destination;
     ``seq_to_well`` rejects anything past the plate. Overflow rows keep a blank
@@ -588,7 +658,8 @@ def project_device_rows(
     Positional lists, not dicts: the canonical row supplies three of these cells
     (name and the two wells) and the policy and the deck supply the rest, so
     there is no one mapping to key by. ``no`` is the 1-based position in the
-    already sorted row list, so the sheet order carries the picking priority.
+    already sorted row list, so the sheet counts off the transfers in the order
+    the plate is filled.
 
     Plate names come from ``resolve_deck``, so every plate of the run carries
     one. A plate that somehow still has none writes an empty cell rather than
@@ -671,14 +742,16 @@ def _build_janus_rows(
 
     Only clones whose selected plate carries an included verdict class survive;
     the default is PASS alone, and fallback picks are dropped unless
-    ``include_fallback`` is set. Rows are sorted by ``priority_score`` DESC.
+    ``include_fallback`` is set. Rows are sorted by ``source_well``,
+    column-major (see the module docstring for why, and for the tiebreak).
 
     ``settings.dest_layout`` controls ``dest_well`` assignment:
 
     - ``"compact"`` (default): destinations are assigned sequentially from A1 in
-      sorted (priority DESC) order, following the column-major ``seq_to_well``
-      convention (A1, B1, ... H1, A2, ...). A stock plate is a new plate, so
-      filling it from the front is the normal case.
+      that same source order, following the column-major ``seq_to_well``
+      convention (A1, B1, ... H1, A2, ...), so the destination plate reads the
+      way the source plate map does with the holes closed. A stock plate is a
+      new plate, so filling it from the front is the normal case.
     - ``"source"``: ``dest_well`` mirrors ``source_well``.
 
     Raises ``ValueError`` on empty wells, >96 rows, or duplicate destinations.
@@ -826,8 +899,9 @@ def export_mame_janus_csv(
     - ``"legacy5"`` writes ``name | source_plate | source_well | dest_well |
       priority_score``, the kuma-internal column set.
 
-    Sorted by priority_score DESC (high read_count / file_size_kb first).
-    Only clones with an included verdict class (PASS by default) are written.
+    Sorted by ``source_well``, column-major, so the file reads in the direction
+    the operator fills the plate. Only clones with an included verdict class
+    (PASS by default) are written.
 
     The return value stays ``Path``: exclusions are reported by
     ``build_janus_preview_rows`` for the same ``settings``, which the RPC

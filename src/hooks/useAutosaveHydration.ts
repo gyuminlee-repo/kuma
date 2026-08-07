@@ -1611,6 +1611,16 @@ async function restoreMameResult(
   // and it is the result file that carries what a run produced.
   store.setContamination(result.contamination ?? null);
   if (!alive()) return false;
+  // Which reference the restored run actually read. Without this a reopened
+  // project shows the verdicts of a run that analysed a slice of the picked
+  // file while saying nothing about the slice -- the same omission that left
+  // `off_layout_records` silent on restore above. `?? null` covers both a
+  // result persisted before the key existed and a run that never resolved a
+  // reference (only the raw-run path does); neither may read as "the whole
+  // file was used", which is what a present resolution with `extracted: false`
+  // says and what this null deliberately does not.
+  store.setReferenceResolution(result.reference_resolution ?? null);
+  if (!alive()) return false;
   store.setDistributionStats(result.distribution_stats ?? null);
   if (!alive()) return false;
   // Carry the thresholds the persisted run was judged against, so a restored

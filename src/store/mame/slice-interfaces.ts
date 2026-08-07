@@ -4,6 +4,7 @@ import type { RestoredResultProvenance } from "@/lib/mame/resultProvenance";
 export type { MamePhase, PhaseSlice } from "./slices/phaseSlice";
 import type {
   AmpliconLengthEstimate,
+  AnalyzeResult,
   AnalyzeSummary,
   AnalyzeYield,
   CompareParams,
@@ -29,6 +30,16 @@ import type { VariantSourceInfo } from "@/types/mame/barcode_package";
 import type { WellLayout } from "@/types/mame/well_layout";
 
 export type InputMode = "consensus" | "sorted_barcode" | "raw_run";
+
+/**
+ * `reference_resolution` off the analyze response, kept verbatim.
+ *
+ * Derived from the response type rather than restated, so the store cannot
+ * drift from what the sidecar sends (`python-core/sidecar_mame/handlers/
+ * analyze.py`); renaming a field there breaks the build here instead of
+ * silently rendering `undefined`.
+ */
+export type ReferenceResolution = NonNullable<AnalyzeResult["reference_resolution"]>;
 
 export interface RawRunParams {
   customBarcodesPath: string;
@@ -332,6 +343,25 @@ export interface AnalysisSlice {
    */
   contamination: ContaminationReport | null;
   /**
+   * Which reference the last analyze run actually read, and whether it was the
+   * file the operator picked or a slice cut out of it.
+   *
+   * Three states, and they are NOT interchangeable:
+   *   null                  no run has reported one -- no run since the last
+   *                         reset, a run that never resolves a reference
+   *                         (only the raw-run path does), or a result
+   *                         persisted before the sidecar sent this field.
+   *   `extracted: false`    a run DID resolve the reference and used the whole
+   *                         file unmodified. Measured, and deliberately not
+   *                         collapsed into null: an old snapshot that never
+   *                         measured must stay distinguishable from a run that
+   *                         measured and found nothing to cut.
+   *   `extracted: true`     the run analysed positions span_start..span_end of
+   *                         the picked file, which is the only state the
+   *                         notice speaks about.
+   */
+  referenceResolution: ReferenceResolution | null;
+  /**
    * Set when the results on screen were restored from a snapshot this build did
    * not write, so the review screen can say whose engine produced them. Null
    * for a run made in this session and for a same-version restore, which is the
@@ -355,6 +385,9 @@ export interface AnalysisSlice {
   setCompareParams: (compareParams: CompareParams | null) => void;
   setOffLayoutRecords: (offLayoutRecords: OffLayoutRecords | null) => void;
   setContamination: (contamination: ContaminationReport | null) => void;
+  setReferenceResolution: (
+    referenceResolution: ReferenceResolution | null,
+  ) => void;
   setRestoredResultProvenance: (
     provenance: RestoredResultProvenance | null,
   ) => void;

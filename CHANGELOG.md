@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.16.3 (The final plate reads like the plate map, and three inputs stop misdescribing themselves)
+
+The instrument sheet laid its picks down by sequencing depth. The deepest-sequenced clone took A1, the next took B1, and so on, which meant the file read in an order with no relationship to the plate the operator was looking at. Filling a plate by hand against a list sorted on a hidden axis is how a clone ends up in the wrong well. Picks are now laid down in plate-map order, column-major, the same direction the result table already sorts and the same direction an eight channel pipette moves. Depth is still recorded on every row; it just no longer decides position.
+
+Three inputs described themselves incorrectly, and one of them could cost a run.
+
+The reference sequence field asked for the CDS. The pipeline wants the opposite: in a raw run it takes the flank-bearing construct and extracts the amplicon itself, locating the barcode workbook primer tails inside the sequence and re-deriving the coding region by reading frame. Supplying a bare CDS passes alignment and passes the pre-flight check, then loses every read at barcode demux, because the barcode sits a hundred to four hundred bases upstream of the gene while the search window is about thirty. The shipped example was always a construct, not a CDS, and a comment in the store records this exact failure. Only the label said otherwise.
+
+That extraction was also invisible. A run analyses a slice of the file the operator chose, the response has said which slice since the feature shipped, and nothing on screen read it.
+
+The pooled barcode option said it merges the selected barcodes. It merges every read under the run folder, including barcodes left unticked and the unclassified directory, which is why the tick list greys out when it is chosen. The option stays, since it is the only path for a run carrying one barcode or none, but it now says what it does.
+
+### Highlights
+
+- The instrument sheet fills the final plate in the same order the step 2.2 plate map reads, instead of by sequencing depth.
+- The reference sequence field asks for the construct that carries the primer binding regions, which is what the pipeline has always needed.
+- A run that extracted its amplicon now says so, naming the region it analysed.
+- The pooled barcode option states that it merges every read in the folder, not only the ticked barcodes.
+
+### Changed
+
+- v0.16.3: Picks are ordered by their position on the source plate, running down each column, rather than by read depth. The ordering goes through the shared plate-geometry rule rather than a second traversal of its own, so the sheet, the result table and the plate cannot drift apart. A pick whose source well cannot be read sorts first and is named, since the export already refuses to write while any well is unresolved.
+- v0.16.3: The reference input asks for the construct sequence covering the regions the barcode primers bind, and says that MAME extracts the amplicon from it. Naming the primer regions rather than saying whole sequence matters: a plasmid whose primer tails cannot be found is refused, and the refusal already explains itself.
+- v0.16.3: The pooled option for native barcodes states that it merges every read under the run folder, including unticked barcodes and unclassified reads.
+
+### Added
+
+- v0.16.3: The review screen reports when the analysis ran on an extracted amplicon rather than the whole reference file, naming the region. A restored run keeps the notice, and a run where no extraction happened shows nothing.
+
 ## v0.16.2 (What the demo shows, what a reopened run remembers, and what the docs still claimed)
 
 v0.16.1 shipped the eight column instrument sheet and the review popups. Checking what it left behind turned up four things, none of them in the code it changed.

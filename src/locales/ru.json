@@ -174,10 +174,10 @@
       "modeLegend": "Ось replicate",
       "modePerBarcode": "Каждый выбранный barcode это replicate",
       "modePerBarcodeHelp": "По одному demux на barcode. После этого каждый well сравним между выбранными plate.",
-      "modePooled": "Объединить все barcode в одну plate",
-      "modePooledHelp": "Все read в одном пуле. Одна plate, сравнивать нечего.",
+      "modePooled": "Объединить всю папку run в одну plate",
+      "modePooledHelp": "Все read из fastq_pass попадают в один pool, включая неотмеченные здесь barcode и unclassified. Одна plate, сравнивать нечего.",
       "replicateCount": "Выбрано replicate: {{count}}",
-      "pooledCount": "Объединено в одну plate barcode: {{count}}",
+      "pooledCount": "Объединены все read в папке, а не только перечисленные barcode: {{count}}",
       "cancel": "Отменить запуск"
     },
     "parameters": {
@@ -694,11 +694,11 @@
         "destLayoutAriaLabel": "Схема well назначения Janus",
         "destLayoutOption": {
           "source": "Позиция source",
-          "compact": "Компактно с A1"
+          "compact": "Порядок планшета с A1"
         },
         "destLayoutHint": {
           "source": "dest_well повторяет позицию source plate. Экспорт завершится ошибкой, если два pick попадут в один well.",
-          "compact": "dest_well назначается последовательно с A1 в порядке приоритета, сверху вниз по каждому столбцу (A1, B1, C1 до H1, затем A2), без пустых лунок."
+          "compact": "dest_well назначается с A1 в порядке карты планшета, сверху вниз по каждому столбцу (A1, B1, C1 до H1, затем A2), без пустых лунок. Pick с самым ранним source well получает A1; глубина секвенирования больше не задаёт порядок."
         },
         "outputPathLabel": "Путь к выходному файлу",
         "outputPathPlaceholder": "Путь к целевому файлу .csv",
@@ -788,11 +788,11 @@
         "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
       "referenceFasta": {
-        "label": "Reference sequence",
+        "label": "Reference construct",
         "placeholder": "путь к .fasta / .fa / .gbk / .dna",
         "stateLabel": "Обязательно",
-        "helperText": "Reference нуклеотидная последовательность (CDS) для variant calling против consensus",
-        "helpText": "Reference sequence как baseline для variant calling. Поддерживаются FASTA, GenBank и SnapGene. Рекомендуется использовать тот же reference, что и в дизайне KURO. Должна быть нуклеотидной (DNA/CDS) последовательностью для выравнивания reads, а не белковой последовательностью."
+        "helperText": "Construct, включающий участки связывания primer из файла Custom Barcodes. MAME вырезает из него amplicon.",
+        "helpText": "Construct, который действительно секвенировали, включая участки связывания primer из файла Custom Barcodes, обычно тот же, из которого спроектирован barcode package. MAME находит эти участки и вырезает amplicon между ними. Одна лишь CDS не работает: участки связывания лежат вне её, и barcode demux не оставляет ничего. Нуклеотидная последовательность, не белковая."
       },
       "customBarcodes": {
         "label": "Custom Barcodes (xlsx или csv)",
@@ -950,6 +950,11 @@
         "alertTitle": "Возможна ошибка сопоставления лунка-вариант",
         "alertDesc": "Из {{wells}} лунок с наблюдаемым вариантом {{selfPercent}}% совпадают с собственной ожидаемой мутацией, а {{crossPercent}}% совпадают с ожидаемой мутацией другой лунки. Сопоставление лунка-вариант, скорее всего, нарушено; не доверяйте этому результату.",
         "alertAriaLabel": "Предупреждение о целостности сопоставления лунка-вариант"
+      },
+      "referenceResolution": {
+        "title": "Использован участок amplicon, а не весь файл",
+        "desc": "Файл reference имеет длину {{originalLength}} bp. Запуск прочитал в нём позиции {{spanStart}}-{{spanEnd}} ({{sliceLength}} bp), участок между barcode primer.",
+        "normal": "Для папки run это штатный путь: read покрывают amplicon, поэтому construct обрезается до реально секвенированного участка."
       },
       "offLayoutRecords": {
         "title": "{{records}} записей из {{wells}} лунок вне раскладки",
@@ -2397,13 +2402,12 @@
     "description": "Основные изменения последнего обновления.",
     "gotItBtn": "Понятно",
     "highlights": [
-      "Пример данных больше не сообщает, что проверка cross-talk чиста, если эта проверка вообще не выполнялась.",
-      "Фикстура примерного анализа поставляется вместе с приложением как упакованный ресурс, поэтому demo читает её и в собранном релизе, а не только при разработке.",
-      "При повторном открытии сохранённого запуска возвращается и число его записей вне раскладки, а не пустое место.",
-      "Полоса восстановления и заголовок над ней больше не могут показывать значения из двух разных запусков.",
-      "Предпросмотр планшетов KURO больше не подписывает свои две панели как deck rack: там теперь стоят имена планшетов."
+      "Лист для прибора заполняет итоговый планшет в том же порядке, в каком читается карта планшета шага 2.2, а не по глубине секвенирования.",
+      "Поле референсной последовательности запрашивает construct с участками связывания primer, то есть именно то, что pipeline всегда и требовал.",
+      "Запуск, который вырезал свой amplicon, теперь сообщает об этом и называет проанализированный участок.",
+      "Вариант с объединением barcode указывает, что он сливает все read в папке, а не только отмеченные barcode."
     ],
-    "highlightsStamp": "0.16.2+b043584b"
+    "highlightsStamp": "0.16.3+75eb7d5d"
   },
   "primerDisplay": {
     "copySeqTitle": "Копировать sequence",

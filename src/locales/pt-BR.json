@@ -174,10 +174,10 @@
       "modeLegend": "Eixo replicate",
       "modePerBarcode": "Cada barcode selecionado é um replicate",
       "modePerBarcodeHelp": "Um demux por barcode. Assim cada well pode ser comparado entre as plates selecionadas.",
-      "modePooled": "Juntar todos os barcodes em uma única plate",
-      "modePooledHelp": "Todas as reads em um único pool. Uma plate e nenhum replicate para comparar.",
+      "modePooled": "Juntar a pasta de run inteira em uma única plate",
+      "modePooledHelp": "Todas as reads sob fastq_pass vão para um único pool, incluindo os barcodes não marcados aqui e unclassified. Uma plate e nenhum replicate para comparar.",
       "replicateCount": "{{count}} replicate(s) selecionados",
-      "pooledCount": "{{count}} barcode(s) juntados em uma plate",
+      "pooledCount": "Todas as reads da pasta juntadas, não apenas os {{count}} barcode(s) listados",
       "cancel": "Cancelar execução"
     },
     "parameters": {
@@ -694,11 +694,11 @@
         "destLayoutAriaLabel": "Layout do well de destino do Janus",
         "destLayoutOption": {
           "source": "Posição de source",
-          "compact": "Compacto a partir de A1"
+          "compact": "Ordem da placa a partir de A1"
         },
         "destLayoutHint": {
           "source": "dest_well replica a posição da source plate. A exportação falha se dois picks caírem no mesmo well.",
-          "compact": "dest_well é atribuído sequencialmente a partir de A1 na ordem de priority, descendo cada coluna (A1, B1, C1 até H1, depois A2), sem deixar wells vazios."
+          "compact": "dest_well é atribuído a partir de A1 na ordem do mapa de placa, descendo cada coluna (A1, B1, C1 até H1, depois A2), sem deixar wells vazios. O pick cujo source well vem primeiro fica em A1; a profundidade de sequenciamento não define mais a ordem."
         },
         "outputPathLabel": "Caminho do arquivo de saída",
         "outputPathPlaceholder": "Caminho do arquivo .csv de destino",
@@ -788,11 +788,11 @@
         "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
       "referenceFasta": {
-        "label": "Sequência de referência",
+        "label": "Construct de referência",
         "placeholder": "Caminho do arquivo .fasta / .fa / .gbk / .dna",
         "stateLabel": "Obrigatório",
-        "helperText": "Sequência de referência nucleotídica (CDS) usada para variant calling contra o consensus",
-        "helpText": "Sequência de referência usada como baseline para variant calling. Arquivos FASTA, GenBank e SnapGene são suportados. Recomenda-se usar a mesma referência do design KURO. Deve ser uma sequência nucleotídica (DNA/CDS) usada para o alinhamento de reads, não uma sequência de proteína."
+        "helperText": "Construct que cobre as regiões de ligação dos primers do arquivo Custom Barcodes. MAME extrai o amplicon dele.",
+        "helpText": "O construct que foi sequenciado, incluindo as regiões onde os primers do arquivo Custom Barcodes se ligam, normalmente o mesmo com que o barcode package foi projetado. MAME localiza esses sítios e extrai o amplicon entre eles. Uma CDS sozinha não funciona: os sítios de ligação ficam fora dela, então o demux de barcodes não guarda nada. Sequência nucleotídica, não proteica."
       },
       "customBarcodes": {
         "label": "Custom Barcodes (xlsx ou csv)",
@@ -950,6 +950,11 @@
         "alertTitle": "Possível erro no mapeamento well-variante",
         "alertDesc": "Dos {{wells}} wells com variante observada, {{selfPercent}}% correspondem à própria mutação esperada e {{crossPercent}}% correspondem, em vez disso, à mutação esperada de outro well. É muito provável que o mapeamento well-variante esteja incorreto; não confie neste resultado.",
         "alertAriaLabel": "Aviso de integridade do mapeamento well-variante"
+      },
+      "referenceResolution": {
+        "title": "Foi usada a região do amplicon, não o arquivo inteiro",
+        "desc": "O arquivo de referência tem {{originalLength}} bp. A execução leu dele as posições {{spanStart}}-{{spanEnd}} ({{sliceLength}} bp), o trecho delimitado pelos primers de barcode.",
+        "normal": "Para uma pasta de run este é o caminho normal: as reads cobrem o amplicon, então o construct é recortado até a região realmente sequenciada."
       },
       "offLayoutRecords": {
         "title": "{{records}} registros de {{wells}} poços fora do arranjo",
@@ -2397,13 +2402,12 @@
     "description": "Destaques da última atualização.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Os dados de exemplo não relatam mais uma verificação de cross-talk como limpa quando essa verificação nunca foi executada.",
-      "O fixture da análise de exemplo é empacotado junto com o aplicativo, então a demo o lê em uma compilação publicada e não apenas em desenvolvimento.",
-      "Reabrir uma execução salva traz de volta a contagem de registros fora do arranjo, em vez de não mostrar nada.",
-      "A barra de recuperação e o cabeçalho acima dela não podem mais exibir números de duas execuções diferentes.",
-      "A prévia de placas do KURO deixa de rotular seus dois painéis como racks de deck, pois ali agora vão nomes de placa."
+      "A folha do instrumento preenche a placa final na mesma ordem em que o mapa de placa da etapa 2.2 é lido, e não mais por profundidade de sequenciamento.",
+      "O campo de sequência de referência pede o construct que traz as regiões de ligação dos primers, que é o que o pipeline sempre precisou.",
+      "Uma execução que extraiu seu amplicon agora informa isso e nomeia a região analisada.",
+      "A opção de barcodes agrupados informa que junta todas as reads da pasta, não apenas os barcodes marcados."
     ],
-    "highlightsStamp": "0.16.2+b043584b"
+    "highlightsStamp": "0.16.3+75eb7d5d"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",
