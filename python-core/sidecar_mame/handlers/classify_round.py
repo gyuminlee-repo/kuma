@@ -11,7 +11,7 @@ Params::
     {
         "round_files": [
             {"n": 1, "path": "<abs xlsx path>"},
-            {"n": 2, "path": "..."},
+            {"n": 2, "path": "...", "wt_values": [1.02, 0.97, ...]},
             ...
         ],
         "c_next": 96   # optional; default 96 if absent
@@ -19,6 +19,9 @@ Params::
 
     round_files must be ordered by round number (ascending).
     c_next: capacity of the next combinatorial plate (used to derive K_throughput).
+    wt_values: optional wild-type replicates step 4.1 recorded for that round,
+        on the scale of the activity column in the same file.  Only the entry
+        with the highest n is read: the bootstrap tests the current round.
 
 Returns one of two shapes, discriminated by ``advisory``.
 
@@ -29,33 +32,76 @@ The classifier answered::
         "label": str,       # DecisionLabel value
         "reason": str,
         "confidence": float | null,
-        "missing_inputs": [str],     # inputs this file format cannot supply
+        "missing_inputs": [str],     # inputs this call could not supply
     }
 
 The classifier was never asked::
 
     {
         "advisory": "not_assessable",
-        "reason": str,               # which input is absent
+        "reason": str,               # which input is absent or short
         "missing_inputs": [str],
         "blocked_decisions": [str],  # labels unreachable without it
+        "wt_replicate_count": int,   # replicates this round handed over
+        "wt_replicate_min": int,     # replicates the noise estimate needs
     }
 
 Raises (via dispatcher error codes):
     ValueError  -> -32602: missing/empty round_files, bad column headers,
-                           non-parseable Variant, activity <= 0.
+                           non-parseable Variant, activity <= 0, wt_values
+                           that is not a list of finite numbers.
     RuntimeError -> -32002: xlsx file not found.
 
 Data availability
 -----------------
-sigma_assay = None  (purified xlsx files contain no WT replicates).
-T2 and T_model are NA as a consequence.  T3 operates on hit_rates derived
-from the imported rounds.  The decision engine runs on T1/T3 only.
+sigma_assay = None  (the xlsx holds one activity per designed variant and no WT
+column).  T2 and T_model are NA as a consequence.  T3 operates on hit_rates
+derived from the imported rounds.  The point decision runs on T1/T3 only.
 
-sigma/T2 is deferred until WT replicate import is wired.
-current_round_activities (log2_fc) is populated for bootstrap readiness, but
-bootstrap is only entered for switch/stop labels, and those need wt_values,
-which this file format does not carry.  classify() answers that case with
+The WT replicates arrive beside the file rather than inside it.  Step 4.1 keeps
+them on the round it built (``Round.evolvepro_input.wt_values``) because the
+workbook itself cannot carry them, and the caller forwards them on the matching
+``round_files`` entry.  They enter the bootstrap, which resamples them into a
+sigma per draw; the point sigma_assay stays None, so which branch the decision
+tree proposes is unchanged and only the confidence test behind switch/stop can
+now run.  ``missing_inputs`` therefore still names wt_replicates on an answered
+decision: the verdict itself was reached with T2 and T_model NA either way.
+
+Two limits of that confidence, neither fixable here (kuma_core/strategy is
+pre-registered and frozen), both of which it inherits from the asymmetry
+between the point estimate and the draws:
+
+- The draws compute a sigma and a T2 while the point estimate has neither.
+  ``sat_now`` is any_true over T2/T3/T_model (classify.py), which only ever
+  turns more True as signals arrive, so a draw can agree with a switch/stop
+  point label for a reason the point label did not have.  Agreement is biased
+  upward for exactly the two labels the gate guards.
+- ``delta_best_ema`` is in activity units (round_best is max activity) while
+  ``current_round_activities`` is log2, and classify.py adjusts the former by a
+  difference of the latter before comparing it against an activity-scale
+  threshold.  The mixture predates this handler; it was inert while the
+  bootstrap never ran.
+
+Read the confidence as "the resampled decision kept agreeing", not as a
+calibrated probability.
+
+Below ``wt_replicate_min`` the replicates are not forwarded at all.
+compute_sigma_assay returns None under that count, so every bootstrap draw
+carries sigma=None and its T2 comes back NA, while T_model is frozen at its
+point value and is NA too.  The resampled decision then rests on the same lone
+T3 that proposed the branch.  The gate would confirm a one-signal call, and it confirms it
+emphatically: a T3 that is stable under resampling returns confidence 1.0, so
+a switch_combinatorial backed by nothing but a hit-rate trend would be drawn at
+full confidence.  Confidence measures agreement between the point decision and
+its resamples, not the sufficiency of the evidence behind it.  Withholding the
+replicates keeps the answer at "not assessable" and names the shortfall, which
+is the honest output; a maximally confident single-signal verdict is worse than
+none.
+
+current_round_activities (log2_fc) is what the bootstrap resamples alongside
+the replicates, but the bootstrap is only entered for switch/stop labels, and
+those need wt_values.
+When none were forwarded classify() answers that case with
 deferred("bootstrap_inputs_missing").  Passing that through as-is would report
 a withheld judgement, since deferred otherwise means the classifier weighed the
 evidence and declined (insufficient_data, low_confidence).  It never got the
@@ -80,15 +126,23 @@ from typing import Any, Optional
 
 _VARIANT_RE = re.compile(r"^(\d+)")
 
-# Inputs the purified per-round xlsx cannot supply.  It holds one measured
-# activity per designed variant and no wild-type replicate column, so
-# wt_values stays None and sigma_assay cannot be computed from it.  This is a
-# property of the file format, not a judgement the classifier made.
+# Inputs the caller did not supply.  The per-round xlsx holds one measured
+# activity per designed variant and no wild-type replicate column, so this list
+# is what the call is missing whenever the replicates do not arrive beside the
+# file.  It describes the inputs of one call, not a judgement the classifier
+# made; a call that carries enough replicates reports nothing missing.
 _MISSING_INPUTS = ["wt_replicates"]
 
+# No wild-type replicate reached this call at all.
+_REASON_WT_MISSING = "wt_replicates_missing"
+
+# Replicates arrived but too few to estimate assay noise from.
+_REASON_WT_INSUFFICIENT = "wt_replicates_insufficient"
+
 # Labels classify() gates behind the bootstrap confidence test, which needs
-# wt_values.  Without that input these two are unreachable, so a run over these
-# files can only ever answer "keep walking".
+# wt_values.  A call that carries too few replicates cannot reach either one,
+# which is what the not_assessable shape reports; every other label is still
+# answered normally.
 _BOOTSTRAP_GATED_LABELS = ["switch_combinatorial", "stop"]
 
 
@@ -203,6 +257,53 @@ def _load_xlsx(path: str) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# WT replicates carried beside the file
+# ---------------------------------------------------------------------------
+
+def _wt_values(round_file: dict) -> list[float]:
+    """Read the wild-type replicates a round_file entry carries.
+
+    Absent or empty means the round recorded none, which every round built
+    before step 4.1 kept them reports and which a hand-picked file from outside
+    this workspace also reports.  That is a fact about the input, so it returns
+    an empty list rather than raising.
+
+    A present but unreadable value is a different matter and raises, in line
+    with the anti-fallback rule the rest of this handler follows: a wt_values
+    that cannot be parsed would otherwise silently become "no WT on record" and
+    the answer would name the wrong reason.
+
+    Raises
+    ------
+    ValueError
+        wt_values is not a list, or holds a value that is not a finite number.
+    """
+    raw = round_file.get("wt_values")
+    if raw is None:
+        return []
+    if not isinstance(raw, (list, tuple)):
+        raise ValueError(
+            f"round_file wt_values must be a list of numbers, got {raw!r}"
+        )
+    values: list[float] = []
+    for item in raw:
+        if isinstance(item, bool):
+            raise ValueError(f"round_file wt_values holds a non-numeric entry: {item!r}")
+        try:
+            value = float(item)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"round_file wt_values holds a non-numeric entry: {item!r}"
+            ) from exc
+        if not math.isfinite(value):
+            raise ValueError(
+                f"round_file wt_values holds a non-finite entry: {item!r}"
+            )
+        values.append(value)
+    return values
+
+
+# ---------------------------------------------------------------------------
 # Per-round metrics
 # ---------------------------------------------------------------------------
 
@@ -287,8 +388,9 @@ def handle_classify_round(params: dict) -> dict:
     Parameters
     ----------
     params : dict
-        round_files : list[{"n": int, "path": str}]
+        round_files : list[{"n": int, "path": str, "wt_values": list[float]}]
             Rounds ordered ascending by n.  All paths must be absolute.
+            wt_values is optional and only read on the highest-numbered entry.
         c_next : int, optional
             Capacity of the next combinatorial plate.  Default: 96.
 
@@ -301,11 +403,16 @@ def handle_classify_round(params: dict) -> dict:
             "label": str,
             "reason": str,
             "confidence": float | null,
+            "missing_inputs": [str],
         }
+
+    or, when the bootstrap gate was reached with too few WT replicates to run
+    on, the "not_assessable" shape documented in the module docstring.
 
     Raises
     ------
-    ValueError: round_files absent/empty, column mismatch, parse errors.
+    ValueError: round_files absent/empty, column mismatch, parse errors,
+        unreadable wt_values.
     RuntimeError: xlsx file not found.
     """
     from kuma_core.strategy.classify import RoundState, Signals, classify, compute_signals
@@ -346,6 +453,18 @@ def handle_classify_round(params: dict) -> dict:
 
     n_rounds = len(sorted_files)
 
+    # WT replicates of the round being judged.  Only the highest-numbered entry
+    # is read: the bootstrap resamples the noise of the current measurement, and
+    # the earlier rounds are in the list to supply the hit-rate trend.
+    wt_values = _wt_values(sorted_files[-1])
+    wt_min = _DEFAULT_REGISTERED["wt_replicate_min"]
+    # Below the minimum nothing is handed over.  compute_sigma_assay returns
+    # None under that count, so every draw would resample into T2=NA and
+    # T_model=NA and the confirmation would land back on the same lone T3 that
+    # proposed the branch.  A T3 that holds up under resampling scores that as
+    # confidence 1.0, which would print a single-signal switch as a certainty.
+    bootstrap_wt = wt_values if len(wt_values) >= wt_min else None
+
     # Cross-round aggregation
     hit_rates = [m["hit_rate"] for m in per_round_metrics]
     cumulative_beneficial = sum(m["beneficial_count"] for m in per_round_metrics)
@@ -373,8 +492,9 @@ def handle_classify_round(params: dict) -> dict:
 
     # previous_signals: chain Signals for all rounds except the last.
     # Builds an incremental RoundState per prior round and calls compute_signals().
-    # sigma_assay=None throughout because purified xlsx contains no WT replicates.
-    # sigma/T2 is deferred: T2/T_model=NA, T3 is the only active saturation signal.
+    # sigma_assay=None throughout: compute_signals reads sigma_assay and never
+    # wt_values, and no sigma is estimated anywhere in this handler, so T2 and
+    # T_model are NA here and T3 is the only active saturation signal.
     registered = _DEFAULT_REGISTERED.copy()
     previous_signals: Optional[Signals] = None
 
@@ -407,6 +527,9 @@ def handle_classify_round(params: dict) -> dict:
                 # sigma_assay=None: sigma/T2 deferred until WT replicate import wired.
                 # With sigma=None, T2=NA and T_model=NA.  T3 is the active signal.
                 sigma_assay=None,
+                # r=1: the file states one activity per variant and nothing
+                # about how many measurements produced it.  T2 is NA here for
+                # want of a sigma, so r does not act on these interim signals.
                 r=1,
                 hit_rates=list(hr_so_far),
                 top_k_positions_n=tk_n,
@@ -428,12 +551,25 @@ def handle_classify_round(params: dict) -> dict:
         cumulative_beneficial=cumulative_beneficial,
         K_throughput=K_throughput,
         delta_best_ema=delta_best_ema,
-        # sigma_assay=None: sigma/T2 deferred until WT replicate import is wired.
-        # When WT replicates are available, compute_sigma_assay(wt_values) activates T2.
-        # T_model is also NA (requires sigma_assay).
-        # With sigma=None, T3 is the sole noise-bearing saturation signal operative.
+        # sigma_assay=None even when wt_values arrive below.  The point signals
+        # keep the shape they have always had (T2=NA, T_model=NA, T3 the sole
+        # noise-bearing saturation signal), so forwarding replicates cannot move
+        # which branch the decision tree proposes.  It only lets the bootstrap,
+        # which derives its own sigma per draw, run the confidence test behind
+        # the branch that was already proposed.
         sigma_assay=None,
-        r=1,  # no replicate info in purified xlsx; r=1 is safe (T2=NA anyway)
+        # r=1: the file states one activity per variant and nothing about how
+        # many measurements produced it.  T2 stays NA in the point estimate for
+        # want of a sigma, but the bootstrap computes a sigma per draw, and its
+        # threshold is 1.96 * sigma * sqrt(2/r) (legacy method, n_designed
+        # absent).  T2 is True when the smoothed gain falls under that
+        # threshold, so the smallest r makes the widest threshold and calls
+        # plateau most readily, which leans toward the transition labels rather
+        # than away from them.  Raising r would take a replicate count the file
+        # does not carry, and it would still be the wrong count: the exported
+        # activity is already a per-variant mean while these WT values are
+        # individual measurements.
+        r=1,
         hit_rates=hit_rates,
         top_k_positions_n=top_k_pos_n,
         top_k_positions_n1=top_k_pos_n1,
@@ -442,7 +578,10 @@ def handle_classify_round(params: dict) -> dict:
         active_residues=[],
         # unused_beneficial_count=0: demoted (T_unused=False, does not gate decision)
         unused_beneficial_count=0,
-        wt_values=None,  # no WT in purified xlsx; bootstrap deferred
+        # What step 4.1 recorded for this round, or None when it recorded too
+        # few to estimate noise from.  None keeps the bootstrap gate shut and
+        # the answer becomes not_assessable below.
+        wt_values=bootstrap_wt,
         # current_round_activities is log2_fc so that tau_pos=0.0 -> beneficial
         # = log2_fc > 0 = activity > 1.0.  This ensures hit_star in bootstrap
         # (if ever activated) is consistent with the beneficial definition used
@@ -459,11 +598,17 @@ def handle_classify_round(params: dict) -> dict:
         # and neither survives the "deferred" label: the signals did point at a
         # transition, and the confirming question was never put to the
         # classifier.  Report them as their own state.
+        #
+        # Which of the two shortfalls it was matters to whoever reads it: a
+        # round that recorded no wild-type wells needs a different remedy than
+        # one that recorded three, and the counts say which.
         return {
             "advisory": "not_assessable",
-            "reason": "wt_replicates_missing",
+            "reason": _REASON_WT_MISSING if not wt_values else _REASON_WT_INSUFFICIENT,
             "missing_inputs": list(_MISSING_INPUTS),
             "blocked_decisions": list(_BOOTSTRAP_GATED_LABELS),
+            "wt_replicate_count": len(wt_values),
+            "wt_replicate_min": wt_min,
         }
 
     return {
@@ -471,6 +616,12 @@ def handle_classify_round(params: dict) -> dict:
         "label": decision.label,
         "reason": decision.reason,
         "confidence": decision.confidence,
+        # Reported whether or not the replicates arrived.  They reach the
+        # bootstrap, not the point signals: sigma_assay stays None above, so the
+        # decision on screen was still reached with T2 and T_model NA and
+        # saturation resting on the hit-rate trend alone.  That is exactly what
+        # the note this field draws says, so emptying it on a supplied round
+        # would delete a true caveat from a verdict that still depends on it.
         "missing_inputs": list(_MISSING_INPUTS),
     }
 

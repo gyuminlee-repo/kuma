@@ -570,6 +570,10 @@ def handle_build_evolvepro_input(params: dict) -> dict:
         "normalization_sources": result.normalization_sources,
         "evidence_hash": result.evidence_hash,
         "artifact_hashes": result.artifact_hashes,
+        # The wild-type replicates behind this workbook, on the scale of its
+        # activity column. The workbook drops the WT rows, so this response is
+        # the only place step 4.2 can pick them up from.
+        "wt_values": result.wt_values,
     }
 
 

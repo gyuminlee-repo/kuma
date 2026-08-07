@@ -49,6 +49,19 @@ class BuildEvolveproResult:
     normalization_sources: list[str] = field(default_factory=list)
     evidence_hash: str = ""
     artifact_hashes: dict[str, str] = field(default_factory=dict)
+    # Wild-type replicates on the scale of the exported activity column: each
+    # WT measurement divided by the mean WT of its own cohort, which is the
+    # same division every variant measurement went through.  The workbook
+    # cannot carry them (it holds one row per designed variant, and WT rows are
+    # filtered out on the way in), so this is the only place they survive the
+    # build.  Empty when the primary source carried no WT rows at all, which is
+    # the pre-normalized GC sheet and a relative-scale long file without them.
+    #
+    # Only the primary source contributes.  A confirmation report overrides the
+    # values it names, and it is normalized against its own WT block, but that
+    # block describes a re-measurement of a handful of variants rather than the
+    # run this round is judged on.
+    wt_values: list[float] = field(default_factory=list)
 
 
 
@@ -77,7 +90,7 @@ def _layout_maps(layout_xlsx: str | Path | None) -> tuple[dict[str, str], dict[s
     return well_to_variant, variant_to_well
 
 
-def _read_long(path: str | Path, activity_scale: str, layout_xlsx: str | Path | None) -> tuple[dict[str, list[float]], dict[str, str], list[str]]:
+def _read_long(path: str | Path, activity_scale: str, layout_xlsx: str | Path | None) -> tuple[dict[str, list[float]], dict[str, str], list[str], list[float]]:
     source = Path(path)
     frame = pd.read_excel(source) if source.suffix.lower() in {".xlsx", ".xls"} else pd.read_csv(source)
     frame.columns = [str(column).strip().lower() for column in frame.columns]
@@ -143,10 +156,30 @@ def _read_long(path: str | Path, activity_scale: str, layout_xlsx: str | Path | 
     for variant, value, cohort in rows:
         relative = value if activity_scale == "relative_to_wt" else value / (sum(wt_values[cohort]) / len(wt_values[cohort]))
         values.setdefault(variant, []).append(relative)
-    return values, well_by_variant, []
+    # The WT rows put through the division the variant rows just went through,
+    # so the spread reported here is the spread of the exported column.  Only
+    # cohorts that carried a measurement contribute: a WT block whose plate
+    # produced no variant row normalized nothing in this export.
+    #
+    # Cohorts are pooled into one list.  Each is centred on its own mean, which
+    # costs one degree of freedom per cohort that a plain stdev over the pool
+    # does not know about, so a multi-plate estimate reads slightly tighter
+    # than it should.  It errs toward a smaller sigma, and a smaller sigma
+    # narrows the plateau threshold downstream, which is the direction that
+    # calls saturation less readily rather than more.
+    wt_relative: list[float] = []
+    for cohort, replicates in wt_values.items():
+        if cohort not in cohorts:
+            continue
+        if activity_scale == "relative_to_wt":
+            wt_relative.extend(replicates)
+        else:
+            mean_wt = sum(replicates) / len(replicates)
+            wt_relative.extend(replicate / mean_wt for replicate in replicates)
+    return values, well_by_variant, [], wt_relative
 
 
-def _raw_report_primary(path: str | Path, layout_xlsx: str | Path) -> tuple[dict[str, list[float]], dict[str, str], list[tuple[str, float]]]:
+def _raw_report_primary(path: str | Path, layout_xlsx: str | Path) -> tuple[dict[str, list[float]], dict[str, str], list[tuple[str, float]], list[float]]:
     well_to_variant, variant_to_well = _layout_maps(layout_xlsx)
     records = parse_agilent_standard(path)
     wt = [record.area for record in records if record.is_wt]
@@ -168,7 +201,7 @@ def _raw_report_primary(path: str | Path, layout_xlsx: str | Path) -> tuple[dict
         relative = record.area / mean_wt
         values.setdefault(variant, []).append(relative)
         export_rows.append((record.sample_name, relative))
-    return values, variant_to_well, export_rows
+    return values, variant_to_well, export_rows, [area / mean_wt for area in wt]
 
 
 def _gc_primary(path: str | Path, layout_xlsx: str | Path) -> tuple[dict[str, list[float]], dict[str, str]]:
@@ -320,6 +353,11 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     Raw generic activity uses WT rows per file/plate cohort; relative generic
     activity is already normalized. NGS PASS evidence is mandatory for every
     selected variant, including confirmation-selected values.
+
+    The WT rows the primary source carried leave in ``wt_values`` on the same
+    scale as the exported column. They are dropped from the workbook itself,
+    which holds one row per designed variant, so a caller that needs the assay
+    spread behind this round has to take them from the result.
     """
     if activity_scale not in {"raw", "relative_to_wt"}:
         raise ValueError("activity_scale must be 'raw' or 'relative_to_wt'")
@@ -333,18 +371,22 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     warnings: list[str] = []
     gc_export_rows: list[tuple[str, float]] = []
     if name == "activity_path":
-        fallback, well_by_variant, source_warnings = _read_long(source, activity_scale, layout_xlsx)
+        fallback, well_by_variant, source_warnings, wt_values = _read_long(source, activity_scale, layout_xlsx)
         warnings.extend(source_warnings)
     elif name == "gc_data_xlsx":
         if layout_xlsx is None:
             raise ValueError("gc_data_xlsx is well-labeled and requires layout_xlsx")
         fallback, well_by_variant = _gc_primary(source, layout_xlsx)
+        # A pre-normalized sheet states each well relative to a WT mean taken
+        # somewhere upstream; the replicates behind that mean never reach this
+        # app, so there is nothing to record.
+        wt_values = []
         if gc_export_xlsx is not None:
             warnings.append("gc_export_xlsx applies only to round1_report_xlsx and was ignored")
     else:
         if layout_xlsx is None:
             raise ValueError("round1_report_xlsx is well-labeled and requires layout_xlsx")
-        fallback, well_by_variant, gc_export_rows = _raw_report_primary(source, layout_xlsx)
+        fallback, well_by_variant, gc_export_rows, wt_values = _raw_report_primary(source, layout_xlsx)
     authoritative = _confirmation(remeasure_report_xlsx) if remeasure_report_xlsx is not None else {}
     merged, stats = merge_replicates_priority({Variant(key): value for key, value in authoritative.items()}, {Variant(key): value for key, value in fallback.items()}, mismatch_threshold=mismatch_threshold)
     mismatched = [{"variant": str(variant), "authoritative": merged[variant], "fallback": sum(fallback[str(variant)]) / len(fallback[str(variant)])} for variant in stats.mismatched]
@@ -427,4 +469,5 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         normalization_sources=normalization_sources,
         evidence_hash=evidence_hash,
         artifact_hashes=artifact_hashes,
+        wt_values=wt_values,
     )

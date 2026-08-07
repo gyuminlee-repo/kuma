@@ -2399,11 +2399,12 @@
     "description": "Destaques da última atualização.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "O poco vazio deixado por um clone descartado nao e mais preenchido avancando os picks seguintes, e a placa de cultura final corresponde as coordenadas da placa stock de origem.",
-      "O preenchimento sequencial a partir de A1 continua disponivel como opcao de layout; apenas o padrao mudou, e uma escolha anterior dessa opcao e mantida apos a atualizacao.",
-      "O CSV de mapeamento exportado nao tem mais uma linha de comentario de metadados que empurra o cabecalho para a segunda linha; o cabecalho sempre fica na primeira linha."
+      "A etapa 4.2 agora recebe as replicas de tipo selvagem medidas pela etapa 4.1, em vez de ouvir que nao existem.",
+      "Uma planilha sem coluna de tipo selvagem e outra com poucas replicas sao respostas diferentes, e a tela diz qual delas e.",
+      "As replicas chegam ao classificador so quando bastam para estimar o ruido, para que nenhum veredicto se apoie em um unico sinal com plena confianca.",
+      "O backtest que decide quais sinais guiam a recomendacao agora esta no repositorio, e nao citado apenas pelo nome do arquivo."
     ],
-    "highlightsStamp": "0.16.7+d17b6783"
+    "highlightsStamp": "0.16.8+2cb0acdc"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar sequência",
@@ -2925,6 +2926,7 @@
     "missingInputsNote": "Avaliado sem {{missing}}, de modo que a saturação se apoia apenas na tendência da hit rate.",
     "notAssessableBadge": "Não avaliável",
     "notAssessableSummary": "Os sinais apontam para uma transição, mas confirmá-la exige {{missing}}, que estes arquivos não trazem. Com esta entrada não é possível responder {{blocked}}; só cabe verificar se vale continuar caminhando.",
+    "notAssessableInsufficientSummary": "Os sinais apontam para uma transição, mas confirmá-la exige ao menos {{required}} {{missing}} e esta rodada tem {{count}} registradas. Abaixo disso não há estimativa de ruído para servir de referência, então a saturação se apoia apenas na tendência da hit rate e {{blocked}} não pode ser respondido a partir dela.",
     "prefillFromRounds": "Preenchido com {{n}} saida(s) de rodada geradas na etapa 4.1. As entradas podem ser adicionadas ou removidas livremente.",
     "prefillFromManifest": "Preenchido com a ultima entrada EVOLVEpro registrada neste projeto. Ela e anterior ao registro por rodada, nao traz numero de rodada e por isso foi colocada em primeiro lugar.",
     "reloadFromRounds": "Recarregar das rodadas",

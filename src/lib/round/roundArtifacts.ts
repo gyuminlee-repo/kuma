@@ -76,12 +76,22 @@ export function roundOutputStamps(rounds: Round[]): RoundOutputStamps {
  * Round numbers are preserved rather than renumbered: the handler sorts by `n`
  * and counts entries, so a gap (a round that produced nothing) still orders
  * correctly and does not inflate the round count.
+ *
+ * Each entry also carries the wild-type replicates its build recorded, which
+ * is what lets the classifier run the bootstrap behind switch_combinatorial
+ * and stop. The workbook itself has no room for them, so this is the only way
+ * they reach step 4.2. A round that recorded none contributes the file alone;
+ * that costs nothing until the signals propose a transition, and only then
+ * does the handler answer that the question could not be put.
  */
 export function roundEvolveproFiles(rounds: Round[]): RoundFileEntry[] {
   const produced: RoundFileEntry[] = [];
   for (const round of rounds) {
-    const path = round.evolvepro_input?.path;
-    if (path) produced.push({ n: round.n, path });
+    const artifact = round.evolvepro_input;
+    if (!artifact?.path) continue;
+    const entry: RoundFileEntry = { n: round.n, path: artifact.path };
+    if (artifact.wt_values?.length) entry.wt_values = artifact.wt_values;
+    produced.push(entry);
   }
   return produced.sort((a, b) => a.n - b.n);
 }

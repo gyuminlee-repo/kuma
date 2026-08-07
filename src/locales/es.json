@@ -2399,11 +2399,12 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El pocillo vacio de un clon descartado ya no se rellena adelantando los siguientes picks, y la placa de cultivo final coincide con las coordenadas de la placa stock de origen.",
-      "El llenado secuencial desde A1 sigue disponible como opcion de layout; solo cambio el valor por defecto, y una eleccion previa de esa opcion se conserva tras la actualizacion.",
-      "El CSV de mapeo exportado ya no tiene una linea de comentario de metadatos que empuje el encabezado a la segunda fila; el encabezado siempre esta en la primera linea."
+      "El paso 4.2 ahora recibe las replicas de tipo silvestre que midio el paso 4.1, en vez de que se le diga que no existen.",
+      "Un libro sin columna de tipo silvestre y otro con muy pocas replicas son respuestas distintas, y la pantalla indica cual es.",
+      "Las replicas llegan al clasificador solo cuando bastan para estimar el ruido, asi ningun veredicto se apoya en una sola senal con plena confianza.",
+      "El backtest que decide que senales guian la recomendacion ya esta en el repositorio, y no citado solo por nombre de archivo."
     ],
-    "highlightsStamp": "0.16.7+d17b6783"
+    "highlightsStamp": "0.16.8+2cb0acdc"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",
@@ -2925,6 +2926,7 @@
     "missingInputsNote": "Evaluado sin {{missing}}, de modo que la saturación se basa únicamente en la tendencia de la hit rate.",
     "notAssessableBadge": "No evaluable",
     "notAssessableSummary": "Las señales apuntan a una transición, pero confirmarla requiere {{missing}}, que estos archivos no contienen. Con esta entrada no se puede responder {{blocked}}; solo cabe comprobar si conviene seguir caminando.",
+    "notAssessableInsufficientSummary": "Las señales apuntan a una transición, pero confirmarla requiere al menos {{required}} {{missing}} y en esta ronda constan {{count}}. Por debajo de esa cifra no hay estimación de ruido con la que contrastar, así que la saturación se basa solo en la tendencia de la hit rate y con ella no se puede responder {{blocked}}.",
     "prefillFromRounds": "Rellenado con {{n}} salida(s) de ronda generadas en el paso 4.1. Las entradas se pueden anadir o quitar libremente.",
     "prefillFromManifest": "Rellenado con la ultima entrada EVOLVEpro registrada para este proyecto. Es anterior al registro por ronda, no lleva numero de ronda y por eso se coloco primero.",
     "reloadFromRounds": "Recargar desde las rondas",

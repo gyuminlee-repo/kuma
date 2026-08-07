@@ -23,12 +23,18 @@
  *    labels it puts out of reach. Drawing this as another "deferred" badge would
  *    claim a judgement was weighed and withheld.
  *
- * Why switch_combinatorial and stop are never seen today: the handler passes
- * wt_values=None (python-core/sidecar_mame/handlers/classify_round.py), because
- * the purified per-round xlsx carries no wild-type replicate column. Both labels
- * sit behind a bootstrap confidence gate that needs those values, so both are
- * unreachable and result.confidence is always null. That is a limit of the input
- * format, not of how many WT replicates a round happens to have.
+ * What decides whether switch_combinatorial and stop can be reached: both sit
+ * behind a bootstrap gate that needs the wild-type replicates of the round
+ * being judged. The per-round xlsx has no column for them, so step 4.1 records
+ * them on the round it built and this card forwards them on the matching file
+ * entry (lib/round/roundArtifacts.ts).
+ *
+ * The gate is only consulted once the signals have already proposed a
+ * transition. Short of that, every run answers with a normal decision whatever
+ * the replicates say. When it is consulted, a round that recorded enough gets a
+ * verdict with a confidence, and a round that recorded none, too few, or a file
+ * picked from outside this workspace lands on not_assessable, which names how
+ * many were on record and how many the estimate needs.
  */
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
@@ -176,10 +182,11 @@ function DecisionDisplay({ result }: { result: ClassifyDecisionResult }) {
           {labelText(result.label, t)}
         </span>
         {/*
-          Confidence only exists on the bootstrap-gated branches, all of which
-          need wt_values. With the current xlsx input this never renders. It is
-          kept because wiring WT replicates into the handler brings it back with
-          no UI change; delete it only if that path is abandoned.
+          Confidence only exists on the bootstrap-gated branches, so it renders
+          exactly when the round carried enough WT replicates for the gate to
+          run. It is the agreement between the point decision and its
+          resamples, which is why it says nothing on the branches that never
+          reach the gate.
         */}
         {result.confidence != null && (
           <span className="text-[11px] text-muted-foreground">
@@ -204,6 +211,10 @@ function DecisionDisplay({ result }: { result: ClassifyDecisionResult }) {
  * which is the only way the bootstrap gate gets evaluated at all. The gate then
  * found nothing to test with. Both halves of that are stated: the signals point
  * somewhere, and the confirming question cannot be put.
+ *
+ * A round that recorded no wild-type wells and one that recorded three are
+ * different situations with different remedies, so the counts the handler
+ * returns are shown rather than folded into one "absent" sentence.
  */
 function NotAssessableDisplay({
   result,
@@ -212,6 +223,10 @@ function NotAssessableDisplay({
 }) {
   const { t } = useTranslation();
   const badge = t("advisoryDecision.notAssessableBadge");
+  const summaryKey =
+    result.reason === "wt_replicates_insufficient"
+      ? "advisoryDecision.notAssessableInsufficientSummary"
+      : "advisoryDecision.notAssessableSummary";
 
   return (
     <div className="flex flex-col gap-2">
@@ -224,9 +239,11 @@ function NotAssessableDisplay({
         </span>
       </div>
       <p className="text-xs text-muted-foreground">
-        {t("advisoryDecision.notAssessableSummary", {
+        {t(summaryKey, {
           missing: missingInputsText(result.missing_inputs, t),
           blocked: blockedLabelsText(result.blocked_decisions, t),
+          count: result.wt_replicate_count,
+          required: result.wt_replicate_min,
         })}
       </p>
     </div>

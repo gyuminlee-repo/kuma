@@ -78,11 +78,12 @@ export function isMameSubStepDone(
     // thing "done" can mean is that an answer came back and is on record.
     //
     // Both answer shapes count, including "not_assessable". That shape says the
-    // signals reached a transition candidate and the confirming test had no WT
-    // replicates to run on, which is a real finding about these inputs rather
-    // than a failed run. Requiring a switch_combinatorial or stop verdict would
-    // leave the step permanently unfinished, since the purified xlsx format
-    // cannot carry the inputs those labels are gated behind.
+    // signals reached a transition candidate and the confirming test had too
+    // few WT replicates on record to run on, which is a real finding about
+    // these inputs rather than a failed run. Requiring a switch_combinatorial
+    // or stop verdict would leave the step unfinished for every round whose
+    // measurements carry fewer WT wells than the noise estimate needs, which is
+    // a property of the bench run rather than of the operator work in step 4.
     //
     // A run that threw, or one still in flight, records nothing and leaves the
     // step open. So does a rebuild in step 4.1 of a file the answer was

@@ -17,6 +17,7 @@ _RESULT_KEYS = {
     "gc_export_path", "label_audit", "manifest_path", "primary_format",
     "input_count", "evaluable_count", "exclusion_reason_counts",
     "normalization_sources", "evidence_hash", "artifact_hashes",
+    "wt_values",
 }
 
 
@@ -51,9 +52,12 @@ def _gc(path: Path) -> Path:
 
 
 def _agilent(path: Path) -> Path:
+    # The two WT blocks differ (mean 2.0), so a response that divided them by
+    # their own mean is distinguishable from one that passed them through or
+    # divided by some other constant.
     wb = openpyxl.Workbook()
     ws = wb.active
-    for sample, area in (("WT_1", 2.0), ("WT_2", 2.0), ("A1", 3.0), ("B1", 1.0)):
+    for sample, area in (("WT_1", 1.6), ("WT_2", 2.4), ("A1", 3.0), ("B1", 1.0)):
         ws.append(["Signal:", "FID1B"])
         ws.append(["Area", "Sample Name"])
         ws.append([area, sample])
@@ -104,6 +108,31 @@ def test_handler_builds_raw_agilent_primary_with_layout_mapping(tmp_path: Path):
 
     _assert_domain_response(response, output, 2)
     assert output.exists()
+
+
+def test_handler_forwards_wt_replicates_from_the_raw_report(tmp_path: Path):
+    """The response is the only route out: the workbook drops the WT rows."""
+    output = tmp_path / "out.xlsx"
+    response = handle_build_evolvepro_input({
+        "round1_report_xlsx": str(_agilent(tmp_path / "round1.xlsx")),
+        "layout_xlsx": str(_layout(tmp_path / "layout.xlsx")),
+        "verdict_xlsx": str(_verdict(tmp_path / "verdict.xlsx")),
+        "output_xlsx": str(output),
+    })
+
+    assert response["wt_values"] == pytest.approx([0.8, 1.2])
+
+
+def test_handler_reports_no_wt_replicates_for_a_prenormalized_sheet(tmp_path: Path):
+    output = tmp_path / "out.xlsx"
+    response = handle_build_evolvepro_input({
+        "gc_data_xlsx": str(_gc(tmp_path / "gc.xlsx")),
+        "layout_xlsx": str(_layout(tmp_path / "layout.xlsx")),
+        "verdict_xlsx": str(_verdict(tmp_path / "verdict.xlsx")),
+        "output_xlsx": str(output),
+    })
+
+    assert response["wt_values"] == []
 
 
 def test_handler_rejects_missing_required_verdict(tmp_path: Path):

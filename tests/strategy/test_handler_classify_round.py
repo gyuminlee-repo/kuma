@@ -28,15 +28,18 @@ anti-fallback: missing columns, bad Variant, activity<=0 all raise;
 
 from __future__ import annotations
 
+import importlib
 import math
 
 import openpyxl
 import pytest
 
 from sidecar_mame.handlers.classify_round import (
+    _BOOTSTRAP_GATED_LABELS,
     _compute_delta_best_ema,
     _load_xlsx,
     _round_metrics,
+    _wt_values,
     handle_classify_round,
 )
 
@@ -418,4 +421,164 @@ class TestDecliningSaturation:
         )
         assert "label" not in result
         assert "confidence" not in result
+
+    def test_declining_reports_zero_replicates_on_record(self, tmp_path):
+        """No WT recorded and too few WT recorded are different facts.
+
+        Both leave the bootstrap gate shut, so both answer not_assessable.  The
+        counts are what tells them apart, and this is the "none at all" side.
+        """
+        result = handle_classify_round(
+            {"round_files": self._make_declining_3round(tmp_path)}
+        )
+        assert result["wt_replicate_count"] == 0
+        assert result["wt_replicate_min"] == 4
+
+
+# ---------------------------------------------------------------------------
+# TestWtReplicatesForwarded -- step 4.1 replicates reaching the bootstrap gate
+# ---------------------------------------------------------------------------
+
+# Replicates of a wild-type well, on the scale of the activity column: each
+# measurement over the mean of its own cohort, which is where they sit around
+# 1.0.  Step 4.1 records these on the round it built and the caller forwards
+# them on the matching round_files entry.
+_WT_FOUR = [1.02, 0.97, 1.04, 0.99]
+_WT_THREE = _WT_FOUR[:3]
+
+
+class TestWtReplicatesForwarded:
+    """The saturating fixture above, run with WT replicates beside the file.
+
+    The same three rounds reach the bootstrap gate every time; what changes is
+    whether the gate has anything to run on.  Below wt_replicate_min the
+    replicates are withheld on purpose: compute_sigma_assay returns None under
+    that count, so T2 and T_model would stay NA in every resample and the
+    confirmation would fall back on the same lone T3 that proposed the branch.
+    A T3 stable under resampling scores that agreement as high confidence, so
+    forwarding three would print a single-signal switch as a near-certainty.
+    """
+
+    def _files(self, tmp_path, wt=None):
+        files = TestDecliningSaturation()._make_declining_3round(tmp_path)
+        if wt is not None:
+            files[-1]["wt_values"] = list(wt)
+        return files
+
+    def test_four_replicates_reach_the_classifier(self, tmp_path):
+        """With enough replicates the gate runs and a real verdict comes back."""
+        result = handle_classify_round(
+            {"round_files": self._files(tmp_path, _WT_FOUR)}
+        )
+        assert result["advisory"] == "decision", (
+            f"Expected the classifier to answer; got {result!r}"
+        )
+        assert result["label"] in _BOOTSTRAP_GATED_LABELS, (
+            f"The gate is only reached for switch/stop; got {result['label']!r}"
+        )
+        assert isinstance(result["confidence"], float)
+
+    def test_answered_decision_still_reports_the_missing_input(self, tmp_path):
+        """Supplied replicates do not reach the point signals, only the bootstrap.
+
+        The handler passes sigma_assay=None either way, so the verdict itself
+        was still reached with T2 and T_model NA and saturation resting on the
+        hit-rate trend alone. That is what the caller note says, so it has to
+        keep being reported here.
+        """
+        result = handle_classify_round(
+            {"round_files": self._files(tmp_path, _WT_FOUR)}
+        )
+        assert result["missing_inputs"] == ["wt_replicates"]
+
+    def _captured_wt_values(self, tmp_path, monkeypatch, wt):
+        """Run the handler and return the wt_values classify() actually saw.
+
+        The handler imports classify() inside the function body, so replacing
+        the module attribute intercepts the real call.
+
+        Asserted directly rather than through the answer because on this
+        fixture the answer cannot tell replicate lists apart: T3 is True in
+        every draw, sat_now is any_true over T2/T3/T_model, and a True T3
+        settles it whatever sigma the draw derived. Both a tight and a
+        scattered WT block return confidence 1.0 here (measured). Every other
+        assertion in this class would therefore still pass if the handler
+        forwarded a list of the right length holding the wrong numbers.
+        """
+        # import_module, not `import ... as`: the package re-exports a function
+        # named classify, which shadows the submodule attribute.
+        classify_module = importlib.import_module("kuma_core.strategy.classify")
+
+        seen = {}
+        real_classify = classify_module.classify
+
+        def capture(round_state, registered):
+            seen["wt_values"] = round_state.wt_values
+            return real_classify(round_state, registered)
+
+        monkeypatch.setattr(classify_module, "classify", capture)
+        handle_classify_round({"round_files": self._files(tmp_path, wt)})
+        return seen["wt_values"]
+
+    def test_the_replicate_values_reach_the_classifier_unchanged(
+        self, tmp_path, monkeypatch
+    ):
+        values = [0.4013, 1.9007, 0.5501, 1.7002]
+        assert self._captured_wt_values(tmp_path, monkeypatch, values) == values
+
+    def test_short_replicate_lists_reach_the_classifier_as_none(
+        self, tmp_path, monkeypatch
+    ):
+        assert self._captured_wt_values(tmp_path, monkeypatch, _WT_THREE) is None
+
+    def test_three_replicates_do_not_reach_the_classifier(self, tmp_path):
+        """One short of the minimum is still not assessable."""
+        result = handle_classify_round(
+            {"round_files": self._files(tmp_path, _WT_THREE)}
+        )
+        assert result["advisory"] == "not_assessable"
+        assert result["reason"] == "wt_replicates_insufficient"
+        assert "label" not in result
+
+    def test_three_replicates_are_counted_in_the_response(self, tmp_path):
+        """The screen has to be able to say "3 on record, 4 needed"."""
+        result = handle_classify_round(
+            {"round_files": self._files(tmp_path, _WT_THREE)}
+        )
+        assert result["wt_replicate_count"] == 3
+        assert result["wt_replicate_min"] == 4
+
+    def test_replicates_on_earlier_rounds_are_not_read(self, tmp_path):
+        """The bootstrap resamples the current round, so only its entry counts."""
+        files = self._files(tmp_path)
+        files[0]["wt_values"] = list(_WT_FOUR)
+        result = handle_classify_round({"round_files": files})
+        assert result["advisory"] == "not_assessable"
+        assert result["reason"] == "wt_replicates_missing"
+        assert result["wt_replicate_count"] == 0
+
+    def test_empty_replicate_list_reads_as_none_recorded(self, tmp_path):
+        result = handle_classify_round({"round_files": self._files(tmp_path, [])})
+        assert result["reason"] == "wt_replicates_missing"
+        assert result["wt_replicate_count"] == 0
+
+    def test_unreadable_replicates_raise(self, tmp_path):
+        """anti-fallback: a malformed value must not read as "none recorded"."""
+        with pytest.raises(ValueError):
+            handle_classify_round({"round_files": self._files(tmp_path, ["n/a", 1.0, 1.0, 1.0])})
+        with pytest.raises(ValueError):
+            handle_classify_round(
+                {"round_files": self._files(tmp_path, [float("nan"), 1.0, 1.0, 1.0])}
+            )
+
+    def test_replicates_must_be_a_list(self, tmp_path):
+        files = self._files(tmp_path)
+        files[-1]["wt_values"] = 1.0
+        with pytest.raises(ValueError):
+            handle_classify_round({"round_files": files})
+
+    def test_helper_reads_absent_and_present_values(self):
+        assert _wt_values({"n": 1, "path": "x"}) == []
+        assert _wt_values({"wt_values": None}) == []
+        assert _wt_values({"wt_values": [1, "1.5"]}) == [1.0, 1.5]
 

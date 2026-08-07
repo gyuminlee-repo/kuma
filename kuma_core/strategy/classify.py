@@ -14,7 +14,7 @@ Bootstrap simplifications (documented per §12-A.2b):
   current_round_activities, so delta* = delta_best_ema + (best_n* - max(current_round_activities)).
 - sat_prev is frozen (previous_signals not resampled).
 
-Backtest revision (report_final.md, 2026-06-08):
+Backtest revision (docs/2026-06-08-mame-transition-backtest.md):
 - 전환 동력은 단일소진(T2/T3/T_model) + throughput(T1).
 - T4/T_active/T_unused는 informational 신호로 유지되며 결정에서 demote.
 - additive-headroom(B)는 약한 필요조건 필터로 권장되나 per-position
@@ -228,7 +228,8 @@ def _decide_core(
     Callers: _decide_core is pure; classify() wraps the confidence gate for
     switch_combinatorial and stop branches.
 
-    Backtest revision (report_final.md): saturation is determined by T2/T3/T_model
+    Backtest revision (docs/2026-06-08-mame-transition-backtest.md): saturation
+    is determined by T2/T3/T_model
     only (T4 demoted to informational). has_throughput = T1 alone (T_active/T_unused
     demoted to informational). Hysteresis (sat_now AND sat_prev) is unchanged.
     T4/T_active/T_unused continue to be computed and stored in Signals for display.
