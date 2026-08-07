@@ -2399,13 +2399,11 @@
     "description": "Destacados de la última actualización.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El paso 4.2 ahora distingue un veredicto retenido de una pregunta que nunca pudo hacer, y nombra la entrada que le faltaba.",
-      "El paso 4.2 llena su lista con lo que produjo cada ronda, en vez de pedir el archivo que el paso 4.1 acaba de escribir.",
-      "Un veredicto guardado se muestra como sustituido cuando sus entradas se reconstruyen, en lugar de pasar por la respuesta actual.",
-      "La marca de finalizacion del paso 4.2 sobrevive a un reinicio y ya no aparece solo tras abrir la pantalla.",
-      "El boton de traspaso del paso 4.2 se elimina; el paso que cumplia su condicion previa se quito en v0.15.12."
+      "El pocillo vacio de un clon descartado ya no se rellena adelantando los siguientes picks, y la placa de cultivo final coincide con las coordenadas de la placa stock de origen.",
+      "El llenado secuencial desde A1 sigue disponible como opcion de layout; solo cambio el valor por defecto, y una eleccion previa de esa opcion se conserva tras la actualizacion.",
+      "El CSV de mapeo exportado ya no tiene una linea de comentario de metadatos que empuje el encabezado a la segunda fila; el encabezado siempre esta en la primera linea."
     ],
-    "highlightsStamp": "0.16.6+68b4bacb"
+    "highlightsStamp": "0.16.7+d17b6783"
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",

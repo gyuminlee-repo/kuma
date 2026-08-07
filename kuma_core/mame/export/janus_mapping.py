@@ -57,13 +57,12 @@ G3 run-meta embedding
 ``export_mame_janus_csv`` and ``export_mame_janus_xlsx`` accept an optional
 ``ngs_run_meta`` argument (``NgsRunMeta | None``).
 
-- CSV: when *ngs_run_meta* is not ``None``, a single comment line is prepended
-  before the header row::
-
-      # kuma_run_meta: flow_cell=PAX12345, kit=SQK-LSK109, started=2024-01-01T00:00:00Z
-
-  When ``None`` no comment line is written, preserving backward compatibility
-  with existing tests that use ``csv.DictReader`` directly.
+- CSV: the header row is always line 1. A ``# kuma_run_meta: ...`` comment
+  used to be prepended above it when *ngs_run_meta* was given; v0.16.6 removed
+  that line because it pushed every data row down by one for a plain
+  ``csv.DictReader`` or spreadsheet import, which is how the lab reads this
+  file. *ngs_run_meta* is still accepted for signature parity with the XLSX
+  writer but written nowhere in the CSV.
 
 - XLSX: a ``__kuma_meta__`` sheet is appended with key/value rows.  The sheet
   is always present; content is optional (placeholder when meta is ``None``).
@@ -500,9 +499,19 @@ class JanusSettings:
     transferred is an experimental condition that cannot be derived from the
     run. The plate names are derived from the plates of the run
     (``resolve_deck``) and overridden by anything the operator enters.
+
+    ``dest_layout`` defaults to ``"source"``: a clone that failed QC (or any
+    other non-PASS verdict) is dropped from the rows before a layout is ever
+    chosen, and compact packing would then pull every later pick forward to
+    close that gap. The final culture plate an operator fills by hand would
+    then read at a different well than the stock plate it was seeded from
+    (observed: source F3/H3/A4 exported as dest F3/G3/H3). Mirroring the
+    source position instead leaves the dropped well blank on both plates, so
+    the two plates share one coordinate system. ``"compact"`` stays available
+    for a run where a from-A1 fill matters more than positional agreement.
     """
 
-    dest_layout: str = DEST_LAYOUT_COMPACT
+    dest_layout: str = DEST_LAYOUT_SOURCE
     include_verdicts: tuple[str, ...] = DEFAULT_INCLUDE_VERDICTS
     include_fallback: bool = False
     output_schema: str = SCHEMA_DEVICE
@@ -747,12 +756,15 @@ def _build_janus_rows(
 
     ``settings.dest_layout`` controls ``dest_well`` assignment:
 
-    - ``"compact"`` (default): destinations are assigned sequentially from A1 in
-      that same source order, following the column-major ``seq_to_well``
+    - ``"source"`` (default): ``dest_well`` mirrors ``source_well``, so a well
+      a non-PASS clone leaves behind stays blank on the destination plate too
+      instead of being closed up by the next pick. That keeps the final
+      culture plate an operator fills by hand on the same coordinates as the
+      stock plate it was seeded from.
+    - ``"compact"``: destinations are assigned sequentially from A1 in that
+      same source order, following the column-major ``seq_to_well``
       convention (A1, B1, ... H1, A2, ...), so the destination plate reads the
-      way the source plate map does with the holes closed. A stock plate is a
-      new plate, so filling it from the front is the normal case.
-    - ``"source"``: ``dest_well`` mirrors ``source_well``.
+      way the source plate map does with the holes closed.
 
     Raises ``ValueError`` on empty wells, >96 rows, or duplicate destinations.
     A generated plate name is a warning, not an error: the file ships and names
@@ -812,26 +824,6 @@ def build_janus_preview_rows(
         "excluded_count": len(excluded),
         "settings": payload,
     }
-
-
-def _meta_comment_line(meta: "NgsRunMeta") -> str:
-    """Build a single-line CSV comment from *meta* (G3 spec).
-
-    Format: ``# kuma_run_meta: flow_cell=X, kit=Y, started=Z``
-    Fields that are ``None`` are omitted from the comment.
-    """
-    parts: list[str] = []
-    if meta.flow_cell_id:
-        parts.append(f"flow_cell={meta.flow_cell_id}")
-    if meta.kit:
-        parts.append(f"kit={meta.kit}")
-    if meta.started:
-        parts.append(f"started={meta.started}")
-    if meta.instrument:
-        parts.append(f"instrument={meta.instrument}")
-    if meta.position:
-        parts.append(f"position={meta.position}")
-    return "# kuma_run_meta: " + ", ".join(parts)
 
 
 def _write_janus_kuma_meta_sheet(
@@ -907,16 +899,19 @@ def export_mame_janus_csv(
     ``build_janus_preview_rows`` for the same ``settings``, which the RPC
     handler calls alongside this function.
 
-    G3: when *ngs_run_meta* is not ``None``, a ``# kuma_run_meta: ...`` comment
-    line is prepended before the header row.  When *ngs_run_meta* is ``None``
-    no comment is written (backward-compatible with existing consumers).
+    *ngs_run_meta* is accepted for signature parity with
+    :func:`export_mame_janus_xlsx` but written nowhere in the CSV: v0.16.6
+    dropped the ``# kuma_run_meta: ...`` comment line this function used to
+    prepend, because it pushed the header row down to line 2 for every reader
+    that opens the file directly. Run metadata reaches the operator through
+    the XLSX ``__kuma_meta__`` sheet instead.
 
     Phase 1: priority_score = file_size_kb proxy.
     G6/A6 round: replace with BarcodeRecord.read_count when available.
 
-    *dest_layout* overrides ``settings.dest_layout``: ``"compact"``
-    (destinations assigned sequentially from A1 in sorted order, default) or
-    ``"source"`` (dest mirrors source position).
+    *dest_layout* overrides ``settings.dest_layout``: ``"source"`` (dest
+    mirrors source position, default) or ``"compact"`` (destinations assigned
+    sequentially from A1 in sorted order).
     Raises ``ValueError`` on unresolved wells, >96 picks, or duplicate dests.
     Generated plate names do not withhold the file; they come back as warnings
     from ``build_janus_preview_rows``.
@@ -926,8 +921,12 @@ def export_mame_janus_csv(
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", newline="", encoding="utf-8") as fh:
-        if ngs_run_meta is not None:
-            fh.write(_meta_comment_line(ngs_run_meta) + "\n")
+        # No comment line: the lab reads this file with a plain DictReader /
+        # spreadsheet import, and a "# kuma_run_meta: ..." line before the
+        # header pushed every column one row down for that reader. Run
+        # metadata still reaches the operator through the XLSX
+        # ``__kuma_meta__`` sheet below, which has its own row for it and
+        # never shifts the data rows.
         if resolved.output_schema == SCHEMA_DEVICE:
             # Positional writer: the canonical row dict does not carry the
             # instrument cells, so ``project_device_rows`` builds them in header

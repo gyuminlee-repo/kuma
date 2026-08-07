@@ -26,7 +26,7 @@ def _janus_settings_from_params(params: dict):
     file describes.
 
     Accepted params (all optional; ``None`` falls back to the default):
-        dest_layout (str): "compact" (default) or "source".
+        dest_layout (str): "source" (default) or "compact".
         include_verdicts (list[str]): verdict classes to keep. Default ["PASS"].
         include_fallback (bool): keep fallback picks. Default false.
         output_schema (str): "device" (default, the instrument-native sheet) or
@@ -50,7 +50,7 @@ def _janus_settings_from_params(params: dict):
         DEFAULT_SAMPLE_TYPE,
         DEFAULT_SOURCE_RACKS,
         DEFAULT_VOLUME_UL,
-        DEST_LAYOUT_COMPACT,
+        DEST_LAYOUT_SOURCE,
         SCHEMA_DEVICE,
         SCHEMA_DEVICE_FORMER_NAME,
         JanusSettings,
@@ -58,7 +58,11 @@ def _janus_settings_from_params(params: dict):
     )
 
     # `or` (not a get default) so an explicit JSON null also falls back.
-    dest_layout = str(params.get("dest_layout") or DEST_LAYOUT_COMPACT).lower()
+    # Mirroring the source position leaves a non-PASS clone's well blank on
+    # both plates instead of letting compact packing pull the next pick
+    # forward into it, which is what kept a stock plate and its final culture
+    # plate on the same coordinates.
+    dest_layout = str(params.get("dest_layout") or DEST_LAYOUT_SOURCE).lower()
     output_schema = str(params.get("output_schema") or SCHEMA_DEVICE).lower()
     # A project saved while the sheet had nine columns asks for the instrument
     # schema by its old name, and so does a request already in flight when the

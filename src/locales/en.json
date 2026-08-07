@@ -2432,13 +2432,11 @@
     "description": "Highlights from the latest update.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Step 4.2 now distinguishes a verdict it withheld from a question it was never able to ask, and names the input it was missing.",
-      "Step 4.2 fills its file list from what each round produced, instead of asking for the file step 4.1 just wrote.",
-      "A stored advisory verdict is shown as superseded once its inputs are rebuilt, rather than passing as the current answer.",
-      "The step 4.2 completion mark survives a restart instead of appearing only after the screen is opened.",
-      "The handoff button on step 4.2 is removed; the step that filled its precondition was taken out in v0.15.12."
+      "The final culture plate now lines up with the stock plate it came from, instead of pulling later picks forward into a dropped clone's well.",
+      "Packing the final plate from A1 stays available as a layout choice; only the default changed, and a prior choice of it survives the upgrade.",
+      "The exported mapping CSV always starts with the header row, instead of a metadata comment line pushing it to row two."
     ],
-    "highlightsStamp": "0.16.6+68b4bacb"
+    "highlightsStamp": "0.16.7+d17b6783"
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",

@@ -515,6 +515,80 @@ def test_a_rack_number_left_over_from_the_old_deck_is_dropped_not_written(
     assert not [r for r in rows if "5" in r or "8" in r]
 
 
+def _make_selected_replicate(mutant_id: str, nb: str, custom: str) -> "object":
+    """A ``ReplicateResult`` already resolved to one PASS pick on *nb*.
+
+    Builds the object the selector would hand to the autosave path, skipping
+    FASTA ingest and translation: this is a unit test of ``_autosave_picks``
+    (the function analyze calls), not of the pipeline that feeds it.
+    """
+    from kuma_core.mame.models import (
+        BarcodeRecord,
+        ReplicateResult,
+        TranslatedRecord,
+        VerdictClass,
+        VerdictRecord,
+    )
+
+    barcode = BarcodeRecord(
+        native_barcode=nb,
+        custom_barcode=custom,
+        consensus_seq="",
+        file_size_kb=100.0,
+        source_path=Path("/tmp/mock.fasta"),
+    )
+    translated = TranslatedRecord(
+        barcode=barcode, aa_sequence="", observed_aa_changes=[], observed_nt_changes=[]
+    )
+    verdict = VerdictRecord(
+        translated=translated, expected_mutations=[], verdict=VerdictClass.PASS, verdict_notes=""
+    )
+    return ReplicateResult(
+        mutant_id=mutant_id,
+        plate_verdicts={nb: verdict},
+        selected_plate=nb,
+        selection_reason="pass",
+        failed=False,
+    )
+
+
+def test_source_default_reports_a_cross_plate_well_collision_not_a_lost_run(
+    tmp_path: Path,
+) -> None:
+    """The one documented cost of the "source" default: two plates that both
+    carry a pick at the same well position now collide instead of packing
+    around each other.
+
+    ``P1_A1`` sits at well A1 on NB01, and ``P2_A1`` sits at the same A1 on
+    NB02, the multi-plate case the module docstring calls normal
+    (``_find_duplicate_dests``). Mirroring source position sends both to dest
+    A1, which that finding refuses to write. The point pinned here is not that
+    the collision happens (the operator's documented way out, switching to
+    "compact", is covered by ``test_selection_settings_are_still_honoured`` and
+    the janus_mapping module tests); it is that ``_autosave_picks``, the
+    function ``handle_analyze`` actually calls, reports it as a normal
+    ``"failed"`` outcome rather than raising and losing the run.
+    """
+    from sidecar_mame.handlers.analyze import _autosave_picks
+
+    replicates = [
+        _make_selected_replicate("P1_A1", "NB01", "1_1"),
+        _make_selected_replicate("P2_A1", "NB02", "1_1"),
+    ]
+
+    autosave = _autosave_picks(
+        replicates, tmp_path / "260804_ref_MAME.xlsx", None, {}
+    )
+
+    assert autosave["status"] == "failed", autosave
+    assert autosave["output_path"] is None
+    assert [e["code"] for e in autosave["errors"]] == ["duplicate_dest_well"]
+    assert "compact" in autosave["errors"][0]["message"]
+    # Nothing was written: a failed autosave must not leave a partial file
+    # beside the (unrelated, in this unit test) workbook path.
+    assert not (tmp_path / "260804_ref_MAME_picks.csv").exists()
+
+
 def test_an_export_failure_does_not_cost_the_analysis(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
