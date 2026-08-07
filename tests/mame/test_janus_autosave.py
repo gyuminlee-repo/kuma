@@ -51,9 +51,15 @@ _LEGACY5_HEADER = ["name", "source_plate", "source_well", "dest_well", "priority
 _LIQUID_CLASS = "cell_stock_100"
 
 
-def _write_fasta(path: Path, header: str, body: str) -> None:
+def _write_fasta(path: Path, header: str, body: str, depth: int = 100) -> None:
+    """One consensus file. *depth* becomes ``read_count``, and so priority_score.
+
+    It is a parameter because the pick list still carries that number after it
+    stopped ordering the file, and telling the two apart needs a run whose depth
+    ranking and plate order disagree.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(f">{header} depth=100\n{body}\n{_PAD}", encoding="utf-8")
+    path.write_text(f">{header} depth={depth}\n{body}\n{_PAD}", encoding="utf-8")
 
 
 def _make_kuro_xlsx(dest: Path) -> Path:
@@ -76,11 +82,25 @@ def _make_reference_fasta(tmp_path: Path) -> Path:
     return ref
 
 
-def _run(tmp_path: Path, bodies: dict[str, str], plate: str = "NB01", **extra) -> dict:
-    """Run ``handle_analyze`` over one well per entry of *bodies*."""
+def _run(
+    tmp_path: Path,
+    bodies: dict[str, str],
+    plate: str = "NB01",
+    depths: dict[str, int] | None = None,
+    **extra,
+) -> dict:
+    """Run ``handle_analyze`` over one well per entry of *bodies*.
+
+    *depths* sets ``depth=`` per well; wells it does not name keep the default.
+    """
     ingest = tmp_path / "consensus"
     for barcode, body in bodies.items():
-        _write_fasta(ingest / plate / f"{barcode}.fasta", barcode, body)
+        _write_fasta(
+            ingest / plate / f"{barcode}.fasta",
+            barcode,
+            body,
+            depth=(depths or {}).get(barcode, 100),
+        )
     from sidecar_mame.handlers.analyze import handle_analyze
 
     return handle_analyze(
@@ -123,6 +143,37 @@ def test_the_automatic_file_carries_the_selection_not_instrument_columns(
 
     body = _read_csv(result["janus_autosave"]["output_path"])
     assert body[0] == _LEGACY5_HEADER
+
+
+def test_the_pick_list_reads_in_plate_order_and_still_carries_the_depth(
+    tmp_path: Path,
+) -> None:
+    """The file a run writes by itself is the one the operator picks against.
+
+    It is read beside the step 2.2 plate map, so it runs in the same direction
+    as the plate: A1 first, then B1. It sorted by ``priority_score`` DESC until
+    this change, which would have put ``F3W`` first here.
+
+    The depths are set apart on purpose. With the fixture default both wells
+    carry 100 reads, the two rules produce one list, and the case would prove
+    nothing. ``priority_score`` is still written for every row: the number that
+    says how deeply a clone was sequenced stays in the operator's hands, it just
+    stopped deciding where anything goes.
+    """
+    result = _run(
+        tmp_path,
+        {"1_1": _G2A_NT, "2_1": _F3W_NT},
+        depths={"1_1": 40, "2_1": 900},
+    )
+
+    body = _read_csv(result["janus_autosave"]["output_path"])
+    header, rows = body[0], body[1:]
+    assert header == _LEGACY5_HEADER
+    column = {name: header.index(name) for name in _LEGACY5_HEADER}
+    assert [r[column["name"]] for r in rows] == ["G2A", "F3W"]
+    assert [r[column["source_well"]] for r in rows] == ["A1", "B1"]
+    assert [r[column["dest_well"]] for r in rows] == ["A1", "B1"]
+    assert [r[column["priority_score"]] for r in rows] == ["40.0", "900.0"]
 
 
 def test_no_liquid_class_no_longer_blocks_the_automatic_file(tmp_path: Path) -> None:

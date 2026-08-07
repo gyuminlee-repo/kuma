@@ -395,7 +395,14 @@ _LEGACY5 = JanusSettings(output_schema="legacy5", dest_layout="source")
 
 
 def _make_janus_replicates() -> list[ReplicateResult]:
-    """Two confirmed replicates with different sizes (for sort-order test)."""
+    """Two confirmed replicates on two plates, fed in neither plate nor size order.
+
+    The row order this produces is pinned by
+    ``test_janus_csv_row_order_follows_the_plate_map`` below, which builds its
+    own clones: here the deeper clone also holds the lower well, so the pair
+    cannot tell the plate map from the ``priority_score`` DESC this export used
+    to sort by.
+    """
     rr_high = ReplicateResult(
         mutant_id="V5F",
         plate_verdicts={"NB01": _make_verdict("NB01", "1_1", VerdictClass.PASS, size_kb=200.0)},
@@ -422,14 +429,30 @@ def test_janus_csv_header(tmp_path: Path) -> None:
         assert reader.fieldnames == _JANUS_HEADER
 
 
-def test_janus_csv_sorted_desc(tmp_path: Path) -> None:
-    """Rows must be sorted by priority_score DESC (V5F=200 before K7R=50)."""
-    out = tmp_path / "janus_sorted.csv"
-    export_mame_janus_csv(_make_janus_replicates(), out, settings=_LEGACY5)
+def test_janus_csv_row_order_follows_the_plate_map(tmp_path: Path) -> None:
+    """The written file reads down the column, not down the depth ranking.
+
+    This replaces the case that asserted ``priority_score`` DESC, which the
+    export no longer does: the operator fills the plate against the step 2.2
+    plate map, so the file has to run the same way. The score is still written
+    and read_count is still preferred over the file-size proxy; it just places
+    nothing. The deeper clone is put at the later well on purpose, since a
+    fixture where the two agree would pass under either rule.
+    """
+    out = tmp_path / "janus_order.csv"
+    export_mame_janus_csv(
+        [
+            _make_replicate("DEEP_AT_C1", "NB01", "3_1", size_kb=10.0, read_count=900),
+            _make_replicate("SHALLOW_AT_A1", "NB01", "1_1", size_kb=10.0, read_count=5),
+        ],
+        out,
+        settings=_LEGACY5,
+    )
     with out.open(encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
-    assert rows[0]["name"] == "V5F", "highest priority_score should come first"
-    assert rows[1]["name"] == "K7R"
+    assert [r["source_well"] for r in rows] == ["A1", "C1"]
+    assert [r["name"] for r in rows] == ["SHALLOW_AT_A1", "DEEP_AT_C1"]
+    assert [r["priority_score"] for r in rows] == ["5.0", "900.0"]
 
 
 def test_janus_csv_plate_label(tmp_path: Path) -> None:

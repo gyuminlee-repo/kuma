@@ -96,7 +96,13 @@ def _make_replicate(
 
 
 def _mixed_bag() -> list[ReplicateResult]:
-    """One clone of every disposition the picker can produce."""
+    """One clone of every disposition the picker can produce.
+
+    Wells ascend down the first column while the sizes do not follow them, so
+    the order these clones come back in tells the plate map apart from the
+    ``priority_score`` DESC this export used to sort by: ``AMBIG`` (250 kB, C1)
+    outranks ``PASS_LO`` (100 kB, B1) by depth and follows it on the plate.
+    """
     failed = _make_replicate("FAILED", "NB01", "1_5", VerdictClass.FRAMESHIFT)
     failed.failed = True
     failed.selected_plate = None
@@ -138,7 +144,9 @@ def test_ambiguous_can_be_opted_in() -> None:
         liquid_class="Cell 100ul", include_verdicts=("PASS", "AMBIGUOUS")
     )
     rows = _build_janus_rows(_mixed_bag(), settings=settings)
-    assert _names(rows) == ["PASS_HI", "AMBIG", "PASS_LO"]
+    # A1, B1, C1: the opted-in clone takes its place on the plate map rather
+    # than the place its read depth would once have earned it.
+    assert _names(rows) == ["PASS_HI", "PASS_LO", "AMBIG"]
 
 
 def test_lowdepth_can_be_opted_in() -> None:
@@ -146,7 +154,9 @@ def test_lowdepth_can_be_opted_in() -> None:
         liquid_class="Cell 100ul", include_verdicts=("PASS", "LOWDEPTH")
     )
     rows = _build_janus_rows(_mixed_bag(), settings=settings)
-    assert _names(rows) == ["PASS_HI", "LOWDEP", "PASS_LO"]
+    # A1, B1, D1: LOWDEP sits two wells down the column, not two ranks up the
+    # depth list.
+    assert _names(rows) == ["PASS_HI", "PASS_LO", "LOWDEP"]
 
 
 def test_fallback_pick_is_dropped_even_when_its_plate_reads_pass() -> None:
@@ -341,7 +351,8 @@ def test_instrument_row_values(tmp_path: Path) -> None:
         "HIGH", "glycerol stock", "1", "Stock plate1", "E7",
         "final culture plate", "A1", "75.0",
     ]
-    # `no` counts up in the sorted order, so the sheet carries the pick priority.
+    # `no` counts up in the row order, so the sheet counts off the transfers in
+    # the order the plate is filled (E7 before H12, whatever the depths say).
     assert rows[1] == [
         "LOW", "glycerol stock", "2", "Stock plate2", "H12",
         "final culture plate", "B1", "75.0",
