@@ -48,6 +48,7 @@ export function useMameDrawerProps(): SlotProps {
   const selectedWell = useMameAppStore((s) => s.selectedWell);
   const janusSettings = useMameAppStore((s) => s.janusSettings);
   const janusMappingAutosave = useMameAppStore((s) => s.janusMappingAutosave);
+  const buildEvolveproCompletion = useMameAppStore((s) => s.buildEvolveproCompletion);
 
   // 파생 값
   const runFolderName = inputDir
@@ -56,7 +57,20 @@ export function useMameDrawerProps(): SlotProps {
   const kuroFileName = expectedPath
     ? (expectedPath.replace(/\\/g, "/").split("/").filter(Boolean).pop() ?? expectedPath)
     : "—";
+  // Record-level PASS count: one entry per VerdictRecord, so a well sequenced
+  // across several replicates contributes several. It is deliberately NOT the
+  // merge row count. The backend merge rule is `verdict == PASS and not failed
+  // and not is_fallback`, applied once per variant through variant_to_well
+  // (kuma_core/mame/activity/build_evolvepro_input.py:224), so this number runs
+  // roughly replicate-fold higher. SummaryRow computes a third quantity again
+  // (variant-level success rate). Whether the merge ran at all is `mergeRan`
+  // below, never this count.
   const passCount = verdicts.filter((v) => v.verdict === "PASS").length;
+  // The one merge signal the store actually carries. The counts the merge
+  // returns (n_variants, n_ngs_excluded, exclusion_reason_counts) stay in
+  // BuildEvolveproInputPanel component state and never reach this drawer, so
+  // the drawer states that the merge ran and leaves the numbers to that panel.
+  const mergeRan = buildEvolveproCompletion !== null;
   const selectedCount = wells.filter((w) => w.selected).length;
   const janusMappingPath = janusMappingAutosave?.output_path ?? null;
   const janusMappingFile = janusMappingPath
@@ -304,7 +318,7 @@ export function useMameDrawerProps(): SlotProps {
         children: (
           <div className="space-y-0.5">
             <StatLine label={t("mame.drawer.stat.passRows")} value={passCount} />
-            <StatLine label={t("mame.drawer.stat.evolveproXlsx")} value={passCount > 0 ? t("mame.drawer.value.ready") : "—"} />
+            <StatLine label={t("mame.drawer.stat.evolveproXlsx")} value={mergeRan ? t("mame.drawer.value.ready") : "-"} />
           </div>
         ),
       },
@@ -314,8 +328,8 @@ export function useMameDrawerProps(): SlotProps {
           <div className="space-y-0.5">
             <LogLine
               text={
-                passCount > 0
-                  ? `[DONE] ${passCount} rows merged`
+                mergeRan
+                  ? "[DONE] Merge written, see the build panel for row counts"
                   : "[WAIT] Merge not performed yet"
               }
             />
@@ -337,7 +351,7 @@ export function useMameDrawerProps(): SlotProps {
         children: (
           <div className="space-y-0.5">
             <StatLine label={t("mame.drawer.stat.passRows")} value={passCount} />
-            <StatLine label={t("mame.drawer.stat.evolveproXlsx")} value={passCount > 0 ? t("mame.drawer.value.ready") : "-"} />
+            <StatLine label={t("mame.drawer.stat.evolveproXlsx")} value={mergeRan ? t("mame.drawer.value.ready") : "-"} />
           </div>
         ),
       },
@@ -347,8 +361,8 @@ export function useMameDrawerProps(): SlotProps {
           <div className="space-y-0.5">
             <LogLine
               text={
-                passCount > 0
-                  ? `[DONE] ${passCount} rows merged`
+                mergeRan
+                  ? "[DONE] Merge written, see the build panel for row counts"
                   : "[WAIT] Merge not performed yet"
               }
             />

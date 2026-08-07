@@ -448,7 +448,7 @@
         "inspectorSubtitle": "R585A 병합 요약",
         "inspectorVariant": "변이체",
         "inspectorActivity": "활성",
-        "inspectorMergedRows": "병합된 행",
+        "inspectorMergedRows": "PASS 레코드 (병합 전)",
         "inspectorStatus": "상태",
         "inspectorBridgeCallout": "양방향 브리지",
         "inspectorBridgeDesc": "병합된 테이블이 다음 설계 라운드를 위해 EVOLVEpro 입력으로 KURO에 전달됩니다.",

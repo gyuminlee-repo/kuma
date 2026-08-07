@@ -448,7 +448,7 @@
         "inspectorSubtitle": "R585A merge summary",
         "inspectorVariant": "Variant",
         "inspectorActivity": "Activity",
-        "inspectorMergedRows": "Merged rows",
+        "inspectorMergedRows": "PASS records (pre-merge)",
         "inspectorStatus": "Status",
         "inspectorBridgeCallout": "Bidirectional bridge",
         "inspectorBridgeDesc": "Merged table flows back to KURO as EVOLVEpro input for the next design round.",
