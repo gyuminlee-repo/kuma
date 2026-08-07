@@ -641,8 +641,6 @@
       "deadlockReset": "重置",
       "analysisWorkspaceAriaLabel": "分析工作区",
       "manifestLoadFailed": "Manifest 加载失败: {{err}}",
-      "dropUnsupported": "此处无法使用该文件，不接受 {{ext}}。允许的类型: {{allowed}}",
-      "dropNoExtension": "无扩展名",
       "barcodeSetupTab": "1. Custom Barcode Primer Design",
       "analyzeTab": "2. Sequencing QC",
       "janusTab": "3. Janus 设备设置",
@@ -673,7 +671,9 @@
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
       "janusTabTitle": "Janus 设备设置 — 细胞库挑取的可选步骤 (PI 工作流步骤③)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
-      "efficiencyChartTitle": "Per-plate verdict breakdown"
+      "efficiencyChartTitle": "Per-plate verdict breakdown",
+      "dropUnsupported": "此处无法使用该文件，不接受 {{ext}}。允许的类型: {{allowed}}",
+      "dropNoExtension": "无扩展名"
     },
     "dialogs": {
       "export": {
@@ -1120,7 +1120,8 @@
       "missingInputs": "仍需提供",
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
-      "clearRestored": "清除已恢复的 EVOLVEpro 输入"
+      "clearRestored": "清除已恢复的 EVOLVEpro 输入",
+      "outputCollidesRound": "轮次 {{round}} 已将该文件记录为其产物。在此生成会覆盖该轮次的测量数据。"
     },
     "verdictBadge": {
       "help": {
@@ -2196,13 +2197,6 @@
       "hide": "{{label}}: {{text}} (hide full text)"
     }
   },
-  "round": {
-    "handoffButton": {
-      "label": "开始 Round {{n}}",
-      "ariaLabel": "开始 Round {{n}}",
-      "disabledTitle": "请先将 activity 数据与 genotype 合并以启用 handoff"
-    }
-  },
   "roundSummary": {
     "exportBlocked": "导出被阻止 — 检测到 {{count}} 个 label-swap 错误。",
     "warningsListAria": "Label-swap 警告列表",
@@ -2911,11 +2905,36 @@
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
-    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
-    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
-    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
-    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
-    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+    "labels": {
+      "continue_walking": "继续 walking",
+      "switch_combinatorial": "转入 combinatorial",
+      "stop": "停止",
+      "deferred": "暂缓"
+    },
+    "reasons": {
+      "calibration_period": "目前不足 3 轮，分类器仍处于校准期。",
+      "insufficient_data": "无法从这些轮次中评估出任何饱和信号。",
+      "mixed_signals": "各饱和信号之间相互矛盾。",
+      "no_saturation_signal": "本轮没有饱和信号：single-mutant walking 仍有收益。",
+      "hysteresis_pending": "本轮出现饱和但上一轮没有，而这需要连续两轮。",
+      "low_confidence": "转入 combinatorial 与信号相符，但 bootstrap 检验未能支持。",
+      "stop_low_confidence": "停止与信号相符，但 bootstrap 检验未能支持，因此继续 walking。",
+      "saturated_with_throughput": "连续两轮饱和，且下一块板还有余量执行 combinatorial 步骤。",
+      "saturated_no_throughput": "连续两轮饱和，且已无通量可用于 combinatorial 步骤。"
+    },
+    "missingInputs": {
+      "wt_replicates": "野生型重复测量值"
+    },
+    "missingInputsNote": "在缺少{{missing}}的情况下作出判定，因此饱和判断仅依据 hit rate 趋势。",
+    "notAssessableBadge": "无法判定",
+    "notAssessableSummary": "信号指向一次转变，但确认它需要{{missing}}，而这些文件并不包含。基于该输入无法回答{{blocked}}，只能判断是否继续 walking。",
+    "prefillFromRounds": "已填入步骤 4.1 生成的 {{n}} 个轮次产物。可自由添加或移除条目。",
+    "prefillFromManifest": "已填入本项目最后记录的 EVOLVEpro 输入。该文件早于按轮次记录，没有轮次编号，因此排在首位。",
+    "reloadFromRounds": "从轮次重新载入",
+    "restoredNote": "已恢复的结论，于 {{when}} 由上述 {{n}} 个文件算出。",
+    "restoredUnverifiedNote": "{{files}} 不是本应用写入的，因此无法确认其后是否发生过改动。",
+    "rebuiltNote": "{{when}} 的早前结论是在步骤 4.1 重新生成之前，由这些相同文件（{{files}}）算出的。它描述的是上一次生成的结果，因此仅作为历史保留；如需当前结果，请重新运行分类。",
+    "supersededNote": "{{when}} 的早前结论是由另一组文件（{{files}}）算出的。它并未说明当前所选文件，因此不予显示。"
   },
   "validation": {
     "missing": {

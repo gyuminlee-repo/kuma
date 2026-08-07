@@ -10,13 +10,19 @@
  *    모든 형식에서 필수다.]
  * [updated: Activity UX 재설계, 2-step으로 분리:
  *    activity.ingest  = EVOLVEpro-input 생성 (활성값 소스 선택)
- *    activity.signals = cross-round classification (AdvisoryDecisionCard) + round handoff]
+ *    activity.signals = cross-round classification (AdvisoryDecisionCard)]
+ * [updated: RoundHandoffButton 마운트 제거. 그 버튼의 활성 조건은
+ *    merged_table.length > 0 인데 그것을 채우던 MergeSection 이 ac0229c6
+ *    (v0.15.12) 에서 삭제돼, 남은 writer 는 manifest 재실행이 부르는
+ *    activitySlice.mergeForEvolvepro(src/lib/reRun.ts) 뿐이다. 정상 흐름에서는
+ *    영구 disabled 였고 tooltip 은 이미 없는 UI 를 쓰라고 안내했다.
+ *    handoffNextRound/loadRoundActivity 는 지우지 않는다.]
  * [updated: Janus 장비 설정이 step 3 으로 분리되면서 Activity 는 step 4 가 됐다.
  *    표기는 4.1 / 4.2, sub-step id 는 그대로다.]
  *
  * Sub-step:
  *   activity.ingest    → BuildEvolveproInputPanel
- *   activity.signals   → AdvisoryDecisionCard + RoundHandoffButton
+ *   activity.signals   → AdvisoryDecisionCard
  *   activity.mergeExport → legacy id, redirects to activity.ingest
  *
  */
@@ -29,7 +35,6 @@ import { WizardContainer } from "@/components/steps/WizardContainer";
 import { StepRedirectFallback } from "./StepRedirectFallback";
 import { BuildEvolveproInputPanel } from "@/components/mame/panels/BuildEvolveproInputPanel";
 import { AdvisoryDecisionCard } from "@/components/round/AdvisoryDecisionCard";
-import { RoundHandoffButton } from "@/components/round/RoundHandoffButton";
 import { useKumaProject } from "@/state/projectContext";
 import {
   hasCompletedBuildEvolveproOutput,
@@ -68,11 +73,10 @@ function ActivityIngestStep() {
   return <BuildEvolveproInputPanel />;
 }
 
-function ActivitySignalsStep({ activeRoundId }: { activeRoundId: string | null }) {
+function ActivitySignalsStep() {
   return (
     <div className="space-y-6">
       <AdvisoryDecisionCard />
-      {activeRoundId && <RoundHandoffButton round_id={activeRoundId} />}
     </div>
   );
 }
@@ -144,7 +148,7 @@ export function ActivityStepView() {
       {subStep === "activity.ingest" ? (
         <ActivityIngestStep />
       ) : (
-        <ActivitySignalsStep activeRoundId={activeRoundId} />
+        <ActivitySignalsStep />
       )}
     </WizardContainer>
   );

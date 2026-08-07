@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.16.6 (Fourteen places where one rule had two implementations that no longer agreed)
+## v0.16.8 (Fourteen places where one rule had two implementations that no longer agreed)
 
 An audit of the whole codebase looked for a single rule stated in more than one place, then measured whether the statements still matched. Forty were found and sixteen had already drifted. This release closes fourteen of them, ordered by what the drift does to an operator rather than by what it costs to repair.
 
@@ -21,24 +21,44 @@ Where a repair removed a copy, a check now holds the remaining ones together. Tw
 
 ### Fixed
 
-- v0.16.6: Echo transfer rows are built once, by `build_echo_rows`, for the csv, the xlsx worklist sheet and the dry-run preview. Previously the csv applied both `quadrant` and `mapping_range`, the xlsx worklist applied neither, and the preview applied only `mapping_range`, so a single `export_all` left two files disagreeing about which well feeds each transfer. `ExportMappingDryRunParams` gained `quadrant` and `used_quadrants`, which the preview had no way to receive. The xlsx layout sheet keeps its row-doubled view, and a test pins every drawn cell of it against a quadrant run.
-- v0.16.6: `handle_analyze` and `handle_validate_inputs` share one `_acceptance_findings`. The `fastq_pass` misselection guard existed only in the validate path, and `is_minknow_run_dir` returns false for that directory, so a run pointed at it fell through to the pre-aligned consensus branch instead of stopping. Output path checking existed only in the run path.
-- v0.16.6: The `position_cap` benchmark row calls the shipped `_position_filter_with_tiebreak` instead of a second implementation that broke ties by landscape order and capped combination variants the shipped rule exempts. On 200 synthetic landscapes the two chose different variant sets 160 times. The duplicated position regex is gone with it.
-- v0.16.6: Restoring an analyze result sends `designed_mutant_ids`, the denominator recovery is measured against. Without it the sidecar cleared the stored value and the panel and the exported report read n/a after every reopen.
-- v0.16.6: The HTML report plate map derives cell colour from the same priority it uses to pick a verdict, so a well covered by an AMBIGUOUS plate and a MIXED plate no longer changes colour with traversal order.
-- v0.16.6: The drawer and the inspector stop presenting a record-level PASS count as a merged row count. The merge admits one row per variant under `verdict == PASS and not failed and not is_fallback`, so on three replicates per variant the old label overstated it roughly threefold. The drawer now reports that the merge ran and leaves the counts to the panel that receives them.
-- v0.16.6: The activity csv gate accepts the column names the ingest actually reads, including `sample name`, `sample`, `well`, `well pos.`, `area` and `activity`, and no longer requires `plate_id`, which is derived from the plate metadata. A raw GC-FID export was refused as a csv and accepted as an xlsx, which reads as a corrupt file.
-- v0.16.6: MAME file extension filters come from one module. The pickers offered csv for two inputs that only accept xlsx, and the missing-inputs banner offered three sequence formats out of the seven the backend reads, so a project whose reference was a GenBank file could not be repaired from the banner and dropping the file on the window did nothing at all. An unroutable drop now says what it was and what is accepted.
-- v0.16.6: The Run button requires the expected workbook on raw runs, which the sidecar validates before it branches on run type and reads while scoring. The comment claiming the file arrives through a `kuro_xlsx` parameter described a field of a different RPC that the front end never sends.
-- v0.16.6: The demux edit-distance ratio field stops offering 0, the one value its model refuses, which failed only after the output directory was created and the reads were sampled. The third statement of the same range, in a store comment, is gone.
-- v0.16.6: Reopening a project restores the JANUS pick-list notice, including its failed state. A failed autosave and a successful one were indistinguishable after a restart, which is the case the notice exists for.
-- v0.16.6: The About dialog asks the MAME sidecar for `health_info`, the method the dispatcher registers, and reads fields it returns. It asked for `health`, which does not exist, for `sidecar_version`, which nothing emits, and swallowed the error, so every MAME crash report ever copied read `Sidecar : unknown`.
-- v0.16.6: The two release smoke scripts share one `SidecarIO`. The MAME copy had dropped the ready-notification tracking that separates a sidecar that never started from one that died mid-call, which is the distinction those scripts exist to make.
+- v0.16.8: Echo transfer rows are built once, by `build_echo_rows`, for the csv, the xlsx worklist sheet and the dry-run preview. Previously the csv applied both `quadrant` and `mapping_range`, the xlsx worklist applied neither, and the preview applied only `mapping_range`, so a single `export_all` left two files disagreeing about which well feeds each transfer. `ExportMappingDryRunParams` gained `quadrant` and `used_quadrants`, which the preview had no way to receive. The xlsx layout sheet keeps its row-doubled view, and a test pins every drawn cell of it against a quadrant run.
+- v0.16.8: `handle_analyze` and `handle_validate_inputs` share one `_acceptance_findings`. The `fastq_pass` misselection guard existed only in the validate path, and `is_minknow_run_dir` returns false for that directory, so a run pointed at it fell through to the pre-aligned consensus branch instead of stopping. Output path checking existed only in the run path.
+- v0.16.8: The `position_cap` benchmark row calls the shipped `_position_filter_with_tiebreak` instead of a second implementation that broke ties by landscape order and capped combination variants the shipped rule exempts. On 200 synthetic landscapes the two chose different variant sets 160 times. The duplicated position regex is gone with it.
+- v0.16.8: Restoring an analyze result sends `designed_mutant_ids`, the denominator recovery is measured against. Without it the sidecar cleared the stored value and the panel and the exported report read n/a after every reopen.
+- v0.16.8: The HTML report plate map derives cell colour from the same priority it uses to pick a verdict, so a well covered by an AMBIGUOUS plate and a MIXED plate no longer changes colour with traversal order.
+- v0.16.8: The drawer and the inspector stop presenting a record-level PASS count as a merged row count. The merge admits one row per variant under `verdict == PASS and not failed and not is_fallback`, so on three replicates per variant the old label overstated it roughly threefold. The drawer now reports that the merge ran and leaves the counts to the panel that receives them.
+- v0.16.8: The activity csv gate accepts the column names the ingest actually reads, including `sample name`, `sample`, `well`, `well pos.`, `area` and `activity`, and no longer requires `plate_id`, which is derived from the plate metadata. A raw GC-FID export was refused as a csv and accepted as an xlsx, which reads as a corrupt file.
+- v0.16.8: MAME file extension filters come from one module. The pickers offered csv for two inputs that only accept xlsx, and the missing-inputs banner offered three sequence formats out of the seven the backend reads, so a project whose reference was a GenBank file could not be repaired from the banner and dropping the file on the window did nothing at all. An unroutable drop now says what it was and what is accepted.
+- v0.16.8: The Run button requires the expected workbook on raw runs, which the sidecar validates before it branches on run type and reads while scoring. The comment claiming the file arrives through a `kuro_xlsx` parameter described a field of a different RPC that the front end never sends.
+- v0.16.8: The demux edit-distance ratio field stops offering 0, the one value its model refuses, which failed only after the output directory was created and the reads were sampled. The third statement of the same range, in a store comment, is gone.
+- v0.16.8: Reopening a project restores the JANUS pick-list notice, including its failed state. A failed autosave and a successful one were indistinguishable after a restart, which is the case the notice exists for.
+- v0.16.8: The About dialog asks the MAME sidecar for `health_info`, the method the dispatcher registers, and reads fields it returns. It asked for `health`, which does not exist, for `sidecar_version`, which nothing emits, and swallowed the error, so every MAME crash report ever copied read `Sidecar : unknown`.
+- v0.16.8: The two release smoke scripts share one `SidecarIO`. The MAME copy had dropped the ready-notification tracking that separates a sidecar that never started from one that died mid-call, which is the distinction those scripts exist to make.
 
 ### Changed
 
-- v0.16.6: The release version is one value. `kuma_core/shared/version.py` joins the manifests `version-sync` compares and is updated by `scripts/sync-version.sh`, and the export slice stamps `__APP_VERSION__` rather than a literal. Provenance files carried `0.1.0` or `0.02.02` depending on which writer produced them, so a diff of two real releases reported no version change. `KURO_MODULE_VERSION` stays separate, with its reason recorded next to it.
-- v0.16.6: Two cross-layer checks were added, `mame-activity-csv-schema` and `mame-extensions`, each reading the Python definition and comparing it to the TypeScript. Both were confirmed to fail when the two are made to disagree.
+- v0.16.8: The release version is one value. `kuma_core/shared/version.py` joins the manifests `version-sync` compares and is updated by `scripts/sync-version.sh`, and the export slice stamps `__APP_VERSION__` rather than a literal. Provenance files carried `0.1.0` or `0.02.02` depending on which writer produced them, so a diff of two real releases reported no version change. `KURO_MODULE_VERSION` stays separate, with its reason recorded next to it.
+- v0.16.8: Two cross-layer checks were added, `mame-activity-csv-schema` and `mame-extensions`, each reading the Python definition and comparing it to the TypeScript. Both were confirmed to fail when the two are made to disagree.
+
+## v0.16.6 (Step 4.2 says what it was asked, what it answered, and when)
+
+The advisory in step 4.2 reads several rounds at once and says whether single-mutant walking still pays. It could not say the one thing it exists to say. The classifier needs wild-type replicate measurements to gate a switch, the handler passed none, and the gate turned every switch or stop candidate back into a deferral. Two labels remained reachable, `continue_walking` and `deferred`, and both mean carry on. An advisory that can only agree with inertia carries no information.
+
+A missing input is now a different answer from a withheld verdict. When the classifier was never asked, the response carries no label and no confidence at all, because it made no judgement. It names the input it lacked and the decisions that input would have unblocked, and the screen draws that as its own state rather than as a verdict.
+
+Step 4.1 writes the file step 4.2 reads, with the same two columns, and used to make the operator go find it again. Each round now records what it produced, the advisory fills its list from those records, and hand-picked files still work: adding or removing one takes the list over, and a button puts the round list back.
+
+A verdict is kept with the inputs that produced it and the time it was decided. Rebuilding a round writes the same path with different contents, so a stored verdict is compared against when its inputs were last produced, and one that predates them is shown as superseded instead of as the current answer. The completion mark reads the same stored record, so it no longer depends on having opened the screen.
+
+The handoff button on 4.2 is gone. The step that filled its precondition was removed in v0.15.12, so the button had been permanently disabled, under a tooltip pointing at a screen that no longer existed.
+
+### Highlights
+
+- Step 4.2 now distinguishes a verdict it withheld from a question it was never able to ask, and names the input it was missing.
+- Step 4.2 fills its file list from what each round produced, instead of asking for the file step 4.1 just wrote.
+- A stored advisory verdict is shown as superseded once its inputs are rebuilt, rather than passing as the current answer.
+- The step 4.2 completion mark survives a restart instead of appearing only after the screen is opened.
+- The handoff button on step 4.2 is removed; the step that filled its precondition was taken out in v0.15.12.
 
 ## v0.16.5 (A design run stops at one plate of variants)
 

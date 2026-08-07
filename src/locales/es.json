@@ -641,8 +641,6 @@
       "deadlockReset": "Reiniciar",
       "analysisWorkspaceAriaLabel": "Workspace de análisis",
       "manifestLoadFailed": "Falló la carga del manifiesto: {{err}}",
-      "dropUnsupported": "No se puede usar ese archivo aquí: {{ext}} no se acepta. Permitidos: {{allowed}}",
-      "dropNoExtension": "sin extensión",
       "barcodeSetupTab": "1. Custom Barcode Primer Design",
       "analyzeTab": "2. QC de secuenciación",
       "janusTab": "3. Configuración Janus",
@@ -673,7 +671,9 @@
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
       "janusTabTitle": "Ajustes del instrumento Janus — paso opcional para la toma de stocks celulares (paso ③ del flujo del PI)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
-      "efficiencyChartTitle": "Per-plate verdict breakdown"
+      "efficiencyChartTitle": "Per-plate verdict breakdown",
+      "dropUnsupported": "No se puede usar ese archivo aquí: {{ext}} no se acepta. Permitidos: {{allowed}}",
+      "dropNoExtension": "sin extensión"
     },
     "dialogs": {
       "export": {
@@ -1120,7 +1120,8 @@
       "missingInputs": "Todavía falta",
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
-      "clearRestored": "Borrar entradas EVOLVEpro restauradas"
+      "clearRestored": "Borrar entradas EVOLVEpro restauradas",
+      "outputCollidesRound": "La ronda {{round}} ya registro este archivo como su salida. Generar aqui sobrescribe las mediciones de esa ronda."
     },
     "verdictBadge": {
       "help": {
@@ -2196,13 +2197,6 @@
       "hide": "{{label}}: {{text}} (hide full text)"
     }
   },
-  "round": {
-    "handoffButton": {
-      "label": "Iniciar Round {{n}}",
-      "ariaLabel": "Iniciar Round {{n}}",
-      "disabledTitle": "Combinar datos de actividad con genotype primero para habilitar el handoff"
-    }
-  },
   "roundSummary": {
     "exportBlocked": "Exportación bloqueada — {{count}} error(es) de label-swap detectados.",
     "warningsListAria": "Lista de advertencias de label-swap",
@@ -2911,11 +2905,36 @@
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
-    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
-    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
-    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
-    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
-    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+    "labels": {
+      "continue_walking": "Seguir caminando",
+      "switch_combinatorial": "Cambiar a combinatorial",
+      "stop": "Detener",
+      "deferred": "Aplazado"
+    },
+    "reasons": {
+      "calibration_period": "Menos de 3 rondas hasta ahora, el clasificador sigue en su periodo de calibración.",
+      "insufficient_data": "No se pudo evaluar ninguna señal de saturación a partir de estas rondas.",
+      "mixed_signals": "Las señales de saturación se contradicen entre sí.",
+      "no_saturation_signal": "Sin señal de saturación en esta ronda: el single-mutant walking sigue dando resultado.",
+      "hysteresis_pending": "Hubo saturación en esta ronda pero no en la anterior, y se requieren dos rondas consecutivas.",
+      "low_confidence": "Cambiar a combinatorial encajaba con las señales, pero la prueba bootstrap no lo respaldó.",
+      "stop_low_confidence": "Detener encajaba con las señales, pero la prueba bootstrap no lo respaldó, así que se sigue caminando.",
+      "saturated_with_throughput": "Saturado durante dos rondas consecutivas, y la siguiente placa tiene espacio para el paso combinatorial.",
+      "saturated_no_throughput": "Saturado durante dos rondas consecutivas, sin capacidad restante para un paso combinatorial."
+    },
+    "missingInputs": {
+      "wt_replicates": "mediciones de réplicas del tipo silvestre"
+    },
+    "missingInputsNote": "Evaluado sin {{missing}}, de modo que la saturación se basa únicamente en la tendencia de la hit rate.",
+    "notAssessableBadge": "No evaluable",
+    "notAssessableSummary": "Las señales apuntan a una transición, pero confirmarla requiere {{missing}}, que estos archivos no contienen. Con esta entrada no se puede responder {{blocked}}; solo cabe comprobar si conviene seguir caminando.",
+    "prefillFromRounds": "Rellenado con {{n}} salida(s) de ronda generadas en el paso 4.1. Las entradas se pueden anadir o quitar libremente.",
+    "prefillFromManifest": "Rellenado con la ultima entrada EVOLVEpro registrada para este proyecto. Es anterior al registro por ronda, no lleva numero de ronda y por eso se coloco primero.",
+    "reloadFromRounds": "Recargar desde las rondas",
+    "restoredNote": "Respuesta restaurada, calculada el {{when}} a partir de los {{n}} archivos anteriores.",
+    "restoredUnverifiedNote": "Esta aplicacion no escribio {{files}}, por lo que no puede confirmar que sigan sin cambios desde entonces.",
+    "rebuiltNote": "Una respuesta anterior del {{when}} se calculo a partir de estos mismos archivos ({{files}}) antes de que el paso 4.1 los regenerara. Describe la version previa y se conserva como historial. Ejecute la clasificacion de nuevo para la version actual.",
+    "supersededNote": "Una respuesta anterior del {{when}} se calculo a partir de otra lista ({{files}}). No dice nada sobre los archivos seleccionados ahora, por eso no se muestra."
   },
   "validation": {
     "missing": {

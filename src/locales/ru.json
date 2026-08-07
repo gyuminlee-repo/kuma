@@ -641,8 +641,6 @@
       "deadlockReset": "Сбросить",
       "analysisWorkspaceAriaLabel": "Рабочая область анализа",
       "manifestLoadFailed": "Загрузка manifest не удалась: {{err}}",
-      "dropUnsupported": "Этот файл здесь использовать нельзя: {{ext}} не принимается. Допустимые: {{allowed}}",
-      "dropNoExtension": "без расширения",
       "barcodeSetupTab": "1. Custom Barcode Primer Design",
       "analyzeTab": "2. Sequencing QC",
       "janusTab": "3. Настройка Janus",
@@ -673,7 +671,9 @@
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
       "janusTabTitle": "Настройки прибора Janus — необязательный шаг для отбора клеточных стоков (шаг ③ рабочего процесса PI)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
-      "efficiencyChartTitle": "Per-plate verdict breakdown"
+      "efficiencyChartTitle": "Per-plate verdict breakdown",
+      "dropUnsupported": "Этот файл здесь использовать нельзя: {{ext}} не принимается. Допустимые: {{allowed}}",
+      "dropNoExtension": "без расширения"
     },
     "dialogs": {
       "export": {
@@ -1120,7 +1120,8 @@
       "missingInputs": "Ещё требуется",
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
-      "clearRestored": "Очистить восстановленные входы EVOLVEpro"
+      "clearRestored": "Очистить восстановленные входы EVOLVEpro",
+      "outputCollidesRound": "Раунд {{round}} уже записал этот файл как свой результат. Сборка сюда перезапишет измерения того раунда."
     },
     "verdictBadge": {
       "help": {
@@ -2196,13 +2197,6 @@
       "hide": "{{label}}: {{text}} (hide full text)"
     }
   },
-  "round": {
-    "handoffButton": {
-      "label": "Запустить Round {{n}}",
-      "ariaLabel": "Запустить Round {{n}}",
-      "disabledTitle": "Сначала объедините данные активности с genotype для включения handoff"
-    }
-  },
   "roundSummary": {
     "exportBlocked": "Экспорт заблокирован, обнаружено {{count}} ошибок label-swap.",
     "warningsListAria": "Список предупреждений label-swap",
@@ -2911,11 +2905,36 @@
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
-    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
-    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
-    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
-    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
-    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+    "labels": {
+      "continue_walking": "Продолжать обход",
+      "switch_combinatorial": "Перейти к combinatorial",
+      "stop": "Остановить",
+      "deferred": "Отложено"
+    },
+    "reasons": {
+      "calibration_period": "Пока пройдено меньше 3 раундов, классификатор всё ещё в периоде калибровки.",
+      "insufficient_data": "По этим раундам не удалось оценить ни один сигнал насыщения.",
+      "mixed_signals": "Сигналы насыщения противоречат друг другу.",
+      "no_saturation_signal": "В этом раунде сигнала насыщения нет: single-mutant walking всё ещё приносит результат.",
+      "hysteresis_pending": "Насыщение появилось в этом раунде, но не в предыдущем, а требуются два подряд.",
+      "low_confidence": "Переход к combinatorial согласовался с сигналами, но bootstrap-проверка его не подтвердила.",
+      "stop_low_confidence": "Остановка согласовалась с сигналами, но bootstrap-проверка её не подтвердила, поэтому обход продолжается.",
+      "saturated_with_throughput": "Насыщение два раунда подряд, и на следующем планшете есть место для этапа combinatorial.",
+      "saturated_no_throughput": "Насыщение два раунда подряд, и пропускной способности на этап combinatorial не осталось."
+    },
+    "missingInputs": {
+      "wt_replicates": "повторные измерения дикого типа"
+    },
+    "missingInputsNote": "Оценка сделана без {{missing}}, поэтому насыщение опирается только на динамику hit rate.",
+    "notAssessableBadge": "Оценить нельзя",
+    "notAssessableSummary": "Сигналы указывают на переход, но для его подтверждения нужны {{missing}}, которых в этих файлах нет. По такому входу нельзя ответить на {{blocked}}; доступна только проверка того, стоит ли продолжать обход.",
+    "prefillFromRounds": "Заполнено результатами раундов из шага 4.1: {{n}}. Записи можно свободно добавлять и удалять.",
+    "prefillFromManifest": "Заполнено последним входом EVOLVEpro, записанным для этого проекта. Файл создан до учёта по раундам, номера раунда не имеет и поэтому поставлен первым.",
+    "reloadFromRounds": "Перезагрузить из раундов",
+    "restoredNote": "Восстановленный ответ, получен {{when}} по указанным выше файлам: {{n}}.",
+    "restoredUnverifiedNote": "Приложение не создавало эти файлы ({{files}}), поэтому не может подтвердить, что они с тех пор не изменились.",
+    "rebuiltNote": "Более ранний ответ от {{when}} получен по этим же файлам ({{files}}) до того, как шаг 4.1 создал их заново. Он описывает прежнюю версию и сохраняется как история. Для текущей версии запустите классификацию снова.",
+    "supersededNote": "Более ранний ответ от {{when}} получен по другому списку ({{files}}). О выбранных сейчас файлах он ничего не говорит, поэтому не показывается."
   },
   "validation": {
     "missing": {

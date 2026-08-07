@@ -1,35 +1,85 @@
 /**
- * AdvisoryDecisionCard -- read-only display of the classify() advisory output.
+ * AdvisoryDecisionCard -- read-only display of the strategy.classify_round output.
  *
  * Scope (Fork D):
- *  - User imports per-round xlsx files (Variant + activity fold-change columns).
+ *  - The list of per-round xlsx files (Variant + activity fold-change columns)
+ *    is prefilled from what the rounds produced in step 4.1 and stays editable.
  *  - Calls strategy.classify_round RPC with RoundFileEntry list.
- *  - Shows label / reason / confidence from response.
- *  - Read-only: no Confirm button, no PI decision persistence.
+ *  - Advisory only: no Confirm button, and nothing here is a PI decision. The
+ *    answer itself is kept on the round with the files and the time it came
+ *    from, so it can be re-examined later; a stored answer is shown as history,
+ *    never as the current verdict, once the list on screen differs from the one
+ *    it was computed from or step 4.1 has rebuilt any file in that list.
+ *  - The answer on the round is also what marks step 4.2 done (lib/mame/
+ *    mameStepCompletion.ts). This card publishes nothing to the app store, so
+ *    opening the screen cannot make the step look finished.
  *  - anti-fallback: never fabricates a result; JSON-RPC errors are shown explicitly.
  *
- * Constraint (hard, non-negotiable):
- *  The classifier never emits switch_combinatorial confidently (WT replicate
- *  limit is 3 per round). Possible labels: continue_walking or deferred.
- *  The UI reflects this honestly.
+ * Two success states, drawn differently on purpose:
+ *  - advisory "decision": the classifier answered. Coloured label badge, the
+ *    reason behind it, and the confidence when the bootstrap gate produced one.
+ *  - advisory "not_assessable": the classifier was never asked. Neutral outlined
+ *    badge, no label, and a sentence naming the absent input together with the
+ *    labels it puts out of reach. Drawing this as another "deferred" badge would
+ *    claim a judgement was weighed and withheld.
+ *
+ * Why switch_combinatorial and stop are never seen today: the handler passes
+ * wt_values=None (python-core/sidecar_mame/handlers/classify_round.py), because
+ * the purified per-round xlsx carries no wild-type replicate column. Both labels
+ * sit behind a bootstrap confidence gate that needs those values, so both are
+ * unreachable and result.confidence is always null. That is a limit of the input
+ * format, not of how many WT replicates a round happens to have.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
-import { InfoIcon, FileSpreadsheet, X, PlayCircle } from "lucide-react";
+import { InfoIcon, FileSpreadsheet, RotateCcw, X, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { classifyRound } from "@/lib/ipc";
+import { listArtifacts } from "@/lib/workspace";
+import {
+  normalizePath,
+  roundEvolveproFiles,
+  roundFilesPathSignature,
+  roundFilesSignature,
+  roundOutputStamps,
+  unstampedFiles,
+} from "@/lib/round/roundArtifacts";
+import { useRoundStore } from "@/store/round/roundSlice";
 import { Button } from "@/components/ui/button";
 import type {
   ClassifyDecisionResult,
+  ClassifyNotAssessableResult,
+  ClassifyRoundResult,
   DecisionLabel,
+  MissingClassifierInput,
   RoundFileEntry,
 } from "@/types/mame/strategy";
+import type { RoundAdvisoryRecord } from "@/types/round";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+/** Narrowed shape of the i18next translator this file needs. */
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+/** Where the list on screen came from, which the note under it states. */
+type PrefillSource = "none" | "rounds" | "manifest" | "manual";
+
+/**
+ * Reason codes kuma_core/strategy/classify.py can emit, each with a phrase in
+ * the locale files. bootstrap_inputs_missing is absent on purpose: the handler
+ * converts that one into the not_assessable state before it reaches the UI.
+ */
+const REASON_CODES: ReadonlySet<string> = new Set([
+  "calibration_period",
+  "insufficient_data",
+  "mixed_signals",
+  "no_saturation_signal",
+  "hysteresis_pending",
+  "low_confidence",
+  "stop_low_confidence",
+  "saturated_with_throughput",
+  "saturated_no_throughput",
+]);
 
 /** Maps DecisionLabel to a Tailwind color pair (bg/text). */
 function labelColorClass(label: DecisionLabel): string {
@@ -47,22 +97,69 @@ function labelColorClass(label: DecisionLabel): string {
   }
 }
 
+/** Last-resort rendering for a code with no phrase, so no snake_case reaches the user. */
+function humanize(code: string): string {
+  return code.replace(/_/g, " ");
+}
+
+function labelText(label: DecisionLabel, t: Translate): string {
+  return t(`advisoryDecision.labels.${label}`);
+}
+
+function reasonText(reason: string, t: Translate): string {
+  return REASON_CODES.has(reason)
+    ? t(`advisoryDecision.reasons.${reason}`)
+    : humanize(reason);
+}
+
+function missingInputsText(
+  inputs: MissingClassifierInput[],
+  t: Translate,
+): string {
+  return inputs.map((input) => t(`advisoryDecision.missingInputs.${input}`)).join(", ");
+}
+
+function blockedLabelsText(labels: DecisionLabel[], t: Translate): string {
+  return labels.map((label) => labelText(label, t)).join(", ");
+}
+
 /** Extract filename from an absolute path for display. */
 function basename(path: string): string {
   return path.split(/[\\/]/).pop() ?? path;
 }
 
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
+/** A stored timestamp in the reader locale, or the raw value if it will not parse. */
+function formatDecidedAt(iso: string): string {
+  const at = new Date(iso);
+  return Number.isNaN(at.getTime()) ? iso : at.toLocaleString();
+}
 
-function DecisionDisplay({
-  result,
+/**
+ * Footnote carried by an answered decision.
+ *
+ * The classifier reached a verdict, but some of its signals were unavailable
+ * the whole time, so the verdict rests on a narrower base than the full model.
+ * Saying which inputs were absent keeps that visible without implying the
+ * verdict is in doubt.
+ */
+function MissingInputsNote({
+  missing,
 }: {
-  result: ClassifyDecisionResult;
+  missing: MissingClassifierInput[];
 }) {
   const { t } = useTranslation();
-  const reason = mapReasonText(result.label, result.reason, t);
+  if (missing.length === 0) return null;
+  return (
+    <p className="text-[11px] text-muted-foreground">
+      {t("advisoryDecision.missingInputsNote", {
+        missing: missingInputsText(missing, t),
+      })}
+    </p>
+  );
+}
+
+function DecisionDisplay({ result }: { result: ClassifyDecisionResult }) {
+  const { t } = useTranslation();
 
   return (
     <div className="flex flex-col gap-2">
@@ -73,11 +170,17 @@ function DecisionDisplay({
             labelColorClass(result.label),
           )}
           aria-label={t("advisoryDecision.labelAriaLabel", {
-            label: result.label,
+            label: labelText(result.label, t),
           })}
         >
-          {result.label}
+          {labelText(result.label, t)}
         </span>
+        {/*
+          Confidence only exists on the bootstrap-gated branches, all of which
+          need wt_values. With the current xlsx input this never renders. It is
+          kept because wiring WT replicates into the handler brings it back with
+          no UI change; delete it only if that path is abandoned.
+        */}
         {result.confidence != null && (
           <span className="text-[11px] text-muted-foreground">
             {t("advisoryDecision.confidence", {
@@ -86,43 +189,49 @@ function DecisionDisplay({
           </span>
         )}
       </div>
-      <p className="text-xs text-muted-foreground">{reason}</p>
+      <p className="text-xs text-muted-foreground">
+        {reasonText(result.reason, t)}
+      </p>
+      <MissingInputsNote missing={result.missing_inputs} />
     </div>
   );
 }
 
 /**
- * Returns a user-friendly reason string for any label.
- * continue_walking prepends a recommendation line.
- * For deferred labels, maps known reason codes to explicit messages.
- * Falls back to the raw reason string for unknown codes.
+ * The classifier was never asked.
+ *
+ * Reaching this state means the core decision tree did propose a transition,
+ * which is the only way the bootstrap gate gets evaluated at all. The gate then
+ * found nothing to test with. Both halves of that are stated: the signals point
+ * somewhere, and the confirming question cannot be put.
  */
-function mapReasonText(
-  label: DecisionLabel,
-  reason: string,
-  t: (key: string) => string,
-): string {
-  if (label === "continue_walking") {
-    return `${t("advisoryDecision.continueWalkingRecommendation")} ${reason}`.trim();
-  }
-  if (label !== "deferred") return reason;
-  switch (reason) {
-    case "bootstrap_inputs_missing":
-      return t("advisoryDecision.deferredBootstrapInputsMissing");
-    case "calibration_period":
-      return t("advisoryDecision.deferredCalibrationPeriod");
-    case "insufficient_data":
-      return t("advisoryDecision.deferredInsufficientData");
-    case "mixed_signals":
-      return t("advisoryDecision.deferredMixedSignals");
-    default:
-      return reason;
-  }
-}
+function NotAssessableDisplay({
+  result,
+}: {
+  result: ClassifyNotAssessableResult;
+}) {
+  const { t } = useTranslation();
+  const badge = t("advisoryDecision.notAssessableBadge");
 
-// ---------------------------------------------------------------------------
-// File picker sub-component
-// ---------------------------------------------------------------------------
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <span
+          className="rounded-full border border-dashed border-muted-foreground/60 px-2.5 py-0.5 text-xs font-semibold text-muted-foreground"
+          aria-label={t("advisoryDecision.labelAriaLabel", { label: badge })}
+        >
+          {badge}
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {t("advisoryDecision.notAssessableSummary", {
+          missing: missingInputsText(result.missing_inputs, t),
+          blocked: blockedLabelsText(result.blocked_decisions, t),
+        })}
+      </p>
+    </div>
+  );
+}
 
 interface FileRowProps {
   entry: RoundFileEntry;
@@ -157,10 +266,6 @@ function FileRow({ entry, onRemove }: FileRowProps) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
-
 export interface AdvisoryDecisionCardProps {
   className?: string;
 }
@@ -168,31 +273,74 @@ export interface AdvisoryDecisionCardProps {
 /**
  * AdvisoryDecisionCard (Fork D)
  *
- * Self-contained file-picker + advisory classification card.
- * User adds per-round xlsx files; the component calls classifyRound() on demand.
+ * File list + advisory classification card. The list is prefilled with what the
+ * rounds produced in step 4.1 (lib/round/roundArtifacts.ts) and stays fully
+ * editable, so an older project or a file from outside this workspace can still
+ * be classified.
  *
  * States: idle | loading | result | error
- * Read-only. No Confirm button, no PI decision persistence.
+ * Read-only advice. No Confirm button, no PI decision recorded as a choice.
  */
 export function AdvisoryDecisionCard({
   className,
 }: AdvisoryDecisionCardProps) {
   const { t } = useTranslation();
 
-  // File list state: entries are kept sorted by n; n is 1..N, re-assigned on every change.
+  const rounds = useRoundStore((s) => s.rounds);
+  const roundFiles = useMemo(() => roundEvolveproFiles(rounds), [rounds]);
+  // When the app wrote each round file. A rebuild moves the stamp, which is how
+  // a stored answer is told apart from one about the file now at that path.
+  const stamps = useMemo(() => roundOutputStamps(rounds), [rounds]);
+
   const [files, setFiles] = useState<RoundFileEntry[]>([]);
-  const [result, setResult] = useState<ClassifyDecisionResult | null>(null);
+  const [prefillSource, setPrefillSource] = useState<PrefillSource>("none");
+  const [result, setResult] = useState<ClassifyRoundResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * Whether the operator has touched the list. Prefill fills an untouched list
+   * and stops there: a proposal must never overwrite a hand-built selection,
+   * which is what lets a past project or an outside file be classified. The
+   * reload button below puts the round list back on demand.
+   */
+  const edited = useRef(false);
 
-  // -------------------------------------------------------------------------
-  // File management
-  // -------------------------------------------------------------------------
+  useEffect(() => {
+    if (edited.current || roundFiles.length === 0) return;
+    setFiles(roundFiles);
+    setPrefillSource("rounds");
+  }, [roundFiles]);
 
-  /** Renumbers entries 1..N in current order (gap-free). */
-  function reindex(entries: { path: string }[]): RoundFileEntry[] {
-    return entries.map((e, i) => ({ n: i + 1, path: e.path }));
-  }
+  // Projects built before rounds recorded their outputs have nothing to offer
+  // above, but they do have the workspace manifest entry step 4.1 registered.
+  // It is one slot with no round number, so it is offered as a single leading
+  // entry and the note says where it came from rather than implying it is
+  // round 1 of a series.
+  useEffect(() => {
+    if (edited.current || roundFiles.length > 0) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const artifacts = await listArtifacts({ app: "mame", type: "evolvepro_csv" });
+        if (cancelled || edited.current || artifacts.length === 0) return;
+        const newest = artifacts
+          .slice()
+          .sort((a, b) => b.producedAt.localeCompare(a.producedAt))[0];
+        setFiles([{ n: 1, path: newest.path }]);
+        setPrefillSource("manifest");
+      } catch {
+        // No workspace open, or no manifest to read. Nothing to prefill.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [roundFiles.length]);
+
+  const clearAnswer = useCallback(() => {
+    setResult(null);
+    setError(null);
+  }, []);
 
   const handleAddFiles = useCallback(async () => {
     const selected = await open({
@@ -203,25 +351,40 @@ export function AdvisoryDecisionCard({
     });
     if (!selected) return;
     const paths = Array.isArray(selected) ? selected : [selected];
-    setFiles((prev) => {
-      const existing = new Set(prev.map((e) => e.path));
-      const newPaths = paths.filter((p) => !existing.has(p));
-      return reindex([...prev, ...newPaths.map((p) => ({ path: p }))]);
-    });
-    // Reset result when file list changes
-    setResult(null);
-    setError(null);
-  }, [t]);
+    // Compared the way every other path comparison here is: separators and case
+    // folded. Raw string equality lets the same file in twice under two
+    // spellings on Windows, and the handler counts entries as rounds.
+    const existing = new Set(files.map((entry) => normalizePath(entry.path)));
+    const added = paths.filter((path) => !existing.has(normalizePath(path)));
+    if (added.length === 0) return;
+    // Appended after the highest number in the list instead of renumbering the
+    // whole thing. A prefilled entry carries the number of the round that
+    // produced it, and renumbering would relabel round 3 as round 2 the moment
+    // an outside file joined. The handler sorts by n and counts entries, so a
+    // gap orders correctly and does not inflate the round count.
+    const highest = files.reduce((max, entry) => Math.max(max, entry.n), 0);
+    edited.current = true;
+    setPrefillSource("manual");
+    setFiles([...files, ...added.map((path, i) => ({ n: highest + i + 1, path }))]);
+    clearAnswer();
+  }, [files, t, clearAnswer]);
 
-  const handleRemove = useCallback((n: number) => {
-    setFiles((prev) => reindex(prev.filter((e) => e.n !== n)));
-    setResult(null);
-    setError(null);
-  }, []);
+  const handleRemove = useCallback(
+    (n: number) => {
+      edited.current = true;
+      setPrefillSource("manual");
+      setFiles((prev) => prev.filter((e) => e.n !== n));
+      clearAnswer();
+    },
+    [clearAnswer],
+  );
 
-  // -------------------------------------------------------------------------
-  // Classify
-  // -------------------------------------------------------------------------
+  const handleReloadRounds = useCallback(() => {
+    edited.current = false;
+    setFiles(roundFiles);
+    setPrefillSource("rounds");
+    clearAnswer();
+  }, [roundFiles, clearAnswer]);
 
   const handleClassify = useCallback(async () => {
     if (files.length === 0 || loading) return;
@@ -231,23 +394,73 @@ export function AdvisoryDecisionCard({
     try {
       const res = await classifyRound(files);
       setResult(res);
+      // File the answer on the round together with what it was computed from,
+      // so it can be re-examined after a restart instead of vanishing with this
+      // component local state. A run that threw records nothing: there is no
+      // answer to keep, and the error is on screen.
+      const roundStore = useRoundStore.getState();
+      const roundId = roundStore.active_round_id;
+      if (roundId) {
+        const record: RoundAdvisoryRecord = {
+          result: res,
+          inputs: files,
+          decided_at: new Date().toISOString(),
+          input_signature: roundFilesSignature(files, stamps),
+        };
+        roundStore.updateRoundField(roundId, "advisory", record);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
-  }, [files, loading]);
+  }, [files, loading, stamps]);
 
-  // -------------------------------------------------------------------------
-  // Render
-  // -------------------------------------------------------------------------
+  // What the round already has on record, and whether it still describes the
+  // list on screen. A stored answer is about one ordered set of file contents,
+  // so either a changed list or a rebuild of a file still in it demotes the
+  // answer to history: it is never redrawn as the current verdict, only
+  // mentioned with the time and the files it came from.
+  const storedRecord = useRoundStore(
+    (s) => s.rounds.find((r) => r.id === s.active_round_id)?.advisory ?? null,
+  );
+  const currentSignature = useMemo(
+    () => roundFilesSignature(files, stamps),
+    [files, stamps],
+  );
+  const restoredRecord =
+    storedRecord && storedRecord.input_signature === currentSignature
+      ? storedRecord
+      : null;
+  // Held back while the list is empty: on mount it is empty for one frame
+  // before prefill lands, and a note saying the stored answer describes other
+  // files would be flashing a comparison against nothing.
+  const supersededRecord =
+    storedRecord && !restoredRecord && files.length > 0 ? storedRecord : null;
+  // Which of the two things happened, because the operator sees the same file
+  // names either way. Same round numbers and paths as the list on screen means
+  // step 4.1 wrote over them since the answer was computed; anything else means
+  // the list itself is a different one.
+  const supersededByRebuild =
+    supersededRecord !== null &&
+    roundFilesPathSignature(supersededRecord.inputs) ===
+      roundFilesPathSignature(files);
+  // Entries in a restored answer that no round produced. Their paths match, so
+  // the answer is shown, but nothing recorded here says the file behind such a
+  // path still holds what it held then, and the note below says so rather than
+  // presenting the whole list as verified.
+  const unverifiedInputs = useMemo(
+    () => (restoredRecord ? unstampedFiles(restoredRecord.inputs, stamps) : []),
+    [restoredRecord, stamps],
+  );
+
+  const shownResult = result ?? restoredRecord?.result ?? null;
 
   return (
     <section
       aria-labelledby="advisory-decision-heading"
       className={cn("flex flex-col gap-3", className)}
     >
-      {/* Heading */}
       <h4
         id="advisory-decision-heading"
         className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
@@ -261,7 +474,6 @@ export function AdvisoryDecisionCard({
         </span>
       </h4>
 
-      {/* File list */}
       {files.length > 0 && (
         <ul
           aria-label={t("advisoryDecision.fileListAriaLabel")}
@@ -273,7 +485,17 @@ export function AdvisoryDecisionCard({
         </ul>
       )}
 
-      {/* File picker + run buttons */}
+      {files.length > 0 && prefillSource === "rounds" && (
+        <p className="text-[11px] text-muted-foreground">
+          {t("advisoryDecision.prefillFromRounds", { n: files.length })}
+        </p>
+      )}
+      {files.length > 0 && prefillSource === "manifest" && (
+        <p className="text-[11px] text-muted-foreground">
+          {t("advisoryDecision.prefillFromManifest")}
+        </p>
+      )}
+
       <div className="flex items-center gap-2">
         <Button
           type="button"
@@ -287,6 +509,19 @@ export function AdvisoryDecisionCard({
           <FileSpreadsheet size={12} aria-hidden="true" />
           {t("advisoryDecision.addFiles")}
         </Button>
+        {roundFiles.length > 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleReloadRounds}
+            disabled={loading}
+            className="h-7 gap-1.5 text-xs"
+          >
+            <RotateCcw size={12} aria-hidden="true" />
+            {t("advisoryDecision.reloadFromRounds")}
+          </Button>
+        )}
         <Button
           type="button"
           size="sm"
@@ -300,7 +535,6 @@ export function AdvisoryDecisionCard({
         </Button>
       </div>
 
-      {/* States */}
       {loading && (
         <p className="text-xs text-muted-foreground" aria-live="polite">
           {t("advisoryDecision.loading")}
@@ -321,7 +555,49 @@ export function AdvisoryDecisionCard({
         </div>
       )}
 
-      {result?.advisory === "decision" && <DecisionDisplay result={result} />}
+      {result === null && restoredRecord && (
+        <p className="text-[11px] text-muted-foreground">
+          {t("advisoryDecision.restoredNote", {
+            when: formatDecidedAt(restoredRecord.decided_at),
+            n: restoredRecord.inputs.length,
+          })}
+          {unverifiedInputs.length > 0 && (
+            <>
+              {" "}
+              {t("advisoryDecision.restoredUnverifiedNote", {
+                files: unverifiedInputs
+                  .map((entry) => basename(entry.path))
+                  .join(", "),
+              })}
+            </>
+          )}
+        </p>
+      )}
+
+      {supersededRecord && (
+        <p className="rounded-md border border-dashed border-muted-foreground/40 px-3 py-2 text-[11px] text-muted-foreground">
+          {supersededByRebuild
+            ? t("advisoryDecision.rebuiltNote", {
+                when: formatDecidedAt(supersededRecord.decided_at),
+                files: supersededRecord.inputs
+                  .map((entry) => basename(entry.path))
+                  .join(", "),
+              })
+            : t("advisoryDecision.supersededNote", {
+                when: formatDecidedAt(supersededRecord.decided_at),
+                files: supersededRecord.inputs
+                  .map((entry) => basename(entry.path))
+                  .join(", "),
+              })}
+        </p>
+      )}
+
+      {shownResult?.advisory === "decision" && (
+        <DecisionDisplay result={shownResult} />
+      )}
+      {shownResult?.advisory === "not_assessable" && (
+        <NotAssessableDisplay result={shownResult} />
+      )}
     </section>
   );
 }

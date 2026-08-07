@@ -641,8 +641,6 @@
       "deadlockReset": "リセット",
       "analysisWorkspaceAriaLabel": "解析ワークスペース",
       "manifestLoadFailed": "Manifest 読み込み失敗: {{err}}",
-      "dropUnsupported": "このファイルはここでは使えません。{{ext}} は受け付けません。使用可能: {{allowed}}",
-      "dropNoExtension": "拡張子なし",
       "barcodeSetupTab": "1. Custom Barcode Primer Design",
       "analyzeTab": "2. Sequencing QC",
       "janusTab": "3. Janus 装置設定",
@@ -673,7 +671,9 @@
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
       "janusTabTitle": "Janus 装置設定 — セルストック分注用の任意ステップ (PI ワークフロー ステップ③)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
-      "efficiencyChartTitle": "Per-plate verdict breakdown"
+      "efficiencyChartTitle": "Per-plate verdict breakdown",
+      "dropUnsupported": "このファイルはここでは使えません。{{ext}} は受け付けません。使用可能: {{allowed}}",
+      "dropNoExtension": "拡張子なし"
     },
     "dialogs": {
       "export": {
@@ -1120,7 +1120,8 @@
       "missingInputs": "不足しているファイル",
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
-      "clearRestored": "復元された EVOLVEpro 入力をクリア"
+      "clearRestored": "復元された EVOLVEpro 入力をクリア",
+      "outputCollidesRound": "ラウンド {{round}} がこのファイルを出力として記録済みです。ここに作成するとそのラウンドの測定値を上書きします。"
     },
     "verdictBadge": {
       "help": {
@@ -2196,13 +2197,6 @@
       "hide": "{{label}}: {{text}} (hide full text)"
     }
   },
-  "round": {
-    "handoffButton": {
-      "label": "Round {{n}} を開始",
-      "ariaLabel": "Round {{n}} を開始",
-      "disabledTitle": "Handoff を有効化するには、先に活性データを genotype とマージしてください"
-    }
-  },
   "roundSummary": {
     "exportBlocked": "Export ブロック — {{count}} 件の label-swap エラーを検出。",
     "warningsListAria": "Label-swap 警告一覧",
@@ -2911,11 +2905,36 @@
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
-    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
-    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
-    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
-    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
-    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+    "labels": {
+      "continue_walking": "継続",
+      "switch_combinatorial": "Combinatorial へ移行",
+      "stop": "中止",
+      "deferred": "保留"
+    },
+    "reasons": {
+      "calibration_period": "ラウンドが 3 回未満のため、分類器はまだ較正期間にあります。",
+      "insufficient_data": "これらのラウンドからは飽和シグナルを 1 つも評価できませんでした。",
+      "mixed_signals": "飽和シグナルどうしが食い違っています。",
+      "no_saturation_signal": "今回のラウンドに飽和シグナルはありません。single-mutant walking はまだ有効です。",
+      "hysteresis_pending": "今回のラウンドでは飽和が見られましたが前回はなく、連続 2 ラウンドが必要です。",
+      "low_confidence": "シグナルは combinatorial への移行と整合しましたが、bootstrap 検定が裏付けませんでした。",
+      "stop_low_confidence": "シグナルは中止と整合しましたが、bootstrap 検定が裏付けなかったため継続します。",
+      "saturated_with_throughput": "2 ラウンド連続で飽和しており、次のプレートに combinatorial 段階を入れる余裕があります。",
+      "saturated_no_throughput": "2 ラウンド連続で飽和しており、combinatorial 段階に回せるスループットが残っていません。"
+    },
+    "missingInputs": {
+      "wt_replicates": "野生型のレプリケート測定値"
+    },
+    "missingInputsNote": "{{missing}} なしで判定しました。飽和の判断は hit rate の推移のみに基づきます。",
+    "notAssessableBadge": "判定不可",
+    "notAssessableSummary": "シグナルは移行を示していますが、確認には {{missing}} が必要で、これらのファイルには含まれていません。この入力では {{blocked}} を答えられず、継続するかどうかのみ判定できます。",
+    "prefillFromRounds": "4.1 で作成したラウンド出力 {{n}} 件を入力しました。項目は自由に追加・削除できます。",
+    "prefillFromManifest": "このプロジェクトに最後に記録された EVOLVEpro 入力を使用しました。ラウンド別記録より前のファイルでラウンド番号がないため、先頭に配置しています。",
+    "reloadFromRounds": "ラウンドから再読み込み",
+    "restoredNote": "復元した回答です。{{when}} に上記 {{n}} 件のファイルから算出しました。",
+    "restoredUnverifiedNote": "{{files}} はこのアプリが書き出したものではないため、その後変更されていないかは確認できません。",
+    "rebuiltNote": "{{when}} の以前の回答は、4.1 が再作成する前の同じファイル（{{files}}）から算出したものです。前回の作成物についての回答なので履歴として残します。現在の内容については分類をもう一度実行してください。",
+    "supersededNote": "{{when}} の以前の回答は別のファイル一覧（{{files}}）から算出したものです。現在選択中のファイルについては何も述べていないため表示しません。"
   },
   "validation": {
     "missing": {

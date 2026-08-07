@@ -641,8 +641,6 @@
       "deadlockReset": "重置",
       "analysisWorkspaceAriaLabel": "分析工作區",
       "manifestLoadFailed": "Manifest 載入失敗: {{err}}",
-      "dropUnsupported": "此處無法使用該檔案，不接受 {{ext}}。允許的類型: {{allowed}}",
-      "dropNoExtension": "無副檔名",
       "barcodeSetupTab": "1. Custom Barcode Primer Design",
       "analyzeTab": "2. Sequencing QC",
       "janusTab": "3. Janus 設備設定",
@@ -673,7 +671,9 @@
       "analyzeTabTitle": "Sequencing QC — part of NGS Validation (step ② of PI workflow)",
       "janusTabTitle": "Janus 設備設定 — 細胞庫挑取的選用步驟 (PI 工作流程步驟③)",
       "activityTabTitle": "Activity Data — EVOLVEpro input conversion (step ④ of PI workflow)",
-      "efficiencyChartTitle": "Per-plate verdict breakdown"
+      "efficiencyChartTitle": "Per-plate verdict breakdown",
+      "dropUnsupported": "此處無法使用該檔案，不接受 {{ext}}。允許的類型: {{allowed}}",
+      "dropNoExtension": "無副檔名"
     },
     "dialogs": {
       "export": {
@@ -1120,7 +1120,8 @@
       "missingInputs": "尚需提供",
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
-      "clearRestored": "清除已復原的 EVOLVEpro 輸入"
+      "clearRestored": "清除已復原的 EVOLVEpro 輸入",
+      "outputCollidesRound": "輪次 {{round}} 已將此檔案記錄為其產物。在此產生會覆寫該輪次的測量值。"
     },
     "verdictBadge": {
       "help": {
@@ -2196,13 +2197,6 @@
       "hide": "{{label}}: {{text}} (hide full text)"
     }
   },
-  "round": {
-    "handoffButton": {
-      "label": "開始 Round {{n}}",
-      "ariaLabel": "開始 Round {{n}}",
-      "disabledTitle": "請先將 activity 資料與 genotype 合併以啟用 handoff"
-    }
-  },
   "roundSummary": {
     "exportBlocked": "匯出被阻止 — 檢測到 {{count}} 個 label-swap 錯誤。",
     "warningsListAria": "Label-swap 警告列表",
@@ -2911,11 +2905,36 @@
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
-    "continueWalkingRecommendation": "Continue single-mutant walking recommended.",
-    "deferredBootstrapInputsMissing": "Switch decision deferred: confident double-transition classification requires WT replicate measurements from at least 4 replicates per round (not yet provided).",
-    "deferredCalibrationPeriod": "Fewer than 3 rounds available: calibration period, classification deferred.",
-    "deferredInsufficientData": "Insufficient data across rounds to classify with confidence.",
-    "deferredMixedSignals": "Mixed signals detected across rounds: classification deferred."
+    "labels": {
+      "continue_walking": "繼續 walking",
+      "switch_combinatorial": "轉入 combinatorial",
+      "stop": "停止",
+      "deferred": "暫緩"
+    },
+    "reasons": {
+      "calibration_period": "目前不足 3 輪，分類器仍處於校準期。",
+      "insufficient_data": "無法從這些輪次中評估出任何飽和訊號。",
+      "mixed_signals": "各飽和訊號之間互相矛盾。",
+      "no_saturation_signal": "本輪沒有飽和訊號：single-mutant walking 仍有收益。",
+      "hysteresis_pending": "本輪出現飽和但上一輪沒有，而這需要連續兩輪。",
+      "low_confidence": "轉入 combinatorial 與訊號相符，但 bootstrap 檢定未能支持。",
+      "stop_low_confidence": "停止與訊號相符，但 bootstrap 檢定未能支持，因此繼續 walking。",
+      "saturated_with_throughput": "連續兩輪飽和，且下一塊盤還有餘量執行 combinatorial 步驟。",
+      "saturated_no_throughput": "連續兩輪飽和，且已無通量可用於 combinatorial 步驟。"
+    },
+    "missingInputs": {
+      "wt_replicates": "野生型重複測量值"
+    },
+    "missingInputsNote": "在缺少{{missing}}的情況下作出判定，因此飽和判斷僅依據 hit rate 趨勢。",
+    "notAssessableBadge": "無法判定",
+    "notAssessableSummary": "訊號指向一次轉變，但確認它需要{{missing}}，而這些檔案並不包含。基於此輸入無法回答{{blocked}}，只能判斷是否繼續 walking。",
+    "prefillFromRounds": "已填入步驟 4.1 產生的 {{n}} 個輪次產物。可自由新增或移除項目。",
+    "prefillFromManifest": "已填入本專案最後記錄的 EVOLVEpro 輸入。該檔案早於逐輪記錄，沒有輪次編號，因此排在最前面。",
+    "reloadFromRounds": "從輪次重新載入",
+    "restoredNote": "已還原的結論，於 {{when}} 由上述 {{n}} 個檔案算出。",
+    "restoredUnverifiedNote": "{{files}} 並非本應用程式寫入，因此無法確認其後是否有變動。",
+    "rebuiltNote": "{{when}} 的先前結論是在步驟 4.1 重新產生之前，由這些相同檔案（{{files}}）算出的。它描述的是上一次產生的結果，因此僅作為歷史保留；若需目前結果，請重新執行分類。",
+    "supersededNote": "{{when}} 的先前結論是由另一組檔案（{{files}}）算出的。它並未說明目前所選檔案，因此不予顯示。"
   },
   "validation": {
     "missing": {

@@ -381,6 +381,14 @@ export interface AnalysisSlice {
   selectedWell: WellEntry | null;
   runHealth: RunHealthData | null;
   buildEvolveproCompletion: BuildEvolveproCompletionRecord | null;
+  /*
+   * There is no advisory field here on purpose. What step 4.2 answered lives on
+   * the round (Round.advisory) with the files it was computed from, which is
+   * both what rides in the autosave snapshot and what the workflow rail reads
+   * through currentRoundAdvisory (lib/round/roundArtifacts.ts). A copy here
+   * would only ever be filled by mounting the card, so the step would report
+   * itself unfinished after a restart until the screen was opened.
+   */
   setVerdicts: (verdicts: VerdictRecord[]) => void;
   setReplicates: (replicates: ReplicateResult[]) => void;
   setSummary: (summary: AnalyzeSummary | null) => void;
