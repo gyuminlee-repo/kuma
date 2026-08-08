@@ -25,6 +25,7 @@
     "gen:models": "node scripts/gen-models.mjs",
     "gen:models:check": "node scripts/gen-models.mjs --check",
     "gen:whatsnew": "node scripts/gen-whatsnew.mjs",
+    "gen:whatsnew:backfill": "node scripts/backfill-whatsnew-archive.mjs",
     "gen:whatsnew:check": "node scripts/gen-whatsnew.mjs --check",
     "capture-guide": "tsx --tsconfig tsconfig.scripts.json scripts/capture-guide.ts",
     "record-tutorial": "tsx --tsconfig tsconfig.scripts.json scripts/record-tutorial.ts"

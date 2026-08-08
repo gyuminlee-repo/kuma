@@ -2399,6 +2399,7 @@
   "whatsNewDialog": {
     "title": "Nouveautés de la v{{version}}",
     "description": "Points clés de la dernière mise à jour.",
+    "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
       "Un seul constructeur de lignes Echo alimente le csv, la worklist xlsx et l'aperçu, qui nomment le même well source sous un quadrant.",
@@ -2406,7 +2407,136 @@
       "Le tiroir cesse d'annoncer un nombre de lignes fusionnées qu'il ne comptait pas, et rouvrir un projet affiche le recovery au lieu de n/a.",
       "Les fichiers que le sidecar accepte ne sont plus refusés par les sélecteurs, et les fichiers de provenance portent une version au lieu de trois."
     ],
-    "highlightsStamp": "0.16.9+46abfd1a"
+    "highlightsStamp": "0.16.9+46abfd1a",
+    "releases": {
+      "0.16.9": [
+        "Un seul constructeur de lignes Echo alimente le csv, la worklist xlsx et l'aperçu, qui nomment le même well source sous un quadrant.",
+        "Lancer sans passer par Validate ne saute plus le garde qui empêche de choisir le dossier fastq_pass au lieu du dossier du run.",
+        "Le tiroir cesse d'annoncer un nombre de lignes fusionnées qu'il ne comptait pas, et rouvrir un projet affiche le recovery au lieu de n/a.",
+        "Les fichiers que le sidecar accepte ne sont plus refusés par les sélecteurs, et les fichiers de provenance portent une version au lieu de trois."
+      ],
+      "0.16.8": [
+        "L etape 4.2 recoit desormais les replicats de type sauvage mesures par l etape 4.1, au lieu de s entendre dire qu il n y en a aucun.",
+        "Un classeur sans colonne de type sauvage et un classeur avec trop peu de replicats sont deux reponses distinctes, et l ecran precise laquelle.",
+        "Les replicats atteignent le classifieur uniquement quand ils suffisent a estimer le bruit, afin qu aucun verdict ne repose sur un seul signal en pleine confiance.",
+        "Le backtest qui determine quels signaux guident la recommandation se trouve maintenant dans le depot, et non cite par simple nom de fichier."
+      ],
+      "0.16.7": [
+        "La case vide laissee par un clone ecarte n est plus comblee en avancant les picks suivants, et la plaque de culture finale correspond aux coordonnees de la plaque stock d origine.",
+        "Le remplissage sequentiel depuis A1 reste disponible comme choix de disposition; seule la valeur par defaut a change, et un choix anterieur de cette disposition est conserve apres la mise a jour.",
+        "Le CSV de correspondance exporte ne comporte plus de ligne de commentaire de metadonnees qui repousse l en-tete a la deuxieme ligne; l en-tete est toujours sur la premiere ligne."
+      ],
+      "0.16.6": [
+        "L etape 4.2 distingue desormais un verdict retenu d une question qu elle n a jamais pu poser, et nomme l entree qui manquait.",
+        "L etape 4.2 remplit sa liste avec ce que chaque cycle a produit, au lieu de reclamer le fichier que l etape 4.1 vient d ecrire.",
+        "Un verdict enregistre est affiche comme remplace des que ses entrees sont reconstruites, au lieu de passer pour la reponse actuelle.",
+        "La marque d achevement de l etape 4.2 survit a un redemarrage et n apparait plus seulement apres ouverture de l ecran.",
+        "Le bouton de passage de relais de l etape 4.2 est retire; l etape qui remplissait sa condition a ete supprimee en v0.15.12."
+      ],
+      "0.16.5": [
+        "Le nombre de designs s'arrête à 96 variants, soit une plaque, et nomme le nombre refusé au lieu d'accepter un compte que la plaque ne peut pas contenir.",
+        "Un projet ou un instantané de sauvegarde automatique portant un nombre plus grand est corrigé à l'ouverture, pas rejeté.",
+        "Les étiquettes de well au-delà de la fin d'une plaque nomment la plaque suivante, comme l'export Python l'a toujours fait."
+      ],
+      "0.16.4": [
+        "La grille de sélection des puits redessine la plaque au lieu de signaler qu'une méthode du sidecar est introuvable.",
+        "Une campagne qui occupe une partie de la plaque peut de nouveau déclarer ses puits, au lieu de se rabattre sur les premiers."
+      ],
+      "0.16.3": [
+        "La feuille instrument remplit la plaque finale dans l'ordre où se lit la carte de plaque de l'étape 2.2, et non plus par profondeur de séquençage.",
+        "Le champ de séquence de référence demande le construct qui porte les régions de fixation des primers, ce dont le pipeline a toujours eu besoin.",
+        "Une exécution qui a extrait son amplicon le signale désormais et nomme la région analysée.",
+        "L'option de barcodes regroupés précise qu'elle fusionne toutes les reads du dossier, pas seulement les barcodes cochés."
+      ],
+      "0.16.2": [
+        "Les données d'exemple n'annoncent plus un contrôle cross-talk comme propre alors que ce contrôle n'a jamais été exécuté.",
+        "La fixture d'analyse d'exemple est fournie avec l'application, si bien que la démo la lit dans une version publiée et non plus seulement en développement.",
+        "La réouverture d'une exécution enregistrée ramène son nombre d'enregistrements hors disposition au lieu de ne rien afficher du tout.",
+        "La barre de récupération et l'en-tête au-dessus d'elle ne peuvent plus afficher des chiffres provenant de deux exécutions différentes.",
+        "L'aperçu des plaques KURO n'étiquette plus ses deux panneaux comme des racks de deck, puisque ce sont désormais des noms de plaque."
+      ],
+      "0.16.1": [
+        "Le fichier de mapping JANUS correspond désormais au classeur à partir duquel le laboratoire ensemence : huit colonnes, avec des plaques nommées plutôt que numérotées.",
+        "L'étape 3 ne demande plus qu'un seul volume de transfert au lieu de deux, avec par défaut les 70 uL utilisés par ce laboratoire.",
+        "Cliquer sur un replicate dans l'inspecteur de revue ouvre cette copie de plaque, comme le faisaient déjà un clic sur son puits ou sur sa ligne de tableau.",
+        "Chaque métrique de confiance ouvre maintenant une fenêtre indiquant ce qu'elle compte et le seuil, s'il y en avait un, auquel l'exécution a été comparée.",
+        "Les entrées de la légende des verdicts s'expliquent au survol, dans votre langue, aux deux endroits où elles apparaissent."
+      ],
+      "0.16.0": [
+        "La sample map disparait. MAME dispose la plaque a partir de la liste de variants elle-meme, et un fichier restant est compare plutot que suivi.",
+        "Choisissez sur une grille de 96 puits ceux qu une execution a utilises: en cliquant, en glissant, ou en cliquant un en-tete de ligne ou de colonne.",
+        "Une liste de variants avec une ligne vide au milieu, ou une seconde ligne wild-type, arrete l execution au lieu de decaler chaque puits suivant.",
+        "Le choix des native barcodes dit maintenant ce qu il choisit: des replicats d une plaque. Les puits dont les replicats divergent sont signales.",
+        "Une execution signale les lectures tombees hors des puits declares, separees selon que ces index de code-barres ont deja servi ou non."
+      ],
+      "0.15.23": [
+        "La regle qui transforme une paire de codes-barres en puits de plaque tient en un seul endroit au lieu de quatre, si bien que les quatre ne peuvent plus diverger.",
+        "Un plan qui remplit exactement la plaque et ne laisse pas de place pour un puits wild-type n est plus refuse pour cette raison.",
+        "Le chargement d un fichier de codes-barres indique combien de forward et de reverse il contient et combien de puits ils decrivent.",
+        "La boite de dialogue native barcode dit ce qu elle choisit: des replicats d une plaque, et non des plaques distinctes.",
+        "Une execution qui deborde la plaque est refusee avant le demarrage du demux, pas apres l ecriture des puits."
+      ],
+      "0.15.22": [
+        "Un projet ne demande une réanalyse que si cette version évaluerait vraiment le run autrement, pas parce que le numéro de version a bougé.",
+        "Quand elle la demande, elle indique les changements qui rendent le run enregistré obsolète : l'heure de réanalyse a une raison énoncée.",
+        "Un run évalué par une autre version n'est plus affiché du tout : ni table de verdicts, ni plaque, ni export, et aucune option pour le garder.",
+        "Rien n'est supprimé. Le run enregistré reste dans le dossier du projet et un nouveau run le remplace."
+      ],
+      "0.15.21": [
+        "Le annealing tail d un code-barres est desormais lu depuis le fichier lui-meme, si bien qu un jeu concu pour n importe quel gene est coupe au bon endroit.",
+        "Un fichier dont le tail est illisible arrete l execution, au lieu de deviner la coupe et de classer des reads dans des wells qui ne sont pas les leurs.",
+        "Les codes-barres reverse ne perdent plus leur derniere base, ce qui restreignait jusqu ici la base de choix de la ligne de plaque.",
+        "Le classeur de resultats note quel annealing tail a ete deduit, de sorte qu une execution terminee reste verifiable ensuite.",
+        "L echantillon de codes-barres fourni a ete regenere pour porter la structure seed plus tail commun attendue par le lecteur."
+      ],
+      "0.15.20": [
+        "Une exécution restaurée depuis un kuma plus ancien indique désormais la version qui l'a évaluée, au lieu de passer pour un résultat de cette version.",
+        "Vous choisissez la suite : relancer pour un résultat de cette version, ou garder celui qui est enregistré. Rien n'est supprimé ni relancé à votre place.",
+        "Le choix de garder est mémorisé par projet et par version : l'avis se tait jusqu'à ce qu'un autre instantané apparaisse.",
+        "Un instantané sans version enregistrée, ou issu d'une version plus récente, est signalé plutôt que présumé fiable."
+      ],
+      "0.15.19": [
+        "Un fichier de codes-barres non numerote pour une plaque 8 x 12 arrete maintenant l execution et nomme les codes en cause, au lieu de laisser des puits sans nom.",
+        "Un trou dans la numerotation est aussi detecte. Il decalait auparavant chaque code suivant vers une ligne ou une colonne erronee.",
+        "La forme de la plaque est desormais declaree une seule fois au lieu d etre reecrite a chaque mappage de puits."
+      ],
+      "0.15.18": [
+        "La carte de plaque et la distribution des verdicts sont dessinees en entier, au lieu de defiler dans un cadre bien trop bas.",
+        "L etape 2.2 defile comme une seule page, si bien que ces deux vues et le tableau des verdicts se lisent d un seul tenant.",
+        "Le tableau des verdicts garde son propre defilement, borne a la hauteur des deux panneaux voisins."
+      ],
+      "0.15.17": [
+        "Un puits indique maintenant son bruit de fond habituel a cote de sa pire position, ce qui permet de juger le mixed gate au regard du run en cours.",
+        "Sur le run 260729, ce seuil se situe environ soixante fois au-dessus d une position typique et quatre fois au-dessus de la plus bruitee observee."
+      ],
+      "0.15.16": [
+        "La boîte de dialogue Nouveautés affiche désormais une note courte par version, au lieu d'une copie tronquée du changelog.",
+        "Ces notes sont traduites dans les dix langues, et une version ne peut plus être publiée avec une traduction obsolète.",
+        "L'aide du Variant list mapping indique désormais le sens de remplissage des wells : A1, B1, C1 jusqu'à H1, puis A2.",
+        "Le hook post-commit de version n'échoue plus sur un chemin supprimé.",
+        "Une note de version longue défile maintenant dans la boîte de dialogue au lieu de dépasser en bas."
+      ]
+    },
+    "releaseStamps": {
+      "0.16.9": "46abfd1a",
+      "0.16.8": "2cb0acdc",
+      "0.16.7": "d17b6783",
+      "0.16.6": "68b4bacb",
+      "0.16.5": "2d205d9d",
+      "0.16.4": "69232919",
+      "0.16.3": "75eb7d5d",
+      "0.16.2": "b043584b",
+      "0.16.1": "3b52e4c8",
+      "0.16.0": "b2281961",
+      "0.15.23": "0c028fbf",
+      "0.15.22": "0d6b2595",
+      "0.15.21": "8d129891",
+      "0.15.20": "ae44e5c0",
+      "0.15.19": "23a13b2a",
+      "0.15.18": "992e2c6b",
+      "0.15.17": "6ee369a3",
+      "0.15.16": "fe8e6f21"
+    }
   },
   "primerDisplay": {
     "copySeqTitle": "Copier la séquence",

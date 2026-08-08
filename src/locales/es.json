@@ -2399,6 +2399,7 @@
   "whatsNewDialog": {
     "title": "Novedades en v{{version}}",
     "description": "Destacados de la última actualización.",
+    "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
       "Un único generador de filas Echo alimenta el csv, la worklist xlsx y la vista previa, que nombran el mismo well de origen bajo un cuadrante.",
@@ -2406,7 +2407,136 @@
       "El panel deja de informar un recuento de filas fusionadas que nunca contó, y reabrir un proyecto muestra recovery en vez de n/a.",
       "Los archivos que el sidecar acepta ya no se rechazan en los selectores, y los archivos de procedencia llevan una versión en lugar de tres."
     ],
-    "highlightsStamp": "0.16.9+46abfd1a"
+    "highlightsStamp": "0.16.9+46abfd1a",
+    "releases": {
+      "0.16.9": [
+        "Un único generador de filas Echo alimenta el csv, la worklist xlsx y la vista previa, que nombran el mismo well de origen bajo un cuadrante.",
+        "Ejecutar sin pulsar Validate ya no omite la comprobación que impide elegir la carpeta fastq_pass en lugar de la carpeta del run.",
+        "El panel deja de informar un recuento de filas fusionadas que nunca contó, y reabrir un proyecto muestra recovery en vez de n/a.",
+        "Los archivos que el sidecar acepta ya no se rechazan en los selectores, y los archivos de procedencia llevan una versión en lugar de tres."
+      ],
+      "0.16.8": [
+        "El paso 4.2 ahora recibe las replicas de tipo silvestre que midio el paso 4.1, en vez de que se le diga que no existen.",
+        "Un libro sin columna de tipo silvestre y otro con muy pocas replicas son respuestas distintas, y la pantalla indica cual es.",
+        "Las replicas llegan al clasificador solo cuando bastan para estimar el ruido, asi ningun veredicto se apoya en una sola senal con plena confianza.",
+        "El backtest que decide que senales guian la recomendacion ya esta en el repositorio, y no citado solo por nombre de archivo."
+      ],
+      "0.16.7": [
+        "El pocillo vacio de un clon descartado ya no se rellena adelantando los siguientes picks, y la placa de cultivo final coincide con las coordenadas de la placa stock de origen.",
+        "El llenado secuencial desde A1 sigue disponible como opcion de layout; solo cambio el valor por defecto, y una eleccion previa de esa opcion se conserva tras la actualizacion.",
+        "El CSV de mapeo exportado ya no tiene una linea de comentario de metadatos que empuje el encabezado a la segunda fila; el encabezado siempre esta en la primera linea."
+      ],
+      "0.16.6": [
+        "El paso 4.2 ahora distingue un veredicto retenido de una pregunta que nunca pudo hacer, y nombra la entrada que le faltaba.",
+        "El paso 4.2 llena su lista con lo que produjo cada ronda, en vez de pedir el archivo que el paso 4.1 acaba de escribir.",
+        "Un veredicto guardado se muestra como sustituido cuando sus entradas se reconstruyen, en lugar de pasar por la respuesta actual.",
+        "La marca de finalizacion del paso 4.2 sobrevive a un reinicio y ya no aparece solo tras abrir la pantalla.",
+        "El boton de traspaso del paso 4.2 se elimina; el paso que cumplia su condicion previa se quito en v0.15.12."
+      ],
+      "0.16.5": [
+        "El recuento de diseños se detiene en 96 variantes, una placa completa, y nombra el número rechazado en lugar de aceptar un recuento que la placa no puede contener.",
+        "Un proyecto o una instantánea de autoguardado con un recuento mayor se corrige al abrirlo, no se rechaza.",
+        "Las etiquetas de well más allá del final de una placa nombran la placa siguiente, igual que siempre ha hecho la exportación de Python."
+      ],
+      "0.16.4": [
+        "La cuadrícula de selección de pocillos vuelve a dibujar la placa en lugar de informar que no se encontró un método del sidecar.",
+        "Una campaña que ocupa parte de la placa puede volver a declarar sus pocillos, en vez de recurrir a los primeros."
+      ],
+      "0.16.3": [
+        "La hoja del instrumento llena la placa final en el mismo orden en que se lee el mapa de placa del paso 2.2, y ya no por profundidad de secuenciación.",
+        "El campo de secuencia de referencia pide el construct que lleva las regiones de unión de los primers, que es lo que el pipeline siempre necesitó.",
+        "Una ejecución que extrajo su amplicon ahora lo indica y nombra la región analizada.",
+        "La opción de barcodes agrupados indica que junta todas las reads de la carpeta, no solo los barcodes marcados."
+      ],
+      "0.16.2": [
+        "Los datos de ejemplo ya no informan de una comprobación de cross-talk como limpia cuando esa comprobación nunca se ejecutó.",
+        "El fixture del análisis de ejemplo se empaqueta con la aplicación, de modo que la demo lo lee en una compilación publicada y no solo en desarrollo.",
+        "Al reabrir una ejecución guardada vuelve su recuento de registros fuera de la disposición, en lugar de no mostrarse nada.",
+        "La barra de recuperación y el encabezado que está sobre ella ya no pueden mostrar cifras de dos ejecuciones distintas.",
+        "La vista previa de placas de KURO deja de etiquetar sus dos paneles como racks de deck, porque ahí ahora van nombres de placa."
+      ],
+      "0.16.1": [
+        "El archivo de mapeo JANUS ya coincide con el libro desde el que siembra el laboratorio: ocho columnas, con las placas nombradas en vez de numeradas.",
+        "El paso 3 pide un solo volumen de transferencia en lugar de dos, con los 70 uL que usa este laboratorio como valor por defecto.",
+        "Hacer clic en un replicate en el inspector de revisión abre esa copia de placa, igual que ya lo hacía hacer clic en su well o en su fila de la tabla.",
+        "Cada métrica de confianza abre ahora una ventana emergente que indica qué cuenta y frente a qué umbral, si lo hubo, se juzgó la ejecución.",
+        "Las entradas de la leyenda de verdict se explican al pasar el cursor, en su idioma, en los dos sitios donde aparecen."
+      ],
+      "0.16.0": [
+        "El sample map desaparece. MAME coloca la placa a partir de la propia lista de variantes, y un archivo sobrante se compara en vez de obedecerse.",
+        "Elija en una rejilla de 96 pocillos cuales uso la ejecucion: haciendo clic, arrastrando o pulsando una cabecera de fila o columna.",
+        "Una lista de variantes con una fila vacia en medio, o una segunda fila wild-type, detiene la ejecucion en vez de desplazar cada pocillo posterior.",
+        "Elegir native barcodes ahora dice que esta eligiendo: replicas de una placa. Los pocillos cuyas replicas discrepan quedan marcados.",
+        "La ejecucion informa de las lecturas que cayeron fuera de los pocillos declarados, separadas segun si esos indices se usaron alguna vez."
+      ],
+      "0.15.23": [
+        "La regla que convierte un par de codigos de barras en un pocillo de la placa vive en un solo lugar en vez de cuatro, de modo que los cuatro no pueden divergir.",
+        "Un diseno que llena la placa exactamente y no deja sitio para un pocillo wild-type ya no se rechaza por ello.",
+        "Al cargar un archivo de codigos de barras se muestra cuantos forward y reverse contiene y cuantos pocillos describen.",
+        "El dialogo de native barcode dice que esta eligiendo: replicas de una placa, no placas distintas.",
+        "Una ejecucion que desborda la placa se rechaza antes de que empiece el demux, no despues de escribir los pocillos."
+      ],
+      "0.15.22": [
+        "Un proyecto solo pide volver a analizar cuando esta versión evaluaría la ejecución de otra forma, no porque haya subido el número de versión.",
+        "Cuando lo pide, enumera los cambios que dejan obsoleta la ejecución guardada: la hora de reanálisis tiene un motivo dicho.",
+        "Una ejecución evaluada por otra versión ya no se muestra: ni tabla de verdicts, ni placa, ni exportación, ni opción de conservarla.",
+        "No se borra nada. La ejecución guardada sigue en la carpeta del proyecto y una nueva la reemplaza."
+      ],
+      "0.15.21": [
+        "El annealing tail de un codigo de barras ahora se lee del propio archivo, de modo que un juego disenado para cualquier gen se corta en el lugar correcto.",
+        "Un archivo cuyo tail no se puede leer detiene la ejecucion, en lugar de adivinar el corte y colocar reads en wells que no les corresponden.",
+        "Los codigos de barras reverse ya no pierden su ultima base, lo que venia estrechando la evidencia usada para elegir la fila de la placa.",
+        "El libro de resultados registra que annealing tail se dedujo, de modo que una ejecucion terminada puede auditarse despues.",
+        "La muestra de codigos de barras incluida se regenero para llevar la estructura de seed mas tail comun que espera el lector."
+      ],
+      "0.15.20": [
+        "Una ejecución restaurada desde un kuma anterior ahora indica qué versión la evaluó, en vez de parecer un resultado de esta versión.",
+        "Usted decide lo siguiente: volver a ejecutar para un resultado de esta versión o conservar el guardado. Nada se borra ni se ejecuta por usted.",
+        "Conservar se recuerda por proyecto y por versión, así que el aviso calla hasta que aparece otra instantánea.",
+        "Una instantánea sin versión registrada, o de una versión más reciente, se informa en lugar de darse por buena."
+      ],
+      "0.15.19": [
+        "Un archivo de codigos de barras no numerado para una placa de 8 x 12 ahora detiene la ejecucion y nombra los codigos en falta, en vez de dejar pocillos sin nombre.",
+        "Tambien se detecta un hueco en la numeracion, que antes desplazaba cada codigo posterior a una fila o columna equivocada.",
+        "La forma de la placa se declara una sola vez en lugar de repetirse en cada mapeo de pocillo."
+      ],
+      "0.15.18": [
+        "El mapa de placa y la distribucion de veredictos se dibujan completos, en lugar de desplazarse dentro de una caja mucho mas baja de lo necesario.",
+        "El paso 2.2 se desplaza como una sola pagina, de modo que ambos y la tabla de veredictos se leen de una vez.",
+        "La tabla de veredictos conserva su propio desplazamiento, acotada a la altura de los dos paneles contiguos."
+      ],
+      "0.15.17": [
+        "Cada well informa ahora su ruido de fondo tipico junto a su peor posicion, de modo que el mixed gate puede evaluarse frente al run en curso.",
+        "En el run 260729 ese gate queda unas sesenta veces por encima de una posicion tipica y cuatro veces por encima de la mas ruidosa observada."
+      ],
+      "0.15.16": [
+        "El diálogo Novedades ahora muestra una nota breve por versión en lugar de una copia cortada del registro de cambios.",
+        "Esas notas están traducidas a los diez idiomas, y una versión no puede publicarse con una traducción desactualizada.",
+        "La ayuda del mapeo de la lista de variantes ahora indica cómo se llenan los wells: A1, B1, C1 hasta H1, y luego A2.",
+        "El hook post-commit de versión ya no falla por una ruta que se eliminó.",
+        "Una nota de versión larga ahora se desplaza dentro del diálogo en lugar de salirse por abajo."
+      ]
+    },
+    "releaseStamps": {
+      "0.16.9": "46abfd1a",
+      "0.16.8": "2cb0acdc",
+      "0.16.7": "d17b6783",
+      "0.16.6": "68b4bacb",
+      "0.16.5": "2d205d9d",
+      "0.16.4": "69232919",
+      "0.16.3": "75eb7d5d",
+      "0.16.2": "b043584b",
+      "0.16.1": "3b52e4c8",
+      "0.16.0": "b2281961",
+      "0.15.23": "0c028fbf",
+      "0.15.22": "0d6b2595",
+      "0.15.21": "8d129891",
+      "0.15.20": "ae44e5c0",
+      "0.15.19": "23a13b2a",
+      "0.15.18": "992e2c6b",
+      "0.15.17": "6ee369a3",
+      "0.15.16": "fe8e6f21"
+    }
   },
   "primerDisplay": {
     "copySeqTitle": "Copiar secuencia",

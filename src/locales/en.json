@@ -2432,6 +2432,7 @@
   "whatsNewDialog": {
     "title": "What's New in v{{version}}",
     "description": "Highlights from the latest update.",
+    "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
       "One Echo row builder feeds the csv, the xlsx worklist and the preview, so all three name the same source well under a quadrant.",
@@ -2439,7 +2440,136 @@
       "The drawer stops reporting a merged row count it never counted, and reopening a project reports recovery instead of n/a.",
       "Files the sidecar accepts are no longer refused by the pickers, and provenance files carry one release version instead of three."
     ],
-    "highlightsStamp": "0.16.9+46abfd1a"
+    "highlightsStamp": "0.16.9+46abfd1a",
+    "releases": {
+      "0.16.9": [
+        "One Echo row builder feeds the csv, the xlsx worklist and the preview, so all three name the same source well under a quadrant.",
+        "Starting a run without pressing Validate no longer skips the guard against picking the fastq_pass folder instead of the run folder.",
+        "The drawer stops reporting a merged row count it never counted, and reopening a project reports recovery instead of n/a.",
+        "Files the sidecar accepts are no longer refused by the pickers, and provenance files carry one release version instead of three."
+      ],
+      "0.16.8": [
+        "Step 4.2 now receives the wild-type replicates that step 4.1 measured, instead of being told none exist.",
+        "A workbook with no wild-type column and one with too few replicates are different answers, and the screen says which it is.",
+        "Replicates reach the classifier only when there are enough to estimate assay noise, so no verdict rests on one signal at full confidence.",
+        "The backtest that decides which signals drive the advisory is now in the repository, not cited by filename alone."
+      ],
+      "0.16.7": [
+        "The final culture plate now lines up with the stock plate it came from, instead of pulling later picks forward into a dropped clone's well.",
+        "Packing the final plate from A1 stays available as a layout choice; only the default changed, and a prior choice of it survives the upgrade.",
+        "The exported mapping CSV always starts with the header row, instead of a metadata comment line pushing it to row two."
+      ],
+      "0.16.6": [
+        "Step 4.2 now distinguishes a verdict it withheld from a question it was never able to ask, and names the input it was missing.",
+        "Step 4.2 fills its file list from what each round produced, instead of asking for the file step 4.1 just wrote.",
+        "A stored advisory verdict is shown as superseded once its inputs are rebuilt, rather than passing as the current answer.",
+        "The step 4.2 completion mark survives a restart instead of appearing only after the screen is opened.",
+        "The handoff button on step 4.2 is removed; the step that filled its precondition was taken out in v0.15.12."
+      ],
+      "0.16.5": [
+        "The design count stops at 96 variants, one plate worth, and names the refused number instead of accepting a count the plate cannot hold.",
+        "A saved project or autosave snapshot carrying a larger count is corrected when it is opened, not rejected.",
+        "Well labels past the end of a plate name the next plate, matching what the Python exporter has always produced."
+      ],
+      "0.16.4": [
+        "The well selection grid draws the plate again instead of reporting that a sidecar method was not found.",
+        "A campaign that occupies part of the plate can declare its wells again, rather than falling back to the leading ones."
+      ],
+      "0.16.3": [
+        "The instrument sheet fills the final plate in the same order the step 2.2 plate map reads, instead of by sequencing depth.",
+        "The reference sequence field asks for the construct that carries the primer binding regions, which is what the pipeline has always needed.",
+        "A run that extracted its amplicon now says so, naming the region it analysed.",
+        "The pooled barcode option states that it merges every read in the folder, not only the ticked barcodes."
+      ],
+      "0.16.2": [
+        "The bundled sample no longer reports a cross-talk check as clean when that check never ran.",
+        "The sample analysis fixture is bundled with the app, so the demo reads it in a released build rather than only in development.",
+        "Reopening a saved run brings back its off-layout record count instead of showing nothing.",
+        "The recovery bar and the header above it can no longer show figures from two different runs.",
+        "The KURO plate preview stops labelling its two panels as deck racks, which are plate names now."
+      ],
+      "0.16.1": [
+        "The JANUS mapping file now matches the workbook the lab seeds from: eight columns, with plates named rather than numbered.",
+        "Step 3 asks for one transfer volume instead of two, defaulting to the 70 uL this lab uses.",
+        "Clicking a replicate in the review inspector opens that copy, the way clicking its well or its table row already did.",
+        "Each confidence metric now opens a popup stating what it counts and which threshold, if any, the run was judged against.",
+        "Verdict legend entries explain themselves on hover, in your own language, at both places they appear."
+      ],
+      "0.16.0": [
+        "The sample map is gone. MAME places the plate from the variant list itself, and a leftover file is compared rather than obeyed.",
+        "Pick which wells a run used on a 96 well grid, by clicking, dragging, or clicking a row or column header.",
+        "A variant list with a blank row in the middle, or a second wild-type row, stops the run instead of shifting every later well.",
+        "Choosing native barcodes now says what it is choosing: replicates of one plate. Wells whose replicates disagree are flagged.",
+        "A run reports reads that landed outside the declared wells, split by whether those barcode indices were ever used."
+      ],
+      "0.15.23": [
+        "The rule that turns a barcode pair into a plate well lives in one place instead of four, so the four cannot drift apart.",
+        "A design that fills the plate exactly, leaving no room for a wild-type well, is no longer refused for it.",
+        "Loading a barcode file shows how many forward and reverse barcodes it holds, and how many wells they describe.",
+        "The native barcode dialog says what it is choosing: replicates of one plate, rather than separate plates.",
+        "A run that overflows the plate is refused before the demux starts, not after wells have been written."
+      ],
+      "0.15.22": [
+        "A project only asks to be re-analysed when this version would actually score the run differently, not because the version number moved.",
+        "When it does ask, it says which changes make the saved run obsolete, so the hour of re-analysis has a stated reason.",
+        "A run scored by another version is no longer shown at all: no verdict table, no plate, no export. There is no \"keep these results\".",
+        "Nothing is deleted. The saved run stays in the project folder, and a re-run replaces it."
+      ],
+      "0.15.21": [
+        "The barcode annealing tail is now read from the file itself, so a barcode set designed for any gene gets cut in the right place.",
+        "A file whose tail cannot be read stops the run, instead of guessing a cut point and filing reads into wells they do not belong to.",
+        "Reverse barcodes no longer lose their last base, which had been narrowing the evidence used to pick a plate row.",
+        "The result workbook records which annealing tail was derived, so a finished run can be audited later.",
+        "The bundled barcode sample was rebuilt to carry the seed plus shared tail structure the reader expects."
+      ],
+      "0.15.20": [
+        "A run restored from an older kuma now says which version scored it, instead of appearing as if this build had just produced it.",
+        "You choose what happens next: re-run for a result this build stands behind, or keep the saved one. Nothing is deleted or re-run for you.",
+        "Keeping is remembered per project and per version, so the notice stays quiet until a different snapshot turns up.",
+        "A snapshot with no recorded version, or one from a newer build, is reported rather than trusted."
+      ],
+      "0.15.19": [
+        "A barcode file not numbered for an 8 by 12 plate now stops the run and names the barcodes at fault, instead of leaving wells unnamed.",
+        "A gap in the barcode numbering is caught too, which used to shift every later barcode into the wrong row or column.",
+        "The plate shape is now stated once instead of being written out at each place that maps a well."
+      ],
+      "0.15.18": [
+        "The plate map and the verdict breakdown now draw whole instead of scrolling inside a box far shorter than they need.",
+        "Step 2.2 scrolls as one page, so the two of them and the verdict table read in a single pass.",
+        "The verdict table keeps its own scroll, bounded to about the height of the two panels beside it."
+      ],
+      "0.15.17": [
+        "A well now reports its typical background noise beside its worst position, so the mixed gate can be judged against the run at hand.",
+        "On the 260729 run that gate sits about sixty times above a typical position and four times above the noisiest one observed."
+      ],
+      "0.15.16": [
+        "What's New now shows a short note per release instead of a cut-off copy of the changelog.",
+        "Those notes are translated into all ten languages, and a release cannot ship with a stale one.",
+        "The variant mapping help now says which way wells are filled: A1, B1, C1 to H1, then A2.",
+        "The post-commit version hook no longer breaks on a path that was removed.",
+        "A long release note now scrolls inside the dialog instead of running off the bottom."
+      ]
+    },
+    "releaseStamps": {
+      "0.16.9": "46abfd1a",
+      "0.16.8": "2cb0acdc",
+      "0.16.7": "d17b6783",
+      "0.16.6": "68b4bacb",
+      "0.16.5": "2d205d9d",
+      "0.16.4": "69232919",
+      "0.16.3": "75eb7d5d",
+      "0.16.2": "b043584b",
+      "0.16.1": "3b52e4c8",
+      "0.16.0": "b2281961",
+      "0.15.23": "0c028fbf",
+      "0.15.22": "0d6b2595",
+      "0.15.21": "8d129891",
+      "0.15.20": "ae44e5c0",
+      "0.15.19": "23a13b2a",
+      "0.15.18": "992e2c6b",
+      "0.15.17": "6ee369a3",
+      "0.15.16": "fe8e6f21"
+    }
   },
   "primerDisplay": {
     "copySeqTitle": "Copy sequence",
