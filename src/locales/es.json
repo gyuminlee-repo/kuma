@@ -2402,13 +2402,19 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Un único generador de filas Echo alimenta el csv, la worklist xlsx y la vista previa, que nombran el mismo well de origen bajo un cuadrante.",
-      "Ejecutar sin pulsar Validate ya no omite la comprobación que impide elegir la carpeta fastq_pass en lugar de la carpeta del run.",
-      "El panel deja de informar un recuento de filas fusionadas que nunca contó, y reabrir un proyecto muestra recovery en vez de n/a.",
-      "Los archivos que el sidecar acepta ya no se rechazan en los selectores, y los archivos de procedencia llevan una versión en lugar de tres."
+      "Guardar un proyecto ya funciona en macOS y Linux. El autoguardado se rechazaba en silencio, así que al reabrir un proyecto no se restauraba nada.",
+      "La salida de análisis de MAME y las entradas de KURO sobreviven a un reinicio en esas plataformas, igual que ya ocurría en Windows.",
+      "Las notas de actualización cubren todas las versiones entre la última que usaste y la recién instalada, no solo la más reciente.",
+      "Cada versión de esa lista tiene su propio encabezado, y la lista se desplaza cuando se muestran varias a la vez."
     ],
-    "highlightsStamp": "0.16.9+46abfd1a",
+    "highlightsStamp": "0.16.10+24b9d0ac",
     "releases": {
+      "0.16.10": [
+        "Guardar un proyecto ya funciona en macOS y Linux. El autoguardado se rechazaba en silencio, así que al reabrir un proyecto no se restauraba nada.",
+        "La salida de análisis de MAME y las entradas de KURO sobreviven a un reinicio en esas plataformas, igual que ya ocurría en Windows.",
+        "Las notas de actualización cubren todas las versiones entre la última que usaste y la recién instalada, no solo la más reciente.",
+        "Cada versión de esa lista tiene su propio encabezado, y la lista se desplaza cuando se muestran varias a la vez."
+      ],
       "0.16.9": [
         "Un único generador de filas Echo alimenta el csv, la worklist xlsx y la vista previa, que nombran el mismo well de origen bajo un cuadrante.",
         "Ejecutar sin pulsar Validate ya no omite la comprobación que impide elegir la carpeta fastq_pass en lugar de la carpeta del run.",
@@ -2518,6 +2524,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.10": "24b9d0ac",
       "0.16.9": "46abfd1a",
       "0.16.8": "2cb0acdc",
       "0.16.7": "d17b6783",

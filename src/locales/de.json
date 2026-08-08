@@ -2402,13 +2402,19 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein Echo-Zeilenbauer speist csv, xlsx-Worklist und Vorschau, sodass alle drei unter einem Quadranten dasselbe Source-Well nennen.",
-      "Ein Lauf ohne vorheriges Validate überspringt nicht mehr die Prüfung gegen den fastq_pass-Ordner statt des Run-Ordners.",
-      "Die Leiste meldet keine Merge-Zeilenzahl mehr, die sie nie gezählt hat, und ein erneut geöffnetes Projekt zeigt Recovery statt n/a.",
-      "Dateien, die der Sidecar annimmt, werden von den Pickern nicht mehr abgelehnt, und Provenance-Dateien tragen eine Version statt drei."
+      "Das Speichern eines Projekts funktioniert jetzt unter macOS und Linux. Autosave wurde dort still abgelehnt, sodass beim erneuten Öffnen nichts wiederhergestellt wurde.",
+      "MAME-Analyseausgaben und KURO-Eingaben überstehen auf diesen Plattformen einen Neustart, so wie unter Windows bereits.",
+      "Die Update-Hinweise umfassen jede Version zwischen der zuletzt genutzten und der gerade installierten, nicht nur die neueste.",
+      "Jede Version in dieser Liste erhält eine eigene Überschrift, und die Liste scrollt, wenn mehrere gezeigt werden."
     ],
-    "highlightsStamp": "0.16.9+46abfd1a",
+    "highlightsStamp": "0.16.10+24b9d0ac",
     "releases": {
+      "0.16.10": [
+        "Das Speichern eines Projekts funktioniert jetzt unter macOS und Linux. Autosave wurde dort still abgelehnt, sodass beim erneuten Öffnen nichts wiederhergestellt wurde.",
+        "MAME-Analyseausgaben und KURO-Eingaben überstehen auf diesen Plattformen einen Neustart, so wie unter Windows bereits.",
+        "Die Update-Hinweise umfassen jede Version zwischen der zuletzt genutzten und der gerade installierten, nicht nur die neueste.",
+        "Jede Version in dieser Liste erhält eine eigene Überschrift, und die Liste scrollt, wenn mehrere gezeigt werden."
+      ],
       "0.16.9": [
         "Ein Echo-Zeilenbauer speist csv, xlsx-Worklist und Vorschau, sodass alle drei unter einem Quadranten dasselbe Source-Well nennen.",
         "Ein Lauf ohne vorheriges Validate überspringt nicht mehr die Prüfung gegen den fastq_pass-Ordner statt des Run-Ordners.",
@@ -2518,6 +2524,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.10": "24b9d0ac",
       "0.16.9": "46abfd1a",
       "0.16.8": "2cb0acdc",
       "0.16.7": "d17b6783",

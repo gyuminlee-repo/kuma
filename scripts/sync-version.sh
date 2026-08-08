@@ -6,7 +6,12 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
 # Extract version from HEAD commit message (pattern: vX.Y.Z: ...)
-VERSION=$(git log -1 --format='%s' | grep -oP '^v\K[0-9]+\.[0-9]+(\.[0-9]+)?' || true)
+#
+# POSIX sed rather than `grep -oP`, which exists only in GNU grep: on macOS the
+# BSD grep rejected -P, `|| true` swallowed the error, and the version stayed
+# empty, so every bump made on a Mac skipped this script without saying so.
+VERSION=$(git log -1 --format='%s' |
+  sed -n 's/^v\([0-9][0-9]*\.[0-9][0-9]*\(\.[0-9][0-9]*\)\{0,1\}\).*/\1/p')
 if [ -z "$VERSION" ]; then
   exit 0
 fi

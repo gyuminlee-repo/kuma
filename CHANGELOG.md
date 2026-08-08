@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.16.10 (A Mac saved nothing, and the update notes covered one release out of however many were skipped)
+
+Autosave never once succeeded on macOS or Linux. The file scope the frontend writes through matches its patterns with a rule that differs by platform: a wildcard refuses to cross a path component beginning with a dot on Unix and crosses it on Windows. Everything this app persists of its own lives behind such a component, the two autosave snapshots under a dot directory and the workspace manifest, so on those platforms a project recorded nothing and reopening it restored nothing. It failed quietly, and it looked like something else entirely: the project itself opened, the recent list updated, and the sidecar kept writing its own files, because none of those paths carry a dot. No project folder written by a Mac build contains either name.
+
+The scope now names the two paths the app actually writes, rather than relaxing the rule for every hidden file on disk. A test reads the shipped capability file and judges it by the Unix rule, and it was confirmed to fail when the entries are removed.
+
+The What's New modal had a narrower version of the same problem: it reported the release it landed on and said nothing about the ones in between. Someone who updates after skipping three releases was told about one of them, with no route to the rest from inside the app. It now shows every release from the one after the version last run through the one now installed, newest first, each under its own heading, in a list that scrolls. The bullets for past releases were recovered from the translations that shipped with them, so all nine languages carry the archive with nothing left in English.
+
+### Highlights
+
+- Saving a project on macOS and Linux now works. Autosave was silently refused there, so reopening a project restored nothing.
+- MAME analyze output and KURO inputs survive a restart on those platforms, the same way they already did on Windows.
+- The update notes now cover every release between the version you last ran and the one you just installed, not only the newest one.
+- Each release in that list gets its own heading, and the list scrolls when several releases are shown at once.
+
+### Fixed
+
+- v0.16.10: `src-tauri/capabilities/default.json` names `.autosave`, its contents and `.kuma-workspace.json` in the fs scope. `tauri-plugin-fs` matches scope patterns with `require_literal_leading_dot` defaulting to `cfg!(unix)`, so `$HOME/**` and a bare `**` both refused those paths on macOS and Linux while allowing them on Windows. The directory and its contents need separate patterns because `mkdir` and `exists` resolve the directory path first.
+- v0.16.10: `src-tauri/tests/fs_scope_test.rs` reads the shipped capability file and asserts both directions, that the dot paths are in scope under the Unix rule and that the plain wildcards do not reach them on their own. Removing the new entries makes it fail.
+
+### Changed
+
+- v0.16.10: `scripts/gen-whatsnew.mjs` writes `whatsNewDialog.releases` and `whatsNewDialog.releaseStamps`, one entry per CHANGELOG section carrying a Highlights block, alongside the existing single-release keys. The archive is regenerated from the changelog each time rather than accumulated, so rewording a past release moves that version's digest and marks its nine translations stale. `scripts/i18n-parity.mjs` compares the stamps per version and names the ones a locale is behind on.
+- v0.16.10: `scripts/backfill-whatsnew-archive.mjs` recovers past translations from git history, where every release left its wording in each locale file before the next one overwrote it. All nine locales were filled for all eighteen releases that carry highlights, with no English left in place of a translation.
+
 ## v0.16.9 (Fourteen places where one rule had two implementations that no longer agreed)
 
 An audit of the whole codebase looked for a single rule stated in more than one place, then measured whether the statements still matched. Forty were found and sixteen had already drifted. This release closes fourteen of them, ordered by what the drift does to an operator rather than by what it costs to repair.

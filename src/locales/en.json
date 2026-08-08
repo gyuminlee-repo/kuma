@@ -2435,13 +2435,19 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "One Echo row builder feeds the csv, the xlsx worklist and the preview, so all three name the same source well under a quadrant.",
-      "Starting a run without pressing Validate no longer skips the guard against picking the fastq_pass folder instead of the run folder.",
-      "The drawer stops reporting a merged row count it never counted, and reopening a project reports recovery instead of n/a.",
-      "Files the sidecar accepts are no longer refused by the pickers, and provenance files carry one release version instead of three."
+      "Saving a project on macOS and Linux now works. Autosave was silently refused there, so reopening a project restored nothing.",
+      "MAME analyze output and KURO inputs survive a restart on those platforms, the same way they already did on Windows.",
+      "The update notes now cover every release between the version you last ran and the one you just installed, not only the newest one.",
+      "Each release in that list gets its own heading, and the list scrolls when several releases are shown at once."
     ],
-    "highlightsStamp": "0.16.9+46abfd1a",
+    "highlightsStamp": "0.16.10+24b9d0ac",
     "releases": {
+      "0.16.10": [
+        "Saving a project on macOS and Linux now works. Autosave was silently refused there, so reopening a project restored nothing.",
+        "MAME analyze output and KURO inputs survive a restart on those platforms, the same way they already did on Windows.",
+        "The update notes now cover every release between the version you last ran and the one you just installed, not only the newest one.",
+        "Each release in that list gets its own heading, and the list scrolls when several releases are shown at once."
+      ],
       "0.16.9": [
         "One Echo row builder feeds the csv, the xlsx worklist and the preview, so all three name the same source well under a quadrant.",
         "Starting a run without pressing Validate no longer skips the guard against picking the fastq_pass folder instead of the run folder.",
@@ -2551,6 +2557,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.10": "24b9d0ac",
       "0.16.9": "46abfd1a",
       "0.16.8": "2cb0acdc",
       "0.16.7": "d17b6783",

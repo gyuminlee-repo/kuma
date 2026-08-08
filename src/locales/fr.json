@@ -2402,13 +2402,19 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Un seul constructeur de lignes Echo alimente le csv, la worklist xlsx et l'aperçu, qui nomment le même well source sous un quadrant.",
-      "Lancer sans passer par Validate ne saute plus le garde qui empêche de choisir le dossier fastq_pass au lieu du dossier du run.",
-      "Le tiroir cesse d'annoncer un nombre de lignes fusionnées qu'il ne comptait pas, et rouvrir un projet affiche le recovery au lieu de n/a.",
-      "Les fichiers que le sidecar accepte ne sont plus refusés par les sélecteurs, et les fichiers de provenance portent une version au lieu de trois."
+      "L'enregistrement d'un projet fonctionne désormais sous macOS et Linux. L'enregistrement automatique y était refusé en silence, donc rien n'était restauré à la réouverture.",
+      "Les sorties d'analyse MAME et les entrées KURO survivent à un redémarrage sur ces plateformes, comme c'était déjà le cas sous Windows.",
+      "Les notes de mise à jour couvrent chaque version entre celle utilisée en dernier et celle qui vient d'être installée, pas seulement la plus récente.",
+      "Chaque version de cette liste reçoit son propre titre, et la liste défile lorsque plusieurs sont affichées."
     ],
-    "highlightsStamp": "0.16.9+46abfd1a",
+    "highlightsStamp": "0.16.10+24b9d0ac",
     "releases": {
+      "0.16.10": [
+        "L'enregistrement d'un projet fonctionne désormais sous macOS et Linux. L'enregistrement automatique y était refusé en silence, donc rien n'était restauré à la réouverture.",
+        "Les sorties d'analyse MAME et les entrées KURO survivent à un redémarrage sur ces plateformes, comme c'était déjà le cas sous Windows.",
+        "Les notes de mise à jour couvrent chaque version entre celle utilisée en dernier et celle qui vient d'être installée, pas seulement la plus récente.",
+        "Chaque version de cette liste reçoit son propre titre, et la liste défile lorsque plusieurs sont affichées."
+      ],
       "0.16.9": [
         "Un seul constructeur de lignes Echo alimente le csv, la worklist xlsx et l'aperçu, qui nomment le même well source sous un quadrant.",
         "Lancer sans passer par Validate ne saute plus le garde qui empêche de choisir le dossier fastq_pass au lieu du dossier du run.",
@@ -2518,6 +2524,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.10": "24b9d0ac",
       "0.16.9": "46abfd1a",
       "0.16.8": "2cb0acdc",
       "0.16.7": "d17b6783",
