@@ -40,7 +40,10 @@
         { "path": "$DOWNLOAD/**" },
         { "path": "$DESKTOP/**" },
         { "path": "$RESOURCE/**" },
-        { "path": "**" }
+        { "path": "**" },
+        { "path": "**/.autosave" },
+        { "path": "**/.autosave/**" },
+        { "path": "**/.kuma-workspace.json" }
       ]
     },
     {

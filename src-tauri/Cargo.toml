@@ -38,6 +38,9 @@ tauri-plugin-single-instance = "2"
 
 [dev-dependencies]
 tempfile = "3"
+# Same matcher tauri-plugin-fs uses for its scope patterns, so tests/fs_scope_test.rs
+# judges capabilities/default.json by the rule that actually runs.
+glob = "0.3"
 
 [features]
 default = ["custom-protocol"]

@@ -2094,6 +2094,7 @@ version = "0.16.9"
 dependencies = [
  "chrono",
  "dirs 5.0.1",
+ "glob",
  "keepawake",
  "serde",
  "serde_json",

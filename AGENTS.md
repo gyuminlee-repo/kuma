@@ -194,6 +194,13 @@ cross-layer 의존은 **`.cross-layer-sync.json` `groups[]`** 로 관리. 단일
 - Step 3 renders its mapping panel inline on the page. Do not reintroduce a dialog for it: step 3 is already a dedicated screen.
 - Changing an analyze input (run folder, expected workbook, reference FASTA, the declared well selection, or any parameter sent to the sidecar) clears the previous run outputs. The sample map is not an analyze input: v0.16.0 removed it, and the file a legacy project still carries is compared against the computed placement rather than read as input. Re-picking the same value changes nothing, and the output path is a destination rather than an input, so it does not clear anything.
 
+### Tauri fs 스코프와 점으로 시작하는 경로
+프런트엔드가 `@tauri-apps/plugin-fs` 로 쓰는 경로 중 **점으로 시작하는 구성요소가 있으면 `capabilities/default.json` 의 `fs:scope` 에 그 점을 리터럴로 적은 항목을 따로 넣어야 한다.** `tauri-plugin-fs` 는 스코프 매칭에 `require_literal_leading_dot` 를 쓰고 기본값이 `cfg!(unix)` 다(2.5.0 `src/commands.rs`, `src/config.rs` 의 Config 주석: "Defaults to `true` on Unix systems and `false` on Windows"). 그래서 `$HOME/**` 도, 심지어 `**` 도 macOS·Linux 에서는 `.autosave/kuro.json` 을 매칭하지 못하고 Windows 에서만 매칭한다. 실측(glob 0.3.3, `require_literal_separator: true`): `**` 대 `/Users/x/Documents/kuma/p/.autosave/kuro.json` 은 dot=true 에서 false 이고 dot=false 에서 true 이며, 점이 없는 형제 파일은 양쪽 다 true 다.
+
+이 때문에 v0.16.9 까지 macOS 에서 자동 저장이 **한 번도** 성공하지 못했다. 프런트엔드가 쓰는 점 경로는 `.autosave/`(양쪽 앱 스냅샷과 세대 파일)와 `.kuma-workspace.json` 둘뿐이다. 그 둘이 앱 영속성의 전부라서 프로젝트를 저장해도 아무것도 남지 않고 다시 열어도 복원할 것이 없었다. 실패는 조용했다. Rust 가 쓰는 `~/.kuma/config.json` 과 사이드카가 쓰는 `mame_context.json` 은 점 경로가 아니라 정상 동작했기 때문에 "프로젝트는 열리는데 상태만 사라지는" 모습으로 보였다. 증거: macOS 빌드가 만든 어느 프로젝트 폴더에도 두 이름이 없었다.
+
+`src-tauri/tests/fs_scope_test.rs` 가 실제 capability 파일을 읽어 unix 규칙으로 판정한다. 새로 점 경로에 쓰기 시작하면 그 경로를 `DOT_PATHS` 에 추가하고 대응하는 allow 항목을 넣는다. 전역 완화(`plugins.fs.requireLiteralLeadingDot: false`)는 쓰지 않았다. 모든 dotfile 을 한꺼번에 여는 대신 앱이 실제로 쓰는 두 이름만 열기 위해서다. 디렉터리 자체와 그 하위는 별개 패턴이 필요하다(`**/.autosave` 는 디렉터리, `**/.autosave/**` 는 그 안이며 서로를 대신하지 못한다. `mkdir`·`exists` 가 디렉터리 경로로 먼저 걸린다).
+
 ### Tauri resource bundling
 - No glob patterns (`**`) in `tauri.conf.json` resources — use explicit file-to-file mappings
 - No `--target` flag with `npx tauri build` — breaks resource path resolution
