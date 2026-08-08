@@ -22,11 +22,15 @@ import { createFixtureRepo, type FixtureRepo } from "./script-fixture";
 const STAMP = "9.9.9+1a2b3c4d";
 const PREVIOUS_STAMP = "9.9.8+99887766";
 
+const ARCHIVE_STAMPS = { "9.9.9": "1a2b3c4d", "9.9.8": "99887766" };
+
 interface Locale {
   whatsNewDialog: {
     title: string;
     highlights: string[];
     highlightsStamp?: string;
+    releases?: Record<string, string[]>;
+    releaseStamps?: Record<string, string>;
   };
 }
 
@@ -36,6 +40,11 @@ function english(): Locale {
       title: "What is new",
       highlights: ["The plate the operator points at is the one that runs."],
       highlightsStamp: STAMP,
+      releases: {
+        "9.9.9": ["The plate the operator points at is the one that runs."],
+        "9.9.8": ["The previous release note."],
+      },
+      releaseStamps: { ...ARCHIVE_STAMPS },
     },
   };
 }
@@ -46,6 +55,11 @@ function korean(): Locale {
       title: "새로운 기능",
       highlights: ["지정한 플레이트가 실행 대상이 된다."],
       highlightsStamp: STAMP,
+      releases: {
+        "9.9.9": ["지정한 플레이트가 실행 대상이 된다."],
+        "9.9.8": ["직전 릴리스 항목."],
+      },
+      releaseStamps: { ...ARCHIVE_STAMPS },
     },
   };
 }
@@ -100,6 +114,51 @@ describe("i18n-parity", () => {
 
     expect(run.status).toBe(1);
     expect(run.output).toContain("en.json has no whatsNewDialog.highlightsStamp");
+  });
+
+  it("names the archived release a locale is behind on, and only that one", () => {
+    // A past release reworded in the CHANGELOG moves its own digest. The locale
+    // still shows those bullets whenever someone skips that release, so the
+    // check has to point at the version rather than at the file as a whole.
+    const ko = korean();
+    ko.whatsNewDialog.releaseStamps = { ...ARCHIVE_STAMPS, "9.9.8": "00000000" };
+    const fx = fixture(english(), ko);
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("releaseStamps");
+    expect(run.output).toContain("9.9.8");
+    expect(run.output).not.toContain("- ko: 9.9.9");
+  });
+
+  it("fails an archived translation containing a backtick", () => {
+    // The archive is rendered by the same modal, so the same rules hold there.
+    const ko = korean();
+    ko.whatsNewDialog.releases = {
+      ...(ko.whatsNewDialog.releases ?? {}),
+      "9.9.8": ["`analyze_run_folder` 호출이 수율을 반환한다."],
+    };
+    const fx = fixture(english(), ko);
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("releases.9.9.8");
+    expect(run.output).toContain("backtick");
+  });
+
+  it("fails when en.json has no archive stamps at all", () => {
+    const en = english();
+    const ko = korean();
+    delete en.whatsNewDialog.releaseStamps;
+    delete ko.whatsNewDialog.releaseStamps;
+    const fx = fixture(en, ko);
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("en.json has no whatsNewDialog.releaseStamps");
   });
 
   it("fails a translated bullet containing a backtick", () => {

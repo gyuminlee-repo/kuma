@@ -64,6 +64,13 @@ const localeFiles = readdirSync(LOCALES_DIR)
 const enStamp = en.whatsNewDialog?.highlightsStamp;
 const staleStamps = [];
 
+// The same idea one level down, for the per-release archive the modal reads when
+// an operator skipped releases: en.json carries `releaseStamps`, a digest per
+// version, and each locale copies the map. A reworded past release moves one
+// digest, which names exactly the version whose translation is now behind.
+const enReleaseStamps = en.whatsNewDialog?.releaseStamps ?? {};
+const staleArchives = [];
+
 // Authoring rules for the TRANSLATED bullets. gen-whatsnew.mjs applies the
 // English ones (140 chars) and never reads a translation; 200 leaves room for
 // a language that says the same thing in more characters.
@@ -77,24 +84,42 @@ for (const file of localeFiles) {
     staleStamps.push({ lang, stamp });
   }
 
-  const translated = data.whatsNewDialog?.highlights;
-  if (Array.isArray(translated)) {
-    translated.forEach((text, index) => {
+  const checkBullets = (arr, where) => {
+    if (!Array.isArray(arr)) return;
+    arr.forEach((text, index) => {
       if (typeof text !== "string") return;
       if (text.includes("`")) {
         ok = false;
         console.error(
-          `  ${lang} whatsNewDialog.highlights[${index}]: backtick / code identifier not allowed: ${text}`,
+          `  ${lang} ${where}[${index}]: backtick / code identifier not allowed: ${text}`,
         );
       }
       if (text.length > MAX_TRANSLATED_LENGTH) {
         ok = false;
         console.error(
-          `  ${lang} whatsNewDialog.highlights[${index}]: ${text.length} chars ` +
+          `  ${lang} ${where}[${index}]: ${text.length} chars ` +
             `(max ${MAX_TRANSLATED_LENGTH}). The modal shows it verbatim and never truncates it: ${text}`,
         );
       }
     });
+  };
+  checkBullets(data.whatsNewDialog?.highlights, "whatsNewDialog.highlights");
+  // The archive is rendered by the same modal, one section per release, so its
+  // bullets carry the same rules as the current ones.
+  for (const [version, bullets] of Object.entries(data.whatsNewDialog?.releases ?? {})) {
+    checkBullets(bullets, `whatsNewDialog.releases.${version}`);
+  }
+
+  // Per-version stamps. The structural check above already forces the archive to
+  // hold the same versions with the same bullet counts as en.json, but not the
+  // same wording, and a past release that gets reworded in CHANGELOG.md moves
+  // only its own digest. Comparing the whole map names the versions to redo.
+  const localeStamps = data.whatsNewDialog?.releaseStamps ?? {};
+  const behind = Object.entries(enReleaseStamps).filter(
+    ([version, digest]) => localeStamps[version] !== digest,
+  );
+  if (behind.length) {
+    staleArchives.push({ lang, versions: behind.map(([version]) => version) });
   }
   const fl = flatten(data);
   const keysL = new Set(Object.keys(fl));
@@ -142,6 +167,29 @@ if (enStamp === undefined) {
       "that language, replacing the array element by element, then set its " +
       `whatsNewDialog.highlightsStamp to "${enStamp}". Do not copy the stamp on its own: it is ` +
       "the only signal that the translation was actually redone.",
+  );
+}
+
+if (Object.keys(enReleaseStamps).length === 0) {
+  ok = false;
+  console.error(
+    "  en.json has no whatsNewDialog.releaseStamps, so nothing can tell whether the archive the " +
+      "What's New modal reads was translated. Run `node scripts/gen-whatsnew.mjs` to write it.",
+  );
+} else if (staleArchives.length) {
+  ok = false;
+  console.error(
+    `  whatsNewDialog.releaseStamps: ${staleArchives.length} locale(s) behind en's archive`,
+  );
+  for (const { lang, versions } of staleArchives) {
+    console.error(`    - ${lang}: ${versions.join(", ")}`);
+  }
+  console.error(
+    "  The modal shows every release between the version an operator last ran and the one they " +
+      "just installed, so those versions are still on screen. Translate en.json's " +
+      "whatsNewDialog.releases entry for each version listed, then copy en's " +
+      "whatsNewDialog.releaseStamps map. For an archive that was never filled in, " +
+      "`node scripts/backfill-whatsnew-archive.mjs` recovers past translations from git history.",
   );
 }
 

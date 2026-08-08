@@ -27,6 +27,8 @@ interface EnLocale {
   whatsNewDialog: {
     highlights?: unknown;
     highlightsStamp?: unknown;
+    releases?: Record<string, string[]>;
+    releaseStamps?: Record<string, string>;
   };
 }
 
@@ -87,6 +89,54 @@ describe("gen-whatsnew", () => {
       "Cancelling a run leaves the previous results in place.",
     ]);
     expect(en.whatsNewDialog.highlightsStamp).toMatch(STAMP_PATTERN);
+  });
+
+  it("archives every section that has a Highlights block, newest first", () => {
+    // The fixture CHANGELOG carries a second, older section with its own block.
+    // The modal shows every release an operator skipped, so both have to be in
+    // the archive and in the order they are rendered.
+    const fx = fixture(changelog(["- The plate the operator points at is the one that runs."]));
+
+    expect(fx.run("gen-whatsnew.mjs").status).toBe(0);
+
+    const dialog = fx.readJson<EnLocale>("src/locales/en.json").whatsNewDialog;
+    expect(Object.keys(dialog.releases ?? {})).toEqual([VERSION, "9.9.8"]);
+    expect(dialog.releases?.[VERSION]).toEqual([
+      "The plate the operator points at is the one that runs.",
+    ]);
+    expect(dialog.releases?.["9.9.8"]).toEqual(["the previous release note"]);
+    // The newest archive entry and the standalone highlights are one release.
+    expect(dialog.releases?.[VERSION]).toEqual(dialog.highlights);
+    expect(Object.keys(dialog.releaseStamps ?? {})).toEqual([VERSION, "9.9.8"]);
+    for (const digest of Object.values(dialog.releaseStamps ?? {})) {
+      expect(digest).toMatch(/^[0-9a-f]{8}$/);
+    }
+  });
+
+  it("moves only the reworded past release's digest, and fails --check", () => {
+    // Rewording a shipped release is what the per-version digests exist to
+    // catch: the nine translations of that one release are now behind, and
+    // nothing else is.
+    const fx = fixture(changelog(["- The plate the operator points at is the one that runs."]));
+    expect(fx.run("gen-whatsnew.mjs").status).toBe(0);
+    const before = fx.readJson<EnLocale>("src/locales/en.json").whatsNewDialog.releaseStamps ?? {};
+
+    fx.write(
+      "CHANGELOG.md",
+      changelog(["- The plate the operator points at is the one that runs."]).replace(
+        "- the previous release note",
+        "- the previous release notes",
+      ),
+    );
+
+    const check = fx.run("gen-whatsnew.mjs", ["--check"]);
+    expect(check.status).toBe(1);
+    expect(check.output).toContain("releases");
+
+    expect(fx.run("gen-whatsnew.mjs").status).toBe(0);
+    const after = fx.readJson<EnLocale>("src/locales/en.json").whatsNewDialog.releaseStamps ?? {};
+    expect(after["9.9.8"]).not.toBe(before["9.9.8"]);
+    expect(after[VERSION]).toBe(before[VERSION]);
   });
 
   it("passes --check on the en.json it just wrote", () => {
