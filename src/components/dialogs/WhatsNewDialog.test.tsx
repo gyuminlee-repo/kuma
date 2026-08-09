@@ -12,6 +12,18 @@ const STORAGE_KEY = "kuma:lastSeenVersion";
 const dialogBundle: Record<string, unknown> =
   i18n.getResourceBundle("en", "translation").whatsNewDialog;
 const originalHighlights = dialogBundle.highlights;
+const originalReleases = dialogBundle.releases;
+
+/**
+ * A per-version archive for the range cases. Those pass `currentVersion`
+ * explicitly, because the build constant this modal defaults to is fixed at
+ * "0.0.0-test" and no released version sorts below it.
+ */
+const ARCHIVE = {
+  "0.16.9": ["The newest note."],
+  "0.16.8": ["A middle note."],
+  "0.16.7": ["The oldest note."],
+};
 
 function highlightStrings(): string[] {
   return Array.isArray(originalHighlights)
@@ -29,6 +41,7 @@ describe("WhatsNewDialog", () => {
   afterEach(() => {
     cleanup();
     dialogBundle.highlights = originalHighlights;
+    dialogBundle.releases = originalReleases;
     localStorage.clear();
   });
 
@@ -88,12 +101,13 @@ describe("WhatsNewDialog", () => {
     const user = userEvent.setup();
     render(<WhatsNewDialog />);
 
-    // The list is the element carrying overflow-y-auto and it holds no
-    // focusable descendant, so it needs a tab stop of its own or the overflow
-    // is mouse-only (WCAG 2.1.1). It stays a plain <ul role="list"> to avoid a
-    // second announced container around the same items.
-    const list = screen.getByRole("list");
-    expect(list).toHaveAttribute("tabindex", "0");
+    // The scroll container carries overflow-y-auto and holds no focusable
+    // descendant, so it needs a tab stop of its own or the overflow is
+    // mouse-only (WCAG 2.1.1). It is the wrapper rather than a list because a
+    // range of releases is one list per release, and a per-list stop would make
+    // the number of tab stops depend on how many releases were skipped.
+    const scroller = screen.getByRole("list").parentElement?.parentElement;
+    expect(scroller).toHaveAttribute("tabindex", "0");
 
     // Reachability, not just the attribute. Focus starts on the confirm button
     // (it carries autoFocus), placed here explicitly so the assertion is about
@@ -101,7 +115,78 @@ describe("WhatsNewDialog", () => {
     const confirm = screen.getByRole("button", { name: "Got it" });
     confirm.focus();
     await user.tab();
-    expect(list).toHaveFocus();
+    expect(scroller).toHaveFocus();
+  });
+
+  it("shows every release between the stored version and the running one, newest first", () => {
+    // The point of the archive: an operator who skipped two releases reads all
+    // three sets of notes, not only the release they happened to land on.
+    dialogBundle.releases = ARCHIVE;
+    localStorage.setItem(STORAGE_KEY, "0.16.6");
+
+    render(<WhatsNewDialog currentVersion="0.16.9" />);
+
+    expect(screen.getAllByRole("listitem").map((li) => li.textContent)).toEqual([
+      "The newest note.",
+      "A middle note.",
+      "The oldest note.",
+    ]);
+    // Each release is labelled, or the bullets read as one undated list.
+    expect(screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual([
+      "v0.16.9",
+      "v0.16.8",
+      "v0.16.7",
+    ]);
+    expect(screen.getByText("Highlights from every update since v0.16.6.")).toBeInTheDocument();
+  });
+
+  it("excludes releases at or below the stored version and above the running one", () => {
+    dialogBundle.releases = ARCHIVE;
+    localStorage.setItem(STORAGE_KEY, "0.16.7");
+
+    render(<WhatsNewDialog currentVersion="0.16.8" />);
+
+    expect(screen.getAllByRole("listitem").map((li) => li.textContent)).toEqual([
+      "A middle note.",
+    ]);
+    // One release keeps the single-release wording and no version heading: the
+    // dialog title already names it.
+    expect(screen.queryAllByRole("heading", { level: 3 })).toHaveLength(0);
+    expect(screen.getByText("Highlights from the latest update.")).toBeInTheDocument();
+  });
+
+  it("shows the whole archive when the stored version predates it", () => {
+    // The archive begins at the release that introduced these notes, so a much
+    // older build must produce every entry rather than none.
+    dialogBundle.releases = ARCHIVE;
+    localStorage.setItem(STORAGE_KEY, "0.14.0");
+
+    render(<WhatsNewDialog currentVersion="0.16.9" />);
+
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
+  });
+
+  it("falls back to the current release notes when the stored version is newer", () => {
+    // A downgrade: nothing in the archive is in range, and an empty modal would
+    // be worse than the notes of the build now running.
+    dialogBundle.releases = ARCHIVE;
+    localStorage.setItem(STORAGE_KEY, "0.17.0");
+
+    render(<WhatsNewDialog currentVersion="0.16.9" />);
+
+    expect(screen.getAllByRole("listitem").map((li) => li.textContent)).toEqual(
+      highlightStrings(),
+    );
+  });
+
+  it("renders no bullets and does not crash when the archive is not an object", () => {
+    dialogBundle.releases = "not an object";
+    delete dialogBundle.highlights;
+
+    render(<WhatsNewDialog />);
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
   });
 
   it("stores the current version and calls onDismiss when confirmed", () => {
