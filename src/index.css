@@ -81,6 +81,8 @@
     /* domain-specific (well plate) */
     --text-plate: 10px;
     --text-plate-tiny: 8px;
+    --text-plate-min: 10px;
+    --text-plate-max: 15px;
 
     /* === Phase D4 tokens === */
     --content-max-w: 56rem;
@@ -158,6 +160,22 @@
 
 @media (prefers-reduced-motion: reduce) {
   :root { --duration-fast: 0ms; --duration-base: 0ms; }
+}
+
+@layer components {
+  /* 플레이트 그리드는 사이드바(180~480 가변), lg:grid-cols-2, 164px 인스펙터,
+     확대 토글이 폭을 결정한다. 뷰포트가 아니라 이 컨테이너가 기준이라
+     container query 를 쓴다. */
+  .well-plate-grid {
+    container-type: inline-size;
+  }
+
+  /* 2줄 선언은 의도된 것이다. container query 미지원 환경에서는 두 번째
+     선언이 통째로 무효가 되어 현행 10px 로 정확히 떨어진다. */
+  .well-button {
+    font-size: var(--text-plate);
+    font-size: clamp(var(--text-plate-min), 2cqw, var(--text-plate-max));
+  }
 }
 
 @layer utilities {
