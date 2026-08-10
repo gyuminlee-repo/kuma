@@ -213,12 +213,17 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
           <MissingInputsBanner />
           {/* Progress 및 상태 */}
           <div className="space-y-1 px-1">
-            <div className="truncate text-body font-medium text-foreground" aria-live="polite">
-              {/* A finished run with nothing to show must not read as success. */}
-              {zeroResult
+            {(() => {
+              // A finished run with nothing to show must not read as success.
+              const statusLine = zeroResult
                 ? t("mame.analyze.zeroResult.statusLine")
-                : analyzeMessage || (isAnalyzing ? t("mameSidebar.statusAnalyzing") : canRun ? t("mameSidebar.statusReady") : t("mameSidebar.statusIncomplete"))}
-            </div>
+                : analyzeMessage || (isAnalyzing ? t("mameSidebar.statusAnalyzing") : canRun ? t("mameSidebar.statusReady") : t("mameSidebar.statusIncomplete"));
+              return (
+                <div className="truncate text-body font-medium text-foreground" aria-live="polite" title={statusLine}>
+                  {statusLine}
+                </div>
+              );
+            })()}
             {isAnalyzing && (
               <Progress
                 value={analyzeProgress}

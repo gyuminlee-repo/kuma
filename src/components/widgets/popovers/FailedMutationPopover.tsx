@@ -325,7 +325,7 @@ export function FailedMutationPopover({
           <div className="space-y-1">
             <div className="flex items-center gap-0.5">
               <span className="w-6 text-plate-tiny text-muted-foreground">{t("candidatePopover.inputLabelFwd")}</span>
-              <input className="flex-1 text-caption font-mono border border-info/30 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-info" style={{ color: "hsl(var(--info))" }} placeholder={t("candidatePopover.inputPlaceholderOverlap")} value={customOverlap} onChange={(e) => setCustomOverlap(e.target.value.toUpperCase())} />
+              <input className="flex-1 text-caption font-mono text-info border border-info/30 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-info" placeholder={t("candidatePopover.inputPlaceholderOverlap")} value={customOverlap} onChange={(e) => setCustomOverlap(e.target.value.toUpperCase())} />
               <input className="w-12 text-caption font-mono font-semibold border border-destructive/30 rounded px-1 py-1 text-center focus:outline-none focus:ring-1 focus:ring-destructive" style={{ color: "hsl(var(--destructive))" }} placeholder={t("candidatePopover.inputPlaceholderCodon")} maxLength={3} value={customCodon} onChange={(e) => setCustomCodon(e.target.value.toUpperCase())} />
               <input className="flex-1 text-caption font-mono border border-border rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-ring" placeholder={t("candidatePopover.inputPlaceholderDownstream")} value={customDownstream} onChange={(e) => setCustomDownstream(e.target.value.toUpperCase())} />
             </div>

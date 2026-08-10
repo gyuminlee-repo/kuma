@@ -2450,14 +2450,19 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Wells left out of the selection are no longer scored. They used to be compared against the whole variant list and reported as failures.",
-      "A ten-well campaign now returns ten verdicts instead of ninety-six with eighty-six false failures.",
-      "Reads arriving from those wells are still counted and named as off-layout records.",
-      "Runs that declared no selection behave exactly as before.",
-      "Saved runs made with a selection are flagged as produced by the old rule instead of being trusted."
+      "Soft coloured backgrounds and coloured borders now actually draw. They were silently dropped from the stylesheet in every release so far.",
+      "Warning and error panels follow the dark theme instead of keeping light-theme colours on a dark background.",
+      "Hovering a shortened line now shows the whole text, including the reason a job failed and the run folder in the drawer.",
+      "A long file name no longer pushes the Browse button out of its row."
     ],
-    "highlightsStamp": "0.16.16+cc3ef016",
+    "highlightsStamp": "0.16.17+f9c0ee2f",
     "releases": {
+      "0.16.17": [
+        "Soft coloured backgrounds and coloured borders now actually draw. They were silently dropped from the stylesheet in every release so far.",
+        "Warning and error panels follow the dark theme instead of keeping light-theme colours on a dark background.",
+        "Hovering a shortened line now shows the whole text, including the reason a job failed and the run folder in the drawer.",
+        "A long file name no longer pushes the Browse button out of its row."
+      ],
       "0.16.16": [
         "Wells left out of the selection are no longer scored. They used to be compared against the whole variant list and reported as failures.",
         "A ten-well campaign now returns ten verdicts instead of ninety-six with eighty-six false failures.",
@@ -2606,6 +2611,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",
       "0.16.14": "9c581a55",

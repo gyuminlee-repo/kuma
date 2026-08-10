@@ -83,7 +83,7 @@ export function ExportDialog() {
                 value={fullPath}
                 onChange={(e) => setFullPath(e.target.value)}
                 placeholder={t("mame.dialogs.export.outputPathPlaceholder")}
-                className="h-9 flex-1 text-sm font-mono"
+                className="h-9 flex-1 min-w-0 text-sm font-mono"
                 aria-label={t("mame.dialogs.export.outputPathAriaLabel")}
               />
               <Button

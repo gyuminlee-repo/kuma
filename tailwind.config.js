@@ -65,14 +65,19 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        success: "oklch(0.65 0.15 145)",
-        warning: "oklch(0.72 0.15 75)",
-        error: "oklch(0.55 0.20 25)",
-        info: "oklch(0.60 0.12 250)",
+        success: "oklch(var(--color-success) / <alpha-value>)",
+        warning: "oklch(var(--color-warning) / <alpha-value>)",
+        error: "oklch(var(--color-error) / <alpha-value>)",
+        info: "oklch(var(--color-info) / <alpha-value>)",
       },
       transitionDuration: {
         fast: "var(--duration-fast)",
         base: "var(--duration-base)",
+      },
+      opacity: {
+        // 8% step used by 33 usages (bg-error/8, bg-warning/8, bg-success/8,
+        // bg-destructive/8, bg-info/8) that the default opacity scale lacks.
+        8: "0.08",
       },
       keyframes: {
         indeterminate: {

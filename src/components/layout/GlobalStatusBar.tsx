@@ -102,6 +102,7 @@ export function GlobalStatusBar({ message, centerSlot, sidecar, autosave }: Glob
         className="flex-1 min-w-0 truncate text-muted-foreground"
         aria-live="polite"
         aria-atomic="true"
+        title={message}
       >
         {message}
       </span>
