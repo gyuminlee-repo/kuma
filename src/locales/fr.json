@@ -836,7 +836,8 @@
         "replicatePurityOrder": "Le réplicat dont la lecture est la plus propre est retenu, trié par pureté mesurée.",
         "selfConsistencyCheck": "Après le run, chaque puits est vérifié contre son variant attendu et contre tous les autres.",
         "plateColumnRowOrder": "Les lignes de résultat suivent la colonne de la plaque, comme toute autre règle de placement.",
-        "barcodePlateShapeRefused": "Un fichier de barcodes qui ne décrit pas une plaque 8 par 12 arrête le run."
+        "barcodePlateShapeRefused": "Un fichier de barcodes qui ne décrit pas une plaque 8 par 12 arrête le run.",
+        "declaredWellsOnly": "Les puits exclus de la selection ne sont plus evalues. Ils etaient auparavant compares a toute la liste de variants et echouaient."
       }
     },
     "janus": {
@@ -2416,12 +2417,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les noms de variants sur la carte de la plaque d'analyse s'agrandissent desormais avec la plaque au lieu de rester a une taille fixe.",
-      "Agrandir la plaque agrandit aussi le texte, pas seulement les cellules.",
-      "Les noms tronques sur une plaque etroite deviennent lisibles des que la plaque dispose de plus d'espace."
+      "Les puits exclus de la selection ne sont plus evalues. Ils etaient compares a toute la liste de variants et signales en echec.",
+      "Une campagne de dix puits rend dix verdicts au lieu de quatre-vingt-seize dont quatre-vingt-six faux echecs.",
+      "Les lectures venant de ces puits restent comptees et nommees comme enregistrements hors plan.",
+      "Les executions sans selection declaree se comportent exactement comme avant.",
+      "Les executions enregistrees avec une selection sont signalees comme issues de l'ancienne regle."
     ],
-    "highlightsStamp": "0.16.15+a06fdd53",
+    "highlightsStamp": "0.16.16+cc3ef016",
     "releases": {
+      "0.16.16": [
+        "Les puits exclus de la selection ne sont plus evalues. Ils etaient compares a toute la liste de variants et signales en echec.",
+        "Une campagne de dix puits rend dix verdicts au lieu de quatre-vingt-seize dont quatre-vingt-six faux echecs.",
+        "Les lectures venant de ces puits restent comptees et nommees comme enregistrements hors plan.",
+        "Les executions sans selection declaree se comportent exactement comme avant.",
+        "Les executions enregistrees avec une selection sont signalees comme issues de l'ancienne regle."
+      ],
       "0.16.15": [
         "Les noms de variants sur la carte de la plaque d'analyse s'agrandissent desormais avec la plaque au lieu de rester a une taille fixe.",
         "Agrandir la plaque agrandit aussi le texte, pas seulement les cellules.",
@@ -2563,6 +2573,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",
       "0.16.14": "9c581a55",
       "0.16.13": "72c957ac",

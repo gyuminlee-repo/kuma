@@ -836,7 +836,8 @@
         "replicatePurityOrder": "Se entrega la réplica que se lee más limpia, ordenada por pureza medida.",
         "selfConsistencyCheck": "Tras la ejecución, cada pocillo se comprueba contra su variante esperada y contra los demás.",
         "plateColumnRowOrder": "Las filas de resultado siguen la columna de la placa, como cualquier otra regla de colocación.",
-        "barcodePlateShapeRefused": "Un archivo de barcodes que no describe una placa de 8 por 12 detiene la ejecución."
+        "barcodePlateShapeRefused": "Un archivo de barcodes que no describe una placa de 8 por 12 detiene la ejecución.",
+        "declaredWellsOnly": "Los pocillos fuera de la seleccion ya no se evaluan. Antes se comparaban con toda la lista de variantes y fallaban."
       }
     },
     "janus": {
@@ -2416,12 +2417,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Los nombres de variantes en el mapa de la placa de analisis ahora crecen con la placa en lugar de mantenerse en un tamano fijo.",
-      "Al ampliar la placa, no solo crecen las celdas, sino tambien el texto.",
-      "Los nombres que se cortaban en una placa estrecha se vuelven legibles cuando la placa tiene mas espacio."
+      "Los pocillos excluidos de la seleccion ya no se evaluan. Antes se comparaban con toda la lista de variantes y se informaban como fallo.",
+      "Una campana de diez pocillos devuelve diez veredictos en vez de noventa y seis con ochenta y seis fallos falsos.",
+      "Las lecturas de esos pocillos siguen contandose y nombrandose como registros fuera del plano.",
+      "Las ejecuciones sin seleccion declarada se comportan igual que antes.",
+      "Las ejecuciones guardadas con seleccion se marcan como producto de la regla antigua."
     ],
-    "highlightsStamp": "0.16.15+a06fdd53",
+    "highlightsStamp": "0.16.16+cc3ef016",
     "releases": {
+      "0.16.16": [
+        "Los pocillos excluidos de la seleccion ya no se evaluan. Antes se comparaban con toda la lista de variantes y se informaban como fallo.",
+        "Una campana de diez pocillos devuelve diez veredictos en vez de noventa y seis con ochenta y seis fallos falsos.",
+        "Las lecturas de esos pocillos siguen contandose y nombrandose como registros fuera del plano.",
+        "Las ejecuciones sin seleccion declarada se comportan igual que antes.",
+        "Las ejecuciones guardadas con seleccion se marcan como producto de la regla antigua."
+      ],
       "0.16.15": [
         "Los nombres de variantes en el mapa de la placa de analisis ahora crecen con la placa en lugar de mantenerse en un tamano fijo.",
         "Al ampliar la placa, no solo crecen las celdas, sino tambien el texto.",
@@ -2563,6 +2573,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",
       "0.16.14": "9c581a55",
       "0.16.13": "72c957ac",

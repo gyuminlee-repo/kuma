@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.16.16 (Declaring ten wells scored ninety-six and failed eighty-six of them)
+
+Declaring which wells a campaign fills was supposed to narrow the run. It did the opposite. The verdict loop walks every well that produced reads, not the wells the layout names, and the layout only decides which expected variants a well is compared against. A well outside it falls back to the FULL expected list, which nothing can match, so it comes back WRONG_AA.
+
+The effect on a real plate: ten wells filled and declared, ninety-six scored, nine passes and sixty-nine WRONG_AA. The nine were the declared wells. The rest were empty wells judged against ninety-five variants that were never in them, and the screen presented that as a run with a catastrophic failure rate.
+
+A well the operator declared empty is not judged now. Reads still arrive from it, because barcode leakage puts a few on combinations nobody pipetted, and they are still counted and named as off-layout records, which is what they are. A run that declares nothing is untouched: there an unlisted well is one nobody said anything about, and it keeps the fallback verdict it always had.
+
+Saved runs made with a declared selection are affected, so this moves the result contract. A project restored from one is shown as produced by a superseded rule, with the reason, rather than presented as current.
+
+### Highlights
+
+- Wells left out of the selection are no longer scored. They used to be compared against the whole variant list and reported as failures.
+- A ten-well campaign now returns ten verdicts instead of ninety-six with eighty-six false failures.
+- Reads arriving from those wells are still counted and named as off-layout records.
+- Runs that declared no selection behave exactly as before.
+- Saved runs made with a selection are flagged as produced by the old rule instead of being trusted.
+
+### Fixed
+
+- v0.16.16: `run_analyze` takes `scored_wells` and skips records whose well is outside it, so a declared selection removes those wells from the verdict list instead of scoping their comparison. `None` keeps the previous path byte-identical. Records whose barcode names no well are unaffected: that is a different failure and they keep their fallback verdict rather than vanishing into a count.
+- v0.16.16: the skipped wells reach `off_layout_records` through a new `skipped_records_out` sink. Counting verdicts alone would have reported zero strays for exactly the runs the signal exists for, since those wells no longer carry a verdict.
+
+### Changed
+
+- v0.16.16: result contract revision 6 (`declaredWellsOnly`). A saved run from a build before this one was scored by the old rule, and if it declared a selection its verdicts are wrong for the wells it left out.
+
 ## v0.16.15 (The plate map grew but the writing in it did not)
 
 Every cell on the analyze plate map stretches to fill whatever room the panel has, and the expand button hands it the whole window. The label inside each cell stayed at 10px through all of it, so the button that exists to make the plate readable made the cells larger and the writing no easier to read. Past roughly 1600px of window the same gap opened without touching expand at all.

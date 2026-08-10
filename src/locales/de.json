@@ -836,7 +836,8 @@
         "replicatePurityOrder": "Das Replikat mit der gemessen saubersten Ablesung wird ausgeliefert, geordnet nach Reinheit.",
         "selfConsistencyCheck": "Nach dem Lauf wird jedes Well gegen die eigene erwartete Variante und gegen alle anderen geprüft.",
         "plateColumnRowOrder": "Ergebniszeilen folgen der Plattenspalte, wie jede andere Platzierungsregel.",
-        "barcodePlateShapeRefused": "Eine Barcode-Datei, die keine 8-mal-12-Platte beschreibt, stoppt den Lauf."
+        "barcodePlateShapeRefused": "Eine Barcode-Datei, die keine 8-mal-12-Platte beschreibt, stoppt den Lauf.",
+        "declaredWellsOnly": "Nicht ausgewaehlte Wells werden nicht mehr bewertet. Zuvor wurden sie gegen die ganze Variantenliste geprueft und fielen durch."
       }
     },
     "janus": {
@@ -2416,12 +2417,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Variantennamen auf der Analyse-Plattenkarte wachsen jetzt mit der Platte, statt in fester Groesse zu bleiben.",
-      "Wird die Platte vergroessert, wird nicht nur die Zelle groesser, sondern auch die Schrift.",
-      "Namen, die auf einer schmalen Platte abgeschnitten waren, werden lesbar, sobald die Platte mehr Platz hat."
+      "Nicht ausgewaehlte Wells werden nicht mehr bewertet. Zuvor wurden sie gegen die ganze Variantenliste geprueft und als Fehlschlag gemeldet.",
+      "Eine Kampagne mit zehn Wells liefert jetzt zehn Urteile statt sechsundneunzig mit sechsundachtzig falschen Fehlschlaegen.",
+      "Reads aus diesen Wells werden weiterhin als Off-Layout-Datensaetze gezaehlt und benannt.",
+      "Laeufe ohne erklaerte Auswahl verhalten sich genau wie bisher.",
+      "Gespeicherte Laeufe mit Auswahl werden als Produkt der alten Regel markiert statt weiter vertraut."
     ],
-    "highlightsStamp": "0.16.15+a06fdd53",
+    "highlightsStamp": "0.16.16+cc3ef016",
     "releases": {
+      "0.16.16": [
+        "Nicht ausgewaehlte Wells werden nicht mehr bewertet. Zuvor wurden sie gegen die ganze Variantenliste geprueft und als Fehlschlag gemeldet.",
+        "Eine Kampagne mit zehn Wells liefert jetzt zehn Urteile statt sechsundneunzig mit sechsundachtzig falschen Fehlschlaegen.",
+        "Reads aus diesen Wells werden weiterhin als Off-Layout-Datensaetze gezaehlt und benannt.",
+        "Laeufe ohne erklaerte Auswahl verhalten sich genau wie bisher.",
+        "Gespeicherte Laeufe mit Auswahl werden als Produkt der alten Regel markiert statt weiter vertraut."
+      ],
       "0.16.15": [
         "Variantennamen auf der Analyse-Plattenkarte wachsen jetzt mit der Platte, statt in fester Groesse zu bleiben.",
         "Wird die Platte vergroessert, wird nicht nur die Zelle groesser, sondern auch die Schrift.",
@@ -2563,6 +2573,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",
       "0.16.14": "9c581a55",
       "0.16.13": "72c957ac",
