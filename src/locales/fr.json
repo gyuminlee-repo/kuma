@@ -963,6 +963,11 @@
         "desc": "Ces puits ne faisaient pas partie de la disposition, rien n'en était attendu. Des lectures signifient soit un puits finalement rempli, soit une diaphonie de code-barres d'un voisin. Puits :  {{list}}",
         "more": "et {{count}} de plus."
       },
+      "excludedOccupants": {
+        "title": "{{count}} echantillons ne sont pas sur cette plaque",
+        "desc": "Leurs puits ont ete exclus de la selection, rien n'y a ete sequence et ils n'ont aucun verdict dans cette execution. Echantillons: {{list}}",
+        "more": "et {{count}} autres."
+      },
       "contamination": {
         "title": "Lectures égarées",
         "subtitle": "Mesuré sur les {{wells}} puits occupés ({{source}}).",
@@ -2402,13 +2407,17 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Selectionner des puits ne deplace plus les variants. Chacun garde le puits que l'ordre de plaque lui a donne; un clic dit seulement quels puits ont ete remplis.",
-      "Une plaque remplie en partie s'execute desormais. Moins de puits selectionnes que d'echantillons etait refuse avant le demarrage.",
-      "Les variants des puits omis sont nommes au-dessus de la grille et barres dans celle-ci, donc aucun ne disparait d'une execution en silence.",
-      "L'execution terminee enregistre les puits omis et leur contenu, de sorte qu'un resultat peut dire ce qui n'a jamais ete sur la plaque."
+      "L'ecran de resultats nomme desormais les echantillons qu'une execution n'a pas mis sur la plaque, au lieu de les laisser en case vide et ligne absente.",
+      "Cette liste provient de l'execution terminee, donc un projet rouvert dit toujours ce qui a ete laisse de cote.",
+      "Les executions qui ont rempli tous les puits prevus sont inchangees et n'affichent aucun avis."
     ],
-    "highlightsStamp": "0.16.11+39f046cb",
+    "highlightsStamp": "0.16.12+7324b926",
     "releases": {
+      "0.16.12": [
+        "L'ecran de resultats nomme desormais les echantillons qu'une execution n'a pas mis sur la plaque, au lieu de les laisser en case vide et ligne absente.",
+        "Cette liste provient de l'execution terminee, donc un projet rouvert dit toujours ce qui a ete laisse de cote.",
+        "Les executions qui ont rempli tous les puits prevus sont inchangees et n'affichent aucun avis."
+      ],
       "0.16.11": [
         "Selectionner des puits ne deplace plus les variants. Chacun garde le puits que l'ordre de plaque lui a donne; un clic dit seulement quels puits ont ete remplis.",
         "Une plaque remplie en partie s'execute desormais. Moins de puits selectionnes que d'echantillons etait refuse avant le demarrage.",
@@ -2530,6 +2539,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.12": "7324b926",
       "0.16.11": "39f046cb",
       "0.16.10": "24b9d0ac",
       "0.16.9": "46abfd1a",

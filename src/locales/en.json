@@ -1056,6 +1056,11 @@
         "desc": "These wells were not part of the run layout, so nothing was expected from them. Reads here mean either a well that was pipetted after all, or barcode crosstalk from a neighbour. Wells:  {{list}}",
         "more": "and {{count}} more."
       },
+      "excludedOccupants": {
+        "title": "{{count}} samples are not on this plate",
+        "desc": "Their wells were left out of the selection, so nothing was sequenced there and they have no verdict in this run. Samples: {{list}}",
+        "more": "and {{count}} more."
+      },
       "contamination": {
         "title": "Stray reads",
         "subtitle": "Measured against the {{wells}} occupied wells ({{source}}).",
@@ -2435,13 +2440,17 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Selecting wells no longer moves the variants. Each keeps the well the plate order gave it, and a click only says which wells were filled.",
-      "A plate filled only in part now runs. Fewer selected wells than samples used to be refused before the run could start.",
-      "Variants in wells left out are named above the grid and struck through in it, so none of them drops out of a run in silence.",
-      "The finished run records which wells were left out and what was in them, so a result can say what was never on the plate."
+      "The review screen now names the samples a run left off the plate, instead of leaving them as a blank cell and a missing table row.",
+      "That list is read from the finished run, so reopening a project still says what was left out.",
+      "Runs that filled every well they drafted are unaffected and show no notice."
     ],
-    "highlightsStamp": "0.16.11+39f046cb",
+    "highlightsStamp": "0.16.12+7324b926",
     "releases": {
+      "0.16.12": [
+        "The review screen now names the samples a run left off the plate, instead of leaving them as a blank cell and a missing table row.",
+        "That list is read from the finished run, so reopening a project still says what was left out.",
+        "Runs that filled every well they drafted are unaffected and show no notice."
+      ],
       "0.16.11": [
         "Selecting wells no longer moves the variants. Each keeps the well the plate order gave it, and a click only says which wells were filled.",
         "A plate filled only in part now runs. Fewer selected wells than samples used to be refused before the run could start.",
@@ -2563,6 +2572,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.12": "7324b926",
       "0.16.11": "39f046cb",
       "0.16.10": "24b9d0ac",
       "0.16.9": "46abfd1a",
