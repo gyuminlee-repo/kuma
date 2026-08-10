@@ -18,6 +18,7 @@ import type {
   MappingIntegrity,
   ContaminationReport,
   OffLayoutRecords,
+  DemuxResume,
   PlateOrderFinding,
   ReplicateResult,
   RunHealthData,
@@ -373,6 +374,12 @@ export interface AnalysisSlice {
    * case that must look exactly as it did before.
    */
   restoredResultProvenance: RestoredResultProvenance | null;
+  /**
+   * Demux resume split carried by the last analyze response, or null when no
+   * run has completed since the last reset or when the run's mode reports no
+   * per-unit markers (see `DemuxResume`).
+   */
+  demuxResume: DemuxResume | null;
   plateFilter: string;
   searchQuery: string;
   sorting: SortingState;
@@ -404,6 +411,7 @@ export interface AnalysisSlice {
   setRestoredResultProvenance: (
     provenance: RestoredResultProvenance | null,
   ) => void;
+  setDemuxResume: (demuxResume: DemuxResume | null) => void;
   setPlateFilter: (filter: string) => void;
   setSearchQuery: (query: string) => void;
   setSorting: (updater: Updater<SortingState>) => void;

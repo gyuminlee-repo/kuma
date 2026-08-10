@@ -42,6 +42,7 @@ import { ExcludedOccupantsNotice } from "@/components/mame/widgets/ExcludedOccup
 import { OffLayoutRecordsNotice } from "@/components/mame/widgets/OffLayoutRecordsNotice";
 import { ReferenceResolutionNotice } from "@/components/mame/widgets/ReferenceResolutionNotice";
 import { LegacySampleMapNotice } from "@/components/mame/widgets/LegacySampleMapNotice";
+import { DemuxResumeNotice } from "@/components/mame/widgets/DemuxResumeNotice";
 import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNotice";
 import { ContaminationPanel } from "@/components/mame/widgets/ContaminationPanel";
 import { PlateOrderNotice } from "@/components/mame/widgets/PlateOrderNotice";
@@ -335,8 +336,12 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       // panels that look exactly like the pre-run view.
       if (zeroResult) {
         mainContent = (
-          <div className="flex h-full min-h-0 flex-col overflow-auto p-1">
+          <div className="flex h-full min-h-0 flex-col gap-2 overflow-auto p-1">
             <EmptyAnalysisNotice />
+            {/* The zero-verdict view is where "why does this look wrong" is
+                actually asked, so the reuse line belongs here too, not only on
+                the populated one. */}
+            <DemuxResumeNotice />
             {/* Mounted here for the same reason as the panel below: this branch
                 replaces the whole review. A run that produced no verdict is
                 also where "which reference did it read" is the first question,
@@ -384,6 +389,11 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
           <ContaminationPanel />
           <PlateClusterAlert />
           <RestoredResultNotice onRunRequest={onRunRequest} />
+          {/* Below the notices that judge the result, above the panels that
+              show it: how much of what follows was reseeded from a previous
+              run in the same export folder. Renders nothing when nothing was
+              reused. */}
+          <DemuxResumeNotice />
           {/* The right column decides how tall this row is, because both panels
               in it draw at the size their content needs: the whole plate, and
               the whole breakdown. Sizing them to the window is what kept showing

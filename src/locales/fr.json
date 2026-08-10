@@ -809,7 +809,9 @@
         "placeholder": "Choisir un dossier ; {{filename}} y sera créé",
         "stateLabel": "Enregistrer dans",
         "helperText": "Le rapport d'analyse utilisera un nom de fichier .xlsx selon les règles KURO",
-        "helpText": "Dossier où le fichier Excel d'analyse sera enregistré. Le nom de fichier est généré automatiquement selon les règles KURO combinant date, tokens reference/input, cible MAME et tokens de comptage de résultats."
+        "helpText": "Dossier où le fichier Excel d'analyse sera enregistré. Le nom de fichier est généré automatiquement selon les règles KURO combinant date, tokens reference/input, cible MAME et tokens de comptage de résultats.",
+        "reuseNotice": "Si ce dossier contient déjà des résultats d'une exécution précédente, les unités correspondantes sont réutilisées et le reste est écrasé.",
+        "overwriteConfirmDir": "{{dir}} contient déjà des résultats d'une analyse précédente (demux_filtered/). Les unités correspondantes seront réutilisées et le reste écrasé. Voulez-vous continuer ?"
       },
       "variantMapping": {
         "heading": "Variant list mapping",
@@ -1060,6 +1062,9 @@
         "skipped": "Aucun clone n'a satisfait aux criteres de selection, aucun mapping instrument n'a donc ete ecrit.",
         "failed": "Le mapping instrument n'a pas ete ecrit.",
         "excluded": "{{clones}} clone(s) exclus du mapping. Ouvrir les reglages instrument Janus pour en connaitre la raison."
+      },
+      "demuxResume": {
+        "line": "{{reused}} unités de demux sur {{total}} réutilisées à partir de résultats antérieurs dans ce dossier ; {{recomputed}} recalculées."
       }
     },
     "buildEvolvepro": {

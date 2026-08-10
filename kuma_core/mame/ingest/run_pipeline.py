@@ -127,6 +127,7 @@ def ingest_run_folder(
     progress_callback: ProgressCallback | None = None,
     stats_out: dict[str, int] | None = None,
     per_nb_out: list[dict] | None = None,
+    resume_out: dict[str, int] | None = None,
 ) -> list[BarcodeRecord]:
     """Ingest a raw MinKNOW run folder into per-well consensus records.
 
@@ -150,11 +151,13 @@ def ingest_run_folder(
         (``total_reads``, ``passed_mapq``, ``passed_coverage``,
         ``assigned_reads``, ``ambiguous_dropped``, ``chimera_splits``,
         ``wells_with_reads``, ``wells_with_min_reads``), summed across native
-        barcodes in per-NB mode.  Passed as a sink rather than folded into the
-        return value so existing callers that only want the records keep the
-        same signature.  These counters exist only because this function runs
-        the demux; a caller that consumes an already-demuxed consensus
-        directory has no equivalent source for them.
+        barcodes in per-NB mode.  Carries the DemuxStats field set and nothing
+        else, identically in both modes, so a consumer needs one shape only.
+        Passed as a sink rather than folded into the return value so existing
+        callers that only want the records keep the same signature.  These
+        counters exist only because this function runs the demux; a caller that
+        consumes an already-demuxed consensus directory has no equivalent
+        source for them.
     per_nb_out:
         Optional sink for the per-native-barcode demux summaries, same shape of
         contract as ``stats_out``: a container the caller owns, extended in
@@ -175,6 +178,15 @@ def ingest_run_folder(
         ``"pool"`` on both name fields. Pooling is one plate as far as the
         matrix is concerned; giving it zero entries would make "pooled" and
         "no demux ran" the same observation.
+    resume_out:
+        Optional sink for the resume split, a sibling of ``stats_out`` rather
+        than more keys inside it: this counts units (one per native barcode),
+        not reads, and only per-NB mode writes per-unit completion markers to
+        resume from.  Set to ``reused_units`` / ``recomputed_units`` in per-NB
+        mode and left untouched in single-pool mode, which has no markers and
+        therefore nothing to report; an untouched sink reads as "this mode
+        never counted", which is what the caller must not confuse with a
+        genuine zero.
 
     Returns
     -------
@@ -221,6 +233,20 @@ def ingest_run_folder(
                     },
                 }
                 for summary in per_nb["per_nb"]
+            )
+        if resume_out is not None:
+            # Its own sink, never ``stats_out``: that dict is contractually the
+            # DemuxStats field set and nothing else, identical in both branches
+            # so a consumer needs one shape only
+            # (tests/mame/test_run_pipeline.py::test_stats_out_receives_merged_gate_counters).
+            # Resume counts units (one per native barcode), not reads, and only
+            # this branch has per-unit markers to resume from, so folding them
+            # in would split that shape by mode.
+            resume_out.update(
+                {
+                    "reused_units": int(per_nb["reused_units"]),
+                    "recomputed_units": int(per_nb["recomputed_units"]),
+                }
             )
         units = [str(summary["sort_barcode_name"]) for summary in per_nb["per_nb"]]
     else:

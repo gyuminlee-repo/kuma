@@ -809,7 +809,9 @@
         "placeholder": "Wählen ein Ordner; {{filename}} will be created",
         "stateLabel": "Speichern zu",
         "helperText": "Analysis report will use ein KURO-style rule-based .xlsx filename",
-        "helpText": "Ordner where die analysis result Excel will be saved. The filename ist auto-generated using KURO-style rules combining Datum, Referenz/Eingabe tokens, MAME target, und result count tokens."
+        "helpText": "Ordner where die analysis result Excel will be saved. The filename ist auto-generated using KURO-style rules combining Datum, Referenz/Eingabe tokens, MAME target, und result count tokens.",
+        "reuseNotice": "Enthält dieser Ordner bereits Ergebnisse eines früheren Laufs, werden passende Einheiten wiederverwendet und der Rest überschrieben.",
+        "overwriteConfirmDir": "{{dir}} enthält bereits Ergebnisse einer früheren Analyse (demux_filtered/). Passende Einheiten werden wiederverwendet, der Rest wird überschrieben. Möchten Sie fortfahren?"
       },
       "variantMapping": {
         "heading": "Variant list mapping",
@@ -1060,6 +1062,9 @@
         "skipped": "Kein Klon erfuellte die Auswahlkriterien, daher wurde kein Geraete-Mapping geschrieben.",
         "failed": "Das Geraete-Mapping wurde nicht geschrieben.",
         "excluded": "{{clones}} Klon(e) nicht im Mapping. Gruende in den Janus Geraeteeinstellungen."
+      },
+      "demuxResume": {
+        "line": "{{reused}} von {{total}} Demux-Einheiten aus früheren Ergebnissen in diesem Ordner wiederverwendet; {{recomputed}} neu berechnet."
       }
     },
     "buildEvolvepro": {

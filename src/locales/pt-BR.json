@@ -809,7 +809,9 @@
         "placeholder": "Escolher uma pasta; {{filename}} será criado",
         "stateLabel": "Salvar em",
         "helperText": "O relatório da análise usará um nome de arquivo .xlsx baseado em regras estilo KURO",
-        "helpText": "Pasta onde o Excel com o resultado da análise será salvo. O nome do arquivo é gerado automaticamente usando regras estilo KURO que combinam data, tokens de referência/entrada, target MAME e tokens de contagem de resultado."
+        "helpText": "Pasta onde o Excel com o resultado da análise será salvo. O nome do arquivo é gerado automaticamente usando regras estilo KURO que combinam data, tokens de referência/entrada, target MAME e tokens de contagem de resultado.",
+        "reuseNotice": "Se esta pasta já contiver resultados de uma execução anterior, as unidades correspondentes são reutilizadas e o restante é sobrescrito.",
+        "overwriteConfirmDir": "{{dir}} já contém resultados de uma análise anterior (demux_filtered/). As unidades correspondentes serão reutilizadas e o restante sobrescrito. Deseja continuar?"
       },
       "variantMapping": {
         "heading": "Variant list mapping",
@@ -1060,6 +1062,9 @@
         "skipped": "Nenhum clone atendeu aos criterios de selecao, portanto nenhum mapeamento do instrumento foi gravado.",
         "failed": "O mapeamento do instrumento nao foi gravado.",
         "excluded": "{{clones}} clone(s) ficaram fora do mapeamento. Abra as configuracoes do instrumento Janus para ver o motivo."
+      },
+      "demuxResume": {
+        "line": "{{reused}} de {{total}} unidades de demux reutilizadas de resultados anteriores nesta pasta; {{recomputed}} recalculadas."
       }
     },
     "buildEvolvepro": {

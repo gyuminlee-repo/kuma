@@ -3291,8 +3291,19 @@ def run_combinatorial_demux_per_nb(
         "demux_per_nb", _perf_base, workers=P, barcodes=n, parallel=P > 1,
     )
 
+    # Resume accounting, deliberately kept OUT of ``merged_stats``: that dict is
+    # exactly the 8 DemuxStats counters, and a fully-resumed run must report the
+    # same values there as the fresh run that wrote the markers. These two say
+    # how the run arrived at those numbers instead. Reuse is already gated on a
+    # matching reference/parameter fingerprint (``marker_inputs_match``), so this
+    # is not a correctness warning; it is the only signal an operator has that
+    # part of the result predates this run, which is what made an earlier
+    # "why does this look wrong" take so long to diagnose. Units, not reads:
+    # one per native barcode.
     return {"merged_stats": merged, "per_nb": ordered_summaries,
-            "parallel": P > 1, "workers": P}
+            "parallel": P > 1, "workers": P,
+            "reused_units": len(completed_summaries),
+            "recomputed_units": len(pending)}
 
 
 __all__ = [
