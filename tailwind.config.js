@@ -18,9 +18,6 @@ export default {
         control: "var(--control-h)",
         "control-primary": "var(--control-h-primary)",
       },
-      width: {
-        sidebar: "var(--sidebar-w)",
-      },
       minWidth: {
         popover: "420px",
       },

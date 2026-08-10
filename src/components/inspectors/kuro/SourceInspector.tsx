@@ -54,7 +54,7 @@ export function SourceInspector() {
   return (
     <InspectorPanel title={t("kuro.load.inspectorTitle")}>
       {!filename ? (
-        <p className="text-[12px] text-muted-foreground">
+        <p className="text-caption text-muted-foreground">
           {t("kuro.inspector.noArtifact")}
         </p>
       ) : (

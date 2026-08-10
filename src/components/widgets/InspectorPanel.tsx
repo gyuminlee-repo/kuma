@@ -27,7 +27,7 @@ export function InspectorPanel({ title, subtitle, children }: InspectorPanelProp
           {title}
         </h3>
         {subtitle && (
-          <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
+          <p className="mt-1 text-caption leading-snug text-muted-foreground">
             {subtitle}
           </p>
         )}

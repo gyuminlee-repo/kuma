@@ -49,7 +49,7 @@ export function ExportInspector() {
   return (
     <InspectorPanel title={t("kuro.export.inspectorTitle")}>
       <div className="mb-2 min-w-0">
-        <span className="inline-flex items-center gap-1.5 rounded-sm bg-accent px-1.5 py-0.5 text-[10px] font-medium text-accent-foreground">
+        <span className="inline-flex items-center gap-1.5 rounded-sm bg-accent px-1.5 py-0.5 text-plate font-medium text-accent-foreground">
           {t("kuro.inspector.bridgeBadge")}
         </span>
       </div>

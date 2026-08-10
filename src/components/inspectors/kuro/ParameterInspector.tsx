@@ -35,7 +35,7 @@ function MetricCard({ label, value, variant = "default" }: MetricCardProps) {
         : "text-foreground";
   return (
     <div className="rounded-md border border-border bg-muted/30 px-3 py-2">
-      <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="text-plate font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </div>
       <div className={`mt-0.5 text-[18px] font-bold tabular-nums ${colorCls}`}>

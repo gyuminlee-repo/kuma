@@ -107,7 +107,7 @@ function Rack({
                 >
                   {cell ? (
                     <>
-                      <span className="text-[10px] font-mono leading-none w-full text-center truncate">
+                      <span className="text-plate font-mono leading-none w-full text-center truncate">
                         {mutation}
                       </span>
                       {tag ? (

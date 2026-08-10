@@ -89,7 +89,7 @@ export function WorkflowRail({
               return (
                 <li key={i}>
                   <div
-                    className="px-[9px] pt-3 pb-1 text-[12px] font-bold uppercase tracking-wide text-foreground"
+                    className="px-[9px] pt-3 pb-1 text-caption font-bold uppercase tracking-wide text-foreground"
                     data-testid="workflow-rail-header"
                   >
                     {step.num !== undefined && step.num !== "" ? (
@@ -160,7 +160,7 @@ export function WorkflowRail({
                   </div>
 
                   {step.mini && (
-                    <span className="shrink-0 self-start text-[10px] font-medium text-muted-foreground">
+                    <span className="shrink-0 self-start text-plate font-medium text-muted-foreground">
                       {step.mini}
                     </span>
                   )}
@@ -174,10 +174,10 @@ export function WorkflowRail({
       {/* side-card */}
       {sideCard && (
         <div className="mx-2.5 mb-2.5 mt-auto shrink-0 rounded-lg border border-border bg-muted/50 p-2.5">
-          <div className="text-[12px] font-bold text-foreground">
+          <div className="text-caption font-bold text-foreground">
             {sideCard.title}
           </div>
-          <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
+          <p className="mt-0.5 text-caption leading-snug text-muted-foreground">
             {sideCard.body}
           </p>
         </div>

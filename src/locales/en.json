@@ -2450,13 +2450,17 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Soft coloured backgrounds and coloured borders now actually draw. They were silently dropped from the stylesheet in every release so far.",
-      "Warning and error panels follow the dark theme instead of keeping light-theme colours on a dark background.",
-      "Hovering a shortened line now shows the whole text, including the reason a job failed and the run folder in the drawer.",
-      "A long file name no longer pushes the Browse button out of its row."
+      "Variant names on the plate map are no longer cut before the character that tells them apart. R560E and R560Q now read as themselves.",
+      "A name too long for one line now wraps inside its cell instead of ending early.",
+      "Internal cleanup of unused design values and hard-coded sizes, with no visible change."
     ],
-    "highlightsStamp": "0.16.17+f9c0ee2f",
+    "highlightsStamp": "0.16.18+2b708e6d",
     "releases": {
+      "0.16.18": [
+        "Variant names on the plate map are no longer cut before the character that tells them apart. R560E and R560Q now read as themselves.",
+        "A name too long for one line now wraps inside its cell instead of ending early.",
+        "Internal cleanup of unused design values and hard-coded sizes, with no visible change."
+      ],
       "0.16.17": [
         "Soft coloured backgrounds and coloured borders now actually draw. They were silently dropped from the stylesheet in every release so far.",
         "Warning and error panels follow the dark theme instead of keeping light-theme colours on a dark background.",
@@ -2611,6 +2615,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.18": "2b708e6d",
       "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",
