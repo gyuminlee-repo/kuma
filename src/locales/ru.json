@@ -809,7 +809,9 @@
         "placeholder": "Выберите папку; {{filename}} будет создан",
         "stateLabel": "Сохранить в",
         "helperText": "Отчёт анализа использует KURO-style rule-based имя файла .xlsx",
-        "helpText": "Папка, куда сохраняется Excel с результатом анализа. Имя файла генерируется автоматически по правилам KURO-style, объединяя дату, токены reference/input, MAME target и токены количества результатов."
+        "helpText": "Папка, куда сохраняется Excel с результатом анализа. Имя файла генерируется автоматически по правилам KURO-style, объединяя дату, токены reference/input, MAME target и токены количества результатов.",
+        "reuseNotice": "Если в этой папке уже есть результаты предыдущего запуска, совпадающие единицы используются повторно, а остальное перезаписывается.",
+        "overwriteConfirmDir": "В {{dir}} уже есть результаты предыдущего анализа (demux_filtered/). Совпадающие единицы будут использованы повторно, остальное перезаписано. Продолжить?"
       },
       "variantMapping": {
         "heading": "Variant list mapping",
@@ -1060,6 +1062,9 @@
         "skipped": "Ni odin klon ne proshel kriterii otbora, poetomu karta dlya pribora ne zapisana.",
         "failed": "Kartu dlya pribora zapisat ne udalos.",
         "excluded": "{{clones}} klon(ov) ne voshli v kartu. Otkroite nastroiki pribora Janus, chtoby uznat prichinu."
+      },
+      "demuxResume": {
+        "line": "Повторно использовано {{reused}} из {{total}} единиц demux из прежних результатов в этой папке; пересчитано: {{recomputed}}."
       }
     },
     "buildEvolvepro": {

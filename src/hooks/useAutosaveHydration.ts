@@ -1631,6 +1631,11 @@ async function restoreMameResult(
   // says and what this null deliberately does not.
   store.setReferenceResolution(result.reference_resolution ?? null);
   if (!alive()) return false;
+  // Same optionality reasoning as the two above: a snapshot written before
+  // this field existed, or by a mode with no per-unit markers, has nothing
+  // to restore and must show no reuse line rather than a zero.
+  store.setDemuxResume(result.demux_resume ?? null);
+  if (!alive()) return false;
   store.setDistributionStats(result.distribution_stats ?? null);
   if (!alive()) return false;
   // Carry the thresholds the persisted run was judged against, so a restored

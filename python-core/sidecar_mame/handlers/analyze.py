@@ -1298,6 +1298,12 @@ def handle_analyze(params: dict) -> dict:
     # that landed on a barcode combination the campaign never pipetted, and it
     # used to be computed inside ``ingest_run_folder`` and dropped there.
     demux_per_nb: list[dict] = []
+    # Resume split for the same demux, kept in its own sink because
+    # ``demux_gate_counts`` mirrors the DemuxStats field set exactly (one shape
+    # in both demux modes). Same empty-not-zero-filled rule: only per-NB mode
+    # has per-unit markers to resume from, so any other path leaves this empty
+    # and the response omits the key.
+    demux_resume_counts: dict[str, int] = {}
     # Latest demux progress, mirrored by _emit_demux so the demux-phase heartbeat
     # can re-emit a liveness pulse during long, low-event per-NB demux stretches.
     _demux_state = {"value": 0, "message": "Demuxing raw MinKNOW run", "current": 0, "total": 0}
@@ -1540,6 +1546,7 @@ def handle_analyze(params: dict) -> dict:
                 ),
                 stats_out=demux_gate_counts,
                 per_nb_out=demux_per_nb,
+                resume_out=demux_resume_counts,
             )
         finally:
             _demux_done_evt.set()
@@ -2048,6 +2055,27 @@ def handle_analyze(params: dict) -> dict:
             for key in ("total_reads", "passed_mapq", "passed_coverage")
             if key in demux_gate_counts
         },
+        # Resume split for the demux this run drove: per-barcode units reseeded
+        # from a prior run's completion marker vs recomputed here. Reuse is
+        # already gated on a matching reference/parameter fingerprint
+        # (``marker_inputs_match``), so this is not a correctness warning; it is
+        # the only place the operator can see that part of the result predates
+        # this run, which is what an earlier "why does this look wrong" had no
+        # way to check. Emitted only when the demux reported it (per-NB raw-run
+        # mode); consensus-dir and single-pool modes leave the key absent rather
+        # than sending a zero that would read as "nothing was reused".
+        **(
+            {
+                "demux_resume": {
+                    "reused_units": int(demux_resume_counts["reused_units"]),
+                    "recomputed_units": int(
+                        demux_resume_counts["recomputed_units"]
+                    ),
+                }
+            }
+            if "reused_units" in demux_resume_counts
+            else {}
+        ),
         **(
             {
                 "reference_resolution": {

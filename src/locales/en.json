@@ -222,6 +222,9 @@
         "skipped": "No clone met the selection criteria, so no instrument mapping was written.",
         "failed": "The instrument mapping was not written.",
         "excluded": "{{clones}} clone(s) left out of the mapping. Open Janus instrument settings to see why."
+      },
+      "demuxResume": {
+        "line": "{{reused}} of {{total}} demux units reused from earlier output in this folder; {{recomputed}} recomputed."
       }
     },
     "nativeBarcodeDialog": {
@@ -935,7 +938,9 @@
         "placeholder": "Choose a folder; {{filename}} will be created",
         "stateLabel": "Save to",
         "helperText": "Analysis report will use a KURO-style rule-based .xlsx filename",
-        "helpText": "Folder where the analysis result Excel will be saved. The filename is auto-generated using KURO-style rules combining date, reference/input tokens, MAME target, and result count tokens."
+        "helpText": "Folder where the analysis result Excel will be saved. The filename is auto-generated using KURO-style rules combining date, reference/input tokens, MAME target, and result count tokens.",
+        "reuseNotice": "If this folder already holds output from a previous run, matching units are reused and the rest is overwritten.",
+        "overwriteConfirmDir": "{{dir}} already holds output from a previous analysis (demux_filtered/). Matching units will be reused and the rest overwritten. Do you want to continue?"
       },
       "variantMapping": {
         "heading": "Variant list mapping",

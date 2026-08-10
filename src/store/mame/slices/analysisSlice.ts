@@ -34,6 +34,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   contamination: null,
   referenceResolution: null,
   restoredResultProvenance: null,
+  demuxResume: null,
   // FINAL (the per-mutant selected replicate) is the default view: it is the
   // answer sheet a run is read for. VerdictTable degrades it to ALL while no
   // replicate has been selected, so the default never shows an empty table.
@@ -59,6 +60,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   setReferenceResolution: (referenceResolution) => set({ referenceResolution }),
   setRestoredResultProvenance: (restoredResultProvenance) =>
     set({ restoredResultProvenance }),
+  setDemuxResume: (demuxResume) => set({ demuxResume }),
   setPlateFilter: (plateFilter) => set({ plateFilter }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setSorting: (updater) => {
@@ -105,6 +107,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       // it must not outlive them: a fresh run or an input change makes whatever
       // an older build produced irrelevant.
       restoredResultProvenance: null,
+      demuxResume: null,
       wells: [],
       selectedWell: null,
       searchQuery: "",
@@ -338,6 +341,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       // fixture. null is "no axis stated", deliberately not `[]` ("pooled").
       selectedNativeBarcodes: null,
       detectedBarcodeCount: null,
+      demuxResume: null,
       wells,
       selectedWell: wells.find((w) => w.selected) ?? wells[0] ?? null,
       analyzeMessage:

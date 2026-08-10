@@ -222,6 +222,9 @@
         "skipped": "선정 기준을 통과한 클론이 없어 장비용 매핑 파일을 쓰지 않았습니다.",
         "failed": "장비용 매핑 파일을 쓰지 못했습니다.",
         "excluded": "{{clones}}개 클론이 매핑에서 빠졌습니다. Janus 장비 설정에서 이유를 확인하세요."
+      },
+      "demuxResume": {
+        "line": "이 폴더의 이전 산출물에서 demux 단위 {{total}}개 중 {{reused}}개를 재사용했고, {{recomputed}}개를 다시 계산했습니다."
       }
     },
     "nativeBarcodeDialog": {
@@ -935,7 +938,9 @@
         "placeholder": "폴더 선택; {{filename}} 파일이 생성됩니다",
         "stateLabel": "저장 위치",
         "helperText": "분석 보고서는 KURO 방식의 규칙 기반 .xlsx 파일명을 사용합니다",
-        "helpText": "분석 결과 Excel이 저장될 폴더입니다. 파일명은 날짜, 참조/입력 토큰, MAME 대상, 결과 수 토큰을 조합한 KURO 방식으로 자동 생성됩니다."
+        "helpText": "분석 결과 Excel이 저장될 폴더입니다. 파일명은 날짜, 참조/입력 토큰, MAME 대상, 결과 수 토큰을 조합한 KURO 방식으로 자동 생성됩니다.",
+        "reuseNotice": "이 폴더에 이전 실행 산출물이 있으면 조건이 일치하는 단위는 재사용되고 나머지는 덮어써집니다.",
+        "overwriteConfirmDir": "{{dir}} 에 이전 분석 산출물(demux_filtered/)이 있습니다. 조건이 일치하는 단위는 재사용되고 나머지는 덮어쓰게 됩니다. 계속하시겠습니까?"
       },
       "variantMapping": {
         "heading": "변이 목록 매핑",

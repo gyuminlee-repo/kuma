@@ -809,7 +809,9 @@
         "placeholder": "选择一个文件夹;将创建 {{filename}}",
         "stateLabel": "保存到",
         "helperText": "分析报告将使用 KURO 风格的规则生成 .xlsx 文件名",
-        "helpText": "保存分析结果 Excel 的文件夹。文件名通过 KURO 风格规则自动生成,结合日期、reference/input token、MAME 目标和结果计数 token。"
+        "helpText": "保存分析结果 Excel 的文件夹。文件名通过 KURO 风格规则自动生成,结合日期、reference/input token、MAME 目标和结果计数 token。",
+        "reuseNotice": "如果该文件夹已有先前运行的输出，匹配的单元将被复用，其余内容将被覆盖。",
+        "overwriteConfirmDir": "{{dir}} 中已有先前分析的输出 (demux_filtered/)。匹配的单元将被复用，其余内容将被覆盖。是否继续?"
       },
       "variantMapping": {
         "heading": "Variant list mapping",
@@ -1060,6 +1062,9 @@
         "skipped": "没有克隆符合选择条件，因此未写入仪器映射文件。",
         "failed": "未能写入仪器映射文件。",
         "excluded": "{{clones}} 个克隆未进入映射文件。可在 Janus 仪器设置中查看原因。"
+      },
+      "demuxResume": {
+        "line": "已从该文件夹的先前输出中复用 {{total}} 个 demux 单元中的 {{reused}} 个；重新计算 {{recomputed}} 个。"
       }
     },
     "buildEvolvepro": {

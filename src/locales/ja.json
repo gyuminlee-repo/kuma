@@ -809,7 +809,9 @@
         "placeholder": "フォルダを選択 — {{filename}} が作成されます",
         "stateLabel": "保存先",
         "helperText": "解析レポートには KURO スタイルのルールベース .xlsx ファイル名を使用",
-        "helpText": "解析結果 Excel を保存するフォルダ。日付、reference/input トークン、MAME ターゲット、結果カウントトークンを組み合わせた KURO スタイルのルールでファイル名が自動生成されます。"
+        "helpText": "解析結果 Excel を保存するフォルダ。日付、reference/input トークン、MAME ターゲット、結果カウントトークンを組み合わせた KURO スタイルのルールでファイル名が自動生成されます。",
+        "reuseNotice": "このフォルダーに以前の実行結果がある場合、条件が一致する単位は再利用され、残りは上書きされます。",
+        "overwriteConfirmDir": "{{dir}} に以前の解析結果 (demux_filtered/) があります。条件が一致する単位は再利用され、残りは上書きされます。続行しますか?"
       },
       "variantMapping": {
         "heading": "Variant list mapping",
@@ -1060,6 +1062,9 @@
         "skipped": "選抜基準を満たすクローンがなく、装置用マッピングは書き出されませんでした。",
         "failed": "装置用マッピングを書き出せませんでした。",
         "excluded": "{{clones}} 件のクローンがマッピングから外れました。理由は Janus 装置設定で確認してください。"
+      },
+      "demuxResume": {
+        "line": "このフォルダーの以前の出力から demux 単位 {{total}} 件のうち {{reused}} 件を再利用し、{{recomputed}} 件を再計算しました。"
       }
     },
     "buildEvolvepro": {
