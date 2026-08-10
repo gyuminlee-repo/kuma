@@ -290,6 +290,76 @@ class BuildWellLayoutParams(BaseModel):
         return v
 
 
+class ExportBarcodeWorklistParams(BaseModel):
+    """Parameters for the ``mame.export_barcode_worklist`` RPC method.
+
+    Required fields
+    ---------------
+    expected_mutations_xlsx
+        The variant list, read exactly as ``mame.build_well_layout`` reads it so
+        the worklist and the grid an operator ticked wells on describe one
+        plate.
+    output_path
+        Destination csv. A save dialog picks it, so the directory may not exist
+        yet and the writer creates it.
+
+    Optional fields
+    ---------------
+    selected_wells
+        The wells this campaign fills. ``None`` means the whole draft, which is
+        what a run that declares nothing uses.
+    custom_barcodes_xlsx
+        The barcode workbook, for the seed NAMES. Omitting it still gives every
+        well its ``{R}_{F}`` pairing, which comes from the plate.
+    variant_sheet, variant_column
+        Sheet and column holding the variant labels, mirroring
+        ``BuildWellLayoutParams`` so both reads land on the same rows.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    expected_mutations_xlsx: str
+    output_path: str
+    selected_wells: list[str] | None = None
+    custom_barcodes_xlsx: str | None = None
+    variant_sheet: str | None = None
+    variant_column: str | None = None
+
+    @field_validator("expected_mutations_xlsx", "custom_barcodes_xlsx", mode="after")
+    @classmethod
+    def _check_input_file(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if not p.exists():
+            raise ValueError(f"file not found: {v}")
+        return v
+
+    @field_validator("output_path", mode="after")
+    @classmethod
+    def _check_output_path(cls, v: str) -> str:
+        # Existence is not checked: this one is written, not read. Traversal
+        # still is, for the same reason it is on every other path here.
+        if ".." in Path(v).parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        return v
+
+    @field_validator("selected_wells", mode="after")
+    @classmethod
+    def _check_selected_wells(cls, v: list[str] | None) -> list[str] | None:
+        # An empty declaration is refused for the same reason ``analyze``
+        # refuses it: a campaign with no wells has no barcodes to pipette, and
+        # writing an empty sheet would answer the question with silence.
+        if v is not None and not v:
+            raise ValueError(
+                "selected_wells is empty. A campaign with no wells uses no "
+                "barcodes; omit the parameter to use the whole plate."
+            )
+        return v
+
+
 class BuildEvolveproInputParams(BaseModel):
     """Strict request contract for the unified MAME Step 3 builder."""
 

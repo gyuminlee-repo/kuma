@@ -1270,6 +1270,10 @@
       "selectAll": "Select all ({{count}})",
       "selectDefault": "Just the samples ({{count}})",
       "clearAll": "Clear selection",
+      "exportWorklist": "Barcode worklist (csv)",
+      "worklistWritten": "Worklist written: {{rows}} wells, {{reverse}} reverse and {{forward}} forward seeds in use.",
+      "worklistMissingSeeds": "The barcode workbook has no seed for {{list}}, so those rows name no primer.",
+      "worklistFailed": "Could not write the barcode worklist: {{error}}",
       "gridLabel": "96-well plate, select the wells this campaign uses",
       "toggleAllLabel": "Toggle every well",
       "toggleRowLabel": "Toggle row {{row}}",
@@ -2440,12 +2444,19 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The review screen now names the samples a run left off the plate, instead of leaving them as a blank cell and a missing table row.",
-      "That list is read from the finished run, so reopening a project still says what was left out.",
-      "Runs that filled every well they drafted are unaffected and show no notice."
+      "The well selection panel writes a barcode worklist: every filled well, its barcode, and the two seed primers that make it.",
+      "It also states which seeds the campaign actually needs, which for a partly filled plate is fewer than the twenty in the workbook.",
+      "The list is built from the same layout the run scores, so it cannot describe a different plate than the one analysed.",
+      "Seeds the barcode workbook does not carry are named rather than left blank."
     ],
-    "highlightsStamp": "0.16.12+7324b926",
+    "highlightsStamp": "0.16.13+72c957ac",
     "releases": {
+      "0.16.13": [
+        "The well selection panel writes a barcode worklist: every filled well, its barcode, and the two seed primers that make it.",
+        "It also states which seeds the campaign actually needs, which for a partly filled plate is fewer than the twenty in the workbook.",
+        "The list is built from the same layout the run scores, so it cannot describe a different plate than the one analysed.",
+        "Seeds the barcode workbook does not carry are named rather than left blank."
+      ],
       "0.16.12": [
         "The review screen now names the samples a run left off the plate, instead of leaving them as a blank cell and a missing table row.",
         "That list is read from the finished run, so reopening a project still says what was left out.",
@@ -2572,6 +2583,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.13": "72c957ac",
       "0.16.12": "7324b926",
       "0.16.11": "39f046cb",
       "0.16.10": "24b9d0ac",
