@@ -2430,12 +2430,11 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Sanfte farbige Hintergründe und farbige Rahmen werden jetzt tatsächlich gezeichnet. Bisher fielen sie in jeder Version stillschweigend aus dem Stylesheet.",
-      "Warn- und Fehlerpanels folgen jetzt dem dunklen Design, statt auf dunklem Hintergrund die Farben des hellen Designs zu behalten.",
-      "Beim Überfahren einer gekürzten Zeile mit der Maus wird jetzt der ganze Text angezeigt, einschließlich des Fehlschlaggrunds und des Run-Ordners im Seitenpanel.",
-      "Ein langer Dateiname schiebt die Durchsuchen-Schaltfläche nicht mehr aus ihrer Zeile."
+      "Variantennamen auf der Plattenkarte werden nicht mehr vor dem Zeichen abgeschnitten, das sie unterscheidet. R560E und R560Q werden jetzt korrekt angezeigt.",
+      "Ein Name, der nicht in eine Zeile passt, bricht jetzt innerhalb seiner Zelle um, statt vorzeitig abgeschnitten zu werden.",
+      "Interne Bereinigung ungenutzter Designwerte und hartcodierter Größen, ohne sichtbare Änderung."
     ],
-    "highlightsStamp": "0.16.17+f9c0ee2f",
+    "highlightsStamp": "0.16.18+2b708e6d",
     "releases": {
       "0.16.17": [
         "Sanfte farbige Hintergründe und farbige Rahmen werden jetzt tatsächlich gezeichnet. Bisher fielen sie in jeder Version stillschweigend aus dem Stylesheet.",
@@ -2588,6 +2587,11 @@
         "Die Hilfe unter Variant list mapping nennt jetzt die Füllrichtung der Wells: A1, B1, C1 bis H1, dann A2.",
         "Der post-commit-Hook für die Versionsnummer bricht nicht mehr an einem entfernten Pfad ab.",
         "Eine lange Notiz lässt sich jetzt im Dialog scrollen, statt unten über den Rand hinauszulaufen."
+      ],
+      "0.16.18": [
+        "Variantennamen auf der Plattenkarte werden nicht mehr vor dem Zeichen abgeschnitten, das sie unterscheidet. R560E und R560Q werden jetzt korrekt angezeigt.",
+        "Ein Name, der nicht in eine Zeile passt, bricht jetzt innerhalb seiner Zelle um, statt vorzeitig abgeschnitten zu werden.",
+        "Interne Bereinigung ungenutzter Designwerte und hartcodierter Größen, ohne sichtbare Änderung."
       ]
     },
     "releaseStamps": {
@@ -2616,7 +2620,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.18": "2b708e6d"
     }
   },
   "primerDisplay": {

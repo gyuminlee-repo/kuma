@@ -218,7 +218,7 @@ function ReplicateFlagCell({ well }: { well: WellConcordance | undefined }) {
           variant="outline"
           data-flag={badge.key}
           title={badge.title}
-          className={cn("cursor-help px-1 py-0 text-[10px]", badge.tone)}
+          className={cn("cursor-help px-1 py-0 text-plate", badge.tone)}
         >
           {badge.label}
         </Badge>
@@ -539,7 +539,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
             {selectedSet.has(`${row.original.mutant_id}|${row.original.native_barcode}`) && (
               <Badge
                 variant="outline"
-                className="border-primary/40 text-primary text-[10px] px-1 py-0"
+                className="border-primary/40 text-primary text-plate px-1 py-0"
               >
                 {t("mame.verdictTable.selectedReplicateBadge")}
               </Badge>
@@ -562,7 +562,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
             <Badge
               variant="outline"
               data-testid="recovered-cell"
-              className="border-green-500 text-green-600 dark:text-green-400 text-[10px] px-1 py-0"
+              className="border-green-500 text-green-600 dark:text-green-400 text-plate px-1 py-0"
             >
               ✓
             </Badge>
@@ -570,7 +570,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
             <Badge
               variant="outline"
               data-testid="recovered-cell"
-              className="border-destructive text-destructive text-[10px] px-1 py-0"
+              className="border-destructive text-destructive text-plate px-1 py-0"
             >
               ✗
             </Badge>
@@ -753,14 +753,14 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
           return v ? (
             <Badge
               variant="outline"
-              className="border-green-500 text-green-600 dark:text-green-400 text-[10px] px-1 py-0"
+              className="border-green-500 text-green-600 dark:text-green-400 text-plate px-1 py-0"
             >
               ✓
             </Badge>
           ) : (
             <Badge
               variant="outline"
-              className="border-destructive text-destructive text-[10px] px-1 py-0"
+              className="border-destructive text-destructive text-plate px-1 py-0"
             >
               ✗
             </Badge>
@@ -778,7 +778,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
               <Badge
                 variant="outline"
                 title={t("mame.verdictTable.evolveproExport.includedTitle")}
-                className="border-green-500 text-green-600 dark:text-green-400 text-[10px] px-1 py-0"
+                className="border-green-500 text-green-600 dark:text-green-400 text-plate px-1 py-0"
               >
                 ✓
               </Badge>
@@ -788,7 +788,7 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
             <Badge
               variant="outline"
               title={status.reasonKey ? t(status.reasonKey) : undefined}
-              className="border-muted-foreground/50 text-muted-foreground text-[10px] px-1 py-0"
+              className="border-muted-foreground/50 text-muted-foreground text-plate px-1 py-0"
             >
               ✗
             </Badge>

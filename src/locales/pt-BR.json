@@ -2430,12 +2430,11 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Fundos coloridos suaves e bordas coloridas agora realmente aparecem. Até agora eles desapareciam silenciosamente da folha de estilos em todas as versões.",
-      "Os painéis de aviso e erro seguem o tema escuro em vez de manter as cores do tema claro sobre um fundo escuro.",
-      "Passar o cursor sobre uma linha truncada agora mostra o texto completo, incluindo o motivo da falha do job e a pasta de run no painel lateral.",
-      "Um nome de arquivo longo não empurra mais o botão Procurar para fora da linha."
+      "Os nomes de variantes no mapa da placa não são mais cortados antes do caractere que os diferencia. R560E e R560Q agora aparecem como são.",
+      "Um nome muito longo para uma linha agora quebra dentro da sua célula em vez de terminar antes do tempo.",
+      "Limpeza interna de valores de design não utilizados e tamanhos fixos no código, sem mudança visível."
     ],
-    "highlightsStamp": "0.16.17+f9c0ee2f",
+    "highlightsStamp": "0.16.18+2b708e6d",
     "releases": {
       "0.16.17": [
         "Fundos coloridos suaves e bordas coloridas agora realmente aparecem. Até agora eles desapareciam silenciosamente da folha de estilos em todas as versões.",
@@ -2588,6 +2587,11 @@
         "A ajuda do Variant list mapping agora diz em que ordem os wells são preenchidos: A1, B1, C1 até H1, depois A2.",
         "O hook post-commit de versão não falha mais em um caminho que foi removido.",
         "Uma nota de versão longa agora rola dentro da janela, em vez de ultrapassar a borda inferior."
+      ],
+      "0.16.18": [
+        "Os nomes de variantes no mapa da placa não são mais cortados antes do caractere que os diferencia. R560E e R560Q agora aparecem como são.",
+        "Um nome muito longo para uma linha agora quebra dentro da sua célula em vez de terminar antes do tempo.",
+        "Limpeza interna de valores de design não utilizados e tamanhos fixos no código, sem mudança visível."
       ]
     },
     "releaseStamps": {
@@ -2616,7 +2620,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.18": "2b708e6d"
     }
   },
   "primerDisplay": {

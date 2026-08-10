@@ -49,7 +49,7 @@ function SlotCell({ slot, border }: { slot?: DrawerSlot; border?: boolean }) {
     >
       {slot && (
         <>
-          <h4 className="mb-1.5 shrink-0 truncate text-[12px] font-semibold text-foreground">
+          <h4 className="mb-1.5 shrink-0 truncate text-caption font-semibold text-foreground">
             {slot.title}
           </h4>
           <div className="min-h-0 flex-1 overflow-hidden text-[11px]">

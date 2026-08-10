@@ -58,7 +58,7 @@ function LogLine({
           ? "text-destructive"
           : "text-muted-foreground";
   return (
-    <div className={`font-mono text-[10px] leading-snug ${cls}`}>{text}</div>
+    <div className={`font-mono text-plate leading-snug ${cls}`}>{text}</div>
   );
 }
 

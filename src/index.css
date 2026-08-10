@@ -26,22 +26,7 @@
     --radius: 0.5rem;
 
     /* Density */
-    --row-h-comfortable: 32px;
-    --row-h-compact: 24px;
     --font-size-body: 14px;
-    --font-size-table: 13px;
-    --font-size-caption: 12px;
-
-    /* Spacing (4px scale) */
-    --space-1: 4px;   --space-2: 8px;
-    --space-3: 12px;  --space-4: 16px;
-    --space-5: 20px;  --space-6: 24px;
-    --space-8: 32px;
-
-    /* Shadows */
-    --shadow-hairline: 0 1px 0 rgb(0 0 0 / 4%);
-    --shadow-popover: 0 8px 24px -8px rgb(0 0 0 / 14%), 0 1px 0 rgb(0 0 0 / 6%);
-    --shadow-dialog:  0 20px 40px -12px rgb(0 0 0 / 18%), 0 1px 0 rgb(0 0 0 / 8%);
 
     /* === Phase 1 tokens (§4.1–§4.4) === */
 
@@ -49,16 +34,12 @@
     --header-h: 48px;
     --menubar-h: 40px;
     --statusbar-h: 24px;
-    --sidebar-w: 320px;
     --control-h: 32px;
     --control-h-primary: 36px;
 
     /* radius */
     --radius-container: 12px;
     --radius-control: 8px;
-
-    /* shadow — floating only */
-    --shadow-floating: 0 12px 32px rgba(24,24,27,0.10);
 
     /* typography (3 steps)
        title sits above body. It was 13px against a 14px body, so every panel
@@ -79,17 +60,12 @@
     /* motion */
     --duration-fast: 150ms;
     --duration-base: 200ms;
-    --easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
     /* domain-specific (well plate) */
     --text-plate: 10px;
     --text-plate-tiny: 8px;
     --text-plate-min: 10px;
     --text-plate-max: 15px;
-
-    /* === Phase D4 tokens === */
-    --content-max-w: 56rem;
-    --section-pad: 1.5rem;
   }
 
   [data-tool="kuro"] {
@@ -154,11 +130,6 @@
     --color-warning: 0.78 0.15 75;
     --color-error:   0.65 0.20 25;
     --color-info:    0.70 0.12 250;
-
-    /* shadows — darker env needs stronger */
-    --shadow-hairline: 0 1px 0 rgb(0 0 0 / 20%);
-    --shadow-popover: 0 8px 24px -8px rgb(0 0 0 / 40%), 0 1px 0 rgb(0 0 0 / 20%);
-    --shadow-dialog:  0 20px 40px -12px rgb(0 0 0 / 50%), 0 1px 0 rgb(0 0 0 / 25%);
   }
 }
 
@@ -179,20 +150,6 @@
   .well-button {
     font-size: var(--text-plate);
     font-size: clamp(var(--text-plate-min), 2cqw, var(--text-plate-max));
-  }
-}
-
-@layer utilities {
-  .text-body-lg {
-    font-size: 0.9375rem;
-    line-height: 1.5;
-  }
-
-  .content-card {
-    max-width: var(--content-max-w);
-    padding: var(--section-pad);
-    margin-left: auto;
-    margin-right: auto;
   }
 }
 

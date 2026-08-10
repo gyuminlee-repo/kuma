@@ -2430,12 +2430,11 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Los fondos de color suave y los bordes de color ahora se dibujan de verdad. Hasta ahora se perdían en silencio en la hoja de estilos en todas las versiones.",
-      "Los paneles de advertencia y error siguen el tema oscuro en lugar de mantener los colores del tema claro sobre un fondo oscuro.",
-      "Pasar el cursor sobre una línea acortada ahora muestra el texto completo, incluido el motivo del fallo del job y la carpeta de run en el panel lateral.",
-      "Un nombre de archivo largo ya no empuja el botón Explorar fuera de su fila."
+      "Los nombres de variantes en el mapa de la placa ya no se cortan antes del carácter que los distingue. R560E y R560Q ahora se leen tal como son.",
+      "Un nombre demasiado largo para una línea ahora salta de línea dentro de su celda en vez de cortarse antes de tiempo.",
+      "Limpieza interna de valores de diseño sin uso y tamaños fijos en el código, sin cambios visibles."
     ],
-    "highlightsStamp": "0.16.17+f9c0ee2f",
+    "highlightsStamp": "0.16.18+2b708e6d",
     "releases": {
       "0.16.17": [
         "Los fondos de color suave y los bordes de color ahora se dibujan de verdad. Hasta ahora se perdían en silencio en la hoja de estilos en todas las versiones.",
@@ -2588,6 +2587,11 @@
         "La ayuda del mapeo de la lista de variantes ahora indica cómo se llenan los wells: A1, B1, C1 hasta H1, y luego A2.",
         "El hook post-commit de versión ya no falla por una ruta que se eliminó.",
         "Una nota de versión larga ahora se desplaza dentro del diálogo en lugar de salirse por abajo."
+      ],
+      "0.16.18": [
+        "Los nombres de variantes en el mapa de la placa ya no se cortan antes del carácter que los distingue. R560E y R560Q ahora se leen tal como son.",
+        "Un nombre demasiado largo para una línea ahora salta de línea dentro de su celda en vez de cortarse antes de tiempo.",
+        "Limpieza interna de valores de diseño sin uso y tamaños fijos en el código, sin cambios visibles."
       ]
     },
     "releaseStamps": {
@@ -2616,7 +2620,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.18": "2b708e6d"
     }
   },
   "primerDisplay": {

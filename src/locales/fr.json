@@ -2430,12 +2430,11 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les fonds de couleur douce et les bordures colorées se dessinent enfin. Jusqu'ici ils disparaissaient silencieusement de la feuille de style dans toutes les versions.",
-      "Les panneaux d'avertissement et d'erreur suivent maintenant le thème sombre au lieu de garder les couleurs du thème clair sur un fond sombre.",
-      "Survoler une ligne raccourcie affiche maintenant le texte complet, y compris la raison de l'échec du job et le dossier de run dans le panneau latéral.",
-      "Un nom de fichier long ne repousse plus le bouton Parcourir hors de sa ligne."
+      "Les noms de variants sur la carte de la plaque ne sont plus coupés avant le caractère qui les distingue. R560E et R560Q s'affichent désormais tels qu'ils sont.",
+      "Un nom trop long pour une ligne passe désormais à la ligne dans sa cellule au lieu d'être tronqué trop tôt.",
+      "Nettoyage interne de valeurs de conception inutilisées et de tailles codées en dur, sans changement visible."
     ],
-    "highlightsStamp": "0.16.17+f9c0ee2f",
+    "highlightsStamp": "0.16.18+2b708e6d",
     "releases": {
       "0.16.17": [
         "Les fonds de couleur douce et les bordures colorées se dessinent enfin. Jusqu'ici ils disparaissaient silencieusement de la feuille de style dans toutes les versions.",
@@ -2588,6 +2587,11 @@
         "L'aide du Variant list mapping indique désormais le sens de remplissage des wells : A1, B1, C1 jusqu'à H1, puis A2.",
         "Le hook post-commit de version n'échoue plus sur un chemin supprimé.",
         "Une note de version longue défile maintenant dans la boîte de dialogue au lieu de dépasser en bas."
+      ],
+      "0.16.18": [
+        "Les noms de variants sur la carte de la plaque ne sont plus coupés avant le caractère qui les distingue. R560E et R560Q s'affichent désormais tels qu'ils sont.",
+        "Un nom trop long pour une ligne passe désormais à la ligne dans sa cellule au lieu d'être tronqué trop tôt.",
+        "Nettoyage interne de valeurs de conception inutilisées et de tailles codées en dur, sans changement visible."
       ]
     },
     "releaseStamps": {
@@ -2616,7 +2620,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.18": "2b708e6d"
     }
   },
   "primerDisplay": {
