@@ -36,14 +36,14 @@ import type {
 // ── Colour palette — CSS variable references only ────────────────────────────
 
 const C = {
-  pass: "var(--color-success)",
-  ambiguous: "var(--color-warning)",
+  pass: "oklch(var(--color-success))",
+  ambiguous: "oklch(var(--color-warning))",
   fail: "hsl(var(--destructive))",
   fallback: "hsl(var(--muted-foreground))",
   primary: "hsl(var(--primary))",
   muted: "hsl(var(--muted-foreground))",
   border: "hsl(var(--border))",
-  cutoff: "var(--color-warning)",
+  cutoff: "oklch(var(--color-warning))",
   line: "hsl(var(--primary))",
   area: "hsl(var(--primary) / 0.12)",
 } as const;

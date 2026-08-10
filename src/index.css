@@ -67,11 +67,14 @@
     --text-body: 14px;
     --text-caption: 12px;
 
-    /* semantic colors (4 kinds) */
-    --color-success: oklch(0.65 0.15 145);
-    --color-warning: oklch(0.72 0.15 75);
-    --color-error:   oklch(0.55 0.20 25);
-    --color-info:    oklch(0.60 0.12 250);
+    /* semantic colors (4 kinds)
+       Stored as bare oklch components (no oklch() wrapper) so Tailwind can
+       splice <alpha-value> into oklch(var(--color-x) / <alpha-value>). Use
+       only inside oklch(...); do not consume these vars directly as colors. */
+    --color-success: 0.65 0.15 145;
+    --color-warning: 0.72 0.15 75;
+    --color-error:   0.55 0.20 25;
+    --color-info:    0.60 0.12 250;
 
     /* motion */
     --duration-fast: 150ms;
@@ -145,11 +148,12 @@
     --input: 222.2 47% 18%;
     --ring: 210 40% 80%;
 
-    /* semantic colors — adjusted for dark backgrounds */
-    --color-success: oklch(0.72 0.15 145);
-    --color-warning: oklch(0.78 0.15 75);
-    --color-error:   oklch(0.65 0.20 25);
-    --color-info:    oklch(0.70 0.12 250);
+    /* semantic colors, adjusted for dark backgrounds
+       Bare oklch components (see light-mode block above for why). */
+    --color-success: 0.72 0.15 145;
+    --color-warning: 0.78 0.15 75;
+    --color-error:   0.65 0.20 25;
+    --color-info:    0.70 0.12 250;
 
     /* shadows — darker env needs stronger */
     --shadow-hairline: 0 1px 0 rgb(0 0 0 / 20%);
