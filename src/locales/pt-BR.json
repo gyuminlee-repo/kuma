@@ -2416,11 +2416,17 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Os nomes de variantes na grade nao sao mais cortados. Duas variantes que diferem so no ultimo caractere se distinguem de imediato.",
-      "Um nome que nao cabe em uma linha quebra dentro da celula em vez de ser truncado."
+      "Os nomes de variantes no mapa da placa de analise agora crescem junto com a placa, em vez de permanecerem em um tamanho fixo.",
+      "Ao ampliar a placa, nao sao apenas as celulas que aumentam, o texto tambem aumenta.",
+      "Nomes que ficavam cortados em uma placa estreita ficam legiveis quando a placa tem mais espaco."
     ],
-    "highlightsStamp": "0.16.14+9c581a55",
+    "highlightsStamp": "0.16.15+a06fdd53",
     "releases": {
+      "0.16.15": [
+        "Os nomes de variantes no mapa da placa de analise agora crescem junto com a placa, em vez de permanecerem em um tamanho fixo.",
+        "Ao ampliar a placa, nao sao apenas as celulas que aumentam, o texto tambem aumenta.",
+        "Nomes que ficavam cortados em uma placa estreita ficam legiveis quando a placa tem mais espaco."
+      ],
       "0.16.14": [
         "Os nomes de variantes na grade nao sao mais cortados. Duas variantes que diferem so no ultimo caractere se distinguem de imediato.",
         "Um nome que nao cabe em uma linha quebra dentro da celula em vez de ser truncado."
@@ -2557,6 +2563,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.15": "a06fdd53",
       "0.16.14": "9c581a55",
       "0.16.13": "72c957ac",
       "0.16.12": "7324b926",

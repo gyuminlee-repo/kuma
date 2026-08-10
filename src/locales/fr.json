@@ -2416,11 +2416,17 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les noms de variants dans la grille ne sont plus coupes. Deux variants ne differant que par le dernier caractere se distinguent d'un coup d'oeil.",
-      "Un nom trop long pour une ligne passe a la ligne dans sa cellule au lieu d'etre tronque."
+      "Les noms de variants sur la carte de la plaque d'analyse s'agrandissent desormais avec la plaque au lieu de rester a une taille fixe.",
+      "Agrandir la plaque agrandit aussi le texte, pas seulement les cellules.",
+      "Les noms tronques sur une plaque etroite deviennent lisibles des que la plaque dispose de plus d'espace."
     ],
-    "highlightsStamp": "0.16.14+9c581a55",
+    "highlightsStamp": "0.16.15+a06fdd53",
     "releases": {
+      "0.16.15": [
+        "Les noms de variants sur la carte de la plaque d'analyse s'agrandissent desormais avec la plaque au lieu de rester a une taille fixe.",
+        "Agrandir la plaque agrandit aussi le texte, pas seulement les cellules.",
+        "Les noms tronques sur une plaque etroite deviennent lisibles des que la plaque dispose de plus d'espace."
+      ],
       "0.16.14": [
         "Les noms de variants dans la grille ne sont plus coupes. Deux variants ne differant que par le dernier caractere se distinguent d'un coup d'oeil.",
         "Un nom trop long pour une ligne passe a la ligne dans sa cellule au lieu d'etre tronque."
@@ -2557,6 +2563,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.15": "a06fdd53",
       "0.16.14": "9c581a55",
       "0.16.13": "72c957ac",
       "0.16.12": "7324b926",
