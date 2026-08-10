@@ -2416,13 +2416,15 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Le panneau de selection des puits ecrit une liste de travail: chaque puits rempli, son code-barres et les deux amorces qui le composent.",
-      "Elle indique aussi les amorces reellement necessaires, moins que les vingt du classeur pour une plaque partiellement remplie.",
-      "La liste est batie sur la meme disposition que l'execution evalue, elle ne peut donc pas decrire une autre plaque.",
-      "Les amorces absentes du classeur de codes-barres sont nommees plutot que laissees vides."
+      "Les noms de variants dans la grille ne sont plus coupes. Deux variants ne differant que par le dernier caractere se distinguent d'un coup d'oeil.",
+      "Un nom trop long pour une ligne passe a la ligne dans sa cellule au lieu d'etre tronque."
     ],
-    "highlightsStamp": "0.16.13+72c957ac",
+    "highlightsStamp": "0.16.14+9c581a55",
     "releases": {
+      "0.16.14": [
+        "Les noms de variants dans la grille ne sont plus coupes. Deux variants ne differant que par le dernier caractere se distinguent d'un coup d'oeil.",
+        "Un nom trop long pour une ligne passe a la ligne dans sa cellule au lieu d'etre tronque."
+      ],
       "0.16.13": [
         "Le panneau de selection des puits ecrit une liste de travail: chaque puits rempli, son code-barres et les deux amorces qui le composent.",
         "Elle indique aussi les amorces reellement necessaires, moins que les vingt du classeur pour une plaque partiellement remplie.",
@@ -2555,6 +2557,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.14": "9c581a55",
       "0.16.13": "72c957ac",
       "0.16.12": "7324b926",
       "0.16.11": "39f046cb",

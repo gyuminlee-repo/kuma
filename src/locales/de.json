@@ -2416,13 +2416,15 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Das Well-Auswahlfeld schreibt eine Barcode-Arbeitsliste: jedes befuellte Well, seinen Barcode und die zwei Seed-Primer dahinter.",
-      "Sie nennt auch die Seeds, die diese Kampagne wirklich braucht, bei einer teilweise befuellten Platte weniger als die zwanzig der Arbeitsmappe.",
-      "Die Liste entsteht aus derselben Belegung, die der Lauf bewertet, und kann daher keine andere Platte beschreiben als die analysierte.",
-      "Seeds, die die Barcode-Arbeitsmappe nicht fuehrt, werden benannt statt leer gelassen."
+      "Variantennamen im Well-Raster werden nicht mehr abgeschnitten. Zwei Varianten, die sich nur im letzten Zeichen unterscheiden, sind sofort auseinanderzuhalten.",
+      "Ein Name, der nicht in eine Zeile passt, bricht innerhalb der Zelle um statt abgeschnitten zu werden."
     ],
-    "highlightsStamp": "0.16.13+72c957ac",
+    "highlightsStamp": "0.16.14+9c581a55",
     "releases": {
+      "0.16.14": [
+        "Variantennamen im Well-Raster werden nicht mehr abgeschnitten. Zwei Varianten, die sich nur im letzten Zeichen unterscheiden, sind sofort auseinanderzuhalten.",
+        "Ein Name, der nicht in eine Zeile passt, bricht innerhalb der Zelle um statt abgeschnitten zu werden."
+      ],
       "0.16.13": [
         "Das Well-Auswahlfeld schreibt eine Barcode-Arbeitsliste: jedes befuellte Well, seinen Barcode und die zwei Seed-Primer dahinter.",
         "Sie nennt auch die Seeds, die diese Kampagne wirklich braucht, bei einer teilweise befuellten Platte weniger als die zwanzig der Arbeitsmappe.",
@@ -2555,6 +2557,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.14": "9c581a55",
       "0.16.13": "72c957ac",
       "0.16.12": "7324b926",
       "0.16.11": "39f046cb",

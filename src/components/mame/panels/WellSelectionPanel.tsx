@@ -440,6 +440,16 @@ export function WellSelectionPanel() {
             </button>
           </div>
 
+          {/*
+            Columns wide enough for a six-character mutant id on one line at
+            10px. 2.25rem held about five and cut the rest, which on a grid
+            whose whole job is showing WHICH variant sits WHERE is the one
+            thing it must not do: R560E and R560Q both rendered as "R560..."
+            and the two wells could not be told apart without hovering. The
+            wrapper scrolls horizontally, so the extra width costs the layout
+            nothing, and anything longer still wraps to a second line inside
+            the cell rather than disappearing.
+          */}
           <div className="overflow-x-auto">
             <div
               ref={gridRef}
@@ -447,7 +457,7 @@ export function WellSelectionPanel() {
               aria-label={t("mame.wellSelection.gridLabel")}
               aria-multiselectable="true"
               className="inline-grid gap-1"
-              style={{ gridTemplateColumns: `2rem repeat(${PLATE_COLS}, 2.25rem)` }}
+              style={{ gridTemplateColumns: `2rem repeat(${PLATE_COLS}, 3rem)` }}
             >
               <div role="row" className="contents">
                 <button
@@ -512,7 +522,12 @@ export function WellSelectionPanel() {
                         onKeyDown={(event) => onCellKeyDown(event, well, seq)}
                         onFocus={() => setFocusSeq(seq)}
                         className={[
-                          "h-9 min-w-0 select-none overflow-hidden rounded border px-0.5 text-[10px] leading-tight",
+                          // Two lines at 10px inside h-10, so a label the
+                          // column cannot hold on one line wraps instead of
+                          // being cut. `break-all` because these are
+                          // identifiers with no spaces to break at: without it
+                          // a long one overflows the cell rather than wrapping.
+                          "flex h-10 min-w-0 items-center justify-center overflow-hidden rounded border px-0.5 text-[10px] leading-none",
                           isSelected
                             ? "border-primary bg-primary/10 text-foreground"
                             : sample
@@ -524,7 +539,7 @@ export function WellSelectionPanel() {
                               : "border-border bg-muted/30 text-muted-foreground",
                         ].join(" ")}
                       >
-                        <span className="block truncate">{sample ?? ""}</span>
+                        <span className="block break-all text-center">{sample ?? ""}</span>
                       </button>
                     )
                   })}

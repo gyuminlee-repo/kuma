@@ -2416,13 +2416,15 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "O painel de selecao de pocos escreve uma lista de trabalho: cada poco preenchido, seu codigo e os dois primers que o formam.",
-      "Ela tambem indica as sementes que a campanha realmente precisa, menos que as vinte da planilha numa placa parcial.",
-      "A lista vem da mesma disposicao que a execucao avalia, entao nao pode descrever outra placa.",
-      "Sementes que a planilha de codigos nao possui sao nomeadas em vez de ficarem em branco."
+      "Os nomes de variantes na grade nao sao mais cortados. Duas variantes que diferem so no ultimo caractere se distinguem de imediato.",
+      "Um nome que nao cabe em uma linha quebra dentro da celula em vez de ser truncado."
     ],
-    "highlightsStamp": "0.16.13+72c957ac",
+    "highlightsStamp": "0.16.14+9c581a55",
     "releases": {
+      "0.16.14": [
+        "Os nomes de variantes na grade nao sao mais cortados. Duas variantes que diferem so no ultimo caractere se distinguem de imediato.",
+        "Um nome que nao cabe em uma linha quebra dentro da celula em vez de ser truncado."
+      ],
       "0.16.13": [
         "O painel de selecao de pocos escreve uma lista de trabalho: cada poco preenchido, seu codigo e os dois primers que o formam.",
         "Ela tambem indica as sementes que a campanha realmente precisa, menos que as vinte da planilha numa placa parcial.",
@@ -2555,6 +2557,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.14": "9c581a55",
       "0.16.13": "72c957ac",
       "0.16.12": "7324b926",
       "0.16.11": "39f046cb",
