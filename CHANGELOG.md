@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.16.19 (A run that never had the depth to be read still drew a full plate of verdicts)
+
+Three runs on two flow cells, from the same project. The first started with 1150 pores and returned 4777 reads per well. The second started with 343 and returned 515. The third re-used that second cell, started with 40, and returned four reads per well, and the app drew a ninety-six-well verdict table over it: nine passes, sixty-nine WRONG_AA, and nothing anywhere on the screen saying the plate never had the depth to be read. Every cell in that table was equally meaningless, which is not a defect any single cell can show.
+
+None of the three numbers that decide this were being read. Median well depth was computed nowhere. Pore counts sit in `report_*.json`, which the app ignored. Flow cell identity was parsed and then dropped, so a cell carrying its second campaign looked like a fresh one.
+
+The review screen now answers the question before the verdicts rather than after them. A median under the depth floor is stated first and loudly, because the verdicts below it are artefacts. A run over the floor and under the vendor recommendation is a quiet line: scorable and under-powered is a different claim from unscorable. A clean run says nothing at all.
+
+Pore counts and re-use are reported with no verdict attached, and that is deliberate. Both candidate thresholds have a counterexample in these three runs. The vendor warranty figure of 800 would have condemned the cell that started at 343 and returned 515 reads a well, and the bench rule of thumb, pores at least the sample count, would have passed the cell that started at 40 for 30 samples and returned four.
+
+Every threshold on the new panel carries where it came from and what kind of source that is. The depth floor of 30 is a parameter default in the vendor amplicon workflow, not a specification, from a workflow scoped to haploid amplicons that this app does not run, so it is labelled provisional pending a calibration on real runs. It used to sit in the code as "30 is the recommended minimum" with no attribution at all, which is how a borrowed default becomes a house rule nobody can question.
+
+### Highlights
+
+- A run too shallow to score now says so above the verdict table, instead of presenting a full plate of meaningless verdicts.
+- The depth is measured over the wells the run actually judged, so a deliberately partial plate is not reported as a thin one.
+- Starting and ending pore counts and the flow cell id now come from the run folder, with the previous run on a re-used cell.
+- Pore counts carry no pass or fail line, because a cell that started at 343 pores returned five hundred reads per well.
+- Each threshold shows its source, so a vendor workflow default cannot be read as a vendor requirement.
+
+### Added
+
+- v0.16.19: `kuma_core/mame/ingest/flow_cell.py` reads `counts.single_pore` from every mux scan in `report_*.json`, plus flow cell id and product code, and keeps a per-project ledger beside the result workbook so a second campaign on one cell is visible with what the cell had left last time. Verified against a real 9-scan run folder, addressed both as the run folder and as a directory inside it.
+- v0.16.19: `kuma_core/mame/run_quality.py` grades the run. Depth is blocking, the vendor recommendation is a warning, pores and re-use only report. The depth it grades comes from the verdicts rather than the ingested records, so a declared selection has already removed the wells the campaign left empty and their leaked reads cannot drag the median down.
+- v0.16.19: the analyze response carries `run_quality` unconditionally, including on a clean run where its severity is null. A block present only for bad runs could not be told apart from an older sidecar that never graded one.
+- v0.16.19: `RunQualityNotice` renders it first on the review screen, as an alert when blocking and a status line when not, silent when there is nothing to say.
+
+### Changed
+
+- v0.16.19: the `min_read_count` default of 30 now records its provenance in `kuma_core/mame/models.py`, as the ONT `wf-amplicon` `minimum_mean_depth` default, along with the three limits on that provenance: a parameter default is not a specification, that workflow states it is not intended for mixtures, and this app does not run it. The MIXED confidence floor keeps its value and gains the same treatment: no vendor figure exists for minor-allele detection, and Moller et al. 2023 (doi:10.1128/spectrum.02728-22) put the amplicon limit at 6.5% using >1000x coverage, which makes 90 reads thin rather than strict. Neither value moved; both now say what they rest on.
+
 ## v0.16.18 (One variant name on the plate map still ended before the character that named it)
 
 The plate map cell grew with the panel and, since the last release, so did the writing inside it. At the smallest cell neither helped, and the smallest cell is what an ordinary window gives: room for about four characters where a five-character name needs five.
