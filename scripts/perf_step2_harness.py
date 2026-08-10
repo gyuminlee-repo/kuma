@@ -21,9 +21,11 @@ Usage
     .venv/bin/python scripts/perf_step2_harness.py --repeat 3 \
         --save-baseline notes/perf/baseline-<sha>-ext4.json
 
-    # Windows share (9p) output
+    # Windows share (9p) output. Nest every variant under one .kuma-perf parent
+    # rather than inventing a sibling per variant, so the workspace root does not
+    # collect one folder per experiment.
     .venv/bin/python scripts/perf_step2_harness.py --repeat 3 \
-        --out-root "$WORKSPACE_ROOT/.kuma-perf" \
+        --out-root "$WORKSPACE_ROOT/.kuma-perf/<variant>" \
         --save-baseline notes/perf/baseline-<sha>-share.json
 
     # regression check against a saved fingerprint (exit 1 on identity drift)
@@ -385,7 +387,9 @@ def main() -> int:
     ap.add_argument(
         "--out-root", type=Path, default=None,
         help="Where run output dirs are created. Default $HOME/.cache/kuma-perf (ext4). "
-             "Point at a path on the Windows share to measure 9p instead.",
+             "Point at a path on the Windows share to measure 9p instead, nesting "
+             "variants under a single parent ($WORKSPACE_ROOT/.kuma-perf/<variant>). "
+             "A root this run created is removed again when it ends up empty.",
     )
     ap.add_argument("--repeat", type=int, default=3, help="Number of runs (default 3)")
     ap.add_argument("--keep", action="store_true", help="Keep output dirs instead of deleting them")
@@ -419,6 +423,10 @@ def main() -> int:
     sys.path.insert(0, str(_REPO))
 
     out_root = args.out_root or (Path.home() / ".cache" / "kuma-perf")
+    # Each run dir is deleted below unless --keep, so a root created only for this
+    # invocation would survive as an empty folder. Sweeping variants left 20 such
+    # shells in the workspace root; remember whether the root is ours to remove.
+    out_root_was_ours = not out_root.exists()
     out_root.mkdir(parents=True, exist_ok=True)
     # The timing JSONL never lives inside the hashed tree.
     timing_root = Path.home() / ".cache" / "kuma-perf-timing"
@@ -534,6 +542,14 @@ def main() -> int:
             rc = 1
         else:
             print("[OK] identity matches baseline.", file=sys.stderr)
+
+    # After the fingerprint has read out_root_fs, give back a root this run
+    # created and then emptied. rmdir refuses a non-empty folder, so a --keep run
+    # or a shared root is never touched.
+    if out_root_was_ours and not args.keep:
+        with contextlib.suppress(OSError):
+            out_root.rmdir()
+
     return rc
 
 

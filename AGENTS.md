@@ -89,7 +89,14 @@ pnpm sync:check                     # cross-layer + groups + What's New drift
 W=$HOME/.claude/skills/win-build/scripts/win-build.sh
 bash $W pnpm install --frozen-lockfile --cwd <워크트리 절대경로>
 bash $W pnpm exec vitest run --cwd <워크트리 절대경로>
+
+# 전량 실행은 이 형태로. 기본 리포터는 테스트가 찍는 stderr 를 그대로 흘려보내
+# (act(...) 경고, Tauri bridge unavailable, 사이드카 로그) 출력이 잘려 나가고,
+# 정작 마지막 Test Files / Tests 요약이 사라진다.
+bash $W pnpm exec vitest run --silent --reporter=dot --cwd <워크트리 절대경로>
 ```
+
+`--reporter=basic` 은 vitest 4 에 없다. 지정하면 실행 전에 `Failed to load custom Reporter from basic` 으로 죽으므로 `dot` 을 쓴다.
 
 worktree 의 `node_modules` 는 main checkout 과 경로가 달라 Windows 설치본을 덮지 않는다(설치 전후로 main checkout 의 mtime 과 `.bin/*.CMD` 가 그대로인 것을 확인했다). 2026-08-06 에 이 경로를 모르고 vitest 를 CI 에만 맡겼다가 타입 오류 4건과 테스트 실패 9건을 push 두 번으로 나눠 받았다.
 
