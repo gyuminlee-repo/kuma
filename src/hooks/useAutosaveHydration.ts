@@ -1611,6 +1611,7 @@ async function restoreMameResult(
   // existed. Ordered between mapping_integrity and contamination to match the
   // two live analyze paths in inputSlice.
   store.setOffLayoutRecords(result.off_layout_records ?? null);
+  store.setRunQuality(result.run_quality ?? null);
   if (!alive()) return false;
   // The stray-read report of the run being restored. `?? null` covers both
   // reasons it can be missing: a result persisted before the key existed, and a

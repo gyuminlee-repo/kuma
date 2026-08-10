@@ -1001,6 +1001,19 @@
         "dismiss": "Fermer cet avis"
       }
     },
+    "runQuality": {
+      "blockingTitle": "Cette execution n'est pas evaluable: {{median}} lectures par puits pour un plancher de {{floor}}.",
+      "blockingBody": "{{under}} des {{total}} puits evalues sont sous le plancher, donc les verdicts ci-dessous sont les artefacts d'une plaque sans la profondeur necessaire.",
+      "warningTitle": "Cette execution est evaluable mais sous-dimensionnee.",
+      "thresholdSource": "Plancher {{floor}} lectures, recommande {{recommended}}. Source du plancher: {{source}}.",
+      "provisional": "Provisoire, en attente d'un calibrage sur nos propres executions.",
+      "pores": "Cellule {{cell}}: {{pores}} pores (niveau de garantie du fabricant {{warranty}}, non applique comme seuil).",
+      "finding": {
+        "median_depth_below_floor": "Profondeur mediane {{median}} sous le plancher de {{floor}}.",
+        "median_depth_below_recommended": "Profondeur mediane {{median}} sous les {{recommended}} lectures par amplicon recommandees.",
+        "flow_cell_reused": "La cellule {{cell}} a deja porte une execution dans ce projet, terminee avec {{previousPores}} pores."
+      }
+    },
     "inspector": {
       "kvEmpty": "—",
       "noDataPlaceholder": "No data available"
@@ -2417,12 +2430,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les noms de variants sur la carte de la plaque ne sont plus coupés avant le caractère qui les distingue. R560E et R560Q s'affichent désormais tels qu'ils sont.",
-      "Un nom trop long pour une ligne passe désormais à la ligne dans sa cellule au lieu d'être tronqué trop tôt.",
-      "Nettoyage interne de valeurs de conception inutilisées et de tailles codées en dur, sans changement visible."
+      "Une execution trop peu profonde pour etre evaluee le dit au-dessus du tableau, au lieu de presenter une plaque entiere de verdicts sans sens.",
+      "La profondeur est mesuree sur les puits que l'execution a reellement juges, donc une plaque volontairement partielle n'est pas signalee comme mince.",
+      "Les nombres de pores au debut et a la fin et l'id de la cellule viennent du dossier d'execution, avec l'execution precedente si la cellule est reutilisee.",
+      "Les nombres de pores n'ont pas de seuil de reussite: une cellule partie de 343 pores a rendu cinq cents lectures par puits.",
+      "Chaque seuil affiche sa source, pour qu'un defaut de workflow ne se lise pas comme une exigence du fabricant."
     ],
-    "highlightsStamp": "0.16.18+2b708e6d",
+    "highlightsStamp": "0.16.19+c73cc4f0",
     "releases": {
+      "0.16.19": [
+        "Une execution trop peu profonde pour etre evaluee le dit au-dessus du tableau, au lieu de presenter une plaque entiere de verdicts sans sens.",
+        "La profondeur est mesuree sur les puits que l'execution a reellement juges, donc une plaque volontairement partielle n'est pas signalee comme mince.",
+        "Les nombres de pores au debut et a la fin et l'id de la cellule viennent du dossier d'execution, avec l'execution precedente si la cellule est reutilisee.",
+        "Les nombres de pores n'ont pas de seuil de reussite: une cellule partie de 343 pores a rendu cinq cents lectures par puits.",
+        "Chaque seuil affiche sa source, pour qu'un defaut de workflow ne se lise pas comme une exigence du fabricant."
+      ],
       "0.16.17": [
         "Les fonds de couleur douce et les bordures colorées se dessinent enfin. Jusqu'ici ils disparaissaient silencieusement de la feuille de style dans toutes les versions.",
         "Les panneaux d'avertissement et d'erreur suivent maintenant le thème sombre au lieu de garder les couleurs du thème clair sur un fond sombre.",
@@ -2582,6 +2604,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.19": "c73cc4f0",
       "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",

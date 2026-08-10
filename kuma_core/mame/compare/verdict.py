@@ -28,6 +28,26 @@ _NT_INDEL_RE = re.compile(r"^(\d+)_INDEL$")
 # factor a mixed signal is reported MIXED; below it the well is reported LOWDEPTH
 # (inconclusive) instead of a confident contamination call. Mirrors the LOWDEPTH
 # read-count gate and applies only when both a read_count and min_read_count exist.
+#
+# THIS VALUE IS OURS, and no measurement of it is recorded. Oxford Nanopore
+# publishes no minor-allele threshold and no depth for calling a well mixed, so
+# there is no vendor figure to follow here the way ``min_read_count`` follows
+# ``minimum_mean_depth`` (see ``models.py``). Two numbers put 3x in context, and
+# they point in opposite directions:
+#
+#   * ONT ``min_coverage`` default is 20 reads for reporting a variant at all
+#     (wf-amplicon), so 90 is 4.5x stricter than that.
+#   * Moller et al. 2023 (doi:10.1128/spectrum.02728-22) placed the minor-allele
+#     detection threshold for amplicon nanopore data at 6.5% at 95% confidence,
+#     with each amplicon sequenced to >1000x. Against that, 90 is roughly a
+#     tenth of the depth used to establish a mixed-detection limit: at 90 reads
+#     a 6.5% minor allele is six reads, and per-base error is percent-scale.
+#
+# So the honest reading is that 90 is thin for a confident MIXED call rather
+# than conservative. Raising it would reclassify wells in every existing project
+# and move the result contract, which is a decision to take with subsampled real
+# runs (the way the indel gate was calibrated from bench_v2), not by editing a
+# constant. Left as is, and left documented, until that measurement exists.
 _MIXED_CONFIDENT_DEPTH_FACTOR = 3
 
 

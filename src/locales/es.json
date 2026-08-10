@@ -1001,6 +1001,19 @@
         "dismiss": "Cerrar este aviso"
       }
     },
+    "runQuality": {
+      "blockingTitle": "Esta ejecucion no se puede evaluar: {{median}} lecturas por pocillo frente a un minimo de {{floor}}.",
+      "blockingBody": "{{under}} de {{total}} pocillos evaluados quedan bajo el minimo, por lo que los veredictos de abajo son artefactos de una placa sin profundidad para ser leida.",
+      "warningTitle": "Esta ejecucion se puede evaluar pero le falta profundidad.",
+      "thresholdSource": "Minimo {{floor}} lecturas, recomendado {{recommended}}. Fuente del minimo: {{source}}.",
+      "provisional": "Provisional, a la espera de una calibracion propia.",
+      "pores": "Celda {{cell}}: {{pores}} poros (nivel de garantia del fabricante {{warranty}}, no aplicado como umbral).",
+      "finding": {
+        "median_depth_below_floor": "Profundidad mediana {{median}} por debajo del minimo de {{floor}}.",
+        "median_depth_below_recommended": "Profundidad mediana {{median}} por debajo de las {{recommended}} lecturas por amplicon recomendadas.",
+        "flow_cell_reused": "La celda {{cell}} ya llevo una ejecucion en este proyecto, que termino con {{previousPores}} poros."
+      }
+    },
     "inspector": {
       "kvEmpty": "—",
       "noDataPlaceholder": "No data available"
@@ -2417,12 +2430,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Los nombres de variantes en el mapa de la placa ya no se cortan antes del carácter que los distingue. R560E y R560Q ahora se leen tal como son.",
-      "Un nombre demasiado largo para una línea ahora salta de línea dentro de su celda en vez de cortarse antes de tiempo.",
-      "Limpieza interna de valores de diseño sin uso y tamaños fijos en el código, sin cambios visibles."
+      "Una ejecucion demasiado superficial para evaluarse lo dice sobre la tabla de veredictos, en vez de presentar una placa entera de veredictos sin sentido.",
+      "La profundidad se mide sobre los pocillos que la ejecucion realmente juzgo, asi que una placa parcial a proposito no se informa como pobre.",
+      "Los poros iniciales y finales y el id de la celda vienen de la carpeta de ejecucion, con la ejecucion anterior si la celda se reutilizo.",
+      "Los poros no llevan linea de aprobado: una celda que empezo con 343 poros dio quinientas lecturas por pocillo.",
+      "Cada umbral muestra su fuente, para que un valor por defecto de un flujo no se lea como requisito del fabricante."
     ],
-    "highlightsStamp": "0.16.18+2b708e6d",
+    "highlightsStamp": "0.16.19+c73cc4f0",
     "releases": {
+      "0.16.19": [
+        "Una ejecucion demasiado superficial para evaluarse lo dice sobre la tabla de veredictos, en vez de presentar una placa entera de veredictos sin sentido.",
+        "La profundidad se mide sobre los pocillos que la ejecucion realmente juzgo, asi que una placa parcial a proposito no se informa como pobre.",
+        "Los poros iniciales y finales y el id de la celda vienen de la carpeta de ejecucion, con la ejecucion anterior si la celda se reutilizo.",
+        "Los poros no llevan linea de aprobado: una celda que empezo con 343 poros dio quinientas lecturas por pocillo.",
+        "Cada umbral muestra su fuente, para que un valor por defecto de un flujo no se lea como requisito del fabricante."
+      ],
       "0.16.17": [
         "Los fondos de color suave y los bordes de color ahora se dibujan de verdad. Hasta ahora se perdían en silencio en la hoja de estilos en todas las versiones.",
         "Los paneles de advertencia y error siguen el tema oscuro en lugar de mantener los colores del tema claro sobre un fondo oscuro.",
@@ -2582,6 +2604,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.19": "c73cc4f0",
       "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",

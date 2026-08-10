@@ -1001,6 +1001,19 @@
         "dismiss": "Hinweis schließen"
       }
     },
+    "runQuality": {
+      "blockingTitle": "Dieser Lauf ist nicht bewertbar: {{median}} Reads pro Well gegen eine Untergrenze von {{floor}}.",
+      "blockingBody": "{{under}} von {{total}} bewerteten Wells liegen unter der Untergrenze, also sind die Urteile unten Artefakte einer Platte ohne die Tiefe, gelesen zu werden.",
+      "warningTitle": "Dieser Lauf ist bewertbar, aber zu flach.",
+      "thresholdSource": "Untergrenze {{floor}} Reads, empfohlen {{recommended}}. Quelle der Untergrenze: {{source}}.",
+      "provisional": "Vorlaeufig, bis eine eigene Kalibrierung vorliegt.",
+      "pores": "Flusszelle {{cell}}: {{pores}} Poren (Garantieniveau des Herstellers {{warranty}}, nicht als Schwelle angewandt).",
+      "finding": {
+        "median_depth_below_floor": "Mediane Tiefe {{median}} liegt unter der Untergrenze von {{floor}}.",
+        "median_depth_below_recommended": "Mediane Tiefe {{median}} liegt unter den empfohlenen {{recommended}} Reads pro Amplikon.",
+        "flow_cell_reused": "Flusszelle {{cell}} trug in diesem Projekt bereits einen Lauf, der mit {{previousPores}} Poren endete."
+      }
+    },
     "inspector": {
       "kvEmpty": "—",
       "noDataPlaceholder": "No data available"
@@ -2417,12 +2430,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Variantennamen auf der Plattenkarte werden nicht mehr vor dem Zeichen abgeschnitten, das sie unterscheidet. R560E und R560Q werden jetzt korrekt angezeigt.",
-      "Ein Name, der nicht in eine Zeile passt, bricht jetzt innerhalb seiner Zelle um, statt vorzeitig abgeschnitten zu werden.",
-      "Interne Bereinigung ungenutzter Designwerte und hartcodierter Größen, ohne sichtbare Änderung."
+      "Ein Lauf, der zu flach zum Bewerten ist, sagt das jetzt ueber der Urteilstabelle, statt eine ganze Platte bedeutungsloser Urteile zu zeigen.",
+      "Die Tiefe wird ueber die Wells gemessen, die der Lauf wirklich bewertet hat, also gilt eine absichtlich teilweise Platte nicht als flach.",
+      "Anfangs- und Endporenzahl und die Flusszellen-id kommen aus dem Laufordner, bei wiederverwendeter Zelle mit dem vorigen Lauf.",
+      "Porenzahlen haben keine Bestanden-Grenze, denn eine Zelle mit 343 Anfangsporen lieferte fuenfhundert Reads pro Well.",
+      "Jede Schwelle zeigt ihre Quelle, damit ein Workflow-Standardwert nicht als Herstellervorgabe gelesen wird."
     ],
-    "highlightsStamp": "0.16.18+2b708e6d",
+    "highlightsStamp": "0.16.19+c73cc4f0",
     "releases": {
+      "0.16.19": [
+        "Ein Lauf, der zu flach zum Bewerten ist, sagt das jetzt ueber der Urteilstabelle, statt eine ganze Platte bedeutungsloser Urteile zu zeigen.",
+        "Die Tiefe wird ueber die Wells gemessen, die der Lauf wirklich bewertet hat, also gilt eine absichtlich teilweise Platte nicht als flach.",
+        "Anfangs- und Endporenzahl und die Flusszellen-id kommen aus dem Laufordner, bei wiederverwendeter Zelle mit dem vorigen Lauf.",
+        "Porenzahlen haben keine Bestanden-Grenze, denn eine Zelle mit 343 Anfangsporen lieferte fuenfhundert Reads pro Well.",
+        "Jede Schwelle zeigt ihre Quelle, damit ein Workflow-Standardwert nicht als Herstellervorgabe gelesen wird."
+      ],
       "0.16.17": [
         "Sanfte farbige Hintergründe und farbige Rahmen werden jetzt tatsächlich gezeichnet. Bisher fielen sie in jeder Version stillschweigend aus dem Stylesheet.",
         "Warn- und Fehlerpanels folgen jetzt dem dunklen Design, statt auf dunklem Hintergrund die Farben des hellen Designs zu behalten.",
@@ -2582,6 +2604,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.19": "c73cc4f0",
       "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",

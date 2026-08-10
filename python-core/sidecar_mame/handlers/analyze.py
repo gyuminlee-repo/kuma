@@ -1960,6 +1960,58 @@ def handle_analyze(params: dict) -> dict:
             occupancy_source=layout_source,
         )
 
+    # ── Could this run have worked at all ────────────────────────────────
+    # Three facts the app was reading none of: how deep the typical scored well
+    # is, how many pores the cell started with, and whether this project has
+    # already sequenced on that cell. See kuma_core.mame.run_quality for why
+    # depth grades and the other two only report.
+    #
+    # Depth comes from the VERDICTS, not from the ingested records, so it
+    # measures the wells this run actually judged. A declared selection has
+    # already removed the wells the campaign left empty by the time verdicts
+    # exist, and grading their leaked reads as shallow wells would report a
+    # thin plate for a run that deliberately used ten of ninety-six.
+    from kuma_core.mame.ingest.flow_cell import (
+        find_previous_use,
+        read_flow_cell_history,
+        read_ledger,
+        record_use,
+    )
+    from kuma_core.mame.run_quality import assess_run_quality, serialise_run_quality
+
+    _flow_cell = read_flow_cell_history(input_dir)
+    _ledger_root = output.parent
+    _previous_use = find_previous_use(
+        read_ledger(_ledger_root), _flow_cell.flow_cell_id, str(input_dir)
+    )
+    # One entry per scored record, so a run with replicate plates contributes
+    # each plate's reading of a well. A ``None`` depth is a well whose consensus
+    # header never stated one, which is not zero reads and is left out rather
+    # than graded as the worst case.
+    _well_reads = [
+        int(vr.translated.barcode.read_count)
+        for vr in verdicts
+        if vr.translated.barcode.read_count is not None
+    ]
+    run_quality = serialise_run_quality(
+        assess_run_quality(
+            well_read_counts=_well_reads,
+            min_read_count=min_read_count,
+            flow_cell_id=_flow_cell.flow_cell_id,
+            pore_start=_flow_cell.pore_start,
+            pore_end=_flow_cell.pore_end,
+            reused_from=_previous_use,
+        )
+    )
+    # Recorded after the grading, so this run cannot report itself as its own
+    # earlier use, and only when the report json named a cell.
+    record_use(
+        _ledger_root,
+        _flow_cell,
+        str(input_dir),
+        getattr(run_meta, "started", None) if run_meta is not None else None,
+    )
+
     janus_params = params.get("janus_settings") or {}
     janus_autosave = _autosave_picks(replicates, output, run_meta, janus_params)
 
@@ -2014,6 +2066,11 @@ def handle_analyze(params: dict) -> dict:
         # crosstalk, and which of the two it is cannot be decided from the count.
         # Reported so an operator can see it rather than having it disappear
         # into an UNKNOWN_* group.
+        # Whether the run could have produced a scorable plate, and the numbers
+        # behind that with the provenance of every threshold. Read BEFORE the
+        # verdicts: a blocking severity here means every verdict below it is an
+        # artefact of a plate that never had the depth to be scored.
+        "run_quality": run_quality,
         "off_layout_records": _off_layout_records(
             verdicts, well_layout, _skipped_records
         ),

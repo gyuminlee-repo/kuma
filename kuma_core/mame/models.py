@@ -119,9 +119,38 @@ class CompareParams:
     """Tunable thresholds for the 8-class verdict classifier."""
 
     min_file_size_kb: float = 50.0
-    # Real read-depth gate, driven by the consensus `depth=N` header. 30 is the
-    # recommended minimum. None disables the gate (legacy behavior) and falls
-    # back to the file-size proxy only when depth=N is genuinely absent.
+    # Real read-depth gate, driven by the consensus `depth=N` header. None
+    # disables the gate (legacy behavior) and falls back to the file-size proxy
+    # only when depth=N is genuinely absent.
+    #
+    # 30 is the DEFAULT VALUE of `minimum_mean_depth` in Oxford Nanopore's own
+    # amplicon workflow, where it is described as the "Mean depth threshold to
+    # pass consensus quality control. Draft consensus sequences with a lower
+    # average depth of coverage after re-aligning the input reads will fail QC."
+    # https://nanoporetech.com/document/epi2me-workflows/wf-amplicon
+    #
+    # Read that provenance precisely, because it is weaker than it looks:
+    #
+    #   * It is a workflow parameter default, NOT a vendor specification. No
+    #     experiment behind the number is published.
+    #   * That workflow is scoped to haploid amplicons and states it is "not
+    #     intended for diploid samples or marker gene sequencing of mixtures",
+    #     so it does not speak to the clone-purity question this app asks.
+    #   * This app does not run it. We compute our own consensus and our own
+    #     verdicts, so borrowing the number is an argument by analogy between
+    #     pipelines, not a measurement of ours.
+    #
+    # It is written down anyway because the line used to read "30 is the
+    # recommended minimum" with no source at all, which is indistinguishable
+    # from an arbitrary constant and was read as one. A vendor default on
+    # matching data beats that, and it is PROVISIONAL: the honest basis is a
+    # subsample calibration on real runs, the way the indel gate was fixed from
+    # bench_v2, and until that exists this value carries the label above.
+    #
+    # The same document separately recommends aiming for >150X (about 1500 reads
+    # per amplicon) in prose, which is a recommendation rather than a default and
+    # therefore the stronger of the two figures. That one is a target, not a
+    # floor; see `kuma_core/mame/run_quality.py` for where it is reported.
     min_read_count: int | None = 30
     max_consensus_n_fraction: float | None = 0.0
     many_mutation_cutoff: int = 5

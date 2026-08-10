@@ -1001,6 +1001,19 @@
         "dismiss": "Fechar este aviso"
       }
     },
+    "runQuality": {
+      "blockingTitle": "Esta execucao nao pode ser avaliada: {{median}} leituras por poco contra um piso de {{floor}}.",
+      "blockingBody": "{{under}} de {{total}} pocos avaliados ficam abaixo do piso, entao os vereditos abaixo sao artefatos de uma placa sem profundidade para ser lida.",
+      "warningTitle": "Esta execucao e avaliavel, mas com profundidade insuficiente.",
+      "thresholdSource": "Piso {{floor}} leituras, recomendado {{recommended}}. Fonte do piso: {{source}}.",
+      "provisional": "Provisorio, aguardando calibracao nas nossas proprias execucoes.",
+      "pores": "Celula {{cell}}: {{pores}} poros (nivel de garantia do fabricante {{warranty}}, nao aplicado como limite).",
+      "finding": {
+        "median_depth_below_floor": "Profundidade mediana {{median}} abaixo do piso de {{floor}}.",
+        "median_depth_below_recommended": "Profundidade mediana {{median}} abaixo das {{recommended}} leituras por amplicon recomendadas.",
+        "flow_cell_reused": "A celula {{cell}} ja levou uma execucao neste projeto, encerrada com {{previousPores}} poros."
+      }
+    },
     "inspector": {
       "kvEmpty": "—",
       "noDataPlaceholder": "No data available"
@@ -2417,12 +2430,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Os nomes de variantes no mapa da placa não são mais cortados antes do caractere que os diferencia. R560E e R560Q agora aparecem como são.",
-      "Um nome muito longo para uma linha agora quebra dentro da sua célula em vez de terminar antes do tempo.",
-      "Limpeza interna de valores de design não utilizados e tamanhos fixos no código, sem mudança visível."
+      "Uma execucao rasa demais para ser avaliada diz isso acima da tabela de vereditos, em vez de apresentar uma placa inteira de vereditos sem sentido.",
+      "A profundidade e medida nos pocos que a execucao realmente julgou, entao uma placa parcial de proposito nao e relatada como rasa.",
+      "Os poros iniciais e finais e o id da celula vem da pasta da execucao, com a execucao anterior se a celula foi reutilizada.",
+      "Os poros nao tem linha de aprovacao: uma celula que comecou com 343 poros deu quinhentas leituras por poco.",
+      "Cada limite mostra sua fonte, para que um padrao de fluxo de trabalho nao seja lido como exigencia do fabricante."
     ],
-    "highlightsStamp": "0.16.18+2b708e6d",
+    "highlightsStamp": "0.16.19+c73cc4f0",
     "releases": {
+      "0.16.19": [
+        "Uma execucao rasa demais para ser avaliada diz isso acima da tabela de vereditos, em vez de apresentar uma placa inteira de vereditos sem sentido.",
+        "A profundidade e medida nos pocos que a execucao realmente julgou, entao uma placa parcial de proposito nao e relatada como rasa.",
+        "Os poros iniciais e finais e o id da celula vem da pasta da execucao, com a execucao anterior se a celula foi reutilizada.",
+        "Os poros nao tem linha de aprovacao: uma celula que comecou com 343 poros deu quinhentas leituras por poco.",
+        "Cada limite mostra sua fonte, para que um padrao de fluxo de trabalho nao seja lido como exigencia do fabricante."
+      ],
       "0.16.17": [
         "Fundos coloridos suaves e bordas coloridas agora realmente aparecem. Até agora eles desapareciam silenciosamente da folha de estilos em todas as versões.",
         "Os painéis de aviso e erro seguem o tema escuro em vez de manter as cores do tema claro sobre um fundo escuro.",
@@ -2582,6 +2604,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.19": "c73cc4f0",
       "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",

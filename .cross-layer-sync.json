@@ -1093,6 +1093,29 @@
       "severity": "warning"
     },
     {
+      "id": "mame-run-quality",
+      "files": [
+        "kuma_core/mame/run_quality.py",
+        "kuma_core/mame/ingest/flow_cell.py",
+        "kuma_core/mame/models.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "src/types/mame/run_quality.ts",
+        "src/store/mame/slice-interfaces.ts",
+        "src/store/mame/slices/analysisSlice.ts",
+        "src/components/mame/widgets/RunQualityNotice.tsx"
+      ],
+      "symbols": [
+        "assess_run_quality",
+        "serialise_run_quality",
+        "read_flow_cell_history",
+        "run_quality",
+        "RunQuality",
+        "setRunQuality"
+      ],
+      "note": "Whether a run could have been scored at all: core grading <-> flow cell history read from report_*.json <-> the analyze response block <-> TS type <-> store field and setter <-> the notice that stands above the verdict table. Three couplings drift silently if edited apart. (1) The depth floor is CompareParams.min_read_count, so changing that changes what this grades and the sourced comment in models.py has to move with it. (2) Depth is measured over VERDICTS, not ingested records, so a declared selection already excludes the wells the campaign left empty; measuring records instead would report a thin plate for a run that used ten wells of ninety-six. (3) Every threshold carries a `kind` and the notice renders it, because the floor is a vendor WORKFLOW DEFAULT (ONT wf-amplicon minimum_mean_depth) rather than a specification, and this repo already shipped that overstatement once as a bare 'recommended minimum' comment. Pore counts and reuse are reported with no threshold on purpose: 800 would condemn a cell that returned 515 reads a well, and 'pores at least the sample count' would pass the one that returned 4.",
+      "severity": "blocking"
+    },
+    {
       "id": "mame-contamination",
       "files": [
         "kuma_core/mame/qc/contamination.py",

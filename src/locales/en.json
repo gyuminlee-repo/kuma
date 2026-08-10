@@ -1096,6 +1096,19 @@
         "dismiss": "Dismiss this notice"
       }
     },
+    "runQuality": {
+      "blockingTitle": "This run cannot be scored: {{median}} reads per well against a floor of {{floor}}.",
+      "blockingBody": "{{under}} of {{total}} scored wells fall under the floor, so the verdicts below are artefacts of a plate that never had the depth to be read.",
+      "warningTitle": "This run is scorable but under-powered.",
+      "thresholdSource": "Floor {{floor}} reads, recommended {{recommended}}. Floor source: {{source}}.",
+      "provisional": "Provisional, pending a calibration on our own runs.",
+      "pores": "Flow cell {{cell}}: {{pores}} pores (vendor warranty level {{warranty}}, not applied as a threshold).",
+      "finding": {
+        "median_depth_below_floor": "Median depth {{median}} is under the floor of {{floor}}.",
+        "median_depth_below_recommended": "Median depth {{median}} is under the recommended {{recommended}} reads per amplicon.",
+        "flow_cell_reused": "Flow cell {{cell}} already carried a run in this project, which ended with {{previousPores}} pores."
+      }
+    },
     "inspector": {
       "kvEmpty": "—",
       "noDataPlaceholder": "No data available"
@@ -2450,12 +2463,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Variant names on the plate map are no longer cut before the character that tells them apart. R560E and R560Q now read as themselves.",
-      "A name too long for one line now wraps inside its cell instead of ending early.",
-      "Internal cleanup of unused design values and hard-coded sizes, with no visible change."
+      "A run too shallow to score now says so above the verdict table, instead of presenting a full plate of meaningless verdicts.",
+      "The depth is measured over the wells the run actually judged, so a deliberately partial plate is not reported as a thin one.",
+      "Starting and ending pore counts and the flow cell id now come from the run folder, with the previous run on a re-used cell.",
+      "Pore counts carry no pass or fail line, because a cell that started at 343 pores returned five hundred reads per well.",
+      "Each threshold shows its source, so a vendor workflow default cannot be read as a vendor requirement."
     ],
-    "highlightsStamp": "0.16.18+2b708e6d",
+    "highlightsStamp": "0.16.19+c73cc4f0",
     "releases": {
+      "0.16.19": [
+        "A run too shallow to score now says so above the verdict table, instead of presenting a full plate of meaningless verdicts.",
+        "The depth is measured over the wells the run actually judged, so a deliberately partial plate is not reported as a thin one.",
+        "Starting and ending pore counts and the flow cell id now come from the run folder, with the previous run on a re-used cell.",
+        "Pore counts carry no pass or fail line, because a cell that started at 343 pores returned five hundred reads per well.",
+        "Each threshold shows its source, so a vendor workflow default cannot be read as a vendor requirement."
+      ],
       "0.16.18": [
         "Variant names on the plate map are no longer cut before the character that tells them apart. R560E and R560Q now read as themselves.",
         "A name too long for one line now wraps inside its cell instead of ending early.",
@@ -2615,6 +2637,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.19": "c73cc4f0",
       "0.16.18": "2b708e6d",
       "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",
