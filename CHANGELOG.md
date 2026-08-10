@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.16.17 (Colour tints that were never drawn, and text that was cut with no way back)
+
+Every soft coloured background and every coloured border in the app was asking for a shade of a semantic colour, and the stylesheet contained none of them. The four semantic colours were written as fixed values, and a fixed value has nowhere to put a transparency, so the build discarded each of those 163 requests without reporting anything. What reached the screen was the plain colour or nothing at all. The 8 percent shade failed for a second reason on top of the first, on every colour in the app rather than only these four.
+
+The same fixed values also explain a mismatch operators could see: the run health charts read the colours a different way, so they alone followed the dark theme while every warning banner beside them stayed on light-theme colours.
+
+Separately, several lines that end in an ellipsis had no way to show the rest. A failed job displayed its reason in one such line, so a message longer than the panel lost the part naming the cause and nothing could bring it back. The analyze status line behaved the same way in both places it appears, and the run folder in the drawer was cut mid-character without even an ellipsis to say so. Those now answer to hovering.
+
+### Highlights
+
+- Soft coloured backgrounds and coloured borders now actually draw. They were silently dropped from the stylesheet in every release so far.
+- Warning and error panels follow the dark theme instead of keeping light-theme colours on a dark background.
+- Hovering a shortened line now shows the whole text, including the reason a job failed and the run folder in the drawer.
+- A long file name no longer pushes the Browse button out of its row.
+
+### Fixed
+
+- Semantic colours were fixed values in the theme, so no transparency variant of them could be built and 163 class uses produced no style.
+- The 8 percent transparency step did not exist, so 33 more uses across all colours produced no style either.
+- Only the run health charts followed the dark-theme colour adjustments; everything using the theme classes kept light values.
+- Failed job reasons, analyze status, and drawer paths were shortened with no hover text and no other route to the full value.
+- A file name in the missing-inputs banner was asked to shorten in a way that cannot work, so it grew past its box.
+- The export path field lacked the shrink allowance its sibling dialog already had.
+
 ## v0.16.16 (Declaring ten wells scored ninety-six and failed eighty-six of them)
 
 Declaring which wells a campaign fills was supposed to narrow the run. It did the opposite. The verdict loop walks every well that produced reads, not the wells the layout names, and the layout only decides which expected variants a well is compared against. A well outside it falls back to the FULL expected list, which nothing can match, so it comes back WRONG_AA.
