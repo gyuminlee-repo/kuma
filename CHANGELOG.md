@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.16.18 (One variant name on the plate map still ended before the character that named it)
+
+The plate map cell grew with the panel and, since the last release, so did the writing inside it. At the smallest cell neither helped, and the smallest cell is what an ordinary window gives: room for about four characters where a five-character name needs five.
+
+Which names survived depended on their letters rather than their length, which is the worst version of this problem. R560E fit and R560Q did not, so two wells sitting next to each other read as R560E and R560, and the character that tells them apart was the one dropped. That is the same failure the selection grid was fixed for one release ago, still present on the map beside it.
+
+Cells are wider now, the label uses the full width of its cell, and a name too long for one line wraps rather than ending early. Ten of the eleven names measured fit on one line; the remaining one is the wild-type label, at most one cell on a plate, which still answers to hovering.
+
+This release also removes fifteen design values that nothing read and folds twenty-eight hard-coded sizes onto the tokens that already held those exact sizes. Nothing on screen changes from that part.
+
+### Highlights
+
+- Variant names on the plate map are no longer cut before the character that tells them apart. R560E and R560Q now read as themselves.
+- A name too long for one line now wraps inside its cell instead of ending early.
+- Internal cleanup of unused design values and hard-coded sizes, with no visible change.
+
+### Fixed
+
+- Plate map cells were narrow enough that a five-character variant name was cut, and whether it was cut depended on the glyphs rather than the length.
+- The label reserved side padding it did not need, spending width that the name required.
+
+### Changed
+
+- Removed fifteen custom properties with no reader, including a spacing scale and four shadow values the config had no way to expose.
+- Replaced a selected-state class that no stylesheet defined; the focused border was already drawn inline.
+- Folded 19 ten-pixel and 9 twelve-pixel literals onto the existing tokens of the same size.
+
 ## v0.16.17 (Colour tints that were never drawn, and text that was cut with no way back)
 
 Every soft coloured background and every coloured border in the app was asking for a shade of a semantic colour, and the stylesheet contained none of them. The four semantic colours were written as fixed values, and a fixed value has nowhere to put a transparency, so the build discarded each of those 163 requests without reporting anything. What reached the screen was the plain colour or nothing at all. The 8 percent shade failed for a second reason on top of the first, on every colour in the app rather than only these four.
