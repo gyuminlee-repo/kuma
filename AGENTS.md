@@ -221,6 +221,7 @@ Three files must have matching version on release:
 
 ### Git
 - Commit format: `vX.X.X: summary in English`
+- **shipped 동작이 바뀌지 않는 커밋에는 라벨을 달지 않는다.** 개발 스크립트, CI 워크플로, 문서만 건드리는 변경에 `vX.Y.Z:` 제목을 붙이면 `scripts/sync-version.sh:13` 이 제목에서 버전을 읽어 매니페스트를 전부 올리고, 그 순간 CHANGELOG 최상단이 옛 버전으로 남아 `gen-whatsnew.mjs --check` 가 exit 2 로 `sync:check` 를 떨어뜨린다. 통과시키려면 새 CHANGELOG 섹션과 `### Highlights`, 로케일 9개 번역이 전부 따라붙고, 정작 사용자는 What's New 에서 자기와 무관한 내부 수정을 읽게 된다. 라벨 없는 `chore(...)` 제목이면 `sync-version.sh` 가 15~17행에서 그대로 exit 0 하므로 아무것도 끌려오지 않는다 (2026-08-10, perf 하네스 폴더 위생 수정에 `v0.16.11` 을 붙였다가 이 게이트에 막혀 되돌리고 `chore(perf):` 로 재커밋해 통과시켰다, #278).
 - Tags: `vX.X.X` (semver)
 - Version bump 시 `git tag` 최신값뿐 아니라 `git log --oneline -5`의 커밋 메시지 `vX.X.X.YY` 시퀀스도 함께 확인 (태그 없이 커밋만 진행된 구간이 있으면 역행 위험)
 - **오래 열려 있던 PR 을 개번했으면 squash 제목까지 바꾼다.** squash 머지는 브랜치 원본 커밋의 제목을 그대로 쓴다. PR 제목만 고치고 머지하면 main 로그에 옛 라벨이 남고, 그 라벨이 이미 발행된 버전이면 `git log` 에 같은 번호가 두 번 보인다. 머지 시 `gh pr merge <N> --squash --subject "vX.Y.Z: ..."` 로 제목을 명시할 것. 브랜치 커밋을 `--amend` 하는 방법도 있으나 이미 push 된 브랜치를 다시 쓰게 되므로 `--subject` 가 낫다. 사후에는 고칠 수 없다. 커밋 메시지는 API 로 수정 불가이고 main 재작성은 금지이므로, 남는 수단은 `git notes` 로 정정 사실을 붙이는 것뿐이다 (2026-08-06, #246 이 v0.15.12, #251 이 v0.15.14 로 남아 둘 다 이미 발행된 번호와 겹쳤다. 정본은 각각 v0.15.16, v0.15.17 이고 매니페스트와 CHANGELOG 는 정확하다).
