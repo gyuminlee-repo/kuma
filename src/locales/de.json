@@ -963,6 +963,11 @@
         "desc": "Diese Wells gehörten nicht zum Layout des Laufs, es wurde also nichts von ihnen erwartet. Reads bedeuten entweder ein doch befülltes Well oder Barcode-Übersprechen vom Nachbarn. Wells:  {{list}}",
         "more": "und {{count}} weitere."
       },
+      "excludedOccupants": {
+        "title": "{{count}} Proben liegen nicht auf dieser Platte",
+        "desc": "Ihre Wells wurden nicht ausgewaehlt, dort wurde nichts sequenziert und sie haben in diesem Lauf kein Urteil. Proben: {{list}}",
+        "more": "und {{count}} weitere."
+      },
       "contamination": {
         "title": "Verirrte Reads",
         "subtitle": "Gemessen gegen die {{wells}} belegten Wells ({{source}}).",
@@ -2402,13 +2407,17 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die Auswahl von Wells verschiebt die Varianten nicht mehr. Jede bleibt in ihrem Well aus der Plattenreihenfolge; ein Klick sagt nur, welche Wells befuellt wurden.",
-      "Eine nur teilweise befuellte Platte laeuft jetzt. Weniger gewaehlte Wells als Proben wurde frueher vor dem Start abgelehnt.",
-      "Varianten in ausgelassenen Wells werden ueber dem Raster benannt und darin durchgestrichen, damit keine still aus einem Lauf faellt.",
-      "Der fertige Lauf haelt fest, welche Wells ausgelassen wurden und was darin lag, sodass ein Ergebnis sagen kann, was nie auf der Platte war."
+      "Der Ergebnisbildschirm benennt jetzt die Proben, die ein Lauf nicht auf die Platte gebracht hat, statt sie als leere Zelle und fehlende Zeile zu lassen.",
+      "Diese Liste stammt aus dem fertigen Lauf, also sagt auch ein wieder geoeffnetes Projekt, was ausgelassen wurde.",
+      "Laeufe, die jedes gezeichnete Well befuellt haben, bleiben unveraendert und zeigen keinen Hinweis."
     ],
-    "highlightsStamp": "0.16.11+39f046cb",
+    "highlightsStamp": "0.16.12+7324b926",
     "releases": {
+      "0.16.12": [
+        "Der Ergebnisbildschirm benennt jetzt die Proben, die ein Lauf nicht auf die Platte gebracht hat, statt sie als leere Zelle und fehlende Zeile zu lassen.",
+        "Diese Liste stammt aus dem fertigen Lauf, also sagt auch ein wieder geoeffnetes Projekt, was ausgelassen wurde.",
+        "Laeufe, die jedes gezeichnete Well befuellt haben, bleiben unveraendert und zeigen keinen Hinweis."
+      ],
       "0.16.11": [
         "Die Auswahl von Wells verschiebt die Varianten nicht mehr. Jede bleibt in ihrem Well aus der Plattenreihenfolge; ein Klick sagt nur, welche Wells befuellt wurden.",
         "Eine nur teilweise befuellte Platte laeuft jetzt. Weniger gewaehlte Wells als Proben wurde frueher vor dem Start abgelehnt.",
@@ -2530,6 +2539,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.12": "7324b926",
       "0.16.11": "39f046cb",
       "0.16.10": "24b9d0ac",
       "0.16.9": "46abfd1a",

@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.16.12 (The samples a run left off the plate were visible only as an absence)
+
+v0.16.11 made it possible to run a partly filled plate: the wells left out of the selection hold nothing, and the variants drafted into them are not sequenced. The run recorded which ones those were, and no screen read it. On the review screen a sample that was deliberately left out looked exactly like a sample the campaign never had, a blank cell on the plate and no row in the table, and the warning on the selection screen could not stand in for it because that one is drawn from a draft recomputed off the current inputs rather than from what the finished run did. Reopening a project lost the statement entirely.
+
+The review screen now names them, reading what the run itself wrote. A run that declared nothing, one that declared every occupied well, and a result saved before the field existed all stay silent, so the notice appears only where something really was left out.
+
+### Highlights
+
+- The review screen now names the samples a run left off the plate, instead of leaving them as a blank cell and a missing table row.
+- That list is read from the finished run, so reopening a project still says what was left out.
+- Runs that filled every well they drafted are unaffected and show no notice.
+
+### Added
+
+- v0.16.12: `src/components/mame/widgets/ExcludedOccupantsNotice.tsx` renders `layout_provenance.excluded_occupants` on the analyze review sub-step, above `OffLayoutRecordsNotice`. The two answer opposite ends of one question: this one names drafted samples no well received, that one counts records from wells nobody declared. The field reached the store and the autosave snapshot in v0.16.11 with no reader.
+
 ## v0.16.11 (A click meant to describe the plate rearranged it)
 
 The MAME well grid drew the computed placement and then re-seated it. Variant one took the first declared well, variant two the second, and so on down the declaration, so leaving a well out slid every later variant one well up. An operator narrowing the selection to the wells a campaign actually filled was not describing the plate in front of them, they were rebuilding it: deselect B1 and the wild-type control jumped out of C1 into the cell that had just been clicked. The grid exists to make the placement assumption visible, and under that rule it could not show a placement that stayed still long enough to be checked against a rack.

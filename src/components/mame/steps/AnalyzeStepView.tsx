@@ -38,6 +38,7 @@ import { PlateView } from "@/components/mame/widgets/PlateView";
 import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
 import { PlateClusterAlert } from "@/components/mame/widgets/PlateClusterAlert";
 import { MappingIntegrityAlert } from "@/components/mame/widgets/MappingIntegrityAlert";
+import { ExcludedOccupantsNotice } from "@/components/mame/widgets/ExcludedOccupantsNotice";
 import { OffLayoutRecordsNotice } from "@/components/mame/widgets/OffLayoutRecordsNotice";
 import { ReferenceResolutionNotice } from "@/components/mame/widgets/ReferenceResolutionNotice";
 import { LegacySampleMapNotice } from "@/components/mame/widgets/LegacySampleMapNotice";
@@ -368,6 +369,13 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               an answer about a finished run, not a property of the file in the
               form: the slice exists only once a run has cut it. */}
           <ReferenceResolutionNotice />
+          {/* Above the off-layout notice because it answers the prior
+              question: which of the drafted variants this run did not put on
+              the plate at all. Those have no verdict, so on this screen they
+              are an absence indistinguishable from a well the campaign never
+              had, and the review screen is where a restored project can still
+              be asked what was left out. */}
+          <ExcludedOccupantsNotice />
           <OffLayoutRecordsNotice />
           {/* Beside the off-layout notice because the two answer the same
               question from opposite ends: that one counts SCORED records from
