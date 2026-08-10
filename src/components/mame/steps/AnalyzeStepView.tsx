@@ -38,6 +38,7 @@ import { PlateView } from "@/components/mame/widgets/PlateView";
 import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
 import { PlateClusterAlert } from "@/components/mame/widgets/PlateClusterAlert";
 import { MappingIntegrityAlert } from "@/components/mame/widgets/MappingIntegrityAlert";
+import { RunQualityNotice } from "@/components/mame/widgets/RunQualityNotice";
 import { ExcludedOccupantsNotice } from "@/components/mame/widgets/ExcludedOccupantsNotice";
 import { OffLayoutRecordsNotice } from "@/components/mame/widgets/OffLayoutRecordsNotice";
 import { ReferenceResolutionNotice } from "@/components/mame/widgets/ReferenceResolutionNotice";
@@ -370,6 +371,12 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
       // no RunHealthPanel to reach them from, whatever this comment used to say.
       mainContent = (
         <div className="relative flex flex-col" ref={reviewContainerRef}>
+          {/* First of everything on this screen, and only when the run could not
+              have worked. A shallow plate is not a detail about how the run went,
+              it is the reason the numbers below it do not mean anything, and it
+              has to be unreadable-past rather than one notice among several.
+              Silent for every run that cleared the depth floor. */}
+          <RunQualityNotice />
           {/* Above the softer cluster/autosave notices: a suspect mapping is a
               judgment about whether this whole result can be trusted, not a
               detail about how it ran. */}

@@ -1001,6 +1001,19 @@
         "dismiss": "關閉此提示"
       }
     },
+    "runQuality": {
+      "blockingTitle": "本次執行無法判定：每孔 {{median}} 條讀段，下限為 {{floor}}。",
+      "blockingBody": "已判定的 {{total}} 個孔位中有 {{under}} 個低於下限，因此下方判定只是深度不足之盤的產物。",
+      "warningTitle": "本次執行可判定，但深度不足。",
+      "thresholdSource": "下限 {{floor}} 條讀段，建議 {{recommended}}。下限來源：{{source}}。",
+      "provisional": "為暫定值，待我方自行校準後再定。",
+      "pores": "流通池 {{cell}}：孔隙 {{pores}}（廠商保固水準 {{warranty}}，未作為閾值使用）。",
+      "finding": {
+        "median_depth_below_floor": "深度中位數 {{median}} 低於下限 {{floor}}。",
+        "median_depth_below_recommended": "深度中位數 {{median}} 低於建議的每個擴增子 {{recommended}} 條讀段。",
+        "flow_cell_reused": "流通池 {{cell}} 在本專案中已執行過一次，結束時孔隙為 {{previousPores}}。"
+      }
+    },
     "inspector": {
       "kvEmpty": "—",
       "noDataPlaceholder": "No data available"

@@ -1001,6 +1001,19 @@
         "dismiss": "Закрыть уведомление"
       }
     },
+    "runQuality": {
+      "blockingTitle": "Этот запуск нельзя оценить: {{median}} чтений на лунку при нижней границе {{floor}}.",
+      "blockingBody": "{{under}} из {{total}} оценённых лунок ниже границы, поэтому вердикты ниже суть артефакты планшета, которому не хватило глубины.",
+      "warningTitle": "Запуск оценить можно, но глубины недостаточно.",
+      "thresholdSource": "Граница {{floor}} чтений, рекомендуется {{recommended}}. Источник границы: {{source}}.",
+      "provisional": "Значение предварительное, до собственной калибровки.",
+      "pores": "Ячейка {{cell}}: {{pores}} пор (гарантийный уровень производителя {{warranty}}, как порог не применяется).",
+      "finding": {
+        "median_depth_below_floor": "Медианная глубина {{median}} ниже границы {{floor}}.",
+        "median_depth_below_recommended": "Медианная глубина {{median}} ниже рекомендованных {{recommended}} чтений на ампликон.",
+        "flow_cell_reused": "Ячейка {{cell}} уже несла запуск в этом проекте и завершила его с {{previousPores}} порами."
+      }
+    },
     "inspector": {
       "kvEmpty": "—",
       "noDataPlaceholder": "No data available"

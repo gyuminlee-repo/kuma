@@ -691,6 +691,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     get().setLayoutProvenance(result.layout_provenance ?? null);
     get().setMappingIntegrity(result.mapping_integrity ?? null);
     get().setOffLayoutRecords(result.off_layout_records ?? null);
+    get().setRunQuality(result.run_quality ?? null);
     get().setContamination(result.contamination ?? null);
     // Which reference this run actually read. Only the raw-run path resolves
     // one, so this is the branch that can carry a real value; `?? null` still
@@ -849,6 +850,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       get().setLayoutProvenance(result.layout_provenance ?? null);
       get().setMappingIntegrity(result.mapping_integrity ?? null);
       get().setOffLayoutRecords(result.off_layout_records ?? null);
+    get().setRunQuality(result.run_quality ?? null);
       get().setContamination(result.contamination ?? null);
       // See the raw-run branch. This path never resolves a reference (the
       // sidecar only does it for a MinKNOW run folder), so the value here is

@@ -1001,6 +1001,19 @@
         "dismiss": "この通知を閉じる"
       }
     },
+    "runQuality": {
+      "blockingTitle": "このランは判定できない。ウェルあたり {{median}} read、下限 {{floor}}。",
+      "blockingBody": "判定されたウェル {{total}} 件のうち {{under}} 件が下限未満。以下の判定は読む深さの無かったプレートの産物である。",
+      "warningTitle": "判定は可能だが深さが足りないラン。",
+      "thresholdSource": "下限 {{floor}} read、推奨 {{recommended}}。下限の出典: {{source}}。",
+      "provisional": "暫定値であり、自前のキャリブレーションまで維持する。",
+      "pores": "フローセル {{cell}}: 細孔 {{pores}}（メーカー保証水準 {{warranty}}、閾値としては適用しない）。",
+      "finding": {
+        "median_depth_below_floor": "深さの中央値 {{median}} が下限 {{floor}} 未満。",
+        "median_depth_below_recommended": "深さの中央値 {{median}} が推奨の amplicon あたり {{recommended}} read 未満。",
+        "flow_cell_reused": "フローセル {{cell}} はこのプロジェクトで既に1回ランを経ており、そのとき細孔 {{previousPores}} で終わった。"
+      }
+    },
     "inspector": {
       "kvEmpty": "—",
       "noDataPlaceholder": "No data available"

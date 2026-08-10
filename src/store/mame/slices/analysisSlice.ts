@@ -31,6 +31,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   mappingIntegrity: null,
   compareParams: null,
   offLayoutRecords: null,
+  runQuality: null,
   contamination: null,
   referenceResolution: null,
   restoredResultProvenance: null,
@@ -56,6 +57,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   setMappingIntegrity: (mappingIntegrity) => set({ mappingIntegrity }),
   setCompareParams: (compareParams) => set({ compareParams }),
   setOffLayoutRecords: (offLayoutRecords) => set({ offLayoutRecords }),
+  setRunQuality: (runQuality) => set({ runQuality }),
   setContamination: (contamination) => set({ contamination }),
   setReferenceResolution: (referenceResolution) => set({ referenceResolution }),
   setRestoredResultProvenance: (restoredResultProvenance) =>
@@ -96,6 +98,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       // has since changed would have been judged against.
       compareParams: null,
       offLayoutRecords: null,
+      runQuality: null,
       // Measured against the wells THESE verdicts were scored on, so it stops
       // meaning anything the moment they go.
       contamination: null,
@@ -325,6 +328,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       layoutProvenance: null,
       mappingIntegrity: null,
       offLayoutRecords: null,
+      runQuality: null,
       // Sample data is a consensus-dir fixture and never demuxed, so there is
       // no matrix behind it. null, not an empty report.
       contamination: null,

@@ -1096,6 +1096,19 @@
         "dismiss": "Dismiss this notice"
       }
     },
+    "runQuality": {
+      "blockingTitle": "This run cannot be scored: {{median}} reads per well against a floor of {{floor}}.",
+      "blockingBody": "{{under}} of {{total}} scored wells fall under the floor, so the verdicts below are artefacts of a plate that never had the depth to be read.",
+      "warningTitle": "This run is scorable but under-powered.",
+      "thresholdSource": "Floor {{floor}} reads, recommended {{recommended}}. Floor source: {{source}}.",
+      "provisional": "Provisional, pending a calibration on our own runs.",
+      "pores": "Flow cell {{cell}}: {{pores}} pores (vendor warranty level {{warranty}}, not applied as a threshold).",
+      "finding": {
+        "median_depth_below_floor": "Median depth {{median}} is under the floor of {{floor}}.",
+        "median_depth_below_recommended": "Median depth {{median}} is under the recommended {{recommended}} reads per amplicon.",
+        "flow_cell_reused": "Flow cell {{cell}} already carried a run in this project, which ended with {{previousPores}} pores."
+      }
+    },
     "inspector": {
       "kvEmpty": "—",
       "noDataPlaceholder": "No data available"

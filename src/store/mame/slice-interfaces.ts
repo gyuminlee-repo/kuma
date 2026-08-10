@@ -25,6 +25,7 @@ import type {
   VerdictRecord,
   WellEntry,
 } from "@/types/mame/models";
+import type { RunQuality } from "@/types/mame/run_quality";
 import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
 import type { NativeBarcodeUsage } from "@/types/mame/detect_native_barcodes";
 import type { VariantSourceInfo } from "@/types/mame/barcode_package";
@@ -341,6 +342,13 @@ export interface AnalysisSlice {
    */
   offLayoutRecords: OffLayoutRecords | null;
   /**
+   * Whether the run could have produced a scorable plate at all, or null when no
+   * run has completed since the last reset. Read before the verdicts: a
+   * blocking severity here means no well cleared the depth its own consensus
+   * needs, so every verdict below it is an artefact.
+   */
+  runQuality: RunQuality | null;
+  /**
    * What the demux matrix said about reads outside the campaign, or null when
    * no run has completed since the last reset AND when the completed run could
    * not measure it (a consensus-dir run never demuxes, so it has no matrix).
@@ -404,6 +412,7 @@ export interface AnalysisSlice {
   setMappingIntegrity: (mappingIntegrity: MappingIntegrity | null) => void;
   setCompareParams: (compareParams: CompareParams | null) => void;
   setOffLayoutRecords: (offLayoutRecords: OffLayoutRecords | null) => void;
+  setRunQuality: (runQuality: RunQuality | null) => void;
   setContamination: (contamination: ContaminationReport | null) => void;
   setReferenceResolution: (
     referenceResolution: ReferenceResolution | null,

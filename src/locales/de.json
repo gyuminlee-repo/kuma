@@ -1001,6 +1001,19 @@
         "dismiss": "Hinweis schließen"
       }
     },
+    "runQuality": {
+      "blockingTitle": "Dieser Lauf ist nicht bewertbar: {{median}} Reads pro Well gegen eine Untergrenze von {{floor}}.",
+      "blockingBody": "{{under}} von {{total}} bewerteten Wells liegen unter der Untergrenze, also sind die Urteile unten Artefakte einer Platte ohne die Tiefe, gelesen zu werden.",
+      "warningTitle": "Dieser Lauf ist bewertbar, aber zu flach.",
+      "thresholdSource": "Untergrenze {{floor}} Reads, empfohlen {{recommended}}. Quelle der Untergrenze: {{source}}.",
+      "provisional": "Vorlaeufig, bis eine eigene Kalibrierung vorliegt.",
+      "pores": "Flusszelle {{cell}}: {{pores}} Poren (Garantieniveau des Herstellers {{warranty}}, nicht als Schwelle angewandt).",
+      "finding": {
+        "median_depth_below_floor": "Mediane Tiefe {{median}} liegt unter der Untergrenze von {{floor}}.",
+        "median_depth_below_recommended": "Mediane Tiefe {{median}} liegt unter den empfohlenen {{recommended}} Reads pro Amplikon.",
+        "flow_cell_reused": "Flusszelle {{cell}} trug in diesem Projekt bereits einen Lauf, der mit {{previousPores}} Poren endete."
+      }
+    },
     "inspector": {
       "kvEmpty": "—",
       "noDataPlaceholder": "No data available"

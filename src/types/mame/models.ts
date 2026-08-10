@@ -1,3 +1,4 @@
+import type { RunQuality } from "./run_quality";
 import type { ReactNode } from "react";
 
 export type VerdictClass =
@@ -419,6 +420,13 @@ export interface AnalyzeResult extends AnalyzeYield {
    * `layout_provenance`.
    */
   off_layout_records?: OffLayoutRecords;
+  /**
+   * Whether the run could have produced a scorable plate, with the numbers and
+   * the provenance of every threshold behind that. Optional only for results
+   * persisted before the block existed; every current run carries it, including
+   * a clean one (severity null).
+   */
+  run_quality?: RunQuality;
   /**
    * Stray-read signals read off the demux matrix. Optional for TWO reasons,
    * unlike the fields above: a result persisted before the key existed, AND a

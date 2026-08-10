@@ -1001,6 +1001,19 @@
         "dismiss": "Fechar este aviso"
       }
     },
+    "runQuality": {
+      "blockingTitle": "Esta execucao nao pode ser avaliada: {{median}} leituras por poco contra um piso de {{floor}}.",
+      "blockingBody": "{{under}} de {{total}} pocos avaliados ficam abaixo do piso, entao os vereditos abaixo sao artefatos de uma placa sem profundidade para ser lida.",
+      "warningTitle": "Esta execucao e avaliavel, mas com profundidade insuficiente.",
+      "thresholdSource": "Piso {{floor}} leituras, recomendado {{recommended}}. Fonte do piso: {{source}}.",
+      "provisional": "Provisorio, aguardando calibracao nas nossas proprias execucoes.",
+      "pores": "Celula {{cell}}: {{pores}} poros (nivel de garantia do fabricante {{warranty}}, nao aplicado como limite).",
+      "finding": {
+        "median_depth_below_floor": "Profundidade mediana {{median}} abaixo do piso de {{floor}}.",
+        "median_depth_below_recommended": "Profundidade mediana {{median}} abaixo das {{recommended}} leituras por amplicon recomendadas.",
+        "flow_cell_reused": "A celula {{cell}} ja levou uma execucao neste projeto, encerrada com {{previousPores}} poros."
+      }
+    },
     "inspector": {
       "kvEmpty": "—",
       "noDataPlaceholder": "No data available"
