@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.16.14 (Two different variants read as the same cut-off name on the plate grid)
+
+The well grid drew each cell 2.25rem wide and cut whatever did not fit, which at 10px is about five characters. Six-character mutant ids are ordinary, so cells showed "R560..." and "A223..." with the part that tells two variants apart being exactly the part removed. R560E and R560Q are neighbours on that plate and rendered identically. The grid exists to show which variant sits where, and a name it cuts before the discriminating character answers neither half of that.
+
+Cells are wider now and a name too long for one line wraps inside the cell instead of being cut. The plate still scrolls sideways in its own container, so the extra width takes nothing from the rest of the screen.
+
+### Highlights
+
+- Variant names on the well grid are no longer cut off. Two variants that differ only in the last character can be told apart at a glance.
+- A name too long for one line wraps inside its cell instead of being truncated.
+
+### Fixed
+
+- v0.16.14: `WellSelectionPanel` grid columns go from 2.25rem to 3rem and the cell label wraps (`break-all`, two lines inside a taller cell) rather than truncating. The full name was always in the title and the accessible label, so this was a display cut rather than missing data, but reading it needed a hover per well.
+
 ## v0.16.13 (Which barcode goes in which well was stated nowhere before pipetting)
 
 The combinatorial barcode is decided by where a sample sits: the plate row picks the reverse seed, the column picks the forward one. Nothing said so anywhere an operator could read before setting up a plate. The package written at barcode setup lists twenty primers with no plate in it, the per-well sheet it once carried is gone, and the barcode column otherwise appears only on the workbook a finished run writes, which records what was sequenced rather than planning what to sequence.
