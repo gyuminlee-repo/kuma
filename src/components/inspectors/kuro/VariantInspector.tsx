@@ -45,7 +45,7 @@ export function VariantInspector({ selected }: VariantInspectorProps) {
             <span className="text-[13px] font-semibold text-foreground">
               {selected.mutation}
             </span>
-            <span className="rounded-sm bg-accent px-1.5 py-0.5 text-[10px] font-medium text-accent-foreground">
+            <span className="rounded-sm bg-accent px-1.5 py-0.5 text-plate font-medium text-accent-foreground">
               {t("kuro.inspector.selectedBadge")}
             </span>
           </div>

@@ -243,7 +243,7 @@ export function ReplicateMergeStats({ replicateStats }: { replicateStats: MergeR
       className="rounded-md border border-border bg-muted/30 px-3 py-2"
       aria-label={t("roundSummary.replicateStatsAria")}
     >
-      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <p className="mb-1.5 text-plate font-semibold uppercase tracking-wide text-muted-foreground">
         {t("roundSummary.replicateMergeTitle")}
       </p>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-4">
@@ -359,7 +359,7 @@ function RationaleTooltip({
       aria-label={t("roundSummarySignals.rationaleAriaLabel", { text: fullText })}
       title={fullText}
       className={cn(
-        "inline-flex cursor-help items-center rounded-full px-1 py-0.5 text-[10px] font-medium",
+        "inline-flex cursor-help items-center rounded-full px-1 py-0.5 text-plate font-medium",
         literatureAnchor
           ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
           : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
@@ -499,7 +499,7 @@ export function RoundSummaryPanel({
           )}
         </h3>
         {metrics != null && (
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-plate text-muted-foreground">
             {metrics.round_id} · computed{" "}
             {new Date(metrics.computed_at).toLocaleString()}
           </span>

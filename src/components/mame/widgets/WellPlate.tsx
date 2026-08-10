@@ -139,10 +139,11 @@ export function WellPlate({
                       "well-button relative flex aspect-square w-full flex-col items-stretch justify-between overflow-hidden rounded-md border text-center shadow-sm",
                       "font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
                       !well && "cursor-default",
-                      isFocused && "well-button-selected",
                       well?.selected && "shadow-md",
                     )}
                     style={{
+                      // Focus/selection border is expressed here via borderColor/borderWidth,
+                      // not a CSS class. Do not reintroduce a "selected" utility class.
                       backgroundColor: fill.bg,
                       color: fill.text,
                       borderColor: isFocused ? "hsl(var(--ring))" : fill.border,

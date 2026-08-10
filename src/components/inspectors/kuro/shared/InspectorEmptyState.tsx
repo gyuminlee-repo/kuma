@@ -8,6 +8,6 @@ type InspectorEmptyStateProps = {
 
 export function InspectorEmptyState({ message }: InspectorEmptyStateProps) {
   return (
-    <p className="text-[12px] text-muted-foreground">{message}</p>
+    <p className="text-caption text-muted-foreground">{message}</p>
   );
 }
