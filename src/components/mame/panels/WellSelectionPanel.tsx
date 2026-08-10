@@ -27,8 +27,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { save } from "@tauri-apps/plugin-dialog"
+import { toast } from "sonner"
 
 import { sendRequest } from "@/lib/ipc-mame"
+import type { ExportBarcodeWorklistResult } from "@/types/mame/barcode_worklist"
 import { formatError } from "@/lib/utils"
 import { useMameAppStore } from "@/store/mame/mameAppStore"
 import type { BuildWellLayoutResult, WellLayoutRow } from "@/types/mame/well_layout"
@@ -59,11 +62,15 @@ export function WellSelectionPanel() {
   const variantColumn = useMameAppStore((s) => s.variantColumn)
   const selectedWells = useMameAppStore((s) => s.selectedWells)
   const setSelectedWells = useMameAppStore((s) => s.setSelectedWells)
+  // For the seed NAMES on the worklist. Absent in consensus mode, where the
+  // sheet still states every pairing because that comes from the plate.
+  const customBarcodesPath = useMameAppStore((s) => s.rawRunParams.customBarcodesPath)
   const setWellSelectionOccupants = useMameAppStore((s) => s.setWellSelectionOccupants)
 
   const [draft, setDraft] = useState<WellLayoutRow[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [focusSeq, setFocusSeq] = useState(1)
+  const [exporting, setExporting] = useState(false)
   const anchorSeq = useRef(1)
   const dragMode = useRef<"select" | "deselect" | null>(null)
   const gridRef = useRef<HTMLDivElement | null>(null)
@@ -146,6 +153,65 @@ export function WellSelectionPanel() {
     },
     [defaultSelection, setSelectedWells],
   )
+
+  /**
+   * Write the bench list: every occupied well, its ``{R}_{F}`` barcode and the
+   * two seed primers that make it.
+   *
+   * Computed in the sidecar off the same two calls the run makes rather than
+   * from the grid on screen, so the sheet cannot name a well the run would
+   * score differently. `selectedWells` is sent as-is, null included: null means
+   * the whole draft there exactly as it does on a run.
+   */
+  const exportWorklist = useCallback(async () => {
+    if (!expectedPath) return
+    setExporting(true)
+    try {
+      const target = await save({
+        filters: [{ name: "CSV", extensions: ["csv"] }],
+        defaultPath: "barcode_worklist.csv",
+      })
+      if (!target) return
+      const result = await sendRequest<ExportBarcodeWorklistResult>(
+        "mame.export_barcode_worklist",
+        {
+          expected_mutations_xlsx: expectedPath,
+          variant_sheet: variantSheet ?? undefined,
+          variant_column: variantColumn ?? undefined,
+          custom_barcodes_xlsx: customBarcodesPath || undefined,
+          selected_wells: selectedWells,
+          output_path: target,
+        },
+      )
+      toast.success(
+        t("mame.wellSelection.worklistWritten", {
+          rows: result.rows,
+          reverse: result.reverse_indices.length,
+          forward: result.forward_indices.length,
+        }),
+      )
+      // A seed the workbook lacks is the one thing on that sheet an operator
+      // cannot act on, so it is said separately rather than folded into a count.
+      if (result.missing_seeds.length > 0) {
+        toast.warning(
+          t("mame.wellSelection.worklistMissingSeeds", {
+            list: result.missing_seeds.join(", "),
+          }),
+        )
+      }
+    } catch (error) {
+      toast.error(t("mame.wellSelection.worklistFailed", { error: formatError(error) }))
+    } finally {
+      setExporting(false)
+    }
+  }, [
+    expectedPath,
+    variantSheet,
+    variantColumn,
+    customBarcodesPath,
+    selectedWells,
+    t,
+  ])
 
   const applyTo = useCallback(
     (wells: string[], mode: "select" | "deselect") => {
@@ -354,6 +420,23 @@ export function WellSelectionPanel() {
               onClick={() => commit([])}
             >
               {t("mame.wellSelection.clearAll")}
+            </button>
+            {/*
+              The bench list. Which wells a campaign fills decides which
+              ``{R}_{F}`` barcodes it uses, and that pairing was stated nowhere
+              an operator could read before pipetting: the package lists twenty
+              primers with no plate in it, and the barcode column otherwise
+              appears only on the workbook a finished run writes. Reading it off
+              this grid by eye is the transcription step the grid exists to
+              remove.
+            */}
+            <button
+              type="button"
+              disabled={exporting || selection.length === 0}
+              className="rounded border border-border px-2 py-1 text-caption hover:bg-muted disabled:opacity-50"
+              onClick={() => void exportWorklist()}
+            >
+              {t("mame.wellSelection.exportWorklist")}
             </button>
           </div>
 

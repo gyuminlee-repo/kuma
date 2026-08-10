@@ -439,6 +439,26 @@
       "severity": "blocking"
     },
     {
+      "id": "mame-barcode-worklist",
+      "files": [
+        "kuma_core/mame/barcode_worklist.py",
+        "python-core/sidecar_mame/handlers/barcode_worklist.py",
+        "python-core/sidecar_mame/models.py",
+        "python-core/sidecar_mame/dispatcher.py",
+        "src/types/mame/barcode_worklist.ts",
+        "src/components/mame/panels/WellSelectionPanel.tsx"
+      ],
+      "symbols": [
+        "build_barcode_worklist",
+        "ExportBarcodeWorklistParams",
+        "handle_export_barcode_worklist",
+        "ExportBarcodeWorklistResult",
+        "mame.export_barcode_worklist"
+      ],
+      "note": "mame.export_barcode_worklist: core pairing <-> Pydantic model <-> handler dict <-> dispatcher entry <-> TS interfaces <-> the panel button that calls it. The pairing is NOT a second copy of the plate rule: build_barcode_worklist reads plate_geometry.DEFAULT_ADDRESSING and the token it produces, so a change to the addressing moves the sheet with it. What drifts here instead is the response shape, read byte-for-byte by the TS type and the toast strings. The handler applies the declared selection through apply_well_selection, the same call analyze makes, so a sheet written before a run and the wells that run scores cannot disagree; excluded_occupants rides along for the same reason.",
+      "severity": "blocking"
+    },
+    {
       "id": "mame-plate-addressing",
       "files": [
         "kuma_core/mame/plate_geometry.py",
