@@ -125,6 +125,8 @@ def run_analyze(
     many_cutoff: int = 5,
     ingest_mode: IngestMode = IngestMode.BARCODE,
     well_layout: dict[str, str] | None = None,
+    scored_wells: set[str] | None = None,
+    skipped_records_out: dict[str, int] | None = None,
     progress_callback: Callable[[int, int], None] | None = None,
     designed_mutant_ids: frozenset[str] | None = None,
     records: list[BarcodeRecord] | None = None,
@@ -231,6 +233,10 @@ def run_analyze(
     )
 
     verdicts: list[VerdictRecord] = []
+    # Normalised once, because the loop compares against `_norm_well` output
+    # ("A01") and a caller states wells the way the layout does ("A1"). Comparing
+    # the two forms directly matched nothing and dropped every record.
+    _scored = None if scored_wells is None else {_norm_well(w) for w in scored_wells}
     total_records = len(records)
     # Per-record timing (records are wells, not reads) accumulated in locals and
     # committed once after the loop, so the timer costs two perf_counter calls
@@ -238,6 +244,31 @@ def run_analyze(
     _t_translate = 0.0
     _t_verdict = 0.0
     for i, rec in enumerate(records, 1):
+        # A well the campaign declared empty is not judged. Reads still arrive
+        # from it (barcode leakage puts a few on combinations nobody pipetted),
+        # but there is no sample there to be right or wrong about, and the
+        # fallback below would compare it against the WHOLE expected list and
+        # call it WRONG_AA. That is what a ten-well campaign looked like: ten
+        # wells declared, ninety-six scored, sixty-nine of them failing a
+        # comparison against variants that were never in them.
+        #
+        # Only wells whose barcode places them on the plate are dropped this
+        # way. One that cannot be resolved is a different problem and keeps its
+        # old fallback verdict rather than disappearing into a count.
+        if _scored is not None:
+            _seq = _custom_barcode_to_seq(rec.custom_barcode)
+            if _seq is not None:
+                _well = seq_to_well(_seq)
+                if _norm_well(_well) not in _scored:
+                    if skipped_records_out is not None:
+                        # Keyed by the unpadded label, the form the off-layout
+                        # report already uses for the wells it names from
+                        # verdicts. Two spellings of one well would print the
+                        # same well twice on that list.
+                        skipped_records_out[_well] = skipped_records_out.get(_well, 0) + 1
+                    if progress_callback is not None:
+                        progress_callback(i, total_records)
+                    continue
         _t0 = time.perf_counter()
         translated = translate_and_diff(
             record=rec,

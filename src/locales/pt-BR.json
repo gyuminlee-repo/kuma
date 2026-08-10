@@ -836,7 +836,8 @@
         "replicatePurityOrder": "A réplica de leitura mais limpa é a que vale, ordenada pela pureza medida.",
         "selfConsistencyCheck": "Depois da execução, cada poço é conferido contra a própria variante esperada e contra os demais.",
         "plateColumnRowOrder": "As linhas de resultado seguem a coluna da placa, como qualquer outra regra de posicionamento.",
-        "barcodePlateShapeRefused": "Um arquivo de barcodes que não descreve uma placa 8 por 12 para a execução."
+        "barcodePlateShapeRefused": "Um arquivo de barcodes que não descreve uma placa 8 por 12 para a execução.",
+        "declaredWellsOnly": "Os pocos fora da selecao nao sao mais avaliados. Antes eram comparados com toda a lista de variantes e falhavam."
       }
     },
     "janus": {
@@ -2416,12 +2417,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Os nomes de variantes no mapa da placa de analise agora crescem junto com a placa, em vez de permanecerem em um tamanho fixo.",
-      "Ao ampliar a placa, nao sao apenas as celulas que aumentam, o texto tambem aumenta.",
-      "Nomes que ficavam cortados em uma placa estreita ficam legiveis quando a placa tem mais espaco."
+      "Os pocos excluidos da selecao nao sao mais avaliados. Antes eram comparados com toda a lista de variantes e relatados como falha.",
+      "Uma campanha de dez pocos devolve dez vereditos em vez de noventa e seis com oitenta e seis falhas falsas.",
+      "As leituras vindas desses pocos continuam contadas e nomeadas como registros fora do plano.",
+      "Execucoes sem selecao declarada se comportam exatamente como antes.",
+      "Execucoes salvas com selecao sao marcadas como produto da regra antiga."
     ],
-    "highlightsStamp": "0.16.15+a06fdd53",
+    "highlightsStamp": "0.16.16+cc3ef016",
     "releases": {
+      "0.16.16": [
+        "Os pocos excluidos da selecao nao sao mais avaliados. Antes eram comparados com toda a lista de variantes e relatados como falha.",
+        "Uma campanha de dez pocos devolve dez vereditos em vez de noventa e seis com oitenta e seis falhas falsas.",
+        "As leituras vindas desses pocos continuam contadas e nomeadas como registros fora do plano.",
+        "Execucoes sem selecao declarada se comportam exatamente como antes.",
+        "Execucoes salvas com selecao sao marcadas como produto da regra antiga."
+      ],
       "0.16.15": [
         "Os nomes de variantes no mapa da placa de analise agora crescem junto com a placa, em vez de permanecerem em um tamanho fixo.",
         "Ao ampliar a placa, nao sao apenas as celulas que aumentam, o texto tambem aumenta.",
@@ -2563,6 +2573,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",
       "0.16.14": "9c581a55",
       "0.16.13": "72c957ac",

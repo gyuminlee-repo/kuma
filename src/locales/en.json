@@ -1113,7 +1113,8 @@
         "replicatePurityOrder": "The replicate that reads cleanest is the one that ships, ordered by measured purity.",
         "selfConsistencyCheck": "After the run, every well is checked against its own expected variant and against the others.",
         "plateColumnRowOrder": "Result rows follow the plate column, like every other placement rule.",
-        "barcodePlateShapeRefused": "A barcode file that does not describe an 8 by 12 plate stops the run."
+        "barcodePlateShapeRefused": "A barcode file that does not describe an 8 by 12 plate stops the run.",
+        "declaredWellsOnly": "Wells left out of the selection are no longer scored. They used to be compared against the whole variant list and fail."
       }
     },
     "janus": {
@@ -2449,12 +2450,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Variant names on the analyze plate map now grow with the plate instead of staying at one fixed size.",
-      "Expanding the plate makes the writing bigger, not just the cells.",
-      "Names that were cut off in a narrow plate become readable once the plate has room."
+      "Wells left out of the selection are no longer scored. They used to be compared against the whole variant list and reported as failures.",
+      "A ten-well campaign now returns ten verdicts instead of ninety-six with eighty-six false failures.",
+      "Reads arriving from those wells are still counted and named as off-layout records.",
+      "Runs that declared no selection behave exactly as before.",
+      "Saved runs made with a selection are flagged as produced by the old rule instead of being trusted."
     ],
-    "highlightsStamp": "0.16.15+a06fdd53",
+    "highlightsStamp": "0.16.16+cc3ef016",
     "releases": {
+      "0.16.16": [
+        "Wells left out of the selection are no longer scored. They used to be compared against the whole variant list and reported as failures.",
+        "A ten-well campaign now returns ten verdicts instead of ninety-six with eighty-six false failures.",
+        "Reads arriving from those wells are still counted and named as off-layout records.",
+        "Runs that declared no selection behave exactly as before.",
+        "Saved runs made with a selection are flagged as produced by the old rule instead of being trusted."
+      ],
       "0.16.15": [
         "Variant names on the analyze plate map now grow with the plate instead of staying at one fixed size.",
         "Expanding the plate makes the writing bigger, not just the cells.",
@@ -2596,6 +2606,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",
       "0.16.14": "9c581a55",
       "0.16.13": "72c957ac",

@@ -44,6 +44,7 @@ export const RESULT_CONTRACT_REVISIONS: readonly ResultContractRevision[] = [
   { revision: 3, since: "0.15.15", key: "selfConsistencyCheck" },
   { revision: 4, since: "0.15.17.03", key: "plateColumnRowOrder" },
   { revision: 5, since: "0.15.19", key: "barcodePlateShapeRefused" },
+  { revision: 6, since: "0.16.16", key: "declaredWellsOnly" },
 ] as const;
 
 /** The revision this build's analyze produces. */

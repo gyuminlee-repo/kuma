@@ -101,7 +101,7 @@ describe("revisionForVersion", () => {
 describe("changesSince", () => {
   it("lists only what came after the given revision", () => {
     expect(changesSince(RESULT_CONTRACT)).toEqual([]);
-    expect(changesSince(4).map((entry) => entry.revision)).toEqual([5]);
+    expect(changesSince(4).map((entry) => entry.revision)).toEqual([5, 6]);
     expect(changesSince(0)).toHaveLength(RESULT_CONTRACT_REVISIONS.length);
   });
 });

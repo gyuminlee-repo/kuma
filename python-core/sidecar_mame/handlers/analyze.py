@@ -573,8 +573,12 @@ def _selected_wells_param(params: dict) -> list[str] | None:
     return raw
 
 
-def _off_layout_records(verdicts: list, well_layout: dict[str, str] | None) -> dict:
-    """How many scored records came from wells the layout does not name.
+def _off_layout_records(
+    verdicts: list,
+    well_layout: dict[str, str] | None,
+    skipped_records: dict[str, int] | None = None,
+) -> dict:
+    """How many records came from wells the layout does not name.
 
     Reported, never refused. An operator who declares which wells the campaign
     occupies is stating that the rest are empty, and reads from an empty well
@@ -584,6 +588,12 @@ def _off_layout_records(verdicts: list, well_layout: dict[str, str] | None) -> d
 
     ``None`` layout means no well was declared and every record is in scope, so
     the count is zero rather than "all of them".
+
+    ``skipped_records`` carries the wells the pipeline refused to score because
+    a declared selection left them out. They have no verdict by construction,
+    so counting verdicts alone would report zero for exactly the runs this
+    signal exists for: the declaration is what makes an off-layout read
+    meaningful in the first place.
     """
     from kuma_core.mame.export.excel_writer import _custom_barcode_to_seq
     from kuma_core.mame.export.well_mapper import seq_to_well
@@ -601,6 +611,8 @@ def _off_layout_records(verdicts: list, well_layout: dict[str, str] | None) -> d
         if norm_well(well) in declared:
             continue
         off[well] = off.get(well, 0) + 1
+    for well, count in (skipped_records or {}).items():
+        off[well] = off.get(well, 0) + count
     return {
         "count": sum(off.values()),
         "wells": [
@@ -1764,6 +1776,25 @@ def handle_analyze(params: dict) -> dict:
     )
     _meta_thread.start()
 
+    # Which wells this run judges, and what it refused to judge.
+    #
+    # Only a declared selection narrows this. Without one the layout names every
+    # occupant the campaign has, an unlisted well is a well nobody said anything
+    # about, and the pipeline keeps its old fallback verdict for it; passing
+    # None leaves that path byte-identical.
+    #
+    # With one, an unlisted well is a well the operator declared EMPTY, and
+    # scoring it was the defect: the fallback compares such a well against the
+    # whole expected list, which nothing can match, so declaring ten wells on a
+    # 96-well run came back with ten passes and eighty-six failures instead of
+    # ten results. The reads are still there (leakage puts a few on
+    # combinations nobody pipetted) and are still counted, as off-layout
+    # records, which is what they are.
+    _scored_wells: set[str] | None = (
+        set(well_layout or {}) if selected_wells is not None else None
+    )
+    _skipped_records: dict[str, int] = {}
+
     _hb_thread = threading.Thread(
         target=_heartbeat, daemon=True, name="analyze-heartbeat"
     )
@@ -1832,6 +1863,8 @@ def handle_analyze(params: dict) -> dict:
                     many_cutoff=many_cutoff,
                     ingest_mode=ingest_mode_enum,
                     well_layout=well_layout,
+                    scored_wells=_scored_wells,
+                    skipped_records_out=_skipped_records,
                     progress_callback=_band_callback,
                     records=raw_records,
                     expected_mutations=expected_mutations,
@@ -1854,6 +1887,8 @@ def handle_analyze(params: dict) -> dict:
                 many_cutoff=many_cutoff,
                 ingest_mode=ingest_mode_enum,
                 well_layout=well_layout,
+                scored_wells=_scored_wells,
+                skipped_records_out=_skipped_records,
                 progress_callback=_band_callback,
                 records=raw_records,
                 expected_mutations=expected_mutations,
@@ -1979,7 +2014,9 @@ def handle_analyze(params: dict) -> dict:
         # crosstalk, and which of the two it is cannot be decided from the count.
         # Reported so an operator can see it rather than having it disappear
         # into an UNKNOWN_* group.
-        "off_layout_records": _off_layout_records(verdicts, well_layout),
+        "off_layout_records": _off_layout_records(
+            verdicts, well_layout, _skipped_records
+        ),
         # Stray-read signals read straight off the demux matrix
         # (kuma_core.mame.qc.contamination). Raw-run only, so the key is absent
         # in consensus-dir mode. Every signal inside is either a measurement or
