@@ -23,7 +23,15 @@ const cbPatterns: Partial<Record<VerdictClass, string>> = {
   MANY: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cline x1='3' y1='0' x2='3' y2='6' stroke='rgba(255,255,255,0.20)' stroke-width='1'/%3E%3C/svg%3E")`,
 };
 
-const plateGridTemplate = "24px repeat(12, minmax(34px, 1fr))";
+// 38px is the measured minimum well width at which a 6-character mutant_id
+// (e.g. "S1234T") fits on one line at 10px/font-weight 500 (Edge canvas
+// measureText). At the previous 34px, 5-char labels split inconsistently
+// by content, not length: "R560E" fit but "R560Q" was clipped down to the
+// shared "R560" prefix, cutting off the distinguishing character (the
+// same failure v0.16.14 fixed for WellSelectionPanel.tsx). The plate grid
+// already scrolls horizontally (overflow-x-auto below), so the extra width
+// deepens an existing scroll region instead of creating a new one.
+const plateGridTemplate = "24px repeat(12, minmax(38px, 1fr))";
 const plateGridGap = "4px";
 
 /** Plate badge text from a native barcode: "sort_barcode06" → "NB06".
@@ -145,7 +153,7 @@ export function WellPlate({
                   >
                     {well && (
                       <span
-                        className="min-w-0 flex-1 truncate px-0.5 leading-tight opacity-85"
+                        className="min-w-0 flex-1 break-all leading-tight opacity-85"
                         title={well.mutant_id || undefined}
                       >
                         {well.mutant_id || "-"}
