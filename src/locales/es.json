@@ -2402,13 +2402,19 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Guardar un proyecto ya funciona en macOS y Linux. El autoguardado se rechazaba en silencio, así que al reabrir un proyecto no se restauraba nada.",
-      "La salida de análisis de MAME y las entradas de KURO sobreviven a un reinicio en esas plataformas, igual que ya ocurría en Windows.",
-      "Las notas de actualización cubren todas las versiones entre la última que usaste y la recién instalada, no solo la más reciente.",
-      "Cada versión de esa lista tiene su propio encabezado, y la lista se desplaza cuando se muestran varias a la vez."
+      "Seleccionar pocillos ya no mueve las variantes. Cada una conserva el pocillo que le dio el orden de placa y un clic solo indica que pocillos se llenaron.",
+      "Una placa llena solo en parte ahora se ejecuta. Menos pocillos seleccionados que muestras se rechazaba antes de iniciar.",
+      "Las variantes de los pocillos omitidos se nombran sobre la rejilla y se tachan en ella, de modo que ninguna desaparece en silencio.",
+      "La ejecucion terminada registra que pocillos se omitieron y que habia en ellos, para que un resultado diga que nunca estuvo en la placa."
     ],
-    "highlightsStamp": "0.16.10+24b9d0ac",
+    "highlightsStamp": "0.16.11+39f046cb",
     "releases": {
+      "0.16.11": [
+        "Seleccionar pocillos ya no mueve las variantes. Cada una conserva el pocillo que le dio el orden de placa y un clic solo indica que pocillos se llenaron.",
+        "Una placa llena solo en parte ahora se ejecuta. Menos pocillos seleccionados que muestras se rechazaba antes de iniciar.",
+        "Las variantes de los pocillos omitidos se nombran sobre la rejilla y se tachan en ella, de modo que ninguna desaparece en silencio.",
+        "La ejecucion terminada registra que pocillos se omitieron y que habia en ellos, para que un resultado diga que nunca estuvo en la placa."
+      ],
       "0.16.10": [
         "Guardar un proyecto ya funciona en macOS y Linux. El autoguardado se rechazaba en silencio, así que al reabrir un proyecto no se restauraba nada.",
         "La salida de análisis de MAME y las entradas de KURO sobreviven a un reinicio en esas plataformas, igual que ya ocurría en Windows.",
@@ -2524,6 +2530,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.11": "39f046cb",
       "0.16.10": "24b9d0ac",
       "0.16.9": "46abfd1a",
       "0.16.8": "2cb0acdc",

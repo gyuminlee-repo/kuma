@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.16.11 (A click meant to describe the plate rearranged it)
+
+The MAME well grid drew the computed placement and then re-seated it. Variant one took the first declared well, variant two the second, and so on down the declaration, so leaving a well out slid every later variant one well up. An operator narrowing the selection to the wells a campaign actually filled was not describing the plate in front of them, they were rebuilding it: deselect B1 and the wild-type control jumped out of C1 into the cell that had just been clicked. The grid exists to make the placement assumption visible, and under that rule it could not show a placement that stayed still long enough to be checked against a rack.
+
+The placement is now the draft, and the selection narrows it. Each variant keeps the well the plate order gave it, wild-type control included, and declaring a subset of wells says which of them this campaign filled. Nothing moves, whatever order the wells were clicked in.
+
+That turns two things around. A selection shorter than the sample list used to be refused, on the grounds that some variant had nowhere to go; now it is the ordinary case of a partly filled plate, and it runs. What sits in an undeclared well is not sequenced, so it cannot disappear in silence: the panel names those variants and strikes their labels on the grid, and the finished run records them. The one declaration still refused is an empty one, because a run with no wells has nothing to score.
+
+### Highlights
+
+- Selecting wells no longer moves the variants. Each keeps the well the plate order gave it, and a click only says which wells were filled.
+- A plate filled only in part now runs. Fewer selected wells than samples used to be refused before the run could start.
+- Variants in wells left out are named above the grid and struck through in it, so none of them drops out of a run in silence.
+- The finished run records which wells were left out and what was in them, so a result can say what was never on the plate.
+
+### Changed
+
+- v0.16.11: `apply_well_selection` in `kuma_core/mame/layout.py` narrows the draft in place instead of zipping occupants onto the declared wells. Occupants keep their drafted wells, wells with no occupant come back in `unused_wells` as before, and occupants in undeclared wells come back in the new `excluded_occupants`.
+- v0.16.11: fewer declared wells than plate occupants no longer raises. `handle_validate_inputs` stops reporting it as an error, `handle_analyze` stops refusing before the demux, and `selectCanRun` stops holding the Run button for it. An empty declaration is still refused in all three.
+- v0.16.11: the analyze result carries `layout_provenance.excluded_occupants`, a well to sample map in plate order. Those samples get no verdict anywhere else on the result, so without it the only trace of them is an absence.
+- v0.16.11: `WellSelectionPanel` reads each occupant from the draft row rather than from its index in the selection, names the excluded variants above the grid, and draws their labels struck through. The well-selection copy changed in all ten locales to state the anchored rule.
+
 ## v0.16.10 (A Mac saved nothing, and the update notes covered one release out of however many were skipped)
 
 Autosave never once succeeded on macOS or Linux. The file scope the frontend writes through matches its patterns with a rule that differs by platform: a wildcard refuses to cross a path component beginning with a dot on Unix and crosses it on Windows. Everything this app persists of its own lives behind such a component, the two autosave snapshots under a dot directory and the workspace manifest, so on those platforms a project recorded nothing and reopening it restored nothing. It failed quietly, and it looked like something else entirely: the project itself opened, the recent list updated, and the sidecar kept writing its own files, because none of those paths carry a dot. No project folder written by a Mac build contains either name.

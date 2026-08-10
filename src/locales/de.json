@@ -2402,13 +2402,19 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Das Speichern eines Projekts funktioniert jetzt unter macOS und Linux. Autosave wurde dort still abgelehnt, sodass beim erneuten Öffnen nichts wiederhergestellt wurde.",
-      "MAME-Analyseausgaben und KURO-Eingaben überstehen auf diesen Plattformen einen Neustart, so wie unter Windows bereits.",
-      "Die Update-Hinweise umfassen jede Version zwischen der zuletzt genutzten und der gerade installierten, nicht nur die neueste.",
-      "Jede Version in dieser Liste erhält eine eigene Überschrift, und die Liste scrollt, wenn mehrere gezeigt werden."
+      "Die Auswahl von Wells verschiebt die Varianten nicht mehr. Jede bleibt in ihrem Well aus der Plattenreihenfolge; ein Klick sagt nur, welche Wells befuellt wurden.",
+      "Eine nur teilweise befuellte Platte laeuft jetzt. Weniger gewaehlte Wells als Proben wurde frueher vor dem Start abgelehnt.",
+      "Varianten in ausgelassenen Wells werden ueber dem Raster benannt und darin durchgestrichen, damit keine still aus einem Lauf faellt.",
+      "Der fertige Lauf haelt fest, welche Wells ausgelassen wurden und was darin lag, sodass ein Ergebnis sagen kann, was nie auf der Platte war."
     ],
-    "highlightsStamp": "0.16.10+24b9d0ac",
+    "highlightsStamp": "0.16.11+39f046cb",
     "releases": {
+      "0.16.11": [
+        "Die Auswahl von Wells verschiebt die Varianten nicht mehr. Jede bleibt in ihrem Well aus der Plattenreihenfolge; ein Klick sagt nur, welche Wells befuellt wurden.",
+        "Eine nur teilweise befuellte Platte laeuft jetzt. Weniger gewaehlte Wells als Proben wurde frueher vor dem Start abgelehnt.",
+        "Varianten in ausgelassenen Wells werden ueber dem Raster benannt und darin durchgestrichen, damit keine still aus einem Lauf faellt.",
+        "Der fertige Lauf haelt fest, welche Wells ausgelassen wurden und was darin lag, sodass ein Ergebnis sagen kann, was nie auf der Platte war."
+      ],
       "0.16.10": [
         "Das Speichern eines Projekts funktioniert jetzt unter macOS und Linux. Autosave wurde dort still abgelehnt, sodass beim erneuten Öffnen nichts wiederhergestellt wurde.",
         "MAME-Analyseausgaben und KURO-Eingaben überstehen auf diesen Plattformen einen Neustart, so wie unter Windows bereits.",
@@ -2524,6 +2530,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.11": "39f046cb",
       "0.16.10": "24b9d0ac",
       "0.16.9": "46abfd1a",
       "0.16.8": "2cb0acdc",

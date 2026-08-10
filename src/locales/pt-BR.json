@@ -2402,13 +2402,19 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Salvar um projeto agora funciona no macOS e no Linux. O salvamento automático era recusado em silêncio, então reabrir um projeto não restaurava nada.",
-      "A saída de análise do MAME e as entradas do KURO sobrevivem a uma reinicialização nessas plataformas, como já ocorria no Windows.",
-      "As notas de atualização cobrem todas as versões entre a última que você usou e a recém-instalada, não apenas a mais nova.",
-      "Cada versão dessa lista recebe seu próprio título, e a lista rola quando várias são exibidas ao mesmo tempo."
+      "Selecionar pocos nao move mais as variantes. Cada uma mantem o poco que a ordem da placa lhe deu e um clique apenas diz quais pocos foram preenchidos.",
+      "Uma placa preenchida so em parte agora executa. Menos pocos selecionados do que amostras era recusado antes do inicio.",
+      "As variantes dos pocos deixados de fora sao nomeadas acima da grade e riscadas nela, entao nenhuma some de uma execucao em silencio.",
+      "A execucao concluida registra quais pocos ficaram de fora e o que havia neles, para que um resultado diga o que nunca esteve na placa."
     ],
-    "highlightsStamp": "0.16.10+24b9d0ac",
+    "highlightsStamp": "0.16.11+39f046cb",
     "releases": {
+      "0.16.11": [
+        "Selecionar pocos nao move mais as variantes. Cada uma mantem o poco que a ordem da placa lhe deu e um clique apenas diz quais pocos foram preenchidos.",
+        "Uma placa preenchida so em parte agora executa. Menos pocos selecionados do que amostras era recusado antes do inicio.",
+        "As variantes dos pocos deixados de fora sao nomeadas acima da grade e riscadas nela, entao nenhuma some de uma execucao em silencio.",
+        "A execucao concluida registra quais pocos ficaram de fora e o que havia neles, para que um resultado diga o que nunca esteve na placa."
+      ],
       "0.16.10": [
         "Salvar um projeto agora funciona no macOS e no Linux. O salvamento automático era recusado em silêncio, então reabrir um projeto não restaurava nada.",
         "A saída de análise do MAME e as entradas do KURO sobrevivem a uma reinicialização nessas plataformas, como já ocorria no Windows.",
@@ -2524,6 +2530,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.11": "39f046cb",
       "0.16.10": "24b9d0ac",
       "0.16.9": "46abfd1a",
       "0.16.8": "2cb0acdc",

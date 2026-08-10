@@ -2402,13 +2402,19 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "L'enregistrement d'un projet fonctionne désormais sous macOS et Linux. L'enregistrement automatique y était refusé en silence, donc rien n'était restauré à la réouverture.",
-      "Les sorties d'analyse MAME et les entrées KURO survivent à un redémarrage sur ces plateformes, comme c'était déjà le cas sous Windows.",
-      "Les notes de mise à jour couvrent chaque version entre celle utilisée en dernier et celle qui vient d'être installée, pas seulement la plus récente.",
-      "Chaque version de cette liste reçoit son propre titre, et la liste défile lorsque plusieurs sont affichées."
+      "Selectionner des puits ne deplace plus les variants. Chacun garde le puits que l'ordre de plaque lui a donne; un clic dit seulement quels puits ont ete remplis.",
+      "Une plaque remplie en partie s'execute desormais. Moins de puits selectionnes que d'echantillons etait refuse avant le demarrage.",
+      "Les variants des puits omis sont nommes au-dessus de la grille et barres dans celle-ci, donc aucun ne disparait d'une execution en silence.",
+      "L'execution terminee enregistre les puits omis et leur contenu, de sorte qu'un resultat peut dire ce qui n'a jamais ete sur la plaque."
     ],
-    "highlightsStamp": "0.16.10+24b9d0ac",
+    "highlightsStamp": "0.16.11+39f046cb",
     "releases": {
+      "0.16.11": [
+        "Selectionner des puits ne deplace plus les variants. Chacun garde le puits que l'ordre de plaque lui a donne; un clic dit seulement quels puits ont ete remplis.",
+        "Une plaque remplie en partie s'execute desormais. Moins de puits selectionnes que d'echantillons etait refuse avant le demarrage.",
+        "Les variants des puits omis sont nommes au-dessus de la grille et barres dans celle-ci, donc aucun ne disparait d'une execution en silence.",
+        "L'execution terminee enregistre les puits omis et leur contenu, de sorte qu'un resultat peut dire ce qui n'a jamais ete sur la plaque."
+      ],
       "0.16.10": [
         "L'enregistrement d'un projet fonctionne désormais sous macOS et Linux. L'enregistrement automatique y était refusé en silence, donc rien n'était restauré à la réouverture.",
         "Les sorties d'analyse MAME et les entrées KURO survivent à un redémarrage sur ces plateformes, comme c'était déjà le cas sous Windows.",
@@ -2524,6 +2530,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.11": "39f046cb",
       "0.16.10": "24b9d0ac",
       "0.16.9": "46abfd1a",
       "0.16.8": "2cb0acdc",
