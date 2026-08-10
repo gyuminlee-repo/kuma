@@ -1270,6 +1270,10 @@
       "selectAll": "Tout sélectionner ({{count}})",
       "selectDefault": "Seulement les échantillons ({{count}})",
       "clearAll": "Effacer la sélection",
+      "exportWorklist": "Liste de travail codes-barres (csv)",
+      "worklistWritten": "Liste ecrite: {{rows}} puits, {{reverse}} amorces reverse et {{forward}} forward utilisees.",
+      "worklistMissingSeeds": "Le classeur de codes-barres n'a pas d'amorce pour {{list}}, ces lignes ne nomment donc aucune amorce.",
+      "worklistFailed": "Impossible d'ecrire la liste de travail codes-barres: {{error}}",
       "gridLabel": "Plaque 96 puits, sélectionner les puits utilisés",
       "toggleAllLabel": "Basculer tous les puits",
       "toggleRowLabel": "Basculer la rangée {{row}}",
@@ -2407,12 +2411,19 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "L'ecran de resultats nomme desormais les echantillons qu'une execution n'a pas mis sur la plaque, au lieu de les laisser en case vide et ligne absente.",
-      "Cette liste provient de l'execution terminee, donc un projet rouvert dit toujours ce qui a ete laisse de cote.",
-      "Les executions qui ont rempli tous les puits prevus sont inchangees et n'affichent aucun avis."
+      "Le panneau de selection des puits ecrit une liste de travail: chaque puits rempli, son code-barres et les deux amorces qui le composent.",
+      "Elle indique aussi les amorces reellement necessaires, moins que les vingt du classeur pour une plaque partiellement remplie.",
+      "La liste est batie sur la meme disposition que l'execution evalue, elle ne peut donc pas decrire une autre plaque.",
+      "Les amorces absentes du classeur de codes-barres sont nommees plutot que laissees vides."
     ],
-    "highlightsStamp": "0.16.12+7324b926",
+    "highlightsStamp": "0.16.13+72c957ac",
     "releases": {
+      "0.16.13": [
+        "Le panneau de selection des puits ecrit une liste de travail: chaque puits rempli, son code-barres et les deux amorces qui le composent.",
+        "Elle indique aussi les amorces reellement necessaires, moins que les vingt du classeur pour une plaque partiellement remplie.",
+        "La liste est batie sur la meme disposition que l'execution evalue, elle ne peut donc pas decrire une autre plaque.",
+        "Les amorces absentes du classeur de codes-barres sont nommees plutot que laissees vides."
+      ],
       "0.16.12": [
         "L'ecran de resultats nomme desormais les echantillons qu'une execution n'a pas mis sur la plaque, au lieu de les laisser en case vide et ligne absente.",
         "Cette liste provient de l'execution terminee, donc un projet rouvert dit toujours ce qui a ete laisse de cote.",
@@ -2539,6 +2550,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.13": "72c957ac",
       "0.16.12": "7324b926",
       "0.16.11": "39f046cb",
       "0.16.10": "24b9d0ac",

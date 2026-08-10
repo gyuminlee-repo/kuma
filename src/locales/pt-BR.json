@@ -1270,6 +1270,10 @@
       "selectAll": "Selecionar tudo ({{count}})",
       "selectDefault": "Apenas as amostras ({{count}})",
       "clearAll": "Limpar seleção",
+      "exportWorklist": "Lista de trabalho de codigos (csv)",
+      "worklistWritten": "Lista escrita: {{rows}} pocos, {{reverse}} sementes reverse e {{forward}} forward em uso.",
+      "worklistMissingSeeds": "A planilha de codigos nao tem semente para {{list}}, entao essas linhas nao nomeiam primer.",
+      "worklistFailed": "Nao foi possivel escrever a lista de trabalho de codigos: {{error}}",
       "gridLabel": "Placa de 96 poços, selecione os poços usados",
       "toggleAllLabel": "Alternar todos os poços",
       "toggleRowLabel": "Alternar linha {{row}}",
@@ -2407,12 +2411,19 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "A tela de resultados agora nomeia as amostras que uma execucao deixou fora da placa, em vez de deixa-las como celula vazia e linha ausente.",
-      "Essa lista vem da execucao concluida, entao um projeto reaberto continua dizendo o que ficou de fora.",
-      "Execucoes que preencheram todos os pocos previstos nao mudam e nao exibem aviso."
+      "O painel de selecao de pocos escreve uma lista de trabalho: cada poco preenchido, seu codigo e os dois primers que o formam.",
+      "Ela tambem indica as sementes que a campanha realmente precisa, menos que as vinte da planilha numa placa parcial.",
+      "A lista vem da mesma disposicao que a execucao avalia, entao nao pode descrever outra placa.",
+      "Sementes que a planilha de codigos nao possui sao nomeadas em vez de ficarem em branco."
     ],
-    "highlightsStamp": "0.16.12+7324b926",
+    "highlightsStamp": "0.16.13+72c957ac",
     "releases": {
+      "0.16.13": [
+        "O painel de selecao de pocos escreve uma lista de trabalho: cada poco preenchido, seu codigo e os dois primers que o formam.",
+        "Ela tambem indica as sementes que a campanha realmente precisa, menos que as vinte da planilha numa placa parcial.",
+        "A lista vem da mesma disposicao que a execucao avalia, entao nao pode descrever outra placa.",
+        "Sementes que a planilha de codigos nao possui sao nomeadas em vez de ficarem em branco."
+      ],
       "0.16.12": [
         "A tela de resultados agora nomeia as amostras que uma execucao deixou fora da placa, em vez de deixa-las como celula vazia e linha ausente.",
         "Essa lista vem da execucao concluida, entao um projeto reaberto continua dizendo o que ficou de fora.",
@@ -2539,6 +2550,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.13": "72c957ac",
       "0.16.12": "7324b926",
       "0.16.11": "39f046cb",
       "0.16.10": "24b9d0ac",

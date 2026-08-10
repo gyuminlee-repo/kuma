@@ -1270,6 +1270,10 @@
       "selectAll": "Alle auswählen ({{count}})",
       "selectDefault": "Nur die Proben ({{count}})",
       "clearAll": "Auswahl aufheben",
+      "exportWorklist": "Barcode-Arbeitsliste (csv)",
+      "worklistWritten": "Arbeitsliste geschrieben: {{rows}} Wells, {{reverse}} Reverse- und {{forward}} Forward-Seeds im Einsatz.",
+      "worklistMissingSeeds": "Die Barcode-Arbeitsmappe hat keinen Seed fuer {{list}}, diese Zeilen nennen daher keinen Primer.",
+      "worklistFailed": "Barcode-Arbeitsliste konnte nicht geschrieben werden: {{error}}",
       "gridLabel": "96-Well-Platte, Wells dieser Kampagne auswählen",
       "toggleAllLabel": "Alle Wells umschalten",
       "toggleRowLabel": "Reihe {{row}} umschalten",
@@ -2407,12 +2411,19 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Der Ergebnisbildschirm benennt jetzt die Proben, die ein Lauf nicht auf die Platte gebracht hat, statt sie als leere Zelle und fehlende Zeile zu lassen.",
-      "Diese Liste stammt aus dem fertigen Lauf, also sagt auch ein wieder geoeffnetes Projekt, was ausgelassen wurde.",
-      "Laeufe, die jedes gezeichnete Well befuellt haben, bleiben unveraendert und zeigen keinen Hinweis."
+      "Das Well-Auswahlfeld schreibt eine Barcode-Arbeitsliste: jedes befuellte Well, seinen Barcode und die zwei Seed-Primer dahinter.",
+      "Sie nennt auch die Seeds, die diese Kampagne wirklich braucht, bei einer teilweise befuellten Platte weniger als die zwanzig der Arbeitsmappe.",
+      "Die Liste entsteht aus derselben Belegung, die der Lauf bewertet, und kann daher keine andere Platte beschreiben als die analysierte.",
+      "Seeds, die die Barcode-Arbeitsmappe nicht fuehrt, werden benannt statt leer gelassen."
     ],
-    "highlightsStamp": "0.16.12+7324b926",
+    "highlightsStamp": "0.16.13+72c957ac",
     "releases": {
+      "0.16.13": [
+        "Das Well-Auswahlfeld schreibt eine Barcode-Arbeitsliste: jedes befuellte Well, seinen Barcode und die zwei Seed-Primer dahinter.",
+        "Sie nennt auch die Seeds, die diese Kampagne wirklich braucht, bei einer teilweise befuellten Platte weniger als die zwanzig der Arbeitsmappe.",
+        "Die Liste entsteht aus derselben Belegung, die der Lauf bewertet, und kann daher keine andere Platte beschreiben als die analysierte.",
+        "Seeds, die die Barcode-Arbeitsmappe nicht fuehrt, werden benannt statt leer gelassen."
+      ],
       "0.16.12": [
         "Der Ergebnisbildschirm benennt jetzt die Proben, die ein Lauf nicht auf die Platte gebracht hat, statt sie als leere Zelle und fehlende Zeile zu lassen.",
         "Diese Liste stammt aus dem fertigen Lauf, also sagt auch ein wieder geoeffnetes Projekt, was ausgelassen wurde.",
@@ -2539,6 +2550,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.13": "72c957ac",
       "0.16.12": "7324b926",
       "0.16.11": "39f046cb",
       "0.16.10": "24b9d0ac",

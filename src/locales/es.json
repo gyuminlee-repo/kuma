@@ -1270,6 +1270,10 @@
       "selectAll": "Seleccionar todo ({{count}})",
       "selectDefault": "Solo las muestras ({{count}})",
       "clearAll": "Borrar selección",
+      "exportWorklist": "Lista de trabajo de codigos (csv)",
+      "worklistWritten": "Lista escrita: {{rows}} pocillos, {{reverse}} semillas reverse y {{forward}} forward en uso.",
+      "worklistMissingSeeds": "El libro de codigos no tiene semilla para {{list}}, por lo que esas filas no nombran cebador.",
+      "worklistFailed": "No se pudo escribir la lista de trabajo de codigos: {{error}}",
       "gridLabel": "Placa de 96 pocillos, seleccione los pocillos usados",
       "toggleAllLabel": "Alternar todos los pocillos",
       "toggleRowLabel": "Alternar fila {{row}}",
@@ -2407,12 +2411,19 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "La pantalla de resultados ahora nombra las muestras que una ejecucion dejo fuera de la placa, en lugar de dejarlas como celda vacia y fila ausente.",
-      "Esa lista se lee de la ejecucion terminada, asi que un proyecto reabierto sigue diciendo que quedo fuera.",
-      "Las ejecuciones que llenaron todos los pocillos previstos no cambian y no muestran aviso."
+      "El panel de seleccion de pocillos escribe una lista de trabajo: cada pocillo lleno, su codigo y los dos cebadores que lo forman.",
+      "Tambien indica las semillas que la campana necesita de verdad, menos que las veinte del libro en una placa parcial.",
+      "La lista se construye con la misma disposicion que la ejecucion evalua, asi que no puede describir otra placa.",
+      "Las semillas que el libro de codigos no tiene se nombran en lugar de dejarse en blanco."
     ],
-    "highlightsStamp": "0.16.12+7324b926",
+    "highlightsStamp": "0.16.13+72c957ac",
     "releases": {
+      "0.16.13": [
+        "El panel de seleccion de pocillos escribe una lista de trabajo: cada pocillo lleno, su codigo y los dos cebadores que lo forman.",
+        "Tambien indica las semillas que la campana necesita de verdad, menos que las veinte del libro en una placa parcial.",
+        "La lista se construye con la misma disposicion que la ejecucion evalua, asi que no puede describir otra placa.",
+        "Las semillas que el libro de codigos no tiene se nombran en lugar de dejarse en blanco."
+      ],
       "0.16.12": [
         "La pantalla de resultados ahora nombra las muestras que una ejecucion dejo fuera de la placa, en lugar de dejarlas como celda vacia y fila ausente.",
         "Esa lista se lee de la ejecucion terminada, asi que un proyecto reabierto sigue diciendo que quedo fuera.",
@@ -2539,6 +2550,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.13": "72c957ac",
       "0.16.12": "7324b926",
       "0.16.11": "39f046cb",
       "0.16.10": "24b9d0ac",

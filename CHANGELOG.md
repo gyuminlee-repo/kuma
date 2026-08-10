@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.16.13 (Which barcode goes in which well was stated nowhere before pipetting)
+
+The combinatorial barcode is decided by where a sample sits: the plate row picks the reverse seed, the column picks the forward one. Nothing said so anywhere an operator could read before setting up a plate. The package written at barcode setup lists twenty primers with no plate in it, the per-well sheet it once carried is gone, and the barcode column otherwise appears only on the workbook a finished run writes, which records what was sequenced rather than planning what to sequence.
+
+That was survivable while every campaign filled the leading wells, because the pairing was "read the plate in column-major order" and it could be done by eye. Declaring a partial plate ends that. Wells A1, B1 and B3 use two reverse seeds and two forward ones and skip A3 entirely, and working that out off a grid is exactly the transcription step this app exists to remove.
+
+The well selection panel now writes it. One row per occupied well with the well, what sits in it, the barcode token, and the two seed primers named as the barcode workbook names them, plus the distinct seeds the campaign actually needs, which for a partial plate is fewer than the twenty on hand. The layout comes from the same two calls a run makes, so the sheet cannot name a well the run would score differently, and it carries the same list of left-out samples the review screen shows.
+
+### Highlights
+
+- The well selection panel writes a barcode worklist: every filled well, its barcode, and the two seed primers that make it.
+- It also states which seeds the campaign actually needs, which for a partly filled plate is fewer than the twenty in the workbook.
+- The list is built from the same layout the run scores, so it cannot describe a different plate than the one analysed.
+- Seeds the barcode workbook does not carry are named rather than left blank.
+
+### Added
+
+- v0.16.13: `kuma_core/mame/barcode_worklist.py` pairs each occupied well with its `{R}_{F}` token and the seed names behind it. The pairing reads `plate_geometry.DEFAULT_ADDRESSING` and the token that addressing produces rather than restating the row and column rule, so it cannot drift from what the demux files a read under.
+- v0.16.13: `mame.export_barcode_worklist` RPC writes the csv. It drafts the layout and applies the declared selection through the same `build_draft_layout` and `apply_well_selection` calls `analyze` makes, and returns the seeds in use, the seeds the workbook lacks, and the drafted samples the selection left out. The barcode workbook is optional: without it every well still gets its token, which is a fact about the plate rather than about the workbook.
+- v0.16.13: the export button sits with the selection controls in `WellSelectionPanel` and picks its destination through a save dialog.
+
 ## v0.16.12 (The samples a run left off the plate were visible only as an absence)
 
 v0.16.11 made it possible to run a partly filled plate: the wells left out of the selection hold nothing, and the variants drafted into them are not sequenced. The run recorded which ones those were, and no screen read it. On the review screen a sample that was deliberately left out looked exactly like a sample the campaign never had, a blank cell on the plate and no row in the table, and the warning on the selection screen could not stand in for it because that one is drawn from a draft recomputed off the current inputs rather than from what the finished run did. Reopening a project lost the statement entirely.

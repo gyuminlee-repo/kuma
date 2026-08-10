@@ -49,6 +49,7 @@ from sidecar_mame.handlers.barcode_package import (
     handle_check_plate_order,
     handle_inspect_variant_source,
 )
+from sidecar_mame.handlers.barcode_worklist import handle_export_barcode_worklist
 from sidecar_mame.handlers.build_well_layout import handle_build_well_layout
 from sidecar_mame.handlers.ingest import handle_parse_reference
 from sidecar_mame.handlers.combinatorial_demux import handle_run_combinatorial_demux
@@ -123,6 +124,9 @@ _METHODS = {
     "mame.detect_native_barcodes": handle_detect_native_barcodes,
     # Draft 96-well layout from KURO expected_mutations (stat-only, synchronous)
     "mame.build_well_layout": handle_build_well_layout,
+    # Which custom barcode each occupied well is read under, for the bench
+    # (two xlsx reads and a csv write, so synchronous)
+    "mame.export_barcode_worklist": handle_export_barcode_worklist,
     # v0.3 advisory: read-only classify() call (partial slice, plumbing pending)
     "strategy.classify_round": handle_classify_round,
     # §22 graceful shutdown — ack immediately; main() exits on this method
