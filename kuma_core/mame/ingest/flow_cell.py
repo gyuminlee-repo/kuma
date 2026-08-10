@@ -82,8 +82,19 @@ def read_flow_cell_history(run_dir: Path) -> FlowCellHistory:
     empty, so a silent zero can never be read as a measurement.
     """
     history = FlowCellHistory()
+    # The run folder, then one level up. A raw MinKNOW run is analysed with the
+    # run folder itself as the input, so the report sits right there. A
+    # consensus-directory run is analysed with `consensus/` as the input, and
+    # that directory lives inside the run folder MinKNOW wrote, so the report is
+    # one level above it. Two candidates rather than a recursive walk: the file
+    # has a fixed home in a MinKNOW folder, and searching further would start
+    # picking up reports from unrelated runs stored nearby.
     try:
-        reports = sorted(run_dir.glob("report_*.json"))
+        reports: list[Path] = []
+        for candidate in (run_dir, run_dir.parent):
+            reports = sorted(candidate.glob("report_*.json"))
+            if reports:
+                break
         if not reports:
             return history
         data = json.loads(reports[0].read_text(encoding="utf-8", errors="replace"))

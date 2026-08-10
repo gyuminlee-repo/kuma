@@ -270,10 +270,16 @@ def test_handle_analyze_consensus_dir_backward_compatible(
     # counted. No `janus_mapping_autosave`: the instrument sheet is written only
     # by a manual `export_janus_mapping` call, not by analyze. Still no
     # raw-run-only keys.
+    # `run_quality` joins them for the same reason as `compare_params`: it is
+    # the verdict on whether the run could be scored at all, and a key present
+    # only for bad runs cannot be told apart from an older sidecar that never
+    # graded one. Unconditional even when it has nothing to report, in which
+    # case its severity is null.
     assert set(result.keys()) == {
         "verdicts", "replicates", "output_path", "summary", "distribution_stats",
         "designed_mutant_ids", "janus_autosave", "layout_provenance",
         "mapping_integrity", "compare_params", "off_layout_records",
+        "run_quality",
     }
     assert "assigned_reads" not in result
     assert "wells_with_reads" not in result
