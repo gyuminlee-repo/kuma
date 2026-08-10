@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.16.15 (The plate map grew but the writing in it did not)
+
+Every cell on the analyze plate map stretches to fill whatever room the panel has, and the expand button hands it the whole window. The label inside each cell stayed at 10px through all of it, so the button that exists to make the plate readable made the cells larger and the writing no easier to read. Past roughly 1600px of window the same gap opened without touching expand at all.
+
+Label size now follows the width of the plate itself rather than the size of the screen, since the sidebar, the detail panel beside the grid and the expand button all change how much room the plate really has. Small plates read exactly as before, and larger ones scale up to a comfortable ceiling. A name that did not fit a small cell fits once the cell passes about 42px, so widening the plate now makes names legible instead of only larger.
+
+### Highlights
+
+- Variant names on the analyze plate map now grow with the plate instead of staying at one fixed size.
+- Expanding the plate makes the writing bigger, not just the cells.
+- Names that were cut off in a narrow plate become readable once the plate has room.
+
+### Fixed
+
+- Plate map labels were pinned to a fixed size while their cells stretched with the panel, so expanding the plate or using a wide window enlarged the cells without enlarging the text.
+
 ## v0.16.14 (Two different variants read as the same cut-off name on the plate grid)
 
 The well grid drew each cell 2.25rem wide and cut whatever did not fit, which at 10px is about five characters. Six-character mutant ids are ordinary, so cells showed "R560..." and "A223..." with the part that tells two variants apart being exactly the part removed. R560E and R560Q are neighbours on that plate and rendered identically. The grid exists to show which variant sits where, and a name it cuts before the discriminating character answers neither half of that.

@@ -2449,11 +2449,17 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Variant names on the well grid are no longer cut off. Two variants that differ only in the last character can be told apart at a glance.",
-      "A name too long for one line wraps inside its cell instead of being truncated."
+      "Variant names on the analyze plate map now grow with the plate instead of staying at one fixed size.",
+      "Expanding the plate makes the writing bigger, not just the cells.",
+      "Names that were cut off in a narrow plate become readable once the plate has room."
     ],
-    "highlightsStamp": "0.16.14+9c581a55",
+    "highlightsStamp": "0.16.15+a06fdd53",
     "releases": {
+      "0.16.15": [
+        "Variant names on the analyze plate map now grow with the plate instead of staying at one fixed size.",
+        "Expanding the plate makes the writing bigger, not just the cells.",
+        "Names that were cut off in a narrow plate become readable once the plate has room."
+      ],
       "0.16.14": [
         "Variant names on the well grid are no longer cut off. Two variants that differ only in the last character can be told apart at a glance.",
         "A name too long for one line wraps inside its cell instead of being truncated."
@@ -2590,6 +2596,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.15": "a06fdd53",
       "0.16.14": "9c581a55",
       "0.16.13": "72c957ac",
       "0.16.12": "7324b926",
