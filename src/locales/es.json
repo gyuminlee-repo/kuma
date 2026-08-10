@@ -2416,11 +2416,17 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Los nombres de variantes en la rejilla ya no se cortan. Dos variantes que solo difieren en el ultimo caracter se distinguen de un vistazo.",
-      "Un nombre que no cabe en una linea salta de linea dentro de su celda en vez de truncarse."
+      "Los nombres de variantes en el mapa de la placa de analisis ahora crecen con la placa en lugar de mantenerse en un tamano fijo.",
+      "Al ampliar la placa, no solo crecen las celdas, sino tambien el texto.",
+      "Los nombres que se cortaban en una placa estrecha se vuelven legibles cuando la placa tiene mas espacio."
     ],
-    "highlightsStamp": "0.16.14+9c581a55",
+    "highlightsStamp": "0.16.15+a06fdd53",
     "releases": {
+      "0.16.15": [
+        "Los nombres de variantes en el mapa de la placa de analisis ahora crecen con la placa en lugar de mantenerse en un tamano fijo.",
+        "Al ampliar la placa, no solo crecen las celdas, sino tambien el texto.",
+        "Los nombres que se cortaban en una placa estrecha se vuelven legibles cuando la placa tiene mas espacio."
+      ],
       "0.16.14": [
         "Los nombres de variantes en la rejilla ya no se cortan. Dos variantes que solo difieren en el ultimo caracter se distinguen de un vistazo.",
         "Un nombre que no cabe en una linea salta de linea dentro de su celda en vez de truncarse."
@@ -2557,6 +2563,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.15": "a06fdd53",
       "0.16.14": "9c581a55",
       "0.16.13": "72c957ac",
       "0.16.12": "7324b926",

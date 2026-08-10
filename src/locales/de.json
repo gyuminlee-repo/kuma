@@ -2416,11 +2416,17 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Variantennamen im Well-Raster werden nicht mehr abgeschnitten. Zwei Varianten, die sich nur im letzten Zeichen unterscheiden, sind sofort auseinanderzuhalten.",
-      "Ein Name, der nicht in eine Zeile passt, bricht innerhalb der Zelle um statt abgeschnitten zu werden."
+      "Variantennamen auf der Analyse-Plattenkarte wachsen jetzt mit der Platte, statt in fester Groesse zu bleiben.",
+      "Wird die Platte vergroessert, wird nicht nur die Zelle groesser, sondern auch die Schrift.",
+      "Namen, die auf einer schmalen Platte abgeschnitten waren, werden lesbar, sobald die Platte mehr Platz hat."
     ],
-    "highlightsStamp": "0.16.14+9c581a55",
+    "highlightsStamp": "0.16.15+a06fdd53",
     "releases": {
+      "0.16.15": [
+        "Variantennamen auf der Analyse-Plattenkarte wachsen jetzt mit der Platte, statt in fester Groesse zu bleiben.",
+        "Wird die Platte vergroessert, wird nicht nur die Zelle groesser, sondern auch die Schrift.",
+        "Namen, die auf einer schmalen Platte abgeschnitten waren, werden lesbar, sobald die Platte mehr Platz hat."
+      ],
       "0.16.14": [
         "Variantennamen im Well-Raster werden nicht mehr abgeschnitten. Zwei Varianten, die sich nur im letzten Zeichen unterscheiden, sind sofort auseinanderzuhalten.",
         "Ein Name, der nicht in eine Zeile passt, bricht innerhalb der Zelle um statt abgeschnitten zu werden."
@@ -2557,6 +2563,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.15": "a06fdd53",
       "0.16.14": "9c581a55",
       "0.16.13": "72c957ac",
       "0.16.12": "7324b926",

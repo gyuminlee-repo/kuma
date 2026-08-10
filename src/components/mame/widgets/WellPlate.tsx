@@ -62,7 +62,7 @@ export function WellPlate({
   const wellMap = new Map(collapseWells(wells).map((w) => [w.well, w] as const));
 
   return (
-    <div className="w-full overflow-x-auto rounded-container border border-border/70 bg-card p-2.5" role="grid" aria-label={t("wellPlate.gridAriaLabel")}>
+    <div className="well-plate-grid w-full overflow-x-auto rounded-container border border-border/70 bg-card p-2.5" role="grid" aria-label={t("wellPlate.gridAriaLabel")}>
       <div
         className="grid items-center text-center"
         style={{ gridTemplateColumns: plateGridTemplate, gap: plateGridGap }}
@@ -129,7 +129,7 @@ export function WellPlate({
                     title={well?.mutant_id || undefined}
                     className={cn(
                       "well-button relative flex aspect-square w-full flex-col items-stretch justify-between overflow-hidden rounded-md border text-center shadow-sm",
-                      "text-plate font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                      "font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
                       !well && "cursor-default",
                       isFocused && "well-button-selected",
                       well?.selected && "shadow-md",
@@ -145,7 +145,7 @@ export function WellPlate({
                   >
                     {well && (
                       <span
-                        className="min-w-0 flex-1 truncate px-0.5 text-plate leading-tight opacity-85"
+                        className="min-w-0 flex-1 truncate px-0.5 leading-tight opacity-85"
                         title={well.mutant_id || undefined}
                       >
                         {well.mutant_id || "-"}
@@ -153,7 +153,7 @@ export function WellPlate({
                     )}
                     {/* Badge row at bottom (flex, no absolute positioning) */}
                     {(well?.selected || isFallback || plate) && (
-                      <div className="flex h-3.5 w-full items-center justify-between gap-0.5 px-0.5">
+                      <div className="flex h-[1.4em] w-full items-center justify-between gap-0.5 px-0.5">
                         <div className="flex items-center gap-0.5">
                           {well?.selected && (
                             <span
@@ -189,7 +189,7 @@ export function WellPlate({
                         {plate && (
                           <span
                             className={cn(
-                              "shrink-0 rounded-full px-1 text-[9px] font-bold leading-none",
+                              "shrink-0 rounded-full px-1 text-[0.9em] font-bold leading-none",
                               well?.selected && "font-extrabold ring-1 ring-white/70",
                             )}
                             style={{
