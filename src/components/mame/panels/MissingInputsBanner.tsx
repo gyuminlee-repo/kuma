@@ -175,7 +175,10 @@ export function MissingInputsBanner() {
                     <span className="text-xs font-medium">
                       {t(MAME_PATH_LABEL_KEYS[item.field])}
                     </span>
-                    <span className="ml-2 truncate text-xs text-muted-foreground">
+                    <span
+                      className="ml-2 inline-block max-w-full truncate align-bottom text-xs text-muted-foreground"
+                      title={item.name}
+                    >
                       {item.name}
                       {size ? ` (${size})` : ""}
                     </span>
