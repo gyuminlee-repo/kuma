@@ -2417,14 +2417,19 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Nicht ausgewaehlte Wells werden nicht mehr bewertet. Zuvor wurden sie gegen die ganze Variantenliste geprueft und als Fehlschlag gemeldet.",
-      "Eine Kampagne mit zehn Wells liefert jetzt zehn Urteile statt sechsundneunzig mit sechsundachtzig falschen Fehlschlaegen.",
-      "Reads aus diesen Wells werden weiterhin als Off-Layout-Datensaetze gezaehlt und benannt.",
-      "Laeufe ohne erklaerte Auswahl verhalten sich genau wie bisher.",
-      "Gespeicherte Laeufe mit Auswahl werden als Produkt der alten Regel markiert statt weiter vertraut."
+      "Sanfte farbige Hintergründe und farbige Rahmen werden jetzt tatsächlich gezeichnet. Bisher fielen sie in jeder Version stillschweigend aus dem Stylesheet.",
+      "Warn- und Fehlerpanels folgen jetzt dem dunklen Design, statt auf dunklem Hintergrund die Farben des hellen Designs zu behalten.",
+      "Beim Überfahren einer gekürzten Zeile mit der Maus wird jetzt der ganze Text angezeigt, einschließlich des Fehlschlaggrunds und des Run-Ordners im Seitenpanel.",
+      "Ein langer Dateiname schiebt die Durchsuchen-Schaltfläche nicht mehr aus ihrer Zeile."
     ],
-    "highlightsStamp": "0.16.16+cc3ef016",
+    "highlightsStamp": "0.16.17+f9c0ee2f",
     "releases": {
+      "0.16.17": [
+        "Sanfte farbige Hintergründe und farbige Rahmen werden jetzt tatsächlich gezeichnet. Bisher fielen sie in jeder Version stillschweigend aus dem Stylesheet.",
+        "Warn- und Fehlerpanels folgen jetzt dem dunklen Design, statt auf dunklem Hintergrund die Farben des hellen Designs zu behalten.",
+        "Beim Überfahren einer gekürzten Zeile mit der Maus wird jetzt der ganze Text angezeigt, einschließlich des Fehlschlaggrunds und des Run-Ordners im Seitenpanel.",
+        "Ein langer Dateiname schiebt die Durchsuchen-Schaltfläche nicht mehr aus ihrer Zeile."
+      ],
       "0.16.16": [
         "Nicht ausgewaehlte Wells werden nicht mehr bewertet. Zuvor wurden sie gegen die ganze Variantenliste geprueft und als Fehlschlag gemeldet.",
         "Eine Kampagne mit zehn Wells liefert jetzt zehn Urteile statt sechsundneunzig mit sechsundachtzig falschen Fehlschlaegen.",
@@ -2573,6 +2578,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",
       "0.16.14": "9c581a55",
