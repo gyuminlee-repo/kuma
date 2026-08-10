@@ -1259,9 +1259,9 @@
     },
     "wellSelection": {
       "title": "Poços usados",
-      "description": "O arranjo calculado, desenhado sobre a placa. As variantes preenchem os poços selecionados na ordem da placa (A1, B1, ... H1, A2). Sem mexer, os primeiros poços são usados.",
+      "description": "A colocacao calculada, desenhada sobre a placa. Cada variante permanece no poco que a ordem da placa (A1, B1, ... H1, A2) lhe deu e a selecao nao o move. Sem alteracao usam-se os primeiros pocos, ou escolhem-se os pocos que esta campanha realmente preencheu.",
       "counts": "{{selected}} de {{capacity}} poços selecionados para {{occupants}} amostras (variantes mais o controle WT).",
-      "tooFewWells": "{{selected}} poços selecionados mas há {{occupants}} amostras. Selecione mais poços ou encurte a lista de variantes.",
+      "excludedVariants": "{{excluded}} amostras estao em pocos nao selecionados, portanto nao estao na placa e nao recebem veredito: {{samples}}",
       "selectAll": "Selecionar tudo ({{count}})",
       "selectDefault": "Apenas as amostras ({{count}})",
       "clearAll": "Limpar seleção",

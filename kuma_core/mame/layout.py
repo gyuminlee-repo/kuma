@@ -47,6 +47,11 @@ class DraftLayout:
     #: :func:`apply_well_selection` fills it; a draft that placed itself
     #: declared nothing, so the list is empty there.
     unused_wells: list[str] = field(default_factory=list)
+    #: ``{well_id: sample_name}`` for draft occupants whose well the caller did
+    #: not declare, in plate order. Placement is anchored to the plate, so
+    #: leaving a well out drops what the draft put there rather than sliding
+    #: the rest up. Only :func:`apply_well_selection` fills it.
+    excluded_occupants: dict[str, str] = field(default_factory=dict)
 
     @property
     def is_complete(self) -> bool:
@@ -154,7 +159,7 @@ def apply_well_selection(
     draft: DraftLayout,
     selected_wells: Iterable[str],
 ) -> DraftLayout:
-    """Re-seat a draft's occupants onto the wells the operator declared.
+    """Narrow a draft to the wells the operator declared, in place.
 
     A campaign smaller than the plate leaves wells empty, and which wells those
     are is a fact about the bench that no file states. Declaring them is the
@@ -162,40 +167,43 @@ def apply_well_selection(
     rather than a sample: an undeclared well is scored as whatever the draft
     happened to place there.
 
-    Occupant *i* of *draft* (its own column-major order, WT included at its
-    ordinal) takes the *i*th selected well. Selecting exactly the leading
+    The placement is the draft's own and the selection does not move it. Each
+    occupant keeps the well ``build_draft_layout`` gave it, and declaring a
+    subset says which of those wells this campaign actually filled: what sits in
+    an undeclared well is not on the plate at all, so it comes back in
+    ``excluded_occupants`` and is scored by nothing. Selecting the leading
     ``N + 1`` wells therefore reproduces the draft unchanged, which is what the
-    default selection is.
+    default selection is, and selecting the whole plate does too.
 
-    Too few wells is a refusal; too many is a report. The two directions are not
-    symmetric. Fewer wells than occupants means some variant has nowhere to go,
-    and placing a prefix would hand back a layout that reads like a whole plate.
-    More wells than occupants is a declaration the run cannot use up, which is
-    not on its own a mistake: an operator selecting the two columns they filled,
-    or the whole plate out of habit, has said nothing false about the bench. So
-    the surplus is named in ``unused_wells`` and the run proceeds. Silence was
-    the wrong answer for the same reason it is everywhere else here: 96 wells
-    selected against 31 occupants dropped 65 declarations with nothing on the
-    result to say it happened.
+    Re-seating was the older rule (occupant *i* took the *i*th declared well)
+    and it is wrong on the bench: deselecting one well slid every later variant
+    up one, so a plate the operator was looking at rearranged itself under a
+    click that was meant to describe it. Anchoring to the draft is what makes
+    the grid a picture of the plate rather than a queue.
 
-    Raises:
-        ValueError: when fewer wells are selected than the draft has occupants.
-            Placing a prefix and dropping the rest would hand back a layout that
-            reads like a whole plate.
+    Neither direction is a refusal. Fewer declared wells than occupants is the
+    ordinary case now (a partly filled plate), and the occupants left out are
+    named. More wells than occupants is a declaration the run cannot use up,
+    which is not on its own a mistake: an operator selecting the two columns
+    they filled, or the whole plate out of habit, has said nothing false about
+    the bench. So the surplus is named in ``unused_wells`` and the run proceeds.
+    Silence was the wrong answer for the same reason it is everywhere else
+    here: 96 wells selected against 31 occupants dropped 65 declarations with
+    nothing on the result to say it happened.
     """
     wells = normalise_selected_wells(selected_wells)
-    occupants = list(draft.layout.values())
-    if len(wells) < len(occupants):
-        raise ValueError(
-            f"{len(wells)} wells selected for {len(occupants)} plate occupants "
-            f"({len(occupants) - 1} variants plus the WT control). Select at "
-            "least as many wells as there are things to sequence, or shorten "
-            "the variant list."
-        )
+    declared = set(wells)
+    kept = {
+        well: sample for well, sample in draft.layout.items() if well in declared
+    }
+    excluded = {
+        well: sample for well, sample in draft.layout.items() if well not in declared
+    }
     return DraftLayout(
-        layout={well: sample for well, sample in zip(wells, occupants)},
+        layout=kept,
         dropped_mutant_ids=list(draft.dropped_mutant_ids),
-        unused_wells=wells[len(occupants) :],
+        unused_wells=[well for well in wells if well not in draft.layout],
+        excluded_occupants=excluded,
     )
 
 

@@ -149,6 +149,17 @@ export interface LayoutProvenance {
    * Optional for the same reason as `selected_wells`.
    */
   unused_wells?: string[];
+  /**
+   * Draft occupants the declaration left out, `{well: sample}` in plate order.
+   *
+   * The placement is anchored to the plate, so leaving a well out of the
+   * declaration says the campaign did not fill it, and what the draft put there
+   * was never sequenced. Those variants have no verdict anywhere else on the
+   * result, so without this the only trace of them is an absence.
+   *
+   * Optional for the same reason as `selected_wells`.
+   */
+  excluded_occupants?: Record<string, string>;
 }
 
 /**

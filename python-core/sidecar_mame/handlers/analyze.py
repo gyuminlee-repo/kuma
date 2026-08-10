@@ -764,17 +764,16 @@ def _place_on_selected_wells(
     draft: "DraftLayout",
     selected_wells: list[str] | None,
 ) -> "DraftLayout":
-    """Seat the draft's occupants on the declared wells, or leave it alone.
+    """Narrow the draft to the declared wells, or leave it alone.
 
     One function so every caller applies the selection at the same point and in
     the same way. ``None`` means nothing was declared, which is the leading
     ``N + 1`` wells, so the draft comes back untouched and byte-identical to
     what a run produced before this parameter existed.
 
-    Raises:
-        ValueError: too few wells for the occupants (see ``apply_well_selection``).
-            Callers that run this before the demux turn that into a refusal the
-            operator gets in seconds rather than after a multi-minute ingest.
+    The draft's placement is kept: an undeclared well drops what sits in it
+    (``excluded_occupants``) rather than pulling the next occupant into it. See
+    ``apply_well_selection``.
     """
     if selected_wells is None:
         return draft
@@ -1110,28 +1109,22 @@ def handle_validate_inputs(params: dict) -> dict:
                 if capacity_error is not None:
                     errors.append(capacity_error)
                 elif _draft is not None:
-                    # The wells the run would seat the occupants on, decided
-                    # here as well as in the run. A selection with fewer wells
-                    # than occupants is a refusal, and this screen used to
-                    # swallow it and answer "Validation complete" over a run
-                    # that could not start.
-                    placed: "DraftLayout | None" = None
-                    try:
-                        placed = _place_on_selected_wells(_draft, selected_wells)
-                    except ValueError as exc:
-                        errors.append(f"well selection: {exc}")
-                    if placed is not None:
-                        # An old project's sample map, compared against the
-                        # layout that replaced it rather than deleted or
-                        # ignored. See :func:`_legacy_sample_map_finding`.
-                        legacy_sample_map = _legacy_sample_map_finding(
-                            _optional_str(params.get("legacy_sample_map_xlsx")),
-                            placed,
-                        )
-                        if legacy_sample_map is not None and legacy_sample_map[
-                            "status"
-                        ] == "differs":
-                            errors.append(_legacy_sample_map_error(legacy_sample_map))
+                    # The wells the run would score, decided here as well as in
+                    # the run. Narrowing never refuses: an undeclared well is a
+                    # well the campaign did not fill, and what the draft put
+                    # there is simply not on this plate.
+                    placed = _place_on_selected_wells(_draft, selected_wells)
+                    # An old project's sample map, compared against the
+                    # layout that replaced it rather than deleted or
+                    # ignored. See :func:`_legacy_sample_map_finding`.
+                    legacy_sample_map = _legacy_sample_map_finding(
+                        _optional_str(params.get("legacy_sample_map_xlsx")),
+                        placed,
+                    )
+                    if legacy_sample_map is not None and legacy_sample_map[
+                        "status"
+                    ] == "differs":
+                        errors.append(_legacy_sample_map_error(legacy_sample_map))
         except (FileNotFoundError, ValueError) as exc:
             errors.append(f"expected: {exc}")
         except Exception as exc:  # noqa: BLE001 — openpyxl surface is broad
@@ -1648,6 +1641,7 @@ def handle_analyze(params: dict) -> dict:
     # rather than reporting a choice that did not reach a well.
     declared_wells: list[str] | None = None
     unused_wells: list[str] = []
+    excluded_occupants: dict[str, str] = {}
     if well_layout_raw is not None:
         if not isinstance(well_layout_raw, dict) or not all(
             isinstance(k, str) and isinstance(v, str)
@@ -1676,12 +1670,12 @@ def handle_analyze(params: dict) -> dict:
                 ),
                 selected_wells,
             )
-        # The selection is already seated: the block above did it for a draft
+        # The selection is already applied: the block above did it for a draft
         # the capacity gate handed over, and this fallback does it for the one
-        # it could not. Doing it here instead put the refusal for too few wells
-        # after the demux.
+        # it could not.
         well_layout = drafted_layout.layout
         unused_wells = list(drafted_layout.unused_wells)
+        excluded_occupants = dict(drafted_layout.excluded_occupants)
         if selected_wells is not None:
             from kuma_core.mame.layout import normalise_selected_wells
 
@@ -1962,6 +1956,16 @@ def handle_analyze(params: dict) -> dict:
             # surplus in silence would leave the result unable to say the
             # declaration and the campaign were different sizes.
             "unused_wells": unused_wells,
+            # Draft occupants whose well the declaration left out, ``{well:
+            # sample}`` in plate order. The placement is anchored to the plate,
+            # so leaving a well out means the campaign did not fill it and what
+            # the draft put there was never sequenced. Empty for a run that
+            # declared none or declared every occupied well.
+            #
+            # Reported rather than refused, and reported rather than dropped:
+            # the variants named here have no verdict anywhere else on the
+            # result, so without this the only trace of them is an absence.
+            "excluded_occupants": excluded_occupants,
         },
         # Reads that arrived from wells the layout does not name. NOT a refusal:
         # a declared-empty well producing reads is the same signal as barcode

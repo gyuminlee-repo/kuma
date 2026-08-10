@@ -9,10 +9,16 @@
  * The panel draws the draft on the plate rather than offering an abstract
  * selector, because the point is to make the placement assumption visible: the
  * operator sees A1, B1, C1 going down the first column and can compare it with
- * the rack in front of them. Variant *i* goes to the *i*th selected well in
- * plate order, and that is the whole assignment rule. There is deliberately no
- * per-well variant editor: that is a sample map with a mouse, and the sample
- * map is what this replaces.
+ * the rack in front of them. The placement is the draft's own and clicking does
+ * not move it: every variant keeps the well the plate order gave it, and the
+ * selection says which of those wells this campaign actually filled. Leaving a
+ * well out therefore drops what sits in it rather than pulling the next variant
+ * up. There is deliberately no per-well variant editor: that is a sample map
+ * with a mouse, and the sample map is what this replaces.
+ *
+ * Re-seating (variant *i* to the *i*th selected well) was the older rule, and
+ * it made the grid rearrange itself under a click that was meant to describe
+ * it: deselecting one well slid every later variant one well up.
  *
  * Touching nothing sends nothing. The store keeps `selectedWells` at null until
  * the selection differs from the leading N+1 wells, so an operator who never
@@ -38,6 +44,13 @@ import {
   sortWellsInPlateOrder,
   wellAt,
 } from "@/lib/mame/wellSelection"
+
+/**
+ * How many excluded variants the notice names before it trails off. Six fits
+ * the panel width; the count beside the list is what says how many there are,
+ * so the tail costs nothing to leave out.
+ */
+const EXCLUDED_NAMES_SHOWN = 6
 
 export function WellSelectionPanel() {
   const { t } = useTranslation()
@@ -108,15 +121,21 @@ export function WellSelectionPanel() {
   )
   const selectedSet = useMemo(() => new Set(selection), [selection])
 
-  /** Which occupant, if any, sits in a given well under the current selection. */
+  /**
+   * Which occupant sits in a given well. Read straight off the draft, so it
+   * does not depend on the selection and does not move when one is made.
+   */
   const occupantByWell = useMemo(() => {
     const map = new Map<string, string>()
-    selection.forEach((well, index) => {
-      const row = occupants[index]
-      if (row) map.set(well, row.sample)
-    })
+    for (const row of occupants) map.set(row.well, row.sample)
     return map
-  }, [selection, occupants])
+  }, [occupants])
+
+  /** Draft occupants the current selection leaves off the plate, in plate order. */
+  const excluded = useMemo(
+    () => occupants.filter((row) => !selectedSet.has(row.well)),
+    [occupants, selectedSet],
+  )
 
   // Storing null for the default is what keeps an untouched panel invisible to
   // the run: the store only sends `selected_wells` when it is not null.
@@ -285,11 +304,22 @@ export function WellSelectionPanel() {
               capacity: PLATE_CAPACITY,
             })}
           </p>
-          {selection.length < occupants.length && (
-            <p className="text-caption text-error" role="alert">
-              {t("mame.wellSelection.tooFewWells", {
-                selected: selection.length,
-                occupants: occupants.length,
+          {/*
+            Leaving a well out is a statement about the bench (that well was
+            not filled), not a mistake, so this reports rather than blocks. It
+            still has to be said out loud: the excluded variants get no verdict
+            anywhere in the run, and the grid alone shows that only as absence.
+          */}
+          {excluded.length > 0 && (
+            <p className="text-caption text-warning" role="status">
+              {t("mame.wellSelection.excludedVariants", {
+                excluded: excluded.length,
+                samples:
+                  excluded
+                    .slice(0, EXCLUDED_NAMES_SHOWN)
+                    .map((row) => `${row.sample} (${row.well})`)
+                    .join(", ") +
+                  (excluded.length > EXCLUDED_NAMES_SHOWN ? ", ..." : ""),
               })}
             </p>
           )}
@@ -402,7 +432,13 @@ export function WellSelectionPanel() {
                           "h-9 min-w-0 select-none overflow-hidden rounded border px-0.5 text-[10px] leading-tight",
                           isSelected
                             ? "border-primary bg-primary/10 text-foreground"
-                            : "border-border bg-muted/30 text-muted-foreground",
+                            : sample
+                              // Occupied but not declared: the draft put a
+                              // variant here and the campaign says the well is
+                              // empty, so the name stays visible and struck
+                              // rather than vanishing into a blank cell.
+                              ? "border-border bg-muted/30 text-muted-foreground line-through"
+                              : "border-border bg-muted/30 text-muted-foreground",
                         ].join(" ")}
                       >
                         <span className="block truncate">{sample ?? ""}</span>

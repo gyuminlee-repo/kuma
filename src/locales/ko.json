@@ -1259,9 +1259,9 @@
     },
     "wellSelection": {
       "title": "사용할 웰",
-      "description": "계산된 배치를 플레이트 위에 그린 것이다. 변이는 선택된 웰을 플레이트 순서(A1, B1, ... H1, A2)대로 채운다. 손대지 않으면 앞쪽 웰을 쓰고, 이 캠페인이 실제로 쓰는 웰을 직접 고를 수도 있다.",
+      "description": "계산된 배치를 플레이트 위에 그린 것이다. 각 변이는 플레이트 순서(A1, B1, ... H1, A2)가 정해준 웰에 고정되며 웰을 선택해도 자리가 움직이지 않는다. 손대지 않으면 앞쪽 웰을 쓰고, 이 캠페인이 실제로 채운 웰만 골라도 된다.",
       "counts": "샘플 {{occupants}}개(변이 + WT 대조군)에 대해 {{capacity}}개 중 {{selected}}개 웰 선택됨.",
-      "tooFewWells": "웰 {{selected}}개를 선택했는데 샘플은 {{occupants}}개다. 웰을 더 고르거나 변이 목록을 줄여라.",
+      "excludedVariants": "선택하지 않은 웰에 있는 샘플 {{excluded}}개는 이번 플레이트에 없는 것으로 보아 판정하지 않는다: {{samples}}",
       "selectAll": "전체 선택 ({{count}})",
       "selectDefault": "샘플 수만큼 ({{count}})",
       "clearAll": "전체 해제",

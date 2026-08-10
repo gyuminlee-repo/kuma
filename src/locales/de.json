@@ -1259,9 +1259,9 @@
     },
     "wellSelection": {
       "title": "Verwendete Wells",
-      "description": "Die berechnete Belegung, auf der Platte gezeichnet. Varianten füllen die ausgewählten Wells in Plattenreihenfolge (A1, B1, ... H1, A2). Ohne Eingriff werden die vorderen Wells verwendet.",
+      "description": "Die berechnete Platzierung, auf die Platte gezeichnet. Jede Variante bleibt in dem Well, das die Plattenreihenfolge (A1, B1, ... H1, A2) ihr gab; die Auswahl verschiebt sie nicht. Unberuehrt werden die vorderen Wells genutzt, oder es werden genau die Wells gewaehlt, die diese Kampagne tatsaechlich befuellt hat.",
       "counts": "{{selected}} von {{capacity}} Wells für {{occupants}} Proben ausgewählt (Varianten plus WT-Kontrolle).",
-      "tooFewWells": "{{selected}} Wells ausgewählt, aber {{occupants}} Proben müssen untergebracht werden. Mehr Wells wählen oder Variantenliste kürzen.",
+      "excludedVariants": "{{excluded}} Proben liegen in nicht ausgewaehlten Wells, sind damit nicht auf der Platte und werden nicht bewertet: {{samples}}",
       "selectAll": "Alle auswählen ({{count}})",
       "selectDefault": "Nur die Proben ({{count}})",
       "clearAll": "Auswahl aufheben",

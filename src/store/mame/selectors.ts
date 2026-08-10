@@ -27,27 +27,25 @@ export function selectPlateOrderSeverity(s: AppState): PlateOrderSeverity | null
 }
 
 /**
- * Can this run seat everything the variant list puts on the plate?
+ * Does this run declare any well at all?
  *
- * The rule is the sidecar's (`apply_well_selection`): occupant i takes the i-th
- * declared well, so fewer wells than occupants is a refusal rather than a
- * partial plate. Asked here so the button is held before the run starts, not
- * after: `WellSelectionPanel` drew the warning from the moment the selection
- * got too short while Run stayed enabled beside it.
+ * The rule is the sidecar's (`apply_well_selection`): the draft's placement is
+ * anchored to the plate and the declaration narrows it, so fewer wells than
+ * occupants is a partly filled plate rather than a refusal. The variants left
+ * out are reported (`WellSelectionPanel` names them, and the result carries
+ * `layout_provenance.excluded_occupants`), and the run proceeds.
  *
- * An empty declaration is refused whatever the occupant count is, which is why
- * it is a separate clause: "Clear selection" sends `[]` and the occupant count
- * may not have been read yet.
+ * What is still refused is a declaration of nothing. "Clear selection" sends
+ * `[]`, and a run with no wells has nothing to score; the sidecar refuses it in
+ * `_selected_wells_param`, so the button is held here rather than letting the
+ * refusal arrive after the click.
  *
- * `null` selection is the default (the leading wells) and never blocks. A null
- * occupant count means nothing has read the variant list yet, so there is no
- * number to compare against and only the empty-declaration clause applies.
+ * `null` is the default (the leading wells) and never blocks.
  */
 function selectionSeatsEveryone(s: AppState): boolean {
   const wells = s.selectedWells;
   if (wells === null) return true;
-  if (wells.length === 0) return false;
-  return s.wellSelectionOccupants === null || wells.length >= s.wellSelectionOccupants;
+  return wells.length > 0;
 }
 
 export function selectCanRun(s: AppState): boolean {

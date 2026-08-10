@@ -329,7 +329,10 @@ def test_a_declared_selection_is_stamped_onto_the_result(tmp_path: Path) -> None
     result = handle_analyze(params)
 
     assert result["layout_provenance"]["selected_wells"] == ["A1", "C1", "D1"]
-    assert result["layout_provenance"]["unused_wells"] == []
+    # Two mutants plus WT draft onto A1..C1. B1 was not declared, so what sits
+    # in it is off the plate, and D1 is a declared well the draft never reached.
+    assert result["layout_provenance"]["unused_wells"] == ["D1"]
+    assert list(result["layout_provenance"]["excluded_occupants"]) == ["B1"]
 
 
 def test_wells_declared_beyond_the_campaign_are_named_rather_than_dropped(
@@ -354,14 +357,17 @@ def test_wells_declared_beyond_the_campaign_are_named_rather_than_dropped(
     assert provenance["unused_wells"] == ["D1", "E1"]
 
 
-def test_too_few_wells_is_refused_by_the_button_and_by_the_run(
+def test_a_partly_filled_plate_runs_and_names_what_it_left_out(
     tmp_path: Path,
 ) -> None:
-    """It used to be refused by neither.
+    """Fewer wells than samples is a description of the bench, not a mistake.
 
-    ``validate_inputs`` swallowed the ValueError and answered "valid", and the
-    run applied the selection after the demux, so the operator paid for the
-    ingest before hearing about it.
+    It used to be a refusal, because the occupants were re-seated onto the
+    declared wells and a short list left one with nowhere to go. Placement is
+    anchored to the plate now, so an undeclared well simply holds nothing: the
+    campaign did not fill it, and what the draft put there is not sequenced.
+    The variants left out get no verdict anywhere on the result, so the result
+    has to name them.
     """
     expected = _write_expected(tmp_path / "expected.xlsx", 4)
     validate = _validate_params(tmp_path, expected)
@@ -369,13 +375,20 @@ def test_too_few_wells_is_refused_by_the_button_and_by_the_run(
 
     result = handle_validate_inputs(validate)
 
-    assert result["valid"] is False
-    assert any("2 wells selected for 5 plate occupants" in e for e in result["errors"])
+    assert result["valid"] is True
 
     analyze = _analyze_params(tmp_path, expected)
     analyze["selected_wells"] = ["A1", "B1"]
-    with pytest.raises(ValueError, match="plate occupants"):
-        handle_analyze(analyze)
+
+    analyzed = handle_analyze(analyze)
+
+    provenance = analyzed["layout_provenance"]
+    assert provenance["selected_wells"] == ["A1", "B1"]
+    assert provenance["unused_wells"] == []
+    # Four mutants plus WT draft onto A1..E1. A1 and B1 were declared, so the
+    # three occupants past them are off this plate, still under the wells the
+    # draft gave them rather than shifted.
+    assert list(provenance["excluded_occupants"]) == ["C1", "D1", "E1"]
 
 
 def test_an_empty_selection_is_reported_as_a_selection_problem(

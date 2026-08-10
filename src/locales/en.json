@@ -1259,9 +1259,9 @@
     },
     "wellSelection": {
       "title": "Wells used",
-      "description": "The draft placement, drawn on the plate. Variants fill the selected wells in plate order (A1, B1, ... H1, A2). Leave it alone to use the first wells, or pick the wells this campaign actually occupies.",
+      "description": "The draft placement, drawn on the plate. Each variant keeps the well plate order gave it (A1, B1, ... H1, A2) and selecting wells does not move it. Leave it alone to use the first wells, or pick the wells this campaign actually filled.",
       "counts": "{{selected}} of {{capacity}} wells selected for {{occupants}} samples (variants plus the WT control).",
-      "tooFewWells": "{{selected}} wells selected but {{occupants}} samples have to go somewhere. Select more wells or shorten the variant list.",
+      "excludedVariants": "{{excluded}} samples sit in wells this campaign did not select, so they are not on the plate and get no verdict: {{samples}}",
       "selectAll": "Select all ({{count}})",
       "selectDefault": "Just the samples ({{count}})",
       "clearAll": "Clear selection",

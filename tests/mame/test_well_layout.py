@@ -140,14 +140,23 @@ def test_selecting_the_leading_wells_reproduces_the_draft_exactly() -> None:
     assert reseated.layout == draft.layout
 
 
-def test_occupants_follow_the_selection_in_plate_order() -> None:
-    """Occupant i takes the ith selected well, and WT rides along as an occupant."""
+def test_occupants_keep_the_wells_the_draft_gave_them() -> None:
+    """The selection narrows the draft, it does not re-seat it.
+
+    Occupant *i* used to take the *i*th declared well, so leaving one out slid
+    every later variant up and the plate the operator was looking at rearranged
+    itself under a click meant to describe it.
+    """
     expected = [_em("M1", 1, "A", "B"), _em("M2", 2, "C", "D")]
     draft = build_draft_layout(expected)
 
-    reseated = apply_well_selection(draft, ["A1", "C1", "E1"])
+    narrowed = apply_well_selection(draft, ["A1", "C1", "E1"])
 
-    assert reseated.layout == {"A1": "M1", "C1": "M2", "E1": "WT"}
+    # The draft is A1=M1, B1=M2, C1=WT. B1 was not declared, so M2 is off the
+    # plate and WT stays in C1 rather than moving up into it.
+    assert narrowed.layout == {"A1": "M1", "C1": "WT"}
+    assert narrowed.excluded_occupants == {"B1": "M2"}
+    assert narrowed.unused_wells == ["E1"]
 
 
 def test_the_selection_order_the_caller_sent_does_not_matter() -> None:
@@ -161,13 +170,22 @@ def test_the_selection_order_the_caller_sent_does_not_matter() -> None:
     assert scrambled.layout == ordered.layout
 
 
-def test_a_selection_smaller_than_the_campaign_is_refused() -> None:
-    """A prefix placement would hand back something that reads as a whole plate."""
+def test_a_selection_smaller_than_the_campaign_names_what_it_leaves_out() -> None:
+    """A partly filled plate is the ordinary case, not a refusal.
+
+    It was refused while the rule was re-seating, because a short list left an
+    occupant with nowhere to go. Nothing moves now, so the wells past the
+    declaration simply hold nothing, and what the draft put there is named:
+    those variants have no verdict anywhere on the run.
+    """
     expected = [_em("M1", 1, "A", "B"), _em("M2", 2, "C", "D")]
     draft = build_draft_layout(expected)
 
-    with pytest.raises(ValueError, match="3 plate occupants"):
-        apply_well_selection(draft, ["A1", "B1"])
+    narrowed = apply_well_selection(draft, ["A1", "B1"])
+
+    assert narrowed.layout == {"A1": "M1", "B1": "M2"}
+    assert narrowed.excluded_occupants == {"C1": "WT"}
+    assert narrowed.unused_wells == []
 
 
 def test_normalise_selected_wells_sorts_dedupes_and_bounds() -> None:

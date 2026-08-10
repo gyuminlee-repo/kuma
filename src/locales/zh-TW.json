@@ -1259,9 +1259,9 @@
     },
     "wellSelection": {
       "title": "使用的孔位",
-      "description": "在盤上繪製的計算佈局。變異依盤順序(A1, B1, ... H1, A2)填入所選孔位。不做任何操作則使用前面的孔位。",
+      "description": "將計算出的佈局繪製在盤上。每個變異固定在盤序(A1, B1, ... H1, A2)分配的孔位，選擇孔位不會移動它。不做更動則使用前面的孔位，也可只選本次實驗實際裝填的孔位。",
       "counts": "{{occupants}} 個樣品(變異加 WT 對照)已選 {{capacity}} 中的 {{selected}} 個孔位。",
-      "tooFewWells": "已選 {{selected}} 個孔位，但有 {{occupants}} 個樣品。請增加孔位或縮短變異列表。",
+      "excludedVariants": "位於未選孔位的 {{excluded}} 個樣品視為不在本盤上，不做判定：{{samples}}",
       "selectAll": "全選 ({{count}})",
       "selectDefault": "僅樣品數 ({{count}})",
       "clearAll": "清除選擇",

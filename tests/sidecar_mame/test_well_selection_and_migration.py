@@ -291,9 +291,12 @@ def test_the_legacy_comparison_reads_the_selection_the_run_would_use(
     """Comparing against the unselected draft would flag a plate that is correct."""
     expected = _variant_list(tmp_path / "variants.xlsx", ["G2A", "F3W"])
     params = _validate_params(tmp_path, expected)
-    params["selected_wells"] = ["A1", "C1", "E1"]
+    # The draft is A1=G2A, B1=F3W, C1=WT. Declaring all but B1 says F3W was not
+    # pipetted, and the map on disk agrees: it names the two wells that were.
+    # Compared against the draft instead, B1 would read as a disagreement.
+    params["selected_wells"] = ["A1", "C1"]
     params["legacy_sample_map_xlsx"] = str(
-        _legacy_sample_map(tmp_path / "map.xlsx", [("G2A", "A1"), ("F3W", "C1"), ("WT", "E1")])
+        _legacy_sample_map(tmp_path / "map.xlsx", [("G2A", "A1"), ("WT", "C1")])
     )
 
     result = handle_validate_inputs(params)
@@ -339,14 +342,15 @@ def test_the_run_compares_the_map_against_the_wells_it_would_use(
     """The selection has to be applied before the comparison, not after it."""
     expected = _variant_list(tmp_path / "variants.xlsx", ["G2A", "F3W"])
     params = _params(tmp_path, expected)
-    params["selected_wells"] = ["A1", "C1", "E1"]
+    params["selected_wells"] = ["A1", "C1"]
     params["legacy_sample_map_xlsx"] = str(
-        _legacy_sample_map(tmp_path / "map.xlsx", [("G2A", "A1"), ("F3W", "C1"), ("WT", "E1")])
+        _legacy_sample_map(tmp_path / "map.xlsx", [("G2A", "A1"), ("WT", "C1")])
     )
 
     result = handle_analyze(params)
 
-    assert result["layout_provenance"]["selected_wells"] == ["A1", "C1", "E1"]
+    assert result["layout_provenance"]["selected_wells"] == ["A1", "C1"]
+    assert result["layout_provenance"]["excluded_occupants"] == {"B1": "F3W"}
 
 
 def test_a_project_with_no_sample_map_says_nothing_about_one(tmp_path: Path) -> None:
