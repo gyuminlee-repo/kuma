@@ -86,6 +86,35 @@ def _make_kuro_xlsx(dest: Path) -> None:
     wb.save(dest)
 
 
+def _make_kuro_xlsx_filling(dest: Path, mutants: int) -> None:
+    """A KURO workbook whose campaign reaches past the first plate column.
+
+    The two-mutant fixture above drafts onto A1..C1, so no selection of it can
+    occupy a well in column 3 while leaving A3 empty, and that combination is
+    what separates "an index this plate never used" from "a well nobody
+    pipetted". A campaign long enough to reach B3 makes both askable at once.
+    """
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.title = "Fwd List"
+    ws.append(["Well", "Primer Name", "Sequence", "Length", "Tm", "Tm_Overlap",
+               "WT_Codon", "MT_Codon", "Mutation"])
+    ws2 = wb.create_sheet("expected_mutations")
+    ws2.append(["mutant_id", "position", "wt_aa", "mt_aa", "wt_codon", "mt_codon",
+                "group_id", "primer_set_ref", "notation_type", "status"])
+    for index in range(mutants):
+        position = index + 2
+        mutant_id = f"G{position}A"
+        well = f"{'ABCDEFGH'[index % 8]}{index // 8 + 1}"
+        ws.append([well, f"{mutant_id}_F", "ATGNNNNNNNN", 11, 60.0, 40.0,
+                   "GGG", "GCG", mutant_id])
+        ws2.append([mutant_id, position, "G", "A", "GGG", "GCG", "", mutant_id,
+                    "substitution", "DESIGNED"])
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    wb.save(dest)
+
+
 def _make_reference_fasta(tmp_path: Path, seq: str = _REFERENCE_NT) -> Path:
     ref = tmp_path / "reference.fasta"
     ref.write_text(f">ref\n{seq}\n", encoding="utf-8")
@@ -668,6 +697,11 @@ def test_handle_analyze_raw_run_reports_what_the_demux_matrix_saw(
     this plate but whose well nobody pipetted, while ``1_9`` carries a forward
     index the campaign never used at all. Those are the two different questions
     the report keeps apart, and this fixture answers both at once.
+
+    The campaign has to reach B3 for that to be sayable: placement is anchored
+    to the plate, so a declaration cannot move an occupant into a well the draft
+    never filled. Eighteen occupants reach it, and declaring three of them is
+    what leaves A3 occupied by nobody.
     """
     from kuma_core.mame import ingest as ingest_mod
     from kuma_core.mame import pipeline as pipeline_mod
@@ -718,6 +752,8 @@ def test_handle_analyze_raw_run_reports_what_the_demux_matrix_saw(
     _capture_progress(monkeypatch)
 
     params = _raw_run_params(run_dir, tmp_path, barcodes_xlsx)
+    # 17 mutants plus the WT control draft onto A1..B3.
+    _make_kuro_xlsx_filling(Path(params["expected"]), mutants=17)
     params["selected_wells"] = ["A1", "B1", "B3"]
     result = analyze_mod.handle_analyze(params)
 

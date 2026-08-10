@@ -1259,9 +1259,9 @@
     },
     "wellSelection": {
       "title": "Pocillos usados",
-      "description": "La disposición calculada, dibujada sobre la placa. Las variantes llenan los pocillos seleccionados en orden de placa (A1, B1, ... H1, A2). Sin tocar nada se usan los primeros pocillos.",
+      "description": "La colocacion calculada, dibujada sobre la placa. Cada variante permanece en el pocillo que le dio el orden de placa (A1, B1, ... H1, A2) y la seleccion no lo mueve. Sin tocar nada se usan los primeros pocillos, o se eligen los pocillos que esta campana lleno realmente.",
       "counts": "{{selected}} de {{capacity}} pocillos seleccionados para {{occupants}} muestras (variantes más el control WT).",
-      "tooFewWells": "{{selected}} pocillos seleccionados pero hay {{occupants}} muestras. Seleccione más pocillos o acorte la lista de variantes.",
+      "excludedVariants": "{{excluded}} muestras estan en pocillos no seleccionados, por lo que no estan en la placa y no reciben veredicto: {{samples}}",
       "selectAll": "Seleccionar todo ({{count}})",
       "selectDefault": "Solo las muestras ({{count}})",
       "clearAll": "Borrar selección",
@@ -2402,13 +2402,19 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Guardar un proyecto ya funciona en macOS y Linux. El autoguardado se rechazaba en silencio, así que al reabrir un proyecto no se restauraba nada.",
-      "La salida de análisis de MAME y las entradas de KURO sobreviven a un reinicio en esas plataformas, igual que ya ocurría en Windows.",
-      "Las notas de actualización cubren todas las versiones entre la última que usaste y la recién instalada, no solo la más reciente.",
-      "Cada versión de esa lista tiene su propio encabezado, y la lista se desplaza cuando se muestran varias a la vez."
+      "Seleccionar pocillos ya no mueve las variantes. Cada una conserva el pocillo que le dio el orden de placa y un clic solo indica que pocillos se llenaron.",
+      "Una placa llena solo en parte ahora se ejecuta. Menos pocillos seleccionados que muestras se rechazaba antes de iniciar.",
+      "Las variantes de los pocillos omitidos se nombran sobre la rejilla y se tachan en ella, de modo que ninguna desaparece en silencio.",
+      "La ejecucion terminada registra que pocillos se omitieron y que habia en ellos, para que un resultado diga que nunca estuvo en la placa."
     ],
-    "highlightsStamp": "0.16.10+24b9d0ac",
+    "highlightsStamp": "0.16.11+39f046cb",
     "releases": {
+      "0.16.11": [
+        "Seleccionar pocillos ya no mueve las variantes. Cada una conserva el pocillo que le dio el orden de placa y un clic solo indica que pocillos se llenaron.",
+        "Una placa llena solo en parte ahora se ejecuta. Menos pocillos seleccionados que muestras se rechazaba antes de iniciar.",
+        "Las variantes de los pocillos omitidos se nombran sobre la rejilla y se tachan en ella, de modo que ninguna desaparece en silencio.",
+        "La ejecucion terminada registra que pocillos se omitieron y que habia en ellos, para que un resultado diga que nunca estuvo en la placa."
+      ],
       "0.16.10": [
         "Guardar un proyecto ya funciona en macOS y Linux. El autoguardado se rechazaba en silencio, así que al reabrir un proyecto no se restauraba nada.",
         "La salida de análisis de MAME y las entradas de KURO sobreviven a un reinicio en esas plataformas, igual que ya ocurría en Windows.",
@@ -2524,6 +2530,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.11": "39f046cb",
       "0.16.10": "24b9d0ac",
       "0.16.9": "46abfd1a",
       "0.16.8": "2cb0acdc",

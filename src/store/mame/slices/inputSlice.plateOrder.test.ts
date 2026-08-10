@@ -241,24 +241,27 @@ describe("mame inputSlice plate-order finding", () => {
 /**
  * The well-selection gate.
  *
- * `apply_well_selection` refuses a selection shorter than the plate occupants,
- * so a run started from one cannot finish. The panel drew the warning and the
- * Run button stayed enabled beside it, which put the refusal after the click
- * (and, for the empty selection the "Clear selection" button produces, under a
- * label naming the expected workbook).
+ * The only declaration the sidecar refuses is an empty one: a run with no
+ * wells has nothing to score. It arrives from the "Clear selection" button, and
+ * the Run button used to stay enabled beside it, which put the refusal after
+ * the click and under a label naming the expected workbook.
+ *
+ * Declaring fewer wells than there are samples is not refused. Placement is
+ * anchored to the plate, so that is a partly filled plate, and the samples in
+ * the undeclared wells are reported rather than seated somewhere else.
  */
 describe("mame well selection gate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("holds the run when fewer wells are declared than there are samples", () => {
+  it("lets a partly filled plate run", () => {
     const store = makeRunnableStore({
       selectedWells: ["A1", "B1"],
       wellSelectionOccupants: 5,
     });
 
-    expect(selectCanRun(store)).toBe(false);
+    expect(selectCanRun(store)).toBe(true);
   });
 
   it("holds the run on an empty declaration even before the count is known", () => {
@@ -292,8 +295,8 @@ describe("mame well selection gate", () => {
   });
 
   it("drops the selection when the expected workbook changes", () => {
-    // Occupant i takes the i-th selected well, so a selection made for one
-    // variant list seats a different list on the same wells.
+    // A selection names wells the draft of one variant list filled, and the
+    // next list fills them with something else.
     const store = makeRunnableStore({
       selectedWells: ["A1", "C1"],
       wellSelectionOccupants: 2,

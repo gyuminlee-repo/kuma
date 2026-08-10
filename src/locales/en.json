@@ -1259,9 +1259,9 @@
     },
     "wellSelection": {
       "title": "Wells used",
-      "description": "The draft placement, drawn on the plate. Variants fill the selected wells in plate order (A1, B1, ... H1, A2). Leave it alone to use the first wells, or pick the wells this campaign actually occupies.",
+      "description": "The draft placement, drawn on the plate. Each variant keeps the well plate order gave it (A1, B1, ... H1, A2) and selecting wells does not move it. Leave it alone to use the first wells, or pick the wells this campaign actually filled.",
       "counts": "{{selected}} of {{capacity}} wells selected for {{occupants}} samples (variants plus the WT control).",
-      "tooFewWells": "{{selected}} wells selected but {{occupants}} samples have to go somewhere. Select more wells or shorten the variant list.",
+      "excludedVariants": "{{excluded}} samples sit in wells this campaign did not select, so they are not on the plate and get no verdict: {{samples}}",
       "selectAll": "Select all ({{count}})",
       "selectDefault": "Just the samples ({{count}})",
       "clearAll": "Clear selection",
@@ -2435,13 +2435,19 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Saving a project on macOS and Linux now works. Autosave was silently refused there, so reopening a project restored nothing.",
-      "MAME analyze output and KURO inputs survive a restart on those platforms, the same way they already did on Windows.",
-      "The update notes now cover every release between the version you last ran and the one you just installed, not only the newest one.",
-      "Each release in that list gets its own heading, and the list scrolls when several releases are shown at once."
+      "Selecting wells no longer moves the variants. Each keeps the well the plate order gave it, and a click only says which wells were filled.",
+      "A plate filled only in part now runs. Fewer selected wells than samples used to be refused before the run could start.",
+      "Variants in wells left out are named above the grid and struck through in it, so none of them drops out of a run in silence.",
+      "The finished run records which wells were left out and what was in them, so a result can say what was never on the plate."
     ],
-    "highlightsStamp": "0.16.10+24b9d0ac",
+    "highlightsStamp": "0.16.11+39f046cb",
     "releases": {
+      "0.16.11": [
+        "Selecting wells no longer moves the variants. Each keeps the well the plate order gave it, and a click only says which wells were filled.",
+        "A plate filled only in part now runs. Fewer selected wells than samples used to be refused before the run could start.",
+        "Variants in wells left out are named above the grid and struck through in it, so none of them drops out of a run in silence.",
+        "The finished run records which wells were left out and what was in them, so a result can say what was never on the plate."
+      ],
       "0.16.10": [
         "Saving a project on macOS and Linux now works. Autosave was silently refused there, so reopening a project restored nothing.",
         "MAME analyze output and KURO inputs survive a restart on those platforms, the same way they already did on Windows.",
@@ -2557,6 +2563,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.11": "39f046cb",
       "0.16.10": "24b9d0ac",
       "0.16.9": "46abfd1a",
       "0.16.8": "2cb0acdc",
