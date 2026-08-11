@@ -1011,7 +1011,8 @@
       "finding": {
         "median_depth_below_floor": "Mediane Tiefe {{median}} liegt unter der Untergrenze von {{floor}}.",
         "median_depth_below_recommended": "Mediane Tiefe {{median}} liegt unter den empfohlenen {{recommended}} Reads pro Amplikon.",
-        "flow_cell_reused": "Flusszelle {{cell}} trug in diesem Projekt bereits einen Lauf, der mit {{previousPores}} Poren endete."
+        "flow_cell_reused": "Flusszelle {{cell}} trug in diesem Projekt bereits einen Lauf, der mit {{previousPores}} Poren endete.",
+        "variants_at_reference_edge": "{{variants}} liegen innerhalb von {{margin}} bp vor einem Ende der Referenz, und dieser Lauf hat gegen die gelieferte Referenz aligniert. Ein Aligner schneidet einen Read an einer Fehlpaarung ab, die er nicht anfuegen kann, daher koennen diese Positionen weniger Tiefe sehen als das Well meldet. Eine Referenz mit den Primerbindungsstellen rueckt sie weiter nach innen."
       }
     },
     "inspector": {
@@ -2430,11 +2431,17 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Benachrichtigungen folgen jetzt dem dunklen Design, statt als helle weiße Karte auf einem dunklen Bildschirm zu erscheinen.",
-      "Sie folgen weiterhin, egal ob das Design über die Menüleiste, die Einstellungen oder das System geändert wurde."
+      "Mutationen direkt an einem Ende der Referenz werden ueber der Urteilstabelle benannt, bei Laeufen, welche die gelieferte Referenz unveraendert genutzt haben.",
+      "Sie werden benannt statt gezaehlt, denn welche Variante es ist entscheidet, was zu tun ist.",
+      "Der Hinweis bleibt beratend: nichts wird verworfen, und kein Urteil aendert sich."
     ],
-    "highlightsStamp": "0.16.20+c211fb70",
+    "highlightsStamp": "0.16.21+357e800b",
     "releases": {
+      "0.16.21": [
+        "Mutationen direkt an einem Ende der Referenz werden ueber der Urteilstabelle benannt, bei Laeufen, welche die gelieferte Referenz unveraendert genutzt haben.",
+        "Sie werden benannt statt gezaehlt, denn welche Variante es ist entscheidet, was zu tun ist.",
+        "Der Hinweis bleibt beratend: nichts wird verworfen, und kein Urteil aendert sich."
+      ],
       "0.16.20": [
         "Benachrichtigungen folgen jetzt dem dunklen Design, statt als helle weiße Karte auf einem dunklen Bildschirm zu erscheinen.",
         "Sie folgen weiterhin, egal ob das Design über die Menüleiste, die Einstellungen oder das System geändert wurde."
@@ -2605,6 +2612,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
       "0.16.17": "f9c0ee2f",

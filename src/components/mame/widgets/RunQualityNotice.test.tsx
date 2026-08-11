@@ -164,4 +164,29 @@ describe("RunQualityNotice", () => {
     expect(notice).toHaveTextContent("1500");
     expect(notice.textContent).not.toContain("{{");
   });
+
+  it("names the variants sitting against a reference end", () => {
+    // 260729 ispS on a bare CDS: R560 is 4 bp from the end of 1683 bp, so an
+    // aligner clips the reads that carry it and the site can be read shallower
+    // than the well reports. Naming them is the point; a count would send an
+    // operator looking for which ones.
+    useMameAppStore.setState({
+      runQuality: quality({
+        severity: "warning",
+        edge_variants: ["R560D", "R560N"],
+        edge_margin_bp: 30,
+        findings: [{ code: "variants_at_reference_edge", severity: "warning" }],
+      }),
+    });
+
+    render(<RunQualityNotice />);
+
+    const notice = screen.getByTestId("run-quality-notice");
+    expect(notice).toHaveAttribute("data-severity", "warning");
+    // Warning, not alert. These wells scored on the run this came from.
+    expect(notice.getAttribute("role")).toBe("status");
+    expect(notice).toHaveTextContent("R560D, R560N");
+    expect(notice).toHaveTextContent("30");
+    expect(notice.textContent).not.toContain("{{");
+  });
 });

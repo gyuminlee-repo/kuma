@@ -1011,7 +1011,8 @@
       "finding": {
         "median_depth_below_floor": "Profundidade mediana {{median}} abaixo do piso de {{floor}}.",
         "median_depth_below_recommended": "Profundidade mediana {{median}} abaixo das {{recommended}} leituras por amplicon recomendadas.",
-        "flow_cell_reused": "A celula {{cell}} ja levou uma execucao neste projeto, encerrada com {{previousPores}} poros."
+        "flow_cell_reused": "A celula {{cell}} ja levou uma execucao neste projeto, encerrada com {{previousPores}} poros.",
+        "variants_at_reference_edge": "{{variants}} ficam a menos de {{margin}} pb de uma extremidade da referencia, e esta execucao alinhou contra a referencia como foi fornecida. Um alinhador corta uma leitura em um desemparelhamento que nao consegue anexar, entao essas posicoes podem ver menos profundidade do que o poco relata. Uma referencia que inclua as regioes de ligacao dos primers as deixa mais para dentro."
       }
     },
     "inspector": {
@@ -2430,11 +2431,17 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "As notificações agora seguem o tema escuro, em vez de aparecer como um cartão branco brilhante sobre uma tela escura.",
-      "Elas continuam seguindo o tema, seja alterado pela barra de menu, pelas configurações ou pelo sistema."
+      "Mutacoes coladas a uma extremidade da referencia sao nomeadas acima da tabela de vereditos, em execucoes que usaram a referencia como foi entregue.",
+      "Elas sao nomeadas em vez de contadas, porque qual variante e decide o que fazer a respeito.",
+      "A nota fica como aviso: nada e descartado e nenhum veredito muda."
     ],
-    "highlightsStamp": "0.16.20+c211fb70",
+    "highlightsStamp": "0.16.21+357e800b",
     "releases": {
+      "0.16.21": [
+        "Mutacoes coladas a uma extremidade da referencia sao nomeadas acima da tabela de vereditos, em execucoes que usaram a referencia como foi entregue.",
+        "Elas sao nomeadas em vez de contadas, porque qual variante e decide o que fazer a respeito.",
+        "A nota fica como aviso: nada e descartado e nenhum veredito muda."
+      ],
       "0.16.20": [
         "As notificações agora seguem o tema escuro, em vez de aparecer como um cartão branco brilhante sobre uma tela escura.",
         "Elas continuam seguindo o tema, seja alterado pela barra de menu, pelas configurações ou pelo sistema."
@@ -2605,6 +2612,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
       "0.16.17": "f9c0ee2f",

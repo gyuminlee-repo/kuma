@@ -182,7 +182,11 @@ def resolve_amplicon_reference(
                 "Amplicon extraction skipped because the primer tail sequence was "
                 "not found in the reference. This is expected when the reference is "
                 "a bare CDS and the primer tail sits in vector backbone outside it; "
-                "the whole reference is used unmodified in that case."
+                "the whole reference is used unmodified in that case. Note that a "
+                "mutation close to either end of such a reference sits where the "
+                "aligner clips reads that carry it, so that position can be read "
+                "at less depth than its well reports; run quality names any "
+                "expected mutation this applies to."
             )
         elif reason == _SpanReason.NOT_UNIQUE:
             note = (
