@@ -86,14 +86,12 @@ interface VerdictBreakdownProps {
   perPlate: Record<string, RunHealthBreakdown>;
   recoveredMutants: number | null;
   totalMutants: number | null;
-  recoveryRate: number | null;
 }
 
 function VerdictBreakdown({
   perPlate,
   recoveredMutants,
   totalMutants,
-  recoveryRate,
 }: VerdictBreakdownProps) {
   const { t } = useTranslation();
   const replicates = useMameAppStore((state) => state.replicates);
@@ -101,25 +99,18 @@ function VerdictBreakdown({
     ([a], [b]) => nbOrderKey(a) - nbOrderKey(b) || a.localeCompare(b),
   );
 
-  // AC8: recovery (재현율) header — non-null shows "R/T (Z%)", null shows n/a.
-  const recoveryAvailable = recoveredMutants !== null && totalMutants !== null;
-  const recoveryPct = recoveryRate !== null ? Math.round(recoveryRate * 100) : 0;
-  const recoveryHeader = (
-    <div className="flex flex-wrap items-baseline gap-x-2 text-sm" data-testid="run-health-recovery">
-      <span className="font-semibold uppercase tracking-widest text-muted-foreground">
-        {t("mame.runHealth.recovery")}
-      </span>
-      <span className="text-base font-semibold tabular-nums text-foreground">
-        {recoveryAvailable
-          ? t("mame.runHealth.recoveryValue", {
-              recovered: recoveredMutants,
-              total: totalMutants,
-              pct: recoveryPct,
-            })
-          : t("mame.runHealth.recoveryNa")}
-      </span>
-    </div>
-  );
+  // The recovery rate header that used to sit here is gone. It read
+  // recovered/total over the designed set counting PASS *and* AMBIGUOUS, while
+  // SummaryRow already shows a success rate over the same designed set counting
+  // PASS alone. Two headline percentages on one screen, differing only in whether
+  // a well with an extra change next to the target counts, invited the reader to
+  // quote whichever was higher. The pick list ships PASS alone
+  // (export/janus_mapping.py DEFAULT_INCLUDE_VERDICTS), so the success rate is the
+  // one that describes what leaves the run, and it stays.
+  //
+  // `recovery_rate` is still computed and still travels in RunHealthData: an
+  // earlier project reloads unchanged, and the bar below still needs
+  // recovered_mutants for its denominator. Only the header is withdrawn.
 
   // Per-mutant recovery distribution (pass / ambiguous / not recovered).
   // Denominator and the not-recovered count come from the same backend scalars
@@ -184,7 +175,10 @@ function VerdictBreakdown({
     count: plates.reduce((acc, [, b]) => acc + (b[key] ?? 0), 0),
   }));
 
-  if (plates.length === 0) return recoveryHeader;
+  // No plate summaries means no per-plate chart to draw. The mutant bar can still
+  // stand on its own (it reads the designed-set scalars, not the per-plate map), so
+  // render it rather than the empty fragment the recovery header used to cover.
+  if (plates.length === 0) return mutantRecoveryBar;
 
   const barW = 44;
   const gap = 24;
@@ -198,7 +192,6 @@ function VerdictBreakdown({
 
   return (
     <div className="flex flex-col gap-3">
-      {recoveryHeader}
       {mutantRecoveryBar}
       <figure className="w-full overflow-x-auto" aria-label={t("mame.runHealth.verdictBreakdown")}>
         <svg
@@ -852,7 +845,6 @@ export function RunHealthPanel({ health, sections, className, showSectionHeading
             perPlate={health.per_plate_summary}
             recoveredMutants={health.recovered_mutants}
             totalMutants={health.total_mutants}
-            recoveryRate={health.recovery_rate}
           />
         </section>
       )}
