@@ -23,8 +23,10 @@ be read as one that did.
 
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass, field
 from statistics import median
+from typing import Iterable, Protocol, Sequence
 
 from kuma_core.mame.ingest.flow_cell import MINION_WARRANTY_PORES
 
@@ -235,6 +237,217 @@ def assess_run_quality(
     return quality
 
 
+# ── Which reference positions come back well after well ──────────────────────
+#
+# A minor allele at one position in one well is a candidate mixture. The SAME
+# reference position turning up in well after well across a plate is what a
+# sequence-context artifact looks like, because the context is a property of the
+# amplicon rather than of the clone in the well. Two runs on different flow
+# cells five months apart, 87 and 79 wells over a 1715 bp amplicon, put the two
+# readings side by side (median weak-strand share of the minor allele, by how
+# many wells reported the position):
+#
+#     wells reporting      260212      260729
+#     1 (unique)            0.250       0.256
+#     2-3                   0.205       0.267
+#     4-9                   0.053       0.071
+#     10+                   0.016       0.000
+#
+# Nine positions recurred in ten or more wells in BOTH runs. That is a signal
+# worth putting in front of an operator, and it is NOT a rule: neither the well
+# count nor the share has a cut this module is willing to defend, for the same
+# reason the pore count has none (see assess_run_quality). So this half of the
+# module emits a table and no verdict.
+
+
+class _NoisyPositionLike(Protocol):
+    """The part of ``NoisyPosition`` this tally reads.
+
+    Read structurally rather than imported so this module keeps its current
+    dependency footprint (``flow_cell`` only). The share is taken from the
+    record's own property rather than recomputed here: the formula has exactly
+    one home, ``models.NoisyPosition.weak_strand_share``, and a second copy is
+    what the class collapse just finished removing.
+    """
+
+    position: int
+
+    @property
+    def weak_strand_share(self) -> float | None: ...
+
+
+class _WellLike(Protocol):
+    """A scored well, as ``BarcodeRecord`` and ``ConsensusCall`` both present it."""
+
+    n_eligible_positions: int
+
+    @property
+    def noisy_positions(self) -> Sequence[_NoisyPositionLike]: ...
+
+
+@dataclass(frozen=True)
+class RecurringPosition:
+    """One reference position and how the plate read it, over every well."""
+
+    #: 1-based reference coordinate, the convention ``NoisyPosition`` states.
+    position: int
+    #: Scored records that reported this position. Replicate plates contribute
+    #: one record per plate, so this counts SCORED RECORDS and not distinct
+    #: physical wells; a plate sequenced twice can report 2 for one well.
+    wells: int
+    #: Weak-strand share of the minor allele across those records. ``None`` for
+    #: all three when no record carried a share, which is not 0.0.
+    median_weak_strand_share: float | None
+    min_weak_strand_share: float | None
+    max_weak_strand_share: float | None
+    #: How many of ``wells`` contributed a share and how many could not. The
+    #: unknown ones are LEFT OUT of the median rather than entered as 0.0.
+    shares_known: int
+    shares_unknown: int
+
+
+@dataclass
+class PositionRecurrence:
+    """The recurrence table, and everything needed to read it as a lower bound."""
+
+    positions: list[RecurringPosition] = field(default_factory=list)
+    #: Records that reported at least one mix-eligible position.
+    wells_contributing: int = 0
+    #: Of those, how many had their ``noisy_positions`` truncated, i.e.
+    #: ``len(noisy_positions) < n_eligible_positions``. On both measured runs
+    #: this equalled ``wells_contributing`` exactly (87 of 87, 79 of 79).
+    wells_truncated: int = 0
+    #: Distinct positions seen at all, and how many of them the "recurrence
+    #: means more than once" rule below left out of ``positions``.
+    positions_seen: int = 0
+    positions_single_well: int = 0
+
+
+def summarise_position_recurrence(
+    wells: Iterable[_WellLike],
+) -> PositionRecurrence:
+    """Tally which reference positions recur across the wells of one run.
+
+    NOTHING here grades. No finding, no severity, no threshold, no verdict: a
+    position reported by forty wells is handed over exactly as a position
+    reported by two, and the operator applies their own reading. This is the
+    position ``assess_run_quality`` already takes on pore counts, and for the
+    same reason: every candidate cut had a counterexample on the runs this was
+    built from, and a number that would have been wrong on real plates is not a
+    threshold.
+
+    The one restriction on the table is definitional rather than a cut: a
+    position reported by a single well has not RECURRED, so it is not a row.
+    ``positions_single_well`` carries how many were left out that way, so the
+    table never hides its own remainder.
+
+    Every count is a LOWER BOUND. Each well contributes a top-K sample of its
+    mix-eligible positions (``_NOISY_POSITION_REPORT_BUDGET``, ten), ranked by
+    minor fraction, and ``n_eligible_positions`` says how large the pool was;
+    on both measured runs every single well was truncated. A position that
+    ranked eleventh in a well is absent from that well's list and therefore
+    absent from its tally here. ``wells_truncated`` is what says so, and the
+    medians are drawn from the same truncated sample.
+
+    ``wells`` is any object carrying ``noisy_positions`` and
+    ``n_eligible_positions``: ``BarcodeRecord`` and ``ConsensusCall`` both do.
+    The share is each position's own ``NoisyPosition.weak_strand_share``, not
+    the well-level ``max_minor_allele_strand_share``, which describes one
+    position only; a well whose well-level share is unknown still contributes
+    whatever its individual positions measured. ``None`` there is UNKNOWN and
+    stays out of the median rather than entering it as the 0.0 that means "one
+    strand only", which ``shares_unknown`` per row makes visible.
+    """
+    shares_by_position: defaultdict[int, list[float]] = defaultdict(list)
+    counts_by_position: defaultdict[int, int] = defaultdict(int)
+    wells_contributing = 0
+    wells_truncated = 0
+
+    for well in wells:
+        positions = tuple(getattr(well, "noisy_positions", ()) or ())
+        if not positions:
+            continue
+        wells_contributing += 1
+        if len(positions) < int(getattr(well, "n_eligible_positions", 0) or 0):
+            wells_truncated += 1
+        for entry in positions:
+            counts_by_position[int(entry.position)] += 1
+            share = entry.weak_strand_share
+            if share is not None:
+                shares_by_position[int(entry.position)].append(share)
+
+    summary = PositionRecurrence(
+        wells_contributing=wells_contributing,
+        wells_truncated=wells_truncated,
+        positions_seen=len(counts_by_position),
+    )
+    # "Recurrence" means "seen more than once", so a position only one well
+    # reported is not a row in a recurrence table. Counted, never dropped in
+    # silence.
+    summary.positions_single_well = sum(
+        1 for count in counts_by_position.values() if count < 2
+    )
+
+    rows: list[RecurringPosition] = []
+    for position, count in counts_by_position.items():
+        if count < 2:
+            continue
+        shares = shares_by_position.get(position, [])
+        rows.append(
+            RecurringPosition(
+                position=position,
+                wells=count,
+                median_weak_strand_share=median(shares) if shares else None,
+                min_weak_strand_share=min(shares) if shares else None,
+                max_weak_strand_share=max(shares) if shares else None,
+                shares_known=len(shares),
+                shares_unknown=count - len(shares),
+            )
+        )
+    # Most-recurrent first, then by coordinate. An ordering, not a ranking:
+    # nothing is cut off the end of this list.
+    rows.sort(key=lambda row: (-row.wells, row.position))
+    summary.positions = rows
+    return summary
+
+
+def serialise_position_recurrence(summary: PositionRecurrence) -> dict:
+    """The recurrence table as the analyze response carries it.
+
+    A sibling of :func:`serialise_run_quality` rather than a branch inside it,
+    because it serialises a different dataclass built by a different function;
+    the response nests the result under the same ``run_quality`` key so a reader
+    finds the run-level facts in one place.
+    """
+    return {
+        # Stated on the block and not only in this docstring: a reader holding
+        # the json has no other way to know the counts are floors.
+        "lower_bound": True,
+        "wells_contributing": summary.wells_contributing,
+        "wells_truncated": summary.wells_truncated,
+        "positions_seen": summary.positions_seen,
+        # Positions exactly one well reported, excluded because recurrence means
+        # more than once. Not a threshold, and not hidden.
+        "positions_single_well": summary.positions_single_well,
+        "positions": [
+            {
+                "position": row.position,
+                "wells": row.wells,
+                "median_weak_strand_share": row.median_weak_strand_share,
+                "min_weak_strand_share": row.min_weak_strand_share,
+                "max_weak_strand_share": row.max_weak_strand_share,
+                "shares_known": row.shares_known,
+                # Positions whose minor allele had no supporting reads at all.
+                # Left out of the three statistics above rather than entered as
+                # 0.0, which is the reading "one strand only" and is a
+                # measurement.
+                "shares_unknown": row.shares_unknown,
+            }
+            for row in summary.positions
+        ],
+    }
+
+
 def serialise_run_quality(quality: RunQuality) -> dict:
     """The block the analyze response carries."""
     return {
@@ -303,6 +516,10 @@ __all__ = [
     "SEVERITY_BLOCKING",
     "SEVERITY_WARNING",
     "RunQuality",
+    "PositionRecurrence",
+    "RecurringPosition",
     "assess_run_quality",
     "serialise_run_quality",
+    "summarise_position_recurrence",
+    "serialise_position_recurrence",
 ]

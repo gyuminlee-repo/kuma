@@ -42,7 +42,10 @@ from kuma_core.mame.ingest.fasta_parser import parse_fasta_file
 
 
 def _metadata(**overrides) -> ConsensusMetadata:
-    base = dict(
+    # Annotated because the literals below mix int and float, which a type
+    # checker otherwise unifies to ``dict[str, float]`` and then reports on
+    # every int parameter of ``ConsensusMetadata``. Behaviour is unchanged.
+    base: dict[str, object] = dict(
         depth=500,
         input_reads=500,
         aligned_reads=500,

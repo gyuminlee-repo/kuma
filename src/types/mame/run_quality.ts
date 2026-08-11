@@ -57,6 +57,66 @@ export interface FlowCellPreviousUse {
 }
 
 /**
+ * One reference position and how the whole plate read it.
+ *
+ * Nothing here is graded. A position forty wells reported is carried exactly as
+ * one two wells reported, and no field on this row is a verdict.
+ */
+export interface RecurringPosition {
+  /** 1-based reference coordinate. */
+  position: number
+  /**
+   * Scored records that reported this position. Replicate plates contribute one
+   * record per plate, so this counts scored records, not distinct wells.
+   */
+  wells: number
+  /**
+   * Weak-strand share of the minor allele over those records, `min(plus, minus)
+   * / (plus + minus)`. Null for all three when no record carried a share, which
+   * is UNKNOWN and never the same as 0.0, the reading "one strand only".
+   */
+  median_weak_strand_share: number | null
+  min_weak_strand_share: number | null
+  max_weak_strand_share: number | null
+  /** How many of `wells` contributed a share, and how many could not. The
+   * unknown ones are left out of the statistics above, not entered as 0.0. */
+  shares_known: number
+  shares_unknown: number
+}
+
+/**
+ * Which reference positions recur across the wells of one run.
+ *
+ * A minor allele at one position in one well is a candidate mixture; the same
+ * position returning well after well is what a sequence-context artifact looks
+ * like, because the context belongs to the amplicon rather than to the clone.
+ * Reported with no threshold, exactly like the pore counts above.
+ *
+ * Every count is a LOWER BOUND (`lower_bound` says so on the block itself):
+ * each well contributes at most ten mix-eligible positions ranked by minor
+ * fraction, and on both measured runs every single well was truncated, so a
+ * position that ranked eleventh in a well is missing from its tally here.
+ */
+export interface PositionRecurrence {
+  /** Always true. The counts below are floors, never a census. */
+  lower_bound: boolean
+  /** Records that reported at least one mix-eligible position. */
+  wells_contributing: number
+  /** Of those, how many had their position list truncated. */
+  wells_truncated: number
+  /** Distinct positions seen at all, before the recurrence restriction. */
+  positions_seen: number
+  /**
+   * Positions exactly one well reported, left out because "recurrence" means
+   * more than once. Definitional, not a threshold, and counted rather than
+   * silently dropped.
+   */
+  positions_single_well: number
+  /** Most-recurrent first, then by coordinate. Never truncated. */
+  positions: RecurringPosition[]
+}
+
+/**
  * Whether the run could have produced a scorable plate, read before its
  * verdicts rather than after them.
  *
@@ -92,4 +152,11 @@ export interface RunQuality {
   reused_from: FlowCellPreviousUse | null
   thresholds: Record<string, RunQualityThreshold>
   findings: RunQualityFinding[]
+  /**
+   * Optional because a result saved by a sidecar that predates the tally has no
+   * such block, and an absent tally must not read as a plate on which nothing
+   * recurred. Carried on the response and into the store; nothing renders it
+   * yet.
+   */
+  position_recurrence?: PositionRecurrence
 }

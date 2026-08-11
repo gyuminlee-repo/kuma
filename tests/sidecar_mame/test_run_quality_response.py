@@ -120,6 +120,19 @@ def test_pore_counts_and_depth_reach_the_response(tmp_path: Path) -> None:
     # for a vendor specification on screen.
     assert quality["thresholds"]["floor"]["kind"] == "vendor_default"
     assert quality["thresholds"]["floor"]["provisional"] is True
+    # The recurrence tally rides the same block, and it is present on EVERY
+    # response including one with nothing to report: a block that appeared only
+    # when a position recurred could not be told apart from a sidecar that never
+    # tallied one. These consensus fixtures carry no mix-eligible position, so
+    # the table is empty and every count is zero.
+    recurrence = quality["position_recurrence"]
+    assert recurrence["lower_bound"] is True
+    assert recurrence["positions"] == []
+    assert recurrence["wells_contributing"] == 0
+    assert recurrence["positions_single_well"] == 0
+    # No grading anywhere on it, which is the whole point of the tally.
+    assert "severity" not in recurrence
+    assert "findings" not in recurrence
 
 
 def test_a_shallow_run_blocks_and_a_weak_cell_alone_does_not(tmp_path: Path) -> None:

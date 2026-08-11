@@ -2023,7 +2023,12 @@ def handle_analyze(params: dict) -> dict:
         read_ledger,
         record_use,
     )
-    from kuma_core.mame.run_quality import assess_run_quality, serialise_run_quality
+    from kuma_core.mame.run_quality import (
+        assess_run_quality,
+        serialise_position_recurrence,
+        serialise_run_quality,
+        summarise_position_recurrence,
+    )
 
     _flow_cell = read_flow_cell_history(input_dir)
     _ledger_root = output.parent
@@ -2048,6 +2053,18 @@ def handle_analyze(params: dict) -> dict:
             pore_end=_flow_cell.pore_end,
             reused_from=_previous_use,
         )
+    )
+    # Which reference positions came back well after well, nested on the same
+    # block because it is another run-level fact read before the verdicts.
+    # Aggregated over the VERDICTS for the same reason the depth above is: a
+    # declared selection has already removed the wells the campaign left empty,
+    # and counting their leaked reads' noisy positions would inflate a
+    # recurrence tally with wells nobody pipetted into.
+    #
+    # No grading, by design: see summarise_position_recurrence for why neither
+    # the well count nor the strand share carries a cut this repo will defend.
+    run_quality["position_recurrence"] = serialise_position_recurrence(
+        summarise_position_recurrence(vr.translated.barcode for vr in verdicts)
     )
     # Recorded after the grading, so this run cannot report itself as its own
     # earlier use, and only when the report json named a cell.
