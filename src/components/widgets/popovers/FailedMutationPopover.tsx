@@ -258,7 +258,7 @@ export function FailedMutationPopover({
             )}
           </div>
           {suggested.sampleSize > 0 && (
-            <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+            <p className="mt-2 text-meta leading-snug text-muted-foreground">
               {t("failedMutationPopover.suggestionTip", {
                 tmFwd: suggested.tmFwd,
                 tmRev: suggested.tmRev,

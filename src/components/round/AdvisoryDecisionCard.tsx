@@ -156,7 +156,7 @@ function MissingInputsNote({
   const { t } = useTranslation();
   if (missing.length === 0) return null;
   return (
-    <p className="text-[11px] text-muted-foreground">
+    <p className="text-meta text-muted-foreground">
       {t("advisoryDecision.missingInputsNote", {
         missing: missingInputsText(missing, t),
       })}
@@ -189,7 +189,7 @@ function DecisionDisplay({ result }: { result: ClassifyDecisionResult }) {
           reach the gate.
         */}
         {result.confidence != null && (
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-meta text-muted-foreground">
             {t("advisoryDecision.confidence", {
               value: (result.confidence * 100).toFixed(0),
             })}
@@ -480,7 +480,7 @@ export function AdvisoryDecisionCard({
     >
       <h4
         id="advisory-decision-heading"
-        className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+        className="text-meta font-semibold uppercase tracking-wide text-muted-foreground"
       >
         {t("advisoryDecision.heading")}
         <span
@@ -503,12 +503,12 @@ export function AdvisoryDecisionCard({
       )}
 
       {files.length > 0 && prefillSource === "rounds" && (
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-meta text-muted-foreground">
           {t("advisoryDecision.prefillFromRounds", { n: files.length })}
         </p>
       )}
       {files.length > 0 && prefillSource === "manifest" && (
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-meta text-muted-foreground">
           {t("advisoryDecision.prefillFromManifest")}
         </p>
       )}
@@ -573,7 +573,7 @@ export function AdvisoryDecisionCard({
       )}
 
       {result === null && restoredRecord && (
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-meta text-muted-foreground">
           {t("advisoryDecision.restoredNote", {
             when: formatDecidedAt(restoredRecord.decided_at),
             n: restoredRecord.inputs.length,
@@ -592,7 +592,7 @@ export function AdvisoryDecisionCard({
       )}
 
       {supersededRecord && (
-        <p className="rounded-md border border-dashed border-muted-foreground/40 px-3 py-2 text-[11px] text-muted-foreground">
+        <p className="rounded-md border border-dashed border-muted-foreground/40 px-3 py-2 text-meta text-muted-foreground">
           {supersededByRebuild
             ? t("advisoryDecision.rebuiltNote", {
                 when: formatDecidedAt(supersededRecord.decided_at),

@@ -176,7 +176,7 @@ function MetricCell({
         />
       </div>
       <div className="mt-1 flex items-center gap-2">
-        <span className="text-[11px] text-muted-foreground">{t("benchmarkDialog.vsBaseline")}</span>
+        <span className="text-meta text-muted-foreground">{t("benchmarkDialog.vsBaseline")}</span>
         <div className="h-1.5 flex-1 rounded-full bg-muted/40">
           <div
             className={`h-full rounded-full ${deltaBarTone(delta)}`}
@@ -277,7 +277,7 @@ export function BenchmarkDialog() {
                     <div className="font-medium text-foreground">
                       {t(STRATEGY_I18N_KEYS[strategy] ?? strategy)}
                     </div>
-                    <div className="mt-1 text-[11px] text-muted-foreground">
+                    <div className="mt-1 text-meta text-muted-foreground">
                       hits {metrics.hits}
                       {metrics.n_trials != null ? ` · trials ${metrics.n_trials}` : ""}
                     </div>

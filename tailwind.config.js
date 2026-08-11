@@ -25,6 +25,7 @@ export default {
         title: "var(--text-title)",
         body: "var(--text-body)",
         caption: "var(--text-caption)",
+        meta: "var(--text-meta)",
         plate: "var(--text-plate)",
         "plate-tiny": "var(--text-plate-tiny)",
       },
