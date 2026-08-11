@@ -1053,6 +1053,11 @@
         "nextStepExpected": "Expected mutations: confirm the expected-mutations file covers the variants used in this run.",
         "nextStepInputFolder": "Input folder: confirm the selected folder is the run for this experiment and that its barcode folders contain reads."
       },
+      "coverageLoss": {
+        "title": "Der Coverage-Filter hat {{percent}}% der alignierten Reads verworfen",
+        "body": "{{aligned}} Reads wurden auf die Referenz aligniert, davon blieben {{kept}} erhalten. Wells, deren Reads vollständig verworfen wurden, liefern kein Verdict und sehen auf diesem Bildschirm genauso aus wie Wells, die nie befüllt wurden.",
+        "hint": "Ein gewisser Verlust ist zu erwarten, denn partielle und chimäre Reads sollen entfernt werden. Ein großer Anteil deutet eher auf die Referenz als auf die Proben hin: Ein Alignment, das an den Referenzenden um eine konstante Zahl von Basen zu kurz endet, etwa an einem Primer, verfehlt eine prozentuale Schwelle umso leichter, je kürzer das Amplicon ist. Der Coverage-Wert steht unter den erweiterten Optionen im Parameterpanel."
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",
@@ -2428,12 +2433,17 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die Verdikt-Übersicht zeigt keine Wiederfindungsrate mehr. Ein Lauf meldet jetzt eine statt zwei unterschiedlich zählende Raten.",
-      "Die Erfolgsrate bleibt und zählt genau die PASS-Klone, die die Pickliste tatsächlich exportiert.",
-      "Der Balken darunter teilt Varianten weiterhin in bestanden, mit Nebenänderung bestätigt und nicht bestätigt."
+      "Das sequencing kit erscheint jetzt im Excel-Export, in der Janus-Datei und im Report, statt bei jedem neueren Run leer zu bleiben.",
+      "Ein Run, der die meisten Reads am Coverage-Filter verwirft, sagt das nun, statt diese Wells wie nie befüllte aussehen zu lassen.",
+      "Wenn zwei Ordner beide wie ein Run aussehen, wird Flow Cell und Startzeit des einen nicht mehr für den anderen gemeldet."
     ],
-    "highlightsStamp": "0.16.22+9192ec4b",
+    "highlightsStamp": "0.16.23+6c37c3e1",
     "releases": {
+      "0.16.23": [
+        "Das sequencing kit erscheint jetzt im Excel-Export, in der Janus-Datei und im Report, statt bei jedem neueren Run leer zu bleiben.",
+        "Ein Run, der die meisten Reads am Coverage-Filter verwirft, sagt das nun, statt diese Wells wie nie befüllte aussehen zu lassen.",
+        "Wenn zwei Ordner beide wie ein Run aussehen, wird Flow Cell und Startzeit des einen nicht mehr für den anderen gemeldet."
+      ],
       "0.16.21": [
         "Mutationen direkt an einem Ende der Referenz werden ueber der Urteilstabelle benannt, bei Laeufen, welche die gelieferte Referenz unveraendert genutzt haben.",
         "Sie werden benannt statt gezaehlt, denn welche Variante es ist entscheidet, was zu tun ist.",
@@ -2614,6 +2624,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.23": "6c37c3e1",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",

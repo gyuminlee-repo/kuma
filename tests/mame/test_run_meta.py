@@ -211,6 +211,116 @@ def test_discover_run_meta_kit_from_sample_sheet(tmp_path: Path) -> None:
     assert meta.kit == "SQK-RBK004"
 
 
+def test_discover_run_meta_single_sibling_run_dir(tmp_path: Path) -> None:
+    """One sibling run folder next to the sorted output is still resolved."""
+    base = tmp_path / "campaign"
+    (base / "runA").mkdir(parents=True)
+    (base / "sorted_output" / "barcode01").mkdir(parents=True)
+    (base / "runA" / "final_summary_A.txt").write_text(
+        "flow_cell_id=AAA\n", encoding="utf-8"
+    )
+    meta = discover_run_meta(base / "sorted_output")
+    assert meta is not None
+    assert meta.flow_cell_id == "AAA"
+
+
+def test_discover_run_meta_ambiguous_sibling_run_dirs(tmp_path: Path) -> None:
+    """Two sibling run folders is a guess with no answer, so nothing is claimed.
+
+    The previous code returned whichever ``iterdir`` yielded first, stamping one
+    run flow cell onto another run results with no warning.
+    """
+    base = tmp_path / "campaign"
+    (base / "runA").mkdir(parents=True)
+    (base / "runB").mkdir(parents=True)
+    (base / "sorted_output" / "barcode01").mkdir(parents=True)
+    (base / "runA" / "final_summary_A.txt").write_text(
+        "flow_cell_id=AAA\n", encoding="utf-8"
+    )
+    (base / "runB" / "final_summary_B.txt").write_text(
+        "flow_cell_id=BBB\n", encoding="utf-8"
+    )
+    assert discover_run_meta(base / "sorted_output") is None
+
+
+def test_discover_run_meta_ancestor_beats_ambiguous_siblings(tmp_path: Path) -> None:
+    """A run directory on the direct path is unambiguous and still wins."""
+    run_dir = tmp_path / "the_run"
+    (run_dir / "fastq_pass").mkdir(parents=True)
+    (run_dir / "final_summary_R.txt").write_text(
+        "flow_cell_id=REAL\n", encoding="utf-8"
+    )
+    for name in ("otherA", "otherB"):
+        (tmp_path / name).mkdir()
+        (tmp_path / name / f"final_summary_{name}.txt").write_text(
+            "flow_cell_id=NOPE\n", encoding="utf-8"
+        )
+    meta = discover_run_meta(run_dir / "fastq_pass")
+    assert meta is not None
+    assert meta.flow_cell_id == "REAL"
+
+
+def test_discover_run_meta_kit_from_sample_sheet_column(tmp_path: Path) -> None:
+    """Kit as a CSV column, the layout MinKNOW actually writes.
+
+    Verbatim header and row shape taken from a GridION run
+    (``sample_sheet_FBF10847_20260212_2212_e7145f8e.csv``). The header starts
+    with ``protocol_run_id``, so a line-prefix scan for ``kit,`` never fires.
+    """
+    run_dir = tmp_path / "run_col"
+    run_dir.mkdir()
+    (run_dir / "final_summary_Z.txt").write_text(
+        "flow_cell_id=FBF10847\n", encoding="utf-8"
+    )
+    (run_dir / "sample_sheet_Z.csv").write_text(
+        "protocol_run_id,position_id,flow_cell_id,sample_id,experiment_id,"
+        "flow_cell_product_code,kit\n"
+        "e7145f8e-9fba-4941-bba8-3056a32c8469,X4,FBF10847,260212_KHM,"
+        "260212_KHM,FLO-MIN114,SQK-NBD114-24\n",
+        encoding="utf-8",
+    )
+    input_dir = run_dir / "fastq_pass"
+    input_dir.mkdir()
+    meta = discover_run_meta(input_dir)
+    assert meta is not None
+    assert meta.kit == "SQK-NBD114-24"
+
+
+def test_sample_sheet_kit_column_absent_returns_none(tmp_path: Path) -> None:
+    """A sheet without a kit column yields None rather than a stray cell."""
+    run_dir = tmp_path / "run_nokit"
+    run_dir.mkdir()
+    (run_dir / "final_summary_W.txt").write_text(
+        "flow_cell_id=AAA\n", encoding="utf-8"
+    )
+    (run_dir / "sample_sheet_W.csv").write_text(
+        "protocol_run_id,position_id,flow_cell_id\nabc,X1,AAA\n",
+        encoding="utf-8",
+    )
+    input_dir = run_dir / "fastq_pass"
+    input_dir.mkdir()
+    meta = discover_run_meta(input_dir)
+    assert meta is not None
+    assert meta.kit is None
+
+
+def test_sample_sheet_kit_column_blank_value_returns_none(tmp_path: Path) -> None:
+    """An empty kit cell is not a kit."""
+    run_dir = tmp_path / "run_blankkit"
+    run_dir.mkdir()
+    (run_dir / "final_summary_V.txt").write_text(
+        "flow_cell_id=BBB\n", encoding="utf-8"
+    )
+    (run_dir / "sample_sheet_V.csv").write_text(
+        "protocol_run_id,flow_cell_id,kit\nabc,BBB,\n", encoding="utf-8"
+    )
+    input_dir = run_dir / "fastq_pass"
+    input_dir.mkdir()
+    meta = discover_run_meta(input_dir)
+    assert meta is not None
+    assert meta.kit is None
+
+
 # ---------------------------------------------------------------------------
 # Excel __kuma_meta__ sheet tests
 # ---------------------------------------------------------------------------

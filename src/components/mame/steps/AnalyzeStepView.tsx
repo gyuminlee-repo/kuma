@@ -45,6 +45,7 @@ import { ReferenceResolutionNotice } from "@/components/mame/widgets/ReferenceRe
 import { LegacySampleMapNotice } from "@/components/mame/widgets/LegacySampleMapNotice";
 import { DemuxResumeNotice } from "@/components/mame/widgets/DemuxResumeNotice";
 import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNotice";
+import { CoverageLossNotice } from "@/components/mame/widgets/CoverageLossNotice";
 import { ContaminationPanel } from "@/components/mame/widgets/ContaminationPanel";
 import { PlateOrderNotice } from "@/components/mame/widgets/PlateOrderNotice";
 import { ReplicateModeNotice } from "@/components/mame/widgets/ReplicateModeNotice";
@@ -291,6 +292,12 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
 
 
           {zeroResult && <EmptyAnalysisNotice />}
+
+          {/* A run that scored some wells and dropped others says nothing about
+              the ones it dropped: they read as wells the bench never produced.
+              Only shown when there are results, EmptyAnalysisNotice owns the
+              nothing-at-all case and states the same gate more strongly. */}
+          {!zeroResult && hasResults && <CoverageLossNotice />}
 
           {/* Secondary action row: Validate / Clear / Export */}
           <div className="flex gap-2">

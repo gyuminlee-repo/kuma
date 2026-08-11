@@ -201,6 +201,11 @@
         "nextStepExpected": "Expected mutations: confirm the expected-mutations file covers the variants used in this run.",
         "nextStepInputFolder": "Input folder: confirm the selected folder is the run for this experiment and that its barcode folders contain reads."
       },
+      "coverageLoss": {
+        "title": "The coverage gate discarded {{percent}}% of the aligned reads",
+        "body": "{{aligned}} reads aligned to the reference and {{kept}} of them were kept. Wells whose reads were all discarded produce no verdict, so they look the same on this screen as wells the bench never filled.",
+        "hint": "Some loss is expected, since partial and chimeric reads are meant to be dropped. A large share points at the reference rather than the samples: an alignment that stops a constant number of bases short of the reference ends, at a primer for instance, fails a percentage threshold more easily the shorter the amplicon is. The coverage requirement is under Advanced options in the parameter panel."
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",
@@ -2461,12 +2466,17 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The verdict breakdown no longer shows a recovery rate, so the run reports one rate instead of two that counted differently.",
-      "The success rate stays, and it counts the PASS clones the pick list actually exports.",
-      "The bar below still splits variants into passed, reproduced with a side change, and not reproduced."
+      "The sequencing kit now reaches the Excel export, the Janus file and the report, instead of being blank on every recent run.",
+      "A run that discards most of its reads at the coverage gate now says so, instead of leaving those wells looking like wells never filled.",
+      "Two folders that both look like a run no longer let one run flow cell and start time be reported for another."
     ],
-    "highlightsStamp": "0.16.22+9192ec4b",
+    "highlightsStamp": "0.16.23+6c37c3e1",
     "releases": {
+      "0.16.23": [
+        "The sequencing kit now reaches the Excel export, the Janus file and the report, instead of being blank on every recent run.",
+        "A run that discards most of its reads at the coverage gate now says so, instead of leaving those wells looking like wells never filled.",
+        "Two folders that both look like a run no longer let one run flow cell and start time be reported for another."
+      ],
       "0.16.22": [
         "The verdict breakdown no longer shows a recovery rate, so the run reports one rate instead of two that counted differently.",
         "The success rate stays, and it counts the PASS clones the pick list actually exports.",
@@ -2647,6 +2657,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.23": "6c37c3e1",
       "0.16.22": "9192ec4b",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",

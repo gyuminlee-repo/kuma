@@ -1053,6 +1053,11 @@
         "nextStepExpected": "Expected mutations: confirm the expected-mutations file covers the variants used in this run.",
         "nextStepInputFolder": "Input folder: confirm the selected folder is the run for this experiment and that its barcode folders contain reads."
       },
+      "coverageLoss": {
+        "title": "覆蓋度門檻捨棄了已比對 read 的 {{percent}}%",
+        "body": "{{aligned}} 條 read 比對到參考序列，其中保留了 {{kept}} 條。read 全數被捨棄的孔不會產生判定，因此在此畫面上看起來與從未上樣的孔完全相同。",
+        "hint": "一定程度的捨棄屬於正常，部分比對與 chimeric read 本就應被剔除。但比例過大時，更值得懷疑的是參考序列而非樣品。例如比對在參考序列兩端固定差若干鹼基處結束（如 primer 位置），amplicon 越短就越難達到百分比門檻。覆蓋度要求位於參數面板的進階選項中。"
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",
@@ -2428,12 +2433,17 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "判定分佈不再顯示回收率,現在每次執行只回報一個比率,而不是兩個計算方式不同的比率。",
-      "確認率保持不變,統計的是揀選清單實際匯出的PASS純株數量。",
-      "下方的長條圖仍將變異體分為通過、伴隨附加變化被確認、未確認三類。"
+      "sequencing kit 現在會出現在 Excel export、Janus 檔案與報告中，此前在近期 run 中一直為空。",
+      "當覆蓋度門檻捨棄了大部分 read 時，run 會明確說明，這些孔不再看起來像從未上樣的孔。",
+      "當有兩個資料夾都像是 run 時，一個 run 的 flow cell 與開始時間不會再被報告為另一個 run 的。"
     ],
-    "highlightsStamp": "0.16.22+9192ec4b",
+    "highlightsStamp": "0.16.23+6c37c3e1",
     "releases": {
+      "0.16.23": [
+        "sequencing kit 現在會出現在 Excel export、Janus 檔案與報告中，此前在近期 run 中一直為空。",
+        "當覆蓋度門檻捨棄了大部分 read 時，run 會明確說明，這些孔不再看起來像從未上樣的孔。",
+        "當有兩個資料夾都像是 run 時，一個 run 的 flow cell 與開始時間不會再被報告為另一個 run 的。"
+      ],
       "0.16.21": [
         "緊靠參考序列末端的突變會在判定表上方列出名稱，僅出現在直接使用所提供參考序列的執行中。",
         "列出的是名稱而非數量，因為是哪一個突變決定了接下來要做什麼。",
@@ -2614,6 +2624,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.23": "6c37c3e1",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",

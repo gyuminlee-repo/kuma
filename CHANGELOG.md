@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.16.23 (What other people nanopore runs turned up)
+
+Eighteen runs from five other people on the lab shared drive, spanning 2020 to 2026 and both MinION and GridION, went through MAME. Nothing crashed and the null handling held. Three things were wrong anyway, and one of them had been wrong for every modern run.
+
+The kit was never read. MinKNOW writes it as a column in the sample sheet, and the parser only looked for a line starting with `kit`, so the field sat empty in the Excel export, the Janus mapping file and the HTML report.
+
+The other two are about a run staying silent where it has something to say. Where two sibling folders both looked like a run, the metadata search took whichever the filesystem offered first and stamped one run flow cell onto another. And where the coverage gate discarded most of a run without discarding all of it, the screen filled with verdicts and said nothing about the wells that produced none. On a 96-well comparison that silence covered 34 wells holding hundreds of reads each: every alignment stopped a constant 28 bp short of the reference 3' end, at the reverse primer, and a fixed shortfall against a percentage threshold bites harder the shorter the amplicon. The gate default is unchanged, since that shortfall belongs to references carrying primer flanks rather than to MAME own workflow.
+
+### Highlights
+
+- The sequencing kit now reaches the Excel export, the Janus file and the report, instead of being blank on every recent run.
+- A run that discards most of its reads at the coverage gate now says so, instead of leaving those wells looking like wells never filled.
+- Two folders that both look like a run no longer let one run flow cell and start time be reported for another.
+
+### Fixed
+
+- `kit` is read from the sample sheet CSV column MinKNOW actually writes. The previous scan matched only a `kit,value` line, which no GridION sheet contains, so `meta.kit` was `None` for every modern run and reached users blank through `excel_writer`, `janus_mapping` and `html_renderer`.
+- Run metadata discovery returns nothing when two or more sibling directories at the same level look like run folders. It previously returned whichever `iterdir` yielded first, reporting one run flow cell, kit and start time for another with no warning. A single sibling match and a run folder on the direct path both still resolve.
+
+### Added
+
+- An analyze notice reports the share of aligned reads the coverage gate discarded, once it reaches a quarter of them. The existing empty-analysis notice covers only runs that yield nothing at all, so a run that scored most wells and dropped the rest said nothing about the dropped ones. It reads counters the response already carried, and points at the coverage setting in Advanced options rather than naming a value, because the right one depends on the amplicon.
+
+### Changed
+
+- `align_reads` documents that its `require_full_span` default is not what the analyze pipeline passes, and the agent guide corrects the MAME input inventory, which listed only `*.fastq.gz` although plain `*.fastq` has always been read.
+
 ## v0.16.22 (One rate for a run instead of two that disagreed)
 
 The verdict breakdown carried a recovery rate, and the summary row above it carried a success rate. Both counted designed variants over the same denominator. They differed in one respect: recovery counted a well whose designed mutation was reproduced alongside an extra change next to the target, and success did not.

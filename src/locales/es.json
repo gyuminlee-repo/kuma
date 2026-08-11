@@ -1053,6 +1053,11 @@
         "nextStepExpected": "Expected mutations: confirm the expected-mutations file covers the variants used in this run.",
         "nextStepInputFolder": "Input folder: confirm the selected folder is the run for this experiment and that its barcode folders contain reads."
       },
+      "coverageLoss": {
+        "title": "El filtro de cobertura descartó el {{percent}}% de las lecturas alineadas",
+        "body": "{{aligned}} lecturas se alinearon con la referencia y se conservaron {{kept}}. Los pocillos cuyas lecturas se descartaron por completo no producen veredicto, así que en esta pantalla se ven igual que los pocillos que nunca se llenaron.",
+        "hint": "Cierta pérdida es esperable, ya que las lecturas parciales y quiméricas deben descartarse. Una proporción alta apunta a la referencia más que a las muestras: un alineamiento que termina un número constante de bases antes de los extremos de la referencia, por ejemplo en un primer, incumple un umbral porcentual con mayor facilidad cuanto más corto es el amplicón. El requisito de cobertura está en las opciones avanzadas del panel de parámetros."
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",
@@ -2428,12 +2433,17 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El desglose de veredictos ya no muestra una tasa de recuperación. Ahora una ejecución informa una tasa en lugar de dos que contaban de forma distinta.",
-      "La tasa de éxito se mantiene y cuenta exactamente los clones PASS que la lista de selección exporta.",
-      "La barra inferior sigue dividiendo las variantes en aprobadas, confirmadas con un cambio adicional y no confirmadas."
+      "El sequencing kit ya aparece en la exportación a Excel, en el archivo Janus y en el informe, en vez de quedar vacío en cada run reciente.",
+      "Un run que descarta la mayoría de sus lecturas en el filtro de cobertura ahora lo indica, y esos pocillos dejan de parecer pocillos sin llenar.",
+      "Cuando dos carpetas parecen un run, la flow cell y la hora de inicio de una ya no se informan como las de la otra."
     ],
-    "highlightsStamp": "0.16.22+9192ec4b",
+    "highlightsStamp": "0.16.23+6c37c3e1",
     "releases": {
+      "0.16.23": [
+        "El sequencing kit ya aparece en la exportación a Excel, en el archivo Janus y en el informe, en vez de quedar vacío en cada run reciente.",
+        "Un run que descarta la mayoría de sus lecturas en el filtro de cobertura ahora lo indica, y esos pocillos dejan de parecer pocillos sin llenar.",
+        "Cuando dos carpetas parecen un run, la flow cell y la hora de inicio de una ya no se informan como las de la otra."
+      ],
       "0.16.21": [
         "Las mutaciones pegadas a un extremo de la referencia se nombran sobre la tabla de veredictos, en ejecuciones que usaron la referencia tal cual.",
         "Se nombran en vez de contarse, porque cual variante es decide que hacer al respecto.",
@@ -2614,6 +2624,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.23": "6c37c3e1",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
