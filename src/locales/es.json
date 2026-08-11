@@ -2433,12 +2433,17 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El desglose de veredictos ya no muestra una tasa de recuperación. Ahora una ejecución informa una tasa en lugar de dos que contaban de forma distinta.",
-      "La tasa de éxito se mantiene y cuenta exactamente los clones PASS que la lista de selección exporta.",
-      "La barra inferior sigue dividiendo las variantes en aprobadas, confirmadas con un cambio adicional y no confirmadas."
+      "El sequencing kit ya aparece en la exportación a Excel, en el archivo Janus y en el informe, en vez de quedar vacío en cada run reciente.",
+      "Un run que descarta la mayoría de sus lecturas en el filtro de cobertura ahora lo indica, y esos pocillos dejan de parecer pocillos sin llenar.",
+      "Cuando dos carpetas parecen un run, la flow cell y la hora de inicio de una ya no se informan como las de la otra."
     ],
-    "highlightsStamp": "0.16.22+9192ec4b",
+    "highlightsStamp": "0.16.23+6c37c3e1",
     "releases": {
+      "0.16.23": [
+        "El sequencing kit ya aparece en la exportación a Excel, en el archivo Janus y en el informe, en vez de quedar vacío en cada run reciente.",
+        "Un run que descarta la mayoría de sus lecturas en el filtro de cobertura ahora lo indica, y esos pocillos dejan de parecer pocillos sin llenar.",
+        "Cuando dos carpetas parecen un run, la flow cell y la hora de inicio de una ya no se informan como las de la otra."
+      ],
       "0.16.21": [
         "Las mutaciones pegadas a un extremo de la referencia se nombran sobre la tabla de veredictos, en ejecuciones que usaron la referencia tal cual.",
         "Se nombran en vez de contarse, porque cual variante es decide que hacer al respecto.",
@@ -2619,6 +2624,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.23": "6c37c3e1",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
