@@ -29,6 +29,7 @@ from statistics import median
 from typing import Iterable, Protocol, Sequence
 
 from kuma_core.mame.ingest.flow_cell import MINION_WARRANTY_PORES
+from kuma_core.mame.models import NoisyPosition
 
 #: Severity of a run-level finding. ``blocking`` means no well on this plate can
 #: carry a meaning, so nothing below it is worth reading. ``warning`` means the
@@ -260,29 +261,27 @@ def assess_run_quality(
 # module emits a table and no verdict.
 
 
-class _NoisyPositionLike(Protocol):
-    """The part of ``NoisyPosition`` this tally reads.
-
-    Read structurally rather than imported so this module keeps its current
-    dependency footprint (``flow_cell`` only). The share is taken from the
-    record's own property rather than recomputed here: the formula has exactly
-    one home, ``models.NoisyPosition.weak_strand_share``, and a second copy is
-    what the class collapse just finished removing.
-    """
-
-    position: int
-
-    @property
-    def weak_strand_share(self) -> float | None: ...
-
-
 class _WellLike(Protocol):
-    """A scored well, as ``BarcodeRecord`` and ``ConsensusCall`` both present it."""
+    """A scored well, as ``BarcodeRecord`` and ``ConsensusCall`` both present it.
+
+    The WELL is read structurally because it is TWO classes and not one, so there
+    is no single right type to name: ``BarcodeRecord`` in ``models``, and
+    ``ConsensusCall`` in ``ingest.consensus``, which pulls in numpy and the
+    aligner and is what a leaf like this one must not reach for.
+
+    The POSITIONS are NOT read structurally. ``NoisyPosition`` is imported and
+    named, because it is the ONE definition of that record and ``models`` is a
+    leaf on the standard library alone, lighter than the ``flow_cell`` import
+    this module already makes. Naming it is also what keeps the share below the
+    record's own property: the formula has exactly one home,
+    ``models.NoisyPosition.weak_strand_share``, and a structural stand-in for the
+    record is an invitation to grow a second copy of it here.
+    """
 
     n_eligible_positions: int
 
     @property
-    def noisy_positions(self) -> Sequence[_NoisyPositionLike]: ...
+    def noisy_positions(self) -> Sequence[NoisyPosition]: ...
 
 
 @dataclass(frozen=True)
