@@ -106,8 +106,25 @@ worktree 의 `node_modules` 는 main checkout 과 경로가 달라 Windows 설�
 
 태그를 찍기 직전 두 가지를 더 확인한다.
 
-- 매니페스트 3종(`package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`)의 버전이 새 태그와 일치하는가. `pnpm sync:check` 의 `version-sync` 가 정본이다.
+- 매니페스트 3종(`package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`)의 버전이 새 태그와 일치하는가. `pnpm sync:check` 의 `version-sync` 가 정본이다. 실제 검사 대상은 6곳이며(위 3종 + `pyproject.toml` + `src-tauri/Cargo.lock` + `kuma_core/shared/version.py`) 손으로 맞추지 말고 제목이 `vX.Y.Z:` 인 커밋을 만들어 `scripts/sync-version.sh` post-commit 훅이 전부 쓰게 한다. 그 훅은 `gen-whatsnew.mjs` 까지 이어 돌려 `en.json` 하이라이트와 스탬프를 갱신하므로, 매니페스트를 먼저 손으로 올리면 `gen-whatsnew` 가 "CHANGELOG 최신 섹션이 현재 버전을 언급하지 않는다" 며 거부한다.
 - `git tag --sort=-creatordate | head -1` 이 직전 릴리스인가. 뒤처져 있으면 그 사이 버전들이 한 태그에 묶여 나가므로 태그 메시지에 그 구간을 적는다.
+
+**버전 라벨 경합은 `git fetch --all` 로 판정하지 않는다. 원격 main 의 SHA 를 API 로 직접 읽어 대조한다.**
+
+```
+gh api repos/<owner>/<repo>/branches/main --jq '.commit.sha'
+gh pr view <N> --json baseRefOid,mergeable,mergeStateStatus
+```
+
+두 SHA 가 같고 `mergeable` 이 `MERGEABLE` 이어야 라벨이 안전하다. `git fetch --all` 다음의 `git log origin/main` 만 보면 안 되는 이유는 그 조합이 실제로 진행분을 놓친 적이 있기 때문이다. 2026-08-11 에 `fetch --all` 후 `origin/main` 이 `4c07cdf5` 로 보여 v0.16.21 이 비어 있다고 판정하고 그 라벨로 CHANGELOG·매니페스트·로케일 10개를 커밋했는데, 원격 main 은 이미 `403280a4`(#296, v0.16.21 선점)였다. 증상은 로컬에서 `git merge-base --is-ancestor origin/main HEAD` 가 통과하고 `git merge-tree` 가 충돌 0 을 내는데 `gh pr merge` 만 `Pull Request has merge conflicts` 로 거부되는 형태다. 로컬 판정과 원격 판정이 어긋나면 로컬이 낡은 것이므로 API 를 믿는다. PR 을 닫고 다시 열어도 해소되지 않는다(mergeability 재계산 문제가 아니다).
+
+경합이 확인되면 라벨만 올려서는 안 된다. CHANGELOG 최상단 섹션과 로케일 10개의 `whatsNewDialog` 가 같은 자리를 놓고 충돌하므로 다음 순서로 되돌린다.
+
+1. 현재 상태를 백업 브랜치로 보존한다(`git branch backup/<name> HEAD`).
+2. 릴리스 커밋(CHANGELOG + 훅이 만든 매니페스트)과 로케일 번역 커밋을 버리고 **코드 커밋만** 새 `origin/main` 위로 리베이스한다. 코드와 릴리스 메타를 분리해 커밋해 두면 이 단계가 충돌 없이 끝난다. 한 커밋에 섞으면 리베이스가 로케일 충돌을 그대로 떠안는다.
+3. 새 라벨로 CHANGELOG 섹션을 다시 쓰고, `vX.Y.Z:` 제목 커밋으로 훅이 매니페스트를 다시 정렬하게 한다.
+4. 9개 로케일에 `whatsNewDialog.releases[<새 버전>]` 과 `releaseStamps[<새 버전>]` 을 넣고 `highlights`·`highlightsStamp` 를 새 버전으로 바꾼다. 영문 하이라이트 문구를 그대로 두면 digest 가 같아 번역을 재사용할 수 있다(버전 키만 바뀐다).
+5. `--force-push` 는 `careful-check.sh` 가 차단하고 우회하지 않는다. 새 브랜치로 푸시해 새 PR 을 열고, 이전 PR 은 대체 사유를 코멘트로 남기고 닫는다. 이때 이전 PR 의 head 브랜치도 원격에서 지운다(머지되지 않아 자동 삭제 대상이 아니다).
 
 ### Python Sidecar Environment
 PyInstaller + biopython wheel 빌드 호환을 위해 `.venv` (Python 3.11) 사용. 시스템 Python 3.14는 PEP 668 + 일부 wheel 부재로 sidecar 빌드 실패. 새 머신·새 세션에서 `python3.11 -m venv .venv && .venv/bin/pip install -e ".[build]"` 선행. MAME raw_run 정렬은 사이드카에 번들된 minimap2 CLI 가 수행(mappy 제거, Windows wheel 부재). 빌드 전 vendor 채우기: python-core/scripts/vendor-minimap2.py(Linux/macOS) 또는 Windows MSYS2/MinGW 정적 빌드(build.yml). 로컬 테스트는 KURO_MINIMAP2 로 바이너리 지정, mame 테스트는 바이너리 부재 시 skip.
