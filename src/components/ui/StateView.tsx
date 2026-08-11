@@ -101,7 +101,7 @@ export function StateView({
               id="state-view-traceback"
               className={cn(
                 "mt-2 max-h-48 overflow-auto rounded-control border border-border",
-                "bg-muted px-3 py-2 text-[11px] leading-relaxed text-muted-foreground",
+                "bg-muted px-3 py-2 text-meta leading-relaxed text-muted-foreground",
                 "whitespace-pre-wrap break-words text-left",
               )}
             >

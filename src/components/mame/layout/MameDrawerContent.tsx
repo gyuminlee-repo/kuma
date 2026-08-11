@@ -17,7 +17,7 @@ import type { DrawerStripProps } from "@/components/widgets/DrawerStrip";
 
 function StatLine({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="flex min-w-0 items-center gap-1 text-[11px]">
+    <div className="flex min-w-0 items-center gap-1 text-meta">
       <span className="shrink-0 text-muted-foreground">{label}:</span>
       <span className="truncate font-medium text-foreground" title={String(value)}>
         {value}
@@ -28,7 +28,7 @@ function StatLine({ label, value }: { label: string; value: string | number }) {
 
 function LogLine({ text }: { text: string }) {
   return (
-    <p className="truncate text-[11px] font-mono text-muted-foreground" title={text}>{text}</p>
+    <p className="truncate text-meta font-mono text-muted-foreground" title={text}>{text}</p>
   );
 }
 

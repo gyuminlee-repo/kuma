@@ -15,7 +15,7 @@ type InspectorCalloutProps = {
 export function InspectorCallout({ label, children }: InspectorCalloutProps) {
   return (
     <div
-      className="mt-3 rounded-md border border-ring/30 bg-accent/20 px-3 py-2 text-[11px] leading-snug text-muted-foreground"
+      className="mt-3 rounded-md border border-ring/30 bg-accent/20 px-3 py-2 text-meta leading-snug text-muted-foreground"
       role="note"
     >
       <span className="font-semibold text-foreground">{label}: </span>

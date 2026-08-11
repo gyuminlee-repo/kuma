@@ -34,7 +34,7 @@ type StepNumProps = {
 
 function StepNum({ children, state }: StepNumProps) {
   const base =
-    "flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold";
+    "flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full text-meta font-bold";
   const cls =
     state === "done"
       ? `${base} bg-emerald-600 text-white`
@@ -61,7 +61,7 @@ export function WorkflowRail({
     <nav className="flex h-full flex-col overflow-hidden" aria-label={title}>
       {/* rail-head */}
       <div className="shrink-0 border-b border-border px-[13px] py-[14px]">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+        <div className="text-meta font-bold uppercase tracking-wider text-muted-foreground">
           {title}
         </div>
         <div
@@ -153,7 +153,7 @@ export function WorkflowRail({
                       {step.title}
                     </span>
                     {step.hint && (
-                      <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                      <span className="mt-0.5 block truncate text-meta text-muted-foreground">
                         {step.hint}
                       </span>
                     )}

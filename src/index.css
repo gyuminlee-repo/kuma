@@ -41,12 +41,15 @@
     --radius-container: 12px;
     --radius-control: 8px;
 
-    /* typography (3 steps)
+    /* typography (4 steps)
        title sits above body. It was 13px against a 14px body, so every panel
-       header rendered smaller than the text inside it. */
+       header rendered smaller than the text inside it.
+       meta sits below caption: secondary/meta text paired with
+       text-muted-foreground (badges, timestamps, helper notes). */
     --text-title: 15px;
     --text-body: 14px;
     --text-caption: 12px;
+    --text-meta: 11px;
 
     /* semantic colors (4 kinds)
        Stored as bare oklch components (no oklch() wrapper) so Tailwind can

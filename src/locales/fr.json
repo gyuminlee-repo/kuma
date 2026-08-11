@@ -2430,14 +2430,15 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Une execution trop peu profonde pour etre evaluee le dit au-dessus du tableau, au lieu de presenter une plaque entiere de verdicts sans sens.",
-      "La profondeur est mesuree sur les puits que l'execution a reellement juges, donc une plaque volontairement partielle n'est pas signalee comme mince.",
-      "Les nombres de pores au debut et a la fin et l'id de la cellule viennent du dossier d'execution, avec l'execution precedente si la cellule est reutilisee.",
-      "Les nombres de pores n'ont pas de seuil de reussite: une cellule partie de 343 pores a rendu cinq cents lectures par puits.",
-      "Chaque seuil affiche sa source, pour qu'un defaut de workflow ne se lise pas comme une exigence du fabricant."
+      "Les notifications suivent désormais le thème sombre, au lieu d'apparaître comme une carte blanche vive sur un écran sombre.",
+      "Elles continuent de le suivre, que le thème ait été changé depuis la barre de menu, les paramètres ou le système."
     ],
-    "highlightsStamp": "0.16.19+c73cc4f0",
+    "highlightsStamp": "0.16.20+c211fb70",
     "releases": {
+      "0.16.20": [
+        "Les notifications suivent désormais le thème sombre, au lieu d'apparaître comme une carte blanche vive sur un écran sombre.",
+        "Elles continuent de le suivre, que le thème ait été changé depuis la barre de menu, les paramètres ou le système."
+      ],
       "0.16.19": [
         "Une execution trop peu profonde pour etre evaluee le dit au-dessus du tableau, au lieu de presenter une plaque entiere de verdicts sans sens.",
         "La profondeur est mesuree sur les puits que l'execution a reellement juges, donc une plaque volontairement partielle n'est pas signalee comme mince.",
@@ -2604,6 +2605,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
       "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",

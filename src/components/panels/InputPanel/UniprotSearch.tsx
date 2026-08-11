@@ -137,7 +137,7 @@ export function UniprotSearch() {
       ) : null}
       {uniprotCandidates.length > 0 && (
         <div className="space-y-1">
-          <div className="px-1 text-[11px] font-medium text-muted-foreground">
+          <div className="px-1 text-meta font-medium text-muted-foreground">
             {t("uniprotSearch.topCandidates", {
               shown: visibleCandidates.length,
               total: uniprotCandidates.length > visibleCandidates.length ? ` / ${uniprotCandidates.length}` : "",

@@ -2430,14 +2430,15 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Uma execucao rasa demais para ser avaliada diz isso acima da tabela de vereditos, em vez de apresentar uma placa inteira de vereditos sem sentido.",
-      "A profundidade e medida nos pocos que a execucao realmente julgou, entao uma placa parcial de proposito nao e relatada como rasa.",
-      "Os poros iniciais e finais e o id da celula vem da pasta da execucao, com a execucao anterior se a celula foi reutilizada.",
-      "Os poros nao tem linha de aprovacao: uma celula que comecou com 343 poros deu quinhentas leituras por poco.",
-      "Cada limite mostra sua fonte, para que um padrao de fluxo de trabalho nao seja lido como exigencia do fabricante."
+      "As notificações agora seguem o tema escuro, em vez de aparecer como um cartão branco brilhante sobre uma tela escura.",
+      "Elas continuam seguindo o tema, seja alterado pela barra de menu, pelas configurações ou pelo sistema."
     ],
-    "highlightsStamp": "0.16.19+c73cc4f0",
+    "highlightsStamp": "0.16.20+c211fb70",
     "releases": {
+      "0.16.20": [
+        "As notificações agora seguem o tema escuro, em vez de aparecer como um cartão branco brilhante sobre uma tela escura.",
+        "Elas continuam seguindo o tema, seja alterado pela barra de menu, pelas configurações ou pelo sistema."
+      ],
       "0.16.19": [
         "Uma execucao rasa demais para ser avaliada diz isso acima da tabela de vereditos, em vez de apresentar uma placa inteira de vereditos sem sentido.",
         "A profundidade e medida nos pocos que a execucao realmente julgou, entao uma placa parcial de proposito nao e relatada como rasa.",
@@ -2604,6 +2605,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
       "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",

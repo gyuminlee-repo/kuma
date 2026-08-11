@@ -5,7 +5,7 @@ import { MainShell } from "./screens/MainShell";
 import { Home } from "./screens/Home";
 import { Onboarding } from "./screens/Onboarding";
 import { ProjectProvider, type KumaProject } from "./state/projectContext";
-import { initTheme } from "./components/ui/ThemeToggle";
+import { initTheme, useResolvedTheme } from "./components/ui/ThemeToggle";
 import i18n from "./lib/i18n";
 
 // React 마운트 이전에 즉시 실행 — FOUC(플래시) 방지
@@ -26,6 +26,8 @@ export function App() {
   const [prevScreen, setPrevScreen] = useState<AppScreen>("home");
   const [config, setConfig] = useState<Config | null>(null);
   const [project, setProject] = useState<KumaProject>(null);
+  const resolvedTheme = useResolvedTheme();
+  const toaster = <Toaster position="top-right" richColors theme={resolvedTheme} />;
 
   // #4-1 첫 실행 maximize toast: localStorage 플래그가 없으면 toast 한 번 표시 후 플래그 set.
   useEffect(() => {
@@ -144,7 +146,7 @@ export function App() {
     return (
       <>
         <div className="flex min-h-screen items-center justify-center bg-muted text-sm text-muted-foreground">Loading…</div>
-        <Toaster position="top-right" richColors />
+        {toaster}
       </>
     );
   }
@@ -153,7 +155,7 @@ export function App() {
     return (
       <>
         <Onboarding initialPath={config?.projects_root} onDone={handleDone} />
-        <Toaster position="top-right" richColors />
+        {toaster}
       </>
     );
   }
@@ -166,7 +168,7 @@ export function App() {
           onOpenScratch={(path) => void handleOpenWorkspace(path, true)}
           onOpenSettings={() => setScreen("onboarding")}
         />
-        <Toaster position="top-right" richColors />
+        {toaster}
       </>
     );
   }
@@ -174,7 +176,7 @@ export function App() {
   return (
     <ProjectProvider value={project}>
       <MainShell />
-      <Toaster position="top-right" richColors />
+      {toaster}
     </ProjectProvider>
   );
 }

@@ -84,6 +84,35 @@ export function useTheme(): { theme: Theme; setTheme: (next: Theme) => void } {
   return { theme, setTheme };
 }
 
+/**
+ * useResolvedTheme
+ *
+ * 현재 실제로 적용된(resolved) 테마("light" | "dark")를 관찰하는 훅.
+ *
+ * useTheme()은 useState 기반이라 호출부마다 독립된 상태를 가지며, 테마 변경
+ * 경로도 ThemeToggle 외에 settingsSlice의 applyThemeValue 등 여러 곳에 흩어져
+ * 있다. 따라서 어느 한 상태 소스를 구독해서는 다른 경로의 변경을 놓친다.
+ * 모든 경로가 최종적으로 합류하는 유일한 공통 진실은 <html> 엘리먼트의
+ * .dark 클래스이므로, 이를 MutationObserver로 직접 관찰한다.
+ */
+export function useResolvedTheme(): "light" | "dark" {
+  const [resolved, setResolved] = useState<"light" | "dark">(() =>
+    document.documentElement.classList.contains("dark") ? "dark" : "light",
+  );
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const observer = new MutationObserver(() => {
+      const next = root.classList.contains("dark") ? "dark" : "light";
+      setResolved((prev) => (prev === next ? prev : next));
+    });
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  return resolved;
+}
+
 const THEME_LABEL_KEYS: Record<Theme, string> = {
   light: "themeToggle.labelLight",
   dark: "themeToggle.labelDark",

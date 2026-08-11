@@ -2430,14 +2430,15 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Una ejecucion demasiado superficial para evaluarse lo dice sobre la tabla de veredictos, en vez de presentar una placa entera de veredictos sin sentido.",
-      "La profundidad se mide sobre los pocillos que la ejecucion realmente juzgo, asi que una placa parcial a proposito no se informa como pobre.",
-      "Los poros iniciales y finales y el id de la celda vienen de la carpeta de ejecucion, con la ejecucion anterior si la celda se reutilizo.",
-      "Los poros no llevan linea de aprobado: una celda que empezo con 343 poros dio quinientas lecturas por pocillo.",
-      "Cada umbral muestra su fuente, para que un valor por defecto de un flujo no se lea como requisito del fabricante."
+      "Las notificaciones ahora siguen el tema oscuro, en lugar de aparecer como una tarjeta blanca brillante sobre una pantalla oscura.",
+      "Siguen haciéndolo tanto si el tema se cambió desde la barra de menú, desde la configuración o por el sistema."
     ],
-    "highlightsStamp": "0.16.19+c73cc4f0",
+    "highlightsStamp": "0.16.20+c211fb70",
     "releases": {
+      "0.16.20": [
+        "Las notificaciones ahora siguen el tema oscuro, en lugar de aparecer como una tarjeta blanca brillante sobre una pantalla oscura.",
+        "Siguen haciéndolo tanto si el tema se cambió desde la barra de menú, desde la configuración o por el sistema."
+      ],
       "0.16.19": [
         "Una ejecucion demasiado superficial para evaluarse lo dice sobre la tabla de veredictos, en vez de presentar una placa entera de veredictos sin sentido.",
         "La profundidad se mide sobre los pocillos que la ejecucion realmente juzgo, asi que una placa parcial a proposito no se informa como pobre.",
@@ -2604,6 +2605,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
       "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",

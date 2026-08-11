@@ -339,7 +339,7 @@ export function ResultTable() {
             disabledHint={failedRetryDisabledHint}
           />
           {failedRetryDisabled && (
-            <p className="mt-1 text-[11px] text-muted-foreground">
+            <p className="mt-1 text-meta text-muted-foreground">
               {t("resultTable.pipelineFillNote")}
             </p>
           )}
