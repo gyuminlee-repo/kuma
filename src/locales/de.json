@@ -2430,14 +2430,15 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein Lauf, der zu flach zum Bewerten ist, sagt das jetzt ueber der Urteilstabelle, statt eine ganze Platte bedeutungsloser Urteile zu zeigen.",
-      "Die Tiefe wird ueber die Wells gemessen, die der Lauf wirklich bewertet hat, also gilt eine absichtlich teilweise Platte nicht als flach.",
-      "Anfangs- und Endporenzahl und die Flusszellen-id kommen aus dem Laufordner, bei wiederverwendeter Zelle mit dem vorigen Lauf.",
-      "Porenzahlen haben keine Bestanden-Grenze, denn eine Zelle mit 343 Anfangsporen lieferte fuenfhundert Reads pro Well.",
-      "Jede Schwelle zeigt ihre Quelle, damit ein Workflow-Standardwert nicht als Herstellervorgabe gelesen wird."
+      "Benachrichtigungen folgen jetzt dem dunklen Design, statt als helle weiße Karte auf einem dunklen Bildschirm zu erscheinen.",
+      "Sie folgen weiterhin, egal ob das Design über die Menüleiste, die Einstellungen oder das System geändert wurde."
     ],
-    "highlightsStamp": "0.16.19+c73cc4f0",
+    "highlightsStamp": "0.16.20+c211fb70",
     "releases": {
+      "0.16.20": [
+        "Benachrichtigungen folgen jetzt dem dunklen Design, statt als helle weiße Karte auf einem dunklen Bildschirm zu erscheinen.",
+        "Sie folgen weiterhin, egal ob das Design über die Menüleiste, die Einstellungen oder das System geändert wurde."
+      ],
       "0.16.19": [
         "Ein Lauf, der zu flach zum Bewerten ist, sagt das jetzt ueber der Urteilstabelle, statt eine ganze Platte bedeutungsloser Urteile zu zeigen.",
         "Die Tiefe wird ueber die Wells gemessen, die der Lauf wirklich bewertet hat, also gilt eine absichtlich teilweise Platte nicht als flach.",
@@ -2604,6 +2605,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
       "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",
