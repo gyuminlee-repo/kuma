@@ -2431,11 +2431,17 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Las notificaciones ahora siguen el tema oscuro, en lugar de aparecer como una tarjeta blanca brillante sobre una pantalla oscura.",
-      "Siguen haciéndolo tanto si el tema se cambió desde la barra de menú, desde la configuración o por el sistema."
+      "Las mutaciones pegadas a un extremo de la referencia se nombran sobre la tabla de veredictos, en ejecuciones que usaron la referencia tal cual.",
+      "Se nombran en vez de contarse, porque cual variante es decide que hacer al respecto.",
+      "La nota queda como aviso: no se descarta nada y ningun veredicto cambia."
     ],
-    "highlightsStamp": "0.16.20+c211fb70",
+    "highlightsStamp": "0.16.21+357e800b",
     "releases": {
+      "0.16.21": [
+        "Las mutaciones pegadas a un extremo de la referencia se nombran sobre la tabla de veredictos, en ejecuciones que usaron la referencia tal cual.",
+        "Se nombran en vez de contarse, porque cual variante es decide que hacer al respecto.",
+        "La nota queda como aviso: no se descarta nada y ningun veredicto cambia."
+      ],
       "0.16.20": [
         "Las notificaciones ahora siguen el tema oscuro, en lugar de aparecer como una tarjeta blanca brillante sobre una pantalla oscura.",
         "Siguen haciéndolo tanto si el tema se cambió desde la barra de menú, desde la configuración o por el sistema."
@@ -2606,6 +2612,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
       "0.16.17": "f9c0ee2f",

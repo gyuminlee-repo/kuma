@@ -2431,11 +2431,17 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les notifications suivent désormais le thème sombre, au lieu d'apparaître comme une carte blanche vive sur un écran sombre.",
-      "Elles continuent de le suivre, que le thème ait été changé depuis la barre de menu, les paramètres ou le système."
+      "Les mutations collees a une extremite de la reference sont nommees au-dessus du tableau, pour les executions qui ont utilise la reference telle quelle.",
+      "Elles sont nommees plutot que comptees, car savoir laquelle decide de ce qu'il faut faire.",
+      "La note reste indicative: rien n'est ecarte, et aucun verdict ne change."
     ],
-    "highlightsStamp": "0.16.20+c211fb70",
+    "highlightsStamp": "0.16.21+357e800b",
     "releases": {
+      "0.16.21": [
+        "Les mutations collees a une extremite de la reference sont nommees au-dessus du tableau, pour les executions qui ont utilise la reference telle quelle.",
+        "Elles sont nommees plutot que comptees, car savoir laquelle decide de ce qu'il faut faire.",
+        "La note reste indicative: rien n'est ecarte, et aucun verdict ne change."
+      ],
       "0.16.20": [
         "Les notifications suivent désormais le thème sombre, au lieu d'apparaître comme une carte blanche vive sur un écran sombre.",
         "Elles continuent de le suivre, que le thème ait été changé depuis la barre de menu, les paramètres ou le système."
@@ -2606,6 +2612,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
       "0.16.17": "f9c0ee2f",

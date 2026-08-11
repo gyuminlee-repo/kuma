@@ -2431,11 +2431,17 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Benachrichtigungen folgen jetzt dem dunklen Design, statt als helle weiße Karte auf einem dunklen Bildschirm zu erscheinen.",
-      "Sie folgen weiterhin, egal ob das Design über die Menüleiste, die Einstellungen oder das System geändert wurde."
+      "Mutationen direkt an einem Ende der Referenz werden ueber der Urteilstabelle benannt, bei Laeufen, welche die gelieferte Referenz unveraendert genutzt haben.",
+      "Sie werden benannt statt gezaehlt, denn welche Variante es ist entscheidet, was zu tun ist.",
+      "Der Hinweis bleibt beratend: nichts wird verworfen, und kein Urteil aendert sich."
     ],
-    "highlightsStamp": "0.16.20+c211fb70",
+    "highlightsStamp": "0.16.21+357e800b",
     "releases": {
+      "0.16.21": [
+        "Mutationen direkt an einem Ende der Referenz werden ueber der Urteilstabelle benannt, bei Laeufen, welche die gelieferte Referenz unveraendert genutzt haben.",
+        "Sie werden benannt statt gezaehlt, denn welche Variante es ist entscheidet, was zu tun ist.",
+        "Der Hinweis bleibt beratend: nichts wird verworfen, und kein Urteil aendert sich."
+      ],
       "0.16.20": [
         "Benachrichtigungen folgen jetzt dem dunklen Design, statt als helle weiße Karte auf einem dunklen Bildschirm zu erscheinen.",
         "Sie folgen weiterhin, egal ob das Design über die Menüleiste, die Einstellungen oder das System geändert wurde."
@@ -2606,6 +2612,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
       "0.16.17": "f9c0ee2f",
