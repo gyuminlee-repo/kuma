@@ -1828,6 +1828,11 @@ consensus 단계가 메모리에 있는 read를 그대로 쓰기 때문에 이 �
 <td>ONT flow cell warranty, MinION/GridION</td>
 </tr>
 <tr>
+<td>레퍼런스 말단 여유 30 bp</td>
+<td><strong>자체 기준</strong> (권고용, 잠정)</td>
+<td><code>trim_flank_bp</code> 에서 가져옴. 아래 절 참조</td>
+</tr>
+<tr>
 <td>indel event gate 0.21 / 0.83</td>
 <td><strong>자체 실측</strong></td>
 <td><code>bench_v2 depth_50</code> 캘리브레이션</td>
@@ -1835,6 +1840,11 @@ consensus 단계가 메모리에 있는 read를 그대로 쓰기 때문에 이 �
 </tbody>
 </table>
 <p>주의할 점이 둘이다. <code>min_read_count = 30</code> 은 값이 ONT 기본값과 같지만 <strong>규격이 아니고</strong>, 그 워크플로는 haploid amplicon 대상이며 혼합 시료용이 아니라고 명시한다. 이 앱은 그 워크플로를 돌리지 않고 자체 consensus 와 자체 판정을 쓰므로, 다른 파이프라인의 기본값을 가져온 유추다. 그래서 잠정값으로 표시하며, 근거를 세우려면 실제 런을 subsample 해 판정이 깨지는 depth 를 재야 한다(indel gate 를 <code>bench_v2</code> 로 정한 방식).</p>
+<h4 id="30-bp-v01621">레퍼런스 말단 여유 30 bp (v0.16.21)<a class="headerlink" href="#30-bp-v01621" title="Permanent link">&para;</a></h4>
+<p>amplicon 추출이 <strong>미발견</strong>으로 건너뛰어져 주어진 레퍼런스를 그대로 정렬에 쓴 런에서, 기대 변이의 코돈이 레퍼런스 양 끝 중 어느 쪽에서든 30 bp 이내에 있으면 판정표 위에 그 변이 이름을 띄운다. 정렬기는 붙이지 못한 불일치 지점에서 read 를 잘라내므로, 그 위치는 웰이 보고하는 depth 보다 얕게 읽힐 수 있다.</p>
+<p>근거는 260729 ispS 런이다. R560 은 1,683 bp CDS 의 끝에서 4 bp 앞이고, 3' 끝 도달률이 CDS 레퍼런스에서 11.8%, amplicon 레퍼런스에서 96.1% 였다(barcode09 의 R560 변이 7종 합계. 재현 계산이라 추정).</p>
+<p>경계를 분명히 해 둔다. 이건 <strong>권고이지 게이트가 아니다.</strong> read 도, 웰도, 판정도 이 값으로 버려지지 않고 문장 하나가 뜰지만 정한다. 그리고 저 런의 웰들은 98% 커버리지 게이트를 통과해 실제로 판정됐다. 위험한 것은 웰의 통과 여부가 아니라 <strong>그 자리의 depth</strong> 이므로, 얕은 런이나 <code>coverage_fraction</code> 을 1.0 쪽으로 올린 설정, 짧은 레퍼런스와 겹칠 때 문제가 된다.</p>
+<p>30 이라는 값은 <code>trim_flank_bp</code> 에서 가져왔다. 이 파이프라인이 이미 정렬 주변의 작업 여유로 쓰는 값이라는 것이 근거의 전부이고, 위험이 어디서 끝나는지를 잰 값이 아니다. 그래서 잠정으로 표시한다.</p>
 <h4 id="mixed-90">MIXED 하한 90 이 지키는 것<a class="headerlink" href="#mixed-90" title="Permanent link">&para;</a></h4>
 <p>MIXED 하한은 그 자체로 신뢰도를 정하는 값이 아니라 <strong>소수 대립 게이트 0.20 을 지키는 depth</strong> 다. 어떤 포지션이 mixed 로 불리려면 두 번째 염기가 ACGT depth 의 20% 에 도달해야 하므로(<code>kuma_core/mame/ingest/consensus.py</code>, <code>mix_minor_fraction_threshold</code>), 물어야 할 것은 "런 노이즈가 20% 를 흉내낼 수 있는 depth 가 어디까지인가" 다. 260729 ispS 런에서 관측된 가장 시끄러운 포지션(0.054, 포지션별 중앙값은 0.003)을 read 별 오류율로 놓고 amplicon 1,500 자리를 가정해 이항 꼬리를 계산하면 웰당 위양성 mixed 포지션 기대값은 다음과 같다.</p>
 <table>
