@@ -35,6 +35,7 @@ import pytest
 from kuma_core.mame.ingest.align import Alignment, _CIGAR_D, _CIGAR_M
 from kuma_core.mame.ingest import consensus as consensus_mod
 from kuma_core.mame.ingest.consensus import (
+    ConsensusCall,
     NoisyPosition,
     _NOISY_POSITION_REPORT_BUDGET,
     _reverse_complement,
@@ -219,7 +220,7 @@ class TestRankingAndBudget:
 
     _COUNTS = [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
 
-    def _call(self) -> object:
+    def _call(self) -> ConsensusCall:
         # 40 reads, position i carrying _COUNTS[i] alternate reads split as
         # evenly as the count allows, so no position is accidentally one-strand.
         minor = {
@@ -289,6 +290,43 @@ class TestRankingAndBudget:
             _well(20, {2: (1, 1), 6: (2, 2)}), _REF, min_depth=1
         )
         assert len(call.noisy_positions) == 2
+
+    def test_eligible_count_is_the_untruncated_pool(self) -> None:
+        """The only field that says the report is a sample rather than a census.
+
+        ``n_mixed_positions`` cannot serve: it counts positions at or above the
+        mixed gate, which on a healthy run is 0, while the report still shows ten
+        positions. The eligible count is what makes the truncation visible, and
+        it must be read off the pool, not off the report.
+        """
+        call = self._call()
+        assert call.n_eligible_positions == len(self._COUNTS)
+        assert call.n_eligible_positions > len(call.noisy_positions)
+
+    def test_fraction_is_recoverable_from_the_counts_and_depth(self) -> None:
+        """Why the header may round the fraction to .3f without losing anything.
+
+        ``plus_count`` and ``minus_count`` split the MINOR ALLELE, so they sum to
+        its count, and ``minor_fraction`` is that count over ``depth``. The
+        consensus FASTA header relies on this: it writes the fraction rounded and
+        a consumer needing full precision recomputes it from the two counts.
+        Asserted against engine output rather than a hand-built record, because
+        it is a claim about what the engine produces.
+        """
+        call = self._call()
+        assert call.noisy_positions, "fixture produced no eligible position"
+        for p in call.noisy_positions:
+            assert p.minor_fraction == pytest.approx(
+                (p.plus_count + p.minus_count) / p.depth
+            )
+
+    def test_no_eligible_position_counts_zero(self) -> None:
+        """A clean well reports 0 of 0, which is a census and not a truncation."""
+        call = call_consensus_with_metrics(_well(20, {}), _REF, min_depth=1)
+        assert call.n_eligible_positions == 0
+        assert call.noisy_positions == ()
+        # And the share stays unknown rather than becoming the one-strand value.
+        assert call.max_minor_allele_strand_share is None
 
 
 class TestTieColumnIsDeterministic:

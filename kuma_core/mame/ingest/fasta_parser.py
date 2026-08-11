@@ -43,6 +43,7 @@ from kuma_core.mame.ingest.consensus_metadata import (
     CONSENSUS_N_FRACTION_BASIS,
     CONSENSUS_NET_INDEL,
     DEPTH,
+    ELIGIBLE_POSITIONS,
     INDEL_EVENT_POSITIONS,
     INPUT_READS,
     LOW_DEPTH_POSITIONS,
@@ -51,14 +52,19 @@ from kuma_core.mame.ingest.consensus_metadata import (
     MAX_DEL_RUN_LENGTH,
     MAX_INDEL_EVENT_FRACTION,
     MAX_MINOR_ALLELE_FRACTION,
+    MAX_MINOR_ALLELE_MINUS,
+    MAX_MINOR_ALLELE_PLUS,
+    MAX_MINOR_ALLELE_STRAND_SHARE,
     MEDIAN_MINOR_ALLELE_FRACTION,
     MIN_VARIANT_SUPPORT,
     MIN_VARIANT_SUPPORT_DEPTH,
     MIXED_POSITIONS,
     NET_INDEL,
+    NOISY_POSITIONS,
     READ_NET_INDEL,
     SPAN_FAILED,
     VARIANT_POSITIONS,
+    parse_noisy_positions,
 )
 from kuma_core.mame.ingest.stage_marker import (
     DirEntryMap,
@@ -428,6 +434,28 @@ def parse_fasta_file(
     median_minor_allele_fraction = (
         _read_float_metadata(metadata, MEDIAN_MINOR_ALLELE_FRACTION) or 0.0
     )
+    # Same absent-means-unknown rule as ``min_variant_support``, and here the
+    # distinction is sharper: 0.0 is the ARTIFACT reading (minor allele seen on
+    # one strand only), so coercing a missing key to 0.0 would report every
+    # legacy well as one-strand evidence it never produced.  The two counts are
+    # read unconditionally; they are only meaningful alongside a share that
+    # exists, which is why a consumer keys on the share and not on these.
+    max_minor_allele_strand_share = _read_float_metadata(
+        metadata, MAX_MINOR_ALLELE_STRAND_SHARE
+    )
+    max_minor_allele_plus_count = (
+        _read_int_metadata(metadata, MAX_MINOR_ALLELE_PLUS) or 0
+    )
+    max_minor_allele_minus_count = (
+        _read_int_metadata(metadata, MAX_MINOR_ALLELE_MINUS) or 0
+    )
+    # A plain count with no unknown state to protect: a file that carries no
+    # eligible-position key also carries no position list, so 0 alongside an
+    # empty tuple says "nothing sampled from nothing" either way.
+    n_eligible_positions = _read_int_metadata(metadata, ELIGIBLE_POSITIONS) or 0
+    # A malformed record inside the list is skipped and the rest kept; see
+    # ``parse_noisy_positions``.  An unreadable list must not fail the well.
+    noisy_positions = parse_noisy_positions(metadata.get(NOISY_POSITIONS.lower()))
 
     return BarcodeRecord(
         native_barcode=native_barcode,
@@ -453,6 +481,11 @@ def parse_fasta_file(
         n_variant_positions=n_variant_positions,
         min_variant_support_depth=min_variant_support_depth,
         median_minor_allele_fraction=median_minor_allele_fraction,
+        max_minor_allele_strand_share=max_minor_allele_strand_share,
+        max_minor_allele_plus_count=max_minor_allele_plus_count,
+        max_minor_allele_minus_count=max_minor_allele_minus_count,
+        n_eligible_positions=n_eligible_positions,
+        noisy_positions=noisy_positions,
         consensus_net_indel_bp=consensus_net_indel_bp,
         median_read_net_indel_bp=median_read_net_indel_bp,
     )

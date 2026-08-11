@@ -339,6 +339,22 @@ class ConsensusCall:
     # to surface, and a floor would be a threshold. Empty when the well has no
     # eligible position.
     noisy_positions: tuple[NoisyPosition, ...] = ()
+    # How many positions ``noisy_positions`` was drawn from, so its truncation is
+    # visible. ``len(noisy_positions) < n_eligible_positions`` states exactly that
+    # the list is a top-K sample rather than a census.
+    #
+    # This is not a theoretical case: measured over two ONT amplicon runs on a
+    # 1715 bp reference, every well of both (87 and 79) filled the budget, 870 and
+    # 790 reported positions for 87 x 10 and 79 x 10. ONT noise puts a second base
+    # almost everywhere, so hundreds of positions clear mix-eligibility on a real
+    # amplicon and the list is ALWAYS truncated.
+    #
+    # ``n_mixed_positions`` cannot serve as that signal: it counts only positions
+    # at or above ``mix_minor_fraction_threshold``, which on a healthy run is 0.
+    # A well would otherwise report ten positions next to a mixed count of zero
+    # with nothing anywhere saying those ten came out of two hundred, and a
+    # run-level recurrence tally built from the lists would read as a census.
+    n_eligible_positions: int = 0
 
 
 def _reverse_complement(seq: str) -> str:
@@ -448,6 +464,10 @@ def call_consensus_with_metrics(
     base_total = acgt.sum(axis=1)
     n_distinct_bases = (acgt > 0).sum(axis=1)
     mix_eligible = covered & (base_total >= mix_min_depth) & (n_distinct_bases >= 2)
+    # The pool ``noisy_positions`` is sampled from. Computed here, unconditionally,
+    # because a well with no eligible position genuinely has zero of them and the
+    # empty list is then a census rather than a truncation.
+    n_eligible_positions = int(mix_eligible.sum())
     n_mixed_positions = 0
     max_minor_allele_fraction = 0.0
     median_minor_allele_fraction = 0.0
@@ -676,6 +696,7 @@ def call_consensus_with_metrics(
         max_minor_allele_plus_count=max_minor_allele_plus_count,
         max_minor_allele_minus_count=max_minor_allele_minus_count,
         noisy_positions=noisy_positions,
+        n_eligible_positions=n_eligible_positions,
     )
 
 

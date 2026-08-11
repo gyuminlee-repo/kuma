@@ -95,6 +95,7 @@ from kuma_core.mame.ingest.consensus_metadata import (
     ConsensusMetadata,
     format_consensus_fasta_record,
 )
+from kuma_core.mame.models import NoisyPosition
 from kuma_core.mame.ingest.stage_marker import (
     is_unit_complete,
     marker_inputs_match,
@@ -2469,6 +2470,7 @@ def _run_combinatorial_demux_body(
     ) -> tuple[
         str, str, int, int, float, int, float, int, int, int, int, int, int, float,
         int, int, int, float | None, int, int, float,
+        float | None, int, int, int, tuple[NoisyPosition, ...],
     ]:
         """Worker: returns the well name followed by the whole consensus tuple.
 
@@ -2479,6 +2481,9 @@ def _run_combinatorial_demux_body(
         was fine and the annotation was four releases stale, which is worse than
         no annotation, because anyone who trusts it and edits the unpacking gets
         a silent shift.
+
+        The five after those are the minor-allele strand evidence; keep this
+        annotation, the body, and the caller's unpacking moving together.
         """
         (
             seq,
@@ -2501,6 +2506,11 @@ def _run_combinatorial_demux_body(
             variant_positions,
             min_variant_support_depth,
             median_minor_fraction,
+            max_minor_strand_share,
+            max_minor_plus,
+            max_minor_minus,
+            eligible_positions,
+            noisy_positions,
         ) = _compute_well_consensus(
             well_name, reads, alignments, ref_seq, ref_len, min_depth,
         )
@@ -2526,6 +2536,11 @@ def _run_combinatorial_demux_body(
             variant_positions,
             min_variant_support_depth,
             median_minor_fraction,
+            max_minor_strand_share,
+            max_minor_plus,
+            max_minor_minus,
+            eligible_positions,
+            noisy_positions,
         )
 
     _consensus_done = 0
@@ -2603,6 +2618,11 @@ def _run_combinatorial_demux_body(
                         variant_positions,
                         min_variant_support_depth,
                         median_minor_fraction,
+                        max_minor_strand_share,
+                        max_minor_plus,
+                        max_minor_minus,
+                        eligible_positions,
+                        noisy_positions,
                     ) = fut.result()
                     per_well_consensus[wn] = seq
                     atomic_write_text(
@@ -2631,6 +2651,13 @@ def _run_combinatorial_demux_body(
                                 variant_positions=variant_positions,
                                 min_variant_support_depth=min_variant_support_depth,
                                 median_minor_allele_fraction=median_minor_fraction,
+                                max_minor_allele_strand_share=(
+                                    max_minor_strand_share
+                                ),
+                                max_minor_allele_plus=max_minor_plus,
+                                max_minor_allele_minus=max_minor_minus,
+                                n_eligible_positions=eligible_positions,
+                                noisy_positions=noisy_positions,
                             ),
                         ),
                         # fsync=False here, one fsync_directory below instead. Per-file
@@ -2711,12 +2738,17 @@ def _compute_well_consensus(
 ) -> tuple[
     str, int, int, float, int, float, int, int, int, int, int, int, float, int,
     int, int, float | None, int, int, float,
+    float | None, int, int, int, tuple[NoisyPosition, ...],
 ]:
     """Call consensus for one well from its (pre-computed) alignments.
 
     ``well_alignments`` comes from the single batched :func:`align_reads_grouped`
     call for the whole unit and is in this well's original read order, which the
     consensus tie-break depends on.
+
+    A well that reached no consensus reports ``None`` for the strand share rather
+    than 0.0, because 0.0 is the one-strand reading and nothing here was read at
+    all; the eligible-position count is a true 0 alongside an empty list.
     """
     if not reads:
         return (
@@ -2740,6 +2772,11 @@ def _compute_well_consensus(
             0,
             0,
             0.0,
+            None,
+            0,
+            0,
+            0,
+            (),
         )
 
     if not well_alignments:
@@ -2767,6 +2804,11 @@ def _compute_well_consensus(
             0,
             0,
             0.0,
+            None,
+            0,
+            0,
+            0,
+            (),
         )
 
     with TIMER.phase("well_consensus.compute_sum"):
@@ -2796,6 +2838,22 @@ def _compute_well_consensus(
         consensus_call.n_variant_positions,
         consensus_call.min_variant_support_depth,
         consensus_call.median_minor_allele_fraction,
+        consensus_call.max_minor_allele_strand_share,
+        consensus_call.max_minor_allele_plus_count,
+        consensus_call.max_minor_allele_minus_count,
+        consensus_call.n_eligible_positions,
+        # Re-boxed into the transfer-object mirror so the header writer keeps no
+        # dependency on the consensus engine's own dataclass.
+        tuple(
+            NoisyPosition(
+                position=p.position,
+                minor_fraction=p.minor_fraction,
+                depth=p.depth,
+                plus_count=p.plus_count,
+                minus_count=p.minus_count,
+            )
+            for p in consensus_call.noisy_positions
+        ),
     )
 
 

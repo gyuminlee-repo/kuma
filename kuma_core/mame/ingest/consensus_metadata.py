@@ -8,8 +8,13 @@ writers and parsers do not drift.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable, Sequence
+
+from kuma_core.mame.models import NoisyPosition
+
+_logger = logging.getLogger(__name__)
 
 
 DEPTH = "depth"
@@ -51,6 +56,105 @@ VARIANT_POSITIONS = "variant_positions"
 MIN_VARIANT_SUPPORT_DEPTH = "min_variant_support_depth"
 # Noise floor the well ran at, so the mixed-position gate can be audited.
 MEDIAN_MINOR_ALLELE_FRACTION = "median_minor_allele_fraction"
+# Strand evidence behind the minor allele at the position that produced
+# ``max_minor_allele_fraction``: the weak-strand share and the two counts it was
+# computed from. Written only when a mix-eligible position exists, so absence
+# means "unknown", never "one strand only" (which is a share of 0.0 and a real
+# measurement). Same emit-only-when-known rule as ``min_variant_support``.
+MAX_MINOR_ALLELE_STRAND_SHARE = "max_minor_allele_strand_share"
+MAX_MINOR_ALLELE_PLUS = "max_minor_allele_plus"
+MAX_MINOR_ALLELE_MINUS = "max_minor_allele_minus"
+# How many positions ``noisy_positions`` was sampled from. Always written, and 0
+# is honest: a well with no eligible position reports an empty list drawn from
+# nothing. Absent only in files written before the key existed, which also carry
+# no list, so the pair stays consistent either way.
+ELIGIBLE_POSITIONS = "eligible_positions"
+# The per-position sample itself; see ``format_noisy_positions`` for the encoding.
+NOISY_POSITIONS = "noisy_positions"
+
+#: Field separator inside one ``noisy_positions`` record.
+_NOISY_FIELD_SEP = ":"
+#: Record separator. Neither may be whitespace: ``_METADATA_RE`` in fasta_parser
+#: reads a header value as a run of non-space characters, so a space anywhere in
+#: the value would truncate it at the first record.
+_NOISY_RECORD_SEP = ","
+#: Values per record: position, minor fraction, depth, plus count, minus count.
+_NOISY_FIELDS = 5
+
+
+def format_noisy_positions(positions: Sequence[NoisyPosition]) -> str:
+    """Encode *positions* as ``pos:frac:depth:plus:minus`` records, comma-joined.
+
+    One key rather than five parallel lists, because the five numbers of one
+    position only mean anything together and parallel lists can go out of step.
+
+    ``minor_fraction`` is written at the same ``.3f`` the other fraction keys use
+    and the rounding costs nothing: the exact value is ``(plus + minus) / depth``
+    by construction (the strand counts split the minor allele, so they sum to its
+    count, and the fraction is that count over the depth). The written fraction is
+    therefore a convenience for a human reading the header, and a consumer that
+    needs full precision recomputes it. The parser does NOT recompute or verify
+    it, so a hand-edited file reads back exactly what it says.
+    """
+
+    return _NOISY_RECORD_SEP.join(
+        _NOISY_FIELD_SEP.join(
+            (
+                str(p.position),
+                f"{p.minor_fraction:.3f}",
+                str(p.depth),
+                str(p.plus_count),
+                str(p.minus_count),
+            )
+        )
+        for p in positions
+    )
+
+
+def parse_noisy_positions(raw: str | None) -> tuple[NoisyPosition, ...]:
+    """Decode a ``noisy_positions`` header value; ``None`` or ``""`` gives ``()``.
+
+    A malformed record (wrong field count, or a field that will not parse as a
+    number) is SKIPPED and the rest of the list is kept, with one warning naming
+    the record. Dropping the whole list would lose the good positions next to the
+    bad one, and raising would take down the parse of an otherwise readable
+    consensus file over evidence that no gate reads. The surviving records keep
+    their written order, which is the writer's ranking; nothing is re-sorted.
+    """
+
+    if not raw:
+        return ()
+    out: list[NoisyPosition] = []
+    for record in raw.split(_NOISY_RECORD_SEP):
+        if not record:
+            continue
+        fields = record.split(_NOISY_FIELD_SEP)
+        if len(fields) != _NOISY_FIELDS:
+            _logger.warning(
+                "Skipping malformed %s record %r (expected %d %r-separated "
+                "fields, got %d).",
+                NOISY_POSITIONS,
+                record,
+                _NOISY_FIELDS,
+                _NOISY_FIELD_SEP,
+                len(fields),
+            )
+            continue
+        try:
+            out.append(
+                NoisyPosition(
+                    position=int(fields[0]),
+                    minor_fraction=float(fields[1]),
+                    depth=int(fields[2]),
+                    plus_count=int(fields[3]),
+                    minus_count=int(fields[4]),
+                )
+            )
+        except ValueError:
+            _logger.warning(
+                "Skipping unparseable %s record %r.", NOISY_POSITIONS, record
+            )
+    return tuple(out)
 
 
 @dataclass(frozen=True)
@@ -83,6 +187,18 @@ class ConsensusMetadata:
     variant_positions: int = 0
     min_variant_support_depth: int = 0
     median_minor_allele_fraction: float = 0.0
+    # Weak-strand share of the minor allele at the position behind
+    # ``max_minor_allele_fraction``, and the two counts it divides.  ``None`` is
+    # unknown (no mix-eligible position) and 0.0 is "one strand only", so the
+    # trio is emitted only when the share exists.  A reader must treat the
+    # missing keys as unknown, never as a one-strand measurement.
+    max_minor_allele_strand_share: float | None = None
+    max_minor_allele_plus: int = 0
+    max_minor_allele_minus: int = 0
+    # Size of the pool ``noisy_positions`` samples, so its truncation is visible.
+    # Always written; 0 is a real answer.
+    n_eligible_positions: int = 0
+    noisy_positions: tuple[NoisyPosition, ...] = ()
 
     def header_items(self) -> Iterable[tuple[str, str]]:
         """Yield metadata pairs in the stable FASTA-header order."""
@@ -108,6 +224,16 @@ class ConsensusMetadata:
             yield MIN_VARIANT_SUPPORT, f"{self.min_variant_support:.3f}"
             yield VARIANT_POSITIONS, str(self.variant_positions)
             yield MIN_VARIANT_SUPPORT_DEPTH, str(self.min_variant_support_depth)
+        if self.max_minor_allele_strand_share is not None:
+            yield (
+                MAX_MINOR_ALLELE_STRAND_SHARE,
+                f"{self.max_minor_allele_strand_share:.3f}",
+            )
+            yield MAX_MINOR_ALLELE_PLUS, str(self.max_minor_allele_plus)
+            yield MAX_MINOR_ALLELE_MINUS, str(self.max_minor_allele_minus)
+        yield ELIGIBLE_POSITIONS, str(self.n_eligible_positions)
+        if self.noisy_positions:
+            yield NOISY_POSITIONS, format_noisy_positions(self.noisy_positions)
 
     def header_suffix(self) -> str:
         """Return ``key=value`` metadata joined for a FASTA header."""
@@ -131,19 +257,27 @@ __all__ = [
     "CONSENSUS_N_FRACTION",
     "CONSENSUS_N_FRACTION_BASIS",
     "DEPTH",
+    "ELIGIBLE_POSITIONS",
     "INPUT_READS",
     "LOW_DEPTH_POSITIONS",
     "LOW_QUALITY_BASES",
     "MAPQ_FAILED",
     "MAX_MINOR_ALLELE_FRACTION",
+    "MAX_MINOR_ALLELE_MINUS",
+    "MAX_MINOR_ALLELE_PLUS",
+    "MAX_MINOR_ALLELE_STRAND_SHARE",
     "MEDIAN_MINOR_ALLELE_FRACTION",
     "MIN_VARIANT_SUPPORT",
     "MIN_VARIANT_SUPPORT_DEPTH",
     "MIXED_POSITIONS",
+    "NOISY_POSITIONS",
     "SPAN_FAILED",
     "VARIANT_POSITIONS",
     "ConsensusMetadata",
+    "NoisyPosition",
     "format_consensus_fasta_record",
+    "format_noisy_positions",
+    "parse_noisy_positions",
     "INDEL_EVENT_POSITIONS",
     "MAX_INDEL_EVENT_FRACTION",
     "MAX_DEL_RUN_LENGTH",

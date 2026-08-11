@@ -459,6 +459,124 @@ def test_serialized_verdict_carries_noise_floor_and_n_fraction_basis(
         assert isinstance(well["consensus_n_fraction_evaluable"], bool)
 
 
+def test_serialized_verdict_omits_unknown_strand_share_and_keeps_a_measured_zero(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The response must not turn "not measured" into the artifact reading.
+
+    ``max_minor_allele_strand_share`` is 0.0 exactly when the minor allele came
+    off one strand only, which is the sequence-context artifact signature. A
+    well with no mix-eligible position measured nothing, so its key is OMITTED
+    rather than zero-filled; zero-filling would report every such well as
+    one-strand evidence it never produced. The two counts ride with the share
+    because they are its denominators.
+
+    ``n_eligible_positions`` is unconditional for the opposite reason: it says
+    how many positions ``noisy_positions`` was truncated from, and on a real ONT
+    amplicon the list is always truncated.
+    """
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    ingest_dir = tmp_path / "consensus"
+    # A well that measured the evidence, with a share of exactly 0.0.
+    _write_fasta(
+        ingest_dir / "NB01" / "1_2.fasta",
+        header=(
+            "1_2 depth=30 max_minor_allele_strand_share=0.000 "
+            "max_minor_allele_plus=7 max_minor_allele_minus=0 "
+            "eligible_positions=214 "
+            "noisy_positions=4:0.042:312:13:0,7:0.037:298:5:6"
+        ),
+        body=_G2A_NT,
+    )
+    # A well written before the metric existed: no keys at all.
+    _write_fasta(ingest_dir / "NB01" / "2_1.fasta", header="2_1", body=_F3W_NT)
+    reference = _make_reference_fasta(tmp_path)
+    kuro_xlsx = tmp_path / "kuro.xlsx"
+    _make_kuro_xlsx(kuro_xlsx)
+    _capture_progress(monkeypatch)
+
+    result = analyze_mod.handle_analyze({
+        "input_dir": str(ingest_dir),
+        "reference": str(reference),
+        "expected": str(kuro_xlsx),
+        "output": str(tmp_path / "out.xlsx"),
+        "cds_start": 0,
+        "cds_end": 9,
+        "min_file_size_kb": 0.0,
+        "ingest_mode": "barcode",
+    })
+
+    by_custom = {v["custom_barcode"]: v for v in result["verdicts"]}
+
+    measured = by_custom["1_2"]
+    # Present and 0.0, not dropped for being falsy.
+    assert measured["max_minor_allele_strand_share"] == 0.0
+    assert measured["max_minor_allele_plus_count"] == 7
+    assert measured["max_minor_allele_minus_count"] == 0
+    assert measured["n_eligible_positions"] == 214
+    assert [p["position"] for p in measured["noisy_positions"]] == [4, 7]
+    assert measured["noisy_positions"][0] == {
+        "position": 4,
+        "minor_fraction": 0.042,
+        "depth": 312,
+        "plus_count": 13,
+        "minus_count": 0,
+    }
+    # The sample is visibly a sample, not a census.
+    assert len(measured["noisy_positions"]) < measured["n_eligible_positions"]
+
+    legacy = by_custom["2_1"]
+    assert "max_minor_allele_strand_share" not in legacy
+    assert "max_minor_allele_plus_count" not in legacy
+    assert "max_minor_allele_minus_count" not in legacy
+    # The count and the list are unconditional, and 0 / [] is the honest pair.
+    assert legacy["n_eligible_positions"] == 0
+    assert legacy["noisy_positions"] == []
+
+
+def test_deserialize_verdict_restores_the_strand_evidence(tmp_path: Path) -> None:
+    """A saved run replays through ``_deserialize_verdict``; nothing may be lost.
+
+    Serializing without restoring would drop the evidence on the first reload,
+    and an omitted share must come back as ``None`` (unknown) rather than 0.0.
+    """
+    from sidecar_mame.handlers.analyze import _deserialize_verdict
+
+    payload = {
+        "native_barcode": "NB01",
+        "custom_barcode": "1_2",
+        "verdict": "PASS",
+        "max_minor_allele_strand_share": 0.0,
+        "max_minor_allele_plus_count": 7,
+        "max_minor_allele_minus_count": 0,
+        "n_eligible_positions": 214,
+        "noisy_positions": [
+            {
+                "position": 4,
+                "minor_fraction": 0.041,
+                "depth": 312,
+                "plus_count": 6,
+                "minus_count": 0,
+            }
+        ],
+    }
+    barcode = _deserialize_verdict(payload).translated.barcode
+    assert barcode.max_minor_allele_strand_share == 0.0
+    assert barcode.max_minor_allele_plus_count == 7
+    assert barcode.max_minor_allele_minus_count == 0
+    assert barcode.n_eligible_positions == 214
+    assert barcode.noisy_positions[0].position == 4
+    assert barcode.noisy_positions[0].depth == 312
+
+    legacy = _deserialize_verdict({
+        "native_barcode": "NB01", "custom_barcode": "2_1", "verdict": "PASS",
+    }).translated.barcode
+    assert legacy.max_minor_allele_strand_share is None
+    assert legacy.n_eligible_positions == 0
+    assert legacy.noisy_positions == ()
+
+
 def test_handle_analyze_auto_scopes_from_expected_when_layout_omitted(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -20,6 +20,7 @@ from pathlib import Path
 
 from kuma_core.mame.ingest.align import Alignment, align_reads_with_stats
 from kuma_core.mame.ingest.consensus import call_consensus_with_metrics, per_position_depth
+from kuma_core.mame.models import NoisyPosition
 
 
 @dataclass
@@ -60,6 +61,19 @@ class ConsensusResult:
         Median per-read net indel length (insertions minus deletions) over the
         whole aligned span. Read-quality evidence only; on ONT data it tracks the
         per-read homopolymer error rate and is not a frameshift signal.
+    max_minor_allele_strand_share:
+        Weak-strand share of the minor allele at the position behind
+        ``max_minor_allele_fraction``. ``None`` is unknown (no mix-eligible
+        position, including every well that had no passing read); 0.0 is a real
+        one-strand measurement. See ConsensusCall for why the two never merge.
+    max_minor_allele_plus_count, max_minor_allele_minus_count:
+        The counts that share divides. 0 when the share is unknown.
+    n_eligible_positions:
+        Mix-eligible positions this well had, i.e. the pool ``noisy_positions``
+        samples. Its own truncation signal.
+    noisy_positions:
+        Top-K of that pool by minor fraction. Empty for wells with no eligible
+        position.
     """
 
     consensus_seq: str
@@ -80,6 +94,11 @@ class ConsensusResult:
     max_del_run_length: int = 0
     consensus_net_indel_bp: int = 0
     median_read_net_indel_bp: int = 0
+    max_minor_allele_strand_share: float | None = None
+    max_minor_allele_plus_count: int = 0
+    max_minor_allele_minus_count: int = 0
+    n_eligible_positions: int = 0
+    noisy_positions: tuple[NoisyPosition, ...] = ()
     alignments: list[Alignment] = field(default_factory=list, repr=False)
 
 
@@ -192,6 +211,26 @@ def compute_well_consensuses(
             max_del_run_length=consensus_call.max_del_run_length,
             consensus_net_indel_bp=consensus_call.consensus_net_indel_bp,
             median_read_net_indel_bp=consensus_call.median_read_net_indel_bp,
+            max_minor_allele_strand_share=(
+                consensus_call.max_minor_allele_strand_share
+            ),
+            max_minor_allele_plus_count=consensus_call.max_minor_allele_plus_count,
+            max_minor_allele_minus_count=(
+                consensus_call.max_minor_allele_minus_count
+            ),
+            n_eligible_positions=consensus_call.n_eligible_positions,
+            # Same five numbers, re-boxed into the transfer-object mirror so this
+            # dataclass keeps no dependency on the caller's engine types.
+            noisy_positions=tuple(
+                NoisyPosition(
+                    position=p.position,
+                    minor_fraction=p.minor_fraction,
+                    depth=p.depth,
+                    plus_count=p.plus_count,
+                    minus_count=p.minus_count,
+                )
+                for p in consensus_call.noisy_positions
+            ),
             alignments=alignments,
         )
 

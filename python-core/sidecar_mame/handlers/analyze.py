@@ -140,7 +140,7 @@ def _write_reference_fasta(reference_path: Path, output_dir: Path) -> Path:
 def _serialize_verdict(vr: Any) -> dict:
     t = vr.translated
     b = t.barcode
-    return {
+    out = {
         "native_barcode": b.native_barcode,
         "custom_barcode": b.custom_barcode,
         "file_size_kb": b.file_size_kb,
@@ -176,7 +176,32 @@ def _serialize_verdict(vr: Any) -> dict:
         "mutant_id": getattr(vr, "mutant_id", ""),
         "verdict": vr.verdict.value,
         "verdict_notes": vr.verdict_notes,
+        # How many mix-eligible positions this well had, which is the pool
+        # ``noisy_positions`` samples. Unconditional because 0 is a real answer
+        # (nothing eligible) and because without it a truncated top-K sample
+        # reads as a census: on a real ONT amplicon every well fills the budget.
+        "n_eligible_positions": b.n_eligible_positions,
+        "noisy_positions": [
+            {
+                "position": p.position,
+                "minor_fraction": p.minor_fraction,
+                "depth": p.depth,
+                "plus_count": p.plus_count,
+                "minus_count": p.minus_count,
+            }
+            for p in b.noisy_positions
+        ],
     }
+    # OMITTED, never zero-filled, when the well has no mix-eligible position:
+    # 0.0 is the artifact reading (minor allele on one strand only), so a
+    # zero-filled key would report one-strand evidence that was never measured.
+    # The two counts travel with the share because they are its denominators and
+    # mean nothing without it. Same contract as the yield fields.
+    if b.max_minor_allele_strand_share is not None:
+        out["max_minor_allele_strand_share"] = b.max_minor_allele_strand_share
+        out["max_minor_allele_plus_count"] = b.max_minor_allele_plus_count
+        out["max_minor_allele_minus_count"] = b.max_minor_allele_minus_count
+    return out
 
 
 def _serialize_replicate(rr: Any) -> dict:
@@ -205,11 +230,16 @@ def _deserialize_verdict(d: dict) -> Any:
     """
     from kuma_core.mame.models import (
         BarcodeRecord,
+        NoisyPosition,
         TranslatedRecord,
         VerdictClass,
         VerdictRecord,
     )
 
+    # Absent for a payload persisted before the strand evidence was serialized.
+    # ``None`` is passed through as the record's own default, so a legacy payload
+    # restores as unknown rather than as a one-strand measurement.
+    strand_share = d.get("max_minor_allele_strand_share")
     barcode = BarcodeRecord(
         native_barcode=d["native_barcode"],
         custom_barcode=d["custom_barcode"],
@@ -236,6 +266,22 @@ def _deserialize_verdict(d: dict) -> Any:
         n_aligned_reads=d.get("n_aligned_reads"),
         n_mapq_failed=int(d.get("n_mapq_failed", 0)),
         n_span_failed=int(d.get("n_span_failed", 0)),
+        max_minor_allele_strand_share=(
+            None if strand_share is None else float(strand_share)
+        ),
+        max_minor_allele_plus_count=int(d.get("max_minor_allele_plus_count", 0)),
+        max_minor_allele_minus_count=int(d.get("max_minor_allele_minus_count", 0)),
+        n_eligible_positions=int(d.get("n_eligible_positions", 0)),
+        noisy_positions=tuple(
+            NoisyPosition(
+                position=int(p["position"]),
+                minor_fraction=float(p["minor_fraction"]),
+                depth=int(p["depth"]),
+                plus_count=int(p["plus_count"]),
+                minus_count=int(p["minus_count"]),
+            )
+            for p in d.get("noisy_positions", ())
+        ),
     )
     translated = TranslatedRecord(
         barcode=barcode,

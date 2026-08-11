@@ -13,6 +13,24 @@ export type VerdictClass =
 
 export type SidecarStatus = "disconnected" | "connecting" | "ready" | "error";
 
+/**
+ * One mix-eligible reference position and the strand split of its minor allele.
+ * Mirror of `NoisyPosition` in `kuma_core/mame/models.py`.
+ *
+ * `position` is 1-based, matching the `{REF}{pos}{QRY}` nucleotide notation the
+ * rest of MAME shows. `plus_count` and `minus_count` split the reads supporting
+ * the MINOR ALLELE by aligned strand, so they sum to that allele count and not
+ * to `depth`; `minor_fraction` is exactly `(plus_count + minus_count) / depth`,
+ * and the transported value is rounded for display.
+ */
+export interface NoisyPosition {
+  position: number;
+  minor_fraction: number;
+  depth: number;
+  plus_count: number;
+  minus_count: number;
+}
+
 export interface VerdictRecord {
   native_barcode: string;
   custom_barcode: string;
@@ -31,6 +49,45 @@ export interface VerdictRecord {
    * floor is unknown and must be shown as unknown, never as 0.
    */
   median_minor_allele_fraction?: number;
+  /**
+   * Weak-strand share, `min(plus, minus) / (plus + minus)`, of the minor allele
+   * at the position that produced `max_minor_allele_fraction`. A
+   * sequence-context sequencing artifact is read off one strand and lands near
+   * 0; a real per-clone mixture is read off both. The same both-strands
+   * principle is the acceptance rule in ampliCan (Labun et al. 2019,
+   * doi:10.1101/gr.244293.118).
+   *
+   * `undefined` means UNKNOWN: the well had no mix-eligible position, or the
+   * result predates the field. `0` is a real measurement saying the minor
+   * allele came off one strand only, which is the artifact reading, so the two
+   * must never be collapsed. Reported only; no verdict reads it.
+   */
+  max_minor_allele_strand_share?: number;
+  /**
+   * The two counts that share divides, present exactly when the share is. In a
+   * thin well where nearly every read happened to be one strand, a share of 0
+   * means no strand information was available rather than artifact, and only
+   * these tell the two apart.
+   */
+  max_minor_allele_plus_count?: number;
+  max_minor_allele_minus_count?: number;
+  /**
+   * How many mix-eligible positions this well had, i.e. the pool
+   * `noisy_positions` was sampled from. `noisy_positions.length <
+   * n_eligible_positions` says the sample is truncated, which on a real ONT
+   * amplicon it always is: both measured runs filled the ten-position budget in
+   * every well. Without it a recurrence tally across wells reads as a census.
+   *
+   * Optional only because results persisted before this field are replayed
+   * verbatim; a live sidecar always sends it, and 0 from a live run is a real
+   * answer (nothing eligible).
+   */
+  n_eligible_positions?: number;
+  /**
+   * The sample itself, ranked by minor fraction descending with ascending
+   * position as the tie-break. Empty when the well had no eligible position.
+   */
+  noisy_positions?: NoisyPosition[];
   n_low_depth_positions: number;
   consensus_n_fraction: number;
   /**

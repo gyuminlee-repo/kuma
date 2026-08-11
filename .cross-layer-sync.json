@@ -972,6 +972,29 @@
       "severity": "blocking"
     },
     {
+      "id": "mame-minor-allele-strand-evidence",
+      "files": [
+        "kuma_core/mame/ingest/consensus.py",
+        "kuma_core/mame/ingest/consensus_metadata.py",
+        "kuma_core/mame/ingest/fasta_parser.py",
+        "kuma_core/mame/models.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "src/types/mame/models.ts"
+      ],
+      "symbols": [
+        "NoisyPosition",
+        "max_minor_allele_strand_share",
+        "max_minor_allele_plus_count",
+        "max_minor_allele_minus_count",
+        "n_eligible_positions",
+        "noisy_positions",
+        "format_noisy_positions",
+        "parse_noisy_positions"
+      ],
+      "note": "Minor-allele strand evidence, reported only, no gate reads it: consensus.py measures the weak-strand share and the top-K mix-eligible positions -> consensus_metadata.py encodes them as FASTA header keys (max_minor_allele_strand_share / _plus / _minus emitted ONLY when a share exists, eligible_positions always, noisy_positions as pos:frac:depth:plus:minus records) -> fasta_parser.py decodes them -> BarcodeRecord mirrors them -> _serialize_verdict/_deserialize_verdict carry them -> TS VerdictRecord. Two things break when these are edited apart. (1) The share is Optional the whole way down because 0.0 is the ARTIFACT reading (minor allele on one strand only) and absence is unknown; any layer that defaults it to 0.0 or zero-fills the omitted key reports one-strand evidence that was never measured. (2) noisy_positions is a truncated top-K, and n_eligible_positions is the only signal saying so (n_mixed_positions counts only positions over the 0.20 gate, which is 0 on a healthy run); dropping the count on any layer turns a sample into an apparent census. The encoding lives once in format_noisy_positions/parse_noisy_positions, and excel_writer.py reuses the writer, so changing the separators or field order requires changing both halves together.",
+      "severity": "warning"
+    },
+    {
       "id": "mame-build-evolvepro-input",
       "files": [
         "kuma_core/mame/activity/build_evolvepro_input.py",
