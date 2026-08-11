@@ -2427,10 +2427,11 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les notifications suivent désormais le thème sombre, au lieu d'apparaître comme une carte blanche vive sur un écran sombre.",
-      "Elles continuent de le suivre, que le thème ait été changé depuis la barre de menu, les paramètres ou le système."
+      "La répartition des verdicts n'affiche plus de taux de récupération. Une exécution ne rapporte plus qu'un seul taux au lieu de deux qui comptaient différemment.",
+      "Le taux de réussite reste et compte exactement les clones PASS que la liste de sélection exporte réellement.",
+      "La barre ci-dessous répartit toujours les variants en réussis, confirmés avec un changement annexe et non confirmés."
     ],
-    "highlightsStamp": "0.16.20+c211fb70",
+    "highlightsStamp": "0.16.21+9192ec4b",
     "releases": {
       "0.16.20": [
         "Les notifications suivent désormais le thème sombre, au lieu d'apparaître comme une carte blanche vive sur un écran sombre.",
@@ -2599,6 +2600,11 @@
         "Les noms de variants sur la carte de la plaque ne sont plus coupés avant le caractère qui les distingue. R560E et R560Q s'affichent désormais tels qu'ils sont.",
         "Un nom trop long pour une ligne passe désormais à la ligne dans sa cellule au lieu d'être tronqué trop tôt.",
         "Nettoyage interne de valeurs de conception inutilisées et de tailles codées en dur, sans changement visible."
+      ],
+      "0.16.21": [
+        "La répartition des verdicts n'affiche plus de taux de récupération. Une exécution ne rapporte plus qu'un seul taux au lieu de deux qui comptaient différemment.",
+        "Le taux de réussite reste et compte exactement les clones PASS que la liste de sélection exporte réellement.",
+        "La barre ci-dessous répartit toujours les variants en réussis, confirmés avec un changement annexe et non confirmés."
       ]
     },
     "releaseStamps": {
@@ -2630,7 +2636,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.18": "2b708e6d"
+      "0.16.18": "2b708e6d",
+      "0.16.21": "9192ec4b"
     }
   },
   "primerDisplay": {

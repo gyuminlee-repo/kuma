@@ -2427,10 +2427,11 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Las notificaciones ahora siguen el tema oscuro, en lugar de aparecer como una tarjeta blanca brillante sobre una pantalla oscura.",
-      "Siguen haciéndolo tanto si el tema se cambió desde la barra de menú, desde la configuración o por el sistema."
+      "El desglose de veredictos ya no muestra una tasa de recuperación. Ahora una ejecución informa una tasa en lugar de dos que contaban de forma distinta.",
+      "La tasa de éxito se mantiene y cuenta exactamente los clones PASS que la lista de selección exporta.",
+      "La barra inferior sigue dividiendo las variantes en aprobadas, confirmadas con un cambio adicional y no confirmadas."
     ],
-    "highlightsStamp": "0.16.20+c211fb70",
+    "highlightsStamp": "0.16.21+9192ec4b",
     "releases": {
       "0.16.20": [
         "Las notificaciones ahora siguen el tema oscuro, en lugar de aparecer como una tarjeta blanca brillante sobre una pantalla oscura.",
@@ -2599,6 +2600,11 @@
         "Los nombres de variantes en el mapa de la placa ya no se cortan antes del carácter que los distingue. R560E y R560Q ahora se leen tal como son.",
         "Un nombre demasiado largo para una línea ahora salta de línea dentro de su celda en vez de cortarse antes de tiempo.",
         "Limpieza interna de valores de diseño sin uso y tamaños fijos en el código, sin cambios visibles."
+      ],
+      "0.16.21": [
+        "El desglose de veredictos ya no muestra una tasa de recuperación. Ahora una ejecución informa una tasa en lugar de dos que contaban de forma distinta.",
+        "La tasa de éxito se mantiene y cuenta exactamente los clones PASS que la lista de selección exporta.",
+        "La barra inferior sigue dividiendo las variantes en aprobadas, confirmadas con un cambio adicional y no confirmadas."
       ]
     },
     "releaseStamps": {
@@ -2630,7 +2636,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.18": "2b708e6d"
+      "0.16.18": "2b708e6d",
+      "0.16.21": "9192ec4b"
     }
   },
   "primerDisplay": {

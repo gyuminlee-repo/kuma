@@ -2427,10 +2427,11 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Benachrichtigungen folgen jetzt dem dunklen Design, statt als helle weiße Karte auf einem dunklen Bildschirm zu erscheinen.",
-      "Sie folgen weiterhin, egal ob das Design über die Menüleiste, die Einstellungen oder das System geändert wurde."
+      "Die Verdikt-Übersicht zeigt keine Wiederfindungsrate mehr. Ein Lauf meldet jetzt eine statt zwei unterschiedlich zählende Raten.",
+      "Die Erfolgsrate bleibt und zählt genau die PASS-Klone, die die Pickliste tatsächlich exportiert.",
+      "Der Balken darunter teilt Varianten weiterhin in bestanden, mit Nebenänderung bestätigt und nicht bestätigt."
     ],
-    "highlightsStamp": "0.16.20+c211fb70",
+    "highlightsStamp": "0.16.21+9192ec4b",
     "releases": {
       "0.16.20": [
         "Benachrichtigungen folgen jetzt dem dunklen Design, statt als helle weiße Karte auf einem dunklen Bildschirm zu erscheinen.",
@@ -2599,6 +2600,11 @@
         "Variantennamen auf der Plattenkarte werden nicht mehr vor dem Zeichen abgeschnitten, das sie unterscheidet. R560E und R560Q werden jetzt korrekt angezeigt.",
         "Ein Name, der nicht in eine Zeile passt, bricht jetzt innerhalb seiner Zelle um, statt vorzeitig abgeschnitten zu werden.",
         "Interne Bereinigung ungenutzter Designwerte und hartcodierter Größen, ohne sichtbare Änderung."
+      ],
+      "0.16.21": [
+        "Die Verdikt-Übersicht zeigt keine Wiederfindungsrate mehr. Ein Lauf meldet jetzt eine statt zwei unterschiedlich zählende Raten.",
+        "Die Erfolgsrate bleibt und zählt genau die PASS-Klone, die die Pickliste tatsächlich exportiert.",
+        "Der Balken darunter teilt Varianten weiterhin in bestanden, mit Nebenänderung bestätigt und nicht bestätigt."
       ]
     },
     "releaseStamps": {
@@ -2630,7 +2636,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.18": "2b708e6d"
+      "0.16.18": "2b708e6d",
+      "0.16.21": "9192ec4b"
     }
   },
   "primerDisplay": {
