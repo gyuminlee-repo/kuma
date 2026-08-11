@@ -29,25 +29,40 @@ _NT_INDEL_RE = re.compile(r"^(\d+)_INDEL$")
 # (inconclusive) instead of a confident contamination call. Mirrors the LOWDEPTH
 # read-count gate and applies only when both a read_count and min_read_count exist.
 #
-# THIS VALUE IS OURS, and no measurement of it is recorded. Oxford Nanopore
-# publishes no minor-allele threshold and no depth for calling a well mixed, so
-# there is no vendor figure to follow here the way ``min_read_count`` follows
-# ``minimum_mean_depth`` (see ``models.py``). Two numbers put 3x in context, and
-# they point in opposite directions:
+# THIS VALUE IS OURS. Oxford Nanopore publishes no minor-allele threshold and no
+# depth for calling a well mixed, so there is no vendor figure to follow here the
+# way ``min_read_count`` follows ``minimum_mean_depth`` (see ``models.py``).
 #
-#   * ONT ``min_coverage`` default is 20 reads for reporting a variant at all
-#     (wf-amplicon), so 90 is 4.5x stricter than that.
-#   * Moller et al. 2023 (doi:10.1128/spectrum.02728-22) placed the minor-allele
-#     detection threshold for amplicon nanopore data at 6.5% at 95% confidence,
-#     with each amplicon sequenced to >1000x. Against that, 90 is roughly a
-#     tenth of the depth used to establish a mixed-detection limit: at 90 reads
-#     a 6.5% minor allele is six reads, and per-base error is percent-scale.
+# What the floor has to defend is the 0.20 minor-allele gate in
+# ``ingest/consensus.py`` (``mix_minor_fraction_threshold``), not an arbitrary
+# notion of confidence. A position is called mixed only when the second base
+# reaches 20% of ACGT depth, so the question is at what depth run noise can fake
+# 20%. Taking the noisiest position measured on the 260729 ispS run (0.054, with
+# a per-position median of 0.003) as the per-read error rate and 1500 positions
+# per amplicon, the binomial tail gives the expected number of falsely mixed
+# positions per well:
 #
-# So the honest reading is that 90 is thin for a confident MIXED call rather
-# than conservative. Raising it would reclassify wells in every existing project
-# and move the result contract, which is a decision to take with subsampled real
-# runs (the way the indel gate was calibrated from bench_v2), not by editing a
-# constant. Left as is, and left documented, until that measurement exists.
+#     depth  30 -> 6 reads clear 20% -> 7.2 per well
+#     depth  45 -> 9 reads          -> 0.88
+#     depth  60 -> 12 reads         -> 0.11
+#     depth  90 -> 18 reads         -> 0.002
+#
+# 90 sits where that curve has already flattened, so it is adequate for a 20%
+# gate rather than thin. An earlier version of this comment called it thin by
+# comparing against Moller et al. 2023 (doi:10.1128/spectrum.02728-22), which
+# sequenced each amplicon to >1000x. That comparison does not transfer: the
+# >1000x there buys a 6.5% detection limit, and resolving 6.5% needs far more
+# depth than resolving 20%.
+#
+# Two caveats keep this an estimate rather than a calibration. The binomial
+# assumes independent per-read error, while ONT error is context-systematic
+# (homopolymers, strand bias), and a position with systematic 15% error is never
+# fixed by depth. And the noise figures come from one amplicon on one run. Both
+# push the open question onto the 0.20 gate, not onto this factor: a true
+# mixture between the noise floor and 20% is invisible whatever the depth. Moving
+# the gate is the change that would need subsampled real runs (the way the indel
+# gate was calibrated from bench_v2) plus Moller-scale depth, and it would
+# reclassify wells in every existing project and move the result contract.
 _MIXED_CONFIDENT_DEPTH_FACTOR = 3
 
 
