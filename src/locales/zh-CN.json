@@ -1011,7 +1011,8 @@
       "finding": {
         "median_depth_below_floor": "深度中位数 {{median}} 低于下限 {{floor}}。",
         "median_depth_below_recommended": "深度中位数 {{median}} 低于推荐的每个扩增子 {{recommended}} 条读段。",
-        "flow_cell_reused": "流通池 {{cell}} 在本项目中已运行过一次，结束时孔隙为 {{previousPores}}。"
+        "flow_cell_reused": "流通池 {{cell}} 在本项目中已运行过一次，结束时孔隙为 {{previousPores}}。",
+        "variants_at_reference_edge": "{{variants}} 位于参考序列末端 {{margin}} bp 以内，而本次运行直接使用了所提供的参考序列。比对器会在无法连接的错配处截断读段，因此这些位置的深度可能低于该孔报告的深度。改用包含引物结合区的参考序列可让它们更靠内。"
       }
     },
     "inspector": {

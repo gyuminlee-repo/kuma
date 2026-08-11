@@ -1011,7 +1011,8 @@
       "finding": {
         "median_depth_below_floor": "Profundidade mediana {{median}} abaixo do piso de {{floor}}.",
         "median_depth_below_recommended": "Profundidade mediana {{median}} abaixo das {{recommended}} leituras por amplicon recomendadas.",
-        "flow_cell_reused": "A celula {{cell}} ja levou uma execucao neste projeto, encerrada com {{previousPores}} poros."
+        "flow_cell_reused": "A celula {{cell}} ja levou uma execucao neste projeto, encerrada com {{previousPores}} poros.",
+        "variants_at_reference_edge": "{{variants}} ficam a menos de {{margin}} pb de uma extremidade da referencia, e esta execucao alinhou contra a referencia como foi fornecida. Um alinhador corta uma leitura em um desemparelhamento que nao consegue anexar, entao essas posicoes podem ver menos profundidade do que o poco relata. Uma referencia que inclua as regioes de ligacao dos primers as deixa mais para dentro."
       }
     },
     "inspector": {

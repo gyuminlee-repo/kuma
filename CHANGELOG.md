@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.16.21 (A mutation against the end of the reference is where the aligner stops reading)
+
+An aligner cannot attach a mismatch it never reaches. A read carrying a mutation a few bases from the end of the reference gets that end clipped, so the read can align, pass the coverage gate, and contribute nothing at the position the campaign was about. The well reports its depth and the mutated site was read by a fraction of it.
+
+This was measured on the 260729 ispS run, where R560 sits 4 bp from the end of a 1683 bp CDS. Against that bare CDS, 11.8% of the reads for the R560 wells reached the far end; against the amplicon, which carries the primer binding regions, 96.1% did. The fix has shipped for a while: MAME cuts the amplicon out between the primer sites. What was missing is what happens when that cut is skipped, which is exactly the bare-CDS case. The code called it expected and moved on.
+
+Run quality now names the expected mutations this applies to, above the verdict table, on any run that aligned against the reference as supplied. It is advisory and never blocking. Those wells scored on the run this came from, and the harm is depth at the site rather than a lost well, so it bites in combination with a shallow run or a coverage gate pushed toward 1.0.
+
+### Highlights
+
+- Mutations sitting against an end of the reference are named above the verdict table, on runs that used the supplied reference unmodified.
+- They are named rather than counted, because which variant it is decides what to do about it.
+- The note stays advisory: nothing is dropped, and no verdict changes.
+
+### Added
+
+- `variants_near_reference_edge` maps each expected mutation onto the reference through the CDS offset and reports the ones within 30 bp of either end. The margin comes from `trim_flank_bp` and is labelled self-set and provisional in the threshold block, like every other number there.
+- A `variants_at_reference_edge` finding on the run-quality block, carried in all ten locales.
+
+### Changed
+
+- The amplicon-extraction note for a bare-CDS reference no longer stops at calling the case expected. It states that a mutation near either end is read at less depth than its well reports, and points at the run-quality finding.
+
 ## v0.16.20 (Notifications stayed on the light theme after the rest of the app went dark)
 
 Every notification drew as a white card no matter which theme was in use. On a dark screen that is a bright rectangle in the corner, and it happened on every toast the app has ever shown. The notification library defaults to the light theme unless told otherwise, and it was never told.

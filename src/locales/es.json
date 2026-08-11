@@ -1011,7 +1011,8 @@
       "finding": {
         "median_depth_below_floor": "Profundidad mediana {{median}} por debajo del minimo de {{floor}}.",
         "median_depth_below_recommended": "Profundidad mediana {{median}} por debajo de las {{recommended}} lecturas por amplicon recomendadas.",
-        "flow_cell_reused": "La celda {{cell}} ya llevo una ejecucion en este proyecto, que termino con {{previousPores}} poros."
+        "flow_cell_reused": "La celda {{cell}} ya llevo una ejecucion en este proyecto, que termino con {{previousPores}} poros.",
+        "variants_at_reference_edge": "{{variants}} estan a menos de {{margin}} pb de un extremo de la referencia, y esta ejecucion alineo contra la referencia tal como se entrego. Un alineador corta una lectura en un desapareamiento que no puede unir, asi que esas posiciones pueden ver menos profundidad de la que informa el pocillo. Una referencia que incluya las regiones de union de los cebadores las deja mas hacia adentro."
       }
     },
     "inspector": {

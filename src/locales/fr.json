@@ -1011,7 +1011,8 @@
       "finding": {
         "median_depth_below_floor": "Profondeur mediane {{median}} sous le plancher de {{floor}}.",
         "median_depth_below_recommended": "Profondeur mediane {{median}} sous les {{recommended}} lectures par amplicon recommandees.",
-        "flow_cell_reused": "La cellule {{cell}} a deja porte une execution dans ce projet, terminee avec {{previousPores}} pores."
+        "flow_cell_reused": "La cellule {{cell}} a deja porte une execution dans ce projet, terminee avec {{previousPores}} pores.",
+        "variants_at_reference_edge": "{{variants}} se trouvent a moins de {{margin}} pb d'une extremite de la reference, et cette execution a aligne sur la reference telle que fournie. Un aligneur coupe une lecture a une mesappariement qu'il ne peut pas rattacher, donc ces positions peuvent voir moins de profondeur que le puits n'en rapporte. Une reference incluant les sites de fixation des amorces les place plus a l'interieur."
       }
     },
     "inspector": {

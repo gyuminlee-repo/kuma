@@ -25,10 +25,12 @@ from kuma_core.mame.ingest.flow_cell import (
     record_use,
 )
 from kuma_core.mame.run_quality import (
+    REFERENCE_EDGE_MARGIN_BP,
     SEVERITY_BLOCKING,
     SEVERITY_WARNING,
     assess_run_quality,
     serialise_run_quality,
+    variants_near_reference_edge,
 )
 
 MIN_READS = 30
@@ -258,3 +260,102 @@ def test_a_ledger_that_cannot_be_read_is_empty_not_an_error(tmp_path: Path) -> N
     (tmp_path / "mame_flowcells.json").write_text("not json", encoding="utf-8")
 
     assert read_ledger(tmp_path) == []
+
+
+# ---------------------------------------------------------------------------
+# Mutations against a reference end, on a reference used unmodified
+#
+# 260729 ispS. R560 is codon 560 of a 1683 bp CDS, so it sits 4 bp from the end.
+# An aligner clips a read at a terminal mismatch it cannot attach, so against a
+# bare CDS those positions are covered by a fraction of the reads the well
+# reports. This is advisory: the wells on that run still scored.
+# ---------------------------------------------------------------------------
+
+ISPS_CDS_LENGTH = 1683
+
+
+def test_a_mutation_against_the_reference_end_is_named() -> None:
+    assert variants_near_reference_edge(
+        {"R560D": 560, "R560N": 560}, 0, ISPS_CDS_LENGTH
+    ) == ["R560D", "R560N"]
+
+
+def test_a_mutation_in_the_middle_is_not_named() -> None:
+    """A223 sits 1000 bp from either end and no clipping reaches it."""
+    assert variants_near_reference_edge({"A223V": 223}, 0, ISPS_CDS_LENGTH) == []
+
+
+def test_the_first_codon_counts_as_an_edge_too() -> None:
+    """Both ends clip. The 5' end is not a special case, it is the same case."""
+    assert variants_near_reference_edge({"M1V": 1}, 0, ISPS_CDS_LENGTH) == ["M1V"]
+
+
+def test_a_flank_wider_than_the_margin_puts_the_mutation_inside() -> None:
+    """Geometry alone clears the last codon once the flank exceeds the margin.
+
+    Worth stating what this does NOT prove. The real 260729 amplicon is 1715 bp
+    around a 1683 bp CDS, so it carries about 16 bp of flank each side, which is
+    UNDER the 30 bp margin: that run's geometry does not clear this test. What
+    keeps the notice off an extracted run is the extraction flag, checked in
+    ``test_the_warning_needs_both_halves``, not the arithmetic here.
+    """
+    cds_start = REFERENCE_EDGE_MARGIN_BP + 1
+    amplicon_length = cds_start + ISPS_CDS_LENGTH + REFERENCE_EDGE_MARGIN_BP + 1
+
+    assert (
+        variants_near_reference_edge({"R560D": 560}, cds_start, amplicon_length) == []
+    )
+
+
+def test_the_warning_needs_both_halves() -> None:
+    """An extracted reference is silent even when a mutation is terminal.
+
+    Guards the half of the condition that is easy to drop: without it every run
+    on a CDS-length amplicon would carry the notice, and a notice that is always
+    on is furniture.
+    """
+    quality = assess_run_quality(
+        well_read_counts=[4777] * 96,
+        min_read_count=MIN_READS,
+        amplicon_extracted=True,
+        edge_variants=["R560D"],
+    )
+
+    assert quality.findings == []
+    assert quality.severity is None
+
+
+def test_an_unmodified_reference_with_edge_variants_warns() -> None:
+    quality = assess_run_quality(
+        well_read_counts=[4777] * 96,
+        min_read_count=MIN_READS,
+        amplicon_extracted=False,
+        edge_variants=["R560D", "R560N"],
+    )
+
+    assert _codes(quality) == {"variants_at_reference_edge"}
+    # A WARNING and never blocking: on the run this came from, these wells
+    # scored. Calling it blocking would throw away a usable plate.
+    assert quality.severity == SEVERITY_WARNING
+    finding = quality.findings[0]
+    assert finding["variants"] == ["R560D", "R560N"]
+    assert finding["margin_bp"] == REFERENCE_EDGE_MARGIN_BP
+
+
+def test_the_edge_margin_is_carried_with_its_source() -> None:
+    """Ours and provisional, stated as such, like every other threshold here."""
+    payload = serialise_run_quality(
+        assess_run_quality(
+            well_read_counts=[4777] * 96,
+            min_read_count=MIN_READS,
+            amplicon_extracted=False,
+            edge_variants=["R560D"],
+        )
+    )
+
+    assert payload["edge_variants"] == ["R560D"]
+    assert payload["edge_margin_bp"] == REFERENCE_EDGE_MARGIN_BP
+    edge = payload["thresholds"]["reference_edge"]
+    assert edge["kind"] == "self_set"
+    assert edge["provisional"] is True
+    assert edge["enforced"] is False

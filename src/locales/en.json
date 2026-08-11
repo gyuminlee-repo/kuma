@@ -1106,7 +1106,8 @@
       "finding": {
         "median_depth_below_floor": "Median depth {{median}} is under the floor of {{floor}}.",
         "median_depth_below_recommended": "Median depth {{median}} is under the recommended {{recommended}} reads per amplicon.",
-        "flow_cell_reused": "Flow cell {{cell}} already carried a run in this project, which ended with {{previousPores}} pores."
+        "flow_cell_reused": "Flow cell {{cell}} already carried a run in this project, which ended with {{previousPores}} pores.",
+        "variants_at_reference_edge": "{{variants}} sit within {{margin}} bp of an end of the reference, and this run aligned against the reference as supplied. An aligner clips a read at a mismatch it cannot attach, so those positions can see less depth than the well reports. A reference that includes the primer binding regions puts them further inside."
       }
     },
     "inspector": {
@@ -2463,11 +2464,17 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Notifications now follow the dark theme instead of appearing as a bright white card over a dark screen.",
-      "They keep following it whether the theme was changed from the menu bar, from settings, or by the system."
+      "Mutations sitting against an end of the reference are named above the verdict table, on runs that used the supplied reference unmodified.",
+      "They are named rather than counted, because which variant it is decides what to do about it.",
+      "The note stays advisory: nothing is dropped, and no verdict changes."
     ],
-    "highlightsStamp": "0.16.20+c211fb70",
+    "highlightsStamp": "0.16.21+357e800b",
     "releases": {
+      "0.16.21": [
+        "Mutations sitting against an end of the reference are named above the verdict table, on runs that used the supplied reference unmodified.",
+        "They are named rather than counted, because which variant it is decides what to do about it.",
+        "The note stays advisory: nothing is dropped, and no verdict changes."
+      ],
       "0.16.20": [
         "Notifications now follow the dark theme instead of appearing as a bright white card over a dark screen.",
         "They keep following it whether the theme was changed from the menu bar, from settings, or by the system."
@@ -2638,6 +2645,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
       "0.16.18": "2b708e6d",

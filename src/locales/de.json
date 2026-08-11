@@ -1011,7 +1011,8 @@
       "finding": {
         "median_depth_below_floor": "Mediane Tiefe {{median}} liegt unter der Untergrenze von {{floor}}.",
         "median_depth_below_recommended": "Mediane Tiefe {{median}} liegt unter den empfohlenen {{recommended}} Reads pro Amplikon.",
-        "flow_cell_reused": "Flusszelle {{cell}} trug in diesem Projekt bereits einen Lauf, der mit {{previousPores}} Poren endete."
+        "flow_cell_reused": "Flusszelle {{cell}} trug in diesem Projekt bereits einen Lauf, der mit {{previousPores}} Poren endete.",
+        "variants_at_reference_edge": "{{variants}} liegen innerhalb von {{margin}} bp vor einem Ende der Referenz, und dieser Lauf hat gegen die gelieferte Referenz aligniert. Ein Aligner schneidet einen Read an einer Fehlpaarung ab, die er nicht anfuegen kann, daher koennen diese Positionen weniger Tiefe sehen als das Well meldet. Eine Referenz mit den Primerbindungsstellen rueckt sie weiter nach innen."
       }
     },
     "inspector": {
