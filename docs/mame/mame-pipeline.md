@@ -110,6 +110,21 @@ consensus 단계가 메모리에 있는 read를 그대로 쓰기 때문에 이 �
 | `indel_event_positions` | indel-event 분율이 0.05를 넘은 position 수 | INDEL EVENT gate note |
 | `max_indel_event_fraction` | position별 최대 insertion/deletion 이벤트 분율 | 임계(기본 0.50) 초과 시 AMBIGUOUS (indel event). reference-pinned consensus가 숨기는 in-frame indel을 surface |
 
+### 임계값의 출처 (v0.16.19)
+
+판정 임계값이 어디서 왔는지가 코드 주석과 실행 산출물(`run_quality.thresholds`)에 함께 기록된다. 성격이 다른 값을 같은 말로 부르지 않기 위해서다.
+
+| 값 | 성격 | 출처 |
+|---|---|---|
+| `min_read_count` 기본 30 | 벤더 워크플로 **기본값** (규격 아님, 잠정) | ONT `wf-amplicon` 의 `minimum_mean_depth` 기본값 |
+| 권장 깊이 1,500 read/amplicon | 벤더 **권고문** | ONT `wf-amplicon` 본문의 >150X 권장 서술 |
+| 변이 보고 하한 20 | 벤더 기본값 (미적용, 참고용) | ONT `wf-amplicon` 의 `min_coverage` 기본값 |
+| MIXED 신뢰 하한 `min_read_count × 3` | **자체 기준** (실측 근거 미기록) | 벤더가 발행하지 않는 항목. 비교 대상으로 Moller et al. 2023, doi:10.1128/spectrum.02728-22 (amplicon 나노포어 소수 대립 검출 한계 6.5%, 커버리지 >1000×) |
+| 공극 800 | 벤더 **워런티** (임계값으로 미적용) | ONT flow cell warranty, MinION/GridION |
+| indel event gate 0.21 / 0.83 | **자체 실측** | `bench_v2 depth_50` 캘리브레이션 |
+
+주의할 점이 둘이다. `min_read_count = 30` 은 값이 ONT 기본값과 같지만 **규격이 아니고**, 그 워크플로는 haploid amplicon 대상이며 혼합 시료용이 아니라고 명시한다. 이 앱은 그 워크플로를 돌리지 않고 자체 consensus 와 자체 판정을 쓰므로, 다른 파이프라인의 기본값을 가져온 유추다. 그래서 잠정값으로 표시하며, 근거를 세우려면 실제 런을 subsample 해 판정이 깨지는 depth 를 재야 한다(indel gate 를 `bench_v2` 로 정한 방식). MIXED 하한 90 은 ONT 변이 보고 하한 20 보다는 엄격하지만 위 논문이 쓴 >1000× 보다는 얕다.
+
 MAME verdict table과 Excel export는 위 근거를 노출한다. 따라서 단순히
 `LOWDEPTH`/`AMBIGUOUS` 라벨만 보는 것이 아니라, 어떤 read-depth·base-quality·
 alignment drop 때문에 판정이 내려졌는지 추적할 수 있다.
