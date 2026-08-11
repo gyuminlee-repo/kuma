@@ -186,6 +186,13 @@ cross-layer 의존은 **`.cross-layer-sync.json` `groups[]`** 로 관리. 단일
 - Fixed-width panels (sidebar 340 px) should have `overflow-x-hidden` as a second layer of defense
 - Applies especially to dropdowns with long option text (polymerase, codon strategy)
 
+### UI, Tailwind theme colours
+- Colours in `tailwind.config.js` **must** carry an `<alpha-value>` placeholder: `oklch(var(--color-x) / <alpha-value>)`. A literal such as `oklch(0.6 0.12 250)` has nowhere to put a transparency, so Tailwind silently drops every opacity variant of it rather than warning. It shipped that way: 163 uses of `bg-info/10`, `border-warning/40` and friends produced no CSS at all, and the built sheet held 12 semantic selectors where 43 belong (v0.16.17).
+- A literal also bypasses the variables, so the dark-mode block in `src/index.css` never reaches anything that goes through a theme class. Only code reading `var(--color-*)` directly followed the dark values, which is why one panel looked different from the rest of the screen.
+- Variables consumed this way hold **bare components** (`0.6 0.12 250`, no `oklch()` wrapper) because the caller supplies the wrapper. Anything reading them directly wraps them itself.
+- Opacity steps outside the default scale do not exist until declared. `/8` produced no CSS on any colour, including `bg-primary/8`, until `theme.extend.opacity` opened it (33 uses).
+- **None of this is caught by tsc, vitest, the linters or `sync:check`.** jsdom does not compute style. Verify colour and style changes by building the sheet (`node node_modules/tailwindcss/lib/cli.js -i src/index.css -o /tmp/out.css`) and reading the selectors, or by measuring `getComputedStyle` in the running app. A missing library prop (a `theme` never passed to a provider) survives even the sheet comparison and needs the running app.
+
 ### MAME UX workflow
 - Raw MinKNOW run folders are the primary user-facing input for MAME. Sorted barcode directories are intermediate outputs or advanced/debug inputs; do not make users pre-sort manually unless explicitly requested.
 - MinKNOW run folder inventory MAME actually reads (everything else, including `pod5/`, `fast5/`, `bam_pass/`, `other_reports/`, `report_*.html`, is ignored):
