@@ -2428,11 +2428,11 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les mutations collees a une extremite de la reference sont nommees au-dessus du tableau, pour les executions qui ont utilise la reference telle quelle.",
-      "Elles sont nommees plutot que comptees, car savoir laquelle decide de ce qu'il faut faire.",
-      "La note reste indicative: rien n'est ecarte, et aucun verdict ne change."
+      "La répartition des verdicts n'affiche plus de taux de récupération. Une exécution ne rapporte plus qu'un seul taux au lieu de deux qui comptaient différemment.",
+      "Le taux de réussite reste et compte exactement les clones PASS que la liste de sélection exporte réellement.",
+      "La barre ci-dessous répartit toujours les variants en réussis, confirmés avec un changement annexe et non confirmés."
     ],
-    "highlightsStamp": "0.16.21+357e800b",
+    "highlightsStamp": "0.16.22+9192ec4b",
     "releases": {
       "0.16.21": [
         "Les mutations collees a une extremite de la reference sont nommees au-dessus du tableau, pour les executions qui ont utilise la reference telle quelle.",
@@ -2606,6 +2606,11 @@
         "Les noms de variants sur la carte de la plaque ne sont plus coupés avant le caractère qui les distingue. R560E et R560Q s'affichent désormais tels qu'ils sont.",
         "Un nom trop long pour une ligne passe désormais à la ligne dans sa cellule au lieu d'être tronqué trop tôt.",
         "Nettoyage interne de valeurs de conception inutilisées et de tailles codées en dur, sans changement visible."
+      ],
+      "0.16.22": [
+        "La répartition des verdicts n'affiche plus de taux de récupération. Une exécution ne rapporte plus qu'un seul taux au lieu de deux qui comptaient différemment.",
+        "Le taux de réussite reste et compte exactement les clones PASS que la liste de sélection exporte réellement.",
+        "La barre ci-dessous répartit toujours les variants en réussis, confirmés avec un changement annexe et non confirmés."
       ]
     },
     "releaseStamps": {
@@ -2638,7 +2643,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.18": "2b708e6d"
+      "0.16.18": "2b708e6d",
+      "0.16.22": "9192ec4b"
     }
   },
   "primerDisplay": {

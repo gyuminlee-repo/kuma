@@ -2428,11 +2428,11 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Mutacoes coladas a uma extremidade da referencia sao nomeadas acima da tabela de vereditos, em execucoes que usaram a referencia como foi entregue.",
-      "Elas sao nomeadas em vez de contadas, porque qual variante e decide o que fazer a respeito.",
-      "A nota fica como aviso: nada e descartado e nenhum veredito muda."
+      "A distribuição de veredictos não mostra mais uma taxa de recuperação. Uma execução agora informa uma taxa em vez de duas que contavam de forma diferente.",
+      "A taxa de sucesso permanece e conta exatamente os clones PASS que a lista de seleção realmente exporta.",
+      "A barra abaixo continua dividindo as variantes em aprovadas, confirmadas com uma mudança adicional e não confirmadas."
     ],
-    "highlightsStamp": "0.16.21+357e800b",
+    "highlightsStamp": "0.16.22+9192ec4b",
     "releases": {
       "0.16.21": [
         "Mutacoes coladas a uma extremidade da referencia sao nomeadas acima da tabela de vereditos, em execucoes que usaram a referencia como foi entregue.",
@@ -2606,6 +2606,11 @@
         "Os nomes de variantes no mapa da placa não são mais cortados antes do caractere que os diferencia. R560E e R560Q agora aparecem como são.",
         "Um nome muito longo para uma linha agora quebra dentro da sua célula em vez de terminar antes do tempo.",
         "Limpeza interna de valores de design não utilizados e tamanhos fixos no código, sem mudança visível."
+      ],
+      "0.16.22": [
+        "A distribuição de veredictos não mostra mais uma taxa de recuperação. Uma execução agora informa uma taxa em vez de duas que contavam de forma diferente.",
+        "A taxa de sucesso permanece e conta exatamente os clones PASS que a lista de seleção realmente exporta.",
+        "A barra abaixo continua dividindo as variantes em aprovadas, confirmadas com uma mudança adicional e não confirmadas."
       ]
     },
     "releaseStamps": {
@@ -2638,7 +2643,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.18": "2b708e6d"
+      "0.16.18": "2b708e6d",
+      "0.16.22": "9192ec4b"
     }
   },
   "primerDisplay": {
