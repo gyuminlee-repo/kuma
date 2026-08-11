@@ -1053,6 +1053,11 @@
         "nextStepExpected": "Expected mutations: confirm the expected-mutations file covers the variants used in this run.",
         "nextStepInputFolder": "Input folder: confirm the selected folder is the run for this experiment and that its barcode folders contain reads."
       },
+      "coverageLoss": {
+        "title": "Le filtre de couverture a écarté {{percent}}% des lectures alignées",
+        "body": "{{aligned}} lectures se sont alignées sur la référence et {{kept}} ont été conservées. Les puits dont toutes les lectures ont été écartées ne produisent aucun verdict, et apparaissent donc sur cet écran comme des puits jamais remplis.",
+        "hint": "Une certaine perte est attendue, car les lectures partielles et chimériques doivent être écartées. Une proportion élevée désigne la référence plutôt que les échantillons : un alignement qui s'arrête à un nombre constant de bases des extrémités de la référence, au niveau d'une amorce par exemple, échoue d'autant plus facilement à un seuil exprimé en pourcentage que l'amplicon est court. Le seuil de couverture se trouve dans les options avancées du panneau de paramètres."
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",

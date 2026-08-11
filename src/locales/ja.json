@@ -1053,6 +1053,11 @@
         "nextStepExpected": "Expected mutations: confirm the expected-mutations file covers the variants used in this run.",
         "nextStepInputFolder": "Input folder: confirm the selected folder is the run for this experiment and that its barcode folders contain reads."
       },
+      "coverageLoss": {
+        "title": "カバレッジゲートがアラインされた read の {{percent}}% を破棄しました",
+        "body": "{{aligned}} 件の read が参照にアラインされ、そのうち {{kept}} 件が残りました。read がすべて破棄された well は判定が出ないため、この画面では実験が行われなかった well と同じように見えます。",
+        "hint": "一定の損失は正常です。部分的なアラインメントや chimeric read は元々除外されます。ただし割合が大きい場合は、試料よりも参照を疑う余地があります。たとえば primer の位置のように参照の両端から一定の塩基数だけ届かずに終わるアラインメントは、amplicon が短いほど百分率の基準を満たしにくくなります。カバレッジの基準値はパラメータパネルの詳細オプションにあります。"
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",

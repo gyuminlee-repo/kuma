@@ -201,6 +201,11 @@
         "nextStepExpected": "Expected mutations: 이번 실행의 변이가 expected mutations 파일에 들어 있는지 확인하세요.",
         "nextStepInputFolder": "입력 폴더: 선택한 폴더가 이번 실험의 run이며 barcode 폴더에 read가 들어 있는지 확인하세요."
       },
+      "coverageLoss": {
+        "title": "커버리지 게이트가 정렬된 read의 {{percent}}%를 버렸습니다",
+        "body": "{{aligned}}개 read가 참조에 정렬되었고 그중 {{kept}}개가 남았습니다. read가 전부 버려진 well은 판정이 나오지 않아, 이 화면에서는 실험이 이루어지지 않은 well과 똑같아 보입니다.",
+        "hint": "일부 손실은 정상입니다. 부분 정렬과 chimeric read는 원래 걸러집니다. 다만 비율이 크면 시료보다 참조 쪽을 의심할 만합니다. 예를 들어 primer 자리처럼 참조 양 끝에서 일정한 염기 수만큼 못 미치고 끝나는 정렬은, amplicon이 짧을수록 백분율 기준을 넘기기 어렵습니다. 커버리지 기준값은 파라미터 패널의 고급 옵션에 있습니다."
+      },
       "durationDialog": {
         "title": "분석 완료",
         "description": "2.1 분석 실행이 끝났습니다.",

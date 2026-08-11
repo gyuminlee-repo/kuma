@@ -1053,6 +1053,11 @@
         "nextStepExpected": "Expected mutations: confirm the expected-mutations file covers the variants used in this run.",
         "nextStepInputFolder": "Input folder: confirm the selected folder is the run for this experiment and that its barcode folders contain reads."
       },
+      "coverageLoss": {
+        "title": "Der Coverage-Filter hat {{percent}}% der alignierten Reads verworfen",
+        "body": "{{aligned}} Reads wurden auf die Referenz aligniert, davon blieben {{kept}} erhalten. Wells, deren Reads vollständig verworfen wurden, liefern kein Verdict und sehen auf diesem Bildschirm genauso aus wie Wells, die nie befüllt wurden.",
+        "hint": "Ein gewisser Verlust ist zu erwarten, denn partielle und chimäre Reads sollen entfernt werden. Ein großer Anteil deutet eher auf die Referenz als auf die Proben hin: Ein Alignment, das an den Referenzenden um eine konstante Zahl von Basen zu kurz endet, etwa an einem Primer, verfehlt eine prozentuale Schwelle umso leichter, je kürzer das Amplicon ist. Der Coverage-Wert steht unter den erweiterten Optionen im Parameterpanel."
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",

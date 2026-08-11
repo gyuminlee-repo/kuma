@@ -1053,6 +1053,11 @@
         "nextStepExpected": "Expected mutations: confirm the expected-mutations file covers the variants used in this run.",
         "nextStepInputFolder": "Input folder: confirm the selected folder is the run for this experiment and that its barcode folders contain reads."
       },
+      "coverageLoss": {
+        "title": "覆盖度阈值丢弃了已比对 read 的 {{percent}}%",
+        "body": "{{aligned}} 条 read 比对到参考序列，其中保留了 {{kept}} 条。read 被全部丢弃的孔不会产生判定，因此在此界面上看起来与从未上样的孔完全相同。",
+        "hint": "一定程度的丢弃属于正常，部分比对和 chimeric read 本就应被剔除。但比例过大时，更值得怀疑的是参考序列而非样品。例如比对在参考序列两端固定差若干碱基处结束（如 primer 位置），amplicon 越短就越难达到百分比阈值。覆盖度要求位于参数面板的高级选项中。"
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",

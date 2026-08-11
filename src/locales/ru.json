@@ -1053,6 +1053,11 @@
         "nextStepExpected": "Expected mutations: confirm the expected-mutations file covers the variants used in this run.",
         "nextStepInputFolder": "Input folder: confirm the selected folder is the run for this experiment and that its barcode folders contain reads."
       },
+      "coverageLoss": {
+        "title": "Фильтр покрытия отбросил {{percent}}% выровненных ридов",
+        "body": "{{aligned}} ридов выровнялись на референс, из них сохранено {{kept}}. Лунки, все риды которых были отброшены, не дают вердикта и на этом экране выглядят так же, как лунки, которые никогда не заполнялись.",
+        "hint": "Некоторая потеря ожидаема: частичные и химерные риды и должны отбрасываться. Большая доля указывает скорее на референс, чем на образцы. Выравнивание, обрывающееся на постоянном числе оснований от концов референса, например на праймере, тем легче не проходит процентный порог, чем короче ампликон. Порог покрытия находится в расширенных настройках панели параметров."
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",

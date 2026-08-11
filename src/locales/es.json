@@ -1053,6 +1053,11 @@
         "nextStepExpected": "Expected mutations: confirm the expected-mutations file covers the variants used in this run.",
         "nextStepInputFolder": "Input folder: confirm the selected folder is the run for this experiment and that its barcode folders contain reads."
       },
+      "coverageLoss": {
+        "title": "El filtro de cobertura descartó el {{percent}}% de las lecturas alineadas",
+        "body": "{{aligned}} lecturas se alinearon con la referencia y se conservaron {{kept}}. Los pocillos cuyas lecturas se descartaron por completo no producen veredicto, así que en esta pantalla se ven igual que los pocillos que nunca se llenaron.",
+        "hint": "Cierta pérdida es esperable, ya que las lecturas parciales y quiméricas deben descartarse. Una proporción alta apunta a la referencia más que a las muestras: un alineamiento que termina un número constante de bases antes de los extremos de la referencia, por ejemplo en un primer, incumple un umbral porcentual con mayor facilidad cuanto más corto es el amplicón. El requisito de cobertura está en las opciones avanzadas del panel de parámetros."
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",
