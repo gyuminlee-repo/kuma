@@ -457,9 +457,6 @@
       "colZScore": "Z-score",
       "colSeverity": "Schweregrad",
       "severityAriaLabel": "Schweregrad: {{Schweregrad}}",
-      "recovery": "Wiederfindung",
-      "recoveryValue": "{{recovered}}/{{total}} ({{pct}} %)",
-      "recoveryNa": "n. v.",
       "detectedShort": "Erkannt",
       "classCountTableCaption": "Verdict-Klassenanzahl über alle Platten",
       "classCountColClass": "Klasse",
@@ -2431,11 +2428,11 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Mutationen direkt an einem Ende der Referenz werden ueber der Urteilstabelle benannt, bei Laeufen, welche die gelieferte Referenz unveraendert genutzt haben.",
-      "Sie werden benannt statt gezaehlt, denn welche Variante es ist entscheidet, was zu tun ist.",
-      "Der Hinweis bleibt beratend: nichts wird verworfen, und kein Urteil aendert sich."
+      "Die Verdikt-Übersicht zeigt keine Wiederfindungsrate mehr. Ein Lauf meldet jetzt eine statt zwei unterschiedlich zählende Raten.",
+      "Die Erfolgsrate bleibt und zählt genau die PASS-Klone, die die Pickliste tatsächlich exportiert.",
+      "Der Balken darunter teilt Varianten weiterhin in bestanden, mit Nebenänderung bestätigt und nicht bestätigt."
     ],
-    "highlightsStamp": "0.16.21+357e800b",
+    "highlightsStamp": "0.16.22+9192ec4b",
     "releases": {
       "0.16.21": [
         "Mutationen direkt an einem Ende der Referenz werden ueber der Urteilstabelle benannt, bei Laeufen, welche die gelieferte Referenz unveraendert genutzt haben.",
@@ -2609,6 +2606,11 @@
         "Variantennamen auf der Plattenkarte werden nicht mehr vor dem Zeichen abgeschnitten, das sie unterscheidet. R560E und R560Q werden jetzt korrekt angezeigt.",
         "Ein Name, der nicht in eine Zeile passt, bricht jetzt innerhalb seiner Zelle um, statt vorzeitig abgeschnitten zu werden.",
         "Interne Bereinigung ungenutzter Designwerte und hartcodierter Größen, ohne sichtbare Änderung."
+      ],
+      "0.16.22": [
+        "Die Verdikt-Übersicht zeigt keine Wiederfindungsrate mehr. Ein Lauf meldet jetzt eine statt zwei unterschiedlich zählende Raten.",
+        "Die Erfolgsrate bleibt und zählt genau die PASS-Klone, die die Pickliste tatsächlich exportiert.",
+        "Der Balken darunter teilt Varianten weiterhin in bestanden, mit Nebenänderung bestätigt und nicht bestätigt."
       ]
     },
     "releaseStamps": {
@@ -2641,7 +2643,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.18": "2b708e6d"
+      "0.16.18": "2b708e6d",
+      "0.16.22": "9192ec4b"
     }
   },
   "primerDisplay": {
