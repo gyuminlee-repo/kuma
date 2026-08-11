@@ -2461,12 +2461,17 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Mutations sitting against an end of the reference are named above the verdict table, on runs that used the supplied reference unmodified.",
-      "They are named rather than counted, because which variant it is decides what to do about it.",
-      "The note stays advisory: nothing is dropped, and no verdict changes."
+      "The verdict breakdown no longer shows a recovery rate, so the run reports one rate instead of two that counted differently.",
+      "The success rate stays, and it counts the PASS clones the pick list actually exports.",
+      "The bar below still splits variants into passed, reproduced with a side change, and not reproduced."
     ],
-    "highlightsStamp": "0.16.21+357e800b",
+    "highlightsStamp": "0.16.22+9192ec4b",
     "releases": {
+      "0.16.22": [
+        "The verdict breakdown no longer shows a recovery rate, so the run reports one rate instead of two that counted differently.",
+        "The success rate stays, and it counts the PASS clones the pick list actually exports.",
+        "The bar below still splits variants into passed, reproduced with a side change, and not reproduced."
+      ],
       "0.16.21": [
         "Mutations sitting against an end of the reference are named above the verdict table, on runs that used the supplied reference unmodified.",
         "They are named rather than counted, because which variant it is decides what to do about it.",
@@ -2642,6 +2647,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.22": "9192ec4b",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
