@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.16.21 (One rate for a run instead of two that disagreed)
+
+The verdict breakdown carried a recovery rate, and the summary row above it carried a success rate. Both counted designed variants over the same denominator. They differed in one respect: recovery counted a well whose designed mutation was reproduced alongside an extra change next to the target, and success did not.
+
+That made the higher number available to quote without anything on screen saying which one described the clones the run hands over. The pick list has only ever exported PASS wells, so the success rate was already the one that matched what leaves the run. The recovery rate is withdrawn from the panel and the success rate stays.
+
+Nothing is recalculated and no stored file changes. The per-variant bar under the old header still shows how many variants passed, how many were reproduced with a side change, and how many were not reproduced at all, so the split the recovery rate folded together is still readable.
+
+### Highlights
+
+- The verdict breakdown no longer shows a recovery rate, so the run reports one rate instead of two that counted differently.
+- The success rate stays, and it counts the PASS clones the pick list actually exports.
+- The bar below still splits variants into passed, reproduced with a side change, and not reproduced.
+
+### Changed
+
+- Run Health withdrew the recovery-rate header. Its value counted PASS and AMBIGUOUS over the designed set, while the success rate in the summary row counts PASS alone over the same set, leaving two headline percentages that differed only in whether a side change disqualified a well.
+- `recovery_rate` is still computed and still travels in the run health payload, so a project saved by an earlier build reloads unchanged and the per-variant bar keeps its denominator.
+- Three locale strings that only the withdrawn header used are gone from all ten locales.
+
 ## v0.16.20 (Notifications stayed on the light theme after the rest of the app went dark)
 
 Every notification drew as a white card no matter which theme was in use. On a dark screen that is a bright rectangle in the corner, and it happened on every toast the app has ever shown. The notification library defaults to the light theme unless told otherwise, and it was never told.

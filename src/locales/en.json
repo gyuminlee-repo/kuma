@@ -2460,11 +2460,17 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Notifications now follow the dark theme instead of appearing as a bright white card over a dark screen.",
-      "They keep following it whether the theme was changed from the menu bar, from settings, or by the system."
+      "The verdict breakdown no longer shows a recovery rate, so the run reports one rate instead of two that counted differently.",
+      "The success rate stays, and it counts the PASS clones the pick list actually exports.",
+      "The bar below still splits variants into passed, reproduced with a side change, and not reproduced."
     ],
-    "highlightsStamp": "0.16.20+c211fb70",
+    "highlightsStamp": "0.16.21+9192ec4b",
     "releases": {
+      "0.16.21": [
+        "The verdict breakdown no longer shows a recovery rate, so the run reports one rate instead of two that counted differently.",
+        "The success rate stays, and it counts the PASS clones the pick list actually exports.",
+        "The bar below still splits variants into passed, reproduced with a side change, and not reproduced."
+      ],
       "0.16.20": [
         "Notifications now follow the dark theme instead of appearing as a bright white card over a dark screen.",
         "They keep following it whether the theme was changed from the menu bar, from settings, or by the system."
@@ -2635,6 +2641,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.21": "9192ec4b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
       "0.16.18": "2b708e6d",
