@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.16.20 (Notifications stayed on the light theme after the rest of the app went dark)
+
+Every notification drew as a white card no matter which theme was in use. On a dark screen that is a bright rectangle in the corner, and it happened on every toast the app has ever shown. The notification library defaults to the light theme unless told otherwise, and it was never told.
+
+Reading the theme the usual way would not have fixed it, since the app changes theme through more than one path and each reader keeps its own copy. Notifications now watch what is actually applied to the page, so they follow the theme whichever way it was changed, including from the menu bar and from settings.
+
+The rest of this release is internal. The 11 pixel text size, used in twenty-one places for secondary labels and more than any other hard-coded size, is now a named step in the type scale alongside the three that already had names. Nothing on screen changes from that.
+
+### Highlights
+
+- Notifications now follow the dark theme instead of appearing as a bright white card over a dark screen.
+- They keep following it whether the theme was changed from the menu bar, from settings, or by the system.
+
+### Fixed
+
+- Toast notifications rendered with the light theme in every case, because no theme was passed to the notification library and its default is light.
+- Reading the theme from the existing hook would have missed changes made through other paths, so the applied theme is now observed directly.
+
+### Changed
+
+- The 11 pixel secondary text size became a named step in the type scale, replacing twenty-one hard-coded uses. No visual change.
+
 ## v0.16.19 (A run that never had the depth to be read still drew a full plate of verdicts)
 
 Three runs on two flow cells, from the same project. The first started with 1150 pores and returned 4777 reads per well. The second started with 343 and returned 515. The third re-used that second cell, started with 40, and returned four reads per well, and the app drew a ninety-six-well verdict table over it: nine passes, sixty-nine WRONG_AA, and nothing anywhere on the screen saying the plate never had the depth to be read. Every cell in that table was equally meaningless, which is not a defect any single cell can show.
