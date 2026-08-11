@@ -20,6 +20,8 @@ Typical MinKNOW layout::
 
 from __future__ import annotations
 
+import csv
+import io
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -100,6 +102,27 @@ def _parse_sample_sheet_kit(path: Path) -> str | None:
             parts = line.split(sep, 1)
             if len(parts) == 2 and parts[1].strip():
                 return parts[1].strip()
+
+    # Column style, what MinKNOW actually writes:
+    #   protocol_run_id,position_id,flow_cell_id,...,flow_cell_product_code,kit
+    #   e7145f8e-...,X4,FBF10847,...,FLO-MIN114,SQK-NBD114-24
+    # The header does not start with "kit", so the loop above never sees it.
+    try:
+        rows = list(csv.reader(io.StringIO(text.lstrip("﻿"))))
+    except csv.Error:
+        return None
+    header: list[str] | None = None
+    for row in rows:
+        if not any(cell.strip() for cell in row):
+            continue
+        if header is None:
+            header = [cell.strip().lower() for cell in row]
+            if "kit" not in header:
+                return None
+            continue
+        idx = header.index("kit")
+        if idx < len(row) and row[idx].strip():
+            return row[idx].strip()
     return None
 
 

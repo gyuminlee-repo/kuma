@@ -211,6 +211,67 @@ def test_discover_run_meta_kit_from_sample_sheet(tmp_path: Path) -> None:
     assert meta.kit == "SQK-RBK004"
 
 
+def test_discover_run_meta_kit_from_sample_sheet_column(tmp_path: Path) -> None:
+    """Kit as a CSV column, the layout MinKNOW actually writes.
+
+    Verbatim header and row shape taken from a GridION run
+    (``sample_sheet_FBF10847_20260212_2212_e7145f8e.csv``). The header starts
+    with ``protocol_run_id``, so a line-prefix scan for ``kit,`` never fires.
+    """
+    run_dir = tmp_path / "run_col"
+    run_dir.mkdir()
+    (run_dir / "final_summary_Z.txt").write_text(
+        "flow_cell_id=FBF10847\n", encoding="utf-8"
+    )
+    (run_dir / "sample_sheet_Z.csv").write_text(
+        "protocol_run_id,position_id,flow_cell_id,sample_id,experiment_id,"
+        "flow_cell_product_code,kit\n"
+        "e7145f8e-9fba-4941-bba8-3056a32c8469,X4,FBF10847,260212_KHM,"
+        "260212_KHM,FLO-MIN114,SQK-NBD114-24\n",
+        encoding="utf-8",
+    )
+    input_dir = run_dir / "fastq_pass"
+    input_dir.mkdir()
+    meta = discover_run_meta(input_dir)
+    assert meta is not None
+    assert meta.kit == "SQK-NBD114-24"
+
+
+def test_sample_sheet_kit_column_absent_returns_none(tmp_path: Path) -> None:
+    """A sheet without a kit column yields None rather than a stray cell."""
+    run_dir = tmp_path / "run_nokit"
+    run_dir.mkdir()
+    (run_dir / "final_summary_W.txt").write_text(
+        "flow_cell_id=AAA\n", encoding="utf-8"
+    )
+    (run_dir / "sample_sheet_W.csv").write_text(
+        "protocol_run_id,position_id,flow_cell_id\nabc,X1,AAA\n",
+        encoding="utf-8",
+    )
+    input_dir = run_dir / "fastq_pass"
+    input_dir.mkdir()
+    meta = discover_run_meta(input_dir)
+    assert meta is not None
+    assert meta.kit is None
+
+
+def test_sample_sheet_kit_column_blank_value_returns_none(tmp_path: Path) -> None:
+    """An empty kit cell is not a kit."""
+    run_dir = tmp_path / "run_blankkit"
+    run_dir.mkdir()
+    (run_dir / "final_summary_V.txt").write_text(
+        "flow_cell_id=BBB\n", encoding="utf-8"
+    )
+    (run_dir / "sample_sheet_V.csv").write_text(
+        "protocol_run_id,flow_cell_id,kit\nabc,BBB,\n", encoding="utf-8"
+    )
+    input_dir = run_dir / "fastq_pass"
+    input_dir.mkdir()
+    meta = discover_run_meta(input_dir)
+    assert meta is not None
+    assert meta.kit is None
+
+
 # ---------------------------------------------------------------------------
 # Excel __kuma_meta__ sheet tests
 # ---------------------------------------------------------------------------
