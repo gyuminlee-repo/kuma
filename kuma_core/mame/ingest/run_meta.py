@@ -153,39 +153,63 @@ def _collect_siblings(directory: Path) -> list[Path]:
         return []
 
 
+def _match(candidate: Path) -> Path | None:
+    """Resolve *candidate* and return it when it is a run directory."""
+    try:
+        resolved = candidate.resolve()
+        if resolved.is_symlink():
+            return None
+    except OSError:
+        return None
+    return resolved if _is_run_dir(resolved) else None
+
+
 def _search_run_dir(start: Path) -> Path | None:
     """Walk up at most ``_MAX_LEVELS_UP`` levels looking for a run dir.
 
-    Checks:
-    1. ``start`` itself
-    2. ``start.parent``  (and its siblings)
-    3. ``start.parent.parent``  (and its siblings)
+    Checks, in order:
 
-    Returns the first match or ``None``.
+    1. ``start`` itself
+    2. ``start.parent``, then the siblings of ``start``
+    3. ``start.parent.parent``, then the siblings of ``start.parent``
+
+    Direct ancestors win over siblings at the same level, because an ancestor
+    naming a run is unambiguous while a sibling is a guess about layout.
+
+    Sibling scanning exists for the layout where the run folder sits next to
+    the barcode-sorted output folder.  When **more than one** sibling at the
+    same level looks like a run directory that guess has no answer: the
+    previous code returned whichever ``iterdir`` yielded first, silently
+    stamping one run metadata onto another run results.  Returning ``None``
+    instead leaves the fields empty, which the callers already render as
+    "unknown" rather than as a wrong flow cell.
     """
-    candidates: list[Path] = [start]
+    hit = _match(start)
+    if hit is not None:
+        return hit
 
     current = start
     for _ in range(_MAX_LEVELS_UP):
         parent = current.parent
         if parent == current:
-            # Reached filesystem root — stop.
+            # Reached filesystem root, stop.
             break
-        candidates.append(parent)
-        # Also check siblings of *current* at this level (e.g. run folder is
-        # a sibling of the barcode-sorted output folder).
-        candidates.extend(_collect_siblings(current))
-        current = parent
 
-    for candidate in candidates:
-        try:
-            resolved = candidate.resolve()
-            if resolved.is_symlink():
-                continue
-        except OSError:
-            continue
-        if _is_run_dir(resolved):
-            return resolved
+        hit = _match(parent)
+        if hit is not None:
+            return hit
+
+        sibling_hits: list[Path] = []
+        for sibling in _collect_siblings(current):
+            hit = _match(sibling)
+            if hit is not None:
+                sibling_hits.append(hit)
+        if len(sibling_hits) == 1:
+            return sibling_hits[0]
+        if len(sibling_hits) > 1:
+            return None
+
+        current = parent
 
     return None
 

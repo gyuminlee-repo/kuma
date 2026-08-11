@@ -211,6 +211,55 @@ def test_discover_run_meta_kit_from_sample_sheet(tmp_path: Path) -> None:
     assert meta.kit == "SQK-RBK004"
 
 
+def test_discover_run_meta_single_sibling_run_dir(tmp_path: Path) -> None:
+    """One sibling run folder next to the sorted output is still resolved."""
+    base = tmp_path / "campaign"
+    (base / "runA").mkdir(parents=True)
+    (base / "sorted_output" / "barcode01").mkdir(parents=True)
+    (base / "runA" / "final_summary_A.txt").write_text(
+        "flow_cell_id=AAA\n", encoding="utf-8"
+    )
+    meta = discover_run_meta(base / "sorted_output")
+    assert meta is not None
+    assert meta.flow_cell_id == "AAA"
+
+
+def test_discover_run_meta_ambiguous_sibling_run_dirs(tmp_path: Path) -> None:
+    """Two sibling run folders is a guess with no answer, so nothing is claimed.
+
+    The previous code returned whichever ``iterdir`` yielded first, stamping one
+    run flow cell onto another run results with no warning.
+    """
+    base = tmp_path / "campaign"
+    (base / "runA").mkdir(parents=True)
+    (base / "runB").mkdir(parents=True)
+    (base / "sorted_output" / "barcode01").mkdir(parents=True)
+    (base / "runA" / "final_summary_A.txt").write_text(
+        "flow_cell_id=AAA\n", encoding="utf-8"
+    )
+    (base / "runB" / "final_summary_B.txt").write_text(
+        "flow_cell_id=BBB\n", encoding="utf-8"
+    )
+    assert discover_run_meta(base / "sorted_output") is None
+
+
+def test_discover_run_meta_ancestor_beats_ambiguous_siblings(tmp_path: Path) -> None:
+    """A run directory on the direct path is unambiguous and still wins."""
+    run_dir = tmp_path / "the_run"
+    (run_dir / "fastq_pass").mkdir(parents=True)
+    (run_dir / "final_summary_R.txt").write_text(
+        "flow_cell_id=REAL\n", encoding="utf-8"
+    )
+    for name in ("otherA", "otherB"):
+        (tmp_path / name).mkdir()
+        (tmp_path / name / f"final_summary_{name}.txt").write_text(
+            "flow_cell_id=NOPE\n", encoding="utf-8"
+        )
+    meta = discover_run_meta(run_dir / "fastq_pass")
+    assert meta is not None
+    assert meta.flow_cell_id == "REAL"
+
+
 def test_discover_run_meta_kit_from_sample_sheet_column(tmp_path: Path) -> None:
     """Kit as a CSV column, the layout MinKNOW actually writes.
 

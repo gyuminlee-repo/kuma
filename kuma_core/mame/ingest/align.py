@@ -478,6 +478,17 @@ def align_reads(
 
     Thin wrapper over :func:`align_reads_with_gate_counts` for callers that do
     not need the per-gate counts.
+
+    .. warning::
+       ``require_full_span`` defaults to ``True``, which is **not** what the
+       analyze pipeline uses.  ``combinatorial_demux`` passes ``False`` and
+       relies on ``coverage_fraction`` alone, because ``True`` demands an
+       alignment reaching reference base 0 through the final base.  Reads that
+       carry primer or adapter flanks, or that stop a few bases short of either
+       terminus, fail that outright however good the alignment is.  ``True``
+       suits already-trimmed reads on the sorted-barcode path
+       (``handlers/demux.py``); new callers reproducing analyze behaviour want
+       ``False``.
     """
     alignments, _counts = align_reads_with_gate_counts(
         reads,
