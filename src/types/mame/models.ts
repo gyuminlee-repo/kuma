@@ -402,6 +402,32 @@ export interface AnalyzeYield {
   total_reads?: number;
   passed_mapq?: number;
   passed_coverage?: number;
+  /**
+   * Why reads that cleared the alignment gates still failed to reach a well
+   * (`DemuxStats` in `kuma_core/mame/ingest/combinatorial_demux.py`). The seven
+   * partition the demux `ambiguous_dropped` total: every failed alignment hit
+   * is charged to exactly one of them, and a hit that failed on both barcode
+   * axes goes to `drop_both_axes` alone rather than being split.
+   *
+   * The short-window pair is keyed on the READ END, not on the F/R axis,
+   * because the window is cut from the read and it is the 3' end of the read
+   * that comes up short on real runs. Which axis that lands on is decided by
+   * strand, so an axis-keyed pair would split one phenomenon in two and each
+   * half would read as half a problem. That reasoning lives in full in the
+   * `DemuxStats` docstring.
+   *
+   * Optional for the same reason as every field above: absent means the run
+   * could not measure it (consensus-dir mode never demuxes, and a per-NB
+   * resume off a marker predating the breakdown omits all seven), never that
+   * the count was zero.
+   */
+  drop_short_window_read_5p?: number;
+  drop_short_window_read_3p?: number;
+  drop_no_barcode_f?: number;
+  drop_no_barcode_r?: number;
+  drop_ambiguous_tie_f?: number;
+  drop_ambiguous_tie_r?: number;
+  drop_both_axes?: number;
 }
 
 /**

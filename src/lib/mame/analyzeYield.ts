@@ -22,6 +22,21 @@
  */
 import type { AnalyzeYield } from "@/types/mame/models";
 
+/**
+ * The drop-reason counters, copied by the same present-or-absent rule as the
+ * five scalars above. Listed once here so adding one to `AnalyzeYield` and
+ * forgetting it here is a single edit to notice rather than a silent drop.
+ */
+const DROP_REASON_KEYS = [
+  "drop_short_window_read_5p",
+  "drop_short_window_read_3p",
+  "drop_no_barcode_f",
+  "drop_no_barcode_r",
+  "drop_ambiguous_tie_f",
+  "drop_ambiguous_tie_r",
+  "drop_both_axes",
+] as const satisfies readonly (keyof AnalyzeYield)[];
+
 export function pickAnalyzeYield(result: AnalyzeYield): AnalyzeYield | null {
   const { assigned_reads, wells_with_reads, total_reads, passed_mapq, passed_coverage } = result;
   const picked: AnalyzeYield = {};
@@ -30,5 +45,9 @@ export function pickAnalyzeYield(result: AnalyzeYield): AnalyzeYield | null {
   if (total_reads !== undefined) picked.total_reads = total_reads;
   if (passed_mapq !== undefined) picked.passed_mapq = passed_mapq;
   if (passed_coverage !== undefined) picked.passed_coverage = passed_coverage;
+  for (const key of DROP_REASON_KEYS) {
+    const value = result[key];
+    if (value !== undefined) picked[key] = value;
+  }
   return Object.keys(picked).length > 0 ? picked : null;
 }

@@ -2207,9 +2207,28 @@ def handle_analyze(params: dict) -> dict:
         # gates, so the gap between them is now meaningful). Each key is
         # emitted only when the demux actually produced it; consensus-dir mode
         # contributes nothing and the keys stay absent.
+        # Why the reads that cleared both gates still failed to reach a well.
+        # These seven partition the demux ``ambiguous_dropped`` total, which is
+        # itself NOT surfaced here: a single number that mixes four unrelated
+        # causes is what the operator could not act on, and the split is the
+        # part that names something to fix. The short-window pair is keyed on
+        # the READ END rather than the F/R axis on purpose; see the DemuxStats
+        # docstring for why an axis-keyed tally splits one 3'-end phenomenon
+        # across both axes according to strand and hides it.
+        #
+        # Same emission rule as the three gate counters: present only when the
+        # demux reported them. Consensus-dir mode contributes nothing, and a
+        # per-NB resume that reused a marker predating the breakdown omits all
+        # seven rather than reporting zeros it did not measure.
         **{
             key: int(demux_gate_counts[key])
-            for key in ("total_reads", "passed_mapq", "passed_coverage")
+            for key in (
+                "total_reads", "passed_mapq", "passed_coverage",
+                "drop_short_window_read_5p", "drop_short_window_read_3p",
+                "drop_no_barcode_f", "drop_no_barcode_r",
+                "drop_ambiguous_tie_f", "drop_ambiguous_tie_r",
+                "drop_both_axes",
+            )
             if key in demux_gate_counts
         },
         # Resume split for the demux this run drove: per-barcode units reseeded

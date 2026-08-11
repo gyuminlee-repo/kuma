@@ -291,7 +291,43 @@ def _reverse_complement(seq: str) -> str:
 
 @dataclass
 class DemuxStats:
-    """Summary counters from a single run_combinatorial_demux call."""
+    """Summary counters from a single run_combinatorial_demux call.
+
+    ``ambiguous_dropped`` is the total of every alignment hit that failed to
+    reach a well. Its name is now actively misleading: the genuinely ambiguous
+    case (a barcode whose best match tied with the second best) was measured at
+    roughly 0.5% of the loss on two real ONT runs, so the counter is named after
+    the one cause that hardly ever fires. It is kept under that name only
+    because it is a shipped key (the ``mame.run_combinatorial_demux`` RPC
+    result, the per-native-barcode stage markers, and the contamination
+    ``ambiguous_dropped`` rate signal all read it); renaming belongs in its own
+    commit with a migration for those readers.
+
+    The seven ``drop_*`` counters below say WHY, and they PARTITION
+    ``ambiguous_dropped``: every failing hit lands in exactly one of them, so
+
+        ambiguous_dropped == sum of the seven drop_* counters
+
+    holds for any run of this function. ``tests/mame/test_demux_drop_reasons.py``
+    pins that identity on all three matching paths.
+
+    Counting rule for a hit that failed on BOTH axes: it is charged once to
+    ``drop_both_axes`` and to nothing else. Splitting it across the two axes
+    would double-count against ``ambiguous_dropped``, and picking one axis by
+    priority would invent an attribution the data does not support.
+
+    Why the short-window counters are keyed on the READ END and not on the F/R
+    axis: the window a barcode is searched in is cut from the read, and on real
+    runs the 3' end of the READ is the one that comes up short (43.9% and 70.2%
+    of reads on two runs, against essentially 0% at the 5' end). Which AXIS that
+    surfaces on is decided by strand, because ``_extract_barcode_windows`` takes
+    the F window from the 5' end of a +1 read and from the 3' end of a -1 read,
+    and the R window from the opposite end. An axis-keyed tally therefore splits
+    one physical phenomenon across F and R in whatever ratio the run happened to
+    be stranded, and each half reads as half a problem with no cause attached.
+    Keyed on the read end, the same reads pile into one counter that names where
+    the sequence was missing.
+    """
 
     total_reads: int = 0
     passed_mapq: int = 0
@@ -301,6 +337,56 @@ class DemuxStats:
     chimera_splits: int = 0   # extra well assignments from multi-hit reads
     wells_with_reads: int = 0
     wells_with_min_reads: int = 0
+
+    # --- why a hit failed to reach a well (partitions ambiguous_dropped) ---
+    #: One axis failed and its search window was shorter than any barcode could
+    #: match into, at the 5' end of the read. No sequence to search, so "no
+    #: match" would be the wrong word for it.
+    drop_short_window_read_5p: int = 0
+    #: Same, at the 3' end of the read. This is the one real runs load up.
+    drop_short_window_read_3p: int = 0
+    #: One axis failed with a long-enough F window that held no F barcode
+    #: within the edit threshold.
+    drop_no_barcode_f: int = 0
+    #: Same on the R axis.
+    drop_no_barcode_r: int = 0
+    #: One axis failed because the best F barcode tied with the second best.
+    #: The rare case, and the one ``ambiguous_dropped`` is named after.
+    drop_ambiguous_tie_f: int = 0
+    #: Same on the R axis, and equally rare.
+    drop_ambiguous_tie_r: int = 0
+    #: Both axes failed. Deliberately unattributed: see the counting rule above.
+    drop_both_axes: int = 0
+
+
+#: The seven ``DemuxStats`` drop counters, in bucket order.  Single source of
+#: truth: :func:`_drop_bucket` returns an index into this tuple, the per-read
+#: matchers accumulate a parallel list of counts, and the stats sinks fold that
+#: list back onto the dataclass by name.  Order is load-bearing, so a counter
+#: added here must be added to the ``_DROP_*`` indices below at the same time.
+_DROP_REASON_FIELDS: tuple[str, ...] = (
+    "drop_short_window_read_5p",
+    "drop_short_window_read_3p",
+    "drop_no_barcode_f",
+    "drop_no_barcode_r",
+    "drop_ambiguous_tie_f",
+    "drop_ambiguous_tie_r",
+    "drop_both_axes",
+)
+_DROP_SHORT_5P = 0
+_DROP_SHORT_3P = 1
+_DROP_NO_BARCODE_F = 2
+_DROP_NO_BARCODE_R = 3
+_DROP_TIE_F = 4
+_DROP_TIE_R = 5
+_DROP_BOTH_AXES = 6
+
+
+def _add_drop_counts(stats: DemuxStats, counts: list[int]) -> None:
+    """Fold a per-chunk bucket tally onto *stats*, in ``_DROP_REASON_FIELDS`` order."""
+    for name, n in zip(_DROP_REASON_FIELDS, counts):
+        if n:
+            setattr(stats, name, getattr(stats, name) + n)
 
 
 @dataclass
@@ -910,6 +996,73 @@ def _best_infix_match(
     return dist
 
 
+# Why one axis lookup did not yield a barcode. Returned alongside the match by
+# :func:`_match_barcode_axis` so the caller can say which of three unrelated
+# situations it is looking at instead of reading them all as one ``None``.
+_AXIS_OK = 0
+_AXIS_SHORT_WINDOW = 1   # no sequence to search: window shorter than any barcode
+_AXIS_NO_MATCH = 2       # searchable window, nothing within the edit threshold
+_AXIS_TIE = 3            # best tied with second best
+
+
+def _match_barcode_axis(
+    barcodes: list[tuple[str, str]],
+    window: str,
+    edit_dist_ratio: float,
+    max_edits: list[int] | None = None,
+    min_window: int = 0,
+) -> tuple[tuple[int, int] | None, int]:
+    """:func:`_find_best_barcode`, plus the reason when it finds nothing.
+
+    Returns ``(match, reason)`` where *match* is exactly what
+    :func:`_find_best_barcode` returns and *reason* is one of the ``_AXIS_*``
+    codes.  Matching itself is unchanged; the reason is read off the same
+    ``best_idx`` / ``best_dist`` / ``second_best_dist`` the guard below already
+    computes, so no extra alignment work is done.
+
+    *min_window* is the shortest window that could still hold a barcode on this
+    axis (``min(len(bc) - max_edit)``, precomputed per axis in
+    :class:`_BarcodePlan`).  A window below it is reported as
+    ``_AXIS_SHORT_WINDOW`` without searching, and that is a strict refinement of
+    ``_AXIS_NO_MATCH`` rather than a reclassification: aligning a query of
+    length ``m`` into a target of length ``n < m`` costs at least ``m - n``
+    edits, so when ``n < m - max_edit`` for every barcode, every
+    :func:`_best_infix_match` below would have returned None anyway.  Left at
+    its default of 0 the check can never fire and the split is invisible, which
+    is what the :func:`_find_best_barcode` wrapper wants.
+    """
+    if len(window) < min_window:
+        return None, _AXIS_SHORT_WINDOW
+
+    best_dist: int = 10**6
+    best_idx: int = -1
+    second_best_dist: int = 10**6
+
+    for i, (_, prefix) in enumerate(barcodes):
+        if max_edits is None:
+            max_edit = int(len(prefix) * edit_dist_ratio)
+        else:
+            max_edit = max_edits[i]
+        dist = _best_infix_match(prefix, window, max_edit)
+        if dist is None:
+            continue
+        if dist < best_dist:
+            second_best_dist = best_dist
+            best_dist = dist
+            best_idx = i
+        elif dist < second_best_dist:
+            second_best_dist = dist
+
+    if best_idx < 0:
+        return None, _AXIS_NO_MATCH  # no match within threshold
+
+    # Ambiguity guard: if best == second_best, result is ambiguous -> drop
+    if best_dist == second_best_dist:
+        return None, _AXIS_TIE
+
+    return (best_idx + 1, best_dist), _AXIS_OK  # 1-based index
+
+
 def _find_best_barcode(
     barcodes: list[tuple[str, str]],
     window: str,
@@ -935,35 +1088,14 @@ def _find_best_barcode(
     Returns
     -------
     (1-based index, edit_distance) if exactly one barcode is unambiguously
-    best, None otherwise (no match or ambiguous).
+    best, None otherwise (no match or ambiguous).  Callers that need to tell
+    those two apart, and to tell either from "the window was too short to hold a
+    barcode at all", should call :func:`_match_barcode_axis` directly.
     """
-    best_dist: int = 10**6
-    best_idx: int = -1
-    second_best_dist: int = 10**6
-
-    for i, (_, prefix) in enumerate(barcodes):
-        if max_edits is None:
-            max_edit = int(len(prefix) * edit_dist_ratio)
-        else:
-            max_edit = max_edits[i]
-        dist = _best_infix_match(prefix, window, max_edit)
-        if dist is None:
-            continue
-        if dist < best_dist:
-            second_best_dist = best_dist
-            best_dist = dist
-            best_idx = i
-        elif dist < second_best_dist:
-            second_best_dist = dist
-
-    if best_idx < 0:
-        return None  # no match within threshold
-
-    # Ambiguity guard: if best == second_best, result is ambiguous -> drop
-    if best_dist == second_best_dist:
-        return None
-
-    return best_idx + 1, best_dist  # 1-based index
+    match, _reason = _match_barcode_axis(
+        barcodes, window, edit_dist_ratio, max_edits
+    )
+    return match
 
 
 @dataclass(frozen=True)
@@ -982,6 +1114,13 @@ class _BarcodePlan:
     r_max_edits: list[int]
     f_max_edits: list[int]
     edit_dist_ratio: float
+    #: Shortest window that could still hold SOME barcode on this axis, i.e.
+    #: ``min(len(bc) - max_edit)`` over the axis, floored at 1 so an empty
+    #: window always counts as short.  Reporting only: a window below it is
+    #: attributed to ``drop_short_window_read_*`` instead of to "no match", and
+    #: the two are the same set of reads (see :func:`_match_barcode_axis`).
+    min_f_window: int = 1
+    min_r_window: int = 1
 
 
 def _build_barcode_plan(
@@ -997,14 +1136,40 @@ def _build_barcode_plan(
     thresholds computed from the RC'd prefixes equal the original ones.
     """
     r_rc = [(name, _reverse_complement(prefix)) for name, prefix in r_barcodes]
+    r_max_edits = [int(len(p) * edit_dist_ratio) for _, p in r_rc]
+    f_max_edits = [int(len(p) * edit_dist_ratio) for _, p in f_barcodes]
     return _BarcodePlan(
         r_barcodes_rc=r_rc,
         f_barcodes=f_barcodes,
         max_r_len=max((len(p) for _, p in r_barcodes), default=10),
         max_f_len=max((len(p) for _, p in f_barcodes), default=11),
-        r_max_edits=[int(len(p) * edit_dist_ratio) for _, p in r_rc],
-        f_max_edits=[int(len(p) * edit_dist_ratio) for _, p in f_barcodes],
+        r_max_edits=r_max_edits,
+        f_max_edits=f_max_edits,
         edit_dist_ratio=edit_dist_ratio,
+        min_f_window=_min_matchable_window(f_barcodes, f_max_edits),
+        min_r_window=_min_matchable_window(r_rc, r_max_edits),
+    )
+
+
+def _min_matchable_window(
+    barcodes: list[tuple[str, str]], max_edits: list[int]
+) -> int:
+    """Shortest window in which SOME barcode of this axis could still match.
+
+    A window of length ``n`` cannot hold a barcode of length ``m`` for fewer
+    than ``m - n`` edits, so a window below ``min(m - max_edit)`` is one where
+    every :func:`_best_infix_match` on this axis must fail on length alone.
+    Floored at 1 so an empty window is always short, and defaulted to 1 for an
+    empty axis so the check degrades to "only an empty window is short" rather
+    than to a threshold that swallows everything.
+    """
+    return max(
+        1,
+        min(
+            (len(prefix) - max_edit
+             for (_, prefix), max_edit in zip(barcodes, max_edits)),
+            default=1,
+        ),
     )
 
 
@@ -1080,6 +1245,7 @@ def _demux_read_anchored(
     window_bp: int = 30,
     edit_dist_ratio: float = 0.20,
     plan: _BarcodePlan | None = None,
+    drop_reason_out: list[int] | None = None,
 ) -> tuple[int, int] | None:
     """Demux one read using alignment anchors and edlib fuzzy matching.
 
@@ -1104,6 +1270,12 @@ def _demux_read_anchored(
         callers hoist the read-invariant barcode preprocessing out of their
         per-read loop.  Omitted (or built for a different *edit_dist_ratio*) it
         is rebuilt here, so existing call sites keep working unchanged.
+    drop_reason_out:
+        Optional sink for WHY this hit failed.  On failure exactly one index
+        into :data:`_DROP_REASON_FIELDS` is appended; on success nothing is.
+        Reporting only, and an out-parameter rather than a second return value
+        so the ``tuple | None`` contract above (which callers test for
+        truthiness) is untouched and callers that do not care pay nothing.
 
     Returns
     -------
@@ -1141,19 +1313,53 @@ def _demux_read_anchored(
         plan.max_r_len,
     )
 
-    f_result = _find_best_barcode(
-        plan.f_barcodes, f_window, edit_dist_ratio, plan.f_max_edits
+    f_result, f_reason = _match_barcode_axis(
+        plan.f_barcodes, f_window, edit_dist_ratio, plan.f_max_edits,
+        plan.min_f_window,
     )
-    r_result = _find_best_barcode(
-        plan.r_barcodes_rc, r_window, edit_dist_ratio, plan.r_max_edits
+    r_result, r_reason = _match_barcode_axis(
+        plan.r_barcodes_rc, r_window, edit_dist_ratio, plan.r_max_edits,
+        plan.min_r_window,
     )
 
     if r_result is None or f_result is None:
+        if drop_reason_out is not None:
+            drop_reason_out.append(
+                _drop_bucket(f_reason, r_reason, strand)
+            )
         return None
 
     r_idx, _ = r_result
     f_idx, _ = f_result
     return r_idx, f_idx
+
+
+def _drop_bucket(f_reason: int, r_reason: int, strand: int) -> int:
+    """Which single :data:`_DROP_REASON_FIELDS` bucket this failed hit belongs to.
+
+    Exactly one bucket per failed hit, so the seven counters partition
+    ``DemuxStats.ambiguous_dropped`` (see that docstring for the rule and for
+    why the short-window buckets are keyed on the read end rather than on the
+    F/R axis).
+
+    The read end for an axis is fixed by the strand, because
+    :func:`_extract_barcode_windows` cuts the F window from before the
+    alignment start on a +1 read (the 5' end of the read) and from after the
+    alignment end on a -1 read (the 3' end), with the R window on the opposite
+    end in both cases.  So the SAME physical situation, a read whose 3' end was
+    cut back past the barcode, is an R-axis failure on one strand and an F-axis
+    failure on the other.  Tallying it by axis would split it in two and hide
+    it; tallying it by read end puts it in one place.
+    """
+    if f_reason != _AXIS_OK and r_reason != _AXIS_OK:
+        return _DROP_BOTH_AXES
+    if f_reason != _AXIS_OK:
+        if f_reason == _AXIS_SHORT_WINDOW:
+            return _DROP_SHORT_5P if strand != -1 else _DROP_SHORT_3P
+        return _DROP_NO_BARCODE_F if f_reason == _AXIS_NO_MATCH else _DROP_TIE_F
+    if r_reason == _AXIS_SHORT_WINDOW:
+        return _DROP_SHORT_3P if strand != -1 else _DROP_SHORT_5P
+    return _DROP_NO_BARCODE_R if r_reason == _AXIS_NO_MATCH else _DROP_TIE_R
 
 
 def _demux_read(
@@ -1732,7 +1938,7 @@ def _match_reads_chunk(
     window_bp: int,
     edit_dist_ratio: float,
     trim_flank_bp: int,
-) -> list[tuple[int, list[tuple[int, int, str]], int, int, int]]:
+) -> list[tuple[int, list[tuple[int, int, str]], int, int, int, list[int]]]:
     """Pure per-read barcode matching for the chimera (multi-hit) path.
 
     Module-level (no closure) so it is picklable for a ``spawn`` ProcessPool.
@@ -1752,14 +1958,18 @@ def _match_reads_chunk(
     Returns
     -------
     One tuple per input read: ``(read_index, appends, assigned_delta,
-    chimera_delta, ambiguous_delta)`` where ``appends`` is the ordered list of
-    ``(r_idx, f_idx, slice_seq)`` to push onto ``per_well[(r_idx, f_idx)]`` and
-    the three deltas are this read's contribution to the matching stats.
+    chimera_delta, ambiguous_delta, drop_deltas)`` where ``appends`` is the
+    ordered list of ``(r_idx, f_idx, slice_seq)`` to push onto
+    ``per_well[(r_idx, f_idx)]``, the three deltas are this read's contribution
+    to the matching stats, and ``drop_deltas`` splits ``ambiguous_delta`` across
+    :data:`_DROP_REASON_FIELDS` (same order, and it sums to ``ambiguous_delta``).
     """
     # Read-invariant barcode preprocessing, hoisted out of the per-read loop.
     plan = _build_barcode_plan(r_barcodes, f_barcodes, edit_dist_ratio)
 
-    out: list[tuple[int, list[tuple[int, int, str]], int, int, int]] = []
+    out: list[
+        tuple[int, list[tuple[int, int, str]], int, int, int, list[int]]
+    ] = []
     for read_index, _read_id, read_seq, hits in chunk:
         assigned_wells_this_read: set[tuple[int, int]] = set()
         is_first_hit = True
@@ -1767,6 +1977,8 @@ def _match_reads_chunk(
         assigned_delta = 0
         chimera_delta = 0
         ambiguous_delta = 0
+        drop_deltas = [0] * len(_DROP_REASON_FIELDS)
+        drop_sink: list[int] = []
 
         for hit in hits:
             slice_start = max(0, hit.q_st - trim_flank_bp)
@@ -1776,6 +1988,7 @@ def _match_reads_chunk(
             q_st_in_slice = hit.q_st - slice_start
             q_en_in_slice = hit.q_en - slice_start
 
+            drop_sink.clear()
             result = _demux_read_anchored(
                 read_seq=slice_seq,
                 q_st=q_st_in_slice,
@@ -1786,12 +1999,19 @@ def _match_reads_chunk(
                 window_bp=window_bp,
                 edit_dist_ratio=edit_dist_ratio,
                 plan=plan,
+                drop_reason_out=drop_sink,
             )
             if result is None:
                 # A hit that resolved to no well is not an assignment, so it
                 # must not consume the read's "first assignment" slot; doing so
                 # mis-filed the next successful hit as a chimera split.
                 ambiguous_delta += 1
+                # The real matcher always names a reason, so this branch keeps
+                # ``sum(drop_deltas) == ambiguous_delta``. It is guarded only
+                # for a test double that stubs _demux_read_anchored and cannot
+                # fill the sink; there is no reason to attribute then.
+                if drop_sink:
+                    drop_deltas[drop_sink[0]] += 1
                 continue
 
             r_idx, f_idx = result
@@ -1812,7 +2032,8 @@ def _match_reads_chunk(
             is_first_hit = False
 
         out.append(
-            (read_index, appends, assigned_delta, chimera_delta, ambiguous_delta)
+            (read_index, appends, assigned_delta, chimera_delta,
+             ambiguous_delta, drop_deltas)
         )
     return out
 
@@ -2185,7 +2406,8 @@ def _run_combinatorial_demux_body(
                 ]
 
                 collected: list[
-                    tuple[int, list[tuple[int, int, str]], int, int, int]
+                    tuple[int, list[tuple[int, int, str]], int, int, int,
+                          list[int]]
                 ] = []
                 ctx = _demux_mp_context()
                 with ProcessPoolExecutor(
@@ -2220,6 +2442,7 @@ def _run_combinatorial_demux_body(
                     assigned_d,
                     chimera_d,
                     ambiguous_d,
+                    drop_d,
                 ) in collected:
                     read_id = id_by_index[read_index]
                     for r_idx, f_idx, slice_seq in appends:
@@ -2227,6 +2450,7 @@ def _run_combinatorial_demux_body(
                     stats.assigned_reads += assigned_d
                     stats.chimera_splits += chimera_d
                     stats.ambiguous_dropped += ambiguous_d
+                    _add_drop_counts(stats, drop_d)
 
                 TIMER.add(
                     "barcode_match_parallel_wall", time.perf_counter() - _t_pool
@@ -2234,6 +2458,9 @@ def _run_combinatorial_demux_body(
             else:
                 _t_match = time.perf_counter()
                 _demux_step = max(1, _demux_total // 100)  # ~1% interval throttle
+                # Reused across hits: the matcher clears and refills it, so one
+                # list serves the whole loop instead of one per hit.
+                drop_sink: list[int] = []
                 for _demux_i, (read_id, read_seq, hits) in enumerate(multi_results):
                     if progress_callback is not None and _demux_i % _demux_step == 0:
                         progress_callback(_demux_i, _demux_total, "demux")
@@ -2254,6 +2481,7 @@ def _run_combinatorial_demux_body(
                         q_st_in_slice = hit.q_st - slice_start
                         q_en_in_slice = hit.q_en - slice_start
 
+                        drop_sink.clear()
                         result = _demux_read_anchored(
                             read_seq=slice_seq,
                             q_st=q_st_in_slice,
@@ -2264,6 +2492,7 @@ def _run_combinatorial_demux_body(
                             window_bp=window_bp,
                             edit_dist_ratio=edit_dist_ratio,
                             plan=barcode_plan,
+                            drop_reason_out=drop_sink,
                         )
                         if result is None:
                             # A hit that resolved to no well is not an
@@ -2271,6 +2500,9 @@ def _run_combinatorial_demux_body(
                             # "first assignment" slot; doing so mis-filed the
                             # next successful hit as a chimera split.
                             stats.ambiguous_dropped += 1
+                            if drop_sink:
+                                name = _DROP_REASON_FIELDS[drop_sink[0]]
+                                setattr(stats, name, getattr(stats, name) + 1)
                             continue
 
                         r_idx, f_idx = result
@@ -2322,8 +2554,10 @@ def _run_combinatorial_demux_body(
             )
 
             _t_match = time.perf_counter()
+            legacy_drop_sink: list[int] = []
             for aln in alignments:
                 trimmed = _trim_read(aln, aln.read_seq, trim_flank_bp)
+                legacy_drop_sink.clear()
                 result = _demux_read_anchored(
                     read_seq=aln.read_seq,
                     q_st=aln.q_st,
@@ -2334,9 +2568,13 @@ def _run_combinatorial_demux_body(
                     window_bp=window_bp,
                     edit_dist_ratio=edit_dist_ratio,
                     plan=barcode_plan,
+                    drop_reason_out=legacy_drop_sink,
                 )
                 if result is None:
                     stats.ambiguous_dropped += 1
+                    if legacy_drop_sink:
+                        name = _DROP_REASON_FIELDS[legacy_drop_sink[0]]
+                        setattr(stats, name, getattr(stats, name) + 1)
                     continue
                 r_idx, f_idx = result
                 per_well.append((r_idx, f_idx), aln.read_id, trimmed)
@@ -2345,10 +2583,19 @@ def _run_combinatorial_demux_body(
 
     log.info("Total reads: %d", stats.total_reads)
     log.info(
-        "Barcode-assigned reads: %d  chimera splits: %d  (ambiguous/no-match dropped: %d)",
+        "Barcode-assigned reads: %d  chimera splits: %d  (dropped: %d)",
         stats.assigned_reads,
         stats.chimera_splits,
         stats.ambiguous_dropped,
+    )
+    # The line above used to read "ambiguous/no-match dropped", which named two
+    # causes for a number that mixes four. The breakdown is now its own line,
+    # and it partitions that same total.
+    log.info(
+        "Dropped by reason: %s",
+        "  ".join(
+            f"{name}={getattr(stats, name)}" for name in _DROP_REASON_FIELDS
+        ),
     )
 
     # Well inventory. The read slices themselves stay in the bounded buffer and
@@ -2863,6 +3110,18 @@ _DEMUX_NB_STAT_KEYS: tuple[str, ...] = (
     "wells_with_min_reads",
 )
 
+# The drop-reason breakdown, carried per native barcode ALONGSIDE the 8 above
+# rather than folded into them, because these keys are conditional and those
+# are not. A completion marker written before the breakdown existed records
+# ``ambiguous_dropped`` and nothing to split it with; seeding the seven at 0
+# there would state that no read hit any of the seven causes, which is a
+# different claim from "this marker cannot say", and it would break the
+# partition invariant (``ambiguous_dropped`` non-zero against a zero sum). So
+# a resume that reuses any such marker omits all seven from ``merged_stats``,
+# and the omission travels the whole chain to the analyze response, where an
+# absent key already means "this run could not measure it".
+_DEMUX_NB_DROP_KEYS: tuple[str, ...] = _DROP_REASON_FIELDS
+
 
 class _DirectProgressSink:
     """In-process stand-in for a multiprocessing progress queue (serial demux).
@@ -2939,7 +3198,10 @@ def _demux_one_nb(payload: dict) -> dict:
     s = result.stats
     return {"nb_name": payload["nb_name"], "sort_barcode_name": payload["sort_barcode_name"],
             "output_dir": str(Path(payload["output_dir"]).resolve()),
-            "stats": {k: getattr(s, k) for k in _DEMUX_NB_STAT_KEYS},
+            "stats": {
+                k: getattr(s, k)
+                for k in _DEMUX_NB_STAT_KEYS + _DEMUX_NB_DROP_KEYS
+            },
             "per_well_read_counts": dict(result.per_well_read_counts)}
 
 
@@ -2958,6 +3220,14 @@ def _summary_from_marker(sort_barcode_name: str, nb_out: Path, marker: dict) -> 
     """
     marker_stats = marker.get("stats") or {}
     stats = {k: int(marker_stats.get(k, 0)) for k in _DEMUX_NB_STAT_KEYS}
+    # All seven or none: a marker that carries a partial breakdown cannot be
+    # trusted to partition its own ambiguous_dropped, and a partial one is
+    # worse than none because it looks complete. Absent here means the merge
+    # below drops the breakdown for the whole run.
+    if all(k in marker_stats for k in _DEMUX_NB_DROP_KEYS):
+        stats.update(
+            {k: int(marker_stats[k]) for k in _DEMUX_NB_DROP_KEYS}
+        )
     per_well = {
         str(w): int(c) for w, c in (marker.get("per_well_counts") or {}).items()
     }
@@ -3189,7 +3459,11 @@ def run_combinatorial_demux_per_nb(
                 str(w): int(c) for w, c in summ["per_well_read_counts"].items()
             },
             consensus=True,
-            stats={k: int(summ["stats"][k]) for k in _DEMUX_NB_STAT_KEYS},
+            stats={
+                k: int(summ["stats"][k])
+                for k in _DEMUX_NB_STAT_KEYS + _DEMUX_NB_DROP_KEYS
+                if k in summ["stats"]
+            },
             reference=_marker_reference,
             params=_marker_params,
         )
@@ -3337,6 +3611,20 @@ def run_combinatorial_demux_per_nb(
     merged = {
         k: sum(s["stats"][k] for s in ordered_summaries) for k in _DEMUX_NB_STAT_KEYS
     }
+    # The drop-reason breakdown is summed only when EVERY contributing unit
+    # supplied it. One unit resumed from a marker written before the breakdown
+    # existed makes the run unable to say how its drops split, and a sum over
+    # the units that can answer would understate the total while still looking
+    # like a partition of it. Omitted, the whole chain reads "not measured".
+    if all(
+        k in s["stats"] for s in ordered_summaries for k in _DEMUX_NB_DROP_KEYS
+    ):
+        merged.update(
+            {
+                k: sum(s["stats"][k] for s in ordered_summaries)
+                for k in _DEMUX_NB_DROP_KEYS
+            }
+        )
 
     TIMER.end(
         "demux_per_nb", _perf_base, workers=P, barcodes=n, parallel=P > 1,

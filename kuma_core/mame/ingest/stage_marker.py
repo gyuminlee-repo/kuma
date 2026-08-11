@@ -61,6 +61,15 @@ wells_with_min_reads).  Recorded so a fully-resumed run can reseed the merged
 aggregate of those counters from already-complete units.  Producers that do not
 need it (``demux_and_filter``) simply omit it; older markers that predate the
 key omit it too (treated as "not seedable", never a crash).
+
+Since the drop-reason breakdown was added, ``stats`` also carries the seven
+``drop_*`` counters that partition ``ambiguous_dropped``
+(drop_short_window_read_5p, drop_short_window_read_3p, drop_no_barcode_f,
+drop_no_barcode_r, drop_ambiguous_tie_f, drop_ambiguous_tie_r,
+drop_both_axes).  Markers written before that omit them, and the consumer
+treats the whole breakdown as unavailable for a run that reuses any such
+marker rather than seeding zeros that would read as "measured, and no read hit
+this cause" (see ``_summary_from_marker`` in combinatorial_demux).
 """
 
 from __future__ import annotations
