@@ -49,6 +49,14 @@ from kuma_core.mame.ingest.align import (
     _CIGAR_X,
 )
 
+# The record this module measures and every downstream layer transports, defined
+# once in the transfer-object module so the two can never drift apart. Imported
+# rather than declared here (and re-exported below) because ``models`` is a
+# runtime leaf: a layer that only carries the record must not pull in numpy and
+# the aligner along with it. Downward dependency, no cycle: ``models`` imports
+# only ``dataclasses``, ``enum`` and ``pathlib``.
+from kuma_core.mame.models import NoisyPosition
+
 # Complement table (single-char, uppercase).
 _COMP = str.maketrans("ACGTacgtNn", "TGCAtgcaNn")
 
@@ -207,49 +215,6 @@ def _expand_ranges(starts: np.ndarray, counts: np.ndarray) -> np.ndarray:
 # them; a noisier well is truncated and ``n_mixed_positions`` still states the
 # untruncated count of positions over the mixed gate.
 _NOISY_POSITION_REPORT_BUDGET = 10
-
-
-@dataclass(frozen=True)
-class NoisyPosition:
-    """One mix-eligible reference position and its minor-allele strand split.
-
-    ``position`` is **1-based**, matching ``extract_nt_changes`` in
-    ``kuma_core/mame/translate/aa_translator.py`` (see its ``{REF}{pos}{QRY}``
-    notation), which is this repository's user-facing nucleotide coordinate
-    convention. The pileup itself is 0-based, so the conversion happens exactly
-    once, here, at the reporting boundary.
-
-    ``depth`` is the A/C/G/T depth ``minor_fraction`` was measured against, the
-    same denominator ``max_minor_allele_fraction`` uses.  ``plus_count`` and
-    ``minus_count`` split the reads supporting the MINOR ALLELE (not the depth)
-    by the strand each read aligned on, so they sum to the minor-allele count
-    and not to ``depth``.
-
-    Nothing here classifies anything. These are measurements the caller may
-    weigh; no verdict reads them.
-    """
-
-    position: int
-    minor_fraction: float
-    depth: int
-    plus_count: int
-    minus_count: int
-
-    @property
-    def weak_strand_share(self) -> float | None:
-        """``min(plus, minus) / (plus + minus)``, or ``None`` with no support.
-
-        A minor allele seen on one strand only scores 0.0, one seen equally on
-        both scores 0.5.  ``None`` is returned only when the minor allele has no
-        supporting reads at all, which the mix-eligibility rule makes
-        unreachable (>= 2 distinct A/C/G/T bases means the second-largest column
-        is nonzero); it exists so the "unknown" case can never be read as the
-        very different "one strand only" case.
-        """
-        total = self.plus_count + self.minus_count
-        if total <= 0:
-            return None
-        return min(self.plus_count, self.minus_count) / total
 
 
 @dataclass(frozen=True)
@@ -485,11 +450,21 @@ def call_consensus_with_metrics(
         # noisiest; the median answers "what does an ordinary position look
         # like here", which is the number the mixed-position threshold has to
         # clear to mean anything. Measured on the 260729 ispS run: the
-        # per-position median across 94 wells is 0.003 and the worst
-        # context-driven position is 0.054, so the 0.20 gate sits about four
-        # times above the noisiest position observed and roughly sixty times
-        # above a typical one. Reporting it makes that margin auditable per run
-        # instead of assumed.
+        # per-position median across 94 wells is 0.003 and the noisiest position
+        # reaches 0.054, so the 0.20 gate sits about four times above the worst
+        # position observed and roughly sixty times above a typical one.
+        # Reporting it makes that margin auditable per run instead of assumed.
+        #
+        # That worst position is NOT established as a sequencing artifact. It is
+        # position 1248, and it is strand-BALANCED: weak-strand share 0.391 and
+        # 0.381 across the 260212 and 260729 runs, on different flow cells five
+        # months apart. The other recurrent positions on the same amplicon (375,
+        # 556, 847, 1196, 1252, 1498, 1507, 1511) sit at 0.00 to 0.03, which is
+        # what a basecaller context error looks like when it is read off one
+        # strand. What 1248 is instead is unconfirmed; only the artifact reading
+        # is argued against. Minor fraction alone does not separate the two
+        # (1196 is 0.050 at weak-strand 0.000, 1248 is 0.055 at 0.391), which is
+        # why the strand split is reported alongside it.
         median_minor_allele_fraction = float(np.median(minor_fraction))
         n_mixed_positions = int(
             (minor_fraction >= mix_minor_fraction_threshold).sum()

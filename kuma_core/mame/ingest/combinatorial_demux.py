@@ -2842,18 +2842,11 @@ def _compute_well_consensus(
         consensus_call.max_minor_allele_plus_count,
         consensus_call.max_minor_allele_minus_count,
         consensus_call.n_eligible_positions,
-        # Re-boxed into the transfer-object mirror so the header writer keeps no
-        # dependency on the consensus engine's own dataclass.
-        tuple(
-            NoisyPosition(
-                position=p.position,
-                minor_fraction=p.minor_fraction,
-                depth=p.depth,
-                plus_count=p.plus_count,
-                minus_count=p.minus_count,
-            )
-            for p in consensus_call.noisy_positions
-        ),
+        # Handed straight over. ``NoisyPosition`` is declared once, in
+        # ``models``, so the engine already produced the transfer-object type;
+        # this used to re-box the five numbers into a same-named mirror class.
+        # The records are frozen, so sharing them is safe.
+        consensus_call.noisy_positions,
     )
 
 
