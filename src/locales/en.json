@@ -2474,14 +2474,19 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A well now reports which strand its minor reads came from, so a second genotype can be told from an artifact of the amplicon.",
-      "Each well also lists its ten noisiest positions and how many positions were eligible, so the ten reads as a sample and not a census.",
-      "A run now tallies which reference positions come back well after well, with the strand evidence at each one.",
-      "Reads that never reached a well are counted by cause, instead of all being reported as barcode ambiguity.",
-      "Nothing here grades a run. No well changes verdict, and no threshold moved."
+      "A declared run is now scored over the variants in its declared wells, so one that recovered all of them reads as 100 percent, not 9 percent.",
+      "The wells count beside it counts wells again, not one entry per replicate plate, so a ten-well declaration no longer reads as 57 wells.",
+      "A run saved by an earlier build is asked to re-analyse, because its rate was divided by the whole variant list.",
+      "Declaring only the WT control leaves no designed mutants to score, so the rate shows a dash rather than a percentage."
     ],
-    "highlightsStamp": "0.16.24+1307c327",
+    "highlightsStamp": "0.16.25+8204368c",
     "releases": {
+      "0.16.25": [
+        "A declared run is now scored over the variants in its declared wells, so one that recovered all of them reads as 100 percent, not 9 percent.",
+        "The wells count beside it counts wells again, not one entry per replicate plate, so a ten-well declaration no longer reads as 57 wells.",
+        "A run saved by an earlier build is asked to re-analyse, because its rate was divided by the whole variant list.",
+        "Declaring only the WT control leaves no designed mutants to score, so the rate shows a dash rather than a percentage."
+      ],
       "0.16.24": [
         "A well now reports which strand its minor reads came from, so a second genotype can be told from an artifact of the amplicon.",
         "Each well also lists its ten noisiest positions and how many positions were eligible, so the ten reads as a sample and not a census.",
@@ -2674,6 +2679,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.25": "8204368c",
       "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
       "0.16.22": "9192ec4b",

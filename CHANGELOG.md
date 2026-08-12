@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.16.25 (A success rate that divided a declared run by the whole plate)
+
+The plate picker lets an operator declare that only some wells are on this plate, and it promises the samples left out will not be judged. The verdict table kept that promise. The number printed above it did not. Its numerator came from the narrowed verdicts and its denominator came from the whole expected-mutations sheet, so a run declaring ten wells with all nine of its designed variants passing was shown 9 percent (9 of 95). The comment in the analyze handler already records this exact defect being fixed for the table below it, and it never reached the number above it.
+
+The denominator is now narrowed by the same statement about the plate that narrows the verdicts. The narrowing happens in the analyze handler against `well_layout`, which is the mapping the scored wells are built from, so the two sides of the division move together instead of drifting apart. What leaves the denominator is wells the operator declared absent, and that is not the same thing as wells that failed: a designed mutant that produced no reads still counts against the run, so a run cannot lift its own rate by losing wells.
+
+The wells count in the same summary row carried the smaller half of the same mistake. It counted verdict records, and the export writes one record per well per replicate plate, so a ten-well declaration read as 57 wells and the plate estimate divided that by 96. Both now count distinct wells, which is what the label and the division already claimed.
+
+A run saved by an earlier build carries the old sheet-wide total and would keep rendering 9 percent while a fresh analysis of the same data renders 100 percent. That is a material change in what the headline number means, so the result contract gains revision 7 and those runs are asked to re-analyse.
+
+One consequence is worth stating before it is mistaken for a fault. A declaration naming only the WT control leaves zero designed mutants, so there is nothing to divide by and the rate tile renders a dash instead of a percentage. That is the correct reading of a run that declared no variants.
+
+### Highlights
+
+- A declared run is now scored over the variants in its declared wells, so one that recovered all of them reads as 100 percent, not 9 percent.
+- The wells count beside it counts wells again, not one entry per replicate plate, so a ten-well declaration no longer reads as 57 wells.
+- A run saved by an earlier build is asked to re-analyse, because its rate was divided by the whole variant list.
+- Declaring only the WT control leaves no designed mutants to score, so the rate shows a dash rather than a percentage.
+
+### Fixed
+
+- The success rate denominator is narrowed by a declared well selection. `declared_designed_ids` in the analyze handler keeps only the designed mutants whose wells the operator declared present, applied only when a selection exists, so a run with no selection takes the path it took before. It is keyed off `well_layout` because that is the same mapping `_scored_wells` is built from, which is what stops the numerator and the denominator being two separate statements about the plate. `kuma_core/mame/detected.py` is untouched and keeps its rule that a designed mutant with zero reads stays in the denominator.
+- The wells hint and the plate estimate in the summary row count distinct wells. `handlers/export.py` builds one row per verdict record, one per well per replicate plate, and both numbers are statements about wells: the hint says how many wells and the estimate divides by a 96-well plate. An entry whose barcode maps to no well is not counted.
+
+### Added
+
+- Revision 7 of the result contract, `declaredWellsDenominator`, with its notice copy in all ten locales. A run saved before this build carries a denominator taken from the whole expected-mutations sheet, so the same data scored by this build reports a different headline rate, which is what the re-run notice exists to say.
+
+### Changed
+
+- A declaration that names only the WT control now leaves zero designed mutants, and the rate tile renders a dash rather than a percentage. Nothing is being hidden: a rate over no designed variants has no value to report, and a dash says so where a zero would claim a measurement.
+
 ## v0.16.24 (A minor allele fraction that said nothing about which strand it was read on)
 
 A well reporting a minor allele at 5% is reporting one number for two different situations. A second genotype in the well is read on both strands, because both strands of both molecules go through the pore. A sequence context the basecaller reads wrong is read off whichever strand carries that context, so the minor reads pile up on one side. The fraction is identical in the two cases, and nothing recorded what separates them: a minus-strand read is reverse complemented into reference orientation before it votes, and the strand it arrived on was dropped at that point.
