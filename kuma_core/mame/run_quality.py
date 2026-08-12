@@ -454,11 +454,16 @@ def summarise_position_recurrence(
     wells_truncated = 0
 
     for well in wells:
-        positions = tuple(getattr(well, "noisy_positions", ()) or ())
+        # Read straight off the protocol rather than through ``getattr`` with a
+        # default. ``_WellLike`` already states both members, so a defaulted
+        # lookup only hid the contract from the type checker (it inferred an
+        # empty-tuple branch and called the rest of the loop unreachable) while
+        # buying no safety a caller outside the protocol would deserve.
+        positions = tuple(well.noisy_positions)
         if not positions:
             continue
         wells_contributing += 1
-        if len(positions) < int(getattr(well, "n_eligible_positions", 0) or 0):
+        if len(positions) < well.n_eligible_positions:
             wells_truncated += 1
         for entry in positions:
             counts_by_position[int(entry.position)] += 1
