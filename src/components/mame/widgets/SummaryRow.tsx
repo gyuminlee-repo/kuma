@@ -86,7 +86,25 @@ export function SummaryRow() {
     return { total, pass, successRate };
   }, [verdicts, runHealth]);
 
-  const plateEstimate = wells.length > 0 ? Math.ceil(wells.length / 96) : null;
+  // `wells` is one entry per VerdictRecord (see handlers/export.py), i.e. one
+  // per well PER REPLICATE PLATE, so a well sequenced on three native barcodes
+  // is three entries. Both numbers built here are statements about distinct
+  // wells: the hint says "N wells" and the estimate divides by a 96-well plate.
+  // Counting entries made a ten-well declaration read as "웰 57개" on 96-well
+  // hardware. This is the same over-count the success rate above already refuses
+  // to make, made one line later.
+  //
+  // An entry whose barcode maps to no well carries `""` and is not a well to
+  // count.
+  const distinctWells = useMemo(() => {
+    const ids = new Set<string>();
+    for (const w of wells) {
+      if (w.well) ids.add(w.well);
+    }
+    return ids.size;
+  }, [wells]);
+
+  const plateEstimate = distinctWells > 0 ? Math.ceil(distinctWells / 96) : null;
 
   const statusLabel = isAnalyzing
     ? t("mame.summaryRow.statusAnalyzing", { progress: analyzeProgress })
@@ -125,7 +143,7 @@ export function SummaryRow() {
         label={t("mame.summaryRow.plates")}
         value={plateEstimate ?? "—"}
         valueClassName="text-primary"
-        hint={plateEstimate ? t("mame.summaryRow.platesHint", { count: wells.length }) : t("mame.summaryRow.platesEmpty")}
+        hint={plateEstimate ? t("mame.summaryRow.platesHint", { count: distinctWells }) : t("mame.summaryRow.platesEmpty")}
       />
       <SummaryTile
         className={getReadinessTone(readiness)}

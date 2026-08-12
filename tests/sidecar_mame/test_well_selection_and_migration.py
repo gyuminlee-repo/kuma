@@ -25,7 +25,12 @@ from pathlib import Path
 import openpyxl
 import pytest
 
-from sidecar_mame.handlers.analyze import handle_analyze, handle_validate_inputs
+from sidecar_mame.handlers.analyze import (
+    declared_designed_ids,
+    handle_analyze,
+    handle_validate_inputs,
+)
+from sidecar_mame.handlers.health import handle_get_run_health
 
 # Reference ATG GGG TTT -> M G F. Well A01 ("1_1") observes G2A.
 _REFERENCE_NT = "ATGGGGTTT"
@@ -360,3 +365,81 @@ def test_a_project_with_no_sample_map_says_nothing_about_one(tmp_path: Path) -> 
     result = handle_validate_inputs(_validate_params(tmp_path, expected))
 
     assert "legacy_sample_map" not in result
+
+
+# ---------------------------------------------------------------------------
+# The denominator a declared selection is divided by
+# ---------------------------------------------------------------------------
+#
+# The declaration already narrowed which wells get scored. Until this was fixed
+# it did not narrow what that score is divided by, so the headline rate was one
+# population over another: an operator declaring ten of ninety-six wells, all
+# nine variants passing, was shown 9 %.
+
+
+def test_declaring_wells_narrows_the_denominator_to_what_is_on_the_plate(
+    tmp_path: Path,
+) -> None:
+    """The regression: the denominator is the declared plate, not the sheet."""
+    expected = _variant_list(
+        tmp_path / "variants.xlsx", ["G2A", "F3W", "T5A", "M1L"]
+    )
+    params = _params(tmp_path, expected, with_reads=True)
+    # The draft places G2A/F3W/T5A/M1L in A1..D1 and WT in E1. Declaring A1 and
+    # C1 says the campaign filled two wells; F3W and M1L are not on this plate.
+    params["selected_wells"] = ["A1", "C1"]
+
+    result = handle_analyze(params)
+
+    assert result["designed_mutant_ids"] == ["G2A", "T5A"]
+    assert handle_get_run_health({})["total_mutants"] == 2
+
+
+def test_a_declaration_that_names_only_the_control_leaves_no_designed_mutants(
+    tmp_path: Path,
+) -> None:
+    """WT is not a designed mutant, so it cannot prop the denominator up."""
+    expected = _variant_list(tmp_path / "variants.xlsx", ["G2A", "F3W"])
+    params = _params(tmp_path, expected)
+    # C1 holds WT for a two-variant list (A1 G2A, B1 F3W, C1 WT).
+    params["selected_wells"] = ["C1"]
+
+    result = handle_analyze(params)
+
+    assert result["designed_mutant_ids"] == []
+    assert handle_get_run_health({})["total_mutants"] == 0
+
+
+def test_declaring_nothing_still_counts_a_designed_mutant_that_produced_nothing(
+    tmp_path: Path,
+) -> None:
+    """The rule the fix must not break.
+
+    Only wells the operator declared ABSENT leave the denominator. A designed
+    mutant that is on the plate and produced no reads stays in it, which is what
+    stops a run from lifting its own rate by losing wells. Reads arrive for A1
+    and C1 only, so F3W and M1L are counted while contributing nothing.
+    """
+    expected = _variant_list(
+        tmp_path / "variants.xlsx", ["G2A", "F3W", "T5A", "M1L"]
+    )
+
+    result = handle_analyze(_params(tmp_path, expected, with_reads=True))
+
+    assert result["layout_provenance"]["selected_wells"] is None
+    assert result["designed_mutant_ids"] == ["F3W", "G2A", "M1L", "T5A"]
+    health = handle_get_run_health({})
+    assert health["total_mutants"] == 4
+    assert health["recovered_mutants"] == 1
+
+
+def test_the_narrowing_reads_the_layout_not_the_sheet() -> None:
+    """Unit-level, so the rule is pinned without a pipeline around it."""
+    designed = frozenset({"G2A", "F3W", "T5A"})
+    layout = {"A1": "G2A", "C1": "T5A", "E1": "WT"}
+
+    assert declared_designed_ids(designed, layout) == frozenset({"G2A", "T5A"})
+    # An occupant the expected sheet never designed cannot be added by the
+    # intersection, and a layout that named nothing leaves nothing designed.
+    assert declared_designed_ids(designed, {"A1": "WT"}) == frozenset()
+    assert declared_designed_ids(designed, None) == frozenset()

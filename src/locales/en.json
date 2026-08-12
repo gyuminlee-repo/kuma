@@ -1137,7 +1137,8 @@
         "selfConsistencyCheck": "After the run, every well is checked against its own expected variant and against the others.",
         "plateColumnRowOrder": "Result rows follow the plate column, like every other placement rule.",
         "barcodePlateShapeRefused": "A barcode file that does not describe an 8 by 12 plate stops the run.",
-        "declaredWellsOnly": "Wells left out of the selection are no longer scored. They used to be compared against the whole variant list and fail."
+        "declaredWellsOnly": "Wells left out of the selection are no longer scored. They used to be compared against the whole variant list and fail.",
+        "declaredWellsDenominator": "The success rate counts only the variants in the declared wells. It used to divide by the whole variant list, so a run declaring ten wells reported 9 percent with every variant passing."
       }
     },
     "janus": {

@@ -840,6 +840,35 @@ def _place_on_selected_wells(
     return apply_well_selection(draft, selected_wells)
 
 
+def declared_designed_ids(
+    designed_ids: frozenset[str],
+    well_layout: dict[str, str] | None,
+) -> frozenset[str]:
+    """Narrow the designed-mutant denominator to the wells actually declared.
+
+    Only for a run that declared a selection. What this removes is designed
+    mutants the operator said are NOT ON THIS PLATE, which is a different thing
+    from designed mutants that failed: ``kuma_core.mame.detected`` deliberately
+    keeps a designed mutant with zero reads in the denominator so a run cannot
+    lift its own rate by losing wells, and that rule is untouched here. A
+    variant sitting in a declared well still counts against the run whether or
+    not it produced anything; a variant sitting in no declared well was never
+    part of the run to begin with.
+
+    The narrowing reads ``well_layout``, which is the same mapping the scored
+    wells are built from, so the numerator and the denominator come from one
+    statement about the plate rather than two that can drift apart. That drift
+    was the defect: a ten-well declaration in which every variant passed was
+    reported as 9 % because the numerator had been narrowed to the declaration
+    and the denominator was still the whole expected-mutations sheet.
+
+    ``WT`` and any ``UNKNOWN_*`` occupant of a declared well are absent from
+    ``designed_ids`` already and so cannot be added back by this intersection.
+    """
+    occupants = set((well_layout or {}).values())
+    return frozenset(mid for mid in designed_ids if mid in occupants)
+
+
 def _legacy_sample_map_finding(
     legacy_path: str | None,
     placed: "DraftLayout",
@@ -1880,6 +1909,13 @@ def handle_analyze(params: dict) -> dict:
                 expected, sheet=variant_sheet, variant_column=variant_column
             ).expected
         dids = _designed_ids(expected_mutations)
+        if selected_wells is not None:
+            # The same narrowing ``_scored_wells`` applies to the numerator,
+            # applied to the denominator it is divided by. Without it the rate
+            # is one population over another: nine declared variants all passing
+            # came back as 9 % because the denominator was still the whole
+            # ninety-five-row sheet. See ``declared_designed_ids``.
+            dids = declared_designed_ids(dids, well_layout)
 
         # The provenance sentence goes into the workbook as well as onto the
         # response. The response key is for a caller that reads it; the workbook

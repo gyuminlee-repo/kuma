@@ -834,7 +834,8 @@
         "selfConsistencyCheck": "執行後，每個孔都會與自身預期變異以及其他孔互相核對。",
         "plateColumnRowOrder": "結果列依板的欄方向排列，與其他放置規則一致。",
         "barcodePlateShapeRefused": "未描述 8×12 板的 barcode 檔會停止執行。",
-        "declaredWellsOnly": "未選中的孔位不再判定。以前它們會與整個變異列表比對並判為失敗。"
+        "declaredWellsOnly": "未選中的孔位不再判定。以前它們會與整個變異列表比對並判為失敗。",
+        "declaredWellsDenominator": "成功率的分母只計入已宣告孔位中的變異。以前按整個變異列表相除，因此宣告十個孔位且全部通過的執行顯示為9%。"
       }
     },
     "janus": {
