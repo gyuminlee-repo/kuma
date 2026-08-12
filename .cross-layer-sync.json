@@ -968,8 +968,31 @@
         "AnalyzeYield",
         "pickAnalyzeYield"
       ],
-      "note": "Optional analyze-response yield fields that explain a zero-verdict run: DemuxStats counters -> ingest_run_folder stats_out sink -> analyze response keys (total_reads, passed_mapq, passed_coverage, assigned_reads, wells_with_reads) -> TS AnalyzeYield -> pickAnalyzeYield narrowing -> EmptyAnalysisNotice rows. Every key is optional by contract and is OMITTED, never zero-filled, when the mode cannot produce it (consensus-dir mode runs no demux). Adding a counter on the Python side without extending AnalyzeYield and pickAnalyzeYield silently drops it before it reaches the notice.",
+      "note": "Optional analyze-response yield fields that explain a zero-verdict run: DemuxStats counters -> ingest_run_folder stats_out sink -> analyze response keys (total_reads, passed_mapq, passed_coverage, assigned_reads, wells_with_reads) -> TS AnalyzeYield -> pickAnalyzeYield narrowing -> EmptyAnalysisNotice rows. Every key is optional by contract and is OMITTED, never zero-filled, when the mode cannot produce it (consensus-dir mode runs no demux). Adding a counter on the Python side without extending AnalyzeYield and pickAnalyzeYield silently drops it before it reaches the notice. The seven drop_* counters (drop_short_window_read_5p, drop_short_window_read_3p, drop_no_barcode_f, drop_no_barcode_r, drop_ambiguous_tie_f, drop_ambiguous_tie_r, drop_both_axes) travel the same chain and say WHY a read that cleared both gates reached no well. They PARTITION DemuxStats.ambiguous_dropped, one bucket per failed alignment hit, with a hit that failed on both axes charged to drop_both_axes alone; tests/mame/test_demux_drop_reasons.py pins that identity on all three matching paths, so a new bucket must be added to the partition rather than beside it. ambiguous_dropped itself is NOT on the analyze response and is not renamed here despite naming the rarest of the four causes, because it is shipped on the mame.run_combinatorial_demux RPC result, in per-NB stage markers, and in the contamination ambiguous_dropped rate. Two of the seven are keyed on the READ END rather than the F/R axis on purpose: the window is cut from the read, the 3' end is the one that comes up short on real runs, and which axis that surfaces on is decided by strand, so an axis-keyed tally splits one phenomenon in two. These seven have one omission case the other keys do not: a per-NB resume that reuses a completion marker written before the breakdown existed omits ALL SEVEN, since such a marker records only the total.",
       "severity": "blocking"
+    },
+    {
+      "id": "mame-minor-allele-strand-evidence",
+      "files": [
+        "kuma_core/mame/ingest/consensus.py",
+        "kuma_core/mame/ingest/consensus_metadata.py",
+        "kuma_core/mame/ingest/fasta_parser.py",
+        "kuma_core/mame/models.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "src/types/mame/models.ts"
+      ],
+      "symbols": [
+        "NoisyPosition",
+        "max_minor_allele_strand_share",
+        "max_minor_allele_plus_count",
+        "max_minor_allele_minus_count",
+        "n_eligible_positions",
+        "noisy_positions",
+        "format_noisy_positions",
+        "parse_noisy_positions"
+      ],
+      "note": "Minor-allele strand evidence, reported only, no gate reads it: consensus.py measures the weak-strand share and the top-K mix-eligible positions -> consensus_metadata.py encodes them as FASTA header keys (max_minor_allele_strand_share / _plus / _minus emitted ONLY when a share exists, eligible_positions always, noisy_positions as pos:frac:depth:plus:minus records) -> fasta_parser.py decodes them -> BarcodeRecord mirrors them -> _serialize_verdict/_deserialize_verdict carry them -> TS VerdictRecord. Two things break when these are edited apart. (1) The share is Optional the whole way down because 0.0 is the ARTIFACT reading (minor allele on one strand only) and absence is unknown; any layer that defaults it to 0.0 or zero-fills the omitted key reports one-strand evidence that was never measured. (2) noisy_positions is a truncated top-K, and n_eligible_positions is the only signal saying so (n_mixed_positions counts only positions over the 0.20 gate, which is 0 on a healthy run); dropping the count on any layer turns a sample into an apparent census. The encoding lives once in format_noisy_positions/parse_noisy_positions, and excel_writer.py reuses the writer, so changing the separators or field order requires changing both halves together.",
+      "severity": "warning"
     },
     {
       "id": "mame-build-evolvepro-input",
@@ -1110,9 +1133,12 @@
         "read_flow_cell_history",
         "run_quality",
         "RunQuality",
-        "setRunQuality"
+        "setRunQuality",
+        "summarise_position_recurrence",
+        "serialise_position_recurrence",
+        "position_recurrence"
       ],
-      "note": "Whether a run could have been scored at all: core grading <-> flow cell history read from report_*.json <-> the analyze response block <-> TS type <-> store field and setter <-> the notice that stands above the verdict table. Three couplings drift silently if edited apart. (1) The depth floor is CompareParams.min_read_count, so changing that changes what this grades and the sourced comment in models.py has to move with it. (2) Depth is measured over VERDICTS, not ingested records, so a declared selection already excludes the wells the campaign left empty; measuring records instead would report a thin plate for a run that used ten wells of ninety-six. (3) Every threshold carries a `kind` and the notice renders it, because the floor is a vendor WORKFLOW DEFAULT (ONT wf-amplicon minimum_mean_depth) rather than a specification, and this repo already shipped that overstatement once as a bare 'recommended minimum' comment. Pore counts and reuse are reported with no threshold on purpose: 800 would condemn a cell that returned 515 reads a well, and 'pores at least the sample count' would pass the one that returned 4.",
+      "note": "Whether a run could have been scored at all: core grading <-> flow cell history read from report_*.json <-> the analyze response block <-> TS type <-> store field and setter <-> the notice that stands above the verdict table. Three couplings drift silently if edited apart. (1) The depth floor is CompareParams.min_read_count, so changing that changes what this grades and the sourced comment in models.py has to move with it. (2) Depth is measured over VERDICTS, not ingested records, so a declared selection already excludes the wells the campaign left empty; measuring records instead would report a thin plate for a run that used ten wells of ninety-six. (3) Every threshold carries a `kind` and the notice renders it, because the floor is a vendor WORKFLOW DEFAULT (ONT wf-amplicon minimum_mean_depth) rather than a specification, and this repo already shipped that overstatement once as a bare 'recommended minimum' comment. Pore counts and reuse are reported with no threshold on purpose: 800 would condemn a cell that returned 515 reads a well, and 'pores at least the sample count' would pass the one that returned 4. (4) The nested `position_recurrence` block rides this same chain rather than a group of its own: it is built by summarise_position_recurrence/serialise_position_recurrence, attached to the run_quality dict in analyze.py, mirrored on the TS RunQuality, and therefore carried into the store by the existing setRunQuality. It reads the per-well noisy_positions produced by the mame-minor-allele-strand-evidence group, so the two move together when that encoding changes. Three things break if edited apart. It grades NOTHING, for the same reason the pore counts do not; the only restriction on the table is that a position seen in a single well has not recurred, which is definitional and is counted in positions_single_well rather than dropped. Its counts are a LOWER BOUND because each well contributes a top-ten sample of n_eligible_positions and every well of both measured runs was truncated, so wells_truncated and lower_bound must survive every layer. And the weak-strand share stays Optional here too: absent is unknown, 0.0 is a minor allele read off one strand, and a layer that folds one into the other reports evidence nobody measured. Nothing RENDERS the block yet; RunQualityNotice.tsx is untouched and stays in this group so a future rendering moves with the shape.",
       "severity": "blocking"
     },
     {

@@ -15,10 +15,18 @@
  *   distributionStats.n_files , backend `distribution_stats.n_files`
  *   analyzeYield.*            , backend `wells_with_reads` / `assigned_reads` /
  *                                `total_reads` / `passed_mapq` /
- *                                `passed_coverage`
+ *                                `passed_coverage`, plus the seven `drop_*`
+ *                                counters saying why reads that cleared both
+ *                                gates still reached no well
  *                                (raw-run mode only; omitted, not defaulted,
  *                                when the response did not carry them)
  * A metric whose field is absent is not rendered at all.
+ *
+ * The `drop_*` seven partition the demux total that used to be reported as one
+ * number named after its rarest cause (`ambiguous_dropped`, still shipped under
+ * that name elsewhere). Two of them are keyed on the read end rather than on
+ * the barcode axis; the reasoning is in the `AnalyzeYield` doc comment and in
+ * full in the Python `DemuxStats` docstring.
  *
  * The demux gate counters also name a likely cause, but only where the counts
  * themselves carry the evidence (`diagnoseZeroResult`). Where they do not, the
@@ -124,6 +132,55 @@ export function EmptyAnalysisNotice() {
       label: t("mame.analyze.zeroResult.metricPassedCoverage"),
       value: passedCoverage,
     });
+  }
+
+  // Why the reads that cleared both gates still reached no well. Same rule as
+  // every row above: rendered when the backend reported it, skipped entirely
+  // when it did not. Rows are pushed even at 0, because here a reported 0 is a
+  // real measurement ("this cause claimed nothing") and reading it against a
+  // large sibling is the whole point of the breakdown.
+  const dropRows: { id: string; key: keyof AnalyzeYield; labelKey: string }[] = [
+    {
+      id: "dropShortWindow5p",
+      key: "drop_short_window_read_5p",
+      labelKey: "mame.analyze.zeroResult.metricDropShortWindow5p",
+    },
+    {
+      id: "dropShortWindow3p",
+      key: "drop_short_window_read_3p",
+      labelKey: "mame.analyze.zeroResult.metricDropShortWindow3p",
+    },
+    {
+      id: "dropNoBarcodeF",
+      key: "drop_no_barcode_f",
+      labelKey: "mame.analyze.zeroResult.metricDropNoBarcodeF",
+    },
+    {
+      id: "dropNoBarcodeR",
+      key: "drop_no_barcode_r",
+      labelKey: "mame.analyze.zeroResult.metricDropNoBarcodeR",
+    },
+    {
+      id: "dropAmbiguousTieF",
+      key: "drop_ambiguous_tie_f",
+      labelKey: "mame.analyze.zeroResult.metricDropAmbiguousTieF",
+    },
+    {
+      id: "dropAmbiguousTieR",
+      key: "drop_ambiguous_tie_r",
+      labelKey: "mame.analyze.zeroResult.metricDropAmbiguousTieR",
+    },
+    {
+      id: "dropBothAxes",
+      key: "drop_both_axes",
+      labelKey: "mame.analyze.zeroResult.metricDropBothAxes",
+    },
+  ];
+  for (const row of dropRows) {
+    const value = analyzeYield?.[row.key];
+    if (value !== undefined) {
+      metrics.push({ id: row.id, label: t(row.labelKey), value });
+    }
   }
 
   // Counts interpolated into the cause text are the response fields themselves,

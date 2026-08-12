@@ -282,6 +282,13 @@ def _run_consensus_on_dir(
                     consensus_net_indel=result.consensus_net_indel_bp,
                     read_net_indel=result.median_read_net_indel_bp,
                     consensus_n_fraction_basis=BASIS_COVERED,
+                    max_minor_allele_strand_share=(
+                        result.max_minor_allele_strand_share
+                    ),
+                    max_minor_allele_plus=result.max_minor_allele_plus_count,
+                    max_minor_allele_minus=result.max_minor_allele_minus_count,
+                    n_eligible_positions=result.n_eligible_positions,
+                    noisy_positions=result.noisy_positions,
                 ),
             ),
             fsync=False,
@@ -306,7 +313,34 @@ def _run_consensus_on_dir(
             "max_del_run_length": result.max_del_run_length,
             "consensus_net_indel_bp": result.consensus_net_indel_bp,
             "median_read_net_indel_bp": result.median_read_net_indel_bp,
+            # The pool the position sample was drawn from. Reported next to the
+            # sample so a reader can see the sample is truncated, which on a real
+            # amplicon it always is.
+            "n_eligible_positions": result.n_eligible_positions,
+            "noisy_positions": [
+                {
+                    "position": p.position,
+                    "minor_fraction": round(p.minor_fraction, 4),
+                    "depth": p.depth,
+                    "plus_count": p.plus_count,
+                    "minus_count": p.minus_count,
+                }
+                for p in result.noisy_positions
+            ],
         }
+        # Omitted rather than zero-filled when no mix-eligible position exists:
+        # 0.0 is the one-strand reading and would report evidence this well never
+        # produced. The two counts ride with the share for the same reason.
+        if result.max_minor_allele_strand_share is not None:
+            stats[well_name]["max_minor_allele_strand_share"] = round(
+                result.max_minor_allele_strand_share, 3
+            )
+            stats[well_name]["max_minor_allele_plus_count"] = (
+                result.max_minor_allele_plus_count
+            )
+            stats[well_name]["max_minor_allele_minus_count"] = (
+                result.max_minor_allele_minus_count
+            )
 
     # Remove wells that had zero passing reads (empty consensus).
     empty_wells = [

@@ -49,6 +49,14 @@ from kuma_core.mame.ingest.align import (
     _CIGAR_X,
 )
 
+# The record this module measures and every downstream layer transports, defined
+# once in the transfer-object module so the two can never drift apart. Imported
+# rather than declared here (and re-exported below) because ``models`` is a
+# runtime leaf: a layer that only carries the record must not pull in numpy and
+# the aligner along with it. Downward dependency, no cycle: ``models`` imports
+# only ``dataclasses``, ``enum`` and ``pathlib``.
+from kuma_core.mame.models import NoisyPosition
+
 # Complement table (single-char, uppercase).
 _COMP = str.maketrans("ACGTacgtNn", "TGCAtgcaNn")
 
@@ -201,6 +209,14 @@ def _expand_ranges(starts: np.ndarray, counts: np.ndarray) -> np.ndarray:
     return np.repeat(starts, counts) + flat
 
 
+# How many positions a well reports. This is a REPORTING BUDGET, not a
+# classification threshold: nothing is accepted or rejected by it and no verdict
+# reads it. A well typically has a handful of eligible positions, so ten covers
+# them; a noisier well is truncated and ``n_mixed_positions`` still states the
+# untruncated count of positions over the mixed gate.
+_NOISY_POSITION_REPORT_BUDGET = 10
+
+
 @dataclass(frozen=True)
 class ConsensusCall:
     """Consensus sequence plus MAME-native quality metrics."""
@@ -254,6 +270,56 @@ class ConsensusCall:
     # per-read indel error rate in homopolymers, so on a real run the median can
     # sit at -1 while the consensus built from those same reads is indel-free.
     median_read_net_indel_bp: int = 0
+    # Weak-strand share of the minor allele AT THE POSITION that produced
+    # ``max_minor_allele_fraction``, i.e. min(plus, minus) / (plus + minus) over
+    # the reads supporting that minor allele. The two numbers pair 1:1 so the
+    # fraction can be audited against the strand evidence behind it.
+    #
+    # A sequence-context artifact is read off one strand and lands near 0; a
+    # genuine mixture is read off both and lands near 0.4. The same
+    # both-strands principle is the acceptance rule in ampliCan's
+    # ``amplicanConsensus`` (Labun et al. 2019, Genome Res 29(5),
+    # doi:10.1101/gr.244293.118).
+    #
+    # ``None`` means UNKNOWN (no mix-eligible position exists in this well).
+    # 0.0 is a real, strong measurement: the minor allele is entirely one-strand.
+    # The two must never be conflated, which is why this is Optional rather than
+    # defaulting to 0.0. Same semantics as ``min_variant_support`` above.
+    #
+    # REPORTED ONLY. No verdict, gate or threshold reads this field; it adds no
+    # classification and moves none.
+    max_minor_allele_strand_share: float | None = None
+    # The denominators behind that share, so a reader can weigh it. In a thin
+    # well where nearly all reads happen to be one strand, a share of 0.0 means
+    # "no strand information was available", not "artifact", and the share alone
+    # cannot tell those apart. Mirrors ``min_variant_support_depth``.
+    max_minor_allele_plus_count: int = 0
+    max_minor_allele_minus_count: int = 0
+    # The top ``_NOISY_POSITION_REPORT_BUDGET`` mix-eligible positions of this
+    # well, ranked by minor fraction descending and, on ties, by ascending
+    # reference position so the tuple is deterministic. Drawn from the same
+    # eligibility pool as the metrics above (covered, ACGT depth >=
+    # ``mix_min_depth``, >= 2 distinct bases) with NO minimum-fraction floor:
+    # positions BELOW the mixed gate are exactly the ones this evidence exists
+    # to surface, and a floor would be a threshold. Empty when the well has no
+    # eligible position.
+    noisy_positions: tuple[NoisyPosition, ...] = ()
+    # How many positions ``noisy_positions`` was drawn from, so its truncation is
+    # visible. ``len(noisy_positions) < n_eligible_positions`` states exactly that
+    # the list is a top-K sample rather than a census.
+    #
+    # This is not a theoretical case: measured over two ONT amplicon runs on a
+    # 1715 bp reference, every well of both (87 and 79) filled the budget, 870 and
+    # 790 reported positions for 87 x 10 and 79 x 10. ONT noise puts a second base
+    # almost everywhere, so hundreds of positions clear mix-eligibility on a real
+    # amplicon and the list is ALWAYS truncated.
+    #
+    # ``n_mixed_positions`` cannot serve as that signal: it counts only positions
+    # at or above ``mix_minor_fraction_threshold``, which on a healthy run is 0.
+    # A well would otherwise report ten positions next to a mixed count of zero
+    # with nothing anywhere saying those ten came out of two hundred, and a
+    # run-level recurrence tally built from the lists would read as a census.
+    n_eligible_positions: int = 0
 
 
 def _reverse_complement(seq: str) -> str:
@@ -341,6 +407,7 @@ def call_consensus_with_metrics(
 
     (
         counts,
+        minus_counts,
         first_touch,
         insertion_events,
         insertion_bp,
@@ -362,11 +429,20 @@ def call_consensus_with_metrics(
     base_total = acgt.sum(axis=1)
     n_distinct_bases = (acgt > 0).sum(axis=1)
     mix_eligible = covered & (base_total >= mix_min_depth) & (n_distinct_bases >= 2)
+    # The pool ``noisy_positions`` is sampled from. Computed here, unconditionally,
+    # because a well with no eligible position genuinely has zero of them and the
+    # empty list is then a census rather than a truncation.
+    n_eligible_positions = int(mix_eligible.sum())
     n_mixed_positions = 0
     max_minor_allele_fraction = 0.0
     median_minor_allele_fraction = 0.0
+    max_minor_allele_strand_share: float | None = None
+    max_minor_allele_plus_count = 0
+    max_minor_allele_minus_count = 0
+    noisy_positions: tuple[NoisyPosition, ...] = ()
     if bool(mix_eligible.any()):
-        second = np.sort(acgt[mix_eligible], axis=1)[:, -2]
+        elig = acgt[mix_eligible]
+        second = np.sort(elig, axis=1)[:, -2]
         minor_fraction = second / base_total[mix_eligible]
         max_minor_allele_fraction = float(minor_fraction.max())
         # The noise floor this well actually ran at. ``max_`` above answers "how
@@ -374,14 +450,75 @@ def call_consensus_with_metrics(
         # noisiest; the median answers "what does an ordinary position look
         # like here", which is the number the mixed-position threshold has to
         # clear to mean anything. Measured on the 260729 ispS run: the
-        # per-position median across 94 wells is 0.003 and the worst
-        # context-driven position is 0.054, so the 0.20 gate sits about four
-        # times above the noisiest position observed and roughly sixty times
-        # above a typical one. Reporting it makes that margin auditable per run
-        # instead of assumed.
+        # per-position median across 94 wells is 0.003 and the noisiest position
+        # reaches 0.054, so the 0.20 gate sits about four times above the worst
+        # position observed and roughly sixty times above a typical one.
+        # Reporting it makes that margin auditable per run instead of assumed.
+        #
+        # That worst position is NOT established as a sequencing artifact. It is
+        # position 1248, and it is strand-BALANCED: weak-strand share 0.391 and
+        # 0.381 across the 260212 and 260729 runs, on different flow cells five
+        # months apart. The other recurrent positions on the same amplicon (375,
+        # 556, 847, 1196, 1252, 1498, 1507, 1511) sit at 0.00 to 0.03, which is
+        # what a basecaller context error looks like when it is read off one
+        # strand. What 1248 is instead is unconfirmed; only the artifact reading
+        # is argued against. Minor fraction alone does not separate the two
+        # (1196 is 0.050 at weak-strand 0.000, 1248 is 0.055 at 0.391), which is
+        # why the strand split is reported alongside it.
         median_minor_allele_fraction = float(np.median(minor_fraction))
         n_mixed_positions = int(
             (minor_fraction >= mix_minor_fraction_threshold).sum()
+        )
+
+        # --- strand evidence behind those minor alleles ---------------------
+        # Which A/C/G/T column the minor allele actually is.  ``np.sort`` above
+        # gives its VALUE; this gives its column, and the two agree by
+        # construction (the value at sorted rank -2 is the value at that
+        # column), so ``max_minor_allele_fraction`` is untouched by this block.
+        #
+        # ``kind="stable"`` is required, not cosmetic: the default introsort
+        # leaves the column chosen among EQUAL counts unspecified and therefore
+        # free to change with the numpy version.  Under a stable ascending sort
+        # tied columns keep A < C < G < T order, so rank -1 is the highest
+        # column index among the tied maxima and rank -2 the next highest
+        # (counts [5,5,5,0] rank as [T,A,C,G], making G the major and C the
+        # minor).  Which tied column is named is arbitrary; that it is the same
+        # one on every machine is not.
+        minor_col = np.argsort(elig, axis=1, kind="stable")[:, -2]
+        rows = np.arange(elig.shape[0])
+        eligible_pos = np.flatnonzero(mix_eligible)
+        elig_depth = base_total[mix_eligible]
+        minor_minus = minus_counts[:, :4][mix_eligible][rows, minor_col]
+        minor_total = elig[rows, minor_col]
+        minor_plus = minor_total - minor_minus
+
+        # The position ``max_minor_allele_fraction`` came from.  ``argmax``
+        # returns the FIRST maximum, and ``mix_eligible`` is a mask over
+        # positions in ascending order, so ties resolve to the lowest reference
+        # position, matching the tie rule of the ranking below.
+        max_idx = int(np.argmax(minor_fraction))
+        max_minor_allele_plus_count = int(minor_plus[max_idx])
+        max_minor_allele_minus_count = int(minor_minus[max_idx])
+        max_minor_allele_strand_share = NoisyPosition(
+            position=int(eligible_pos[max_idx]) + 1,
+            minor_fraction=float(minor_fraction[max_idx]),
+            depth=int(elig_depth[max_idx]),
+            plus_count=max_minor_allele_plus_count,
+            minus_count=max_minor_allele_minus_count,
+        ).weak_strand_share
+
+        # Ranked report.  ``lexsort`` takes the primary key LAST, so this is
+        # minor fraction descending with ascending position as the tie-break.
+        order = np.lexsort((eligible_pos, -minor_fraction))
+        noisy_positions = tuple(
+            NoisyPosition(
+                position=int(eligible_pos[j]) + 1,
+                minor_fraction=float(minor_fraction[j]),
+                depth=int(elig_depth[j]),
+                plus_count=int(minor_plus[j]),
+                minus_count=int(minor_minus[j]),
+            )
+            for j in order[:_NOISY_POSITION_REPORT_BUDGET]
         )
 
     # Majority token.  Ties resolve to the token first seen at that position,
@@ -530,6 +667,11 @@ def call_consensus_with_metrics(
         min_variant_support=min_variant_support,
         n_variant_positions=n_variant_positions,
         min_variant_support_depth=min_variant_support_depth,
+        max_minor_allele_strand_share=max_minor_allele_strand_share,
+        max_minor_allele_plus_count=max_minor_allele_plus_count,
+        max_minor_allele_minus_count=max_minor_allele_minus_count,
+        noisy_positions=noisy_positions,
+        n_eligible_positions=n_eligible_positions,
     )
 
 
@@ -537,17 +679,31 @@ def _accumulate_all(
     alignments: Sequence[Alignment],
     ref_len: int,
     min_base_quality: int,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, list[int]]:
+) -> tuple[
+    np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, list[int]
+]:
     """Build the whole-well pileup from every alignment.
 
-    Returns ``(counts, first_touch, insertion_events, insertion_bp,
-    n_low_quality_bases, per_read_net_indel)``.  ``insertion_bp[ref_pos]`` is the
+    Returns ``(counts, minus_counts, first_touch, insertion_events,
+    insertion_bp, n_low_quality_bases, per_read_net_indel)``.
+    ``insertion_bp[ref_pos]`` is the
     total inserted length summed over the reads counted in
     ``insertion_events[ref_pos]``, so their ratio is the mean inserted length at
-    that anchor.  ``counts`` and ``first_touch`` are ``(ref_len, 6)``
+    that anchor.  ``counts``, ``minus_counts`` and ``first_touch`` are
+    ``(ref_len, 6)``
     int64 arrays over the ``_TOKENS`` columns; ``first_touch`` holds the index
     of the earliest alignment that voted each (position, token) pair and exists
     solely to reproduce the scalar dict-insertion-order tie-break.
+
+    ``minus_counts`` is the minus-strand SUBSET of ``counts``: every vote it
+    holds is also in ``counts``, so plus-strand counts are recoverable as
+    ``counts - minus_counts`` and no third array is needed.  Strand is otherwise
+    lost, because ``_accumulate_batch`` reverse-complements a minus-strand read
+    into reference orientation before voting.  COST: one extra ``(ref_len, 6)``
+    int64 array per well, allocated for the whole call and summed like any other
+    accumulator.  That is not free; it is a fixed 48 bytes per reference base,
+    independent of depth, which is small next to the per-batch query
+    intermediates ``_BATCH_BASE_BUDGET`` exists to bound.
 
     Alignments are flattened into vectorized batches (one concatenated CIGAR
     table, one concatenated query buffer per batch) so the cost is a fixed
@@ -557,12 +713,14 @@ def _accumulate_all(
     """
     n_reads = len(alignments)
     counts = np.zeros((ref_len, _N_TOKENS), dtype=np.int64)
+    minus_counts = np.zeros((ref_len, _N_TOKENS), dtype=np.int64)
     first_touch = np.full((ref_len, _N_TOKENS), _BIG, dtype=np.int64)
     insertion_events = np.zeros(ref_len, dtype=np.int64)
     insertion_bp = np.zeros(ref_len, dtype=np.int64)
     if n_reads == 0 or ref_len == 0:
         return (
             counts,
+            minus_counts,
             first_touch,
             insertion_events,
             insertion_bp,
@@ -582,6 +740,7 @@ def _accumulate_all(
             ref_len,
             min_base_quality,
             counts,
+            minus_counts,
             first_touch,
             batch_first,
             insertion_events,
@@ -591,6 +750,7 @@ def _accumulate_all(
 
     return (
         counts,
+        minus_counts,
         first_touch,
         insertion_events,
         insertion_bp,
@@ -628,6 +788,7 @@ def _accumulate_batch(
     ref_len: int,
     min_base_quality: int,
     counts: np.ndarray,
+    minus_counts: np.ndarray,
     first_touch: np.ndarray,
     batch_first: np.ndarray,
     insertion_events: np.ndarray,
@@ -636,10 +797,13 @@ def _accumulate_batch(
 ) -> int:
     """Fold ``alignments[lo_read:hi_read]`` into the running well accumulators.
 
-    ``counts``, ``first_touch``, ``insertion_events``, ``insertion_bp`` and
+    ``counts``, ``minus_counts``, ``first_touch``, ``insertion_events``,
+    ``insertion_bp`` and
     ``per_read_net_indel`` are updated in place; the low-quality base count for
     this batch is returned.
     ``batch_first`` is caller-owned scratch of the same shape as ``first_touch``.
+    ``minus_counts`` needs no scratch of its own: it is a plain sum, so batches
+    accumulate into it directly.
     """
     batch = alignments[lo_read:hi_read]
     n_reads = len(batch)
@@ -653,9 +817,13 @@ def _accumulate_batch(
     qual_len = np.zeros(n_reads, dtype=np.int64)
     r_st = np.empty(n_reads, dtype=np.int64)
     q_st = np.empty(n_reads, dtype=np.int64)
+    # Strand of each read, indexed by its position WITHIN this batch, which is
+    # the same indexing ``read_match``/``read_del`` below use.
+    is_minus = np.zeros(n_reads, dtype=bool)
     any_qual = False
 
     for i, aln in enumerate(batch):
+        is_minus[i] = aln.strand == -1
         if aln.strand == -1:
             q_seq = _reverse_complement(aln.read_seq)
             q_qual = aln.read_qual[::-1] if aln.read_qual is not None else None
@@ -795,6 +963,19 @@ def _accumulate_batch(
         flat_counts += np.bincount(allflat, minlength=ref_len * _N_TOKENS).astype(
             np.int64
         )
+        # Same votes, restricted to minus-strand reads.  ``read_match``/
+        # ``read_del`` are read indices within this batch and travel alongside
+        # the flat vote codes through every filter above, so masking with
+        # ``is_minus`` selects exactly the minus-strand subset of ``allflat``.
+        # Deletion tokens are included for symmetry with ``counts``; only the
+        # A/C/G/T columns are read downstream.  This is a plain sum, so batches
+        # add into the running array with no scratch and no ordering rule.
+        minus_mask = np.concatenate((is_minus[read_match], is_minus[read_del]))
+        if minus_mask.any():
+            flat_minus = minus_counts.reshape(-1)
+            flat_minus += np.bincount(
+                allflat[minus_mask], minlength=ref_len * _N_TOKENS
+            ).astype(np.int64)
         # Base votes and deletion votes land in disjoint columns, so the two
         # writes below never collide and each can be done independently.  Both
         # index arrays are ordered by alignment, and duplicate fancy-index
@@ -941,4 +1122,10 @@ def per_position_depth(
     return depths
 
 
-__all__ = ["ConsensusCall", "call_consensus", "call_consensus_with_metrics", "per_position_depth"]
+__all__ = [
+    "ConsensusCall",
+    "NoisyPosition",
+    "call_consensus",
+    "call_consensus_with_metrics",
+    "per_position_depth",
+]

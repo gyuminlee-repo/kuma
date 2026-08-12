@@ -1045,6 +1045,13 @@
         "metricTotalReads": "Reads in fastq_pass",
         "metricPassedMapq": "Reads passing MAPQ",
         "metricPassedCoverage": "Reads passing coverage",
+        "metricDropShortWindow5p": "Descartado, sem sequência na extremidade 5' do read",
+        "metricDropShortWindow3p": "Descartado, sem sequência na extremidade 3' do read",
+        "metricDropNoBarcodeF": "Descartado, nenhum barcode F correspondeu",
+        "metricDropNoBarcodeR": "Descartado, nenhum barcode R correspondeu",
+        "metricDropAmbiguousTieF": "Descartado, empate no barcode F",
+        "metricDropAmbiguousTieR": "Descartado, empate no barcode R",
+        "metricDropBothAxes": "Descartado, ambos os barcodes falharam",
         "causeHeading": "What the read counts point to",
         "causeNoAlignment": "The run had {{totalReads}} reads and none of them aligned to the reference (0 passed the MAPQ gate). That is what a reference from a different sequence looks like: check that the reference file is the construct that was actually sequenced.",
         "causeNoCoverage": "{{passedMapq}} reads aligned to the reference, but none of them covered enough of it to be called (0 passed the coverage gate). That is what a whole-construct reference looks like against amplicon reads: use the amplicon region as the reference, or lower the coverage requirement.",
@@ -2433,12 +2440,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "O sequencing kit agora aparece na exportação para Excel, no arquivo Janus e no relatório, em vez de ficar vazio em todo run recente.",
-      "Um run que descarta a maior parte das leituras no filtro de cobertura passa a dizer isso, e esses poços deixam de parecer poços nunca preenchidos.",
-      "Quando duas pastas parecem um run, a flow cell e o horário de início de uma não são mais informados como os da outra."
+      "Um well agora informa de qual strand vieram seus reads minoritários, de modo que um segundo genótipo se distingue de um artefato do amplicon.",
+      "Cada well também lista suas dez posições mais ruidosas e quantas posições eram elegíveis, então as dez se leem como amostra e não como censo.",
+      "Um run agora contabiliza quais posições de referência voltam well após well, com a evidência de strand em cada uma.",
+      "Os reads que nunca chegaram a um well são contados por causa, em vez de todos serem informados como ambiguidade de barcode.",
+      "Aqui nada é julgado. Nenhum well muda de veredito e nenhum limiar foi movido."
     ],
-    "highlightsStamp": "0.16.23+6c37c3e1",
+    "highlightsStamp": "0.16.24+1307c327",
     "releases": {
+      "0.16.24": [
+        "Um well agora informa de qual strand vieram seus reads minoritários, de modo que um segundo genótipo se distingue de um artefato do amplicon.",
+        "Cada well também lista suas dez posições mais ruidosas e quantas posições eram elegíveis, então as dez se leem como amostra e não como censo.",
+        "Um run agora contabiliza quais posições de referência voltam well após well, com a evidência de strand em cada uma.",
+        "Os reads que nunca chegaram a um well são contados por causa, em vez de todos serem informados como ambiguidade de barcode.",
+        "Aqui nada é julgado. Nenhum well muda de veredito e nenhum limiar foi movido."
+      ],
       "0.16.23": [
         "O sequencing kit agora aparece na exportação para Excel, no arquivo Janus e no relatório, em vez de ficar vazio em todo run recente.",
         "Um run que descarta a maior parte das leituras no filtro de cobertura passa a dizer isso, e esses poços deixam de parecer poços nunca preenchidos.",
@@ -2624,6 +2640,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",

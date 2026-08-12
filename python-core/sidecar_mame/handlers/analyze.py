@@ -140,7 +140,7 @@ def _write_reference_fasta(reference_path: Path, output_dir: Path) -> Path:
 def _serialize_verdict(vr: Any) -> dict:
     t = vr.translated
     b = t.barcode
-    return {
+    out = {
         "native_barcode": b.native_barcode,
         "custom_barcode": b.custom_barcode,
         "file_size_kb": b.file_size_kb,
@@ -176,7 +176,32 @@ def _serialize_verdict(vr: Any) -> dict:
         "mutant_id": getattr(vr, "mutant_id", ""),
         "verdict": vr.verdict.value,
         "verdict_notes": vr.verdict_notes,
+        # How many mix-eligible positions this well had, which is the pool
+        # ``noisy_positions`` samples. Unconditional because 0 is a real answer
+        # (nothing eligible) and because without it a truncated top-K sample
+        # reads as a census: on a real ONT amplicon every well fills the budget.
+        "n_eligible_positions": b.n_eligible_positions,
+        "noisy_positions": [
+            {
+                "position": p.position,
+                "minor_fraction": p.minor_fraction,
+                "depth": p.depth,
+                "plus_count": p.plus_count,
+                "minus_count": p.minus_count,
+            }
+            for p in b.noisy_positions
+        ],
     }
+    # OMITTED, never zero-filled, when the well has no mix-eligible position:
+    # 0.0 is the artifact reading (minor allele on one strand only), so a
+    # zero-filled key would report one-strand evidence that was never measured.
+    # The two counts travel with the share because they are its denominators and
+    # mean nothing without it. Same contract as the yield fields.
+    if b.max_minor_allele_strand_share is not None:
+        out["max_minor_allele_strand_share"] = b.max_minor_allele_strand_share
+        out["max_minor_allele_plus_count"] = b.max_minor_allele_plus_count
+        out["max_minor_allele_minus_count"] = b.max_minor_allele_minus_count
+    return out
 
 
 def _serialize_replicate(rr: Any) -> dict:
@@ -205,11 +230,16 @@ def _deserialize_verdict(d: dict) -> Any:
     """
     from kuma_core.mame.models import (
         BarcodeRecord,
+        NoisyPosition,
         TranslatedRecord,
         VerdictClass,
         VerdictRecord,
     )
 
+    # Absent for a payload persisted before the strand evidence was serialized.
+    # ``None`` is passed through as the record's own default, so a legacy payload
+    # restores as unknown rather than as a one-strand measurement.
+    strand_share = d.get("max_minor_allele_strand_share")
     barcode = BarcodeRecord(
         native_barcode=d["native_barcode"],
         custom_barcode=d["custom_barcode"],
@@ -236,6 +266,22 @@ def _deserialize_verdict(d: dict) -> Any:
         n_aligned_reads=d.get("n_aligned_reads"),
         n_mapq_failed=int(d.get("n_mapq_failed", 0)),
         n_span_failed=int(d.get("n_span_failed", 0)),
+        max_minor_allele_strand_share=(
+            None if strand_share is None else float(strand_share)
+        ),
+        max_minor_allele_plus_count=int(d.get("max_minor_allele_plus_count", 0)),
+        max_minor_allele_minus_count=int(d.get("max_minor_allele_minus_count", 0)),
+        n_eligible_positions=int(d.get("n_eligible_positions", 0)),
+        noisy_positions=tuple(
+            NoisyPosition(
+                position=int(p["position"]),
+                minor_fraction=float(p["minor_fraction"]),
+                depth=int(p["depth"]),
+                plus_count=int(p["plus_count"]),
+                minus_count=int(p["minus_count"]),
+            )
+            for p in d.get("noisy_positions", ())
+        ),
     )
     translated = TranslatedRecord(
         barcode=barcode,
@@ -1985,7 +2031,9 @@ def handle_analyze(params: dict) -> dict:
     )
     from kuma_core.mame.run_quality import (
         assess_run_quality,
+        serialise_position_recurrence,
         serialise_run_quality,
+        summarise_position_recurrence,
         variants_near_reference_edge,
     )
 
@@ -2032,6 +2080,18 @@ def handle_analyze(params: dict) -> dict:
             amplicon_extracted=amplicon_extracted,
             edge_variants=_edge_variants,
         )
+    )
+    # Which reference positions came back well after well, nested on the same
+    # block because it is another run-level fact read before the verdicts.
+    # Aggregated over the VERDICTS for the same reason the depth above is: a
+    # declared selection has already removed the wells the campaign left empty,
+    # and counting their leaked reads' noisy positions would inflate a
+    # recurrence tally with wells nobody pipetted into.
+    #
+    # No grading, by design: see summarise_position_recurrence for why neither
+    # the well count nor the strand share carries a cut this repo will defend.
+    run_quality["position_recurrence"] = serialise_position_recurrence(
+        summarise_position_recurrence(vr.translated.barcode for vr in verdicts)
     )
     # Recorded after the grading, so this run cannot report itself as its own
     # earlier use, and only when the report json named a cell.
@@ -2174,9 +2234,28 @@ def handle_analyze(params: dict) -> dict:
         # gates, so the gap between them is now meaningful). Each key is
         # emitted only when the demux actually produced it; consensus-dir mode
         # contributes nothing and the keys stay absent.
+        # Why the reads that cleared both gates still failed to reach a well.
+        # These seven partition the demux ``ambiguous_dropped`` total, which is
+        # itself NOT surfaced here: a single number that mixes four unrelated
+        # causes is what the operator could not act on, and the split is the
+        # part that names something to fix. The short-window pair is keyed on
+        # the READ END rather than the F/R axis on purpose; see the DemuxStats
+        # docstring for why an axis-keyed tally splits one 3'-end phenomenon
+        # across both axes according to strand and hides it.
+        #
+        # Same emission rule as the three gate counters: present only when the
+        # demux reported them. Consensus-dir mode contributes nothing, and a
+        # per-NB resume that reused a marker predating the breakdown omits all
+        # seven rather than reporting zeros it did not measure.
         **{
             key: int(demux_gate_counts[key])
-            for key in ("total_reads", "passed_mapq", "passed_coverage")
+            for key in (
+                "total_reads", "passed_mapq", "passed_coverage",
+                "drop_short_window_read_5p", "drop_short_window_read_3p",
+                "drop_no_barcode_f", "drop_no_barcode_r",
+                "drop_ambiguous_tie_f", "drop_ambiguous_tie_r",
+                "drop_both_axes",
+            )
             if key in demux_gate_counts
         },
         # Resume split for the demux this run drove: per-barcode units reseeded

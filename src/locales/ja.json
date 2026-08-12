@@ -1045,6 +1045,13 @@
         "metricTotalReads": "Reads in fastq_pass",
         "metricPassedMapq": "Reads passing MAPQ",
         "metricPassedCoverage": "Reads passing coverage",
+        "metricDropShortWindow5p": "破棄、read の 5' 端に配列なし",
+        "metricDropShortWindow3p": "破棄、read の 3' 端に配列なし",
+        "metricDropNoBarcodeF": "破棄、F barcode 不一致",
+        "metricDropNoBarcodeR": "破棄、R barcode 不一致",
+        "metricDropAmbiguousTieF": "破棄、F barcode が同点",
+        "metricDropAmbiguousTieR": "破棄、R barcode が同点",
+        "metricDropBothAxes": "破棄、両方の barcode が失敗",
         "causeHeading": "What the read counts point to",
         "causeNoAlignment": "The run had {{totalReads}} reads and none of them aligned to the reference (0 passed the MAPQ gate). That is what a reference from a different sequence looks like: check that the reference file is the construct that was actually sequenced.",
         "causeNoCoverage": "{{passedMapq}} reads aligned to the reference, but none of them covered enough of it to be called (0 passed the coverage gate). That is what a whole-construct reference looks like against amplicon reads: use the amplicon region as the reference, or lower the coverage requirement.",
@@ -2433,12 +2440,21 @@
     "descriptionRange": "v{{from}} 以降のすべてのアップデートの主な変更点です。",
     "gotItBtn": "了解",
     "highlights": [
-      "sequencing kit の値が Excel export、Janus ファイル、レポートに反映されます。最近の run では空欄のままでした。",
-      "カバレッジゲートが read の大半を破棄した run がその事実を通知します。該当 well が未実施のように見えることはありません。",
-      "run に見えるフォルダーが二つある場合に、ある run の flow cell と開始時刻が別の run のものとして報告されなくなりました。"
+      "well が minor read をどちらの strand で読んだかを報告します。二つ目の genotype か amplicon 由来の artifact かを見分けられます。",
+      "各 well が最もノイズの多い position 10 件と、対象となった position の数も示します。10 件が全数ではなく標本であることが分かります。",
+      "どの reference position が well をまたいで繰り返し現れるかを run 単位で集計し、各位置の strand 証拠を添えます。",
+      "well に届かなかった read を原因別に数えます。すべてを barcode の曖昧一致として報告することはなくなりました。",
+      "ここでは何も判定しません。well の判定は変わらず、しきい値も動いていません。"
     ],
-    "highlightsStamp": "0.16.23+6c37c3e1",
+    "highlightsStamp": "0.16.24+1307c327",
     "releases": {
+      "0.16.24": [
+        "well が minor read をどちらの strand で読んだかを報告します。二つ目の genotype か amplicon 由来の artifact かを見分けられます。",
+        "各 well が最もノイズの多い position 10 件と、対象となった position の数も示します。10 件が全数ではなく標本であることが分かります。",
+        "どの reference position が well をまたいで繰り返し現れるかを run 単位で集計し、各位置の strand 証拠を添えます。",
+        "well に届かなかった read を原因別に数えます。すべてを barcode の曖昧一致として報告することはなくなりました。",
+        "ここでは何も判定しません。well の判定は変わらず、しきい値も動いていません。"
+      ],
       "0.16.23": [
         "sequencing kit の値が Excel export、Janus ファイル、レポートに反映されます。最近の run では空欄のままでした。",
         "カバレッジゲートが read の大半を破棄した run がその事実を通知します。該当 well が未実施のように見えることはありません。",
@@ -2624,6 +2640,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",

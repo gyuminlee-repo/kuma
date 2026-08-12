@@ -20,6 +20,62 @@ class VerdictClass(StrEnum):
     WRONG_AA = "WRONG_AA"
 
 
+@dataclass(frozen=True)
+class NoisyPosition:
+    """One mix-eligible reference position and its minor-allele strand split.
+
+    The ONE definition. It lives in this module, rather than beside the pileup
+    that measures it, so that every layer which only transports the record stays
+    a runtime leaf: ``kuma_core.mame.ingest.consensus`` pulls in numpy and the
+    aligner, and the transfer objects here must not. ``consensus`` imports this
+    class and re-exports the name, so the measurement and the transfer object
+    are the same type and the derived quantity below is available on both. There
+    used to be a second declaration in ``consensus`` carrying the property while
+    everything persisted or transmitted carried the one without it.
+
+    ``position`` is **1-based**, matching ``extract_nt_changes`` in
+    ``kuma_core/mame/translate/aa_translator.py`` (see its ``{REF}{pos}{QRY}``
+    notation), which is this repository's user-facing nucleotide coordinate
+    convention. The pileup itself is 0-based, so the conversion happens exactly
+    once, in ``call_consensus_with_metrics``, at the reporting boundary where
+    these records are built.
+
+    ``depth`` is the A/C/G/T depth ``minor_fraction`` was measured against, the
+    same denominator ``max_minor_allele_fraction`` uses.  ``plus_count`` and
+    ``minus_count`` split the reads supporting the MINOR ALLELE (not the depth)
+    by the strand each read aligned on, so they sum to the minor-allele count
+    and not to ``depth``; ``minor_fraction`` is therefore exactly
+    ``(plus_count + minus_count) / depth``.
+
+    Nothing here classifies anything. These are measurements the caller may
+    weigh; no verdict reads them.
+    """
+
+    position: int
+    minor_fraction: float
+    depth: int
+    plus_count: int
+    minus_count: int
+
+    @property
+    def weak_strand_share(self) -> float | None:
+        """``min(plus, minus) / (plus + minus)``, or ``None`` with no support.
+
+        A minor allele seen on one strand only scores 0.0, one seen equally on
+        both scores 0.5.  ``None`` is returned only when the minor allele has no
+        supporting reads at all, which the mix-eligibility rule makes
+        unreachable for engine-built records (>= 2 distinct A/C/G/T bases means
+        the second-largest column is nonzero); it stays reachable for records
+        rebuilt by ``parse_noisy_positions`` from a header someone edited by
+        hand. It exists so the "unknown" case can never be read as the very
+        different "one strand only" case.
+        """
+        total = self.plus_count + self.minus_count
+        if total <= 0:
+            return None
+        return min(self.plus_count, self.minus_count) / total
+
+
 @dataclass
 class BarcodeRecord:
     """Ingest -> Translate transfer object.
@@ -69,6 +125,31 @@ class BarcodeRecord:
     # Noise floor the well ran at (median minor-allele fraction). 0.0 when
     # unknown, including consensus files written before this metric existed.
     median_minor_allele_fraction: float = 0.0
+    # Weak-strand share, min(plus, minus) / (plus + minus), of the minor allele at
+    # the position that produced ``max_minor_allele_fraction``. A sequence-context
+    # artifact is read off one strand and lands near 0; a real mixture is read off
+    # both. ``None`` means UNKNOWN (no mix-eligible position, or a consensus file
+    # written before the metric existed). 0.0 is a real measurement saying the
+    # minor allele is one-strand only, so the two must never be conflated; see
+    # ``min_variant_support`` above for the same rule. Reported only, no gate
+    # reads it.
+    max_minor_allele_strand_share: float | None = None
+    # The two denominators behind that share. Meaningful only when the share is
+    # not ``None``, because a thin one-strand well and an artifact both score 0.0
+    # and only the counts tell them apart. 0 when the share is unknown, which is
+    # why readers must key on the share rather than on these being nonzero.
+    max_minor_allele_plus_count: int = 0
+    max_minor_allele_minus_count: int = 0
+    # Mix-eligible positions this well had in total, and the top-K sample of them
+    # ranked by minor fraction descending. ``len(noisy_positions) <
+    # n_eligible_positions`` says the sample is truncated, which on a real ONT
+    # amplicon it always is (both measured runs filled the budget in every well).
+    # Without the count a recurrence tally built from these lists would read as a
+    # census. 0 and () for files written before the metric existed, which is also
+    # what a well with no eligible position reports; the two are indistinguishable
+    # and neither states anything false.
+    n_eligible_positions: int = 0
+    noisy_positions: tuple[NoisyPosition, ...] = ()
     # Longest contiguous deletion-majority run (informational; see ConsensusCall).
     # 0 = insertion-driven, 1 = isolated single position (artifact suspect),
     # >=2 = N-bp contiguous deletion.

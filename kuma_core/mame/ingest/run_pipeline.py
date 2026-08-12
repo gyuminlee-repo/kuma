@@ -153,6 +153,17 @@ def ingest_run_folder(
         ``wells_with_reads``, ``wells_with_min_reads``), summed across native
         barcodes in per-NB mode.  Carries the DemuxStats field set and nothing
         else, identically in both modes, so a consumer needs one shape only.
+
+        The seven ``drop_*`` counters that split ``ambiguous_dropped`` by cause
+        (``drop_short_window_read_5p``, ``drop_short_window_read_3p``,
+        ``drop_no_barcode_f``, ``drop_no_barcode_r``,
+        ``drop_ambiguous_tie_f``, ``drop_ambiguous_tie_r``,
+        ``drop_both_axes``) are the one exception to that "identically in both
+        modes": they arrive from a fresh demux in either mode, and per-NB mode
+        omits ALL SEVEN when any unit was resumed from a completion marker
+        written before the breakdown existed.  Omitted rather than zero-filled
+        for the same reason as everywhere else on this chain, since a zero here
+        would claim the causes were measured and found empty.
         Passed as a sink rather than folded into the return value so existing
         callers that only want the records keep the same signature.  These
         counters exist only because this function runs the demux; a caller that

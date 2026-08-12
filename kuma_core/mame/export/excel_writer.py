@@ -36,6 +36,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.workbook import Workbook
 
 from kuma_core.mame.export.well_mapper import WellMapper, seq_to_well
+from kuma_core.mame.ingest.consensus_metadata import format_noisy_positions
 from kuma_core.mame.select.purity import (
     PlateBaseline,
     plate_baseline,
@@ -80,6 +81,11 @@ _SHEET1_HEADER = [
     "mixed_positions",
     "max_minor_allele_fraction",
     "median_minor_allele_fraction",
+    "max_minor_allele_strand_share",
+    "max_minor_allele_plus_count",
+    "max_minor_allele_minus_count",
+    "eligible_positions",
+    "noisy_positions",
     "min_variant_support",
     "min_variant_support_depth",
     "support_lower_bound",
@@ -278,6 +284,26 @@ def _write_sheet1(
             br.n_mixed_positions,
             round(br.max_minor_allele_fraction, 4),
             round(br.median_minor_allele_fraction, 4),
+            # Blank when no mix-eligible position exists. A 0 here would read as
+            # "the minor allele came off one strand", which is the artifact
+            # signature, so an unmeasured well must not be given it. The two
+            # counts blank on the same condition rather than on being zero:
+            # 0 plus-strand reads is a real and important measurement.
+            _round_or_blank(br.max_minor_allele_strand_share, 3),
+            (
+                ""
+                if br.max_minor_allele_strand_share is None
+                else br.max_minor_allele_plus_count
+            ),
+            (
+                ""
+                if br.max_minor_allele_strand_share is None
+                else br.max_minor_allele_minus_count
+            ),
+            br.n_eligible_positions,
+            # Same encoding as the consensus FASTA header, so a cell can be
+            # pasted back and read by the same parser.
+            format_noisy_positions(br.noisy_positions),
             _round_or_blank(br.min_variant_support, 4),
             br.min_variant_support_depth or "",
             _round_or_blank(support_lower_bound(br), 4),

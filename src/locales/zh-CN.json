@@ -1045,6 +1045,13 @@
         "metricTotalReads": "Reads in fastq_pass",
         "metricPassedMapq": "Reads passing MAPQ",
         "metricPassedCoverage": "Reads passing coverage",
+        "metricDropShortWindow5p": "丢弃，read 5' 端无序列",
+        "metricDropShortWindow3p": "丢弃，read 3' 端无序列",
+        "metricDropNoBarcodeF": "丢弃，F barcode 未匹配",
+        "metricDropNoBarcodeR": "丢弃，R barcode 未匹配",
+        "metricDropAmbiguousTieF": "丢弃，F barcode 并列",
+        "metricDropAmbiguousTieR": "丢弃，R barcode 并列",
+        "metricDropBothAxes": "丢弃，两侧 barcode 均失败",
         "causeHeading": "What the read counts point to",
         "causeNoAlignment": "The run had {{totalReads}} reads and none of them aligned to the reference (0 passed the MAPQ gate). That is what a reference from a different sequence looks like: check that the reference file is the construct that was actually sequenced.",
         "causeNoCoverage": "{{passedMapq}} reads aligned to the reference, but none of them covered enough of it to be called (0 passed the coverage gate). That is what a whole-construct reference looks like against amplicon reads: use the amplicon region as the reference, or lower the coverage requirement.",
@@ -2433,12 +2440,21 @@
     "descriptionRange": "自 v{{from}} 以来每次更新的主要变化。",
     "gotItBtn": "知道了",
     "highlights": [
-      "sequencing kit 现在会出现在 Excel export、Janus 文件和报告中，此前在近期 run 中一直为空。",
-      "当覆盖度阈值丢弃了大部分 read 时，run 会明确说明，这些孔不再看起来像从未上样的孔。",
-      "当有两个文件夹都像是 run 时，一个 run 的 flow cell 和开始时间不会再被报告为另一个 run 的。"
+      "well 现在会报告其 minor read 来自哪条 strand，因此第二种基因型可以与 amplicon 本身的假象区分开。",
+      "每个 well 还会列出最嘈杂的十个 position 以及有多少 position 符合条件，这十个因此读作样本而非全量。",
+      "run 现在会统计哪些参考 position 在各个 well 中反复出现，并附上每处的 strand 证据。",
+      "从未进入任何 well 的 read 现在按原因分别计数，而不再全部报告为 barcode 歧义。",
+      "这里不作任何评判。没有 well 的判定改变，也没有阈值移动。"
     ],
-    "highlightsStamp": "0.16.23+6c37c3e1",
+    "highlightsStamp": "0.16.24+1307c327",
     "releases": {
+      "0.16.24": [
+        "well 现在会报告其 minor read 来自哪条 strand，因此第二种基因型可以与 amplicon 本身的假象区分开。",
+        "每个 well 还会列出最嘈杂的十个 position 以及有多少 position 符合条件，这十个因此读作样本而非全量。",
+        "run 现在会统计哪些参考 position 在各个 well 中反复出现，并附上每处的 strand 证据。",
+        "从未进入任何 well 的 read 现在按原因分别计数，而不再全部报告为 barcode 歧义。",
+        "这里不作任何评判。没有 well 的判定改变，也没有阈值移动。"
+      ],
       "0.16.23": [
         "sequencing kit 现在会出现在 Excel export、Janus 文件和报告中，此前在近期 run 中一直为空。",
         "当覆盖度阈值丢弃了大部分 read 时，run 会明确说明，这些孔不再看起来像从未上样的孔。",
@@ -2624,6 +2640,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",

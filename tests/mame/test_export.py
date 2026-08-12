@@ -29,6 +29,7 @@ from kuma_core.mame.report.builder import build_run_report_data
 from kuma_core.mame.report.html_renderer import render_html
 from kuma_core.mame.models import (
     BarcodeRecord,
+    NoisyPosition,
     ReplicateResult,
     TranslatedRecord,
     VerdictClass,
@@ -355,6 +356,63 @@ def test_consensus_sheet_name_and_columns_preserved(tmp_path: Path) -> None:
     assert "consensus" in wb.sheetnames
     header = [c.value for c in wb["consensus"][1]]
     assert header == _SHEET1_HEADER
+
+
+def test_unknown_strand_share_is_blank_and_a_measured_zero_is_written(
+    tmp_path: Path,
+) -> None:
+    """An unmeasured share must not become a 0 in a sheet someone sorts on.
+
+    0.0 here means the minor allele came off one strand only, the artifact
+    reading. A well with no mix-eligible position measured nothing, so its cell
+    is empty; a well that measured 0.0 writes 0.0. The two counts blank on the
+    share being unknown rather than on being zero, because 0 plus-strand reads
+    is itself the finding.
+    """
+    unknown = _make_verdict("NB01", "1_1", VerdictClass.PASS)
+    assert unknown.translated.barcode.max_minor_allele_strand_share is None
+
+    measured = _make_verdict("NB01", "2_1", VerdictClass.PASS)
+    measured.translated.barcode.max_minor_allele_strand_share = 0.0
+    measured.translated.barcode.max_minor_allele_plus_count = 7
+    measured.translated.barcode.max_minor_allele_minus_count = 0
+    measured.translated.barcode.n_eligible_positions = 214
+    measured.translated.barcode.noisy_positions = (
+        # Self-consistent: minor_fraction == (plus + minus) / depth, 13/312.
+        NoisyPosition(
+            position=1248,
+            minor_fraction=13 / 312,
+            depth=312,
+            plus_count=13,
+            minus_count=0,
+        ),
+    )
+
+    out = tmp_path / "strand.xlsx"
+    write_excel(
+        verdict_records=[unknown, measured], replicate_results=[], output_path=out
+    )
+    ws = openpyxl.load_workbook(out)["NB01"]
+    header = [c.value for c in ws[1]]
+    rows = {
+        r[header.index("custom_barcode")].value: r for r in ws.iter_rows(min_row=2)
+    }
+
+    def cell(barcode: str, column: str):
+        return rows[barcode][header.index(column)].value
+
+    # Empty, not 0. openpyxl reads an unwritten empty string back as None.
+    assert cell("1_1", "max_minor_allele_strand_share") in (None, "")
+    assert cell("1_1", "max_minor_allele_plus_count") in (None, "")
+    assert cell("1_1", "max_minor_allele_minus_count") in (None, "")
+    assert cell("1_1", "eligible_positions") == 0
+    assert cell("1_1", "noisy_positions") in (None, "")
+
+    assert cell("2_1", "max_minor_allele_strand_share") == 0.0
+    assert cell("2_1", "max_minor_allele_plus_count") == 7
+    assert cell("2_1", "max_minor_allele_minus_count") == 0
+    assert cell("2_1", "eligible_positions") == 214
+    assert cell("2_1", "noisy_positions") == "1248:0.042:312:13:0"
 
 
 def test_fallback_ambiguous_selection_no_matrix_o(tmp_path: Path) -> None:

@@ -162,7 +162,12 @@ def _chunk_stats(monkeypatch: pytest.MonkeyPatch, outcomes: list[object]) -> tup
         chunk, r_barcodes=[("r1", "ACGTACGTAC")], f_barcodes=[("f1", "TTTTGGGGCC")],
         window_bp=30, edit_dist_ratio=0.25, trim_flank_bp=30,
     )
-    _idx, appends, assigned, chimera, ambiguous = result
+    # ``drop_deltas`` (the per-reason split of ``ambiguous``) is unpacked and
+    # discarded: the stub replaces _demux_read_anchored, so it never fills the
+    # reason sink and the split is empty by construction here. What this helper
+    # tests is the first-hit accounting, and the partition identity has its own
+    # tests in tests/mame/test_demux_drop_reasons.py against the real matcher.
+    _idx, appends, assigned, chimera, ambiguous, _drops = result
     return appends, assigned, chimera, ambiguous
 
 

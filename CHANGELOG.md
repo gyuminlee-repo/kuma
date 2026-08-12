@@ -1,5 +1,40 @@
 # Changelog
 
+## v0.16.24 (A minor allele fraction that said nothing about which strand it was read on)
+
+A well reporting a minor allele at 5% is reporting one number for two different situations. A second genotype in the well is read on both strands, because both strands of both molecules go through the pore. A sequence context the basecaller reads wrong is read off whichever strand carries that context, so the minor reads pile up on one side. The fraction is identical in the two cases, and nothing recorded what separates them: a minus-strand read is reverse complemented into reference orientation before it votes, and the strand it arrived on was dropped at that point.
+
+The per-well consensus now reports, for the position that produced the highest minor allele fraction, how the reads supporting that minor allele split across the two strands, together with the counts behind the split. On the two runs measured here, position 1196 carries a minor fraction of 0.050 with every supporting read on one strand, and position 1248 carries 0.055 with 0.391 of its supporting reads on the weaker strand. The fractions do not separate those two positions and the strand split does. Zero is a measurement and a missing value is not, so a well with no position eligible for a minor allele reports nothing there rather than reporting zero.
+
+Each well also lists its ten noisiest positions and how many positions were eligible in total. Ten is a reporting budget, and on both runs measured every well hit it (87 of 87 and 79 of 79), so the eligible count rides alongside the list to say how much was left out of it.
+
+A run-level tally says which reference positions come back well after well, with the strand evidence at each. A minor allele in one well is a candidate mixture. The same reference position in forty wells is a property of the amplicon rather than of forty separate clones. Two ispS runs, 87 and 79 wells over a 1715 bp amplicon, on different flow cells five months apart, put the median weak-strand share at 0.250 and 0.256 for positions only one well reported, and at 0.016 and 0.000 for positions ten or more wells reported. Nine positions recurred in ten or more wells on both runs. The both-strands principle behind reading that as amplicon evidence is the acceptance rule in ampliCan (Labun et al. 2019, doi:10.1101/gr.244293.118). The table carries no finding and no severity, because every candidate cut had a counterexample on the runs it was built from.
+
+Separately, the demux discard counter was split into seven that name the cause. One counter had been counting every alignment hit that reached no well, under a name taken from barcode ambiguity, which two real runs put at about 0.5% of the loss. Roughly 71% of alignment-passing reads never reached a well at all, and the screen could not say why. Two of the seven are keyed on the read end rather than on the F or R barcode axis, because the window is cut from the read and it is the 3' end that comes up short (43.9% and 70.2% of reads on the two runs, against essentially none at the 5' end). Which axis that kills is decided by strand, so an axis-keyed tally splits one physical cause in two and each half reads as half a problem.
+
+All of this is measurement. No verdict, gate or threshold reads any of the new fields, no threshold moved, and no run saved by an earlier build is scored differently by this one.
+
+### Highlights
+
+- A well now reports which strand its minor reads came from, so a second genotype can be told from an artifact of the amplicon.
+- Each well also lists its ten noisiest positions and how many positions were eligible, so the ten reads as a sample and not a census.
+- A run now tallies which reference positions come back well after well, with the strand evidence at each one.
+- Reads that never reached a well are counted by cause, instead of all being reported as barcode ambiguity.
+- Nothing here grades a run. No well changes verdict, and no threshold moved.
+
+### Added
+
+- `max_minor_allele_strand_share` on the per-well consensus, the weaker-strand share of the minor allele at the position that produced `max_minor_allele_fraction`, with `max_minor_allele_plus_count` and `max_minor_allele_minus_count` beside it. The three are emitted only where a mix-eligible position exists: absence means unknown, and 0.0 means the minor allele was read off one strand alone, which is the artifact reading, so zero-filling a missing value would report evidence nobody measured. `_accumulate_all` keeps a parallel minus-strand accumulator to make this available, one extra `(ref_len, 6)` int64 array per well.
+- `noisy_positions`, the ten mix-eligible positions of a well ranked by minor fraction, and `n_eligible_positions`, how many were eligible in all. Ten is a reporting budget and nothing is accepted or rejected by it. `NoisyPosition` holds position, minor fraction, depth and the plus and minus counts as one record, and travels through the consensus FASTA header, `models.py`, the Excel export and `src/types/mame/models.ts`. The header packs the five numbers into one key, since a position only means anything with all five together and parallel lists can go out of step.
+- `position_recurrence` on the run-quality block: which reference positions more than one well reported, with the median, minimum and maximum weak-strand share at each and the known and unknown share counts behind them. `lower_bound`, `wells_contributing` and `wells_truncated` ride with the table, because each well contributed at most ten positions. It aggregates over the verdicts rather than the ingested records, so a declared selection has already removed the wells the campaign left empty. Nothing renders it yet.
+- Seven `drop_*` counters on the demux stats, one bucket per failed hit, partitioning the total `ambiguous_dropped` already carried. A hit that failed on both axes is charged to `drop_both_axes` alone rather than split. They reach `EmptyAnalysisNotice` as one row each, in all ten locales, and a per-NB resume off a marker written before the breakdown existed omits all seven rather than seeding zeros that would claim a measurement.
+
+### Changed
+
+- `NoisyPosition` is declared once, in `kuma_core/mame/models.py`, with the `weak_strand_share` property included. Two declarations carried the same five fields, and the property lived on the one that never travelled, so the one derived quantity separating a per-clone mixture from a sequence-context artifact was unavailable on every record that is persisted or transmitted.
+- `_NoisyPositionLike` is gone. It declared `position` as a mutable attribute while `NoisyPosition` is frozen, so the structural match failed and Pyright rejected `BarcodeRecord` against it. `_WellLike.noisy_positions` names `Sequence[NoisyPosition]` directly, an import lighter than one that module already makes.
+- `ambiguous_dropped` keeps its exact value and its name. It ships on the demux RPC, in per-NB stage markers and in the contamination rate signal, so renaming it needs its own commit with a migration for those readers.
+
 ## v0.16.23 (What other people nanopore runs turned up)
 
 Eighteen runs from five other people on the lab shared drive, spanning 2020 to 2026 and both MinION and GridION, went through MAME. Nothing crashed and the null handling held. Three things were wrong anyway, and one of them had been wrong for every modern run.
