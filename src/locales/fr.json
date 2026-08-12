@@ -2441,14 +2441,19 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Un well indique désormais de quel strand proviennent ses reads minoritaires, ce qui distingue un second génotype d'un artefact de l'amplicon.",
-      "Chaque well liste aussi ses dix positions les plus bruitées et le nombre de positions éligibles, si bien que les dix se lisent comme un échantillon et non un recensement.",
-      "Un run recense désormais les positions de référence qui reviennent well après well, avec la preuve de strand à chacune.",
-      "Les reads qui n'ont jamais atteint un well sont comptés par cause, au lieu d'être tous signalés comme une ambiguïté de barcode.",
-      "Rien n'est jugé ici. Aucun well ne change de verdict et aucun seuil n'a bougé."
+      "Un run déclaré est désormais évalué sur les variants des wells qu'il a déclarés, si bien qu'un run qui les a tous récupérés affiche 100 pour cent et non 9 pour cent.",
+      "Le compte de wells à côté compte de nouveau des wells et non une entrée par replicate plate, si bien qu'une déclaration de dix wells n'affiche plus 57 wells.",
+      "Un run enregistré par une version antérieure est invité à être réanalysé, car son taux était divisé par la liste complète des variants.",
+      "Déclarer seulement le WT control ne laisse aucun mutant conçu à évaluer, si bien que le taux affiche un tiret plutôt qu'un pourcentage."
     ],
-    "highlightsStamp": "0.16.24+1307c327",
+    "highlightsStamp": "0.16.25+8204368c",
     "releases": {
+      "0.16.25": [
+        "Un run déclaré est désormais évalué sur les variants des wells qu'il a déclarés, si bien qu'un run qui les a tous récupérés affiche 100 pour cent et non 9 pour cent.",
+        "Le compte de wells à côté compte de nouveau des wells et non une entrée par replicate plate, si bien qu'une déclaration de dix wells n'affiche plus 57 wells.",
+        "Un run enregistré par une version antérieure est invité à être réanalysé, car son taux était divisé par la liste complète des variants.",
+        "Déclarer seulement le WT control ne laisse aucun mutant conçu à évaluer, si bien que le taux affiche un tiret plutôt qu'un pourcentage."
+      ],
       "0.16.24": [
         "Un well indique désormais de quel strand proviennent ses reads minoritaires, ce qui distingue un second génotype d'un artefact de l'amplicon.",
         "Chaque well liste aussi ses dix positions les plus bruitées et le nombre de positions éligibles, si bien que les dix se lisent comme un échantillon et non un recensement.",
@@ -2641,6 +2646,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.25": "8204368c",
       "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
       "0.16.21": "357e800b",
