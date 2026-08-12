@@ -1272,6 +1272,11 @@ def handle_analyze(params: dict) -> dict:
     barcode_prefix_resolution = None
     resolved_raw_cds_start: int | None = None
     resolved_raw_cds_end: int | None = None
+    # Whether the amplicon between the primer sites was cut out, or the supplied
+    # reference is being aligned against unmodified. Only the second case can put
+    # an expected mutation against a reference end, so the run-quality warning
+    # needs this here. None in consensus-dir mode, which resolves no reference.
+    amplicon_extracted: bool | None = None
     expected = _validate_filepath(
         params["expected"], allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
     )
@@ -1539,6 +1544,7 @@ def handle_analyze(params: dict) -> dict:
         )
 
         reference_for_pipeline = amplicon_resolution.reference_fasta
+        amplicon_extracted = amplicon_resolution.extracted
         if amplicon_resolution.extracted:
             reference = reference_for_pipeline
             original_cds_start = int(params.get("cds_start", 0))
@@ -2028,7 +2034,26 @@ def handle_analyze(params: dict) -> dict:
         serialise_position_recurrence,
         serialise_run_quality,
         summarise_position_recurrence,
+        variants_near_reference_edge,
     )
+
+    # Mutations sitting against an end of the reference that was actually
+    # aligned against. Only asked when extraction was skipped: an extracted
+    # amplicon carries the primer anneal regions, which is exactly what puts a
+    # terminal codon far enough inside the reference for the aligner to reach it.
+    # ``reference`` is rebound to the extracted file in that case, so the length
+    # read here is always the length reads were aligned to.
+    _edge_variants: list[str] = []
+    if amplicon_extracted is False:
+        try:
+            _edge_variants = variants_near_reference_edge(
+                {em.mutant_id: em.position for em in expected_mutations},
+                cds_start,
+                _read_reference_length(reference),
+            )
+        except (OSError, ValueError):
+            # An advisory sentence is never worth failing a finished run for.
+            _edge_variants = []
 
     _flow_cell = read_flow_cell_history(input_dir)
     _ledger_root = output.parent
@@ -2052,6 +2077,8 @@ def handle_analyze(params: dict) -> dict:
             pore_start=_flow_cell.pore_start,
             pore_end=_flow_cell.pore_end,
             reused_from=_previous_use,
+            amplicon_extracted=amplicon_extracted,
+            edge_variants=_edge_variants,
         )
     )
     # Which reference positions came back well after well, nested on the same

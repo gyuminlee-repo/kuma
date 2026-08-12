@@ -457,9 +457,6 @@
       "colZScore": "Z-score",
       "colSeverity": "Sévérité",
       "severityAriaLabel": "Sévérité : {{severity}}",
-      "recovery": "Récupération",
-      "recoveryValue": "{{recovered}}/{{total}} ({{pct}} %)",
-      "recoveryNa": "s.o.",
       "detectedShort": "Détecté",
       "classCountTableCaption": "Décompte des classes de verdict sur toutes les plaques",
       "classCountColClass": "Classe",
@@ -1011,7 +1008,8 @@
       "finding": {
         "median_depth_below_floor": "Profondeur mediane {{median}} sous le plancher de {{floor}}.",
         "median_depth_below_recommended": "Profondeur mediane {{median}} sous les {{recommended}} lectures par amplicon recommandees.",
-        "flow_cell_reused": "La cellule {{cell}} a deja porte une execution dans ce projet, terminee avec {{previousPores}} pores."
+        "flow_cell_reused": "La cellule {{cell}} a deja porte une execution dans ce projet, terminee avec {{previousPores}} pores.",
+        "variants_at_reference_edge": "{{variants}} se trouvent a moins de {{margin}} pb d'une extremite de la reference, et cette execution a aligne sur la reference telle que fournie. Un aligneur coupe une lecture a une mesappariement qu'il ne peut pas rattacher, donc ces positions peuvent voir moins de profondeur que le puits n'en rapporte. Une reference incluant les sites de fixation des amorces les place plus a l'interieur."
       }
     },
     "inspector": {
@@ -1061,6 +1059,11 @@
         "nextStepReference": "Reference: confirm the reference file matches the sequenced amplicon. A reference from a different construct drops every read during alignment.",
         "nextStepExpected": "Expected mutations: confirm the expected-mutations file covers the variants used in this run.",
         "nextStepInputFolder": "Input folder: confirm the selected folder is the run for this experiment and that its barcode folders contain reads."
+      },
+      "coverageLoss": {
+        "title": "Le filtre de couverture a écarté {{percent}}% des lectures alignées",
+        "body": "{{aligned}} lectures se sont alignées sur la référence et {{kept}} ont été conservées. Les puits dont toutes les lectures ont été écartées ne produisent aucun verdict, et apparaissent donc sur cet écran comme des puits jamais remplis.",
+        "hint": "Une certaine perte est attendue, car les lectures partielles et chimériques doivent être écartées. Une proportion élevée désigne la référence plutôt que les échantillons : un alignement qui s'arrête à un nombre constant de bases des extrémités de la référence, au niveau d'une amorce par exemple, échoue d'autant plus facilement à un seuil exprimé en pourcentage que l'amplicon est court. Le seuil de couverture se trouve dans les options avancées du panneau de paramètres."
       },
       "durationDialog": {
         "title": "Analysis complete",
@@ -2437,11 +2440,22 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les notifications suivent désormais le thème sombre, au lieu d'apparaître comme une carte blanche vive sur un écran sombre.",
-      "Elles continuent de le suivre, que le thème ait été changé depuis la barre de menu, les paramètres ou le système."
+      "Le sequencing kit apparaît désormais dans l'export Excel, le fichier Janus et le rapport, au lieu de rester vide sur chaque run récent.",
+      "Un run qui écarte la plupart de ses lectures au filtre de couverture le signale, et ces puits ne ressemblent plus à des puits jamais remplis.",
+      "Quand deux dossiers ressemblent tous deux à un run, la flow cell et l'heure de début de l'un ne sont plus rapportées pour l'autre."
     ],
-    "highlightsStamp": "0.16.20+c211fb70",
+    "highlightsStamp": "0.16.23+6c37c3e1",
     "releases": {
+      "0.16.23": [
+        "Le sequencing kit apparaît désormais dans l'export Excel, le fichier Janus et le rapport, au lieu de rester vide sur chaque run récent.",
+        "Un run qui écarte la plupart de ses lectures au filtre de couverture le signale, et ces puits ne ressemblent plus à des puits jamais remplis.",
+        "Quand deux dossiers ressemblent tous deux à un run, la flow cell et l'heure de début de l'un ne sont plus rapportées pour l'autre."
+      ],
+      "0.16.21": [
+        "Les mutations collees a une extremite de la reference sont nommees au-dessus du tableau, pour les executions qui ont utilise la reference telle quelle.",
+        "Elles sont nommees plutot que comptees, car savoir laquelle decide de ce qu'il faut faire.",
+        "La note reste indicative: rien n'est ecarte, et aucun verdict ne change."
+      ],
       "0.16.20": [
         "Les notifications suivent désormais le thème sombre, au lieu d'apparaître comme une carte blanche vive sur un écran sombre.",
         "Elles continuent de le suivre, que le thème ait été changé depuis la barre de menu, les paramètres ou le système."
@@ -2609,9 +2623,16 @@
         "Les noms de variants sur la carte de la plaque ne sont plus coupés avant le caractère qui les distingue. R560E et R560Q s'affichent désormais tels qu'ils sont.",
         "Un nom trop long pour une ligne passe désormais à la ligne dans sa cellule au lieu d'être tronqué trop tôt.",
         "Nettoyage interne de valeurs de conception inutilisées et de tailles codées en dur, sans changement visible."
+      ],
+      "0.16.22": [
+        "La répartition des verdicts n'affiche plus de taux de récupération. Une exécution ne rapporte plus qu'un seul taux au lieu de deux qui comptaient différemment.",
+        "Le taux de réussite reste et compte exactement les clones PASS que la liste de sélection exporte réellement.",
+        "La barre ci-dessous répartit toujours les variants en réussis, confirmés avec un changement annexe et non confirmés."
       ]
     },
     "releaseStamps": {
+      "0.16.23": "6c37c3e1",
+      "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
       "0.16.17": "f9c0ee2f",
@@ -2640,7 +2661,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.18": "2b708e6d"
+      "0.16.18": "2b708e6d",
+      "0.16.22": "9192ec4b"
     }
   },
   "primerDisplay": {

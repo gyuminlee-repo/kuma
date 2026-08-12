@@ -457,9 +457,6 @@
       "colZScore": "Z-score",
       "colSeverity": "重大度",
       "severityAriaLabel": "重大度: {{severity}}",
-      "recovery": "回収率",
-      "recoveryValue": "{{recovered}}/{{total}} ({{pct}}%)",
-      "recoveryNa": "該当なし",
       "detectedShort": "検出",
       "classCountTableCaption": "全プレートの Verdict クラス数",
       "classCountColClass": "クラス",
@@ -1011,7 +1008,8 @@
       "finding": {
         "median_depth_below_floor": "深さの中央値 {{median}} が下限 {{floor}} 未満。",
         "median_depth_below_recommended": "深さの中央値 {{median}} が推奨の amplicon あたり {{recommended}} read 未満。",
-        "flow_cell_reused": "フローセル {{cell}} はこのプロジェクトで既に1回ランを経ており、そのとき細孔 {{previousPores}} で終わった。"
+        "flow_cell_reused": "フローセル {{cell}} はこのプロジェクトで既に1回ランを経ており、そのとき細孔 {{previousPores}} で終わった。",
+        "variants_at_reference_edge": "{{variants}} がリファレンス末端から {{margin}} bp 以内にあり、このランは与えられたリファレンスをそのまま整列に使いました。アライナは付けられない不一致で read を切るため、その位置はウェルが報告する depth より浅く読まれることがあります。プライマー結合領域まで含むリファレンスにすると内側に入ります。"
       }
     },
     "inspector": {
@@ -1061,6 +1059,11 @@
         "nextStepReference": "Reference: confirm the reference file matches the sequenced amplicon. A reference from a different construct drops every read during alignment.",
         "nextStepExpected": "Expected mutations: confirm the expected-mutations file covers the variants used in this run.",
         "nextStepInputFolder": "Input folder: confirm the selected folder is the run for this experiment and that its barcode folders contain reads."
+      },
+      "coverageLoss": {
+        "title": "カバレッジゲートがアラインされた read の {{percent}}% を破棄しました",
+        "body": "{{aligned}} 件の read が参照にアラインされ、そのうち {{kept}} 件が残りました。read がすべて破棄された well は判定が出ないため、この画面では実験が行われなかった well と同じように見えます。",
+        "hint": "一定の損失は正常です。部分的なアラインメントや chimeric read は元々除外されます。ただし割合が大きい場合は、試料よりも参照を疑う余地があります。たとえば primer の位置のように参照の両端から一定の塩基数だけ届かずに終わるアラインメントは、amplicon が短いほど百分率の基準を満たしにくくなります。カバレッジの基準値はパラメータパネルの詳細オプションにあります。"
       },
       "durationDialog": {
         "title": "Analysis complete",
@@ -2437,11 +2440,22 @@
     "descriptionRange": "v{{from}} 以降のすべてのアップデートの主な変更点です。",
     "gotItBtn": "了解",
     "highlights": [
-      "通知は暗い画面上に明るい白いカードとして表示される代わりに、ダークテーマに追従するようになりました。",
-      "メニューバー、設定、システムのいずれからテーマを変更しても、通知は追従し続けます。"
+      "sequencing kit の値が Excel export、Janus ファイル、レポートに反映されます。最近の run では空欄のままでした。",
+      "カバレッジゲートが read の大半を破棄した run がその事実を通知します。該当 well が未実施のように見えることはありません。",
+      "run に見えるフォルダーが二つある場合に、ある run の flow cell と開始時刻が別の run のものとして報告されなくなりました。"
     ],
-    "highlightsStamp": "0.16.20+c211fb70",
+    "highlightsStamp": "0.16.23+6c37c3e1",
     "releases": {
+      "0.16.23": [
+        "sequencing kit の値が Excel export、Janus ファイル、レポートに反映されます。最近の run では空欄のままでした。",
+        "カバレッジゲートが read の大半を破棄した run がその事実を通知します。該当 well が未実施のように見えることはありません。",
+        "run に見えるフォルダーが二つある場合に、ある run の flow cell と開始時刻が別の run のものとして報告されなくなりました。"
+      ],
+      "0.16.21": [
+        "リファレンス末端に接した変異は判定表の上に名前が出る。与えられたリファレンスをそのまま整列に使ったランでのみ出る。",
+        "個数ではなく名前を書く。どの変異かが次の行動を決めるからである。",
+        "あくまで助言として残る。捨てられるものはなく、変わる判定もない。"
+      ],
       "0.16.20": [
         "通知は暗い画面上に明るい白いカードとして表示される代わりに、ダークテーマに追従するようになりました。",
         "メニューバー、設定、システムのいずれからテーマを変更しても、通知は追従し続けます。"
@@ -2609,9 +2623,16 @@
         "プレートマップの変異名が、区別する文字の手前で切れることがなくなった。R560EとR560Qもそのまま表示される。",
         "1行に収まらない名前は、早めに切れる代わりにセル内で折り返すようになった。",
         "未使用のデザイン値とハードコードされたサイズの内部整理。表示上の変化はない。"
+      ],
+      "0.16.22": [
+        "判定内訳に回収率が表示されなくなりました。今回から実行ごとに一つの値だけを報告します。",
+        "確定率はそのまま残り、ピックリストが実際に書き出すPASSクローンの数をそのまま数えます。",
+        "下部の帯グラフは、通過・付随変化ありで再現・未再現の3区分を引き続き表示します。"
       ]
     },
     "releaseStamps": {
+      "0.16.23": "6c37c3e1",
+      "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
       "0.16.17": "f9c0ee2f",
@@ -2640,7 +2661,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.18": "2b708e6d"
+      "0.16.18": "2b708e6d",
+      "0.16.22": "9192ec4b"
     }
   },
   "primerDisplay": {

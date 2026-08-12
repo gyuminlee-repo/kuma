@@ -88,25 +88,27 @@ function DepIdentityProbe({ sink }: { sink: { t: unknown[]; replicates: unknown[
 }
 
 describe("RunHealthPanel, recovery / detected / class table", () => {
-  // AC8: recovery header shows "R/T (Z%)" when data is available.
-  it("renders the recovery header with R/T (Z%)", () => {
+  // The recovery-rate header is withdrawn: SummaryRow already reports a success
+  // rate over the same designed set, and that one counts PASS alone, which is what
+  // the pick list ships. Two headline percentages differing only in whether
+  // AMBIGUOUS counts let a reader quote the higher one.
+  it("does not render a recovery-rate header", () => {
     render(<RunHealthPanel health={makeHealth()} sections={["verdict-breakdown"]} />);
-    const header = screen.getByTestId("run-health-recovery");
-    expect(header).toHaveTextContent("Recovery");
-    expect(header).toHaveTextContent("3/4 (75%)");
+    expect(screen.queryByTestId("run-health-recovery")).toBeNull();
+    expect(screen.queryByText("3/4 (75%)")).toBeNull();
   });
 
-  // AC8: recovery header shows n/a (never "0%") when fields are null.
-  it("renders n/a in the recovery header when recovery is unavailable", () => {
+  // The bar below it still reads the designed-set scalars, so a null recovery must
+  // not crash the section or print a bogus 0%.
+  it("renders the section without a rate when recovery fields are null", () => {
     const health = makeHealth({
       recovered_mutants: null,
       total_mutants: null,
       recovery_rate: null,
     });
     render(<RunHealthPanel health={health} sections={["verdict-breakdown"]} />);
-    const header = screen.getByTestId("run-health-recovery");
-    expect(header).toHaveTextContent("n/a");
-    expect(header).not.toHaveTextContent("0%");
+    expect(screen.queryByTestId("run-health-recovery")).toBeNull();
+    expect(screen.queryByText("0%")).toBeNull();
   });
 
   // Per-plate headline shows strict pass-rate (pass / total), AMBIGUOUS excluded.
@@ -225,8 +227,8 @@ describe("RunHealthPanel, recovery / detected / class table", () => {
     );
 
     const { rerender } = render(tree(3));
-    expect(screen.getByTestId("run-health-recovery")).toHaveTextContent("3/4 (75%)");
-    // 4 designed - 3 recovered.
+    // 4 designed - 3 recovered. The bar is now the only reader of recovered_mutants
+    // in this section, so it alone has to move when that scalar moves.
     expect(screen.getByText("Not recovered: 1")).toBeInTheDocument();
 
     rerender(tree(2));
@@ -237,7 +239,6 @@ describe("RunHealthPanel, recovery / detected / class table", () => {
     expect(new Set(sink.t).size).toBe(1);
     expect(new Set(sink.replicates).size).toBe(1);
 
-    expect(screen.getByTestId("run-health-recovery")).toHaveTextContent("2/4 (50%)");
     expect(screen.getByText("Not recovered: 2")).toBeInTheDocument();
     expect(screen.queryByText("Not recovered: 1")).not.toBeInTheDocument();
   });

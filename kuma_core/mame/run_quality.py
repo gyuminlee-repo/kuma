@@ -106,6 +106,30 @@ LITERATURE_MIXED_COVERAGE = 1000
 LITERATURE_MIXED_MAF = 0.065
 LITERATURE_MIXED_SOURCE = "Moller et al. 2023, doi:10.1128/spectrum.02728-22"
 
+#: How close to either end of the alignment reference an expected mutation has
+#: to sit before it is called at risk, when amplicon extraction was skipped and
+#: the reference is being used unmodified.
+#:
+#: THIS VALUE IS OURS and it is provisional. An aligner cannot attach a mismatch
+#: it never reaches: a read carrying a mutation near a reference end has that end
+#: clipped, so the read may align and pass the coverage gate while contributing
+#: NO depth at the mutated position. Measured on the 260729 ispS run, where R560
+#: sits 4 bp from the end of a 1,683 bp CDS: alignments reaching the 3' end were
+#: 11.8% of the R560 wells against a CDS reference and 96.1% against the
+#: amplicon (barcode09; from a reproduction the source note flags as
+#: approximate, so treat both as estimates).
+#:
+#: 30 bp is taken from ``trim_flank_bp``, the flank this pipeline already
+#: considers the working margin around an alignment, rather than from a
+#: measurement of where the risk stops. It is an advisory trigger, not a gate:
+#: nothing is dropped or reclassified by it.
+#:
+#: What this warning is NOT: a claim that such wells are lost. At the 98%
+#: coverage gate those clipped reads still pass, and on the 260729 run the wells
+#: scored. The risk is depth AT THE SITE, so it bites in combination with a
+#: shallow run, a ``coverage_fraction`` pushed toward 1.0, or a short reference.
+REFERENCE_EDGE_MARGIN_BP = 30
+
 
 @dataclass
 class RunQuality:
@@ -136,6 +160,12 @@ class RunQuality:
     #: The earlier run this cell carried, when the project has seen one.
     reused_from: dict | None = None
 
+    #: Expected mutations sitting within ``edge_margin_bp`` of a reference end,
+    #: on a run whose reference was used unmodified. Empty on every run that
+    #: extracted an amplicon, which is the ordinary case.
+    edge_variants: list[str] = field(default_factory=list)
+    edge_margin_bp: int = REFERENCE_EDGE_MARGIN_BP
+
     findings: list[dict] = field(default_factory=list)
 
     @property
@@ -148,6 +178,43 @@ class RunQuality:
         return None
 
 
+def variants_near_reference_edge(
+    expected_positions: dict[str, int],
+    cds_start: int,
+    reference_length: int,
+    margin_bp: int = REFERENCE_EDGE_MARGIN_BP,
+) -> list[str]:
+    """Expected mutations whose codon sits within ``margin_bp`` of either end.
+
+    ``expected_positions`` maps a mutant id to its AA position, 1-based over the
+    CDS. ``cds_start`` is the 0-based offset of that CDS inside the alignment
+    reference, so codon ``p`` occupies reference bases ``cds_start + (p-1)*3``
+    through ``+2``. Distance is measured from the nearer edge of the codon to the
+    nearer end of the reference, since clipping starts at whichever base the
+    aligner failed to attach.
+
+    Returns the mutant ids, sorted, so the caller can name them. An empty
+    reference or a non-positive position yields nothing rather than an error:
+    this feeds an advisory notice and must never be the thing that fails a run.
+    """
+    if reference_length <= 0:
+        return []
+    at_risk: list[str] = []
+    for mutant_id, position in expected_positions.items():
+        if position is None or position < 1:
+            continue
+        codon_start = cds_start + (position - 1) * 3
+        codon_end = codon_start + 2
+        if codon_start < 0 or codon_end >= reference_length:
+            # Outside the reference entirely. That is a coordinate-origin
+            # problem, which ``ExpectedCoordinateMismatchError`` in the verdict
+            # classifier already aborts the run over, and not this warning.
+            continue
+        if min(codon_start, reference_length - 1 - codon_end) < margin_bp:
+            at_risk.append(mutant_id)
+    return sorted(at_risk)
+
+
 def assess_run_quality(
     well_read_counts: list[int],
     min_read_count: int | None,
@@ -156,6 +223,9 @@ def assess_run_quality(
     pore_end: int | None = None,
     reused_from: dict | None = None,
     warranty_min: int = MINION_WARRANTY_PORES,
+    amplicon_extracted: bool | None = None,
+    edge_variants: list[str] | None = None,
+    edge_margin_bp: int = REFERENCE_EDGE_MARGIN_BP,
 ) -> RunQuality:
     """Grade the run from what the ingest and the report json already provide.
 
@@ -222,6 +292,26 @@ def assess_run_quality(
                         "min_read_count": min_read_count,
                     }
                 )
+
+    # Mutations sitting against a reference end, on a run whose reference was
+    # used unmodified. Both halves are required. Against an extracted amplicon
+    # the primer anneal regions flank the CDS, so a terminal codon is interior
+    # and there is nothing to say; against a bare CDS the aligner clips at the
+    # mismatch and the site can see a fraction of the depth the well reports.
+    # A WARNING, never blocking: on the run this was measured from, the wells
+    # still scored.
+    if amplicon_extracted is False and edge_variants:
+        quality.edge_variants = list(edge_variants)
+        quality.edge_margin_bp = edge_margin_bp
+        quality.findings.append(
+            {
+                "code": "variants_at_reference_edge",
+                "severity": SEVERITY_WARNING,
+                "variants": list(edge_variants),
+                "variant_count": len(edge_variants),
+                "margin_bp": edge_margin_bp,
+            }
+        )
 
     if reused_from:
         quality.findings.append(
@@ -462,6 +552,8 @@ def serialise_run_quality(quality: RunQuality) -> dict:
         "pore_end": quality.pore_end,
         "pore_warranty_min": quality.pore_warranty_min,
         "reused_from": quality.reused_from,
+        "edge_variants": list(quality.edge_variants),
+        "edge_margin_bp": quality.edge_margin_bp,
         # Where each threshold on this block comes from, carried with the block
         # so a reader is never left deciding whether a number is a vendor
         # figure, a measurement, or ours. The repo used to state 30 as "the
@@ -506,6 +598,15 @@ def serialise_run_quality(quality: RunQuality) -> dict:
                 "kind": "vendor_warranty",
                 "enforced": False,
             },
+            "reference_edge": {
+                "value": quality.edge_margin_bp,
+                "source": "trim_flank_bp, the flank this pipeline already works to",
+                # Ours, and advisory only: it decides whether a sentence appears,
+                # never whether a read, a well or a verdict is kept.
+                "kind": "self_set",
+                "provisional": True,
+                "enforced": False,
+            },
         },
         "findings": quality.findings,
     }
@@ -514,6 +615,7 @@ def serialise_run_quality(quality: RunQuality) -> dict:
 __all__ = [
     "SEVERITY_BLOCKING",
     "SEVERITY_WARNING",
+    "REFERENCE_EDGE_MARGIN_BP",
     "RunQuality",
     "PositionRecurrence",
     "RecurringPosition",
@@ -521,4 +623,5 @@ __all__ = [
     "serialise_run_quality",
     "summarise_position_recurrence",
     "serialise_position_recurrence",
+    "variants_near_reference_edge",
 ]

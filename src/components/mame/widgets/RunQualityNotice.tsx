@@ -100,6 +100,12 @@ export function RunQualityNotice() {
                   recommended: runQuality.recommended_reads,
                   cell: runQuality.flow_cell_id ?? "",
                   previousPores: runQuality.reused_from?.pore_end ?? "",
+                  // Named rather than counted. "3 variants sit near the end"
+                  // sends an operator hunting; "R560D, R560N, R560Q" is the
+                  // answer they were going to look for anyway.
+                  variants: (runQuality.edge_variants ?? []).join(", "),
+                  variantCount: runQuality.edge_variants?.length ?? 0,
+                  margin: runQuality.edge_margin_bp ?? 0,
                 })}
               </li>
             ))}

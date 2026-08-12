@@ -1,5 +1,75 @@
 # Changelog
 
+## v0.16.23 (What other people nanopore runs turned up)
+
+Eighteen runs from five other people on the lab shared drive, spanning 2020 to 2026 and both MinION and GridION, went through MAME. Nothing crashed and the null handling held. Three things were wrong anyway, and one of them had been wrong for every modern run.
+
+The kit was never read. MinKNOW writes it as a column in the sample sheet, and the parser only looked for a line starting with `kit`, so the field sat empty in the Excel export, the Janus mapping file and the HTML report.
+
+The other two are about a run staying silent where it has something to say. Where two sibling folders both looked like a run, the metadata search took whichever the filesystem offered first and stamped one run flow cell onto another. And where the coverage gate discarded most of a run without discarding all of it, the screen filled with verdicts and said nothing about the wells that produced none. On a 96-well comparison that silence covered 34 wells holding hundreds of reads each: every alignment stopped a constant 28 bp short of the reference 3' end, at the reverse primer, and a fixed shortfall against a percentage threshold bites harder the shorter the amplicon. The gate default is unchanged, since that shortfall belongs to references carrying primer flanks rather than to MAME own workflow.
+
+### Highlights
+
+- The sequencing kit now reaches the Excel export, the Janus file and the report, instead of being blank on every recent run.
+- A run that discards most of its reads at the coverage gate now says so, instead of leaving those wells looking like wells never filled.
+- Two folders that both look like a run no longer let one run flow cell and start time be reported for another.
+
+### Fixed
+
+- `kit` is read from the sample sheet CSV column MinKNOW actually writes. The previous scan matched only a `kit,value` line, which no GridION sheet contains, so `meta.kit` was `None` for every modern run and reached users blank through `excel_writer`, `janus_mapping` and `html_renderer`.
+- Run metadata discovery returns nothing when two or more sibling directories at the same level look like run folders. It previously returned whichever `iterdir` yielded first, reporting one run flow cell, kit and start time for another with no warning. A single sibling match and a run folder on the direct path both still resolve.
+
+### Added
+
+- An analyze notice reports the share of aligned reads the coverage gate discarded, once it reaches a quarter of them. The existing empty-analysis notice covers only runs that yield nothing at all, so a run that scored most wells and dropped the rest said nothing about the dropped ones. It reads counters the response already carried, and points at the coverage setting in Advanced options rather than naming a value, because the right one depends on the amplicon.
+
+### Changed
+
+- `align_reads` documents that its `require_full_span` default is not what the analyze pipeline passes, and the agent guide corrects the MAME input inventory, which listed only `*.fastq.gz` although plain `*.fastq` has always been read.
+
+## v0.16.22 (One rate for a run instead of two that disagreed)
+
+The verdict breakdown carried a recovery rate, and the summary row above it carried a success rate. Both counted designed variants over the same denominator. They differed in one respect: recovery counted a well whose designed mutation was reproduced alongside an extra change next to the target, and success did not.
+
+That made the higher number available to quote without anything on screen saying which one described the clones the run hands over. The pick list has only ever exported PASS wells, so the success rate was already the one that matched what leaves the run. The recovery rate is withdrawn from the panel and the success rate stays.
+
+Nothing is recalculated and no stored file changes. The per-variant bar under the old header still shows how many variants passed, how many were reproduced with a side change, and how many were not reproduced at all, so the split the recovery rate folded together is still readable.
+
+### Highlights
+
+- The verdict breakdown no longer shows a recovery rate, so the run reports one rate instead of two that counted differently.
+- The success rate stays, and it counts the PASS clones the pick list actually exports.
+- The bar below still splits variants into passed, reproduced with a side change, and not reproduced.
+
+### Changed
+
+- Run Health withdrew the recovery-rate header. Its value counted PASS and AMBIGUOUS over the designed set, while the success rate in the summary row counts PASS alone over the same set, leaving two headline percentages that differed only in whether a side change disqualified a well.
+- `recovery_rate` is still computed and still travels in the run health payload, so a project saved by an earlier build reloads unchanged and the per-variant bar keeps its denominator.
+- Three locale strings that only the withdrawn header used are gone from all ten locales.
+
+## v0.16.21 (A mutation against the end of the reference is where the aligner stops reading)
+
+An aligner cannot attach a mismatch it never reaches. A read carrying a mutation a few bases from the end of the reference gets that end clipped, so the read can align, pass the coverage gate, and contribute nothing at the position the campaign was about. The well reports its depth and the mutated site was read by a fraction of it.
+
+This was measured on the 260729 ispS run, where R560 sits 4 bp from the end of a 1683 bp CDS. Against that bare CDS, 11.8% of the reads for the R560 wells reached the far end; against the amplicon, which carries the primer binding regions, 96.1% did. The fix has shipped for a while: MAME cuts the amplicon out between the primer sites. What was missing is what happens when that cut is skipped, which is exactly the bare-CDS case. The code called it expected and moved on.
+
+Run quality now names the expected mutations this applies to, above the verdict table, on any run that aligned against the reference as supplied. It is advisory and never blocking. Those wells scored on the run this came from, and the harm is depth at the site rather than a lost well, so it bites in combination with a shallow run or a coverage gate pushed toward 1.0.
+
+### Highlights
+
+- Mutations sitting against an end of the reference are named above the verdict table, on runs that used the supplied reference unmodified.
+- They are named rather than counted, because which variant it is decides what to do about it.
+- The note stays advisory: nothing is dropped, and no verdict changes.
+
+### Added
+
+- `variants_near_reference_edge` maps each expected mutation onto the reference through the CDS offset and reports the ones within 30 bp of either end. The margin comes from `trim_flank_bp` and is labelled self-set and provisional in the threshold block, like every other number there.
+- A `variants_at_reference_edge` finding on the run-quality block, carried in all ten locales.
+
+### Changed
+
+- The amplicon-extraction note for a bare-CDS reference no longer stops at calling the case expected. It states that a mutation near either end is read at less depth than its well reports, and points at the run-quality finding.
+
 ## v0.16.20 (Notifications stayed on the light theme after the rest of the app went dark)
 
 Every notification drew as a white card no matter which theme was in use. On a dark screen that is a bright rectangle in the corner, and it happened on every toast the app has ever shown. The notification library defaults to the light theme unless told otherwise, and it was never told.

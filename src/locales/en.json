@@ -208,6 +208,11 @@
         "nextStepExpected": "Expected mutations: confirm the expected-mutations file covers the variants used in this run.",
         "nextStepInputFolder": "Input folder: confirm the selected folder is the run for this experiment and that its barcode folders contain reads."
       },
+      "coverageLoss": {
+        "title": "The coverage gate discarded {{percent}}% of the aligned reads",
+        "body": "{{aligned}} reads aligned to the reference and {{kept}} of them were kept. Wells whose reads were all discarded produce no verdict, so they look the same on this screen as wells the bench never filled.",
+        "hint": "Some loss is expected, since partial and chimeric reads are meant to be dropped. A large share points at the reference rather than the samples: an alignment that stops a constant number of bases short of the reference ends, at a primer for instance, fails a percentage threshold more easily the shorter the amplicon is. The coverage requirement is under Advanced options in the parameter panel."
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",
@@ -593,9 +598,6 @@
       "colZScore": "Z-score",
       "colSeverity": "Severity",
       "severityAriaLabel": "Severity: {{severity}}",
-      "recovery": "Recovery",
-      "recoveryValue": "{{recovered}}/{{total}} ({{pct}}%)",
-      "recoveryNa": "n/a",
       "detectedShort": "Detected",
       "classCountTableCaption": "Verdict class counts across all plates",
       "classCountColClass": "Class",
@@ -1113,7 +1115,8 @@
       "finding": {
         "median_depth_below_floor": "Median depth {{median}} is under the floor of {{floor}}.",
         "median_depth_below_recommended": "Median depth {{median}} is under the recommended {{recommended}} reads per amplicon.",
-        "flow_cell_reused": "Flow cell {{cell}} already carried a run in this project, which ended with {{previousPores}} pores."
+        "flow_cell_reused": "Flow cell {{cell}} already carried a run in this project, which ended with {{previousPores}} pores.",
+        "variants_at_reference_edge": "{{variants}} sit within {{margin}} bp of an end of the reference, and this run aligned against the reference as supplied. An aligner clips a read at a mismatch it cannot attach, so those positions can see less depth than the well reports. A reference that includes the primer binding regions puts them further inside."
       }
     },
     "inspector": {
@@ -2470,11 +2473,27 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Notifications now follow the dark theme instead of appearing as a bright white card over a dark screen.",
-      "They keep following it whether the theme was changed from the menu bar, from settings, or by the system."
+      "The sequencing kit now reaches the Excel export, the Janus file and the report, instead of being blank on every recent run.",
+      "A run that discards most of its reads at the coverage gate now says so, instead of leaving those wells looking like wells never filled.",
+      "Two folders that both look like a run no longer let one run flow cell and start time be reported for another."
     ],
-    "highlightsStamp": "0.16.20+c211fb70",
+    "highlightsStamp": "0.16.23+6c37c3e1",
     "releases": {
+      "0.16.23": [
+        "The sequencing kit now reaches the Excel export, the Janus file and the report, instead of being blank on every recent run.",
+        "A run that discards most of its reads at the coverage gate now says so, instead of leaving those wells looking like wells never filled.",
+        "Two folders that both look like a run no longer let one run flow cell and start time be reported for another."
+      ],
+      "0.16.22": [
+        "The verdict breakdown no longer shows a recovery rate, so the run reports one rate instead of two that counted differently.",
+        "The success rate stays, and it counts the PASS clones the pick list actually exports.",
+        "The bar below still splits variants into passed, reproduced with a side change, and not reproduced."
+      ],
+      "0.16.21": [
+        "Mutations sitting against an end of the reference are named above the verdict table, on runs that used the supplied reference unmodified.",
+        "They are named rather than counted, because which variant it is decides what to do about it.",
+        "The note stays advisory: nothing is dropped, and no verdict changes."
+      ],
       "0.16.20": [
         "Notifications now follow the dark theme instead of appearing as a bright white card over a dark screen.",
         "They keep following it whether the theme was changed from the menu bar, from settings, or by the system."
@@ -2645,6 +2664,9 @@
       ]
     },
     "releaseStamps": {
+      "0.16.23": "6c37c3e1",
+      "0.16.22": "9192ec4b",
+      "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
       "0.16.18": "2b708e6d",

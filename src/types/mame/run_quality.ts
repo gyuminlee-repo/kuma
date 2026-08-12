@@ -42,6 +42,7 @@ export interface RunQualityFinding {
     | "median_depth_below_floor"
     | "median_depth_below_recommended"
     | "flow_cell_reused"
+    | "variants_at_reference_edge"
   severity: RunQualitySeverity
   [key: string]: unknown
 }
@@ -150,6 +151,14 @@ export interface RunQuality {
    */
   pore_warranty_min: number
   reused_from: FlowCellPreviousUse | null
+  /**
+   * Expected mutations whose codon sits within `edge_margin_bp` of an end of
+   * the reference that was aligned against, on a run that used the supplied
+   * reference unmodified. Empty whenever an amplicon was extracted, which is
+   * the ordinary case, and empty on results from before v0.16.21.
+   */
+  edge_variants?: string[]
+  edge_margin_bp?: number
   thresholds: Record<string, RunQualityThreshold>
   findings: RunQualityFinding[]
   /**
