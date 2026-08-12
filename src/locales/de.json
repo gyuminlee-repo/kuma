@@ -2440,12 +2440,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Das sequencing kit erscheint jetzt im Excel-Export, in der Janus-Datei und im Report, statt bei jedem neueren Run leer zu bleiben.",
-      "Ein Run, der die meisten Reads am Coverage-Filter verwirft, sagt das nun, statt diese Wells wie nie befüllte aussehen zu lassen.",
-      "Wenn zwei Ordner beide wie ein Run aussehen, wird Flow Cell und Startzeit des einen nicht mehr für den anderen gemeldet."
+      "Ein Well meldet jetzt, von welchem Strand seine Minor-Reads stammen, sodass ein zweiter Genotyp von einem Artefakt des Amplicons unterscheidbar wird.",
+      "Jedes Well listet zusätzlich seine zehn lautesten Positionen und wie viele Positionen infrage kamen, sodass die zehn als Stichprobe und nicht als Vollerhebung lesbar sind.",
+      "Ein Run zählt jetzt aus, welche Referenzpositionen Well für Well wiederkehren, mit der Strand-Evidenz an jeder davon.",
+      "Reads, die kein Well erreicht haben, werden nach Ursache gezählt, statt alle als Barcode-Mehrdeutigkeit gemeldet zu werden.",
+      "Hier wird nichts bewertet. Kein Well ändert sein Urteil, und kein Schwellenwert wurde verschoben."
     ],
-    "highlightsStamp": "0.16.23+6c37c3e1",
+    "highlightsStamp": "0.16.24+1307c327",
     "releases": {
+      "0.16.24": [
+        "Ein Well meldet jetzt, von welchem Strand seine Minor-Reads stammen, sodass ein zweiter Genotyp von einem Artefakt des Amplicons unterscheidbar wird.",
+        "Jedes Well listet zusätzlich seine zehn lautesten Positionen und wie viele Positionen infrage kamen, sodass die zehn als Stichprobe und nicht als Vollerhebung lesbar sind.",
+        "Ein Run zählt jetzt aus, welche Referenzpositionen Well für Well wiederkehren, mit der Strand-Evidenz an jeder davon.",
+        "Reads, die kein Well erreicht haben, werden nach Ursache gezählt, statt alle als Barcode-Mehrdeutigkeit gemeldet zu werden.",
+        "Hier wird nichts bewertet. Kein Well ändert sein Urteil, und kein Schwellenwert wurde verschoben."
+      ],
       "0.16.23": [
         "Das sequencing kit erscheint jetzt im Excel-Export, in der Janus-Datei und im Report, statt bei jedem neueren Run leer zu bleiben.",
         "Ein Run, der die meisten Reads am Coverage-Filter verwirft, sagt das nun, statt diese Wells wie nie befüllte aussehen zu lassen.",
@@ -2631,6 +2640,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",

@@ -2473,12 +2473,21 @@
     "descriptionRange": "v{{from}} 이후 모든 업데이트의 주요 변경 사항입니다.",
     "gotItBtn": "확인",
     "highlights": [
-      "sequencing kit 값이 이제 Excel export, Janus 파일, 리포트에 실립니다. 최근 run 에서는 계속 비어 있었습니다.",
-      "커버리지 게이트가 read 대부분을 버린 run 이 이제 그 사실을 알립니다. 해당 well 이 실험되지 않은 것처럼 보이지 않습니다.",
-      "run 으로 보이는 폴더가 둘일 때, 한 run 의 flow cell 과 시작 시각이 다른 run 것으로 보고되지 않습니다."
+      "이제 well 이 minor read 를 어느 strand 에서 읽었는지 보고합니다. 두 번째 genotype 인지 amplicon 에서 비롯된 artifact 인지 구분할 수 있습니다.",
+      "각 well 이 가장 시끄러운 position 10 개와 대상이 된 position 수를 함께 보고합니다. 10 개가 전수가 아니라 표본임이 드러납니다.",
+      "어느 reference position 이 well 마다 반복되는지 run 단위로 집계하고, 각 위치의 strand 근거를 함께 보여줍니다.",
+      "well 에 도달하지 못한 read 를 원인별로 셉니다. 전부 barcode 모호성으로 보고하지 않습니다.",
+      "여기서 판정하는 것은 없습니다. well 판정도 바뀌지 않고 임계값도 그대로입니다."
     ],
-    "highlightsStamp": "0.16.23+6c37c3e1",
+    "highlightsStamp": "0.16.24+1307c327",
     "releases": {
+      "0.16.24": [
+        "이제 well 이 minor read 를 어느 strand 에서 읽었는지 보고합니다. 두 번째 genotype 인지 amplicon 에서 비롯된 artifact 인지 구분할 수 있습니다.",
+        "각 well 이 가장 시끄러운 position 10 개와 대상이 된 position 수를 함께 보고합니다. 10 개가 전수가 아니라 표본임이 드러납니다.",
+        "어느 reference position 이 well 마다 반복되는지 run 단위로 집계하고, 각 위치의 strand 근거를 함께 보여줍니다.",
+        "well 에 도달하지 못한 read 를 원인별로 셉니다. 전부 barcode 모호성으로 보고하지 않습니다.",
+        "여기서 판정하는 것은 없습니다. well 판정도 바뀌지 않고 임계값도 그대로입니다."
+      ],
       "0.16.23": [
         "sequencing kit 값이 이제 Excel export, Janus 파일, 리포트에 실립니다. 최근 run 에서는 계속 비어 있었습니다.",
         "커버리지 게이트가 read 대부분을 버린 run 이 이제 그 사실을 알립니다. 해당 well 이 실험되지 않은 것처럼 보이지 않습니다.",
@@ -2664,6 +2673,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",

@@ -2473,12 +2473,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The sequencing kit now reaches the Excel export, the Janus file and the report, instead of being blank on every recent run.",
-      "A run that discards most of its reads at the coverage gate now says so, instead of leaving those wells looking like wells never filled.",
-      "Two folders that both look like a run no longer let one run flow cell and start time be reported for another."
+      "A well now reports which strand its minor reads came from, so a second genotype can be told from an artifact of the amplicon.",
+      "Each well also lists its ten noisiest positions and how many positions were eligible, so the ten reads as a sample and not a census.",
+      "A run now tallies which reference positions come back well after well, with the strand evidence at each one.",
+      "Reads that never reached a well are counted by cause, instead of all being reported as barcode ambiguity.",
+      "Nothing here grades a run. No well changes verdict, and no threshold moved."
     ],
-    "highlightsStamp": "0.16.23+6c37c3e1",
+    "highlightsStamp": "0.16.24+1307c327",
     "releases": {
+      "0.16.24": [
+        "A well now reports which strand its minor reads came from, so a second genotype can be told from an artifact of the amplicon.",
+        "Each well also lists its ten noisiest positions and how many positions were eligible, so the ten reads as a sample and not a census.",
+        "A run now tallies which reference positions come back well after well, with the strand evidence at each one.",
+        "Reads that never reached a well are counted by cause, instead of all being reported as barcode ambiguity.",
+        "Nothing here grades a run. No well changes verdict, and no threshold moved."
+      ],
       "0.16.23": [
         "The sequencing kit now reaches the Excel export, the Janus file and the report, instead of being blank on every recent run.",
         "A run that discards most of its reads at the coverage gate now says so, instead of leaving those wells looking like wells never filled.",
@@ -2664,6 +2673,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
       "0.16.22": "9192ec4b",
       "0.16.21": "357e800b",

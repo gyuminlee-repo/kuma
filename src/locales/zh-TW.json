@@ -2440,12 +2440,21 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "sequencing kit 現在會出現在 Excel export、Janus 檔案與報告中，此前在近期 run 中一直為空。",
-      "當覆蓋度門檻捨棄了大部分 read 時，run 會明確說明，這些孔不再看起來像從未上樣的孔。",
-      "當有兩個資料夾都像是 run 時，一個 run 的 flow cell 與開始時間不會再被報告為另一個 run 的。"
+      "well 現在會報告其 minor read 來自哪條 strand，因此第二種基因型可以與 amplicon 本身的假象區分開。",
+      "每個 well 還會列出最吵雜的十個 position 以及有多少 position 符合條件，這十個因此讀作樣本而非全量。",
+      "run 現在會統計哪些參考 position 在各個 well 中反覆出現，並附上每處的 strand 證據。",
+      "從未進入任何 well 的 read 現在按原因分別計數，而不再全部報告為 barcode 歧義。",
+      "這裡不作任何評判。沒有 well 的判定改變，也沒有閾值移動。"
     ],
-    "highlightsStamp": "0.16.23+6c37c3e1",
+    "highlightsStamp": "0.16.24+1307c327",
     "releases": {
+      "0.16.24": [
+        "well 現在會報告其 minor read 來自哪條 strand，因此第二種基因型可以與 amplicon 本身的假象區分開。",
+        "每個 well 還會列出最吵雜的十個 position 以及有多少 position 符合條件，這十個因此讀作樣本而非全量。",
+        "run 現在會統計哪些參考 position 在各個 well 中反覆出現，並附上每處的 strand 證據。",
+        "從未進入任何 well 的 read 現在按原因分別計數，而不再全部報告為 barcode 歧義。",
+        "這裡不作任何評判。沒有 well 的判定改變，也沒有閾值移動。"
+      ],
       "0.16.23": [
         "sequencing kit 現在會出現在 Excel export、Janus 檔案與報告中，此前在近期 run 中一直為空。",
         "當覆蓋度門檻捨棄了大部分 read 時，run 會明確說明，這些孔不再看起來像從未上樣的孔。",
@@ -2631,6 +2640,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",

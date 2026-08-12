@@ -2440,12 +2440,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El sequencing kit ya aparece en la exportación a Excel, en el archivo Janus y en el informe, en vez de quedar vacío en cada run reciente.",
-      "Un run que descarta la mayoría de sus lecturas en el filtro de cobertura ahora lo indica, y esos pocillos dejan de parecer pocillos sin llenar.",
-      "Cuando dos carpetas parecen un run, la flow cell y la hora de inicio de una ya no se informan como las de la otra."
+      "Un well ahora indica de qué strand provienen sus reads minoritarios, de modo que un segundo genotipo se distingue de un artefacto del amplicon.",
+      "Cada well enumera además sus diez posiciones más ruidosas y cuántas posiciones eran elegibles, así las diez se leen como muestra y no como censo.",
+      "Un run ahora cuenta qué posiciones de referencia reaparecen well tras well, con la evidencia de strand en cada una.",
+      "Los reads que nunca llegaron a un well se cuentan por causa, en lugar de informarse todos como ambigüedad de barcode.",
+      "Aquí no se califica nada. Ningún well cambia de veredicto y ningún umbral se movió."
     ],
-    "highlightsStamp": "0.16.23+6c37c3e1",
+    "highlightsStamp": "0.16.24+1307c327",
     "releases": {
+      "0.16.24": [
+        "Un well ahora indica de qué strand provienen sus reads minoritarios, de modo que un segundo genotipo se distingue de un artefacto del amplicon.",
+        "Cada well enumera además sus diez posiciones más ruidosas y cuántas posiciones eran elegibles, así las diez se leen como muestra y no como censo.",
+        "Un run ahora cuenta qué posiciones de referencia reaparecen well tras well, con la evidencia de strand en cada una.",
+        "Los reads que nunca llegaron a un well se cuentan por causa, en lugar de informarse todos como ambigüedad de barcode.",
+        "Aquí no se califica nada. Ningún well cambia de veredicto y ningún umbral se movió."
+      ],
       "0.16.23": [
         "El sequencing kit ya aparece en la exportación a Excel, en el archivo Janus y en el informe, en vez de quedar vacío en cada run reciente.",
         "Un run que descarta la mayoría de sus lecturas en el filtro de cobertura ahora lo indica, y esos pocillos dejan de parecer pocillos sin llenar.",
@@ -2631,6 +2640,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
