@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -44,8 +45,11 @@ from kuma_core.mame.ingest.fasta_parser import parse_fasta_file
 def _metadata(**overrides) -> ConsensusMetadata:
     # Annotated because the literals below mix int and float, which a type
     # checker otherwise unifies to ``dict[str, float]`` and then reports on
-    # every int parameter of ``ConsensusMetadata``. Behaviour is unchanged.
-    base: dict[str, object] = dict(
+    # every int parameter of ``ConsensusMetadata``. ``Any`` rather than
+    # ``object``, because the widened value type is unpacked into typed
+    # parameters and ``object`` is not assignable to ``int``. Behaviour is
+    # unchanged.
+    base: dict[str, Any] = dict(
         depth=500,
         input_reads=500,
         aligned_reads=500,

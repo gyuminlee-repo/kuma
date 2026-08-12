@@ -368,7 +368,8 @@ class _WellLike(Protocol):
     record is an invitation to grow a second copy of it here.
     """
 
-    n_eligible_positions: int
+    @property
+    def n_eligible_positions(self) -> int: ...
 
     @property
     def noisy_positions(self) -> Sequence[NoisyPosition]: ...
