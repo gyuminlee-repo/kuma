@@ -2441,14 +2441,19 @@
     "descriptionRange": "自 v{{from}} 以来每次更新的主要变化。",
     "gotItBtn": "知道了",
     "highlights": [
-      "well 现在会报告其 minor read 来自哪条 strand，因此第二种基因型可以与 amplicon 本身的假象区分开。",
-      "每个 well 还会列出最嘈杂的十个 position 以及有多少 position 符合条件，这十个因此读作样本而非全量。",
-      "run 现在会统计哪些参考 position 在各个 well 中反复出现，并附上每处的 strand 证据。",
-      "从未进入任何 well 的 read 现在按原因分别计数，而不再全部报告为 barcode 歧义。",
-      "这里不作任何评判。没有 well 的判定改变，也没有阈值移动。"
+      "已声明的 run 现在只按其声明 well 中的 variant 计分，因此全部回收的 run 显示为 100%，而不是 9%。",
+      "旁边的 well 数量重新计的是 well，而不是每个 replicate plate 一条记录，因此声明十个 well 不再显示为 57 个。",
+      "由较早版本保存的 run 会被提示重新分析，因为它的成功率是用整份 variant 列表相除得出的。",
+      "只声明 WT control 时没有可计分的 designed mutant，因此成功率显示为一个短横线而不是百分比。"
     ],
-    "highlightsStamp": "0.16.24+1307c327",
+    "highlightsStamp": "0.16.25+8204368c",
     "releases": {
+      "0.16.25": [
+        "已声明的 run 现在只按其声明 well 中的 variant 计分，因此全部回收的 run 显示为 100%，而不是 9%。",
+        "旁边的 well 数量重新计的是 well，而不是每个 replicate plate 一条记录，因此声明十个 well 不再显示为 57 个。",
+        "由较早版本保存的 run 会被提示重新分析，因为它的成功率是用整份 variant 列表相除得出的。",
+        "只声明 WT control 时没有可计分的 designed mutant，因此成功率显示为一个短横线而不是百分比。"
+      ],
       "0.16.24": [
         "well 现在会报告其 minor read 来自哪条 strand，因此第二种基因型可以与 amplicon 本身的假象区分开。",
         "每个 well 还会列出最嘈杂的十个 position 以及有多少 position 符合条件，这十个因此读作样本而非全量。",
@@ -2641,6 +2646,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.25": "8204368c",
       "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
       "0.16.21": "357e800b",

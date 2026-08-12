@@ -2441,14 +2441,19 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein Well meldet jetzt, von welchem Strand seine Minor-Reads stammen, sodass ein zweiter Genotyp von einem Artefakt des Amplicons unterscheidbar wird.",
-      "Jedes Well listet zusätzlich seine zehn lautesten Positionen und wie viele Positionen infrage kamen, sodass die zehn als Stichprobe und nicht als Vollerhebung lesbar sind.",
-      "Ein Run zählt jetzt aus, welche Referenzpositionen Well für Well wiederkehren, mit der Strand-Evidenz an jeder davon.",
-      "Reads, die kein Well erreicht haben, werden nach Ursache gezählt, statt alle als Barcode-Mehrdeutigkeit gemeldet zu werden.",
-      "Hier wird nichts bewertet. Kein Well ändert sein Urteil, und kein Schwellenwert wurde verschoben."
+      "Ein deklarierter Run wird jetzt über die Varianten in seinen deklarierten Wells bewertet, sodass ein Run, der alle wiedergefunden hat, 100 Prozent statt 9 Prozent zeigt.",
+      "Die Well-Zahl daneben zählt wieder Wells und nicht einen Eintrag pro replicate plate, sodass eine Deklaration von zehn Wells nicht mehr als 57 Wells erscheint.",
+      "Ein von einem früheren Build gespeicherter Run wird zur erneuten Analyse aufgefordert, weil seine Rate durch die gesamte Variantenliste geteilt wurde.",
+      "Wird nur die WT control deklariert, bleiben keine designten Mutanten zum Bewerten, sodass die Rate einen Strich statt eines Prozentwerts zeigt."
     ],
-    "highlightsStamp": "0.16.24+1307c327",
+    "highlightsStamp": "0.16.25+8204368c",
     "releases": {
+      "0.16.25": [
+        "Ein deklarierter Run wird jetzt über die Varianten in seinen deklarierten Wells bewertet, sodass ein Run, der alle wiedergefunden hat, 100 Prozent statt 9 Prozent zeigt.",
+        "Die Well-Zahl daneben zählt wieder Wells und nicht einen Eintrag pro replicate plate, sodass eine Deklaration von zehn Wells nicht mehr als 57 Wells erscheint.",
+        "Ein von einem früheren Build gespeicherter Run wird zur erneuten Analyse aufgefordert, weil seine Rate durch die gesamte Variantenliste geteilt wurde.",
+        "Wird nur die WT control deklariert, bleiben keine designten Mutanten zum Bewerten, sodass die Rate einen Strich statt eines Prozentwerts zeigt."
+      ],
       "0.16.24": [
         "Ein Well meldet jetzt, von welchem Strand seine Minor-Reads stammen, sodass ein zweiter Genotyp von einem Artefakt des Amplicons unterscheidbar wird.",
         "Jedes Well listet zusätzlich seine zehn lautesten Positionen und wie viele Positionen infrage kamen, sodass die zehn als Stichprobe und nicht als Vollerhebung lesbar sind.",
@@ -2641,6 +2646,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.25": "8204368c",
       "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
       "0.16.21": "357e800b",
