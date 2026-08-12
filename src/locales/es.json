@@ -834,7 +834,8 @@
         "selfConsistencyCheck": "Tras la ejecución, cada pocillo se comprueba contra su variante esperada y contra los demás.",
         "plateColumnRowOrder": "Las filas de resultado siguen la columna de la placa, como cualquier otra regla de colocación.",
         "barcodePlateShapeRefused": "Un archivo de barcodes que no describe una placa de 8 por 12 detiene la ejecución.",
-        "declaredWellsOnly": "Los pocillos fuera de la seleccion ya no se evaluan. Antes se comparaban con toda la lista de variantes y fallaban."
+        "declaredWellsOnly": "Los pocillos fuera de la seleccion ya no se evaluan. Antes se comparaban con toda la lista de variantes y fallaban.",
+        "declaredWellsDenominator": "La tasa de exito solo cuenta las variantes de los pocillos declarados. Antes se dividia por la lista completa de variantes, de modo que una ejecucion con diez pocillos declarados informaba 9 por ciento aunque todas pasaran."
       }
     },
     "janus": {

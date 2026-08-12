@@ -834,7 +834,8 @@
         "selfConsistencyCheck": "Nach dem Lauf wird jedes Well gegen die eigene erwartete Variante und gegen alle anderen geprüft.",
         "plateColumnRowOrder": "Ergebniszeilen folgen der Plattenspalte, wie jede andere Platzierungsregel.",
         "barcodePlateShapeRefused": "Eine Barcode-Datei, die keine 8-mal-12-Platte beschreibt, stoppt den Lauf.",
-        "declaredWellsOnly": "Nicht ausgewaehlte Wells werden nicht mehr bewertet. Zuvor wurden sie gegen die ganze Variantenliste geprueft und fielen durch."
+        "declaredWellsOnly": "Nicht ausgewaehlte Wells werden nicht mehr bewertet. Zuvor wurden sie gegen die ganze Variantenliste geprueft und fielen durch.",
+        "declaredWellsDenominator": "Die Erfolgsrate zaehlt nur noch die Varianten in den deklarierten Wells. Zuvor wurde durch die ganze Variantenliste geteilt, sodass ein Lauf mit zehn deklarierten Wells 9 Prozent meldete, obwohl jede Variante bestand."
       }
     },
     "janus": {

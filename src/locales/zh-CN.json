@@ -834,7 +834,8 @@
         "selfConsistencyCheck": "运行后，每个孔都会与自身预期变异以及其他孔互相核对。",
         "plateColumnRowOrder": "结果行按板的列方向排列，与其他放置规则一致。",
         "barcodePlateShapeRefused": "未描述 8×12 板的 barcode 文件会停止运行。",
-        "declaredWellsOnly": "未选中的孔位不再判定。以前它们会与整个变异列表比对并判为失败。"
+        "declaredWellsOnly": "未选中的孔位不再判定。以前它们会与整个变异列表比对并判为失败。",
+        "declaredWellsDenominator": "成功率的分母只计入已声明孔位中的变异。以前按整个变异列表相除，因此声明十个孔位且全部通过的运行显示为9%。"
       }
     },
     "janus": {

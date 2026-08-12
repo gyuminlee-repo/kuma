@@ -1137,7 +1137,8 @@
         "selfConsistencyCheck": "실행 후 각 well 을 자기 기대 변이와 다른 well 들에 대해 교차 검증합니다.",
         "plateColumnRowOrder": "결과 행이 다른 배치 규칙과 동일하게 플레이트 열 방향을 따릅니다.",
         "barcodePlateShapeRefused": "8×12 플레이트를 기술하지 않는 barcode 파일은 실행을 멈춥니다.",
-        "declaredWellsOnly": "선택에서 빠진 웰은 더 이상 판정하지 않는다. 예전에는 전체 변이 목록과 대조되어 실패로 찍혔다."
+        "declaredWellsOnly": "선택에서 빠진 웰은 더 이상 판정하지 않는다. 예전에는 전체 변이 목록과 대조되어 실패로 찍혔다.",
+        "declaredWellsDenominator": "성공률의 분모가 선언한 웰에 있는 변이만으로 좁혀졌다. 예전에는 전체 변이 목록으로 나누어, 웰 10개를 선언하고 전부 통과한 런이 9%로 표시됐다."
       }
     },
     "janus": {

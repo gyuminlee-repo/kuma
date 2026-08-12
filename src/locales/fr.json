@@ -834,7 +834,8 @@
         "selfConsistencyCheck": "Après le run, chaque puits est vérifié contre son variant attendu et contre tous les autres.",
         "plateColumnRowOrder": "Les lignes de résultat suivent la colonne de la plaque, comme toute autre règle de placement.",
         "barcodePlateShapeRefused": "Un fichier de barcodes qui ne décrit pas une plaque 8 par 12 arrête le run.",
-        "declaredWellsOnly": "Les puits exclus de la selection ne sont plus evalues. Ils etaient auparavant compares a toute la liste de variants et echouaient."
+        "declaredWellsOnly": "Les puits exclus de la selection ne sont plus evalues. Ils etaient auparavant compares a toute la liste de variants et echouaient.",
+        "declaredWellsDenominator": "Le taux de reussite ne compte que les variants des puits declares. Il divisait auparavant par la liste complete des variants, si bien qu un run declarant dix puits affichait 9 pour cent alors que tous passaient."
       }
     },
     "janus": {

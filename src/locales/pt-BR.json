@@ -834,7 +834,8 @@
         "selfConsistencyCheck": "Depois da execução, cada poço é conferido contra a própria variante esperada e contra os demais.",
         "plateColumnRowOrder": "As linhas de resultado seguem a coluna da placa, como qualquer outra regra de posicionamento.",
         "barcodePlateShapeRefused": "Um arquivo de barcodes que não descreve uma placa 8 por 12 para a execução.",
-        "declaredWellsOnly": "Os pocos fora da selecao nao sao mais avaliados. Antes eram comparados com toda a lista de variantes e falhavam."
+        "declaredWellsOnly": "Os pocos fora da selecao nao sao mais avaliados. Antes eram comparados com toda a lista de variantes e falhavam.",
+        "declaredWellsDenominator": "A taxa de sucesso conta apenas as variantes dos pocos declarados. Antes dividia pela lista completa de variantes, de modo que uma execucao com dez pocos declarados informava 9 por cento mesmo com todas aprovadas."
       }
     },
     "janus": {

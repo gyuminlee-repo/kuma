@@ -84,6 +84,16 @@ describe("revisionForVersion", () => {
     expect(revisionForVersion("0.15.11")).toBe(1);
     expect(revisionForVersion("0.15.12")).toBe(1);
     expect(revisionForVersion("0.15.18")).toBe(4);
+    // 0.16.17 through 0.16.24 moved panels and copy. The denominator fix landed
+    // after them, so a run they wrote is still a revision-6 run.
+    expect(revisionForVersion("0.16.24")).toBe(6);
+  });
+
+  it("dates the declared-wells denominator fix to its own release", () => {
+    // A run saved before the fix carries the sheet-wide total_mutants and would
+    // keep rendering its old headline rate, so it has to read as obsolete.
+    expect(revisionForVersion("0.16.16")).toBe(6);
+    expect(revisionForVersion("0.16.25")).toBe(7);
   });
 
   it("reads a leading-zero segment decimally", () => {
@@ -101,7 +111,7 @@ describe("revisionForVersion", () => {
 describe("changesSince", () => {
   it("lists only what came after the given revision", () => {
     expect(changesSince(RESULT_CONTRACT)).toEqual([]);
-    expect(changesSince(4).map((entry) => entry.revision)).toEqual([5, 6]);
+    expect(changesSince(4).map((entry) => entry.revision)).toEqual([5, 6, 7]);
     expect(changesSince(0)).toHaveLength(RESULT_CONTRACT_REVISIONS.length);
   });
 });
