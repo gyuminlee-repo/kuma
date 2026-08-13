@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.16.25.1 (A run that scored the plates of the run before it)
+
+Select three native barcodes and three plates belong in the verdict table. On 2026-08-10 six arrived. The three extra ones were sitting in the export folder already, written by a different run the day before, and nobody had asked for them: they were never offered in the selection dialog. Four verdict workbooks were produced from that folder before anyone noticed.
+
+An operator can check their own past runs for this. The signature is a verdict table holding more plates than the barcodes that were selected, on a run whose output folder had been used before. A workbook matching that description was scored over wells belonging to another run, and needs re-running against a folder holding only one run output. Nothing about the affected files changes on its own; they are workbooks already written.
+
+The output folder is stable on purpose, because that is what lets an interrupted run resume, and nothing in it is ever removed. So a second run exported into the same folder leaves both sets of plate directories side by side, each one complete, each one carrying its own valid completion marker. Every plate passed its own check. What no file recorded was which plates belonged to which run, and a per-plate marker cannot answer that question no matter how carefully it is written.
+
+The folder now records it. When a run finishes writing its plates it also writes down which ones it produced, and reading that folder afterwards returns those and no others. The decision moved into the reading step rather than into the code that asks for it, because the previous arrangement did state the right plate list at the place the demux finished, and the screen still scored six: the analysis reads the same folder a second time, later, with no list to go on. A rule that depends on every caller remembering to repeat itself is one forgotten line from the same defect.
+
+A folder that carries no such record is untouched and every plate directory in it is read, which is what a folder somebody else sorted needs. No record means nothing was claimed, and that is not the same as claiming there are no plates.
+
+Plates left over from an earlier run are named on screen rather than quietly dropped, together with the run that owns them. Silence is the reason this ran four times. Nothing is deleted or moved: which of two runs worth of output is still wanted is the operator call, and the folder may hold the only copy.
+
+### Highlights
+
+- A run exported into a folder holding an earlier run output scored those plates too, so more reached the table than were selected.
+- A past workbook showing more plates than the barcodes that run selected was scored over another run wells and needs re-running.
+- The output folder now records which plates each run produced, so reading it back returns that run plates and no others.
+- Leftover plates from an earlier run are named on screen, with the run that owns them, instead of arriving unannounced.
+- Nothing is deleted. The leftover files stay exactly where they are, because which output is still wanted is not this decision.
+
+### Fixed
+
+- A demux output folder is read as the units the run that filled it recorded, not as whatever directories it holds. `kuma_core/mame/ingest/unit_manifest.py` writes that membership at the output root when `ingest_run_folder` finishes, and `load_barcode_directory` narrows itself to it whatever the caller passes. The `units` parameter it already had scoped only the read inside `ingest_run_folder`; the analyze handler ingests the same tree again after that returns, passed nothing, and that second read is where the leftover plates came back in. Putting the decision in the reader is what stops the next caller reintroducing it.
+- A folder with no membership record still reads every subdirectory, unchanged. A record that is missing, truncated, unparseable, wrongly typed or names no units at all counts as no record rather than as an error, on the same rule the per-unit completion markers already follow: an interrupted write must not turn an output folder into one that cannot be opened. Re-using a folder for the same units still resumes, which is what the per-unit markers exist for.
+
+### Added
+
+- `stale_units` on the analyze response, the unit directories present in the ingested folder that the run recorded there did not produce, with the run directory and timestamp that owns them. Optional by contract like the other fields on this chain: omitted where the folder carried no record to compare against, and present with an empty list where it did and nothing was stale. Those are different statements, and zero-filling the first would report a check that never ran. `StaleUnitsNotice` renders it in all ten locales, on both the run view and the zero-verdict review, gated on neither the presence nor the absence of verdicts, because the run that shipped this defect produced plenty of them.
+
 ## v0.16.25 (A success rate that divided a declared run by the whole plate)
 
 The plate picker lets an operator declare that only some wells are on this plate, and it promises the samples left out will not be judged. The verdict table kept that promise. The number printed above it did not. Its numerator came from the narrowed verdicts and its denominator came from the whole expected-mutations sheet, so a run declaring ten wells with all nine of its designed variants passing was shown 9 percent (9 of 95). The comment in the analyze handler already records this exact defect being fixed for the table below it, and it never reached the number above it.
