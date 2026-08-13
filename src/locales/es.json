@@ -1066,6 +1066,12 @@
         "body": "{{aligned}} lecturas se alinearon con la referencia y se conservaron {{kept}}. Los pocillos cuyas lecturas se descartaron por completo no producen veredicto, así que en esta pantalla se ven igual que los pocillos que nunca se llenaron.",
         "hint": "Cierta pérdida es esperable, ya que las lecturas parciales y quiméricas deben descartarse. Una proporción alta apunta a la referencia más que a las muestras: un alineamiento que termina un número constante de bases antes de los extremos de la referencia, por ejemplo en un primer, incumple un umbral porcentual con mayor facilidad cuanto más corto es el amplicón. El requisito de cobertura está en las opciones avanzadas del panel de parámetros."
       },
+      "staleUnits": {
+        "title": "{{n}} carpeta(s) de plate aquí las produjo un run anterior",
+        "body": "{{names}} están en la carpeta de salida pero no forman parte del run registrado allí, por lo que quedaron fuera de los veredictos.",
+        "owner": "La carpeta registra su salida como perteneciente al run de {{runDir}}.",
+        "hint": "Ocurre cuando se exporta un run nuevo a una carpeta que ya contiene otro. No se ha borrado nada. Compruebe si esos resultados siguen haciendo falta antes de eliminarlos usted mismo, y use una carpeta de salida distinta por cada run."
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",

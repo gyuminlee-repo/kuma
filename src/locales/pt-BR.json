@@ -1066,6 +1066,12 @@
         "body": "{{aligned}} leituras se alinharam à referência e {{kept}} foram mantidas. Poços cujas leituras foram todas descartadas não produzem veredito e, nesta tela, ficam iguais a poços que nunca foram preenchidos.",
         "hint": "Alguma perda é esperada, pois leituras parciais e quiméricas devem mesmo ser descartadas. Uma fração grande aponta para a referência, e não para as amostras: um alinhamento que termina a um número constante de bases das extremidades da referência, em um primer por exemplo, falha um limiar percentual tanto mais facilmente quanto menor for o amplicon. O requisito de cobertura fica nas opções avançadas do painel de parâmetros."
       },
+      "staleUnits": {
+        "title": "{{n}} pasta(s) de plate aqui vieram de um run anterior",
+        "body": "{{names}} estão na pasta de saída mas não fazem parte do run registrado ali, por isso ficaram de fora dos veredictos.",
+        "owner": "A pasta registra sua saída como pertencente ao run em {{runDir}}.",
+        "hint": "Isso acontece quando um run novo é exportado para uma pasta que já contém outro. Nada foi apagado. Verifique se esses resultados ainda são necessários antes de removê-los você mesmo, e use uma pasta de saída separada para cada run."
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",

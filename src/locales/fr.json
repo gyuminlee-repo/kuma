@@ -1066,6 +1066,12 @@
         "body": "{{aligned}} lectures se sont alignées sur la référence et {{kept}} ont été conservées. Les puits dont toutes les lectures ont été écartées ne produisent aucun verdict, et apparaissent donc sur cet écran comme des puits jamais remplis.",
         "hint": "Une certaine perte est attendue, car les lectures partielles et chimériques doivent être écartées. Une proportion élevée désigne la référence plutôt que les échantillons : un alignement qui s'arrête à un nombre constant de bases des extrémités de la référence, au niveau d'une amorce par exemple, échoue d'autant plus facilement à un seuil exprimé en pourcentage que l'amplicon est court. Le seuil de couverture se trouve dans les options avancées du panneau de paramètres."
       },
+      "staleUnits": {
+        "title": "{{n}} dossier(s) de plate ici proviennent d'un run antérieur",
+        "body": "{{names}} se trouvent dans le dossier de sortie mais ne font pas partie du run qui y est enregistré, ils ont donc été écartés des verdicts.",
+        "owner": "Le dossier indique que sa sortie appartient au run situé dans {{runDir}}.",
+        "hint": "Cela se produit lorsqu'un nouveau run est exporté dans un dossier qui en contient déjà un. Rien n'a été supprimé. Vérifiez si ces résultats servent encore avant de les retirer vous-même, et utilisez un dossier de sortie distinct par run."
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",

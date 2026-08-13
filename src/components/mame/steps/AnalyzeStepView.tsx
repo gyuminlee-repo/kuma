@@ -46,6 +46,7 @@ import { LegacySampleMapNotice } from "@/components/mame/widgets/LegacySampleMap
 import { DemuxResumeNotice } from "@/components/mame/widgets/DemuxResumeNotice";
 import { EmptyAnalysisNotice } from "@/components/mame/widgets/EmptyAnalysisNotice";
 import { CoverageLossNotice } from "@/components/mame/widgets/CoverageLossNotice";
+import { StaleUnitsNotice } from "@/components/mame/widgets/StaleUnitsNotice";
 import { ContaminationPanel } from "@/components/mame/widgets/ContaminationPanel";
 import { PlateOrderNotice } from "@/components/mame/widgets/PlateOrderNotice";
 import { ReplicateModeNotice } from "@/components/mame/widgets/ReplicateModeNotice";
@@ -299,6 +300,14 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               nothing-at-all case and states the same gate more strongly. */}
           {!zeroResult && hasResults && <CoverageLossNotice />}
 
+          {/* Plates from an earlier run that were left in the same export
+              folder. Not gated on zeroResult or hasResults, unlike the two
+              above: leftovers are a statement about the folder rather than
+              about this run's yield, and the case that shipped the defect was
+              a run that produced plenty of verdicts and silently added three
+              plates of someone else's day to them. */}
+          <StaleUnitsNotice />
+
           {/* Secondary action row: Validate / Clear / Export */}
           <div className="flex gap-2">
             <Button
@@ -351,6 +360,11 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
         mainContent = (
           <div className="flex h-full min-h-0 flex-col gap-2 overflow-auto p-1">
             <EmptyAnalysisNotice />
+            {/* Mounted here for the same reason as the reuse line below: this
+                branch replaces the whole review, so a folder holding an earlier
+                run output has to be able to say so on the one screen an
+                operator is looking at. */}
+            <StaleUnitsNotice />
             {/* The zero-verdict view is where "why does this look wrong" is
                 actually asked, so the reuse line belongs here too, not only on
                 the populated one. */}

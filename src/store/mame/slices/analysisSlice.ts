@@ -29,6 +29,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   analyzeYield: null,
   layoutProvenance: null,
   mappingIntegrity: null,
+  staleUnits: null,
   compareParams: null,
   offLayoutRecords: null,
   runQuality: null,
@@ -55,6 +56,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   setAnalyzeYield: (analyzeYield) => set({ analyzeYield }),
   setLayoutProvenance: (layoutProvenance) => set({ layoutProvenance }),
   setMappingIntegrity: (mappingIntegrity) => set({ mappingIntegrity }),
+  setStaleUnits: (staleUnits) => set({ staleUnits }),
   setCompareParams: (compareParams) => set({ compareParams }),
   setOffLayoutRecords: (offLayoutRecords) => set({ offLayoutRecords }),
   setRunQuality: (runQuality) => set({ runQuality }),
@@ -93,6 +95,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       analyzeYield: null,
       layoutProvenance: null,
       mappingIntegrity: null,
+      staleUnits: null,
       // Thresholds describe the run that produced the verdicts being cleared;
       // keeping them would let a metric popup state what an input the operator
       // has since changed would have been judged against.
@@ -327,6 +330,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       analyzeYield: null,
       layoutProvenance: null,
       mappingIntegrity: null,
+      staleUnits: null,
       offLayoutRecords: null,
       runQuality: null,
       // Sample data is a consensus-dir fixture and never demuxed, so there is
