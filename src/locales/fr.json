@@ -2449,18 +2449,18 @@
     "highlights": [
       "Un run exporté dans un dossier contenant la sortie d'un run antérieur a aussi noté ces plates, donc plus de plates que celles sélectionnées.",
       "Un classeur antérieur affichant plus de plates que de barcodes choisis par ce run a été noté sur les wells d'un autre run et doit être relancé.",
-      "Le dossier de sortie enregistre désormais les plates produites par chaque run, si bien qu'une relecture ne renvoie que celles de ce run.",
-      "Les plates laissées par un run antérieur sont nommées à l'écran, avec le run auquel elles appartiennent, au lieu d'arriver sans prévenir.",
-      "Rien n'est supprimé. Les fichiers restent où ils sont, car ce code n'a pas à décider quelle sortie est encore utile."
+      "Le dossier enregistre désormais les plates produites par chaque run, les plates laissées par un run antérieur sont nommées à l'écran, et rien n'est supprimé.",
+      "L'écran d'export ne propose plus de row de début ni de fin. Tout réglage autre que la plate entière empilait des mutants différents sur un même well.",
+      "Le placement vient du seul choix de quadrant, et une plage de rows enregistrée qui recouvrirait un well déjà occupé est refusée au lieu d'être écrite."
     ],
-    "highlightsStamp": "0.16.25+45101cf0",
+    "highlightsStamp": "0.16.25+291c60a5",
     "releases": {
       "0.16.25.1": [
         "Un run exporté dans un dossier contenant la sortie d'un run antérieur a aussi noté ces plates, donc plus de plates que celles sélectionnées.",
         "Un classeur antérieur affichant plus de plates que de barcodes choisis par ce run a été noté sur les wells d'un autre run et doit être relancé.",
-        "Le dossier de sortie enregistre désormais les plates produites par chaque run, si bien qu'une relecture ne renvoie que celles de ce run.",
-        "Les plates laissées par un run antérieur sont nommées à l'écran, avec le run auquel elles appartiennent, au lieu d'arriver sans prévenir.",
-        "Rien n'est supprimé. Les fichiers restent où ils sont, car ce code n'a pas à décider quelle sortie est encore utile."
+        "Le dossier enregistre désormais les plates produites par chaque run, les plates laissées par un run antérieur sont nommées à l'écran, et rien n'est supprimé.",
+        "L'écran d'export ne propose plus de row de début ni de fin. Tout réglage autre que la plate entière empilait des mutants différents sur un même well.",
+        "Le placement vient du seul choix de quadrant, et une plage de rows enregistrée qui recouvrirait un well déjà occupé est refusée au lieu d'être écrite."
       ],
       "0.16.25": [
         "Un run déclaré est désormais évalué sur les variants des wells qu'il a déclarés, si bien qu'un run qui les a tous récupérés affiche 100 pour cent et non 9 pour cent.",
@@ -2660,13 +2660,15 @@
       ]
     },
     "releaseStamps": {
-      "0.16.25.1": "45101cf0",
+      "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
+      "0.16.22": "9192ec4b",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
+      "0.16.18": "2b708e6d",
       "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",
@@ -2692,9 +2694,7 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21",
-      "0.16.18": "2b708e6d",
-      "0.16.22": "9192ec4b"
+      "0.15.16": "fe8e6f21"
     }
   },
   "primerDisplay": {
@@ -3162,9 +3162,6 @@
     "legendDest": "Destination (Echo dest / plaque de destination JANUS)",
     "legendDestMerged": "Both F+R arrived",
     "legendDestPartial": "Only F or R arrived",
-    "mappingRange": "Mapping range",
-    "rowStart": "Start row",
-    "rowEnd": "End row",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "Well de destination",
     "missing": "manquant"

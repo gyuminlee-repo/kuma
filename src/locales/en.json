@@ -1406,9 +1406,6 @@
     "legendDest": "Destination (Echo dest / JANUS destination plate)",
     "legendDestMerged": "Both F+R arrived",
     "legendDestPartial": "Only F or R arrived",
-    "mappingRange": "Mapping range",
-    "rowStart": "Start row",
-    "rowEnd": "End row",
     "destWell": "Dest well",
     "missing": "missing"
   },
@@ -2482,18 +2479,18 @@
     "highlights": [
       "A run exported into a folder holding an earlier run output scored those plates too, so more reached the table than were selected.",
       "A past workbook showing more plates than the barcodes that run selected was scored over another run wells and needs re-running.",
-      "The output folder now records which plates each run produced, so reading it back returns that run plates and no others.",
-      "Leftover plates from an earlier run are named on screen, with the run that owns them, instead of arriving unannounced.",
-      "Nothing is deleted. The leftover files stay exactly where they are, because which output is still wanted is not this decision."
+      "The folder now records which plates a run produced, leftover plates from an earlier run are named on screen, and nothing is deleted.",
+      "The export screen no longer offers a start and end row. Every setting but the full plate stacked different mutants onto one well.",
+      "Placement comes from the quadrant choice alone, and a saved row band that would cover a well already in use is now refused, not written."
     ],
-    "highlightsStamp": "0.16.25+45101cf0",
+    "highlightsStamp": "0.16.25+291c60a5",
     "releases": {
       "0.16.25.1": [
         "A run exported into a folder holding an earlier run output scored those plates too, so more reached the table than were selected.",
         "A past workbook showing more plates than the barcodes that run selected was scored over another run wells and needs re-running.",
-        "The output folder now records which plates each run produced, so reading it back returns that run plates and no others.",
-        "Leftover plates from an earlier run are named on screen, with the run that owns them, instead of arriving unannounced.",
-        "Nothing is deleted. The leftover files stay exactly where they are, because which output is still wanted is not this decision."
+        "The folder now records which plates a run produced, leftover plates from an earlier run are named on screen, and nothing is deleted.",
+        "The export screen no longer offers a start and end row. Every setting but the full plate stacked different mutants onto one well.",
+        "Placement comes from the quadrant choice alone, and a saved row band that would cover a well already in use is now refused, not written."
       ],
       "0.16.25": [
         "A declared run is now scored over the variants in its declared wells, so one that recovered all of them reads as 100 percent, not 9 percent.",
@@ -2693,7 +2690,7 @@
       ]
     },
     "releaseStamps": {
-      "0.16.25.1": "45101cf0",
+      "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",

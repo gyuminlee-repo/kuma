@@ -2449,18 +2449,18 @@
     "highlights": [
       "Un run exportado a una carpeta que ya tenía la salida de un run anterior puntuó también esas plates, y llegaron más de las seleccionadas.",
       "Un libro anterior que muestre más plates que los barcodes elegidos por ese run se puntuó sobre wells de otro run y hay que volver a ejecutarlo.",
-      "La carpeta de salida ahora registra qué plates produjo cada run, de modo que al releerla solo devuelve las de ese run.",
-      "Las plates sobrantes de un run anterior se nombran en pantalla, junto con el run al que pertenecen, en vez de aparecer sin aviso.",
-      "No se borra nada. Los archivos se quedan donde están, porque qué salida sigue haciendo falta no lo decide este código."
+      "La carpeta ahora registra qué plates produjo cada run, las plates sobrantes de un run anterior se nombran en pantalla y no se borra nada.",
+      "La pantalla de exportación ya no ofrece row inicial ni final. Cualquier ajuste que no fuera la plate completa apilaba mutantes distintos en un well.",
+      "La colocación sale solo de la elección de quadrant, y un rango de rows guardado que taparía un well ya ocupado se rechaza en vez de escribirse."
     ],
-    "highlightsStamp": "0.16.25+45101cf0",
+    "highlightsStamp": "0.16.25+291c60a5",
     "releases": {
       "0.16.25.1": [
         "Un run exportado a una carpeta que ya tenía la salida de un run anterior puntuó también esas plates, y llegaron más de las seleccionadas.",
         "Un libro anterior que muestre más plates que los barcodes elegidos por ese run se puntuó sobre wells de otro run y hay que volver a ejecutarlo.",
-        "La carpeta de salida ahora registra qué plates produjo cada run, de modo que al releerla solo devuelve las de ese run.",
-        "Las plates sobrantes de un run anterior se nombran en pantalla, junto con el run al que pertenecen, en vez de aparecer sin aviso.",
-        "No se borra nada. Los archivos se quedan donde están, porque qué salida sigue haciendo falta no lo decide este código."
+        "La carpeta ahora registra qué plates produjo cada run, las plates sobrantes de un run anterior se nombran en pantalla y no se borra nada.",
+        "La pantalla de exportación ya no ofrece row inicial ni final. Cualquier ajuste que no fuera la plate completa apilaba mutantes distintos en un well.",
+        "La colocación sale solo de la elección de quadrant, y un rango de rows guardado que taparía un well ya ocupado se rechaza en vez de escribirse."
       ],
       "0.16.25": [
         "Un run declarado ahora se califica sobre las variantes de los wells que declaró, de modo que uno que las recuperó todas se lee como 100 por ciento y no como 9 por ciento.",
@@ -2660,13 +2660,15 @@
       ]
     },
     "releaseStamps": {
-      "0.16.25.1": "45101cf0",
+      "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
+      "0.16.22": "9192ec4b",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
+      "0.16.18": "2b708e6d",
       "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",
@@ -2692,9 +2694,7 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21",
-      "0.16.18": "2b708e6d",
-      "0.16.22": "9192ec4b"
+      "0.15.16": "fe8e6f21"
     }
   },
   "primerDisplay": {
@@ -3162,9 +3162,6 @@
     "legendDest": "Destino (Echo dest / placa de destino de JANUS)",
     "legendDestMerged": "Both F+R arrived",
     "legendDestPartial": "Only F or R arrived",
-    "mappingRange": "Mapping range",
-    "rowStart": "Start row",
-    "rowEnd": "End row",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "Well destino",
     "missing": "falta"

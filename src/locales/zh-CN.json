@@ -2449,18 +2449,18 @@
     "highlights": [
       "导出到已有较早 run 输出的文件夹时，该 run 会连那些 plate 一并判定，表中出现的 plate 多于所选数量。",
       "过去的工作簿若显示的 plate 多于该 run 所选的 barcode，说明它判定了另一个 run 的 well，需要重新运行。",
-      "输出文件夹现在会记录每个 run 生成了哪些 plate，重新读取时只返回该 run 的 plate。",
-      "较早 run 留下的 plate 会连同其所属的 run 一起在界面上列出，而不是无声无息地混入。",
-      "不会删除任何内容。哪些输出仍然需要，不由这段代码决定，文件原样保留。"
+      "文件夹现在会记录每个 run 生成了哪些 plate，较早 run 留下的 plate 会在界面上列出，并且不会删除任何内容。",
+      "导出界面不再提供起始 row 和结束 row。除整块 plate 之外的任何设置，都会把不同突变体叠放到同一个 well 上。",
+      "位置只由 quadrant 选择决定，已保存的 row 区间若会覆盖已占用的 well，现在会被拒绝而不是写出。"
     ],
-    "highlightsStamp": "0.16.25+45101cf0",
+    "highlightsStamp": "0.16.25+291c60a5",
     "releases": {
       "0.16.25.1": [
         "导出到已有较早 run 输出的文件夹时，该 run 会连那些 plate 一并判定，表中出现的 plate 多于所选数量。",
         "过去的工作簿若显示的 plate 多于该 run 所选的 barcode，说明它判定了另一个 run 的 well，需要重新运行。",
-        "输出文件夹现在会记录每个 run 生成了哪些 plate，重新读取时只返回该 run 的 plate。",
-        "较早 run 留下的 plate 会连同其所属的 run 一起在界面上列出，而不是无声无息地混入。",
-        "不会删除任何内容。哪些输出仍然需要，不由这段代码决定，文件原样保留。"
+        "文件夹现在会记录每个 run 生成了哪些 plate，较早 run 留下的 plate 会在界面上列出，并且不会删除任何内容。",
+        "导出界面不再提供起始 row 和结束 row。除整块 plate 之外的任何设置，都会把不同突变体叠放到同一个 well 上。",
+        "位置只由 quadrant 选择决定，已保存的 row 区间若会覆盖已占用的 well，现在会被拒绝而不是写出。"
       ],
       "0.16.25": [
         "已声明的 run 现在只按其声明 well 中的 variant 计分，因此全部回收的 run 显示为 100%，而不是 9%。",
@@ -2660,13 +2660,15 @@
       ]
     },
     "releaseStamps": {
-      "0.16.25.1": "45101cf0",
+      "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
+      "0.16.22": "9192ec4b",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
+      "0.16.18": "2b708e6d",
       "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",
@@ -2692,9 +2694,7 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21",
-      "0.16.18": "2b708e6d",
-      "0.16.22": "9192ec4b"
+      "0.15.16": "fe8e6f21"
     }
   },
   "primerDisplay": {
@@ -3162,9 +3162,6 @@
     "legendDest": "目标 (Echo dest / JANUS 目标板)",
     "legendDestMerged": "Both F+R arrived",
     "legendDestPartial": "Only F or R arrived",
-    "mappingRange": "Mapping range",
-    "rowStart": "Start row",
-    "rowEnd": "End row",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "目标 well",
     "missing": "缺失"
