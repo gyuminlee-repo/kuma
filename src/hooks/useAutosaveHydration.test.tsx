@@ -2062,12 +2062,14 @@ describe("useAutosaveHydration — saved runs from another build", () => {
   });
 
   it("restores a run from a release that changed nothing about results", async () => {
-    // v0.16.16 is the newest recorded result change, so a run saved by it is
+    // v0.16.25 is the newest recorded result change, so a run saved by it is
     // this build's answer even though the version strings differ. The version
     // here has to move with the table: pinning an older one asserts that a run
     // scored by a superseded rule is current, which is the thing the notice
-    // exists to prevent.
-    hooks.readMameResultSnapshot.mockResolvedValue(resultSnapshotFrom("0.16.16"));
+    // exists to prevent. It was left at 0.16.16 when revision 7
+    // (declaredWellsDenominator) shipped, and this test failed on main until
+    // it was moved.
+    hooks.readMameResultSnapshot.mockResolvedValue(resultSnapshotFrom("0.16.25"));
 
     renderHydration();
 
