@@ -2447,13 +2447,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Um run declarado agora é avaliado sobre as variantes dos wells que declarou, de modo que um run que recuperou todas mostra 100 por cento e não 9 por cento.",
-      "A contagem de wells ao lado volta a contar wells e não uma entrada por replicate plate, então uma declaração de dez wells não aparece mais como 57 wells.",
-      "Um run salvo por uma versão anterior é convidado a ser reanalisado, porque sua taxa foi dividida pela lista inteira de variantes.",
-      "Declarar apenas o WT control não deixa mutantes projetados a avaliar, então a taxa mostra um traço em vez de uma porcentagem."
+      "Um run exportado para uma pasta que já tinha a saída de um run anterior pontuou também aquelas plates, e chegaram mais do que as selecionadas.",
+      "Uma pasta de trabalho antiga que mostre mais plates do que os barcodes escolhidos por aquele run foi pontuada sobre wells de outro run e precisa rodar de novo.",
+      "A pasta de saída agora registra quais plates cada run produziu, de modo que uma releitura devolve apenas as daquele run.",
+      "As plates deixadas por um run anterior são nomeadas na tela, junto com o run que as possui, em vez de aparecerem sem aviso.",
+      "Nada é apagado. Os arquivos ficam onde estão, porque qual saída ainda é necessária não cabe a este código decidir."
     ],
-    "highlightsStamp": "0.16.25+8204368c",
+    "highlightsStamp": "0.16.25+45101cf0",
     "releases": {
+      "0.16.25.1": [
+        "Um run exportado para uma pasta que já tinha a saída de um run anterior pontuou também aquelas plates, e chegaram mais do que as selecionadas.",
+        "Uma pasta de trabalho antiga que mostre mais plates do que os barcodes escolhidos por aquele run foi pontuada sobre wells de outro run e precisa rodar de novo.",
+        "A pasta de saída agora registra quais plates cada run produziu, de modo que uma releitura devolve apenas as daquele run.",
+        "As plates deixadas por um run anterior são nomeadas na tela, junto com o run que as possui, em vez de aparecerem sem aviso.",
+        "Nada é apagado. Os arquivos ficam onde estão, porque qual saída ainda é necessária não cabe a este código decidir."
+      ],
       "0.16.25": [
         "Um run declarado agora é avaliado sobre as variantes dos wells que declarou, de modo que um run que recuperou todas mostra 100 por cento e não 9 por cento.",
         "A contagem de wells ao lado volta a contar wells e não uma entrada por replicate plate, então uma declaração de dez wells não aparece mais como 57 wells.",
@@ -2652,6 +2660,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.25.1": "45101cf0",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",

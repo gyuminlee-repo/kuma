@@ -2447,13 +2447,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Un run déclaré est désormais évalué sur les variants des wells qu'il a déclarés, si bien qu'un run qui les a tous récupérés affiche 100 pour cent et non 9 pour cent.",
-      "Le compte de wells à côté compte de nouveau des wells et non une entrée par replicate plate, si bien qu'une déclaration de dix wells n'affiche plus 57 wells.",
-      "Un run enregistré par une version antérieure est invité à être réanalysé, car son taux était divisé par la liste complète des variants.",
-      "Déclarer seulement le WT control ne laisse aucun mutant conçu à évaluer, si bien que le taux affiche un tiret plutôt qu'un pourcentage."
+      "Un run exporté dans un dossier contenant la sortie d'un run antérieur a aussi noté ces plates, donc plus de plates que celles sélectionnées.",
+      "Un classeur antérieur affichant plus de plates que de barcodes choisis par ce run a été noté sur les wells d'un autre run et doit être relancé.",
+      "Le dossier de sortie enregistre désormais les plates produites par chaque run, si bien qu'une relecture ne renvoie que celles de ce run.",
+      "Les plates laissées par un run antérieur sont nommées à l'écran, avec le run auquel elles appartiennent, au lieu d'arriver sans prévenir.",
+      "Rien n'est supprimé. Les fichiers restent où ils sont, car ce code n'a pas à décider quelle sortie est encore utile."
     ],
-    "highlightsStamp": "0.16.25+8204368c",
+    "highlightsStamp": "0.16.25+45101cf0",
     "releases": {
+      "0.16.25.1": [
+        "Un run exporté dans un dossier contenant la sortie d'un run antérieur a aussi noté ces plates, donc plus de plates que celles sélectionnées.",
+        "Un classeur antérieur affichant plus de plates que de barcodes choisis par ce run a été noté sur les wells d'un autre run et doit être relancé.",
+        "Le dossier de sortie enregistre désormais les plates produites par chaque run, si bien qu'une relecture ne renvoie que celles de ce run.",
+        "Les plates laissées par un run antérieur sont nommées à l'écran, avec le run auquel elles appartiennent, au lieu d'arriver sans prévenir.",
+        "Rien n'est supprimé. Les fichiers restent où ils sont, car ce code n'a pas à décider quelle sortie est encore utile."
+      ],
       "0.16.25": [
         "Un run déclaré est désormais évalué sur les variants des wells qu'il a déclarés, si bien qu'un run qui les a tous récupérés affiche 100 pour cent et non 9 pour cent.",
         "Le compte de wells à côté compte de nouveau des wells et non une entrée par replicate plate, si bien qu'une déclaration de dix wells n'affiche plus 57 wells.",
@@ -2652,6 +2660,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.25.1": "45101cf0",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",

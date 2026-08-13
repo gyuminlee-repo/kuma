@@ -2447,13 +2447,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein deklarierter Run wird jetzt über die Varianten in seinen deklarierten Wells bewertet, sodass ein Run, der alle wiedergefunden hat, 100 Prozent statt 9 Prozent zeigt.",
-      "Die Well-Zahl daneben zählt wieder Wells und nicht einen Eintrag pro replicate plate, sodass eine Deklaration von zehn Wells nicht mehr als 57 Wells erscheint.",
-      "Ein von einem früheren Build gespeicherter Run wird zur erneuten Analyse aufgefordert, weil seine Rate durch die gesamte Variantenliste geteilt wurde.",
-      "Wird nur die WT control deklariert, bleiben keine designten Mutanten zum Bewerten, sodass die Rate einen Strich statt eines Prozentwerts zeigt."
+      "Ein run, der in einen Ordner mit der Ausgabe eines früheren run exportiert wurde, bewertete dessen plates mit, also erschienen mehr als ausgewählt.",
+      "Eine frühere Arbeitsmappe mit mehr plates als der run barcodes ausgewählt hatte, wurde über wells eines anderen run bewertet und muss neu laufen.",
+      "Der Ausgabeordner hält jetzt fest, welche plates jeder run erzeugt hat, sodass ein erneutes Lesen nur dessen plates zurückgibt.",
+      "Übrig gebliebene plates eines früheren run werden mit dem zugehörigen run benannt, statt unangekündigt aufzutauchen.",
+      "Nichts wird gelöscht. Die Dateien bleiben, wo sie sind, denn welche Ausgabe noch gebraucht wird, entscheidet dieser Code nicht."
     ],
-    "highlightsStamp": "0.16.25+8204368c",
+    "highlightsStamp": "0.16.25+45101cf0",
     "releases": {
+      "0.16.25.1": [
+        "Ein run, der in einen Ordner mit der Ausgabe eines früheren run exportiert wurde, bewertete dessen plates mit, also erschienen mehr als ausgewählt.",
+        "Eine frühere Arbeitsmappe mit mehr plates als der run barcodes ausgewählt hatte, wurde über wells eines anderen run bewertet und muss neu laufen.",
+        "Der Ausgabeordner hält jetzt fest, welche plates jeder run erzeugt hat, sodass ein erneutes Lesen nur dessen plates zurückgibt.",
+        "Übrig gebliebene plates eines früheren run werden mit dem zugehörigen run benannt, statt unangekündigt aufzutauchen.",
+        "Nichts wird gelöscht. Die Dateien bleiben, wo sie sind, denn welche Ausgabe noch gebraucht wird, entscheidet dieser Code nicht."
+      ],
       "0.16.25": [
         "Ein deklarierter Run wird jetzt über die Varianten in seinen deklarierten Wells bewertet, sodass ein Run, der alle wiedergefunden hat, 100 Prozent statt 9 Prozent zeigt.",
         "Die Well-Zahl daneben zählt wieder Wells und nicht einen Eintrag pro replicate plate, sodass eine Deklaration von zehn Wells nicht mehr als 57 Wells erscheint.",
@@ -2652,6 +2660,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.25.1": "45101cf0",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",

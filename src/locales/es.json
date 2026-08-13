@@ -2447,13 +2447,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Un run declarado ahora se califica sobre las variantes de los wells que declaró, de modo que uno que las recuperó todas se lee como 100 por ciento y no como 9 por ciento.",
-      "El recuento de wells contiguo vuelve a contar wells y no una entrada por replicate plate, así una declaración de diez wells ya no se lee como 57 wells.",
-      "Un run guardado por una versión anterior pide volver a analizarse, porque su tasa se dividió entre la lista completa de variantes.",
-      "Declarar solo el WT control no deja mutantes diseñados que calificar, así que la tasa muestra un guion en lugar de un porcentaje."
+      "Un run exportado a una carpeta que ya tenía la salida de un run anterior puntuó también esas plates, y llegaron más de las seleccionadas.",
+      "Un libro anterior que muestre más plates que los barcodes elegidos por ese run se puntuó sobre wells de otro run y hay que volver a ejecutarlo.",
+      "La carpeta de salida ahora registra qué plates produjo cada run, de modo que al releerla solo devuelve las de ese run.",
+      "Las plates sobrantes de un run anterior se nombran en pantalla, junto con el run al que pertenecen, en vez de aparecer sin aviso.",
+      "No se borra nada. Los archivos se quedan donde están, porque qué salida sigue haciendo falta no lo decide este código."
     ],
-    "highlightsStamp": "0.16.25+8204368c",
+    "highlightsStamp": "0.16.25+45101cf0",
     "releases": {
+      "0.16.25.1": [
+        "Un run exportado a una carpeta que ya tenía la salida de un run anterior puntuó también esas plates, y llegaron más de las seleccionadas.",
+        "Un libro anterior que muestre más plates que los barcodes elegidos por ese run se puntuó sobre wells de otro run y hay que volver a ejecutarlo.",
+        "La carpeta de salida ahora registra qué plates produjo cada run, de modo que al releerla solo devuelve las de ese run.",
+        "Las plates sobrantes de un run anterior se nombran en pantalla, junto con el run al que pertenecen, en vez de aparecer sin aviso.",
+        "No se borra nada. Los archivos se quedan donde están, porque qué salida sigue haciendo falta no lo decide este código."
+      ],
       "0.16.25": [
         "Un run declarado ahora se califica sobre las variantes de los wells que declaró, de modo que uno que las recuperó todas se lee como 100 por ciento y no como 9 por ciento.",
         "El recuento de wells contiguo vuelve a contar wells y no una entrada por replicate plate, así una declaración de diez wells ya no se lee como 57 wells.",
@@ -2652,6 +2660,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.25.1": "45101cf0",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
