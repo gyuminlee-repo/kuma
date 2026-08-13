@@ -20,7 +20,9 @@ import pytest
 from kuma_core.mame.export.excel_writer import _custom_barcode_to_seq
 from kuma_core.mame.export.well_mapper import seq_to_well
 from kuma_core.mame.ingest.combinatorial_demux import DemuxStats
+from kuma_core.mame.ingest.fasta_parser import load_barcode_directory
 from kuma_core.mame.ingest.run_pipeline import ingest_run_folder, is_minknow_run_dir
+from kuma_core.mame.ingest.unit_manifest import read_run_manifest
 from kuma_core.mame.qc.contamination import POOLED_PLATE_NAME
 
 # ---------------------------------------------------------------------------
@@ -368,6 +370,94 @@ class TestIngestPerNb:
             }
 
         assert _key(first) == _key(second)
+
+    def test_resume_with_the_same_units_still_resumes_under_a_manifest(
+        self, tmp_path: Path
+    ) -> None:
+        """Re-using an output folder for the SAME units must still resume.
+
+        The membership manifest exists to stop a folder being read as more
+        plates than the run declared. Legitimate re-use of a folder for the same
+        selection is the case the per-unit markers exist for, and the manifest
+        must not get in its way: the second run rewrites it with the same unit
+        list and every unit is reused rather than recomputed.
+
+        Asserted through ``resume_out`` rather than through wall time, because
+        "it was fast" is not evidence about which branch ran.
+        """
+        _require_minimap2()
+        ref = _build_reference(tmp_path)
+        xlsx = _build_barcodes_xlsx(tmp_path)
+        nb_names = ["barcode06", "barcode20"]
+        run_dir = _build_per_nb_run(tmp_path, nb_names)
+        out_dir = tmp_path / "demux_resume_manifest"
+
+        first_resume: dict[str, int] = {}
+        ingest_run_folder(
+            run_dir, xlsx, ref, out_dir, native_barcodes=nb_names,
+            mapq_threshold=0, coverage_fraction=0.5, trim_flank_bp=30,
+            resume_out=first_resume,
+        )
+        assert first_resume["recomputed_units"] == len(nb_names)
+        assert first_resume["reused_units"] == 0
+
+        manifest = read_run_manifest(out_dir)
+        assert manifest is not None
+        assert manifest["units"] == ["sort_barcode06", "sort_barcode20"]
+        assert manifest["native_barcodes"] == nb_names
+
+        second_resume: dict[str, int] = {}
+        records = ingest_run_folder(
+            run_dir, xlsx, ref, out_dir, native_barcodes=nb_names,
+            mapq_threshold=0, coverage_fraction=0.5, trim_flank_bp=30,
+            resume_out=second_resume,
+        )
+        assert second_resume["reused_units"] == len(nb_names)
+        assert second_resume["recomputed_units"] == 0
+        assert {r.native_barcode for r in records} == {
+            "sort_barcode06",
+            "sort_barcode20",
+        }
+        # The manifest is rewritten, not appended to, so a folder re-used for a
+        # NARROWER selection later cannot keep claiming the wider one.
+        assert read_run_manifest(out_dir)["units"] == [
+            "sort_barcode06",
+            "sort_barcode20",
+        ]
+
+    def test_a_later_run_narrows_the_folder_it_reuses(self, tmp_path: Path) -> None:
+        """Re-running the same folder for FEWER units drops the others.
+
+        This is the researcher's case with the roles made explicit: the folder
+        already holds sort_barcode20 from the earlier run, the new run declares
+        only barcode06, and the read must return one plate. Before the manifest
+        the second run returned both, because the handler re-reads this tree
+        with nothing to scope it.
+        """
+        _require_minimap2()
+        ref = _build_reference(tmp_path)
+        xlsx = _build_barcodes_xlsx(tmp_path)
+        run_dir = _build_per_nb_run(tmp_path, ["barcode06", "barcode20"])
+        out_dir = tmp_path / "demux_narrowed"
+
+        ingest_run_folder(
+            run_dir, xlsx, ref, out_dir, native_barcodes=["barcode06", "barcode20"],
+            mapq_threshold=0, coverage_fraction=0.5, trim_flank_bp=30,
+        )
+        assert (out_dir / "sort_barcode20").is_dir()
+
+        records = ingest_run_folder(
+            run_dir, xlsx, ref, out_dir, native_barcodes=["barcode06"],
+            mapq_threshold=0, coverage_fraction=0.5, trim_flank_bp=30,
+        )
+        assert {r.native_barcode for r in records} == {"sort_barcode06"}
+
+        # The stray is reported to whoever asks, and left on disk.
+        strays: dict = {}
+        reread = load_barcode_directory(out_dir, strays_out=strays)
+        assert {r.native_barcode for r in reread} == {"sort_barcode06"}
+        assert strays["names"] == ["sort_barcode20"]
+        assert (out_dir / "sort_barcode20").is_dir()
 
     def test_per_nb_out_receives_one_matrix_per_native_barcode(
         self, tmp_path: Path

@@ -325,6 +325,30 @@ export interface MappingIntegrity {
 }
 
 /**
+ * Unit directories found in the ingested folder that the run recorded there did
+ * not produce, i.e. output an earlier run left behind when the same export
+ * folder was reused (`kuma_core/mame/ingest/unit_manifest.py`).
+ *
+ * They are excluded from the verdicts and left untouched on disk: removing a
+ * previous run output is the operator's call, so this reports and stops there.
+ *
+ * `names` may be empty, and empty is not the same as the whole field being
+ * absent. Present with no names says the folder carried a run manifest and
+ * holds nothing stale. Absent says there was no manifest to check against,
+ * which is the case for a directory somebody else sorted and pointed MAME at
+ * directly, where every subdirectory is meant to be read and "stale" has no
+ * meaning. Zero-filling the absent case would claim a check nobody ran.
+ *
+ * `run_dir` and `written_at` describe the run that DID own the folder, so the
+ * operator can tell which of their runs the leftovers belong to.
+ */
+export interface StaleUnits {
+  names: string[];
+  run_dir: string;
+  written_at: string;
+}
+
+/**
  * The thresholds an `analyze` run was actually judged against, mirrored from
  * `python-core/sidecar_mame/handlers/analyze.py` (`compare_params`). Every
  * per-well number on `VerdictRecord` is a measurement; this is what each one
@@ -490,6 +514,7 @@ export interface AnalyzeResult extends AnalyzeYield {
    * persisted before this field existed.
    */
   mapping_integrity?: MappingIntegrity;
+  stale_units?: StaleUnits;
   /**
    * The thresholds this run was judged against. Same optionality reasoning as
    * the two above: always sent by a live sidecar, absent on results persisted

@@ -1047,6 +1047,29 @@
       "severity": "blocking"
     },
     {
+      "id": "mame-run-unit-membership",
+      "files": [
+        "kuma_core/mame/ingest/unit_manifest.py",
+        "kuma_core/mame/ingest/run_pipeline.py",
+        "kuma_core/mame/ingest/fasta_parser.py",
+        "kuma_core/mame/ingest/mode_router.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "src/types/mame/models.ts",
+        "src/components/mame/widgets/StaleUnitsNotice.tsx"
+      ],
+      "symbols": [
+        "write_run_manifest",
+        "read_run_manifest",
+        "units_of",
+        "strays_out",
+        "stale_units",
+        "StaleUnits",
+        "diagnoseStaleUnits"
+      ],
+      "note": "Which unit directories belong to the run that filled a demux output folder: ingest_run_folder writes the manifest (unit_manifest.py) into demux_output_dir after the units are on disk -> load_barcode_directory reads it and narrows itself to the units it names, whatever the caller passed -> leftovers travel out through the strays_out sink, through route_ingest, to the analyze response 'stale_units' -> TS StaleUnits -> StaleUnitsNotice. Four things break if these are edited apart. (1) The narrowing decision belongs in the READER, not at a call site. The parameter form of this (load_barcode_directory units=) already existed and only protected the one caller that remembered it; the analyze handler ingests the same tree a SECOND time after ingest_run_folder returns, passed nothing, and scored three plates of the previous day alongside the three selected (2026-08-10, four verdict workbooks). Moving the decision back to a call site restores that defect. (2) NO manifest means NO CLAIM, never zero units: an externally sorted directory a user points MAME at directly carries none and every subdirectory must still be read, which is why units_of folds an empty or corrupt claim into None rather than honouring it. (3) stale_units is OMITTED when the read had no manifest to compare against and PRESENT-with-empty-names when it had one and found nothing, and those are different statements; zero-filling the first claims a check nobody ran. Same optional-by-contract rule as the mame-analyze-yield-fields chain. (4) Strays are reported and excluded, never deleted or moved: removing a previous run output is the operator decision, and this code has no way to know the folder is not the only copy. The per-unit stage_marker.py answers a different question (is THIS unit complete) and resume depends on it, so the two must not be merged.",
+      "severity": "blocking"
+    },
+    {
       "id": "shared-file-menu",
       "files": [
         "src/components/layout/FileMenu.tsx",

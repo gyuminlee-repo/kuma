@@ -38,6 +38,7 @@ from kuma_core.mame.ingest.combinatorial_demux import (
     run_combinatorial_demux_per_nb,
 )
 from kuma_core.mame.ingest.fasta_parser import load_barcode_directory
+from kuma_core.mame.ingest.unit_manifest import manifest_path, write_run_manifest
 
 
 # ===========================================================================
@@ -131,6 +132,133 @@ def test_units_scopes_the_read_to_what_this_run_wrote(tmp_path: Path) -> None:
 
     per_nb = load_barcode_directory(parent, units=["sort_barcode06", "sort_barcode20"])
     assert {r.native_barcode for r in per_nb} == {"sort_barcode06", "sort_barcode20"}
+
+
+# ===========================================================================
+# A2) RUN MEMBERSHIP: the directory decides, not the call site (no minimap2)
+# ===========================================================================
+
+
+def _stage_units(parent: Path, names: list[str]) -> None:
+    for name in names:
+        _write(parent / name / "1_1.fasta", _SINGLE_RECORD)
+
+
+def test_manifest_excludes_and_reports_a_previous_run_output(tmp_path: Path) -> None:
+    """A stray unit is left out of the records AND named in the report.
+
+    The real failure: three native barcodes selected, the export folder already
+    holding three units of a run from the day before, and a verdict table with
+    six plates (2026-08-10). The unscoped read below is the pre-fix behaviour
+    and is asserted first so the manifest is what makes the difference.
+
+    Reporting is half the fix. The leak ran four times without anyone noticing
+    precisely because the extra plates arrived silently, so "excluded" alone
+    would trade a wrong answer for an unexplained one.
+    """
+    parent = tmp_path / "demux_filtered"
+    _stage_units(parent, ["sort_barcode07", "sort_barcode08", "sort_barcode15"])
+
+    # No manifest yet: every subdirectory is read, stray included.
+    assert {r.native_barcode for r in load_barcode_directory(parent)} == {
+        "sort_barcode07",
+        "sort_barcode08",
+        "sort_barcode15",
+    }
+
+    write_run_manifest(
+        parent,
+        run_dir=tmp_path / "RUN_260811",
+        native_barcodes=["barcode07", "barcode08"],
+        units=["sort_barcode07", "sort_barcode08"],
+    )
+
+    strays: dict = {}
+    records = load_barcode_directory(parent, strays_out=strays)
+    assert {r.native_barcode for r in records} == {"sort_barcode07", "sort_barcode08"}
+    assert strays["names"] == ["sort_barcode15"]
+    assert strays["manifest_run_dir"] == str(tmp_path / "RUN_260811")
+    assert strays["manifest_written_at"]
+
+    # Left on disk untouched: removing a previous run output is the operator's
+    # decision, and this code cannot know the folder is not the only copy.
+    assert (parent / "sort_barcode15" / "1_1.fasta").exists()
+
+
+def test_manifest_outranks_the_units_a_caller_passes(tmp_path: Path) -> None:
+    """The directory's own record wins over the parameter.
+
+    This is what makes the fix structural rather than one more call site that
+    has to remember. A caller asking for the stray still does not get it.
+    """
+    parent = tmp_path / "demux_filtered"
+    _stage_units(parent, ["sort_barcode07", "sort_barcode15"])
+    write_run_manifest(
+        parent,
+        run_dir=tmp_path / "RUN",
+        native_barcodes=["barcode07"],
+        units=["sort_barcode07"],
+    )
+
+    records = load_barcode_directory(
+        parent, units=["sort_barcode07", "sort_barcode15"]
+    )
+    assert {r.native_barcode for r in records} == {"sort_barcode07"}
+
+
+def test_directory_without_a_manifest_still_reads_every_subdirectory(
+    tmp_path: Path,
+) -> None:
+    """The externally sorted directory must keep working.
+
+    A folder somebody else sorted, that MAME did not produce, carries no
+    manifest and makes no claim about membership. Absence of a manifest is "no
+    claim", never "no units": narrowing it to nothing would render an empty
+    verdict table for a directory plainly full of data. The strays sink stays
+    untouched for the same reason, so the response omits the field rather than
+    reporting zero leftovers about a question nobody could ask.
+    """
+    parent = tmp_path / "externally_sorted"
+    _stage_units(parent, ["NB01", "NB02", "NB03"])
+
+    strays: dict = {}
+    records = load_barcode_directory(parent, strays_out=strays)
+    assert {r.native_barcode for r in records} == {"NB01", "NB02", "NB03"}
+    assert strays == {}
+
+
+@pytest.mark.parametrize(
+    ("label", "content"),
+    [
+        ("truncated", '{"schema_version": 1, "units": ["sort_ba'),
+        ("not json", "not json at all"),
+        ("not an object", "[1, 2, 3]"),
+        ("units not a list", '{"schema_version": 1, "units": "sort_barcode07"}'),
+        ("units empty", '{"schema_version": 1, "units": []}'),
+    ],
+)
+def test_unreadable_manifest_degrades_to_reading_everything(
+    tmp_path: Path, label: str, content: str
+) -> None:
+    """A manifest that cannot be trusted is treated as absent, never fatal.
+
+    Same rule the per-unit stage marker follows. Degrading to the pre-manifest
+    read is wrong in the narrow way this feature exists to fix, but it is never
+    worse than what shipped; raising would turn one interrupted write into a
+    results folder nobody can open. An empty ``units`` is folded in here too,
+    because it cannot be told apart from a truncated one.
+    """
+    parent = tmp_path / "demux_filtered"
+    _stage_units(parent, ["sort_barcode07", "sort_barcode15"])
+    manifest_path(parent).write_text(content, encoding="utf-8")
+
+    strays: dict = {}
+    records = load_barcode_directory(parent, strays_out=strays)
+    assert {r.native_barcode for r in records} == {
+        "sort_barcode07",
+        "sort_barcode15",
+    }, label
+    assert strays == {}, label
 
 
 # ===========================================================================

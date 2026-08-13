@@ -1066,6 +1066,12 @@
         "body": "{{aligned}} lecturas se alinearon con la referencia y se conservaron {{kept}}. Los pocillos cuyas lecturas se descartaron por completo no producen veredicto, así que en esta pantalla se ven igual que los pocillos que nunca se llenaron.",
         "hint": "Cierta pérdida es esperable, ya que las lecturas parciales y quiméricas deben descartarse. Una proporción alta apunta a la referencia más que a las muestras: un alineamiento que termina un número constante de bases antes de los extremos de la referencia, por ejemplo en un primer, incumple un umbral porcentual con mayor facilidad cuanto más corto es el amplicón. El requisito de cobertura está en las opciones avanzadas del panel de parámetros."
       },
+      "staleUnits": {
+        "title": "{{n}} carpeta(s) de plate aquí las produjo un run anterior",
+        "body": "{{names}} están en la carpeta de salida pero no forman parte del run registrado allí, por lo que quedaron fuera de los veredictos.",
+        "owner": "La carpeta registra su salida como perteneciente al run de {{runDir}}.",
+        "hint": "Ocurre cuando se exporta un run nuevo a una carpeta que ya contiene otro. No se ha borrado nada. Compruebe si esos resultados siguen haciendo falta antes de eliminarlos usted mismo, y use una carpeta de salida distinta por cada run."
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",
@@ -2441,13 +2447,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Un run declarado ahora se califica sobre las variantes de los wells que declaró, de modo que uno que las recuperó todas se lee como 100 por ciento y no como 9 por ciento.",
-      "El recuento de wells contiguo vuelve a contar wells y no una entrada por replicate plate, así una declaración de diez wells ya no se lee como 57 wells.",
-      "Un run guardado por una versión anterior pide volver a analizarse, porque su tasa se dividió entre la lista completa de variantes.",
-      "Declarar solo el WT control no deja mutantes diseñados que calificar, así que la tasa muestra un guion en lugar de un porcentaje."
+      "Un run exportado a una carpeta que ya tenía la salida de un run anterior puntuó también esas plates, y llegaron más de las seleccionadas.",
+      "Un libro anterior que muestre más plates que los barcodes elegidos por ese run se puntuó sobre wells de otro run y hay que volver a ejecutarlo.",
+      "La carpeta ahora registra qué plates produjo cada run, las plates sobrantes de un run anterior se nombran en pantalla y no se borra nada.",
+      "La pantalla de exportación ya no ofrece row inicial ni final. Cualquier ajuste que no fuera la plate completa apilaba mutantes distintos en un well.",
+      "La colocación sale solo de la elección de quadrant, y un rango de rows guardado que taparía un well ya ocupado se rechaza en vez de escribirse."
     ],
-    "highlightsStamp": "0.16.25+8204368c",
+    "highlightsStamp": "0.16.25+291c60a5",
     "releases": {
+      "0.16.25.1": [
+        "Un run exportado a una carpeta que ya tenía la salida de un run anterior puntuó también esas plates, y llegaron más de las seleccionadas.",
+        "Un libro anterior que muestre más plates que los barcodes elegidos por ese run se puntuó sobre wells de otro run y hay que volver a ejecutarlo.",
+        "La carpeta ahora registra qué plates produjo cada run, las plates sobrantes de un run anterior se nombran en pantalla y no se borra nada.",
+        "La pantalla de exportación ya no ofrece row inicial ni final. Cualquier ajuste que no fuera la plate completa apilaba mutantes distintos en un well.",
+        "La colocación sale solo de la elección de quadrant, y un rango de rows guardado que taparía un well ya ocupado se rechaza en vez de escribirse."
+      ],
       "0.16.25": [
         "Un run declarado ahora se califica sobre las variantes de los wells que declaró, de modo que uno que las recuperó todas se lee como 100 por ciento y no como 9 por ciento.",
         "El recuento de wells contiguo vuelve a contar wells y no una entrada por replicate plate, así una declaración de diez wells ya no se lee como 57 wells.",
@@ -2646,12 +2660,15 @@
       ]
     },
     "releaseStamps": {
+      "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
+      "0.16.22": "9192ec4b",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
+      "0.16.18": "2b708e6d",
       "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",
@@ -2677,9 +2694,7 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21",
-      "0.16.18": "2b708e6d",
-      "0.16.22": "9192ec4b"
+      "0.15.16": "fe8e6f21"
     }
   },
   "primerDisplay": {
@@ -3147,9 +3162,6 @@
     "legendDest": "Destino (Echo dest / placa de destino de JANUS)",
     "legendDestMerged": "Both F+R arrived",
     "legendDestPartial": "Only F or R arrived",
-    "mappingRange": "Mapping range",
-    "rowStart": "Start row",
-    "rowEnd": "End row",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "Well destino",
     "missing": "falta"

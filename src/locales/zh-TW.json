@@ -1066,6 +1066,12 @@
         "body": "{{aligned}} 條 read 比對到參考序列，其中保留了 {{kept}} 條。read 全數被捨棄的孔不會產生判定，因此在此畫面上看起來與從未上樣的孔完全相同。",
         "hint": "一定程度的捨棄屬於正常，部分比對與 chimeric read 本就應被剔除。但比例過大時，更值得懷疑的是參考序列而非樣品。例如比對在參考序列兩端固定差若干鹼基處結束（如 primer 位置），amplicon 越短就越難達到百分比門檻。覆蓋度要求位於參數面板的進階選項中。"
       },
+      "staleUnits": {
+        "title": "此資料夾中有 {{n}} 個 plate 資料夾由較早的 run 產生",
+        "body": "{{names}} 位於輸出資料夾中，但不屬於此處記錄的 run，因此已從判定中排除。",
+        "owner": "該資料夾記錄其輸出屬於 {{runDir}} 的 run。",
+        "hint": "將新的 run 匯出到已有輸出的資料夾時會出現這種情況。沒有刪除任何內容。請先確認這些結果是否仍然需要，再自行刪除；為每個 run 使用個別的輸出資料夾即可避免重疊。"
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",
@@ -2441,13 +2447,21 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "已宣告的 run 現在只按其宣告 well 中的 variant 計分，因此全部回收的 run 顯示為 100%，而不是 9%。",
-      "旁邊的 well 數量重新計的是 well，而不是每個 replicate plate 一筆記錄，因此宣告十個 well 不再顯示為 57 個。",
-      "由較早版本儲存的 run 會被提示重新分析，因為它的成功率是用整份 variant 清單相除得出的。",
-      "只宣告 WT control 時沒有可計分的 designed mutant，因此成功率顯示為一個短橫線而不是百分比。"
+      "匯出到已有較早 run 輸出的資料夾時，該 run 會連那些 plate 一併判定，表中出現的 plate 多於所選數量。",
+      "過去的活頁簿若顯示的 plate 多於該 run 所選的 barcode，表示它判定了另一個 run 的 well，需要重新執行。",
+      "資料夾現在會記錄每個 run 產生了哪些 plate，較早 run 留下的 plate 會在畫面上列出，而且不會刪除任何內容。",
+      "匯出畫面不再提供起始 row 與結束 row。除整塊 plate 以外的任何設定，都會把不同突變體疊放到同一個 well 上。",
+      "位置只由 quadrant 選擇決定，已儲存的 row 區間若會覆蓋已占用的 well，現在會被拒絕而不是寫出。"
     ],
-    "highlightsStamp": "0.16.25+8204368c",
+    "highlightsStamp": "0.16.25+291c60a5",
     "releases": {
+      "0.16.25.1": [
+        "匯出到已有較早 run 輸出的資料夾時，該 run 會連那些 plate 一併判定，表中出現的 plate 多於所選數量。",
+        "過去的活頁簿若顯示的 plate 多於該 run 所選的 barcode，表示它判定了另一個 run 的 well，需要重新執行。",
+        "資料夾現在會記錄每個 run 產生了哪些 plate，較早 run 留下的 plate 會在畫面上列出，而且不會刪除任何內容。",
+        "匯出畫面不再提供起始 row 與結束 row。除整塊 plate 以外的任何設定，都會把不同突變體疊放到同一個 well 上。",
+        "位置只由 quadrant 選擇決定，已儲存的 row 區間若會覆蓋已占用的 well，現在會被拒絕而不是寫出。"
+      ],
       "0.16.25": [
         "已宣告的 run 現在只按其宣告 well 中的 variant 計分，因此全部回收的 run 顯示為 100%，而不是 9%。",
         "旁邊的 well 數量重新計的是 well，而不是每個 replicate plate 一筆記錄，因此宣告十個 well 不再顯示為 57 個。",
@@ -2646,12 +2660,15 @@
       ]
     },
     "releaseStamps": {
+      "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
+      "0.16.22": "9192ec4b",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
+      "0.16.18": "2b708e6d",
       "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",
@@ -2677,9 +2694,7 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21",
-      "0.16.18": "2b708e6d",
-      "0.16.22": "9192ec4b"
+      "0.15.16": "fe8e6f21"
     }
   },
   "primerDisplay": {
@@ -3147,9 +3162,6 @@
     "legendDest": "目標 (Echo dest / JANUS 目標盤)",
     "legendDestMerged": "Both F+R arrived",
     "legendDestPartial": "Only F or R arrived",
-    "mappingRange": "Mapping range",
-    "rowStart": "Start row",
-    "rowEnd": "End row",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "目標 well",
     "missing": "缺少"

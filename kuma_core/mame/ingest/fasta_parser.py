@@ -35,6 +35,7 @@ import time
 from collections.abc import Iterable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Any
 
 from kuma_core.mame.ingest.consensus_metadata import (
     ALIGNED_READS,
@@ -73,6 +74,7 @@ from kuma_core.mame.ingest.stage_marker import (
     scan_unit_dir,
     validate_marker,
 )
+from kuma_core.mame.ingest.unit_manifest import read_run_manifest, units_of
 from kuma_core.mame.models import BarcodeRecord
 
 _logger = logging.getLogger(__name__)
@@ -492,17 +494,38 @@ def parse_fasta_file(
 
 
 def load_barcode_directory(
-    input_dir: Path, *, units: Iterable[str] | None = None
+    input_dir: Path,
+    *,
+    units: Iterable[str] | None = None,
+    strays_out: dict[str, Any] | None = None,
 ) -> list[BarcodeRecord]:
     """Load all NBxx consensus FASTA files under ``input_dir``.
 
-    ``units`` names the top-level subdirectories to read, by directory name. The
-    default (``None``) reads every one of them, which is what an externally
-    sorted directory needs. A caller that produced the directory itself passes
-    the units it wrote, because the demux output directory is stable across
-    re-runs and nothing removes what an earlier run left there: a run pooled
-    into a folder that already holds ``sort_barcode06/`` and ``sort_barcode20/``
-    would otherwise read those two back as plates of a run that declared one.
+    Membership is decided by the directory first and by the caller second.
+
+    When ``input_dir`` carries a run manifest
+    (:mod:`kuma_core.mame.ingest.unit_manifest`), the units it names are the
+    ones read, whatever ``units`` says.  The manifest is written by the code
+    that produced the directory and is the only record of which units belong to
+    which run; a parameter threaded down from a call site is a statement the
+    next caller has to remember to repeat, and on 2026-08-10 one that did not
+    scored three plates of a previous run alongside the three that were
+    selected.  Putting the decision here means a directory cannot be read wrong
+    by a caller that forgets.
+
+    When there is NO manifest, ``units`` decides as before: the default
+    (``None``) reads every top-level subdirectory, which is what an externally
+    sorted directory a user points at directly needs.  Absence of a manifest is
+    "no claim about membership", never "no units", so that path is unchanged.
+
+    ``strays_out`` is an optional sink for the subdirectories that are present
+    but that the manifest does not name.  It is filled in only where a manifest
+    exists, because only a manifest makes "stray" a meaningful word; a
+    directory with no manifest leaves it untouched rather than reporting zero,
+    matching how every other optional counter on this chain distinguishes "not
+    measured" from "measured, and none".  Strays are excluded from the returned
+    records and are never deleted or moved: removing a previous run output is
+    the operator's decision, not this function's.
 
     Asymmetric completion-marker guard (per NB subdir):
 
@@ -529,16 +552,42 @@ def load_barcode_directory(
     # inventory guard and the per-well file size. ``entry.is_dir()`` here reads
     # the readdir type field where the platform supplies it, so the top-level
     # walk no longer stats every child either.
-    wanted = None if units is None else set(units)
     with os.scandir(input_dir) as top:
-        nb_dirs = sorted(
-            (
-                input_dir / e.name
-                for e in top
-                if e.is_dir() and (wanted is None or e.name in wanted)
-            ),
-            key=lambda p: p.name,
-        )
+        present = sorted(e.name for e in top if e.is_dir())
+
+    # The manifest, when there is one, overrides ``units``: it is the
+    # directory's own statement of which units the run that filled it produced,
+    # and it outranks anything a call site remembered to pass.  Absent or
+    # unreadable, it makes no claim and ``units`` decides exactly as before.
+    manifest = read_run_manifest(input_dir)
+    claimed = units_of(manifest)
+    if claimed is None:
+        wanted = None if units is None else set(units)
+    else:
+        wanted = claimed
+        if strays_out is not None:
+            strays = [name for name in present if name not in claimed]
+            strays_out.update(
+                {
+                    "names": strays,
+                    "manifest_run_dir": str(manifest.get("run_dir") or ""),
+                    "manifest_written_at": str(manifest.get("written_at") or ""),
+                }
+            )
+            if strays:
+                _logger.warning(
+                    "%d directory(ies) in %s are not part of the run recorded "
+                    "there and are being skipped: %s. They are left on disk "
+                    "untouched; remove them yourself if they are no longer "
+                    "wanted.",
+                    len(strays),
+                    input_dir,
+                    strays,
+                )
+
+    nb_dirs = [
+        input_dir / name for name in present if wanted is None or name in wanted
+    ]
     scanned = [(nb_dir, scan_unit_dir(nb_dir)) for nb_dir in nb_dirs]
 
     # The marker guard checks every recorded well's size, one ``stat`` each, and

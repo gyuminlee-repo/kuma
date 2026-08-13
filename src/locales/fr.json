@@ -1066,6 +1066,12 @@
         "body": "{{aligned}} lectures se sont alignées sur la référence et {{kept}} ont été conservées. Les puits dont toutes les lectures ont été écartées ne produisent aucun verdict, et apparaissent donc sur cet écran comme des puits jamais remplis.",
         "hint": "Une certaine perte est attendue, car les lectures partielles et chimériques doivent être écartées. Une proportion élevée désigne la référence plutôt que les échantillons : un alignement qui s'arrête à un nombre constant de bases des extrémités de la référence, au niveau d'une amorce par exemple, échoue d'autant plus facilement à un seuil exprimé en pourcentage que l'amplicon est court. Le seuil de couverture se trouve dans les options avancées du panneau de paramètres."
       },
+      "staleUnits": {
+        "title": "{{n}} dossier(s) de plate ici proviennent d'un run antérieur",
+        "body": "{{names}} se trouvent dans le dossier de sortie mais ne font pas partie du run qui y est enregistré, ils ont donc été écartés des verdicts.",
+        "owner": "Le dossier indique que sa sortie appartient au run situé dans {{runDir}}.",
+        "hint": "Cela se produit lorsqu'un nouveau run est exporté dans un dossier qui en contient déjà un. Rien n'a été supprimé. Vérifiez si ces résultats servent encore avant de les retirer vous-même, et utilisez un dossier de sortie distinct par run."
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",
@@ -2441,13 +2447,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Un run déclaré est désormais évalué sur les variants des wells qu'il a déclarés, si bien qu'un run qui les a tous récupérés affiche 100 pour cent et non 9 pour cent.",
-      "Le compte de wells à côté compte de nouveau des wells et non une entrée par replicate plate, si bien qu'une déclaration de dix wells n'affiche plus 57 wells.",
-      "Un run enregistré par une version antérieure est invité à être réanalysé, car son taux était divisé par la liste complète des variants.",
-      "Déclarer seulement le WT control ne laisse aucun mutant conçu à évaluer, si bien que le taux affiche un tiret plutôt qu'un pourcentage."
+      "Un run exporté dans un dossier contenant la sortie d'un run antérieur a aussi noté ces plates, donc plus de plates que celles sélectionnées.",
+      "Un classeur antérieur affichant plus de plates que de barcodes choisis par ce run a été noté sur les wells d'un autre run et doit être relancé.",
+      "Le dossier enregistre désormais les plates produites par chaque run, les plates laissées par un run antérieur sont nommées à l'écran, et rien n'est supprimé.",
+      "L'écran d'export ne propose plus de row de début ni de fin. Tout réglage autre que la plate entière empilait des mutants différents sur un même well.",
+      "Le placement vient du seul choix de quadrant, et une plage de rows enregistrée qui recouvrirait un well déjà occupé est refusée au lieu d'être écrite."
     ],
-    "highlightsStamp": "0.16.25+8204368c",
+    "highlightsStamp": "0.16.25+291c60a5",
     "releases": {
+      "0.16.25.1": [
+        "Un run exporté dans un dossier contenant la sortie d'un run antérieur a aussi noté ces plates, donc plus de plates que celles sélectionnées.",
+        "Un classeur antérieur affichant plus de plates que de barcodes choisis par ce run a été noté sur les wells d'un autre run et doit être relancé.",
+        "Le dossier enregistre désormais les plates produites par chaque run, les plates laissées par un run antérieur sont nommées à l'écran, et rien n'est supprimé.",
+        "L'écran d'export ne propose plus de row de début ni de fin. Tout réglage autre que la plate entière empilait des mutants différents sur un même well.",
+        "Le placement vient du seul choix de quadrant, et une plage de rows enregistrée qui recouvrirait un well déjà occupé est refusée au lieu d'être écrite."
+      ],
       "0.16.25": [
         "Un run déclaré est désormais évalué sur les variants des wells qu'il a déclarés, si bien qu'un run qui les a tous récupérés affiche 100 pour cent et non 9 pour cent.",
         "Le compte de wells à côté compte de nouveau des wells et non une entrée par replicate plate, si bien qu'une déclaration de dix wells n'affiche plus 57 wells.",
@@ -2646,12 +2660,15 @@
       ]
     },
     "releaseStamps": {
+      "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
+      "0.16.22": "9192ec4b",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
+      "0.16.18": "2b708e6d",
       "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",
@@ -2677,9 +2694,7 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21",
-      "0.16.18": "2b708e6d",
-      "0.16.22": "9192ec4b"
+      "0.15.16": "fe8e6f21"
     }
   },
   "primerDisplay": {
@@ -3147,9 +3162,6 @@
     "legendDest": "Destination (Echo dest / plaque de destination JANUS)",
     "legendDestMerged": "Both F+R arrived",
     "legendDestPartial": "Only F or R arrived",
-    "mappingRange": "Mapping range",
-    "rowStart": "Start row",
-    "rowEnd": "End row",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "Well de destination",
     "missing": "manquant"

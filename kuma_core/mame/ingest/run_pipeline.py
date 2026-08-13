@@ -33,6 +33,7 @@ from kuma_core.mame.ingest.combinatorial_demux import (
 )
 from kuma_core.mame.ingest.demux import FASTQ_PATTERNS
 from kuma_core.mame.ingest.fasta_parser import load_barcode_directory
+from kuma_core.mame.ingest.unit_manifest import write_run_manifest
 from kuma_core.mame.models import BarcodeRecord
 
 # The name a pooled run files its single pseudo-plate under. Imported from the
@@ -298,10 +299,27 @@ def ingest_run_folder(
             )
         units = [CONSENSUS_SUBDIR]
 
+    # Record which units THIS run produced, in the directory itself.
+    #
+    # Written LAST, after every unit directory is on disk, and before the read
+    # below.  ``demux_output_dir`` is stable so a re-run can resume, and nothing
+    # removes what an earlier run left: analysing the same folder per native
+    # barcode and then pooled leaves ``sort_barcode06/`` and ``sort_barcode20/``
+    # beside ``consensus/``.  Passing ``units`` to the read below already stops
+    # THIS function reading those back, but it only protects this one call site.
+    # On 2026-08-10 a run selecting three native barcodes was scored over six
+    # plates because the analyze handler ingests the same tree a SECOND time
+    # after this function returns, and that read had no ``units`` to pass.  The
+    # manifest moves the statement from the call site to the data, so every
+    # reader of this directory gets the same answer.
+    write_run_manifest(
+        demux_output_dir,
+        run_dir=run_dir,
+        native_barcodes=list(native_barcodes) if native_barcodes else None,
+        units=units,
+    )
+
     # Read back the units THIS run wrote, not whatever the directory holds.
-    # ``demux_output_dir`` is stable so a re-run can resume, and nothing removes
-    # what an earlier run left: analysing the same folder per native barcode and
-    # then pooled leaves ``sort_barcode06/`` and ``sort_barcode20/`` beside
-    # ``consensus/``, and reading all three would put three plates in the
-    # verdicts while ``per_nb_out`` states one. One response, one plate count.
+    # ``units`` is redundant with the manifest just written and is kept because
+    # it states the same thing at the call site, where it is checkable.
     return load_barcode_directory(demux_output_dir, units=units)

@@ -1066,6 +1066,12 @@
         "body": "{{aligned}} Reads wurden auf die Referenz aligniert, davon blieben {{kept}} erhalten. Wells, deren Reads vollständig verworfen wurden, liefern kein Verdict und sehen auf diesem Bildschirm genauso aus wie Wells, die nie befüllt wurden.",
         "hint": "Ein gewisser Verlust ist zu erwarten, denn partielle und chimäre Reads sollen entfernt werden. Ein großer Anteil deutet eher auf die Referenz als auf die Proben hin: Ein Alignment, das an den Referenzenden um eine konstante Zahl von Basen zu kurz endet, etwa an einem Primer, verfehlt eine prozentuale Schwelle umso leichter, je kürzer das Amplicon ist. Der Coverage-Wert steht unter den erweiterten Optionen im Parameterpanel."
       },
+      "staleUnits": {
+        "title": "{{n}} plate-Ordner hier stammen aus einem früheren run",
+        "body": "{{names}} liegen im Ausgabeordner, gehören aber nicht zu dem dort verzeichneten run und wurden deshalb aus der Bewertung ausgenommen.",
+        "owner": "Der Ordner verzeichnet seine Ausgabe als zum run unter {{runDir}} gehörend.",
+        "hint": "Das passiert, wenn ein neuer run in einen Ordner exportiert wird, der bereits einen enthält. Es wurde nichts gelöscht. Prüfen Sie, ob diese Ergebnisse noch gebraucht werden, bevor Sie sie selbst entfernen, und nutzen Sie pro run einen eigenen Ausgabeordner."
+      },
       "durationDialog": {
         "title": "Analysis complete",
         "description": "The step 2.1 analysis run has finished.",
@@ -2441,13 +2447,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein deklarierter Run wird jetzt über die Varianten in seinen deklarierten Wells bewertet, sodass ein Run, der alle wiedergefunden hat, 100 Prozent statt 9 Prozent zeigt.",
-      "Die Well-Zahl daneben zählt wieder Wells und nicht einen Eintrag pro replicate plate, sodass eine Deklaration von zehn Wells nicht mehr als 57 Wells erscheint.",
-      "Ein von einem früheren Build gespeicherter Run wird zur erneuten Analyse aufgefordert, weil seine Rate durch die gesamte Variantenliste geteilt wurde.",
-      "Wird nur die WT control deklariert, bleiben keine designten Mutanten zum Bewerten, sodass die Rate einen Strich statt eines Prozentwerts zeigt."
+      "Ein run, der in einen Ordner mit der Ausgabe eines früheren run exportiert wurde, bewertete dessen plates mit, also erschienen mehr als ausgewählt.",
+      "Eine frühere Arbeitsmappe mit mehr plates als der run barcodes ausgewählt hatte, wurde über wells eines anderen run bewertet und muss neu laufen.",
+      "Der Ordner hält jetzt fest, welche plates ein run erzeugt hat, übrig gebliebene plates eines früheren run werden benannt, und nichts wird gelöscht.",
+      "Der Export-Bildschirm bietet keine Start- und End-row mehr an. Jede Einstellung außer der vollen plate legte verschiedene Mutanten auf ein well.",
+      "Die Platzierung kommt nur noch aus der quadrant-Wahl, und ein gespeicherter row-Bereich, der ein belegtes well überdecken würde, wird abgelehnt."
     ],
-    "highlightsStamp": "0.16.25+8204368c",
+    "highlightsStamp": "0.16.25+291c60a5",
     "releases": {
+      "0.16.25.1": [
+        "Ein run, der in einen Ordner mit der Ausgabe eines früheren run exportiert wurde, bewertete dessen plates mit, also erschienen mehr als ausgewählt.",
+        "Eine frühere Arbeitsmappe mit mehr plates als der run barcodes ausgewählt hatte, wurde über wells eines anderen run bewertet und muss neu laufen.",
+        "Der Ordner hält jetzt fest, welche plates ein run erzeugt hat, übrig gebliebene plates eines früheren run werden benannt, und nichts wird gelöscht.",
+        "Der Export-Bildschirm bietet keine Start- und End-row mehr an. Jede Einstellung außer der vollen plate legte verschiedene Mutanten auf ein well.",
+        "Die Platzierung kommt nur noch aus der quadrant-Wahl, und ein gespeicherter row-Bereich, der ein belegtes well überdecken würde, wird abgelehnt."
+      ],
       "0.16.25": [
         "Ein deklarierter Run wird jetzt über die Varianten in seinen deklarierten Wells bewertet, sodass ein Run, der alle wiedergefunden hat, 100 Prozent statt 9 Prozent zeigt.",
         "Die Well-Zahl daneben zählt wieder Wells und nicht einen Eintrag pro replicate plate, sodass eine Deklaration von zehn Wells nicht mehr als 57 Wells erscheint.",
@@ -2646,12 +2660,15 @@
       ]
     },
     "releaseStamps": {
+      "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",
       "0.16.23": "6c37c3e1",
+      "0.16.22": "9192ec4b",
       "0.16.21": "357e800b",
       "0.16.20": "c211fb70",
       "0.16.19": "c73cc4f0",
+      "0.16.18": "2b708e6d",
       "0.16.17": "f9c0ee2f",
       "0.16.16": "cc3ef016",
       "0.16.15": "a06fdd53",
@@ -2677,9 +2694,7 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21",
-      "0.16.18": "2b708e6d",
-      "0.16.22": "9192ec4b"
+      "0.15.16": "fe8e6f21"
     }
   },
   "primerDisplay": {
@@ -3147,9 +3162,6 @@
     "legendDest": "Ziel (Echo dest / JANUS Zielplatte)",
     "legendDestMerged": "Both F+R arrived",
     "legendDestPartial": "Only F or R arrived",
-    "mappingRange": "Mapping range",
-    "rowStart": "Start row",
-    "rowEnd": "End row",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "Ziel-well",
     "missing": "fehlt"

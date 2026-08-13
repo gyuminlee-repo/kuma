@@ -767,7 +767,7 @@ def test_handle_analyze_raw_run_reports_gate_counts_from_demux(
     monkeypatch.setattr(
         ingest_mod,
         "route_ingest",
-        lambda _input_dir, _mode: [SimpleNamespace(file_size_kb=1.0, read_count=0)],
+        lambda _input_dir, _mode, **_kwargs: [SimpleNamespace(file_size_kb=1.0, read_count=0)],
     )
 
     def fake_ingest_run_folder(**kwargs):
@@ -807,6 +807,89 @@ def test_handle_analyze_raw_run_reports_gate_counts_from_demux(
     assert result["assigned_reads"] == 0
 
 
+@pytest.mark.parametrize(
+    ("sink_payload", "expect_key"),
+    [
+        (None, False),
+        ({"names": [], "manifest_run_dir": "/r", "manifest_written_at": "t"}, True),
+        (
+            {
+                "names": ["sort_barcode15", "sort_barcode16"],
+                "manifest_run_dir": "/runs/260810_khm",
+                "manifest_written_at": "2026-08-10T09:07:00Z",
+            },
+            True,
+        ),
+    ],
+    ids=["no manifest omits the key", "checked and clean", "leftovers reported"],
+)
+def test_handle_analyze_raw_run_reports_units_an_earlier_run_left(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    sink_payload: dict | None,
+    expect_key: bool,
+) -> None:
+    """Leftover unit directories reach the response, and silence is preserved.
+
+    Three states have to stay distinguishable, which is why this is
+    parametrised rather than asserted on the interesting case alone. A read
+    with no manifest to compare against never touches the sink and the key is
+    OMITTED: that is the externally sorted directory, where "stale" has no
+    meaning and a zero-filled field would claim a check nobody ran. A read that
+    had a manifest and found nothing sends the key with an empty ``names``. A
+    read that found leftovers sends their names and the run that owns them,
+    which is what the operator needs to decide whether their own results are
+    affected.
+
+    Stubbed at ``route_ingest`` for the same reason as the tests above: the
+    contract under test is the sink-to-response plumbing, not the reader.
+    """
+    from kuma_core.mame import ingest as ingest_mod
+    from kuma_core.mame import pipeline as pipeline_mod
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    reference = _make_reference_fasta(tmp_path, seq=_RAW_REF_SEQ)
+    barcodes_xlsx = tmp_path / "barcodes.xlsx"
+    _make_barcodes_xlsx(barcodes_xlsx)
+    expected_xlsx = tmp_path / "expected.xlsx"
+    _make_kuro_xlsx(expected_xlsx)
+    output = tmp_path / "out.xlsx"
+
+    def fake_route_ingest(_input_dir, _mode, *, strays_out=None):
+        if strays_out is not None and sink_payload is not None:
+            strays_out.update(sink_payload)
+        return [SimpleNamespace(file_size_kb=1.0, read_count=0)]
+
+    monkeypatch.setattr(ingest_mod, "route_ingest", fake_route_ingest)
+    monkeypatch.setattr(ingest_mod, "ingest_run_folder", lambda **_kwargs: None)
+    monkeypatch.setattr(pipeline_mod, "run_analyze", lambda **_kwargs: ([], []))
+    _capture_progress(monkeypatch)
+
+    result = analyze_mod.handle_analyze({
+        "input_dir": str(run_dir),
+        "reference": str(reference),
+        "expected": str(expected_xlsx),
+        "output": str(output),
+        "custom_barcodes_xlsx": str(barcodes_xlsx),
+        "cds_start": 0,
+        "cds_end": 60,
+        "min_file_size_kb": 0.0,
+        "min_read_count": 0,
+        "ingest_mode": "barcode",
+    })
+
+    assert ("stale_units" in result) is expect_key
+    if expect_key:
+        assert sink_payload is not None
+        assert result["stale_units"]["names"] == sink_payload["names"]
+        assert result["stale_units"]["run_dir"] == sink_payload["manifest_run_dir"]
+        assert (
+            result["stale_units"]["written_at"]
+            == sink_payload["manifest_written_at"]
+        )
+
+
 def test_handle_analyze_raw_run_reports_what_the_demux_matrix_saw(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -838,7 +921,7 @@ def test_handle_analyze_raw_run_reports_what_the_demux_matrix_saw(
     monkeypatch.setattr(
         ingest_mod,
         "route_ingest",
-        lambda _input_dir, _mode: [SimpleNamespace(file_size_kb=1.0, read_count=0)],
+        lambda _input_dir, _mode, **_kwargs: [SimpleNamespace(file_size_kb=1.0, read_count=0)],
     )
 
     def fake_ingest_run_folder(**kwargs):
@@ -927,7 +1010,7 @@ def test_handle_analyze_raw_run_says_when_a_signal_cannot_be_measured(
     monkeypatch.setattr(
         ingest_mod,
         "route_ingest",
-        lambda _input_dir, _mode: [SimpleNamespace(file_size_kb=1.0, read_count=0)],
+        lambda _input_dir, _mode, **_kwargs: [SimpleNamespace(file_size_kb=1.0, read_count=0)],
     )
 
     def fake_ingest_run_folder(**kwargs):
@@ -970,7 +1053,7 @@ def _stub_demux(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         ingest_mod,
         "route_ingest",
-        lambda _input_dir, _mode: [SimpleNamespace(file_size_kb=1.0, read_count=0)],
+        lambda _input_dir, _mode, **_kwargs: [SimpleNamespace(file_size_kb=1.0, read_count=0)],
     )
     monkeypatch.setattr(ingest_mod, "ingest_run_folder", lambda **_kwargs: None)
     monkeypatch.setattr(pipeline_mod, "run_analyze", lambda **_kwargs: ([], []))
@@ -1142,7 +1225,7 @@ def test_handle_analyze_raw_run_materializes_snapgene_reference_before_demux(
     monkeypatch.setattr(
         ingest_mod,
         "route_ingest",
-        lambda _input_dir, _mode: [
+        lambda _input_dir, _mode, **_kwargs: [
             SimpleNamespace(file_size_kb=1.0, read_count=10),
         ],
     )

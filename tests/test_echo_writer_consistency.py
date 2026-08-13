@@ -39,7 +39,7 @@ TRANSFER_VOL = 100
 PLACEMENTS = [
     pytest.param(None, None, id="no-placement-parameters"),
     pytest.param("B2", None, id="quadrant"),
-    pytest.param(None, ("C", "F"), id="mapping-range"),
+    pytest.param(None, ("A", "P"), id="mapping-range"),
 ]
 
 

@@ -16,6 +16,7 @@ import type {
   LayoutProvenance,
   LegacySampleMapFinding,
   MappingIntegrity,
+  StaleUnits,
   ContaminationReport,
   OffLayoutRecords,
   DemuxResume,
@@ -322,6 +323,14 @@ export interface AnalysisSlice {
    */
   mappingIntegrity: MappingIntegrity | null;
   /**
+   * Unit directories the last analyze run found in its input folder but did not
+   * produce, left there by an earlier run into the same folder. Null when the
+   * response carried no such field, which includes every directory that holds
+   * no run manifest to compare against; an empty `names` inside a non-null
+   * value is the different statement that the folder was checked and is clean.
+   */
+  staleUnits: StaleUnits | null;
+  /**
    * The thresholds the last analyze response says it judged its wells against.
    * Read by the Confidence metric popups, which state what a number was
    * compared to; every one of those thresholds has a backend default that
@@ -410,6 +419,7 @@ export interface AnalysisSlice {
   setAnalyzeYield: (analyzeYield: AnalyzeYield | null) => void;
   setLayoutProvenance: (layoutProvenance: LayoutProvenance | null) => void;
   setMappingIntegrity: (mappingIntegrity: MappingIntegrity | null) => void;
+  setStaleUnits: (staleUnits: StaleUnits | null) => void;
   setCompareParams: (compareParams: CompareParams | null) => void;
   setOffLayoutRecords: (offLayoutRecords: OffLayoutRecords | null) => void;
   setRunQuality: (runQuality: RunQuality | null) => void;

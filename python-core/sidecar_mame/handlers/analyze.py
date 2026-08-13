@@ -1396,6 +1396,15 @@ def handle_analyze(params: dict) -> dict:
     # has per-unit markers to resume from, so any other path leaves this empty
     # and the response omits the key.
     demux_resume_counts: dict[str, int] = {}
+    # Unit directories sitting in the ingested directory that the run recorded
+    # there did NOT produce, i.e. output left behind by an earlier run into the
+    # same folder. Filled in by the ingest read below, and only where that
+    # directory carries a run manifest to compare against: a directory somebody
+    # else sorted makes no membership claim, so it leaves this empty and the
+    # response omits the key rather than reporting "0 leftovers found" about a
+    # question that was never asked. Same empty-not-zero-filled rule as the
+    # three sinks above.
+    ingest_strays: dict[str, Any] = {}
     # Latest demux progress, mirrored by _emit_demux so the demux-phase heartbeat
     # can re-emit a liveness pulse during long, low-event per-NB demux stretches.
     _demux_state = {"value": 0, "message": "Demuxing raw MinKNOW run", "current": 0, "total": 0}
@@ -1887,7 +1896,18 @@ def handle_analyze(params: dict) -> dict:
         # (already running) covers it.
         ingest_mode_enum = IngestMode(ingest_mode_raw)
         with TIMER.phase("ingest"):
-            raw_records = route_ingest(input_dir, ingest_mode_enum)
+            # On the raw-run path ``input_dir`` was rebound to the demux output
+            # directory above, and this is the SECOND read of that tree: the
+            # demux already returned records that ``ingest_run_folder`` had
+            # scoped to the units it wrote, and they are re-read here so the
+            # raw-run and consensus-dir paths share one body. Nothing is passed
+            # to scope this read, which is how a run selecting three native
+            # barcodes came back with six plates. The scoping now comes from the
+            # run manifest in the directory itself, so this call does not have
+            # to state it; the sink is what carries the leftovers back out.
+            raw_records = route_ingest(
+                input_dir, ingest_mode_enum, strays_out=ingest_strays
+            )
         if is_raw and not raw_records:
             raise ValueError(
                 "No wells were recovered from the MinKNOW reads. Check that the "
@@ -2313,6 +2333,29 @@ def handle_analyze(params: dict) -> dict:
                 }
             }
             if "reused_units" in demux_resume_counts
+            else {}
+        ),
+        # Unit directories in the ingested folder that the run recorded there
+        # did not produce. Reported, never acted on: the files are left exactly
+        # where they are, because deleting a previous run output is the
+        # operator's decision and not this handler's. The names ride along
+        # because "three leftover plates" is not actionable and
+        # "sort_barcode15, 16, 17 belong to the run of 2026-08-10" is.
+        #
+        # Emitted only where the read had a manifest to compare against, which
+        # is what makes an empty ``names`` meaningful: it says this folder was
+        # checked and holds nothing stale, as against the key being absent,
+        # which says no membership record existed to check. A directory someone
+        # else sorted is the second case and must stay silent.
+        **(
+            {
+                "stale_units": {
+                    "names": [str(n) for n in ingest_strays.get("names", [])],
+                    "run_dir": str(ingest_strays.get("manifest_run_dir", "")),
+                    "written_at": str(ingest_strays.get("manifest_written_at", "")),
+                }
+            }
+            if "names" in ingest_strays
             else {}
         ),
         **(

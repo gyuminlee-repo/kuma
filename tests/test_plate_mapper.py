@@ -850,3 +850,64 @@ class TestExpectedMutationsCoversEveryWell:
         rows = [r for r in ws.iter_rows(min_row=2, values_only=True) if r[0]]
         # forward 만 well 을 정의한다. rev 플레이트는 별개 좌표계다.
         assert [r[0] for r in rows] == ["R262N"]
+
+
+class TestMappingRangeWrapGuard:
+    """A row band narrower than the wells it must place used to overlay them.
+
+    ``_to_384_well_fwd`` takes the source row modulo the number of fwd/rev row
+    pairs the band holds, so a band of two pairs sent eight source rows onto two
+    384 wells and the export shipped mutants stacked on top of each other with
+    nothing raised. Measured over the eight rows of a 96 plate, the only band
+    that placed all of them distinctly was the full A-P plate, which is what the
+    default (no band) already does; ``J..K`` collapsed all eight onto J1/K1.
+    """
+
+    def test_a_band_with_one_pair_rejects_the_second_source_row(self):
+        # Worst measured case: J..K holds a single pair, so every row from B on
+        # would land on the well row A already took.
+        assert _to_384_well_fwd("A1", mapping_range=("J", "K")) == "J1"
+        with pytest.raises(ValueError, match="would wrap onto"):
+            _to_384_well_fwd("B1", mapping_range=("J", "K"))
+        with pytest.raises(ValueError, match="would wrap onto"):
+            _to_384_well_rev("B1", mapping_range=("J", "K"))
+
+    def test_the_message_names_the_band_the_row_and_the_collision(self):
+        with pytest.raises(ValueError) as excinfo:
+            _to_384_well_fwd("E1", mapping_range=("A", "H"))
+        msg = str(excinfo.value)
+        assert "A..H" in msg
+        assert "source row E" in msg
+        assert "row A" in msg  # the row whose well E would have overlaid
+
+    def test_a_half_plate_band_rejects_the_rows_past_its_four_pairs(self):
+        # A..H holds four pairs: rows A-D fit, E-H would wrap onto them.
+        for row in "ABCD":
+            _to_384_well_fwd(f"{row}1", mapping_range=("A", "H"))
+        for row in "EFGH":
+            with pytest.raises(ValueError, match="would wrap onto"):
+                _to_384_well_fwd(f"{row}1", mapping_range=("A", "H"))
+
+    def test_a_narrow_band_still_serves_the_rows_that_fit_inside_it(self):
+        # The guard refuses a wrap, not a narrow band as such: two pairs place
+        # two source rows without collision.
+        assert _to_384_well_fwd("A1", mapping_range=("C", "F")) == "C1"
+        assert _to_384_well_fwd("B1", mapping_range=("C", "F")) == "E1"
+        assert _to_384_well_rev("B1", mapping_range=("C", "F")) == "F1"
+        with pytest.raises(ValueError, match="would wrap onto"):
+            _to_384_well_fwd("C1", mapping_range=("C", "F"))
+
+    def test_the_full_plate_band_places_all_eight_source_rows_distinctly(self):
+        fwd = [_to_384_well_fwd(f"{r}1", mapping_range=("A", "P")) for r in "ABCDEFGH"]
+        rev = [_to_384_well_rev(f"{r}1", mapping_range=("A", "P")) for r in "ABCDEFGH"]
+        assert len(set(fwd)) == 8
+        assert len(set(rev)) == 8
+        assert not set(fwd) & set(rev)
+        # And it agrees with the default layout, which is what the band was
+        # already doing whenever it did not wrap.
+        assert fwd == [_to_384_well_fwd(f"{r}1") for r in "ABCDEFGH"]
+
+    def test_a_quadrant_is_unaffected_since_it_outranks_the_band(self):
+        # quadrant takes precedence in the mapper, so a band that would wrap on
+        # its own must not make a quadrant export raise.
+        assert _to_384_well_fwd("H1", mapping_range=("J", "K"), quadrant="A1")

@@ -690,6 +690,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     get().setAnalyzeYield(pickAnalyzeYield(result));
     get().setLayoutProvenance(result.layout_provenance ?? null);
     get().setMappingIntegrity(result.mapping_integrity ?? null);
+    get().setStaleUnits(result.stale_units ?? null);
     get().setOffLayoutRecords(result.off_layout_records ?? null);
     get().setRunQuality(result.run_quality ?? null);
     get().setContamination(result.contamination ?? null);
@@ -849,6 +850,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       get().setAnalyzeYield(pickAnalyzeYield(result));
       get().setLayoutProvenance(result.layout_provenance ?? null);
       get().setMappingIntegrity(result.mapping_integrity ?? null);
+      get().setStaleUnits(result.stale_units ?? null);
       get().setOffLayoutRecords(result.off_layout_records ?? null);
     get().setRunQuality(result.run_quality ?? null);
       get().setContamination(result.contamination ?? null);
