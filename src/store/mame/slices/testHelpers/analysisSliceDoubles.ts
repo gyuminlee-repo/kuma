@@ -27,6 +27,7 @@ export function createAnalysisSliceDoubles(): Partial<AppState> {
     setOffLayoutRecords: vi.fn(),
     setRunQuality: vi.fn(),
     setContamination: vi.fn(),
+    setStaleUnits: vi.fn(),
     setReferenceResolution: vi.fn(),
     setDemuxResume: vi.fn(),
     setOutputPath: vi.fn(),
