@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 from pathlib import Path
+from typing import Any
 
 from kuma_core.mame.ingest.fasta_parser import load_barcode_directory, parse_fasta_file
 from kuma_core.mame.models import BarcodeRecord
@@ -25,8 +26,10 @@ class IngestMode(StrEnum):
     BARCODE = "barcode"
 
 
-def _load_barcode(input_dir: Path) -> list[BarcodeRecord]:
-    return load_barcode_directory(input_dir)
+def _load_barcode(
+    input_dir: Path, strays_out: dict[str, Any] | None = None
+) -> list[BarcodeRecord]:
+    return load_barcode_directory(input_dir, strays_out=strays_out)
 
 
 def _load_amplicon(input_dir: Path) -> list[BarcodeRecord]:
@@ -62,9 +65,24 @@ def _load_amplicon(input_dir: Path) -> list[BarcodeRecord]:
     return records
 
 
-def route_ingest(input_dir: Path, mode: IngestMode) -> list[BarcodeRecord]:
+def route_ingest(
+    input_dir: Path,
+    mode: IngestMode,
+    *,
+    strays_out: dict[str, Any] | None = None,
+) -> list[BarcodeRecord]:
+    """Load *input_dir* according to *mode*.
+
+    ``strays_out`` is an optional sink for the leftover-unit report that
+    barcode mode can produce (see
+    :func:`kuma_core.mame.ingest.fasta_parser.load_barcode_directory`).
+    Amplicon mode leaves it untouched: it reads consensus files by glob rather
+    than unit directories, so it has no membership to compare and nothing to
+    report.  An untouched sink reads as "this mode never measured it", which is
+    what a caller must not confuse with "measured, and there were none".
+    """
     if mode is IngestMode.BARCODE:
-        return _load_barcode(input_dir)
+        return _load_barcode(input_dir, strays_out)
     if mode is IngestMode.AMPLICON:
         return _load_amplicon(input_dir)
     raise ValueError(f"Unknown ingest mode: {mode!r}")
