@@ -724,6 +724,30 @@ def _validate_mapping_range(
     return s, e
 
 
+def _pair_offset(well_96: str, s: int, e: int) -> int:
+    """Sub-offset of a 96-well row inside the ``[s, e]`` band, or raise.
+
+    A band holds ``(e - s + 1) // 2`` fwd/rev row pairs. The offset is taken
+    modulo that count, so a band with fewer pairs than the source plate has
+    rows wraps: rows 0 and ``pair_count`` land on the SAME 384 well and one
+    mutant silently overlays another. Measured on the eight source rows, only
+    the full A-P band (eight pairs) places all of them distinctly; ``J..K``
+    collapses all eight onto J1/K1. Refusing here fails the export loudly
+    instead of shipping an overlaid plate.
+    """
+    pair_count = (e - s + 1) // 2
+    row_idx = _ROWS_96.index(well_96[0])
+    if row_idx >= pair_count:
+        raise ValueError(
+            f"mapping_range {_ROWS_384[s]}..{_ROWS_384[e]} holds only "
+            f"{pair_count} fwd/rev row pair(s); source row {well_96[0]} would "
+            f"wrap onto the 384 well already used by row "
+            f"{_ROWS_96[row_idx % pair_count]}. Widen the range so it holds at "
+            f"least one pair per source row in use."
+        )
+    return row_idx
+
+
 def _to_384_well_fwd(
     well_96: str,
     mapping_range: tuple[str, str] | None = None,
@@ -749,8 +773,7 @@ def _to_384_well_fwd(
     if rng is None:
         return f"{_ROWS_384[row_idx * 2]}{well_96[1:]}"
     s, e = rng
-    pair_count = (e - s + 1) // 2
-    sub = row_idx % pair_count
+    sub = _pair_offset(well_96, s, e)
     return f"{_ROWS_384[s + sub * 2]}{well_96[1:]}"
 
 
@@ -778,8 +801,7 @@ def _to_384_well_rev(
     if rng is None:
         return f"{_ROWS_384[row_idx * 2 + 1]}{well_96[1:]}"
     s, e = rng
-    pair_count = (e - s + 1) // 2
-    sub = row_idx % pair_count
+    sub = _pair_offset(well_96, s, e)
     return f"{_ROWS_384[s + sub * 2 + 1]}{well_96[1:]}"
 
 

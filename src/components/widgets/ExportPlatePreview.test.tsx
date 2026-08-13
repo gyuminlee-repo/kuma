@@ -258,4 +258,49 @@ describe("ExportPlatePreview", () => {
     });
     expect(container.querySelectorAll("[data-testid='echo-cell']").length).toBe(0);
   });
+
+  it("offers no row-band control and sends no mapping_range", async () => {
+    // Placement is the quadrant selector's job (ExportFormatSelector, rendered
+    // beneath this preview). The row band that used to sit here wrapped modulo
+    // its own width in the mapper, so every band it could express other than the
+    // full plate stacked different mutants onto one source well.
+    const echoRows = {
+      rows: [
+        {
+          source_plate: "P1",
+          source_well_name: "P1-fw",
+          source_well: "A01",
+          dest_plate: "D1",
+          dest_well_name: "D1-A1",
+          dest_well: "A1",
+          transfer_vol: 25,
+        },
+      ],
+      total: 1,
+      transfer_vol: 25,
+    };
+    (invoke as ReturnType<typeof vi.fn>).mockImplementation((_cmd, args) => {
+      const a = args as { method: string };
+      if (a.method === "export_echo_mapping_dry_run") return Promise.resolve(echoRows);
+      if (a.method === "export_janus_mapping_dry_run") return Promise.resolve(emptyJanus);
+      return Promise.resolve({});
+    });
+
+    const { container } = render(<ExportPlatePreview />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-testid='echo-cell']").length).toBeGreaterThan(0);
+    });
+
+    // The plate is on screen, so the whole control area rendered; no dropdown there.
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(document.getElementById("mapping-range-row-start")).toBeNull();
+    expect(document.getElementById("mapping-range-row-end")).toBeNull();
+
+    const calls = (invoke as ReturnType<typeof vi.fn>).mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    for (const c of calls) {
+      const params = (c[1] as { params?: Record<string, unknown> }).params ?? {};
+      expect(params).not.toHaveProperty("mapping_range");
+    }
+  });
 });
