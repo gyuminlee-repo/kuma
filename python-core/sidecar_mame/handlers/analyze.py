@@ -2163,12 +2163,22 @@ def handle_analyze(params: dict) -> dict:
     # ``reference`` is rebound to the extracted file in that case, so the length
     # read here is always the length reads were aligned to.
     _edge_variants: list[str] = []
-    if amplicon_extracted is False:
+    # Length of the reference reads were aligned to, i.e. the extracted amplicon
+    # when extraction happened. Read once and shared: the edge check below needs
+    # it, and the MIXED-factor scale check falls back to it when no well carried
+    # a measured position count. None when unreadable, which both callers treat
+    # as "not known" rather than as a number.
+    _run_quality_reference_length: int | None
+    try:
+        _run_quality_reference_length = _read_reference_length(reference)
+    except (OSError, ValueError):
+        _run_quality_reference_length = None
+    if amplicon_extracted is False and _run_quality_reference_length is not None:
         try:
             _edge_variants = variants_near_reference_edge(
                 {em.mutant_id: em.position for em in expected_mutations},
                 cds_start,
-                _read_reference_length(reference),
+                _run_quality_reference_length,
             )
         except (OSError, ValueError):
             # An advisory sentence is never worth failing a finished run for.
@@ -2198,6 +2208,17 @@ def handle_analyze(params: dict) -> dict:
             reused_from=_previous_use,
             amplicon_extracted=amplicon_extracted,
             edge_variants=_edge_variants,
+            # The scale the MIXED confidence floor was derived over. Taken from
+            # the same verdicts the depth is, for the same reason: a declared
+            # selection has already removed the wells the campaign left empty.
+            # The reference length is the fallback when no well measured a
+            # position count (legacy consensus files), and it is read from the
+            # reference reads were actually aligned to, which is the extracted
+            # amplicon whenever extraction happened.
+            well_eligible_positions=[
+                int(vr.translated.barcode.n_eligible_positions) for vr in verdicts
+            ],
+            reference_length=_run_quality_reference_length,
         )
     )
     # Which reference positions came back well after well, nested on the same

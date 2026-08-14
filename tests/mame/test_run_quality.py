@@ -16,6 +16,8 @@ that refuses a run on pore count alone would have thrown that plate away.
 
 from pathlib import Path
 
+import pytest
+
 from kuma_core.mame.ingest.flow_cell import (
     FlowCellHistory,
     PoreScan,
@@ -23,6 +25,10 @@ from kuma_core.mame.ingest.flow_cell import (
     read_flow_cell_history,
     read_ledger,
     record_use,
+)
+from kuma_core.mame.compare.verdict import (
+    MIXED_FACTOR_ASSUMED_POSITIONS,
+    _MIXED_CONFIDENT_DEPTH_FACTOR,
 )
 from kuma_core.mame.run_quality import (
     REFERENCE_EDGE_MARGIN_BP,
@@ -359,3 +365,92 @@ def test_the_edge_margin_is_carried_with_its_source() -> None:
     assert edge["kind"] == "self_set"
     assert edge["provisional"] is True
     assert edge["enforced"] is False
+
+
+# ---------------------------------------------------------------------------
+# The amplicon length the MIXED depth factor was derived against
+# ---------------------------------------------------------------------------
+#
+# ``_MIXED_CONFIDENT_DEPTH_FACTOR`` multiplies a per-position binomial tail by
+# 1500 positions per amplicon to get its "falsely mixed positions per well"
+# column. The classifier reads neither a reference length nor a position count,
+# so the premise went unchecked on every run. These pin that it is now measured
+# and reported, and that measuring it changes no verdict.
+
+
+def test_a_short_amplicon_is_named_against_the_assumed_1500_positions() -> None:
+    """500 eligible positions is a third of the derivation: say so.
+
+    A third of the positions is a third of the trials, so the expected count of
+    falsely mixed positions per well is a third of the table the factor was read
+    off. That does not make the factor wrong, and this does not touch it. It
+    makes the number a reader has to know, and until now nothing said it.
+    """
+    quality = assess_run_quality(
+        well_read_counts=[4777] * 96,
+        min_read_count=MIN_READS,
+        well_eligible_positions=[500] * 96,
+    )
+
+    assert "mixed_depth_factor_amplicon_scale" in _codes(quality)
+    finding = next(
+        f for f in quality.findings if f["code"] == "mixed_depth_factor_amplicon_scale"
+    )
+    assert finding["severity"] == SEVERITY_WARNING
+    assert finding["positions"] == 500
+    assert finding["assumed_positions"] == MIXED_FACTOR_ASSUMED_POSITIONS
+    assert finding["positions_basis"] == "measured_eligible_positions"
+    # The ratio itself is the report. The band that decided to print it is
+    # arbitrary and says so.
+    assert finding["ratio"] == pytest.approx(500 / 1500, abs=1e-3)
+    assert finding["provisional"] is True
+    assert finding["enforced"] is False
+    # The gate is untouched: the factor is carried for the reader, not changed.
+    assert finding["factor"] == _MIXED_CONFIDENT_DEPTH_FACTOR
+
+
+def test_an_amplicon_near_the_assumed_length_says_nothing() -> None:
+    """A run at the derivation's own scale must not add a warning.
+
+    ``RunQuality.severity`` is WARNING whenever any finding exists, so an
+    always-emitted scale line would flip every healthy run to a rendered notice.
+    """
+    quality = assess_run_quality(
+        well_read_counts=[4777] * 96,
+        min_read_count=MIN_READS,
+        well_eligible_positions=[1400] * 96,
+    )
+
+    assert quality.findings == []
+
+
+def test_zero_eligible_positions_falls_back_to_the_reference_length() -> None:
+    """0 means the well never measured it, not a zero-length amplicon.
+
+    Legacy consensus files default the field to 0 (``fasta_parser``), so a run
+    made entirely of them has nothing measured and the reference length stands
+    in, flagged as the approximation it is.
+    """
+    quality = assess_run_quality(
+        well_read_counts=[4777] * 96,
+        min_read_count=MIN_READS,
+        well_eligible_positions=[0] * 96,
+        reference_length=400,
+    )
+
+    finding = next(
+        f for f in quality.findings if f["code"] == "mixed_depth_factor_amplicon_scale"
+    )
+    assert finding["positions"] == 400
+    assert finding["positions_basis"] == "reference_length"
+
+
+def test_nothing_measured_and_no_reference_length_reports_nothing() -> None:
+    """Silence over a guess: an unmeasured premise is not a violated one."""
+    quality = assess_run_quality(
+        well_read_counts=[4777] * 96,
+        min_read_count=MIN_READS,
+        well_eligible_positions=[0] * 96,
+    )
+
+    assert quality.findings == []
