@@ -216,6 +216,13 @@ def _expand_ranges(starts: np.ndarray, counts: np.ndarray) -> np.ndarray:
 # untruncated count of positions over the mixed gate.
 _NOISY_POSITION_REPORT_BUDGET = 10
 
+#: Minimum A/C/G/T depth a position needs before its minor allele is worth
+#: reading. Declared here so the mixed-position eligibility rule below and the
+#: coverage-breadth report in ``well_consensus`` name the same number instead of
+#: repeating the literal 10 in two files. Changing it changes only what is
+#: REPORTED: no verdict, gate or threshold reads either consumer.
+DEFAULT_MIX_MIN_DEPTH = 10
+
 
 @dataclass(frozen=True)
 class ConsensusCall:
@@ -384,7 +391,7 @@ def call_consensus_with_metrics(
     alignments: Sequence[Alignment],
     reference_seq: str,
     min_depth: int = 1,
-    mix_min_depth: int = 10,
+    mix_min_depth: int = DEFAULT_MIX_MIN_DEPTH,
     mix_minor_fraction_threshold: float = 0.20,
     min_base_quality: int = 10,
 ) -> ConsensusCall:
@@ -1123,6 +1130,7 @@ def per_position_depth(
 
 
 __all__ = [
+    "DEFAULT_MIX_MIN_DEPTH",
     "ConsensusCall",
     "NoisyPosition",
     "call_consensus",
