@@ -37,7 +37,7 @@ from pathlib import Path
 
 from kuma_core.kuro.mutation import parse_mutation_notation
 from kuma_core.mame.io.kuro_reader import read_expected_mutations_with_rows
-from kuma_core.mame.models import ExpectedMutation
+from kuma_core.mame.models import WT_LABELS, ExpectedMutation
 
 #: Sheet that marks a file as a KURO export. Routed to the strict reader.
 KURO_SHEET = "expected_mutations"
@@ -55,8 +55,16 @@ _VARIANT_HEADER_CANDIDATES = (
     "variant_id",
 )
 
-#: Labels that denote the wild-type control rather than a mutant.
-_WT_LABELS = {"wt", "wildtype", "wild-type", "wild type", "control"}
+#: Labels that denote the wild-type control rather than a mutant. Defined in
+#: ``mame.models`` so ``io/kuro_reader`` can share it without importing this
+#: module (the dependency already runs the other way). Kept as a module name
+#: because existing references read it here.
+_WT_LABELS = WT_LABELS
+
+#: Reported as ``variant_column`` when the file carries no header row. Stating
+#: the absence is the point: the alternative is naming the first variant, which
+#: is exactly the value a headerless file would otherwise have eaten.
+_HEADERLESS_COLUMN = "(no header)"
 
 
 @dataclass(frozen=True)
@@ -133,6 +141,39 @@ def _csv_rows(path: Path) -> list[list[str]]:
         return [list(row) for row in csv.reader(handle, delimiter=delimiter)]
 
 
+def _looks_like_a_variant(text: str) -> bool:
+    """True when *text* reads as a mutation label or the wild-type control.
+
+    Case is ignored on both tests. ``parse_mutation_notation`` itself accepts
+    only upper case, but this function decides whether a row is data rather
+    than whether it is valid, and ``s65t`` is unmistakably an attempt at a
+    variant. Reading it as a column name instead loses it silently, which is
+    the failure this check exists to prevent; recognising it hands the row to
+    the parser, which refuses it by number and says why.
+    """
+    if not text:
+        return False
+    if text.lower() in _WT_LABELS:
+        return True
+    try:
+        parse_mutation_notation(text.upper())
+    except ValueError:
+        return False
+    return True
+
+
+def _is_headerless(headers: list[str]) -> bool:
+    """True when the first row holds a variant rather than a column name.
+
+    A one-column list written without a header puts its first variant where a
+    header belongs. Read as a header, that variant is consumed and every later
+    one moves a well up, which is the same silent shift this module refuses
+    everywhere else, so it is detected instead of accepted.
+    """
+    non_empty = [h for h in headers if h]
+    return len(non_empty) == 1 and _looks_like_a_variant(non_empty[0])
+
+
 def _suggest_column(headers: list[str]) -> str | None:
     """Pick the variant column from headers, or None when it is ambiguous."""
     normalised = [(h or "").strip() for h in headers]
@@ -142,7 +183,10 @@ def _suggest_column(headers: list[str]) -> str | None:
                 return header
     non_empty = [h for h in normalised if h]
     if len(non_empty) == 1:
-        return non_empty[0]
+        # A lone cell that is itself a variant is data, not a column name.
+        # Offering it as a column would invite the caller to name it and lose
+        # it; the headerless branch of the reader handles this file instead.
+        return None if _looks_like_a_variant(non_empty[0]) else non_empty[0]
     return None
 
 
@@ -234,6 +278,27 @@ def _resolve_column_index(headers: list[str], variant_column: str | None) -> int
     return normalised.index(suggested)
 
 
+def _variant_shaped_header_error(path: Path, header: str) -> ValueError:
+    """A named column whose header is itself a variant, in a multi-column file.
+
+    The single-column case is decided rather than refused: one non-empty cell
+    is the whole first row, so a variant there is unambiguously data. A file
+    with more columns says nothing of the kind. The other cells of that row may
+    be headers (``plate1``) or values, and reading the row either way is a
+    guess: as a header it eats the first variant and moves every later one a
+    well up, as data it invents a column name for the rest. So the file is
+    refused and the operator settles it.
+    """
+    return ValueError(
+        f"the column named '{header}' in {path.name} is itself a variant, so "
+        "the first row of this file holds data rather than column names. The "
+        "file has more than one column and nothing in it says whether the "
+        "other cells of that row are headers or values, and MAME reads row "
+        "order as plate order, so guessing wrong loses a well silently. Add a "
+        "header row that names each column and read again."
+    )
+
+
 def _duplicate_wt_error(path: Path, first_row: int, second_row: int) -> ValueError:
     """Two wild-type rows in one list is a plate nobody can place.
 
@@ -316,7 +381,26 @@ def _read_variant_source(
         raise ValueError(f"{path.name} is empty")
 
     headers = ["" if c is None else str(c).strip() for c in rows[0]]
-    index = _resolve_column_index(headers, variant_column)
+    # Whether the file has a header is decided before any column is resolved,
+    # and without consulting *variant_column*. The UI hands back whatever
+    # `inspect_variant_source` suggested, so honouring a named column first
+    # would let a headerless file arrive as ``variant_column="S65T"`` and eat
+    # its own first variant, which is the exact shift this module refuses.
+    if _is_headerless(headers):
+        index = next(i for i, h in enumerate(headers) if h)
+        # Data starts at the first row, so row numbers start at 1 and match
+        # what the operator sees in Excel.
+        data_rows = list(enumerate(rows, start=1))
+        column_label = _HEADERLESS_COLUMN
+    else:
+        index = _resolve_column_index(headers, variant_column)
+        # Past the single-column case, a header that is itself a variant is not
+        # something to resolve either way: the row is refused rather than
+        # guessed at. See `_variant_shaped_header_error`.
+        if _looks_like_a_variant(headers[index]):
+            raise _variant_shaped_header_error(path, headers[index])
+        data_rows = list(enumerate(rows[1:], start=2))
+        column_label = headers[index] or str(index)
 
     expected: list[ExpectedMutation] = []
     dropped: list[DroppedRow] = []
@@ -327,7 +411,7 @@ def _read_variant_source(
     placed = 0
     last_value_row = 0
     seen: dict[str, int] = {}
-    for offset, row in enumerate(rows[1:], start=2):
+    for offset, row in data_rows:
         if index >= len(row):
             dropped.append(DroppedRow(row=offset, reason="short"))
             continue
@@ -373,7 +457,7 @@ def _read_variant_source(
     if not expected:
         raise ValueError(
             f"no variants found in {path.name} "
-            f"(column '{headers[index] or index}'). "
+            f"(column '{column_label}'). "
             "The file needs one variant per row below the header."
         )
 
@@ -384,7 +468,7 @@ def _read_variant_source(
         expected=expected,
         wt_ordinal=wt_ordinal,
         sheet=sheet_name,
-        variant_column=headers[index] or str(index),
+        variant_column=column_label,
         dropped_rows=[d for d in dropped if d.row < last_value_row],
     )
 
@@ -442,9 +526,11 @@ def read_variant_source(
 
     Raises:
         ValueError: on an unreadable notation, a duplicate variant, a second
-            wild-type row, an empty list, a column that cannot be identified, or
-            a row that was read and could not be placed. Each is a mis-scored
-            plate if it were let through, so none of them is a warning.
+            wild-type row, an empty list, a column that cannot be identified, a
+            named column of a multi-column file whose header is itself a
+            variant, or a row that was read and could not be placed. Each is a
+            mis-scored plate if it were let through, so none of them is a
+            warning.
     """
     path = Path(path)
     if not path.exists():

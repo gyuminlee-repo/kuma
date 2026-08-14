@@ -122,8 +122,15 @@ def _create_kuro_xlsx(dest: Path) -> None:
             "Mutation",
         ]
     )
+    # Wells are column-major, the way a real KURO export writes them: occupant 2
+    # is B1, not A2 (A2 is well 9). The fixture said A2, which made this sheet
+    # describe a different plate from its own `expected_mutations` sheet. Nothing
+    # noticed while `plate_order_check` collapsed both sides into dense lists and
+    # compared them by position; once it compares by well, the fixture is a
+    # self-contradicting workbook and every validation using it reports a plate
+    # mismatch it was never meant to carry.
     ws.append(["A1", "V5F_F", "ATGGTGTTCAAGNNNNNNNNN", 20, 62.0, 42.0, "GTG", "TTT", "V5F"])
-    ws.append(["A2", "K53N_F", "AAGCTGAAAGCGNNNNNNNNN", 20, 61.5, 41.5, "AAG", "AAC", "K53N"])
+    ws.append(["B1", "K53N_F", "AAGCTGAAAGCGNNNNNNNNN", 20, 61.5, 41.5, "AAG", "AAC", "K53N"])
 
     ws2 = wb.create_sheet("expected_mutations")
     ws2.append(

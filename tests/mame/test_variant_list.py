@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from openpyxl import Workbook
 
@@ -10,6 +12,9 @@ from kuma_core.mame.io.variant_list import (
     read_variant_source,
 )
 from kuma_core.mame.layout import build_draft_layout
+
+#: Repository root, from this file rather than from the working directory.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _write_sheet(path, rows, sheet_title="Sheet1"):
@@ -229,8 +234,9 @@ class TestRowsThatCannotBePlaced:
     def test_kuro_status_filter_drops_are_named_and_refused(self, tmp_path):
         """두 판독기가 서로 다른 행 집합을 보던 자리.
 
-        ``plate_order_check._expected_order`` 는 status 를 보지 않으므로,
+        플레이트 순서 검사가 status 를 보지 않고 같은 시트를 따로 읽던 시절,
         조용히 걸러진 행 하나가 두 판독기의 웰 번호를 통째로 어긋나게 했다.
+        그 검사는 이제 이 리더가 정한 배치를 그대로 쓴다.
         """
         path = _write_kuro_export(
             tmp_path / "kuro.xlsx",
@@ -440,3 +446,254 @@ class TestExplicitSheetBeatsRecognition:
         assert info.is_kuro_export is True
         assert "Fwd List" in info.sheets
         assert info.headers["Fwd List"] == ["Well", "Primer Name", "Mutation"]
+
+
+class TestControlStatusWildType:
+    """KURO writes its WT row as `status=control`, which is not a design.
+
+    The status filter removed it, the reader reported that removal as a row it
+    could not place, and the whole workbook was refused. Every KURO export
+    carrying its own control row was unreadable, the two shipped ones included.
+    """
+
+    def test_a_control_status_wt_row_does_not_refuse_the_file(self, tmp_path):
+        path = _write_kuro_export(
+            tmp_path / "kuro.xlsx",
+            [
+                ("M001", 5, "V", "F", "designed"),
+                ("WT", 0, "-", "-", "control"),
+                ("M002", 53, "K", "N", "designed"),
+            ],
+        )
+
+        result = read_variant_source(path)
+
+        assert [m.mutant_id for m in result.expected] == ["M001", "M002"]
+
+    def test_the_control_row_occupies_the_well_its_row_number_names(self, tmp_path):
+        """대조군 행은 자기 순서의 웰을 차지한다. 버리면 뒤가 한 칸씩 당겨진다."""
+        path = _write_kuro_export(
+            tmp_path / "kuro.xlsx",
+            [
+                ("M001", 5, "V", "F", "designed"),
+                ("WT", 0, "-", "-", "control"),
+                ("M002", 53, "K", "N", "designed"),
+            ],
+        )
+
+        result = read_variant_source(path)
+        draft = build_draft_layout(result.expected, wt_ordinal=result.wt_ordinal)
+
+        assert result.wt_ordinal == 2
+        assert list(draft.layout.items()) == [
+            ("A1", "M001"),
+            ("B1", "WT"),
+            ("C1", "M002"),
+        ]
+
+    def test_a_mutant_row_is_still_judged_by_status_alone(self, tmp_path):
+        """판정 기준은 라벨이지 status 가 아니다. 진짜 mutant 는 그대로 걸린다."""
+        path = _write_kuro_export(
+            tmp_path / "kuro.xlsx",
+            [
+                ("M001", 5, "V", "F", "designed"),
+                ("M002", 9, "Z", "Z", "control"),
+                ("M003", 53, "K", "N", "designed"),
+            ],
+        )
+
+        with pytest.raises(ValueError, match="row 3.*control"):
+            read_variant_source(path)
+
+    @pytest.mark.parametrize(
+        ("relative", "occupants"),
+        [
+            ("templates/03_mame_expected_mutations.xlsx", 8),
+            ("src-tauri/samples/mame/03_mame_expected_mutations.xlsx", 10),
+        ],
+    )
+    def test_the_shipped_workbooks_are_readable(self, relative, occupants):
+        """Help -> Load Sample Data 가 읽는 바로 그 파일들이다."""
+        path = _REPO_ROOT / relative
+        assert path.exists(), path
+
+        result = read_variant_source(path)
+
+        # WT 는 두 파일 모두 마지막 행이므로 서수는 점유자 수와 같다.
+        assert result.wt_ordinal == occupants
+        assert len(result.expected) == occupants - 1
+        assert "WT" not in [m.mutant_id for m in result.expected]
+
+
+class TestHeaderlessList:
+    """헤더 없이 변이만 적은 파일에서 첫 변이가 컬럼명으로 먹히던 자리.
+
+    예외도 경고도 없이 첫 변이가 사라졌고, 남은 변이가 전부 한 칸씩 앞으로
+    당겨졌다. 이 모듈이 막으려는 바로 그 밀림이 이 경로만 무증상이었다.
+    """
+
+    def test_the_first_variant_is_not_eaten_as_a_column_name(self, tmp_path):
+        path = tmp_path / "v.csv"
+        path.write_text("S65T\nY66H\n", encoding="utf-8")
+
+        result = read_variant_source(path)
+        draft = build_draft_layout(result.expected, wt_ordinal=result.wt_ordinal)
+
+        assert [m.mutant_id for m in result.expected] == ["S65T", "Y66H"]
+        assert draft.layout["A1"] == "S65T"
+        assert draft.layout["B1"] == "Y66H"
+
+    def test_the_absence_of_a_header_is_reported_rather_than_a_variant(self, tmp_path):
+        path = tmp_path / "v.csv"
+        path.write_text("S65T\nY66H\n", encoding="utf-8")
+
+        assert read_variant_source(path).variant_column == "(no header)"
+
+    def test_row_numbers_start_at_one_because_no_row_is_a_header(self, tmp_path):
+        path = tmp_path / "v.csv"
+        path.write_text("S65T\nnot-a-mutation\n", encoding="utf-8")
+
+        with pytest.raises(ValueError, match="row 2"):
+            read_variant_source(path)
+
+    def test_a_named_column_does_not_reopen_the_hole(self, tmp_path):
+        """UI 는 inspect 의 제안을 그대로 넘긴다. 인자가 있어도 헤더리스다."""
+        path = tmp_path / "v.csv"
+        path.write_text("S65T\nY66H\n", encoding="utf-8")
+
+        result = read_variant_source(path, variant_column="S65T")
+
+        assert [m.mutant_id for m in result.expected] == ["S65T", "Y66H"]
+        assert result.variant_column == "(no header)"
+
+    def test_a_wt_first_row_is_recognised_too(self, tmp_path):
+        path = tmp_path / "v.csv"
+        path.write_text("WT\nS65T\n", encoding="utf-8")
+
+        result = read_variant_source(path)
+
+        assert result.wt_ordinal == 1
+        assert [m.mutant_id for m in result.expected] == ["S65T"]
+
+    def test_an_xlsx_without_a_header_reads_the_same_way(self, tmp_path):
+        path = _write_sheet(tmp_path / "v.xlsx", [["S65T"], ["Y66H"]])
+
+        result = read_variant_source(path)
+
+        assert [m.mutant_id for m in result.expected] == ["S65T", "Y66H"]
+
+    def test_a_lower_case_first_variant_is_not_eaten_either(self, tmp_path):
+        """소문자 표기도 데이터다. 컬럼명으로 먹히면 조용히 사라진다.
+
+        ``parse_mutation_notation`` 은 대문자만 받으므로, 이 행은 헤더리스로
+        인식된 뒤 파서에 넘어가 행 번호와 함께 큰 소리로 거절된다. 그것이
+        아무 말 없이 한 칸 밀린 플레이트보다 낫다.
+        """
+        path = tmp_path / "v.csv"
+        path.write_text("s65t\nY66H\n", encoding="utf-8")
+
+        with pytest.raises(ValueError, match="row 1"):
+            read_variant_source(path)
+
+    def test_a_lower_case_first_variant_is_not_offered_as_a_column(self, tmp_path):
+        path = tmp_path / "v.csv"
+        path.write_text("s65t\nY66H\n", encoding="utf-8")
+
+        assert inspect_variant_source(path).suggested_column is None
+
+    def test_a_named_header_still_behaves_exactly_as_before(self, tmp_path):
+        """회귀 방지. 헤더가 있으면 헤더고, 데이터 행은 2 부터다."""
+        path = tmp_path / "v.csv"
+        path.write_text("variant\nS65T\nnot-a-mutation\n", encoding="utf-8")
+
+        with pytest.raises(ValueError, match="row 3"):
+            read_variant_source(path)
+
+    def test_a_header_that_is_a_variant_is_not_offered_as_a_column(self, tmp_path):
+        """제안했다면 UI 가 그 값을 되넘겨 첫 변이를 잃게 했을 것이다."""
+        path = tmp_path / "v.csv"
+        path.write_text("S65T\nY66H\n", encoding="utf-8")
+
+        assert inspect_variant_source(path).suggested_column is None
+
+    def test_a_lone_ordinary_header_is_still_suggested(self, tmp_path):
+        path = _write_sheet(tmp_path / "v.xlsx", [["anything"], ["V5F"]])
+
+        assert inspect_variant_source(path).suggested_column == "anything"
+
+
+class TestMultiColumnFirstRowIsRefused:
+    """다열 파일에서는 첫 행이 헤더인지 데이터인지 파일이 말해주지 않는다.
+
+    단열은 비어있지 않은 셀이 하나뿐이라 추론이 결정적이지만, 다열에서는
+    나머지 열이 헤더일 수도 값일 수도 있다. 헤더로 읽으면 첫 변이를 잃고
+    데이터로 읽으면 나머지 열의 이름을 지어내는 셈이라 어느 쪽도 고를 수
+    없다. 그래서 추측하지 않고 거절한다.
+    """
+
+    def test_a_named_column_whose_header_is_a_variant_is_refused(self, tmp_path):
+        path = tmp_path / "v.csv"
+        path.write_text("S65T,plate1\nY66H,plate1\n", encoding="utf-8")
+
+        with pytest.raises(ValueError, match="'S65T' in v.csv is itself a variant"):
+            read_variant_source(path, variant_column="S65T")
+
+    def test_the_refusal_says_what_to_do_about_it(self, tmp_path):
+        path = tmp_path / "v.csv"
+        path.write_text("S65T,plate1\nY66H,plate1\n", encoding="utf-8")
+
+        with pytest.raises(ValueError, match="Add a header row"):
+            read_variant_source(path, variant_column="S65T")
+
+    def test_a_wt_label_header_is_refused_the_same_way(self, tmp_path):
+        path = tmp_path / "v.csv"
+        path.write_text("WT,plate1\nY66H,plate1\n", encoding="utf-8")
+
+        with pytest.raises(ValueError, match="'WT' in v.csv is itself a variant"):
+            read_variant_source(path, variant_column="WT")
+
+    def test_the_variant_is_not_quietly_dropped_instead(self, tmp_path):
+        """거절 전에는 이 입력이 `['Y66H']` 로 조용히 통과했다."""
+        path = tmp_path / "v.csv"
+        path.write_text("S65T,plate1\nY66H,plate1\n", encoding="utf-8")
+
+        with pytest.raises(ValueError):
+            read_variant_source(path, variant_column="S65T")
+
+    def test_an_xlsx_is_refused_the_same_way(self, tmp_path):
+        path = _write_sheet(
+            tmp_path / "v.xlsx",
+            [["S65T", "plate1"], ["Y66H", "plate1"]],
+        )
+
+        with pytest.raises(ValueError, match="itself a variant"):
+            read_variant_source(path, variant_column="S65T")
+
+    def test_a_single_column_headerless_file_still_reads(self, tmp_path):
+        """경계. 단열은 추론이 결정적이므로 거절 대상이 아니다."""
+        path = tmp_path / "v.csv"
+        path.write_text("S65T\nY66H\n", encoding="utf-8")
+
+        result = read_variant_source(path, variant_column="S65T")
+
+        assert [m.mutant_id for m in result.expected] == ["S65T", "Y66H"]
+
+    @pytest.mark.parametrize("header", ["variant", "mutation", "mutant_id"])
+    def test_ordinary_header_names_are_untouched(self, tmp_path, header):
+        """정상 헤더명은 변이로 파싱되지 않으므로 이 규칙에 걸리지 않는다."""
+        path = _write_sheet(
+            tmp_path / "v.xlsx",
+            [[header, "note"], ["S65T", "x"], ["Y66H", "x"]],
+        )
+
+        result = read_variant_source(path, variant_column=header)
+
+        assert [m.mutant_id for m in result.expected] == ["S65T", "Y66H"]
+
+    def test_naming_no_column_keeps_the_old_message(self, tmp_path):
+        """컬럼을 안 넘긴 다열 파일의 거절 문구는 그대로다."""
+        path = tmp_path / "v.csv"
+        path.write_text("S65T,plate1\nY66H,plate1\n", encoding="utf-8")
+
+        with pytest.raises(ValueError, match="cannot tell which column"):
+            read_variant_source(path)

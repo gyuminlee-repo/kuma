@@ -1,8 +1,8 @@
 """Does an exported workbook describe one plate, or two?
 
 A KURO export carries the primer plate on ``Fwd List``/``Fwd Plate`` and the expected
-variants on ``expected_mutations``. MAME reads row *i* of the expected sheet as well
-*i*, so the two are the same statement written twice and they have to agree.
+variants on ``expected_mutations``. MAME turns the expected sheet into a plate, so the
+two are the same statement written twice and they have to agree.
 
 Exports written before v0.14.3 did not agree. The plate sheets came from the plate
 mapping while the expected sheet followed the design ranking, so the same mutants sat
@@ -14,6 +14,27 @@ sits there by the expected sheet.
 A silent wrong answer is worth more noise than a loud one, so this reports the
 disagreement rather than repairing it. Repair needs the operator to say which sheet
 describes the tubes they actually pipetted, and that is not a guess to make for them.
+
+**The comparison axis is the well, not the row number.** Both sides already know
+their own wells and this module used to throw that away: the plate sheets were
+collapsed into a dense list and the expected sheet was counted off one row at a
+time, then each side was re-labelled from its position in that list. Three
+things went wrong at once and all three were shifts of exactly the kind this
+module exists to catch. A plate with a gap in it renumbered every later well. A
+wild-type row, which occupies a well and has no primer, made the two lists
+differ in length and put ``WT`` in ``absent_from_plate``. A row the expected
+reader drops on status was counted here as though it were placed.
+
+Keying on the well removes all three without a case for any of them, because it
+stops re-deriving what each side already states: the plate sheets carry a Well
+column and a labelled grid, and the expected side is placed by
+``io.variant_list.read_variant_source`` together with ``layout.build_draft_layout``,
+which are what the run itself uses. Reading the expected sheet a second way here
+was the whole defect: two readers of one sheet disagreeing about which well a
+mutant sits in is precisely what this check was written to detect.
+
+The wild-type well is left out of the comparison. A plate sheet lists primers,
+the control has none, and its absence is not a disagreement.
 """
 
 from __future__ import annotations
@@ -22,10 +43,17 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from kuma_core.mame.io.variant_list import read_variant_source
+from kuma_core.mame.layout import build_draft_layout
+from kuma_core.mame.plate_geometry import seq_to_well, well_to_seq
+
 #: The sheet MAME reads as the plate order.
 EXPECTED_SHEET = "expected_mutations"
 #: Sheets that carry the primer plate, in preference order. The first one present wins.
 PLATE_SHEETS = ("Fwd List", "Fwd Plate")
+
+#: The occupant ``build_draft_layout`` writes for the control well.
+_WT_SAMPLE = "WT"
 
 _MUTATION = re.compile(r"^([A-Z])(\d+)([A-Z])$")
 
@@ -39,12 +67,15 @@ class PlateOrderReport:
     #: True when a comparison ran and the orders differ.
     mismatched: bool = False
     #: ``(well, from_plate_sheet, from_expected_sheet)`` for the first few wells that
-    #: disagree. Wells are labelled column-major, the order MAME assigns.
+    #: disagree. Wells are labelled column-major, the order MAME assigns. A side that
+    #: places nothing in a disagreeing well contributes an empty string.
     examples: list[tuple[str, str, str]] = field(default_factory=list)
     #: Mutants on the plate with no row in the expected sheet. Each one shifts every
     #: later well by one, so this is a mismatch even when the shared rows line up.
     missing_from_expected: list[str] = field(default_factory=list)
-    #: Rows in the expected sheet naming a mutant the plate does not carry.
+    #: Rows in the expected sheet naming a mutant the plate does not carry. Never
+    #: contains the wild-type control: it occupies a well and has no primer, so a
+    #: plate sheet without it is not disagreeing about anything.
     absent_from_plate: list[str] = field(default_factory=list)
     #: Which sheet supplied the plate order.
     plate_sheet: str | None = None
@@ -59,17 +90,40 @@ def _cell_text(value: object) -> str:
     return "" if value is None else str(value).strip()
 
 
+def _canonical_well(raw: str) -> str:
+    """Well label in the one spelling both sides use, or ``""`` if it is not one.
+
+    ``A01`` and ``A1`` are the same well and a sheet may write either, so the
+    label is put through the plate geometry rather than compared as text. A
+    label off the plate comes back empty and its row is ignored, the same way a
+    cell that does not hold a mutation is.
+    """
+    try:
+        return seq_to_well(well_to_seq(raw))
+    except (ValueError, IndexError):
+        return ""
+
+
 def _mutation_from_primer(name: str) -> str:
     """Strip the ``_F``/``_R`` suffix a primer name carries."""
     stem = name[:-2] if name.upper().endswith(("_F", "_R")) else name
     return stem if _MUTATION.match(stem) else ""
 
 
-def _plate_order_from_list_sheet(worksheet) -> list[str]:
-    """Read a ``Fwd List`` sheet: a Well column plus a mutation or primer name."""
+def _in_plate_order(cells: dict[str, str]) -> dict[str, str]:
+    """Re-key a well map into column-major order, the order MAME assigns."""
+    return {well: cells[well] for well in sorted(cells, key=well_to_seq)}
+
+
+def _plate_layout_from_list_sheet(worksheet) -> dict[str, str]:
+    """Read a ``Fwd List`` sheet into ``{well: mutation}``.
+
+    The Well column is the coordinate, so the row order of the sheet says
+    nothing and no sorting rule is needed to recover one.
+    """
     rows = list(worksheet.iter_rows(values_only=True))
     if not rows:
-        return []
+        return {}
     headers = [_cell_text(c).lower() for c in rows[0]]
 
     def column(*names: str) -> int | None:
@@ -81,33 +135,30 @@ def _plate_order_from_list_sheet(worksheet) -> list[str]:
     well_at = column("well")
     label_at = column("mutation", "mutant_id", "primer name", "primer_name")
     if well_at is None or label_at is None:
-        return []
-    ordered: list[tuple[str, str]] = []
+        return {}
+    cells: dict[str, str] = {}
     for row in rows[1:]:
         if max(well_at, label_at) >= len(row):
             continue
-        well = _cell_text(row[well_at]).upper()
+        well = _canonical_well(_cell_text(row[well_at]))
         label = _cell_text(row[label_at])
         mutation = label if _MUTATION.match(label) else _mutation_from_primer(label)
         if well and mutation:
-            ordered.append((well, mutation))
-    # The Well column is the authority, not the row order, so sort by it column-major.
-    def key(pair: tuple[str, str]) -> tuple[int, int]:
-        well = pair[0]
-        row_index = ord(well[0]) - ord("A")
-        column_number = int(well[1:]) if well[1:].isdigit() else 0
-        return (column_number, row_index)
-
-    return [mutation for _, mutation in sorted(ordered, key=key)]
+            cells[well] = mutation
+    return _in_plate_order(cells)
 
 
-def _plate_order_from_grid_sheet(worksheet) -> list[str]:
-    """Read a ``Fwd Plate`` grid: row labels down the side, column numbers on top."""
+def _plate_layout_from_grid_sheet(worksheet) -> dict[str, str]:
+    """Read a ``Fwd Plate`` grid into ``{well: mutation}``.
+
+    Row labels down the side and column numbers on top are the well, so an empty
+    cell leaves a gap in the plate instead of pulling the rest of the grid up.
+    """
     rows = list(worksheet.iter_rows(values_only=True))
     if len(rows) < 2:
-        return []
+        return {}
     header = [_cell_text(c) for c in rows[0]]
-    cells: dict[tuple[int, int], str] = {}
+    cells: dict[str, str] = {}
     for row in rows[1:]:
         if not row:
             continue
@@ -119,34 +170,45 @@ def _plate_order_from_grid_sheet(worksheet) -> list[str]:
                 continue
             label = _cell_text(value)
             mutation = label if _MUTATION.match(label) else _mutation_from_primer(label)
-            if mutation:
-                cells[(int(header[index]), ord(row_label) - ord("A"))] = mutation
-    return [cells[key] for key in sorted(cells)]
+            well = _canonical_well(f"{row_label}{int(header[index])}")
+            if well and mutation:
+                cells[well] = mutation
+    return _in_plate_order(cells)
 
 
-def _expected_order(worksheet) -> list[str]:
-    rows = list(worksheet.iter_rows(values_only=True))
-    if not rows:
-        return []
-    headers = [_cell_text(c).lower() for c in rows[0]]
-    at = headers.index("mutant_id") if "mutant_id" in headers else 0
-    return [
-        _cell_text(row[at])
-        for row in rows[1:]
-        if at < len(row) and _cell_text(row[at])
-    ]
+def _expected_layout(path: Path) -> dict[str, str] | None:
+    """Where the expected sheet puts each mutant, or ``None`` if it cannot say.
 
+    This is the run's own placement, not a second reading of it:
+    :func:`~kuma_core.mame.io.variant_list.read_variant_source` decides which
+    rows are occupants and at which ordinal the control sits, and
+    :func:`~kuma_core.mame.layout.build_draft_layout` turns that into wells.
+    Deriving it here again is what let this check and the run name different
+    wells for one mutant.
 
-def _well_label(sequence: int) -> str:
-    """Column-major well label for a 1-based index, matching ``seq_to_well``."""
-    return f"{chr(ord('A') + (sequence - 1) % 8)}{(sequence - 1) // 8 + 1}"
+    ``read_variant_source`` refuses a file for several reasons, all of them
+    reported to the operator on the path that actually loads the workbook. This
+    check is not that path, so a refusal here is lowered to "cannot compare"
+    rather than raised: a check that threw would turn every one of those
+    refusals into a second, differently worded failure, and would let a
+    diagnostic block the gate that is already blocking.
+    """
+    try:
+        read = read_variant_source(path)
+    except (ValueError, FileNotFoundError, KeyError):
+        return None
+    draft = build_draft_layout(read.expected, wt_ordinal=read.wt_ordinal)
+    # Over capacity the draft places nothing, so there is no placement to compare.
+    return draft.layout or None
 
 
 def check_plate_order(path: Path, max_examples: int = 5) -> PlateOrderReport:
     """Compare the plate sheets against ``expected_mutations`` in *path*.
 
     A file missing either kind of sheet is reported as not comparable rather than as
-    consistent, so a caller cannot read silence as agreement.
+    consistent, so a caller cannot read silence as agreement. So is a file the
+    expected-variant reader refuses; see :func:`_expected_layout` for why that is
+    lowered rather than raised. This function does not raise.
     """
     path = Path(path)
     if path.suffix.lower() not in {".xlsx", ".xlsm"} or not path.exists():
@@ -154,49 +216,65 @@ def check_plate_order(path: Path, max_examples: int = 5) -> PlateOrderReport:
 
     import openpyxl
 
-    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    try:
+        workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    except Exception:
+        return PlateOrderReport(comparable=False)
     try:
         if EXPECTED_SHEET not in workbook.sheetnames:
             return PlateOrderReport(comparable=False)
-        plate_order: list[str] = []
+        plate: dict[str, str] = {}
         plate_sheet: str | None = None
         for name in PLATE_SHEETS:
             if name not in workbook.sheetnames:
                 continue
             reader = (
-                _plate_order_from_list_sheet
+                _plate_layout_from_list_sheet
                 if name.endswith("List")
-                else _plate_order_from_grid_sheet
+                else _plate_layout_from_grid_sheet
             )
-            plate_order = reader(workbook[name])
-            if plate_order:
+            plate = reader(workbook[name])
+            if plate:
                 plate_sheet = name
                 break
-        if not plate_order:
-            return PlateOrderReport(comparable=False)
-        expected_order = _expected_order(workbook[EXPECTED_SHEET])
     finally:
         workbook.close()
 
-    if not expected_order:
+    if not plate:
+        return PlateOrderReport(comparable=False)
+
+    layout = _expected_layout(path)
+    if layout is None:
         return PlateOrderReport(comparable=False, plate_sheet=plate_sheet)
 
-    expected_set = set(expected_order)
-    plate_set = set(plate_order)
+    # The control occupies a well and has no primer, so its well is not a place
+    # the two sheets can disagree. Leaving it in is what put `WT` in
+    # `absent_from_plate` and made every export carrying a WT row mismatch.
+    expected = {
+        well: sample for well, sample in layout.items() if sample != _WT_SAMPLE
+    }
+    wt_wells = {well for well, sample in layout.items() if sample == _WT_SAMPLE}
+
     examples: list[tuple[str, str, str]] = []
-    for index, plate_mutation in enumerate(plate_order, start=1):
-        if index > len(expected_order):
-            break
-        found = expected_order[index - 1]
-        if found != plate_mutation and len(examples) < max_examples:
-            examples.append((_well_label(index), plate_mutation, found))
+    for well in sorted(set(plate) | set(expected), key=well_to_seq):
+        if well in wt_wells:
+            continue
+        on_plate = plate.get(well, "")
+        in_expected = expected.get(well, "")
+        if on_plate != in_expected and len(examples) < max_examples:
+            examples.append((well, on_plate, in_expected))
+
+    expected_set = set(expected.values())
+    plate_set = set(plate.values())
+    missing_from_expected = [m for m in plate.values() if m not in expected_set]
+    absent_from_plate = [m for m in expected.values() if m not in plate_set]
 
     return PlateOrderReport(
         comparable=True,
-        mismatched=bool(examples) or len(plate_order) != len(expected_order),
+        mismatched=bool(examples or missing_from_expected or absent_from_plate),
         examples=examples,
-        missing_from_expected=[m for m in plate_order if m not in expected_set],
-        absent_from_plate=[m for m in expected_order if m not in plate_set],
+        missing_from_expected=missing_from_expected,
+        absent_from_plate=absent_from_plate,
         plate_sheet=plate_sheet,
     )
 
