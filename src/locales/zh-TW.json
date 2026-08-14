@@ -468,7 +468,11 @@
       "neighborAvgHelp": "Mean read count of the four orthogonal neighbor wells (up/down/left/right). Informational; not used in the z-score.",
       "zScoreHelp": "(well reads minus plate mean) / plate SD. Wells above 2.5 are flagged. Severity: above 4 high, above 3 medium, above 2.5 low.",
       "percentileHelp": "File-size percentiles in KB by linear interpolation: p05 is the 5th percentile through p95 the 95th.",
-      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB."
+      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB.",
+      "qcSectionTitle": "執行 QC 詳情",
+      "qcSectionAriaLabel": "顯示執行 QC 詳情",
+      "qcHealthTitle": "Run health",
+      "qcHealthAbsent": "本次執行未記錄 run health 區塊，因此 file size、pore yield、throughput、barcode 與 cross-talk 各節沒有可讀取的值。"
     },
     "plateView": {
       "plate": "Plate",

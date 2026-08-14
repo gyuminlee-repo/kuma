@@ -615,7 +615,11 @@
       "neighborAvgHelp": "Mean read count of the four orthogonal neighbor wells (up/down/left/right). Informational; not used in the z-score.",
       "zScoreHelp": "(well reads minus plate mean) / plate SD. Wells above 2.5 are flagged. Severity: above 4 high, above 3 medium, above 2.5 low.",
       "percentileHelp": "File-size percentiles in KB by linear interpolation: p05 is the 5th percentile through p95 the 95th.",
-      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB."
+      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB.",
+      "qcSectionTitle": "실행 QC 상세",
+      "qcSectionAriaLabel": "실행 QC 상세 보기",
+      "qcHealthTitle": "Run health",
+      "qcHealthAbsent": "이 실행은 run health 블록을 남기지 않아 file size, pore yield, throughput, barcode, cross-talk 섹션이 읽을 값이 없습니다."
     },
     "plateView": {
       "plate": "플레이트",

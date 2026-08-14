@@ -781,14 +781,31 @@ export type RunHealthSection =
   | "barcode"
   | "cross-talk";
 
-/** Sub-set presets for embedding inside other sub-steps. */
-export const RUN_HEALTH_VERDICT_SECTIONS: readonly RunHealthSection[] = [
+/**
+ * Sections that exist only on the raw MinKNOW path. When none of the run data
+ * they read is present, the panel says so once rather than letting each of them
+ * render nothing: an absent section is indistinguishable from a healthy one.
+ */
+const MINKNOW_SECTIONS: readonly RunHealthSection[] = [
+  "throughput",
+  "pore-yield",
+  "barcode",
+  "cross-talk",
+];
+
+/**
+ * Everything except the verdict breakdown, which 2.2 already draws beside the
+ * plate. This is the subset the QC disclosure on the review screen mounts.
+ *
+ * It replaces two presets (`RUN_HEALTH_VERDICT_SECTIONS`,
+ * `RUN_HEALTH_PLATE_SECTIONS`) that had no consumer anywhere in `src/`. Neither
+ * matched what the review screen actually needs, and an exported subset that
+ * almost fits is a subset something will eventually be passed by mistake.
+ */
+export const RUN_HEALTH_QC_SECTIONS: readonly RunHealthSection[] = [
   "file-size",
   "throughput",
   "pore-yield",
-];
-export const RUN_HEALTH_PLATE_SECTIONS: readonly RunHealthSection[] = [
-  "verdict-breakdown",
   "barcode",
   "cross-talk",
 ];
@@ -952,7 +969,12 @@ export function RunHealthPanel({ health, sections, className, showSectionHeading
         </>
       )}
 
-      {!hasMinKnow && sections === undefined && (
+      {/* The MinKNOW block above renders nothing at all without raw run data, so
+          a subset asking for any of those four sections would otherwise draw an
+          empty panel with no exception and no explanation. Gated on the subset
+          actually containing one of them: a caller that asked only for the
+          verdict breakdown or the file-size histogram is not missing anything. */}
+      {!hasMinKnow && (sections === undefined || sections.some((s) => MINKNOW_SECTIONS.includes(s))) && (
         <div className="col-span-full">
           <p className="text-caption text-muted-foreground">
             {t("mame.runHealth.noMinKnow")}

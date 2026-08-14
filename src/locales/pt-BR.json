@@ -468,7 +468,11 @@
       "neighborAvgHelp": "Mean read count of the four orthogonal neighbor wells (up/down/left/right). Informational; not used in the z-score.",
       "zScoreHelp": "(well reads minus plate mean) / plate SD. Wells above 2.5 are flagged. Severity: above 4 high, above 3 medium, above 2.5 low.",
       "percentileHelp": "File-size percentiles in KB by linear interpolation: p05 is the 5th percentile through p95 the 95th.",
-      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB."
+      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB.",
+      "qcSectionTitle": "Detalhes de QC do run",
+      "qcSectionAriaLabel": "Mostrar detalhes de QC do run",
+      "qcHealthTitle": "Run health",
+      "qcHealthAbsent": "Este run não registrou bloco de run health, portanto as seções file size, pore yield, throughput, barcode e cross-talk não têm o que ler."
     },
     "plateView": {
       "plate": "Placa",
