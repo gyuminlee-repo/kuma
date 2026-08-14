@@ -41,14 +41,34 @@ _emit_lock = threading.Lock()
 
 
 def _read_fasta_sequence(path: Path) -> str:
-    """Return concatenated sequence content from a FASTA file."""
+    """Return the single sequence in a FASTA file, refusing several records.
+
+    A reference is ONE molecule. Joining a plasmid backbone to a target gene
+    produces a sequence with a junction no molecule has, and the length this
+    reader hands to the CDS default, the run-quality scale and the read-length
+    ratios would all be measured against that chimera without a word said.
+
+    A file with no header at all stays acceptable, as it always was here. The
+    count-and-name judgement is shared with the two ``kuma_core`` readers so the
+    operator reads one sentence whichever path opened the file; the import stays
+    inside the function because pulling it in at module level would drag the
+    whole ingest package into a handler that loads it lazily on purpose.
+    """
+    from kuma_core.mame.reference_fasta import multi_record_reason
+
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    reason = multi_record_reason(lines)
+    if reason is not None:
+        # ValueError is what every other refusal in this reader raises, and the
+        # error type the ingest layer uses for the same refusal subclasses it,
+        # so a caller catching ValueError sees both paths alike.
+        raise ValueError(f"{reason}: {path}")
     seq_parts: list[str] = []
-    with path.open("r", encoding="utf-8", errors="replace") as fh:
-        for line in fh:
-            line = line.strip()
-            if not line or line.startswith(">"):
-                continue
-            seq_parts.append(line)
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith(">"):
+            continue
+        seq_parts.append(line)
     return "".join(seq_parts).upper()
 
 

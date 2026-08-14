@@ -9,6 +9,7 @@ from pathlib import Path
 import openpyxl
 
 from kuma_core.mame.ingest.barcode_tail import common_tail
+from kuma_core.mame.reference_fasta import multi_record_reason
 from kuma_core.shared.atomic_write import atomic_write_text
 
 _FORWARD_NAME = re.compile(r".+_f_\d+$", re.IGNORECASE)
@@ -63,12 +64,6 @@ def _reverse_complement(sequence: str) -> str:
     return sequence.translate(_COMPLEMENT)[::-1]
 
 
-#: How many record names to quote before the message is cut short. A file with
-#: dozens of records is a database rather than a reference, and listing all of
-#: them buries the sentence that says what to do about it.
-_MAX_NAMED_RECORDS = 8
-
-
 def _read_fasta(path: Path) -> str:
     """Return the single sequence in *path*, refusing a file that holds several.
 
@@ -81,26 +76,15 @@ def _read_fasta(path: Path) -> str:
     A file with no header at all is still accepted: a bare sequence file is a
     supported input here and always was, and counting its records as zero says
     nothing about how many molecules it holds.
+
+    The count-and-name judgement is shared with the two other reference readers
+    (``kuma_core.mame.pipeline`` and the sidecar ``analyze`` handler) so the
+    operator reads one sentence whichever path opened the file.
     """
     lines = path.read_text(encoding="utf-8").splitlines()
-    headers = [line.strip() for line in lines if line.startswith(">")]
-    if len(headers) > 1:
-        # First whitespace-delimited token, the conventional record id. An
-        # empty header keeps a placeholder rather than vanishing, so the names
-        # listed always number the same as the count stated beside them.
-        names = [
-            (header[1:].strip().split() or ["(unnamed)"])[0] for header in headers
-        ]
-        shown = names[:_MAX_NAMED_RECORDS]
-        listed = ", ".join(shown)
-        if len(names) > len(shown):
-            listed += f", ... (+{len(names) - len(shown)} more)"
-        raise AmpliconReferenceError(
-            path,
-            f"Reference FASTA holds {len(headers)} sequence records ({listed}); "
-            "a reference must be a single molecule. Supply a file containing "
-            "only the record reads are aligned against",
-        )
+    reason = multi_record_reason(lines)
+    if reason is not None:
+        raise AmpliconReferenceError(path, reason)
     sequence = "".join(
         line.strip()
         for line in lines
