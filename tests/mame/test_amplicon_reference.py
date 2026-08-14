@@ -72,6 +72,67 @@ def test_existing_amplicon_reference_is_left_unchanged(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Undetected ORF (silent (0, 0) CDS)
+# ---------------------------------------------------------------------------
+
+
+def test_amplicon_without_an_orf_says_so_instead_of_reporting_zero_bounds(
+    tmp_path: Path,
+) -> None:
+    """An extracted amplicon holding no forward ORF used to report ``(0, 0)``.
+
+    Nothing said the search had failed, and ``(0, 0)`` is indistinguishable
+    from the bounds the skipped-extraction branches report, so the one case
+    where the CDS is genuinely unknown looked exactly like the ordinary ones.
+    """
+    # No ATG anywhere: not in the tails, not in the filler, not across a joint.
+    payload = "GCT" * 20
+    amplicon = _F_TAIL.upper() + payload + _reverse_complement(_R_TAIL).upper()
+    assert "ATG" not in amplicon
+    plasmid = "GGG" * 25 + amplicon + "CCC" * 25
+    reference = tmp_path / "plasmid.fa"
+    reference.write_text(f">plasmid\n{plasmid}\n", encoding="utf-8")
+    barcodes = tmp_path / "barcodes.xlsx"
+    _write_barcodes(barcodes)
+
+    resolution = resolve_amplicon_reference(reference, barcodes, tmp_path / "out")
+
+    assert resolution.extracted is True
+    assert resolution.coding_bounds_found is False
+    assert resolution.cds_start == 0
+    assert resolution.cds_end == 0
+    assert "no forward reading frame" in resolution.note
+
+
+def test_an_extracted_amplicon_with_an_orf_reports_bounds_as_found(
+    tmp_path: Path,
+) -> None:
+    coding = "ATG" + "GCT" * 19 + "TAA"
+    amplicon = _F_TAIL + coding + _reverse_complement(_R_TAIL)
+    plasmid = "G" * 80 + amplicon + "C" * 70
+    reference = tmp_path / "plasmid.fa"
+    reference.write_text(f">plasmid\n{plasmid}\n", encoding="utf-8")
+    barcodes = tmp_path / "barcodes.xlsx"
+    _write_barcodes(barcodes)
+
+    resolution = resolve_amplicon_reference(reference, barcodes, tmp_path / "out")
+
+    assert resolution.coding_bounds_found is True
+
+
+def test_a_skipped_extraction_does_not_claim_coding_bounds(tmp_path: Path) -> None:
+    reference = tmp_path / "amplicon.fa"
+    reference.write_text(">amplicon\nATGGCTGCTTAA\n", encoding="utf-8")
+    barcodes = tmp_path / "barcodes.xlsx"
+    _write_barcodes(barcodes)
+
+    resolution = resolve_amplicon_reference(reference, barcodes, tmp_path / "out")
+
+    assert resolution.extracted is False
+    assert resolution.coding_bounds_found is False
+
+
+# ---------------------------------------------------------------------------
 # Multi-record reference guard (silent concatenation)
 # ---------------------------------------------------------------------------
 

@@ -44,6 +44,12 @@ class AmpliconReferenceResolution:
     cds_start: int
     cds_end: int
     note: str
+    #: Whether ``cds_start``/``cds_end`` are a reading frame this resolution
+    #: actually found. False means they are ``(0, 0)`` placeholders, which is
+    #: NOT a CDS starting at the first base: it is the absence of an answer.
+    #: The two used to be indistinguishable, so the one case where the frame is
+    #: genuinely unknown looked exactly like every skipped extraction.
+    coding_bounds_found: bool
 
 
 class AmpliconReferenceError(ValueError):
@@ -210,6 +216,7 @@ def resolve_amplicon_reference(
         return AmpliconReferenceResolution(
             reference_fasta, False, None, len(sequence), 0, 0,
             "Amplicon extraction skipped because shared primer tails could not be derived.",
+            False,
         )
     span = _unique_span(sequence, forward_tail, reverse_tail)
     if span is None:
@@ -236,11 +243,31 @@ def resolve_amplicon_reference(
                 "primer sites were found out of order in the reference."
             )
         return AmpliconReferenceResolution(
-            reference_fasta, False, None, len(sequence), 0, 0, note,
+            reference_fasta, False, None, len(sequence), 0, 0, note, False,
         )
     amplicon = sequence[span.start:span.end]
     coding_bounds = _longest_forward_orf(amplicon)
     cds_start, cds_end = coding_bounds if coding_bounds is not None else (0, 0)
+    extraction_note = (
+        f"Amplicon extracted from reference positions "
+        f"{span.start + 1}-{span.end} ({len(amplicon)} bp)."
+    )
+    if coding_bounds is None:
+        # The three branches above each explain why extraction was skipped. This
+        # one explains why the extraction succeeded and the frame did not, and it
+        # is the only place that fact is recorded: the coordinates it reports are
+        # (0, 0), which reads as a CDS at the first base rather than as a missing
+        # answer. What follows from that is stated because the consequence is not
+        # visible from the numbers: with no frame the whole amplicon is
+        # translated from its first base, and amino-acid numbering then belongs
+        # to a frame the design never used.
+        extraction_note += (
+            " No coding bounds were derived: the amplicon contains no forward "
+            "reading frame (no ATG followed by an in-frame stop codon), so "
+            "cds_start and cds_end are placeholders rather than a CDS. Supply "
+            "cds_start / cds_end for this reference, or use a reference whose "
+            "amplicon carries a complete coding sequence."
+        )
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     extracted_path = output_dir / f"{reference_fasta.stem}.amplicon.fa"
@@ -258,7 +285,8 @@ def resolve_amplicon_reference(
         len(sequence),
         cds_start,
         cds_end,
-        f"Amplicon extracted from reference positions {span.start + 1}-{span.end} ({len(amplicon)} bp).",
+        extraction_note,
+        coding_bounds is not None,
     )
 
 

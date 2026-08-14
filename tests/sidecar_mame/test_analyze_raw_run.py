@@ -971,9 +971,19 @@ def test_handle_analyze_raw_run_extracts_amplicon_from_whole_plasmid(
         "original_length": len(left_flank) + len(amplicon) + 70,
         "cds_start": len(_F_TAIL),
         "cds_end": len(_F_TAIL) + len(_RAW_REF_SEQ),
+        # This fixture amplicon carries no ATG followed by an in-frame stop, so
+        # the ORF search comes up empty and the note says so. The run still
+        # succeeds because the caller stated cds_start / cds_end above, which is
+        # the branch that rescues it; the resolution reporting (0, 0) as if
+        # those were a real frame is what used to be invisible here.
         "note": (
             f"Amplicon extracted from reference positions {len(left_flank) + 1}-"
             f"{len(left_flank) + len(amplicon)} ({len(amplicon)} bp)."
+            " No coding bounds were derived: the amplicon contains no forward "
+            "reading frame (no ATG followed by an in-frame stop codon), so "
+            "cds_start and cds_end are placeholders rather than a CDS. Supply "
+            "cds_start / cds_end for this reference, or use a reference whose "
+            "amplicon carries a complete coding sequence."
         ),
     }
 

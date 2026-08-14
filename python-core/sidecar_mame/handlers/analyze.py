@@ -94,7 +94,19 @@ def resolve_amplicon_cds(
        the amplicon: shift it by the span start.
     3. The given CDS already fits inside the amplicon length: it was stated in
        amplicon coordinates, so it is used unchanged.
-    4. Neither: fall back to the ORF the resolution found in the amplicon.
+    4. Neither: fall back to the ORF the resolution found in the amplicon. When
+       the resolution found none, there is nothing left to fall back to and the
+       run is refused rather than framed at zero. The old fallback returned
+       ``(0, 0)``, which is not "CDS unknown" anywhere downstream: ``cds_end``
+       of 0 is replaced by the full reference length below, so the plate was
+       translated in frame 0 from the first base of the amplicon, which is the
+       primer tail. Amino-acid numbering then belonged to a frame the design
+       never used, and the two ways that showed up were both wrong quietly:
+       wells carrying an expected mutation failed as WRONG_AA, and wells with
+       an empty expected list (WT controls) passed clean. Refusing follows the
+       same reasoning ``ExpectedCoordinateMismatchError`` is raised on, a whole
+       plate scored against the wrong coordinates while still producing
+       verdicts that read as ordinary.
     """
     span = resolution.span
     if span is None:
@@ -107,6 +119,24 @@ def resolve_amplicon_cds(
         return original_cds_start - span.start, original_cds_end - span.start
     if 0 < original_cds_end <= span.end - span.start:
         return original_cds_start, original_cds_end
+    if not resolution.coding_bounds_found:
+        raise ValueError(
+            "Coding sequence bounds could not be determined for the extracted "
+            "amplicon: it contains no forward reading frame (no ATG followed "
+            "by an in-frame stop codon), and the CDS bounds given do not fit "
+            f"it either (cds_start={original_cds_start}, "
+            f"cds_end={original_cds_end}; amplicon is "
+            f"{span.end - span.start} bp, cut from reference positions "
+            f"{span.start + 1}-{span.end}).\n"
+            f"  reference: {resolution.reference_fasta}\n"
+            f"  resolution: {resolution.note}\n"
+            "Without a frame the whole amplicon would be translated from its "
+            "first base, which is the primer tail, so every amino-acid "
+            "position would be numbered against a frame the design never "
+            "used. Supply cds_start / cds_end for this reference, in either "
+            "whole-reference or amplicon coordinates, or use a reference "
+            "whose amplicon carries a complete coding sequence."
+        )
     return resolution.cds_start, resolution.cds_end
 
 
