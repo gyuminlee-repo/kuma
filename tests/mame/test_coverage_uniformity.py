@@ -9,7 +9,7 @@ argument for it, not this file.
 The helpers are tested directly rather than through
 ``compute_well_consensuses`` because that path shells out to the bundled
 minimap2 binary, which is absent in a plain checkout. The one case that needs
-real CIGAR handling feeds ``per_position_depth`` output into ``_depth_stats``,
+real CIGAR handling feeds ``per_position_depth`` output into ``depth_stats``,
 so the depth vector under test is the same one ``mean_depth`` is computed from.
 """
 
@@ -19,7 +19,7 @@ import pytest
 
 from kuma_core.mame.ingest.align import Alignment, _CIGAR_M
 from kuma_core.mame.ingest.consensus import DEFAULT_MIX_MIN_DEPTH, per_position_depth
-from kuma_core.mame.ingest.well_consensus import _consensus_identity, _depth_stats
+from kuma_core.mame.ingest.well_consensus import consensus_identity, depth_stats
 
 
 def _aln(read_seq: str, r_st: int, ref_len: int) -> Alignment:
@@ -56,8 +56,8 @@ def test_even_and_holed_wells_share_a_mean_and_differ_in_cv_and_breadth():
 
     assert sum(even) / len(even) == sum(holed) / len(holed)
 
-    cv_even, p10_even, min_even, breadth_even = _depth_stats(even)
-    cv_holed, p10_holed, min_holed, breadth_holed = _depth_stats(holed)
+    cv_even, p10_even, min_even, breadth_even = depth_stats(even)
+    cv_holed, p10_holed, min_holed, breadth_holed = depth_stats(holed)
 
     assert cv_even == pytest.approx(0.0)
     assert cv_holed == pytest.approx(0.2)
@@ -81,7 +81,7 @@ def test_a_flat_hole_is_visible_to_breadth_alone():
     """
     holed = [125] * 800 + [0] * 200
 
-    cv, _p10, min_covered, breadth = _depth_stats(holed)
+    cv, _p10, min_covered, breadth = depth_stats(holed)
 
     assert cv == pytest.approx(0.0)
     assert min_covered == 125
@@ -91,7 +91,7 @@ def test_a_flat_hole_is_visible_to_breadth_alone():
 def test_ragged_well_has_nonzero_cv_at_full_breadth():
     """A well can be fully covered and still uneven; cv is what says so."""
     ragged = [10] * 500 + [200] * 500
-    cv, p10, min_covered, breadth = _depth_stats(ragged)
+    cv, p10, min_covered, breadth = depth_stats(ragged)
 
     assert breadth == pytest.approx(1.0)
     assert min_covered == 10
@@ -103,7 +103,7 @@ def test_ragged_well_has_nonzero_cv_at_full_breadth():
 def test_breadth_uses_the_mix_min_depth_threshold_over_the_whole_reference():
     """Denominator is the reference, and the threshold is the shared constant."""
     depths = [DEFAULT_MIX_MIN_DEPTH] * 30 + [DEFAULT_MIX_MIN_DEPTH - 1] * 70
-    _cv, _p10, min_covered, breadth = _depth_stats(depths)
+    _cv, _p10, min_covered, breadth = depth_stats(depths)
 
     assert breadth == pytest.approx(0.3)
     # Every position is covered, so the shallow 70 are counted by breadth and
@@ -118,7 +118,7 @@ def test_breadth_uses_the_mix_min_depth_threshold_over_the_whole_reference():
 
 def test_no_covered_position_yields_none_not_zero():
     """Nothing covered means the spread is UNKNOWN, and breadth is a real 0.0."""
-    cv, p10, min_covered, breadth = _depth_stats([0] * 100)
+    cv, p10, min_covered, breadth = depth_stats([0] * 100)
 
     assert cv is None
     assert p10 is None
@@ -127,12 +127,12 @@ def test_no_covered_position_yields_none_not_zero():
 
 
 def test_empty_reference_yields_none_everywhere():
-    assert _depth_stats([]) == (None, None, None, None)
+    assert depth_stats([]) == (None, None, None, None)
 
 
 def test_single_covered_position_yields_zero_cv_not_an_error():
     """Population deviation: n=1 is a flat sample, not an undefined one."""
-    cv, p10, min_covered, breadth = _depth_stats([0] * 99 + [42])
+    cv, p10, min_covered, breadth = depth_stats([0] * 99 + [42])
 
     assert cv == pytest.approx(0.0)
     assert p10 == pytest.approx(42.0)
@@ -147,7 +147,7 @@ def test_single_covered_position_yields_zero_cv_not_an_error():
 
 def test_wt_like_consensus_scores_identity_one():
     ref = "ACGT" * 25
-    assert _consensus_identity(ref, ref) == pytest.approx(1.0)
+    assert consensus_identity(ref, ref) == pytest.approx(1.0)
 
 
 def test_uncalled_positions_leave_the_denominator():
@@ -156,27 +156,27 @@ def test_uncalled_positions_leave_the_denominator():
     consensus = "ACGTNNNNAC"
 
     # 6 called positions, all matching.
-    assert _consensus_identity(consensus, ref) == pytest.approx(1.0)
+    assert consensus_identity(consensus, ref) == pytest.approx(1.0)
 
 
 def test_one_substitution_among_ten_called_positions():
     ref = "ACGTACGTAC"
     consensus = "ACGTACGTAG"
 
-    assert _consensus_identity(consensus, ref) == pytest.approx(0.9)
+    assert consensus_identity(consensus, ref) == pytest.approx(0.9)
 
 
 def test_all_n_consensus_is_unknown_not_zero():
     """A well that called nothing has no identity; 0.0 would claim a mismatch."""
     ref = "ACGTACGTAC"
 
-    assert _consensus_identity("N" * 10, ref) is None
-    assert _consensus_identity("", ref) is None
+    assert consensus_identity("N" * 10, ref) is None
+    assert consensus_identity("", ref) is None
 
 
 def test_total_mismatch_is_a_real_zero():
     """0.0 is the opposite of None: bases were called and none matched."""
-    assert _consensus_identity("AAAA", "TTTT") == pytest.approx(0.0)
+    assert consensus_identity("AAAA", "TTTT") == pytest.approx(0.0)
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +185,7 @@ def test_total_mismatch_is_a_real_zero():
 
 
 def test_stats_read_the_per_position_depth_vector():
-    """Feed real alignments through per_position_depth into _depth_stats.
+    """Feed real alignments through per_position_depth into depth_stats.
 
     Two reads cover positions 0-19, one read covers 20-39, so the reference is
     fully covered but half of it at half the depth. The gap-free case above is
@@ -202,7 +202,7 @@ def test_stats_read_the_per_position_depth_vector():
     assert depths[:20] == [2] * 20
     assert depths[20:] == [1] * 20
 
-    cv, p10, min_covered, breadth = _depth_stats(depths, mix_min_depth=2)
+    cv, p10, min_covered, breadth = depth_stats(depths, mix_min_depth=2)
 
     assert min_covered == 1
     assert cv is not None and cv > 0.0

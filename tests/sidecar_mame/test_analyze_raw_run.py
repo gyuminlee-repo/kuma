@@ -577,6 +577,117 @@ def test_deserialize_verdict_restores_the_strand_evidence(tmp_path: Path) -> Non
     assert legacy.noisy_positions == ()
 
 
+def test_serialized_verdict_carries_the_coverage_report(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Coverage uniformity and consensus identity reach the response.
+
+    The raw MinKNOW run folder is the primary MAME input and it writes these into
+    the consensus FASTA header, so the response is where an operator finally sees
+    them. Each key is emitted INDEPENDENTLY and only when measured: the well below
+    measured a breadth of 0.0 and nothing else, which is what a well with no
+    coverage honestly reports, and zero-filling the other four would invent a
+    perfectly flat, zero-identity measurement. All five are report only; no
+    verdict here is asserted against them.
+    """
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    ingest_dir = tmp_path / "consensus"
+    _write_fasta(
+        ingest_dir / "NB01" / "1_2.fasta",
+        header=(
+            "1_2 depth=30 depth_cv=0.211111 depth_p10=42.5 "
+            "depth_min_covered=17 breadth_at_mix_min_depth=0.802000 "
+            "consensus_identity=0.999667"
+        ),
+        body=_G2A_NT,
+    )
+    # Covered nothing: breadth is a real 0.0, the rest were never measurable.
+    _write_fasta(
+        ingest_dir / "NB01" / "2_1.fasta",
+        header="2_1 depth=0 breadth_at_mix_min_depth=0.000000",
+        body=_F3W_NT,
+    )
+    # Written before the keys existed: nothing at all.
+    _write_fasta(ingest_dir / "NB01" / "1_1.fasta", header="1_1", body=_G2A_NT)
+    reference = _make_reference_fasta(tmp_path)
+    kuro_xlsx = tmp_path / "kuro.xlsx"
+    _make_kuro_xlsx(kuro_xlsx)
+    _capture_progress(monkeypatch)
+
+    result = analyze_mod.handle_analyze({
+        "input_dir": str(ingest_dir),
+        "reference": str(reference),
+        "expected": str(kuro_xlsx),
+        "output": str(tmp_path / "out.xlsx"),
+        "cds_start": 0,
+        "cds_end": 9,
+        "min_file_size_kb": 0.0,
+        "ingest_mode": "barcode",
+    })
+
+    by_custom = {v["custom_barcode"]: v for v in result["verdicts"]}
+
+    measured = by_custom["1_2"]
+    assert measured["depth_cv"] == pytest.approx(0.211111)
+    assert measured["depth_p10"] == pytest.approx(42.5)
+    assert measured["depth_min_covered"] == 17
+    assert measured["breadth_at_mix_min_depth"] == pytest.approx(0.802)
+    assert measured["consensus_identity"] == pytest.approx(0.999667)
+
+    uncovered = by_custom["2_1"]
+    # Present and 0.0, not dropped for being falsy.
+    assert uncovered["breadth_at_mix_min_depth"] == 0.0
+    assert "depth_cv" not in uncovered
+    assert "depth_p10" not in uncovered
+    assert "depth_min_covered" not in uncovered
+    assert "consensus_identity" not in uncovered
+
+    legacy = by_custom["1_1"]
+    for key in (
+        "depth_cv",
+        "depth_p10",
+        "depth_min_covered",
+        "breadth_at_mix_min_depth",
+        "consensus_identity",
+    ):
+        assert key not in legacy
+
+
+def test_deserialize_verdict_restores_the_coverage_report() -> None:
+    """A saved run replays through ``_deserialize_verdict``; nothing may be lost.
+
+    An omitted key must come back as ``None`` (unknown) rather than 0.0, and a
+    stored 0.0 must come back as 0.0.
+    """
+    from sidecar_mame.handlers.analyze import _deserialize_verdict
+
+    barcode = _deserialize_verdict({
+        "native_barcode": "NB01",
+        "custom_barcode": "1_2",
+        "verdict": "PASS",
+        "depth_cv": 0.211111,
+        "depth_p10": 42.5,
+        "depth_min_covered": 17,
+        "breadth_at_mix_min_depth": 0.0,
+        "consensus_identity": 0.999667,
+    }).translated.barcode
+    assert barcode.depth_cv == pytest.approx(0.211111)
+    assert barcode.depth_p10 == pytest.approx(42.5)
+    assert barcode.depth_min_covered == 17
+    assert barcode.breadth_at_mix_min_depth == 0.0
+    assert barcode.consensus_identity == pytest.approx(0.999667)
+
+    legacy = _deserialize_verdict({
+        "native_barcode": "NB01", "custom_barcode": "2_1", "verdict": "PASS",
+    }).translated.barcode
+    assert legacy.depth_cv is None
+    assert legacy.depth_p10 is None
+    assert legacy.depth_min_covered is None
+    assert legacy.breadth_at_mix_min_depth is None
+    assert legacy.consensus_identity is None
+
+
 def test_handle_analyze_auto_scopes_from_expected_when_layout_omitted(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

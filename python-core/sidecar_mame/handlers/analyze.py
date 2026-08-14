@@ -201,6 +201,21 @@ def _serialize_verdict(vr: Any) -> dict:
         out["max_minor_allele_strand_share"] = b.max_minor_allele_strand_share
         out["max_minor_allele_plus_count"] = b.max_minor_allele_plus_count
         out["max_minor_allele_minus_count"] = b.max_minor_allele_minus_count
+    # Coverage uniformity and consensus identity, report only. ``mean_depth``
+    # cannot separate a well covered evenly from one with the same mean and a
+    # hole, and these say which it was. Each key is emitted INDEPENDENTLY and
+    # only when measured: a well that produced no consensus still has a real
+    # breadth of 0.0 while the other four are unmeasurable, so guarding them as
+    # one block would drop that measurement. Absence means unknown, never 0.0.
+    for key, value in (
+        ("depth_cv", b.depth_cv),
+        ("depth_p10", b.depth_p10),
+        ("depth_min_covered", b.depth_min_covered),
+        ("breadth_at_mix_min_depth", b.breadth_at_mix_min_depth),
+        ("consensus_identity", b.consensus_identity),
+    ):
+        if value is not None:
+            out[key] = value
     return out
 
 
@@ -240,6 +255,13 @@ def _deserialize_verdict(d: dict) -> Any:
     # ``None`` is passed through as the record's own default, so a legacy payload
     # restores as unknown rather than as a one-strand measurement.
     strand_share = d.get("max_minor_allele_strand_share")
+
+    def _opt_float(key: str) -> float | None:
+        """``None`` when the key is absent, so unknown never becomes 0.0."""
+        value = d.get(key)
+        return None if value is None else float(value)
+
+    depth_min_covered = d.get("depth_min_covered")
     barcode = BarcodeRecord(
         native_barcode=d["native_barcode"],
         custom_barcode=d["custom_barcode"],
@@ -282,6 +304,17 @@ def _deserialize_verdict(d: dict) -> Any:
             )
             for p in d.get("noisy_positions", ())
         ),
+        # Absent in a payload persisted before these existed, and absent for any
+        # well that could not measure one of them. ``None`` is passed through as
+        # unknown; coercing to 0.0 would report a perfectly flat, zero-identity
+        # well that nobody measured.
+        depth_cv=_opt_float("depth_cv"),
+        depth_p10=_opt_float("depth_p10"),
+        depth_min_covered=(
+            None if depth_min_covered is None else int(depth_min_covered)
+        ),
+        breadth_at_mix_min_depth=_opt_float("breadth_at_mix_min_depth"),
+        consensus_identity=_opt_float("consensus_identity"),
     )
     translated = TranslatedRecord(
         barcode=barcode,

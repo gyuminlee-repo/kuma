@@ -995,6 +995,30 @@
       "severity": "warning"
     },
     {
+      "id": "mame-coverage-uniformity",
+      "files": [
+        "kuma_core/mame/ingest/well_consensus.py",
+        "kuma_core/mame/ingest/combinatorial_demux.py",
+        "kuma_core/mame/ingest/consensus_metadata.py",
+        "kuma_core/mame/ingest/fasta_parser.py",
+        "kuma_core/mame/models.py",
+        "kuma_core/mame/export/excel_writer.py",
+        "python-core/sidecar_mame/handlers/analyze.py",
+        "python-core/sidecar_mame/handlers/demux.py",
+        "src/types/mame/models.ts"
+      ],
+      "symbols": [
+        "depth_stats",
+        "consensus_identity",
+        "depth_cv",
+        "depth_p10",
+        "depth_min_covered",
+        "breadth_at_mix_min_depth"
+      ],
+      "note": "Coverage uniformity and consensus identity, reported only, no gate reads them: well_consensus.py defines depth_stats and consensus_identity ONCE and both consensus paths call them (compute_well_consensuses for sorted barcode directories, _compute_well_consensus for the raw MinKNOW run folder, which is the primary user-facing input) -> consensus_metadata.py encodes them as FASTA header keys -> fasta_parser.py decodes them -> BarcodeRecord mirrors them -> _serialize_verdict/_deserialize_verdict carry them -> TS VerdictRecord, with excel_writer.py writing the same five as columns. Three things break when these are edited apart. (1) None means NOT MEASURED at every layer and 0.0 is a real reading (a flat well, a consensus matching the reference nowhere); any layer that defaults to 0.0, coerces with `or 0.0`, or writes a 0 cell reports a measurement nobody made. (2) The five gate INDEPENDENTLY, unlike the minor-allele strand trio: a well with no reads has a real breadth_at_mix_min_depth of 0.0 while the other four are unmeasurable, so guarding them as one block drops that 0.0. (3) Both paths must read the SAME per-position depth vector mean depth comes from, which is why the formulas live in one module and are imported rather than restated; two copies would be two metrics wearing one name. breadth is scoped to DEFAULT_MIX_MIN_DEPTH (consensus.py), not to the caller's min_depth, or the field name lies.",
+      "severity": "warning"
+    },
+    {
       "id": "mame-build-evolvepro-input",
       "files": [
         "kuma_core/mame/activity/build_evolvepro_input.py",

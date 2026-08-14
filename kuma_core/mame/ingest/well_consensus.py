@@ -85,10 +85,10 @@ class ConsensusResult:
         Coverage-uniformity evidence. ``mean_depth`` alone cannot separate a
         well covered evenly at 100x from one averaging 100x with a 200 bp hole,
         and the two are not the same evidence for the same consensus. See
-        ``_depth_stats`` for each definition and for why ``None`` is not 0.0.
+        ``depth_stats`` for each definition and for why ``None`` is not 0.0.
     consensus_identity:
         Fraction of called consensus bases matching the reference. See
-        ``_consensus_identity``.
+        ``consensus_identity``.
 
     The five coverage and identity fields are REPORTED ONLY. No verdict, gate
     or severity rule reads them; they exist so an operator can see WHY a well
@@ -132,7 +132,7 @@ class ConsensusResult:
     alignments: list[Alignment] = field(default_factory=list, repr=False)
 
 
-def _depth_stats(
+def depth_stats(
     depths: Sequence[int],
     mix_min_depth: int = DEFAULT_MIX_MIN_DEPTH,
 ) -> tuple[float | None, float | None, int | None, float | None]:
@@ -202,7 +202,7 @@ def _depth_stats(
     return cv, p10, min_covered, breadth
 
 
-def _consensus_identity(consensus_seq: str, reference_seq: str) -> float | None:
+def consensus_identity(consensus_seq: str, reference_seq: str) -> float | None:
     """Fraction of CALLED consensus bases that match the reference.
 
     Denominator is the positions the consensus actually calls, i.e. those whose
@@ -331,8 +331,8 @@ def compute_well_consensuses(
         depths = per_position_depth(alignments, ref_len)
         mean_d = statistics.mean(depths) if depths else 0.0
         # Uniformity read off the SAME depth vector as mean_depth, so the two
-        # are comparable. See _depth_stats.
-        depth_cv, depth_p10, depth_min_covered, breadth = _depth_stats(depths)
+        # are comparable. See depth_stats.
+        depth_cv, depth_p10, depth_min_covered, breadth = depth_stats(depths)
 
         consensus_call = call_consensus_with_metrics(
             alignments,
@@ -376,7 +376,7 @@ def compute_well_consensuses(
             depth_p10=depth_p10,
             depth_min_covered=depth_min_covered,
             breadth_at_mix_min_depth=breadth,
-            consensus_identity=_consensus_identity(
+            consensus_identity=consensus_identity(
                 consensus_call.consensus_seq, ref_seq
             ),
             alignments=alignments,
@@ -404,4 +404,13 @@ def _read_reference_seq(reference_fasta: Path) -> str:
     return seq
 
 
-__all__ = ["ConsensusResult", "compute_well_consensuses"]
+# ``depth_stats`` and ``consensus_identity`` are exported because the raw
+# MinKNOW run path (``combinatorial_demux``) computes the same five report-only
+# numbers and must compute them from the same definitions. Two copies of these
+# formulas would be two metrics wearing one name.
+__all__ = [
+    "ConsensusResult",
+    "compute_well_consensuses",
+    "consensus_identity",
+    "depth_stats",
+]
