@@ -472,7 +472,18 @@
       "qcSectionTitle": "執行 QC 詳情",
       "qcSectionAriaLabel": "顯示執行 QC 詳情",
       "qcHealthTitle": "Run health",
-      "qcHealthAbsent": "本次執行未記錄 run health 區塊，因此 file size、pore yield、throughput、barcode 與 cross-talk 各節沒有可讀取的值。"
+      "qcHealthAbsent": "本次執行未記錄 run health 區塊，因此 file size、pore yield、throughput、barcode 與 cross-talk 各節沒有可讀取的值。",
+      "qcNotMeasured": "未測量",
+      "filterStats": {
+        "title": "read 過濾",
+        "noDemux": "本次執行未做 demultiplex，因此沒有 read 經過品質過濾。以 consensus 目錄為輸入的執行讀取已完成的 consensus 檔案，不會看到原始 read。",
+        "noSummary": "品質過濾已執行但未留下計數：執行資料夾中沒有 sequencing_summary 檔案，而每條 read 的 Q score 正來自該檔案。",
+        "input": "輸入 read",
+        "passed": "通過過濾",
+        "failedQscore": "因 Q score 被剔除",
+        "failedLength": "因長度被剔除",
+        "failedBarcode": "因 barcode 被剔除"
+      }
     },
     "plateView": {
       "plate": "Plate",
@@ -1015,6 +1026,40 @@
         "median_depth_below_recommended": "深度中位數 {{median}} 低於建議的每個擴增子 {{recommended}} 條讀段。",
         "flow_cell_reused": "流通池 {{cell}} 在本專案中已執行過一次，結束時孔隙為 {{previousPores}}。",
         "variants_at_reference_edge": "{{variants}} 位於參考序列末端 {{margin}} bp 以內，而本次執行直接使用了所提供的參考序列。比對器會在無法連接的錯配處截斷讀段，因此這些位置的深度可能低於該孔報告的深度。改用包含引子結合區的參考序列可讓它們更靠內。"
+      },
+      "positionRecurrence": {
+        "title": "反覆出現的位點",
+        "noRun": "尚無可報告的執行。",
+        "predatesBuild": "該儲存結果寫於統計反覆位點之前，因此對此一無所知。這不代表沒有位點反覆出現。",
+        "what": "單一孔中某一位點的 minor allele 是混合的候選。同一位點在一個又一個孔中出現，則是 sequence context artifact 的樣子，因為該 context 屬於 amplicon 而非選殖株。此處不作任何評級。",
+        "lowerBound": "下列每個計數都是下界：每個孔最多貢獻按 minor fraction 排序的十個位點，而在 {{contributing}} 個有貢獻的孔中有 {{truncated}} 個觸及該上限，因此排在第十位之後的位點未計入。",
+        "wellsContributing": "貢獻了位點的紀錄",
+        "wellsTruncated": "其中在十處被截斷",
+        "positionsSeen": "觀測到的不同位點",
+        "positionsSingleWell": "僅在一筆紀錄中出現（已排除）",
+        "none": "沒有位點被一筆以上的紀錄報告。",
+        "caption": "被一筆以上紀錄報告的參考位點，反覆次數多者在前。",
+        "colPosition": "位點",
+        "colWells": "紀錄",
+        "colMedianShare": "weak strand 中位數",
+        "colShareRange": "最小 / 最大",
+        "colSharesKnown": "已知比例"
+      },
+      "readLength": {
+        "title": "read 長度",
+        "noRun": "尚無可報告的執行。",
+        "predatesBuild": "該儲存結果寫於攜帶 read 長度之前，因此對此一無所知。這不代表 read 沒有長度。",
+        "notRead": "未能讀取 read 長度：執行資料夾中沒有 report json、檔案無法解析，或寫入它的 MinKNOW 早於 read_length_histogram。",
+        "reference": "比對到長度為 {{bp}} bp 的參考序列。",
+        "referenceUnknown": "無法讀取參考長度，因此下列比值沒有分母。",
+        "unlabelled": "無標籤項目",
+        "noEntries": "報告中沒有 read length histogram 項目。",
+        "n50": "N50（儀器報告值）",
+        "n50OverReference": "N50 與參考之比",
+        "nearReferenceFraction": "接近參考長度的鹼基比例",
+        "over2xFraction": "達到或超過參考 2 倍的鹼基比例",
+        "concatemerNote": "N50 遠高於參考的 1 倍既是 concatemer 族群的樣子，也是刻意設計的長 amplicon 的樣子。僅憑此數無法區分兩者，因此此處不作任何標記。",
+        "basesNote": "兩個比例統計的都是鹼基數，而非 read 條數。"
       }
     },
     "inspector": {
@@ -1300,7 +1345,20 @@
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well.",
       "replicateReads": "{{reads}} reads",
-      "replicateAligned": "比對 {{aligned}}"
+      "replicateAligned": "比對 {{aligned}}",
+      "sectionCoverage": "覆蓋均勻度",
+      "coverage": {
+        "notMeasured": "未測量",
+        "absent": "該結果寫於測量覆蓋均勻度之前，因此五項數值均不可得。這不代表該孔被均勻覆蓋。",
+        "depthCv": "Depth CV（0 為平坦）",
+        "depthP10": "Depth p10",
+        "depthMinCovered": "最淺的被覆蓋位點",
+        "breadth": "深度足以判讀 minor allele 的參考比例",
+        "consensusIdentity": "Consensus identity",
+        "consensusN": "Consensus N 比例",
+        "identityNote": "identity 只在已判讀的鹼基上計算，因此大部分為 N 的 consensus 也可能顯示為近乎完全一致。請與上方的 N 比例對照閱讀。",
+        "nNotEvaluable": "該 consensus 的 N 比例無法復原，已以 0 代入，因此上方的 identity 建立在未知長度的序列之上。"
+      }
     },
     "wellSelection": {
       "title": "使用的孔位",

@@ -619,7 +619,18 @@
       "qcSectionTitle": "Run QC details",
       "qcSectionAriaLabel": "Show run QC details",
       "qcHealthTitle": "Run health",
-      "qcHealthAbsent": "This run recorded no run-health block, so the file size, pore yield, throughput, barcode and cross-talk sections have nothing to read."
+      "qcHealthAbsent": "This run recorded no run-health block, so the file size, pore yield, throughput, barcode and cross-talk sections have nothing to read.",
+      "qcNotMeasured": "Not measured",
+      "filterStats": {
+        "title": "Read filtering",
+        "noDemux": "This run did not demultiplex, so no reads passed through the quality filter. A consensus-directory run reads finished consensus files and never sees raw reads.",
+        "noSummary": "The quality filter ran but kept no tally: the run folder carried no sequencing_summary file, which is where the per-read Q score comes from.",
+        "input": "Reads in",
+        "passed": "Passed the filter",
+        "failedQscore": "Rejected on Q score",
+        "failedLength": "Rejected on length",
+        "failedBarcode": "Rejected on barcode"
+      }
     },
     "plateView": {
       "plate": "Plate",
@@ -1127,6 +1138,40 @@
         "median_depth_below_recommended": "Median depth {{median}} is under the recommended {{recommended}} reads per amplicon.",
         "flow_cell_reused": "Flow cell {{cell}} already carried a run in this project, which ended with {{previousPores}} pores.",
         "variants_at_reference_edge": "{{variants}} sit within {{margin}} bp of an end of the reference, and this run aligned against the reference as supplied. An aligner clips a read at a mismatch it cannot attach, so those positions can see less depth than the well reports. A reference that includes the primer binding regions puts them further inside."
+      },
+      "positionRecurrence": {
+        "title": "Recurring positions",
+        "noRun": "No run to report on yet.",
+        "predatesBuild": "This saved result was written before recurring positions were tallied, so nothing is known about them. It does not mean no position recurred.",
+        "what": "A minor allele at one position in one well is a candidate mixture. The same position returning well after well is what a sequence-context artifact looks like, because the context belongs to the amplicon rather than to the clone. Nothing here is graded.",
+        "lowerBound": "Every count below is a lower bound: each well contributes at most ten positions ranked by minor fraction, and {{truncated}} of {{contributing}} contributing wells hit that ceiling, so positions ranked past tenth are missing from the tally.",
+        "wellsContributing": "Records contributing a position",
+        "wellsTruncated": "Of those, truncated at ten",
+        "positionsSeen": "Distinct positions seen",
+        "positionsSingleWell": "Seen in one record only (left out)",
+        "none": "No position was reported by more than one record.",
+        "caption": "Reference positions reported by more than one record, most recurrent first.",
+        "colPosition": "Position",
+        "colWells": "Records",
+        "colMedianShare": "Median weak strand",
+        "colShareRange": "Min / max",
+        "colSharesKnown": "Shares known"
+      },
+      "readLength": {
+        "title": "Read length",
+        "noRun": "No run to report on yet.",
+        "predatesBuild": "This saved result was written before read lengths were carried, so nothing is known about them. It does not mean the reads had no lengths.",
+        "notRead": "Read lengths were not read: the run folder carried no report json, the file could not be parsed, or the MinKNOW that wrote it predates read_length_histogram.",
+        "reference": "Aligned against a reference of {{bp}} bp.",
+        "referenceUnknown": "The reference length could not be read, so the ratios below have no denominator.",
+        "unlabelled": "Unlabelled entry",
+        "noEntries": "The report carried no read length histogram entry.",
+        "n50": "N50 (instrument figure)",
+        "n50OverReference": "N50 over reference",
+        "nearReferenceFraction": "Bases near reference length",
+        "over2xFraction": "Bases at or beyond 2x reference",
+        "concatemerNote": "An N50 well above 1x the reference is what a concatemer population looks like, and also what a deliberately long amplicon looks like. Neither reading is decidable from this number, so nothing here is flagged.",
+        "basesNote": "Both fractions count BASES, not reads."
       }
     },
     "inspector": {
@@ -1300,7 +1345,20 @@
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well.",
       "replicateReads": "{{reads}} reads",
-      "replicateAligned": "{{aligned}} aligned"
+      "replicateAligned": "{{aligned}} aligned",
+      "sectionCoverage": "Coverage uniformity",
+      "coverage": {
+        "notMeasured": "Not measured",
+        "absent": "This result was written before coverage uniformity was measured, so none of the five figures is available. It does not mean the well was covered evenly.",
+        "depthCv": "Depth CV (0 is flat)",
+        "depthP10": "Depth p10",
+        "depthMinCovered": "Shallowest covered position",
+        "breadth": "Reference deep enough to read a minor allele",
+        "consensusIdentity": "Consensus identity",
+        "consensusN": "Consensus N fraction",
+        "identityNote": "Identity is measured over called bases only, so a mostly-N consensus can read as a near-perfect match. Read it against the N fraction above.",
+        "nNotEvaluable": "The N fraction of this consensus could not be recovered and 0 was substituted, so the identity above rests on an unknown amount of sequence."
+      }
     },
     "wellSelection": {
       "title": "Wells used",

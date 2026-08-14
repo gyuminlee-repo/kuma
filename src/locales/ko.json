@@ -619,7 +619,18 @@
       "qcSectionTitle": "실행 QC 상세",
       "qcSectionAriaLabel": "실행 QC 상세 보기",
       "qcHealthTitle": "Run health",
-      "qcHealthAbsent": "이 실행은 run health 블록을 남기지 않아 file size, pore yield, throughput, barcode, cross-talk 섹션이 읽을 값이 없습니다."
+      "qcHealthAbsent": "이 실행은 run health 블록을 남기지 않아 file size, pore yield, throughput, barcode, cross-talk 섹션이 읽을 값이 없습니다.",
+      "qcNotMeasured": "측정되지 않음",
+      "filterStats": {
+        "title": "리드 필터링",
+        "noDemux": "이 실행은 demultiplex 를 수행하지 않아 품질 필터를 통과한 리드가 없습니다. consensus 디렉터리 실행은 완성된 consensus 파일을 읽으며 원시 리드를 보지 않습니다.",
+        "noSummary": "품질 필터는 실행됐지만 집계를 남기지 않았습니다. 실행 폴더에 per-read Q score 의 출처인 sequencing_summary 파일이 없었습니다.",
+        "input": "입력 리드",
+        "passed": "필터 통과",
+        "failedQscore": "Q score 로 탈락",
+        "failedLength": "길이로 탈락",
+        "failedBarcode": "barcode 로 탈락"
+      }
     },
     "plateView": {
       "plate": "플레이트",
@@ -1127,6 +1138,40 @@
         "median_depth_below_recommended": "깊이 중앙값 {{median}}이 권장치 amplicon당 {{recommended}} read 미달이다.",
         "flow_cell_reused": "플로우셀 {{cell}}은 이 프로젝트에서 이미 런을 한 번 거쳤고, 그때 공극 {{previousPores}}로 끝났다.",
         "variants_at_reference_edge": "{{variants}} 이(가) 레퍼런스 끝에서 {{margin}} bp 이내에 있고, 이번 런은 주어진 레퍼런스를 그대로 정렬에 썼습니다. 정렬기는 붙이지 못한 불일치 지점에서 read 를 잘라내므로, 해당 위치는 웰이 보고하는 depth 보다 얕게 읽힐 수 있습니다. 프라이머가 붙는 구간까지 포함한 레퍼런스를 쓰면 그 위치가 안쪽으로 들어옵니다."
+      },
+      "positionRecurrence": {
+        "title": "반복 출현 위치",
+        "noRun": "아직 보고할 실행이 없습니다.",
+        "predatesBuild": "이 저장된 결과는 반복 위치 집계가 도입되기 전에 기록되어 관련 정보가 없습니다. 반복된 위치가 없었다는 뜻이 아닙니다.",
+        "what": "한 웰의 한 위치에서 나온 minor allele 은 혼합 후보입니다. 같은 위치가 웰마다 반복해 나오는 것은 sequence context artifact 의 모습이며, 그 context 는 클론이 아니라 amplicon 에 속합니다. 여기서는 아무것도 등급을 매기지 않습니다.",
+        "lowerBound": "아래 수치는 모두 하한입니다. 각 웰은 minor fraction 순으로 최대 10개 위치만 기여하며, 기여한 웰 {{contributing}}개 중 {{truncated}}개가 그 상한에 걸렸으므로 11번째 이후 위치는 집계에서 빠져 있습니다.",
+        "wellsContributing": "위치를 기여한 레코드",
+        "wellsTruncated": "그중 10개에서 잘린 레코드",
+        "positionsSeen": "관측된 고유 위치",
+        "positionsSingleWell": "레코드 1개에서만 관측 (제외됨)",
+        "none": "둘 이상의 레코드가 보고한 위치가 없습니다.",
+        "caption": "둘 이상의 레코드가 보고한 참조 위치. 반복이 많은 순.",
+        "colPosition": "위치",
+        "colWells": "레코드",
+        "colMedianShare": "weak strand 중앙값",
+        "colShareRange": "최소 / 최대",
+        "colSharesKnown": "share 확인"
+      },
+      "readLength": {
+        "title": "리드 길이",
+        "noRun": "아직 보고할 실행이 없습니다.",
+        "predatesBuild": "이 저장된 결과는 리드 길이를 싣기 전에 기록되어 관련 정보가 없습니다. 리드에 길이가 없었다는 뜻이 아닙니다.",
+        "notRead": "리드 길이를 읽지 못했습니다. 실행 폴더에 report json 이 없거나, 파싱할 수 없거나, read_length_histogram 이전 버전의 MinKNOW 가 기록한 파일입니다.",
+        "reference": "{{bp}} bp 참조 서열에 정렬했습니다.",
+        "referenceUnknown": "참조 길이를 읽지 못해 아래 비율에 분모가 없습니다.",
+        "unlabelled": "라벨 없는 항목",
+        "noEntries": "리포트에 read length histogram 항목이 없었습니다.",
+        "n50": "N50 (장비 보고값)",
+        "n50OverReference": "N50 / 참조 길이",
+        "nearReferenceFraction": "참조 길이 부근 염기 비율",
+        "over2xFraction": "참조 길이 2배 이상 염기 비율",
+        "concatemerNote": "참조 길이의 1배를 크게 넘는 N50 은 concatemer 집단의 모습이자 의도적으로 긴 amplicon 의 모습이기도 합니다. 이 수치만으로 둘을 가를 수 없으므로 여기서는 아무 표시도 하지 않습니다.",
+        "basesNote": "두 비율 모두 리드 개수가 아니라 염기 수를 셉니다."
       }
     },
     "inspector": {
@@ -1300,7 +1345,20 @@
       "aaSequenceLength": "아미노산 서열 ({{count}} aa)",
       "noVerdictRecord": "이 well 의 판정 레코드를 찾을 수 없습니다.",
       "replicateReads": "read {{reads}}",
-      "replicateAligned": "정렬 {{aligned}}"
+      "replicateAligned": "정렬 {{aligned}}",
+      "sectionCoverage": "커버리지 균일도",
+      "coverage": {
+        "notMeasured": "측정되지 않음",
+        "absent": "이 결과는 커버리지 균일도 측정 이전에 기록되어 다섯 수치를 모두 알 수 없습니다. 웰이 고르게 커버됐다는 뜻이 아닙니다.",
+        "depthCv": "Depth CV (0이 평탄)",
+        "depthP10": "Depth p10",
+        "depthMinCovered": "가장 얕은 커버 위치",
+        "breadth": "minor allele 판독 가능 깊이의 참조 비율",
+        "consensusIdentity": "Consensus identity",
+        "consensusN": "Consensus N 비율",
+        "identityNote": "identity 는 호출된 염기에 대해서만 계산되므로 대부분이 N 인 consensus 도 거의 완벽한 일치로 보일 수 있습니다. 위의 N 비율과 함께 읽으십시오.",
+        "nNotEvaluable": "이 consensus 의 N 비율을 복원하지 못해 0 이 대입됐습니다. 따라서 위 identity 가 얼마만큼의 서열에 근거하는지 알 수 없습니다."
+      }
     },
     "wellSelection": {
       "title": "사용할 웰",

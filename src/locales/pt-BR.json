@@ -472,7 +472,18 @@
       "qcSectionTitle": "Detalhes de QC do run",
       "qcSectionAriaLabel": "Mostrar detalhes de QC do run",
       "qcHealthTitle": "Run health",
-      "qcHealthAbsent": "Este run não registrou bloco de run health, portanto as seções file size, pore yield, throughput, barcode e cross-talk não têm o que ler."
+      "qcHealthAbsent": "Este run não registrou bloco de run health, portanto as seções file size, pore yield, throughput, barcode e cross-talk não têm o que ler.",
+      "qcNotMeasured": "Não medido",
+      "filterStats": {
+        "title": "Filtragem de reads",
+        "noDemux": "Este run não fez demultiplexação, então nenhum read passou pelo filtro de qualidade. Um run sobre um diretório de consensus lê arquivos de consensus prontos e nunca vê reads brutos.",
+        "noSummary": "O filtro de qualidade rodou mas não deixou contagem: a pasta do run não trazia arquivo sequencing_summary, de onde vem o Q score por read.",
+        "input": "Reads de entrada",
+        "passed": "Passaram no filtro",
+        "failedQscore": "Rejeitados por Q score",
+        "failedLength": "Rejeitados por comprimento",
+        "failedBarcode": "Rejeitados por barcode"
+      }
     },
     "plateView": {
       "plate": "Placa",
@@ -1015,6 +1026,40 @@
         "median_depth_below_recommended": "Profundidade mediana {{median}} abaixo das {{recommended}} leituras por amplicon recomendadas.",
         "flow_cell_reused": "A celula {{cell}} ja levou uma execucao neste projeto, encerrada com {{previousPores}} poros.",
         "variants_at_reference_edge": "{{variants}} ficam a menos de {{margin}} pb de uma extremidade da referencia, e esta execucao alinhou contra a referencia como foi fornecida. Um alinhador corta uma leitura em um desemparelhamento que nao consegue anexar, entao essas posicoes podem ver menos profundidade do que o poco relata. Uma referencia que inclua as regioes de ligacao dos primers as deixa mais para dentro."
+      },
+      "positionRecurrence": {
+        "title": "Posições recorrentes",
+        "noRun": "Ainda não há run sobre o qual relatar.",
+        "predatesBuild": "Este resultado salvo foi escrito antes de as posições recorrentes serem contadas, então nada se sabe sobre elas. Não significa que nenhuma posição se repetiu.",
+        "what": "Um minor allele em uma posição de um poço é candidato a mistura. A mesma posição poço após poço é a cara de um artefato de sequence context, porque o contexto pertence ao amplicon e não ao clone. Nada aqui é graduado.",
+        "lowerBound": "Cada contagem abaixo é um limite inferior: cada poço contribui com no máximo dez posições ordenadas por minor fraction, e {{truncated}} de {{contributing}} poços contribuintes bateram nesse teto, de modo que posições além da décima faltam na contagem.",
+        "wellsContributing": "Registros que contribuíram com uma posição",
+        "wellsTruncated": "Desses, truncados em dez",
+        "positionsSeen": "Posições distintas observadas",
+        "positionsSingleWell": "Vistas em um único registro (deixadas de fora)",
+        "none": "Nenhuma posição foi reportada por mais de um registro.",
+        "caption": "Posições de referência reportadas por mais de um registro, as mais recorrentes primeiro.",
+        "colPosition": "Posição",
+        "colWells": "Registros",
+        "colMedianShare": "Mediana weak strand",
+        "colShareRange": "Mín / máx",
+        "colSharesKnown": "Frações conhecidas"
+      },
+      "readLength": {
+        "title": "Comprimento de read",
+        "noRun": "Ainda não há run sobre o qual relatar.",
+        "predatesBuild": "Este resultado salvo foi escrito antes de os comprimentos de read serem carregados, então nada se sabe sobre eles. Não significa que os reads não tinham comprimento.",
+        "notRead": "Os comprimentos de read não foram lidos: a pasta do run não trazia report json, o arquivo não pôde ser interpretado, ou o MinKNOW que o escreveu é anterior a read_length_histogram.",
+        "reference": "Alinhado contra uma referência de {{bp}} bp.",
+        "referenceUnknown": "O comprimento da referência não pôde ser lido, então as razões abaixo não têm denominador.",
+        "unlabelled": "Entrada sem rótulo",
+        "noEntries": "O relatório não trazia nenhuma entrada de read length histogram.",
+        "n50": "N50 (valor do instrumento)",
+        "n50OverReference": "N50 sobre a referência",
+        "nearReferenceFraction": "Bases perto do comprimento de referência",
+        "over2xFraction": "Bases em 2x a referência ou além",
+        "concatemerNote": "Um N50 bem acima de 1x a referência é a cara de uma população de concatemer, e também a de um amplicon deliberadamente longo. Este número sozinho não separa os dois, então nada é sinalizado aqui.",
+        "basesNote": "As duas frações contam BASES, não reads."
       }
     },
     "inspector": {
@@ -1300,7 +1345,20 @@
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well.",
       "replicateReads": "{{reads}} reads",
-      "replicateAligned": "{{aligned}} alinhadas"
+      "replicateAligned": "{{aligned}} alinhadas",
+      "sectionCoverage": "Uniformidade de cobertura",
+      "coverage": {
+        "notMeasured": "Não medido",
+        "absent": "Este resultado foi escrito antes de a uniformidade de cobertura ser medida, então nenhum dos cinco números está disponível. Não significa que o poço foi coberto de forma uniforme.",
+        "depthCv": "Depth CV (0 é plano)",
+        "depthP10": "Depth p10",
+        "depthMinCovered": "Posição coberta mais rasa",
+        "breadth": "Referência com profundidade para ler um minor allele",
+        "consensusIdentity": "Consensus identity",
+        "consensusN": "Fração N do consensus",
+        "identityNote": "A identidade é medida só sobre bases chamadas, então um consensus quase todo N pode parecer uma correspondência quase perfeita. Leia junto com a fração N acima.",
+        "nNotEvaluable": "A fração N deste consensus não pôde ser recuperada e 0 foi substituído, então a identidade acima se apoia em uma quantidade de sequência desconhecida."
+      }
     },
     "wellSelection": {
       "title": "Poços usados",

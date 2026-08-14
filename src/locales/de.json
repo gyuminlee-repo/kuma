@@ -472,7 +472,18 @@
       "qcSectionTitle": "QC-Details des Laufs",
       "qcSectionAriaLabel": "QC-Details des Laufs anzeigen",
       "qcHealthTitle": "Run health",
-      "qcHealthAbsent": "Dieser Lauf hat keinen Run-health-Block aufgezeichnet, daher haben die Abschnitte file size, pore yield, throughput, barcode und cross-talk nichts zu lesen."
+      "qcHealthAbsent": "Dieser Lauf hat keinen Run-health-Block aufgezeichnet, daher haben die Abschnitte file size, pore yield, throughput, barcode und cross-talk nichts zu lesen.",
+      "qcNotMeasured": "Nicht gemessen",
+      "filterStats": {
+        "title": "Read-Filterung",
+        "noDemux": "Dieser Lauf hat nicht demultiplext, daher hat kein Read den Qualitätsfilter durchlaufen. Ein Lauf über ein Consensus-Verzeichnis liest fertige Consensus-Dateien und sieht nie Rohreads.",
+        "noSummary": "Der Qualitätsfilter lief, führte aber keine Zählung: im Laufordner lag keine sequencing_summary-Datei, aus der der Q score pro Read stammt.",
+        "input": "Reads eingelesen",
+        "passed": "Filter bestanden",
+        "failedQscore": "Am Q score gescheitert",
+        "failedLength": "An der Länge gescheitert",
+        "failedBarcode": "Am barcode gescheitert"
+      }
     },
     "plateView": {
       "plate": "Platte",
@@ -1015,6 +1026,40 @@
         "median_depth_below_recommended": "Mediane Tiefe {{median}} liegt unter den empfohlenen {{recommended}} Reads pro Amplikon.",
         "flow_cell_reused": "Flusszelle {{cell}} trug in diesem Projekt bereits einen Lauf, der mit {{previousPores}} Poren endete.",
         "variants_at_reference_edge": "{{variants}} liegen innerhalb von {{margin}} bp vor einem Ende der Referenz, und dieser Lauf hat gegen die gelieferte Referenz aligniert. Ein Aligner schneidet einen Read an einer Fehlpaarung ab, die er nicht anfuegen kann, daher koennen diese Positionen weniger Tiefe sehen als das Well meldet. Eine Referenz mit den Primerbindungsstellen rueckt sie weiter nach innen."
+      },
+      "positionRecurrence": {
+        "title": "Wiederkehrende Positionen",
+        "noRun": "Noch kein Lauf, über den zu berichten wäre.",
+        "predatesBuild": "Dieses gespeicherte Ergebnis entstand, bevor wiederkehrende Positionen gezählt wurden, daher ist dazu nichts bekannt. Es heißt nicht, dass keine Position wiederkehrte.",
+        "what": "Ein minor allele an einer Position in einem Well ist ein Mischungskandidat. Dieselbe Position Well für Well ist das Bild eines sequence-context-Artefakts, denn der Kontext gehört zum amplicon und nicht zum Klon. Hier wird nichts bewertet.",
+        "lowerBound": "Jede Zahl unten ist eine Untergrenze: jedes Well steuert höchstens zehn nach minor fraction sortierte Positionen bei, und {{truncated}} von {{contributing}} beitragenden Wells erreichten diese Grenze, sodass Positionen jenseits des zehnten Rangs in der Zählung fehlen.",
+        "wellsContributing": "Datensätze mit einer Position",
+        "wellsTruncated": "Davon bei zehn abgeschnitten",
+        "positionsSeen": "Verschiedene gesehene Positionen",
+        "positionsSingleWell": "Nur in einem Datensatz gesehen (ausgelassen)",
+        "none": "Keine Position wurde von mehr als einem Datensatz gemeldet.",
+        "caption": "Referenzpositionen, die mehr als ein Datensatz meldete, häufigste zuerst.",
+        "colPosition": "Position",
+        "colWells": "Datensätze",
+        "colMedianShare": "Median weak strand",
+        "colShareRange": "Min / Max",
+        "colSharesKnown": "Anteile bekannt"
+      },
+      "readLength": {
+        "title": "Read-Länge",
+        "noRun": "Noch kein Lauf, über den zu berichten wäre.",
+        "predatesBuild": "Dieses gespeicherte Ergebnis entstand, bevor Read-Längen mitgeführt wurden, daher ist dazu nichts bekannt. Es heißt nicht, dass die Reads keine Länge hatten.",
+        "notRead": "Read-Längen wurden nicht gelesen: im Laufordner lag keine report-json, die Datei war nicht lesbar, oder das schreibende MinKNOW ist älter als read_length_histogram.",
+        "reference": "Gegen eine Referenz von {{bp}} bp aligniert.",
+        "referenceUnknown": "Die Referenzlänge war nicht lesbar, daher haben die Verhältnisse unten keinen Nenner.",
+        "unlabelled": "Eintrag ohne Label",
+        "noEntries": "Der Report enthielt keinen read length histogram-Eintrag.",
+        "n50": "N50 (Gerätewert)",
+        "n50OverReference": "N50 zur Referenz",
+        "nearReferenceFraction": "Basen nahe der Referenzlänge",
+        "over2xFraction": "Basen ab dem 2-fachen der Referenz",
+        "concatemerNote": "Ein N50 deutlich über dem 1-fachen der Referenz ist das Bild einer concatemer-Population und ebenso das eines absichtlich langen amplicon. Aus dieser Zahl allein ist beides nicht zu unterscheiden, daher wird hier nichts markiert.",
+        "basesNote": "Beide Anteile zählen BASEN, keine Reads."
       }
     },
     "inspector": {
@@ -1300,7 +1345,20 @@
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well.",
       "replicateReads": "{{reads}} Reads",
-      "replicateAligned": "{{aligned}} aligned"
+      "replicateAligned": "{{aligned}} aligned",
+      "sectionCoverage": "Gleichmäßigkeit der Abdeckung",
+      "coverage": {
+        "notMeasured": "Nicht gemessen",
+        "absent": "Dieses Ergebnis entstand, bevor die Gleichmäßigkeit der Abdeckung gemessen wurde, daher fehlen alle fünf Werte. Es heißt nicht, dass das Well gleichmäßig abgedeckt war.",
+        "depthCv": "Depth CV (0 ist flach)",
+        "depthP10": "Depth p10",
+        "depthMinCovered": "Flachste abgedeckte Position",
+        "breadth": "Referenzanteil tief genug für ein minor allele",
+        "consensusIdentity": "Consensus identity",
+        "consensusN": "Consensus-N-Anteil",
+        "identityNote": "Die Identität wird nur über gerufene Basen gemessen, daher kann ein überwiegend aus N bestehender Consensus als nahezu perfekte Übereinstimmung erscheinen. Lesen Sie sie zusammen mit dem N-Anteil darüber.",
+        "nNotEvaluable": "Der N-Anteil dieses Consensus war nicht rekonstruierbar und wurde durch 0 ersetzt, daher beruht die Identität darüber auf einer unbekannten Menge Sequenz."
+      }
     },
     "wellSelection": {
       "title": "Verwendete Wells",

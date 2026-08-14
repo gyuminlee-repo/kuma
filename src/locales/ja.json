@@ -472,7 +472,18 @@
       "qcSectionTitle": "ラン QC 詳細",
       "qcSectionAriaLabel": "ラン QC 詳細を表示",
       "qcHealthTitle": "Run health",
-      "qcHealthAbsent": "このランは run health ブロックを記録していないため、file size、pore yield、throughput、barcode、cross-talk の各セクションに読む値がありません。"
+      "qcHealthAbsent": "このランは run health ブロックを記録していないため、file size、pore yield、throughput、barcode、cross-talk の各セクションに読む値がありません。",
+      "qcNotMeasured": "未測定",
+      "filterStats": {
+        "title": "リードフィルタリング",
+        "noDemux": "このランは demultiplex を行っていないため、品質フィルタを通ったリードがありません。consensus ディレクトリのランは完成した consensus ファイルを読み、生リードを見ません。",
+        "noSummary": "品質フィルタは動作しましたが集計は残っていません。ランフォルダに per-read Q score の出所である sequencing_summary ファイルがありませんでした。",
+        "input": "入力リード",
+        "passed": "フィルタ通過",
+        "failedQscore": "Q score で除外",
+        "failedLength": "長さで除外",
+        "failedBarcode": "barcode で除外"
+      }
     },
     "plateView": {
       "plate": "Plate",
@@ -1015,6 +1026,40 @@
         "median_depth_below_recommended": "深さの中央値 {{median}} が推奨の amplicon あたり {{recommended}} read 未満。",
         "flow_cell_reused": "フローセル {{cell}} はこのプロジェクトで既に1回ランを経ており、そのとき細孔 {{previousPores}} で終わった。",
         "variants_at_reference_edge": "{{variants}} がリファレンス末端から {{margin}} bp 以内にあり、このランは与えられたリファレンスをそのまま整列に使いました。アライナは付けられない不一致で read を切るため、その位置はウェルが報告する depth より浅く読まれることがあります。プライマー結合領域まで含むリファレンスにすると内側に入ります。"
+      },
+      "positionRecurrence": {
+        "title": "反復出現位置",
+        "noRun": "報告できるランがまだありません。",
+        "predatesBuild": "この保存結果は反復位置の集計が導入される前に書かれたため、情報がありません。反復した位置がなかったという意味ではありません。",
+        "what": "1 ウェルの 1 位置に出る minor allele は混合の候補です。同じ位置がウェルごとに繰り返し出るのは sequence context artifact の姿であり、その context はクローンではなく amplicon に属します。ここでは何も等級付けしません。",
+        "lowerBound": "以下の値はすべて下限です。各ウェルは minor fraction 順に最大 10 位置しか寄与せず、寄与した {{contributing}} ウェルのうち {{truncated}} がその上限に達したため、11 番目以降の位置は集計から抜けています。",
+        "wellsContributing": "位置を寄与したレコード",
+        "wellsTruncated": "うち 10 で打ち切られたレコード",
+        "positionsSeen": "観測された固有位置",
+        "positionsSingleWell": "1 レコードのみで観測 (除外)",
+        "none": "複数のレコードが報告した位置はありません。",
+        "caption": "複数のレコードが報告した参照位置。反復の多い順。",
+        "colPosition": "位置",
+        "colWells": "レコード",
+        "colMedianShare": "weak strand 中央値",
+        "colShareRange": "最小 / 最大",
+        "colSharesKnown": "share 判明"
+      },
+      "readLength": {
+        "title": "リード長",
+        "noRun": "報告できるランがまだありません。",
+        "predatesBuild": "この保存結果はリード長を載せる前に書かれたため、情報がありません。リードに長さがなかったという意味ではありません。",
+        "notRead": "リード長を読めませんでした。ランフォルダに report json がない、解析できない、あるいは read_length_histogram 以前の MinKNOW が書いたファイルです。",
+        "reference": "{{bp}} bp のリファレンスにアラインしました。",
+        "referenceUnknown": "リファレンス長を読めなかったため、以下の比に分母がありません。",
+        "unlabelled": "ラベルなしのエントリ",
+        "noEntries": "レポートに read length histogram のエントリがありませんでした。",
+        "n50": "N50 (装置の報告値)",
+        "n50OverReference": "N50 / リファレンス長",
+        "nearReferenceFraction": "リファレンス長付近の塩基割合",
+        "over2xFraction": "リファレンス長 2 倍以上の塩基割合",
+        "concatemerNote": "リファレンス長の 1 倍を大きく超える N50 は concatemer 集団の姿であり、意図的に長い amplicon の姿でもあります。この数値だけでは区別できないため、ここでは何も表示しません。",
+        "basesNote": "どちらの割合もリード数ではなく塩基数を数えます。"
       }
     },
     "inspector": {
@@ -1300,7 +1345,20 @@
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well.",
       "replicateReads": "read {{reads}}",
-      "replicateAligned": "アラインメント {{aligned}}"
+      "replicateAligned": "アラインメント {{aligned}}",
+      "sectionCoverage": "カバレッジ均一性",
+      "coverage": {
+        "notMeasured": "未測定",
+        "absent": "この結果はカバレッジ均一性の測定より前に書かれたため、5 つの値がいずれも得られません。ウェルが均等にカバーされたという意味ではありません。",
+        "depthCv": "Depth CV (0 が平坦)",
+        "depthP10": "Depth p10",
+        "depthMinCovered": "最も浅いカバー位置",
+        "breadth": "minor allele を読める深さのリファレンス割合",
+        "consensusIdentity": "Consensus identity",
+        "consensusN": "Consensus N 割合",
+        "identityNote": "identity はコールされた塩基のみで計算されるため、ほとんどが N の consensus でもほぼ完全一致に見えることがあります。上の N 割合と併せて読んでください。",
+        "nNotEvaluable": "この consensus の N 割合を復元できず 0 が代入されました。したがって上の identity がどれだけの配列に基づくかは不明です。"
+      }
     },
     "wellSelection": {
       "title": "使用するウェル",
