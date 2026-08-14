@@ -38,10 +38,12 @@ step 1 의 sub-step 은 1.1 하나다. 예전 1.2 는 1.1 에 병합되었고(`s
 
 | 입력 | 포맷 | 필수 |
 |---|---|---|
-| `expected_mutations.xlsx` | KURO export 산출물 | 필수 |
+| 변이 목록 | KURO export 워크북(`expected_mutations` 시트) 또는 변이만 나열한 `.csv`/`.tsv`/`.txt`/`.xlsx` | 필수 |
 | Custom barcode xlsx | combinatorial barcode 사용 시 | 선택 |
 
-KURO 가 만든 xlsx 는 `__kuma_meta__` 숨김 시트로 프로젝트와 자동 매칭된다. 다른 프로젝트의 expected 를 드롭하면 mismatch 경고.
+KURO 를 쓰지 않는 사용자는 변이 한 열짜리 목록을 그대로 넣으면 된다. well 위치는 적지 않고 행 순서가 곧 플레이트 순서다. 사양은 `docs/inputs/expected-mutations.md` 에 있다.
+
+KURO 가 만든 xlsx 는 `__kuma_meta__` 숨김 시트로 프로젝트와 자동 매칭된다. 다른 프로젝트의 `project_id` 를 가진 워크북을 넣으면 최근 프로젝트 중 같은 id 를 찾아 전환할지 묻는다.
 
 ## v0.9.2.x 변경
 
