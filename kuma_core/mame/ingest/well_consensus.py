@@ -22,6 +22,7 @@ from typing import Sequence
 import numpy as np
 
 from kuma_core.mame.ingest.align import Alignment, align_reads_with_stats
+from kuma_core.mame.reference_fasta import multi_record_reason
 from kuma_core.mame.ingest.consensus import (
     DEFAULT_MIX_MIN_DEPTH,
     call_consensus_with_metrics,
@@ -386,18 +387,28 @@ def compute_well_consensuses(
 
 
 def _read_reference_seq(reference_fasta: Path) -> str:
-    """Read and return the first sequence from a FASTA file."""
+    """Read and return the single sequence in a FASTA file.
+
+    This is the reader ``compute_well_consensuses`` calls for every well in a
+    run, and ``combinatorial_demux`` calls it too, so it is the reader on the
+    raw-MinKNOW-run-folder path -- the primary user-facing input. It used to
+    stop after the first record silently, which meant a plasmid-backbone-plus-
+    target reference lost the second sequence with no sign anything had been
+    dropped rather than every well being graded against a chimera; that is a
+    smaller wrong than the one ``reference_fasta.multi_record_reason`` guards
+    against elsewhere, but it is still silent, so the same refusal applies
+    here.
+    """
+    lines = reference_fasta.read_text(encoding="utf-8").splitlines()
+    reason = multi_record_reason(lines)
+    if reason is not None:
+        raise ValueError(f"{reason}: {reference_fasta}")
     seq_parts: list[str] = []
-    in_seq = False
-    with reference_fasta.open("r", encoding="utf-8") as fh:
-        for line in fh:
-            line = line.rstrip("\r\n")
-            if line.startswith(">"):
-                if in_seq:
-                    break  # stop after first record
-                in_seq = True
-            elif in_seq:
-                seq_parts.append(line.strip())
+    for line in lines:
+        line = line.rstrip("\r\n")
+        if line.startswith(">"):
+            continue
+        seq_parts.append(line.strip())
     seq = "".join(seq_parts).upper()
     if not seq:
         raise ValueError(f"Reference FASTA contains no sequence data: {reference_fasta}")

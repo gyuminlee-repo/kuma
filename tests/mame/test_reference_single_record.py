@@ -6,6 +6,13 @@ handler into ``run_analyze``, whose reader used to glue every record together.
 These tests pin the refusal at that second reader and pin the two messages to
 each other, because an operator who moves between the two inputs must not be
 told two different things about the same file.
+
+A third reader lives in ``well_consensus._read_reference_seq``. It is the one
+``compute_well_consensuses`` and ``combinatorial_demux`` call for every well in
+a run, which makes it the reader on the raw-MinKNOW-run-folder path, the
+primary user-facing input. It did not concatenate; it silently stopped after
+the first record, which is a smaller wrong (one sequence lost rather than two
+glued into a chimera) but was just as silent, so it gets the same refusal.
 """
 
 from __future__ import annotations
@@ -15,6 +22,7 @@ from pathlib import Path
 import pytest
 
 from kuma_core.mame.ingest.amplicon_reference import AmpliconReferenceError, _read_fasta
+from kuma_core.mame.ingest.well_consensus import _read_reference_seq
 from kuma_core.mame.pipeline import _read_reference_fasta
 from kuma_core.mame.reference_fasta import multi_record_reason
 
@@ -95,3 +103,34 @@ def test_an_empty_header_is_still_counted_and_named() -> None:
     assert reason is not None
     assert "2 sequence records" in reason
     assert "(unnamed)" in reason
+
+
+def test_well_consensus_reader_refuses_a_two_record_reference(tmp_path: Path) -> None:
+    """The old reader returned ``GGGGGGGGGG``, silently dropping ``target_gene``.
+
+    This reader is the one every well in a raw-run-folder analysis is graded
+    against, so a dropped second record is not cosmetic: every well's consensus
+    would have been called against whichever molecule happened to sort first.
+    """
+    reference = _write_two_records(tmp_path)
+
+    with pytest.raises(ValueError) as excinfo:
+        _read_reference_seq(reference)
+
+    message = str(excinfo.value)
+    assert "2 sequence records" in message
+    assert "backbone" in message
+    assert "target_gene" in message
+    # What the pre-fix reader would have handed to every well's consensus call.
+    assert len("GGGGGGGGGG") == 10
+
+
+def test_well_consensus_reader_accepts_the_two_valid_shapes(tmp_path: Path) -> None:
+    """Same acceptance rule as the other two readers: one record, or none."""
+    single = tmp_path / "one.fa"
+    single.write_text(">only\nacgtACGT\n", encoding="utf-8")
+    headerless = tmp_path / "bare.txt"
+    headerless.write_text("acgt\nACGT\n", encoding="utf-8")
+
+    assert _read_reference_seq(single) == "ACGTACGT"
+    assert _read_reference_seq(headerless) == "ACGTACGT"
