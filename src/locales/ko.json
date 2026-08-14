@@ -1407,7 +1407,20 @@
     "legendDestMerged": "F+R primer 모두 도착",
     "legendDestPartial": "F 또는 R 한쪽만 도착",
     "destWell": "대상 well",
-    "missing": "없음"
+    "missing": "없음",
+    "echoPopoverPrimerLabel": "Primer:",
+    "echoPopoverDirectionLabel": "방향:",
+    "echoPopoverForward": "Forward",
+    "echoPopoverReverse": "Reverse",
+    "echoPopoverSourceWellLabel": "소스 well:",
+    "echoPopoverDestinationLabel": "목적지:",
+    "echoPopoverTransferLabel": "이송량:",
+    "janusPopoverWellLabel": "Well:",
+    "janusPopoverVolumeLabel": "부피:",
+    "rowAriaLabel": "행 {{row}}",
+    "echoGridAriaLabel": "Echo 소스 플레이트, 384 well",
+    "janusGridAriaLabel": "{{label}} 그리드",
+    "destGridAriaLabel": "목적지 플레이트, 96 well"
   },
   "globalAppBar": {
     "navAriaLabel": "앱 내비게이션",
@@ -2937,7 +2950,12 @@
           "projectNameRegex": "영문, 숫자, 한글, 밑줄, 하이픈을 40자 이내로 입력하세요."
         },
         "bomLabel": "UTF-8 BOM 추가",
-        "bomHint": "(Excel 호환)"
+        "bomHint": "(Excel 호환)",
+        "quadrantLabel": "Echo 소스 플레이트 quadrant",
+        "quadrantNone": "지정 안 함 (레거시 레이아웃)",
+        "quadrantHelper": "Forward 프라이머는 여기서 시작하고, reverse 프라이머는 짝 quadrant(A1-B1, A2-B2)로 갑니다.",
+        "usedQuadrantsLabel": "이 플레이트에서 이미 사용된 quadrant",
+        "usedQuadrantsHelper": "선택한 쌍이 이 중 하나와 겹치면 export가 거부됩니다."
       },
       "macrogen": {
         "title": "프라이머 주문 (Macrogen)",

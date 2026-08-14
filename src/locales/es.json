@@ -2907,7 +2907,12 @@
           "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
         },
         "bomLabel": "Añadir BOM UTF-8",
-        "bomHint": "(compatibilidad con Excel)"
+        "bomHint": "(compatibilidad con Excel)",
+        "quadrantLabel": "Cuadrante de la placa fuente Echo",
+        "quadrantNone": "No especificado (diseño heredado)",
+        "quadrantHelper": "Los primers forward comienzan aquí; los reverse van al cuadrante emparejado (A1-B1, A2-B2).",
+        "usedQuadrantsLabel": "Cuadrantes ya utilizados en esta placa",
+        "usedQuadrantsHelper": "La exportación se rechaza si el par seleccionado coincide con uno de estos."
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",
@@ -3164,7 +3169,20 @@
     "legendDestPartial": "Only F or R arrived",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "Well destino",
-    "missing": "falta"
+    "missing": "falta",
+    "echoPopoverPrimerLabel": "Primer:",
+    "echoPopoverDirectionLabel": "Dirección:",
+    "echoPopoverForward": "Forward",
+    "echoPopoverReverse": "Reverse",
+    "echoPopoverSourceWellLabel": "Pocillo de origen:",
+    "echoPopoverDestinationLabel": "Destino:",
+    "echoPopoverTransferLabel": "Transferencia:",
+    "janusPopoverWellLabel": "Pocillo:",
+    "janusPopoverVolumeLabel": "Volumen:",
+    "rowAriaLabel": "Fila {{row}}",
+    "echoGridAriaLabel": "Placa fuente Echo, 384 pocillos",
+    "janusGridAriaLabel": "Cuadrícula de {{label}}",
+    "destGridAriaLabel": "Placa de destino, 96 pocillos"
   },
   "errors": {
     "sequence": {

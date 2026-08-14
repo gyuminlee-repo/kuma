@@ -2907,7 +2907,12 @@
           "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
         },
         "bomLabel": "添加 UTF-8 BOM",
-        "bomHint": "(Excel 兼容)"
+        "bomHint": "(Excel 兼容)",
+        "quadrantLabel": "Echo 源板象限",
+        "quadrantNone": "未指定(旧版布局)",
+        "quadrantHelper": "Forward 引物从此处开始；reverse 引物进入配对象限(A1-B1、A2-B2)。",
+        "usedQuadrantsLabel": "此板上已使用的象限",
+        "usedQuadrantsHelper": "如果所选配对与其中之一重叠，导出将被拒绝。"
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",
@@ -3164,7 +3169,20 @@
     "legendDestPartial": "Only F or R arrived",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "目标 well",
-    "missing": "缺失"
+    "missing": "缺失",
+    "echoPopoverPrimerLabel": "引物：",
+    "echoPopoverDirectionLabel": "方向：",
+    "echoPopoverForward": "Forward",
+    "echoPopoverReverse": "Reverse",
+    "echoPopoverSourceWellLabel": "源孔：",
+    "echoPopoverDestinationLabel": "目的地：",
+    "echoPopoverTransferLabel": "转移量：",
+    "janusPopoverWellLabel": "孔位：",
+    "janusPopoverVolumeLabel": "体积：",
+    "rowAriaLabel": "第 {{row}} 行",
+    "echoGridAriaLabel": "Echo 源板，384 孔",
+    "janusGridAriaLabel": "{{label}}网格",
+    "destGridAriaLabel": "目标板，96 孔"
   },
   "errors": {
     "sequence": {

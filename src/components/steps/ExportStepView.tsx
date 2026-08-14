@@ -27,13 +27,13 @@ export function ExportStepView() {
       stepTotal={TOTAL_KURO_STEPS}
       titleKey="phaseC.subSteps.export.all"
       descriptionKey="phaseE.descriptions.export.all"
-      maxWidth="4xl"
+      maxWidth="full"
       onPrev={goToPrevStep}
       onNext={undefined}
     >
       <div className="space-y-6">
-        <ExportPlatePreview />
         <ExportFormatSelector />
+        <ExportPlatePreview />
         <OrderSummary />
       </div>
     </WizardContainer>

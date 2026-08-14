@@ -3,12 +3,15 @@ import { useTranslation } from "react-i18next";
 
 export function PlateLegendsPanel() {
   const { t } = useTranslation();
+  // DestPlateView only ever draws two states for a filled well (complete,
+  // partial), not three: legendDest used to name a third shade that nothing
+  // rendered, and legendDestPartial's swatch (emerald-200) did not match the
+  // amber DestPlateView actually uses for a partial well.
   const items: Array<{ cls: string; key: string }> = [
     { cls: "bg-blue-400", key: "exportPreview.legendForward" },
     { cls: "bg-orange-400", key: "exportPreview.legendReverse" },
-    { cls: "bg-emerald-400", key: "exportPreview.legendDest" },
-    { cls: "bg-emerald-500", key: "exportPreview.legendDestMerged" },
-    { cls: "bg-emerald-200", key: "exportPreview.legendDestPartial" },
+    { cls: "bg-emerald-400", key: "exportPreview.legendDestMerged" },
+    { cls: "bg-amber-400", key: "exportPreview.legendDestPartial" },
   ];
   return (
     <Card>

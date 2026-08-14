@@ -2907,7 +2907,12 @@
           "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
         },
         "bomLabel": "UTF-8 BOM を追加",
-        "bomHint": "(Excel 互換)"
+        "bomHint": "(Excel 互換)",
+        "quadrantLabel": "Echoソースプレートのクアドラント",
+        "quadrantNone": "指定なし(従来レイアウト)",
+        "quadrantHelper": "Forwardプライマーはここから開始し、Reverseプライマーは対になるクアドラント(A1-B1、A2-B2)に入ります。",
+        "usedQuadrantsLabel": "このプレートで既に使用済みのクアドラント",
+        "usedQuadrantsHelper": "選択したペアがこれらのいずれかと重なる場合、エクスポートは拒否されます。"
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",
@@ -3164,7 +3169,20 @@
     "legendDestPartial": "Only F or R arrived",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "出力先 well",
-    "missing": "なし"
+    "missing": "なし",
+    "echoPopoverPrimerLabel": "プライマー:",
+    "echoPopoverDirectionLabel": "方向:",
+    "echoPopoverForward": "Forward",
+    "echoPopoverReverse": "Reverse",
+    "echoPopoverSourceWellLabel": "ソースウェル:",
+    "echoPopoverDestinationLabel": "宛先:",
+    "echoPopoverTransferLabel": "移送量:",
+    "janusPopoverWellLabel": "ウェル:",
+    "janusPopoverVolumeLabel": "液量:",
+    "rowAriaLabel": "行 {{row}}",
+    "echoGridAriaLabel": "Echoソースプレート、384ウェル",
+    "janusGridAriaLabel": "{{label}}グリッド",
+    "destGridAriaLabel": "デスティネーションプレート、96ウェル"
   },
   "errors": {
     "sequence": {

@@ -2907,7 +2907,12 @@
           "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
         },
         "bomLabel": "Добавить UTF-8 BOM",
-        "bomHint": "(совместимость с Excel)"
+        "bomHint": "(совместимость с Excel)",
+        "quadrantLabel": "Квадрант исходного планшета Echo",
+        "quadrantNone": "Не указано (устаревшая раскладка)",
+        "quadrantHelper": "Forward-праймеры начинаются здесь; reverse-праймеры идут в парный квадрант (A1-B1, A2-B2).",
+        "usedQuadrantsLabel": "Квадранты, уже занятые на этом планшете",
+        "usedQuadrantsHelper": "Экспорт отклоняется, если выбранная пара пересекается с одним из них."
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",
@@ -3164,7 +3169,20 @@
     "legendDestPartial": "Only F or R arrived",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "Целевая well",
-    "missing": "нет"
+    "missing": "нет",
+    "echoPopoverPrimerLabel": "Праймер:",
+    "echoPopoverDirectionLabel": "Направление:",
+    "echoPopoverForward": "Forward",
+    "echoPopoverReverse": "Reverse",
+    "echoPopoverSourceWellLabel": "Исходная лунка:",
+    "echoPopoverDestinationLabel": "Назначение:",
+    "echoPopoverTransferLabel": "Перенос:",
+    "janusPopoverWellLabel": "Лунка:",
+    "janusPopoverVolumeLabel": "Объём:",
+    "rowAriaLabel": "Ряд {{row}}",
+    "echoGridAriaLabel": "Исходный планшет Echo, 384 лунки",
+    "janusGridAriaLabel": "Сетка {{label}}",
+    "destGridAriaLabel": "Планшет назначения, 96 лунок"
   },
   "errors": {
     "sequence": {

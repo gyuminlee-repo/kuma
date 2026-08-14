@@ -79,7 +79,7 @@ export function ExportPlatePreview() {
       customCandidates: s.customCandidates,
       echoTransferVol: s.echoTransferVol,
       janusTransferVol: s.janusTransferVol,
-      // This preview renders above the quadrant selector in ExportStepView, so
+      // This preview renders below the quadrant selector in ExportStepView, so
       // an operator picks a quadrant and then checks it against the plate drawn
       // here. Until the selection reached the RPC, that check was against wells
       // the exported csv would not use.

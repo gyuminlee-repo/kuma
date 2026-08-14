@@ -69,6 +69,42 @@
     --text-plate-tiny: 8px;
     --text-plate-min: 10px;
     --text-plate-max: 15px;
+    /* Echo preview is a 384-well (24-column) grid sharing the same container
+       width a 12-column grid (Janus/Dest, WellPlate) uses, so its per-column
+       share is roughly half at narrow widths. --text-plate-tiny-min keeps
+       the 8px baseline as Echo's starting floor; there is no separate tiny
+       ceiling any more (see --plate-preview-cell-cap below: once a cell hits
+       the shared width cap, Echo's font converges on the same
+       --text-plate-max ceiling Janus/Dest use, because at that point the
+       cells are the same size and a smaller font there has no justification). */
+    --text-plate-tiny-min: 7px;
+
+    /* Export plate preview (Echo/Janus/Dest) shared cell size cap. Measured
+       with canvas measureText (Edge engine, ui-monospace stack, weight 400 -
+       the weight these labels actually render at, no font-medium/bold class
+       on the mutation span) at the font ceiling (--text-plate-max, 15px):
+       the longest realistic label "S1234T" (6 chars) needs 49.48px. Cap is
+       that plus ~10.5px margin for the 1px border on each side (2px,
+       border-box sizing) and Dest's extra `px-0.5` span padding (4px), plus
+       a few px of headroom so truncate never fires right at the boundary.
+       Rounds to 60px. Shared by all three grids so a wide container converges
+       to the same well size instead of Echo/Janus/Dest drifting apart the
+       way unlimited `1fr` columns did (dest/echo cellW ratio was 2.02x-2.04x
+       across 700-1900px before this cap; WellPlate.tsx:34 sets the same kind
+       of floor via minmax(38px,1fr) but had no cap since its grid never had
+       a sibling grid to converge with). */
+    --plate-preview-cell-cap: 60px;
+    /* Per-grid floors, kept below the cap and below what each grid already
+       renders unassisted at its narrowest supported width (min-w-[700px] /
+       min-w-[340px] per rack), so they only guard against a container
+       narrower than tested rather than forcing cells bigger than before.
+       Echo/Janus floor: measureText("S1234T") scales close to linearly with
+       font size (32.99px @ 10px, 49.48px @ 15px); at their 7px tiny floor
+       that is ~23.1px, +2px border ≈ 25px, rounds to 24px. Dest floor reuses
+       WellPlate.tsx:34's established 38px (same 10px font floor, same
+       6-char-label justification, already shipped). */
+    --plate-preview-cell-min-tiny: 24px;
+    --plate-preview-cell-min: 38px;
   }
 
   [data-tool="kuro"] {
@@ -153,6 +189,51 @@
   .well-button {
     font-size: var(--text-plate);
     font-size: clamp(var(--text-plate-min), 2cqw, var(--text-plate-max));
+  }
+
+  /* Echo/Janus/Dest export plate previews (ExportPlatePreview and children).
+     Same container-query approach as .well-plate-grid/.well-button above:
+     container-type goes on the scrollable wrapper each view already has
+     (`overflow-x-auto`), clamp goes on the cell button so its label span
+     children can inherit via em instead of carrying their own fixed px.
+     Coefficients measured with the Edge-engine harness described in
+     ExportPlatePreview.tsx (6-char labels "R560E"/"R560Q"/"S1234T" at
+     container widths 700-1900px, 0% scrollWidth>clientWidth truncation
+     target): Janus/Dest reuse .well-button's 2cqw because both are the same
+     12-column-plus-label-column shape .well-button was tuned for. Echo packs
+     24 columns into the same width, so its per-column share is roughly half
+     and it uses 1cqw with the tighter --text-plate-tiny range. */
+  .plate-preview-grid {
+    container-type: inline-size;
+  }
+  .plate-preview-cell {
+    font-size: var(--text-plate);
+    font-size: clamp(var(--text-plate-min), 2cqw, var(--text-plate-max));
+  }
+  /* Echo's floor stays lower than Janus/Dest (--text-plate-tiny-min, 7px vs
+     10px) because Echo starts narrower per-column at 24 columns. Its ceiling
+     used to be its own --text-plate-tiny-max (11px), which meant a wide
+     Echo grid stopped growing at 11px while an equally-wide Janus/Dest cell
+     kept going to 15px, the two looked like different components once
+     --plate-preview-cell-cap made their cell sizes converge. The ceiling is
+     now the same --text-plate-max all three grids share, so Echo starts
+     smaller and arrives at the same size. */
+  .plate-preview-cell-tiny {
+    font-size: var(--text-plate-tiny);
+    font-size: clamp(var(--text-plate-tiny-min), 1cqw, var(--text-plate-max));
+  }
+  /* Janus specifically: its container-type sits on each Rack, not on the
+     pair, so its cqw is relative to roughly half the visual width
+     .plate-preview-cell's 2cqw was tuned against (two racks share the row).
+     Measured with the harness described above: keeping 2cqw but dropping the
+     floor to --text-plate-tiny-min (7px, same floor Echo uses) let 6-char
+     labels ("S1234T") fit down to a ~340px rack, where the 10px floor
+     produced fonts too wide for the mutation column and truncated 20-80% of
+     labels depending on container width. The ceiling stays --text-plate-max
+     so a wide rack still reaches the same size Dest/WellPlate do. */
+  .plate-preview-cell-narrow {
+    font-size: var(--text-plate);
+    font-size: clamp(var(--text-plate-tiny-min), 2cqw, var(--text-plate-max));
   }
 }
 

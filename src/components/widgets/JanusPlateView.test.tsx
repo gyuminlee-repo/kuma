@@ -83,9 +83,14 @@ describe("JanusPlateView", () => {
         mutation: "Q232A",
       },
     ];
-    render(<JanusPlateView rack1={rack1} rack2={[]} />);
+    const { container } = render(<JanusPlateView rack1={rack1} rack2={[]} />);
     expect(screen.getByText("Q232A")).toBeInTheDocument();
-    expect(screen.getByText("F")).toBeInTheDocument();
+    // "F" is not unique on the page: row F's own label (a real text node,
+    // matching DestPlateView's pattern) also reads "F". Scope to the filled
+    // cell's F/R tag specifically.
+    const cell = container.querySelector<HTMLElement>("[data-testid='janus-cell'][data-well='A1']");
+    expect(cell).not.toBeNull();
+    expect(cell!.querySelector(".text-\\[0\\.85em\\]")?.textContent).toBe("F");
   });
 
   it("opens popover with details on cell click", async () => {

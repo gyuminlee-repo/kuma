@@ -2907,7 +2907,12 @@
           "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
         },
         "bomLabel": "Hinzufügen UTF-8 BOM",
-        "bomHint": "(Excel-Kompatibilität)"
+        "bomHint": "(Excel-Kompatibilität)",
+        "quadrantLabel": "Echo-Quellplatten-Quadrant",
+        "quadrantNone": "Nicht angegeben (Legacy-Layout)",
+        "quadrantHelper": "Forward-Primer starten hier; Reverse-Primer gehen in den gepaarten Quadranten (A1-B1, A2-B2).",
+        "usedQuadrantsLabel": "Auf dieser Platte bereits belegte Quadranten",
+        "usedQuadrantsHelper": "Der Export wird abgelehnt, wenn das gewählte Paar einen dieser Quadranten überschneidet."
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",
@@ -3164,7 +3169,20 @@
     "legendDestPartial": "Only F or R arrived",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "Ziel-well",
-    "missing": "fehlt"
+    "missing": "fehlt",
+    "echoPopoverPrimerLabel": "Primer:",
+    "echoPopoverDirectionLabel": "Richtung:",
+    "echoPopoverForward": "Forward",
+    "echoPopoverReverse": "Reverse",
+    "echoPopoverSourceWellLabel": "Quell-Well:",
+    "echoPopoverDestinationLabel": "Ziel:",
+    "echoPopoverTransferLabel": "Transfer:",
+    "janusPopoverWellLabel": "Well:",
+    "janusPopoverVolumeLabel": "Volumen:",
+    "rowAriaLabel": "Zeile {{row}}",
+    "echoGridAriaLabel": "Echo-Quellplatte, 384 Wells",
+    "janusGridAriaLabel": "{{label}}-Raster",
+    "destGridAriaLabel": "Zielplatte, 96 Wells"
   },
   "errors": {
     "sequence": {

@@ -1407,7 +1407,20 @@
     "legendDestMerged": "Both F+R arrived",
     "legendDestPartial": "Only F or R arrived",
     "destWell": "Dest well",
-    "missing": "missing"
+    "missing": "missing",
+    "echoPopoverPrimerLabel": "Primer:",
+    "echoPopoverDirectionLabel": "Direction:",
+    "echoPopoverForward": "Forward",
+    "echoPopoverReverse": "Reverse",
+    "echoPopoverSourceWellLabel": "Source well:",
+    "echoPopoverDestinationLabel": "Destination:",
+    "echoPopoverTransferLabel": "Transfer:",
+    "janusPopoverWellLabel": "Well:",
+    "janusPopoverVolumeLabel": "Volume:",
+    "rowAriaLabel": "Row {{row}}",
+    "echoGridAriaLabel": "Echo source plate, 384 wells",
+    "janusGridAriaLabel": "{{label}} grid",
+    "destGridAriaLabel": "Destination plate, 96 wells"
   },
   "globalAppBar": {
     "navAriaLabel": "Application navigation",
@@ -2937,7 +2950,12 @@
           "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
         },
         "bomLabel": "Add UTF-8 BOM",
-        "bomHint": "(Excel compatibility)"
+        "bomHint": "(Excel compatibility)",
+        "quadrantLabel": "Echo source plate quadrant",
+        "quadrantNone": "Not specified (legacy layout)",
+        "quadrantHelper": "Forward primers start here; reverse primers go to the paired quadrant (A1-B1, A2-B2).",
+        "usedQuadrantsLabel": "Quadrants already used on this plate",
+        "usedQuadrantsHelper": "Export is refused if the selected pair overlaps one of these."
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",
