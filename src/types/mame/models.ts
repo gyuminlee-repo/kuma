@@ -1089,6 +1089,17 @@ export interface AmpliconLengthDistributionSummary {
   max: number;
   peak_count: number;
   peak_ratio: number;
+  /** Read length percentiles over the same sampled vector the modal peak came
+   *  from (kuma_core/mame/ingest/quality_filter.py `_percentiles`). min/median/max
+   *  cannot tell a tight amplicon from a smear around the same centre, and the
+   *  smear is what a failed PCR looks like; p10/p90 bracket the bulk without
+   *  being set by the single 200 kb read that decides `max`.
+   *  Optional because a project saved before these existed carries none, and a
+   *  missing percentile is not a read of length 0. */
+  p10?: number;
+  p25?: number;
+  p75?: number;
+  p90?: number;
 }
 
 export interface AmpliconLengthEstimate {

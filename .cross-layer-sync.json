@@ -1167,6 +1167,7 @@
       "files": [
         "kuma_core/mame/run_quality.py",
         "kuma_core/mame/ingest/flow_cell.py",
+        "kuma_core/mame/ingest/read_length.py",
         "kuma_core/mame/models.py",
         "python-core/sidecar_mame/handlers/analyze.py",
         "src/types/mame/run_quality.ts",
@@ -1178,15 +1179,35 @@
         "assess_run_quality",
         "serialise_run_quality",
         "read_flow_cell_history",
+        "find_report_json",
         "run_quality",
         "RunQuality",
         "setRunQuality",
         "summarise_position_recurrence",
         "serialise_position_recurrence",
-        "position_recurrence"
+        "position_recurrence",
+        "read_read_length_qc",
+        "serialise_read_length_qc",
+        "read_length"
       ],
-      "note": "Whether a run could have been scored at all: core grading <-> flow cell history read from report_*.json <-> the analyze response block <-> TS type <-> store field and setter <-> the notice that stands above the verdict table. Three couplings drift silently if edited apart. (1) The depth floor is CompareParams.min_read_count, so changing that changes what this grades and the sourced comment in models.py has to move with it. (2) Depth is measured over VERDICTS, not ingested records, so a declared selection already excludes the wells the campaign left empty; measuring records instead would report a thin plate for a run that used ten wells of ninety-six. (3) Every threshold carries a `kind` and the notice renders it, because the floor is a vendor WORKFLOW DEFAULT (ONT wf-amplicon minimum_mean_depth) rather than a specification, and this repo already shipped that overstatement once as a bare 'recommended minimum' comment. Pore counts and reuse are reported with no threshold on purpose: 800 would condemn a cell that returned 515 reads a well, and 'pores at least the sample count' would pass the one that returned 4. (4) The nested `position_recurrence` block rides this same chain rather than a group of its own: it is built by summarise_position_recurrence/serialise_position_recurrence, attached to the run_quality dict in analyze.py, mirrored on the TS RunQuality, and therefore carried into the store by the existing setRunQuality. It reads the per-well noisy_positions produced by the mame-minor-allele-strand-evidence group, so the two move together when that encoding changes. Three things break if edited apart. It grades NOTHING, for the same reason the pore counts do not; the only restriction on the table is that a position seen in a single well has not recurred, which is definitional and is counted in positions_single_well rather than dropped. Its counts are a LOWER BOUND because each well contributes a top-ten sample of n_eligible_positions and every well of both measured runs was truncated, so wells_truncated and lower_bound must survive every layer. And the weak-strand share stays Optional here too: absent is unknown, 0.0 is a minor allele read off one strand, and a layer that folds one into the other reports evidence nobody measured. Nothing RENDERS the block yet; RunQualityNotice.tsx is untouched and stays in this group so a future rendering moves with the shape.",
+      "note": "Whether a run could have been scored at all: core grading <-> flow cell history read from report_*.json <-> the analyze response block <-> TS type <-> store field and setter <-> the notice that stands above the verdict table. Three couplings drift silently if edited apart. (1) The depth floor is CompareParams.min_read_count, so changing that changes what this grades and the sourced comment in models.py has to move with it. (2) Depth is measured over VERDICTS, not ingested records, so a declared selection already excludes the wells the campaign left empty; measuring records instead would report a thin plate for a run that used ten wells of ninety-six. (3) Every threshold carries a `kind` and the notice renders it, because the floor is a vendor WORKFLOW DEFAULT (ONT wf-amplicon minimum_mean_depth) rather than a specification, and this repo already shipped that overstatement once as a bare 'recommended minimum' comment. Pore counts and reuse are reported with no threshold on purpose: 800 would condemn a cell that returned 515 reads a well, and 'pores at least the sample count' would pass the one that returned 4. (4) The nested `position_recurrence` block rides this same chain rather than a group of its own: it is built by summarise_position_recurrence/serialise_position_recurrence, attached to the run_quality dict in analyze.py, mirrored on the TS RunQuality, and therefore carried into the store by the existing setRunQuality. It reads the per-well noisy_positions produced by the mame-minor-allele-strand-evidence group, so the two move together when that encoding changes. Three things break if edited apart. It grades NOTHING, for the same reason the pore counts do not; the only restriction on the table is that a position seen in a single well has not recurred, which is definitional and is counted in positions_single_well rather than dropped. Its counts are a LOWER BOUND because each well contributes a top-ten sample of n_eligible_positions and every well of both measured runs was truncated, so wells_truncated and lower_bound must survive every layer. And the weak-strand share stays Optional here too: absent is unknown, 0.0 is a minor allele read off one strand, and a layer that folds one into the other reports evidence nobody measured. Nothing RENDERS the block yet; RunQualityNotice.tsx is untouched and stays in this group so a future rendering moves with the shape. (5) The nested `read_length` block rides the same chain for the same reason, and reads the SAME report_*.json flow_cell.py does, through the one shared find_report_json so the two readers can never disagree about which report a run has. Four things break if edited apart. Its N50 is QUOTED from MinKNOW, never recomputed, and its provenance entry says so; a layer that recalculates it publishes a different number under the instrument's name. There is no single N50: the measured run carried three, one of them with no read_length_type at all, so a layer that collapses them to one publishes a figure whose definition nobody can recover. bucket_values are BASES (verified by recomputing the stated n50 both ways), which is why every fraction is named *_bases_fraction and is null unless bucket_value_type is the verified ReadLengths; renaming without re-verifying makes the field lie. And null means NOT READ at every layer: no report json, an unreadable one, or a MinKNOW too old to write read_length_histogram, none of which is a run whose reads had no lengths, so no layer may zero-fill or default. It grades nothing, like the pore counts and for the same reason: an N50 at twice the reference is both a concatemer population and a deliberately long amplicon.",
       "severity": "blocking"
+    },
+    {
+      "id": "mame-amplicon-length-distribution",
+      "files": [
+        "kuma_core/mame/ingest/quality_filter.py",
+        "python-core/sidecar_mame/handlers/demux.py",
+        "src/types/mame/models.ts"
+      ],
+      "symbols": [
+        "detect_amplicon_length",
+        "AmpliconLengthEstimate",
+        "distribution_summary",
+        "AmpliconLengthDistributionSummary"
+      ],
+      "note": "The sampled read length distribution behind the auto-detected amplicon length: detect_amplicon_length builds distribution_summary -> the demux handler passes that dict through verbatim -> the TS AmpliconLengthDistributionSummary names its keys. The dict is handed over untyped, so a key added on one side and not the other is invisible until a component reads undefined. The percentiles come from the same in-hand vector as the modal peak and add no pass over the reads; they exist because min/median/max cannot tell a tight amplicon from a smear around the same centre, and max is set by whichever single 200 kb read the sample caught. They are optional on the TS side because a project saved before they existed carries none, and a missing percentile is not a read of length 0. Percentiles are interpolated (statistics.quantiles method=inclusive) then truncated the way the neighbouring median already is, so no reported length exceeds a read that was seen; changing that definition changes every stored summary's meaning without changing its shape.",
+      "severity": "warning"
     },
     {
       "id": "mame-contamination",

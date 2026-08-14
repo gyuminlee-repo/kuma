@@ -798,6 +798,132 @@ def test_handle_analyze_raw_run(
     assert all_vals == sorted(all_vals), f"progress must be non-decreasing; got {all_vals}"
 
 
+def _write_read_length_report(run_dir: Path, n50: int) -> None:
+    """A MinKNOW report json carrying one read length histogram.
+
+    Hand written, and deliberately in the encoding the real file uses: bucket
+    edges and values as strings, and a first bucket with no ``start``.
+    """
+    import json as _json
+
+    payload = {
+        "acquisitions": [
+            {"acquisition_run_info": {}},
+            {
+                "acquisition_run_info": {},
+                "read_length_histogram": [
+                    {
+                        "read_length_type": "BasecalledBases",
+                        "bucket_value_type": "ReadLengths",
+                        "plot": {
+                            "bucket_ranges": [
+                                {"end": "100"},
+                                {"start": "100", "end": "300"},
+                            ],
+                            "histogram_data": [
+                                {"bucket_values": ["10", "90"], "n50": str(n50)}
+                            ],
+                        },
+                    }
+                ],
+            },
+        ]
+    }
+    (run_dir / "report_TEST_20260101_0000_abcdef.json").write_text(
+        _json.dumps(payload), encoding="utf-8"
+    )
+
+
+@requires_minimap2
+def test_handle_analyze_raw_run_quotes_the_instrument_read_lengths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The N50 MinKNOW measured reaches the response, against this reference.
+
+    A run-level fact, so it rides `run_quality` next to the pore counts rather
+    than any verdict. Report-only: no finding and no severity is raised by it.
+    """
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    _write_read_length_report(run_dir, n50=1234)
+    reference = _make_reference_fasta(tmp_path, seq=_RAW_REF_SEQ)
+    barcodes_xlsx = tmp_path / "barcodes.xlsx"
+    _make_barcodes_xlsx(barcodes_xlsx)
+    expected_xlsx = tmp_path / "expected.xlsx"
+    _make_kuro_xlsx(expected_xlsx)
+
+    _capture_progress(monkeypatch)
+    result = analyze_mod.handle_analyze({
+        "input_dir": str(run_dir),
+        "reference": str(reference),
+        "expected": str(expected_xlsx),
+        "output": str(tmp_path / "out.xlsx"),
+        "custom_barcodes_xlsx": str(barcodes_xlsx),
+        "cds_start": 0,
+        "cds_end": 60,
+        "min_file_size_kb": 0.0,
+        "min_read_count": 0,
+        "ingest_mode": "barcode",
+        "mapq_threshold": 0,
+        "coverage_fraction": 0.5,
+        "trim_flank_bp": 30,
+    })
+
+    block = result["run_quality"]["read_length"]
+    assert block["reference_length_bp"] == len(_RAW_REF_SEQ)
+    entry = block["histograms"][0]
+    assert entry["n50"] == 1234
+    assert entry["read_length_type"] == "BasecalledBases"
+    # Derived from the quoted N50 and the length reads were aligned to.
+    assert entry["n50_over_reference"] == round(1234 / len(_RAW_REF_SEQ), 6)
+    assert block["provenance"]["n50"]["computed"] is False
+    # Report-only: nothing about read length raises a finding or a severity.
+    assert all(
+        "read_length" not in f["code"] and "n50" not in f["code"]
+        for f in result["run_quality"]["findings"]
+    )
+
+
+@requires_minimap2
+def test_handle_analyze_raw_run_without_a_report_reports_null_read_lengths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No report json: null, never zero, and never an empty histogram list."""
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    reference = _make_reference_fasta(tmp_path, seq=_RAW_REF_SEQ)
+    barcodes_xlsx = tmp_path / "barcodes.xlsx"
+    _make_barcodes_xlsx(barcodes_xlsx)
+    expected_xlsx = tmp_path / "expected.xlsx"
+    _make_kuro_xlsx(expected_xlsx)
+
+    _capture_progress(monkeypatch)
+    result = analyze_mod.handle_analyze({
+        "input_dir": str(run_dir),
+        "reference": str(reference),
+        "expected": str(expected_xlsx),
+        "output": str(tmp_path / "out.xlsx"),
+        "custom_barcodes_xlsx": str(barcodes_xlsx),
+        "cds_start": 0,
+        "cds_end": 60,
+        "min_file_size_kb": 0.0,
+        "min_read_count": 0,
+        "ingest_mode": "barcode",
+        "mapq_threshold": 0,
+        "coverage_fraction": 0.5,
+        "trim_flank_bp": 30,
+    })
+
+    block = result["run_quality"]["read_length"]
+    assert block["histograms"] is None
+    assert block["qscore_histograms"] is None
+    # The block itself is still there, for the same reason `run_quality` is:
+    # an absent one cannot be told apart from a sidecar that never read the file.
+    assert block["reference_length_bp"] == len(_RAW_REF_SEQ)
+
+
 @requires_minimap2
 def test_handle_analyze_raw_run_extracts_amplicon_from_whole_plasmid(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch

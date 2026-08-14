@@ -2182,6 +2182,35 @@ def handle_analyze(params: dict) -> dict:
     run_quality["position_recurrence"] = serialise_position_recurrence(
         summarise_position_recurrence(vr.translated.barcode for vr in verdicts)
     )
+    # What MinKNOW already measured about read lengths, nested on the same block
+    # for the same reason: a run-level fact read before the verdicts, and one
+    # more thing that decides whether the plate could have been scored. The N50
+    # is quoted from the instrument rather than computed here.
+    #
+    # The reference length handed over is the one reads were ALIGNED to, which
+    # is why it is read from `reference` at this point: that name has already
+    # been rebound to the extracted amplicon when extraction happened. Reading
+    # the original plasmid instead would divide a 3 kb N50 by a 7 kb backbone
+    # and report a fragmented run as a clean one. Advisory in the same way as
+    # `_edge_variants` above: a reference that cannot be read leaves the ratios
+    # null and never fails a finished run.
+    from kuma_core.mame.ingest.read_length import (
+        read_read_length_qc,
+        serialise_read_length_qc,
+    )
+
+    try:
+        _reference_bp: int | None = _read_reference_length(reference)
+    except (OSError, ValueError):
+        _reference_bp = None
+    # ``original_run_dir`` rather than ``input_dir``: on the raw-run path the
+    # latter was rebound to the demux output directory, which is wherever the
+    # caller asked the outputs to go and is not required to sit inside the
+    # MinKNOW folder. The report json lives with the run.
+    run_quality["read_length"] = serialise_read_length_qc(
+        read_read_length_qc(original_run_dir if is_raw else input_dir),
+        _reference_bp,
+    )
     # Recorded after the grading, so this run cannot report itself as its own
     # earlier use, and only when the report json named a cell.
     record_use(

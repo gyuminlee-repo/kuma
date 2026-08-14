@@ -74,8 +74,55 @@ def test_detect_distribution_summary_keys(tmp_path: Path) -> None:
     result = detect_amplicon_length(tmp_path)
 
     assert result is not None
-    for key in ("min", "median", "max", "peak_count", "peak_ratio"):
+    for key in (
+        "min", "median", "max", "peak_count", "peak_ratio",
+        "p10", "p25", "p75", "p90",
+    ):
         assert key in result.distribution_summary, f"Missing key: {key}"
+
+
+def test_percentiles_are_exact_on_a_known_vector(tmp_path: Path) -> None:
+    """Lengths 1..1000, so every percentile is arithmetic rather than a guess.
+
+    Interpolated between ranks (``statistics.quantiles`` inclusive, the numpy and
+    R type 7 definition) and truncated to whole base pairs: p10 lands on 100.9,
+    p25 on 250.75, p75 on 750.25 and p90 on 900.1.
+    """
+    lengths = list(range(1, 1001))
+    _write_fastq(tmp_path / "reads.fastq", lengths)
+
+    result = detect_amplicon_length(tmp_path, bin_size_bp=1000)
+
+    assert result is not None
+    summary = result.distribution_summary
+    assert summary["p10"] == 100
+    assert summary["p25"] == 250
+    assert summary["p75"] == 750
+    assert summary["p90"] == 900
+    # The percentiles sit between the extremes the summary already reported, and
+    # none of them exceeds a read that was actually seen.
+    assert summary["min"] <= summary["p10"] <= summary["median"]
+    assert summary["median"] <= summary["p90"] <= summary["max"]
+
+
+def test_percentiles_are_a_second_pass_over_nothing(tmp_path: Path) -> None:
+    """A distribution with a tail: p90 sees it, and the median does not.
+
+    3900 reads at 1000 bp and 100 at 40000 bp. The median and the modal peak are
+    both blind to the tail, `max` is set entirely by it, and p90 is the number
+    that says the bulk is still tight.
+    """
+    lengths = [1000] * 3900 + [40000] * 100
+    _write_fastq(tmp_path / "reads.fastq", lengths)
+
+    result = detect_amplicon_length(tmp_path)
+
+    assert result is not None
+    summary = result.distribution_summary
+    assert summary["median"] == 1000
+    assert summary["max"] == 40000
+    assert summary["p90"] == 1000
+    assert summary["p10"] == 1000
 
 
 def test_detect_flat_distribution_returns_none(tmp_path: Path) -> None:
