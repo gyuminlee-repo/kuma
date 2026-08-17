@@ -2483,7 +2483,7 @@
       "The export screen no longer offers a start and end row. Every setting but the full plate stacked different mutants onto one well.",
       "Placement comes from the quadrant choice alone, and a saved row band that would cover a well already in use is now refused, not written."
     ],
-    "highlightsStamp": "0.16.25+291c60a5",
+    "highlightsStamp": "0.16.25.1+291c60a5",
     "releases": {
       "0.16.25.1": [
         "A run exported into a folder holding an earlier run output scored those plates too, so more reached the table than were selected.",
