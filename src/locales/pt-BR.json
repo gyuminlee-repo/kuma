@@ -2453,7 +2453,7 @@
       "A tela de exportação não oferece mais row inicial e final. Qualquer ajuste que não fosse a plate inteira empilhava mutantes diferentes em um well.",
       "A colocação vem apenas da escolha de quadrant, e uma faixa de rows salva que cobriria um well já ocupado é recusada em vez de ser escrita."
     ],
-    "highlightsStamp": "0.16.25+291c60a5",
+    "highlightsStamp": "0.16.25.1+291c60a5",
     "releases": {
       "0.16.25.1": [
         "Um run exportado para uma pasta que já tinha a saída de um run anterior pontuou também aquelas plates, e chegaram mais do que as selecionadas.",

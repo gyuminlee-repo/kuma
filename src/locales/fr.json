@@ -2453,7 +2453,7 @@
       "L'écran d'export ne propose plus de row de début ni de fin. Tout réglage autre que la plate entière empilait des mutants différents sur un même well.",
       "Le placement vient du seul choix de quadrant, et une plage de rows enregistrée qui recouvrirait un well déjà occupé est refusée au lieu d'être écrite."
     ],
-    "highlightsStamp": "0.16.25+291c60a5",
+    "highlightsStamp": "0.16.25.1+291c60a5",
     "releases": {
       "0.16.25.1": [
         "Un run exporté dans un dossier contenant la sortie d'un run antérieur a aussi noté ces plates, donc plus de plates que celles sélectionnées.",

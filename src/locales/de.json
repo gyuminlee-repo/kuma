@@ -2453,7 +2453,7 @@
       "Der Export-Bildschirm bietet keine Start- und End-row mehr an. Jede Einstellung außer der vollen plate legte verschiedene Mutanten auf ein well.",
       "Die Platzierung kommt nur noch aus der quadrant-Wahl, und ein gespeicherter row-Bereich, der ein belegtes well überdecken würde, wird abgelehnt."
     ],
-    "highlightsStamp": "0.16.25+291c60a5",
+    "highlightsStamp": "0.16.25.1+291c60a5",
     "releases": {
       "0.16.25.1": [
         "Ein run, der in einen Ordner mit der Ausgabe eines früheren run exportiert wurde, bewertete dessen plates mit, also erschienen mehr als ausgewählt.",

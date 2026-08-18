@@ -2453,7 +2453,7 @@
       "匯出畫面不再提供起始 row 與結束 row。除整塊 plate 以外的任何設定，都會把不同突變體疊放到同一個 well 上。",
       "位置只由 quadrant 選擇決定，已儲存的 row 區間若會覆蓋已占用的 well，現在會被拒絕而不是寫出。"
     ],
-    "highlightsStamp": "0.16.25+291c60a5",
+    "highlightsStamp": "0.16.25.1+291c60a5",
     "releases": {
       "0.16.25.1": [
         "匯出到已有較早 run 輸出的資料夾時，該 run 會連那些 plate 一併判定，表中出現的 plate 多於所選數量。",

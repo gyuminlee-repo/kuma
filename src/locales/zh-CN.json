@@ -2453,7 +2453,7 @@
       "导出界面不再提供起始 row 和结束 row。除整块 plate 之外的任何设置，都会把不同突变体叠放到同一个 well 上。",
       "位置只由 quadrant 选择决定，已保存的 row 区间若会覆盖已占用的 well，现在会被拒绝而不是写出。"
     ],
-    "highlightsStamp": "0.16.25+291c60a5",
+    "highlightsStamp": "0.16.25.1+291c60a5",
     "releases": {
       "0.16.25.1": [
         "导出到已有较早 run 输出的文件夹时，该 run 会连那些 plate 一并判定，表中出现的 plate 多于所选数量。",
