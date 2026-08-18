@@ -308,7 +308,11 @@ def _publish_artifact_bundle(
             )
             staged.append((destination, stage))
             writer(stage)
-            with stage.open("rb") as handle:
+            # "rb+" rather than "rb": flushing a file's buffers needs a
+            # writable handle on Windows, which answers EBADF for a read-only
+            # one. POSIX accepts either, so this is the spelling that works on
+            # both. The mode opens without truncating.
+            with stage.open("rb+") as handle:
                 os.fsync(handle.fileno())
             artifact_hashes[str(destination)] = _sha256(stage)
 
@@ -326,7 +330,7 @@ def _publish_artifact_bundle(
             ),
             encoding="utf-8",
         )
-        with manifest_stage.open("rb") as handle:
+        with manifest_stage.open("rb+") as handle:
             os.fsync(handle.fileno())
 
         for destination, _stage in staged:

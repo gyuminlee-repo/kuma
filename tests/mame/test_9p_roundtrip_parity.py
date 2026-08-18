@@ -237,9 +237,13 @@ def test_read_text_if_present_still_raises_where_exists_raised(tmp_path: Path) -
     """EISDIR and EACCES are outside the ignored set, so both spellings raise."""
     a_dir = tmp_path / "A06.fasta"
     a_dir.mkdir()
-    with pytest.raises(IsADirectoryError):
+    # Windows reports EACCES where POSIX reports EISDIR. Both are outside the
+    # ignored set, which is what this asserts; pinning the POSIX spelling made
+    # the test a platform check instead.
+    opening_a_directory = (IsADirectoryError, PermissionError)
+    with pytest.raises(opening_a_directory):
         _legacy_read_text_if_present(a_dir)
-    with pytest.raises(IsADirectoryError):
+    with pytest.raises(opening_a_directory):
         _read_text_if_present(a_dir)
 
     if os.name != "posix" or os.geteuid() == 0:
