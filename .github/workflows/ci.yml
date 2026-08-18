@@ -55,6 +55,38 @@ jobs:
       - name: Run Python tests
         run: python -m pytest tests/ -v
 
+  # A Python type gate, deliberately its own job rather than a step inside
+  # python-tests: that job is a 3-OS by 2-version matrix, so a step there would
+  # run the same analysis six times to learn the same thing once.
+  #
+  # What this catches that the test suite cannot: a value the code declares can
+  # be None reaching a place that assumes it cannot. This repo separates None
+  # meaning UNKNOWN from 0.0 meaning A MEASURED VALUE all the way through the
+  # consensus metrics, the FASTA header, the sidecar response and the Excel
+  # export, and a layer that folds one into the other reports evidence nobody
+  # measured. That is a scientific defect the tests pass straight through,
+  # because a test only fails on the path it happens to execute.
+  #
+  # The rule set is [tool.pyright] in pyproject.toml, so an editor and this job
+  # read the same configuration.
+  python-typecheck:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install -e ".[test,typecheck]"
+
+      - name: Python typecheck
+        run: basedpyright
+
   frontend-typecheck:
     runs-on: ubuntu-22.04
 
