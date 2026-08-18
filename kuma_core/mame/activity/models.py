@@ -82,12 +82,38 @@ class WtReplicateRecord(BaseModel):
     source_file: str
 
 
+DropReason = Literal[
+    "value_unparseable",
+    "value_nan_or_negative",
+    "well_unparseable",
+    "well_out_of_range",
+    "replicate_idx_unparseable",
+]
+
+class DroppedRow(BaseModel):
+    """One source row that ingest_long_csv refused to turn into a record.
+
+    Exists so a dropped measurement cannot vanish unseen: a hundred-row file
+    that yields sixty records also yields forty of these, each naming the row
+    and the reason.
+    """
+
+    row_index: int          # 0-based data row, header excluded
+    reason: DropReason
+    plate_id: str           # raw plate cell as read
+    well_id: str            # raw, uppercased well cell as read
+    detail: str             # offending cell rendered as text, truncated
+    source_file: str
+
 class ActivityTable(BaseModel):
     records: list[ActivityRecord]
     plate_meta: PlateMeta
     # Dedicated WT replicate rows ('WT_1'...). Default=[] keeps existing
     # workspace JSON (schema_version 0.3) round-trip safe.
     wt_records: list[WtReplicateRecord] = Field(default_factory=list)
+    # Rows ingest_long_csv skipped, with the reason. Default=[] keeps existing
+    # workspace JSON (schema_version 0.3) round-trip safe.
+    dropped_rows: list[DroppedRow] = Field(default_factory=list)
 
 
 class MergedRow(BaseModel):

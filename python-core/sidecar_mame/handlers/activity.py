@@ -139,7 +139,8 @@ def handle_activity_upload(params: dict) -> dict:
 
     Params: ``{round_id, file_path, format}``
 
-    Returns: ``{records: ActivityRecord[], warnings: string[]}``
+    Returns: ``{records: ActivityRecord[], warnings: string[],
+    dropped_rows: DroppedRow[]}``
 
     Raises:
         RuntimeError: round_id not found in state.
@@ -171,13 +172,21 @@ def handle_activity_upload(params: dict) -> dict:
         # Persist raw records into round state for downstream merge.
         # wt_records holds dedicated 'WT_1'-style replicate rows and must survive
         # to merge time; they define the WT denominator when present.
+        # dropped_rows names every source row the parser skipped and why, so a
+        # lost measurement is visible instead of silently missing.
         rd["activity"] = {
             "raw_records": [r.model_dump() for r in table.records],
             "wt_records": [r.model_dump() for r in table.wt_records],
+            "dropped_rows": [d.model_dump() for d in table.dropped_rows],
         }
 
     serialised = [r.model_dump() for r in table.records]
-    return {"records": serialised, "plate_meta": pmeta_raw, "warnings": []}
+    return {
+        "records": serialised,
+        "plate_meta": pmeta_raw,
+        "warnings": [],
+        "dropped_rows": [d.model_dump() for d in table.dropped_rows],
+    }
 
 
 def handle_activity_set_plate_meta(params: dict) -> dict:
