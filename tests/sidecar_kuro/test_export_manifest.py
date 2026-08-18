@@ -18,7 +18,7 @@ import pytest
 
 from sidecar_kuro.core import _state, _state_lock
 from sidecar_kuro.handlers.export import handle_export_excel, handle_export_order
-from kuma_core.shared.run_manifest import SCHEMA_VERSION
+from tests.shared.test_run_manifest import EXPECTED_SCHEMA_VERSION
 
 
 # ---------------------------------------------------------------------------
@@ -107,7 +107,11 @@ def test_export_order_manifest_schema_version(tmp_path, minimal_state):
         "results": [_make_order_item()],
     })
     manifest = json.loads((tmp_path / "order_schema.run.json").read_text())
-    assert manifest["schema_version"] == SCHEMA_VERSION
+    # Not SCHEMA_VERSION: comparing the export against the constant the exporter
+    # writes passes for any value (rebinding it to "9.9-bumped" left this suite
+    # green). tests/shared/test_run_manifest.py carries the reasoning and the
+    # one place the literal is stated.
+    assert manifest["schema_version"] == EXPECTED_SCHEMA_VERSION
 
 
 def test_export_order_manifest_inputs_empty(tmp_path, minimal_state):

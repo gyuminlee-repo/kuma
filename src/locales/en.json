@@ -1352,7 +1352,7 @@
     "deleteFolderConfirmDesc": "{{path}} moves to the system trash together with everything inside it. The folder can be recovered from the trash.",
     "deleteFolderConfirmButton": "Move to trash",
     "restorableTitle": "Restorable projects",
-    "restorableDesc": "Removed from the recent list but still present on disk.",
+    "restorableDesc": "Removed from the recent list but still in the current projects folder. Projects under a different folder are not listed.",
     "restorableEmpty": "No projects to restore.",
     "restoreButton": "Restore",
     "overview": {

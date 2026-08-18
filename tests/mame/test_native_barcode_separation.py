@@ -17,10 +17,13 @@ D) BACKWARD-COMPAT -- ``run_combinatorial_demux`` keeps the new keyword-only
    ``consensus_workers=None``) so existing callers are unaffected.
 E) (optional, gated) real per-NB writer layout with ``edlib`` present.
 
-The conftest ``pytest_collection_modifyitems`` hook session-skips every mame
-test when the minimap2 binary is unavailable (e.g. a Windows CI leg), so the
-contract/orchestration tests only execute where the binary exists; they do not
-*use* minimap2 themselves.
+The contract/orchestration tests here do not *use* minimap2 themselves, so they
+run everywhere, including the Windows CI leg that has no aligner. Only
+``test_real_per_nb_writer_well_consensus_at_root`` drives the real writer
+through alignment, and it carries ``@requires_minimap2``
+(``tests/mame/minimap2_support``) for that reason. A conftest hook used to
+session-skip every mame test instead, which hid roughly 1,200 aligner-free
+tests on the platform this app ships to.
 """
 
 from __future__ import annotations
@@ -43,6 +46,7 @@ from kuma_core.mame.ingest.unit_manifest import (
     manifest_path,
     write_run_manifest,
 )
+from tests.mame.minimap2_support import requires_minimap2
 
 
 # ===========================================================================
@@ -596,6 +600,7 @@ def _build_read(r_idx: int, f_idx: int, amplicon: str) -> str:
     )
 
 
+@requires_minimap2
 def test_real_per_nb_writer_well_consensus_at_root(tmp_path: Path) -> None:
     """well_consensus_at_root=True: consensus at top, reads/ and final/ nested."""
     pytest.importorskip("edlib", reason="edlib unavailable; real demux gated out")

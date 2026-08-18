@@ -65,7 +65,9 @@ def test_wallace_is_case_insensitive():
 # _apply_rule: pure decision logic at exact thresholds
 # --------------------------------------------------------------------------
 
-def test_taq_3step_minus5(registry):
+def test_taq_3step_minus5_at_60(registry):
+    # Distinct name: this body was shadowed by the identically named test
+    # below, so Python rebound the name and only the 64.0 case ever ran.
     out = _apply_rule(60.0, _rule(registry, "Taq"))
     assert out["ta_mode"] == "3step"
     assert out["recommended_ta"] == 55.0  # 60 - 5

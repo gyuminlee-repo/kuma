@@ -31,6 +31,20 @@
       ]
     },
     {
+      "id": "run-manifest-schema-version",
+      "type": "version_sync",
+      "files": [
+        {
+          "path": "kuma_core/shared/run_manifest.py",
+          "extract": "regex:^SCHEMA_VERSION = \"([^\"]+)\""
+        },
+        {
+          "path": "src/lib/runManifest.ts",
+          "extract": "regex:^export const SCHEMA_VERSION = \"([^\"]+)\""
+        }
+      ]
+    },
+    {
       "id": "tauri-resources",
       "type": "files_exist",
       "manifest": "src-tauri/tauri.conf.json",
