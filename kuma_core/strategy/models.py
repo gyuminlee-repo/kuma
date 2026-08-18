@@ -28,7 +28,11 @@ def _reject_non_finite(name: str, value: _FloatT) -> _FloatT:
     "never recorded".
     """
     if value is None:
-        return None
+        # Return the argument rather than the literal None: on this branch the
+        # type variable is bound to a type that admits None, and returning the
+        # literal instead would claim the function can hand back None even when
+        # it was called with a plain float.
+        return value
     if not math.isfinite(value):
         raise ValueError(f"{name} must be finite, got {value!r}")
     return value

@@ -118,7 +118,9 @@ def test_send_reports_count_when_several_values_are_non_finite(capsys):
 def test_send_drops_poisoned_notification_and_logs_to_stderr(capsys):
     writer = JsonRpcWriter()
 
-    writer.progress(float("nan"), "working")
+    # Deliberately violates the int annotation: the point of this test is
+    # that a caller which ignores the type still cannot poison the stream.
+    writer.progress(float("nan"), "working")  # pyright: ignore[reportArgumentType]
 
     lines, err = _stdout_lines(capsys)
     assert lines == []

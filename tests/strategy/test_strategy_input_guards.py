@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import importlib
 import math
+from typing import Any
 
 import pytest
 from pydantic import ValidationError
@@ -86,7 +87,7 @@ def _registered(**overrides) -> dict:
 
 def _round_state(**overrides) -> RoundState:
     """A round that lands on the `stop` branch: saturated, no throughput."""
-    base = dict(
+    base: dict[str, Any] = dict(
         n=4,
         previous_signals=PREV_SATURATED,
         cumulative_beneficial=1,      # below K_throughput -> T1 False -> stop
@@ -252,7 +253,7 @@ class TestT3Window:
 class TestModelValidators:
     @staticmethod
     def _metrics(**overrides) -> RoundMetrics:
-        base = dict(
+        base: dict[str, Any] = dict(
             round_id="r1",
             computed_at="2026-01-01T00:00:00Z",
             cumulative_beneficial=10,
@@ -298,7 +299,7 @@ class TestModelValidators:
 
     @staticmethod
     def _log(**overrides) -> StrategyDecisionLog:
-        base = dict(
+        base: dict[str, Any] = dict(
             round_id="r1",
             decided_at="2026-01-01T00:00:00Z",
             activation_mode="advisory",
