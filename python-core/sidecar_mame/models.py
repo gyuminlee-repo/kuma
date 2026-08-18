@@ -273,11 +273,22 @@ class BuildWellLayoutParams(BaseModel):
         this) gets exactly the previous behaviour on a KURO export. They mirror
         the ``generate_mame_package`` params of the same names so this layout and
         every other read of the file come off the same rows.
+    wt_placement
+        Where to put the control well when the file does not name one:
+        ``"last_well"`` (H12), ``"after_last_variant"``, or ``"none"``. Values of
+        ``kuma_core.mame.layout.WtPlacement``. ``None`` takes
+        ``DEFAULT_WT_PLACEMENT``, which is ``"last_well"``.
+
+        Ignored for a file carrying a ``Well`` column, which states the control
+        well itself. Nothing sends this yet: it exists so the setting the
+        frontend will offer has somewhere to arrive, and so a caller that wants
+        the pre-2026-08-18 placement can ask for it by name today.
     """
 
     expected_mutations_xlsx: str
     variant_sheet: str | None = None
     variant_column: str | None = None
+    wt_placement: str | None = None
 
     @field_validator("expected_mutations_xlsx", mode="after")
     @classmethod
@@ -287,6 +298,26 @@ class BuildWellLayoutParams(BaseModel):
             raise ValueError(f"Path traversal not allowed: {v}")
         if not p.exists():
             raise ValueError(f"expected_mutations_xlsx not found: {v}")
+        return v
+
+    @field_validator("wt_placement", mode="after")
+    @classmethod
+    def _check_wt_placement(cls, v: str | None) -> str | None:
+        """Refuse an unknown policy rather than falling back to the default.
+
+        Silently defaulting would place the control somewhere the caller did not
+        ask for and say nothing, which is the class of failure this whole change
+        exists to remove.
+        """
+        if v is None:
+            return v
+        from kuma_core.mame.layout import WtPlacement
+
+        allowed = [p.value for p in WtPlacement]
+        if v not in allowed:
+            raise ValueError(
+                f"wt_placement must be one of {allowed}; got {v!r}"
+            )
         return v
 
 

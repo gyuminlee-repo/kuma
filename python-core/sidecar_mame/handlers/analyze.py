@@ -727,7 +727,15 @@ def _plate_capacity_finding(
         # truncated one. None of them is a statement about the plate, and the
         # caller's path validation already reported the file.
         return None, None
-    draft = build_draft_layout(read.expected, wt_ordinal=read.wt_ordinal)
+    # The whole read, not a subset of it. ``wells``/``wt_well`` are the
+    # placement for a file that states one, and dropping them here would grade
+    # and then place that file by row order instead.
+    draft = build_draft_layout(
+        read.expected,
+        wt_ordinal=read.wt_ordinal,
+        wells=read.wells,
+        wt_well=read.wt_well,
+    )
 
     if not draft.dropped_mutant_ids:
         return None, draft
@@ -825,9 +833,11 @@ def _place_on_selected_wells(
     """Narrow the draft to the declared wells, or leave it alone.
 
     One function so every caller applies the selection at the same point and in
-    the same way. ``None`` means nothing was declared, which is the leading
-    ``N + 1`` wells, so the draft comes back untouched and byte-identical to
-    what a run produced before this parameter existed.
+    the same way. ``None`` means nothing was declared, which is the draft's own
+    wells, so the draft comes back untouched and byte-identical to what a run
+    produced before this parameter existed. (Those used to be the leading
+    ``N + 1`` wells; since 2026-08-18 the control well is H12 by default, so
+    naming them by count would be wrong where naming them by draft is not.)
 
     The draft's placement is kept: an undeclared well drops what sits in it
     (``excluded_occupants``) rather than pulling the next occupant into it. See
@@ -1775,7 +1785,10 @@ def handle_analyze(params: dict) -> dict:
             )
             drafted_layout = _place_on_selected_wells(
                 build_draft_layout(
-                    _inferred.expected, wt_ordinal=_inferred.wt_ordinal
+                    _inferred.expected,
+                    wt_ordinal=_inferred.wt_ordinal,
+                    wells=_inferred.wells,
+                    wt_well=_inferred.wt_well,
                 ),
                 selected_wells,
             )

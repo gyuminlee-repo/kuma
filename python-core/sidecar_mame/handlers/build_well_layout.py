@@ -71,10 +71,17 @@ def handle_build_well_layout(params: dict) -> dict:
         sheet=p.variant_sheet,
         variant_column=p.variant_column,
     )
-    # A source that named its own WT row gets the control at that ordinal, not a
-    # second one appended. Dropping the row instead moved every later mutant one
-    # well up and reported nothing.
-    result = build_draft_layout(read.expected, wt_ordinal=read.wt_ordinal)
+    # Everything the read established travels together. ``wells``/``wt_well``
+    # are the placement when the file stated one, and ``wt_ordinal`` plus the
+    # policy decide it when the file stated only an order. Passing a subset lets
+    # a file that names its wells be placed by row number instead.
+    result = build_draft_layout(
+        read.expected,
+        wt_ordinal=read.wt_ordinal,
+        wells=read.wells,
+        wt_well=read.wt_well,
+        wt_placement=_wt_placement(p.wt_placement),
+    )
 
     # ``result.layout`` is an insertion-ordered dict[well_id, sample_name] in
     # column-major order (WT last when present); preserve that order.
@@ -85,7 +92,24 @@ def handle_build_well_layout(params: dict) -> dict:
         "draft": draft,
         "count": len(draft),
         "dropped_mutant_ids": result.dropped_mutant_ids,
+        # ``null`` says this plate has no control well, which is now a state a
+        # plate can be in: a file with a Well column and no wild-type row, or
+        # ``wt_placement="none"``. Reporting it is what keeps "no control" from
+        # looking like "control somewhere in the table".
+        "wt_well": result.wt_well,
     }
+
+
+def _wt_placement(raw: str | None):
+    """The control-well policy this call asked for, or the default.
+
+    The one place a caller's choice enters the core, so the frontend picker that
+    will set it is an edit here rather than a search for every default. The
+    value is already validated by ``BuildWellLayoutParams``.
+    """
+    from kuma_core.mame.layout import DEFAULT_WT_PLACEMENT, WtPlacement
+
+    return DEFAULT_WT_PLACEMENT if raw is None else WtPlacement(raw)
 
 
 __all__ = ["handle_build_well_layout"]

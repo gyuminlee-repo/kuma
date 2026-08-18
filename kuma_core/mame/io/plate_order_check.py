@@ -44,8 +44,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from kuma_core.mame.io.variant_list import read_variant_source
-from kuma_core.mame.layout import build_draft_layout
-from kuma_core.mame.plate_geometry import seq_to_well, well_to_seq
+from kuma_core.mame.layout import (
+    DEFAULT_WT_PLACEMENT,
+    WtPlacement,
+    build_draft_layout,
+)
+from kuma_core.mame.plate_geometry import canonical_well, well_to_seq
 
 #: The sheet MAME reads as the plate order.
 EXPECTED_SHEET = "expected_mutations"
@@ -93,13 +97,14 @@ def _cell_text(value: object) -> str:
 def _canonical_well(raw: str) -> str:
     """Well label in the one spelling both sides use, or ``""`` if it is not one.
 
-    ``A01`` and ``A1`` are the same well and a sheet may write either, so the
-    label is put through the plate geometry rather than compared as text. A
-    label off the plate comes back empty and its row is ignored, the same way a
-    cell that does not hold a mutation is.
+    The spelling rule itself lives in
+    :func:`kuma_core.mame.plate_geometry.canonical_well`, which is where every
+    other reader of a Well column gets it. Only the verdict differs here: a
+    sheet row that is not a well is a row to ignore rather than a fault, so the
+    refusal is turned into an empty string instead of travelling up.
     """
     try:
-        return seq_to_well(well_to_seq(raw))
+        return canonical_well(raw)
     except (ValueError, IndexError):
         return ""
 
@@ -176,7 +181,10 @@ def _plate_layout_from_grid_sheet(worksheet) -> dict[str, str]:
     return _in_plate_order(cells)
 
 
-def _expected_layout(path: Path) -> dict[str, str] | None:
+def _expected_layout(
+    path: Path,
+    wt_placement: WtPlacement = DEFAULT_WT_PLACEMENT,
+) -> dict[str, str] | None:
     """Where the expected sheet puts each mutant, or ``None`` if it cannot say.
 
     This is the run's own placement, not a second reading of it:
@@ -197,18 +205,37 @@ def _expected_layout(path: Path) -> dict[str, str] | None:
         read = read_variant_source(path)
     except (ValueError, FileNotFoundError, KeyError):
         return None
-    draft = build_draft_layout(read.expected, wt_ordinal=read.wt_ordinal)
+    # Every argument the run passes, and the same control-well default. This
+    # check is only worth anything while it names the wells the run names, so it
+    # follows ``build_draft_layout`` rather than pinning a policy of its own.
+    draft = build_draft_layout(
+        read.expected,
+        wt_ordinal=read.wt_ordinal,
+        wells=read.wells,
+        wt_well=read.wt_well,
+        wt_placement=wt_placement,
+    )
     # Over capacity the draft places nothing, so there is no placement to compare.
     return draft.layout or None
 
 
-def check_plate_order(path: Path, max_examples: int = 5) -> PlateOrderReport:
+def check_plate_order(
+    path: Path,
+    max_examples: int = 5,
+    wt_placement: WtPlacement = DEFAULT_WT_PLACEMENT,
+) -> PlateOrderReport:
     """Compare the plate sheets against ``expected_mutations`` in *path*.
 
     A file missing either kind of sheet is reported as not comparable rather than as
     consistent, so a caller cannot read silence as agreement. So is a file the
     expected-variant reader refuses; see :func:`_expected_layout` for why that is
     lowered rather than raised. This function does not raise.
+
+    ``wt_placement`` is the control-well policy the run would use, forwarded so
+    this check names the wells the run names. It has to travel: the check is a
+    comparison against a hand-written primer plate, and answering it under a
+    different placement than the run uses turns every agreement into a
+    disagreement and back again.
     """
     path = Path(path)
     if path.suffix.lower() not in {".xlsx", ".xlsm"} or not path.exists():
@@ -243,7 +270,7 @@ def check_plate_order(path: Path, max_examples: int = 5) -> PlateOrderReport:
     if not plate:
         return PlateOrderReport(comparable=False)
 
-    layout = _expected_layout(path)
+    layout = _expected_layout(path, wt_placement)
     if layout is None:
         return PlateOrderReport(comparable=False, plate_sheet=plate_sheet)
 

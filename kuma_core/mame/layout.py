@@ -1,9 +1,14 @@
 """Draft well-layout generator for MAME confirmation runs.
 
-Given the list of designed expected mutations (KURO ``expected_mutations`` sheet
-order), produce a draft 96-well plate layout that places one mutant per well in
-column-major order (matching ``seq_to_well``), with exactly one WT control well
-at the ordinal the source stated, or after the last mutant when it stated none.
+Given the list of designed expected mutations, produce a draft 96-well plate
+layout.
+
+Where an occupant goes has two possible sources, and the difference between them
+is the whole point of this module. A source carrying a ``Well`` column states the
+address of every occupant, and this generator places them there and computes
+nothing. A source without one states only an order, so the generator assigns well
+*j* to occupant *j* in column-major order (matching ``seq_to_well``) and decides
+the control well from :class:`WtPlacement`.
 
 The draft layout maps ``well_id -> sample_name`` and is consumed by the pipeline
 as a ``well_layout`` override (highest-priority well->sample source). "WT" wells
@@ -25,10 +30,53 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass, field
+from enum import Enum
 
 from kuma_core.mame.export.well_mapper import seq_to_well, well_to_seq
 from kuma_core.mame.models import ExpectedMutation
 from kuma_core.mame.plate_geometry import PLATE_CAPACITY as _PLATE_CAPACITY
+
+#: The occupant name the control well carries. One spelling, because every
+#: consumer of a layout tests for it by string.
+WT_SAMPLE = "WT"
+
+
+class WtPlacement(str, Enum):
+    """Where the control well goes when the source does not name a well for it.
+
+    Only the row-order path consults this. A source carrying a ``Well`` column
+    states the control well itself, and nothing here overrides a stated fact.
+
+    ``LAST_WELL``
+        The control takes the last well of the plate (``H12``, sequence 96) and
+        the mutants fill from ``A1`` in row order. Wells between the last mutant
+        and ``H12`` stay empty.
+    ``AFTER_LAST_VARIANT``
+        The control takes the well right after the last mutant, or the ordinal
+        the source stated when it carried a wild-type row of its own. This is
+        what MAME did before 2026-08-18.
+    ``NONE``
+        No control well. The plate is mutants only.
+    """
+
+    LAST_WELL = "last_well"
+    AFTER_LAST_VARIANT = "after_last_variant"
+    NONE = "none"
+
+
+#: The placement a caller gets without asking. Changed from
+#: ``AFTER_LAST_VARIANT`` to ``LAST_WELL`` on 2026-08-18 by user decision.
+#:
+#: The old default only agreed with the bench on a full plate. A row ordinal is
+#: not a well address: a 40-mutant list with its wild-type row on line 41 put
+#: the control in ``A6``, while the bench convention pipettes it into ``H12``.
+#: MAME then scored ``A6`` as the control and did not score ``H12`` at all, and
+#: nothing in the result said so. Anchoring the control to the last well makes
+#: the default agree with the convention, at the cost of moving the control of
+#: an existing 40-mutant run from ``A6`` to ``H12``. That move is the intended
+#: change, not a side effect: a caller that wants the old placement asks for
+#: ``AFTER_LAST_VARIANT`` by name.
+DEFAULT_WT_PLACEMENT = WtPlacement.LAST_WELL
 
 
 @dataclass(frozen=True)
@@ -55,8 +103,38 @@ class DraftLayout:
 
     @property
     def is_complete(self) -> bool:
-        """True when the draft covers every mutant and carries a WT control."""
+        """True when every mutant found a well.
+
+        Says nothing about the control: a layout without one is a legitimate
+        result now (a source that named no control well, or ``WtPlacement.NONE``),
+        and :attr:`wt_well` is what answers that question.
+        """
         return not self.dropped_mutant_ids
+
+    @property
+    def wt_well(self) -> str | None:
+        """The control well, or ``None`` when this plate carries no control.
+
+        Derived from the placement rather than stored beside it, so the two
+        cannot disagree. That also makes it survive
+        :func:`apply_well_selection`: narrowing a draft to a selection that
+        leaves the control well out returns ``None`` here, which is the truth
+        about the plate that ran.
+        """
+        for well, sample in self.layout.items():
+            if sample == WT_SAMPLE:
+                return well
+        return None
+
+    @property
+    def has_wt_well(self) -> bool:
+        """True when a control well is on this plate.
+
+        Worth a name of its own because the answer used to be structurally
+        always-true: the generator appended a control whether the file
+        mentioned one or not, so nothing downstream had a reason to ask.
+        """
+        return self.wt_well is not None
 
 
 def canonical_plate_order(
@@ -86,32 +164,56 @@ MUTANT_CAPACITY = _PLATE_CAPACITY - 1
 def build_draft_layout(
     expected_mutations: list[ExpectedMutation],
     wt_ordinal: int | None = None,
+    *,
+    wells: list[str] | None = None,
+    wt_well: str | None = None,
+    wt_placement: WtPlacement = DEFAULT_WT_PLACEMENT,
 ) -> DraftLayout:
-    """Build a column-major draft layout over ``N + 1`` occupants.
+    """Build a column-major draft layout, from stated wells or from row order.
 
-    The plate occupants are the ``N`` mutations plus exactly one WT control, in
-    that order unless the source said otherwise. Occupant ``j`` takes well ``j``
-    (1-based, column-major via ``seq_to_well``).
+    There are two sources a placement can come from, and they are not equal.
 
-    ``wt_ordinal`` is the 1-based occupant position of the WT control, as read
-    off the source by ``io/variant_list.read_variant_source``. ``None`` appends
-    it after the last mutant. A source that named its own WT row at position
-    *k* puts WT in well *k* and moves the mutants from *k* on one well down;
-    dropping that row instead (which is what happened before) moved every well
-    after it one place up and said nothing about it.
+    **Stated wells.** ``wells`` is the well each mutation in
+    ``expected_mutations`` was given by the file, and ``wt_well`` is the well
+    the file gave the control (``None`` when it named none). This branch does no
+    arithmetic at all: a well address is a fact the file states, and nothing
+    here is entitled to move it. The plate holds 96 of them, not 95, because a
+    control is only present when the file says so, and ``wt_placement`` is
+    ignored for the same reason.
+
+    **Row order.** ``wells`` is ``None``, so the file said nothing about wells
+    and the reader passed the row ordinals it read instead. Occupant *j* takes
+    well *j* (1-based, column-major via ``seq_to_well``), and ``wt_placement``
+    decides where the control goes; see :class:`WtPlacement`. ``wt_ordinal`` is
+    the 1-based occupant position of a wild-type row the source carried, and it
+    is consulted only by ``AFTER_LAST_VARIANT``, the placement that treats a row
+    ordinal as a well.
 
     The caller decides the mutant order. Pass :func:`canonical_plate_order`
     output to get the plate the bench actually fills; the list as given keeps
     KURO sheet order.
 
-    Capacity is decided on total occupancy (``N + 1``) BEFORE anything is
-    placed, because ``N`` alone is the wrong question: 96 mutants plus a control
-    is 97 wells, and placing first and clamping afterwards asked ``seq_to_well``
-    for well 97. Over capacity, ``layout`` comes back empty and the mutants that
-    do not fit are named in ``dropped_mutant_ids``. Nothing partial is returned:
-    a truncated draft reads as a correct full plate to anyone looking at the
-    rows, so every well past the cut would be mis-scored in silence.
+    Capacity on the row-order branch is decided on total occupancy (``N + 1``)
+    BEFORE anything is placed, because ``N`` alone is the wrong question: 96
+    mutants plus a control is 97 wells, and placing first and clamping
+    afterwards asked ``seq_to_well`` for well 97. That ceiling holds for all
+    three placements, ``NONE`` included: which mutants are on the plate must not
+    depend on where the control sits, or the same list would fit or not fit
+    depending on a setting. Over capacity, ``layout`` comes back empty and the
+    mutants that do not fit are named in ``dropped_mutant_ids``. Nothing partial
+    is returned: a truncated draft reads as a correct full plate to anyone
+    looking at the rows, so every well past the cut would be mis-scored in
+    silence.
+
+    Raises:
+        ValueError: when ``wells`` is given and does not have one entry per
+            mutation. The two travel together out of the reader, so a length
+            mismatch is a caller that re-ordered or filtered one of them, which
+            would silently re-seat the plate.
     """
+    if wells is not None:
+        return _place_on_stated_wells(expected_mutations, wells, wt_well)
+
     n = len(expected_mutations)
     if n > MUTANT_CAPACITY:
         return DraftLayout(
@@ -121,15 +223,56 @@ def build_draft_layout(
             ],
         )
 
-    wt_seq = n + 1 if wt_ordinal is None else max(1, min(wt_ordinal, n + 1))
-    layout: dict[str, str] = {}
-    remaining = iter(expected_mutations)
-    for seq in range(1, n + 2):
-        if seq == wt_seq:
-            layout[seq_to_well(seq)] = "WT"
-        else:
-            layout[seq_to_well(seq)] = next(remaining).mutant_id
-    return DraftLayout(layout=layout)
+    if wt_placement is WtPlacement.NONE:
+        wt_seq: int | None = None
+    elif wt_placement is WtPlacement.LAST_WELL:
+        wt_seq = _PLATE_CAPACITY
+    else:
+        wt_seq = n + 1 if wt_ordinal is None else max(1, min(wt_ordinal, n + 1))
+
+    # The first N wells the control does not take. This one expression covers
+    # all three placements: LAST_WELL leaves 1..N free because N is at most 95,
+    # AFTER_LAST_VARIANT opens a gap at its ordinal and pushes the rest down,
+    # and NONE excludes nothing.
+    mutant_seqs = [s for s in range(1, _PLATE_CAPACITY + 1) if s != wt_seq][:n]
+    placed = dict(zip(mutant_seqs, (m.mutant_id for m in expected_mutations)))
+    if wt_seq is not None:
+        placed[wt_seq] = WT_SAMPLE
+    return DraftLayout(
+        layout={seq_to_well(seq): placed[seq] for seq in sorted(placed)}
+    )
+
+
+def _place_on_stated_wells(
+    expected_mutations: list[ExpectedMutation],
+    wells: list[str],
+    wt_well: str | None,
+) -> DraftLayout:
+    """Place occupants on the wells the file named, in plate order.
+
+    Nothing is inferred here and nothing can overflow: the reader has already
+    refused a duplicate well and a well off the plate, so every entry names a
+    distinct one of the 96 and there is no ordinal to run past the end. The only
+    thing this adds is the ordering, because ``DraftLayout.layout`` promises
+    column-major insertion order and a file lists its rows in whatever order the
+    operator typed them.
+    """
+    if len(wells) != len(expected_mutations):
+        raise ValueError(
+            f"stated wells ({len(wells)}) and mutations "
+            f"({len(expected_mutations)}) do not correspond. They come out of "
+            "the reader as one list of pairs, so a mismatch means one of them "
+            "was re-ordered or filtered on its own, which re-seats the plate."
+        )
+    placed = {
+        well: mutation.mutant_id
+        for well, mutation in zip(wells, expected_mutations)
+    }
+    if wt_well is not None:
+        placed[wt_well] = WT_SAMPLE
+    return DraftLayout(
+        layout={well: placed[well] for well in sorted(placed, key=well_to_seq)}
+    )
 
 
 def normalise_selected_wells(selected_wells: Iterable[str]) -> list[str]:
@@ -209,7 +352,10 @@ def apply_well_selection(
 
 __all__ = [
     "MUTANT_CAPACITY",
+    "DEFAULT_WT_PLACEMENT",
+    "WT_SAMPLE",
     "DraftLayout",
+    "WtPlacement",
     "apply_well_selection",
     "build_draft_layout",
     "canonical_plate_order",

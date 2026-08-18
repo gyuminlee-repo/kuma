@@ -58,7 +58,15 @@ def handle_export_barcode_worklist(params: dict) -> dict:
         sheet=p.variant_sheet,
         variant_column=p.variant_column,
     )
-    draft = build_draft_layout(read.expected, wt_ordinal=read.wt_ordinal)
+    # The same call the run makes, arguments included. A worklist placed by row
+    # order for a file that states its wells would send the bench to different
+    # wells than the run scores.
+    draft = build_draft_layout(
+        read.expected,
+        wt_ordinal=read.wt_ordinal,
+        wells=read.wells,
+        wt_well=read.wt_well,
+    )
     if draft.dropped_mutant_ids:
         raise ValueError(
             f"{len(draft.dropped_mutant_ids)} variants do not fit one plate "

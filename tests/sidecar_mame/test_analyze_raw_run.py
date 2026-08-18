@@ -907,8 +907,11 @@ def test_handle_analyze_raw_run_reports_what_the_demux_matrix_saw(
 
     The campaign has to reach B3 for that to be sayable: placement is anchored
     to the plate, so a declaration cannot move an occupant into a well the draft
-    never filled. Eighteen occupants reach it, and declaring three of them is
-    what leaves A3 occupied by nobody.
+    never filled. Eighteen mutants reach it, and declaring three of them is
+    what leaves A3 occupied by nobody. (Seventeen used to be enough, because the
+    control was appended right after the last mutant and landed in B3 itself.
+    Since 2026-08-18 the control sits in H12 by default, so B3 has to be filled
+    by a mutant for the declaration to name an occupied well.)
     """
     from kuma_core.mame import ingest as ingest_mod
     from kuma_core.mame import pipeline as pipeline_mod
@@ -959,8 +962,8 @@ def test_handle_analyze_raw_run_reports_what_the_demux_matrix_saw(
     _capture_progress(monkeypatch)
 
     params = _raw_run_params(run_dir, tmp_path, barcodes_xlsx)
-    # 17 mutants plus the WT control draft onto A1..B3.
-    _make_kuro_xlsx_filling(Path(params["expected"]), mutants=17)
+    # 18 mutants draft onto A1..B3; the control takes H12.
+    _make_kuro_xlsx_filling(Path(params["expected"]), mutants=18)
     params["selected_wells"] = ["A1", "B1", "B3"]
     result = analyze_mod.handle_analyze(params)
 

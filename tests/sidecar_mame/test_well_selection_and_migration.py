@@ -259,7 +259,14 @@ def test_an_agreeing_legacy_sample_map_is_reported_and_lets_the_run_through(
     params = _validate_params(tmp_path, expected)
     # Unpadded on purpose: A1 has to normalise onto the draft's A1.
     params["legacy_sample_map_xlsx"] = str(
-        _legacy_sample_map(tmp_path / "map.xlsx", [("G2A", "A1"), ("F3W", "B1"), ("WT", "C1")])
+        _legacy_sample_map(
+            tmp_path / "map.xlsx",
+            # H12 is where the draft puts the control by default since
+            # 2026-08-18. The bench sheet has to name the same well or the
+            # comparison this test is about would be answering a real
+            # disagreement instead of the one it set up.
+            [("G2A", "A1"), ("F3W", "B1"), ("WT", "H12")],
+        )
     )
 
     result = handle_validate_inputs(params)
@@ -277,7 +284,10 @@ def test_a_disagreeing_legacy_sample_map_names_the_wells_and_blocks(
     params = _validate_params(tmp_path, expected)
     # The bench sheet says the two variants are the other way round.
     params["legacy_sample_map_xlsx"] = str(
-        _legacy_sample_map(tmp_path / "map.xlsx", [("F3W", "A1"), ("G2A", "B1"), ("WT", "C1")])
+        _legacy_sample_map(
+            tmp_path / "map.xlsx",
+            [("F3W", "A1"), ("G2A", "B1"), ("WT", "H12")],
+        )
     )
 
     result = handle_validate_inputs(params)
@@ -296,12 +306,12 @@ def test_the_legacy_comparison_reads_the_selection_the_run_would_use(
     """Comparing against the unselected draft would flag a plate that is correct."""
     expected = _variant_list(tmp_path / "variants.xlsx", ["G2A", "F3W"])
     params = _validate_params(tmp_path, expected)
-    # The draft is A1=G2A, B1=F3W, C1=WT. Declaring all but B1 says F3W was not
+    # The draft is A1=G2A, B1=F3W, H12=WT. Declaring all but B1 says F3W was not
     # pipetted, and the map on disk agrees: it names the two wells that were.
     # Compared against the draft instead, B1 would read as a disagreement.
-    params["selected_wells"] = ["A1", "C1"]
+    params["selected_wells"] = ["A1", "H12"]
     params["legacy_sample_map_xlsx"] = str(
-        _legacy_sample_map(tmp_path / "map.xlsx", [("G2A", "A1"), ("WT", "C1")])
+        _legacy_sample_map(tmp_path / "map.xlsx", [("G2A", "A1"), ("WT", "H12")])
     )
 
     result = handle_validate_inputs(params)
@@ -321,7 +331,10 @@ def test_the_run_refuses_a_disagreeing_sample_map_too(tmp_path: Path) -> None:
     expected = _variant_list(tmp_path / "variants.xlsx", ["G2A", "F3W"])
     params = _params(tmp_path, expected)
     params["legacy_sample_map_xlsx"] = str(
-        _legacy_sample_map(tmp_path / "map.xlsx", [("F3W", "A1"), ("G2A", "B1"), ("WT", "C1")])
+        _legacy_sample_map(
+            tmp_path / "map.xlsx",
+            [("F3W", "A1"), ("G2A", "B1"), ("WT", "H12")],
+        )
     )
 
     with pytest.raises(ValueError, match="sample map"):
@@ -333,7 +346,10 @@ def test_the_run_proceeds_when_the_sample_map_agrees(tmp_path: Path) -> None:
     expected = _variant_list(tmp_path / "variants.xlsx", ["G2A", "F3W"])
     params = _params(tmp_path, expected)
     params["legacy_sample_map_xlsx"] = str(
-        _legacy_sample_map(tmp_path / "map.xlsx", [("G2A", "A1"), ("F3W", "B1"), ("WT", "C1")])
+        _legacy_sample_map(
+            tmp_path / "map.xlsx",
+            [("G2A", "A1"), ("F3W", "B1"), ("WT", "H12")],
+        )
     )
 
     result = handle_analyze(params)
@@ -347,14 +363,14 @@ def test_the_run_compares_the_map_against_the_wells_it_would_use(
     """The selection has to be applied before the comparison, not after it."""
     expected = _variant_list(tmp_path / "variants.xlsx", ["G2A", "F3W"])
     params = _params(tmp_path, expected)
-    params["selected_wells"] = ["A1", "C1"]
+    params["selected_wells"] = ["A1", "H12"]
     params["legacy_sample_map_xlsx"] = str(
-        _legacy_sample_map(tmp_path / "map.xlsx", [("G2A", "A1"), ("WT", "C1")])
+        _legacy_sample_map(tmp_path / "map.xlsx", [("G2A", "A1"), ("WT", "H12")])
     )
 
     result = handle_analyze(params)
 
-    assert result["layout_provenance"]["selected_wells"] == ["A1", "C1"]
+    assert result["layout_provenance"]["selected_wells"] == ["A1", "H12"]
     assert result["layout_provenance"]["excluded_occupants"] == {"B1": "F3W"}
 
 

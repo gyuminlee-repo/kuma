@@ -18,6 +18,7 @@ import pytest
 
 from kuma_core.mame.ingest import IngestMode
 from kuma_core.mame.layout import (
+    WtPlacement,
     apply_well_selection,
     build_draft_layout,
     normalise_selected_wells,
@@ -49,9 +50,16 @@ def _em(mutant_id: str, position: int, wt_aa: str, mt_aa: str) -> ExpectedMutati
 # ---------------------------------------------------------------------------
 
 def test_build_draft_layout_column_major_order_and_wt_position() -> None:
-    """well 1..N column-major -> mutant_id; well N+1 -> WT."""
+    """well 1..N column-major -> mutant_id; well N+1 -> WT.
+
+    "N + 1" is the ordinal rule, which is ``AFTER_LAST_VARIANT`` since
+    2026-08-18 rather than the default. Pinned to the policy it describes so the
+    rule keeps a test while it keeps being offered.
+    """
     expected = [_em("M1", 1, "A", "B"), _em("M2", 2, "C", "D"), _em("M3", 3, "E", "F")]
-    draft = build_draft_layout(expected)
+    draft = build_draft_layout(
+        expected, wt_placement=WtPlacement.AFTER_LAST_VARIANT
+    )
     # seq 1->A1, 2->B1, 3->C1 (column-major), WT at seq 4 -> D1
     assert draft.layout["A1"] == "M1"
     assert draft.layout["B1"] == "M2"
@@ -70,7 +78,11 @@ def test_build_draft_layout_places_wt_at_the_ordinal_the_source_stated() -> None
     plate. M2 belongs in C1 here because WT sits in B1, not in B1 itself.
     """
     expected = [_em("M1", 1, "A", "B"), _em("M2", 2, "C", "D"), _em("M3", 3, "E", "F")]
-    draft = build_draft_layout(expected, wt_ordinal=2)
+    # ``wt_ordinal`` is only read by the placement that treats a row ordinal as
+    # a well, so the test that pins that reading names it.
+    draft = build_draft_layout(
+        expected, wt_ordinal=2, wt_placement=WtPlacement.AFTER_LAST_VARIANT
+    )
     assert list(draft.layout.items()) == [
         ("A1", "M1"),
         ("B1", "WT"),
@@ -83,7 +95,9 @@ def test_build_draft_layout_places_wt_at_the_ordinal_the_source_stated() -> None
 def test_build_draft_layout_wt_first_is_the_same_rule() -> None:
     """WT at ordinal 1 is not a special case, just the first occupant."""
     expected = [_em("M1", 1, "A", "B"), _em("M2", 2, "C", "D")]
-    draft = build_draft_layout(expected, wt_ordinal=1)
+    draft = build_draft_layout(
+        expected, wt_ordinal=1, wt_placement=WtPlacement.AFTER_LAST_VARIANT
+    )
     assert list(draft.layout.items()) == [("A1", "WT"), ("B1", "M1"), ("C1", "M2")]
 
 
@@ -128,14 +142,16 @@ def test_build_draft_layout_names_every_mutant_that_does_not_fit() -> None:
 def test_selecting_the_leading_wells_reproduces_the_draft_exactly() -> None:
     """The default has to be a no-op, or every existing run changes.
 
-    ``selected_wells`` defaults to absent, and absent means the leading N+1
+    ``selected_wells`` defaults to absent, and absent means the draft's own
     wells. Selecting those explicitly must therefore produce the same mapping,
-    byte for byte, that the draft already had.
+    byte for byte, that the draft already had. Under the 2026-08-18 default
+    those wells are A1, B1 and H12 rather than the leading three, which is the
+    only thing that changed here: the property is the no-op, not the addresses.
     """
     expected = [_em("M1", 1, "A", "B"), _em("M2", 2, "C", "D")]
     draft = build_draft_layout(expected)
 
-    reseated = apply_well_selection(draft, ["A1", "B1", "C1"])
+    reseated = apply_well_selection(draft, list(draft.layout))
 
     assert reseated.layout == draft.layout
 
@@ -148,7 +164,12 @@ def test_occupants_keep_the_wells_the_draft_gave_them() -> None:
     itself under a click meant to describe it.
     """
     expected = [_em("M1", 1, "A", "B"), _em("M2", 2, "C", "D")]
-    draft = build_draft_layout(expected)
+    # The fixture needs the control INSIDE the run of wells being narrowed, so
+    # the ordinal placement is named rather than the default (which parks it in
+    # H12, where nothing in this test would reach it).
+    draft = build_draft_layout(
+        expected, wt_placement=WtPlacement.AFTER_LAST_VARIANT
+    )
 
     narrowed = apply_well_selection(draft, ["A1", "C1", "E1"])
 
@@ -179,7 +200,11 @@ def test_a_selection_smaller_than_the_campaign_names_what_it_leaves_out() -> Non
     those variants have no verdict anywhere on the run.
     """
     expected = [_em("M1", 1, "A", "B"), _em("M2", 2, "C", "D")]
-    draft = build_draft_layout(expected)
+    # Same reason as above: the control has to be an occupant the declaration
+    # can leave out, which is the ordinal placement.
+    draft = build_draft_layout(
+        expected, wt_placement=WtPlacement.AFTER_LAST_VARIANT
+    )
 
     narrowed = apply_well_selection(draft, ["A1", "B1"])
 
@@ -298,16 +323,18 @@ def test_build_well_layout_handler_returns_ordered_draft(tmp_path: Path) -> None
     from sidecar_mame.handlers.build_well_layout import handle_build_well_layout
 
     kuro = tmp_path / "kuro.xlsx"
-    _make_kuro_xlsx(kuro)  # G2A (seq1->A1), F3W (seq2->B1); WT at seq3 -> C1
+    _make_kuro_xlsx(kuro)  # G2A (seq1->A1), F3W (seq2->B1); WT in the last well
 
     result = handle_build_well_layout({"expected_mutations_xlsx": str(kuro)})
 
+    # What this pins is the handler's shape (ordered rows plus a count), not the
+    # control-well policy, so it reads the default rather than naming one.
     assert result["count"] == 3
     draft = result["draft"]
     assert draft == [
         {"well": "A1", "sample": "G2A"},
         {"well": "B1", "sample": "F3W"},
-        {"well": "C1", "sample": "WT"},
+        {"well": "H12", "sample": "WT"},
     ], draft
 
 
@@ -370,10 +397,11 @@ def test_build_well_layout_reads_a_plain_variant_list(tmp_path: Path) -> None:
 
     result = handle_build_well_layout({"expected_mutations_xlsx": str(path)})
 
+    # A plain list is what this covers; the control sits in the default well.
     assert result["draft"] == [
         {"well": "A1", "sample": "G2A"},
         {"well": "B1", "sample": "F3W"},
-        {"well": "C1", "sample": "WT"},
+        {"well": "H12", "sample": "WT"},
     ]
     assert result["count"] == 3
 
@@ -389,7 +417,14 @@ def test_build_well_layout_does_not_append_a_second_wt(tmp_path: Path) -> None:
 
     path = _make_variant_list_xlsx(tmp_path / "with_wt.xlsx", ["G2A", "WT", "F3W"])
 
-    result = handle_build_well_layout({"expected_mutations_xlsx": str(path)})
+    # "the well its position names" is the ordinal rule, so the policy that
+    # reads a position is the one this asks for.
+    result = handle_build_well_layout(
+        {
+            "expected_mutations_xlsx": str(path),
+            "wt_placement": "after_last_variant",
+        }
+    )
 
     assert result["draft"] == [
         {"well": "A1", "sample": "G2A"},
@@ -430,14 +465,17 @@ def test_build_well_layout_kuro_export_is_unchanged(tmp_path: Path) -> None:
     kuro = tmp_path / "kuro.xlsx"
     _make_kuro_xlsx(kuro)
 
+    # The routing is what is unchanged. Where the control lands is the default
+    # policy, which moved to the last well on 2026-08-18.
     assert handle_build_well_layout({"expected_mutations_xlsx": str(kuro)}) == {
         "draft": [
             {"well": "A1", "sample": "G2A"},
             {"well": "B1", "sample": "F3W"},
-            {"well": "C1", "sample": "WT"},
+            {"well": "H12", "sample": "WT"},
         ],
         "count": 3,
         "dropped_mutant_ids": [],
+        "wt_well": "H12",
     }
 
 

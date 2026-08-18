@@ -9,7 +9,8 @@ from kuma_core.mame.io.variant_list import (
     inspect_variant_source,
     read_variant_source,
 )
-from kuma_core.mame.layout import build_draft_layout
+from kuma_core.mame.layout import WtPlacement, build_draft_layout
+from kuma_core.mame.plate_geometry import seq_to_well
 
 
 def _write_sheet(path, rows, sheet_title="Sheet1"):
@@ -158,14 +159,24 @@ class TestWildTypeRow:
         assert [m.mutant_id for m in result.expected] == ["V5F", "K53N"]
 
     def test_the_wells_after_an_explicit_wt_do_not_move_up(self, tmp_path):
-        """The regression, stated as wells rather than as an ordinal."""
+        """The regression, stated as wells rather than as an ordinal.
+
+        The rule under test is the one that reads a wild-type ROW ORDINAL as a
+        well, so it is pinned to ``AFTER_LAST_VARIANT`` rather than re-stated
+        against the 2026-08-18 default. The default no longer answers this
+        question at all: it puts the control in H12 whatever row it sat on.
+        """
         path = _write_sheet(
             tmp_path / "v.xlsx",
             [["variant"], ["V5F"], ["WT"], ["K53N"]],
         )
 
         result = read_variant_source(path)
-        draft = build_draft_layout(result.expected, wt_ordinal=result.wt_ordinal)
+        draft = build_draft_layout(
+            result.expected,
+            wt_ordinal=result.wt_ordinal,
+            wt_placement=WtPlacement.AFTER_LAST_VARIANT,
+        )
 
         assert list(draft.layout.items()) == [
             ("A1", "V5F"),
@@ -332,7 +343,13 @@ class TestKuroExportStillWorks:
         )
 
         result = read_variant_source(path)
-        draft = build_draft_layout(result.expected, wt_ordinal=result.wt_ordinal)
+        # 서수 규칙 자체를 못박는 테스트다. 기본값이 바뀌어도 이 규칙은
+        # ``AFTER_LAST_VARIANT`` 로 살아 있으므로 선택지를 명시한다.
+        draft = build_draft_layout(
+            result.expected,
+            wt_ordinal=result.wt_ordinal,
+            wt_placement=WtPlacement.AFTER_LAST_VARIANT,
+        )
 
         assert result.wt_ordinal == 2
         assert list(draft.layout.items()) == [
@@ -411,10 +428,13 @@ class TestExplicitSheetBeatsRecognition:
 
         # 플레이트 시트를 고르면 그 순서가 곧 well 순서다.
         assert [m.mutant_id for m in result.expected] == ["S11I", "S22T", "K53I"]
-        # column-major: seq 1..3 -> A1,B1,C1 이고 WT 는 그 다음 칸이다.
+        # column-major: seq 1..3 -> A1,B1,C1. 대조군은 기본값대로 마지막 웰이다.
+        # 이 테스트가 지키는 것은 시트 선택이지 대조군 자리가 아니므로,
+        # 선택지를 명시하지 않고 새 기본값의 결과를 그대로 확인한다.
         layout = build_draft_layout(result.expected).layout
         assert [layout[w] for w in ("A1", "B1", "C1")] == ["S11I", "S22T", "K53I"]
-        assert layout["D1"] == "WT"
+        assert layout["H12"] == "WT"
+        assert "D1" not in layout
 
     def test_naming_no_sheet_keeps_the_strict_reader(self, tmp_path):
         path = self._mixed_workbook(tmp_path / "platemap.xlsx")
@@ -477,7 +497,13 @@ class TestControlStatusWildType:
         )
 
         result = read_variant_source(path)
-        draft = build_draft_layout(result.expected, wt_ordinal=result.wt_ordinal)
+        # 이름 그대로 "행 번호가 가리키는 웰" 이 대상이므로 서수 선택지를
+        # 명시한다.
+        draft = build_draft_layout(
+            result.expected,
+            wt_ordinal=result.wt_ordinal,
+            wt_placement=WtPlacement.AFTER_LAST_VARIANT,
+        )
 
         assert result.wt_ordinal == 2
         assert list(draft.layout.items()) == [
@@ -678,3 +704,249 @@ class TestMultiColumnFirstRowIsRefused:
 
         with pytest.raises(ValueError, match="cannot tell which column"):
             read_variant_source(path)
+
+
+def _variant(index: int) -> str:
+    """A distinct, parseable substitution label for filler rows."""
+    return f"G{index + 2}A"
+
+
+class TestStatedWells:
+    """A ``Well`` column is the placement, and the reader computes nothing.
+
+    Every test here asks the same question in a different shape: does the file
+    decide, or does the reader. The row-order path is a separate class because
+    it answers that question the other way and has to keep doing so.
+    """
+
+    def test_the_wells_the_file_names_are_the_wells_the_plate_uses(self, tmp_path):
+        """Including a plate that starts nowhere near A1."""
+        path = _write_sheet(
+            tmp_path / "wells.xlsx",
+            [["Well", "Variant"], ["C3", "V5F"], ["A1", "K53N"], ["H12", "T10A"]],
+        )
+
+        result = read_variant_source(path)
+        draft = build_draft_layout(
+            result.expected, wells=result.wells, wt_well=result.wt_well
+        )
+
+        # Row order says nothing here: the placement is read off the Well column
+        # and then put into plate order, so A1 leads whatever line it sat on.
+        assert draft.layout == {"A1": "K53N", "C3": "V5F", "H12": "T10A"}
+        assert list(draft.layout) == ["A1", "C3", "H12"]
+
+    def test_a_well_with_no_variant_is_a_well_this_campaign_did_not_use(
+        self, tmp_path
+    ):
+        """The rule that makes a partial plate expressible.
+
+        On the row-order path an empty variant cell is refused, because the row
+        is read and every mutant after it moves one well up. Nothing moves here,
+        so the row states that the well is empty and the layout leaves it out.
+        """
+        path = _write_sheet(
+            tmp_path / "partial.xlsx",
+            [["Well", "Variant"], ["A1", "V5F"], ["B1", None], ["C1", "K53N"]],
+        )
+
+        result = read_variant_source(path)
+        draft = build_draft_layout(
+            result.expected, wells=result.wells, wt_well=result.wt_well
+        )
+
+        assert result.dropped_rows == []
+        assert draft.layout == {"A1": "V5F", "C1": "K53N"}
+        assert "B1" not in draft.layout
+
+    def test_ninety_six_variants_and_no_control_fill_the_plate(self, tmp_path):
+        """Capacity is 96 on this path, because a control is not assumed.
+
+        The 95 ceiling exists to keep a well free for a control the row-order
+        path appends whether the file mentions one or not. A file that states
+        its wells states whether there is a control, so a plate of 96 mutants is
+        a plate the file is entitled to describe.
+        """
+        wells = [seq_to_well(seq) for seq in range(1, 97)]
+        rows = [["Well", "Variant"]]
+        rows += [[well, _variant(i)] for i, well in enumerate(wells)]
+        path = _write_sheet(tmp_path / "full.xlsx", rows)
+
+        result = read_variant_source(path)
+        draft = build_draft_layout(
+            result.expected, wells=result.wells, wt_well=result.wt_well
+        )
+
+        assert result.wt_well is None
+        assert result.has_explicit_wt is False
+        assert len(draft.layout) == 96
+        assert draft.dropped_mutant_ids == []
+        assert draft.has_wt_well is False
+        assert draft.wt_well is None
+
+    def test_the_same_well_twice_is_refused_by_row_and_value(self, tmp_path):
+        path = _write_sheet(
+            tmp_path / "dup.xlsx",
+            [["Well", "Variant"], ["A1", "V5F"], ["B1", "K53N"], ["A1", "T10A"]],
+        )
+
+        with pytest.raises(ValueError) as excinfo:
+            read_variant_source(path)
+
+        message = str(excinfo.value)
+        assert "A1" in message
+        # Both rows, so the operator can see which two disagree.
+        assert "2" in message and "4" in message
+
+    def test_a_coordinate_off_the_plate_is_refused_by_row_and_value(self, tmp_path):
+        for raw in ("I13", "A0", "Z9"):
+            path = _write_sheet(
+                tmp_path / f"off-{raw}.xlsx",
+                [["Well", "Variant"], ["A1", "V5F"], [raw, "K53N"]],
+            )
+
+            with pytest.raises(ValueError) as excinfo:
+                read_variant_source(path)
+
+            message = str(excinfo.value)
+            assert raw in message, message
+            assert "row 3" in message, message
+
+    def test_a_variant_with_an_empty_well_cell_is_refused(self, tmp_path):
+        """The mirror of the empty-variant rule, and it is not symmetric.
+
+        An empty variant says the well is unused. An empty well says nothing at
+        all about where the variant goes, and there is no row order to fall back
+        on once the file has claimed the addresses.
+        """
+        path = _write_sheet(
+            tmp_path / "no-well.xlsx",
+            [["Well", "Variant"], ["A1", "V5F"], [None, "K53N"]],
+        )
+
+        with pytest.raises(ValueError) as excinfo:
+            read_variant_source(path)
+
+        message = str(excinfo.value)
+        assert "row 3" in message
+        assert "K53N" in message
+
+    def test_a01_and_a1_are_the_same_well(self, tmp_path):
+        path = _write_sheet(
+            tmp_path / "padded.xlsx",
+            [["Well", "Variant"], ["A01", "V5F"], ["B01", "K53N"]],
+        )
+
+        result = read_variant_source(path)
+        draft = build_draft_layout(
+            result.expected, wells=result.wells, wt_well=result.wt_well
+        )
+
+        assert result.wells == ["A1", "B1"]
+        assert draft.layout == {"A1": "V5F", "B1": "K53N"}
+
+    def test_a01_collides_with_a1_rather_than_naming_a_second_well(self, tmp_path):
+        path = _write_sheet(
+            tmp_path / "padded-dup.xlsx",
+            [["Well", "Variant"], ["A1", "V5F"], ["A01", "K53N"]],
+        )
+
+        with pytest.raises(ValueError, match="A1"):
+            read_variant_source(path)
+
+    def test_the_control_sits_in_the_well_the_file_gave_it(self, tmp_path):
+        path = _write_sheet(
+            tmp_path / "wt.xlsx",
+            [["Well", "Variant"], ["A1", "V5F"], ["D7", "WT"], ["B1", "K53N"]],
+        )
+
+        result = read_variant_source(path)
+        draft = build_draft_layout(
+            result.expected, wells=result.wells, wt_well=result.wt_well
+        )
+
+        assert result.wt_well == "D7"
+        assert result.has_explicit_wt is True
+        # No ordinal is recorded: the file answered the question an ordinal is a
+        # proxy for, so recording both would leave two statements about one well.
+        assert result.wt_ordinal is None
+        assert draft.layout == {"A1": "V5F", "B1": "K53N", "D7": "WT"}
+        assert draft.wt_well == "D7"
+
+
+class TestControlWellPlacementWithoutAWellColumn:
+    """The row-order path, where where the control goes is a decision."""
+
+    def _forty(self, tmp_path, wt: bool = True):
+        rows = [["variant"]] + [[_variant(i)] for i in range(40)]
+        if wt:
+            rows.append(["WT"])
+        return _write_sheet(tmp_path / "forty.xlsx", rows)
+
+    def test_the_default_puts_the_control_in_the_last_well(self, tmp_path):
+        """The regression this whole change exists for.
+
+        Forty variants with a wild-type row on line 41 used to put the control
+        in A6, because the row ordinal was read as a well. The bench pipettes it
+        into H12. MAME scored A6 as the control and did not score H12 at all.
+        """
+        result = read_variant_source(self._forty(tmp_path))
+        draft = build_draft_layout(result.expected, wt_ordinal=result.wt_ordinal)
+
+        assert result.wt_ordinal == 41
+        assert draft.wt_well == "H12"
+        assert draft.layout["H12"] == "WT"
+        # The variants are untouched: they still fill from A1 in file order.
+        assert draft.layout["A1"] == _variant(0)
+        assert draft.layout["H5"] == _variant(39)
+        assert "A6" not in draft.layout
+
+    def test_naming_the_ordinal_placement_keeps_the_old_answer(self, tmp_path):
+        """The old rule is a choice now, not a default, and it still works."""
+        result = read_variant_source(self._forty(tmp_path))
+        draft = build_draft_layout(
+            result.expected,
+            wt_ordinal=result.wt_ordinal,
+            wt_placement=WtPlacement.AFTER_LAST_VARIANT,
+        )
+
+        assert draft.wt_well == "A6"
+        assert draft.layout["A6"] == "WT"
+
+    def test_none_leaves_the_plate_without_a_control(self, tmp_path):
+        """A campaign that ran no control is a plate, not an error."""
+        result = read_variant_source(self._forty(tmp_path))
+        draft = build_draft_layout(
+            result.expected,
+            wt_ordinal=result.wt_ordinal,
+            wt_placement=WtPlacement.NONE,
+        )
+
+        assert draft.wt_well is None
+        assert draft.has_wt_well is False
+        assert "WT" not in draft.layout.values()
+        assert len(draft.layout) == 40
+        # The variants do not move: the control policy decides one well, not the
+        # order of the other ninety-five.
+        assert draft.layout["A1"] == _variant(0)
+        assert draft.layout["H5"] == _variant(39)
+
+    def test_ninety_six_variants_are_still_refused_without_a_well_column(
+        self, tmp_path
+    ):
+        """The ceiling does not depend on where the control sits.
+
+        It holds under NONE too. Whether a list fits must not change with a
+        setting, or the same file would be a plate under one policy and not
+        under another.
+        """
+        rows = [["variant"]] + [[_variant(i)] for i in range(96)]
+        path = _write_sheet(tmp_path / "ninetysix.xlsx", rows)
+
+        result = read_variant_source(path)
+
+        for placement in WtPlacement:
+            draft = build_draft_layout(result.expected, wt_placement=placement)
+            assert draft.layout == {}, placement
+            assert draft.dropped_mutant_ids == [_variant(95)], placement
+            assert draft.is_complete is False, placement

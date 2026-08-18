@@ -8,6 +8,7 @@ import pytest
 from openpyxl import Workbook
 
 from kuma_core.mame.io.plate_order_check import check_plate_order
+from kuma_core.mame.layout import WtPlacement
 
 REAL_EXPORT = Path(
     "/mnt/d/_workspace/020.admin/projects/070.KUMA_elements/260730 MAME test"
@@ -218,27 +219,41 @@ class TestWildTypeRow:
         assert report.ok is True
 
     def test_a_wt_row_in_the_middle_moves_the_wells_after_it(self, tmp_path):
-        """WT 가 2번째면 그 뒤 mutant 는 한 칸 내려간 well 에서 비교된다."""
+        """WT 가 2번째면 그 뒤 mutant 는 한 칸 내려간 well 에서 비교된다.
+
+        서수 배치 규칙 자체를 못박는 테스트다. 2026-08-18 에 기본값이
+        ``LAST_WELL`` 로 바뀌었지만 그 규칙은 ``AFTER_LAST_VARIANT`` 로 계속
+        살아 있으므로, 기대값을 고치는 대신 선택지를 명시해 규칙을 지킨다.
+        """
         path = _workbook(
             tmp_path / "wt-middle.xlsx",
             [("A1", "S11I"), ("C1", "S22T"), ("D1", "N28S")],
             ["S11I", "WT", "S22T", "N28S"],
         )
 
-        report = check_plate_order(path)
+        report = check_plate_order(
+            path, wt_placement=WtPlacement.AFTER_LAST_VARIANT
+        )
 
         assert report.comparable is True
         assert report.ok is True
 
     def test_the_middle_wt_well_is_left_out_of_the_comparison(self, tmp_path):
-        """B1 은 대조군 자리다. 플레이트에 없다고 어긋난 것이 아니다."""
+        """B1 은 대조군 자리다. 플레이트에 없다고 어긋난 것이 아니다.
+
+        위 테스트와 같은 이유로 ``AFTER_LAST_VARIANT`` 를 명시한다. 대조군이
+        중간 웰에 앉는 배치 자체가 이 선택지에만 있다.
+        """
         path = _workbook(
             tmp_path / "wt-middle.xlsx",
             [("A1", "S11I"), ("C1", "S22T"), ("D1", "N28S")],
             ["S11I", "WT", "S22T", "N28S"],
         )
 
-        assert [w for w, _, _ in check_plate_order(path).examples] == []
+        examples = check_plate_order(
+            path, wt_placement=WtPlacement.AFTER_LAST_VARIANT
+        ).examples
+        assert [w for w, _, _ in examples] == []
 
     def test_the_old_ordinal_reading_would_have_reported_a_shift(self, tmp_path):
         """WT 를 세지 않던 옛 규칙이라면 S22T 가 B1 에서 어긋났을 자리다."""
@@ -248,7 +263,9 @@ class TestWildTypeRow:
             ["S11I", "WT", "S22T", "N28S"],
         )
 
-        report = check_plate_order(path)
+        report = check_plate_order(
+            path, wt_placement=WtPlacement.AFTER_LAST_VARIANT
+        )
 
         assert report.missing_from_expected == []
         assert report.absent_from_plate == []
