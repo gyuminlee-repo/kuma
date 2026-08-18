@@ -9,6 +9,7 @@ both subclasses and that subclass-specific required fields are enforced.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 from pydantic import ValidationError
@@ -153,7 +154,7 @@ def _combinatorial_kwargs(
     reference_fasta: Path,
     run_dir: Path,
     output_dir: Path,
-) -> dict[str, object]:
+) -> dict[str, Any]:
     return {
         "minknow_run_dir": str(run_dir),
         "custom_barcodes_xlsx": str(barcodes_xlsx),
@@ -166,7 +167,7 @@ def _analyze_kwargs(
     barcodes_xlsx: Path,
     reference_fasta: Path,
     run_dir: Path,
-) -> dict[str, object]:
+) -> dict[str, Any]:
     return {
         "minknow_run_dir": str(run_dir),
         "custom_barcodes_xlsx": str(barcodes_xlsx),
@@ -312,7 +313,9 @@ def test_combinatorial_requires_minknow_run_dir(
     output_dir: Path,
 ) -> None:
     with pytest.raises(ValidationError):
-        CombinatorialDemuxParams(
+        # The missing minknow_run_dir is the assertion, so the call is
+        # deliberately incomplete.
+        CombinatorialDemuxParams(  # type: ignore[call-arg]
             custom_barcodes_xlsx=str(barcodes_xlsx),
             reference_fasta=str(reference_fasta),
             output_dir=str(output_dir),
@@ -325,7 +328,8 @@ def test_combinatorial_requires_output_dir(
     run_dir: Path,
 ) -> None:
     with pytest.raises(ValidationError):
-        CombinatorialDemuxParams(
+        # The missing output_dir is the assertion.
+        CombinatorialDemuxParams(  # type: ignore[call-arg]
             minknow_run_dir=str(run_dir),
             custom_barcodes_xlsx=str(barcodes_xlsx),
             reference_fasta=str(reference_fasta),
@@ -337,7 +341,8 @@ def test_analyze_requires_minknow_run_dir(
     reference_fasta: Path,
 ) -> None:
     with pytest.raises(ValidationError):
-        AnalyzeRawRunParams(
+        # The missing minknow_run_dir is the assertion.
+        AnalyzeRawRunParams(  # type: ignore[call-arg]
             custom_barcodes_xlsx=str(barcodes_xlsx),
             reference_fasta=str(reference_fasta),
         )

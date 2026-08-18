@@ -119,7 +119,9 @@ def test_export_evolvepro_xlsx_spec_2col(tmp_path: Path) -> None:
     data = list(ws.values)
     assert data[0] == ("Variant", "activity")
     assert data[1][0] == "89W"
-    assert abs(float(data[1][1]) - 1.78) < 1e-6
+    activity = data[1][1]
+    assert isinstance(activity, (int, float))
+    assert abs(float(activity) - 1.78) < 1e-6
 
 
 def test_export_evolvepro_xlsx_uses_fold_change_as_activity(tmp_path: Path) -> None:
@@ -134,7 +136,9 @@ def test_export_evolvepro_xlsx_uses_fold_change_as_activity(tmp_path: Path) -> N
 
     wb = openpyxl.load_workbook(str(out))
     data = list(wb["EVOLVEpro"].values)
-    assert abs(float(data[1][1]) - 2.5) < 1e-6
+    activity = data[1][1]
+    assert isinstance(activity, (int, float))
+    assert abs(float(activity) - 2.5) < 1e-6
 
 
 def test_export_evolvepro_xlsx_skips_non_canonical(tmp_path: Path) -> None:

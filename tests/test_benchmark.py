@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+from typing import Any
 
 import pytest
 
@@ -160,27 +161,27 @@ class TestEvaluateSelection:
         gt = _make_ground_truth(land)
         # Select top 10 (all should be hits at top 10%)
         sel = land[:10]
-        metrics = evaluate_selection(sel, gt, top_percentile=10.0)
+        metrics: dict[str, Any] = dict(evaluate_selection(sel, gt, top_percentile=10.0))
         assert metrics["n_selected"] == 10
         assert metrics["hit_rate"] == 100.0
         assert metrics["hits"] == 10
 
     def test_empty_selection(self):
         gt = {"A10C": 1.0, "A20D": 0.5}
-        metrics = evaluate_selection([], gt)
+        metrics: dict[str, Any] = dict(evaluate_selection([], gt))
         assert metrics["n_selected"] == 0
         assert metrics["hit_rate"] == 0.0
 
     def test_empty_ground_truth(self):
         sel = [("A10C", 1.0)]
-        metrics = evaluate_selection(sel, {})
+        metrics: dict[str, Any] = dict(evaluate_selection(sel, {}))
         assert metrics["n_selected"] == 1
         assert metrics["hit_rate"] == 0.0
 
     def test_position_coverage(self):
         sel = [("A10C", 1.0), ("A20D", 0.9), ("A10E", 0.8)]
         gt = {"A10C": 1.0, "A20D": 0.9, "A10E": 0.8}
-        metrics = evaluate_selection(sel, gt)
+        metrics: dict[str, Any] = dict(evaluate_selection(sel, gt))
         # 2 unique positions (10 and 20) out of 3 selected
         assert metrics["unique_positions"] == 2
         assert abs(metrics["position_coverage"] - 2 / 3 * 100) < 0.1
@@ -193,7 +194,7 @@ class TestEvaluateSelection:
             {"name": "Mid", "start": 16, "end": 25},
             {"name": "C-term", "start": 26, "end": 40},
         ]
-        metrics = evaluate_selection(sel, gt, domains=domains)
+        metrics: dict[str, Any] = dict(evaluate_selection(sel, gt, domains=domains))
         assert "domain_coverage" in metrics
         assert abs(metrics["domain_coverage"] - 2 / 3 * 100) < 0.1
 
@@ -204,18 +205,18 @@ class TestEvaluateSelection:
             {"name": "N-term", "start": 1, "end": 15},
             {"name": "C-term", "start": 16, "end": 25},
         ]
-        metrics = evaluate_selection(sel, gt, domains=domains)
+        metrics: dict[str, Any] = dict(evaluate_selection(sel, gt, domains=domains))
         assert abs(metrics["domain_coverage"] - 100.0) < 0.1
 
     def test_domain_coverage_empty_ground_truth(self):
         sel = [("A10C", 1.0)]
-        metrics = evaluate_selection(sel, {})
+        metrics: dict[str, Any] = dict(evaluate_selection(sel, {}))
         assert metrics["domain_coverage"] == 0.0
 
     def test_structural_spread_without_coords(self):
         gt = {"A10C": 1.0, "A20D": 0.9, "A40E": 0.8}
         sel = [("A10C", 1.0), ("A20D", 0.9), ("A40E", 0.8)]
-        metrics = evaluate_selection(sel, gt)
+        metrics: dict[str, Any] = dict(evaluate_selection(sel, gt))
         assert metrics["structural_spread"] > 0.0
 
 
@@ -234,6 +235,7 @@ class TestRunBenchmark:
         assert "pareto_3d" in bench
         assert "pareto_entropy" in bench
         # Random should have n_trials
+        assert "n_trials" in bench["random"]
         assert bench["random"]["n_trials"] == 5
 
     def test_single_strategy(self):
@@ -252,6 +254,7 @@ class TestRunBenchmark:
             land, gt, n_select=20, n_random_trials=50,
             strategies=["topn", "random"],
         )
+        assert "hit_rate" in bench["topn"] and "hit_rate" in bench["random"]
         assert bench["topn"]["hit_rate"] >= bench["random"]["hit_rate"]
 
     def test_pareto_more_diverse_than_topn(self):
@@ -265,6 +268,7 @@ class TestRunBenchmark:
         bench = run_benchmark(
             land, gt, n_select=6, strategies=["topn", "pareto_3d"],
         )
+        assert "unique_positions" in bench["pareto_3d"] and "unique_positions" in bench["topn"]
         assert bench["pareto_3d"]["unique_positions"] >= bench["topn"]["unique_positions"]
 
     def test_random_seed_is_reproducible(self):
@@ -293,6 +297,7 @@ class TestRunBenchmark:
         gt = _make_ground_truth(land)
         bench_10 = run_benchmark(land, gt, n_select=10, top_percentile=10, strategies=["topn"])
         bench_20 = run_benchmark(land, gt, n_select=10, top_percentile=20, strategies=["topn"])
+        assert "threshold" in bench_10["topn"] and "threshold" in bench_20["topn"]
         assert bench_10["topn"]["threshold"] > bench_20["topn"]["threshold"]
 
 

@@ -14,6 +14,7 @@ import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -258,7 +259,7 @@ def test_load_invalid_json_raises(tmp_path: Path) -> None:
 
 def test_determinism_excluding_timestamps(known_input_file: Path) -> None:
     """With identical inputs and params, non-timestamp fields are identical."""
-    kwargs = dict(
+    kwargs: dict[str, Any] = dict(
         method="design_sdm_primers",
         inputs={"ref": known_input_file},
         params={"polymerase": "Q5", "organism": "ecoli"},

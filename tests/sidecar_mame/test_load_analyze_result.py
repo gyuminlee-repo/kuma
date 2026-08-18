@@ -19,6 +19,7 @@ from kuma_core.mame.models import (
     VerdictRecord,
 )
 from kuma_core.mame.detected import compute_recovery
+from kuma_core.mame.ingest.run_meta import NgsRunMeta
 from sidecar_mame.core import SidecarState, get_state, set_last_analyze
 from sidecar_mame.handlers.analyze import (
     _deserialize_replicate,
@@ -264,6 +265,8 @@ def test_load_then_get_plate_data_matches_post_analyze() -> None:
     st2 = get_state()
     assert st2.last_output_path == "/tmp/out.xlsx"
     assert st2.last_run_meta is not None
+    # State holds it as ``object``; the round trip must give the real model back.
+    assert isinstance(st2.last_run_meta, NgsRunMeta)
     assert st2.last_run_meta.flow_cell_id == "FC1"
     assert st2.last_run_meta.basecalling_enabled is True
 
@@ -317,6 +320,7 @@ def test_load_preserves_designed_mutant_ids_so_recovery_is_non_none() -> None:
 
     st = get_state()
     assert st.last_designed_mutant_ids == frozenset(designed)
+    assert st.last_replicates is not None
     # Recovery is non-None because the designed set survived the round-trip.
     assert compute_recovery(st.last_replicates, st.last_designed_mutant_ids) is not None
 
@@ -335,6 +339,7 @@ def test_load_without_designed_mutant_ids_leaves_recovery_unavailable() -> None:
 
     st = get_state()
     assert st.last_designed_mutant_ids is None
+    assert st.last_replicates is not None
     # Designed set unavailable → recovery is None (callers render "n/a").
     assert compute_recovery(st.last_replicates, st.last_designed_mutant_ids) is None
 

@@ -305,9 +305,14 @@ class TestPlateMapColourIsOrderIndependent:
 
     @staticmethod
     def _plate_map(verdicts: list) -> str:
+        from typing import cast
+
+        from kuma_core.mame.report.builder import RunReportData
         from kuma_core.mame.report.html_renderer import _render_plate_map
 
-        return _render_plate_map(SimpleNamespace(_raw_verdicts=verdicts))
+        # The renderer reads only ``_raw_verdicts`` off the report data.
+        stub = cast(RunReportData, SimpleNamespace(_raw_verdicts=verdicts))
+        return _render_plate_map(stub)
 
     def test_ambiguous_then_mixed_matches_mixed_then_ambiguous(self) -> None:
         ambiguous = _make_verdict("barcode01", "1_1", 120.0, "AMBIGUOUS")

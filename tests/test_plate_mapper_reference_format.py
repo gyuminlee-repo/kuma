@@ -233,8 +233,10 @@ class TestJanusReferenceFormat:
         asp = header.index("Asp. Rack")
         dsp = header.index("Dsp. Rack")
         body = [[c.value for c in r] for r in ws.iter_rows(min_row=2)]
-        assert {r[asp] for r in body} == {names["kuro_fwd"], names["kuro_rev"]}
-        assert {r[dsp] for r in body} == {names["kuro_dest"]}
+        # Cell values are stringified before entering the set: the openpyxl
+        # value union carries unhashable members, and both sides are names.
+        assert {str(r[asp]) for r in body} == {names["kuro_fwd"], names["kuro_rev"]}
+        assert {str(r[dsp]) for r in body} == {names["kuro_dest"]}
 
 
 class TestReferenceFixtureItself:

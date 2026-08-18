@@ -52,6 +52,7 @@ def _make_xlsx(path, rows):
     """Write a minimal xlsx with Variant + activity columns."""
     wb = openpyxl.Workbook()
     ws = wb.active
+    assert ws is not None
     ws.append(["Variant", "activity"])
     for variant, activity in rows:
         ws.append([variant, activity])
@@ -97,6 +98,7 @@ class TestXlsxParsing:
         bad_xlsx = tmp_path / "bad.xlsx"
         wb = openpyxl.Workbook()
         ws = wb.active
+        assert ws is not None
         ws.append(["SomeCol", "activity"])
         ws.append(["A100", 1.2])
         wb.save(str(bad_xlsx))
@@ -109,6 +111,7 @@ class TestXlsxParsing:
         bad_xlsx = tmp_path / "bad.xlsx"
         wb = openpyxl.Workbook()
         ws = wb.active
+        assert ws is not None
         ws.append(["Variant", "Score"])
         ws.append(["100A", 1.2])
         wb.save(str(bad_xlsx))
@@ -121,6 +124,7 @@ class TestXlsxParsing:
         bad_xlsx = tmp_path / "bad.xlsx"
         wb = openpyxl.Workbook()
         ws = wb.active
+        assert ws is not None
         ws.append(["Variant", "activity"])
         ws.append(["NoPosition", 1.5])
         wb.save(str(bad_xlsx))
@@ -133,6 +137,7 @@ class TestXlsxParsing:
         bad_xlsx = tmp_path / "bad.xlsx"
         wb = openpyxl.Workbook()
         ws = wb.active
+        assert ws is not None
         ws.append(["Variant", "activity"])
         ws.append(["100A", 0.0])
         wb.save(str(bad_xlsx))
@@ -145,6 +150,7 @@ class TestXlsxParsing:
         bad_xlsx = tmp_path / "bad.xlsx"
         wb = openpyxl.Workbook()
         ws = wb.active
+        assert ws is not None
         ws.append(["Variant", "activity"])
         ws.append(["100A", -0.5])
         wb.save(str(bad_xlsx))

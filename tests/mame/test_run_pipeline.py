@@ -158,7 +158,12 @@ def _build_per_nb_run(tmp_path: Path, nb_names: list[str]) -> Path:
 
 
 def _expected_wells() -> set[str]:
-    return {seq_to_well(_custom_barcode_to_seq(f"{r}_{f}")) for r, f in _WELLS}
+    wells: set[str] = set()
+    for r, f in _WELLS:
+        seq = _custom_barcode_to_seq(f"{r}_{f}")
+        assert seq is not None, f"unparseable {{R}}_{{F}} token: {r}_{f}"
+        wells.add(seq_to_well(seq))
+    return wells
 
 
 # ---------------------------------------------------------------------------
@@ -420,7 +425,9 @@ class TestIngestPerNb:
         }
         # The manifest is rewritten, not appended to, so a folder re-used for a
         # NARROWER selection later cannot keep claiming the wider one.
-        assert read_run_manifest(out_dir)["units"] == [
+        manifest = read_run_manifest(out_dir)
+        assert manifest is not None
+        assert manifest["units"] == [
             "sort_barcode06",
             "sort_barcode20",
         ]
@@ -543,8 +550,9 @@ class TestIngestPerNb:
         )
         for name, marker in markers_before.items():
             assert marker is not None
-            assert markers_after[name] is not None
-            assert markers_after[name]["inputs"] == marker["inputs"]
+            after = markers_after[name]
+            assert after is not None
+            assert after["inputs"] == marker["inputs"]
 
 
 # ---------------------------------------------------------------------------
