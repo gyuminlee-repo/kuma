@@ -1352,7 +1352,7 @@
     "deleteFolderConfirmDesc": "{{path}} wandert samt allen enthaltenen Dateien in den Papierkorb des Systems. Aus dem Papierkorb lässt sich der Ordner wiederherstellen.",
     "deleteFolderConfirmButton": "In den Papierkorb verschieben",
     "restorableTitle": "Wiederherstellbare Projekte",
-    "restorableDesc": "Aus der Liste der letzten Projekte entfernt, aber weiterhin auf der Festplatte vorhanden.",
+    "restorableDesc": "Aus der Liste der letzten Projekte entfernt, aber weiterhin im aktuellen Projektordner. Projekte in einem anderen Ordner werden hier nicht aufgeführt.",
     "restorableEmpty": "Keine wiederherstellbaren Projekte.",
     "restoreButton": "Wiederherstellen",
     "overview": {

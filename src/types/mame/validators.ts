@@ -58,6 +58,73 @@ function isRecordOfStringArray(value: unknown): boolean {
   return isRecord(value) && Object.values(value).every(isStringArray);
 }
 
+/**
+ * Membership guards for the declared string unions.
+ *
+ * A union checked with `isString` is a decoration: the type says four values
+ * and the guard admits every string, so a fifth reaches a component that
+ * switches on it. The KURO validators enforce theirs inline
+ * (`src/types/validators.ts:475`); these do the same, and each list mirrors the
+ * Python that produces it.
+ */
+
+/** `kuma_core/strategy/classify.py:68` (`DecisionLabel`). */
+const DECISION_LABELS = new Set([
+  "continue_walking",
+  "switch_combinatorial",
+  "stop",
+  "deferred",
+]);
+
+/**
+ * `python-core/sidecar_mame/handlers/classify_round.py:137,140`
+ * (`_REASON_WT_MISSING`, `_REASON_WT_INSUFFICIENT`), the only two values the
+ * `not_assessable` shape reports.
+ */
+const NOT_ASSESSABLE_REASONS = new Set([
+  "wt_replicates_missing",
+  "wt_replicates_insufficient",
+]);
+
+/**
+ * `kuma_core/mame/activity/build_evolvepro_input.py:364`, where exactly one of
+ * the three primary sources must be supplied and its name becomes this field.
+ */
+const PRIMARY_FORMATS = new Set([
+  "activity_path",
+  "gc_data_xlsx",
+  "round1_report_xlsx",
+]);
+
+/**
+ * `kuma_core/mame/activity/label_audit.py:173,190-196,232`, every `category=`
+ * a `LabelFinding` is constructed with.
+ */
+const LABEL_FINDING_CATEGORIES = new Set([
+  "not_introduced",
+  "wrong_residue",
+  "extra_mutation",
+  "sequence_collapse",
+  "cross_well",
+]);
+
+/**
+ * `kuma_core/mame/activity/label_audit.py:92-97`, the four returns of
+ * `_classify_geometry`. `null` when no closed permutation was found.
+ */
+const LABEL_AUDIT_GEOMETRIES = new Set([
+  "two_swap",
+  "contiguous_shift",
+  "scattered",
+  "global_offset",
+]);
+
+function isMemberOf(members: Set<string>): (value: unknown) => boolean {
+  return (value) => isString(value) && members.has(value);
+}
+
+const isDecisionLabel = isMemberOf(DECISION_LABELS);
+
 function isNullableFiniteNumber(value: unknown): boolean {
   return value === null || isFiniteNumber(value);
 }
@@ -77,7 +144,7 @@ function isLabelFinding(value: unknown): boolean {
     isString(value.well) &&
     isString(value.expected) &&
     isStringArray(value.observed) &&
-    isString(value.category) &&
+    isMemberOf(LABEL_FINDING_CATEGORIES)(value.category) &&
     isString(value.verdict)
   );
 }
@@ -93,7 +160,7 @@ function isLabelAudit(value: unknown): boolean {
     typeof value.is_closed_permutation === "boolean" &&
     Array.isArray(value.cycles) &&
     value.cycles.every(isStringArray) &&
-    (value.geometry === null || isString(value.geometry))
+    (value.geometry === null || isMemberOf(LABEL_AUDIT_GEOMETRIES)(value.geometry))
   );
 }
 
@@ -118,7 +185,7 @@ const isBuildEvolveproInputResult: MameResultValidator = (value) =>
   isString(value.gc_export_path) &&
   isLabelAudit(value.label_audit) &&
   isString(value.manifest_path) &&
-  isString(value.primary_format) &&
+  isMemberOf(PRIMARY_FORMATS)(value.primary_format) &&
   isFiniteNumber(value.input_count) &&
   isFiniteNumber(value.evaluable_count) &&
   isRecordOfFiniteNumber(value.exclusion_reason_counts) &&
@@ -137,7 +204,14 @@ const isClassifyRoundResult: MameResultValidator = (value) => {
   if (!isRecord(value)) return false;
   if (value.advisory === "decision") {
     return (
-      isString(value.label) &&
+      // `label` gates a badge and a colour in AdvisoryDecisionCard, which
+      // renders it through `t("advisoryDecision.labels.<label>")` with no
+      // membership check of its own. An unlisted label reaches the badge as an
+      // i18n key miss, so it is refused here instead.
+      isDecisionLabel(value.label) &&
+      // `reason` is deliberately NOT enumerated: `Decision.reason` is a bare
+      // `str` in kuma_core/strategy/classify.py:75, and the card already falls
+      // back to `humanize` for a code with no phrase.
       isString(value.reason) &&
       isNullableFiniteNumber(value.confidence) &&
       isStringArray(value.missing_inputs)
@@ -145,9 +219,14 @@ const isClassifyRoundResult: MameResultValidator = (value) => {
   }
   if (value.advisory === "not_assessable") {
     return (
-      isString(value.reason) &&
+      // Only the two shortfalls the handler distinguishes. Unlike the decision
+      // branch this `reason` IS a closed set: classify_round.py:137,140 are the
+      // only values assigned at classify_round.py:607.
+      isMemberOf(NOT_ASSESSABLE_REASONS)(value.reason) &&
       isStringArray(value.missing_inputs) &&
-      isStringArray(value.blocked_decisions) &&
+      // Rendered through the same `advisoryDecision.labels.*` keys as `label`.
+      Array.isArray(value.blocked_decisions) &&
+      value.blocked_decisions.every(isDecisionLabel) &&
       (value.wt_replicate_count === undefined ||
         isFiniteNumber(value.wt_replicate_count)) &&
       (value.wt_replicate_min === undefined ||

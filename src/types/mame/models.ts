@@ -141,6 +141,36 @@ export interface ReplicateResult {
   fallback_reason: string | null;
 }
 
+/**
+ * One axis of a barcode workbook, as `BarcodeAxisPrefixes.as_dict` sends it
+ * (`kuma_core/mame/ingest/combinatorial_demux.py:443-452`).
+ */
+export interface BarcodeAxisPrefixes {
+  /** `"F"` or `"R"`, but declared `str` on the Python side. */
+  axis: string;
+  /** The tail that was stripped, uppercase. */
+  tail: string;
+  tail_length: number;
+  barcode_count: number;
+  /** One entry per barcode, in barcode-index order. Ragged axes vary. */
+  seed_lengths: number[];
+}
+
+/**
+ * What was cut off the barcode seeds on each axis, and what was left.
+ *
+ * Mirrors `BarcodePrefixResolution.as_dict`
+ * (`kuma_core/mame/ingest/combinatorial_demux.py:487-493`). Every instance
+ * describes a file that explained itself; one that does not raises out of
+ * `load_barcode_prefixes_with_provenance` rather than reaching this shape.
+ */
+export interface BarcodePrefixResolution {
+  forward: BarcodeAxisPrefixes;
+  reverse: BarcodeAxisPrefixes;
+  /** One operator-facing paragraph, built at `combinatorial_demux.py:471-485`. */
+  note: string;
+}
+
 export interface DistributionFileStats {
   min: number;
   p05: number;
@@ -155,7 +185,22 @@ export interface DistributionFileStats {
 
 export interface DistributionStats {
   n_files: number;
-  file_size_kb: DistributionFileStats;
+  /**
+   * All nine statistics, or nothing at all.
+   *
+   * `compute_distribution_stats` builds the nine keys unconditionally
+   * (`kuma_core/mame/distribution.py:132-142`), so a populated object is never
+   * partial. But an empty input list takes the early return at
+   * `distribution.py:119-120`, which leaves the field at its
+   * `field(default_factory=dict)` default (`distribution.py:39`) and puts `{}`
+   * on the wire verbatim (`python-core/sidecar_mame/handlers/analyze.py:2244`).
+   *
+   * That path is reachable: the empty-records refusal at `analyze.py:1912` is
+   * gated on `is_raw`, so a pre-demuxed consensus directory with no consensus
+   * FASTA reaches `compute_distribution_stats([])` with nothing to refuse it.
+   * The co-occurring signal is `n_files === 0`.
+   */
+  file_size_kb: DistributionFileStats | Record<string, never>;
   suggested_cutoff_kb: number;
   suggested_method: "median_minus_2sigma" | "p05" | "kneedle" | "fixed_50";
   bimodal: boolean;
@@ -549,6 +594,16 @@ export interface AnalyzeResult extends AnalyzeYield {
    * without it.
    */
   demux_resume?: DemuxResume;
+  /**
+   * What was cut off the barcode seeds, and how much seed was left.
+   *
+   * Optional for one reason only, and it is not the usual persisted-snapshot
+   * one: the sidecar SPREADS the key in
+   * (`python-core/sidecar_mame/handlers/analyze.py:2395-2399`) and omits it
+   * entirely when no barcode workbook was read, so it is absent rather than
+   * null on every non-raw path. A run that did read one always carries it.
+   */
+  barcode_prefix_resolution?: BarcodePrefixResolution;
 }
 
 /**

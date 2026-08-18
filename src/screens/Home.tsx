@@ -26,6 +26,28 @@ import {
 
 type DeleteStage = "choice" | "confirmFolder";
 
+/** The manifest `create_project` writes, and `load_project` reads back. */
+const PROJECT_MANIFEST = "kuma.project.json";
+
+/**
+ * The project folder a picked path denotes.
+ *
+ * A file picker aimed at a project returns the manifest inside it, but every
+ * Rust entry point takes the FOLDER (`src-tauri/src/project.rs:50-51`). Strip
+ * the manifest component when it is there and pass anything else through, so a
+ * user who navigated to the folder itself is not punished for it.
+ *
+ * Both separators are handled: the picker returns backslashes on Windows, and
+ * this runs unchanged on macOS and Linux.
+ */
+export function projectDirOf(selected: string): string {
+  const cut = Math.max(selected.lastIndexOf("/"), selected.lastIndexOf("\\"));
+  if (cut < 0) return selected;
+  if (selected.slice(cut + 1) !== PROJECT_MANIFEST) return selected;
+  // Keep the root itself rather than returning "" for "/kuma.project.json".
+  return cut === 0 ? selected.slice(0, 1) : selected.slice(0, cut);
+}
+
 type HomeProps = {
   onOpenProject: (path: string, options?: { newlyCreated?: boolean }) => void;
   onOpenScratch: (kuroJsonPath: string) => void;
@@ -190,8 +212,17 @@ export function Home({ onOpenProject, onOpenScratch, onOpenSettings }: HomeProps
         return;
       }
 
-      await loadProject(selected);
-      onOpenProject(selected);
+      // `load_project` takes the project DIRECTORY, not the manifest: it does
+      // `path.join("kuma.project.json")` itself (src-tauri/src/project.rs:51),
+      // and config.rs:198 calls it on the folder. The picker above returns a
+      // file, so handing the selection straight over asked for
+      // `.../kuma.project.json/kuma.project.json` and could never succeed.
+      // The `.kuro.json` branch is not symmetrical with this one because
+      // `onOpenScratch` genuinely wants the file.
+      const projectDir = projectDirOf(selected);
+
+      await loadProject(projectDir);
+      onOpenProject(projectDir);
     } catch (err) {
       setError(formatError(err));
     }

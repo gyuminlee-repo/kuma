@@ -1352,7 +1352,7 @@
     "deleteFolderConfirmDesc": "{{path}} pasa a la papelera del sistema junto con todo su contenido. La carpeta se puede recuperar desde la papelera.",
     "deleteFolderConfirmButton": "Mover a la papelera",
     "restorableTitle": "Proyectos restaurables",
-    "restorableDesc": "Quitados de la lista de recientes, pero todavía presentes en el disco.",
+    "restorableDesc": "Quitados de la lista de recientes, pero todavía en la carpeta de proyectos actual. Los proyectos de otra carpeta no aparecen aquí.",
     "restorableEmpty": "No hay proyectos para restaurar.",
     "restoreButton": "Restaurar",
     "overview": {

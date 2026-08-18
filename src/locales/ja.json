@@ -1352,7 +1352,7 @@
     "deleteFolderConfirmDesc": "{{path}} が中のファイルごとシステムのごみ箱へ移動します。ごみ箱から元に戻せます。",
     "deleteFolderConfirmButton": "ごみ箱へ移動",
     "restorableTitle": "復元できるプロジェクト",
-    "restorableDesc": "最近のプロジェクト一覧からは外れていますが、ディスクには残っているプロジェクトです。",
+    "restorableDesc": "最近のプロジェクト一覧からは外れていますが、現在のプロジェクトフォルダーには残っているプロジェクトです。別のフォルダーにあるプロジェクトは表示されません。",
     "restorableEmpty": "復元できるプロジェクトはありません。",
     "restoreButton": "復元",
     "overview": {

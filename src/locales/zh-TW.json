@@ -1352,7 +1352,7 @@
     "deleteFolderConfirmDesc": "{{path}} 及其中的所有檔案將移到系統資源回收筒，之後仍可從資源回收筒還原。",
     "deleteFolderConfirmButton": "移到資源回收筒",
     "restorableTitle": "可還原的專案",
-    "restorableDesc": "已從最近專案清單移除，但仍保留在磁碟上的專案。",
+    "restorableDesc": "已從最近專案清單移除，但仍位於目前專案資料夾中的專案。位於其他資料夾的專案不會列出。",
     "restorableEmpty": "沒有可還原的專案。",
     "restoreButton": "還原",
     "overview": {

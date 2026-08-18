@@ -17,6 +17,29 @@ export interface CombinatorialDemuxStats {
   chimera_splits: number
   wells_with_reads: number
   wells_with_min_reads: number
+
+  /**
+   * The drop-reason breakdown that partitions `ambiguous_dropped`.
+   *
+   * Carried alongside the eight counters above rather than folded into them,
+   * and OPTIONAL where they are required, because these seven are conditional:
+   * a resume from a completion marker written before the breakdown existed
+   * omits all seven, and `kuma_core/mame/ingest/combinatorial_demux.py:3113-3122`
+   * says why the omission must survive rather than be seeded at 0. An absent
+   * key means "this run could not measure it"; a zero would claim no read hit
+   * that cause, and would break the partition invariant against a non-zero
+   * `ambiguous_dropped`. Rendering one as 0 restates a measurement nobody made.
+   *
+   * Emitted per native barcode at `combinatorial_demux.py:3199-3204`; the names
+   * are `_DROP_REASON_FIELDS` at `combinatorial_demux.py:367-375`.
+   */
+  drop_short_window_read_5p?: number
+  drop_short_window_read_3p?: number
+  drop_no_barcode_f?: number
+  drop_no_barcode_r?: number
+  drop_ambiguous_tie_f?: number
+  drop_ambiguous_tie_r?: number
+  drop_both_axes?: number
 }
 
 /**

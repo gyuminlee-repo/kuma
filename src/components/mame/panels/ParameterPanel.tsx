@@ -25,6 +25,21 @@ const METHOD_LABELS: Record<DistributionStats["suggested_method"], string> = {
   fixed_50: "floor 50",
 };
 
+/**
+ * The phrase for how the recommended cutoff was reached.
+ *
+ * The fallback is not dead code for a payload that matches the type; it is what
+ * a payload that does NOT lands on. `suggested_method` is a `Literal` in
+ * `kuma_core/mame/distribution.py`, but nothing enforces a Python `Literal` at
+ * runtime and a sidecar of a different build can still answer, so an unmapped
+ * method used to index this record to `undefined` and print that word into the
+ * recommended-cutoff sentence. Showing the raw method name says less than a
+ * phrase would but is still true.
+ */
+export function methodLabelOf(method: DistributionStats["suggested_method"]): string {
+  return METHOD_LABELS[method] ?? method;
+}
+
 const INPUT_MODE_I18N_KEYS: Record<InputMode, string> = {
   consensus: "mame.parameters.inputSourceConsensus",
   sorted_barcode: "mame.parameters.inputSourceSortedBarcode",
@@ -39,7 +54,7 @@ function RecommendedCutoff({
   onApply: (value: number) => void;
 }) {
   const { t } = useTranslation();
-  const methodLabel = METHOD_LABELS[stats.suggested_method];
+  const methodLabel = methodLabelOf(stats.suggested_method);
   const bimodalTooltip = t("mame.parameters.bimodalTooltip");
 
   return (

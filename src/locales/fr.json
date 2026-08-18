@@ -1352,7 +1352,7 @@
     "deleteFolderConfirmDesc": "{{path}} part dans la corbeille du système avec tout son contenu. Le dossier reste récupérable depuis la corbeille.",
     "deleteFolderConfirmButton": "Déplacer vers la corbeille",
     "restorableTitle": "Projets restaurables",
-    "restorableDesc": "Retirés de la liste des projets récents mais toujours présents sur le disque.",
+    "restorableDesc": "Retirés de la liste des projets récents mais toujours dans le dossier de projets actuel. Les projets situés dans un autre dossier ne sont pas listés.",
     "restorableEmpty": "Aucun projet à restaurer.",
     "restoreButton": "Restaurer",
     "overview": {

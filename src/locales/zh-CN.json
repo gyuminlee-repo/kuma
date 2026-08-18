@@ -1352,7 +1352,7 @@
     "deleteFolderConfirmDesc": "{{path}} 及其中的所有文件将移到系统回收站，之后仍可从回收站还原。",
     "deleteFolderConfirmButton": "移到回收站",
     "restorableTitle": "可还原的项目",
-    "restorableDesc": "已从最近项目列表移除，但仍保留在磁盘上的项目。",
+    "restorableDesc": "已从最近项目列表移除，但仍位于当前项目文件夹中的项目。位于其他文件夹的项目不会列出。",
     "restorableEmpty": "没有可还原的项目。",
     "restoreButton": "还原",
     "overview": {

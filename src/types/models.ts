@@ -216,6 +216,22 @@ export interface EvolveproLoadResult {
   structure_frame_mismatch?: boolean;
   /** Ranked candidates beyond the selected set: selected + up to BUFFER_CAP extras, y_pred desc. */
   ranked_candidates?: import("./models.generated").RankedCandidateItem[];
+  /**
+   * Variants dropped for carrying a position-1 substitution, counted and named.
+   *
+   * `load_evolvepro_csv` returns these at the TOP level of its dict
+   * (`kuma_core/kuro/evolvepro.py:715-716`) as well as inside `step_stats`
+   * (`:721-722`), and `handle_load_evolvepro_csv` passes the dict through
+   * without filtering (`python-core/sidecar_kuro/handlers/misc.py:236-237`).
+   * Only the nested copies were modelled, so the top-level pair was invisible.
+   *
+   * Unlike the `step_stats` copies these are never null: the count is
+   * `len(...)` and the list a comprehension (`evolvepro.py:583-585`), so an
+   * empty list and 0 are what "none removed" looks like. Optional only because
+   * a result persisted before this field was modelled replays verbatim.
+   */
+  start_codon_removed?: number;
+  start_codon_removed_variants?: string[];
 }
 
 export interface EvolveproPreview {
@@ -286,6 +302,18 @@ export interface PlateMapResult {
 export interface ExportResult {
   success: boolean;
   filepath: string;
+  /**
+   * The run manifest written beside the export.
+   *
+   * All three export handlers call `write_run_manifest` and then attach the
+   * path unconditionally (`python-core/sidecar_kuro/handlers/export.py:318-323`,
+   * `:375-380`, `:473-478`), so a live sidecar always sends a string. Optional
+   * on the type only because a result persisted before these keys existed
+   * replays verbatim and has nothing to fall back to.
+   */
+  manifest_path?: string;
+  /** The checksum file written beside the export. Same reasoning as above. */
+  checksum_path?: string;
 }
 
 export interface SaveCustomPolymeraseResult {

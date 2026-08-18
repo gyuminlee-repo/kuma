@@ -1352,7 +1352,7 @@
     "deleteFolderConfirmDesc": "{{path}} vai para a lixeira do sistema junto com todo o conteúdo. A pasta pode ser recuperada da lixeira.",
     "deleteFolderConfirmButton": "Mover para a lixeira",
     "restorableTitle": "Projetos restauráveis",
-    "restorableDesc": "Removidos da lista de recentes, mas ainda presentes no disco.",
+    "restorableDesc": "Removidos da lista de recentes, mas ainda na pasta de projetos atual. Projetos em outra pasta não aparecem aqui.",
     "restorableEmpty": "Nenhum projeto para restaurar.",
     "restoreButton": "Restaurar",
     "overview": {
