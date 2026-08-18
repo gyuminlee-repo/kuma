@@ -1325,7 +1325,18 @@
       "wellWithSample": "Well {{well}}, {{sample}}",
       "wellEmpty": "Well {{well}}, empty",
       "keyboardHint": "Arrow keys move, Space toggles, Shift with an arrow key extends the selection. Drag across wells to paint.",
-      "loadFailed": "Could not read the variant list to draw the plate: {{error}}"
+      "loadFailed": "Could not read the variant list to draw the plate: {{error}}",
+      "wtPlacement": {
+        "label": "Control well placement",
+        "lastWell": "Last well (H12)",
+        "afterLastVariant": "After the last variant",
+        "none": "No control",
+        "helper": "Applies only to a variant list with no Well column of its own (a file that names its own wells decides placement itself). Redraws the preview below; analyze runs currently always place the control at the last well, so this does not yet change what a run scores."
+      },
+      "noControlWell": {
+        "body": "This plate has no control well."
+      },
+      "wellControl": "Well {{well}}, control (WT)"
     },
     "replicateModeNotice": {
       "pooled": "This run pooled {{detected}} native barcodes into one plate, so it has no replicates to compare.",

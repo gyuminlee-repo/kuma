@@ -1325,7 +1325,18 @@
       "wellWithSample": "Poço {{well}}, {{sample}}",
       "wellEmpty": "Poço {{well}}, vazio",
       "keyboardHint": "Setas movem, Espaço alterna, Shift com seta estende a seleção. Arraste para pintar.",
-      "loadFailed": "Não foi possível ler a lista de variantes para desenhar a placa: {{error}}"
+      "loadFailed": "Não foi possível ler a lista de variantes para desenhar a placa: {{error}}",
+      "wtPlacement": {
+        "label": "Posicao do poco de controle",
+        "lastWell": "Ultimo poco (H12)",
+        "afterLastVariant": "Apos a ultima variante",
+        "none": "Sem controle",
+        "helper": "Aplica-se apenas a uma lista de variantes sem coluna Well propria (um arquivo que nomeia seus pocos define sua propria posicao). Apenas redesenha a previa abaixo; a execucao do analyze sempre coloca o controle no ultimo poco, entao esta opcao ainda nao muda o que uma execucao pontua."
+      },
+      "noControlWell": {
+        "body": "Esta placa nao tem poco de controle."
+      },
+      "wellControl": "Poco {{well}}, controle (WT)"
     },
     "replicateModeNotice": {
       "pooled": "Esta execução juntou {{detected}} native barcodes em uma única plate, portanto não há replicates para comparar.",

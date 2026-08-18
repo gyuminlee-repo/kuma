@@ -1325,7 +1325,18 @@
       "wellWithSample": "Well {{well}}, {{sample}}",
       "wellEmpty": "Well {{well}}, leer",
       "keyboardHint": "Pfeiltasten bewegen, Leertaste schaltet um, Umschalt mit Pfeiltaste erweitert die Auswahl. Ziehen malt über mehrere Wells.",
-      "loadFailed": "Variantenliste zum Zeichnen der Platte nicht lesbar: {{error}}"
+      "loadFailed": "Variantenliste zum Zeichnen der Platte nicht lesbar: {{error}}",
+      "wtPlacement": {
+        "label": "Position der Kontrollvertiefung",
+        "lastWell": "Letzte Vertiefung (H12)",
+        "afterLastVariant": "Nach der letzten Variante",
+        "none": "Keine Kontrolle",
+        "helper": "Gilt nur fuer eine Variantenliste ohne eigene Well-Spalte (eine Datei mit benannten Wells legt die Position selbst fest). Zeichnet nur die Vorschau unten neu; analyze platziert die Kontrolle derzeit immer in der letzten Vertiefung, daher aendert diese Einstellung noch nicht, wonach ein Lauf tatsaechlich bewertet."
+      },
+      "noControlWell": {
+        "body": "Diese Platte hat keine Kontrollvertiefung."
+      },
+      "wellControl": "Vertiefung {{well}}, Kontrolle (WT)"
     },
     "replicateModeNotice": {
       "pooled": "Dieser Lauf hat {{detected}} native barcodes zu einer Plate zusammengefasst und hat daher keine Replicates zum Vergleichen.",

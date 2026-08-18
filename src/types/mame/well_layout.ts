@@ -9,10 +9,30 @@
  *   - python-core/sidecar_mame/handlers/analyze.py (well_layout param)
  */
 
+/**
+ * Where the control well goes when the source names no well for it. Mirrors
+ * ``kuma_core.mame.layout.WtPlacement``. Ignored for a file carrying a
+ * ``Well`` column, which states the control well itself.
+ *
+ * ``"last_well"`` is ``DEFAULT_WT_PLACEMENT`` (H12). Only
+ * ``mame.build_well_layout`` accepts this today: ``analyze`` and
+ * ``validate_inputs`` build their own draft with no placement param and so
+ * always take the default, regardless of what this picker is set to. This
+ * setting therefore changes the preview grid, not the placement an analyze
+ * run scores against.
+ */
+export type WtPlacement = "last_well" | "after_last_variant" | "none"
+
 /** Parameters for the mame.build_well_layout RPC method. */
 export interface BuildWellLayoutParams {
   /** Path to a KURO results xlsx containing an expected_mutations sheet. */
   expected_mutations_xlsx: string
+  /** Sheet to read for a plain (non-KURO) variant list. */
+  variant_sheet?: string
+  /** Column to read for a plain (non-KURO) variant list. */
+  variant_column?: string
+  /** Control-well policy when the source names no well. Omitted = the backend default. */
+  wt_placement?: WtPlacement
 }
 
 /** A single draft layout row: a well coordinate mapped to a sample name. */
@@ -26,9 +46,10 @@ export interface WellLayoutRow {
 /** Result of a mame.build_well_layout RPC call. */
 export interface BuildWellLayoutResult {
   /**
-   * Draft layout rows in column-major order, with the WT control at the
-   * ordinal the source stated and last when it stated none. Empty when the set
-   * does not fit one plate.
+   * Draft layout rows in column-major order. The control well sits at the
+   * well the source stated (a `Well` column), or otherwise where the
+   * requested `wt_placement` puts it (`last_well` by default). Empty when the
+   * set does not fit one plate.
    */
   draft: WellLayoutRow[]
   /** Number of draft rows (mutant wells plus the one WT well). */
@@ -42,6 +63,13 @@ export interface BuildWellLayoutResult {
    * means nothing was placed.
    */
   dropped_mutant_ids: string[]
+  /**
+   * The control well this draft placed, or null when this plate carries no
+   * control: a file with a Well column and no wild-type row, or a row-order
+   * file read with `wt_placement: "none"`. Null is a state a plate can be in,
+   * not a failure to read one.
+   */
+  wt_well: string | null
 }
 
 /**

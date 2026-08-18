@@ -28,7 +28,7 @@ import type {
 import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
 import type { VariantSourceInfo } from "@/types/mame/barcode_package";
 
-import type { WellLayout } from "@/types/mame/well_layout";
+import type { WellLayout, WtPlacement } from "@/types/mame/well_layout";
 import type { DetectNativeBarcodesResult } from "@/types/mame/detect_native_barcodes";
 import type { InputSlice, RawRunParams } from "../slice-interfaces";
 import type { AppState } from "../types";
@@ -158,6 +158,8 @@ const mameInputInitialState = {
   outputPath: "",
   selectedWells: null as string[] | null,
   wellSelectionOccupants: null as number | null,
+  wtPlacement: "last_well" as WtPlacement,
+  wtWell: null as string | null,
   legacySampleMapPath: null as string | null,
   projectPath: null as string | null,
   mode: "amplicon" as const,
@@ -313,6 +315,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       variantSelectionExplicit: false,
       selectedWells: null,
       wellSelectionOccupants: null,
+      wtWell: null,
     });
     if (changed) get().clearResults();
   },
@@ -423,6 +426,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   // holding the run when the declared wells cannot seat them all.
   setWellSelectionOccupants: (wellSelectionOccupants) =>
     set({ wellSelectionOccupants }),
+  setWtPlacement: (wtPlacement) => set({ wtPlacement }),
+  setWtWell: (wtWell) => set({ wtWell }),
   // Migration only, and never an input: the run does not read this file, it is
   // compared against the computed layout. Setting it therefore invalidates
   // nothing.
@@ -659,6 +664,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         max_consensus_n_fraction: state.maxConsensusNFraction,
         well_layout: state.wellLayout ?? null,
         selected_wells: state.selectedWells,
+        // The control-well policy the WT-placement picker holds. Same param
+        // `WellSelectionPanel` sends to `mame.build_well_layout` to draw the
+        // preview, so the plate this run scores is the plate the operator saw.
+        wt_placement: state.wtPlacement,
         // Not an input. The backend compares it against the layout this run
         // would use and refuses before the demux when the two name different
         // plates. Sent from here as well as from `validateInputs` because an
@@ -828,6 +837,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
           // path must too, or the plate plan shows PASS wells as fails.
           well_layout: state.wellLayout ?? null,
           selected_wells: state.selectedWells,
+          // Same reasoning as `_demuxAndAnalyze`: the WT-placement picker's
+          // choice has to reach this call too, or this path silently keeps
+          // scoring the pre-2026-08-18 default regardless of what the preview
+          // drew.
+          wt_placement: state.wtPlacement,
           // See `_demuxAndAnalyze`: compared against the computed layout, never
           // read as one, and both analyze paths have to send it or the run that
           // skipped the validate button scores a plate the file contradicts.

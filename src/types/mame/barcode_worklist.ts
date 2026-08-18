@@ -7,6 +7,8 @@
  *   - python-core/sidecar_mame/handlers/barcode_worklist.py (response dict)
  */
 
+import type { WtPlacement } from "./well_layout"
+
 /** Parameters for the mame.export_barcode_worklist RPC method. */
 export interface ExportBarcodeWorklistParams {
   /** The variant list, read exactly as mame.build_well_layout reads it. */
@@ -27,6 +29,13 @@ export interface ExportBarcodeWorklistParams {
   /** Sheet and column holding the variant labels, for a plain variant list. */
   variant_sheet?: string | null
   variant_column?: string | null
+  /**
+   * Control-well policy when the source names no well, same values and same
+   * default as mame.build_well_layout's. Must match what the run and the
+   * preview were asked for: a worklist naming a different well than the run
+   * scores sends the bench to pipette the wrong plate.
+   */
+  wt_placement?: WtPlacement | null
 }
 
 /** Result of a mame.export_barcode_worklist RPC call. */

@@ -1369,6 +1369,14 @@ function applyMameSnapshot(
   store.setSelectedWells(
     Array.isArray(input.selected_wells) ? input.selected_wells : null,
   );
+  // Control-well policy. Absent on a snapshot saved before this field
+  // existed, which reads as "last_well" (the backend default) below, the same
+  // placement those runs already used.
+  store.setWtPlacement(
+    input.wt_placement === "after_last_variant" || input.wt_placement === "none"
+      ? input.wt_placement
+      : "last_well",
+  );
 
   if (Array.isArray(snapshot.rounds)) {
     useRoundStore.setState({

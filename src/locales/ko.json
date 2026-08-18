@@ -1325,7 +1325,18 @@
       "wellWithSample": "웰 {{well}}, {{sample}}",
       "wellEmpty": "웰 {{well}}, 비어 있음",
       "keyboardHint": "방향키로 이동, Space 로 토글, Shift + 방향키로 범위 선택. 드래그하면 이어서 칠해진다.",
-      "loadFailed": "플레이트를 그리기 위한 변이 목록을 읽지 못했다: {{error}}"
+      "loadFailed": "플레이트를 그리기 위한 변이 목록을 읽지 못했다: {{error}}",
+      "wtPlacement": {
+        "label": "대조군 웰 위치",
+        "lastWell": "마지막 웰 (H12)",
+        "afterLastVariant": "마지막 변이 다음",
+        "none": "대조군 없음",
+        "helper": "자체 Well 열이 없는 변이 목록에만 적용된다(웰을 직접 명시한 파일은 그 위치를 그대로 따른다). 아래 미리보기만 다시 그리며, analyze 실행은 현재 항상 마지막 웰에 대조군을 두므로 이 설정이 실제 채점 결과를 아직 바꾸지는 않는다."
+      },
+      "noControlWell": {
+        "body": "이 플레이트에는 대조군 웰이 없다."
+      },
+      "wellControl": "웰 {{well}}, 대조군 (WT)"
     },
     "replicateModeNotice": {
       "pooled": "이 실행은 native barcode {{detected}}개를 plate 하나로 합쳤다. 비교할 replicate 가 없다.",

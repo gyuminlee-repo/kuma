@@ -26,7 +26,7 @@ from sidecar_mame.core import (
 
 if TYPE_CHECKING:
     from kuma_core.mame.ingest.amplicon_reference import AmpliconReferenceResolution
-    from kuma_core.mame.layout import DraftLayout
+    from kuma_core.mame.layout import DraftLayout, WtPlacement
 
 # Keep-alive heartbeat interval for the analyze stage. Re-emits the latest
 # progress state during otherwise-silent stretches (FASTA ingest, the
@@ -672,6 +672,7 @@ def _plate_capacity_finding(
     expected_path: Path,
     variant_sheet: str | None,
     variant_column: str | None,
+    wt_placement: "WtPlacement | None" = None,
 ) -> tuple[str | None, "DraftLayout | None"]:
     """Does the designed list fit the one plate a *drafted* layout would place?
 
@@ -705,9 +706,23 @@ def _plate_capacity_finding(
     workbook further down and raised there, by which point the multi-minute
     ingest this check exists to precede had already run. The catch is deliberately
     narrow now, and widening it again re-creates that bug.
+
+    ``wt_placement`` is the caller's own resolved value (``None`` takes
+    :data:`~kuma_core.mame.layout.DEFAULT_WT_PLACEMENT` via
+    :func:`~kuma_core.mame.layout.resolve_wt_placement`, the same function
+    every ``wt_placement``-accepting RPC resolves the param with).
+    ``handle_analyze`` passes what it read off ``params`` with that same
+    function, so the draft this grades is the draft the run will place.
+    ``handle_validate_inputs`` passes nothing: that RPC does not read
+    ``wt_placement`` today, so its capacity check stays on the pre-2026-08-18
+    default regardless of what a later run asks for.
     """
     from kuma_core.mame.io.variant_list import read_variant_source
-    from kuma_core.mame.layout import MUTANT_CAPACITY, build_draft_layout
+    from kuma_core.mame.layout import (
+        MUTANT_CAPACITY,
+        build_draft_layout,
+        resolve_wt_placement,
+    )
     from kuma_core.mame.plate_geometry import PLATE_CAPACITY
 
     try:
@@ -735,6 +750,7 @@ def _plate_capacity_finding(
         wt_ordinal=read.wt_ordinal,
         wells=read.wells,
         wt_well=read.wt_well,
+        wt_placement=resolve_wt_placement(wt_placement),
     )
 
     if not draft.dropped_mutant_ids:
@@ -1275,6 +1291,13 @@ def handle_analyze(params: dict) -> dict:
     Neither is read as a layout: the first re-seats the drafted one, the second
     is only compared against it. Both are handled before the demux, so a run
     they refuse is refused in seconds.
+
+    Optional ``wt_placement`` names the control-well policy for a row-order
+    list that names no well of its own; see ``BuildWellLayoutParams`` for the
+    values and the default. Ignored for a file with a ``Well`` column, which
+    states the control well itself. Only consulted when the layout is drafted
+    (``well_layout`` absent): an explicit ``well_layout`` already says which
+    well is the control, if any.
     """
     # Lazy import: keeps the sidecar cold-start < 200 ms and lets the module
     # import during unit tests that stub mame.
@@ -1327,6 +1350,16 @@ def handle_analyze(params: dict) -> dict:
     variant_sheet = _optional_str(params.get("variant_sheet"))
     variant_column = _optional_str(params.get("variant_column"))
     selected_wells = _selected_wells_param(params)
+    # The control-well policy this run asked for. Resolved once here (same
+    # function every wt_placement-accepting RPC resolves it with; see
+    # kuma_core.mame.layout.resolve_wt_placement) and reused at both places
+    # below that draft a layout out of ``expected``, so the plate this run
+    # scores is the plate ``mame.build_well_layout`` drew for the same request
+    # rather than the pre-2026-08-18 default regardless of what the operator
+    # picked.
+    from kuma_core.mame.layout import resolve_wt_placement
+
+    wt_placement = resolve_wt_placement(params.get("wt_placement"))
     output = _validate_output_path(
         params["output"], allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
     )
@@ -1351,7 +1384,7 @@ def handle_analyze(params: dict) -> dict:
     drafted_layout: DraftLayout | None = None
     if _layout_is_inferred(params):
         plate_capacity_error, drafted_layout = _plate_capacity_finding(
-            expected, variant_sheet, variant_column
+            expected, variant_sheet, variant_column, wt_placement
         )
         if plate_capacity_error is not None:
             raise ValueError(plate_capacity_error)
@@ -1789,6 +1822,7 @@ def handle_analyze(params: dict) -> dict:
                     wt_ordinal=_inferred.wt_ordinal,
                     wells=_inferred.wells,
                     wt_well=_inferred.wt_well,
+                    wt_placement=wt_placement,
                 ),
                 selected_wells,
             )

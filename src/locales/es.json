@@ -1325,7 +1325,18 @@
       "wellWithSample": "Pocillo {{well}}, {{sample}}",
       "wellEmpty": "Pocillo {{well}}, vacío",
       "keyboardHint": "Las flechas mueven, Espacio alterna, Mayús con flecha extiende la selección. Arrastre para pintar.",
-      "loadFailed": "No se pudo leer la lista de variantes para dibujar la placa: {{error}}"
+      "loadFailed": "No se pudo leer la lista de variantes para dibujar la placa: {{error}}",
+      "wtPlacement": {
+        "label": "Ubicacion del pocillo control",
+        "lastWell": "Ultimo pocillo (H12)",
+        "afterLastVariant": "Despues de la ultima variante",
+        "none": "Sin control",
+        "helper": "Solo se aplica a una lista de variantes sin columna Well propia (un archivo que nombra sus pocillos impone su propia ubicacion). Solo redibuja la vista previa de abajo; la ejecucion de analyze siempre coloca el control en el ultimo pocillo, asi que este ajuste aun no cambia lo que puntua una corrida."
+      },
+      "noControlWell": {
+        "body": "Esta placa no tiene pocillo control."
+      },
+      "wellControl": "Pocillo {{well}}, control (WT)"
     },
     "replicateModeNotice": {
       "pooled": "Esta ejecución agrupó {{detected}} native barcodes en una sola plate, así que no hay replicates que comparar.",

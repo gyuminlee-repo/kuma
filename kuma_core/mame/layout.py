@@ -79,6 +79,30 @@ class WtPlacement(str, Enum):
 DEFAULT_WT_PLACEMENT = WtPlacement.LAST_WELL
 
 
+def resolve_wt_placement(raw: str | None) -> WtPlacement:
+    """The control-well policy a raw request value names, or the default.
+
+    The one place ``wt_placement`` is validated: every RPC that accepts it
+    (``mame.build_well_layout``, ``analyze``, ``mame.export_barcode_worklist``)
+    reads the same param under the same name and must refuse the same unknown
+    value with the same words, or a caller that got refused by one and then
+    tried another would see the request silently succeed. ``raw`` is exactly
+    what a params dict or a Pydantic field holds -- pulling the key out of a
+    dict is the caller's job, not this function's, so it is not passed one.
+
+    ``None`` takes :data:`DEFAULT_WT_PLACEMENT` rather than raising: an absent
+    parameter is "the caller did not ask", which every surface here treats as
+    the pre-2026-08-18 default, not as a malformed request.
+    """
+    if raw is None:
+        return DEFAULT_WT_PLACEMENT
+    try:
+        return WtPlacement(raw)
+    except ValueError:
+        allowed = [p.value for p in WtPlacement]
+        raise ValueError(f"wt_placement must be one of {allowed}; got {raw!r}") from None
+
+
 @dataclass(frozen=True)
 class DraftLayout:
     """A draft placement, or the refusal that stopped one from being built."""
@@ -360,4 +384,5 @@ __all__ = [
     "build_draft_layout",
     "canonical_plate_order",
     "normalise_selected_wells",
+    "resolve_wt_placement",
 ]

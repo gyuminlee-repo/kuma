@@ -1325,7 +1325,18 @@
       "wellWithSample": "ウェル {{well}}, {{sample}}",
       "wellEmpty": "ウェル {{well}}, 空",
       "keyboardHint": "矢印キーで移動、Space で切り替え、Shift + 矢印キーで範囲選択。ドラッグで連続選択。",
-      "loadFailed": "プレート描画のための変異リストを読めなかった: {{error}}"
+      "loadFailed": "プレート描画のための変異リストを読めなかった: {{error}}",
+      "wtPlacement": {
+        "label": "コントロールウェルの配置",
+        "lastWell": "最後のウェル (H12)",
+        "afterLastVariant": "最後の変異の後",
+        "none": "コントロールなし",
+        "helper": "独自のWell列を持たない変異リストにのみ適用される(ウェルを明示するファイルはその位置に従う)。下のプレビューのみ再描画される。analyze実行は現在常に最後のウェルにコントロールを配置するため、この設定はまだ実際のスコアリング結果を変更しない。"
+      },
+      "noControlWell": {
+        "body": "このプレートにはコントロールウェルがない。"
+      },
+      "wellControl": "ウェル {{well}}、コントロール (WT)"
     },
     "replicateModeNotice": {
       "pooled": "この実行は native barcode {{detected}} 件を 1 枚の plate にまとめたため、比較できる replicate がない。",

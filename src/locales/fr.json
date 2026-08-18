@@ -1325,7 +1325,18 @@
       "wellWithSample": "Puits {{well}}, {{sample}}",
       "wellEmpty": "Puits {{well}}, vide",
       "keyboardHint": "Les flèches déplacent, Espace bascule, Maj avec une flèche étend la sélection. Faites glisser pour peindre.",
-      "loadFailed": "Impossible de lire la liste de variants pour dessiner la plaque : {{error}}"
+      "loadFailed": "Impossible de lire la liste de variants pour dessiner la plaque : {{error}}",
+      "wtPlacement": {
+        "label": "Placement du puits temoin",
+        "lastWell": "Dernier puits (H12)",
+        "afterLastVariant": "Apres le dernier variant",
+        "none": "Aucun temoin",
+        "helper": "S'applique uniquement a une liste de variants sans colonne Well propre (un fichier qui nomme ses puits impose son propre placement). Ne redessine que l'apercu ci-dessous ; l'execution analyze place toujours le temoin dans le dernier puits, donc ce reglage ne change pas encore ce qu'un run note."
+      },
+      "noControlWell": {
+        "body": "Cette plaque n'a pas de puits temoin."
+      },
+      "wellControl": "Puits {{well}}, temoin (WT)"
     },
     "replicateModeNotice": {
       "pooled": "Cette analyse a regroupé {{detected}} native barcodes en une seule plate : aucun replicate à comparer.",

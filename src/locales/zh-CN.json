@@ -1325,7 +1325,18 @@
       "wellWithSample": "孔位 {{well}}, {{sample}}",
       "wellEmpty": "孔位 {{well}}, 空",
       "keyboardHint": "方向键移动，空格切换，Shift 加方向键扩展选择。拖动可连续选择。",
-      "loadFailed": "无法读取变异列表以绘制板图: {{error}}"
+      "loadFailed": "无法读取变异列表以绘制板图: {{error}}",
+      "wtPlacement": {
+        "label": "对照孔位置",
+        "lastWell": "最后一个孔 (H12)",
+        "afterLastVariant": "最后一个变异之后",
+        "none": "无对照",
+        "helper": "仅适用于没有自带 Well 列的变异列表(明确指定孔位的文件按其自身位置处理)。仅重绘下方预览;analyze 运行目前始终将对照放在最后一个孔,因此该设置尚不会改变实际运行的评分结果。"
+      },
+      "noControlWell": {
+        "body": "该板没有对照孔。"
+      },
+      "wellControl": "孔 {{well}},对照 (WT)"
     },
     "replicateModeNotice": {
       "pooled": "本次运行把 {{detected}} 个 native barcode 合并为一块 plate，因此没有可比较的 replicate。",

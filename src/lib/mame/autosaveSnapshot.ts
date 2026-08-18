@@ -12,6 +12,7 @@ import type { AutosaveSnapshot } from "@/lib/autosave";
 import type { AppState } from "@/store/mame/types";
 import type { RawRunParams } from "@/store/mame/slice-interfaces";
 import type { Round } from "@/types/round";
+import type { WtPlacement } from "@/types/mame/well_layout";
 import { toPortablePath } from "@/lib/projectPath";
 import { RESULT_CONTRACT } from "@/lib/mame/resultContract";
 
@@ -24,6 +25,7 @@ export type MameSnapshotState = Pick<
   | "referencePath"
   | "outputPath"
   | "selectedWells"
+  | "wtPlacement"
   | "mode"
   | "ingestMode"
   | "inputMode"
@@ -69,6 +71,13 @@ export interface MameAutosaveSnapshot extends AutosaveSnapshot {
     reference_path: string;
     output_path: string;
     selected_wells: string[] | null;
+    /**
+     * Control-well policy for a row-order variant list. Absent on a snapshot
+     * saved before this field existed, which reads as "last_well" (the
+     * backend default), so an old project restores to the placement it
+     * already used.
+     */
+    wt_placement?: WtPlacement;
   };
   parameters: {
     mode: string;
@@ -153,6 +162,7 @@ export function buildMameSnapshot(
       reference_path: portable(state.referencePath),
       output_path: portable(state.outputPath),
       selected_wells: state.selectedWells,
+      wt_placement: state.wtPlacement,
     },
     parameters: {
       mode: state.mode,

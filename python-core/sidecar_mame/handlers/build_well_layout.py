@@ -26,9 +26,11 @@ documentation and validation rules.
 Response schema
 ---------------
 ``draft`` (list) Ordered ``[{"well": str, "sample": str}, ...]`` rows in
-                 column-major order (well coordinates from ``seq_to_well``),
-                 with the WT control at the ordinal the source stated, or last
-                 when it stated none. Empty when the set does not fit.
+                 column-major order (well coordinates from ``seq_to_well``).
+                 The control well sits at the well the source stated (a
+                 ``Well`` column), or otherwise where ``wt_placement`` puts
+                 it (``last_well`` by default). Empty when the set does not
+                 fit.
 ``count`` (int)  Number of draft rows (mutant wells plus the one WT well).
 ``dropped_mutant_ids`` (list[str]) ``mutant_id`` values that do not fit
                  alongside the WT control, so at most 95 mutants. The barcode
@@ -64,7 +66,7 @@ def handle_build_well_layout(params: dict) -> dict:
     p = BuildWellLayoutParams.model_validate(params)
 
     from kuma_core.mame.io.variant_list import read_variant_source
-    from kuma_core.mame.layout import build_draft_layout
+    from kuma_core.mame.layout import build_draft_layout, resolve_wt_placement
 
     read = read_variant_source(
         Path(p.expected_mutations_xlsx),
@@ -80,7 +82,11 @@ def handle_build_well_layout(params: dict) -> dict:
         wt_ordinal=read.wt_ordinal,
         wells=read.wells,
         wt_well=read.wt_well,
-        wt_placement=_wt_placement(p.wt_placement),
+        # Already validated by BuildWellLayoutParams's field_validator, which
+        # calls the same resolve_wt_placement this does; resolved again here
+        # (rather than carried as an enum on the model) so the model stays a
+        # plain string field like every other RPC param.
+        wt_placement=resolve_wt_placement(p.wt_placement),
     )
 
     # ``result.layout`` is an insertion-ordered dict[well_id, sample_name] in
@@ -98,18 +104,6 @@ def handle_build_well_layout(params: dict) -> dict:
         # looking like "control somewhere in the table".
         "wt_well": result.wt_well,
     }
-
-
-def _wt_placement(raw: str | None):
-    """The control-well policy this call asked for, or the default.
-
-    The one place a caller's choice enters the core, so the frontend picker that
-    will set it is an edit here rather than a search for every default. The
-    value is already validated by ``BuildWellLayoutParams``.
-    """
-    from kuma_core.mame.layout import DEFAULT_WT_PLACEMENT, WtPlacement
-
-    return DEFAULT_WT_PLACEMENT if raw is None else WtPlacement(raw)
 
 
 __all__ = ["handle_build_well_layout"]
