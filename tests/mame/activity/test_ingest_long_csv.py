@@ -126,3 +126,101 @@ def test_ingest_wt_row_negative_value_skipped(tmp_path: Path):
     csv.write_text("Sample Name,Area\nWT_1,-1.0\nWT_2,12.0\n")
     result = ingest_long_csv(csv, plate_meta_wt_wells={"P01": []})
     assert [r.sample_name for r in result.wt_records] == ["WT_2"]
+
+# --- dropped_rows accounting -------------------------------------------------
+
+def test_dropped_rows_value_unparseable(tmp_path: Path):
+    csv = tmp_path / "bad_value.csv"
+    csv.write_text("plate_id,well_id,value\nP01,A01,abc\nP01,B01,2.0\n")
+    result = ingest_long_csv(csv, plate_meta_wt_wells={"P01": []})
+    assert len(result.records) == 1
+    assert len(result.dropped_rows) == 1
+    drop = result.dropped_rows[0]
+    assert drop.reason == "value_unparseable"
+    assert drop.row_index == 0
+    assert drop.well_id == "A01"
+    assert drop.plate_id == "P01"
+    assert drop.detail == "abc"
+    assert drop.source_file == "bad_value.csv"
+
+def test_dropped_rows_value_nan_or_negative(tmp_path: Path):
+    """Negative and empty value cells share one reason."""
+    csv = tmp_path / "nan_neg.csv"
+    csv.write_text("plate_id,well_id,value\nP01,A01,-0.5\nP01,B01,\nP01,C01,3.0\n")
+    result = ingest_long_csv(csv, plate_meta_wt_wells={"P01": []})
+    assert [r.well_id for r in result.records] == ["C01"]
+    assert [d.reason for d in result.dropped_rows] == [
+        "value_nan_or_negative",
+        "value_nan_or_negative",
+    ]
+    assert [d.row_index for d in result.dropped_rows] == [0, 1]
+
+def test_dropped_rows_well_unparseable(tmp_path: Path):
+    """'XX' has no digit part, so the well parser cannot read it at all."""
+    csv = tmp_path / "bad_well.csv"
+    csv.write_text("plate_id,well_id,value\nP01,XX,1.0\nP01,A01,2.0\n")
+    result = ingest_long_csv(csv, plate_meta_wt_wells={"P01": []})
+    assert [r.well_id for r in result.records] == ["A01"]
+    assert [d.reason for d in result.dropped_rows] == ["well_unparseable"]
+    assert result.dropped_rows[0].well_id == "XX"
+
+def test_dropped_rows_well_out_of_range(tmp_path: Path):
+    """'A25' parses as a coordinate but exceeds both 96- and 384-well plates."""
+    csv = tmp_path / "wide_well.csv"
+    csv.write_text("plate_id,well_id,value\nP01,A25,1.0\nP01,A01,2.0\n")
+    result = ingest_long_csv(csv, plate_meta_wt_wells={"P01": []})
+    assert [r.well_id for r in result.records] == ["A01"]
+    assert [d.reason for d in result.dropped_rows] == ["well_out_of_range"]
+    assert result.dropped_rows[0].detail == "A25"
+
+def test_dropped_rows_replicate_idx_skips_instead_of_aborting(tmp_path: Path):
+    """Behaviour change: a malformed replicate_idx used to raise out of the whole
+    ingest. It now skips its row, is recorded, and neighbours still ingest."""
+    csv = tmp_path / "bad_rep.csv"
+    csv.write_text(
+        "plate_id,well_id,value,replicate_idx\n"
+        "P01,A01,1.0,1\nP01,B01,2.0,x\nP01,C01,3.0,2\n"
+    )
+    result = ingest_long_csv(csv, plate_meta_wt_wells={"P01": []})
+    assert [r.well_id for r in result.records] == ["A01", "C01"]
+    assert [r.replicate_idx for r in result.records] == [1, 2]
+    assert [d.reason for d in result.dropped_rows] == ["replicate_idx_unparseable"]
+    assert result.dropped_rows[0].row_index == 1
+    assert result.dropped_rows[0].detail == "x"
+
+def test_wt_replicate_row_is_not_a_drop(tmp_path: Path):
+    """'WT_1' rows are kept in wt_records, so they must not count as dropped."""
+    csv = tmp_path / "wt_kept.csv"
+    csv.write_text("Sample Name,Area\nWT_1,10.0\nB03,20.0\n")
+    result = ingest_long_csv(csv, plate_meta_wt_wells={"P01": []})
+    assert len(result.wt_records) == 1
+    assert result.dropped_rows == []
+
+def test_clean_file_reports_no_drops(tmp_path: Path):
+    csv = tmp_path / "clean.csv"
+    csv.write_text("plate_id,well_id,value\nP01,A01,1.0\nP01,B01,2.0\n")
+    result = ingest_long_csv(csv, plate_meta_wt_wells={"P01": []})
+    assert len(result.records) == 2
+    assert result.dropped_rows == []
+
+def test_activity_table_payload_without_dropped_rows_still_loads():
+    """Workspace JSON written before this field must round-trip unchanged."""
+    from kuma_core.mame.activity.models import ActivityTable
+
+    legacy = {
+        "records": [
+            {
+                "plate_id": "P01",
+                "well_id": "A01",
+                "value": 1.0,
+                "replicate_idx": 1,
+                "is_wt": False,
+                "source_file": "old.csv",
+            }
+        ],
+        "plate_meta": {"plates": [{"plate_id": "P01", "wt_wells": []}]},
+    }
+    table = ActivityTable.model_validate(legacy)
+    assert table.dropped_rows == []
+    assert table.wt_records == []
+    assert table.records[0].well_id == "A01"

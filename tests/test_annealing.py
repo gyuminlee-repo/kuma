@@ -66,10 +66,7 @@ def test_wallace_is_case_insensitive():
 # _apply_rule: pure decision logic at exact thresholds
 # --------------------------------------------------------------------------
 
-# NOTE: the 64.0 case below reuses this function name, so this declaration is
-# shadowed and never collected. Renaming is a behaviour change (it would add a
-# collected test), so it is left for a separate pass and only silenced here.
-def test_taq_3step_minus5(registry):  # type: ignore[reportRedeclaration]
+def test_taq_3step_minus5_at_tm60_touchdown_none(registry):
     out = _apply_rule(60.0, _rule(registry, "Taq"))
     assert out["ta_mode"] == "3step"
     assert out["recommended_ta"] == 55.0  # 60 - 5

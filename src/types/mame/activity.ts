@@ -39,11 +39,34 @@ export interface WtReplicateRecord {
   source_file: string
 }
 
+export type DropReason =
+  | "value_unparseable"
+  | "value_nan_or_negative"
+  | "well_unparseable"
+  | "well_out_of_range"
+  | "replicate_idx_unparseable"
+
+/**
+ * One source row ingest_long_csv refused to turn into a record.
+ * Carried so a dropped measurement is visible instead of silently missing.
+ */
+export interface DroppedRow {
+  /** 0-based data row, header excluded. */
+  row_index: number
+  reason: DropReason
+  plate_id: string
+  well_id: string
+  detail: string
+  source_file: string
+}
+
 export interface ActivityTable {
   records: ActivityRecord[]
   plate_meta: PlateMeta
   /** Dedicated WT replicate rows. Empty/undefined = the file carried none. */
   wt_records?: WtReplicateRecord[]
+  /** Rows skipped during ingest. Empty/undefined = nothing was dropped. */
+  dropped_rows?: DroppedRow[]
 }
 
 export interface MergedRow {
