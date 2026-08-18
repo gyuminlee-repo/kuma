@@ -106,6 +106,11 @@ def _design_rows() -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
             print(f"  generator warning: {warning}")
         workbook = openpyxl.load_workbook(result.barcodes_xlsx)
         sheet = workbook.active
+        if sheet is None:
+            workbook.close()
+            raise RuntimeError(
+                f"generated barcode workbook has no sheet: {result.barcodes_xlsx}"
+            )
         forward: list[tuple[str, str]] = []
         reverse: list[tuple[str, str]] = []
         for name, sequence in sheet.iter_rows(min_row=2, values_only=True):
@@ -128,6 +133,9 @@ def _write(
 
     workbook = openpyxl.Workbook()
     sheet = workbook.active
+    # A freshly created Workbook always carries one active worksheet;
+    # None here would mean openpyxl handed back an empty book.
+    assert sheet is not None
     sheet.title = _SHEET_TITLE
     sheet.append(list(_HEADER))
     for index, sequence in forward:

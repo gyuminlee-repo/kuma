@@ -491,8 +491,12 @@ def _write_expected_mutations_sheet(
     rescued_lookup: dict[str, dict] = {}
     if rescued_info:
         for item in rescued_info:
-            if hasattr(item, "model_dump"):
-                item = item.model_dump(exclude_none=True)
+            # Callers annotated as passing dicts sometimes hand over the pydantic
+            # model itself; getattr keeps that tolerance without claiming dicts
+            # carry model_dump.
+            dumper = getattr(item, "model_dump", None)
+            if callable(dumper):
+                item = dumper(exclude_none=True)
             if not isinstance(item, dict):
                 continue
             key = item.get("rescued_by")
@@ -581,6 +585,9 @@ def export_plate_excel(
 
         if first_sheet:
             ws = wb.active
+            # A freshly created Workbook always carries one active worksheet;
+            # None here would mean openpyxl handed back an empty book.
+            assert ws is not None
             ws.title = f"Fwd List{tag}"
             first_sheet = False
         else:
@@ -1344,6 +1351,9 @@ def export_echo_mapping_xlsx(
 
     # ---- Sheet 1: layout ----
     ws = wb.active
+    # A freshly created Workbook always carries one active worksheet;
+    # None here would mean openpyxl handed back an empty book.
+    assert ws is not None
     ws.title = "layout"
 
     # Title
@@ -1449,6 +1459,9 @@ def export_janus_mapping_xlsx(
 
     # ---- Sheet 1: layout ----
     ws = wb.active
+    # A freshly created Workbook always carries one active worksheet;
+    # None here would mean openpyxl handed back an empty book.
+    assert ws is not None
     ws.title = "layout"
 
     # Title

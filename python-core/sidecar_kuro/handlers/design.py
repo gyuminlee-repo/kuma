@@ -6,6 +6,7 @@ import os
 import tempfile
 from dataclasses import fields as dc_fields, replace as dc_replace
 from pathlib import Path
+from typing import TypedDict
 
 from kuma_core.kuro.sdm_engine import (
     OverlapMode,
@@ -38,6 +39,9 @@ from sidecar_kuro.models import (
     CommitDesignResultParams,
     DesignResultResponseModel,
     DesignSdmPrimersParams,
+    FailedMutationModel,
+    RescueStatsModel,
+    RescuedMutationModel,
     RetryFailedParams,
     SdmPrimerResultModel,
     SwapPrimerParams,
@@ -188,6 +192,31 @@ _RELAX_GC_DELTA = 5      # percentage points widened on each side
 _GC_FLOOR = 20           # absolute minimum GC% (Integrated DNA Technologies guideline)
 _GC_CEIL = 80            # absolute maximum GC% (Integrated DNA Technologies guideline)
 
+
+class _DesignKw(TypedDict):
+    """The design_single_sdm keywords carried unchanged from the request.
+
+    Spelled out so unpacking keeps each keyword's own type instead of collapsing
+    to the union of the dict values.
+    """
+
+    codon_strategy: str
+    gc_min: float
+    gc_max: float
+    fwd_len_min: int | None
+    fwd_len_max: int | None
+    rev_len_min: int | None
+    rev_len_max: int | None
+    organism: str
+    overlap_mode: OverlapMode
+
+
+class _RelaxKw(_DesignKw):
+    """The same keywords plus the widened tolerance used by the relax pass."""
+
+    tol_max: float
+
+
 def _build_mutation(mutation_raw: str, sequence: str, target_start: int, organism: str) -> Mutation:
     """Parse a mutation notation and build a Mutation object."""
     wt_aa, position, mt_aa = parse_mutation_notation(mutation_raw)
@@ -280,12 +309,12 @@ def handle_design_sdm_primers(params: dict) -> dict:
         return DesignResultResponseModel(
             success_count=0,
             total_count=0,
-            rescue_stats={
-                "pool_cascade": 0,
-                "auto_relax": 0,
-                "positions_attempted": 0,
-                "pool_variants_tried": 0,
-            },
+            rescue_stats=RescueStatsModel(
+                pool_cascade=0,
+                auto_relax=0,
+                positions_attempted=0,
+                pool_variants_tried=0,
+            ),
             rescued_mutations=[],
             cancelled=True,
         ).to_rpc_dict()
@@ -347,14 +376,14 @@ def handle_design_sdm_primers(params: dict) -> dict:
                 if m:
                     rescue_by_pos.setdefault(int(m.group(1)), []).append(v)
 
-            design_kw = dict(
-                codon_strategy=p.codon_strategy,
-                gc_min=p.gc_min, gc_max=p.gc_max,
-                fwd_len_min=p.fwd_len_min, fwd_len_max=p.fwd_len_max,
-                rev_len_min=p.rev_len_min, rev_len_max=p.rev_len_max,
-                organism=p.organism,
-                overlap_mode=p.overlap_mode,
-            )
+            design_kw: _DesignKw = {
+                "codon_strategy": p.codon_strategy,
+                "gc_min": p.gc_min, "gc_max": p.gc_max,
+                "fwd_len_min": p.fwd_len_min, "fwd_len_max": p.fwd_len_max,
+                "rev_len_min": p.rev_len_min, "rev_len_max": p.rev_len_max,
+                "organism": p.organism,
+                "overlap_mode": p.overlap_mode,
+            }
 
             still_failed: dict[str, str] = {}
             designed_muts = {r.mutation.raw for r in results}
@@ -403,7 +432,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
                 still_failed = dict(engine_failures)
 
             if p.auto_relax:
-                relax_kw = {
+                relax_kw: _RelaxKw = {
                     **design_kw,
                     "tol_max": min(p.tol_max + _RELAX_TOL_DELTA, _MAX_TOL_MAX),
                     "gc_min": max(_GC_FLOOR, p.gc_min - _RELAX_GC_DELTA),
@@ -461,9 +490,11 @@ def handle_design_sdm_primers(params: dict) -> dict:
             results=[_serialize_result_with_counts(r) for r in results],
             success_count=len(results),
             total_count=total_mutations,
-            failed_mutations=failed,
-            rescue_stats=rescue_stats,
-            rescued_mutations=rescued_info,
+            failed_mutations=[FailedMutationModel.model_validate(f) for f in failed],
+            rescue_stats=RescueStatsModel.model_validate(rescue_stats),
+            rescued_mutations=[
+                RescuedMutationModel.model_validate(r) for r in rescued_info
+            ],
         ).to_rpc_dict()
     finally:
         _core._finish_design_job(cancel_event)

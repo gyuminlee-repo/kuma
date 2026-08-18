@@ -6,6 +6,7 @@ import hashlib
 import json
 import logging
 import re
+from typing import Any
 
 from kuma_core.shared.config_paths import kuma_cache_dir
 
@@ -94,8 +95,10 @@ def _save_cache(
             json.dump(embedding, f)
 
 
-_cached_model = None
-_cached_alphabet = None
+# fair-esm ships no stubs, so the cached model and alphabet stay untyped rather
+# than being pinned to None by their initial value.
+_cached_model: Any = None
+_cached_alphabet: Any = None
 
 
 def _get_model():
@@ -103,7 +106,8 @@ def _get_model():
     global _cached_model, _cached_alphabet
     if _cached_model is None:
         import esm
-        _cached_model, _cached_alphabet = esm.pretrained.esm2_t12_35M_UR50D()
+        # fair-esm ships no type stubs, so its submodule is invisible to the checker.
+        _cached_model, _cached_alphabet = esm.pretrained.esm2_t12_35M_UR50D()  # type: ignore[attr-defined]
         _cached_model.eval()
         _log.info("ESM-2 model loaded and cached")
     return _cached_model, _cached_alphabet

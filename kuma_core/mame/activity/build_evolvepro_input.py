@@ -283,7 +283,7 @@ def _sha256(path: Path) -> str:
     return f"sha256:{digest.hexdigest()}"
 
 def _publish_artifact_bundle(
-    writers: list[tuple[Path, Callable[[Path], None]]],
+    writers: list[tuple[Path, Callable[[Path], object]]],
     manifest_path: Path,
     manifest: dict[str, object],
 ) -> dict[str, str]:
@@ -410,7 +410,7 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     exported_variants = {variant for variant, _value in output_rows}
     n_authoritative = len(exported_variants & authoritative.keys())
     n_fallback_only = len(exported_variants - authoritative.keys())
-    writers: list[tuple[Path, Callable[[Path], None]]] = [
+    writers: list[tuple[Path, Callable[[Path], object]]] = [
         (output_path, lambda path: write_evolvepro_xlsx(output_rows, path)),
     ]
     export_path = (
