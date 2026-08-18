@@ -84,6 +84,11 @@ jobs:
       - name: Install Python dependencies
         run: pip install -e ".[test,typecheck]"
 
+      # The checker version is pinned but the analysed dependencies are not, so a
+      # dependency upgrade alone can change what this gate reports (a newer pandas
+      # once turned three DataFrame cell reads into errors here while a local venv
+      # with older pandas stayed clean). CI is the authoritative environment when
+      # the two disagree.
       - name: Python typecheck
         run: basedpyright
 

@@ -6,6 +6,7 @@ Spec: notes/specs/2026-05-04-mame-activity-integration.md §3.3
 import math
 import re
 from pathlib import Path
+from typing import cast
 
 import pandas as pd
 
@@ -133,8 +134,13 @@ def ingest_long_csv(
         plate_id = str(row["plate_id"]).strip()
         well_raw = str(row["well_id"]).strip().upper()
 
+        # The frame comes from a flat CSV/Excel read above, so every column holds
+        # scalars and a single-label lookup cannot return a Series. Newer pandas
+        # types row[...] as Series | ndarray | Any, which no numeric constructor
+        # accepts, so the cast states what the file format already guarantees.
+        # The try/except is what enforces the scalar contract at runtime.
         try:
-            value = float(row["value"])
+            value = float(cast(float | str, row["value"]))
         except (ValueError, TypeError):
             continue
 
@@ -175,7 +181,9 @@ def ingest_long_csv(
                 plate_id=plate_id,
                 well_id=well_id,
                 value=value,
-                replicate_idx=int(row["replicate_idx"]),
+                # Same flat-file scalar guarantee as the value cast above; the
+                # column is either read from the CSV or filled with the literal 1.
+                replicate_idx=int(cast(int | str, row["replicate_idx"])),
                 is_wt=is_wt,
                 source_file=path.name,
             )
