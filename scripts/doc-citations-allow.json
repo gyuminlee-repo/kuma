@@ -1,0 +1,350 @@
+{
+  "_comment": [
+    "Ledger of markdown citations that do not resolve to a tracked path, with the reason each one is",
+    "allowed to stay that way. Read by scripts/check-doc-citations.mjs; a citation that is neither",
+    "resolvable nor listed here fails the check.",
+    "",
+    "Categories:",
+    "  generated  the document is produced by the build and is gitignored, so a checkout never has it.",
+    "  internal   the document exists in the maintainer working tree under a directory this public",
+    "             repository excludes, so it will not arrive here.",
+    "  lost       the document is not in the repository and not in any internal directory either.",
+    "  external   the document belongs to a sibling repository or to the project vault, outside kuma.",
+    "  prose      the string is not a citation at all; it is a filename mentioned in running text, a",
+    "             usage placeholder, a test literal, or a fragment the extractor could not avoid.",
+    "",
+    "A sixth category, stale, held four citations that named a page this repository does have at a",
+    "different path. Those citations were corrected rather than recorded, so the category is gone.",
+    "Prefer that outcome: a citation a reader can follow beats a well-worded excuse for one they",
+    "cannot. Add a category back only when a genuinely new kind of reason turns up.",
+    "",
+    "Entries are exact reference strings, matched as written at the citation site. There is no prefix",
+    "or glob form on purpose: a rule such as \"anything under the internal notes tree\" would silently",
+    "admit every future unresolvable citation, which is the thing this check exists to stop.",
+    "",
+    "The ledger has to shrink as well as grow, so an entry that no citation points at any more is a",
+    "failure, not a note. Drop it, or say in its reason why it is being held open."
+  ],
+  "allow": [
+    {
+      "path": "NOTICE.md",
+      "category": "generated",
+      "reason": "Assembled at release build time by scripts/build-notice.mjs and listed in .gitignore, so a fresh checkout never has it."
+    },
+    {
+      "path": "NOTICE-node.md",
+      "category": "generated",
+      "reason": "Written by scripts/collect-node-licenses.mjs during the build and listed in .gitignore."
+    },
+    {
+      "path": "NOTICE-python.md",
+      "category": "generated",
+      "reason": "Written by the Python licence collection step during the build and listed in .gitignore."
+    },
+    {
+      "path": "NOTICE-rust.md",
+      "category": "generated",
+      "reason": "Written by cargo about during the build and listed in .gitignore."
+    },
+    {
+      "path": "../NOTICE-rust.md",
+      "category": "generated",
+      "reason": "Same generated Rust notice, written from inside src-tauri so the cited path climbs one level."
+    },
+    {
+      "path": "resources/NOTICE.md",
+      "category": "generated",
+      "reason": "src-tauri/resources/NOTICE.md as cited from inside src-tauri; generated at build time and listed in .gitignore, which AGENTS.md line 103 records as structural rather than an environment fault."
+    },
+    {
+      "path": "src-tauri/resources/NOTICE.md",
+      "category": "generated",
+      "reason": "The bundled copy of the notice, created by the build and listed in .gitignore."
+    },
+    {
+      "path": "notes/specs/2026-05-04-mame-activity-integration.md",
+      "category": "internal",
+      "reason": "MAME activity integration spec; present in the maintainer working tree, and notes/ is excluded by .gitignore because this repository is public."
+    },
+    {
+      "path": "notes/specs/2026-05-06-mame-activity-v0.3-xlsx-pipeline.md",
+      "category": "internal",
+      "reason": "v0.3 xlsx pipeline spec, present in the maintainer working tree under the excluded notes/ tree."
+    },
+    {
+      "path": "notes/specs/2026-05-11-kuro-mame-integration.md",
+      "category": "internal",
+      "reason": "KURO and MAME integration spec, present in the maintainer working tree under the excluded notes/ tree."
+    },
+    {
+      "path": "notes/specs/2026-05-13-menubar-prefs-shortcuts.md",
+      "category": "internal",
+      "reason": "Menu bar and shortcuts spec, present in the maintainer working tree under the excluded notes/ tree."
+    },
+    {
+      "path": "notes/specs/2026-06-02-phase3-windows-minimap2.md",
+      "category": "internal",
+      "reason": "Windows minimap2 phase 3 spec, present in the maintainer working tree under the excluded notes/ tree."
+    },
+    {
+      "path": "notes/specs/phase4-5-namespacing.md",
+      "category": "internal",
+      "reason": "Namespacing spec, present in the maintainer working tree under the excluded notes/ tree."
+    },
+    {
+      "path": "notes/plans/2026-05-04-mame-activity-implementation-plan.md",
+      "category": "internal",
+      "reason": "Implementation plan for the activity work, present in the maintainer working tree under the excluded notes/ tree."
+    },
+    {
+      "path": "notes/architecture/2026-05-06-v0.3-phase-ab-interfaces.md",
+      "category": "internal",
+      "reason": "Phase A and B interface record, present in the maintainer working tree under the excluded notes/ tree."
+    },
+    {
+      "path": "notes/agent-reports/audit-kuma.md",
+      "category": "internal",
+      "reason": "Agent audit report, present in the maintainer working tree under the excluded notes/ tree."
+    },
+    {
+      "path": "notes/agent-reports/audit-kuma-v9.md",
+      "category": "internal",
+      "reason": "Agent audit report, present in the maintainer working tree under the excluded notes/ tree."
+    },
+    {
+      "path": "notes/TEST-WINDOWS.md",
+      "category": "internal",
+      "reason": "Windows manual test log, present in the maintainer working tree under the excluded notes/ tree."
+    },
+    {
+      "path": "audit-kuma-v2.md",
+      "category": "internal",
+      "reason": "Bare filename for an agent audit report that lives under the excluded notes/agent-reports tree."
+    },
+    {
+      "path": "audit-kuma-v6.md",
+      "category": "internal",
+      "reason": "Bare filename for an agent audit report that lives under the excluded notes/agent-reports tree."
+    },
+    {
+      "path": "audit-kuma-v7.md",
+      "category": "internal",
+      "reason": "Bare filename for an agent audit report that lives under the excluded notes/agent-reports tree."
+    },
+    {
+      "path": "audit-kuma-v8.md",
+      "category": "internal",
+      "reason": "Bare filename for an agent audit report that lives under the excluded notes/agent-reports tree."
+    },
+    {
+      "path": "audit-kuma-v9.md",
+      "category": "internal",
+      "reason": "Bare filename for an agent audit report that lives under the excluded notes/agent-reports tree."
+    },
+    {
+      "path": "audit-primerbench.md",
+      "category": "internal",
+      "reason": "Bare filename for an agent audit report that lives under the excluded notes/agent-reports tree."
+    },
+    {
+      "path": "audit-primerbench-v2.md",
+      "category": "internal",
+      "reason": "Bare filename for an agent audit report that lives under the excluded notes/agent-reports tree."
+    },
+    {
+      "path": "audit-primerbench-v3.md",
+      "category": "internal",
+      "reason": "Bare filename for an agent audit report that lives under the excluded notes/agent-reports tree."
+    },
+    {
+      "path": "audit-primerbench-v4.md",
+      "category": "internal",
+      "reason": "Bare filename for an agent audit report that lives under the excluded notes/agent-reports tree."
+    },
+    {
+      "path": "audit-primerbench-v5.md",
+      "category": "internal",
+      "reason": "Bare filename for an agent audit report that lives under the excluded notes/agent-reports tree."
+    },
+    {
+      "path": "audit-primerbench-v6.md",
+      "category": "internal",
+      "reason": "Bare filename for an agent audit report that lives under the excluded notes/agent-reports tree."
+    },
+    {
+      "path": "pb-I-final.md",
+      "category": "internal",
+      "reason": "Bare filename for a primerbench phase report that lives under the excluded notes/agent-reports tree."
+    },
+    {
+      "path": "phase12a-kuma-final.md",
+      "category": "internal",
+      "reason": "Bare filename for a phase report that lives under the excluded notes/agent-reports tree."
+    },
+    {
+      "path": ".omo/ulw-loop/evidence/evolvepro-happy-result.md",
+      "category": "internal",
+      "reason": "Loop evidence file, present in the maintainer working tree; .omo/ is excluded through .git/info/exclude rather than .gitignore, so the exclusion is local to that checkout."
+    },
+    {
+      "path": "kuma/.gjc/specs/deep-interview-evolvepro-domain-selection-benefit.md",
+      "category": "internal",
+      "reason": "Design interview record, present in the maintainer working tree at .gjc/specs/ and cited with a workspace-level kuma/ prefix; .gjc/ is excluded by .gitignore."
+    },
+    {
+      "path": "v5-strategy.md",
+      "category": "lost",
+      "reason": "The v5 UI strategy document is nowhere in the repository or in any internal directory; the inspector components still carry section-level citations into it."
+    },
+    {
+      "path": "v5-audit.md",
+      "category": "lost",
+      "reason": "The v5 audit companion document is nowhere in the repository or in any internal directory."
+    },
+    {
+      "path": "notes/specs/2026-05-13-kuma-deps.md",
+      "category": "lost",
+      "reason": "Cited as the full specification of the cross-layer group schema, but absent from notes/specs in the maintainer working tree; .cross-layer-sync.json is now the only record."
+    },
+    {
+      "path": ".gjc/plans/ralplan/2026-06-12-0645-bcdf/stage-08-final.md",
+      "category": "lost",
+      "reason": "A per-run planning artefact under .gjc/ that no longer exists in the maintainer working tree."
+    },
+    {
+      "path": "evidence/task-1-checklist-scope.md",
+      "category": "lost",
+      "reason": "EVOLVEpro closure evidence file; the evidence/ directory does not exist anywhere under the repository root."
+    },
+    {
+      "path": "evidence/task-4-minimal-gui.md",
+      "category": "lost",
+      "reason": "EVOLVEpro closure evidence file; the evidence/ directory does not exist anywhere under the repository root."
+    },
+    {
+      "path": "evidence/task-5-real-sisps-run.md",
+      "category": "lost",
+      "reason": "EVOLVEpro closure evidence file; the evidence/ directory does not exist anywhere under the repository root."
+    },
+    {
+      "path": "evidence/task-6-cache-second-run.md",
+      "category": "lost",
+      "reason": "EVOLVEpro closure evidence file; the evidence/ directory does not exist anywhere under the repository root."
+    },
+    {
+      "path": "evidence/task-7-dna-guard.md",
+      "category": "lost",
+      "reason": "EVOLVEpro closure evidence file; the evidence/ directory does not exist anywhere under the repository root."
+    },
+    {
+      "path": "evidence/task-8-cancel-persistence.md",
+      "category": "lost",
+      "reason": "EVOLVEpro closure evidence file; the evidence/ directory does not exist anywhere under the repository root."
+    },
+    {
+      "path": "evidence/task-9-checklist-disposition.md",
+      "category": "lost",
+      "reason": "EVOLVEpro closure evidence file; the evidence/ directory does not exist anywhere under the repository root."
+    },
+    {
+      "path": "report_final.md",
+      "category": "external",
+      "reason": "Output of the sibling repository at cc/mame_backtest, which has no remote; docs/2026-06-08-mame-transition-backtest.md exists precisely because that analysis lives outside kuma."
+    },
+    {
+      "path": "report2.md",
+      "category": "external",
+      "reason": "Row of the artefact table in the transition backtest note, naming a file of the sibling mame_backtest repository."
+    },
+    {
+      "path": "report_realdata.md",
+      "category": "external",
+      "reason": "Row of the artefact table in the transition backtest note, naming a file of the sibling mame_backtest repository."
+    },
+    {
+      "path": "weekly_260417_gyumin.md",
+      "category": "external",
+      "reason": "Obsidian vault note, cited by name and line in a design record as the origin of the Janus deck decision."
+    },
+    {
+      "path": "260428_mame_PPTX_gap_analysis.md",
+      "category": "external",
+      "reason": "Obsidian vault note, cited by name and line range in the same design record."
+    },
+    {
+      "path": "260506_v0.3_OQ_decisions.md",
+      "category": "external",
+      "reason": "Obsidian vault decision record, named as such in both release note languages."
+    },
+    {
+      "path": "kuma/2026-04-24-kuma-integration.md",
+      "category": "external",
+      "reason": "Tail of an $OBSIDIAN_VAULT path in a design plan; the Korean directory names in the middle of that path stop the extractor, leaving this fragment."
+    },
+    {
+      "path": "SKILL.md",
+      "category": "external",
+      "reason": "The cross-layer-sync skill document, which lives in the Claude Code skill directory outside this repository."
+    },
+    {
+      "path": "configuration.md",
+      "category": "prose",
+      "reason": "One of the docs page names listed in a changelog sentence that states the docs/en/ and docs/ko/ prefix separately, so the filename alone is not a path."
+    },
+    {
+      "path": "contributing.md",
+      "category": "prose",
+      "reason": "Docs page named in changelog prose; the directory is given in the surrounding sentence rather than in the reference."
+    },
+    {
+      "path": "custom-polymerase-editor.md",
+      "category": "prose",
+      "reason": "One of the docs page names listed in a changelog sentence that states the docs/en/ and docs/ko/ prefix separately."
+    },
+    {
+      "path": "faq.md",
+      "category": "prose",
+      "reason": "One of the docs page names listed in a changelog sentence; the tracked pages are docs/en/faq.md and docs/ko/faq.md, and no docs/faq.md exists for the bare form to resolve against."
+    },
+    {
+      "path": "troubleshooting.md",
+      "category": "prose",
+      "reason": "One of the docs page names listed in a changelog sentence that states the docs/en/ and docs/ko/ prefix separately."
+    },
+    {
+      "path": "uniprot-and-alphafold.md",
+      "category": "prose",
+      "reason": "One of the docs page names listed in a changelog sentence that states the docs/en/ and docs/ko/ prefix separately."
+    },
+    {
+      "path": "workspace-save-load.md",
+      "category": "prose",
+      "reason": "One of the docs page names listed in a changelog sentence that states the docs/en/ and docs/ko/ prefix separately."
+    },
+    {
+      "path": "docs/tm.md",
+      "category": "prose",
+      "reason": "Illustration of markdown inline-link syntax in a design record, introduced by e.g., not a claim that the page exists."
+    },
+    {
+      "path": "output.md",
+      "category": "prose",
+      "reason": "Argument placeholder in the usage line of scripts/collect-node-licenses.mjs."
+    },
+    {
+      "path": "tauri-resources/NOTICE.md",
+      "category": "prose",
+      "reason": "Release note shorthand joining the sync-check group name tauri-resources to the notice file it reports on, not a path."
+    },
+    {
+      "path": "terms_of_use.md",
+      "category": "prose",
+      "reason": "Zip member name in a test literal in tests/test_structure_file.py."
+    },
+    {
+      "path": "_fixture.md",
+      "category": "prose",
+      "reason": "ASCII tail of a Korean fixture filename in the docstring of tests/mame/create_fixtures.py; the extractor cannot match the Korean segment, so it reports the fragment."
+    }
+  ]
+}
