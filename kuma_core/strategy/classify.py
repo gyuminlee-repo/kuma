@@ -9,7 +9,9 @@ Imports signals.py functions; does NOT rewrite them.
 Bootstrap simplifications (documented per §12-A.2b):
 - Structural signals T1/T4/T_active/T_model/T_unused are frozen at point values
   (selection/design outputs, not measurement noise).
-- Noise-bearing signals T2 and T3 are resampled.
+- Noise-bearing signals T2 and T3 are resampled, but only within the signal set
+  the point estimate had: where sigma_assay is None at the point estimate, T2*
+  and T_model* stay NA in every draw (see bootstrap_confidence).
 - best_{n-1} baseline is held fixed; only best_n* varies from resampling
   current_round_activities, so delta* = delta_best_ema + (best_n* - max(current_round_activities)).
 - sat_prev is frozen (previous_signals not resampled).
@@ -26,6 +28,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from dataclasses import dataclass
 from typing import Literal, Optional
 
@@ -38,6 +41,7 @@ from kuma_core.strategy.signals import (
     compute_T_active,
     compute_T_model,
     compute_T_unused,
+    require_finite,
 )
 
 
@@ -286,11 +290,35 @@ def bootstrap_confidence(
     - sat_prev is frozen (previous_signals not resampled).
     - best_{n-1} is held fixed; delta* = delta_ema + (best_n* - max(activities)).
 
+    Signal-set alignment: the draws are held to the signal set the point
+    estimate had. Confidence answers "how robust is this decision to noise in
+    the evidence that produced it", so evidence absent from the decision cannot
+    contribute to its confidence. Where round_state.sigma_assay is None the
+    point estimate has no T2 and no T_model, so no draw may build a sigma from
+    wt_values either: T2* and T_model* are NA exactly as they are at the point
+    estimate. Without this, the point estimate ran with T2=NA while every draw
+    ran with T2 live, and because sat_now is an OR over (T2, T3, T_model),
+    adding a signal to the draws could only move agreement upward. The measured
+    effect was a confidence of 0.994 carried entirely by a signal the decision
+    never used, above the 0.7 gate, on a decision whose own signal agreed in
+    none of the draws.
+
+    The alternative, feeding wt_values into the point estimate so that T2 is
+    live there too, would change which decisions are issued. That is a
+    scientific choice about whether WT replicates enter the verdict and is
+    deliberately not taken here.
+
     Returns:
         (confidence, distribution) where confidence is the fraction of bootstrap
         samples that agree with the point decision label, and distribution is the
         full label-frequency dict.
         Returns (float("nan"), {}) when bootstrap inputs are unavailable.
+        classify() never sees that sentinel: it refuses those inputs up front
+        (deferred), and treats a non-finite confidence as an absent measurement.
+
+    Raises:
+        ValueError: If n_boot < 1, or if wt_values or current_round_activities
+            holds a NaN or infinity.
     """
     wt_values = round_state.wt_values
     current_round_activities = round_state.current_round_activities
@@ -298,15 +326,39 @@ def bootstrap_confidence(
     if not wt_values or not current_round_activities:
         return (float("nan"), {})
 
+    if n_boot < 1:
+        raise ValueError(f"bootstrap_n must be >= 1, got {n_boot!r}")
+
+    # A single non-finite activity makes max() order-dependent
+    # (max([nan, 5.0]) is nan, max([5.0, nan]) is 5.0), so the same multiset of
+    # measurements would produce opposite labels depending on row order.
+    wt_values = require_finite("wt_values", wt_values)
+    current_round_activities = require_finite(
+        "current_round_activities", current_round_activities
+    )
+
     # Parameters from registered
     t2_method = registered.get("t2_null_method", "order_statistic")
     t3_window = registered.get("t3_window_rounds", 2)
     tau_pos = registered.get("tau_pos", 0.0)
     wt_min = registered.get("wt_replicate_min", 4)
+    # Checked here rather than only inside compute_sigma_assay, which the
+    # alignment above skips entirely when the point estimate has no sigma.
+    if wt_min < 2:
+        raise ValueError(
+            f"wt_replicate_min must be >= 2, got {wt_min!r}: a sample stdev needs two data points"
+        )
 
     # Precompute point values for frozen signals
     point_signals = compute_signals(round_state, registered)
     p = round_state.previous_signals
+
+    # Signal-set alignment (see docstring): a draw may not use evidence the
+    # point estimate did not have.  compute_signals reads sigma from
+    # round_state.sigma_assay, so when that is None the point estimate carries
+    # neither T2 nor T_model, and the draws must not build a sigma from
+    # wt_values either.
+    point_sigma_available = round_state.sigma_assay is not None
 
     # Best_n from original activities (used as reference for delta adjustment)
     best_n_point = max(current_round_activities)
@@ -329,10 +381,15 @@ def bootstrap_confidence(
 
     counter = 0
     for _ in range(n_boot):
-        # Resample wt -> sigma*
+        # Resample wt -> sigma*, but only when the point estimate had a sigma.
+        # The counter advances either way so the draw stream stays identical.
         wt_star = [wt_values[_det_index(counter + i, len(wt_values))] for i in range(len(wt_values))]
         counter += len(wt_values)
-        sigma_star = compute_sigma_assay(wt_star, min_replicates=wt_min)
+        sigma_star = (
+            compute_sigma_assay(wt_star, min_replicates=wt_min)
+            if point_sigma_available
+            else None
+        )
 
         # Resample activities -> best_n* and hit*
         act_star = [current_round_activities[_det_index(counter + i, len(current_round_activities))] for i in range(len(current_round_activities))]
@@ -384,6 +441,58 @@ def bootstrap_confidence(
 # Public API
 # ---------------------------------------------------------------------------
 
+def _confidence_threshold(registered: dict) -> float:
+    """Read and validate the confidence gate threshold.
+
+    A non-finite or non-numeric threshold is a configuration error, not a
+    permissive setting. With thr = NaN both `conf < thr` comparisons are False
+    and the gate opens completely, passing every gated decision through at
+    whatever confidence it happened to carry; with thr = None the comparison
+    raises TypeError from inside the gate. Both are refused here, named.
+
+    Raises:
+        ValueError: If confidence_threshold is missing a usable value.
+    """
+    thr = registered.get("confidence_threshold", 0.7)
+    if isinstance(thr, bool) or not isinstance(thr, (int, float)):
+        raise ValueError(
+            f"confidence_threshold must be a real number in [0, 1], got {thr!r}"
+        )
+    thr = float(thr)
+    if not math.isfinite(thr):
+        raise ValueError(
+            f"confidence_threshold must be finite, got {thr!r}"
+        )
+    if not 0.0 <= thr <= 1.0:
+        raise ValueError(
+            f"confidence_threshold must lie in [0, 1], got {thr!r}"
+        )
+    return thr
+
+
+def _bootstrap_inputs_usable(round_state: RoundState, registered: dict) -> bool:
+    """Return True when the bootstrap can actually run on this round.
+
+    The gate at the call site used to test only `is None`, which is weaker than
+    what the computation needs, and the two regimes in between were wrong in
+    opposite directions. An empty wt_values reached bootstrap_confidence, took
+    its NaN sentinel, and the NaN then selected the confident branch (fail
+    open). A wt_values shorter than wt_replicate_min let every draw resample
+    into sigma=None, which is deferred in every draw, so the confidence was a
+    structural 0.0 rather than a measurement, and the gate turned stop into
+    continue_walking (fail closed). One replicate more or less flipped the
+    label. All four regimes now reach the same deferral as a missing input.
+    """
+    wt_values = round_state.wt_values
+    activities = round_state.current_round_activities
+    if wt_values is None or activities is None:
+        return False
+    if not activities:
+        return False
+    wt_min = registered.get("wt_replicate_min", 4)
+    return len(wt_values) >= wt_min
+
+
 def classify(round_state: RoundState, registered: dict) -> Decision:
     """Classify one ALE round as per §12-A.2 decision tree (v0.3 engine).
 
@@ -399,6 +508,15 @@ def classify(round_state: RoundState, registered: dict) -> Decision:
     Confidence gate applies symmetrically to switch_combinatorial and stop:
         switch + conf < threshold -> deferred("low_confidence")
         stop   + conf < threshold -> continue_walking("stop_low_confidence")
+
+    A confidence that could not be computed is neither low nor high; it is an
+    absent measurement, and the gated branches defer on it.
+
+    Raises:
+        ValueError: On a registered parameter that cannot produce a decision:
+            a non-finite or out-of-range confidence_threshold, bootstrap_n < 1,
+            t3_window_rounds < 2, wt_replicate_min < 2, r < 1, or a non-finite
+            entry in wt_values or current_round_activities.
     """
     n_min = registered.get("N_min", 3)
     if round_state.n < n_min:
@@ -410,15 +528,23 @@ def classify(round_state: RoundState, registered: dict) -> Decision:
     label0, reason0 = _decide_core(s, p)
 
     if label0 in ("switch_combinatorial", "stop"):
-        # Bootstrap inputs are required for gated branches
-        if round_state.wt_values is None or round_state.current_round_activities is None:
+        # Bootstrap inputs must be usable, not merely present
+        if not _bootstrap_inputs_usable(round_state, registered):
             return Decision(label="deferred", reason="bootstrap_inputs_missing")
+
+        thr = _confidence_threshold(registered)
 
         seed = effective_seed(round_state, registered)
         n_boot = registered.get("bootstrap_n", 1000)
         conf, dist = bootstrap_confidence(round_state, registered, n_boot=n_boot, seed=seed)
 
-        thr = registered.get("confidence_threshold", 0.7)
+        # A non-finite confidence is not a low confidence and not a high one.
+        # It is an absent measurement, so neither side of the gate may claim it.
+        # The guard above should already have caught every route to it; this is
+        # the backstop, and it reuses bootstrap_inputs_missing because that is
+        # the only state which can produce a non-finite confidence.
+        if not math.isfinite(conf):
+            return Decision(label="deferred", reason="bootstrap_inputs_missing")
 
         if label0 == "switch_combinatorial":
             if conf < thr:

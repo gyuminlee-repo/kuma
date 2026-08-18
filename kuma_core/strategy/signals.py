@@ -11,7 +11,49 @@ from __future__ import annotations
 
 import math
 import statistics
+from collections.abc import Iterable
 from typing import Optional
+
+
+# ---------------------------------------------------------------------------
+# Input guards
+# ---------------------------------------------------------------------------
+
+def require_finite(name: str, values: Iterable[float]) -> list[float]:
+    """Return values as a list, refusing any NaN or infinity.
+
+    Non-finite measurements are not data; they are an absent or failed
+    measurement wearing a float. Letting one through does not degrade a
+    computation gracefully, it changes the answer: ``max()`` becomes
+    order-dependent (``max([nan, 5.0])`` is nan, ``max([5.0, nan])`` is 5.0),
+    and ``statistics.stdev`` fails with ``AttributeError: 'float' object has no
+    attribute 'numerator'``, which names neither the parameter nor the problem.
+
+    Raises:
+        ValueError: naming ``name`` and the offending entry.
+    """
+    out: list[float] = []
+    for index, value in enumerate(values):
+        number = float(value)
+        if not math.isfinite(number):
+            raise ValueError(
+                f"{name} holds a non-finite entry at index {index}: {value!r}"
+            )
+        out.append(number)
+    return out
+
+
+def require_positive_replicates(r: int) -> None:
+    """Refuse a replicate count that cannot appear in a noise threshold.
+
+    The T2 and T_model thresholds divide by ``r``; ``r = 0`` raises
+    ZeroDivisionError from inside a sqrt, which names nothing.
+
+    Raises:
+        ValueError: if r < 1.
+    """
+    if r < 1:
+        raise ValueError(f"r (replicates per well) must be >= 1, got {r!r}")
 
 
 # ---------------------------------------------------------------------------
@@ -92,7 +134,11 @@ def compute_T2_threshold(
 
     Returns:
         Float threshold value.
+
+    Raises:
+        ValueError: If r < 1 (both formulas divide by r).
     """
+    require_positive_replicates(r)
     if method == "order_statistic" and n_designed is not None:
         n = max(n_designed, 2)
         return sigma_assay * math.sqrt(2 * math.log(n) / r)
@@ -154,6 +200,9 @@ def compute_T3(hit_rates: list[float], window: int = 2) -> Optional[bool]:
         True if slope <= 0 (convergence / saturation signal),
         False if slope > 0,
         None if fewer than 2 data points.
+
+    Raises:
+        ValueError: If window < 2 (see compute_T3_magnitude).
     """
     slope = compute_T3_magnitude(hit_rates, window)
     if slope is None:
@@ -166,11 +215,24 @@ def compute_T3_magnitude(hit_rates: list[float], window: int = 2) -> Optional[fl
 
     Args:
         hit_rates: Sequence of per-round hit rates.
-        window: Number of most recent rounds (default 2).
+        window: Number of most recent rounds (default 2). Must be >= 2.
 
     Returns:
         Float slope value, or None if fewer than 2 data points.
+
+    Raises:
+        ValueError: If window < 2. A slope needs two points, so window=1 can
+            only ever report "insufficient data" however much history is
+            present, and window=0 silently means the whole history because
+            ``hit_rates[-0:]`` is ``hit_rates[0:]``. Window 0 and window 2 then
+            return opposite verdicts on the same input. Neither is a meaningful
+            configuration, so both are refused rather than interpreted.
     """
+    if window < 2:
+        raise ValueError(
+            f"window (t3_window_rounds) must be >= 2, got {window!r}: "
+            "a slope needs two points, and window=0 silently means the whole history"
+        )
     if len(hit_rates) < 2:
         return None
     recent = hit_rates[-window:]
@@ -224,7 +286,14 @@ def compute_T_active(
 ) -> Optional[bool]:
     """Return True when a sufficient fraction of top-K positions are active-site.
 
-    Fraction = |top_k ∩ active| / |top_k|.
+    Fraction = |set(top_k) ∩ set(active)| / |set(top_k)|.
+
+    Both operands are de-duplicated before the ratio is taken. top_k_positions
+    is typed list[int] and repeats are ordinary input (two top variants can
+    mutate the same residue), so dividing by the list length would count one
+    position several times: [1, 1, 1, 2] against active [1] gives 0.75 by list
+    length and 0.5 by set, which straddles the default 0.4 threshold in the
+    opposite direction from the definition above.
 
     Rationale: Active-site spatial proximity (within 6 A of catalytic centre)
     raises the probability of pairwise interactions, increasing the information
@@ -259,8 +328,9 @@ def compute_T_active(
     """
     if not top_k_positions or not active_residues:
         return None
+    top_set = set(top_k_positions)
     active_set = set(active_residues)
-    fraction = sum(1 for pos in top_k_positions if pos in active_set) / len(top_k_positions)
+    fraction = len(top_set & active_set) / len(top_set)
     return fraction >= threshold
 
 
@@ -321,9 +391,13 @@ def compute_T_model(
         True if predicted gain < noise threshold (single space exhausted),
         False otherwise,
         None if sigma_assay is None.
+
+    Raises:
+        ValueError: If sigma_assay is present and r < 1 (the threshold divides by r).
     """
     if sigma_assay is None:
         return None
+    require_positive_replicates(r)
     threshold = z_model * sigma_assay * math.sqrt(2 / r)
     return predicted_top_untested_gain < threshold
 
@@ -348,10 +422,21 @@ def compute_sigma_assay(
 
     Returns:
         Sample stdev if len(wt_values) >= min_replicates, else None.
+
+    Raises:
+        ValueError: If min_replicates < 2 (stdev needs two points, and asking
+            for fewer turns the None fail-safe into a StatisticsError), or if
+            wt_values holds a NaN or infinity (which reaches statistics.stdev
+            as "AttributeError: 'float' object has no attribute 'numerator'").
     """
+    if min_replicates < 2:
+        raise ValueError(
+            f"min_replicates (wt_replicate_min) must be >= 2, got {min_replicates!r}: "
+            "a sample stdev needs two data points"
+        )
     if len(wt_values) < min_replicates:
         return None
-    return statistics.stdev(wt_values)
+    return statistics.stdev(require_finite("wt_values", wt_values))
 
 
 # ---------------------------------------------------------------------------
@@ -387,12 +472,22 @@ def compute_sigma_assay_ci(
 
     Returns:
         (lo, hi) tuple, or None if fewer than min_replicates values.
+
+    Raises:
+        ValueError: If min_replicates < 2 (df would be 0) or wt_values holds a
+            non-finite entry. Same contract as compute_sigma_assay.
     """
+    if min_replicates < 2:
+        raise ValueError(
+            f"min_replicates (wt_replicate_min) must be >= 2, got {min_replicates!r}: "
+            "df = n - 1 would be zero"
+        )
     if len(wt_values) < min_replicates:
         return None
-    n = len(wt_values)
+    values = require_finite("wt_values", wt_values)
+    n = len(values)
     df = n - 1
-    s = statistics.stdev(wt_values)
+    s = statistics.stdev(values)
     alpha = 1.0 - confidence
     nd = statistics.NormalDist()
 
