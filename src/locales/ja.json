@@ -2904,7 +2904,9 @@
         "projectNamePlaceholder": "e.g. Q232A_K287R",
         "projectNameHint": "Used as the export folder and file prefix. Leave empty to auto-name kuro_YYMMDD_HHMM.",
         "error": {
-          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
+          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens.",
+          "plateNameRegex": "半角英数字、アンダースコア、ハイフンを1〜20文字で入力してください。",
+          "wellOverflow": "{{count}} ウェルは96ウェルプレート1枚を超えています。"
         },
         "bomLabel": "UTF-8 BOM を追加",
         "bomHint": "(Excel 互換)",
@@ -2912,7 +2914,13 @@
         "quadrantNone": "指定なし(従来レイアウト)",
         "quadrantHelper": "Forwardプライマーはここから開始し、Reverseプライマーは対になるクアドラント(A1-B1、A2-B2)に入ります。",
         "usedQuadrantsLabel": "このプレートで既に使用済みのクアドラント",
-        "usedQuadrantsHelper": "選択したペアがこれらのいずれかと重なる場合、エクスポートは拒否されます。"
+        "usedQuadrantsHelper": "選択したペアがこれらのいずれかと重なる場合、エクスポートは拒否されます。",
+        "plateNameFwd": "Forwardプライマープレート名",
+        "plateNameRev": "Reverseプライマープレート名",
+        "wellCount": "{{count}} ウェル",
+        "echoVolLabel": "Echo移送量",
+        "janusVolLabel": "JANUS移送量",
+        "ruleHint": "プレート名は任意です。空欄の場合はバックエンドの既定値が使用されます。"
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",

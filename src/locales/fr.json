@@ -2904,7 +2904,9 @@
         "projectNamePlaceholder": "e.g. Q232A_K287R",
         "projectNameHint": "Used as the export folder and file prefix. Leave empty to auto-name kuro_YYMMDD_HHMM.",
         "error": {
-          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
+          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens.",
+          "plateNameRegex": "Utilisez 1 à 20 lettres, chiffres, underscores ou tirets.",
+          "wellOverflow": "{{count}} puits dépassent une plaque de 96 puits."
         },
         "bomLabel": "Ajouter un BOM UTF-8",
         "bomHint": "(compatibilité Excel)",
@@ -2912,7 +2914,13 @@
         "quadrantNone": "Non spécifié (disposition héritée)",
         "quadrantHelper": "Les amorces forward démarrent ici ; les reverse vont dans le quadrant apparié (A1-B1, A2-B2).",
         "usedQuadrantsLabel": "Quadrants déjà utilisés sur cette plaque",
-        "usedQuadrantsHelper": "L'export est refusé si la paire sélectionnée chevauche l'un de ces quadrants."
+        "usedQuadrantsHelper": "L'export est refusé si la paire sélectionnée chevauche l'un de ces quadrants.",
+        "plateNameFwd": "Nom de la plaque d'amorces forward",
+        "plateNameRev": "Nom de la plaque d'amorces reverse",
+        "wellCount": "{{count}} puits",
+        "echoVolLabel": "Volume de transfert Echo",
+        "janusVolLabel": "Volume de transfert JANUS",
+        "ruleHint": "Les noms de plaque sont facultatifs. Les noms vides utilisent les valeurs par défaut du backend."
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",

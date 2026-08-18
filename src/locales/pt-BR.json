@@ -2904,7 +2904,9 @@
         "projectNamePlaceholder": "e.g. Q232A_K287R",
         "projectNameHint": "Used as the export folder and file prefix. Leave empty to auto-name kuro_YYMMDD_HHMM.",
         "error": {
-          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
+          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens.",
+          "plateNameRegex": "Use de 1 a 20 letras, números, sublinhados ou hífens.",
+          "wellOverflow": "{{count}} poços excedem uma placa de 96 poços."
         },
         "bomLabel": "Adicionar BOM UTF-8",
         "bomHint": "(compatibilidade com Excel)",
@@ -2912,7 +2914,13 @@
         "quadrantNone": "Não especificado (layout legado)",
         "quadrantHelper": "Os primers forward começam aqui; os reverse vão para o quadrante pareado (A1-B1, A2-B2).",
         "usedQuadrantsLabel": "Quadrantes já usados nesta placa",
-        "usedQuadrantsHelper": "A exportação é recusada se o par selecionado sobrepor um destes."
+        "usedQuadrantsHelper": "A exportação é recusada se o par selecionado sobrepor um destes.",
+        "plateNameFwd": "Nome da placa de primers forward",
+        "plateNameRev": "Nome da placa de primers reverse",
+        "wellCount": "{{count}} poços",
+        "echoVolLabel": "Volume de transferência Echo",
+        "janusVolLabel": "Volume de transferência JANUS",
+        "ruleHint": "Os nomes das placas são opcionais. Nomes vazios usam os padrões do backend."
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",

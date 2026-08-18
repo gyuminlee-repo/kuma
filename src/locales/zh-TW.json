@@ -2904,7 +2904,9 @@
         "projectNamePlaceholder": "e.g. Q232A_K287R",
         "projectNameHint": "Used as the export folder and file prefix. Leave empty to auto-name kuro_YYMMDD_HHMM.",
         "error": {
-          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
+          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens.",
+          "plateNameRegex": "請輸入 1-20 個字母、數字、底線或連字號。",
+          "wellOverflow": "{{count}} 孔超出一片 96 孔盤的容量。"
         },
         "bomLabel": "新增 UTF-8 BOM",
         "bomHint": "(Excel 相容)",
@@ -2912,7 +2914,13 @@
         "quadrantNone": "未指定(舊版配置)",
         "quadrantHelper": "Forward 引子從此開始；reverse 引子進入配對象限(A1-B1、A2-B2)。",
         "usedQuadrantsLabel": "此盤上已使用的象限",
-        "usedQuadrantsHelper": "若所選配對與其中之一重疊，匯出將被拒絕。"
+        "usedQuadrantsHelper": "若所選配對與其中之一重疊，匯出將被拒絕。",
+        "plateNameFwd": "Forward 引子盤名稱",
+        "plateNameRev": "Reverse 引子盤名稱",
+        "wellCount": "{{count}} 孔",
+        "echoVolLabel": "Echo 轉移體積",
+        "janusVolLabel": "JANUS 轉移體積",
+        "ruleHint": "盤名稱為選填項目。留空將使用後端預設值。"
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",

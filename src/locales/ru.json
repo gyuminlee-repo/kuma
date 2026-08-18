@@ -2904,7 +2904,9 @@
         "projectNamePlaceholder": "e.g. Q232A_K287R",
         "projectNameHint": "Used as the export folder and file prefix. Leave empty to auto-name kuro_YYMMDD_HHMM.",
         "error": {
-          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
+          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens.",
+          "plateNameRegex": "Используйте 1-20 букв, цифр, подчёркиваний или дефисов.",
+          "wellOverflow": "{{count}} лунок превышают один 96-луночный планшет."
         },
         "bomLabel": "Добавить UTF-8 BOM",
         "bomHint": "(совместимость с Excel)",
@@ -2912,7 +2914,13 @@
         "quadrantNone": "Не указано (устаревшая раскладка)",
         "quadrantHelper": "Forward-праймеры начинаются здесь; reverse-праймеры идут в парный квадрант (A1-B1, A2-B2).",
         "usedQuadrantsLabel": "Квадранты, уже занятые на этом планшете",
-        "usedQuadrantsHelper": "Экспорт отклоняется, если выбранная пара пересекается с одним из них."
+        "usedQuadrantsHelper": "Экспорт отклоняется, если выбранная пара пересекается с одним из них.",
+        "plateNameFwd": "Название планшета forward-праймеров",
+        "plateNameRev": "Название планшета reverse-праймеров",
+        "wellCount": "{{count}} лунок",
+        "echoVolLabel": "Объём переноса Echo",
+        "janusVolLabel": "Объём переноса JANUS",
+        "ruleHint": "Названия планшетов необязательны. Пустые названия используют значения по умолчанию бэкенда."
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",

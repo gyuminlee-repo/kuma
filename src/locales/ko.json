@@ -2947,7 +2947,9 @@
         "projectNamePlaceholder": "예: Q232A_K287R",
         "projectNameHint": "내보내기 폴더와 파일 prefix로 사용됩니다. 비워두면 kuro_YYMMDD_HHMM 형식으로 자동 생성됩니다.",
         "error": {
-          "projectNameRegex": "영문, 숫자, 한글, 밑줄, 하이픈을 40자 이내로 입력하세요."
+          "projectNameRegex": "영문, 숫자, 한글, 밑줄, 하이픈을 40자 이내로 입력하세요.",
+          "plateNameRegex": "영문, 숫자, 밑줄, 하이픈을 1-20자로 입력하세요.",
+          "wellOverflow": "{{count}}개 웰은 96-well 플레이트 하나를 초과합니다."
         },
         "bomLabel": "UTF-8 BOM 추가",
         "bomHint": "(Excel 호환)",
@@ -2955,7 +2957,13 @@
         "quadrantNone": "지정 안 함 (레거시 레이아웃)",
         "quadrantHelper": "Forward 프라이머는 여기서 시작하고, reverse 프라이머는 짝 quadrant(A1-B1, A2-B2)로 갑니다.",
         "usedQuadrantsLabel": "이 플레이트에서 이미 사용된 quadrant",
-        "usedQuadrantsHelper": "선택한 쌍이 이 중 하나와 겹치면 export가 거부됩니다."
+        "usedQuadrantsHelper": "선택한 쌍이 이 중 하나와 겹치면 export가 거부됩니다.",
+        "plateNameFwd": "Forward 프라이머 플레이트 이름",
+        "plateNameRev": "Reverse 프라이머 플레이트 이름",
+        "wellCount": "{{count}}개 웰",
+        "echoVolLabel": "Echo 이송 부피",
+        "janusVolLabel": "JANUS 이송 부피",
+        "ruleHint": "플레이트 이름은 선택 사항입니다. 비워두면 백엔드 기본값을 사용합니다."
       },
       "macrogen": {
         "title": "프라이머 주문 (Macrogen)",
