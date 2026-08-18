@@ -163,7 +163,9 @@ pub fn import_project(archive_path: &Path, dest_parent: &Path) -> Result<Archive
         .file_stem()
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_else(|| "kuma-project".to_string());
-    let dest = crate::project::unique_folder(dest_parent, &stem);
+    // The stem comes off a filename the user picked, so it is data too:
+    // ``unique_folder`` refuses one that would not land inside ``dest_parent``.
+    let dest = crate::project::unique_folder(dest_parent, &stem)?;
     fs::create_dir_all(&dest).map_err(|e| e.to_string())?;
 
     let mut total_bytes = 0u64;

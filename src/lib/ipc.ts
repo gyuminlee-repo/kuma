@@ -37,32 +37,8 @@ export async function isSidecarRunning(kind: SidecarKind): Promise<boolean> {
   return invoke("sidecar_is_running", { kind }) as Promise<boolean>;
 }
 
-// === MAME strategy advisory RPC (Fork D) =====================================
-
-/**
- * Advisory classify() call with per-round xlsx file references.
- *
- * @param roundFiles - Ordered list of {n, path, wt_values?} xlsx file entries.
- *   n is 1-based round number; handler sorts by n internally. wt_values are the
- *   wild-type replicates step 4.1 recorded for that round, which the file
- *   itself cannot carry; only the highest-numbered entry is read.
- * @param cNext - Optional capacity of the next combinatorial plate (wells).
- *   Used to derive K_throughput = floor((1+sqrt(1+8*cNext))/2). Defaults to 96.
- * @returns ClassifyDecisionResult when the classifier answered, or
- *   ClassifyNotAssessableResult when the bootstrap gate was reached with too
- *   few wild-type replicates to run on, so the question could not be put to it.
- *   Discriminate on `advisory`.
- *   Throws a JSON-RPC error (-32602 / -32002) on bad input or missing/malformed files.
- *
- * Read-only, no confirmation button, no PI decision persistence.
- * MAME sidecar strategy.classify_round 호출.
- */
-export async function classifyRound(
-  roundFiles: import("@/types/mame/strategy").RoundFileEntry[],
-  cNext?: number,
-): Promise<import("@/types/mame/strategy").ClassifyRoundResult> {
-  return rpc("mame", "strategy.classify_round", {
-    round_files: roundFiles,
-    ...(cNext !== undefined && { c_next: cNext }),
-  });
-}
+// `classifyRound` used to live here. It is a MAME call, and this module is the
+// raw transport both sidecars share, so placing it here sent it to the sidecar
+// without passing the MAME client and its result was cast to
+// `ClassifyRoundResult` with nothing checking it. It now lives beside every
+// other MAME call in `src/lib/ipc-mame/index.ts`, on the validated path.

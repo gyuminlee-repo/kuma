@@ -557,8 +557,13 @@ def load_barcode_directory(
 
     # The manifest, when there is one, overrides ``units``: it is the
     # directory's own statement of which units the run that filled it produced,
-    # and it outranks anything a call site remembered to pass.  Absent or
-    # unreadable, it makes no claim and ``units`` decides exactly as before.
+    # and it outranks anything a call site remembered to pass.  Absent, foreign
+    # or unreadable, it makes no claim and ``units`` decides exactly as before.
+    # One case is neither: a manifest stamped with this module's ``kind`` but a
+    # schema version this build does not know was written by a NEWER kuma, and
+    # ``read_run_manifest`` raises ``UnreadableManifestError`` through this line
+    # rather than reading a field that may have changed meaning or quietly
+    # falling back to reading every leftover in the folder.
     manifest = read_run_manifest(input_dir)
     claimed = units_of(manifest)
     if claimed is None:

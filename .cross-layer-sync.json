@@ -1203,7 +1203,8 @@
       "files": [
         "python-core/sidecar_mame/handlers/classify_round.py",
         "src/types/mame/strategy.ts",
-        "src/lib/ipc.ts",
+        "src/types/mame/validators.ts",
+        "src/lib/ipc-mame/index.ts",
         "src/components/round/AdvisoryDecisionCard.tsx",
         "src/lib/round/roundArtifacts.ts",
         "src/lib/mame/mameStepCompletion.ts"

@@ -13,6 +13,7 @@ from kuma_core.mame.ingest.consensus import call_consensus, per_position_depth
 from kuma_core.mame.ingest.well_consensus import ConsensusResult, compute_well_consensuses
 from kuma_core.mame.ingest.run_pipeline import ingest_run_folder, is_minknow_run_dir
 from kuma_core.mame.ingest.unit_manifest import (
+    UnreadableManifestError,
     read_run_manifest,
     write_run_manifest,
 )
@@ -20,6 +21,7 @@ from kuma_core.mame.ingest.unit_manifest import (
 __all__ = [
     "ingest_run_folder",
     "is_minknow_run_dir",
+    "UnreadableManifestError",
     "read_run_manifest",
     "write_run_manifest",
     "load_barcode_directory",

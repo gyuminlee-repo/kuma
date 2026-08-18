@@ -38,7 +38,11 @@ from kuma_core.mame.ingest.combinatorial_demux import (
     run_combinatorial_demux_per_nb,
 )
 from kuma_core.mame.ingest.fasta_parser import load_barcode_directory
-from kuma_core.mame.ingest.unit_manifest import manifest_path, write_run_manifest
+from kuma_core.mame.ingest.unit_manifest import (
+    UnreadableManifestError,
+    manifest_path,
+    write_run_manifest,
+)
 
 
 # ===========================================================================
@@ -233,8 +237,27 @@ def test_directory_without_a_manifest_still_reads_every_subdirectory(
         ("truncated", '{"schema_version": 1, "units": ["sort_ba'),
         ("not json", "not json at all"),
         ("not an object", "[1, 2, 3]"),
-        ("units not a list", '{"schema_version": 1, "units": "sort_barcode07"}'),
-        ("units empty", '{"schema_version": 1, "units": []}'),
+        # These two carry the stamp so they still reach ``units_of``: without
+        # it the kind check answers first and the case stops testing its name.
+        (
+            "units not a list",
+            '{"schema_version": 1, "kind": "mame_run_units", '
+            '"units": "sort_barcode07"}',
+        ),
+        (
+            "units empty",
+            '{"schema_version": 1, "kind": "mame_run_units", "units": []}',
+        ),
+        # Something else entirely at this name is not a membership claim MAME
+        # made, so it is absent for the same reason unreadable bytes are.
+        (
+            "foreign kind",
+            '{"schema_version": 1, "kind": "foreign", "units": ["sort_barcode07"]}',
+        ),
+        (
+            "no kind at all",
+            '{"schema_version": 1, "units": ["sort_barcode07"]}',
+        ),
     ],
 )
 def test_unreadable_manifest_degrades_to_reading_everything(
@@ -259,6 +282,44 @@ def test_unreadable_manifest_degrades_to_reading_everything(
         "sort_barcode15",
     }, label
     assert strays == {}, label
+
+
+def test_a_manifest_from_a_newer_build_refuses_the_run(tmp_path: Path) -> None:
+    """An unknown schema version is neither trusted nor discarded.
+
+    A newer kuma filled this folder and recorded which plates it produced.
+    Reading ``units`` off a schema this build does not know reads a field that
+    may have changed meaning; ignoring it reads every leftover in the folder,
+    which is the defect the manifest exists to prevent. So the run stops and
+    names the version.
+    """
+    parent = tmp_path / "demux_filtered"
+    _stage_units(parent, ["sort_barcode07", "sort_barcode15"])
+    manifest_path(parent).write_text(
+        '{"schema_version": 999, "kind": "mame_run_units", '
+        '"units": ["sort_barcode07"]}',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(UnreadableManifestError) as excinfo:
+        load_barcode_directory(parent)
+    assert "999" in str(excinfo.value)
+
+
+def test_a_manifest_with_no_readable_version_refuses_the_run(
+    tmp_path: Path,
+) -> None:
+    """Stamped as ours, but the version is not a number this build can compare."""
+    parent = tmp_path / "demux_filtered"
+    _stage_units(parent, ["sort_barcode07"])
+    manifest_path(parent).write_text(
+        '{"schema_version": "1", "kind": "mame_run_units", '
+        '"units": ["sort_barcode07"]}',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(UnreadableManifestError):
+        load_barcode_directory(parent)
 
 
 # ===========================================================================
