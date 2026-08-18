@@ -1,0 +1,202 @@
+"""Every shipped workbook is run through the path that actually loads it.
+
+The repository ships workbooks in four places: ``templates/`` (what the operator
+downloads), ``src-tauri/samples/`` (what "Load Sample Data" opens),
+``fixtures/`` (the demo campaign) and the test fixtures. Reading one of them and
+laying it out on a plate is two calls, and until this module existed no test made
+those two calls against the shipped bytes. So a workbook could ship with more
+mutants than one plate has wells: ``read_variant_source`` reads all of them
+happily, and it is ``build_draft_layout`` -- one call later -- that answers with
+an empty plate and a list of dropped mutants. ``fixtures/mame_demo`` shipped in
+exactly that state, 96 mutants and no control row, placing nothing at all.
+
+The collection is a glob rather than a list so that a workbook added tomorrow is
+checked without anyone remembering to add it here. Not every xlsx is a variant
+list (barcode seeds, activity tables, GC traces), so the ones without an
+``expected_mutations`` sheet are dropped from the collection and counted; see
+:func:`test_the_collection_is_not_empty` for why the count matters.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import openpyxl
+import pytest
+
+from kuma_core.mame.io.plate_order_check import (
+    EXPECTED_SHEET,
+    PLATE_SHEETS,
+    check_plate_order,
+)
+from kuma_core.mame.io.variant_list import read_variant_source
+from kuma_core.mame.layout import MUTANT_CAPACITY, build_draft_layout
+
+#: Repository root, from this file rather than from the working directory.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+
+#: Where the repository keeps workbooks it hands to somebody: the download
+#: templates, the bundled samples, the demo campaign and the test fixtures.
+_ASSET_GLOBS = (
+    "templates/**/*.xlsx",
+    "src-tauri/samples/**/*.xlsx",
+    "fixtures/**/*.xlsx",
+    "tests/**/fixtures/**/*.xlsx",
+)
+
+
+def _sheet_names(path: Path) -> list[str]:
+    workbook = openpyxl.load_workbook(path, read_only=True)
+    try:
+        return list(workbook.sheetnames)
+    finally:
+        workbook.close()
+
+
+def _collect() -> tuple[list[tuple[Path, list[str]]], list[Path]]:
+    """``(variant workbooks with their sheet names, workbooks skipped)``."""
+    paths = sorted(
+        {p for pattern in _ASSET_GLOBS for p in _REPO_ROOT.glob(pattern) if p.is_file()}
+    )
+    checked: list[tuple[Path, list[str]]] = []
+    skipped: list[Path] = []
+    for path in paths:
+        names = _sheet_names(path)
+        if EXPECTED_SHEET in names:
+            checked.append((path, names))
+        else:
+            skipped.append(path)
+    return checked, skipped
+
+
+_VARIANT_ASSETS, _SKIPPED_ASSETS = _collect()
+
+#: ``pytest`` ids as repository-relative paths, so a failure names the file.
+_IDS = [str(path.relative_to(_REPO_ROOT)) for path, _ in _VARIANT_ASSETS]
+
+#: Occupant counts pinned for the two workbooks the product hands to an operator.
+#: The general checks below would pass on a file that lost half its rows; these
+#: two are the ones a person opens expecting a particular plate.
+_PINNED_OCCUPANTS = {
+    "templates/03_mame_expected_mutations.xlsx": 8,
+    "src-tauri/samples/mame/03_mame_expected_mutations.xlsx": 10,
+}
+
+
+def _describe(path: Path, sheets: list[str]) -> str:
+    return (
+        f"\n  file     : {path.relative_to(_REPO_ROOT)}"
+        f"\n  sheets   : {sheets}"
+        f"\n  capacity : {MUTANT_CAPACITY} mutants + 1 WT control"
+    )
+
+
+def test_the_collection_is_not_empty():
+    """A glob that matches nothing would make every test below vacuously green."""
+    assert _VARIANT_ASSETS, (
+        "no workbook with an "
+        f"{EXPECTED_SHEET!r} sheet was found under {list(_ASSET_GLOBS)} "
+        f"in {_REPO_ROOT}. {len(_SKIPPED_ASSETS)} workbook(s) were skipped for "
+        "having no such sheet; if the layout of the repository moved, move these "
+        "globs with it rather than deleting this module."
+    )
+
+
+@pytest.mark.parametrize(("path", "sheets"), _VARIANT_ASSETS, ids=_IDS)
+class TestShippedVariantWorkbook:
+    """Read it, place it, and compare it with its own plate sheet."""
+
+    def test_it_is_readable(self, path, sheets):
+        try:
+            read_variant_source(path)
+        except (ValueError, FileNotFoundError, KeyError) as exc:
+            pytest.fail(
+                f"read_variant_source refused a shipped workbook: {exc}"
+                + _describe(path, sheets)
+            )
+
+    def test_every_mutant_gets_a_well(self, path, sheets):
+        """The failure this module was written for.
+
+        Over capacity ``build_draft_layout`` returns an empty layout rather than
+        a truncated one, so the symptom is a plate with nothing on it, not a
+        plate missing its tail.
+        """
+        result = read_variant_source(path)
+        draft = build_draft_layout(result.expected, wt_ordinal=result.wt_ordinal)
+
+        assert not draft.dropped_mutant_ids, (
+            f"{len(result.expected)} mutants plus the WT control do not fit on "
+            f"one plate, so nothing was placed at all. Dropped: "
+            f"{draft.dropped_mutant_ids}. Cut the list to at most "
+            f"{MUTANT_CAPACITY} mutants, or split it across plates."
+            + _describe(path, sheets)
+        )
+        assert len(draft.layout) == len(result.expected) + 1, (
+            f"expected {len(result.expected)} mutants + 1 WT control = "
+            f"{len(result.expected) + 1} occupied wells, got "
+            f"{len(draft.layout)}." + _describe(path, sheets)
+        )
+
+    def test_a_declared_wt_row_holds_the_well_its_row_number_names(self, path, sheets):
+        """A control row is an occupant. Dropping it pulls every later well up."""
+        result = read_variant_source(path)
+        draft = build_draft_layout(result.expected, wt_ordinal=result.wt_ordinal)
+        wells = list(draft.layout.values())
+
+        assert wells.count("WT") == 1, (
+            f"one plate carries exactly one control well, this one has "
+            f"{wells.count('WT')}." + _describe(path, sheets)
+        )
+        assert "WT" not in [m.mutant_id for m in result.expected], (
+            "the control row came back as a mutant, so it would be scored as one."
+            + _describe(path, sheets)
+        )
+        if result.has_explicit_wt:
+            assert wells.index("WT") + 1 == result.wt_ordinal, (
+                f"the file puts its control row at occupant {result.wt_ordinal} "
+                f"but it was placed at occupant {wells.index('WT') + 1}."
+                + _describe(path, sheets)
+            )
+
+    def test_the_pinned_workbooks_still_hold_the_plate_they_are_shipped_for(
+        self, path, sheets
+    ):
+        relative = str(path.relative_to(_REPO_ROOT))
+        if relative not in _PINNED_OCCUPANTS:
+            pytest.skip(f"{relative} carries no pinned occupant count")
+        occupants = _PINNED_OCCUPANTS[relative]
+
+        result = read_variant_source(path)
+
+        # WT is the last row of both files, so its ordinal is the occupant count.
+        assert result.wt_ordinal == occupants, (
+            f"pinned: the control row sits last, at occupant {occupants}; "
+            f"read: {result.wt_ordinal}." + _describe(path, sheets)
+        )
+        assert len(result.expected) == occupants - 1, (
+            f"pinned: {occupants - 1} mutants; read: {len(result.expected)}."
+            + _describe(path, sheets)
+        )
+
+    def test_its_plate_sheet_names_the_same_wells(self, path, sheets):
+        """Only for workbooks carrying a primer plate next to the expected sheet."""
+        if not any(name in sheets for name in PLATE_SHEETS):
+            pytest.skip(f"no {' or '.join(PLATE_SHEETS)} sheet to compare against")
+
+        report = check_plate_order(path)
+
+        assert report.comparable, (
+            "the workbook has both kinds of sheet but the two could not be "
+            "compared, which is what an unreadable expected sheet or an empty "
+            f"draft layout looks like from here (plate sheet: "
+            f"{report.plate_sheet!r})." + _describe(path, sheets)
+        )
+        assert report.ok, (
+            f"the plate sheet ({report.plate_sheet}) and {EXPECTED_SHEET} do not "
+            f"describe the same plate."
+            f"\n  same well, different mutant : {report.examples}"
+            f"\n  on the plate, no expected row: {report.missing_from_expected}"
+            f"\n  expected row, not on the plate: {report.absent_from_plate}"
+            + _describe(path, sheets)
+        )

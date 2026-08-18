@@ -2,29 +2,46 @@
 
 Simulates a Native Barcoding Kit V14 run:
   - 3 native barcodes (NB01, NB02, NB03) × 96 custom barcodes = 288 wells
-  - NB01/02/03 are replicates of the same 96 mutants
+  - NB01/02/03 are replicates of the same plate
   - Custom barcodes are indexed by 8-row × 12-col plate layout:
-    row 1-8, col 1-12 → labels 1_1 .. 8_12  (96 total)
+    row 1-8, col 1-12 → labels 1_1 .. 8_12  (96 wells total)
 
-Verdict class distribution across 288 wells (rows in 96-mutant × 3-replicate matrix):
-  PASS      ~50%  → 144 wells
-  AMBIGUOUS ~10%  → 29 wells   (closest to PASS, but extra adjacent AA change)
-  FRAMESHIFT ~10% → 29 wells
-  MANY       ~5%  → 14 wells
-  LOWDEPTH  ~15%  → 43 wells
-  WRONG_AA  ~10%  → 29 wells
+Two numbers used to be the same literal ``96`` and are not the same number.
+``_N_WELLS`` is how many wells one plate has, fixed by the 8 × 12 geometry.
+``DEFAULT_N_MUTANTS`` is how many mutants this campaign designs, and one plate
+has room for ``_N_WELLS - 1`` of them because the WT control takes a well of its
+own (``kuma_core.mame.layout.MUTANT_CAPACITY``). Designing 96 mutants, which is
+what this generator did, puts 97 occupants on a 96-well plate: ``build_draft_layout``
+then places *nothing at all* and reports the overflow, so the demo workbook laid
+out an empty plate. It also shipped no WT row, so the whole control path went
+untested. Both are fixed here; ``tests/mame/test_shipped_plate_assets.py`` is
+what keeps them fixed.
+
+Verdict class distribution across the ``N × 3`` replicate wells, by share
+(``_VERDICT_SHARES``). Counts are floored per class and the remainder goes to
+PASS, so the totals track whatever ``N`` is asked for:
+  PASS       ~50%   (the intended substitution, exactly)
+  AMBIGUOUS  ~10%   (closest to PASS, but extra adjacent AA change)
+  FRAMESHIFT ~10%
+  MANY        ~5%
+  LOWDEPTH   ~15%
+  WRONG_AA   ~10%
+The WT control well is not one of these: it carries the unmutated reference and
+is counted separately.
 
 Each mutant has a single intended AA substitution in the synthetic ~1700 bp CDS.
 Positions are evenly spaced across the protein (spacing = 5 codons).
 
 Usage
 -----
-    python fixtures/mame_demo/generate.py           # skip existing files
-    python fixtures/mame_demo/generate.py --force   # overwrite everything
+    python fixtures/mame_demo/generate.py                 # skip existing files
+    python fixtures/mame_demo/generate.py --force         # overwrite everything
+    python fixtures/mame_demo/generate.py --mutants 48    # smaller campaign
 
 Reproducibility
 ---------------
-    random.seed(42) is set at module top — identical output on every run.
+    random.seed(42) is set at module top, identical output for a given
+    ``--mutants``.
 """
 
 from __future__ import annotations
@@ -54,26 +71,50 @@ _PAD_BYTES_ABOVE = 52 * 1024
 # that no LOWDEPTH file accidentally exceeds the depth threshold.
 _LOWDEPTH_MAX_BYTES = 30 * 1024
 
-# Plate layout: 8 rows × 12 cols = 96 wells
+# Plate layout: 8 rows × 12 cols = 96 wells. This is plate geometry, not a
+# campaign size, and it does not move when the mutant count does.
 _ROWS = 8
 _COLS = 12
 _N_WELLS = _ROWS * _COLS  # 96
 
+#: How many mutants this campaign designs. One plate holds ``_N_WELLS`` occupants
+#: and the WT control is one of them, so the ceiling is ``_N_WELLS - 1``. This
+#: mirrors ``kuma_core.mame.layout.MUTANT_CAPACITY``; it is restated rather than
+#: imported so the generator runs without the package on the path.
+DEFAULT_N_MUTANTS = _N_WELLS - 1  # 95
+#: The occupant label ``build_draft_layout`` writes for the control well.
+_WT_LABEL = "WT"
+
 # 3 native barcodes
 _NBS = ["NB01", "NB02", "NB03"]
 
-# Verdict distribution across 288 wells (96 mutants × 3 replicates)
+# Verdict distribution over the N × 3 replicate wells, as shares rather than
+# counts so that changing N does not silently leave the totals behind.
 # Assignment strategy: per-mutant, each of the 3 replicates gets an
 # independently chosen case type, but total counts obey the distribution.
-_VERDICT_DISTRIBUTION: list[tuple[str, int]] = [
-    ("PASS", 144),
-    ("AMBIGUOUS", 29),
-    ("FRAMESHIFT", 29),
-    ("MANY", 14),
-    ("LOWDEPTH", 43),
-    ("WRONG_AA", 29),
+_VERDICT_SHARES: list[tuple[str, float]] = [
+    ("PASS", 0.50),
+    ("AMBIGUOUS", 0.10),
+    ("FRAMESHIFT", 0.10),
+    ("MANY", 0.05),
+    ("LOWDEPTH", 0.15),
+    ("WRONG_AA", 0.10),
 ]
-# Total = 288
+
+
+def _verdict_distribution(n_wells: int) -> list[tuple[str, int]]:
+    """Turn ``_VERDICT_SHARES`` into counts summing to exactly ``n_wells``.
+
+    Every class but PASS is floored; PASS absorbs the remainder. PASS is the
+    majority class, so rounding it is the change least likely to make a rare
+    case disappear from the demo altogether.
+    """
+    counts = [
+        (name, int(n_wells * share))
+        for name, share in _VERDICT_SHARES
+        if name != "PASS"
+    ]
+    return [("PASS", n_wells - sum(count for _, count in counts))] + counts
 
 # Amino acid alphabet (single-letter, no stop)
 _AAS = list("ACDEFGHIKLMNPQRSTVWY")
@@ -143,8 +184,8 @@ _PROTEIN_LEN: int = CDS_END // 3 - 1  # 566
 # Mutant definitions
 # ---------------------------------------------------------------------------
 
-def _build_mutants() -> list[dict]:
-    """Define 96 mutants with evenly spaced positions across the protein.
+def _build_mutants(n_mutants: int = DEFAULT_N_MUTANTS) -> list[dict]:
+    """Define ``n_mutants`` mutants with evenly spaced positions across the protein.
 
     Returns list of dicts:
         mutant_id, position (1-based AA), wt_aa, mt_aa,
@@ -152,12 +193,12 @@ def _build_mutants() -> list[dict]:
         notation_type, status
 
     Position spacing: `spacing = 5` codons.
-    Positions: 6, 11, 16, ..., 481  (6 + i * spacing for i in 0..95).
+    Positions: 6, 11, 16, ...  (6 + i * spacing for i in 0..n_mutants-1).
     All within the 1..566 protein range.
     """
     mutants: list[dict] = []
     spacing = 5  # step between mutant positions (in AA units)
-    for i in range(_N_WELLS):
+    for i in range(n_mutants):
         pos = 6 + i * spacing  # 1-based AA position
         # Codon boundaries (0-based nt): (pos-1)*3 .. pos*3
         codon_start = (pos - 1) * 3
@@ -167,7 +208,13 @@ def _build_mutants() -> list[dict]:
         # Pick a MT AA that differs from WT
         mt_aa = _pick_mt_aa(wt_aa, seed_offset=i)
         mt_codon = _PREFERRED_CODON[mt_aa]
-        mutant_id = f"M{i+1:03d}_{wt_aa}{pos}{mt_aa}"
+        # The mutation notation itself, which is what a real KURO export writes
+        # in `mutant_id` (`templates/`, `src-tauri/samples/kuro/.../platemap.xlsx`).
+        # This used to be `M{i:03d}_{notation}`, a shape no exporter produces, and
+        # the plate-order check could not match it against the `Mutation` column
+        # of the same workbook's `Fwd List`. Positions are distinct by
+        # construction, so the notation is unique on its own.
+        mutant_id = f"{wt_aa}{pos}{mt_aa}"
         mutants.append({
             "mutant_id": mutant_id,
             "position": pos,
@@ -206,28 +253,33 @@ def _pick_mt_aa(wt_aa: str, seed_offset: int) -> str:
 # Case type assignment
 # ---------------------------------------------------------------------------
 
-def _assign_cases() -> list[list[str]]:
-    """Assign case types for 96 mutants × 3 replicates.
+def _assign_cases(n_mutants: int = DEFAULT_N_MUTANTS) -> list[list[str]]:
+    """Assign case types for ``n_mutants`` mutants × ``len(_NBS)`` replicates.
 
-    Returns a 96-element list; each element is a 3-element list of case names
-    for [NB01, NB02, NB03].
+    Returns an ``n_mutants``-element list; each element is a 3-element list of
+    case names for [NB01, NB02, NB03].
 
-    Total counts across all 288 assignments match _VERDICT_DISTRIBUTION.
+    Total counts across all ``n_mutants * 3`` assignments match the distribution
+    ``_verdict_distribution`` derives from ``_VERDICT_SHARES``. The WT control
+    well is not in this matrix: it carries the unmutated reference and has no
+    verdict class.
     """
-    # Build flat list of 288 case labels matching distribution
+    n_replicates = len(_NBS)
+    total = n_mutants * n_replicates
+
+    # Build flat list of `total` case labels matching the distribution
     flat: list[str] = []
-    for case_name, count in _VERDICT_DISTRIBUTION:
+    for case_name, count in _verdict_distribution(total):
         flat.extend([case_name] * count)
-    assert len(flat) == 288, f"Expected 288 cases, got {len(flat)}"
+    assert len(flat) == total, f"Expected {total} cases, got {len(flat)}"
 
     # Shuffle with fixed seed (already seeded at module level)
     random.shuffle(flat)
 
-    # Reshape into 96 × 3
-    matrix: list[list[str]] = []
-    for i in range(96):
-        matrix.append([flat[i * 3], flat[i * 3 + 1], flat[i * 3 + 2]])
-    return matrix
+    # Reshape into n_mutants × n_replicates
+    return [
+        flat[i * n_replicates: (i + 1) * n_replicates] for i in range(n_mutants)
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -408,6 +460,13 @@ def _write_xlsx(mutants: list[dict], force: bool) -> None:
             m["wt_codon"], m["mt_codon"], m["group_id"], m["primer_set_ref"],
             m["notation_type"], m["status"],
         ])
+    # The WT control row, in the shape `templates/03_mame_expected_mutations.xlsx`
+    # uses: `status=control` is what the reader recognises as the control, and
+    # the row takes a well of its own. Without it the demo never exercised the
+    # control path at all, and the plate was one occupant short of what the
+    # pipeline actually places. It goes last, so its ordinal is the occupant
+    # count and no mutant well moves.
+    ws_exp.append([_WT_LABEL, 0, "-", "-", "-", "-", "G0", "-", "wt", "control"])
 
     XLSX_PATH.parent.mkdir(parents=True, exist_ok=True)
     wb.save(XLSX_PATH)
@@ -430,32 +489,42 @@ def _well_labels() -> list[str]:
 # Main generation
 # ---------------------------------------------------------------------------
 
-def generate(force: bool = False) -> None:
+def generate(force: bool = False, n_mutants: int = DEFAULT_N_MUTANTS) -> None:
     """Generate all fixture files."""
+    if not 1 <= n_mutants <= _N_WELLS - 1:
+        raise ValueError(
+            f"n_mutants={n_mutants} does not fit: one {_N_WELLS}-well plate holds "
+            f"at most {_N_WELLS - 1} mutants because the WT control takes a well."
+        )
+
     print(f"Demo root: {DEMO_ROOT}")
     print(f"Force overwrite: {force}")
+    print(f"Mutants: {n_mutants} (+ 1 WT control = {n_mutants + 1} of {_N_WELLS} wells)")
 
     # 1) Reference
     _write_reference(force)
     print(f"  [OK] reference.fasta ({CDS_END} bp, CDS_END={CDS_END})")
 
     # 2) Mutant definitions
-    mutants = _build_mutants()
-    assert len(mutants) == 96, f"Expected 96 mutants, got {len(mutants)}"
+    mutants = _build_mutants(n_mutants)
+    assert len(mutants) == n_mutants, f"Expected {n_mutants} mutants, got {len(mutants)}"
 
     # 3) XLSX
     _write_xlsx(mutants, force)
-    print(f"  [OK] KURO_expected.xlsx ({len(mutants)} mutants)")
+    print(f"  [OK] KURO_expected.xlsx ({len(mutants)} mutants + 1 WT control)")
 
-    # 4) Case assignment matrix (96 × 3)
-    case_matrix = _assign_cases()
+    # 4) Case assignment matrix (n_mutants × 3)
+    case_matrix = _assign_cases(n_mutants)
 
-    # 5) Well labels
+    # 5) Well labels. The plate always has _N_WELLS of them; the campaign fills
+    #    the first n_mutants with mutants, the next one with the control, and
+    #    leaves the rest empty (which is what a smaller campaign looks like).
     well_labels = _well_labels()
-    assert len(well_labels) == 96
+    assert len(well_labels) == _N_WELLS
 
     # 6) Write FASTA files
-    stats: dict[str, int] = {name: 0 for name, _ in _VERDICT_DISTRIBUTION}
+    stats: dict[str, int] = {name: 0 for name, _ in _VERDICT_SHARES}
+    stats[_WT_LABEL] = 0
     total_bytes = 0
     file_sizes_kb: list[float] = []
     files_written = 0
@@ -464,16 +533,21 @@ def generate(force: bool = False) -> None:
     for nb_idx, nb in enumerate(_NBS):
         nb_dir = CONSENSUS_ROOT / nb
         nb_dir.mkdir(parents=True, exist_ok=True)
-        for well_idx, label in enumerate(well_labels):
-            mutant = mutants[well_idx]
-            case = case_matrix[well_idx][nb_idx]
+        for well_idx, label in enumerate(well_labels[: n_mutants + 1]):
+            is_control = well_idx == n_mutants
+            case = _WT_LABEL if is_control else case_matrix[well_idx][nb_idx]
             out_path = nb_dir / f"{label}.fasta"
 
             if out_path.exists() and not force:
                 files_skipped += 1
                 continue
 
-            seq = _mutate_cds(_REFERENCE_CDS, mutant, case)
+            if is_control:
+                # The control well carries the reference untouched. Anything
+                # else would make the control a mutant with extra steps.
+                seq = _REFERENCE_CDS
+            else:
+                seq = _mutate_cds(_REFERENCE_CDS, mutants[well_idx], case)
             pad = case != "LOWDEPTH"
             _write_fasta(out_path, header=label, sequence=seq, pad=pad)
 
@@ -516,5 +590,12 @@ if __name__ == "__main__":
         "--force", action="store_true",
         help="Overwrite existing files (default: skip)",
     )
+    parser.add_argument(
+        "--mutants", type=int, default=DEFAULT_N_MUTANTS,
+        help=(
+            f"How many mutants to design (default: {DEFAULT_N_MUTANTS}). "
+            f"At most {_N_WELLS - 1}: the WT control takes a well of its own."
+        ),
+    )
     args = parser.parse_args()
-    generate(force=args.force)
+    generate(force=args.force, n_mutants=args.mutants)

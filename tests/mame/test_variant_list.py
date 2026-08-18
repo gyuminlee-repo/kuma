@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 from openpyxl import Workbook
 
@@ -12,9 +10,6 @@ from kuma_core.mame.io.variant_list import (
     read_variant_source,
 )
 from kuma_core.mame.layout import build_draft_layout
-
-#: Repository root, from this file rather than from the working directory.
-_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _write_sheet(path, rows, sheet_title="Sheet1"):
@@ -505,24 +500,10 @@ class TestControlStatusWildType:
         with pytest.raises(ValueError, match="row 3.*control"):
             read_variant_source(path)
 
-    @pytest.mark.parametrize(
-        ("relative", "occupants"),
-        [
-            ("templates/03_mame_expected_mutations.xlsx", 8),
-            ("src-tauri/samples/mame/03_mame_expected_mutations.xlsx", 10),
-        ],
-    )
-    def test_the_shipped_workbooks_are_readable(self, relative, occupants):
-        """Help -> Load Sample Data 가 읽는 바로 그 파일들이다."""
-        path = _REPO_ROOT / relative
-        assert path.exists(), path
-
-        result = read_variant_source(path)
-
-        # WT 는 두 파일 모두 마지막 행이므로 서수는 점유자 수와 같다.
-        assert result.wt_ordinal == occupants
-        assert len(result.expected) == occupants - 1
-        assert "WT" not in [m.mutant_id for m in result.expected]
+    # 배포·데모 워크북 자체를 실제 소비자에 태우는 검사는
+    # ``test_shipped_plate_assets.py`` 로 옮겼다. 그쪽은 대상을 glob 으로 모으므로
+    # 새 자산이 추가돼도 자동으로 걸리고, 읽기뿐 아니라 배치와 플레이트 시트
+    # 대조까지 같이 본다. 여기 있던 점유자 수 단언은 그 모듈에 그대로 남아 있다.
 
 
 class TestHeaderlessList:
