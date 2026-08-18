@@ -2504,13 +2504,13 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Fünf run-health-Abschnitte, die die App bei jedem Lauf gemessen und nie gezeichnet hat, stehen jetzt im Review-Bildschirm, zunächst geschlossen.",
-      "Die Coverage meldet die Gleichmäßigkeit je Well statt nur einen Mittelwert, sodass ein Well mit einer Lücke nicht mehr wie ein gleichmäßig bedecktes aussieht.",
-      "Die vom Sequenzierer gemessene read length wird gegen die Referenz gezeigt, gegen die der Lauf aligniert hat. Dort zeigt sich eine Concatemer-Population.",
-      "Eine Referenzdatei mit mehr als einer Sequenz wird von allen vier Readern abgelehnt, statt zu einer Chimäre verbunden oder stillschweigend gekürzt zu werden.",
-      "Ein Amplicon ohne gefundenes reading frame sagt das, statt eine CDS der Länge null zu melden, die die Platte ab dem Primer-Tail übersetzt hat."
+      "Ein Wert, den die Pipeline nicht berechnen konnte, benennt sich jetzt selbst, statt 60 Sekunden später als Verbindungszeitüberschreitung aufzutauchen.",
+      "Eine Entscheidungskonfidenz wird nur gemeldet, wenn sie gemessen wurde, und Schätzwert und Fehlerbalken lesen jetzt dieselben Signale.",
+      "Die Testsuite läuft unter Windows, wo ein einziges fehlendes Werkzeug bisher alle 1301 Tests übersprang und Erfolg meldete.",
+      "Zwei nur unter Windows erreichbare Fehler sind behoben: Jede Veröffentlichung eines Exportpakets schlug fehl, und jede Prüfsummendatei war unlesbar.",
+      "Eine Übersetzung, die einen Platzhalter weglässt oder umbenennt, wird vor der Auslieferung erkannt und erreicht den Bildschirm nicht mehr mit einer Lücke."
     ],
-    "highlightsStamp": "0.16.28+35bab529",
+    "highlightsStamp": "0.16.29+3f25adcf",
     "releases": {
       "0.16.28": [
         "Fünf run-health-Abschnitte, die die App bei jedem Lauf gemessen und nie gezeichnet hat, stehen jetzt im Review-Bildschirm, zunächst geschlossen.",
@@ -2731,9 +2731,17 @@
         "Die Hilfe unter Variant list mapping nennt jetzt die Füllrichtung der Wells: A1, B1, C1 bis H1, dann A2.",
         "Der post-commit-Hook für die Versionsnummer bricht nicht mehr an einem entfernten Pfad ab.",
         "Eine lange Notiz lässt sich jetzt im Dialog scrollen, statt unten über den Rand hinauszulaufen."
+      ],
+      "0.16.29": [
+        "Ein Wert, den die Pipeline nicht berechnen konnte, benennt sich jetzt selbst, statt 60 Sekunden später als Verbindungszeitüberschreitung aufzutauchen.",
+        "Eine Entscheidungskonfidenz wird nur gemeldet, wenn sie gemessen wurde, und Schätzwert und Fehlerbalken lesen jetzt dieselben Signale.",
+        "Die Testsuite läuft unter Windows, wo ein einziges fehlendes Werkzeug bisher alle 1301 Tests übersprang und Erfolg meldete.",
+        "Zwei nur unter Windows erreichbare Fehler sind behoben: Jede Veröffentlichung eines Exportpakets schlug fehl, und jede Prüfsummendatei war unlesbar.",
+        "Eine Übersetzung, die einen Platzhalter weglässt oder umbenennt, wird vor der Auslieferung erkannt und erreicht den Bildschirm nicht mehr mit einer Lücke."
       ]
     },
     "releaseStamps": {
+      "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",
       "0.16.26": "c3e3f1a1",

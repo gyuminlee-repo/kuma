@@ -2504,13 +2504,13 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Cinq sections run health que l'application mesurait à chaque exécution sans jamais les afficher figurent désormais sur l'écran de revue, repliées au départ.",
-      "La couverture indique l'uniformité par puits et non plus une simple moyenne, de sorte qu'un puits présentant un trou ne ressemble plus à un puits couvert uniformément.",
-      "La read length mesurée par le séquenceur est présentée face à la référence sur laquelle l'exécution a aligné, là où se voit une population de concatémères.",
-      "Un fichier de référence contenant plus d'une séquence est refusé par les quatre lecteurs, au lieu d'être fusionné en chimère ou tronqué silencieusement.",
-      "Un amplicon sans reading frame trouvé le dit, au lieu de rapporter une CDS de longueur nulle qui traduisait la plaque depuis la queue d'amorce."
+      "Une valeur que le pipeline n'a pas pu calculer se désigne désormais elle-même, au lieu d'apparaître 60 secondes plus tard comme un délai de connexion dépassé.",
+      "La confiance d'une décision n'est rapportée que lorsqu'elle a été mesurée, et l'estimation et sa marge d'erreur lisent les mêmes signaux.",
+      "La suite de tests s'exécute sous Windows, où un seul outil manquant ignorait auparavant les 1301 tests et annonçait une réussite.",
+      "Deux défauts que seul Windows atteint sont corrigés : la publication de chaque lot d'export échouait et chaque fichier de somme de contrôle était illisible.",
+      "Une traduction qui supprime ou renomme un espace réservé est détectée avant la publication, au lieu d'atteindre l'écran avec un blanc."
     ],
-    "highlightsStamp": "0.16.28+35bab529",
+    "highlightsStamp": "0.16.29+3f25adcf",
     "releases": {
       "0.16.28": [
         "Cinq sections run health que l'application mesurait à chaque exécution sans jamais les afficher figurent désormais sur l'écran de revue, repliées au départ.",
@@ -2731,9 +2731,17 @@
         "L'aide du Variant list mapping indique désormais le sens de remplissage des wells : A1, B1, C1 jusqu'à H1, puis A2.",
         "Le hook post-commit de version n'échoue plus sur un chemin supprimé.",
         "Une note de version longue défile maintenant dans la boîte de dialogue au lieu de dépasser en bas."
+      ],
+      "0.16.29": [
+        "Une valeur que le pipeline n'a pas pu calculer se désigne désormais elle-même, au lieu d'apparaître 60 secondes plus tard comme un délai de connexion dépassé.",
+        "La confiance d'une décision n'est rapportée que lorsqu'elle a été mesurée, et l'estimation et sa marge d'erreur lisent les mêmes signaux.",
+        "La suite de tests s'exécute sous Windows, où un seul outil manquant ignorait auparavant les 1301 tests et annonçait une réussite.",
+        "Deux défauts que seul Windows atteint sont corrigés : la publication de chaque lot d'export échouait et chaque fichier de somme de contrôle était illisible.",
+        "Une traduction qui supprime ou renomme un espace réservé est détectée avant la publication, au lieu d'atteindre l'écran avec un blanc."
       ]
     },
     "releaseStamps": {
+      "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",
       "0.16.26": "c3e3f1a1",
