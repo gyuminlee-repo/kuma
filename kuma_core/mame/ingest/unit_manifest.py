@@ -56,6 +56,21 @@ is.  Degrading to "read everything" restores the pre-manifest behaviour, which
 is wrong in the narrow way this module exists to fix but is never worse than the
 state the pipeline shipped in for the last four runs; raising instead would turn
 a truncated write into an unopenable results folder.
+
+The two stamped fields are read back, and the three answers are not the same
+answer.  ``kind`` says whether MAME wrote this file at all: anything else at
+this name is not a membership statement MAME made, so it is ABSENT for the same
+reason unparseable bytes are, and honouring its ``units`` (which is what
+happened before) let a file nobody wrote decide which plates a run scores.
+``schema_version`` says whether this build can read the statement: a version
+this build does not know comes from a NEWER kuma, and both other answers are
+wrong there.  Trusting it reads a field that may no longer mean what it meant in
+version 1, and folding it to "no claim" reads every leftover in the folder,
+which is exactly the defect this module exists to prevent and which the newer
+build was recording membership to avoid.  So an unknown schema REFUSES the run
+and says which version wrote the folder.  There is no truncation risk in that
+choice: a half-written manifest is not valid JSON and never reaches the version
+check, and the write is atomic besides.
 """
 
 from __future__ import annotations
@@ -75,6 +90,7 @@ __all__ = [
     "MANIFEST_FILENAME",
     "MANIFEST_KIND",
     "MANIFEST_SCHEMA_VERSION",
+    "UnreadableManifestError",
     "manifest_path",
     "read_run_manifest",
     "read_manifest_units",
@@ -130,13 +146,35 @@ def write_run_manifest(
     return atomic_write_text(manifest_path(output_root), content)
 
 
+class UnreadableManifestError(RuntimeError):
+    """A membership claim this build recognises but cannot interpret.
+
+    Raised only for a manifest whose ``kind`` is this module's and whose
+    ``schema_version`` is newer than :data:`MANIFEST_SCHEMA_VERSION`.  Every
+    other unusable file is reported as absent instead; see the module docstring
+    for why this one case is different.
+    """
+
+
 def read_run_manifest(output_root: Path) -> dict[str, Any] | None:
     """Return the parsed manifest for *output_root*, or ``None`` when absent.
 
-    A file that is missing, unreadable, not JSON, or not a JSON object is
-    reported as ``None``.  Every caller answers ``None`` by treating the
-    directory as one that carries no membership claim, which is the behaviour
-    that predates this module.
+    A file that is missing, unreadable, not JSON, not a JSON object, or not
+    stamped with this module's ``kind`` is reported as ``None``.  Every caller
+    answers ``None`` by treating the directory as one that carries no membership
+    claim, which is the behaviour that predates this module.
+
+    The check lives here rather than at the call site because this is the
+    function whose return value is trusted.  A caller that validated the stamp
+    itself would protect only itself, and the next reader of the same file would
+    trust whatever is in it, which is the shape of the defect this module was
+    written to remove.
+
+    Raises:
+        UnreadableManifestError: the file is this module's manifest and states a
+            ``schema_version`` newer than this build knows.  A newer kuma wrote
+            the folder, so neither trusting the claim nor discarding it is safe;
+            see the module docstring.
     """
     path = manifest_path(output_root)
     try:
@@ -145,6 +183,25 @@ def read_run_manifest(output_root: Path) -> dict[str, Any] | None:
         return None
     if not isinstance(data, dict):
         return None
+    if data.get("kind") != MANIFEST_KIND:
+        return None
+    version = data.get("schema_version")
+    if not isinstance(version, int) or isinstance(version, bool):
+        raise UnreadableManifestError(
+            f"{path} is a MAME run manifest with no readable schema version "
+            f"({version!r}). It states which plates the run in this folder "
+            "produced, and a run cannot be scored against a claim that cannot "
+            "be read. Re-run the demux into this folder, or point the analysis "
+            "at a folder this build filled."
+        )
+    if version > MANIFEST_SCHEMA_VERSION:
+        raise UnreadableManifestError(
+            f"{path} was written by a newer version of kuma (manifest schema "
+            f"{version}; this build reads {MANIFEST_SCHEMA_VERSION}). It states "
+            "which plates the run in this folder produced, and ignoring it "
+            "would score the leftovers of earlier runs alongside them. Update "
+            "kuma, or re-run the demux into an empty folder with this build."
+        )
     return data
 
 
@@ -174,6 +231,7 @@ def read_manifest_units(output_root: Path) -> set[str] | None:
     """Return the unit names *output_root* claims, or ``None`` for no claim.
 
     Convenience wrapper over :func:`read_run_manifest` plus :func:`units_of`
-    for callers that need nothing but the membership set.
+    for callers that need nothing but the membership set, and it raises what
+    that reader raises (:class:`UnreadableManifestError`).
     """
     return units_of(read_run_manifest(output_root))

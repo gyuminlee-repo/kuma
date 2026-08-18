@@ -41,6 +41,7 @@ from kuma_core.mame.ingest.combinatorial_demux import (
     run_combinatorial_demux,
     run_combinatorial_demux_per_nb,
 )
+from tests.mame.minimap2_support import requires_minimap2
 
 # Same synthetic library as tests/mame/test_native_barcode_separation.py: a
 # 60 bp reference, an F and an R annealing tail, and the shipped barcode seeds.
@@ -358,6 +359,7 @@ def _assert_partition(stats: DemuxStats) -> None:
     )
 
 
+@requires_minimap2
 @pytest.mark.parametrize("chimera_split", [True, False])
 def test_run_combinatorial_demux_partitions_its_drops(
     tmp_path: Path, chimera_split: bool

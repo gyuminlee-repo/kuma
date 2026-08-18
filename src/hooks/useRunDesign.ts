@@ -19,6 +19,7 @@
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/store/appStore";
+import { validateForRun } from "@/store/validation";
 import { checkKuroInputSize, type InputSizeLevel } from "@/lib/inputThresholds";
 import { runPreflightCheck, type PreflightResult } from "@/lib/preflight";
 import { useFlushKuroBeforeDesign } from "./useKuroAutosave";
@@ -55,15 +56,11 @@ export function useRunDesign(): UseRunDesignReturn {
   const [sizeWarning, setSizeWarning] = useState<SizeWarningState | null>(null);
   const [preflightResult, setPreflightResult] = useState<PreflightState | null>(null);
 
+  // 게이트는 하나다. 조건을 여기 다시 적으면 마법사(`validateForNext`)와 갈라져,
+  // 넘어가기는 되는데 Run Design 은 막힌 채 아무 말도 안 하는 상태가 생긴다.
+  // 실행과 넘어가기의 진짜 차이는 `store/validation.ts` 안에 한 번만 적혀 있다.
   const collectMissingFields = useCallback((): string[] => {
-    const s = useAppStore.getState();
-    const missing: string[] = [];
-    if (!s.seqInfo) missing.push(t("appLayout.missingSeqFile"));
-    if (!s.mutationText.trim()) missing.push(t("appLayout.missingMutations"));
-    if (s.seqInfo && s.seqInfo.genes.length > 1 && !s.selectedGene) {
-      missing.push(t("appLayout.missingTargetGene"));
-    }
-    return missing;
+    return validateForRun(useAppStore.getState()).missing.map((key) => t(key));
   // t is stable across renders; exhaustive-deps intentionally minimal
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

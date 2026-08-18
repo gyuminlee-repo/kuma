@@ -63,8 +63,11 @@ def write_output_checksum(output_path: Path, *, algorithm: str = "sha256") -> Pa
 
     checksum_path = output_path.parent / (output_path.name + ".sha256")
     # Two spaces: text-mode marker per GNU coreutils shasum convention.
+    # newline="" suppresses translation: this file is consumed by external
+    # checkers that treat everything after the two spaces as the filename, so a
+    # CRLF here makes the name unresolvable on the platform that wrote it.
     checksum_path.write_text(
-        f"{hex_digest}  {output_path.name}\n", encoding="utf-8"
+        f"{hex_digest}  {output_path.name}\n", encoding="utf-8", newline=""
     )
     return checksum_path
 

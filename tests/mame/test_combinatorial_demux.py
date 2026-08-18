@@ -32,6 +32,7 @@ from kuma_core.mame.ingest.combinatorial_demux import (
     load_barcodes,
     run_combinatorial_demux,
 )
+from tests.mame.minimap2_support import requires_minimap2
 
 # ---------------------------------------------------------------------------
 # Synthetic constants
@@ -487,6 +488,7 @@ class TestDemuxRead:
 # ---------------------------------------------------------------------------
 
 
+@requires_minimap2
 class TestRunCombinatorialDemux:
     def test_assigned_reads_and_wells(
         self, tmp_path: Path, tmp_reference: Path, mock_barcodes_xlsx: Path
@@ -653,6 +655,7 @@ class TestRunCombinatorialDemux:
 # ---------------------------------------------------------------------------
 
 
+@requires_minimap2
 class TestProgressCallback:
     """Verify progress_callback is called during demux and consensus phases."""
 
@@ -1018,6 +1021,7 @@ def test_extract_barcode_windows_is_used_by_demux_read_anchored() -> None:
     assert len(calls) == 1
 
 
+@requires_minimap2
 @pytest.mark.parametrize("chimera_split", [True, False])
 def test_coverage_wipeout_is_not_reported_as_a_mapq_wipeout(
     tmp_path: Path, mock_barcodes_xlsx: Path, chimera_split: bool

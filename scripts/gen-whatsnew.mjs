@@ -22,10 +22,27 @@
  * the "### Highlights" convention have no entry and are simply absent from the
  * modal, which is correct: there is nothing written to show for them.
  *
- * The stamp is "<version>+<digest8>": the package.json version those bullets were
- * generated from, then the first 8 hex characters of the sha256 of
+ * The stamp is "<version>+<digest8>": the version of the CHANGELOG section those
+ * bullets were taken from, then the first 8 hex characters of the sha256 of
  * JSON.stringify(highlights). The array order is part of the digest and is never
  * sorted, because the bullets are shown in the order they were written.
+ *
+ * That version is the release label, "0.16.25.1", and not package.json's
+ * "0.16.25". Two versions live in this repo and they are not the same thing.
+ * Tauri and Cargo enforce SemVer MAJOR.MINOR.PATCH, so package.json, Cargo.toml
+ * and tauri.conf.json carry three parts and identify the *binary*
+ * (scripts/rename-bundle-to-tag.mjs states the rule). A *release* is the
+ * four-part vA.BB.CC.DD tag of the commit convention, which is what the
+ * CHANGELOG headings and therefore the keys of `releases`/`releaseStamps` use,
+ * and what vite.config.ts resolves __APP_VERSION__ to via `git describe`, so
+ * that is also the version the modal compares its archive keys against.
+ *
+ * Stamping with the three-part version put the stamp in the wrong namespace: it
+ * cannot tell 0.16.25 from 0.16.25.1, so 0.16.25.1 shipped bullets under
+ * "0.16.25+291c60a5" while releaseStamps keyed the same digest under
+ * "0.16.25.1", and all ten locales recorded the wrong release with every gate
+ * green. With the release version in the stamp, its two halves are exactly a
+ * key of `releaseStamps` and that key's value.
  *
  * The digest half is what makes the stamp mean "this exact English wording",
  * not merely "some wording from this release". A version-only stamp moves at a
@@ -55,9 +72,14 @@
  * saying so, and a silently truncated note is the failure this generator exists
  * to prevent. A bullet ends at a blank line, the next "- ", or a "###" heading.
  *
- * Freshness guard: the latest CHANGELOG section MUST reference the current
- * package.json version (e.g. `v0.15.6`) and MUST carry a "### Highlights" block;
+ * Freshness guard: the latest CHANGELOG section MUST declare, in its heading, a
+ * release of the current package.json version (`## v0.16.25` or `## v0.16.25.1`
+ * when package.json is at 0.16.25) and MUST carry a "### Highlights" block;
  * otherwise generation/--check fails so a release cannot ship a stale modal.
+ * The heading is compared part by part rather than searched for as a substring.
+ * A substring test accepted a heading the current version is merely a prefix of,
+ * which is another release, and accepted a section that only mentioned the
+ * version in its prose while its heading named no release at all.
  * Both of those "the CHANGELOG is not ready for this release yet" cases exit with
  * EXIT_STALE_CHANGELOG (2) instead of the generic EXIT_ERROR (1) so callers (see
  * scripts/sync-version.sh) can tell them apart from "generation broke for some
@@ -172,6 +194,42 @@ function highlightsOf(section) {
   return items;
 }
 
+/**
+ * The release the latest CHANGELOG section is for, given package.json's version.
+ *
+ * The section version must be the package version, or the package version with
+ * one more numeric component: 0.16.25 and 0.16.25.1 both belong to the binary
+ * that calls itself 0.16.25, and nothing else does. That is a comparison of
+ * parts rather than of text. `latest.lines.join("\n").includes("v" + version)`,
+ * which this replaces, was satisfied by two things it should have rejected: a
+ * heading for a *different* release that happens to have the current version as
+ * a prefix ("## v0.16.25.1" contains "v0.16.25", which is exactly how the wrong
+ * release shipped stamped as the right one, and "v0.16.2" is a prefix of
+ * "v0.16.25" too), and a section that only *mentions* the version somewhere in
+ * its prose while its heading names another release or none.
+ */
+function releaseVersionOf(latest, version) {
+  const stale = (why) =>
+    new StaleChangelogError(
+      `[gen-whatsnew] CHANGELOG.md's latest section ${why}, but package.json is at ` +
+        `${version}. Its heading must read "## v${version}" or "## v${version}.<N>". ` +
+        "Add a CHANGELOG entry for this release before building.",
+    );
+
+  if (!latest.version) {
+    throw stale(`has no version in its heading (${latest.lines[0].trim()})`);
+  }
+  const actual = latest.version.split(".");
+  const expected = version.split(".");
+  const sameLineage =
+    (actual.length === expected.length || actual.length === expected.length + 1) &&
+    expected.every((part, i) => actual[i] === part);
+  if (!sameLineage) {
+    throw stale(`is v${latest.version}`);
+  }
+  return latest.version;
+}
+
 /** The authoring rules, as a list of complaints (empty when the bullets pass). */
 function authoringProblems(items) {
   const problems = [];
@@ -202,24 +260,20 @@ function build() {
   }
   const latest = sections[0];
 
-  // Freshness guard: the latest section must reference the current version.
-  if (!latest.lines.join("\n").includes(`v${version}`)) {
-    throw new StaleChangelogError(
-      `[gen-whatsnew] CHANGELOG.md's latest section does not mention current version v${version}. ` +
-        "Add a CHANGELOG entry for this release before building.",
-    );
-  }
+  // Freshness guard: the latest section must be a release of this package
+  // version, and the release it names is what the bullets are stamped with.
+  const releaseVersion = releaseVersionOf(latest, version);
 
   const items = highlightsOf(latest);
   if (items === null) {
     throw new StaleChangelogError(
-      `[gen-whatsnew] CHANGELOG.md's latest section (v${version}) has no '### Highlights' block. ` +
+      `[gen-whatsnew] CHANGELOG.md's latest section (v${releaseVersion}) has no '### Highlights' block. ` +
         AUTHORING_HELP,
     );
   }
   if (items.length === 0) {
     throw new StaleChangelogError(
-      `[gen-whatsnew] CHANGELOG.md's '### Highlights' block for v${version} has no bullets. ` +
+      `[gen-whatsnew] CHANGELOG.md's '### Highlights' block for v${releaseVersion} has no bullets. ` +
         AUTHORING_HELP,
     );
   }
@@ -256,7 +310,7 @@ function build() {
     );
   }
 
-  return { version, items, releases, releaseStamps };
+  return { releaseVersion, items, releases, releaseStamps };
 }
 
 function readLocale() {
@@ -264,8 +318,8 @@ function readLocale() {
 }
 
 function main() {
-  const { version, items, releases, releaseStamps } = build();
-  const stamp = stampFor(version, items);
+  const { releaseVersion, items, releases, releaseStamps } = build();
+  const stamp = stampFor(releaseVersion, items);
   const locale = readLocale();
   const dialog = locale.whatsNewDialog;
 
@@ -279,7 +333,7 @@ function main() {
     if (dialog?.highlightsStamp !== stamp) {
       drift.push(
         `whatsNewDialog.highlightsStamp is ${JSON.stringify(dialog?.highlightsStamp)}, ` +
-          `expected "${stamp}" (package.json version + sha256 of these bullets)`,
+          `expected "${stamp}" (CHANGELOG release version + sha256 of these bullets)`,
       );
     }
     // The archive is compared as a whole, key order included: the modal renders

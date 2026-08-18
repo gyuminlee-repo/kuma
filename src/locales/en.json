@@ -795,7 +795,7 @@
     },
     "appLayout": {
       "deadlockTitle": "No response",
-      "deadlockDescription": "No progress update for {{seconds}}+ seconds. The job is stuck.",
+      "deadlockDescription": "No progress update for {{seconds}}+ seconds. The job may be stuck.",
       "deadlockWait": "Keep waiting",
       "deadlockReset": "Reset",
       "analysisWorkspaceAriaLabel": "Analysis workspace",
@@ -1414,7 +1414,7 @@
     "deleteFolderConfirmDesc": "{{path}} moves to the system trash together with everything inside it. The folder can be recovered from the trash.",
     "deleteFolderConfirmButton": "Move to trash",
     "restorableTitle": "Restorable projects",
-    "restorableDesc": "Removed from the recent list but still present on disk.",
+    "restorableDesc": "Removed from the recent list but still in the current projects folder. Projects under a different folder are not listed.",
     "restorableEmpty": "No projects to restore.",
     "restoreButton": "Restore",
     "overview": {
@@ -1899,11 +1899,10 @@
     },
     "relativeTime": {
       "justNow": "just now",
-      "minAgo": "{{count}} min ago",
-      "hrAgo": "{{count}} hr ago",
-      "daysAgo": "{{count}} day(s) ago",
       "minutesAgo": "{{n}} min ago",
-      "hoursAgo": "{{n}} hr ago"
+      "hoursAgo": "{{n}} hr ago",
+      "daysAgo": "{{n}} day(s) ago",
+      "unknown": "at an unknown time"
     },
     "memory": {
       "warningBannerLabel": "Memory: {{pct}}% (sidecar {{rss}} MB)",
@@ -2004,7 +2003,7 @@
     "missingMutations": "Mutations (enter at least one mutation in the Mutation panel)",
     "missingTargetGene": "Target gene (select one in the Sequence panel)",
     "deadlockTitle": "No response",
-    "deadlockDesc": "No progress update for {{seconds}}+ seconds. The job is stuck.",
+    "deadlockDesc": "No progress update for {{seconds}}+ seconds. The job may be stuck.",
     "deadlockWait": "Keep waiting",
     "deadlockReset": "Reset",
     "plateCount": "{{count}} plate",
@@ -2923,6 +2922,7 @@
     "writeFailed": "Could not write the autosave file ({{filename}}). Cause: {{cause}}",
     "carriedFromScratch": "Carried over from an unsaved earlier session ({{relative}})",
     "resultsDiscarded": "The variant list was re-selected from the source file and no longer matches the restored primer table, so the table was cleared. Run the design again.",
+    "resultsIncomplete": "Part of the saved results could not be restored because the saved file did not carry them whole, so that part was left out rather than shown half-filled. Run the analysis again to get it back. Missing: {{fields}}",
     "inputsUnavailable": "{{count}} input file(s) could not be opened and were left out of the restore. Results are still here but their source input is missing, so re-select it: {{paths}}",
     "workspaceRestored": "Workspace restored",
     "autoDetected": "Auto-detected: {{fields}}",

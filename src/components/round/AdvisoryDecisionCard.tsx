@@ -42,7 +42,7 @@ import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
 import { InfoIcon, FileSpreadsheet, RotateCcw, X, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { classifyRound } from "@/lib/ipc";
+import { classifyRound } from "@/lib/ipc-mame";
 import { listArtifacts } from "@/lib/workspace";
 import {
   normalizePath,

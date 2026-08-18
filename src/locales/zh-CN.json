@@ -648,7 +648,7 @@
     },
     "appLayout": {
       "deadlockTitle": "无响应",
-      "deadlockDescription": "30 秒以上未收到进度更新。作业卡住了。",
+      "deadlockDescription": "{{seconds}} 秒以上未收到进度更新。作业可能卡住。",
       "deadlockWait": "继续等待",
       "deadlockReset": "重置",
       "analysisWorkspaceAriaLabel": "分析工作区",
@@ -1414,7 +1414,7 @@
     "deleteFolderConfirmDesc": "{{path}} 及其中的所有文件将移到系统回收站，之后仍可从回收站还原。",
     "deleteFolderConfirmButton": "移到回收站",
     "restorableTitle": "可还原的项目",
-    "restorableDesc": "已从最近项目列表移除，但仍保留在磁盘上的项目。",
+    "restorableDesc": "已从最近项目列表移除，但仍位于当前项目文件夹中的项目。位于其他文件夹的项目不会列出。",
     "restorableEmpty": "没有可还原的项目。",
     "restoreButton": "还原",
     "overview": {
@@ -1881,11 +1881,10 @@
     },
     "relativeTime": {
       "justNow": "刚刚",
-      "minAgo": "{{count}} 分钟前",
-      "hrAgo": "{{count}} 小时前",
-      "daysAgo": "{{count}} 天前",
       "minutesAgo": "{{n}} 分钟前",
-      "hoursAgo": "{{n}} 小时前"
+      "hoursAgo": "{{n}} 小时前",
+      "daysAgo": "{{n}} 天前",
+      "unknown": "时间未知"
     },
     "memory": {
       "warningBannerLabel": "内存: {{pct}}% (sidecar {{rss}} MB)",
@@ -1986,7 +1985,7 @@
     "missingMutations": "Mutations (在 Mutation 面板输入至少一个 mutation)",
     "missingTargetGene": "目标基因 (在序列面板中选择一个)",
     "deadlockTitle": "无响应",
-    "deadlockDesc": "30 秒以上未收到进度更新。作业可能卡住。",
+    "deadlockDesc": "{{seconds}} 秒以上未收到进度更新。作业可能卡住。",
     "deadlockWait": "继续等待",
     "deadlockReset": "重置",
     "plateCount": "{{count}} 板",
@@ -2893,6 +2892,7 @@
     "writeFailed": "无法写入自动保存文件 ({{filename}})。原因: {{cause}}",
     "carriedFromScratch": "已从未保存的上一次会话继续 ({{relative}})",
     "resultsDiscarded": "已从源文件重新选择 variant 列表，与恢复的 primer 表不一致，因此已清空该表。请重新运行设计。",
+    "resultsIncomplete": "保存的结果有一部分不完整，因此该部分未被恢复，以免显示只填了一半的数值。请重新运行分析以恢复。缺失：{{fields}}",
     "inputsUnavailable": "有 {{count}} 个输入文件无法打开，已从恢复中略过。结果仍在，但缺少来源输入，请重新选择: {{paths}}",
     "workspaceRestored": "工作区已恢复",
     "autoDetected": "自动检测: {{fields}}",

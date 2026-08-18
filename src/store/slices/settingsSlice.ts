@@ -5,7 +5,7 @@
  * theme: ThemeToggle 의 "system" ↔ backend SettingsBundle 의 "auto" 간 변환 포함.
  */
 import type { StateCreator } from "zustand";
-import { rpc } from "../../lib/ipc";
+import { sendRequest } from "../../lib/ipc-kuro";
 import type { SettingsBundle } from "../../types/models.generated";
 import type { SettingsSlice } from "../slice-interfaces";
 import type { AppState } from "../types";
@@ -45,7 +45,7 @@ export const createSettingsSlice: StateCreator<
   loadSettings: async () => {
     set({ isLoading: true });
     try {
-      const response = await rpc<{ settings: SettingsBundle }>("kuro", "settings_load", {});
+      const response = await sendRequest("settings_load", {});
       const bundle = response.settings;
 
       // theme 동기화: backend "auto" → ThemeToggle "system"
@@ -103,7 +103,7 @@ export const createSettingsSlice: StateCreator<
     const { settings } = get();
     if (!settings) return;
     try {
-      await rpc<{ ok: boolean; path: string }>("kuro", "settings_save", { settings });
+      await sendRequest("settings_save", { settings });
       set({ isDirty: false, lastSavedAt: Date.now() });
     } catch {
       // 저장 실패는 무시 (다음 변경에 재시도)

@@ -3,7 +3,10 @@ import json
 import pytest
 
 from kuma_core.shared.sidecar import (
+    JSONRPC_INTERNAL_ERROR,
+    JsonRpcWriter,
     append_crash_log,
+    find_non_finite_paths,
     validate_dirpath,
     validate_filepath,
     validate_output_path,
@@ -51,3 +54,87 @@ def test_append_crash_log_keeps_newest_entries(tmp_path):
 
     entries = json.loads(log_path.read_text(encoding="utf-8"))
     assert [entry["method"] for entry in entries] == ["method_1", "method_2"]
+
+
+def _stdout_lines(capsys):
+    captured = capsys.readouterr()
+    lines = [line for line in captured.out.splitlines() if line.strip()]
+    return lines, captured.err
+
+
+def test_send_passes_through_ordinary_finite_numbers(capsys):
+    writer = JsonRpcWriter()
+    payload = {"jsonrpc": "2.0", "id": 3, "result": {"tm": 62.5, "gc": 0.0, "n": -1}}
+
+    writer.send(payload)
+
+    lines, err = _stdout_lines(capsys)
+    assert len(lines) == 1
+    assert json.loads(lines[0]) == payload
+    assert err == ""
+
+
+def test_send_replaces_non_finite_result_with_error_carrying_same_id(capsys):
+    writer = JsonRpcWriter()
+
+    writer.ok(11, {"tm": float("nan"), "gc": 0.5})
+
+    lines, err = _stdout_lines(capsys)
+    assert len(lines) == 1
+    message = json.loads(lines[0])
+    assert message["id"] == 11
+    assert "result" not in message
+    assert message["error"]["code"] == JSONRPC_INTERNAL_ERROR
+    assert "result.tm" in message["error"]["message"]
+    assert message["error"]["data"]["paths"] == ["result.tm"]
+    assert "result.tm" in err
+
+
+def test_send_names_nested_non_finite_path(capsys):
+    writer = JsonRpcWriter()
+
+    writer.ok(12, {"rows": [{"gc": 1.0}, {"gc": float("inf")}]})
+
+    lines, _ = _stdout_lines(capsys)
+    error = json.loads(lines[0])["error"]
+    assert error["data"]["paths"] == ["result.rows[1].gc"]
+    assert "result.rows[1].gc" in error["message"]
+
+
+def test_send_reports_count_when_several_values_are_non_finite(capsys):
+    writer = JsonRpcWriter()
+
+    writer.ok(
+        13,
+        {"tm": float("nan"), "gc": float("inf"), "delta": float("-inf")},
+    )
+
+    lines, _ = _stdout_lines(capsys)
+    error = json.loads(lines[0])["error"]
+    assert sorted(error["data"]["paths"]) == ["result.delta", "result.gc", "result.tm"]
+    assert "3 non-finite values" in error["message"]
+
+
+def test_send_drops_poisoned_notification_and_logs_to_stderr(capsys):
+    writer = JsonRpcWriter()
+
+    # Deliberately violates the int annotation: the point of this test is
+    # that a caller which ignores the type still cannot poison the stream.
+    writer.progress(float("nan"), "working")  # pyright: ignore[reportArgumentType]
+
+    lines, err = _stdout_lines(capsys)
+    assert lines == []
+    assert "params.value" in err
+
+
+def test_send_reraises_value_errors_that_are_not_non_finite():
+    writer = JsonRpcWriter()
+    payload: dict = {"jsonrpc": "2.0", "id": 14, "result": {}}
+    payload["result"]["self"] = payload
+
+    with pytest.raises(ValueError, match="Circular reference"):
+        writer.send(payload)
+
+
+def test_find_non_finite_paths_ignores_finite_payloads():
+    assert find_non_finite_paths({"a": 1, "b": [2.0, {"c": "x"}], "d": None}) == []

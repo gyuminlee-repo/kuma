@@ -39,6 +39,10 @@ from kuma_core.mame.ingest.align import (
     _parse_cigar,
     _resolve_minimap2,
 )
+from tests.mame.minimap2_support import requires_minimap2
+
+# Every case in this module spawns the minimap2 CLI (see _run below).
+pytestmark = requires_minimap2
 
 _FLAG_UNMAPPED = 0x4
 _FLAG_SECONDARY = 0x100

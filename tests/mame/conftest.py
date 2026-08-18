@@ -59,20 +59,8 @@ def mock_expected_list() -> list[str]:
     return ["V5F", "K53N"]
 
 
-def _minimap2_available() -> bool:
-    try:
-        from kuma_core.mame.ingest.align import _resolve_minimap2
-        _resolve_minimap2()
-        return True
-    except Exception:
-        return False
-
-
-def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    if _minimap2_available():
-        return
-    skip = pytest.mark.skip(
-        reason="minimap2 binary unavailable (e.g. Windows CI leg); covered on linux/macos + build.yml"
-    )
-    for item in items:
-        item.add_marker(skip)
+# The minimap2 skip used to live here as a pytest_collection_modifyitems hook
+# that marked every item under tests/mame/ skipped. Only the modules that reach
+# kuma_core.mame.ingest.align need the binary, so the marker now lives in
+# tests/mame/minimap2_support.py and each such module opts in with
+# `pytestmark = requires_minimap2`.

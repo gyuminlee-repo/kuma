@@ -4,6 +4,8 @@
  * 백엔드 `kuma_core/shared/run_manifest.py` 와 스키마를 공유한다.
  * `SCHEMA_VERSION` 상수를 이 파일 한 곳에만 정의하며,
  * 백엔드 schema_version 변경 시 이 상수도 동기화해야 한다.
+ * 손으로 맞추는 대신 `.cross-layer-sync.json` 의 `run-manifest-schema-version`
+ * 검사가 `kuma_core/shared/run_manifest.py` 의 상수와 이 값을 대조한다.
  *
  * 관련: docs/standards/common-frontend-standards.md §12
  */

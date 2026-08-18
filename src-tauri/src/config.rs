@@ -141,6 +141,12 @@ pub fn set_projects_root_cmd(path: String) -> Result<Config, String> {
 pub fn create_project_cmd(name: String) -> Result<String, String> {
     let root = prod_config_root();
     let cfg = load_or_init_config(&root)?;
+    // `name` is whatever the UI typed. `create_project` refuses one that would
+    // not land directly inside `projects_root`, so nothing outside the root can
+    // reach `push_recent` any more. Entries already in recents are left alone:
+    // a path outside the root is an ordinary project once it exists (the root is
+    // a setting the user can change), and `prune_missing` drops the ones that
+    // are gone. Refusing new ones is the whole of the fix here.
     let project_path = create_project(&cfg.projects_root, &name)?;
     let _ = push_recent(&root, &project_path, &name);
     Ok(project_path.to_string_lossy().to_string())

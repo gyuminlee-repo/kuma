@@ -24,6 +24,13 @@ export type ThresholdKind =
   | "literature"
   /** A replacement guarantee, which is not an operating limit. */
   | "vendor_warranty"
+  /**
+   * Ours, and advisory only: it decides whether a sentence appears, never
+   * whether a read, a well or a verdict is kept. `reference_edge` is the one
+   * threshold in this block that carries it
+   * (`kuma_core/mame/run_quality.py:612`).
+   */
+  | "self_set"
 
 export interface RunQualityThreshold {
   value?: number

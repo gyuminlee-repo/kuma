@@ -40,6 +40,7 @@ from kuma_core.mame.ingest.combinatorial_demux import (
     run_combinatorial_demux,
 )
 from kuma_core.mame.ingest.consensus import _accumulate, call_consensus
+from tests.mame.minimap2_support import requires_minimap2
 
 # ---------------------------------------------------------------------------
 # Defect 1: minus-strand query cursor
@@ -287,6 +288,7 @@ def _run(workload: tuple[Path, Path, Path], out_dir: Path) -> DemuxResult:
     )
 
 
+@requires_minimap2
 def test_serial_and_parallel_matchers_report_the_same_stats(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -311,6 +313,7 @@ def test_serial_and_parallel_matchers_report_the_same_stats(
     }
 
 
+@requires_minimap2
 def test_multi_hit_reads_are_booked_as_assigned_not_split(
     tmp_path: Path, _workload: tuple[Path, Path, Path]
 ) -> None:

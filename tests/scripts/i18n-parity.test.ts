@@ -184,3 +184,238 @@ describe("i18n-parity", () => {
     expect(run.output).toContain("max 200");
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Interpolation checks
+//
+// The checks above compare key sets and the What's New stamps. A key can be
+// present in every locale, non-empty everywhere, stamped current, and still
+// render wrong, because the part carrying the number or the filename is the
+// `{{placeholder}}` inside the value and nothing looked at it.
+//
+// Every case below is built from fixtures rather than from src/locales/, on
+// purpose: the shipping bundle currently trips all of these, and the change that
+// repairs the strings would delete any test pinned to those particular defects.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const INTERP_STAMP = "9.9.9+abcdef01";
+const INTERP_ARCHIVE = { "9.9.9": "abcdef01" };
+
+/** Reference bundle: one key per defect class the interpolation checks cover. */
+function interpEn(): Record<string, unknown> {
+  return {
+    whatsNewDialog: {
+      title: "What is new",
+      highlights: ["The plate the operator points at is the one that runs."],
+      highlightsStamp: INTERP_STAMP,
+      releases: { "9.9.9": ["The plate the operator points at is the one that runs."] },
+      releaseStamps: { ...INTERP_ARCHIVE },
+    },
+    job: {
+      deadlock: "No progress update for {{seconds}}+ seconds.",
+      designed: "{{success}}/{{total}} primers designed",
+      daysAgo: "{{count}} day(s) ago",
+      minutesAgo: "{{n}} min ago",
+      // Plural family, CLDR suffixes. i18next supplies `count` itself here.
+      plates_one: "{{count}} plate",
+      plates_other: "{{count}} plates",
+      // Plural family whose base key carries no suffix, the shape
+      // parameterPanel.plateCount uses in this repo.
+      plateCount: "{{count}} plate",
+      plateCount_other: "{{count}} plates",
+    },
+  };
+}
+
+/** A correct translation of the above: same placeholders, different prose. */
+function interpXx(): Record<string, unknown> {
+  return {
+    whatsNewDialog: {
+      title: "Neuerungen",
+      highlights: ["Die angezeigte Platte ist die, die laeuft."],
+      highlightsStamp: INTERP_STAMP,
+      releases: { "9.9.9": ["Die angezeigte Platte ist die, die laeuft."] },
+      releaseStamps: { ...INTERP_ARCHIVE },
+    },
+    job: {
+      deadlock: "Kein Fortschritt seit {{seconds}} Sekunden.",
+      designed: "{{success}}/{{total}} Primer entworfen",
+      daysAgo: "vor {{count}} Tagen",
+      minutesAgo: "vor {{n}} Minuten",
+      plates_one: "{{count}} Platte",
+      plates_other: "{{count}} Platten",
+      plateCount: "{{count}} Platte",
+      plateCount_other: "{{count}} Platten",
+    },
+  };
+}
+
+/**
+ * Fixture repo with en.json, one translated locale, and optionally a source
+ * file so the caller-side check has call sites to read. The locale is named
+ * `xx` so it has no UNTRANSLATED_BASELINE entry and is therefore budgeted at
+ * zero: a fixture carries no shipping debt, so any English left in place is
+ * growth and must fail.
+ */
+function interpFixture(
+  en: Record<string, unknown>,
+  xx: Record<string, unknown>,
+  source?: { path: string; contents: string },
+): FixtureRepo {
+  const created = createFixtureRepo();
+  repo = created;
+  created.writeJson("src/locales/en.json", en);
+  created.writeJson("src/locales/xx.json", xx);
+  if (source) created.write(source.path, source.contents);
+  return created;
+}
+
+describe("i18n-parity interpolation checks", () => {
+  it("passes a bundle whose placeholders and call sites all line up", () => {
+    const fx = interpFixture(interpEn(), interpXx(), {
+      path: "src/screens/Shell.tsx",
+      contents: [
+        'const a = t("job.deadlock", { seconds: 300 });',
+        'const b = t("job.designed", { success: 12, total: 96 });',
+        'const c = t("job.daysAgo", { count: 3 });',
+        'const d = t("job.minutesAgo", { n: 5 });',
+        // Plural families: `count` is i18next's own option, not an
+        // interpolation variable the caller has to be credited for.
+        'const e = t("job.plates", { count: 2 });',
+        'const f = t("job.plateCount", { count: 2 });',
+        "",
+      ].join("\n"),
+    });
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(0);
+    expect(run.output).toContain("i18n-parity: ok");
+  });
+
+  it("class A: fails a locale that dropped a placeholder and hardcoded the value", () => {
+    // DEADLOCK_THRESHOLD_MS moves and the string keeps claiming 30 seconds.
+    const xx = interpXx();
+    (xx.job as Record<string, string>).deadlock = "Kein Fortschritt seit 30 Sekunden.";
+    const fx = interpFixture(interpEn(), xx);
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("placeholder mismatch vs en");
+    expect(run.output).toContain("job.deadlock");
+    expect(run.output).toContain("dropped {{seconds}}");
+  });
+
+  it("class B: fails a locale whose placeholder identifier was translated too", () => {
+    // The caller still passes `success`, so i18next cannot substitute and the
+    // reader gets the literal token where the count belongs.
+    const xx = interpXx();
+    (xx.job as Record<string, string>).designed = "{{Erfolg}}/{{total}} Primer entworfen";
+    const fx = interpFixture(interpEn(), xx);
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("job.designed");
+    expect(run.output).toContain("dropped {{success}}");
+    expect(run.output).toContain("renamed/added {{Erfolg}}");
+  });
+
+  it("class C: fails a call site that does not supply the placeholder its key needs", () => {
+    // Every locale agrees here, so no cross-locale comparison can see it. Only
+    // the interpolation object at the call site can.
+    const fx = interpFixture(interpEn(), interpXx(), {
+      path: "src/screens/Shell.tsx",
+      contents: 'const c = t("job.daysAgo", { n: Math.floor(diffHr / 24) });\n',
+    });
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("call site does not supply a placeholder");
+    expect(run.output).toContain("src/screens/Shell.tsx:1");
+    expect(run.output).toContain("job.daysAgo");
+    expect(run.output).toContain("needs {{count}}");
+  });
+
+  it("class C: does not flag {{count}} in a plural family, in either key shape", () => {
+    // i18next passes `count` to the interpolator itself for a plural family, so
+    // a rule that demanded it in the options object would fail every plural key
+    // in the bundle. Both shapes present in this repo are covered: `_one`/
+    // `_other`, and a bare base key with an `_other` sibling.
+    const fx = interpFixture(interpEn(), interpXx(), {
+      path: "src/screens/Shell.tsx",
+      contents: [
+        'const e = t("job.plates", { count: 2 });',
+        'const f = t("job.plateCount", { count: 2 });',
+        "",
+      ].join("\n"),
+    });
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(0);
+    expect(run.output).not.toContain("call site does not supply a placeholder");
+  });
+
+  it("class C: reports the call shapes it cannot resolve instead of omitting them", () => {
+    // A check that silently covers only some call sites is the defect class it
+    // exists to catch, so the gaps are named on every run, pass or fail.
+    const fx = interpFixture(interpEn(), interpXx(), {
+      path: "src/screens/Shell.tsx",
+      contents: [
+        "const a = t(`job.${which}`);",
+        'const b = t("job.designed", { ...counts });',
+        "",
+      ].join("\n"),
+    });
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(0);
+    expect(run.output).toContain("1 dynamic-key call(s)");
+    expect(run.output).toContain("dynamic key: src/screens/Shell.tsx:1");
+    expect(run.output).toContain("opaque options: src/screens/Shell.tsx:2");
+  });
+
+  it("class D: fails a null value and a whitespace-only value, which `v === \"\"` missed", () => {
+    const xx = interpXx();
+    (xx.job as Record<string, unknown>).deadlock = null;
+    (xx.job as Record<string, unknown>).designed = "   ";
+    const fx = interpFixture(interpEn(), xx);
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("xx empty values: 2");
+    expect(run.output).toContain("job.deadlock");
+    expect(run.output).toContain("job.designed");
+  });
+
+  it("class E: fails a locale carrying more English-identical values than its baseline", () => {
+    // The ratchet, not a hard rule about the stock. `xx` has no baseline entry
+    // and is therefore budgeted at zero, which is what a brand new locale
+    // committed as a copy of en.json looks like.
+    const xx = interpXx();
+    (xx.job as Record<string, string>).designed = "{{success}}/{{total}} primers designed";
+    const fx = interpFixture(interpEn(), xx);
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("untranslated value(s), baseline 0");
+    expect(run.output).toContain("job.designed");
+    expect(run.output).toContain("UNTRANSLATED_BASELINE");
+  });
+
+  it("class E: reports the count on a passing run so it cannot drift unnoticed", () => {
+    const fx = interpFixture(interpEn(), interpXx());
+
+    const run = fx.run("i18n-parity.mjs");
+
+    expect(run.status).toBe(0);
+    expect(run.output).toContain("untranslated (value byte-identical to en");
+    expect(run.output).toContain("xx: 0 / baseline 0");
+  });
+});

@@ -19,7 +19,7 @@ vi.mock("@tauri-apps/plugin-fs", () => ({
   readTextFile: vi.fn(() => Promise.resolve(">cds\nATGAAATAG\n")),
 }));
 vi.mock("@/lib/ipc", () => ({
-  rpc: mockRpc,
+  rawSidecarRpc: mockRpc,
 }));
 vi.mock("@/lib/openFolder", () => ({
   revealInOSFolder: vi.fn(),
@@ -94,7 +94,7 @@ describe("BarcodeSetupPanel project artifacts", () => {
     useMameAppStore.getState().resetInput();
     mockRpc.mockImplementation((_app: string, method: string) => {
       if (method === "load_fasta") {
-        return Promise.resolve({ seq_length: 900, genes: [] });
+        return Promise.resolve({ header: "cds", seq_length: 900, genes: [] });
       }
       return Promise.resolve(RESULT);
     });
@@ -123,6 +123,10 @@ describe("BarcodeSetupPanel project artifacts", () => {
           expected_mutations_path: "/proj/design/kuro_sdm_primers.xlsx",
           gene_name: "target_gene",
         }),
+        // sendRequest states the timeout the raw transport left implicit. Both
+        // resolve to the same 60s: an omitted timeout made the Rust host fall
+        // back to RPC_TIMEOUT (src-tauri/src/sidecar.rs:25,394).
+        60_000,
       );
     });
     expect(mockRpc).toHaveBeenCalledWith(
@@ -133,6 +137,7 @@ describe("BarcodeSetupPanel project artifacts", () => {
         project_root: "/proj",
         expected_mutations_path: "/proj/design/kuro_sdm_primers.xlsx",
       }),
+      60_000,
     );
     await waitFor(() => {
       expect(mockRegisterArtifacts).toHaveBeenCalledWith([
@@ -226,6 +231,7 @@ describe("BarcodeSetupPanel annotation autofill", () => {
     mockRpc.mockImplementation((_app: string, method: string) => {
       if (method === "load_fasta") {
         return Promise.resolve({
+          header: "cds",
           seq_length: 900,
           genes: [
             {
@@ -276,6 +282,7 @@ describe("BarcodeSetupPanel annotation autofill", () => {
     mockRpc.mockImplementation((_app: string, method: string) => {
       if (method === "load_fasta") {
         return Promise.resolve({
+          header: "cds",
           seq_length: 1800,
           genes: [
             {

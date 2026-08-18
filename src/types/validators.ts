@@ -13,6 +13,7 @@ import type {
   FetchDomainsResult,
   FetchInterfaceResiduesResult,
   FetchPdbTextResult,
+  HealthInfo,
   PredictStructureEsmfoldResult,
   JsonRpcError,
   ParseMutationsResult,
@@ -34,8 +35,24 @@ import type {
   WorkspaceData,
 } from "./models";
 
+/**
+ * True for a plain JSON object, false for `null` and for arrays.
+ *
+ * The `!Array.isArray` clause is the point. `typeof [] === "object"` and
+ * `[] !== null`, so without it every `Record<string, T>` field in this file
+ * accepted an array: `isRecordOf` reduces to `Object.values(value).every(guard)`,
+ * and `Object.values([])` is `[]`, which satisfies `.every` vacuously. An empty
+ * array therefore passed as a populated map, and `src/types/mame/validators.ts`
+ * imports this same helper, so its `isRecordOfString` and
+ * `isRecordOfFiniteNumber` inherited it too.
+ *
+ * Tightening here is safe for the top-level `isRecord(value)` calls that open
+ * most validators in this file: no KURO or MAME handler returns a bare array for
+ * a result those guards cover (the two that do return lists,
+ * `list_polymerases` and `list_organisms`, go through `isArrayOf` instead).
+ */
 export function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isString(value: unknown): value is string {
@@ -838,7 +855,145 @@ function isPreviewEvolveproSourceResult(value: unknown): value is EvolveproPrevi
   );
 }
 
+/**
+ * One `export_echo_mapping_dry_run` row.
+ *
+ * Ground truth is `build_echo_rows`, `kuma_core/kuro/plate_mapper.py:897-905`
+ * (forward block) and `:925-933` (reverse block). Both emit the same eight keys
+ * and no others, and none is conditional.
+ *
+ * `transfer_vol` here is the PER-ROW split volume from `_split_echo_volume`
+ * (`plate_mapper.py:675`), not the envelope volume: a transfer above 500 nL is
+ * emitted as several rows, so the row value and the envelope value legitimately
+ * differ and the guard does not tie them together.
+ */
+function isEchoDryRunRow(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.source_plate) &&
+    isString(value.source_well_name) &&
+    isString(value.source_well) &&
+    isString(value.dest_plate) &&
+    isString(value.dest_well_name) &&
+    isString(value.dest_well) &&
+    isNumber(value.transfer_vol) &&
+    isString(value.mutation)
+  );
+}
+
+/**
+ * One `export_janus_mapping_dry_run` row.
+ *
+ * Ground truth is `build_janus_rows`, `kuma_core/kuro/plate_mapper.py:1048-1058`
+ * (forward) and `:1071-1082` (reverse). The volume key is `volume` here, where
+ * the Echo row calls the same quantity `transfer_vol`; the two builders really
+ * do disagree, so the guards do too.
+ *
+ * `role` is the one optional field, and it is optional for a stated reason
+ * rather than for safety: a packaged sidecar predating the field omits it and
+ * the preview drops the row (see the `RpcMethodMap` comment on this result).
+ * Present-but-wrong is still refused.
+ */
+function isJanusDryRunRow(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.name) &&
+    isString(value.type) &&
+    isNumber(value.no) &&
+    isString(value.asp_rack) &&
+    isString(value.asp_posi) &&
+    isString(value.dsp_rack) &&
+    isString(value.dsp_posi) &&
+    isNumber(value.volume) &&
+    isString(value.mutation) &&
+    (value.role === undefined || value.role === "fwd" || value.role === "rev")
+  );
+}
+
+/**
+ * `SettingsBundle` and its three nested groups.
+ *
+ * Every field is checked ONLY when present, which is not laziness: the Pydantic
+ * models give all of them defaults (`python-core/sidecar_kuro/models.py:1020-1058`),
+ * so `scripts/gen-models.mjs` emits every field optional in
+ * `src/types/models.generated.ts:926-962`. A guard demanding all of them would
+ * refuse payloads the declared type calls legal.
+ *
+ * What it does buy over the `"settings" in value` membership test it replaces:
+ * `{settings: null}`, `{settings: []}`, a `theme` outside the three literals and
+ * a non-boolean consent flag are all refused now, and each of those reaches a
+ * settings screen that renders it.
+ */
+function isSettingsNetwork(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isOptional(value.offline_mode, isBoolean) &&
+    isOptional(value.consent_uniprot, isBoolean) &&
+    isOptional(value.consent_blast, isBoolean) &&
+    isOptional(value.consent_alphafold, isBoolean) &&
+    isOptional(value.consent_interpro, isBoolean)
+  );
+}
+
+function isSettingsSidecar(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isOptional(value.concurrency_default, isNumber) &&
+    isOptional(value.cancel_timeout_secs, isNumber) &&
+    isOptional(
+      value.persist_on_cancel,
+      (v) => v === "partial" || v === "discard",
+    )
+  );
+}
+
+function isSettingsTelemetry(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isOptional(value.crash_log_auto_send, isBoolean) &&
+    isOptional(value.anonymous_stats, isBoolean)
+  );
+}
+
+function isSettingsBundle(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isOptional(value.language, isString) &&
+    isOptional(
+      value.theme,
+      (v) => v === "light" || v === "dark" || v === "auto",
+    ) &&
+    isOptionalNullable(value.default_workspace_folder, isString) &&
+    isOptional(value.network, isSettingsNetwork) &&
+    isOptional(value.sidecar, isSettingsSidecar) &&
+    isOptional(value.telemetry, isSettingsTelemetry)
+  );
+}
+
+/**
+ * `health_info`.
+ *
+ * Ground truth is the dict literal in `python-core/sidecar_kuro/dispatcher.py:69-82`:
+ * `{"pid": os.getpid(), "rss_bytes": <int>, "py_version": <str>}`. `rss_bytes`
+ * falls back to `0` rather than being omitted when the memory monitor import
+ * fails, so all three keys are unconditionally present and none is optional.
+ *
+ * `isNumber` is `Number.isFinite`-backed on purpose: the status bar divides
+ * `rss_bytes` by 1024^2 and renders it, and `NaN MB` is a worse tooltip than a
+ * refused probe.
+ */
+function isHealthInfo(value: unknown): value is HealthInfo {
+  return (
+    isRecord(value) &&
+    isNumber(value.pid) &&
+    isNumber(value.rss_bytes) &&
+    isString(value.py_version)
+  );
+}
+
 const rpcResultValidators = {
+  health_info: (value): value is RpcMethodResult<"health_info"> =>
+    isHealthInfo(value),
   list_polymerases: (value): value is RpcMethodResult<"list_polymerases"> =>
     isArrayOf(value, isPolymeraseInfo),
   get_polymerase_details: (value): value is RpcMethodResult<"get_polymerase_details"> =>
@@ -869,16 +1024,24 @@ const rpcResultValidators = {
     isExportOrderResult(value),
   export_mapping: (value): value is RpcMethodResult<"export_mapping"> =>
     isExportMappingResult(value),
+  // Envelope from python-core/sidecar_kuro/handlers/export.py:782 (and the two
+  // empty early returns at :758 and :769, which carry the same three keys).
+  // The rows are checked element by element rather than with a bare
+  // Array.isArray, and the numbers go through isNumber, so NaN and Infinity are
+  // refused here as they are everywhere else in this file.
   export_echo_mapping_dry_run: (value): value is RpcMethodResult<"export_echo_mapping_dry_run"> =>
-    typeof value === "object" && value !== null &&
-    Array.isArray((value as { rows?: unknown }).rows) &&
-    typeof (value as { total?: unknown }).total === "number" &&
-    typeof (value as { transfer_vol?: unknown }).transfer_vol === "number",
+    isRecord(value) &&
+    isArrayOf(value.rows, isEchoDryRunRow) &&
+    isNumber(value.total) &&
+    isNumber(value.transfer_vol),
+  // export.py:827, empty early returns at :806 and :817. The envelope
+  // transfer_vol is a float here where Echo emits an int; both are just numbers
+  // on the wire, so the guard is the same and the difference is only noted.
   export_janus_mapping_dry_run: (value): value is RpcMethodResult<"export_janus_mapping_dry_run"> =>
-    typeof value === "object" && value !== null &&
-    Array.isArray((value as { rows?: unknown }).rows) &&
-    typeof (value as { total?: unknown }).total === "number" &&
-    typeof (value as { transfer_vol?: unknown }).transfer_vol === "number",
+    isRecord(value) &&
+    isArrayOf(value.rows, isJanusDryRunRow) &&
+    isNumber(value.total) &&
+    isNumber(value.transfer_vol),
   export_macrogen: (value): value is RpcMethodResult<"export_macrogen"> =>
     typeof value === "object" && value !== null &&
     (value as { ok?: unknown }).ok === true &&
@@ -919,10 +1082,14 @@ const rpcResultValidators = {
   cancel_design: (value): value is RpcMethodResult<"cancel_design"> =>
     isCancelDesignResult(value),
   // Phase 3: Settings
+  // SettingsLoadResponse / SettingsSaveResponse,
+  // python-core/sidecar_kuro/models.py:1063 and :1075. These replace membership
+  // tests (`"settings" in value`, `"ok" in value && "path" in value`) that
+  // accepted {settings: null} and {ok: false, path: null} unchanged.
   settings_load: (value): value is RpcMethodResult<"settings_load"> =>
-    typeof value === "object" && value !== null && "settings" in value,
+    isRecord(value) && isSettingsBundle(value.settings),
   settings_save: (value): value is RpcMethodResult<"settings_save"> =>
-    typeof value === "object" && value !== null && "ok" in value && "path" in value,
+    isRecord(value) && isBoolean(value.ok) && isString(value.path),
   preview_evolvepro_source: (value): value is RpcMethodResult<"preview_evolvepro_source"> =>
     isPreviewEvolveproSourceResult(value),
   // G001: 3D Analysis panel RPCs

@@ -213,6 +213,9 @@ describe("ExportPlatePreview", () => {
           dest_well_name: "D1-A1",
           dest_well: "A1",
           transfer_vol: 25,
+          // build_echo_rows always emits `mutation`
+          // (kuma_core/kuro/plate_mapper.py:904 and :932), so the fixture does too.
+          mutation: "P1",
         },
       ],
       total: 1,
@@ -274,6 +277,9 @@ describe("ExportPlatePreview", () => {
           dest_well_name: "D1-A1",
           dest_well: "A1",
           transfer_vol: 25,
+          // build_echo_rows always emits `mutation`
+          // (kuma_core/kuro/plate_mapper.py:904 and :932), so the fixture does too.
+          mutation: "P1",
         },
       ],
       total: 1,

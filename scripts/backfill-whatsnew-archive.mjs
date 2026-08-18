@@ -47,16 +47,32 @@ function git(args) {
 }
 
 /**
- * version -> the highlights this locale carried while that version was current.
+ * What this locale carried at each past release, indexed two ways.
  *
- * Commits are walked newest first and the first reading for a version wins, so a
+ * `byDigest` is the one that does the work. A stamp is "<version>+<digest8>" and
+ * every locale copies en.json's stamp verbatim (scripts/i18n-parity.mjs fails
+ * otherwise), so the digest half of a harvested stamp is exactly the value
+ * en.json records in `releaseStamps[version]`. Joining on it identifies the
+ * release by its content rather than by the label the stamp happened to carry,
+ * which is what makes this tool survive the era when the label was wrong:
+ * 0.16.25.1 shipped stamped "0.16.25+291c60a5", so a version join finds nothing
+ * for 0.16.25.1 and files that translation under 0.16.25 instead, while the
+ * digest join puts it where it belongs. A digest shared by two versions means
+ * the English text was identical, so reusing the same translation for both is
+ * right rather than a collision.
+ *
+ * `byVersion` stays as the fallback for a stamp whose digest en.json no longer
+ * records, which is what a reworded past CHANGELOG section produces.
+ *
+ * Commits are walked newest first and the first reading for a key wins, so a
  * wording that was corrected within a release contributes its final form, which
  * is the one that shipped.
  */
 function harvest(lang) {
   const path = `src/locales/${lang}.json`;
   const commits = git(["log", "--format=%H", "--", path]).trim().split("\n").filter(Boolean);
-  const found = new Map();
+  const byDigest = new Map();
+  const byVersion = new Map();
   for (const sha of commits) {
     let dialog;
     try {
@@ -66,12 +82,13 @@ function harvest(lang) {
     }
     if (!dialog || !Array.isArray(dialog.highlights) || dialog.highlights.length === 0) continue;
     if (typeof dialog.highlightsStamp !== "string") continue;
-    const version = dialog.highlightsStamp.split("+")[0];
-    if (!version || found.has(version)) continue;
+    const [version, digest] = dialog.highlightsStamp.split("+");
+    if (!version) continue;
     if (!dialog.highlights.every((v) => typeof v === "string" && v.length > 0)) continue;
-    found.set(version, dialog.highlights);
+    if (digest && !byDigest.has(digest)) byDigest.set(digest, dialog.highlights);
+    if (!byVersion.has(version)) byVersion.set(version, dialog.highlights);
   }
-  return found;
+  return { byDigest, byVersion };
 }
 
 const en = JSON.parse(readFileSync(join(LOCALES_DIR, "en.json"), "utf8"));
@@ -96,7 +113,8 @@ for (const file of files) {
   const releases = {};
   const fallbacks = [];
   for (const version of versions) {
-    const translated = harvested.get(version);
+    const translated =
+      harvested.byDigest.get(enStamps[version]) ?? harvested.byVersion.get(version);
     if (translated && translated.length === enReleases[version].length) {
       releases[version] = translated;
     } else {

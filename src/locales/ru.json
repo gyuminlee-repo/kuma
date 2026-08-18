@@ -648,7 +648,7 @@
     },
     "appLayout": {
       "deadlockTitle": "Нет ответа",
-      "deadlockDescription": "Нет обновлений прогресса 30+ секунд. Задача зависла.",
+      "deadlockDescription": "Нет обновлений прогресса {{seconds}}+ секунд. Задача, возможно, зависла.",
       "deadlockWait": "Продолжить ждать",
       "deadlockReset": "Сбросить",
       "analysisWorkspaceAriaLabel": "Рабочая область анализа",
@@ -1414,7 +1414,7 @@
     "deleteFolderConfirmDesc": "{{path}} вместе со всем содержимым переместится в системную корзину. Папку можно вернуть из корзины.",
     "deleteFolderConfirmButton": "Переместить в корзину",
     "restorableTitle": "Проекты для восстановления",
-    "restorableDesc": "Убраны из списка недавних, но всё ещё есть на диске.",
+    "restorableDesc": "Убраны из списка недавних, но всё ещё находятся в текущей папке проектов. Проекты в другой папке здесь не показаны.",
     "restorableEmpty": "Нет проектов для восстановления.",
     "restoreButton": "Восстановить",
     "overview": {
@@ -1881,11 +1881,10 @@
     },
     "relativeTime": {
       "justNow": "только что",
-      "minAgo": "{{count}} мин назад",
-      "hrAgo": "{{count}} ч назад",
-      "daysAgo": "{{count}} дн. назад",
       "minutesAgo": "{{n}} мин назад",
-      "hoursAgo": "{{n}} ч назад"
+      "hoursAgo": "{{n}} ч назад",
+      "daysAgo": "{{n}} дн. назад",
+      "unknown": "в неизвестное время"
     },
     "memory": {
       "warningBannerLabel": "Память: {{pct}}% (sidecar {{rss}} MB)",
@@ -1986,7 +1985,7 @@
     "missingMutations": "Мутации (введите минимум одну в панели Mutation)",
     "missingTargetGene": "Target ген (выберите в панели Sequence)",
     "deadlockTitle": "Нет ответа",
-    "deadlockDesc": "Нет обновлений прогресса 30+ секунд. Задача, возможно, зависла.",
+    "deadlockDesc": "Нет обновлений прогресса {{seconds}}+ секунд. Задача, возможно, зависла.",
     "deadlockWait": "Продолжить ждать",
     "deadlockReset": "Сбросить",
     "plateCount": "{{count}} plate",
@@ -2893,6 +2892,7 @@
     "writeFailed": "Не удалось записать файл autosave ({{filename}}). Причина: {{cause}}",
     "carriedFromScratch": "Продолжено из несохранённой предыдущей сессии ({{relative}})",
     "resultsDiscarded": "Список variants заново выбран из исходного файла и больше не соответствует восстановленной таблице primer, поэтому таблица очищена. Запустите дизайн заново.",
+    "resultsIncomplete": "Часть сохранённых результатов оказалась неполной, поэтому она не была восстановлена, вместо того чтобы показать наполовину заполненные значения. Запустите анализ заново, чтобы вернуть её. Отсутствует: {{fields}}",
     "inputsUnavailable": "Ne udalos otkryt {{count}} vhodnyh faylov, oni ne popali v vosstanovlenie. Rezultaty na meste, no ishodnyy vhod otsutstvuet, vyberite ego zanovo: {{paths}}",
     "workspaceRestored": "Workspace восстановлен",
     "autoDetected": "Авто-определено: {{fields}}",

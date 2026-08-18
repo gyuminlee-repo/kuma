@@ -7,6 +7,12 @@ vi.mock("@/lib/ipc-mame", () => ({
   sendRequest: vi.fn(),
   setProgressHandler: vi.fn(),
   cancelAndRespawn: vi.fn(),
+  // AdvisoryDecisionCard renders inside this view and calls classifyRound.
+  // It used to reach the sidecar through the "@/lib/ipc" mock above; it is a
+  // MAME call and now lives with the other MAME calls, so the mock has to
+  // carry it or the first test to touch the classify path gets "No
+  // classifyRound export is defined on the mock" instead of the code.
+  classifyRound: vi.fn(),
 }));
 vi.mock("@/store/round/roundSlice", () => ({
   useRoundStore: vi.fn((selector) => selector({ active_round_id: "r1", rounds: [], addRound: vi.fn() })),

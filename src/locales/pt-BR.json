@@ -648,7 +648,7 @@
     },
     "appLayout": {
       "deadlockTitle": "Sem resposta",
-      "deadlockDescription": "Sem atualização de progresso há mais de 30 segundos. A tarefa está travada.",
+      "deadlockDescription": "Sem atualização de progresso há mais de {{seconds}} segundos. A tarefa pode estar travada.",
       "deadlockWait": "Continuar aguardando",
       "deadlockReset": "Reiniciar",
       "analysisWorkspaceAriaLabel": "Workspace de análise",
@@ -1414,7 +1414,7 @@
     "deleteFolderConfirmDesc": "{{path}} vai para a lixeira do sistema junto com todo o conteúdo. A pasta pode ser recuperada da lixeira.",
     "deleteFolderConfirmButton": "Mover para a lixeira",
     "restorableTitle": "Projetos restauráveis",
-    "restorableDesc": "Removidos da lista de recentes, mas ainda presentes no disco.",
+    "restorableDesc": "Removidos da lista de recentes, mas ainda na pasta de projetos atual. Projetos em outra pasta não aparecem aqui.",
     "restorableEmpty": "Nenhum projeto para restaurar.",
     "restoreButton": "Restaurar",
     "overview": {
@@ -1881,11 +1881,10 @@
     },
     "relativeTime": {
       "justNow": "agora mesmo",
-      "minAgo": "há {{count}} min",
-      "hrAgo": "há {{count}} h",
-      "daysAgo": "há {{count}} dia(s)",
       "minutesAgo": "há {{n}} min",
-      "hoursAgo": "há {{n}} h"
+      "hoursAgo": "há {{n}} h",
+      "daysAgo": "há {{n}} dia(s)",
+      "unknown": "em um momento desconhecido"
     },
     "memory": {
       "warningBannerLabel": "Memória: {{pct}}% (sidecar {{rss}} MB)",
@@ -1986,7 +1985,7 @@
     "missingMutations": "Mutações (inserir pelo menos uma mutação no painel Mutation)",
     "missingTargetGene": "Gene target (selecionar um no painel Sequence)",
     "deadlockTitle": "Sem resposta",
-    "deadlockDesc": "Sem atualização de progresso há mais de 30 segundos. A tarefa pode estar travada.",
+    "deadlockDesc": "Sem atualização de progresso há mais de {{seconds}} segundos. A tarefa pode estar travada.",
     "deadlockWait": "Continuar aguardando",
     "deadlockReset": "Reiniciar",
     "plateCount": "{{count}} placa",
@@ -2893,6 +2892,7 @@
     "writeFailed": "Não foi possível gravar o arquivo de salvamento automático ({{filename}}). Causa: {{cause}}",
     "carriedFromScratch": "Continuado de uma sessão anterior não salva ({{relative}})",
     "resultsDiscarded": "A lista de variants foi selecionada novamente a partir do arquivo de origem e não corresponde mais à tabela de primers restaurada, portanto a tabela foi limpa. Execute o design novamente.",
+    "resultsIncomplete": "Parte dos resultados salvos nao estava completa, portanto nao foi restaurada em vez de ser exibida pela metade. Execute a analise novamente para recupera-la. Faltando: {{fields}}",
     "inputsUnavailable": "Nao foi possivel abrir {{count}} arquivo(s) de entrada, que ficaram de fora da restauracao. Os resultados continuam la, mas falta a entrada de origem. Selecione novamente: {{paths}}",
     "workspaceRestored": "Workspace restaurado",
     "autoDetected": "Auto-detectado: {{fields}}",

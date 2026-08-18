@@ -67,4 +67,19 @@ describe("useMameSidecar progress subscription", () => {
     expect(useMameAppStore.getState().analyzeStage).toBeNull();
     expect(useMameAppStore.getState().analyzePhase).toBeNull();
   });
+
+  it("refuses a non-finite progress value and leaves the last real one standing", () => {
+    // The clamp is three relation tests, and NaN fails all three silently:
+    // Math.max(0, Math.min(100, NaN)) is NaN, and the bar becomes width: NaN%.
+    renderHook(() => useMameSidecar());
+
+    emit({ value: 40, message: "Analyzing variants", stage: "analyze" });
+    expect(useMameAppStore.getState().analyzeProgress).toBe(40);
+
+    emit({ value: Number.NaN, message: "Analyzing variants", stage: "analyze" });
+    expect(useMameAppStore.getState().analyzeProgress).toBe(40);
+
+    emit({ value: Number.POSITIVE_INFINITY, message: "Analyzing", stage: "analyze" });
+    expect(useMameAppStore.getState().analyzeProgress).toBe(40);
+  });
 });

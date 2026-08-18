@@ -53,7 +53,14 @@ jobs:
         run: brew install minimap2
 
       - name: Run Python tests
-        run: python -m pytest tests/ -v
+        # -rs prints a short summary of every skipped test with its reason.
+        # 15 tests (tests/integration/test_xlsx_pipeline.py, 9, and
+        # tests/mame/test_well_consensus_regression.py::TestReferenceGroundTruth,
+        # 6) gate on KUMA_TEST_DATA_DIR / WORKSPACE_ROOT, which no workflow sets,
+        # so they have never run here. The data is not in the repository, so the
+        # fix is that the log states which tests did not run rather than
+        # reporting a green that reads as full coverage.
+        run: python -m pytest tests/ -v -rs
 
   # A Python type gate, deliberately its own job rather than a step inside
   # python-tests: that job is a 3-OS by 2-version matrix, so a step there would

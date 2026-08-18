@@ -1936,11 +1936,16 @@ describe("useAutosaveHydration: 결과 파일 없이도 사이드카를 채운�
           min_file_size_kb: 50,
           many_cutoff: 5,
         },
+        // The writer emits the review group whole (autosaveSnapshot.ts, all six
+        // added in one commit), so the fixture carries all six. A partial one
+        // is not a shape any build produces, and the restore now refuses it.
         results: {
           verdicts: [VERDICT],
           replicates: [REPLICATE],
           summary: ANALYZE_RESULT.summary,
           distribution_stats: ANALYZE_RESULT.distribution_stats,
+          wells: [WELL],
+          run_health: RUN_HEALTH,
         },
       },
     };
@@ -2199,5 +2204,374 @@ describe("useAutosaveHydration — saved runs from another build", () => {
     });
     expect(useMameAppStore.getState().verdicts).toEqual([]);
     expect(loadAnalyzeCalls()).toHaveLength(0);
+  });
+});
+
+/**
+ * 결과 블록은 한 덩어리로 복원되거나 통째로 거절된다.
+ *
+ * 쓰는 쪽이 조건 없이 한 번에 쓰는 필드 묶음을 읽는 쪽이 필드마다 판정하면,
+ * 앱이 만들어 내지 못하는 상태가 만들어지고 화면은 그것을 측정값으로 읽는다.
+ * 아래 네 경우가 실제로 재현된 것들이다.
+ */
+describe("useAutosaveHydration: 복원되는 결과 그룹", () => {
+  const variants: { kind: string; variant: string }[] = [];
+
+  function GroupHarness() {
+    useAutosaveHydration((m) => {
+      variants.push({ kind: m.kind, variant: m.variant });
+    });
+    return null;
+  }
+
+  function renderGroupHydration(): void {
+    render(
+      <ProjectProvider value={{ path: "/proj", name: "Demo", scratch: false }}>
+        <GroupHarness />
+      </ProjectProvider>,
+    );
+  }
+
+  const incompleteReported = (kind: string) =>
+    variants.some((v) => v.kind === kind && v.variant === "results_incomplete");
+
+  /** JSON 왕복을 거친 kuro 스냅샷. results 만 바꿔 끼운다. */
+  function kuroSnapshotWithResults(results: Record<string, unknown>): unknown {
+    return {
+      status: "ok",
+      snapshot: {
+        schema: 5,
+        saved_at: new Date().toISOString(),
+        kuma_version: "0.0.0-test",
+        input: {
+          sequence_path: null,
+          mutation_text: "X9Y",
+          mutation_input_mode: "evolvepro",
+          evolvepro_mode: "topN",
+        },
+        parameters: {},
+        diversity: {},
+        results,
+      },
+    };
+  }
+
+  /** 온전한 mame 리뷰 그룹. 개별 테스트가 필요한 필드만 뒤집는다. */
+  function mameResults(overrides: Record<string, unknown>): Record<string, unknown> {
+    return {
+      verdicts: [VERDICT],
+      replicates: [REPLICATE],
+      summary: ANALYZE_RESULT.summary,
+      distribution_stats: ANALYZE_RESULT.distribution_stats,
+      wells: [WELL],
+      run_health: RUN_HEALTH,
+      ...overrides,
+    };
+  }
+
+  function mameSnapshot(results: Record<string, unknown>): unknown {
+    return {
+      status: "ok",
+      snapshot: {
+        schema: 4,
+        saved_at: new Date().toISOString(),
+        kuma_version: __APP_VERSION__,
+        result_contract: RESULT_CONTRACT,
+        input: {
+          input_dir: "project://run",
+          expected_path: "",
+          reference_path: "",
+          output_path: "project://out",
+          selected_wells: null,
+        },
+        parameters: {
+          mode: "amplicon",
+          ingest_mode: "barcode",
+          input_mode: "raw_run",
+          raw_run_params: undefined,
+          cds_start: 1,
+          cds_end: 900,
+          min_file_size_kb: 50,
+          many_cutoff: 5,
+        },
+        results,
+      },
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    variants.length = 0;
+    useAppStore.setState({
+      designResults: [],
+      successCount: 0,
+      totalCount: 0,
+      benchmarkResults: {},
+    });
+    useMameAppStore.getState().resetInput();
+    useMameAppStore.getState().resetAnalysis();
+    useMameAppStore.getState().setMameSubStep("setup.files");
+    hooks.readAutosave.mockResolvedValue({ status: "missing" });
+    hooks.readScratchAutosave.mockResolvedValue({ status: "missing" });
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+    hooks.detectProjectFiles.mockResolvedValue({});
+    hooks.detectFromInputDir.mockResolvedValue({});
+    hooks.exists.mockResolvedValue(true);
+    hooks.sendMameRequest.mockResolvedValue({});
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  // ── D1: KURO 설계 결과와 그 카운트 ───────────────────────────────────────
+
+  it("카운트가 JSON 왕복에서 null 이 되면 설계 표까지 함께 거절한다", async () => {
+    // NaN/Infinity 는 JSON.stringify 가 null 로 쓴다. 예전에는 표만 복원되고
+    // 카운트는 초기값 0 으로 남아 세 줄짜리 표 위에 "0/0 designed" 가 떴다.
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) =>
+      kind === "kuro"
+        ? Promise.resolve(
+            kuroSnapshotWithResults({
+              designResults: [designResultFor("X9Y"), designResultFor("P50Q")],
+              successCount: null,
+              totalCount: null,
+            }),
+          )
+        : Promise.resolve({ status: "missing" }),
+    );
+
+    renderGroupHydration();
+
+    await waitFor(() => {
+      expect(incompleteReported("kuro")).toBe(true);
+    });
+    const st = useAppStore.getState();
+    expect(st.designResults).toEqual([]);
+    expect(st.successCount).toBe(0);
+    expect(st.totalCount).toBe(0);
+  });
+
+  it("카운트 한쪽이 빠져 있어도 분자만 복원하지 않는다", async () => {
+    // totalCount 만 없으면 예전에는 2/0 이 됐다. 분모보다 큰 분자다.
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) =>
+      kind === "kuro"
+        ? Promise.resolve(
+            kuroSnapshotWithResults({
+              designResults: [designResultFor("X9Y"), designResultFor("P50Q")],
+              successCount: 2,
+            }),
+          )
+        : Promise.resolve({ status: "missing" }),
+    );
+
+    renderGroupHydration();
+
+    await waitFor(() => {
+      expect(incompleteReported("kuro")).toBe(true);
+    });
+    const st = useAppStore.getState();
+    expect(st.designResults).toEqual([]);
+    expect(st.successCount).toBe(0);
+  });
+
+  it("셋이 다 있으면 셋 다 복원한다", async () => {
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) =>
+      kind === "kuro"
+        ? Promise.resolve(
+            kuroSnapshotWithResults({
+              designResults: [designResultFor("X9Y"), designResultFor("P50Q")],
+              successCount: 2,
+              totalCount: 3,
+            }),
+          )
+        : Promise.resolve({ status: "missing" }),
+    );
+
+    renderGroupHydration();
+
+    await waitFor(() => {
+      expect(useAppStore.getState().designResults).toHaveLength(2);
+    });
+    const st = useAppStore.getState();
+    expect(st.successCount).toBe(2);
+    expect(st.totalCount).toBe(3);
+    expect(incompleteReported("kuro")).toBe(false);
+  });
+
+  // ── D4: 벤치마크 블록 ────────────────────────────────────────────────────
+
+  it("비유한 벤치마크 지표는 0.0% 로 찍히기 전에 걸러낸다", async () => {
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) =>
+      kind === "kuro"
+        ? Promise.resolve(
+            kuroSnapshotWithResults({
+              designResults: [],
+              successCount: 0,
+              totalCount: 0,
+              benchmarkResults: {
+                selected: {
+                  n_selected: 10,
+                  // NaN 이 JSON 왕복에서 null 이 된 자리. number 타입 자리에
+                  // 앉아 화면에는 0.0% 로 나온다.
+                  hit_rate: null,
+                  mean_fitness: 0.5,
+                  unique_positions: 8,
+                  position_coverage: 0.4,
+                  domain_coverage: 0.3,
+                  structural_spread: 0.2,
+                  hits: 3,
+                  threshold: 0.7,
+                },
+              },
+            }),
+          )
+        : Promise.resolve({ status: "missing" }),
+    );
+
+    renderGroupHydration();
+
+    await waitFor(() => {
+      expect(incompleteReported("kuro")).toBe(true);
+    });
+    // 복원 시작의 초기화가 되돌려 놓은 값 그대로. 깨진 캐시가 그 위에 앉지
+    // 않았다는 것이 요점이다.
+    expect(useAppStore.getState().benchmarkResults).toBeNull();
+  });
+
+  it("지표가 전부 유한하면 벤치마크를 복원한다", async () => {
+    const entry = {
+      n_selected: 10,
+      hit_rate: 0.6,
+      mean_fitness: 0.5,
+      unique_positions: 8,
+      position_coverage: 0.4,
+      domain_coverage: 0.3,
+      structural_spread: 0.2,
+      hits: 3,
+      threshold: 0.7,
+    };
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) =>
+      kind === "kuro"
+        ? Promise.resolve(
+            kuroSnapshotWithResults({
+              designResults: [],
+              successCount: 0,
+              totalCount: 0,
+              benchmarkResults: { selected: entry },
+            }),
+          )
+        : Promise.resolve({ status: "missing" }),
+    );
+
+    renderGroupHydration();
+
+    await waitFor(() => {
+      expect(Object.keys(useAppStore.getState().benchmarkResults ?? {})).toHaveLength(1);
+    });
+    expect(incompleteReported("kuro")).toBe(false);
+  });
+
+  // ── D2: MAME 리뷰 그룹과 그 화면 ─────────────────────────────────────────
+
+  it("summary 가 아예 없으면 verdict 표도 리뷰 화면도 세우지 않는다", async () => {
+    // 예전에는 verdicts 가드 하나가 hasReviewResults 를 세워, 화면이 읽는
+    // summary 없이도 analyze.review 로 넘어가 "PASS: 0" 이 PASS 행 옆에 떴다.
+    const { summary: _dropped, ...withoutSummary } = mameResults({});
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) =>
+      kind === "mame"
+        ? Promise.resolve(mameSnapshot(withoutSummary))
+        : Promise.resolve({ status: "missing" }),
+    );
+
+    renderGroupHydration();
+
+    await waitFor(() => {
+      expect(incompleteReported("mame")).toBe(true);
+    });
+    const st = useMameAppStore.getState();
+    expect(st.verdicts).toEqual([]);
+    expect(st.currentMameSubStep).not.toBe("analyze.review");
+  });
+
+  it("결과가 온전하면 리뷰 화면으로 넘어간다", async () => {
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) =>
+      kind === "mame"
+        ? Promise.resolve(mameSnapshot(mameResults({})))
+        : Promise.resolve({ status: "missing" }),
+    );
+
+    renderGroupHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
+    });
+    expect(useMameAppStore.getState().verdicts).toHaveLength(1);
+    expect(incompleteReported("mame")).toBe(false);
+  });
+
+  it("summary 가 null 인 것은 값이므로 그룹을 통과시킨다", async () => {
+    // resultContract 쪽 주석이 논증한 대로 null 은 "말하지 않음" 이다. 그
+    // 판단은 유지하고, 형제 가드들이 그 판단에 맞춰졌다.
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) =>
+      kind === "mame"
+        ? Promise.resolve(mameSnapshot(mameResults({ summary: null })))
+        : Promise.resolve({ status: "missing" }),
+    );
+
+    renderGroupHydration();
+
+    await waitFor(() => {
+      expect(useMameAppStore.getState().verdicts).toHaveLength(1);
+    });
+    expect(useMameAppStore.getState().summary).toBeNull();
+    expect(incompleteReported("mame")).toBe(false);
+  });
+
+  // ── D3: 같은 그룹 안에서 가드 강도가 달랐다 ──────────────────────────────
+
+  it("배열 자리의 null 을 형제들과 같은 기준으로 판정한다", async () => {
+    // 예전에는 replicates/wells 가 Array.isArray 로 null 을 거절하고
+    // summary/run_health 는 typeof === "object" 로 null 을 받아들여, 같은
+    // 그룹의 절반만 착지했다.
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) =>
+      kind === "mame"
+        ? Promise.resolve(
+            mameSnapshot(
+              mameResults({ replicates: null, wells: null, run_health: null }),
+            ),
+          )
+        : Promise.resolve({ status: "missing" }),
+    );
+
+    renderGroupHydration();
+
+    await waitFor(() => {
+      expect(incompleteReported("mame")).toBe(true);
+    });
+    const st = useMameAppStore.getState();
+    expect(st.verdicts).toEqual([]);
+    expect(st.replicates).toEqual([]);
+    expect(st.currentMameSubStep).not.toBe("analyze.review");
+  });
+
+  it("거절된 그룹은 사이드카에도 들어가지 않는다", async () => {
+    // 화면에 안 올린 결과를 사이드카에만 넣으면 표는 비어 있는데 리포트는
+    // 결과가 있다고 답한다. 같은 어긋남이 방향만 바뀐 것이다.
+    const { wells: _dropped, ...withoutWells } = mameResults({});
+    hooks.readAutosave.mockImplementation((_p: string, kind: string) =>
+      kind === "mame"
+        ? Promise.resolve(mameSnapshot(withoutWells))
+        : Promise.resolve({ status: "missing" }),
+    );
+
+    renderGroupHydration();
+
+    await waitFor(() => {
+      expect(incompleteReported("mame")).toBe(true);
+    });
+    expect(
+      hooks.sendMameRequest.mock.calls.filter((c) => c[0] === "load_analyze_result"),
+    ).toHaveLength(0);
   });
 });

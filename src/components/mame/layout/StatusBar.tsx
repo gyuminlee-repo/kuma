@@ -4,16 +4,11 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { SidecarStatus } from "@/types/mame/models";
 import { GlobalStatusBar } from "@/components/layout/GlobalStatusBar";
 import type { SidecarInfo } from "@/components/layout/GlobalStatusBar";
-import { rpc } from "@/lib/ipc";
+import { sendRequest } from "@/lib/ipc-mame";
+import type { HealthInfo } from "@/types/models";
 
 /** §2 Observability: health_info polling interval (ms). */
 const HEALTH_POLL_INTERVAL = 30_000;
-
-interface HealthInfo {
-  pid: number;
-  rss_bytes: number;
-  py_version: string;
-}
 
 /**
  * mame SidecarStatus → GlobalStatusBar SidecarInfo 매핑.
@@ -75,7 +70,7 @@ export function StatusBar({
 
     async function fetchHealth() {
       try {
-        const info = await rpc<HealthInfo>("mame", "health_info", {});
+        const info = await sendRequest<HealthInfo>("health_info", {});
         setHealthInfo(info);
       } catch (err) {
         // Non-critical: sidecar may be mid-restart. Clear stale data so tooltip

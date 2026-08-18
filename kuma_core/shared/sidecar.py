@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import math
 import os
 import sys
 import threading
@@ -13,6 +14,66 @@ from typing import Any
 from kuma_core.shared.errors import jsonrpc_error
 
 CRASH_LOG_MAX_ENTRIES = 50
+
+# JSON-RPC "Internal error". Chosen deliberately over -32602/-32700: the request
+# itself was well formed and the parameters were valid, so the fault is entirely
+# server side. The sidecar computed a value (NaN / Infinity) that JSON cannot
+# represent, which is exactly "an internal error of the server".
+JSONRPC_INTERNAL_ERROR = -32603
+
+# How many offending field paths to name in the error message. The count of all
+# offenders is reported separately, so truncating the list stays honest.
+NON_FINITE_PATHS_REPORTED = 5
+
+
+def find_non_finite_paths(
+    obj: Any,
+    *,
+    prefix: str = "",
+    _ancestors: frozenset[int] = frozenset(),
+) -> list[str]:
+    """Return dotted/indexed paths of every non-finite float inside ``obj``.
+
+    Used to turn an unserialisable JSON-RPC payload into a message that names
+    the offending cell (``result.tm``, ``result.rows[3].gc``) instead of only
+    stating that some value was non-finite.
+
+    ``_ancestors`` tracks the containers currently on the walk path so a
+    circular payload terminates instead of recursing forever. Tracking only the
+    ancestors (not every container ever seen) keeps repeated, non-cyclic
+    references fully searched.
+    """
+    if isinstance(obj, float) and not math.isfinite(obj):
+        return [prefix or "<root>"]
+    if not isinstance(obj, (dict, list, tuple)):
+        return []
+    if id(obj) in _ancestors:
+        return []
+
+    ancestors = _ancestors | {id(obj)}
+    found: list[str] = []
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            child = f"{prefix}.{key}" if prefix else str(key)
+            found.extend(find_non_finite_paths(value, prefix=child, _ancestors=ancestors))
+    else:
+        for index, value in enumerate(obj):
+            found.extend(
+                find_non_finite_paths(value, prefix=f"{prefix}[{index}]", _ancestors=ancestors)
+            )
+    return found
+
+
+def describe_non_finite(paths: list[str]) -> str:
+    """Human-readable summary naming the first few offending paths."""
+    head = ", ".join(paths[:NON_FINITE_PATHS_REPORTED])
+    if len(paths) > NON_FINITE_PATHS_REPORTED:
+        head += ", ..."
+    noun = "value" if len(paths) == 1 else "values"
+    return (
+        f"Sidecar produced {len(paths)} non-finite {noun} (NaN/Infinity) "
+        f"that JSON cannot represent: {head}"
+    )
 
 
 def ensure_private_dir(path: Path) -> Path:
@@ -69,7 +130,49 @@ class JsonRpcWriter:
         self._lock = threading.Lock()
 
     def send(self, obj: dict[str, Any]) -> None:
-        line = json.dumps(obj, ensure_ascii=False) + "\n"
+        # allow_nan=False turns a non-finite float into a ValueError instead of
+        # bare `NaN` / `Infinity` tokens, which are not valid JSON. The Rust
+        # client parses with serde_json (strict), dropped the malformed line,
+        # and the caller then waited out its full 60s RPC timeout with a
+        # transport-shaped error message for what is a data defect.
+        try:
+            line = json.dumps(obj, ensure_ascii=False, allow_nan=False) + "\n"
+        except ValueError:
+            paths = find_non_finite_paths(obj)
+            if not paths:
+                # ValueError here means something else (circular reference).
+                # Masking it with a non-finite message would hide a real bug.
+                raise
+            self._send_non_finite_failure(obj, paths)
+            return
+        self._write_line(line)
+
+    def _send_non_finite_failure(self, obj: dict[str, Any], paths: list[str]) -> None:
+        """Report a payload that cannot be serialised, without inventing values.
+
+        No substitution happens here on purpose: replacing a non-finite number
+        with null/0/"" would make a failed computation indistinguishable from a
+        legitimately absent value.
+        """
+        message = describe_non_finite(paths)
+        req_id = obj.get("id")
+        if req_id is None:
+            # A notification (progress / ready) has no id, so it cannot carry a
+            # JSON-RPC error response. Emitting anything on stdout would either
+            # be malformed or resolve a pending entry that does not exist.
+            print(f"[sidecar] dropped notification: {message}", file=sys.stderr, flush=True)
+            return
+        # Built from strings and the original id only, so this dict is always
+        # serialisable; it never re-enters the failure path above.
+        payload = {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "error": jsonrpc_error(JSONRPC_INTERNAL_ERROR, message, {"paths": paths}),
+        }
+        print(f"[sidecar] {message}", file=sys.stderr, flush=True)
+        self._write_line(json.dumps(payload, ensure_ascii=False, allow_nan=False) + "\n")
+
+    def _write_line(self, line: str) -> None:
         with self._lock:
             if getattr(sys, "frozen", False):
                 # Frozen builds (PyInstaller): bypass the TextIOWrapper buffer and

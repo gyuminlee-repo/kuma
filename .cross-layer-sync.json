@@ -31,6 +31,20 @@
       ]
     },
     {
+      "id": "run-manifest-schema-version",
+      "type": "version_sync",
+      "files": [
+        {
+          "path": "kuma_core/shared/run_manifest.py",
+          "extract": "regex:^SCHEMA_VERSION = \"([^\"]+)\""
+        },
+        {
+          "path": "src/lib/runManifest.ts",
+          "extract": "regex:^export const SCHEMA_VERSION = \"([^\"]+)\""
+        }
+      ]
+    },
+    {
       "id": "tauri-resources",
       "type": "files_exist",
       "manifest": "src-tauri/tauri.conf.json",
@@ -48,10 +62,10 @@
         "path": "src/types/models.ts",
         "extract": "ts_interface_keys:RpcMethodMap"
       },
+      "comment": "health_info was excluded while it had no RpcMethodMap entry and reached the sidecar through the raw transport. It is now a table method like any other, so the check enforces it. ping and shutdown stay excluded: they are lifecycle calls owned by spawnSidecar/killSidecar inside the ipc clients and never reach sendRequest.",
       "exclude": [
         "ping",
-        "shutdown",
-        "health_info"
+        "shutdown"
       ]
     },
     {
@@ -1051,7 +1065,7 @@
         "src/locales/pt-BR.json",
         "src/locales/ru.json"
       ],
-      "note": "The '### Highlights' block of every CHANGELOG.md section generates src/locales/en.json whatsNewDialog.releases (per version) plus releaseStamps (one sha256 digest8 per version), and the newest of those is also written as whatsNewDialog.highlights with highlightsStamp ('<version>+<digest8>'). The nine other locales hand-translate both arrays and copy both stamp values. The modal shows every release between the version an operator last ran and the one now installed, so a past release stays on screen and a reworded past bullet leaves nine translations behind. Editing a bullet, in a new release or inside one, means regenerating en.json (node scripts/gen-whatsnew.mjs) and retranslating the affected versions in all nine; node scripts/backfill-whatsnew-archive.mjs recovers past translations from git history when an archive is missing rather than merely stale. Enforcement is elsewhere and stays there: gen-whatsnew.mjs --check owns CHANGELOG-to-en drift, scripts/i18n-parity.mjs owns the nine stamps and the translated authoring rules. This group is the co-edit reminder, hence warning. Deliberately no 'symbols': scripts/sync-check.mjs only checks symbols on blocking groups, so listing them here would read as enforcement that never runs.",
+      "note": "The '### Highlights' block of every CHANGELOG.md section generates src/locales/en.json whatsNewDialog.releases (per version) plus releaseStamps (one sha256 digest8 per version), and the newest of those is also written as whatsNewDialog.highlights with highlightsStamp ('<version>+<digest8>'). The nine other locales hand-translate both arrays and copy both stamp values. The modal shows every release between the version an operator last ran and the one now installed, so a past release stays on screen and a reworded past bullet leaves nine translations behind. Editing a bullet, in a new release or inside one, means regenerating en.json (node scripts/gen-whatsnew.mjs) and retranslating the affected versions in all nine; node scripts/backfill-whatsnew-archive.mjs recovers past translations from git history when an archive is missing rather than merely stale. Enforcement is elsewhere and stays there: gen-whatsnew.mjs --check owns CHANGELOG-to-en drift, scripts/i18n-parity.mjs owns the nine stamps and the translated authoring rules. This group is the co-edit reminder, hence warning. Deliberately no 'symbols': there is nothing here whose disappearance this group should announce that gen-whatsnew.mjs --check and i18n-parity.mjs do not already fail on. Note that scripts/sync-check.mjs now scans symbols at every severity (a warning group reports a miss as WARN), so adding them here would run, unlike before.",
       "severity": "warning"
     },
     {
@@ -1248,7 +1262,8 @@
       "files": [
         "python-core/sidecar_mame/handlers/classify_round.py",
         "src/types/mame/strategy.ts",
-        "src/lib/ipc.ts",
+        "src/types/mame/validators.ts",
+        "src/lib/ipc-mame/index.ts",
         "src/components/round/AdvisoryDecisionCard.tsx",
         "src/lib/round/roundArtifacts.ts",
         "src/lib/mame/mameStepCompletion.ts"

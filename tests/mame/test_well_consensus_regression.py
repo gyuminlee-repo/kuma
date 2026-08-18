@@ -34,6 +34,7 @@ import pytest
 from kuma_core.mame.ingest.align import align_reads
 from kuma_core.mame.ingest.consensus import call_consensus, per_position_depth
 from kuma_core.mame.ingest.well_consensus import compute_well_consensuses
+from tests.mame.minimap2_support import requires_minimap2
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -101,6 +102,7 @@ class TestWellConsensusUnit:
         _write_fasta(path, "ref", _SYNTH_REF)
         return path
 
+    @requires_minimap2
     def test_single_well_perfect_reads(self, ref_fasta: Path) -> None:
         """5 reads identical to reference produce consensus == reference."""
         per_well = {
@@ -115,6 +117,7 @@ class TestWellConsensusUnit:
         assert r.mean_depth > 0
         assert r.consensus_seq == _SYNTH_REF
 
+    @requires_minimap2
     def test_snp_majority_called_correctly(self, ref_fasta: Path) -> None:
         """4 reads with T at pos 10, 1 read with ref base yield T at pos 10."""
         mut = _SYNTH_REF[:10] + "T" + _SYNTH_REF[11:]
@@ -135,6 +138,7 @@ class TestWellConsensusUnit:
         assert r.n_input_reads == 0
         assert r.consensus_seq == "N" * len(_SYNTH_REF)
 
+    @requires_minimap2
     def test_multi_well(self, ref_fasta: Path) -> None:
         """Multiple wells processed independently."""
         per_well = {
@@ -147,11 +151,13 @@ class TestWellConsensusUnit:
         assert results["well_A1"].consensus_seq[10] == _SYNTH_REF[10]
         assert results["well_A2"].consensus_seq[10] == "C"
 
+    @requires_minimap2
     def test_consensus_length_equals_reference(self, ref_fasta: Path) -> None:
         per_well = {"w": [("r1", _SYNTH_REF)]}
         results = compute_well_consensuses(per_well, ref_fasta, min_mapq=0)
         assert len(results["w"].consensus_seq) == len(_SYNTH_REF)
 
+    @requires_minimap2
     def test_reverse_strand_reads_contribute(self, ref_fasta: Path) -> None:
         """Mix of forward and reverse reads should still call correct consensus."""
         rc_read = _rc(_SYNTH_REF)
@@ -163,6 +169,7 @@ class TestWellConsensusUnit:
         assert r.n_passed_filter >= 1
         assert len(r.consensus_seq) == len(_SYNTH_REF)
 
+    @requires_minimap2
     def test_one_bp_deletion_well_net_indel_minus_one(self, ref_fasta: Path) -> None:
         """End-to-end glue: real deletion reads through compute_well_consensuses
         surface as consensus_net_indel_bp == -1 (the value the verdict keys off).
@@ -183,6 +190,7 @@ class TestWellConsensusUnit:
         assert r.consensus_net_indel_bp == -1
         assert r.median_read_net_indel_bp == -1
 
+    @requires_minimap2
     def test_perfect_reads_well_net_indel_zero(self, ref_fasta: Path) -> None:
         per_well = {"w": [(f"r{i}", _SYNTH_REF) for i in range(5)]}
         results = compute_well_consensuses(per_well, ref_fasta, min_mapq=0)
@@ -221,6 +229,7 @@ _SKIP_REASON = (
 
 
 @pytest.mark.skipif(_SKIP_REGRESSION, reason=_SKIP_REASON)
+@requires_minimap2
 class TestReferenceGroundTruth:
     """Integration tests using per-well ground-truth raw-read data.
 

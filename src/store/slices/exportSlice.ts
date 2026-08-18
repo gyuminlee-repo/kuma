@@ -5,6 +5,7 @@ import { sendRequest } from "../../lib/ipc-kuro";
 import { getSortedMutations, reorderMappings, wellName } from "../../lib/plate-utils";
 import { clampMaxPrimers } from "../../lib/inputThresholds";
 import { formatError } from "../../lib/utils";
+import { readKuroDesignOutcome } from "../../lib/kuroSnapshot";
 import { notifyJobDone, notifyJobError } from "../../lib/toast";
 import { registerArtifacts, ensureWorkspaceFromExportPath, getActiveWorkspace } from "../../lib/workspace";
 import type { AppState } from "../types";
@@ -621,7 +622,28 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
 
     const store = get();
     store.resetAll();
-    const restoredDesignResults = results.designResults ?? [];
+    // designResults 와 두 카운트는 저장 측이 조건 없이 한 객체 리터럴로 함께 쓴다
+    // (위 getWorkspaceSnapshot 의 results 블록). 그래서 읽는 쪽도 통째로 읽거나
+    // 통째로 버린다. 판정은 쓰는 쪽 옆(lib/kuroSnapshot.ts)에 있고 여기서는 결과만
+    // 받는다. 자동 저장 스냅샷과 필드 이름·의미가 같은 블록이라 같은 판정기를 쓴다.
+    //
+    // 아래 maxPrimers 의 clamp 와는 다른 판단이다. clamp 는 범위를 벗어난 "설정"을
+    // 합법 값으로 고치는 교정이지만, 카운트에 `?? 0` 을 씌우는 것은 교정이 아니라
+    // 옆에 놓인 designResults 와 모순되는 "측정값"을 만들어 내는 일이다(세 줄짜리
+    // 표 위의 3/0, DesignReportContent.tsx 의 성공률). JSON.stringify 가
+    // NaN/Infinity 를 null 로 쓰므로 이 경로는 실제로 열린다.
+    const designOutcome = readKuroDesignOutcome(results);
+    const restoredDesignResults = designOutcome.ok ? designOutcome.value.designResults : [];
+    // 워크스페이스는 사용자가 직접 고른 파일이라 자동 복원과 달리 파일 자체는
+    // 열려야 한다(입력·설정은 멀쩡하다). 그래서 파일을 거절하지 않고 이 그룹만
+    // 버린 뒤, 이 함수가 이미 쓰고 있는 statusMessage 채널로 무엇이 빠졌는지
+    // 알린다(templateLoadError 와 같은 자리). 문구는 자동 복원 쪽 그룹 거절
+    // 문구를 그대로 쓴다. 같은 사유·같은 필드 목록이고 10개 로케일에 이미 있다.
+    const designOutcomeError = designOutcome.ok
+      ? null
+      : i18next.t("autosaveHydration.resultsIncomplete", {
+          fields: designOutcome.missing.join(", "),
+        });
     const restoredPlateState = buildIncludedPlateState({
       designResults: restoredDesignResults,
       wellName,
@@ -662,8 +684,11 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
             currentSubStep: "output.summary" as const,
           }
         : {}),
-      successCount: results.successCount ?? 0,
-      totalCount: results.totalCount ?? 0,
+      // 위 designOutcome 과 한 덩어리다. 그룹이 거절되면 표도 카운트도 함께
+      // 비운다(restoredDesignResults 도 []). 표만 살아 있고 카운트만 0 인 상태를
+      // 만들지 않는 것이 이 그룹 판정의 목적이다.
+      successCount: designOutcome.ok ? designOutcome.value.successCount : 0,
+      totalCount: designOutcome.ok ? designOutcome.value.totalCount : 0,
       failedMutations: results.failedMutations ?? [],
       plateMappings: restoredPlateState.plateMappings,
       dedupInfo: restoredPlateState.dedupInfo,
@@ -755,6 +780,9 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
             : (settings.autoRedesignOnLoad ?? true)
             ? "Workspace loaded. Re-designing to sync backend..."
             : "Workspace loaded.",
+        // 그룹 거절은 로딩 실패와 독립이다. 위 분기에 섞으면 템플릿이 깨진
+        // 파일에서 이 안내가 통째로 사라진다.
+        designOutcomeError,
         restoredPolymerase.notice,
       ]
         .filter(Boolean)
@@ -771,6 +799,14 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       set({
         plateMappings: redesignedPlateState.plateMappings,
         dedupInfo: redesignedPlateState.dedupInfo,
+        // designPrimers 는 statusMessage 를 통째로 덮어쓴다(designSlice.ts 의
+        // "Designing primers..." 와 완료 문구). 그룹을 거절해서 designResults 가
+        // 비면 바로 이 분기 조건이 성립하므로, 거절 안내는 사용자가 읽기도 전에
+        // 지워진다. 저장된 표를 버렸다는 사실은 재설계가 성공해도 남아야 하므로
+        // 재설계 문구 뒤에 다시 붙인다.
+        ...(designOutcomeError
+          ? { statusMessage: [get().statusMessage, designOutcomeError].filter(Boolean).join(" ") }
+          : {}),
       });
     }
   },

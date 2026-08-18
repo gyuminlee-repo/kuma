@@ -26,9 +26,17 @@ from __future__ import annotations
 import math
 import statistics
 from dataclasses import dataclass, field
+from typing import Literal
 
 _FLOOR_KB: float = 50.0
 _BIMODAL_GAP_RATIO: float = 3.0  # gap must be this many times the smaller cluster std
+
+# How the recommended cutoff was arrived at.  Closed, and named here rather than
+# left as a bare `str`, because the app indexes a label map by this value
+# (src/components/mame/panels/ParameterPanel.tsx:21) and mirrors it as a union
+# (src/types/mame/models.ts:160).  A fifth branch added below without extending
+# this alias is a type error here before it is a blank word on the screen.
+SuggestedMethod = Literal["kneedle", "p05", "median_minus_2sigma", "fixed_50"]
 
 
 @dataclass
@@ -39,7 +47,7 @@ class DistributionStats:
     file_size_kb: dict[str, float] = field(default_factory=dict)
     """Keys: min, p05, p25, median, p75, p95, max, mean, std"""
     suggested_cutoff_kb: float = _FLOOR_KB
-    suggested_method: str = "fixed_50"
+    suggested_method: SuggestedMethod = "fixed_50"
     bimodal: bool = False
 
 
@@ -145,6 +153,7 @@ def compute_distribution_stats(file_size_kb_values: list[float]) -> Distribution
     bimodal = _detect_bimodal(data)
 
     # ── Cutoff recommendation decision tree ───────────────────────────────
+    method: SuggestedMethod
     if bimodal:
         method = "kneedle"
         cutoff = _kneedle_cutoff(data)

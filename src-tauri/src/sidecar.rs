@@ -81,6 +81,77 @@ fn append_sidecar_log(app_handle: &AppHandle<Wry>, kind: &str, line: &str) {
     }
 }
 
+/// Longest slice of an unparseable line echoed back to the caller.
+const UNPARSEABLE_LINE_LOG_MAX: usize = 200;
+
+fn truncate_for_log(line: &str) -> String {
+    if line.chars().count() <= UNPARSEABLE_LINE_LOG_MAX {
+        return line.to_string();
+    }
+    let head: String = line.chars().take(UNPARSEABLE_LINE_LOG_MAX).collect();
+    format!("{head}...")
+}
+
+/// Best-effort recovery of the JSON-RPC request id from a line serde_json
+/// refused to parse.
+///
+/// Deliberately narrow: it accepts only a single `"id"` occurrence followed by
+/// a plain integer. This is not, and must not become, a JSON parser.
+///
+/// * More than one `"id"` in the line -> give up. Without a parser there is no
+///   way to tell the top-level id from one nested inside `result`, and failing
+///   the *wrong* pending request is strictly worse than the 60s timeout this
+///   function exists to avoid.
+/// * Non-integer ids (strings, floats, null) -> give up. `pending` is keyed by
+///   `i64`, so anything else cannot match an entry anyway.
+///
+/// When recovery is not certain the caller falls back to logging alone, which
+/// is exactly the previous behaviour.
+fn recover_request_id(line: &str) -> Option<i64> {
+    let mut matches = line.match_indices("\"id\"");
+    let (start, _) = matches.next()?;
+    if matches.next().is_some() {
+        return None;
+    }
+
+    let bytes = line.as_bytes();
+    let mut i = start + 4;
+
+    while i < bytes.len() && bytes[i].is_ascii_whitespace() {
+        i += 1;
+    }
+    if i >= bytes.len() || bytes[i] != b':' {
+        return None;
+    }
+    i += 1;
+    while i < bytes.len() && bytes[i].is_ascii_whitespace() {
+        i += 1;
+    }
+
+    let digits_start = i;
+    if i < bytes.len() && bytes[i] == b'-' {
+        i += 1;
+    }
+    let first_digit = i;
+    while i < bytes.len() && bytes[i].is_ascii_digit() {
+        i += 1;
+    }
+    if i == first_digit {
+        return None;
+    }
+
+    // The number must end the value. A trailing `.`, `e`, or any other
+    // character means this was a float or something unexpected, not an id.
+    if i < bytes.len() {
+        let next = bytes[i];
+        if !(next == b',' || next == b'}' || next.is_ascii_whitespace()) {
+            return None;
+        }
+    }
+
+    line[digits_start..i].parse::<i64>().ok()
+}
+
 #[derive(Serialize, Clone)]
 struct SidecarProgressPayload {
     kind: String,
@@ -200,8 +271,25 @@ impl LineProtocol {
 
         let parsed: Value = match serde_json::from_str(trimmed) {
             Ok(value) => value,
-            Err(_) => {
+            Err(err) => {
                 eprintln!("[sidecar] failed to parse stdout line: {trimmed}");
+                // An unparseable line used to be dropped outright, so the
+                // pending oneshot for its id was never resolved and the caller
+                // waited out the full 60s RPC timeout, reporting a transport
+                // fault for what is usually a bad value in the payload (a bare
+                // `NaN` / `Infinity`, which serde_json rejects). Failing the
+                // pending entry turns that stall into an immediate, accurate
+                // error. `fail_pending` is a no-op for unknown ids.
+                if let Some(id) = recover_request_id(trimmed) {
+                    self.fail_pending(
+                        id,
+                        format!(
+                            "Sidecar sent an unparseable response: {err} (line: {})",
+                            truncate_for_log(trimmed)
+                        ),
+                    )
+                    .await;
+                }
                 return;
             }
         };
@@ -681,5 +769,89 @@ fn format_jsonrpc_error(error: &Value) -> String {
     match code {
         Some(code) => format!("[{code}] {message}"),
         None => message.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{recover_request_id, truncate_for_log, UNPARSEABLE_LINE_LOG_MAX};
+
+    #[test]
+    fn recovers_id_from_nan_poisoned_result() {
+        let line = r#"{"jsonrpc": "2.0", "id": 7, "result": {"tm": NaN}}"#;
+        assert_eq!(recover_request_id(line), Some(7));
+    }
+
+    #[test]
+    fn recovers_id_without_spaces_and_when_last_field() {
+        assert_eq!(recover_request_id(r#"{"result":{"gc":Infinity},"id":42}"#), Some(42));
+        assert_eq!(recover_request_id(r#"{"id":13,"result":{"tm":NaN}}"#), Some(13));
+    }
+
+    #[test]
+    fn recovers_negative_and_large_ids() {
+        assert_eq!(recover_request_id(r#"{"id": -3, "result": NaN}"#), Some(-3));
+        assert_eq!(
+            recover_request_id(r#"{"id": 9007199254740993, "result": NaN}"#),
+            Some(9_007_199_254_740_993)
+        );
+    }
+
+    #[test]
+    fn gives_up_when_id_appears_more_than_once() {
+        // The nested `"id"` makes the top-level one unidentifiable without a
+        // parser, and failing the wrong pending entry is worse than timing out.
+        let line = r#"{"id": 5, "result": {"records": [{"id": 91, "tm": NaN}]}}"#;
+        assert_eq!(recover_request_id(line), None);
+    }
+
+    #[test]
+    fn gives_up_on_non_integer_ids() {
+        assert_eq!(recover_request_id(r#"{"id": "abc", "result": NaN}"#), None);
+        assert_eq!(recover_request_id(r#"{"id": null, "result": NaN}"#), None);
+        assert_eq!(recover_request_id(r#"{"id": 1.5, "result": NaN}"#), None);
+        assert_eq!(recover_request_id(r#"{"id": 1e3, "result": NaN}"#), None);
+    }
+
+    #[test]
+    fn gives_up_when_there_is_no_id_field() {
+        let line = r#"{"jsonrpc": "2.0", "method": "progress", "params": {"value": NaN}}"#;
+        assert_eq!(recover_request_id(line), None);
+    }
+
+    #[test]
+    fn gives_up_on_truncated_line_with_no_value() {
+        assert_eq!(recover_request_id(r#"{"jsonrpc": "2.0", "id""#), None);
+        assert_eq!(recover_request_id(r#"{"jsonrpc": "2.0", "id": "#), None);
+        assert_eq!(recover_request_id(r#"{"id" 4, "result": NaN}"#), None);
+    }
+
+    #[test]
+    fn recovers_id_from_a_line_truncated_after_the_id() {
+        // A genuinely cut-off line still carries a usable id, which is the
+        // case the Python-side fix cannot cover.
+        assert_eq!(recover_request_id(r#"{"id": 8, "result": {"tm": 5"#), Some(8));
+    }
+
+    #[test]
+    fn truncate_for_log_keeps_short_lines_intact() {
+        let line = r#"{"id": 1}"#;
+        assert_eq!(truncate_for_log(line), line);
+    }
+
+    #[test]
+    fn truncate_for_log_bounds_long_lines() {
+        let line = "x".repeat(UNPARSEABLE_LINE_LOG_MAX + 50);
+        let truncated = truncate_for_log(&line);
+        assert_eq!(truncated.chars().count(), UNPARSEABLE_LINE_LOG_MAX + 3);
+        assert!(truncated.ends_with("..."));
+    }
+
+    #[test]
+    fn truncate_for_log_does_not_split_multibyte_characters() {
+        let line = "가".repeat(UNPARSEABLE_LINE_LOG_MAX + 10);
+        let truncated = truncate_for_log(&line);
+        assert!(truncated.starts_with('가'));
+        assert_eq!(truncated.chars().count(), UNPARSEABLE_LINE_LOG_MAX + 3);
     }
 }

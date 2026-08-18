@@ -648,7 +648,7 @@
     },
     "appLayout": {
       "deadlockTitle": "応答なし",
-      "deadlockDescription": "30 秒以上進捗更新がありません。ジョブが停止しました。",
+      "deadlockDescription": "{{seconds}} 秒以上進捗更新がありません。ジョブが停止している可能性があります。",
       "deadlockWait": "待機を継続",
       "deadlockReset": "リセット",
       "analysisWorkspaceAriaLabel": "解析ワークスペース",
@@ -1414,7 +1414,7 @@
     "deleteFolderConfirmDesc": "{{path}} が中のファイルごとシステムのごみ箱へ移動します。ごみ箱から元に戻せます。",
     "deleteFolderConfirmButton": "ごみ箱へ移動",
     "restorableTitle": "復元できるプロジェクト",
-    "restorableDesc": "最近のプロジェクト一覧からは外れていますが、ディスクには残っているプロジェクトです。",
+    "restorableDesc": "最近のプロジェクト一覧からは外れていますが、現在のプロジェクトフォルダーには残っているプロジェクトです。別のフォルダーにあるプロジェクトは表示されません。",
     "restorableEmpty": "復元できるプロジェクトはありません。",
     "restoreButton": "復元",
     "overview": {
@@ -1881,11 +1881,10 @@
     },
     "relativeTime": {
       "justNow": "たった今",
-      "minAgo": "{{count}} 分前",
-      "hrAgo": "{{count}} 時間前",
-      "daysAgo": "{{count}} 日前",
       "minutesAgo": "{{n}} 分前",
-      "hoursAgo": "{{n}} 時間前"
+      "hoursAgo": "{{n}} 時間前",
+      "daysAgo": "{{n}} 日前",
+      "unknown": "時刻不明"
     },
     "memory": {
       "warningBannerLabel": "メモリ: {{pct}}% (sidecar {{rss}} MB)",
@@ -1986,7 +1985,7 @@
     "missingMutations": "Mutations (Mutation パネルで少なくとも 1 つの mutation を入力)",
     "missingTargetGene": "ターゲット遺伝子 (Sequence パネルで選択)",
     "deadlockTitle": "応答なし",
-    "deadlockDesc": "30 秒以上進捗更新がありません。ジョブが停止している可能性があります。",
+    "deadlockDesc": "{{seconds}} 秒以上進捗更新がありません。ジョブが停止している可能性があります。",
     "deadlockWait": "待機を継続",
     "deadlockReset": "リセット",
     "plateCount": "{{count}} plate",
@@ -2893,6 +2892,7 @@
     "writeFailed": "Autosave ファイルを書き込めませんでした ({{filename}})。原因: {{cause}}",
     "carriedFromScratch": "保存されていない前回のセッションから引き継ぎました ({{relative}})",
     "resultsDiscarded": "ソースファイルから variant リストを選び直した結果、復元された primer テーブルと一致しないためテーブルを消去しました。設計を再実行してください。",
+    "resultsIncomplete": "保存された結果の一部が完全ではなかったため、その部分は復元しませんでした。中途半端な値を表示しないための処理です。取り戻すには解析を再実行してください。欠落: {{fields}}",
     "inputsUnavailable": "入力ファイル {{count}} 件を開けず復元から外れました。結果は残っていますが元の入力がないため再選択してください: {{paths}}",
     "workspaceRestored": "ワークスペースを復元しました",
     "autoDetected": "自動検出: {{fields}}",

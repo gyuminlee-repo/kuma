@@ -35,7 +35,8 @@ import { generateDiagnosticsBundle } from "../../lib/diagnostics";
 import { revealInOSFolder } from "../../lib/openFolder";
 import { getCrashLog } from "../../lib/crashLog";
 import { getConfig } from "../../lib/project";
-import { rpc } from "../../lib/ipc";
+import { sendRequest as sendMameRequest } from "../../lib/ipc-mame";
+import type { HealthInfo } from "../../types/models";
 import { getShortcutsFor } from "../../lib/shortcuts";
 import { useAppStore } from "../../store/appStore";
 
@@ -205,11 +206,7 @@ export function SharedAboutDialog({
       // the console.
       let sidecarLine: string;
       try {
-        const health = await rpc<{
-          pid: number;
-          rss_bytes: number;
-          py_version: string;
-        }>("mame", "health_info", {});
+        const health = await sendMameRequest<HealthInfo>("health_info", {});
         const rssMb = Math.round(health.rss_bytes / (1024 * 1024));
         sidecarLine = `alive (pid ${health.pid}, python ${health.py_version}, rss ${rssMb} MB)`;
       } catch (err) {

@@ -34,6 +34,11 @@ from typing import Any
 from kuma_core.shared.atomic_write import atomic_write_text
 from kuma_core.shared.version import KUMA_VERSION, KURO_MODULE_VERSION
 
+# Bumping this bumps the manifest contract. src/lib/runManifest.ts keeps its own
+# copy and REJECTS a manifest whose version differs, so the two must move
+# together; .cross-layer-sync.json (run-manifest-schema-version) compares them,
+# and tests/shared/test_run_manifest.py pins the literal so a bump cannot pass
+# unnoticed.
 SCHEMA_VERSION = "1.0"
 
 # ---------------------------------------------------------------------------

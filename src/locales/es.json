@@ -648,7 +648,7 @@
     },
     "appLayout": {
       "deadlockTitle": "Sin respuesta",
-      "deadlockDescription": "No hay actualización de progreso desde hace más de 30 segundos. La tarea está bloqueada.",
+      "deadlockDescription": "No hay actualización de progreso desde hace más de {{seconds}} segundos. La tarea puede estar bloqueada.",
       "deadlockWait": "Seguir esperando",
       "deadlockReset": "Reiniciar",
       "analysisWorkspaceAriaLabel": "Workspace de análisis",
@@ -1414,7 +1414,7 @@
     "deleteFolderConfirmDesc": "{{path}} pasa a la papelera del sistema junto con todo su contenido. La carpeta se puede recuperar desde la papelera.",
     "deleteFolderConfirmButton": "Mover a la papelera",
     "restorableTitle": "Proyectos restaurables",
-    "restorableDesc": "Quitados de la lista de recientes, pero todavía presentes en el disco.",
+    "restorableDesc": "Quitados de la lista de recientes, pero todavía en la carpeta de proyectos actual. Los proyectos de otra carpeta no aparecen aquí.",
     "restorableEmpty": "No hay proyectos para restaurar.",
     "restoreButton": "Restaurar",
     "overview": {
@@ -1881,11 +1881,10 @@
     },
     "relativeTime": {
       "justNow": "ahora mismo",
-      "minAgo": "hace {{count}} min",
-      "hrAgo": "hace {{count}} h",
-      "daysAgo": "hace {{count}} día(s)",
       "minutesAgo": "hace {{n}} min",
-      "hoursAgo": "hace {{n}} h"
+      "hoursAgo": "hace {{n}} h",
+      "daysAgo": "hace {{n}} día(s)",
+      "unknown": "en un momento desconocido"
     },
     "memory": {
       "warningBannerLabel": "Memoria: {{pct}}% (sidecar {{rss}} MB)",
@@ -1986,7 +1985,7 @@
     "missingMutations": "Mutaciones (introducir al menos una mutación en el panel Mutation)",
     "missingTargetGene": "Gen target (seleccionar uno en el panel Sequence)",
     "deadlockTitle": "Sin respuesta",
-    "deadlockDesc": "No hay actualización de progreso desde hace más de 30 segundos. La tarea puede estar bloqueada.",
+    "deadlockDesc": "No hay actualización de progreso desde hace más de {{seconds}} segundos. La tarea puede estar bloqueada.",
     "deadlockWait": "Seguir esperando",
     "deadlockReset": "Reiniciar",
     "plateCount": "{{count}} placa",
@@ -2893,6 +2892,7 @@
     "writeFailed": "No se pudo escribir el archivo de autoguardado ({{filename}}). Causa: {{cause}}",
     "carriedFromScratch": "Continuado desde una sesión anterior sin guardar ({{relative}})",
     "resultsDiscarded": "La lista de variants se volvió a seleccionar desde el archivo de origen y ya no coincide con la tabla de primers restaurada, por lo que la tabla se vació. Ejecutar el diseño de nuevo.",
+    "resultsIncomplete": "Una parte de los resultados guardados no estaba completa, por lo que no se restauro en lugar de mostrarse a medias. Vuelva a ejecutar el analisis para recuperarla. Falta: {{fields}}",
     "inputsUnavailable": "No se pudieron abrir {{count}} archivo(s) de entrada y quedaron fuera de la restauracion. Los resultados siguen ahi pero falta su entrada de origen, vuelva a seleccionarla: {{paths}}",
     "workspaceRestored": "Workspace restaurado",
     "autoDetected": "Auto-detectado: {{fields}}",

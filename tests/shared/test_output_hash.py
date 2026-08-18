@@ -95,26 +95,52 @@ def test_checksum_ends_with_newline(known_file: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skipif(shutil.which("shasum") is None, reason="shasum not on PATH")
+def test_checksum_file_is_written_with_a_bare_line_feed(known_file: Path) -> None:
+    """The sidecar is parsed by external checkers, so its bytes are a contract.
+
+    Everything after the two spaces is the filename as far as `sha256sum
+    --check` is concerned, a carriage return included. Writing this file in text
+    mode on Windows appended one, and the checker then reported "FAILED open or
+    read" for a file sitting right beside it. Reading the bytes is the point:
+    read_text would hide the defect behind universal-newline translation.
+    """
+    checksum_path = write_output_checksum(known_file)
+    raw = checksum_path.read_bytes()
+    assert b"\r" not in raw
+    assert raw.endswith(b"\n")
+    assert raw.decode("utf-8").split("  ", 1)[1] == known_file.name + "\n"
+
+
+def _run_checker(argv: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
+    """Run an external checksum checker, or skip if it cannot start.
+
+    `shutil.which` is not a sufficient guard. Git for Windows puts `shasum` on
+    PATH as a Perl script, which CreateProcess refuses to start, so the name
+    resolves and the call still raises. The question these tests need answered
+    is whether the tool runs, not whether the name is findable.
+    """
+    if shutil.which(argv[0]) is None:
+        pytest.skip(f"{argv[0]} not on PATH")
+    try:
+        return subprocess.run(argv, cwd=cwd, capture_output=True, text=True)
+    except OSError as exc:
+        pytest.skip(f"{argv[0]} is on PATH but cannot be executed here: {exc}")
+
+
 def test_shasum_c_passes(known_file: Path) -> None:
     write_output_checksum(known_file)
-    result = subprocess.run(
+    result = _run_checker(
         ["shasum", "-a", "256", "-c", known_file.name + ".sha256"],
-        cwd=known_file.parent,
-        capture_output=True,
-        text=True,
+        known_file.parent,
     )
     assert result.returncode == 0, f"shasum -c failed: {result.stderr}"
 
 
-@pytest.mark.skipif(shutil.which("sha256sum") is None, reason="sha256sum not on PATH")
 def test_sha256sum_check_passes(known_file: Path) -> None:
     write_output_checksum(known_file)
-    result = subprocess.run(
+    result = _run_checker(
         ["sha256sum", "--check", known_file.name + ".sha256"],
-        cwd=known_file.parent,
-        capture_output=True,
-        text=True,
+        known_file.parent,
     )
     assert result.returncode == 0, f"sha256sum --check failed: {result.stderr}"
 
