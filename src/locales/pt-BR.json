@@ -2443,14 +2443,15 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Um run exportado para uma pasta que já tinha a saída de um run anterior pontuou também aquelas plates, e chegaram mais do que as selecionadas.",
-      "Uma pasta de trabalho antiga que mostre mais plates do que os barcodes escolhidos por aquele run foi pontuada sobre wells de outro run e precisa rodar de novo.",
-      "A pasta agora registra quais plates cada run produziu, as plates deixadas por um run anterior são nomeadas na tela e nada é apagado.",
-      "A tela de exportação não oferece mais row inicial e final. Qualquer ajuste que não fosse a plate inteira empilhava mutantes diferentes em um well.",
-      "A colocação vem apenas da escolha de quadrant, e uma faixa de rows salva que cobriria um well já ocupado é recusada em vez de ser escrita."
+      "O editor de polimerase personalizada não exibe mais Opt/Min/Max size nem Max Tm diff, quatro campos que o motor de design nunca lia.",
+      "A documentação do caminho de polimerase personalizada e configuração agora diz ~/.kuma/kuro/, onde o kuma realmente os guarda."
     ],
-    "highlightsStamp": "0.16.25+291c60a5",
+    "highlightsStamp": "0.16.26+c3e3f1a1",
     "releases": {
+      "0.16.26": [
+        "O editor de polimerase personalizada não exibe mais Opt/Min/Max size nem Max Tm diff, quatro campos que o motor de design nunca lia.",
+        "A documentação do caminho de polimerase personalizada e configuração agora diz ~/.kuma/kuro/, onde o kuma realmente os guarda."
+      ],
       "0.16.25.1": [
         "Um run exportado para uma pasta que já tinha a saída de um run anterior pontuou também aquelas plates, e chegaram mais do que as selecionadas.",
         "Uma pasta de trabalho antiga que mostre mais plates do que os barcodes escolhidos por aquele run foi pontuada sobre wells de outro run e precisa rodar de novo.",
@@ -2656,6 +2657,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",

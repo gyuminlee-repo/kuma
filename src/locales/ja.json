@@ -2443,14 +2443,15 @@
     "descriptionRange": "v{{from}} 以降のすべてのアップデートの主な変更点です。",
     "gotItBtn": "了解",
     "highlights": [
-      "以前の run の出力が残るフォルダーへ書き出した run が、その plate まで判定していました。選択した数より多くの plate が表に並びます。",
-      "その run が選択した barcode より多くの plate が並ぶ過去のワークブックは、別の run の well まで判定しているため、やり直しが必要です。",
-      "フォルダーが各 run の作成した plate を記録し、以前の run が残した plate は画面に名前が出て、何も削除しません。",
-      "書き出し画面から開始 row と終了 row の選択がなくなりました。plate 全体以外のどの設定でも、異なる変異体が同じ well に重なっていました。",
-      "配置は quadrant の選択だけで決まり、すでに使われている well を覆う保存済みの row 範囲は、書き出さずに拒否します。"
+      "Custom Polymerase Editor から Opt/Min/Max size と Max Tm diff の4項目が削除されました。設計エンジンが読んでいなかった値です。",
+      "Custom polymerase と config のパス表記が、kuma が実際に使う ~/.kuma/kuro/ に修正されました。"
     ],
-    "highlightsStamp": "0.16.25+291c60a5",
+    "highlightsStamp": "0.16.26+c3e3f1a1",
     "releases": {
+      "0.16.26": [
+        "Custom Polymerase Editor から Opt/Min/Max size と Max Tm diff の4項目が削除されました。設計エンジンが読んでいなかった値です。",
+        "Custom polymerase と config のパス表記が、kuma が実際に使う ~/.kuma/kuro/ に修正されました。"
+      ],
       "0.16.25.1": [
         "以前の run の出力が残るフォルダーへ書き出した run が、その plate まで判定していました。選択した数より多くの plate が表に並びます。",
         "その run が選択した barcode より多くの plate が並ぶ過去のワークブックは、別の run の well まで判定しているため、やり直しが必要です。",
@@ -2656,6 +2657,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",
