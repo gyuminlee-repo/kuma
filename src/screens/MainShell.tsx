@@ -50,8 +50,15 @@ function ShellPaneFallback() {
 
 type TFunc = (key: string, opts?: Record<string, string | number>) => string;
 
-function formatRelativeTime(isoString: string, t: TFunc): string {
-  const diffMs = Date.now() - new Date(isoString).getTime();
+// exported for test: the branch table is the whole logic and mounting MainShell
+// to reach it drags in the Tauri bridge.
+export function formatRelativeTime(isoString: string, t: TFunc): string {
+  // An unparseable timestamp gives NaN, and every comparison against NaN is
+  // false, so control would fall through to the days branch and present
+  // "NaN day(s)" as if it were a measurement. Say the time is unknown instead.
+  const savedAt = new Date(isoString).getTime();
+  if (!Number.isFinite(savedAt)) return t("mainShell.relativeTime.unknown");
+  const diffMs = Date.now() - savedAt;
   const diffMin = Math.floor(diffMs / 60_000);
   if (diffMin < 1) return t("mainShell.relativeTime.justNow");
   if (diffMin < 60) return t("mainShell.relativeTime.minutesAgo", { n: diffMin });

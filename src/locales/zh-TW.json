@@ -633,7 +633,7 @@
     },
     "appLayout": {
       "deadlockTitle": "無響應",
-      "deadlockDescription": "30 秒以上未收到進度更新。作業卡住了。",
+      "deadlockDescription": "{{seconds}} 秒以上未收到進度更新。作業卡住了。",
       "deadlockWait": "繼續等待",
       "deadlockReset": "重置",
       "analysisWorkspaceAriaLabel": "分析工作區",
@@ -1823,11 +1823,10 @@
     },
     "relativeTime": {
       "justNow": "剛剛",
-      "minAgo": "{{count}} 分鐘前",
-      "hrAgo": "{{count}} 小時前",
-      "daysAgo": "{{count}} 天前",
       "minutesAgo": "{{n}} 分鐘前",
-      "hoursAgo": "{{n}} 小時前"
+      "hoursAgo": "{{n}} 小時前",
+      "daysAgo": "{{n}} 天前",
+      "unknown": "時間未知"
     },
     "memory": {
       "warningBannerLabel": "記憶體: {{pct}}% (sidecar {{rss}} MB)",
@@ -1928,7 +1927,7 @@
     "missingMutations": "Mutations (在 Mutation 面板輸入至少一個 mutation)",
     "missingTargetGene": "目標基因 (在序列面板中選擇一個)",
     "deadlockTitle": "無響應",
-    "deadlockDesc": "30 秒以上未收到進度更新。作業可能卡住。",
+    "deadlockDesc": "{{seconds}} 秒以上未收到進度更新。作業可能卡住。",
     "deadlockWait": "繼續等待",
     "deadlockReset": "重置",
     "plateCount": "{{count}} 板",

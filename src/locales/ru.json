@@ -633,7 +633,7 @@
     },
     "appLayout": {
       "deadlockTitle": "Нет ответа",
-      "deadlockDescription": "Нет обновлений прогресса 30+ секунд. Задача зависла.",
+      "deadlockDescription": "Нет обновлений прогресса {{seconds}}+ секунд. Задача зависла.",
       "deadlockWait": "Продолжить ждать",
       "deadlockReset": "Сбросить",
       "analysisWorkspaceAriaLabel": "Рабочая область анализа",
@@ -1823,11 +1823,10 @@
     },
     "relativeTime": {
       "justNow": "только что",
-      "minAgo": "{{count}} мин назад",
-      "hrAgo": "{{count}} ч назад",
-      "daysAgo": "{{count}} дн. назад",
       "minutesAgo": "{{n}} мин назад",
-      "hoursAgo": "{{n}} ч назад"
+      "hoursAgo": "{{n}} ч назад",
+      "daysAgo": "{{n}} дн. назад",
+      "unknown": "в неизвестное время"
     },
     "memory": {
       "warningBannerLabel": "Память: {{pct}}% (sidecar {{rss}} MB)",
@@ -1928,7 +1927,7 @@
     "missingMutations": "Мутации (введите минимум одну в панели Mutation)",
     "missingTargetGene": "Target ген (выберите в панели Sequence)",
     "deadlockTitle": "Нет ответа",
-    "deadlockDesc": "Нет обновлений прогресса 30+ секунд. Задача, возможно, зависла.",
+    "deadlockDesc": "Нет обновлений прогресса {{seconds}}+ секунд. Задача, возможно, зависла.",
     "deadlockWait": "Продолжить ждать",
     "deadlockReset": "Сбросить",
     "plateCount": "{{count}} plate",

@@ -633,7 +633,7 @@
     },
     "appLayout": {
       "deadlockTitle": "応答なし",
-      "deadlockDescription": "30 秒以上進捗更新がありません。ジョブが停止しました。",
+      "deadlockDescription": "{{seconds}} 秒以上進捗更新がありません。ジョブが停止しました。",
       "deadlockWait": "待機を継続",
       "deadlockReset": "リセット",
       "analysisWorkspaceAriaLabel": "解析ワークスペース",
@@ -1823,11 +1823,10 @@
     },
     "relativeTime": {
       "justNow": "たった今",
-      "minAgo": "{{count}} 分前",
-      "hrAgo": "{{count}} 時間前",
-      "daysAgo": "{{count}} 日前",
       "minutesAgo": "{{n}} 分前",
-      "hoursAgo": "{{n}} 時間前"
+      "hoursAgo": "{{n}} 時間前",
+      "daysAgo": "{{n}} 日前",
+      "unknown": "時刻不明"
     },
     "memory": {
       "warningBannerLabel": "メモリ: {{pct}}% (sidecar {{rss}} MB)",
@@ -1928,7 +1927,7 @@
     "missingMutations": "Mutations (Mutation パネルで少なくとも 1 つの mutation を入力)",
     "missingTargetGene": "ターゲット遺伝子 (Sequence パネルで選択)",
     "deadlockTitle": "応答なし",
-    "deadlockDesc": "30 秒以上進捗更新がありません。ジョブが停止している可能性があります。",
+    "deadlockDesc": "{{seconds}} 秒以上進捗更新がありません。ジョブが停止している可能性があります。",
     "deadlockWait": "待機を継続",
     "deadlockReset": "リセット",
     "plateCount": "{{count}} plate",

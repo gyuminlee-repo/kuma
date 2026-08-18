@@ -572,7 +572,10 @@ for (const c of unresolvedKeyCalls) console.log(`  unresolved key: ${c}`);
 // legitimately identical to English on a whole sentence is rare enough to spend
 // a baseline slot on.
 const UNTRANSLATED_BASELINE = {
-  de: 556,
+  // de 557 rather than 556: `jobQueue.statusAriaLabel` is correct German that happens
+  // to equal the English, so the identical-value heuristic counts it. Rewording it
+  // to dodge the ratchet would be worse German chosen to satisfy a gate.
+  de: 557,
   es: 548,
   fr: 544,
   ja: 617,

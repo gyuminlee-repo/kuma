@@ -633,7 +633,7 @@
     },
     "appLayout": {
       "deadlockTitle": "Sem resposta",
-      "deadlockDescription": "Sem atualização de progresso há mais de 30 segundos. A tarefa está travada.",
+      "deadlockDescription": "Sem atualização de progresso há mais de {{seconds}} segundos. A tarefa está travada.",
       "deadlockWait": "Continuar aguardando",
       "deadlockReset": "Reiniciar",
       "analysisWorkspaceAriaLabel": "Workspace de análise",
@@ -1823,11 +1823,10 @@
     },
     "relativeTime": {
       "justNow": "agora mesmo",
-      "minAgo": "há {{count}} min",
-      "hrAgo": "há {{count}} h",
-      "daysAgo": "há {{count}} dia(s)",
       "minutesAgo": "há {{n}} min",
-      "hoursAgo": "há {{n}} h"
+      "hoursAgo": "há {{n}} h",
+      "daysAgo": "há {{n}} dia(s)",
+      "unknown": "em um momento desconhecido"
     },
     "memory": {
       "warningBannerLabel": "Memória: {{pct}}% (sidecar {{rss}} MB)",
@@ -1928,7 +1927,7 @@
     "missingMutations": "Mutações (inserir pelo menos uma mutação no painel Mutation)",
     "missingTargetGene": "Gene target (selecionar um no painel Sequence)",
     "deadlockTitle": "Sem resposta",
-    "deadlockDesc": "Sem atualização de progresso há mais de 30 segundos. A tarefa pode estar travada.",
+    "deadlockDesc": "Sem atualização de progresso há mais de {{seconds}} segundos. A tarefa pode estar travada.",
     "deadlockWait": "Continuar aguardando",
     "deadlockReset": "Reiniciar",
     "plateCount": "{{count}} placa",

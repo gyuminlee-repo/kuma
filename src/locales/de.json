@@ -214,20 +214,20 @@
       "inputSourceConsensus": "Consensus-FASTA",
       "inputSourceSortedBarcode": "Sorted barcode Dateien",
       "inputSourceRawRun": "MinKNOW raw ausführen Ordner",
-      "recommendedCutoff": "Empfohlen: {{value}} KB ({{Methode}})",
+      "recommendedCutoff": "Empfohlen: {{value}} KB ({{method}})",
       "useCutoffBtn": "Verwenden",
       "bimodalTooltip": "Distribution looks bimodal. Empfohlen uses knee detection.",
-      "autoDetected": "Automatisch erkannt: {{Länge}} bp",
+      "autoDetected": "Automatisch erkannt: {{length}} bp",
       "normalizeHeadersAriaLabel": "Write well name as FASTA header instead von ONT Read ID",
       "demuxProgressAriaLabel": "Demux-Fortschritt",
       "demuxComplete": "Demux abgeschlossen:",
       "demuxCompleteReads": "{{assigned}} reads zugewiesen / {{total}} gesamt ({{backend}})",
-      "lengthFilter": "Länge filter: {{Modus}}",
+      "lengthFilter": "Länge filter: {{mode}}",
       "legacyKbCutoff": "Legacy KB Cutoff (Proxy)",
       "legacyKbCutoffAriaLabel": "Legacy min Datei size KB cutoff (proxy für Read depth)",
       "lengthToleranceAriaLabel": "Länge Toleranz: ±{{bp}} bp",
       "applyCutoffAriaLabel": "Anwenden empfohlen cutoff von {{kb}} KB",
-      "autoDetectedAriaLabel": "Automatisch erkannt Amplicon Länge: {{Länge}} bp, confidence {{confidence}}, sampled {{reads}} reads",
+      "autoDetectedAriaLabel": "Automatisch erkannt Amplicon Länge: {{length}} bp, confidence {{confidence}}, sampled {{reads}} reads",
       "modeAmpliconTitle": "Linear PCR Amplicon target. Reads cover ein single defined region; Consensus called per barcode within that region.",
       "modePlasmidTitle": "Circular plasmid target. Reads can wrap die origin; Consensus accounts für full plasmid topology.",
       "ingestBarcodeTitle": "Group reads durch Nanopore barcode (NB01, NB02, ...). Each barcode bin becomes one sample.",
@@ -440,10 +440,10 @@
       "noMinKnow": "MinKNOW raw ausführen directory nicht detected. Pore-Yield, throughput, und barcode charts sind unavailable.",
       "finalActivePoreYield": "Endgültiger aktiver Pore-Yield",
       "figureVerdictBreakdownCaption": "Stacked bar showing PASS, Ambiguous, Fail, und Fallback counts per Platte.",
-      "figureFileSizeCaptionBase": "7-bucket Datei size histogram. Suggested cutoff bei {{cutoffKb}} KB using {{Methode}} Methode.",
-      "figureFileSizeCaptionBimodal": "7-bucket Datei size histogram. Suggested cutoff bei {{cutoffKb}} KB using {{Methode}} Methode. Bimodal distribution detected.",
-      "fileSizeAriaLabel": "Dateigrößenverteilung histogram. Suggested cutoff: {{cutoffKb}} KB ({{Methode}})",
-      "fileSizeAriaLabelBimodal": "Dateigrößenverteilung histogram. Suggested cutoff: {{cutoffKb}} KB ({{Methode}}), bimodal distribution detected",
+      "figureFileSizeCaptionBase": "7-bucket Datei size histogram. Suggested cutoff bei {{cutoffKb}} KB using {{method}} Methode.",
+      "figureFileSizeCaptionBimodal": "7-bucket Datei size histogram. Suggested cutoff bei {{cutoffKb}} KB using {{method}} Methode. Bimodal distribution detected.",
+      "fileSizeAriaLabel": "Dateigrößenverteilung histogram. Suggested cutoff: {{cutoffKb}} KB ({{method}})",
+      "fileSizeAriaLabelBimodal": "Dateigrößenverteilung histogram. Suggested cutoff: {{cutoffKb}} KB ({{method}}), bimodal distribution detected",
       "figureBarcodeCaption": "Horizontal bar chart showing Read counts für jeder detected barcode.",
       "figureThroughputCaption": "Line chart showing reads per second von experiment start zu {{maxTime}} hours.",
       "throughputAriaLabel": "Throughput-Zeitachse over {{maxTime}} hours",
@@ -456,7 +456,7 @@
       "colNeighborAvg": "Nachbar-Durchschnitt",
       "colZScore": "Z-score",
       "colSeverity": "Schweregrad",
-      "severityAriaLabel": "Schweregrad: {{Schweregrad}}",
+      "severityAriaLabel": "Schweregrad: {{severity}}",
       "detectedShort": "Erkannt",
       "classCountTableCaption": "Verdict-Klassenanzahl über alle Platten",
       "classCountColClass": "Klasse",
@@ -599,7 +599,7 @@
       "platesHint": "{{count}} wells",
       "platesEmpty": "Warten auf Analyse",
       "readiness": "Bereitschaft",
-      "readinessHint": "{{bereit}}/{{total}} Eingaben filled",
+      "readinessHint": "{{ready}}/{{total}} Eingaben filled",
       "status": "Status",
       "statusAnalyzing": "Analysiere {{progress}}%",
       "statusErrors": "{{count}} Fehler(s)",
@@ -633,7 +633,7 @@
     },
     "appLayout": {
       "deadlockTitle": "Nein response",
-      "deadlockDescription": "Nein progress update für 30+ seconds. The job ist stuck.",
+      "deadlockDescription": "Nein progress update für {{seconds}}+ seconds. The job ist stuck.",
       "deadlockWait": "Weiter warten",
       "deadlockReset": "Zurücksetzen",
       "analysisWorkspaceAriaLabel": "Analysis Workspace",
@@ -747,7 +747,7 @@
         "pdfNote": "PDF export requires weasyprint. If nicht installed, die report ist saved as HTML.",
         "fallbackNotice": "weasyprint nicht gefunden — report was saved as HTML instead.",
         "savedHtmlFallback": "Gespeichert as HTML (PDF fallback)",
-        "exportedAs": "Exported as {{Format}}",
+        "exportedAs": "Exportiert als {{format}}",
         "exportReport": "Bericht exportieren",
         "exporting": "Exportiere…",
         "exportErrorPathRequired": "Ausgabepfad ist erforderlich."
@@ -1466,7 +1466,7 @@
     "seedLabel": "Seed:",
     "seedTitle": "Optional integer Seed. Will be passed zu die backend und recorded in ausführen manifests once manifest wiring ist abgeschlossen (backend integration pending).",
     "seedAriaLabel": "Random Seed (optional)",
-    "seedFixed": "fixed: {{Seed}}",
+    "seedFixed": "fixiert: {{seed}}",
     "seedAuto": "auto",
     "tmPrimerHelp": "Target Tm (°C) for symmetric full-overlap primers. Default 62.",
     "tmFwdHelp": "Target Tm (°C) for forward primer in partial-overlap mode. Lower value increases mismatch tolerance.",
@@ -1482,7 +1482,7 @@
   },
   "designReport": {
     "title": "Design-Bericht",
-    "description": "{{Erfolg}}/{{total}} Primer designed ({{rate}}% Erfolg)",
+    "description": "{{success}}/{{total}} Primer designed ({{rate}}% Erfolg)",
     "close": "Schließen",
     "sectionPipeline": "Pipeline",
     "sectionBenchmarkDefaults": "Benchmark-Defaults",
@@ -1752,13 +1752,13 @@
     "labelSeed": "Seed",
     "warningTitle": "Eingabe Dateien have changed.",
     "warningBody": "Identical Ausgabe ist nicht guaranteed. Do you want zu continue?",
-    "warningMissingPaths": "Missing Pfade: {{Pfade}}",
+    "warningMissingPaths": "Missing Pfade: {{paths}}",
     "warningHashMismatch": "Hash mismatch: {{paths}}",
     "exportOnlyNotice": "This manifest ist ein export-only operation und cannot be re-ausführen directly. Re-export von die original data.",
     "btnCancel": "Abbrechen",
     "btnRerun": "Re-ausführen",
     "btnRunning": "Läuft...",
-    "statusDone": "Re-ausführen abgeschlossen: {{Methode}}",
+    "statusDone": "Re-ausführen abgeschlossen: {{method}}",
     "method": {
       "design_sdm_primers": "Kuro: SDM Primer design",
       "merge_for_evolvepro": "Mame: merge für EVOLVEpro",
@@ -1823,11 +1823,10 @@
     },
     "relativeTime": {
       "justNow": "gerade eben",
-      "minAgo": "vor {{count}} Min",
-      "hrAgo": "vor {{count}} Std",
-      "daysAgo": "vor {{count}} Tag(en)",
       "minutesAgo": "vor {{n}} Min",
-      "hoursAgo": "vor {{n}} Std"
+      "hoursAgo": "vor {{n}} Std",
+      "daysAgo": "vor {{n}} Tag(en)",
+      "unknown": "zu unbekanntem Zeitpunkt"
     },
     "memory": {
       "warningBannerLabel": "Speicher: {{pct}}% (sidecar {{rss}} MB)",
@@ -1928,7 +1927,7 @@
     "missingMutations": "Mutationen (enter bei wenigste one mutation in die Mutation panel)",
     "missingTargetGene": "Target Gen (select one in die Sequence panel)",
     "deadlockTitle": "Nein response",
-    "deadlockDesc": "Nein progress update für 30+ seconds. The job may be stuck.",
+    "deadlockDesc": "Nein progress update für {{seconds}}+ seconds. The job may be stuck.",
     "deadlockWait": "Weiter warten",
     "deadlockReset": "Zurücksetzen",
     "plateCount": "{{count}} Platte",
@@ -1936,11 +1935,11 @@
     "cancel": "Abbrechen",
     "clearAllTitle": "Alle leeren",
     "clearBtn": "Leeren",
-    "successful": "{{Erfolg}}/{{total}} successful",
+    "successful": "{{success}}/{{total}} erfolgreich",
     "plates_one": "{{count}} Platte",
     "plates_other": "{{count}} Platten",
     "missingSequence": "Sequence Datei (Durchsuchen ein .gb / .fasta / .dna Datei)",
-    "manifestLoadFailed": "Manifest load fehlgeschlagen: {{Fehler}}"
+    "manifestLoadFailed": "Manifest load fehlgeschlagen: {{error}}"
   },
   "overwriteConfirm": {
     "title": "Datei already exists",
@@ -1993,9 +1992,9 @@
   "jobQueue": {
     "panelAriaLabel": "Hintergrund-Job-Warteschlange",
     "dragTitle": "Background job queue. Drag zu move.",
-    "summaryRunning": "Jobs (läuft {{läuft}}, pending {{pending}})",
+    "summaryRunning": "Jobs (läuft {{running}}, pending {{pending}})",
     "summaryEmpty": "Jobs (0)",
-    "summaryDone": "Jobs ({{fertig}} fertig)",
+    "summaryDone": "Jobs ({{done}} fertig)",
     "toggleAriaLabel": "Hintergrund-Job-Warteschlange umschalten",
     "hideAriaLabel": "Verbergen background job queue",
     "noJobs": "Nein jobs queued",
@@ -2003,7 +2002,7 @@
     "clearDone": "Clear fertig ({{count}})",
     "clearDoneAriaLabel": "Abgeschlossene Jobs leeren",
     "cancelJobAriaLabel": "Abbrechen job: {{label}}",
-    "statusAriaLabel": "Status: {{Status}}",
+    "statusAriaLabel": "Status: {{status}}",
     "statusPending": "Ausstehend",
     "statusRunning": "Läuft",
     "statusDone": "Fertig",
@@ -2248,7 +2247,7 @@
     "errorBadge": "{{count}} Fehler",
     "warnBadge": "{{count}} Warnungen",
     "warningDetailAria": "Warnung details",
-    "warningTooltip": "{{message}}\nVarianten: {{Varianten}}\nWells: {{wells}}",
+    "warningTooltip": "{{message}}\nVarianten: {{variants}}\nWells: {{wells}}",
     "replicateStatsAria": "Replicate-Merge-Statistik",
     "replicateMergeTitle": "Replicate-Merge",
     "labelRemeasure": "Neu gemessen",
@@ -2274,15 +2273,15 @@
     "minSec": "~{{min}}m {{sec}}s verbleibend"
   },
   "runManifest": {
-    "readFailed": "Could nicht Read manifest Datei: {{Pfad}}\n{{cause}}",
-    "parseFailed": "Fehlgeschlagen zu parse manifest JSON: {{Pfad}}\n{{cause}}",
-    "invalidStructure": "Invalid manifest structure. Erforderlich fields may be missing: {{Pfad}}",
+    "readFailed": "Could nicht Read manifest Datei: {{path}}\n{{cause}}",
+    "parseFailed": "Fehlgeschlagen zu parse manifest JSON: {{path}}\n{{cause}}",
+    "invalidStructure": "Invalid manifest structure. Erforderlich fields may be missing: {{path}}",
     "unsupportedSchema": "Unsupported manifest schema_version: \"{{version}}\". Current supported version: \"{{supported}}\". Aktualisieren kuma, oder check whether die manifest was generated durch ein older version."
   },
   "reRun": {
     "noRoundId": "manifest.params.round_id ist missing. Auswählen ein Round in die mame tab before re-läuft.",
-    "exportNotRunnable": "\"{{Methode}}\" ist ein export job. Export manifests cannot be re-ausführen directly. Export again von die Quelle data.",
-    "unsupportedMethod": "Unsupported Methode: \"{{Methode}}\". Supported methods: {{supported}}"
+    "exportNotRunnable": "\"{{method}}\" ist ein export job. Export manifests cannot be re-ausführen directly. Export again von die Quelle data.",
+    "unsupportedMethod": "Unsupported Methode: \"{{method}}\". Supported methods: {{supported}}"
   },
   "activitySlice": {
     "csvFormatError": "CSV Format Fehler: {{detail}}",
@@ -2332,7 +2331,7 @@
     "resultsClearedOnTemplateChange": "Die vorherigen Design-Ergebnisse wurden geleert, weil sich das template geändert hat. Das Design bitte erneut ausführen."
   },
   "inputSlice": {
-    "csvFormatError": "{{Modus}} CSV Format Fehler: {{detail}}",
+    "csvFormatError": "{{mode}} CSV Format Fehler: {{detail}}",
     "structureFrameMismatch": "3D-Struktur stimmt nicht mit der Referenzsequenz überein — 1D-Sequenzabstand wird verwendet"
   },
   "benchmarkDialog": {
@@ -2378,7 +2377,7 @@
   },
   "workspaceMigrate": {
     "title": "Workspace-Versions-Konflikt",
-    "description": "The selected Workspace uses schema version {{von}}, but die current app requires {{zu}}.",
+    "description": "The selected Workspace uses schema version {{from}}, but die current app requires {{to}}.",
     "noPathAlert": "Nein automatisch migration ist defined für this version pair. Manual upgrade ist erforderlich. The Workspace cannot be loaded.",
     "migratingWillTitle": "Migration wird:",
     "backupItem": "Create ein backup copy: {{template}}",
@@ -2390,7 +2389,7 @@
     "migrateBtn": "Migrieren (Backup + Konvertieren)",
     "migratingBtn": "Migriere...",
     "migrateAriaLabel": "Backup original Datei und migrate Workspace",
-    "noMigrationPath": "Nein migration Pfad defined für Workspace {{von}} zu {{zu}}. Manual upgrade erforderlich."
+    "noMigrationPath": "Nein migration Pfad defined für Workspace {{from}} zu {{to}}. Manual upgrade erforderlich."
   },
   "inputPanel": {
     "sectionLabel": "Workspace",
@@ -2415,7 +2414,7 @@
     "warningsLabel": "Warnungen",
     "cancelBtn": "Abbrechen",
     "continueBtn": "Fortfahren mit warnings",
-    "errSidecarNotReady": "Sidecar ist nicht bereit (Status: {{Status}}). Neu starten die app oder use die Wiederholen button in die Status bar.",
+    "errSidecarNotReady": "Sidecar ist nicht bereit (Status: {{status}}). Neu starten die app oder use die Wiederholen button in die Status bar.",
     "warnDiskUnavailable": "Disk space check ist unavailable auf this platform. Ensure sufficient free space before läuft.",
     "errNoNetwork": "Nein network connection detected. This ausführen requires internet access (e.g. UniProt/BLAST)."
   },
@@ -2731,7 +2730,7 @@
     "runBtn": "Ausführen",
     "clearBtn": "Leeren",
     "exportBtn": "Exportieren",
-    "readyCount": "{{bereit}}/{{total}} bereit",
+    "readyCount": "{{ready}}/{{total}} bereit",
     "inputReadinessAria": "Eingabe readiness {{percent}}%",
     "analysisProgressAria": "Analysefortschritt {{percent}}%"
   },
@@ -2797,8 +2796,8 @@
     "unsupportedVersion": "Unsupported Workspace version: {{version}}"
   },
   "ipcKuro": {
-    "rpcTimeout": "RPC timeout: {{Methode}} after {{timeoutMs}}ms",
-    "invalidResultShape": "Invalid RPC result shape für {{Methode}}"
+    "rpcTimeout": "RPC-Timeout: {{method}} nach {{timeoutMs}}ms",
+    "invalidResultShape": "Invalid RPC result shape für {{method}}"
   },
   "autosaveHydration": {
     "relativeJustNow": "gerade eben",

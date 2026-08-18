@@ -1841,11 +1841,10 @@
     },
     "relativeTime": {
       "justNow": "방금 전",
-      "minAgo": "{{count}}분 전",
-      "hrAgo": "{{count}}시간 전",
-      "daysAgo": "{{count}}일 전",
       "minutesAgo": "{{n}}분 전",
-      "hoursAgo": "{{n}}시간 전"
+      "hoursAgo": "{{n}}시간 전",
+      "daysAgo": "{{n}}일 전",
+      "unknown": "알 수 없는 시점"
     },
     "memory": {
       "warningBannerLabel": "메모리: {{pct}}% (sidecar {{rss}} MB)",
@@ -1946,7 +1945,7 @@
     "missingMutations": "변이 정보 (변이 패널에 최소 1개의 변이를 입력하세요)",
     "missingTargetGene": "대상 유전자 (시퀀스 패널에서 유전자를 선택하세요)",
     "deadlockTitle": "응답 없음",
-    "deadlockDesc": "{{seconds}}초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈췄습니다.",
+    "deadlockDesc": "{{seconds}}초 이상 진행 상태가 업데이트되지 않았습니다. 작업이 멈췄을 수 있습니다.",
     "deadlockWait": "계속 대기",
     "deadlockReset": "초기화",
     "plateCount": "{{count}} 플레이트",

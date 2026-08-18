@@ -633,7 +633,7 @@
     },
     "appLayout": {
       "deadlockTitle": "Sin respuesta",
-      "deadlockDescription": "No hay actualización de progreso desde hace más de 30 segundos. La tarea está bloqueada.",
+      "deadlockDescription": "No hay actualización de progreso desde hace más de {{seconds}} segundos. La tarea está bloqueada.",
       "deadlockWait": "Seguir esperando",
       "deadlockReset": "Reiniciar",
       "analysisWorkspaceAriaLabel": "Workspace de análisis",
@@ -1823,11 +1823,10 @@
     },
     "relativeTime": {
       "justNow": "ahora mismo",
-      "minAgo": "hace {{count}} min",
-      "hrAgo": "hace {{count}} h",
-      "daysAgo": "hace {{count}} día(s)",
       "minutesAgo": "hace {{n}} min",
-      "hoursAgo": "hace {{n}} h"
+      "hoursAgo": "hace {{n}} h",
+      "daysAgo": "hace {{n}} día(s)",
+      "unknown": "en un momento desconocido"
     },
     "memory": {
       "warningBannerLabel": "Memoria: {{pct}}% (sidecar {{rss}} MB)",
@@ -1928,7 +1927,7 @@
     "missingMutations": "Mutaciones (introducir al menos una mutación en el panel Mutation)",
     "missingTargetGene": "Gen target (seleccionar uno en el panel Sequence)",
     "deadlockTitle": "Sin respuesta",
-    "deadlockDesc": "No hay actualización de progreso desde hace más de 30 segundos. La tarea puede estar bloqueada.",
+    "deadlockDesc": "No hay actualización de progreso desde hace más de {{seconds}} segundos. La tarea puede estar bloqueada.",
     "deadlockWait": "Seguir esperando",
     "deadlockReset": "Reiniciar",
     "plateCount": "{{count}} placa",

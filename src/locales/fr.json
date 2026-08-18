@@ -633,7 +633,7 @@
     },
     "appLayout": {
       "deadlockTitle": "Aucune réponse",
-      "deadlockDescription": "Aucune mise à jour de progression depuis plus de 30 secondes. La tâche est bloquée.",
+      "deadlockDescription": "Aucune mise à jour de progression depuis plus de {{seconds}} secondes. La tâche est bloquée.",
       "deadlockWait": "Continuer à attendre",
       "deadlockReset": "Réinitialiser",
       "analysisWorkspaceAriaLabel": "Espace de travail d'analyse",
@@ -1823,11 +1823,10 @@
     },
     "relativeTime": {
       "justNow": "à l'instant",
-      "minAgo": "il y a {{count}} min",
-      "hrAgo": "il y a {{count}} h",
-      "daysAgo": "il y a {{count}} jour(s)",
       "minutesAgo": "il y a {{n}} min",
-      "hoursAgo": "il y a {{n}} h"
+      "hoursAgo": "il y a {{n}} h",
+      "daysAgo": "il y a {{n}} jour(s)",
+      "unknown": "à une date inconnue"
     },
     "memory": {
       "warningBannerLabel": "Mémoire : {{pct}}% (sidecar {{rss}} Mo)",
@@ -1928,7 +1927,7 @@
     "missingMutations": "Mutations (saisir au moins une mutation dans le panneau Mutation)",
     "missingTargetGene": "Gène cible (en sélectionner un dans le panneau Sequence)",
     "deadlockTitle": "Aucune réponse",
-    "deadlockDesc": "Aucune mise à jour de progression depuis plus de 30 secondes. La tâche est peut-être bloquée.",
+    "deadlockDesc": "Aucune mise à jour de progression depuis plus de {{seconds}} secondes. La tâche est peut-être bloquée.",
     "deadlockWait": "Continuer à attendre",
     "deadlockReset": "Réinitialiser",
     "plateCount": "{{count}} plaque",

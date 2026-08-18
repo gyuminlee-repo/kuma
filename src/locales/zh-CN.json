@@ -633,7 +633,7 @@
     },
     "appLayout": {
       "deadlockTitle": "无响应",
-      "deadlockDescription": "30 秒以上未收到进度更新。作业卡住了。",
+      "deadlockDescription": "{{seconds}} 秒以上未收到进度更新。作业卡住了。",
       "deadlockWait": "继续等待",
       "deadlockReset": "重置",
       "analysisWorkspaceAriaLabel": "分析工作区",
@@ -1823,11 +1823,10 @@
     },
     "relativeTime": {
       "justNow": "刚刚",
-      "minAgo": "{{count}} 分钟前",
-      "hrAgo": "{{count}} 小时前",
-      "daysAgo": "{{count}} 天前",
       "minutesAgo": "{{n}} 分钟前",
-      "hoursAgo": "{{n}} 小时前"
+      "hoursAgo": "{{n}} 小时前",
+      "daysAgo": "{{n}} 天前",
+      "unknown": "时间未知"
     },
     "memory": {
       "warningBannerLabel": "内存: {{pct}}% (sidecar {{rss}} MB)",
@@ -1928,7 +1927,7 @@
     "missingMutations": "Mutations (在 Mutation 面板输入至少一个 mutation)",
     "missingTargetGene": "目标基因 (在序列面板中选择一个)",
     "deadlockTitle": "无响应",
-    "deadlockDesc": "30 秒以上未收到进度更新。作业可能卡住。",
+    "deadlockDesc": "{{seconds}} 秒以上未收到进度更新。作业可能卡住。",
     "deadlockWait": "继续等待",
     "deadlockReset": "重置",
     "plateCount": "{{count}} 板",

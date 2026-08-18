@@ -1841,11 +1841,10 @@
     },
     "relativeTime": {
       "justNow": "just now",
-      "minAgo": "{{count}} min ago",
-      "hrAgo": "{{count}} hr ago",
-      "daysAgo": "{{count}} day(s) ago",
       "minutesAgo": "{{n}} min ago",
-      "hoursAgo": "{{n}} hr ago"
+      "hoursAgo": "{{n}} hr ago",
+      "daysAgo": "{{n}} day(s) ago",
+      "unknown": "at an unknown time"
     },
     "memory": {
       "warningBannerLabel": "Memory: {{pct}}% (sidecar {{rss}} MB)",
@@ -1946,7 +1945,7 @@
     "missingMutations": "Mutations (enter at least one mutation in the Mutation panel)",
     "missingTargetGene": "Target gene (select one in the Sequence panel)",
     "deadlockTitle": "No response",
-    "deadlockDesc": "No progress update for {{seconds}}+ seconds. The job is stuck.",
+    "deadlockDesc": "No progress update for {{seconds}}+ seconds. The job may be stuck.",
     "deadlockWait": "Keep waiting",
     "deadlockReset": "Reset",
     "plateCount": "{{count}} plate",
