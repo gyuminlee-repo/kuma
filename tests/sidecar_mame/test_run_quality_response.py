@@ -101,7 +101,7 @@ def _params(tmp_path: Path, expected: Path, input_dir: Path) -> dict:
 
 
 def test_pore_counts_and_depth_reach_the_response(tmp_path: Path) -> None:
-    """A deep run on a healthy cell: numbers reported, nothing flagged."""
+    """A deep run on a healthy cell: numbers reported, nothing graded."""
     expected = _expected(tmp_path / "expected.xlsx")
     input_dir = _consensus_run(
         tmp_path, {"1_1": _K2R_NT, "2_1": _REFERENCE_NT}, depth=4777
@@ -115,7 +115,18 @@ def test_pore_counts_and_depth_reach_the_response(tmp_path: Path) -> None:
     assert quality["pore_start"] == 1150
     assert quality["pore_end"] == 975
     assert quality["median_well_reads"] == 4777
-    assert quality["severity"] is None
+    # Depth, pores and reuse all say nothing. The one finding is the MIXED
+    # depth-factor scale advisory, and it is a true statement about this
+    # fixture: the factor was derived over 1500 positions per amplicon and this
+    # reference is 12 bp, so the derivation does not carry to it. It grades
+    # nothing, which is why the codes are checked rather than only the severity.
+    codes = {f["code"] for f in quality["findings"]}
+    assert codes == {"mixed_depth_factor_amplicon_scale"}
+    scale = quality["findings"][0]
+    assert scale["severity"] == "warning"
+    assert scale["positions"] == len(_REFERENCE_NT)
+    assert scale["positions_basis"] == "reference_length"
+    assert scale["enforced"] is False
     # Provenance rides with the block so a workflow default cannot be mistaken
     # for a vendor specification on screen.
     assert quality["thresholds"]["floor"]["kind"] == "vendor_default"
@@ -153,7 +164,9 @@ def test_a_shallow_run_blocks_and_a_weak_cell_alone_does_not(tmp_path: Path) -> 
     quality = result["run_quality"]
     assert quality["severity"] == "blocking"
     codes = {f["code"] for f in quality["findings"]}
-    assert codes == {"median_depth_below_floor"}
+    # The scale advisory rides alongside on this 12 bp fixture reference and is
+    # a warning, so it cannot mask or soften the blocking depth verdict.
+    assert codes == {"median_depth_below_floor", "mixed_depth_factor_amplicon_scale"}
     assert quality["pore_start"] == 40
     assert quality["median_well_reads"] == 4
 

@@ -577,6 +577,117 @@ def test_deserialize_verdict_restores_the_strand_evidence(tmp_path: Path) -> Non
     assert legacy.noisy_positions == ()
 
 
+def test_serialized_verdict_carries_the_coverage_report(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Coverage uniformity and consensus identity reach the response.
+
+    The raw MinKNOW run folder is the primary MAME input and it writes these into
+    the consensus FASTA header, so the response is where an operator finally sees
+    them. Each key is emitted INDEPENDENTLY and only when measured: the well below
+    measured a breadth of 0.0 and nothing else, which is what a well with no
+    coverage honestly reports, and zero-filling the other four would invent a
+    perfectly flat, zero-identity measurement. All five are report only; no
+    verdict here is asserted against them.
+    """
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    ingest_dir = tmp_path / "consensus"
+    _write_fasta(
+        ingest_dir / "NB01" / "1_2.fasta",
+        header=(
+            "1_2 depth=30 depth_cv=0.211111 depth_p10=42.5 "
+            "depth_min_covered=17 breadth_at_mix_min_depth=0.802000 "
+            "consensus_identity=0.999667"
+        ),
+        body=_G2A_NT,
+    )
+    # Covered nothing: breadth is a real 0.0, the rest were never measurable.
+    _write_fasta(
+        ingest_dir / "NB01" / "2_1.fasta",
+        header="2_1 depth=0 breadth_at_mix_min_depth=0.000000",
+        body=_F3W_NT,
+    )
+    # Written before the keys existed: nothing at all.
+    _write_fasta(ingest_dir / "NB01" / "1_1.fasta", header="1_1", body=_G2A_NT)
+    reference = _make_reference_fasta(tmp_path)
+    kuro_xlsx = tmp_path / "kuro.xlsx"
+    _make_kuro_xlsx(kuro_xlsx)
+    _capture_progress(monkeypatch)
+
+    result = analyze_mod.handle_analyze({
+        "input_dir": str(ingest_dir),
+        "reference": str(reference),
+        "expected": str(kuro_xlsx),
+        "output": str(tmp_path / "out.xlsx"),
+        "cds_start": 0,
+        "cds_end": 9,
+        "min_file_size_kb": 0.0,
+        "ingest_mode": "barcode",
+    })
+
+    by_custom = {v["custom_barcode"]: v for v in result["verdicts"]}
+
+    measured = by_custom["1_2"]
+    assert measured["depth_cv"] == pytest.approx(0.211111)
+    assert measured["depth_p10"] == pytest.approx(42.5)
+    assert measured["depth_min_covered"] == 17
+    assert measured["breadth_at_mix_min_depth"] == pytest.approx(0.802)
+    assert measured["consensus_identity"] == pytest.approx(0.999667)
+
+    uncovered = by_custom["2_1"]
+    # Present and 0.0, not dropped for being falsy.
+    assert uncovered["breadth_at_mix_min_depth"] == 0.0
+    assert "depth_cv" not in uncovered
+    assert "depth_p10" not in uncovered
+    assert "depth_min_covered" not in uncovered
+    assert "consensus_identity" not in uncovered
+
+    legacy = by_custom["1_1"]
+    for key in (
+        "depth_cv",
+        "depth_p10",
+        "depth_min_covered",
+        "breadth_at_mix_min_depth",
+        "consensus_identity",
+    ):
+        assert key not in legacy
+
+
+def test_deserialize_verdict_restores_the_coverage_report() -> None:
+    """A saved run replays through ``_deserialize_verdict``; nothing may be lost.
+
+    An omitted key must come back as ``None`` (unknown) rather than 0.0, and a
+    stored 0.0 must come back as 0.0.
+    """
+    from sidecar_mame.handlers.analyze import _deserialize_verdict
+
+    barcode = _deserialize_verdict({
+        "native_barcode": "NB01",
+        "custom_barcode": "1_2",
+        "verdict": "PASS",
+        "depth_cv": 0.211111,
+        "depth_p10": 42.5,
+        "depth_min_covered": 17,
+        "breadth_at_mix_min_depth": 0.0,
+        "consensus_identity": 0.999667,
+    }).translated.barcode
+    assert barcode.depth_cv == pytest.approx(0.211111)
+    assert barcode.depth_p10 == pytest.approx(42.5)
+    assert barcode.depth_min_covered == 17
+    assert barcode.breadth_at_mix_min_depth == 0.0
+    assert barcode.consensus_identity == pytest.approx(0.999667)
+
+    legacy = _deserialize_verdict({
+        "native_barcode": "NB01", "custom_barcode": "2_1", "verdict": "PASS",
+    }).translated.barcode
+    assert legacy.depth_cv is None
+    assert legacy.depth_p10 is None
+    assert legacy.depth_min_covered is None
+    assert legacy.breadth_at_mix_min_depth is None
+    assert legacy.consensus_identity is None
+
+
 def test_handle_analyze_auto_scopes_from_expected_when_layout_omitted(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -687,6 +798,132 @@ def test_handle_analyze_raw_run(
     assert all_vals == sorted(all_vals), f"progress must be non-decreasing; got {all_vals}"
 
 
+def _write_read_length_report(run_dir: Path, n50: int) -> None:
+    """A MinKNOW report json carrying one read length histogram.
+
+    Hand written, and deliberately in the encoding the real file uses: bucket
+    edges and values as strings, and a first bucket with no ``start``.
+    """
+    import json as _json
+
+    payload = {
+        "acquisitions": [
+            {"acquisition_run_info": {}},
+            {
+                "acquisition_run_info": {},
+                "read_length_histogram": [
+                    {
+                        "read_length_type": "BasecalledBases",
+                        "bucket_value_type": "ReadLengths",
+                        "plot": {
+                            "bucket_ranges": [
+                                {"end": "100"},
+                                {"start": "100", "end": "300"},
+                            ],
+                            "histogram_data": [
+                                {"bucket_values": ["10", "90"], "n50": str(n50)}
+                            ],
+                        },
+                    }
+                ],
+            },
+        ]
+    }
+    (run_dir / "report_TEST_20260101_0000_abcdef.json").write_text(
+        _json.dumps(payload), encoding="utf-8"
+    )
+
+
+@requires_minimap2
+def test_handle_analyze_raw_run_quotes_the_instrument_read_lengths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The N50 MinKNOW measured reaches the response, against this reference.
+
+    A run-level fact, so it rides `run_quality` next to the pore counts rather
+    than any verdict. Report-only: no finding and no severity is raised by it.
+    """
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    _write_read_length_report(run_dir, n50=1234)
+    reference = _make_reference_fasta(tmp_path, seq=_RAW_REF_SEQ)
+    barcodes_xlsx = tmp_path / "barcodes.xlsx"
+    _make_barcodes_xlsx(barcodes_xlsx)
+    expected_xlsx = tmp_path / "expected.xlsx"
+    _make_kuro_xlsx(expected_xlsx)
+
+    _capture_progress(monkeypatch)
+    result = analyze_mod.handle_analyze({
+        "input_dir": str(run_dir),
+        "reference": str(reference),
+        "expected": str(expected_xlsx),
+        "output": str(tmp_path / "out.xlsx"),
+        "custom_barcodes_xlsx": str(barcodes_xlsx),
+        "cds_start": 0,
+        "cds_end": 60,
+        "min_file_size_kb": 0.0,
+        "min_read_count": 0,
+        "ingest_mode": "barcode",
+        "mapq_threshold": 0,
+        "coverage_fraction": 0.5,
+        "trim_flank_bp": 30,
+    })
+
+    block = result["run_quality"]["read_length"]
+    assert block["reference_length_bp"] == len(_RAW_REF_SEQ)
+    entry = block["histograms"][0]
+    assert entry["n50"] == 1234
+    assert entry["read_length_type"] == "BasecalledBases"
+    # Derived from the quoted N50 and the length reads were aligned to.
+    assert entry["n50_over_reference"] == round(1234 / len(_RAW_REF_SEQ), 6)
+    assert block["provenance"]["n50"]["computed"] is False
+    # Report-only: nothing about read length raises a finding or a severity.
+    assert all(
+        "read_length" not in f["code"] and "n50" not in f["code"]
+        for f in result["run_quality"]["findings"]
+    )
+
+
+@requires_minimap2
+def test_handle_analyze_raw_run_without_a_report_reports_null_read_lengths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No report json: null, never zero, and never an empty histogram list."""
+    from sidecar_mame.handlers import analyze as analyze_mod
+
+    run_dir = _make_minknow_run_dir(tmp_path)
+    reference = _make_reference_fasta(tmp_path, seq=_RAW_REF_SEQ)
+    barcodes_xlsx = tmp_path / "barcodes.xlsx"
+    _make_barcodes_xlsx(barcodes_xlsx)
+    expected_xlsx = tmp_path / "expected.xlsx"
+    _make_kuro_xlsx(expected_xlsx)
+
+    _capture_progress(monkeypatch)
+    result = analyze_mod.handle_analyze({
+        "input_dir": str(run_dir),
+        "reference": str(reference),
+        "expected": str(expected_xlsx),
+        "output": str(tmp_path / "out.xlsx"),
+        "custom_barcodes_xlsx": str(barcodes_xlsx),
+        "cds_start": 0,
+        "cds_end": 60,
+        "min_file_size_kb": 0.0,
+        "min_read_count": 0,
+        "ingest_mode": "barcode",
+        "mapq_threshold": 0,
+        "coverage_fraction": 0.5,
+        "trim_flank_bp": 30,
+    })
+
+    block = result["run_quality"]["read_length"]
+    assert block["histograms"] is None
+    assert block["qscore_histograms"] is None
+    # The block itself is still there, for the same reason `run_quality` is:
+    # an absent one cannot be told apart from a sidecar that never read the file.
+    assert block["reference_length_bp"] == len(_RAW_REF_SEQ)
+
+
 @requires_minimap2
 def test_handle_analyze_raw_run_extracts_amplicon_from_whole_plasmid(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -734,9 +971,19 @@ def test_handle_analyze_raw_run_extracts_amplicon_from_whole_plasmid(
         "original_length": len(left_flank) + len(amplicon) + 70,
         "cds_start": len(_F_TAIL),
         "cds_end": len(_F_TAIL) + len(_RAW_REF_SEQ),
+        # This fixture amplicon carries no ATG followed by an in-frame stop, so
+        # the ORF search comes up empty and the note says so. The run still
+        # succeeds because the caller stated cds_start / cds_end above, which is
+        # the branch that rescues it; the resolution reporting (0, 0) as if
+        # those were a real frame is what used to be invisible here.
         "note": (
             f"Amplicon extracted from reference positions {len(left_flank) + 1}-"
             f"{len(left_flank) + len(amplicon)} ({len(amplicon)} bp)."
+            " No coding bounds were derived: the amplicon contains no forward "
+            "reading frame (no ATG followed by an in-frame stop codon), so "
+            "cds_start and cds_end are placeholders rather than a CDS. Supply "
+            "cds_start / cds_end for this reference, or use a reference whose "
+            "amplicon carries a complete coding sequence."
         ),
     }
 

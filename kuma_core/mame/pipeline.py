@@ -17,6 +17,7 @@ from kuma_core.mame.io.kuro_reader import expected_to_labels
 from kuma_core.mame.io.variant_list import read_variant_source
 from kuma_core.mame.perf import TIMER
 from kuma_core.mame.plate_geometry import norm_well as _norm_well
+from kuma_core.mame.reference_fasta import multi_record_reason
 from kuma_core.mame.models import (
     BarcodeRecord,
     CompareParams,
@@ -29,14 +30,30 @@ from kuma_core.mame.translate import translate_and_diff
 
 
 def _read_reference_fasta(path: Path) -> str:
+    """Return the single sequence in *path*, refusing a file that holds several.
+
+    This is the reference every verdict in the run is compared against, and the
+    consensus-directory path reaches it without going through the amplicon
+    resolver, so the multi-record refusal has to live here as well: joining a
+    backbone to a target produces a molecule that does not exist and grades the
+    whole plate against it silently.
+
+    ``ValueError`` rather than ``AmpliconReferenceError``: this module is the
+    pipeline glue and has no amplicon resolution in it, and the error type used
+    there subclasses ``ValueError`` anyway, so a caller catching ``ValueError``
+    sees no difference between the two paths.
+    """
+    lines = path.read_text(encoding="utf-8").splitlines()
+    reason = multi_record_reason(lines)
+    if reason is not None:
+        raise ValueError(f"{reason}: {path}")
     seq_parts: list[str] = []
-    with path.open("r", encoding="utf-8") as fh:
-        for line in fh:
-            line = line.rstrip("\r\n")
-            if line.startswith(">"):
-                continue
-            if line:
-                seq_parts.append(line.strip())
+    for line in lines:
+        line = line.rstrip("\r\n")
+        if line.startswith(">"):
+            continue
+        if line:
+            seq_parts.append(line.strip())
     return "".join(seq_parts).upper()
 
 

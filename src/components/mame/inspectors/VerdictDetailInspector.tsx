@@ -344,6 +344,7 @@ export function VerdictDetailInspector() {
             <ReplicateComparison replicate={replicate} currentKey={currentKey} />
           )}
           <ConfidenceSection record={record} />
+          <CoverageSection record={record} />
           {record.observed_nt_changes.length > 0 && (
             <Section title={t("mame.verdictDetail.sectionNtChanges")}>
               <p className="break-all font-mono text-caption text-foreground">
@@ -741,6 +742,89 @@ function ConfidenceSection({ record }: { record: VerdictRecord }) {
       {row("lowDepthPositions", record.n_low_depth_positions)}
       {row("consensusN", percent(record.consensus_n_fraction))}
       {row("lowQualityBases", record.n_low_quality_bases)}
+    </Section>
+  );
+}
+
+/**
+ * Coverage uniformity and consensus identity for this well.
+ *
+ * A well covered evenly at 100x and one averaging 100x with a 200 bp hole report
+ * the same read count; these five say which one it was. None of them gates a
+ * verdict (models.ts: "Reported only; no verdict, gate or severity rule reads
+ * any of them"), so nothing here is coloured or badged.
+ *
+ * `null` and `undefined` both mean NOT MEASURED and are printed as such rather
+ * than hidden, because a CV of 0 is a perfectly flat well and an identity of 0
+ * is a consensus matching the reference nowhere. Both are strong readings, and
+ * a blank row invites the reader to supply whichever one they expected. The
+ * sidecar omits the five independently, so a well with no reads reports a real
+ * `breadth_at_mix_min_depth` of 0 with the other four absent.
+ *
+ * `consensus_identity` never appears without `consensus_n_fraction` beside it.
+ * Identity is computed over CALLED bases only, so a well whose consensus is 95%
+ * N can read 100.0% identical and look perfect; the N fraction is the number
+ * that says how much of the sequence that percentage was measured on.
+ */
+function CoverageSection({ record }: { record: VerdictRecord }) {
+  const { t } = useTranslation();
+  const unknown = t("mame.verdictDetail.coverage.notMeasured");
+  const num = (v: number | null | undefined) =>
+    typeof v === "number" ? v.toLocaleString() : unknown;
+  const pct = (v: number | null | undefined) =>
+    typeof v === "number" ? `${(v * 100).toFixed(1)}%` : unknown;
+  const cv = (v: number | null | undefined) =>
+    typeof v === "number" ? v.toFixed(2) : unknown;
+
+  // A result saved before these existed carries none of the five. One line saying
+  // so beats five rows of "not measured", the same shape ContaminationPanel uses
+  // for a report that predates a signal.
+  const measured =
+    typeof record.depth_cv === "number" ||
+    typeof record.depth_p10 === "number" ||
+    typeof record.depth_min_covered === "number" ||
+    typeof record.breadth_at_mix_min_depth === "number" ||
+    typeof record.consensus_identity === "number";
+
+  return (
+    <Section title={t("mame.verdictDetail.sectionCoverage")}>
+      <div data-testid="verdict-coverage" data-measured={String(measured)}>
+        {measured ? (
+          <>
+            <MetricRow label={t("mame.verdictDetail.coverage.depthCv")} value={cv(record.depth_cv)} />
+            <MetricRow label={t("mame.verdictDetail.coverage.depthP10")} value={num(record.depth_p10)} />
+            <MetricRow
+              label={t("mame.verdictDetail.coverage.depthMinCovered")}
+              value={num(record.depth_min_covered)}
+            />
+            <MetricRow
+              label={t("mame.verdictDetail.coverage.breadth")}
+              value={pct(record.breadth_at_mix_min_depth)}
+            />
+            <MetricRow
+              label={t("mame.verdictDetail.coverage.consensusIdentity")}
+              value={pct(record.consensus_identity)}
+            />
+            {/* Directly under identity, always. See the block comment. */}
+            <MetricRow
+              label={t("mame.verdictDetail.coverage.consensusN")}
+              value={pct(record.consensus_n_fraction)}
+            />
+            <p className="mt-1 text-caption text-muted-foreground">
+              {t("mame.verdictDetail.coverage.identityNote")}
+            </p>
+            {record.consensus_n_fraction_evaluable === false && (
+              <p className="mt-1 text-caption font-medium text-warning">
+                {t("mame.verdictDetail.coverage.nNotEvaluable")}
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-caption text-muted-foreground">
+            {t("mame.verdictDetail.coverage.absent")}
+          </p>
+        )}
+      </div>
     </Section>
   );
 }

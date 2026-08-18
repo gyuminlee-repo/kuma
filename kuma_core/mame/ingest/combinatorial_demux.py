@@ -73,7 +73,7 @@ import os
 import re
 import sys
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from typing import Any, Callable, Iterator, TypeVar
+from typing import Any, Callable, Iterator, NamedTuple, TypeVar
 
 from kuma_core.mame.ingest.align import (
     align_reads_grouped,
@@ -89,7 +89,10 @@ from kuma_core.mame.ingest.barcode_tail import (
     common_suffix_length,
     common_tail,
 )
-from kuma_core.mame.ingest.consensus import call_consensus_with_metrics
+from kuma_core.mame.ingest.consensus import (
+    call_consensus_with_metrics,
+    per_position_depth,
+)
 from kuma_core.mame.ingest.consensus_metadata import (
     BASIS_COVERED,
     ConsensusMetadata,
@@ -103,7 +106,11 @@ from kuma_core.mame.ingest.stage_marker import (
     reference_fingerprint,
     write_stage_marker,
 )
-from kuma_core.mame.ingest.well_consensus import _read_reference_seq
+from kuma_core.mame.ingest.well_consensus import (
+    _read_reference_seq,
+    consensus_identity,
+    depth_stats,
+)
 from kuma_core.mame.perf import TIMER, timed_iter
 from kuma_core.mame.plate_geometry import DEFAULT_ADDRESSING
 from kuma_core.shared.atomic_write import atomic_write_text, fsync_directory
@@ -2714,80 +2721,18 @@ def _run_combinatorial_demux_body(
         well_name: str,
         reads: list[tuple[str, str]],
         alignments: list[Alignment],
-    ) -> tuple[
-        str, str, int, int, float, int, float, int, int, int, int, int, int, float,
-        int, int, int, float | None, int, int, float,
-        float | None, int, int, int, tuple[NoisyPosition, ...],
-    ]:
-        """Worker: returns the well name followed by the whole consensus tuple.
+    ) -> tuple[str, WellConsensus]:
+        """Worker: the well name paired with its whole consensus result.
 
-        The trailing four (``min_variant_support``, ``variant_positions``,
-        ``min_variant_support_depth``, ``median_minor_fraction``) arrived with
-        v0.15.13 and v0.15.17 and were returned but never declared: this said 17
-        elements while the body returned 21 and the caller unpacked 21. Runtime
-        was fine and the annotation was four releases stale, which is worse than
-        no annotation, because anyone who trusts it and edits the unpacking gets
-        a silent shift.
-
-        The five after those are the minor-allele strand evidence; keep this
-        annotation, the body, and the caller's unpacking moving together.
+        This used to return a flat positional tuple that reached 31 elements, and
+        its annotation once said 17 while the body returned 21 and the caller
+        unpacked 21. Runtime stayed correct and the annotation was four releases
+        stale, which is worse than no annotation. ``WellConsensus`` is a
+        ``NamedTuple``, so nothing about the values changes; what changes is that
+        a field can no longer shift position without the name moving with it.
         """
-        (
-            seq,
-            depth,
-            mixed_positions,
-            max_minor_fraction,
-            low_depth_positions,
-            n_fraction,
-            low_quality_bases,
-            input_reads,
-            aligned_reads,
-            mapq_failed,
-            span_failed,
-            n_indel_event_positions,
-            max_indel_event_fraction,
-            max_del_run_length,
-            consensus_net_indel,
-            read_net_indel,
-            min_variant_support,
-            variant_positions,
-            min_variant_support_depth,
-            median_minor_fraction,
-            max_minor_strand_share,
-            max_minor_plus,
-            max_minor_minus,
-            eligible_positions,
-            noisy_positions,
-        ) = _compute_well_consensus(
+        return well_name, _compute_well_consensus(
             well_name, reads, alignments, ref_seq, ref_len, min_depth,
-        )
-        return (
-            well_name,
-            seq,
-            depth,
-            mixed_positions,
-            max_minor_fraction,
-            low_depth_positions,
-            n_fraction,
-            low_quality_bases,
-            input_reads,
-            aligned_reads,
-            mapq_failed,
-            span_failed,
-            n_indel_event_positions,
-            max_indel_event_fraction,
-            max_del_run_length,
-            consensus_net_indel,
-            read_net_indel,
-            min_variant_support,
-            variant_positions,
-            min_variant_support_depth,
-            median_minor_fraction,
-            max_minor_strand_share,
-            max_minor_plus,
-            max_minor_minus,
-            eligible_positions,
-            noisy_positions,
         )
 
     _consensus_done = 0
@@ -2843,68 +2788,48 @@ def _run_combinatorial_demux_body(
                     for wn, rds in groups
                 }
                 for fut in as_completed(futures):
-                    (
-                        wn,
-                        seq,
-                        depth,
-                        mixed_positions,
-                        max_minor_fraction,
-                        low_depth_positions,
-                        n_fraction,
-                        low_quality_bases,
-                        input_reads,
-                        aligned_reads,
-                        mapq_failed,
-                        span_failed,
-                        n_indel_event_positions,
-                        max_indel_event_fraction,
-                        max_del_run_length,
-                        consensus_net_indel,
-                        read_net_indel,
-                        min_variant_support,
-                        variant_positions,
-                        min_variant_support_depth,
-                        median_minor_fraction,
-                        max_minor_strand_share,
-                        max_minor_plus,
-                        max_minor_minus,
-                        eligible_positions,
-                        noisy_positions,
-                    ) = fut.result()
-                    per_well_consensus[wn] = seq
+                    wn, r = fut.result()
+                    per_well_consensus[wn] = r.consensus_seq
                     atomic_write_text(
                         consensus_dir / f"{wn}.fasta",
                         format_consensus_fasta_record(
                             wn,
-                            seq,
+                            r.consensus_seq,
                             ConsensusMetadata(
-                                depth=depth,
-                                input_reads=input_reads,
-                                aligned_reads=aligned_reads,
-                                mapq_failed=mapq_failed,
-                                span_failed=span_failed,
-                                mixed_positions=mixed_positions,
-                                max_minor_allele_fraction=max_minor_fraction,
-                                low_depth_positions=low_depth_positions,
-                                consensus_n_fraction=n_fraction,
-                                low_quality_bases=low_quality_bases,
-                                n_indel_event_positions=n_indel_event_positions,
-                                max_indel_event_fraction=max_indel_event_fraction,
-                                max_del_run_length=max_del_run_length,
-                                consensus_net_indel=consensus_net_indel,
-                                read_net_indel=read_net_indel,
+                                depth=r.depth,
+                                input_reads=r.input_reads,
+                                aligned_reads=r.aligned_reads,
+                                mapq_failed=r.mapq_failed,
+                                span_failed=r.span_failed,
+                                mixed_positions=r.mixed_positions,
+                                max_minor_allele_fraction=r.max_minor_fraction,
+                                low_depth_positions=r.low_depth_positions,
+                                consensus_n_fraction=r.n_fraction,
+                                low_quality_bases=r.low_quality_bases,
+                                n_indel_event_positions=r.n_indel_event_positions,
+                                max_indel_event_fraction=r.max_indel_event_fraction,
+                                max_del_run_length=r.max_del_run_length,
+                                consensus_net_indel=r.consensus_net_indel,
+                                read_net_indel=r.read_net_indel,
                                 consensus_n_fraction_basis=BASIS_COVERED,
-                                min_variant_support=min_variant_support,
-                                variant_positions=variant_positions,
-                                min_variant_support_depth=min_variant_support_depth,
-                                median_minor_allele_fraction=median_minor_fraction,
+                                min_variant_support=r.min_variant_support,
+                                variant_positions=r.variant_positions,
+                                min_variant_support_depth=r.min_variant_support_depth,
+                                median_minor_allele_fraction=r.median_minor_fraction,
                                 max_minor_allele_strand_share=(
-                                    max_minor_strand_share
+                                    r.max_minor_strand_share
                                 ),
-                                max_minor_allele_plus=max_minor_plus,
-                                max_minor_allele_minus=max_minor_minus,
-                                n_eligible_positions=eligible_positions,
-                                noisy_positions=noisy_positions,
+                                max_minor_allele_plus=r.max_minor_plus,
+                                max_minor_allele_minus=r.max_minor_minus,
+                                n_eligible_positions=r.eligible_positions,
+                                noisy_positions=r.noisy_positions,
+                                depth_cv=r.depth_cv,
+                                depth_p10=r.depth_p10,
+                                depth_min_covered=r.depth_min_covered,
+                                breadth_at_mix_min_depth=(
+                                    r.breadth_at_mix_min_depth
+                                ),
+                                consensus_identity=r.consensus_identity,
                             ),
                         ),
                         # fsync=False here, one fsync_directory below instead. Per-file
@@ -2975,6 +2900,104 @@ def _trim_read(aln: Alignment, original_seq: str, flank_bp: int) -> str:
     return original_seq[start:end]
 
 
+class WellConsensus(NamedTuple):
+    """Everything one well's consensus produced, by NAME rather than by index.
+
+    This was a positional tuple of 25 elements and grew to 30, passed across two
+    function boundaries and unpacked positionally at each. A tuple that long is a
+    structure where one misplaced field shifts every field after it and nothing
+    reports the shift; the annotation on the old worker had already been four
+    releases stale while runtime stayed correct. ``NamedTuple`` is a superset of
+    ``tuple``, so positional unpacking and indexing still work for any caller that
+    wants them, but the fields now have names and cannot silently swap.
+
+    Field meanings are the ones the source dataclasses document:
+    ``ConsensusCall`` in ``ingest/consensus.py`` for the consensus metrics, and
+    ``depth_stats`` / ``consensus_identity`` in ``ingest/well_consensus.py`` for
+    the trailing five. The trailing five are REPORT ONLY; no verdict, gate or
+    severity rule reads them.
+    """
+
+    consensus_seq: str
+    depth: int
+    mixed_positions: int
+    max_minor_fraction: float
+    low_depth_positions: int
+    n_fraction: float
+    low_quality_bases: int
+    input_reads: int
+    aligned_reads: int
+    mapq_failed: int
+    span_failed: int
+    n_indel_event_positions: int
+    max_indel_event_fraction: float
+    max_del_run_length: int
+    consensus_net_indel: int
+    read_net_indel: int
+    min_variant_support: float | None
+    variant_positions: int
+    min_variant_support_depth: int
+    median_minor_fraction: float
+    max_minor_strand_share: float | None
+    max_minor_plus: int
+    max_minor_minus: int
+    eligible_positions: int
+    noisy_positions: tuple[NoisyPosition, ...]
+    # Coverage uniformity and consensus identity. ``None`` is NOT MEASURED and is
+    # never 0.0, which is a real reading (a flat well, a consensus matching the
+    # reference nowhere). The five are independent: a well with no reads has a
+    # real ``breadth_at_mix_min_depth`` of 0.0 with the other four unmeasurable.
+    depth_cv: float | None
+    depth_p10: float | None
+    depth_min_covered: int | None
+    breadth_at_mix_min_depth: float | None
+    consensus_identity: float | None
+
+
+def _empty_well_consensus(ref_len: int, input_reads: int) -> WellConsensus:
+    """The result for a well that produced no consensus at all.
+
+    Shared by the no-reads and no-alignments branches, which differ only in how
+    many reads went in. ``max_minor_strand_share`` stays ``None`` rather than 0.0
+    because 0.0 is the one-strand reading and nothing here was read at all, and
+    the same rule puts ``None`` on four of the five coverage fields. The
+    exception is breadth: this well genuinely covers none of the reference, which
+    is a measured 0.0.
+    """
+    return WellConsensus(
+        consensus_seq="N" * ref_len,
+        depth=0,
+        mixed_positions=0,
+        max_minor_fraction=0.0,
+        low_depth_positions=ref_len,
+        n_fraction=1.0 if ref_len > 0 else 0.0,
+        low_quality_bases=0,
+        input_reads=input_reads,
+        aligned_reads=0,
+        mapq_failed=0,
+        span_failed=0,
+        n_indel_event_positions=0,
+        max_indel_event_fraction=0.0,
+        max_del_run_length=0,
+        consensus_net_indel=0,
+        read_net_indel=0,
+        min_variant_support=None,
+        variant_positions=0,
+        min_variant_support_depth=0,
+        median_minor_fraction=0.0,
+        max_minor_strand_share=None,
+        max_minor_plus=0,
+        max_minor_minus=0,
+        eligible_positions=0,
+        noisy_positions=(),
+        depth_cv=None,
+        depth_p10=None,
+        depth_min_covered=None,
+        breadth_at_mix_min_depth=0.0 if ref_len > 0 else None,
+        consensus_identity=None,
+    )
+
+
 def _compute_well_consensus(
     well_name: str,
     reads: list[tuple[str, str]],
@@ -2982,81 +3005,21 @@ def _compute_well_consensus(
     ref_seq: str,
     ref_len: int,
     min_depth: int,
-) -> tuple[
-    str, int, int, float, int, float, int, int, int, int, int, int, float, int,
-    int, int, float | None, int, int, float,
-    float | None, int, int, int, tuple[NoisyPosition, ...],
-]:
+) -> WellConsensus:
     """Call consensus for one well from its (pre-computed) alignments.
 
     ``well_alignments`` comes from the single batched :func:`align_reads_grouped`
     call for the whole unit and is in this well's original read order, which the
     consensus tie-break depends on.
-
-    A well that reached no consensus reports ``None`` for the strand share rather
-    than 0.0, because 0.0 is the one-strand reading and nothing here was read at
-    all; the eligible-position count is a true 0 alongside an empty list.
     """
     if not reads:
-        return (
-            "N" * ref_len,
-            0,
-            0,
-            0.0,
-            ref_len,
-            1.0 if ref_len > 0 else 0.0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0.0,
-            0,
-            0,
-            0,
-            None,
-            0,
-            0,
-            0.0,
-            None,
-            0,
-            0,
-            0,
-            (),
-        )
+        return _empty_well_consensus(ref_len, input_reads=0)
 
     if not well_alignments:
         log.debug(
             "Well %s: 0 alignments from %d trimmed reads", well_name, len(reads)
         )
-        return (
-            "N" * ref_len,
-            0,
-            0,
-            0.0,
-            ref_len,
-            1.0 if ref_len > 0 else 0.0,
-            0,
-            len(reads),
-            0,
-            0,
-            0,
-            0,
-            0.0,
-            0,
-            0,
-            0,
-            None,
-            0,
-            0,
-            0.0,
-            None,
-            0,
-            0,
-            0,
-            (),
-        )
+        return _empty_well_consensus(ref_len, input_reads=len(reads))
 
     with TIMER.phase("well_consensus.compute_sum"):
         consensus_call = call_consensus_with_metrics(
@@ -3064,36 +3027,51 @@ def _compute_well_consensus(
             ref_seq,
             min_depth=min_depth,
         )
-    return (
-        consensus_call.consensus_seq,
-        len(well_alignments),
-        consensus_call.n_mixed_positions,
-        consensus_call.max_minor_allele_fraction,
-        consensus_call.n_low_depth_positions,
-        consensus_call.consensus_n_fraction,
-        consensus_call.n_low_quality_bases,
-        len(reads),
-        len(well_alignments),
-        0,
-        0,
-        consensus_call.n_indel_event_positions,
-        consensus_call.max_indel_event_fraction,
-        consensus_call.max_del_run_length,
-        consensus_call.consensus_net_indel_bp,
-        consensus_call.median_read_net_indel_bp,
-        consensus_call.min_variant_support,
-        consensus_call.n_variant_positions,
-        consensus_call.min_variant_support_depth,
-        consensus_call.median_minor_allele_fraction,
-        consensus_call.max_minor_allele_strand_share,
-        consensus_call.max_minor_allele_plus_count,
-        consensus_call.max_minor_allele_minus_count,
-        consensus_call.n_eligible_positions,
+    # Uniformity read off the same per-position depth vector the mean depth comes
+    # from, so the two are comparable. ``min_depth`` is NOT threaded in: that is
+    # the low-depth-position threshold, while breadth is scoped to the depth at
+    # which a minor allele is worth reading (``DEFAULT_MIX_MIN_DEPTH``), which is
+    # what the field name says.
+    depth_cv, depth_p10, depth_min_covered, breadth = depth_stats(
+        per_position_depth(well_alignments, ref_len)
+    )
+    return WellConsensus(
+        consensus_seq=consensus_call.consensus_seq,
+        depth=len(well_alignments),
+        mixed_positions=consensus_call.n_mixed_positions,
+        max_minor_fraction=consensus_call.max_minor_allele_fraction,
+        low_depth_positions=consensus_call.n_low_depth_positions,
+        n_fraction=consensus_call.consensus_n_fraction,
+        low_quality_bases=consensus_call.n_low_quality_bases,
+        input_reads=len(reads),
+        aligned_reads=len(well_alignments),
+        mapq_failed=0,
+        span_failed=0,
+        n_indel_event_positions=consensus_call.n_indel_event_positions,
+        max_indel_event_fraction=consensus_call.max_indel_event_fraction,
+        max_del_run_length=consensus_call.max_del_run_length,
+        consensus_net_indel=consensus_call.consensus_net_indel_bp,
+        read_net_indel=consensus_call.median_read_net_indel_bp,
+        min_variant_support=consensus_call.min_variant_support,
+        variant_positions=consensus_call.n_variant_positions,
+        min_variant_support_depth=consensus_call.min_variant_support_depth,
+        median_minor_fraction=consensus_call.median_minor_allele_fraction,
+        max_minor_strand_share=consensus_call.max_minor_allele_strand_share,
+        max_minor_plus=consensus_call.max_minor_allele_plus_count,
+        max_minor_minus=consensus_call.max_minor_allele_minus_count,
+        eligible_positions=consensus_call.n_eligible_positions,
         # Handed straight over. ``NoisyPosition`` is declared once, in
         # ``models``, so the engine already produced the transfer-object type;
         # this used to re-box the five numbers into a same-named mirror class.
         # The records are frozen, so sharing them is safe.
-        consensus_call.noisy_positions,
+        noisy_positions=consensus_call.noisy_positions,
+        depth_cv=depth_cv,
+        depth_p10=depth_p10,
+        depth_min_covered=depth_min_covered,
+        breadth_at_mix_min_depth=breadth,
+        consensus_identity=consensus_identity(
+            consensus_call.consensus_seq, ref_seq
+        ),
     )
 
 

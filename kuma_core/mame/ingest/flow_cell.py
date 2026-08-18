@@ -72,6 +72,30 @@ class FlowCellHistory:
         return self.scans[-1].single_pore if self.scans else None
 
 
+def find_report_json(run_dir: Path) -> Path | None:
+    """The MinKNOW ``report_*.json`` for this input, or ``None``.
+
+    The run folder, then one level up. A raw MinKNOW run is analysed with the
+    run folder itself as the input, so the report sits right there. A
+    consensus-directory run is analysed with `consensus/` as the input, and that
+    directory lives inside the run folder MinKNOW wrote, so the report is one
+    level above it. Two candidates rather than a recursive walk: the file has a
+    fixed home in a MinKNOW folder, and searching further would start picking up
+    reports from unrelated runs stored nearby.
+
+    ``Path.glob`` on a directory that does not exist yields nothing, which is
+    the same answer as a directory that holds no report and needs no separate
+    handling. Shared with :mod:`kuma_core.mame.ingest.read_length`, which reads
+    other parts of the same file: one search rather than two, so the two readers
+    can never disagree about which report a run has.
+    """
+    for candidate in (run_dir, run_dir.parent):
+        reports = sorted(candidate.glob("report_*.json"))
+        if reports:
+            return reports[0]
+    return None
+
+
 def read_flow_cell_history(run_dir: Path) -> FlowCellHistory:
     """Read pore counts and cell identity from a MinKNOW ``report_*.json``.
 
@@ -82,22 +106,11 @@ def read_flow_cell_history(run_dir: Path) -> FlowCellHistory:
     empty, so a silent zero can never be read as a measurement.
     """
     history = FlowCellHistory()
-    # The run folder, then one level up. A raw MinKNOW run is analysed with the
-    # run folder itself as the input, so the report sits right there. A
-    # consensus-directory run is analysed with `consensus/` as the input, and
-    # that directory lives inside the run folder MinKNOW wrote, so the report is
-    # one level above it. Two candidates rather than a recursive walk: the file
-    # has a fixed home in a MinKNOW folder, and searching further would start
-    # picking up reports from unrelated runs stored nearby.
+    report = find_report_json(run_dir)
+    if report is None:
+        return history
     try:
-        reports: list[Path] = []
-        for candidate in (run_dir, run_dir.parent):
-            reports = sorted(candidate.glob("report_*.json"))
-            if reports:
-                break
-        if not reports:
-            return history
-        data = json.loads(reports[0].read_text(encoding="utf-8", errors="replace"))
+        data = json.loads(report.read_text(encoding="utf-8", errors="replace"))
     except (OSError, ValueError):
         return history
 
@@ -219,6 +232,7 @@ __all__ = [
     "FlowCellHistory",
     "PoreScan",
     "find_previous_use",
+    "find_report_json",
     "read_flow_cell_history",
     "read_ledger",
     "record_use",

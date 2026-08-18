@@ -468,7 +468,22 @@
       "neighborAvgHelp": "Mean read count of the four orthogonal neighbor wells (up/down/left/right). Informational; not used in the z-score.",
       "zScoreHelp": "(well reads minus plate mean) / plate SD. Wells above 2.5 are flagged. Severity: above 4 high, above 3 medium, above 2.5 low.",
       "percentileHelp": "File-size percentiles in KB by linear interpolation: p05 is the 5th percentile through p95 the 95th.",
-      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB."
+      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB.",
+      "qcSectionTitle": "运行 QC 详情",
+      "qcSectionAriaLabel": "显示运行 QC 详情",
+      "qcHealthTitle": "Run health",
+      "qcHealthAbsent": "本次运行未记录 run health 数据块，因此 file size、pore yield、throughput、barcode 与 cross-talk 各节没有可读取的值。",
+      "qcNotMeasured": "未测量",
+      "filterStats": {
+        "title": "read 过滤",
+        "noDemux": "本次运行未做 demultiplex，因此没有 read 经过质量过滤。以 consensus 目录为输入的运行读取已完成的 consensus 文件，不会看到原始 read。",
+        "noSummary": "质量过滤已运行但未留下计数：运行文件夹中没有 sequencing_summary 文件，而每条 read 的 Q score 正来自该文件。",
+        "input": "输入 read",
+        "passed": "通过过滤",
+        "failedQscore": "因 Q score 被剔除",
+        "failedLength": "因长度被剔除",
+        "failedBarcode": "因 barcode 被剔除"
+      }
     },
     "plateView": {
       "plate": "Plate",
@@ -1011,6 +1026,40 @@
         "median_depth_below_recommended": "深度中位数 {{median}} 低于推荐的每个扩增子 {{recommended}} 条读段。",
         "flow_cell_reused": "流通池 {{cell}} 在本项目中已运行过一次，结束时孔隙为 {{previousPores}}。",
         "variants_at_reference_edge": "{{variants}} 位于参考序列末端 {{margin}} bp 以内，而本次运行直接使用了所提供的参考序列。比对器会在无法连接的错配处截断读段，因此这些位置的深度可能低于该孔报告的深度。改用包含引物结合区的参考序列可让它们更靠内。"
+      },
+      "positionRecurrence": {
+        "title": "反复出现的位点",
+        "noRun": "尚无可报告的运行。",
+        "predatesBuild": "该保存结果写于统计反复位点之前，因此对此一无所知。这不代表没有位点反复出现。",
+        "what": "单个孔中某一位点的 minor allele 是混合的候选。同一位点在一个又一个孔中出现，则是 sequence context artifact 的样子，因为该 context 属于 amplicon 而非克隆。此处不作任何评级。",
+        "lowerBound": "下列每个计数都是下界：每个孔最多贡献按 minor fraction 排序的十个位点，而在 {{contributing}} 个有贡献的孔中有 {{truncated}} 个触及该上限，因此排在第十位之后的位点未计入。",
+        "wellsContributing": "贡献了位点的记录",
+        "wellsTruncated": "其中在十处被截断",
+        "positionsSeen": "观测到的不同位点",
+        "positionsSingleWell": "仅在一条记录中出现（已排除）",
+        "none": "没有位点被一条以上的记录报告。",
+        "caption": "被一条以上记录报告的参考位点，反复次数多者在前。",
+        "colPosition": "位点",
+        "colWells": "记录",
+        "colMedianShare": "weak strand 中位数",
+        "colShareRange": "最小 / 最大",
+        "colSharesKnown": "已知比例"
+      },
+      "readLength": {
+        "title": "read 长度",
+        "noRun": "尚无可报告的运行。",
+        "predatesBuild": "该保存结果写于携带 read 长度之前，因此对此一无所知。这不代表 read 没有长度。",
+        "notRead": "未能读取 read 长度：运行文件夹中没有 report json、文件无法解析，或写入它的 MinKNOW 早于 read_length_histogram。",
+        "reference": "比对到长度为 {{bp}} bp 的参考序列。",
+        "referenceUnknown": "无法读取参考长度，因此下列比值没有分母。",
+        "unlabelled": "无标签条目",
+        "noEntries": "报告中没有 read length histogram 条目。",
+        "n50": "N50（仪器报告值）",
+        "n50OverReference": "N50 与参考之比",
+        "nearReferenceFraction": "接近参考长度的碱基比例",
+        "over2xFraction": "达到或超过参考 2 倍的碱基比例",
+        "concatemerNote": "N50 远高于参考的 1 倍既是 concatemer 群体的样子，也是刻意设计的长 amplicon 的样子。仅凭此数无法区分两者，因此此处不作任何标记。",
+        "basesNote": "两个比例统计的都是碱基数，而非 read 条数。"
       }
     },
     "inspector": {
@@ -1296,7 +1345,20 @@
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well.",
       "replicateReads": "{{reads}} reads",
-      "replicateAligned": "比对 {{aligned}}"
+      "replicateAligned": "比对 {{aligned}}",
+      "sectionCoverage": "覆盖均匀度",
+      "coverage": {
+        "notMeasured": "未测量",
+        "absent": "该结果写于测量覆盖均匀度之前，因此五项数值均不可得。这不代表该孔被均匀覆盖。",
+        "depthCv": "Depth CV（0 为平坦）",
+        "depthP10": "Depth p10",
+        "depthMinCovered": "最浅的被覆盖位点",
+        "breadth": "深度足以判读 minor allele 的参考比例",
+        "consensusIdentity": "Consensus identity",
+        "consensusN": "Consensus N 比例",
+        "identityNote": "identity 只在已判读的碱基上计算，因此大部分为 N 的 consensus 也可能显示为近乎完全一致。请与上方的 N 比例对照阅读。",
+        "nNotEvaluable": "该 consensus 的 N 比例无法复原，已以 0 代入，因此上方的 identity 建立在未知长度的序列之上。"
+      }
     },
     "wellSelection": {
       "title": "使用的孔位",
@@ -2443,13 +2505,21 @@
     "descriptionRange": "自 v{{from}} 以来每次更新的主要变化。",
     "gotItBtn": "知道了",
     "highlights": [
-      "引用仓库中不存在的文档会使构建失败，不再等到有人顺着链接才发现。",
-      "修正了 7 处指向陈旧路径的引用，其中一处指向了另一个页面而不是空白。",
-      "新增页面说明代码引用的设计记录为何不在这个公开仓库中，以及各自涵盖的范围。",
-      "当设计记录与代码不一致时，该页面明确以代码及其测试为准。"
+      "应用每次运行都在测量却从未绘制的 5 个 run health 区块，现已显示在审阅界面中，默认折叠。",
+      "覆盖度按孔报告均匀性而不再只给平均值，因此存在缺口的孔不会再看起来与同一 depth 下均匀覆盖的孔一样。",
+      "测序仪测得的 read length 会与本次运行所比对的 reference 对照显示，concatemer 正是在此显现。",
+      "含有一条以上序列的 reference 文件会被全部四个读取器拒绝，不再拼接成 chimera，也不会被静默截断。",
+      "未找到 reading frame 的 amplicon 会如实说明，不再报告长度为 0 的 CDS 而从 primer tail 开始翻译。"
     ],
-    "highlightsStamp": "0.16.27+4cd14ddd",
+    "highlightsStamp": "0.16.28+35bab529",
     "releases": {
+      "0.16.28": [
+        "应用每次运行都在测量却从未绘制的 5 个 run health 区块，现已显示在审阅界面中，默认折叠。",
+        "覆盖度按孔报告均匀性而不再只给平均值，因此存在缺口的孔不会再看起来与同一 depth 下均匀覆盖的孔一样。",
+        "测序仪测得的 read length 会与本次运行所比对的 reference 对照显示，concatemer 正是在此显现。",
+        "含有一条以上序列的 reference 文件会被全部四个读取器拒绝，不再拼接成 chimera，也不会被静默截断。",
+        "未找到 reading frame 的 amplicon 会如实说明，不再报告长度为 0 的 CDS 而从 primer tail 开始翻译。"
+      ],
       "0.16.27": [
         "引用仓库中不存在的文档会使构建失败，不再等到有人顺着链接才发现。",
         "修正了 7 处指向陈旧路径的引用，其中一处指向了另一个页面而不是空白。",
@@ -2665,6 +2735,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",
       "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",

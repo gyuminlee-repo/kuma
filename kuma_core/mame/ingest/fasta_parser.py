@@ -40,10 +40,15 @@ from typing import Any
 from kuma_core.mame.ingest.consensus_metadata import (
     ALIGNED_READS,
     BASIS_COVERED,
+    BREADTH_AT_MIX_MIN_DEPTH,
+    CONSENSUS_IDENTITY,
     CONSENSUS_N_FRACTION,
     CONSENSUS_N_FRACTION_BASIS,
     CONSENSUS_NET_INDEL,
     DEPTH,
+    DEPTH_CV,
+    DEPTH_MIN_COVERED,
+    DEPTH_P10,
     ELIGIBLE_POSITIONS,
     INDEL_EVENT_POSITIONS,
     INPUT_READS,
@@ -458,6 +463,19 @@ def parse_fasta_file(
     # A malformed record inside the list is skipped and the rest kept; see
     # ``parse_noisy_positions``.  An unreadable list must not fail the well.
     noisy_positions = parse_noisy_positions(metadata.get(NOISY_POSITIONS.lower()))
+    # Coverage uniformity and consensus identity, read with the bare helpers so a
+    # missing key stays ``None``. An ``or 0.0`` here would turn every consensus
+    # file written before these keys existed into a perfectly flat, zero-identity
+    # well, which is a measurement nobody made. Read independently because the
+    # writer emits them independently: a zero-read well carries a real breadth of
+    # 0.0 with the other four absent.
+    depth_cv = _read_float_metadata(metadata, DEPTH_CV)
+    depth_p10 = _read_float_metadata(metadata, DEPTH_P10)
+    depth_min_covered = _read_int_metadata(metadata, DEPTH_MIN_COVERED)
+    breadth_at_mix_min_depth = _read_float_metadata(
+        metadata, BREADTH_AT_MIX_MIN_DEPTH
+    )
+    consensus_identity = _read_float_metadata(metadata, CONSENSUS_IDENTITY)
 
     return BarcodeRecord(
         native_barcode=native_barcode,
@@ -490,6 +508,11 @@ def parse_fasta_file(
         noisy_positions=noisy_positions,
         consensus_net_indel_bp=consensus_net_indel_bp,
         median_read_net_indel_bp=median_read_net_indel_bp,
+        depth_cv=depth_cv,
+        depth_p10=depth_p10,
+        depth_min_covered=depth_min_covered,
+        breadth_at_mix_min_depth=breadth_at_mix_min_depth,
+        consensus_identity=consensus_identity,
     )
 
 

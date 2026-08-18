@@ -17,9 +17,17 @@ from __future__ import annotations
 import statistics
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Sequence
+
+import numpy as np
 
 from kuma_core.mame.ingest.align import Alignment, align_reads_with_stats
-from kuma_core.mame.ingest.consensus import call_consensus_with_metrics, per_position_depth
+from kuma_core.mame.reference_fasta import multi_record_reason
+from kuma_core.mame.ingest.consensus import (
+    DEFAULT_MIX_MIN_DEPTH,
+    call_consensus_with_metrics,
+    per_position_depth,
+)
 from kuma_core.mame.models import NoisyPosition
 
 
@@ -74,6 +82,19 @@ class ConsensusResult:
     noisy_positions:
         Top-K of that pool by minor fraction. Empty for wells with no eligible
         position.
+    depth_cv, depth_p10, depth_min_covered, breadth_at_mix_min_depth:
+        Coverage-uniformity evidence. ``mean_depth`` alone cannot separate a
+        well covered evenly at 100x from one averaging 100x with a 200 bp hole,
+        and the two are not the same evidence for the same consensus. See
+        ``depth_stats`` for each definition and for why ``None`` is not 0.0.
+    consensus_identity:
+        Fraction of called consensus bases matching the reference. See
+        ``consensus_identity``.
+
+    The five coverage and identity fields are REPORTED ONLY. No verdict, gate
+    or severity rule reads them; they exist so an operator can see WHY a well
+    scored the way it did, and adding a threshold on them would be a new
+    classification rule rather than a new report.
     """
 
     consensus_seq: str
@@ -99,7 +120,125 @@ class ConsensusResult:
     max_minor_allele_minus_count: int = 0
     n_eligible_positions: int = 0
     noisy_positions: tuple[NoisyPosition, ...] = ()
+    # Coverage uniformity and consensus identity. All five are report-only and
+    # all five default to ``None`` meaning NOT MEASURED, never 0.0. A CV of 0.0
+    # is a perfectly flat well and an identity of 0.0 is a consensus that
+    # matches the reference nowhere; both are strong statements that an unmeasured
+    # well has no right to make. Same rule as ``min_variant_support`` above.
+    depth_cv: float | None = None
+    depth_p10: float | None = None
+    depth_min_covered: int | None = None
+    breadth_at_mix_min_depth: float | None = None
+    consensus_identity: float | None = None
     alignments: list[Alignment] = field(default_factory=list, repr=False)
+
+
+def depth_stats(
+    depths: Sequence[int],
+    mix_min_depth: int = DEFAULT_MIX_MIN_DEPTH,
+) -> tuple[float | None, float | None, int | None, float | None]:
+    """Coverage-uniformity evidence from a per-position depth vector.
+
+    Returns ``(depth_cv, depth_p10, depth_min_covered, breadth_at_mix_min_depth)``.
+
+    ``depths`` is the vector ``per_position_depth`` returns, one entry per
+    reference position, counting reads whose CIGAR puts an aligned base there
+    (M/=/X only).  A read that spans a position through a D operation does NOT
+    count here, which is deliberate and is the difference from the pileup
+    ``covered`` mask inside ``call_consensus_with_metrics``: that mask counts
+    deletion votes as coverage because a deletion is evidence about the base,
+    while this asks how many reads actually read the position.  Using the same
+    vector as ``mean_depth`` is what makes these numbers comparable to it;
+    mixing the two definitions inside one result object would not be.
+
+    A position is COVERED when its depth is > 0.
+
+    depth_cv:
+        Population standard deviation over mean of the covered depths, i.e. the
+        spread of coverage relative to its own level, so a shallow-but-even well
+        and a deep-but-even well both score near 0.  This is the number
+        ``mean_depth`` cannot express: 100x flat and 100x with a 200 bp hole are
+        the same mean and not the same evidence.  ``None`` when nothing is
+        covered.  A single covered position yields 0.0, which is a true
+        statement about a one-position sample rather than a missing value, so
+        the population deviation is used instead of the sample one (the latter
+        is undefined at n=1).  The mean of a non-empty covered set is at least
+        1, so a zero denominator cannot arise.
+    depth_p10:
+        10th percentile of the covered depths (linear interpolation, numpy
+        default).  Answers what the thin tenth of the amplicon looks like,
+        which a mean hides and a minimum reduces to a single position.  ``None``
+        when nothing is covered.
+    depth_min_covered:
+        Shallowest covered position.  Never 0 by construction; ``None`` when
+        nothing is covered.  Reference positions with no reads at all are
+        counted by ``breadth`` below, not here, because a minimum of 0 would
+        collapse "thin somewhere" and "absent somewhere" into one number.
+    breadth_at_mix_min_depth:
+        Fraction of the WHOLE reference (denominator ``len(depths)``, not the
+        covered subset) at depth >= ``mix_min_depth``, the depth at which this
+        pipeline is willing to read a minor allele.  This is the field that
+        exposes the hole: the well with a 200 bp gap scores below 1.0 while the
+        even well scores 1.0, at identical ``mean_depth``.  ``None`` only when
+        the reference is empty; a well with zero reads measures a real 0.0.
+
+    None of the four is a gate.  No verdict, severity or threshold reads them,
+    and turning any into one would be a new classification rule.
+    """
+    ref_len = len(depths)
+    if ref_len == 0:
+        return None, None, None, None
+
+    arr = np.asarray(depths, dtype=np.int64)
+    breadth = float((arr >= mix_min_depth).sum() / ref_len)
+
+    covered = arr[arr > 0]
+    if covered.size == 0:
+        return None, None, None, breadth
+
+    mean = float(covered.mean())
+    cv = float(np.std(covered) / mean)
+    p10 = float(np.percentile(covered, 10))
+    min_covered = int(covered.min())
+    return cv, p10, min_covered, breadth
+
+
+def consensus_identity(consensus_seq: str, reference_seq: str) -> float | None:
+    """Fraction of CALLED consensus bases that match the reference.
+
+    Denominator is the positions the consensus actually calls, i.e. those whose
+    character is not ``N``.  Every uncovered or ambiguous position is already an
+    ``N`` by construction (see ``call_consensus``), so "called" and "covered and
+    unambiguous" are the same set and no separate depth mask is needed.
+
+    ``None`` means the denominator was empty: the well called nothing, so its
+    identity is UNKNOWN.  0.0 is the opposite and much stronger statement, that
+    bases were called and none of them matched, which is what a wrong reference
+    or a swapped well looks like.  The two must never be conflated; same rule as
+    ``min_variant_support``.
+
+    Comparison stops at the shorter of the two sequences.  They are equal length
+    on every path here (the consensus is emitted at reference length), and the
+    guard exists so a caller that pairs a consensus with the wrong reference gets
+    a low identity rather than an IndexError.
+
+    REPORTED ONLY.  A designed variant well is SUPPOSED to differ from the
+    reference, so a low identity is not by itself a defect and no gate reads
+    this field.  What it is for is the opposite direction: an identity far below
+    what the intended mutation count explains says the well is not the clone it
+    claims to be.
+    """
+    n = min(len(consensus_seq), len(reference_seq))
+    if n == 0:
+        return None
+
+    cons = np.frombuffer(consensus_seq[:n].upper().encode("ascii"), dtype=np.uint8)
+    ref = np.frombuffer(reference_seq[:n].upper().encode("ascii"), dtype=np.uint8)
+    called = cons != ord("N")
+    n_called = int(called.sum())
+    if n_called == 0:
+        return None
+    return float((cons[called] == ref[called]).sum() / n_called)
 
 
 def compute_well_consensuses(
@@ -153,6 +292,10 @@ def compute_well_consensuses(
                 mean_depth=0.0,
                 n_low_depth_positions=ref_len,
                 consensus_n_fraction=1.0 if ref_len > 0 else 0.0,
+                # A well with no reads covers nothing, so breadth is a real
+                # measurement of 0.0. The other three stay ``None``: there is no
+                # covered position to spread, and no called base to compare.
+                breadth_at_mix_min_depth=0.0 if ref_len > 0 else None,
             )
             continue
 
@@ -178,6 +321,9 @@ def compute_well_consensuses(
                 n_span_failed=aln_stats.n_failed_span,
                 n_low_depth_positions=ref_len,
                 consensus_n_fraction=1.0 if ref_len > 0 else 0.0,
+                # No read survived the filter, so nothing is covered: same
+                # reasoning as the zero-read branch above.
+                breadth_at_mix_min_depth=0.0 if ref_len > 0 else None,
                 alignments=[],
             )
             continue
@@ -185,6 +331,9 @@ def compute_well_consensuses(
         # Compute per-position depth for mean_depth statistic.
         depths = per_position_depth(alignments, ref_len)
         mean_d = statistics.mean(depths) if depths else 0.0
+        # Uniformity read off the SAME depth vector as mean_depth, so the two
+        # are comparable. See depth_stats.
+        depth_cv, depth_p10, depth_min_covered, breadth = depth_stats(depths)
 
         consensus_call = call_consensus_with_metrics(
             alignments,
@@ -224,6 +373,13 @@ def compute_well_consensuses(
             # type; this used to re-box the five numbers into a same-named
             # mirror class. The records are frozen, so sharing them is safe.
             noisy_positions=consensus_call.noisy_positions,
+            depth_cv=depth_cv,
+            depth_p10=depth_p10,
+            depth_min_covered=depth_min_covered,
+            breadth_at_mix_min_depth=breadth,
+            consensus_identity=consensus_identity(
+                consensus_call.consensus_seq, ref_seq
+            ),
             alignments=alignments,
         )
 
@@ -231,22 +387,41 @@ def compute_well_consensuses(
 
 
 def _read_reference_seq(reference_fasta: Path) -> str:
-    """Read and return the first sequence from a FASTA file."""
+    """Read and return the single sequence in a FASTA file.
+
+    This is the reader ``compute_well_consensuses`` calls for every well in a
+    run, and ``combinatorial_demux`` calls it too, so it is the reader on the
+    raw-MinKNOW-run-folder path -- the primary user-facing input. It used to
+    stop after the first record silently, which meant a plasmid-backbone-plus-
+    target reference lost the second sequence with no sign anything had been
+    dropped rather than every well being graded against a chimera; that is a
+    smaller wrong than the one ``reference_fasta.multi_record_reason`` guards
+    against elsewhere, but it is still silent, so the same refusal applies
+    here.
+    """
+    lines = reference_fasta.read_text(encoding="utf-8").splitlines()
+    reason = multi_record_reason(lines)
+    if reason is not None:
+        raise ValueError(f"{reason}: {reference_fasta}")
     seq_parts: list[str] = []
-    in_seq = False
-    with reference_fasta.open("r", encoding="utf-8") as fh:
-        for line in fh:
-            line = line.rstrip("\r\n")
-            if line.startswith(">"):
-                if in_seq:
-                    break  # stop after first record
-                in_seq = True
-            elif in_seq:
-                seq_parts.append(line.strip())
+    for line in lines:
+        line = line.rstrip("\r\n")
+        if line.startswith(">"):
+            continue
+        seq_parts.append(line.strip())
     seq = "".join(seq_parts).upper()
     if not seq:
         raise ValueError(f"Reference FASTA contains no sequence data: {reference_fasta}")
     return seq
 
 
-__all__ = ["ConsensusResult", "compute_well_consensuses"]
+# ``depth_stats`` and ``consensus_identity`` are exported because the raw
+# MinKNOW run path (``combinatorial_demux``) computes the same five report-only
+# numbers and must compute them from the same definitions. Two copies of these
+# formulas would be two metrics wearing one name.
+__all__ = [
+    "ConsensusResult",
+    "compute_well_consensuses",
+    "consensus_identity",
+    "depth_stats",
+]

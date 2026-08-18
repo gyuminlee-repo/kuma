@@ -88,6 +88,15 @@ _SHEET1_HEADER = [
     "noisy_positions",
     "min_variant_support",
     "min_variant_support_depth",
+    # Coverage uniformity and consensus identity, report only. read_count alone
+    # cannot separate a well covered evenly from one with the same mean and a
+    # hole. Blank means NOT MEASURED, never 0: a 0 in a column someone sorts on
+    # would read as a perfectly flat well or a consensus matching nothing.
+    "depth_cv",
+    "depth_p10",
+    "depth_min_covered",
+    "breadth_at_mix_min_depth",
+    "consensus_identity",
     "support_lower_bound",
     "max_indel_event_fraction",
     "review",
@@ -306,6 +315,15 @@ def _write_sheet1(
             format_noisy_positions(br.noisy_positions),
             _round_or_blank(br.min_variant_support, 4),
             br.min_variant_support_depth or "",
+            # Blank when unmeasured, on each field separately: a well that
+            # produced no consensus still measured a breadth of 0.0 while the
+            # other four are unknown. Six decimals on the two fractions because
+            # three would round one mismatch in 3 kb to a perfect 1.0.
+            _round_or_blank(br.depth_cv, 4),
+            _round_or_blank(br.depth_p10, 1),
+            "" if br.depth_min_covered is None else br.depth_min_covered,
+            _round_or_blank(br.breadth_at_mix_min_depth, 6),
+            _round_or_blank(br.consensus_identity, 6),
             _round_or_blank(support_lower_bound(br), 4),
             round(br.max_indel_event_fraction, 4),
             review_reason(br, baseline),

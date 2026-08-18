@@ -63,7 +63,23 @@ _NT_INDEL_RE = re.compile(r"^(\d+)_INDEL$")
 # the gate is the change that would need subsampled real runs (the way the indel
 # gate was calibrated from bench_v2) plus Moller-scale depth, and it would
 # reclassify wells in every existing project and move the result contract.
+#
+# A third caveat, and the one this module cannot see for itself: THE DERIVATION
+# ABOVE IS TIED TO AN AMPLICON LENGTH. The "per well" column is the per-position
+# binomial tail multiplied by 1500 positions, so at the same depth a 500 bp
+# amplicon runs a third of the trials and lands a third of the falsely mixed
+# positions, while a 4500 bp one lands three times as many. Nothing here reads a
+# reference length or a position count, so the factor is applied to every run as
+# if it were the one the table was computed for. That premise is measured and
+# reported where the run-level numbers live (``run_quality.py``, finding
+# ``mixed_depth_factor_amplicon_scale``). Reported and never enforced: the thing
+# that would have to move is the factor, and moving it reclassifies wells.
 _MIXED_CONFIDENT_DEPTH_FACTOR = 3
+
+#: Positions per amplicon the table above was computed over. Exported so the
+#: run-level check compares against the number the derivation actually used,
+#: rather than a second copy of it that can drift away from this comment.
+MIXED_FACTOR_ASSUMED_POSITIONS = 1500
 
 
 class ExpectedCoordinateMismatchError(ValueError):

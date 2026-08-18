@@ -468,7 +468,22 @@
       "neighborAvgHelp": "Mean read count of the four orthogonal neighbor wells (up/down/left/right). Informational; not used in the z-score.",
       "zScoreHelp": "(well reads minus plate mean) / plate SD. Wells above 2.5 are flagged. Severity: above 4 high, above 3 medium, above 2.5 low.",
       "percentileHelp": "File-size percentiles in KB by linear interpolation: p05 is the 5th percentile through p95 the 95th.",
-      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB."
+      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB.",
+      "qcSectionTitle": "Detalhes de QC do run",
+      "qcSectionAriaLabel": "Mostrar detalhes de QC do run",
+      "qcHealthTitle": "Run health",
+      "qcHealthAbsent": "Este run não registrou bloco de run health, portanto as seções file size, pore yield, throughput, barcode e cross-talk não têm o que ler.",
+      "qcNotMeasured": "Não medido",
+      "filterStats": {
+        "title": "Filtragem de reads",
+        "noDemux": "Este run não fez demultiplexação, então nenhum read passou pelo filtro de qualidade. Um run sobre um diretório de consensus lê arquivos de consensus prontos e nunca vê reads brutos.",
+        "noSummary": "O filtro de qualidade rodou mas não deixou contagem: a pasta do run não trazia arquivo sequencing_summary, de onde vem o Q score por read.",
+        "input": "Reads de entrada",
+        "passed": "Passaram no filtro",
+        "failedQscore": "Rejeitados por Q score",
+        "failedLength": "Rejeitados por comprimento",
+        "failedBarcode": "Rejeitados por barcode"
+      }
     },
     "plateView": {
       "plate": "Placa",
@@ -1011,6 +1026,40 @@
         "median_depth_below_recommended": "Profundidade mediana {{median}} abaixo das {{recommended}} leituras por amplicon recomendadas.",
         "flow_cell_reused": "A celula {{cell}} ja levou uma execucao neste projeto, encerrada com {{previousPores}} poros.",
         "variants_at_reference_edge": "{{variants}} ficam a menos de {{margin}} pb de uma extremidade da referencia, e esta execucao alinhou contra a referencia como foi fornecida. Um alinhador corta uma leitura em um desemparelhamento que nao consegue anexar, entao essas posicoes podem ver menos profundidade do que o poco relata. Uma referencia que inclua as regioes de ligacao dos primers as deixa mais para dentro."
+      },
+      "positionRecurrence": {
+        "title": "Posições recorrentes",
+        "noRun": "Ainda não há run sobre o qual relatar.",
+        "predatesBuild": "Este resultado salvo foi escrito antes de as posições recorrentes serem contadas, então nada se sabe sobre elas. Não significa que nenhuma posição se repetiu.",
+        "what": "Um minor allele em uma posição de um poço é candidato a mistura. A mesma posição poço após poço é a cara de um artefato de sequence context, porque o contexto pertence ao amplicon e não ao clone. Nada aqui é graduado.",
+        "lowerBound": "Cada contagem abaixo é um limite inferior: cada poço contribui com no máximo dez posições ordenadas por minor fraction, e {{truncated}} de {{contributing}} poços contribuintes bateram nesse teto, de modo que posições além da décima faltam na contagem.",
+        "wellsContributing": "Registros que contribuíram com uma posição",
+        "wellsTruncated": "Desses, truncados em dez",
+        "positionsSeen": "Posições distintas observadas",
+        "positionsSingleWell": "Vistas em um único registro (deixadas de fora)",
+        "none": "Nenhuma posição foi reportada por mais de um registro.",
+        "caption": "Posições de referência reportadas por mais de um registro, as mais recorrentes primeiro.",
+        "colPosition": "Posição",
+        "colWells": "Registros",
+        "colMedianShare": "Mediana weak strand",
+        "colShareRange": "Mín / máx",
+        "colSharesKnown": "Frações conhecidas"
+      },
+      "readLength": {
+        "title": "Comprimento de read",
+        "noRun": "Ainda não há run sobre o qual relatar.",
+        "predatesBuild": "Este resultado salvo foi escrito antes de os comprimentos de read serem carregados, então nada se sabe sobre eles. Não significa que os reads não tinham comprimento.",
+        "notRead": "Os comprimentos de read não foram lidos: a pasta do run não trazia report json, o arquivo não pôde ser interpretado, ou o MinKNOW que o escreveu é anterior a read_length_histogram.",
+        "reference": "Alinhado contra uma referência de {{bp}} bp.",
+        "referenceUnknown": "O comprimento da referência não pôde ser lido, então as razões abaixo não têm denominador.",
+        "unlabelled": "Entrada sem rótulo",
+        "noEntries": "O relatório não trazia nenhuma entrada de read length histogram.",
+        "n50": "N50 (valor do instrumento)",
+        "n50OverReference": "N50 sobre a referência",
+        "nearReferenceFraction": "Bases perto do comprimento de referência",
+        "over2xFraction": "Bases em 2x a referência ou além",
+        "concatemerNote": "Um N50 bem acima de 1x a referência é a cara de uma população de concatemer, e também a de um amplicon deliberadamente longo. Este número sozinho não separa os dois, então nada é sinalizado aqui.",
+        "basesNote": "As duas frações contam BASES, não reads."
       }
     },
     "inspector": {
@@ -1296,7 +1345,20 @@
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well.",
       "replicateReads": "{{reads}} reads",
-      "replicateAligned": "{{aligned}} alinhadas"
+      "replicateAligned": "{{aligned}} alinhadas",
+      "sectionCoverage": "Uniformidade de cobertura",
+      "coverage": {
+        "notMeasured": "Não medido",
+        "absent": "Este resultado foi escrito antes de a uniformidade de cobertura ser medida, então nenhum dos cinco números está disponível. Não significa que o poço foi coberto de forma uniforme.",
+        "depthCv": "Depth CV (0 é plano)",
+        "depthP10": "Depth p10",
+        "depthMinCovered": "Posição coberta mais rasa",
+        "breadth": "Referência com profundidade para ler um minor allele",
+        "consensusIdentity": "Consensus identity",
+        "consensusN": "Fração N do consensus",
+        "identityNote": "A identidade é medida só sobre bases chamadas, então um consensus quase todo N pode parecer uma correspondência quase perfeita. Leia junto com a fração N acima.",
+        "nNotEvaluable": "A fração N deste consensus não pôde ser recuperada e 0 foi substituído, então a identidade acima se apoia em uma quantidade de sequência desconhecida."
+      }
     },
     "wellSelection": {
       "title": "Poços usados",
@@ -2443,13 +2505,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Uma citacao a um documento que este repositorio nao tem agora faz a compilacao falhar, em vez de ser descoberta por quem a segue.",
-      "Sete citacoes que nomeavam um documento real em um caminho antigo foram corrigidas; uma apontava para outra pagina, nao para o vazio.",
-      "Uma pagina nova diz por que os registros de projeto citados pelo codigo faltam neste repositorio publico, e o que cada um cobre.",
-      "Quando um registro de projeto e o codigo divergem, essa pagina estabelece que valem o codigo e seus testes."
+      "Cinco seções de run health que o aplicativo media em toda execução e nunca desenhava agora aparecem na tela de revisão, em uma seção que começa fechada.",
+      "A cobertura informa a uniformidade por poço e não apenas uma média, de modo que um poço com uma lacuna não é mais lido como um coberto de forma uniforme.",
+      "A read length medida pelo sequenciador é mostrada diante da referência à qual a execução alinhou, que é onde uma população de concatâmeros aparece.",
+      "Um arquivo de referência com mais de uma sequência é recusado pelos quatro leitores, em vez de ser unido em uma quimera ou truncado silenciosamente.",
+      "Um amplicon sem reading frame encontrado diz isso, em vez de relatar uma CDS de comprimento zero que traduzia a placa a partir da cauda do primer."
     ],
-    "highlightsStamp": "0.16.27+4cd14ddd",
+    "highlightsStamp": "0.16.28+35bab529",
     "releases": {
+      "0.16.28": [
+        "Cinco seções de run health que o aplicativo media em toda execução e nunca desenhava agora aparecem na tela de revisão, em uma seção que começa fechada.",
+        "A cobertura informa a uniformidade por poço e não apenas uma média, de modo que um poço com uma lacuna não é mais lido como um coberto de forma uniforme.",
+        "A read length medida pelo sequenciador é mostrada diante da referência à qual a execução alinhou, que é onde uma população de concatâmeros aparece.",
+        "Um arquivo de referência com mais de uma sequência é recusado pelos quatro leitores, em vez de ser unido em uma quimera ou truncado silenciosamente.",
+        "Um amplicon sem reading frame encontrado diz isso, em vez de relatar uma CDS de comprimento zero que traduzia a placa a partir da cauda do primer."
+      ],
       "0.16.27": [
         "Uma citacao a um documento que este repositorio nao tem agora faz a compilacao falhar, em vez de ser descoberta por quem a segue.",
         "Sete citacoes que nomeavam um documento real em um caminho antigo foram corrigidas; uma apontava para outra pagina, nao para o vazio.",
@@ -2665,6 +2735,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",
       "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",
