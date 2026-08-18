@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.16.27 (A citation that leads nowhere now stops the build)
+
+The source cites design documents by path, in comments and docstrings, and following one often finds nothing. A sweep of the tracked tree turned up 68 such citations spread over roughly 240 places, and nothing separated the ones that are fine from the ones that are not.
+
+Some are fine. The third-party notice files are built at release time and are supposed to be absent from the source tree. The MAME design specs live under a directory that .gitignore excludes, because this repository is public and those records carry interview transcripts and the names of the people interviewed. Copying them in was the obvious remedy and the wrong one.
+
+Some were not fine. Seven citations named a real document at a path that no longer holds it. The release notes send a reader to the activity page by its old number, which now belongs to a different subject, so the link landed on the wrong page rather than on nothing at all. Three modules cite the benchmark report by bare filename from directories where that resolves to nothing. Those seven are corrected, and only the paths changed.
+
+A new page classifies the rest into five kinds: built at release, internal and staying out, lost outright, belonging to another repository, and never a citation to begin with. For the internal records it says what each one covers, so a reader knows what they are missing rather than only that something is missing. It also states which way a disagreement runs, because the decision tree in the transition classifier follows a backtest rather than the spec that 22 files cite, and the spec still describes the older round model.
+
+A checker enforces the split and runs with the other cross-layer checks. An unresolved citation that is not listed with a reason fails. So does a listed reason that no longer describes any citation, because an allowlist that only ever grows stops being read.
+
+### Highlights
+
+- A citation to a document this repository does not have now fails the build, instead of being discovered by whoever follows it.
+- Seven citations that named a real document at a stale path are corrected, one of which pointed at the wrong page rather than at nothing.
+- A new page says why the design records the code cites are absent from this public repository, and what each of them covers.
+- Where a design record and the code disagree, that page states that the code and its tests are what holds.
+
 ## v0.16.26 (Two design fields nobody read, and a docs path that never matched them)
 
 Four fields on the Custom Polymerase Editor, Opt/Min/Max size and Max Tm diff, never reached the design engine: sdm_engine.py held no reference to any of the four. Two of them actively disagreed with the vendor spec already shown next to them in the same dialog. Taq listed a size range of 15-25 while its NEBuilder-derived vendor spec said 20-40, so a profile someone tuned by hand carried two conflicting numbers and only one of them was ever read.

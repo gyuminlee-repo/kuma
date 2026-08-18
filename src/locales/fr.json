@@ -2443,11 +2443,19 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "L'éditeur de polymérase personnalisée n'affiche plus Opt/Min/Max size ni Max Tm diff, quatre champs jamais lus par le moteur de design.",
-      "La documentation du chemin de polymérase personnalisée et de configuration indique désormais ~/.kuma/kuro/, l'emplacement réel utilisé par kuma."
+      "Une citation vers un document absent de ce depot fait desormais echouer la compilation, au lieu d etre decouverte en la suivant.",
+      "Sept citations designant un document reel a un chemin perime sont corrigees; l une pointait vers une autre page, pas vers le vide.",
+      "Une nouvelle page explique pourquoi les documents de conception cites par le code manquent dans ce depot public, et ce que couvre chacun.",
+      "Quand un document de conception et le code divergent, cette page etablit que le code et ses tests font foi."
     ],
-    "highlightsStamp": "0.16.26+c3e3f1a1",
+    "highlightsStamp": "0.16.27+4cd14ddd",
     "releases": {
+      "0.16.27": [
+        "Une citation vers un document absent de ce depot fait desormais echouer la compilation, au lieu d etre decouverte en la suivant.",
+        "Sept citations designant un document reel a un chemin perime sont corrigees; l une pointait vers une autre page, pas vers le vide.",
+        "Une nouvelle page explique pourquoi les documents de conception cites par le code manquent dans ce depot public, et ce que couvre chacun.",
+        "Quand un document de conception et le code divergent, cette page etablit que le code et ses tests font foi."
+      ],
       "0.16.26": [
         "L'éditeur de polymérase personnalisée n'affiche plus Opt/Min/Max size ni Max Tm diff, quatre champs jamais lus par le moteur de design.",
         "La documentation du chemin de polymérase personnalisée et de configuration indique désormais ~/.kuma/kuro/, l'emplacement réel utilisé par kuma."
@@ -2477,6 +2485,11 @@
         "Un run qui écarte la plupart de ses lectures au filtre de couverture le signale, et ces puits ne ressemblent plus à des puits jamais remplis.",
         "Quand deux dossiers ressemblent tous deux à un run, la flow cell et l'heure de début de l'un ne sont plus rapportées pour l'autre."
       ],
+      "0.16.22": [
+        "La répartition des verdicts n'affiche plus de taux de récupération. Une exécution ne rapporte plus qu'un seul taux au lieu de deux qui comptaient différemment.",
+        "Le taux de réussite reste et compte exactement les clones PASS que la liste de sélection exporte réellement.",
+        "La barre ci-dessous répartit toujours les variants en réussis, confirmés avec un changement annexe et non confirmés."
+      ],
       "0.16.21": [
         "Les mutations collees a une extremite de la reference sont nommees au-dessus du tableau, pour les executions qui ont utilise la reference telle quelle.",
         "Elles sont nommees plutot que comptees, car savoir laquelle decide de ce qu'il faut faire.",
@@ -2492,6 +2505,11 @@
         "Les nombres de pores au debut et a la fin et l'id de la cellule viennent du dossier d'execution, avec l'execution precedente si la cellule est reutilisee.",
         "Les nombres de pores n'ont pas de seuil de reussite: une cellule partie de 343 pores a rendu cinq cents lectures par puits.",
         "Chaque seuil affiche sa source, pour qu'un defaut de workflow ne se lise pas comme une exigence du fabricant."
+      ],
+      "0.16.18": [
+        "Les noms de variants sur la carte de la plaque ne sont plus coupés avant le caractère qui les distingue. R560E et R560Q s'affichent désormais tels qu'ils sont.",
+        "Un nom trop long pour une ligne passe désormais à la ligne dans sa cellule au lieu d'être tronqué trop tôt.",
+        "Nettoyage interne de valeurs de conception inutilisées et de tailles codées en dur, sans changement visible."
       ],
       "0.16.17": [
         "Les fonds de couleur douce et les bordures colorées se dessinent enfin. Jusqu'ici ils disparaissaient silencieusement de la feuille de style dans toutes les versions.",
@@ -2644,19 +2662,10 @@
         "L'aide du Variant list mapping indique désormais le sens de remplissage des wells : A1, B1, C1 jusqu'à H1, puis A2.",
         "Le hook post-commit de version n'échoue plus sur un chemin supprimé.",
         "Une note de version longue défile maintenant dans la boîte de dialogue au lieu de dépasser en bas."
-      ],
-      "0.16.18": [
-        "Les noms de variants sur la carte de la plaque ne sont plus coupés avant le caractère qui les distingue. R560E et R560Q s'affichent désormais tels qu'ils sont.",
-        "Un nom trop long pour une ligne passe désormais à la ligne dans sa cellule au lieu d'être tronqué trop tôt.",
-        "Nettoyage interne de valeurs de conception inutilisées et de tailles codées en dur, sans changement visible."
-      ],
-      "0.16.22": [
-        "La répartition des verdicts n'affiche plus de taux de récupération. Une exécution ne rapporte plus qu'un seul taux au lieu de deux qui comptaient différemment.",
-        "Le taux de réussite reste et compte exactement les clones PASS que la liste de sélection exporte réellement.",
-        "La barre ci-dessous répartit toujours les variants en réussis, confirmés avec un changement annexe et non confirmés."
       ]
     },
     "releaseStamps": {
+      "0.16.27": "4cd14ddd",
       "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",

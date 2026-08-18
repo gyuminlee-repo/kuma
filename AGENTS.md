@@ -153,7 +153,7 @@ cross-layer 의존은 **`.cross-layer-sync.json` `groups[]`** 로 관리. 단일
 
 **CI 검증**: `pnpm sync:check` 가 vendored `sync-check.mjs` (기존 4 체크) + `sync-check-groups.mjs` (groups[] 정합성) 를 순차 실행. severity `blocking` 그룹에서 drift 발생 시 CI fail, `warning` 그룹은 WARN 로그만.
 
-**그룹 스키마**: `{ id, files[], symbols?, note, severity: "blocking"|"warning" }`. 한 파일이 여러 그룹에 속할 수 있음. 자세한 사양은 `notes/specs/2026-05-13-kuma-deps.md` 참조.
+**그룹 스키마**: `{ id, files[], symbols?, note, severity: "blocking"|"warning" }`. 한 파일이 여러 그룹에 속할 수 있음. 위 스키마가 정본이고 실제 항목은 `.cross-layer-sync.json` 을 직접 읽는다. 예전에 여기 걸려 있던 `notes/specs/2026-05-13-kuma-deps.md` 는 소실됐다 (`docs/design-records.md`).
 
 **신규 의존 추가**: `.cross-layer-sync.json` `groups[]` 에 항목 추가 → `pnpm sync:check:groups` 로 검증.
 

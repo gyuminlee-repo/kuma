@@ -1596,7 +1596,7 @@ _CONSENSUS_BATCH_FRACTION = 0.006
 #: spawn, index build) and at s3 the 25 batches already came to 8.6 s, 4.8% of
 #: the run, so a budget small enough to double that is worse than the spill it
 #: avoids. The ceiling is set past the largest value ever measured as useful
-#: (524288 query bases of batch was neutral against 262144, consensus-depth.md
+#: (524288 query bases of batch was neutral against 262144, notes/perf/consensus-depth.md
 #: section 4) so a huge box widens but does not run unbounded.
 _CONSENSUS_BATCH_MB_MIN = 8
 _CONSENSUS_BATCH_MB_MAX = 256

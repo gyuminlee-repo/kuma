@@ -2443,11 +2443,19 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El editor de polimerasa personalizada ya no muestra Opt/Min/Max size ni Max Tm diff, cuatro campos que el motor de diseño nunca leyó.",
-      "La documentación de la ruta de polimerasa personalizada y configuración ahora dice ~/.kuma/kuro/, donde kuma realmente los guarda."
+      "Una cita a un documento que este repositorio no tiene ahora hace fallar la compilacion, en vez de descubrirse al seguirla.",
+      "Siete citas que nombraban un documento real en una ruta obsoleta quedan corregidas; una apuntaba a otra pagina, no al vacio.",
+      "Una pagina nueva explica por que faltan en este repositorio publico los registros de diseno que cita el codigo, y que cubre cada uno.",
+      "Cuando un registro de diseno y el codigo discrepan, esa pagina establece que mandan el codigo y sus pruebas."
     ],
-    "highlightsStamp": "0.16.26+c3e3f1a1",
+    "highlightsStamp": "0.16.27+4cd14ddd",
     "releases": {
+      "0.16.27": [
+        "Una cita a un documento que este repositorio no tiene ahora hace fallar la compilacion, en vez de descubrirse al seguirla.",
+        "Siete citas que nombraban un documento real en una ruta obsoleta quedan corregidas; una apuntaba a otra pagina, no al vacio.",
+        "Una pagina nueva explica por que faltan en este repositorio publico los registros de diseno que cita el codigo, y que cubre cada uno.",
+        "Cuando un registro de diseno y el codigo discrepan, esa pagina establece que mandan el codigo y sus pruebas."
+      ],
       "0.16.26": [
         "El editor de polimerasa personalizada ya no muestra Opt/Min/Max size ni Max Tm diff, cuatro campos que el motor de diseño nunca leyó.",
         "La documentación de la ruta de polimerasa personalizada y configuración ahora dice ~/.kuma/kuro/, donde kuma realmente los guarda."
@@ -2477,6 +2485,11 @@
         "Un run que descarta la mayoría de sus lecturas en el filtro de cobertura ahora lo indica, y esos pocillos dejan de parecer pocillos sin llenar.",
         "Cuando dos carpetas parecen un run, la flow cell y la hora de inicio de una ya no se informan como las de la otra."
       ],
+      "0.16.22": [
+        "El desglose de veredictos ya no muestra una tasa de recuperación. Ahora una ejecución informa una tasa en lugar de dos que contaban de forma distinta.",
+        "La tasa de éxito se mantiene y cuenta exactamente los clones PASS que la lista de selección exporta.",
+        "La barra inferior sigue dividiendo las variantes en aprobadas, confirmadas con un cambio adicional y no confirmadas."
+      ],
       "0.16.21": [
         "Las mutaciones pegadas a un extremo de la referencia se nombran sobre la tabla de veredictos, en ejecuciones que usaron la referencia tal cual.",
         "Se nombran en vez de contarse, porque cual variante es decide que hacer al respecto.",
@@ -2492,6 +2505,11 @@
         "Los poros iniciales y finales y el id de la celda vienen de la carpeta de ejecucion, con la ejecucion anterior si la celda se reutilizo.",
         "Los poros no llevan linea de aprobado: una celda que empezo con 343 poros dio quinientas lecturas por pocillo.",
         "Cada umbral muestra su fuente, para que un valor por defecto de un flujo no se lea como requisito del fabricante."
+      ],
+      "0.16.18": [
+        "Los nombres de variantes en el mapa de la placa ya no se cortan antes del carácter que los distingue. R560E y R560Q ahora se leen tal como son.",
+        "Un nombre demasiado largo para una línea ahora salta de línea dentro de su celda en vez de cortarse antes de tiempo.",
+        "Limpieza interna de valores de diseño sin uso y tamaños fijos en el código, sin cambios visibles."
       ],
       "0.16.17": [
         "Los fondos de color suave y los bordes de color ahora se dibujan de verdad. Hasta ahora se perdían en silencio en la hoja de estilos en todas las versiones.",
@@ -2644,19 +2662,10 @@
         "La ayuda del mapeo de la lista de variantes ahora indica cómo se llenan los wells: A1, B1, C1 hasta H1, y luego A2.",
         "El hook post-commit de versión ya no falla por una ruta que se eliminó.",
         "Una nota de versión larga ahora se desplaza dentro del diálogo en lugar de salirse por abajo."
-      ],
-      "0.16.18": [
-        "Los nombres de variantes en el mapa de la placa ya no se cortan antes del carácter que los distingue. R560E y R560Q ahora se leen tal como son.",
-        "Un nombre demasiado largo para una línea ahora salta de línea dentro de su celda en vez de cortarse antes de tiempo.",
-        "Limpieza interna de valores de diseño sin uso y tamaños fijos en el código, sin cambios visibles."
-      ],
-      "0.16.22": [
-        "El desglose de veredictos ya no muestra una tasa de recuperación. Ahora una ejecución informa una tasa en lugar de dos que contaban de forma distinta.",
-        "La tasa de éxito se mantiene y cuenta exactamente los clones PASS que la lista de selección exporta.",
-        "La barra inferior sigue dividiendo las variantes en aprobadas, confirmadas con un cambio adicional y no confirmadas."
       ]
     },
     "releaseStamps": {
+      "0.16.27": "4cd14ddd",
       "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
