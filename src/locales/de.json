@@ -2505,13 +2505,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein Verweis auf ein Dokument, das dieses Repository nicht enthaelt, laesst nun den Build scheitern, statt erst beim Nachschlagen aufzufallen.",
-      "Sieben Verweise, die ein echtes Dokument unter einem veralteten Pfad nannten, sind korrigiert; einer zeigte auf die falsche Seite statt ins Leere.",
-      "Eine neue Seite nennt den Grund, warum die vom Code zitierten Entwurfsunterlagen in diesem oeffentlichen Repository fehlen, und was jede abdeckt.",
-      "Widersprechen sich Entwurfsunterlage und Code, haelt laut dieser Seite der Code mit seinen Tests."
+      "Fünf run-health-Abschnitte, die die App bei jedem Lauf gemessen und nie gezeichnet hat, stehen jetzt im Review-Bildschirm, zunächst geschlossen.",
+      "Die Coverage meldet die Gleichmäßigkeit je Well statt nur einen Mittelwert, sodass ein Well mit einer Lücke nicht mehr wie ein gleichmäßig bedecktes aussieht.",
+      "Die vom Sequenzierer gemessene read length wird gegen die Referenz gezeigt, gegen die der Lauf aligniert hat. Dort zeigt sich eine Concatemer-Population.",
+      "Eine Referenzdatei mit mehr als einer Sequenz wird von allen vier Readern abgelehnt, statt zu einer Chimäre verbunden oder stillschweigend gekürzt zu werden.",
+      "Ein Amplicon ohne gefundenes reading frame sagt das, statt eine CDS der Länge null zu melden, die die Platte ab dem Primer-Tail übersetzt hat."
     ],
-    "highlightsStamp": "0.16.27+4cd14ddd",
+    "highlightsStamp": "0.16.28+35bab529",
     "releases": {
+      "0.16.28": [
+        "Fünf run-health-Abschnitte, die die App bei jedem Lauf gemessen und nie gezeichnet hat, stehen jetzt im Review-Bildschirm, zunächst geschlossen.",
+        "Die Coverage meldet die Gleichmäßigkeit je Well statt nur einen Mittelwert, sodass ein Well mit einer Lücke nicht mehr wie ein gleichmäßig bedecktes aussieht.",
+        "Die vom Sequenzierer gemessene read length wird gegen die Referenz gezeigt, gegen die der Lauf aligniert hat. Dort zeigt sich eine Concatemer-Population.",
+        "Eine Referenzdatei mit mehr als einer Sequenz wird von allen vier Readern abgelehnt, statt zu einer Chimäre verbunden oder stillschweigend gekürzt zu werden.",
+        "Ein Amplicon ohne gefundenes reading frame sagt das, statt eine CDS der Länge null zu melden, die die Platte ab dem Primer-Tail übersetzt hat."
+      ],
       "0.16.27": [
         "Ein Verweis auf ein Dokument, das dieses Repository nicht enthaelt, laesst nun den Build scheitern, statt erst beim Nachschlagen aufzufallen.",
         "Sieben Verweise, die ein echtes Dokument unter einem veralteten Pfad nannten, sind korrigiert; einer zeigte auf die falsche Seite statt ins Leere.",
@@ -2727,6 +2735,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",
       "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",

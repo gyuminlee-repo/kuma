@@ -2505,13 +2505,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Uma citacao a um documento que este repositorio nao tem agora faz a compilacao falhar, em vez de ser descoberta por quem a segue.",
-      "Sete citacoes que nomeavam um documento real em um caminho antigo foram corrigidas; uma apontava para outra pagina, nao para o vazio.",
-      "Uma pagina nova diz por que os registros de projeto citados pelo codigo faltam neste repositorio publico, e o que cada um cobre.",
-      "Quando um registro de projeto e o codigo divergem, essa pagina estabelece que valem o codigo e seus testes."
+      "Cinco seções de run health que o aplicativo media em toda execução e nunca desenhava agora aparecem na tela de revisão, em uma seção que começa fechada.",
+      "A cobertura informa a uniformidade por poço e não apenas uma média, de modo que um poço com uma lacuna não é mais lido como um coberto de forma uniforme.",
+      "A read length medida pelo sequenciador é mostrada diante da referência à qual a execução alinhou, que é onde uma população de concatâmeros aparece.",
+      "Um arquivo de referência com mais de uma sequência é recusado pelos quatro leitores, em vez de ser unido em uma quimera ou truncado silenciosamente.",
+      "Um amplicon sem reading frame encontrado diz isso, em vez de relatar uma CDS de comprimento zero que traduzia a placa a partir da cauda do primer."
     ],
-    "highlightsStamp": "0.16.27+4cd14ddd",
+    "highlightsStamp": "0.16.28+35bab529",
     "releases": {
+      "0.16.28": [
+        "Cinco seções de run health que o aplicativo media em toda execução e nunca desenhava agora aparecem na tela de revisão, em uma seção que começa fechada.",
+        "A cobertura informa a uniformidade por poço e não apenas uma média, de modo que um poço com uma lacuna não é mais lido como um coberto de forma uniforme.",
+        "A read length medida pelo sequenciador é mostrada diante da referência à qual a execução alinhou, que é onde uma população de concatâmeros aparece.",
+        "Um arquivo de referência com mais de uma sequência é recusado pelos quatro leitores, em vez de ser unido em uma quimera ou truncado silenciosamente.",
+        "Um amplicon sem reading frame encontrado diz isso, em vez de relatar uma CDS de comprimento zero que traduzia a placa a partir da cauda do primer."
+      ],
       "0.16.27": [
         "Uma citacao a um documento que este repositorio nao tem agora faz a compilacao falhar, em vez de ser descoberta por quem a segue.",
         "Sete citacoes que nomeavam um documento real em um caminho antigo foram corrigidas; uma apontava para outra pagina, nao para o vazio.",
@@ -2727,6 +2735,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",
       "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",

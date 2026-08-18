@@ -2505,13 +2505,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Une citation vers un document absent de ce depot fait desormais echouer la compilation, au lieu d etre decouverte en la suivant.",
-      "Sept citations designant un document reel a un chemin perime sont corrigees; l une pointait vers une autre page, pas vers le vide.",
-      "Une nouvelle page explique pourquoi les documents de conception cites par le code manquent dans ce depot public, et ce que couvre chacun.",
-      "Quand un document de conception et le code divergent, cette page etablit que le code et ses tests font foi."
+      "Cinq sections run health que l'application mesurait à chaque exécution sans jamais les afficher figurent désormais sur l'écran de revue, repliées au départ.",
+      "La couverture indique l'uniformité par puits et non plus une simple moyenne, de sorte qu'un puits présentant un trou ne ressemble plus à un puits couvert uniformément.",
+      "La read length mesurée par le séquenceur est présentée face à la référence sur laquelle l'exécution a aligné, là où se voit une population de concatémères.",
+      "Un fichier de référence contenant plus d'une séquence est refusé par les quatre lecteurs, au lieu d'être fusionné en chimère ou tronqué silencieusement.",
+      "Un amplicon sans reading frame trouvé le dit, au lieu de rapporter une CDS de longueur nulle qui traduisait la plaque depuis la queue d'amorce."
     ],
-    "highlightsStamp": "0.16.27+4cd14ddd",
+    "highlightsStamp": "0.16.28+35bab529",
     "releases": {
+      "0.16.28": [
+        "Cinq sections run health que l'application mesurait à chaque exécution sans jamais les afficher figurent désormais sur l'écran de revue, repliées au départ.",
+        "La couverture indique l'uniformité par puits et non plus une simple moyenne, de sorte qu'un puits présentant un trou ne ressemble plus à un puits couvert uniformément.",
+        "La read length mesurée par le séquenceur est présentée face à la référence sur laquelle l'exécution a aligné, là où se voit une population de concatémères.",
+        "Un fichier de référence contenant plus d'une séquence est refusé par les quatre lecteurs, au lieu d'être fusionné en chimère ou tronqué silencieusement.",
+        "Un amplicon sans reading frame trouvé le dit, au lieu de rapporter une CDS de longueur nulle qui traduisait la plaque depuis la queue d'amorce."
+      ],
       "0.16.27": [
         "Une citation vers un document absent de ce depot fait desormais echouer la compilation, au lieu d etre decouverte en la suivant.",
         "Sept citations designant un document reel a un chemin perime sont corrigees; l une pointait vers une autre page, pas vers le vide.",
@@ -2727,6 +2735,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",
       "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",
