@@ -159,11 +159,15 @@ def pick_best_replicate(
             continue
         candidates.sort(key=_nb_order_key)
         bounds = {plate: _support_lower_bound(verdicts[plate]) for plate in candidates}
-        if len(candidates) > 1 and all(v is not None for v in bounds.values()):
+        # A plate with no lower bound is dropped rather than scored: a missing
+        # bound means unmeasured, never zero support. The tiebreak therefore
+        # only runs when every candidate carries one.
+        sure_bounds = {p: b for p, b in bounds.items() if b is not None}
+        if len(candidates) > 1 and len(sure_bounds) == len(candidates):
             # ``candidates`` is NB-ascending and ``max`` keeps the first maximal
             # element, so an exact tie resolves to the lowest NB deterministically.
-            winner = max(candidates, key=lambda plate: bounds[plate])
-            shown = ", ".join(f"{p}={bounds[p]:.3f}" for p in candidates)
+            winner = max(candidates, key=lambda plate: sure_bounds[plate])
+            shown = ", ".join(f"{p}={sure_bounds[p]:.3f}" for p in candidates)
             reason = (
                 f"verdict={cls.value}; tiebreak=variant-support lower bound ({shown})"
             )

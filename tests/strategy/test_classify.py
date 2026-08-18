@@ -22,6 +22,7 @@ Bootstrap fixture design notes (see advisor guidance):
 from __future__ import annotations
 
 import math
+from typing import Any
 
 import pytest
 
@@ -64,7 +65,7 @@ def _make_registered(**overrides) -> dict:
 
 def _make_round_state(**overrides) -> RoundState:
     """Return a base RoundState suitable for most tests."""
-    base = dict(
+    base: dict[str, Any] = dict(
         n=4,
         previous_signals=None,
         cumulative_beneficial=10,
@@ -129,7 +130,7 @@ class TestHelpers:
 
 class TestDecideCore:
     def _s(self, **kw) -> Signals:
-        defaults = dict(
+        defaults: dict[str, Any] = dict(
             T1=False, T2=None, T3=None, T4=None,
             T_active=None, T_model=None, T_unused=False,
         )

@@ -95,7 +95,7 @@ def _make_reference_fasta(tmp_path: Path) -> Path:
 # Primary discriminating test
 # ---------------------------------------------------------------------------
 
-def test_per_well_scoping_pass_vs_wrong_aa(tmp_path: pytest.FixtureDef) -> None:
+def test_per_well_scoping_pass_vs_wrong_aa(tmp_path: Path) -> None:
     """Core discriminating test: PASS with a layout, WRONG_AA without.
 
     - Well A02 (custom_barcode "1_2") observes G2A only.
@@ -168,7 +168,7 @@ def test_per_well_scoping_pass_vs_wrong_aa(tmp_path: pytest.FixtureDef) -> None:
 # Unmapped well -> falls back to full list -> WRONG_AA
 # ---------------------------------------------------------------------------
 
-def test_unmapped_well_falls_back_to_full_list(tmp_path: pytest.FixtureDef) -> None:
+def test_unmapped_well_falls_back_to_full_list(tmp_path: Path) -> None:
     """A well the layout does not name falls back to the full expected list.
 
     Uses a layout that only covers A2->G2A (omits B1). Well B01 (F3W-only)

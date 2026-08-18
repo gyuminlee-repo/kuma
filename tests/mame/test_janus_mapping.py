@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import csv
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -51,7 +52,9 @@ def _rows(replicates, dest_layout=None):
     )
 
 
-def _preview(replicates, dest_layout=None):
+def _preview(replicates, dest_layout=None) -> dict[str, Any]:
+    # The core returns dict[str, object]; the tests index into the known keys,
+    # so the value type is widened once here instead of casting at every use.
     return _build_janus_preview_rows_core(
         replicates, dest_layout=dest_layout, settings=_LEGACY_SOURCE
     )

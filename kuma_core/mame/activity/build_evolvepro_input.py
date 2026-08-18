@@ -9,6 +9,7 @@ from pathlib import Path
 import math
 import re
 from collections.abc import Callable
+from typing import cast
 from uuid import uuid4
 
 import pandas as pd
@@ -107,8 +108,13 @@ def _read_long(path: str | Path, activity_scale: str, layout_xlsx: str | Path | 
     wt_values: dict[str, list[float]] = {}
     for _, row in frame.iterrows():
         label = str(row[label_column]).strip()
+        # frame is a flat CSV/Excel read, so the value column holds scalars and a
+        # single-label lookup cannot yield a Series. Newer pandas types row[...]
+        # as Series | ndarray | Any, which float() refuses, so the cast records
+        # what the file format guarantees. The except below is the runtime
+        # enforcement: a cell that is not a number becomes a ValueError.
         try:
-            value = float(row[value_column])
+            value = float(cast(float | str, row[value_column]))
         except (TypeError, ValueError):
             raise ValueError(f"activity_path has a non-numeric value for {label!r}") from None
         if not math.isfinite(value) or value < 0:
@@ -283,7 +289,7 @@ def _sha256(path: Path) -> str:
     return f"sha256:{digest.hexdigest()}"
 
 def _publish_artifact_bundle(
-    writers: list[tuple[Path, Callable[[Path], None]]],
+    writers: list[tuple[Path, Callable[[Path], object]]],
     manifest_path: Path,
     manifest: dict[str, object],
 ) -> dict[str, str]:
@@ -410,7 +416,7 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     exported_variants = {variant for variant, _value in output_rows}
     n_authoritative = len(exported_variants & authoritative.keys())
     n_fallback_only = len(exported_variants - authoritative.keys())
-    writers: list[tuple[Path, Callable[[Path], None]]] = [
+    writers: list[tuple[Path, Callable[[Path], object]]] = [
         (output_path, lambda path: write_evolvepro_xlsx(output_rows, path)),
     ]
     export_path = (

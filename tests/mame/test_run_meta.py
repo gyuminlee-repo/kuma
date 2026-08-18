@@ -430,7 +430,7 @@ def test_excel_kuma_meta_omits_barcode_prefix_rule_without_a_barcode_file(
     )
 
     ws = openpyxl.load_workbook(out)["__kuma_meta__"]
-    keys = {row[0] for row in ws.iter_rows(min_row=2, values_only=True) if row[0]}
+    keys = {str(row[0]) for row in ws.iter_rows(min_row=2, values_only=True) if row[0]}
     assert "barcode_prefix_rule" not in keys
 
 

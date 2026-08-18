@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import gzip
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -289,7 +290,8 @@ def _mixed_reads() -> list[tuple[str, int, int]]:
 def test_match_reads_chunk_drop_deltas_partition_ambiguous() -> None:
     """Parallel path: the returned split sums to the returned total, per read."""
     pytest.importorskip("edlib", reason="edlib unavailable; matcher gated out")
-    chunk = [
+    # _Hit duck-types the two Alignment fields the matcher reads.
+    chunk: list[tuple[int, str, str, list[Any]]] = [
         (i, f"read{i}", read, [_Hit(q_st, q_en)])
         for i, (read, q_st, q_en) in enumerate(_mixed_reads())
     ]

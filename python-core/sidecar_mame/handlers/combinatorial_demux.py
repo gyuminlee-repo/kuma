@@ -294,7 +294,7 @@ def handle_run_combinatorial_demux(params: dict) -> dict:
     # Mutable holder: heartbeat thread reads this to emit keep-alive progress.
     # Dict assignment is atomic under the GIL; holder is written only from the
     # main thread via _progress, so no additional lock is needed for the holder.
-    _holder: dict = {
+    _holder = {
         "stage": "demux",
         "value": 50,
         "message": "Aligning and demultiplexing reads...",

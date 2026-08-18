@@ -593,6 +593,9 @@ def load_barcode_directory(
         wanted = None if units is None else set(units)
     else:
         wanted = claimed
+        # units_of returns None for a None manifest (unit_manifest.py:164), so a
+        # non-None claim means the manifest itself was read.
+        assert manifest is not None
         if strays_out is not None:
             strays = [name for name in present if name not in claimed]
             strays_out.update(
