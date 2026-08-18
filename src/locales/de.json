@@ -2443,11 +2443,19 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Der Custom-Polymerase-Editor zeigt Opt/Min/Max size und Max Tm diff nicht mehr, vier Felder, die die Design-Engine nie gelesen hat.",
-      "Die Dokumentation zum Pfad für Custom-Polymerase und Konfiguration nennt jetzt ~/.kuma/kuro/, wo kuma sie tatsächlich ablegt."
+      "Ein Verweis auf ein Dokument, das dieses Repository nicht enthaelt, laesst nun den Build scheitern, statt erst beim Nachschlagen aufzufallen.",
+      "Sieben Verweise, die ein echtes Dokument unter einem veralteten Pfad nannten, sind korrigiert; einer zeigte auf die falsche Seite statt ins Leere.",
+      "Eine neue Seite nennt den Grund, warum die vom Code zitierten Entwurfsunterlagen in diesem oeffentlichen Repository fehlen, und was jede abdeckt.",
+      "Widersprechen sich Entwurfsunterlage und Code, haelt laut dieser Seite der Code mit seinen Tests."
     ],
-    "highlightsStamp": "0.16.26+c3e3f1a1",
+    "highlightsStamp": "0.16.27+4cd14ddd",
     "releases": {
+      "0.16.27": [
+        "Ein Verweis auf ein Dokument, das dieses Repository nicht enthaelt, laesst nun den Build scheitern, statt erst beim Nachschlagen aufzufallen.",
+        "Sieben Verweise, die ein echtes Dokument unter einem veralteten Pfad nannten, sind korrigiert; einer zeigte auf die falsche Seite statt ins Leere.",
+        "Eine neue Seite nennt den Grund, warum die vom Code zitierten Entwurfsunterlagen in diesem oeffentlichen Repository fehlen, und was jede abdeckt.",
+        "Widersprechen sich Entwurfsunterlage und Code, haelt laut dieser Seite der Code mit seinen Tests."
+      ],
       "0.16.26": [
         "Der Custom-Polymerase-Editor zeigt Opt/Min/Max size und Max Tm diff nicht mehr, vier Felder, die die Design-Engine nie gelesen hat.",
         "Die Dokumentation zum Pfad für Custom-Polymerase und Konfiguration nennt jetzt ~/.kuma/kuro/, wo kuma sie tatsächlich ablegt."
@@ -2477,6 +2485,11 @@
         "Ein Run, der die meisten Reads am Coverage-Filter verwirft, sagt das nun, statt diese Wells wie nie befüllte aussehen zu lassen.",
         "Wenn zwei Ordner beide wie ein Run aussehen, wird Flow Cell und Startzeit des einen nicht mehr für den anderen gemeldet."
       ],
+      "0.16.22": [
+        "Die Verdikt-Übersicht zeigt keine Wiederfindungsrate mehr. Ein Lauf meldet jetzt eine statt zwei unterschiedlich zählende Raten.",
+        "Die Erfolgsrate bleibt und zählt genau die PASS-Klone, die die Pickliste tatsächlich exportiert.",
+        "Der Balken darunter teilt Varianten weiterhin in bestanden, mit Nebenänderung bestätigt und nicht bestätigt."
+      ],
       "0.16.21": [
         "Mutationen direkt an einem Ende der Referenz werden ueber der Urteilstabelle benannt, bei Laeufen, welche die gelieferte Referenz unveraendert genutzt haben.",
         "Sie werden benannt statt gezaehlt, denn welche Variante es ist entscheidet, was zu tun ist.",
@@ -2492,6 +2505,11 @@
         "Anfangs- und Endporenzahl und die Flusszellen-id kommen aus dem Laufordner, bei wiederverwendeter Zelle mit dem vorigen Lauf.",
         "Porenzahlen haben keine Bestanden-Grenze, denn eine Zelle mit 343 Anfangsporen lieferte fuenfhundert Reads pro Well.",
         "Jede Schwelle zeigt ihre Quelle, damit ein Workflow-Standardwert nicht als Herstellervorgabe gelesen wird."
+      ],
+      "0.16.18": [
+        "Variantennamen auf der Plattenkarte werden nicht mehr vor dem Zeichen abgeschnitten, das sie unterscheidet. R560E und R560Q werden jetzt korrekt angezeigt.",
+        "Ein Name, der nicht in eine Zeile passt, bricht jetzt innerhalb seiner Zelle um, statt vorzeitig abgeschnitten zu werden.",
+        "Interne Bereinigung ungenutzter Designwerte und hartcodierter Größen, ohne sichtbare Änderung."
       ],
       "0.16.17": [
         "Sanfte farbige Hintergründe und farbige Rahmen werden jetzt tatsächlich gezeichnet. Bisher fielen sie in jeder Version stillschweigend aus dem Stylesheet.",
@@ -2644,19 +2662,10 @@
         "Die Hilfe unter Variant list mapping nennt jetzt die Füllrichtung der Wells: A1, B1, C1 bis H1, dann A2.",
         "Der post-commit-Hook für die Versionsnummer bricht nicht mehr an einem entfernten Pfad ab.",
         "Eine lange Notiz lässt sich jetzt im Dialog scrollen, statt unten über den Rand hinauszulaufen."
-      ],
-      "0.16.18": [
-        "Variantennamen auf der Plattenkarte werden nicht mehr vor dem Zeichen abgeschnitten, das sie unterscheidet. R560E und R560Q werden jetzt korrekt angezeigt.",
-        "Ein Name, der nicht in eine Zeile passt, bricht jetzt innerhalb seiner Zelle um, statt vorzeitig abgeschnitten zu werden.",
-        "Interne Bereinigung ungenutzter Designwerte und hartcodierter Größen, ohne sichtbare Änderung."
-      ],
-      "0.16.22": [
-        "Die Verdikt-Übersicht zeigt keine Wiederfindungsrate mehr. Ein Lauf meldet jetzt eine statt zwei unterschiedlich zählende Raten.",
-        "Die Erfolgsrate bleibt und zählt genau die PASS-Klone, die die Pickliste tatsächlich exportiert.",
-        "Der Balken darunter teilt Varianten weiterhin in bestanden, mit Nebenänderung bestätigt und nicht bestätigt."
       ]
     },
     "releaseStamps": {
+      "0.16.27": "4cd14ddd",
       "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
