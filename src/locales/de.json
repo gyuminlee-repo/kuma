@@ -633,7 +633,7 @@
     },
     "appLayout": {
       "deadlockTitle": "Nein response",
-      "deadlockDescription": "Nein progress update für {{seconds}}+ seconds. The job ist stuck.",
+      "deadlockDescription": "Nein progress update für {{seconds}}+ seconds. The job may be stuck.",
       "deadlockWait": "Weiter warten",
       "deadlockReset": "Zurücksetzen",
       "analysisWorkspaceAriaLabel": "Analysis Workspace",

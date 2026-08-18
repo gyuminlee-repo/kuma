@@ -633,7 +633,7 @@
     },
     "appLayout": {
       "deadlockTitle": "応答なし",
-      "deadlockDescription": "{{seconds}} 秒以上進捗更新がありません。ジョブが停止しました。",
+      "deadlockDescription": "{{seconds}} 秒以上進捗更新がありません。ジョブが停止している可能性があります。",
       "deadlockWait": "待機を継続",
       "deadlockReset": "リセット",
       "analysisWorkspaceAriaLabel": "解析ワークスペース",

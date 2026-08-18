@@ -633,7 +633,7 @@
     },
     "appLayout": {
       "deadlockTitle": "Aucune réponse",
-      "deadlockDescription": "Aucune mise à jour de progression depuis plus de {{seconds}} secondes. La tâche est bloquée.",
+      "deadlockDescription": "Aucune mise à jour de progression depuis plus de {{seconds}} secondes. La tâche est peut-être bloquée.",
       "deadlockWait": "Continuer à attendre",
       "deadlockReset": "Réinitialiser",
       "analysisWorkspaceAriaLabel": "Espace de travail d'analyse",

@@ -633,7 +633,7 @@
     },
     "appLayout": {
       "deadlockTitle": "Sem resposta",
-      "deadlockDescription": "Sem atualização de progresso há mais de {{seconds}} segundos. A tarefa está travada.",
+      "deadlockDescription": "Sem atualização de progresso há mais de {{seconds}} segundos. A tarefa pode estar travada.",
       "deadlockWait": "Continuar aguardando",
       "deadlockReset": "Reiniciar",
       "analysisWorkspaceAriaLabel": "Workspace de análise",

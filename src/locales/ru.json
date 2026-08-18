@@ -633,7 +633,7 @@
     },
     "appLayout": {
       "deadlockTitle": "Нет ответа",
-      "deadlockDescription": "Нет обновлений прогресса {{seconds}}+ секунд. Задача зависла.",
+      "deadlockDescription": "Нет обновлений прогресса {{seconds}}+ секунд. Задача, возможно, зависла.",
       "deadlockWait": "Продолжить ждать",
       "deadlockReset": "Сбросить",
       "analysisWorkspaceAriaLabel": "Рабочая область анализа",

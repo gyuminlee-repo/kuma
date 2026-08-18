@@ -633,7 +633,7 @@
     },
     "appLayout": {
       "deadlockTitle": "无响应",
-      "deadlockDescription": "{{seconds}} 秒以上未收到进度更新。作业卡住了。",
+      "deadlockDescription": "{{seconds}} 秒以上未收到进度更新。作业可能卡住。",
       "deadlockWait": "继续等待",
       "deadlockReset": "重置",
       "analysisWorkspaceAriaLabel": "分析工作区",

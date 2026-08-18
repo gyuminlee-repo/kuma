@@ -633,7 +633,7 @@
     },
     "appLayout": {
       "deadlockTitle": "Sin respuesta",
-      "deadlockDescription": "No hay actualización de progreso desde hace más de {{seconds}} segundos. La tarea está bloqueada.",
+      "deadlockDescription": "No hay actualización de progreso desde hace más de {{seconds}} segundos. La tarea puede estar bloqueada.",
       "deadlockWait": "Seguir esperando",
       "deadlockReset": "Reiniciar",
       "analysisWorkspaceAriaLabel": "Workspace de análisis",
