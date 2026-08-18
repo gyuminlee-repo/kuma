@@ -1784,16 +1784,12 @@
     "saltOption_schildkraut": "Schildkraut-Lifson 1965 (NEB Phusion)",
     "saltOption_schildkraut_title": "Schildkraut-Lifson 1965 empirical Na⁺ correction. Legacy; coarser than Owczarzy oder SantaLucia.",
     "optTmLabel": "Opt Tm",
-    "maxTmDiffLabel": "Max Tm-Differenz",
     "minTmLabel": "Min Tm",
     "maxTmLabel": "Max Tm",
     "fwdTmLabel": "Fwd Tm",
     "revTmLabel": "Rev Tm",
     "overlapTmLabel": "Overlap Tm",
     "min3PrimeDistLabel": "Min 3'-Abstand",
-    "optSizeLabel": "Opt. Größe",
-    "minSizeLabel": "Min. Größe",
-    "maxSizeLabel": "Max. Größe",
     "minGcLabel": "Min GC",
     "maxGcLabel": "Max GC",
     "monovalentSaltLabel": "Monovalentes Salz",
@@ -1805,7 +1801,7 @@
     "save": "Speichern",
     "saving": "Speichere...",
     "nebTmNote": "Bei NEB-Polymerasen gilt die NEB Tm Calculator-Kalibrierung nur für die empfohlene Annealing-Temperatur (Ta). Die Tm zum Designzeitpunkt läuft auf der festen SantaLucia 1998 (Benchling) Skala, daher ändern die Salz- und Tm-Methodenwerte unten sie nicht.",
-    "fieldScopeNote": "Von der Design-Engine gelesen: Fwd/Rev/Overlap Tm-Ziele, GC-Bereich, Primer-Längenbereich, overlap-Modus. Gespeichert, aber ungenutzt: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff. Salz- und Tm-Methodenwerte fließen nur in Ta ein, und ein Custom-Profil hat keine Ta-Regel, daher wird dafür kein Ta angezeigt."
+    "fieldScopeNote": "Von der Design-Engine gelesen: Fwd/Rev/Overlap Tm-Ziele, GC-Bereich, Primer-Längenbereich, overlap-Modus. Gespeichert, aber ungenutzt: Opt Tm, Min/Max Tm. Salz- und Tm-Methodenwerte fließen nur in Ta ein, und ein Custom-Profil hat keine Ta-Regel, daher wird dafür kein Ta angezeigt."
   },
   "mainShell": {
     "alreadyRunning": "Already läuft.",

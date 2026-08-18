@@ -1802,16 +1802,12 @@
     "saltOption_schildkraut": "Schildkraut-Lifson 1965 (NEB Phusion)",
     "saltOption_schildkraut_title": "Schildkraut-Lifson 1965 경험적 Na⁺ 보정. 레거시 방식으로 Owczarzy나 SantaLucia보다 정밀도가 낮습니다.",
     "optTmLabel": "최적 Tm",
-    "maxTmDiffLabel": "최대 Tm 차이",
     "minTmLabel": "최소 Tm",
     "maxTmLabel": "최대 Tm",
     "fwdTmLabel": "Fwd Tm",
     "revTmLabel": "Rev Tm",
     "overlapTmLabel": "Overlap Tm",
     "min3PrimeDistLabel": "최소 3' 거리",
-    "optSizeLabel": "최적 크기",
-    "minSizeLabel": "최소 크기",
-    "maxSizeLabel": "최대 크기",
     "minGcLabel": "최소 GC",
     "maxGcLabel": "최대 GC",
     "monovalentSaltLabel": "단가 염",
@@ -1823,7 +1819,7 @@
     "save": "저장",
     "saving": "저장 중...",
     "nebTmNote": "NEB 폴리머라제는 NEB Tm Calculator 보정을 권장 어닐링 온도(Ta) 계산에만 적용합니다. 설계 시점 Tm은 SantaLucia 1998 (Benchling) 고정 스케일이라 아래 salt 및 Tm method 값은 설계 Tm을 바꾸지 않습니다.",
-    "fieldScopeNote": "설계 엔진이 읽는 값: Fwd/Rev/Overlap Tm 목표, GC 범위, 프라이머 길이 범위, overlap 모드. 저장되지만 사용하지 않는 값: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff. salt 및 Tm method 값은 Ta 계산에만 쓰이며, 커스텀 프로파일은 Ta 규칙이 없어 Ta가 표시되지 않습니다."
+    "fieldScopeNote": "설계 엔진이 읽는 값: Fwd/Rev/Overlap Tm 목표, GC 범위, 프라이머 길이 범위, overlap 모드. 저장되지만 사용하지 않는 값: Opt Tm, Min/Max Tm. salt 및 Tm method 값은 Ta 계산에만 쓰이며, 커스텀 프로파일은 Ta 규칙이 없어 Ta가 표시되지 않습니다."
   },
   "mainShell": {
     "alreadyRunning": "이미 실행 중입니다.",

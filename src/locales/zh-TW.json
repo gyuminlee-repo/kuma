@@ -1784,16 +1784,12 @@
     "saltOption_schildkraut": "Schildkraut-Lifson 1965 (NEB Phusion)",
     "saltOption_schildkraut_title": "Schildkraut-Lifson 1965 經驗性 Na⁺ 校正。Legacy;比 Owczarzy 或 SantaLucia 粗略。",
     "optTmLabel": "Opt Tm",
-    "maxTmDiffLabel": "Max Tm diff",
     "minTmLabel": "Min Tm",
     "maxTmLabel": "Max Tm",
     "fwdTmLabel": "Fwd Tm",
     "revTmLabel": "Rev Tm",
     "overlapTmLabel": "Overlap Tm",
     "min3PrimeDistLabel": "Min 3' distance",
-    "optSizeLabel": "Opt size",
-    "minSizeLabel": "Min size",
-    "maxSizeLabel": "Max size",
     "minGcLabel": "Min GC",
     "maxGcLabel": "Max GC",
     "monovalentSaltLabel": "Monovalent salt",
@@ -1805,7 +1801,7 @@
     "save": "儲存",
     "saving": "儲存中...",
     "nebTmNote": "NEB polymerase 的 NEB Tm Calculator 校正僅用於推薦退火溫度 (Ta)。設計時的 Tm 採用固定的 SantaLucia 1998 (Benchling) 標度，因此下方的 salt 與 Tm method 數值不會改變它。",
-    "fieldScopeNote": "設計引擎讀取的值：Fwd/Rev/Overlap Tm 目標、GC 範圍、引物長度範圍、overlap 模式。儲存但未使用：Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff。salt 與 Tm method 數值僅用於 Ta 計算，而 custom 設定檔沒有 Ta 規則，因此不會顯示 Ta。"
+    "fieldScopeNote": "設計引擎讀取的值：Fwd/Rev/Overlap Tm 目標、GC 範圍、引物長度範圍、overlap 模式。儲存但未使用：Opt Tm, Min/Max Tm。salt 與 Tm method 數值僅用於 Ta 計算，而 custom 設定檔沒有 Ta 規則，因此不會顯示 Ta。"
   },
   "mainShell": {
     "alreadyRunning": "已在執行。",

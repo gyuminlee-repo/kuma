@@ -192,9 +192,9 @@ def test_neb_source_matches_calibrated_path(registry, offsets):
 def test_none_when_no_ta_rule(offsets):
     custom = PolymeraseProfile(
         name="Custom", tm_method="santalucia", salt_correction="owczarzy",
-        opt_tm=60.0, min_tm=55.0, max_tm=65.0, opt_size=20, min_size=15,
-        max_size=25, min_gc=40.0, max_gc=60.0, salt_monovalent=50.0,
-        salt_divalent=1.5, dntp_conc=0.8, dna_conc=250.0, max_tm_diff=3.0,
+        opt_tm=60.0, min_tm=55.0, max_tm=65.0, min_gc=40.0, max_gc=60.0,
+        salt_monovalent=50.0, salt_divalent=1.5, dntp_conc=0.8,
+        dna_conc=250.0,
     )
     out = compute_annealing("ATGCATGCATGCATGCAT", "ATGCATGCATGCATGCAT", custom, offsets)
     assert out == {

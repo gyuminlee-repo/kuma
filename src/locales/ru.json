@@ -1784,16 +1784,12 @@
     "saltOption_schildkraut": "Schildkraut-Lifson 1965 (NEB Phusion)",
     "saltOption_schildkraut_title": "Schildkraut-Lifson 1965 эмпирическая коррекция Na⁺. Legacy; грубее Owczarzy или SantaLucia.",
     "optTmLabel": "Opt Tm",
-    "maxTmDiffLabel": "Max Tm diff",
     "minTmLabel": "Min Tm",
     "maxTmLabel": "Max Tm",
     "fwdTmLabel": "Fwd Tm",
     "revTmLabel": "Rev Tm",
     "overlapTmLabel": "Overlap Tm",
     "min3PrimeDistLabel": "Min 3' distance",
-    "optSizeLabel": "Opt size",
-    "minSizeLabel": "Min size",
-    "maxSizeLabel": "Max size",
     "minGcLabel": "Min GC",
     "maxGcLabel": "Max GC",
     "monovalentSaltLabel": "Monovalent salt",
@@ -1805,7 +1801,7 @@
     "save": "Сохранить",
     "saving": "Сохранение...",
     "nebTmNote": "Для NEB polymerase калибровка NEB Tm Calculator применяется только к рекомендуемой температуре отжига (Ta). Tm на этапе дизайна считается по фиксированной шкале SantaLucia 1998 (Benchling), поэтому значения соли и метода Tm ниже её не меняют.",
-    "fieldScopeNote": "Читается движком дизайна: цели Tm Fwd/Rev/Overlap, диапазон GC, диапазон длины праймера, режим overlap. Сохраняется, но не используется: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff. Значения соли и метода Tm влияют только на Ta, а у custom-профиля нет правила Ta, поэтому Ta не отображается."
+    "fieldScopeNote": "Читается движком дизайна: цели Tm Fwd/Rev/Overlap, диапазон GC, диапазон длины праймера, режим overlap. Сохраняется, но не используется: Opt Tm, Min/Max Tm. Значения соли и метода Tm влияют только на Ta, а у custom-профиля нет правила Ta, поэтому Ta не отображается."
   },
   "mainShell": {
     "alreadyRunning": "Уже запущено.",

@@ -1784,16 +1784,12 @@
     "saltOption_schildkraut": "Schildkraut-Lifson 1965 (NEB Phusion)",
     "saltOption_schildkraut_title": "Correção empírica de Na⁺ Schildkraut-Lifson 1965. Legacy; mais grosseira que Owczarzy ou SantaLucia.",
     "optTmLabel": "Opt Tm",
-    "maxTmDiffLabel": "Máx diff Tm",
     "minTmLabel": "Min Tm",
     "maxTmLabel": "Max Tm",
     "fwdTmLabel": "Fwd Tm",
     "revTmLabel": "Rev Tm",
     "overlapTmLabel": "Overlap Tm",
     "min3PrimeDistLabel": "Distância mín 3'",
-    "optSizeLabel": "Tamanho opt",
-    "minSizeLabel": "Tamanho mín",
-    "maxSizeLabel": "Tamanho máx",
     "minGcLabel": "Min GC",
     "maxGcLabel": "Max GC",
     "monovalentSaltLabel": "Sal monovalente",
@@ -1805,7 +1801,7 @@
     "save": "Salvar",
     "saving": "Salvando...",
     "nebTmNote": "Para polimerases NEB a calibração do NEB Tm Calculator vale apenas para a temperatura de anelamento recomendada (Ta). A Tm de design usa a escala fixa SantaLucia 1998 (Benchling), portanto os valores de sal e de método de Tm abaixo não a alteram.",
-    "fieldScopeNote": "Lido pelo motor de design: alvos de Tm Fwd/Rev/Overlap, faixa de GC, faixa de comprimento do primer, modo overlap. Armazenado mas sem uso: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff. Os valores de sal e método de Tm alimentam apenas Ta, e um perfil custom não traz regra de Ta, então nenhum Ta é exibido."
+    "fieldScopeNote": "Lido pelo motor de design: alvos de Tm Fwd/Rev/Overlap, faixa de GC, faixa de comprimento do primer, modo overlap. Armazenado mas sem uso: Opt Tm, Min/Max Tm. Os valores de sal e método de Tm alimentam apenas Ta, e um perfil custom não traz regra de Ta, então nenhum Ta é exibido."
   },
   "mainShell": {
     "alreadyRunning": "Já está em execução.",

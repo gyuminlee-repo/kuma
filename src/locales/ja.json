@@ -1784,16 +1784,12 @@
     "saltOption_schildkraut": "Schildkraut-Lifson 1965 (NEB Phusion)",
     "saltOption_schildkraut_title": "Schildkraut-Lifson 1965 経験的 Na⁺ 補正。レガシー。Owczarzy や SantaLucia より粗い。",
     "optTmLabel": "Opt Tm",
-    "maxTmDiffLabel": "Max Tm diff",
     "minTmLabel": "Min Tm",
     "maxTmLabel": "Max Tm",
     "fwdTmLabel": "Fwd Tm",
     "revTmLabel": "Rev Tm",
     "overlapTmLabel": "Overlap Tm",
     "min3PrimeDistLabel": "Min 3' distance",
-    "optSizeLabel": "Opt size",
-    "minSizeLabel": "Min size",
-    "maxSizeLabel": "Max size",
     "minGcLabel": "Min GC",
     "maxGcLabel": "Max GC",
     "monovalentSaltLabel": "Monovalent salt",
@@ -1805,7 +1801,7 @@
     "save": "保存",
     "saving": "保存中...",
     "nebTmNote": "NEB polymerase では NEB Tm Calculator の補正は推奨アニーリング温度 (Ta) のみに適用されます。設計時の Tm は SantaLucia 1998 (Benchling) 固定スケールのため、下の salt および Tm method の値では変わりません。",
-    "fieldScopeNote": "設計エンジンが読む値: Fwd/Rev/Overlap Tm 目標、GC 範囲、primer 長範囲、overlap モード。保存されるが未使用: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff。salt と Tm method の値は Ta の計算のみに使われ、custom プロファイルは Ta ルールを持たないため Ta は表示されません。"
+    "fieldScopeNote": "設計エンジンが読む値: Fwd/Rev/Overlap Tm 目標、GC 範囲、primer 長範囲、overlap モード。保存されるが未使用: Opt Tm, Min/Max Tm。salt と Tm method の値は Ta の計算のみに使われ、custom プロファイルは Ta ルールを持たないため Ta は表示されません。"
   },
   "mainShell": {
     "alreadyRunning": "すでに実行中です。",
