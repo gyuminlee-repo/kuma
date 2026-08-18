@@ -572,18 +572,23 @@ for (const c of unresolvedKeyCalls) console.log(`  unresolved key: ${c}`);
 // legitimately identical to English on a whole sentence is rare enough to spend
 // a baseline slot on.
 const UNTRANSLATED_BASELINE = {
-  // de 557 rather than 556: `jobQueue.statusAriaLabel` is correct German that happens
-  // to equal the English, so the identical-value heuristic counts it. Rewording it
-  // to dodge the ratchet would be worse German chosen to satisfy a gate.
-  de: 557,
-  es: 548,
-  fr: 544,
-  ja: 617,
-  ko: 151,
-  "pt-BR": 550,
-  ru: 659,
-  "zh-CN": 610,
-  "zh-TW": 610,
+  // Moved when origin/main merged in: that branch added 63 keys (2682 -> 2745)
+  // and left some of them English in these locales. The increase is inherited,
+  // not introduced here. Four locales moved down because main translated keys
+  // that were English before, and those are tightened rather than left slack.
+  //
+  // de carries one deliberate entry: `jobQueue.statusAriaLabel` is correct German
+  // that happens to equal the English, so the identical-value heuristic counts it.
+  // Rewording it to dodge the ratchet would be worse German chosen to satisfy a gate.
+  de: 561,
+  es: 551,
+  fr: 548,
+  ja: 616,
+  ko: 154,
+  "pt-BR": 553,
+  ru: 658,
+  "zh-CN": 609,
+  "zh-TW": 609,
 };
 
 const isProse = (v) => typeof v === "string" && v.trim() !== "" && /\s/.test(v.trim());

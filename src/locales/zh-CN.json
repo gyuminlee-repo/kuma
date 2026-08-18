@@ -468,7 +468,22 @@
       "neighborAvgHelp": "Mean read count of the four orthogonal neighbor wells (up/down/left/right). Informational; not used in the z-score.",
       "zScoreHelp": "(well reads minus plate mean) / plate SD. Wells above 2.5 are flagged. Severity: above 4 high, above 3 medium, above 2.5 low.",
       "percentileHelp": "File-size percentiles in KB by linear interpolation: p05 is the 5th percentile through p95 the 95th.",
-      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB."
+      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB.",
+      "qcSectionTitle": "运行 QC 详情",
+      "qcSectionAriaLabel": "显示运行 QC 详情",
+      "qcHealthTitle": "Run health",
+      "qcHealthAbsent": "本次运行未记录 run health 数据块，因此 file size、pore yield、throughput、barcode 与 cross-talk 各节没有可读取的值。",
+      "qcNotMeasured": "未测量",
+      "filterStats": {
+        "title": "read 过滤",
+        "noDemux": "本次运行未做 demultiplex，因此没有 read 经过质量过滤。以 consensus 目录为输入的运行读取已完成的 consensus 文件，不会看到原始 read。",
+        "noSummary": "质量过滤已运行但未留下计数：运行文件夹中没有 sequencing_summary 文件，而每条 read 的 Q score 正来自该文件。",
+        "input": "输入 read",
+        "passed": "通过过滤",
+        "failedQscore": "因 Q score 被剔除",
+        "failedLength": "因长度被剔除",
+        "failedBarcode": "因 barcode 被剔除"
+      }
     },
     "plateView": {
       "plate": "Plate",
@@ -1011,6 +1026,40 @@
         "median_depth_below_recommended": "深度中位数 {{median}} 低于推荐的每个扩增子 {{recommended}} 条读段。",
         "flow_cell_reused": "流通池 {{cell}} 在本项目中已运行过一次，结束时孔隙为 {{previousPores}}。",
         "variants_at_reference_edge": "{{variants}} 位于参考序列末端 {{margin}} bp 以内，而本次运行直接使用了所提供的参考序列。比对器会在无法连接的错配处截断读段，因此这些位置的深度可能低于该孔报告的深度。改用包含引物结合区的参考序列可让它们更靠内。"
+      },
+      "positionRecurrence": {
+        "title": "反复出现的位点",
+        "noRun": "尚无可报告的运行。",
+        "predatesBuild": "该保存结果写于统计反复位点之前，因此对此一无所知。这不代表没有位点反复出现。",
+        "what": "单个孔中某一位点的 minor allele 是混合的候选。同一位点在一个又一个孔中出现，则是 sequence context artifact 的样子，因为该 context 属于 amplicon 而非克隆。此处不作任何评级。",
+        "lowerBound": "下列每个计数都是下界：每个孔最多贡献按 minor fraction 排序的十个位点，而在 {{contributing}} 个有贡献的孔中有 {{truncated}} 个触及该上限，因此排在第十位之后的位点未计入。",
+        "wellsContributing": "贡献了位点的记录",
+        "wellsTruncated": "其中在十处被截断",
+        "positionsSeen": "观测到的不同位点",
+        "positionsSingleWell": "仅在一条记录中出现（已排除）",
+        "none": "没有位点被一条以上的记录报告。",
+        "caption": "被一条以上记录报告的参考位点，反复次数多者在前。",
+        "colPosition": "位点",
+        "colWells": "记录",
+        "colMedianShare": "weak strand 中位数",
+        "colShareRange": "最小 / 最大",
+        "colSharesKnown": "已知比例"
+      },
+      "readLength": {
+        "title": "read 长度",
+        "noRun": "尚无可报告的运行。",
+        "predatesBuild": "该保存结果写于携带 read 长度之前，因此对此一无所知。这不代表 read 没有长度。",
+        "notRead": "未能读取 read 长度：运行文件夹中没有 report json、文件无法解析，或写入它的 MinKNOW 早于 read_length_histogram。",
+        "reference": "比对到长度为 {{bp}} bp 的参考序列。",
+        "referenceUnknown": "无法读取参考长度，因此下列比值没有分母。",
+        "unlabelled": "无标签条目",
+        "noEntries": "报告中没有 read length histogram 条目。",
+        "n50": "N50（仪器报告值）",
+        "n50OverReference": "N50 与参考之比",
+        "nearReferenceFraction": "接近参考长度的碱基比例",
+        "over2xFraction": "达到或超过参考 2 倍的碱基比例",
+        "concatemerNote": "N50 远高于参考的 1 倍既是 concatemer 群体的样子，也是刻意设计的长 amplicon 的样子。仅凭此数无法区分两者，因此此处不作任何标记。",
+        "basesNote": "两个比例统计的都是碱基数，而非 read 条数。"
       }
     },
     "inspector": {
@@ -1296,7 +1345,20 @@
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well.",
       "replicateReads": "{{reads}} reads",
-      "replicateAligned": "比对 {{aligned}}"
+      "replicateAligned": "比对 {{aligned}}",
+      "sectionCoverage": "覆盖均匀度",
+      "coverage": {
+        "notMeasured": "未测量",
+        "absent": "该结果写于测量覆盖均匀度之前，因此五项数值均不可得。这不代表该孔被均匀覆盖。",
+        "depthCv": "Depth CV（0 为平坦）",
+        "depthP10": "Depth p10",
+        "depthMinCovered": "最浅的被覆盖位点",
+        "breadth": "深度足以判读 minor allele 的参考比例",
+        "consensusIdentity": "Consensus identity",
+        "consensusN": "Consensus N 比例",
+        "identityNote": "identity 只在已判读的碱基上计算，因此大部分为 N 的 consensus 也可能显示为近乎完全一致。请与上方的 N 比例对照阅读。",
+        "nNotEvaluable": "该 consensus 的 N 比例无法复原，已以 0 代入，因此上方的 identity 建立在未知长度的序列之上。"
+      }
     },
     "wellSelection": {
       "title": "使用的孔位",
@@ -1784,16 +1846,12 @@
     "saltOption_schildkraut": "Schildkraut-Lifson 1965 (NEB Phusion)",
     "saltOption_schildkraut_title": "Schildkraut-Lifson 1965 经验性 Na⁺ 校正。Legacy;比 Owczarzy 或 SantaLucia 粗略。",
     "optTmLabel": "Opt Tm",
-    "maxTmDiffLabel": "Max Tm diff",
     "minTmLabel": "Min Tm",
     "maxTmLabel": "Max Tm",
     "fwdTmLabel": "Fwd Tm",
     "revTmLabel": "Rev Tm",
     "overlapTmLabel": "Overlap Tm",
     "min3PrimeDistLabel": "Min 3' distance",
-    "optSizeLabel": "Opt size",
-    "minSizeLabel": "Min size",
-    "maxSizeLabel": "Max size",
     "minGcLabel": "Min GC",
     "maxGcLabel": "Max GC",
     "monovalentSaltLabel": "Monovalent salt",
@@ -1805,7 +1863,7 @@
     "save": "保存",
     "saving": "保存中...",
     "nebTmNote": "NEB polymerase 的 NEB Tm Calculator 校正仅用于推荐退火温度 (Ta)。设计时的 Tm 采用固定的 SantaLucia 1998 (Benchling) 标度，因此下方的 salt 与 Tm method 数值不会改变它。",
-    "fieldScopeNote": "设计引擎读取的值：Fwd/Rev/Overlap Tm 目标、GC 范围、引物长度范围、overlap 模式。保存但未使用：Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff。salt 与 Tm method 数值仅用于 Ta 计算，而 custom 配置没有 Ta 规则，因此不会显示 Ta。"
+    "fieldScopeNote": "设计引擎读取的值：Fwd/Rev/Overlap Tm 目标、GC 范围、引物长度范围、overlap 模式。保存但未使用：Opt Tm, Min/Max Tm。salt 与 Tm method 数值仅用于 Ta 计算，而 custom 配置没有 Ta 规则，因此不会显示 Ta。"
   },
   "mainShell": {
     "alreadyRunning": "已在运行。",
@@ -2446,14 +2504,31 @@
     "descriptionRange": "自 v{{from}} 以来每次更新的主要变化。",
     "gotItBtn": "知道了",
     "highlights": [
-      "导出到已有较早 run 输出的文件夹时，该 run 会连那些 plate 一并判定，表中出现的 plate 多于所选数量。",
-      "过去的工作簿若显示的 plate 多于该 run 所选的 barcode，说明它判定了另一个 run 的 well，需要重新运行。",
-      "文件夹现在会记录每个 run 生成了哪些 plate，较早 run 留下的 plate 会在界面上列出，并且不会删除任何内容。",
-      "导出界面不再提供起始 row 和结束 row。除整块 plate 之外的任何设置，都会把不同突变体叠放到同一个 well 上。",
-      "位置只由 quadrant 选择决定，已保存的 row 区间若会覆盖已占用的 well，现在会被拒绝而不是写出。"
+      "应用每次运行都在测量却从未绘制的 5 个 run health 区块，现已显示在审阅界面中，默认折叠。",
+      "覆盖度按孔报告均匀性而不再只给平均值，因此存在缺口的孔不会再看起来与同一 depth 下均匀覆盖的孔一样。",
+      "测序仪测得的 read length 会与本次运行所比对的 reference 对照显示，concatemer 正是在此显现。",
+      "含有一条以上序列的 reference 文件会被全部四个读取器拒绝，不再拼接成 chimera，也不会被静默截断。",
+      "未找到 reading frame 的 amplicon 会如实说明，不再报告长度为 0 的 CDS 而从 primer tail 开始翻译。"
     ],
-    "highlightsStamp": "0.16.25.1+291c60a5",
+    "highlightsStamp": "0.16.28+35bab529",
     "releases": {
+      "0.16.28": [
+        "应用每次运行都在测量却从未绘制的 5 个 run health 区块，现已显示在审阅界面中，默认折叠。",
+        "覆盖度按孔报告均匀性而不再只给平均值，因此存在缺口的孔不会再看起来与同一 depth 下均匀覆盖的孔一样。",
+        "测序仪测得的 read length 会与本次运行所比对的 reference 对照显示，concatemer 正是在此显现。",
+        "含有一条以上序列的 reference 文件会被全部四个读取器拒绝，不再拼接成 chimera，也不会被静默截断。",
+        "未找到 reading frame 的 amplicon 会如实说明，不再报告长度为 0 的 CDS 而从 primer tail 开始翻译。"
+      ],
+      "0.16.27": [
+        "引用仓库中不存在的文档会使构建失败，不再等到有人顺着链接才发现。",
+        "修正了 7 处指向陈旧路径的引用，其中一处指向了另一个页面而不是空白。",
+        "新增页面说明代码引用的设计记录为何不在这个公开仓库中，以及各自涵盖的范围。",
+        "当设计记录与代码不一致时，该页面明确以代码及其测试为准。"
+      ],
+      "0.16.26": [
+        "自定义聚合酶编辑器不再显示 Opt/Min/Max size 和 Max Tm diff,这四个字段设计引擎从未读取过。",
+        "自定义聚合酶与配置路径文档现在写的是 ~/.kuma/kuro/,与 kuma 实际存放位置一致。"
+      ],
       "0.16.25.1": [
         "导出到已有较早 run 输出的文件夹时，该 run 会连那些 plate 一并判定，表中出现的 plate 多于所选数量。",
         "过去的工作簿若显示的 plate 多于该 run 所选的 barcode，说明它判定了另一个 run 的 well，需要重新运行。",
@@ -2479,6 +2554,11 @@
         "当覆盖度阈值丢弃了大部分 read 时，run 会明确说明，这些孔不再看起来像从未上样的孔。",
         "当有两个文件夹都像是 run 时，一个 run 的 flow cell 和开始时间不会再被报告为另一个 run 的。"
       ],
+      "0.16.22": [
+        "判定分布不再显示回收率,现在每次运行只报告一个比率,而不是两个计算方式不同的比率。",
+        "确认率保持不变,统计的是拣选清单实际导出的PASS克隆数量。",
+        "下方的条形图仍将变异体分为通过、伴随附加变化被确认、未确认三类。"
+      ],
       "0.16.21": [
         "紧靠参考序列末端的突变会在判定表上方列出名称，仅出现在直接使用所提供参考序列的运行中。",
         "列出的是名称而非数量，因为是哪一个突变决定了接下来要做什么。",
@@ -2494,6 +2574,11 @@
         "起始与结束孔隙数以及流通池 id 现在从运行文件夹读取，若为重复使用还会显示上一次运行。",
         "孔隙数不设合格线，因为一块以 343 孔隙起始的流通池给出了每孔五百条读段。",
         "每个阈值都显示来源，避免把厂商工作流默认值读成厂商要求。"
+      ],
+      "0.16.18": [
+        "板图上的变体名称不再在区分它们的字符前被截断。R560E 和 R560Q 现在各自完整显示。",
+        "一行放不下的名称现在会在单元格内换行，而不是提前截断。",
+        "内部清理了未使用的设计值和硬编码尺寸，界面无变化。"
       ],
       "0.16.17": [
         "柔和的彩色背景和彩色边框现在真正能显示了。此前所有版本中它们都在样式表里被悄悄丢弃。",
@@ -2646,19 +2731,12 @@
         "Variant list mapping 的说明现在写明 well 的填充方向：A1、B1、C1 直到 H1，然后是 A2。",
         "post-commit 版本同步钩子不再因引用已删除的路径而中断。",
         "较长的版本说明现在可在对话框内滚动，不会再溢出到底部之外。"
-      ],
-      "0.16.18": [
-        "板图上的变体名称不再在区分它们的字符前被截断。R560E 和 R560Q 现在各自完整显示。",
-        "一行放不下的名称现在会在单元格内换行，而不是提前截断。",
-        "内部清理了未使用的设计值和硬编码尺寸，界面无变化。"
-      ],
-      "0.16.22": [
-        "判定分布不再显示回收率,现在每次运行只报告一个比率,而不是两个计算方式不同的比率。",
-        "确认率保持不变,统计的是拣选清单实际导出的PASS克隆数量。",
-        "下方的条形图仍将变异体分为通过、伴随附加变化被确认、未确认三类。"
       ]
     },
     "releaseStamps": {
+      "0.16.28": "35bab529",
+      "0.16.27": "4cd14ddd",
+      "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",

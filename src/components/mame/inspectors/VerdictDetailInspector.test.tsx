@@ -7,6 +7,7 @@
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 
+import enLocale from "@/locales/en.json";
 import { VerdictDetailInspector } from "./VerdictDetailInspector";
 import { VerdictTable } from "@/components/mame/widgets/VerdictTable";
 import { PlateView } from "@/components/mame/widgets/PlateView";
@@ -487,5 +488,97 @@ describe("VerdictDetailInspector confidence metric popups", () => {
       "saved before the run reported whether the N fraction could be evaluated",
     );
     expect(panel).not.toContain("the value shown is a substituted 0.0");
+  });
+});
+
+/**
+ * The five coverage figures answer a question the read count cannot: a well
+ * covered evenly at 100x and one averaging 100x with a hole report the same
+ * depth. None of them gates anything, so nothing here is coloured, and
+ * `consensus_identity` never appears without the N fraction beside it.
+ */
+describe("VerdictDetailInspector, coverage uniformity", () => {
+  const en = enLocale.mame.verdictDetail.coverage;
+
+  it("reports the five figures a measured well carries", () => {
+    useMameAppStore.setState({
+      verdicts: [
+        makeVerdict({
+          depth_cv: 0.42,
+          depth_p10: 210,
+          depth_min_covered: 87,
+          breadth_at_mix_min_depth: 0.93,
+          consensus_identity: 0.998,
+        }),
+      ],
+      selectedWell: wells[0]!,
+    });
+    render(<VerdictDetailInspector />);
+
+    const block = screen.getByTestId("verdict-coverage");
+    expect(block).toHaveAttribute("data-measured", "true");
+    const text = block.textContent ?? "";
+    expect(text).toContain("0.42");
+    expect(text).toContain("210");
+    expect(text).toContain("93.0%");
+    expect(text).toContain("99.8%");
+    expect(text).not.toContain("{{");
+    expect(text).not.toContain("mame.");
+  });
+
+  it("keeps the N fraction next to identity so a mostly-N well cannot look perfect", () => {
+    useMameAppStore.setState({
+      verdicts: [makeVerdict({ consensus_identity: 1, consensus_n_fraction: 0.95 })],
+      selectedWell: wells[0]!,
+    });
+    render(<VerdictDetailInspector />);
+
+    const text = screen.getByTestId("verdict-coverage").textContent ?? "";
+    expect(text).toContain("100.0%");
+    expect(text).toContain("95.0%");
+    expect(text).toContain(en.identityNote);
+  });
+
+  it("prints an unmeasured figure as unknown while a measured 0 stays 0", () => {
+    // The sidecar omits the five independently: a well with no reads reports a
+    // real breadth of 0 with the other four absent.
+    useMameAppStore.setState({
+      verdicts: [makeVerdict({ breadth_at_mix_min_depth: 0 })],
+      selectedWell: wells[0]!,
+    });
+    render(<VerdictDetailInspector />);
+
+    const block = screen.getByTestId("verdict-coverage");
+    expect(block).toHaveAttribute("data-measured", "true");
+    const text = block.textContent ?? "";
+    expect(text).toContain("0.0%");
+    expect(text).toContain(en.notMeasured);
+    expect(text).not.toContain(en.absent);
+  });
+
+  it("answers a result that predates the measurement with one reason, not five dashes", () => {
+    useMameAppStore.setState({
+      verdicts: [makeVerdict()],
+      selectedWell: wells[0]!,
+    });
+    render(<VerdictDetailInspector />);
+
+    const block = screen.getByTestId("verdict-coverage");
+    expect(block).toHaveAttribute("data-measured", "false");
+    expect(block.textContent ?? "").toContain(en.absent);
+  });
+
+  it("warns when the N fraction beside the identity was a substituted zero", () => {
+    useMameAppStore.setState({
+      verdicts: [
+        makeVerdict({ consensus_identity: 0.99, consensus_n_fraction_evaluable: false }),
+      ],
+      selectedWell: wells[0]!,
+    });
+    render(<VerdictDetailInspector />);
+
+    expect(screen.getByTestId("verdict-coverage").textContent ?? "").toContain(
+      en.nNotEvaluable,
+    );
   });
 });

@@ -1,6 +1,10 @@
 """Combinatorial switching classifier (v0.3 engine).
 
 Spec: notes/specs/2026-05-04-mame-activity-integration.md §12-A.2 / §12-A.2b
+  That spec is an internal record and is not in this public repository; see
+  docs/design-records.md. Where it and this code disagree, this code and the
+  tests under tests/strategy/ are what holds.
+
 Phase 6 Task 6.3 -- classify() body, bootstrap, hysteresis gate.
 
 Dependencies: stdlib only (math, statistics, hashlib, json, dataclasses).

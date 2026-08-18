@@ -1,6 +1,6 @@
 """Exploration-vs-exploitation AL benchmark on rugged NK landscapes.
 
-This is the test the PI's local-minima rationale actually targets (REPORT.md §3.1):
+This is the test the PI's local-minima rationale actually targets (benchmark/REPORT.md §3.1):
 on landscapes with real local optima, does diversity-aware acquisition reach the
 global optimum more reliably than greedy Top-N — and does the gap grow with
 ruggedness K? Surrogate = sklearn RandomForest on one-hot genotype features

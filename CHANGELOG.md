@@ -1,5 +1,88 @@
 # Changelog
 
+## v0.16.28 (What a run measured and never showed)
+
+RunHealthPanel has six sections and the app mounted one. A comment on the review screen said the other five lived in the QC inspector, which never imported the panel. File size, throughput, pore yield, barcode distribution and cross-talk were computed on every run and dropped on the floor. They now sit in a disclosure at the bottom of the review, closed until it is opened, so the verdict table and the plate keep the screen.
+
+Coverage reached that screen as a mean. A well covered evenly at 100x and a well averaging 100x across a gap are the same number under that summary, and the gap is the one that decides whether a base call can be trusted. Five figures now come off the same per-position depth vector the mean is computed from: the coefficient of variation, the tenth percentile, the lowest covered position, the breadth at the depth the mixed-allele rule needs, and the identity of the consensus against the reference. None of them means zero when it is absent. Absent means not measured, and a measured zero is a real reading, which is why the five gate independently rather than behind one guard.
+
+An amplicon run is judged by whether the molecules that reached the pore were the amplicon. MAME counted reads per well and scored consensuses, so a plate of concatemers and a plate of clean product looked alike until the verdicts came out wrong. The instrument already answers this in its own report file, which the flow cell reader opens anyway, so the N50 is quoted rather than recomputed and its provenance says so. Three properties of that file shaped the reading. A run reports several N50 values rather than one, so each travels with its own label and a missing label stays missing. The histogram buckets hold bases rather than read counts, checked by recomputing the cumulative distribution both ways against the stated N50, so every fraction is named for bases and is null unless the file states the unit that check was made against. The plot and outlier sets describe disjoint reads while their ranges overlap, so the two are never concatenated. On the measured run the ratio to the reference is about 1.9, which is what a concatemer population looks like and also what a deliberately long amplicon looks like. No cut between those survives a second run, so the ratio is shown as a reading and grades nothing.
+
+A reference FASTA holding two records was accepted by four readers, each in its own way. The amplicon reader dropped every header line and joined the rest, so a file carrying a plasmid backbone and a target gene came back as one sequence with a junction present in no molecule, and every span, coordinate and verdict was computed against that chimera. The reader on the raw run folder path, the one every well of a MinKNOW run passes through, silently kept whichever record sorted first. The judgement now lives in one module that all four call, so the same file is refused the same way with the same sentence naming the records it holds.
+
+An extracted amplicon with no forward ORF reported its coding bounds as (0, 0), which is also what the branches that never attempted extraction report. Downstream that pair does not read as unknown: the start stays at zero and the end is replaced by the full reference length, so the plate is translated in frame 0 from the first base of the amplicon, which is the primer tail. Amino acid numbering then belongs to a frame the design never used, wells carrying an expected mutation fail as wrong amino acid, and wild-type control wells pass clean, none of it mentioning the frame. The resolution now carries whether coding bounds were found at all, and refuses only the case with no answer left, an extracted amplicon with no ORF and no caller CDS that fits it. An operator who states the CDS is never blocked.
+
+The confident-mixed depth factor was derived by multiplying a per-position binomial tail by 1500 positions per amplicon, and no layer reads a reference length or a position count. A 500 bp amplicon runs a third of those trials, so the table that factor was read off does not describe it. The factor and the gate are unchanged. What is new is that the premise is checked and named: the median eligible-position count of the wells actually scored is compared against 1500, and a ratio outside a 0.5x to 2.0x band raises a warning carrying both numbers, the factor and the band. The band exists because run severity turns to warning whenever any finding is present, so an unconditional line would flag every healthy run.
+
+Nothing added in this release grades, colours or gates a well. Every figure here is reported.
+
+### Highlights
+
+- Five run health sections the app measured on every run and never drew are now on the review screen, in a section that starts closed.
+- Coverage reports evenness per well rather than a mean alone, so a well with a gap no longer reads like one covered evenly at the same depth.
+- The read length the sequencer measured is shown against the reference the run aligned to, which is where a concatemer population shows.
+- A reference file holding more than one sequence is refused by all four readers instead of being joined into a chimera or silently truncated.
+- An amplicon with no reading frame found says so, rather than reporting a zero length CDS that translated the plate from the primer tail.
+
+### Fixed
+
+- A multi-record reference FASTA is refused rather than concatenated or truncated. `kuma_core/mame/reference_fasta.py` holds the record-count judgement and `amplicon_reference.py`, `pipeline.py`, the sidecar analyze handler and `well_consensus._read_reference_seq` all raise through it, naming the records the file holds so the operator can pick the one reads align against. The fourth of those is the reader every well of a raw MinKNOW run passes, the primary input path, and it had been keeping whichever record sorted first. Headerless files and single-record files behave exactly as before. A multi-record reference that used to be accepted silently is now rejected.
+- An extracted amplicon with no forward ORF reports that instead of a (0, 0) coding range. `AmpliconReferenceResolution` carries `coding_bounds_found`, the extraction note explains an empty ORF search the way the other three failure branches explain themselves, and `resolve_amplicon_cds` refuses only an extracted amplicon with no ORF and no caller CDS that fits it. Caller bounds in whole-reference or amplicon coordinates still win. Previously `analyze.py` kept `cds_start=0` and replaced a `cds_end` of 0 with the reference length, translating the plate in frame 0 from the primer tail.
+- The MinKNOW block of the run health panel no longer draws an empty panel. The line explaining that a run carrying no raw data has no such measurements was gated on the section subset being undefined, so a subset that asked for those sections rendered a heading over nothing. It is gated on the subset containing one of the four. Cross-talk sits inside that block and was reached by the same fix. A run with no run-health block at all says so.
+- `RUN_HEALTH_QC_SECTIONS` replaces `RUN_HEALTH_VERDICT_SECTIONS` and `RUN_HEALTH_PLATE_SECTIONS`, which had no consumer in `src/` and matched neither what the review screen needs.
+
+### Added
+
+- Five report-only coverage figures on every well: `depth_cv`, `depth_p10`, `depth_min_covered`, `breadth_at_mix_min_depth` and `consensus_identity`. They read the per-position depth vector `mean_depth` is computed from, and travel the whole chain rather than one branch of it: `combinatorial_demux` computes them from the same `depth_stats` and identity definitions the direct path imports, then consensus FASTA header keys, `fasta_parser`, `BarcodeRecord`, the analyze response, the TS `VerdictRecord`, the workbook columns and the sorted-barcode writer. `None` means not measured at every layer and is never 0.0, which is a real reading. Fractions carry six decimals because three would round one mismatch in a 3 kb amplicon to a perfect 1.000.
+- Read length QC quoted from the instrument report, with per-entry labels, base-weighted fractions named as such, and the ratio to the reference the run aligned to. The run folder handed over is the original run directory rather than the input directory, which the raw path rebinds to the demux output. `detect_amplicon_length` also returns p10, p25, p75 and p90 off the length vector it already had, because min, median and max cannot tell a tight amplicon from a smear around the same centre.
+- A stage-2 warning when the amplicon scale the confident-mixed depth factor assumes does not match the run. It carries the ratio, the median eligible-position count, the 1500 positions the factor was derived over, the factor itself and the band, with `provisional` true and `enforced` false, because the band is a printing rule rather than a measured boundary. The derivation comment in `verdict.py` states its dependence on amplicon length instead of leaving it inside the arithmetic.
+- `RunQcSection` on the review screen, holding run health, filter statistics, position recurrence and read length. `filter_stats` distinguishes its two absences: a consensus-directory run never demultiplexes, while a raw run handed no sequencing summary demultiplexes and cannot fill the tally. An all-zero tally is a measurement and prints as zeros. `position_recurrence` states that every count is a floor and cites the wells whose ten-position budget was truncated, and a weak-strand share of null renders as unknown rather than as 0.0, which is the opposite finding.
+- The five coverage figures in the well inspector, with `consensus_identity` directly above `consensus_n_fraction`, because identity is measured over called bases alone and a well whose consensus is 95 percent N reads as a perfect match. A result that predates the measurement answers with one reason line rather than five blanks.
+
+## v0.16.27 (A citation that leads nowhere now stops the build)
+
+The source cites design documents by path, in comments and docstrings, and following one often finds nothing. A sweep of the tracked tree turned up 68 such citations spread over roughly 240 places, and nothing separated the ones that are fine from the ones that are not.
+
+Some are fine. The third-party notice files are built at release time and are supposed to be absent from the source tree. The MAME design specs live under a directory that .gitignore excludes, because this repository is public and those records carry interview transcripts and the names of the people interviewed. Copying them in was the obvious remedy and the wrong one.
+
+Some were not fine. Seven citations named a real document at a path that no longer holds it. The release notes send a reader to the activity page by its old number, which now belongs to a different subject, so the link landed on the wrong page rather than on nothing at all. Three modules cite the benchmark report by bare filename from directories where that resolves to nothing. Those seven are corrected, and only the paths changed.
+
+A new page classifies the rest into five kinds: built at release, internal and staying out, lost outright, belonging to another repository, and never a citation to begin with. For the internal records it says what each one covers, so a reader knows what they are missing rather than only that something is missing. It also states which way a disagreement runs, because the decision tree in the transition classifier follows a backtest rather than the spec that 22 files cite, and the spec still describes the older round model.
+
+A checker enforces the split and runs with the other cross-layer checks. An unresolved citation that is not listed with a reason fails. So does a listed reason that no longer describes any citation, because an allowlist that only ever grows stops being read.
+
+### Highlights
+
+- A citation to a document this repository does not have now fails the build, instead of being discovered by whoever follows it.
+- Seven citations that named a real document at a stale path are corrected, one of which pointed at the wrong page rather than at nothing.
+- A new page says why the design records the code cites are absent from this public repository, and what each of them covers.
+- Where a design record and the code disagree, that page states that the code and its tests are what holds.
+
+## v0.16.26 (Two design fields nobody read, and a docs path that never matched them)
+
+Four fields on the Custom Polymerase Editor, Opt/Min/Max size and Max Tm diff, never reached the design engine: sdm_engine.py held no reference to any of the four. Two of them actively disagreed with the vendor spec already shown next to them in the same dialog. Taq listed a size range of 15-25 while its NEBuilder-derived vendor spec said 20-40, so a profile someone tuned by hand carried two conflicting numbers and only one of them was ever read.
+
+The custom polymerase and config docs pointed at ~/.kuro/, a path the app has not used since the private config directory moved under ~/.kuma/. Every English and Korean doc reference now reads ~/.kuma/kuro/, matching what core.py and config_paths.py actually resolve, except the one line in contributing.md that intentionally still names ~/.kuro/crash.log as the path earlier installs used.
+
+A separate change touches no behavior: the sweep that shows lowering the Gibson-arm assembly homology floor is safe only down to 11 nt, and unsafe at 8 nt and 10 nt, is now recorded as a comment on the constant itself, so the next person to ask does not have to re-run it.
+
+### Highlights
+
+- Custom Polymerase Editor no longer shows Opt/Min/Max size or Max Tm diff, four fields the design engine never read.
+- Docs for the custom polymerase and config paths now say ~/.kuma/kuro/, matching where kuma actually stores them.
+
+### Removed
+
+- `opt_size`, `min_size`, `max_size` and `max_tm_diff` are gone from `PolymeraseProfile`, `PolymeraseProfileModel`, the builtin profile JSON, the custom polymerase editor, and every fixture and test that carried them. A saved custom profile still loads: `_dict_to_profile` reads named keys rather than unpacking the dict, so a leftover key from an older save is silently dropped, and `WorkspaceModel` carries `extra="allow"` for the same reason on the sidecar side.
+
+### Fixed
+
+- `~/.kuro/` corrected to `~/.kuma/kuro/` across `docs/en/` and `docs/ko/`, 22 occurrences in 14 files: `configuration.md`, `contributing.md`, `custom-polymerase-editor.md`, `faq.md`, `troubleshooting.md`, `uniprot-and-alphafold.md`, `workspace-save-load.md`.
+
+### Changed
+
+- `_MIN_ASSEMBLY_HOMOLOGY` in `sdm_engine.py` now documents the sweep behind its value: a no-op below the 8 nt seed length, unchanged across 86 design attempts down to 11 nt, and a real loss of a winning primer pair at 10 nt and a rejected candidate at 8 nt. No logic in this file changed.
+
 ## v0.16.25.1 (A run that scored the plates of the run before it)
 
 Select three native barcodes and three plates belong in the verdict table. On 2026-08-10 six arrived. The three extra ones were sitting in the export folder already, written by a different run the day before, and nobody had asked for them: they were never offered in the selection dialog. Four verdict workbooks were produced from that folder before anyone noticed.

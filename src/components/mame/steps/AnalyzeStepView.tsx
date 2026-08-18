@@ -36,6 +36,7 @@ import { SummaryRow } from "@/components/mame/widgets/SummaryRow";
 import { VerdictTable } from "@/components/mame/widgets/VerdictTable";
 import { PlateView } from "@/components/mame/widgets/PlateView";
 import { RunHealthPanel } from "@/components/mame/widgets/RunHealthPanel";
+import { RunQcSection } from "@/components/mame/widgets/RunQcSection";
 import { PlateClusterAlert } from "@/components/mame/widgets/PlateClusterAlert";
 import { MappingIntegrityAlert } from "@/components/mame/widgets/MappingIntegrityAlert";
 import { RunQualityNotice } from "@/components/mame/widgets/RunQualityNotice";
@@ -386,10 +387,13 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
         break;
       }
       // Unified review: left = Summary + Verdict table, right = Plate (top) + per-plate verdict chart (bottom).
-      // The only RunHealthPanel on this screen is the one below, and it renders
-      // the verdict breakdown alone. The other sections (file-size / throughput
-      // / pore-yield / barcode / cross-talk) live in the QC inspector; 2.1 has
-      // no RunHealthPanel to reach them from, whatever this comment used to say.
+      // Two RunHealthPanel mounts on this screen. The one beside the plate draws
+      // the verdict breakdown alone; the other five sections (file-size /
+      // throughput / pore-yield / barcode / cross-talk) are inside RunQcSection,
+      // the collapsed QC disclosure below the grid. They had no mount at all
+      // before that: MameInspectorContent never imported RunHealthPanel, so the
+      // "they live in the QC inspector" this comment used to claim was false and
+      // the five sections were computed and dropped.
       mainContent = (
         <div className="relative flex flex-col" ref={reviewContainerRef}>
           {/* First of everything on this screen, and only when the run could not
@@ -485,6 +489,13 @@ export function AnalyzeStepView({ runHealth = null, onRunRequest, onClearRequest
               </DataPanel>
             </div>
           </div>
+          {/* Last on the screen and closed by default. Everything in it is
+              measurement the run already made and nothing was reading; none of
+              it outranks the table and the plate above, so it waits to be
+              opened. Mounted unconditionally, including when runHealth is null:
+              the blocks inside read the store rather than that prop, and the
+              health part states its own absence. */}
+          <RunQcSection runHealth={runHealth} />
         </div>
       );
       break;

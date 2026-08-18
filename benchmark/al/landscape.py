@@ -2,7 +2,7 @@
 
 The Track-1 ProteinGym test cannot assess local-minima avoidance: a single-mutant
 DMS oracle has independent, fixed per-variant fitness, so there is no epistatic
-trap for diversity to escape (see REPORT.md §3.1). This module provides the
+trap for diversity to escape (see benchmark/REPORT.md §3.1). This module provides the
 landscape the PI's rationale actually targets: an NK model with TUNABLE
 ruggedness K, where greedy hill-climbing can get stuck in local optima and broad
 exploration helps reach the global optimum.

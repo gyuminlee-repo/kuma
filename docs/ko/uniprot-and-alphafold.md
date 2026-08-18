@@ -8,7 +8,7 @@ CDS 선택 후 Kuro가 UniProt을 검색하여 설계를 보강:
 
 CDS 번역 서열을 UniProt Swiss-Prot에 대해 EBI BLAST 수행. 상위 hit의 identity가 **≥ 95 %일 때만 자동 선택**; 그 미만이면 후보 목록을 보여주고 사용자가 수동 선택.
 
-> **Contact 이메일 필수.** EBI는 이메일 없는 BLAST 요청을 거부함. `KURO_CONTACT_EMAIL` 환경변수 또는 `~/.kuro/config.json`의 `contact_email` 설정. [설정](configuration.md) 참고.
+> **Contact 이메일 필수.** EBI는 이메일 없는 BLAST 요청을 거부함. `KURO_CONTACT_EMAIL` 환경변수 또는 `~/.kuma/kuro/config.json`의 `contact_email` 설정. [설정](configuration.md) 참고.
 
 ## 직접 accession 조회
 

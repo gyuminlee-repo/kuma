@@ -5,7 +5,7 @@
 Use the [issue tracker](https://github.com/gyuminlee-repo/kuma/issues). Include:
 - OS + kuma version (Help → About or the installer filename)
 - Steps to reproduce
-- `~/.kuma/crash.log` contents if a sidecar crash is involved (or `~/.kuro/crash.log` from earlier installs)
+- `~/.kuma/kuro/crash.log` contents if a sidecar crash is involved (or `~/.kuro/crash.log` from earlier installs)
 - Sample sequence / CSV if possible (minimally reproducing set)
 
 ## Development environment
