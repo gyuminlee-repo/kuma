@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ProjectTourCoordinator,
@@ -38,7 +44,9 @@ describe("ProjectTourCoordinator", () => {
 
     expect(await screen.findByText("Move between Kuro and Mame")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    expect(screen.getByText("Track the active project")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Track the active project"),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Finish" }));
 
     expect(await screen.findByText("Follow the Kuro workflow")).toBeInTheDocument();
@@ -57,7 +65,11 @@ describe("ProjectTourCoordinator", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Skip all tours" }));
 
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    // waitFor rather than a bare query: dismissal is a state update too, and a
+    // synchronous read here fails whenever the re-render has not landed yet.
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
     expect(localStorage.getItem(storageKey("overview"))).toBe("1");
     expect(localStorage.getItem(storageKey("kuro"))).toBe("1");
     expect(localStorage.getItem(storageKey("mame"))).toBe("1");
@@ -127,6 +139,12 @@ describe("ProjectTourCoordinator", () => {
 
     expect(await screen.findByText("Follow the Mame workflow")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    expect(screen.getByText("Choose a Mame input route")).toBeInTheDocument();
+    // findByText, not getByText: advancing a stop is a state update, and a
+    // synchronous read races the re-render. The assertion above already awaits
+    // for the same reason. Under CI load this one caught the tour still on
+    // "Step 1 / 4" and failed a component that works.
+    expect(
+      await screen.findByText("Choose a Mame input route"),
+    ).toBeInTheDocument();
   });
 });
