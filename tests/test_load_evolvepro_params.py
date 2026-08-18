@@ -45,4 +45,5 @@ def test_defaults_are_none_and_desc():
 def test_invalid_score_order_raises():
     """score_order only accepts 'desc' or 'asc'; other values raise ValidationError."""
     with pytest.raises(ValidationError):
-        LoadEvolveproParams(filepath=_DUMMY_PATH, score_order="invalid")
+        # The out-of-domain literal is the assertion.
+        LoadEvolveproParams(filepath=_DUMMY_PATH, score_order="invalid")  # type: ignore[arg-type]

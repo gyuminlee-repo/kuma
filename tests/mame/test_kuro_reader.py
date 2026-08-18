@@ -22,6 +22,7 @@ def test_missing_expected_sheet_raises(tmp_path: Path) -> None:
     wb = openpyxl.Workbook()
     ws = wb.active
     assert ws is not None
+    assert ws is not None
     ws.title = "Fwd List"
     ws.append(["Well", "Primer Name"])
     wb.save(bad)
@@ -34,6 +35,7 @@ def test_read_expected_mutations_accepts_rescue_status_from_interim_exports(tmp_
     path = tmp_path / "KURO_rescue_status.xlsx"
     wb = openpyxl.Workbook()
     ws = wb.active
+    assert ws is not None
     ws.title = "expected_mutations"
     ws.append([
         "mutant_id", "position", "wt_aa", "mt_aa",

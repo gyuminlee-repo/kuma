@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -221,7 +222,9 @@ def test_truncated_empty_file_with_marker_is_not_complete(tmp_path: Path) -> Non
     write_stage_marker(
         nb, per_well_counts={"1_1": 12, "1_2": 9}, consensus=True
     )
-    ok, reason = validate_marker(read_stage_marker(nb), nb)
+    marker = read_stage_marker(nb)
+    assert marker is not None
+    ok, reason = validate_marker(marker, nb)
     assert ok is False
     assert "empty" in reason or "truncated" in reason
 
@@ -835,7 +838,7 @@ def test_combinatorial_per_nb_fully_resumed_equals_fresh(
         "NB01": [tmp_path / "NB01" / "a.fastq.gz"],
         "NB02": [tmp_path / "NB02" / "b.fastq.gz"],
     }
-    kwargs = dict(
+    kwargs: dict[str, Any] = dict(
         reference_fasta=reference,
         barcodes_xlsx=tmp_path / "bc.xlsx",
         output_dir=out_dir,

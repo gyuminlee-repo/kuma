@@ -97,7 +97,7 @@ def test_excel_sheet_colors(tmp_path: Path) -> None:
         output_path=out,
     )
     wb = openpyxl.load_workbook(out)
-    assert set(_SHEET1_HEADER).issubset({c.value for c in wb["NB01"][1]})
+    assert set(_SHEET1_HEADER).issubset({str(c.value) for c in wb["NB01"][1]})
 
     # Look up each verdict row in NB01 / NB02 and confirm fill color.
     expected_fills = {
@@ -111,7 +111,7 @@ def test_excel_sheet_colors(tmp_path: Path) -> None:
     custom_col = header.index("custom_barcode") + 1
     for row in ws.iter_rows(min_row=2):
         label = row[custom_col - 1].value
-        if label in expected_fills:
+        if isinstance(label, str) and label in expected_fills:
             fg = row[0].fill.fgColor.rgb or ""
             assert fg.endswith(expected_fills[label])
 

@@ -28,11 +28,13 @@ import gzip
 import random
 from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from kuma_core.mame.ingest.align import Alignment, _CIGAR_M
 from kuma_core.mame.ingest.combinatorial_demux import (
+    DemuxResult,
     _match_reads_chunk,
     _reverse_complement,
     run_combinatorial_demux,
@@ -156,7 +158,8 @@ def _chunk_stats(monkeypatch: pytest.MonkeyPatch, outcomes: list[object]) -> tup
 
     monkeypatch.setattr(cd, "_demux_read_anchored", fake_demux)
 
-    hits = [_FakeHit(50 + 10 * i, 100 + 10 * i) for i in range(len(outcomes))]
+    # _FakeHit duck-types the two Alignment fields the matcher reads.
+    hits: list[Any] = [_FakeHit(50 + 10 * i, 100 + 10 * i) for i in range(len(outcomes))]
     chunk = [(0, "read0", "A" * 400, hits)]
     (result,) = cd._match_reads_chunk(
         chunk, r_barcodes=[("r1", "ACGTACGTAC")], f_barcodes=[("f1", "TTTTGGGGCC")],
@@ -269,7 +272,7 @@ def _workload(tmp_path: Path) -> tuple[Path, Path, Path]:
     return fastq, ref, xlsx
 
 
-def _run(workload: tuple[Path, Path, Path], out_dir: Path) -> object:
+def _run(workload: tuple[Path, Path, Path], out_dir: Path) -> DemuxResult:
     fastq, ref, xlsx = workload
     return run_combinatorial_demux(
         raw_fastq_paths=[fastq],

@@ -423,6 +423,7 @@ def test_axis_counts_report_the_two_axes_and_the_wells_they_name(
     counts = _barcode_axis_counts(barcodes)
 
     assert counts == {"forward_count": 12, "reverse_count": 8, "wells": 96}
+    assert counts is not None
     # The three numbers state one plate, so they have to multiply out.
     assert counts["forward_count"] * counts["reverse_count"] == counts["wells"]
 

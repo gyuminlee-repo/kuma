@@ -427,7 +427,10 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
         if has_replicate_data:
             # Convert short EVOLVEpro notation → internal notation.
             # ValueError from from_evolvepro (bad notation) → -32602 via dispatcher.
-            # ref_seq is a validated, non-empty string here.
+            # ref_seq is a validated, non-empty string here: the earlier
+            # has_replicate_data block raised unless it was one, and neither it
+            # nor has_replicate_data is reassigned in between.
+            assert ref_seq is not None
             authoritative_internal: dict[Variant, list[float]] = {
                 Variant(from_evolvepro(k, ref_seq)): v
                 for k, v in authoritative_measurements.items()

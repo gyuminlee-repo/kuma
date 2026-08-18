@@ -177,6 +177,9 @@ def _load_xlsx(path: str) -> list[dict]:
         raise RuntimeError(f"xlsx file not found: {path}") from exc
 
     ws = wb.active
+    if ws is None:
+        wb.close()
+        raise ValueError(f"xlsx has no readable sheet: {path}")
     rows = ws.iter_rows(values_only=True)
 
     # Header row
@@ -231,7 +234,9 @@ def _load_xlsx(path: str) -> list[dict]:
                 f"Row {row_num}: activity is None for Variant={variant_raw!r} in {path}"
             )
         try:
-            activity = float(activity_raw)
+            # openpyxl types a cell value as a broad union; anything that is not
+            # castable is reported per row by the handler below.
+            activity = float(activity_raw)  # type: ignore[arg-type]
         except (TypeError, ValueError) as exc:
             wb.close()
             raise ValueError(

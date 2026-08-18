@@ -39,6 +39,13 @@ PROBE_TABLE = {
 }
 
 
+def _seq(addressing: PlateAddressing, token: str) -> int:
+    """``token_to_seq`` narrowed: every token used here is placeable."""
+    seq = addressing.token_to_seq(token)
+    assert seq is not None, token
+    return seq
+
+
 @pytest.mark.parametrize("combo,expected", sorted(PROBE_TABLE.items()))
 def test_probe_token_resolves_per_addressing(combo, expected):
     row_axis, traversal = combo
@@ -56,8 +63,8 @@ def test_row_axis_is_discriminated_by_the_seq_and_the_well():
 
     assert reverse.token_to_seq(PROBE) == 34
     assert forward.token_to_seq(PROBE) == 13
-    assert reverse.seq_to_well(reverse.token_to_seq(PROBE)) == "B5"
-    assert forward.seq_to_well(forward.token_to_seq(PROBE)) == "E2"
+    assert reverse.seq_to_well(_seq(reverse, PROBE)) == "B5"
+    assert forward.seq_to_well(_seq(forward, PROBE)) == "E2"
 
 
 def test_traversal_is_discriminated_by_the_seq_alone():
@@ -69,8 +76,8 @@ def test_traversal_is_discriminated_by_the_seq_alone():
     assert row.token_to_seq(PROBE) == 17
     # The trap this test exists for: asserting only these two lines would pass
     # whichever traversal the code implements.
-    assert column.seq_to_well(column.token_to_seq(PROBE)) == "B5"
-    assert row.seq_to_well(row.token_to_seq(PROBE)) == "B5"
+    assert column.seq_to_well(_seq(column, PROBE)) == "B5"
+    assert row.seq_to_well(_seq(row, PROBE)) == "B5"
 
 
 def _all_tokens(addressing: PlateAddressing) -> list[str]:
@@ -89,7 +96,7 @@ def test_sort_key_is_monotonic_in_seq(combo):
     tokens = _all_tokens(addressing)
 
     by_key = sorted(tokens, key=addressing.sort_key)
-    by_seq = sorted(tokens, key=lambda t: addressing.token_to_seq(t))
+    by_seq = sorted(tokens, key=lambda t: _seq(addressing, t))
 
     assert by_key == by_seq
     assert [addressing.token_to_seq(t) for t in by_key] == list(
@@ -103,7 +110,7 @@ def test_every_token_names_a_distinct_well_and_the_set_is_the_plate(combo):
     addressing = PlateAddressing(row_axis=row_axis, traversal=traversal)
     tokens = _all_tokens(addressing)
 
-    wells = {addressing.seq_to_well(addressing.token_to_seq(t)) for t in tokens}
+    wells = {addressing.seq_to_well(_seq(addressing, t)) for t in tokens}
     plate = {
         f"{chr(ord('A') + r)}{c}"
         for r in range(PLATE_ROWS)

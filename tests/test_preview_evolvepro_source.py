@@ -28,6 +28,7 @@ def _make_xlsx(sheets: dict[str, list[list[str]]], tmp_dir: str) -> str:
     for sheet_name, rows in sheets.items():
         if first:
             ws = wb.active
+            assert ws is not None
             ws.title = sheet_name
             first = False
         else:

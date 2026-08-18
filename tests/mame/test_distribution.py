@@ -59,7 +59,7 @@ def test_floor_applied_when_cutoff_too_low() -> None:
 
 
 def test_stats_keys_present() -> None:
-    data = list(range(10, 110, 5))  # 10, 15, …, 105
+    data = [float(v) for v in range(10, 110, 5)]  # 10, 15, …, 105
     stats = compute_distribution_stats(data)
     expected_keys = {"min", "p05", "p25", "median", "p75", "p95", "max", "mean", "std"}
     assert expected_keys == set(stats.file_size_kb.keys())

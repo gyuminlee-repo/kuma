@@ -25,6 +25,7 @@ design path legitimately shifts.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -108,7 +109,7 @@ def test_kod_keeps_its_tm_based_threshold(registry):
 def test_fixture_ta_never_above_extension(registry, offsets, name):
     from kuma_core.kuro.sdm_engine import design_sdm_primers
 
-    kw = {"overlap_mode": "full"} if name == "Q5 SDM" else {}
+    kw: dict[str, Any] = {"overlap_mode": "full"} if name == "Q5 SDM" else {}
     designed, _c, _f = design_sdm_primers(
         fasta_path=FIXTURES / "pSHCE-dmpR.gb",
         target_start=1790,
@@ -133,9 +134,9 @@ def test_q5_sdm_fixture_yield_claims(registry):
     lives next to a runnable check instead of in prose. Ta-independent: the
     design path is untouched by the Ta rules.
     """
-    from kuma_core.kuro.sdm_engine import design_sdm_primers
+    from kuma_core.kuro.sdm_engine import OverlapMode, design_sdm_primers
 
-    def _designed(mode: str) -> set[str]:
+    def _designed(mode: OverlapMode) -> set[str]:
         designed, _c, _f = design_sdm_primers(
             fasta_path=FIXTURES / "pSHCE-dmpR.gb",
             target_start=1790,
