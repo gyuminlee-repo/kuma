@@ -1701,7 +1701,7 @@
 <div class="highlight"><pre><span></span><code>pnpm<span class="w"> </span>run<span class="w"> </span>sidecar:build<span class="w">         </span><span class="c1"># PyInstaller 로 platform binary 생성</span>
 pnpm<span class="w"> </span>run<span class="w"> </span>sidecar:hash<span class="w">          </span><span class="c1"># src-tauri/sidecar-hashes.json merge mode 갱신</span>
 git<span class="w"> </span>diff<span class="w"> </span>src-tauri/sidecar-hashes.json
-git<span class="w"> </span>add<span class="w"> </span>src-tauri/sidecar-hashes.json<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;vX.X.X: refresh &lt;platform&gt; sidecar hashes&quot;</span>
+git<span class="w"> </span>add<span class="w"> </span>src-tauri/sidecar-hashes.json<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"vX.X.X: refresh &lt;platform&gt; sidecar hashes"</span>
 </code></pre></div>
 <p><code>sidecar-hash.mjs</code> 는 merge mode 로 동작한다. 본 머신 플랫폼의 triple-suffixed 키만 갱신, 타 플랫폼 키는 보존. 따라서 macOS/Windows/Linux 각자에서 hash 를 한 번씩 commit 해야 3 플랫폼 완전 manifest 가 된다.</p>
 <p>runtime 검증 (<code>src-tauri/src/sidecar.rs verify_binary_hash</code>) 은 triple_key → ext_key 순서로 lookup 하며 매칭 실패 시 fail-fast. base-name fallback 은 제거되었다 (이전 v0.9.7 회귀 방지).</p>

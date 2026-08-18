@@ -1594,7 +1594,7 @@ python-core/sidecar_mame/handlers/sort_barcode.py
   └─ on_progress=lambda f, msg: _progress(int(f*50), msg)   # sort = 0~50%
        ↓ JSON-RPC progress notification (stdout)
 src-tauri/src/sidecar.rs (기존 forward, 변경 없음)
-       ↓ Tauri event &quot;sidecar://progress&quot;
+       ↓ Tauri event "sidecar://progress"
 src/store/mame/slices/inputSlice.ts
   └─ analyzeProgress / analyzeMessage 갱신 (기존 listener 재사용)
        ↓ Zustand subscription
@@ -1668,20 +1668,20 @@ src/components/mame/dialogs/AnalysisProgressModal.tsx (신규)
         <span class="c1"># 메시지는 호출자(handler 또는 frontend)에서 locale 키로 변환.</span>
         <span class="c1"># callback은 raw 데이터(나중에 i18n)만 전달.</span>
         <span class="n">on_progress</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">{</span>
-            <span class="s2">&quot;phase&quot;</span><span class="p">:</span> <span class="s2">&quot;sorting&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;nb_index&quot;</span><span class="p">:</span> <span class="n">nb_index</span><span class="p">,</span>
-            <span class="s2">&quot;nb_total&quot;</span><span class="p">:</span> <span class="n">nb_total</span><span class="p">,</span>
-            <span class="s2">&quot;nb_label&quot;</span><span class="p">:</span> <span class="n">nb_label</span><span class="p">,</span>
-            <span class="s2">&quot;file_idx&quot;</span><span class="p">:</span> <span class="n">file_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
-            <span class="s2">&quot;file_total&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">fastq_files</span><span class="p">),</span>
+            <span class="s2">"phase"</span><span class="p">:</span> <span class="s2">"sorting"</span><span class="p">,</span>
+            <span class="s2">"nb_index"</span><span class="p">:</span> <span class="n">nb_index</span><span class="p">,</span>
+            <span class="s2">"nb_total"</span><span class="p">:</span> <span class="n">nb_total</span><span class="p">,</span>
+            <span class="s2">"nb_label"</span><span class="p">:</span> <span class="n">nb_label</span><span class="p">,</span>
+            <span class="s2">"file_idx"</span><span class="p">:</span> <span class="n">file_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s2">"file_total"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">fastq_files</span><span class="p">),</span>
         <span class="p">})</span>
     <span class="o">...</span>
 </code></pre></div>
 <p><strong>Sidecar 측 변환</strong>:
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_format_sort_message</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="c1"># 영문 fallback. 실제 i18n은 frontend에서 적용.</span>
-    <span class="k">return</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sorting barcode </span><span class="si">{</span><span class="n">payload</span><span class="p">[</span><span class="s1">&#39;nb_index&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">payload</span><span class="p">[</span><span class="s1">&#39;nb_total&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">payload</span><span class="p">[</span><span class="s1">&#39;nb_label&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (file </span><span class="si">{</span><span class="n">payload</span><span class="p">[</span><span class="s1">&#39;file_idx&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">payload</span><span class="p">[</span><span class="s1">&#39;file_total&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"Sorting barcode </span><span class="si">{</span><span class="n">payload</span><span class="p">[</span><span class="s1">'nb_index'</span><span class="p">]</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">payload</span><span class="p">[</span><span class="s1">'nb_total'</span><span class="p">]</span><span class="si">}</span><span class="s2">, "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">payload</span><span class="p">[</span><span class="s1">'nb_label'</span><span class="p">]</span><span class="si">}</span><span class="s2"> (file </span><span class="si">{</span><span class="n">payload</span><span class="p">[</span><span class="s1">'file_idx'</span><span class="p">]</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">payload</span><span class="p">[</span><span class="s1">'file_total'</span><span class="p">]</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
 
 <span class="n">on_progress</span><span class="o">=</span><span class="k">lambda</span> <span class="n">f</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">_progress</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">f</span> <span class="o">*</span> <span class="mi">50</span><span class="p">),</span> <span class="n">_format_sort_message</span><span class="p">(</span><span class="n">payload</span><span class="p">))</span>
 </code></pre></div></p>
@@ -1690,13 +1690,13 @@ src/components/mame/dialogs/AnalysisProgressModal.tsx (신규)
 <h2 id="eta">ETA 계산<a class="headerlink" href="#eta" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="kd">function</span><span class="w"> </span><span class="nx">computeEta</span><span class="p">(</span><span class="nx">progressPct</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">,</span><span class="w"> </span><span class="nx">startedAt</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">fraction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">progressPct</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">100</span><span class="p">;</span>
-<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">fraction</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">0.05</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">t</span><span class="p">(</span><span class="s2">&quot;mame.progressModal.eta.calculating&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">fraction</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">0.05</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">t</span><span class="p">(</span><span class="s2">"mame.progressModal.eta.calculating"</span><span class="p">);</span>
 <span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Date</span><span class="p">.</span><span class="nx">now</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nx">startedAt</span><span class="p">;</span>
 <span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">remainingMs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="nx">elapsed</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nx">fraction</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="mf">1</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nx">fraction</span><span class="p">);</span>
-<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">remainingMs</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">60</span><span class="nx">_000</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">t</span><span class="p">(</span><span class="s2">&quot;mame.progressModal.eta.lessThanMinute&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">remainingMs</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">60</span><span class="nx">_000</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">t</span><span class="p">(</span><span class="s2">"mame.progressModal.eta.lessThanMinute"</span><span class="p">);</span>
 <span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nx">remainingMs</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">60</span><span class="nx">_000</span><span class="p">);</span>
 <span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">sec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">((</span><span class="nx">remainingMs</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mf">60</span><span class="nx">_000</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1000</span><span class="p">);</span>
-<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">t</span><span class="p">(</span><span class="s2">&quot;mame.progressModal.eta.remaining&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">min</span><span class="p">,</span><span class="w"> </span><span class="nx">sec</span><span class="w"> </span><span class="p">});</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">t</span><span class="p">(</span><span class="s2">"mame.progressModal.eta.remaining"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">min</span><span class="p">,</span><span class="w"> </span><span class="nx">sec</span><span class="w"> </span><span class="p">});</span>
 <span class="p">}</span>
 </code></pre></div>
 <ul>
@@ -1763,7 +1763,7 @@ src/components/mame/dialogs/AnalysisProgressModal.tsx (신규)
 <div class="highlight"><pre><span></span><code><span class="nx">set</span><span class="p">({</span>
 <span class="w">  </span><span class="nx">isAnalyzing</span><span class="o">:</span><span class="w"> </span><span class="kt">false</span><span class="p">,</span>
 <span class="w">  </span><span class="nx">analyzeProgress</span><span class="o">:</span><span class="w"> </span><span class="kt">0</span><span class="p">,</span>
-<span class="w">  </span><span class="nx">analyzeMessage</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">analyzeMessage</span><span class="o">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span>
 <span class="w">  </span><span class="nx">validationErrors</span><span class="o">:</span><span class="w"> </span><span class="p">[],</span>
 <span class="p">});</span>
 </code></pre></div>
@@ -1771,15 +1771,15 @@ src/components/mame/dialogs/AnalysisProgressModal.tsx (신규)
 <p>재클릭 흐름: 사용자 Cancel → 위 리셋 → "Run Analysis" 버튼 재활성 (<code>!isAnalyzing &amp;&amp; !validationErrors.length</code>) → 정상 재실행.</p>
 <h2 id="locale-keys">Locale keys (신규)<a class="headerlink" href="#locale-keys" title="Permanent link">&para;</a></h2>
 <p><code>src/locales/ko.json</code>, <code>en.json</code> (다른 9개 locale은 영문 fallback 그대로):</p>
-<div class="highlight"><pre><span></span><code><span class="nt">&quot;mame.progressModal&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Running analysis…&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;cancel&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Cancel&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;cancelling&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Cancelling…&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;cancelled&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Analysis cancelled&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;eta&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;calculating&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Calculating…&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;lessThanMinute&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1분 미만&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;remaining&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;약 {{min}}분 {{sec}}초 남음&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="nt">"mame.progressModal"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"title"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Running analysis…"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"cancel"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Cancel"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"cancelling"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Cancelling…"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"cancelled"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Analysis cancelled"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"eta"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"calculating"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Calculating…"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"lessThanMinute"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1분 미만"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"remaining"</span><span class="p">:</span><span class="w"> </span><span class="s2">"약 {{min}}분 {{sec}}초 남음"</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
