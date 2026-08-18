@@ -1,7 +1,7 @@
 # FAQ
 
 ## UniProt 검색에서 유사도 낮은 결과만 뜨는 이유?
-EBI BLAST API는 contact 이메일을 요구함. 미설정 시 gene-name 텍스트 검색으로 fallback되어 homolog가 아닌 단백질들이 올라옴. `KURO_CONTACT_EMAIL` 환경변수 또는 `~/.kuro/config.json`에 `contact_email` 설정 — [설정](configuration.md).
+EBI BLAST API는 contact 이메일을 요구함. 미설정 시 gene-name 텍스트 검색으로 fallback되어 homolog가 아닌 단백질들이 올라옴. `KURO_CONTACT_EMAIL` 환경변수 또는 `~/.kuma/kuro/config.json`에 `contact_email` 설정 — [설정](configuration.md).
 
 ## 변이를 960개 이상 쓸 수 있나?
 가능. v1.33.6부터 상한 10,000 (약 100 플레이트). Parameter 패널에서 **Mutations** 값 조정.

@@ -8,7 +8,7 @@ Once a CDS is selected Kuro searches UniProt to enrich the design:
 
 The CDS translation is BLASTed against UniProt Swiss-Prot via EBI. The top hit is **auto-selected only if identity ≥ 95 %**; otherwise the candidate list is shown and you pick manually.
 
-> **Contact email required.** EBI rejects BLAST jobs without an email. Configure `KURO_CONTACT_EMAIL` env or `contact_email` in `~/.kuro/config.json`. See [Configuration](configuration.md).
+> **Contact email required.** EBI rejects BLAST jobs without an email. Configure `KURO_CONTACT_EMAIL` env or `contact_email` in `~/.kuma/kuro/config.json`. See [Configuration](configuration.md).
 
 ## Direct accession lookup
 
