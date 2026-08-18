@@ -296,16 +296,12 @@ class PolymeraseProfileModel(WorkspaceModel):
     opt_tm: float
     min_tm: float
     max_tm: float
-    opt_size: int
-    min_size: int
-    max_size: int
     min_gc: float
     max_gc: float
     salt_monovalent: float
     salt_divalent: float
     dntp_conc: float
     dna_conc: float
-    max_tm_diff: float
     opt_tm_fwd: Optional[float] = None
     opt_tm_rev: Optional[float] = None
     opt_tm_overlap: Optional[float] = None

@@ -26,6 +26,6 @@ v1 workspaces load on v2+ clients; v2 is backwards-compatible.
 
 ## Not included
 
-Polymerase custom profiles live in `~/.kuro/custom_polymerases.json` — independent of workspace.
+Polymerase custom profiles live in `~/.kuma/kuro/custom_polymerases.json` — independent of workspace.
 
 *Stub — save / load screenshots coming.*

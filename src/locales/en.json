@@ -1802,16 +1802,12 @@
     "saltOption_schildkraut": "Schildkraut-Lifson 1965 (NEB Phusion)",
     "saltOption_schildkraut_title": "Schildkraut-Lifson 1965 empirical Na⁺ correction. Legacy; coarser than Owczarzy or SantaLucia.",
     "optTmLabel": "Opt Tm",
-    "maxTmDiffLabel": "Max Tm diff",
     "minTmLabel": "Min Tm",
     "maxTmLabel": "Max Tm",
     "fwdTmLabel": "Fwd Tm",
     "revTmLabel": "Rev Tm",
     "overlapTmLabel": "Overlap Tm",
     "min3PrimeDistLabel": "Min 3' distance",
-    "optSizeLabel": "Opt size",
-    "minSizeLabel": "Min size",
-    "maxSizeLabel": "Max size",
     "minGcLabel": "Min GC",
     "maxGcLabel": "Max GC",
     "monovalentSaltLabel": "Monovalent salt",
@@ -1823,7 +1819,7 @@
     "save": "Save",
     "saving": "Saving...",
     "nebTmNote": "For NEB polymerases the NEB Tm Calculator calibration applies to the recommended annealing temperature (Ta) only. The design-time Tm runs on the fixed SantaLucia 1998 (Benchling) scale, so the salt and Tm-method values below do not change it.",
-    "fieldScopeNote": "Read by the design engine: Fwd/Rev/Overlap Tm targets, GC range, primer length range, overlap mode. Stored but unused: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff. Salt and Tm-method values feed Ta only, and a custom profile carries no Ta rule, so no Ta is reported for it."
+    "fieldScopeNote": "Read by the design engine: Fwd/Rev/Overlap Tm targets, GC range, primer length range, overlap mode. Stored but unused: Opt Tm, Min/Max Tm. Salt and Tm-method values feed Ta only, and a custom profile carries no Ta rule, so no Ta is reported for it."
   },
   "mainShell": {
     "alreadyRunning": "Already running.",
@@ -2477,14 +2473,15 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A run exported into a folder holding an earlier run output scored those plates too, so more reached the table than were selected.",
-      "A past workbook showing more plates than the barcodes that run selected was scored over another run wells and needs re-running.",
-      "The folder now records which plates a run produced, leftover plates from an earlier run are named on screen, and nothing is deleted.",
-      "The export screen no longer offers a start and end row. Every setting but the full plate stacked different mutants onto one well.",
-      "Placement comes from the quadrant choice alone, and a saved row band that would cover a well already in use is now refused, not written."
+      "Custom Polymerase Editor no longer shows Opt/Min/Max size or Max Tm diff, four fields the design engine never read.",
+      "Docs for the custom polymerase and config paths now say ~/.kuma/kuro/, matching where kuma actually stores them."
     ],
-    "highlightsStamp": "0.16.25+291c60a5",
+    "highlightsStamp": "0.16.26+c3e3f1a1",
     "releases": {
+      "0.16.26": [
+        "Custom Polymerase Editor no longer shows Opt/Min/Max size or Max Tm diff, four fields the design engine never read.",
+        "Docs for the custom polymerase and config paths now say ~/.kuma/kuro/, matching where kuma actually stores them."
+      ],
       "0.16.25.1": [
         "A run exported into a folder holding an earlier run output scored those plates too, so more reached the table than were selected.",
         "A past workbook showing more plates than the barcodes that run selected was scored over another run wells and needs re-running.",
@@ -2690,6 +2687,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",

@@ -20,16 +20,12 @@ const DEFAULT_PROFILE: PolymeraseProfile = {
   opt_tm: 62,
   min_tm: 55,
   max_tm: 65,
-  opt_size: 22,
-  min_size: 18,
-  max_size: 30,
   min_gc: 40,
   max_gc: 60,
   salt_monovalent: 50,
   salt_divalent: 2,
   dntp_conc: 0.8,
   dna_conc: 250,
-  max_tm_diff: 4,
   opt_tm_fwd: 62,
   opt_tm_rev: 58,
   opt_tm_overlap: 42,
@@ -196,10 +192,6 @@ export function PolymeraseEditor({
             <Input type="number" step="0.1" {...num("opt_tm")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.maxTmDiffLabel")}</label>
-            <Input type="number" step="0.1" {...num("max_tm_diff")} />
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-4">
             <label className="text-xs text-muted-foreground">{t("polymeraseEditor.minTmLabel")}</label>
             <Input type="number" step="0.1" {...num("min_tm")} />
           </div>
@@ -222,18 +214,6 @@ export function PolymeraseEditor({
           <div className="rounded-2xl border border-border bg-card p-4">
             <label className="text-xs text-muted-foreground">{t("polymeraseEditor.min3PrimeDistLabel")}</label>
             <Input type="number" {...num("min_3prime_dist")} />
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.optSizeLabel")}</label>
-            <Input type="number" {...num("opt_size")} />
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.minSizeLabel")}</label>
-            <Input type="number" {...num("min_size")} />
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <label className="text-xs text-muted-foreground">{t("polymeraseEditor.maxSizeLabel")}</label>
-            <Input type="number" {...num("max_size")} />
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
             <label className="text-xs text-muted-foreground">{t("polymeraseEditor.minGcLabel")}</label>

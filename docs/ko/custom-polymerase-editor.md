@@ -2,7 +2,7 @@
 
 ![커스텀 폴리머레이즈 에디터 다이얼로그](../screenshots/14-polymerase-editor.png)
 
-`~/.kuro/custom_polymerases.json`에 영속 저장되는 폴리머레이즈 프로파일을 생성·수정.
+`~/.kuma/kuro/custom_polymerases.json`에 영속 저장되는 폴리머레이즈 프로파일을 생성·수정.
 
 ## 열기
 

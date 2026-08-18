@@ -131,13 +131,6 @@ class TestPolymeraseProfileFields:
             p = registry.get(name)
             assert p.min_tm < p.opt_tm < p.max_tm, f"{name}: invalid Tm range"
 
-    def test_size_range_is_valid(self, registry: PolymeraseRegistry):
-        for name in registry.list_names():
-            p = registry.get(name)
-            assert p.min_size < p.opt_size < p.max_size, (
-                f"{name}: invalid size range"
-            )
-
     def test_all_profiles_are_dataclass_instances(
         self, registry: PolymeraseRegistry
     ):
@@ -158,16 +151,12 @@ class TestCustomPolymerasePersistence:
                 opt_tm=68.0,
                 min_tm=63.0,
                 max_tm=73.0,
-                opt_size=21,
-                min_size=18,
-                max_size=28,
                 min_gc=35.0,
                 max_gc=65.0,
                 salt_monovalent=50.0,
                 salt_divalent=2.0,
                 dntp_conc=0.8,
                 dna_conc=250.0,
-                max_tm_diff=4.0,
                 opt_tm_fwd=65.0,
                 opt_tm_rev=61.0,
                 opt_tm_overlap=45.0,

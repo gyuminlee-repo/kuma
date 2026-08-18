@@ -1784,16 +1784,12 @@
     "saltOption_schildkraut": "Schildkraut-Lifson 1965 (NEB Phusion)",
     "saltOption_schildkraut_title": "Schildkraut-Lifson 1965 empirical Na⁺ correction. Legacy; coarser than Owczarzy oder SantaLucia.",
     "optTmLabel": "Opt Tm",
-    "maxTmDiffLabel": "Max Tm-Differenz",
     "minTmLabel": "Min Tm",
     "maxTmLabel": "Max Tm",
     "fwdTmLabel": "Fwd Tm",
     "revTmLabel": "Rev Tm",
     "overlapTmLabel": "Overlap Tm",
     "min3PrimeDistLabel": "Min 3'-Abstand",
-    "optSizeLabel": "Opt. Größe",
-    "minSizeLabel": "Min. Größe",
-    "maxSizeLabel": "Max. Größe",
     "minGcLabel": "Min GC",
     "maxGcLabel": "Max GC",
     "monovalentSaltLabel": "Monovalentes Salz",
@@ -1805,7 +1801,7 @@
     "save": "Speichern",
     "saving": "Speichere...",
     "nebTmNote": "Bei NEB-Polymerasen gilt die NEB Tm Calculator-Kalibrierung nur für die empfohlene Annealing-Temperatur (Ta). Die Tm zum Designzeitpunkt läuft auf der festen SantaLucia 1998 (Benchling) Skala, daher ändern die Salz- und Tm-Methodenwerte unten sie nicht.",
-    "fieldScopeNote": "Von der Design-Engine gelesen: Fwd/Rev/Overlap Tm-Ziele, GC-Bereich, Primer-Längenbereich, overlap-Modus. Gespeichert, aber ungenutzt: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff. Salz- und Tm-Methodenwerte fließen nur in Ta ein, und ein Custom-Profil hat keine Ta-Regel, daher wird dafür kein Ta angezeigt."
+    "fieldScopeNote": "Von der Design-Engine gelesen: Fwd/Rev/Overlap Tm-Ziele, GC-Bereich, Primer-Längenbereich, overlap-Modus. Gespeichert, aber ungenutzt: Opt Tm, Min/Max Tm. Salz- und Tm-Methodenwerte fließen nur in Ta ein, und ein Custom-Profil hat keine Ta-Regel, daher wird dafür kein Ta angezeigt."
   },
   "mainShell": {
     "alreadyRunning": "Already läuft.",
@@ -2447,14 +2443,15 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein run, der in einen Ordner mit der Ausgabe eines früheren run exportiert wurde, bewertete dessen plates mit, also erschienen mehr als ausgewählt.",
-      "Eine frühere Arbeitsmappe mit mehr plates als der run barcodes ausgewählt hatte, wurde über wells eines anderen run bewertet und muss neu laufen.",
-      "Der Ordner hält jetzt fest, welche plates ein run erzeugt hat, übrig gebliebene plates eines früheren run werden benannt, und nichts wird gelöscht.",
-      "Der Export-Bildschirm bietet keine Start- und End-row mehr an. Jede Einstellung außer der vollen plate legte verschiedene Mutanten auf ein well.",
-      "Die Platzierung kommt nur noch aus der quadrant-Wahl, und ein gespeicherter row-Bereich, der ein belegtes well überdecken würde, wird abgelehnt."
+      "Der Custom-Polymerase-Editor zeigt Opt/Min/Max size und Max Tm diff nicht mehr, vier Felder, die die Design-Engine nie gelesen hat.",
+      "Die Dokumentation zum Pfad für Custom-Polymerase und Konfiguration nennt jetzt ~/.kuma/kuro/, wo kuma sie tatsächlich ablegt."
     ],
-    "highlightsStamp": "0.16.25+291c60a5",
+    "highlightsStamp": "0.16.26+c3e3f1a1",
     "releases": {
+      "0.16.26": [
+        "Der Custom-Polymerase-Editor zeigt Opt/Min/Max size und Max Tm diff nicht mehr, vier Felder, die die Design-Engine nie gelesen hat.",
+        "Die Dokumentation zum Pfad für Custom-Polymerase und Konfiguration nennt jetzt ~/.kuma/kuro/, wo kuma sie tatsächlich ablegt."
+      ],
       "0.16.25.1": [
         "Ein run, der in einen Ordner mit der Ausgabe eines früheren run exportiert wurde, bewertete dessen plates mit, also erschienen mehr als ausgewählt.",
         "Eine frühere Arbeitsmappe mit mehr plates als der run barcodes ausgewählt hatte, wurde über wells eines anderen run bewertet und muss neu laufen.",
@@ -2660,6 +2657,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",

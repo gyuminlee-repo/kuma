@@ -156,16 +156,12 @@ function isPolymeraseProfile(value: unknown): value is PolymeraseProfile {
     isNumber(value.opt_tm) &&
     isNumber(value.min_tm) &&
     isNumber(value.max_tm) &&
-    isNumber(value.opt_size) &&
-    isNumber(value.min_size) &&
-    isNumber(value.max_size) &&
     isNumber(value.min_gc) &&
     isNumber(value.max_gc) &&
     isNumber(value.salt_monovalent) &&
     isNumber(value.salt_divalent) &&
     isNumber(value.dntp_conc) &&
     isNumber(value.dna_conc) &&
-    isNumber(value.max_tm_diff) &&
     isOptionalNullable(value.opt_tm_fwd, isNumber) &&
     isOptionalNullable(value.opt_tm_rev, isNumber) &&
     isOptionalNullable(value.opt_tm_overlap, isNumber) &&

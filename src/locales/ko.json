@@ -1802,16 +1802,12 @@
     "saltOption_schildkraut": "Schildkraut-Lifson 1965 (NEB Phusion)",
     "saltOption_schildkraut_title": "Schildkraut-Lifson 1965 경험적 Na⁺ 보정. 레거시 방식으로 Owczarzy나 SantaLucia보다 정밀도가 낮습니다.",
     "optTmLabel": "최적 Tm",
-    "maxTmDiffLabel": "최대 Tm 차이",
     "minTmLabel": "최소 Tm",
     "maxTmLabel": "최대 Tm",
     "fwdTmLabel": "Fwd Tm",
     "revTmLabel": "Rev Tm",
     "overlapTmLabel": "Overlap Tm",
     "min3PrimeDistLabel": "최소 3' 거리",
-    "optSizeLabel": "최적 크기",
-    "minSizeLabel": "최소 크기",
-    "maxSizeLabel": "최대 크기",
     "minGcLabel": "최소 GC",
     "maxGcLabel": "최대 GC",
     "monovalentSaltLabel": "단가 염",
@@ -1823,7 +1819,7 @@
     "save": "저장",
     "saving": "저장 중...",
     "nebTmNote": "NEB 폴리머라제는 NEB Tm Calculator 보정을 권장 어닐링 온도(Ta) 계산에만 적용합니다. 설계 시점 Tm은 SantaLucia 1998 (Benchling) 고정 스케일이라 아래 salt 및 Tm method 값은 설계 Tm을 바꾸지 않습니다.",
-    "fieldScopeNote": "설계 엔진이 읽는 값: Fwd/Rev/Overlap Tm 목표, GC 범위, 프라이머 길이 범위, overlap 모드. 저장되지만 사용하지 않는 값: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff. salt 및 Tm method 값은 Ta 계산에만 쓰이며, 커스텀 프로파일은 Ta 규칙이 없어 Ta가 표시되지 않습니다."
+    "fieldScopeNote": "설계 엔진이 읽는 값: Fwd/Rev/Overlap Tm 목표, GC 범위, 프라이머 길이 범위, overlap 모드. 저장되지만 사용하지 않는 값: Opt Tm, Min/Max Tm. salt 및 Tm method 값은 Ta 계산에만 쓰이며, 커스텀 프로파일은 Ta 규칙이 없어 Ta가 표시되지 않습니다."
   },
   "mainShell": {
     "alreadyRunning": "이미 실행 중입니다.",
@@ -2477,14 +2473,15 @@
     "descriptionRange": "v{{from}} 이후 모든 업데이트의 주요 변경 사항입니다.",
     "gotItBtn": "확인",
     "highlights": [
-      "이전 run 산출물이 남아 있는 폴더로 내보낸 run 이 그 plate 까지 채점했습니다. 선택한 것보다 많은 plate 가 표에 올라왔습니다.",
-      "해당 run 이 선택한 barcode 보다 많은 plate 가 보이는 과거 워크북은 다른 run 의 well 까지 채점한 것이므로 다시 돌려야 합니다.",
-      "이제 폴더가 각 run 이 만든 plate 를 기록하고, 이전 run 이 남긴 plate 는 화면에 이름이 표시되며, 아무것도 지우지 않습니다.",
-      "export 화면에서 시작 row 와 끝 row 선택이 사라졌습니다. plate 전체가 아닌 모든 설정은 서로 다른 변이체를 한 well 에 겹쳐 놓았습니다.",
-      "배치는 quadrant 선택만으로 정해지고, 이미 쓰인 well 을 덮게 되는 저장된 row 구간은 기록되지 않고 거부됩니다."
+      "커스텀 폴리머레이즈 편집기에서 Opt/Min/Max size, Max Tm diff 네 필드가 사라졌습니다. 설계 엔진이 읽지 않던 값입니다.",
+      "커스텀 폴리머레이즈·설정 경로 문서가 이제 kuma가 실제로 사용하는 ~/.kuma/kuro/ 를 가리킵니다."
     ],
-    "highlightsStamp": "0.16.25+291c60a5",
+    "highlightsStamp": "0.16.26+c3e3f1a1",
     "releases": {
+      "0.16.26": [
+        "커스텀 폴리머레이즈 편집기에서 Opt/Min/Max size, Max Tm diff 네 필드가 사라졌습니다. 설계 엔진이 읽지 않던 값입니다.",
+        "커스텀 폴리머레이즈·설정 경로 문서가 이제 kuma가 실제로 사용하는 ~/.kuma/kuro/ 를 가리킵니다."
+      ],
       "0.16.25.1": [
         "이전 run 산출물이 남아 있는 폴더로 내보낸 run 이 그 plate 까지 채점했습니다. 선택한 것보다 많은 plate 가 표에 올라왔습니다.",
         "해당 run 이 선택한 barcode 보다 많은 plate 가 보이는 과거 워크북은 다른 run 의 well 까지 채점한 것이므로 다시 돌려야 합니다.",
@@ -2690,6 +2687,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",

@@ -2,7 +2,7 @@
 
 ![Custom Polymerase Editor dialog](../screenshots/14-polymerase-editor.png)
 
-Create or modify polymerase profiles persisted to `~/.kuro/custom_polymerases.json`.
+Create or modify polymerase profiles persisted to `~/.kuma/kuro/custom_polymerases.json`.
 
 ## Open
 

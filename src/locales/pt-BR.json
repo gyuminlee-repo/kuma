@@ -1784,16 +1784,12 @@
     "saltOption_schildkraut": "Schildkraut-Lifson 1965 (NEB Phusion)",
     "saltOption_schildkraut_title": "Correção empírica de Na⁺ Schildkraut-Lifson 1965. Legacy; mais grosseira que Owczarzy ou SantaLucia.",
     "optTmLabel": "Opt Tm",
-    "maxTmDiffLabel": "Máx diff Tm",
     "minTmLabel": "Min Tm",
     "maxTmLabel": "Max Tm",
     "fwdTmLabel": "Fwd Tm",
     "revTmLabel": "Rev Tm",
     "overlapTmLabel": "Overlap Tm",
     "min3PrimeDistLabel": "Distância mín 3'",
-    "optSizeLabel": "Tamanho opt",
-    "minSizeLabel": "Tamanho mín",
-    "maxSizeLabel": "Tamanho máx",
     "minGcLabel": "Min GC",
     "maxGcLabel": "Max GC",
     "monovalentSaltLabel": "Sal monovalente",
@@ -1805,7 +1801,7 @@
     "save": "Salvar",
     "saving": "Salvando...",
     "nebTmNote": "Para polimerases NEB a calibração do NEB Tm Calculator vale apenas para a temperatura de anelamento recomendada (Ta). A Tm de design usa a escala fixa SantaLucia 1998 (Benchling), portanto os valores de sal e de método de Tm abaixo não a alteram.",
-    "fieldScopeNote": "Lido pelo motor de design: alvos de Tm Fwd/Rev/Overlap, faixa de GC, faixa de comprimento do primer, modo overlap. Armazenado mas sem uso: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff. Os valores de sal e método de Tm alimentam apenas Ta, e um perfil custom não traz regra de Ta, então nenhum Ta é exibido."
+    "fieldScopeNote": "Lido pelo motor de design: alvos de Tm Fwd/Rev/Overlap, faixa de GC, faixa de comprimento do primer, modo overlap. Armazenado mas sem uso: Opt Tm, Min/Max Tm. Os valores de sal e método de Tm alimentam apenas Ta, e um perfil custom não traz regra de Ta, então nenhum Ta é exibido."
   },
   "mainShell": {
     "alreadyRunning": "Já está em execução.",
@@ -2447,14 +2443,15 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Um run exportado para uma pasta que já tinha a saída de um run anterior pontuou também aquelas plates, e chegaram mais do que as selecionadas.",
-      "Uma pasta de trabalho antiga que mostre mais plates do que os barcodes escolhidos por aquele run foi pontuada sobre wells de outro run e precisa rodar de novo.",
-      "A pasta agora registra quais plates cada run produziu, as plates deixadas por um run anterior são nomeadas na tela e nada é apagado.",
-      "A tela de exportação não oferece mais row inicial e final. Qualquer ajuste que não fosse a plate inteira empilhava mutantes diferentes em um well.",
-      "A colocação vem apenas da escolha de quadrant, e uma faixa de rows salva que cobriria um well já ocupado é recusada em vez de ser escrita."
+      "O editor de polimerase personalizada não exibe mais Opt/Min/Max size nem Max Tm diff, quatro campos que o motor de design nunca lia.",
+      "A documentação do caminho de polimerase personalizada e configuração agora diz ~/.kuma/kuro/, onde o kuma realmente os guarda."
     ],
-    "highlightsStamp": "0.16.25+291c60a5",
+    "highlightsStamp": "0.16.26+c3e3f1a1",
     "releases": {
+      "0.16.26": [
+        "O editor de polimerase personalizada não exibe mais Opt/Min/Max size nem Max Tm diff, quatro campos que o motor de design nunca lia.",
+        "A documentação do caminho de polimerase personalizada e configuração agora diz ~/.kuma/kuro/, onde o kuma realmente os guarda."
+      ],
       "0.16.25.1": [
         "Um run exportado para uma pasta que já tinha a saída de um run anterior pontuou também aquelas plates, e chegaram mais do que as selecionadas.",
         "Uma pasta de trabalho antiga que mostre mais plates do que os barcodes escolhidos por aquele run foi pontuada sobre wells de outro run e precisa rodar de novo.",
@@ -2660,6 +2657,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",

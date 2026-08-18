@@ -25,16 +25,12 @@ class PolymeraseProfile:
     opt_tm: float
     min_tm: float
     max_tm: float
-    opt_size: int
-    min_size: int
-    max_size: int
     min_gc: float
     max_gc: float
     salt_monovalent: float  # mM
     salt_divalent: float    # mM (Mg2+)
     dntp_conc: float        # mM
     dna_conc: float         # nM
-    max_tm_diff: float      # max Tm difference between F/R
     # Asymmetric Tm targets (optional; fall back to opt_tm if not set)
     opt_tm_fwd: float | None = None     # Forward non-overlap Tm target
     opt_tm_rev: float | None = None     # Reverse non-overlap Tm target
@@ -81,16 +77,12 @@ def _dict_to_profile(data: dict) -> PolymeraseProfile:
         opt_tm=float(data["opt_tm"]),
         min_tm=float(data["min_tm"]),
         max_tm=float(data["max_tm"]),
-        opt_size=int(data["opt_size"]),
-        min_size=int(data["min_size"]),
-        max_size=int(data["max_size"]),
         min_gc=float(data["min_gc"]),
         max_gc=float(data["max_gc"]),
         salt_monovalent=float(data["salt_monovalent"]),
         salt_divalent=float(data["salt_divalent"]),
         dntp_conc=float(data["dntp_conc"]),
         dna_conc=float(data["dna_conc"]),
-        max_tm_diff=float(data["max_tm_diff"]),
         opt_tm_fwd=float(data["opt_tm_fwd"]) if data.get("opt_tm_fwd") is not None else None,
         opt_tm_rev=float(data["opt_tm_rev"]) if data.get("opt_tm_rev") is not None else None,
         opt_tm_overlap=float(data["opt_tm_overlap"]) if data.get("opt_tm_overlap") is not None else None,

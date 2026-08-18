@@ -1,7 +1,7 @@
 # FAQ
 
 ## Why does my UniProt search return low-similarity results?
-The EBI BLAST API requires a contact email. If none is configured, submissions fall back to a gene-name text search that returns unrelated homologs. Set `KURO_CONTACT_EMAIL` or add `contact_email` to `~/.kuro/config.json` — see [Configuration](configuration.md).
+The EBI BLAST API requires a contact email. If none is configured, submissions fall back to a gene-name text search that returns unrelated homologs. Set `KURO_CONTACT_EMAIL` or add `contact_email` to `~/.kuma/kuro/config.json` — see [Configuration](configuration.md).
 
 ## Can I use more than 960 mutations at once?
 Yes. As of v1.33.6 the per-run cap is 10,000 (≈100 plates). Raise the **Mutations** count in the Parameter panel.

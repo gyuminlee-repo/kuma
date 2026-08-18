@@ -71,16 +71,12 @@ def test_polymerase_profile_to_rpc_dict_excludes_none_optionals():
         opt_tm=62.0,
         min_tm=58.0,
         max_tm=68.0,
-        opt_size=30,
-        min_size=18,
-        max_size=45,
         min_gc=40.0,
         max_gc=60.0,
         salt_monovalent=50.0,
         salt_divalent=1.5,
         dntp_conc=0.2,
         dna_conc=250.0,
-        max_tm_diff=5.0,
     ).to_rpc_dict()
 
     assert "opt_tm_fwd" not in profile

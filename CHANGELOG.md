@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.16.26 (Two design fields nobody read, and a docs path that never matched them)
+
+Four fields on the Custom Polymerase Editor, Opt/Min/Max size and Max Tm diff, never reached the design engine: sdm_engine.py held no reference to any of the four. Two of them actively disagreed with the vendor spec already shown next to them in the same dialog. Taq listed a size range of 15-25 while its NEBuilder-derived vendor spec said 20-40, so a profile someone tuned by hand carried two conflicting numbers and only one of them was ever read.
+
+The custom polymerase and config docs pointed at ~/.kuro/, a path the app has not used since the private config directory moved under ~/.kuma/. Every English and Korean doc reference now reads ~/.kuma/kuro/, matching what core.py and config_paths.py actually resolve, except the one line in contributing.md that intentionally still names ~/.kuro/crash.log as the path earlier installs used.
+
+A separate change touches no behavior: the sweep that shows lowering the Gibson-arm assembly homology floor is safe only down to 11 nt, and unsafe at 8 nt and 10 nt, is now recorded as a comment on the constant itself, so the next person to ask does not have to re-run it.
+
+### Highlights
+
+- Custom Polymerase Editor no longer shows Opt/Min/Max size or Max Tm diff, four fields the design engine never read.
+- Docs for the custom polymerase and config paths now say ~/.kuma/kuro/, matching where kuma actually stores them.
+
+### Removed
+
+- `opt_size`, `min_size`, `max_size` and `max_tm_diff` are gone from `PolymeraseProfile`, `PolymeraseProfileModel`, the builtin profile JSON, the custom polymerase editor, and every fixture and test that carried them. A saved custom profile still loads: `_dict_to_profile` reads named keys rather than unpacking the dict, so a leftover key from an older save is silently dropped, and `WorkspaceModel` carries `extra="allow"` for the same reason on the sidecar side.
+
+### Fixed
+
+- `~/.kuro/` corrected to `~/.kuma/kuro/` across `docs/en/` and `docs/ko/`, 22 occurrences in 14 files: `configuration.md`, `contributing.md`, `custom-polymerase-editor.md`, `faq.md`, `troubleshooting.md`, `uniprot-and-alphafold.md`, `workspace-save-load.md`.
+
+### Changed
+
+- `_MIN_ASSEMBLY_HOMOLOGY` in `sdm_engine.py` now documents the sweep behind its value: a no-op below the 8 nt seed length, unchanged across 86 design attempts down to 11 nt, and a real loss of a winning primer pair at 10 nt and a rejected candidate at 8 nt. No logic in this file changed.
+
 ## v0.16.25.1 (A run that scored the plates of the run before it)
 
 Select three native barcodes and three plates belong in the verdict table. On 2026-08-10 six arrived. The three extra ones were sitting in the export folder already, written by a different run the day before, and nobody had asked for them: they were never offered in the selection dialog. Four verdict workbooks were produced from that folder before anyone noticed.

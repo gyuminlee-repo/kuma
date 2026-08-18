@@ -1784,16 +1784,12 @@
     "saltOption_schildkraut": "Schildkraut-Lifson 1965 (NEB Phusion)",
     "saltOption_schildkraut_title": "Schildkraut-Lifson 1965 经验性 Na⁺ 校正。Legacy;比 Owczarzy 或 SantaLucia 粗略。",
     "optTmLabel": "Opt Tm",
-    "maxTmDiffLabel": "Max Tm diff",
     "minTmLabel": "Min Tm",
     "maxTmLabel": "Max Tm",
     "fwdTmLabel": "Fwd Tm",
     "revTmLabel": "Rev Tm",
     "overlapTmLabel": "Overlap Tm",
     "min3PrimeDistLabel": "Min 3' distance",
-    "optSizeLabel": "Opt size",
-    "minSizeLabel": "Min size",
-    "maxSizeLabel": "Max size",
     "minGcLabel": "Min GC",
     "maxGcLabel": "Max GC",
     "monovalentSaltLabel": "Monovalent salt",
@@ -1805,7 +1801,7 @@
     "save": "保存",
     "saving": "保存中...",
     "nebTmNote": "NEB polymerase 的 NEB Tm Calculator 校正仅用于推荐退火温度 (Ta)。设计时的 Tm 采用固定的 SantaLucia 1998 (Benchling) 标度，因此下方的 salt 与 Tm method 数值不会改变它。",
-    "fieldScopeNote": "设计引擎读取的值：Fwd/Rev/Overlap Tm 目标、GC 范围、引物长度范围、overlap 模式。保存但未使用：Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff。salt 与 Tm method 数值仅用于 Ta 计算，而 custom 配置没有 Ta 规则，因此不会显示 Ta。"
+    "fieldScopeNote": "设计引擎读取的值：Fwd/Rev/Overlap Tm 目标、GC 范围、引物长度范围、overlap 模式。保存但未使用：Opt Tm, Min/Max Tm。salt 与 Tm method 数值仅用于 Ta 计算，而 custom 配置没有 Ta 规则，因此不会显示 Ta。"
   },
   "mainShell": {
     "alreadyRunning": "已在运行。",
@@ -2447,14 +2443,15 @@
     "descriptionRange": "自 v{{from}} 以来每次更新的主要变化。",
     "gotItBtn": "知道了",
     "highlights": [
-      "导出到已有较早 run 输出的文件夹时，该 run 会连那些 plate 一并判定，表中出现的 plate 多于所选数量。",
-      "过去的工作簿若显示的 plate 多于该 run 所选的 barcode，说明它判定了另一个 run 的 well，需要重新运行。",
-      "文件夹现在会记录每个 run 生成了哪些 plate，较早 run 留下的 plate 会在界面上列出，并且不会删除任何内容。",
-      "导出界面不再提供起始 row 和结束 row。除整块 plate 之外的任何设置，都会把不同突变体叠放到同一个 well 上。",
-      "位置只由 quadrant 选择决定，已保存的 row 区间若会覆盖已占用的 well，现在会被拒绝而不是写出。"
+      "自定义聚合酶编辑器不再显示 Opt/Min/Max size 和 Max Tm diff,这四个字段设计引擎从未读取过。",
+      "自定义聚合酶与配置路径文档现在写的是 ~/.kuma/kuro/,与 kuma 实际存放位置一致。"
     ],
-    "highlightsStamp": "0.16.25+291c60a5",
+    "highlightsStamp": "0.16.26+c3e3f1a1",
     "releases": {
+      "0.16.26": [
+        "自定义聚合酶编辑器不再显示 Opt/Min/Max size 和 Max Tm diff,这四个字段设计引擎从未读取过。",
+        "自定义聚合酶与配置路径文档现在写的是 ~/.kuma/kuro/,与 kuma 实际存放位置一致。"
+      ],
       "0.16.25.1": [
         "导出到已有较早 run 输出的文件夹时，该 run 会连那些 plate 一并判定，表中出现的 plate 多于所选数量。",
         "过去的工作簿若显示的 plate 多于该 run 所选的 barcode，说明它判定了另一个 run 的 well，需要重新运行。",
@@ -2660,6 +2657,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",
