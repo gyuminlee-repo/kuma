@@ -2815,6 +2815,7 @@
     "writeFailed": "Не удалось записать файл autosave ({{filename}}). Причина: {{cause}}",
     "carriedFromScratch": "Продолжено из несохранённой предыдущей сессии ({{relative}})",
     "resultsDiscarded": "Список variants заново выбран из исходного файла и больше не соответствует восстановленной таблице primer, поэтому таблица очищена. Запустите дизайн заново.",
+    "resultsIncomplete": "Часть сохранённых результатов оказалась неполной, поэтому она не была восстановлена, вместо того чтобы показать наполовину заполненные значения. Запустите анализ заново, чтобы вернуть её. Отсутствует: {{fields}}",
     "inputsUnavailable": "Ne udalos otkryt {{count}} vhodnyh faylov, oni ne popali v vosstanovlenie. Rezultaty na meste, no ishodnyy vhod otsutstvuet, vyberite ego zanovo: {{paths}}",
     "workspaceRestored": "Workspace восстановлен",
     "autoDetected": "Авто-определено: {{fields}}",

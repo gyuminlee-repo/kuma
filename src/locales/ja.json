@@ -2815,6 +2815,7 @@
     "writeFailed": "Autosave ファイルを書き込めませんでした ({{filename}})。原因: {{cause}}",
     "carriedFromScratch": "保存されていない前回のセッションから引き継ぎました ({{relative}})",
     "resultsDiscarded": "ソースファイルから variant リストを選び直した結果、復元された primer テーブルと一致しないためテーブルを消去しました。設計を再実行してください。",
+    "resultsIncomplete": "保存された結果の一部が完全ではなかったため、その部分は復元しませんでした。中途半端な値を表示しないための処理です。取り戻すには解析を再実行してください。欠落: {{fields}}",
     "inputsUnavailable": "入力ファイル {{count}} 件を開けず復元から外れました。結果は残っていますが元の入力がないため再選択してください: {{paths}}",
     "workspaceRestored": "ワークスペースを復元しました",
     "autoDetected": "自動検出: {{fields}}",

@@ -2815,6 +2815,7 @@
     "writeFailed": "無法寫入自動儲存檔案 ({{filename}})。原因: {{cause}}",
     "carriedFromScratch": "已從未儲存的上一次工作階段繼續 ({{relative}})",
     "resultsDiscarded": "已從來源檔案重新選擇 variant 清單，與恢復的 primer 表不一致，因此已清空該表。請重新執行設計。",
+    "resultsIncomplete": "儲存的結果有一部分不完整，因此該部分未被還原，以免顯示只填了一半的數值。請重新執行分析以還原。缺少：{{fields}}",
     "inputsUnavailable": "有 {{count}} 個輸入檔案無法開啟，已從還原中略過。結果仍在，但缺少來源輸入，請重新選擇: {{paths}}",
     "workspaceRestored": "工作區已恢復",
     "autoDetected": "自動檢測: {{fields}}",

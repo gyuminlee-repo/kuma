@@ -2815,6 +2815,7 @@
     "writeFailed": "Impossible d'écrire le fichier autosave ({{filename}}). Cause : {{cause}}",
     "carriedFromScratch": "Repris d'une session précédente non enregistrée ({{relative}})",
     "resultsDiscarded": "La liste des variants a été re-sélectionnée depuis le fichier source et ne correspond plus au tableau de primers restauré. Le tableau a été vidé. Relancer la conception.",
+    "resultsIncomplete": "Une partie des resultats enregistres n etait pas complete, elle n a donc pas ete restauree plutot que d etre affichee a moitie remplie. Relancez l analyse pour la recuperer. Manquant : {{fields}}",
     "inputsUnavailable": "{{count}} fichier(s) d'entree n'ont pas pu etre ouverts et sont absents de la restauration. Les resultats subsistent mais leur entree source manque, veuillez la reselectionner: {{paths}}",
     "workspaceRestored": "Espace de travail restauré",
     "autoDetected": "Auto-détecté : {{fields}}",

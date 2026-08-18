@@ -2845,6 +2845,7 @@
     "writeFailed": "자동 저장 파일을 쓰지 못했습니다 ({{filename}}). 원인: {{cause}}",
     "carriedFromScratch": "저장하지 않은 이전 세션에서 이어왔습니다 ({{relative}})",
     "resultsDiscarded": "소스 파일에서 variant 목록을 다시 선택했고 복원된 primer 표와 맞지 않아 표를 비웠습니다. 설계를 다시 실행하세요.",
+    "resultsIncomplete": "저장된 결과의 일부가 온전하지 않아 그 부분은 복원하지 않았습니다. 절반만 채운 값을 보여주지 않으려는 것이며, 되살리려면 분석을 다시 실행하십시오. 빠진 항목: {{fields}}",
     "inputsUnavailable": "입력 파일 {{count}}개를 열지 못해 복원에서 빠졌습니다. 결과는 남아 있지만 근거 입력이 없으니 다시 지정하세요: {{paths}}",
     "workspaceRestored": "Workspace 복원됨",
     "autoDetected": "자동 감지: {{fields}}",

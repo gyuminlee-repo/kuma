@@ -2815,6 +2815,7 @@
     "writeFailed": "No se pudo escribir el archivo de autoguardado ({{filename}}). Causa: {{cause}}",
     "carriedFromScratch": "Continuado desde una sesión anterior sin guardar ({{relative}})",
     "resultsDiscarded": "La lista de variants se volvió a seleccionar desde el archivo de origen y ya no coincide con la tabla de primers restaurada, por lo que la tabla se vació. Ejecutar el diseño de nuevo.",
+    "resultsIncomplete": "Una parte de los resultados guardados no estaba completa, por lo que no se restauro en lugar de mostrarse a medias. Vuelva a ejecutar el analisis para recuperarla. Falta: {{fields}}",
     "inputsUnavailable": "No se pudieron abrir {{count}} archivo(s) de entrada y quedaron fuera de la restauracion. Los resultados siguen ahi pero falta su entrada de origen, vuelva a seleccionarla: {{paths}}",
     "workspaceRestored": "Workspace restaurado",
     "autoDetected": "Auto-detectado: {{fields}}",

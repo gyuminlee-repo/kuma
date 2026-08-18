@@ -182,3 +182,80 @@ export function buildMameSnapshot(
     },
   };
 }
+
+// ─── The review group a restore has to decide at once ─────────────────────
+//
+// The `results` object literal above writes these six unconditionally, and the
+// interface types them as required, so a snapshot either has all six or was not
+// written by this build. The 2.2 review screen reads them as one answer:
+// `MameDrawerContent.tsx` prints `summary?.pass_count ?? 0` next to the verdict
+// table, so a snapshot carrying verdicts without its summary renders "PASS: 0"
+// above a table of PASS rows. Deciding the six one `if` at a time is what makes
+// that state reachable, so the decision lives here, beside the writer. A reader
+// that restates the tuple by hand drifts from it on the next field added.
+//
+// The other members of the literal are deliberately NOT in this group. A
+// consumer reading `demux_result` or `well_layout` reads it on its own terms,
+// not against the verdicts, and each already carries a guard whose reasoning is
+// written where it is used (see `applyMameSnapshot`).
+
+/** The six fields the 2.2 review screen reads as one answer. */
+export interface MameReviewResults {
+  verdicts: AppState["verdicts"];
+  replicates: AppState["replicates"];
+  summary: AppState["summary"];
+  distributionStats: AppState["distributionStats"];
+  wells: AppState["wells"];
+  runHealth: AppState["runHealth"];
+}
+
+export type MameGroupRead =
+  | { ok: true; value: MameReviewResults }
+  | { ok: false; missing: string[] };
+
+/**
+ * A member that the store types as `X | null`.
+ *
+ * `null` is a value here, not an absence: `summary: null` means "not stated",
+ * which is what a run that produced no summary genuinely reports. What must not
+ * pass is a key that is absent or holds something that is neither. The sibling
+ * array members get the opposite rule for the same reason, their store type
+ * (`VerdictRecord[]`, never null) has no "not stated" reading, so a JSON `null`
+ * there is corruption rather than an answer.
+ */
+function isNullableRecord(container: Record<string, unknown>, key: string): boolean {
+  if (!(key in container)) return false;
+  const value = container[key];
+  if (value === null) return true;
+  return typeof value === "object" && !Array.isArray(value);
+}
+
+/**
+ * Read the review group whole. `missing` names every member that failed, so the
+ * caller can say which part of the run did not come back.
+ */
+export function readMameReviewResults(results: unknown): MameGroupRead {
+  const record =
+    results !== null && typeof results === "object"
+      ? (results as Record<string, unknown>)
+      : {};
+  const missing: string[] = [];
+  if (!Array.isArray(record.verdicts)) missing.push("verdicts");
+  if (!Array.isArray(record.replicates)) missing.push("replicates");
+  if (!Array.isArray(record.wells)) missing.push("wells");
+  if (!isNullableRecord(record, "summary")) missing.push("summary");
+  if (!isNullableRecord(record, "distribution_stats")) missing.push("distribution_stats");
+  if (!isNullableRecord(record, "run_health")) missing.push("run_health");
+  if (missing.length > 0) return { ok: false, missing };
+  return {
+    ok: true,
+    value: {
+      verdicts: record.verdicts as AppState["verdicts"],
+      replicates: record.replicates as AppState["replicates"],
+      summary: record.summary as AppState["summary"],
+      distributionStats: record.distribution_stats as AppState["distributionStats"],
+      wells: record.wells as AppState["wells"],
+      runHealth: record.run_health as AppState["runHealth"],
+    },
+  };
+}

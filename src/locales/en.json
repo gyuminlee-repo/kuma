@@ -2845,6 +2845,7 @@
     "writeFailed": "Could not write the autosave file ({{filename}}). Cause: {{cause}}",
     "carriedFromScratch": "Carried over from an unsaved earlier session ({{relative}})",
     "resultsDiscarded": "The variant list was re-selected from the source file and no longer matches the restored primer table, so the table was cleared. Run the design again.",
+    "resultsIncomplete": "Part of the saved results could not be restored because the saved file did not carry them whole, so that part was left out rather than shown half-filled. Run the analysis again to get it back. Missing: {{fields}}",
     "inputsUnavailable": "{{count}} input file(s) could not be opened and were left out of the restore. Results are still here but their source input is missing, so re-select it: {{paths}}",
     "workspaceRestored": "Workspace restored",
     "autoDetected": "Auto-detected: {{fields}}",

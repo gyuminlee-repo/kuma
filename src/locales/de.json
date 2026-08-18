@@ -2815,6 +2815,7 @@
     "writeFailed": "Autosave-Datei konnte nicht geschrieben werden ({{filename}}). Ursache: {{cause}}",
     "carriedFromScratch": "Aus einer nicht gespeicherten früheren Sitzung übernommen ({{relative}})",
     "resultsDiscarded": "Die variant-Liste wurde aus der Quelldatei neu ausgewählt und passt nicht mehr zur wiederhergestellten primer-Tabelle. Die Tabelle wurde geleert. Das Design bitte erneut ausführen.",
+    "resultsIncomplete": "Ein Teil der gespeicherten Ergebnisse war nicht vollstaendig und wurde deshalb nicht wiederhergestellt, statt halb gefuellt angezeigt zu werden. Fuehren Sie die Analyse erneut aus, um ihn zurueckzuholen. Fehlt: {{fields}}",
     "inputsUnavailable": "{{count}} Eingabedatei(en) konnten nicht geoeffnet werden und fehlen in der Wiederherstellung. Die Ergebnisse sind noch da, die zugrunde liegende Eingabe fehlt jedoch. Bitte erneut auswaehlen: {{paths}}",
     "workspaceRestored": "Workspace wiederhergestellt",
     "autoDetected": "Automatisch erkannt: {{fields}}",

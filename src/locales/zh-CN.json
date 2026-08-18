@@ -2815,6 +2815,7 @@
     "writeFailed": "无法写入自动保存文件 ({{filename}})。原因: {{cause}}",
     "carriedFromScratch": "已从未保存的上一次会话继续 ({{relative}})",
     "resultsDiscarded": "已从源文件重新选择 variant 列表，与恢复的 primer 表不一致，因此已清空该表。请重新运行设计。",
+    "resultsIncomplete": "保存的结果有一部分不完整，因此该部分未被恢复，以免显示只填了一半的数值。请重新运行分析以恢复。缺失：{{fields}}",
     "inputsUnavailable": "有 {{count}} 个输入文件无法打开，已从恢复中略过。结果仍在，但缺少来源输入，请重新选择: {{paths}}",
     "workspaceRestored": "工作区已恢复",
     "autoDetected": "自动检测: {{fields}}",

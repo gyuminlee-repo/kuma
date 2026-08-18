@@ -282,3 +282,105 @@ export function buildKuroSnapshot(
     },
   };
 }
+
+// ─── 복원 측이 같이 읽어야 하는 그룹 ─────────────────────────────────────
+//
+// 위 `results` 객체 리터럴은 designResults/successCount/totalCount 를 조건 없이
+// 한 번에 쓴다. 셋은 구성상 한 덩어리이고, 화면도 셋을 한 측정값으로 읽는다
+// (ResultTable.tsx 의 "successCount/totalCount designed" 배지가 designResults
+// 표 위에 붙고, DesignReportContent.tsx 가 같은 둘로 성공률을 계산한다).
+// 그런데 복원 측이 필드마다 독립 if 로 읽으면 한쪽만 착지한 상태가 만들어진다.
+// JSON.stringify 는 NaN/Infinity 를 null 로 쓰므로 `typeof === "number"` 가
+// 깨지고, 카운트만 초기값 0 으로 남아 세 줄짜리 표 위에 "0/0 designed" 가
+// 뜬다. 그래서 판정을 여기, 쓰는 쪽 옆에 둔다. 읽는 쪽이 같은 튜플을 손으로
+// 다시 적으면 그 순간부터 다시 어긋난다.
+
+/** designResults 와 그 카운트. 스냅샷에서 통째로 읽거나 통째로 버린다. */
+export interface KuroDesignOutcome {
+  designResults: AppState["designResults"];
+  successCount: number;
+  totalCount: number;
+}
+
+export type GroupRead<T> =
+  | { ok: true; value: T }
+  | { ok: false; missing: string[] };
+
+/** 저장된 카운트로 인정되는 값. JSON 왕복으로 null 이 된 NaN/Infinity 를 뺀다. */
+function isRestorableCount(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+/**
+ * `results` 블록에서 설계 결과 그룹을 통째로 읽는다.
+ *
+ * 셋 중 하나라도 없거나 유한한 카운트가 아니면 그룹 전체를 거절하고 무엇이
+ * 빠졌는지 돌려준다. 부분 적용을 도달 불가능하게 만드는 것이 목적이므로
+ * "있는 것만 넣는" 완화 경로는 두지 않는다.
+ */
+export function readKuroDesignOutcome(results: unknown): GroupRead<KuroDesignOutcome> {
+  const record =
+    results !== null && typeof results === "object"
+      ? (results as Record<string, unknown>)
+      : {};
+  const missing: string[] = [];
+  if (!Array.isArray(record.designResults)) missing.push("designResults");
+  if (!isRestorableCount(record.successCount)) missing.push("successCount");
+  if (!isRestorableCount(record.totalCount)) missing.push("totalCount");
+  if (missing.length > 0) return { ok: false, missing };
+  return {
+    ok: true,
+    value: {
+      designResults: record.designResults as AppState["designResults"],
+      successCount: record.successCount as number,
+      totalCount: record.totalCount as number,
+    },
+  };
+}
+
+/**
+ * BenchmarkResult 의 필수 지표. `types/models.ts` 의 인터페이스와 1:1 이며
+ * `n_trials` 만 optional 이라 여기서 빠져 있다(있으면 유한해야 한다).
+ *
+ * 복원 측이 이 블록을 컨테이너로만 검사하면 비유한 지표가 null 로 왕복해
+ * `number` 자리에 앉고 화면에는 0.0% 로 찍힌다. 지표 하나가 무효면 그 항목은
+ * 측정값이 아니므로 블록 전체를 쓰지 않는다. 재설계로 다시 만들 수 있는
+ * 캐시라(위 saveCache 주석) 버리는 쪽이 틀린 숫자를 보여주는 쪽보다 싸다.
+ */
+const BENCHMARK_REQUIRED_METRICS = [
+  "n_selected",
+  "hit_rate",
+  "mean_fitness",
+  "unique_positions",
+  "position_coverage",
+  "domain_coverage",
+  "structural_spread",
+  "hits",
+  "threshold",
+] as const;
+
+/** 스냅샷의 benchmarkResults 를 항목 단위로 검사한다. 무효 항목 키를 돌려준다. */
+export function readKuroBenchmarkResults(
+  value: unknown,
+): GroupRead<AppState["benchmarkResults"]> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return { ok: false, missing: ["benchmarkResults"] };
+  }
+  const invalid: string[] = [];
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
+      invalid.push(key);
+      continue;
+    }
+    const metrics = entry as Record<string, unknown>;
+    const broken = BENCHMARK_REQUIRED_METRICS.some(
+      (name) => typeof metrics[name] !== "number" || !Number.isFinite(metrics[name] as number),
+    );
+    const trialsBroken =
+      metrics.n_trials !== undefined &&
+      (typeof metrics.n_trials !== "number" || !Number.isFinite(metrics.n_trials));
+    if (broken || trialsBroken) invalid.push(key);
+  }
+  if (invalid.length > 0) return { ok: false, missing: invalid };
+  return { ok: true, value: value as AppState["benchmarkResults"] };
+}

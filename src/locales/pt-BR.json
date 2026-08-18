@@ -2815,6 +2815,7 @@
     "writeFailed": "Não foi possível gravar o arquivo de salvamento automático ({{filename}}). Causa: {{cause}}",
     "carriedFromScratch": "Continuado de uma sessão anterior não salva ({{relative}})",
     "resultsDiscarded": "A lista de variants foi selecionada novamente a partir do arquivo de origem e não corresponde mais à tabela de primers restaurada, portanto a tabela foi limpa. Execute o design novamente.",
+    "resultsIncomplete": "Parte dos resultados salvos nao estava completa, portanto nao foi restaurada em vez de ser exibida pela metade. Execute a analise novamente para recupera-la. Faltando: {{fields}}",
     "inputsUnavailable": "Nao foi possivel abrir {{count}} arquivo(s) de entrada, que ficaram de fora da restauracao. Os resultados continuam la, mas falta a entrada de origem. Selecione novamente: {{paths}}",
     "workspaceRestored": "Workspace restaurado",
     "autoDetected": "Auto-detectado: {{fields}}",

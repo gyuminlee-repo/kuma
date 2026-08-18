@@ -173,7 +173,10 @@ export function MainShell() {
       // 읽기/쓰기 실패는 침묵하면 안 된다. 이 시점부터 자동 저장이 봉인된다.
       msg.variant === "io_failed" ||
       // 결과물 폐기도 침묵하면 안 된다. 표가 비워진 이유를 알려야 한다.
-      msg.variant === "results_discarded"
+      msg.variant === "results_discarded" ||
+      // 그룹 거절도 같다. 조용히 초기값으로 두면 사용자는 결과 일부가 안
+      // 돌아온 것을 화면의 숫자로만 만나게 되고, 그 숫자를 측정값으로 읽는다.
+      msg.variant === "results_incomplete"
     ) {
       showStatusMessage(msg.message);
     }
