@@ -1,5 +1,47 @@
 # Changelog
 
+## v0.16.29 (What the tests were not looking at)
+
+Eight surfaces of this codebase were read for reachable failure cases, one surface at a time, and 277 of them were confirmed. Ten audit pages record the findings; a re-verification pass overturned six, which are marked where they stand rather than deleted, because a finding that did not survive is worth as much to the next reader as one that did. The fixes here address causes rather than sites.
+
+Most of the volume falls into two shapes. A guard meant to reject a value that is not a number instead tests a relation, and a relation involving NaN is false, so the guard opens. And an invariant is enforced where it was first needed while a second path arrives at the same state with nothing checking it.
+
+One of those cost sixty seconds per occurrence and looked like something else entirely. Python writes a bare NaN into JSON, the Rust side refuses the line, the reply never arrives, and the caller reports an RPC timeout. A single cell that could not be computed anywhere in a result read as a dead sidecar. Serialisation now refuses a non-finite value, walks the object to name the path that carried it, and answers that request with an error naming it. Nothing is substituted. A number the pipeline could not compute is not quietly replaced by one a chart will happily draw.
+
+A decision confidence had the same defect one layer up. The bootstrap ran on a signal set the point estimate did not use, so the two disagreed and the number that reached the operator came from the wider one. On the recorded round, aligning them moves the confidence from 0.9935 to 0.5840 and the label from switching strategy to deferring the decision. The old figure was not a measurement of anything.
+
+The largest finding is what the test suite was not looking at. A skip meant to spare machines without the aligner was written across the whole Python suite: absent that one binary, the run reported nothing passed and 1301 skipped, and reported it as success. Windows had no coverage at all. Narrowing the skip to the tests that need the binary turned up 29 real failures on that platform, two of them defects in shipped code that no run on Linux or macOS can reach. Every artifact publish raised an error on Windows, because the publisher asked the operating system to flush a file it had opened read-only, which POSIX permits and Windows refuses. And the checksum file written beside every export, the one meant to be handed to an external checker, picked up a carriage return, so the checker reported a missing file while looking straight at it. This application ships to Windows.
+
+Release stamping now fails where it used to continue. A four-part version label was truncated by one step, which exited early, which skipped regenerating the release notes, and the guard downstream compared substrings and saw nothing wrong, so locales shipped carrying the wrong release. The translation checker was rebuilt before any translation was touched, so what it now catches is a placeholder dropped or renamed against English, an interpolation the calling code supplies under a different name, and a value that is blank rather than translated.
+
+Why none of this failed a test before: the tests were written against the implementation rather than against the contract. A cross-talk test pins a threshold at five because the code says five, while the reachable value is nine. A volume test supplies zero, which separates no two behaviours. A suite written that way agrees with the code by construction, including where the code is wrong.
+
+Two questions are recorded rather than answered, because both need a decision about the assay rather than about the code: whether activity error is additive or multiplicative, which is what settles the unit mixing in the scale, and the bias in the bootstrap, which needs the resampling redesigned rather than patched.
+
+### Highlights
+
+- A value the pipeline could not compute now names itself instead of surfacing sixty seconds later as a connection timeout.
+- A decision confidence is reported only when it was measured, and the estimate and its error bars now read the same signals.
+- The test suite runs on Windows, where a single missing tool used to skip all 1301 tests and report success.
+- Two defects that only Windows can reach are fixed: every export bundle failed to publish, and every checksum file was unreadable.
+- A translation that drops or renames a placeholder is caught before release, rather than reaching the screen with a blank in it.
+
+### Fixed
+
+- A non-finite number in a sidecar result no longer presents as a transport failure. `kuma_core/shared/sidecar.py` serialises with `allow_nan=False` and, when that refuses, walks the payload to list the offending paths and answers the pending request with `-32603` naming them; a notification instead goes to stderr, since it has no id to answer. `src-tauri/src/sidecar.rs` fails the pending request when it can recover the id unambiguously, giving up if the line carries more than one, so the sixty-second timeout is no longer the first sign. No value is coerced or replaced.
+- Every Step 3 artifact publish failed on Windows. `_publish_artifact_bundle` reopened each staged file read-only and asked for its buffers to be flushed, which needs a writable handle on that platform and answers with a bad file descriptor. Opening read-write keeps the intent and truncates nothing. This was invisible while the whole Python suite skipped there.
+- The checksum file written beside an export was unusable on Windows. It exists to be read by `shasum -c` and `sha256sum --check`, both of which treat everything after the two spaces as the filename, and text-mode writing appended a carriage return to it, so the checker reported a failure to open a file sitting in the same directory. A new test reads the raw bytes, because reading it as text hides exactly this.
+- A decision confidence computed from an unusable bootstrap no longer selects a branch. `classify.py` gains an input check that matches the computation it protects, a threshold that refuses a non-finite value rather than opening the gate, and finiteness checks on the activities, whose absence made one bad value change the answer depending on list order. The point estimate and the bootstrap draws now use one signal set.
+- A restored workspace group is read whole or not at all. `readKuroDesignOutcome` sits beside the writer it mirrors, and the export slice clears its table and its counts together rather than leaving one populated after the other is emptied.
+- The raw sidecar transport is no longer reachable from feature code. Twelve call sites went around the validated client and cast the reply to a type nothing checked, including one method absent from the dispatcher table entirely, so no validator existed to skip. The export was renamed and a test scans the source tree to keep it closed, this repository having no lint configuration to carry the rule. The same change cleared an unhandled promise rejection raised once per failed request.
+- Three assertions in the guided tour tests read the DOM synchronously after a click that changes state, and lost that race under load.
+
+### Added
+
+- A translation gate that checks what it claimed to. `scripts/i18n-parity.mjs` now catches a placeholder dropped or renamed relative to English, an interpolation the calling code passes under another name, a null or whitespace-only value, and it holds a per-locale count of untranslated strings that may fall but not rise. Sixteen strings had lost the placeholder naming the wait, thirty-three German ones had their identifiers translated along with the prose, and one relative-time string had been migrated on one side only, which rendered a literal NaN rather than a number.
+- A skip that names the binary it needs, so the suite runs where the application ships. With the aligner absent, the Python suite goes from nothing passed and 1301 skipped to 1239 passed and 62 skipped.
+- Ten audit pages recording all 277 findings by surface, including the six the re-verification pass overturned and why.
+
 ## v0.16.28 (What a run measured and never showed)
 
 RunHealthPanel has six sections and the app mounted one. A comment on the review screen said the other five lived in the QC inspector, which never imported the panel. File size, throughput, pore yield, barcode distribution and cross-talk were computed on every run and dropped on the floor. They now sit in a disclosure at the bottom of the review, closed until it is opened, so the verdict table and the plate keep the screen.

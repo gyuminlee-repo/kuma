@@ -2534,14 +2534,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Five run health sections the app measured on every run and never drew are now on the review screen, in a section that starts closed.",
-      "Coverage reports evenness per well rather than a mean alone, so a well with a gap no longer reads like one covered evenly at the same depth.",
-      "The read length the sequencer measured is shown against the reference the run aligned to, which is where a concatemer population shows.",
-      "A reference file holding more than one sequence is refused by all four readers instead of being joined into a chimera or silently truncated.",
-      "An amplicon with no reading frame found says so, rather than reporting a zero length CDS that translated the plate from the primer tail."
+      "A value the pipeline could not compute now names itself instead of surfacing sixty seconds later as a connection timeout.",
+      "A decision confidence is reported only when it was measured, and the estimate and its error bars now read the same signals.",
+      "The test suite runs on Windows, where a single missing tool used to skip all 1301 tests and report success.",
+      "Two defects that only Windows can reach are fixed: every export bundle failed to publish, and every checksum file was unreadable.",
+      "A translation that drops or renames a placeholder is caught before release, rather than reaching the screen with a blank in it."
     ],
-    "highlightsStamp": "0.16.28+35bab529",
+    "highlightsStamp": "0.16.29+3f25adcf",
     "releases": {
+      "0.16.29": [
+        "A value the pipeline could not compute now names itself instead of surfacing sixty seconds later as a connection timeout.",
+        "A decision confidence is reported only when it was measured, and the estimate and its error bars now read the same signals.",
+        "The test suite runs on Windows, where a single missing tool used to skip all 1301 tests and report success.",
+        "Two defects that only Windows can reach are fixed: every export bundle failed to publish, and every checksum file was unreadable.",
+        "A translation that drops or renames a placeholder is caught before release, rather than reaching the screen with a blank in it."
+      ],
       "0.16.28": [
         "Five run health sections the app measured on every run and never drew are now on the review screen, in a section that starts closed.",
         "Coverage reports evenness per well rather than a mean alone, so a well with a gap no longer reads like one covered evenly at the same depth.",
@@ -2764,6 +2771,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",
       "0.16.26": "c3e3f1a1",

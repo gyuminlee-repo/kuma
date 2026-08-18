@@ -2504,13 +2504,13 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Cinco secciones de run health que la aplicación medía en cada ejecución y nunca dibujaba ya aparecen en la pantalla de revisión, en una sección que empieza cerrada.",
-      "La cobertura informa de la uniformidad por pocillo y no solo de una media, de modo que un pocillo con un hueco ya no se lee como uno cubierto de manera uniforme.",
-      "La read length medida por el secuenciador se muestra frente a la referencia con la que alineó la ejecución, que es donde se manifiesta una población de concatémeros.",
-      "Un archivo de referencia con más de una secuencia es rechazado por los cuatro lectores, en lugar de unirse en una quimera o truncarse en silencio.",
-      "Un amplicón sin reading frame encontrado lo dice, en lugar de informar de una CDS de longitud cero que traducía la placa desde la cola del cebador."
+      "Un valor que la canalización no pudo calcular ahora se identifica en lugar de aparecer 60 segundos después como un tiempo de espera agotado.",
+      "La confianza de una decisión solo se informa cuando se midió, y la estimación y su margen de error leen las mismas señales.",
+      "El conjunto de pruebas se ejecuta en Windows, donde antes una sola herramienta ausente omitía las 1301 pruebas e informaba éxito.",
+      "Se corrigen dos defectos que solo Windows alcanza: la publicación de cada paquete de exportación fallaba y cada archivo de suma de verificación era ilegible.",
+      "Una traducción que omite o renombra un marcador de posición se detecta antes de la publicación, en vez de llegar a la pantalla con un hueco."
     ],
-    "highlightsStamp": "0.16.28+35bab529",
+    "highlightsStamp": "0.16.29+3f25adcf",
     "releases": {
       "0.16.28": [
         "Cinco secciones de run health que la aplicación medía en cada ejecución y nunca dibujaba ya aparecen en la pantalla de revisión, en una sección que empieza cerrada.",
@@ -2731,9 +2731,17 @@
         "La ayuda del mapeo de la lista de variantes ahora indica cómo se llenan los wells: A1, B1, C1 hasta H1, y luego A2.",
         "El hook post-commit de versión ya no falla por una ruta que se eliminó.",
         "Una nota de versión larga ahora se desplaza dentro del diálogo en lugar de salirse por abajo."
+      ],
+      "0.16.29": [
+        "Un valor que la canalización no pudo calcular ahora se identifica en lugar de aparecer 60 segundos después como un tiempo de espera agotado.",
+        "La confianza de una decisión solo se informa cuando se midió, y la estimación y su margen de error leen las mismas señales.",
+        "El conjunto de pruebas se ejecuta en Windows, donde antes una sola herramienta ausente omitía las 1301 pruebas e informaba éxito.",
+        "Se corrigen dos defectos que solo Windows alcanza: la publicación de cada paquete de exportación fallaba y cada archivo de suma de verificación era ilegible.",
+        "Una traducción que omite o renombra un marcador de posición se detecta antes de la publicación, en vez de llegar a la pantalla con un hueco."
       ]
     },
     "releaseStamps": {
+      "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",
       "0.16.26": "c3e3f1a1",
