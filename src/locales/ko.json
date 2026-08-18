@@ -933,6 +933,14 @@
         "helperText": "KURO expected_mutations 시트 또는 변이 목록 xlsx",
         "helpText": "KURO 에서 내보낸 워크북이면 expected_mutations 시트를 자동으로 읽고 status 필터를 먼저 적용합니다. 그 외 워크북이면 시트와 변이 열을 직접 고를 수 있습니다."
       },
+      "variantTemplate": {
+        "button": "템플릿 받기",
+        "helperText": "96개 well 이 plate 순서대로 미리 적힌 빈 목록입니다.",
+        "toastSuccess": "변이 템플릿을 저장했습니다",
+        "toastSuccessDesc": "{{wells}}개 well 을 적었고 WT 는 {{well}} 입니다. 각 well 옆에 변이를 적고 well 열은 그대로 두십시오.",
+        "toastError": "변이 템플릿을 쓰지 못했습니다",
+        "openFolder": "폴더 열기"
+      },
       "referenceFasta": {
         "label": "참조 construct 서열",
         "placeholder": ".fasta / .fa / .gbk / .dna 파일 경로",

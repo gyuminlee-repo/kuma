@@ -786,6 +786,14 @@
         "helperText": "KURO expected_mutations sheet, or a plain variant list",
         "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
+      "variantTemplate": {
+        "button": "取得範本",
+        "helperText": "一份空白清單，96 個 well 已依 plate 順序預先填好。",
+        "toastSuccess": "已儲存變異範本",
+        "toastSuccessDesc": "已寫入 {{wells}} 個 well，WT 位於 {{well}}。請在每個 well 旁填寫變異，well 欄請勿更動。",
+        "toastError": "無法寫入變異範本",
+        "openFolder": "開啟資料夾"
+      },
       "referenceFasta": {
         "label": "參考 construct 序列",
         "placeholder": ".fasta / .fa / .gbk / .dna 檔案路徑",

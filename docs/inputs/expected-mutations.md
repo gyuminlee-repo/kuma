@@ -55,6 +55,12 @@ Y66H
 
 WT 대조군 라벨은 `wt`, `wildtype`, `wild-type`, `wild type`, `control` 이다. 목록 안에 두면 그 자리 well 이 대조군이 되고, 생략하면 마지막 변이 다음 well 에 붙는다.
 
+## 갈래 3: 앱이 발급한 템플릿
+
+Analyze 입력 화면의 변이 목록 선택 옆 "템플릿 받기" 버튼이 `well`, `variant` 두 열짜리 xlsx 를 쓴다. `well` 열에는 96개 주소가 세로 채움 순서로 이미 적혀 있고 마지막 well 인 `H12` 에 `WT` 가 들어간다 (`kuma_core/mame/io/variant_template.py`).
+
+채울 것은 `variant` 열뿐이다. `well` 열은 손대지 말고, 행을 지우거나 정렬로 순서를 바꾸지도 않는다. 그 열이 이 파일이 어느 well 을 뜻하는지 말하는 유일한 근거다.
+
 ## 거부 규칙
 
 전부 경고가 아니라 `ValueError` 다. 잘못 배치된 채 진행되는 것보다 낫다는 판단이다.

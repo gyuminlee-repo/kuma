@@ -786,6 +786,14 @@
         "helperText": "KURO expected_mutations sheet, or a plain variant list",
         "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
+      "variantTemplate": {
+        "button": "Obter modelo",
+        "helperText": "Uma lista em branco com os 96 wells já escritos na ordem da plate.",
+        "toastSuccess": "Modelo de variantes salvo",
+        "toastSuccessDesc": "{{wells}} wells escritos, WT em {{well}}. Digite uma variante ao lado de cada well e deixe a coluna well intacta.",
+        "toastError": "Não foi possível gravar o modelo de variantes",
+        "openFolder": "Abrir pasta"
+      },
       "referenceFasta": {
         "label": "Construct de referência",
         "placeholder": "Caminho do arquivo .fasta / .fa / .gbk / .dna",

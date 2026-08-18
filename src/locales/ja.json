@@ -786,6 +786,14 @@
         "helperText": "KURO expected_mutations sheet, or a plain variant list",
         "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
+      "variantTemplate": {
+        "button": "テンプレートを取得",
+        "helperText": "96 の well が plate 順にあらかじめ記入された空のリストです。",
+        "toastSuccess": "変異テンプレートを保存しました",
+        "toastSuccessDesc": "{{wells}} 件の well を書き出し、WT は {{well}} です。各 well の横に変異を入力し、well 列はそのままにしてください。",
+        "toastError": "変異テンプレートを書き出せませんでした",
+        "openFolder": "フォルダを開く"
+      },
       "referenceFasta": {
         "label": "Reference construct 配列",
         "placeholder": ".fasta / .fa / .gbk / .dna ファイルパス",
