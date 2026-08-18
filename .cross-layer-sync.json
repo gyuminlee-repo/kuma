@@ -48,10 +48,10 @@
         "path": "src/types/models.ts",
         "extract": "ts_interface_keys:RpcMethodMap"
       },
+      "comment": "health_info was excluded while it had no RpcMethodMap entry and reached the sidecar through the raw transport. It is now a table method like any other, so the check enforces it. ping and shutdown stay excluded: they are lifecycle calls owned by spawnSidecar/killSidecar inside the ipc clients and never reach sendRequest.",
       "exclude": [
         "ping",
-        "shutdown",
-        "health_info"
+        "shutdown"
       ]
     },
     {

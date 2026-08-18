@@ -14,7 +14,7 @@ import { resolve } from "node:path";
 const mocks = vi.hoisted(() => ({ rpc: vi.fn(), killSidecar: vi.fn() }));
 
 vi.mock("../ipc", () => ({
-  rpc: mocks.rpc,
+  rawSidecarRpc: mocks.rpc,
   killSidecar: mocks.killSidecar,
 }));
 

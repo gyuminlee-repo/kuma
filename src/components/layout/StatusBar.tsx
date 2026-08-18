@@ -3,16 +3,11 @@ import { useTranslation } from "react-i18next";
 import { WifiOff } from "lucide-react";
 import { useAppStore } from "../../store/appStore";
 import { GlobalStatusBar } from "./GlobalStatusBar";
-import { rpc } from "../../lib/ipc";
+import { sendRequest } from "../../lib/ipc-kuro";
+import type { HealthInfo } from "../../types/models";
 
 /** §2 Observability: health_info polling interval (ms). */
 const HEALTH_POLL_INTERVAL = 30_000;
-
-interface HealthInfo {
-  pid: number;
-  rss_bytes: number;
-  py_version: string;
-}
 
 interface StatusBarProps {
   sidecarStatus: string;
@@ -46,7 +41,7 @@ export function StatusBar({ sidecarStatus, onRetry, statusErrorKind }: StatusBar
 
     async function fetchHealth() {
       try {
-        const info = await rpc<HealthInfo>("kuro", "health_info", {});
+        const info = await sendRequest("health_info", {});
         setHealthInfo(info);
       } catch (err) {
         // Non-critical: sidecar may be mid-restart. Clear stale data so tooltip

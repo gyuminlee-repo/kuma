@@ -2,7 +2,9 @@ import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react"
 import { useTranslation } from "react-i18next";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
-import { killSidecar, rpc, type SidecarKind } from "@/lib/ipc";
+import { killSidecar } from "@/lib/ipc";
+import { pingSidecar as pingKuroSidecar } from "@/lib/ipc-kuro";
+import { pingSidecar as pingMameSidecar } from "@/lib/ipc-mame";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { GlobalAppBar, type AppTab } from "@/components/layout/GlobalAppBar";
 import { useKumaProject } from "@/state/projectContext";
@@ -375,8 +377,13 @@ export function MainShell() {
     }
 
     // Lazily start the destination sidecar for autosave-backed tabs.
+    // Lifecycle ping, not a data call. It goes through each client's
+    // pingSidecar rather than the raw transport, so the shell holds no direct
+    // reference to the unchecked transport; the call it makes is byte for byte
+    // the one it used to make itself.
     if (nextKind === "kuro" || nextKind === "mame") {
-      void rpc(nextKind as SidecarKind, "ping", {}).catch(() => {
+      const ping = nextKind === "kuro" ? pingKuroSidecar : pingMameSidecar;
+      void ping().catch(() => {
         // Ignore lazy sidecar startup failures in the shell.
       });
     }

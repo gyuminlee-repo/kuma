@@ -54,6 +54,10 @@ function isRecordOfFiniteNumber(value: unknown): boolean {
   return isRecord(value) && Object.values(value).every(isFiniteNumber);
 }
 
+function isRecordOfStringArray(value: unknown): boolean {
+  return isRecord(value) && Object.values(value).every(isStringArray);
+}
+
 function isNullableFiniteNumber(value: unknown): boolean {
   return value === null || isFiniteNumber(value);
 }
@@ -163,10 +167,93 @@ const isBuildWellLayoutResult: MameResultValidator = (value) =>
   isFiniteNumber(value.count) &&
   isStringArray(value.dropped_mutant_ids);
 
+/**
+ * `health_info`.
+ *
+ * `python-core/sidecar_mame/dispatcher.py:59-72` returns
+ * `{"pid": os.getpid(), "rss_bytes": <int>, "py_version": <str>}`, character for
+ * character the same dict the KURO dispatcher builds at
+ * `python-core/sidecar_kuro/dispatcher.py:69-82`, so the two channels guard it
+ * with the same three checks. `rss_bytes` degrades to `0` rather than
+ * disappearing when the memory-monitor import fails, so no field is optional.
+ */
+const isHealthInfoResult: MameResultValidator = (value) =>
+  isRecord(value) &&
+  isFiniteNumber(value.pid) &&
+  isFiniteNumber(value.rss_bytes) &&
+  isString(value.py_version);
+
+/**
+ * `inspect_variant_source`.
+ *
+ * `python-core/sidecar_mame/handlers/barcode_package.py:90` has one return path.
+ * Two fields need care and neither is guessable from the TypeScript type:
+ *
+ *  - `sheets` is an EMPTY list for CSV/TSV/TXT input, not absent
+ *    (`kuma_core/mame/ingest/variant_list.py:164`), so `[]` is a valid answer
+ *    and not a signal of failure.
+ *  - `suggested_column` is genuinely nullable: it is always `None` when
+ *    `is_kuro_export` is true (`variant_list.py:189-191`), and `None` again for
+ *    a non-KURO file whose headers match no known column.
+ *
+ * `headers` is `dict[str, list[str]]`, keyed by sheet name, or by the single
+ * empty-string key `""` for CSV input (`variant_list.py:165`).
+ */
+const isInspectVariantSourceResult: MameResultValidator = (value) =>
+  isRecord(value) &&
+  typeof value.is_kuro_export === "boolean" &&
+  isStringArray(value.sheets) &&
+  isRecordOfStringArray(value.headers) &&
+  (value.suggested_column === null || isString(value.suggested_column));
+
+/**
+ * `generate_mame_package`.
+ *
+ * `python-core/sidecar_mame/handlers/barcode_package.py:280`, serializing the
+ * `MamePackageResult` dataclass at
+ * `kuma_core/mame/ingest/barcode_package.py:594`. `amplicon_length` is nullable
+ * by dataclass default (`barcode_package.py:600`); the three path fields are
+ * stringified `Path` objects and are never null.
+ */
+const isMamePackageResult: MameResultValidator = (value) =>
+  isRecord(value) &&
+  isString(value.barcodes_xlsx) &&
+  isString(value.amplicon_fa) &&
+  isString(value.context_json) &&
+  isStringArray(value.warnings) &&
+  (value.amplicon_length === null || isFiniteNumber(value.amplicon_length));
+
+/**
+ * `read_kuma_meta`.
+ *
+ * The handler is typed `-> dict | None` and really does return `None`
+ * (`python-core/sidecar_mame/handlers/kuma_meta.py:15-16`), for two reasons in
+ * `kuma_core/mame/io/kuma_meta.py`: no `__kuma_meta__` sheet (`:28`), or the
+ * sheet present but carrying no `project_id` (`:35`). So `null` is a SUCCESS
+ * result here, not a shape failure, and the guard accepts it up front.
+ *
+ * When non-null it is `asdict` of the `KumaMeta` dataclass: exactly four string
+ * fields, with missing values written as `""` rather than left null.
+ */
+const isReadKumaMetaResult: MameResultValidator = (value) => {
+  if (value === null) return true;
+  return (
+    isRecord(value) &&
+    isString(value.project_id) &&
+    isString(value.kuma_version) &&
+    isString(value.kuro_module_version) &&
+    isString(value.exported_at)
+  );
+};
+
 const VALIDATORS: Record<string, MameResultValidator> = {
   "mame.activity.build_evolvepro_input": isBuildEvolveproInputResult,
   "strategy.classify_round": isClassifyRoundResult,
   "mame.build_well_layout": isBuildWellLayoutResult,
+  health_info: isHealthInfoResult,
+  inspect_variant_source: isInspectVariantSourceResult,
+  generate_mame_package: isMamePackageResult,
+  read_kuma_meta: isReadKumaMetaResult,
 };
 
 /**
@@ -197,7 +284,6 @@ const VALIDATORS: Record<string, MameResultValidator> = {
  */
 export const MAME_UNVALIDATED_METHODS: readonly string[] = [
   "ping",
-  "health_info",
   "analyze",
   "validate_inputs",
   "load_analyze_result",
@@ -205,7 +291,6 @@ export const MAME_UNVALIDATED_METHODS: readonly string[] = [
   "get_plate_data",
   "export_janus_mapping",
   "export_janus_mapping_dry_run",
-  "read_kuma_meta",
   "export_run_report",
   "cancel_analyze",
   "reset_state",
@@ -216,9 +301,7 @@ export const MAME_UNVALIDATED_METHODS: readonly string[] = [
   "activity.merge",
   "activity.export_evolvepro_xlsx",
   "mame.activity.merge_for_evolvepro",
-  "generate_mame_package",
   "check_plate_order",
-  "inspect_variant_source",
   "mame.ingest.parse_reference",
   "mame.run_combinatorial_demux",
   "mame.detect_native_barcodes",

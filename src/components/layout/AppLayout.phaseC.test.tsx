@@ -17,7 +17,17 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 
 vi.mock("@/lib/ipc-kuro", () => ({
-  sendRequest: vi.fn(),
+  // health_info rejects rather than resolving undefined. StatusBar polls it and
+  // renders the result; the real sendRequest either returns a payload the
+  // validator accepted or throws, and never resolves undefined. Before the
+  // status bar was routed through this client it called the raw transport,
+  // which threw "Tauri bridge unavailable" here, so a rejection is also what
+  // this test used to see.
+  sendRequest: vi.fn((method: string) =>
+    method === "health_info"
+      ? Promise.reject(new Error("sidecar unavailable in test"))
+      : Promise.resolve(undefined),
+  ),
   setProgressHandler: vi.fn(),
   cancelAndRespawn: vi.fn(),
   spawnSidecar: vi.fn(() => Promise.resolve()),

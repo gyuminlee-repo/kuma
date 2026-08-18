@@ -600,7 +600,32 @@ export interface CancelDesignResult {
 
 export type RpcParams = Record<string, unknown>;
 
+/**
+ * `health_info` result. Both sidecars build this dict literally and identically:
+ * `python-core/sidecar_kuro/dispatcher.py:69-82` and
+ * `python-core/sidecar_mame/dispatcher.py:59-72` each return
+ * `{"pid": os.getpid(), "rss_bytes": <int>, "py_version": <str>}`.
+ *
+ * `rss_bytes` is 0 rather than absent when `kuma_core.shared.memory_monitor` is
+ * missing, so the field is always present and always a number; the validator
+ * requires it instead of treating it as optional.
+ */
+export interface HealthInfo {
+  pid: number;
+  rss_bytes: number;
+  py_version: string;
+}
+
 export interface RpcMethodMap {
+  /**
+   * Status-bar and crash-report probe. Present on both dispatchers under the
+   * same name and with the same result, so the MAME table in
+   * `src/types/mame/validators.ts` guards it with the same shape.
+   */
+  health_info: {
+    params: Record<string, never>;
+    result: HealthInfo;
+  };
   list_polymerases: {
     params: Record<string, never>;
     result: PolymeraseInfo[];

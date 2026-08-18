@@ -1,5 +1,5 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { killSidecar as killSidecarRpc, rpc } from "../ipc";
+import { killSidecar as killSidecarRpc, rawSidecarRpc } from "../ipc";
 import type { ProgressNotification } from "./types";
 import type {
   BuildEvolveproInputParams,
@@ -54,7 +54,25 @@ async function ensureProgressListener() {
 export async function spawnSidecar(): Promise<void> {
   await ensureProgressListener();
   if (!hasTauriBridge()) return;
-  await rpc("mame", "ping", {});
+  await rawSidecarRpc("mame", "ping", {});
+}
+
+/**
+ * Lazy-start probe for the mame sidecar.
+ *
+ * The shell calls this when a tab becomes active. It exists so `MainShell` does
+ * not have to import the raw transport to send one `ping`: the method has no
+ * result worth validating (the dispatcher answers a literal `{"ok": true}`) and
+ * no entry in the validator table, so it stays inside this module rather than
+ * becoming a table method.
+ *
+ * Deliberately NOT `spawnSidecar`, which additionally attaches the progress
+ * listener and returns early when the Tauri bridge is absent. This keeps the
+ * exact behaviour the shell had through the raw transport, including rejecting
+ * when there is no bridge.
+ */
+export async function pingSidecar(): Promise<void> {
+  await rawSidecarRpc("mame", "ping", {});
 }
 
 export function setProgressHandler(
@@ -87,12 +105,15 @@ export async function sendRequest<T>(
   timeoutMs = 60_000,
 ): Promise<T> {
   const validateResult = getMameRpcResultValidator(method);
-  const request = rpc<unknown>("mame", method, params, timeoutMs);
+  const request = rawSidecarRpc<unknown>("mame", method, params, timeoutMs);
   const timeout = new Promise<never>((_, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`RPC timeout: ${method} after ${timeoutMs}ms`));
     }, timeoutMs);
-    void request.finally(() => clearTimeout(timer));
+    // The catch keeps the derived promise handled. Without it a rejecting request
+    // raises an unhandled rejection on top of the error the caller already gets,
+    // once per failed RPC. The rejection itself still reaches the caller below.
+    void request.finally(() => clearTimeout(timer)).catch(() => {});
   });
 
   const result = await Promise.race([request, timeout]);

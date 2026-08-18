@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { MameAppLayout } from "@/components/mame/layout/MameAppLayout";
-import { rpc } from "@/lib/ipc";
+import { sendRequest } from "@/lib/ipc-mame";
 import { listRecentProjects, loadProject } from "@/lib/project";
 import { useKumaProject } from "@/state/projectContext";
 
@@ -29,9 +29,10 @@ export function MameTab() {
         return;
       }
       try {
-        const meta = await rpc<{ project_id: string } | null>("mame", "read_kuma_meta", {
-          path: xlsxPath,
-        });
+        const meta = await sendRequest<{ project_id: string } | null>(
+          "read_kuma_meta",
+          { path: xlsxPath },
+        );
         if (!meta || !meta.project_id) {
           return;
         }
