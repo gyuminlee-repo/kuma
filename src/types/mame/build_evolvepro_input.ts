@@ -6,9 +6,9 @@ export interface BuildEvolveproInputParams {
   activity_path?: string | null
   /** Interpretation of activity_path values. Raw data is WT-normalized per cohort. */
   activity_scale?: "raw" | "relative_to_wt"
-  /** Existing pre-normalized, well-labeled GC sheet. Requires layout_xlsx. */
+  /** Existing pre-normalized, well-labeled GC sheet. Wells are mapped by layout_xlsx, or by the verdict sheet when none is given. */
   gc_data_xlsx?: string | null
-  /** Existing raw, well-labeled round-1 Agilent report. Requires layout_xlsx. */
+  /** Existing raw, well-labeled round-1 Agilent report. Wells are mapped by layout_xlsx, or by the verdict sheet when none is given. */
   round1_report_xlsx?: string | null
   /** Optional variant-labeled raw Agilent confirmation report. */
   remeasure_report_xlsx?: string | null

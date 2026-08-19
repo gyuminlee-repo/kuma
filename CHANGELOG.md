@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.16.30 (One less file to hand over)
+
+Step 4 refused to accept GC data or a raw Agilent report without a plate layout xlsx. That file answered one question: which variant sat in which well. The Analyze verdict workbook the same screen already requires answers it too, stating a mutant_id beside every well_id, and the strict NGS gate has been reading it all along to cross-check the layout. The field is now optional, and leaving it empty derives the mapping from the verdict sheet.
+
+The reason it was ever manual is that the artifact carrying it went away. kuma computes the plate placement itself and used to ship it out of the barcode package as a sample map sheet, which schema 2 dropped. Nothing replaced it, so an operator was asked to restate by hand what the app had already decided one step earlier.
+
+A layout file still takes precedence when supplied, and the check that refuses a layout disagreeing with the verdict identities is unchanged, so a bench declaration written independently keeps its value as a second opinion. What changes is that supplying one is a choice rather than a toll.
+
+A measured well the mapping does not name no longer stops the build. Under the derived mapping that is a well whose run produced no replicate result, so no PASS evidence could ever stand behind the measurement and the NGS gate would drop it one step later regardless. It is counted as an unmapped_well exclusion and named in the warnings instead.
+
+### Highlights
+
+- Step 4 no longer demands a plate layout file: leave it empty and well positions are mapped through the Analyze verdict sheet.
+- A layout file still wins when supplied, and the check against the verdict identities behind it is unchanged.
+- A measured well with no NGS result is counted and named rather than failing the whole build.
+
+### Changed
+
+- The plate layout xlsx is optional for the well-labeled Step 4 sources. `build_evolvepro_input` resolves one well to variant mapping for every source: from the layout sheet when given, otherwise from `well_id` and `mutant_id` in the verdict workbook, which this call already requires. The request contract no longer refuses the combination up front, since whether the derived mapping covers the measured wells is a data question the builder answers.
+- A measured well absent from the resolved mapping is reported rather than fatal. It becomes an `unmapped_well` count in the exclusion reasons and a warning naming the wells, replacing the error that ended the build.
+
 ## v0.16.29 (What the tests were not looking at)
 
 Eight surfaces of this codebase were read for reachable failure cases, one surface at a time, and 277 of them were confirmed. Ten audit pages record the findings; a re-verification pass overturned six, which are marked where they stand rather than deleted, because a finding that did not survive is worth as much to the next reader as one that did. The fixes here address causes rather than sites.

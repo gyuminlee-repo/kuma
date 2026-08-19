@@ -75,11 +75,18 @@ def test_removed_prior_and_numeric_fields_are_forbidden_extras(files, removed):
         })
 
 
-def test_well_labeled_primary_sources_require_layout(files):
+def test_well_labeled_primary_sources_accept_a_missing_layout(files):
+    """A layout file is one way to map wells, not the only one.
+
+    The verdict workbook this request already requires names a mutant_id per
+    well, so the builder derives the same mapping from it. Whether that mapping
+    covers the measured wells is a data question the builder answers, so the
+    request contract no longer refuses the combination up front.
+    """
     for source in ("gc_data_xlsx", "round1_report_xlsx"):
-        with pytest.raises(ValidationError, match="requires layout_xlsx"):
-            BuildEvolveproInputParams.model_validate({
-                source: files["gc"] if source == "gc_data_xlsx" else files["round1"],
-                "verdict_xlsx": files["verdict"],
-                "output_xlsx": files["out"],
-            })
+        validated = BuildEvolveproInputParams.model_validate({
+            source: files["gc"] if source == "gc_data_xlsx" else files["round1"],
+            "verdict_xlsx": files["verdict"],
+            "output_xlsx": files["out"],
+        })
+        assert validated.layout_xlsx is None

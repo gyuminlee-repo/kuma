@@ -2,7 +2,9 @@
  * Unified MAME Step 4 (Activity Data) measurement builder.
  *
  * Generic long-format, pre-normalized GC, and raw Agilent inputs are adapters
- * into one NGS-qualified EVOLVEpro export. Plate layout is mapping metadata,
+ * into one NGS-qualified EVOLVEpro export. Plate layout is optional mapping
+ * metadata (the verdict sheet carries the same well identities when it is
+ * absent),
  * and optional variant-labeled confirmation is normalized independently before
  * it overrides the primary measurement.
  */
@@ -240,7 +242,9 @@ export function BuildEvolveproInputPanel() {
   if (form.primarySource === "longFormat") {
     if (!form.activityPath) missing.push({ label: "Activity CSV/XLSX", fieldId: "bep-activity" });
   } else {
-    if (!form.layoutXlsx) need("layoutXlsx", "bep-layout");
+    // No layout gate: an unselected layout means the builder derives the
+    // well->variant mapping from the verdict sheet, which this form requires
+    // anyway.
     if (form.primarySource === "gcSheet" && !form.gcDataXlsx) need("gcDataXlsx", "bep-gc");
     if (form.primarySource === "rawReport" && !form.round1ReportXlsx) need("round1ReportXlsx", "bep-round1");
   }
@@ -262,8 +266,11 @@ export function BuildEvolveproInputPanel() {
             layout_xlsx: form.layoutXlsx || undefined,
           }
         : form.primarySource === "gcSheet"
-          ? { gc_data_xlsx: form.gcDataXlsx, layout_xlsx: form.layoutXlsx }
-          : { round1_report_xlsx: form.round1ReportXlsx, layout_xlsx: form.layoutXlsx };
+          ? { gc_data_xlsx: form.gcDataXlsx, layout_xlsx: form.layoutXlsx || undefined }
+          : {
+              round1_report_xlsx: form.round1ReportXlsx,
+              layout_xlsx: form.layoutXlsx || undefined,
+            };
     return {
       ...primary,
       remeasure_report_xlsx:
@@ -455,7 +462,7 @@ export function BuildEvolveproInputPanel() {
             <>
               <FilePickerField
                 id="bep-layout"
-                label={t("mame.buildEvolvepro.layoutXlsx")}
+                label={`${t("mame.buildEvolvepro.layoutXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
                 filled={Boolean(form.layoutXlsx)}
                 value={form.layoutXlsx}
                 onBrowse={() => browseXlsx("layoutXlsx", t("mame.buildEvolvepro.layoutXlsx"))}
