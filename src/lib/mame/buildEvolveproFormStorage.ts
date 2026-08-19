@@ -3,8 +3,8 @@
 export const BUILD_EVOLVEPRO_STORAGE_KEY = "kuma:mame:buildEvolvepro";
 const STORAGE_VERSION = 2;
 
-export type BuildEvolveproPrimarySource = "longFormat" | "gcSheet" | "rawReport";
-export type BuildEvolveproConfirmationSource = "none" | "variantLabels";
+export type BuildEvolveproPrimarySource = "longFormat" | "gcSheet" | "rawReport" | "numericReport";
+export type BuildEvolveproConfirmationSource = "none" | "variantLabels" | "numericIds";
 
 export interface BuildEvolveproFormState {
   primarySource: BuildEvolveproPrimarySource;
@@ -14,7 +14,15 @@ export interface BuildEvolveproFormState {
   layoutXlsx: string;
   gcDataXlsx: string;
   round1ReportXlsx: string;
+  numericReportXlsx: string;
   remeasureReportXlsx: string;
+  remeasureNumericXlsx: string;
+  /**
+   * Designed variant list, the order source a numeric-ID report is decoded
+   * against. Preferred over the hand-written plate file: it states the order
+   * the run was placed in.
+   */
+  expectedXlsx: string;
   verdictXlsx: string;
   verdictEvidenceSignature: string;
   outputXlsx: string;
@@ -35,7 +43,10 @@ export const BUILD_EVOLVEPRO_DEFAULT_STATE: BuildEvolveproFormState = {
   layoutXlsx: "",
   gcDataXlsx: "",
   round1ReportXlsx: "",
+  numericReportXlsx: "",
   remeasureReportXlsx: "",
+  remeasureNumericXlsx: "",
+  expectedXlsx: "",
   verdictXlsx: "",
   verdictEvidenceSignature: "",
   outputXlsx: "",
@@ -63,7 +74,10 @@ const CURRENT_PATH_KEYS = [
   "layoutXlsx",
   "gcDataXlsx",
   "round1ReportXlsx",
+  "numericReportXlsx",
   "remeasureReportXlsx",
+  "remeasureNumericXlsx",
+  "expectedXlsx",
   "verdictXlsx",
   "outputXlsx",
 ] as const;
@@ -86,7 +100,10 @@ const LEGACY_PATH_KEYS = [
   "layoutXlsx",
   "gcDataXlsx",
   "round1ReportXlsx",
+  "numericReportXlsx",
   "remeasureReportXlsx",
+  "remeasureNumericXlsx",
+  "expectedXlsx",
   "verdictXlsx",
   "outputXlsx",
   "round1EvolveproXlsx",
@@ -110,9 +127,9 @@ function hasRemovedSelection(payload: Record<string, unknown>): boolean {
   const confirmationSource =
     typeof payload.confirmationSource === "string" ? payload.confirmationSource : "";
   return (Boolean(primarySource) &&
-      !["longFormat", "gcSheet", "rawReport"].includes(primarySource)) ||
+      !["longFormat", "gcSheet", "rawReport", "numericReport"].includes(primarySource)) ||
     (Boolean(confirmationSource) &&
-      !["none", "variantLabels"].includes(confirmationSource)) ||
+      !["none", "variantLabels", "numericIds"].includes(confirmationSource)) ||
     payload.sourceMode === "rank" ||
     (payload.sourceMode === "reports" && payload.round1Source !== "raw") ||
     ["prev", "numeric"].includes(String(payload.round1Source));
@@ -122,12 +139,12 @@ function readState(
   payload: Record<string, unknown>,
   projectPath: string,
 ): BuildEvolveproFormState {
-  const primarySource = ["longFormat", "gcSheet", "rawReport"].includes(String(payload.primarySource))
+  const primarySource = ["longFormat", "gcSheet", "rawReport", "numericReport"].includes(String(payload.primarySource))
     ? payload.primarySource as BuildEvolveproPrimarySource
     : payload.sourceMode === "reports" && payload.round1Source === "raw"
       ? "rawReport"
       : BUILD_EVOLVEPRO_DEFAULT_STATE.primarySource;
-  const confirmationSource = ["none", "variantLabels"].includes(String(payload.confirmationSource))
+  const confirmationSource = ["none", "variantLabels", "numericIds"].includes(String(payload.confirmationSource))
     ? payload.confirmationSource as BuildEvolveproConfirmationSource
     : payload.sourceMode === "reports" && stringValue(payload, "remeasureReportXlsx")
       ? "variantLabels"
@@ -140,7 +157,10 @@ function readState(
     layoutXlsx: fromPortablePath(stringValue(payload, "layoutXlsx"), projectPath),
     gcDataXlsx: fromPortablePath(stringValue(payload, "gcDataXlsx"), projectPath),
     round1ReportXlsx: fromPortablePath(stringValue(payload, "round1ReportXlsx"), projectPath),
+    numericReportXlsx: fromPortablePath(stringValue(payload, "numericReportXlsx"), projectPath),
     remeasureReportXlsx: fromPortablePath(stringValue(payload, "remeasureReportXlsx"), projectPath),
+    remeasureNumericXlsx: fromPortablePath(stringValue(payload, "remeasureNumericXlsx"), projectPath),
+    expectedXlsx: fromPortablePath(stringValue(payload, "expectedXlsx"), projectPath),
     verdictXlsx: fromPortablePath(stringValue(payload, "verdictXlsx"), projectPath),
     verdictEvidenceSignature: stringValue(payload, "verdictEvidenceSignature"),
     outputXlsx: fromPortablePath(stringValue(payload, "outputXlsx"), projectPath),
@@ -197,21 +217,40 @@ export function saveBuildEvolveproToStorage(state: BuildEvolveproFormState, proj
   }
 }
 
+/**
+ * A numeric sample name states a position, so decoding one needs the order the
+ * plate was filled in. Exactly one source answers it, and the design list is
+ * the one to reach for.
+ */
+export function hasBuildEvolveproOrderSource(state: BuildEvolveproFormState): boolean {
+  return Boolean(state.expectedXlsx) !== Boolean(state.layoutXlsx);
+}
+
+export function buildEvolveproNeedsOrderSource(state: BuildEvolveproFormState): boolean {
+  return state.primarySource === "numericReport" || state.confirmationSource === "numericIds";
+}
+
 export function hasBuildEvolveproPrimaryInputs(state: BuildEvolveproFormState): boolean {
   switch (state.primarySource) {
     case "longFormat": return Boolean(state.activityPath);
-    case "gcSheet": return Boolean(state.gcDataXlsx && state.layoutXlsx);
-    case "rawReport": return Boolean(state.round1ReportXlsx && state.layoutXlsx);
+    case "gcSheet": return Boolean(state.gcDataXlsx);
+    case "rawReport": return Boolean(state.round1ReportXlsx);
+    case "numericReport": return Boolean(state.numericReportXlsx);
   }
 }
 
 export function hasBuildEvolveproConfirmationInputs(state: BuildEvolveproFormState): boolean {
-  return state.confirmationSource === "none" || Boolean(state.remeasureReportXlsx);
+  switch (state.confirmationSource) {
+    case "none": return true;
+    case "variantLabels": return Boolean(state.remeasureReportXlsx);
+    case "numericIds": return Boolean(state.remeasureNumericXlsx);
+  }
 }
 
 export function isBuildEvolveproFormReady(state: BuildEvolveproFormState): boolean {
   return !state.migrationNotice && Boolean(state.verdictXlsx && state.outputXlsx) &&
-    hasBuildEvolveproPrimaryInputs(state) && hasBuildEvolveproConfirmationInputs(state);
+    hasBuildEvolveproPrimaryInputs(state) && hasBuildEvolveproConfirmationInputs(state) &&
+    (!buildEvolveproNeedsOrderSource(state) || hasBuildEvolveproOrderSource(state));
 }
 
 export interface BuildEvolveproCompletionRecord { outputPath: string; signature: string; }
@@ -257,7 +296,10 @@ export function seedBuildEvolveproForm(
     | "layoutXlsx"
     | "gcDataXlsx"
     | "round1ReportXlsx"
+    | "numericReportXlsx"
     | "remeasureReportXlsx"
+    | "remeasureNumericXlsx"
+    | "expectedXlsx"
     | "verdictXlsx"
     | "outputXlsx"
   >>,
@@ -280,13 +322,11 @@ export function seedBuildEvolveproForm(
     if (paths.activityPath) next.primarySource = "longFormat";
     else if (paths.gcDataXlsx) next.primarySource = "gcSheet";
     else if (paths.round1ReportXlsx) next.primarySource = "rawReport";
+    else if (paths.numericReportXlsx) next.primarySource = "numericReport";
   }
-  if (
-    current.confirmationSource === "none" &&
-    !current.remeasureReportXlsx &&
-    paths.remeasureReportXlsx
-  ) {
-    next.confirmationSource = "variantLabels";
+  if (current.confirmationSource === "none" && !current.remeasureReportXlsx) {
+    if (paths.remeasureReportXlsx) next.confirmationSource = "variantLabels";
+    else if (paths.remeasureNumericXlsx) next.confirmationSource = "numericIds";
   }
   saveBuildEvolveproToStorage(next, projectPath);
 }

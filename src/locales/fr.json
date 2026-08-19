@@ -1211,7 +1211,19 @@
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
       "clearRestored": "Effacer les entrées EVOLVEpro restaurées",
-      "outputCollidesRound": "Le tour {{round}} a deja enregistre ce fichier comme sa sortie. Construire ici ecrase les mesures de ce tour."
+      "outputCollidesRound": "Le tour {{round}} a deja enregistre ce fichier comme sa sortie. Construire ici ecrase les mesures de ce tour.",
+      "primarySourceNumericReport": "Rapport Agilent à identifiants numériques",
+      "primarySourceNumericReportHelper": "Rapport brut de la plaque entière dont les noms d'échantillon sont des positions (1, 2, 3, ...). La position i est le i-ème variant de l'ordre de plaque.",
+      "numericReportXlsx": "Rapport de plaque entière xlsx (identifiants numériques)",
+      "numericReportXlsxHelper": "Rapport Agilent brut avec lignes WT et noms d'échantillon numériques. Il faut une source d'ordre indiquant quelle position porte quel variant.",
+      "confirmationSourceNumericIds": "Rapport Agilent à identifiants numériques",
+      "confirmationSourceNumericIdsHelper": "Rapport répliqué dont les noms d'échantillon sont des positions du sous-ensemble au-dessus du WT (1, 1-2, 1-3, ...). Ses moyennes remplacent les valeurs primaires correspondantes.",
+      "remeasureNumericXlsx": "Rapport de confirmation xlsx (identifiants numériques)",
+      "remeasureNumericXlsxHelper": "La position j est le j-ème variant que le criblage primaire a placé au-dessus du type sauvage, dans l'ordre de plaque. Une autre sélection est refusée plutôt que mal étiquetée.",
+      "expectedXlsx": "Liste des variants conçus",
+      "expectedXlsxHelper": "Source d'ordre des identifiants numériques: la liste des variants conçus que lit l'étape d'analyse. À préférer au fichier de plaque recopié à la main.",
+      "orderSource": "Source d'ordre (liste des variants conçus ou plate layout, exactement une)",
+      "dismissError": "Fermer"
     },
     "verdictBadge": {
       "help": {

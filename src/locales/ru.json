@@ -1211,7 +1211,19 @@
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
       "clearRestored": "Очистить восстановленные входы EVOLVEpro",
-      "outputCollidesRound": "Раунд {{round}} уже записал этот файл как свой результат. Сборка сюда перезапишет измерения того раунда."
+      "outputCollidesRound": "Раунд {{round}} уже записал этот файл как свой результат. Сборка сюда перезапишет измерения того раунда.",
+      "primarySourceNumericReport": "Отчёт Agilent с числовыми ID",
+      "primarySourceNumericReportHelper": "Сырой отчёт по всему планшету, где имена образцов это позиции (1, 2, 3, ...). Позиция i это i-й вариант в порядке планшета.",
+      "numericReportXlsx": "Отчёт по всему планшету xlsx (числовые ID)",
+      "numericReportXlsxHelper": "Сырой отчёт Agilent со строками WT и числовыми именами образцов. Нужен источник порядка, указывающий, какая позиция какому варианту соответствует.",
+      "confirmationSourceNumericIds": "Отчёт Agilent с числовыми ID",
+      "confirmationSourceNumericIdsHelper": "Отчёт с повторами, где имена образцов это позиции подмножества выше WT (1, 1-2, 1-3, ...). Средние по повторам заменяют совпадающие первичные значения.",
+      "remeasureNumericXlsx": "Подтверждающий отчёт xlsx (числовые ID)",
+      "remeasureNumericXlsxHelper": "Позиция j это j-й вариант, который первичный скрининг поставил выше дикого типа, в порядке планшета. Иная выборка отклоняется, а не помечается неверно.",
+      "expectedXlsx": "Список спроектированных вариантов",
+      "expectedXlsxHelper": "Источник порядка для числовых ID: тот же список спроектированных вариантов, который читает шаг анализа. Предпочтительнее переписанного вручную файла планшета.",
+      "orderSource": "Источник порядка (список спроектированных вариантов или plate layout, ровно один)",
+      "dismissError": "Закрыть"
     },
     "verdictBadge": {
       "help": {
