@@ -196,6 +196,93 @@ class TestLog2Fc:
 
 
 # ---------------------------------------------------------------------------
+# TestDeltaScale -- delta_best_ema and current_round_activities share a scale
+# ---------------------------------------------------------------------------
+
+class TestDeltaScale:
+    """classify.py forms delta* = delta_best_ema + (best_n* - max(activities)).
+
+    The bracket is a difference of log2 activities, so delta_best_ema has to be
+    log2 too or that addition mixes two scales. It did: the EMA was fed
+    max(activity) on the linear scale. The mixture was inert while sigma_assay
+    stayed None, because delta_best_ema reaches nothing but compute_T2 and
+    compute_T2 answers None without a sigma.
+
+    The tests below fail on the linear spelling. TestEmaHelper does not: it
+    calls the helper with bare numbers, so it holds on either scale and
+    witnesses nothing about which one the handler supplies.
+    """
+
+    def test_round_best_log2_is_log2_of_round_best(self, tmp_path):
+        activities = [0.5, 1.0, 2.0, 3.0]
+        rows = [(f"{100+i}A", a) for i, a in enumerate(activities)]
+        xlsx = tmp_path / "r1.xlsx"
+        _make_xlsx(str(xlsx), rows)
+        metrics = _round_metrics(_load_xlsx(str(xlsx)))
+        assert metrics["round_best"] == pytest.approx(3.0)
+        assert metrics["round_best_log2"] == pytest.approx(math.log2(3.0))
+
+    def test_round_best_log2_is_the_max_of_the_activities_handed_over(self, tmp_path):
+        """The two must not drift: one is what the EMA reads, the other is what
+        the bootstrap resamples, and delta* subtracts the second from the first.
+        """
+        activities = [0.25, 1.6, 2.4, 0.9]
+        rows = [(f"{100+i}A", a) for i, a in enumerate(activities)]
+        xlsx = tmp_path / "r1.xlsx"
+        _make_xlsx(str(xlsx), rows)
+        metrics = _round_metrics(_load_xlsx(str(xlsx)))
+        assert metrics["round_best_log2"] == pytest.approx(max(metrics["log2_activities"]))
+
+    def test_the_handler_feeds_the_ema_log2_bests(self, tmp_path, monkeypatch):
+        """Intercept the argument rather than recompute it.
+
+        Reading round_best_log2 and asserting it is log2 proves nothing about
+        which of the two keys the handler passes on, and that choice is the
+        defect. The maxima below are 2.0 and 8.0, so the log2 list is [1.0, 3.0]
+        and the linear list is [2.0, 8.0]: no coincidence makes them agree.
+        """
+        import sidecar_mame.handlers.classify_round as module
+
+        seen: list[list[float]] = []
+        original = module._compute_delta_best_ema
+
+        def recording(round_bests):
+            seen.append(list(round_bests))
+            return original(round_bests)
+
+        monkeypatch.setattr(module, "_compute_delta_best_ema", recording)
+
+        r1 = tmp_path / "r1.xlsx"
+        _make_xlsx(str(r1), [("101A", 2.0), ("102A", 0.7), ("103A", 0.6)])
+        r2 = tmp_path / "r2.xlsx"
+        _make_xlsx(str(r2), [("201A", 8.0), ("202A", 0.7), ("203A", 0.6)])
+        r3 = tmp_path / "r3.xlsx"
+        _make_xlsx(str(r3), [("301A", 8.0), ("302A", 1.5), ("303A", 1.4)])
+
+        module.handle_classify_round(
+            {
+                "round_files": [
+                    {"n": 1, "path": str(r1)},
+                    {"n": 2, "path": str(r2)},
+                    {"n": 3, "path": str(r3)},
+                ]
+            }
+        )
+
+        # The handler computes the final EMA first, then walks the interim
+        # rounds, so the calls arrive full list first and growing prefixes
+        # after. Both feed sites are separate lines and either could have been
+        # left linear, so both are pinned.
+        assert seen == [
+            pytest.approx([1.0, 3.0, 3.0]),
+            pytest.approx([1.0]),
+            pytest.approx([1.0, 3.0]),
+        ]
+        # The linear spelling of the same rounds, which none of these may be.
+        assert seen[0] != pytest.approx([2.0, 8.0, 8.0])
+
+
+# ---------------------------------------------------------------------------
 # TestEmaHelper
 # ---------------------------------------------------------------------------
 
