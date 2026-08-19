@@ -53,6 +53,20 @@ export interface RoundArtifact {
  */
 export interface EvolveproInputArtifact extends RoundArtifact {
   wt_values?: number[]
+
+  /**
+   * The replicates behind each exported activity, keyed by variant.
+   *
+   * The workbook holds one mean per variant, so how many measurements produced
+   * that mean is stated nowhere else, and it is what says how much the mean
+   * can be trusted.
+   *
+   * Absent carries one meaning only, "not on record": rounds built before this
+   * field existed have none, and no value is stood in for them. Rebuilding
+   * step 4.1 over the same source report fills it in, which is a recomputation
+   * rather than a re-measurement.
+   */
+  variant_replicates?: Record<string, number[]>
 }
 
 /**

@@ -1,5 +1,9 @@
 # Correctness review: `src/store/` and `src/lib/`
 
+> Findings as of the sweep. Some have been fixed, six were overturned, and
+> the pages were not rewritten as that happened. `AUDIT-STATUS.md` records
+> which is which; treat anything here as open unless it says otherwise.
+
 Fourth area of the kuma sweep. Findings only: no source file was changed.
 
 The three earlier areas ran through codex `ultrawork`. That account hit its usage

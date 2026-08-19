@@ -58,6 +58,10 @@ function isRecordOfStringArray(value: unknown): boolean {
   return isRecord(value) && Object.values(value).every(isStringArray);
 }
 
+function isRecordOfFiniteNumberArray(value: unknown): boolean {
+  return isRecord(value) && Object.values(value).every(isFiniteNumberArray);
+}
+
 /**
  * Membership guards for the declared string unions.
  *
@@ -192,7 +196,8 @@ const isBuildEvolveproInputResult: MameResultValidator = (value) =>
   isStringArray(value.normalization_sources) &&
   isString(value.evidence_hash) &&
   isRecordOfString(value.artifact_hashes) &&
-  isFiniteNumberArray(value.wt_values);
+  isFiniteNumberArray(value.wt_values) &&
+  isRecordOfFiniteNumberArray(value.variant_replicates);
 
 /**
  * `strategy.classify_round`.

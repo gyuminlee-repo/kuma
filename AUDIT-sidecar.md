@@ -1,5 +1,9 @@
 # RPC sidecar correctness audit
 
+> Findings as of the sweep. Some have been fixed, six were overturned, and
+> the pages were not rewritten as that happened. `AUDIT-STATUS.md` records
+> which is which; treat anything here as open unless it says otherwise.
+
 Scope: every tracked file under `python-core/` on branch `audit-error-cases`. Generated `__pycache__/*.pyc` files are runtime artifacts and are excluded; the tracked inert `.gitkeep` is included. The filesystem currently contains 42 Python files plus `AGENTS.md` and `.gitkeep` (44 tracked files total).
 
 ## 1. Coverage ledger

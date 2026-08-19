@@ -99,4 +99,19 @@ export interface BuildEvolveproInputResult {
    * behind it never reach this app.
    */
   wt_values: number[]
+
+  /**
+   * The replicates behind each exported activity, keyed by the variant as the
+   * workbook writes it, on the scale of the activity column.
+   *
+   * The workbook states one mean per variant and nothing about how many
+   * measurements produced it, so a reader cannot tell a value measured once
+   * from a value measured four times. Those carry different weight in any
+   * judgement about whether a round improved beyond measurement noise.
+   *
+   * Lists rather than counts: the build already held these and kept only the
+   * mean, which is what made this gap, and summarising again here would make
+   * the next one.
+   */
+  variant_replicates: Record<string, number[]>
 }

@@ -1,5 +1,9 @@
 # Correctness review: types, screens, locales, and the test suite
 
+> Findings as of the sweep. Some have been fixed, six were overturned, and
+> the pages were not rewritten as that happened. `AUDIT-STATUS.md` records
+> which is which; treat anything here as open unless it says otherwise.
+
 Eighth area of the kuma sweep, opened after a coverage check showed the first
 seven surfaces did not partition the codebase. Findings only: no source file was
 changed by this pass.
