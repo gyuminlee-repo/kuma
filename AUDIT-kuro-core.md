@@ -1,5 +1,9 @@
 # KURO core scientific correctness audit
 
+> Findings as of the sweep. Some have been fixed, six were overturned, and
+> the pages were not rewritten as that happened. `AUDIT-STATUS.md` records
+> which is which; treat anything here as open unless it says otherwise.
+
 Audit date: 2026-08-14
 Branch/start SHA: audit-error-cases at 20caddaae745663e8e3ab8d553a55c6f6d55f521
 Scope: kuma_core/kuro/ and kuma_core/shared/ only; external callers were read solely to establish reachability and contracts.

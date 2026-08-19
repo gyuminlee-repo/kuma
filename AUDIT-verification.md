@@ -1,5 +1,9 @@
 # Audit findings, independently reproduced
 
+> Findings as of the sweep. Some have been fixed, six were overturned, and
+> the pages were not rewritten as that happened. `AUDIT-STATUS.md` records
+> which is which; treat anything here as open unless it says otherwise.
+
 Findings in `AUDIT-mame-core.md` come from the codex sweep. This file records
 which of them were re-run by hand against the working tree, so a fix pass can
 start from evidence rather than from a report.
