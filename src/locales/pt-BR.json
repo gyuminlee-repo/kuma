@@ -2516,11 +2516,13 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "A etapa 4 não exige mais um arquivo de plate layout. Deixando vazio, as posições de poço são mapeadas pela planilha verdict do Analyze.",
-      "Um arquivo de layout continua tendo prioridade quando informado, e a verificação contra as identidades do verdict permanece igual.",
-      "Um poço medido sem resultado de NGS é contado e nomeado em vez de falhar a compilação inteira."
+      "A etapa 4 lê os relatórios Agilent com nomes de amostra numéricos, tanto a triagem da placa inteira quanto a confirmação replicada.",
+      "Uma confirmação replicada é integrada à triagem a que pertence, substituindo esses valores e marcando os que divergem.",
+      "As posições numéricas são resolvidas pela lista de variantes projetadas, então nenhum arquivo de placa precisa ser transcrito à mão.",
+      "Uma confirmação que cobre outro conjunto de variantes é recusada informando as duas contagens, em vez de rotulada com as erradas.",
+      "A contagem de réplicas é a que o arquivo carrega, de uma única medida até quantas a corrida tiver feito."
     ],
-    "highlightsStamp": "0.16.30+bab83ea7",
+    "highlightsStamp": "0.16.31+60d4442c",
     "releases": {
       "0.16.28": [
         "Cinco seções de run health que o aplicativo media em toda execução e nunca desenhava agora aparecem na tela de revisão, em uma seção que começa fechada.",
@@ -2753,6 +2755,13 @@
         "A etapa 4 não exige mais um arquivo de plate layout. Deixando vazio, as posições de poço são mapeadas pela planilha verdict do Analyze.",
         "Um arquivo de layout continua tendo prioridade quando informado, e a verificação contra as identidades do verdict permanece igual.",
         "Um poço medido sem resultado de NGS é contado e nomeado em vez de falhar a compilação inteira."
+      ],
+      "0.16.31": [
+        "A etapa 4 lê os relatórios Agilent com nomes de amostra numéricos, tanto a triagem da placa inteira quanto a confirmação replicada.",
+        "Uma confirmação replicada é integrada à triagem a que pertence, substituindo esses valores e marcando os que divergem.",
+        "As posições numéricas são resolvidas pela lista de variantes projetadas, então nenhum arquivo de placa precisa ser transcrito à mão.",
+        "Uma confirmação que cobre outro conjunto de variantes é recusada informando as duas contagens, em vez de rotulada com as erradas.",
+        "A contagem de réplicas é a que o arquivo carrega, de uma única medida até quantas a corrida tiver feito."
       ]
     },
     "releaseStamps": {
@@ -2795,7 +2804,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.30": "bab83ea7"
+      "0.16.30": "bab83ea7",
+      "0.16.31": "60d4442c"
     }
   },
   "primerDisplay": {
