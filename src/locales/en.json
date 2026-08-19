@@ -568,7 +568,19 @@
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
       "clearRestored": "Clear restored EVOLVEpro inputs",
-      "outputCollidesRound": "Round {{round}} already recorded this file as its output. Building here overwrites that round measurements."
+      "outputCollidesRound": "Round {{round}} already recorded this file as its output. Building here overwrites that round measurements.",
+      "primarySourceNumericReport": "Numeric-ID Agilent report",
+      "primarySourceNumericReportHelper": "Whole-plate raw report whose sample names are positions (1, 2, 3, ...). Position i is the i-th variant of the plate order.",
+      "numericReportXlsx": "Whole-plate report xlsx (numeric IDs)",
+      "numericReportXlsxHelper": "Raw Agilent report with WT rows and numeric sample names. Needs an order source to say which position holds which variant.",
+      "confirmationSourceNumericIds": "Numeric-ID Agilent report",
+      "confirmationSourceNumericIdsHelper": "Replicated report whose sample names are positions in the above-WT subset (1, 1-2, 1-3, ...). Its replicate means override matching primary values.",
+      "remeasureNumericXlsx": "Confirmation report xlsx (numeric IDs)",
+      "remeasureNumericXlsxHelper": "Position j is the j-th variant the primary screen put above wild-type, in plate order. A different selection is refused rather than mislabeled.",
+      "expectedXlsx": "Designed variant list",
+      "expectedXlsxHelper": "Order source for numeric IDs: the same designed variant list the analyze step reads. Preferred over the plate file, which is transcribed by hand.",
+      "orderSource": "Order source (designed variant list or plate layout, exactly one)",
+      "dismissError": "Dismiss"
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",

@@ -568,7 +568,19 @@
       "restoredNotice": "이 프로젝트의 입력값을 복원했습니다.",
       "migrationUnsupported": "저장된 Step 4 방식은 더 이상 지원하지 않습니다. 범용 long-format 활성값으로 변환하거나 명시적 well/variant 라벨로 export한 뒤 계속하세요.",
       "clearRestored": "복원된 EVOLVEpro 입력 지우기",
-      "outputCollidesRound": "라운드 {{round}} 가 이미 이 파일을 산출물로 기록했습니다. 여기에 만들면 그 라운드 측정값을 덮어씁니다."
+      "outputCollidesRound": "라운드 {{round}} 가 이미 이 파일을 산출물로 기록했습니다. 여기에 만들면 그 라운드 측정값을 덮어씁니다.",
+      "primarySourceNumericReport": "숫자 ID Agilent report",
+      "primarySourceNumericReportHelper": "sample name 이 위치 번호(1, 2, 3 …)인 전체 plate raw report 입니다. 번호 i 는 plate 순서의 i 번째 변이체입니다.",
+      "numericReportXlsx": "전체 측정 report xlsx (숫자 ID)",
+      "numericReportXlsxHelper": "WT 행과 숫자 sample name 을 가진 raw Agilent report 입니다. 어느 번호가 어느 변이체인지 알려 줄 순서 소스가 필요합니다.",
+      "confirmationSourceNumericIds": "숫자 ID Agilent report",
+      "confirmationSourceNumericIdsHelper": "sample name 이 WT 초과 부분집합의 위치 번호(1, 1-2, 1-3 …)인 반복 측정 report 입니다. 반복 평균이 primary 값을 대체합니다.",
+      "remeasureNumericXlsx": "확인 report xlsx (숫자 ID)",
+      "remeasureNumericXlsxHelper": "번호 j 는 primary 에서 WT 를 넘은 변이체를 plate 순서로 늘어놓은 j 번째입니다. 선택이 다르면 잘못 붙이지 않고 거절합니다.",
+      "expectedXlsx": "설계 변이 목록",
+      "expectedXlsxHelper": "숫자 ID 의 순서 소스입니다. analyze 스텝이 읽는 설계 변이 목록과 같은 파일이며, 손으로 옮겨 적은 plate 파일보다 우선합니다.",
+      "orderSource": "순서 소스 (설계 변이 목록 또는 plate layout 중 하나)",
+      "dismissError": "닫기"
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",

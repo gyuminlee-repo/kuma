@@ -1211,7 +1211,19 @@
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
       "clearRestored": "Wiederhergestellte EVOLVEpro-Eingaben löschen",
-      "outputCollidesRound": "Runde {{round}} hat diese Datei bereits als ihr Ergebnis erfasst. Ein Build hier ueberschreibt die Messwerte jener Runde."
+      "outputCollidesRound": "Runde {{round}} hat diese Datei bereits als ihr Ergebnis erfasst. Ein Build hier ueberschreibt die Messwerte jener Runde.",
+      "primarySourceNumericReport": "Agilent-Report mit numerischen IDs",
+      "primarySourceNumericReportHelper": "Rohreport der ganzen Platte, dessen Probennamen Positionen sind (1, 2, 3, ...). Position i ist die i-te Variante der Plattenreihenfolge.",
+      "numericReportXlsx": "Report der ganzen Platte, xlsx (numerische IDs)",
+      "numericReportXlsxHelper": "Roher Agilent-Report mit WT-Zeilen und numerischen Probennamen. Braucht eine Reihenfolgequelle, die sagt, welche Position welche Variante trägt.",
+      "confirmationSourceNumericIds": "Agilent-Report mit numerischen IDs",
+      "confirmationSourceNumericIdsHelper": "Replizierter Report, dessen Probennamen Positionen der Über-WT-Teilmenge sind (1, 1-2, 1-3, ...). Die Replikatmittel überschreiben passende Primärwerte.",
+      "remeasureNumericXlsx": "Bestätigungsreport xlsx (numerische IDs)",
+      "remeasureNumericXlsxHelper": "Position j ist die j-te Variante, die das Primärscreening über den Wildtyp gesetzt hat, in Plattenreihenfolge. Eine andere Auswahl wird abgelehnt statt falsch beschriftet.",
+      "expectedXlsx": "Entworfene Variantenliste",
+      "expectedXlsxHelper": "Reihenfolgequelle für numerische IDs: dieselbe entworfene Variantenliste, die der Analyze-Schritt liest. Der handgeschriebenen Plattendatei vorzuziehen.",
+      "orderSource": "Reihenfolgequelle (entworfene Variantenliste oder Plattenlayout, genau eine)",
+      "dismissError": "Schließen"
     },
     "verdictBadge": {
       "help": {
