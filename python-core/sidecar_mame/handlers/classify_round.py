@@ -320,7 +320,8 @@ def _round_metrics(records: list[dict]) -> dict:
     dict with:
         beneficial_count: int       number of variants with activity > 1.0
         hit_rate: float             beneficial_count / n_variants
-        round_best: float           max(activity)
+        round_best: float           max(activity), reported as measured
+        round_best_log2: float      log2 of that same maximum
         log2_activities: list[float]   log2 of each activity (current_round_activities)
         positions: list[int]        position integers for all variants
     """
@@ -329,11 +330,16 @@ def _round_metrics(records: list[dict]) -> dict:
     hit_rate = beneficial_count / n
     round_best = max(r["activity"] for r in records)
     log2_activities = [math.log2(r["activity"]) for r in records]
+    # log2 is monotone, so this is log2(round_best). Taking it off the list the
+    # classifier is handed keeps the two from drifting if either definition
+    # moves later.
+    round_best_log2 = max(log2_activities)
     positions = [r["position"] for r in records]
     return {
         "beneficial_count": beneficial_count,
         "hit_rate": hit_rate,
         "round_best": round_best,
+        "round_best_log2": round_best_log2,
         "log2_activities": log2_activities,
         "positions": positions,
     }
@@ -356,7 +362,16 @@ def _compute_delta_best_ema(round_bests: list[float]) -> float:
     Parameters
     ----------
     round_bests : list[float]
-        Max activity per round, ordered ascending by round index.
+        log2 of the max activity per round, ordered ascending by round index.
+
+    The scale matters and is not free. classify.py forms
+    ``delta* = delta_best_ema + (best_n* - max(current_round_activities))``
+    and ``current_round_activities`` is log2, so a linear EMA here added a
+    linear quantity to a log2 one and then compared the sum against a threshold
+    built from sigma_assay. Everything on this path is log2 fold change: the
+    exported activity is already a ratio to the WT block mean, which makes it a
+    multiplicative quantity, and ``tau_pos=0.0`` downstream only means
+    "beneficial" because the activities reaching it are log2.
     """
     if len(round_bests) < 2:
         return 0.0
@@ -473,7 +488,7 @@ def handle_classify_round(params: dict) -> dict:
     # Cross-round aggregation
     hit_rates = [m["hit_rate"] for m in per_round_metrics]
     cumulative_beneficial = sum(m["beneficial_count"] for m in per_round_metrics)
-    round_bests = [m["round_best"] for m in per_round_metrics]
+    round_bests = [m["round_best_log2"] for m in per_round_metrics]
     delta_best_ema = _compute_delta_best_ema(round_bests)
     log2_activities_last = per_round_metrics[-1]["log2_activities"]
 
@@ -512,7 +527,7 @@ def handle_classify_round(params: dict) -> dict:
         for i in range(n_rounds - 1):
             m = per_round_metrics[i]
             cum_so_far += m["beneficial_count"]
-            bests_so_far.append(m["round_best"])
+            bests_so_far.append(m["round_best_log2"])
             hr_so_far.append(m["hit_rate"])
             ema_i = _compute_delta_best_ema(bests_so_far)
 
