@@ -544,6 +544,12 @@ def handle_classify_round(params: dict) -> dict:
                 cumulative_beneficial=cum_so_far,
                 K_throughput=K_throughput,
                 delta_best_ema=ema_i,
+                # The count the maximum was taken over. Absent it, compute_T2
+                # drops to the legacy null, which asks whether one nominated
+                # variant improved. The question here is whether the best of a
+                # plate did, and the best of many is high even when none of them
+                # is: the order statistic is what accounts for that.
+                n_designed=len(per_round_records[i]),
                 # sigma_assay=None: sigma/T2 deferred until WT replicate import wired.
                 # With sigma=None, T2=NA and T_model=NA.  T3 is the active signal.
                 sigma_assay=None,
@@ -571,6 +577,10 @@ def handle_classify_round(params: dict) -> dict:
         cumulative_beneficial=cumulative_beneficial,
         K_throughput=K_throughput,
         delta_best_ema=delta_best_ema,
+        # Rows in the round file rather than variants designed: gating drops
+        # some of the designed set before it reaches this file, and the null
+        # needs the number of draws the maximum was actually taken over.
+        n_designed=len(per_round_records[-1]),
         # sigma_assay=None even when wt_values arrive below.  The point signals
         # keep the shape they have always had (T2=NA, T_model=NA, T3 the sole
         # noise-bearing saturation signal), so forwarding replicates cannot move
@@ -581,14 +591,18 @@ def handle_classify_round(params: dict) -> dict:
         # r=1: the file states one activity per variant and nothing about how
         # many measurements produced it.  T2 stays NA in the point estimate for
         # want of a sigma, but the bootstrap computes a sigma per draw, and its
-        # threshold is 1.96 * sigma * sqrt(2/r) (legacy method, n_designed
-        # absent).  T2 is True when the smoothed gain falls under that
+        # threshold is sigma * sqrt(2 * ln(n_designed) / r) now that the count
+        # is supplied.  T2 is True when the smoothed gain falls under that
         # threshold, so the smallest r makes the widest threshold and calls
         # plateau most readily, which leans toward the transition labels rather
         # than away from them.  Raising r would take a replicate count the file
         # does not carry, and it would still be the wrong count: the exported
         # activity is already a per-variant mean while these WT values are
-        # individual measurements.
+        # individual measurements.  Both of those are why sigma_assay is still
+        # None here: the fix is to carry the per-variant replicates from step
+        # 4.1 and measure the spread of the best variant directly, which needs
+        # no stand-in r and no assumption carrying WT noise up to a variant
+        # measured at several times WT activity.
         r=1,
         hit_rates=hit_rates,
         top_k_positions_n=top_k_pos_n,
