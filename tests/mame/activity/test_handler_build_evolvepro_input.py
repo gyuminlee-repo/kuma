@@ -17,7 +17,7 @@ _RESULT_KEYS = {
     "gc_export_path", "label_audit", "manifest_path", "primary_format",
     "input_count", "evaluable_count", "exclusion_reason_counts",
     "normalization_sources", "evidence_hash", "artifact_hashes",
-    "wt_values",
+    "wt_values", "variant_replicates",
 }
 
 

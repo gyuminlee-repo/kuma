@@ -202,6 +202,75 @@ def test_raw_generic_wt_replicates_leave_on_the_exported_scale(tmp_path: Path):
     assert result.wt_values == pytest.approx([0.8, 1.2, 1.0, 1.0])
 
 
+def test_variant_replicates_hold_every_measurement_not_their_mean(tmp_path: Path):
+    """Two measurements of one variant survive as two numbers.
+
+    The workbook writes their mean, 1.5, and a result that recorded the mean or
+    a count would be indistinguishable from one that recorded nothing useful.
+    The two values are deliberately unequal so the list cannot be mistaken for
+    a repeated mean.
+    """
+    activity = tmp_path / "activity.csv"
+    pd.DataFrame([
+        {"mutation": "WT_1", "activity": 10},
+        {"mutation": "WT_2", "activity": 10},
+        {"mutation": "V5F", "activity": 10},
+        {"mutation": "V5F", "activity": 20},
+    ]).to_csv(activity, index=False)
+    verdict = _verdict(tmp_path / "verdict.xlsx", [("A1", "V5F", "PASS")])
+
+    result = build_evolvepro_input(
+        tmp_path / "out.xlsx", activity_path=activity, verdict_xlsx=verdict
+    )
+
+    assert result.variant_replicates["5F"] == pytest.approx([1.0, 2.0])
+    # The exported activity is their mean, and the replicates are not it.
+    assert result.variant_replicates["5F"] != pytest.approx([1.5, 1.5])
+
+
+def test_variant_replicates_are_on_the_exported_scale(tmp_path: Path):
+    """The WT mean is 20, so raw areas and relative values differ by 20x."""
+    activity = tmp_path / "activity.csv"
+    pd.DataFrame([
+        {"mutation": "WT_1", "activity": 16},
+        {"mutation": "WT_2", "activity": 24},
+        {"mutation": "V5F", "activity": 30},
+    ]).to_csv(activity, index=False)
+    verdict = _verdict(tmp_path / "verdict.xlsx", [("A1", "V5F", "PASS")])
+
+    result = build_evolvepro_input(
+        tmp_path / "out.xlsx", activity_path=activity, verdict_xlsx=verdict
+    )
+
+    assert result.variant_replicates["5F"] == pytest.approx([1.5])
+    assert result.variant_replicates["5F"] != pytest.approx([30.0])
+
+
+def test_variant_replicates_cover_the_exported_variants_and_no_others(tmp_path: Path):
+    """A variant excluded by the NGS gate has no row, so it has no replicates.
+
+    Recording them anyway would describe a measurement the workbook does not
+    carry, and a reader counting keys would disagree with the file.
+    """
+    activity = tmp_path / "activity.csv"
+    pd.DataFrame([
+        {"mutation": "WT_1", "activity": 10},
+        {"mutation": "WT_2", "activity": 10},
+        {"mutation": "V5F", "activity": 20},
+        {"mutation": "V10L", "activity": 5},
+    ]).to_csv(activity, index=False)
+    verdict = _verdict(
+        tmp_path / "verdict.xlsx",
+        [("A1", "V5F", "PASS"), ("B1", "V10L", "WRONG_AA")],
+    )
+
+    result = build_evolvepro_input(
+        tmp_path / "out.xlsx", activity_path=activity, verdict_xlsx=verdict
+    )
+
+    assert set(result.variant_replicates) == {"5F"}
+
+
 def test_multi_cohort_wt_replicates_are_each_relative_to_their_own_plate(tmp_path: Path):
     activity = tmp_path / "activity.csv"
     pd.DataFrame([

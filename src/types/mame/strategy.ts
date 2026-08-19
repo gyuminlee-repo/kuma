@@ -47,6 +47,12 @@ export interface RoundFileEntry {
    * step 4.1 kept them, which is what leaves the answer not assessable.
    */
   wt_values?: number[];
+
+  /**
+   * The replicates behind each exported activity in that round, keyed by
+   * variant. Absent on rounds built before the build recorded them.
+   */
+  variant_replicates?: Record<string, number[]>;
 }
 
 /**

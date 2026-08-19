@@ -91,6 +91,9 @@ export function roundEvolveproFiles(rounds: Round[]): RoundFileEntry[] {
     if (!artifact?.path) continue;
     const entry: RoundFileEntry = { n: round.n, path: artifact.path };
     if (artifact.wt_values?.length) entry.wt_values = artifact.wt_values;
+    if (artifact.variant_replicates && Object.keys(artifact.variant_replicates).length) {
+      entry.variant_replicates = artifact.variant_replicates;
+    }
     produced.push(entry);
   }
   return produced.sort((a, b) => a.n - b.n);
