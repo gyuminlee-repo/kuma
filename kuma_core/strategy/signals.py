@@ -117,6 +117,15 @@ def compute_T2_threshold(
 ) -> float:
     """Compute the T2 plateau threshold.
 
+    What r means here, and what it does not:
+    docs/2026-08-19-mame-assay-noise-model.md. sqrt(2/r) holds when averaging r
+    measurements averages away the variance the comparison is exposed to. On the
+    Agilent path the repeats a variant can carry are repeat injections of one
+    well, which leave the well-to-well term untouched, while the round bests
+    this threshold judges differ by well and by plate. r is therefore 1 on that
+    path in the data as well as in the caller, and the replicate counts recorded
+    since v0.16.30.01 are not it.
+
     method="order_statistic" and n_designed given:
         threshold = sigma_assay * sqrt(2 * ln(n_designed) / r)
         Best-of-N order-statistic approximation. n_designed is clamped to >= 2.
@@ -411,6 +420,12 @@ def compute_sigma_assay(
     min_replicates: int = 4,
 ) -> Optional[float]:
     """Estimate assay noise from wild-type replicate measurements.
+
+    WT_1, WT_2 and WT_3 are separate wells, so their spread carries the
+    preparation and well terms as well as the injection one, which is what the
+    comparison downstream is exposed to. Repeat injections of a single variant
+    well carry the injection term alone and do not substitute for this
+    (docs/2026-08-19-mame-assay-noise-model.md).
 
     Returns the sample standard deviation of wt_values.
     Returns None if fewer than min_replicates values are provided,

@@ -67,20 +67,27 @@ tree proposes is unchanged and only the confidence test behind switch/stop can
 now run.  ``missing_inputs`` therefore still names wt_replicates on an answered
 decision: the verdict itself was reached with T2 and T_model NA either way.
 
-Two limits of that confidence, neither fixable here (kuma_core/strategy is
-pre-registered and frozen), both of which it inherits from the asymmetry
-between the point estimate and the draws:
+Two limits of that confidence, both since addressed, kept here because the
+confidence values recorded on rounds judged before those fixes carry them:
 
-- The draws compute a sigma and a T2 while the point estimate has neither.
+- The draws computed a sigma and a T2 while the point estimate had neither.
   ``sat_now`` is any_true over T2/T3/T_model (classify.py), which only ever
-  turns more True as signals arrive, so a draw can agree with a switch/stop
-  point label for a reason the point label did not have.  Agreement is biased
-  upward for exactly the two labels the gate guards.
-- ``delta_best_ema`` is in activity units (round_best is max activity) while
+  turns more True as signals arrive, so a draw could agree with a switch/stop
+  point label for a reason the point label did not have, and agreement was
+  biased upward for exactly the two labels the gate guards.  bootstrap_confidence
+  now gates every draw on ``point_sigma_available``, so a draw carries a sigma
+  only where the point estimate does.
+- ``delta_best_ema`` was in activity units (round_best is max activity) while
   ``current_round_activities`` is log2, and classify.py adjusts the former by a
-  difference of the latter before comparing it against an activity-scale
-  threshold.  The mixture predates this handler; it was inert while the
-  bootstrap never ran.
+  difference of the latter before comparing it against a threshold.  The mixture
+  predates this handler and was inert while the bootstrap never ran; both are on
+  the log2 scale since v0.16.29.02.
+
+What r means, and why the replicate counts recorded since v0.16.30.01 are not
+it, is docs/2026-08-19-mame-assay-noise-model.md.  The short of it: the repeats
+a variant can carry on the Agilent path are repeat injections of one well, and
+averaging those does not reduce the well-to-well spread the round bests differ
+by.
 
 Read the confidence as "the resampled decision kept agreeing", not as a
 calibrated probability.
@@ -588,21 +595,25 @@ def handle_classify_round(params: dict) -> dict:
         # which derives its own sigma per draw, run the confidence test behind
         # the branch that was already proposed.
         sigma_assay=None,
-        # r=1: the file states one activity per variant and nothing about how
-        # many measurements produced it.  T2 stays NA in the point estimate for
-        # want of a sigma, but the bootstrap computes a sigma per draw, and its
-        # threshold is sigma * sqrt(2 * ln(n_designed) / r) now that the count
-        # is supplied.  T2 is True when the smoothed gain falls under that
-        # threshold, so the smallest r makes the widest threshold and calls
-        # plateau most readily, which leans toward the transition labels rather
-        # than away from them.  Raising r would take a replicate count the file
-        # does not carry, and it would still be the wrong count: the exported
-        # activity is already a per-variant mean while these WT values are
-        # individual measurements.  Both of those are why sigma_assay is still
-        # None here: the fix is to carry the per-variant replicates from step
-        # 4.1 and measure the spread of the best variant directly, which needs
-        # no stand-in r and no assumption carrying WT noise up to a variant
-        # measured at several times WT activity.
+        # r=1 is the measurement, not a placeholder for one the file withholds.
+        # A mutant well on the Agilent path carries a single measurement
+        # (AgilentRecord, evolvepro_xlsx.py:44-56), so the exported activity is
+        # one reading of one well.  A wild-type replicate is also one well read
+        # once, which is why the WT spread estimates the variance of exactly
+        # that quantity and why sqrt(2/r) at r=1 is the right standard error for
+        # a difference of two of them.
+        #
+        # The replicate counts recorded since v0.16.30.01 do not raise it.  What
+        # a variant can carry more than one of is repeat injections of the same
+        # prepared well, and averaging those leaves the preparation and
+        # well-to-well terms untouched while the round bests this compares
+        # differ by well and by plate.  Feeding that count in as r would claim a
+        # precision the repeats did not buy.  The derivation, and what has to be
+        # measured before any of it moves, is in
+        # docs/2026-08-19-mame-assay-noise-model.md.
+        #
+        # sigma_assay stays None above regardless, so this value reaches only
+        # the bootstrap's own threshold rather than the decision.
         r=1,
         hit_rates=hit_rates,
         top_k_positions_n=top_k_pos_n,
