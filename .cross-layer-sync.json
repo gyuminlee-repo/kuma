@@ -1258,6 +1258,20 @@
       "severity": "warning"
     },
     {
+      "id": "mame-assay-noise-model",
+      "files": [
+        "kuma_core/strategy/signals.py",
+        "python-core/sidecar_mame/handlers/classify_round.py",
+        "docs/2026-08-19-mame-assay-noise-model.md"
+      ],
+      "symbols": [
+        "compute_T2_threshold",
+        "compute_sigma_assay"
+      ],
+      "note": "sigma_assay 와 r 이 무엇을 재는 양인지의 근거는 docs/2026-08-19-mame-assay-noise-model.md 다. 핵심은 sqrt(2/r) 이 r 번 평균이 비교가 노출된 분산을 실제로 평균해 없앨 때만 맞다는 것이다. Agilent 경로에서 변이 웰의 반복은 같은 웰의 재주입(injection)이라 웰간 분산을 줄이지 않고, WT_1/WT_2/WT_3 는 서로 다른 웰이다. 따라서 v0.16.30.01 이 실어 나른 반복 개수를 그대로 r 에 넣으면 없던 오차가 생긴다. 임계값 공식이나 r 의 출처를 바꾸면 이 문서의 '두 종류의 반복' 절과 '무엇을 먼저 재야 하는가' 절을 같이 고쳐야 한다. 문서만 고치고 코드를 두면 잡음 모델의 근거와 실제 계산이 어긋난다.",
+      "severity": "warning"
+    },
+    {
       "id": "mame-classify-round-rpc",
       "files": [
         "python-core/sidecar_mame/handlers/classify_round.py",
