@@ -1166,7 +1166,7 @@
       "activityScaleRaw": "Raw",
       "activityScaleRelative": "Relative to WT",
       "layoutXlsx": "xlsx раскладки планшета",
-      "layoutXlsxHelper": "Required mapping metadata for well-labeled GC data and raw reports. Maps well positions to variants.",
+      "layoutXlsxHelper": "Необязательно. Без этого файла позиции лунок сопоставляются с вариантами по листу verdict из Analyze.",
       "layoutXlsxOptionalHelper": "Required only when the long-format label column contains wells; variant-labeled files do not need a layout.",
       "gcDataXlsx": "xlsx с данными GC",
       "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",

@@ -91,7 +91,38 @@ def _layout_maps(layout_xlsx: str | Path | None) -> tuple[dict[str, str], dict[s
     return well_to_variant, variant_to_well
 
 
-def _read_long(path: str | Path, activity_scale: str, layout_xlsx: str | Path | None) -> tuple[dict[str, list[float]], dict[str, str], list[str], list[float]]:
+def _verdict_maps(verdict_xlsx: str | Path) -> tuple[dict[str, str], dict[str, str]]:
+    """The well<->variant mapping a layout sheet carries, read off the Analyze
+    verdict workbook instead.
+
+    The verdict sheet states ``well_id`` beside ``mutant_id`` for every well the
+    run placed an occupant in, PASS and FAILED alike, so it already declares
+    what the plate held. That makes a separate layout file redundant for the
+    well-labeled sources: kuma computes the placement itself in
+    ``kuma_core.mame.layout.build_draft_layout`` and stopped exporting it as a
+    sheet, which is the only reason an operator was asked to supply one by hand.
+
+    Two differences from ``_layout_maps`` are deliberate and both narrow the
+    mapping rather than widening it. A well whose run produced no replicate
+    result leaves an empty verdict row, which ``parse_verdict_rows`` skips, so
+    that well is absent here and the caller reports the measurement as unmapped
+    instead of raising. And a ``mutant_id`` that is not canonical variant
+    notation is skipped, exactly as the strict gate already skips it.
+    """
+    well_to_variant: dict[str, str] = {}
+    variant_to_well: dict[str, str] = {}
+    for well, row in parse_verdict_rows(verdict_xlsx).items():
+        short = _short_variant(row.mutant_id)
+        if short is None:
+            continue
+        if short in variant_to_well and variant_to_well[short] != well:
+            raise ValueError(f"verdict_xlsx maps variant {short!r} to multiple wells")
+        well_to_variant[well] = short
+        variant_to_well[short] = well
+    return well_to_variant, variant_to_well
+
+
+def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str]) -> tuple[dict[str, list[float]], dict[str, str], list[str], list[float]]:
     source = Path(path)
     frame = pd.read_excel(source) if source.suffix.lower() in {".xlsx", ".xls"} else pd.read_csv(source)
     frame.columns = [str(column).strip().lower() for column in frame.columns]
@@ -102,7 +133,6 @@ def _read_long(path: str | Path, activity_scale: str, layout_xlsx: str | Path | 
     if len(value_columns) != 1:
         raise ValueError("activity_path requires exactly one recognized value column (value, area, or activity)")
     label_column, value_column = label_columns[0], value_columns[0]
-    well_to_variant, layout_variant_to_well = _layout_maps(layout_xlsx)
     rows: list[tuple[str, float, str]] = []
     namespaces: set[str] = set()
     wt_values: dict[str, list[float]] = {}
@@ -132,11 +162,10 @@ def _read_long(path: str | Path, activity_scale: str, layout_xlsx: str | Path | 
             namespaces.add("well")
             if short is not None:
                 raise ValueError(f"activity_path label {label!r} is ambiguous between well and variant namespaces")
-            if not well_to_variant:
-                raise ValueError("layout_xlsx is required for well-labeled activity_path")
             variant = well_to_variant.get(well)
             if variant is None:
-                raise ValueError(f"activity_path well {well} is absent from layout_xlsx")
+                unmapped.append(well)
+                continue
             rows.append((variant, value, cohort))
         elif short is not None:
             namespaces.add("variant")
@@ -158,7 +187,7 @@ def _read_long(path: str | Path, activity_scale: str, layout_xlsx: str | Path | 
         if missing:
             raise ValueError(f"activity_path raw data has no WT_1/WT1 rows for cohort(s): {', '.join(missing)}")
     values: dict[str, list[float]] = {}
-    well_by_variant = dict(layout_variant_to_well)
+    well_by_variant = dict(variant_to_well)
     for variant, value, cohort in rows:
         relative = value if activity_scale == "relative_to_wt" else value / (sum(wt_values[cohort]) / len(wt_values[cohort]))
         values.setdefault(variant, []).append(relative)
@@ -185,8 +214,7 @@ def _read_long(path: str | Path, activity_scale: str, layout_xlsx: str | Path | 
     return values, well_by_variant, [], wt_relative
 
 
-def _raw_report_primary(path: str | Path, layout_xlsx: str | Path) -> tuple[dict[str, list[float]], dict[str, str], list[tuple[str, float]], list[float]]:
-    well_to_variant, variant_to_well = _layout_maps(layout_xlsx)
+def _raw_report_primary(path: str | Path, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str]) -> tuple[dict[str, list[float]], dict[str, str], list[tuple[str, float]], list[float]]:
     records = parse_agilent_standard(path)
     wt = [record.area for record in records if record.is_wt]
     if not wt:
@@ -203,21 +231,22 @@ def _raw_report_primary(path: str | Path, layout_xlsx: str | Path) -> tuple[dict
             raise ValueError(f"round1_report_xlsx sample {record.sample_name!r} is not a well") from None
         variant = well_to_variant.get(well)
         if variant is None:
-            raise ValueError(f"round1_report_xlsx well {well} is absent from layout_xlsx")
+            unmapped.append(well)
+            continue
         relative = record.area / mean_wt
         values.setdefault(variant, []).append(relative)
         export_rows.append((record.sample_name, relative))
     return values, variant_to_well, export_rows, [area / mean_wt for area in wt]
 
 
-def _gc_primary(path: str | Path, layout_xlsx: str | Path) -> tuple[dict[str, list[float]], dict[str, str]]:
-    well_to_variant, variant_to_well = _layout_maps(layout_xlsx)
+def _gc_primary(path: str | Path, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str]) -> tuple[dict[str, list[float]], dict[str, str]]:
     values: dict[str, list[float]] = {}
     for record in parse_relative_only(path):
         well = _normalise_well(record.sample_name)
         variant = well_to_variant.get(well)
         if variant is None:
-            raise ValueError(f"gc_data_xlsx well {well} is absent from layout_xlsx")
+            unmapped.append(well)
+            continue
         values.setdefault(variant, []).append(record.area)
     return values, variant_to_well
 
@@ -380,13 +409,26 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     name, source = selected[0]
     warnings: list[str] = []
     gc_export_rows: list[tuple[str, float]] = []
+    # One well<->variant mapping serves every well-labeled source. A layout
+    # sheet states it directly; without one it is derived from the verdict
+    # workbook this build already requires, which names a mutant_id per well.
+    unmapped: list[str] = []
+    if layout_xlsx is None:
+        well_to_variant, variant_to_well = _verdict_maps(verdict_xlsx)
+        mapping_source = "verdict_xlsx"
+    else:
+        well_to_variant, variant_to_well = _layout_maps(layout_xlsx)
+        mapping_source = "layout_xlsx"
+    if name != "activity_path" and not well_to_variant:
+        raise ValueError(
+            f"{name} is well-labeled and needs a well->variant mapping: supply "
+            "layout_xlsx, or a verdict_xlsx that names mutant_id per well"
+        )
     if name == "activity_path":
-        fallback, well_by_variant, source_warnings, wt_values = _read_long(source, activity_scale, layout_xlsx)
+        fallback, well_by_variant, source_warnings, wt_values = _read_long(source, activity_scale, well_to_variant, variant_to_well, unmapped)
         warnings.extend(source_warnings)
     elif name == "gc_data_xlsx":
-        if layout_xlsx is None:
-            raise ValueError("gc_data_xlsx is well-labeled and requires layout_xlsx")
-        fallback, well_by_variant = _gc_primary(source, layout_xlsx)
+        fallback, well_by_variant = _gc_primary(source, well_to_variant, variant_to_well, unmapped)
         # A pre-normalized sheet states each well relative to a WT mean taken
         # somewhere upstream; the replicates behind that mean never reach this
         # app, so there is nothing to record.
@@ -394,9 +436,7 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         if gc_export_xlsx is not None:
             warnings.append("gc_export_xlsx applies only to round1_report_xlsx and was ignored")
     else:
-        if layout_xlsx is None:
-            raise ValueError("round1_report_xlsx is well-labeled and requires layout_xlsx")
-        fallback, well_by_variant, gc_export_rows, wt_values = _raw_report_primary(source, layout_xlsx)
+        fallback, well_by_variant, gc_export_rows, wt_values = _raw_report_primary(source, well_to_variant, variant_to_well, unmapped)
     authoritative = _confirmation(remeasure_report_xlsx) if remeasure_report_xlsx is not None else {}
     merged, stats = merge_replicates_priority({Variant(key): value for key, value in authoritative.items()}, {Variant(key): value for key, value in fallback.items()}, mismatch_threshold=mismatch_threshold)
     mismatched = [{"variant": str(variant), "authoritative": merged[variant], "fallback": sum(fallback[str(variant)]) / len(fallback[str(variant)])} for variant in stats.mismatched]
@@ -408,6 +448,18 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         layout_xlsx,
     )
     warnings.extend(ngs_warnings)
+    # A measured well the mapping does not name held nothing this run scored:
+    # under a layout sheet that is a well the sheet omits, and under the derived
+    # mapping it is a well whose NGS produced no replicate result at all. Either
+    # way the measurement has no PASS evidence behind it and would be gated out
+    # a step later, so it is dropped with a count rather than failing the build.
+    if unmapped:
+        distinct = sorted(set(unmapped))
+        reason_counts["unmapped_well"] = len(distinct)
+        warnings.append(
+            f"{len(distinct)} measured well(s) absent from {mapping_source}: "
+            + ", ".join(distinct)
+        )
     if audit and audit.is_closed_permutation and not allow_label_mismatch:
         raise ValueError("Label swap detected; export blocked. Review the layout and verdict labels or set allow_label_mismatch=True after review.")
     if not merged:

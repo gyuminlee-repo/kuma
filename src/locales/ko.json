@@ -523,7 +523,7 @@
       "activityScaleRaw": "Raw",
       "activityScaleRelative": "WT 상대값",
       "layoutXlsx": "Plate layout xlsx",
-      "layoutXlsxHelper": "well 라벨 GC data와 raw report에 필요한 매핑 메타데이터입니다. well 위치를 variant에 연결합니다.",
+      "layoutXlsxHelper": "선택 항목입니다. 지정하지 않으면 Analyze verdict 시트의 well 정보로 variant를 연결합니다.",
       "layoutXlsxOptionalHelper": "long-format 라벨이 well일 때만 필요합니다. variant 라벨 파일에는 필요하지 않습니다.",
       "gcDataXlsx": "GC data xlsx",
       "gcDataXlsxHelper": "well별 사전 정규화 상대 활성값(Sample Name, Area 열)입니다.",

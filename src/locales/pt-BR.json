@@ -1166,7 +1166,7 @@
       "activityScaleRaw": "Raw",
       "activityScaleRelative": "Relative to WT",
       "layoutXlsx": "xlsx de layout da placa",
-      "layoutXlsxHelper": "Required mapping metadata for well-labeled GC data and raw reports. Maps well positions to variants.",
+      "layoutXlsxHelper": "Opcional. Sem este arquivo, as posições de poço são mapeadas para as variantes pela planilha verdict do Analyze.",
       "layoutXlsxOptionalHelper": "Required only when the long-format label column contains wells; variant-labeled files do not need a layout.",
       "gcDataXlsx": "xlsx de dados GC",
       "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
