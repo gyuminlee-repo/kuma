@@ -1166,7 +1166,7 @@
       "activityScaleRaw": "Raw",
       "activityScaleRelative": "Relative to WT",
       "layoutXlsx": "盤面配置 xlsx",
-      "layoutXlsxHelper": "Required mapping metadata for well-labeled GC data and raw reports. Maps well positions to variants.",
+      "layoutXlsxHelper": "選填。未指定時，將使用 Analyze verdict 表中的 well 資訊對應到 variant。",
       "layoutXlsxOptionalHelper": "Required only when the long-format label column contains wells; variant-labeled files do not need a layout.",
       "gcDataXlsx": "GC 資料 xlsx",
       "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
@@ -2504,13 +2504,11 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "管線無法計算的數值現在會指出自身，而不是在 60 秒後表現為連線逾時。",
-      "只有在實際測得時才回報決策信賴度，點估計與其誤差範圍現在讀取相同的訊號。",
-      "測試套件可在 Windows 上執行；先前只要缺少一個工具，就會略過全部 1301 項測試並回報成功。",
-      "修正了兩個僅在 Windows 上出現的缺陷：每次匯出套件發布都會失敗，每個總和檢查碼檔案都無法讀取。",
-      "遺漏或改名預留位置的翻譯會在發布前被發現，而不是帶著空白出現在畫面上。"
+      "第 4 步不再必須提供 plate layout 檔案。留空時將透過 Analyze verdict 表對應孔位。",
+      "提供 layout 檔案時仍以其為準，與 verdict 身分的比對檢查維持不變。",
+      "沒有 NGS 結果的測量孔位會被計數並列出，而不會導致整個建置失敗。"
     ],
-    "highlightsStamp": "0.16.29+3f25adcf",
+    "highlightsStamp": "0.16.30+bab83ea7",
     "releases": {
       "0.16.28": [
         "應用程式每次執行都在測量卻從未繪製的 5 個 run health 區塊，現已顯示在審閱畫面中，預設收合。",
@@ -2738,6 +2736,11 @@
         "測試套件可在 Windows 上執行；先前只要缺少一個工具，就會略過全部 1301 項測試並回報成功。",
         "修正了兩個僅在 Windows 上出現的缺陷：每次匯出套件發布都會失敗，每個總和檢查碼檔案都無法讀取。",
         "遺漏或改名預留位置的翻譯會在發布前被發現，而不是帶著空白出現在畫面上。"
+      ],
+      "0.16.30": [
+        "第 4 步不再必須提供 plate layout 檔案。留空時將透過 Analyze verdict 表對應孔位。",
+        "提供 layout 檔案時仍以其為準，與 verdict 身分的比對檢查維持不變。",
+        "沒有 NGS 結果的測量孔位會被計數並列出，而不會導致整個建置失敗。"
       ]
     },
     "releaseStamps": {
@@ -2779,7 +2782,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.30": "bab83ea7"
     }
   },
   "primerDisplay": {

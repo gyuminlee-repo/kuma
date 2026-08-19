@@ -135,6 +135,27 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
     });
   });
 
+  it.each([
+    ["GC sheet", "gcSheet", "gcDataXlsx", "gc_data_xlsx", "/project/gc.xlsx"],
+    ["raw report", "rawReport", "round1ReportXlsx", "round1_report_xlsx", "/project/report.xlsx"],
+  ] as const)(
+    "builds %s without a layout, leaving the well mapping to the verdict sheet",
+    async (_name, primarySource, formKey, paramKey, path) => {
+      seed(readyForm({ primarySource, [formKey]: path, layoutXlsx: "" }));
+      renderPanel();
+
+      await build();
+
+      expect(buildEvolveproInput).toHaveBeenCalledWith({
+        [paramKey]: path,
+        layout_xlsx: undefined,
+        remeasure_report_xlsx: undefined,
+        verdict_xlsx: "/project/ngs/verdict.xlsx",
+        output_xlsx: RESULT.output_path,
+      });
+    },
+  );
+
   it("sends a confirmation report only for variant-labeled confirmation", async () => {
     seed(readyForm({ confirmationSource: "variantLabels", remeasureReportXlsx: "/project/remeasure.xlsx" }));
     renderPanel();

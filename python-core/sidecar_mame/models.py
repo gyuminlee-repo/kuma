@@ -429,12 +429,11 @@ class BuildEvolveproInputParams(BaseModel):
                 "provide exactly one primary source: activity_path, gc_data_xlsx, "
                 "or round1_report_xlsx"
             )
-        if self.gc_data_xlsx and not self.layout_xlsx:
-            raise ValueError("gc_data_xlsx is well-labeled and requires layout_xlsx")
-        if self.round1_report_xlsx and not self.layout_xlsx:
-            raise ValueError(
-                "round1_report_xlsx is well-labeled and requires layout_xlsx"
-            )
+        # A well-labeled source needs a well->variant mapping, not a layout
+        # file: without one the builder derives the same mapping from the
+        # verdict workbook, which names a mutant_id per well and is required
+        # here regardless. Whether that derivation covers the measured wells is
+        # a data question the builder answers, so it is not asserted here.
         return self
 
     @field_validator("output_xlsx", "gc_export_xlsx", mode="after")

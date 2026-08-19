@@ -1166,7 +1166,7 @@
       "activityScaleRaw": "Raw",
       "activityScaleRelative": "Relative to WT",
       "layoutXlsx": "板布局 xlsx",
-      "layoutXlsxHelper": "Required mapping metadata for well-labeled GC data and raw reports. Maps well positions to variants.",
+      "layoutXlsxHelper": "可选。未指定时，将使用 Analyze verdict 表中的 well 信息映射到 variant。",
       "layoutXlsxOptionalHelper": "Required only when the long-format label column contains wells; variant-labeled files do not need a layout.",
       "gcDataXlsx": "GC 数据 xlsx",
       "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
@@ -2504,13 +2504,11 @@
     "descriptionRange": "自 v{{from}} 以来每次更新的主要变化。",
     "gotItBtn": "知道了",
     "highlights": [
-      "流水线无法计算的数值现在会指明自身，而不是在 60 秒后表现为连接超时。",
-      "只有在实际测得时才报告决策置信度，点估计与其误差范围现在读取相同的信号。",
-      "测试套件可在 Windows 上运行；此前只要缺少一个工具，就会跳过全部 1301 项测试并报告成功。",
-      "修复了两个仅在 Windows 上出现的缺陷：每次导出包发布都会失败，每个校验和文件都无法读取。",
-      "遗漏或改名占位符的翻译会在发布前被发现，而不是带着空白出现在界面上。"
+      "第 4 步不再必须提供 plate layout 文件。留空时将通过 Analyze verdict 表映射孔位。",
+      "提供 layout 文件时仍以其为准，与 verdict 身份的比对检查保持不变。",
+      "没有 NGS 结果的测量孔位会被计数并列出，而不会导致整个构建失败。"
     ],
-    "highlightsStamp": "0.16.29+3f25adcf",
+    "highlightsStamp": "0.16.30+bab83ea7",
     "releases": {
       "0.16.28": [
         "应用每次运行都在测量却从未绘制的 5 个 run health 区块，现已显示在审阅界面中，默认折叠。",
@@ -2738,6 +2736,11 @@
         "测试套件可在 Windows 上运行；此前只要缺少一个工具，就会跳过全部 1301 项测试并报告成功。",
         "修复了两个仅在 Windows 上出现的缺陷：每次导出包发布都会失败，每个校验和文件都无法读取。",
         "遗漏或改名占位符的翻译会在发布前被发现，而不是带着空白出现在界面上。"
+      ],
+      "0.16.30": [
+        "第 4 步不再必须提供 plate layout 文件。留空时将通过 Analyze verdict 表映射孔位。",
+        "提供 layout 文件时仍以其为准，与 verdict 身份的比对检查保持不变。",
+        "没有 NGS 结果的测量孔位会被计数并列出，而不会导致整个构建失败。"
       ]
     },
     "releaseStamps": {
@@ -2779,7 +2782,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.30": "bab83ea7"
     }
   },
   "primerDisplay": {

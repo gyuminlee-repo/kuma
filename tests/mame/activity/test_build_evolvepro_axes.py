@@ -302,3 +302,90 @@ def test_prenormalized_gc_sheet_records_no_replicates(tmp_path: Path):
     )
 
     assert result.wt_values == []
+
+
+def test_well_labeled_raw_report_maps_wells_without_a_layout_file(tmp_path: Path):
+    """The verdict sheet already states which variant sat in which well.
+
+    kuma computes the plate placement itself and no longer exports it as a
+    sheet, so demanding one by hand asked the operator to restate what the
+    Analyze output already carries.
+    """
+    report = _agilent(
+        tmp_path / "round1.xlsx",
+        [("WT_1", 8.0), ("WT_2", 12.0), ("A1", 20.0)],
+    )
+    verdict = _verdict(tmp_path / "verdict.xlsx", [("A01", "V5F", "PASS")])
+    out = tmp_path / "out.xlsx"
+
+    result = build_evolvepro_input(
+        out, round1_report_xlsx=report, verdict_xlsx=verdict
+    )
+
+    assert result.well_by_variant == {"5F": "A01"}
+    assert _rows(out) == pytest.approx({"5F": 2.0})
+
+
+def test_layout_and_verdict_derived_mappings_agree_on_the_same_report(tmp_path: Path):
+    report = _agilent(
+        tmp_path / "round1.xlsx",
+        [("WT_1", 10.0), ("A1", 20.0), ("B1", 5.0)],
+    )
+    layout = _layout(tmp_path / "layout.xlsx", [("V5F", "A1"), ("V7G", "B1")])
+    verdict = _verdict(
+        tmp_path / "verdict.xlsx",
+        [("A01", "V5F", "PASS"), ("B01", "V7G", "PASS")],
+    )
+
+    with_layout = tmp_path / "with_layout.xlsx"
+    build_evolvepro_input(
+        with_layout,
+        round1_report_xlsx=report,
+        layout_xlsx=layout,
+        verdict_xlsx=verdict,
+    )
+    derived = tmp_path / "derived.xlsx"
+    build_evolvepro_input(
+        derived, round1_report_xlsx=report, verdict_xlsx=verdict
+    )
+
+    assert _rows(derived) == pytest.approx(_rows(with_layout))
+
+
+def test_measured_well_the_mapping_does_not_name_is_counted_not_fatal(tmp_path: Path):
+    """A well with no verdict row held nothing this run scored.
+
+    Its verdict row is the empty one an unread well leaves behind, so no PASS
+    evidence could ever stand behind the measurement. Dropping it with a count
+    reaches the same export the NGS gate would, instead of failing the build.
+    """
+    report = _agilent(
+        tmp_path / "round1.xlsx",
+        [("WT_1", 10.0), ("A1", 20.0), ("C5", 30.0)],
+    )
+    verdict = _verdict(tmp_path / "verdict.xlsx", [("A01", "V5F", "PASS")])
+    out = tmp_path / "out.xlsx"
+
+    result = build_evolvepro_input(
+        out, round1_report_xlsx=report, verdict_xlsx=verdict
+    )
+
+    assert result.exclusion_reason_counts["unmapped_well"] == 1
+    assert any("C05" in warning for warning in result.warnings)
+    assert _rows(out) == pytest.approx({"5F": 2.0})
+
+
+def test_gc_sheet_without_a_layout_or_verdict_identities_is_refused(tmp_path: Path):
+    """No mapping at all is still a refusal, and it names both ways out."""
+    gc = tmp_path / "gc.xlsx"
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.append(["Sample Name", "Relative Activity"])
+    sheet.append(["A1", 0.5])
+    workbook.save(gc)
+    verdict = _verdict(tmp_path / "verdict.xlsx", [("A01", "", "PASS")])
+
+    with pytest.raises(ValueError, match="needs a well->variant mapping"):
+        build_evolvepro_input(
+            tmp_path / "out.xlsx", gc_data_xlsx=gc, verdict_xlsx=verdict
+        )

@@ -1166,7 +1166,7 @@
       "activityScaleRaw": "Raw",
       "activityScaleRelative": "Relative to WT",
       "layoutXlsx": "xlsx de disposition de plaque",
-      "layoutXlsxHelper": "Required mapping metadata for well-labeled GC data and raw reports. Maps well positions to variants.",
+      "layoutXlsxHelper": "Optionnel. Sans ce fichier, les positions de puits sont associées aux variants via la feuille verdict d'Analyze.",
       "layoutXlsxOptionalHelper": "Required only when the long-format label column contains wells; variant-labeled files do not need a layout.",
       "gcDataXlsx": "xlsx de données GC",
       "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
@@ -2504,13 +2504,11 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Une valeur que le pipeline n'a pas pu calculer se désigne désormais elle-même, au lieu d'apparaître 60 secondes plus tard comme un délai de connexion dépassé.",
-      "La confiance d'une décision n'est rapportée que lorsqu'elle a été mesurée, et l'estimation et sa marge d'erreur lisent les mêmes signaux.",
-      "La suite de tests s'exécute sous Windows, où un seul outil manquant ignorait auparavant les 1301 tests et annonçait une réussite.",
-      "Deux défauts que seul Windows atteint sont corrigés : la publication de chaque lot d'export échouait et chaque fichier de somme de contrôle était illisible.",
-      "Une traduction qui supprime ou renomme un espace réservé est détectée avant la publication, au lieu d'atteindre l'écran avec un blanc."
+      "L'étape 4 n'exige plus de fichier de plate layout. Laissé vide, les positions de puits sont associées via la feuille verdict d'Analyze.",
+      "Un fichier de layout reste prioritaire lorsqu'il est fourni, et le contrôle face aux identités du verdict est inchangé.",
+      "Un puits mesuré sans résultat NGS est compté et nommé au lieu de faire échouer toute la construction."
     ],
-    "highlightsStamp": "0.16.29+3f25adcf",
+    "highlightsStamp": "0.16.30+bab83ea7",
     "releases": {
       "0.16.28": [
         "Cinq sections run health que l'application mesurait à chaque exécution sans jamais les afficher figurent désormais sur l'écran de revue, repliées au départ.",
@@ -2738,6 +2736,11 @@
         "La suite de tests s'exécute sous Windows, où un seul outil manquant ignorait auparavant les 1301 tests et annonçait une réussite.",
         "Deux défauts que seul Windows atteint sont corrigés : la publication de chaque lot d'export échouait et chaque fichier de somme de contrôle était illisible.",
         "Une traduction qui supprime ou renomme un espace réservé est détectée avant la publication, au lieu d'atteindre l'écran avec un blanc."
+      ],
+      "0.16.30": [
+        "L'étape 4 n'exige plus de fichier de plate layout. Laissé vide, les positions de puits sont associées via la feuille verdict d'Analyze.",
+        "Un fichier de layout reste prioritaire lorsqu'il est fourni, et le contrôle face aux identités du verdict est inchangé.",
+        "Un puits mesuré sans résultat NGS est compté et nommé au lieu de faire échouer toute la construction."
       ]
     },
     "releaseStamps": {
@@ -2779,7 +2782,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.30": "bab83ea7"
     }
   },
   "primerDisplay": {
