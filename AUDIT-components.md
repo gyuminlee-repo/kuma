@@ -1,5 +1,9 @@
 # Correctness review: `src/components/`
 
+> Findings as of the sweep. Some have been fixed, six were overturned, and
+> the pages were not rewritten as that happened. `AUDIT-STATUS.md` records
+> which is which; treat anything here as open unless it says otherwise.
+
 Fifth area of the kuma sweep. Findings only: no source file was changed.
 
 166 non-test files, reviewed by four read-only agents in parallel lanes, each

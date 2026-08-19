@@ -1,5 +1,9 @@
 # Adversarial re-verification of the codex-produced findings
 
+> Findings as of the sweep. Some have been fixed, six were overturned, and
+> the pages were not rewritten as that happened. `AUDIT-STATUS.md` records
+> which is which; treat anything here as open unless it says otherwise.
+
 The first three areas of this sweep were produced by a different tool from the
 last three. This pass re-examines all of them, not to find new defects but to
 check whether the recorded ones are true.

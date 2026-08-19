@@ -1,5 +1,9 @@
 # MAME Core Defect Audit
 
+> Findings as of the sweep. Some have been fixed, six were overturned, and
+> the pages were not rewritten as that happened. `AUDIT-STATUS.md` records
+> which is which; treat anything here as open unless it says otherwise.
+
 Scope: every file returned by `rg --files kuma_core/mame | sort` on 2026-08-13. This was a findings-only pass: no source, test, or configuration file was modified. A concern appears under confirmed defects only when real `kuma_core.mame` code was executed with a concrete input and produced the stated bad result.
 
 ## 1. Coverage ledger
