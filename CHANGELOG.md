@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.16.31 (Numbers instead of names)
+
+The lab now exports both activity files in the Agilent block layout with numeric sample names. The whole-plate screen numbers every variant of the plate in order, 1, 2, 3, and the replicated confirmation numbers the subset that beat wild-type, 1, 1-2, 1-3. Neither file carries a variant anywhere.
+
+kuma already held the decoder for exactly this, and nothing called it. Reaching it from the app was impossible, so the confirmation of a round could not be merged with its screen at all. Handing that file to the variant-labeled path was worse than a refusal: the sample names that are bare numbers read as calibration rows and were dropped, taking one replicate of every variant with them, and the rest were rejected as labels that are not variants.
+
+Both files are now step 4 sources. A numeric name states a position rather than a label, so decoding one needs the order the plate was filled in, and the designed variant list states it: the same list the analyze step reads, with nothing transcribed by hand. The plate file still works for campaigns that predate it. Exactly one of the two, because both at once leaves the answer ambiguous.
+
+The confirmation is indexed against the variants the screen put above wild-type, in plate order, which is the selection the bench performs. A file covering a different set produces a count that cannot be placed, and the build stops and names the two counts rather than attaching a measurement to a neighbouring variant. That refusal now stays on the screen instead of only passing through as a notification, since the sentence naming the counts is the point of refusing.
+
+Replicate counts are read rather than assumed. Each position contributes the replicates its own sample names declare, so a position measured once and a position measured five times both go through, and a replicate number written twice keeps both areas: a mislabelled replicate is a numbering slip, not a lost injection.
+
+Verified against the 2026-03 campaign files. The screen and the confirmation together write 95 variants, 34 of them taking the replicated value and 61 keeping the screen value, with 22 flagged where the two disagree by more than the threshold.
+
+### Highlights
+
+- Step 4 reads the Agilent reports whose sample names are numbers, both the whole-plate screen and the replicated confirmation.
+- A replicated confirmation is merged into the screen it belongs to, replacing those values and flagging the ones that disagree.
+- Numeric positions are decoded against the designed variant list, so no plate file has to be transcribed by hand.
+- A confirmation covering a different set of variants is refused with the counts named, rather than labelled with the wrong ones.
+- The replicate count is whatever a file carries, from one measurement to as many as the run made.
+
+### Added
+
+- `numeric_report_xlsx` and `remeasure_numeric_xlsx` join the step 4 sources, decoded through `kuma_core/mame/activity/numeric_id_decode.py`. `expected_xlsx` or `layout_xlsx` supplies the plate order, exactly one of the two. `decode_confirmation_against` splits the confirmation decode so the screen it is indexed against does not have to be numeric itself: a well-labelled sheet states one relative activity per well, which is all the subset needs.
+- `DecodeResult` carries the WT block areas, so a numeric screen reports the assay spread the round records beside the workbook.
+
+### Fixed
+
+- A wild-type well is no longer counted as a measurement absent from the well mapping. It is the well the sheet normalizes against, named as WT by whichever source states the placement.
+- A build error stays on the step 4 panel until the next run instead of only appearing as a notification that clears itself.
+
 ## v0.16.30 (One less file to hand over)
 
 Step 4 refused to accept GC data or a raw Agilent report without a plate layout xlsx. That file answered one question: which variant sat in which well. The Analyze verdict workbook the same screen already requires answers it too, stating a mutant_id beside every well_id, and the strict NGS gate has been reading it all along to cross-check the layout. The field is now optional, and leaving it empty derives the mapping from the verdict sheet.

@@ -1211,7 +1211,19 @@
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
       "clearRestored": "清除已復原的 EVOLVEpro 輸入",
-      "outputCollidesRound": "輪次 {{round}} 已將此檔案記錄為其產物。在此產生會覆寫該輪次的測量值。"
+      "outputCollidesRound": "輪次 {{round}} 已將此檔案記錄為其產物。在此產生會覆寫該輪次的測量值。",
+      "primarySourceNumericReport": "數字 ID 的 Agilent report",
+      "primarySourceNumericReportHelper": "樣品名為位置編號(1、2、3 …)的全盤 raw report。編號 i 對應盤序中的第 i 個變體。",
+      "numericReportXlsx": "全盤測量 report xlsx (數字 ID)",
+      "numericReportXlsxHelper": "帶 WT 列與數字樣品名的 raw Agilent report。需要順序來源說明哪個編號對應哪個變體。",
+      "confirmationSourceNumericIds": "數字 ID 的 Agilent report",
+      "confirmationSourceNumericIdsHelper": "樣品名為高於 WT 子集位置編號(1、1-2、1-3 …)的重複測量 report。重複平均會覆蓋對應的 primary 值。",
+      "remeasureNumericXlsx": "確認 report xlsx (數字 ID)",
+      "remeasureNumericXlsxHelper": "編號 j 是 primary 中高於野生型的變體按盤序排列的第 j 個。若選擇不同則拒絕，而非錯誤標註。",
+      "expectedXlsx": "設計變體清單",
+      "expectedXlsxHelper": "數字 ID 的順序來源，與 analyze 步驟讀取的設計變體清單為同一檔案，優先於手寫的盤檔案。",
+      "orderSource": "順序來源 (設計變體清單或 plate layout，擇一)",
+      "dismissError": "關閉"
     },
     "verdictBadge": {
       "help": {
@@ -2504,11 +2516,13 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "第 4 步不再必須提供 plate layout 檔案。留空時將透過 Analyze verdict 表對應孔位。",
-      "提供 layout 檔案時仍以其為準，與 verdict 身分的比對檢查維持不變。",
-      "沒有 NGS 結果的測量孔位會被計數並列出，而不會導致整個建置失敗。"
+      "第 4 步可讀取樣品名為數字的 Agilent report，包括全盤測量與重複確認測量。",
+      "重複確認測量會併入對應的篩選結果，取代這些數值並標出彼此不一致的項目。",
+      "數字位置依設計變體清單解讀，因此不需手工謄寫盤檔案。",
+      "確認檔案若包含不同的變體集合，會說明數量並拒絕，而不會標註到錯誤的變體上。",
+      "重複次數以檔案實際記錄為準，從 1 次到該輪實際測量的次數都可以。"
     ],
-    "highlightsStamp": "0.16.30+bab83ea7",
+    "highlightsStamp": "0.16.31+60d4442c",
     "releases": {
       "0.16.28": [
         "應用程式每次執行都在測量卻從未繪製的 5 個 run health 區塊，現已顯示在審閱畫面中，預設收合。",
@@ -2741,6 +2755,13 @@
         "第 4 步不再必須提供 plate layout 檔案。留空時將透過 Analyze verdict 表對應孔位。",
         "提供 layout 檔案時仍以其為準，與 verdict 身分的比對檢查維持不變。",
         "沒有 NGS 結果的測量孔位會被計數並列出，而不會導致整個建置失敗。"
+      ],
+      "0.16.31": [
+        "第 4 步可讀取樣品名為數字的 Agilent report，包括全盤測量與重複確認測量。",
+        "重複確認測量會併入對應的篩選結果，取代這些數值並標出彼此不一致的項目。",
+        "數字位置依設計變體清單解讀，因此不需手工謄寫盤檔案。",
+        "確認檔案若包含不同的變體集合，會說明數量並拒絕，而不會標註到錯誤的變體上。",
+        "重複次數以檔案實際記錄為準，從 1 次到該輪實際測量的次數都可以。"
       ]
     },
     "releaseStamps": {
@@ -2783,7 +2804,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.30": "bab83ea7"
+      "0.16.30": "bab83ea7",
+      "0.16.31": "60d4442c"
     }
   },
   "primerDisplay": {

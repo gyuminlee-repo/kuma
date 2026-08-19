@@ -1211,7 +1211,19 @@
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
       "clearRestored": "Borrar entradas EVOLVEpro restauradas",
-      "outputCollidesRound": "La ronda {{round}} ya registro este archivo como su salida. Generar aqui sobrescribe las mediciones de esa ronda."
+      "outputCollidesRound": "La ronda {{round}} ya registro este archivo como su salida. Generar aqui sobrescribe las mediciones de esa ronda.",
+      "primarySourceNumericReport": "Informe Agilent con IDs numéricos",
+      "primarySourceNumericReportHelper": "Informe bruto de la placa completa cuyos nombres de muestra son posiciones (1, 2, 3, ...). La posición i es la i-ésima variante del orden de placa.",
+      "numericReportXlsx": "Informe de placa completa xlsx (IDs numéricos)",
+      "numericReportXlsxHelper": "Informe Agilent bruto con filas WT y nombres de muestra numéricos. Necesita una fuente de orden que indique qué posición lleva cada variante.",
+      "confirmationSourceNumericIds": "Informe Agilent con IDs numéricos",
+      "confirmationSourceNumericIdsHelper": "Informe replicado cuyos nombres de muestra son posiciones del subconjunto por encima de WT (1, 1-2, 1-3, ...). Sus medias sustituyen los valores primarios coincidentes.",
+      "remeasureNumericXlsx": "Informe de confirmación xlsx (IDs numéricos)",
+      "remeasureNumericXlsxHelper": "La posición j es la j-ésima variante que el cribado primario situó por encima del tipo silvestre, en orden de placa. Una selección distinta se rechaza en vez de etiquetarse mal.",
+      "expectedXlsx": "Lista de variantes diseñadas",
+      "expectedXlsxHelper": "Fuente de orden para los IDs numéricos: la misma lista de variantes diseñadas que lee el paso de análisis. Preferible al archivo de placa transcrito a mano.",
+      "orderSource": "Fuente de orden (lista de variantes diseñadas o plate layout, exactamente una)",
+      "dismissError": "Cerrar"
     },
     "verdictBadge": {
       "help": {
@@ -2504,11 +2516,13 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El paso 4 ya no exige un archivo de plate layout. Si se deja vacío, las posiciones de pocillo se asignan con la hoja verdict de Analyze.",
-      "Un archivo de layout sigue teniendo prioridad cuando se indica, y la comprobación contra las identidades del verdict no cambia.",
-      "Un pocillo medido sin resultado de NGS se cuenta y se nombra en lugar de hacer fallar toda la compilación."
+      "El paso 4 lee los informes Agilent con nombres de muestra numéricos, tanto el cribado de la placa completa como la confirmación replicada.",
+      "Una confirmación replicada se integra en el cribado al que pertenece, sustituye esos valores y señala los que discrepan.",
+      "Las posiciones numéricas se resuelven con la lista de variantes diseñadas, así que no hay que transcribir a mano ningún archivo de placa.",
+      "Una confirmación que cubre otro conjunto de variantes se rechaza indicando ambos recuentos, en vez de etiquetarse con las equivocadas.",
+      "El número de réplicas es el que trae el archivo, desde una sola medida hasta tantas como hiciera el ensayo."
     ],
-    "highlightsStamp": "0.16.30+bab83ea7",
+    "highlightsStamp": "0.16.31+60d4442c",
     "releases": {
       "0.16.28": [
         "Cinco secciones de run health que la aplicación medía en cada ejecución y nunca dibujaba ya aparecen en la pantalla de revisión, en una sección que empieza cerrada.",
@@ -2741,6 +2755,13 @@
         "El paso 4 ya no exige un archivo de plate layout. Si se deja vacío, las posiciones de pocillo se asignan con la hoja verdict de Analyze.",
         "Un archivo de layout sigue teniendo prioridad cuando se indica, y la comprobación contra las identidades del verdict no cambia.",
         "Un pocillo medido sin resultado de NGS se cuenta y se nombra en lugar de hacer fallar toda la compilación."
+      ],
+      "0.16.31": [
+        "El paso 4 lee los informes Agilent con nombres de muestra numéricos, tanto el cribado de la placa completa como la confirmación replicada.",
+        "Una confirmación replicada se integra en el cribado al que pertenece, sustituye esos valores y señala los que discrepan.",
+        "Las posiciones numéricas se resuelven con la lista de variantes diseñadas, así que no hay que transcribir a mano ningún archivo de placa.",
+        "Una confirmación que cubre otro conjunto de variantes se rechaza indicando ambos recuentos, en vez de etiquetarse con las equivocadas.",
+        "El número de réplicas es el que trae el archivo, desde una sola medida hasta tantas como hiciera el ensayo."
       ]
     },
     "releaseStamps": {
@@ -2783,7 +2804,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.30": "bab83ea7"
+      "0.16.30": "bab83ea7",
+      "0.16.31": "60d4442c"
     }
   },
   "primerDisplay": {

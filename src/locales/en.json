@@ -568,7 +568,19 @@
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
       "clearRestored": "Clear restored EVOLVEpro inputs",
-      "outputCollidesRound": "Round {{round}} already recorded this file as its output. Building here overwrites that round measurements."
+      "outputCollidesRound": "Round {{round}} already recorded this file as its output. Building here overwrites that round measurements.",
+      "primarySourceNumericReport": "Numeric-ID Agilent report",
+      "primarySourceNumericReportHelper": "Whole-plate raw report whose sample names are positions (1, 2, 3, ...). Position i is the i-th variant of the plate order.",
+      "numericReportXlsx": "Whole-plate report xlsx (numeric IDs)",
+      "numericReportXlsxHelper": "Raw Agilent report with WT rows and numeric sample names. Needs an order source to say which position holds which variant.",
+      "confirmationSourceNumericIds": "Numeric-ID Agilent report",
+      "confirmationSourceNumericIdsHelper": "Replicated report whose sample names are positions in the above-WT subset (1, 1-2, 1-3, ...). Its replicate means override matching primary values.",
+      "remeasureNumericXlsx": "Confirmation report xlsx (numeric IDs)",
+      "remeasureNumericXlsxHelper": "Position j is the j-th variant the primary screen put above wild-type, in plate order. A different selection is refused rather than mislabeled.",
+      "expectedXlsx": "Designed variant list",
+      "expectedXlsxHelper": "Order source for numeric IDs: the same designed variant list the analyze step reads. Preferred over the plate file, which is transcribed by hand.",
+      "orderSource": "Order source (designed variant list or plate layout, exactly one)",
+      "dismissError": "Dismiss"
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",
@@ -2534,12 +2546,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Step 4 no longer demands a plate layout file: leave it empty and well positions are mapped through the Analyze verdict sheet.",
-      "A layout file still wins when supplied, and the check against the verdict identities behind it is unchanged.",
-      "A measured well with no NGS result is counted and named rather than failing the whole build."
+      "Step 4 reads the Agilent reports whose sample names are numbers, both the whole-plate screen and the replicated confirmation.",
+      "A replicated confirmation is merged into the screen it belongs to, replacing those values and flagging the ones that disagree.",
+      "Numeric positions are decoded against the designed variant list, so no plate file has to be transcribed by hand.",
+      "A confirmation covering a different set of variants is refused with the counts named, rather than labelled with the wrong ones.",
+      "The replicate count is whatever a file carries, from one measurement to as many as the run made."
     ],
-    "highlightsStamp": "0.16.30+bab83ea7",
+    "highlightsStamp": "0.16.31+60d4442c",
     "releases": {
+      "0.16.31": [
+        "Step 4 reads the Agilent reports whose sample names are numbers, both the whole-plate screen and the replicated confirmation.",
+        "A replicated confirmation is merged into the screen it belongs to, replacing those values and flagging the ones that disagree.",
+        "Numeric positions are decoded against the designed variant list, so no plate file has to be transcribed by hand.",
+        "A confirmation covering a different set of variants is refused with the counts named, rather than labelled with the wrong ones.",
+        "The replicate count is whatever a file carries, from one measurement to as many as the run made."
+      ],
       "0.16.30": [
         "Step 4 no longer demands a plate layout file: leave it empty and well positions are mapped through the Analyze verdict sheet.",
         "A layout file still wins when supplied, and the check against the verdict identities behind it is unchanged.",
@@ -2774,6 +2795,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.31": "60d4442c",
       "0.16.30": "bab83ea7",
       "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",
