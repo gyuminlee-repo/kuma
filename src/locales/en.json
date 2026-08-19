@@ -2546,12 +2546,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Step 4 no longer demands a plate layout file: leave it empty and well positions are mapped through the Analyze verdict sheet.",
-      "A layout file still wins when supplied, and the check against the verdict identities behind it is unchanged.",
-      "A measured well with no NGS result is counted and named rather than failing the whole build."
+      "Step 4 reads the Agilent reports whose sample names are numbers, both the whole-plate screen and the replicated confirmation.",
+      "A replicated confirmation is merged into the screen it belongs to, replacing those values and flagging the ones that disagree.",
+      "Numeric positions are decoded against the designed variant list, so no plate file has to be transcribed by hand.",
+      "A confirmation covering a different set of variants is refused with the counts named, rather than labelled with the wrong ones.",
+      "The replicate count is whatever a file carries, from one measurement to as many as the run made."
     ],
-    "highlightsStamp": "0.16.30+bab83ea7",
+    "highlightsStamp": "0.16.31+60d4442c",
     "releases": {
+      "0.16.31": [
+        "Step 4 reads the Agilent reports whose sample names are numbers, both the whole-plate screen and the replicated confirmation.",
+        "A replicated confirmation is merged into the screen it belongs to, replacing those values and flagging the ones that disagree.",
+        "Numeric positions are decoded against the designed variant list, so no plate file has to be transcribed by hand.",
+        "A confirmation covering a different set of variants is refused with the counts named, rather than labelled with the wrong ones.",
+        "The replicate count is whatever a file carries, from one measurement to as many as the run made."
+      ],
       "0.16.30": [
         "Step 4 no longer demands a plate layout file: leave it empty and well positions are mapped through the Analyze verdict sheet.",
         "A layout file still wins when supplied, and the check against the verdict identities behind it is unchanged.",
@@ -2786,6 +2795,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.31": "60d4442c",
       "0.16.30": "bab83ea7",
       "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",
