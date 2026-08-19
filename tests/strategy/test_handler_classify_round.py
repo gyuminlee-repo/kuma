@@ -283,6 +283,87 @@ class TestDeltaScale:
 
 
 # ---------------------------------------------------------------------------
+# TestOrderStatisticNull -- the best-of-N count reaches compute_T2
+# ---------------------------------------------------------------------------
+
+class TestOrderStatisticNull:
+    """t2_null_method defaults to order_statistic, and that method is skipped
+    whenever n_designed is None: compute_T2_threshold falls through to the
+    legacy 1.96 * sigma * sqrt(2/r), which is the null for one nominated
+    variant. The quantity actually judged is the best of a plate, and the best
+    of many is high even when none of them is real, so the count has to arrive.
+
+    It was never supplied, though the handler holds it: the round file has one
+    row per variant. Nothing failed, because sigma_assay is None and compute_T2
+    answers None before it ever reads the method.
+    """
+
+    def _rounds(self, tmp_path, sizes):
+        files = []
+        for index, size in enumerate(sizes, start=1):
+            xlsx = tmp_path / f"r{index}.xlsx"
+            _make_xlsx(
+                str(xlsx),
+                [(f"{index*100+i}A", 1.5 if i < 2 else 0.7) for i in range(size)],
+            )
+            files.append({"n": index, "path": str(xlsx)})
+        return files
+
+    def test_each_round_reports_its_own_row_count(self, tmp_path, monkeypatch):
+        """Intercept the RoundState rather than recompute the count.
+
+        The three rounds hold different numbers of rows on purpose: a single
+        shared value would pass against any one of them by coincidence.
+        """
+        import importlib
+
+        # import_module, not "import a.b.c as x": kuma_core.strategy re-exports
+        # the classify function under the same name as its submodule, so the
+        # plain form binds the function and shadows the module.
+        strategy = importlib.import_module("kuma_core.strategy.classify")
+
+        seen: list = []
+        original = strategy.compute_signals
+
+        def recording(round_state, registered):
+            seen.append(round_state.n_designed)
+            return original(round_state, registered)
+
+        # The handler imports these names inside the function body, so they are
+        # resolved on this module at call time rather than bound to the handler.
+        monkeypatch.setattr(strategy, "compute_signals", recording)
+
+        handle_classify_round({"round_files": self._rounds(tmp_path, [7, 9, 11])})
+
+        # compute_signals runs once per interim round and again inside
+        # classify for the final one, so all three states are visible and each
+        # carries its own size rather than one value shared across the run.
+        assert seen == [7, 9, 11]
+
+    def test_the_final_state_carries_the_last_round_size(self, tmp_path, monkeypatch):
+        import importlib
+
+        # import_module, not "import a.b.c as x": kuma_core.strategy re-exports
+        # the classify function under the same name as its submodule, so the
+        # plain form binds the function and shadows the module.
+        strategy = importlib.import_module("kuma_core.strategy.classify")
+
+        seen: list = []
+        original = strategy.classify
+
+        def recording(round_state, registered):
+            seen.append(round_state.n_designed)
+            return original(round_state, registered)
+
+        monkeypatch.setattr(strategy, "classify", recording)
+
+        handle_classify_round({"round_files": self._rounds(tmp_path, [7, 9, 11])})
+
+        assert seen == [11]
+        assert seen != [None]
+
+
+# ---------------------------------------------------------------------------
 # TestEmaHelper
 # ---------------------------------------------------------------------------
 
