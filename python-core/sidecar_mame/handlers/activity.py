@@ -586,6 +586,11 @@ def handle_build_evolvepro_input(params: dict) -> dict:
         # activity column. The workbook drops the WT rows, so this response is
         # the only place step 4.2 can pick them up from.
         "wt_values": result.wt_values,
+        # The replicates behind each exported activity, keyed by the variant as
+        # the workbook writes it. The workbook states one mean per variant, so
+        # without this a reader cannot tell how many measurements produced it,
+        # and that count is what says how much weight the mean carries.
+        "variant_replicates": result.variant_replicates,
     }
 
 

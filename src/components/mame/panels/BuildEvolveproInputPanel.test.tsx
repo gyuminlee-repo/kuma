@@ -50,6 +50,7 @@ const RESULT: BuildEvolveproInputResult = {
   evidence_hash: "sha256:evidence",
   artifact_hashes: { "/project/activity/evolvepro_input.xlsx": "sha256:output" },
   wt_values: [1.02, 0.97, 1.04, 0.99],
+  variant_replicates: { "5F": [1.48, 1.52], "10L": [0.61], "22A": [2.05, 1.98, 2.02] },
 };
 
 const readyForm = (overrides: Partial<BuildEvolveproFormState> = {}): BuildEvolveproFormState => ({

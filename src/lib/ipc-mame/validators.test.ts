@@ -48,6 +48,7 @@ function goodBuildEvolveproResult(): Record<string, unknown> {
     evidence_hash: "abc",
     artifact_hashes: {},
     wt_values: [1.0, 0.98, 1.02],
+    variant_replicates: { "5F": [1.48, 1.52], "10L": [0.61] },
   };
 }
 

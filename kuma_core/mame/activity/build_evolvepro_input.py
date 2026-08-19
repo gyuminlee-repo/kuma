@@ -63,6 +63,25 @@ class BuildEvolveproResult:
     # block describes a re-measurement of a handful of variants rather than the
     # run this round is judged on.
     wt_values: list[float] = field(default_factory=list)
+    # The replicates behind each exported activity, on the same scale as the
+    # exported column, keyed by the variant as written to the workbook.  The
+    # workbook states one mean per variant and says nothing about how many
+    # measurements produced it, so a reader downstream cannot tell a value
+    # measured once from a value measured four times, and those two carry
+    # different weight in any judgement about measurement noise.
+    #
+    # The lists rather than a count and a spread: summarising here is what
+    # produced this gap in the first place.  The build already held the
+    # replicates and kept only their mean, and recovering the rest meant
+    # opening this path again.  A caller that wants a count or a standard
+    # deviation can take one; a caller that wants something else is not blocked
+    # on another change here.
+    #
+    # Source follows the merge rule: a variant the confirmation report names
+    # carries that report's replicates, since that is the measurement whose
+    # mean was exported for it.  Every other variant carries the primary
+    # source's.
+    variant_replicates: dict[str, list[float]] = field(default_factory=dict)
 
 
 
@@ -470,6 +489,12 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         key=lambda row: -row[1],
     )
     exported_variants = {variant for variant, _value in output_rows}
+    # Only exported variants: the excluded ones have no activity in the
+    # workbook, so replicates for them would describe a row no reader has.
+    variant_replicates = {
+        variant: list(authoritative.get(variant) or fallback[variant])
+        for variant, _value in output_rows
+    }
     n_authoritative = len(exported_variants & authoritative.keys())
     n_fallback_only = len(exported_variants - authoritative.keys())
     writers: list[tuple[Path, Callable[[Path], object]]] = [
@@ -532,4 +557,5 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         evidence_hash=evidence_hash,
         artifact_hashes=artifact_hashes,
         wt_values=wt_values,
+        variant_replicates=variant_replicates,
     )

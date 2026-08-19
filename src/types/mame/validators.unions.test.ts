@@ -72,6 +72,7 @@ function buildEvolveproResult(overrides: Record<string, unknown> = {}) {
     evidence_hash: "abc",
     artifact_hashes: {},
     wt_values: [1.0, 0.98, 1.02],
+    variant_replicates: { "5F": [1.48, 1.52], "10L": [0.61] },
     ...overrides,
   };
 }
@@ -134,6 +135,53 @@ describe("build_evolvepro_input enforces its declared unions", () => {
     for (const primary_format of ["activity_path", "gc_data_xlsx", "round1_report_xlsx"]) {
       expect(validate(BUILD_EVOLVEPRO, buildEvolveproResult({ primary_format }))).toBe(true);
     }
+  });
+
+  it("refuses replicates that are not numbers", () => {
+    // These reach step 4.2 as the record of how many measurements produced each
+    // exported activity. A string here would be counted as a replicate and
+    // weighted like one.
+    expect(
+      validate(BUILD_EVOLVEPRO, buildEvolveproResult({
+        variant_replicates: { "5F": [1.48, "1.52"] },
+      })),
+    ).toBe(false);
+  });
+
+  it("refuses a non-finite replicate", () => {
+    // NaN passes a bare typeof check and then poisons any mean or spread taken
+    // over the list.
+    expect(
+      validate(BUILD_EVOLVEPRO, buildEvolveproResult({
+        variant_replicates: { "5F": [1.48, Number.NaN] },
+      })),
+    ).toBe(false);
+  });
+
+  it("refuses a bare number where a list belongs", () => {
+    // The mean alone is what the workbook already holds, and recording it here
+    // would look like replicates while carrying none.
+    expect(
+      validate(BUILD_EVOLVEPRO, buildEvolveproResult({
+        variant_replicates: { "5F": 1.5 },
+      })),
+    ).toBe(false);
+  });
+
+  it("accepts an empty map, which is a build that exported nothing", () => {
+    expect(
+      validate(BUILD_EVOLVEPRO, buildEvolveproResult({ variant_replicates: {} })),
+    ).toBe(true);
+  });
+
+  it("refuses replicates supplied as an array rather than a map", () => {
+    // Object.values of an array is its elements, so a guard written without an
+    // array check would accept this and lose the variant each list belongs to.
+    expect(
+      validate(BUILD_EVOLVEPRO, buildEvolveproResult({
+        variant_replicates: [[1.48, 1.52]],
+      })),
+    ).toBe(false);
   });
 
   it("refuses a primary_format no source name produces", () => {
