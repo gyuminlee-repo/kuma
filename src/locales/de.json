@@ -2516,11 +2516,13 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Schritt 4 verlangt keine Plate-Layout-Datei mehr. Bleibt sie leer, werden Well-Positionen über das Analyze-Verdict-Blatt zugeordnet.",
-      "Eine angegebene Layout-Datei hat weiterhin Vorrang, und der Abgleich mit den Verdict-Identitäten bleibt unverändert.",
-      "Ein gemessenes Well ohne NGS-Ergebnis wird gezählt und benannt, statt den gesamten Build scheitern zu lassen."
+      "Schritt 4 liest die Agilent-Reports mit numerischen Probennamen, sowohl das Screening der ganzen Platte als auch die replizierte Bestätigung.",
+      "Eine replizierte Bestätigung wird in das zugehörige Screening eingefügt, ersetzt dessen Werte und markiert die abweichenden.",
+      "Numerische Positionen werden gegen die entworfene Variantenliste aufgelöst, sodass keine Plattendatei mehr abgeschrieben wird.",
+      "Eine Bestätigung mit einer anderen Variantenmenge wird unter Nennung beider Anzahlen abgelehnt statt falsch beschriftet.",
+      "Die Replikatzahl ist die, die eine Datei trägt, von einer Messung bis zu so vielen, wie der Lauf gemacht hat."
     ],
-    "highlightsStamp": "0.16.30+bab83ea7",
+    "highlightsStamp": "0.16.31+60d4442c",
     "releases": {
       "0.16.28": [
         "Fünf run-health-Abschnitte, die die App bei jedem Lauf gemessen und nie gezeichnet hat, stehen jetzt im Review-Bildschirm, zunächst geschlossen.",
@@ -2753,6 +2755,13 @@
         "Schritt 4 verlangt keine Plate-Layout-Datei mehr. Bleibt sie leer, werden Well-Positionen über das Analyze-Verdict-Blatt zugeordnet.",
         "Eine angegebene Layout-Datei hat weiterhin Vorrang, und der Abgleich mit den Verdict-Identitäten bleibt unverändert.",
         "Ein gemessenes Well ohne NGS-Ergebnis wird gezählt und benannt, statt den gesamten Build scheitern zu lassen."
+      ],
+      "0.16.31": [
+        "Schritt 4 liest die Agilent-Reports mit numerischen Probennamen, sowohl das Screening der ganzen Platte als auch die replizierte Bestätigung.",
+        "Eine replizierte Bestätigung wird in das zugehörige Screening eingefügt, ersetzt dessen Werte und markiert die abweichenden.",
+        "Numerische Positionen werden gegen die entworfene Variantenliste aufgelöst, sodass keine Plattendatei mehr abgeschrieben wird.",
+        "Eine Bestätigung mit einer anderen Variantenmenge wird unter Nennung beider Anzahlen abgelehnt statt falsch beschriftet.",
+        "Die Replikatzahl ist die, die eine Datei trägt, von einer Messung bis zu so vielen, wie der Lauf gemacht hat."
       ]
     },
     "releaseStamps": {
@@ -2795,7 +2804,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.30": "bab83ea7"
+      "0.16.30": "bab83ea7",
+      "0.16.31": "60d4442c"
     }
   },
   "primerDisplay": {
