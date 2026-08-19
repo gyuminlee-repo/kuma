@@ -158,6 +158,86 @@ def test_numeric_confirmation_runs_against_a_well_labeled_screen(tmp_path: Path,
     assert _rows(out) == pytest.approx({"5F": 2.0, "11E": 1.2, "10L": 0.5, "28T": 0.8})
 
 
+def test_replicate_count_is_whatever_the_file_carries(tmp_path: Path, plate):
+    """Three replicates is what one campaign ran, not a rule.
+
+    Each ID contributes the replicates its own sample names declare, and the
+    value written is the mean of exactly those. Nothing counts them against a
+    fixed number, so a run with one replicate here and five there decodes the
+    same way and no measurement is dropped for arriving in an unexpected count.
+    """
+    screen = _blocks(
+        tmp_path / "screen.xlsx",
+        [("WT_1", 10.0), ("1", 20.0), ("2", 5.0), ("3", 12.0), ("4", 8.0)],
+    )
+    confirmation = _blocks(
+        tmp_path / "confirm.xlsx",
+        [
+            ("WT1", 10.0),
+            # Position 1: a single measurement.
+            ("1", 30.0),
+            # Position 2: five, past the '-3' the 2026-03 campaign happened to
+            # stop at.
+            ("2", 10.0),
+            ("2-2", 12.0),
+            ("2-3", 14.0),
+            ("2-4", 16.0),
+            ("2-5", 18.0),
+        ],
+    )
+    out = tmp_path / "out.xlsx"
+
+    result = build_evolvepro_input(
+        out,
+        numeric_report_xlsx=screen,
+        remeasure_numeric_xlsx=confirmation,
+        layout_xlsx=plate["layout"],
+        verdict_xlsx=plate["verdict"],
+    )
+
+    assert result.n_authoritative == 2
+    # 30/10 for the single measurement, and the mean of the five for the other.
+    assert _rows(out) == pytest.approx(
+        {"5F": 3.0, "11E": 1.4, "10L": 0.5, "28T": 0.8}
+    )
+
+
+def test_a_repeated_replicate_number_keeps_every_measurement(tmp_path: Path, plate):
+    """A mislabelled replicate is a numbering slip, not a lost injection.
+
+    The 2026-03 confirmation numbers one variant '-3' twice and never writes its
+    '-2', which is a transcription slip in the sample names rather than a
+    missing run. Both areas are kept, so the mean is the mean of what the
+    instrument actually measured.
+    """
+    screen = _blocks(
+        tmp_path / "screen.xlsx",
+        [("WT_1", 10.0), ("1", 20.0), ("2", 5.0), ("3", 12.0), ("4", 8.0)],
+    )
+    confirmation = _blocks(
+        tmp_path / "confirm.xlsx",
+        [
+            ("WT1", 10.0),
+            ("1", 10.0),
+            ("1-3", 20.0),
+            ("1-3", 30.0),
+            ("2", 12.0),
+        ],
+    )
+    out = tmp_path / "out.xlsx"
+
+    result = build_evolvepro_input(
+        out,
+        numeric_report_xlsx=screen,
+        remeasure_numeric_xlsx=confirmation,
+        layout_xlsx=plate["layout"],
+        verdict_xlsx=plate["verdict"],
+    )
+
+    assert result.n_authoritative == 2
+    assert _rows(out)["5F"] == pytest.approx(2.0)
+
+
 def test_a_confirmation_covering_a_different_set_is_refused(tmp_path: Path, plate):
     """A count that does not match the subset cannot be placed positionally.
 
