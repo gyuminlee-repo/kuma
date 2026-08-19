@@ -2504,13 +2504,11 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Un valor que la canalización no pudo calcular ahora se identifica en lugar de aparecer 60 segundos después como un tiempo de espera agotado.",
-      "La confianza de una decisión solo se informa cuando se midió, y la estimación y su margen de error leen las mismas señales.",
-      "El conjunto de pruebas se ejecuta en Windows, donde antes una sola herramienta ausente omitía las 1301 pruebas e informaba éxito.",
-      "Se corrigen dos defectos que solo Windows alcanza: la publicación de cada paquete de exportación fallaba y cada archivo de suma de verificación era ilegible.",
-      "Una traducción que omite o renombra un marcador de posición se detecta antes de la publicación, en vez de llegar a la pantalla con un hueco."
+      "El paso 4 ya no exige un archivo de plate layout. Si se deja vacío, las posiciones de pocillo se asignan con la hoja verdict de Analyze.",
+      "Un archivo de layout sigue teniendo prioridad cuando se indica, y la comprobación contra las identidades del verdict no cambia.",
+      "Un pocillo medido sin resultado de NGS se cuenta y se nombra en lugar de hacer fallar toda la compilación."
     ],
-    "highlightsStamp": "0.16.29+3f25adcf",
+    "highlightsStamp": "0.16.30+bab83ea7",
     "releases": {
       "0.16.28": [
         "Cinco secciones de run health que la aplicación medía en cada ejecución y nunca dibujaba ya aparecen en la pantalla de revisión, en una sección que empieza cerrada.",
@@ -2738,6 +2736,11 @@
         "El conjunto de pruebas se ejecuta en Windows, donde antes una sola herramienta ausente omitía las 1301 pruebas e informaba éxito.",
         "Se corrigen dos defectos que solo Windows alcanza: la publicación de cada paquete de exportación fallaba y cada archivo de suma de verificación era ilegible.",
         "Una traducción que omite o renombra un marcador de posición se detecta antes de la publicación, en vez de llegar a la pantalla con un hueco."
+      ],
+      "0.16.30": [
+        "El paso 4 ya no exige un archivo de plate layout. Si se deja vacío, las posiciones de pocillo se asignan con la hoja verdict de Analyze.",
+        "Un archivo de layout sigue teniendo prioridad cuando se indica, y la comprobación contra las identidades del verdict no cambia.",
+        "Un pocillo medido sin resultado de NGS se cuenta y se nombra en lugar de hacer fallar toda la compilación."
       ]
     },
     "releaseStamps": {
@@ -2779,7 +2782,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.30": "bab83ea7"
     }
   },
   "primerDisplay": {

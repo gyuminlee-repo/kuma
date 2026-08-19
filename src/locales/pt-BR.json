@@ -2504,13 +2504,11 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Um valor que o pipeline não conseguiu calcular agora se identifica, em vez de surgir 60 segundos depois como tempo limite de conexão.",
-      "A confiança de uma decisão só é informada quando foi medida, e a estimativa e sua margem de erro leem os mesmos sinais.",
-      "O conjunto de testes roda no Windows, onde antes uma única ferramenta ausente pulava os 1301 testes e informava sucesso.",
-      "Dois defeitos que só o Windows alcança foram corrigidos: a publicação de cada pacote de exportação falhava e cada arquivo de soma de verificação era ilegível.",
-      "Uma tradução que remove ou renomeia um espaço reservado é detectada antes da publicação, em vez de chegar à tela com uma lacuna."
+      "A etapa 4 não exige mais um arquivo de plate layout. Deixando vazio, as posições de poço são mapeadas pela planilha verdict do Analyze.",
+      "Um arquivo de layout continua tendo prioridade quando informado, e a verificação contra as identidades do verdict permanece igual.",
+      "Um poço medido sem resultado de NGS é contado e nomeado em vez de falhar a compilação inteira."
     ],
-    "highlightsStamp": "0.16.29+3f25adcf",
+    "highlightsStamp": "0.16.30+bab83ea7",
     "releases": {
       "0.16.28": [
         "Cinco seções de run health que o aplicativo media em toda execução e nunca desenhava agora aparecem na tela de revisão, em uma seção que começa fechada.",
@@ -2738,6 +2736,11 @@
         "O conjunto de testes roda no Windows, onde antes uma única ferramenta ausente pulava os 1301 testes e informava sucesso.",
         "Dois defeitos que só o Windows alcança foram corrigidos: a publicação de cada pacote de exportação falhava e cada arquivo de soma de verificação era ilegível.",
         "Uma tradução que remove ou renomeia um espaço reservado é detectada antes da publicação, em vez de chegar à tela com uma lacuna."
+      ],
+      "0.16.30": [
+        "A etapa 4 não exige mais um arquivo de plate layout. Deixando vazio, as posições de poço são mapeadas pela planilha verdict do Analyze.",
+        "Um arquivo de layout continua tendo prioridade quando informado, e a verificação contra as identidades do verdict permanece igual.",
+        "Um poço medido sem resultado de NGS é contado e nomeado em vez de falhar a compilação inteira."
       ]
     },
     "releaseStamps": {
@@ -2779,7 +2782,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.30": "bab83ea7"
     }
   },
   "primerDisplay": {
