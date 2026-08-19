@@ -2534,14 +2534,17 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A value the pipeline could not compute now names itself instead of surfacing sixty seconds later as a connection timeout.",
-      "A decision confidence is reported only when it was measured, and the estimate and its error bars now read the same signals.",
-      "The test suite runs on Windows, where a single missing tool used to skip all 1301 tests and report success.",
-      "Two defects that only Windows can reach are fixed: every export bundle failed to publish, and every checksum file was unreadable.",
-      "A translation that drops or renames a placeholder is caught before release, rather than reaching the screen with a blank in it."
+      "Step 4 no longer demands a plate layout file: leave it empty and well positions are mapped through the Analyze verdict sheet.",
+      "A layout file still wins when supplied, and the check against the verdict identities behind it is unchanged.",
+      "A measured well with no NGS result is counted and named rather than failing the whole build."
     ],
-    "highlightsStamp": "0.16.29+3f25adcf",
+    "highlightsStamp": "0.16.30+bab83ea7",
     "releases": {
+      "0.16.30": [
+        "Step 4 no longer demands a plate layout file: leave it empty and well positions are mapped through the Analyze verdict sheet.",
+        "A layout file still wins when supplied, and the check against the verdict identities behind it is unchanged.",
+        "A measured well with no NGS result is counted and named rather than failing the whole build."
+      ],
       "0.16.29": [
         "A value the pipeline could not compute now names itself instead of surfacing sixty seconds later as a connection timeout.",
         "A decision confidence is reported only when it was measured, and the estimate and its error bars now read the same signals.",
@@ -2771,6 +2774,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.30": "bab83ea7",
       "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",
