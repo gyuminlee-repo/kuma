@@ -21,6 +21,10 @@ def test_get_system_total_bytes_positive() -> None:
 
 def test_memory_usage_ratio_range() -> None:
     ratio = memory_usage_ratio()
+    # None is reserved for a system total that could not be read, which does
+    # not happen on a real machine; asserting it here keeps the two cases
+    # apart rather than letting a None slip through the range check.
+    assert ratio is not None, "system total read as zero on a live machine"
     assert 0.0 <= ratio <= 1.0, f"Expected ratio in [0.0, 1.0], got {ratio}"
 
 

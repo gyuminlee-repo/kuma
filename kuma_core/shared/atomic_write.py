@@ -7,7 +7,9 @@ makes the final swap atomic on the same filesystem: a reader sees either
 the previous file or the fully-written new file, never a partial one.
 
 The staging name carries a per-call token, so the guarantee holds against a
-second writer of the same target and not only against interruption.
+second writer of the same target and not only against interruption. On Windows
+the publishing rename itself can refuse while a competing writer holds the
+destination, so it is retried a bounded number of times.
 
 The temp file is always a sibling of the target (same directory, same
 filesystem) so ``os.replace`` is a real atomic rename rather than a
@@ -24,12 +26,18 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from pathlib import Path
 from uuid import uuid4
 
 _logger = logging.getLogger(__name__)
 
 _TMP_SUFFIX = ".tmp"
+
+# Windows only. Three attempts over 10 + 20 ms covers the publish window a
+# competing writer holds; beyond that the error is not a race.
+_REPLACE_RETRY_ATTEMPTS = 3
+_REPLACE_RETRY_INITIAL_DELAY = 0.01
 
 
 def _temp_path_for(path: Path) -> Path:
@@ -47,6 +55,34 @@ def _temp_path_for(path: Path) -> Path:
     ``_publish_artifact_bundle`` already uses.
     """
     return path.with_name(f".{path.stem}.{uuid4().hex}{_TMP_SUFFIX}{path.suffix}")
+
+
+def _replace_with_retry(tmp_path: Path, path: Path) -> None:
+    """``os.replace`` with a bounded retry for the Windows sharing violation.
+
+    On POSIX the rename is unconditional and this is a single call. On Windows
+    it is ``MoveFileEx``, which fails with ``PermissionError`` ("Access is
+    denied") when another handle to the destination is open, including the
+    brief window while a second writer is publishing over the same target.
+    Measured on the Windows CI leg, two threads on one path hit it even with
+    per-call staging names, so the token alone does not make the primitive
+    concurrent there.
+
+    The retry is bounded and re-raises the original error, so a genuine
+    permission problem still surfaces rather than being spun on.
+    """
+    if os.name != "nt":
+        os.replace(tmp_path, path)
+        return
+    delay = _REPLACE_RETRY_INITIAL_DELAY
+    for _ in range(_REPLACE_RETRY_ATTEMPTS - 1):
+        try:
+            os.replace(tmp_path, path)
+            return
+        except PermissionError:
+            time.sleep(delay)
+            delay *= 2
+    os.replace(tmp_path, path)
 
 
 def atomic_write_text(
@@ -104,7 +140,7 @@ def atomic_write_text(
             fh.flush()
             if fsync:
                 os.fsync(fh.fileno())
-        os.replace(tmp_path, path)
+        _replace_with_retry(tmp_path, path)
     except OSError:
         # Leave the original file intact; best-effort remove the partial temp
         # file before re-raising the original failure to the caller.
