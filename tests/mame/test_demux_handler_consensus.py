@@ -22,6 +22,13 @@ import pytest
 
 from kuma_core.mame.ingest.fasta_parser import load_barcode_directory
 from sidecar_mame.handlers.demux import handle_demux_and_filter
+from tests.mame.minimap2_support import requires_minimap2
+
+# Every case here drives handle_demux_and_filter over real FASTQ input, which
+# runs the alignment-anchored demux. Only test_handle_demux_legacy_no_consensus
+# stops before the aligner; it rides the module marker rather than carrying an
+# exception that would have to be revisited whenever the handler changes.
+pytestmark = requires_minimap2
 
 # ---------------------------------------------------------------------------
 # Fixtures

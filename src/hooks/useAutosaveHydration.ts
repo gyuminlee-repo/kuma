@@ -31,12 +31,17 @@ import {
   buildPlateOrderMessage,
   isPlateOrderReportable,
 } from "@/lib/mame/plateOrderMessage";
-import { KURO_SCHEMA, buildKuroSnapshot } from "@/lib/kuroSnapshot";
+import {
+  KURO_SCHEMA,
+  buildKuroSnapshot,
+  readKuroBenchmarkResults,
+  readKuroDesignOutcome,
+} from "@/lib/kuroSnapshot";
 import { clampMaxPrimers } from "@/lib/inputThresholds";
 import { buildKuroResultResetPatch } from "@/lib/kuroResultReset";
 import { fingerprintSource, fingerprintsEqual, type SourceFingerprint } from "@/lib/sourceFingerprint";
 import { MAJOR_ORDER, SUBSTEP_ORDER, type MajorStepId, type StepStatus, type SubStepId } from "@/store/slices/navigationSlice";
-import { MAME_SCHEMA } from "@/lib/mame/autosaveSnapshot";
+import { MAME_SCHEMA, readMameReviewResults } from "@/lib/mame/autosaveSnapshot";
 import { detectProjectFiles, detectFromInputDir } from "@/lib/mame/detectProjectFiles";
 import {
   basename as inputBasename,
@@ -86,7 +91,17 @@ export interface HydrationStatusMessage {
      * 파일의 프라이머 플레이트 시트와 다르면 MAME 는 행 번호로 well 을 세므로 전 well
      * 이 잘못된 설계로 채점된다. 숫자만 보면 정상으로 보이는 종류라 반드시 알린다.
      */
-    | "plate_order_mismatch";
+    | "plate_order_mismatch"
+    /**
+     * 스냅샷의 결과 블록이 한 덩어리로 복원되지 못했다. 쓰는 쪽이 조건 없이 한
+     * 번에 쓰는 필드 묶음(`kuroSnapshot.readKuroDesignOutcome`,
+     * `autosaveSnapshot.readMameReviewResults`) 중 하나라도 없거나 값이 깨져 있으면
+     * 그룹 전체를 적용하지 않는다. 절반만 착지한 상태는 앱이 만들어 내지 못하는
+     * 상태인데도 화면은 그것을 측정값으로 읽는다(세 줄짜리 표 위의 "0/0 designed",
+     * PASS 행 옆의 "PASS: 0"). 조용히 초기값으로 두는 것은 같은 결함을 옷만
+     * 갈아입힌 것이라, 무엇이 안 돌아왔는지 반드시 말한다.
+     */
+    | "results_incomplete";
   message: string;
   /** ISO 문자열. "5분 전" 표시용 */
   savedAt?: string;
@@ -154,6 +169,11 @@ export interface KuroSnapshotApplyOutcome {
    * 조용히 두면 어긋난 화면을 정상으로 오인한다.
    */
   unavailableInputs: string[];
+  /**
+   * 통째로 거절된 결과 그룹의 필드 이름. 비어 있으면 전부 온전히 복원됐다.
+   * 부분 적용을 막은 대신 사용자는 무엇이 안 돌아왔는지 알아야 한다.
+   */
+  incompleteResults: string[];
 }
 
 // ─── 상대 시간 포맷 헬퍼 ─────────────────────────────────────────────────
@@ -361,9 +381,12 @@ export async function applyKuroSnapshot(
   const alive = () => isCurrent?.() ?? true;
   // 열지 못한 입력을 모아 호출부가 한 번에 알리도록 한다.
   const unavailableInputs: string[] = [];
+  // 통째로 거절된 그룹의 필드 이름. 아래 results 블록에서만 채운다.
+  const incompleteResults: string[] = [];
   const done = (resultsDiscarded: boolean): KuroSnapshotApplyOutcome => ({
     resultsDiscarded,
     unavailableInputs,
+    incompleteResults,
   });
   // schema 3+ 스냅샷의 `project://` 경로를 현재 프로젝트 폴더 기준 절대 경로로
   // 되돌린다. 구 스냅샷의 절대 경로는 그대로 통과한다.
@@ -687,18 +710,21 @@ export async function applyKuroSnapshot(
   // results (schema 2+). schema 1 스냅샷에는 results가 없으므로 결과물만 비어 있게 된다.
   const results = snapshot.results as Record<string, unknown> | undefined;
   if (results !== undefined) {
-    if (Array.isArray(results.designResults)) {
-      patch.designResults = results.designResults as AppState["designResults"];
+    // designResults 와 그 카운트는 쓰는 쪽이 한 번에 쓰는 한 덩어리다
+    // (kuroSnapshot.ts 의 results 리터럴). 셋을 각각 판정하면 표는 살아 있는데
+    // 카운트만 0인, 앱이 만들어 내지 못하는 상태가 나온다. 판정은 쓰는 쪽 옆에
+    // 두고 여기서는 결과만 받는다.
+    const designOutcome = readKuroDesignOutcome(results);
+    if (designOutcome.ok) {
+      patch.designResults = designOutcome.value.designResults;
+      patch.successCount = designOutcome.value.successCount;
+      patch.totalCount = designOutcome.value.totalCount;
       // 디스크에서 복원한 결과물은 사이드카 설계 상태와 무관하다.
       // 이 플래그가 true로 남으면 primer swap/alternatives가 없는 백엔드
       // 상태를 가정하고 동작한다.
       patch.backendDesignStateSynced = false;
-    }
-    if (typeof results.successCount === "number") {
-      patch.successCount = results.successCount;
-    }
-    if (typeof results.totalCount === "number") {
-      patch.totalCount = results.totalCount;
+    } else {
+      incompleteResults.push(...designOutcome.missing);
     }
     if (Array.isArray(results.failedMutations)) {
       patch.failedMutations = results.failedMutations as AppState["failedMutations"];
@@ -743,8 +769,21 @@ export async function applyKuroSnapshot(
     if (typeof results.alternativesCache === "object" && results.alternativesCache !== null) {
       patch.alternativesCache = results.alternativesCache as AppState["alternativesCache"];
     }
-    if (typeof results.benchmarkResults === "object" && results.benchmarkResults !== null) {
-      patch.benchmarkResults = results.benchmarkResults as AppState["benchmarkResults"];
+    // benchmarkResults 는 컨테이너 검사만으로는 부족하다. BenchmarkResult 의
+    // 지표는 전부 non-optional number 인데(types/models.ts), 비유한 값은 JSON
+    // 왕복에서 null 이 되어 그 자리에 앉고 화면에는 0.0% 로 찍힌다. 항목 단위
+    // 검사도 쓰는 쪽 옆에 둔다(kuroSnapshot.readKuroBenchmarkResults).
+    // saveCache 가 꺼진 스냅샷에는 이 키 자체가 없으므로 그때는 아무 말도 하지
+    // 않는다. 없는 것과 깨진 것은 다르다.
+    if (results.benchmarkResults !== undefined) {
+      const benchmark = readKuroBenchmarkResults(results.benchmarkResults);
+      if (benchmark.ok) {
+        patch.benchmarkResults = benchmark.value;
+      } else {
+        incompleteResults.push(
+          ...benchmark.missing.map((key) => `benchmarkResults.${key}`),
+        );
+      }
     }
   }
 
@@ -929,6 +968,16 @@ function basename(filePath: string): string {
  * 읽기 실패 시점부터 해당 kind의 자동 저장 쓰기가 봉인되므로, 문구가 "중단됐다"는
  * 사실까지 전달해야 한다. 원인 추적을 위해 파일명과 원본 에러 메시지를 넘긴다.
  */
+/**
+ * 그룹 거절 문구. 필드 이름을 그대로 싣는 이유는 사용자가 "무엇이 안 돌아왔나"
+ * 를 지원 요청에 옮겨 적을 수 있어야 하기 때문이다. 세는 단위는 필드다.
+ */
+function resultsIncompleteMessage(fields: string[]): string {
+  return i18next.t("autosaveHydration.resultsIncomplete", {
+    fields: fields.join(", "),
+  });
+}
+
 function readFailedMessage(filePath: string, error: Error): string {
   return i18next.t("autosaveHydration.readFailed", {
     filename: basename(filePath),
@@ -1016,6 +1065,13 @@ async function applyScratchKuroSnapshot(
         kind: "kuro",
         variant: "results_discarded",
         message: i18next.t("autosaveHydration.resultsDiscarded"),
+      });
+    }
+    if (outcome.incompleteResults.length > 0) {
+      onMessage({
+        kind: "kuro",
+        variant: "results_incomplete",
+        message: resultsIncompleteMessage(outcome.incompleteResults),
       });
     }
     return true;
@@ -1338,10 +1394,15 @@ function resolveRawRunParams(
   };
 }
 
+/** applyMameSnapshot 결과. 통째로 거절된 리뷰 그룹의 필드 이름을 싣는다. */
+interface MameSnapshotApplyOutcome {
+  incompleteResults: string[];
+}
+
 function applyMameSnapshot(
   snapshot: MameAutosaveSnapshot,
   projectPath: string | null = null,
-): void {
+): MameSnapshotApplyOutcome {
   const store = useMameAppStore.getState();
   const { input, parameters } = snapshot;
 
@@ -1391,32 +1452,29 @@ function applyMameSnapshot(
   });
 
   const results = snapshot.results as Record<string, unknown> | undefined;
-  if (results === undefined) return;
+  if (results === undefined) return { incompleteResults: [] };
 
   const patch: Partial<MameAppState> = {};
-  let hasReviewResults = false;
-  if (Array.isArray(results.verdicts)) {
-    patch.verdicts = results.verdicts as MameAppState["verdicts"];
-    hasReviewResults = results.verdicts.length > 0;
+  // 리뷰 화면이 한 답으로 읽는 여섯 필드는 한 번에 결정한다. 판정은 쓰는 쪽
+  // 옆(autosaveSnapshot.readMameReviewResults)에 있고 여기서는 결과만 받는다.
+  // 예전에는 여섯이 각자 if 였고, 게다가 배열 쪽은 Array.isArray 로 null 을
+  // 거절하는데 객체 쪽은 typeof === "object" 로 null 을 받아들여 같은 그룹의
+  // 절반만 착지했다. summary 의 null 이 "말하지 않음"이라는 판단 자체는 옳고
+  // 그대로 유지한다. 틀렸던 것은 형제들이 그 판단에 동의하지 않은 것이다.
+  const review = readMameReviewResults(results);
+  const incompleteResults = review.ok ? [] : review.missing;
+  if (review.ok) {
+    patch.verdicts = review.value.verdicts;
+    patch.replicates = review.value.replicates;
+    patch.summary = review.value.summary;
+    patch.distributionStats = review.value.distributionStats;
+    patch.wells = review.value.wells;
+    patch.runHealth = review.value.runHealth;
   }
-  if (Array.isArray(results.replicates)) {
-    patch.replicates = results.replicates as MameAppState["replicates"];
-  }
-  if (typeof results.summary === "object") {
-    patch.summary = results.summary as MameAppState["summary"];
-    hasReviewResults = hasReviewResults || results.summary !== null;
-  }
-  if (typeof results.distribution_stats === "object") {
-    patch.distributionStats = results.distribution_stats as MameAppState["distributionStats"];
-  }
-  if (Array.isArray(results.wells)) {
-    patch.wells = results.wells as MameAppState["wells"];
-  }
+  // selected_well 은 그룹 밖이다. 리뷰 화면의 답이 아니라 그 화면 안에서 무엇을
+  // 열어 두었는지에 불과하고, 없으면 아무것도 안 열린 상태가 정상이다.
   if (typeof results.selected_well === "object") {
     patch.selectedWell = results.selected_well as MameAppState["selectedWell"];
-  }
-  if (typeof results.run_health === "object") {
-    patch.runHealth = results.run_health as MameAppState["runHealth"];
   }
   if (typeof results.build_evolvepro_completion === "object") {
     patch.buildEvolveproCompletion = results.build_evolvepro_completion as MameAppState["buildEvolveproCompletion"];
@@ -1473,11 +1531,18 @@ function applyMameSnapshot(
       patch.wellLayout = results.well_layout as MameAppState["wellLayout"];
     }
   }
-  if (hasReviewResults) {
+  // 리뷰 화면으로 넘어가려면 그 화면이 읽는 것이 전부 있어야 한다. 예전에는
+  // verdicts 가드 하나가 이 값을 세웠고, 그래서 summary 없이도 화면이 확정됐다.
+  // 화면이 `summary?.pass_count ?? 0` 를 읽는 이상(MameDrawerContent.tsx), 그
+  // summary 를 요구하지 않은 채 그 화면을 고르는 것은 근거 없이 고르는 것이다.
+  // 그룹이 통과했고 실제로 볼 verdict 가 있을 때만 넘어간다. summary 가 null 인
+  // 것은 통과다("말하지 않음"은 값이다).
+  if (review.ok && review.value.verdicts.length > 0) {
     patch.mamePhase = "analyze";
     patch.currentMameSubStep = "analyze.review";
   }
   useMameAppStore.setState(patch);
+  return { incompleteResults };
 }
 
 // ─── Mame analyze-result 복원 ──────────────────────
@@ -1523,19 +1588,23 @@ async function injectSnapshotResultsIntoSidecar(
   isCurrent?: () => boolean,
 ): Promise<boolean> {
   const alive = () => isCurrent?.() ?? true;
-  const results = snapshot.results;
-  if (!results || !Array.isArray(results.verdicts) || results.verdicts.length === 0) {
+  // 같은 그룹 판정을 여기서도 통과해야 한다. 화면에 안 올린 결과를 사이드카에만
+  // 넣으면, 이 함수가 없애려던 그 어긋남이 방향만 바꿔 다시 생긴다(표는 비어
+  // 있는데 리포트·Excel 은 결과가 있다고 답한다). `?? []`, `?? null` 로 빠진
+  // 자리를 메우던 것이 바로 부분 적용이었다.
+  const review = readMameReviewResults(snapshot.results);
+  if (!review.ok || review.value.verdicts.length === 0) {
     return false;
   }
   if (!alive()) return false;
   await sendMameRequest<LoadAnalyzeResultResponse>("load_analyze_result", {
-    verdicts: results.verdicts,
+    verdicts: review.value.verdicts,
     // output_path 는 사이드카가 후속 내보내기 기본 경로로만 쓴다. 스냅샷 값은
     // 프로젝트 상대 형태일 수 있으므로 현재 폴더 기준으로 되돌린다.
-    replicates: results.replicates ?? [],
+    replicates: review.value.replicates,
     output_path: fromPortablePath(projectPath, snapshot.input?.output_path ?? ""),
-    summary: results.summary ?? null,
-    distribution_stats: results.distribution_stats ?? null,
+    summary: review.value.summary,
+    distribution_stats: review.value.distributionStats,
   });
   return alive();
 }
@@ -1887,6 +1956,13 @@ export function useAutosaveHydration(
               message: i18next.t("autosaveHydration.resultsDiscarded"),
             });
           }
+          if (outcome.incompleteResults.length > 0) {
+            onMessage({
+              kind: "kuro",
+              variant: "results_incomplete",
+              message: resultsIncompleteMessage(outcome.incompleteResults),
+            });
+          }
         } catch (err) {
           // scratch 경로(applyScratchKuroSnapshot)는 이미 corrupted를 알린다.
           // 프로젝트 경로만 침묵하면 같은 실패가 화면에 안 뜨므로 맞춘다.
@@ -1966,7 +2042,10 @@ export function useAutosaveHydration(
       // ── mame 결과 처리
       if (mameResult.status === "ok") {
         try {
-          applyMameSnapshot(mameResult.snapshot as MameAutosaveSnapshot, path);
+          const mameOutcome = applyMameSnapshot(
+            mameResult.snapshot as MameAutosaveSnapshot,
+            path,
+          );
           if (!isCurrent()) return;
           onMessage({
             kind: "mame",
@@ -1974,6 +2053,13 @@ export function useAutosaveHydration(
             message: i18next.t("autosaveHydration.restored", { relative: formatRelativeTime(mameResult.snapshot.saved_at) }),
             savedAt: mameResult.snapshot.saved_at,
           });
+          if (mameOutcome.incompleteResults.length > 0) {
+            onMessage({
+              kind: "mame",
+              variant: "results_incomplete",
+              message: resultsIncompleteMessage(mameOutcome.incompleteResults),
+            });
+          }
         } catch (err) {
           console.warn("[autosave] mame: apply snapshot failed", err);
         }

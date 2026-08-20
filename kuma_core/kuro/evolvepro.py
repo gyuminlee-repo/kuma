@@ -638,10 +638,10 @@ def load_evolvepro_csv(
         # Structure-aware diversity (full pool + revealed-anchor + 3D Ca-centroid
         # maximin + kappa fitness blend). Beats Top-N only conditionally -- in the
         # early/low-data rounds of epistatic combinatorial campaigns; neutral-to-harmful
-        # otherwise (see benchmark REPORT.md Sec 6.7-6.12).
+        # otherwise (see benchmark/REPORT.md Sec 6.7-6.12).
         selected, pareto_replaced = structural_diversity_select(
             rows, top_n, ca_coords=ca_coords,
-            anchor_variants=anchor_variants, kappa=structural_kappa,
+            anchor_variants=list(anchor_variants), kappa=structural_kappa,
         )
     elif domain_diversity and domain_info and pareto_diversity:
         selected, domain_stats = domain_aware_select(
@@ -1108,10 +1108,13 @@ def pareto_diversity_select(
             _ps = _combo_positions(variant)
             positions.append(round(sum(_ps) / len(_ps)) if _ps else -1)
             if use_3d and ca_coords:
+                # The walrus binds the looked-up coordinate so the None filter
+                # narrows the element type; short-circuiting keeps the range
+                # check ahead of the indexing.
                 _valid_ca = [
-                    ca_coords[p]
+                    _ca
                     for p in _ps
-                    if 0 < p < len(ca_coords) and ca_coords[p] is not None
+                    if 0 < p < len(ca_coords) and (_ca := ca_coords[p]) is not None
                 ]
                 if _valid_ca:
                     _cx = sum(c[0] for c in _valid_ca) / len(_valid_ca)

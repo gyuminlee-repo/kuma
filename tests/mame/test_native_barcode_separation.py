@@ -17,10 +17,13 @@ D) BACKWARD-COMPAT -- ``run_combinatorial_demux`` keeps the new keyword-only
    ``consensus_workers=None``) so existing callers are unaffected.
 E) (optional, gated) real per-NB writer layout with ``edlib`` present.
 
-The conftest ``pytest_collection_modifyitems`` hook session-skips every mame
-test when the minimap2 binary is unavailable (e.g. a Windows CI leg), so the
-contract/orchestration tests only execute where the binary exists; they do not
-*use* minimap2 themselves.
+The contract/orchestration tests here do not *use* minimap2 themselves, so they
+run everywhere, including the Windows CI leg that has no aligner. Only
+``test_real_per_nb_writer_well_consensus_at_root`` drives the real writer
+through alignment, and it carries ``@requires_minimap2``
+(``tests/mame/minimap2_support``) for that reason. A conftest hook used to
+session-skip every mame test instead, which hid roughly 1,200 aligner-free
+tests on the platform this app ships to.
 """
 
 from __future__ import annotations
@@ -38,7 +41,12 @@ from kuma_core.mame.ingest.combinatorial_demux import (
     run_combinatorial_demux_per_nb,
 )
 from kuma_core.mame.ingest.fasta_parser import load_barcode_directory
-from kuma_core.mame.ingest.unit_manifest import manifest_path, write_run_manifest
+from kuma_core.mame.ingest.unit_manifest import (
+    UnreadableManifestError,
+    manifest_path,
+    write_run_manifest,
+)
+from tests.mame.minimap2_support import requires_minimap2
 
 
 # ===========================================================================
@@ -233,8 +241,27 @@ def test_directory_without_a_manifest_still_reads_every_subdirectory(
         ("truncated", '{"schema_version": 1, "units": ["sort_ba'),
         ("not json", "not json at all"),
         ("not an object", "[1, 2, 3]"),
-        ("units not a list", '{"schema_version": 1, "units": "sort_barcode07"}'),
-        ("units empty", '{"schema_version": 1, "units": []}'),
+        # These two carry the stamp so they still reach ``units_of``: without
+        # it the kind check answers first and the case stops testing its name.
+        (
+            "units not a list",
+            '{"schema_version": 1, "kind": "mame_run_units", '
+            '"units": "sort_barcode07"}',
+        ),
+        (
+            "units empty",
+            '{"schema_version": 1, "kind": "mame_run_units", "units": []}',
+        ),
+        # Something else entirely at this name is not a membership claim MAME
+        # made, so it is absent for the same reason unreadable bytes are.
+        (
+            "foreign kind",
+            '{"schema_version": 1, "kind": "foreign", "units": ["sort_barcode07"]}',
+        ),
+        (
+            "no kind at all",
+            '{"schema_version": 1, "units": ["sort_barcode07"]}',
+        ),
     ],
 )
 def test_unreadable_manifest_degrades_to_reading_everything(
@@ -259,6 +286,44 @@ def test_unreadable_manifest_degrades_to_reading_everything(
         "sort_barcode15",
     }, label
     assert strays == {}, label
+
+
+def test_a_manifest_from_a_newer_build_refuses_the_run(tmp_path: Path) -> None:
+    """An unknown schema version is neither trusted nor discarded.
+
+    A newer kuma filled this folder and recorded which plates it produced.
+    Reading ``units`` off a schema this build does not know reads a field that
+    may have changed meaning; ignoring it reads every leftover in the folder,
+    which is the defect the manifest exists to prevent. So the run stops and
+    names the version.
+    """
+    parent = tmp_path / "demux_filtered"
+    _stage_units(parent, ["sort_barcode07", "sort_barcode15"])
+    manifest_path(parent).write_text(
+        '{"schema_version": 999, "kind": "mame_run_units", '
+        '"units": ["sort_barcode07"]}',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(UnreadableManifestError) as excinfo:
+        load_barcode_directory(parent)
+    assert "999" in str(excinfo.value)
+
+
+def test_a_manifest_with_no_readable_version_refuses_the_run(
+    tmp_path: Path,
+) -> None:
+    """Stamped as ours, but the version is not a number this build can compare."""
+    parent = tmp_path / "demux_filtered"
+    _stage_units(parent, ["sort_barcode07"])
+    manifest_path(parent).write_text(
+        '{"schema_version": "1", "kind": "mame_run_units", '
+        '"units": ["sort_barcode07"]}',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(UnreadableManifestError):
+        load_barcode_directory(parent)
 
 
 # ===========================================================================
@@ -535,6 +600,7 @@ def _build_read(r_idx: int, f_idx: int, amplicon: str) -> str:
     )
 
 
+@requires_minimap2
 def test_real_per_nb_writer_well_consensus_at_root(tmp_path: Path) -> None:
     """well_consensus_at_root=True: consensus at top, reads/ and final/ nested."""
     pytest.importorskip("edlib", reason="edlib unavailable; real demux gated out")

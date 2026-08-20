@@ -70,19 +70,19 @@ export function classifyResultVersion(
   if (recorded.trim().length > 0 && recorded.trim() === current.trim()) return "same";
   const recordedRevision = revisionForVersion(recorded);
   if (recordedRevision === null) return "unknown";
-  const target = contractOf(current);
+  // The target is what THIS build produces, which is the constant, not what the
+  // release table says about a version string. Deriving it from `current`
+  // (`revisionForVersion(current)`) is right only while the newest revision's
+  // `since` has already shipped. Adding a revision is part of changing analyze
+  // behaviour (`resultContract.ts`), so the revision lands before the release
+  // that carries it, and in that window the derived target sits one behind
+  // `RESULT_CONTRACT`. Every result produced at the older revision then reads
+  // as "same" and restores as current, which is the one outcome this whole file
+  // exists to prevent. `current` keeps its other job: the exact-string shortcut
+  // above, and being the version the operator is shown.
+  const target = RESULT_CONTRACT;
   if (recordedRevision === target) return "same";
   return recordedRevision < target ? "older" : "newer";
-}
-
-/**
- * The contract a build of `current` produces. Normally `RESULT_CONTRACT`, since
- * that is what this build stamps; derived from the release table when the
- * caller names a different build, which is what makes the comparison meaningful
- * for any pair of versions rather than only for the running one.
- */
-function contractOf(current: string): number {
-  return revisionForVersion(current) ?? RESULT_CONTRACT;
 }
 
 /**
@@ -124,7 +124,9 @@ export function provenanceFor(
     typeof contract === "number" && Number.isInteger(contract)
       ? contract
       : revisionForVersion(version);
-  const target = revisionForVersion(current) ?? RESULT_CONTRACT;
+  // Same reason as in `classifyResultVersion`: the changes being demanded are
+  // the ones between the saved revision and what this build produces.
+  const target = RESULT_CONTRACT;
   return {
     version: version ?? null,
     contract: resolved,

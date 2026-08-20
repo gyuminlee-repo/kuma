@@ -17,7 +17,22 @@
 //   json:<jsonpointer>     — JSON file, dot-path lookup (e.g. json:bundle.resources)
 //   regex:<pattern>        — regex with first capture group as result
 //   python_dict_keys:<NAME>— top-level keys of a Python `NAME = { ... }` block
-//   ts_interface_keys:<NAME>— top-level fields of a TS `interface NAME { ... }` block
+//   ts_interface_keys:<NAME>- top-level fields of a TS `interface NAME { ... }` block
+//                            (bare, "quoted" and 'quoted' keys, so dotted RPC
+//                             method names are visible)
+//
+// An extraction that resolves to nothing is a failure, never an empty
+// measurement. A regex that matched no line, a JSON key that is absent, an
+// anchor (`NAME = {`, `interface NAME`) that is not in the file, an empty
+// manifest list and a pair of empty key sets each fail with a message naming the
+// extractor and the file, because a check that looked at nothing has not
+// established anything. Before that rule, `new Set([null, null]).size === 1`
+// made a blind version_sync print "PASS aligned: null", and an absent manifest
+// key made files_exist print "PASS 0 entries present".
+//
+// `severity` on a group decides how a miss is reported (blocking = FAIL,
+// warning = WARN) and never whether it is looked for. Files and symbols are both
+// checked at every severity.
 //
 // See SKILL.md for examples.
 
@@ -104,7 +119,11 @@ function applyExtractor(filePath, extractor) {
     const name = extractor.slice("python_dict_keys:".length);
     const src = fs.readFileSync(absPath, "utf-8");
     const start = src.indexOf(`${name} = {`);
-    if (start === -1) return [];
+    // A missing anchor is "this extractor cannot see anything", not "there is
+    // nothing to see". Returning [] here made every consumer read an empty key
+    // set as a successful comparison, so renaming the dict silently disabled
+    // the check. null is the "measured nothing" signal the callers now fail on.
+    if (start === -1) return null;
     const end = src.indexOf("\n}", start);
     const block = src.slice(start, end);
     // top-level entries only: exactly 4-space indent
@@ -114,7 +133,10 @@ function applyExtractor(filePath, extractor) {
     const name = extractor.slice("ts_interface_keys:".length);
     const src = fs.readFileSync(absPath, "utf-8");
     const start = src.indexOf(`interface ${name}`);
-    if (start === -1) return [];
+    // Same "measured nothing" contract as python_dict_keys above: renaming
+    // `interface RpcMethodMap` to `type RpcMethodMap =` used to yield an empty
+    // key set and a green "0 entries aligned".
+    if (start === -1) return null;
     const braceOpen = src.indexOf("{", start);
     let depth = 0;
     let end = braceOpen;
@@ -126,18 +148,47 @@ function applyExtractor(filePath, extractor) {
       }
     }
     const block = src.slice(braceOpen, end);
-    return [...block.matchAll(/^ {2}([a-zA-Z_][\w]*)\s*[?:]\s*\{/gm)].map((m) => m[1]);
+    // Top-level object-typed fields, at exactly two-space indent. A TS key that
+    // is not a bare identifier must be quoted, and every dotted RPC method name
+    // ("mame.run_combinatorial_demux") is one, so the unquoted-only pattern this
+    // replaces could not see them at all: the dispatcher could grow a dotted
+    // method and the registry check would still report every key aligned.
+    return [...block.matchAll(/^ {2}(?:"([^"]+)"|'([^']+)'|([a-zA-Z_][\w]*))\s*\??\s*:\s*\{/gm)]
+      .map((m) => m[1] ?? m[2] ?? m[3]);
   }
   throw new Error(`Unknown extractor: ${extractor}`);
 }
 
 // ---- check types ----------------------------------------------------------
 
+// An extraction that resolved to nothing is a failed measurement, not an
+// agreement. `applyExtractor` yields null for a regex that matched nothing and
+// undefined for a JSON key that is absent; `new Set([null, null]).size === 1`,
+// so before this guard a version-sync check whose extractors had all gone blind
+// (a renamed key, a changed quoting style) printed "PASS aligned: null".
+function unresolved(values) {
+  return values.filter((v) => v.value === null || v.value === undefined);
+}
+
+function describe({ path: p, extract }) {
+  return `${extract} in ${p}`;
+}
+
 function runVersionSync(check) {
   const values = check.files.map(({ path: p, extract }) => ({
     path: p,
+    extract,
     value: applyExtractor(p, extract),
   }));
+  const blind = unresolved(values);
+  if (blind.length > 0) {
+    recordFail(
+      check.id,
+      `extracted nothing: ${blind.map(describe).join(", ")}. ` +
+        "An extractor that matches nothing cannot witness agreement; fix the pattern or the file.",
+    );
+    return;
+  }
   const distinct = new Set(values.map((v) => v.value));
   if (distinct.size === 1) {
     recordPass(check.id, `aligned: ${[...distinct][0]}`);
@@ -149,11 +200,36 @@ function runVersionSync(check) {
 
 function runFilesExist(check) {
   const entries = applyExtractor(check.manifest, check.extract);
+  // A manifest key that is gone yields undefined, which used to become an empty
+  // list and a green "PASS 0 entries present" from the check that guards every
+  // bundled sample shipping. Nothing was looked for, so nothing was missing.
+  if (entries === null || entries === undefined) {
+    recordFail(
+      check.id,
+      `extracted nothing: ${check.extract} in ${check.manifest}. ` +
+        "An absent manifest key is a broken check, not an empty file list.",
+    );
+    return;
+  }
   const list = Array.isArray(entries)
     ? entries
-    : entries && typeof entries === "object"
+    : typeof entries === "object"
       ? Object.keys(entries)
       : [];
+  // An empty list is treated the same way, deliberately. The only live
+  // files_exist check is tauri-resources over `bundle.resources`, which lists
+  // the bundled sample files and is never legitimately empty, so an emptied
+  // list means the manifest lost its entries rather than that this release
+  // ships nothing. If a genuinely-empty manifest ever appears, give that check
+  // an explicit `"allow_empty": true` rather than making silence pass again.
+  if (list.length === 0) {
+    recordFail(
+      check.id,
+      `${check.extract} in ${check.manifest} is empty, so no path was checked. ` +
+        "Restore the entries, or declare the emptiness deliberate.",
+    );
+    return;
+  }
   const base = path.resolve(ROOT, check.base || ".");
   let missing = 0;
   for (const rel of list) {
@@ -174,9 +250,35 @@ function runFilesExist(check) {
 function runRegistryMatch(check) {
   const leftAll = applyExtractor(check.left.path, check.left.extract);
   const rightAll = applyExtractor(check.right.path, check.right.extract);
+  // Either side going blind (anchor renamed, pattern outgrown) used to make the
+  // comparison trivially true and print "PASS 1 entries aligned" or even
+  // "0 entries aligned". Two key sets can only be equal if both were read.
+  const blind = [
+    ...(leftAll === null || leftAll === undefined ? [describe(check.left)] : []),
+    ...(rightAll === null || rightAll === undefined ? [describe(check.right)] : []),
+  ];
+  if (blind.length > 0) {
+    recordFail(
+      check.id,
+      `extracted nothing: ${blind.join(", ")}. ` +
+        "Check the anchor name that extractor looks for; an unreadable side cannot be compared.",
+    );
+    return;
+  }
   const exclude = new Set(check.exclude || []);
-  const left = (leftAll || []).filter((k) => !exclude.has(k));
-  const right = (rightAll || []).filter((k) => !exclude.has(k));
+  const left = leftAll.filter((k) => !exclude.has(k));
+  const right = rightAll.filter((k) => !exclude.has(k));
+  // Both sides empty is the other vacuous shape: the anchors were found but the
+  // key patterns matched none of their contents, which reads as "0 entries
+  // aligned" while nothing was ever compared.
+  if (left.length === 0 && right.length === 0) {
+    recordFail(
+      check.id,
+      `extracted no keys from either side: ${describe(check.left)}, ${describe(check.right)}. ` +
+        "Two empty key sets are not a match.",
+    );
+    return;
+  }
   const leftSet = new Set(left);
   const rightSet = new Set(right);
   const onlyLeft = left.filter((k) => !rightSet.has(k));
@@ -301,7 +403,13 @@ for (const g of groups) {
     }
   }
 
-  if (g.symbols?.length && sev === "blocking") {
+  // Symbols are checked at every severity. `severity` picks how a miss is
+  // reported, not whether it is looked for: the file checks above already route
+  // through `record`, and scripts/sync-check-groups.mjs treats warning-severity
+  // groups the same way. Gating the symbol scan on "blocking" instead left the
+  // symbols of every warning group unread, so those anchors could disappear
+  // without even a WARN.
+  if (g.symbols?.length) {
     const concat = fileList
       .filter((p) => !isGlob(p))
       .map((p) => path.join(ROOT, p))

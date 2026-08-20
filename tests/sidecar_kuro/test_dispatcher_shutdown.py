@@ -106,6 +106,8 @@ class TestShutdownProcessExit:
     def test_shutdown_rpc_causes_process_exit_within_5s(self):
         """Dispatcher exits after shutdown RPC while stdin remains open."""
         proc = _spawn_kuro_dispatcher()
+        assert proc.stdin is not None
+        assert proc.stdout is not None
         try:
             shutdown_msg = json.dumps(
                 {"jsonrpc": "2.0", "id": 1, "method": "shutdown", "params": {}}
@@ -142,6 +144,7 @@ class TestShutdownProcessExit:
     def test_dispatcher_exits_cleanly_not_via_sigkill(self):
         """Exit code 0 (clean), not negative (signal-killed)."""
         proc = _spawn_kuro_dispatcher()
+        assert proc.stdin is not None
         try:
             msg = json.dumps(
                 {"jsonrpc": "2.0", "id": 2, "method": "shutdown", "params": {}}

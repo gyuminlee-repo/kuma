@@ -139,7 +139,8 @@ def handle_activity_upload(params: dict) -> dict:
 
     Params: ``{round_id, file_path, format}``
 
-    Returns: ``{records: ActivityRecord[], warnings: string[]}``
+    Returns: ``{records: ActivityRecord[], warnings: string[],
+    dropped_rows: DroppedRow[]}``
 
     Raises:
         RuntimeError: round_id not found in state.
@@ -171,13 +172,21 @@ def handle_activity_upload(params: dict) -> dict:
         # Persist raw records into round state for downstream merge.
         # wt_records holds dedicated 'WT_1'-style replicate rows and must survive
         # to merge time; they define the WT denominator when present.
+        # dropped_rows names every source row the parser skipped and why, so a
+        # lost measurement is visible instead of silently missing.
         rd["activity"] = {
             "raw_records": [r.model_dump() for r in table.records],
             "wt_records": [r.model_dump() for r in table.wt_records],
+            "dropped_rows": [d.model_dump() for d in table.dropped_rows],
         }
 
     serialised = [r.model_dump() for r in table.records]
-    return {"records": serialised, "plate_meta": pmeta_raw, "warnings": []}
+    return {
+        "records": serialised,
+        "plate_meta": pmeta_raw,
+        "warnings": [],
+        "dropped_rows": [d.model_dump() for d in table.dropped_rows],
+    }
 
 
 def handle_activity_set_plate_meta(params: dict) -> dict:
@@ -427,7 +436,10 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
         if has_replicate_data:
             # Convert short EVOLVEpro notation → internal notation.
             # ValueError from from_evolvepro (bad notation) → -32602 via dispatcher.
-            # ref_seq is a validated, non-empty string here.
+            # ref_seq is a validated, non-empty string here: the earlier
+            # has_replicate_data block raised unless it was one, and neither it
+            # nor has_replicate_data is reassigned in between.
+            assert ref_seq is not None
             authoritative_internal: dict[Variant, list[float]] = {
                 Variant(from_evolvepro(k, ref_seq)): v
                 for k, v in authoritative_measurements.items()
@@ -544,9 +556,12 @@ def handle_build_evolvepro_input(params: dict) -> dict:
         activity_scale=p.activity_scale,
         gc_data_xlsx=p.gc_data_xlsx,
         round1_report_xlsx=p.round1_report_xlsx,
+        numeric_report_xlsx=p.numeric_report_xlsx,
         remeasure_report_xlsx=p.remeasure_report_xlsx,
+        remeasure_numeric_xlsx=p.remeasure_numeric_xlsx,
         verdict_xlsx=p.verdict_xlsx,
         layout_xlsx=p.layout_xlsx,
+        expected_xlsx=p.expected_xlsx,
         mismatch_threshold=p.mismatch_threshold,
         gc_export_xlsx=p.gc_export_xlsx,
         allow_label_mismatch=p.allow_label_mismatch,
@@ -574,6 +589,11 @@ def handle_build_evolvepro_input(params: dict) -> dict:
         # activity column. The workbook drops the WT rows, so this response is
         # the only place step 4.2 can pick them up from.
         "wt_values": result.wt_values,
+        # The replicates behind each exported activity, keyed by the variant as
+        # the workbook writes it. The workbook states one mean per variant, so
+        # without this a reader cannot tell how many measurements produced it,
+        # and that count is what says how much weight the mean carries.
+        "variant_replicates": result.variant_replicates,
     }
 
 

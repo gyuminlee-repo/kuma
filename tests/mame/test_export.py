@@ -97,7 +97,7 @@ def test_excel_sheet_colors(tmp_path: Path) -> None:
         output_path=out,
     )
     wb = openpyxl.load_workbook(out)
-    assert set(_SHEET1_HEADER).issubset({c.value for c in wb["NB01"][1]})
+    assert set(_SHEET1_HEADER).issubset({str(c.value) for c in wb["NB01"][1]})
 
     # Look up each verdict row in NB01 / NB02 and confirm fill color.
     expected_fills = {
@@ -111,7 +111,7 @@ def test_excel_sheet_colors(tmp_path: Path) -> None:
     custom_col = header.index("custom_barcode") + 1
     for row in ws.iter_rows(min_row=2):
         label = row[custom_col - 1].value
-        if label in expected_fills:
+        if isinstance(label, str) and label in expected_fills:
             fg = row[0].fill.fgColor.rgb or ""
             assert fg.endswith(expected_fills[label])
 
@@ -413,6 +413,67 @@ def test_unknown_strand_share_is_blank_and_a_measured_zero_is_written(
     assert cell("2_1", "max_minor_allele_minus_count") == 0
     assert cell("2_1", "eligible_positions") == 214
     assert cell("2_1", "noisy_positions") == "1248:0.042:312:13:0"
+
+
+def test_sheet1_writes_the_coverage_report_and_blanks_the_unmeasured(
+    tmp_path: Path,
+) -> None:
+    """Coverage uniformity reaches the workbook, and unknown stays blank.
+
+    A 0 in a column someone sorts on would read as a perfectly flat well or a
+    consensus matching the reference nowhere. Both are strong claims that an
+    unmeasured well has no right to make, so the cell is empty instead. The two
+    cases are written on the same row set because they are independent: the
+    uncovered well below measured a breadth of 0.0 with the other four unknown.
+    """
+    unknown = _make_verdict("NB01", "1_1", VerdictClass.PASS)
+    assert unknown.translated.barcode.depth_cv is None
+
+    measured = _make_verdict("NB01", "2_1", VerdictClass.PASS)
+    measured.translated.barcode.depth_cv = 0.211111
+    measured.translated.barcode.depth_p10 = 42.5
+    measured.translated.barcode.depth_min_covered = 17
+    measured.translated.barcode.breadth_at_mix_min_depth = 0.802
+    measured.translated.barcode.consensus_identity = 0.999667
+
+    uncovered = _make_verdict("NB01", "3_1", VerdictClass.PASS)
+    uncovered.translated.barcode.breadth_at_mix_min_depth = 0.0
+
+    out = tmp_path / "coverage.xlsx"
+    write_excel(
+        verdict_records=[unknown, measured, uncovered],
+        replicate_results=[],
+        output_path=out,
+    )
+    ws = openpyxl.load_workbook(out)["NB01"]
+    header = [c.value for c in ws[1]]
+    rows = {
+        r[header.index("custom_barcode")].value: r for r in ws.iter_rows(min_row=2)
+    }
+
+    def cell(barcode: str, column: str):
+        return rows[barcode][header.index(column)].value
+
+    for column in (
+        "depth_cv",
+        "depth_p10",
+        "depth_min_covered",
+        "breadth_at_mix_min_depth",
+        "consensus_identity",
+    ):
+        # Empty, not 0. openpyxl reads an unwritten empty string back as None.
+        assert cell("1_1", column) in (None, ""), column
+
+    assert cell("2_1", "depth_cv") == 0.2111
+    assert cell("2_1", "depth_p10") == 42.5
+    assert cell("2_1", "depth_min_covered") == 17
+    assert cell("2_1", "breadth_at_mix_min_depth") == 0.802
+    # Six decimals: three would round one mismatch in a 3 kb amplicon to 1.0.
+    assert cell("2_1", "consensus_identity") == 0.999667
+
+    assert cell("3_1", "breadth_at_mix_min_depth") == 0.0
+    assert cell("3_1", "depth_cv") in (None, "")
+    assert cell("3_1", "consensus_identity") in (None, "")
 
 
 def test_fallback_ambiguous_selection_no_matrix_o(tmp_path: Path) -> None:

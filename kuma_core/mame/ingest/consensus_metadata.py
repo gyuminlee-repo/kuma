@@ -71,6 +71,18 @@ MAX_MINOR_ALLELE_MINUS = "max_minor_allele_minus"
 ELIGIBLE_POSITIONS = "eligible_positions"
 # The per-position sample itself; see ``format_noisy_positions`` for the encoding.
 NOISY_POSITIONS = "noisy_positions"
+# Coverage-uniformity and consensus-identity evidence. Definitions live once, in
+# ``well_consensus.depth_stats`` and ``well_consensus.consensus_identity``; these
+# are only the header names. Each is emitted ONLY when measured, so absence means
+# unknown and never 0.0, and each gates INDEPENDENTLY: a well with no reads has a
+# real breadth of 0.0 while the other three are unmeasurable, so they are not a
+# travel-together block the way the strand trio above is. Reported only; no
+# verdict, gate or severity rule reads any of them.
+DEPTH_CV = "depth_cv"
+DEPTH_P10 = "depth_p10"
+DEPTH_MIN_COVERED = "depth_min_covered"
+BREADTH_AT_MIX_MIN_DEPTH = "breadth_at_mix_min_depth"
+CONSENSUS_IDENTITY = "consensus_identity"
 
 #: Field separator inside one ``noisy_positions`` record.
 _NOISY_FIELD_SEP = ":"
@@ -199,6 +211,14 @@ class ConsensusMetadata:
     # Always written; 0 is a real answer.
     n_eligible_positions: int = 0
     noisy_positions: tuple[NoisyPosition, ...] = ()
+    # Coverage uniformity and consensus identity, all report-only. ``None`` means
+    # NOT MEASURED and the key is then omitted; 0.0 is a real reading (a flat
+    # well, or a consensus matching the reference nowhere) and is written.
+    depth_cv: float | None = None
+    depth_p10: float | None = None
+    depth_min_covered: int | None = None
+    breadth_at_mix_min_depth: float | None = None
+    consensus_identity: float | None = None
 
     def header_items(self) -> Iterable[tuple[str, str]]:
         """Yield metadata pairs in the stable FASTA-header order."""
@@ -232,6 +252,21 @@ class ConsensusMetadata:
             yield MAX_MINOR_ALLELE_PLUS, str(self.max_minor_allele_plus)
             yield MAX_MINOR_ALLELE_MINUS, str(self.max_minor_allele_minus)
         yield ELIGIBLE_POSITIONS, str(self.n_eligible_positions)
+        # Five INDEPENDENT emissions, deliberately not one block. A well with no
+        # reads covers nothing, so its breadth is a measured 0.0 while the other
+        # four are unmeasurable; guarding them together would drop that 0.0.
+        # Fractions carry six decimals because three would round a single
+        # mismatch in a 3 kb amplicon to a perfect 1.000.
+        if self.depth_cv is not None:
+            yield DEPTH_CV, f"{self.depth_cv:.6f}"
+        if self.depth_p10 is not None:
+            yield DEPTH_P10, f"{self.depth_p10:.1f}"
+        if self.depth_min_covered is not None:
+            yield DEPTH_MIN_COVERED, str(self.depth_min_covered)
+        if self.breadth_at_mix_min_depth is not None:
+            yield BREADTH_AT_MIX_MIN_DEPTH, f"{self.breadth_at_mix_min_depth:.6f}"
+        if self.consensus_identity is not None:
+            yield CONSENSUS_IDENTITY, f"{self.consensus_identity:.6f}"
         if self.noisy_positions:
             yield NOISY_POSITIONS, format_noisy_positions(self.noisy_positions)
 
@@ -254,6 +289,11 @@ def format_consensus_fasta_record(
 __all__ = [
     "ALIGNED_READS",
     "BASIS_COVERED",
+    "BREADTH_AT_MIX_MIN_DEPTH",
+    "CONSENSUS_IDENTITY",
+    "DEPTH_CV",
+    "DEPTH_MIN_COVERED",
+    "DEPTH_P10",
     "CONSENSUS_N_FRACTION",
     "CONSENSUS_N_FRACTION_BASIS",
     "DEPTH",

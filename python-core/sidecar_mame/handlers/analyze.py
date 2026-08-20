@@ -41,14 +41,34 @@ _emit_lock = threading.Lock()
 
 
 def _read_fasta_sequence(path: Path) -> str:
-    """Return concatenated sequence content from a FASTA file."""
+    """Return the single sequence in a FASTA file, refusing several records.
+
+    A reference is ONE molecule. Joining a plasmid backbone to a target gene
+    produces a sequence with a junction no molecule has, and the length this
+    reader hands to the CDS default, the run-quality scale and the read-length
+    ratios would all be measured against that chimera without a word said.
+
+    A file with no header at all stays acceptable, as it always was here. The
+    count-and-name judgement is shared with the two ``kuma_core`` readers so the
+    operator reads one sentence whichever path opened the file; the import stays
+    inside the function because pulling it in at module level would drag the
+    whole ingest package into a handler that loads it lazily on purpose.
+    """
+    from kuma_core.mame.reference_fasta import multi_record_reason
+
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    reason = multi_record_reason(lines)
+    if reason is not None:
+        # ValueError is what every other refusal in this reader raises, and the
+        # error type the ingest layer uses for the same refusal subclasses it,
+        # so a caller catching ValueError sees both paths alike.
+        raise ValueError(f"{reason}: {path}")
     seq_parts: list[str] = []
-    with path.open("r", encoding="utf-8", errors="replace") as fh:
-        for line in fh:
-            line = line.strip()
-            if not line or line.startswith(">"):
-                continue
-            seq_parts.append(line)
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith(">"):
+            continue
+        seq_parts.append(line)
     return "".join(seq_parts).upper()
 
 
@@ -94,7 +114,19 @@ def resolve_amplicon_cds(
        the amplicon: shift it by the span start.
     3. The given CDS already fits inside the amplicon length: it was stated in
        amplicon coordinates, so it is used unchanged.
-    4. Neither: fall back to the ORF the resolution found in the amplicon.
+    4. Neither: fall back to the ORF the resolution found in the amplicon. When
+       the resolution found none, there is nothing left to fall back to and the
+       run is refused rather than framed at zero. The old fallback returned
+       ``(0, 0)``, which is not "CDS unknown" anywhere downstream: ``cds_end``
+       of 0 is replaced by the full reference length below, so the plate was
+       translated in frame 0 from the first base of the amplicon, which is the
+       primer tail. Amino-acid numbering then belonged to a frame the design
+       never used, and the two ways that showed up were both wrong quietly:
+       wells carrying an expected mutation failed as WRONG_AA, and wells with
+       an empty expected list (WT controls) passed clean. Refusing follows the
+       same reasoning ``ExpectedCoordinateMismatchError`` is raised on, a whole
+       plate scored against the wrong coordinates while still producing
+       verdicts that read as ordinary.
     """
     span = resolution.span
     if span is None:
@@ -107,6 +139,24 @@ def resolve_amplicon_cds(
         return original_cds_start - span.start, original_cds_end - span.start
     if 0 < original_cds_end <= span.end - span.start:
         return original_cds_start, original_cds_end
+    if not resolution.coding_bounds_found:
+        raise ValueError(
+            "Coding sequence bounds could not be determined for the extracted "
+            "amplicon: it contains no forward reading frame (no ATG followed "
+            "by an in-frame stop codon), and the CDS bounds given do not fit "
+            f"it either (cds_start={original_cds_start}, "
+            f"cds_end={original_cds_end}; amplicon is "
+            f"{span.end - span.start} bp, cut from reference positions "
+            f"{span.start + 1}-{span.end}).\n"
+            f"  reference: {resolution.reference_fasta}\n"
+            f"  resolution: {resolution.note}\n"
+            "Without a frame the whole amplicon would be translated from its "
+            "first base, which is the primer tail, so every amino-acid "
+            "position would be numbered against a frame the design never "
+            "used. Supply cds_start / cds_end for this reference, in either "
+            "whole-reference or amplicon coordinates, or use a reference "
+            "whose amplicon carries a complete coding sequence."
+        )
     return resolution.cds_start, resolution.cds_end
 
 
@@ -201,6 +251,21 @@ def _serialize_verdict(vr: Any) -> dict:
         out["max_minor_allele_strand_share"] = b.max_minor_allele_strand_share
         out["max_minor_allele_plus_count"] = b.max_minor_allele_plus_count
         out["max_minor_allele_minus_count"] = b.max_minor_allele_minus_count
+    # Coverage uniformity and consensus identity, report only. ``mean_depth``
+    # cannot separate a well covered evenly from one with the same mean and a
+    # hole, and these say which it was. Each key is emitted INDEPENDENTLY and
+    # only when measured: a well that produced no consensus still has a real
+    # breadth of 0.0 while the other four are unmeasurable, so guarding them as
+    # one block would drop that measurement. Absence means unknown, never 0.0.
+    for key, value in (
+        ("depth_cv", b.depth_cv),
+        ("depth_p10", b.depth_p10),
+        ("depth_min_covered", b.depth_min_covered),
+        ("breadth_at_mix_min_depth", b.breadth_at_mix_min_depth),
+        ("consensus_identity", b.consensus_identity),
+    ):
+        if value is not None:
+            out[key] = value
     return out
 
 
@@ -240,6 +305,13 @@ def _deserialize_verdict(d: dict) -> Any:
     # ``None`` is passed through as the record's own default, so a legacy payload
     # restores as unknown rather than as a one-strand measurement.
     strand_share = d.get("max_minor_allele_strand_share")
+
+    def _opt_float(key: str) -> float | None:
+        """``None`` when the key is absent, so unknown never becomes 0.0."""
+        value = d.get(key)
+        return None if value is None else float(value)
+
+    depth_min_covered = d.get("depth_min_covered")
     barcode = BarcodeRecord(
         native_barcode=d["native_barcode"],
         custom_barcode=d["custom_barcode"],
@@ -282,6 +354,17 @@ def _deserialize_verdict(d: dict) -> Any:
             )
             for p in d.get("noisy_positions", ())
         ),
+        # Absent in a payload persisted before these existed, and absent for any
+        # well that could not measure one of them. ``None`` is passed through as
+        # unknown; coercing to 0.0 would report a perfectly flat, zero-identity
+        # well that nobody measured.
+        depth_cv=_opt_float("depth_cv"),
+        depth_p10=_opt_float("depth_p10"),
+        depth_min_covered=(
+            None if depth_min_covered is None else int(depth_min_covered)
+        ),
+        breadth_at_mix_min_depth=_opt_float("breadth_at_mix_min_depth"),
+        consensus_identity=_opt_float("consensus_identity"),
     )
     translated = TranslatedRecord(
         barcode=barcode,
@@ -2147,12 +2230,22 @@ def handle_analyze(params: dict) -> dict:
     # ``reference`` is rebound to the extracted file in that case, so the length
     # read here is always the length reads were aligned to.
     _edge_variants: list[str] = []
-    if amplicon_extracted is False:
+    # Length of the reference reads were aligned to, i.e. the extracted amplicon
+    # when extraction happened. Read once and shared: the edge check below needs
+    # it, and the MIXED-factor scale check falls back to it when no well carried
+    # a measured position count. None when unreadable, which both callers treat
+    # as "not known" rather than as a number.
+    _run_quality_reference_length: int | None
+    try:
+        _run_quality_reference_length = _read_reference_length(reference)
+    except (OSError, ValueError):
+        _run_quality_reference_length = None
+    if amplicon_extracted is False and _run_quality_reference_length is not None:
         try:
             _edge_variants = variants_near_reference_edge(
                 {em.mutant_id: em.position for em in expected_mutations},
                 cds_start,
-                _read_reference_length(reference),
+                _run_quality_reference_length,
             )
         except (OSError, ValueError):
             # An advisory sentence is never worth failing a finished run for.
@@ -2182,6 +2275,17 @@ def handle_analyze(params: dict) -> dict:
             reused_from=_previous_use,
             amplicon_extracted=amplicon_extracted,
             edge_variants=_edge_variants,
+            # The scale the MIXED confidence floor was derived over. Taken from
+            # the same verdicts the depth is, for the same reason: a declared
+            # selection has already removed the wells the campaign left empty.
+            # The reference length is the fallback when no well measured a
+            # position count (legacy consensus files), and it is read from the
+            # reference reads were actually aligned to, which is the extracted
+            # amplicon whenever extraction happened.
+            well_eligible_positions=[
+                int(vr.translated.barcode.n_eligible_positions) for vr in verdicts
+            ],
+            reference_length=_run_quality_reference_length,
         )
     )
     # Which reference positions came back well after well, nested on the same
@@ -2195,6 +2299,35 @@ def handle_analyze(params: dict) -> dict:
     # the well count nor the strand share carries a cut this repo will defend.
     run_quality["position_recurrence"] = serialise_position_recurrence(
         summarise_position_recurrence(vr.translated.barcode for vr in verdicts)
+    )
+    # What MinKNOW already measured about read lengths, nested on the same block
+    # for the same reason: a run-level fact read before the verdicts, and one
+    # more thing that decides whether the plate could have been scored. The N50
+    # is quoted from the instrument rather than computed here.
+    #
+    # The reference length handed over is the one reads were ALIGNED to, which
+    # is why it is read from `reference` at this point: that name has already
+    # been rebound to the extracted amplicon when extraction happened. Reading
+    # the original plasmid instead would divide a 3 kb N50 by a 7 kb backbone
+    # and report a fragmented run as a clean one. Advisory in the same way as
+    # `_edge_variants` above: a reference that cannot be read leaves the ratios
+    # null and never fails a finished run.
+    from kuma_core.mame.ingest.read_length import (
+        read_read_length_qc,
+        serialise_read_length_qc,
+    )
+
+    try:
+        _reference_bp: int | None = _read_reference_length(reference)
+    except (OSError, ValueError):
+        _reference_bp = None
+    # ``original_run_dir`` rather than ``input_dir``: on the raw-run path the
+    # latter was rebound to the demux output directory, which is wherever the
+    # caller asked the outputs to go and is not required to sit inside the
+    # MinKNOW folder. The report json lives with the run.
+    run_quality["read_length"] = serialise_read_length_qc(
+        read_read_length_qc(original_run_dir if is_raw else input_dir),
+        _reference_bp,
     )
     # Recorded after the grading, so this run cannot report itself as its own
     # earlier use, and only when the report json named a cell.

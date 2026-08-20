@@ -53,7 +53,51 @@ jobs:
         run: brew install minimap2
 
       - name: Run Python tests
-        run: python -m pytest tests/ -v
+        # -rs prints a short summary of every skipped test with its reason.
+        # 15 tests (tests/integration/test_xlsx_pipeline.py, 9, and
+        # tests/mame/test_well_consensus_regression.py::TestReferenceGroundTruth,
+        # 6) gate on KUMA_TEST_DATA_DIR / WORKSPACE_ROOT, which no workflow sets,
+        # so they have never run here. The data is not in the repository, so the
+        # fix is that the log states which tests did not run rather than
+        # reporting a green that reads as full coverage.
+        run: python -m pytest tests/ -v -rs
+
+  # A Python type gate, deliberately its own job rather than a step inside
+  # python-tests: that job is a 3-OS by 2-version matrix, so a step there would
+  # run the same analysis six times to learn the same thing once.
+  #
+  # What this catches that the test suite cannot: a value the code declares can
+  # be None reaching a place that assumes it cannot. This repo separates None
+  # meaning UNKNOWN from 0.0 meaning A MEASURED VALUE all the way through the
+  # consensus metrics, the FASTA header, the sidecar response and the Excel
+  # export, and a layer that folds one into the other reports evidence nobody
+  # measured. That is a scientific defect the tests pass straight through,
+  # because a test only fails on the path it happens to execute.
+  #
+  # The rule set is [tool.pyright] in pyproject.toml, so an editor and this job
+  # read the same configuration.
+  python-typecheck:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install -e ".[test,typecheck]"
+
+      # The checker version is pinned but the analysed dependencies are not, so a
+      # dependency upgrade alone can change what this gate reports (a newer pandas
+      # once turned three DataFrame cell reads into errors here while a local venv
+      # with older pandas stayed clean). CI is the authoritative environment when
+      # the two disagree.
+      - name: Python typecheck
+        run: basedpyright
 
   frontend-typecheck:
     runs-on: ubuntu-22.04
@@ -91,8 +135,8 @@ jobs:
           mkdir -p src-tauri/resources
           printf '# Third-party notices\n\n(placeholder; real content generated at build time by scripts/build-notice.mjs)\n' > src-tauri/resources/NOTICE.md
 
-      # Run the wrapper, not the individual stages. sync:check has three of them
-      # and the third (What's New freshness) was missing here, so src/locales/en.json's
+      # Run the wrapper, not the individual stages. sync:check owns the stage list
+      # and naming them here goes stale. What's New freshness was once missing, so src/locales/en.json's
       # whatsNewDialog.highlights could drift from the CHANGELOG "### Highlights"
       # block, reach main, and only surface on the release tag, where a failed
       # quality-gates skips build and release entirely. The nine other locales are
@@ -125,6 +169,12 @@ jobs:
         with:
           fetch-depth: 2
 
+      # This step has hung twice, on 2026-08-19, holding the job over an hour
+      # against a 89-second baseline for the whole job while every other check
+      # on the same commit went green. Both times a cancel and re-run cleared
+      # it, and neither commit touched Rust or apt. If this job alone sits in
+      # this step for many minutes, re-run the workflow rather than looking for
+      # the cause in the diff.
       - name: Install Linux dependencies
         run: |
           sudo apt-get update

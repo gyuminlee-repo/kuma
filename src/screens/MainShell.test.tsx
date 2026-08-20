@@ -15,7 +15,7 @@ vi.mock("@/lib/ipc", async (importOriginal) => {
   return {
     ...actual,
     killSidecar: vi.fn().mockResolvedValue(undefined),
-    rpc: vi.fn().mockResolvedValue({}),
+    rawSidecarRpc: vi.fn().mockResolvedValue({}),
   };
 });
 vi.mock("@/lib/autosave", async (importOriginal) => {
@@ -85,10 +85,10 @@ vi.mock("@/components/dialogs/ProjectTourCoordinator", async (importOriginal) =>
   };
 });
 
-import { killSidecar, rpc } from "@/lib/ipc";
+import { killSidecar, rawSidecarRpc } from "@/lib/ipc";
 
 const killSidecarMock = vi.mocked(killSidecar);
-const rpcMock = vi.mocked(rpc);
+const rpcMock = vi.mocked(rawSidecarRpc);
 
 describe("MainShell", () => {
   beforeEach(() => {

@@ -50,6 +50,7 @@ const RESULT: BuildEvolveproInputResult = {
   evidence_hash: "sha256:evidence",
   artifact_hashes: { "/project/activity/evolvepro_input.xlsx": "sha256:output" },
   wt_values: [1.02, 0.97, 1.04, 0.99],
+  variant_replicates: { "5F": [1.48, 1.52], "10L": [0.61], "22A": [2.05, 1.98, 2.02] },
 };
 
 const readyForm = (overrides: Partial<BuildEvolveproFormState> = {}): BuildEvolveproFormState => ({
@@ -133,6 +134,82 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
       verdict_xlsx: "/project/ngs/verdict.xlsx",
       output_xlsx: RESULT.output_path,
     });
+  });
+
+  it.each([
+    ["GC sheet", "gcSheet", "gcDataXlsx", "gc_data_xlsx", "/project/gc.xlsx"],
+    ["raw report", "rawReport", "round1ReportXlsx", "round1_report_xlsx", "/project/report.xlsx"],
+  ] as const)(
+    "builds %s without a layout, leaving the well mapping to the verdict sheet",
+    async (_name, primarySource, formKey, paramKey, path) => {
+      seed(readyForm({ primarySource, [formKey]: path, layoutXlsx: "" }));
+      renderPanel();
+
+      await build();
+
+      expect(buildEvolveproInput).toHaveBeenCalledWith({
+        [paramKey]: path,
+        layout_xlsx: undefined,
+        remeasure_report_xlsx: undefined,
+        verdict_xlsx: "/project/ngs/verdict.xlsx",
+        output_xlsx: RESULT.output_path,
+      });
+    },
+  );
+
+  it("builds a numeric-ID screen against the designed variant list", async () => {
+    seed(readyForm({
+      primarySource: "numericReport",
+      numericReportXlsx: "/project/screen.xlsx",
+      expectedXlsx: "/project/expected.xlsx",
+      layoutXlsx: "",
+    }));
+    renderPanel();
+
+    await build();
+
+    expect(buildEvolveproInput).toHaveBeenCalledWith({
+      numeric_report_xlsx: "/project/screen.xlsx",
+      layout_xlsx: undefined,
+      expected_xlsx: "/project/expected.xlsx",
+      remeasure_report_xlsx: undefined,
+      remeasure_numeric_xlsx: undefined,
+      verdict_xlsx: "/project/ngs/verdict.xlsx",
+      output_xlsx: RESULT.output_path,
+    });
+  });
+
+  it("sends the replicated confirmation for numeric-ID confirmation", async () => {
+    seed(readyForm({
+      confirmationSource: "numericIds",
+      remeasureNumericXlsx: "/project/confirm.xlsx",
+      expectedXlsx: "/project/expected.xlsx",
+      layoutXlsx: "",
+    }));
+    renderPanel();
+
+    await build();
+
+    expect(buildEvolveproInput).toHaveBeenCalledWith(expect.objectContaining({
+      remeasure_numeric_xlsx: "/project/confirm.xlsx",
+      remeasure_report_xlsx: undefined,
+      expected_xlsx: "/project/expected.xlsx",
+    }));
+  });
+
+  it.each([
+    ["neither order source", { expectedXlsx: "", layoutXlsx: "" }],
+    ["both order sources", { expectedXlsx: "/project/expected.xlsx", layoutXlsx: "/project/layout.xlsx" }],
+  ])("blocks a numeric-ID build with %s", (_name, overrides) => {
+    seed(readyForm({
+      primarySource: "numericReport",
+      numericReportXlsx: "/project/screen.xlsx",
+      ...overrides,
+    }));
+    renderPanel();
+
+    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+    expect(buildEvolveproInput).not.toHaveBeenCalled();
   });
 
   it("sends a confirmation report only for variant-labeled confirmation", async () => {

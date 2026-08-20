@@ -5,7 +5,7 @@
 [이슈 트래커](https://github.com/gyuminlee-repo/kuma/issues) 사용. 포함할 정보:
 - OS + kuma 버전 (Help → About 또는 installer 파일명)
 - 재현 단계
-- sidecar 크래시 관련 시 `~/.kuma/crash.log` 내용 (이전 설치는 `~/.kuro/crash.log`)
+- sidecar 크래시 관련 시 `~/.kuma/kuro/crash.log` 내용 (이전 설치는 `~/.kuro/crash.log`)
 - 가능하면 샘플 서열 / CSV (최소 재현 셋)
 
 ## 개발 환경

@@ -72,6 +72,35 @@ export interface VerdictRecord {
   max_minor_allele_plus_count?: number;
   max_minor_allele_minus_count?: number;
   /**
+   * Coverage uniformity and consensus identity, measured off the same
+   * per-position depth vector `read_count` summarizes. A well covered evenly at
+   * 100x and one averaging 100x with a 200 bp hole report the same depth and are
+   * not the same evidence; these five say which one it was.
+   *
+   * - `depth_cv`: spread of covered depth relative to its own level. 0 is flat.
+   * - `depth_p10`: 10th percentile of covered depth, the thin tenth.
+   * - `depth_min_covered`: shallowest covered position, never 0 by construction.
+   * - `breadth_at_mix_min_depth`: fraction of the WHOLE reference deep enough
+   *   for a minor allele to be worth reading. This is the one that exposes a
+   *   hole, since the CV only ranges over covered positions.
+   * - `consensus_identity`: fraction of CALLED consensus bases matching the
+   *   reference.
+   *
+   * `null` and `undefined` both mean NOT MEASURED and must be rendered as
+   * unknown, never as 0: a CV of 0 is a perfectly flat well and an identity of 0
+   * is a consensus matching the reference nowhere, both of which are strong
+   * readings. The sidecar omits a key it did not measure, and the five are
+   * omitted independently -- a well with no reads still reports a real
+   * `breadth_at_mix_min_depth` of 0 with the other four absent.
+   *
+   * Reported only; no verdict, gate or severity rule reads any of them.
+   */
+  depth_cv?: number | null;
+  depth_p10?: number | null;
+  depth_min_covered?: number | null;
+  breadth_at_mix_min_depth?: number | null;
+  consensus_identity?: number | null;
+  /**
    * How many mix-eligible positions this well had, i.e. the pool
    * `noisy_positions` was sampled from. `noisy_positions.length <
    * n_eligible_positions` says the sample is truncated, which on a real ONT
@@ -141,6 +170,36 @@ export interface ReplicateResult {
   fallback_reason: string | null;
 }
 
+/**
+ * One axis of a barcode workbook, as `BarcodeAxisPrefixes.as_dict` sends it
+ * (`kuma_core/mame/ingest/combinatorial_demux.py:443-452`).
+ */
+export interface BarcodeAxisPrefixes {
+  /** `"F"` or `"R"`, but declared `str` on the Python side. */
+  axis: string;
+  /** The tail that was stripped, uppercase. */
+  tail: string;
+  tail_length: number;
+  barcode_count: number;
+  /** One entry per barcode, in barcode-index order. Ragged axes vary. */
+  seed_lengths: number[];
+}
+
+/**
+ * What was cut off the barcode seeds on each axis, and what was left.
+ *
+ * Mirrors `BarcodePrefixResolution.as_dict`
+ * (`kuma_core/mame/ingest/combinatorial_demux.py:487-493`). Every instance
+ * describes a file that explained itself; one that does not raises out of
+ * `load_barcode_prefixes_with_provenance` rather than reaching this shape.
+ */
+export interface BarcodePrefixResolution {
+  forward: BarcodeAxisPrefixes;
+  reverse: BarcodeAxisPrefixes;
+  /** One operator-facing paragraph, built at `combinatorial_demux.py:471-485`. */
+  note: string;
+}
+
 export interface DistributionFileStats {
   min: number;
   p05: number;
@@ -155,7 +214,22 @@ export interface DistributionFileStats {
 
 export interface DistributionStats {
   n_files: number;
-  file_size_kb: DistributionFileStats;
+  /**
+   * All nine statistics, or nothing at all.
+   *
+   * `compute_distribution_stats` builds the nine keys unconditionally
+   * (`kuma_core/mame/distribution.py:132-142`), so a populated object is never
+   * partial. But an empty input list takes the early return at
+   * `distribution.py:119-120`, which leaves the field at its
+   * `field(default_factory=dict)` default (`distribution.py:39`) and puts `{}`
+   * on the wire verbatim (`python-core/sidecar_mame/handlers/analyze.py:2244`).
+   *
+   * That path is reachable: the empty-records refusal at `analyze.py:1912` is
+   * gated on `is_raw`, so a pre-demuxed consensus directory with no consensus
+   * FASTA reaches `compute_distribution_stats([])` with nothing to refuse it.
+   * The co-occurring signal is `n_files === 0`.
+   */
+  file_size_kb: DistributionFileStats | Record<string, never>;
   suggested_cutoff_kb: number;
   suggested_method: "median_minus_2sigma" | "p05" | "kneedle" | "fixed_50";
   bimodal: boolean;
@@ -549,6 +623,16 @@ export interface AnalyzeResult extends AnalyzeYield {
    * without it.
    */
   demux_resume?: DemuxResume;
+  /**
+   * What was cut off the barcode seeds, and how much seed was left.
+   *
+   * Optional for one reason only, and it is not the usual persisted-snapshot
+   * one: the sidecar SPREADS the key in
+   * (`python-core/sidecar_mame/handlers/analyze.py:2395-2399`) and omits it
+   * entirely when no barcode workbook was read, so it is absent rather than
+   * null on every non-raw path. A run that did read one always carries it.
+   */
+  barcode_prefix_resolution?: BarcodePrefixResolution;
 }
 
 /**
@@ -1060,6 +1144,17 @@ export interface AmpliconLengthDistributionSummary {
   max: number;
   peak_count: number;
   peak_ratio: number;
+  /** Read length percentiles over the same sampled vector the modal peak came
+   *  from (kuma_core/mame/ingest/quality_filter.py `_percentiles`). min/median/max
+   *  cannot tell a tight amplicon from a smear around the same centre, and the
+   *  smear is what a failed PCR looks like; p10/p90 bracket the bulk without
+   *  being set by the single 200 kb read that decides `max`.
+   *  Optional because a project saved before these existed carries none, and a
+   *  missing percentile is not a read of length 0. */
+  p10?: number;
+  p25?: number;
+  p75?: number;
+  p90?: number;
 }
 
 export interface AmpliconLengthEstimate {

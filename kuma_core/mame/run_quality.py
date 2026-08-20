@@ -28,6 +28,10 @@ from dataclasses import dataclass, field
 from statistics import median
 from typing import Iterable, Protocol, Sequence
 
+from kuma_core.mame.compare.verdict import (
+    MIXED_FACTOR_ASSUMED_POSITIONS,
+    _MIXED_CONFIDENT_DEPTH_FACTOR,
+)
 from kuma_core.mame.ingest.flow_cell import MINION_WARRANTY_PORES
 from kuma_core.mame.models import NoisyPosition
 
@@ -130,6 +134,46 @@ LITERATURE_MIXED_SOURCE = "Moller et al. 2023, doi:10.1128/spectrum.02728-22"
 #: shallow run, a ``coverage_fraction`` pushed toward 1.0, or a short reference.
 REFERENCE_EDGE_MARGIN_BP = 30
 
+#: How far the scorable positions of a run may sit from the 1500 per amplicon
+#: that ``_MIXED_CONFIDENT_DEPTH_FACTOR`` was derived over before the mismatch is
+#: printed. Half and double, and both numbers are ARBITRARY: nothing measured
+#: says where the derivation stops carrying. They exist because the ratio has to
+#: be printed selectively rather than always, since a finding on every run turns
+#: ``RunQuality.severity`` to WARNING for plates with nothing wrong with them.
+#: The report is the RATIO; the band only decides whether it is worth a line.
+MIXED_FACTOR_SCALE_BAND_LOW = 0.5
+MIXED_FACTOR_SCALE_BAND_HIGH = 2.0
+
+
+def _mixed_factor_positions(
+    well_eligible_positions: Sequence[int] | None,
+    reference_length: int | None,
+) -> tuple[int, str] | None:
+    """Scorable positions per amplicon, and where the number came from.
+
+    Measured positions win. ``n_eligible_positions`` is the count of positions
+    the mix check could actually run at, which is exactly the pool the binomial
+    derivation multiplies over, so it is the right number rather than a proxy
+    for it. A ZERO is dropped rather than averaged in: legacy consensus files
+    carry no such count and ``fasta_parser`` defaults the field to 0, which
+    means not measured and never means an amplicon with no positions.
+
+    With nothing measured the reference length stands in. That OVERCOUNTS: the
+    mix check skips positions below the depth floor and outside the covered
+    span, so every eligible position is a reference position but not the
+    reverse. It is reported as ``reference_length`` for that reason, and a
+    reader who sees it knows the ratio is an upper bound on the real one.
+
+    ``None`` when neither is available, because an unmeasured premise is not a
+    violated one and guessing at it would print a number nobody measured.
+    """
+    measured = [int(p) for p in (well_eligible_positions or []) if p and p > 0]
+    if measured:
+        return int(median(measured)), "measured_eligible_positions"
+    if reference_length is not None and reference_length > 0:
+        return int(reference_length), "reference_length"
+    return None
+
 
 @dataclass
 class RunQuality:
@@ -226,6 +270,8 @@ def assess_run_quality(
     amplicon_extracted: bool | None = None,
     edge_variants: list[str] | None = None,
     edge_margin_bp: int = REFERENCE_EDGE_MARGIN_BP,
+    well_eligible_positions: Sequence[int] | None = None,
+    reference_length: int | None = None,
 ) -> RunQuality:
     """Grade the run from what the ingest and the report json already provide.
 
@@ -254,6 +300,11 @@ def assess_run_quality(
     * Reuse gets no threshold either, because it is not a measurement. It is the
       fact that this project already sequenced on this cell, reported with what
       the cell had left last time.
+    * The MIXED depth factor's amplicon scale gets no grading. It is a premise
+      check: that factor was derived over 1500 positions per amplicon and the
+      classifier reads no length, so this states how far this run sits from the
+      number the derivation used. Whether that matters is a question about the
+      factor, and the factor is not moved from here.
     """
     quality = RunQuality(
         min_read_count=min_read_count,
@@ -312,6 +363,43 @@ def assess_run_quality(
                 "margin_bp": edge_margin_bp,
             }
         )
+
+    # The amplicon length the MIXED confidence floor was derived over. The
+    # factor in compare/verdict.py multiplies a per-position binomial tail by
+    # 1500 positions per amplicon, and the classifier reads no length and no
+    # position count, so it applies that table to every run whatever its scale.
+    # This measures the premise and prints the ratio when it is far off. It
+    # grades nothing and changes no verdict: the number that would have to move
+    # is the factor itself, and moving it reclassifies wells in every existing
+    # project (which is the same reason the literature mixed figures above are
+    # recorded and not wired in).
+    scale = _mixed_factor_positions(well_eligible_positions, reference_length)
+    if scale is not None:
+        positions, basis = scale
+        ratio = positions / MIXED_FACTOR_ASSUMED_POSITIONS
+        if not MIXED_FACTOR_SCALE_BAND_LOW <= ratio <= MIXED_FACTOR_SCALE_BAND_HIGH:
+            quality.findings.append(
+                {
+                    "code": "mixed_depth_factor_amplicon_scale",
+                    "severity": SEVERITY_WARNING,
+                    "positions": positions,
+                    "positions_basis": basis,
+                    "assumed_positions": MIXED_FACTOR_ASSUMED_POSITIONS,
+                    "ratio": round(ratio, 3),
+                    "band_low": MIXED_FACTOR_SCALE_BAND_LOW,
+                    "band_high": MIXED_FACTOR_SCALE_BAND_HIGH,
+                    "factor": _MIXED_CONFIDENT_DEPTH_FACTOR,
+                    "source": (
+                        "compare/verdict.py _MIXED_CONFIDENT_DEPTH_FACTOR "
+                        "derivation, 1500 positions per amplicon"
+                    ),
+                    # Ours, and the band is a printing rule rather than a
+                    # measured boundary. Nothing is dropped or reclassified.
+                    "kind": "self_set",
+                    "provisional": True,
+                    "enforced": False,
+                }
+            )
 
     if reused_from:
         quality.findings.append(
@@ -622,6 +710,8 @@ __all__ = [
     "SEVERITY_BLOCKING",
     "SEVERITY_WARNING",
     "REFERENCE_EDGE_MARGIN_BP",
+    "MIXED_FACTOR_SCALE_BAND_LOW",
+    "MIXED_FACTOR_SCALE_BAND_HIGH",
     "RunQuality",
     "PositionRecurrence",
     "RecurringPosition",

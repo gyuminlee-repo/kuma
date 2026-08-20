@@ -468,7 +468,22 @@
       "neighborAvgHelp": "Mean read count of the four orthogonal neighbor wells (up/down/left/right). Informational; not used in the z-score.",
       "zScoreHelp": "(well reads minus plate mean) / plate SD. Wells above 2.5 are flagged. Severity: above 4 high, above 3 medium, above 2.5 low.",
       "percentileHelp": "File-size percentiles in KB by linear interpolation: p05 is the 5th percentile through p95 the 95th.",
-      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB."
+      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB.",
+      "qcSectionTitle": "Detalhes de QC do run",
+      "qcSectionAriaLabel": "Mostrar detalhes de QC do run",
+      "qcHealthTitle": "Run health",
+      "qcHealthAbsent": "Este run não registrou bloco de run health, portanto as seções file size, pore yield, throughput, barcode e cross-talk não têm o que ler.",
+      "qcNotMeasured": "Não medido",
+      "filterStats": {
+        "title": "Filtragem de reads",
+        "noDemux": "Este run não fez demultiplexação, então nenhum read passou pelo filtro de qualidade. Um run sobre um diretório de consensus lê arquivos de consensus prontos e nunca vê reads brutos.",
+        "noSummary": "O filtro de qualidade rodou mas não deixou contagem: a pasta do run não trazia arquivo sequencing_summary, de onde vem o Q score por read.",
+        "input": "Reads de entrada",
+        "passed": "Passaram no filtro",
+        "failedQscore": "Rejeitados por Q score",
+        "failedLength": "Rejeitados por comprimento",
+        "failedBarcode": "Rejeitados por barcode"
+      }
     },
     "plateView": {
       "plate": "Placa",
@@ -633,7 +648,7 @@
     },
     "appLayout": {
       "deadlockTitle": "Sem resposta",
-      "deadlockDescription": "Sem atualização de progresso há mais de 30 segundos. A tarefa está travada.",
+      "deadlockDescription": "Sem atualização de progresso há mais de {{seconds}} segundos. A tarefa pode estar travada.",
       "deadlockWait": "Continuar aguardando",
       "deadlockReset": "Reiniciar",
       "analysisWorkspaceAriaLabel": "Workspace de análise",
@@ -1019,6 +1034,40 @@
         "median_depth_below_recommended": "Profundidade mediana {{median}} abaixo das {{recommended}} leituras por amplicon recomendadas.",
         "flow_cell_reused": "A celula {{cell}} ja levou uma execucao neste projeto, encerrada com {{previousPores}} poros.",
         "variants_at_reference_edge": "{{variants}} ficam a menos de {{margin}} pb de uma extremidade da referencia, e esta execucao alinhou contra a referencia como foi fornecida. Um alinhador corta uma leitura em um desemparelhamento que nao consegue anexar, entao essas posicoes podem ver menos profundidade do que o poco relata. Uma referencia que inclua as regioes de ligacao dos primers as deixa mais para dentro."
+      },
+      "positionRecurrence": {
+        "title": "Posições recorrentes",
+        "noRun": "Ainda não há run sobre o qual relatar.",
+        "predatesBuild": "Este resultado salvo foi escrito antes de as posições recorrentes serem contadas, então nada se sabe sobre elas. Não significa que nenhuma posição se repetiu.",
+        "what": "Um minor allele em uma posição de um poço é candidato a mistura. A mesma posição poço após poço é a cara de um artefato de sequence context, porque o contexto pertence ao amplicon e não ao clone. Nada aqui é graduado.",
+        "lowerBound": "Cada contagem abaixo é um limite inferior: cada poço contribui com no máximo dez posições ordenadas por minor fraction, e {{truncated}} de {{contributing}} poços contribuintes bateram nesse teto, de modo que posições além da décima faltam na contagem.",
+        "wellsContributing": "Registros que contribuíram com uma posição",
+        "wellsTruncated": "Desses, truncados em dez",
+        "positionsSeen": "Posições distintas observadas",
+        "positionsSingleWell": "Vistas em um único registro (deixadas de fora)",
+        "none": "Nenhuma posição foi reportada por mais de um registro.",
+        "caption": "Posições de referência reportadas por mais de um registro, as mais recorrentes primeiro.",
+        "colPosition": "Posição",
+        "colWells": "Registros",
+        "colMedianShare": "Mediana weak strand",
+        "colShareRange": "Mín / máx",
+        "colSharesKnown": "Frações conhecidas"
+      },
+      "readLength": {
+        "title": "Comprimento de read",
+        "noRun": "Ainda não há run sobre o qual relatar.",
+        "predatesBuild": "Este resultado salvo foi escrito antes de os comprimentos de read serem carregados, então nada se sabe sobre eles. Não significa que os reads não tinham comprimento.",
+        "notRead": "Os comprimentos de read não foram lidos: a pasta do run não trazia report json, o arquivo não pôde ser interpretado, ou o MinKNOW que o escreveu é anterior a read_length_histogram.",
+        "reference": "Alinhado contra uma referência de {{bp}} bp.",
+        "referenceUnknown": "O comprimento da referência não pôde ser lido, então as razões abaixo não têm denominador.",
+        "unlabelled": "Entrada sem rótulo",
+        "noEntries": "O relatório não trazia nenhuma entrada de read length histogram.",
+        "n50": "N50 (valor do instrumento)",
+        "n50OverReference": "N50 sobre a referência",
+        "nearReferenceFraction": "Bases perto do comprimento de referência",
+        "over2xFraction": "Bases em 2x a referência ou além",
+        "concatemerNote": "Um N50 bem acima de 1x a referência é a cara de uma população de concatemer, e também a de um amplicon deliberadamente longo. Este número sozinho não separa os dois, então nada é sinalizado aqui.",
+        "basesNote": "As duas frações contam BASES, não reads."
       }
     },
     "inspector": {
@@ -1125,7 +1174,7 @@
       "activityScaleRaw": "Raw",
       "activityScaleRelative": "Relative to WT",
       "layoutXlsx": "xlsx de layout da placa",
-      "layoutXlsxHelper": "Required mapping metadata for well-labeled GC data and raw reports. Maps well positions to variants.",
+      "layoutXlsxHelper": "Opcional. Sem este arquivo, as posições de poço são mapeadas para as variantes pela planilha verdict do Analyze.",
       "layoutXlsxOptionalHelper": "Required only when the long-format label column contains wells; variant-labeled files do not need a layout.",
       "gcDataXlsx": "xlsx de dados GC",
       "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
@@ -1170,7 +1219,19 @@
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
       "clearRestored": "Limpar entradas EVOLVEpro restauradas",
-      "outputCollidesRound": "A rodada {{round}} ja registrou este arquivo como sua saida. Gerar aqui sobrescreve as medicoes daquela rodada."
+      "outputCollidesRound": "A rodada {{round}} ja registrou este arquivo como sua saida. Gerar aqui sobrescreve as medicoes daquela rodada.",
+      "primarySourceNumericReport": "Relatório Agilent com IDs numéricos",
+      "primarySourceNumericReportHelper": "Relatório bruto da placa inteira cujos nomes de amostra são posições (1, 2, 3, ...). A posição i é a i-ésima variante da ordem da placa.",
+      "numericReportXlsx": "Relatório da placa inteira xlsx (IDs numéricos)",
+      "numericReportXlsxHelper": "Relatório Agilent bruto com linhas WT e nomes de amostra numéricos. Precisa de uma fonte de ordem que diga qual posição carrega qual variante.",
+      "confirmationSourceNumericIds": "Relatório Agilent com IDs numéricos",
+      "confirmationSourceNumericIdsHelper": "Relatório replicado cujos nomes de amostra são posições do subconjunto acima do WT (1, 1-2, 1-3, ...). As médias das réplicas substituem os valores primários correspondentes.",
+      "remeasureNumericXlsx": "Relatório de confirmação xlsx (IDs numéricos)",
+      "remeasureNumericXlsxHelper": "A posição j é a j-ésima variante que a triagem primária colocou acima do tipo selvagem, na ordem da placa. Uma seleção diferente é recusada em vez de rotulada errado.",
+      "expectedXlsx": "Lista de variantes projetadas",
+      "expectedXlsxHelper": "Fonte de ordem para IDs numéricos: a mesma lista de variantes projetadas que a etapa de análise lê. Preferível ao arquivo de placa transcrito à mão.",
+      "orderSource": "Fonte de ordem (lista de variantes projetadas ou plate layout, exatamente uma)",
+      "dismissError": "Fechar"
     },
     "verdictBadge": {
       "help": {
@@ -1304,7 +1365,20 @@
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well.",
       "replicateReads": "{{reads}} reads",
-      "replicateAligned": "{{aligned}} alinhadas"
+      "replicateAligned": "{{aligned}} alinhadas",
+      "sectionCoverage": "Uniformidade de cobertura",
+      "coverage": {
+        "notMeasured": "Não medido",
+        "absent": "Este resultado foi escrito antes de a uniformidade de cobertura ser medida, então nenhum dos cinco números está disponível. Não significa que o poço foi coberto de forma uniforme.",
+        "depthCv": "Depth CV (0 é plano)",
+        "depthP10": "Depth p10",
+        "depthMinCovered": "Posição coberta mais rasa",
+        "breadth": "Referência com profundidade para ler um minor allele",
+        "consensusIdentity": "Consensus identity",
+        "consensusN": "Fração N do consensus",
+        "identityNote": "A identidade é medida só sobre bases chamadas, então um consensus quase todo N pode parecer uma correspondência quase perfeita. Leia junto com a fração N acima.",
+        "nNotEvaluable": "A fração N deste consensus não pôde ser recuperada e 0 foi substituído, então a identidade acima se apoia em uma quantidade de sequência desconhecida."
+      }
     },
     "wellSelection": {
       "title": "Poços usados",
@@ -1371,7 +1445,7 @@
     "deleteFolderConfirmDesc": "{{path}} vai para a lixeira do sistema junto com todo o conteúdo. A pasta pode ser recuperada da lixeira.",
     "deleteFolderConfirmButton": "Mover para a lixeira",
     "restorableTitle": "Projetos restauráveis",
-    "restorableDesc": "Removidos da lista de recentes, mas ainda presentes no disco.",
+    "restorableDesc": "Removidos da lista de recentes, mas ainda na pasta de projetos atual. Projetos em outra pasta não aparecem aqui.",
     "restorableEmpty": "Nenhum projeto para restaurar.",
     "restoreButton": "Restaurar",
     "overview": {
@@ -1803,16 +1877,12 @@
     "saltOption_schildkraut": "Schildkraut-Lifson 1965 (NEB Phusion)",
     "saltOption_schildkraut_title": "Correção empírica de Na⁺ Schildkraut-Lifson 1965. Legacy; mais grosseira que Owczarzy ou SantaLucia.",
     "optTmLabel": "Opt Tm",
-    "maxTmDiffLabel": "Máx diff Tm",
     "minTmLabel": "Min Tm",
     "maxTmLabel": "Max Tm",
     "fwdTmLabel": "Fwd Tm",
     "revTmLabel": "Rev Tm",
     "overlapTmLabel": "Overlap Tm",
     "min3PrimeDistLabel": "Distância mín 3'",
-    "optSizeLabel": "Tamanho opt",
-    "minSizeLabel": "Tamanho mín",
-    "maxSizeLabel": "Tamanho máx",
     "minGcLabel": "Min GC",
     "maxGcLabel": "Max GC",
     "monovalentSaltLabel": "Sal monovalente",
@@ -1824,7 +1894,7 @@
     "save": "Salvar",
     "saving": "Salvando...",
     "nebTmNote": "Para polimerases NEB a calibração do NEB Tm Calculator vale apenas para a temperatura de anelamento recomendada (Ta). A Tm de design usa a escala fixa SantaLucia 1998 (Benchling), portanto os valores de sal e de método de Tm abaixo não a alteram.",
-    "fieldScopeNote": "Lido pelo motor de design: alvos de Tm Fwd/Rev/Overlap, faixa de GC, faixa de comprimento do primer, modo overlap. Armazenado mas sem uso: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff. Os valores de sal e método de Tm alimentam apenas Ta, e um perfil custom não traz regra de Ta, então nenhum Ta é exibido."
+    "fieldScopeNote": "Lido pelo motor de design: alvos de Tm Fwd/Rev/Overlap, faixa de GC, faixa de comprimento do primer, modo overlap. Armazenado mas sem uso: Opt Tm, Min/Max Tm. Os valores de sal e método de Tm alimentam apenas Ta, e um perfil custom não traz regra de Ta, então nenhum Ta é exibido."
   },
   "mainShell": {
     "alreadyRunning": "Já está em execução.",
@@ -1842,11 +1912,10 @@
     },
     "relativeTime": {
       "justNow": "agora mesmo",
-      "minAgo": "há {{count}} min",
-      "hrAgo": "há {{count}} h",
-      "daysAgo": "há {{count}} dia(s)",
       "minutesAgo": "há {{n}} min",
-      "hoursAgo": "há {{n}} h"
+      "hoursAgo": "há {{n}} h",
+      "daysAgo": "há {{n}} dia(s)",
+      "unknown": "em um momento desconhecido"
     },
     "memory": {
       "warningBannerLabel": "Memória: {{pct}}% (sidecar {{rss}} MB)",
@@ -1947,7 +2016,7 @@
     "missingMutations": "Mutações (inserir pelo menos uma mutação no painel Mutation)",
     "missingTargetGene": "Gene target (selecionar um no painel Sequence)",
     "deadlockTitle": "Sem resposta",
-    "deadlockDesc": "Sem atualização de progresso há mais de 30 segundos. A tarefa pode estar travada.",
+    "deadlockDesc": "Sem atualização de progresso há mais de {{seconds}} segundos. A tarefa pode estar travada.",
     "deadlockWait": "Continuar aguardando",
     "deadlockReset": "Reiniciar",
     "plateCount": "{{count}} placa",
@@ -2466,14 +2535,31 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Um run exportado para uma pasta que já tinha a saída de um run anterior pontuou também aquelas plates, e chegaram mais do que as selecionadas.",
-      "Uma pasta de trabalho antiga que mostre mais plates do que os barcodes escolhidos por aquele run foi pontuada sobre wells de outro run e precisa rodar de novo.",
-      "A pasta agora registra quais plates cada run produziu, as plates deixadas por um run anterior são nomeadas na tela e nada é apagado.",
-      "A tela de exportação não oferece mais row inicial e final. Qualquer ajuste que não fosse a plate inteira empilhava mutantes diferentes em um well.",
-      "A colocação vem apenas da escolha de quadrant, e uma faixa de rows salva que cobriria um well já ocupado é recusada em vez de ser escrita."
+      "A etapa 4 lê os relatórios Agilent com nomes de amostra numéricos, tanto a triagem da placa inteira quanto a confirmação replicada.",
+      "Uma confirmação replicada é integrada à triagem a que pertence, substituindo esses valores e marcando os que divergem.",
+      "As posições numéricas são resolvidas pela lista de variantes projetadas, então nenhum arquivo de placa precisa ser transcrito à mão.",
+      "Uma confirmação que cobre outro conjunto de variantes é recusada informando as duas contagens, em vez de rotulada com as erradas.",
+      "A contagem de réplicas é a que o arquivo carrega, de uma única medida até quantas a corrida tiver feito."
     ],
-    "highlightsStamp": "0.16.25+291c60a5",
+    "highlightsStamp": "0.16.31+60d4442c",
     "releases": {
+      "0.16.28": [
+        "Cinco seções de run health que o aplicativo media em toda execução e nunca desenhava agora aparecem na tela de revisão, em uma seção que começa fechada.",
+        "A cobertura informa a uniformidade por poço e não apenas uma média, de modo que um poço com uma lacuna não é mais lido como um coberto de forma uniforme.",
+        "A read length medida pelo sequenciador é mostrada diante da referência à qual a execução alinhou, que é onde uma população de concatâmeros aparece.",
+        "Um arquivo de referência com mais de uma sequência é recusado pelos quatro leitores, em vez de ser unido em uma quimera ou truncado silenciosamente.",
+        "Um amplicon sem reading frame encontrado diz isso, em vez de relatar uma CDS de comprimento zero que traduzia a placa a partir da cauda do primer."
+      ],
+      "0.16.27": [
+        "Uma citacao a um documento que este repositorio nao tem agora faz a compilacao falhar, em vez de ser descoberta por quem a segue.",
+        "Sete citacoes que nomeavam um documento real em um caminho antigo foram corrigidas; uma apontava para outra pagina, nao para o vazio.",
+        "Uma pagina nova diz por que os registros de projeto citados pelo codigo faltam neste repositorio publico, e o que cada um cobre.",
+        "Quando um registro de projeto e o codigo divergem, essa pagina estabelece que valem o codigo e seus testes."
+      ],
+      "0.16.26": [
+        "O editor de polimerase personalizada não exibe mais Opt/Min/Max size nem Max Tm diff, quatro campos que o motor de design nunca lia.",
+        "A documentação do caminho de polimerase personalizada e configuração agora diz ~/.kuma/kuro/, onde o kuma realmente os guarda."
+      ],
       "0.16.25.1": [
         "Um run exportado para uma pasta que já tinha a saída de um run anterior pontuou também aquelas plates, e chegaram mais do que as selecionadas.",
         "Uma pasta de trabalho antiga que mostre mais plates do que os barcodes escolhidos por aquele run foi pontuada sobre wells de outro run e precisa rodar de novo.",
@@ -2499,6 +2585,11 @@
         "Um run que descarta a maior parte das leituras no filtro de cobertura passa a dizer isso, e esses poços deixam de parecer poços nunca preenchidos.",
         "Quando duas pastas parecem um run, a flow cell e o horário de início de uma não são mais informados como os da outra."
       ],
+      "0.16.22": [
+        "A distribuição de veredictos não mostra mais uma taxa de recuperação. Uma execução agora informa uma taxa em vez de duas que contavam de forma diferente.",
+        "A taxa de sucesso permanece e conta exatamente os clones PASS que a lista de seleção realmente exporta.",
+        "A barra abaixo continua dividindo as variantes em aprovadas, confirmadas com uma mudança adicional e não confirmadas."
+      ],
       "0.16.21": [
         "Mutacoes coladas a uma extremidade da referencia sao nomeadas acima da tabela de vereditos, em execucoes que usaram a referencia como foi entregue.",
         "Elas sao nomeadas em vez de contadas, porque qual variante e decide o que fazer a respeito.",
@@ -2514,6 +2605,11 @@
         "Os poros iniciais e finais e o id da celula vem da pasta da execucao, com a execucao anterior se a celula foi reutilizada.",
         "Os poros nao tem linha de aprovacao: uma celula que comecou com 343 poros deu quinhentas leituras por poco.",
         "Cada limite mostra sua fonte, para que um padrao de fluxo de trabalho nao seja lido como exigencia do fabricante."
+      ],
+      "0.16.18": [
+        "Os nomes de variantes no mapa da placa não são mais cortados antes do caractere que os diferencia. R560E e R560Q agora aparecem como são.",
+        "Um nome muito longo para uma linha agora quebra dentro da sua célula em vez de terminar antes do tempo.",
+        "Limpeza interna de valores de design não utilizados e tamanhos fixos no código, sem mudança visível."
       ],
       "0.16.17": [
         "Fundos coloridos suaves e bordas coloridas agora realmente aparecem. Até agora eles desapareciam silenciosamente da folha de estilos em todas as versões.",
@@ -2667,18 +2763,31 @@
         "O hook post-commit de versão não falha mais em um caminho que foi removido.",
         "Uma nota de versão longa agora rola dentro da janela, em vez de ultrapassar a borda inferior."
       ],
-      "0.16.18": [
-        "Os nomes de variantes no mapa da placa não são mais cortados antes do caractere que os diferencia. R560E e R560Q agora aparecem como são.",
-        "Um nome muito longo para uma linha agora quebra dentro da sua célula em vez de terminar antes do tempo.",
-        "Limpeza interna de valores de design não utilizados e tamanhos fixos no código, sem mudança visível."
+      "0.16.29": [
+        "Um valor que o pipeline não conseguiu calcular agora se identifica, em vez de surgir 60 segundos depois como tempo limite de conexão.",
+        "A confiança de uma decisão só é informada quando foi medida, e a estimativa e sua margem de erro leem os mesmos sinais.",
+        "O conjunto de testes roda no Windows, onde antes uma única ferramenta ausente pulava os 1301 testes e informava sucesso.",
+        "Dois defeitos que só o Windows alcança foram corrigidos: a publicação de cada pacote de exportação falhava e cada arquivo de soma de verificação era ilegível.",
+        "Uma tradução que remove ou renomeia um espaço reservado é detectada antes da publicação, em vez de chegar à tela com uma lacuna."
       ],
-      "0.16.22": [
-        "A distribuição de veredictos não mostra mais uma taxa de recuperação. Uma execução agora informa uma taxa em vez de duas que contavam de forma diferente.",
-        "A taxa de sucesso permanece e conta exatamente os clones PASS que a lista de seleção realmente exporta.",
-        "A barra abaixo continua dividindo as variantes em aprovadas, confirmadas com uma mudança adicional e não confirmadas."
+      "0.16.30": [
+        "A etapa 4 não exige mais um arquivo de plate layout. Deixando vazio, as posições de poço são mapeadas pela planilha verdict do Analyze.",
+        "Um arquivo de layout continua tendo prioridade quando informado, e a verificação contra as identidades do verdict permanece igual.",
+        "Um poço medido sem resultado de NGS é contado e nomeado em vez de falhar a compilação inteira."
+      ],
+      "0.16.31": [
+        "A etapa 4 lê os relatórios Agilent com nomes de amostra numéricos, tanto a triagem da placa inteira quanto a confirmação replicada.",
+        "Uma confirmação replicada é integrada à triagem a que pertence, substituindo esses valores e marcando os que divergem.",
+        "As posições numéricas são resolvidas pela lista de variantes projetadas, então nenhum arquivo de placa precisa ser transcrito à mão.",
+        "Uma confirmação que cobre outro conjunto de variantes é recusada informando as duas contagens, em vez de rotulada com as erradas.",
+        "A contagem de réplicas é a que o arquivo carrega, de uma única medida até quantas a corrida tiver feito."
       ]
     },
     "releaseStamps": {
+      "0.16.29": "3f25adcf",
+      "0.16.28": "35bab529",
+      "0.16.27": "4cd14ddd",
+      "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",
@@ -2713,7 +2822,9 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.30": "bab83ea7",
+      "0.16.31": "60d4442c"
     }
   },
   "primerDisplay": {
@@ -2834,6 +2945,7 @@
     "writeFailed": "Não foi possível gravar o arquivo de salvamento automático ({{filename}}). Causa: {{cause}}",
     "carriedFromScratch": "Continuado de uma sessão anterior não salva ({{relative}})",
     "resultsDiscarded": "A lista de variants foi selecionada novamente a partir do arquivo de origem e não corresponde mais à tabela de primers restaurada, portanto a tabela foi limpa. Execute o design novamente.",
+    "resultsIncomplete": "Parte dos resultados salvos nao estava completa, portanto nao foi restaurada em vez de ser exibida pela metade. Execute a analise novamente para recupera-la. Faltando: {{fields}}",
     "inputsUnavailable": "Nao foi possivel abrir {{count}} arquivo(s) de entrada, que ficaram de fora da restauracao. Os resultados continuam la, mas falta a entrada de origem. Selecione novamente: {{paths}}",
     "workspaceRestored": "Workspace restaurado",
     "autoDetected": "Auto-detectado: {{fields}}",

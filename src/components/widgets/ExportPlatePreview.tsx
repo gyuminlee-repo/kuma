@@ -4,7 +4,7 @@ import { useShallow } from "zustand/react/shallow";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { rpc } from "@/lib/ipc";
+import { sendRequest } from "@/lib/ipc-kuro";
 import {
   adaptEchoRows,
   adaptJanusRows,
@@ -13,8 +13,6 @@ import {
   type EchoCell,
   type JanusCell,
   type DestCell,
-  type EchoDryRunRow,
-  type JanusDryRunRow,
 } from "@/lib/echoJanusAdapter";
 import { EchoPlateView } from "./EchoPlateView";
 import { JanusPlateView } from "./JanusPlateView";
@@ -23,17 +21,10 @@ import { PlateLegendsPanel } from "./PlateLegendsPanel";
 import { useAppStore } from "@/store/appStore";
 import { getSortedMutations, reorderMappings } from "@/lib/plate-utils";
 
-interface EchoDryRunResult {
-  rows: EchoDryRunRow[];
-  total: number;
-  transfer_vol: number;
-}
-
-interface JanusDryRunResult {
-  rows: JanusDryRunRow[];
-  total: number;
-  transfer_vol: number;
-}
+// The two dry-run result shapes used to be declared here and asserted onto the
+// raw transport reply. They now come from RpcMethodMap via sendRequest, which
+// checks them against src/types/validators.ts before handing them back, so a
+// local restatement would be a second source of truth for the same contract.
 
 type View = "echo" | "janus";
 
@@ -97,7 +88,7 @@ export function ExportPlatePreview() {
     setLoading(true);
     setError(null);
     try {
-      const echoParams: Record<string, unknown> = {
+      const echoParams = {
         mappings: sortedMappings,
         dedup_info: dedupInfo,
         transfer_vol: echoTransferVol,
@@ -106,14 +97,14 @@ export function ExportPlatePreview() {
         quadrant: echoQuadrant,
         used_quadrants: echoUsedQuadrants,
       };
-      const janusParams: Record<string, unknown> = {
+      const janusParams = {
         mappings: sortedMappings,
         dedup_info: dedupInfo,
         transfer_vol: janusTransferVol,
       };
       const [e, j] = await Promise.all([
-        rpc<EchoDryRunResult>("kuro", "export_echo_mapping_dry_run", echoParams),
-        rpc<JanusDryRunResult>("kuro", "export_janus_mapping_dry_run", janusParams),
+        sendRequest("export_echo_mapping_dry_run", echoParams),
+        sendRequest("export_janus_mapping_dry_run", janusParams),
       ]);
       const echoRows = e?.rows ?? [];
       const janusRows = j?.rows ?? [];

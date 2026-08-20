@@ -318,9 +318,11 @@ def main(emit_ready: bool = True) -> None:
     triggering this module's heavy imports.
     """
     if sys.platform == "win32":
-        sys.stdout.reconfigure(encoding="utf-8")
-        sys.stdin.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        # typeshed declares the std streams as TextIO, which omits reconfigure;
+        # the runtime objects are TextIOWrapper and carry it.
+        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+        sys.stdin.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
 
     _start_parent_watchdog()
     _start_memory_monitor()

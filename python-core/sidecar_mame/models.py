@@ -427,9 +427,12 @@ class BuildEvolveproInputParams(BaseModel):
     activity_scale: str = "raw"
     gc_data_xlsx: str | None = None
     round1_report_xlsx: str | None = None
+    numeric_report_xlsx: str | None = None
     remeasure_report_xlsx: str | None = None
+    remeasure_numeric_xlsx: str | None = None
     verdict_xlsx: str
     layout_xlsx: str | None = None
+    expected_xlsx: str | None = None
     output_xlsx: str
     mismatch_threshold: float = Field(default=0.1, gt=0.0)
     gc_export_xlsx: str | None = None
@@ -450,7 +453,8 @@ class BuildEvolveproInputParams(BaseModel):
         return v
 
     @field_validator(
-        "gc_data_xlsx", "round1_report_xlsx", "remeasure_report_xlsx",
+        "gc_data_xlsx", "round1_report_xlsx", "numeric_report_xlsx",
+        "remeasure_report_xlsx", "remeasure_numeric_xlsx",
         "verdict_xlsx", "layout_xlsx", mode="after",
     )
     @classmethod
@@ -464,6 +468,29 @@ class BuildEvolveproInputParams(BaseModel):
             raise ValueError(f"Input must be an .xlsx file: {v}")
         if not p.exists():
             raise ValueError(f"Input xlsx not found: {v}")
+        return v
+
+    @field_validator("expected_xlsx", mode="after")
+    @classmethod
+    def _check_expected(cls, v: str | None) -> str | None:
+        """The design list, read as a workbook or as delimited text.
+
+        ``kuma_core.mame.io.variant_list`` accepts csv, tsv and txt beside a
+        workbook, and this is the same file the analyze step already takes, so
+        narrowing it to xlsx here would refuse a design the rest of the app
+        reads.
+        """
+        if v is None:
+            return None
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if p.suffix.lower() not in {".xlsx", ".xls", ".csv", ".tsv", ".txt"}:
+            raise ValueError(
+                f"expected_xlsx must be .xlsx, .xls, .csv, .tsv, or .txt: {v}"
+            )
+        if not p.exists():
+            raise ValueError(f"expected_xlsx not found: {v}")
         return v
 
     @field_validator("activity_scale")
@@ -480,19 +507,34 @@ class BuildEvolveproInputParams(BaseModel):
                 ("activity_path", self.activity_path),
                 ("gc_data_xlsx", self.gc_data_xlsx),
                 ("round1_report_xlsx", self.round1_report_xlsx),
+                ("numeric_report_xlsx", self.numeric_report_xlsx),
             ) if value
         ]
         if len(sources) != 1:
             raise ValueError(
                 "provide exactly one primary source: activity_path, gc_data_xlsx, "
-                "or round1_report_xlsx"
+                "round1_report_xlsx, or numeric_report_xlsx"
             )
-        if self.gc_data_xlsx and not self.layout_xlsx:
-            raise ValueError("gc_data_xlsx is well-labeled and requires layout_xlsx")
-        if self.round1_report_xlsx and not self.layout_xlsx:
+        if self.remeasure_report_xlsx and self.remeasure_numeric_xlsx:
             raise ValueError(
-                "round1_report_xlsx is well-labeled and requires layout_xlsx"
+                "provide at most one confirmation source: remeasure_report_xlsx "
+                "(variant-labeled) or remeasure_numeric_xlsx (numeric IDs)"
             )
+        # A numeric sample name states a position, so decoding one needs the
+        # order the plate was filled in. Either source answers it and supplying
+        # both leaves the answer ambiguous, so exactly one is required.
+        needs_order = bool(self.numeric_report_xlsx or self.remeasure_numeric_xlsx)
+        if needs_order and bool(self.expected_xlsx) == bool(self.layout_xlsx):
+            raise ValueError(
+                "a numeric-ID report needs exactly one order source: "
+                "expected_xlsx (the design list, preferred) or layout_xlsx "
+                "(the plate file)"
+            )
+        # A well-labeled source needs a well->variant mapping, not a layout
+        # file: without one the builder derives the same mapping from the
+        # verdict workbook, which names a mutant_id per well and is required
+        # here regardless. Whether that derivation covers the measured wells is
+        # a data question the builder answers, so it is not asserted here.
         return self
 
     @field_validator("output_xlsx", "gc_export_xlsx", mode="after")

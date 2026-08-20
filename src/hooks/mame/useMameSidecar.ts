@@ -21,8 +21,16 @@ export function useMameSidecar() {
         // 0..50, analyze 50..100) and stamps a `stage` key. Pass it through
         // as-is — composeAnalysisProgress here would double-rescale. The
         // legacy/consensus path (no stage) keeps phase-based scaling.
-        const scaledProgress = hasStage
+        // The clamp is three relation tests, and NaN fails every relation test
+        // silently: `Math.max(0, Math.min(100, NaN))` is NaN, `Math.round(NaN)`
+        // is NaN, and the bar renders as `width: NaN%`, which is no width at
+        // all. A non-finite value is not a progress reading, so it is refused
+        // and the last real one stands.
+        const clamped = Number.isFinite(progress.value)
           ? Math.round(Math.max(0, Math.min(100, progress.value)))
+          : state.analyzeProgress;
+        const scaledProgress = hasStage
+          ? clamped
           : composeAnalysisProgress(
               progress.value,
               state.analyzePhase ?? "analyze",

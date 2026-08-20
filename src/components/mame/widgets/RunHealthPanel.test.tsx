@@ -5,7 +5,7 @@ import en from "@/locales/en.json";
 import { VERDICT_LABEL } from "@/lib/mame/verdictColors";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { RunHealthBreakdown, RunHealthData, VerdictClass } from "@/types/mame/models";
-import { RunHealthPanel } from "./RunHealthPanel";
+import { RUN_HEALTH_QC_SECTIONS, RunHealthPanel } from "./RunHealthPanel";
 
 function breakdown(overrides: Partial<RunHealthBreakdown> = {}): RunHealthBreakdown {
   return {
@@ -241,5 +241,48 @@ describe("RunHealthPanel, recovery / detected / class table", () => {
 
     expect(screen.getByText("Not recovered: 2")).toBeInTheDocument();
     expect(screen.queryByText("Not recovered: 1")).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * A subset that asks for a MinKNOW-only section on a run with no raw data used
+ * to draw an empty panel: the whole `hasMinKnow` block is skipped, no exception
+ * is raised, and the one line explaining the absence was gated on
+ * `sections === undefined`. Those four sections are the entire raw-run surface,
+ * so silence there is indistinguishable from a run that went well.
+ */
+describe("RunHealthPanel, absent MinKNOW data under a section subset", () => {
+  it("states the absence when the subset asks for a MinKNOW section", () => {
+    const { container } = render(
+      <RunHealthPanel health={makeHealth()} sections={RUN_HEALTH_QC_SECTIONS} />,
+    );
+
+    expect(screen.getByText(en.mame.runHealth.noMinKnow)).toBeInTheDocument();
+    expect(container.textContent ?? "").not.toContain("{{");
+    expect(container.textContent ?? "").not.toContain("mame.");
+  });
+
+  it("stays silent when the subset asks for nothing MinKNOW supplies", () => {
+    render(<RunHealthPanel health={makeHealth()} sections={["verdict-breakdown"]} />);
+
+    expect(screen.queryByText(en.mame.runHealth.noMinKnow)).not.toBeInTheDocument();
+  });
+
+  it("keeps stating the absence for the whole dashboard", () => {
+    render(<RunHealthPanel health={makeHealth()} />);
+
+    expect(screen.getByText(en.mame.runHealth.noMinKnow)).toBeInTheDocument();
+  });
+
+  it("says nothing about MinKNOW once the raw run supplied a pore yield", () => {
+    render(
+      <RunHealthPanel
+        health={makeHealth({ pore_yield_pct: 61.5 })}
+        sections={RUN_HEALTH_QC_SECTIONS}
+      />,
+    );
+
+    expect(screen.queryByText(en.mame.runHealth.noMinKnow)).not.toBeInTheDocument();
+    expect(screen.getByText("61.5%")).toBeInTheDocument();
   });
 });

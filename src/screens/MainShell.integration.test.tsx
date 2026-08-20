@@ -31,7 +31,7 @@ vi.mock("@/lib/ipc", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/ipc")>();
   return {
     ...actual,
-    rpc: vi.fn().mockResolvedValue({}),
+    rawSidecarRpc: vi.fn().mockResolvedValue({}),
   };
 });
 
@@ -72,13 +72,23 @@ vi.mock("./KuroTab", () => ({
 
 import { App } from "@/App";
 import * as projectApi from "../lib/project";
-import { rpc } from "@/lib/ipc";
+import { rawSidecarRpc } from "@/lib/ipc";
 
 const getConfigMock = vi.mocked(projectApi.getConfig);
 const createProjectMock = vi.mocked(projectApi.createProject);
 const loadProjectMock = vi.mocked(projectApi.loadProject);
 const listRecentProjectsMock = vi.mocked(projectApi.listRecentProjects);
-const rpcMock = vi.mocked(rpc);
+const rpcMock = vi.mocked(rawSidecarRpc);
+
+/** A complete `read_kuma_meta` payload, as `KumaMeta.to_dict()` emits it. */
+function kumaMeta(projectId: string) {
+  return {
+    project_id: projectId,
+    kuma_version: "0.16.25",
+    kuro_module_version: "0.16.25",
+    exported_at: "2026-04-24T00:00:00+09:00",
+  };
+}
 
 describe("kuma end-to-end integration (frontend)", () => {
   beforeEach(() => {
@@ -166,10 +176,13 @@ describe("kuma end-to-end integration (frontend)", () => {
         project_id: "proj-other-xlsx",
       },
     ]);
-    // rpc("mame", "read_kuma_meta", ...) returns a project_id that matches Other.
-    rpcMock.mockImplementation(async (kind, method) => {
+    // read_kuma_meta returns a project_id that matches Other. The payload carries
+    // all four KumaMeta fields because the handler always does
+    // (kuma_core/mame/io/kuma_meta.py: missing values are "" , never absent), and
+    // the MAME validator now refuses a partial one.
+    rpcMock.mockImplementation(async (kind: string, method: string) => {
       if (kind === "mame" && method === "read_kuma_meta") {
-        return { project_id: "proj-other-xlsx" };
+        return kumaMeta("proj-other-xlsx");
       }
       return {};
     });
@@ -210,9 +223,9 @@ describe("kuma end-to-end integration (frontend)", () => {
       stage: "draft",
     });
     listRecentProjectsMock.mockResolvedValue([]);
-    rpcMock.mockImplementation(async (kind, method) => {
+    rpcMock.mockImplementation(async (kind: string, method: string) => {
       if (kind === "mame" && method === "read_kuma_meta") {
-        return { project_id: "proj-unknown" };
+        return kumaMeta("proj-unknown");
       }
       return {};
     });

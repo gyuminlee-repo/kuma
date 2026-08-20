@@ -32,6 +32,7 @@ from kuma_core.mame.ingest.combinatorial_demux import (
     load_barcodes,
     run_combinatorial_demux,
 )
+from tests.mame.minimap2_support import requires_minimap2
 
 # ---------------------------------------------------------------------------
 # Synthetic constants
@@ -487,6 +488,7 @@ class TestDemuxRead:
 # ---------------------------------------------------------------------------
 
 
+@requires_minimap2
 class TestRunCombinatorialDemux:
     def test_assigned_reads_and_wells(
         self, tmp_path: Path, tmp_reference: Path, mock_barcodes_xlsx: Path
@@ -653,6 +655,7 @@ class TestRunCombinatorialDemux:
 # ---------------------------------------------------------------------------
 
 
+@requires_minimap2
 class TestProgressCallback:
     """Verify progress_callback is called during demux and consensus phases."""
 
@@ -745,6 +748,15 @@ class TestConsensusParallelEquivalence:
         # Minimal DemuxStats / DemuxResult stubs via real run but patched internals
         from kuma_core.mame.ingest import combinatorial_demux as cd_mod
 
+        def _consensus(*args: object) -> tuple:
+            """Call through the module attribute so the patch below applies.
+
+            The stub returns the 16 leading fields, not a full WellConsensus,
+            and is handed a reference path where the real function takes
+            alignments, so the call is deliberately untyped here.
+            """
+            return cd_mod._compute_well_consensus(*args)  # type: ignore[arg-type]
+
         # We patch at a higher level: provide fake per_well_reads by patching
         # the align functions to return empty (no reads pass) so per_well is
         # empty, which means consensus loop is skipped.
@@ -791,7 +803,7 @@ class TestConsensusParallelEquivalence:
                     max_del_run_length,
                     consensus_net_indel,
                     read_net_indel,
-                ) = cd_mod._compute_well_consensus(
+                ) = _consensus(
                     wn, rds, ref_fasta, ref_seq, ref_len, 1
                 )
                 result_serial[wn] = seq
@@ -814,7 +826,7 @@ class TestConsensusParallelEquivalence:
             done = 0
             with concurrent.futures.ThreadPoolExecutor(max_workers=_CONSENSUS_WORKERS) as pool:
                 futures = {
-                    pool.submit(cd_mod._compute_well_consensus, wn, rds,
+                    pool.submit(_consensus, wn, rds,
                                 ref_fasta, ref_seq, ref_len, 1): wn
                     for wn, rds in per_well_reads.items()
                 }
@@ -1009,6 +1021,7 @@ def test_extract_barcode_windows_is_used_by_demux_read_anchored() -> None:
     assert len(calls) == 1
 
 
+@requires_minimap2
 @pytest.mark.parametrize("chimera_split", [True, False])
 def test_coverage_wipeout_is_not_reported_as_a_mapq_wipeout(
     tmp_path: Path, mock_barcodes_xlsx: Path, chimera_split: bool

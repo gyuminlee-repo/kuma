@@ -2,7 +2,9 @@ import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react"
 import { useTranslation } from "react-i18next";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
-import { killSidecar, rpc, type SidecarKind } from "@/lib/ipc";
+import { killSidecar } from "@/lib/ipc";
+import { pingSidecar as pingKuroSidecar } from "@/lib/ipc-kuro";
+import { pingSidecar as pingMameSidecar } from "@/lib/ipc-mame";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { GlobalAppBar, type AppTab } from "@/components/layout/GlobalAppBar";
 import { useKumaProject } from "@/state/projectContext";
@@ -50,8 +52,15 @@ function ShellPaneFallback() {
 
 type TFunc = (key: string, opts?: Record<string, string | number>) => string;
 
-function formatRelativeTime(isoString: string, t: TFunc): string {
-  const diffMs = Date.now() - new Date(isoString).getTime();
+// exported for test: the branch table is the whole logic and mounting MainShell
+// to reach it drags in the Tauri bridge.
+export function formatRelativeTime(isoString: string, t: TFunc): string {
+  // An unparseable timestamp gives NaN, and every comparison against NaN is
+  // false, so control would fall through to the days branch and present
+  // "NaN day(s)" as if it were a measurement. Say the time is unknown instead.
+  const savedAt = new Date(isoString).getTime();
+  if (!Number.isFinite(savedAt)) return t("mainShell.relativeTime.unknown");
+  const diffMs = Date.now() - savedAt;
   const diffMin = Math.floor(diffMs / 60_000);
   if (diffMin < 1) return t("mainShell.relativeTime.justNow");
   if (diffMin < 60) return t("mainShell.relativeTime.minutesAgo", { n: diffMin });
@@ -173,7 +182,10 @@ export function MainShell() {
       // 읽기/쓰기 실패는 침묵하면 안 된다. 이 시점부터 자동 저장이 봉인된다.
       msg.variant === "io_failed" ||
       // 결과물 폐기도 침묵하면 안 된다. 표가 비워진 이유를 알려야 한다.
-      msg.variant === "results_discarded"
+      msg.variant === "results_discarded" ||
+      // 그룹 거절도 같다. 조용히 초기값으로 두면 사용자는 결과 일부가 안
+      // 돌아온 것을 화면의 숫자로만 만나게 되고, 그 숫자를 측정값으로 읽는다.
+      msg.variant === "results_incomplete"
     ) {
       showStatusMessage(msg.message);
     }
@@ -365,8 +377,13 @@ export function MainShell() {
     }
 
     // Lazily start the destination sidecar for autosave-backed tabs.
+    // Lifecycle ping, not a data call. It goes through each client's
+    // pingSidecar rather than the raw transport, so the shell holds no direct
+    // reference to the unchecked transport; the call it makes is byte for byte
+    // the one it used to make itself.
     if (nextKind === "kuro" || nextKind === "mame") {
-      void rpc(nextKind as SidecarKind, "ping", {}).catch(() => {
+      const ping = nextKind === "kuro" ? pingKuroSidecar : pingMameSidecar;
+      void ping().catch(() => {
         // Ignore lazy sidecar startup failures in the shell.
       });
     }

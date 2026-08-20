@@ -32,10 +32,10 @@ def test_variant_centroid_unparseable():
 
 def test_variant_centroid_with_ca():
     """With Ca coords, returns mean of resolved coordinates."""
-    ca = [None] * 20  # 1-based, indices 1-19
+    ca: list[tuple[float, float, float] | None] = [None] * 20  # 1-based, indices 1-19
     ca[5] = (1.0, 2.0, 3.0)
     ca[10] = (3.0, 4.0, 5.0)
-    c = _variant_centroid("A5C:K10R", ca)  # type: ignore[arg-type]
+    c = _variant_centroid("A5C:K10R", ca)
     assert c == (2.0, 3.0, 4.0)
 
 

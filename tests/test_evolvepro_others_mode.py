@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 from pathlib import Path
+from typing import Any
 
 import openpyxl
 import pytest
@@ -22,6 +23,7 @@ def _write_xlsx(sheets: dict[str, list[list[str]]], path: Path) -> None:
     for sheet_name, rows in sheets.items():
         if first:
             ws = wb.active
+            assert ws is not None
             ws.title = sheet_name
             first = False
         else:
@@ -31,7 +33,7 @@ def _write_xlsx(sheets: dict[str, list[list[str]]], path: Path) -> None:
     wb.save(str(path))
 
 
-def _write_xls(sheets: dict[str, list[list[str]]], path: Path) -> None:
+def _write_xls(sheets: dict[str, list[list[Any]]], path: Path) -> None:
     wb = xlwt.Workbook()
     for sheet_name, rows in sheets.items():
         ws = wb.add_sheet(sheet_name)

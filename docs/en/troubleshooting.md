@@ -2,7 +2,7 @@
 
 ## Sidecar process exited
 
-The Python sidecar crashed during startup or an RPC call. Check `~/.kuro/crash.log` for the traceback.
+The Python sidecar crashed during startup or an RPC call. Check `~/.kuma/kuro/crash.log` for the traceback.
 
 Common causes:
 - PyInstaller bundle missing a module (rare, reported as `ModuleNotFoundError`)
@@ -11,7 +11,7 @@ Common causes:
 
 ## UniProt: no matching entries / low-similarity hits
 
-BLAST needs an email. Set `KURO_CONTACT_EMAIL` or `contact_email` in `~/.kuro/config.json` — see [Configuration](configuration.md). With v1.33.6+ a default is used so BLAST works out of the box; low-similarity hits indicate BLAST itself failed (check internet, EBI status).
+BLAST needs an email. Set `KURO_CONTACT_EMAIL` or `contact_email` in `~/.kuma/kuro/config.json` — see [Configuration](configuration.md). With v1.33.6+ a default is used so BLAST works out of the box; low-similarity hits indicate BLAST itself failed (check internet, EBI status).
 
 ## "expected WT amino acid X at position N, but codon YYY encodes Z"
 

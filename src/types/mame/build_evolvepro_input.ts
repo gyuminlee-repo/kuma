@@ -6,16 +6,34 @@ export interface BuildEvolveproInputParams {
   activity_path?: string | null
   /** Interpretation of activity_path values. Raw data is WT-normalized per cohort. */
   activity_scale?: "raw" | "relative_to_wt"
-  /** Existing pre-normalized, well-labeled GC sheet. Requires layout_xlsx. */
+  /** Existing pre-normalized, well-labeled GC sheet. Wells are mapped by layout_xlsx, or by the verdict sheet when none is given. */
   gc_data_xlsx?: string | null
-  /** Existing raw, well-labeled round-1 Agilent report. Requires layout_xlsx. */
+  /** Existing raw, well-labeled round-1 Agilent report. Wells are mapped by layout_xlsx, or by the verdict sheet when none is given. */
   round1_report_xlsx?: string | null
+  /**
+   * Whole-plate raw Agilent report whose sample names are numeric positions
+   * (`1`, `2`, `3`, ...). ID `i` is the `i`-th variant of the plate order, so
+   * it needs an order source: expected_xlsx or layout_xlsx.
+   */
+  numeric_report_xlsx?: string | null
   /** Optional variant-labeled raw Agilent confirmation report. */
   remeasure_report_xlsx?: string | null
+  /**
+   * Optional replicated confirmation whose sample names are numeric positions
+   * (`1`, `1-2`, `1-3`, ...). ID `j` is the `j`-th variant the primary screen
+   * put above wild-type, in plate order, so it needs an order source too.
+   */
+  remeasure_numeric_xlsx?: string | null
   /** Mandatory strict NGS evidence workbook. */
   verdict_xlsx: string
   /** Mapping metadata required by well-labeled inputs. */
   layout_xlsx?: string | null
+  /**
+   * Designed variant list (the analyze step expected workbook). Order source
+   * for numeric-ID reports, and the one to prefer: it is the order the run was
+   * placed in, with nothing transcribed by hand.
+   */
+  expected_xlsx?: string | null
   output_xlsx: string
   mismatch_threshold?: number
   /** Optional well-level relative-activity review export for raw round-1 reports. */
@@ -58,7 +76,7 @@ export interface BuildEvolveproInputResult {
   gc_export_path: string
   label_audit: LabelAudit | null
   manifest_path: string
-  primary_format: "activity_path" | "gc_data_xlsx" | "round1_report_xlsx"
+  primary_format: "activity_path" | "gc_data_xlsx" | "round1_report_xlsx" | "numeric_report_xlsx"
   input_count: number
   evaluable_count: number
   exclusion_reason_counts: Record<string, number>
@@ -81,4 +99,19 @@ export interface BuildEvolveproInputResult {
    * behind it never reach this app.
    */
   wt_values: number[]
+
+  /**
+   * The replicates behind each exported activity, keyed by the variant as the
+   * workbook writes it, on the scale of the activity column.
+   *
+   * The workbook states one mean per variant and nothing about how many
+   * measurements produced it, so a reader cannot tell a value measured once
+   * from a value measured four times. Those carry different weight in any
+   * judgement about whether a round improved beyond measurement noise.
+   *
+   * Lists rather than counts: the build already held these and kept only the
+   * mean, which is what made this gap, and summarising again here would make
+   * the next one.
+   */
+  variant_replicates: Record<string, number[]>
 }

@@ -23,6 +23,7 @@ from kuma_core.mame.ingest.align import (
     align_reads_multi,
     build_minimap2_index,
 )
+from tests.mame.minimap2_support import requires_minimap2
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -83,6 +84,7 @@ class TestGetReferenceLength:
             _get_reference_length(ref)
 
 
+@requires_minimap2
 class TestAlignReads:
     @pytest.fixture()
     def ref_fasta(self, tmp_path: Path) -> Path:
@@ -252,6 +254,7 @@ class TestAlignReads:
         assert aln.q_st > 0
 
 
+@requires_minimap2
 class TestAlignReadsMultiPrebuiltIndex:
     """`reference_index` on the demux path must not perturb any output.
 

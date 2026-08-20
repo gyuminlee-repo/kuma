@@ -18,11 +18,11 @@ import {
   deriveAnnotationGeneName,
   type CdsCandidate,
 } from "@/lib/sequence/autoDetectCds";
-import type { SequenceInfo } from "@/types/models";
 import type { VariantSourceInfo } from "@/types/mame/barcode_package";
 import { useKumaProject } from "@/state/projectContext";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
-import { rpc } from "@/lib/ipc";
+import { sendRequest as sendKuroRequest } from "@/lib/ipc-kuro";
+import { sendRequest as sendMameRequest } from "@/lib/ipc-mame";
 import { describeRpcError, extractMissingMethod } from "@/lib/errors";
 import { revealInOSFolder } from "@/lib/openFolder";
 import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
@@ -249,7 +249,7 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
       // through the kuro sidecar's load_fasta RPC (Biopython-backed), which
       // returns real gene annotations. Text-parsing binary content here is
       // exactly what produced junk ORF candidates before this fix.
-      rpc<SequenceInfo>("kuro", "load_fasta", { filepath: form.fastaPath })
+      sendKuroRequest("load_fasta", { filepath: form.fastaPath })
         .then((info) => {
           if (cancelled) return;
           const candidates: CdsCandidate[] = info.genes.map((g) => {
@@ -350,7 +350,7 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
     let cancelled = false;
     void (async () => {
       try {
-        const info = await rpc<VariantSourceInfo>("mame", "inspect_variant_source", { path });
+        const info = await sendMameRequest<VariantSourceInfo>("inspect_variant_source", { path });
         if (cancelled) return;
         setVariantInfo(info);
         // KURO export 는 판독 시트를 그대로 골라 둔 상태로 시작한다. 그 값을 보내는
@@ -527,7 +527,10 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
 
     try {
       // generate_mame_package는 프라이머 설계 작업으로 시간이 걸릴 수 있다.
-      const res = await rpc<MamePackageResult>("mame", "generate_mame_package", params);
+      const res = await sendMameRequest<MamePackageResult>(
+        "generate_mame_package",
+        params as unknown as Record<string, unknown>,
+      );
       setResult(res);
       setReferencePath(res.amplicon_fa);
       setParams({

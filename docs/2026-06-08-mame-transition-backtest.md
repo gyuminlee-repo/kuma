@@ -4,7 +4,9 @@
 
 ## 출처
 
-원 분석은 kuma 저장소 밖에서 수행됐다. 워크스페이스 루트의 형제 저장소 `$WORKSPACE_ROOT/cc/mame_backtest` 이며 2026-08-07 기준 커밋 1개(`db5b89f`), **리모트 없음**. 즉 원본은 분석을 돌린 머신에만 존재한다. 이 문서는 그 저장소의 `report_final.md` (2026-06-08 작성) 를 kuma 안으로 옮겨 적은 것이고, 코드가 의존하는 판단 근거가 코드와 함께 이동하도록 하는 것이 목적이다.
+원 분석은 kuma 저장소 밖에서 수행됐다. 형제 저장소 `mame_backtest` 이고 워크스페이스에서는 `$WORKSPACE_ROOT/cc/mame_backtest` 다. 2026-08-18 에 private 원격 저장소로 올렸다. 그전까지는 커밋 1개(`db5b89f`)에 원격이 없어 분석을 돌린 머신에만 존재했다. 데이터에 Zenodo 에서 받은 DMS 캠페인 결과가 섞여 있어 public 이 아니라 private 로 뒀다.
+
+이 문서는 그 저장소의 `report_final.md` (2026-06-08 작성) 를 kuma 안으로 옮겨 적은 것이다. 코드가 의존하는 판단 근거가 코드와 함께 이동하게 하는 것이 목적이므로, 결론은 여기서 읽고 재현이 필요할 때만 원 저장소를 연다.
 
 원 저장소 산출물:
 
@@ -18,7 +20,7 @@
 
 ## 무엇을 쟀나
 
-single mutant walking 을 언제 접고 combinatorial 로 넘어갈지 판단하는 세 기준을 검증했다. A = 단일 소진, B = 가산 headroom, C = throughput. 비교 대상은 재시작 없는 greedy baseline 이고, 지표는 regret (도달 못 한 최적값과의 격차, 낮을수록 좋음).
+single mutant walking 을 언제 접고 combinatorial 로 넘어갈지 판단하는 세 기준을 검증했다. A = 단일 소진, B = 가산 headroom, C = throughput. 비교 대상은 재시작 없는 greedy baseline 이다. 지표는 regret (도달 못 한 최적값과의 격차, 낮을수록 좋음).
 
 | landscape | greedy regret | A/B/C regret | 상대 우위 |
 |---|---|---|---|
@@ -47,7 +49,7 @@ single mutant walking 을 언제 접고 combinatorial 로 넘어갈지 판단하
 2. ACTION 은 막혔을 때 beneficial position 에 focused combinatorial library. 가치는 조합 move 자체이지 epistasis 예측이 아니다.
 3. B (가산 headroom) 는 약한 필요조건 필터로만 쓴다. 정밀 예측자로 쓰지 말 것.
 4. hard case (quiet position 의 sign epistasis) 는 single 데이터로 탐지 불가하다. 문제의 성질이며 조합을 실제로 테스트해야만 드러난다. 분류기가 약속할 수 없는 영역임을 명시한다.
-5. 컷 (언제 전환) 은 PI 판단 또는 관행. 가산·중간 landscape 에서는 컷에 robust 하고, hard 에서는 작용할 신호가 없어 컷이 무의미하다.
+5. 컷 (언제 전환) 은 PI 판단 또는 관행. 가산·중간 landscape 에서는 컷에 robust 하다. hard 에서는 작용할 신호가 없어 컷이 무의미하다.
 
 ## 코드가 여기에 의존하는 지점
 
@@ -61,4 +63,4 @@ single mutant walking 을 언제 접고 combinatorial 로 넘어갈지 판단하
 - 합성 landscape 는 a, b 단일 난수 draw 다. 다중 draw 평균으로의 일반화는 미실시.
 - greedy baseline 은 무재시작 (local optimum 에서 정지). random-restart greedy 가 더 강한 baseline 이다.
 
-한 줄 요약: A/B/C 는 안전하되 (어느 경우에도 greedy 보다 나쁘지 않음) 효과는 modest 하고 상황적이며, single 데이터만으로는 quiet position 에 숨은 sign epistasis 를 원리적으로 볼 수 없다.
+한 줄 요약: A/B/C 는 안전하되 (어느 경우에도 greedy 보다 나쁘지 않음) 효과는 modest 하고 상황적이다. single 데이터만으로는 quiet position 에 숨은 sign epistasis 를 원리적으로 볼 수 없다.

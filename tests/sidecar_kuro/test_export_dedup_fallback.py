@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import csv
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
 
@@ -76,7 +77,8 @@ def _reset_state():
 
 def _seed_results() -> None:
     with _core._state_lock:
-        _core._state.results = _results()
+        # SimpleNamespace stubs carry only the two attributes the handler reads.
+        _core._state.results = cast(list, _results())
 
 
 def _rev_destinations(csv_path) -> list[str]:

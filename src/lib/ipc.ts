@@ -6,7 +6,26 @@ function hasTauriBridge(): boolean {
   return typeof (globalThis as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ !== "undefined";
 }
 
-export async function rpc<T = unknown>(
+/**
+ * Raw sidecar transport. NOT the function to call from feature code.
+ *
+ * It sends a method name and params to a sidecar and casts the reply to `T`
+ * with nothing checking that the reply is a `T`. That cast is the whole problem:
+ * a payload of the wrong shape becomes `undefined` deep inside a component
+ * rather than an error at the boundary.
+ *
+ * The guarded entry points are `sendRequest` in `src/lib/ipc-kuro/index.ts` and
+ * `src/lib/ipc-mame/index.ts`, which look up a validator for the method and
+ * refuse a result that does not match. Those two modules are the only
+ * legitimate callers of this function, and `src/lib/ipc.bypass.test.ts` fails
+ * the build if a third one appears.
+ *
+ * The name is deliberately unwelcoming. It was `rpc`, and eleven feature call
+ * sites reached for it by habit and got an unchecked cast; `load_fasta` was
+ * being called both ways at once, guarded from `sequenceSlice` and unguarded
+ * from `BarcodeSetupPanel`.
+ */
+export async function rawSidecarRpc<T = unknown>(
   kind: SidecarKind,
   method: string,
   params: unknown = {},
@@ -37,32 +56,8 @@ export async function isSidecarRunning(kind: SidecarKind): Promise<boolean> {
   return invoke("sidecar_is_running", { kind }) as Promise<boolean>;
 }
 
-// === MAME strategy advisory RPC (Fork D) =====================================
-
-/**
- * Advisory classify() call with per-round xlsx file references.
- *
- * @param roundFiles - Ordered list of {n, path, wt_values?} xlsx file entries.
- *   n is 1-based round number; handler sorts by n internally. wt_values are the
- *   wild-type replicates step 4.1 recorded for that round, which the file
- *   itself cannot carry; only the highest-numbered entry is read.
- * @param cNext - Optional capacity of the next combinatorial plate (wells).
- *   Used to derive K_throughput = floor((1+sqrt(1+8*cNext))/2). Defaults to 96.
- * @returns ClassifyDecisionResult when the classifier answered, or
- *   ClassifyNotAssessableResult when the bootstrap gate was reached with too
- *   few wild-type replicates to run on, so the question could not be put to it.
- *   Discriminate on `advisory`.
- *   Throws a JSON-RPC error (-32602 / -32002) on bad input or missing/malformed files.
- *
- * Read-only, no confirmation button, no PI decision persistence.
- * MAME sidecar strategy.classify_round 호출.
- */
-export async function classifyRound(
-  roundFiles: import("@/types/mame/strategy").RoundFileEntry[],
-  cNext?: number,
-): Promise<import("@/types/mame/strategy").ClassifyRoundResult> {
-  return rpc("mame", "strategy.classify_round", {
-    round_files: roundFiles,
-    ...(cNext !== undefined && { c_next: cNext }),
-  });
-}
+// `classifyRound` used to live here. It is a MAME call, and this module is the
+// raw transport both sidecars share, so placing it here sent it to the sidecar
+// without passing the MAME client and its result was cast to
+// `ClassifyRoundResult` with nothing checking it. It now lives beside every
+// other MAME call in `src/lib/ipc-mame/index.ts`, on the validated path.

@@ -13,6 +13,7 @@ after; Ta is an additive output only.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -65,7 +66,9 @@ def test_wallace_is_case_insensitive():
 # _apply_rule: pure decision logic at exact thresholds
 # --------------------------------------------------------------------------
 
-def test_taq_3step_minus5(registry):
+def test_taq_3step_minus5_at_tm60_touchdown_none(registry):
+    # Distinct name: this body was shadowed by the identically named test
+    # below, so Python rebound the name and only the 64.0 case ever ran.
     out = _apply_rule(60.0, _rule(registry, "Taq"))
     assert out["ta_mode"] == "3step"
     assert out["recommended_ta"] == 55.0  # 60 - 5
@@ -192,9 +195,9 @@ def test_neb_source_matches_calibrated_path(registry, offsets):
 def test_none_when_no_ta_rule(offsets):
     custom = PolymeraseProfile(
         name="Custom", tm_method="santalucia", salt_correction="owczarzy",
-        opt_tm=60.0, min_tm=55.0, max_tm=65.0, opt_size=20, min_size=15,
-        max_size=25, min_gc=40.0, max_gc=60.0, salt_monovalent=50.0,
-        salt_divalent=1.5, dntp_conc=0.8, dna_conc=250.0, max_tm_diff=3.0,
+        opt_tm=60.0, min_tm=55.0, max_tm=65.0, min_gc=40.0, max_gc=60.0,
+        salt_monovalent=50.0, salt_divalent=1.5, dntp_conc=0.8,
+        dna_conc=250.0,
     )
     out = compute_annealing("ATGCATGCATGCATGCAT", "ATGCATGCATGCATGCAT", custom, offsets)
     assert out == {
@@ -232,7 +235,7 @@ _ALL_PROFILES = [
 def test_end_to_end_physical_ta(registry, offsets, name):
     gb = FIXTURES / "pSHCE-dmpR.gb"
     muts = FIXTURES / "mutation_list_insilico_test.csv"
-    kw = {"overlap_mode": "full"} if name == "Q5 SDM" else {}
+    kw: dict[str, Any] = {"overlap_mode": "full"} if name == "Q5 SDM" else {}
     results, _c, _f = design_sdm_primers(
         fasta_path=gb, target_start=1790, mutations_csv=muts, polymerase=name, **kw,
     )

@@ -38,8 +38,9 @@ vi.mock("@/store/round/roundSlice", () => ({
 }))
 
 import { createExportSlice } from "./exportSlice"
+import { sendRequest } from "@/lib/ipc-kuro"
 import { MAX_MUTATIONS_PER_RUN } from "@/lib/inputThresholds"
-import type { PlateMapping, SdmPrimerResult, WorkspaceV3 } from "@/types/models"
+import type { PlateMapping, SdmPrimerResult, SequenceInfo, WorkspaceV3 } from "@/types/models"
 
 // 최소 Zustand store 생성 helper
 function makeStore() {
@@ -286,6 +287,113 @@ describe("exportSlice — schema_version 0.3", () => {
     })
     expect(store.state.currentMajor).toBe("output")
     expect(store.state.currentSubStep).toBe("output.summary")
+  })
+
+  it("restoreWorkspace refuses the design outcome group when a count did not survive the file", async () => {
+    // designResults/successCount/totalCount 는 저장 측이 한 리터럴로 함께 쓴다.
+    // JSON.stringify 는 NaN/Infinity 를 null 로 쓰므로 카운트 하나가 null 로 돌아온다.
+    // 표만 복원하고 카운트를 `?? 0` 으로 채우면 세 줄짜리 표 위에 "3/0" 이 뜬다.
+    const designResults = [primer("M1A", 1), primer("M2A", 2), primer("M3A", 3)]
+    const workspace = {
+      schema_version: "0.3",
+      rounds: [],
+      active_round_id: null,
+      inputs: {
+        fastaPath: "",
+        mutationInputMode: "evolvepro",
+        mutationText: "",
+        evolveproCsvPath: "",
+        selectedGene: "",
+      },
+      settings: {
+        codonStrategy: "closest",
+        maxPrimers: 95,
+        tmFwdTarget: 62,
+        tmRevTarget: 58,
+        tmOverlapTarget: 42,
+        gcMin: 40,
+        gcMax: 60,
+        autoRedesignOnLoad: false,
+      },
+      results: {
+        designResults,
+        successCount: 3,
+        totalCount: null,
+        failedMutations: [],
+        plateMappings: [],
+        dedupInfo: {},
+        manuallySwapped: {},
+        customCandidates: {},
+      },
+      ui: { tableSorting: [] },
+    } as unknown as WorkspaceV3
+
+    await store.slice.restoreWorkspace(workspace)
+
+    // 통째로 버린다. 표만 살아 있는 부분 복원이 이 판정이 막으려는 상태다.
+    expect(store.state.designResults).toEqual([])
+    expect(store.state.successCount).toBe(0)
+    expect(store.state.totalCount).toBe(0)
+    expect(store.state.currentMajor).not.toBe("output")
+    // 파일은 열리고, 무엇이 빠졌는지는 statusMessage 로 드러난다.
+    expect(store.state.statusMessage).toContain("totalCount")
+    // maxPrimers 의 clamp 는 그대로다. 범위를 벗어난 설정을 고치는 것과
+    // 없는 측정값을 만들어 내는 것은 다른 판단이고, 이 테스트가 그 경계를 잡는다.
+    expect(store.state.maxPrimers).toBe(95)
+  })
+
+  it("restoreWorkspace keeps the refusal notice through the auto re-design the refusal itself triggers", async () => {
+    // 그룹을 거절하면 designResults 가 비고, 바로 그 순간 자동 재설계 조건
+    // (designResults.length === 0)이 성립한다. designPrimers 는 statusMessage 를
+    // 통째로 덮어쓰므로(designSlice.ts 의 "Designing primers..." 와 완료 문구)
+    // 안내가 사용자에게 닿기 전에 지워진다. 아래 stub 이 그 덮어쓰기를 흉내 낸다.
+    vi.mocked(sendRequest).mockResolvedValue({ genes: [] } as unknown as SequenceInfo)
+    store.state.designPrimers = async () => {
+      Object.assign(store.state, {
+        statusMessage: "Design complete: 1/1",
+        designResults: [primer("M1A", 1)],
+      })
+    }
+    const workspace = {
+      schema_version: "0.3",
+      rounds: [],
+      active_round_id: null,
+      inputs: {
+        fastaPath: "/test/sequence.fa",
+        mutationInputMode: "text",
+        mutationText: "F89W",
+        evolveproCsvPath: "",
+        selectedGene: "",
+      },
+      settings: {
+        codonStrategy: "closest",
+        maxPrimers: 95,
+        tmFwdTarget: 62,
+        tmRevTarget: 58,
+        tmOverlapTarget: 42,
+        gcMin: 40,
+        gcMax: 60,
+        autoRedesignOnLoad: true,
+      },
+      results: {
+        designResults: [primer("M1A", 1), primer("M2A", 2), primer("M3A", 3)],
+        successCount: 3,
+        totalCount: null,
+        failedMutations: [],
+        plateMappings: [],
+        dedupInfo: {},
+        manuallySwapped: {},
+        customCandidates: {},
+      },
+      ui: { tableSorting: [] },
+    } as unknown as WorkspaceV3
+
+    await store.slice.restoreWorkspace(workspace)
+
+    // 재설계는 실제로 돈다(그것이 이 상태의 회복 경로다).
+    expect(store.state.statusMessage).toContain("Design complete: 1/1")
+    // 그리고 저장된 표를 버렸다는 사실도 함께 남는다.
+    expect(store.state.statusMessage).toContain("totalCount")
   })
 
   it("restoreWorkspace caps a saved design count to one plate", async () => {

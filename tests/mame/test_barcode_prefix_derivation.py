@@ -30,6 +30,7 @@ from kuma_core.mame.ingest.combinatorial_demux import (
     load_barcode_prefixes,
     load_barcode_prefixes_with_provenance,
 )
+from tests.mame.minimap2_support import requires_minimap2
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -677,6 +678,7 @@ def _build_gene_read(r_index: int, f_index: int) -> str:
     )
 
 
+@requires_minimap2
 def test_demux_places_every_well_of_a_non_isps_plate(
     tmp_path: Path, gene_barcodes_xlsx: Path
 ) -> None:

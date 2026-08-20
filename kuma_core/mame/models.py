@@ -163,6 +163,27 @@ class BarcodeRecord:
     # verdict input, because ONT per-read indel error makes it non-zero on wells
     # whose consensus is indel-free.
     median_read_net_indel_bp: int | None = None
+    # Coverage uniformity and consensus identity, measured off the same
+    # per-position depth vector the mean depth comes from. ``mean_depth`` cannot
+    # separate a well covered evenly at 100x from one averaging 100x with a hole,
+    # and these five say which one it was. Definitions live once, in
+    # ``ingest/well_consensus.py`` (``depth_stats``, ``consensus_identity``).
+    #
+    # ``None`` is NOT MEASURED throughout, never 0.0: a CV of 0.0 is a perfectly
+    # flat well and an identity of 0.0 is a consensus matching the reference
+    # nowhere, both of which are strong claims an unmeasured well has no right to
+    # make. A consensus file written before these keys existed carries none of
+    # them and restores as five ``None``. Same rule as ``min_variant_support``.
+    #
+    # The five are independent: a well with no reads has a real
+    # ``breadth_at_mix_min_depth`` of 0.0 while the other four are unmeasurable.
+    #
+    # REPORTED ONLY. No verdict, gate or severity rule reads any of them.
+    depth_cv: float | None = None
+    depth_p10: float | None = None
+    depth_min_covered: int | None = None
+    breadth_at_mix_min_depth: float | None = None
+    consensus_identity: float | None = None
 
 
 @dataclass

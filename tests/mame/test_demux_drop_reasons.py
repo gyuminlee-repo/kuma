@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import gzip
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -40,6 +41,7 @@ from kuma_core.mame.ingest.combinatorial_demux import (
     run_combinatorial_demux,
     run_combinatorial_demux_per_nb,
 )
+from tests.mame.minimap2_support import requires_minimap2
 
 # Same synthetic library as tests/mame/test_native_barcode_separation.py: a
 # 60 bp reference, an F and an R annealing tail, and the shipped barcode seeds.
@@ -288,7 +290,8 @@ def _mixed_reads() -> list[tuple[str, int, int]]:
 def test_match_reads_chunk_drop_deltas_partition_ambiguous() -> None:
     """Parallel path: the returned split sums to the returned total, per read."""
     pytest.importorskip("edlib", reason="edlib unavailable; matcher gated out")
-    chunk = [
+    # _Hit duck-types the two Alignment fields the matcher reads.
+    chunk: list[tuple[int, str, str, list[Any]]] = [
         (i, f"read{i}", read, [_Hit(q_st, q_en)])
         for i, (read, q_st, q_en) in enumerate(_mixed_reads())
     ]
@@ -356,6 +359,7 @@ def _assert_partition(stats: DemuxStats) -> None:
     )
 
 
+@requires_minimap2
 @pytest.mark.parametrize("chimera_split", [True, False])
 def test_run_combinatorial_demux_partitions_its_drops(
     tmp_path: Path, chimera_split: bool

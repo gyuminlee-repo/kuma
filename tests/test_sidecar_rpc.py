@@ -912,11 +912,11 @@ class TestStructuralDiversity3DCoords:
         return str(csv)
 
     @staticmethod
-    def _coords():
+    def _coords() -> list[tuple[float, float, float] | None]:
         # 1-based Cα coords. In sequence space pos40 is farthest from pos10,
         # but in 3D space pos20 is farthest (pos40 sits right next to pos10),
         # so 3D vs positional selection diverge on the second pick.
-        coords = [None] * 41
+        coords: list[tuple[float, float, float] | None] = [None] * 41
         coords[10] = (0.0, 0.0, 0.0)
         coords[20] = (100.0, 0.0, 0.0)
         coords[30] = (50.0, 0.0, 0.0)

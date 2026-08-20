@@ -289,6 +289,16 @@ def _run_consensus_on_dir(
                     max_minor_allele_minus=result.max_minor_allele_minus_count,
                     n_eligible_positions=result.n_eligible_positions,
                     noisy_positions=result.noisy_positions,
+                    # Coverage uniformity and consensus identity, report only.
+                    # Written here so a consensus file this path produces carries
+                    # the same evidence as one the raw-run path produces; the
+                    # sorted-barcode ingest re-reads these files through the same
+                    # parser. Each is omitted when the well did not measure it.
+                    depth_cv=result.depth_cv,
+                    depth_p10=result.depth_p10,
+                    depth_min_covered=result.depth_min_covered,
+                    breadth_at_mix_min_depth=result.breadth_at_mix_min_depth,
+                    consensus_identity=result.consensus_identity,
                 ),
             ),
             fsync=False,

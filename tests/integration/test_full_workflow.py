@@ -138,6 +138,8 @@ def test_mame_mismatch_project_id_surfaces_correct_value(tmp_path, clean_state):
 
     meta_a = handle_read_kuma_meta({"path": str(out_a)})
     meta_b = handle_read_kuma_meta({"path": str(out_b)})
+    assert meta_a is not None
+    assert meta_b is not None
     assert meta_a["project_id"] == "proj-A"
     assert meta_b["project_id"] == "proj-B"
 

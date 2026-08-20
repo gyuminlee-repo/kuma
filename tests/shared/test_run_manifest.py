@@ -14,6 +14,7 @@ import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -105,9 +106,29 @@ def test_build_manifest_required_fields() -> None:
         assert field in m, f"Missing required field: {field!r}"
 
 
+#: The manifest schema version the shipped reader accepts.
+#:
+#: Spelled out rather than imported from the module under test. Comparing the
+#: produced value against the same constant the producer writes passes for any
+#: value, including a bumped one: rebinding SCHEMA_VERSION to "9.9-bumped" left
+#: this suite green. That is not academic, because src/lib/runManifest.ts:15
+#: hardcodes its own copy and :100 REJECTS a manifest whose version differs, so
+#: a silent bump makes the app refuse manifests it just wrote.
+#:
+#: Same reasoning as _release_version in tests/integration/test_full_workflow.py.
+#: Changing this literal is the deliberate act of bumping the schema, and the
+#: TypeScript copy must move with it (.cross-layer-sync.json,
+#: run-manifest-schema-version).
+EXPECTED_SCHEMA_VERSION = "1.0"
+
+
+def test_schema_version_constant_is_the_shipped_one() -> None:
+    assert SCHEMA_VERSION == EXPECTED_SCHEMA_VERSION
+
+
 def test_build_manifest_schema_version() -> None:
     m = _base_manifest()
-    assert m["schema_version"] == SCHEMA_VERSION
+    assert m["schema_version"] == EXPECTED_SCHEMA_VERSION
 
 
 def test_build_manifest_method() -> None:
@@ -258,7 +279,7 @@ def test_load_invalid_json_raises(tmp_path: Path) -> None:
 
 def test_determinism_excluding_timestamps(known_input_file: Path) -> None:
     """With identical inputs and params, non-timestamp fields are identical."""
-    kwargs = dict(
+    kwargs: dict[str, Any] = dict(
         method="design_sdm_primers",
         inputs={"ref": known_input_file},
         params={"polymerase": "Q5", "organism": "ecoli"},

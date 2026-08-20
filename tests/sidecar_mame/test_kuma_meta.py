@@ -12,6 +12,7 @@ from kuma_core.shared.version import KUMA_VERSION, KURO_MODULE_VERSION
 def _make_xlsx_with_meta(path: Path, project_id: str = "abc-123") -> Path:
     wb = openpyxl.Workbook()
     ws = wb.active
+    assert ws is not None
     ws.title = "Data"
     ws.append(["col"])
     meta = wb.create_sheet("__kuma_meta__")
@@ -31,6 +32,7 @@ def _make_xlsx_with_meta(path: Path, project_id: str = "abc-123") -> Path:
 def _make_plain_xlsx(path: Path) -> Path:
     wb = openpyxl.Workbook()
     ws = wb.active
+    assert ws is not None
     ws.append(["only", "data"])
     wb.save(path)
     return path

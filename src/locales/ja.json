@@ -468,7 +468,22 @@
       "neighborAvgHelp": "Mean read count of the four orthogonal neighbor wells (up/down/left/right). Informational; not used in the z-score.",
       "zScoreHelp": "(well reads minus plate mean) / plate SD. Wells above 2.5 are flagged. Severity: above 4 high, above 3 medium, above 2.5 low.",
       "percentileHelp": "File-size percentiles in KB by linear interpolation: p05 is the 5th percentile through p95 the 95th.",
-      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB."
+      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB.",
+      "qcSectionTitle": "ラン QC 詳細",
+      "qcSectionAriaLabel": "ラン QC 詳細を表示",
+      "qcHealthTitle": "Run health",
+      "qcHealthAbsent": "このランは run health ブロックを記録していないため、file size、pore yield、throughput、barcode、cross-talk の各セクションに読む値がありません。",
+      "qcNotMeasured": "未測定",
+      "filterStats": {
+        "title": "リードフィルタリング",
+        "noDemux": "このランは demultiplex を行っていないため、品質フィルタを通ったリードがありません。consensus ディレクトリのランは完成した consensus ファイルを読み、生リードを見ません。",
+        "noSummary": "品質フィルタは動作しましたが集計は残っていません。ランフォルダに per-read Q score の出所である sequencing_summary ファイルがありませんでした。",
+        "input": "入力リード",
+        "passed": "フィルタ通過",
+        "failedQscore": "Q score で除外",
+        "failedLength": "長さで除外",
+        "failedBarcode": "barcode で除外"
+      }
     },
     "plateView": {
       "plate": "Plate",
@@ -633,7 +648,7 @@
     },
     "appLayout": {
       "deadlockTitle": "応答なし",
-      "deadlockDescription": "30 秒以上進捗更新がありません。ジョブが停止しました。",
+      "deadlockDescription": "{{seconds}} 秒以上進捗更新がありません。ジョブが停止している可能性があります。",
       "deadlockWait": "待機を継続",
       "deadlockReset": "リセット",
       "analysisWorkspaceAriaLabel": "解析ワークスペース",
@@ -1019,6 +1034,40 @@
         "median_depth_below_recommended": "深さの中央値 {{median}} が推奨の amplicon あたり {{recommended}} read 未満。",
         "flow_cell_reused": "フローセル {{cell}} はこのプロジェクトで既に1回ランを経ており、そのとき細孔 {{previousPores}} で終わった。",
         "variants_at_reference_edge": "{{variants}} がリファレンス末端から {{margin}} bp 以内にあり、このランは与えられたリファレンスをそのまま整列に使いました。アライナは付けられない不一致で read を切るため、その位置はウェルが報告する depth より浅く読まれることがあります。プライマー結合領域まで含むリファレンスにすると内側に入ります。"
+      },
+      "positionRecurrence": {
+        "title": "反復出現位置",
+        "noRun": "報告できるランがまだありません。",
+        "predatesBuild": "この保存結果は反復位置の集計が導入される前に書かれたため、情報がありません。反復した位置がなかったという意味ではありません。",
+        "what": "1 ウェルの 1 位置に出る minor allele は混合の候補です。同じ位置がウェルごとに繰り返し出るのは sequence context artifact の姿であり、その context はクローンではなく amplicon に属します。ここでは何も等級付けしません。",
+        "lowerBound": "以下の値はすべて下限です。各ウェルは minor fraction 順に最大 10 位置しか寄与せず、寄与した {{contributing}} ウェルのうち {{truncated}} がその上限に達したため、11 番目以降の位置は集計から抜けています。",
+        "wellsContributing": "位置を寄与したレコード",
+        "wellsTruncated": "うち 10 で打ち切られたレコード",
+        "positionsSeen": "観測された固有位置",
+        "positionsSingleWell": "1 レコードのみで観測 (除外)",
+        "none": "複数のレコードが報告した位置はありません。",
+        "caption": "複数のレコードが報告した参照位置。反復の多い順。",
+        "colPosition": "位置",
+        "colWells": "レコード",
+        "colMedianShare": "weak strand 中央値",
+        "colShareRange": "最小 / 最大",
+        "colSharesKnown": "share 判明"
+      },
+      "readLength": {
+        "title": "リード長",
+        "noRun": "報告できるランがまだありません。",
+        "predatesBuild": "この保存結果はリード長を載せる前に書かれたため、情報がありません。リードに長さがなかったという意味ではありません。",
+        "notRead": "リード長を読めませんでした。ランフォルダに report json がない、解析できない、あるいは read_length_histogram 以前の MinKNOW が書いたファイルです。",
+        "reference": "{{bp}} bp のリファレンスにアラインしました。",
+        "referenceUnknown": "リファレンス長を読めなかったため、以下の比に分母がありません。",
+        "unlabelled": "ラベルなしのエントリ",
+        "noEntries": "レポートに read length histogram のエントリがありませんでした。",
+        "n50": "N50 (装置の報告値)",
+        "n50OverReference": "N50 / リファレンス長",
+        "nearReferenceFraction": "リファレンス長付近の塩基割合",
+        "over2xFraction": "リファレンス長 2 倍以上の塩基割合",
+        "concatemerNote": "リファレンス長の 1 倍を大きく超える N50 は concatemer 集団の姿であり、意図的に長い amplicon の姿でもあります。この数値だけでは区別できないため、ここでは何も表示しません。",
+        "basesNote": "どちらの割合もリード数ではなく塩基数を数えます。"
       }
     },
     "inspector": {
@@ -1125,7 +1174,7 @@
       "activityScaleRaw": "Raw",
       "activityScaleRelative": "Relative to WT",
       "layoutXlsx": "プレートレイアウト xlsx",
-      "layoutXlsxHelper": "Required mapping metadata for well-labeled GC data and raw reports. Maps well positions to variants.",
+      "layoutXlsxHelper": "任意です。指定しない場合は Analyze verdict シートの well 情報で variant を対応付けます。",
       "layoutXlsxOptionalHelper": "Required only when the long-format label column contains wells; variant-labeled files do not need a layout.",
       "gcDataXlsx": "GC データ xlsx",
       "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
@@ -1170,7 +1219,19 @@
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
       "clearRestored": "復元された EVOLVEpro 入力をクリア",
-      "outputCollidesRound": "ラウンド {{round}} がこのファイルを出力として記録済みです。ここに作成するとそのラウンドの測定値を上書きします。"
+      "outputCollidesRound": "ラウンド {{round}} がこのファイルを出力として記録済みです。ここに作成するとそのラウンドの測定値を上書きします。",
+      "primarySourceNumericReport": "数値 ID の Agilent report",
+      "primarySourceNumericReportHelper": "sample name が位置番号(1, 2, 3 …)である全 plate の raw report です。番号 i は plate 順序の i 番目の variant です。",
+      "numericReportXlsx": "全測定 report xlsx (数値 ID)",
+      "numericReportXlsxHelper": "WT 行と数値 sample name を持つ raw Agilent report です。どの番号がどの variant かを示す順序ソースが必要です。",
+      "confirmationSourceNumericIds": "数値 ID の Agilent report",
+      "confirmationSourceNumericIdsHelper": "sample name が WT 超過サブセットの位置番号(1, 1-2, 1-3 …)である反復測定 report です。反復平均が primary の値を上書きします。",
+      "remeasureNumericXlsx": "確認 report xlsx (数値 ID)",
+      "remeasureNumericXlsxHelper": "番号 j は primary で WT を超えた variant を plate 順に並べた j 番目です。選択が異なる場合は誤ったラベル付けをせず拒否します。",
+      "expectedXlsx": "設計 variant リスト",
+      "expectedXlsxHelper": "数値 ID の順序ソースです。analyze ステップが読む設計 variant リストと同じファイルで、手書きの plate ファイルより優先されます。",
+      "orderSource": "順序ソース (設計 variant リストまたは plate layout のいずれか一つ)",
+      "dismissError": "閉じる"
     },
     "verdictBadge": {
       "help": {
@@ -1304,7 +1365,20 @@
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well.",
       "replicateReads": "read {{reads}}",
-      "replicateAligned": "アラインメント {{aligned}}"
+      "replicateAligned": "アラインメント {{aligned}}",
+      "sectionCoverage": "カバレッジ均一性",
+      "coverage": {
+        "notMeasured": "未測定",
+        "absent": "この結果はカバレッジ均一性の測定より前に書かれたため、5 つの値がいずれも得られません。ウェルが均等にカバーされたという意味ではありません。",
+        "depthCv": "Depth CV (0 が平坦)",
+        "depthP10": "Depth p10",
+        "depthMinCovered": "最も浅いカバー位置",
+        "breadth": "minor allele を読める深さのリファレンス割合",
+        "consensusIdentity": "Consensus identity",
+        "consensusN": "Consensus N 割合",
+        "identityNote": "identity はコールされた塩基のみで計算されるため、ほとんどが N の consensus でもほぼ完全一致に見えることがあります。上の N 割合と併せて読んでください。",
+        "nNotEvaluable": "この consensus の N 割合を復元できず 0 が代入されました。したがって上の identity がどれだけの配列に基づくかは不明です。"
+      }
     },
     "wellSelection": {
       "title": "使用するウェル",
@@ -1371,7 +1445,7 @@
     "deleteFolderConfirmDesc": "{{path}} が中のファイルごとシステムのごみ箱へ移動します。ごみ箱から元に戻せます。",
     "deleteFolderConfirmButton": "ごみ箱へ移動",
     "restorableTitle": "復元できるプロジェクト",
-    "restorableDesc": "最近のプロジェクト一覧からは外れていますが、ディスクには残っているプロジェクトです。",
+    "restorableDesc": "最近のプロジェクト一覧からは外れていますが、現在のプロジェクトフォルダーには残っているプロジェクトです。別のフォルダーにあるプロジェクトは表示されません。",
     "restorableEmpty": "復元できるプロジェクトはありません。",
     "restoreButton": "復元",
     "overview": {
@@ -1803,16 +1877,12 @@
     "saltOption_schildkraut": "Schildkraut-Lifson 1965 (NEB Phusion)",
     "saltOption_schildkraut_title": "Schildkraut-Lifson 1965 経験的 Na⁺ 補正。レガシー。Owczarzy や SantaLucia より粗い。",
     "optTmLabel": "Opt Tm",
-    "maxTmDiffLabel": "Max Tm diff",
     "minTmLabel": "Min Tm",
     "maxTmLabel": "Max Tm",
     "fwdTmLabel": "Fwd Tm",
     "revTmLabel": "Rev Tm",
     "overlapTmLabel": "Overlap Tm",
     "min3PrimeDistLabel": "Min 3' distance",
-    "optSizeLabel": "Opt size",
-    "minSizeLabel": "Min size",
-    "maxSizeLabel": "Max size",
     "minGcLabel": "Min GC",
     "maxGcLabel": "Max GC",
     "monovalentSaltLabel": "Monovalent salt",
@@ -1824,7 +1894,7 @@
     "save": "保存",
     "saving": "保存中...",
     "nebTmNote": "NEB polymerase では NEB Tm Calculator の補正は推奨アニーリング温度 (Ta) のみに適用されます。設計時の Tm は SantaLucia 1998 (Benchling) 固定スケールのため、下の salt および Tm method の値では変わりません。",
-    "fieldScopeNote": "設計エンジンが読む値: Fwd/Rev/Overlap Tm 目標、GC 範囲、primer 長範囲、overlap モード。保存されるが未使用: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff。salt と Tm method の値は Ta の計算のみに使われ、custom プロファイルは Ta ルールを持たないため Ta は表示されません。"
+    "fieldScopeNote": "設計エンジンが読む値: Fwd/Rev/Overlap Tm 目標、GC 範囲、primer 長範囲、overlap モード。保存されるが未使用: Opt Tm, Min/Max Tm。salt と Tm method の値は Ta の計算のみに使われ、custom プロファイルは Ta ルールを持たないため Ta は表示されません。"
   },
   "mainShell": {
     "alreadyRunning": "すでに実行中です。",
@@ -1842,11 +1912,10 @@
     },
     "relativeTime": {
       "justNow": "たった今",
-      "minAgo": "{{count}} 分前",
-      "hrAgo": "{{count}} 時間前",
-      "daysAgo": "{{count}} 日前",
       "minutesAgo": "{{n}} 分前",
-      "hoursAgo": "{{n}} 時間前"
+      "hoursAgo": "{{n}} 時間前",
+      "daysAgo": "{{n}} 日前",
+      "unknown": "時刻不明"
     },
     "memory": {
       "warningBannerLabel": "メモリ: {{pct}}% (sidecar {{rss}} MB)",
@@ -1947,7 +2016,7 @@
     "missingMutations": "Mutations (Mutation パネルで少なくとも 1 つの mutation を入力)",
     "missingTargetGene": "ターゲット遺伝子 (Sequence パネルで選択)",
     "deadlockTitle": "応答なし",
-    "deadlockDesc": "30 秒以上進捗更新がありません。ジョブが停止している可能性があります。",
+    "deadlockDesc": "{{seconds}} 秒以上進捗更新がありません。ジョブが停止している可能性があります。",
     "deadlockWait": "待機を継続",
     "deadlockReset": "リセット",
     "plateCount": "{{count}} plate",
@@ -2466,14 +2535,31 @@
     "descriptionRange": "v{{from}} 以降のすべてのアップデートの主な変更点です。",
     "gotItBtn": "了解",
     "highlights": [
-      "以前の run の出力が残るフォルダーへ書き出した run が、その plate まで判定していました。選択した数より多くの plate が表に並びます。",
-      "その run が選択した barcode より多くの plate が並ぶ過去のワークブックは、別の run の well まで判定しているため、やり直しが必要です。",
-      "フォルダーが各 run の作成した plate を記録し、以前の run が残した plate は画面に名前が出て、何も削除しません。",
-      "書き出し画面から開始 row と終了 row の選択がなくなりました。plate 全体以外のどの設定でも、異なる変異体が同じ well に重なっていました。",
-      "配置は quadrant の選択だけで決まり、すでに使われている well を覆う保存済みの row 範囲は、書き出さずに拒否します。"
+      "Step 4 が sample name の数値である Agilent report を読みます。全 plate 測定と反復確認測定の両方が対象です。",
+      "反復確認測定を対応するスクリーニングに統合し、その値を置き換えたうえで食い違う項目を表示します。",
+      "数値の位置は設計 variant リストを基準に解釈するため、plate ファイルを手で書き写す必要がありません。",
+      "確認ファイルが別の variant 集合を含む場合は件数を示して拒否します。誤った variant には結び付けません。",
+      "反復回数はファイルが持つとおりです。1 回からその run が測定した数まで受け付けます。"
     ],
-    "highlightsStamp": "0.16.25+291c60a5",
+    "highlightsStamp": "0.16.31+60d4442c",
     "releases": {
+      "0.16.28": [
+        "アプリが毎ラン測定しながら描画していなかった run health セクション 5 件が、レビュー画面に折りたたまれた状態で表示されます。",
+        "カバレッジが平均だけでなくウェルごとの均一性を報告するため、欠損のあるウェルが同じ depth で均一に覆われたウェルと同じには見えなくなりました。",
+        "シーケンサーが測定した read length を、ランがアラインメントに使った reference と対比して表示します。concatemer が現れる箇所です。",
+        "配列を 2 つ以上含む reference ファイルは 4 つのリーダーすべてが拒否します。連結して chimera を作ることも、黙って切り捨てることもありません。",
+        "reading frame が見つからなかった amplicon はその旨を伝えます。長さ 0 の CDS を報告して primer tail から翻訳する動作は廃止しました。"
+      ],
+      "0.16.27": [
+        "リポジトリにない文書を引用するとビルドが失敗します。たどった人が後から気づく形をなくしました。",
+        "実在する文書を古いパスで指していた引用 7 件を修正しました。うち 1 件は空ではなく別のページを指していました。",
+        "コードが引用する設計記録がこの公開リポジトリにない理由と、それぞれの範囲を示すページを追加しました。",
+        "設計記録とコードが食い違う場合はコードとそのテストが正本であることを、そのページが明記します。"
+      ],
+      "0.16.26": [
+        "Custom Polymerase Editor から Opt/Min/Max size と Max Tm diff の4項目が削除されました。設計エンジンが読んでいなかった値です。",
+        "Custom polymerase と config のパス表記が、kuma が実際に使う ~/.kuma/kuro/ に修正されました。"
+      ],
       "0.16.25.1": [
         "以前の run の出力が残るフォルダーへ書き出した run が、その plate まで判定していました。選択した数より多くの plate が表に並びます。",
         "その run が選択した barcode より多くの plate が並ぶ過去のワークブックは、別の run の well まで判定しているため、やり直しが必要です。",
@@ -2499,6 +2585,11 @@
         "カバレッジゲートが read の大半を破棄した run がその事実を通知します。該当 well が未実施のように見えることはありません。",
         "run に見えるフォルダーが二つある場合に、ある run の flow cell と開始時刻が別の run のものとして報告されなくなりました。"
       ],
+      "0.16.22": [
+        "判定内訳に回収率が表示されなくなりました。今回から実行ごとに一つの値だけを報告します。",
+        "確定率はそのまま残り、ピックリストが実際に書き出すPASSクローンの数をそのまま数えます。",
+        "下部の帯グラフは、通過・付随変化ありで再現・未再現の3区分を引き続き表示します。"
+      ],
       "0.16.21": [
         "リファレンス末端に接した変異は判定表の上に名前が出る。与えられたリファレンスをそのまま整列に使ったランでのみ出る。",
         "個数ではなく名前を書く。どの変異かが次の行動を決めるからである。",
@@ -2514,6 +2605,11 @@
         "開始・終了の細孔数とフローセル id をランフォルダから読む。再利用セルなら直前のランも併記する。",
         "細孔数に合否の線は引かない。細孔343で始まったセルがウェルあたり500 read を出したからである。",
         "閾値ごとに出典を表示する。メーカーのワークフロー既定値が要求仕様として読まれないようにする。"
+      ],
+      "0.16.18": [
+        "プレートマップの変異名が、区別する文字の手前で切れることがなくなった。R560EとR560Qもそのまま表示される。",
+        "1行に収まらない名前は、早めに切れる代わりにセル内で折り返すようになった。",
+        "未使用のデザイン値とハードコードされたサイズの内部整理。表示上の変化はない。"
       ],
       "0.16.17": [
         "淡い色の背景と色付きの枠線が実際に描画されるようになった。これまでは全リリースでスタイルシートから静かに欠落していた。",
@@ -2667,18 +2763,31 @@
         "post-commit のバージョン更新フックが、削除されたパスを参照して失敗することはなくなりました。",
         "長いリリースノートは、下にはみ出さずダイアログ内でスクロールするようになりました。"
       ],
-      "0.16.18": [
-        "プレートマップの変異名が、区別する文字の手前で切れることがなくなった。R560EとR560Qもそのまま表示される。",
-        "1行に収まらない名前は、早めに切れる代わりにセル内で折り返すようになった。",
-        "未使用のデザイン値とハードコードされたサイズの内部整理。表示上の変化はない。"
+      "0.16.29": [
+        "パイプラインが計算できなかった値は、60秒後に接続タイムアウトとして現れる代わりに、その場所を自ら示します。",
+        "判定の信頼度は実際に測定できた場合にのみ報告され、点推定とその誤差範囲が同じ信号を参照します。",
+        "テストスイートが Windows で実行されます。以前はツールが1つ欠けるだけで1301件すべてをスキップし、成功と報告していました。",
+        "Windows でのみ到達する不具合を2件修正しました。エクスポートの発行が必ず失敗し、チェックサムファイルが読み取れませんでした。",
+        "プレースホルダーを落としたり名前を変えたりした翻訳を、リリース前に検出します。画面に空欄のまま出ることはありません。"
       ],
-      "0.16.22": [
-        "判定内訳に回収率が表示されなくなりました。今回から実行ごとに一つの値だけを報告します。",
-        "確定率はそのまま残り、ピックリストが実際に書き出すPASSクローンの数をそのまま数えます。",
-        "下部の帯グラフは、通過・付随変化ありで再現・未再現の3区分を引き続き表示します。"
+      "0.16.30": [
+        "Step 4 で plate layout ファイルが必須ではなくなりました。空のままなら Analyze verdict シートで well 位置を対応付けます。",
+        "layout ファイルを指定した場合は従来どおり優先され、verdict の同一性との照合も変わりません。",
+        "NGS 結果のない測定 well はビルド全体を失敗させず、件数と名前で報告します。"
+      ],
+      "0.16.31": [
+        "Step 4 が sample name の数値である Agilent report を読みます。全 plate 測定と反復確認測定の両方が対象です。",
+        "反復確認測定を対応するスクリーニングに統合し、その値を置き換えたうえで食い違う項目を表示します。",
+        "数値の位置は設計 variant リストを基準に解釈するため、plate ファイルを手で書き写す必要がありません。",
+        "確認ファイルが別の variant 集合を含む場合は件数を示して拒否します。誤った variant には結び付けません。",
+        "反復回数はファイルが持つとおりです。1 回からその run が測定した数まで受け付けます。"
       ]
     },
     "releaseStamps": {
+      "0.16.29": "3f25adcf",
+      "0.16.28": "35bab529",
+      "0.16.27": "4cd14ddd",
+      "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",
@@ -2713,7 +2822,9 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.30": "bab83ea7",
+      "0.16.31": "60d4442c"
     }
   },
   "primerDisplay": {
@@ -2834,6 +2945,7 @@
     "writeFailed": "Autosave ファイルを書き込めませんでした ({{filename}})。原因: {{cause}}",
     "carriedFromScratch": "保存されていない前回のセッションから引き継ぎました ({{relative}})",
     "resultsDiscarded": "ソースファイルから variant リストを選び直した結果、復元された primer テーブルと一致しないためテーブルを消去しました。設計を再実行してください。",
+    "resultsIncomplete": "保存された結果の一部が完全ではなかったため、その部分は復元しませんでした。中途半端な値を表示しないための処理です。取り戻すには解析を再実行してください。欠落: {{fields}}",
     "inputsUnavailable": "入力ファイル {{count}} 件を開けず復元から外れました。結果は残っていますが元の入力がないため再選択してください: {{paths}}",
     "workspaceRestored": "ワークスペースを復元しました",
     "autoDetected": "自動検出: {{fields}}",

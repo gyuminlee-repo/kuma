@@ -208,13 +208,93 @@ describe("gen-whatsnew", () => {
     expect(run.output).toContain("no bullets");
   });
 
-  it("exits 2 when the latest section does not mention the current version", () => {
+  it("exits 2 when the latest section is a different release", () => {
     const fx = fixture(changelog(["- A note written for the release before this one."], "9.9.8"));
 
     const run = fx.run("gen-whatsnew.mjs");
 
     expect(run.status).toBe(2);
-    expect(run.output).toContain("does not mention current version v9.9.9");
+    expect(run.output).toContain("is v9.9.8");
+    expect(run.output).toContain("9.9.9");
+  });
+
+  // ---- which version identifies a release ---------------------------------
+  //
+  // Two versions live in this repo. package.json, Cargo.toml and
+  // tauri.conf.json carry three parts because Tauri and Cargo enforce SemVer
+  // 2.0, and they identify the binary (scripts/rename-bundle-to-tag.mjs states
+  // the rule). A release is the four-part vA.BB.CC.DD tag of the commit
+  // convention, which is what the CHANGELOG headings use, what the keys of
+  // `releases`/`releaseStamps` are, and what vite.config.ts resolves
+  // __APP_VERSION__ to from `git describe` and the modal compares against. The
+  // stamp belongs to the second namespace: stamping the three-part version
+  // cannot tell 0.16.25 from 0.16.25.1, and that is how v0.16.25.1 shipped its
+  // bullets stamped "0.16.25+291c60a5" in all ten locales with every gate green.
+
+  it("stamps a DD release with the release version, not the package version", () => {
+    const fx = fixture(changelog(["- A note that belongs to the DD release."], "9.9.9.1"));
+
+    const run = fx.run("gen-whatsnew.mjs");
+
+    expect(run.status).toBe(0);
+    const dialog = fx.readJson<EnLocale>("src/locales/en.json").whatsNewDialog;
+    expect(dialog.highlightsStamp).toMatch(/^9\.9\.9\.1\+[0-9a-f]{8}$/);
+    // The two halves of the stamp are exactly a key of releaseStamps and that
+    // key's value. Under the three-part stamp they were not, which is what left
+    // the archive and the stamp naming different releases.
+    const [stampVersion, stampDigest] = String(dialog.highlightsStamp).split("+");
+    expect(dialog.releaseStamps?.[stampVersion]).toBe(stampDigest);
+    expect(dialog.releases?.[stampVersion]).toEqual(dialog.highlights);
+  });
+
+  it("exits 2 when the latest section only shares a version prefix", () => {
+    // "v9.9.9" is a prefix of "v9.9.9.1" and of nothing else that matters here,
+    // but the reverse direction is the trap: a substring freshness test accepts
+    // any heading the current version is a prefix of, including another
+    // release. The guard compares version parts instead.
+    const fx = fixture(changelog(["- A note for a release two steps ahead."], "9.9.90"));
+
+    const run = fx.run("gen-whatsnew.mjs");
+
+    expect(run.status).toBe(2);
+    expect(run.output).toContain("is v9.9.90");
+  });
+
+  it("exits 2 when the latest heading declares no version at all", () => {
+    // The section body names the current version in prose, which satisfied the
+    // substring test while the heading identified no release to stamp.
+    const fx = fixture(
+      [
+        "## Unreleased",
+        "",
+        "Notes gathered toward v9.9.9.",
+        "",
+        "### Highlights",
+        "- A note nobody can date.",
+        "",
+      ].join("\n"),
+    );
+
+    const run = fx.run("gen-whatsnew.mjs");
+
+    expect(run.status).toBe(2);
+    expect(run.output).toContain("heading");
+  });
+
+  it("rejects a stamp that names the package version instead of the release", () => {
+    const fx = fixture(changelog(["- A note that belongs to the DD release."], "9.9.9.1"));
+    expect(fx.run("gen-whatsnew.mjs").status).toBe(0);
+
+    const en = fx.readJson<EnLocale>("src/locales/en.json");
+    const digest = String(en.whatsNewDialog.highlightsStamp).split("+")[1];
+    en.whatsNewDialog.highlightsStamp = `9.9.9+${digest}`;
+    fx.writeJson("src/locales/en.json", en);
+
+    const check = fx.run("gen-whatsnew.mjs", ["--check"]);
+
+    expect(check.status).toBe(1);
+    expect(check.output).toContain("highlightsStamp");
+    expect(check.output).toContain("9.9.9.1+");
   });
 
   it("joins a bullet wrapped over two lines into one highlight", () => {

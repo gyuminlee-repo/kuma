@@ -214,20 +214,20 @@
       "inputSourceConsensus": "Consensus-FASTA",
       "inputSourceSortedBarcode": "Sorted barcode Dateien",
       "inputSourceRawRun": "MinKNOW raw ausführen Ordner",
-      "recommendedCutoff": "Empfohlen: {{value}} KB ({{Methode}})",
+      "recommendedCutoff": "Empfohlen: {{value}} KB ({{method}})",
       "useCutoffBtn": "Verwenden",
       "bimodalTooltip": "Distribution looks bimodal. Empfohlen uses knee detection.",
-      "autoDetected": "Automatisch erkannt: {{Länge}} bp",
+      "autoDetected": "Automatisch erkannt: {{length}} bp",
       "normalizeHeadersAriaLabel": "Write well name as FASTA header instead von ONT Read ID",
       "demuxProgressAriaLabel": "Demux-Fortschritt",
       "demuxComplete": "Demux abgeschlossen:",
       "demuxCompleteReads": "{{assigned}} reads zugewiesen / {{total}} gesamt ({{backend}})",
-      "lengthFilter": "Länge filter: {{Modus}}",
+      "lengthFilter": "Länge filter: {{mode}}",
       "legacyKbCutoff": "Legacy KB Cutoff (Proxy)",
       "legacyKbCutoffAriaLabel": "Legacy min Datei size KB cutoff (proxy für Read depth)",
       "lengthToleranceAriaLabel": "Länge Toleranz: ±{{bp}} bp",
       "applyCutoffAriaLabel": "Anwenden empfohlen cutoff von {{kb}} KB",
-      "autoDetectedAriaLabel": "Automatisch erkannt Amplicon Länge: {{Länge}} bp, confidence {{confidence}}, sampled {{reads}} reads",
+      "autoDetectedAriaLabel": "Automatisch erkannt Amplicon Länge: {{length}} bp, confidence {{confidence}}, sampled {{reads}} reads",
       "modeAmpliconTitle": "Linear PCR Amplicon target. Reads cover ein single defined region; Consensus called per barcode within that region.",
       "modePlasmidTitle": "Circular plasmid target. Reads can wrap die origin; Consensus accounts für full plasmid topology.",
       "ingestBarcodeTitle": "Group reads durch Nanopore barcode (NB01, NB02, ...). Each barcode bin becomes one sample.",
@@ -440,10 +440,10 @@
       "noMinKnow": "MinKNOW raw ausführen directory nicht detected. Pore-Yield, throughput, und barcode charts sind unavailable.",
       "finalActivePoreYield": "Endgültiger aktiver Pore-Yield",
       "figureVerdictBreakdownCaption": "Stacked bar showing PASS, Ambiguous, Fail, und Fallback counts per Platte.",
-      "figureFileSizeCaptionBase": "7-bucket Datei size histogram. Suggested cutoff bei {{cutoffKb}} KB using {{Methode}} Methode.",
-      "figureFileSizeCaptionBimodal": "7-bucket Datei size histogram. Suggested cutoff bei {{cutoffKb}} KB using {{Methode}} Methode. Bimodal distribution detected.",
-      "fileSizeAriaLabel": "Dateigrößenverteilung histogram. Suggested cutoff: {{cutoffKb}} KB ({{Methode}})",
-      "fileSizeAriaLabelBimodal": "Dateigrößenverteilung histogram. Suggested cutoff: {{cutoffKb}} KB ({{Methode}}), bimodal distribution detected",
+      "figureFileSizeCaptionBase": "7-bucket Datei size histogram. Suggested cutoff bei {{cutoffKb}} KB using {{method}} Methode.",
+      "figureFileSizeCaptionBimodal": "7-bucket Datei size histogram. Suggested cutoff bei {{cutoffKb}} KB using {{method}} Methode. Bimodal distribution detected.",
+      "fileSizeAriaLabel": "Dateigrößenverteilung histogram. Suggested cutoff: {{cutoffKb}} KB ({{method}})",
+      "fileSizeAriaLabelBimodal": "Dateigrößenverteilung histogram. Suggested cutoff: {{cutoffKb}} KB ({{method}}), bimodal distribution detected",
       "figureBarcodeCaption": "Horizontal bar chart showing Read counts für jeder detected barcode.",
       "figureThroughputCaption": "Line chart showing reads per second von experiment start zu {{maxTime}} hours.",
       "throughputAriaLabel": "Throughput-Zeitachse over {{maxTime}} hours",
@@ -456,7 +456,7 @@
       "colNeighborAvg": "Nachbar-Durchschnitt",
       "colZScore": "Z-score",
       "colSeverity": "Schweregrad",
-      "severityAriaLabel": "Schweregrad: {{Schweregrad}}",
+      "severityAriaLabel": "Schweregrad: {{severity}}",
       "detectedShort": "Erkannt",
       "classCountTableCaption": "Verdict-Klassenanzahl über alle Platten",
       "classCountColClass": "Klasse",
@@ -468,7 +468,22 @@
       "neighborAvgHelp": "Mean read count of the four orthogonal neighbor wells (up/down/left/right). Informational; not used in the z-score.",
       "zScoreHelp": "(well reads minus plate mean) / plate SD. Wells above 2.5 are flagged. Severity: above 4 high, above 3 medium, above 2.5 low.",
       "percentileHelp": "File-size percentiles in KB by linear interpolation: p05 is the 5th percentile through p95 the 95th.",
-      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB."
+      "methodHelp": "How the cutoff was chosen: median minus 2 sigma (broad unimodal), p05 (tight unimodal), kneedle (elbow of a bimodal distribution), or a 50 KB floor when no method clears 50 KB.",
+      "qcSectionTitle": "QC-Details des Laufs",
+      "qcSectionAriaLabel": "QC-Details des Laufs anzeigen",
+      "qcHealthTitle": "Run health",
+      "qcHealthAbsent": "Dieser Lauf hat keinen Run-health-Block aufgezeichnet, daher haben die Abschnitte file size, pore yield, throughput, barcode und cross-talk nichts zu lesen.",
+      "qcNotMeasured": "Nicht gemessen",
+      "filterStats": {
+        "title": "Read-Filterung",
+        "noDemux": "Dieser Lauf hat nicht demultiplext, daher hat kein Read den Qualitätsfilter durchlaufen. Ein Lauf über ein Consensus-Verzeichnis liest fertige Consensus-Dateien und sieht nie Rohreads.",
+        "noSummary": "Der Qualitätsfilter lief, führte aber keine Zählung: im Laufordner lag keine sequencing_summary-Datei, aus der der Q score pro Read stammt.",
+        "input": "Reads eingelesen",
+        "passed": "Filter bestanden",
+        "failedQscore": "Am Q score gescheitert",
+        "failedLength": "An der Länge gescheitert",
+        "failedBarcode": "Am barcode gescheitert"
+      }
     },
     "plateView": {
       "plate": "Platte",
@@ -599,7 +614,7 @@
       "platesHint": "{{count}} wells",
       "platesEmpty": "Warten auf Analyse",
       "readiness": "Bereitschaft",
-      "readinessHint": "{{bereit}}/{{total}} Eingaben filled",
+      "readinessHint": "{{ready}}/{{total}} Eingaben filled",
       "status": "Status",
       "statusAnalyzing": "Analysiere {{progress}}%",
       "statusErrors": "{{count}} Fehler(s)",
@@ -633,7 +648,7 @@
     },
     "appLayout": {
       "deadlockTitle": "Nein response",
-      "deadlockDescription": "Nein progress update für 30+ seconds. The job ist stuck.",
+      "deadlockDescription": "Nein progress update für {{seconds}}+ seconds. The job may be stuck.",
       "deadlockWait": "Weiter warten",
       "deadlockReset": "Zurücksetzen",
       "analysisWorkspaceAriaLabel": "Analysis Workspace",
@@ -747,7 +762,7 @@
         "pdfNote": "PDF export requires weasyprint. If nicht installed, die report ist saved as HTML.",
         "fallbackNotice": "weasyprint nicht gefunden — report was saved as HTML instead.",
         "savedHtmlFallback": "Gespeichert as HTML (PDF fallback)",
-        "exportedAs": "Exported as {{Format}}",
+        "exportedAs": "Exportiert als {{format}}",
         "exportReport": "Bericht exportieren",
         "exporting": "Exportiere…",
         "exportErrorPathRequired": "Ausgabepfad ist erforderlich."
@@ -1019,6 +1034,40 @@
         "median_depth_below_recommended": "Mediane Tiefe {{median}} liegt unter den empfohlenen {{recommended}} Reads pro Amplikon.",
         "flow_cell_reused": "Flusszelle {{cell}} trug in diesem Projekt bereits einen Lauf, der mit {{previousPores}} Poren endete.",
         "variants_at_reference_edge": "{{variants}} liegen innerhalb von {{margin}} bp vor einem Ende der Referenz, und dieser Lauf hat gegen die gelieferte Referenz aligniert. Ein Aligner schneidet einen Read an einer Fehlpaarung ab, die er nicht anfuegen kann, daher koennen diese Positionen weniger Tiefe sehen als das Well meldet. Eine Referenz mit den Primerbindungsstellen rueckt sie weiter nach innen."
+      },
+      "positionRecurrence": {
+        "title": "Wiederkehrende Positionen",
+        "noRun": "Noch kein Lauf, über den zu berichten wäre.",
+        "predatesBuild": "Dieses gespeicherte Ergebnis entstand, bevor wiederkehrende Positionen gezählt wurden, daher ist dazu nichts bekannt. Es heißt nicht, dass keine Position wiederkehrte.",
+        "what": "Ein minor allele an einer Position in einem Well ist ein Mischungskandidat. Dieselbe Position Well für Well ist das Bild eines sequence-context-Artefakts, denn der Kontext gehört zum amplicon und nicht zum Klon. Hier wird nichts bewertet.",
+        "lowerBound": "Jede Zahl unten ist eine Untergrenze: jedes Well steuert höchstens zehn nach minor fraction sortierte Positionen bei, und {{truncated}} von {{contributing}} beitragenden Wells erreichten diese Grenze, sodass Positionen jenseits des zehnten Rangs in der Zählung fehlen.",
+        "wellsContributing": "Datensätze mit einer Position",
+        "wellsTruncated": "Davon bei zehn abgeschnitten",
+        "positionsSeen": "Verschiedene gesehene Positionen",
+        "positionsSingleWell": "Nur in einem Datensatz gesehen (ausgelassen)",
+        "none": "Keine Position wurde von mehr als einem Datensatz gemeldet.",
+        "caption": "Referenzpositionen, die mehr als ein Datensatz meldete, häufigste zuerst.",
+        "colPosition": "Position",
+        "colWells": "Datensätze",
+        "colMedianShare": "Median weak strand",
+        "colShareRange": "Min / Max",
+        "colSharesKnown": "Anteile bekannt"
+      },
+      "readLength": {
+        "title": "Read-Länge",
+        "noRun": "Noch kein Lauf, über den zu berichten wäre.",
+        "predatesBuild": "Dieses gespeicherte Ergebnis entstand, bevor Read-Längen mitgeführt wurden, daher ist dazu nichts bekannt. Es heißt nicht, dass die Reads keine Länge hatten.",
+        "notRead": "Read-Längen wurden nicht gelesen: im Laufordner lag keine report-json, die Datei war nicht lesbar, oder das schreibende MinKNOW ist älter als read_length_histogram.",
+        "reference": "Gegen eine Referenz von {{bp}} bp aligniert.",
+        "referenceUnknown": "Die Referenzlänge war nicht lesbar, daher haben die Verhältnisse unten keinen Nenner.",
+        "unlabelled": "Eintrag ohne Label",
+        "noEntries": "Der Report enthielt keinen read length histogram-Eintrag.",
+        "n50": "N50 (Gerätewert)",
+        "n50OverReference": "N50 zur Referenz",
+        "nearReferenceFraction": "Basen nahe der Referenzlänge",
+        "over2xFraction": "Basen ab dem 2-fachen der Referenz",
+        "concatemerNote": "Ein N50 deutlich über dem 1-fachen der Referenz ist das Bild einer concatemer-Population und ebenso das eines absichtlich langen amplicon. Aus dieser Zahl allein ist beides nicht zu unterscheiden, daher wird hier nichts markiert.",
+        "basesNote": "Beide Anteile zählen BASEN, keine Reads."
       }
     },
     "inspector": {
@@ -1125,7 +1174,7 @@
       "activityScaleRaw": "Raw",
       "activityScaleRelative": "Relative to WT",
       "layoutXlsx": "Plattenlayout-xlsx",
-      "layoutXlsxHelper": "Required mapping metadata for well-labeled GC data and raw reports. Maps well positions to variants.",
+      "layoutXlsxHelper": "Optional. Ohne diese Datei werden Well-Positionen über das Analyze-Verdict-Blatt den Varianten zugeordnet.",
       "layoutXlsxOptionalHelper": "Required only when the long-format label column contains wells; variant-labeled files do not need a layout.",
       "gcDataXlsx": "GC-Daten-xlsx",
       "gcDataXlsxHelper": "Pre-normalized relative activity per well (Sample Name, Area columns).",
@@ -1170,7 +1219,19 @@
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
       "clearRestored": "Wiederhergestellte EVOLVEpro-Eingaben löschen",
-      "outputCollidesRound": "Runde {{round}} hat diese Datei bereits als ihr Ergebnis erfasst. Ein Build hier ueberschreibt die Messwerte jener Runde."
+      "outputCollidesRound": "Runde {{round}} hat diese Datei bereits als ihr Ergebnis erfasst. Ein Build hier ueberschreibt die Messwerte jener Runde.",
+      "primarySourceNumericReport": "Agilent-Report mit numerischen IDs",
+      "primarySourceNumericReportHelper": "Rohreport der ganzen Platte, dessen Probennamen Positionen sind (1, 2, 3, ...). Position i ist die i-te Variante der Plattenreihenfolge.",
+      "numericReportXlsx": "Report der ganzen Platte, xlsx (numerische IDs)",
+      "numericReportXlsxHelper": "Roher Agilent-Report mit WT-Zeilen und numerischen Probennamen. Braucht eine Reihenfolgequelle, die sagt, welche Position welche Variante trägt.",
+      "confirmationSourceNumericIds": "Agilent-Report mit numerischen IDs",
+      "confirmationSourceNumericIdsHelper": "Replizierter Report, dessen Probennamen Positionen der Über-WT-Teilmenge sind (1, 1-2, 1-3, ...). Die Replikatmittel überschreiben passende Primärwerte.",
+      "remeasureNumericXlsx": "Bestätigungsreport xlsx (numerische IDs)",
+      "remeasureNumericXlsxHelper": "Position j ist die j-te Variante, die das Primärscreening über den Wildtyp gesetzt hat, in Plattenreihenfolge. Eine andere Auswahl wird abgelehnt statt falsch beschriftet.",
+      "expectedXlsx": "Entworfene Variantenliste",
+      "expectedXlsxHelper": "Reihenfolgequelle für numerische IDs: dieselbe entworfene Variantenliste, die der Analyze-Schritt liest. Der handgeschriebenen Plattendatei vorzuziehen.",
+      "orderSource": "Reihenfolgequelle (entworfene Variantenliste oder Plattenlayout, genau eine)",
+      "dismissError": "Schließen"
     },
     "verdictBadge": {
       "help": {
@@ -1304,7 +1365,20 @@
       "aaSequenceLength": "Amino acid sequence ({{count}} aa)",
       "noVerdictRecord": "No verdict record for this well.",
       "replicateReads": "{{reads}} Reads",
-      "replicateAligned": "{{aligned}} aligned"
+      "replicateAligned": "{{aligned}} aligned",
+      "sectionCoverage": "Gleichmäßigkeit der Abdeckung",
+      "coverage": {
+        "notMeasured": "Nicht gemessen",
+        "absent": "Dieses Ergebnis entstand, bevor die Gleichmäßigkeit der Abdeckung gemessen wurde, daher fehlen alle fünf Werte. Es heißt nicht, dass das Well gleichmäßig abgedeckt war.",
+        "depthCv": "Depth CV (0 ist flach)",
+        "depthP10": "Depth p10",
+        "depthMinCovered": "Flachste abgedeckte Position",
+        "breadth": "Referenzanteil tief genug für ein minor allele",
+        "consensusIdentity": "Consensus identity",
+        "consensusN": "Consensus-N-Anteil",
+        "identityNote": "Die Identität wird nur über gerufene Basen gemessen, daher kann ein überwiegend aus N bestehender Consensus als nahezu perfekte Übereinstimmung erscheinen. Lesen Sie sie zusammen mit dem N-Anteil darüber.",
+        "nNotEvaluable": "Der N-Anteil dieses Consensus war nicht rekonstruierbar und wurde durch 0 ersetzt, daher beruht die Identität darüber auf einer unbekannten Menge Sequenz."
+      }
     },
     "wellSelection": {
       "title": "Verwendete Wells",
@@ -1371,7 +1445,7 @@
     "deleteFolderConfirmDesc": "{{path}} wandert samt allen enthaltenen Dateien in den Papierkorb des Systems. Aus dem Papierkorb lässt sich der Ordner wiederherstellen.",
     "deleteFolderConfirmButton": "In den Papierkorb verschieben",
     "restorableTitle": "Wiederherstellbare Projekte",
-    "restorableDesc": "Aus der Liste der letzten Projekte entfernt, aber weiterhin auf der Festplatte vorhanden.",
+    "restorableDesc": "Aus der Liste der letzten Projekte entfernt, aber weiterhin im aktuellen Projektordner. Projekte in einem anderen Ordner werden hier nicht aufgeführt.",
     "restorableEmpty": "Keine wiederherstellbaren Projekte.",
     "restoreButton": "Wiederherstellen",
     "overview": {
@@ -1485,7 +1559,7 @@
     "seedLabel": "Seed:",
     "seedTitle": "Optional integer Seed. Will be passed zu die backend und recorded in ausführen manifests once manifest wiring ist abgeschlossen (backend integration pending).",
     "seedAriaLabel": "Random Seed (optional)",
-    "seedFixed": "fixed: {{Seed}}",
+    "seedFixed": "fixiert: {{seed}}",
     "seedAuto": "auto",
     "tmPrimerHelp": "Target Tm (°C) for symmetric full-overlap primers. Default 62.",
     "tmFwdHelp": "Target Tm (°C) for forward primer in partial-overlap mode. Lower value increases mismatch tolerance.",
@@ -1501,7 +1575,7 @@
   },
   "designReport": {
     "title": "Design-Bericht",
-    "description": "{{Erfolg}}/{{total}} Primer designed ({{rate}}% Erfolg)",
+    "description": "{{success}}/{{total}} Primer designed ({{rate}}% Erfolg)",
     "close": "Schließen",
     "sectionPipeline": "Pipeline",
     "sectionBenchmarkDefaults": "Benchmark-Defaults",
@@ -1771,13 +1845,13 @@
     "labelSeed": "Seed",
     "warningTitle": "Eingabe Dateien have changed.",
     "warningBody": "Identical Ausgabe ist nicht guaranteed. Do you want zu continue?",
-    "warningMissingPaths": "Missing Pfade: {{Pfade}}",
+    "warningMissingPaths": "Missing Pfade: {{paths}}",
     "warningHashMismatch": "Hash mismatch: {{paths}}",
     "exportOnlyNotice": "This manifest ist ein export-only operation und cannot be re-ausführen directly. Re-export von die original data.",
     "btnCancel": "Abbrechen",
     "btnRerun": "Re-ausführen",
     "btnRunning": "Läuft...",
-    "statusDone": "Re-ausführen abgeschlossen: {{Methode}}",
+    "statusDone": "Re-ausführen abgeschlossen: {{method}}",
     "method": {
       "design_sdm_primers": "Kuro: SDM Primer design",
       "merge_for_evolvepro": "Mame: merge für EVOLVEpro",
@@ -1803,16 +1877,12 @@
     "saltOption_schildkraut": "Schildkraut-Lifson 1965 (NEB Phusion)",
     "saltOption_schildkraut_title": "Schildkraut-Lifson 1965 empirical Na⁺ correction. Legacy; coarser than Owczarzy oder SantaLucia.",
     "optTmLabel": "Opt Tm",
-    "maxTmDiffLabel": "Max Tm-Differenz",
     "minTmLabel": "Min Tm",
     "maxTmLabel": "Max Tm",
     "fwdTmLabel": "Fwd Tm",
     "revTmLabel": "Rev Tm",
     "overlapTmLabel": "Overlap Tm",
     "min3PrimeDistLabel": "Min 3'-Abstand",
-    "optSizeLabel": "Opt. Größe",
-    "minSizeLabel": "Min. Größe",
-    "maxSizeLabel": "Max. Größe",
     "minGcLabel": "Min GC",
     "maxGcLabel": "Max GC",
     "monovalentSaltLabel": "Monovalentes Salz",
@@ -1824,7 +1894,7 @@
     "save": "Speichern",
     "saving": "Speichere...",
     "nebTmNote": "Bei NEB-Polymerasen gilt die NEB Tm Calculator-Kalibrierung nur für die empfohlene Annealing-Temperatur (Ta). Die Tm zum Designzeitpunkt läuft auf der festen SantaLucia 1998 (Benchling) Skala, daher ändern die Salz- und Tm-Methodenwerte unten sie nicht.",
-    "fieldScopeNote": "Von der Design-Engine gelesen: Fwd/Rev/Overlap Tm-Ziele, GC-Bereich, Primer-Längenbereich, overlap-Modus. Gespeichert, aber ungenutzt: Opt Tm, Min/Max Tm, Opt/Min/Max size, Max Tm diff. Salz- und Tm-Methodenwerte fließen nur in Ta ein, und ein Custom-Profil hat keine Ta-Regel, daher wird dafür kein Ta angezeigt."
+    "fieldScopeNote": "Von der Design-Engine gelesen: Fwd/Rev/Overlap Tm-Ziele, GC-Bereich, Primer-Längenbereich, overlap-Modus. Gespeichert, aber ungenutzt: Opt Tm, Min/Max Tm. Salz- und Tm-Methodenwerte fließen nur in Ta ein, und ein Custom-Profil hat keine Ta-Regel, daher wird dafür kein Ta angezeigt."
   },
   "mainShell": {
     "alreadyRunning": "Already läuft.",
@@ -1842,11 +1912,10 @@
     },
     "relativeTime": {
       "justNow": "gerade eben",
-      "minAgo": "vor {{count}} Min",
-      "hrAgo": "vor {{count}} Std",
-      "daysAgo": "vor {{count}} Tag(en)",
       "minutesAgo": "vor {{n}} Min",
-      "hoursAgo": "vor {{n}} Std"
+      "hoursAgo": "vor {{n}} Std",
+      "daysAgo": "vor {{n}} Tag(en)",
+      "unknown": "zu unbekanntem Zeitpunkt"
     },
     "memory": {
       "warningBannerLabel": "Speicher: {{pct}}% (sidecar {{rss}} MB)",
@@ -1947,7 +2016,7 @@
     "missingMutations": "Mutationen (enter bei wenigste one mutation in die Mutation panel)",
     "missingTargetGene": "Target Gen (select one in die Sequence panel)",
     "deadlockTitle": "Nein response",
-    "deadlockDesc": "Nein progress update für 30+ seconds. The job may be stuck.",
+    "deadlockDesc": "Nein progress update für {{seconds}}+ seconds. The job may be stuck.",
     "deadlockWait": "Weiter warten",
     "deadlockReset": "Zurücksetzen",
     "plateCount": "{{count}} Platte",
@@ -1955,11 +2024,11 @@
     "cancel": "Abbrechen",
     "clearAllTitle": "Alle leeren",
     "clearBtn": "Leeren",
-    "successful": "{{Erfolg}}/{{total}} successful",
+    "successful": "{{success}}/{{total}} erfolgreich",
     "plates_one": "{{count}} Platte",
     "plates_other": "{{count}} Platten",
     "missingSequence": "Sequence Datei (Durchsuchen ein .gb / .fasta / .dna Datei)",
-    "manifestLoadFailed": "Manifest load fehlgeschlagen: {{Fehler}}"
+    "manifestLoadFailed": "Manifest load fehlgeschlagen: {{error}}"
   },
   "overwriteConfirm": {
     "title": "Datei already exists",
@@ -2012,9 +2081,9 @@
   "jobQueue": {
     "panelAriaLabel": "Hintergrund-Job-Warteschlange",
     "dragTitle": "Background job queue. Drag zu move.",
-    "summaryRunning": "Jobs (läuft {{läuft}}, pending {{pending}})",
+    "summaryRunning": "Jobs (läuft {{running}}, pending {{pending}})",
     "summaryEmpty": "Jobs (0)",
-    "summaryDone": "Jobs ({{fertig}} fertig)",
+    "summaryDone": "Jobs ({{done}} fertig)",
     "toggleAriaLabel": "Hintergrund-Job-Warteschlange umschalten",
     "hideAriaLabel": "Verbergen background job queue",
     "noJobs": "Nein jobs queued",
@@ -2022,7 +2091,7 @@
     "clearDone": "Clear fertig ({{count}})",
     "clearDoneAriaLabel": "Abgeschlossene Jobs leeren",
     "cancelJobAriaLabel": "Abbrechen job: {{label}}",
-    "statusAriaLabel": "Status: {{Status}}",
+    "statusAriaLabel": "Status: {{status}}",
     "statusPending": "Ausstehend",
     "statusRunning": "Läuft",
     "statusDone": "Fertig",
@@ -2267,7 +2336,7 @@
     "errorBadge": "{{count}} Fehler",
     "warnBadge": "{{count}} Warnungen",
     "warningDetailAria": "Warnung details",
-    "warningTooltip": "{{message}}\nVarianten: {{Varianten}}\nWells: {{wells}}",
+    "warningTooltip": "{{message}}\nVarianten: {{variants}}\nWells: {{wells}}",
     "replicateStatsAria": "Replicate-Merge-Statistik",
     "replicateMergeTitle": "Replicate-Merge",
     "labelRemeasure": "Neu gemessen",
@@ -2293,15 +2362,15 @@
     "minSec": "~{{min}}m {{sec}}s verbleibend"
   },
   "runManifest": {
-    "readFailed": "Could nicht Read manifest Datei: {{Pfad}}\n{{cause}}",
-    "parseFailed": "Fehlgeschlagen zu parse manifest JSON: {{Pfad}}\n{{cause}}",
-    "invalidStructure": "Invalid manifest structure. Erforderlich fields may be missing: {{Pfad}}",
+    "readFailed": "Could nicht Read manifest Datei: {{path}}\n{{cause}}",
+    "parseFailed": "Fehlgeschlagen zu parse manifest JSON: {{path}}\n{{cause}}",
+    "invalidStructure": "Invalid manifest structure. Erforderlich fields may be missing: {{path}}",
     "unsupportedSchema": "Unsupported manifest schema_version: \"{{version}}\". Current supported version: \"{{supported}}\". Aktualisieren kuma, oder check whether die manifest was generated durch ein older version."
   },
   "reRun": {
     "noRoundId": "manifest.params.round_id ist missing. Auswählen ein Round in die mame tab before re-läuft.",
-    "exportNotRunnable": "\"{{Methode}}\" ist ein export job. Export manifests cannot be re-ausführen directly. Export again von die Quelle data.",
-    "unsupportedMethod": "Unsupported Methode: \"{{Methode}}\". Supported methods: {{supported}}"
+    "exportNotRunnable": "\"{{method}}\" ist ein export job. Export manifests cannot be re-ausführen directly. Export again von die Quelle data.",
+    "unsupportedMethod": "Unsupported Methode: \"{{method}}\". Supported methods: {{supported}}"
   },
   "activitySlice": {
     "csvFormatError": "CSV Format Fehler: {{detail}}",
@@ -2351,7 +2420,7 @@
     "resultsClearedOnTemplateChange": "Die vorherigen Design-Ergebnisse wurden geleert, weil sich das template geändert hat. Das Design bitte erneut ausführen."
   },
   "inputSlice": {
-    "csvFormatError": "{{Modus}} CSV Format Fehler: {{detail}}",
+    "csvFormatError": "{{mode}} CSV Format Fehler: {{detail}}",
     "structureFrameMismatch": "3D-Struktur stimmt nicht mit der Referenzsequenz überein — 1D-Sequenzabstand wird verwendet"
   },
   "benchmarkDialog": {
@@ -2397,7 +2466,7 @@
   },
   "workspaceMigrate": {
     "title": "Workspace-Versions-Konflikt",
-    "description": "The selected Workspace uses schema version {{von}}, but die current app requires {{zu}}.",
+    "description": "The selected Workspace uses schema version {{from}}, but die current app requires {{to}}.",
     "noPathAlert": "Nein automatisch migration ist defined für this version pair. Manual upgrade ist erforderlich. The Workspace cannot be loaded.",
     "migratingWillTitle": "Migration wird:",
     "backupItem": "Create ein backup copy: {{template}}",
@@ -2409,7 +2478,7 @@
     "migrateBtn": "Migrieren (Backup + Konvertieren)",
     "migratingBtn": "Migriere...",
     "migrateAriaLabel": "Backup original Datei und migrate Workspace",
-    "noMigrationPath": "Nein migration Pfad defined für Workspace {{von}} zu {{zu}}. Manual upgrade erforderlich."
+    "noMigrationPath": "Nein migration Pfad defined für Workspace {{from}} zu {{to}}. Manual upgrade erforderlich."
   },
   "inputPanel": {
     "sectionLabel": "Workspace",
@@ -2434,7 +2503,7 @@
     "warningsLabel": "Warnungen",
     "cancelBtn": "Abbrechen",
     "continueBtn": "Fortfahren mit warnings",
-    "errSidecarNotReady": "Sidecar ist nicht bereit (Status: {{Status}}). Neu starten die app oder use die Wiederholen button in die Status bar.",
+    "errSidecarNotReady": "Sidecar ist nicht bereit (Status: {{status}}). Neu starten die app oder use die Wiederholen button in die Status bar.",
     "warnDiskUnavailable": "Disk space check ist unavailable auf this platform. Ensure sufficient free space before läuft.",
     "errNoNetwork": "Nein network connection detected. This ausführen requires internet access (e.g. UniProt/BLAST)."
   },
@@ -2466,14 +2535,31 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein run, der in einen Ordner mit der Ausgabe eines früheren run exportiert wurde, bewertete dessen plates mit, also erschienen mehr als ausgewählt.",
-      "Eine frühere Arbeitsmappe mit mehr plates als der run barcodes ausgewählt hatte, wurde über wells eines anderen run bewertet und muss neu laufen.",
-      "Der Ordner hält jetzt fest, welche plates ein run erzeugt hat, übrig gebliebene plates eines früheren run werden benannt, und nichts wird gelöscht.",
-      "Der Export-Bildschirm bietet keine Start- und End-row mehr an. Jede Einstellung außer der vollen plate legte verschiedene Mutanten auf ein well.",
-      "Die Platzierung kommt nur noch aus der quadrant-Wahl, und ein gespeicherter row-Bereich, der ein belegtes well überdecken würde, wird abgelehnt."
+      "Schritt 4 liest die Agilent-Reports mit numerischen Probennamen, sowohl das Screening der ganzen Platte als auch die replizierte Bestätigung.",
+      "Eine replizierte Bestätigung wird in das zugehörige Screening eingefügt, ersetzt dessen Werte und markiert die abweichenden.",
+      "Numerische Positionen werden gegen die entworfene Variantenliste aufgelöst, sodass keine Plattendatei mehr abgeschrieben wird.",
+      "Eine Bestätigung mit einer anderen Variantenmenge wird unter Nennung beider Anzahlen abgelehnt statt falsch beschriftet.",
+      "Die Replikatzahl ist die, die eine Datei trägt, von einer Messung bis zu so vielen, wie der Lauf gemacht hat."
     ],
-    "highlightsStamp": "0.16.25+291c60a5",
+    "highlightsStamp": "0.16.31+60d4442c",
     "releases": {
+      "0.16.28": [
+        "Fünf run-health-Abschnitte, die die App bei jedem Lauf gemessen und nie gezeichnet hat, stehen jetzt im Review-Bildschirm, zunächst geschlossen.",
+        "Die Coverage meldet die Gleichmäßigkeit je Well statt nur einen Mittelwert, sodass ein Well mit einer Lücke nicht mehr wie ein gleichmäßig bedecktes aussieht.",
+        "Die vom Sequenzierer gemessene read length wird gegen die Referenz gezeigt, gegen die der Lauf aligniert hat. Dort zeigt sich eine Concatemer-Population.",
+        "Eine Referenzdatei mit mehr als einer Sequenz wird von allen vier Readern abgelehnt, statt zu einer Chimäre verbunden oder stillschweigend gekürzt zu werden.",
+        "Ein Amplicon ohne gefundenes reading frame sagt das, statt eine CDS der Länge null zu melden, die die Platte ab dem Primer-Tail übersetzt hat."
+      ],
+      "0.16.27": [
+        "Ein Verweis auf ein Dokument, das dieses Repository nicht enthaelt, laesst nun den Build scheitern, statt erst beim Nachschlagen aufzufallen.",
+        "Sieben Verweise, die ein echtes Dokument unter einem veralteten Pfad nannten, sind korrigiert; einer zeigte auf die falsche Seite statt ins Leere.",
+        "Eine neue Seite nennt den Grund, warum die vom Code zitierten Entwurfsunterlagen in diesem oeffentlichen Repository fehlen, und was jede abdeckt.",
+        "Widersprechen sich Entwurfsunterlage und Code, haelt laut dieser Seite der Code mit seinen Tests."
+      ],
+      "0.16.26": [
+        "Der Custom-Polymerase-Editor zeigt Opt/Min/Max size und Max Tm diff nicht mehr, vier Felder, die die Design-Engine nie gelesen hat.",
+        "Die Dokumentation zum Pfad für Custom-Polymerase und Konfiguration nennt jetzt ~/.kuma/kuro/, wo kuma sie tatsächlich ablegt."
+      ],
       "0.16.25.1": [
         "Ein run, der in einen Ordner mit der Ausgabe eines früheren run exportiert wurde, bewertete dessen plates mit, also erschienen mehr als ausgewählt.",
         "Eine frühere Arbeitsmappe mit mehr plates als der run barcodes ausgewählt hatte, wurde über wells eines anderen run bewertet und muss neu laufen.",
@@ -2499,6 +2585,11 @@
         "Ein Run, der die meisten Reads am Coverage-Filter verwirft, sagt das nun, statt diese Wells wie nie befüllte aussehen zu lassen.",
         "Wenn zwei Ordner beide wie ein Run aussehen, wird Flow Cell und Startzeit des einen nicht mehr für den anderen gemeldet."
       ],
+      "0.16.22": [
+        "Die Verdikt-Übersicht zeigt keine Wiederfindungsrate mehr. Ein Lauf meldet jetzt eine statt zwei unterschiedlich zählende Raten.",
+        "Die Erfolgsrate bleibt und zählt genau die PASS-Klone, die die Pickliste tatsächlich exportiert.",
+        "Der Balken darunter teilt Varianten weiterhin in bestanden, mit Nebenänderung bestätigt und nicht bestätigt."
+      ],
       "0.16.21": [
         "Mutationen direkt an einem Ende der Referenz werden ueber der Urteilstabelle benannt, bei Laeufen, welche die gelieferte Referenz unveraendert genutzt haben.",
         "Sie werden benannt statt gezaehlt, denn welche Variante es ist entscheidet, was zu tun ist.",
@@ -2514,6 +2605,11 @@
         "Anfangs- und Endporenzahl und die Flusszellen-id kommen aus dem Laufordner, bei wiederverwendeter Zelle mit dem vorigen Lauf.",
         "Porenzahlen haben keine Bestanden-Grenze, denn eine Zelle mit 343 Anfangsporen lieferte fuenfhundert Reads pro Well.",
         "Jede Schwelle zeigt ihre Quelle, damit ein Workflow-Standardwert nicht als Herstellervorgabe gelesen wird."
+      ],
+      "0.16.18": [
+        "Variantennamen auf der Plattenkarte werden nicht mehr vor dem Zeichen abgeschnitten, das sie unterscheidet. R560E und R560Q werden jetzt korrekt angezeigt.",
+        "Ein Name, der nicht in eine Zeile passt, bricht jetzt innerhalb seiner Zelle um, statt vorzeitig abgeschnitten zu werden.",
+        "Interne Bereinigung ungenutzter Designwerte und hartcodierter Größen, ohne sichtbare Änderung."
       ],
       "0.16.17": [
         "Sanfte farbige Hintergründe und farbige Rahmen werden jetzt tatsächlich gezeichnet. Bisher fielen sie in jeder Version stillschweigend aus dem Stylesheet.",
@@ -2667,18 +2763,31 @@
         "Der post-commit-Hook für die Versionsnummer bricht nicht mehr an einem entfernten Pfad ab.",
         "Eine lange Notiz lässt sich jetzt im Dialog scrollen, statt unten über den Rand hinauszulaufen."
       ],
-      "0.16.18": [
-        "Variantennamen auf der Plattenkarte werden nicht mehr vor dem Zeichen abgeschnitten, das sie unterscheidet. R560E und R560Q werden jetzt korrekt angezeigt.",
-        "Ein Name, der nicht in eine Zeile passt, bricht jetzt innerhalb seiner Zelle um, statt vorzeitig abgeschnitten zu werden.",
-        "Interne Bereinigung ungenutzter Designwerte und hartcodierter Größen, ohne sichtbare Änderung."
+      "0.16.29": [
+        "Ein Wert, den die Pipeline nicht berechnen konnte, benennt sich jetzt selbst, statt 60 Sekunden später als Verbindungszeitüberschreitung aufzutauchen.",
+        "Eine Entscheidungskonfidenz wird nur gemeldet, wenn sie gemessen wurde, und Schätzwert und Fehlerbalken lesen jetzt dieselben Signale.",
+        "Die Testsuite läuft unter Windows, wo ein einziges fehlendes Werkzeug bisher alle 1301 Tests übersprang und Erfolg meldete.",
+        "Zwei nur unter Windows erreichbare Fehler sind behoben: Jede Veröffentlichung eines Exportpakets schlug fehl, und jede Prüfsummendatei war unlesbar.",
+        "Eine Übersetzung, die einen Platzhalter weglässt oder umbenennt, wird vor der Auslieferung erkannt und erreicht den Bildschirm nicht mehr mit einer Lücke."
       ],
-      "0.16.22": [
-        "Die Verdikt-Übersicht zeigt keine Wiederfindungsrate mehr. Ein Lauf meldet jetzt eine statt zwei unterschiedlich zählende Raten.",
-        "Die Erfolgsrate bleibt und zählt genau die PASS-Klone, die die Pickliste tatsächlich exportiert.",
-        "Der Balken darunter teilt Varianten weiterhin in bestanden, mit Nebenänderung bestätigt und nicht bestätigt."
+      "0.16.30": [
+        "Schritt 4 verlangt keine Plate-Layout-Datei mehr. Bleibt sie leer, werden Well-Positionen über das Analyze-Verdict-Blatt zugeordnet.",
+        "Eine angegebene Layout-Datei hat weiterhin Vorrang, und der Abgleich mit den Verdict-Identitäten bleibt unverändert.",
+        "Ein gemessenes Well ohne NGS-Ergebnis wird gezählt und benannt, statt den gesamten Build scheitern zu lassen."
+      ],
+      "0.16.31": [
+        "Schritt 4 liest die Agilent-Reports mit numerischen Probennamen, sowohl das Screening der ganzen Platte als auch die replizierte Bestätigung.",
+        "Eine replizierte Bestätigung wird in das zugehörige Screening eingefügt, ersetzt dessen Werte und markiert die abweichenden.",
+        "Numerische Positionen werden gegen die entworfene Variantenliste aufgelöst, sodass keine Plattendatei mehr abgeschrieben wird.",
+        "Eine Bestätigung mit einer anderen Variantenmenge wird unter Nennung beider Anzahlen abgelehnt statt falsch beschriftet.",
+        "Die Replikatzahl ist die, die eine Datei trägt, von einer Messung bis zu so vielen, wie der Lauf gemacht hat."
       ]
     },
     "releaseStamps": {
+      "0.16.29": "3f25adcf",
+      "0.16.28": "35bab529",
+      "0.16.27": "4cd14ddd",
+      "0.16.26": "c3e3f1a1",
       "0.16.25.1": "291c60a5",
       "0.16.25": "8204368c",
       "0.16.24": "1307c327",
@@ -2713,7 +2822,9 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.30": "bab83ea7",
+      "0.16.31": "60d4442c"
     }
   },
   "primerDisplay": {
@@ -2750,7 +2861,7 @@
     "runBtn": "Ausführen",
     "clearBtn": "Leeren",
     "exportBtn": "Exportieren",
-    "readyCount": "{{bereit}}/{{total}} bereit",
+    "readyCount": "{{ready}}/{{total}} bereit",
     "inputReadinessAria": "Eingabe readiness {{percent}}%",
     "analysisProgressAria": "Analysefortschritt {{percent}}%"
   },
@@ -2816,8 +2927,8 @@
     "unsupportedVersion": "Unsupported Workspace version: {{version}}"
   },
   "ipcKuro": {
-    "rpcTimeout": "RPC timeout: {{Methode}} after {{timeoutMs}}ms",
-    "invalidResultShape": "Invalid RPC result shape für {{Methode}}"
+    "rpcTimeout": "RPC-Timeout: {{method}} nach {{timeoutMs}}ms",
+    "invalidResultShape": "Invalid RPC result shape für {{method}}"
   },
   "autosaveHydration": {
     "relativeJustNow": "gerade eben",
@@ -2834,6 +2945,7 @@
     "writeFailed": "Autosave-Datei konnte nicht geschrieben werden ({{filename}}). Ursache: {{cause}}",
     "carriedFromScratch": "Aus einer nicht gespeicherten früheren Sitzung übernommen ({{relative}})",
     "resultsDiscarded": "Die variant-Liste wurde aus der Quelldatei neu ausgewählt und passt nicht mehr zur wiederhergestellten primer-Tabelle. Die Tabelle wurde geleert. Das Design bitte erneut ausführen.",
+    "resultsIncomplete": "Ein Teil der gespeicherten Ergebnisse war nicht vollstaendig und wurde deshalb nicht wiederhergestellt, statt halb gefuellt angezeigt zu werden. Fuehren Sie die Analyse erneut aus, um ihn zurueckzuholen. Fehlt: {{fields}}",
     "inputsUnavailable": "{{count}} Eingabedatei(en) konnten nicht geoeffnet werden und fehlen in der Wiederherstellung. Die Ergebnisse sind noch da, die zugrunde liegende Eingabe fehlt jedoch. Bitte erneut auswaehlen: {{paths}}",
     "workspaceRestored": "Workspace wiederhergestellt",
     "autoDetected": "Automatisch erkannt: {{fields}}",

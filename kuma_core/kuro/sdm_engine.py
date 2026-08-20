@@ -558,6 +558,23 @@ def _extend_reverse(
 # Shortest shared stretch that can plausibly act as Gibson homology, and so
 # the floor for calling an off-target duplex an assembly hazard rather than a
 # coincidence. See _binding_in_overlap_arm for the citation.
+#
+# Sweep result (2026-08, fixtures/pSHCE-dmpR.gb + mutation_list_insilico_test.csv
+# with Q5, fixtures/dmpR_evolvepro.csv with KOD, 86 design attempts total):
+# lowering this floor from 15 down to 11 changed zero arm verdicts, zero
+# rejected candidates, and zero selected primer pairs. Below 11 the effective
+# floor is max(seed_len, _MIN_ASSEMBLY_HOMOLOGY) and seed_len defaults to 8,
+# so any value <= 8 is a no-op. Damage starts at 10 nt (P297I's winning pair
+# is displaced by a 46.3C arm hit) and gets worse at 8 nt (H277G is rejected
+# outright -- see the docstring below for that case). None of the arm hits
+# observed at the 8 nt floor were filtered out by the separate 45C Tm gate:
+# their duplex Tm was 45.4-46.3C, above threshold, so this floor is not
+# redundant with tm_threshold. Full-identity duplex Tm at default primer3
+# conditions climbs with length (11 nt 28.68C, 13 nt 35.03C, 14 nt 37.70C,
+# 15 nt 41.36C, 16 nt 44.42C) but is sequence-dependent, not a structural
+# guarantee: worst-case 100% GC at 11 nt reaches 49.25C, above the 45C gate.
+# So the empty 11-14 nt band above is a property of the tested sequences, not
+# a proof that band is always safe.
 _MIN_ASSEMBLY_HOMOLOGY = 15
 
 
@@ -606,6 +623,22 @@ def _binding_in_overlap_arm(
     seed length made an 8/11 nt partial match inside an 11 nt arm reject H277G
     outright and displace the winning P297I pair -- neither of which is a real
     assembly risk.
+
+    Landwehr et al. 2025, Nat Commun 16, 865 (DOI 10.1038/s41467-024-55399-0)
+    SI Fig. S3 tested 11/13/16/20/24 nt overlaps and got successful assembly
+    at 11 nt. That result does not extend to this floor: it is designed,
+    complete-identity, intramolecular homology, while what this floor guards
+    against is coincidental, partial, intermolecular identity. The two are
+    not the same hazard and the 11 nt result is not evidence this floor can
+    be lowered.
+
+    Caller note: when ``arm_len < min_run`` this function returns False,
+    the same value it returns for a confirmed no-risk verdict. Those are not
+    the same thing -- one is "checked, no assembly risk found", the other is
+    "too short to check at all" -- and the return type does not distinguish
+    them. No new return value is added here; this is a note for whoever next
+    touches this function that the boolean collapses "safe" and "unknown"
+    into one signal.
     """
     if arm_len <= 0:
         return False

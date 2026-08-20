@@ -6,6 +6,7 @@ Spec: notes/specs/2026-05-04-mame-activity-integration.md §3.3
 import math
 import re
 from pathlib import Path
+from typing import cast
 
 import pandas as pd
 
@@ -13,10 +14,14 @@ from kuma_core.mame.activity.constants import WT_PATTERN
 from kuma_core.mame.activity.models import (
     ActivityRecord,
     ActivityTable,
+    DropReason,
+    DroppedRow,
     PlateConfig,
     PlateMeta,
     WtReplicateRecord,
 )
+
+_DETAIL_MAX_CHARS = 100
 
 WELL_RE_96 = re.compile(r"^[A-H](0[1-9]|1[0-2])$")
 WELL_RE_384 = re.compile(r"^[A-P](0[1-9]|1[0-9]|2[0-4])$")
@@ -67,7 +72,9 @@ def ingest_long_csv(
     Returns:
         ActivityTable with validated ActivityRecord list, PlateMeta, and any
         dedicated WT replicate rows ('WT_1', 'WT2', ...) kept apart in
-        ``wt_records`` so they never join as mutant wells.
+        ``wt_records`` so they never join as mutant wells. Every row that fails
+        validation is skipped and listed in ``dropped_rows`` with its reason, so
+        a lost measurement is always visible in the result.
 
     Raises:
         ValueError: If the well or value column (incl. aliases) is missing, or if
@@ -129,16 +136,46 @@ def ingest_long_csv(
 
     records: list[ActivityRecord] = []
     wt_records: list[WtReplicateRecord] = []
-    for _, row in df.iterrows():
+    dropped_rows: list[DroppedRow] = []
+
+    def _drop(
+        row_index: int,
+        reason: DropReason,
+        plate_id: str,
+        well_raw: str,
+        detail: object,
+    ) -> None:
+        """Record a skipped source row so the drop cannot pass unseen."""
+        dropped_rows.append(
+            DroppedRow(
+                row_index=row_index,
+                reason=reason,
+                plate_id=plate_id,
+                well_id=well_raw,
+                detail=str(detail)[:_DETAIL_MAX_CHARS],
+                source_file=path.name,
+            )
+        )
+
+    # row_index is the 0-based data row (header excluded); nothing filters the
+    # frame before this loop, so it also matches the source file line order.
+    for row_index, (_, row) in enumerate(df.iterrows()):
         plate_id = str(row["plate_id"]).strip()
         well_raw = str(row["well_id"]).strip().upper()
 
+        # The frame comes from a flat CSV/Excel read above, so every column holds
+        # scalars and a single-label lookup cannot return a Series. Newer pandas
+        # types row[...] as Series | ndarray | Any, which no numeric constructor
+        # accepts, so the cast states what the file format already guarantees.
+        # The try/except is what enforces the scalar contract at runtime.
         try:
-            value = float(row["value"])
+            value = float(cast(float | str, row["value"]))
         except (ValueError, TypeError):
+            _drop(row_index, "value_unparseable", plate_id, well_raw, row["value"])
             continue
 
         if math.isnan(value) or value < 0:
+            _drop(row_index, "value_nan_or_negative", plate_id, well_raw, value)
             continue
 
         # Dedicated WT replicate rows ('WT_1', 'WT2', ...) carry a label instead
@@ -165,9 +202,28 @@ def ingest_long_csv(
         # Normalise to canonical zero-padded form (A1 → A01) so single-digit
         # column inputs match the validator and downstream WT-well lookup.
         normalised = _normalise_well(well_raw)
-        if normalised is None or not _is_valid_well(normalised):
+        if normalised is None:
+            _drop(row_index, "well_unparseable", plate_id, well_raw, well_raw)
+            continue
+        if not _is_valid_well(normalised):
+            _drop(row_index, "well_out_of_range", plate_id, well_raw, normalised)
             continue
         well_id = normalised
+
+        # Same guard as the value cast above. A malformed replicate_idx used to
+        # raise out of the whole ingest while a malformed value merely skipped
+        # its row; now both skip and both are recorded.
+        try:
+            replicate_idx = int(cast(int | str, row["replicate_idx"]))
+        except (ValueError, TypeError):
+            _drop(
+                row_index,
+                "replicate_idx_unparseable",
+                plate_id,
+                well_raw,
+                row["replicate_idx"],
+            )
+            continue
 
         is_wt = well_id in normalised_wt_lookup.get(plate_id, [])
         records.append(
@@ -175,7 +231,7 @@ def ingest_long_csv(
                 plate_id=plate_id,
                 well_id=well_id,
                 value=value,
-                replicate_idx=int(row["replicate_idx"]),
+                replicate_idx=replicate_idx,
                 is_wt=is_wt,
                 source_file=path.name,
             )
@@ -188,5 +244,8 @@ def ingest_long_csv(
         ]
     )
     return ActivityTable(
-        records=records, plate_meta=plate_meta, wt_records=wt_records
+        records=records,
+        plate_meta=plate_meta,
+        wt_records=wt_records,
+        dropped_rows=dropped_rows,
     )

@@ -24,6 +24,13 @@ export type ThresholdKind =
   | "literature"
   /** A replacement guarantee, which is not an operating limit. */
   | "vendor_warranty"
+  /**
+   * Ours, and advisory only: it decides whether a sentence appears, never
+   * whether a read, a well or a verdict is kept. `reference_edge` is the one
+   * threshold in this block that carries it
+   * (`kuma_core/mame/run_quality.py:612`).
+   */
+  | "self_set"
 
 export interface RunQualityThreshold {
   value?: number
@@ -117,6 +124,103 @@ export interface PositionRecurrence {
   positions: RecurringPosition[]
 }
 
+/** Where a number on the `read_length` block came from. Not a threshold: these
+ * gate nothing, so they carry `computed` (was it quoted or derived) instead of
+ * the `provisional` a cut would need. */
+export interface ReadLengthProvenance {
+  source: string
+  /** `instrument_report` is MinKNOW's own figure, copied unaltered. `derived`
+   * is ours, computed from those figures and the reference length. */
+  kind: "instrument_report" | "derived"
+  computed: boolean
+  /** Always false. Nothing here decides a verdict, a gate or a severity. */
+  enforced: boolean
+}
+
+/** One binned distribution: parallel arrays, `bucket_values` in BASES. */
+export interface ReadLengthBuckets {
+  bucket_starts: number[]
+  bucket_ends: number[]
+  bucket_values: number[]
+  total: number
+}
+
+/**
+ * One `read_length_histogram` entry as MinKNOW wrote it, plus what it says
+ * against this run's reference.
+ *
+ * There is no single N50: the measured run reported three entries (5053, 3025,
+ * 3257) and the first carries no `read_length_type` at all, so every entry is
+ * carried with its own label and a missing label stays null rather than being
+ * given an invented name.
+ *
+ * `plot` and `outliers` describe DISJOINT sets of reads (the plot is everything
+ * up to its own upper edge, the outliers are the tail beyond it) even though
+ * their bucket ranges overlap. Never concatenate the two arrays.
+ */
+export interface ReadLengthHistogram {
+  /** `EstimatedBases`, `BasecalledBases`, or null for the unlabelled entry. */
+  read_length_type: string | null
+  /** What the bucket axis counts. The fractions below are null unless this is
+   * `ReadLengths`, the only value type whose bucket semantics were verified. */
+  bucket_value_type: string | null
+  /** MinKNOW's N50 for this entry, quoted rather than recomputed. */
+  n50: number | null
+  plot: ReadLengthBuckets | null
+  /** Null when the entry carried no tail, which is not an empty tail. */
+  outliers: ReadLengthBuckets | null
+  /** N50 over the reference the run aligned to. About 1.9 on the measured run
+   * (3257 over 1715), which is what a concatemer population looks like. */
+  n50_over_reference: number | null
+  /** Share of BASES within `near_reference_tolerance` of the reference length,
+   * and the share at or beyond `concatemer_multiple` times it. Null, never 0,
+   * whenever the question could not be asked: a 0 here is the reading "no bases
+   * were amplicon length". */
+  near_reference_bases_fraction: number | null
+  over_2x_reference_bases_fraction: number | null
+}
+
+/** One filtered series of a qscore histogram. */
+export interface QScoreSeries {
+  /** The MinKNOW `filtering` pairs, e.g. `{read_type, call_status}`. Carried
+   * because a modal q score whose filter is unstated is unusable. */
+  filtering: Record<string, string>[]
+  modal_q_score: number | null
+  bucket_values: number[]
+}
+
+export interface QScoreHistogram {
+  bucket_value_type: string | null
+  bucket_starts: number[]
+  bucket_ends: number[]
+  series: QScoreSeries[]
+}
+
+/**
+ * Read lengths as the instrument measured them, quoted from `report_*.json`.
+ *
+ * `histograms === null` means NOT READ (no report json, an unreadable one, or a
+ * MinKNOW too old to write `read_length_histogram`). It is never an empty array
+ * standing in for a run whose reads had no lengths, and no number inside is
+ * zero-filled.
+ *
+ * Nothing here grades. An N50 at twice the reference is what a concatemer
+ * population looks like and also what a deliberately long amplicon looks like,
+ * and no cut between the two survives a second run.
+ */
+export interface ReadLengthQC {
+  /** The reference reads were ALIGNED to, so the extracted amplicon on a run
+   * that extracted one. Null when it could not be read. */
+  reference_length_bp: number | null
+  /** Half-width of the "this is the amplicon" window, as a fraction. */
+  near_reference_tolerance: number
+  /** Multiple of the reference at which a read holds at least two copies. */
+  concatemer_multiple: number
+  histograms: ReadLengthHistogram[] | null
+  qscore_histograms: QScoreHistogram[] | null
+  provenance: Record<string, ReadLengthProvenance>
+}
+
 /**
  * Whether the run could have produced a scorable plate, read before its
  * verdicts rather than after them.
@@ -168,4 +272,11 @@ export interface RunQuality {
    * yet.
    */
   position_recurrence?: PositionRecurrence
+  /**
+   * Optional for the same reason `position_recurrence` is: a result autosaved
+   * by a sidecar that predates this block carries none, and an absent block
+   * must not read as a run whose reads had no lengths. Carried on the response
+   * and into the store; nothing renders it yet.
+   */
+  read_length?: ReadLengthQC
 }

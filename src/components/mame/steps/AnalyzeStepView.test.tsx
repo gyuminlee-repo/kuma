@@ -81,6 +81,14 @@ vi.mock("@/components/mame/widgets/PlateView", () => ({
 vi.mock("@/components/mame/widgets/RunHealthPanel", () => ({
   RunHealthPanel: () => <div data-testid="run-health-panel" />,
 }));
+// Stubbed to the one thing this step decides about it: whether it is mounted
+// and what health it was handed. The disclosure itself, its collapsed default
+// and its unavailable reasons are RunQcSection.test.tsx.
+vi.mock("@/components/mame/widgets/RunQcSection", () => ({
+  RunQcSection: ({ runHealth }: { runHealth: unknown }) => (
+    <div data-testid="run-qc-section" data-has-health={String(runHealth !== null)} />
+  ),
+}));
 vi.mock("@/components/mame/panels/InputPanel", () => ({
   InputPanel: () => <div data-testid="input-panel" />,
 }));
@@ -261,6 +269,23 @@ describe("AnalyzeStepView (Task #12, analyze.review)", () => {
   it("analyze.review without runHealth does not mount RunHealthPanel", () => {
     const { queryByTestId } = render(<AnalyzeStepView />);
     expect(queryByTestId("run-health-panel")).toBeNull();
+  });
+
+  it("mounts the QC disclosure on the review, with or without runHealth", () => {
+    const withHealth = render(<AnalyzeStepView runHealth={fakeHealth} />);
+    expect(withHealth.getByTestId("run-qc-section")).toHaveAttribute(
+      "data-has-health",
+      "true",
+    );
+    withHealth.unmount();
+
+    // Unconditional: the blocks inside it read the store rather than this prop,
+    // and the health part states its own absence instead of vanishing.
+    const withoutHealth = render(<AnalyzeStepView />);
+    expect(withoutHealth.getByTestId("run-qc-section")).toHaveAttribute(
+      "data-has-health",
+      "false",
+    );
   });
 
   it("analyze.review does not render JanusAutosaveNotice even when a run wrote one", () => {

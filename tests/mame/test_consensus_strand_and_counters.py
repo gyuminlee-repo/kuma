@@ -28,16 +28,19 @@ import gzip
 import random
 from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from kuma_core.mame.ingest.align import Alignment, _CIGAR_M
 from kuma_core.mame.ingest.combinatorial_demux import (
+    DemuxResult,
     _match_reads_chunk,
     _reverse_complement,
     run_combinatorial_demux,
 )
 from kuma_core.mame.ingest.consensus import _accumulate, call_consensus
+from tests.mame.minimap2_support import requires_minimap2
 
 # ---------------------------------------------------------------------------
 # Defect 1: minus-strand query cursor
@@ -156,7 +159,8 @@ def _chunk_stats(monkeypatch: pytest.MonkeyPatch, outcomes: list[object]) -> tup
 
     monkeypatch.setattr(cd, "_demux_read_anchored", fake_demux)
 
-    hits = [_FakeHit(50 + 10 * i, 100 + 10 * i) for i in range(len(outcomes))]
+    # _FakeHit duck-types the two Alignment fields the matcher reads.
+    hits: list[Any] = [_FakeHit(50 + 10 * i, 100 + 10 * i) for i in range(len(outcomes))]
     chunk = [(0, "read0", "A" * 400, hits)]
     (result,) = cd._match_reads_chunk(
         chunk, r_barcodes=[("r1", "ACGTACGTAC")], f_barcodes=[("f1", "TTTTGGGGCC")],
@@ -269,7 +273,7 @@ def _workload(tmp_path: Path) -> tuple[Path, Path, Path]:
     return fastq, ref, xlsx
 
 
-def _run(workload: tuple[Path, Path, Path], out_dir: Path) -> object:
+def _run(workload: tuple[Path, Path, Path], out_dir: Path) -> DemuxResult:
     fastq, ref, xlsx = workload
     return run_combinatorial_demux(
         raw_fastq_paths=[fastq],
@@ -284,6 +288,7 @@ def _run(workload: tuple[Path, Path, Path], out_dir: Path) -> object:
     )
 
 
+@requires_minimap2
 def test_serial_and_parallel_matchers_report_the_same_stats(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -308,6 +313,7 @@ def test_serial_and_parallel_matchers_report_the_same_stats(
     }
 
 
+@requires_minimap2
 def test_multi_hit_reads_are_booked_as_assigned_not_split(
     tmp_path: Path, _workload: tuple[Path, Path, Path]
 ) -> None:

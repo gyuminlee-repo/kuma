@@ -2,7 +2,7 @@
 
 ## Sidecar process exited
 
-Python sidecar가 기동 또는 RPC 호출 중 크래시. `~/.kuro/crash.log`에서 traceback 확인.
+Python sidecar가 기동 또는 RPC 호출 중 크래시. `~/.kuma/kuro/crash.log`에서 traceback 확인.
 
 흔한 원인:
 - PyInstaller 번들에 모듈 누락 (드물게 `ModuleNotFoundError` 보고)
@@ -11,7 +11,7 @@ Python sidecar가 기동 또는 RPC 호출 중 크래시. `~/.kuro/crash.log`에
 
 ## UniProt: no matching entries / 유사도 낮은 hit
 
-BLAST에 이메일 필요. `KURO_CONTACT_EMAIL` 또는 `~/.kuro/config.json`의 `contact_email` 설정 — [설정](configuration.md). v1.33.6+는 기본값이 있어 BLAST는 동작함. 여전히 유사도 낮으면 BLAST 자체 실패 (인터넷·EBI 상태 확인).
+BLAST에 이메일 필요. `KURO_CONTACT_EMAIL` 또는 `~/.kuma/kuro/config.json`의 `contact_email` 설정 — [설정](configuration.md). v1.33.6+는 기본값이 있어 BLAST는 동작함. 여전히 유사도 낮으면 BLAST 자체 실패 (인터넷·EBI 상태 확인).
 
 ## "expected WT amino acid X at position N, but codon YYY encodes Z"
 

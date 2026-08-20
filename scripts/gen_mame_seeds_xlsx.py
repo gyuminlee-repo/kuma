@@ -32,6 +32,9 @@ from test_barcode_package import _FWD_SEEDS, _REV_SEEDS  # noqa: E402
 def main() -> None:
     wb = openpyxl.Workbook()
     ws = wb.active
+    # A freshly created Workbook always carries one active worksheet;
+    # None here would mean openpyxl handed back an empty book.
+    assert ws is not None
     ws.title = "Seeds"
     ws.append(["name", "sequence"])
     for i in range(1, 13):

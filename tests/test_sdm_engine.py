@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 from Bio import SeqIO
@@ -472,6 +473,7 @@ class TestVendorSpec:
         """
         registry = PolymeraseRegistry()
         profile = registry.get("TAKARA_GXL")
+        assert profile.vendor_spec is not None
         assert profile.vendor_spec["gc_min"] is None
         assert profile.vendor_spec["gc_max"] is None
         # All-GC 22-mer: extreme GC%, in-range length (20-25) -> no warnings at all.
@@ -485,6 +487,7 @@ class TestVendorSpec:
         registry = PolymeraseRegistry()
         profile = registry.get("Phusion")
         spec = profile.vendor_spec
+        assert spec is not None
         assert spec["length_min"] == 17 and spec["length_max"] == 25
         fwd_min = ("ATGC" * 5)[:17]  # 17 nt, GC% 50% (in [40,60])
         assert len(fwd_min) == 17
@@ -708,7 +711,7 @@ class TestCheckOfftarget:
         assert decoy[-1] != primer[-1], "3' terminus must NOT be extendable"
 
         template = "N" * 40 + primer + "N" * 40 + decoy + "N" * 40
-        kwargs = dict(
+        kwargs: dict[str, Any] = dict(
             primer_seq=primer,
             template=template,
             intended_start=40,

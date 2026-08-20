@@ -9,6 +9,7 @@ before this metric existed must read back as unknown, never as zero support.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -23,7 +24,7 @@ from kuma_core.mame.ingest.fasta_parser import parse_fasta_file
 
 
 def _metadata(**overrides) -> ConsensusMetadata:
-    base = dict(
+    base: dict[str, Any] = dict(
         depth=500,
         input_reads=500,
         aligned_reads=500,

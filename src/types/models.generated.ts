@@ -785,15 +785,11 @@ export interface PolymeraseProfileModel {
   fwd_len_max?: number | null;
   fwd_len_min?: number | null;
   max_gc: number;
-  max_size: number;
   max_tm: number;
-  max_tm_diff: number;
   min_3prime_dist?: number | null;
   min_gc: number;
-  min_size: number;
   min_tm: number;
   name: string;
-  opt_size: number;
   opt_tm: number;
   opt_tm_fwd?: number | null;
   opt_tm_overlap?: number | null;

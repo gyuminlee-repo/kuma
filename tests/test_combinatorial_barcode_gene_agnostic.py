@@ -6,6 +6,8 @@ Verifies:
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 
@@ -17,7 +19,7 @@ _F_TAIL = "cacaggaggttaaacc"   # 16 bp
 _R_TAIL = "tgcgttgcgctctag"    # 15 bp
 
 
-def _make_barcode_xlsx(tmp_path, prefix: str) -> "Path":
+def _make_barcode_xlsx(tmp_path, prefix: str) -> Path:
     """Write a minimal barcodes xlsx with the given row-name prefix.
 
     F rows: <prefix>_f_1 .. <prefix>_f_12  (unique 10bp body + F tail)
@@ -36,6 +38,7 @@ def _make_barcode_xlsx(tmp_path, prefix: str) -> "Path":
 
     wb = openpyxl.Workbook()
     ws = wb.active
+    assert ws is not None
 
     for i in range(1, 13):
         seq = f"AAAAAAAF{i:02d}" + _F_TAIL  # unique bodies "AAAAAAAF01" .. "AAAAAAAF12"

@@ -28,6 +28,13 @@ const STAGES = [
   { name: "sync-check", cmd: ["node", "scripts/sync-check.mjs"] },
   { name: "sync-check-groups", cmd: ["node", "scripts/sync-check-groups.mjs"] },
   { name: "gen-whatsnew", cmd: ["node", "scripts/gen-whatsnew.mjs", "--check"] },
+  { name: "check-doc-citations", cmd: ["node", "scripts/check-doc-citations.mjs"] },
+  // version-sync above compares the manifests against each other, so a bump
+  // that never happened leaves them agreeing and passes. This one compares them
+  // against the version the commit claims, which is the case a squash merge
+  // reaches: sync-version.sh is a local post-commit hook and the server does
+  // not run it.
+  { name: "check-version-label", cmd: ["node", "scripts/check-version-label.mjs"] },
 ];
 
 const failedStages = [];

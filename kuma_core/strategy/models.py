@@ -9,10 +9,33 @@ Classifier body, bootstrap computation, and advisory/auto modes are v0.3+.
 
 from __future__ import annotations
 
+import math
 from datetime import datetime
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+
+_FloatT = TypeVar("_FloatT", bound=Optional[float])
+
+
+def _reject_non_finite(name: str, value: _FloatT) -> _FloatT:
+    """Refuse NaN and infinity on a field whose docstring declares a range.
+
+    A non-finite float is not a value in any declared range, and it does not
+    survive the audit log: json has no NaN literal, so model_dump_json writes
+    null and the reader can no longer tell "could not be computed" from
+    "never recorded".
+    """
+    if value is None:
+        # Return the argument rather than the literal None: on this branch the
+        # type variable is bound to a type that admits None, and returning the
+        # literal instead would claim the function can hand back None even when
+        # it was called with a plain float.
+        return value
+    if not math.isfinite(value):
+        raise ValueError(f"{name} must be finite, got {value!r}")
+    return value
 
 
 class StrategyDecisionLog(BaseModel):
@@ -36,7 +59,17 @@ class StrategyDecisionLog(BaseModel):
         bootstrap_distribution: Probability distribution over decision labels
             from bootstrap sampling (v0.3+). Schema retained for future use.
         decision: The selected decision label.
-        decision_confidence: Scalar confidence from bootstrap (0.0-1.0).
+        decision_confidence: Scalar confidence from bootstrap, in [0.0, 1.0],
+            or None when no bootstrap ran (calibration period, deferred on
+            missing inputs). Both halves of that contract are enforced.
+
+            The field is Optional because the absent state has to be
+            representable: json has no NaN literal, so a NaN written here came
+            back out of model_dump_json as null and model_validate_json then
+            rejected its own output against the non-optional float. An audit
+            log that cannot be read back is not an audit log. Non-finite values
+            are refused at construction as well, so "not computed" has exactly
+            one spelling (None) instead of two that serialise alike.
         reason: Short human-readable rationale code, e.g. "calibration_period".
         overridden_by_user: True if the user dismissed the classifier result.
         override_note: Optional free-text annotation for the override.
@@ -61,7 +94,7 @@ class StrategyDecisionLog(BaseModel):
     signal_magnitudes: dict[str, float] = {}
     bootstrap_distribution: dict[str, float]
     decision: Literal["continue_walking", "switch_combinatorial", "stop", "deferred"]
-    decision_confidence: float
+    decision_confidence: Optional[float] = None
     reason: str
     overridden_by_user: bool
     override_note: Optional[str] = None
@@ -69,6 +102,21 @@ class StrategyDecisionLog(BaseModel):
     bootstrap_n: int = 1000
     prev_signals_digest: Optional[str] = None
     effective_seed: Optional[int] = None
+
+    @field_validator("decision_confidence")
+    @classmethod
+    def _check_confidence(cls, v: Optional[float]) -> Optional[float]:
+        v = _reject_non_finite("decision_confidence", v)
+        if v is not None and not 0.0 <= v <= 1.0:
+            raise ValueError(f"decision_confidence must lie in [0, 1], got {v!r}")
+        return v
+
+    @field_validator("bootstrap_n")
+    @classmethod
+    def _check_bootstrap_n(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError(f"bootstrap_n must be >= 1, got {v!r}")
+        return v
 
 
 class RoundMetrics(BaseModel):
@@ -132,3 +180,46 @@ class RoundMetrics(BaseModel):
     signal_magnitudes: dict[str, float] = {}
 
     model_config = {"arbitrary_types_allowed": True}
+
+    # The rules below were stated only in the field docstrings above, which
+    # meant hit_rates=[-5.0, 2.0, nan], sigma_assay=-1.0, r=0 and negative
+    # counts all constructed successfully and then produced either a wrong
+    # signal or a ZeroDivisionError further downstream.
+
+    @field_validator("delta_best_ema")
+    @classmethod
+    def _check_delta(cls, v: float) -> float:
+        return _reject_non_finite("delta_best_ema", v)
+
+    @field_validator("sigma_assay")
+    @classmethod
+    def _check_sigma(cls, v: Optional[float]) -> Optional[float]:
+        v = _reject_non_finite("sigma_assay", v)
+        if v is not None and v < 0:
+            raise ValueError(f"sigma_assay is a standard deviation and cannot be negative, got {v!r}")
+        return v
+
+    @field_validator("hit_rates")
+    @classmethod
+    def _check_hit_rates(cls, v: list[float]) -> list[float]:
+        for index, rate in enumerate(v):
+            _reject_non_finite(f"hit_rates[{index}]", rate)
+            if not 0.0 <= rate <= 1.0:
+                raise ValueError(
+                    f"hit_rates[{index}] is a ratio and must lie in [0, 1], got {rate!r}"
+                )
+        return v
+
+    @field_validator("r")
+    @classmethod
+    def _check_r(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError(f"r (replicates per well) must be >= 1, got {v!r}")
+        return v
+
+    @field_validator("cumulative_beneficial", "K_throughput", "unused_beneficial_count")
+    @classmethod
+    def _check_counts(cls, v: int, info) -> int:
+        if v < 0:
+            raise ValueError(f"{info.field_name} is a count and cannot be negative, got {v!r}")
+        return v

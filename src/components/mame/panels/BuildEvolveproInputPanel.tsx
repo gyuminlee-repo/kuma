@@ -2,7 +2,9 @@
  * Unified MAME Step 4 (Activity Data) measurement builder.
  *
  * Generic long-format, pre-normalized GC, and raw Agilent inputs are adapters
- * into one NGS-qualified EVOLVEpro export. Plate layout is mapping metadata,
+ * into one NGS-qualified EVOLVEpro export. Plate layout is optional mapping
+ * metadata (the verdict sheet carries the same well identities when it is
+ * absent),
  * and optional variant-labeled confirmation is normalized independently before
  * it overrides the primary measurement.
  */
@@ -41,6 +43,8 @@ import {
   BUILD_EVOLVEPRO_DEFAULT_STATE,
   createBuildEvolveproCompletion,
   hasBuildEvolveproFormValues,
+  buildEvolveproNeedsOrderSource,
+  hasBuildEvolveproOrderSource,
 } from "@/lib/mame/buildEvolveproFormStorage";
 
 function getFilename(p: string): string {
@@ -67,11 +71,13 @@ const PRIMARY_HELP: Record<FormState["primarySource"], string> = {
   longFormat: "mame.buildEvolvepro.primarySourceLongFormatHelper",
   gcSheet: "mame.buildEvolvepro.primarySourceGcSheetHelper",
   rawReport: "mame.buildEvolvepro.primarySourceRawReportHelper",
+  numericReport: "mame.buildEvolvepro.primarySourceNumericReportHelper",
 };
 
 const CONFIRMATION_HELP: Record<FormState["confirmationSource"], string> = {
   none: "mame.buildEvolvepro.confirmationSourceNoneHelper",
   variantLabels: "mame.buildEvolvepro.confirmationSourceVariantLabelsHelper",
+  numericIds: "mame.buildEvolvepro.confirmationSourceNumericIdsHelper",
 };
 
 export function BuildEvolveproInputPanel() {
@@ -97,6 +103,7 @@ export function BuildEvolveproInputPanel() {
     hasBuildEvolveproFormValues(loadFromStorage(project?.path)),
   );
   const [isBuilding, setIsBuilding] = useState(false);
+  const [buildError, setBuildError] = useState<string | null>(null);
   const [result, setResult] = useState<BuildEvolveproInputResult | null>(null);
   const resetEpoch = useMameAppStore((s) => s.resetEpoch);
   const setBuildEvolveproCompletion = useMameAppStore(
@@ -240,12 +247,25 @@ export function BuildEvolveproInputPanel() {
   if (form.primarySource === "longFormat") {
     if (!form.activityPath) missing.push({ label: "Activity CSV/XLSX", fieldId: "bep-activity" });
   } else {
-    if (!form.layoutXlsx) need("layoutXlsx", "bep-layout");
+    // No layout gate: an unselected layout means the builder derives the
+    // well->variant mapping from the verdict sheet, which this form requires
+    // anyway.
     if (form.primarySource === "gcSheet" && !form.gcDataXlsx) need("gcDataXlsx", "bep-gc");
     if (form.primarySource === "rawReport" && !form.round1ReportXlsx) need("round1ReportXlsx", "bep-round1");
+    if (form.primarySource === "numericReport" && !form.numericReportXlsx) {
+      need("numericReportXlsx", "bep-numeric");
+    }
   }
   if (form.confirmationSource === "variantLabels" && !form.remeasureReportXlsx) {
     need("remeasureReportXlsx", "bep-remeasure");
+  }
+  if (form.confirmationSource === "numericIds" && !form.remeasureNumericXlsx) {
+    need("remeasureNumericXlsx", "bep-remeasure-numeric");
+  }
+  // A numeric sample name is a position, so one order source has to say which
+  // position holds which variant. Both at once leaves the answer ambiguous.
+  if (buildEvolveproNeedsOrderSource(form) && !hasBuildEvolveproOrderSource(form)) {
+    need("orderSource", "bep-expected");
   }
   if (!form.verdictXlsx) need("verdictXlsx", "bep-verdict");
   if (!form.outputXlsx) need("outputXlsx", "bep-output-path");
@@ -254,20 +274,26 @@ export function BuildEvolveproInputPanel() {
   const canBuild = missing.length === 0 && !isBuilding;
 
   function buildParams(): BuildEvolveproInputParams {
+    const layout = form.layoutXlsx || undefined;
     const primary =
       form.primarySource === "longFormat"
         ? {
             activity_path: form.activityPath,
             activity_scale: form.activityScale,
-            layout_xlsx: form.layoutXlsx || undefined,
+            layout_xlsx: layout,
           }
         : form.primarySource === "gcSheet"
-          ? { gc_data_xlsx: form.gcDataXlsx, layout_xlsx: form.layoutXlsx }
-          : { round1_report_xlsx: form.round1ReportXlsx, layout_xlsx: form.layoutXlsx };
+          ? { gc_data_xlsx: form.gcDataXlsx, layout_xlsx: layout }
+          : form.primarySource === "rawReport"
+            ? { round1_report_xlsx: form.round1ReportXlsx, layout_xlsx: layout }
+            : { numeric_report_xlsx: form.numericReportXlsx, layout_xlsx: layout };
     return {
       ...primary,
+      expected_xlsx: form.expectedXlsx || undefined,
       remeasure_report_xlsx:
         form.confirmationSource === "variantLabels" ? form.remeasureReportXlsx : undefined,
+      remeasure_numeric_xlsx:
+        form.confirmationSource === "numericIds" ? form.remeasureNumericXlsx : undefined,
       verdict_xlsx: form.verdictXlsx,
       output_xlsx: form.outputXlsx,
     };
@@ -277,6 +303,7 @@ export function BuildEvolveproInputPanel() {
     if (!canBuild) return;
     setIsBuilding(true);
     setResult(null);
+    setBuildError(null);
 
     const params = buildParams();
     const buildGeneration = formGenerationRef.current;
@@ -339,9 +366,10 @@ export function BuildEvolveproInputPanel() {
               "mame.activity.build_evolvepro_input",
           })
         : descRaw;
+      setBuildError(description);
       toast.error(t("mame.buildEvolvepro.toastError"), {
         description,
-        duration: 6000,
+        duration: 12000,
       });
     } finally {
       setIsBuilding(false);
@@ -355,6 +383,10 @@ export function BuildEvolveproInputPanel() {
       field.scrollIntoView({ block: "center", behavior: "smooth" });
     }
     field.focus();
+  }
+
+  function handleDismissError() {
+    setBuildError(null);
   }
 
   function handleClearRestored() {
@@ -414,6 +446,7 @@ export function BuildEvolveproInputPanel() {
               { value: "longFormat", label: t("mame.buildEvolvepro.primarySourceLongFormat") },
               { value: "gcSheet", label: t("mame.buildEvolvepro.primarySourceGcSheet") },
               { value: "rawReport", label: t("mame.buildEvolvepro.primarySourceRawReport") },
+              { value: "numericReport", label: t("mame.buildEvolvepro.primarySourceNumericReport") },
             ]}
             selected={form.primarySource}
             onSelect={(v) => setForm({ primarySource: v as FormState["primarySource"] })}
@@ -455,26 +488,50 @@ export function BuildEvolveproInputPanel() {
             <>
               <FilePickerField
                 id="bep-layout"
-                label={t("mame.buildEvolvepro.layoutXlsx")}
+                label={`${t("mame.buildEvolvepro.layoutXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
                 filled={Boolean(form.layoutXlsx)}
                 value={form.layoutXlsx}
                 onBrowse={() => browseXlsx("layoutXlsx", t("mame.buildEvolvepro.layoutXlsx"))}
                 helperText={t("mame.buildEvolvepro.layoutXlsxHelper")}
                 helpText={t("mame.buildEvolvepro.layoutXlsxHelper")}
               />
-              <FilePickerField
-                id={form.primarySource === "gcSheet" ? "bep-gc" : "bep-round1"}
-                label={form.primarySource === "gcSheet" ? t("mame.buildEvolvepro.gcDataXlsx") : t("mame.buildEvolvepro.round1ReportXlsx")}
-                filled={Boolean(form.primarySource === "gcSheet" ? form.gcDataXlsx : form.round1ReportXlsx)}
-                value={form.primarySource === "gcSheet" ? form.gcDataXlsx : form.round1ReportXlsx}
-                onBrowse={() => browseXlsx(
-                  form.primarySource === "gcSheet" ? "gcDataXlsx" : "round1ReportXlsx",
-                  form.primarySource === "gcSheet" ? t("mame.buildEvolvepro.gcDataXlsx") : t("mame.buildEvolvepro.round1ReportXlsx"),
-                )}
-                helperText={form.primarySource === "gcSheet" ? t("mame.buildEvolvepro.gcDataXlsxHelper") : t("mame.buildEvolvepro.round1ReportXlsxHelper")}
-                helpText={form.primarySource === "gcSheet" ? t("mame.buildEvolvepro.gcDataXlsxHelper") : t("mame.buildEvolvepro.round1ReportXlsxHelper")}
-              />
+              {form.primarySource === "numericReport" ? (
+                <FilePickerField
+                  id="bep-numeric"
+                  label={t("mame.buildEvolvepro.numericReportXlsx")}
+                  filled={Boolean(form.numericReportXlsx)}
+                  value={form.numericReportXlsx}
+                  onBrowse={() => browseXlsx("numericReportXlsx", t("mame.buildEvolvepro.numericReportXlsx"))}
+                  helperText={t("mame.buildEvolvepro.numericReportXlsxHelper")}
+                  helpText={t("mame.buildEvolvepro.numericReportXlsxHelper")}
+                />
+              ) : (
+                <FilePickerField
+                  id={form.primarySource === "gcSheet" ? "bep-gc" : "bep-round1"}
+                  label={form.primarySource === "gcSheet" ? t("mame.buildEvolvepro.gcDataXlsx") : t("mame.buildEvolvepro.round1ReportXlsx")}
+                  filled={Boolean(form.primarySource === "gcSheet" ? form.gcDataXlsx : form.round1ReportXlsx)}
+                  value={form.primarySource === "gcSheet" ? form.gcDataXlsx : form.round1ReportXlsx}
+                  onBrowse={() => browseXlsx(
+                    form.primarySource === "gcSheet" ? "gcDataXlsx" : "round1ReportXlsx",
+                    form.primarySource === "gcSheet" ? t("mame.buildEvolvepro.gcDataXlsx") : t("mame.buildEvolvepro.round1ReportXlsx"),
+                  )}
+                  helperText={form.primarySource === "gcSheet" ? t("mame.buildEvolvepro.gcDataXlsxHelper") : t("mame.buildEvolvepro.round1ReportXlsxHelper")}
+                  helpText={form.primarySource === "gcSheet" ? t("mame.buildEvolvepro.gcDataXlsxHelper") : t("mame.buildEvolvepro.round1ReportXlsxHelper")}
+                />
+              )}
             </>
+          )}
+
+          {buildEvolveproNeedsOrderSource(form) && (
+            <FilePickerField
+              id="bep-expected"
+              label={t("mame.buildEvolvepro.expectedXlsx")}
+              filled={Boolean(form.expectedXlsx)}
+              value={form.expectedXlsx}
+              onBrowse={() => browseFile("expectedXlsx", t("mame.buildEvolvepro.expectedXlsx"), ["xlsx", "xls", "csv", "tsv", "txt"])}
+              helperText={t("mame.buildEvolvepro.expectedXlsxHelper")}
+              helpText={t("mame.buildEvolvepro.expectedXlsxHelper")}
+            />
           )}
 
           <ChoiceToggle
@@ -484,6 +541,7 @@ export function BuildEvolveproInputPanel() {
             options={[
               { value: "none", label: t("mame.buildEvolvepro.confirmationSourceNone") },
               { value: "variantLabels", label: t("mame.buildEvolvepro.confirmationSourceVariantLabels") },
+              { value: "numericIds", label: t("mame.buildEvolvepro.confirmationSourceNumericIds") },
             ]}
             selected={form.confirmationSource}
             onSelect={(v) => setForm({ confirmationSource: v as FormState["confirmationSource"] })}
@@ -498,6 +556,18 @@ export function BuildEvolveproInputPanel() {
               onBrowse={() => browseXlsx("remeasureReportXlsx", t("mame.buildEvolvepro.remeasureReportXlsx"))}
               helperText={t("mame.buildEvolvepro.remeasureReportXlsxHelper")}
               helpText={t("mame.buildEvolvepro.remeasureReportXlsxHelper")}
+            />
+          )}
+
+          {form.confirmationSource === "numericIds" && (
+            <FilePickerField
+              id="bep-remeasure-numeric"
+              label={t("mame.buildEvolvepro.remeasureNumericXlsx")}
+              filled={Boolean(form.remeasureNumericXlsx)}
+              value={form.remeasureNumericXlsx}
+              onBrowse={() => browseXlsx("remeasureNumericXlsx", t("mame.buildEvolvepro.remeasureNumericXlsx"))}
+              helperText={t("mame.buildEvolvepro.remeasureNumericXlsxHelper")}
+              helpText={t("mame.buildEvolvepro.remeasureNumericXlsxHelper")}
             />
           )}
 
@@ -602,6 +672,25 @@ export function BuildEvolveproInputPanel() {
               </Button>
             ))}
           </span>
+        </div>
+      )}
+
+      {buildError !== null && (
+        <div
+          role="alert"
+          className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-foreground"
+        >
+          <p className="font-medium">{t("mame.buildEvolvepro.toastError")}</p>
+          <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{buildError}</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleDismissError}
+            className="mt-2 h-6 px-2 text-xs"
+          >
+            {t("mame.buildEvolvepro.dismissError")}
+          </Button>
         </div>
       )}
 

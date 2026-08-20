@@ -110,6 +110,7 @@ class TestColumnHeaderNormalization:
         xlsx_file = tmp_path / "padded.xlsx"
         wb = openpyxl.Workbook()
         ws = wb.active
+        assert ws is not None
         ws.append([" Variant ", "Y_Pred"])
         ws.append(["Q10A", 0.9])
         wb.save(str(xlsx_file))

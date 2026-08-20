@@ -58,7 +58,8 @@ class AmpliconLengthEstimate:
     detected_length: int   # modal peak in bp (bin centre)
     n_sample_reads: int    # number of reads sampled
     confidence: str        # "high" | "medium" | "low"
-    distribution_summary: dict  # min, median, max, peak_count, peak_ratio
+    # min, median, max, peak_count, peak_ratio, p10, p25, p75, p90
+    distribution_summary: dict
 
 
 @dataclass
@@ -124,6 +125,33 @@ def _iter_fastq_lengths(path: Path) -> Iterator[int]:
             fh.readline()  # quality
             if seq:
                 yield len(seq)
+
+
+#: Which percentiles the distribution summary carries. p10/p90 bracket the bulk
+#: of a nanopore length distribution without being dragged by the single 200 kb
+#: read that sets `max`; p25/p75 are the interquartile box a wet-lab operator
+#: already reads off a gel.
+_SUMMARY_PERCENTILES = (10, 25, 75, 90)
+
+
+def _percentiles(lengths: list[int]) -> dict[str, int]:
+    """The percentiles of an in-hand length vector, keyed ``p10`` and friends.
+
+    Linear interpolation between the two ranks the percentile falls between
+    (``statistics.quantiles`` with ``method="inclusive"``, the definition numpy
+    and R type 7 use), then truncated to whole base pairs the way the neighbouring
+    ``median`` already is. Truncation rather than rounding so that no reported
+    length is longer than a read that was actually seen.
+
+    Callers hold at least a hundred reads by the time this runs, which is well
+    past the two ``quantiles`` needs; the guard is here so a future caller with a
+    single read gets that read back rather than an exception.
+    """
+    if len(lengths) < 2:
+        only = int(lengths[0]) if lengths else 0
+        return {f"p{p}": only for p in _SUMMARY_PERCENTILES}
+    cuts = statistics.quantiles(lengths, n=100, method="inclusive")
+    return {f"p{p}": int(cuts[p - 1]) for p in _SUMMARY_PERCENTILES}
 
 
 def detect_amplicon_length(
@@ -217,6 +245,13 @@ def detect_amplicon_length(
             "max": max(lengths),
             "peak_count": peak_count,
             "peak_ratio": round(peak_ratio, 4),
+            # The shape between the extremes, from the same vector the modal
+            # peak was read off. min/median/max cannot tell a tight amplicon
+            # from a smear around the same centre, and the smear is what a
+            # failed PCR or a concatemer population looks like. No extra pass
+            # over the reads: `lengths` is already in hand and is discarded on
+            # the next line.
+            **_percentiles(lengths),
         },
     )
 

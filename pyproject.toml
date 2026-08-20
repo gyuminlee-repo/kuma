@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kuma"
-version = "0.16.25"
+version = "0.16.31"
 description = "kuma - integrated primer design (KURO) + NGS verification (mame) tool"
 requires-python = ">=3.11"
 dependencies = [
@@ -37,6 +37,27 @@ test = [
     "pytest",
 ]
 
+# typecheck: the Python type gate CI runs, and the one an editor should match.
+#
+# basedpyright rather than pyright because pyright ships as an npm package, and
+# on the shared-folder WSL checkout a Linux npm install replaces the Windows
+# node_modules and breaks the desktop build. basedpyright is a pyright fork
+# published to PyPI, so the same command runs in CI and on every developer
+# machine without touching node at all.
+#
+# PINNED EXACTLY, and that is the point: a type checker adds rules between
+# releases, so an unpinned one turns an unrelated upgrade into a red build on a
+# branch that changed nothing. Moving this pin is its own commit, with the new
+# findings looked at.
+#
+# `typeCheckingMode` is set to "standard" under [tool.pyright] below, because
+# basedpyright defaults to a stricter mode of its own. Standard is what real
+# pyright runs, so an editor reading [tool.pyright] and CI reading this pin
+# report the same thing.
+typecheck = [
+    "basedpyright==1.39.10",
+]
+
 [project.scripts]
 kuro = "kuma_core.kuro.cli:main"
 mame = "kuma_core.mame.cli:main"
@@ -50,6 +71,10 @@ testpaths = ["tests"]
 pythonpath = [".", "python-core"]
 
 [tool.pyright]
+# Real pyright standard mode. Named explicitly so that basedpyright (what
+# CI installs) and pyright (what an editor usually runs) apply the same
+# rule set instead of each falling back to its own default.
+typeCheckingMode = "standard"
 extraPaths = [".", "python-core"]
 include = ["kuma_core", "python-core", "tests", "scripts"]
 exclude = [

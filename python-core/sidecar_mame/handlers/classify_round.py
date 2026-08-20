@@ -67,20 +67,27 @@ tree proposes is unchanged and only the confidence test behind switch/stop can
 now run.  ``missing_inputs`` therefore still names wt_replicates on an answered
 decision: the verdict itself was reached with T2 and T_model NA either way.
 
-Two limits of that confidence, neither fixable here (kuma_core/strategy is
-pre-registered and frozen), both of which it inherits from the asymmetry
-between the point estimate and the draws:
+Two limits of that confidence, both since addressed, kept here because the
+confidence values recorded on rounds judged before those fixes carry them:
 
-- The draws compute a sigma and a T2 while the point estimate has neither.
+- The draws computed a sigma and a T2 while the point estimate had neither.
   ``sat_now`` is any_true over T2/T3/T_model (classify.py), which only ever
-  turns more True as signals arrive, so a draw can agree with a switch/stop
-  point label for a reason the point label did not have.  Agreement is biased
-  upward for exactly the two labels the gate guards.
-- ``delta_best_ema`` is in activity units (round_best is max activity) while
+  turns more True as signals arrive, so a draw could agree with a switch/stop
+  point label for a reason the point label did not have, and agreement was
+  biased upward for exactly the two labels the gate guards.  bootstrap_confidence
+  now gates every draw on ``point_sigma_available``, so a draw carries a sigma
+  only where the point estimate does.
+- ``delta_best_ema`` was in activity units (round_best is max activity) while
   ``current_round_activities`` is log2, and classify.py adjusts the former by a
-  difference of the latter before comparing it against an activity-scale
-  threshold.  The mixture predates this handler; it was inert while the
-  bootstrap never ran.
+  difference of the latter before comparing it against a threshold.  The mixture
+  predates this handler and was inert while the bootstrap never ran; both are on
+  the log2 scale since v0.16.29.02.
+
+What r means, and why the replicate counts recorded since v0.16.30.01 are not
+it, is docs/2026-08-19-mame-assay-noise-model.md.  The short of it: the repeats
+a variant can carry on the Agilent path are repeat injections of one well, and
+averaging those does not reduce the well-to-well spread the round bests differ
+by.
 
 Read the confidence as "the resampled decision kept agreeing", not as a
 calibrated probability.
@@ -177,6 +184,9 @@ def _load_xlsx(path: str) -> list[dict]:
         raise RuntimeError(f"xlsx file not found: {path}") from exc
 
     ws = wb.active
+    if ws is None:
+        wb.close()
+        raise ValueError(f"xlsx has no readable sheet: {path}")
     rows = ws.iter_rows(values_only=True)
 
     # Header row
@@ -231,7 +241,9 @@ def _load_xlsx(path: str) -> list[dict]:
                 f"Row {row_num}: activity is None for Variant={variant_raw!r} in {path}"
             )
         try:
-            activity = float(activity_raw)
+            # openpyxl types a cell value as a broad union; anything that is not
+            # castable is reported per row by the handler below.
+            activity = float(activity_raw)  # type: ignore[arg-type]
         except (TypeError, ValueError) as exc:
             wb.close()
             raise ValueError(
@@ -315,7 +327,8 @@ def _round_metrics(records: list[dict]) -> dict:
     dict with:
         beneficial_count: int       number of variants with activity > 1.0
         hit_rate: float             beneficial_count / n_variants
-        round_best: float           max(activity)
+        round_best: float           max(activity), reported as measured
+        round_best_log2: float      log2 of that same maximum
         log2_activities: list[float]   log2 of each activity (current_round_activities)
         positions: list[int]        position integers for all variants
     """
@@ -324,11 +337,16 @@ def _round_metrics(records: list[dict]) -> dict:
     hit_rate = beneficial_count / n
     round_best = max(r["activity"] for r in records)
     log2_activities = [math.log2(r["activity"]) for r in records]
+    # log2 is monotone, so this is log2(round_best). Taking it off the list the
+    # classifier is handed keeps the two from drifting if either definition
+    # moves later.
+    round_best_log2 = max(log2_activities)
     positions = [r["position"] for r in records]
     return {
         "beneficial_count": beneficial_count,
         "hit_rate": hit_rate,
         "round_best": round_best,
+        "round_best_log2": round_best_log2,
         "log2_activities": log2_activities,
         "positions": positions,
     }
@@ -351,7 +369,16 @@ def _compute_delta_best_ema(round_bests: list[float]) -> float:
     Parameters
     ----------
     round_bests : list[float]
-        Max activity per round, ordered ascending by round index.
+        log2 of the max activity per round, ordered ascending by round index.
+
+    The scale matters and is not free. classify.py forms
+    ``delta* = delta_best_ema + (best_n* - max(current_round_activities))``
+    and ``current_round_activities`` is log2, so a linear EMA here added a
+    linear quantity to a log2 one and then compared the sum against a threshold
+    built from sigma_assay. Everything on this path is log2 fold change: the
+    exported activity is already a ratio to the WT block mean, which makes it a
+    multiplicative quantity, and ``tau_pos=0.0`` downstream only means
+    "beneficial" because the activities reaching it are log2.
     """
     if len(round_bests) < 2:
         return 0.0
@@ -468,7 +495,7 @@ def handle_classify_round(params: dict) -> dict:
     # Cross-round aggregation
     hit_rates = [m["hit_rate"] for m in per_round_metrics]
     cumulative_beneficial = sum(m["beneficial_count"] for m in per_round_metrics)
-    round_bests = [m["round_best"] for m in per_round_metrics]
+    round_bests = [m["round_best_log2"] for m in per_round_metrics]
     delta_best_ema = _compute_delta_best_ema(round_bests)
     log2_activities_last = per_round_metrics[-1]["log2_activities"]
 
@@ -507,7 +534,7 @@ def handle_classify_round(params: dict) -> dict:
         for i in range(n_rounds - 1):
             m = per_round_metrics[i]
             cum_so_far += m["beneficial_count"]
-            bests_so_far.append(m["round_best"])
+            bests_so_far.append(m["round_best_log2"])
             hr_so_far.append(m["hit_rate"])
             ema_i = _compute_delta_best_ema(bests_so_far)
 
@@ -524,6 +551,12 @@ def handle_classify_round(params: dict) -> dict:
                 cumulative_beneficial=cum_so_far,
                 K_throughput=K_throughput,
                 delta_best_ema=ema_i,
+                # The count the maximum was taken over. Absent it, compute_T2
+                # drops to the legacy null, which asks whether one nominated
+                # variant improved. The question here is whether the best of a
+                # plate did, and the best of many is high even when none of them
+                # is: the order statistic is what accounts for that.
+                n_designed=len(per_round_records[i]),
                 # sigma_assay=None: sigma/T2 deferred until WT replicate import wired.
                 # With sigma=None, T2=NA and T_model=NA.  T3 is the active signal.
                 sigma_assay=None,
@@ -551,6 +584,10 @@ def handle_classify_round(params: dict) -> dict:
         cumulative_beneficial=cumulative_beneficial,
         K_throughput=K_throughput,
         delta_best_ema=delta_best_ema,
+        # Rows in the round file rather than variants designed: gating drops
+        # some of the designed set before it reaches this file, and the null
+        # needs the number of draws the maximum was actually taken over.
+        n_designed=len(per_round_records[-1]),
         # sigma_assay=None even when wt_values arrive below.  The point signals
         # keep the shape they have always had (T2=NA, T_model=NA, T3 the sole
         # noise-bearing saturation signal), so forwarding replicates cannot move
@@ -558,17 +595,25 @@ def handle_classify_round(params: dict) -> dict:
         # which derives its own sigma per draw, run the confidence test behind
         # the branch that was already proposed.
         sigma_assay=None,
-        # r=1: the file states one activity per variant and nothing about how
-        # many measurements produced it.  T2 stays NA in the point estimate for
-        # want of a sigma, but the bootstrap computes a sigma per draw, and its
-        # threshold is 1.96 * sigma * sqrt(2/r) (legacy method, n_designed
-        # absent).  T2 is True when the smoothed gain falls under that
-        # threshold, so the smallest r makes the widest threshold and calls
-        # plateau most readily, which leans toward the transition labels rather
-        # than away from them.  Raising r would take a replicate count the file
-        # does not carry, and it would still be the wrong count: the exported
-        # activity is already a per-variant mean while these WT values are
-        # individual measurements.
+        # r=1 is the measurement, not a placeholder for one the file withholds.
+        # A mutant well on the Agilent path carries a single measurement
+        # (AgilentRecord, evolvepro_xlsx.py:44-56), so the exported activity is
+        # one reading of one well.  A wild-type replicate is also one well read
+        # once, which is why the WT spread estimates the variance of exactly
+        # that quantity and why sqrt(2/r) at r=1 is the right standard error for
+        # a difference of two of them.
+        #
+        # The replicate counts recorded since v0.16.30.01 do not raise it.  What
+        # a variant can carry more than one of is repeat injections of the same
+        # prepared well, and averaging those leaves the preparation and
+        # well-to-well terms untouched while the round bests this compares
+        # differ by well and by plate.  Feeding that count in as r would claim a
+        # precision the repeats did not buy.  The derivation, and what has to be
+        # measured before any of it moves, is in
+        # docs/2026-08-19-mame-assay-noise-model.md.
+        #
+        # sigma_assay stays None above regardless, so this value reaches only
+        # the bootstrap's own threshold rather than the decision.
         r=1,
         hit_rates=hit_rates,
         top_k_positions_n=top_k_pos_n,
