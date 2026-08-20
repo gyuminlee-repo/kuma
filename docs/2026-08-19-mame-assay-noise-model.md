@@ -126,17 +126,71 @@ the meaning `r` carries in the formula.
 Any later change that consumes replicate counts has to read this route as
 unknown rather than as equivalent to the Agilent one.
 
-## What has to be measured before the estimate moves
+## What was open here, and what campaign data says
 
-Neither number below has been observed on campaign data. The figures used
-elsewhere in this work are assumed coefficients of variation of 3, 5 and 10
-percent, and they were used to show relative sizes rather than to set anything.
+Two figures were listed here as unobserved. Both have now been read off the two
+campaign reports under the nanopore run directory, through the parser the
+product itself uses rather than by hand.
 
-- The wild-type coefficient of variation on a real plate, which fixes how large
-  the threshold is in fold-change terms.
-- Whether exported activities on real plates ever come from more than one
-  injection. If they do not, `r` is 1 everywhere and the entire question is
-  moot for present data.
+### The wild-type coefficient of variation
+
+| plate | route | WT wells | CV | `sigma_assay` (log2) |
+|---|---|---:|---:|---:|
+| `251001_report.xlsx` | standard | 3 | 10.63 % | 0.15747 |
+| `260327_Ep_R1_positive.xlsx` | rep batch | 3 | 9.74 % | 0.14475 |
+
+The assumed figures used elsewhere in this work were 3, 5 and 10 percent. Both
+plates land at the pessimistic end of that range, and they agree with each
+other across two different campaigns and two file layouts. The synthetic
+fixture in `fixtures/activity_demo/generate.py` draws WT from a 5 percent
+spread, which is half of what the instrument does.
+
+At `n_designed = 96` this puts T2 at 0.476 log2, a 1.39-fold improvement. A
+round whose best variant gains less than about 40 percent over wild type is not
+distinguishable from plate noise.
+
+Three wells leave two degrees of freedom, so each estimate is loose. Two plates
+agreeing is worth more than either one alone, and is still not many.
+
+### Whether an exported activity comes from more than one injection
+
+It does, so the question is not moot for present data, and this section
+previously said the opposite.
+
+- `251001_report.xlsx`: 95 mutant records, no sample name repeated. `r` is 1
+  here in the data as well as in the code.
+- `260327_Ep_R1_positive.xlsx`: 34 variants, **every one of them carrying
+  exactly three measurements**, named `1`, `1-2`, `1-3` and cycling through the
+  whole sample set three times.
+
+That cycling is the signature of one prepared vial injected three times rather
+than three independently prepared wells, which is the reading this document
+already argued for on structure. Plate B has enough repeats to measure the
+split instead of arguing it:
+
+| component | log2 | share of variance |
+|---|---:|---:|
+| `sigma_inj`, from within-variant spread over 34 variants | 0.06457 | 19.9 % |
+| `sigma_well`, by subtraction from the WT block | 0.12955 | 80.1 % |
+
+Preparation dominates. What that does to the threshold:
+
+| form | difference-of-means term | vs the code today |
+|---|---:|---:|
+| `r = 1`, as the code has it | 0.20471 | |
+| naive `r = 3`, `sqrt(2/3) * sigma` | 0.11819 | 42 % narrower |
+| honest `r = 3`, `sqrt(2) * sqrt(sigma_well^2 + sigma_inj^2/3)` | 0.19064 | 7 % narrower |
+
+So supplying the replicate count without the variance components would narrow
+the threshold by 42 percent when the honest narrowing is 7, and a threshold too
+narrow refuses to call plateau. The `r = 1` the handler registers is 7 percent
+wide rather than 42 percent tight, which is the safe direction and close to
+right. It stays.
+
+What this does change: the generic-activity section below discusses the long
+CSV route, and the AGILENT_REP_BATCH route is not covered anywhere here. Any
+later change that starts consuming `r` has to handle that route explicitly,
+because `r` is 3 there, not 1.
 
 ## The registered minimum was set above what a plate carries
 

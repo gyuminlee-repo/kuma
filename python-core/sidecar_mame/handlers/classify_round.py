@@ -634,8 +634,18 @@ def handle_classify_round(params: dict) -> dict:
         # prepared well, and averaging those leaves the preparation and
         # well-to-well terms untouched while the round bests this compares
         # differ by well and by plate.  Feeding that count in as r would claim a
-        # precision the repeats did not buy.  The derivation, and what has to be
-        # measured before any of it moves, is in
+        # precision the repeats did not buy.
+        #
+        # Measured on campaign data rather than argued: on the rep-batch plate
+        # every one of 34 variants carries exactly three measurements, and the
+        # within-variant spread puts the injection term at 20 percent of the
+        # variance against 80 for preparation.  Supplying r=3 naively would
+        # narrow the threshold 42 percent when the honest narrowing is 7, and a
+        # threshold too narrow refuses to call plateau.  So r=1 here is 7
+        # percent wide rather than 42 percent tight, which is the safe
+        # direction.  Note that r is genuinely 3 on the AGILENT_REP_BATCH route,
+        # so anything that starts consuming r has to handle that route on its
+        # own terms.  The derivation and the figures are in
         # docs/2026-08-19-mame-assay-noise-model.md.
         #
         # sigma_assay stays None above regardless, so this value reaches only
