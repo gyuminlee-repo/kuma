@@ -130,7 +130,22 @@ gh pr view <N> --json baseRefOid,mergeable,mergeStateStatus
 
 증상이 헷갈린다. 로컬에서는 전체 히스토리가 있어 `node scripts/check-version-label.mjs` 가 통과하고, CI 만 "the commit says v0.16.30 and the manifests say 0.16.31" 로 떨어진다. 인용된 커밋이 내 것이 아니라 `main` 의 것이면 이 경우다. 2026-08-19 에 `vX.Y.Z:` 라벨 커밋 뒤에 로케일 번역 커밋을 얹어 이 모양이 됐다.
 
-따라서 릴리스 메타 순서는 **로케일 번역 먼저, 라벨 커밋 나중**이다. 이미 반대로 쌓았고 push 까지 했다면 force-push 없이 고치는 방법은 `vX.Y.Z:` 제목을 단 커밋을 팁에 하나 더 올리는 것이다(문서 한 줄이라도 실제 내용을 담아서). `main` 을 병합해 앞세울 일이 생기면 그 병합 커밋 제목에 라벨을 달면 두 문제가 한 번에 풀린다.
+따라서 **릴리스 메타는 커밋 하나로 만들고 그 커밋을 브랜치 팁에 둔다.** CHANGELOG 섹션, 훅이 쓰는 매니페스트 6곳, 로케일 10개가 전부 그 한 커밋 안에 있어야 한다. 나누면 뒤에 오는 쪽이 라벨 없는 팁이 되어 위 판정에 걸린다.
+
+순서를 로케일 먼저로 뒤집을 수는 없다. `gen-whatsnew.mjs` 가 `whatsNewDialog.highlightsStamp` 를 `en.json` 에 쓰는 시점이 라벨 커밋의 post-commit 훅이고, 나머지 9개 로케일은 그 스탬프를 복사해야 하므로 라벨 커밋보다 먼저 쓸 값이 없다. 실제로 도는 절차는 이것뿐이다.
+
+1. CHANGELOG 섹션을 쓰고 `vX.Y.Z:` 제목으로 커밋한다. 훅이 매니페스트와 `en.json` 을 같은 커밋에 넣는다.
+2. 9개 로케일을 번역한다. 스탬프는 번역하지 말고 `en.json` 값을 그대로 복사한다.
+3. `git commit --amend --no-edit` 로 로케일을 같은 커밋에 접는다.
+
+**두 훅이 서로 반대로 걸리는 교착이 있다.** `commit-msg-version-collision.sh` 는 PR 의 CI 가 적색이면 라벨 커밋을 거부하고, pre-push 의 `check-version-label` 은 매니페스트를 되돌린 브랜치의 push 를 거부한다(히스토리에 라벨이 남아 있으므로). 라벨을 잘못 쌓아 CI 가 적색이 되면 고치는 커밋도 되돌리는 push 도 둘 다 막힌다. 탈출 경로는 브랜치를 다시 세우는 것 하나다.
+
+1. `origin/main` 에서 새 브랜치를 만들어 **코드 커밋만** 체리픽한다.
+2. push 하고 PR 을 연다. 릴리스 메타가 없으므로 매니페스트는 `main` 과 같고 CI 가 초록이 된다.
+3. 그 뒤에 위 3단계로 릴리스 메타 한 커밋을 팁에 올린다. 이 시점에는 PR 이 있고 CI 가 초록이라 두 훅이 모두 만족된다.
+4. 이전 PR 은 대체 사유를 코멘트로 남기고 닫고, head 브랜치를 원격에서 지운다.
+
+2026-08-19 에 이 교착을 그대로 겪어 #319 를 폐기하고 #323 으로 다시 열었다.
 
 ### Python Sidecar Environment
 PyInstaller + biopython wheel 빌드 호환을 위해 `.venv` (Python 3.11) 사용. 시스템 Python 3.14는 PEP 668 + 일부 wheel 부재로 sidecar 빌드 실패. 새 머신·새 세션에서 `python3.11 -m venv .venv && .venv/bin/pip install -e ".[build]"` 선행. MAME raw_run 정렬은 사이드카에 번들된 minimap2 CLI 가 수행(mappy 제거, Windows wheel 부재). 빌드 전 vendor 채우기: python-core/scripts/vendor-minimap2.py(Linux/macOS) 또는 Windows MSYS2/MinGW 정적 빌드(build.yml). 로컬 테스트는 KURO_MINIMAP2 로 바이너리 지정, mame 테스트는 바이너리 부재 시 skip.
