@@ -1385,6 +1385,7 @@
       "description": "Die berechnete Platzierung, auf die Platte gezeichnet. Jede Variante bleibt in dem Well, das die Plattenreihenfolge (A1, B1, ... H1, A2) ihr gab; die Auswahl verschiebt sie nicht. Unberuehrt werden die vorderen Wells genutzt, oder es werden genau die Wells gewaehlt, die diese Kampagne tatsaechlich befuellt hat.",
       "counts": "{{selected}} von {{capacity}} Wells für {{occupants}} Proben ausgewählt (Varianten plus WT-Kontrolle).",
       "excludedVariants": "{{excluded}} Proben liegen in nicht ausgewaehlten Wells, sind damit nicht auf der Platte und werden nicht bewertet: {{samples}}",
+      "droppedVariants": "{{dropped}} Varianten passen nicht auf eine Platte mit {{capacity}} Vertiefungen. Es wurde kein Layout gezeichnet und keine von ihnen wird in dieser Runde gemessen: {{samples}}",
       "selectAll": "Alle auswählen ({{count}})",
       "selectDefault": "Nur die Proben ({{count}})",
       "clearAll": "Auswahl aufheben",

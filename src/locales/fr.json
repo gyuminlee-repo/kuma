@@ -1385,6 +1385,7 @@
       "description": "Le placement calcule, dessine sur la plaque. Chaque variant reste dans le puits que l'ordre de plaque (A1, B1, ... H1, A2) lui a donne, et la selection ne le deplace pas. Sans intervention, les premiers puits sont utilises; sinon, choisir les puits que cette campagne a reellement remplis.",
       "counts": "{{selected}} puits sur {{capacity}} sélectionnés pour {{occupants}} échantillons (variants plus le contrôle WT).",
       "excludedVariants": "{{excluded}} echantillons se trouvent dans des puits non selectionnes: ils ne sont pas sur la plaque et ne recoivent aucun verdict: {{samples}}",
+      "droppedVariants": "{{dropped}} variants ne tiennent pas sur une plaque de {{capacity}} puits : aucune disposition n'a été tracée et aucun d'eux ne sera mesuré à cette manche : {{samples}}",
       "selectAll": "Tout sélectionner ({{count}})",
       "selectDefault": "Seulement les échantillons ({{count}})",
       "clearAll": "Effacer la sélection",

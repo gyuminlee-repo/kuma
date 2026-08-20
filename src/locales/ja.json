@@ -1385,6 +1385,7 @@
       "description": "計算された配置をプレート上に描いたもの。各変異はプレート順(A1, B1, ... H1, A2)で決まったウェルに固定され、ウェルを選んでも位置は動かない。触らなければ前方のウェルを使い、このキャンペーンが実際に埋めたウェルだけを選ぶこともできる。",
       "counts": "サンプル {{occupants}} 件(変異 + WT 対照)に対し {{capacity}} 中 {{selected}} ウェルを選択。",
       "excludedVariants": "選択されていないウェルにあるサンプル {{excluded}} 件はこのプレート上に無いものとして判定しない: {{samples}}",
+      "droppedVariants": "{{dropped}} 個のバリアントが {{capacity}} ウェルのプレートに収まりません。レイアウトは作成されず、このラウンドではいずれも測定されません: {{samples}}",
       "selectAll": "すべて選択 ({{count}})",
       "selectDefault": "サンプル数だけ ({{count}})",
       "clearAll": "選択解除",

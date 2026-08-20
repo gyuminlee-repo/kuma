@@ -1,8 +1,13 @@
 # The assay noise model behind T2, and what r means
 
-Status: analysis, recorded before any change to the noise estimate. No code
-change accompanies this page; it exists so that a later one has a stated basis
-rather than an inferred one.
+Status: the basis for the noise estimate T2 reads.
+
+Written first as analysis with no code change attached, so that a later one
+would have a stated basis rather than an inferred one. The change came in
+v0.16.30.04, which set the registered wild-type minimum to the three wells a
+plate actually carries and let the sigma derived from them answer T2. The two
+sections at the foot of this page cover it; everything above them was written
+before it and is what it rests on.
 
 Scope: `kuma_core/strategy/signals.py` (`compute_T2`, `compute_T2_threshold`,
 `compute_T_model`, `compute_sigma_assay`) and the values
@@ -133,14 +138,64 @@ percent, and they were used to show relative sizes rather than to set anything.
   injection. If they do not, `r` is 1 everywhere and the entire question is
   moot for present data.
 
+## The registered minimum was set above what a plate carries
+
+`wt_replicate_min` was 4. A plate carries three wild-type wells, `WT_1`, `WT_2`
+and `WT_3`, so no run ever reached the count, `compute_sigma_assay` answered
+None every time, and T2 was NA on every round this software has judged. A
+threshold nothing can reach does not guard a signal. It disables it, and does so
+silently, since the output looks the same as a genuine shortfall.
+
+It is now 3, which is the number the protocol runs.
+
+Three leaves two degrees of freedom, so the estimate is loose. That looseness is
+not hidden and it does not point the dangerous way: an overestimated sigma
+widens the threshold, and a wider threshold makes plateau harder to call, so the
+error runs toward continuing to walk rather than toward switching early. The
+opposite error, an underestimate, narrows it and is equally possible; what makes
+the direction acceptable is that neither is systematic, unlike the biases this
+work has been removing.
+
+Lowering the minimum on its own would have made the output worse rather than
+better, which is why it did not happen on its own. The bootstrap gate opens at
+that count while `sigma_assay` was still held at None in the point estimate, so
+every draw would carry sigma None, T2 and T_model would be NA in all of them,
+and the confirmation would fall back on the same lone T3 that proposed the
+branch. A T3 stable under resampling scores that agreement as 1.0, so a
+switch backed by nothing but a hit-rate trend would print as a certainty. The
+handler note has said so since before this page existed.
+
+## What T2 now reads
+
+`sigma_assay` is the spread of the wild-type block on the log2 scale, and the
+same list feeds the bootstrap, so the point estimate and its draws carry one
+signal set rather than two.
+
+log2 rather than the values as recorded, because that is the scale everything it
+meets is on: `delta_best_ema` is an EMA of log2 round bests, and the bootstrap
+adjusts it by a difference of log2 activities. For a small spread the two scales
+differ by 1/ln2, about 1.44, which is the entire width of the threshold.
+
+A wild-type well reading exactly zero is refused rather than logged. Zero has no
+logarithm, and a well that measured it is a failed injection rather than a
+measurement of no activity, so the round reads as carrying no usable block
+instead of one with an infinity in it.
+
+`r` stays 1, for the reason the rest of this page gives: on the Agilent path a
+mutant well carries one measurement, and at `r = 1` the formula in the code and
+the variance-components form are the same expression.
+
 ## What stands
 
-`sigma_assay` stays None and T2 stays NA. That is not an omission waiting to be
-filled with the first available number: it is the state that says the assay
-noise behind this round was never estimated. The two changes already made,
-putting `delta_best_ema` on the log2 scale (v0.16.29.02) and supplying the
-best-of-N count (v0.16.29.03), correct the arithmetic that would apply once an
-estimate exists, without inventing one.
+The two earlier changes, putting `delta_best_ema` on the log2 scale
+(v0.16.29.02) and supplying the best-of-N count (v0.16.29.03), were made while
+T2 was still NA. They corrected the arithmetic before anything depended on it,
+which is what makes the change above one that turns a signal on rather than one
+that turns it on and rewrites its formula in the same step.
+
+The two figures at the head of this section remain unmeasured. Nothing here
+sets a coefficient of variation; it is read off the wild-type block of whatever
+plate is being judged, which is the point.
 
 ## Related
 

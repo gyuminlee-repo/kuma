@@ -1385,6 +1385,7 @@
       "description": "將計算出的佈局繪製在盤上。每個變異固定在盤序(A1, B1, ... H1, A2)分配的孔位，選擇孔位不會移動它。不做更動則使用前面的孔位，也可只選本次實驗實際裝填的孔位。",
       "counts": "{{occupants}} 個樣品(變異加 WT 對照)已選 {{capacity}} 中的 {{selected}} 個孔位。",
       "excludedVariants": "位於未選孔位的 {{excluded}} 個樣品視為不在本盤上，不做判定：{{samples}}",
+      "droppedVariants": "{{dropped}} 個變體無法放入 {{capacity}} 孔盤，因此未產生配置，本輪不會測量其中任何一個：{{samples}}",
       "selectAll": "全選 ({{count}})",
       "selectDefault": "僅樣品數 ({{count}})",
       "clearAll": "清除選擇",

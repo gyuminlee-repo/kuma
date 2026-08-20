@@ -33,8 +33,14 @@ import { WellSelectionPanel } from "./WellSelectionPanel";
 describe("WellSelectionPanel RPC", () => {
   beforeEach(() => {
     mocks.sendRequest.mockReset();
+    // The shape the validator lets through: rows are {well, sample} and
+    // dropped_mutant_ids is always present. The old default here used the
+    // pre-rename field names and omitted the list, which is a payload the
+    // client would have refused before the panel ever saw it.
     mocks.sendRequest.mockResolvedValue({
-      draft: [{ seq: 1, well: "A1", mutant_id: "WT" }],
+      draft: [{ well: "A1", sample: "WT" }],
+      count: 1,
+      dropped_mutant_ids: [],
     });
     useMameAppStore.setState({
       expectedPath: "/tmp/expected.xlsx",
@@ -88,6 +94,48 @@ describe("WellSelectionPanel RPC", () => {
     // The declaration drops B1 and keeps the wells the campaign filled, in
     // plate order, rather than renumbering around the gap.
     expect(useMameAppStore.getState().selectedWells).toEqual(["A1", "C1"]);
+  });
+
+  /**
+   * An over-capacity variant list has to say so, because the shape it arrives
+   * in says the opposite.
+   *
+   * `build_draft_layout` refuses to place a list longer than the plate and
+   * answers with an empty layout plus every name in `dropped_mutant_ids`,
+   * deliberately, so that a truncated plate cannot read as a full one
+   * (`kuma_core/mame/layout.py:107-113`). The panel read `result.draft` and
+   * discarded the rest, so the screen drew a blank grid and a count of zero,
+   * which is what it also draws for a list with nothing in it.
+   */
+  it("names the variants that did not fit rather than drawing a blank plate", async () => {
+    const overflow = Array.from({ length: 99 }, (_, i) => `M${i + 1}`);
+    mocks.sendRequest.mockResolvedValue({
+      draft: [],
+      count: 0,
+      dropped_mutant_ids: overflow,
+    });
+
+    const view = render(<WellSelectionPanel />);
+
+    const notice = await view.findByText(/99 variants do not fit/);
+    expect(notice).toBeInTheDocument();
+    // The first names are shown so the operator can tell which list this is,
+    // and the tail is elided rather than printed.
+    expect(notice).toHaveTextContent("M1");
+    expect(notice).toHaveTextContent("...");
+  });
+
+  it("says nothing about dropped variants when every one of them fits", async () => {
+    mocks.sendRequest.mockResolvedValue({
+      draft: [{ well: "A1", sample: "M1" }],
+      count: 1,
+      dropped_mutant_ids: [],
+    });
+
+    const view = render(<WellSelectionPanel />);
+
+    await view.findByRole("gridcell", { name: /^Well A1,/ });
+    expect(view.queryByText(/do not fit/)).toBeNull();
   });
 
   /**

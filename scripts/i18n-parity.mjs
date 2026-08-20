@@ -580,15 +580,15 @@ const UNTRANSLATED_BASELINE = {
   // de carries one deliberate entry: `jobQueue.statusAriaLabel` is correct German
   // that happens to equal the English, so the identical-value heuristic counts it.
   // Rewording it to dodge the ratchet would be worse German chosen to satisfy a gate.
-  de: 561,
-  es: 551,
-  fr: 548,
-  ja: 616,
+  de: 560,
+  es: 550,
+  fr: 547,
+  ja: 615,
   ko: 154,
-  "pt-BR": 553,
-  ru: 658,
-  "zh-CN": 609,
-  "zh-TW": 609,
+  "pt-BR": 552,
+  ru: 657,
+  "zh-CN": 608,
+  "zh-TW": 608,
 };
 
 const isProse = (v) => typeof v === "string" && v.trim() !== "" && /\s/.test(v.trim());
