@@ -20,7 +20,7 @@ import {
 } from "@/lib/mame/fileExtensions";
 import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
 import { revealInOSFolder } from "@/lib/openFolder";
-import { rpc } from "@/lib/ipc";
+import { sendRequest } from "@/lib/ipc-mame";
 import { datePrefix } from "@/lib/mameFilename";
 import type { ExportVariantTemplateResult } from "@/types/mame/variant_template";
 
@@ -183,8 +183,7 @@ export function InputPanel() {
     }
     setIsWritingTemplate(true);
     try {
-      const result = await rpc<ExportVariantTemplateResult>(
-        "mame",
+      const result = await sendRequest<ExportVariantTemplateResult>(
         "export_variant_template",
         { output_path: target },
       );

@@ -357,8 +357,8 @@ const VALIDATORS: Record<string, MameResultValidator> = {
  *  - Export and file-writing calls (`export_excel`, `export_janus_mapping`,
  *    `export_janus_mapping_dry_run`, `export_run_report`,
  *    `generate_mame_package`, `mame.export_barcode_worklist`,
- *    `activity.export_evolvepro_xlsx`), whose results are paths and counts the
- *    UI mostly echoes back.
+ *    `activity.export_evolvepro_xlsx`, `export_variant_template`), whose
+ *    results are paths and counts the UI mostly echoes back.
  *  - Small control and inspection calls (`ping`, `health_info`,
  *    `cancel_analyze`, `reset_state`, `shutdown`, `read_kuma_meta`,
  *    `inspect_variant_source`, `mame.ingest.parse_reference`,
@@ -390,6 +390,7 @@ export const MAME_UNVALIDATED_METHODS: readonly string[] = [
   "mame.run_combinatorial_demux",
   "mame.detect_native_barcodes",
   "mame.export_barcode_worklist",
+  "export_variant_template",
   "shutdown",
 ];
 
