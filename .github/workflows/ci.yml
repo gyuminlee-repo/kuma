@@ -161,6 +161,49 @@ jobs:
       - name: Frontend unit tests
         run: npx vitest run
 
+  # benchmark/al/ is research code for a paper, not part of the product. Its 196
+  # tests were collected by nothing: testpaths names one directory, and the
+  # [tool.pyright] and packages.find includes exclude the tree as well. Not
+  # packaged is the right call for research code; not run was never a decision,
+  # only a side effect.
+  #
+  # Non-blocking on purpose. Eight of those tests import
+  # kuma_core.kuro.evolvepro directly, so as a required gate this tree could
+  # refuse a legitimate product change to four symbols that the product suite
+  # already covers (tests/test_benchmark.py, test_kuro_centroid.py,
+  # test_pareto_esm.py, test_structural_select.py). The tree has also not been
+  # touched since 2026-06-23 while evolvepro.py kept moving, so a red here is
+  # more likely to mean the benchmark lagged than that the product broke.
+  #
+  # One Linux leg rather than the six-way matrix: the point is that the suite
+  # runs at all, and the release does not ship this code to any platform. The
+  # critical path through this workflow is the Windows python-tests leg at
+  # roughly five minutes, so a one-minute job alongside it costs no wall clock.
+  benchmark-tests:
+    runs-on: ubuntu-22.04
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      # The benchmark extra rather than test: scikit-learn and scipy belong to
+      # this tree alone, and the six product legs should not carry them.
+      - name: Install Python dependencies
+        run: pip install -e ".[benchmark]"
+
+      # -rs so a skip states which resource is absent. Four resources gate
+      # tests here (the G002 pilot JSONs, fair-esm, evolvepro, the IspS
+      # provenance directory), and none of them can be provisioned in CI, so
+      # what this job protects against is a green that reads as full coverage.
+      - name: Run benchmark tests
+        run: python -m pytest benchmark/al/tests -v -rs
+
   rust-check:
     runs-on: ubuntu-22.04
 

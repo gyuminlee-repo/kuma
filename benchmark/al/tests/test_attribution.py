@@ -10,6 +10,7 @@ import math
 from pathlib import Path
 
 import pytest
+from al.tests.pilot_data_support import requires_g002_pilot
 
 
 # ---------------------------------------------------------------------------
@@ -33,6 +34,7 @@ def _pilot_json(name: str) -> dict:
 # test 1: signal_quality_degradation returns correct per-assay values
 # ---------------------------------------------------------------------------
 
+@requires_g002_pilot
 def test_signal_quality_degradation_runs():
     """Returns per-assay diversity_benefit dict; values match G002 pilot JSONs."""
     from al.attribution import signal_quality_degradation
@@ -131,8 +133,14 @@ def test_esm_fidelity_note_bounds_to_35M():
 # test 4: CLI --smoke exits 0
 # ---------------------------------------------------------------------------
 
+@requires_g002_pilot
 def test_cli_smoke_exits_zero():
-    """main(['--smoke']) returns 0 (synthetic-only, no embeddings required)."""
+    """main(['--smoke']) returns 0.
+
+    Not synthetic-only, despite what the flag suggests: ``--smoke`` calls
+    ``signal_quality_degradation()`` (attribution.py:588), which reads the
+    G002 pilot JSONs. The gate is on that data, not on embeddings.
+    """
     from al.attribution import main
 
     exit_code = main(["--smoke"])

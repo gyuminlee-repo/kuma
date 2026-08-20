@@ -8,7 +8,6 @@ Covers the two contract-critical behaviors:
 
 from __future__ import annotations
 
-import importlib.util
 
 import numpy as np
 import pandas as pd
@@ -16,8 +15,8 @@ import pytest
 
 from al import embed_cache
 from al.embed_cache import EmbeddingUnavailable, embed_variants
+from al.tests.fair_esm_support import requires_fair_esm
 
-_HAS_ESM = importlib.util.find_spec("esm") is not None
 
 
 def test_hard_fail_when_fair_esm_missing(tmp_path, monkeypatch):
@@ -63,7 +62,7 @@ def test_fully_cached_call_does_not_require_esm(tmp_path, monkeypatch):
     assert list(df.columns) == [0, 1, 2, 3]
 
 
-@pytest.mark.skipif(not _HAS_ESM, reason="fair-esm not installed")
+@requires_fair_esm
 def test_real_embedding_and_cache_reuse(tmp_path):
     """Compute a real ESM-2 35M embedding, then prove the second call reuses cache."""
     variants = {"A1V": "MAVLK", "G2D": "MDVLK", "K3R": "MAVRK"}

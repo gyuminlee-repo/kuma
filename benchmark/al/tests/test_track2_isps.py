@@ -30,9 +30,17 @@ def _find_provenance() -> Path | None:
 
 
 _PROV = _find_provenance()
-pytestmark = pytest.mark.skipif(_PROV is None, reason="IspS provenance dir not found")
+
+# Applied per test rather than as a module-level pytestmark. Three tests below
+# declare themselves independent of this directory, and a module-level mark
+# would skip them regardless: pytest applies every mark it finds and any one
+# evaluating True wins, so the narrower declaration cannot override the wider.
+requires_provenance = pytest.mark.skipif(
+    _PROV is None, reason="IspS provenance dir not found"
+)
 
 
+@requires_provenance
 def test_scaneer_sci_loads():
     sci = load_scaneer_sci(_PROV / "scaneer_sci_sispS.tsv")
     assert len(sci) > 5000  # ~6479 single-sub coevolution rows
@@ -43,6 +51,7 @@ def test_scaneer_sci_loads():
     assert len(row) == 1 and row.iloc[0]["scaneer_sci"] == pytest.approx(3.96, abs=1e-2)
 
 
+@requires_provenance
 def test_isps_measured_loads():
     m = load_isps_measured(_PROV / "231024_round1_screening.xlsx")
     assert 80 <= len(m) <= 100  # ~93 round-1 measured variants
@@ -53,6 +62,7 @@ def test_isps_measured_loads():
     assert len(v) == 1 and v.iloc[0]["relative_peak_area"] == pytest.approx(1.388, abs=1e-2)
 
 
+@requires_provenance
 def test_join_has_sci_coverage():
     merged = load_isps_track2(_PROV)
     assert len(merged) >= 80

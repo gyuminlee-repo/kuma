@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import importlib.util
-
 import numpy as np
 import pytest
 
@@ -13,8 +11,8 @@ from al.coldstart import (
     load_published_zero_shot,
     parse_single_sub,
 )
+from al.tests.fair_esm_support import requires_fair_esm
 
-_HAS_ESM = importlib.util.find_spec("esm") is not None
 
 
 def test_parse_and_derive_wt():
@@ -41,7 +39,7 @@ def test_published_zero_shot_loader(tmp_path):
         load_published_zero_shot(p, "unknown_model")
 
 
-@pytest.mark.skipif(not _HAS_ESM, reason="fair-esm not installed")
+@requires_fair_esm
 def test_esm2_llr_self_substitution_is_zero_and_finite():
     wt = "MAVLKG"
     # A self-substitution at a position must score exactly 0 (mut aa == wt aa).
