@@ -1211,7 +1211,19 @@
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
       "clearRestored": "復元された EVOLVEpro 入力をクリア",
-      "outputCollidesRound": "ラウンド {{round}} がこのファイルを出力として記録済みです。ここに作成するとそのラウンドの測定値を上書きします。"
+      "outputCollidesRound": "ラウンド {{round}} がこのファイルを出力として記録済みです。ここに作成するとそのラウンドの測定値を上書きします。",
+      "primarySourceNumericReport": "数値 ID の Agilent report",
+      "primarySourceNumericReportHelper": "sample name が位置番号(1, 2, 3 …)である全 plate の raw report です。番号 i は plate 順序の i 番目の variant です。",
+      "numericReportXlsx": "全測定 report xlsx (数値 ID)",
+      "numericReportXlsxHelper": "WT 行と数値 sample name を持つ raw Agilent report です。どの番号がどの variant かを示す順序ソースが必要です。",
+      "confirmationSourceNumericIds": "数値 ID の Agilent report",
+      "confirmationSourceNumericIdsHelper": "sample name が WT 超過サブセットの位置番号(1, 1-2, 1-3 …)である反復測定 report です。反復平均が primary の値を上書きします。",
+      "remeasureNumericXlsx": "確認 report xlsx (数値 ID)",
+      "remeasureNumericXlsxHelper": "番号 j は primary で WT を超えた variant を plate 順に並べた j 番目です。選択が異なる場合は誤ったラベル付けをせず拒否します。",
+      "expectedXlsx": "設計 variant リスト",
+      "expectedXlsxHelper": "数値 ID の順序ソースです。analyze ステップが読む設計 variant リストと同じファイルで、手書きの plate ファイルより優先されます。",
+      "orderSource": "順序ソース (設計 variant リストまたは plate layout のいずれか一つ)",
+      "dismissError": "閉じる"
     },
     "verdictBadge": {
       "help": {
@@ -2505,11 +2517,13 @@
     "descriptionRange": "v{{from}} 以降のすべてのアップデートの主な変更点です。",
     "gotItBtn": "了解",
     "highlights": [
-      "Step 4 で plate layout ファイルが必須ではなくなりました。空のままなら Analyze verdict シートで well 位置を対応付けます。",
-      "layout ファイルを指定した場合は従来どおり優先され、verdict の同一性との照合も変わりません。",
-      "NGS 結果のない測定 well はビルド全体を失敗させず、件数と名前で報告します。"
+      "Step 4 が sample name の数値である Agilent report を読みます。全 plate 測定と反復確認測定の両方が対象です。",
+      "反復確認測定を対応するスクリーニングに統合し、その値を置き換えたうえで食い違う項目を表示します。",
+      "数値の位置は設計 variant リストを基準に解釈するため、plate ファイルを手で書き写す必要がありません。",
+      "確認ファイルが別の variant 集合を含む場合は件数を示して拒否します。誤った variant には結び付けません。",
+      "反復回数はファイルが持つとおりです。1 回からその run が測定した数まで受け付けます。"
     ],
-    "highlightsStamp": "0.16.30+bab83ea7",
+    "highlightsStamp": "0.16.31+60d4442c",
     "releases": {
       "0.16.28": [
         "アプリが毎ラン測定しながら描画していなかった run health セクション 5 件が、レビュー画面に折りたたまれた状態で表示されます。",
@@ -2742,6 +2756,13 @@
         "Step 4 で plate layout ファイルが必須ではなくなりました。空のままなら Analyze verdict シートで well 位置を対応付けます。",
         "layout ファイルを指定した場合は従来どおり優先され、verdict の同一性との照合も変わりません。",
         "NGS 結果のない測定 well はビルド全体を失敗させず、件数と名前で報告します。"
+      ],
+      "0.16.31": [
+        "Step 4 が sample name の数値である Agilent report を読みます。全 plate 測定と反復確認測定の両方が対象です。",
+        "反復確認測定を対応するスクリーニングに統合し、その値を置き換えたうえで食い違う項目を表示します。",
+        "数値の位置は設計 variant リストを基準に解釈するため、plate ファイルを手で書き写す必要がありません。",
+        "確認ファイルが別の variant 集合を含む場合は件数を示して拒否します。誤った variant には結び付けません。",
+        "反復回数はファイルが持つとおりです。1 回からその run が測定した数まで受け付けます。"
       ]
     },
     "releaseStamps": {
@@ -2784,7 +2805,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.30": "bab83ea7"
+      "0.16.30": "bab83ea7",
+      "0.16.31": "60d4442c"
     }
   },
   "primerDisplay": {

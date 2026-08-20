@@ -17,6 +17,14 @@ import pandas as pd
 from .evolvepro_xlsx import parse_agilent_standard, parse_relative_only, write_evolvepro_xlsx, write_relative_activity_xlsx
 from .label_audit import LabelAudit, audit_labels
 from .merge import merge_replicates_priority
+from .numeric_id_decode import (
+    WT_RELATIVE,
+    DecodeOrder,
+    decode_confirmation_against,
+    decode_primary_screen,
+    expected_variant_order,
+    layout_variant_order,
+)
 from .models import MergeReplicatesStats, Variant
 from .plate_layout_xlsx import _normalise_well, parse_plate_layout_xlsx
 from .variant_notation import _SHORT_RE, is_canonical_internal, to_evolvepro
@@ -141,6 +149,20 @@ def _verdict_maps(verdict_xlsx: str | Path) -> tuple[dict[str, str], dict[str, s
     return well_to_variant, variant_to_well
 
 
+def _wt_wells(layout_xlsx: str | Path | None, verdict_xlsx: str | Path) -> set[str]:
+    """Wells the run declared as wild-type, from whichever source names them."""
+    wells: set[str] = set()
+    if layout_xlsx is not None:
+        for entry in parse_plate_layout_xlsx(layout_xlsx):
+            if entry.is_wt:
+                wells.add(entry.well_id)
+        return wells
+    for well, row in parse_verdict_rows(verdict_xlsx).items():
+        if row.mutant_id.strip().upper() == "WT":
+            wells.add(well)
+    return wells
+
+
 def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str]) -> tuple[dict[str, list[float]], dict[str, str], list[str], list[float]]:
     source = Path(path)
     frame = pd.read_excel(source) if source.suffix.lower() in {".xlsx", ".xls"} else pd.read_csv(source)
@@ -233,7 +255,7 @@ def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str,
     return values, well_by_variant, [], wt_relative
 
 
-def _raw_report_primary(path: str | Path, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str]) -> tuple[dict[str, list[float]], dict[str, str], list[tuple[str, float]], list[float]]:
+def _raw_report_primary(path: str | Path, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str], well_values: dict[str, list[float]], wt_wells: set[str]) -> tuple[dict[str, list[float]], dict[str, str], list[tuple[str, float]], list[float]]:
     records = parse_agilent_standard(path)
     wt = [record.area for record in records if record.is_wt]
     if not wt:
@@ -248,6 +270,9 @@ def _raw_report_primary(path: str | Path, well_to_variant: dict[str, str], varia
             well = _normalise_well(record.sample_name)
         except (ValueError, IndexError):
             raise ValueError(f"round1_report_xlsx sample {record.sample_name!r} is not a well") from None
+        if well in wt_wells:
+            continue
+        well_values.setdefault(well, []).append(record.area / mean_wt)
         variant = well_to_variant.get(well)
         if variant is None:
             unmapped.append(well)
@@ -258,16 +283,93 @@ def _raw_report_primary(path: str | Path, well_to_variant: dict[str, str], varia
     return values, variant_to_well, export_rows, [area / mean_wt for area in wt]
 
 
-def _gc_primary(path: str | Path, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str]) -> tuple[dict[str, list[float]], dict[str, str]]:
+def _gc_primary(path: str | Path, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str], well_values: dict[str, list[float]], wt_wells: set[str]) -> tuple[dict[str, list[float]], dict[str, str]]:
     values: dict[str, list[float]] = {}
     for record in parse_relative_only(path):
         well = _normalise_well(record.sample_name)
+        if well in wt_wells:
+            continue
+        well_values.setdefault(well, []).append(record.area)
         variant = well_to_variant.get(well)
         if variant is None:
             unmapped.append(well)
             continue
         values.setdefault(variant, []).append(record.area)
     return values, variant_to_well
+
+
+def _decode_order(expected_xlsx: str | Path | None, layout_xlsx: str | Path | None) -> tuple[DecodeOrder, list[str]]:
+    """Plate order for a numeric-ID decode, from the design or the plate file.
+
+    A numeric sample name carries no variant, only a position, so decoding one
+    needs the order the bench filled. The design list is the one to reach for:
+    it is the same order the run was placed in and nobody transcribes it. The
+    hand-written plate file stays for campaigns that predate it.
+    """
+    if (expected_xlsx is None) == (layout_xlsx is None):
+        raise ValueError(
+            "a numeric-ID report needs exactly one order source: expected_xlsx "
+            "(the design list, preferred) or layout_xlsx (the plate file)"
+        )
+    if expected_xlsx is not None:
+        return expected_variant_order(expected_xlsx)
+    assert layout_xlsx is not None
+    return layout_variant_order(layout_xlsx)
+
+
+def _numeric_primary(path: str | Path, expected_xlsx: str | Path | None, layout_xlsx: str | Path | None, well_values: dict[str, list[float]]) -> tuple[dict[str, list[float]], dict[str, str], list[float], list[str]]:
+    """Whole-plate screen whose sample names are positions rather than labels.
+
+    ID ``i`` is the ``i``-th variant of the plate order. The decoder refuses an
+    ID set that does not line up with that order one to one rather than
+    labelling a measurement with a neighbouring variant.
+    """
+    result = decode_primary_screen(
+        path,
+        layout_xlsx if expected_xlsx is None else None,
+        expected_xlsx=expected_xlsx,
+    )
+    for slot in result.slots:
+        well_values.setdefault(slot.well, []).extend(slot.relative)
+    values = {row.variant: list(row.relative) for row in result.rows}
+    variant_to_well = {row.variant: row.well for row in result.rows}
+    wt_values = [area / result.wt_mean for area in result.wt_areas]
+    return values, variant_to_well, wt_values, list(result.warnings)
+
+
+def _above_wt_subset(order: DecodeOrder, well_values: dict[str, list[float]]) -> DecodeOrder:
+    """The slots of *order* the primary screen measured above wild-type.
+
+    Positions rather than variants, because the confirmation numbers its file
+    the same way the bench filled it: a slot whose mutant has no EVOLVEpro short
+    form is still one of the tubes, so it keeps its place here.
+    """
+    subset: DecodeOrder = []
+    for entry in order:
+        replicates = well_values.get(entry[2])
+        if not replicates:
+            continue
+        if sum(replicates) / len(replicates) > WT_RELATIVE:
+            subset.append(entry)
+    return subset
+
+
+def _numeric_confirmation(path: str | Path, order: DecodeOrder, well_values: dict[str, list[float]]) -> dict[str, list[float]]:
+    """Replicated confirmation whose sample names are positions in the subset.
+
+    The subset is every slot the primary screen put above wild-type, which is
+    the selection the bench performs, so it is derived here rather than
+    supplied. A confirmation covering a different set produces an ID count the
+    decoder cannot place, and it refuses instead of mislabelling.
+    """
+    subset = _above_wt_subset(order, well_values)
+    if not subset:
+        raise ValueError(
+            "the primary screen put no variant above wild-type, so a numeric-ID "
+            "confirmation has no subset to index into. Check that the primary "
+            "WT rows are the ones this screen was normalized against."
+        )
+    return decode_confirmation_against(path, subset).by_variant()
 
 
 def _confirmation(path: str | Path) -> dict[str, list[float]]:
@@ -405,7 +507,7 @@ def _publish_artifact_bundle(
     return artifact_hashes
 
 
-def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path | None = None, activity_scale: str = "raw", gc_data_xlsx: str | Path | None = None, round1_report_xlsx: str | Path | None = None, remeasure_report_xlsx: str | Path | None = None, verdict_xlsx: str | Path, layout_xlsx: str | Path | None = None, mismatch_threshold: float = 0.1, gc_export_xlsx: str | Path | None = None, allow_label_mismatch: bool = False) -> BuildEvolveproResult:
+def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path | None = None, activity_scale: str = "raw", gc_data_xlsx: str | Path | None = None, round1_report_xlsx: str | Path | None = None, numeric_report_xlsx: str | Path | None = None, remeasure_report_xlsx: str | Path | None = None, remeasure_numeric_xlsx: str | Path | None = None, verdict_xlsx: str | Path, layout_xlsx: str | Path | None = None, expected_xlsx: str | Path | None = None, mismatch_threshold: float = 0.1, gc_export_xlsx: str | Path | None = None, allow_label_mismatch: bool = False) -> BuildEvolveproResult:
     """Build Step 3 output from exactly one supported primary source.
 
     Raw generic activity uses WT rows per file/plate cohort; relative generic
@@ -419,10 +521,23 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     """
     if activity_scale not in {"raw", "relative_to_wt"}:
         raise ValueError("activity_scale must be 'raw' or 'relative_to_wt'")
-    primary = [("activity_path", activity_path), ("gc_data_xlsx", gc_data_xlsx), ("round1_report_xlsx", round1_report_xlsx)]
+    primary = [
+        ("activity_path", activity_path),
+        ("gc_data_xlsx", gc_data_xlsx),
+        ("round1_report_xlsx", round1_report_xlsx),
+        ("numeric_report_xlsx", numeric_report_xlsx),
+    ]
     selected = [(name, source) for name, source in primary if source is not None]
     if len(selected) != 1:
-        raise ValueError("provide exactly one primary source: activity_path, gc_data_xlsx, or round1_report_xlsx")
+        raise ValueError(
+            "provide exactly one primary source: activity_path, gc_data_xlsx, "
+            "round1_report_xlsx, or numeric_report_xlsx"
+        )
+    if remeasure_report_xlsx is not None and remeasure_numeric_xlsx is not None:
+        raise ValueError(
+            "provide at most one confirmation source: remeasure_report_xlsx "
+            "(variant-labeled) or remeasure_numeric_xlsx (numeric IDs)"
+        )
     if verdict_xlsx is None:
         raise ValueError("verdict_xlsx is required")
     name, source = selected[0]
@@ -432,13 +547,18 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     # sheet states it directly; without one it is derived from the verdict
     # workbook this build already requires, which names a mutant_id per well.
     unmapped: list[str] = []
+    # One relative value per plate well, kept beside the per-variant values
+    # because a numeric-ID confirmation indexes the plate rather than the
+    # variant list. Filled by whichever primary ran.
+    well_values: dict[str, list[float]] = {}
+    wt_wells = _wt_wells(layout_xlsx, verdict_xlsx)
     if layout_xlsx is None:
         well_to_variant, variant_to_well = _verdict_maps(verdict_xlsx)
         mapping_source = "verdict_xlsx"
     else:
         well_to_variant, variant_to_well = _layout_maps(layout_xlsx)
         mapping_source = "layout_xlsx"
-    if name != "activity_path" and not well_to_variant:
+    if name not in {"activity_path", "numeric_report_xlsx"} and not well_to_variant:
         raise ValueError(
             f"{name} is well-labeled and needs a well->variant mapping: supply "
             "layout_xlsx, or a verdict_xlsx that names mutant_id per well"
@@ -447,16 +567,39 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
         fallback, well_by_variant, source_warnings, wt_values = _read_long(source, activity_scale, well_to_variant, variant_to_well, unmapped)
         warnings.extend(source_warnings)
     elif name == "gc_data_xlsx":
-        fallback, well_by_variant = _gc_primary(source, well_to_variant, variant_to_well, unmapped)
+        fallback, well_by_variant = _gc_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells)
         # A pre-normalized sheet states each well relative to a WT mean taken
         # somewhere upstream; the replicates behind that mean never reach this
         # app, so there is nothing to record.
         wt_values = []
         if gc_export_xlsx is not None:
             warnings.append("gc_export_xlsx applies only to round1_report_xlsx and was ignored")
+    elif name == "round1_report_xlsx":
+        fallback, well_by_variant, gc_export_rows, wt_values = _raw_report_primary(source, well_to_variant, variant_to_well, unmapped, well_values, wt_wells)
     else:
-        fallback, well_by_variant, gc_export_rows, wt_values = _raw_report_primary(source, well_to_variant, variant_to_well, unmapped)
-    authoritative = _confirmation(remeasure_report_xlsx) if remeasure_report_xlsx is not None else {}
+        fallback, well_by_variant, wt_values, decode_warnings = _numeric_primary(
+            source, expected_xlsx, layout_xlsx, well_values
+        )
+        warnings.extend(decode_warnings)
+        if gc_export_xlsx is not None:
+            warnings.append("gc_export_xlsx applies only to round1_report_xlsx and was ignored")
+    if remeasure_numeric_xlsx is not None:
+        # A well the primary measured but the mapping could not name has no
+        # entry in fallback, so the subset is built from the plate order and the
+        # per-well values rather than from the variants that survived mapping.
+        if not well_values:
+            well_values = {
+                well_by_variant[variant]: list(replicates)
+                for variant, replicates in fallback.items()
+                if variant in well_by_variant
+            }
+        order, order_warnings = _decode_order(expected_xlsx, layout_xlsx)
+        warnings.extend(order_warnings)
+        authoritative = _numeric_confirmation(remeasure_numeric_xlsx, order, well_values)
+    elif remeasure_report_xlsx is not None:
+        authoritative = _confirmation(remeasure_report_xlsx)
+    else:
+        authoritative = {}
     merged, stats = merge_replicates_priority({Variant(key): value for key, value in authoritative.items()}, {Variant(key): value for key, value in fallback.items()}, mismatch_threshold=mismatch_threshold)
     mismatched = [{"variant": str(variant), "authoritative": merged[variant], "fallback": sum(fallback[str(variant)]) / len(fallback[str(variant)])} for variant in stats.mismatched]
     input_count = len(merged)
@@ -521,6 +664,8 @@ def build_evolvepro_input(output_xlsx: str | Path, *, activity_path: str | Path 
     ]
     if remeasure_report_xlsx is not None:
         normalization_sources.append("remeasure_report_xlsx:report_wt")
+    if remeasure_numeric_xlsx is not None:
+        normalization_sources.append("remeasure_numeric_xlsx:report_wt")
     evidence_hash = _sha256(Path(verdict_xlsx))
     evaluable_count = input_count - reason_counts.get("missing", 0) - reason_counts.get("CONFLICT", 0)
     manifest = {

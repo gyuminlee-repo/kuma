@@ -169,6 +169,12 @@ jobs:
         with:
           fetch-depth: 2
 
+      # This step has hung twice, on 2026-08-19, holding the job over an hour
+      # against a 89-second baseline for the whole job while every other check
+      # on the same commit went green. Both times a cancel and re-run cleared
+      # it, and neither commit touched Rust or apt. If this job alone sits in
+      # this step for many minutes, re-run the workflow rather than looking for
+      # the cause in the diff.
       - name: Install Linux dependencies
         run: |
           sudo apt-get update

@@ -126,6 +126,12 @@ gh pr view <N> --json baseRefOid,mergeable,mergeStateStatus
 4. 9개 로케일에 `whatsNewDialog.releases[<새 버전>]` 과 `releaseStamps[<새 버전>]` 을 넣고 `highlights`·`highlightsStamp` 를 새 버전으로 바꾼다. 영문 하이라이트 문구를 그대로 두면 digest 가 같아 번역을 재사용할 수 있다(버전 키만 바뀐다).
 5. `--force-push` 는 `careful-check.sh` 가 차단하고 우회하지 않는다. 새 브랜치로 푸시해 새 PR 을 열고, 이전 PR 은 대체 사유를 코멘트로 남기고 닫는다. 이때 이전 PR 의 head 브랜치도 원격에서 지운다(머지되지 않아 자동 삭제 대상이 아니다).
 
+**라벨 커밋은 브랜치의 마지막 커밋이어야 한다.** `check-version-label.mjs` 는 `git log -50` 에서 처음 만난 `vA.BB.CC` 제목을 매니페스트와 대조하는데(`scripts/check-version-label.mjs:44,60`), CI 는 `fetch-depth: 2` 로 PR 병합 ref 를 받는다(`.github/workflows/ci.yml`). 그 체크아웃에 존재하는 커밋은 병합 커밋과 **부모 둘뿐**이다. 하나는 `main` 팁이고 다른 하나는 브랜치 팁이다. 그래서 브랜치 팁이 라벨 없는 커밋이면 검사가 `main` 쪽 부모로 넘어가 그 라벨을 읽고, 내 매니페스트와 어긋난다고 판정한다.
+
+증상이 헷갈린다. 로컬에서는 전체 히스토리가 있어 `node scripts/check-version-label.mjs` 가 통과하고, CI 만 "the commit says v0.16.30 and the manifests say 0.16.31" 로 떨어진다. 인용된 커밋이 내 것이 아니라 `main` 의 것이면 이 경우다. 2026-08-19 에 `vX.Y.Z:` 라벨 커밋 뒤에 로케일 번역 커밋을 얹어 이 모양이 됐다.
+
+따라서 릴리스 메타 순서는 **로케일 번역 먼저, 라벨 커밋 나중**이다. 이미 반대로 쌓았고 push 까지 했다면 force-push 없이 고치는 방법은 `vX.Y.Z:` 제목을 단 커밋을 팁에 하나 더 올리는 것이다(문서 한 줄이라도 실제 내용을 담아서). `main` 을 병합해 앞세울 일이 생기면 그 병합 커밋 제목에 라벨을 달면 두 문제가 한 번에 풀린다.
+
 ### Python Sidecar Environment
 PyInstaller + biopython wheel 빌드 호환을 위해 `.venv` (Python 3.11) 사용. 시스템 Python 3.14는 PEP 668 + 일부 wheel 부재로 sidecar 빌드 실패. 새 머신·새 세션에서 `python3.11 -m venv .venv && .venv/bin/pip install -e ".[build]"` 선행. MAME raw_run 정렬은 사이드카에 번들된 minimap2 CLI 가 수행(mappy 제거, Windows wheel 부재). 빌드 전 vendor 채우기: python-core/scripts/vendor-minimap2.py(Linux/macOS) 또는 Windows MSYS2/MinGW 정적 빌드(build.yml). 로컬 테스트는 KURO_MINIMAP2 로 바이너리 지정, mame 테스트는 바이너리 부재 시 skip.
 

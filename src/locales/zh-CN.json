@@ -1211,7 +1211,19 @@
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
       "clearRestored": "清除已恢复的 EVOLVEpro 输入",
-      "outputCollidesRound": "轮次 {{round}} 已将该文件记录为其产物。在此生成会覆盖该轮次的测量数据。"
+      "outputCollidesRound": "轮次 {{round}} 已将该文件记录为其产物。在此生成会覆盖该轮次的测量数据。",
+      "primarySourceNumericReport": "数字 ID 的 Agilent report",
+      "primarySourceNumericReportHelper": "样品名为位置编号(1、2、3 …)的全板 raw report。编号 i 对应板序中的第 i 个变体。",
+      "numericReportXlsx": "全板测量 report xlsx (数字 ID)",
+      "numericReportXlsxHelper": "带 WT 行和数字样品名的 raw Agilent report。需要顺序来源来说明哪个编号对应哪个变体。",
+      "confirmationSourceNumericIds": "数字 ID 的 Agilent report",
+      "confirmationSourceNumericIdsHelper": "样品名为高于 WT 子集位置编号(1、1-2、1-3 …)的重复测量 report。重复均值会覆盖对应的 primary 值。",
+      "remeasureNumericXlsx": "确认 report xlsx (数字 ID)",
+      "remeasureNumericXlsxHelper": "编号 j 是 primary 中高于野生型的变体按板序排列的第 j 个。若选择不同则拒绝，而不是错误标注。",
+      "expectedXlsx": "设计变体列表",
+      "expectedXlsxHelper": "数字 ID 的顺序来源，与 analyze 步骤读取的设计变体列表是同一文件，优先于手工誊写的板文件。",
+      "orderSource": "顺序来源 (设计变体列表或 plate layout，二选一)",
+      "dismissError": "关闭"
     },
     "verdictBadge": {
       "help": {
@@ -2505,11 +2517,13 @@
     "descriptionRange": "自 v{{from}} 以来每次更新的主要变化。",
     "gotItBtn": "知道了",
     "highlights": [
-      "第 4 步不再必须提供 plate layout 文件。留空时将通过 Analyze verdict 表映射孔位。",
-      "提供 layout 文件时仍以其为准，与 verdict 身份的比对检查保持不变。",
-      "没有 NGS 结果的测量孔位会被计数并列出，而不会导致整个构建失败。"
+      "第 4 步可读取样品名为数字的 Agilent report，包括全板测量和重复确认测量。",
+      "重复确认测量会并入对应的筛选结果，替换这些数值并标出彼此不一致的条目。",
+      "数字位置按设计变体列表解读，因此无需手工誊写板文件。",
+      "确认文件若包含不同的变体集合，会说明数量并拒绝，而不会标注到错误的变体上。",
+      "重复次数以文件实际记录为准，从 1 次到该轮实际测量的次数都可以。"
     ],
-    "highlightsStamp": "0.16.30+bab83ea7",
+    "highlightsStamp": "0.16.31+60d4442c",
     "releases": {
       "0.16.28": [
         "应用每次运行都在测量却从未绘制的 5 个 run health 区块，现已显示在审阅界面中，默认折叠。",
@@ -2742,6 +2756,13 @@
         "第 4 步不再必须提供 plate layout 文件。留空时将通过 Analyze verdict 表映射孔位。",
         "提供 layout 文件时仍以其为准，与 verdict 身份的比对检查保持不变。",
         "没有 NGS 结果的测量孔位会被计数并列出，而不会导致整个构建失败。"
+      ],
+      "0.16.31": [
+        "第 4 步可读取样品名为数字的 Agilent report，包括全板测量和重复确认测量。",
+        "重复确认测量会并入对应的筛选结果，替换这些数值并标出彼此不一致的条目。",
+        "数字位置按设计变体列表解读，因此无需手工誊写板文件。",
+        "确认文件若包含不同的变体集合，会说明数量并拒绝，而不会标注到错误的变体上。",
+        "重复次数以文件实际记录为准，从 1 次到该轮实际测量的次数都可以。"
       ]
     },
     "releaseStamps": {
@@ -2784,7 +2805,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.30": "bab83ea7"
+      "0.16.30": "bab83ea7",
+      "0.16.31": "60d4442c"
     }
   },
   "primerDisplay": {

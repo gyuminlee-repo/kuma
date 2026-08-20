@@ -103,6 +103,11 @@ class DecodeResult:
     order: list[str]
     slots: list[DecodedSlot] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    #: WT block areas of the report, unnormalised and in the order the parser
+    #: found them. Divided by ``wt_mean`` they are the wild-type replicates on
+    #: the scale every decoded value carries, which is what a caller needs to
+    #: state the spread of the assay behind the round.
+    wt_areas: tuple[float, ...] = ()
 
     def by_variant(self) -> dict[str, list[float]]:
         return {r.variant: list(r.relative) for r in self.rows}
@@ -305,6 +310,7 @@ def decode_primary_screen(
         order=[o[0] for o in order if o[0] is not None],
         slots=slots,
         warnings=warnings,
+        wt_areas=tuple(block.wt_areas),
     )
 
 
@@ -345,10 +351,33 @@ def decode_confirmation(
             different set than "everything above WT", which this decoder
             cannot infer, so it refuses rather than mislabelling.
     """
+    return decode_confirmation_against(report_xlsx, above_wt_subset(primary))
+
+
+def decode_confirmation_against(
+    report_xlsx: str | Path,
+    subset: DecodeOrder,
+) -> DecodeResult:
+    """Decode a replicated confirmation against a subset the caller assembled.
+
+    Same rule as :func:`decode_confirmation`: ID ``j`` is the ``j``-th member of
+    *subset*, which must already be in plate well order. This entry point exists
+    because the primary screen does not have to be a numeric-ID report. A round
+    whose whole-plate screen arrived as a well-labelled sheet knows exactly the
+    same thing, one relative activity per well, and can build the subset from
+    the plate order without decoding anything.
+
+    *subset* must keep a slot for a variant with no EVOLVEpro short form
+    (``None`` in the first field). Those positions are numbered on the bench
+    like any other, so dropping one would shift every later ID.
+
+    Raises:
+        ValueError: WT blocks missing, an empty subset, or an ID count that does
+            not match the subset size.
+    """
     source = Path(report_xlsx).name
     block = parse_agilent_block_rep_batch(report_xlsx)
     wt_mean = _wt_mean(block, source)
-    subset = above_wt_subset(primary)
     if not subset:
         raise ValueError(
             f"No primary-screen variant exceeded wild-type ({WT_RELATIVE}), so "
@@ -368,4 +397,5 @@ def decode_confirmation(
         order=[s[0] for s in subset if s[0] is not None],
         slots=slots,
         warnings=[],
+        wt_areas=tuple(block.wt_areas),
     )

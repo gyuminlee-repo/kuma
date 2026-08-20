@@ -1211,7 +1211,19 @@
       "restoredNotice": "Inputs were restored for this project.",
       "migrationUnsupported": "This saved Step 4 mode is no longer supported. Convert it to generic long-format activity data or export explicit well/variant labels before continuing.",
       "clearRestored": "Effacer les entrées EVOLVEpro restaurées",
-      "outputCollidesRound": "Le tour {{round}} a deja enregistre ce fichier comme sa sortie. Construire ici ecrase les mesures de ce tour."
+      "outputCollidesRound": "Le tour {{round}} a deja enregistre ce fichier comme sa sortie. Construire ici ecrase les mesures de ce tour.",
+      "primarySourceNumericReport": "Rapport Agilent à identifiants numériques",
+      "primarySourceNumericReportHelper": "Rapport brut de la plaque entière dont les noms d'échantillon sont des positions (1, 2, 3, ...). La position i est le i-ème variant de l'ordre de plaque.",
+      "numericReportXlsx": "Rapport de plaque entière xlsx (identifiants numériques)",
+      "numericReportXlsxHelper": "Rapport Agilent brut avec lignes WT et noms d'échantillon numériques. Il faut une source d'ordre indiquant quelle position porte quel variant.",
+      "confirmationSourceNumericIds": "Rapport Agilent à identifiants numériques",
+      "confirmationSourceNumericIdsHelper": "Rapport répliqué dont les noms d'échantillon sont des positions du sous-ensemble au-dessus du WT (1, 1-2, 1-3, ...). Ses moyennes remplacent les valeurs primaires correspondantes.",
+      "remeasureNumericXlsx": "Rapport de confirmation xlsx (identifiants numériques)",
+      "remeasureNumericXlsxHelper": "La position j est le j-ème variant que le criblage primaire a placé au-dessus du type sauvage, dans l'ordre de plaque. Une autre sélection est refusée plutôt que mal étiquetée.",
+      "expectedXlsx": "Liste des variants conçus",
+      "expectedXlsxHelper": "Source d'ordre des identifiants numériques: la liste des variants conçus que lit l'étape d'analyse. À préférer au fichier de plaque recopié à la main.",
+      "orderSource": "Source d'ordre (liste des variants conçus ou plate layout, exactement une)",
+      "dismissError": "Fermer"
     },
     "verdictBadge": {
       "help": {
@@ -2505,11 +2517,13 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "L'étape 4 n'exige plus de fichier de plate layout. Laissé vide, les positions de puits sont associées via la feuille verdict d'Analyze.",
-      "Un fichier de layout reste prioritaire lorsqu'il est fourni, et le contrôle face aux identités du verdict est inchangé.",
-      "Un puits mesuré sans résultat NGS est compté et nommé au lieu de faire échouer toute la construction."
+      "L'étape 4 lit les rapports Agilent aux noms d'échantillon numériques, aussi bien le criblage de la plaque entière que la confirmation répliquée.",
+      "Une confirmation répliquée est fusionnée dans le criblage auquel elle appartient, remplace ces valeurs et signale celles qui divergent.",
+      "Les positions numériques sont résolues via la liste des variants conçus, donc aucun fichier de plaque n'est recopié à la main.",
+      "Une confirmation portant sur un autre ensemble de variants est refusée en nommant les deux décomptes, plutôt qu'étiquetée à tort.",
+      "Le nombre de réplicats est celui que porte le fichier, d'une seule mesure à autant que la série en a faites."
     ],
-    "highlightsStamp": "0.16.30+bab83ea7",
+    "highlightsStamp": "0.16.31+60d4442c",
     "releases": {
       "0.16.28": [
         "Cinq sections run health que l'application mesurait à chaque exécution sans jamais les afficher figurent désormais sur l'écran de revue, repliées au départ.",
@@ -2742,6 +2756,13 @@
         "L'étape 4 n'exige plus de fichier de plate layout. Laissé vide, les positions de puits sont associées via la feuille verdict d'Analyze.",
         "Un fichier de layout reste prioritaire lorsqu'il est fourni, et le contrôle face aux identités du verdict est inchangé.",
         "Un puits mesuré sans résultat NGS est compté et nommé au lieu de faire échouer toute la construction."
+      ],
+      "0.16.31": [
+        "L'étape 4 lit les rapports Agilent aux noms d'échantillon numériques, aussi bien le criblage de la plaque entière que la confirmation répliquée.",
+        "Une confirmation répliquée est fusionnée dans le criblage auquel elle appartient, remplace ces valeurs et signale celles qui divergent.",
+        "Les positions numériques sont résolues via la liste des variants conçus, donc aucun fichier de plaque n'est recopié à la main.",
+        "Une confirmation portant sur un autre ensemble de variants est refusée en nommant les deux décomptes, plutôt qu'étiquetée à tort.",
+        "Le nombre de réplicats est celui que porte le fichier, d'une seule mesure à autant que la série en a faites."
       ]
     },
     "releaseStamps": {
@@ -2784,7 +2805,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.30": "bab83ea7"
+      "0.16.30": "bab83ea7",
+      "0.16.31": "60d4442c"
     }
   },
   "primerDisplay": {

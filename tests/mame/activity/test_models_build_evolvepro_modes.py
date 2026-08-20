@@ -75,6 +75,66 @@ def test_removed_prior_and_numeric_fields_are_forbidden_extras(files, removed):
         })
 
 
+def test_numeric_sources_need_exactly_one_order_source(files):
+    """A numeric sample name is a position, so something has to state the order.
+
+    Both sources at once leaves the answer ambiguous, which is a different
+    defect from having none and is refused the same way.
+    """
+    base = {"verdict_xlsx": files["verdict"], "output_xlsx": files["out"]}
+    for numeric in ("numeric_report_xlsx", "remeasure_numeric_xlsx"):
+        params = dict(base)
+        if numeric == "remeasure_numeric_xlsx":
+            params["gc_data_xlsx"] = files["gc"]
+        params[numeric] = files["round1"]
+
+        with pytest.raises(ValidationError, match="exactly one order source"):
+            BuildEvolveproInputParams.model_validate(params)
+
+        with pytest.raises(ValidationError, match="exactly one order source"):
+            BuildEvolveproInputParams.model_validate({
+                **params,
+                "layout_xlsx": files["layout"],
+                "expected_xlsx": files["layout"],
+            })
+
+        validated = BuildEvolveproInputParams.model_validate({
+            **params, "layout_xlsx": files["layout"],
+        })
+        assert getattr(validated, numeric) == files["round1"]
+
+
+def test_numeric_report_is_a_primary_source_of_its_own(files):
+    validated = BuildEvolveproInputParams.model_validate({
+        "numeric_report_xlsx": files["round1"],
+        "expected_xlsx": files["layout"],
+        "verdict_xlsx": files["verdict"],
+        "output_xlsx": files["out"],
+    })
+    assert validated.numeric_report_xlsx == files["round1"]
+
+    with pytest.raises(ValidationError, match="exactly one primary source"):
+        BuildEvolveproInputParams.model_validate({
+            "numeric_report_xlsx": files["round1"],
+            "gc_data_xlsx": files["gc"],
+            "layout_xlsx": files["layout"],
+            "verdict_xlsx": files["verdict"],
+            "output_xlsx": files["out"],
+        })
+
+
+def test_only_one_confirmation_source_is_accepted(files):
+    with pytest.raises(ValidationError, match="at most one confirmation source"):
+        BuildEvolveproInputParams.model_validate({
+            "gc_data_xlsx": files["gc"],
+            "layout_xlsx": files["layout"],
+            "remeasure_report_xlsx": files["round1"],
+            "remeasure_numeric_xlsx": files["round1"],
+            "verdict_xlsx": files["verdict"],
+            "output_xlsx": files["out"],
+        })
+
+
 def test_well_labeled_primary_sources_accept_a_missing_layout(files):
     """A layout file is one way to map wells, not the only one.
 
