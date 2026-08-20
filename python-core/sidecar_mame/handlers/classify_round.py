@@ -405,7 +405,13 @@ _DEFAULT_REGISTERED: dict = {
     "active_concentration_threshold": 0.4,
     "M_min_unused_beneficials": 5,
     "tau_pos": 0.0,
-    "wt_replicate_min": 4,
+    # Three, because three is what a plate carries: the WT block is WT_1,
+    # WT_2 and WT_3. Four disabled the signal permanently rather than guarding
+    # it, since no run ever reached the count. Three leaves two degrees of
+    # freedom, so the estimate is loose, and that looseness is real rather than
+    # hidden: it widens the threshold and makes plateau harder to call, not
+    # easier. docs/2026-08-19-mame-assay-noise-model.md carries the derivation.
+    "wt_replicate_min": 3,
 }
 
 
@@ -443,7 +449,7 @@ def handle_classify_round(params: dict) -> dict:
     RuntimeError: xlsx file not found.
     """
     from kuma_core.strategy.classify import RoundState, Signals, classify, compute_signals
-    from kuma_core.strategy.signals import compute_K_throughput
+    from kuma_core.strategy.signals import compute_K_throughput, compute_sigma_assay
 
     round_files = params.get("round_files")
     if not round_files:
@@ -485,12 +491,33 @@ def handle_classify_round(params: dict) -> dict:
     # the earlier rounds are in the list to supply the hit-rate trend.
     wt_values = _wt_values(sorted_files[-1])
     wt_min = _DEFAULT_REGISTERED["wt_replicate_min"]
+
+    # On the log2 scale, because that is the scale everything it meets is on.
+    # delta_best_ema is an EMA of log2 round bests and current_round_activities
+    # is log2, so a sigma taken on the linear values would be compared against
+    # quantities in another unit. For a small spread the two differ by 1/ln2,
+    # about 1.44, which is the whole width of the threshold.
+    #
+    # A zero or negative replicate has no logarithm. The builder already
+    # refuses a negative activity, so this catches a WT well that measured
+    # exactly zero, which is a failed injection rather than a measurement of
+    # no activity, and one of those would otherwise become negative infinity
+    # and take the whole estimate with it.
+    wt_log2 = [math.log2(v) for v in wt_values if v > 0.0]
+    usable_wt = len(wt_log2) == len(wt_values) and len(wt_log2) >= wt_min
+
     # Below the minimum nothing is handed over.  compute_sigma_assay returns
     # None under that count, so every draw would resample into T2=NA and
     # T_model=NA and the confirmation would land back on the same lone T3 that
     # proposed the branch.  A T3 that holds up under resampling scores that as
     # confidence 1.0, which would print a single-signal switch as a certainty.
-    bootstrap_wt = wt_values if len(wt_values) >= wt_min else None
+    bootstrap_wt = wt_log2 if usable_wt else None
+
+    # The point estimate reads the same replicates the draws do. Held apart,
+    # a draw could carry a signal the decision never had, and sat_now is an OR
+    # over T2/T3/T_model, so agreement could only be biased upward for exactly
+    # the two labels the confidence gate guards.
+    sigma_assay = compute_sigma_assay(wt_log2, min_replicates=wt_min) if usable_wt else None
 
     # Cross-round aggregation
     hit_rates = [m["hit_rate"] for m in per_round_metrics]
@@ -588,13 +615,12 @@ def handle_classify_round(params: dict) -> dict:
         # some of the designed set before it reaches this file, and the null
         # needs the number of draws the maximum was actually taken over.
         n_designed=len(per_round_records[-1]),
-        # sigma_assay=None even when wt_values arrive below.  The point signals
-        # keep the shape they have always had (T2=NA, T_model=NA, T3 the sole
-        # noise-bearing saturation signal), so forwarding replicates cannot move
-        # which branch the decision tree proposes.  It only lets the bootstrap,
-        # which derives its own sigma per draw, run the confidence test behind
-        # the branch that was already proposed.
-        sigma_assay=None,
+        # The spread of the wild-type block on the log2 scale, or None when
+        # the round recorded too few wells to estimate one from. This is what
+        # answers T2 rather than leaving it NA, and the same list feeds the
+        # bootstrap, so the point estimate and its draws carry the same signal
+        # set.
+        sigma_assay=sigma_assay,
         # r=1 is the measurement, not a placeholder for one the file withholds.
         # A mutant well on the Agilent path carries a single measurement
         # (AgilentRecord, evolvepro_xlsx.py:44-56), so the exported activity is

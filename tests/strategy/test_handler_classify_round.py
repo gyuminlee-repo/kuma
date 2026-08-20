@@ -606,7 +606,7 @@ class TestDecliningSaturation:
             {"round_files": self._make_declining_3round(tmp_path)}
         )
         assert result["wt_replicate_count"] == 0
-        assert result["wt_replicate_min"] == 4
+        assert result["wt_replicate_min"] == 3
 
 
 # ---------------------------------------------------------------------------
@@ -619,6 +619,8 @@ class TestDecliningSaturation:
 # them on the matching round_files entry.
 _WT_FOUR = [1.02, 0.97, 1.04, 0.99]
 _WT_THREE = _WT_FOUR[:3]
+# One short of the minimum a plate carries, which is the shortfall case now.
+_WT_TWO = _WT_FOUR[:2]
 
 
 class TestWtReplicatesForwarded:
@@ -630,7 +632,14 @@ class TestWtReplicatesForwarded:
     that count, so T2 and T_model would stay NA in every resample and the
     confirmation would fall back on the same lone T3 that proposed the branch.
     A T3 stable under resampling scores that agreement as high confidence, so
-    forwarding three would print a single-signal switch as a near-certainty.
+    forwarding too few would print a single-signal switch as a near-certainty.
+
+    The minimum is three because three is what a plate carries: the block is
+    WT_1, WT_2, WT_3.  Four disabled the signal permanently rather than
+    guarding it, since no run reached the count.  The values arrive on the log2
+    scale, which is the scale delta_best_ema and current_round_activities are
+    on, and the sigma derived from them answers T2 at the point estimate as
+    well as in the draws.
     """
 
     def _files(self, tmp_path, wt=None):
@@ -652,18 +661,15 @@ class TestWtReplicatesForwarded:
         )
         assert isinstance(result["confidence"], float)
 
-    def test_answered_decision_still_reports_the_missing_input(self, tmp_path):
-        """Supplied replicates do not reach the point signals, only the bootstrap.
-
-        The handler passes sigma_assay=None either way, so the verdict itself
-        was still reached with T2 and T_model NA and saturation resting on the
-        hit-rate trend alone. That is what the caller note says, so it has to
-        keep being reported here.
-        """
+    def test_three_replicates_reach_the_classifier(self, tmp_path):
+        """Three is the block a plate carries, and it now answers."""
         result = handle_classify_round(
-            {"round_files": self._files(tmp_path, _WT_FOUR)}
+            {"round_files": self._files(tmp_path, _WT_THREE)}
         )
-        assert result["missing_inputs"] == ["wt_replicates"]
+        assert result["advisory"] == "decision", (
+            f"Expected the classifier to answer on three replicates; got {result!r}"
+        )
+        assert isinstance(result["confidence"], float)
 
     def _captured_wt_values(self, tmp_path, monkeypatch, wt):
         """Run the handler and return the wt_values classify() actually saw.
@@ -694,33 +700,56 @@ class TestWtReplicatesForwarded:
         handle_classify_round({"round_files": self._files(tmp_path, wt)})
         return seen["wt_values"]
 
-    def test_the_replicate_values_reach_the_classifier_unchanged(
+    def test_the_replicate_values_reach_the_classifier_as_log2(
         self, tmp_path, monkeypatch
     ):
+        """Not the values as recorded: their logarithms.
+
+        delta_best_ema is an EMA of log2 round bests and the bootstrap adjusts
+        it by a difference of log2 activities, so a sigma taken on the linear
+        values would be compared against quantities in another unit. The
+        fixture spreads well away from 1.0 on purpose, since near it the two
+        scales agree to within a few percent and the assertion would hold
+        either way.
+        """
         values = [0.4013, 1.9007, 0.5501, 1.7002]
-        assert self._captured_wt_values(tmp_path, monkeypatch, values) == values
+        captured = self._captured_wt_values(tmp_path, monkeypatch, values)
+        assert captured == pytest.approx([math.log2(v) for v in values])
+        assert captured != pytest.approx(values)
 
-    def test_short_replicate_lists_reach_the_classifier_as_none(
+    def test_two_replicates_reach_the_classifier_as_none(
         self, tmp_path, monkeypatch
     ):
-        assert self._captured_wt_values(tmp_path, monkeypatch, _WT_THREE) is None
+        assert self._captured_wt_values(tmp_path, monkeypatch, _WT_TWO) is None
 
-    def test_three_replicates_do_not_reach_the_classifier(self, tmp_path):
+    def test_two_replicates_do_not_reach_the_classifier(self, tmp_path):
         """One short of the minimum is still not assessable."""
         result = handle_classify_round(
-            {"round_files": self._files(tmp_path, _WT_THREE)}
+            {"round_files": self._files(tmp_path, _WT_TWO)}
         )
         assert result["advisory"] == "not_assessable"
         assert result["reason"] == "wt_replicates_insufficient"
         assert "label" not in result
 
-    def test_three_replicates_are_counted_in_the_response(self, tmp_path):
-        """The screen has to be able to say "3 on record, 4 needed"."""
+    def test_two_replicates_are_counted_in_the_response(self, tmp_path):
+        """The screen has to be able to say "2 on record, 3 needed"."""
         result = handle_classify_round(
-            {"round_files": self._files(tmp_path, _WT_THREE)}
+            {"round_files": self._files(tmp_path, _WT_TWO)}
         )
-        assert result["wt_replicate_count"] == 3
-        assert result["wt_replicate_min"] == 4
+        assert result["wt_replicate_count"] == 2
+        assert result["wt_replicate_min"] == 3
+
+    def test_a_zero_replicate_is_refused_rather_than_logged(self, tmp_path):
+        """A WT well reading exactly zero is a failed injection, not an activity.
+
+        log2(0) is negative infinity and would carry the whole estimate with
+        it, so the round reads as having no usable block rather than as having
+        one with a hole in it.
+        """
+        result = handle_classify_round(
+            {"round_files": self._files(tmp_path, [0.0, 1.0, 1.1])}
+        )
+        assert result["advisory"] == "not_assessable"
 
     def test_replicates_on_earlier_rounds_are_not_read(self, tmp_path):
         """The bootstrap resamples the current round, so only its entry counts."""
