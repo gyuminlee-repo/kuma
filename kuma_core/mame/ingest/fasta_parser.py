@@ -29,6 +29,7 @@ separate future pipeline entry point, not a concern of this consensus parser.
 from __future__ import annotations
 
 import logging
+import math
 import os
 import re
 import time
@@ -229,13 +230,26 @@ def _read_int_metadata(metadata: dict[str, str], key: str) -> int | None:
 
 
 def _read_float_metadata(metadata: dict[str, str], key: str) -> float | None:
+    """Read a float from a consensus header, or None when it is not usable.
+
+    ``float()`` accepts "nan", "inf" and "-inf", and a header carrying one of
+    those parsed into a number that every later comparison silently passes:
+    NaN is not less than a threshold and not greater than one either, so the
+    no-call gate that reads this value stops rejecting anything while still
+    reporting the record as evaluable.
+
+    None already means "this header does not state the figure", and a figure
+    that cannot be compared is worth exactly as much, so the two share a
+    return. The caller distinguishes None from a measured 0.0 throughout.
+    """
     value = metadata.get(key.lower())
     if value is None:
         return None
     try:
-        return float(value)
+        parsed = float(value)
     except ValueError:
         return None
+    return parsed if math.isfinite(parsed) else None
 
 
 def _recover_covered_n_fraction(
