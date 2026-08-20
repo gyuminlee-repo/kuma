@@ -482,7 +482,13 @@ def filter_reads_by_summary(
             else:
                 qscore = _mean_qscore_from_qual(qual)
 
-            if qscore < params.min_qscore:
+            # isfinite first, because the comparison below cannot express this.
+            # A NaN qscore makes ``qscore < min_qscore`` False and the read is
+            # kept, so a read whose quality could not be established passes a
+            # filter set to reject everything. Infinity fails the same way. The
+            # read is dropped rather than raising: this runs per record over a
+            # whole run, and one unreadable summary entry should not end it.
+            if not math.isfinite(qscore) or qscore < params.min_qscore:
                 n_failed_qscore += 1
                 continue
 

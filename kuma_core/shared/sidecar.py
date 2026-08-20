@@ -76,6 +76,37 @@ def describe_non_finite(paths: list[str]) -> str:
     )
 
 
+def parse_finite_float(value: Any, *, field: str) -> float:
+    """Return ``value`` as a float, refusing NaN and the infinities.
+
+    ``float("nan")`` and ``float("inf")`` both succeed, so a plain ``float()``
+    on a caller-supplied threshold or a value read out of a file admits them.
+    What follows is almost always a comparison, and every comparison against
+    NaN is False: a quality filter written as ``if score < minimum`` keeps the
+    read, and a gate written as ``if fraction > limit`` passes it. The gate does
+    not report that it could not decide; it reports that the value was fine.
+    Infinity fails the same way in the opposite direction, and a bound of
+    ``inf`` silently means "no bound".
+
+    This is the guard for a value coming *in*. :func:`find_non_finite_paths`
+    guards a payload going *out*, where the same number would break JSON.
+
+    Raises:
+        ValueError: *value* is not a number, or is not finite. The message
+            names *field* so the caller learns which input was rejected.
+    """
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field} must be a number, got {value!r}") from exc
+    if not math.isfinite(parsed):
+        raise ValueError(
+            f"{field} must be finite, got {parsed!r}. A non-finite bound "
+            f"disables the comparison it is used in rather than widening it."
+        )
+    return parsed
+
+
 def ensure_private_dir(path: Path) -> Path:
     """Create a user-private directory where platforms support chmod."""
     path.mkdir(parents=True, exist_ok=True)

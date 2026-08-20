@@ -37,6 +37,23 @@ test = [
     "pytest",
 ]
 
+# benchmark: what benchmark/al/ needs, kept out of `test` on purpose.
+#
+# That tree is research code for a paper rather than part of the product, and
+# its suite runs in its own non-blocking job. Folding these into `test` would
+# put scikit-learn and scipy on all six python-tests legs, which installs them
+# on Windows and macOS runners that have no use for them and puts research
+# libraries on the path the desktop app is built from.
+#
+# Until this extra existed the imports were satisfied by whatever happened to
+# be on the developer machine, so the suite passed locally and could not have
+# run anywhere else.
+benchmark = [
+    "pytest",
+    "scikit-learn",
+    "scipy",
+]
+
 # typecheck: the Python type gate CI runs, and the one an editor should match.
 #
 # basedpyright rather than pyright because pyright ships as an npm package, and

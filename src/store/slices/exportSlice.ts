@@ -148,7 +148,12 @@ function buildReportData(state: AppState) {
   );
   const successCount = includedDesignResults.length;
   const failCount = state.failedMutations.length;
-  const totalCount = successCount;
+  // Attempts, not successes. Setting the denominator to successCount made
+  // success_rate 100 in every report ever exported, including the ones whose
+  // next line stated how many mutations failed. failedMutations is the store's
+  // own record of the attempts that produced no primer, so the two summands
+  // are what was tried.
+  const totalCount = successCount + failCount;
   const tmMet = includedDesignResults.filter((r) => r.tm_condition_met).length;
   const fwdTms = includedDesignResults.map((r) => r.tm_no_fwd).filter((t) => t > 0);
   const revTms = includedDesignResults.map((r) => r.tm_no_rev).filter((t) => t > 0);

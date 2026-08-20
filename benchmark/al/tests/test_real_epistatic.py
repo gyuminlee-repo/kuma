@@ -1,7 +1,8 @@
 """Tests for al.real_epistatic — Phase B combinatorial oracle + adapter.
 
 All tests are cheap (no ESM-2 inference, no network, no disk reads).
-ESM-2 tests are gated behind ``pytest.importorskip('esm')``.
+ESM-2 tests are gated behind ``requires_fair_esm``, which resolves
+``esm.pretrained`` rather than trusting the module name.
 
 Test inventory (≥ 7 required tests)
 -------------------------------------
@@ -41,6 +42,7 @@ from al.real_epistatic import (
     combo_zero_shot_prior,
     parse_combo,
 )
+from al.tests.fair_esm_support import requires_fair_esm
 
 
 # ---------------------------------------------------------------------------
@@ -351,10 +353,9 @@ def test_descriptor_positional_fallback():
 # 9. ESM-2 zero-shot prior (gated — skipped without fair-esm)
 # ---------------------------------------------------------------------------
 
+@requires_fair_esm
 def test_zero_shot_prior_esm2():
     """Additive masked-marginal combo score equals sum of per-substitution LLRs."""
-    esm = pytest.importorskip("esm")  # skip gracefully when fair-esm absent
-
     from al.coldstart import _ESM2LLR, esm2_zero_shot_llr
 
     wt = "ACDEFGHIKLMNPQRSTVWY"  # 20-residue WT with all standard AAs

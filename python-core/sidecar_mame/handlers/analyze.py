@@ -23,6 +23,7 @@ from sidecar_mame.core import (
     _validate_output_path,
     set_last_analyze,
 )
+from kuma_core.shared.sidecar import parse_finite_float
 
 if TYPE_CHECKING:
     from kuma_core.mame.ingest.amplicon_reference import AmpliconReferenceResolution
@@ -1807,7 +1808,14 @@ def handle_analyze(params: dict) -> dict:
         if resolved_raw_cds_end is not None and resolved_raw_cds_end > 0
         else _resolve_cds_end(params.get("cds_end"), reference)
     )
-    min_file_size_kb = float(params.get("min_file_size_kb", 50.0))
+    # parse_finite_float rather than float: NaN and the infinities both survive
+    # float(), and every one of these four numbers is used as the right-hand
+    # side of a comparison further down. A NaN bound makes that comparison
+    # False whichever way it is written, so the gate does not report that it
+    # could not decide, it reports that the value passed.
+    min_file_size_kb = parse_finite_float(
+        params.get("min_file_size_kb", 50.0), field="min_file_size_kb"
+    )
     # Default to 30 when the caller omits the field entirely; an explicit None
     # or "" disables the read-depth gate (legacy file-size fallback).
     if "min_read_count" not in params:
@@ -1821,7 +1829,9 @@ def handle_analyze(params: dict) -> dict:
     max_consensus_n_fraction = (
         None
         if max_consensus_n_fraction_raw in (None, "")
-        else float(max_consensus_n_fraction_raw)
+        else parse_finite_float(
+            max_consensus_n_fraction_raw, field="max_consensus_n_fraction"
+        )
     )
     many_cutoff = int(params.get("many_cutoff", 5))
 

@@ -734,6 +734,7 @@ def _read_kuro_export(path: Path) -> VariantListReadResult:
     wt_ordinal: int | None = None
     wt_row: int | None = None
     placed = 0
+    seen: dict[tuple[str, str], int] = {}
     for row_number, mutation in zip(read.row_numbers, read.expected):
         placed += 1
         if mutation.mutant_id.strip().lower() in _WT_LABELS:
@@ -742,6 +743,30 @@ def _read_kuro_export(path: Path) -> VariantListReadResult:
             wt_ordinal = placed
             wt_row = row_number
             continue
+        # The rule the plain-list branch applies, narrowed to what a KURO sheet
+        # can express. It was enforced there and not here, so two unrelated
+        # variants sharing a name reached build_draft_layout and were scored
+        # against each other's wells.
+        #
+        # Keyed on the group rather than the id alone, because a combo variant
+        # legitimately spans several rows under one id: one substitution per
+        # row, sharing group_id and primer_set_ref. The shipped template
+        # 03_mame_expected_mutations.xlsx does exactly that for M006, and the
+        # id-only form of this check refused it. Rows of one group are one
+        # variant; the same id under two groups is two variants that cannot be
+        # told apart afterwards.
+        key = (mutation.mutant_id, mutation.group_id)
+        clash = next(
+            (row for (mid, gid), row in seen.items() if mid == mutation.mutant_id and gid != mutation.group_id),
+            None,
+        )
+        if clash is not None:
+            raise ValueError(
+                f"duplicate variant '{mutation.mutant_id}' in {path.name} "
+                f"(rows {clash} and {row_number}), under two different groups. "
+                "Each well needs a distinct variant to be scored."
+            )
+        seen.setdefault(key, row_number)
         expected.append(mutation)
     return VariantListReadResult(
         expected=expected,
