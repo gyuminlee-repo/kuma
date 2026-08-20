@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import csv
 import math
+import os
 import random
 import re
 import sys
@@ -41,21 +42,38 @@ from kuma_core.kuro.evolvepro import pareto_diversity_select, domain_aware_selec
 # Config
 # ---------------------------------------------------------------------------
 CSV_PATH = Path("/mnt/d/_workspace/020.admin/projects/030.EvolveProprimer/df_test.csv")
-RESULTS_DIR = REPO_ROOT / "benchmark" / "results"
-OUT_PNG = RESULTS_DIR / "isps_strategy_comparison.png"
-OUT_CSV = RESULTS_DIR / "isps_strategy_comparison.csv"
+
+# The default df_test.csv location above has moved before. Allow an override so
+# the benchmark stays runnable without editing the file.
+_env_csv = os.environ.get("ISPS_DF_TEST")
+if _env_csv:
+    CSV_PATH = Path(_env_csv)
+
+# RESULTS_DIR and OUT_SUFFIX are overridable so a corrected rerun can be written
+# next to an archived figure instead of overwriting it.
+RESULTS_DIR = Path(os.environ.get("ISPS_RESULTS_DIR", str(REPO_ROOT / "benchmark" / "results")))
+OUT_SUFFIX = os.environ.get("ISPS_OUT_SUFFIX", "")
+OUT_PNG = RESULTS_DIR / f"isps_strategy_comparison{OUT_SUFFIX}.png"
+OUT_CSV = RESULTS_DIR / f"isps_strategy_comparison{OUT_SUFFIX}.csv"
 
 SELECT_N = 96
-ISPS_LENGTH = 561          # 561 aa (1683 bp CDS)
+# Project standard numbering is the mature protein 1-560 (stop codon excluded).
+# CDS 268..1950 = 1683 nt = 560 aa + stop, so the old 561 counted the stop codon.
+ISPS_LENGTH = 560
 RANDOM_REPEATS = 10
 RANDOM_SEED_BASE = 42
+POS_AXIS_LABEL = "Amino acid position (1-560, mature numbering)"
 
-# IspS 4-equal pseudo-domain (InterPro FMO-like, 4-way split)
+# P1-P4 are NOT annotated domains. They are a plain 4-way split of the 1-560
+# axis (140 aa each) that exists only to drive domain_aware_select. The real
+# layout is PF01397 N-terminal plus PF03936 C-terminal catalytic, linker
+# 205-262, C-tail 500-560.
+PSEUDO_DOMAIN_NOTE = "P1-P4: pseudo-domain quartiles, 140 aa each (not PF01397/PF03936)"
 ISPS_DOMAINS = [
-    {"name": "D1", "start": 1,   "end": 140},
-    {"name": "D2", "start": 141, "end": 280},
-    {"name": "D3", "start": 281, "end": 420},
-    {"name": "D4", "start": 421, "end": 561},
+    {"name": "P1", "start": 1,   "end": 140},
+    {"name": "P2", "start": 141, "end": 280},
+    {"name": "P3", "start": 281, "end": 420},
+    {"name": "P4", "start": 421, "end": 560},
 ]
 
 _SINGLE_RE = re.compile(r"^[A-Z](\d+)[A-Z]$")
@@ -213,8 +231,10 @@ COLORS = ["#2166AC", "#D6604D", "#4DAC26", "#888888"]
 SELECTIONS = [top96, pareto96, domain96, random96_repr]
 
 fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-fig.suptitle("IspS EVOLVEpro: Diversity Selection Strategy Comparison\n(n=96 per strategy, IspS 561 aa)",
-             fontsize=13, fontweight="bold", y=0.98)
+fig.suptitle(
+    "IspS EVOLVEpro: Diversity Selection Strategy Comparison\n"
+    "(n=96 per strategy, IspS mature 1-560 aa; coverage denominator 560)",
+    fontsize=13, fontweight="bold", y=0.98)
 
 # --- Panel A: Position histogram overlay ---
 ax_a = axes[0, 0]
@@ -224,25 +244,28 @@ for sel, name, color in zip(SELECTIONS, STRATEGIES, COLORS):
     positions = [extract_pos(v) for v, _ in sel if extract_pos(v) > 0]
     ax_a.hist(positions, bins=bins, alpha=0.5, color=color, label=name, edgecolor="none")
 
-# Domain boundary lines
+# Pseudo-domain boundary lines (arbitrary quartiles, not annotated domains)
 for d in ISPS_DOMAINS[1:]:  # skip first boundary (pos 1)
     ax_a.axvline(x=d["start"], color="gray", linestyle="--", linewidth=0.8, alpha=0.6)
-for d in ISPS_DOMAINS:
-    mid = (d["start"] + d["end"]) / 2
-    ax_a.text(mid, ax_a.get_ylim()[1] * 0.01, d["name"],
-              ha="center", va="bottom", fontsize=8, color="gray")
 
-ax_a.set_xlabel("Amino acid position (1–561)", fontsize=10)
+ax_a.set_xlabel(POS_AXIS_LABEL, fontsize=10)
 ax_a.set_ylabel("Count", fontsize=10)
 ax_a.set_title("A. Position Distribution", fontsize=11, fontweight="bold")
-ax_a.legend(fontsize=9, framealpha=0.8)
 ax_a.set_xlim(0, ISPS_LENGTH + 1)
+ax_a.set_xticks([1, 140, 280, 420, 560])
+# Headroom so the pseudo-domain band labels do not collide with the bars
+ax_a.set_ylim(0, ax_a.get_ylim()[1] * 1.28)
+ax_a.legend(fontsize=9, framealpha=0.8, loc="upper right",
+            bbox_to_anchor=(1.0, 0.88))
 
-# Re-draw domain labels after axes limits set
+# Pseudo-domain band labels, drawn after axes limits are set
 for d in ISPS_DOMAINS:
     mid = (d["start"] + d["end"]) / 2
-    ax_a.text(mid, ax_a.get_ylim()[1] * 0.92, d["name"],
-              ha="center", va="top", fontsize=8, color="gray", alpha=0.7)
+    ax_a.text(mid, ax_a.get_ylim()[1] * 0.985,
+              f"{d['name']}\n{d['start']}-{d['end']}",
+              ha="center", va="top", fontsize=8, color="gray", alpha=0.9)
+ax_a.text(0.5, -0.22, PSEUDO_DOMAIN_NOTE, transform=ax_a.transAxes,
+          ha="center", va="top", fontsize=8, color="#555555", style="italic")
 
 # --- Panel B: y_pred boxplot ---
 ax_b = axes[0, 1]
@@ -299,7 +322,7 @@ ax_d = axes[1, 1]
 ax_d.axis("off")
 
 table_cols = ["Strategy", "Mean\ny_pred", "Std\ny_pred", "Unique\nPositions",
-              "Coverage\n(%)", "Shannon\nEntropy", "Jaccard\nvs Top-96"]
+              "Coverage\n(% of 560)", "Shannon\nEntropy", "Jaccard\nvs Top-96"]
 table_rows = []
 for m in strategy_metrics:
     table_rows.append([
