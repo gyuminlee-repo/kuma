@@ -1692,17 +1692,119 @@ file does not distinguish them, so a count taken from that route cannot be given
 the meaning <code>r</code> carries in the formula.</p>
 <p>Any later change that consumes replicate counts has to read this route as
 unknown rather than as equivalent to the Agilent one.</p>
-<h2 id="what-has-to-be-measured-before-the-estimate-moves">What has to be measured before the estimate moves<a class="headerlink" href="#what-has-to-be-measured-before-the-estimate-moves" title="Permanent link">&para;</a></h2>
-<p>Neither number below has been observed on campaign data. The figures used
-elsewhere in this work are assumed coefficients of variation of 3, 5 and 10
-percent, and they were used to show relative sizes rather than to set anything.</p>
+<h2 id="what-was-open-here-and-what-campaign-data-says">What was open here, and what campaign data says<a class="headerlink" href="#what-was-open-here-and-what-campaign-data-says" title="Permanent link">&para;</a></h2>
+<p>Two figures were listed here as unobserved. Both have now been read off the two
+campaign reports under the nanopore run directory, through the parser the
+product itself uses rather than by hand.</p>
+<h3 id="the-wild-type-coefficient-of-variation">The wild-type coefficient of variation<a class="headerlink" href="#the-wild-type-coefficient-of-variation" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>plate</th>
+<th>route</th>
+<th style="text-align: right;">WT wells</th>
+<th style="text-align: right;">CV</th>
+<th style="text-align: right;"><code>sigma_assay</code> (log2)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>251001_report.xlsx</code></td>
+<td>standard</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">10.63 %</td>
+<td style="text-align: right;">0.15747</td>
+</tr>
+<tr>
+<td><code>260327_Ep_R1_positive.xlsx</code></td>
+<td>rep batch</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">9.74 %</td>
+<td style="text-align: right;">0.14475</td>
+</tr>
+</tbody>
+</table>
+<p>The assumed figures used elsewhere in this work were 3, 5 and 10 percent. Both
+plates land at the pessimistic end of that range, and they agree with each
+other across two different campaigns and two file layouts. The synthetic
+fixture in <code>fixtures/activity_demo/generate.py</code> draws WT from a 5 percent
+spread, which is half of what the instrument does.</p>
+<p>At <code>n_designed = 96</code> this puts T2 at 0.476 log2, a 1.39-fold improvement. A
+round whose best variant gains less than about 40 percent over wild type is not
+distinguishable from plate noise.</p>
+<p>Three wells leave two degrees of freedom, so each estimate is loose. Two plates
+agreeing is worth more than either one alone, and is still not many.</p>
+<h3 id="whether-an-exported-activity-comes-from-more-than-one-injection">Whether an exported activity comes from more than one injection<a class="headerlink" href="#whether-an-exported-activity-comes-from-more-than-one-injection" title="Permanent link">&para;</a></h3>
+<p>It does, so the question is not moot for present data, and this section
+previously said the opposite.</p>
 <ul>
-<li>The wild-type coefficient of variation on a real plate, which fixes how large
-  the threshold is in fold-change terms.</li>
-<li>Whether exported activities on real plates ever come from more than one
-  injection. If they do not, <code>r</code> is 1 everywhere and the entire question is
-  moot for present data.</li>
+<li><code>251001_report.xlsx</code>: 95 mutant records, no sample name repeated. <code>r</code> is 1
+  here in the data as well as in the code.</li>
+<li><code>260327_Ep_R1_positive.xlsx</code>: 34 variants, <strong>every one of them carrying
+  exactly three measurements</strong>, named <code>1</code>, <code>1-2</code>, <code>1-3</code> and cycling through the
+  whole sample set three times.</li>
 </ul>
+<p>That cycling is the signature of one prepared vial injected three times rather
+than three independently prepared wells, which is the reading this document
+already argued for on structure. Plate B has enough repeats to measure the
+split instead of arguing it:</p>
+<table>
+<thead>
+<tr>
+<th>component</th>
+<th style="text-align: right;">log2</th>
+<th style="text-align: right;">share of variance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sigma_inj</code>, from within-variant spread over 34 variants</td>
+<td style="text-align: right;">0.06457</td>
+<td style="text-align: right;">19.9 %</td>
+</tr>
+<tr>
+<td><code>sigma_well</code>, by subtraction from the WT block</td>
+<td style="text-align: right;">0.12955</td>
+<td style="text-align: right;">80.1 %</td>
+</tr>
+</tbody>
+</table>
+<p>Preparation dominates. What that does to the threshold:</p>
+<table>
+<thead>
+<tr>
+<th>form</th>
+<th style="text-align: right;">difference-of-means term</th>
+<th style="text-align: right;">vs the code today</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>r = 1</code>, as the code has it</td>
+<td style="text-align: right;">0.20471</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>naive <code>r = 3</code>, <code>sqrt(2/3) * sigma</code></td>
+<td style="text-align: right;">0.11819</td>
+<td style="text-align: right;">42 % narrower</td>
+</tr>
+<tr>
+<td>honest <code>r = 3</code>, <code>sqrt(2) * sqrt(sigma_well^2 + sigma_inj^2/3)</code></td>
+<td style="text-align: right;">0.19064</td>
+<td style="text-align: right;">7 % narrower</td>
+</tr>
+</tbody>
+</table>
+<p>So supplying the replicate count without the variance components would narrow
+the threshold by 42 percent when the honest narrowing is 7, and a threshold too
+narrow refuses to call plateau. The <code>r = 1</code> the handler registers is 7 percent
+wide rather than 42 percent tight, which is the safe direction and close to
+right. It stays.</p>
+<p>What this does change: the generic-activity section below discusses the long
+CSV route, and the AGILENT_REP_BATCH route is not covered anywhere here. Any
+later change that starts consuming <code>r</code> has to handle that route explicitly,
+because <code>r</code> is 3 there, not 1.</p>
 <h2 id="the-registered-minimum-was-set-above-what-a-plate-carries">The registered minimum was set above what a plate carries<a class="headerlink" href="#the-registered-minimum-was-set-above-what-a-plate-carries" title="Permanent link">&para;</a></h2>
 <p><code>wt_replicate_min</code> was 4. A plate carries three wild-type wells, <code>WT_1</code>, <code>WT_2</code>
 and <code>WT_3</code>, so no run ever reached the count, <code>compute_sigma_assay</code> answered
