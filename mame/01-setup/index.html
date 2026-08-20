@@ -1760,8 +1760,8 @@
 </thead>
 <tbody>
 <tr>
-<td><code>expected_mutations.xlsx</code></td>
-<td>KURO export 산출물</td>
+<td>변이 목록</td>
+<td>KURO export 워크북(<code>expected_mutations</code> 시트) 또는 변이만 나열한 <code>.csv</code>/<code>.tsv</code>/<code>.txt</code>/<code>.xlsx</code></td>
 <td>필수</td>
 </tr>
 <tr>
@@ -1771,7 +1771,8 @@
 </tr>
 </tbody>
 </table>
-<p>KURO 가 만든 xlsx 는 <code>__kuma_meta__</code> 숨김 시트로 프로젝트와 자동 매칭된다. 다른 프로젝트의 expected 를 드롭하면 mismatch 경고.</p>
+<p>KURO 를 쓰지 않는 사용자는 변이 한 열짜리 목록을 그대로 넣으면 된다. well 위치는 적지 않고 행 순서가 곧 플레이트 순서다. 사양은 <code>docs/inputs/expected-mutations.md</code> 에 있다.</p>
+<p>KURO 가 만든 xlsx 는 <code>__kuma_meta__</code> 숨김 시트로 프로젝트와 자동 매칭된다. 다른 프로젝트의 <code>project_id</code> 를 가진 워크북을 넣으면 최근 프로젝트 중 같은 id 를 찾아 전환할지 묻는다.</p>
 <h2 id="v092x">v0.9.2.x 변경<a class="headerlink" href="#v092x" title="Permanent link">&para;</a></h2>
 <ul>
 <li>사이드바 자유 navigate. 미입력 상태 진입 시 "Reference FASTA required" empty state.</li>
