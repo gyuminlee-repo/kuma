@@ -2535,13 +2535,11 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Una lista de variantes puede indicar el pocillo de cada fila. Donde lo hace, esa es la colocación y no se infiere el orden de filas.",
-      "Un botón de plantilla escribe el libro con los 96 pocillos ya puestos, de modo que solo queda completar la columna de variantes.",
-      "El pocillo de control es una opción y ahora toma por defecto el último de la placa, que es donde el laboratorio lo pipetea.",
-      "Esa opción ya llega a la ejecución. La worklist, la vista previa y la evaluación nombran los mismos pocillos.",
-      "Las vistas de placa escalan su tipografía con las celdas, así que las etiquetas ya no se recortan a ningún ancho de ventana."
+      "Un informe con IDs numéricos se descodifica contra los pocillos que indica la lista de variantes, no contra pocillos recalculados por posición de residuo.",
+      "Tomar el orden de placa de la lista de variantes diseñadas ya funciona. Antes se rechazaba por una grafía de pocillo que difería en un cero.",
+      "Una lista que indica sus pocillos puede ordenar sus filas como quiera, y la colocación que declara es la que se usa."
     ],
-    "highlightsStamp": "0.16.32+3be3b377",
+    "highlightsStamp": "0.16.33+059a2f27",
     "releases": {
       "0.16.28": [
         "Cinco secciones de run health que la aplicación medía en cada ejecución y nunca dibujaba ya aparecen en la pantalla de revisión, en una sección que empieza cerrada.",
@@ -2788,6 +2786,11 @@
         "El pocillo de control es una opción y ahora toma por defecto el último de la placa, que es donde el laboratorio lo pipetea.",
         "Esa opción ya llega a la ejecución. La worklist, la vista previa y la evaluación nombran los mismos pocillos.",
         "Las vistas de placa escalan su tipografía con las celdas, así que las etiquetas ya no se recortan a ningún ancho de ventana."
+      ],
+      "0.16.33": [
+        "Un informe con IDs numéricos se descodifica contra los pocillos que indica la lista de variantes, no contra pocillos recalculados por posición de residuo.",
+        "Tomar el orden de placa de la lista de variantes diseñadas ya funciona. Antes se rechazaba por una grafía de pocillo que difería en un cero.",
+        "Una lista que indica sus pocillos puede ordenar sus filas como quiera, y la colocación que declara es la que se usa."
       ]
     },
     "releaseStamps": {
@@ -2832,7 +2835,8 @@
       "0.15.16": "fe8e6f21",
       "0.16.30": "bab83ea7",
       "0.16.31": "60d4442c",
-      "0.16.32": "3be3b377"
+      "0.16.32": "3be3b377",
+      "0.16.33": "059a2f27"
     }
   },
   "primerDisplay": {

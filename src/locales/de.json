@@ -2535,13 +2535,11 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Eine Variantenliste kann das Well jeder Zeile angeben. Wo sie es tut, ist das die Platzierung, und keine Zeilenreihenfolge wird abgeleitet.",
-      "Eine Vorlagenschaltfläche schreibt die Arbeitsmappe mit allen 96 Wells, sodass nur die Variantenspalte auszufüllen bleibt.",
-      "Das Kontroll-Well ist eine Wahl und steht nun standardmäßig auf dem letzten Well der Platte, wo die Bank es tatsächlich pipettiert.",
-      "Diese Wahl erreicht jetzt den Lauf. Worklist, Vorschau und Bewertung nennen dieselben Wells statt auseinanderzulaufen.",
-      "Die Plattenansichten skalieren ihre Schrift mit den Zellen, sodass Beschriftungen bei keiner Fensterbreite mehr abschneiden."
+      "Ein Bericht mit numerischen IDs wird gegen die Wells gelesen, die eine Variantenliste angibt, statt gegen aus der Residuenposition berechnete.",
+      "Die Plattenreihenfolge aus der entworfenen Variantenliste funktioniert nun überhaupt. Sie scheiterte an einer Well-Schreibweise, die sich um eine Null unterschied.",
+      "Eine Liste mit angegebenen Wells darf ihre Zeilen in beliebiger Reihenfolge führen; die erklärte Platzierung ist die, die gelesen wird."
     ],
-    "highlightsStamp": "0.16.32+3be3b377",
+    "highlightsStamp": "0.16.33+059a2f27",
     "releases": {
       "0.16.28": [
         "Fünf run-health-Abschnitte, die die App bei jedem Lauf gemessen und nie gezeichnet hat, stehen jetzt im Review-Bildschirm, zunächst geschlossen.",
@@ -2788,6 +2786,11 @@
         "Das Kontroll-Well ist eine Wahl und steht nun standardmäßig auf dem letzten Well der Platte, wo die Bank es tatsächlich pipettiert.",
         "Diese Wahl erreicht jetzt den Lauf. Worklist, Vorschau und Bewertung nennen dieselben Wells statt auseinanderzulaufen.",
         "Die Plattenansichten skalieren ihre Schrift mit den Zellen, sodass Beschriftungen bei keiner Fensterbreite mehr abschneiden."
+      ],
+      "0.16.33": [
+        "Ein Bericht mit numerischen IDs wird gegen die Wells gelesen, die eine Variantenliste angibt, statt gegen aus der Residuenposition berechnete.",
+        "Die Plattenreihenfolge aus der entworfenen Variantenliste funktioniert nun überhaupt. Sie scheiterte an einer Well-Schreibweise, die sich um eine Null unterschied.",
+        "Eine Liste mit angegebenen Wells darf ihre Zeilen in beliebiger Reihenfolge führen; die erklärte Platzierung ist die, die gelesen wird."
       ]
     },
     "releaseStamps": {
@@ -2832,7 +2835,8 @@
       "0.15.16": "fe8e6f21",
       "0.16.30": "bab83ea7",
       "0.16.31": "60d4442c",
-      "0.16.32": "3be3b377"
+      "0.16.32": "3be3b377",
+      "0.16.33": "059a2f27"
     }
   },
   "primerDisplay": {

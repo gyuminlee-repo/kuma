@@ -24,6 +24,7 @@ from kuma_core.mame.activity.numeric_id_decode import (
     above_wt_subset,
     decode_confirmation,
     decode_primary_screen,
+    expected_variant_order,
     layout_variant_order,
 )
 
@@ -324,11 +325,18 @@ class TestExpectedMutationsOrderSource:
         assert warnings == []
 
     def test_assigns_column_major_wells(self, tmp_path):
+        """Column-major placement, spelled the way the activity path compares.
+
+        ``seq_to_well`` answers ``A1`` and the layout reader answers ``A01``.
+        The two are one well to a person and two strings to the strict NGS gate,
+        which refused every build whose order came from the design list until
+        this path zero-padded to match.
+        """
         from kuma_core.mame.activity.numeric_id_decode import expected_variant_order
 
         sheet = [("V5F", 5), ("K53R", 53)]
         order, _ = expected_variant_order(self._expected(tmp_path, sheet))
-        assert [o[2] for o in order] == ["A1", "B1"]
+        assert [o[2] for o in order] == ["A01", "B01"]
 
     def test_decodes_a_report_without_any_plate_file(self, tmp_path):
         sheet = [("R87P", 87), ("V5F", 5), ("K53R", 53), ("K53S", 53), ("K53N", 53)]
@@ -373,3 +381,68 @@ class TestOrderIsNotActivityRank:
         assert by_plate == ["5F", "53R", "53S", "53N", "87P"]
         assert by_activity == ["5F", "53S", "87P", "53N", "53R"]
         assert by_plate != by_activity
+
+
+def _expected_list(tmp_path: Path, rows, *, with_wells: bool) -> Path:
+    """A designed variant list, with or without the column that states wells."""
+    wb, ws = _new_sheet()
+    ws.append(["variant", "well"] if with_wells else ["variant"])
+    for mutant, well in rows:
+        ws.append([mutant, well] if with_wells else [mutant])
+    p = tmp_path / ("expected_wells.xlsx" if with_wells else "expected.xlsx")
+    wb.save(p)
+    return p
+
+
+def test_stated_wells_are_the_placement_whatever_the_row_order(tmp_path: Path):
+    """A list carrying a well column states where the run put every occupant.
+
+    ``build_draft_layout`` places that run on exactly those addresses without
+    arithmetic, so recomputing them here would decode the report against a plate
+    the run never used. Only the plate order is imposed, because that is the
+    order the bench fills tubes and therefore the order a numeric ID counts in.
+    """
+    rows = [("N28T", "D1"), ("V5F", "A1"), ("S11E", "C3"), ("V10L", "B2")]
+    order, warnings = expected_variant_order(
+        _expected_list(tmp_path, rows, with_wells=True)
+    )
+
+    assert warnings == []
+    assert order == [
+        ("5F", "V5F", "A01"),
+        ("28T", "N28T", "D01"),
+        ("10L", "V10L", "B02"),
+        ("11E", "S11E", "C03"),
+    ]
+
+
+def test_a_list_without_wells_still_computes_the_column_major_placement(tmp_path: Path):
+    rows = [("V5F", ""), ("V10L", ""), ("S11E", ""), ("N28T", "")]
+    order, _warnings = expected_variant_order(
+        _expected_list(tmp_path, rows, with_wells=False)
+    )
+
+    assert order == [
+        ("5F", "V5F", "A01"),
+        ("10L", "V10L", "B01"),
+        ("11E", "S11E", "C01"),
+        ("28T", "N28T", "D01"),
+    ]
+
+
+def test_both_order_sources_spell_a_well_the_same_way(tmp_path: Path):
+    """The activity path compares wells as strings, so the spelling is contract.
+
+    ``seq_to_well`` answers ``A1`` and the layout reader answers ``A01``. They
+    are one well to a person and two values to the strict NGS gate, which
+    refused a build over the difference for every run whose order came from the
+    design list.
+    """
+    rows = [("V5F", "A1"), ("K53R", "B1"), ("K53S", "C1")]
+    from_layout, _ = layout_variant_order(_layout(tmp_path, rows))
+    from_design, _ = expected_variant_order(
+        _expected_list(tmp_path, rows, with_wells=True)
+    )
+
+    assert [entry[2] for entry in from_layout] == ["A01", "B01", "C01"]
+    assert from_design == from_layout
