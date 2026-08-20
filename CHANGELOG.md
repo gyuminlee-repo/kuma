@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.16.33 (The decode reads the same plate the run did)
+
+A variant list can state the well of every row, and the run places its occupants on exactly those addresses without arithmetic. The numeric-ID decoder did not follow. It read the variant column alone and recomputed the wells from residue position, so a list whose wells are not column-major had its report decoded against a plate the run never used.
+
+Checking that turned up a second defect in the same function, and a worse one, because it meant the path never worked at all. A well has two spellings in this codebase, and one function answered the wrong one. The plate reader and the verdict sheet write A01, while the sequence helper writes A1. Those are one well to a person and two different strings to the gate that compares the well a variant was measured in against the well the verdict names for it. So every build that took its order from the designed variant list, the source the module documents as the one to prefer, was refused for a conflict that did not exist. The refusal named a variant and two wells that look the same when read aloud.
+
+Both are fixed together. A stated well is taken as given and only put in plate order, which is the order the bench fills tubes and therefore the order a numeric position counts in; file row order is not consulted, since a list that states its wells is free to list its rows in any order. Without that column the previous arithmetic stands, which is the same placement the run computes on that path. And wells leave both order sources in one spelling.
+
+One existing test pinned the wrong spelling. It carries the reason now, because a test that pins a defect is how the defect survives.
+
+### Highlights
+
+- A numeric-ID report is decoded against the wells a variant list states, rather than wells recomputed from residue position.
+- Taking the plate order from the designed variant list works at all now. It was refused for a well spelling that differed by one zero.
+- A list that states its wells may list its rows in any order, and the placement it declares is what the decode uses.
+
+### Fixed
+
+- `expected_variant_order` ignored the `well` column a variant list can carry since v0.16.32 and recomputed the placement from residue position, decoding a report against a plate the run never used.
+- The same function spelled a well `A1` where the layout reader and the verdict sheet spell it `A01`, so the strict NGS gate refused every build whose order came from the designed variant list, naming a conflict between two spellings of one well.
+
 ## v0.16.32 (The plate says where each variant sits)
 
 A well address was nowhere in the data. It existed as an implicit contract, row order, and that contract produced every defect fixed here. An implicit contract cannot be checked: any permutation of 96 rows looks like a normal plate, so a failure is always silent. Each consumer re-derived the placement in its own way, and every re-derivation was another chance to disagree. People re-derived it too. The template this repository ships was rejected by the reader it ships beside, and one fixture described a different plate from itself.
