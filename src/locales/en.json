@@ -2578,14 +2578,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Step 4 reads the Agilent reports whose sample names are numbers, both the whole-plate screen and the replicated confirmation.",
-      "A replicated confirmation is merged into the screen it belongs to, replacing those values and flagging the ones that disagree.",
-      "Numeric positions are decoded against the designed variant list, so no plate file has to be transcribed by hand.",
-      "A confirmation covering a different set of variants is refused with the counts named, rather than labelled with the wrong ones.",
-      "The replicate count is whatever a file carries, from one measurement to as many as the run made."
+      "A variant list can state the well of every row, and where it does, that is the placement. No row order is inferred.",
+      "A template button writes the workbook with all 96 wells filled in, so only the variant column is left to complete.",
+      "The control well is a choice and now defaults to the last well of the plate, where the bench actually pipettes it.",
+      "That choice now reaches the run. The worklist, the preview and the scoring name the same wells instead of drifting apart.",
+      "The plate views scale their type with their cells, so labels no longer truncate at any window width."
     ],
-    "highlightsStamp": "0.16.31+60d4442c",
+    "highlightsStamp": "0.16.32+3be3b377",
     "releases": {
+      "0.16.32": [
+        "A variant list can state the well of every row, and where it does, that is the placement. No row order is inferred.",
+        "A template button writes the workbook with all 96 wells filled in, so only the variant column is left to complete.",
+        "The control well is a choice and now defaults to the last well of the plate, where the bench actually pipettes it.",
+        "That choice now reaches the run. The worklist, the preview and the scoring name the same wells instead of drifting apart.",
+        "The plate views scale their type with their cells, so labels no longer truncate at any window width."
+      ],
       "0.16.31": [
         "Step 4 reads the Agilent reports whose sample names are numbers, both the whole-plate screen and the replicated confirmation.",
         "A replicated confirmation is merged into the screen it belongs to, replacing those values and flagging the ones that disagree.",
@@ -2827,6 +2834,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.32": "3be3b377",
       "0.16.31": "60d4442c",
       "0.16.30": "bab83ea7",
       "0.16.29": "3f25adcf",

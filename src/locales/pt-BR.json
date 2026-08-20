@@ -2535,13 +2535,13 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "A etapa 4 lê os relatórios Agilent com nomes de amostra numéricos, tanto a triagem da placa inteira quanto a confirmação replicada.",
-      "Uma confirmação replicada é integrada à triagem a que pertence, substituindo esses valores e marcando os que divergem.",
-      "As posições numéricas são resolvidas pela lista de variantes projetadas, então nenhum arquivo de placa precisa ser transcrito à mão.",
-      "Uma confirmação que cobre outro conjunto de variantes é recusada informando as duas contagens, em vez de rotulada com as erradas.",
-      "A contagem de réplicas é a que o arquivo carrega, de uma única medida até quantas a corrida tiver feito."
+      "Uma lista de variantes pode indicar o poço de cada linha. Onde indica, essa é a disposição e nenhuma ordem de linhas é inferida.",
+      "Um botão de modelo grava a planilha com os 96 poços já preenchidos, restando apenas completar a coluna de variantes.",
+      "O poço de controle passa a ser uma escolha e assume por padrão o último poço da placa, onde a bancada de fato pipeta.",
+      "Essa escolha agora chega à execução. A worklist, a prévia e a avaliação apontam os mesmos poços.",
+      "As vistas de placa escalam a tipografia com as células, de modo que os rótulos não são mais cortados em nenhuma largura."
     ],
-    "highlightsStamp": "0.16.31+60d4442c",
+    "highlightsStamp": "0.16.32+3be3b377",
     "releases": {
       "0.16.28": [
         "Cinco seções de run health que o aplicativo media em toda execução e nunca desenhava agora aparecem na tela de revisão, em uma seção que começa fechada.",
@@ -2781,6 +2781,13 @@
         "As posições numéricas são resolvidas pela lista de variantes projetadas, então nenhum arquivo de placa precisa ser transcrito à mão.",
         "Uma confirmação que cobre outro conjunto de variantes é recusada informando as duas contagens, em vez de rotulada com as erradas.",
         "A contagem de réplicas é a que o arquivo carrega, de uma única medida até quantas a corrida tiver feito."
+      ],
+      "0.16.32": [
+        "Uma lista de variantes pode indicar o poço de cada linha. Onde indica, essa é a disposição e nenhuma ordem de linhas é inferida.",
+        "Um botão de modelo grava a planilha com os 96 poços já preenchidos, restando apenas completar a coluna de variantes.",
+        "O poço de controle passa a ser uma escolha e assume por padrão o último poço da placa, onde a bancada de fato pipeta.",
+        "Essa escolha agora chega à execução. A worklist, a prévia e a avaliação apontam os mesmos poços.",
+        "As vistas de placa escalam a tipografia com as células, de modo que os rótulos não são mais cortados em nenhuma largura."
       ]
     },
     "releaseStamps": {
@@ -2824,7 +2831,8 @@
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
       "0.16.30": "bab83ea7",
-      "0.16.31": "60d4442c"
+      "0.16.31": "60d4442c",
+      "0.16.32": "3be3b377"
     }
   },
   "primerDisplay": {

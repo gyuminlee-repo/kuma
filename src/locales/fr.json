@@ -2535,13 +2535,13 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "L'étape 4 lit les rapports Agilent aux noms d'échantillon numériques, aussi bien le criblage de la plaque entière que la confirmation répliquée.",
-      "Une confirmation répliquée est fusionnée dans le criblage auquel elle appartient, remplace ces valeurs et signale celles qui divergent.",
-      "Les positions numériques sont résolues via la liste des variants conçus, donc aucun fichier de plaque n'est recopié à la main.",
-      "Une confirmation portant sur un autre ensemble de variants est refusée en nommant les deux décomptes, plutôt qu'étiquetée à tort.",
-      "Le nombre de réplicats est celui que porte le fichier, d'une seule mesure à autant que la série en a faites."
+      "Une liste de variants peut indiquer le puits de chaque ligne. Quand elle le fait, c'est la disposition, et aucun ordre de lignes n'est déduit.",
+      "Un bouton de modèle écrit le classeur avec les 96 puits déjà remplis, il ne reste que la colonne des variants à compléter.",
+      "Le puits témoin devient un choix et vaut par défaut le dernier puits de la plaque, là où la paillasse le pipette réellement.",
+      "Ce choix atteint maintenant la série. La worklist, l'aperçu et la notation désignent les mêmes puits.",
+      "Les vues de plaque adaptent leur typographie aux cellules, si bien que les libellés ne sont plus tronqués à aucune largeur."
     ],
-    "highlightsStamp": "0.16.31+60d4442c",
+    "highlightsStamp": "0.16.32+3be3b377",
     "releases": {
       "0.16.28": [
         "Cinq sections run health que l'application mesurait à chaque exécution sans jamais les afficher figurent désormais sur l'écran de revue, repliées au départ.",
@@ -2781,6 +2781,13 @@
         "Les positions numériques sont résolues via la liste des variants conçus, donc aucun fichier de plaque n'est recopié à la main.",
         "Une confirmation portant sur un autre ensemble de variants est refusée en nommant les deux décomptes, plutôt qu'étiquetée à tort.",
         "Le nombre de réplicats est celui que porte le fichier, d'une seule mesure à autant que la série en a faites."
+      ],
+      "0.16.32": [
+        "Une liste de variants peut indiquer le puits de chaque ligne. Quand elle le fait, c'est la disposition, et aucun ordre de lignes n'est déduit.",
+        "Un bouton de modèle écrit le classeur avec les 96 puits déjà remplis, il ne reste que la colonne des variants à compléter.",
+        "Le puits témoin devient un choix et vaut par défaut le dernier puits de la plaque, là où la paillasse le pipette réellement.",
+        "Ce choix atteint maintenant la série. La worklist, l'aperçu et la notation désignent les mêmes puits.",
+        "Les vues de plaque adaptent leur typographie aux cellules, si bien que les libellés ne sont plus tronqués à aucune largeur."
       ]
     },
     "releaseStamps": {
@@ -2824,7 +2831,8 @@
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
       "0.16.30": "bab83ea7",
-      "0.16.31": "60d4442c"
+      "0.16.31": "60d4442c",
+      "0.16.32": "3be3b377"
     }
   },
   "primerDisplay": {
