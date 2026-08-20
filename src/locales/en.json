@@ -960,6 +960,14 @@
         "helperText": "KURO expected_mutations sheet, or a plain variant list",
         "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
+      "variantTemplate": {
+        "button": "Get template",
+        "helperText": "A blank list with all 96 wells already written in, in plate order.",
+        "toastSuccess": "Variant template saved",
+        "toastSuccessDesc": "{{wells}} wells written, WT in {{well}}. Type a variant beside each well and leave the well column untouched.",
+        "toastError": "Could not write the variant template",
+        "openFolder": "Open folder"
+      },
       "referenceFasta": {
         "label": "Reference construct",
         "placeholder": ".fasta / .fa / .gbk / .dna file path",
@@ -1392,7 +1400,18 @@
       "wellWithSample": "Well {{well}}, {{sample}}",
       "wellEmpty": "Well {{well}}, empty",
       "keyboardHint": "Arrow keys move, Space toggles, Shift with an arrow key extends the selection. Drag across wells to paint.",
-      "loadFailed": "Could not read the variant list to draw the plate: {{error}}"
+      "loadFailed": "Could not read the variant list to draw the plate: {{error}}",
+      "wtPlacement": {
+        "label": "Control well placement",
+        "lastWell": "Last well (H12)",
+        "afterLastVariant": "After the last variant",
+        "none": "No control",
+        "helper": "Applies only to a variant list with no Well column of its own (a file that names its own wells decides placement itself). Redraws the preview below; analyze runs currently always place the control at the last well, so this does not yet change what a run scores."
+      },
+      "noControlWell": {
+        "body": "This plate has no control well."
+      },
+      "wellControl": "Well {{well}}, control (WT)"
     },
     "replicateModeNotice": {
       "pooled": "This run pooled {{detected}} native barcodes into one plate, so it has no replicates to compare.",
@@ -1482,7 +1501,20 @@
     "legendDestMerged": "Both F+R arrived",
     "legendDestPartial": "Only F or R arrived",
     "destWell": "Dest well",
-    "missing": "missing"
+    "missing": "missing",
+    "echoPopoverPrimerLabel": "Primer:",
+    "echoPopoverDirectionLabel": "Direction:",
+    "echoPopoverForward": "Forward",
+    "echoPopoverReverse": "Reverse",
+    "echoPopoverSourceWellLabel": "Source well:",
+    "echoPopoverDestinationLabel": "Destination:",
+    "echoPopoverTransferLabel": "Transfer:",
+    "janusPopoverWellLabel": "Well:",
+    "janusPopoverVolumeLabel": "Volume:",
+    "rowAriaLabel": "Row {{row}}",
+    "echoGridAriaLabel": "Echo source plate, 384 wells",
+    "janusGridAriaLabel": "{{label}} grid",
+    "destGridAriaLabel": "Destination plate, 96 wells"
   },
   "globalAppBar": {
     "navAriaLabel": "Application navigation",
@@ -2547,14 +2579,24 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Step 4 reads the Agilent reports whose sample names are numbers, both the whole-plate screen and the replicated confirmation.",
-      "A replicated confirmation is merged into the screen it belongs to, replacing those values and flagging the ones that disagree.",
-      "Numeric positions are decoded against the designed variant list, so no plate file has to be transcribed by hand.",
-      "A confirmation covering a different set of variants is refused with the counts named, rather than labelled with the wrong ones.",
-      "The replicate count is whatever a file carries, from one measurement to as many as the run made."
+      "A numeric-ID report is decoded against the wells a variant list states, rather than wells recomputed from residue position.",
+      "Taking the plate order from the designed variant list works at all now. It was refused for a well spelling that differed by one zero.",
+      "A list that states its wells may list its rows in any order, and the placement it declares is what the decode uses."
     ],
-    "highlightsStamp": "0.16.31+60d4442c",
+    "highlightsStamp": "0.16.33+059a2f27",
     "releases": {
+      "0.16.33": [
+        "A numeric-ID report is decoded against the wells a variant list states, rather than wells recomputed from residue position.",
+        "Taking the plate order from the designed variant list works at all now. It was refused for a well spelling that differed by one zero.",
+        "A list that states its wells may list its rows in any order, and the placement it declares is what the decode uses."
+      ],
+      "0.16.32": [
+        "A variant list can state the well of every row, and where it does, that is the placement. No row order is inferred.",
+        "A template button writes the workbook with all 96 wells filled in, so only the variant column is left to complete.",
+        "The control well is a choice and now defaults to the last well of the plate, where the bench actually pipettes it.",
+        "That choice now reaches the run. The worklist, the preview and the scoring name the same wells instead of drifting apart.",
+        "The plate views scale their type with their cells, so labels no longer truncate at any window width."
+      ],
       "0.16.31": [
         "Step 4 reads the Agilent reports whose sample names are numbers, both the whole-plate screen and the replicated confirmation.",
         "A replicated confirmation is merged into the screen it belongs to, replacing those values and flagging the ones that disagree.",
@@ -2796,6 +2838,8 @@
       ]
     },
     "releaseStamps": {
+      "0.16.33": "059a2f27",
+      "0.16.32": "3be3b377",
       "0.16.31": "60d4442c",
       "0.16.30": "bab83ea7",
       "0.16.29": "3f25adcf",
@@ -3047,10 +3091,23 @@
         "projectNamePlaceholder": "e.g. Q232A_K287R",
         "projectNameHint": "Used as the export folder and file prefix. Leave empty to auto-name kuro_YYMMDD_HHMM.",
         "error": {
-          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
+          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens.",
+          "plateNameRegex": "Use 1-20 letters, numbers, underscores, or hyphens.",
+          "wellOverflow": "{{count}} wells exceed one 96-well plate."
         },
         "bomLabel": "Add UTF-8 BOM",
-        "bomHint": "(Excel compatibility)"
+        "bomHint": "(Excel compatibility)",
+        "quadrantLabel": "Echo source plate quadrant",
+        "quadrantNone": "Not specified (legacy layout)",
+        "quadrantHelper": "Forward primers start here; reverse primers go to the paired quadrant (A1-B1, A2-B2).",
+        "usedQuadrantsLabel": "Quadrants already used on this plate",
+        "usedQuadrantsHelper": "Export is refused if the selected pair overlaps one of these.",
+        "plateNameFwd": "Forward primer plate name",
+        "plateNameRev": "Reverse primer plate name",
+        "wellCount": "{{count}} wells",
+        "echoVolLabel": "Echo transfer volume",
+        "janusVolLabel": "JANUS transfer volume",
+        "ruleHint": "Plate names are optional. Empty names use backend defaults."
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",

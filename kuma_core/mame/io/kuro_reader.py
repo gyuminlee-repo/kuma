@@ -7,7 +7,7 @@ from pathlib import Path
 
 import openpyxl
 
-from kuma_core.mame.models import ExpectedMutation
+from kuma_core.mame.models import WT_LABELS, ExpectedMutation
 
 _EXPECTED_SHEET = "expected_mutations"
 _EXPECTED_HEADER = [
@@ -58,8 +58,11 @@ class KuroReadResult:
 def read_expected_mutations(path: Path) -> list[ExpectedMutation]:
     """Read the designed rows of the `expected_mutations` sheet.
 
-    Only designed rows are returned; FAILED rows are Phase 2. Interim KURO
-    exports that stored rescue stage names in status are accepted as designed.
+    Designed rows and the wild-type control row are returned; FAILED rows are
+    Phase 2. Interim KURO exports that stored rescue stage names in status are
+    accepted as designed. The control row is kept regardless of its status
+    (KURO writes it as ``control``) because it occupies a well, and a plate
+    occupant removed mid-list moves every later mutant one well up.
     Raises ValueError if the expected sheet is missing (old KURO version).
 
     Thin wrapper over :func:`read_expected_mutations_with_rows` for callers that
@@ -72,12 +75,13 @@ def read_expected_mutations(path: Path) -> list[ExpectedMutation]:
 def read_expected_mutations_with_rows(path: Path) -> KuroReadResult:
     """Read the `expected_mutations` sheet, reporting what the filter removed.
 
-    The filter itself is unchanged: a row whose status is outside
-    ``_DESIGNED_STATUSES`` is not returned. What is new is that it is no longer
-    silent. ``plate_order_check._expected_order`` reads the same sheet without
-    looking at status, so the two readers see different row sets and disagree
-    about which well each mutant sits in; naming the dropped rows is what lets a
-    caller refuse that file instead of scoring the shifted plate.
+    The filter reads status alone: a row whose status is outside
+    ``_DESIGNED_STATUSES`` is not returned, the sole exception being the
+    wild-type control row, which is a plate occupant rather than a design and is
+    identified by its ``mutant_id``. The filter is also no longer silent about
+    what it removed: a dropped row moves every later mutant one well up, and the
+    result still reads like a full plate, so the row numbers travel with the
+    result and let a caller refuse the file instead of scoring the shifted plate.
     """
 
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
@@ -113,13 +117,24 @@ def read_expected_mutations_with_rows(path: Path) -> KuroReadResult:
                 continue
             cells = list(raw) + [None] * (len(_EXPECTED_HEADER) - len(raw))
             status = _s(cells[9])
-            if status.upper() not in _DESIGNED_STATUSES:
+            mutant_id = _s(cells[0])
+            # A wild-type control row is kept whatever its status says. Both
+            # shipped workbooks carry it as `status=control` (`templates/` and
+            # `src-tauri/samples/mame/`), which is not a designed status, so
+            # the filter used to remove it -- and a removed row is not a neutral
+            # omission here: it moves every later mutant one well up, and the
+            # caller refuses the whole file over it. The row is a plate
+            # occupant, not a design, so membership is decided by the label.
+            # Status stays the only test for every other row, which is why this
+            # is keyed on `mutant_id` rather than by widening the status set.
+            is_wt = mutant_id.lower() in WT_LABELS
+            if not is_wt and status.upper() not in _DESIGNED_STATUSES:
                 dropped_rows.append((row_number, status))
                 continue
             row_numbers.append(row_number)
             results.append(
                 ExpectedMutation(
-                    mutant_id=_s(cells[0]),
+                    mutant_id=mutant_id,
                     position=_int(cells[1]),
                     wt_aa=_s(cells[2]),
                     mt_aa=_s(cells[3]),

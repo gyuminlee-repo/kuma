@@ -135,6 +135,7 @@ describe("buildMameSnapshot", () => {
       referencePath: "/proj/ref.fa",
       outputPath: "/proj/out",
       selectedWells: ["A1", "B1"],
+      wtPlacement: "last_well",
       mode: "amplicon",
       ingestMode: "barcode",
       inputMode: "raw_run",
@@ -207,6 +208,7 @@ describe("buildMameSnapshot 경로 이식성", () => {
     referencePath: "/proj/ref.fa",
     outputPath: "/proj/out",
     selectedWells: ["A1", "B1"],
+    wtPlacement: "last_well",
     mode: "amplicon",
     ingestMode: "barcode",
     inputMode: "raw_run",
@@ -253,6 +255,7 @@ describe("buildMameSnapshot 경로 이식성", () => {
       reference_path: "project://ref.fa",
       output_path: "project://out",
       selected_wells: ["A1", "B1"],
+      wt_placement: "last_well",
     });
   });
 

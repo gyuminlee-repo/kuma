@@ -1,7 +1,3 @@
-import type { EchoQuadrant } from "@/types/models";
-
-/** 96-head 가 384 plate 에서 시작할 수 있는 네 지점. plate_quadrant.QUADRANTS 와 같다. */
-const QUADRANTS: EchoQuadrant[] = ["A1", "A2", "B1", "B2"];
 /**
  * ExportFormatSelector — Export All (Macrogen) single-form export.
  *
@@ -24,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { handleExportAll } from "@/components/layout/export-handlers";
+import { PlateQuadrantPicker } from "@/components/widgets/PlateQuadrantPicker";
 import { useKumaProject } from "@/state/projectContext";
 import { useAppStore } from "@/store/appStore";
 import type { AppState } from "@/store/appStore";
@@ -294,65 +291,12 @@ export function ExportFormatSelector() {
         홀/짝 행 x 홀/짝 열 96칸만 찍을 수 있고 시작점이 4개다. reverse 는 짝
         quadrant 로 자동으로 간다. 고르지 않으면 기존 배치를 그대로 쓴다.
       */}
-      <div className="flex flex-col gap-1">
-        <label htmlFor="echo-quadrant" className="text-sm font-medium text-foreground">
-          {tx("phaseC.export.all.quadrantLabel", "Echo source plate quadrant")}
-        </label>
-        <select
-          id="echo-quadrant"
-          className="h-9 w-40 min-w-0 rounded-md border border-input bg-background px-2 text-sm"
-          value={echoQuadrant ?? ""}
-          onChange={(e) =>
-            setEchoQuadrant(e.target.value ? (e.target.value as EchoQuadrant) : null)
-          }
-        >
-          <option value="">
-            {tx("phaseC.export.all.quadrantNone", "Not specified (legacy layout)")}
-          </option>
-          {QUADRANTS.map((q) => (
-            <option key={q} value={q}>{q}</option>
-          ))}
-        </select>
-        <p className="text-caption text-muted-foreground">
-          {tx(
-            "phaseC.export.all.quadrantHelper",
-            "Forward primers start here; reverse primers go to the paired quadrant (A1-B1, A2-B2).",
-          )}
-        </p>
-      </div>
-
-      {/* 이미 소진된 quadrant. plate 는 kuma 가 볼 수 없는 물건이라 작업자가 말한다. */}
-      {echoQuadrant !== null && (
-        <div className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-foreground">
-            {tx("phaseC.export.all.usedQuadrantsLabel", "Quadrants already used on this plate")}
-          </span>
-          <div className="flex flex-wrap gap-3">
-            {QUADRANTS.map((q) => (
-              <label key={q} className="flex items-center gap-1.5 text-sm">
-                <input
-                  type="checkbox"
-                  checked={echoUsedQuadrants.includes(q)}
-                  onChange={(e) =>
-                    setEchoUsedQuadrants(
-                      e.target.checked
-                        ? [...echoUsedQuadrants, q]
-                        : echoUsedQuadrants.filter((x) => x !== q),
-                    )
-                  }
-                />
-                {q}
-              </label>
-            ))}
-          </div>
-          <p className="text-caption text-muted-foreground">
-            {tx(
-              "phaseC.export.all.usedQuadrantsHelper",
-              "Export is refused if the selected pair overlaps one of these.",
-            )}
-          </p>
-        </div>
-      )}
+      <PlateQuadrantPicker
+        value={echoQuadrant}
+        onChange={setEchoQuadrant}
+        usedQuadrants={echoUsedQuadrants}
+        onUsedQuadrantsChange={setEchoUsedQuadrants}
+      />
 
       {/* JANUS transfer volume */}
       <div className="flex flex-col gap-1">

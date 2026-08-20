@@ -801,6 +801,14 @@
         "helperText": "KURO expected_mutations sheet, or a plain variant list",
         "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
+      "variantTemplate": {
+        "button": "テンプレートを取得",
+        "helperText": "96 の well が plate 順にあらかじめ記入された空のリストです。",
+        "toastSuccess": "変異テンプレートを保存しました",
+        "toastSuccessDesc": "{{wells}} 件の well を書き出し、WT は {{well}} です。各 well の横に変異を入力し、well 列はそのままにしてください。",
+        "toastError": "変異テンプレートを書き出せませんでした",
+        "openFolder": "フォルダを開く"
+      },
       "referenceFasta": {
         "label": "Reference construct 配列",
         "placeholder": ".fasta / .fa / .gbk / .dna ファイルパス",
@@ -1392,7 +1400,18 @@
       "wellWithSample": "ウェル {{well}}, {{sample}}",
       "wellEmpty": "ウェル {{well}}, 空",
       "keyboardHint": "矢印キーで移動、Space で切り替え、Shift + 矢印キーで範囲選択。ドラッグで連続選択。",
-      "loadFailed": "プレート描画のための変異リストを読めなかった: {{error}}"
+      "loadFailed": "プレート描画のための変異リストを読めなかった: {{error}}",
+      "wtPlacement": {
+        "label": "コントロールウェルの配置",
+        "lastWell": "最後のウェル (H12)",
+        "afterLastVariant": "最後の変異の後",
+        "none": "コントロールなし",
+        "helper": "独自のWell列を持たない変異リストにのみ適用される(ウェルを明示するファイルはその位置に従う)。下のプレビューのみ再描画される。analyze実行は現在常に最後のウェルにコントロールを配置するため、この設定はまだ実際のスコアリング結果を変更しない。"
+      },
+      "noControlWell": {
+        "body": "このプレートにはコントロールウェルがない。"
+      },
+      "wellControl": "ウェル {{well}}、コントロール (WT)"
     },
     "replicateModeNotice": {
       "pooled": "この実行は native barcode {{detected}} 件を 1 枚の plate にまとめたため、比較できる replicate がない。",
@@ -2517,13 +2536,11 @@
     "descriptionRange": "v{{from}} 以降のすべてのアップデートの主な変更点です。",
     "gotItBtn": "了解",
     "highlights": [
-      "Step 4 が sample name の数値である Agilent report を読みます。全 plate 測定と反復確認測定の両方が対象です。",
-      "反復確認測定を対応するスクリーニングに統合し、その値を置き換えたうえで食い違う項目を表示します。",
-      "数値の位置は設計 variant リストを基準に解釈するため、plate ファイルを手で書き写す必要がありません。",
-      "確認ファイルが別の variant 集合を含む場合は件数を示して拒否します。誤った variant には結び付けません。",
-      "反復回数はファイルが持つとおりです。1 回からその run が測定した数まで受け付けます。"
+      "数値 ID レポートを variant リストが記載した well を基準に解釈します。残基位置から再計算しません。",
+      "設計 variant リストをプレート順序のソースに使う経路が動作するようになりました。0 一つ違いの well 表記で拒否されていた問題です。",
+      "well を記載したリストは行をどの順に並べても構わず、リストが宣言した配置がそのまま解釈に使われます。"
     ],
-    "highlightsStamp": "0.16.31+60d4442c",
+    "highlightsStamp": "0.16.33+059a2f27",
     "releases": {
       "0.16.28": [
         "アプリが毎ラン測定しながら描画していなかった run health セクション 5 件が、レビュー画面に折りたたまれた状態で表示されます。",
@@ -2763,6 +2780,18 @@
         "数値の位置は設計 variant リストを基準に解釈するため、plate ファイルを手で書き写す必要がありません。",
         "確認ファイルが別の variant 集合を含む場合は件数を示して拒否します。誤った variant には結び付けません。",
         "反復回数はファイルが持つとおりです。1 回からその run が測定した数まで受け付けます。"
+      ],
+      "0.16.32": [
+        "variant リストが各行の well を直接記載できます。記載があればそれが配置で、行順は参照しません。",
+        "テンプレートボタンが 96 well をすべて埋めたワークブックを書き出します。利用者は variant 列だけ埋めます。",
+        "対照 well を選べるようになり、既定値はプレートの最後の well です。ベンチが実際に入れる位置です。",
+        "その選択が run にも反映されます。worklist、プレビュー、採点が別々の well を指すことはありません。",
+        "プレート画面の文字サイズがセルに追従します。どのウィンドウ幅でもラベルが切れません。"
+      ],
+      "0.16.33": [
+        "数値 ID レポートを variant リストが記載した well を基準に解釈します。残基位置から再計算しません。",
+        "設計 variant リストをプレート順序のソースに使う経路が動作するようになりました。0 一つ違いの well 表記で拒否されていた問題です。",
+        "well を記載したリストは行をどの順に並べても構わず、リストが宣言した配置がそのまま解釈に使われます。"
       ]
     },
     "releaseStamps": {
@@ -2806,7 +2835,9 @@
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
       "0.16.30": "bab83ea7",
-      "0.16.31": "60d4442c"
+      "0.16.31": "60d4442c",
+      "0.16.32": "3be3b377",
+      "0.16.33": "059a2f27"
     }
   },
   "primerDisplay": {
@@ -3017,10 +3048,23 @@
         "projectNamePlaceholder": "e.g. Q232A_K287R",
         "projectNameHint": "Used as the export folder and file prefix. Leave empty to auto-name kuro_YYMMDD_HHMM.",
         "error": {
-          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
+          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens.",
+          "plateNameRegex": "半角英数字、アンダースコア、ハイフンを1〜20文字で入力してください。",
+          "wellOverflow": "{{count}} ウェルは96ウェルプレート1枚を超えています。"
         },
         "bomLabel": "UTF-8 BOM を追加",
-        "bomHint": "(Excel 互換)"
+        "bomHint": "(Excel 互換)",
+        "quadrantLabel": "Echoソースプレートのクアドラント",
+        "quadrantNone": "指定なし(従来レイアウト)",
+        "quadrantHelper": "Forwardプライマーはここから開始し、Reverseプライマーは対になるクアドラント(A1-B1、A2-B2)に入ります。",
+        "usedQuadrantsLabel": "このプレートで既に使用済みのクアドラント",
+        "usedQuadrantsHelper": "選択したペアがこれらのいずれかと重なる場合、エクスポートは拒否されます。",
+        "plateNameFwd": "Forwardプライマープレート名",
+        "plateNameRev": "Reverseプライマープレート名",
+        "wellCount": "{{count}} ウェル",
+        "echoVolLabel": "Echo移送量",
+        "janusVolLabel": "JANUS移送量",
+        "ruleHint": "プレート名は任意です。空欄の場合はバックエンドの既定値が使用されます。"
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",
@@ -3277,7 +3321,20 @@
     "legendDestPartial": "Only F or R arrived",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "出力先 well",
-    "missing": "なし"
+    "missing": "なし",
+    "echoPopoverPrimerLabel": "プライマー:",
+    "echoPopoverDirectionLabel": "方向:",
+    "echoPopoverForward": "Forward",
+    "echoPopoverReverse": "Reverse",
+    "echoPopoverSourceWellLabel": "ソースウェル:",
+    "echoPopoverDestinationLabel": "宛先:",
+    "echoPopoverTransferLabel": "移送量:",
+    "janusPopoverWellLabel": "ウェル:",
+    "janusPopoverVolumeLabel": "液量:",
+    "rowAriaLabel": "行 {{row}}",
+    "echoGridAriaLabel": "Echoソースプレート、384ウェル",
+    "janusGridAriaLabel": "{{label}}グリッド",
+    "destGridAriaLabel": "デスティネーションプレート、96ウェル"
   },
   "errors": {
     "sequence": {

@@ -1,5 +1,65 @@
 # Changelog
 
+## v0.16.33 (The decode reads the same plate the run did)
+
+A variant list can state the well of every row, and the run places its occupants on exactly those addresses without arithmetic. The numeric-ID decoder did not follow. It read the variant column alone and recomputed the wells from residue position, so a list whose wells are not column-major had its report decoded against a plate the run never used.
+
+Checking that turned up a second defect in the same function, and a worse one, because it meant the path never worked at all. A well has two spellings in this codebase, and one function answered the wrong one. The plate reader and the verdict sheet write A01, while the sequence helper writes A1. Those are one well to a person and two different strings to the gate that compares the well a variant was measured in against the well the verdict names for it. So every build that took its order from the designed variant list, the source the module documents as the one to prefer, was refused for a conflict that did not exist. The refusal named a variant and two wells that look the same when read aloud.
+
+Both are fixed together. A stated well is taken as given and only put in plate order, which is the order the bench fills tubes and therefore the order a numeric position counts in; file row order is not consulted, since a list that states its wells is free to list its rows in any order. Without that column the previous arithmetic stands, which is the same placement the run computes on that path. And wells leave both order sources in one spelling.
+
+One existing test pinned the wrong spelling. It carries the reason now, because a test that pins a defect is how the defect survives.
+
+### Highlights
+
+- A numeric-ID report is decoded against the wells a variant list states, rather than wells recomputed from residue position.
+- Taking the plate order from the designed variant list works at all now. It was refused for a well spelling that differed by one zero.
+- A list that states its wells may list its rows in any order, and the placement it declares is what the decode uses.
+
+### Fixed
+
+- `expected_variant_order` ignored the `well` column a variant list can carry since v0.16.32 and recomputed the placement from residue position, decoding a report against a plate the run never used.
+- The same function spelled a well `A1` where the layout reader and the verdict sheet spell it `A01`, so the strict NGS gate refused every build whose order came from the designed variant list, naming a conflict between two spellings of one well.
+
+## v0.16.32 (The plate says where each variant sits)
+
+A well address was nowhere in the data. It existed as an implicit contract, row order, and that contract produced every defect fixed here. An implicit contract cannot be checked: any permutation of 96 rows looks like a normal plate, so a failure is always silent. Each consumer re-derived the placement in its own way, and every re-derivation was another chance to disagree. People re-derived it too. The template this repository ships was rejected by the reader it ships beside, and one fixture described a different plate from itself.
+
+A variant list can now carry a well column. Where that column is present it is the only authority on placement and row order is not consulted. A blank variant cell is not a refusal but a well this campaign leaves empty, and a stated well means no control is invented, so capacity is a full 96. Duplicate wells, coordinates off the plate, and a row carrying a well and nothing else are refused with the row number and the value. A01 and A1 are the same well, and one module owns that normalization.
+
+The app issues that file. A template button writes a 96-row workbook with the wells already filled in and the control in the last well, and an operator returns the same file with the variant column completed. The wells come from the sidecar rather than being assembled in the interface.
+
+Where the control well goes is now a choice, and the default is the last well of the plate. A row ordinal is not a well address: a 40-mutant list used to put the control in A6, which is not where the bench pipettes it, so the control of such a run was likely never scored. The former rule is still available by name, and a plate with no control at all is a third option.
+
+That choice reached the preview and stopped there. Picking anything other than the default left the preview and the scoring looking at different plates, and the worklist was the dangerous one of the three, because the bench pipettes from it and it named wells nothing would score. All three surfaces now resolve the same placement through one function, and a test holds them to the same wells.
+
+Three reader defects fell out of the same cause. The control row is a plate occupant rather than a design row, and filtering it by status alone rejected both shipped workbooks, Load Sample Data included. A headerless file dropped its first variant in silence while every other misalignment was refused by row number. And the plate-order check recomputed wells from ordinals, counting a row the plate sheet does not carry and renumbering everything after a gap; it now reads the placement the run itself uses and compares by well.
+
+The KURO Echo and JANUS plate views were measured in the engine that ships, with the markup that ships. Lifting the width cap alone grew the cells and left the type behind, so the type now scales with the cell through the same container query the MAME plate already uses, against a shared cell ceiling. Label truncation is zero across 700 to 1900 px, and destination cells match Echo cells at 1.00x rather than twice their size.
+
+### Highlights
+
+- A variant list can state the well of every row, and where it does, that is the placement. No row order is inferred.
+- A template button writes the workbook with all 96 wells filled in, so only the variant column is left to complete.
+- The control well is a choice and now defaults to the last well of the plate, where the bench actually pipettes it.
+- That choice now reaches the run. The worklist, the preview and the scoring name the same wells instead of drifting apart.
+- The plate views scale their type with their cells, so labels no longer truncate at any window width.
+
+### Added
+
+- A `well` column on the variant list, and `export_variant_template`, which writes a 96-row workbook with the wells already stated and the control in the last well.
+- `wt_placement` accepts `last_well` (the default), `after_last_variant` (the former rule) and `none`, resolved by one function shared by the worklist, the well layout and the run.
+- A test that walks every plate workbook this repository ships through the reader it ships with, collected by glob so a new asset is covered on arrival, and guarded against passing on an empty set.
+
+### Fixed
+
+- The shipped template and the bundled sample were refused by kuma own reader, Load Sample Data included, because the wild-type row was filtered as a design row rather than read as a plate occupant.
+- A headerless variant file dropped its first variant without saying so, where every other misalignment is refused with the row number.
+- `check_plate_order` recomputed wells from ordinals, counted a row the plate sheet does not carry, and renumbered every row after a gap. It now compares against the placement the run uses, keyed by well.
+- The demo workbook described a plate it did not have, 96 variants with no control, and named its mutants differently from its own primer list.
+- The destination plate legend named three colours where two exist and stated the wrong one for a partial pick, filled JANUS cells could not be reached by keyboard, and the forward and reverse tags used a card token that disappeared on a coloured well.
+- Eight export-format fields reached the screen in English through a keyless fallback, now translated in ten locales, and the expected-mutations document named sheets and metadata fields that do not exist.
+
 ## v0.16.31 (Numbers instead of names)
 
 The lab now exports both activity files in the Agilent block layout with numeric sample names. The whole-plate screen numbers every variant of the plate in order, 1, 2, 3, and the replicated confirmation numbers the subset that beat wild-type, 1, 1-2, 1-3. Neither file carries a variant anywhere.

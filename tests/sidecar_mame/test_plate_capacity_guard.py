@@ -113,8 +113,10 @@ def test_the_graded_draft_is_the_layout_the_run_would_place(tmp_path: Path) -> N
     _error, draft = _plate_capacity_finding(expected, None, None)
 
     assert draft is not None
-    # Column-major from A1, WT appended after the last mutant.
-    assert draft.layout == {"A1": "M1", "B1": "M2", "C1": "M3", "D1": "WT"}
+    # Column-major from A1, control in the last well (the default since
+    # 2026-08-18). What this pins is that the graded object IS the placed one,
+    # not where the control sits, so it follows the default.
+    assert draft.layout == {"A1": "M1", "B1": "M2", "C1": "M3", "H12": "WT"}
 
 
 def test_97_designed_is_refused_and_the_message_states_both_numbers(
@@ -329,10 +331,11 @@ def test_a_declared_selection_is_stamped_onto_the_result(tmp_path: Path) -> None
     result = handle_analyze(params)
 
     assert result["layout_provenance"]["selected_wells"] == ["A1", "C1", "D1"]
-    # Two mutants plus WT draft onto A1..C1. B1 was not declared, so what sits
-    # in it is off the plate, and D1 is a declared well the draft never reached.
-    assert result["layout_provenance"]["unused_wells"] == ["D1"]
-    assert list(result["layout_provenance"]["excluded_occupants"]) == ["B1"]
+    # Two mutants draft onto A1..B1 and the control onto H12. B1 was not
+    # declared, so what sits in it is off the plate; C1 and D1 are declared
+    # wells the draft never reached.
+    assert result["layout_provenance"]["unused_wells"] == ["C1", "D1"]
+    assert list(result["layout_provenance"]["excluded_occupants"]) == ["B1", "H12"]
 
 
 def test_wells_declared_beyond_the_campaign_are_named_rather_than_dropped(
@@ -351,10 +354,11 @@ def test_wells_declared_beyond_the_campaign_are_named_rather_than_dropped(
     result = handle_analyze(params)
 
     provenance = result["layout_provenance"]
-    # Two mutants plus the WT control take A1..C1; D1 and E1 are declared and
-    # unused, and the declaration is reported whole rather than trimmed to fit.
+    # Two mutants take A1 and B1 and the control takes H12; C1, D1 and E1 are
+    # declared and unused, and the declaration is reported whole rather than
+    # trimmed to fit.
     assert provenance["selected_wells"] == ["A1", "B1", "C1", "D1", "E1"]
-    assert provenance["unused_wells"] == ["D1", "E1"]
+    assert provenance["unused_wells"] == ["C1", "D1", "E1"]
 
 
 def test_a_partly_filled_plate_runs_and_names_what_it_left_out(
@@ -385,10 +389,10 @@ def test_a_partly_filled_plate_runs_and_names_what_it_left_out(
     provenance = analyzed["layout_provenance"]
     assert provenance["selected_wells"] == ["A1", "B1"]
     assert provenance["unused_wells"] == []
-    # Four mutants plus WT draft onto A1..E1. A1 and B1 were declared, so the
-    # three occupants past them are off this plate, still under the wells the
-    # draft gave them rather than shifted.
-    assert list(provenance["excluded_occupants"]) == ["C1", "D1", "E1"]
+    # Four mutants draft onto A1..D1 and the control onto H12. A1 and B1 were
+    # declared, so the three occupants past them are off this plate, still under
+    # the wells the draft gave them rather than shifted.
+    assert list(provenance["excluded_occupants"]) == ["C1", "D1", "H12"]
 
 
 def test_an_empty_selection_is_reported_as_a_selection_problem(

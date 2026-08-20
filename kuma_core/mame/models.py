@@ -200,6 +200,18 @@ class TranslatedRecord:
     n_no_call_aa: int = 0
 
 
+#: Labels a variant list uses for the wild-type control rather than a mutant.
+#: Compared lowercase after stripping.
+#:
+#: Lives here because two readers need it and neither may import the other:
+#: ``io/variant_list`` recognises the control row of a plain list, and
+#: ``io/kuro_reader`` must keep the control row of a KURO export out of its
+#: status filter (both shipped workbooks write that row as ``status=control``,
+#: which is not a designed status, and dropping it moves every later mutant one
+#: well up).
+WT_LABELS = frozenset({"wt", "wildtype", "wild-type", "wild type", "control"})
+
+
 @dataclass
 class ExpectedMutation:
     """Single row parsed from KURO `expected_mutations` sheet."""

@@ -50,6 +50,7 @@ from sidecar_mame.handlers.barcode_package import (
     handle_inspect_variant_source,
 )
 from sidecar_mame.handlers.barcode_worklist import handle_export_barcode_worklist
+from sidecar_mame.handlers.variant_template import handle_export_variant_template
 from sidecar_mame.handlers.build_well_layout import handle_build_well_layout
 from sidecar_mame.handlers.ingest import handle_parse_reference
 from sidecar_mame.handlers.combinatorial_demux import handle_run_combinatorial_demux
@@ -116,6 +117,8 @@ _METHODS = {
     "generate_mame_package": handle_generate_mame_package,
     "check_plate_order": handle_check_plate_order,
     "inspect_variant_source": handle_inspect_variant_source,
+    # The blank variant list, with every well already written in (one xlsx write)
+    "export_variant_template": handle_export_variant_template,
     # Analyze-phase CDS picker: parse reference (FASTA / GenBank / SnapGene)
     "mame.ingest.parse_reference": handle_parse_reference,
     # PR-A: alignment-anchored combinatorial demux pipeline

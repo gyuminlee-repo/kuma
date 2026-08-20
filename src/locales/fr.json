@@ -801,6 +801,14 @@
         "helperText": "KURO expected_mutations sheet, or a plain variant list",
         "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
+      "variantTemplate": {
+        "button": "Obtenir le modèle",
+        "helperText": "Une liste vierge où les 96 wells sont déjà inscrits dans l'ordre de la plate.",
+        "toastSuccess": "Modèle de variants enregistré",
+        "toastSuccessDesc": "{{wells}} wells écrits, WT en {{well}}. Saisissez un variant à côté de chaque well et laissez la colonne well telle quelle.",
+        "toastError": "Impossible d'écrire le modèle de variants",
+        "openFolder": "Ouvrir le dossier"
+      },
       "referenceFasta": {
         "label": "Construct de référence",
         "placeholder": "Chemin du fichier .fasta / .fa / .gbk / .dna",
@@ -1392,7 +1400,18 @@
       "wellWithSample": "Puits {{well}}, {{sample}}",
       "wellEmpty": "Puits {{well}}, vide",
       "keyboardHint": "Les flèches déplacent, Espace bascule, Maj avec une flèche étend la sélection. Faites glisser pour peindre.",
-      "loadFailed": "Impossible de lire la liste de variants pour dessiner la plaque : {{error}}"
+      "loadFailed": "Impossible de lire la liste de variants pour dessiner la plaque : {{error}}",
+      "wtPlacement": {
+        "label": "Placement du puits temoin",
+        "lastWell": "Dernier puits (H12)",
+        "afterLastVariant": "Apres le dernier variant",
+        "none": "Aucun temoin",
+        "helper": "S'applique uniquement a une liste de variants sans colonne Well propre (un fichier qui nomme ses puits impose son propre placement). Ne redessine que l'apercu ci-dessous ; l'execution analyze place toujours le temoin dans le dernier puits, donc ce reglage ne change pas encore ce qu'un run note."
+      },
+      "noControlWell": {
+        "body": "Cette plaque n'a pas de puits temoin."
+      },
+      "wellControl": "Puits {{well}}, temoin (WT)"
     },
     "replicateModeNotice": {
       "pooled": "Cette analyse a regroupé {{detected}} native barcodes en une seule plate : aucun replicate à comparer.",
@@ -2517,13 +2536,11 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "L'étape 4 lit les rapports Agilent aux noms d'échantillon numériques, aussi bien le criblage de la plaque entière que la confirmation répliquée.",
-      "Une confirmation répliquée est fusionnée dans le criblage auquel elle appartient, remplace ces valeurs et signale celles qui divergent.",
-      "Les positions numériques sont résolues via la liste des variants conçus, donc aucun fichier de plaque n'est recopié à la main.",
-      "Une confirmation portant sur un autre ensemble de variants est refusée en nommant les deux décomptes, plutôt qu'étiquetée à tort.",
-      "Le nombre de réplicats est celui que porte le fichier, d'une seule mesure à autant que la série en a faites."
+      "Un rapport à identifiants numériques est décodé selon les puits indiqués par la liste de variants, et non selon des puits recalculés depuis la position du résidu.",
+      "Prendre l'ordre de plaque dans la liste des variants conçus fonctionne enfin. C'était refusé pour une écriture de puits différant d'un zéro.",
+      "Une liste qui indique ses puits peut ranger ses lignes dans n'importe quel ordre, et la disposition qu'elle déclare est celle qui sert."
     ],
-    "highlightsStamp": "0.16.31+60d4442c",
+    "highlightsStamp": "0.16.33+059a2f27",
     "releases": {
       "0.16.28": [
         "Cinq sections run health que l'application mesurait à chaque exécution sans jamais les afficher figurent désormais sur l'écran de revue, repliées au départ.",
@@ -2763,6 +2780,18 @@
         "Les positions numériques sont résolues via la liste des variants conçus, donc aucun fichier de plaque n'est recopié à la main.",
         "Une confirmation portant sur un autre ensemble de variants est refusée en nommant les deux décomptes, plutôt qu'étiquetée à tort.",
         "Le nombre de réplicats est celui que porte le fichier, d'une seule mesure à autant que la série en a faites."
+      ],
+      "0.16.32": [
+        "Une liste de variants peut indiquer le puits de chaque ligne. Quand elle le fait, c'est la disposition, et aucun ordre de lignes n'est déduit.",
+        "Un bouton de modèle écrit le classeur avec les 96 puits déjà remplis, il ne reste que la colonne des variants à compléter.",
+        "Le puits témoin devient un choix et vaut par défaut le dernier puits de la plaque, là où la paillasse le pipette réellement.",
+        "Ce choix atteint maintenant la série. La worklist, l'aperçu et la notation désignent les mêmes puits.",
+        "Les vues de plaque adaptent leur typographie aux cellules, si bien que les libellés ne sont plus tronqués à aucune largeur."
+      ],
+      "0.16.33": [
+        "Un rapport à identifiants numériques est décodé selon les puits indiqués par la liste de variants, et non selon des puits recalculés depuis la position du résidu.",
+        "Prendre l'ordre de plaque dans la liste des variants conçus fonctionne enfin. C'était refusé pour une écriture de puits différant d'un zéro.",
+        "Une liste qui indique ses puits peut ranger ses lignes dans n'importe quel ordre, et la disposition qu'elle déclare est celle qui sert."
       ]
     },
     "releaseStamps": {
@@ -2806,7 +2835,9 @@
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
       "0.16.30": "bab83ea7",
-      "0.16.31": "60d4442c"
+      "0.16.31": "60d4442c",
+      "0.16.32": "3be3b377",
+      "0.16.33": "059a2f27"
     }
   },
   "primerDisplay": {
@@ -3017,10 +3048,23 @@
         "projectNamePlaceholder": "e.g. Q232A_K287R",
         "projectNameHint": "Used as the export folder and file prefix. Leave empty to auto-name kuro_YYMMDD_HHMM.",
         "error": {
-          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
+          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens.",
+          "plateNameRegex": "Utilisez 1 à 20 lettres, chiffres, underscores ou tirets.",
+          "wellOverflow": "{{count}} puits dépassent une plaque de 96 puits."
         },
         "bomLabel": "Ajouter un BOM UTF-8",
-        "bomHint": "(compatibilité Excel)"
+        "bomHint": "(compatibilité Excel)",
+        "quadrantLabel": "Quadrant de la plaque source Echo",
+        "quadrantNone": "Non spécifié (disposition héritée)",
+        "quadrantHelper": "Les amorces forward démarrent ici ; les reverse vont dans le quadrant apparié (A1-B1, A2-B2).",
+        "usedQuadrantsLabel": "Quadrants déjà utilisés sur cette plaque",
+        "usedQuadrantsHelper": "L'export est refusé si la paire sélectionnée chevauche l'un de ces quadrants.",
+        "plateNameFwd": "Nom de la plaque d'amorces forward",
+        "plateNameRev": "Nom de la plaque d'amorces reverse",
+        "wellCount": "{{count}} puits",
+        "echoVolLabel": "Volume de transfert Echo",
+        "janusVolLabel": "Volume de transfert JANUS",
+        "ruleHint": "Les noms de plaque sont facultatifs. Les noms vides utilisent les valeurs par défaut du backend."
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",
@@ -3277,7 +3321,20 @@
     "legendDestPartial": "Only F or R arrived",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "Well de destination",
-    "missing": "manquant"
+    "missing": "manquant",
+    "echoPopoverPrimerLabel": "Amorce :",
+    "echoPopoverDirectionLabel": "Sens :",
+    "echoPopoverForward": "Forward",
+    "echoPopoverReverse": "Reverse",
+    "echoPopoverSourceWellLabel": "Puits source :",
+    "echoPopoverDestinationLabel": "Destination :",
+    "echoPopoverTransferLabel": "Transfert :",
+    "janusPopoverWellLabel": "Puits :",
+    "janusPopoverVolumeLabel": "Volume :",
+    "rowAriaLabel": "Ligne {{row}}",
+    "echoGridAriaLabel": "Plaque source Echo, 384 puits",
+    "janusGridAriaLabel": "Grille {{label}}",
+    "destGridAriaLabel": "Plaque de destination, 96 puits"
   },
   "errors": {
     "sequence": {

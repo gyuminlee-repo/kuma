@@ -56,10 +56,10 @@ def test_the_method_is_registered_under_the_name_the_frontend_sends() -> None:
 def test_the_sheet_names_the_wells_the_run_would_score(tmp_path: Path) -> None:
     """Selection applied through the run rule, so no well is invented.
 
-    Four mutants plus WT draft onto A1..E1. Declaring A1, C1 and E1 keeps those
-    three where they are. Under the re-seating rule this replaced, the same
-    declaration would have put the first three occupants on them instead, so the
-    samples discriminate between the two rules.
+    Four mutants draft onto A1..D1 and the control onto H12. Declaring A1, C1
+    and H12 keeps those three where they are. Under the re-seating rule this
+    replaced, the same declaration would have put the first three occupants on
+    them instead, so the samples discriminate between the two rules.
     """
     expected = _expected(tmp_path / "expected.xlsx", 4)
     output = tmp_path / "out" / "worklist.csv"
@@ -67,7 +67,7 @@ def test_the_sheet_names_the_wells_the_run_would_score(tmp_path: Path) -> None:
     result = handle_export_barcode_worklist({
         "expected_mutations_xlsx": str(expected),
         "custom_barcodes_xlsx": str(_barcodes(tmp_path / "barcodes.xlsx")),
-        "selected_wells": ["A1", "C1", "E1"],
+        "selected_wells": ["A1", "C1", "H12"],
         "output_path": str(output),
     })
 
@@ -79,12 +79,12 @@ def test_the_sheet_names_the_wells_the_run_would_score(tmp_path: Path) -> None:
     # would be a second answer to what a primer is called.
     assert lines[1].startswith("A1,G2A,1_1,1,isps_r_1,1,isps_f_1")
     assert lines[2].startswith("C1,G4A,3_1,3,isps_r_3,1,isps_f_1")
-    # Four mutants fill A1..D1, so the fifth occupant on E1 is the WT control,
-    # and it is barcoded like any other well because it is sequenced like one.
-    assert lines[3].startswith("E1,WT,5_1,5,isps_r_5,1,isps_f_1")
-    # One column of the plate, so one forward seed and three reverse ones.
-    assert result["forward_indices"] == [1]
-    assert result["reverse_indices"] == [1, 3, 5]
+    # Four mutants fill A1..D1, so the control is in H12, and it is barcoded
+    # like any other well because it is sequenced like one.
+    assert lines[3].startswith("H12,WT,8_12,8,isps_r_8,12,isps_f_12")
+    # Two columns of the plate now that the control sits in the last well.
+    assert result["forward_indices"] == [1, 12]
+    assert result["reverse_indices"] == [1, 3, 8]
     assert result["missing_seeds"] == []
     # The same statement the review screen makes, so the two cannot disagree.
     assert result["excluded_occupants"] == {"B1": "G3A", "D1": "G5A"}
@@ -102,7 +102,8 @@ def test_the_pairing_is_written_without_a_barcode_workbook(tmp_path: Path) -> No
 
     lines = output.read_text(encoding="utf-8").splitlines()
     assert lines[1] == "A1,G2A,1_1,1,,1,"
-    assert lines[2] == "B1,WT,2_1,2,,1,"
+    # The control takes the last well by default since 2026-08-18.
+    assert lines[2] == "H12,WT,8_12,8,,12,"
     assert result["rows"] == 2
 
 

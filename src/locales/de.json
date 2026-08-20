@@ -801,6 +801,14 @@
         "helperText": "KURO expected_mutations sheet, or a plain variant list",
         "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
+      "variantTemplate": {
+        "button": "Vorlage holen",
+        "helperText": "Eine leere Liste, in der alle 96 wells bereits in Plate-Reihenfolge eingetragen sind.",
+        "toastSuccess": "Varianten-Vorlage gespeichert",
+        "toastSuccessDesc": "{{wells}} wells geschrieben, WT in {{well}}. Tragen Sie neben jedem well eine Variante ein und lassen Sie die well-Spalte unverändert.",
+        "toastError": "Varianten-Vorlage konnte nicht geschrieben werden",
+        "openFolder": "Ordner öffnen"
+      },
       "referenceFasta": {
         "label": "Referenz-Construct",
         "placeholder": ".fasta / .fa / .gbk / .dna Datei Pfad",
@@ -1392,7 +1400,18 @@
       "wellWithSample": "Well {{well}}, {{sample}}",
       "wellEmpty": "Well {{well}}, leer",
       "keyboardHint": "Pfeiltasten bewegen, Leertaste schaltet um, Umschalt mit Pfeiltaste erweitert die Auswahl. Ziehen malt über mehrere Wells.",
-      "loadFailed": "Variantenliste zum Zeichnen der Platte nicht lesbar: {{error}}"
+      "loadFailed": "Variantenliste zum Zeichnen der Platte nicht lesbar: {{error}}",
+      "wtPlacement": {
+        "label": "Position der Kontrollvertiefung",
+        "lastWell": "Letzte Vertiefung (H12)",
+        "afterLastVariant": "Nach der letzten Variante",
+        "none": "Keine Kontrolle",
+        "helper": "Gilt nur fuer eine Variantenliste ohne eigene Well-Spalte (eine Datei mit benannten Wells legt die Position selbst fest). Zeichnet nur die Vorschau unten neu; analyze platziert die Kontrolle derzeit immer in der letzten Vertiefung, daher aendert diese Einstellung noch nicht, wonach ein Lauf tatsaechlich bewertet."
+      },
+      "noControlWell": {
+        "body": "Diese Platte hat keine Kontrollvertiefung."
+      },
+      "wellControl": "Vertiefung {{well}}, Kontrolle (WT)"
     },
     "replicateModeNotice": {
       "pooled": "Dieser Lauf hat {{detected}} native barcodes zu einer Plate zusammengefasst und hat daher keine Replicates zum Vergleichen.",
@@ -2517,13 +2536,11 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Schritt 4 liest die Agilent-Reports mit numerischen Probennamen, sowohl das Screening der ganzen Platte als auch die replizierte Bestätigung.",
-      "Eine replizierte Bestätigung wird in das zugehörige Screening eingefügt, ersetzt dessen Werte und markiert die abweichenden.",
-      "Numerische Positionen werden gegen die entworfene Variantenliste aufgelöst, sodass keine Plattendatei mehr abgeschrieben wird.",
-      "Eine Bestätigung mit einer anderen Variantenmenge wird unter Nennung beider Anzahlen abgelehnt statt falsch beschriftet.",
-      "Die Replikatzahl ist die, die eine Datei trägt, von einer Messung bis zu so vielen, wie der Lauf gemacht hat."
+      "Ein Bericht mit numerischen IDs wird gegen die Wells gelesen, die eine Variantenliste angibt, statt gegen aus der Residuenposition berechnete.",
+      "Die Plattenreihenfolge aus der entworfenen Variantenliste funktioniert nun überhaupt. Sie scheiterte an einer Well-Schreibweise, die sich um eine Null unterschied.",
+      "Eine Liste mit angegebenen Wells darf ihre Zeilen in beliebiger Reihenfolge führen; die erklärte Platzierung ist die, die gelesen wird."
     ],
-    "highlightsStamp": "0.16.31+60d4442c",
+    "highlightsStamp": "0.16.33+059a2f27",
     "releases": {
       "0.16.28": [
         "Fünf run-health-Abschnitte, die die App bei jedem Lauf gemessen und nie gezeichnet hat, stehen jetzt im Review-Bildschirm, zunächst geschlossen.",
@@ -2763,6 +2780,18 @@
         "Numerische Positionen werden gegen die entworfene Variantenliste aufgelöst, sodass keine Plattendatei mehr abgeschrieben wird.",
         "Eine Bestätigung mit einer anderen Variantenmenge wird unter Nennung beider Anzahlen abgelehnt statt falsch beschriftet.",
         "Die Replikatzahl ist die, die eine Datei trägt, von einer Messung bis zu so vielen, wie der Lauf gemacht hat."
+      ],
+      "0.16.32": [
+        "Eine Variantenliste kann das Well jeder Zeile angeben. Wo sie es tut, ist das die Platzierung, und keine Zeilenreihenfolge wird abgeleitet.",
+        "Eine Vorlagenschaltfläche schreibt die Arbeitsmappe mit allen 96 Wells, sodass nur die Variantenspalte auszufüllen bleibt.",
+        "Das Kontroll-Well ist eine Wahl und steht nun standardmäßig auf dem letzten Well der Platte, wo die Bank es tatsächlich pipettiert.",
+        "Diese Wahl erreicht jetzt den Lauf. Worklist, Vorschau und Bewertung nennen dieselben Wells statt auseinanderzulaufen.",
+        "Die Plattenansichten skalieren ihre Schrift mit den Zellen, sodass Beschriftungen bei keiner Fensterbreite mehr abschneiden."
+      ],
+      "0.16.33": [
+        "Ein Bericht mit numerischen IDs wird gegen die Wells gelesen, die eine Variantenliste angibt, statt gegen aus der Residuenposition berechnete.",
+        "Die Plattenreihenfolge aus der entworfenen Variantenliste funktioniert nun überhaupt. Sie scheiterte an einer Well-Schreibweise, die sich um eine Null unterschied.",
+        "Eine Liste mit angegebenen Wells darf ihre Zeilen in beliebiger Reihenfolge führen; die erklärte Platzierung ist die, die gelesen wird."
       ]
     },
     "releaseStamps": {
@@ -2806,7 +2835,9 @@
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
       "0.16.30": "bab83ea7",
-      "0.16.31": "60d4442c"
+      "0.16.31": "60d4442c",
+      "0.16.32": "3be3b377",
+      "0.16.33": "059a2f27"
     }
   },
   "primerDisplay": {
@@ -3017,10 +3048,23 @@
         "projectNamePlaceholder": "e.g. Q232A_K287R",
         "projectNameHint": "Used as the export folder and file prefix. Leave empty to auto-name kuro_YYMMDD_HHMM.",
         "error": {
-          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
+          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens.",
+          "plateNameRegex": "Verwenden Sie 1-20 Buchstaben, Zahlen, Unterstriche oder Bindestriche.",
+          "wellOverflow": "{{count}} Wells überschreiten eine 96-Well-Platte."
         },
         "bomLabel": "Hinzufügen UTF-8 BOM",
-        "bomHint": "(Excel-Kompatibilität)"
+        "bomHint": "(Excel-Kompatibilität)",
+        "quadrantLabel": "Echo-Quellplatten-Quadrant",
+        "quadrantNone": "Nicht angegeben (Legacy-Layout)",
+        "quadrantHelper": "Forward-Primer starten hier; Reverse-Primer gehen in den gepaarten Quadranten (A1-B1, A2-B2).",
+        "usedQuadrantsLabel": "Auf dieser Platte bereits belegte Quadranten",
+        "usedQuadrantsHelper": "Der Export wird abgelehnt, wenn das gewählte Paar einen dieser Quadranten überschneidet.",
+        "plateNameFwd": "Forward-Primer-Plattenname",
+        "plateNameRev": "Reverse-Primer-Plattenname",
+        "wellCount": "{{count}} Wells",
+        "echoVolLabel": "Echo-Transfervolumen",
+        "janusVolLabel": "JANUS-Transfervolumen",
+        "ruleHint": "Plattennamen sind optional. Leere Namen verwenden die Backend-Standardwerte."
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",
@@ -3277,7 +3321,20 @@
     "legendDestPartial": "Only F or R arrived",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "Ziel-well",
-    "missing": "fehlt"
+    "missing": "fehlt",
+    "echoPopoverPrimerLabel": "Primer:",
+    "echoPopoverDirectionLabel": "Richtung:",
+    "echoPopoverForward": "Forward",
+    "echoPopoverReverse": "Reverse",
+    "echoPopoverSourceWellLabel": "Quell-Well:",
+    "echoPopoverDestinationLabel": "Ziel:",
+    "echoPopoverTransferLabel": "Transfer:",
+    "janusPopoverWellLabel": "Well:",
+    "janusPopoverVolumeLabel": "Volumen:",
+    "rowAriaLabel": "Zeile {{row}}",
+    "echoGridAriaLabel": "Echo-Quellplatte, 384 Wells",
+    "janusGridAriaLabel": "{{label}}-Raster",
+    "destGridAriaLabel": "Zielplatte, 96 Wells"
   },
   "errors": {
     "sequence": {
