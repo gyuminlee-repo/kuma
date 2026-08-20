@@ -238,6 +238,41 @@ def test_a_repeated_replicate_number_keeps_every_measurement(tmp_path: Path, pla
     assert _rows(out)["5F"] == pytest.approx(2.0)
 
 
+def test_the_designed_list_works_as_the_order_source_end_to_end(tmp_path: Path, plate):
+    """The preferred order source has to survive the NGS gate, not just decode.
+
+    The gate compares the well a variant was measured in against the well the
+    verdict names for it, as strings. The design path spelled a well ``C1``
+    where the verdict spells it ``C03``, so every build taking its order from
+    the design list was refused for a conflict that did not exist.
+    """
+    expected = tmp_path / "expected.csv"
+    expected.write_text(
+        "variant\n" + "\n".join(mutant for mutant, _well in PLATE) + "\n",
+        encoding="utf-8",
+    )
+    report = _blocks(
+        tmp_path / "screen.xlsx",
+        [("WT_1", 10.0), ("1", 20.0), ("2", 5.0), ("3", 12.0), ("4", 8.0)],
+    )
+    out = tmp_path / "out.xlsx"
+
+    result = build_evolvepro_input(
+        out,
+        numeric_report_xlsx=report,
+        expected_xlsx=expected,
+        verdict_xlsx=plate["verdict"],
+    )
+
+    assert result.well_by_variant == {
+        "5F": "A01",
+        "10L": "B01",
+        "11E": "C01",
+        "28T": "D01",
+    }
+    assert _rows(out) == pytest.approx({"5F": 2.0, "10L": 0.5, "11E": 1.2, "28T": 0.8})
+
+
 def test_a_confirmation_covering_a_different_set_is_refused(tmp_path: Path, plate):
     """A count that does not match the subset cannot be placed positionally.
 

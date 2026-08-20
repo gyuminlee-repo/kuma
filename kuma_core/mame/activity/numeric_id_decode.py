@@ -36,7 +36,7 @@ from collections.abc import Sequence
 from typing import TypeAlias
 
 from .evolvepro_xlsx import BlockRepBatchResult, parse_agilent_block_rep_batch
-from .plate_layout_xlsx import parse_plate_layout_xlsx
+from .plate_layout_xlsx import _normalise_well, parse_plate_layout_xlsx
 from .variant_notation import to_evolvepro
 
 WRONG_RANK_ASSUMPTION_NOTE = (
@@ -164,14 +164,35 @@ def expected_variant_order(
     """Decode order straight from the expected-variant list.
 
     Same shape as :func:`layout_variant_order`, derived from the design instead
-    of a hand-written plate file: :func:`canonical_plate_order` fixes the order
-    and ``seq_to_well`` assigns the column-major wells, so nobody transcribes a
-    plate by hand and no transcription slip can reach the decode.
+    of a hand-written plate file, so nobody transcribes a plate by hand and no
+    transcription slip can reach the decode.
+
+    Where the placement comes from depends on what the list says, and the two
+    sources are not equal.
+
+    **Stated wells.** A list carrying a ``Well`` column states the address of
+    every row, and ``build_draft_layout`` places the run on exactly those
+    addresses without arithmetic. Recomputing them here would decode the report
+    against a plate the run never used, so the stated wells are taken as given
+    and only put in plate order, which is the order the bench fills tubes and
+    therefore the order a numeric ID counts in. File row order is not consulted:
+    a stated-well file is free to list its rows in any order.
+
+    **Row order.** Without that column the list states an order and nothing
+    more, so :func:`canonical_plate_order` fixes it and ``seq_to_well`` assigns
+    the column-major wells, which is the same arithmetic ``build_draft_layout``
+    does on that path.
 
     Prefer this over ``layout_variant_order``. The two agree on every well
     position for the 2026-03 campaign; where they differ it is a permutation
     inside one residue position in the hand-written file, including the 426 rows
     already known to be wrong there.
+
+    Wells leave in the zero-padded spelling (``A01``) the activity path compares
+    on, the one ``layout_variant_order`` already produces. ``seq_to_well``
+    answers ``A1``, and the two spellings are the same well to a person and two
+    different strings to the strict NGS gate, which refused a build over the
+    difference.
 
     The list may be a KURO export or a plain variant list; the sheet and column
     are auto-detected. There is no sheet/column override here because this path
@@ -179,16 +200,27 @@ def expected_variant_order(
     served by passing ``layout_xlsx`` instead, which states the order outright.
     An explicit wild-type row needs no handling: it is not a decodable variant,
     so the generic reader drops it exactly as ``layout_variant_order`` skips
-    ``is_wt`` entries.
+    ``is_wt`` entries, and a stated ``wells`` list is aligned with the mutants
+    that survive that drop.
     """
-    from kuma_core.mame.export.well_mapper import seq_to_well
+    from kuma_core.mame.export.well_mapper import seq_to_well, well_to_seq
     from kuma_core.mame.io.variant_list import read_variant_source
     from kuma_core.mame.layout import canonical_plate_order
 
     warnings: list[str] = []
     order: DecodeOrder = []
-    ordered = canonical_plate_order(read_variant_source(Path(expected_xlsx)).expected)
-    for seq, mutation in enumerate(ordered, start=1):
+    source = read_variant_source(Path(expected_xlsx))
+    if source.wells is None:
+        placed = [
+            (mutation, seq_to_well(seq))
+            for seq, mutation in enumerate(canonical_plate_order(source.expected), 1)
+        ]
+    else:
+        placed = sorted(
+            zip(source.expected, source.wells),
+            key=lambda pair: well_to_seq(pair[1]),
+        )
+    for mutation, well in placed:
         mutant = mutation.mutant_id
         try:
             short = to_evolvepro(mutant)
@@ -199,7 +231,7 @@ def expected_variant_order(
                 "from EVOLVEpro output."
             )
             short = None
-        order.append((short, mutant, seq_to_well(seq)))
+        order.append((short, mutant, _normalise_well(well)))
     return order, warnings
 
 
