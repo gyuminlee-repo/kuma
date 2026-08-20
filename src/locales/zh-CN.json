@@ -1848,6 +1848,7 @@
     "warningBody": "无法保证输出完全相同。是否继续?",
     "warningMissingPaths": "缺失路径: {{paths}}",
     "warningHashMismatch": "哈希不匹配: {{paths}}",
+    "warningHashUnverifiable": "记录时未生成哈希，无法与运行时的文件核对：{{paths}}",
     "exportOnlyNotice": "此 manifest 为仅导出操作,无法直接重新运行。请从原始数据重新导出。",
     "btnCancel": "取消",
     "btnRerun": "重新运行",

@@ -1879,6 +1879,7 @@
     "warningBody": "Identical output is not guaranteed. Do you want to continue?",
     "warningMissingPaths": "Missing paths: {{paths}}",
     "warningHashMismatch": "Hash mismatch: {{paths}}",
+    "warningHashUnverifiable": "Recorded without a digest, so the file cannot be checked against the run: {{paths}}",
     "exportOnlyNotice": "This manifest is an export-only operation and cannot be re-run directly. Re-export from the original data.",
     "btnCancel": "Cancel",
     "btnRerun": "Re-run",

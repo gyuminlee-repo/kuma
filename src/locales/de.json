@@ -1848,6 +1848,7 @@
     "warningBody": "Identical Ausgabe ist nicht guaranteed. Do you want zu continue?",
     "warningMissingPaths": "Missing Pfade: {{paths}}",
     "warningHashMismatch": "Hash mismatch: {{paths}}",
+    "warningHashUnverifiable": "Ohne Prüfsumme aufgezeichnet, daher nicht gegen den Lauf prüfbar: {{paths}}",
     "exportOnlyNotice": "This manifest ist ein export-only operation und cannot be re-ausführen directly. Re-export von die original data.",
     "btnCancel": "Abbrechen",
     "btnRerun": "Re-ausführen",

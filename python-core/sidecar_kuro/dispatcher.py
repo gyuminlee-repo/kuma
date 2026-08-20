@@ -287,11 +287,25 @@ def _start_memory_monitor() -> None:
         logger.warning("memory_monitor unavailable — skipping RSS monitoring")
         return
 
+    _memory_monitor_unmeasurable = False
+
     def _check() -> None:
+        nonlocal _memory_monitor_unmeasurable
         while True:
             time.sleep(_MEMORY_CHECK_INTERVAL)
             try:
                 ratio = memory_usage_ratio()
+                if ratio is None:
+                    # The system total could not be read, so no threshold can
+                    # be applied. Say so once rather than let the guard sit
+                    # silently open for the life of the process.
+                    if not _memory_monitor_unmeasurable:
+                        _memory_monitor_unmeasurable = True
+                        logger.warning(
+                            "memory monitor cannot read the system total; "
+                            "RSS thresholds are not being enforced"
+                        )
+                    continue
                 if ratio >= WARN_THRESHOLD:
                     rss_mb = get_self_rss_bytes() / (1024 * 1024)
                     level = "block" if ratio >= BLOCK_THRESHOLD else "warn"

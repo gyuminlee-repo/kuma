@@ -59,7 +59,9 @@ export function ReRunManifestDialog({
   const paramKeys = Object.keys(manifest.params);
   const mismatchResult =
     verifyResult !== null &&
-    (verifyResult.mismatched.length > 0 || verifyResult.missing.length > 0)
+    (verifyResult.mismatched.length > 0 ||
+      verifyResult.missing.length > 0 ||
+      verifyResult.unverifiable.length > 0)
       ? verifyResult
       : null;
 
@@ -158,6 +160,11 @@ export function ReRunManifestDialog({
             {mismatchResult.mismatched.length > 0 && (
               <p className="mt-0.5">
                 {t("reRunManifest.warningHashMismatch", { paths: mismatchResult.mismatched.join(", ") })}
+              </p>
+            )}
+            {mismatchResult.unverifiable.length > 0 && (
+              <p className="mt-0.5">
+                {t("reRunManifest.warningHashUnverifiable", { paths: mismatchResult.unverifiable.join(", ") })}
               </p>
             )}
           </div>

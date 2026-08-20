@@ -1848,6 +1848,7 @@
     "warningBody": "Идентичный вывод не гарантирован. Продолжить?",
     "warningMissingPaths": "Отсутствующие пути: {{paths}}",
     "warningHashMismatch": "Несовпадение hash: {{paths}}",
+    "warningHashUnverifiable": "Записано без хеша, поэтому сверить файл с запуском невозможно: {{paths}}",
     "exportOnlyNotice": "Этот manifest — операция только экспорта и не может быть выполнен повторно напрямую. Сделайте re-export из исходных данных.",
     "btnCancel": "Отмена",
     "btnRerun": "Re-run",

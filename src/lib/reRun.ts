@@ -62,15 +62,24 @@ export interface InputVerifyResult {
   mismatched: string[];
   /** 경로 자체가 없는 입력 파일 키 목록 */
   missing: string[];
+  /**
+   * 기록 당시 digest 를 못 떠서 대조할 대상이 없는 입력 파일 키 목록.
+   *
+   * mismatched 와 합치지 않는다. "파일이 그때와 다르다"와 "그때 무엇이었는지
+   * 기록이 없다"는 다른 사실이고, 두 번째는 재실행을 막을 근거가 아니라
+   * 재실행 결과의 출처를 확정할 수 없다는 사실이다.
+   */
+  unverifiable: string[];
 }
 
 /**
  * manifest.inputs 의 각 파일 경로 존재 여부와 SHA-256 일치를 검증한다.
- * 실패 시 silent fallback 없이 mismatched/missing 목록으로 반환한다.
+ * 실패 시 silent fallback 없이 mismatched/missing/unverifiable 목록으로 반환한다.
  */
 export async function verifyInputs(manifest: RunManifest): Promise<InputVerifyResult> {
   const mismatched: string[] = [];
   const missing: string[] = [];
+  const unverifiable: string[] = [];
 
   await Promise.all(
     Object.entries(manifest.inputs).map(async ([key, input]) => {
@@ -81,13 +90,17 @@ export async function verifyInputs(manifest: RunManifest): Promise<InputVerifyRe
         missing.push(key);
         return;
       }
+      if (input.sha256 === null) {
+        unverifiable.push(key);
+        return;
+      }
       if (actualHash !== input.sha256) {
         mismatched.push(key);
       }
     }),
   );
 
-  return { mismatched, missing };
+  return { mismatched, missing, unverifiable };
 }
 
 // ── method 별 실행 ────────────────────────────────────────────────────────────

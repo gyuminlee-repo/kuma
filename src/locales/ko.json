@@ -1879,6 +1879,7 @@
     "warningBody": "동일한 결과가 보장되지 않습니다. 계속 진행하시겠습니까?",
     "warningMissingPaths": "경로 없음: {{paths}}",
     "warningHashMismatch": "해시 불일치: {{paths}}",
+    "warningHashUnverifiable": "기록 당시 해시를 못 떠서 대조할 수 없음: {{paths}}",
     "exportOnlyNotice": "이 manifest는 export 전용 작업으로 직접 재실행할 수 없습니다. 원본 데이터에서 다시 export 하세요.",
     "btnCancel": "취소",
     "btnRerun": "재실행",
