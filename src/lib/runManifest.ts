@@ -21,10 +21,19 @@ export const SCHEMA_VERSION = "1.0";
 export interface RunManifestInput {
   /** 절대 경로 */
   path: string;
-  /** SHA-256 hex digest */
-  sha256: string;
-  /** 파일 크기 (bytes) */
-  size_bytes: number;
+  /**
+   * SHA-256 hex digest.
+   *
+   * null 이면 파일은 공급됐고 실행이 소비했으나 digest 를 못 뜬 경우다
+   * (Windows 에서 Excel 이 열어 둔 xlsx 등). 백엔드가 이 키를 통째로
+   * 빼면 "공급 안 됨"과 구별이 사라지므로 null 로 남긴다.
+   * `unreadable` 에 사유가 들어간다.
+   */
+  sha256: string | null;
+  /** 파일 크기 (bytes). digest 를 못 뜬 경우 null. */
+  size_bytes: number | null;
+  /** 읽기 실패 사유. 정상 입력에는 없다. */
+  unreadable?: string;
 }
 
 // ── manifest 루트 타입 ────────────────────────────────────────────────────────

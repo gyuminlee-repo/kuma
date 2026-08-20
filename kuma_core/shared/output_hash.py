@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from kuma_core.shared.atomic_write import atomic_write_text
 from kuma_core.shared.run_manifest import compute_input_sha256
 
 
@@ -66,8 +67,16 @@ def write_output_checksum(output_path: Path, *, algorithm: str = "sha256") -> Pa
     # newline="" suppresses translation: this file is consumed by external
     # checkers that treat everything after the two spaces as the filename, so a
     # CRLF here makes the name unresolvable on the platform that wrote it.
-    checksum_path.write_text(
-        f"{hex_digest}  {output_path.name}\n", encoding="utf-8", newline=""
+    # Published atomically for the reason atomic_write_text's own docstring
+    # gives: an interrupted write leaves a truncated file that still exists,
+    # and shasum -c answers on a partial digest line rather than declining, so
+    # the failure appears as a mismatch on a file that is intact. The manifest
+    # written beside this one already publishes that way.
+    atomic_write_text(
+        checksum_path,
+        f"{hex_digest}  {output_path.name}\n",
+        encoding="utf-8",
+        newline="",
     )
     return checksum_path
 

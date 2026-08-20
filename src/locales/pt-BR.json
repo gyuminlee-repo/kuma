@@ -1848,6 +1848,7 @@
     "warningBody": "Não é garantido output idêntico. Deseja continuar?",
     "warningMissingPaths": "Caminhos ausentes: {{paths}}",
     "warningHashMismatch": "Hash mismatch: {{paths}}",
+    "warningHashUnverifiable": "Registrado sem resumo criptográfico, portanto não é possível conferir com a execução: {{paths}}",
     "exportOnlyNotice": "Este manifest é uma operação somente de exportação e não pode ser re-executado diretamente. Reexportar a partir dos dados originais.",
     "btnCancel": "Cancelar",
     "btnRerun": "Re-executar",

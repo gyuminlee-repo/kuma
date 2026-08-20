@@ -28,7 +28,11 @@ const manifest: RunManifest = {
   seed: null,
 };
 
-function renderDialog(verifyResult: { missing: string[]; mismatched: string[] } | null) {
+function renderDialog(
+  verifyResult:
+    | { missing: string[]; mismatched: string[]; unverifiable: string[] }
+    | null,
+) {
   return render(
     <ReRunManifestDialog
       open
@@ -49,7 +53,7 @@ describe("ReRunManifestDialog input verification warning", () => {
       <ReRunManifestDialog
         open
         manifest={manifest}
-        verifyResult={{ missing: [], mismatched: [] }}
+        verifyResult={{ missing: [], mismatched: [], unverifiable: [] }}
         onClose={vi.fn()}
         onStatusMessage={vi.fn()}
       />,
@@ -58,11 +62,21 @@ describe("ReRunManifestDialog input verification warning", () => {
   });
 
   it("renders missing and mismatched input details", () => {
-    renderDialog({ missing: ["sequence"], mismatched: ["activity"] });
+    renderDialog({ missing: ["sequence"], mismatched: ["activity"], unverifiable: [] });
 
     const alert = screen.getByRole("alert");
     expect(alert).toHaveTextContent("Input files have changed.");
     expect(alert).toHaveTextContent("Missing paths: sequence");
     expect(alert).toHaveTextContent("Hash mismatch: activity");
+  });
+  it("names an input whose digest was never recorded, apart from a mismatch", () => {
+    renderDialog({ missing: [], mismatched: [], unverifiable: ["layout"] });
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent(
+      "Recorded without a digest, so the file cannot be checked against the run: layout",
+    );
+    // The two states are separate claims: the file is not being called changed.
+    expect(alert).not.toHaveTextContent("Hash mismatch");
   });
 });

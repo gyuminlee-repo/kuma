@@ -1848,6 +1848,7 @@
     "warningBody": "無法保證輸出完全相同。是否繼續?",
     "warningMissingPaths": "缺失路徑: {{paths}}",
     "warningHashMismatch": "雜湊不匹配: {{paths}}",
+    "warningHashUnverifiable": "記錄時未產生雜湊，無法與執行時的檔案核對：{{paths}}",
     "exportOnlyNotice": "此 manifest 為僅匯出操作,無法直接重新執行。請從原始資料重新匯出。",
     "btnCancel": "取消",
     "btnRerun": "重新執行",

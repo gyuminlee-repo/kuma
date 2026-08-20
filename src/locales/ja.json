@@ -1848,6 +1848,7 @@
     "warningBody": "同一の出力は保証されません。続行しますか?",
     "warningMissingPaths": "見つからないパス: {{paths}}",
     "warningHashMismatch": "ハッシュ不一致: {{paths}}",
+    "warningHashUnverifiable": "ハッシュが記録されていないため、実行時のファイルと照合できません：{{paths}}",
     "exportOnlyNotice": "この manifest はエクスポート専用の操作で、直接再実行できません。元のデータから再エクスポートしてください。",
     "btnCancel": "キャンセル",
     "btnRerun": "再実行",

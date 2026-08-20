@@ -1848,6 +1848,7 @@
     "warningBody": "No se garantiza un output idéntico. ¿Continuar?",
     "warningMissingPaths": "Rutas faltantes: {{paths}}",
     "warningHashMismatch": "Hash mismatch: {{paths}}",
+    "warningHashUnverifiable": "Registrado sin resumen criptográfico, por lo que no se puede cotejar con la ejecución: {{paths}}",
     "exportOnlyNotice": "Este manifiesto es una operación sólo de exportación y no se puede re-ejecutar directamente. Volver a exportar desde los datos originales.",
     "btnCancel": "Cancelar",
     "btnRerun": "Re-ejecutar",

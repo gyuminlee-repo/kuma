@@ -19,6 +19,11 @@ Usage::
 
 Schema version history:
     1.0  Initial release (2026-05-07)
+         An input entry may carry ``sha256: null``, ``size_bytes: null`` and
+         an ``unreadable`` reason when the file was supplied but could not be
+         hashed. Additive, so the version does not move: bumping it would make
+         src/lib/runManifest.ts reject every manifest already on disk, and
+         reading the new field is optional for anything that does not care.
 """
 
 from __future__ import annotations
@@ -88,7 +93,10 @@ def build_run_manifest(
         method: RPC method name, e.g. ``"design_sdm_primers"``.
         inputs: Mapping from logical name to file ``Path``. Missing or
             non-existent paths are silently omitted from the manifest
-            (spec: "입력 파일 부재 시 해당 키 생략").
+            (spec: "입력 파일 부재 시 해당 키 생략"). A path that exists but
+            cannot be read keeps its key with a null digest and an
+            ``unreadable`` reason, because dropping it would make the manifest
+            identical to one where the operator supplied nothing.
         params: Handler call parameters. Serialised via ``json.dumps`` with
             ``default=str``; paths within params are normalised to strings.
         started_at: UTC datetime recorded at handler entry.
@@ -115,7 +123,19 @@ def build_run_manifest(
         try:
             sha = compute_input_sha256(path)
             size = path.stat().st_size
-        except (OSError, PermissionError):
+        except OSError as exc:
+            # The file was supplied and the run consumed it; only the digest
+            # could not be taken. Dropping the key here would make this
+            # manifest identical to one where the operator supplied nothing,
+            # which is the distinction the artifact exists to record.
+            # Reachable on the routine input type: an xlsx held open in Excel
+            # raises PermissionError (an OSError subclass) on Windows.
+            inputs_section[key] = {
+                "path": str(path),
+                "sha256": None,
+                "size_bytes": None,
+                "unreadable": f"{type(exc).__name__}: {exc}",
+            }
             continue
         inputs_section[key] = {
             "path": str(path),
