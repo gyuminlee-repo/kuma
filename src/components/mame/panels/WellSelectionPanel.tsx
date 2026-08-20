@@ -68,6 +68,9 @@ export function WellSelectionPanel() {
   const setWellSelectionOccupants = useMameAppStore((s) => s.setWellSelectionOccupants)
 
   const [draft, setDraft] = useState<WellLayoutRow[] | null>(null)
+  // Variants the layout could not place at all, which is a different statement
+  // from a well the operator chose to leave out: these have no well to leave.
+  const [dropped, setDropped] = useState<string[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
   const [focusSeq, setFocusSeq] = useState(1)
   const [exporting, setExporting] = useState(false)
@@ -86,6 +89,7 @@ export function WellSelectionPanel() {
     let alive = true
     if (!expectedPath) {
       setDraft(null)
+      setDropped([])
       setLoadError(null)
       setWellSelectionOccupants(null)
       return () => {
@@ -101,11 +105,13 @@ export function WellSelectionPanel() {
         })
         if (!alive) return
         setDraft(result.draft)
+        setDropped(result.dropped_mutant_ids)
         setLoadError(null)
         setWellSelectionOccupants(result.draft.length)
       } catch (error) {
         if (!alive) return
         setDraft(null)
+        setDropped([])
         setLoadError(formatError(error))
         // A count nobody could read is not a count. Left null so the gate falls
         // back to the one rule that holds without it: an empty declaration.
@@ -358,6 +364,24 @@ export function WellSelectionPanel() {
       {loadError !== null && (
         <p className="text-caption text-error" role="status">
           {t("mame.wellSelection.loadFailed", { error: loadError })}
+        </p>
+      )}
+
+      {/*
+        An over-capacity list comes back as an empty layout with every name in
+        dropped_mutant_ids, so the count below reads zero and the grid draws
+        blank. Without this the screen states that there is nothing to place,
+        which is the opposite of what happened.
+      */}
+      {dropped.length > 0 && (
+        <p className="text-caption text-error" role="status">
+          {t("mame.wellSelection.droppedVariants", {
+            dropped: dropped.length,
+            capacity: PLATE_CAPACITY,
+            samples:
+              dropped.slice(0, EXCLUDED_NAMES_SHOWN).join(", ") +
+              (dropped.length > EXCLUDED_NAMES_SHOWN ? ", ..." : ""),
+          })}
         </p>
       )}
 

@@ -1365,6 +1365,7 @@
       "description": "将计算出的布局绘制在板上。每个变异固定在板序(A1, B1, ... H1, A2)分配的孔位，选择孔位不会移动它。不做改动则使用前面的孔位，也可只选本次实验实际装填的孔位。",
       "counts": "{{occupants}} 个样品(变异加 WT 对照)已选 {{capacity}} 中的 {{selected}} 个孔位。",
       "excludedVariants": "位于未选孔位的 {{excluded}} 个样品视为不在本板上，不做判定：{{samples}}",
+      "droppedVariants": "{{dropped}} 个变体无法放入 {{capacity}} 孔板，因此未生成布局，本轮不会测量其中任何一个：{{samples}}",
       "selectAll": "全选 ({{count}})",
       "selectDefault": "仅样品数 ({{count}})",
       "clearAll": "清除选择",
