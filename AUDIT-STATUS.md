@@ -1,6 +1,6 @@
 # What the audit pages are, and what landed from them
 
-The ten `AUDIT-*.md` pages record findings as of the sweep that produced them.
+The eleven `AUDIT-*.md` pages record findings as of the sweep that produced them.
 They are not a to-do list and they were never rewritten as fixes landed, so a
 finding described there is open unless this page says otherwise.
 
@@ -20,6 +20,7 @@ whether it still holds.
 | `AUDIT-tauri-scripts.md` | `src-tauri/`, `scripts/` | 51 |
 | `AUDIT-strategy-hooks.md` | `kuma_core/strategy/`, `src/hooks/` | 18 |
 | `AUDIT-types-screens-tests.md` | `src/types/`, `src/screens/`, tests | 34 |
+| `AUDIT-shared-and-uncovered.md` | `kuma_core/shared/`, `benchmark/`, root configs | 5 |
 
 `AUDIT-recheck.md` and `AUDIT-verification.md` hold the re-verification rather
 than findings of their own.
@@ -27,6 +28,13 @@ than findings of their own.
 The first six surfaces did not partition the tree. Surfaces seven and eight
 exist because a coverage check found the gap, and the most consequential finding
 of the sweep sits in one of them.
+
+Neither did the first eight. Surface nine covers the 84 tracked code files that
+no earlier list claimed, most of them `kuma_core/shared/`: the atomic write
+every export publishes through, the run manifest that is the provenance record
+for every artifact, and the memory guard both dispatchers ask. Each surface
+list was written from directory names, and the check that catches an omission
+was run once per opening rather than once at the end.
 
 ## Overturned
 
