@@ -960,6 +960,14 @@
         "helperText": "KURO expected_mutations 시트 또는 변이 목록 xlsx",
         "helpText": "KURO 에서 내보낸 워크북이면 expected_mutations 시트를 자동으로 읽고 status 필터를 먼저 적용합니다. 그 외 워크북이면 시트와 변이 열을 직접 고를 수 있습니다."
       },
+      "variantTemplate": {
+        "button": "템플릿 받기",
+        "helperText": "96개 well 이 plate 순서대로 미리 적힌 빈 목록입니다.",
+        "toastSuccess": "변이 템플릿을 저장했습니다",
+        "toastSuccessDesc": "{{wells}}개 well 을 적었고 WT 는 {{well}} 입니다. 각 well 옆에 변이를 적고 well 열은 그대로 두십시오.",
+        "toastError": "변이 템플릿을 쓰지 못했습니다",
+        "openFolder": "폴더 열기"
+      },
       "referenceFasta": {
         "label": "참조 construct 서열",
         "placeholder": ".fasta / .fa / .gbk / .dna 파일 경로",
@@ -1391,7 +1399,18 @@
       "wellWithSample": "웰 {{well}}, {{sample}}",
       "wellEmpty": "웰 {{well}}, 비어 있음",
       "keyboardHint": "방향키로 이동, Space 로 토글, Shift + 방향키로 범위 선택. 드래그하면 이어서 칠해진다.",
-      "loadFailed": "플레이트를 그리기 위한 변이 목록을 읽지 못했다: {{error}}"
+      "loadFailed": "플레이트를 그리기 위한 변이 목록을 읽지 못했다: {{error}}",
+      "wtPlacement": {
+        "label": "대조군 웰 위치",
+        "lastWell": "마지막 웰 (H12)",
+        "afterLastVariant": "마지막 변이 다음",
+        "none": "대조군 없음",
+        "helper": "자체 Well 열이 없는 변이 목록에만 적용된다(웰을 직접 명시한 파일은 그 위치를 그대로 따른다). 아래 미리보기만 다시 그리며, analyze 실행은 현재 항상 마지막 웰에 대조군을 두므로 이 설정이 실제 채점 결과를 아직 바꾸지는 않는다."
+      },
+      "noControlWell": {
+        "body": "이 플레이트에는 대조군 웰이 없다."
+      },
+      "wellControl": "웰 {{well}}, 대조군 (WT)"
     },
     "replicateModeNotice": {
       "pooled": "이 실행은 native barcode {{detected}}개를 plate 하나로 합쳤다. 비교할 replicate 가 없다.",
@@ -1481,7 +1500,20 @@
     "legendDestMerged": "F+R primer 모두 도착",
     "legendDestPartial": "F 또는 R 한쪽만 도착",
     "destWell": "대상 well",
-    "missing": "없음"
+    "missing": "없음",
+    "echoPopoverPrimerLabel": "Primer:",
+    "echoPopoverDirectionLabel": "방향:",
+    "echoPopoverForward": "Forward",
+    "echoPopoverReverse": "Reverse",
+    "echoPopoverSourceWellLabel": "소스 well:",
+    "echoPopoverDestinationLabel": "목적지:",
+    "echoPopoverTransferLabel": "이송량:",
+    "janusPopoverWellLabel": "Well:",
+    "janusPopoverVolumeLabel": "부피:",
+    "rowAriaLabel": "행 {{row}}",
+    "echoGridAriaLabel": "Echo 소스 플레이트, 384 well",
+    "janusGridAriaLabel": "{{label}} 그리드",
+    "destGridAriaLabel": "목적지 플레이트, 96 well"
   },
   "globalAppBar": {
     "navAriaLabel": "앱 내비게이션",
@@ -2546,13 +2578,13 @@
     "descriptionRange": "v{{from}} 이후 모든 업데이트의 주요 변경 사항입니다.",
     "gotItBtn": "확인",
     "highlights": [
-      "Step 4 가 sample name 이 숫자인 Agilent report 를 읽습니다. 전체 plate 측정과 반복 확인 측정 모두 해당합니다.",
-      "반복 확인 측정을 해당 스크리닝에 병합해 그 값들을 대체하고, 서로 어긋나는 항목을 표시합니다.",
-      "숫자 위치는 설계 변이 목록을 기준으로 해석하므로 plate 파일을 손으로 옮겨 적을 필요가 없습니다.",
-      "확인 파일이 다른 변이 집합을 담고 있으면 개수를 밝히며 거절합니다. 엉뚱한 변이에 붙이지 않습니다.",
-      "반복 횟수는 파일이 담고 있는 그대로입니다. 1회부터 그 런이 측정한 만큼까지 받습니다."
+      "변이 목록이 각 행의 well 을 직접 적을 수 있습니다. 적혀 있으면 그것이 배치이고 행 순서는 보지 않습니다.",
+      "템플릿 버튼이 96개 well 을 모두 채운 워크북을 씁니다. 사용자는 variant 열만 채우면 됩니다.",
+      "대조군 well 을 고를 수 있고 기본값이 플레이트 마지막 well 입니다. 실제로 벤치가 꽂는 자리입니다.",
+      "그 선택이 이제 런까지 적용됩니다. worklist, 미리보기, 채점이 서로 다른 well 을 부르지 않습니다.",
+      "플레이트 화면의 글자 크기가 셀에 맞춰 커집니다. 어떤 창 너비에서도 라벨이 잘리지 않습니다."
     ],
-    "highlightsStamp": "0.16.31+60d4442c",
+    "highlightsStamp": "0.16.32+3be3b377",
     "releases": {
       "0.16.28": [
         "앱이 매 런마다 측정하고도 그리지 않던 run health 섹션 5개가 이제 리뷰 화면에, 접힌 채로 시작하는 섹션에 표시됩니다.",
@@ -2792,6 +2824,13 @@
         "숫자 위치는 설계 변이 목록을 기준으로 해석하므로 plate 파일을 손으로 옮겨 적을 필요가 없습니다.",
         "확인 파일이 다른 변이 집합을 담고 있으면 개수를 밝히며 거절합니다. 엉뚱한 변이에 붙이지 않습니다.",
         "반복 횟수는 파일이 담고 있는 그대로입니다. 1회부터 그 런이 측정한 만큼까지 받습니다."
+      ],
+      "0.16.32": [
+        "변이 목록이 각 행의 well 을 직접 적을 수 있습니다. 적혀 있으면 그것이 배치이고 행 순서는 보지 않습니다.",
+        "템플릿 버튼이 96개 well 을 모두 채운 워크북을 씁니다. 사용자는 variant 열만 채우면 됩니다.",
+        "대조군 well 을 고를 수 있고 기본값이 플레이트 마지막 well 입니다. 실제로 벤치가 꽂는 자리입니다.",
+        "그 선택이 이제 런까지 적용됩니다. worklist, 미리보기, 채점이 서로 다른 well 을 부르지 않습니다.",
+        "플레이트 화면의 글자 크기가 셀에 맞춰 커집니다. 어떤 창 너비에서도 라벨이 잘리지 않습니다."
       ]
     },
     "releaseStamps": {
@@ -2835,7 +2874,8 @@
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
       "0.16.30": "bab83ea7",
-      "0.16.31": "60d4442c"
+      "0.16.31": "60d4442c",
+      "0.16.32": "3be3b377"
     }
   },
   "primerDisplay": {
@@ -3046,10 +3086,23 @@
         "projectNamePlaceholder": "예: Q232A_K287R",
         "projectNameHint": "내보내기 폴더와 파일 prefix로 사용됩니다. 비워두면 kuro_YYMMDD_HHMM 형식으로 자동 생성됩니다.",
         "error": {
-          "projectNameRegex": "영문, 숫자, 한글, 밑줄, 하이픈을 40자 이내로 입력하세요."
+          "projectNameRegex": "영문, 숫자, 한글, 밑줄, 하이픈을 40자 이내로 입력하세요.",
+          "plateNameRegex": "영문, 숫자, 밑줄, 하이픈을 1-20자로 입력하세요.",
+          "wellOverflow": "{{count}}개 웰은 96-well 플레이트 하나를 초과합니다."
         },
         "bomLabel": "UTF-8 BOM 추가",
-        "bomHint": "(Excel 호환)"
+        "bomHint": "(Excel 호환)",
+        "quadrantLabel": "Echo 소스 플레이트 quadrant",
+        "quadrantNone": "지정 안 함 (레거시 레이아웃)",
+        "quadrantHelper": "Forward 프라이머는 여기서 시작하고, reverse 프라이머는 짝 quadrant(A1-B1, A2-B2)로 갑니다.",
+        "usedQuadrantsLabel": "이 플레이트에서 이미 사용된 quadrant",
+        "usedQuadrantsHelper": "선택한 쌍이 이 중 하나와 겹치면 export가 거부됩니다.",
+        "plateNameFwd": "Forward 프라이머 플레이트 이름",
+        "plateNameRev": "Reverse 프라이머 플레이트 이름",
+        "wellCount": "{{count}}개 웰",
+        "echoVolLabel": "Echo 이송 부피",
+        "janusVolLabel": "JANUS 이송 부피",
+        "ruleHint": "플레이트 이름은 선택 사항입니다. 비워두면 백엔드 기본값을 사용합니다."
       },
       "macrogen": {
         "title": "프라이머 주문 (Macrogen)",

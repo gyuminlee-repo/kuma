@@ -232,6 +232,22 @@ def sort_key(token: str) -> tuple[int, int]:
     return DEFAULT_ADDRESSING.sort_key(token)
 
 
+def canonical_well(well: str) -> str:
+    """Well label in the one spelling the codebase compares on: ``A01`` -> ``A1``.
+
+    Two files can write the same well two ways, so a label is put through the
+    geometry rather than compared as text. Round-tripping it through the
+    sequence index is what makes ``A01`` and ``A1`` collide instead of reading
+    as two wells.
+
+    Raises ``ValueError`` (or ``IndexError`` on a stray shape) for anything that
+    is not a well on this plate. A caller that wants a verdict instead of a
+    refusal catches it; that is what ``io/plate_order_check`` does, because a
+    sheet row that is not a well there is a row to ignore rather than a fault.
+    """
+    return DEFAULT_ADDRESSING.seq_to_well(DEFAULT_ADDRESSING.well_to_seq(well))
+
+
 def norm_well(well: str) -> str:
     """Zero-pad a well label: ``"A2"`` -> ``"A02"``, ``"A02"`` -> ``"A02"``.
 
@@ -326,6 +342,7 @@ __all__ = [
     "seq_to_well",
     "well_to_seq",
     "sort_key",
+    "canonical_well",
     "norm_well",
     "BarcodeLayoutReport",
     "check_barcode_layout",

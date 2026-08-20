@@ -51,14 +51,30 @@ def handle_export_barcode_worklist(params: dict) -> dict:
         write_barcode_worklist_csv,
     )
     from kuma_core.mame.io.variant_list import read_variant_source
-    from kuma_core.mame.layout import apply_well_selection, build_draft_layout
+    from kuma_core.mame.layout import (
+        apply_well_selection,
+        build_draft_layout,
+        resolve_wt_placement,
+    )
 
     read = read_variant_source(
         Path(p.expected_mutations_xlsx),
         sheet=p.variant_sheet,
         variant_column=p.variant_column,
     )
-    draft = build_draft_layout(read.expected, wt_ordinal=read.wt_ordinal)
+    # The same call the run makes, arguments included. A worklist placed by row
+    # order for a file that states its wells would send the bench to different
+    # wells than the run scores. ``wt_placement`` travels the same way: a
+    # worklist drawn for "no control" or "after the last variant" and a run
+    # scored at the last well would send the bench to pipette a plate nobody
+    # is actually scoring.
+    draft = build_draft_layout(
+        read.expected,
+        wt_ordinal=read.wt_ordinal,
+        wells=read.wells,
+        wt_well=read.wt_well,
+        wt_placement=resolve_wt_placement(p.wt_placement),
+    )
     if draft.dropped_mutant_ids:
         raise ValueError(
             f"{len(draft.dropped_mutant_ids)} variants do not fit one plate "

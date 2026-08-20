@@ -47,22 +47,36 @@ export function DestPlateView({ cells, sourceMethod, title, className }: Props) 
   }
 
   return (
-    <div className={cn("min-w-[400px] overflow-x-auto", className)}>
+    <div className={cn("plate-preview-grid min-w-[400px] overflow-x-auto", className)}>
       {title ? (
         <div className="text-caption text-muted-foreground mb-1">{title}</div>
       ) : null}
-      <div className="grid grid-cols-[auto_repeat(12,1fr)] gap-px">
-        <div />
-        {COLS.map((c) => (
-          <div key={c} className="text-caption text-center text-muted-foreground">
-            {c}
-          </div>
-        ))}
+      {/* inline-grid + minmax(min,cap): see EchoPlateView.tsx for why 1fr was
+          replaced (was 156px cells at 1900px, 10% text coverage). Cap is
+          shared with Echo/Janus. */}
+      <div
+        role="grid"
+        aria-label={t("exportPreview.destGridAriaLabel")}
+        className="inline-grid gap-px"
+        style={{
+          gridTemplateColumns:
+            "auto repeat(12, minmax(var(--plate-preview-cell-min), var(--plate-preview-cell-cap)))",
+        }}
+      >
+        <div role="row" className="contents">
+          <div />
+          {COLS.map((c) => (
+            <div key={c} role="columnheader" className="text-caption text-center text-muted-foreground">
+              {c}
+            </div>
+          ))}
+        </div>
         {ROWS.map((r) => (
-          <div key={r} className="contents">
+          <div key={r} role="row" className="contents">
             <div
+              role="rowheader"
               data-row-label={r}
-              aria-label={`Row ${r}`}
+              aria-label={t("exportPreview.rowAriaLabel", { row: r })}
               className="text-caption text-muted-foreground text-right pr-1"
             >
               {r}
@@ -75,6 +89,7 @@ export function DestPlateView({ cells, sourceMethod, title, className }: Props) 
                 return (
                   <div
                     key={well}
+                    role="gridcell"
                     data-testid="dest-cell"
                     data-row={r}
                     data-well={well}
@@ -106,11 +121,11 @@ export function DestPlateView({ cells, sourceMethod, title, className }: Props) 
                       data-state={state}
                       title={tip}
                       className={cn(
-                        "aspect-square rounded-[2px] border border-border/50 flex items-center justify-center overflow-hidden p-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring",
+                        "plate-preview-cell aspect-square rounded-[2px] border border-border/50 flex items-center justify-center overflow-hidden p-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring",
                         bg,
                       )}
                     >
-                      <span className="text-plate font-mono leading-none text-white truncate px-0.5">
+                      <span className="font-mono leading-none text-white truncate px-0.5">
                         {cell.mutation}
                       </span>
                     </button>

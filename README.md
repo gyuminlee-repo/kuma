@@ -100,7 +100,7 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 
 ### Mame — NGS screening verdict
 
-Given a Kuro-exported `expected_mutations.xlsx`, a reference FASTA, and MAME-generated barcode-mode consensus FASTA files, Mame produces per-barcode mutation verdicts and a 96-well Final Excel export.
+Given a variant list, a reference FASTA, and MAME-generated barcode-mode consensus FASTA files, Mame produces per-barcode mutation verdicts and a 96-well Final Excel export. The variant list is either a Kuro-exported `expected_mutations.xlsx` or a plain one-column list of variants in plate order; well positions are not written by hand. See `docs/inputs/expected-mutations.md`.
 
 **Highlights**
 

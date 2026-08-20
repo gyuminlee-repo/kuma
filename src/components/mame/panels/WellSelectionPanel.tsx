@@ -25,7 +25,7 @@
  * opens this panel gets exactly the run they got before it existed.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { save } from "@tauri-apps/plugin-dialog"
 import { toast } from "sonner"
@@ -34,7 +34,16 @@ import { sendRequest } from "@/lib/ipc-mame"
 import type { ExportBarcodeWorklistResult } from "@/types/mame/barcode_worklist"
 import { formatError } from "@/lib/utils"
 import { useMameAppStore } from "@/store/mame/mameAppStore"
-import type { BuildWellLayoutResult, WellLayoutRow } from "@/types/mame/well_layout"
+import type { BuildWellLayoutResult, WellLayoutRow, WtPlacement } from "@/types/mame/well_layout"
+import { NoControlWellNotice } from "@/components/mame/widgets/NoControlWellNotice"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   PLATE_CAPACITY,
   PLATE_COLS,
@@ -62,6 +71,9 @@ export function WellSelectionPanel() {
   const variantColumn = useMameAppStore((s) => s.variantColumn)
   const selectedWells = useMameAppStore((s) => s.selectedWells)
   const setSelectedWells = useMameAppStore((s) => s.setSelectedWells)
+  const wtPlacement = useMameAppStore((s) => s.wtPlacement)
+  const setWtPlacement = useMameAppStore((s) => s.setWtPlacement)
+  const setWtWell = useMameAppStore((s) => s.setWtWell)
   // For the seed NAMES on the worklist. Absent in consensus mode, where the
   // sheet still states every pairing because that comes from the plate.
   const customBarcodesPath = useMameAppStore((s) => s.rawRunParams.customBarcodesPath)
@@ -71,6 +83,7 @@ export function WellSelectionPanel() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [focusSeq, setFocusSeq] = useState(1)
   const [exporting, setExporting] = useState(false)
+  const wtPlacementId = useId()
   const anchorSeq = useRef(1)
   const dragMode = useRef<"select" | "deselect" | null>(null)
   const gridRef = useRef<HTMLDivElement | null>(null)
@@ -88,6 +101,7 @@ export function WellSelectionPanel() {
       setDraft(null)
       setLoadError(null)
       setWellSelectionOccupants(null)
+      setWtWell(null)
       return () => {
         alive = false
       }
@@ -98,11 +112,13 @@ export function WellSelectionPanel() {
           expected_mutations_xlsx: expectedPath,
           variant_sheet: variantSheet ?? undefined,
           variant_column: variantColumn ?? undefined,
+          wt_placement: wtPlacement,
         })
         if (!alive) return
         setDraft(result.draft)
         setLoadError(null)
         setWellSelectionOccupants(result.draft.length)
+        setWtWell(result.wt_well)
       } catch (error) {
         if (!alive) return
         setDraft(null)
@@ -110,12 +126,20 @@ export function WellSelectionPanel() {
         // A count nobody could read is not a count. Left null so the gate falls
         // back to the one rule that holds without it: an empty declaration.
         setWellSelectionOccupants(null)
+        setWtWell(null)
       }
     })()
     return () => {
       alive = false
     }
-  }, [expectedPath, variantSheet, variantColumn, setWellSelectionOccupants])
+  }, [
+    expectedPath,
+    variantSheet,
+    variantColumn,
+    wtPlacement,
+    setWellSelectionOccupants,
+    setWtWell,
+  ])
 
   const occupants = draft ?? []
   const defaultSelection = useMemo(
@@ -180,6 +204,10 @@ export function WellSelectionPanel() {
           variant_column: variantColumn ?? undefined,
           custom_barcodes_xlsx: customBarcodesPath || undefined,
           selected_wells: selectedWells,
+          // The same request this panel already sent to draw the grid, so the
+          // sheet an operator pipettes from names the wells this grid drew
+          // rather than the pre-2026-08-18 default.
+          wt_placement: wtPlacement,
           output_path: target,
         },
       )
@@ -210,6 +238,7 @@ export function WellSelectionPanel() {
     variantColumn,
     customBarcodesPath,
     selectedWells,
+    wtPlacement,
     t,
   ])
 
@@ -355,6 +384,42 @@ export function WellSelectionPanel() {
         </p>
       </div>
 
+      {/*
+        Only meaningful for a row-order variant list: a file naming its own
+        Well column states the control well itself and this choice is not
+        consulted for it (kuma_core.mame.layout.build_draft_layout). Nothing
+        the frontend reads today says which shape a given file is (see
+        the `_suggest_column` gap this same change surfaced), so this stays
+        enabled for every file rather than guessing.
+      */}
+      <div className="space-y-1">
+        <Label htmlFor={wtPlacementId} className="text-caption font-medium">
+          {t("mame.wellSelection.wtPlacement.label")}
+        </Label>
+        <Select
+          value={wtPlacement}
+          onValueChange={(value) => setWtPlacement(value as WtPlacement)}
+        >
+          <SelectTrigger id={wtPlacementId} className="h-7 w-full max-w-xs text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="last_well" className="text-xs">
+              {t("mame.wellSelection.wtPlacement.lastWell")}
+            </SelectItem>
+            <SelectItem value="after_last_variant" className="text-xs">
+              {t("mame.wellSelection.wtPlacement.afterLastVariant")}
+            </SelectItem>
+            <SelectItem value="none" className="text-xs">
+              {t("mame.wellSelection.wtPlacement.none")}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-caption text-muted-foreground">
+          {t("mame.wellSelection.wtPlacement.helper")}
+        </p>
+      </div>
+
       {loadError !== null && (
         <p className="text-caption text-error" role="status">
           {t("mame.wellSelection.loadFailed", { error: loadError })}
@@ -370,6 +435,7 @@ export function WellSelectionPanel() {
               capacity: PLATE_CAPACITY,
             })}
           </p>
+          <NoControlWellNotice />
           {/*
             Leaving a well out is a statement about the bench (that well was
             not filled), not a mistake, so this reports rather than blocks. It
@@ -503,6 +569,12 @@ export function WellSelectionPanel() {
                     const seq = seqAt(row, col)
                     const isSelected = selectedSet.has(well)
                     const sample = occupantByWell.get(well)
+                    // The control well, marked by more than colour: a ring
+                    // (a box-shadow, so it layers over the selection border
+                    // rather than fighting it for the same property) plus a
+                    // symbol next to the "WT" text itself, for anyone who
+                    // cannot tell the ring's colour from the selection one.
+                    const isControlWell = sample === "WT"
                     return (
                       <button
                         key={well}
@@ -513,9 +585,11 @@ export function WellSelectionPanel() {
                         tabIndex={seq === focusSeq ? 0 : -1}
                         title={sample ? `${well} ${sample}` : well}
                         aria-label={
-                          sample
-                            ? t("mame.wellSelection.wellWithSample", { well, sample })
-                            : t("mame.wellSelection.wellEmpty", { well })
+                          isControlWell
+                            ? t("mame.wellSelection.wellControl", { well })
+                            : sample
+                              ? t("mame.wellSelection.wellWithSample", { well, sample })
+                              : t("mame.wellSelection.wellEmpty", { well })
                         }
                         onPointerDown={() => onCellPointerDown(well, seq)}
                         onPointerEnter={() => onCellPointerEnter(well)}
@@ -537,9 +611,13 @@ export function WellSelectionPanel() {
                               // rather than vanishing into a blank cell.
                               ? "border-border bg-muted/30 text-muted-foreground line-through"
                               : "border-border bg-muted/30 text-muted-foreground",
+                          isControlWell ? "ring-2 ring-ring ring-offset-1" : "",
                         ].join(" ")}
                       >
-                        <span className="block break-all text-center">{sample ?? ""}</span>
+                        <span className="block break-all text-center">
+                          {sample ?? ""}
+                          {isControlWell && <span aria-hidden="true"> ✷</span>}
+                        </span>
                       </button>
                     )
                   })}

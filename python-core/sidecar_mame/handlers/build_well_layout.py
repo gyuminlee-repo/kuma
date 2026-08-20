@@ -26,9 +26,11 @@ documentation and validation rules.
 Response schema
 ---------------
 ``draft`` (list) Ordered ``[{"well": str, "sample": str}, ...]`` rows in
-                 column-major order (well coordinates from ``seq_to_well``),
-                 with the WT control at the ordinal the source stated, or last
-                 when it stated none. Empty when the set does not fit.
+                 column-major order (well coordinates from ``seq_to_well``).
+                 The control well sits at the well the source stated (a
+                 ``Well`` column), or otherwise where ``wt_placement`` puts
+                 it (``last_well`` by default). Empty when the set does not
+                 fit.
 ``count`` (int)  Number of draft rows (mutant wells plus the one WT well).
 ``dropped_mutant_ids`` (list[str]) ``mutant_id`` values that do not fit
                  alongside the WT control, so at most 95 mutants. The barcode
@@ -64,17 +66,28 @@ def handle_build_well_layout(params: dict) -> dict:
     p = BuildWellLayoutParams.model_validate(params)
 
     from kuma_core.mame.io.variant_list import read_variant_source
-    from kuma_core.mame.layout import build_draft_layout
+    from kuma_core.mame.layout import build_draft_layout, resolve_wt_placement
 
     read = read_variant_source(
         Path(p.expected_mutations_xlsx),
         sheet=p.variant_sheet,
         variant_column=p.variant_column,
     )
-    # A source that named its own WT row gets the control at that ordinal, not a
-    # second one appended. Dropping the row instead moved every later mutant one
-    # well up and reported nothing.
-    result = build_draft_layout(read.expected, wt_ordinal=read.wt_ordinal)
+    # Everything the read established travels together. ``wells``/``wt_well``
+    # are the placement when the file stated one, and ``wt_ordinal`` plus the
+    # policy decide it when the file stated only an order. Passing a subset lets
+    # a file that names its wells be placed by row number instead.
+    result = build_draft_layout(
+        read.expected,
+        wt_ordinal=read.wt_ordinal,
+        wells=read.wells,
+        wt_well=read.wt_well,
+        # Already validated by BuildWellLayoutParams's field_validator, which
+        # calls the same resolve_wt_placement this does; resolved again here
+        # (rather than carried as an enum on the model) so the model stays a
+        # plain string field like every other RPC param.
+        wt_placement=resolve_wt_placement(p.wt_placement),
+    )
 
     # ``result.layout`` is an insertion-ordered dict[well_id, sample_name] in
     # column-major order (WT last when present); preserve that order.
@@ -85,6 +98,11 @@ def handle_build_well_layout(params: dict) -> dict:
         "draft": draft,
         "count": len(draft),
         "dropped_mutant_ids": result.dropped_mutant_ids,
+        # ``null`` says this plate has no control well, which is now a state a
+        # plate can be in: a file with a Well column and no wild-type row, or
+        # ``wt_placement="none"``. Reporting it is what keeps "no control" from
+        # looking like "control somewhere in the table".
+        "wt_well": result.wt_well,
     }
 
 

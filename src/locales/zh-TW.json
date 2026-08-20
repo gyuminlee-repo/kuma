@@ -801,6 +801,14 @@
         "helperText": "KURO expected_mutations sheet, or a plain variant list",
         "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
+      "variantTemplate": {
+        "button": "取得範本",
+        "helperText": "一份空白清單，96 個 well 已依 plate 順序預先填好。",
+        "toastSuccess": "已儲存變異範本",
+        "toastSuccessDesc": "已寫入 {{wells}} 個 well，WT 位於 {{well}}。請在每個 well 旁填寫變異，well 欄請勿更動。",
+        "toastError": "無法寫入變異範本",
+        "openFolder": "開啟資料夾"
+      },
       "referenceFasta": {
         "label": "參考 construct 序列",
         "placeholder": ".fasta / .fa / .gbk / .dna 檔案路徑",
@@ -1391,7 +1399,18 @@
       "wellWithSample": "孔位 {{well}}, {{sample}}",
       "wellEmpty": "孔位 {{well}}, 空",
       "keyboardHint": "方向鍵移動，空白鍵切換，Shift 加方向鍵擴展選擇。拖曳可連續選擇。",
-      "loadFailed": "無法讀取變異列表以繪製盤圖: {{error}}"
+      "loadFailed": "無法讀取變異列表以繪製盤圖: {{error}}",
+      "wtPlacement": {
+        "label": "對照孔位置",
+        "lastWell": "最後一個孔 (H12)",
+        "afterLastVariant": "最後一個變異之後",
+        "none": "無對照",
+        "helper": "僅適用於沒有自帶 Well 欄的變異清單(明確指定孔位的檔案按其自身位置處理)。僅重繪下方預覽;analyze 執行目前始終將對照放在最後一個孔,因此此設定尚不會改變實際執行的評分結果。"
+      },
+      "noControlWell": {
+        "body": "此盤沒有對照孔。"
+      },
+      "wellControl": "孔 {{well}},對照 (WT)"
     },
     "replicateModeNotice": {
       "pooled": "本次執行將 {{detected}} 個 native barcode 併為一塊 plate，因此沒有可比較的 replicate。",
@@ -2516,13 +2535,13 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "第 4 步可讀取樣品名為數字的 Agilent report，包括全盤測量與重複確認測量。",
-      "重複確認測量會併入對應的篩選結果，取代這些數值並標出彼此不一致的項目。",
-      "數字位置依設計變體清單解讀，因此不需手工謄寫盤檔案。",
-      "確認檔案若包含不同的變體集合，會說明數量並拒絕，而不會標註到錯誤的變體上。",
-      "重複次數以檔案實際記錄為準，從 1 次到該輪實際測量的次數都可以。"
+      "變體清單可直接寫出每列的孔位。寫明後即以此為準，不再推斷列順序。",
+      "範本按鈕會產生已填好全部 96 個孔位的活頁簿，使用者只需填寫 variant 欄。",
+      "對照孔位可選，預設為盤上最後一個孔位，也就是實驗台實際加樣的位置。",
+      "該選擇現已作用於實際執行。worklist、預覽與判定不會再指向不同孔位。",
+      "盤檢視的字級隨儲存格縮放，任何視窗寬度下標籤都不會被截斷。"
     ],
-    "highlightsStamp": "0.16.31+60d4442c",
+    "highlightsStamp": "0.16.32+3be3b377",
     "releases": {
       "0.16.28": [
         "應用程式每次執行都在測量卻從未繪製的 5 個 run health 區塊，現已顯示在審閱畫面中，預設收合。",
@@ -2762,6 +2781,13 @@
         "數字位置依設計變體清單解讀，因此不需手工謄寫盤檔案。",
         "確認檔案若包含不同的變體集合，會說明數量並拒絕，而不會標註到錯誤的變體上。",
         "重複次數以檔案實際記錄為準，從 1 次到該輪實際測量的次數都可以。"
+      ],
+      "0.16.32": [
+        "變體清單可直接寫出每列的孔位。寫明後即以此為準，不再推斷列順序。",
+        "範本按鈕會產生已填好全部 96 個孔位的活頁簿，使用者只需填寫 variant 欄。",
+        "對照孔位可選，預設為盤上最後一個孔位，也就是實驗台實際加樣的位置。",
+        "該選擇現已作用於實際執行。worklist、預覽與判定不會再指向不同孔位。",
+        "盤檢視的字級隨儲存格縮放，任何視窗寬度下標籤都不會被截斷。"
       ]
     },
     "releaseStamps": {
@@ -2805,7 +2831,8 @@
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
       "0.16.30": "bab83ea7",
-      "0.16.31": "60d4442c"
+      "0.16.31": "60d4442c",
+      "0.16.32": "3be3b377"
     }
   },
   "primerDisplay": {
@@ -3016,10 +3043,23 @@
         "projectNamePlaceholder": "e.g. Q232A_K287R",
         "projectNameHint": "Used as the export folder and file prefix. Leave empty to auto-name kuro_YYMMDD_HHMM.",
         "error": {
-          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
+          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens.",
+          "plateNameRegex": "請輸入 1-20 個字母、數字、底線或連字號。",
+          "wellOverflow": "{{count}} 孔超出一片 96 孔盤的容量。"
         },
         "bomLabel": "新增 UTF-8 BOM",
-        "bomHint": "(Excel 相容)"
+        "bomHint": "(Excel 相容)",
+        "quadrantLabel": "Echo 來源盤象限",
+        "quadrantNone": "未指定(舊版配置)",
+        "quadrantHelper": "Forward 引子從此開始；reverse 引子進入配對象限(A1-B1、A2-B2)。",
+        "usedQuadrantsLabel": "此盤上已使用的象限",
+        "usedQuadrantsHelper": "若所選配對與其中之一重疊，匯出將被拒絕。",
+        "plateNameFwd": "Forward 引子盤名稱",
+        "plateNameRev": "Reverse 引子盤名稱",
+        "wellCount": "{{count}} 孔",
+        "echoVolLabel": "Echo 轉移體積",
+        "janusVolLabel": "JANUS 轉移體積",
+        "ruleHint": "盤名稱為選填項目。留空將使用後端預設值。"
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",
@@ -3276,7 +3316,20 @@
     "legendDestPartial": "Only F or R arrived",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "目標 well",
-    "missing": "缺少"
+    "missing": "缺少",
+    "echoPopoverPrimerLabel": "引子：",
+    "echoPopoverDirectionLabel": "方向：",
+    "echoPopoverForward": "Forward",
+    "echoPopoverReverse": "Reverse",
+    "echoPopoverSourceWellLabel": "來源孔：",
+    "echoPopoverDestinationLabel": "目的地：",
+    "echoPopoverTransferLabel": "轉移量：",
+    "janusPopoverWellLabel": "孔位：",
+    "janusPopoverVolumeLabel": "體積：",
+    "rowAriaLabel": "第 {{row}} 列",
+    "echoGridAriaLabel": "Echo 來源盤，384 孔",
+    "janusGridAriaLabel": "{{label}}網格",
+    "destGridAriaLabel": "目的地盤，96 孔"
   },
   "errors": {
     "sequence": {

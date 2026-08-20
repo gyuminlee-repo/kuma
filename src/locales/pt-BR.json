@@ -801,6 +801,14 @@
         "helperText": "KURO expected_mutations sheet, or a plain variant list",
         "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
+      "variantTemplate": {
+        "button": "Obter modelo",
+        "helperText": "Uma lista em branco com os 96 wells já escritos na ordem da plate.",
+        "toastSuccess": "Modelo de variantes salvo",
+        "toastSuccessDesc": "{{wells}} wells escritos, WT em {{well}}. Digite uma variante ao lado de cada well e deixe a coluna well intacta.",
+        "toastError": "Não foi possível gravar o modelo de variantes",
+        "openFolder": "Abrir pasta"
+      },
       "referenceFasta": {
         "label": "Construct de referência",
         "placeholder": "Caminho do arquivo .fasta / .fa / .gbk / .dna",
@@ -1391,7 +1399,18 @@
       "wellWithSample": "Poço {{well}}, {{sample}}",
       "wellEmpty": "Poço {{well}}, vazio",
       "keyboardHint": "Setas movem, Espaço alterna, Shift com seta estende a seleção. Arraste para pintar.",
-      "loadFailed": "Não foi possível ler a lista de variantes para desenhar a placa: {{error}}"
+      "loadFailed": "Não foi possível ler a lista de variantes para desenhar a placa: {{error}}",
+      "wtPlacement": {
+        "label": "Posicao do poco de controle",
+        "lastWell": "Ultimo poco (H12)",
+        "afterLastVariant": "Apos a ultima variante",
+        "none": "Sem controle",
+        "helper": "Aplica-se apenas a uma lista de variantes sem coluna Well propria (um arquivo que nomeia seus pocos define sua propria posicao). Apenas redesenha a previa abaixo; a execucao do analyze sempre coloca o controle no ultimo poco, entao esta opcao ainda nao muda o que uma execucao pontua."
+      },
+      "noControlWell": {
+        "body": "Esta placa nao tem poco de controle."
+      },
+      "wellControl": "Poco {{well}}, controle (WT)"
     },
     "replicateModeNotice": {
       "pooled": "Esta execução juntou {{detected}} native barcodes em uma única plate, portanto não há replicates para comparar.",
@@ -2516,13 +2535,13 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "A etapa 4 lê os relatórios Agilent com nomes de amostra numéricos, tanto a triagem da placa inteira quanto a confirmação replicada.",
-      "Uma confirmação replicada é integrada à triagem a que pertence, substituindo esses valores e marcando os que divergem.",
-      "As posições numéricas são resolvidas pela lista de variantes projetadas, então nenhum arquivo de placa precisa ser transcrito à mão.",
-      "Uma confirmação que cobre outro conjunto de variantes é recusada informando as duas contagens, em vez de rotulada com as erradas.",
-      "A contagem de réplicas é a que o arquivo carrega, de uma única medida até quantas a corrida tiver feito."
+      "Uma lista de variantes pode indicar o poço de cada linha. Onde indica, essa é a disposição e nenhuma ordem de linhas é inferida.",
+      "Um botão de modelo grava a planilha com os 96 poços já preenchidos, restando apenas completar a coluna de variantes.",
+      "O poço de controle passa a ser uma escolha e assume por padrão o último poço da placa, onde a bancada de fato pipeta.",
+      "Essa escolha agora chega à execução. A worklist, a prévia e a avaliação apontam os mesmos poços.",
+      "As vistas de placa escalam a tipografia com as células, de modo que os rótulos não são mais cortados em nenhuma largura."
     ],
-    "highlightsStamp": "0.16.31+60d4442c",
+    "highlightsStamp": "0.16.32+3be3b377",
     "releases": {
       "0.16.28": [
         "Cinco seções de run health que o aplicativo media em toda execução e nunca desenhava agora aparecem na tela de revisão, em uma seção que começa fechada.",
@@ -2762,6 +2781,13 @@
         "As posições numéricas são resolvidas pela lista de variantes projetadas, então nenhum arquivo de placa precisa ser transcrito à mão.",
         "Uma confirmação que cobre outro conjunto de variantes é recusada informando as duas contagens, em vez de rotulada com as erradas.",
         "A contagem de réplicas é a que o arquivo carrega, de uma única medida até quantas a corrida tiver feito."
+      ],
+      "0.16.32": [
+        "Uma lista de variantes pode indicar o poço de cada linha. Onde indica, essa é a disposição e nenhuma ordem de linhas é inferida.",
+        "Um botão de modelo grava a planilha com os 96 poços já preenchidos, restando apenas completar a coluna de variantes.",
+        "O poço de controle passa a ser uma escolha e assume por padrão o último poço da placa, onde a bancada de fato pipeta.",
+        "Essa escolha agora chega à execução. A worklist, a prévia e a avaliação apontam os mesmos poços.",
+        "As vistas de placa escalam a tipografia com as células, de modo que os rótulos não são mais cortados em nenhuma largura."
       ]
     },
     "releaseStamps": {
@@ -2805,7 +2831,8 @@
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
       "0.16.30": "bab83ea7",
-      "0.16.31": "60d4442c"
+      "0.16.31": "60d4442c",
+      "0.16.32": "3be3b377"
     }
   },
   "primerDisplay": {
@@ -3016,10 +3043,23 @@
         "projectNamePlaceholder": "e.g. Q232A_K287R",
         "projectNameHint": "Used as the export folder and file prefix. Leave empty to auto-name kuro_YYMMDD_HHMM.",
         "error": {
-          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
+          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens.",
+          "plateNameRegex": "Use de 1 a 20 letras, números, sublinhados ou hífens.",
+          "wellOverflow": "{{count}} poços excedem uma placa de 96 poços."
         },
         "bomLabel": "Adicionar BOM UTF-8",
-        "bomHint": "(compatibilidade com Excel)"
+        "bomHint": "(compatibilidade com Excel)",
+        "quadrantLabel": "Quadrante da placa de origem Echo",
+        "quadrantNone": "Não especificado (layout legado)",
+        "quadrantHelper": "Os primers forward começam aqui; os reverse vão para o quadrante pareado (A1-B1, A2-B2).",
+        "usedQuadrantsLabel": "Quadrantes já usados nesta placa",
+        "usedQuadrantsHelper": "A exportação é recusada se o par selecionado sobrepor um destes.",
+        "plateNameFwd": "Nome da placa de primers forward",
+        "plateNameRev": "Nome da placa de primers reverse",
+        "wellCount": "{{count}} poços",
+        "echoVolLabel": "Volume de transferência Echo",
+        "janusVolLabel": "Volume de transferência JANUS",
+        "ruleHint": "Os nomes das placas são opcionais. Nomes vazios usam os padrões do backend."
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",
@@ -3276,7 +3316,20 @@
     "legendDestPartial": "Only F or R arrived",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "Well de destino",
-    "missing": "ausente"
+    "missing": "ausente",
+    "echoPopoverPrimerLabel": "Primer:",
+    "echoPopoverDirectionLabel": "Direção:",
+    "echoPopoverForward": "Forward",
+    "echoPopoverReverse": "Reverse",
+    "echoPopoverSourceWellLabel": "Poço de origem:",
+    "echoPopoverDestinationLabel": "Destino:",
+    "echoPopoverTransferLabel": "Transferência:",
+    "janusPopoverWellLabel": "Poço:",
+    "janusPopoverVolumeLabel": "Volume:",
+    "rowAriaLabel": "Linha {{row}}",
+    "echoGridAriaLabel": "Placa de origem Echo, 384 poços",
+    "janusGridAriaLabel": "Grade de {{label}}",
+    "destGridAriaLabel": "Placa de destino, 96 poços"
   },
   "errors": {
     "sequence": {

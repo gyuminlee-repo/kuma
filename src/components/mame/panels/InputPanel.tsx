@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { open } from "@tauri-apps/plugin-dialog";
-import { RefreshCw } from "lucide-react";
+import { open, save } from "@tauri-apps/plugin-dialog";
+import { Download, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
@@ -19,6 +19,10 @@ import {
   toDialogExtensions,
 } from "@/lib/mame/fileExtensions";
 import { fileExists, requestOverwriteConfirm } from "@/lib/overwriteConfirm";
+import { revealInOSFolder } from "@/lib/openFolder";
+import { sendRequest } from "@/lib/ipc-mame";
+import { datePrefix } from "@/lib/mameFilename";
+import type { ExportVariantTemplateResult } from "@/types/mame/variant_template";
 
 const INPUT_DIR_CONFIG_KEYS: Record<InputMode, { labelKey: string; helperTextKey: string; placeholderKey: string }> = {
   consensus: {
@@ -63,6 +67,7 @@ export function InputPanel() {
   const project = useKumaProject();
   const [isDetecting, setIsDetecting] = useState(false);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [isWritingTemplate, setIsWritingTemplate] = useState(false);
 
   async function handleRedetect() {
     if (!project?.path) return;
@@ -153,6 +158,53 @@ export function InputPanel() {
     // columns it has read, and the auto-detected column it preselects is the
     // one the backend would read on its own.
     void inspectVariantSource(selected);
+  }
+
+  /**
+   * Issue the blank variant list, wells already written in.
+   *
+   * The point of the round trip is that the file the operator hands back says
+   * which well each variant belongs to. That only holds if the wells came from
+   * here rather than from a spreadsheet someone typed, so the template is
+   * written by the sidecar off plate_geometry and is not assembled in the UI.
+   *
+   * Same save shape as the other exports: dialog, app-level overwrite confirm
+   * on top of the OS one, then a toast with Open folder.
+   */
+  async function downloadVariantTemplate() {
+    const target = await save({
+      filters: [{ name: "Variant list (Excel)", extensions: ["xlsx"] }],
+      defaultPath: `${datePrefix()}_MAME_variant_template.xlsx`,
+    });
+    if (!target) return;
+    if (await fileExists(target)) {
+      const decision = await requestOverwriteConfirm(target);
+      if (decision === "cancel") return;
+    }
+    setIsWritingTemplate(true);
+    try {
+      const result = await sendRequest<ExportVariantTemplateResult>(
+        "export_variant_template",
+        { output_path: target },
+      );
+      toast.success(t("mame.inputPanel.variantTemplate.toastSuccess"), {
+        description: t("mame.inputPanel.variantTemplate.toastSuccessDesc", {
+          wells: result.wells,
+          well: result.control_well ?? "",
+        }),
+        duration: 6000,
+        action: {
+          label: t("mame.inputPanel.variantTemplate.openFolder"),
+          onClick: () => void revealInOSFolder(result.output_path),
+        },
+      });
+    } catch (error) {
+      toast.error(t("mame.inputPanel.variantTemplate.toastError"), {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      setIsWritingTemplate(false);
+    }
   }
 
   async function browseReference() {
@@ -307,6 +359,28 @@ export function InputPanel() {
         readyLabel={readyLabel}
         browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.inputPanel.kuroXlsx.label") })}
       />
+      {/* The outbound half of the round trip. Sits under the picker because
+          this is where an operator with no file yet stands, and the whole point
+          is that the file they bring back is one this app issued. */}
+      <div className="-mt-2 flex items-center gap-2 pl-1">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void downloadVariantTemplate()}
+          disabled={isWritingTemplate}
+          className="h-7"
+        >
+          {isWritingTemplate ? (
+            <Spinner size="sm" />
+          ) : (
+            <Download className="h-3 w-3" aria-hidden="true" />
+          )}
+          <span className="ml-1">{t("mame.inputPanel.variantTemplate.button")}</span>
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          {t("mame.inputPanel.variantTemplate.helperText")}
+        </p>
+      </div>
       <VariantColumnMapping />
       <FileField
         label={t("mame.inputPanel.referenceFasta.label")}

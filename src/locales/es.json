@@ -801,6 +801,14 @@
         "helperText": "KURO expected_mutations sheet, or a plain variant list",
         "helpText": "A KURO export is read from its expected_mutations sheet and the status filter runs first. Any other workbook lets you pick the sheet and the variant column yourself."
       },
+      "variantTemplate": {
+        "button": "Obtener plantilla",
+        "helperText": "Una lista en blanco con los 96 wells ya escritos en orden de plate.",
+        "toastSuccess": "Plantilla de variantes guardada",
+        "toastSuccessDesc": "{{wells}} wells escritos, WT en {{well}}. Escriba una variante junto a cada well y deje la columna well sin tocar.",
+        "toastError": "No se pudo escribir la plantilla de variantes",
+        "openFolder": "Abrir carpeta"
+      },
       "referenceFasta": {
         "label": "Construct de referencia",
         "placeholder": "Ruta del archivo .fasta / .fa / .gbk / .dna",
@@ -1391,7 +1399,18 @@
       "wellWithSample": "Pocillo {{well}}, {{sample}}",
       "wellEmpty": "Pocillo {{well}}, vacío",
       "keyboardHint": "Las flechas mueven, Espacio alterna, Mayús con flecha extiende la selección. Arrastre para pintar.",
-      "loadFailed": "No se pudo leer la lista de variantes para dibujar la placa: {{error}}"
+      "loadFailed": "No se pudo leer la lista de variantes para dibujar la placa: {{error}}",
+      "wtPlacement": {
+        "label": "Ubicacion del pocillo control",
+        "lastWell": "Ultimo pocillo (H12)",
+        "afterLastVariant": "Despues de la ultima variante",
+        "none": "Sin control",
+        "helper": "Solo se aplica a una lista de variantes sin columna Well propia (un archivo que nombra sus pocillos impone su propia ubicacion). Solo redibuja la vista previa de abajo; la ejecucion de analyze siempre coloca el control en el ultimo pocillo, asi que este ajuste aun no cambia lo que puntua una corrida."
+      },
+      "noControlWell": {
+        "body": "Esta placa no tiene pocillo control."
+      },
+      "wellControl": "Pocillo {{well}}, control (WT)"
     },
     "replicateModeNotice": {
       "pooled": "Esta ejecución agrupó {{detected}} native barcodes en una sola plate, así que no hay replicates que comparar.",
@@ -2516,13 +2535,13 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El paso 4 lee los informes Agilent con nombres de muestra numéricos, tanto el cribado de la placa completa como la confirmación replicada.",
-      "Una confirmación replicada se integra en el cribado al que pertenece, sustituye esos valores y señala los que discrepan.",
-      "Las posiciones numéricas se resuelven con la lista de variantes diseñadas, así que no hay que transcribir a mano ningún archivo de placa.",
-      "Una confirmación que cubre otro conjunto de variantes se rechaza indicando ambos recuentos, en vez de etiquetarse con las equivocadas.",
-      "El número de réplicas es el que trae el archivo, desde una sola medida hasta tantas como hiciera el ensayo."
+      "Una lista de variantes puede indicar el pocillo de cada fila. Donde lo hace, esa es la colocación y no se infiere el orden de filas.",
+      "Un botón de plantilla escribe el libro con los 96 pocillos ya puestos, de modo que solo queda completar la columna de variantes.",
+      "El pocillo de control es una opción y ahora toma por defecto el último de la placa, que es donde el laboratorio lo pipetea.",
+      "Esa opción ya llega a la ejecución. La worklist, la vista previa y la evaluación nombran los mismos pocillos.",
+      "Las vistas de placa escalan su tipografía con las celdas, así que las etiquetas ya no se recortan a ningún ancho de ventana."
     ],
-    "highlightsStamp": "0.16.31+60d4442c",
+    "highlightsStamp": "0.16.32+3be3b377",
     "releases": {
       "0.16.28": [
         "Cinco secciones de run health que la aplicación medía en cada ejecución y nunca dibujaba ya aparecen en la pantalla de revisión, en una sección que empieza cerrada.",
@@ -2762,6 +2781,13 @@
         "Las posiciones numéricas se resuelven con la lista de variantes diseñadas, así que no hay que transcribir a mano ningún archivo de placa.",
         "Una confirmación que cubre otro conjunto de variantes se rechaza indicando ambos recuentos, en vez de etiquetarse con las equivocadas.",
         "El número de réplicas es el que trae el archivo, desde una sola medida hasta tantas como hiciera el ensayo."
+      ],
+      "0.16.32": [
+        "Una lista de variantes puede indicar el pocillo de cada fila. Donde lo hace, esa es la colocación y no se infiere el orden de filas.",
+        "Un botón de plantilla escribe el libro con los 96 pocillos ya puestos, de modo que solo queda completar la columna de variantes.",
+        "El pocillo de control es una opción y ahora toma por defecto el último de la placa, que es donde el laboratorio lo pipetea.",
+        "Esa opción ya llega a la ejecución. La worklist, la vista previa y la evaluación nombran los mismos pocillos.",
+        "Las vistas de placa escalan su tipografía con las celdas, así que las etiquetas ya no se recortan a ningún ancho de ventana."
       ]
     },
     "releaseStamps": {
@@ -2805,7 +2831,8 @@
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
       "0.16.30": "bab83ea7",
-      "0.16.31": "60d4442c"
+      "0.16.31": "60d4442c",
+      "0.16.32": "3be3b377"
     }
   },
   "primerDisplay": {
@@ -3016,10 +3043,23 @@
         "projectNamePlaceholder": "e.g. Q232A_K287R",
         "projectNameHint": "Used as the export folder and file prefix. Leave empty to auto-name kuro_YYMMDD_HHMM.",
         "error": {
-          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens."
+          "projectNameRegex": "Use up to 40 letters, numbers, Korean characters, underscores, or hyphens.",
+          "plateNameRegex": "Use de 1 a 20 letras, números, guiones bajos o guiones.",
+          "wellOverflow": "{{count}} pocillos superan una placa de 96 pocillos."
         },
         "bomLabel": "Añadir BOM UTF-8",
-        "bomHint": "(compatibilidad con Excel)"
+        "bomHint": "(compatibilidad con Excel)",
+        "quadrantLabel": "Cuadrante de la placa fuente Echo",
+        "quadrantNone": "No especificado (diseño heredado)",
+        "quadrantHelper": "Los primers forward comienzan aquí; los reverse van al cuadrante emparejado (A1-B1, A2-B2).",
+        "usedQuadrantsLabel": "Cuadrantes ya utilizados en esta placa",
+        "usedQuadrantsHelper": "La exportación se rechaza si el par seleccionado coincide con uno de estos.",
+        "plateNameFwd": "Nombre de la placa de primers forward",
+        "plateNameRev": "Nombre de la placa de primers reverse",
+        "wellCount": "{{count}} pocillos",
+        "echoVolLabel": "Volumen de transferencia Echo",
+        "janusVolLabel": "Volumen de transferencia JANUS",
+        "ruleHint": "Los nombres de placa son opcionales. Los nombres vacíos usan los valores predeterminados del backend."
       },
       "macrogen": {
         "title": "Order Primers (Macrogen)",
@@ -3276,7 +3316,20 @@
     "legendDestPartial": "Only F or R arrived",
     "subtitle": "Echo and Janus mapping files are independent Excel/CSV outputs.",
     "destWell": "Well destino",
-    "missing": "falta"
+    "missing": "falta",
+    "echoPopoverPrimerLabel": "Primer:",
+    "echoPopoverDirectionLabel": "Dirección:",
+    "echoPopoverForward": "Forward",
+    "echoPopoverReverse": "Reverse",
+    "echoPopoverSourceWellLabel": "Pocillo de origen:",
+    "echoPopoverDestinationLabel": "Destino:",
+    "echoPopoverTransferLabel": "Transferencia:",
+    "janusPopoverWellLabel": "Pocillo:",
+    "janusPopoverVolumeLabel": "Volumen:",
+    "rowAriaLabel": "Fila {{row}}",
+    "echoGridAriaLabel": "Placa fuente Echo, 384 pocillos",
+    "janusGridAriaLabel": "Cuadrícula de {{label}}",
+    "destGridAriaLabel": "Placa de destino, 96 pocillos"
   },
   "errors": {
     "sequence": {

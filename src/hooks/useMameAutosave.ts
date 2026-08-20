@@ -21,6 +21,7 @@ function selectMameInputs(s: ReturnType<typeof useMameAppStore.getState>) {
     s.referencePath,
     s.outputPath,
     s.selectedWells,
+    s.wtPlacement,
     s.mode,
     s.ingestMode,
     s.inputMode,

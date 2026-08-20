@@ -30,7 +30,7 @@ import type { RunQuality } from "@/types/mame/run_quality";
 import type { CdsCandidate } from "@/lib/sequence/autoDetectCds";
 import type { NativeBarcodeUsage } from "@/types/mame/detect_native_barcodes";
 import type { VariantSourceInfo } from "@/types/mame/barcode_package";
-import type { WellLayout } from "@/types/mame/well_layout";
+import type { WellLayout, WtPlacement } from "@/types/mame/well_layout";
 
 export type InputMode = "consensus" | "sorted_barcode" | "raw_run";
 
@@ -95,6 +95,23 @@ export interface InputSlice {
    * one.
    */
   wellSelectionOccupants: number | null;
+  /**
+   * Where the control well goes when the variant list names no well for it.
+   * Ignored (and the picker that sets this disabled) for a file carrying a
+   * `Well` column, which states the control well itself. Sent as
+   * `wt_placement` on the `mame.build_well_layout` call `WellSelectionPanel`
+   * makes to draw the grid; the default (`"last_well"`) reproduces the
+   * pre-2026-08-18 backend behaviour, so an operator who never touches this
+   * sees no change.
+   */
+  wtPlacement: WtPlacement;
+  /**
+   * The control well the current draft placed, or null when this plate
+   * carries no control well. Written by `WellSelectionPanel` off the same
+   * `build_well_layout` response `wellSelectionOccupants` comes from, and
+   * read by `NoControlWellNotice`. null before anything has been read.
+   */
+  wtWell: string | null;
   /**
    * An existing project's `sample_map_template.xlsx`, named by its schema-1
    * `mame_context.json`. NOT an input: the sample map was removed because it
@@ -228,6 +245,8 @@ export interface InputSlice {
   setOutputPath: (path: string) => void;
   setSelectedWells: (wells: string[] | null) => void;
   setWellSelectionOccupants: (count: number | null) => void;
+  setWtPlacement: (placement: WtPlacement) => void;
+  setWtWell: (well: string | null) => void;
   setLegacySampleMapPath: (path: string | null) => void;
   setProjectPath: (path: string | null) => void;
   setParams: (

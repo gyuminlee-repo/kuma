@@ -273,11 +273,23 @@ class BuildWellLayoutParams(BaseModel):
         this) gets exactly the previous behaviour on a KURO export. They mirror
         the ``generate_mame_package`` params of the same names so this layout and
         every other read of the file come off the same rows.
+    wt_placement
+        Where to put the control well when the file does not name one:
+        ``"last_well"`` (H12), ``"after_last_variant"``, or ``"none"``. Values of
+        ``kuma_core.mame.layout.WtPlacement``. ``None`` takes
+        ``DEFAULT_WT_PLACEMENT``, which is ``"last_well"``.
+
+        Ignored for a file carrying a ``Well`` column, which states the control
+        well itself. Same field name and same validation as ``analyze``'s and
+        ``mame.export_barcode_worklist``'s ``wt_placement``: the preview this
+        RPC draws, the plate a run scores, and the sheet a bench pipettes from
+        must all place the control well at the same request's answer.
     """
 
     expected_mutations_xlsx: str
     variant_sheet: str | None = None
     variant_column: str | None = None
+    wt_placement: str | None = None
 
     @field_validator("expected_mutations_xlsx", mode="after")
     @classmethod
@@ -287,6 +299,26 @@ class BuildWellLayoutParams(BaseModel):
             raise ValueError(f"Path traversal not allowed: {v}")
         if not p.exists():
             raise ValueError(f"expected_mutations_xlsx not found: {v}")
+        return v
+
+    @field_validator("wt_placement", mode="after")
+    @classmethod
+    def _check_wt_placement(cls, v: str | None) -> str | None:
+        """Refuse an unknown policy rather than falling back to the default.
+
+        Silently defaulting would place the control somewhere the caller did not
+        ask for and say nothing, which is the class of failure this whole change
+        exists to remove. The field stays a plain string (not the resolved
+        enum): ``resolve_wt_placement`` is called again, and only for its
+        validation side effect, by whichever handler reads this field, because
+        every ``wt_placement``-accepting RPC resolves the param through that one
+        function and none of them keep an enum on their model.
+        """
+        if v is None:
+            return v
+        from kuma_core.mame.layout import resolve_wt_placement
+
+        resolve_wt_placement(v)
         return v
 
 
@@ -314,6 +346,14 @@ class ExportBarcodeWorklistParams(BaseModel):
     variant_sheet, variant_column
         Sheet and column holding the variant labels, mirroring
         ``BuildWellLayoutParams`` so both reads land on the same rows.
+    wt_placement
+        Where to put the control well when the file does not name one, same
+        values and same default as ``BuildWellLayoutParams.wt_placement``. The
+        worklist places the same plate the run and the preview place, so a
+        request naming ``after_last_variant`` or ``none`` here must draw the
+        same wells as the same request to ``mame.build_well_layout`` and to
+        ``analyze`` -- pipetting from a sheet that named a different plate is
+        the failure this parameter exists to prevent.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -324,6 +364,24 @@ class ExportBarcodeWorklistParams(BaseModel):
     custom_barcodes_xlsx: str | None = None
     variant_sheet: str | None = None
     variant_column: str | None = None
+    wt_placement: str | None = None
+
+    @field_validator("wt_placement", mode="after")
+    @classmethod
+    def _check_wt_placement(cls, v: str | None) -> str | None:
+        """Same check as ``BuildWellLayoutParams``'s, because it is the same
+        function: :func:`kuma_core.mame.layout.resolve_wt_placement`.
+
+        Silently defaulting would place the control somewhere the caller did not
+        ask for and say nothing, which is the class of failure this whole change
+        exists to remove.
+        """
+        if v is None:
+            return v
+        from kuma_core.mame.layout import resolve_wt_placement
+
+        resolve_wt_placement(v)
+        return v
 
     @field_validator("expected_mutations_xlsx", "custom_barcodes_xlsx", mode="after")
     @classmethod
