@@ -881,7 +881,7 @@ class LoadEvolveproParams(BaseModel):
     linker_handling: Literal["include", "exclude", "separate-bin"] = "include"
     domain_quota_min: int = Field(default=1, ge=0, le=20)
     pareto_diversity: bool = False
-    entropy_weight: float = Field(default=0.0, ge=0.0)
+    entropy_weight: float = Field(default=0.0, ge=0.0, le=1.0)
     pool_multiplier: float = Field(default=2.0, ge=1.0, le=10.0)
     distance_mode: Literal["auto", "1d", "3d"] = "auto"
     structure_accession: Optional[str] = None

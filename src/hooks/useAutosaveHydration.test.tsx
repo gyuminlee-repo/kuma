@@ -1833,6 +1833,31 @@ describe("applyKuroSnapshot: 지문 기반 재도출 건너뛰기 (schema 5)", (
     expect(useAppStore.getState().maxPrimers).toBe(96);
   });
 
+  it("범위 밖 entropy_weight를 담은 스냅샷은 1로 클램프되어 복원된다", async () => {
+    // 바로 위 structural_kappa와 같은 0..1 블렌드 가중치다. 드롭이 아니라
+    // 클램프로 처리하는 이유는 max_primers 쪽 주석과 같다.
+    // 0..1 안의 값만 쓰면 clamp 유무로 답이 갈리지 않으므로 1을 넘기는 값을 넣는다.
+    // 사이드카 LoadEvolveproParams.entropy_weight가 le=1.0이라, 클램프가 없으면
+    // 이 값이 그대로 RPC로 나가 ValidationError가 된다.
+    const snapshot = fastPathSnapshot();
+    (snapshot.diversity as Record<string, unknown>).entropy_weight = 5;
+
+    await applyKuroSnapshot(snapshot);
+
+    expect(useAppStore.getState().entropyWeight).toBe(1);
+  });
+
+  it("범위 안 entropy_weight는 그대로 복원된다", async () => {
+    // 클램프가 정상 값까지 건드리지 않는다는 쪽을 고정한다.
+    // 픽스처 기본값(0.3)과 구별되는 값을 써야 실제로 복원된 것임을 알 수 있다.
+    const snapshot = fastPathSnapshot();
+    (snapshot.diversity as Record<string, unknown>).entropy_weight = 0.7;
+
+    await applyKuroSnapshot(snapshot);
+
+    expect(useAppStore.getState().entropyWeight).toBe(0.7);
+  });
+
   it("(c) 화면 위치(navigation)가 저장된 값으로 복원된다", async () => {
     await applyKuroSnapshot(
       fastPathSnapshot({
