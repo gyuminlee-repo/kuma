@@ -2580,12 +2580,17 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A numeric-ID report is decoded against the wells a variant list states, rather than wells recomputed from residue position.",
-      "Taking the plate order from the designed variant list works at all now. It was refused for a well spelling that differed by one zero.",
-      "A list that states its wells may list its rows in any order, and the placement it declares is what the decode uses."
+      "Mutations whose primer is already at the minimum length are recovered, instead of being reported as having no valid pair.",
+      "The recovered primer anneals with the rest of the plate rather than well above it, because shortening is an option now.",
+      "The round that surfaced this goes from 93 of 95 to 95 of 95 with no change to the primers that already succeeded."
     ],
-    "highlightsStamp": "0.16.33+059a2f27",
+    "highlightsStamp": "0.16.34+d7925cb6",
     "releases": {
+      "0.16.34": [
+        "Mutations whose primer is already at the minimum length are recovered, instead of being reported as having no valid pair.",
+        "The recovered primer anneals with the rest of the plate rather than well above it, because shortening is an option now.",
+        "The round that surfaced this goes from 93 of 95 to 95 of 95 with no change to the primers that already succeeded."
+      ],
       "0.16.33": [
         "A numeric-ID report is decoded against the wells a variant list states, rather than wells recomputed from residue position.",
         "Taking the plate order from the designed variant list works at all now. It was refused for a well spelling that differed by one zero.",
@@ -2839,6 +2844,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.34": "d7925cb6",
       "0.16.33": "059a2f27",
       "0.16.32": "3be3b377",
       "0.16.31": "60d4442c",

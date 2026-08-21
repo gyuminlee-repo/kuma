@@ -2537,11 +2537,11 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Un rapport à identifiants numériques est décodé selon les puits indiqués par la liste de variants, et non selon des puits recalculés depuis la position du résidu.",
-      "Prendre l'ordre de plaque dans la liste des variants conçus fonctionne enfin. C'était refusé pour une écriture de puits différant d'un zéro.",
-      "Une liste qui indique ses puits peut ranger ses lignes dans n'importe quel ordre, et la disposition qu'elle déclare est celle qui sert."
+      "Les mutations dont l amorce est déjà à la longueur minimale sont désormais récupérées au lieu d être signalées sans paire valide.",
+      "L amorce récupérée s hybride dans la même plage que le reste de la plaque, car raccourcir est maintenant une option.",
+      "La série qui a révélé ce problème passe de 93 sur 95 à 95 sur 95, sans modifier les amorces déjà réussies."
     ],
-    "highlightsStamp": "0.16.33+059a2f27",
+    "highlightsStamp": "0.16.34+d7925cb6",
     "releases": {
       "0.16.28": [
         "Cinq sections run health que l'application mesurait à chaque exécution sans jamais les afficher figurent désormais sur l'écran de revue, repliées au départ.",
@@ -2793,6 +2793,11 @@
         "Un rapport à identifiants numériques est décodé selon les puits indiqués par la liste de variants, et non selon des puits recalculés depuis la position du résidu.",
         "Prendre l'ordre de plaque dans la liste des variants conçus fonctionne enfin. C'était refusé pour une écriture de puits différant d'un zéro.",
         "Une liste qui indique ses puits peut ranger ses lignes dans n'importe quel ordre, et la disposition qu'elle déclare est celle qui sert."
+      ],
+      "0.16.34": [
+        "Les mutations dont l amorce est déjà à la longueur minimale sont désormais récupérées au lieu d être signalées sans paire valide.",
+        "L amorce récupérée s hybride dans la même plage que le reste de la plaque, car raccourcir est maintenant une option.",
+        "La série qui a révélé ce problème passe de 93 sur 95 à 95 sur 95, sans modifier les amorces déjà réussies."
       ]
     },
     "releaseStamps": {
@@ -2838,7 +2843,8 @@
       "0.16.30": "bab83ea7",
       "0.16.31": "60d4442c",
       "0.16.32": "3be3b377",
-      "0.16.33": "059a2f27"
+      "0.16.33": "059a2f27",
+      "0.16.34": "d7925cb6"
     }
   },
   "primerDisplay": {

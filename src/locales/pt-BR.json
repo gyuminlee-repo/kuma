@@ -2537,11 +2537,11 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Um relatório com IDs numéricos é decodificado pelos poços que a lista de variantes indica, e não por poços recalculados pela posição do resíduo.",
-      "Usar a lista de variantes projetadas como ordem da placa agora funciona. Antes era recusado por uma grafia de poço que diferia em um zero.",
-      "Uma lista que indica seus poços pode ordenar as linhas como quiser, e a disposição declarada é a que vale."
+      "Mutações cujo primer já está no comprimento mínimo agora são recuperadas em vez de relatadas sem par válido.",
+      "O primer recuperado se anela na mesma faixa que o restante da placa, porque encurtar agora é uma opção.",
+      "A rodada que revelou isso vai de 93 de 95 para 95 de 95, sem alterar os primers que já funcionavam."
     ],
-    "highlightsStamp": "0.16.33+059a2f27",
+    "highlightsStamp": "0.16.34+d7925cb6",
     "releases": {
       "0.16.28": [
         "Cinco seções de run health que o aplicativo media em toda execução e nunca desenhava agora aparecem na tela de revisão, em uma seção que começa fechada.",
@@ -2793,6 +2793,11 @@
         "Um relatório com IDs numéricos é decodificado pelos poços que a lista de variantes indica, e não por poços recalculados pela posição do resíduo.",
         "Usar a lista de variantes projetadas como ordem da placa agora funciona. Antes era recusado por uma grafia de poço que diferia em um zero.",
         "Uma lista que indica seus poços pode ordenar as linhas como quiser, e a disposição declarada é a que vale."
+      ],
+      "0.16.34": [
+        "Mutações cujo primer já está no comprimento mínimo agora são recuperadas em vez de relatadas sem par válido.",
+        "O primer recuperado se anela na mesma faixa que o restante da placa, porque encurtar agora é uma opção.",
+        "A rodada que revelou isso vai de 93 de 95 para 95 de 95, sem alterar os primers que já funcionavam."
       ]
     },
     "releaseStamps": {
@@ -2838,7 +2843,8 @@
       "0.16.30": "bab83ea7",
       "0.16.31": "60d4442c",
       "0.16.32": "3be3b377",
-      "0.16.33": "059a2f27"
+      "0.16.33": "059a2f27",
+      "0.16.34": "d7925cb6"
     }
   },
   "primerDisplay": {

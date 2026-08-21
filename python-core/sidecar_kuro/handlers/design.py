@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import TypedDict
 
 from kuma_core.kuro.sdm_engine import (
+    DEFAULT_FWD_LEN_MIN,
+    DEFAULT_REV_LEN_MIN,
     OverlapMode,
     SdmPrimerResult,
     design_single_sdm,
@@ -225,6 +227,8 @@ def _relaxed_floor(requested: int | None, profile_value: int | None, fallback: i
     `requested` is None whenever the caller left the length to the polymerase
     profile, which is the usual case, so the profile value has to be resolved
     the same way design_single_sdm resolves it before anything can be taken off.
+    The fallback comes from sdm_engine rather than a second copy of the number,
+    which is what the kuro-rescue-constants sync group is there to keep honest.
     """
     resolved = requested if requested is not None else (
         profile_value if profile_value is not None else fallback
@@ -461,8 +465,12 @@ def handle_design_sdm_primers(params: dict) -> dict:
                     "tol_max": min(p.tol_max + _RELAX_TOL_DELTA, _MAX_TOL_MAX),
                     "gc_min": max(_GC_FLOOR, p.gc_min - _RELAX_GC_DELTA),
                     "gc_max": min(_GC_CEIL, p.gc_max + _RELAX_GC_DELTA),
-                    "fwd_len_min": _relaxed_floor(p.fwd_len_min, profile.fwd_len_min, 17),
-                    "rev_len_min": _relaxed_floor(p.rev_len_min, profile.rev_len_min, 19),
+                    "fwd_len_min": _relaxed_floor(
+                        p.fwd_len_min, profile.fwd_len_min, DEFAULT_FWD_LEN_MIN,
+                    ),
+                    "rev_len_min": _relaxed_floor(
+                        p.rev_len_min, profile.rev_len_min, DEFAULT_REV_LEN_MIN,
+                    ),
                 }
                 for failed_mut in list(still_failed):
                     if cancel_event.is_set():
