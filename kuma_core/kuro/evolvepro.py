@@ -458,18 +458,34 @@ def _load_evolvepro_rows(
 
     v_col, s_col = _resolve_evolvepro_columns(columns, variant_column, score_column)
 
+    # Score-free mode: either no score column was resolved at all, or the
+    # resolved column is blank in every row. Both mean "this file carries no
+    # fitness values", which downstream handles via has_score. A column that
+    # holds values in *some* rows is not score-free: a blank or unparseable
+    # cell there is an unknown value, and an unknown must not be substituted
+    # with 0.0, because 0.0 is itself a measurable fitness on this scale.
+    score_free = s_col is None or not any(
+        str(row.get(s_col, "") or "").strip() for row in table_rows
+    )
+
     result: list[tuple[str, float, float]] = []
     for row in table_rows:
         variant = row.get(v_col, "").strip()
         if not variant:
             continue
         variant = _normalize_variant_notation(variant, ref_seq)
-        try:
-            raw = float(row[s_col]) if s_col and row.get(s_col) else 0.0
-        except (ValueError, TypeError):
+        if score_free:
             raw = 0.0
-        if not math.isfinite(raw):
-            raw = 0.0
+        else:
+            cell = row.get(s_col, "") if s_col else ""
+            if not str(cell or "").strip():
+                continue  # unknown score: drop the row rather than rank it as 0
+            try:
+                raw = float(cell)
+            except (ValueError, TypeError):
+                continue  # unparseable score: drop the row
+            if not math.isfinite(raw):
+                continue  # NaN/inf is not a measurement: drop the row
         sort_score = -raw if score_order == "asc" else raw
         result.append((variant, sort_score, raw))
     return result
@@ -478,13 +494,15 @@ def _load_evolvepro_rows(
 def _variant_has_position_one(variant: str) -> bool:
     """Return True if any token in a (possibly multi-variant) string is at position 1.
 
-    Tokens are split on '/' and ','. Each token is matched against
-    _SINGLE_POS_RE; if the captured position is 1 the function returns True
-    immediately.  Non-matching tokens (e.g. "WT") are silently ignored.
-    Position 1 encodes the initiator Met; substituting it abolishes protein
-    expression, so such variants must be excluded before primer design.
+    Tokens are split with _TOKEN_SPLIT_RE (whitespace, '/', ','), the same
+    splitter _extract_aa_position and _combo_positions use, so a whitespace-
+    separated combo ("M1A A2V") cannot slip past this filter. Each token is
+    matched against _SINGLE_POS_RE; if the captured position is 1 the function
+    returns True immediately.  Non-matching tokens (e.g. "WT") are silently
+    ignored. Position 1 encodes the initiator Met; substituting it abolishes
+    protein expression, so such variants must be excluded before primer design.
     """
-    for token in re.split(r"[/,]", variant):
+    for token in _TOKEN_SPLIT_RE.split(variant):
         token = token.strip()
         m = _SINGLE_POS_RE.match(token)
         if m and int(m.group(1)) == 1:
@@ -583,6 +601,17 @@ def load_evolvepro_csv(
     start_codon_removed_variants: list[str] = [r[0] for r in raw_rows if _variant_has_position_one(r[0])]
     raw_rows = [r for r in raw_rows if not _variant_has_position_one(r[0])]
     start_codon_removed = len(start_codon_removed_variants)
+    # Collapse duplicate variants to their first occurrence. raw_map is keyed by
+    # variant, so without this a repeated variant would consume two selection
+    # slots while every reported score came from the last row seen.
+    _seen_variants: set[str] = set()
+    _unique_rows: list[tuple[str, float, float]] = []
+    for _row in raw_rows:
+        if _row[0] in _seen_variants:
+            continue
+        _seen_variants.add(_row[0])
+        _unique_rows.append(_row)
+    raw_rows = _unique_rows
     # Build (variant, sort_score) pairs for all downstream filters/selectors.
     # raw_map keeps the original score for the final response yPredMap.
     score_rows: list[tuple[str, float]] = [(v, s) for v, s, _ in raw_rows]
@@ -695,7 +724,10 @@ def load_evolvepro_csv(
     ranked_candidates = [
         {
             "variant": v,
-            "y_pred": round(raw_map.get(v, 0.0) if math.isfinite(raw_map.get(v, 0.0)) else 0.0, 4),
+            # raw_map holds a finite score for every row in ranked_full, so a
+            # direct lookup is safe. A missing key would mean the invariant
+            # broke, and a KeyError is preferable to reporting a fake 0.0.
+            "y_pred": round(raw_map[v], 4),
             "aa_position": _extract_aa_position(v),
         }
         for v in ordered if v in keep
@@ -703,7 +735,7 @@ def load_evolvepro_csv(
 
     return {
         "variants": [v for v, _ in selected],
-        "y_preds": [round(raw_map.get(v, 0.0) if math.isfinite(raw_map.get(v, 0.0)) else 0.0, 4) for v in (v for v, _ in selected)],
+        "y_preds": [round(raw_map[v], 4) for v, _ in selected],
         "total_count": pre_filter_count,
         "selected_count": len(selected),
         "filtered_count": position_filter_removed,

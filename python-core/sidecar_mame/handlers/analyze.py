@@ -370,6 +370,44 @@ def _serialize_replicate(rr: Any) -> dict:
     }
 
 
+#: How a serialized boolean can be spelled. JSON writes ``true``/``false``, but a
+#: payload that travelled through a CSV, an environment variable, or a hand-edited
+#: cache file carries the word instead, and ``bool("false")`` is ``True``.
+_TRUE_TEXT = frozenset({"true", "t", "yes", "y", "1", "on"})
+_FALSE_TEXT = frozenset({"false", "f", "no", "n", "0", "off", ""})
+
+
+def _as_bool(value: object, default: bool) -> bool:
+    """Read a serialized boolean, whatever spelling it was stored in.
+
+    ``bool(value)`` is wrong for exactly the case that matters: every non-empty
+    string is truthy, so a payload holding the *word* ``"false"`` restored as
+    ``True``. For ``consensus_n_fraction_evaluable`` that inverted the flag whose
+    whole job is to say the N fraction means nothing, and the N-fraction gate
+    then ran on a number nobody could measure, reporting a clean well.
+
+    ``None`` (the key absent, which is what a payload written before the field
+    existed looks like) takes *default*, so a legacy payload restores exactly as
+    it does today. So does a string that is neither spelling: the value is
+    unreadable rather than false, and a cache file is not worth failing a
+    multi-minute run over, so the field's own default stands.
+    """
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in _TRUE_TEXT:
+            return True
+        if text in _FALSE_TEXT:
+            return False
+        return default
+    return bool(value)
+
+
 def _deserialize_verdict(d: dict) -> Any:
     """Inverse of ``_serialize_verdict``: rebuild a ``VerdictRecord`` dataclass.
 
@@ -412,8 +450,8 @@ def _deserialize_verdict(d: dict) -> Any:
         ),
         n_low_depth_positions=int(d.get("n_low_depth_positions", 0)),
         consensus_n_fraction=float(d.get("consensus_n_fraction", 0.0)),
-        consensus_n_fraction_evaluable=bool(
-            d.get("consensus_n_fraction_evaluable", True)
+        consensus_n_fraction_evaluable=_as_bool(
+            d.get("consensus_n_fraction_evaluable"), True
         ),
         n_low_quality_bases=int(d.get("n_low_quality_bases", 0)),
         n_input_reads=d.get("n_input_reads"),
@@ -488,8 +526,8 @@ def _deserialize_replicate(d: dict) -> Any:
         plate_verdicts=plate_verdicts,
         selected_plate=d.get("selected_plate"),
         selection_reason=d.get("selection_reason", ""),
-        failed=bool(d.get("failed", False)),
-        is_fallback=bool(d.get("is_fallback", False)),
+        failed=_as_bool(d.get("failed"), False),
+        is_fallback=_as_bool(d.get("is_fallback"), False),
         fallback_reason=d.get("fallback_reason"),
     )
 

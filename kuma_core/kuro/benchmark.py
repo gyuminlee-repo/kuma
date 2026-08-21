@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import random
 from collections.abc import Mapping, Sequence
 from itertools import combinations
@@ -45,10 +46,21 @@ def _structural_spread(
         return 0.0
 
     if ca_coords:
+        # pairwise_ca_distance returns its documented 1.0 sentinel for a missing
+        # or out-of-range coordinate (alphafold.pairwise_ca_distance). The
+        # sentinel is correct there, but averaging it in here would report an
+        # unknown pair as a maximally distant one and inflate the metric, so
+        # only pairs with two known coordinates are averaged.
+        known = [
+            pos for pos in positions
+            if 0 < pos < len(ca_coords) and ca_coords[pos] is not None
+        ]
+        if len(known) < 2:
+            return 0.0
         max_dist = ca_max_dist(ca_coords)
         distances = [
             pairwise_ca_distance(ca_coords, a, b, max_dist)
-            for a, b in combinations(positions, 2)
+            for a, b in combinations(known, 2)
         ]
     else:
         max_pos = max(positions)
@@ -168,7 +180,9 @@ def evaluate_selection(
             "threshold": 0.0,
         }
 
-    threshold_idx = max(1, int(len(all_fitness) * top_percentile / 100))
+    # Round up: flooring would make the "top 10%" of 19 variants a single
+    # variant (5.3%) while still reporting it as 10%.
+    threshold_idx = max(1, math.ceil(len(all_fitness) * top_percentile / 100))
     hit_threshold = all_fitness[threshold_idx - 1]
 
     hits = 0

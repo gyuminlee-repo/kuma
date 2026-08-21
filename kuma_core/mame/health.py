@@ -220,7 +220,15 @@ def _parse_pore_activity(run_dir: Path) -> float | None:
         pct_col = _first_col(header, _ACTIVE_COLS)
         if pct_col is not None:
             raw = (rows[-1].get(pct_col) or "").strip()
-            return float(raw) if raw else None
+            if not raw:
+                return None
+            pct = float(raw)
+            # ABSENT for a non-finite cell. This is the only percent the wide
+            # layout reports, so there is nothing to fall back on and nothing to
+            # drop; returning it would put a literal nan/inf on the health
+            # panel. None is the repo's "not measured"; 0.0 would claim the
+            # flow cell had no active pores, which is a different assertion.
+            return pct if math.isfinite(pct) else None
         # MIN114 long/tidy layout: active state-time / total state-time.
         state_col = _first_col(header, _STATE_COLS)
         samples_col = _first_col(header, _STATE_TIME_COLS)
@@ -232,6 +240,12 @@ def _parse_pore_activity(run_dir: Path) -> float | None:
             try:
                 samples = float((row.get(samples_col) or "0").strip() or 0)
             except (ValueError, AttributeError):
+                continue
+            # DROP the row, matching the unparseable-cell branch just above. One
+            # inf cell would make total (and with it the returned percentage)
+            # inf or nan for the whole run; the remaining rows still describe
+            # the run, so the ratio is computed over what was readable.
+            if not math.isfinite(samples):
                 continue
             total += samples
             if (row.get(state_col) or "").strip().lower() in _ACTIVE_PORE_STATES:
@@ -328,7 +342,17 @@ def _parse_barcode_alignment(run_dir: Path) -> dict[str, int] | None:
                 bc = row.get(bc_col, "").strip()
                 cnt_raw = row.get(cnt_col, "").strip()
                 if bc and cnt_raw and not _is_excluded_barcode_label(bc):
-                    dist[bc] = int(float(cnt_raw))
+                    cnt = float(cnt_raw)
+                    # DROP the lane. int(float("inf")) raises OverflowError,
+                    # which is caught by neither the except below nor the outer
+                    # (OSError, csv.Error); get_run_health runs this under a
+                    # ThreadPoolExecutor, so .result() re-raised it and the
+                    # entire health report failed on one bad cell. A lane whose
+                    # count is unreadable has no read count, and 0 would enter
+                    # the cross-talk z-scores as a measured empty lane.
+                    if not math.isfinite(cnt):
+                        continue
+                    dist[bc] = int(cnt)
             except (ValueError, AttributeError):
                 continue
         return dist if dist else None

@@ -18,6 +18,7 @@ heavy dependencies out of the hot path.
 from __future__ import annotations
 
 import logging
+import math
 from typing import Iterable
 
 logger = logging.getLogger(__name__)
@@ -49,10 +50,20 @@ def _parse_atom_record(line: str) -> tuple[int, tuple[float, float, float]] | No
     z_field = line[46:54].strip()
 
     def _to_float(s: str) -> float | None:
-        cleaned = s.lstrip("+-").replace(".", "", 1)
-        if cleaned.isdigit():
-            return float(s)
-        return None
+        """Parse one coordinate column, rejecting non-finite values.
+
+        The digit-shape check this replaced rejected "nan" and "inf" only as a
+        side effect of its spelling, so the guard was accidental rather than
+        stated. Parsing then testing ``math.isfinite`` states it, and matches
+        ``structure_file._as_float`` so the two PDB paths share one rule.
+        """
+        try:
+            parsed = float(s)
+        except ValueError:
+            return None
+        if not math.isfinite(parsed):
+            return None
+        return parsed
 
     if not (res_field.lstrip("-").isdigit()):
         return None
@@ -71,9 +82,18 @@ def _heavy_atoms_by_residue(
 
     HETATM (ligands, waters) are excluded by only reading ATOM records.
     Hydrogens are excluded (heavy-atom-only contact definition).
+
+    Only the first model is read. An NMR ensemble repeats every atom once per
+    deposited model, each in its own frame, so merging them into one coordinate
+    set fabricates contacts between atoms that never coexist. Reading stops at
+    the first ENDMDL, which matches ``structure_file._parse_cif_ca`` keeping only
+    ``pdbx_PDB_model_num`` of the first model. Single-model files have no ENDMDL
+    record and are unaffected.
     """
     residues: dict[int, list[tuple[float, float, float]]] = {}
     for line in pdb_text.splitlines():
+        if line.startswith("ENDMDL"):
+            break
         if not line.startswith("ATOM"):
             continue
         if line[21] != chain:

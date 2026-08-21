@@ -48,6 +48,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 import json
+import math
 
 from kuma_core.mame.ingest.flow_cell import find_report_json
 
@@ -143,31 +144,50 @@ class ReadLengthQC:
 
 
 def _as_int(value: object) -> int | None:
-    """MinKNOW writes bucket numbers as strings; ints appear too. Both, or None."""
+    """MinKNOW writes bucket numbers as strings; ints appear too. Both, or None.
+
+    ABSENT, not raise and not zero, for a non-finite value. ``int()`` cannot
+    represent one at all: ``int(float("inf"))`` raises OverflowError and
+    ``int(float("nan"))`` raises ValueError, and neither was caught here (the
+    float branch had no try, and the str branch caught only ValueError, so an
+    ``"inf"`` string crashed after ``float()`` succeeded). Raising is wrong
+    because a single malformed bucket would take down the whole run folder;
+    zero is wrong because the repo reads 0 as a measurement. The bin is dropped
+    by the callers below, which already skip a None bound.
+    """
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
         return value
     if isinstance(value, float):
-        return int(value)
+        return int(value) if math.isfinite(value) else None
     if isinstance(value, str):
         try:
-            return int(float(value))
+            parsed = float(value)
         except ValueError:
             return None
+        return int(parsed) if math.isfinite(parsed) else None
     return None
 
 
 def _as_float(value: object) -> float | None:
+    """The same ABSENT-on-non-finite contract as ``_as_int``.
+
+    ``float()`` happily accepts inf/nan, so this passed them straight through to
+    ``_bin_midpoints``, where an infinite edge makes an infinite bin centre and
+    from there poisons N50 and the length shares. Same reasoning as above: None
+    rather than 0.0, because 0.0 here would read as a measured bin edge.
+    """
     if isinstance(value, bool):
         return None
     if isinstance(value, (int, float)):
-        return float(value)
+        return float(value) if math.isfinite(value) else None
     if isinstance(value, str):
         try:
-            return float(value)
+            parsed = float(value)
         except ValueError:
             return None
+        return parsed if math.isfinite(parsed) else None
     return None
 
 
@@ -194,10 +214,14 @@ def _read_buckets(section: object) -> Buckets | None:
     for rng, raw in zip(ranges, raw_values):
         if not isinstance(rng, dict):
             continue
-        start = _as_int(rng.get("start")) or 0
+        # A missing "start" key opens the bin at zero (documented above). A
+        # start that IS present but does not parse is a different thing: it is
+        # unknown, so the bin is DROPPED rather than silently reseated at 0.
+        raw_start = rng.get("start")
+        start = 0 if raw_start is None else _as_int(raw_start)
         end = _as_int(rng.get("end"))
         value = _as_int(raw)
-        if end is None or value is None:
+        if start is None or end is None or value is None:
             continue
         buckets.starts.append(start)
         buckets.ends.append(end)
@@ -218,9 +242,13 @@ def _read_qscore(entry: object) -> QScoreHistogram | None:
         if not isinstance(rng, dict):
             continue
         end = _as_float(rng.get("end"))
-        if end is None:
+        # Same absent-vs-unparseable split as _read_buckets: no "start" key
+        # opens at zero, a present-but-unreadable one drops the bin.
+        raw_start = rng.get("start")
+        start = 0.0 if raw_start is None else _as_float(raw_start)
+        if end is None or start is None:
             continue
-        starts.append(_as_float(rng.get("start")) or 0.0)
+        starts.append(start)
         ends.append(end)
     series: list[QScoreSeries] = []
     for raw in series_in:
