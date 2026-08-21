@@ -27,20 +27,33 @@ from tests.shared.test_run_manifest import EXPECTED_SCHEMA_VERSION
 
 @pytest.fixture
 def minimal_state():
-    """Populate sidecar_kuro state with a single mapping so export can run."""
+    """Populate sidecar_kuro state with a single mapping so export can run.
+
+    design_provenance and interventions are cleared here too. They live on the
+    same module-level _state, tests/sidecar_kuro/test_auto_relax_rescue.py runs
+    a real design earlier in this directory and does not restore them, and every
+    assertion below about an empty manifest would otherwise depend on which
+    tests ran first.
+    """
     with _state_lock:
         saved_results = list(_state.results)
         saved_mappings = list(_state.plate_mappings)
         saved_dedup = dict(_state.dedup_info) if _state.dedup_info else {}
+        saved_provenance = _state.design_provenance
+        saved_interventions = list(_state.interventions)
 
         _state.results = []
         _state.plate_mappings = []
         _state.dedup_info = {}
+        _state.design_provenance = None
+        _state.interventions = []
     yield
     with _state_lock:
         _state.results = saved_results
         _state.plate_mappings = saved_mappings
         _state.dedup_info = saved_dedup
+        _state.design_provenance = saved_provenance
+        _state.interventions = saved_interventions
 
 
 def _make_mapping_item():
@@ -115,7 +128,14 @@ def test_export_order_manifest_schema_version(tmp_path, minimal_state):
 
 
 def test_export_order_manifest_inputs_empty(tmp_path, minimal_state):
-    """Order export has no input files — inputs section must be empty dict."""
+    """Caller-supplied rows carry no inputs, and say so rather than borrowing.
+
+    `results` in the params means the rows did not come from this session's
+    design, so there is no design fasta to name. The manifest records why it is
+    empty instead of leaving a bare {} that reads the same as a bug.
+    tests/sidecar_kuro/test_export_provenance.py covers the other side, where
+    the rows do come from a design and the fasta is named and hashed.
+    """
     out = tmp_path / "order_inputs.csv"
     handle_export_order({
         "filepath": str(out),
@@ -124,6 +144,9 @@ def test_export_order_manifest_inputs_empty(tmp_path, minimal_state):
     })
     manifest = json.loads((tmp_path / "order_inputs.run.json").read_text())
     assert manifest["inputs"] == {}
+    assert manifest["extra"]["results_source"] == "payload"
+    assert manifest["extra"]["design"] is None
+    assert "provenance_omitted" in manifest["extra"]
 
 
 def test_export_order_manifest_timestamps_present(tmp_path, minimal_state):

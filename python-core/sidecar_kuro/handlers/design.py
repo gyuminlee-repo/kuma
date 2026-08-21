@@ -1,12 +1,13 @@
 """Handlers: SDM primer design, evaluation, alternatives, swap, and retry."""
 
 import csv
+import hashlib
 import math
 import os
 import tempfile
 from dataclasses import fields as dc_fields, replace as dc_replace
 from pathlib import Path
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from kuma_core.kuro.sdm_engine import (
     OverlapMode,
@@ -22,6 +23,7 @@ from kuma_core.kuro.evolvepro import _POS_RE
 from kuma_core.kuro.polymerase import PolymeraseProfile
 from kuma_core.kuro.annealing import compute_annealing
 from kuma_core.kuro import neb_tm
+from kuma_core.shared.run_manifest import compute_input_sha256
 
 import sidecar_kuro.core as _core
 from sidecar_kuro.core import (
@@ -246,6 +248,76 @@ def _build_profile(p) -> PolymeraseProfile:
 
 
 
+def _digest_or_none(path: Path) -> str | None:
+    """SHA-256 of *path*, or None when it cannot be read.
+
+    None rather than an exception: a design that produced primers is not worth
+    failing over a digest, and the manifest distinguishes a null digest from an
+    absent input.
+    """
+    try:
+        return compute_input_sha256(path)
+    except OSError:
+        return None
+
+
+def _build_design_provenance(
+    p: DesignSdmPrimersParams,
+    resolved_fasta: Path,
+    mutations_csv_path: Path,
+    *,
+    from_text: bool,
+    lines: list[str],
+) -> dict[str, Any]:
+    """Facts about this design that nothing downstream can reconstruct.
+
+    Digests are taken here, at design time, and only serialised later by an
+    export. Taking them at export time instead would name bytes the design never
+    read: this is a desktop app, an operator can spend an hour between designing
+    and exporting, and nothing stops the fasta being edited in between. The
+    export still hashes the same paths again, so the two digests disagreeing is
+    itself the signal that the file moved.
+
+    Mutations supplied as text have no durable path to record. The temporary CSV
+    written for the engine is deleted in this handler's own ``finally``, so
+    naming it would leave the manifest pointing at a path that no longer exists,
+    which build_run_manifest drops silently, which then reads exactly like "no
+    mutations were supplied". The lines themselves are recorded instead.
+    """
+    recorded_params = p.model_dump()
+    # Either a path or the lines, both recorded below. For text input this field
+    # is the whole mutation list again, and it has no length bound.
+    recorded_params.pop("mutations_csv_or_text", None)
+
+    if from_text:
+        joined = "\n".join(lines)
+        mutations: dict[str, Any] = {
+            "source": "text",
+            "count": len(lines),
+            "sha256": hashlib.sha256(joined.encode("utf-8")).hexdigest(),
+            "lines": lines,
+        }
+    else:
+        mutations = {
+            "source": "file",
+            "path": str(mutations_csv_path),
+            "sha256": _digest_or_none(mutations_csv_path),
+        }
+
+    return {
+        "designed_at": _core._utc_now_iso(),
+        "fasta_path": str(resolved_fasta),
+        "fasta_sha256": _digest_or_none(resolved_fasta),
+        "mutations": mutations,
+        # As validated by pydantic, so defaults are filled in. A None here means
+        # "resolved from the polymerase profile at run time" (the length and Tm
+        # fields), not "unset". `seed` is carried through as supplied even
+        # though nothing in this path draws from an RNG any more; the manifest's
+        # own seed field stays null for that reason.
+        "params": recorded_params,
+    }
+
+
 def handle_design_sdm_primers(params: dict) -> dict:
     """Design SDM primers for a batch of mutations."""
     p = DesignSdmPrimersParams(**params)
@@ -326,6 +398,13 @@ def handle_design_sdm_primers(params: dict) -> dict:
             _core._state.plate_mappings = []
             _core._state.dedup_info = {}
             _core._state.polymerase = p.polymerase  # for Ta serialization
+            # Cleared with the results, in the same block, so a cancelled or
+            # failed design cannot leave the previous run's provenance standing
+            # over an empty result set. This handler returns early from five
+            # cancellation points below, and setting provenance only on the
+            # success path would make every one of those a stale-record path.
+            _core._state.design_provenance = None
+            _core._state.interventions = []
 
         def _on_progress(i: int, total: int, mutation_raw: str) -> None:
             pct = 10 + int(70 * i / max(total, 1))
@@ -466,9 +545,16 @@ def handle_design_sdm_primers(params: dict) -> dict:
         if cancel_event.is_set():
             return _cancelled_result()
 
+        provenance = _build_design_provenance(
+            p, resolved_fasta, mutations_csv_path,
+            from_text=temp_csv is not None, lines=lines,
+        )
         with _core._state_lock:
             _core._state.results = results
             _core._state.candidates = all_cands
+            # Set with the results it describes, in the same block, so no window
+            # exists where an export could read one without the other.
+            _core._state.design_provenance = provenance
             _rebuild_plate_state(results)
         _progress(80, "Generating plate map...")
 
@@ -527,9 +613,28 @@ def handle_retry_failed(params: dict) -> dict:
         overlap_mode=p.overlap_mode,
     )
 
+    retry_params = p.model_dump()
+    # Recorded at top level in resolved form instead.
+    retry_params.pop("mutation", None)
+    retry_params.pop("fasta_path", None)
+
     with _core._state_lock:
         _core._state.candidates[mutation_raw] = candidates
         _core._state.polymerase = p.polymerase  # for Ta serialization
+        # This is the intervention that explains a workbook holding a primer
+        # outside the design defaults: the caller supplies its own tol_max, Tm
+        # targets and length caps here, and once this returns nothing in
+        # `results` or `candidates` says they were ever different.
+        _core._append_intervention_locked("retry_failed", {
+            "mutation": mutation_raw,
+            # Its own path, deliberately: this handler validates and loads a
+            # fasta of its own rather than reusing the design's, so a retry can
+            # run against a different template and a manifest that only recorded
+            # the mutation name would hide that.
+            "fasta_path": str(resolved_fasta),
+            "params": retry_params,
+            "candidates_returned": len(candidates),
+        })
 
     return AlternativesResultModel(
         candidates=[_serialize_result_with_counts(c) for c in candidates],
@@ -574,6 +679,17 @@ def handle_swap_primer(params: dict) -> dict:
                     gc_rev=new_best.gc_rev,
                 )
         _rebuild_plate_state(_core._state.results)
+        _core._append_intervention_locked("swap_primer", {
+            "mutation": p.mutation,
+            "candidate_idx": p.candidate_idx,
+            "swap_type": p.swap_type,
+            # A rev/both swap rewrites every other mutation at this position
+            # too, so the record has to name the position, not just the mutation
+            # the operator clicked.
+            "propagated_to_position": (
+                target_pos if p.swap_type in ("rev", "both") else None
+            ),
+        })
     return _serialize_result_with_counts(new_best).to_rpc_dict()
 
 
@@ -616,6 +732,16 @@ def handle_commit_design_result(params: dict) -> dict:
             _core._state.results.append(chosen)
 
         _rebuild_plate_state(_core._state.results)
+        # Recorded alongside retry_failed and swap_primer even though the task
+        # that asked for the log named only those two. This handler can APPEND a
+        # result rather than replace one, which neither of the others can; leave
+        # it out and an exported plate can carry a primer no recorded event
+        # accounts for, which is the exact gap the log exists to close.
+        _core._append_intervention_locked("commit_design_result", {
+            "mutation": p.mutation,
+            "candidate_idx": p.candidate_idx,
+            "replaced_existing": replaced,
+        })
 
     return _serialize_result_with_counts(chosen).to_rpc_dict()
 
