@@ -21,6 +21,26 @@ The floor never goes below 15 nt, and it is read from the polymerase profile bef
 - The automatic relaxation pass widened melting temperature and GC only, so a mutation whose reverse primer sat at the length floor had no route to a valid pair and was reported as a failure.
 - The primer length fallbacks were spelled as bare numbers in two files. They are named constants in the engine now, and the rescue pass reads them rather than carrying its own copy.
 
+Fixes that shipped under this version, from the audit of reachable error cases:
+
+- A JSON-RPC request could carry bare `NaN` or `Infinity`, which the Python parser accepts and no other implementation emits. A threshold given one of those made every comparison against it false, so a gate reported that reads had passed rather than that it could not decide.
+- Plate chunking counted to 96 while well assignment divided by the capacity a mapping range had set, so a second plate joined the first chunk and an order sheet named two different primers for one physical position.
+- Swapping a reverse primer moved five of the twelve fields that belong to one direction, so the record carried a new sequence beside the hairpin, homodimer, synthesis, tolerance and off-target numbers of the primer it replaced. The commit path had the same list with no swap gate, and the store repeated only four of the fields.
+- An explicitly empty mapping payload was read as no payload at all, so the stored plate map was published in its place and the manifest recorded the wrong source.
+- The entropy weight had a floor and no ceiling on one of its two entry points. An infinite weight collapsed the score comparison, and a request for three variants came back with one.
+- A run with no sequencing summary skipped the quality gate entirely: `min_qscore` was accepted and ignored, the filter tally went out empty, and the reads it was asked to drop stayed. In legacy mode the reads were never removed even with a summary present, while the tally reported them as failures.
+- A run report bound of `inf` raised `OverflowError` and took down the whole run folder, and non-finite bin edges reached N50 and the length shares.
+- An unreadable position cell in a designed row was read as position 0, and a well claimed twice by different primers read as agreement between the two plate readers.
+- Cached run flags were read with `bool()`, where the string `"false"` is true.
+- The structure parsers accepted `nan` and `inf` and passed them to the distance computations, and one of them raised an uncaught error on a malformed sign, against its own documented contract of skipping malformed records.
+- Unknown fitness scores were substituted with zero. Zero is a measurable fitness on that scale, so an unknown was ranked against real measurements.
+- An unreadable input was dropped from the run manifest rather than recorded as unreadable, which left it indistinguishable from one never supplied.
+- The memory guard failed open when it could not measure, silencing its own warning and block thresholds for the life of the process.
+- Concurrent writers of one output shared a staging name, so a publish could fail with a missing file.
+- A reverse-strand CDS was offered with forward coordinates, cross-talk reported a pass at sample sizes where its statistic cannot reach its threshold, and `A0` and `A13` were accepted as wells.
+
+Known, and not fixed in this release: after a reverse primer is swapped, the annealing temperature shown for other mutations at the same position is not recomputed. `compute_annealing` takes both primers, so a neighbour depends on its own forward primer, which the store cannot derive. The exported workbooks do not carry that column.
+
 ## v0.16.33 (The decode reads the same plate the run did)
 
 A variant list can state the well of every row, and the run places its occupants on exactly those addresses without arithmetic. The numeric-ID decoder did not follow. It read the variant column alone and recomputed the wells from residue position, so a list whose wells are not column-major had its report decoded against a plate the run never used.
