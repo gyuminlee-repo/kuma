@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -135,7 +136,13 @@ def read_expected_mutations_with_rows(path: Path) -> KuroReadResult:
             results.append(
                 ExpectedMutation(
                     mutant_id=mutant_id,
-                    position=_int(cells[1]),
+                    position=_position(
+                        cells[1],
+                        row_number=row_number,
+                        mutant_id=mutant_id,
+                        is_wt=is_wt,
+                        path=path,
+                    ),
                     wt_aa=_s(cells[2]),
                     mt_aa=_s(cells[3]),
                     wt_codon=_s(cells[4]),
@@ -167,10 +174,83 @@ def _s(cell: object) -> str:
     return str(cell).strip()
 
 
-def _int(cell: object) -> int:
+#: A position cell written as text: a whole number, optionally with a zero
+#: fraction, which is how a spreadsheet sometimes spells an integer ("232.0").
+_POSITION_TEXT = re.compile(r"^[+-]?\d+(?:\.0*)?$")
+
+
+def _position(
+    cell: object,
+    *,
+    row_number: int,
+    mutant_id: str,
+    is_wt: bool,
+    path: Path,
+) -> int:
+    """The `position` column of one row, or a refusal naming the cell.
+
+    A position that could not be read used to come back as 0, and 0 is silent:
+    the row still became an ``ExpectedMutation``, ``expected_to_labels`` wrote it
+    as ``V0F``, and no observed mutation ever carries position 0, so the row
+    scored as a mismatch that reads like a failed clone rather than like a
+    workbook this reader could not parse. The operator saw a wrong answer where
+    there was an unreadable cell.
+
+    Two cases keep the lenient 0 rather than raising, and both are real files
+    rather than tolerances:
+
+    * The wild-type control row. Both shipped workbooks
+      (``templates/03_mame_expected_mutations.xlsx`` and the copy under
+      ``src-tauri/samples/mame/``) end with
+      ``('WT', 0, '-', '-', '-', '-', 'G0', '-', 'wt', 'control')``. Position 0
+      is what the control *is*, so ``position <= 0`` is not the test. The test is
+      whether the cell parses at all.
+    * A blank cell. Blank is the shape a column the exporter did not fill takes,
+      so refusing it would refuse exports this reader accepts today. Only a cell
+      holding something unreadable is refused.
+
+    Excel hands numeric cells over as ``int`` or ``float``, so ``232.0`` is the
+    same position as ``232`` and is read as one. A non-integral number is not a
+    residue index and is refused with everything else.
+    """
     if cell is None:
         return 0
-    try:
-        return int(str(cell).strip())
-    except (TypeError, ValueError):
+    if isinstance(cell, bool):
+        # openpyxl gives a TRUE/FALSE cell as bool, and bool is an int subclass,
+        # so this is checked before the numeric branch would silently read 1.
+        return _refuse_position(cell, row_number, mutant_id, is_wt, path)
+    if isinstance(cell, (int, float)):
+        if float(cell).is_integer():
+            return int(cell)
+        return _refuse_position(cell, row_number, mutant_id, is_wt, path)
+    text = str(cell).strip()
+    if not text:
         return 0
+    if _POSITION_TEXT.match(text):
+        return int(float(text))
+    return _refuse_position(cell, row_number, mutant_id, is_wt, path)
+
+
+def _refuse_position(
+    cell: object,
+    row_number: int,
+    mutant_id: str,
+    is_wt: bool,
+    path: Path,
+) -> int:
+    """Raise for a designed row; keep 0 for the control row.
+
+    The control carries no residue and its label is never compared, so an
+    unreadable position on it costs nothing downstream. A designed row is the
+    opposite: its position is the whole of what is being scored.
+    """
+    if is_wt:
+        return 0
+    raise ValueError(
+        f"'{_EXPECTED_SHEET}' row {row_number} of '{path}' has an unreadable "
+        f"position: {cell!r}"
+        + (f" (mutant_id '{mutant_id}')" if mutant_id else "")
+        + ". The position column holds the residue index as a whole number; a "
+        "blank cell is accepted, anything else is not. Fix the cell and export "
+        "again."
+    )

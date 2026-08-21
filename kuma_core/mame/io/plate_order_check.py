@@ -83,11 +83,21 @@ class PlateOrderReport:
     absent_from_plate: list[str] = field(default_factory=list)
     #: Which sheet supplied the plate order.
     plate_sheet: str | None = None
+    #: Wells the plate sheet declares more than once, with two different
+    #: occupants. The sheet states two plates in one, and which one was pipetted
+    #: is not in the file, so this is reported rather than resolved. A well
+    #: repeated with the *same* occupant is not listed: both readings name the
+    #: same plate, so nothing downstream can differ.
+    duplicate_wells: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
         """True when nothing was found to report."""
-        return not self.mismatched and not self.missing_from_expected
+        return (
+            not self.mismatched
+            and not self.missing_from_expected
+            and not self.duplicate_wells
+        )
 
 
 def _cell_text(value: object) -> str:
@@ -120,15 +130,39 @@ def _in_plate_order(cells: dict[str, str]) -> dict[str, str]:
     return {well: cells[well] for well in sorted(cells, key=well_to_seq)}
 
 
-def _plate_layout_from_list_sheet(worksheet) -> dict[str, str]:
-    """Read a ``Fwd List`` sheet into ``{well: mutation}``.
+def _place(
+    cells: dict[str, str],
+    duplicates: list[str],
+    well: str,
+    mutation: str,
+) -> None:
+    """Put one occupant in a well, recording a well that was already taken.
+
+    Assigning straight into the dict is last-write-wins, and last-write-wins is
+    the wrong answer twice over here: the second declaration overwrites the first
+    with no trace, and a sheet that names one well twice necessarily leaves some
+    other well unnamed, so the plate this module compares against is not the
+    plate the sheet describes. Neither reading is more correct than the other,
+    which is why the well is reported rather than resolved. The first occupant is
+    kept so the comparison still has something to run on.
+    """
+    if well in cells:
+        if cells[well] != mutation and well not in duplicates:
+            duplicates.append(well)
+        return
+    cells[well] = mutation
+
+
+def _plate_layout_from_list_sheet(worksheet) -> tuple[dict[str, str], list[str]]:
+    """Read a ``Fwd List`` sheet into ``{well: mutation}`` plus repeated wells.
 
     The Well column is the coordinate, so the row order of the sheet says
-    nothing and no sorting rule is needed to recover one.
+    nothing and no sorting rule is needed to recover one. A well named by two
+    rows that disagree comes back in the second element; see :func:`_place`.
     """
     rows = list(worksheet.iter_rows(values_only=True))
     if not rows:
-        return {}
+        return {}, []
     headers = [_cell_text(c).lower() for c in rows[0]]
 
     def column(*names: str) -> int | None:
@@ -140,8 +174,9 @@ def _plate_layout_from_list_sheet(worksheet) -> dict[str, str]:
     well_at = column("well")
     label_at = column("mutation", "mutant_id", "primer name", "primer_name")
     if well_at is None or label_at is None:
-        return {}
+        return {}, []
     cells: dict[str, str] = {}
+    duplicates: list[str] = []
     for row in rows[1:]:
         if max(well_at, label_at) >= len(row):
             continue
@@ -149,21 +184,25 @@ def _plate_layout_from_list_sheet(worksheet) -> dict[str, str]:
         label = _cell_text(row[label_at])
         mutation = label if _MUTATION.match(label) else _mutation_from_primer(label)
         if well and mutation:
-            cells[well] = mutation
-    return _in_plate_order(cells)
+            _place(cells, duplicates, well, mutation)
+    return _in_plate_order(cells), duplicates
 
 
-def _plate_layout_from_grid_sheet(worksheet) -> dict[str, str]:
-    """Read a ``Fwd Plate`` grid into ``{well: mutation}``.
+def _plate_layout_from_grid_sheet(worksheet) -> tuple[dict[str, str], list[str]]:
+    """Read a ``Fwd Plate`` grid into ``{well: mutation}`` plus repeated wells.
 
     Row labels down the side and column numbers on top are the well, so an empty
-    cell leaves a gap in the plate instead of pulling the rest of the grid up.
+    cell leaves a gap in the plate instead of pulling the rest of the grid up. A
+    grid can name one well twice as well: a repeated row label, or a repeated
+    column number in the header. Those come back in the second element; see
+    :func:`_place`.
     """
     rows = list(worksheet.iter_rows(values_only=True))
     if len(rows) < 2:
-        return {}
+        return {}, []
     header = [_cell_text(c) for c in rows[0]]
     cells: dict[str, str] = {}
+    duplicates: list[str] = []
     for row in rows[1:]:
         if not row:
             continue
@@ -177,8 +216,8 @@ def _plate_layout_from_grid_sheet(worksheet) -> dict[str, str]:
             mutation = label if _MUTATION.match(label) else _mutation_from_primer(label)
             well = _canonical_well(f"{row_label}{int(header[index])}")
             if well and mutation:
-                cells[well] = mutation
-    return _in_plate_order(cells)
+                _place(cells, duplicates, well, mutation)
+    return _in_plate_order(cells), duplicates
 
 
 def _expected_layout(
@@ -251,6 +290,7 @@ def check_plate_order(
         if EXPECTED_SHEET not in workbook.sheetnames:
             return PlateOrderReport(comparable=False)
         plate: dict[str, str] = {}
+        duplicate_wells: list[str] = []
         plate_sheet: str | None = None
         for name in PLATE_SHEETS:
             if name not in workbook.sheetnames:
@@ -260,7 +300,7 @@ def check_plate_order(
                 if name.endswith("List")
                 else _plate_layout_from_grid_sheet
             )
-            plate = reader(workbook[name])
+            plate, duplicate_wells = reader(workbook[name])
             if plate:
                 plate_sheet = name
                 break
@@ -298,11 +338,19 @@ def check_plate_order(
 
     return PlateOrderReport(
         comparable=True,
-        mismatched=bool(examples or missing_from_expected or absent_from_plate),
+        # A repeated well is counted here as well as in its own field: the
+        # sheet describes two plates, which is the same fault this flag has
+        # always stood for, and a caller that reads only the flag (the wire
+        # payload in ``sidecar_mame.handlers.barcode_package`` is one) would
+        # otherwise be told the file is clean.
+        mismatched=bool(
+            examples or missing_from_expected or absent_from_plate or duplicate_wells
+        ),
         examples=examples,
         missing_from_expected=missing_from_expected,
         absent_from_plate=absent_from_plate,
         plate_sheet=plate_sheet,
+        duplicate_wells=duplicate_wells,
     )
 
 
