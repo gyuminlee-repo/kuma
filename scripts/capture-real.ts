@@ -204,8 +204,12 @@ async function main(): Promise<void> {
   try {
     const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 });
     const page = await context.newPage();
+    const gaps: string[] = [];
     page.on("console", (msg) => {
-      if (msg.type() === "error") console.warn(`  [browser:error] ${msg.text()}`);
+      if (msg.type() !== "error") return;
+      const text = msg.text();
+      console.warn(`  [browser:error] ${text}`);
+      if (text.includes("no recorded sidecar reply")) gaps.push(text);
     });
 
     await enterWorkspace(page);
@@ -216,6 +220,12 @@ async function main(): Promise<void> {
       const file = `${screen.name}.png`;
       await page.screenshot({ path: resolve(dir, file), fullPage: false });
       manifest.push({ name: screen.name, caption: screen.caption, file });
+    }
+
+    if (gaps.length > 0) {
+      // A gap paints "MOCK_MODE" into the app status bar, so the set is not
+      // publishable until the generator records that RPC.
+      throw new Error(`unrecorded sidecar replies: ${[...new Set(gaps)].join(", ")}`);
     }
 
     writeFileSync(

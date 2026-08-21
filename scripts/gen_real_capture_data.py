@@ -180,6 +180,14 @@ def main() -> int:
         plate = sidecar.call("get_plate_map", {})
         sys.stdout.write(f"[real-data] plate mappings {len(plate.get('mappings') or [])}\n")
 
+        # The export step previews both liquid-handler layouts, and the status
+        # bar asks the sidecar for its health. Recording them keeps MOCK_MODE
+        # text out of the captured frames.
+        echo_dry_run = sidecar.call("export_echo_mapping_dry_run", {})
+        janus_dry_run = sidecar.call("export_janus_mapping_dry_run", {})
+        health = sidecar.call("health_info", {})
+        settings = sidecar.call("settings_load", {})
+
         polymerases = sidecar.call("list_polymerases", {})
         # The parameter panel asks for the full profile of each listed enzyme,
         # so the capture stub needs one recorded reply per name.
@@ -189,6 +197,10 @@ def main() -> int:
             if isinstance(entry, dict) and entry.get("name")
         }
         organisms = sidecar.call("list_organisms", {})
+        # The mutation step previews the source table before column mapping.
+        evolvepro_preview = sidecar.call(
+            "preview_evolvepro_source", {"filepath": str(args.evolvepro)}
+        )
 
         # UniProt and InterPro are network lookups. They are optional for the
         # capture run, so a failure downgrades to an empty section rather than
@@ -260,6 +272,11 @@ def main() -> int:
             "polymerases": polymerases,
             "polymerase_details": polymerase_details,
             "organisms": organisms,
+            "evolvepro_preview": evolvepro_preview,
+            "echo_dry_run": echo_dry_run,
+            "janus_dry_run": janus_dry_run,
+            "health": health,
+            "settings": settings,
             "uniprot": uniprot,
             "domains": domains,
             "active_site": active_site,

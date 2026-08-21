@@ -49,6 +49,7 @@ const SIDECAR_REPLIES: Record<string, (params?: unknown) => unknown> = {
   list_polymerases: () => realBundle.polymerases ?? [],
   load_fasta: () => realBundle.seq_info ?? {},
   load_evolvepro_csv: () => realBundle.evolvepro ?? {},
+  preview_evolvepro_source: () => realBundle.evolvepro_preview ?? {},
   design_sdm_primers: () => realBundle.design ?? {},
   get_plate_map: () => realBundle.plate ?? { mappings: [] },
   search_uniprot: () => realBundle.uniprot ?? { candidates: [] },
@@ -58,6 +59,10 @@ const SIDECAR_REPLIES: Record<string, (params?: unknown) => unknown> = {
   fetch_active_site_residues: () =>
     realBundle.active_site ?? { accession: "", active_site_positions: [], binding_positions: [] },
   list_organisms: () => realBundle.organisms ?? [],
+  export_echo_mapping_dry_run: () => realBundle.echo_dry_run ?? {},
+  export_janus_mapping_dry_run: () => realBundle.janus_dry_run ?? {},
+  health_info: () => realBundle.health ?? {},
+  settings_load: () => realBundle.settings ?? {},
   get_polymerase_details: (params) => {
     const table = (realBundle.polymerase_details ?? {}) as Record<string, unknown>;
     const name = String((params as { name?: unknown } | undefined)?.name ?? "");
@@ -105,7 +110,12 @@ const HANDLERS: Record<string, (args?: Record<string, unknown>) => unknown> = {
     const method = String(args?.method ?? "");
     const reply = SIDECAR_REPLIES[method];
     if (!reply) {
-      throw new Error(`MOCK_MODE: no recorded sidecar reply for "${method}"`);
+      // Shouted to the console as well as thrown: the app catches this and
+      // paints it into a status bar, where it would ride into a screenshot
+      // unnoticed. capture-real.ts watches the console and fails the run.
+      const message = `MOCK_MODE: no recorded sidecar reply for "${method}"`;
+      console.error(message);
+      throw new Error(message);
     }
     return reply(args?.params);
   },
