@@ -294,7 +294,14 @@ def handle_export_excel(params: dict) -> dict:
 
     Accepts optional 'mappings' and 'dedup_info' from the frontend to reflect
     the current UI state (sorted order, custom additions from failed mutations).
-    Falls back to backend state when not provided (CLI usage).
+    Falls back to backend state only when 'mappings' is absent (CLI usage).
+
+    Absence and emptiness are different statements. ``None`` means the caller
+    said nothing about the layout, so the stored one is used. ``[]`` means the
+    caller states there is no layout, and that is honoured: every exporter this
+    handler reaches accepts an empty list and writes a header-only file, so the
+    empty payload is exported rather than silently swapped for whatever state
+    happens to hold. ``mappings_source`` in the manifest names the branch taken.
     """
     started_at = datetime.now(timezone.utc)
 
@@ -303,7 +310,7 @@ def handle_export_excel(params: dict) -> dict:
         p.filepath, allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
     )
 
-    if p.mappings:
+    if p.mappings is not None:
         mappings = _pydantic_to_plate_mappings(p.mappings)
         with _core._state_lock:
             state_dedup = _core._state.dedup_info
@@ -366,7 +373,9 @@ def handle_export_excel(params: dict) -> dict:
     # only the well layout can arrive as a payload, which is recorded separately
     # rather than folded into results_source.
     manifest_inputs, manifest_extra = _design_provenance_for_manifest("state")
-    manifest_extra["mappings_source"] = "payload" if p.mappings else "state"
+    manifest_extra["mappings_source"] = (
+        "payload" if p.mappings is not None else "state"
+    )
     manifest = build_run_manifest(
         method="export_excel",
         inputs=manifest_inputs,
@@ -459,7 +468,7 @@ def handle_export_mapping(params: dict) -> dict:
         else None
     )
 
-    if p.mappings:
+    if p.mappings is not None:
         mappings = _pydantic_to_plate_mappings(p.mappings)
         fwd_mappings = [m for m in mappings if m.primer_type == "forward"]
         rev_mappings = [m for m in mappings if m.primer_type == "reverse"]
@@ -523,8 +532,14 @@ def handle_export_mapping(params: dict) -> dict:
         "format": p.format,
         "transfer_vol": p.transfer_vol,
     }
+    # Unlike export_excel and export_all, the rows this handler writes really do
+    # come from the payload when one is supplied: the state branch derives them
+    # with generate_plate_map, the payload branch does not consult
+    # _core._state.results at all. So results_source tracks p.mappings here and
+    # the comment in handle_export_all warns only about copying this reading
+    # into handlers whose rows always come from state.
     manifest_inputs, manifest_extra = _design_provenance_for_manifest(
-        "payload" if p.mappings else "state"
+        "payload" if p.mappings is not None else "state"
     )
     manifest = build_run_manifest(
         method="export_mapping",
@@ -975,7 +990,7 @@ def handle_export_all(params: dict) -> dict:
         raise ValueError(f"output_dir exists but is not a directory: {out_dir}")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    if p.mappings:
+    if p.mappings is not None:
         mappings = _pydantic_to_plate_mappings(p.mappings)
         # Filter backend results to only those present in frontend mappings
         # so capped designs (e.g. maxPrimers=95) export the capped set.
@@ -1090,7 +1105,9 @@ def handle_export_all(params: dict) -> dict:
     # sends mappings for export_all, so every real batch export would come out
     # stamped provenance_omitted.
     manifest_inputs, manifest_extra = _design_provenance_for_manifest("state")
-    manifest_extra["mappings_source"] = "payload" if p.mappings else "state"
+    manifest_extra["mappings_source"] = (
+        "payload" if p.mappings is not None else "state"
+    )
     manifest = build_run_manifest(
         method="export_all",
         inputs=manifest_inputs,
