@@ -27,3 +27,30 @@ export async function writeFile(
 
 export async function rename(_oldPath: string, _newPath: string): Promise<void> {
 }
+
+// Added when the plugin-fs alias was switched on for the capture run: these
+// four are imported by the app and their absence broke the dev bundle before
+// a single screen rendered.
+
+export async function stat(_path: string, _options?: unknown): Promise<{
+  isFile: boolean;
+  isDirectory: boolean;
+  size: number;
+  mtime: Date | null;
+}> {
+  return { isFile: false, isDirectory: false, size: 0, mtime: null };
+}
+
+export async function remove(_path: string, _options?: unknown): Promise<void> {
+}
+
+export async function readDir(
+  _path: string,
+  _options?: unknown,
+): Promise<Array<{ name: string; isFile: boolean; isDirectory: boolean }>> {
+  return [];
+}
+
+export async function readFile(_path: string): Promise<Uint8Array> {
+  throw new Error("MOCK_MODE: readFile not implemented");
+}

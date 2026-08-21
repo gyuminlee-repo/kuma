@@ -127,6 +127,26 @@ const HANDLERS: Record<string, (args?: Record<string, unknown>) => unknown> = {
   "plugin:event|unlisten": () => null,
   "plugin:event|emit": () => null,
   "plugin:event|emit_to": () => null,
+  // The autosave layer resolves project paths through plugin-path. Pure string
+  // work, so the stub can answer it without touching a filesystem.
+  "plugin:path|is_absolute": (args) => String((args as { path?: unknown })?.path ?? "").startsWith("/"),
+  "plugin:path|join": (args) => {
+    const parts = ((args as { paths?: unknown })?.paths ?? []) as string[];
+    return parts.filter(Boolean).join("/").replace(/\/{2,}/g, "/");
+  },
+  "plugin:path|resolve_directory": () => PROJECT.path,
+  "plugin:path|resolve": (args) => {
+    const parts = ((args as { paths?: unknown })?.paths ?? []) as string[];
+    return parts.filter(Boolean).join("/").replace(/\/{2,}/g, "/");
+  },
+  "plugin:path|basename": (args) => {
+    const raw = String((args as { path?: unknown })?.path ?? "");
+    return raw.slice(raw.lastIndexOf("/") + 1);
+  },
+  "plugin:path|dirname": (args) => {
+    const raw = String((args as { path?: unknown })?.path ?? "");
+    return raw.slice(0, Math.max(raw.lastIndexOf("/"), 0));
+  },
 };
 
 export async function invoke<T>(
@@ -135,7 +155,11 @@ export async function invoke<T>(
 ): Promise<T> {
   const handler = HANDLERS[command];
   if (!handler) {
-    throw new Error(`MOCK_MODE: no stub for Tauri command "${command}"`);
+    // Same reasoning as the sidecar gap above: the app paints this into a
+    // banner, so it has to reach the console for capture-real.ts to catch.
+    const message = `MOCK_MODE: no stub for Tauri command "${command}"`;
+    console.error(message);
+    throw new Error(message);
   }
   return handler(args) as T;
 }

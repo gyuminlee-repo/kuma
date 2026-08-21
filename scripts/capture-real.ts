@@ -209,7 +209,7 @@ async function main(): Promise<void> {
       if (msg.type() !== "error") return;
       const text = msg.text();
       console.warn(`  [browser:error] ${text}`);
-      if (text.includes("no recorded sidecar reply")) gaps.push(text);
+      if (text.includes("MOCK_MODE")) gaps.push(text);
     });
 
     await enterWorkspace(page);
@@ -223,9 +223,10 @@ async function main(): Promise<void> {
     }
 
     if (gaps.length > 0) {
-      // A gap paints "MOCK_MODE" into the app status bar, so the set is not
-      // publishable until the generator records that RPC.
-      throw new Error(`unrecorded sidecar replies: ${[...new Set(gaps)].join(", ")}`);
+      // Any MOCK_MODE text reaching the UI ends up in a status bar or banner
+      // and rides into a frame, so the set is not publishable until the
+      // generator records that reply or the stub grows that command.
+      throw new Error(`MOCK_MODE gaps reached the UI: ${[...new Set(gaps)].join(", ")}`);
     }
 
     writeFileSync(
