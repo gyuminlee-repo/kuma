@@ -408,3 +408,80 @@ def test_the_two_quality_filter_implementations_agree_on_nan() -> None:
         assert "math.isfinite(bscore" in source, (
             f"{name} compares a barcode score without checking it is finite"
         )
+
+# ---------------------------------------------------------------------------
+# The outermost place that can refuse a non-finite number
+# ---------------------------------------------------------------------------
+
+
+def test_bare_non_finite_literals_are_refused_at_the_rpc_boundary() -> None:
+    """Python's JSON parser accepts NaN and Infinity as bare tokens.
+
+    No other JSON implementation emits them and RFC 8259 does not describe
+    them, but the parser takes them, so a parameter no comparison can use
+    reached the handlers. Every handler still guards its own numbers; this is
+    the door.
+    """
+    import json
+
+    from kuma_core.shared.sidecar import loads_rpc_request
+
+    for literal in ("NaN", "Infinity", "-Infinity"):
+        line = '{"jsonrpc":"2.0","method":"x","params":{"v":%s}}' % literal
+        # It parses today, which is what makes the guard necessary.
+        assert json.loads(line)["params"]["v"] is not None
+        with pytest.raises(json.JSONDecodeError):
+            loads_rpc_request(line)
+
+
+def test_ordinary_requests_still_parse() -> None:
+    """The control. Without it a parser that refused everything would pass."""
+    from kuma_core.shared.sidecar import loads_rpc_request
+
+    request = loads_rpc_request(
+        '{"jsonrpc":"2.0","id":1,"method":"analyze","params":{"v":0.5,"n":null}}'
+    )
+
+    assert request["method"] == "analyze"
+    assert request["params"]["v"] == 0.5
+    assert request["params"]["n"] is None
+
+
+def test_the_refusal_is_the_type_the_loop_already_answers() -> None:
+    """Both stdin loops answer json.JSONDecodeError with a -32700 parse error.
+
+    Raising anything else would escape that handler and take the sidecar down
+    on a malformed request instead of replying to it.
+    """
+    import json
+
+    from kuma_core.shared.sidecar import loads_rpc_request
+
+    with pytest.raises(json.JSONDecodeError):
+        loads_rpc_request('{"params":{"v":NaN}}')
+    with pytest.raises(json.JSONDecodeError):
+        loads_rpc_request("not json at all")
+
+
+def test_both_dispatchers_parse_through_the_guard() -> None:
+    """Neither stdin loop may call json.loads directly.
+
+    The two loops are copies of each other, which is how the last fix in this
+    family landed on one and not the other.
+    """
+    import inspect
+
+    from sidecar_kuro import dispatcher as kuro_dispatcher
+    from sidecar_mame import dispatcher as mame_dispatcher
+
+    for name, module in (
+        ("sidecar_kuro", kuro_dispatcher),
+        ("sidecar_mame", mame_dispatcher),
+    ):
+        source = inspect.getsource(module.main)
+        assert "loads_rpc_request(line)" in source, (
+            f"{name} parses its stdin line without the non-finite guard"
+        )
+        assert "json.loads(line)" not in source, (
+            f"{name} still calls json.loads on the request line"
+        )

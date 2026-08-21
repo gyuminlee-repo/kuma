@@ -70,6 +70,7 @@ from kuma_core.shared.dispatcher_runtime import (
     start_memory_monitor,
     start_parent_watchdog as _start_parent_watchdog,
 )
+from kuma_core.shared.sidecar import loads_rpc_request
 
 def _handle_health_info(_params: dict) -> dict:
     """Return PID, RSS, and Python version for the status bar tooltip."""
@@ -249,7 +250,7 @@ def main(emit_ready: bool = True) -> None:
         if not line:
             continue
         try:
-            request = json.loads(line)
+            request = loads_rpc_request(line)
         except json.JSONDecodeError as exc:
             _error(None, -32700, f"Parse error: {exc}")
             continue
