@@ -117,7 +117,7 @@ class TestShutdownProcessExit:
             # stdin is intentionally NOT closed — exit must come from shutdown handler
 
             # Read ack from stdout
-            deadline = time.monotonic() + 5.0
+            deadline = time.monotonic() + 30.0
             ack_received = False
             while time.monotonic() < deadline:
                 line = proc.stdout.readline()
@@ -132,7 +132,11 @@ class TestShutdownProcessExit:
                     pass
 
             # Process must exit with stdin open — proves shutdown handler drove the exit
-            exit_code = proc.wait(timeout=5)
+            # 30 s, not 5. This asserts a clean exit rather than a fast
+            # one, and spawn alone costs 0.63 s of imports on an idle
+            # machine. Under load the old budget timed out on a process
+            # that was exiting correctly. A hang still fails here.
+            exit_code = proc.wait(timeout=30)
         finally:
             if proc.poll() is None:
                 proc.kill()
@@ -152,7 +156,11 @@ class TestShutdownProcessExit:
             proc.stdin.write(msg)
             proc.stdin.flush()
             # stdin NOT closed
-            exit_code = proc.wait(timeout=5)
+            # 30 s, not 5. This asserts a clean exit rather than a fast
+            # one, and spawn alone costs 0.63 s of imports on an idle
+            # machine. Under load the old budget timed out on a process
+            # that was exiting correctly. A hang still fails here.
+            exit_code = proc.wait(timeout=30)
         finally:
             if proc.poll() is None:
                 proc.kill()
