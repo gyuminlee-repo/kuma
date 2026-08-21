@@ -6,6 +6,7 @@ import re
 import sys
 import threading
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 
 # ensure kuro package is importable from any working directory
@@ -103,10 +104,58 @@ class SidecarState:
     # frame guard uses it instead of a network call.
     ca_coords_seq: str | None = None
     active_design_cancel: threading.Event | None = None
+    # What produced the primers currently in `results`, so an export can say it.
+    # `design_provenance` is the last successful design_sdm_primers call (input
+    # paths, resolved parameters, when); `interventions` is every operator action
+    # that changed a result afterwards, in the order they happened. Neither is
+    # derivable from `results`: a retried mutation carries custom tolerances and
+    # length caps that exist nowhere else once the call returns, which is how a
+    # workbook ends up holding a 29 bp reverse primer under a 27 bp default cap
+    # and reads as unreproducible. Cleared together at the start of every design.
+    design_provenance: dict | None = None
+    interventions: list[dict] = field(default_factory=list)
 
 
 _state = SidecarState()
 _state_lock = threading.Lock()
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _append_intervention_locked(kind: str, detail: dict) -> None:
+    """Append one operator action to the intervention log, in call order.
+
+    The caller must already hold ``_state_lock``, and must append inside the
+    same block that mutates the results being described. ``_state_lock`` is a
+    plain Lock, so this cannot take it again, and ``design_sdm_primers`` runs on
+    a background thread (dispatcher ``_ASYNC_METHODS``) where it clears this
+    log: an append made after the mutating block released the lock could be
+    dropped, or land out of order against the state it claims to describe.
+
+    Recorded even when no design provenance exists. A retry can be the first
+    thing a restored session does, and that gap is itself worth exporting.
+    """
+    _state.interventions.append({
+        "seq": len(_state.interventions) + 1,
+        "type": kind,
+        "at": _utc_now_iso(),
+        **detail,
+    })
+
+
+def _provenance_snapshot() -> tuple[dict | None, list[dict]]:
+    """Return copies of the provenance record and the intervention log.
+
+    Copies, so a manifest being serialised cannot observe a half-applied append
+    from another RPC thread.
+    """
+    with _state_lock:
+        provenance = (
+            dict(_state.design_provenance) if _state.design_provenance else None
+        )
+        return provenance, [dict(entry) for entry in _state.interventions]
 
 
 def _begin_design_job() -> threading.Event:

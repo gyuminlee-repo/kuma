@@ -213,6 +213,61 @@ def _manifest_path_for(output_path: Path) -> Path:
     return output_path.parent / (output_path.stem + ".run.json")
 
 
+def _design_provenance_for_manifest(
+    results_source: str,
+) -> tuple[dict[str, Path], dict[str, object]]:
+    """Manifest ``inputs`` and ``extra`` describing what produced these rows.
+
+    *results_source* says where the rows in this export came from: ``"state"``
+    when they were read out of the session's last design, ``"payload"`` when the
+    caller handed them in.
+
+    On the payload path the session provenance is deliberately NOT attached.
+    ``handle_load_workspace`` restores a saved workspace without repopulating
+    ``_core._state.results``, so after a load the last design this process ran
+    can easily be a different one, and stamping its fasta digest and its
+    intervention log onto an unrelated export would put a confident falsehood in
+    the one artifact whose whole job is to be trusted. An empty ``inputs`` reads
+    as "not recorded"; a wrong ``inputs`` reads as "recorded", which is worse.
+
+    Everything here was fixed at design time (see
+    ``handlers.design._build_design_provenance``). This function only serialises
+    it; the digests it returns paths for are re-taken by ``build_run_manifest``
+    at export time on purpose, so a fasta edited between designing and exporting
+    shows up as two digests that disagree instead of passing unnoticed.
+    """
+    if results_source != "state":
+        return {}, {
+            "results_source": results_source,
+            "design": None,
+            "interventions": None,
+            "provenance_omitted": (
+                "rows supplied by the caller, so the session design provenance "
+                "may describe a different run"
+            ),
+        }
+
+    provenance, interventions = _core._provenance_snapshot()
+    inputs: dict[str, Path] = {}
+    if provenance:
+        fasta_path = provenance.get("fasta_path")
+        if fasta_path:
+            inputs["design_fasta"] = Path(str(fasta_path))
+        mutations = provenance.get("mutations") or {}
+        # Only a real file. Mutations typed into the UI went through a temporary
+        # CSV this process already deleted, and naming a path that no longer
+        # exists would be dropped from the manifest and become indistinguishable
+        # from no mutations at all. Those are recorded inline under extra.design.
+        if mutations.get("source") == "file" and mutations.get("path"):
+            inputs["design_mutations"] = Path(str(mutations["path"]))
+
+    return inputs, {
+        "results_source": "state",
+        "design": provenance,
+        "interventions": interventions,
+    }
+
+
 def handle_get_plate_map(_params: dict) -> dict:  # noqa: ARG001
     """Return the plate map from last design."""
     with _core._state_lock:
@@ -307,12 +362,18 @@ def handle_export_excel(params: dict) -> dict:
         k: v for k, v in params.items()
         if k not in ("mappings", "rescued_info", "report_data", "benchmark_raw")
     }
+    # The exported rows come out of _core._state.results on both branches above;
+    # only the well layout can arrive as a payload, which is recorded separately
+    # rather than folded into results_source.
+    manifest_inputs, manifest_extra = _design_provenance_for_manifest("state")
+    manifest_extra["mappings_source"] = "payload" if p.mappings else "state"
     manifest = build_run_manifest(
         method="export_excel",
-        inputs={},
+        inputs=manifest_inputs,
         params=manifest_params,
         started_at=started_at,
         finished_at=finished_at,
+        extra=manifest_extra,
     )
     mpath = _manifest_path_for(resolved)
     write_run_manifest(mpath, manifest)
@@ -360,12 +421,16 @@ def handle_export_order(params: dict) -> dict:
     finished_at = datetime.now(timezone.utc)
 
     manifest_params = {"filepath": params.get("filepath"), "format": p.format}
+    manifest_inputs, manifest_extra = _design_provenance_for_manifest(
+        "payload" if p.results is not None else "state"
+    )
     manifest = build_run_manifest(
         method="export_order",
-        inputs={},
+        inputs=manifest_inputs,
         params=manifest_params,
         started_at=started_at,
         finished_at=finished_at,
+        extra=manifest_extra,
     )
     mpath = _manifest_path_for(resolved)
     write_run_manifest(mpath, manifest)
@@ -458,12 +523,16 @@ def handle_export_mapping(params: dict) -> dict:
         "format": p.format,
         "transfer_vol": p.transfer_vol,
     }
+    manifest_inputs, manifest_extra = _design_provenance_for_manifest(
+        "payload" if p.mappings else "state"
+    )
     manifest = build_run_manifest(
         method="export_mapping",
-        inputs={},
+        inputs=manifest_inputs,
         params=manifest_params,
         started_at=started_at,
         finished_at=finished_at,
+        extra=manifest_extra,
     )
     mpath = _manifest_path_for(resolved)
     write_run_manifest(mpath, manifest)
