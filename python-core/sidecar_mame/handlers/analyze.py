@@ -174,6 +174,69 @@ def _resolve_cds_end(raw_cds_end: Any, reference_path: Path) -> int:
     return cds_end
 
 
+def _check_coding_bounds(
+    raw_cds_start: Any, raw_cds_end: Any, reference_path: Path
+) -> list[str]:
+    """Refusals for a coding window that does not sit on this reference.
+
+    Only ``cds_end`` was ever checked, and only for being an integer, so three
+    ranges reached the pipeline as valid and each produced a different wrong
+    answer out of one ``reference_seq[cds_start:cds_end]`` slice
+    (``aa_translator.py:211``):
+
+    - ``cds_start`` past ``cds_end``, and ``cds_start`` past the end of the
+      reference, both slice to an empty CDS. Every well is then graded against
+      nothing.
+    - A negative ``cds_start`` is the one that does not look broken. Python
+      counts it from the end, so ``-50`` silently reads the last 50 bases: a
+      plausible CDS from the wrong part of the sequence.
+
+    ``cds_end`` past the reference is not refused here. It is the documented way
+    of saying "to the end", the slice clamps, and ``_resolve_cds_end`` already
+    treats a non-positive value the same way.
+    """
+    errors: list[str] = []
+    if raw_cds_start is None:
+        return errors
+    try:
+        cds_start = int(raw_cds_start)
+    except (TypeError, ValueError):
+        return ["cds_start must be an integer"]
+
+    if cds_start < 0:
+        errors.append(
+            f"cds_start must not be negative (got {cds_start}). A negative "
+            "offset counts back from the end of the reference, which reads a "
+            "coding sequence from the wrong part of it."
+        )
+
+    try:
+        reference_length = _read_reference_length(reference_path)
+    except (OSError, ValueError):
+        # The reference is unreadable, which is reported under its own name
+        # elsewhere. Nothing more can be said about the bounds here.
+        return errors
+
+    if cds_start >= reference_length:
+        errors.append(
+            f"cds_start ({cds_start}) is at or past the end of the reference "
+            f"({reference_length} bp), so the coding sequence is empty."
+        )
+
+    if raw_cds_end is not None:
+        try:
+            cds_end = int(raw_cds_end)
+        except (TypeError, ValueError):
+            return errors
+        if cds_end > 0 and cds_end <= cds_start:
+            errors.append(
+                f"cds_end ({cds_end}) must be greater than cds_start "
+                f"({cds_start}). The coding sequence would be empty and every "
+                "well would be graded against nothing."
+            )
+    return errors
+
+
 def _write_reference_fasta(reference_path: Path, output_dir: Path) -> Path:
     """Materialize non-FASTA sequence input as FASTA for the pipeline."""
     if reference_path.suffix.lower() in _ALLOWED_FASTA_EXTENSIONS:
@@ -1096,6 +1159,22 @@ def _acceptance_findings(params: dict) -> list[str]:
     """
     findings: list[str] = []
 
+    # Coding bounds, asked here rather than in the validator alone for the
+    # reason the docstring above gives: a CLI call, a harness or a script
+    # reaches the run without passing the button.
+    reference = params.get("reference")
+    if reference:
+        try:
+            reference_path = _validate_filepath(reference)
+        except (FileNotFoundError, ValueError):
+            reference_path = None
+        if reference_path is not None:
+            findings.extend(
+                _check_coding_bounds(
+                    params.get("cds_start"), params.get("cds_end"), reference_path
+                )
+            )
+
     input_dir = params.get("input_dir")
     if input_dir:
         try:
@@ -1332,6 +1411,9 @@ def handle_validate_inputs(params: dict) -> dict:
             _resolve_cds_end(cds_end, reference_path)
         except ValueError as exc:
             errors.append(str(exc))
+        # The coding-bounds refusals are not repeated here: they come in
+        # through _acceptance_findings above, which is the collector this
+        # screen and the run share so the two cannot grade differently.
 
     result: dict = {"valid": not errors, "errors": errors}
     if plate_order is not None:

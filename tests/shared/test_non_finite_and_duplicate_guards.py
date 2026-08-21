@@ -324,3 +324,87 @@ def test_distinct_variants_still_read(tmp_path: Path) -> None:
     result = read_variant_source(path)
 
     assert [m.mutant_id for m in result.expected] == ["V5F", "K53N"]
+
+
+# ---------------------------------------------------------------------------
+# The sibling gate, and the second implementation of the same filter
+# ---------------------------------------------------------------------------
+
+
+def _write_run_with_barcode(tmp_path: Path, barcode_text: str) -> tuple[Path, Path]:
+    """One read whose summary states *barcode_text* as its barcode score."""
+    fastq = tmp_path / "reads.fastq"
+    seq = "A" * _READ_LENGTH
+    qual = "I" * _READ_LENGTH
+    fastq.write_text(f"@read1\n{seq}\n+\n{qual}\n", encoding="utf-8")
+
+    summary = tmp_path / "sequencing_summary.txt"
+    summary.write_text(
+        "read_id\tmean_qscore_template\tsequence_length_template\tbarcode_score\n"
+        f"read1\t30.0\t{_READ_LENGTH}\t{barcode_text}\n",
+        encoding="utf-8",
+    )
+    return fastq, summary
+
+
+def test_an_unusable_barcode_score_fails_the_filter(tmp_path: Path) -> None:
+    """The gate five lines above the Q-score one, which was fixed alone.
+
+    Both read the same summary dict and both were written as
+    ``float(value) < minimum``. Fixing one and not the other left a read whose
+    barcode score could not be established passing the gate that exists to
+    reject it.
+    """
+    from kuma_core.mame.ingest.quality_filter import (
+        QualityFilterParams,
+        filter_reads_by_summary,
+    )
+
+    fastq, summary = _write_run_with_barcode(tmp_path, "nan")
+    params = QualityFilterParams(target_length=_READ_LENGTH, min_barcode_score=60.0)
+
+    _, result = filter_reads_by_summary(fastq, summary, params)
+
+    assert result.n_passed == 0
+    assert result.n_failed_barcode == 1
+
+
+def test_a_good_barcode_score_still_passes(tmp_path: Path) -> None:
+    """The control for the test above."""
+    from kuma_core.mame.ingest.quality_filter import (
+        QualityFilterParams,
+        filter_reads_by_summary,
+    )
+
+    fastq, summary = _write_run_with_barcode(tmp_path, "99.0")
+    params = QualityFilterParams(target_length=_READ_LENGTH, min_barcode_score=60.0)
+
+    _, result = filter_reads_by_summary(fastq, summary, params)
+
+    assert result.n_passed == 1
+    assert result.n_failed_barcode == 0
+
+
+def test_the_two_quality_filter_implementations_agree_on_nan() -> None:
+    """The sidecar reimplements this filter rather than calling it.
+
+    That is why the v0.16.33.05 fix did not reach the demux path: there are two
+    copies of the same gate. Two paths documented as doing the same thing have
+    to be compared against each other, so this asserts the shape rather than
+    each one alone.
+    """
+    import inspect
+
+    from kuma_core.mame.ingest import quality_filter
+    from sidecar_mame.handlers import demux
+
+    core = inspect.getsource(quality_filter.filter_reads_by_summary)
+    sidecar = inspect.getsource(demux.handle_demux_and_filter)
+
+    for source, name in ((core, "quality_filter"), (sidecar, "demux handler")):
+        assert "math.isfinite(qscore" in source, (
+            f"{name} compares a q-score without checking it is finite"
+        )
+        assert "math.isfinite(bscore" in source, (
+            f"{name} compares a barcode score without checking it is finite"
+        )
