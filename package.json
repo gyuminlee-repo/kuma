@@ -30,6 +30,8 @@
     "capture-guide": "tsx --tsconfig tsconfig.scripts.json scripts/capture-guide.ts",
     "capture-real": "tsx --tsconfig tsconfig.scripts.json scripts/capture-real.ts",
     "capture-real:data": "python3 scripts/gen_real_capture_data.py",
+    "capture-mame": "tsx --tsconfig tsconfig.scripts.json scripts/capture-mame.ts",
+    "capture-mame:data": "python3 scripts/gen_mame_capture_data.py",
     "record-tutorial": "tsx --tsconfig tsconfig.scripts.json scripts/record-tutorial.ts"
   },
   "dependencies": {

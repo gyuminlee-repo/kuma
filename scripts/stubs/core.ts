@@ -12,6 +12,7 @@
  */
 
 import realDataJson from "../real-data.json";
+import mameRealDataJson from "../mame-real-data.json";
 
 export interface MockProject {
   path: string;
@@ -35,17 +36,22 @@ const CONFIG = {
 };
 
 /**
- * Replies the real sidecar gave for the capture inputs, keyed by RPC method.
- * Loaded lazily so a missing bundle degrades to an empty reply rather than
- * breaking the dev server for every other MOCK_MODE consumer.
+ * Replies the real sidecars gave for the capture inputs, keyed by RPC method
+ * within each sidecar.
+ *
+ * The two tables are separate because the method namespace is not shared.
+ * `health_info` and `export_janus_mapping_dry_run` are defined by both
+ * sidecars and mean different things, so one flat table would have served a
+ * KURO reply to a MAME screen with nothing raising.
  */
 type RealBundle = Record<string, unknown>;
 // Static import: Vite transforms JSON into a module here. A dynamic
 // `import(..., { with: { type: "json" } })` is rejected by the browser MIME
 // check under the dev server and silently leaves the bundle empty.
 const realBundle = realDataJson as RealBundle;
+const mameBundle = mameRealDataJson as RealBundle;
 
-const SIDECAR_REPLIES: Record<string, (params?: unknown) => unknown> = {
+const KURO_REPLIES: Record<string, (params?: unknown) => unknown> = {
   list_polymerases: () => realBundle.polymerases ?? [],
   load_fasta: () => realBundle.seq_info ?? {},
   load_evolvepro_csv: () => realBundle.evolvepro ?? {},
@@ -69,6 +75,36 @@ const SIDECAR_REPLIES: Record<string, (params?: unknown) => unknown> = {
     return table[name] ?? {};
   },
   ping: () => ({ ok: true }),
+};
+
+const MAME_REPLIES: Record<string, (params?: unknown) => unknown> = {
+  health_info: () => mameBundle.health ?? {},
+  // Held back for as long as the sidecar really took. The app times the call
+  // client-side and prints the result on the review screen, so answering at
+  // once would state a runtime no operator will ever see.
+  analyze: async () => {
+    const seconds = Number(mameBundle.analyze_seconds ?? 0);
+    if (seconds > 0) {
+      await new Promise((done) => setTimeout(done, seconds * 1000));
+    }
+    return mameBundle.analyze ?? {};
+  },
+  get_plate_data: () => mameBundle.plate ?? {},
+  get_run_health: () => mameBundle.run_health ?? {},
+  export_janus_mapping_dry_run: () => mameBundle.janus_dry_run ?? {},
+  read_kuma_meta: () => mameBundle.kuma_meta ?? null,
+  inspect_variant_source: () => mameBundle.variant_source ?? {},
+  validate_inputs: () => mameBundle.validate_inputs ?? {},
+  check_plate_order: () => mameBundle.plate_order ?? {},
+  "mame.ingest.parse_reference": () => mameBundle.parse_reference ?? {},
+  "mame.build_well_layout": () => mameBundle.well_layout ?? {},
+  "mame.detect_native_barcodes": () => mameBundle.native_barcodes ?? {},
+  ping: () => ({ ok: true }),
+};
+
+const SIDECAR_REPLIES: Record<string, Record<string, (params?: unknown) => unknown>> = {
+  kuro: KURO_REPLIES,
+  mame: MAME_REPLIES,
 };
 
 /**
@@ -107,13 +143,17 @@ const HANDLERS: Record<string, (args?: Record<string, unknown>) => unknown> = {
   sidecar_is_running: () => true,
   sidecar_kill: () => null,
   sidecar_rpc: (args) => {
+    const kind = String(args?.kind ?? "");
     const method = String(args?.method ?? "");
-    const reply = SIDECAR_REPLIES[method];
+    // Reported with the kind attached. A method missing from the MAME table
+    // while present in the KURO one is the failure this dispatch exists to
+    // make visible, and "no reply for analyze" alone would not say which.
+    const reply = SIDECAR_REPLIES[kind]?.[method];
     if (!reply) {
       // Shouted to the console as well as thrown: the app catches this and
       // paints it into a status bar, where it would ride into a screenshot
       // unnoticed. capture-real.ts watches the console and fails the run.
-      const message = `MOCK_MODE: no recorded sidecar reply for "${method}"`;
+      const message = `MOCK_MODE: no recorded sidecar reply for "${kind}:${method}"`;
       console.error(message);
       throw new Error(message);
     }
