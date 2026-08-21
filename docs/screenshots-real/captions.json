@@ -80,9 +80,9 @@
     "file": "16-design-report.png"
   },
   {
-    "name": "17-mapping-export-dialog",
-    "caption": "Export step with the plate-mapping options",
-    "file": "17-mapping-export-dialog.png"
+    "name": "17-mapping-export",
+    "caption": "Export step with the plate-mapping and order options",
+    "file": "17-mapping-export.png"
   },
   {
     "name": "18-primer-popover",

@@ -397,8 +397,10 @@ export const screenStates: ScreenState[] = [
     `,
   },
   {
-    name: "17-mapping-export-dialog",
-    caption: "Export step with the plate-mapping options",
+    // Named for the step, not a dialog: AppLayout dropped the mapping popup and
+    // the options now live inline on the export step.
+    name: "17-mapping-export",
+    caption: "Export step with the plate-mapping and order options",
     nav: NAV_EXPORT,
     state: designed,
     action: `
