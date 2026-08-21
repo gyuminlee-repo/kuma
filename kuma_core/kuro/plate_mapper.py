@@ -297,32 +297,47 @@ def _write_plate_sheet(
 
 
 def _chunk_by_plate(mappings: list[PlateMapping]) -> list[list[PlateMapping]]:
-    """Split mappings into 96-well plate chunks."""
-    plates: list[list[PlateMapping]] = []
-    current: list[PlateMapping] = []
+    """Split mappings into plates, using the plate each well was assigned to.
+
+    Grouped by the ``P<n>-`` prefix rather than by counting to 96, because the
+    number of wells on a plate is not always 96 here: ``_assign_well_with_range``
+    divides by ``_capacity_for_range``, which a ``mapping_range`` over the 384
+    rows makes 48 or 24. Counting to 96 then put the second plate's wells in the
+    first plate's chunk, and stripping their prefix on the way made them
+    indistinguishable from it.
+
+    Measured before this was written, with a mapping_range of rows A-H
+    (capacity 48) over 60 mappings: one chunk came back holding 12 duplicated
+    wells, so the order sheet named two different primers for one physical
+    position. With no range the old and new forms agree, which is why nothing
+    caught it.
+    """
+    plates: dict[int, list[PlateMapping]] = {}
     for m in mappings:
-        # Normalize well: strip overflow prefix like "P2-"
+        # "A1" is plate 1; "P2-A1" is the same well on plate 2. The prefix is
+        # what the assignment recorded, so it is read rather than recomputed.
         well = m.well
+        plate_num = 1
         if "-" in well:
-            well = well.split("-", 1)[1]
-            m = PlateMapping(
-                well=well,
-                primer_name=m.primer_name,
-                sequence=m.sequence,
-                primer_type=m.primer_type,
-                mutation=m.mutation,
-                tm=m.tm,
-                tm_overlap=m.tm_overlap,
-                wt_codon=m.wt_codon,
-                mt_codon=m.mt_codon,
-            )
-        current.append(m)
-        if len(current) >= 96:
-            plates.append(current)
-            current = []
-    if current:
-        plates.append(current)
-    return plates if plates else [[]]
+            prefix, rest = well.split("-", 1)
+            if prefix.startswith("P") and prefix[1:].isdigit():
+                plate_num = int(prefix[1:])
+                well = rest
+                m = PlateMapping(
+                    well=well,
+                    primer_name=m.primer_name,
+                    sequence=m.sequence,
+                    primer_type=m.primer_type,
+                    mutation=m.mutation,
+                    tm=m.tm,
+                    tm_overlap=m.tm_overlap,
+                    wt_codon=m.wt_codon,
+                    mt_codon=m.mt_codon,
+                )
+        plates.setdefault(plate_num, []).append(m)
+
+    ordered = [plates[key] for key in sorted(plates)]
+    return ordered if ordered else [[]]
 
 
 def _pair_rev_per_plate(

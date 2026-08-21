@@ -76,6 +76,38 @@ def describe_non_finite(paths: list[str]) -> str:
     )
 
 
+def loads_rpc_request(line: str) -> Any:
+    """Parse one JSON-RPC line, refusing the non-finite literals.
+
+    Python's JSON parser accepts bare ``NaN``, ``Infinity`` and ``-Infinity``
+    tokens, which no other JSON implementation emits and RFC 8259 does not
+    describe. Accepting them puts a value into a handler's parameters that no
+    threshold comparison can use: every comparison against NaN is False, so a
+    gate given ``{"min_qscore": NaN}`` keeps every read and reports that it
+    passed rather than that it could not decide.
+
+    This is the outermost place that can say no. Each handler still guards its
+    own numbers (:func:`parse_finite_float`), because a value read from a file
+    never passes through here, but a parameter refused at the door cannot reach
+    any of them.
+
+    Raises:
+        json.JSONDecodeError: The line is not JSON, or carries a non-finite
+            literal. The same type either way, so callers that already answer
+            a parse error keep working unchanged.
+    """
+
+    def _refuse(literal: str) -> Any:
+        raise json.JSONDecodeError(
+            f"{literal} is not valid JSON and cannot be compared against any "
+            "threshold; send a finite number or omit the field",
+            line,
+            0,
+        )
+
+    return json.loads(line, parse_constant=_refuse)
+
+
 def parse_finite_float(value: Any, *, field: str) -> float:
     """Return ``value`` as a float, refusing NaN and the infinities.
 

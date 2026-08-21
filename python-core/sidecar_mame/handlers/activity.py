@@ -22,6 +22,7 @@ from sidecar_mame.core import (
     _validate_filepath,
     _validate_output_path,
 )
+from kuma_core.shared.sidecar import parse_finite_float
 
 # ---------------------------------------------------------------------------
 # Module-level round state (activity handlers only)
@@ -383,7 +384,22 @@ def handle_merge_for_evolvepro(params: dict) -> dict:
     fallback_measurements: dict[str, list[float]] = params.get(
         "fallback_measurements", {}
     ) or {}
-    mismatch_threshold: float = float(params.get("mismatch_threshold", 0.1))
+    # The same rule models.py:BuildEvolveproInputParams states for this
+    # parameter (gt=0.0), applied here too. Both handlers feed the value to
+    # merge_replicates_priority, and only the other one went through pydantic,
+    # so a NaN or a non-positive threshold arriving on this path reached
+    # ``if diff > mismatch_threshold`` and made it False for every replicate:
+    # no mismatch was ever flagged and the export-blocked judgement went quiet.
+    mismatch_threshold = parse_finite_float(
+        params.get("mismatch_threshold", 0.1), field="mismatch_threshold"
+    )
+    if mismatch_threshold <= 0.0:
+        raise ValueError(
+            f"mismatch_threshold must be greater than 0 (got "
+            f"{mismatch_threshold}). A threshold at or below zero flags every "
+            "replicate pair or none of them, depending on the comparison, "
+            "rather than the ones that actually disagree."
+        )
     ref_seq: str | None = params.get("ref_seq")
 
     # WT key filtering: remove WT entries before deciding whether a reference is
