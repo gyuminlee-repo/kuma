@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 import zipfile
 from dataclasses import dataclass
@@ -71,11 +72,20 @@ def _split_cif_tokens(line: str) -> list[str]:
 
 
 def _as_float(value: str) -> float | None:
-    """Parse a coordinate field. Returns None when the field is not numeric."""
+    """Parse a coordinate field. Returns None when the field is not a finite number.
+
+    ``float()`` accepts "NaN", "inf" and "-Infinity". A non-finite coordinate
+    poisons every distance computed from it, and NaN compares False against any
+    threshold, so no downstream cutoff filter would ever reject it. Rejecting it
+    at the parse boundary is the only place the value is still identifiable.
+    """
     try:
-        return float(value)
+        parsed = float(value)
     except ValueError:
         return None
+    if not math.isfinite(parsed):
+        return None
+    return parsed
 
 
 def _as_int(value: str) -> int | None:
@@ -188,6 +198,30 @@ def _parse_cif_ca(
     sequence = "".join(residues.get(i, "X") for i in range(1, max_res + 1))
     mean_plddt = round(sum(plddt) / len(plddt), 2) if plddt else None
     return ca, sequence, mean_plddt
+
+
+def _drop_nonfinite_ca(
+    ca: list[tuple[float, float, float] | None],
+) -> list[tuple[float, float, float] | None]:
+    """Blank out Ca entries holding a non-finite coordinate.
+
+    The PDB branch delegates to ``alphafold._parse_pdb_ca``, whose bare
+    ``float()`` accepts "NaN" and "inf" from the coordinate columns. A residue
+    with such a coordinate is treated as having no coordinate at all, which is
+    the state downstream consumers already handle, rather than being propagated
+    into distance arithmetic where it silently defeats every threshold.
+    """
+    cleaned: list[tuple[float, float, float] | None] = []
+    dropped = 0
+    for xyz in ca:
+        if xyz is not None and not all(math.isfinite(v) for v in xyz):
+            cleaned.append(None)
+            dropped += 1
+            continue
+        cleaned.append(xyz)
+    if dropped:
+        logger.warning("PDB: dropped %d Ca atom(s) with non-finite coordinates", dropped)
+    return cleaned
 
 
 @dataclass
@@ -344,10 +378,10 @@ def load_structure_file(path: str | Path) -> LoadedStructure:
     if suffix in CIF_SUFFIXES:
         ca, sequence, mean_plddt = _parse_cif_ca(text)
     else:
-        ca = _parse_pdb_ca(text)
+        ca = _drop_nonfinite_ca(_parse_pdb_ca(text))
         sequence = _parse_pdb_seq(text)
         mean_plddt = None
-        if not ca:
+        if not any(c is not None for c in ca):
             raise StructureFileError("no Ca atoms found in the PDB file")
 
     logger.info(
