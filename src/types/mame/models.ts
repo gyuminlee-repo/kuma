@@ -1135,7 +1135,11 @@ export interface DemuxFilterStats {
   n_passed: number;
   n_failed_qscore: number;
   n_failed_length: number;
-  n_failed_barcode: number;
+  /** Null when the run carried no sequencing_summary: barcode_score is a
+   *  summary-only column, so the gate could not run. Null is "not measured";
+   *  0 would claim the gate ran and cleared every read. Do not do arithmetic
+   *  on this without narrowing first. */
+  n_failed_barcode: number | null;
 }
 
 export interface AmpliconLengthDistributionSummary {

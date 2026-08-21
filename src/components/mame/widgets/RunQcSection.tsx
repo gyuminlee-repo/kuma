@@ -111,9 +111,13 @@ export function RunQcSection({ runHealth }: { runHealth: RunHealthData | null })
   const ratioText = (v: number | null | undefined): string =>
     typeof v === "number" ? v.toFixed(2) : unknown;
 
-  // Two distinct absences. A consensus-directory run never demuxes at all; a raw
-  // run that was handed no sequencing_summary demuxes and cannot fill the filter
-  // tally (handlers/demux.py). Saying "no data" to both hides which happened.
+  // Two distinct absences. A consensus-directory run never demuxes at all, so
+  // there is no tally to show. A null filter_stats now means something else:
+  // handlers/demux.py fills the tally on every run, with or without a
+  // sequencing_summary, so the only way to hold a null here is an autosave
+  // snapshot written before that change (useAutosaveHydration.ts rehydrates
+  // demuxResult verbatim). The branch stays reachable for those snapshots.
+  // Saying "no data" to both cases would hide which one happened.
   const filterStats = demuxResult?.filter_stats ?? null;
   const filterReason =
     demuxResult === null

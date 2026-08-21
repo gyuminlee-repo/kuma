@@ -265,6 +265,34 @@ describe("RunQcSection, filter stats", () => {
     expect(screen.getByTestId("filter-stat-input").textContent ?? "").toContain("12,000");
     expect(screen.getByTestId("filter-stat-passed").textContent ?? "").toContain("9,000");
   });
+
+  it("draws an unrun barcode gate as not-measured while the other tallies read", () => {
+    // A run handed no sequencing_summary: handlers/demux.py gates Q-score and
+    // length from the FASTQ itself, but barcode_score is a summary-only column,
+    // so that one tally comes back null. Printing 0 there would claim the gate
+    // ran and cleared every read.
+    useMameAppStore.setState({
+      demuxResult: makeDemux({
+        filter_stats: {
+          n_input: 400,
+          n_passed: 380,
+          n_failed_qscore: 15,
+          n_failed_length: 5,
+          n_failed_barcode: null,
+        },
+      }),
+    });
+    render(<RunQcSection runHealth={makeHealth()} />);
+    open();
+
+    const block = screen.getByTestId("run-qc-filter-stats");
+    expect(block).toHaveAttribute("data-state", "present");
+    expect(screen.getByTestId("filter-stat-barcode").textContent ?? "").toContain(
+      en.mame.runHealth.qcNotMeasured,
+    );
+    expect(screen.getByTestId("filter-stat-barcode").textContent ?? "").not.toContain("0");
+    expect(screen.getByTestId("filter-stat-qscore").textContent ?? "").toContain("15");
+  });
 });
 
 describe("RunQcSection, position recurrence", () => {

@@ -440,7 +440,14 @@ def test_fully_resumed_run_reports_same_input_and_unassigned_as_fresh(
         demux_calls.append(name)
         # Per NB: 5 input reads, 3 assigned to one well, 2 unassigned.
         well = f"{name}_1"
-        _write_consensus(Path(output_dir), well)
+        # A raw-read bundle, not a consensus record.  Demux output is what the
+        # quality filter reads next, and that filter recounts each well from the
+        # records that survive it, so a one-record file would report 1 assigned
+        # read where per_well_counts below says 3.
+        (Path(output_dir) / f"{well}.fasta").write_text(
+            "".join(f">{well}_read{k}\nACGTACGTACGTACGTACGT\n" for k in range(3)),
+            encoding="utf-8",
+        )
         from kuma_core.mame.ingest.demux import DemuxResult
 
         return DemuxResult(
