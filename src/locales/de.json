@@ -2541,7 +2541,7 @@
       "Der gerettete Primer lagert sich im selben Bereich an wie der Rest der Platte, weil Kürzen nun eine Möglichkeit ist.",
       "Die Runde, in der das auffiel, geht von 93 von 95 auf 95 von 95, ohne die bereits erfolgreichen Primer zu verändern."
     ],
-    "highlightsStamp": "0.16.34+d7925cb6",
+    "highlightsStamp": "0.16.35+d628e48a",
     "releases": {
       "0.16.28": [
         "Fünf run-health-Abschnitte, die die App bei jedem Lauf gemessen und nie gezeichnet hat, stehen jetzt im Review-Bildschirm, zunächst geschlossen.",
@@ -2798,6 +2798,11 @@
         "Mutationen, deren Primer bereits die Mindestlänge erreicht hat, werden jetzt gerettet statt als ohne gültiges Paar gemeldet.",
         "Der gerettete Primer lagert sich im selben Bereich an wie der Rest der Platte, weil Kürzen nun eine Möglichkeit ist.",
         "Die Runde, in der das auffiel, geht von 93 von 95 auf 95 von 95, ohne die bereits erfolgreichen Primer zu verändern."
+      ],
+      "0.16.35": [
+        "MAME hat jetzt Screenshots, aufgenommen aus einem echten Nanopore-Lauf mit 288 Vertiefungen statt aus Testdaten.",
+        "Die Aufnahme klickt sich selbst durch den Assistenten, jedes Bild zeigt also einen Zustand, den die Anwendung wirklich erreicht hat.",
+        "Aufgezeichnete Sidecar-Antworten werden nach Sidecar und Methode abgelegt. Ein MAME-Bildschirm bekommt keine KURO-Antwort mehr."
       ]
     },
     "releaseStamps": {
@@ -2844,7 +2849,8 @@
       "0.16.31": "60d4442c",
       "0.16.32": "3be3b377",
       "0.16.33": "059a2f27",
-      "0.16.34": "d7925cb6"
+      "0.16.34": "d7925cb6",
+      "0.16.35": "d628e48a"
     }
   },
   "primerDisplay": {

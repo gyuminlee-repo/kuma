@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.16.35 (The run that scores three plates, or one, depending on a checkbox)
+
+MAME had no screenshots. The user guide describes four steps across five pages and shows nothing, so this release adds a capture harness for it and the twelve frames it produces, taken from a real nanopore run of 288 barcoded fastq files.
+
+The KURO harness could not be reused as it stands. It injects store state, which works because the dev build exposes the KURO store on the window; the MAME store is not exposed, and exposing it would mean changing the application to take a picture of itself. So this one clicks instead. It picks the files, presses Validate, presses Run, approves the pre-flight, confirms the replicate axis, and walks the steps. Every panel it photographs was filled by the same handler an operator triggers.
+
+Driving it that way found two things worth keeping. The first is in the run itself: leaving the native-barcode selection empty pools three replicate plates into one, and the result does not look like a failure. It looks like a run that scored 96 wells and recovered 76 of 95 mutants, when the same reads scored per barcode give 288 wells and 94 of 95. The detection RPC names the three barcodes correctly; the run only has to be told to use them.
+
+The second is in the harness. Replies were keyed by method name alone, and both sidecars define `health_info` and `export_janus_mapping_dry_run`. A MAME screen could have been served a KURO answer with nothing raising. Replies are keyed by sidecar and method now, and a missing one names both.
+
+The recorded analyze reply is held back for as long as the sidecar actually took. The application times that call in the browser and prints the result on the review screen, so answering instantly would have put "Took 2 s" on a 288-well nanopore run and into the guide.
+
+### Highlights
+
+- MAME has a screenshot set, taken from a real 288-well nanopore run rather than from fixtures.
+- The capture drives the wizard by clicking it, so every frame is a screen the application actually reached.
+- Recorded sidecar replies are keyed by sidecar as well as by method, so a MAME screen cannot be served a KURO answer.
+
+### Added
+
+- `scripts/gen_mame_capture_data.py` drives the built MAME sidecar over JSON-RPC against a real run and records every reply, including how long the analyze took.
+- `scripts/capture-mame.ts` walks the MAME wizard in MOCK_MODE and writes twelve frames with their captions. A `--harvest` pass reports every missing reply in one run instead of one per attempt.
+
+### Fixed
+
+- The MOCK_MODE stub keyed recorded sidecar replies by method name only. Two method names are defined by both sidecars, so the wrong one could have been served with nothing to say so.
+
 ## v0.16.34 (A primer at its shortest cannot get any cooler)
 
 Two mutations at one codon came back rejected, and the reason given was the same for both: the reverse primer sat at the 19 nt floor with a melting temperature of 64.7 C, six degrees above where it was asked to be. The rescue cascade could not do anything about it. That cascade widens the temperature window and the GC range, and neither helps a primer that has already run out of length to give up. All the window could offer was to grow wide enough to accept the hot primer as it stood, and it stopped 0.7 C short of even that.
