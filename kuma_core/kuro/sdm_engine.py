@@ -1025,6 +1025,17 @@ def _search_candidates(
     return candidates
 
 
+# Length fallbacks for design_single_sdm, used when neither the caller nor the
+# polymerase profile supplies a bound. Named because the rescue cascade in
+# sidecar_kuro.handlers.design has to resolve the same floors before it can
+# lower them, and a second copy of the numbers would drift.
+DEFAULT_OVERLAP_LEN = 18
+DEFAULT_FWD_LEN_MIN = 17
+DEFAULT_FWD_LEN_MAX = 39
+DEFAULT_REV_LEN_MIN = 19
+DEFAULT_REV_LEN_MAX = 27
+
+
 def design_single_sdm(
     seq: str,
     mutation: Mutation,
@@ -1055,15 +1066,15 @@ def design_single_sdm(
                             (rev = rc(fwd)), mutation centered with symmetric expansion.
     """
     if overlap_len is None:
-        overlap_len = profile.overlap_len if profile.overlap_len is not None else 18
+        overlap_len = profile.overlap_len if profile.overlap_len is not None else DEFAULT_OVERLAP_LEN
     if fwd_len_min is None:
-        fwd_len_min = profile.fwd_len_min if profile.fwd_len_min is not None else 17
+        fwd_len_min = profile.fwd_len_min if profile.fwd_len_min is not None else DEFAULT_FWD_LEN_MIN
     if fwd_len_max is None:
-        fwd_len_max = profile.fwd_len_max if profile.fwd_len_max is not None else 39
+        fwd_len_max = profile.fwd_len_max if profile.fwd_len_max is not None else DEFAULT_FWD_LEN_MAX
     if rev_len_min is None:
-        rev_len_min = profile.rev_len_min if profile.rev_len_min is not None else 19
+        rev_len_min = profile.rev_len_min if profile.rev_len_min is not None else DEFAULT_REV_LEN_MIN
     if rev_len_max is None:
-        rev_len_max = profile.rev_len_max if profile.rev_len_max is not None else 27
+        rev_len_max = profile.rev_len_max if profile.rev_len_max is not None else DEFAULT_REV_LEN_MAX
 
     alt_codons = mt_codons_for_design(mutation.wt_codon, mutation.mt_aa, codon_strategy, organism=organism)
     mutations_to_try = []

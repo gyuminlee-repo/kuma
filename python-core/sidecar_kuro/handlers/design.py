@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Any, TypedDict
 
 from kuma_core.kuro.sdm_engine import (
+    DEFAULT_FWD_LEN_MIN,
+    DEFAULT_REV_LEN_MIN,
     OverlapMode,
     SdmPrimerResult,
     design_single_sdm,
@@ -191,6 +193,8 @@ _DEFAULT_TOL_MAX = 4.0   # must match design_single_sdm() default
 _RELAX_TOL_DELTA = 2.0   # °C added to the requested tol_max (4.0 + 2.0 = 6.0)
 _MAX_TOL_MAX = 10.0      # must match models.py tol_max Field(le=...)
 _RELAX_GC_DELTA = 5      # percentage points widened on each side
+_RELAX_LEN_DELTA = 2     # nt taken off the primer length floors
+_LEN_FLOOR = 15          # absolute minimum primer length, below which specificity goes
 _GC_FLOOR = 20           # absolute minimum GC% (Integrated DNA Technologies guideline)
 _GC_CEIL = 80            # absolute maximum GC% (Integrated DNA Technologies guideline)
 
@@ -217,6 +221,21 @@ class _RelaxKw(_DesignKw):
     """The same keywords plus the widened tolerance used by the relax pass."""
 
     tol_max: float
+
+
+def _relaxed_floor(requested: int | None, profile_value: int | None, fallback: int) -> int:
+    """Lower a primer length floor for the relax pass.
+
+    `requested` is None whenever the caller left the length to the polymerase
+    profile, which is the usual case, so the profile value has to be resolved
+    the same way design_single_sdm resolves it before anything can be taken off.
+    The fallback comes from sdm_engine rather than a second copy of the number,
+    which is what the kuro-rescue-constants sync group is there to keep honest.
+    """
+    resolved = requested if requested is not None else (
+        profile_value if profile_value is not None else fallback
+    )
+    return max(_LEN_FLOOR, resolved - _RELAX_LEN_DELTA)
 
 
 def _build_mutation(mutation_raw: str, sequence: str, target_start: int, organism: str) -> Mutation:
@@ -511,11 +530,26 @@ def handle_design_sdm_primers(params: dict) -> dict:
                 still_failed = dict(engine_failures)
 
             if p.auto_relax:
+                # The length floors are relaxed alongside Tm and GC. A primer
+                # pinned at its shortest allowed length cannot get any cooler,
+                # so a Tm window that never reaches it is the only thing the
+                # other two axes can offer, and what they buy is a primer far
+                # hotter than the rest of the plate. Two nt of headroom lets
+                # the engine reach the cooler solution, and its own penalty
+                # score decides between the two: measured on the IspS round,
+                # the shorter primer scored 15.1 against 25.9 for the hotter
+                # one, so opening the axis is enough to get it chosen.
                 relax_kw: _RelaxKw = {
                     **design_kw,
                     "tol_max": min(p.tol_max + _RELAX_TOL_DELTA, _MAX_TOL_MAX),
                     "gc_min": max(_GC_FLOOR, p.gc_min - _RELAX_GC_DELTA),
                     "gc_max": min(_GC_CEIL, p.gc_max + _RELAX_GC_DELTA),
+                    "fwd_len_min": _relaxed_floor(
+                        p.fwd_len_min, profile.fwd_len_min, DEFAULT_FWD_LEN_MIN,
+                    ),
+                    "rev_len_min": _relaxed_floor(
+                        p.rev_len_min, profile.rev_len_min, DEFAULT_REV_LEN_MIN,
+                    ),
                 }
                 for failed_mut in list(still_failed):
                     if cancel_event.is_set():

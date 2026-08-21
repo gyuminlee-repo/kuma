@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.16.34 (A primer at its shortest cannot get any cooler)
+
+Two mutations at one codon came back rejected, and the reason given was the same for both: the reverse primer sat at the 19 nt floor with a melting temperature of 64.7 C, six degrees above where it was asked to be. The rescue cascade could not do anything about it. That cascade widens the temperature window and the GC range, and neither helps a primer that has already run out of length to give up. All the window could offer was to grow wide enough to accept the hot primer as it stood, and it stopped 0.7 C short of even that.
+
+Accepting it would not have been the better outcome anyway. The rest of the plate anneals between 52.7 and 61.9 C, and a 96-well plate runs one program. A primer that anneals six degrees hotter than its neighbours is a well that fails while the others work, so a cascade that buys success by adding one is buying the wrong thing.
+
+Letting the length floor move two nucleotides gives the designer somewhere else to go. On the round that surfaced this, the short primer comes back at 59.3 C, in the middle of the plate rather than off its end. Nothing had to be taught to prefer it: the score that ranks candidates already put it far ahead of the hot one, 15.1 against 25.9. The cascade simply never handed it the choice.
+
+The floor never goes below 15 nt, and it is read from the polymerase profile before anything is taken off, because a caller normally leaves lengths to the profile and there is nothing to subtract from otherwise. The fallback lengths now have names in the engine, so the two files that need to agree on them read the same constant.
+
+### Highlights
+
+- Mutations whose primer is already at the minimum length are recovered, instead of being reported as having no valid pair.
+- The recovered primer anneals with the rest of the plate rather than well above it, because shortening is an option now.
+- The round that surfaced this goes from 93 of 95 to 95 of 95 with no change to the primers that already succeeded.
+
+### Fixed
+
+- The automatic relaxation pass widened melting temperature and GC only, so a mutation whose reverse primer sat at the length floor had no route to a valid pair and was reported as a failure.
+- The primer length fallbacks were spelled as bare numbers in two files. They are named constants in the engine now, and the rescue pass reads them rather than carrying its own copy.
+
 ## v0.16.33 (The decode reads the same plate the run did)
 
 A variant list can state the well of every row, and the run places its occupants on exactly those addresses without arithmetic. The numeric-ID decoder did not follow. It read the variant column alone and recomputed the wells from residue position, so a list whose wells are not column-major had its report decoded against a plate the run never used.
