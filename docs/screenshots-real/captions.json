@@ -1,0 +1,102 @@
+[
+  {
+    "name": "01-initial",
+    "caption": "Load step before any file is selected",
+    "file": "01-initial.png"
+  },
+  {
+    "name": "02-file-loaded",
+    "caption": "GenBank loaded, IspS CDS 267 selected",
+    "file": "02-file-loaded.png"
+  },
+  {
+    "name": "03-mutations-entered",
+    "caption": "EVOLVEpro predictions loaded, 95 variants",
+    "file": "03-mutations-entered.png"
+  },
+  {
+    "name": "04-design-complete",
+    "caption": "Primer table for 93 designed variants",
+    "file": "04-design-complete.png"
+  },
+  {
+    "name": "05-plate-map",
+    "caption": "Plate map, 158 primers",
+    "file": "05-plate-map.png"
+  },
+  {
+    "name": "06-parameter-advanced",
+    "caption": "Parameter step with advanced options expanded",
+    "file": "06-parameter-advanced.png"
+  },
+  {
+    "name": "07-uniprot-candidates",
+    "caption": "UniProt hits for the IspS translation, top B3GEM8",
+    "file": "07-uniprot-candidates.png"
+  },
+  {
+    "name": "08-diversity-position",
+    "caption": "Position diversity limit applied to the variant pool",
+    "file": "08-diversity-position.png"
+  },
+  {
+    "name": "09-diversity-domain",
+    "caption": "Domain diversity over 2 InterPro domains of B3GEM8",
+    "file": "09-diversity-domain.png"
+  },
+  {
+    "name": "10-designing",
+    "caption": "Design running",
+    "file": "10-designing.png"
+  },
+  {
+    "name": "11-failed-rows",
+    "caption": "Sequence map marking the 2 mutations the designer rejected",
+    "file": "11-failed-rows.png"
+  },
+  {
+    "name": "12-plate-multi",
+    "caption": "Plate pair review switched to the deduplicated reverse plate",
+    "file": "12-plate-multi.png"
+  },
+  {
+    "name": "13-menu-bar",
+    "caption": "File menu expanded",
+    "file": "13-menu-bar.png"
+  },
+  {
+    "name": "14-polymerase-editor",
+    "caption": "Custom polymerase editor",
+    "file": "14-polymerase-editor.png"
+  },
+  {
+    "name": "15-structure-3d",
+    "caption": "AlphaFold model for B3GEM8 in the 3D panel",
+    "file": "15-structure-3d.png"
+  },
+  {
+    "name": "16-design-report",
+    "caption": "Design report inspector, scrolled to the rejected mutations",
+    "file": "16-design-report.png"
+  },
+  {
+    "name": "17-mapping-export-dialog",
+    "caption": "Export step with the plate-mapping options",
+    "file": "17-mapping-export-dialog.png"
+  },
+  {
+    "name": "18-primer-popover",
+    "caption": "Primer candidate popover",
+    "file": "18-primer-popover.png"
+  },
+  {
+    "name": "19-gene-dropdown",
+    "caption": "Gene selector over the 4 CDS of the plasmid",
+    "file": "19-gene-dropdown.png"
+  },
+  {
+    "name": "20-pipeline-full",
+    "caption": "Full selection pipeline: top-N, position, domain, Pareto",
+    "file": "20-pipeline-full.png"
+  }
+]

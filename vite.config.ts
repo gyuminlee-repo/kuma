@@ -40,6 +40,10 @@ export default defineConfig(({ }) => {
                 __dirname,
                 "scripts/stubs/dialog.ts",
               ),
+              "@tauri-apps/api/core": resolve(
+                __dirname,
+                "scripts/stubs/core.ts",
+              ),
               "@tauri-apps/api/webview": resolve(
                 __dirname,
                 "scripts/stubs/webview.ts",
