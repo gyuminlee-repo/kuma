@@ -242,23 +242,92 @@ def fetch_ca_coords(accession: str) -> list[tuple[float, float, float] | None] |
     return coords
 
 
+# Inflates the centroid-radius bound before it is compared, so a pair is only
+# skipped when it cannot win by a margin far wider than float rounding. The
+# triangle inequality holds exactly in real arithmetic; in floating point the
+# computed distance can exceed the computed radius sum by a few ulps, and
+# without this the exact answer could be pruned by that much. 1e-12 relative is
+# roughly four orders of magnitude above double rounding error and costs
+# nothing measurable in pruning power.
+_CA_DIAMETER_BOUND_SLACK = 1.0 + 1e-12
+
+
 def ca_max_dist(coords: list[tuple[float, float, float] | None]) -> float:
-    """Precompute approximate maximum pairwise Cα distance for normalization.
+    """Exact maximum pairwise Cα distance, used to normalise 3D distances.
 
-    Samples up to 200 residues to avoid O(N²) cost on large proteins.
+    Deterministic: the same coordinates always return the same number.
+
+    This used to draw ``random.sample(valid, min(200, len(valid)))`` with no
+    seed anywhere in the module, so on any chain longer than 200 residues the
+    constant moved between runs. Measured on a 325-residue structure over 30
+    runs: 12 distinct values spanning 88.045 to 94.511, and the sample mean sat
+    2.17% below the true 94.511. ``evolvepro`` divides Cα distances by this
+    value and then mixes the result with an entropy term whose weight is 0.3 by
+    default, so a constant that moves changes the relative weight of the two
+    terms and therefore which variants get selected. Seeding the sampler would
+    only have made one wrong number reproducible, so the sampling is gone and
+    the true maximum is computed instead.
+
+    Cost is bounded by a centroid-radius test rather than by sampling. With
+    ``c`` the centroid, ``|p_i - p_j| <= |p_i - c| + |p_j - c|`` for every pair,
+    so with points ordered by decreasing radius a pair whose radius sum cannot
+    beat the best distance so far is skipped, and so is every later pair in that
+    row. Memory is O(N) (the ordered points and their radii), never an N×N
+    matrix, which is why this is written out rather than handed to numpy: numpy
+    is not a declared dependency here, and its broadcast form would allocate
+    about 600 MB at N=5000.
+
+    Measured on this machine, pure Python, on globular and random-walk shapes:
+    N=560 takes 0.3-0.4 ms and N=5000 takes 3-25 ms depending on how elongated
+    the chain is, against 25 ms and 2.4 s for the same loop without the bound.
+    The bound is not free on every input: a cloud whose points all sit at the
+    same radius while the true diameter is far below 2r prunes nothing and pays
+    about 27% over the plain loop. Protein backbones are not shaped like that,
+    and the absolute cost there is still tens of milliseconds.
+
+    Worth the bound rather than a plain double loop because of the benchmark
+    path, not the design path. ``benchmark.run_benchmark`` recomputes this for
+    the same coordinates on every trial (100 by default) plus once per Pareto
+    strategy, so a single benchmark run calls it about 104 times. Exact and
+    pruned is faster there than the sampling it replaces.
+
+    Returns 1.0 when fewer than two coordinates are known or every known
+    coordinate coincides, so callers can divide by the result unconditionally.
     """
-    import random
-
     valid = [c for c in coords if c is not None]
-    if len(valid) < 2:
+    n = len(valid)
+    if n < 2:
         return 1.0
 
-    sample = random.sample(valid, min(200, len(valid)))
+    cx = sum(p[0] for p in valid) / n
+    cy = sum(p[1] for p in valid) / n
+    cz = sum(p[2] for p in valid) / n
+
+    ranked = sorted(
+        valid,
+        key=lambda p: (p[0] - cx) ** 2 + (p[1] - cy) ** 2 + (p[2] - cz) ** 2,
+        reverse=True,
+    )
+    radii = [
+        ((p[0] - cx) ** 2 + (p[1] - cy) ** 2 + (p[2] - cz) ** 2) ** 0.5
+        for p in ranked
+    ]
     max_d = 0.0
-    for i in range(len(sample)):
-        xi, yi, zi = sample[i]
-        for j in range(i + 1, len(sample)):
-            xj, yj, zj = sample[j]
+    for i in range(n):
+        r_i = radii[i]
+        # Every pair still to come is (i', j') with j' > i' >= i, so both radii
+        # are at most r_i and no remaining pair can reach max_d. This depends on
+        # the inner loop starting at i + 1; a rewrite that scans all j would
+        # need a different bound.
+        if 2.0 * r_i * _CA_DIAMETER_BOUND_SLACK <= max_d:
+            break
+        xi, yi, zi = ranked[i]
+        for j in range(i + 1, n):
+            # radii descend, so if this partner cannot win neither can any later
+            # one in this row.
+            if (r_i + radii[j]) * _CA_DIAMETER_BOUND_SLACK <= max_d:
+                break
+            xj, yj, zj = ranked[j]
             d = ((xi - xj) ** 2 + (yi - yj) ** 2 + (zi - zj) ** 2) ** 0.5
             if d > max_d:
                 max_d = d
