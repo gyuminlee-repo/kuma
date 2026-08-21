@@ -66,6 +66,10 @@ several findings.
 | `53d2d312` v0.16.29.03 | The best-of-N count supplied, so the registered null is the one in force |
 | `b25fce3b` v0.16.30.01 | The replicates behind each exported activity recorded |
 | (this page's commit) | This index |
+| `dfaa5d54` v0.16.33.03 | The shared primitives under every export: the memory guard failing open when it cannot measure, an unreadable input recorded as one never supplied, a staging name shared by every writer of a target, and a checksum published without the atomicity its neighbour uses |
+| `1e9d81f2` v0.16.33.05 | The 196 benchmark tests nothing collected, and the guards that could not say they had not decided: no `isfinite` anywhere in `analyze.py`, a NaN consensus header read as evaluable, `nan < min_qscore` keeping a read, one duplicate rule on one of two input paths, and `success_rate` reported as 100 in every export |
+| `ac2a24e7` v0.16.33.07 | One copy of the lifecycle code both sidecars run, and the two assay-noise figures this document registered as unmeasured |
+| `37e59111` v0.16.33.08 | Four checks answering questions they could not answer: a reverse-strand CDS offered with forward coordinates, cross-talk reporting `ok` at sample sizes where its statistic cannot reach its threshold, `A0` and `A13` accepted as wells, and a missing prediction written as a fitness of zero |
 
 `v0.16.30.02` added `docs/2026-08-19-mame-assay-noise-model.md`, which is not a
 fix: it records why the replicate counts recorded in `v0.16.30.01` are not the
