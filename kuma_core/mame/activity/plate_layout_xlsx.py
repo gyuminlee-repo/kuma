@@ -17,8 +17,13 @@ import python_calamine
 
 logger = logging.getLogger(__name__)
 
-# Regex for valid well position: letter A-H + 1 or 2 digits.
-_WELL_RE = re.compile(r"^[A-H][0-9]{1,2}$")
+# Regex for valid well position on a 96-well plate: row A-H, column 1-12.
+#
+# Written out rather than as [0-9]{1,2}, which also accepted A0, A00 and
+# everything up to A99. Those are not wells, and _normalise_well turned A0 into
+# A00, so a typo became a plate address that no plate has and that nothing
+# downstream could match back to a sample.
+_WELL_RE = re.compile(r"^[A-H](?:0?[1-9]|1[0-2])$")
 
 _WT_LITERAL = "WT"
 

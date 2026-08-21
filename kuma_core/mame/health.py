@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import csv
 import io
+import math
 import re
 import statistics
 from concurrent.futures import ThreadPoolExecutor
@@ -417,6 +418,14 @@ def detect_cross_talk_with_status(
     if barcode_distribution is None:
         return [], "not_run"
     if len(barcode_distribution) < 5:
+        return [], "insufficient_data"
+    # A z computed against a mean and sd that include the point itself cannot
+    # exceed (n-1)/sqrt(n). Below that, no distribution of any shape reaches
+    # the threshold, so "no candidates" is arithmetic rather than evidence:
+    # at the default 2.5 that is every n up to 8 (n=5 caps at 1.79, n=8 at
+    # 2.47). The old floor of 5 let those runs report "ok" while the test was
+    # incapable of firing. Reported as insufficient_data, which is what it is.
+    if (len(barcode_distribution) - 1) / math.sqrt(len(barcode_distribution)) <= z_threshold:
         return [], "insufficient_data"
 
     counts = list(barcode_distribution.values())

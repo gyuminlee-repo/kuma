@@ -92,11 +92,37 @@ describe("autoDetectCdsCandidates — GenBank multi-CDS", () => {
     expect(results[0].aa_length).toBe(99);
   });
 
-  it("complement CDS 파싱", () => {
+  it("complement CDS는 후보에서 제외된다", () => {
+    // 이전에는 start:199, end:600 을 그대로 돌려줬다. 그 좌표는 정가닥
+    // 좌표이고, CdsCoords 에는 strand 를 담을 필드가 없으며 번역기는
+    // reference_seq[cds_start:cds_end] 를 정방향으로 자른다
+    // (kuma_core/mame/translate/aa_translator.py:211). 즉 그 후보를 고르면
+    // 역가닥 유전자를 정가닥으로 읽어 모든 AA 콜과 변이 위치가 틀리는데
+    // 어디에서도 strand 를 무시했다고 말하지 않는다. join() 과 같이 건너뛴다.
     const content = "     CDS             complement(200..600)\n                     /gene=\"revGene\"\n";
     const results = autoDetectCdsCandidates(content);
+    expect(results).toHaveLength(0);
+  });
+
+  it("정가닥 CDS는 그대로 파싱된다", () => {
+    // 위 테스트의 대조군. 이게 없으면 모든 CDS 를 버리는 구현도 통과한다.
+    const content = "     CDS             200..600\n                     /gene=\"fwdGene\"\n";
+    const results = autoDetectCdsCandidates(content);
     expect(results).toHaveLength(1);
-    expect(results[0]).toMatchObject({ start: 199, end: 600, label: "revGene" });
+    expect(results[0]).toMatchObject({ start: 199, end: 600, label: "fwdGene" });
+  });
+
+  it("complement CDS 다음의 정가닥 CDS는 계속 읽힌다", () => {
+    // 건너뛰기가 파싱 루프를 망가뜨리지 않는지 본다. i 를 진행시키지 않고
+    // continue 하면 무한 루프가 되고, 너무 많이 건너뛰면 뒤 항목을 잃는다.
+    const content =
+      "     CDS             complement(200..600)\n" +
+      "                     /gene=\"revGene\"\n" +
+      "     CDS             700..900\n" +
+      "                     /gene=\"fwdGene\"\n";
+    const results = autoDetectCdsCandidates(content);
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({ start: 699, end: 900, label: "fwdGene" });
   });
 
   it("label 없는 CDS → label undefined", () => {

@@ -80,7 +80,15 @@ function parseGenbankCds(content: string): CdsCandidate[] {
   //   "     CDS             100..500"
   // or with complement:
   //   "     CDS             complement(100..500)"
-  const featureLineRe = /^ {5}CDS\s+(?:complement\()?(\d+)\.\.(\d+)\)?/;
+  // complement( is captured rather than skipped over. Nothing downstream can
+  // express a strand: CdsCoords has no field for one, and the translator
+  // slices reference_seq[cds_start:cds_end] forward
+  // (kuma_core/mame/translate/aa_translator.py:211). Accepting a reverse-strand
+  // CDS therefore reads the coding sequence off the wrong strand and every
+  // amino-acid call and mutation position for that gene comes out wrong, with
+  // nothing anywhere saying the strand was ignored. Such a feature is skipped,
+  // the same way join() constructs already are.
+  const featureLineRe = /^ {5}CDS\s+(complement\()?(\d+)\.\.(\d+)\)?/;
   const qualifierRe = /^ {21}\/(\w+)="(.*)"/;
   const contQualifierRe = /^ {21}([^/].*)"/;
 
@@ -89,8 +97,15 @@ function parseGenbankCds(content: string): CdsCandidate[] {
     const line = lines[i];
     const featureMatch = featureLineRe.exec(line);
     if (featureMatch) {
-      const start = parseInt(featureMatch[1], 10) - 1; // GenBank 1-based → 0-based inclusive
-      const end = parseInt(featureMatch[2], 10);       // GenBank 1-based inclusive → 0-based exclusive (end stays same)
+      if (featureMatch[1] !== undefined) {
+        // A reverse-strand CDS. Offered as a candidate it would be read off
+        // the forward strand, so skip it rather than return coordinates whose
+        // strand nothing carries.
+        i++;
+        continue;
+      }
+      const start = parseInt(featureMatch[2], 10) - 1; // GenBank 1-based → 0-based inclusive
+      const end = parseInt(featureMatch[3], 10);       // GenBank 1-based inclusive → 0-based exclusive (end stays same)
       const aaLength = Math.floor((end - start - 3) / 3);
 
       // Scan forward for qualifiers (stop at next feature)

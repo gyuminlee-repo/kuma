@@ -174,7 +174,15 @@ export function buildEvolveproLoadStateUpdate(params: {
   const { result, maxPerPosition, threeDConsumerOn, structureLoaded } = params;
   const yPredMap: Record<string, number> = {};
   result.variants.forEach((v, i) => {
-    yPredMap[v] = result.y_preds[i] ?? 0;
+    const predicted = result.y_preds[i];
+    // A variant with no prediction is left out rather than entered as 0.0.
+    // 0.0 is a real fitness on this scale, so the substitute was
+    // indistinguishable from a measurement and travelled on into
+    // run_benchmark's ground_truth and benchmark_raw.landscape. An absent key
+    // is at least absent.
+    if (predicted !== undefined && predicted !== null) {
+      yPredMap[v] = predicted;
+    }
   });
 
   const filteredMsg = result.filtered_count
