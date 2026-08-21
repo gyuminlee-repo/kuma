@@ -643,7 +643,30 @@ def _split_fwd_rev(mappings: list[PlateMapping]) -> tuple[list[PlateMapping], li
 
 
 def handle_export_macrogen(params: dict) -> dict:
-    """Export forward/reverse plate primers to Macrogen Plate Oligo .xls."""
+    """Export forward/reverse plate primers to Macrogen Plate Oligo .xls.
+
+    Writes a sibling ``.run.json`` the way the three single-file export handlers
+    do. This handler also produces exactly one file at a path the operator
+    picked, so the sibling convention fits; the batch pipeline cannot use it
+    because ``handle_export_all`` already names one ``{prefix}_run.json`` for
+    the whole folder.
+
+    The returned dict is deliberately left at ``{ok, path}``. Not because
+    anything rejects a third key (``src/types/validators.ts`` only checks that
+    ``ok`` and ``path`` are present), but because no caller would read it:
+    ``handleExportMacrogen`` types the result as those two keys and this change
+    stops at the Python layer, so a ``manifest_path`` nobody declared would just
+    be dead weight.
+
+    Known gap, and it needs a TypeScript-only follow-up: ``src/lib/reRun.ts``
+    treats any ``.run.json`` as a manifest, and ``export_macrogen`` is in
+    neither its runnable nor its export-only set, so dropping this file on the
+    app reports "unsupported method" instead of "export not runnable". Adding
+    the method to ``EXPORT_ONLY_METHODS`` fixes the wording. Naming a different
+    method here to dodge it would be a lie in the one file meant to be trusted.
+    """
+    started_at = datetime.now(timezone.utc)
+
     p = ExportMacrogenParams(**params)
     with _core._state_lock:
         mappings = list(_core._state.plate_mappings)
@@ -665,6 +688,30 @@ def handle_export_macrogen(params: dict) -> dict:
         purification=p.purification,
         output_path=str(resolved),
     )
+
+    finished_at = datetime.now(timezone.utc)
+
+    # The plate primers came out of state above and there is no payload branch
+    # to take them from, so "state" is the only honest value here.
+    manifest_inputs, manifest_extra = _design_provenance_for_manifest("state")
+    write_run_manifest(
+        _manifest_path_for(resolved),
+        build_run_manifest(
+            method="export_macrogen",
+            inputs=manifest_inputs,
+            params={
+                "output_path": params.get("output_path"),
+                "fwd_plate_name": p.fwd_plate_name,
+                "rev_plate_name": p.rev_plate_name,
+                "amount": p.amount,
+                "purification": p.purification,
+            },
+            started_at=started_at,
+            finished_at=finished_at,
+            extra=manifest_extra,
+        ),
+    )
+
     return {"ok": True, "path": str(resolved)}
 
 
@@ -729,8 +776,25 @@ def _export_run_json(
     results,
     rev_groups: dict,
     output_path: Path,
+    *,
+    manifest: dict,
 ) -> None:
+    """Write the batch ``{prefix}_run.json``: a run manifest plus its plate map.
+
+    *manifest* comes from ``build_run_manifest`` and its keys go in first; the
+    plate dump earlier versions wrote follows. One merged file rather than a
+    second one next to it, because ``src/components/layout/export-handlers.ts``
+    maps the ``_run.json`` suffix to the ``kuro_run_json`` artifact type, so a
+    rename or an extra sibling would turn this into a cross-layer change. The
+    ``mappings``, ``dedup_info`` and ``result_count`` keys keep their names and
+    shapes so anything already reading this file keeps working.
+
+    *manifest* is keyword-only and has no default on purpose: the bug being
+    fixed here was that this file carried no manifest at all, and a default
+    would let a future caller reintroduce it silently.
+    """
     payload = {
+        **manifest,
         "exported_at": _dt.now().isoformat(),
         "mappings": [
             {
@@ -745,10 +809,9 @@ def _export_run_json(
         "dedup_info": rev_groups,
         "result_count": len(results) if results else 0,
     }
-    output_path.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    # write_run_manifest, not write_text: the plate map is now sitting in a
+    # manifest, and a half-written manifest is worse than none.
+    write_run_manifest(output_path, payload)
 
 
 def _build_echo_preview_rows(
@@ -902,6 +965,8 @@ def handle_export_all(params: dict) -> dict:
     Returns ``{"success": [filename, ...], "failed": [{path, reason}, ...], "output_dir": str}``.
     Individual exporter failures are recorded but do not raise.
     """
+    started_at = datetime.now(timezone.utc)
+
     p = ExportAllParams(**params)
     out_dir = Path(p.output_dir).expanduser().resolve()
     if not out_dir.is_absolute():
@@ -1012,8 +1077,36 @@ def handle_export_all(params: dict) -> dict:
         mappings, results, rev_groups, target_dir / PLATEMAP_XLSX,
     ))
 
+    finished_at = datetime.now(timezone.utc)
+
+    # Same reading as handle_export_excel, and for the same reason: the design
+    # results come out of _core._state.results on both branches above (the
+    # payload branch only filters them by the mutations the caller kept), so the
+    # session provenance describes this export either way, and where the well
+    # layout came from is recorded separately instead of being folded into
+    # results_source. Keying results_source off p.mappings the way
+    # handle_export_mapping does would drop the provenance on the only path
+    # operators actually use: src/components/layout/export-handlers.ts always
+    # sends mappings for export_all, so every real batch export would come out
+    # stamped provenance_omitted.
+    manifest_inputs, manifest_extra = _design_provenance_for_manifest("state")
+    manifest_extra["mappings_source"] = "payload" if p.mappings else "state"
+    manifest = build_run_manifest(
+        method="export_all",
+        inputs=manifest_inputs,
+        # mappings and dedup_info are the plate map, which the same file already
+        # carries in full below. Copying them into params would double the file.
+        params={
+            k: v for k, v in params.items()
+            if k not in ("mappings", "dedup_info")
+        },
+        started_at=started_at,
+        finished_at=finished_at,
+        extra=manifest_extra,
+    )
+
     _try(RUN_JSON, lambda: _export_run_json(
-        mappings, results, rev_groups, target_dir / RUN_JSON,
+        mappings, results, rev_groups, target_dir / RUN_JSON, manifest=manifest,
     ))
 
     return {
