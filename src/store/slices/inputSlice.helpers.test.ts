@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   buildEvolveproLoadParams,
+  buildEvolveproLoadStateUpdate,
   collectAnchorVariants,
   resolveSelectionDomains,
   type EvolveproLoadConfig,
@@ -207,5 +208,45 @@ describe("resolveSelectionDomains", () => {
 
   it("does not reinterpret accession-frame domains as selection coordinates", () => {
     expect(resolveSelectionDomains(undefined)).toEqual([]);
+  });
+});
+
+describe("buildEvolveproLoadStateUpdate: a missing prediction is not a fitness", () => {
+  function build(variants: string[], yPreds: (number | undefined)[]) {
+    return buildEvolveproLoadStateUpdate({
+      result: {
+        variants,
+        // The shape the sidecar returns. A short y_preds is what produces the
+        // undefined this test is about.
+        y_preds: yPreds as number[],
+        total_count: variants.length,
+        selected_count: variants.length,
+      },
+      currentMode: "evolvepro",
+      maxPerPosition: 5,
+      threeDConsumerOn: false,
+      structureLoaded: false,
+    });
+  }
+
+  it("예측이 없는 variant는 항목 자체가 빠진다", () => {
+    // 이전에는 `?? 0` 이 0.0 을 넣었다. 이 척도에서 0.0 은 실측 가능한
+    // 적합도라 대체값과 측정값을 구별할 수 없었고, 그대로 run_benchmark 의
+    // ground_truth 와 benchmark_raw.landscape 로 들어갔다.
+    const update = build(["A1V", "B2C"], [0.8, undefined]);
+    expect(update.yPredMap).toEqual({ A1V: 0.8 });
+    expect("B2C" in update.yPredMap).toBe(false);
+  });
+
+  it("진짜 0인 예측은 그대로 남는다", () => {
+    // 대조군이자 수정의 핵심. 부재와 0 이 같은 항목으로 합쳐지면 안 된다.
+    // 이게 없으면 0 을 전부 버리는 구현도 위 테스트를 통과한다.
+    const update = build(["A1V", "B2C"], [0.0, 0.8]);
+    expect(update.yPredMap).toEqual({ A1V: 0.0, B2C: 0.8 });
+  });
+
+  it("빠진 예측이 없으면 전부 남는다", () => {
+    const update = build(["A1V", "B2C"], [0.8, -0.3]);
+    expect(update.yPredMap).toEqual({ A1V: 0.8, B2C: -0.3 });
   });
 });
