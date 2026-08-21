@@ -16,12 +16,12 @@
   },
   {
     "name": "04-design-complete",
-    "caption": "Primer table for 93 designed variants",
+    "caption": "Primer table for 95 designed variants",
     "file": "04-design-complete.png"
   },
   {
     "name": "05-plate-map",
-    "caption": "Plate map, 158 primers",
+    "caption": "Plate map, 161 primers",
     "file": "05-plate-map.png"
   },
   {
@@ -50,9 +50,9 @@
     "file": "10-designing.png"
   },
   {
-    "name": "11-failed-rows",
-    "caption": "Sequence map marking the 2 mutations the designer rejected",
-    "file": "11-failed-rows.png"
+    "name": "11-rescued-rows",
+    "caption": "Primer table scrolled to the 3 rescued mutations (T267H rev 17 bp, D401E rev 27 bp, T267W rev 17 bp)",
+    "file": "11-rescued-rows.png"
   },
   {
     "name": "12-plate-multi",
@@ -76,7 +76,7 @@
   },
   {
     "name": "16-design-report",
-    "caption": "Design report inspector, scrolled to the rejected mutations",
+    "caption": "Design report inspector, scrolled to the primer statistics",
     "file": "16-design-report.png"
   },
   {

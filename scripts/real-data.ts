@@ -48,8 +48,14 @@ interface RealBundle {
     success_count: number;
     total_count: number;
     failed_mutations: Array<{ mutation: string; reason: string; rank?: number }>;
-    rescued_mutations?: string[];
+    // The engine reports one entry per rescue with its provenance; older
+    // bundles carried plain names.
+    rescued_mutations?: Array<
+      string | { original: string; type?: string; penalty?: number; tolerance_used?: number }
+    >;
+    rescue_stats?: Record<string, number>;
   };
+  rescue?: { tol_max: number; rev_len_min: number };
   plate: { mappings: PlateMapping[] };
   uniprot: {
     candidates: Array<{
@@ -91,6 +97,11 @@ const parsedMutations = variants.map((raw) => ({
   position: parseInt(raw.slice(1, -1), 10),
   mt_aa: raw[raw.length - 1],
 }));
+
+const rescuedMutations = (real.design.rescued_mutations ?? []).map((entry) =>
+  typeof entry === "string" ? entry : entry.original,
+);
+const rescuedRows = designResults.filter((r) => rescuedMutations.includes(r.mutation));
 
 const uniprotCandidates = real.uniprot.candidates.slice(0, 3);
 const topAccession = uniprotCandidates[0]?.accession ?? "";
@@ -318,14 +329,32 @@ export const screenStates: ScreenState[] = [
     },
   },
   {
-    name: "11-failed-rows",
-    caption: `Sequence map marking the ${failedMutations.length} mutations the designer rejected`,
+    // The stock parameters reject two mutations at codon 267 and the rescue
+    // pass recovers both with a shorter reverse primer, so there is no
+    // rejection left to show. This frame carries the rescued rows instead.
+    name: "11-rescued-rows",
+    caption:
+      rescuedRows.length > 0
+        ? `Primer table scrolled to the ${rescuedRows.length} rescued mutations ` +
+          `(${rescuedRows.map((r) => `${r.mutation} rev ${r.rev_len} bp`).join(", ")})`
+        : `Sequence map marking the ${failedMutations.length} rejected mutations`,
     nav: NAV_OUTPUT,
     state: {
       ...designed,
-      statusMessage: `${successCount}/${totalCount} designed | ${failedMutations.length} failed`,
+      statusMessage:
+        rescuedMutations.length > 0
+          ? `${successCount}/${totalCount} designed | ${rescuedMutations.length} rescued`
+          : `${successCount}/${totalCount} designed | ${failedMutations.length} failed`,
     },
-    click: "button:has-text('Sequence Map')",
+    action: `
+      const names = ${JSON.stringify(rescuedMutations)};
+      if (names.length === 0) return false;
+      const row = [...document.querySelectorAll('tr')]
+        .find(tr => names.some(n => (tr.textContent || '').includes(n)));
+      if (!row) return false;
+      row.scrollIntoView({ block: 'center' });
+      return true;
+    `,
   },
   {
     name: "12-plate-multi",
@@ -383,14 +412,17 @@ export const screenStates: ScreenState[] = [
   },
   {
     name: "16-design-report",
-    caption: "Design report inspector, scrolled to the rejected mutations",
+    // Anchored on the Tm distribution rather than the rejection list: the
+    // rescue pass empties that list, and a section that can vanish is not
+    // something to hang a screenshot on.
+    caption: "Design report inspector, scrolled to the primer statistics",
     nav: NAV_OUTPUT,
     state: designed,
     action: `
       const panel = document.querySelector('[data-testid="inspector"]');
       if (!panel) return false;
       const target = [...panel.querySelectorAll('*')]
-        .find(el => /failed mutations/i.test((el.textContent || '').slice(0, 60)));
+        .find(el => /tm distribution/i.test((el.textContent || '').slice(0, 60)));
       if (!target) return false;
       target.scrollIntoView({ block: 'start' });
       return true;
