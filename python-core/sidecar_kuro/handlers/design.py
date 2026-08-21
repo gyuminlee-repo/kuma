@@ -54,11 +54,104 @@ from sidecar_kuro.models import (
 )
 
 
-# Swap field map for handle_swap_primer
+# Swap field map for handle_swap_primer.
+#
+# Every entry is a SdmPrimerResult field computed from ONE direction's sequence
+# alone, so replacing that direction's primer invalidates all of them together.
+# The diagnostics below the first five were missing, which left the old
+# primer's hairpin, homodimer, synthesis and off-target numbers sitting next to
+# the new primer's sequence in the UI and in every export.
+#
+# Deliberately absent, because they describe the PAIR and not one primer:
+# mutation, overlap_window, tm_overlap, tm_condition_met, overlap_mode, and
+# penalty (one ranking score summed over both primers, and not recomputable
+# here because the Tm targets and GC window that produced it are not carried on
+# the result, so it stays as the departed pair left it).
+# tolerance_used and has_offtarget are pair-level but are functions of the
+# per-direction fields, and warnings is one list whose every entry is prefixed
+# with its direction, so _apply_direction_swap re-derives all three.
+#
+# Caveat on offtarget_*: check_offtarget masks the primer's own binding site
+# using overlap_window and the overlap arm length, so a hit list is a function
+# of the candidate's overlap window as well as its sequence, and this swap does
+# not move the window. Candidates from design_single_sdm are rejected outright
+# when they hit, so in practice every list copied here is empty and the
+# mismatch cannot fire; carrying the field keeps the departed primer's hits
+# from surviving on any path that does report them.
+# fwd_len/rev_len and gc_fwd/gc_rev are listed for the audit trail only:
+# SdmPrimerResult.__post_init__ recomputes all four from the sequences on every
+# dataclasses.replace, so their values here are overwritten either way.
 _SWAP_FIELDS = {
-    "fwd": ["forward_seq", "forward_binding", "tm_fwd", "fwd_len", "gc_fwd"],
-    "rev": ["reverse_seq", "reverse_binding", "tm_rev", "rev_len", "gc_rev"],
+    "fwd": [
+        "forward_seq", "forward_binding", "tm_fwd", "fwd_len", "gc_fwd",
+        "tolerance_fwd",
+        "synthesis_score_fwd",
+        "hairpin_tm_fwd", "hairpin_dg_fwd",
+        "homodimer_tm_fwd", "homodimer_dg_fwd",
+        "offtarget_fwd",
+    ],
+    "rev": [
+        "reverse_seq", "reverse_binding", "tm_rev", "rev_len", "gc_rev",
+        "tolerance_rev",
+        "synthesis_score_rev",
+        "hairpin_tm_rev", "hairpin_dg_rev",
+        "homodimer_tm_rev", "homodimer_dg_rev",
+        "offtarget_rev",
+    ],
 }
+
+# Every warning sdm_engine emits onto a result names its direction first, as
+# "Fwd"/"Rev" (secondary structure, synthesis, 3' anchor, vendor spec) or as
+# "Forward"/"Reverse" (primer too long). Nothing else appends to the stored
+# list, so the two directions can be separated again. Anything unprefixed is
+# treated as pair-level and stays with the result it was already on.
+_WARNING_PREFIXES = {
+    "fwd": ("Fwd", "Forward"),
+    "rev": ("Rev", "Reverse"),
+}
+
+
+def _apply_direction_swap(
+    current: SdmPrimerResult,
+    source: SdmPrimerResult,
+    direction: str,
+) -> SdmPrimerResult:
+    """Return `current` with one direction replaced by the same direction of `source`.
+
+    Both the swapped mutation and the same-position mutations that inherit a
+    reverse primer go through here, so the two paths cannot drift apart on
+    which fields travel with a primer.
+    """
+    swap_dict: dict[str, Any] = {}
+    for name in _SWAP_FIELDS[direction]:
+        value = getattr(source, name)
+        # Off-target hits are a list. Copy it so the result in _state.results
+        # and the candidate it came from do not share one mutable list.
+        swap_dict[name] = list(value) if isinstance(value, list) else value
+    merged = dc_replace(current, **swap_dict)
+    # has_offtarget is the OR of the two per-direction hit lists at the point
+    # they are filled in (sdm_engine.evaluate_custom_primer), so re-derive it
+    # rather than leave the pair verdict of the primer that just left.
+    merged.has_offtarget = bool(merged.offtarget_fwd or merged.offtarget_rev)
+    # Take the swapped direction's warnings from the incoming primer and keep
+    # the other direction's from the outgoing result. Without this the numeric
+    # diagnostics would describe the new primer while the warning text next to
+    # them still described the old one, and a warning the new primer earns
+    # would never appear. dc_replace hands over the same list object, so
+    # rebinding also stops the two results from sharing one list.
+    prefixes = _WARNING_PREFIXES[direction]
+    merged.warnings = [
+        w for w in current.warnings if not w.startswith(prefixes)
+    ] + [
+        w for w in source.warnings if w.startswith(prefixes)
+    ]
+    # tolerance_used is an upper bound over the fwd/rev steps and the search
+    # step that produced them. The search step is not carried on the result, so
+    # raise the bound when the incoming direction needs more and never lower it.
+    merged.tolerance_used = round(
+        max(merged.tolerance_used, merged.tolerance_fwd, merged.tolerance_rev), 1
+    )
+    return merged
 
 
 def _rebuild_plate_state(results: list[SdmPrimerResult]) -> None:
@@ -694,8 +787,7 @@ def handle_swap_primer(params: dict) -> dict:
     else:
         if not current:
             raise ValueError(f"No current result for mutation: {p.mutation}")
-        swap_dict = {f: getattr(source, f) for f in _SWAP_FIELDS[p.swap_type]}
-        new_best = dc_replace(current, **swap_dict)
+        new_best = _apply_direction_swap(current, source, p.swap_type)
 
     with _core._state_lock:
         target_pos = new_best.mutation.position
@@ -703,15 +795,10 @@ def handle_swap_primer(params: dict) -> dict:
             if r.mutation.raw == p.mutation:
                 _core._state.results[i] = new_best
             elif p.swap_type in ("rev", "both") and r.mutation.position == target_pos:
-                # Propagate reverse to same-position mutations
-                _core._state.results[i] = dc_replace(
-                    r,
-                    reverse_seq=new_best.reverse_seq,
-                    reverse_binding=new_best.reverse_binding,
-                    tm_rev=new_best.tm_rev,
-                    rev_len=new_best.rev_len,
-                    gc_rev=new_best.gc_rev,
-                )
+                # Propagate reverse to same-position mutations. Same field set
+                # as the swap itself, or the neighbours keep reverse-primer
+                # diagnostics for a primer they no longer carry.
+                _core._state.results[i] = _apply_direction_swap(r, new_best, "rev")
         _rebuild_plate_state(_core._state.results)
         _core._append_intervention_locked("swap_primer", {
             "mutation": p.mutation,
@@ -754,14 +841,11 @@ def handle_commit_design_result(params: dict) -> dict:
                 _core._state.results[i] = chosen
                 replaced = True
             elif r.mutation.position == target_pos:
-                _core._state.results[i] = dc_replace(
-                    r,
-                    reverse_seq=chosen.reverse_seq,
-                    reverse_binding=chosen.reverse_binding,
-                    tm_rev=chosen.tm_rev,
-                    rev_len=chosen.rev_len,
-                    gc_rev=chosen.gc_rev,
-                )
+                # Same propagation as handle_swap_primer, through the same
+                # helper. Two hardcoded copies of the field list is how the
+                # reverse diagnostics came to describe a primer that had
+                # already been replaced.
+                _core._state.results[i] = _apply_direction_swap(r, chosen, "rev")
         if not replaced:
             _core._state.results.append(chosen)
 

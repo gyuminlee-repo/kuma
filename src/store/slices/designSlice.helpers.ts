@@ -60,6 +60,79 @@ interface ProcessedDesignResult {
 /** Default number of extra (buffer) candidates exposed in the picker. */
 export const DEFAULT_EVOLVEPRO_EXTRA_EXPOSED = 10;
 
+// Reverse-primer propagation, frontend half.
+//
+// Mutations that share an amino-acid position share one reverse primer, so
+// swapping or committing a reverse primer for one of them rewrites all of
+// them. The backend does this in `_apply_direction_swap`
+// (python-core/sidecar_kuro/handlers/design.py) but its RPC reply describes
+// only the mutation that was clicked, so the store has to repeat the same
+// rewrite for the neighbours it already holds.
+//
+// The field list below mirrors `_SWAP_FIELDS["rev"]` with two documented
+// differences, and `tests/sidecar_kuro/test_swap_primer_fields.py` fails if
+// either stops holding:
+//   - `reverse_binding` is missing here because SdmPrimerResultModel does not
+//     serialize it, so no frontend object ever has that value to update.
+//   - `tm_rev` is called `tm_no_rev` on the wire, renamed by _serialize_result.
+//
+// Not handled here, deliberately: recommended_ta and the other ta_* fields.
+// compute_annealing() takes BOTH primers, so a neighbour's Ta depends on its
+// own forward primer, and neither the value from the swapped mutation nor any
+// arithmetic available in the store can produce it. Those four fields stay
+// stale on neighbour rows until the backend returns the neighbours it rewrote.
+const REVERSE_WARNING_PREFIXES = ["Rev", "Reverse"];
+
+function isReverseWarning(text: string): boolean {
+  return REVERSE_WARNING_PREFIXES.some((prefix) => text.startsWith(prefix));
+}
+
+/**
+ * Return `neighbour` carrying the reverse primer, and the reverse diagnostics,
+ * of `source`.
+ *
+ * Mirror of `_apply_direction_swap(neighbour, source, "rev")` on the backend,
+ * including the three fields it re-derives rather than copies.
+ */
+export function applyReversePropagation(
+  neighbour: SdmPrimerResult,
+  source: SdmPrimerResult,
+): SdmPrimerResult {
+  const offtargetRev = source.offtarget_rev ? [...source.offtarget_rev] : undefined;
+  const toleranceRev = source.tolerance_rev;
+  return {
+    ...neighbour,
+    reverse_seq: source.reverse_seq,
+    rev_len: source.rev_len,
+    tm_no_rev: source.tm_no_rev,
+    gc_rev: source.gc_rev,
+    tolerance_rev: toleranceRev,
+    synthesis_score_rev: source.synthesis_score_rev,
+    hairpin_tm_rev: source.hairpin_tm_rev,
+    hairpin_dg_rev: source.hairpin_dg_rev,
+    homodimer_tm_rev: source.homodimer_tm_rev,
+    homodimer_dg_rev: source.homodimer_dg_rev,
+    offtarget_rev: offtargetRev,
+    // Derived from the two per-direction hit lists, not copied.
+    has_offtarget: Boolean(neighbour.offtarget_fwd?.length) || Boolean(offtargetRev?.length),
+    // An upper bound over both directions. Raised when the incoming reverse
+    // primer needs more, never lowered, exactly as the backend does it.
+    tolerance_used: Math.round(
+      Math.max(
+        neighbour.tolerance_used,
+        neighbour.tolerance_fwd ?? 0,
+        toleranceRev ?? 0,
+      ) * 10,
+    ) / 10,
+    // Every warning names its direction first, so the reverse ones follow the
+    // reverse primer and the forward ones stay with the row.
+    warnings: [
+      ...neighbour.warnings.filter((text) => !isReverseWarning(text)),
+      ...source.warnings.filter(isReverseWarning),
+    ],
+  };
+}
+
 export function prepareDesignInput(params: {
   mutationText: string;
   maxPrimers: number;
