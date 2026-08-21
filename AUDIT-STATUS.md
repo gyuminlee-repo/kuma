@@ -70,6 +70,12 @@ several findings.
 | `1e9d81f2` v0.16.33.05 | The 196 benchmark tests nothing collected, and the guards that could not say they had not decided: no `isfinite` anywhere in `analyze.py`, a NaN consensus header read as evaluable, `nan < min_qscore` keeping a read, one duplicate rule on one of two input paths, and `success_rate` reported as 100 in every export |
 | `ac2a24e7` v0.16.33.07 | One copy of the lifecycle code both sidecars run, and the two assay-noise figures this document registered as unmeasured |
 | `37e59111` v0.16.33.08 | Four checks answering questions they could not answer: a reverse-strand CDS offered with forward coordinates, cross-talk reporting `ok` at sample sizes where its statistic cannot reach its threshold, `A0` and `A13` accepted as wells, and a missing prediction written as a fitness of zero |
+| `39ad09a3` v0.16.33.12 | The coding window checked before a run is accepted, and the quality filter fix finished on the second of its two copies |
+| `dd56435a` v0.16.33.13 | The purity evidence carried through a save and restore, and one rule shared by three activity readers |
+| `3a4b3adb` v0.16.34.01 | Bare `NaN` and `Infinity` refused at the RPC door, one threshold validated on both of its paths, and plates chunked by the capacity that filled them rather than by a count of 96 |
+| `6a952e1b` v0.16.34.02 | The shutdown tests budgeted for the clean exit they assert rather than for a fast one, with a real hang confirmed to still fail |
+| `03eb1594` v0.16.34.03 | Non-finite cells kept out of the run report figures, unknown fitness scores dropped rather than ranked as zero, an unreadable position refused, colliding wells counted, and the structure parsers given one finite-or-absent rule |
+| `e8924aca` v0.16.34.04 | Every reverse diagnostic carried through a primer swap on both propagation paths and in the store, an empty mapping payload told apart from an absent one, the entropy weight given the ceiling its twin already had (closes sidecar F16), and the quality gate actually run when there is no sequencing summary |
 
 `v0.16.30.02` added `docs/2026-08-19-mame-assay-noise-model.md`, which is not a
 fix: it records why the replicate counts recorded in `v0.16.30.01` are not the
@@ -82,6 +88,18 @@ unreadable by the checker it exists for. Both were invisible while a blanket
 skip meant the Windows leg reported nothing passed and 1301 skipped, as success.
 
 ## What is open
+
+Two surfaces of the sweep were reworked after the fixes above, and the reason is
+worth keeping. Both defect families that this audit keeps meeting are visible in
+the same three commits:
+
+- A guard that tests a relation rather than finiteness. `x < threshold` cannot
+  express "not comparable", because every comparison against NaN is false, so a
+  gate written that way reports a pass it never made.
+- An invariant enforced on one input path and not on its twin. The path nobody
+  wrote a test for is the one that ships. Two of these were found only because a
+  comment still described behaviour the code had lost.
+
 
 Everything else. The count is not stated here because the pages do not share a
 status field and inventing one from prose would be a guess dressed as a number.
