@@ -174,7 +174,16 @@ def ingest_long_csv(
             _drop(row_index, "value_unparseable", plate_id, well_raw, row["value"])
             continue
 
-        if math.isnan(value) or value < 0:
+        # isfinite rather than isnan: the sibling reader of the same activity
+        # value uses isfinite (build_evolvepro_input.py), and isnan lets the
+        # infinities through. An infinite activity is not merely wrong, it is
+        # the largest value on the plate, so it takes the top of every ranking
+        # the round is judged on and the drop log does not even record it.
+        #
+        # The reason string is unchanged because it is a typed union carried
+        # through models.py and src/types/mame/activity.ts; its name predates
+        # this widening and now covers every non-finite value.
+        if not math.isfinite(value) or value < 0:
             _drop(row_index, "value_nan_or_negative", plate_id, well_raw, value)
             continue
 

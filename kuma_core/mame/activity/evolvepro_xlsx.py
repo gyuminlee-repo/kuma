@@ -16,6 +16,7 @@ Uses python-calamine for reading. openpyxl is used for writing only.
 from __future__ import annotations
 
 import logging
+import math
 import re
 from dataclasses import dataclass, field
 from enum import Enum
@@ -98,11 +99,22 @@ def _float_or_raise(cell: object, context: str) -> float:
             f"Expected numeric area value but got empty cell — {context}"
         )
     try:
-        return float(raw)
+        value = float(raw)
     except (ValueError, TypeError) as exc:
         raise ValueError(
-            f"Cannot convert area value {raw!r} to float — {context}"
+            f"Cannot convert area value {raw!r} to float, {context}"
         ) from exc
+    # float() accepts "nan", "inf" and "-inf", so the conversion above is not
+    # the check it looks like. This is the third reader of an activity value
+    # and the only one that had no finiteness rule at all; the other two are
+    # build_evolvepro_input.py (raises) and ingest_long_csv.py (drops the row).
+    # An infinite area is the largest value on the plate and takes the top of
+    # every ranking the round is judged on.
+    if not math.isfinite(value):
+        raise ValueError(
+            f"Area value {raw!r} is not finite, {context}"
+        )
+    return value
 
 
 def _is_numeric_id(sample_name: str) -> bool:

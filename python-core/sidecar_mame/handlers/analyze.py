@@ -330,6 +330,24 @@ def _serialize_verdict(vr: Any) -> dict:
     ):
         if value is not None:
             out[key] = value
+    # The evidence the plate-purity outlier check reads. Carried for the same
+    # reason as everything above and under the same rule, which they were left
+    # out of: BarcodeRecord defaults min_variant_support to None and the other
+    # four to 0, so a restored result came back looking like a well with no
+    # called substitution and no indel reads. select/purity.py then found
+    # support_lower_bound None and max_indel_event_fraction 0.0, and the
+    # outlier check passed every well without saying it had not looked.
+    #
+    # The counts and the depth travel with min_variant_support because they are
+    # its denominators: support_lower_bound needs all three and answers None
+    # without any one of them. Emitted unconditionally because 0 is a real
+    # answer for the counts (no called substitution, no indel position), and
+    # min_variant_support carries its own None through JSON null.
+    out["min_variant_support"] = b.min_variant_support
+    out["n_variant_positions"] = b.n_variant_positions
+    out["min_variant_support_depth"] = b.min_variant_support_depth
+    out["n_indel_event_positions"] = b.n_indel_event_positions
+    out["max_indel_event_fraction"] = b.max_indel_event_fraction
     return out
 
 
@@ -429,6 +447,17 @@ def _deserialize_verdict(d: dict) -> Any:
         ),
         breadth_at_mix_min_depth=_opt_float("breadth_at_mix_min_depth"),
         consensus_identity=_opt_float("consensus_identity"),
+        # The plate-purity evidence. ``min_variant_support`` keeps its None
+        # through _opt_float because None here means the consensus called no
+        # substitution, which support_lower_bound answers None for; a 0.0 would
+        # claim the weakest call had no support at all. The four counts take
+        # BarcodeRecord's own defaults, so a payload written before these were
+        # serialized restores exactly as it does today.
+        min_variant_support=_opt_float("min_variant_support"),
+        n_variant_positions=int(d.get("n_variant_positions", 0)),
+        min_variant_support_depth=int(d.get("min_variant_support_depth", 0)),
+        n_indel_event_positions=int(d.get("n_indel_event_positions", 0)),
+        max_indel_event_fraction=float(d.get("max_indel_event_fraction", 0.0)),
     )
     translated = TranslatedRecord(
         barcode=barcode,
