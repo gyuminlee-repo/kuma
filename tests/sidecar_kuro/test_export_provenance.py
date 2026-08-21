@@ -36,7 +36,10 @@ from sidecar_kuro.handlers.design import (
     handle_swap_primer,
 )
 from sidecar_kuro.handlers.export import (
+    _design_provenance_for_manifest,
+    handle_export_all,
     handle_export_excel,
+    handle_export_macrogen,
     handle_export_mapping,
     handle_export_order,
 )
@@ -398,3 +401,286 @@ def test_excel_export_records_where_the_plate_layout_came_from(
     )
     assert handed["extra"]["results_source"] == "state"
     assert handed["extra"]["mappings_source"] == "payload"
+
+
+# ---------------------------------------------------------------------------
+# The batch folder, which is the path primers are actually ordered from.
+#
+# It was the one export path with no manifest at all: `_export_run_json` wrote
+# a plate dump carrying `exported_at`, `mappings`, `dedup_info` and
+# `result_count`, so a folder of order files named no kuma version, no input
+# digest and no design parameters. The manifest is merged into that same
+# `{prefix}_run.json` instead of being added beside it, because
+# `src/components/layout/export-handlers.ts` maps the `_run.json` suffix to the
+# `kuro_run_json` artifact type, so a rename or a new sibling would drag the
+# frontend into a Python fix.
+# ---------------------------------------------------------------------------
+
+#: The keys `isRunManifest` in src/lib/runManifest.ts requires, with the types it
+#: checks, restated here on purpose. The batch run.json now has to satisfy a
+#: guard written in TypeScript, and no Python test would otherwise notice a
+#: change on this side that stops satisfying it.
+FRONTEND_GUARD_KEYS: dict[str, type | tuple[type, ...]] = {
+    "schema_version": str,
+    "method": str,
+    "kuma_version": str,
+    "python_version": str,
+    "platform": str,
+    "started_at": str,
+    "finished_at": str,
+    "duration_seconds": (int, float),
+    "inputs": dict,
+    "params": dict,
+}
+
+#: What the batch run.json held before it also became a manifest. Anything
+#: written against the old file reads exactly these.
+LEGACY_RUN_JSON_KEYS = {"exported_at", "mappings", "dedup_info", "result_count"}
+
+LEGACY_MAPPING_KEYS = {
+    "well", "primer_name", "sequence", "primer_type", "mutation",
+}
+
+
+def _export_all(tmp_path: Path, name: str = "Batch", **overrides) -> dict:
+    """Run the batch export, return the parsed ``{prefix}_run.json``."""
+    params = {
+        "output_dir": str(tmp_path),
+        "project_name": name,
+        "fwd_plate_name": "Pfwd",
+        "rev_plate_name": "Prev",
+    }
+    params.update(overrides)
+    result = handle_export_all(params)
+    target = Path(result["output_dir"])
+    run_json = target / f"{target.name}_run.json"
+    assert run_json.exists(), f"batch export wrote no run json: {result}"
+    return json.loads(run_json.read_text(encoding="utf-8"))
+
+
+def test_batch_export_writes_a_real_manifest(tmp_path, mutation_lines, restore_state):
+    _designed(mutation_lines)
+    manifest = _export_all(tmp_path)
+
+    assert manifest["method"] == "export_all"
+    assert manifest["schema_version"] == EXPECTED_SCHEMA_VERSION
+    assert manifest["kuro_module_version"]
+    for key, expected_type in FRONTEND_GUARD_KEYS.items():
+        assert key in manifest, f"isRunManifest requires {key}"
+        assert isinstance(manifest[key], expected_type), key
+    assert manifest["seed"] is None or isinstance(manifest["seed"], (int, float))
+
+
+def test_batch_manifest_names_the_design_fasta(tmp_path, mutation_lines, restore_state):
+    """An order placed from this folder can be traced back to exact bytes."""
+    _designed(mutation_lines)
+    manifest = _export_all(tmp_path)
+
+    entry = manifest["inputs"]["design_fasta"]
+    assert entry["path"] == str(GENBANK.resolve())
+    assert SHA256_HEX.match(entry["sha256"]), entry["sha256"]
+    assert entry["sha256"] == compute_input_sha256(GENBANK)
+    assert entry["size_bytes"] == GENBANK.stat().st_size
+
+
+def test_batch_manifest_carries_the_design_parameters(
+    tmp_path, mutation_lines, restore_state
+):
+    _designed(mutation_lines, tol_max=5.5, gc_min=35.0, gc_max=65.0)
+    manifest = _export_all(tmp_path)
+
+    params = manifest["extra"]["design"]["params"]
+    assert params["tol_max"] == 5.5
+    assert params["gc_min"] == 35.0
+    assert params["gc_max"] == 65.0
+    assert params["polymerase"] == "KOD"
+    assert params["target_start"] == TARGET_START
+
+
+def test_batch_manifest_carries_the_intervention_log(
+    tmp_path, mutation_lines, restore_state
+):
+    """An off-default primer in an ordered plate has to be explainable."""
+    mutation = _designed(mutation_lines)
+    handle_retry_failed({
+        "mutation": mutation,
+        "fasta_path": str(GENBANK),
+        "target_start": TARGET_START,
+        "polymerase": "KOD",
+        "overlap_len": 18,
+        "rev_len_max": 29,
+    })
+
+    manifest = _export_all(tmp_path)
+    interventions = manifest["extra"]["interventions"]
+
+    assert [e["type"] for e in interventions] == ["retry_failed"]
+    assert interventions[0]["mutation"] == mutation
+    assert interventions[0]["params"]["rev_len_max"] == 29
+
+
+def test_batch_run_json_keeps_every_key_it_had_before(
+    tmp_path, mutation_lines, restore_state
+):
+    """Merging the manifest in must not break a reader of the old file.
+
+    This is the constraint that picked the shape. Writing the manifest to a
+    second file would have needed a new suffix, and export-handlers.ts maps
+    suffixes to artifact types, so the plate dump and the manifest share one
+    file and the plate-dump keys keep their names and their shapes.
+    """
+    _designed(mutation_lines)
+    manifest = _export_all(tmp_path)
+
+    missing = LEGACY_RUN_JSON_KEYS - set(manifest)
+    assert not missing, f"lost a pre-manifest key: {missing}"
+    assert manifest["exported_at"]
+    assert manifest["mappings"], "the plate map itself must still be in the file"
+    for row in manifest["mappings"]:
+        assert set(row) == LEGACY_MAPPING_KEYS, row
+    assert isinstance(manifest["dedup_info"], dict)
+    assert isinstance(manifest["result_count"], int)
+    assert manifest["result_count"] > 0
+    # If these two key sets ever overlap, one half of the file silently
+    # overwrites the other.
+    assert LEGACY_RUN_JSON_KEYS.isdisjoint(FRONTEND_GUARD_KEYS)
+
+
+def test_batch_manifest_records_where_the_plate_layout_came_from(
+    tmp_path, mutation_lines, restore_state
+):
+    """Same convention as the Excel export, and for the same reason.
+
+    The design results come from `_state.results` on both branches (a payload
+    only filters them), so they are what `results_source` describes, and the
+    well layout is reported separately. Keying `results_source` off `mappings`
+    the way handle_export_mapping does would read as honest and behave the
+    opposite way: export-handlers.ts always sends `mappings` for export_all, so
+    every batch export an operator ever runs would come out stamped
+    `provenance_omitted` and carry no design at all.
+    """
+    _designed(mutation_lines)
+
+    from_state = _export_all(tmp_path, name="FromState")
+    assert from_state["extra"]["results_source"] == "state"
+    assert from_state["extra"]["mappings_source"] == "state"
+    assert "provenance_omitted" not in from_state["extra"]
+
+    handed = _export_all(
+        tmp_path,
+        name="HandedIn",
+        mappings=[{
+            "well": "A1",
+            "primer_name": "M1_F",
+            "sequence": "ACGTACGTACGT",
+            "primer_type": "forward",
+            "mutation": "M1",
+        }],
+        dedup_info={},
+    )
+    assert handed["extra"]["mappings_source"] == "payload"
+    assert handed["extra"]["results_source"] == "state"
+    assert handed["inputs"]["design_fasta"]["sha256"] == compute_input_sha256(GENBANK)
+
+
+def test_batch_manifest_records_nothing_when_state_holds_no_design(
+    tmp_path, mutation_lines, restore_state
+):
+    """The post-load-workspace case: absent provenance, not borrowed provenance.
+
+    handle_load_workspace does not repopulate `_state.results`, so a workspace
+    loaded into a fresh process exports rows no design in this process produced.
+    `results_source` still reads "state" because that is where the handler looks,
+    and what state has to say is nothing: a null design and an empty inputs read
+    as "not recorded", and the legacy `result_count` of 0 says the same thing
+    again. The failure mode worth pinning is the opposite one, a filled-in fasta
+    digest belonging to some earlier design.
+    """
+    _designed(mutation_lines)
+    with _state_lock:
+        _state.results = []
+        _state.design_provenance = None
+        _state.interventions = []
+
+    manifest = _export_all(
+        tmp_path,
+        name="AfterLoad",
+        mappings=[{
+            "well": "A1",
+            "primer_name": "M1_F",
+            "sequence": "ACGTACGTACGT",
+            "primer_type": "forward",
+            "mutation": "M1",
+        }],
+        dedup_info={},
+    )
+
+    assert manifest["inputs"] == {}
+    assert manifest["extra"]["design"] is None
+    assert manifest["extra"]["interventions"] == []
+    assert manifest["extra"]["mappings_source"] == "payload"
+    assert manifest["result_count"] == 0
+
+
+def test_the_payload_omission_convention_still_holds(
+    tmp_path, mutation_lines, restore_state
+):
+    """export_all opting out must not have loosened the shared helper.
+
+    handle_export_order and handle_export_mapping still declare a
+    caller-supplied source, and the omission still has to be spelled out
+    instead of showing up as an inputs dict that merely happens to be empty.
+    """
+    _designed(mutation_lines)
+    inputs, extra = _design_provenance_for_manifest("payload")
+
+    assert inputs == {}
+    assert extra["results_source"] == "payload"
+    assert extra["design"] is None
+    assert extra["interventions"] is None
+    assert "provenance_omitted" in extra
+
+
+def test_macrogen_export_writes_a_sibling_manifest(
+    tmp_path, mutation_lines, restore_state
+):
+    """One file at a path the operator picked, so it gets `.run.json`.
+
+    The batch pipeline cannot share that convention: handle_export_all already
+    names a single `{prefix}_run.json` for the whole folder.
+    """
+    _designed(mutation_lines)
+    handle_export_macrogen({
+        "output_path": str(tmp_path / "plate.xls"),
+        "fwd_plate_name": "Pfwd",
+        "rev_plate_name": "Prev",
+    })
+
+    manifest = json.loads(
+        (tmp_path / "plate.run.json").read_text(encoding="utf-8")
+    )
+    assert manifest["method"] == "export_macrogen"
+    assert manifest["schema_version"] == EXPECTED_SCHEMA_VERSION
+    assert manifest["inputs"]["design_fasta"]["sha256"] == compute_input_sha256(
+        GENBANK
+    )
+    assert manifest["extra"]["results_source"] == "state"
+    assert manifest["extra"]["design"]["params"]["polymerase"] == "KOD"
+    assert manifest["params"]["fwd_plate_name"] == "Pfwd"
+
+
+def test_macrogen_result_shape_is_untouched(tmp_path, mutation_lines, restore_state):
+    """src/types/models.ts types this result as exactly {ok, path}.
+
+    The manifest lands on disk, not in the response, because this change stops
+    at the Python layer.
+    """
+    _designed(mutation_lines)
+    result = handle_export_macrogen({
+        "output_path": str(tmp_path / "shape.xls"),
+        "fwd_plate_name": "Pfwd",
+        "rev_plate_name": "Prev",
+    })
+
+    assert set(result) == {"ok", "path"}
+    assert result["ok"] is True
