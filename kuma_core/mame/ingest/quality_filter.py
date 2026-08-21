@@ -463,12 +463,21 @@ def filter_reads_by_summary(
                 continue
 
             # ── Barcode score filter (summary only) ──────────────────────
+            # The same isfinite-first form as the Q-score gate below, which was
+            # fixed on its own and left this sibling reading the same summary
+            # dict in the old shape. A NaN barcode_score makes
+            # ``float(bscore) < min_barcode_score`` False and keeps the read.
             if summary_meta and params.min_barcode_score > 0:
                 meta = summary_meta.get(read_id, {})
                 bscore = meta.get("barcode_score")
-                if bscore is not None and float(bscore) < params.min_barcode_score:
-                    n_failed_barcode += 1
-                    continue
+                if bscore is not None:
+                    bscore_value = float(bscore)
+                    if (
+                        not math.isfinite(bscore_value)
+                        or bscore_value < params.min_barcode_score
+                    ):
+                        n_failed_barcode += 1
+                        continue
 
             # ── Q-score filter ────────────────────────────────────────────
             if summary_meta:

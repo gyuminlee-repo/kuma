@@ -78,6 +78,7 @@ Response schema
 from __future__ import annotations
 
 import logging
+import math
 import shutil
 from pathlib import Path
 from typing import Any
@@ -710,15 +711,21 @@ def handle_demux_and_filter(params: dict) -> dict:
             n_qf_input += 1
             failed = False
 
+            # isfinite first, the same shape quality_filter.py uses. This block
+            # is a second implementation of that filter, so the fix that landed
+            # there in v0.16.33.05 did not reach this path: a NaN score makes
+            # ``float(score) < minimum`` False and keeps the read, which is the
+            # filter reporting a pass where it could not decide.
             bscore = meta.get("barcode_score")
-            if (
-                bscore is not None
-                and qf_params.min_barcode_score > 0
-                and float(bscore) < qf_params.min_barcode_score
-            ):
-                n_qf_failed_barcode += 1
-                fail_read_ids.add(read_id)
-                failed = True
+            if bscore is not None and qf_params.min_barcode_score > 0:
+                bscore_value = float(bscore)
+                if (
+                    not math.isfinite(bscore_value)
+                    or bscore_value < qf_params.min_barcode_score
+                ):
+                    n_qf_failed_barcode += 1
+                    fail_read_ids.add(read_id)
+                    failed = True
 
             if not failed:
                 length = meta.get("length")
@@ -731,9 +738,14 @@ def handle_demux_and_filter(params: dict) -> dict:
 
             if not failed:
                 qscore = meta.get("qscore")
-                if qscore is not None and float(qscore) < qf_params.min_qscore:
-                    n_qf_failed_qscore += 1
-                    fail_read_ids.add(read_id)
+                if qscore is not None:
+                    qscore_value = float(qscore)
+                    if (
+                        not math.isfinite(qscore_value)
+                        or qscore_value < qf_params.min_qscore
+                    ):
+                        n_qf_failed_qscore += 1
+                        fail_read_ids.add(read_id)
 
         # Apply the fail set to every per-well FASTA under output_dir, and count
         # the survivors in the SAME pass.
