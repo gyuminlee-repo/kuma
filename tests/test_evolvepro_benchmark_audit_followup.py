@@ -247,8 +247,8 @@ def test_top_percentile_rounds_up():
 
     if metrics.get("hits") != 2:
         pytest.fail(
-            f"expected the top 2 of 19 to count as the top 10%, got {metrics.get("hits")} "
-            f"hits at threshold {metrics.get("threshold")}"
+            f"expected the top 2 of 19 to count as the top 10%, got {metrics.get('hits')} "
+            f"hits at threshold {metrics.get('threshold')}"
         )
 
 
@@ -262,6 +262,6 @@ def test_top_percentile_exact_division_unchanged():
 
     if metrics.get("hits") != 2:
         pytest.fail(
-            f"top 10% of 20 must be exactly 2, got {metrics.get("hits")} hits at "
-            f"threshold {metrics.get("threshold")}"
+            f"top 10% of 20 must be exactly 2, got {metrics.get('hits')} hits at "
+            f"threshold {metrics.get('threshold')}"
         )
