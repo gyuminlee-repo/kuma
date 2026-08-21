@@ -62,7 +62,13 @@ Response schema
 ``n_assigned``                  (int)
 ``n_unassigned``                (int)
 ``per_well_counts``             (dict[str, int])
-``filter_stats``                (dict | null)— QualityFilterResult as dict, or null
+``filter_stats``                (dict)       : QualityFilterResult as dict.  Always
+                                 present.  The Q-score and length gates run from the
+                                 sequencing_summary when one is given and from the
+                                 source FASTQ Phred strings when it is not.
+                                 ``n_failed_barcode`` is null (not 0) in the second
+                                 case, because barcode_score lives only in the summary
+                                 and 0 would read as "no read failed that gate".
 ``backend``                     (str)        — "cutadapt" | "python"
 ``amplicon_length_estimate``    (dict | null)— AmpliconLengthEstimate as dict, or null
 ``length_filter_mode``          (str)        — "target_window" | "fixed_range" | "none"
@@ -469,10 +475,16 @@ def handle_demux_and_filter(params: dict) -> dict:
     linked_trim = bool(params.get("linked_trim", False))
     rev_primer_universal: str | None = params.get("rev_primer_universal") or None
     normalize_headers = bool(params.get("normalize_headers", True))
-    # Consensus calling needs original read IDs so FASTQ quality strings can be
-    # joined back into the pileup.  Final consensus FASTA headers are still
-    # normalized to the well name by _run_consensus_on_dir.
-    demux_normalize_headers = normalize_headers and reference_fasta is None
+    # Demux now always writes original read IDs.  Consensus calling needs them
+    # so FASTQ quality strings can be joined back into the pileup, and the A3
+    # strip pass below needs them too: it keys its fail set by read_id, so a
+    # well-name header made every lookup miss and the legacy path tallied
+    # failures in ``filter_stats`` while leaving every read in the file.
+    # Header normalization moved into that strip pass, which rewrites surviving
+    # headers to the well name, so the output format a caller sees is unchanged.
+    # Final consensus FASTA headers are still set by _run_consensus_on_dir.
+    demux_normalize_headers = False
+    strip_normalize_headers = normalize_headers and reference_fasta is None
 
     # ── Optional quality filter params ───────────────────────────────────
     seq_summary_raw = params.get("sequencing_summary")
@@ -677,35 +689,46 @@ def handle_demux_and_filter(params: dict) -> dict:
 
     _progress(65, "Applying quality filter...")
 
-    # ── Quality filter (A3) — build fail-set then strip per-well FASTA ───
+    # ── Quality filter (A3): build fail-set then strip per-well FASTA ──
     #
-    # Strategy: parse sequencing_summary to identify read_ids that fail any
-    # threshold, then iterate every per-well FASTA produced by demux and
-    # rewrite it without the failing records.  This avoids re-running demux
-    # and is O(n) in total reads.
+    # Strategy: identify the read_ids that fail any threshold, then iterate
+    # every per-well FASTA produced by demux and rewrite it without the failing
+    # records.  This avoids re-running demux and is O(n) in total reads.
     #
-    # When sequencing_summary is absent we compute Q-score from the FASTQ
-    # quality strings directly (first FASTQ only for stats; per-well FASTs
-    # have already lost quality strings so we skip in-place filtering).
-    filter_stats_dict: dict | None = None
+    # The fail set comes from the sequencing_summary when one was given.  When
+    # none was given it is built from the source FASTQ records, which carry the
+    # per-read Phred string; that is the same fallback
+    # ``quality_filter.filter_reads_by_summary`` takes in the same situation
+    # (``qscore = _mean_qscore_from_qual(qual)``).  That branch did not exist
+    # here before: the whole stage was skipped when the summary was absent, so
+    # ``min_qscore`` was ignored, every read survived, and ``filter_stats`` came
+    # back null while reads the caller asked to be dropped were counted as
+    # having passed.
+    from kuma_core.mame.ingest.quality_filter import (
+        _iter_fastq_records,
+        _mean_qscore_from_qual,
+        _parse_sequencing_summary,
+        _resolve_length_window,
+    )
+
+    fail_read_ids: set[str] = set()
+    n_qf_input = 0
+    n_qf_failed_qscore = 0
+    n_qf_failed_length = 0
+    # None rather than 0 when the gate could not run.  barcode_score exists only
+    # in the sequencing_summary, and 0 would read as "no read failed it".
+    # RunQcSection.tsx renders null as the localized not-measured text and 0 as
+    # a reading, which is the distinction this keeps.
+    n_qf_failed_barcode: int | None = None
+
+    # Resolve the effective length window (target_length takes priority over
+    # length_min/length_max when set).
+    _len_min, _len_max = _resolve_length_window(qf_params)
 
     if sequencing_summary is not None:
-        from kuma_core.mame.ingest.quality_filter import (
-            _parse_sequencing_summary,
-            _resolve_length_window,
-        )
-
         # Build fail set from sequencing_summary.
         summary_meta = _parse_sequencing_summary(sequencing_summary)
-        fail_read_ids: set[str] = set()
-        n_qf_input = 0
-        n_qf_failed_qscore = 0
-        n_qf_failed_length = 0
         n_qf_failed_barcode = 0
-
-        # Resolve the effective length window (target_length takes priority over
-        # length_min/length_max when set).
-        _len_min, _len_max = _resolve_length_window(qf_params)
 
         for read_id, meta in summary_meta.items():
             n_qf_input += 1
@@ -746,93 +769,133 @@ def handle_demux_and_filter(params: dict) -> dict:
                     ):
                         n_qf_failed_qscore += 1
                         fail_read_ids.add(read_id)
-
-        # Apply the fail set to every per-well FASTA under output_dir, and count
-        # the survivors in the SAME pass.
-        #
-        # This used to be two passes: one that rewrote each file, then a second
-        # that walked the whole tree again and re-read every file it had just
-        # written, only to count its ``>`` lines.  The surviving header count is
-        # already known here from ``filtered_lines``, so the second walk and the
-        # second full read of every well are both redundant.
-        #
-        # Seed the rebuilt counts from already-complete units first (their files
-        # are skipped below), which also fixes the key order of the response dict
-        # at the same order the two-pass version produced.
-        n_removed = 0
-        updated_per_well: dict[str, int] = {}
-        for nb_name in completed_nbs:
-            for well, cnt in completed_marker_counts.get(nb_name, {}).items():
-                updated_per_well[well] = updated_per_well.get(well, 0) + cnt
-
-        touched_dirs: set[Path] = set()
-        for fasta_file in sorted(_rglob_fasta(output_dir)):
-            if fasta_file.name.startswith("_"):
-                continue  # skip _unassigned.fasta
-            if fasta_file.parent.name in completed_nbs:
-                continue  # already-complete unit: do not re-filter
-            lines = fasta_file.read_text(encoding="utf-8").splitlines(keepends=True)
-            filtered_lines: list[str] = []
-            skip_next = False
-            n_kept = 0
-            for line in lines:
-                if line.startswith(">"):
-                    rid = line[1:].split()[0].rstrip("\r\n")
-                    if rid in fail_read_ids:
-                        skip_next = True
-                        n_removed += 1
+    else:
+        # No summary: gate on the Phred strings the run already carries.  Order
+        # is length then Q-score, matching filter_reads_by_summary so a read
+        # rejected for length is not also tallied as a Q-score failure.  Source
+        # enumeration mirrors demux_native_barcode (one walk, both extensions).
+        qf_sources = (
+            [Path(p).resolve() for p in nb_dirs_raw] if nb_dirs_raw else [fastq_dir]
+        )
+        seen_read_ids: set[str] = set()
+        for qf_dir in qf_sources:
+            _qf_matches = rglob_entries(qf_dir, FASTQ_PATTERNS)
+            qf_fastqs = sorted(
+                path
+                for pattern in FASTQ_PATTERNS
+                for path, _entry in _qf_matches[pattern]
+            )
+            for qf_fastq in qf_fastqs:
+                for read_id, seq, qual in _iter_fastq_records(qf_fastq):
+                    if read_id in seen_read_ids:
                         continue
-                    skip_next = False
-                    n_kept += 1
-                    filtered_lines.append(line)
-                else:
-                    if not skip_next:
-                        filtered_lines.append(line)
-            # In-place rewrite of an already-good per-well FASTA: atomic so an
-            # interruption cannot truncate the existing file.  Durability is
-            # deferred to one fsync per output directory after the batch instead
-            # of one fsync per well; the rename stays atomic either way, and this
-            # stage is re-runnable (the stage marker, written later and fsync'd,
-            # is what makes a unit authoritative).
-            atomic_write_text(fasta_file, "".join(filtered_lines), fsync=False)
-            touched_dirs.add(fasta_file.parent)
-            if n_kept:
-                # Use stem relative to output_dir as well name.
-                updated_per_well[fasta_file.stem] = (
-                    updated_per_well.get(fasta_file.stem, 0) + n_kept
+                    seen_read_ids.add(read_id)
+                    n_qf_input += 1
+                    if len(seq) < _len_min or len(seq) > _len_max:
+                        n_qf_failed_length += 1
+                        fail_read_ids.add(read_id)
+                        continue
+                    # isfinite first, for the reason given in the summary branch
+                    # above: the bare comparison keeps a read whose quality could
+                    # not be established.
+                    qscore_value = _mean_qscore_from_qual(qual)
+                    if (
+                        not math.isfinite(qscore_value)
+                        or qscore_value < qf_params.min_qscore
+                    ):
+                        n_qf_failed_qscore += 1
+                        fail_read_ids.add(read_id)
+
+    # Apply the fail set to every per-well FASTA under output_dir, and count
+    # the survivors in the SAME pass.
+    #
+    # This used to be two passes: one that rewrote each file, then a second
+    # that walked the whole tree again and re-read every file it had just
+    # written, only to count its ``>`` lines.  The surviving header count is
+    # already known here from ``filtered_lines``, so the second walk and the
+    # second full read of every well are both redundant.
+    #
+    # Seed the rebuilt counts from already-complete units first (their files
+    # are skipped below), which also fixes the key order of the response dict
+    # at the same order the two-pass version produced.
+    n_removed = 0
+    updated_per_well: dict[str, int] = {}
+    for nb_name in completed_nbs:
+        for well, cnt in completed_marker_counts.get(nb_name, {}).items():
+            updated_per_well[well] = updated_per_well.get(well, 0) + cnt
+
+    touched_dirs: set[Path] = set()
+    for fasta_file in sorted(_rglob_fasta(output_dir)):
+        if fasta_file.name.startswith("_"):
+            continue  # skip _unassigned.fasta
+        if fasta_file.parent.name in completed_nbs:
+            continue  # already-complete unit: do not re-filter
+        lines = fasta_file.read_text(encoding="utf-8").splitlines(keepends=True)
+        filtered_lines: list[str] = []
+        skip_next = False
+        n_kept = 0
+        for line in lines:
+            if line.startswith(">"):
+                rid = line[1:].split()[0].rstrip("\r\n")
+                if rid in fail_read_ids:
+                    skip_next = True
+                    n_removed += 1
+                    continue
+                skip_next = False
+                n_kept += 1
+                # Header normalization happens here rather than in demux, so
+                # the fail-set lookup above sees the read_id it is keyed by.
+                filtered_lines.append(
+                    f">{fasta_file.stem}\n" if strip_normalize_headers else line
                 )
             else:
-                # Remove empty FASTA so analyze does not see ghost wells.  The
-                # (empty) rewrite above is kept rather than skipped so that a
-                # failing unlink leaves exactly what it left before: an empty
-                # file, not an unfiltered one.
-                try:
-                    fasta_file.unlink()
-                except OSError as exc:
-                    _logger.warning("Could not remove empty FASTA %s: %s", fasta_file, exc)
-
-        for touched in sorted(touched_dirs):
-            fsync_directory(touched)
-
-        n_qf_passed = n_qf_input - len(fail_read_ids)
-        filter_stats_dict = {
-            "n_input": n_qf_input,
-            "n_passed": max(0, n_qf_passed),
-            "n_failed_qscore": n_qf_failed_qscore,
-            "n_failed_length": n_qf_failed_length,
-            "n_failed_barcode": n_qf_failed_barcode,
-        }
-
-        if updated_per_well:
-            # Rebuild demux_result with updated counts.
-            n_assigned_filtered = sum(updated_per_well.values())
-            demux_result = type(demux_result)(
-                output_dir=demux_result.output_dir,
-                n_input_reads=demux_result.n_input_reads,
-                n_assigned=n_assigned_filtered,
-                n_unassigned=demux_result.n_input_reads - n_assigned_filtered,
-                per_well_counts=updated_per_well,
+                if not skip_next:
+                    filtered_lines.append(line)
+        # In-place rewrite of an already-good per-well FASTA: atomic so an
+        # interruption cannot truncate the existing file.  Durability is
+        # deferred to one fsync per output directory after the batch instead
+        # of one fsync per well; the rename stays atomic either way, and this
+        # stage is re-runnable (the stage marker, written later and fsync'd,
+        # is what makes a unit authoritative).
+        atomic_write_text(fasta_file, "".join(filtered_lines), fsync=False)
+        touched_dirs.add(fasta_file.parent)
+        if n_kept:
+            # Use stem relative to output_dir as well name.
+            updated_per_well[fasta_file.stem] = (
+                updated_per_well.get(fasta_file.stem, 0) + n_kept
             )
+        else:
+            # Remove empty FASTA so analyze does not see ghost wells.  The
+            # (empty) rewrite above is kept rather than skipped so that a
+            # failing unlink leaves exactly what it left before: an empty
+            # file, not an unfiltered one.
+            try:
+                fasta_file.unlink()
+            except OSError as exc:
+                _logger.warning("Could not remove empty FASTA %s: %s", fasta_file, exc)
+
+    for touched in sorted(touched_dirs):
+        fsync_directory(touched)
+
+    n_qf_passed = n_qf_input - len(fail_read_ids)
+    filter_stats_dict: dict = {
+        "n_input": n_qf_input,
+        "n_passed": max(0, n_qf_passed),
+        "n_failed_qscore": n_qf_failed_qscore,
+        "n_failed_length": n_qf_failed_length,
+        "n_failed_barcode": n_qf_failed_barcode,
+    }
+
+    if updated_per_well:
+        # Rebuild demux_result with updated counts.
+        n_assigned_filtered = sum(updated_per_well.values())
+        demux_result = type(demux_result)(
+            output_dir=demux_result.output_dir,
+            n_input_reads=demux_result.n_input_reads,
+            n_assigned=n_assigned_filtered,
+            n_unassigned=demux_result.n_input_reads - n_assigned_filtered,
+            per_well_counts=updated_per_well,
+        )
 
     # ── A4/A5: Alignment + consensus (when reference_fasta provided) ──────
     consensus_stats_dict: dict | None = None

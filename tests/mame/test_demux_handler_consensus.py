@@ -46,6 +46,12 @@ _BARCODES = {
     "1_2": "TTGGAACCC",
 }
 
+# Length of one fixture read: barcode prefix + reference body.  A3 runs even
+# when no sequencing_summary is given, so every call below has to declare a
+# length window that brackets these reads.  Left implicit, the fallback window
+# is 800-3000 bp and drops all of them.
+_READ_LENGTH = len(_BARCODES["1_1"]) + len(_REFERENCE)
+
 
 def _make_fastq(path: Path, reads: list[tuple[str, str, str]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -116,6 +122,7 @@ def test_handle_demux_with_consensus_pipeline_success(
             "reference_fasta": str(ref_fasta),
             "use_cutadapt": False,
             "auto_detect_length": False,
+            "target_length": _READ_LENGTH,
         }
     )
 
@@ -139,6 +146,7 @@ def test_handle_demux_consensus_output_single_header_per_well(
             "reference_fasta": str(ref_fasta),
             "use_cutadapt": False,
             "auto_detect_length": False,
+            "target_length": _READ_LENGTH,
         }
     )
 
@@ -173,6 +181,7 @@ def test_handle_demux_consensus_output_load_barcode_directory(
             "reference_fasta": str(ref_fasta),
             "use_cutadapt": False,
             "auto_detect_length": False,
+            "target_length": _READ_LENGTH,
         }
     )
 
@@ -207,6 +216,7 @@ def test_handle_demux_per_well_counts_reflect_raw_reads(
             "reference_fasta": str(ref_fasta),
             "use_cutadapt": False,
             "auto_detect_length": False,
+            "target_length": _READ_LENGTH,
         }
     )
 
@@ -235,6 +245,7 @@ def test_handle_demux_consensus_stats_populated(
             "reference_fasta": str(ref_fasta),
             "use_cutadapt": False,
             "auto_detect_length": False,
+            "target_length": _READ_LENGTH,
         }
     )
 
@@ -267,6 +278,7 @@ def test_handle_demux_legacy_no_consensus(
             "output_dir": str(output_dir),
             "use_cutadapt": False,
             "auto_detect_length": False,
+            "target_length": _READ_LENGTH,
         }
     )
 
@@ -291,6 +303,7 @@ def test_handle_demux_save_intermediate_reads(
             "save_intermediate_reads": True,
             "use_cutadapt": False,
             "auto_detect_length": False,
+            "target_length": _READ_LENGTH,
         }
     )
 

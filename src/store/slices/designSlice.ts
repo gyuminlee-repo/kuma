@@ -21,6 +21,7 @@ import type {
 import {
   addDesignResultState,
   applyCustomPrimerToResults,
+  applyReversePropagation,
   buildIncludedPlateState,
   buildDesignRequestPayload,
   EMPTY_RESCUE_STATS,
@@ -415,13 +416,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
     const nextDesignResults = designResults.map((r) => {
       if (r.mutation === mutation) return updated;
       if (revChanged && r.aa_position === targetPos) {
-        return {
-          ...r,
-          reverse_seq: updated.reverse_seq,
-          rev_len: updated.rev_len,
-          tm_no_rev: updated.tm_no_rev,
-          gc_rev: updated.gc_rev,
-        };
+        return applyReversePropagation(r, updated);
       }
       return r;
     });

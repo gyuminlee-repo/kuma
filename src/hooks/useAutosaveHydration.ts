@@ -567,7 +567,7 @@ export async function applyKuroSnapshot(
     patch.entropyWeightEnabled = diversity.entropy_weight_enabled;
   }
   if (typeof diversity?.entropy_weight === "number") {
-    patch.entropyWeight = diversity.entropy_weight;
+    patch.entropyWeight = Math.max(0, Math.min(1, diversity.entropy_weight));
   }
   if (typeof diversity?.pareto_pool_multiplier === "number") {
     patch.paretoPoolMultiplier = diversity.pareto_pool_multiplier;
