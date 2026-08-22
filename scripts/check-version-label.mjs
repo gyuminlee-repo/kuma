@@ -43,11 +43,15 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const LABEL = /^v(\d+\.\d+\.\d+)(?:\.\d+)?:/;
 
 /**
- * How far back to look. CI checks out with fetch-depth 2
- * (.github/workflows/ci.yml), so on a push to main only the squash commit and
- * its parent exist. That is enough for the case this exists to catch, since
- * the squash commit carries the label itself. Asking for more costs nothing
- * and helps a full clone find the label when HEAD is an unlabelled commit.
+ * How far back to look. The two jobs that run this (frontend-typecheck in
+ * ci.yml, quality-gates in build.yml) check out with the same depth, so the
+ * window this asks for is the window it gets.
+ *
+ * Those jobs used to check out at depth 2, on the premise that a squash commit
+ * always carries the label and so the label sits at HEAD. That premise is
+ * false, and when it fails twice in a row the depth-2 window holds no label at
+ * all. The check then reports "skipped" and exits 0, which is how f1ab761a
+ * turned a still-broken main green.
  */
 const SEARCH_DEPTH = 50;
 

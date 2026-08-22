@@ -19,7 +19,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 2
+          # 50 to match SEARCH_DEPTH in scripts/check-version-label.mjs, for the
+          # same reason as the frontend-typecheck job in ci.yml: this job runs
+          # sync:check too, and at depth 2 the label can fall outside the window
+          # entirely, which the check reports as "skipped" rather than as a
+          # failure. A release tag builds from here, so a miss here ships.
+          fetch-depth: 50
 
       - uses: actions/setup-python@v6
         with:
