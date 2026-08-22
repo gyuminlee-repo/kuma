@@ -105,7 +105,16 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 2
+          # 50 to match SEARCH_DEPTH in scripts/check-version-label.mjs, which
+          # this job runs through sync:check. Depth 2 was chosen on the premise
+          # that a squash commit always carries the version label, so the label
+          # would sit at HEAD. It does not: GitHub takes a squash subject from
+          # the branch's single commit when there is only one, and v0.16.35
+          # reached main unlabelled that way. With two unlabelled commits on
+          # top, a depth-2 checkout finds no label at all, the check reports
+          # "skipped" and exits 0, and main goes green while the manifests and
+          # the newest label still disagree. That happened on f1ab761a.
+          fetch-depth: 50
 
       - uses: pnpm/action-setup@v4
 
