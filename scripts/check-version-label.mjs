@@ -24,6 +24,14 @@
  * to the files (scripts/sync-version.sh says the same). A DD release therefore
  * agrees with the manifests it does not move.
  *
+ * Where the label has to sit: a squash merge writes ONE subject onto main, and
+ * GitHub picks it from the pull request title only when the branch holds more
+ * than one commit. A single-commit branch is squashed under that commit's own
+ * subject, so a labelled pull request title is not enough on its own. v0.16.35
+ * and the first attempt at v0.16.35.01 both reached main unlabelled this way,
+ * the second one despite a labelled title. Put the label on the commit subject,
+ * or pass `gh pr merge --subject` and read back what actually landed.
+ *
  * Usage: node scripts/check-version-label.mjs
  */
 import { spawnSync } from "node:child_process";
