@@ -66,12 +66,14 @@ if (subjects === null) {
 }
 
 let labelled = null;
+let distance = 0;
 for (const subject of subjects.split("\n")) {
   const match = LABEL.exec(subject.trim());
   if (match) {
     labelled = { version: match[1], subject: subject.trim() };
     break;
   }
+  distance += 1;
 }
 
 if (labelled === null) {
@@ -97,6 +99,25 @@ console.error(
     `manifests say ${declared}.`,
 );
 console.error(`  commit: ${labelled.subject}`);
+if (distance > 0) {
+  // HEAD itself carries no label, so the version above was read off an older
+  // commit and the manifests are ahead of it rather than behind. That is the
+  // shape a squash merge leaves when the pull request title carried no label:
+  // GitHub writes the title as the commit subject, and the release commit's
+  // own label never reaches main. Telling the reader to run sync-version.sh
+  // here would walk the manifests backwards, which is the wrong direction.
+  console.error(
+    `  HEAD carries no label; the one above is ${distance} commit(s) back, so ` +
+      "the manifests are ahead of it rather than behind.",
+  );
+  console.error(
+    "  A squash merge takes its subject from the pull request title. Give the " +
+      "title the label the release commit carries, or land a follow-up whose " +
+      "subject does, so main states the version its manifests hold.",
+  );
+  process.exit(1);
+}
+
 console.error(
   "  scripts/sync-version.sh rewrites the manifests from the commit subject, " +
     "and it is a local post-commit hook, so it does not run for a squash merge " +
