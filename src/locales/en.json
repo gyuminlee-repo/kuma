@@ -2580,12 +2580,17 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Mutations whose primer is already at the minimum length are recovered, instead of being reported as having no valid pair.",
-      "The recovered primer anneals with the rest of the plate rather than well above it, because shortening is an option now.",
-      "The round that surfaced this goes from 93 of 95 to 95 of 95 with no change to the primers that already succeeded."
+      "MAME has a screenshot set, taken from a real 288-well nanopore run rather than from fixtures.",
+      "The capture drives the wizard by clicking it, so every frame is a screen the application actually reached.",
+      "Recorded sidecar replies are keyed by sidecar as well as by method, so a MAME screen cannot be served a KURO answer."
     ],
-    "highlightsStamp": "0.16.34+d7925cb6",
+    "highlightsStamp": "0.16.35+d628e48a",
     "releases": {
+      "0.16.35": [
+        "MAME has a screenshot set, taken from a real 288-well nanopore run rather than from fixtures.",
+        "The capture drives the wizard by clicking it, so every frame is a screen the application actually reached.",
+        "Recorded sidecar replies are keyed by sidecar as well as by method, so a MAME screen cannot be served a KURO answer."
+      ],
       "0.16.34": [
         "Mutations whose primer is already at the minimum length are recovered, instead of being reported as having no valid pair.",
         "The recovered primer anneals with the rest of the plate rather than well above it, because shortening is an option now.",
@@ -2844,6 +2849,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.35": "d628e48a",
       "0.16.34": "d7925cb6",
       "0.16.33": "059a2f27",
       "0.16.32": "3be3b377",

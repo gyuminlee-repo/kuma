@@ -13,6 +13,7 @@ exclude_docs: |
   ko/
   screenshots/
   screenshots-real/
+  screenshots-mame/
   standards/
   user-guide-screenshots/
 

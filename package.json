@@ -1,7 +1,7 @@
 {
   "name": "kuma",
   "private": true,
-  "version": "0.16.34",
+  "version": "0.16.35",
   "packageManager": "pnpm@10.33.0",
   "type": "module",
   "scripts": {
@@ -30,6 +30,8 @@
     "capture-guide": "tsx --tsconfig tsconfig.scripts.json scripts/capture-guide.ts",
     "capture-real": "tsx --tsconfig tsconfig.scripts.json scripts/capture-real.ts",
     "capture-real:data": "python3 scripts/gen_real_capture_data.py",
+    "capture-mame": "tsx --tsconfig tsconfig.scripts.json scripts/capture-mame.ts",
+    "capture-mame:data": "python3 scripts/gen_mame_capture_data.py",
     "record-tutorial": "tsx --tsconfig tsconfig.scripts.json scripts/record-tutorial.ts"
   },
   "dependencies": {

@@ -1,0 +1,62 @@
+[
+  {
+    "name": "01-inputs-empty",
+    "caption": "MAME opens on its input step with nothing chosen yet.",
+    "file": "01-inputs-empty.png"
+  },
+  {
+    "name": "02-inputs-filled",
+    "caption": "The run folder, the custom barcode sheet, and the expected variant list, named as they sit on the bench.",
+    "file": "02-inputs-filled.png"
+  },
+  {
+    "name": "03-inputs-detail",
+    "caption": "The rest of the same panel: the construct the reads are aligned to, where output lands, and the draft placement of every variant on the plate.",
+    "file": "03-inputs-detail.png"
+  },
+  {
+    "name": "04-parameters",
+    "caption": "The thresholds this run scores against: 15 filtered reads per well, at most 5 unexpected amino-acid changes, and the raw-run read filter at Q8 with a 30 bp length tolerance.",
+    "file": "04-parameters.png"
+  },
+  {
+    "name": "05-validated",
+    "caption": "Validation runs before any demux and reads the barcode sheet: 12 forward by 8 reverse seeds, 96 wells on one plate.",
+    "file": "05-validated.png"
+  },
+  {
+    "name": "06-preflight",
+    "caption": "The pre-flight check every run passes through. The disk-space warning is unconditional: no cross-platform API reports free space, so the app says so rather than guessing.",
+    "file": "06-preflight.png"
+  },
+  {
+    "name": "07-native-barcodes",
+    "caption": "Three native barcodes carried this run, holding between a quarter and two fifths of the sequencing volume each. Choosing them as replicates is what makes this three plates rather than one pool.",
+    "file": "07-native-barcodes.png"
+  },
+  {
+    "name": "08-run-quality",
+    "caption": "What the run says about itself before a verdict is read: median depth 571 against a recommended 1500, the amplicon window the reads covered, and where stray reads went.",
+    "file": "08-run-quality.png"
+  },
+  {
+    "name": "09-verdict-plate",
+    "caption": "94 of 95 designed mutants recovered. The plate carries the variant each well was meant to hold, and the verdict table splits the same wells by replicate barcode.",
+    "file": "09-verdict-plate.png"
+  },
+  {
+    "name": "10-replicate-distribution",
+    "caption": "The same 288 verdicts as a per-plate distribution: 81, 84 and 78 per cent pass across NB07, NB08 and NB09, with the failure classes broken out beside the rows they came from.",
+    "file": "10-replicate-distribution.png"
+  },
+  {
+    "name": "11-janus-settings",
+    "caption": "The optional Janus step. The analyze run already wrote the pick list of 94 clones; only the instrument sheet waits on a transfer volume and liquid class being named here.",
+    "file": "11-janus-settings.png"
+  },
+  {
+    "name": "12-activity-data",
+    "caption": "The activity step, empty: this run carries sequencing verdicts only, with no assay readings uploaded yet.",
+    "file": "12-activity-data.png"
+  }
+]

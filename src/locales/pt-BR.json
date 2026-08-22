@@ -2541,7 +2541,7 @@
       "O primer recuperado se anela na mesma faixa que o restante da placa, porque encurtar agora é uma opção.",
       "A rodada que revelou isso vai de 93 de 95 para 95 de 95, sem alterar os primers que já funcionavam."
     ],
-    "highlightsStamp": "0.16.34+d7925cb6",
+    "highlightsStamp": "0.16.35+d628e48a",
     "releases": {
       "0.16.28": [
         "Cinco seções de run health que o aplicativo media em toda execução e nunca desenhava agora aparecem na tela de revisão, em uma seção que começa fechada.",
@@ -2798,6 +2798,11 @@
         "Mutações cujo primer já está no comprimento mínimo agora são recuperadas em vez de relatadas sem par válido.",
         "O primer recuperado se anela na mesma faixa que o restante da placa, porque encurtar agora é uma opção.",
         "A rodada que revelou isso vai de 93 de 95 para 95 de 95, sem alterar os primers que já funcionavam."
+      ],
+      "0.16.35": [
+        "O MAME agora tem capturas de tela, feitas a partir de uma corrida nanopore real de 288 pocos em vez de dados de teste.",
+        "A captura percorre o assistente clicando sozinha, entao cada imagem mostra uma tela que o aplicativo realmente alcancou.",
+        "As respostas gravadas do sidecar sao indexadas por sidecar alem do metodo. Uma tela do MAME nao recebe mais uma resposta do KURO."
       ]
     },
     "releaseStamps": {
@@ -2844,7 +2849,8 @@
       "0.16.31": "60d4442c",
       "0.16.32": "3be3b377",
       "0.16.33": "059a2f27",
-      "0.16.34": "d7925cb6"
+      "0.16.34": "d7925cb6",
+      "0.16.35": "d628e48a"
     }
   },
   "primerDisplay": {
