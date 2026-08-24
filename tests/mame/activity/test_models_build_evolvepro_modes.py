@@ -150,3 +150,61 @@ def test_well_labeled_primary_sources_accept_a_missing_layout(files):
             "output_xlsx": files["out"],
         })
         assert validated.layout_xlsx is None
+
+
+# ---------------------------------------------------------------------------
+# A lower bound is not a finiteness check
+# ---------------------------------------------------------------------------
+
+
+def test_an_infinite_mismatch_threshold_is_refused(files):
+    """``gt=0.0`` does not exclude infinity, because ``inf > 0.0`` holds.
+
+    An infinite threshold validated and reached
+    ``kuma_core/mame/activity/merge.py`` where the flag is written
+    ``if diff > mismatch_threshold``. That is False for every replicate pair,
+    so no mismatch was ever flagged: the run reported perfect agreement rather
+    than reporting that it could not decide.
+
+    The controls matter here. This model runs path-existence validators and a
+    model-level source-combination rule before the field under test, so a probe
+    without a valid request measures those instead.
+    """
+    base = {
+        "activity_path": files["activity"],
+        "verdict_xlsx": files["verdict"],
+        "output_xlsx": files["out"],
+    }
+
+    # Controls: finite thresholds, one small and one loose, must still validate.
+    for control in (0.1, 5.0):
+        validated = BuildEvolveproInputParams.model_validate(
+            dict(base, mismatch_threshold=control)
+        )
+        assert validated.mismatch_threshold == control
+
+    for value in (float("inf"), float("-inf"), float("nan")):
+        with pytest.raises(ValidationError) as excinfo:
+            BuildEvolveproInputParams.model_validate(
+                dict(base, mismatch_threshold=value)
+            )
+        locs = [error["loc"] for error in excinfo.value.errors()]
+        assert ("mismatch_threshold",) in locs, (
+            f"{value!r} was refused by something other than the threshold "
+            f"field: {locs}"
+        )
+
+
+def test_no_ceiling_was_invented_for_the_threshold(files):
+    """The fix refuses non-finite values, it does not cap the threshold.
+
+    A campaign may legitimately want a loose threshold, and this parameter has
+    no natural upper limit. Capping it would change which runs are accepted.
+    """
+    validated = BuildEvolveproInputParams.model_validate({
+        "activity_path": files["activity"],
+        "verdict_xlsx": files["verdict"],
+        "output_xlsx": files["out"],
+        "mismatch_threshold": 1e6,
+    })
+    assert validated.mismatch_threshold == 1e6

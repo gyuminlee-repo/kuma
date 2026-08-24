@@ -434,7 +434,16 @@ class BuildEvolveproInputParams(BaseModel):
     layout_xlsx: str | None = None
     expected_xlsx: str | None = None
     output_xlsx: str
-    mismatch_threshold: float = Field(default=0.1, gt=0.0)
+    # allow_inf_nan=False, not an invented ceiling. ``gt=0.0`` alone does not
+    # exclude infinity, because ``inf > 0.0`` holds; measured, an ``inf`` here
+    # validated and reached merge.py, where ``diff > mismatch_threshold`` is
+    # False for every replicate pair, so no mismatch was ever flagged and the
+    # export-blocked judgement went quiet. This threshold has no natural upper
+    # limit (a campaign may legitimately want a loose one), so the guard
+    # refuses exactly the values no comparison can use rather than capping it.
+    # The other caller of merge_replicates_priority guards the same parameter
+    # with parse_finite_float (handlers/activity.py).
+    mismatch_threshold: float = Field(default=0.1, gt=0.0, allow_inf_nan=False)
     gc_export_xlsx: str | None = None
     allow_label_mismatch: bool = False
 

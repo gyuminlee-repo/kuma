@@ -485,3 +485,141 @@ def test_both_dispatchers_parse_through_the_guard() -> None:
         assert "json.loads(line)" not in source, (
             f"{name} still calls json.loads on the request line"
         )
+
+
+def test_overflowing_number_literals_are_refused_at_the_rpc_boundary() -> None:
+    """``1e400`` is a valid JSON number whose value is infinity.
+
+    ``parse_constant`` never sees it, so a guard built only from the three bare
+    tokens refused the spelling and admitted the value: the door reported
+    ``NaN`` and ``Infinity`` as refused while ``{"v": 1e400}`` arrived as
+    ``inf`` and disabled whatever comparison it was used in.
+    """
+    import json
+
+    from kuma_core.shared.sidecar import find_non_finite_paths, loads_rpc_request
+
+    overflowing = (
+        '{"jsonrpc":"2.0","method":"x","params":{"v":1e400}}',
+        '{"jsonrpc":"2.0","method":"x","params":{"v":-1e400}}',
+        # Nested, because a payload carries its numbers inside lists and
+        # objects far more often than at the top level.
+        '{"params":{"rows":[{"gc":1e400}]}}',
+        '{"params":{"rows":[[0.5,-1e400]]}}',
+        '{"params":{"v":1E400}}',
+    )
+    for line in overflowing:
+        # It parses today, which is what makes the guard necessary.
+        assert find_non_finite_paths(json.loads(line)), (
+            f"probe is wrong: {line} does not decode to a non-finite value"
+        )
+        with pytest.raises(json.JSONDecodeError):
+            loads_rpc_request(line)
+
+
+def test_finite_numbers_near_the_edge_still_parse() -> None:
+    """The controls. Without them a parser that refused every float would pass.
+
+    ``1e-400`` underflows to ``0.0``, which is finite and compares normally.
+    Refusing it would turn a finiteness guard into a precision policy, which is
+    a different question and not the one this door answers.
+    """
+    from kuma_core.shared.sidecar import loads_rpc_request
+
+    assert loads_rpc_request('{"v":1e308}')["v"] == 1e308
+    assert loads_rpc_request('{"v":-1e308}')["v"] == -1e308
+    assert loads_rpc_request('{"v":1e-400}')["v"] == 0.0
+    assert loads_rpc_request('{"v":0.1,"n":[1,2,3],"s":"1e400"}') == {
+        "v": 0.1,
+        "n": [1, 2, 3],
+        "s": "1e400",
+    }
+
+
+def test_the_overflow_message_does_not_claim_the_literal_was_invalid() -> None:
+    """``1e400`` is well formed JSON, unlike the bare ``Infinity`` token.
+
+    Reusing the constant-path wording would ship a false statement in an error
+    message that a user reads when a run is refused.
+    """
+    import json
+
+    from kuma_core.shared.sidecar import loads_rpc_request
+
+    with pytest.raises(json.JSONDecodeError) as excinfo:
+        loads_rpc_request('{"v":1e400}')
+    message = str(excinfo.value)
+    assert "not valid JSON" not in message
+    assert "overflows" in message
+    assert "cannot be compared against any threshold" in message
+    assert "send a finite number or omit the field" in message
+
+    with pytest.raises(json.JSONDecodeError) as excinfo:
+        loads_rpc_request('{"v":Infinity}')
+    assert "is not valid JSON" in str(excinfo.value)
+
+
+def test_every_unparseable_line_raises_the_type_the_loops_answer() -> None:
+    """The loops catch ``json.JSONDecodeError`` and nothing else.
+
+    ``json`` does not raise only that type. A number literal longer than the
+    interpreter integer-string limit raises a plain ``ValueError`` from
+    ``int()``, and a deeply nested payload raises ``RecursionError``. Measured
+    before the fix, both unwound straight out of ``main`` and the sidecar
+    process exited with code 1 on one malformed line.
+    """
+    import json
+
+    from kuma_core.shared.sidecar import loads_rpc_request
+
+    unparseable = (
+        # Over the 4300-digit limit for integer string conversion.
+        '{"jsonrpc":"2.0","id":2,"method":"ping","params":{"n":' + "9" * 4400 + "}}",
+        # Nested, because a number does not have to sit at the top level.
+        '{"params":[1,' + "9" * 5000 + "]}",
+        # Past the depth at which the C scanner gives up.
+        '{"params":' + "[" * 100000 + "]" * 100000 + "}",
+        # The ordinary cases, which already worked.
+        "not json at all",
+        '{"a":',
+    )
+    for line in unparseable:
+        with pytest.raises(json.JSONDecodeError):
+            loads_rpc_request(line)
+
+
+def test_the_conversion_is_not_a_blanket_except() -> None:
+    """A defect in this module must not be answered as a parse error.
+
+    Turning any exception into ``-32700`` would blame the caller for a bug
+    here and hide it. Only the parser telling us the line is unusable is
+    converted, so a ``TypeError`` still escapes.
+    """
+    import json
+
+    from kuma_core.shared.sidecar import loads_rpc_request
+
+    # Control: the conversion that must happen still happens.
+    with pytest.raises(json.JSONDecodeError):
+        loads_rpc_request("9" * 5000)
+
+    # A non-str argument is a caller-side type error in this process, not a
+    # malformed request line, and it is not disguised as one.
+    with pytest.raises(TypeError):
+        loads_rpc_request(object())  # type: ignore[arg-type]
+
+
+def test_the_parse_error_names_what_went_wrong() -> None:
+    """A ``-32700`` that says only "Parse error" cannot be acted on."""
+    import json
+
+    from kuma_core.shared.sidecar import loads_rpc_request
+
+    with pytest.raises(json.JSONDecodeError) as excinfo:
+        loads_rpc_request('{"params":{"n":' + "9" * 4400 + "}}")
+    assert "ValueError" in str(excinfo.value)
+    assert "4300 digits" in str(excinfo.value)
+
+    with pytest.raises(json.JSONDecodeError) as excinfo:
+        loads_rpc_request('{"params":' + "[" * 100000 + "]" * 100000 + "}")
+    assert "RecursionError" in str(excinfo.value)
