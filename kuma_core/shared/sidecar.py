@@ -76,8 +76,72 @@ def describe_non_finite(paths: list[str]) -> str:
     )
 
 
+class _NonFiniteLiteral(Exception):
+    """Internal signal raised by a decoder hook.
+
+    The hooks below run inside the C scanner and do not know the request line,
+    which :class:`json.JSONDecodeError` needs. They raise this instead and
+    :func:`loads_rpc_request` converts it, so callers still see only the
+    documented exception type.
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message
+
+
+def _refuse_constant(literal: str) -> Any:
+    """parse_constant hook: the bare ``NaN`` / ``Infinity`` / ``-Infinity`` tokens."""
+    raise _NonFiniteLiteral(
+        f"{literal} is not valid JSON and cannot be compared against any "
+        "threshold; send a finite number or omit the field"
+    )
+
+
+def _refuse_overflowing_float(literal: str) -> float:
+    """parse_float hook: a *valid* number literal whose value is not finite.
+
+    ``1e400`` is a well-formed JSON number, so ``parse_constant`` never sees
+    it, yet converting it to a double overflows to infinity. Refusing only the
+    three bare tokens therefore refused the spelling and admitted the value.
+
+    Underflow is deliberately not refused: ``1e-400`` becomes ``0.0``, which is
+    finite and compares normally. Rejecting it would turn this guard into a
+    precision policy, which is a different question.
+    """
+    value = float(literal)
+    if not math.isfinite(value):
+        # Saying "is not valid JSON" here, as the constant path does, would be
+        # a false statement: this literal is valid JSON. Only its value is
+        # unusable.
+        raise _NonFiniteLiteral(
+            f"{literal} overflows to {value} and cannot be compared against "
+            "any threshold; send a finite number or omit the field"
+        )
+    return value
+
+
+# Built once, at import. ``json.loads`` reuses its cached default decoder only
+# when no hook argument is given, so passing hooks to it constructs a fresh
+# JSONDecoder on every request. Reusing this one pays that construction back:
+# measured on this machine (Python 3.12), a 149-byte request costs 0.0008 ms
+# here against 0.0017 ms for the previous ``json.loads(..., parse_constant=)``.
+# The parse_float hook is one Python call per float literal and costs nothing
+# on a payload without floats (49.7 kB, 0 floats: 0.0253 ms against 0.0270 ms).
+# A float-heavy request pays for it: 71.6 kB with 4801 floats costs 0.5506 ms
+# against 0.3604 ms, i.e. +0.19 ms on a request whose handler then reads
+# several spreadsheets. Walking the decoded structure instead was measured at
+# 1.52 ms on the same payload (+183%) and 0.0915 ms on the float-free one
+# (+261%), because it visits every node of every request rather than only the
+# float literals.
+_RPC_DECODER = json.JSONDecoder(
+    parse_constant=_refuse_constant,
+    parse_float=_refuse_overflowing_float,
+)
+
+
 def loads_rpc_request(line: str) -> Any:
-    """Parse one JSON-RPC line, refusing the non-finite literals.
+    """Parse one JSON-RPC line, refusing every non-finite value.
 
     Python's JSON parser accepts bare ``NaN``, ``Infinity`` and ``-Infinity``
     tokens, which no other JSON implementation emits and RFC 8259 does not
@@ -86,26 +150,54 @@ def loads_rpc_request(line: str) -> Any:
     gate given ``{"min_qscore": NaN}`` keeps every read and reports that it
     passed rather than that it could not decide.
 
+    Refusing those three spellings is not enough. ``1e400`` is a valid JSON
+    number that overflows to infinity when converted to a double, so it slipped
+    past a ``parse_constant``-only guard and arrived as ``inf``. Both the token
+    and the overflowing literal are refused here, at any depth, because the
+    hooks fire per literal wherever it sits.
+
     This is the outermost place that can say no. Each handler still guards its
     own numbers (:func:`parse_finite_float`), because a value read from a file
     never passes through here, but a parameter refused at the door cannot reach
     any of them.
 
-    Raises:
-        json.JSONDecodeError: The line is not JSON, or carries a non-finite
-            literal. The same type either way, so callers that already answer
-            a parse error keep working unchanged.
-    """
+    The contract both stdin loops rely on is that this function either returns
+    a request or raises something they answer with ``-32700``. ``json`` does
+    not honour that on its own: a number literal of more than 4300 digits makes
+    the parser raise a plain ``ValueError`` from the interpreter integer-string
+    limit, and a deeply nested payload raises ``RecursionError`` (measured on
+    Python 3.12, the boundary sits between 5000 and 10000 levels).
+    Neither is a ``JSONDecodeError``, so both unwound straight out of ``main``
+    and the sidecar process exited (measured: exit code 1, the request
+    unanswered, and every later request on that session lost). One malformed
+    line killed the session.
 
-    def _refuse(literal: str) -> Any:
+    Both are converted here. The conversion is deliberately not a bare
+    ``except Exception``: :meth:`JSONDecoder.decode` does exactly one thing,
+    parse this string, so a ``ValueError`` or a ``RecursionError`` out of it is
+    a statement about the line. A ``TypeError`` or an ``AttributeError`` would
+    be a statement about this module, and answering that with a parse error
+    would blame the caller for a defect here and hide it.
+
+    Raises:
+        json.JSONDecodeError: The line is not JSON, is not parseable, or
+            carries a non-finite value. The same type every way, so callers
+            that already answer a parse error keep working unchanged.
+    """
+    try:
+        return _RPC_DECODER.decode(line)
+    except _NonFiniteLiteral as exc:
+        raise json.JSONDecodeError(exc.message, line, 0) from None
+    except json.JSONDecodeError:
+        # Already the documented type, with the parser's own position. Rewriting
+        # it would lose the column it points at.
+        raise
+    except (ValueError, RecursionError) as exc:
         raise json.JSONDecodeError(
-            f"{literal} is not valid JSON and cannot be compared against any "
-            "threshold; send a finite number or omit the field",
+            f"{type(exc).__name__} while parsing the request line: {exc}",
             line,
             0,
-        )
-
-    return json.loads(line, parse_constant=_refuse)
+        ) from exc
 
 
 def parse_finite_float(value: Any, *, field: str) -> float:
