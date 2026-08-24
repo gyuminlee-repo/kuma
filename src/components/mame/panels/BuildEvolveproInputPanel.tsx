@@ -441,7 +441,6 @@ export function BuildEvolveproInputPanel() {
           <ChoiceToggle
             label={t("mame.buildEvolvepro.primarySourceLabel")}
             helperText={t(PRIMARY_HELP[form.primarySource])}
-            helpText={t(PRIMARY_HELP[form.primarySource])}
             options={[
               { value: "longFormat", label: t("mame.buildEvolvepro.primarySourceLongFormat") },
               { value: "gcSheet", label: t("mame.buildEvolvepro.primarySourceGcSheet") },
@@ -466,7 +465,6 @@ export function BuildEvolveproInputPanel() {
               <ChoiceToggle
                 label={t("mame.buildEvolvepro.activityScale")}
                 helperText={t("mame.buildEvolvepro.activityScaleHelper")}
-                helpText={t("mame.buildEvolvepro.activityScaleHelper")}
                 options={[
                   { value: "raw", label: t("mame.buildEvolvepro.activityScaleRaw") },
                   { value: "relative_to_wt", label: t("mame.buildEvolvepro.activityScaleRelative") },
@@ -537,7 +535,6 @@ export function BuildEvolveproInputPanel() {
           <ChoiceToggle
             label={t("mame.buildEvolvepro.confirmationSourceLabel")}
             helperText={t(CONFIRMATION_HELP[form.confirmationSource])}
-            helpText={t(CONFIRMATION_HELP[form.confirmationSource])}
             options={[
               { value: "none", label: t("mame.buildEvolvepro.confirmationSourceNone") },
               { value: "variantLabels", label: t("mame.buildEvolvepro.confirmationSourceVariantLabels") },
@@ -860,6 +857,13 @@ function ChoiceToggle({
   helperText?: string;
   helpText?: string;
 }) {
+  // The description under the buttons belongs to whichever option is
+  // selected (PRIMARY_HELP/CONFIRMATION_HELP swap it per option), but with
+  // N buttons above and one sentence below there is no visual cue for which
+  // option it explains. Naming the selected option's own label first turns
+  // the sentence into "Selected label: description" instead of a dangling
+  // caption that reads like it belongs to the whole group.
+  const selectedLabel = options.find((o) => o.value === selected)?.label;
   return (
     <div className="space-y-1.5">
       <span className="inline-flex items-center gap-1.5">
@@ -885,7 +889,12 @@ function ChoiceToggle({
         ))}
       </div>
       {helperText && (
-        <p className="text-xs text-muted-foreground/90">{helperText}</p>
+        <p className="text-xs text-muted-foreground/90">
+          {selectedLabel && (
+            <span className="font-medium text-foreground">{selectedLabel}: </span>
+          )}
+          {helperText}
+        </p>
       )}
     </div>
   );

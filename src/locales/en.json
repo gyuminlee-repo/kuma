@@ -573,7 +573,7 @@
       "primarySourceNumericReportHelper": "Whole-plate raw report whose sample names are positions (1, 2, 3, ...). Position i is the i-th variant of the plate order.",
       "numericReportXlsx": "Whole-plate report xlsx (numeric IDs)",
       "numericReportXlsxHelper": "Raw Agilent report with WT rows and numeric sample names. Needs an order source to say which position holds which variant.",
-      "confirmationSourceNumericIds": "Numeric-ID Agilent report",
+      "confirmationSourceNumericIds": "Numeric-ID replicate report",
       "confirmationSourceNumericIdsHelper": "Replicated report whose sample names are positions in the above-WT subset (1, 1-2, 1-3, ...). Its replicate means override matching primary values.",
       "remeasureNumericXlsx": "Confirmation report xlsx (numeric IDs)",
       "remeasureNumericXlsxHelper": "Position j is the j-th variant the primary screen put above wild-type, in plate order. A different selection is refused rather than mislabeled.",
@@ -3423,7 +3423,8 @@
     "restoredNote": "Restored answer, computed {{when}} from the {{n}} file(s) above.",
     "restoredUnverifiedNote": "This app did not write {{files}}, so it cannot confirm they are unchanged since then.",
     "rebuiltNote": "An earlier answer from {{when}} was computed from these same files ({{files}}) before step 4.1 rebuilt them, so it describes the previous build and is kept as history. Run the classification again for the current one.",
-    "supersededNote": "An earlier answer from {{when}} was computed from a different list ({{files}}). It says nothing about the files selected now, so it is not shown."
+    "supersededNote": "An earlier answer from {{when}} was computed from a different list ({{files}}). It says nothing about the files selected now, so it is not shown.",
+    "headingHelp": "Pools EVOLVEpro results across rounds to look for a saturation signal and suggest continue walking, switch to combinatorial, stop, or defer. Read-only: nothing here is confirmed or saved, and fewer than 3 rounds means no verdict yet."
   },
   "selection3d": {
     "title": "Candidate 3D structure analysis",

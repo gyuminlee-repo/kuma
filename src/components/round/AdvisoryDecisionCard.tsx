@@ -54,6 +54,7 @@ import {
 } from "@/lib/round/roundArtifacts";
 import { useRoundStore } from "@/store/round/roundSlice";
 import { Button } from "@/components/ui/button";
+import { InlineHelp } from "@/components/ui/InlineHelp";
 import type {
   ClassifyDecisionResult,
   ClassifyNotAssessableResult,
@@ -489,6 +490,10 @@ export function AdvisoryDecisionCard({
         >
           {t("advisoryDecision.readOnlyBadge")}
         </span>
+        <InlineHelp
+          text={t("advisoryDecision.headingHelp")}
+          className="ml-1.5 normal-case tracking-normal"
+        />
       </h4>
 
       {files.length > 0 && (

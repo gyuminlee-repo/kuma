@@ -1224,7 +1224,7 @@
       "primarySourceNumericReportHelper": "Rapport brut de la plaque entière dont les noms d'échantillon sont des positions (1, 2, 3, ...). La position i est le i-ème variant de l'ordre de plaque.",
       "numericReportXlsx": "Rapport de plaque entière xlsx (identifiants numériques)",
       "numericReportXlsxHelper": "Rapport Agilent brut avec lignes WT et noms d'échantillon numériques. Il faut une source d'ordre indiquant quelle position porte quel variant.",
-      "confirmationSourceNumericIds": "Rapport Agilent à identifiants numériques",
+      "confirmationSourceNumericIds": "Rapport de répétitions à ID numérique",
       "confirmationSourceNumericIdsHelper": "Rapport répliqué dont les noms d'échantillon sont des positions du sous-ensemble au-dessus du WT (1, 1-2, 1-3, ...). Ses moyennes remplacent les valeurs primaires correspondantes.",
       "remeasureNumericXlsx": "Rapport de confirmation xlsx (identifiants numériques)",
       "remeasureNumericXlsxHelper": "La position j est le j-ème variant que le criblage primaire a placé au-dessus du type sauvage, dans l'ordre de plaque. Une autre sélection est refusée plutôt que mal étiquetée.",
@@ -3404,7 +3404,8 @@
     "restoredNote": "Reponse restauree, calculee le {{when}} a partir des {{n}} fichiers ci-dessus.",
     "restoredUnverifiedNote": "Cette application n'a pas ecrit {{files}} et ne peut donc pas confirmer que ces fichiers sont restes inchanges depuis.",
     "rebuiltNote": "Une reponse anterieure du {{when}} a ete calculee a partir de ces memes fichiers ({{files}}) avant que l'etape 4.1 ne les regenere. Elle decrit la version precedente et reste conservee comme historique. Relancez la classification pour la version actuelle.",
-    "supersededNote": "Une reponse anterieure du {{when}} a ete calculee a partir d'une autre liste ({{files}}). Elle ne dit rien des fichiers actuellement selectionnes et n'est donc pas affichee."
+    "supersededNote": "Une reponse anterieure du {{when}} a ete calculee a partir d'une autre liste ({{files}}). Elle ne dit rien des fichiers actuellement selectionnes et n'est donc pas affichee.",
+    "headingHelp": "Regroupe les résultats EVOLVEpro de plusieurs cycles pour repérer un signal de saturation et suggérer de continuer la marche, passer au combinatorial, arrêter ou différer. Lecture seule : rien n'est confirmé ni enregistré ici, et avec moins de 3 cycles il n'y a pas encore de verdict."
   },
   "validation": {
     "missing": {

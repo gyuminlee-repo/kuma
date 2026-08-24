@@ -1224,7 +1224,7 @@
       "primarySourceNumericReportHelper": "樣品名為位置編號(1、2、3 …)的全盤 raw report。編號 i 對應盤序中的第 i 個變體。",
       "numericReportXlsx": "全盤測量 report xlsx (數字 ID)",
       "numericReportXlsxHelper": "帶 WT 列與數字樣品名的 raw Agilent report。需要順序來源說明哪個編號對應哪個變體。",
-      "confirmationSourceNumericIds": "數字 ID 的 Agilent report",
+      "confirmationSourceNumericIds": "數字 ID 重複測定 report",
       "confirmationSourceNumericIdsHelper": "樣品名為高於 WT 子集位置編號(1、1-2、1-3 …)的重複測量 report。重複平均會覆蓋對應的 primary 值。",
       "remeasureNumericXlsx": "確認 report xlsx (數字 ID)",
       "remeasureNumericXlsxHelper": "編號 j 是 primary 中高於野生型的變體按盤序排列的第 j 個。若選擇不同則拒絕，而非錯誤標註。",
@@ -3404,7 +3404,8 @@
     "restoredNote": "已還原的結論，於 {{when}} 由上述 {{n}} 個檔案算出。",
     "restoredUnverifiedNote": "{{files}} 並非本應用程式寫入，因此無法確認其後是否有變動。",
     "rebuiltNote": "{{when}} 的先前結論是在步驟 4.1 重新產生之前，由這些相同檔案（{{files}}）算出的。它描述的是上一次產生的結果，因此僅作為歷史保留；若需目前結果，請重新執行分類。",
-    "supersededNote": "{{when}} 的先前結論是由另一組檔案（{{files}}）算出的。它並未說明目前所選檔案，因此不予顯示。"
+    "supersededNote": "{{when}} 的先前結論是由另一組檔案（{{files}}）算出的。它並未說明目前所選檔案，因此不予顯示。",
+    "headingHelp": "匯整多輪 EVOLVEpro 結果以尋找跨輪次的飽和訊號，並給出繼續 walking、轉入 combinatorial、停止或暫緩的參考判定。唯讀：這裡不確認也不儲存任何內容，輪次不足 3 輪時尚不給出判定。"
   },
   "validation": {
     "missing": {

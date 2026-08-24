@@ -1224,7 +1224,7 @@
       "primarySourceNumericReportHelper": "Relatório bruto da placa inteira cujos nomes de amostra são posições (1, 2, 3, ...). A posição i é a i-ésima variante da ordem da placa.",
       "numericReportXlsx": "Relatório da placa inteira xlsx (IDs numéricos)",
       "numericReportXlsxHelper": "Relatório Agilent bruto com linhas WT e nomes de amostra numéricos. Precisa de uma fonte de ordem que diga qual posição carrega qual variante.",
-      "confirmationSourceNumericIds": "Relatório Agilent com IDs numéricos",
+      "confirmationSourceNumericIds": "Report de réplicas com ID numérico",
       "confirmationSourceNumericIdsHelper": "Relatório replicado cujos nomes de amostra são posições do subconjunto acima do WT (1, 1-2, 1-3, ...). As médias das réplicas substituem os valores primários correspondentes.",
       "remeasureNumericXlsx": "Relatório de confirmação xlsx (IDs numéricos)",
       "remeasureNumericXlsxHelper": "A posição j é a j-ésima variante que a triagem primária colocou acima do tipo selvagem, na ordem da placa. Uma seleção diferente é recusada em vez de rotulada errado.",
@@ -3404,7 +3404,8 @@
     "restoredNote": "Resposta restaurada, calculada em {{when}} a partir dos {{n}} arquivos acima.",
     "restoredUnverifiedNote": "Este aplicativo nao gravou {{files}}, portanto nao pode confirmar que continuam inalterados desde entao.",
     "rebuiltNote": "Uma resposta anterior de {{when}} foi calculada a partir destes mesmos arquivos ({{files}}) antes de a etapa 4.1 os regerar. Ela descreve a versao anterior e fica como historico. Execute a classificacao novamente para a versao atual.",
-    "supersededNote": "Uma resposta anterior de {{when}} foi calculada a partir de outra lista ({{files}}). Ela nao diz nada sobre os arquivos selecionados agora, por isso nao e exibida."
+    "supersededNote": "Uma resposta anterior de {{when}} foi calculada a partir de outra lista ({{files}}). Ela nao diz nada sobre os arquivos selecionados agora, por isso nao e exibida.",
+    "headingHelp": "Combina os resultados do EVOLVEpro de várias rodadas para procurar um sinal de saturação e sugerir continuar caminhando, mudar para combinatorial, parar ou adiar. Somente leitura: nada aqui é confirmado ou salvo, e com menos de 3 rodadas ainda não há veredito."
   },
   "validation": {
     "missing": {

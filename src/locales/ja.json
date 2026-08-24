@@ -1224,7 +1224,7 @@
       "primarySourceNumericReportHelper": "sample name が位置番号(1, 2, 3 …)である全 plate の raw report です。番号 i は plate 順序の i 番目の variant です。",
       "numericReportXlsx": "全測定 report xlsx (数値 ID)",
       "numericReportXlsxHelper": "WT 行と数値 sample name を持つ raw Agilent report です。どの番号がどの variant かを示す順序ソースが必要です。",
-      "confirmationSourceNumericIds": "数値 ID の Agilent report",
+      "confirmationSourceNumericIds": "数値ID 反復測定レポート",
       "confirmationSourceNumericIdsHelper": "sample name が WT 超過サブセットの位置番号(1, 1-2, 1-3 …)である反復測定 report です。反復平均が primary の値を上書きします。",
       "remeasureNumericXlsx": "確認 report xlsx (数値 ID)",
       "remeasureNumericXlsxHelper": "番号 j は primary で WT を超えた variant を plate 順に並べた j 番目です。選択が異なる場合は誤ったラベル付けをせず拒否します。",
@@ -3404,7 +3404,8 @@
     "restoredNote": "復元した回答です。{{when}} に上記 {{n}} 件のファイルから算出しました。",
     "restoredUnverifiedNote": "{{files}} はこのアプリが書き出したものではないため、その後変更されていないかは確認できません。",
     "rebuiltNote": "{{when}} の以前の回答は、4.1 が再作成する前の同じファイル（{{files}}）から算出したものです。前回の作成物についての回答なので履歴として残します。現在の内容については分類をもう一度実行してください。",
-    "supersededNote": "{{when}} の以前の回答は別のファイル一覧（{{files}}）から算出したものです。現在選択中のファイルについては何も述べていないため表示しません。"
+    "supersededNote": "{{when}} の以前の回答は別のファイル一覧（{{files}}）から算出したものです。現在選択中のファイルについては何も述べていないため表示しません。",
+    "headingHelp": "複数ラウンドのEVOLVEpro結果をまとめてラウンド間の飽和シグナルを見て、継続、Combinatorial へ移行、中止、保留のいずれかを参考として示します。読み取り専用のため何も確定・保存せず、ラウンドが3回未満ではまだ判定しません。"
   },
   "validation": {
     "missing": {
