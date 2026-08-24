@@ -89,12 +89,17 @@ def test_relaxed_floor_resolves_the_profile_before_lowering():
     # Explicit request wins over the profile.
     assert _relaxed_floor(24, 19, 19) == 22
     # No request: the profile value is the starting point.
-    assert _relaxed_floor(None, 19, 17) == 17
+    assert _relaxed_floor(None, 22, 18) == 20
     # Neither: the documented fallback is the starting point.
-    assert _relaxed_floor(None, None, 19) == 17
-    # The absolute floor is never crossed.
-    assert _relaxed_floor(15, None, 19) == _LEN_FLOOR
-    assert _relaxed_floor(None, 15, 19) == _LEN_FLOOR
+    assert _relaxed_floor(None, None, 22) == 20
+    # The absolute floor is never crossed, whichever level supplies the value.
+    assert _relaxed_floor(15, None, 22) == _LEN_FLOOR
+    assert _relaxed_floor(None, 15, 22) == _LEN_FLOOR
+    # Priority 1 of the bench rule: a run pinned to 18 nt stays at 18 nt even
+    # when the relax pass runs, so the two nt of headroom never produce a 17mer.
+    assert _relaxed_floor(18, None, 22) == 18
+    assert _relaxed_floor(19, None, 22) == 18
+    assert _LEN_FLOOR == 18
 
 
 def test_auto_relax_opens_the_length_axis(mutation_text, restore_state):
@@ -156,3 +161,33 @@ def test_relax_length_floor_reaches_the_engine(mutation_text, restore_state):
             f"of {demanded} already allowed, so the relaxed floor did nothing"
         )
         assert rev_len >= floor
+
+
+def test_requested_18_floor_survives_the_relax_pass(mutation_text, restore_state):
+    """The bench complaint, run end to end: ask for 18 nt, get nothing shorter.
+
+    Reported after a plate came back carrying 17mers from a run whose length
+    limit was set to 18. The relax pass took two nt off every floor it was
+    handed, so the demand a user typed was not a bound at all. It stays a bound
+    now, and the relax pass is free to move only the floors above 18.
+    """
+    res = handle_design_sdm_primers({
+        "fasta_path": str(GENBANK),
+        "target_start": TARGET_START,
+        "mutations_csv_or_text": mutation_text,
+        "polymerase": "KOD",
+        "overlap_len": 18,
+        "rescue_pool": [],
+        "auto_relax": True,
+        "fwd_len_min": 18,
+        "fwd_len_max": 39,
+        "rev_len_min": 18,
+        "rev_len_max": 30,
+    })
+    assert res["results"], "fixture must design something for this to mean anything"
+    short = [
+        (r["mutation"], r["fwd_len"], r["rev_len"])
+        for r in res["results"]
+        if r["fwd_len"] < 18 or r["rev_len"] < 18
+    ]
+    assert short == [], f"primers shorter than the requested floor: {short}"

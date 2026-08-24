@@ -43,7 +43,7 @@ interface DesignRequestPayload extends Record<string, unknown> {
   rev_len_max?: number;
   overlap_mode: OverlapMode;
   rescue_pool?: string[];
-  auto_relax: true;
+  auto_relax: boolean;
   seed?: number;
 }
 
@@ -224,6 +224,13 @@ export function buildDesignRequestPayload(params: {
   rescuePool: string[];
   tolMax: number;
   randomSeed: number | null;
+  /**
+   * The "fill on failure" checkbox. It gates every rescue the run may attempt,
+   * the sidecar relax pass included. Sending auto_relax unconditionally used to
+   * let that pass reopen the length and GC axes behind an unchecked box, so a
+   * run pinned to a 18 nt floor could still return a 17 nt primer.
+   */
+  fillOnFailure: boolean;
 }): DesignRequestPayload {
   const {
     fastaPath,
@@ -246,6 +253,7 @@ export function buildDesignRequestPayload(params: {
     rescuePool,
     tolMax,
     randomSeed,
+    fillOnFailure,
   } = params;
 
   return {
@@ -267,9 +275,9 @@ export function buildDesignRequestPayload(params: {
       rev_len_max: revLenMax,
     }),
     overlap_mode: overlapMode,
-    ...(rescuePool.length > 0 && { rescue_pool: rescuePool }),
+    ...(fillOnFailure && rescuePool.length > 0 && { rescue_pool: rescuePool }),
     tol_max: tolMax,
-    auto_relax: true,
+    auto_relax: fillOnFailure,
     ...(randomSeed !== null && { seed: randomSeed }),
   };
 }

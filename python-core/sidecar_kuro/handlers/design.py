@@ -287,7 +287,9 @@ _RELAX_TOL_DELTA = 2.0   # °C added to the requested tol_max (4.0 + 2.0 = 6.0)
 _MAX_TOL_MAX = 10.0      # must match models.py tol_max Field(le=...)
 _RELAX_GC_DELTA = 5      # percentage points widened on each side
 _RELAX_LEN_DELTA = 2     # nt taken off the primer length floors
-_LEN_FLOOR = 15          # absolute minimum primer length, below which specificity goes
+_LEN_FLOOR = 18          # absolute minimum primer length; the bench rule (priority 1)
+                         # that no primer is written shorter than 18 nt, so the relax
+                         # pass may open the length axis but never past this floor
 _GC_FLOOR = 20           # absolute minimum GC% (Integrated DNA Technologies guideline)
 _GC_CEIL = 80            # absolute maximum GC% (Integrated DNA Technologies guideline)
 
