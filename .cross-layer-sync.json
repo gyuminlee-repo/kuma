@@ -1284,6 +1284,15 @@
       ],
       "note": "strategy.classify_round 계약: 핸들러 응답 두 형태(decision / not_assessable)와 그 키·reason 코드 <-> TS 타입 <-> RPC 클라이언트 <-> 카드 렌더 <-> round_files 조립 <-> step 완료 판정. round_files 항목은 {n, path, wt_values?} 이고 wt_values 는 가장 큰 n 항목만 읽힌다(부트스트랩은 현재 라운드를 리샘플한다). not_assessable 의 reason 은 wt_replicates_missing(0개)과 wt_replicates_insufficient(부족)로 갈리고 wt_replicate_count/wt_replicate_min 을 함께 싣는다. 문서만 남고 코드가 갈라지는 사고가 실제로 있었다: 4.2 가 WT 반복값을 받을 수 있게 된 뒤에도 ipc.ts 의 @param 과 mameStepCompletion.ts 의 주석이 'xlsx 포맷이 그 입력을 담을 수 없다'로 남아 있었다.",
       "severity": "warning"
+    },
+    {
+      "id": "settings-ui-charter",
+      "files": [
+        "src/components/layout/SettingsDialog.tsx",
+        "docs/standards/common-frontend-standards.md"
+      ],
+      "note": "AGENTS.md lists Settings UI changes as a charter trigger, and reading it as documentation was not enough. v0.16.36 disabled two telemetry toggles and labelled them as not yet active, which reads as a feature waiting to be switched on; section 10 of the charter makes zero outbound telemetry release-blocking, so the honest answer was to remove them, and v0.16.37 did. The same omission produced a proposal to make the cancel timeout configurable, which section 22 and section 1 both forbid by fixing that wait at 5 s. Pairing the dialog with the charter puts the governing document in context at the moment the dialog is edited, rather than relying on someone remembering the trigger list.",
+      "severity": "warning"
     }
   ]
 }

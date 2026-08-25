@@ -130,6 +130,10 @@ gh pr view <N> --json baseRefOid,mergeable,mergeStateStatus
 
 증상이 헷갈린다. 로컬에서는 전체 히스토리가 있어 `node scripts/check-version-label.mjs` 가 통과하고, CI 만 "the commit says v0.16.30 and the manifests say 0.16.31" 로 떨어진다. 인용된 커밋이 내 것이 아니라 `main` 의 것이면 이 경우다. 2026-08-19 에 `vX.Y.Z:` 라벨 커밋 뒤에 로케일 번역 커밋을 얹어 이 모양이 됐다.
 
+**base 가 뒤로 밀렸을 때 반사적으로 `main` 을 병합하지 마라.** 병합하면 같은 검사가 거짓으로 실패한다. 검사는 `git log -50` 에서 **처음 만난** 라벨을 읽는데, 병합 후 히스토리 순서로는 그 사이 `main` 에 올라온 남의 라벨이 내 라벨보다 최신이라 그쪽이 먼저 걸린다. 내 매니페스트는 이미 다음 번호이므로 어긋난다고 판정한다. squash 머지는 브랜치를 `main` 팁 위의 커밋 하나로 접으므로 순서가 저절로 바로잡힌다. 그러니 파일 충돌이 없고 `gh pr view <N> --json mergeable,mergeStateStatus` 가 `MERGEABLE`·`CLEAN` 이면 병합하지 말고 그대로 squash 한다.
+
+2026-08-25 에 PR #351 머지 직전 `main` 이 `218c26ac` 에서 `7d93003c` 로 움직였다. 다른 세션이 올린 `v0.16.36.01` 은 DD 단위라 매니페스트를 건드리지 않았고 라벨 번호도 겹치지 않았으며 파일도 겹치지 않았는데, `main` 을 병합하자마자 로컬 검사가 `the commit says v0.16.36 and the manifests say 0.16.37` 로 떨어졌다. 병합을 `git reset --keep` 으로 되돌리고(`--force-push` 는 `careful-check.sh` 가 막고 우회하지 않는다) 그대로 squash 하니 `main` 에서 `manifests and label both say 0.16.37` 로 통과했다. 진짜 충돌이 있어 병합이 불가피하면 위 경합 절차대로 새 브랜치를 `origin/main` 에서 세우고 코드 커밋만 체리픽한 뒤 릴리스 메타를 팁에 다시 올린다.
+
 따라서 **릴리스 메타는 커밋 하나로 만들고 그 커밋을 브랜치 팁에 둔다.** CHANGELOG 섹션, 훅이 쓰는 매니페스트 6곳, 로케일 10개가 전부 그 한 커밋 안에 있어야 한다. 나누면 뒤에 오는 쪽이 라벨 없는 팁이 되어 위 판정에 걸린다.
 
 순서를 로케일 먼저로 뒤집을 수는 없다. `gen-whatsnew.mjs` 가 `whatsNewDialog.highlightsStamp` 를 `en.json` 에 쓰는 시점이 라벨 커밋의 post-commit 훅이고, 나머지 9개 로케일은 그 스탬프를 복사해야 하므로 라벨 커밋보다 먼저 쓸 값이 없다. 실제로 도는 절차는 이것뿐이다.
