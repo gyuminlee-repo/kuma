@@ -2539,12 +2539,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Mutationen, deren Primer bereits die Mindestlänge erreicht hat, werden jetzt gerettet statt als ohne gültiges Paar gemeldet.",
-      "Der gerettete Primer lagert sich im selben Bereich an wie der Rest der Platte, weil Kürzen nun eine Möglichkeit ist.",
-      "Die Runde, in der das auffiel, geht von 93 von 95 auf 95 von 95, ohne die bereits erfolgreichen Primer zu verändern."
+      "Ein Lauf mit einer Primer-Mindestlaenge von 18 nt liefert keine 17mere mehr, und das Kaestchen fuer automatisches Auffuellen steuert jetzt jede Rettung.",
+      "Die Primer-Rangfolge folgt der Laborregel: mindestens 18 nt, dann moeglichst nah am Ziel-Tm, und bei aehnlichem Abstand der kuehlere.",
+      "Die vier dienstbezogenen Einwilligungsschalter werden nicht mehr nur gespeichert, sondern sperren den genannten Dienst tatsaechlich.",
+      "Ein Abbruch behaelt die bereits erzeugten Primer, was die Voreinstellung der Abbruchoption schon immer zugesagt hat.",
+      "Einstellungen, die nirgends gelesen werden, sind deaktiviert und gekennzeichnet statt scheinbar aktiv."
     ],
-    "highlightsStamp": "0.16.35+d628e48a",
+    "highlightsStamp": "0.16.36+5119f52e",
     "releases": {
+      "0.16.36": [
+        "Ein Lauf mit einer Primer-Mindestlaenge von 18 nt liefert keine 17mere mehr, und das Kaestchen fuer automatisches Auffuellen steuert jetzt jede Rettung.",
+        "Die Primer-Rangfolge folgt der Laborregel: mindestens 18 nt, dann moeglichst nah am Ziel-Tm, und bei aehnlichem Abstand der kuehlere.",
+        "Die vier dienstbezogenen Einwilligungsschalter werden nicht mehr nur gespeichert, sondern sperren den genannten Dienst tatsaechlich.",
+        "Ein Abbruch behaelt die bereits erzeugten Primer, was die Voreinstellung der Abbruchoption schon immer zugesagt hat.",
+        "Einstellungen, die nirgends gelesen werden, sind deaktiviert und gekennzeichnet statt scheinbar aktiv."
+      ],
       "0.16.28": [
         "Fünf run-health-Abschnitte, die die App bei jedem Lauf gemessen und nie gezeichnet hat, stehen jetzt im Review-Bildschirm, zunächst geschlossen.",
         "Die Coverage meldet die Gleichmäßigkeit je Well statt nur einen Mittelwert, sodass ein Well mit einer Lücke nicht mehr wie ein gleichmäßig bedecktes aussieht.",
@@ -2808,6 +2817,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.36": "5119f52e",
       "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",

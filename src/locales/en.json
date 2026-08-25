@@ -2582,12 +2582,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "MAME has a screenshot set, taken from a real 288-well nanopore run rather than from fixtures.",
-      "The capture drives the wizard by clicking it, so every frame is a screen the application actually reached.",
-      "Recorded sidecar replies are keyed by sidecar as well as by method, so a MAME screen cannot be served a KURO answer."
+      "A run pinned to an 18 nt primer floor no longer returns 17mers, and the fill-on-failure box now gates every rescue the run attempts.",
+      "Primer ranking follows the bench order: at least 18 nt, then closest to the target Tm, and between two equally close, the cooler one.",
+      "The four per-service consent switches now refuse the service they name instead of only being stored.",
+      "Cancelling a design keeps the primers it already produced, which is what the cancel setting has always said it would do.",
+      "Settings that nothing reads are disabled and labelled rather than left looking active."
     ],
-    "highlightsStamp": "0.16.35+d628e48a",
+    "highlightsStamp": "0.16.36+5119f52e",
     "releases": {
+      "0.16.36": [
+        "A run pinned to an 18 nt primer floor no longer returns 17mers, and the fill-on-failure box now gates every rescue the run attempts.",
+        "Primer ranking follows the bench order: at least 18 nt, then closest to the target Tm, and between two equally close, the cooler one.",
+        "The four per-service consent switches now refuse the service they name instead of only being stored.",
+        "Cancelling a design keeps the primers it already produced, which is what the cancel setting has always said it would do.",
+        "Settings that nothing reads are disabled and labelled rather than left looking active."
+      ],
       "0.16.35": [
         "MAME has a screenshot set, taken from a real 288-well nanopore run rather than from fixtures.",
         "The capture drives the wizard by clicking it, so every frame is a screen the application actually reached.",
@@ -2851,6 +2860,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.36": "5119f52e",
       "0.16.35": "d628e48a",
       "0.16.34": "d7925cb6",
       "0.16.33": "059a2f27",
