@@ -1541,29 +1541,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
+  <a href="#general" class="md-nav__link">
     <span class="md-ellipsis">
       
-        섹션
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="섹션">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#theme" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Theme
+        General
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#network" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1573,8 +1561,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#sidecar" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1584,20 +1572,15 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#telemetry" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Telemetry
+        저장 위치
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1605,7 +1588,7 @@
   <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        저장 위치
+        설정을 추가할 때
       
     </span>
   </a>
@@ -1705,99 +1688,106 @@
 
 
 <h1 id="settings-dialog">Settings Dialog<a class="headerlink" href="#settings-dialog" title="Permanent link">&para;</a></h1>
-<p><code>Ctrl+,</code> / <code>Cmd+,</code> 로 열린다 (v0.7.0.0 phase 3 full-stack).</p>
-<h2 id="_1">섹션<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
-<h3 id="theme">Theme<a class="headerlink" href="#theme" title="Permanent link">&para;</a></h3>
+<p><code>Ctrl+,</code> / <code>Cmd+,</code> 로 열린다.</p>
+<p>세 개 탭이다. General, Network, Sidecar. Telemetry 탭은 v0.16.37 에서 없앴다. 크래시 로그 자동 전송과 익명 사용 통계 두 토글이 있었으나 읽는 곳이 없었다. 헌장 §10 [필수] 가 외부 송신 0건을 릴리스 차단 요건으로 두므로 켤 수도 없는 항목이었다. 진단은 <strong>실행 → 진단 번들 생성</strong> 이 만드는 로컬 zip 으로만 나간다(헌장 §16).</p>
+<p>변경은 즉시 반영되고 0.5초 디바운스로 자동 저장된다. Apply 버튼이 없다.</p>
+<h2 id="general">General<a class="headerlink" href="#general" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>옵션</th>
-<th>값</th>
+<th>항목</th>
+<th>저장 위치</th>
+<th>비고</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>theme.mode</code></td>
-<td><code>light</code> / <code>dark</code> / <code>system</code></td>
+<td>테마</td>
+<td><code>localStorage</code> + 번들 <code>theme</code></td>
+<td><code>light</code> / <code>dark</code> / <code>system</code>. 번들은 <code>auto</code> 로 적고 <code>mapThemeFromBundle</code> 이 변환한다</td>
 </tr>
 <tr>
-<td><code>theme.density</code></td>
-<td><code>comfortable</code> / <code>compact</code></td>
+<td>언어</td>
+<td>i18next <code>localStorage</code></td>
+<td>번들에도 <code>language</code> 필드가 있으나 읽는 곳이 없다. 선택은 i18next 쪽이 담당한다</td>
+</tr>
+<tr>
+<td>색각 보조 모드</td>
+<td><code>localStorage</code> (<code>kuma:kuro:colorblindMode</code>)</td>
+<td>판정 색에 패턴을 함께 입힌다</td>
+</tr>
+<tr>
+<td>알림</td>
+<td>OS 권한</td>
+<td>권한 상태 표시와 요청 버튼</td>
+</tr>
+<tr>
+<td>절전 방지</td>
+<td>실행 중 자동</td>
+<td>상태 표시만</td>
+</tr>
+<tr>
+<td>데이터 폴더</td>
+<td>앱 설정</td>
+<td>현재 경로 표시와 변경</td>
 </tr>
 </tbody>
 </table>
-<p><code>localStorage</code> 유지. v0.7.0.1 에서 <code>bundle.theme undefined</code> guard 추가 (upgrade 시 기존 값 보존).</p>
-<h3 id="network">Network<a class="headerlink" href="#network" title="Permanent link">&para;</a></h3>
+<h2 id="network">Network<a class="headerlink" href="#network" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>옵션</th>
+<th>필드</th>
 <th>의미</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>network.allowUniprot</code></td>
-<td>UniProt BLAST 호출 허용</td>
+<td><code>network.offline_mode</code></td>
+<td>켜면 외부 호출 전부 차단. 진입점 9곳이 이 값을 먼저 본다</td>
 </tr>
 <tr>
-<td><code>network.allowAlphafold</code></td>
-<td>AlphaFold Cα fetch 허용</td>
+<td><code>network.consent_uniprot</code></td>
+<td>UniProt 조회 허용</td>
 </tr>
 <tr>
-<td><code>network.allowInterpro</code></td>
-<td>InterPro domain fetch 허용</td>
+<td><code>network.consent_blast</code></td>
+<td>EBI 경유 NCBI BLAST 허용. UniProt 검색 안의 2차 단계라 끄면 그 단계만 빠지고 직접 accession 조회는 계속된다</td>
 </tr>
 <tr>
-<td><code>network.proxy</code></td>
-<td>HTTP proxy URL (선택)</td>
+<td><code>network.consent_alphafold</code></td>
+<td>구조 조회 허용 (AlphaFold, RCSB, ESMFold)</td>
+</tr>
+<tr>
+<td><code>network.consent_interpro</code></td>
+<td>InterPro·Pfam 도메인 조회 허용</td>
 </tr>
 </tbody>
 </table>
-<h3 id="sidecar">Sidecar<a class="headerlink" href="#sidecar" title="Permanent link">&para;</a></h3>
+<p>네 개 동의 스위치는 기본값이 켜짐이다. 최초 1회 전역 동의 모달이 따로 있다. 이 스위치는 그 위에서 서비스별로 끄는 용도다. v0.16.37 이전에는 저장만 되고 아무것도 차단하지 못했다.</p>
+<p>거부 사유는 세 가지를 구분해 표시한다. 오프라인 모드, 해당 서비스가 설정에서 꺼짐, 전역 동의 미완료.</p>
+<h2 id="sidecar">Sidecar<a class="headerlink" href="#sidecar" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>옵션</th>
+<th>필드</th>
 <th>의미</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>sidecar.kuroPath</code></td>
-<td>custom binary 경로 (dev)</td>
-</tr>
-<tr>
-<td><code>sidecar.mamePath</code></td>
-<td>custom binary 경로 (dev)</td>
-</tr>
-<tr>
-<td><code>sidecar.startupTimeout</code></td>
-<td>spawn timeout ms</td>
-</tr>
-<tr>
-<td><code>sidecar.healthCheckInterval</code></td>
-<td>health ping 주기</td>
+<td><code>sidecar.persist_on_cancel</code></td>
+<td><code>partial</code>(기본) 이면 취소해도 이미 만든 프라이머를 유지한다. <code>discard</code> 면 전부 버린다</td>
 </tr>
 </tbody>
 </table>
-<h3 id="telemetry">Telemetry<a class="headerlink" href="#telemetry" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>옵션</th>
-<th>의미</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>telemetry.enabled</code></td>
-<td>익명 사용 통계 전송 (default off)</td>
-</tr>
-</tbody>
-</table>
-<h2 id="_2">저장 위치<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
-<p><code>~/.kuma/settings.json</code> (OS 별 config dir). 즉시 반영.</p>
+<p>동시 실행 수와 취소 대기 시간은 v0.16.37 에서 없앴다. 설계는 돌연변이를 한 건씩 처리하므로 상한을 걸 병렬 풀이 없다(96웰 실측 약 2초). 종료 대기는 헌장 §22 가 5초로, 취소 상한은 §1 이 5초로 고정한다.</p>
+<h2 id="_1">저장 위치<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p><code>$KUMA_PREFERENCES_PATH</code> 가 있으면 그 경로, 없으면 <code>~/.kuma/preferences.json</code>. 임시 파일에 쓰고 <code>os.replace</code> 로 바꾸므로 쓰다 죽어도 깨진 파일이 남지 않는다.</p>
+<p>구버전이 쓴 파일에 지금 없는 키가 남아 있어도 무시하고 읽는다. 거부하면 나머지 설정까지 기본값으로 되돌아가기 때문이다. 이 동작은 양쪽에 테스트로 고정돼 있다(<code>tests/sidecar_kuro/test_settings_contract.py</code>, <code>src/lib/ipc.bypass.test.ts</code>).</p>
+<h2 id="_2">설정을 추가할 때<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>번들에 필드를 더하면 <code>tests/sidecar_kuro/test_settings_contract.py</code> 가 그 필드를 <strong>배선됨</strong> 또는 <strong>미배선</strong> 중 하나로 선언하라고 요구한다. 배선됨이면 동작시키는 파일과 그 파일에 있어야 할 문자열을 함께 적는다. 미배선이면 아무것도 하지 않는 이유를 적는다. 선언 전까지 CI 를 통과하지 못한다.</p>
+<p>아직 이행할 수 없는 설정은 <code>SettingsDialog.tsx</code> 의 <code>INACTIVE_SETTINGS</code> 에 넣고 비활성 상태로 <code>settings.inactiveHint</code> 를 함께 띄운다. 값을 저장하면서 아무 동작도 하지 않는 컨트롤을 그대로 두지 않기 위한 장치다.</p>
 
 
 
