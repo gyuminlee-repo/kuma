@@ -197,9 +197,14 @@ class TestDesignSdmPrimers:
         assert len(sdm_results) >= 5
 
     def test_primer_lengths(self, sdm_results):
-        """Primers must match KURO spec: fwd 17-39 bp, rev 19-27 bp."""
+        """Primers must match KURO spec: fwd 18-39 bp, rev 19-27 bp.
+
+        The forward floor was 17 until v0.16.36 moved it to 18, which is the
+        shortest the bench writes. Asserting the old 17 here would keep passing
+        while no longer pinning anything.
+        """
         for r in sdm_results:
-            assert 17 <= r.fwd_len <= 39, f"{r.mutation.raw} fwd: {r.fwd_len} bp"
+            assert 18 <= r.fwd_len <= 39, f"{r.mutation.raw} fwd: {r.fwd_len} bp"
             assert 19 <= r.rev_len <= 27, f"{r.mutation.raw} rev: {r.rev_len} bp"
 
     def test_tm_in_range(self, sdm_results):

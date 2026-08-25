@@ -1080,7 +1080,7 @@ def design_single_sdm(
     """Design SDM primers for a single mutation.
 
     Length parameters (overlap_len, fwd_len_min/max, rev_len_min/max) default
-    to the polymerase profile; fall back to overlap 18, fwd 17-39, rev 19-27.
+    to the polymerase profile; fall back to overlap 18, fwd 18-39, rev 19-27.
     Overlap is placed UPSTREAM of the codon. Whole-primer Tm targeting with
     progressive tolerance (±0.5 → ±tol_max). Returns top-N by penalty score.
 
@@ -1133,8 +1133,10 @@ def design_single_sdm(
         # Length is unified: L_min/L_max = intersection of fwd and rev limits.
         #
         # Known and accepted: tm_target_fwd is the paper value 62 C, which is
-        # defined for the partial-overlap geometry (fwd 17-39 bp, separate
-        # overlap window). Full overlap floors primer length at 25 bp for the
+        # defined for the partial-overlap geometry (the paper runs fwd 17-39 bp
+        # with a separate overlap window; this engine floors forward at 18 since
+        # v0.16.36, so the numbers are close but not the same thing).
+        # Full overlap floors primer length at 25 bp for the
         # Q5 SDM kit, and a 25 bp primer can already be hotter than 62 C on the
         # fixed Benchling scale, so the shortest legal primer can overshoot the
         # tolerance window and the site yields nothing. Kept as-is: it follows
@@ -1967,7 +1969,7 @@ def design_sdm_primers(
     """Design SDM primers for a batch of mutations.
 
     Length parameters default to the polymerase profile; fall back to overlap 18,
-    fwd 17-39, rev 19-27. Explicit arguments override the profile.
+    fwd 18-39, rev 19-27. Explicit arguments override the profile.
 
     Returns (results, all_candidates, failed_reasons).
     """
