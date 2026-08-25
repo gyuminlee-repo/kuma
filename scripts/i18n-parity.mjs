@@ -580,15 +580,19 @@ const UNTRANSLATED_BASELINE = {
   // de carries one deliberate entry: `jobQueue.statusAriaLabel` is correct German
   // that happens to equal the English, so the identical-value heuristic counts it.
   // Rewording it to dodge the ratchet would be worse German chosen to satisfy a gate.
-  de: 560,
-  es: 550,
-  fr: 547,
-  ja: 615,
+  //
+  // Tightened 2026-08-25 to the counts the gate reported. v0.16.37.00 and
+  // v0.16.37.01 translated one value in each of these locales, and the gate
+  // asked for the slack to be taken back rather than left as headroom.
+  de: 559,
+  es: 549,
+  fr: 546,
+  ja: 614,
   ko: 154,
-  "pt-BR": 552,
-  ru: 657,
-  "zh-CN": 608,
-  "zh-TW": 608,
+  "pt-BR": 551,
+  ru: 656,
+  "zh-CN": 607,
+  "zh-TW": 607,
 };
 
 const isProse = (v) => typeof v === "string" && v.trim() !== "" && /\s/.test(v.trim());
