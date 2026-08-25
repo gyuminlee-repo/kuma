@@ -33,18 +33,20 @@ def _preferences_path() -> Path:
     return Path.home() / ".kuma" / "preferences.json"
 
 
-def handle_load(params: dict) -> dict:
-    """Load preferences from disk; return defaults if file is absent or unreadable."""
-    SettingsLoadRequest(**params)  # validate (empty body)
+def load_bundle() -> SettingsBundle:
+    """Read the stored preferences, falling back to defaults.
 
+    Shared with handlers that have to act on a preference rather than merely
+    hand it to the UI. A preference no handler reads is a control that stores
+    something and changes nothing, which is the failure this exists to avoid.
+    """
     prefs_path = _preferences_path()
-    bundle = SettingsBundle()
 
     if prefs_path.exists():
         try:
             raw = prefs_path.read_text(encoding="utf-8")
             data = json.loads(raw)
-            bundle = SettingsBundle(**data)
+            return SettingsBundle(**data)
         except Exception as exc:
             logger.warning(
                 "Failed to parse preferences at %s: %s -- returning defaults",
@@ -52,7 +54,13 @@ def handle_load(params: dict) -> dict:
                 exc,
             )
 
-    return SettingsLoadResponse(settings=bundle).model_dump()
+    return SettingsBundle()
+
+
+def handle_load(params: dict) -> dict:
+    """Load preferences from disk; return defaults if file is absent or unreadable."""
+    SettingsLoadRequest(**params)  # validate (empty body)
+    return SettingsLoadResponse(settings=load_bundle()).model_dump()
 
 
 def handle_save(params: dict) -> dict:

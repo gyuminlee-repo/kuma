@@ -675,6 +675,10 @@ class SearchUniprotParams(BaseModel):
     organism: str = ""
     translation: str = ""
     known_accession: str = ""
+    # The Settings dialog lets BLAST be switched off on its own, separately from
+    # UniProt itself. BLAST is only ever the secondary step here, so switching it
+    # off leaves direct accession lookup working instead of killing the search.
+    use_blast: bool = True
 
 
 class CheckStructuresParams(BaseModel):

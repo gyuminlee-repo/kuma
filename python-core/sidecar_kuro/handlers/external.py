@@ -266,7 +266,7 @@ def handle_search_uniprot(params: dict) -> dict:
             if identity >= 95.0:
                 auto_selected = acc
 
-    if translation and not auto_selected:
+    if translation and not auto_selected and p.use_blast:
         try:
             blast_data = urllib.parse.urlencode({
                 "email": _get_contact_email(),

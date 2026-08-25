@@ -92,6 +92,7 @@
   },
   "settings": {
     "title": "設定",
+    "inactiveHint": "まだ有効ではありません。値は保存されますが、参照する処理がありません。",
     "accessibility": "アクセシビリティ",
     "colorblindMode": "カラー補助 (形状プレフィックス)",
     "colorblindModeDesc": "色だけで識別しないよう、ステータス表示に形状マーカーを追加します。",
@@ -2381,6 +2382,7 @@
   "diversity": {
     "offlineReason": "オフラインモード",
     "consentReason": "外部サービスへの同意が必要です",
+    "serviceDisabledReason": "設定でこのサービスがオフになっています",
     "domainFetchCancelled": "ドメイン取得をキャンセル: {{reason}}",
     "uniprotSearchCancelled": "UniProt 検索をキャンセル: {{reason}}",
     "alphafoldFetchCancelled": "AlphaFold 取得をキャンセル: {{reason}}",

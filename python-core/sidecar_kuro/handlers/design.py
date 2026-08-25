@@ -38,6 +38,7 @@ from sidecar_kuro.core import (
     _VALID_DNA_BASES,
 )
 from kuma_core.kuro.plate_mapper import deduplicate_reverse, generate_plate_map
+from sidecar_kuro.handlers.settings import load_bundle as _load_settings_bundle
 from sidecar_kuro.models import (
     AlternativesResultModel,
     CommitDesignResultParams,
@@ -491,10 +492,38 @@ def handle_design_sdm_primers(params: dict) -> dict:
 
     cancel_event = _core._begin_design_job()
 
-    def _cancelled_result() -> dict:
+    # "Keep partial results" is the advertised default of the Settings control,
+    # and until now cancelling discarded everything regardless: a long run
+    # stopped at 90 of 96 mutations threw away all 90. Read once, before the
+    # work starts, so a preference change mid-run cannot decide the outcome of
+    # a run the user began under the old one.
+    _persist_partial = _load_settings_bundle().sidecar.persist_on_cancel == "partial"
+
+    def _cancelled_result(
+        partial_results: list | None = None,
+        partial_candidates: dict | None = None,
+    ) -> dict:
+        """Return the cancelled response, keeping partial work when asked to.
+
+        Callers pass what they have accumulated rather than the closure reading
+        it from the enclosing scope, so a cancellation point added before those
+        names are bound cannot raise instead of cancelling.
+        """
+        kept = list(partial_results or []) if _persist_partial else []
+        if kept:
+            with _core._state_lock:
+                _core._state.results = kept
+                _core._state.candidates = dict(partial_candidates or {})
+                # Provenance travels with the results it describes. Without it a
+                # kept partial plate would be a set of primers no record explains.
+                _core._state.design_provenance = _build_design_provenance(
+                    p, resolved_fasta, mutations_csv_path,
+                    from_text=temp_csv is not None, lines=lines,
+                )
+                _rebuild_plate_state(kept)
         return DesignResultResponseModel(
-            success_count=0,
-            total_count=0,
+            success_count=len(kept),
+            total_count=len(lines) if lines else len(kept),
             rescue_stats=RescueStatsModel(
                 pool_cascade=0,
                 auto_relax=0,
@@ -550,7 +579,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
             overlap_mode=p.overlap_mode,
         )
         if cancel_event.is_set():
-            return _cancelled_result()
+            return _cancelled_result(results, all_cands)
 
         rescue_stats: dict = {
             "pool_cascade": 0, "auto_relax": 0,
@@ -584,7 +613,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
             if p.rescue_pool:
                 for failed_mut, reason in engine_failures.items():
                     if cancel_event.is_set():
-                        return _cancelled_result()
+                        return _cancelled_result(results, all_cands)
                     m = _POS_RE.search(failed_mut)
                     if not m:
                         still_failed[failed_mut] = reason
@@ -594,7 +623,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
                     rescued = False
                     for backup in rescue_by_pos.get(pos, []):
                         if cancel_event.is_set():
-                            return _cancelled_result()
+                            return _cancelled_result(results, all_cands)
                         if backup == failed_mut or backup in designed_muts:
                             continue
                         rescue_stats["pool_variants_tried"] += 1
@@ -648,7 +677,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
                 }
                 for failed_mut in list(still_failed):
                     if cancel_event.is_set():
-                        return _cancelled_result()
+                        return _cancelled_result(results, all_cands)
                     try:
                         mut_obj = _build_mutation(failed_mut, sequence_r, p.target_start, p.organism)
                         cands = design_single_sdm(
@@ -672,7 +701,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
             engine_failures = still_failed
 
         if cancel_event.is_set():
-            return _cancelled_result()
+            return _cancelled_result(results, all_cands)
 
         provenance = _build_design_provenance(
             p, resolved_fasta, mutations_csv_path,

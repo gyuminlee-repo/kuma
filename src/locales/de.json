@@ -92,6 +92,7 @@
   },
   "settings": {
     "title": "Einstellungen",
+    "inactiveHint": "Noch nicht aktiv: Diese Einstellung wird gespeichert, aber nirgends gelesen.",
     "accessibility": "Barrierefreiheit",
     "colorblindMode": "Farbunterstützung (Form-Präfix)",
     "colorblindModeDesc": "Adds shape markers zu Status indicators so colors sind nicht die only differentiator.",
@@ -2381,6 +2382,7 @@
   "diversity": {
     "offlineReason": "Offline Modus",
     "consentReason": "External service consent erforderlich",
+    "serviceDisabledReason": "der Dienst ist in den Einstellungen deaktiviert",
     "domainFetchCancelled": "Domänenabruf abgebrochen: {{reason}}",
     "uniprotSearchCancelled": "UniProt-Suche abgebrochen: {{reason}}",
     "alphafoldFetchCancelled": "AlphaFold-Abruf abgebrochen: {{reason}}",

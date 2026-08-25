@@ -92,6 +92,7 @@
   },
   "settings": {
     "title": "Настройки",
+    "inactiveHint": "Пока не действует: значение сохраняется, но нигде не читается.",
     "accessibility": "Доступность",
     "colorblindMode": "Поддержка цвета (префикс-форма)",
     "colorblindModeDesc": "Добавляет маркеры формы к индикаторам статуса, чтобы цвет не был единственным отличием.",
@@ -2381,6 +2382,7 @@
   "diversity": {
     "offlineReason": "Offline режим",
     "consentReason": "Требуется согласие на внешние сервисы",
+    "serviceDisabledReason": "служба отключена в настройках",
     "domainFetchCancelled": "Получение доменов отменено: {{reason}}",
     "uniprotSearchCancelled": "Поиск UniProt отменён: {{reason}}",
     "alphafoldFetchCancelled": "Получение AlphaFold отменено: {{reason}}",

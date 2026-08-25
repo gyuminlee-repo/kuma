@@ -92,6 +92,7 @@
   },
   "settings": {
     "title": "Paramètres",
+    "inactiveHint": "Pas encore actif : cette préférence est enregistrée mais rien ne la lit.",
     "accessibility": "Accessibilité",
     "colorblindMode": "Aide couleur (préfixe de forme)",
     "colorblindModeDesc": "Ajoute des marqueurs de forme aux indicateurs de statut afin que la couleur ne soit pas le seul critère.",
@@ -2381,6 +2382,7 @@
   "diversity": {
     "offlineReason": "Mode hors-ligne",
     "consentReason": "Consentement au service externe requis",
+    "serviceDisabledReason": "le service est désactivé dans les Paramètres",
     "domainFetchCancelled": "Récupération de domaine annulée : {{reason}}",
     "uniprotSearchCancelled": "Recherche UniProt annulée : {{reason}}",
     "alphafoldFetchCancelled": "Récupération AlphaFold annulée : {{reason}}",

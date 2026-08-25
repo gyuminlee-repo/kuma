@@ -92,6 +92,7 @@
   },
   "settings": {
     "title": "Settings",
+    "inactiveHint": "Not active yet: this preference is stored but nothing reads it.",
     "accessibility": "Accessibility",
     "colorblindMode": "Color assist (shape prefix)",
     "colorblindModeDesc": "Adds shape markers to status indicators so colors are not the only differentiator.",
@@ -2412,6 +2413,7 @@
   "diversity": {
     "offlineReason": "Offline mode",
     "consentReason": "External service consent required",
+    "serviceDisabledReason": "the service is switched off in Settings",
     "domainFetchCancelled": "Domain fetch cancelled: {{reason}}",
     "uniprotSearchCancelled": "UniProt search cancelled: {{reason}}",
     "alphafoldFetchCancelled": "AlphaFold fetch cancelled: {{reason}}",

@@ -859,7 +859,18 @@ export interface RpcMethodMap {
     result: AnnotateDomainsResult;
   };
   search_uniprot: {
-    params: { gene_name: string; organism: string; translation: string; known_accession: string };
+    params: {
+      gene_name: string;
+      organism: string;
+      translation: string;
+      known_accession: string;
+      /**
+       * Off when the BLAST switch in Settings is off. BLAST is the secondary
+       * step here, so switching it off narrows the search to direct accession
+       * lookup rather than refusing it.
+       */
+      use_blast?: boolean;
+    };
     result: SearchUniprotResult;
   };
   check_structures_available: {

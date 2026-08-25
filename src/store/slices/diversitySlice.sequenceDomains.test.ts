@@ -33,6 +33,10 @@ function makeStore(consent = true) {
     offlineMode: false,
     statusMessage: "",
     requireNetworkConsent: vi.fn().mockResolvedValue(consent),
+    // The real store carries this alongside requireNetworkConsent; a refusal is
+    // reported differently depending on whether the service itself was switched
+    // off in Settings.
+    isNetworkServiceEnabled: () => true,
     loadEvolveproCsv: vi.fn().mockResolvedValue(undefined),
     evolveproCsvPath: "",
     evolveproMode: "pipeline",

@@ -1,7 +1,7 @@
 import type { StateCreator } from "zustand";
 import type { AppState } from "../types";
-import type { NetworkConsentSlice } from "../slice-interfaces";
-export type { NetworkConsentSlice };
+import type { NetworkConsentSlice, NetworkService } from "../slice-interfaces";
+export type { NetworkConsentSlice, NetworkService };
 
 import {
   loadNetworkSettings,
@@ -59,10 +59,24 @@ export const createNetworkConsentSlice: StateCreator<
     set({ offlineMode: enabled });
   },
 
-  requireNetworkConsent: (): Promise<boolean> => {
+  isNetworkServiceEnabled: (service: NetworkService): boolean => {
+    // Absent means enabled, which is what SettingsNetwork declares in
+    // python-core/sidecar_kuro/models.py. A bundle that has never been written
+    // must not read as "every service switched off".
+    return get().settings?.network?.[`consent_${service}`] ?? true;
+  },
+
+  requireNetworkConsent: (service?: NetworkService): Promise<boolean> => {
     const state = get();
 
     if (state.offlineMode) {
+      return Promise.resolve(false);
+    }
+    // A service the user switched off in Settings is refused before the modal.
+    // Prompting for global consent would be the wrong question: consent is
+    // already a separate decision, and granting it must not silently re-enable
+    // a service that was individually turned off.
+    if (service !== undefined && !state.isNetworkServiceEnabled(service)) {
       return Promise.resolve(false);
     }
     if (state.networkConsentGranted) {

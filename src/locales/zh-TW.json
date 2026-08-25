@@ -92,6 +92,7 @@
   },
   "settings": {
     "title": "設定",
+    "inactiveHint": "尚未生效：該偏好會被儲存，但沒有任何功能讀取它。",
     "accessibility": "無障礙",
     "colorblindMode": "色彩輔助 (形狀字首)",
     "colorblindModeDesc": "為狀態指示器新增形狀標記,避免僅靠顏色區分。",
@@ -2381,6 +2382,7 @@
   "diversity": {
     "offlineReason": "離線模式",
     "consentReason": "需要外部服務同意",
+    "serviceDisabledReason": "該服務已在設定中關閉",
     "domainFetchCancelled": "域獲取已取消: {{reason}}",
     "uniprotSearchCancelled": "UniProt 搜尋已取消: {{reason}}",
     "alphafoldFetchCancelled": "AlphaFold 獲取已取消: {{reason}}",

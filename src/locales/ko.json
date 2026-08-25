@@ -92,6 +92,7 @@
   },
   "settings": {
     "title": "설정",
+    "inactiveHint": "아직 동작하지 않습니다. 값은 저장되지만 읽는 곳이 없습니다.",
     "accessibility": "접근성",
     "colorblindMode": "색상 보조 (도형 접두사)",
     "colorblindModeDesc": "색상이 유일한 식별자가 되지 않도록 상태 표시기에 도형 마커를 추가합니다.",
@@ -2412,6 +2413,7 @@
   "diversity": {
     "offlineReason": "오프라인 모드입니다",
     "consentReason": "외부 서비스 사용 동의가 필요합니다",
+    "serviceDisabledReason": "설정에서 해당 서비스가 꺼져 있습니다",
     "domainFetchCancelled": "Domain fetch 취소: {{reason}}",
     "uniprotSearchCancelled": "UniProt 검색 취소: {{reason}}",
     "alphafoldFetchCancelled": "AlphaFold fetch 취소: {{reason}}",
