@@ -2528,14 +2528,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Una ejecución con el mínimo de longitud fijado en 18 nt ya no devuelve 17meros, y la casilla de relleno tras fallo controla ahora todos los rescates.",
-      "El orden de los cebadores sigue la regla del laboratorio: al menos 18 nt, luego lo más cerca posible del Tm objetivo y, a igual distancia, el más frío.",
-      "Los cuatro interruptores de consentimiento por servicio ya no solo se guardan: rechazan de verdad el servicio que nombran.",
-      "Cancelar un diseño conserva los cebadores ya generados, que es lo que el valor por defecto de esa opción siempre prometió.",
-      "Los ajustes que nada lee aparecen desactivados y señalados en lugar de parecer operativos."
+      "Se eliminan dos opciones de telemetría: la norma hace bloqueante cero envíos externos, así que nunca podrían haberse activado.",
+      "Se elimina el tiempo de espera de cancelación: la norma lo fija en 5 segundos y ninguna ruta de cancelación espera antes de terminar.",
+      "El cierre espera ahora los 5 segundos que exige la norma y que el ayudante ya documentaba, en lugar de los 2 que pasaba quien lo llamaba.",
+      "Se elimina el ajuste de concurrencia: una placa completa se diseña en unos dos segundos, no hay grupo que limitar.",
+      "Los ajustes escritos por una versión anterior siguen cargándose y conservan toda preferencia que aún exista."
     ],
-    "highlightsStamp": "0.16.36+5119f52e",
+    "highlightsStamp": "0.16.37+93aa6e16",
     "releases": {
+      "0.16.37": [
+        "Se eliminan dos opciones de telemetría: la norma hace bloqueante cero envíos externos, así que nunca podrían haberse activado.",
+        "Se elimina el tiempo de espera de cancelación: la norma lo fija en 5 segundos y ninguna ruta de cancelación espera antes de terminar.",
+        "El cierre espera ahora los 5 segundos que exige la norma y que el ayudante ya documentaba, en lugar de los 2 que pasaba quien lo llamaba.",
+        "Se elimina el ajuste de concurrencia: una placa completa se diseña en unos dos segundos, no hay grupo que limitar.",
+        "Los ajustes escritos por una versión anterior siguen cargándose y conservan toda preferencia que aún exista."
+      ],
       "0.16.36": [
         "Una ejecución con el mínimo de longitud fijado en 18 nt ya no devuelve 17meros, y la casilla de relleno tras fallo controla ahora todos los rescates.",
         "El orden de los cebadores sigue la regla del laboratorio: al menos 18 nt, luego lo más cerca posible del Tm objetivo y, a igual distancia, el más frío.",
@@ -2806,6 +2813,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",
       "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",

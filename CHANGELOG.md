@@ -1,5 +1,40 @@
 # Changelog
 
+## v0.16.37 (Four switches that could not be honoured, and one number that disagreed with itself)
+
+The previous release found six Settings controls that stored a preference and changed nothing, implemented two of them, and left four disabled with a notice. Reading the frontend standards that govern this repository turns two of those four into controls that must not be built at all, and measuring the other two turns them into controls not worth building. So they are gone rather than pending.
+
+Section 10 of the standards makes zero outbound telemetry a release-blocking requirement, and the charter changelog records external diagnostic transmission being dropped on purpose in favour of the local zip that section 16 asks for, which the Run menu already writes. Two opt-in flags in Settings offered exactly the thing that was dropped. Leaving them visible was worse than removing them: a disabled control reads as a feature waiting to be switched on, and this one would have broken the standard the day it worked.
+
+The cancel timeout offered anything from 5 to 120 seconds before a force-kill, and both ends of that range are fixed rather than open to preference. Section 22 requires a 5 second SIGKILL fallback and section 1 requires cancel to finish within 5 seconds, so a user-set 120 would break both. It also described a sequence that exists in neither sidecar. KURO cancels cooperatively, and the worst wait measured is 0.06 s. MAME kills the process and respawns it, which on a frozen Windows build is the only option available, since analyze runs on the main thread there.
+
+Reading section 22 closely enough to decide that turned up a number disagreeing with itself. The Rust helper documents itself as a 5 second fallback, the standard requires 5, and the one caller passed the literal 2. It is a named constant now.
+
+The concurrency setting capped a parallel design pool that does not exist. Measured end to end on the dmpR fixture with KOD, including failure diagnosis and the rescue cascade, fifty mutations take 0.87 s, or 1.04 s with auto-relax on. That is about two seconds for a full plate, which is not a workload worth a process pool.
+
+A preferences file written by an older build still holds the removed keys. Both sides ignore keys they do not know, so an upgrade keeps every other preference rather than falling back to defaults, and both sides now carry a test that says so.
+
+### Highlights
+
+- Two telemetry opt-ins are gone: the standards make zero outbound telemetry release-blocking, so they could never have been switched on.
+- The cancel timeout is gone: the standards fix that wait at 5 seconds, and no cancel path waits before killing in the first place.
+- Shutdown now waits the 5 seconds the standards require and the helper already documented, instead of the 2 its caller passed.
+- The concurrency setting is gone: a full plate designs in about two seconds, so there is no pool for it to cap.
+- Settings written by an older build still load, keeping every preference that still exists.
+
+### Removed
+
+- Settings controls for concurrency, cancel timeout, crash log auto-send and anonymous usage statistics, along with the Telemetry tab and the matching fields in the settings model.
+- The MAME `cancel_analyze` dispatcher entry, which reported success without cancelling anything. Nothing called it; cancelling a MAME run kills the sidecar and respawns it.
+
+### Fixed
+
+- Shutdown passed 2 seconds to a graceful-kill helper documented as a 5 second fallback, below the value the frontend standards require.
+
+### Changed
+
+- The inactive-settings registry is kept and empty. A setting that cannot be honoured yet still belongs there, disabled and labelled, and the contract test still compares it against the settings model.
+
 ## v0.16.36 (A box that was unchecked, and a floor that moved anyway)
 
 A plate came back carrying 17 nt primers from a run whose length limit was set to 18, with the fill-on-failure box unchecked. Both halves of that sentence have the same cause. The request carried auto_relax as a constant, so the sidecar relax pass ran no matter what the box said, and that pass lowers each length floor by two nucleotides. The floor a user typed was never a bound.

@@ -2571,14 +2571,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A run pinned to an 18 nt primer floor no longer returns 17mers, and the fill-on-failure box now gates every rescue the run attempts.",
-      "Primer ranking follows the bench order: at least 18 nt, then closest to the target Tm, and between two equally close, the cooler one.",
-      "The four per-service consent switches now refuse the service they name instead of only being stored.",
-      "Cancelling a design keeps the primers it already produced, which is what the cancel setting has always said it would do.",
-      "Settings that nothing reads are disabled and labelled rather than left looking active."
+      "Two telemetry opt-ins are gone: the standards make zero outbound telemetry release-blocking, so they could never have been switched on.",
+      "The cancel timeout is gone: the standards fix that wait at 5 seconds, and no cancel path waits before killing in the first place.",
+      "Shutdown now waits the 5 seconds the standards require and the helper already documented, instead of the 2 its caller passed.",
+      "The concurrency setting is gone: a full plate designs in about two seconds, so there is no pool for it to cap.",
+      "Settings written by an older build still load, keeping every preference that still exists."
     ],
-    "highlightsStamp": "0.16.36+5119f52e",
+    "highlightsStamp": "0.16.37+93aa6e16",
     "releases": {
+      "0.16.37": [
+        "Two telemetry opt-ins are gone: the standards make zero outbound telemetry release-blocking, so they could never have been switched on.",
+        "The cancel timeout is gone: the standards fix that wait at 5 seconds, and no cancel path waits before killing in the first place.",
+        "Shutdown now waits the 5 seconds the standards require and the helper already documented, instead of the 2 its caller passed.",
+        "The concurrency setting is gone: a full plate designs in about two seconds, so there is no pool for it to cap.",
+        "Settings written by an older build still load, keeping every preference that still exists."
+      ],
       "0.16.36": [
         "A run pinned to an 18 nt primer floor no longer returns 17mers, and the fill-on-failure box now gates every rescue the run attempts.",
         "Primer ranking follows the bench order: at least 18 nt, then closest to the target Tm, and between two equally close, the cooler one.",
@@ -2849,6 +2856,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",
       "0.16.35": "d628e48a",
       "0.16.34": "d7925cb6",

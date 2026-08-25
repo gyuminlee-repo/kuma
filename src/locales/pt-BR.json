@@ -2528,14 +2528,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Uma execução com o mínimo de comprimento fixado em 18 nt não devolve mais 17meros, e a caixa de preenchimento após falha agora controla todos os resgates.",
-      "A ordenação dos iniciadores segue a regra de bancada: ao menos 18 nt, depois o mais perto do Tm alvo e, a igual distância, o mais frio.",
-      "Os quatro interruptores de consentimento por serviço não são mais apenas armazenados: recusam de fato o serviço que nomeiam.",
-      "Cancelar um desenho mantém os iniciadores já produzidos, que é o que o valor padrão dessa opção sempre prometeu.",
-      "Ajustes que nada lê ficam desativados e sinalizados em vez de parecerem ativos."
+      "Duas opções de telemetria saem: a norma torna bloqueante qualquer envio externo, elas nunca poderiam ter sido ligadas.",
+      "O tempo de espera de cancelamento sai: a norma fixa essa espera em 5 segundos e nenhum caminho de cancelamento espera antes de encerrar.",
+      "O encerramento agora espera os 5 segundos que a norma exige e o auxiliar já documentava, no lugar dos 2 que quem o chamava passava.",
+      "O ajuste de concorrência sai: uma placa inteira é desenhada em cerca de dois segundos, não há pool a limitar.",
+      "Ajustes gravados por uma versão anterior continuam carregando e mantêm toda preferência que ainda exista."
     ],
-    "highlightsStamp": "0.16.36+5119f52e",
+    "highlightsStamp": "0.16.37+93aa6e16",
     "releases": {
+      "0.16.37": [
+        "Duas opções de telemetria saem: a norma torna bloqueante qualquer envio externo, elas nunca poderiam ter sido ligadas.",
+        "O tempo de espera de cancelamento sai: a norma fixa essa espera em 5 segundos e nenhum caminho de cancelamento espera antes de encerrar.",
+        "O encerramento agora espera os 5 segundos que a norma exige e o auxiliar já documentava, no lugar dos 2 que quem o chamava passava.",
+        "O ajuste de concorrência sai: uma placa inteira é desenhada em cerca de dois segundos, não há pool a limitar.",
+        "Ajustes gravados por uma versão anterior continuam carregando e mantêm toda preferência que ainda exista."
+      ],
       "0.16.36": [
         "Uma execução com o mínimo de comprimento fixado em 18 nt não devolve mais 17meros, e a caixa de preenchimento após falha agora controla todos os resgates.",
         "A ordenação dos iniciadores segue a regra de bancada: ao menos 18 nt, depois o mais perto do Tm alvo e, a igual distância, o mais frio.",
@@ -2806,6 +2813,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",
       "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",
