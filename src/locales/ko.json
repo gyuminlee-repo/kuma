@@ -3412,7 +3412,7 @@
       "calibration_period": "라운드가 3회 미만이라 분류기가 아직 보정 구간에 있습니다.",
       "insufficient_data": "이 라운드들로는 포화 신호를 하나도 평가할 수 없습니다.",
       "mixed_signals": "포화 신호들이 서로 어긋납니다.",
-      "no_saturation_signal": "이번 라운드에 포화 신호가 없습니다. single-mutant walking이 아직 성과를 냅니다.",
+      "no_saturation_signal": "이번 라운드에 포화 신호가 없습니다. 단일 변이 방식(single-mutant walking)이 아직 성과를 냅니다.",
       "hysteresis_pending": "이번 라운드에는 포화가 보였지만 직전 라운드에는 없었습니다. 연속 두 라운드가 필요합니다.",
       "low_confidence": "신호는 combinatorial 전환에 맞았지만 bootstrap 검정이 뒷받침하지 못했습니다.",
       "stop_low_confidence": "신호는 중단에 맞았지만 bootstrap 검정이 뒷받침하지 못해 단일 변이를 이어갑니다.",
