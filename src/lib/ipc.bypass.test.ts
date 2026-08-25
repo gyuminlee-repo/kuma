@@ -149,15 +149,38 @@ describe("payloads from the moved call sites are now refused", () => {
           consent_interpro: true,
         },
         sidecar: {
-          concurrency_default: 4,
-          cancel_timeout_secs: 30,
           persist_on_cancel: "partial",
         },
-        telemetry: { crash_log_auto_send: false, anonymous_stats: false },
       },
     };
     mocks.rpc.mockResolvedValueOnce(real);
     await expect(sendKuroRequest("settings_load", {})).resolves.toEqual(real);
+  });
+
+  /**
+   * The upgrade path. A preferences file written before the concurrency,
+   * cancel-timeout and telemetry settings were removed still holds them, and
+   * dropping a key from the model must not turn an existing file into a
+   * rejected payload: that would reset every other preference the user set.
+   * Pydantic ignores unknown keys, and this pins the TypeScript side to the
+   * same behaviour.
+   */
+  it("accepts a bundle still carrying settings that no longer exist", async () => {
+    const legacy = {
+      settings: {
+        language: "en",
+        theme: "auto",
+        network: { offline_mode: true, consent_blast: false },
+        sidecar: {
+          concurrency_default: 8,
+          cancel_timeout_secs: 90,
+          persist_on_cancel: "discard",
+        },
+        telemetry: { crash_log_auto_send: true, anonymous_stats: true },
+      },
+    };
+    mocks.rpc.mockResolvedValueOnce(legacy);
+    await expect(sendKuroRequest("settings_load", {})).resolves.toEqual(legacy);
   });
 
   it("accepts a settings bundle with fields omitted, since Pydantic defaults them", async () => {

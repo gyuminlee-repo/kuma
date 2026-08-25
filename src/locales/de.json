@@ -116,8 +116,7 @@
     "tab": {
       "general": "Allgemein",
       "network": "Netzwerk",
-      "sidecar": "Sidecar",
-      "telemetry": "Telemetrie"
+      "sidecar": "Sidecar"
     },
     "theme": {
       "label": "Design",
@@ -137,19 +136,9 @@
       }
     },
     "sidecar": {
-      "concurrency": "Standard-Parallelität",
-      "concurrencyHint": "Maximale parallele Primer-Design-Aufträge (1–16).",
-      "cancelTimeout": "Abbruch-Timeout",
-      "cancelTimeoutHint": "Sekunden bis zum erzwungenen Beenden nach Abbruch (5–120 s).",
       "persistOnCancel": "Bei Abbruch",
       "persistPartial": "Teilergebnisse behalten",
       "persistDiscard": "Alle Ergebnisse verwerfen"
-    },
-    "telemetry": {
-      "crashLog": "Absturzberichte automatisch senden",
-      "crashLogHint": "Anonymisierte Absturzberichte zur Verbesserung der Stabilität senden. Standard: aus.",
-      "anonymousStats": "Anonyme Nutzungsstatistiken",
-      "anonymousStatsHint": "Anonyme Nutzungsdaten teilen. Keine persönlichen oder Sequenzdaten enthalten. Standard: aus."
     },
     "savedAt": "Gespeichert um {{time}}"
   },
@@ -2539,14 +2528,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein Lauf mit einer Primer-Mindestlaenge von 18 nt liefert keine 17mere mehr, und das Kaestchen fuer automatisches Auffuellen steuert jetzt jede Rettung.",
-      "Die Primer-Rangfolge folgt der Laborregel: mindestens 18 nt, dann moeglichst nah am Ziel-Tm, und bei aehnlichem Abstand der kuehlere.",
-      "Die vier dienstbezogenen Einwilligungsschalter werden nicht mehr nur gespeichert, sondern sperren den genannten Dienst tatsaechlich.",
-      "Ein Abbruch behaelt die bereits erzeugten Primer, was die Voreinstellung der Abbruchoption schon immer zugesagt hat.",
-      "Einstellungen, die nirgends gelesen werden, sind deaktiviert und gekennzeichnet statt scheinbar aktiv."
+      "Zwei Telemetrie-Optionen entfallen: Der Standard macht null ausgehende Telemetrie release-blockierend, sie waren nie einschaltbar.",
+      "Das Abbruch-Zeitlimit entfaellt: Der Standard fixiert diese Wartezeit auf 5 Sekunden, und kein Abbruchpfad wartet ueberhaupt vor dem Beenden.",
+      "Das Beenden wartet jetzt die 5 Sekunden, die der Standard fordert und der Helfer bereits dokumentierte, statt der 2 seines Aufrufers.",
+      "Die Nebenlaeufigkeitseinstellung entfaellt: Eine ganze Platte wird in rund zwei Sekunden entworfen, es gibt keinen Pool zu begrenzen.",
+      "Von aelteren Versionen geschriebene Einstellungen laden weiterhin und behalten jede noch vorhandene Praeferenz."
     ],
-    "highlightsStamp": "0.16.36+5119f52e",
+    "highlightsStamp": "0.16.37+93aa6e16",
     "releases": {
+      "0.16.37": [
+        "Zwei Telemetrie-Optionen entfallen: Der Standard macht null ausgehende Telemetrie release-blockierend, sie waren nie einschaltbar.",
+        "Das Abbruch-Zeitlimit entfaellt: Der Standard fixiert diese Wartezeit auf 5 Sekunden, und kein Abbruchpfad wartet ueberhaupt vor dem Beenden.",
+        "Das Beenden wartet jetzt die 5 Sekunden, die der Standard fordert und der Helfer bereits dokumentierte, statt der 2 seines Aufrufers.",
+        "Die Nebenlaeufigkeitseinstellung entfaellt: Eine ganze Platte wird in rund zwei Sekunden entworfen, es gibt keinen Pool zu begrenzen.",
+        "Von aelteren Versionen geschriebene Einstellungen laden weiterhin und behalten jede noch vorhandene Praeferenz."
+      ],
       "0.16.36": [
         "Ein Lauf mit einer Primer-Mindestlaenge von 18 nt liefert keine 17mere mehr, und das Kaestchen fuer automatisches Auffuellen steuert jetzt jede Rettung.",
         "Die Primer-Rangfolge folgt der Laborregel: mindestens 18 nt, dann moeglichst nah am Ziel-Tm, und bei aehnlichem Abstand der kuehlere.",
@@ -2817,6 +2813,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",
       "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",

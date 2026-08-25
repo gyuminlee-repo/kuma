@@ -1031,18 +1031,28 @@ class SettingsNetwork(BaseModel):
 
 
 class SettingsSidecar(BaseModel):
-    """Sidecar runtime tuning parameters for Settings."""
+    """Sidecar behaviour a user can choose.
 
-    concurrency_default: int = 4
-    cancel_timeout_secs: int = 30
+    Held to what the app can actually honour. Two neighbours were removed once
+    it turned out nothing read them, and that reading the charter said nothing
+    ever should:
+
+    - `concurrency_default` capped a parallel design pool that does not exist.
+      Designs run one mutation at a time, and measured end to end a 96-well
+      plate takes about two seconds, so there is nothing here to parallelise.
+    - `cancel_timeout_secs` offered 5 to 120 seconds before a force-kill.
+      docs/standards/common-frontend-standards.md fixes both ends of that:
+      section 22 requires a 5 second SIGKILL fallback on shutdown and section 1
+      requires cancel to finish within 5 seconds. A user-set 120 would break
+      both, and no cancel path waits before killing anyway (KURO cancels
+      cooperatively, MAME kills and respawns).
+
+    A preferences file written by an older build still carries the two names.
+    Pydantic ignores unknown keys by default, so they are dropped on load and
+    nothing else in the bundle is disturbed.
+    """
+
     persist_on_cancel: Literal["partial", "discard"] = "partial"
-
-
-class SettingsTelemetry(BaseModel):
-    """Telemetry opt-in flags for Settings."""
-
-    crash_log_auto_send: bool = False
-    anonymous_stats: bool = False
 
 
 class SettingsBundle(BaseModel):
@@ -1053,7 +1063,12 @@ class SettingsBundle(BaseModel):
     default_workspace_folder: Optional[str] = None
     network: SettingsNetwork = Field(default_factory=SettingsNetwork)
     sidecar: SettingsSidecar = Field(default_factory=SettingsSidecar)
-    telemetry: SettingsTelemetry = Field(default_factory=SettingsTelemetry)
+    # No telemetry section. Section 10 of the frontend standards makes "사용자
+    # 데이터·메트릭 외부 송신 0건" a release-blocking requirement, and the
+    # charter changelog records external diagnostic transmission being removed
+    # deliberately in favour of the local zip in section 16, which the Run menu
+    # already produces. Two opt-in flags sat here offering the opposite; they
+    # were never read, and implementing them would have violated the standard.
 
 
 class SettingsLoadRequest(BaseModel):

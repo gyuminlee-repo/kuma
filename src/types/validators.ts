@@ -936,22 +936,16 @@ function isSettingsNetwork(value: unknown): boolean {
 }
 
 function isSettingsSidecar(value: unknown): boolean {
+  // A preferences file written by an older build still carries
+  // concurrency_default and cancel_timeout_secs. isRecord accepts the extra
+  // keys and the model drops them, which is the same thing Pydantic does on
+  // the other side, so an upgrade keeps the rest of the bundle.
   return (
     isRecord(value) &&
-    isOptional(value.concurrency_default, isNumber) &&
-    isOptional(value.cancel_timeout_secs, isNumber) &&
     isOptional(
       value.persist_on_cancel,
       (v) => v === "partial" || v === "discard",
     )
-  );
-}
-
-function isSettingsTelemetry(value: unknown): boolean {
-  return (
-    isRecord(value) &&
-    isOptional(value.crash_log_auto_send, isBoolean) &&
-    isOptional(value.anonymous_stats, isBoolean)
   );
 }
 
@@ -965,8 +959,7 @@ function isSettingsBundle(value: unknown): boolean {
     ) &&
     isOptionalNullable(value.default_workspace_folder, isString) &&
     isOptional(value.network, isSettingsNetwork) &&
-    isOptional(value.sidecar, isSettingsSidecar) &&
-    isOptional(value.telemetry, isSettingsTelemetry)
+    isOptional(value.sidecar, isSettingsSidecar)
   );
 }
 

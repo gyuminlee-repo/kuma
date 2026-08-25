@@ -52,10 +52,6 @@ INERT: dict[str, str] = {
     # of this entry.
     "language": "no control writes it and loadSettings never applies it",
     "default_workspace_folder": "nothing reads or writes it anywhere in the tree",
-    "concurrency_default": "designs run one mutation at a time; no parallel job pool exists",
-    "cancel_timeout_secs": "graceful_kill callers pass a literal 2 s and no Rust code reads the bundle",
-    "crash_log_auto_send": "nothing sends crash reports",
-    "anonymous_stats": "nothing sends usage data",
 }
 
 
@@ -100,21 +96,59 @@ def test_wired_field_still_has_its_consumer(field: str):
     )
 
 
-# The subset of INERT that has a control in the dialog. The others are dormant
-# model fields with no control, so there is nothing to disable and nothing to
-# label; only these have to match what the dialog switches off.
-INERT_WITH_A_CONTROL = {
-    "concurrency_default",
-    "cancel_timeout_secs",
-    "crash_log_auto_send",
-    "anonymous_stats",
-}
+# The subset of INERT that has a control in the dialog. Empty today: the four
+# that were here are gone from the settings model entirely, because nothing
+# could honour them and in two cases nothing ever should. The remaining inert
+# entries are dormant model fields with no control, so there is nothing to
+# disable and nothing to label.
+#
+# Kept rather than deleted along with its members. A setting that cannot be
+# honoured yet belongs here and renders disabled with a notice, and this is the
+# assertion that keeps the dialog and this file saying the same thing.
+INERT_WITH_A_CONTROL: set[str] = set()
+
+
+def test_a_bundle_from_an_older_build_still_loads():
+    """Dropping a field must not reject the file it was dropped from.
+
+    A preferences file written before concurrency_default, cancel_timeout_secs
+    and the telemetry section were removed still carries them. If the model
+    refused the extra keys the whole bundle would fall back to defaults and
+    every other preference the user set would be lost, so the removal has to be
+    read as "ignore", which is Pydantic default behaviour rather than something
+    declared. Declared here instead, since a future `extra="forbid"` would
+    break upgrades silently.
+    """
+    legacy = {
+        "language": "ko",
+        "theme": "dark",
+        "network": {"offline_mode": True, "consent_blast": False},
+        "sidecar": {
+            "concurrency_default": 8,
+            "cancel_timeout_secs": 90,
+            "persist_on_cancel": "discard",
+        },
+        "telemetry": {"crash_log_auto_send": True, "anonymous_stats": True},
+    }
+    bundle = SettingsBundle(**legacy)
+
+    # What survives is what still exists, with the user values intact.
+    assert bundle.theme == "dark"
+    assert bundle.network.offline_mode is True
+    assert bundle.network.consent_blast is False
+    assert bundle.sidecar.persist_on_cancel == "discard"
+    # What was removed is gone rather than resurrected under another name.
+    assert not hasattr(bundle, "telemetry")
+    assert not hasattr(bundle.sidecar, "concurrency_default")
+    assert not hasattr(bundle.sidecar, "cancel_timeout_secs")
 
 
 def test_inert_fields_are_the_ones_the_dialog_disables():
     """The dialog and this file must name the same set, or one of them is lying."""
     source = DIALOG.read_text(encoding="utf-8")
-    match = re.search(r"export const INACTIVE_SETTINGS = \[(.*?)\] as const;", source, re.S)
+    match = re.search(
+        r"export const INACTIVE_SETTINGS(?::\s*readonly string\[\])? = \[(.*?)\]",
+        source, re.S)
     assert match, "INACTIVE_SETTINGS not found in SettingsDialog.tsx"
     listed = set(re.findall(r'"([a-z_]+)"', match.group(1)))
     assert INERT_WITH_A_CONTROL <= set(INERT), (

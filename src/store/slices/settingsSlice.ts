@@ -85,9 +85,6 @@ export const createSettingsSlice: StateCreator<
       sidecar: partial.sidecar !== undefined
         ? { ...current.sidecar, ...partial.sidecar }
         : current.sidecar,
-      telemetry: partial.telemetry !== undefined
-        ? { ...current.telemetry, ...partial.telemetry }
-        : current.telemetry,
     };
     set({ settings: next, isDirty: true });
 
