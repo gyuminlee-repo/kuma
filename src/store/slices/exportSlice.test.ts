@@ -211,6 +211,59 @@ describe("exportSlice — schema_version 0.3", () => {
     expect(snap.settings.refDomainHash).toBe("abc123");
   });
 
+  it("round-trips disabled diversity and liquid-handler settings", async () => {
+    Object.assign(store.state, {
+      domainDiversityEnabled: false,
+      paretoDiversityEnabled: false,
+      structuralDiversityEnabled: true,
+      structureAccession: "8abc",
+      structureLoaded: true,
+      echoTransferVol: 250,
+      echoQuadrant: "B2",
+      echoUsedQuadrants: ["A1", "B2"],
+      janusTransferVol: 1.5,
+    });
+
+    const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
+    expect(snapshot.settings).toMatchObject({
+      domainDiversityEnabled: false,
+      paretoDiversityEnabled: false,
+      structuralDiversityEnabled: true,
+      structureAccession: "8abc",
+      structureLoaded: true,
+      echoTransferVol: 250,
+      echoQuadrant: "B2",
+      echoUsedQuadrants: ["A1", "B2"],
+      janusTransferVol: 1.5,
+    });
+
+    await store.slice.restoreWorkspace(snapshot);
+
+    expect(store.state).toMatchObject({
+      domainDiversityEnabled: false,
+      paretoDiversityEnabled: false,
+      structuralDiversityEnabled: true,
+      structureAccession: "8abc",
+      structureLoaded: true,
+      echoTransferVol: 250,
+      echoQuadrant: "B2",
+      echoUsedQuadrants: ["A1", "B2"],
+      janusTransferVol: 1.5,
+    });
+  });
+
+  it("restores the creation defaults for absent EVOLVEpro mode and round", async () => {
+    const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
+    delete snapshot.settings.evolveproMode;
+    delete snapshot.settings.pipelineMode;
+    delete snapshot.settings.evolveproRound;
+
+    await store.slice.restoreWorkspace(snapshot);
+
+    expect(store.state.evolveproMode).toBe("topN");
+    expect(store.state.evolveproRound).toBe(0);
+  });
+
   it("getWorkspaceSnapshot preserves rescue stage details for re-export", () => {
     store.state.rescuedMutationDetails = [
       {

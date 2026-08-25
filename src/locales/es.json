@@ -85,7 +85,7 @@
     "diagnostics": "Diagnóstico",
     "generateDiagnostics": "Generar diagnóstico",
     "generating": "Generando...",
-    "diagnosticsNote": "Guarda un paquete JSON (información de la app + registro de fallos) en la ubicación que elija. No incluye datos de usuario ni secuencias.",
+    "diagnosticsNote": "Guarda un paquete JSON. Puede contener rutas absolutas y texto bruto de registros o errores del proceso auxiliar, incluidos identificadores de mutaciones o variantes. Revíselo antes de compartir.",
     "copyCrashLog": "Copiar registro de fallos",
     "ok": "OK",
     "updates": "Actualizaciones"
@@ -105,8 +105,8 @@
     "notificationsDisabled": "deshabilitadas",
     "languageSelectionLabel": "Selección de idioma",
     "enableNotifications": "Habilitar notificaciones",
-    "notificationsNote": "Se disparan para trabajos que duran más de 5 minutos.",
-    "sleepPrevention": "Prevención de suspensión: activa mientras se ejecutan trabajos.",
+    "notificationsNote": "Se muestra para diseños de KURO y combinaciones de actividad que duran más de 5 minutos.",
+    "sleepPrevention": "La prevención de suspensión se activa durante los diseños de KURO y las combinaciones de actividad.",
     "dataFolder": "Carpeta de datos",
     "dataFolderLoading": "cargando...",
     "dataFolderChange": "Cambiar...",
@@ -115,8 +115,7 @@
     "close": "Cerrar",
     "tab": {
       "general": "General",
-      "network": "Red",
-      "sidecar": "Sidecar"
+      "network": "Red"
     },
     "theme": {
       "label": "Tema",
@@ -134,11 +133,6 @@
         "alphafold": "AlphaFold via EBI (consulta de estructura)",
         "interpro": "InterPro / Pfam via EBI (anotación de dominios)"
       }
-    },
-    "sidecar": {
-      "persistOnCancel": "Al cancelar",
-      "persistPartial": "Mantener resultados parciales",
-      "persistDiscard": "Descartar todos los resultados"
     },
     "savedAt": "Guardado a las {{time}}"
   },
@@ -223,7 +217,7 @@
       "ingestBarcodeTitle": "Agrupar reads por barcode Nanopore (NB01, NB02, ...). Cada bin de barcode se convierte en una muestra.",
       "ingestAmpliconTitle": "Agrupar reads por identidad de amplicón. Usar cuando varios amplicones comparten un barcode o al hacer demultiplex por coincidencia de secuencia.",
       "inputModeConsensusTitle": "Comenzar desde un FASTA consensus pre-calculado (una secuencia por barcode). Omite ordenamiento y consensus calling.",
-      "inputModeSortedBarcodeTitle": "Comenzar desde directorios de barcode ya ordenados (fastq.gz por barcode). Omite ordenamiento de MinKNOW; ejecuta consensus calling.",
+      "inputModeSortedBarcodeTitle": "Analiza archivos FASTA de consenso calculados previamente (una secuencia por pocillo). Omite la clasificación de MinKNOW y la llamada de consenso.",
       "inputModeRawRunTitle": "Comenzar desde una carpeta raw de MinKNOW (fastq_pass/ + metadatos de la corrida). Pipeline completo: ordenar barcodes, filtrar, luego consensus.",
       "minFilteredDepth": "Depth mínimo filtrado (reads)",
       "minFilteredDepthHelp": "Cutoff basado en el conteo de reads que pasa el filtro length-window. Es el cutoff principal de calidad basado en depth.",
@@ -285,7 +279,7 @@
       "toastSuccessDesc": "Archivos guardados en {{dir}}/",
       "toastSuccessDescWithLength": "Longitud del amplicón: {{length}} bp. Archivos guardados en {{dir}}/",
       "toastError": "Generación fallida",
-      "overwriteConfirmDir": "La carpeta {{dir}}/ ya existe y se sobrescribirá (primer CSV, barcode XLSX, amplicon FASTA). ¿Desea continuar?",
+      "overwriteConfirmDir": "La carpeta {{dir}}/ ya existe y se sobrescribirá (barcodes_sequence.xlsx, {gene}_amplicon.fa y mame_context.json en la raíz del proyecto). ¿Continuar?",
       "geneEndError": "gene_end debe ser mayor que gene_start.",
       "noProjectWarning": "Debe haber un proyecto abierto para generar un paquete. Seleccionar Abrir proyecto desde el menú Archivo.",
       "barcodeSeedsXlsxHelper": "Archivo xlsx que contiene secuencias seed fwd_1..12 y rev_1..8.",
@@ -309,7 +303,7 @@
       },
       "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
       "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. egfp).",
-      "polymeraseHelp": "Polimerasa registrada para el protocolo de PCR de códigos de barras. Es solo metadato y no interviene en ningún cálculo de Tm o de primers.",
+      "polymeraseHelp": "Polimerasa usada para la PCR de códigos de barras. Su perfil de sales interviene en el cálculo de Tm durante la selección de primers.",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
       "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
@@ -330,11 +324,10 @@
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "No se pudo abrir la carpeta.",
-      "variantSheet": "Hoja de variantes",
-      "variantColumn": "Columna de variantes",
-      "variantColumnPlaceholder": "Elegir una columna",
-      "variantColumnHelper": "Las filas llenan la placa de 96 wells en el orden de esta columna, bajando por cada columna de la placa: A1, B1, C1 hasta H1, y luego A2. Una fila WT se usa como control en lugar de añadir una.",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "templateTopology": "Topología de plantilla",
+      "topologyLinear": "Lineal",
+      "topologyCircular": "Circular",
+      "templateTopologyHelper": "Los archivos FASTA no registran topología. Elija circular solo cuando la plantilla cruce el origen.",
       "outputLocationStateLabel": "Opcional"
     },
     "activity": {
@@ -819,7 +812,7 @@
         "placeholder": "Elegir una carpeta; se creará {{filename}}",
         "stateLabel": "Guardar en",
         "helperText": "El informe del análisis usará un nombre de archivo .xlsx basado en reglas estilo KURO",
-        "helpText": "Carpeta donde se guardará el Excel con el resultado del análisis. El nombre del archivo se genera automáticamente usando reglas estilo KURO que combinan fecha, tokens de referencia/entrada, target MAME y tokens de conteo de resultados.",
+        "helpText": "El nombre de archivo se genera automáticamente a partir de la fecha, el token de referencia o entrada y el objetivo MAME.",
         "reuseNotice": "Si esta carpeta ya contiene resultados de una ejecución anterior, las unidades coincidentes se reutilizan y el resto se sobrescribe.",
         "overwriteConfirmDir": "{{dir}} ya contiene resultados de un análisis anterior (demux_filtered/). Las unidades coincidentes se reutilizarán y el resto se sobrescribirá. ¿Desea continuar?"
       },
@@ -1198,6 +1191,8 @@
       "warningsLabel": "Advertencias",
       "mismatchedLabel": "Confirmation vs primary mismatch",
       "mismatchedHint": "Variants whose confirmation mean differs notably from the primary value.",
+      "allowLabelMismatch": "Permitir discrepancia de etiquetas revisada",
+      "allowLabelMismatchHelper": "Omite el bloqueo de exportación por un intercambio de etiquetas detectado. Revise primero el diseño y las etiquetas del veredicto.",
       "mismatchedAuthoritative": "Confirmation",
       "mismatchedFallback": "Primary",
       "colVariant": "Variant",
@@ -1308,7 +1303,7 @@
           "effect": "Solo diagnóstico. Ninguna comprobación lee este número. Un valor alto indica reads que mapean de forma ambigua, normalmente una región repetida o una referencia equivocada."
         },
         "spanFailed": {
-          "what": "Reads descartados porque su alineamiento no cubre toda la longitud de la referencia.",
+          "what": "Reads descartadas porque su alineamiento cubre menos que la fracción de referencia configurada (predeterminado: 98 %).",
           "stage": "Filtrado del alineamiento, después del filtro de MAPQ. Cero cuando la ejecución partió de FASTA de consenso.",
           "effect": "Solo diagnóstico. Ninguna comprobación lee este número. Un valor alto suele indicar reads truncados o un amplicón más corto que la referencia."
         },
@@ -1546,22 +1541,22 @@
     "primerLenInvalidError": "Min debe ser menor que Max",
     "designSectionLabel": "Diseño",
     "autoRescueLabel": "Auto-rescate de mutaciones fallidas",
-    "autoRescueTitle": "Cuando está habilitado, reintenta las mutaciones fallidas a través de 4 (top-N) o 6 (pipeline) etapas con parámetros relajados. Cuando está deshabilitado, las mutaciones fallidas permanecen sin reintentos automáticos.",
+    "autoRescueTitle": "Al activarlo, ejecuta el rescate del sidecar con restricciones relajadas y la cascada del frontend de 4 etapas (top-N) o 6 (pipeline). Desactivado no reintenta mutaciones fallidas automáticamente.",
     "seedLabel": "Seed:",
-    "seedTitle": "Semilla entera opcional. Se guarda con la ejecución como procedencia. El diseño de cebadores es determinista, así que la semilla no cambia los cebadores obtenidos.",
-    "seedAriaLabel": "Seed aleatoria (opcional)",
-    "seedFixed": "fija: {{seed}}",
-    "seedAuto": "auto",
+    "seedTitle": "Seed entera opcional, registrada solo en la procedencia del diseño; no afecta el ranking de primers.",
+    "seedAriaLabel": "Seed (opcional)",
+    "seedFixed": "registrada: {{seed}}",
+    "seedAuto": "sin registrar",
     "tmPrimerHelp": "Target Tm (°C) for symmetric full-overlap primers. Default 62.",
     "tmFwdHelp": "Target Tm (°C) for forward primer in partial-overlap mode. Lower value increases mismatch tolerance.",
     "tmRevHelp": "Target Tm (°C) for reverse primer. Should approximate tmFwd for balanced PCR.",
     "tmOverlapHelp": "Target Tm (°C) of the overlap region between two primers.",
     "gcRangeHelp": "Accepted GC content range (%) for primer regions. Recommended 40-60.",
-    "primerLenLimitHelp": "Toggle to bound primer length. When off, engine uses Tm-only optimization.",
-    "primerLenFwdHelp": "Rango de longitud del cebador directo (nt). El valor por defecto 18-39 cubre la mayoría de casos SDM.",
+    "primerLenLimitHelp": "Activa límites de longitud del primer. Desactivado, el motor usa los límites del perfil de polimerasa seleccionado.",
+    "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
-    "autoRescueHelp": "Auto-fill failed mutations with relaxed constraints in a second pass.",
-    "seedHelp": "Random seed for reproducible primer ranking. Leave empty for auto (time-based).",
+    "autoRescueHelp": "Controla el rescate del sidecar con restricciones relajadas y la cascada del frontend de 4 etapas (top-N) / 6 (pipeline).",
+    "seedHelp": "Registra solo metadatos de procedencia; no afecta el ranking de primers. Vacío no registra seed.",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
   "designReport": {
@@ -1610,7 +1605,7 @@
     "statPositionCoverageValue": "{{rescued}}/{{attempted}} rescatados",
     "statPoolCascade": "Cascade de pool",
     "statPoolCascadeValue": "{{cascade}} ({{tried}} probados)",
-    "statAutoRelax": "Auto-relax (±3→±5°C)",
+    "statAutoRelax": "Relajación automática (tolerancia Tm hasta +2 °C, rango GC hasta ±5 pp, longitud mínima hasta −2 nt)",
     "statAutoRetry": "Auto-retry (sugerencia)",
     "statCascadeRescues": "Rescates por cascade",
     "statStillFailed": "Aún fallidos",
@@ -1684,8 +1679,8 @@
     "minQuotaHelp": "Minimum primer quota per domain (0-20). Ensures each domain represented.",
     "poolKLabelHelp": "Pool-K diversity weighting target. Auto value derived from sequence properties.",
     "entropyWeightHelp": "Weight (0-1) for entropy-guided primer selection vs pure diversity.",
-    "autoRedesignOnLoadHelp": "Re-run primer design automatically when a workspace is loaded.",
-    "savePipelineCacheHelp": "Save intermediate pipeline outputs to disk for faster re-runs.",
+    "autoRedesignOnLoadHelp": "Si está activado, vuelve a ejecutar el diseño de cebadores al cargar un espacio de trabajo solo si no tiene resultados guardados.",
+    "savePipelineCacheHelp": "Incluye la caché de cebadores alternativos y los resultados de referencia en instantáneas del espacio de trabajo.",
     "topPercentileHelp": "Benchmark top percentile (1-100) cutoff for primer scoring.",
     "randomTrialsHelp": "Number of random baseline trials for benchmark (1-1000). Higher value yields more reliable estimate.",
     "benchmarkRandomSeedHelp": "Random seed for benchmark reproducibility. Empty value defaults to auto.",
@@ -1980,7 +1975,7 @@
     "insideProject": "Dentro de cada proyecto",
     "kuroDesc": "Kernel for Upstream Recombination Oligodesign. Diseño por lotes de primers SDM desde plantillas de Gibson Assembly.",
     "mameDesc": "Mutagenesis Assessment & Microplate Export. Verdict de NGS Oxford Nanopore.",
-    "autosaveNote": "Entradas y parámetros se autoguardan por proyecto. Nada se filtra entre proyectos.",
+    "autosaveNote": "Las entradas y parámetros se guardan automáticamente por proyecto. Los borradores de Barcode Setup, incluidas rutas absolutas, se comparten entre proyectos.",
     "titleStart": "Empezar",
     "descStart": "Elegir una carpeta por defecto para los proyectos. kuma mantiene cada diseño de Kuro y cada corrida de verdict de Mame dentro de su propia carpeta de proyecto, de modo que el trabajo sobrevive a los tiempos de respuesta de secuenciación de semanas.",
     "chooseFolderBtn": "Elegir carpeta",
@@ -2124,7 +2119,7 @@
     "mutationsEntered": "{{count}} mutaciones introducidas",
     "mutationsValidated": "({{count}} validadas)",
     "mutationsFailed": "({{count}} fallidas)",
-    "topNZeroHint": "Establece top-N en 0 para cargar todas las variantes del CSV",
+    "topNZeroHint": "Top-N va de 1 a 96. Auméntelo para cargar más variantes desde CSV.",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
@@ -3367,6 +3362,9 @@
         "kuro": "KURO sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry.",
         "mame": "MAME sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry."
       }
+    },
+    "mame": {
+      "labelMismatchBlocked": "Se detectó un intercambio de etiquetas; exportación bloqueada. Revise el diseño y las etiquetas del veredicto, y luego seleccione Permitir discrepancia de etiquetas revisada."
     }
   },
   "advisoryDecision": {

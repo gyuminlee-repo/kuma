@@ -82,6 +82,7 @@ describe("mame inputSlice", () => {
   it("defaults new analyses to raw MinKNOW run folders", () => {
     const store = makeStore();
     expect(store.inputMode).toBe("raw_run");
+    expect(store.minFilteredDepth).toBe(30);
   });
 
   it("folds demux into a single analyze call from a raw MinKNOW run", async () => {
@@ -95,7 +96,10 @@ describe("mame inputSlice", () => {
         ...makeStore().rawRunParams,
         customBarcodesPath: "D:/project/barcodes sequence.xlsx",
       },
+      cdsStart: 101,
       cdsEnd: 900,
+      minFilteredDepth: 47,
+      wtPlacement: "after_last_variant",
     });
     const targetRoundId = useRoundStore.getState().addRound({ plate_meta: { plates: [] } });
 
@@ -161,6 +165,9 @@ describe("mame inputSlice", () => {
         ingest_mode: "barcode",
         custom_barcodes_xlsx: "D:/project/barcodes sequence.xlsx",
         native_barcodes: null,
+        cds_start: 101,
+        min_read_count: 47,
+        wt_placement: "after_last_variant",
         coverage_fraction: 0.98,
         edit_dist_ratio: 0.25,
         chimera_split: true,
@@ -204,7 +211,10 @@ describe("mame inputSlice", () => {
       ingestMode: "barcode",
       selectedWells: ["A1", "B1"],
       wellLayout,
+      cdsStart: 101,
       cdsEnd: 900,
+      minFilteredDepth: 47,
+      wtPlacement: "after_last_variant",
     });
     const targetRoundId = useRoundStore.getState().addRound({ plate_meta: { plates: [] } });
 
@@ -226,6 +236,9 @@ describe("mame inputSlice", () => {
         input_dir: "D:/project/consensus",
         selected_wells: ["A1", "B1"],
         well_layout: wellLayout,
+        cds_start: 101,
+        min_read_count: 47,
+        wt_placement: "after_last_variant",
       }),
       expect.anything(),
     );
@@ -254,7 +267,10 @@ describe("mame inputSlice", () => {
         ...makeStore().rawRunParams,
         customBarcodesPath: "D:/project/barcodes sequence.xlsx",
       },
+      cdsStart: 101,
       cdsEnd: 900,
+      minFilteredDepth: 47,
+      wtPlacement: "after_last_variant",
     });
 
     mockSendRequest.mockResolvedValueOnce({ valid: true, errors: [] });
@@ -268,9 +284,49 @@ describe("mame inputSlice", () => {
         reference: "D:/project/ref.fasta",
         expected: "D:/project/KURO_expected.xlsx",
         custom_barcodes_xlsx: "D:/project/barcodes sequence.xlsx",
+        cds_start: 101,
+        min_read_count: 47,
+        wt_placement: "after_last_variant",
       }),
     );
     expect(store.validationErrors).toEqual([]);
+  });
+
+  it("validates the same CDS, WT placement, and read-depth cutoff that analysis runs", async () => {
+    const store = makeStore({
+      inputDir: "D:/project/consensus",
+      expectedPath: "D:/project/KURO_expected.xlsx",
+      referencePath: "D:/project/ref.fasta",
+      outputPath: "D:/project",
+      inputMode: "consensus",
+      cdsStart: 101,
+      cdsEnd: 900,
+      minFilteredDepth: 47,
+      wtPlacement: "after_last_variant",
+    });
+    mockSendRequest
+      .mockResolvedValueOnce({ valid: true, errors: [] })
+      .mockResolvedValueOnce({
+        verdicts: [],
+        replicates: [],
+        output_path: "D:/project/mame_result.xlsx",
+        summary: { total: 0, pass_count: 0, ambiguous_count: 0, fail_count: 0 },
+        distribution_stats: distributionStats,
+      });
+
+    await store.validateInputs();
+    await store.runAnalysis();
+
+    const validationPayload = mockSendRequest.mock.calls[0]?.[1] as Record<string, unknown>;
+    const analyzePayload = mockSendRequest.mock.calls[1]?.[1] as Record<string, unknown>;
+    for (const key of ["cds_start", "wt_placement", "min_read_count"] as const) {
+      expect(validationPayload[key]).toBe(analyzePayload[key]);
+    }
+    expect(analyzePayload).toMatchObject({
+      cds_start: 101,
+      wt_placement: "after_last_variant",
+      min_read_count: 47,
+    });
   });
 
   it("does not call analyze when raw mode lacks a custom barcode file", async () => {

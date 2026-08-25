@@ -30,14 +30,6 @@ Optional
   require_gc_clamp     (bool,  default true)
   topology              (str,  default None -- auto-detect from fasta_path;
                          explicit "linear" or "circular" overrides detection)
-  variant_sheet (str, default None) -- sheet holding the variant list, when the
-    file is not a KURO export and the sheet cannot be inferred.
-  variant_column (str, default None) -- column holding the variant labels, for
-    the same case.
-  expected_mutations_path (str, default None) -- accepted and unused. It used
-                         to pre-fill a sample-map template; the plate is
-                         computed from the variant list at analyze time now, so
-                         nothing writes it down.
 
 Response schema
 ---------------
@@ -223,19 +215,6 @@ def handle_generate_mame_package(params: dict) -> dict:
         allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS,
     )
 
-    # Optional variant list for sample-map pre-fill. Absent/empty means
-    # "emit a header-only template"; a supplied path must be a readable xlsx
-    # (validated here so a typo surfaces before primer design runs).
-    # A KURO export is detected downstream and keeps its strict reader; any other
-    # workbook is read as a plain list, optionally with sheet/column overrides.
-    expected_mutations_raw = params.get("expected_mutations_path")
-    expected_mutations_path: Path | None = None
-    if expected_mutations_raw is not None and str(expected_mutations_raw).strip() != "":
-        expected_mutations_path = _validate_filepath(
-            str(expected_mutations_raw),
-            allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS,
-        )
-
     # output_dir and project_root are directories that may not yet exist;
     # validate as plain paths (no extension check needed).
     # Block path traversal before resolve() eliminates ".." components.
@@ -272,9 +251,6 @@ def handle_generate_mame_package(params: dict) -> dict:
         tm_max=tm_max,
         require_gc_clamp=require_gc_clamp,
         topology=topology,
-        expected_mutations_path=expected_mutations_path,
-        variant_sheet=_optional_str(params.get("variant_sheet")),
-        variant_column=_optional_str(params.get("variant_column")),
     )
 
     return {

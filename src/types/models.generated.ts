@@ -79,7 +79,6 @@ export interface SidecarKuroModels {
   SettingsNetwork?: SettingsNetwork;
   SettingsSaveRequest?: SettingsSaveRequest;
   SettingsSaveResponse?: SettingsSaveResponse;
-  SettingsSidecar?: SettingsSidecar;
   SortingEntry?: SortingEntry;
   StructureModelCandidate?: StructureModelCandidate;
   SwapPrimerParams?: SwapPrimerParams;
@@ -862,7 +861,7 @@ export interface RetryFailedParams {
   num_return?: number;
   organism?: string;
   overlap_len?: number | null;
-  overlap_mode?: "partial" | "full";
+  overlap_mode: "partial" | "full";
   polymerase?: string;
   rev_len_max?: number | null;
   rev_len_min?: number | null;
@@ -923,7 +922,6 @@ export interface SettingsBundle {
   default_workspace_folder?: string | null;
   language?: string;
   network?: SettingsNetwork;
-  sidecar?: SettingsSidecar;
   theme?: "light" | "dark" | "auto";
   [k: string]: unknown;
 }
@@ -936,31 +934,6 @@ export interface SettingsNetwork {
   consent_interpro?: boolean;
   consent_uniprot?: boolean;
   offline_mode?: boolean;
-  [k: string]: unknown;
-}
-/**
- * Sidecar behaviour a user can choose.
- *
- * Held to what the app can actually honour. Two neighbours were removed once
- * it turned out nothing read them, and that reading the charter said nothing
- * ever should:
- *
- * - `concurrency_default` capped a parallel design pool that does not exist.
- *   Designs run one mutation at a time, and measured end to end a 96-well
- *   plate takes about two seconds, so there is nothing here to parallelise.
- * - `cancel_timeout_secs` offered 5 to 120 seconds before a force-kill.
- *   docs/standards/common-frontend-standards.md fixes both ends of that:
- *   section 22 requires a 5 second SIGKILL fallback on shutdown and section 1
- *   requires cancel to finish within 5 seconds. A user-set 120 would break
- *   both, and no cancel path waits before killing anyway (KURO cancels
- *   cooperatively, MAME kills and respawns).
- *
- * A preferences file written by an older build still carries the two names.
- * Pydantic ignores unknown keys by default, so they are dropped on load and
- * nothing else in the bundle is disturbed.
- */
-export interface SettingsSidecar {
-  persist_on_cancel?: "partial" | "discard";
   [k: string]: unknown;
 }
 /**
@@ -1055,6 +1028,9 @@ export interface WorkspaceSettingsModel {
   domainQuotaMin?: number | null;
   domainStrategy?: ("proportional" | "equal") | null;
   domains?: DomainInfoModel[] | null;
+  echoQuadrant?: ("A1" | "A2" | "B1" | "B2") | null;
+  echoTransferVol?: number | null;
+  echoUsedQuadrants?: ("A1" | "A2" | "B1" | "B2")[] | null;
   entropyWeight?: number | null;
   entropyWeightEnabled?: boolean | null;
   evolveproMode?: ("topN" | "pipeline" | "others") | null;
@@ -1064,6 +1040,7 @@ export interface WorkspaceSettingsModel {
   fwdLenMin?: number | null;
   gcMax: number;
   gcMin: number;
+  janusTransferVol?: number | null;
   linkerHandling?: ("include" | "exclude" | "separate-bin") | null;
   maxPerPosition?: number | null;
   maxPrimers: number;
@@ -1074,6 +1051,7 @@ export interface WorkspaceSettingsModel {
   pipelineMode?: boolean | null;
   positionDiversityEnabled?: boolean | null;
   primerLenEnabled?: boolean | null;
+  randomSeed?: number | null;
   refDomainHash?: string | null;
   refDomains?: DomainInfoModel[] | null;
   rescuedMutations?: string[] | null;
@@ -1082,9 +1060,14 @@ export interface WorkspaceSettingsModel {
   roundSize?: number | null;
   saveCache?: boolean | null;
   selectedPolymerase?: string | null;
+  structuralDiversityEnabled?: boolean | null;
+  structuralKappa?: number | null;
+  structureAccession?: string | null;
+  structureLoaded?: boolean | null;
   tmFwdTarget: number;
   tmOverlapTarget: number;
   tmRevTarget: number;
+  tmTolerance?: number | null;
   uniprotAccession?: string | null;
   [k: string]: unknown;
 }

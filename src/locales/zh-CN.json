@@ -85,7 +85,7 @@
     "diagnostics": "诊断",
     "generateDiagnostics": "生成诊断",
     "generating": "生成中...",
-    "diagnosticsNote": "将 JSON 包(应用信息 + 崩溃日志)保存到所选位置。不包含任何用户数据或序列。",
+    "diagnosticsNote": "将 JSON 包保存到所选位置。其中可能包含绝对文件路径，以及原始侧车日志或错误文本（包括突变或变体标识符）。共享前请检查。",
     "copyCrashLog": "复制崩溃日志",
     "ok": "确定",
     "updates": "更新"
@@ -105,8 +105,8 @@
     "notificationsDisabled": "已禁用",
     "languageSelectionLabel": "语言选择",
     "enableNotifications": "启用通知",
-    "notificationsNote": "对超过 5 分钟的作业触发通知。",
-    "sleepPrevention": "防止休眠: 作业运行期间启用。",
+    "notificationsNote": "显示于运行超过 5 分钟的 KURO 设计和活性合并任务。",
+    "sleepPrevention": "KURO 设计和活性合并期间会启用防止休眠。",
     "dataFolder": "数据文件夹",
     "dataFolderLoading": "加载中...",
     "dataFolderChange": "更改...",
@@ -115,8 +115,7 @@
     "close": "关闭",
     "tab": {
       "general": "通用",
-      "network": "网络",
-      "sidecar": "Sidecar"
+      "network": "网络"
     },
     "theme": {
       "label": "主题",
@@ -134,11 +133,6 @@
         "alphafold": "AlphaFold via EBI（结构查询）",
         "interpro": "InterPro / Pfam via EBI（域注释）"
       }
-    },
-    "sidecar": {
-      "persistOnCancel": "取消时",
-      "persistPartial": "保留部分结果",
-      "persistDiscard": "丢弃所有结果"
     },
     "savedAt": "已于 {{time}} 保存"
   },
@@ -223,7 +217,7 @@
       "ingestBarcodeTitle": "按 Nanopore barcode 分组 read (NB01, NB02, ...)。每个 barcode bin 对应一个样本。",
       "ingestAmpliconTitle": "按 amplicon 身份分组 read。当多个 amplicon 共用一个 barcode,或按序列匹配做 demultiplexing 时使用。",
       "inputModeConsensusTitle": "从预先计算的 consensus FASTA (每个 barcode 一条序列) 开始。跳过分拣与 consensus calling。",
-      "inputModeSortedBarcodeTitle": "从已分拣的 barcode 目录 (每个 barcode 的 fastq.gz) 开始。跳过 MinKNOW 分拣,运行 consensus calling。",
+      "inputModeSortedBarcodeTitle": "分析预先计算的共识 FASTA 文件（每孔一个序列）。跳过 MinKNOW 分拣和共识调用。",
       "inputModeRawRunTitle": "从 raw MinKNOW run 文件夹 (fastq_pass/ + run metadata) 开始。完整流程: 分拣 barcode、过滤,然后 consensus。",
       "minFilteredDepth": "最小 Filtered Depth (reads)",
       "minFilteredDepthHelp": "基于通过 length-window 过滤的 read 数的 cutoff。这是主要的基于 depth 的质量 cutoff。",
@@ -285,7 +279,7 @@
       "toastSuccessDesc": "文件已保存到 {{dir}}/",
       "toastSuccessDescWithLength": "Amplicon 长度: {{length}} bp。文件已保存到 {{dir}}/",
       "toastError": "生成失败",
-      "overwriteConfirmDir": "{{dir}}/ 文件夹已存在并将被覆盖 (primer CSV, barcode XLSX, amplicon FASTA)。是否继续?",
+      "overwriteConfirmDir": "{{dir}}/ 文件夹已存在，将被覆盖（barcodes_sequence.xlsx、{gene}_amplicon.fa 和项目根目录的 mame_context.json）。是否继续？",
       "geneEndError": "gene_end 必须大于 gene_start。",
       "noProjectWarning": "必须打开项目才能生成包。在文件菜单中选择打开项目。",
       "barcodeSeedsXlsxHelper": "包含 fwd_1..12 与 rev_1..8 seed 序列的 xlsx 文件。",
@@ -309,7 +303,7 @@
       },
       "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
       "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. egfp).",
-      "polymeraseHelp": "记录到条形码 PCR 方案中的聚合酶。仅为元数据，不参与任何 Tm 或引物计算。",
+      "polymeraseHelp": "用于条形码 PCR 的聚合酶。其盐浓度配置会参与引物筛选时的 Tm 计算。",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
       "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
@@ -330,11 +324,10 @@
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "无法打开文件夹。",
-      "variantSheet": "变异列表工作表",
-      "variantColumn": "变异列",
-      "variantColumnPlaceholder": "选择列",
-      "variantColumnHelper": "各行按此列的顺序填入 96-well plate，先自上而下填满 plate 的一列再进入下一列：A1、B1、C1 直到 H1，然后是 A2。若存在 WT 行，则以其作为对照，不再另行追加。",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "templateTopology": "模板拓扑",
+      "topologyLinear": "线性",
+      "topologyCircular": "环状",
+      "templateTopologyHelper": "FASTA 文件不记录拓扑。仅当模板跨越原点时选择环状。",
       "outputLocationStateLabel": "可选"
     },
     "activity": {
@@ -819,7 +812,7 @@
         "placeholder": "选择一个文件夹;将创建 {{filename}}",
         "stateLabel": "保存到",
         "helperText": "分析报告将使用 KURO 风格的规则生成 .xlsx 文件名",
-        "helpText": "保存分析结果 Excel 的文件夹。文件名通过 KURO 风格规则自动生成,结合日期、reference/input token、MAME 目标和结果计数 token。",
+        "helpText": "文件名会根据日期、参考或输入标记以及 MAME 目标自动生成。",
         "reuseNotice": "如果该文件夹已有先前运行的输出，匹配的单元将被复用，其余内容将被覆盖。",
         "overwriteConfirmDir": "{{dir}} 中已有先前分析的输出 (demux_filtered/)。匹配的单元将被复用，其余内容将被覆盖。是否继续?"
       },
@@ -1198,6 +1191,8 @@
       "warningsLabel": "警告",
       "mismatchedLabel": "Confirmation vs primary mismatch",
       "mismatchedHint": "Variants whose confirmation mean differs notably from the primary value.",
+      "allowLabelMismatch": "允许已审核的标签不匹配",
+      "allowLabelMismatchHelper": "解除检测到标签互换后的导出阻止。请先确认布局和判定标签。",
       "mismatchedAuthoritative": "Confirmation",
       "mismatchedFallback": "Primary",
       "colVariant": "Variant",
@@ -1308,7 +1303,7 @@
           "effect": "仅供诊断，没有任何门限读取该值。数值偏高说明 reads 比对位置不明确，通常是重复序列或参考序列错误。"
         },
         "spanFailed": {
-          "what": "因比对区间未覆盖参考序列全长而被剔除的 reads 数。",
+          "what": "因比对覆盖率低于配置的参考序列比例（默认 98%）而丢弃的 reads。",
           "stage": "比对过滤阶段，在 MAPQ 过滤之后。若输入为 consensus FASTA，则为 0。",
           "effect": "仅供诊断，没有任何门限读取该值。数值偏高通常说明 reads 被截断，或 amplicon 短于参考序列。"
         },
@@ -1546,22 +1541,22 @@
     "primerLenInvalidError": "Min 必须小于 Max",
     "designSectionLabel": "设计",
     "autoRescueLabel": "自动 rescue 失败 mutation",
-    "autoRescueTitle": "启用时,失败的 mutation 会通过 4 个 (top-N) 或 6 个 (pipeline) 放宽参数阶段重试。禁用时,失败的 mutation 保持原样,不自动重试。",
+    "autoRescueTitle": "启用时，运行 sidecar 的放宽约束补救步骤以及前端 4 阶段 (top-N) 或 6 阶段 (pipeline) 级联。禁用时不会自动重试失败的 mutation。",
     "seedLabel": "Seed:",
-    "seedTitle": "可选的整数种子。作为溯源信息随运行记录保存。引物设计是确定性的，种子不会改变得到的引物。",
-    "seedAriaLabel": "随机 seed (可选)",
-    "seedFixed": "已固定: {{seed}}",
-    "seedAuto": "自动",
+    "seedTitle": "可选整数 seed，仅记录在设计溯源中，不影响 primer 排名。",
+    "seedAriaLabel": "Seed（可选）",
+    "seedFixed": "已记录：{{seed}}",
+    "seedAuto": "不记录",
     "tmPrimerHelp": "Target Tm (°C) for symmetric full-overlap primers. Default 62.",
     "tmFwdHelp": "Target Tm (°C) for forward primer in partial-overlap mode. Lower value increases mismatch tolerance.",
     "tmRevHelp": "Target Tm (°C) for reverse primer. Should approximate tmFwd for balanced PCR.",
     "tmOverlapHelp": "Target Tm (°C) of the overlap region between two primers.",
     "gcRangeHelp": "Accepted GC content range (%) for primer regions. Recommended 40-60.",
-    "primerLenLimitHelp": "Toggle to bound primer length. When off, engine uses Tm-only optimization.",
-    "primerLenFwdHelp": "正向引物长度范围(nt)。默认 18-39 覆盖大多数 SDM 场景。",
+    "primerLenLimitHelp": "切换 primer 长度范围。关闭时，engine 使用所选 polymerase profile 自身的长度范围。",
+    "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
-    "autoRescueHelp": "Auto-fill failed mutations with relaxed constraints in a second pass.",
-    "seedHelp": "Random seed for reproducible primer ranking. Leave empty for auto (time-based).",
+    "autoRescueHelp": "控制 sidecar 的放宽约束补救步骤及 4 阶段 (top-N) / 6 阶段 (pipeline) 前端级联。",
+    "seedHelp": "仅记录溯源元数据，不影响 primer 排名。留空则不记录 seed。",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
   "designReport": {
@@ -1610,7 +1605,7 @@
     "statPositionCoverageValue": "已 rescue {{rescued}}/{{attempted}}",
     "statPoolCascade": "Pool cascade",
     "statPoolCascadeValue": "{{cascade}} (尝试 {{tried}})",
-    "statAutoRelax": "Auto-relax (±3→±5°C)",
+    "statAutoRelax": "自动放宽（Tm 容差最多 +2 °C、GC 范围最多 ±5 个百分点、最小长度最多 −2 nt）",
     "statAutoRetry": "Auto-retry (建议)",
     "statCascadeRescues": "Cascade rescues",
     "statStillFailed": "仍然失败",
@@ -1684,8 +1679,8 @@
     "minQuotaHelp": "Minimum primer quota per domain (0-20). Ensures each domain represented.",
     "poolKLabelHelp": "Pool-K diversity weighting target. Auto value derived from sequence properties.",
     "entropyWeightHelp": "Weight (0-1) for entropy-guided primer selection vs pure diversity.",
-    "autoRedesignOnLoadHelp": "Re-run primer design automatically when a workspace is loaded.",
-    "savePipelineCacheHelp": "Save intermediate pipeline outputs to disk for faster re-runs.",
+    "autoRedesignOnLoadHelp": "启用后，仅在加载的工作区没有已保存的设计结果时自动重新运行引物设计。",
+    "savePipelineCacheHelp": "在工作区快照中包含替代引物缓存和基准测试结果。",
     "topPercentileHelp": "Benchmark top percentile (1-100) cutoff for primer scoring.",
     "randomTrialsHelp": "Number of random baseline trials for benchmark (1-1000). Higher value yields more reliable estimate.",
     "benchmarkRandomSeedHelp": "Random seed for benchmark reproducibility. Empty value defaults to auto.",
@@ -1980,7 +1975,7 @@
     "insideProject": "每个项目内部",
     "kuroDesc": "Kernel for Upstream Recombination Oligodesign. 基于 Gibson Assembly 模板的批量 SDM primer 设计。",
     "mameDesc": "Mutagenesis Assessment & Microplate Export. Oxford Nanopore NGS verdict。",
-    "autosaveNote": "输入与参数按项目自动保存。项目间不会泄漏。",
+    "autosaveNote": "输入和参数按项目自动保存。包括绝对路径在内的 Barcode Setup 草稿在项目之间共享。",
     "titleStart": "开始使用",
     "descStart": "为项目选择默认文件夹。kuma 将每个 Kuro design 和 Mame verdict run 保存在各自的项目文件夹中,使工作在数周的测序周转期间得以保留。",
     "chooseFolderBtn": "选择文件夹",
@@ -2124,7 +2119,7 @@
     "mutationsEntered": "已输入 {{count}} 个 mutation",
     "mutationsValidated": "(已验证 {{count}})",
     "mutationsFailed": "(失败 {{count}})",
-    "topNZeroHint": "将 top-N 设为 0 可加载 CSV 中的所有变体",
+    "topNZeroHint": "Top-N 的范围为 1 到 96。增大该值可从 CSV 加载更多变体。",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
@@ -3367,6 +3362,9 @@
         "kuro": "KURO sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry.",
         "mame": "MAME sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry."
       }
+    },
+    "mame": {
+      "labelMismatchBlocked": "检测到标签互换，已阻止导出。请先检查布局和判定标签，然后选择允许已审核的标签不匹配。"
     }
   },
   "advisoryDecision": {

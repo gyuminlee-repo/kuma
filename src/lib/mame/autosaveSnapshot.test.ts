@@ -155,7 +155,9 @@ describe("buildMameSnapshot", () => {
       cdsStart: 1,
       cdsEnd: 900,
       minFileSizeKb: 50,
+      minFilteredDepth: 47,
       manyCutoff: 5,
+      maxConsensusNFraction: 0.12,
       verdicts: [verdict],
       replicates: [replicate],
       summary: { total: 1, pass_count: 1, ambiguous_count: 0, fail_count: 0 },
@@ -196,6 +198,10 @@ describe("buildMameSnapshot", () => {
         selected_native_barcodes: ["sort_barcode07", "sort_barcode08"],
         detected_barcode_count: 3,
       },
+      parameters: {
+        min_read_count: 47,
+        max_consensus_n_fraction: 0.12,
+      },
     });
   });
 });
@@ -228,7 +234,9 @@ describe("buildMameSnapshot 경로 이식성", () => {
     cdsStart: 1,
     cdsEnd: 900,
     minFileSizeKb: 50,
+    minFilteredDepth: 30,
     manyCutoff: 5,
+    maxConsensusNFraction: 0,
     verdicts: [],
     replicates: [],
     summary: null,
@@ -283,8 +291,8 @@ describe("buildMameSnapshot 경로 이식성", () => {
     expect(snapshot.input.selected_wells).toBeNull();
   });
 
-  it("schema 를 4 로 올려 구 빌드가 새 스냅샷을 잘못 읽지 않게 한다", () => {
-    expect(buildMameSnapshot(pathState(), undefined, "/proj").schema).toBe(4);
+  it("schema 를 5 로 올려 구 빌드가 새 스냅샷을 잘못 읽지 않게 한다", () => {
+    expect(buildMameSnapshot(pathState(), undefined, "/proj").schema).toBe(5);
   });
 });
 

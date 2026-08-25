@@ -79,7 +79,7 @@ export function suggestRetryParams(
   const tmFwds = results.map((r) => r.tm_no_fwd).filter((v) => Number.isFinite(v));
   const tmRevs = results.map((r) => r.tm_no_rev).filter((v) => Number.isFinite(v));
   const tmOvs = results
-    .map((r) => (r as { tm_no_overlap?: number }).tm_no_overlap ?? defaults.tmOverlap)
+    .map((r) => r.tm_overlap)
     .filter((v) => Number.isFinite(v));
   const gcs = [
     ...results.map((r) => r.gc_fwd),

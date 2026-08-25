@@ -3,6 +3,7 @@ import i18next from "i18next";
 import { resolveResource } from "@tauri-apps/api/path";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
+import { buildKuroDesignInputPatch } from "../../lib/kuroResultReset";
 import type { AppState } from "../types";
 import type { Round } from "../../types/round";
 import {
@@ -43,8 +44,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   evolveproSelectedVariants: [],
   evolveproExtraExposed: 10,
 
-  setMutationInputMode: (mode) => set({ mutationInputMode: mode }),
-  setMutationText: (text) => set({ mutationText: text }),
+  setMutationInputMode: (mode) => set(buildKuroDesignInputPatch(get(), { mutationInputMode: mode })),
+  setMutationText: (text) => set(buildKuroDesignInputPatch(get(), { mutationText: text })),
 
   loadEvolveproCsv: async (filepath: string, topNOverride?: number) => {
     const gen = ++csvLoadGeneration;
@@ -205,7 +206,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   },
 
   setEvolveproMode: (mode: EvolveproMode) => {
-    set({ evolveproMode: mode });
+    const state = get();
+    set(buildKuroDesignInputPatch(state, { evolveproMode: mode }));
     // Switching between topN / pipeline changes which params are sent; reload
     // the already-loaded file so the backend re-applies the correct pipeline.
     const path = get().evolveproCsvPath;
@@ -213,20 +215,20 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       void get().loadEvolveproCsv(path);
     }
   },
-  setEvolveproVariantColumn: (col) => set({ evolveproVariantColumn: col, evolveproUsedVariantColumn: null }),
-  setEvolveproScoreColumn: (col) => set({ evolveproScoreColumn: col, evolveproUsedScoreColumn: null }),
-  setEvolveproScoreOrder: (order) => set({ evolveproScoreOrder: order }),
-  setEvolveproSheetName: (name) => set({ evolveproSheetName: name }),
+  setEvolveproVariantColumn: (col) => set(buildKuroDesignInputPatch(get(), { evolveproVariantColumn: col, evolveproUsedVariantColumn: null })),
+  setEvolveproScoreColumn: (col) => set(buildKuroDesignInputPatch(get(), { evolveproScoreColumn: col, evolveproUsedScoreColumn: null })),
+  setEvolveproScoreOrder: (order) => set(buildKuroDesignInputPatch(get(), { evolveproScoreOrder: order })),
+  setEvolveproSheetName: (name) => set(buildKuroDesignInputPatch(get(), { evolveproSheetName: name })),
   setEvolveproPreview: (preview) => set({ evolveproPreview: preview }),
 
   setEvolveproVariantSelected: (variant, selected) => {
     const current = get().evolveproSelectedVariants;
     if (selected) {
       if (!current.includes(variant)) {
-        set({ evolveproSelectedVariants: [...current, variant] });
+        set(buildKuroDesignInputPatch(get(), { evolveproSelectedVariants: [...current, variant] }));
       }
     } else {
-      set({ evolveproSelectedVariants: current.filter((v) => v !== variant) });
+      set(buildKuroDesignInputPatch(get(), { evolveproSelectedVariants: current.filter((v) => v !== variant) }));
     }
   },
 

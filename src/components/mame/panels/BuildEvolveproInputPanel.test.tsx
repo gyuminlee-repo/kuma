@@ -116,10 +116,23 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
     expect(buildEvolveproInput).toHaveBeenCalledWith({
       activity_path: "/project/activity/activity.csv",
       activity_scale: "relative_to_wt",
+      allow_label_mismatch: false,
       remeasure_report_xlsx: undefined,
       verdict_xlsx: "/project/ngs/verdict.xlsx",
       output_xlsx: RESULT.output_path,
     });
+  });
+
+  it("sends reviewed-label-mismatch acknowledgement", async () => {
+    seed(readyForm());
+    renderPanel();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Allow reviewed label mismatch" }));
+    await build();
+
+    expect(buildEvolveproInput).toHaveBeenCalledWith(expect.objectContaining({
+      allow_label_mismatch: true,
+    }));
   });
 
   it.each(WELL_LABELED_FORMS)("builds %s with a layout and one selected primary source", async (_name, form, primary) => {
@@ -130,6 +143,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
 
     expect(buildEvolveproInput).toHaveBeenCalledWith({
       ...primary,
+      allow_label_mismatch: false,
       remeasure_report_xlsx: undefined,
       verdict_xlsx: "/project/ngs/verdict.xlsx",
       output_xlsx: RESULT.output_path,
@@ -150,6 +164,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
       expect(buildEvolveproInput).toHaveBeenCalledWith({
         [paramKey]: path,
         layout_xlsx: undefined,
+        allow_label_mismatch: false,
         remeasure_report_xlsx: undefined,
         verdict_xlsx: "/project/ngs/verdict.xlsx",
         output_xlsx: RESULT.output_path,
@@ -171,6 +186,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
     expect(buildEvolveproInput).toHaveBeenCalledWith({
       numeric_report_xlsx: "/project/screen.xlsx",
       layout_xlsx: undefined,
+      allow_label_mismatch: false,
       expected_xlsx: "/project/expected.xlsx",
       remeasure_report_xlsx: undefined,
       remeasure_numeric_xlsx: undefined,
@@ -191,6 +207,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
     await build();
 
     expect(buildEvolveproInput).toHaveBeenCalledWith(expect.objectContaining({
+      allow_label_mismatch: false,
       remeasure_numeric_xlsx: "/project/confirm.xlsx",
       remeasure_report_xlsx: undefined,
       expected_xlsx: "/project/expected.xlsx",
@@ -219,6 +236,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
     await build();
 
     expect(buildEvolveproInput).toHaveBeenCalledWith(expect.objectContaining({
+      allow_label_mismatch: false,
       remeasure_report_xlsx: "/project/remeasure.xlsx",
     }));
   });

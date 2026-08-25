@@ -38,7 +38,6 @@ from sidecar_kuro.core import (
     _VALID_DNA_BASES,
 )
 from kuma_core.kuro.plate_mapper import deduplicate_reverse, generate_plate_map
-from sidecar_kuro.handlers.settings import load_bundle as _load_settings_bundle
 from sidecar_kuro.models import (
     AlternativesResultModel,
     CommitDesignResultParams,
@@ -492,13 +491,6 @@ def handle_design_sdm_primers(params: dict) -> dict:
 
     cancel_event = _core._begin_design_job()
 
-    # "Keep partial results" is the advertised default of the Settings control,
-    # and until now cancelling discarded everything regardless: a long run
-    # stopped at 90 of 96 mutations threw away all 90. Read once, before the
-    # work starts, so a preference change mid-run cannot decide the outcome of
-    # a run the user began under the old one.
-    _persist_partial = _load_settings_bundle().sidecar.persist_on_cancel == "partial"
-
     def _cancelled_result(
         partial_results: list | None = None,
         partial_candidates: dict | None = None,
@@ -509,7 +501,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
         it from the enclosing scope, so a cancellation point added before those
         names are bound cannot raise instead of cancelling.
         """
-        kept = list(partial_results or []) if _persist_partial else []
+        kept = list(partial_results or [])
         if kept:
             with _core._state_lock:
                 _core._state.results = kept

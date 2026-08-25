@@ -426,11 +426,9 @@ export interface StaleUnits {
  * The thresholds an `analyze` run was actually judged against, mirrored from
  * `python-core/sidecar_mame/handlers/analyze.py` (`compare_params`). Every
  * per-well number on `VerdictRecord` is a measurement; this is what each one
- * was compared to. Without it a reader cannot say why `read_count = 22`
- * failed, because the backend default applies whenever the caller omits the
- * field -- which is exactly what happens for `min_read_count`
- * (`src/store/mame/slices/inputSlice.ts` never sends it, so the backend
- * default of 30 governs and the store has no value to show).
+ * was compared to. The MAME form sends its `minFilteredDepth` as
+ * `min_read_count` (default 30, matching the handler fallback), so this
+ * record and the displayed input state name the same cutoff.
  *
  * These are the only thresholds reported, because they are the only ones the
  * handler resolves from caller params and hands to the pipeline. The
@@ -438,9 +436,6 @@ export interface StaleUnits {
  * every run, so they are absent here rather than reported as decisions nobody
  * made.
  *
- * Note what is NOT here: `minFilteredDepth` (store state, value 15) is a
- * display filter for the plate view and gates nothing. It must never be
- * rendered as a threshold a verdict was judged against.
  */
 export interface CompareParams {
   /**

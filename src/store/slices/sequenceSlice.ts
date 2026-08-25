@@ -1,7 +1,7 @@
 import type { StateCreator } from "zustand";
 import i18next from "i18next";
 import { sendRequest } from "../../lib/ipc-kuro";
-import { buildKuroResultResetPatch } from "../../lib/kuroResultReset";
+import { buildKuroDesignInputPatch, buildKuroResultResetPatch } from "../../lib/kuroResultReset";
 import { formatError } from "../../lib/utils";
 import type { AppState } from "../types";
 import { useMameAppStore } from "../mame/mameAppStore";
@@ -207,5 +207,5 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
     }
   },
 
-  setOrganism: (organism: string) => set({ organism }),
+  setOrganism: (organism: string) => set(buildKuroDesignInputPatch(get(), { organism })),
 });

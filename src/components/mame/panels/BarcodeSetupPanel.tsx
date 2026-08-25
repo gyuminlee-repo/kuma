@@ -18,7 +18,6 @@ import {
   deriveAnnotationGeneName,
   type CdsCandidate,
 } from "@/lib/sequence/autoDetectCds";
-import type { VariantSourceInfo } from "@/types/mame/barcode_package";
 import { useKumaProject } from "@/state/projectContext";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { sendRequest as sendKuroRequest } from "@/lib/ipc-kuro";
@@ -47,15 +46,9 @@ import { FileField } from "./FileField";
 
 const STORAGE_KEY = "kuma:mame:barcodeSetup";
 
-/**
- * 사이드카가 KURO export 판독에 쓰는 시트 이름. `kuma_core/mame/io/variant_list.py`
- * 의 `KURO_SHEET` 와 같은 값이어야 한다. 이 값을 그대로 보내면 백엔드가 종전
- * 강판독 경로를 타므로, 기본 선택으로 두어도 동작이 바뀌지 않는다.
- */
-const KURO_VARIANT_SHEET = "expected_mutations";
-
 interface SetupFormState {
   fastaPath: string;
+  topology: "linear" | "circular";
   geneStart: string;
   geneEnd: string;
   geneName: string;
@@ -73,6 +66,7 @@ interface SetupFormState {
 
 const DEFAULT_STATE: SetupFormState = {
   fastaPath: "",
+  topology: "linear",
   geneStart: "",
   geneEnd: "",
   geneName: "",
@@ -100,8 +94,13 @@ function loadFromStorage(): SetupFormState {
       p.polymerase === "Q5" || p.polymerase === "Taq" || p.polymerase === "Phusion" || p.polymerase === "KOD"
         ? p.polymerase
         : DEFAULT_STATE.polymerase;
+    const topology =
+      p.topology === "linear" || p.topology === "circular"
+        ? p.topology
+        : DEFAULT_STATE.topology;
     return {
       fastaPath: typeof p.fastaPath === "string" ? p.fastaPath : DEFAULT_STATE.fastaPath,
+      topology,
       geneStart: typeof p.geneStart === "string" ? p.geneStart : DEFAULT_STATE.geneStart,
       geneEnd: typeof p.geneEnd === "string" ? p.geneEnd : DEFAULT_STATE.geneEnd,
       geneName: typeof p.geneName === "string" ? p.geneName : DEFAULT_STATE.geneName,
@@ -186,15 +185,6 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
   const [seqLength, setSeqLength] = useState<number | null>(null);
   const setParams = useMameAppStore((s) => s.setParams);
   const setReferencePath = useMameAppStore((s) => s.setReferencePath);
-  // KURO expected_mutations xlsx. When already selected, the generated sample-map
-  // template is pre-filled with a draft well placement instead of headers only,
-  // so the operator verifies a draft rather than authoring the map from scratch.
-  const expectedPath = useMameAppStore((s) => s.expectedPath);
-  // 변이 목록 파일이 KURO export 가 아니고 열을 특정할 수 없을 때만 시트·열을
-  // 고르게 한다. KURO export 는 백엔드가 알아서 판독하므로 아무것도 묻지 않는다.
-  const [variantInfo, setVariantInfo] = useState<VariantSourceInfo | null>(null);
-  const [variantSheet, setVariantSheet] = useState("");
-  const [variantColumn, setVariantColumn] = useState("");
   const currentTargetLength = useMameAppStore((s) => s.rawRunParams.targetLength);
   const cdsCandidates = useMameAppStore((s) => s.cdsCandidates);
   const selectedCdsIndex = useMameAppStore((s) => s.selectedCdsIndex);
@@ -308,6 +298,7 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
     if (!samplePrefill) return;
     setForm({
       fastaPath: samplePrefill.fastaPath,
+      topology: "linear",
       barcodeSeedsPath: samplePrefill.barcodeSeedsPath,
       geneStart: "",
       geneEnd: "",
@@ -333,43 +324,15 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
   useEffect(() => {
     if (!sharedFastaPath) return;
     if (form.fastaPath) return;
-    setForm({ fastaPath: sharedFastaPath, geneStart: "", geneEnd: "", geneName: "" });
+    setForm({
+      fastaPath: sharedFastaPath,
+      topology: "linear",
+      geneStart: "",
+      geneEnd: "",
+      geneName: "",
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sharedFastaPath]);
-
-  // 변이 목록 파일이 바뀌면 어떤 시트·열을 가졌는지 확인한다. 실패해도 생성을
-  // 막지 않는다. 백엔드가 스스로 판단할 수 있는 파일이면 여기서 물을 것이 없다.
-  useEffect(() => {
-    const path = expectedPath.trim();
-    if (!path) {
-      setVariantInfo(null);
-      setVariantSheet("");
-      setVariantColumn("");
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      try {
-        const info = await sendMameRequest<VariantSourceInfo>("inspect_variant_source", { path });
-        if (cancelled) return;
-        setVariantInfo(info);
-        // KURO export 는 판독 시트를 그대로 골라 둔 상태로 시작한다. 그 값을 보내는
-        // 것과 안 보내는 것이 백엔드에서 같은 경로라, 기본값은 종전과 동일하고
-        // 다른 시트로 바꾸는 것만 명시적 override 가 된다.
-        setVariantSheet(
-          info.is_kuro_export ? KURO_VARIANT_SHEET : (info.sheets[0] ?? ""),
-        );
-        setVariantColumn(info.suggested_column ?? "");
-      } catch {
-        // 구버전 사이드카에는 이 메서드가 없다. 그 경우 기존 동작(KURO 전용)으로
-        // 남고 사용자는 아무 차이를 못 느낀다.
-        if (!cancelled) setVariantInfo(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [expectedPath]);
 
   // ─── 파일 브라우저 ───────────────────────────────────────────────────────
 
@@ -387,7 +350,13 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
       }),
     );
     if (selected) {
-      setForm({ fastaPath: selected, geneStart: "", geneEnd: "", geneName: "" });
+      setForm({
+        fastaPath: selected,
+        topology: "linear",
+        geneStart: "",
+        geneEnd: "",
+        geneName: "",
+      });
     }
   }, []);
 
@@ -426,6 +395,8 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
   void isStartValid;
   void isEndValid;
   const canGenerate = !isGenerating;
+  const isPlainFasta =
+    Boolean(form.fastaPath) && !ANNOTATED_EXTENSIONS.has(getExtension(form.fastaPath));
 
   // ─── 플랭크 preflight 경고 ────────────────────────────────────────────────
   // 경고일 뿐 차단하지 않는다. circular-plasmid wraparound 지원이 백엔드에
@@ -433,6 +404,8 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
   const flankMaxNum = parseInt(form.flankMax, 10);
   const flankWarnings: string[] = [];
   if (
+    isPlainFasta &&
+    form.topology === "linear" &&
     isRangeValid &&
     seqLength !== null &&
     Number.isFinite(flankMaxNum)
@@ -520,9 +493,11 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
       tm_min: optFloat(form.tmMin),
       tm_max: optFloat(form.tmMax),
       require_gc_clamp: form.requireGcClamp,
-      expected_mutations_path: expectedPath.trim() || undefined,
-      variant_sheet: variantSheet || undefined,
-      variant_column: variantColumn || undefined,
+      // Annotated formats carry topology in their record annotations, so an
+      // override would discard the source of truth. Plain FASTA has no such
+      // annotation (kuma_core.kuro.sdm_engine.detect_topology), therefore it
+      // must state the operator's template topology explicitly.
+      ...(isPlainFasta ? { topology: form.topology } : {}),
     };
 
     try {
@@ -615,6 +590,7 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
               value={form.fastaPath}
               onChange={(v) => setForm({
                 fastaPath: v,
+                topology: "linear",
                 geneStart: "",
                 geneEnd: "",
                 geneName: "",
@@ -628,6 +604,31 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
               readyLabel={t("mame.inputPanel.fileReady")}
               browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.barcodeSetup.cdsFasta") })}
             />
+            {isPlainFasta && (
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="template-topology"
+                  className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                >
+                  {t("mame.barcodeSetup.templateTopology")}
+                </Label>
+                <Select
+                  value={form.topology}
+                  onValueChange={(v) => setForm({ topology: v as "linear" | "circular" })}
+                >
+                  <SelectTrigger id="template-topology" className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="linear">{t("mame.barcodeSetup.topologyLinear")}</SelectItem>
+                    <SelectItem value="circular">{t("mame.barcodeSetup.topologyCircular")}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground/90">
+                  {t("mame.barcodeSetup.templateTopologyHelper")}
+                </p>
+              </div>
+            )}
             {fastaLoadError && (
               <p role="alert" className="text-xs text-destructive">
                 {t("mame.barcodeSetup.cdsFastaLoadError", { error: fastaLoadError })}
@@ -766,67 +767,6 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
           <h3 id="section-meta" className="mb-3 text-sm font-medium text-foreground">
             {t("mame.barcodeSetup.projectMetadata")}
           </h3>
-          {/*
-            변이 목록 매핑. KURO export 는 기본적으로 백엔드가 판독하지만, 한
-            워크북이 expected_mutations 시트와 실제 플레이트를 적은 시트를 함께
-            들고 있을 수 있다. 그때 앞쪽을 말없이 고르면 아무도 선택하지 않은
-            목록으로 96 well 전부가 배정된다. 그래서 시트가 둘 이상이면 KURO
-            export 에서도 선택지를 보여주고, 고르지 않으면 종전 경로를 탄다.
-            KURO 입력 단계가 EVOLVEpro 와 그 외 파일을 같은 방식으로 받는 것과
-            같은 규약이다.
-          */}
-          {variantInfo && (!variantInfo.is_kuro_export || variantInfo.sheets.length > 1) && (
-            <div className="grid grid-cols-2 gap-3">
-              {variantInfo.sheets.length > 1 && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="variant-sheet" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    {t("mame.barcodeSetup.variantSheet")}
-                  </Label>
-                  <Select value={variantSheet} onValueChange={setVariantSheet}>
-                    <SelectTrigger id="variant-sheet" className="h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {variantInfo.sheets.map((name) => (
-                        <SelectItem key={name} value={name}>{name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              <div className="space-y-1.5">
-                <Label htmlFor="variant-column" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {t("mame.barcodeSetup.variantColumn")}
-                </Label>
-                <Select
-                  value={variantColumn}
-                  onValueChange={setVariantColumn}
-                  disabled={variantSheet === KURO_VARIANT_SHEET}
-                >
-                  <SelectTrigger id="variant-column" className="h-8 text-xs">
-                    <SelectValue placeholder={t("mame.barcodeSetup.variantColumnPlaceholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(variantInfo.headers[variantSheet] ?? variantInfo.headers[""] ?? [])
-                      .filter((header) => header !== "")
-                      .map((header) => (
-                        <SelectItem key={header} value={header}>{header}</SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-caption text-muted-foreground">
-                  {/*
-                    강판독 시트를 고른 상태에서는 열 선택이 무의미하다. 백엔드가
-                    mutant_id 를 쓰고 status 필터를 먼저 걸기 때문이다. 조작은
-                    되는데 결과가 안 바뀌는 컨트롤을 두지 않는다.
-                  */}
-                  {variantSheet === KURO_VARIANT_SHEET
-                    ? t("mame.barcodeSetup.variantColumnKuroHelper")
-                    : t("mame.barcodeSetup.variantColumnHelper")}
-                </p>
-              </div>
-            </div>
-          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="gene-name" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

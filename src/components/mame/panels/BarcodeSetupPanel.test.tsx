@@ -103,7 +103,6 @@ describe("BarcodeSetupPanel project artifacts", () => {
 
   it("generates into the project design folder and registers all setup outputs", async () => {
     seedSetupForm();
-    useMameAppStore.getState().setExpectedPath("/proj/design/kuro_sdm_primers.xlsx");
 
     render(
       <ProjectProvider value={{ path: "/proj", name: "Demo", scratch: false }}>
@@ -120,8 +119,8 @@ describe("BarcodeSetupPanel project artifacts", () => {
         expect.objectContaining({
           output_dir: "/proj/design",
           project_root: "/proj",
-          expected_mutations_path: "/proj/design/kuro_sdm_primers.xlsx",
           gene_name: "target_gene",
+          topology: "linear",
         }),
         // sendRequest states the timeout the raw transport left implicit. Both
         // resolve to the same 60s: an omitted timeout made the Rust host fall
@@ -135,7 +134,6 @@ describe("BarcodeSetupPanel project artifacts", () => {
       expect.objectContaining({
         output_dir: "/proj/design",
         project_root: "/proj",
-        expected_mutations_path: "/proj/design/kuro_sdm_primers.xlsx",
       }),
       60_000,
     );

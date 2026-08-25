@@ -925,11 +925,9 @@ def _plate_capacity_finding(
     :data:`~kuma_core.mame.layout.DEFAULT_WT_PLACEMENT` via
     :func:`~kuma_core.mame.layout.resolve_wt_placement`, the same function
     every ``wt_placement``-accepting RPC resolves the param with).
-    ``handle_analyze`` passes what it read off ``params`` with that same
-    function, so the draft this grades is the draft the run will place.
-    ``handle_validate_inputs`` passes nothing: that RPC does not read
-    ``wt_placement`` today, so its capacity check stays on the pre-2026-08-18
-    default regardless of what a later run asks for.
+    Both ``handle_analyze`` and ``handle_validate_inputs`` pass their resolved
+    request value, so the pre-run capacity answer grades the exact draft a run
+    will place rather than the default layout.
     """
     from kuma_core.mame.io.variant_list import read_variant_source
     from kuma_core.mame.layout import (
@@ -1308,6 +1306,13 @@ def handle_validate_inputs(params: dict) -> dict:
     plate_order: dict | None = None
     barcode_axes: dict | None = None
     legacy_sample_map: dict | None = None
+    # Resolve this once with the same function and input as handle_analyze, then
+    # hand the value to the shared draft/capacity helper. The present core cap
+    # is 95 mutants for every policy, but the policy still defines the draft
+    # below that boundary and validation must never silently grade another one.
+    from kuma_core.mame.layout import resolve_wt_placement
+
+    wt_placement = resolve_wt_placement(params.get("wt_placement"))
 
     # The refusals this screen shares with the run itself. Collected from the
     # one function both entry points call, so a green check here cannot mean
@@ -1448,6 +1453,7 @@ def handle_validate_inputs(params: dict) -> dict:
                     expected_path,
                     _optional_str(params.get("variant_sheet")),
                     _optional_str(params.get("variant_column")),
+                    wt_placement,
                 )
                 if capacity_error is not None:
                     errors.append(capacity_error)

@@ -36,3 +36,40 @@ export function buildKuroResultResetPatch(): Partial<AppState> {
     backendDesignStateSynced: false,
   };
 }
+
+function sameDesignInputValue(current: unknown, next: unknown): boolean {
+  if (Object.is(current, next)) return true;
+  if (Array.isArray(current) && Array.isArray(next)) {
+    return current.length === next.length
+      && current.every((value, index) => sameDesignInputValue(value, next[index]));
+  }
+  if (
+    current !== null
+    && next !== null
+    && typeof current === "object"
+    && typeof next === "object"
+  ) {
+    const currentEntries = Object.entries(current);
+    const nextEntries = Object.entries(next);
+    return currentEntries.length === nextEntries.length
+      && currentEntries.every(([key, value]) =>
+        Object.prototype.hasOwnProperty.call(next, key)
+        && sameDesignInputValue(value, (next as Record<string, unknown>)[key]));
+  }
+  return false;
+}
+
+/**
+ * Applies a design-input update and invalidates derived KURO output only when
+ * its request-relevant value changed. Results have no per-setting provenance,
+ * so retaining them after a payload/input-selection change enables export
+ * under settings that did not produce those primers.
+ */
+export function buildKuroDesignInputPatch(
+  state: AppState,
+  inputPatch: Partial<AppState>,
+): Partial<AppState> {
+  const changed = Object.entries(inputPatch).some(([key, value]) =>
+    !sameDesignInputValue(state[key as keyof AppState], value));
+  return changed ? { ...inputPatch, ...buildKuroResultResetPatch() } : inputPatch;
+}

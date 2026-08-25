@@ -1,8 +1,10 @@
 """Unified Step 3 RPC integration tests."""
 from __future__ import annotations
 
+import importlib
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -133,6 +135,73 @@ def test_handler_reports_no_wt_replicates_for_a_prenormalized_sheet(tmp_path: Pa
     })
 
     assert response["wt_values"] == []
+
+
+def test_handler_forwards_complete_build_arguments_to_core(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Every handler argument must reach the core, including numeric confirmation."""
+    primary = tmp_path / "numeric-primary.xlsx"
+    confirmation = tmp_path / "numeric-confirmation.xlsx"
+    verdict = tmp_path / "verdict.xlsx"
+    expected = tmp_path / "expected.xlsx"
+    for path in (primary, confirmation, verdict, expected):
+        path.touch()
+
+    output = tmp_path / "output.xlsx"
+    gc_export = tmp_path / "gc-export.xlsx"
+    params = {
+        "activity_path": None,
+        "activity_scale": "relative_to_wt",
+        "gc_data_xlsx": None,
+        "round1_report_xlsx": None,
+        "numeric_report_xlsx": str(primary),
+        "remeasure_report_xlsx": None,
+        "remeasure_numeric_xlsx": str(confirmation),
+        "verdict_xlsx": str(verdict),
+        "layout_xlsx": None,
+        "expected_xlsx": str(expected),
+        "output_xlsx": str(output),
+        "mismatch_threshold": 0.25,
+        "gc_export_xlsx": str(gc_export),
+        "allow_label_mismatch": True,
+    }
+    forwarded: dict[str, object] = {}
+
+    def spy(output_xlsx: str, **kwargs: object) -> SimpleNamespace:
+        forwarded["output_xlsx"] = output_xlsx
+        forwarded.update(kwargs)
+        return SimpleNamespace(
+            output_path=output,
+            n_variants=0,
+            n_authoritative=0,
+            n_fallback_only=0,
+            warnings=[],
+            mismatched=[],
+            n_ngs_excluded=0,
+            ngs_excluded=[],
+            gc_export_path=None,
+            label_audit=None,
+            manifest_path=None,
+            primary_format="numeric",
+            input_count=0,
+            evaluable_count=0,
+            exclusion_reason_counts={},
+            normalization_sources={},
+            evidence_hash="",
+            artifact_hashes={},
+            wt_values=[],
+            variant_replicates={},
+        )
+
+    core_module = importlib.import_module(
+        "kuma_core.mame.activity.build_evolvepro_input"
+    )
+    monkeypatch.setattr(core_module, "build_evolvepro_input", spy)
+
+    handle_build_evolvepro_input(params)
+
+    assert forwarded == params
 
 
 def test_handler_rejects_missing_required_verdict(tmp_path: Path):

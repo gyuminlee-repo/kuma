@@ -129,6 +129,65 @@ describe("designSlice helpers included result view", () => {
   });
 });
 
+describe("design request rescue contract", () => {
+  const payloadParams = {
+    fastaPath: "/tmp/target.fasta",
+    targetStart: 0,
+    limitedText: "M1A",
+    selectedPolymerase: "KOD",
+    codonStrategy: "closest" as const,
+    organism: "E. coli",
+    tmFwdTarget: 62,
+    tmRevTarget: 58,
+    tmOverlapTarget: 42,
+    gcMin: 40,
+    gcMax: 60,
+    primerLenEnabled: true,
+    fwdLenMin: 17,
+    fwdLenMax: 39,
+    revLenMin: 19,
+    revLenMax: 27,
+    overlapMode: "partial" as const,
+    rescuePool: ["M2A"],
+    tolMax: 4,
+    randomSeed: null,
+  };
+
+  it("disables backend rescue when auto-rescue is off", () => {
+    const payload = buildDesignRequestPayload({
+      ...payloadParams,
+      fillOnFailure: false,
+    });
+
+    expect(payload).toMatchObject({ auto_relax: false });
+    expect(payload).not.toHaveProperty("rescue_pool");
+  });
+
+  it("enables backend relax when auto-rescue is on", () => {
+    const payload = buildDesignRequestPayload({
+      ...payloadParams,
+      fillOnFailure: true,
+    });
+
+    expect(payload).toMatchObject({ auto_relax: true });
+  });
+
+  it("uses the displayed forward range on both engine axes in full-overlap mode", () => {
+    const payload = buildDesignRequestPayload({
+      ...payloadParams,
+      overlapMode: "full",
+      fillOnFailure: true,
+    });
+
+    expect(payload).toMatchObject({
+      fwd_len_min: 17,
+      fwd_len_max: 39,
+      rev_len_min: 17,
+      rev_len_max: 39,
+    });
+  });
+});
+
 
 describe("prepareDesignInput selection set wiring", () => {
   const baseParams = {
@@ -192,6 +251,7 @@ describe("prepareDesignInput selection set wiring", () => {
   it("evolvepro rescue pool excludes intended mutations from selection set", () => {
     const result = prepareDesignInput({
       ...baseParams,
+      fillOnFailure: true,
       evolveproSelectedVariants: ["F89W"],
       evolveproRankedCandidates: [
         { variant: "F89W", y_pred: 0.9, aa_position: 89 },

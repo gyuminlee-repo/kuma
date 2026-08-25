@@ -621,9 +621,6 @@ def generate_mame_package(
     tm_max: float = 68.0,
     require_gc_clamp: bool = True,
     topology: str | None = None,
-    expected_mutations_path: Path | None = None,
-    variant_sheet: str | None = None,
-    variant_column: str | None = None,
 ) -> MamePackageResult:
     """Generate the complete MAME input package for a sequencing run.
 
@@ -683,18 +680,6 @@ def generate_mame_package(
         unrecognised); plain FASTA has no topology annotation and is always
         treated as "linear". Pass "linear" or "circular" explicitly to
         override auto-detection.
-    variant_sheet:
-        Sheet holding the variant list, when the file is not a KURO export and
-        the sheet cannot be inferred. Ignored for KURO exports.
-    variant_column:
-        Column holding the variant labels, for the same case. Ignored for KURO
-        exports and unnecessary when the header is a recognised name.
-    expected_mutations_path:
-        Accepted and unused. The sample-map template this once pre-filled is
-        gone: the plate is computed from the variant list at analyze time, so
-        nothing here needs to write it down. Kept as a parameter so a caller
-        built against the previous signature keeps working.
-
     Returns
     -------
     :class:`MamePackageResult` with absolute paths of all three output files
@@ -762,11 +747,6 @@ def generate_mame_package(
     )
 
     # Step 6: mame_context.json
-    #
-    # There is no step for a sample-map template any more. The variant list plus
-    # the fill rule is the plate, and writing a second copy of it into a
-    # spreadsheet only created a file that could disagree with the first.
-    del expected_mutations_path, variant_sheet, variant_column
     context_json_path = project_root / "mame_context.json"
     _write_mame_context_json(
         path=context_json_path,

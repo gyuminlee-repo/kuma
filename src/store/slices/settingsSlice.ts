@@ -82,9 +82,6 @@ export const createSettingsSlice: StateCreator<
       network: partial.network !== undefined
         ? { ...current.network, ...partial.network }
         : current.network,
-      sidecar: partial.sidecar !== undefined
-        ? { ...current.sidecar, ...partial.sidecar }
-        : current.sidecar,
     };
     set({ settings: next, isDirty: true });
 

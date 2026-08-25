@@ -85,7 +85,7 @@
     "diagnostics": "진단",
     "generateDiagnostics": "진단 생성",
     "generating": "생성 중...",
-    "diagnosticsNote": "앱 정보 및 충돌 로그가 포함된 JSON 번들을 저장합니다. 사용자 데이터나 시퀀스는 포함되지 않습니다.",
+    "diagnosticsNote": "선택한 위치에 JSON 번들을 저장합니다. 절대 파일 경로와 변이 또는 변이체 식별자를 포함한 원본 사이드카 로그나 오류 텍스트가 들어갈 수 있습니다. 공유 전 검토하세요.",
     "copyCrashLog": "충돌 로그 복사",
     "ok": "확인",
     "updates": "업데이트"
@@ -105,8 +105,8 @@
     "notificationsDisabled": "비활성화됨",
     "languageSelectionLabel": "언어 선택",
     "enableNotifications": "알림 활성화",
-    "notificationsNote": "5분 이상 걸리는 작업에 대해 알림이 표시됩니다.",
-    "sleepPrevention": "작업 실행 중 절전 모드 방지: 활성화됨.",
+    "notificationsNote": "5분을 초과한 KURO 설계 및 활동 병합 작업에 표시됩니다.",
+    "sleepPrevention": "절전 방지는 KURO 설계 및 활동 병합 중에 활성화됩니다.",
     "dataFolder": "데이터 폴더",
     "dataFolderLoading": "불러오는 중...",
     "dataFolderChange": "변경...",
@@ -115,8 +115,7 @@
     "close": "닫기",
     "tab": {
       "general": "일반",
-      "network": "네트워크",
-      "sidecar": "Sidecar"
+      "network": "네트워크"
     },
     "theme": {
       "label": "테마",
@@ -134,11 +133,6 @@
         "alphafold": "AlphaFold via EBI (구조 조회)",
         "interpro": "InterPro / Pfam via EBI (도메인 주석)"
       }
-    },
-    "sidecar": {
-      "persistOnCancel": "취소 시 처리",
-      "persistPartial": "부분 결과 유지",
-      "persistDiscard": "모든 결과 삭제"
     },
     "savedAt": "{{time}}에 저장됨"
   },
@@ -304,7 +298,7 @@
       "ingestBarcodeTitle": "Nanopore 바코드별 reads 묶음 (NB01, NB02, ...). 바코드 bin 하나가 샘플 하나가 됩니다.",
       "ingestAmpliconTitle": "앰플리콘 서열로 reads 묶음. 바코드를 공유하는 여러 앰플리콘이 있거나 서열 기반 역다중화 시 사용합니다.",
       "inputModeConsensusTitle": "사전 계산된 컨센서스 FASTA(바코드당 서열 1개)에서 시작합니다. 정렬 및 컨센서스 호출을 건너뜁니다.",
-      "inputModeSortedBarcodeTitle": "이미 정렬된 바코드 디렉토리(바코드당 fastq.gz)에서 시작합니다. MinKNOW 정렬을 건너뛰고 컨센서스 호출을 실행합니다.",
+      "inputModeSortedBarcodeTitle": "사전 계산된 컨센서스 FASTA 파일(웰당 하나의 서열)을 분석합니다. MinKNOW 정렬과 컨센서스 호출을 건너뜁니다.",
       "inputModeRawRunTitle": "MinKNOW 원시 실행 폴더(fastq_pass/ + 실행 메타데이터)에서 시작합니다. 바코드 정렬, 필터링, 컨센서스 호출로 이어지는 전체 파이프라인을 실행합니다.",
       "minFilteredDepth": "최소 Filtered Depth (reads)",
       "minFilteredDepthHelp": "length-window filter를 통과한 read 수 기준 cutoff입니다. 기본 depth 품질 기준입니다.",
@@ -366,7 +360,7 @@
       "toastSuccessDesc": "{{dir}}/ 폴더에 파일이 저장되었습니다.",
       "toastSuccessDescWithLength": "앰플리콘 길이: {{length}} bp. {{dir}}/ 폴더에 저장되었습니다.",
       "toastError": "생성 실패",
-      "overwriteConfirmDir": "{{dir}}/ 폴더가 이미 존재하며 덮어쓰게 됩니다 (primer CSV, barcode XLSX, amplicon FASTA). 계속하시겠습니까?",
+      "overwriteConfirmDir": "{{dir}}/ 폴더가 이미 있으며 덮어써집니다(barcodes_sequence.xlsx, {gene}_amplicon.fa 및 프로젝트 루트의 mame_context.json). 계속할까요?",
       "geneEndError": "gene_end는 gene_start보다 커야 합니다.",
       "noProjectWarning": "패키지를 생성하려면 프로젝트를 열어야 합니다. 파일 메뉴에서 프로젝트 열기를 선택하세요.",
       "barcodeSeedsXlsxHelper": "fwd_1..12, rev_1..8 시드 서열이 담긴 xlsx 파일입니다.",
@@ -390,7 +384,7 @@
       "cdsCandidateNoneDetected": "CDS를 감지하지 못했습니다. 좌표를 수동으로 입력하세요.",
       "cdsCandidateHelp": "FASTA에서 자동 감지된 CDS 후보. 선택 시 좌표가 자동 입력됨.",
       "geneNameHelp": "출력 파일명/라벨에 사용되는 짧은 gene 식별자(예: egfp).",
-      "polymeraseHelp": "바코드 PCR 프로토콜에 기록할 중합효소입니다. 메타데이터일 뿐이며 Tm이나 프라이머 계산에 관여하지 않습니다.",
+      "polymeraseHelp": "바코드 PCR에 사용할 중합효소입니다. 염 농도 프로필이 프라이머 선택 중 Tm 계산에 사용됩니다.",
       "geneStartHelp": "CDS 시작 좌표 (0-based, inclusive).",
       "geneEndHelp": "CDS 종료 좌표 (0-based, exclusive).",
       "flankMinHelp": "barcode primer 탐색용 CDS 양옆 flank 최소 길이(nt). 기본 100.",
@@ -411,11 +405,10 @@
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "폴더를 열지 못했습니다.",
-      "variantSheet": "변이 목록 시트",
-      "variantColumn": "변이 열",
-      "variantColumnPlaceholder": "열 선택",
-      "variantColumnHelper": "이 열의 행 순서대로 96-well에 배치됩니다. 채우는 방향은 플레이트의 세로 방향입니다. A1, B1, C1 순으로 H1까지 내려간 다음 A2로 넘어갑니다. WT 행이 있으면 그 자리를 대조군으로 쓰고, 대조군 행을 따로 추가하지 않습니다.",
-      "variantColumnKuroHelper": "KURO export 판독 시트를 고르면 열은 mutant_id 로 고정되고 status 필터가 먼저 적용됩니다. 플레이트를 적은 다른 시트를 고르면 열을 직접 지정할 수 있습니다.",
+      "templateTopology": "템플릿 위상",
+      "topologyLinear": "선형",
+      "topologyCircular": "원형",
+      "templateTopologyHelper": "FASTA 파일에는 위상 정보가 없습니다. 템플릿이 원점을 가로지를 때만 원형을 선택하세요.",
       "outputLocationStateLabel": "선택"
     },
     "activity": {
@@ -547,6 +540,8 @@
       "warningsLabel": "경고",
       "mismatchedLabel": "확인 측정과 1차 값 불일치",
       "mismatchedHint": "확인 측정 평균이 1차 값과 크게 다른 variant입니다.",
+      "allowLabelMismatch": "검토한 라벨 불일치 허용",
+      "allowLabelMismatchHelper": "감지된 라벨 교체에 대한 내보내기 차단을 해제합니다. 먼저 레이아웃과 판정 라벨을 확인하세요.",
       "mismatchedAuthoritative": "확인 측정",
       "mismatchedFallback": "1차 측정",
       "colVariant": "Variant",
@@ -978,7 +973,7 @@
         "placeholder": "폴더 선택; {{filename}} 파일이 생성됩니다",
         "stateLabel": "저장 위치",
         "helperText": "분석 보고서는 KURO 방식의 규칙 기반 .xlsx 파일명을 사용합니다",
-        "helpText": "분석 결과 Excel이 저장될 폴더입니다. 파일명은 날짜, 참조/입력 토큰, MAME 대상, 결과 수 토큰을 조합한 KURO 방식으로 자동 생성됩니다.",
+        "helpText": "파일명은 날짜, 참조 또는 입력 토큰 및 MAME 대상에서 자동 생성됩니다.",
         "reuseNotice": "이 폴더에 이전 실행 산출물이 있으면 조건이 일치하는 단위는 재사용되고 나머지는 덮어써집니다.",
         "overwriteConfirmDir": "{{dir}} 에 이전 분석 산출물(demux_filtered/)이 있습니다. 조건이 일치하는 단위는 재사용되고 나머지는 덮어쓰게 됩니다. 계속하시겠습니까?"
       },
@@ -1308,7 +1303,7 @@
           "effect": "진단용입니다. 어떤 게이트도 이 값을 읽지 않습니다. 값이 크면 read 가 모호하게 정렬된다는 뜻이며 보통 반복 서열이거나 레퍼런스가 틀린 경우입니다."
         },
         "spanFailed": {
-          "what": "정렬 구간이 레퍼런스 전체 길이를 덮지 못해 제외된 read 수입니다.",
+          "what": "정렬이 구성된 참조 길이 비율(기본값 98%)보다 적게 덮는 읽기가 제외되었습니다.",
           "stage": "정렬 필터 단계, MAPQ 필터 다음. consensus FASTA 로 분석한 실행에서는 0 입니다.",
           "effect": "진단용입니다. 어떤 게이트도 이 값을 읽지 않습니다. 값이 크면 read 가 잘렸거나 amplicon 이 레퍼런스보다 짧다는 뜻입니다."
         },
@@ -1577,22 +1572,22 @@
     "primerLenInvalidError": "최솟값은 최댓값보다 작아야 합니다",
     "designSectionLabel": "설계",
     "autoRescueLabel": "실패한 돌연변이 자동 구제",
-    "autoRescueTitle": "활성화 시 완화된 파라미터 4단계(top-N) 또는 6단계(pipeline)로 실패한 돌연변이를 재시도합니다. 비활성화 시 실패한 돌연변이는 그대로 유지됩니다.",
+    "autoRescueTitle": "활성화하면 sidecar의 완화된 제약 구제 단계와 프런트엔드 4단계(top-N) 또는 6단계(pipeline) 연쇄를 실행합니다. 비활성화하면 실패한 돌연변이를 자동 재시도하지 않습니다.",
     "seedLabel": "시드:",
-    "seedTitle": "선택적 정수 시드입니다. 실행 기록에 provenance 로 남습니다. 프라이머 설계는 결정론적이라 시드가 결과를 바꾸지는 않습니다.",
-    "seedAriaLabel": "랜덤 시드 (선택 사항)",
-    "seedFixed": "고정: {{seed}}",
-    "seedAuto": "자동",
+    "seedTitle": "선택적 정수 시드로, 설계 provenance에만 기록되며 primer 순위에는 영향을 주지 않습니다.",
+    "seedAriaLabel": "시드 (선택 사항)",
+    "seedFixed": "기록됨: {{seed}}",
+    "seedAuto": "기록 안 함",
     "tmPrimerHelp": "대칭형 full-overlap primer 목표 Tm(°C). 기본 62.",
     "tmFwdHelp": "partial-overlap 모드에서 forward primer 목표 Tm(°C). 낮을수록 mismatch 허용 증가.",
     "tmRevHelp": "reverse primer 목표 Tm(°C). 균형 잡힌 PCR은 tmFwd와 근접 권장.",
     "tmOverlapHelp": "두 primer 간 overlap 영역의 목표 Tm(°C).",
     "gcRangeHelp": "primer 영역 허용 GC content 범위(%). 권장 40-60.",
-    "primerLenLimitHelp": "primer 길이 제한 토글. off 시 Tm 단독 최적화로 길이 자유.",
-    "primerLenFwdHelp": "forward primer 길이 범위(nt). 기본 18-39이 대부분 SDM 케이스 포괄.",
+    "primerLenLimitHelp": "primer 길이 범위를 설정합니다. 끄면 engine은 선택한 polymerase profile의 길이 범위를 사용합니다.",
+    "primerLenFwdHelp": "forward primer 길이 범위(nt). 기본 17-39이 대부분 SDM 케이스 포괄.",
     "primerLenRevHelp": "reverse primer 길이 범위(nt). 기본 19-27.",
-    "autoRescueHelp": "1차 실패 mutation을 완화된 제약으로 2차 시도하여 자동 채움.",
-    "seedHelp": "재현 가능한 primer 순위용 random seed. 비우면 자동(시간 기반).",
+    "autoRescueHelp": "sidecar의 완화된 제약 구제 단계와 4단계(top-N) / 6단계(pipeline) 프런트엔드 연쇄를 제어합니다.",
+    "seedHelp": "provenance 메타데이터만 기록하며 primer 순위에는 영향을 주지 않습니다. 비우면 시드를 기록하지 않습니다.",
     "tmSectionHelp": "Tm 목표값은 engine이 primer 안정성과 선택성을 균형 잡는 기준."
   },
   "designReport": {
@@ -1641,7 +1636,7 @@
     "statPositionCoverageValue": "{{rescued}}/{{attempted}}개 구제",
     "statPoolCascade": "풀 cascade",
     "statPoolCascadeValue": "{{cascade}}개 ({{tried}}개 시도)",
-    "statAutoRelax": "자동 완화 (±3→±5°C)",
+    "statAutoRelax": "자동 완화 (Tm 허용오차 최대 +2 °C, GC 범위 최대 ±5%p, 최소 길이 최대 −2 nt)",
     "statAutoRetry": "자동 재시도 (제안)",
     "statCascadeRescues": "Cascade 구제",
     "statStillFailed": "여전히 실패",
@@ -1715,8 +1710,8 @@
     "minQuotaHelp": "domain별 최소 primer 할당(0-20). 각 domain 대표성 보장.",
     "poolKLabelHelp": "Pool-K 다양성 가중치 목표. 자동값은 서열 특성에서 유도.",
     "entropyWeightHelp": "entropy-guided primer 선택 vs 순수 다양성 가중치(0-1).",
-    "autoRedesignOnLoadHelp": "workspace 로드 시 primer design 자동 재실행.",
-    "savePipelineCacheHelp": "재실행 가속을 위해 파이프라인 중간 결과를 디스크에 저장.",
+    "autoRedesignOnLoadHelp": "활성화된 경우에만, 저장된 설계 결과가 없는 작업공간을 불러올 때 프라이머 설계를 자동으로 다시 실행합니다.",
+    "savePipelineCacheHelp": "작업공간 스냅샷에 대체 프라이머 캐시와 벤치마크 결과를 포함합니다.",
     "topPercentileHelp": "primer 채점 benchmark 상위 백분위(1-100) 컷오프.",
     "randomTrialsHelp": "benchmark용 random baseline 시행 횟수(1-1000). 클수록 안정.",
     "benchmarkRandomSeedHelp": "benchmark 재현성용 random seed. 비우면 자동.",
@@ -2011,7 +2006,7 @@
     "insideProject": "각 프로젝트 내부",
     "kuroDesc": "Kernel for Upstream Recombination Oligodesign. Gibson Assembly 템플릿 기반 SDM primer 일괄 설계 도구.",
     "mameDesc": "Mutagenesis Assessment & Microplate Export. Oxford Nanopore NGS 기반 변이 판정 도구.",
-    "autosaveNote": "입력값 및 파라미터는 프로젝트별로 자동 저장됩니다. 프로젝트 간 데이터가 섞이지 않습니다.",
+    "autosaveNote": "입력과 매개변수는 프로젝트별로 자동 저장됩니다. 절대 경로를 포함한 Barcode Setup 초안은 프로젝트 간에 공유됩니다.",
     "titleStart": "시작하기",
     "descStart": "프로젝트 기본 폴더를 선택하세요. kuma는 Kuro 설계와 Mame 판정 실행 결과를 각 프로젝트 폴더에 저장하여 장기 시퀀싱 작업 전반에 걸쳐 데이터를 보존합니다.",
     "chooseFolderBtn": "폴더 선택",
@@ -2106,7 +2101,7 @@
     "topNOnly": "Top-N만",
     "topNVariantsTitle": "y_pred 기준 Top-N 변이 (편집 가능)",
     "variantsLoaded": "{{count}}개 변이 불러옴",
-    "topNZeroHint": "top-N을 0으로 두면 CSV의 모든 변이를 불러옵니다",
+    "topNZeroHint": "Top-N의 범위는 1~96입니다. CSV에서 더 많은 변이를 읽으려면 값을 늘리세요.",
     "mutationsHelp": "HGVS 또는 단순 형식 mutation(예: A123V, L45*). 줄 단위 또는 콤마 구분.",
     "othersColumnMapping": "Column 매핑",
     "othersVariantColumn": "Mutation column",
@@ -3380,9 +3375,12 @@
   "errors": {
     "sidecar": {
       "methodNotFound": {
-        "kuro": "KURO 사이드카가 구버전입니다 (누락 메서드: {{method}}). `pnpm run sidecar:build` 후 재시도하세요.",
-        "mame": "MAME 사이드카가 구버전입니다 (누락 메서드: {{method}}). `pnpm run sidecar:build` 후 재시도하세요."
+        "kuro": "KURO 사이드카가 오래되었습니다 (없는 메서드: {{method}}). `pnpm run sidecar:build`를 실행한 뒤 다시 시도하세요.",
+        "mame": "MAME 사이드카가 오래되었습니다 (없는 메서드: {{method}}). `pnpm run sidecar:build`를 실행한 뒤 다시 시도하세요."
       }
+    },
+    "mame": {
+      "labelMismatchBlocked": "라벨 교체가 감지되어 내보내기를 차단했습니다. 레이아웃과 판정 라벨을 검토한 뒤 검토한 라벨 불일치 허용을 선택하세요."
     },
     "sequence": {
       "fastaNotSupported": "CDS annotation이 필요합니다. GenBank(.gb/.gbk) 또는 SnapGene(.dna) 파일을 사용하세요."

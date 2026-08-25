@@ -5,6 +5,7 @@ import { ProjectProvider } from "@/state/projectContext";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { RESULT_CONTRACT } from "@/lib/mame/resultContract";
+import { buildMameSnapshot } from "@/lib/mame/autosaveSnapshot";
 import { useRoundStore } from "@/store/round/roundSlice";
 import type { AutosaveSnapshot } from "@/lib/autosave";
 import type { SdmPrimerResult } from "@/types/models";
@@ -304,6 +305,31 @@ describe("useAutosaveHydration: analyze-result restore", () => {
 
   afterEach(() => {
     cleanup();
+  });
+
+  it("round-trips non-default analysis thresholds through the MAME snapshot", async () => {
+    act(() => {
+      useMameAppStore.getState().setParams({
+        minFilteredDepth: 47,
+        maxConsensusNFraction: 0.12,
+      });
+    });
+    const snapshot = buildMameSnapshot(useMameAppStore.getState());
+    // A reopened project starts from defaults; only the serialized snapshot can
+    // put these values back, so this catches a writer-only or reader-only fix.
+    useMameAppStore.getState().resetInput();
+    hooks.readAutosave.mockImplementation((_path: string, kind: string) =>
+      Promise.resolve(kind === "mame" ? { status: "ok", snapshot } : { status: "missing" }),
+    );
+    hooks.readMameResultSnapshot.mockResolvedValue({ status: "missing" });
+
+    renderHydration();
+
+    await waitFor(() => {
+      const state = useMameAppStore.getState();
+      expect(state.minFilteredDepth).toBe(47);
+      expect(state.maxConsensusNFraction).toBe(0.12);
+    });
   });
 
   it("replays the persisted result into the sidecar and lands on analyze.review", async () => {

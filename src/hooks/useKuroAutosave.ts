@@ -115,6 +115,10 @@ function kuroAutosaveSelector(s: AppState): readonly unknown[] {
     s.overlapMode,
     s.tmTolerance,
     s.randomSeed,
+    s.echoTransferVol,
+    s.echoQuadrant,
+    s.echoUsedQuadrants,
+    s.janusTransferVol,
     // benchmark (schema 5+)
     s.benchmarkTopPercentile,
     s.benchmarkRandomTrials,
@@ -129,6 +133,8 @@ function kuroAutosaveSelector(s: AppState): readonly unknown[] {
     s.manuallySwapped,
     s.customCandidates,
     s.rescuedMutationDetails,
+    s.evolveproSelectedVariants,
+    s.evolveproExtraExposed,
     // results extras (schema 5+)
     s.rescuedMutations,
     s.showBenchmark,

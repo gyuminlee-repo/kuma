@@ -37,10 +37,6 @@ WIRED: dict[str, tuple[str, str]] = {
     "consent_blast": ("src/store/slices/diversitySlice.ts", 'isNetworkServiceEnabled("blast")'),
     "consent_alphafold": ("src/store/slices/diversitySlice.ts", 'requireNetworkConsent("alphafold")'),
     "consent_interpro": ("src/store/slices/diversitySlice.ts", 'requireNetworkConsent("interpro")'),
-    "persist_on_cancel": (
-        "python-core/sidecar_kuro/handlers/design.py",
-        'persist_on_cancel == "partial"',
-    ),
 }
 
 # field -> why nothing acts on it. Move an entry to WIRED when that changes.
@@ -123,11 +119,7 @@ def test_a_bundle_from_an_older_build_still_loads():
         "language": "ko",
         "theme": "dark",
         "network": {"offline_mode": True, "consent_blast": False},
-        "sidecar": {
-            "concurrency_default": 8,
-            "cancel_timeout_secs": 90,
-            "persist_on_cancel": "discard",
-        },
+        "sidecar": {"concurrency_default": 8, "cancel_timeout_secs": 90},
         "telemetry": {"crash_log_auto_send": True, "anonymous_stats": True},
     }
     bundle = SettingsBundle(**legacy)
@@ -136,11 +128,9 @@ def test_a_bundle_from_an_older_build_still_loads():
     assert bundle.theme == "dark"
     assert bundle.network.offline_mode is True
     assert bundle.network.consent_blast is False
-    assert bundle.sidecar.persist_on_cancel == "discard"
     # What was removed is gone rather than resurrected under another name.
+    assert not hasattr(bundle, "sidecar")
     assert not hasattr(bundle, "telemetry")
-    assert not hasattr(bundle.sidecar, "concurrency_default")
-    assert not hasattr(bundle.sidecar, "cancel_timeout_secs")
 
 
 def test_inert_fields_are_the_ones_the_dialog_disables():

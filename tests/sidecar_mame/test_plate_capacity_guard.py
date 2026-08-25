@@ -27,6 +27,7 @@ workbook, which are display only: nothing here is a value the operator sets.
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 import openpyxl
 import pytest
@@ -38,6 +39,7 @@ from sidecar_mame.handlers.analyze import (
     handle_analyze,
     handle_validate_inputs,
 )
+from kuma_core.mame.layout import WtPlacement
 
 _F_TAIL = "cacaggaggttaaacc"
 _R_TAIL = "tgcgttgcgctctag"
@@ -297,6 +299,54 @@ def test_validate_inputs_refuses_what_the_run_would_refuse(tmp_path: Path) -> No
     # Same inputs, same answer from the run.
     with pytest.raises(ValueError):
         handle_analyze(_analyze_params(tmp_path, expected))
+
+
+def test_validate_and_analyze_pass_the_same_wt_policy_to_capacity(
+    tmp_path: Path,
+) -> None:
+    """The validation gate must draft the same no-control plate as the run."""
+    expected = _write_expected(tmp_path / "expected.xlsx", 95)
+    validate = _validate_params(tmp_path, expected)
+    validate["wt_placement"] = "none"
+
+    # 95 is below the current 95-mutant cap, so this proves the policy reaches
+    # the shared capacity helper rather than only observing two matching
+    # over-capacity refusals. Before the fix validation supplied only three
+    # positional arguments while analyze supplied the resolved fourth.
+    with patch(
+        "sidecar_mame.handlers.analyze._plate_capacity_finding",
+        wraps=_plate_capacity_finding,
+    ) as capacity:
+        result = handle_validate_inputs(validate)
+        analyze = _analyze_params(tmp_path, expected)
+        analyze["wt_placement"] = "none"
+        analyzed = handle_analyze(analyze)
+
+    assert result["valid"] is True
+    assert result["errors"] == []
+    assert analyzed["layout_provenance"]["source"] == "inferred_draft_layout"
+    assert [call.args[3] for call in capacity.call_args_list] == [
+        WtPlacement.NONE,
+        WtPlacement.NONE,
+    ]
+
+
+def test_validate_and_analyze_both_refuse_96_mutants_without_a_wt_well(
+    tmp_path: Path,
+) -> None:
+    """The present 95-mutant cap applies to every WT policy, including none."""
+    expected = _write_expected(tmp_path / "expected.xlsx", 96)
+    validate = _validate_params(tmp_path, expected)
+    validate["wt_placement"] = "none"
+
+    result = handle_validate_inputs(validate)
+
+    assert result["valid"] is False
+    assert any("96 designed" in error for error in result["errors"])
+    analyze = _analyze_params(tmp_path, expected)
+    analyze["wt_placement"] = "none"
+    with pytest.raises(ValueError, match="96 designed"):
+        handle_analyze(analyze)
 
 
 def test_validate_inputs_accepts_what_the_run_accepts(tmp_path: Path) -> None:
