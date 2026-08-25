@@ -3387,7 +3387,7 @@
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
     "labels": {
-      "continue_walking": "Weiterlaufen",
+      "continue_walking": "Einzelmutante fortsetzen",
       "switch_combinatorial": "Auf combinatorial umstellen",
       "stop": "Stopp",
       "deferred": "Zurückgestellt"
@@ -3399,7 +3399,7 @@
       "no_saturation_signal": "Kein Sättigungssignal in dieser Runde: Single-mutant walking lohnt sich weiterhin.",
       "hysteresis_pending": "Sättigung trat in dieser Runde auf, in der vorherigen jedoch nicht; zwei aufeinanderfolgende Runden sind erforderlich.",
       "low_confidence": "Ein Wechsel zu combinatorial passte zu den Signalen, der Bootstrap-Test bestätigte ihn jedoch nicht.",
-      "stop_low_confidence": "Ein Stopp passte zu den Signalen, der Bootstrap-Test bestätigte ihn jedoch nicht, daher weiterlaufen.",
+      "stop_low_confidence": "Ein Stopp passte zu den Signalen, der Bootstrap-Test bestätigte ihn jedoch nicht, daher wird die Einzelmutante fortgesetzt.",
       "saturated_with_throughput": "Zwei Runden in Folge gesättigt, und die nächste Platte bietet Platz für den combinatorial-Schritt.",
       "saturated_no_throughput": "Zwei Runden in Folge gesättigt, ohne verbleibenden Durchsatz für einen combinatorial-Schritt."
     },
@@ -3408,7 +3408,7 @@
     },
     "missingInputsNote": "Beurteilt ohne {{missing}}, die Sättigung stützt sich daher allein auf den Verlauf der Hit-Rate.",
     "notAssessableBadge": "Nicht beurteilbar",
-    "notAssessableSummary": "Die Signale deuten auf einen Übergang hin, doch dessen Bestätigung erfordert {{missing}}, die in diesen Dateien nicht enthalten sind. {{blocked}} lässt sich mit dieser Eingabe nicht beantworten; möglich ist nur die Prüfung auf Weiterlaufen.",
+    "notAssessableSummary": "Die Signale deuten auf einen Übergang hin, doch dessen Bestätigung erfordert {{missing}}, die in diesen Dateien nicht enthalten sind. {{blocked}} lässt sich mit dieser Eingabe nicht beantworten; möglich ist nur die Prüfung, ob die Einzelmutante fortgesetzt werden soll.",
     "notAssessableInsufficientSummary": "Die Signale deuten auf einen Übergang hin, doch dessen Bestätigung erfordert mindestens {{required}} {{missing}}, und für diese Runde sind {{count}} erfasst. Darunter gibt es keine Rauschschätzung als Prüfgröße, die Sättigung stützt sich damit allein auf den Verlauf der Hit-Rate, und {{blocked}} lässt sich daraus nicht beantworten.",
     "prefillFromRounds": "Mit {{n}} in Schritt 4.1 erzeugten Rundenergebnissen vorbelegt. Eintraege lassen sich frei hinzufuegen oder entfernen.",
     "prefillFromManifest": "Mit der zuletzt fuer dieses Projekt erfassten EVOLVEpro-Eingabe vorbelegt. Die Datei stammt aus der Zeit vor der rundenweisen Erfassung, traegt keine Rundennummer und steht deshalb an erster Stelle.",
@@ -3417,7 +3417,7 @@
     "restoredUnverifiedNote": "Diese Anwendung hat {{files}} nicht geschrieben und kann daher nicht bestaetigen, dass diese Dateien seitdem unveraendert sind.",
     "rebuiltNote": "Eine fruehere Antwort vom {{when}} wurde aus genau diesen Dateien ({{files}}) berechnet, bevor Schritt 4.1 sie neu erzeugt hat. Sie beschreibt den vorherigen Stand und bleibt als Verlauf erhalten. Fuer den aktuellen Stand die Klassifikation erneut ausfuehren.",
     "supersededNote": "Eine fruehere Antwort vom {{when}} wurde aus einer anderen Liste berechnet ({{files}}). Sie sagt nichts ueber die jetzt gewaehlten Dateien und wird deshalb nicht angezeigt.",
-    "headingHelp": "Bündelt EVOLVEpro-Ergebnisse über mehrere Runden, um ein Sättigungssignal zu erkennen, und schlägt Weiterlaufen, Umstellung auf combinatorial, Stopp oder Zurückstellung vor. Schreibgeschützt: Hier wird nichts bestätigt oder gespeichert, und bei weniger als 3 Runden gibt es noch keine Einschätzung."
+    "headingHelp": "Bündelt EVOLVEpro-Ergebnisse über mehrere Runden, um ein Sättigungssignal zu erkennen, und schlägt Fortsetzen der Einzelmutante, Umstellung auf combinatorial, Stopp oder Zurückstellung vor. Schreibgeschützt: Hier wird nichts bestätigt oder gespeichert, und bei weniger als 3 Runden gibt es noch keine Einschätzung."
   },
   "validation": {
     "missing": {

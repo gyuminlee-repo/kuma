@@ -3387,7 +3387,7 @@
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
     "labels": {
-      "continue_walking": "Seguir caminando",
+      "continue_walking": "Seguir con mutante único",
       "switch_combinatorial": "Cambiar a combinatorial",
       "stop": "Detener",
       "deferred": "Aplazado"
@@ -3399,7 +3399,7 @@
       "no_saturation_signal": "Sin señal de saturación en esta ronda: el single-mutant walking sigue dando resultado.",
       "hysteresis_pending": "Hubo saturación en esta ronda pero no en la anterior, y se requieren dos rondas consecutivas.",
       "low_confidence": "Cambiar a combinatorial encajaba con las señales, pero la prueba bootstrap no lo respaldó.",
-      "stop_low_confidence": "Detener encajaba con las señales, pero la prueba bootstrap no lo respaldó, así que se sigue caminando.",
+      "stop_low_confidence": "Detener encajaba con las señales, pero la prueba bootstrap no lo respaldó, así que se continúa con el mutante único.",
       "saturated_with_throughput": "Saturado durante dos rondas consecutivas, y la siguiente placa tiene espacio para el paso combinatorial.",
       "saturated_no_throughput": "Saturado durante dos rondas consecutivas, sin capacidad restante para un paso combinatorial."
     },
@@ -3408,7 +3408,7 @@
     },
     "missingInputsNote": "Evaluado sin {{missing}}, de modo que la saturación se basa únicamente en la tendencia de la hit rate.",
     "notAssessableBadge": "No evaluable",
-    "notAssessableSummary": "Las señales apuntan a una transición, pero confirmarla requiere {{missing}}, que estos archivos no contienen. Con esta entrada no se puede responder {{blocked}}; solo cabe comprobar si conviene seguir caminando.",
+    "notAssessableSummary": "Las señales apuntan a una transición, pero confirmarla requiere {{missing}}, que estos archivos no contienen. Con esta entrada no se puede responder {{blocked}}; solo cabe comprobar si conviene continuar con el mutante único.",
     "notAssessableInsufficientSummary": "Las señales apuntan a una transición, pero confirmarla requiere al menos {{required}} {{missing}} y en esta ronda constan {{count}}. Por debajo de esa cifra no hay estimación de ruido con la que contrastar, así que la saturación se basa solo en la tendencia de la hit rate y con ella no se puede responder {{blocked}}.",
     "prefillFromRounds": "Rellenado con {{n}} salida(s) de ronda generadas en el paso 4.1. Las entradas se pueden anadir o quitar libremente.",
     "prefillFromManifest": "Rellenado con la ultima entrada EVOLVEpro registrada para este proyecto. Es anterior al registro por ronda, no lleva numero de ronda y por eso se coloco primero.",
@@ -3417,7 +3417,7 @@
     "restoredUnverifiedNote": "Esta aplicacion no escribio {{files}}, por lo que no puede confirmar que sigan sin cambios desde entonces.",
     "rebuiltNote": "Una respuesta anterior del {{when}} se calculo a partir de estos mismos archivos ({{files}}) antes de que el paso 4.1 los regenerara. Describe la version previa y se conserva como historial. Ejecute la clasificacion de nuevo para la version actual.",
     "supersededNote": "Una respuesta anterior del {{when}} se calculo a partir de otra lista ({{files}}). No dice nada sobre los archivos seleccionados ahora, por eso no se muestra.",
-    "headingHelp": "Combina los resultados de EVOLVEpro de varias rondas para buscar una señal de saturación y sugerir seguir caminando, cambiar a combinatorial, detener o aplazar. Solo lectura: aquí no se confirma ni se guarda nada, y con menos de 3 rondas aún no hay veredicto."
+    "headingHelp": "Combina los resultados de EVOLVEpro de varias rondas para buscar una señal de saturación y sugerir continuar con el mutante único, cambiar a combinatorial, detener o aplazar. Solo lectura: aquí no se confirma ni se guarda nada, y con menos de 3 rondas aún no hay veredicto."
   },
   "validation": {
     "missing": {
