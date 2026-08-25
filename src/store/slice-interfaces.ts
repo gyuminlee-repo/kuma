@@ -310,6 +310,13 @@ export interface DesignSlice {
 // ---------------------------------------------------------------------------
 // NetworkConsentSlice
 // ---------------------------------------------------------------------------
+/**
+ * The external services the Settings dialog lets a user switch off one at a
+ * time. Each name is the suffix of the `consent_*` field in the settings
+ * bundle, so the guard can look a service up without a second mapping table.
+ */
+export type NetworkService = "uniprot" | "blast" | "alphafold" | "interpro";
+
 export interface NetworkConsentSlice {
   // State
   /** 외부 서비스 호출 동의 여부 */
@@ -331,10 +338,20 @@ export interface NetworkConsentSlice {
   /**
    * 외부 네트워크 호출 진입 전 호출.
    * - offlineMode ON: false 즉시 반환
+   * - `service` 가 Settings 에서 꺼져 있으면: false 즉시 반환 (모달 없음)
    * - 동의 완료: true 즉시 반환
    * - 미동의: 동의 모달 표시 후 Promise resolve
+   *
+   * `service` 를 생략하면 서비스별 스위치는 건너뛰고 전역 동의만 본다.
+   * 호출부가 어느 서비스를 부르는지 알면 반드시 넘긴다: 넘기지 않으면 그
+   * 서비스의 Settings 스위치가 아무 일도 하지 않는다.
    */
-  requireNetworkConsent: () => Promise<boolean>;
+  requireNetworkConsent: (service?: NetworkService) => Promise<boolean>;
+  /**
+   * Settings 의 서비스별 스위치 상태. 꺼져 있으면 false.
+   * 번들에 키가 없으면 켜진 것으로 본다 (Pydantic 기본값과 같다).
+   */
+  isNetworkServiceEnabled: (service: NetworkService) => boolean;
 }
 
 // ---------------------------------------------------------------------------

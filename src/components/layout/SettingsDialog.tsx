@@ -35,6 +35,34 @@ import { useAppStore } from "../../store/appStore";
 import { mapThemeToBundle } from "../../store/slices/settingsSlice";
 
 // §8 A11y: colorblind mode localStorage key (shared with MenuBar)
+/**
+ * Settings a user can change that nothing in the app reads yet.
+ *
+ * A control that stores a preference and changes no behaviour is a promise the
+ * app does not keep, which is how a run pinned to 18 nt came back with 17mers:
+ * the fill-on-failure box read as a gate and gated nothing. These five are the
+ * same shape, found by auditing every settings field for a consumer:
+ *
+ * - concurrency_default  designs run one mutation after another; there is no
+ *                        parallel job pool for this number to cap.
+ * - cancel_timeout_secs  the only graceful-kill callers pass a literal 2 s
+ *                        (src-tauri/src/lib.rs), and no Rust code reads the
+ *                        preferences bundle at all.
+ * - crash_log_auto_send  nothing sends crash reports.
+ * - anonymous_stats      nothing sends usage data.
+ *
+ * They stay visible and keep their stored value, but are disabled and labelled,
+ * so the dialog states what is true. Delete a name from this list at the moment
+ * the behaviour lands, not before: tests/sidecar_kuro/test_settings_contract.py
+ * compares this list against the settings model and fails on either drift.
+ */
+export const INACTIVE_SETTINGS = [
+  "concurrency_default",
+  "cancel_timeout_secs",
+  "crash_log_auto_send",
+  "anonymous_stats",
+] as const;
+
 const CB_KEY = "kuma:kuro:colorblindMode";
 
 interface SettingsDialogProps {
@@ -325,7 +353,11 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
                 <label key={key} className="flex items-center gap-2 text-sm cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={settings?.network?.[key] ?? false}
+                    // Absent means enabled: SettingsNetwork in
+                    // python-core/sidecar_kuro/models.py defaults every
+                    // consent_* to True, so `?? false` drew four unchecked
+                    // boxes over a bundle that said the opposite.
+                    checked={settings?.network?.[key] ?? true}
                     onChange={(e) => handleConsentChange(key, e.target.checked)}
                     className="h-4 w-4 accent-primary"
                   />
@@ -354,12 +386,14 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
                 max={16}
                 value={settings?.sidecar?.concurrency_default ?? 4}
                 onChange={(e) => handleConcurrencyChange(Number(e.target.value))}
-                className="w-24 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                disabled
+                className="w-24 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 aria-describedby="settings-concurrency-hint"
               />
               <p id="settings-concurrency-hint" className="text-xs text-muted-foreground">
                 {t("settings.sidecar.concurrencyHint")}
               </p>
+              <p className="text-xs text-warning">{t("settings.inactiveHint")}</p>
             </section>
 
             {/* Cancel timeout */}
@@ -379,7 +413,8 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
                   max={120}
                   value={settings?.sidecar?.cancel_timeout_secs ?? 30}
                   onChange={(e) => handleCancelTimeoutChange(Number(e.target.value))}
-                  className="w-24 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  disabled
+                  className="w-24 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   aria-describedby="settings-cancel-timeout-hint"
                 />
                 <span className="text-sm text-muted-foreground">sec</span>
@@ -387,6 +422,7 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
               <p id="settings-cancel-timeout-hint" className="text-xs text-muted-foreground">
                 {t("settings.sidecar.cancelTimeoutHint")}
               </p>
+              <p className="text-xs text-warning">{t("settings.inactiveHint")}</p>
             </section>
 
             {/* Persist on cancel */}
@@ -430,7 +466,8 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
                   id="settings-crashlog-auto"
                   checked={settings?.telemetry?.crash_log_auto_send ?? false}
                   onChange={(e) => handleCrashLogAutoSendChange(e.target.checked)}
-                  className="h-4 w-4 accent-primary"
+                  disabled
+                  className="h-4 w-4 accent-primary disabled:cursor-not-allowed disabled:opacity-50"
                   aria-describedby="settings-crashlog-hint"
                 />
                 <span className="text-foreground">{t("settings.telemetry.crashLog")}</span>
@@ -438,6 +475,7 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
               <p id="settings-crashlog-hint" className="text-xs text-muted-foreground">
                 {t("settings.telemetry.crashLogHint")}
               </p>
+              <p className="text-xs text-warning">{t("settings.inactiveHint")}</p>
             </section>
 
             {/* Anonymous stats */}
@@ -451,7 +489,8 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
                   id="settings-anon-stats"
                   checked={settings?.telemetry?.anonymous_stats ?? false}
                   onChange={(e) => handleAnonymousStatsChange(e.target.checked)}
-                  className="h-4 w-4 accent-primary"
+                  disabled
+                  className="h-4 w-4 accent-primary disabled:cursor-not-allowed disabled:opacity-50"
                   aria-describedby="settings-anon-hint"
                 />
                 <span className="text-foreground">{t("settings.telemetry.anonymousStats")}</span>
@@ -459,6 +498,7 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
               <p id="settings-anon-hint" className="text-xs text-muted-foreground">
                 {t("settings.telemetry.anonymousStatsHint")}
               </p>
+              <p className="text-xs text-warning">{t("settings.inactiveHint")}</p>
             </section>
           </TabsContent>
         </Tabs>

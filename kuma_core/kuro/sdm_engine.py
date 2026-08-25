@@ -168,6 +168,39 @@ def _calc_sdm_tm(seq: str) -> float:
     )
 
 
+# Length fallbacks for design_single_sdm, used when neither the caller nor the
+# polymerase profile supplies a bound. Named because the rescue cascade in
+# sidecar_kuro.handlers.design has to resolve the same floors before it can
+# lower them, and a second copy of the numbers would drift.
+DEFAULT_OVERLAP_LEN = 18
+DEFAULT_FWD_LEN_MIN = 18
+DEFAULT_FWD_LEN_MAX = 39
+DEFAULT_REV_LEN_MIN = 19
+DEFAULT_REV_LEN_MAX = 27
+
+
+# Manual-design priority order used at the bench when the automatic run misses
+# the spec (Hyemin, 2026-08-24). Priority 1 is primer length >= 18 nt, enforced
+# as a hard bound by the length arguments rather than scored here. Priority 2 is
+# proximity to the target Tm. Priority 3 breaks a near-tie toward the cooler
+# primer: one below target still anneals and extends, while one above target can
+# outrun the extension step and prime elsewhere.
+#
+# Implemented as an asymmetric distance instead of an epsilon bucket so the
+# ranking stays a total order with no boundary artefact. A candidate above the
+# target is preferred only when it is more than _TM_OVERSHOOT_WEIGHT closer in
+# relative terms: hot wins iff dev_cool > (1 + weight) * dev_hot.
+_TM_OVERSHOOT_WEIGHT = 0.2
+
+
+def _tm_score(tm: float, target: float) -> float:
+    """Distance from the target Tm, surcharged when the primer runs hot."""
+    dev = tm - target
+    if dev > 0:
+        return dev * (1.0 + _TM_OVERSHOOT_WEIGHT)
+    return -dev
+
+
 def _check_secondary_structure(
     result: SdmPrimerResult,
     warn_tm: float = 40.0,
@@ -389,10 +422,10 @@ def _design_full_overlap(
     mutant_codon: str,
     target_tm: float,
     tolerance: float,
-    fwd_len_min: int = 17,
-    fwd_len_max: int = 39,
-    rev_len_min: int = 17,
-    rev_len_max: int = 39,
+    fwd_len_min: int = DEFAULT_FWD_LEN_MIN,
+    fwd_len_max: int = DEFAULT_FWD_LEN_MAX,
+    rev_len_min: int = DEFAULT_FWD_LEN_MIN,
+    rev_len_max: int = DEFAULT_FWD_LEN_MAX,
     profile: PolymeraseProfile | None = None,
 ) -> tuple[str, str, float, float, int] | None:
     """Full overlap primer design.
@@ -466,8 +499,8 @@ def _extend_forward(
     tolerance: float,
     profile: PolymeraseProfile | None,
     min_downstream: int = 4,
-    fwd_len_min: int = 17,
-    fwd_len_max: int = 39,
+    fwd_len_min: int = DEFAULT_FWD_LEN_MIN,
+    fwd_len_max: int = DEFAULT_FWD_LEN_MAX,
 ) -> tuple[str, str, float] | None:
     """Extend forward primer: overlap + mutant codon + downstream extension.
 
@@ -493,7 +526,7 @@ def _extend_forward(
 
         tm = _calc_sdm_tm(candidate)
         if tm_min <= tm <= tm_max:
-            diff = abs(tm - target_tm)
+            diff = _tm_score(tm, target_tm)
             if diff < best_diff:
                 best_diff = diff
                 nonoverlap = mutant_codon + downstream_seq[:ext_len]
@@ -512,8 +545,8 @@ def _extend_reverse(
     target_tm: float,
     tolerance: float,
     profile: PolymeraseProfile | None,
-    rev_len_min: int = 19,
-    rev_len_max: int = 27,
+    rev_len_min: int = DEFAULT_REV_LEN_MIN,
+    rev_len_max: int = DEFAULT_REV_LEN_MAX,
 ) -> tuple[str, str, float] | None:
     """Extend reverse primer: upstream extension + rc(overlap).
 
@@ -542,7 +575,7 @@ def _extend_reverse(
 
         tm = _calc_sdm_tm(candidate)
         if tm_min <= tm <= tm_max:
-            diff = abs(tm - target_tm)
+            diff = _tm_score(tm, target_tm)
             if diff < best_diff:
                 best_diff = diff
                 nonoverlap = candidate[-ext_len:] if ext_len > 0 else ""
@@ -903,10 +936,10 @@ def _search_candidates(
     min_downstream: int,
     gc_min: float = 40.0,
     gc_max: float = 60.0,
-    fwd_len_min: int = 17,
-    fwd_len_max: int = 39,
-    rev_len_min: int = 19,
-    rev_len_max: int = 27,
+    fwd_len_min: int = DEFAULT_FWD_LEN_MIN,
+    fwd_len_max: int = DEFAULT_FWD_LEN_MAX,
+    rev_len_min: int = DEFAULT_REV_LEN_MIN,
+    rev_len_max: int = DEFAULT_REV_LEN_MAX,
 ) -> list[SdmPrimerResult]:
     """Search for SDM primer candidates at a given tolerance.
 
@@ -984,9 +1017,9 @@ def _search_candidates(
         codon_penalty = (codon_changes - 1) * 2.0  # 1bp=0, 2bp=2, 3bp=4
 
         penalty = (
-            abs(tm_fwd - tm_target_fwd)
-            + abs(tm_rev - tm_target_rev)
-            + abs(overlap_tm - tm_target_overlap)
+            _tm_score(tm_fwd, tm_target_fwd)
+            + _tm_score(tm_rev, tm_target_rev)
+            + _tm_score(overlap_tm, tm_target_overlap)
             + gc_penalty
             + codon_penalty
         )
@@ -1025,15 +1058,6 @@ def _search_candidates(
     return candidates
 
 
-# Length fallbacks for design_single_sdm, used when neither the caller nor the
-# polymerase profile supplies a bound. Named because the rescue cascade in
-# sidecar_kuro.handlers.design has to resolve the same floors before it can
-# lower them, and a second copy of the numbers would drift.
-DEFAULT_OVERLAP_LEN = 18
-DEFAULT_FWD_LEN_MIN = 17
-DEFAULT_FWD_LEN_MAX = 39
-DEFAULT_REV_LEN_MIN = 19
-DEFAULT_REV_LEN_MAX = 27
 
 
 def design_single_sdm(
@@ -1168,7 +1192,7 @@ def design_single_sdm(
                 )
                 codon_penalty = (codon_changes - 1) * 2.0
 
-                penalty = abs(tm_fwd - tm_target_fwd) + gc_penalty + codon_penalty
+                penalty = _tm_score(tm_fwd, tm_target_fwd) + gc_penalty + codon_penalty
 
                 warnings: list[str] = []
                 if len(fwd_seq) > 60:
@@ -1335,13 +1359,13 @@ def diagnose_sdm_failure(
     if overlap_len is None:
         overlap_len = profile.overlap_len if profile.overlap_len is not None else 18
     if fwd_len_min is None:
-        fwd_len_min = profile.fwd_len_min if profile.fwd_len_min is not None else 17
+        fwd_len_min = profile.fwd_len_min if profile.fwd_len_min is not None else DEFAULT_FWD_LEN_MIN
     if fwd_len_max is None:
-        fwd_len_max = profile.fwd_len_max if profile.fwd_len_max is not None else 39
+        fwd_len_max = profile.fwd_len_max if profile.fwd_len_max is not None else DEFAULT_FWD_LEN_MAX
     if rev_len_min is None:
-        rev_len_min = profile.rev_len_min if profile.rev_len_min is not None else 19
+        rev_len_min = profile.rev_len_min if profile.rev_len_min is not None else DEFAULT_REV_LEN_MIN
     if rev_len_max is None:
-        rev_len_max = profile.rev_len_max if profile.rev_len_max is not None else 27
+        rev_len_max = profile.rev_len_max if profile.rev_len_max is not None else DEFAULT_REV_LEN_MAX
 
     tm_target_fwd = profile.opt_tm_fwd if profile.opt_tm_fwd is not None else 62.0
     tm_target_rev = profile.opt_tm_rev if profile.opt_tm_rev is not None else 58.0

@@ -92,6 +92,7 @@
   },
   "settings": {
     "title": "Configurações",
+    "inactiveHint": "Ainda não ativo: esta preferência é salva, mas nada a lê.",
     "accessibility": "Acessibilidade",
     "colorblindMode": "Auxílio de cor (prefixo de forma)",
     "colorblindModeDesc": "Adiciona marcadores de forma aos indicadores de status para que a cor não seja o único diferenciador.",
@@ -2381,6 +2382,7 @@
   "diversity": {
     "offlineReason": "Modo offline",
     "consentReason": "Consentimento para serviço externo é necessário",
+    "serviceDisabledReason": "o serviço está desativado nas Configurações",
     "domainFetchCancelled": "Busca de domínio cancelada: {{reason}}",
     "uniprotSearchCancelled": "Busca UniProt cancelada: {{reason}}",
     "alphafoldFetchCancelled": "Busca do AlphaFold cancelada: {{reason}}",
@@ -2537,12 +2539,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Mutações cujo primer já está no comprimento mínimo agora são recuperadas em vez de relatadas sem par válido.",
-      "O primer recuperado se anela na mesma faixa que o restante da placa, porque encurtar agora é uma opção.",
-      "A rodada que revelou isso vai de 93 de 95 para 95 de 95, sem alterar os primers que já funcionavam."
+      "Uma execução com o mínimo de comprimento fixado em 18 nt não devolve mais 17meros, e a caixa de preenchimento após falha agora controla todos os resgates.",
+      "A ordenação dos iniciadores segue a regra de bancada: ao menos 18 nt, depois o mais perto do Tm alvo e, a igual distância, o mais frio.",
+      "Os quatro interruptores de consentimento por serviço não são mais apenas armazenados: recusam de fato o serviço que nomeiam.",
+      "Cancelar um desenho mantém os iniciadores já produzidos, que é o que o valor padrão dessa opção sempre prometeu.",
+      "Ajustes que nada lê ficam desativados e sinalizados em vez de parecerem ativos."
     ],
-    "highlightsStamp": "0.16.35+d628e48a",
+    "highlightsStamp": "0.16.36+5119f52e",
     "releases": {
+      "0.16.36": [
+        "Uma execução com o mínimo de comprimento fixado em 18 nt não devolve mais 17meros, e a caixa de preenchimento após falha agora controla todos os resgates.",
+        "A ordenação dos iniciadores segue a regra de bancada: ao menos 18 nt, depois o mais perto do Tm alvo e, a igual distância, o mais frio.",
+        "Os quatro interruptores de consentimento por serviço não são mais apenas armazenados: recusam de fato o serviço que nomeiam.",
+        "Cancelar um desenho mantém os iniciadores já produzidos, que é o que o valor padrão dessa opção sempre prometeu.",
+        "Ajustes que nada lê ficam desativados e sinalizados em vez de parecerem ativos."
+      ],
       "0.16.28": [
         "Cinco seções de run health que o aplicativo media em toda execução e nunca desenhava agora aparecem na tela de revisão, em uma seção que começa fechada.",
         "A cobertura informa a uniformidade por poço e não apenas uma média, de modo que um poço com uma lacuna não é mais lido como um coberto de forma uniforme.",
@@ -2806,6 +2817,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.36": "5119f52e",
       "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",

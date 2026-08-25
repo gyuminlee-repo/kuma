@@ -1,5 +1,41 @@
 # Changelog
 
+## v0.16.36 (A box that was unchecked, and a floor that moved anyway)
+
+A plate came back carrying 17 nt primers from a run whose length limit was set to 18, with the fill-on-failure box unchecked. Both halves of that sentence have the same cause. The request carried auto_relax as a constant, so the sidecar relax pass ran no matter what the box said, and that pass lowers each length floor by two nucleotides. The floor a user typed was never a bound.
+
+The relax pass itself was deliberate, added in v0.16.34 so a primer stuck at its shortest allowed length has somewhere cooler to go. What was missing is the two limits on it. The box now gates it, along with the pool cascade, and the absolute floor is 18 nt rather than 15, which is where the bench rule puts it. Floors above 18 still move when the box is checked, since that is what checking it asks for.
+
+The bench also writes primers in a stated order: length of at least 18 nt first, then as close to the target melting temperature as the sequence allows, and between two candidates about equally close, the cooler one. The first two were already in the engine. The third was not, so a near-tie fell to whatever order the search happened to produce. Distance to the target now carries a surcharge when a primer runs hot, which makes a hotter candidate win only when it is meaningfully closer, and the same score drives the per-side extension search so the cooler solution is offered rather than merely preferred afterwards.
+
+Auditing the rest of the application for controls of the same shape, a box that stores a preference and gates nothing, turned up six more in Settings. The four per-service consent switches wrote their flag into the preferences file and nothing read it: every external call went through one global consent flag, so unchecking NCBI BLAST left BLAST running. Each external entry point now names the service it is about to call, and BLAST, which is the secondary step inside UniProt search rather than an entry point of its own, is narrowed away instead of refusing the search. Keep partial results was the advertised default of the cancel control while cancelling discarded everything, so stopping a run at 90 of 96 mutations threw away all 90.
+
+The remaining four have nowhere to land. Designs run one mutation at a time, so there is no parallel job pool for a concurrency number to cap; the only graceful-kill callers pass a literal two seconds and no Rust code reads the preferences file at all; and nothing sends crash reports or usage data. Those controls keep their stored value but are disabled and labelled, so the dialog states what is true.
+
+Two guards keep this from recurring quietly. One requires every field of the settings bundle to be declared either wired, naming the file that acts on it and a string proving the file still does, or inert, naming why not. The other looks for a request flag pinned to a boolean literal, which is the shape no consumer check can see, since the control in question had consumers all along.
+
+### Highlights
+
+- A run pinned to an 18 nt primer floor no longer returns 17mers, and the fill-on-failure box now gates every rescue the run attempts.
+- Primer ranking follows the bench order: at least 18 nt, then closest to the target Tm, and between two equally close, the cooler one.
+- The four per-service consent switches now refuse the service they name instead of only being stored.
+- Cancelling a design keeps the primers it already produced, which is what the cancel setting has always said it would do.
+- Settings that nothing reads are disabled and labelled rather than left looking active.
+
+### Fixed
+
+- The design request carried auto_relax as a constant, so the sidecar relax pass ran with the fill-on-failure box unchecked and lowered the primer length floor below the requested one. The pool cascade was sent unconditionally for the same reason.
+- The absolute floor the relax pass clamps to was 15 nt, below the 18 nt the bench treats as the minimum. The retry suggestion could propose a floor below 18 for the same reason.
+- Ranking scored the distance to the target melting temperature symmetrically, so a candidate above target and one below it, equally far away, were separated by search order rather than by preference.
+- The per-service consent switches were stored and never read. Enforcement was a single global flag, so switching one service off changed nothing.
+- Cancelling a design discarded every primer already produced, regardless of the cancel setting, whose default says to keep them.
+- The consent checkboxes rendered as unchecked over a settings model that defaults each of them to on, so a fresh install showed the opposite of what was stored.
+
+### Changed
+
+- The six general polymerase profiles and the engine fallback floor the forward primer at 18 nt rather than 17.
+- Four Settings controls with no implementation behind them are disabled and carry a notice, rather than appearing to work.
+
 ## v0.16.35 (The run that scores three plates, or one, depending on a checkbox)
 
 MAME had no screenshots. The user guide describes four steps across five pages and shows nothing, so this release adds a capture harness for it and the twelve frames it produces, taken from a real nanopore run of 288 barcoded fastq files.

@@ -29,6 +29,13 @@ function median(values: number[]): number {
     : sorted[mid];
 }
 
+/**
+ * Priority 1 of the bench rule: no primer is written shorter than 18 nt, so no
+ * suggested or relaxed floor may propose one. Mirrors _LEN_FLOOR in
+ * python-core/sidecar_kuro/handlers/design.py.
+ */
+export const MIN_PRIMER_LEN = 18;
+
 const FALLBACK = {
   tmFwd: 62,
   tmRev: 58,
@@ -37,7 +44,7 @@ const FALLBACK = {
   gcMax: 65,
   fwdLenMin: 22,
   fwdLenMax: 35,
-  revLenMin: 18,
+  revLenMin: 19,
   revLenMax: 30,
   tolMax: 5,
 };
@@ -94,10 +101,10 @@ export function suggestRetryParams(
     tmOverlap: roundTo(median(tmOvs), 1),
     gcMin: clamp(Math.floor(gcMinObs - 5), 10, 90),
     gcMax: clamp(Math.ceil(gcMaxObs + 5), 10, 95),
-    fwdLenMin: clamp(fwdMinObs - 2, 15, 60),
-    fwdLenMax: clamp(fwdMaxObs + 2, 15, 60),
-    revLenMin: clamp(revMinObs - 2, 15, 60),
-    revLenMax: clamp(revMaxObs + 2, 15, 60),
+    fwdLenMin: clamp(fwdMinObs - 2, MIN_PRIMER_LEN, 60),
+    fwdLenMax: clamp(fwdMaxObs + 2, MIN_PRIMER_LEN, 60),
+    revLenMin: clamp(revMinObs - 2, MIN_PRIMER_LEN, 60),
+    revLenMax: clamp(revMaxObs + 2, MIN_PRIMER_LEN, 60),
     tolMax: 6,
     sampleSize: results.length,
   };

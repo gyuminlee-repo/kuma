@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { SdmPrimerResult } from "../../types/models";
 import {
   addDesignResultState,
+  buildDesignRequestPayload,
   buildIncludedPlateState,
   getIncludedDesignResults,
   prepareDesignInput,
@@ -199,5 +200,56 @@ describe("prepareDesignInput selection set wiring", () => {
     });
     expect(result.rescuePool).not.toContain("F89W");
     expect(result.rescuePool).toContain("EXTRA1");
+  });
+});
+
+describe("buildDesignRequestPayload rescue gating", () => {
+  const base = {
+    fastaPath: "/tmp/seq.gb",
+    targetStart: 100,
+    limitedText: "A1G",
+    selectedPolymerase: "KOD",
+    codonStrategy: "closest" as const,
+    organism: "ecoli",
+    tmFwdTarget: 62,
+    tmRevTarget: 58,
+    tmOverlapTarget: 42,
+    gcMin: 40,
+    gcMax: 60,
+    primerLenEnabled: true,
+    fwdLenMin: 18,
+    fwdLenMax: 39,
+    revLenMin: 19,
+    revLenMax: 27,
+    overlapMode: "partial" as const,
+    rescuePool: ["A1V"],
+    tolMax: 4,
+    randomSeed: null,
+  };
+
+  it("leaves every rescue off when the fill-on-failure box is unchecked", () => {
+    // The box promises that a failed mutation stays failed. The sidecar relax
+    // pass used to run anyway, because auto_relax went out as a constant, and
+    // it takes two nt off the length floor: a run pinned to 18 came back with
+    // 17mers nobody asked for.
+    const payload = buildDesignRequestPayload({ ...base, fillOnFailure: false });
+    expect(payload.auto_relax).toBe(false);
+    expect(payload).not.toHaveProperty("rescue_pool");
+    expect(payload.fwd_len_min).toBe(18);
+  });
+
+  it("turns both rescues on when the box is checked", () => {
+    const payload = buildDesignRequestPayload({ ...base, fillOnFailure: true });
+    expect(payload.auto_relax).toBe(true);
+    expect(payload.rescue_pool).toEqual(["A1V"]);
+  });
+
+  it("omits the length bounds when the length limit itself is off", () => {
+    const payload = buildDesignRequestPayload({
+      ...base,
+      primerLenEnabled: false,
+      fillOnFailure: false,
+    });
+    expect(payload).not.toHaveProperty("fwd_len_min");
   });
 });

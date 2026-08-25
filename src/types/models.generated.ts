@@ -914,6 +914,7 @@ export interface SearchUniprotParams {
   known_accession?: string;
   organism?: string;
   translation?: string;
+  use_blast?: boolean;
   [k: string]: unknown;
 }
 /**

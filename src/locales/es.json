@@ -92,6 +92,7 @@
   },
   "settings": {
     "title": "Configuración",
+    "inactiveHint": "Aún no activo: esta preferencia se guarda, pero nada la lee.",
     "accessibility": "Accesibilidad",
     "colorblindMode": "Asistencia de color (prefijo de forma)",
     "colorblindModeDesc": "Añade marcadores de forma a los indicadores de estado para que el color no sea el único diferenciador.",
@@ -2381,6 +2382,7 @@
   "diversity": {
     "offlineReason": "Modo offline",
     "consentReason": "Se requiere consentimiento para servicio externo",
+    "serviceDisabledReason": "el servicio está desactivado en Ajustes",
     "domainFetchCancelled": "Obtención de dominios cancelada: {{reason}}",
     "uniprotSearchCancelled": "Búsqueda UniProt cancelada: {{reason}}",
     "alphafoldFetchCancelled": "Obtención de AlphaFold cancelada: {{reason}}",
@@ -2537,12 +2539,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Las mutaciones cuyo cebador ya está en la longitud mínima ahora se recuperan en lugar de informarse sin par válido.",
-      "El cebador recuperado se une en el mismo rango que el resto de la placa, porque ahora acortar es una opción.",
-      "La ronda que reveló esto pasa de 93 de 95 a 95 de 95, sin cambiar los cebadores que ya funcionaban."
+      "Una ejecución con el mínimo de longitud fijado en 18 nt ya no devuelve 17meros, y la casilla de relleno tras fallo controla ahora todos los rescates.",
+      "El orden de los cebadores sigue la regla del laboratorio: al menos 18 nt, luego lo más cerca posible del Tm objetivo y, a igual distancia, el más frío.",
+      "Los cuatro interruptores de consentimiento por servicio ya no solo se guardan: rechazan de verdad el servicio que nombran.",
+      "Cancelar un diseño conserva los cebadores ya generados, que es lo que el valor por defecto de esa opción siempre prometió.",
+      "Los ajustes que nada lee aparecen desactivados y señalados en lugar de parecer operativos."
     ],
-    "highlightsStamp": "0.16.35+d628e48a",
+    "highlightsStamp": "0.16.36+5119f52e",
     "releases": {
+      "0.16.36": [
+        "Una ejecución con el mínimo de longitud fijado en 18 nt ya no devuelve 17meros, y la casilla de relleno tras fallo controla ahora todos los rescates.",
+        "El orden de los cebadores sigue la regla del laboratorio: al menos 18 nt, luego lo más cerca posible del Tm objetivo y, a igual distancia, el más frío.",
+        "Los cuatro interruptores de consentimiento por servicio ya no solo se guardan: rechazan de verdad el servicio que nombran.",
+        "Cancelar un diseño conserva los cebadores ya generados, que es lo que el valor por defecto de esa opción siempre prometió.",
+        "Los ajustes que nada lee aparecen desactivados y señalados en lugar de parecer operativos."
+      ],
       "0.16.28": [
         "Cinco secciones de run health que la aplicación medía en cada ejecución y nunca dibujaba ya aparecen en la pantalla de revisión, en una sección que empieza cerrada.",
         "La cobertura informa de la uniformidad por pocillo y no solo de una media, de modo que un pocillo con un hueco ya no se lee como uno cubierto de manera uniforme.",
@@ -2806,6 +2817,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.36": "5119f52e",
       "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",

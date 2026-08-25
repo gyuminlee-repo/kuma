@@ -14,7 +14,7 @@ import type {
   LinkerHandling,
 } from "../../types/models";
 
-import type { DiversitySlice } from "../slice-interfaces";
+import type { DiversitySlice, NetworkService } from "../slice-interfaces";
 export type { DiversitySlice };
 
 import { resolveSelectionDomains } from "./inputSlice.helpers";
@@ -82,6 +82,22 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     const translation = gene?.translation ?? "";
     if (!gene || !translation) return;
     void state.searchUniprot(gene.gene, gene.organism ?? state.organism, translation, gene.uniprot_accession ?? "");
+  }
+
+  /**
+   * Why an external call was refused. Three causes, and they are not the same
+   * message: offline mode, the service switched off on its own in Settings, or
+   * consent never granted. Before this existed the middle case reported itself
+   * as "consent required", which sent users to a dialog that would not have
+   * changed the outcome.
+   */
+  function refusalReason(service: NetworkService): string {
+    const state = get();
+    if (state.offlineMode) return i18next.t("diversity.offlineReason");
+    if (!state.isNetworkServiceEnabled(service)) {
+      return i18next.t("diversity.serviceDisabledReason");
+    }
+    return i18next.t("diversity.consentReason");
   }
 
   // NOTE: 호출자(searchUniprot)가 requireNetworkConsent 통과를 보장함.
@@ -191,9 +207,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   },
 
   fetchDomains: async (accession: string, clearCandidates = false) => {
-    const consentGranted = await get().requireNetworkConsent();
+    const consentGranted = await get().requireNetworkConsent("interpro");
     if (!consentGranted) {
-      const reason = get().offlineMode ? i18next.t("diversity.offlineReason") : i18next.t("diversity.consentReason");
+      const reason = refusalReason("interpro");
       set({ statusMessage: i18next.t("diversity.domainFetchCancelled", { reason }) });
       return;
     }
@@ -406,9 +422,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   },
 
   searchUniprot: async (geneName: string, organism: string, translation: string, knownAccession: string) => {
-    const consentGranted = await get().requireNetworkConsent();
+    const consentGranted = await get().requireNetworkConsent("uniprot");
     if (!consentGranted) {
-      const reason = get().offlineMode ? i18next.t("diversity.offlineReason") : i18next.t("diversity.consentReason");
+      const reason = refusalReason("uniprot");
       set({ statusMessage: i18next.t("diversity.uniprotSearchCancelled", { reason }) });
       return;
     }
@@ -419,6 +435,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
       // Keep the client timeout longer so successful long-running searches
       // are not rejected locally before the sidecar returns.
       const result = await sendRequest("search_uniprot", {
+        use_blast: get().isNetworkServiceEnabled("blast"),
         gene_name: geneName,
         organism,
         translation,
@@ -461,9 +478,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   },
 
   fetchStructure: async (accession: string) => {
-    const consentGranted = await get().requireNetworkConsent();
+    const consentGranted = await get().requireNetworkConsent("alphafold");
     if (!consentGranted) {
-      const reason = get().offlineMode ? i18next.t("diversity.offlineReason") : i18next.t("diversity.consentReason");
+      const reason = refusalReason("alphafold");
       set({ statusMessage: i18next.t("diversity.alphafoldFetchCancelled", { reason }) });
       return;
     }
@@ -590,11 +607,12 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     const cached = pdbTextCache.get(key);
     if (cached !== undefined) return cached;
     const promise = (async () => {
-      const consentGranted = await get().requireNetworkConsent();
+      // RCSB rather than AlphaFold, but it is the same structure-lookup switch
+      // as far as a user reading Settings is concerned, and leaving it ungated
+      // would make that switch a partial promise.
+      const consentGranted = await get().requireNetworkConsent("alphafold");
       if (!consentGranted) {
-        const reason = get().offlineMode
-          ? i18next.t("diversity.offlineReason")
-          : i18next.t("diversity.consentReason");
+        const reason = refusalReason("alphafold");
         set({ statusMessage: reason });
         pdbTextCache.delete(key);
         return null;
@@ -618,11 +636,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     const cached = esmfoldCache.get(clean);
     if (cached !== undefined) return cached;
     const promise = (async () => {
-      const consentGranted = await get().requireNetworkConsent();
+      const consentGranted = await get().requireNetworkConsent("alphafold");
       if (!consentGranted) {
-        const reason = get().offlineMode
-          ? i18next.t("diversity.offlineReason")
-          : i18next.t("diversity.consentReason");
+        const reason = refusalReason("alphafold");
         set({ statusMessage: i18next.t("diversity.esmfoldCancelled", { reason }) });
         esmfoldCache.delete(clean);
         return null;
@@ -657,11 +673,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   },
 
   fetchActiveSite: async (accession: string): Promise<FetchActiveSiteResult | null> => {
-    const consentGranted = await get().requireNetworkConsent();
+    const consentGranted = await get().requireNetworkConsent("uniprot");
     if (!consentGranted) {
-      const reason = get().offlineMode
-        ? i18next.t("diversity.offlineReason")
-        : i18next.t("diversity.consentReason");
+      const reason = refusalReason("uniprot");
       set({ statusMessage: reason });
       return null;
     }
@@ -695,11 +709,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     pdbText?: string | null;
     coordinateFrame?: "accession" | "reference";
   }): Promise<ComputeDispersionResult | null> => {
-    const consentGranted = await get().requireNetworkConsent();
+    const consentGranted = await get().requireNetworkConsent("uniprot");
     if (!consentGranted) {
-      const reason = get().offlineMode
-        ? i18next.t("diversity.offlineReason")
-        : i18next.t("diversity.consentReason");
+      const reason = refusalReason("uniprot");
       set({ statusMessage: reason });
       return null;
     }
@@ -730,11 +742,9 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   },
 
   annotateReferenceDomains: async () => {
-    const consentGranted = await get().requireNetworkConsent();
+    const consentGranted = await get().requireNetworkConsent("interpro");
     if (!consentGranted) {
-      const reason = get().offlineMode
-        ? i18next.t("diversity.offlineReason")
-        : i18next.t("diversity.consentReason");
+      const reason = refusalReason("interpro");
       set({ statusMessage: i18next.t("diversity.sequenceDomainScanCancelled", { reason }) });
       return;
     }

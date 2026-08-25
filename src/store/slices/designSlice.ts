@@ -55,7 +55,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   gcMin: 40,
   gcMax: 60,
   primerLenEnabled: true,
-  fwdLenMin: 17,
+  fwdLenMin: 18,
   fwdLenMax: 39,
   revLenMin: 19,
   revLenMax: 27,
@@ -260,6 +260,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         rescuePool: prepared.rescuePool,
         tolMax: state.tmTolerance,
         randomSeed,
+        fillOnFailure,
       });
       const result = await sendRequest("design_sdm_primers", payload, 300_000);
       if (result.cancelled) {

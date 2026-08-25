@@ -92,6 +92,7 @@
   },
   "settings": {
     "title": "Paramètres",
+    "inactiveHint": "Pas encore actif : cette préférence est enregistrée mais rien ne la lit.",
     "accessibility": "Accessibilité",
     "colorblindMode": "Aide couleur (préfixe de forme)",
     "colorblindModeDesc": "Ajoute des marqueurs de forme aux indicateurs de statut afin que la couleur ne soit pas le seul critère.",
@@ -2381,6 +2382,7 @@
   "diversity": {
     "offlineReason": "Mode hors-ligne",
     "consentReason": "Consentement au service externe requis",
+    "serviceDisabledReason": "le service est désactivé dans les Paramètres",
     "domainFetchCancelled": "Récupération de domaine annulée : {{reason}}",
     "uniprotSearchCancelled": "Recherche UniProt annulée : {{reason}}",
     "alphafoldFetchCancelled": "Récupération AlphaFold annulée : {{reason}}",
@@ -2537,12 +2539,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les mutations dont l amorce est déjà à la longueur minimale sont désormais récupérées au lieu d être signalées sans paire valide.",
-      "L amorce récupérée s hybride dans la même plage que le reste de la plaque, car raccourcir est maintenant une option.",
-      "La série qui a révélé ce problème passe de 93 sur 95 à 95 sur 95, sans modifier les amorces déjà réussies."
+      "Une exécution dont la longueur minimale est fixée à 18 nt ne renvoie plus de 17mères, et la case de remplissage après échec contrôle désormais chaque sauvetage.",
+      "Le classement des amorces suit la règle de paillasse : au moins 18 nt, puis au plus près du Tm cible, et à distance égale la plus froide.",
+      "Les quatre interrupteurs de consentement par service ne sont plus seulement enregistrés : ils refusent réellement le service qu ils nomment.",
+      "Annuler une conception conserve les amorces déjà produites, ce que la valeur par défaut de cette option a toujours annoncé.",
+      "Les réglages que rien ne lit sont désactivés et signalés plutôt que de sembler actifs."
     ],
-    "highlightsStamp": "0.16.35+d628e48a",
+    "highlightsStamp": "0.16.36+5119f52e",
     "releases": {
+      "0.16.36": [
+        "Une exécution dont la longueur minimale est fixée à 18 nt ne renvoie plus de 17mères, et la case de remplissage après échec contrôle désormais chaque sauvetage.",
+        "Le classement des amorces suit la règle de paillasse : au moins 18 nt, puis au plus près du Tm cible, et à distance égale la plus froide.",
+        "Les quatre interrupteurs de consentement par service ne sont plus seulement enregistrés : ils refusent réellement le service qu ils nomment.",
+        "Annuler une conception conserve les amorces déjà produites, ce que la valeur par défaut de cette option a toujours annoncé.",
+        "Les réglages que rien ne lit sont désactivés et signalés plutôt que de sembler actifs."
+      ],
       "0.16.28": [
         "Cinq sections run health que l'application mesurait à chaque exécution sans jamais les afficher figurent désormais sur l'écran de revue, repliées au départ.",
         "La couverture indique l'uniformité par puits et non plus une simple moyenne, de sorte qu'un puits présentant un trou ne ressemble plus à un puits couvert uniformément.",
@@ -2806,6 +2817,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.36": "5119f52e",
       "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",
