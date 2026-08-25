@@ -30,6 +30,12 @@ def test_priority_1_every_builtin_profile_floors_at_18():
     registry = PolymeraseRegistry()
     for name in registry.list_names():
         profile = registry.get(name)
+        # None means "take the engine fallback", which the next test pins at 18.
+        # A built-in that leaves the floor unset would still be safe, but every
+        # one of them states it, so an unset floor here is a profile that lost
+        # its length spec rather than one deferring on purpose.
+        assert profile.fwd_len_min is not None, name
+        assert profile.rev_len_min is not None, name
         assert profile.fwd_len_min >= MIN_PRIMER_LEN, name
         assert profile.rev_len_min >= MIN_PRIMER_LEN, name
 
