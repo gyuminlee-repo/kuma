@@ -104,7 +104,6 @@ _METHODS = {
     "export_janus_mapping_dry_run": handle_export_janus_mapping_dry_run,
     "read_kuma_meta": handle_read_kuma_meta,
     "export_run_report": handle_export_run_report,
-    "cancel_analyze": lambda _: {"cancelled": True},
     "reset_state": _handle_reset_state,
     # A1/A3: raw-run demux + quality filter (R6)
     "demux_and_filter": handle_demux_and_filter,

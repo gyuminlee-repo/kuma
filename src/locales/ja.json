@@ -116,8 +116,7 @@
     "tab": {
       "general": "一般",
       "network": "ネットワーク",
-      "sidecar": "Sidecar",
-      "telemetry": "テレメトリ"
+      "sidecar": "Sidecar"
     },
     "theme": {
       "label": "テーマ",
@@ -137,19 +136,9 @@
       }
     },
     "sidecar": {
-      "concurrency": "デフォルト同時実行数",
-      "concurrencyHint": "並列プライマー設計ジョブの最大数（1〜16）。",
-      "cancelTimeout": "キャンセルタイムアウト",
-      "cancelTimeoutHint": "強制終了前に正常キャンセルを待機する秒数（5〜120秒）。",
       "persistOnCancel": "キャンセル時の動作",
       "persistPartial": "部分結果を保持",
       "persistDiscard": "すべての結果を破棄"
-    },
-    "telemetry": {
-      "crashLog": "クラッシュログを自動送信",
-      "crashLogHint": "安定性向上のため、匿名化されたクラッシュレポートを自動送信します。デフォルト：オフ。",
-      "anonymousStats": "匿名使用統計",
-      "anonymousStatsHint": "匿名の機能使用データを共有します。個人情報や配列データは含まれません。デフォルト：オフ。"
     },
     "savedAt": "{{time}} に保存済み"
   },

@@ -360,7 +360,7 @@ const VALIDATORS: Record<string, MameResultValidator> = {
  *    `activity.export_evolvepro_xlsx`, `export_variant_template`), whose
  *    results are paths and counts the UI mostly echoes back.
  *  - Small control and inspection calls (`ping`, `health_info`,
- *    `cancel_analyze`, `reset_state`, `shutdown`, `read_kuma_meta`,
+ *    `reset_state`, `shutdown`, `read_kuma_meta`,
  *    `inspect_variant_source`, `mame.ingest.parse_reference`,
  *    `mame.detect_native_barcodes`, `activity.upload`,
  *    `activity.set_plate_meta`, `activity.merge`,
@@ -376,7 +376,6 @@ export const MAME_UNVALIDATED_METHODS: readonly string[] = [
   "export_janus_mapping",
   "export_janus_mapping_dry_run",
   "export_run_report",
-  "cancel_analyze",
   "reset_state",
   "demux_and_filter",
   "get_run_health",

@@ -116,8 +116,7 @@
     "tab": {
       "general": "General",
       "network": "Network",
-      "sidecar": "Sidecar",
-      "telemetry": "Telemetry"
+      "sidecar": "Sidecar"
     },
     "theme": {
       "label": "Theme",
@@ -137,19 +136,9 @@
       }
     },
     "sidecar": {
-      "concurrency": "Default concurrency",
-      "concurrencyHint": "Maximum parallel primer design jobs (1–16).",
-      "cancelTimeout": "Cancel timeout",
-      "cancelTimeoutHint": "Seconds to wait for a graceful cancel before force-killing the sidecar (5–120 s).",
       "persistOnCancel": "On cancel",
       "persistPartial": "Keep partial results",
       "persistDiscard": "Discard all results"
-    },
-    "telemetry": {
-      "crashLog": "Auto-send crash logs",
-      "crashLogHint": "Automatically send anonymized crash reports to help improve stability. Default: off.",
-      "anonymousStats": "Anonymous usage statistics",
-      "anonymousStatsHint": "Share anonymous feature usage data. No personal or sequence data is included. Default: off."
     },
     "savedAt": "Saved at {{time}}"
   },

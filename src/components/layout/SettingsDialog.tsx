@@ -1,11 +1,16 @@
 /**
  * SettingsDialog — 앱 전역 설정 다이얼로그 (Phase 3 확장)
  *
- * Tabs: General / Network / Sidecar / Telemetry
+ * Tabs: General / Network / Sidecar
  * - General: Language, Theme, Accessibility, Notifications, Data folder
- * - Network: Offline mode + 4 consent checkboxes
- * - Sidecar: Concurrency, Cancel timeout, Persist on cancel
- * - Telemetry: Crash log auto-send, Anonymous stats
+ * - Network: Offline mode + 4 per-service consent checkboxes
+ * - Sidecar: Persist on cancel
+ *
+ * There is no Telemetry tab. It held two opt-in flags for sending crash logs
+ * and usage data, nothing read either one, and section 10 of the frontend
+ * standards makes zero outbound telemetry release-blocking, so implementing
+ * them was never an option. Diagnostics travel as the local zip the Run menu
+ * writes, which is what section 16 asks for.
  *
  * 변경 즉시 적용 (debounce 500ms 자동 저장, Apply 버튼 없음).
  */
@@ -36,32 +41,23 @@ import { mapThemeToBundle } from "../../store/slices/settingsSlice";
 
 // §8 A11y: colorblind mode localStorage key (shared with MenuBar)
 /**
- * Settings a user can change that nothing in the app reads yet.
+ * Settings a user can change that nothing in the app reads.
  *
- * A control that stores a preference and changes no behaviour is a promise the
- * app does not keep, which is how a run pinned to 18 nt came back with 17mers:
- * the fill-on-failure box read as a gate and gated nothing. These five are the
- * same shape, found by auditing every settings field for a consumer:
+ * Empty, and worth keeping empty. A control that stores a preference and
+ * changes no behaviour is a promise the app does not keep, which is how a run
+ * pinned to an 18 nt primer floor came back with 17mers: the fill-on-failure
+ * box read as a gate and gated nothing. An audit found five more here. Four
+ * were removed outright, because nothing could honour them and in two cases
+ * nothing ever should (docs/standards/common-frontend-standards.md section 10
+ * makes zero outbound telemetry release-blocking); the fifth, keeping partial
+ * results on cancel, was implemented instead.
  *
- * - concurrency_default  designs run one mutation after another; there is no
- *                        parallel job pool for this number to cap.
- * - cancel_timeout_secs  the only graceful-kill callers pass a literal 2 s
- *                        (src-tauri/src/lib.rs), and no Rust code reads the
- *                        preferences bundle at all.
- * - crash_log_auto_send  nothing sends crash reports.
- * - anonymous_stats      nothing sends usage data.
- *
- * They stay visible and keep their stored value, but are disabled and labelled,
- * so the dialog states what is true. Delete a name from this list at the moment
- * the behaviour lands, not before: tests/sidecar_kuro/test_settings_contract.py
- * compares this list against the settings model and fails on either drift.
+ * A setting that cannot be honoured yet belongs in this list and renders
+ * disabled with settings.inactiveHint next to it, rather than looking active.
+ * tests/sidecar_kuro/test_settings_contract.py compares this list against the
+ * settings model and fails on either drift.
  */
-export const INACTIVE_SETTINGS = [
-  "concurrency_default",
-  "cancel_timeout_secs",
-  "crash_log_auto_send",
-  "anonymous_stats",
-] as const;
+export const INACTIVE_SETTINGS: readonly string[] = [];
 
 const CB_KEY = "kuma:kuro:colorblindMode";
 
@@ -149,28 +145,8 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
 
   // ── Sidecar helpers ─────────────────────────────────────────────────────────
 
-  function handleConcurrencyChange(val: number) {
-    const clamped = Math.max(1, Math.min(16, val));
-    updateSettings({ sidecar: { ...settings?.sidecar, concurrency_default: clamped } });
-  }
-
-  function handleCancelTimeoutChange(val: number) {
-    const clamped = Math.max(5, Math.min(120, val));
-    updateSettings({ sidecar: { ...settings?.sidecar, cancel_timeout_secs: clamped } });
-  }
-
   function handlePersistOnCancelChange(val: "partial" | "discard") {
     updateSettings({ sidecar: { ...settings?.sidecar, persist_on_cancel: val } });
-  }
-
-  // ── Telemetry helpers ───────────────────────────────────────────────────────
-
-  function handleCrashLogAutoSendChange(val: boolean) {
-    updateSettings({ telemetry: { ...settings?.telemetry, crash_log_auto_send: val } });
-  }
-
-  function handleAnonymousStatsChange(val: boolean) {
-    updateSettings({ telemetry: { ...settings?.telemetry, anonymous_stats: val } });
   }
 
   return (
@@ -182,11 +158,10 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
 
         <div className="flex-1 overflow-y-auto pr-1 -mr-1">
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="w-full grid grid-cols-4">
+          <TabsList className="w-full grid grid-cols-3">
             <TabsTrigger value="general" className="min-w-0 truncate">{t("settings.tab.general")}</TabsTrigger>
             <TabsTrigger value="network" className="min-w-0 truncate">{t("settings.tab.network")}</TabsTrigger>
             <TabsTrigger value="sidecar" className="min-w-0 truncate">{t("settings.tab.sidecar")}</TabsTrigger>
-            <TabsTrigger value="telemetry" className="min-w-0 truncate">{t("settings.tab.telemetry")}</TabsTrigger>
           </TabsList>
 
           {/* ── General ──────────────────────────────────────────────────────── */}
@@ -370,61 +345,6 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
           {/* ── Sidecar ──────────────────────────────────────────────────────── */}
           <TabsContent value="sidecar" className="flex flex-col gap-4 pt-3">
 
-            {/* Concurrency */}
-            <section aria-labelledby="settings-concurrency-heading" className="flex flex-col gap-1.5">
-              <label
-                id="settings-concurrency-heading"
-                htmlFor="settings-concurrency"
-                className="text-sm font-semibold text-foreground"
-              >
-                {t("settings.sidecar.concurrency")}
-              </label>
-              <input
-                id="settings-concurrency"
-                type="number"
-                min={1}
-                max={16}
-                value={settings?.sidecar?.concurrency_default ?? 4}
-                onChange={(e) => handleConcurrencyChange(Number(e.target.value))}
-                disabled
-                className="w-24 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                aria-describedby="settings-concurrency-hint"
-              />
-              <p id="settings-concurrency-hint" className="text-xs text-muted-foreground">
-                {t("settings.sidecar.concurrencyHint")}
-              </p>
-              <p className="text-xs text-warning">{t("settings.inactiveHint")}</p>
-            </section>
-
-            {/* Cancel timeout */}
-            <section aria-labelledby="settings-cancel-timeout-heading" className="flex flex-col gap-1.5">
-              <label
-                id="settings-cancel-timeout-heading"
-                htmlFor="settings-cancel-timeout"
-                className="text-sm font-semibold text-foreground"
-              >
-                {t("settings.sidecar.cancelTimeout")}
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  id="settings-cancel-timeout"
-                  type="number"
-                  min={5}
-                  max={120}
-                  value={settings?.sidecar?.cancel_timeout_secs ?? 30}
-                  onChange={(e) => handleCancelTimeoutChange(Number(e.target.value))}
-                  disabled
-                  className="w-24 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                  aria-describedby="settings-cancel-timeout-hint"
-                />
-                <span className="text-sm text-muted-foreground">sec</span>
-              </div>
-              <p id="settings-cancel-timeout-hint" className="text-xs text-muted-foreground">
-                {t("settings.sidecar.cancelTimeoutHint")}
-              </p>
-              <p className="text-xs text-warning">{t("settings.inactiveHint")}</p>
-            </section>
-
             {/* Persist on cancel */}
             <section aria-labelledby="settings-persist-heading" className="flex flex-col gap-2">
               <p id="settings-persist-heading" className="text-sm font-semibold text-foreground">
@@ -452,55 +372,6 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
             </section>
           </TabsContent>
 
-          {/* ── Telemetry ─────────────────────────────────────────────────────── */}
-          <TabsContent value="telemetry" className="flex flex-col gap-4 pt-3">
-
-            {/* Crash log auto-send */}
-            <section aria-labelledby="settings-crashlog-heading" className="flex flex-col gap-1.5">
-              <p id="settings-crashlog-heading" className="text-sm font-semibold text-foreground">
-                {t("settings.telemetry.crashLog")}
-              </p>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input
-                  type="checkbox"
-                  id="settings-crashlog-auto"
-                  checked={settings?.telemetry?.crash_log_auto_send ?? false}
-                  onChange={(e) => handleCrashLogAutoSendChange(e.target.checked)}
-                  disabled
-                  className="h-4 w-4 accent-primary disabled:cursor-not-allowed disabled:opacity-50"
-                  aria-describedby="settings-crashlog-hint"
-                />
-                <span className="text-foreground">{t("settings.telemetry.crashLog")}</span>
-              </label>
-              <p id="settings-crashlog-hint" className="text-xs text-muted-foreground">
-                {t("settings.telemetry.crashLogHint")}
-              </p>
-              <p className="text-xs text-warning">{t("settings.inactiveHint")}</p>
-            </section>
-
-            {/* Anonymous stats */}
-            <section aria-labelledby="settings-anon-heading" className="flex flex-col gap-1.5">
-              <p id="settings-anon-heading" className="text-sm font-semibold text-foreground">
-                {t("settings.telemetry.anonymousStats")}
-              </p>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input
-                  type="checkbox"
-                  id="settings-anon-stats"
-                  checked={settings?.telemetry?.anonymous_stats ?? false}
-                  onChange={(e) => handleAnonymousStatsChange(e.target.checked)}
-                  disabled
-                  className="h-4 w-4 accent-primary disabled:cursor-not-allowed disabled:opacity-50"
-                  aria-describedby="settings-anon-hint"
-                />
-                <span className="text-foreground">{t("settings.telemetry.anonymousStats")}</span>
-              </label>
-              <p id="settings-anon-hint" className="text-xs text-muted-foreground">
-                {t("settings.telemetry.anonymousStatsHint")}
-              </p>
-              <p className="text-xs text-warning">{t("settings.inactiveHint")}</p>
-            </section>
-          </TabsContent>
         </Tabs>
         </div>
 

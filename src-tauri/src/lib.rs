@@ -228,6 +228,12 @@ fn get_codesign_status(app: AppHandle) -> String {
         "N/A (non-macOS)".to_string()
     }
 }
+/// Seconds a sidecar gets to exit on its own before it is killed. Fixed by
+/// section 22 of the frontend standards rather than configurable: a longer
+/// value keeps the desktop app alive after the user closed it, and a shorter
+/// one risks the zombie processes that requirement exists to prevent.
+const GRACEFUL_SHUTDOWN_SECS: u64 = 5;
+
 async fn shutdown_sidecars_async(app: &AppHandle<Wry>) {
     let manager = app.state::<sidecar::SidecarManager>();
     // §22: Send shutdown RPC, wait briefly, then force-kill as fallback.
@@ -235,9 +241,14 @@ async fn shutdown_sidecars_async(app: &AppHandle<Wry>) {
     // immediate force-kill paths (user cancel, cancelAndRespawn).
     // RunEvent::Exit must not keep the desktop app visibly alive for a long
     // sequential shutdown path, so both sidecars are swept concurrently.
+    // 5 s, not 2: section 22 of docs/standards/common-frontend-standards.md
+    // requires a 5 second SIGKILL fallback, and graceful_kill documents itself
+    // as one. The literal here said 2 and nothing compared the two numbers.
+    // The wait only elapses when a sidecar fails to exit on its own, so the
+    // ordinary close is no slower for it.
     let _ = tokio::join!(
-        manager.graceful_kill("kuro", 2),
-        manager.graceful_kill("mame", 2)
+        manager.graceful_kill("kuro", GRACEFUL_SHUTDOWN_SECS),
+        manager.graceful_kill("mame", GRACEFUL_SHUTDOWN_SECS)
     );
 }
 

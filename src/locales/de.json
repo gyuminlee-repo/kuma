@@ -116,8 +116,7 @@
     "tab": {
       "general": "Allgemein",
       "network": "Netzwerk",
-      "sidecar": "Sidecar",
-      "telemetry": "Telemetrie"
+      "sidecar": "Sidecar"
     },
     "theme": {
       "label": "Design",
@@ -137,19 +136,9 @@
       }
     },
     "sidecar": {
-      "concurrency": "Standard-Parallelität",
-      "concurrencyHint": "Maximale parallele Primer-Design-Aufträge (1–16).",
-      "cancelTimeout": "Abbruch-Timeout",
-      "cancelTimeoutHint": "Sekunden bis zum erzwungenen Beenden nach Abbruch (5–120 s).",
       "persistOnCancel": "Bei Abbruch",
       "persistPartial": "Teilergebnisse behalten",
       "persistDiscard": "Alle Ergebnisse verwerfen"
-    },
-    "telemetry": {
-      "crashLog": "Absturzberichte automatisch senden",
-      "crashLogHint": "Anonymisierte Absturzberichte zur Verbesserung der Stabilität senden. Standard: aus.",
-      "anonymousStats": "Anonyme Nutzungsstatistiken",
-      "anonymousStatsHint": "Anonyme Nutzungsdaten teilen. Keine persönlichen oder Sequenzdaten enthalten. Standard: aus."
     },
     "savedAt": "Gespeichert um {{time}}"
   },

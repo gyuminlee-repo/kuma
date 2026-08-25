@@ -116,8 +116,7 @@
     "tab": {
       "general": "一般",
       "network": "網路",
-      "sidecar": "Sidecar",
-      "telemetry": "遙測"
+      "sidecar": "Sidecar"
     },
     "theme": {
       "label": "主題",
@@ -137,19 +136,9 @@
       }
     },
     "sidecar": {
-      "concurrency": "預設並行數",
-      "concurrencyHint": "最大並行引物設計任務數（1–16）。",
-      "cancelTimeout": "取消逾時",
-      "cancelTimeoutHint": "強制終止前等待正常取消的秒數（5–120 秒）。",
       "persistOnCancel": "取消時",
       "persistPartial": "保留部分結果",
       "persistDiscard": "捨棄所有結果"
-    },
-    "telemetry": {
-      "crashLog": "自動傳送當機記錄",
-      "crashLogHint": "自動傳送匿名當機報告以改善穩定性。預設：關閉。",
-      "anonymousStats": "匿名使用統計",
-      "anonymousStatsHint": "共享匿名功能使用資料。不含任何個人或序列資料。預設：關閉。"
     },
     "savedAt": "已於 {{time}} 儲存"
   },
