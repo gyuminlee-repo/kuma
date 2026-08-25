@@ -305,7 +305,6 @@ export function InputPanel() {
         stateLabel={t("mame.inputPanel.kuroXlsx.stateLabel")}
         filled={Boolean(inputDir)}
         helperText={t(inputDirKeys.helperTextKey)}
-        helpText={t(inputDirKeys.helperTextKey)}
         noPathLabel={noPathLabel}
         readyLabel={readyLabel}
         browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t(inputDirKeys.labelKey) })}
