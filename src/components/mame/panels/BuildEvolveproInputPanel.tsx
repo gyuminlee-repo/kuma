@@ -460,7 +460,6 @@ export function BuildEvolveproInputPanel() {
                 value={form.activityPath}
                 onBrowse={() => browseFile("activityPath", t("mame.buildEvolvepro.activityPath"), ["csv", "xlsx"])}
                 helperText={t("mame.buildEvolvepro.activityPathHelper")}
-                helpText={t("mame.buildEvolvepro.activityPathHelper")}
               />
               <ChoiceToggle
                 label={t("mame.buildEvolvepro.activityScale")}
@@ -479,7 +478,6 @@ export function BuildEvolveproInputPanel() {
                 value={form.layoutXlsx}
                 onBrowse={() => browseXlsx("layoutXlsx", t("mame.buildEvolvepro.layoutXlsx"))}
                 helperText={t("mame.buildEvolvepro.layoutXlsxOptionalHelper")}
-                helpText={t("mame.buildEvolvepro.layoutXlsxOptionalHelper")}
               />
             </>
           ) : (
@@ -491,7 +489,6 @@ export function BuildEvolveproInputPanel() {
                 value={form.layoutXlsx}
                 onBrowse={() => browseXlsx("layoutXlsx", t("mame.buildEvolvepro.layoutXlsx"))}
                 helperText={t("mame.buildEvolvepro.layoutXlsxHelper")}
-                helpText={t("mame.buildEvolvepro.layoutXlsxHelper")}
               />
               {form.primarySource === "numericReport" ? (
                 <FilePickerField
@@ -501,7 +498,6 @@ export function BuildEvolveproInputPanel() {
                   value={form.numericReportXlsx}
                   onBrowse={() => browseXlsx("numericReportXlsx", t("mame.buildEvolvepro.numericReportXlsx"))}
                   helperText={t("mame.buildEvolvepro.numericReportXlsxHelper")}
-                  helpText={t("mame.buildEvolvepro.numericReportXlsxHelper")}
                 />
               ) : (
                 <FilePickerField
@@ -514,7 +510,6 @@ export function BuildEvolveproInputPanel() {
                     form.primarySource === "gcSheet" ? t("mame.buildEvolvepro.gcDataXlsx") : t("mame.buildEvolvepro.round1ReportXlsx"),
                   )}
                   helperText={form.primarySource === "gcSheet" ? t("mame.buildEvolvepro.gcDataXlsxHelper") : t("mame.buildEvolvepro.round1ReportXlsxHelper")}
-                  helpText={form.primarySource === "gcSheet" ? t("mame.buildEvolvepro.gcDataXlsxHelper") : t("mame.buildEvolvepro.round1ReportXlsxHelper")}
                 />
               )}
             </>
@@ -528,7 +523,6 @@ export function BuildEvolveproInputPanel() {
               value={form.expectedXlsx}
               onBrowse={() => browseFile("expectedXlsx", t("mame.buildEvolvepro.expectedXlsx"), ["xlsx", "xls", "csv", "tsv", "txt"])}
               helperText={t("mame.buildEvolvepro.expectedXlsxHelper")}
-              helpText={t("mame.buildEvolvepro.expectedXlsxHelper")}
             />
           )}
 
@@ -552,7 +546,6 @@ export function BuildEvolveproInputPanel() {
               value={form.remeasureReportXlsx}
               onBrowse={() => browseXlsx("remeasureReportXlsx", t("mame.buildEvolvepro.remeasureReportXlsx"))}
               helperText={t("mame.buildEvolvepro.remeasureReportXlsxHelper")}
-              helpText={t("mame.buildEvolvepro.remeasureReportXlsxHelper")}
             />
           )}
 
@@ -564,7 +557,6 @@ export function BuildEvolveproInputPanel() {
               value={form.remeasureNumericXlsx}
               onBrowse={() => browseXlsx("remeasureNumericXlsx", t("mame.buildEvolvepro.remeasureNumericXlsx"))}
               helperText={t("mame.buildEvolvepro.remeasureNumericXlsxHelper")}
-              helpText={t("mame.buildEvolvepro.remeasureNumericXlsxHelper")}
             />
           )}
 
@@ -575,7 +567,6 @@ export function BuildEvolveproInputPanel() {
             value={form.verdictXlsx}
             onBrowse={() => browseXlsx("verdictXlsx", t("mame.buildEvolvepro.verdictXlsx"))}
             helperText={t("mame.buildEvolvepro.verdictXlsxHelper")}
-            helpText={t("mame.buildEvolvepro.verdictXlsxHelper")}
           />
         </div>
       </section>
