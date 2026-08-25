@@ -3387,7 +3387,7 @@
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
     "labels": {
-      "continue_walking": "Continuer la marche",
+      "continue_walking": "Continuer mutant unique",
       "switch_combinatorial": "Passer au combinatorial",
       "stop": "Arrêter",
       "deferred": "Différé"
@@ -3399,7 +3399,7 @@
       "no_saturation_signal": "Aucun signal de saturation ce cycle : le single-mutant walking reste productif.",
       "hysteresis_pending": "La saturation apparaît ce cycle mais pas au précédent, or deux cycles consécutifs sont requis.",
       "low_confidence": "Un passage au combinatorial correspondait aux signaux, mais le test bootstrap ne l'a pas confirmé.",
-      "stop_low_confidence": "Un arrêt correspondait aux signaux, mais le test bootstrap ne l'a pas confirmé, la marche continue donc.",
+      "stop_low_confidence": "Un arrêt correspondait aux signaux, mais le test bootstrap ne l'a pas confirmé, le mutant unique se poursuit donc.",
       "saturated_with_throughput": "Saturé sur deux cycles consécutifs, et la plaque suivante offre la place pour l'étape combinatorial.",
       "saturated_no_throughput": "Saturé sur deux cycles consécutifs, sans débit restant pour une étape combinatorial."
     },
@@ -3408,7 +3408,7 @@
     },
     "missingInputsNote": "Jugé sans {{missing}} : la saturation repose donc uniquement sur la tendance du hit rate.",
     "notAssessableBadge": "Non évaluable",
-    "notAssessableSummary": "Les signaux indiquent une transition, mais la confirmer exige {{missing}}, absentes de ces fichiers. {{blocked}} ne peut pas être tranché à partir de cette entrée ; seule la question de la poursuite de la marche peut l'être.",
+    "notAssessableSummary": "Les signaux indiquent une transition, mais la confirmer exige {{missing}}, absentes de ces fichiers. {{blocked}} ne peut pas être tranché à partir de cette entrée ; seule la question de la poursuite du mutant unique peut l'être.",
     "notAssessableInsufficientSummary": "Les signaux indiquent une transition, mais la confirmer exige au moins {{required}} {{missing}} et cette manche en compte {{count}}. En dessous, aucune estimation du bruit ne sert de référence : la saturation ne repose plus que sur la tendance du hit rate, et {{blocked}} ne peut pas en être déduit.",
     "prefillFromRounds": "Prerempli avec {{n}} sortie(s) de tour produites a l'etape 4.1. Les entrees restent librement modifiables.",
     "prefillFromManifest": "Prerempli avec la derniere entree EVOLVEpro enregistree pour ce projet. Ce fichier est anterieur au suivi par tour, ne porte aucun numero de tour et a donc ete place en tete.",
@@ -3417,7 +3417,7 @@
     "restoredUnverifiedNote": "Cette application n'a pas ecrit {{files}} et ne peut donc pas confirmer que ces fichiers sont restes inchanges depuis.",
     "rebuiltNote": "Une reponse anterieure du {{when}} a ete calculee a partir de ces memes fichiers ({{files}}) avant que l'etape 4.1 ne les regenere. Elle decrit la version precedente et reste conservee comme historique. Relancez la classification pour la version actuelle.",
     "supersededNote": "Une reponse anterieure du {{when}} a ete calculee a partir d'une autre liste ({{files}}). Elle ne dit rien des fichiers actuellement selectionnes et n'est donc pas affichee.",
-    "headingHelp": "Regroupe les résultats EVOLVEpro de plusieurs cycles pour repérer un signal de saturation et suggérer de continuer la marche, passer au combinatorial, arrêter ou différer. Lecture seule : rien n'est confirmé ni enregistré ici, et avec moins de 3 cycles il n'y a pas encore de verdict."
+    "headingHelp": "Regroupe les résultats EVOLVEpro de plusieurs cycles pour repérer un signal de saturation et suggérer de poursuivre le mutant unique, passer au combinatorial, arrêter ou différer. Lecture seule : rien n'est confirmé ni enregistré ici, et avec moins de 3 cycles il n'y a pas encore de verdict."
   },
   "validation": {
     "missing": {
