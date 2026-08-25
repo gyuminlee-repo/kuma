@@ -3393,7 +3393,7 @@
       "calibration_period": "Menos de 3 rodadas até agora, o classificador ainda está em seu período de calibração.",
       "insufficient_data": "Nenhum sinal de saturação pôde ser avaliado a partir dessas rodadas.",
       "mixed_signals": "Os sinais de saturação se contradizem.",
-      "no_saturation_signal": "Sem sinal de saturação nesta rodada: o single-mutant walking continua rendendo.",
+      "no_saturation_signal": "Sem sinal de saturação nesta rodada: o mutante único (single-mutant walking) continua rendendo.",
       "hysteresis_pending": "Houve saturação nesta rodada, mas não na anterior, e são exigidas duas rodadas consecutivas.",
       "low_confidence": "Mudar para combinatorial combinava com os sinais, mas o teste bootstrap não sustentou a mudança.",
       "stop_low_confidence": "Parar combinava com os sinais, mas o teste bootstrap não sustentou a parada, então continue com o mutante único.",

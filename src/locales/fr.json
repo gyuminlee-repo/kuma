@@ -3393,7 +3393,7 @@
       "calibration_period": "Moins de 3 cycles à ce stade, le classifieur est encore en période de calibration.",
       "insufficient_data": "Aucun signal de saturation n'a pu être évalué à partir de ces cycles.",
       "mixed_signals": "Les signaux de saturation se contredisent.",
-      "no_saturation_signal": "Aucun signal de saturation ce cycle : le single-mutant walking reste productif.",
+      "no_saturation_signal": "Aucun signal de saturation ce cycle : le mutant unique (single-mutant walking) reste productif.",
       "hysteresis_pending": "La saturation apparaît ce cycle mais pas au précédent, or deux cycles consécutifs sont requis.",
       "low_confidence": "Un passage au combinatorial correspondait aux signaux, mais le test bootstrap ne l'a pas confirmé.",
       "stop_low_confidence": "Un arrêt correspondait aux signaux, mais le test bootstrap ne l'a pas confirmé, le mutant unique se poursuit donc.",

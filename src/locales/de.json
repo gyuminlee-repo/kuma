@@ -3393,7 +3393,7 @@
       "calibration_period": "Bisher weniger als 3 Runden, der Klassifikator befindet sich noch in der Kalibrierungsphase.",
       "insufficient_data": "Aus diesen Runden ließ sich kein einziges Sättigungssignal auswerten.",
       "mixed_signals": "Die Sättigungssignale widersprechen einander.",
-      "no_saturation_signal": "Kein Sättigungssignal in dieser Runde: Single-mutant walking lohnt sich weiterhin.",
+      "no_saturation_signal": "Kein Sättigungssignal in dieser Runde: Der Einzelmutanten-Ansatz (single-mutant walking) lohnt sich weiterhin.",
       "hysteresis_pending": "Sättigung trat in dieser Runde auf, in der vorherigen jedoch nicht; zwei aufeinanderfolgende Runden sind erforderlich.",
       "low_confidence": "Ein Wechsel zu combinatorial passte zu den Signalen, der Bootstrap-Test bestätigte ihn jedoch nicht.",
       "stop_low_confidence": "Ein Stopp passte zu den Signalen, der Bootstrap-Test bestätigte ihn jedoch nicht, daher wird die Einzelmutante fortgesetzt.",
