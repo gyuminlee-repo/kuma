@@ -24,5 +24,5 @@ be parsed by the current one. Bump it by hand, and only when the KURO export
 contract changes in a way that breaks readers.
 """
 
-KUMA_VERSION = "0.16.38"
+KUMA_VERSION = "0.16.39"
 KURO_MODULE_VERSION = "0.1.0"
