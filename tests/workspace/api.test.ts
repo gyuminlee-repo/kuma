@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdirSync, mkdtempSync, writeFileSync, unlinkSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, writeFileSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -194,18 +194,17 @@ describe("workspace api", () => {
     ).rejects.toThrow(/not opened/);
   });
 
-  it("recovers from corrupt manifest by treating as missing", async () => {
+  it("preserves a corrupt manifest and refuses to overwrite its artifact links", async () => {
     const m = createEmptyManifest();
     await writeManifest(dir, m);
     // Now corrupt it
     writeFileSync(join(dir, ".kuma-workspace.json"), "{ not json");
     const f = join(dir, "f.csv");
     writeFileSync(f, "x");
-    // registerArtifacts should not throw; corrupt manifest is treated as fresh
-    await registerArtifacts([
+    await expect(registerArtifacts([
       { app: "kuro", step: "diversity", type: "evolvepro_csv", absolutePath: f },
-    ]);
-    const list = await listArtifacts();
-    expect(list).toHaveLength(1);
+    ])).rejects.toThrow(/invalid and was preserved as a backup/);
+    expect(await readManifest(dir)).toBeNull();
+    expect(readdirSync(dir)).toContainEqual(expect.stringMatching(/^\.kuma-workspace\.json\.bak-/));
   });
 });

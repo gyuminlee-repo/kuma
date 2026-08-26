@@ -167,16 +167,6 @@
     "parameters": {
       "title": "Параметры",
       "subtitle": "Пороги и режим ingest для этого batch.",
-      "targetAmpliconLength": "Целевая длина amplicon (bp)",
-      "targetAmpliconLengthHelp": "Ожидаемая длина amplicon после сортировки barcode. Оставьте пустым для авто-определения по sample reads; задайте вручную при шумном распределении.",
-      "targetAmpliconLengthPlaceholder": "Оставьте пустым для авто-определения",
-      "targetAmpliconLengthAriaLabel": "Целевая длина amplicon в bp; оставьте пустым для авто-определения",
-      "lengthTolerance": "Допуск длины ± bp",
-      "lengthToleranceHelp": "Допустимое окно вокруг целевой длины amplicon. Reads вне target ± допуска фильтруются при активном фильтре по длине.",
-      "minQscore": "Min Q-score",
-      "minQscoreHelp": "Минимальный порог qscore на read при наличии метаданных sequencing_summary.",
-      "normalizeHeaders": "Нормализовать заголовки",
-      "normalizeHeadersHelp": "Записывает имя well в заголовки FASTA вместо сохранения ONT read ID. Делает последующий per-well парсинг более стабильным.",
       "rawRunOptions": "Параметры raw run",
       "rawRunOptionsAriaLabel": "Параметры demux и фильтрации raw run",
       "barcodeRunsAutomatically": "Сортировка barcode выполняется автоматически при нажатии основной кнопки Run.",
@@ -201,17 +191,9 @@
       "recommendedCutoff": "Рекомендуется: {{value}} KB ({{method}})",
       "useCutoffBtn": "Использовать",
       "bimodalTooltip": "Распределение выглядит бимодальным. Рекомендуется использовать knee detection.",
-      "autoDetected": "Авто-определено: {{length}} bp",
-      "normalizeHeadersAriaLabel": "Записать имя well в заголовок FASTA вместо ONT read ID",
-      "demuxProgressAriaLabel": "Прогресс demux",
-      "demuxComplete": "Demux завершён:",
-      "demuxCompleteReads": "{{assigned}} reads назначено / {{total}} всего ({{backend}})",
-      "lengthFilter": "Фильтр длины: {{mode}}",
       "legacyKbCutoff": "Legacy KB Cutoff (proxy)",
       "legacyKbCutoffAriaLabel": "Legacy минимальный cutoff размера файла KB (proxy для read depth)",
-      "lengthToleranceAriaLabel": "Допуск длины: ±{{bp}} bp",
       "applyCutoffAriaLabel": "Применить рекомендуемый cutoff {{kb}} KB",
-      "autoDetectedAriaLabel": "Авто-определённая длина amplicon: {{length}} bp, доверие {{confidence}}, выборка {{reads}} reads",
       "modeAmpliconTitle": "Линейный PCR amplicon target. Reads покрывают одну заданную область; consensus вызывается per barcode в этой области.",
       "modePlasmidTitle": "Кольцевой плазмидный target. Reads могут охватывать origin; consensus учитывает полную топологию плазмиды.",
       "ingestBarcodeTitle": "Группировать reads по Nanopore barcode (NB01, NB02, ...). Каждый bin barcode становится одним sample.",
@@ -250,7 +232,9 @@
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
       "chimeraSplitAriaLabel": "Enable chimera detection by evaluating all alignment hits per read",
-      "ampliconConfidenceHelp": "Confidence of the amplicon length auto-detected from sampled reads: peak read-length bin share at or above 30% is high, at or above 15% is medium, otherwise low."
+      "mapqThreshold": "Минимальное качество картирования (0–60)",
+      "mapqThresholdHelp": "Риды ниже этого качества картирования исключаются при демультиплексировании. Допустимы значения от 0 до 60.",
+      "mapqThresholdAriaLabel": "Минимальное качество картирования от 0 до 60"
     },
     "barcodeSetup": {
       "title": "Настройка Barcode Package",
@@ -1216,7 +1200,9 @@
       "expectedXlsx": "Список спроектированных вариантов",
       "expectedXlsxHelper": "Источник порядка для числовых ID: тот же список спроектированных вариантов, который читает шаг анализа. Предпочтительнее переписанного вручную файла планшета.",
       "orderSource": "Источник порядка (список спроектированных вариантов или plate layout, ровно один)",
-      "dismissError": "Закрыть"
+      "dismissError": "Закрыть",
+      "mismatchThreshold": "Порог расхождения",
+      "mismatchThresholdHelper": "Абсолютная разница активности, отмечающая расхождение и блокирующая экспорт до проверки. Должна быть больше нуля."
     },
     "verdictBadge": {
       "help": {
@@ -3420,7 +3406,9 @@
     "restoredUnverifiedNote": "Приложение не создавало эти файлы ({{files}}), поэтому не может подтвердить, что они с тех пор не изменились.",
     "rebuiltNote": "Более ранний ответ от {{when}} получен по этим же файлам ({{files}}) до того, как шаг 4.1 создал их заново. Он описывает прежнюю версию и сохраняется как история. Для текущей версии запустите классификацию снова.",
     "supersededNote": "Более ранний ответ от {{when}} получен по другому списку ({{files}}). О выбранных сейчас файлах он ничего не говорит, поэтому не показывается.",
-    "headingHelp": "Объединяет результаты EVOLVEpro за несколько раундов, чтобы найти сигнал насыщения, и предлагает продолжать одиночную мутацию, перейти к combinatorial, остановить или отложить решение. Только чтение: здесь ничего не подтверждается и не сохраняется, а при менее чем 3 раундах вердикта пока нет."
+    "headingHelp": "Объединяет результаты EVOLVEpro за несколько раундов, чтобы найти сигнал насыщения, и предлагает продолжать одиночную мутацию, перейти к combinatorial, остановить или отложить решение. Только чтение: здесь ничего не подтверждается и не сохраняется, а при менее чем 3 раундах вердикта пока нет.",
+    "nextRoundCapacity": "Ёмкость планшета следующего раунда",
+    "nextRoundCapacityHelper": "Число лунок, доступных в следующем комбинаторном раунде. Оно определяет рекомендацию по пропускной способности."
   },
   "validation": {
     "missing": {

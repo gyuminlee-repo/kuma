@@ -26,19 +26,29 @@ export async function readManifest(dir: string): Promise<WorkspaceManifest | nul
   let raw: string;
   try {
     raw = await readTextFile(path);
-  } catch {
-    return null;
+  } catch (error) {
+    throw new Error(`Workspace manifest could not be read: ${path}: ${String(error)}`);
   }
+
+  let parsed: WorkspaceManifest;
   try {
-    const parsed = JSON.parse(raw) as WorkspaceManifest;
-    if (parsed.schemaVersion !== SCHEMA_VERSION) return null;
-    if (!Array.isArray(parsed.artifacts)) return null;
-    return parsed;
-  } catch {
+    parsed = JSON.parse(raw) as WorkspaceManifest;
+  } catch (error) {
     const ts = new Date().toISOString().replace(/[:.]/g, "-");
-    await rename(path, `${path}.bak-${ts}`).catch(() => {});
-    return null;
+    try {
+      await rename(path, `${path}.bak-${ts}`);
+    } catch (renameError) {
+      throw new Error(`Workspace manifest is invalid and could not be preserved: ${path}: ${String(renameError)}`);
+    }
+    throw new Error(`Workspace manifest is invalid and was preserved as a backup: ${path}: ${String(error)}`);
   }
+  if (parsed.schemaVersion !== SCHEMA_VERSION) {
+    throw new Error(`Workspace manifest schema is unsupported: ${path}`);
+  }
+  if (!Array.isArray(parsed.artifacts)) {
+    throw new Error(`Workspace manifest artifacts are invalid: ${path}`);
+  }
+  return parsed;
 }
 
 export async function writeManifest(dir: string, m: WorkspaceManifest): Promise<void> {

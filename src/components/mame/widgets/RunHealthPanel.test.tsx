@@ -285,4 +285,17 @@ describe("RunHealthPanel, absent MinKNOW data under a section subset", () => {
     expect(screen.queryByText(en.mame.runHealth.noMinKnow)).not.toBeInTheDocument();
     expect(screen.getByText("61.5%")).toBeInTheDocument();
   });
+
+  it("shows an unavailable reason instead of plotting a partial histogram as zero", () => {
+    render(
+      <RunHealthPanel
+        health={makeHealth({
+          file_size_distribution: { min: 12, p05: 13, p25: 14, median: 15, p75: 16, p95: 17 } as RunHealthData["file_size_distribution"],
+        })}
+        sections={["file-size"]}
+      />,
+    );
+    expect(screen.getByText(en.mame.runHealth.qcNotMeasured)).toBeInTheDocument();
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
+  });
 });

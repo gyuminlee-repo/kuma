@@ -248,16 +248,6 @@
     "parameters": {
       "title": "Parameters",
       "subtitle": "Thresholds and ingest mode for this batch.",
-      "targetAmpliconLength": "Target Amplicon Length (bp)",
-      "targetAmpliconLengthHelp": "Expected amplicon length after barcode sorting. Leave blank to auto-detect from sample reads; set manually when the distribution is noisy.",
-      "targetAmpliconLengthPlaceholder": "Leave blank to auto-detect",
-      "targetAmpliconLengthAriaLabel": "Target amplicon length in bp; leave blank to auto-detect",
-      "lengthTolerance": "Length Tolerance ± bp",
-      "lengthToleranceHelp": "Allowed window around target amplicon length. Reads outside target ± tolerance are filtered when length filtering is active.",
-      "minQscore": "Min Q-score",
-      "minQscoreHelp": "Minimum per-read qscore threshold when sequencing_summary metadata is available.",
-      "normalizeHeaders": "Normalize Headers",
-      "normalizeHeadersHelp": "Writes the well name into FASTA headers instead of preserving ONT read IDs. This makes downstream per-well parsing more consistent.",
       "rawRunOptions": "Raw Run Options",
       "rawRunOptionsAriaLabel": "Raw run demux and filter options",
       "barcodeRunsAutomatically": "Barcode sorting runs automatically when you press the main Run button.",
@@ -282,17 +272,9 @@
       "recommendedCutoff": "Recommended: {{value}} KB ({{method}})",
       "useCutoffBtn": "Use",
       "bimodalTooltip": "Distribution looks bimodal. Recommended uses knee detection.",
-      "autoDetected": "Auto-detected: {{length}} bp",
-      "normalizeHeadersAriaLabel": "Write well name as FASTA header instead of ONT read ID",
-      "demuxProgressAriaLabel": "Demux progress",
-      "demuxComplete": "Demux complete:",
-      "demuxCompleteReads": "{{assigned}} reads assigned / {{total}} total ({{backend}})",
-      "lengthFilter": "Length filter: {{mode}}",
       "legacyKbCutoff": "Legacy KB Cutoff (proxy)",
       "legacyKbCutoffAriaLabel": "Legacy min file size KB cutoff (proxy for read depth)",
-      "lengthToleranceAriaLabel": "Length tolerance: ±{{bp}} bp",
       "applyCutoffAriaLabel": "Apply recommended cutoff of {{kb}} KB",
-      "autoDetectedAriaLabel": "Auto-detected amplicon length: {{length}} bp, confidence {{confidence}}, sampled {{reads}} reads",
       "modeAmpliconTitle": "Linear PCR amplicon target. Reads cover a single defined region; consensus called per barcode within that region.",
       "modePlasmidTitle": "Circular plasmid target. Reads can wrap the origin; consensus accounts for full plasmid topology.",
       "ingestBarcodeTitle": "Group reads by Nanopore barcode (NB01, NB02, ...). Each barcode bin becomes one sample.",
@@ -331,7 +313,9 @@
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
       "chimeraSplitAriaLabel": "Enable chimera detection by evaluating all alignment hits per read",
-      "ampliconConfidenceHelp": "Confidence of the amplicon length auto-detected from sampled reads: peak read-length bin share at or above 30% is high, at or above 15% is medium, otherwise low."
+      "mapqThreshold": "Minimum mapping quality (0–60)",
+      "mapqThresholdHelp": "Reads below this mapping-quality score are excluded during demultiplexing. The sidecar accepts 0 to 60.",
+      "mapqThresholdAriaLabel": "Minimum mapping quality from 0 to 60"
     },
     "barcodeSetup": {
       "title": "Barcode Package Setup",
@@ -565,7 +549,9 @@
       "expectedXlsx": "Designed variant list",
       "expectedXlsxHelper": "Order source for numeric IDs: the same designed variant list the analyze step reads. Preferred over the plate file, which is transcribed by hand.",
       "orderSource": "Order source (designed variant list or plate layout, exactly one)",
-      "dismissError": "Dismiss"
+      "dismissError": "Dismiss",
+      "mismatchThreshold": "Mismatch threshold",
+      "mismatchThresholdHelper": "Absolute activity difference that marks a mismatch and blocks export until reviewed. Must be greater than zero."
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",
@@ -3439,7 +3425,9 @@
     "restoredUnverifiedNote": "This app did not write {{files}}, so it cannot confirm they are unchanged since then.",
     "rebuiltNote": "An earlier answer from {{when}} was computed from these same files ({{files}}) before step 4.1 rebuilt them, so it describes the previous build and is kept as history. Run the classification again for the current one.",
     "supersededNote": "An earlier answer from {{when}} was computed from a different list ({{files}}). It says nothing about the files selected now, so it is not shown.",
-    "headingHelp": "Pools EVOLVEpro results across rounds to look for a saturation signal and suggest continue walking, switch to combinatorial, stop, or defer. Read-only: nothing here is confirmed or saved, and fewer than 3 rounds means no verdict yet."
+    "headingHelp": "Pools EVOLVEpro results across rounds to look for a saturation signal and suggest continue walking, switch to combinatorial, stop, or defer. Read-only: nothing here is confirmed or saved, and fewer than 3 rounds means no verdict yet.",
+    "nextRoundCapacity": "Next-round plate capacity",
+    "nextRoundCapacityHelper": "Number of wells available for the next combinatorial round. It determines the throughput recommendation."
   },
   "selection3d": {
     "title": "Candidate 3D structure analysis",

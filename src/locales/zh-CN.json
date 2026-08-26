@@ -167,16 +167,6 @@
     "parameters": {
       "title": "参数",
       "subtitle": "本批次的阈值和 ingest 模式。",
-      "targetAmpliconLength": "目标 amplicon 长度 (bp)",
-      "targetAmpliconLengthHelp": "barcode 分拣后的预期 amplicon 长度。留空则从样本 read 自动检测;分布噪声较大时手动设置。",
-      "targetAmpliconLengthPlaceholder": "留空以自动检测",
-      "targetAmpliconLengthAriaLabel": "目标 amplicon 长度 (bp);留空以自动检测",
-      "lengthTolerance": "长度容差 ± bp",
-      "lengthToleranceHelp": "目标 amplicon 长度允许的窗口。启用长度过滤时,目标 ± 容差之外的 read 将被过滤。",
-      "minQscore": "最小 Q-score",
-      "minQscoreHelp": "在 sequencing_summary metadata 可用时,每个 read 的 qscore 最小阈值。",
-      "normalizeHeaders": "规范化 header",
-      "normalizeHeadersHelp": "将 well 名称写入 FASTA header,而非保留 ONT read ID。下游按 well 的解析更一致。",
       "rawRunOptions": "Raw Run 选项",
       "rawRunOptionsAriaLabel": "Raw run demux 与过滤选项",
       "barcodeRunsAutomatically": "按下主 Run 按钮时,barcode 分拣自动运行。",
@@ -201,17 +191,9 @@
       "recommendedCutoff": "推荐: {{value}} KB ({{method}})",
       "useCutoffBtn": "使用",
       "bimodalTooltip": "分布呈双峰。推荐使用 knee 检测。",
-      "autoDetected": "自动检测: {{length}} bp",
-      "normalizeHeadersAriaLabel": "将 well 名称写入 FASTA header,而非 ONT read ID",
-      "demuxProgressAriaLabel": "Demux 进度",
-      "demuxComplete": "Demux 完成:",
-      "demuxCompleteReads": "已分配 {{assigned}} reads / 总计 {{total}} ({{backend}})",
-      "lengthFilter": "长度过滤: {{mode}}",
       "legacyKbCutoff": "Legacy KB Cutoff (proxy)",
       "legacyKbCutoffAriaLabel": "Legacy 最小文件大小 KB cutoff (read depth 代理)",
-      "lengthToleranceAriaLabel": "长度容差: ±{{bp}} bp",
       "applyCutoffAriaLabel": "应用推荐 cutoff {{kb}} KB",
-      "autoDetectedAriaLabel": "自动检测 amplicon 长度: {{length}} bp, 置信度 {{confidence}}, 采样 {{reads}} reads",
       "modeAmpliconTitle": "线性 PCR amplicon 目标。read 覆盖单一已定义区域;按 barcode 在该区域内 call consensus。",
       "modePlasmidTitle": "环状 plasmid 目标。read 可跨越 origin;consensus 反映完整 plasmid 拓扑。",
       "ingestBarcodeTitle": "按 Nanopore barcode 分组 read (NB01, NB02, ...)。每个 barcode bin 对应一个样本。",
@@ -250,7 +232,9 @@
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
       "chimeraSplitAriaLabel": "Enable chimera detection by evaluating all alignment hits per read",
-      "ampliconConfidenceHelp": "Confidence of the amplicon length auto-detected from sampled reads: peak read-length bin share at or above 30% is high, at or above 15% is medium, otherwise low."
+      "mapqThreshold": "最低比对质量（0–60）",
+      "mapqThresholdHelp": "低于此比对质量的读段将在拆分时被排除。允许范围为 0 到 60。",
+      "mapqThresholdAriaLabel": "0 到 60 的最低比对质量"
     },
     "barcodeSetup": {
       "title": "Barcode 包设置",
@@ -1216,7 +1200,9 @@
       "expectedXlsx": "设计变体列表",
       "expectedXlsxHelper": "数字 ID 的顺序来源，与 analyze 步骤读取的设计变体列表是同一文件，优先于手工誊写的板文件。",
       "orderSource": "顺序来源 (设计变体列表或 plate layout，二选一)",
-      "dismissError": "关闭"
+      "dismissError": "关闭",
+      "mismatchThreshold": "不匹配阈值",
+      "mismatchThresholdHelper": "标记不匹配并在审核前阻止导出的绝对活性差值。必须大于零。"
     },
     "verdictBadge": {
       "help": {
@@ -3420,7 +3406,9 @@
     "restoredUnverifiedNote": "{{files}} 不是本应用写入的，因此无法确认其后是否发生过改动。",
     "rebuiltNote": "{{when}} 的早前结论是在步骤 4.1 重新生成之前，由这些相同文件（{{files}}）算出的。它描述的是上一次生成的结果，因此仅作为历史保留；如需当前结果，请重新运行分类。",
     "supersededNote": "{{when}} 的早前结论是由另一组文件（{{files}}）算出的。它并未说明当前所选文件，因此不予显示。",
-    "headingHelp": "汇总多轮 EVOLVEpro 结果以寻找跨轮次的饱和信号，并给出继续 walking、转入 combinatorial、停止或暂缓的参考判定。只读：这里不确认也不保存任何内容，轮次不足 3 轮时尚不给出判定。"
+    "headingHelp": "汇总多轮 EVOLVEpro 结果以寻找跨轮次的饱和信号，并给出继续 walking、转入 combinatorial、停止或暂缓的参考判定。只读：这里不确认也不保存任何内容，轮次不足 3 轮时尚不给出判定。",
+    "nextRoundCapacity": "下一轮板容量",
+    "nextRoundCapacityHelper": "下一轮组合实验可用的孔数。它决定通量建议。"
   },
   "validation": {
     "missing": {

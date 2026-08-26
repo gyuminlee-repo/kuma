@@ -348,7 +348,7 @@ const VALIDATORS: Record<string, MameResultValidator> = {
  * Three groups, and none of them is "safe by inspection":
  *
  *  - The large analyze contract (`analyze`, `load_analyze_result`,
- *    `get_plate_data`, `demux_and_filter`, `mame.run_combinatorial_demux`,
+ *    `get_plate_data`, `mame.run_combinatorial_demux`,
  *    `get_run_health`, `validate_inputs`, `check_plate_order`). These carry the
  *    most scientific numbers in the app and the widest result types (hundreds
  *    of fields across `src/types/mame/models.ts`), so guarding them is its own
@@ -377,7 +377,6 @@ export const MAME_UNVALIDATED_METHODS: readonly string[] = [
   "export_janus_mapping_dry_run",
   "export_run_report",
   "reset_state",
-  "demux_and_filter",
   "get_run_health",
   "activity.upload",
   "activity.set_plate_meta",

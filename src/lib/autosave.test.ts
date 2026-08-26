@@ -275,6 +275,14 @@ describe("flushAutosave", () => {
     expect(snapshotWriteCount()).toBe(2);
     expect(snapshotRenameCount()).toBe(2);
   });
+
+  it("rejects so manual save cannot report success after the disk write fails", async () => {
+    mockWriteTextFile.mockRejectedValueOnce(new Error("disk full"));
+    scheduleAutosave(makeTarget(), "kuro", () => makeSnapshot("must-fail"));
+
+    vi.useRealTimers();
+    await expect(flushAutosave(makeTarget(), "kuro")).rejects.toThrow("disk full");
+  });
 });
 
 describe("atomicWriteJson", () => {

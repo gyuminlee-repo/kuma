@@ -173,6 +173,13 @@ export function buildEvolveproLoadStateUpdate(params: {
 }): EvolveproLoadStateUpdate {
   const { result, maxPerPosition, threeDConsumerOn, structureLoaded } = params;
   const yPredMap: Record<string, number> = {};
+  // The sidecar emits y_pred for every ranked candidate, not only the initial
+  // selection (kuma_core/kuro/evolvepro.py:729). Seed that full pool so a
+  // candidate selected later does not become indistinguishable from no score.
+  for (const candidate of result.ranked_candidates ?? []) {
+    yPredMap[candidate.variant] = candidate.y_pred;
+  }
+
   result.variants.forEach((v, i) => {
     const predicted = result.y_preds[i];
     // A variant with no prediction is left out rather than entered as 0.0.

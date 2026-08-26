@@ -11,11 +11,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Dna } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { InlineHelp } from "@/components/ui/InlineHelp";
 import { AdvancedSection } from "@/components/ui/AdvancedSection";
-import type { AmpliconLengthEstimate, DistributionStats } from "@/types/mame/models";
+import type { DistributionStats } from "@/types/mame/models";
 import type { InputMode } from "@/store/mame/slice-interfaces";
 
 const METHOD_LABELS: Record<DistributionStats["suggested_method"], string> = {
@@ -89,42 +89,9 @@ function RecommendedCutoff({
   );
 }
 
-function AmpliconLengthBadge({
-  estimate,
-}: {
-  estimate: AmpliconLengthEstimate | null;
-}) {
-  const { t } = useTranslation();
-  if (!estimate) return null;
-  const confidenceColor =
-    estimate.confidence === "high"
-      ? "text-green-600 dark:text-green-400"
-      : estimate.confidence === "medium"
-        ? "text-yellow-600 dark:text-yellow-400"
-        : "text-muted-foreground";
-  return (
-    <span
-      className={`inline-flex items-center gap-1 text-caption ${confidenceColor}`}
-      aria-label={t("mame.parameters.autoDetectedAriaLabel", { length: estimate.detected_length, confidence: estimate.confidence, reads: estimate.n_sample_reads.toLocaleString() })}
-      title={t("mame.parameters.ampliconConfidenceHelp")}
-    >
-      <Dna size={11} aria-hidden="true" />
-      {t("mame.parameters.autoDetected", { length: estimate.detected_length.toLocaleString() })}
-      <span className="text-muted-foreground">
-        (n={estimate.n_sample_reads.toLocaleString()}, {estimate.confidence})
-      </span>
-    </span>
-  );
-}
-
 function RawRunParamPanel() {
   const { t } = useTranslation();
   const rawRunParams = useMameAppStore((s) => s.rawRunParams);
-  const isDemuxing = useMameAppStore((s) => s.isDemuxing);
-  const demuxProgress = useMameAppStore((s) => s.demuxProgress);
-  const demuxMessage = useMameAppStore((s) => s.demuxMessage);
-  const demuxResult = useMameAppStore((s) => s.demuxResult);
-  const ampliconLengthEstimate = useMameAppStore((s) => s.ampliconLengthEstimate);
   const setParams = useMameAppStore((s) => s.setParams);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -140,106 +107,6 @@ function RawRunParamPanel() {
       <legend className="px-1 text-caption font-semibold uppercase tracking-wide text-muted-foreground">
         {t("mame.parameters.rawRunOptions")}
       </legend>
-
-      {/* Amplicon length — target + tolerance */}
-      <div className="space-y-2">
-        <div className="space-y-1">
-          <Label
-            htmlFor="target-amplicon-length"
-            className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
-          >
-            <span className="inline-flex items-center gap-1.5">
-              {t("mame.parameters.targetAmpliconLength")}
-              <InlineHelp text={t("mame.parameters.targetAmpliconLengthHelp")} />
-            </span>
-          </Label>
-          <Input
-            id="target-amplicon-length"
-            type="number"
-            step="1"
-            value={rawRunParams.targetLength ?? ""}
-            onChange={(e) => {
-              const raw = e.target.value;
-              updateRaw({
-                targetLength: raw === "" ? null : Math.round(Number(raw)),
-              });
-            }}
-            placeholder={t("mame.parameters.targetAmpliconLengthPlaceholder")}
-            className="h-8 min-w-0 text-xs"
-            aria-label={t("mame.parameters.targetAmpliconLengthAriaLabel")}
-            disabled={isDemuxing}
-          />
-          {/* Show auto-detect result from previous run */}
-          {rawRunParams.targetLength === null && (
-            <AmpliconLengthBadge
-              estimate={
-                demuxResult?.amplicon_length_estimate ?? ampliconLengthEstimate
-              }
-            />
-          )}
-        </div>
-
-        {/* Length tolerance slider */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <Label
-              htmlFor="length-tolerance"
-              className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
-            >
-              <span className="inline-flex items-center gap-1.5">
-                {t("mame.parameters.lengthTolerance")}
-                <InlineHelp text={t("mame.parameters.lengthToleranceHelp")} />
-              </span>
-            </Label>
-            <div className="flex items-center gap-1">
-              <span className="text-caption font-medium text-foreground" aria-hidden="true">±</span>
-              <Input
-                type="number"
-                min={5}
-                max={200}
-                step={1}
-                value={rawRunParams.lengthToleranceBp}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  if (raw === "") return;
-                  const n = Number(raw);
-                  if (!Number.isFinite(n)) return;
-                  const clamped = Math.max(5, Math.min(200, Math.round(n)));
-                  updateRaw({ lengthToleranceBp: clamped });
-                }}
-                disabled={isDemuxing}
-                className="h-7 w-20 px-1.5 text-right text-xs"
-                aria-label={t("mame.parameters.lengthToleranceAriaLabel", { bp: rawRunParams.lengthToleranceBp })}
-              />
-            </div>
-          </div>
-          <input
-            id="length-tolerance"
-            type="range"
-            min={5}
-            max={200}
-            step={5}
-            value={rawRunParams.lengthToleranceBp}
-            onChange={(e) => updateRaw({ lengthToleranceBp: Number(e.target.value) })}
-            disabled={isDemuxing}
-            className="w-full cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label={t("mame.parameters.lengthToleranceAriaLabel", { bp: rawRunParams.lengthToleranceBp })}
-          />
-        </div>
-      </div>
-
-      {/* Quality thresholds */}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <NumericField
-          id="min-qscore"
-          label={t("mame.parameters.minQscore")}
-          value={rawRunParams.minQscore}
-          step="0.5"
-          onChange={(v) => updateRaw({ minQscore: v })}
-          disabled={isDemuxing}
-          helpText={t("mame.parameters.minQscoreHelp")}
-        />
-      </div>
 
       {/* Advanced combinatorial demux options */}
       <AdvancedSection
@@ -281,9 +148,36 @@ function RawRunParamPanel() {
                 const n = Number(e.target.value);
                 if (Number.isFinite(n)) updateRaw({ coverageFraction: Math.max(0.5, Math.min(1.0, n)) });
               }}
-              disabled={isDemuxing}
               className="h-8 text-xs"
               aria-label={t("mame.parameters.coverageFractionAriaLabel")}
+            />
+          </div>
+
+          {/* MAPQ is a model-enforced 0-60 score, not an auto-relaxed policy:
+              the folded analyze request sends this exact field to the demux. */}
+          <div className="space-y-1">
+            <Label
+              htmlFor="mapq-threshold"
+              className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                {t("mame.parameters.mapqThreshold")}
+                <InlineHelp text={t("mame.parameters.mapqThresholdHelp")} />
+              </span>
+            </Label>
+            <Input
+              id="mapq-threshold"
+              type="number"
+              min={0}
+              max={60}
+              step={1}
+              value={rawRunParams.mapqThreshold}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                if (Number.isFinite(n)) updateRaw({ mapqThreshold: Math.max(0, Math.min(60, Math.round(n))) });
+              }}
+              className="h-8 text-xs"
+              aria-label={t("mame.parameters.mapqThresholdAriaLabel")}
             />
           </div>
 
@@ -309,7 +203,6 @@ function RawRunParamPanel() {
                 const n = Number(e.target.value);
                 if (Number.isFinite(n)) updateRaw({ editDistRatio: Math.max(0.01, Math.min(0.5, n)) });
               }}
-              disabled={isDemuxing}
               className="h-8 text-xs"
               aria-label={t("mame.parameters.editDistRatioAriaLabel")}
             />
@@ -332,7 +225,6 @@ function RawRunParamPanel() {
               role="switch"
               aria-checked={rawRunParams.chimeraSplit}
               aria-label={t("mame.parameters.chimeraSplitAriaLabel")}
-              disabled={isDemuxing}
               onClick={() => updateRaw({ chimeraSplit: !rawRunParams.chimeraSplit })}
               className={cn(
                 "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
@@ -352,86 +244,6 @@ function RawRunParamPanel() {
           </div>
         </div>
       </AdvancedSection>
-
-      {/* Normalize headers toggle */}
-      <div className="flex items-center justify-between">
-        <Label
-          htmlFor="normalize-headers-toggle"
-          className="text-caption font-medium uppercase tracking-wide text-muted-foreground"
-        >
-          <span className="inline-flex items-center gap-1.5">
-            {t("mame.parameters.normalizeHeaders")}
-            <InlineHelp text={t("mame.parameters.normalizeHeadersHelp")} />
-          </span>
-        </Label>
-        <button
-          id="normalize-headers-toggle"
-          type="button"
-          role="switch"
-          aria-checked={rawRunParams.normalizeHeaders}
-          aria-label={t("mame.parameters.normalizeHeadersAriaLabel")}
-          disabled={isDemuxing}
-          onClick={() => updateRaw({ normalizeHeaders: !rawRunParams.normalizeHeaders })}
-          className={cn(
-            "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-            "disabled:cursor-not-allowed disabled:opacity-50",
-            rawRunParams.normalizeHeaders ? "bg-primary" : "bg-input",
-          )}
-        >
-          <span
-            aria-hidden="true"
-            className={cn(
-              "pointer-events-none inline-block h-4 w-4 rounded-full bg-background shadow-sm ring-0 transition-transform",
-              rawRunParams.normalizeHeaders ? "translate-x-4" : "translate-x-0",
-            )}
-          />
-        </button>
-      </div>
-
-      {/* Progress bar */}
-      {isDemuxing && (
-        <div role="status" aria-live="polite" className="space-y-1">
-          <div
-            className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
-            aria-label={t("mame.parameters.demuxProgressAriaLabel")}
-          >
-            <div
-              className="h-full bg-primary transition-all"
-              style={{ width: `${demuxProgress}%` }}
-              aria-valuenow={demuxProgress}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              role="progressbar"
-            />
-          </div>
-          <p className="text-caption text-muted-foreground">{demuxMessage}</p>
-        </div>
-      )}
-
-      {/* Demux result summary */}
-      {!isDemuxing && demuxResult !== null && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="space-y-1 rounded-md bg-muted px-3 py-2 text-caption text-muted-foreground"
-        >
-          <div>
-            <span className="font-medium text-foreground">{t("mame.parameters.demuxComplete")}</span>{" "}
-            {t("mame.parameters.demuxCompleteReads", {
-              assigned: demuxResult.n_assigned.toLocaleString(),
-              total: demuxResult.n_input_reads.toLocaleString(),
-              backend: demuxResult.backend,
-            })}
-          </div>
-          {demuxResult.amplicon_length_estimate !== null && (
-            <AmpliconLengthBadge estimate={demuxResult.amplicon_length_estimate} />
-          )}
-          <div className="text-caption text-muted-foreground">
-            {t("mame.parameters.lengthFilter", { mode: demuxResult.length_filter_mode.replace("_", " ") })}
-          </div>
-        </div>
-      )}
 
       <p className="text-caption text-muted-foreground">
         {t("mame.parameters.barcodeRunsAutomatically")}

@@ -28,12 +28,7 @@ function selectMameInputs(s: ReturnType<typeof useMameAppStore.getState>) {
     // rawRunParams — spread individual fields for change detection (object ref stays stable)
     r.customBarcodesPath,
     r.sequencingSummaryPath,
-    r.minQscore,
-    r.lengthMin,
-    r.lengthMax,
-    r.targetLength,
-    r.lengthToleranceBp,
-    r.normalizeHeaders,
+    r.mapqThreshold,
     s.cdsStart,
     s.cdsEnd,
     s.minFileSizeKb,

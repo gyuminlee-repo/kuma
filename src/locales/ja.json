@@ -167,16 +167,6 @@
     "parameters": {
       "title": "パラメータ",
       "subtitle": "このバッチの閾値と ingest モード。",
-      "targetAmpliconLength": "目標 amplicon 長 (bp)",
-      "targetAmpliconLengthHelp": "barcode 仕分け後の想定 amplicon 長。空欄なら sample read から自動検出。分布がノイジーな場合は手動設定。",
-      "targetAmpliconLengthPlaceholder": "空欄で自動検出",
-      "targetAmpliconLengthAriaLabel": "目標 amplicon 長 (bp)。空欄で自動検出",
-      "lengthTolerance": "長さ許容範囲 ± bp",
-      "lengthToleranceHelp": "目標 amplicon 長周辺の許容ウィンドウ。長さフィルタが有効なとき、target ± tolerance 外の read は除外されます。",
-      "minQscore": "最小 Q-score",
-      "minQscoreHelp": "sequencing_summary メタデータがある場合の read 当たり最小 qscore 閾値。",
-      "normalizeHeaders": "ヘッダを正規化",
-      "normalizeHeadersHelp": "ONT read ID を保持する代わりに well 名を FASTA ヘッダに書き込みます。下流の well 単位パースが一貫します。",
       "rawRunOptions": "Raw Run オプション",
       "rawRunOptionsAriaLabel": "Raw run demux とフィルタオプション",
       "barcodeRunsAutomatically": "barcode 仕分けはメインの実行ボタンを押すと自動実行されます。",
@@ -201,17 +191,9 @@
       "recommendedCutoff": "推奨値: {{value}} KB ({{method}})",
       "useCutoffBtn": "使用",
       "bimodalTooltip": "分布が bimodal に見えます。推奨は knee 検出。",
-      "autoDetected": "自動検出: {{length}} bp",
-      "normalizeHeadersAriaLabel": "FASTA ヘッダに ONT read ID ではなく well 名を書き込み",
-      "demuxProgressAriaLabel": "Demux 進行率",
-      "demuxComplete": "Demux 完了:",
-      "demuxCompleteReads": "{{assigned}} reads 割当 / 合計 {{total}} ({{backend}})",
-      "lengthFilter": "Length filter: {{mode}}",
       "legacyKbCutoff": "Legacy KB cutoff (proxy)",
       "legacyKbCutoffAriaLabel": "Legacy 最小ファイルサイズ KB cutoff (read depth の代理値)",
-      "lengthToleranceAriaLabel": "長さ許容範囲: ±{{bp}} bp",
       "applyCutoffAriaLabel": "推奨 cutoff {{kb}} KB を適用",
-      "autoDetectedAriaLabel": "自動検出 amplicon 長: {{length}} bp、信頼度 {{confidence}}、サンプル reads {{reads}}",
       "modeAmpliconTitle": "線形 PCR amplicon ターゲット。read は単一の定義領域をカバーし、barcode 単位で領域内の consensus をコール。",
       "modePlasmidTitle": "環状 plasmid ターゲット。read は origin をまたぐことがあり、consensus は plasmid 全体のトポロジーを考慮。",
       "ingestBarcodeTitle": "Nanopore barcode 単位 (NB01, NB02, ...) で read をグループ化。barcode bin 1 つが 1 サンプル。",
@@ -250,7 +232,9 @@
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
       "chimeraSplitAriaLabel": "Enable chimera detection by evaluating all alignment hits per read",
-      "ampliconConfidenceHelp": "Confidence of the amplicon length auto-detected from sampled reads: peak read-length bin share at or above 30% is high, at or above 15% is medium, otherwise low."
+      "mapqThreshold": "最小マッピング品質（0～60）",
+      "mapqThresholdHelp": "このマッピング品質未満のリードはデマルチプレックス時に除外されます。許容範囲は0～60です。",
+      "mapqThresholdAriaLabel": "0から60の最小マッピング品質"
     },
     "barcodeSetup": {
       "title": "Barcode パッケージセットアップ",
@@ -1216,7 +1200,9 @@
       "expectedXlsx": "設計 variant リスト",
       "expectedXlsxHelper": "数値 ID の順序ソースです。analyze ステップが読む設計 variant リストと同じファイルで、手書きの plate ファイルより優先されます。",
       "orderSource": "順序ソース (設計 variant リストまたは plate layout のいずれか一つ)",
-      "dismissError": "閉じる"
+      "dismissError": "閉じる",
+      "mismatchThreshold": "不一致しきい値",
+      "mismatchThresholdHelper": "不一致として扱い、確認までエクスポートを阻止する絶対活性差です。0より大きい値にしてください。"
     },
     "verdictBadge": {
       "help": {
@@ -3420,7 +3406,9 @@
     "restoredUnverifiedNote": "{{files}} はこのアプリが書き出したものではないため、その後変更されていないかは確認できません。",
     "rebuiltNote": "{{when}} の以前の回答は、4.1 が再作成する前の同じファイル（{{files}}）から算出したものです。前回の作成物についての回答なので履歴として残します。現在の内容については分類をもう一度実行してください。",
     "supersededNote": "{{when}} の以前の回答は別のファイル一覧（{{files}}）から算出したものです。現在選択中のファイルについては何も述べていないため表示しません。",
-    "headingHelp": "複数ラウンドのEVOLVEpro結果をまとめてラウンド間の飽和シグナルを見て、継続、Combinatorial へ移行、中止、保留のいずれかを参考として示します。読み取り専用のため何も確定・保存せず、ラウンドが3回未満ではまだ判定しません。"
+    "headingHelp": "複数ラウンドのEVOLVEpro結果をまとめてラウンド間の飽和シグナルを見て、継続、Combinatorial へ移行、中止、保留のいずれかを参考として示します。読み取り専用のため何も確定・保存せず、ラウンドが3回未満ではまだ判定しません。",
+    "nextRoundCapacity": "次ラウンドのプレート容量",
+    "nextRoundCapacityHelper": "次の組合せラウンドで利用できるウェル数です。処理量の推奨を決定します。"
   },
   "validation": {
     "missing": {

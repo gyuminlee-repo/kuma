@@ -353,6 +353,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
     } catch (err) {
       set({ statusMessage: `Excel export failed: ${formatError(err)}` });
       notifyJobError("Excel export failed", err);
+      throw err;
     } finally {
       set({ isExporting: false });
     }
@@ -542,7 +543,10 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         const yPredMap: Record<string, number> = {};
         if (Array.isArray(result.variants) && Array.isArray(result.y_preds)) {
           (result.variants as string[]).forEach((v: string, i: number) => {
-            yPredMap[v] = (result.y_preds as number[])[i] ?? 0;
+            const predicted = (result.y_preds as number[])[i];
+            // 0.0 is a valid measured fitness. A missing sidecar value must
+            // remain absent rather than being exported as that measurement.
+            if (predicted !== undefined && predicted !== null) yPredMap[v] = predicted;
           });
         }
         preloadedYPred = yPredMap;

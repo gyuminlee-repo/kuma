@@ -33,7 +33,6 @@ import type { DetectNativeBarcodesResult } from "@/types/mame/detect_native_barc
 import type { InputSlice, RawRunParams } from "../slice-interfaces";
 import type { AppState } from "../types";
 import { useRoundStore } from "@/store/round/roundSlice";
-const MAME_DEMUX_RPC_TIMEOUT_MS = 1_800_000; // 30 min — demux of large runs (78 FASTQ incident)
 const MAME_ANALYZE_RPC_TIMEOUT_MS = 1_200_000; // 20 min — full analysis pipeline
 const MAME_RAWRUN_RPC_TIMEOUT_MS = 3_000_000; // 50 min >= demux(30m)+analyze(20m) for folded raw-run analyze
 
@@ -47,17 +46,11 @@ interface ParseReferenceResult {
 const DEFAULT_RAW_RUN_PARAMS: RawRunParams = {
   customBarcodesPath: "",
   sequencingSummaryPath: "",
-  minQscore: 8.0,
-  lengthMin: 800,
-  lengthMax: 3000,
-  // R6.5 defaults
-  targetLength: null,
-  lengthToleranceBp: 30,
-  normalizeHeaders: true,
   // PR-A: combinatorial demux advanced defaults
   coverageFraction: 0.98,
   editDistRatio: 0.25,
   chimeraSplit: true,
+  mapqThreshold: 25,
 };
 
 function pickLongestIndex(candidates: CdsCandidate[]): number | null {
@@ -533,58 +526,6 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     set({ distributionStats }),
   setAmpliconLengthEstimate: (ampliconLengthEstimate: AmpliconLengthEstimate | null) =>
     set({ ampliconLengthEstimate }),
-  runDemuxAndFilter: async () => {
-    const s = get();
-    const { rawRunParams } = s;
-    const inputErrors = getDemuxInputErrors(s);
-    if (inputErrors.length > 0) {
-      set({ validationErrors: inputErrors, demuxMessage: "Demux setup incomplete" });
-      return;
-    }
-    set({
-      isDemuxing: true,
-      demuxProgress: 0,
-      demuxMessage: "Starting demux...",
-      validationErrors: [],
-      demuxResult: null,
-    });
-    try {
-      const result = await sendRequest<DemuxAndFilterResult>(
-        "demux_and_filter",
-        {
-          fastq_dir: s.inputDir,
-          custom_barcodes_path: rawRunParams.customBarcodesPath,
-          output_dir: deriveDemuxOutputDir(s.outputPath),
-          sequencing_summary: rawRunParams.sequencingSummaryPath || undefined,
-          min_qscore: rawRunParams.minQscore,
-          length_min: rawRunParams.lengthMin,
-          length_max: rawRunParams.lengthMax,
-          target_length: rawRunParams.targetLength ?? undefined,
-          length_tolerance_bp: rawRunParams.lengthToleranceBp,
-          auto_detect_length: rawRunParams.targetLength === null,
-          normalize_headers: rawRunParams.normalizeHeaders,
-        },
-        MAME_DEMUX_RPC_TIMEOUT_MS,
-      );
-      set({
-        isDemuxing: false,
-        demuxProgress: 100,
-        demuxMessage: `Demux complete: ${result.n_assigned.toLocaleString()} reads assigned`,
-        demuxResult: result,
-        ampliconLengthEstimate: result.amplicon_length_estimate,
-        // Auto-set inputDir to demux output for downstream analyze call.
-        inputDir: result.output_dir,
-        ingestMode: "barcode",
-      });
-    } catch (error) {
-      set({
-        isDemuxing: false,
-        demuxProgress: 0,
-        demuxMessage: "Demux failed",
-        validationErrors: [formatError(error)],
-      });
-    }
-  },
   // Ask the sidecar about the expected workbook alone, without the rest of a
   // validation.
   //
@@ -697,7 +638,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         edit_dist_ratio: rawRunParams.editDistRatio,
         chimera_split: rawRunParams.chimeraSplit,
         demux_output_dir: deriveDemuxOutputDir(state.outputPath),
-        mapq_threshold: 25,
+        mapq_threshold: rawRunParams.mapqThreshold,
         trim_flank_bp: 30,
       },
       MAME_RAWRUN_RPC_TIMEOUT_MS,

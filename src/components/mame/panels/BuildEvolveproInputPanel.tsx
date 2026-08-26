@@ -301,6 +301,7 @@ export function BuildEvolveproInputPanel() {
       verdict_xlsx: form.verdictXlsx,
       output_xlsx: form.outputXlsx,
       allow_label_mismatch: allowLabelMismatch,
+      mismatch_threshold: form.mismatchThreshold,
     };
   }
 
@@ -519,6 +520,29 @@ export function BuildEvolveproInputPanel() {
               )}
             </>
           )}
+
+          <div className="space-y-1">
+            <Label htmlFor="bep-mismatch-threshold">
+              {t("mame.buildEvolvepro.mismatchThreshold")}
+            </Label>
+            <Input
+              id="bep-mismatch-threshold"
+              type="number"
+              min={0.001}
+              step={0.01}
+              value={form.mismatchThreshold}
+              onChange={(event) => {
+                const value = Number(event.target.value);
+                if (Number.isFinite(value) && value > 0) {
+                  setForm({ mismatchThreshold: value });
+                }
+              }}
+              aria-describedby="bep-mismatch-threshold-help"
+            />
+            <p id="bep-mismatch-threshold-help" className="text-xs text-muted-foreground">
+              {t("mame.buildEvolvepro.mismatchThresholdHelper")}
+            </p>
+          </div>
 
           {buildEvolveproNeedsOrderSource(form) && (
             <FilePickerField

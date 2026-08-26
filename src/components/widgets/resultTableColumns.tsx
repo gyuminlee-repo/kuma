@@ -408,14 +408,20 @@ export function makeResultTableColumns(opts: {
       size: 50,
       enableSorting: true,
       sortingFn: (a, b) => {
-        const scoreA = Math.min(a.original.synthesis_score_fwd ?? 100, a.original.synthesis_score_rev ?? 100);
-        const scoreB = Math.min(b.original.synthesis_score_fwd ?? 100, b.original.synthesis_score_rev ?? 100);
-        return scoreA - scoreB;
+        const scoreA = [a.original.synthesis_score_fwd, a.original.synthesis_score_rev]
+          .filter((score): score is number => score != null);
+        const scoreB = [b.original.synthesis_score_fwd, b.original.synthesis_score_rev]
+          .filter((score): score is number => score != null);
+        return (scoreA.length !== 2 ? Infinity : Math.min(...scoreA))
+          - (scoreB.length !== 2 ? Infinity : Math.min(...scoreB));
       },
       cell: (info) => {
         const row = info.row.original;
-        const fwd = row.synthesis_score_fwd ?? 100;
-        const rev = row.synthesis_score_rev ?? 100;
+        const fwd = row.synthesis_score_fwd;
+        const rev = row.synthesis_score_rev;
+        if (fwd == null || rev == null) {
+          return <span className="text-muted-foreground" title="Synthesis score unavailable">—</span>;
+        }
         const worst = Math.round(Math.min(fwd, rev));
         const color = worst >= 85 ? "text-success" : worst >= 70 ? "text-warning" : "text-error";
         return <span className={color} title={`Fwd: ${Math.round(fwd)} / Rev: ${Math.round(rev)}`}>{worst}</span>;

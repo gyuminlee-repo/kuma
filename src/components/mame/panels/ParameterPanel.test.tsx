@@ -24,15 +24,10 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 const BASE_RAW_RUN_PARAMS = {
   customBarcodesPath: "",
   sequencingSummaryPath: "",
-  minQscore: 8.0,
-  lengthMin: 800,
-  lengthMax: 3000,
-  targetLength: null,
-  lengthToleranceBp: 30,
-  normalizeHeaders: true,
   coverageFraction: 0.98,
   editDistRatio: 0.25,
   chimeraSplit: true,
+  mapqThreshold: 25,
 } as const;
 
 /** Creates a minimal AppState partial for selector-based mock. */
@@ -76,7 +71,33 @@ describe("ParameterPanel", () => {
     expect(screen.getByText(/advancedOptions/i)).toBeDefined();
   });
 
-  it("shows 3 new fields after expanding Advanced section", async () => {
+  it("does not render raw-run filters that the Run request cannot honor", () => {
+    mockStore({
+      inputMode: "raw_run",
+      mode: "amplicon",
+      ingestMode: "barcode",
+      cdsStart: 0,
+      cdsEnd: 0,
+      analyzeCdsCandidates: [],
+      selectedAnalyzeCdsIndex: null,
+      referencePath: "",
+      minFileSizeKb: 50,
+      minFilteredDepth: 15,
+      manyCutoff: 5,
+      distributionStats: null,
+      setParams: vi.fn(),
+      setSelectedAnalyzeCdsIndex: vi.fn(),
+    });
+
+    render(<ParameterPanel />);
+
+    expect(screen.queryByLabelText(/targetAmpliconLengthAriaLabel/i)).toBeNull();
+    expect(screen.queryByLabelText(/lengthToleranceAriaLabel/i)).toBeNull();
+    expect(screen.queryByText(/minQscore/i)).toBeNull();
+    expect(screen.queryByRole("switch", { name: /normalizeHeadersAriaLabel/i })).toBeNull();
+  });
+
+  it("shows MAPQ alongside the advanced demux controls", async () => {
     mockStore({
       inputMode: "raw_run",
       mode: "amplicon",
@@ -105,11 +126,13 @@ describe("ParameterPanel", () => {
     await userEvent.click(summary);
 
     expect(screen.getByLabelText(/coverageFractionAriaLabel/i)).toBeDefined();
+    expect(screen.getByLabelText(/mapqThresholdAriaLabel/i)).toBeDefined();
     expect(screen.getByLabelText(/editDistRatioAriaLabel/i)).toBeDefined();
     expect(screen.getByRole("switch", { name: /chimeraSplitAriaLabel/i })).toBeDefined();
   });
 
-  it("shows default values 0.98, 0.25, aria-checked=true after expanding Advanced", async () => {
+  it("shows the default MAPQ and sends an operator-selected value", async () => {
+    const setParams = vi.fn();
     mockStore({
       inputMode: "raw_run",
       mode: "amplicon",
@@ -128,7 +151,7 @@ describe("ParameterPanel", () => {
       demuxMessage: "",
       demuxResult: null,
       ampliconLengthEstimate: null,
-      setParams: vi.fn(),
+      setParams,
       setSelectedAnalyzeCdsIndex: vi.fn(),
     });
 
@@ -142,6 +165,11 @@ describe("ParameterPanel", () => {
 
     const editDistInput = screen.getByLabelText(/editDistRatioAriaLabel/i) as HTMLInputElement;
     expect(editDistInput.value).toBe("0.25");
+
+    const mapqInput = screen.getByLabelText(/mapqThresholdAriaLabel/i) as HTMLInputElement;
+    expect(mapqInput.value).toBe("25");
+    fireEvent.change(mapqInput, { target: { value: "37" } });
+    expect(setParams).toHaveBeenCalledWith({ rawRunParams: { mapqThreshold: 37 } });
 
     const chimeraSplit = screen.getByRole("switch", { name: /chimeraSplitAriaLabel/i });
     expect(chimeraSplit.getAttribute("aria-checked")).toBe("true");

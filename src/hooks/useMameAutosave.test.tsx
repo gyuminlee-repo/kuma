@@ -106,6 +106,20 @@ describe("useMameAutosave", () => {
     );
   });
 
+  it("schedules a snapshot when only the MAPQ threshold changes", async () => {
+    render(
+      <ProjectProvider value={{ path: "/tmp/kuma-project", name: "Demo", scratch: false }}>
+        <Harness />
+      </ProjectProvider>,
+    );
+
+    act(() => {
+      useMameAppStore.getState().setParams({ rawRunParams: { mapqThreshold: 37 } });
+    });
+
+    await waitFor(() => expect(autosaveMocks.scheduleAutosave).toHaveBeenCalled());
+  });
+
   it("schedules mame autosave when persisted result fields change", async () => {
     render(
       <ProjectProvider value={{ path: "/tmp/kuma-project", name: "Demo", scratch: false }}>

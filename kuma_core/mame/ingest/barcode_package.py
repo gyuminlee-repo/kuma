@@ -525,14 +525,24 @@ def design_flanking_primers(
             break
 
     if fwd_chosen is None:
-        if fwd_candidates:
-            fwd_candidates.sort(key=lambda x: x[0])
-            fwd_chosen = fwd_candidates[0][1]
+        fallback_candidates = (
+            [item for item in fwd_candidates if item[1][-1].upper() in "GC"]
+            if require_gc_clamp
+            else fwd_candidates
+        )
+        if fallback_candidates:
+            fallback_candidates.sort(key=lambda x: x[0])
+            fwd_chosen = fallback_candidates[0][1]
             best_tm = _calc_tm(fwd_chosen, profile)
             collected_warnings.append(
                 f"No forward primer candidate met Tm [{tm_min}, {tm_max}] "
                 f"(require_gc_clamp={require_gc_clamp}). "
                 f"Using closest candidate (Tm={best_tm:.1f} C): {fwd_chosen.upper()}"
+            )
+        elif require_gc_clamp:
+            raise ValueError(
+                "Forward primer search produced no candidate satisfying the required "
+                "GC clamp. Relax require_gc_clamp or widen the search window."
             )
         else:
             raise ValueError(
@@ -567,14 +577,24 @@ def design_flanking_primers(
             break
 
     if rev_chosen is None:
-        if rev_candidates:
-            rev_candidates.sort(key=lambda x: x[0])
-            rev_chosen = rev_candidates[0][1]
+        fallback_candidates = (
+            [item for item in rev_candidates if item[1][-1].upper() in "GC"]
+            if require_gc_clamp
+            else rev_candidates
+        )
+        if fallback_candidates:
+            fallback_candidates.sort(key=lambda x: x[0])
+            rev_chosen = fallback_candidates[0][1]
             best_tm = _calc_tm(rev_chosen, profile)
             collected_warnings.append(
                 f"No reverse primer candidate met Tm [{tm_min}, {tm_max}] "
                 f"(require_gc_clamp={require_gc_clamp}). "
                 f"Using closest candidate (Tm={best_tm:.1f} C): {rev_chosen.upper()}"
+            )
+        elif require_gc_clamp:
+            raise ValueError(
+                "Reverse primer search produced no candidate satisfying the required "
+                "GC clamp. Relax require_gc_clamp or widen the search window."
             )
         else:
             raise ValueError(

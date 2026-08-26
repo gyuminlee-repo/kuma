@@ -98,6 +98,10 @@ function VerdictBreakdown({
   const plates = Object.entries(perPlate).sort(
     ([a], [b]) => nbOrderKey(a) - nbOrderKey(b) || a.localeCompare(b),
   );
+  const hasIncompleteBreakdown = plates.some(([, breakdown]) =>
+    [breakdown.total, ...VERDICT_SEGMENTS.map(({ key }) => breakdown[key])]
+      .some((value) => value == null),
+  );
 
   // The recovery rate header that used to sit here is gone. It read
   // recovered/total over the designed set counting PASS *and* AMBIGUOUS, while
@@ -179,6 +183,9 @@ function VerdictBreakdown({
   // stand on its own (it reads the designed-set scalars, not the per-plate map), so
   // render it rather than the empty fragment the recovery header used to cover.
   if (plates.length === 0) return mutantRecoveryBar;
+  if (hasIncompleteBreakdown) {
+    return <p className="text-caption text-muted-foreground">{t("mame.runHealth.qcNotMeasured")}</p>;
+  }
 
   const barW = 44;
   const gap = 24;
@@ -358,7 +365,10 @@ const HIST_KEYS = ["min", "p05", "p25", "median", "p75", "p95", "max"] as const;
 
 function FileSizeHistogram({ distribution, cutoffKb, bimodal, method }: FileSizeHistogramProps) {
   const { t } = useTranslation();
-  const values = HIST_KEYS.map((k) => distribution[k] ?? 0);
+  const values = HIST_KEYS.map((k) => distribution[k]);
+  if (!values.every((value): value is number => value != null)) {
+    return <p className="text-caption text-muted-foreground">{t("mame.runHealth.qcNotMeasured")}</p>;
+  }
   const maxVal = safeMax(values);
 
   const chartH = 80;
@@ -391,7 +401,7 @@ function FileSizeHistogram({ distribution, cutoffKb, bimodal, method }: FileSize
       >
         <title>{t("mame.runHealth.fileSizeDistribution")}</title>
         {HIST_KEYS.map((key, i) => {
-          const val = distribution[key] ?? 0;
+          const val = values[i];
           const h = maxVal > 0 ? (val / maxVal) * chartH : 0;
           const x = leftPad + i * (barW + gap);
           const y = chartH - h;

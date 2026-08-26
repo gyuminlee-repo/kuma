@@ -6,6 +6,7 @@ import { cancelAndRespawn, sendRequest } from "../../lib/ipc-kuro";
 import { wellName } from "../../lib/plate-utils";
 import { clampMaxPrimers } from "../../lib/inputThresholds";
 import { formatError } from "../../lib/utils";
+import { buildKuroDesignInputPatch } from "../../lib/kuroResultReset";
 import { suggestRetryParams, getStageParams } from "../../lib/primerSuggestion";
 import {
   DEFAULT_POLYMERASE,
@@ -101,7 +102,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       }
 
       const next = names.includes(current) ? current : polymerases[0]?.name ?? current;
-      set({ polymerases, selectedPolymerase: next });
+      set({ polymerases });
       // Only re-apply profile defaults when the selection actually changed.
       // Re-running it for an unchanged selection would overwrite gcMin/gcMax and
       // overlapMode, silently discarding a GC range restored from a saved state
@@ -127,7 +128,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       if (overlapChanged) changes.push(`overlap mode set to ${nextOverlapMode}`);
       const notice =
         isSwitch && changes.length > 0 ? `Polymerase changed: ${changes.join(", ")}` : null;
-      set({
+      set(buildKuroDesignInputPatch(prev, {
         selectedPolymerase: name,
         ...(notice ? { statusMessage: notice } : {}),
         // Method-level SDM targets (Landwehr et al. 2025 SI Fig. S4), mirroring
@@ -138,7 +139,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         gcMin: profile.min_gc,
         gcMax: profile.max_gc,
         overlapMode: nextOverlapMode,
-      });
+      }));
     } catch (err) {
       set({ statusMessage: `Polymerase load failed: ${formatError(err)}` });
     }
@@ -480,12 +481,15 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   },
 
 
-  setCodonStrategy: (strategy) => set({ codonStrategy: strategy }),
+  setCodonStrategy: (strategy) => {
+    const state = get();
+    set(buildKuroDesignInputPatch(state, { codonStrategy: strategy }));
+  },
   setMaxPrimers: (n) => {
     const clamped = clampMaxPrimers(n);
     const state = get();
     const prev = state.maxPrimers;
-    set({ maxPrimers: clamped });
+    set(buildKuroDesignInputPatch(state, { maxPrimers: clamped }));
     // If an EVOLVEpro CSV failed to load (mutationText cleared but path retained),
     // re-trigger load so user can recover by adjusting the mutation count.
     const isEvolvepro = state.mutationInputMode === "evolvepro";
@@ -499,29 +503,52 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   },
 
   setTmTargets: (fwd: number, rev: number, ov: number) => {
-    set({ tmFwdTarget: fwd, tmRevTarget: rev, tmOverlapTarget: ov });
+    const state = get();
+    set(buildKuroDesignInputPatch(state, {
+      tmFwdTarget: fwd, tmRevTarget: rev, tmOverlapTarget: ov,
+    }));
   },
 
   setGcRange: (min: number, max: number) => {
-    set({ gcMin: min, gcMax: max });
+    const state = get();
+    set(buildKuroDesignInputPatch(state, { gcMin: min, gcMax: max }));
   },
 
-  setPrimerLenEnabled: (enabled: boolean) => set({ primerLenEnabled: enabled }),
+  setPrimerLenEnabled: (enabled: boolean) => {
+    const state = get();
+    set(buildKuroDesignInputPatch(state, { primerLenEnabled: enabled }));
+  },
 
   setPrimerLenRange: (fwdMin: number, fwdMax: number, revMin: number, revMax: number) => {
-    set({ fwdLenMin: fwdMin, fwdLenMax: fwdMax, revLenMin: revMin, revLenMax: revMax });
+    const state = get();
+    set(buildKuroDesignInputPatch(state, {
+      fwdLenMin: fwdMin,
+      fwdLenMax: fwdMax,
+      revLenMin: revMin,
+      revLenMax: revMax,
+    }));
   },
 
-  setFillOnFailure: (enabled: boolean) => set({ fillOnFailure: enabled }),
+  setFillOnFailure: (enabled: boolean) => {
+    const state = get();
+    set(buildKuroDesignInputPatch(state, { fillOnFailure: enabled }));
+  },
 
   setTmTolerance: (value: number) => {
     const clamped = Math.min(10.0, Math.max(0.5, Math.round(value * 2) / 2));
-    set({ tmTolerance: clamped });
+    const state = get();
+    set(buildKuroDesignInputPatch(state, { tmTolerance: clamped }));
   },
 
-  setOverlapMode: (mode) => set({ overlapMode: mode }),
+  setOverlapMode: (mode) => {
+    const state = get();
+    set(buildKuroDesignInputPatch(state, { overlapMode: mode }));
+  },
 
-  setRandomSeed: (seed: number | null) => set({ randomSeed: seed }),
+  setRandomSeed: (seed: number | null) => {
+    const state = get();
+    set(buildKuroDesignInputPatch(state, { randomSeed: seed }));
+  },
 
   evaluateCustomPrimer: async (mutation: string, fwdSeq: string, revSeq: string, overlapLen?: number) => {
     try {
