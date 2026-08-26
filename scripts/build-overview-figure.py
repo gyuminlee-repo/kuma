@@ -197,7 +197,7 @@ def lines(x, y0, items, avail, where, fs=FS_BODY, lead=LEAD):
         text(x, y0 + i * lead, s, fs, bold=bold)
 
 
-def rule(x1, x2, y, colour, sw=SW_RULE, track=True):
+def rule(x1, x2, y, colour, sw: float = SW_RULE, track=True):
     out.append('<line x1="%g" y1="%g" x2="%g" y2="%g" stroke="%s" '
                'stroke-width="%g"/>' % (x1, y, x2, y, colour, sw))
     if track:
@@ -743,13 +743,24 @@ def audit(label, svg, W, H, FS_BODY, _fit_errors, _texts, _connectors, _rects,
           "kuma v" not in svg and "<title" not in svg and "<desc" not in svg,
           "none")
 
-    bad_type = sorted({el.get("fill") for el in root.iter()
-                       if el.tag.endswith("text") and el.get("fill") not in TYPE_HEXES})
+    bad_type = sorted({el.get("fill", "(unset)") for el in root.iter()
+                       if el.tag.endswith("text")
+                       and el.get("fill", "(unset)") not in TYPE_HEXES})
     check("all type is a near-black, never a hue and never track_grey",
           not bad_type, "off-roster type fills: %s" % bad_type if bad_type else "clean")
 
-    sizes = sorted({float(el.get("font-size")) for el in root.iter()
-                    if el.tag.endswith("text")})
+    seen_sizes = set()
+    for el in root.iter():
+        if not el.tag.endswith("text"):
+            continue
+        fs = el.get("font-size")
+        if fs is None:
+            # Every writer above sets it, so a missing one is a bug in the
+            # emitter rather than a condition worth reporting as a finding.
+            raise AssertionError("a <text> element carries no font-size: %r"
+                                 % "".join(el.itertext())[:40])
+        seen_sizes.add(float(fs))
+    sizes = sorted(seen_sizes)
     check("smallest type is at least %d uu" % FS_BODY, min(sizes) >= FS_BODY,
           "sizes present: %s" % [int(s) for s in sizes])
 
