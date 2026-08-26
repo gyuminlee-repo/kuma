@@ -1842,7 +1842,7 @@
 <h3 id="v01613">바코드 작업목록 (v0.16.13)<a class="headerlink" href="#v01613" title="Permanent link">&para;</a></h3>
 <p>"사용할 웰" 패널의 <strong>바코드 작업목록 (csv)</strong> 버튼이 이 캠페인이 쓰는 커스텀 바코드를 파일로 쓴다. 채운 웰마다 웰·샘플·<code>{R}_{F}</code> 토큰·reverse/forward 시드 프라이머 이름이 한 행씩 들어가고, 이번 캠페인이 실제로 필요한 시드 종류도 함께 보고한다. 부분 플레이트면 워크북의 20 개보다 적다. 배치는 실행이 쓰는 것과 같은 계산에서 나오므로 시트가 실행이 채점할 플레이트와 다른 플레이트를 적을 수 없다. 바코드 워크북이 없으면 프라이머 이름만 비고 토큰 배치는 그대로 나온다.</p>
 <h3 id="v01514">입력을 바꾸면 이전 결과가 지워진다 (v0.15.14)<a class="headerlink" href="#v01514" title="Permanent link">&para;</a></h3>
-<p>run 폴더, expected 워크북, reference FASTA, 선언한 웰 중 하나라도 바꾸면 이전 실행이 만든 것이 지워진다. verdict 와 플레이트 맵, 산출물 안내가 모두 사라지고 2.2 는 실행 전 상태로 돌아간다. 끝난 실행의 화면이 새 입력의 결과처럼 보이는 것을 막기 위한 동작이다. 같은 경로를 다시 골랐을 때는 아무 일도 일어나지 않는다. 백엔드로 보내는 분석 파라미터(mode, CDS 좌표, raw run 파라미터 등)도 같은 규칙을 따른다. 출력 경로는 입력이 아니므로 무효화하지 않으며 화면 표시용 임계값인 <code>minFilteredDepth</code> 도 마찬가지다.</p>
+<p>run 폴더, expected 워크북, reference FASTA, 선언한 웰 중 하나라도 바꾸면 이전 실행이 만든 것이 지워진다. verdict 와 플레이트 맵, 산출물 안내가 모두 사라지고 2.2 는 실행 전 상태로 돌아간다. 끝난 실행의 화면이 새 입력의 결과처럼 보이는 것을 막기 위한 동작이다. 같은 경로를 다시 골랐을 때는 아무 일도 일어나지 않는다. 백엔드로 보내는 분석 파라미터(mode, CDS 좌표, <code>minFilteredDepth</code>, raw run 파라미터 등)도 같은 규칙을 따른다. 출력 경로만 입력이 아니므로 무효화하지 않는다.</p>
 <h2 id="22-review">2.2 Review<a class="headerlink" href="#22-review" title="Permanent link">&para;</a></h2>
 <p>좌측: verdict table. 우측: 96-well plate map (colorblind-safe toggle).</p>
 <h3 id="v01619">판정표 위의 런 품질 (v0.16.19)<a class="headerlink" href="#v01619" title="Permanent link">&para;</a></h3>
