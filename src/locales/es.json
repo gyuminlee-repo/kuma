@@ -2523,14 +2523,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Se eliminan dos opciones de telemetría: la norma hace bloqueante cero envíos externos, así que nunca podrían haberse activado.",
-      "Se elimina el tiempo de espera de cancelación: la norma lo fija en 5 segundos y ninguna ruta de cancelación espera antes de terminar.",
-      "El cierre espera ahora los 5 segundos que exige la norma y que el ayudante ya documentaba, en lugar de los 2 que pasaba quien lo llamaba.",
-      "Se elimina el ajuste de concurrencia: una placa completa se diseña en unos dos segundos, no hay grupo que limitar.",
-      "Los ajustes escritos por una versión anterior siguen cargándose y conservan toda preferencia que aún exista."
+      "Las solicitudes reintentadas ahora conservan la geometría de solapamiento elegida, los límites de cebadores y la configuración de Tm y GC en vez de volver a los valores predeterminados.",
+      "Los rangos de cebadores con solapamiento completo ahora coinciden con los límites que recibe el motor, en vez de estrechar un rango mostrado de 17–39 nt a 19–27 nt.",
+      "La profundidad mínima filtrada de MAME ahora coincide con el valor aplicado y se conserva tras recargar.",
+      "La validación y la ejecución de MAME comparten una misma carga útil, por lo que la validación describe la ejecución que se realizará.",
+      "Al recargar se mantienen desactivados los controles de diversidad deshabilitados y se conservan los ajustes del manipulador de líquidos, estructura y lista de variantes."
     ],
-    "highlightsStamp": "0.16.37+93aa6e16",
+    "highlightsStamp": "0.16.38+6da048ca",
     "releases": {
+      "0.16.38": [
+        "Las solicitudes reintentadas ahora conservan la geometría de solapamiento elegida, los límites de cebadores y la configuración de Tm y GC en vez de volver a los valores predeterminados.",
+        "Los rangos de cebadores con solapamiento completo ahora coinciden con los límites que recibe el motor, en vez de estrechar un rango mostrado de 17–39 nt a 19–27 nt.",
+        "La profundidad mínima filtrada de MAME ahora coincide con el valor aplicado y se conserva tras recargar.",
+        "La validación y la ejecución de MAME comparten una misma carga útil, por lo que la validación describe la ejecución que se realizará.",
+        "Al recargar se mantienen desactivados los controles de diversidad deshabilitados y se conservan los ajustes del manipulador de líquidos, estructura y lista de variantes."
+      ],
       "0.16.37": [
         "Se eliminan dos opciones de telemetría: la norma hace bloqueante cero envíos externos, así que nunca podrían haberse activado.",
         "Se elimina el tiempo de espera de cancelación: la norma lo fija en 5 segundos y ninguna ruta de cancelación espera antes de terminar.",
@@ -2808,6 +2815,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",
       "0.16.29": "3f25adcf",

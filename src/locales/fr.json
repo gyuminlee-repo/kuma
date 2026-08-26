@@ -2523,14 +2523,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Deux options de télémétrie disparaissent : la norme rend bloquant tout envoi externe, elles n auraient jamais pu être activées.",
-      "Le délai d annulation disparaît : la norme fixe cette attente à 5 secondes, et aucun chemin d annulation n attend avant de tuer.",
-      "L arrêt attend désormais les 5 secondes exigées par la norme et déjà documentées par l assistant, au lieu des 2 passées par son appelant.",
-      "Le réglage de concurrence disparaît : une plaque entière se conçoit en environ deux secondes, il n y a aucun pool à plafonner.",
-      "Les réglages écrits par une version antérieure se chargent toujours et conservent chaque préférence encore existante."
+      "Les demandes relancées conservent désormais la géométrie de chevauchement choisie, les limites des amorces et les réglages de Tm et GC au lieu de revenir aux valeurs par défaut.",
+      "Les plages d amorces à chevauchement complet correspondent désormais aux limites reçues par le moteur, au lieu de réduire une plage affichée de 17–39 nt à 19–27 nt.",
+      "La profondeur filtrée minimale de MAME correspond désormais à la valeur appliquée et est conservée après rechargement.",
+      "La validation et l exécution MAME partagent une même charge utile, de sorte que la validation décrit l exécution qui sera lancée.",
+      "Le rechargement conserve désactivés les contrôles de diversité désactivés et préserve les réglages du manipulateur de liquides, de structure et de liste de variants."
     ],
-    "highlightsStamp": "0.16.37+93aa6e16",
+    "highlightsStamp": "0.16.38+6da048ca",
     "releases": {
+      "0.16.38": [
+        "Les demandes relancées conservent désormais la géométrie de chevauchement choisie, les limites des amorces et les réglages de Tm et GC au lieu de revenir aux valeurs par défaut.",
+        "Les plages d amorces à chevauchement complet correspondent désormais aux limites reçues par le moteur, au lieu de réduire une plage affichée de 17–39 nt à 19–27 nt.",
+        "La profondeur filtrée minimale de MAME correspond désormais à la valeur appliquée et est conservée après rechargement.",
+        "La validation et l exécution MAME partagent une même charge utile, de sorte que la validation décrit l exécution qui sera lancée.",
+        "Le rechargement conserve désactivés les contrôles de diversité désactivés et préserve les réglages du manipulateur de liquides, de structure et de liste de variants."
+      ],
       "0.16.37": [
         "Deux options de télémétrie disparaissent : la norme rend bloquant tout envoi externe, elles n auraient jamais pu être activées.",
         "Le délai d annulation disparaît : la norme fixe cette attente à 5 secondes, et aucun chemin d annulation n attend avant de tuer.",
@@ -2808,6 +2815,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",
       "0.16.29": "3f25adcf",

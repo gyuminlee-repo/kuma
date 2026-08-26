@@ -2523,14 +2523,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Duas opções de telemetria saem: a norma torna bloqueante qualquer envio externo, elas nunca poderiam ter sido ligadas.",
-      "O tempo de espera de cancelamento sai: a norma fixa essa espera em 5 segundos e nenhum caminho de cancelamento espera antes de encerrar.",
-      "O encerramento agora espera os 5 segundos que a norma exige e o auxiliar já documentava, no lugar dos 2 que quem o chamava passava.",
-      "O ajuste de concorrência sai: uma placa inteira é desenhada em cerca de dois segundos, não há pool a limitar.",
-      "Ajustes gravados por uma versão anterior continuam carregando e mantêm toda preferência que ainda exista."
+      "Solicitações repetidas agora preservam a geometria de sobreposição selecionada, os limites dos iniciadores e as configurações de Tm e GC, em vez de voltar aos padrões.",
+      "As faixas de iniciadores com sobreposição total agora correspondem aos limites recebidos pelo mecanismo, em vez de estreitar uma faixa exibida de 17–39 nt para 19–27 nt.",
+      "A profundidade mínima filtrada do MAME agora corresponde ao valor aplicado e persiste após recarregar.",
+      "A validação e a execução do MAME compartilham uma única carga útil, portanto a validação descreve a execução que será realizada.",
+      "Ao recarregar, os controles de diversidade desativados permanecem desativados e as configurações do manipulador de líquidos, estrutura e lista de variantes são preservadas."
     ],
-    "highlightsStamp": "0.16.37+93aa6e16",
+    "highlightsStamp": "0.16.38+6da048ca",
     "releases": {
+      "0.16.38": [
+        "Solicitações repetidas agora preservam a geometria de sobreposição selecionada, os limites dos iniciadores e as configurações de Tm e GC, em vez de voltar aos padrões.",
+        "As faixas de iniciadores com sobreposição total agora correspondem aos limites recebidos pelo mecanismo, em vez de estreitar uma faixa exibida de 17–39 nt para 19–27 nt.",
+        "A profundidade mínima filtrada do MAME agora corresponde ao valor aplicado e persiste após recarregar.",
+        "A validação e a execução do MAME compartilham uma única carga útil, portanto a validação descreve a execução que será realizada.",
+        "Ao recarregar, os controles de diversidade desativados permanecem desativados e as configurações do manipulador de líquidos, estrutura e lista de variantes são preservadas."
+      ],
       "0.16.37": [
         "Duas opções de telemetria saem: a norma torna bloqueante qualquer envio externo, elas nunca poderiam ter sido ligadas.",
         "O tempo de espera de cancelamento sai: a norma fixa essa espera em 5 segundos e nenhum caminho de cancelamento espera antes de encerrar.",
@@ -2808,6 +2815,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",
       "0.16.29": "3f25adcf",

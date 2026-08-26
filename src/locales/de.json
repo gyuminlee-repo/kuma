@@ -2523,14 +2523,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Zwei Telemetrie-Optionen entfallen: Der Standard macht null ausgehende Telemetrie release-blockierend, sie waren nie einschaltbar.",
-      "Das Abbruch-Zeitlimit entfaellt: Der Standard fixiert diese Wartezeit auf 5 Sekunden, und kein Abbruchpfad wartet ueberhaupt vor dem Beenden.",
-      "Das Beenden wartet jetzt die 5 Sekunden, die der Standard fordert und der Helfer bereits dokumentierte, statt der 2 seines Aufrufers.",
-      "Die Nebenlaeufigkeitseinstellung entfaellt: Eine ganze Platte wird in rund zwei Sekunden entworfen, es gibt keinen Pool zu begrenzen.",
-      "Von aelteren Versionen geschriebene Einstellungen laden weiterhin und behalten jede noch vorhandene Praeferenz."
+      "Wiederholte Anfragen behalten nun die gewählte Overlap-Geometrie, Primer-Grenzen sowie Tm- und GC-Einstellungen, statt auf Standardwerte zurückzufallen.",
+      "Primer-Bereiche mit vollständigem Overlap entsprechen nun den Grenzen, die die Engine erhält, statt einen angezeigten Bereich von 17–39 nt auf 19–27 nt einzuengen.",
+      "Die minimale gefilterte Tiefe von MAME entspricht nun dem angewendeten Wert und bleibt nach dem Neuladen erhalten.",
+      "MAME-Validierung und -Ausführung verwenden dieselbe Nutzlast, sodass die Validierung den tatsächlich ausgeführten Lauf beschreibt.",
+      "Beim Neuladen bleiben deaktivierte Diversity-Steuerelemente deaktiviert sowie Einstellungen für Liquid Handler, Struktur und Variantenliste erhalten."
     ],
-    "highlightsStamp": "0.16.37+93aa6e16",
+    "highlightsStamp": "0.16.38+6da048ca",
     "releases": {
+      "0.16.38": [
+        "Wiederholte Anfragen behalten nun die gewählte Overlap-Geometrie, Primer-Grenzen sowie Tm- und GC-Einstellungen, statt auf Standardwerte zurückzufallen.",
+        "Primer-Bereiche mit vollständigem Overlap entsprechen nun den Grenzen, die die Engine erhält, statt einen angezeigten Bereich von 17–39 nt auf 19–27 nt einzuengen.",
+        "Die minimale gefilterte Tiefe von MAME entspricht nun dem angewendeten Wert und bleibt nach dem Neuladen erhalten.",
+        "MAME-Validierung und -Ausführung verwenden dieselbe Nutzlast, sodass die Validierung den tatsächlich ausgeführten Lauf beschreibt.",
+        "Beim Neuladen bleiben deaktivierte Diversity-Steuerelemente deaktiviert sowie Einstellungen für Liquid Handler, Struktur und Variantenliste erhalten."
+      ],
       "0.16.37": [
         "Zwei Telemetrie-Optionen entfallen: Der Standard macht null ausgehende Telemetrie release-blockierend, sie waren nie einschaltbar.",
         "Das Abbruch-Zeitlimit entfaellt: Der Standard fixiert diese Wartezeit auf 5 Sekunden, und kein Abbruchpfad wartet ueberhaupt vor dem Beenden.",
@@ -2808,6 +2815,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",
       "0.16.29": "3f25adcf",
