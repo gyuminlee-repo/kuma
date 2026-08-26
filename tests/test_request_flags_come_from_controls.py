@@ -6,8 +6,11 @@ went out with `auto_relax: true` regardless, and the sidecar relax pass it turne
 on lowered the primer length floor by two, under a box the user had unchecked.
 
 A dead-control sweep cannot see this: the control has consumers. What gives it
-away is the literal in the payload, so that is what this checks. Snake_case keys
-only, since those are the wire format; a camelCase field is local state.
+away is a boolean or numeric literal in a request payload, so that is what this
+checks. Snake_case keys only, since those are the wire format; a camelCase field
+is local state. Numeric matching follows `send*Request` payload construction
+rather than every object literal, because response initializers are not outgoing
+requests.
 
 The detector was scored on the labelled corpus in CORPUS below before being
 trusted, per the rule that a pattern matcher is wrong until measured. It has to
@@ -25,8 +28,12 @@ import pytest
 
 REPO = Path(__file__).resolve().parents[1]
 
-LITERAL = re.compile(r"^\s*([a-z][a-z0-9]*(?:_[a-z0-9]+)+):\s*(?:true|false)\s*,?\s*$")
+LITERAL = re.compile(
+    r"^\s*([a-z][a-z0-9]*(?:_[a-z0-9]+)+):\s*"
+    r"(true|false|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\s*,?\s*$"
+)
 SPREAD_OPEN = re.compile(r"\.\.\.\(.*&&\s*\{\s*$")
+REQUEST_OPEN = re.compile(r"\bsend\w*Request\s*(?:<[^>]+>)?\s*\(")
 
 SCANNED_PREFIXES = ("src/store/", "src/lib/", "src/components/")
 
@@ -36,23 +43,41 @@ ALLOWED: dict[str, str] = {
     "src/lib/mame/sampleData.ts:is_fallback": (
         "sample rows handed to the table for the demo run, not a request payload"
     ),
+    # Known request defects remain visible until fix/intent-not-reflected-sweep
+    # exposes both demux parameters as controls.
+    "src/store/mame/slices/inputSlice.ts:mapq_threshold": (
+        "real raw-run MAPQ parameter, tracked on fix/intent-not-reflected-sweep"
+    ),
+    "src/store/mame/slices/inputSlice.ts:trim_flank_bp": (
+        "real raw-run flank-trim parameter, tracked on fix/intent-not-reflected-sweep"
+    ),
 }
 
 
 def _flagged(text: str) -> list[tuple[int, str]]:
-    """Snake_case boolean literals that are not inside a guarded spread."""
+    """Snake_case booleans, plus numeric literals inside request payloads."""
     found: list[tuple[int, str]] = []
     guard_depths: list[int] = []
+    request_depths: list[int] = []
+    request_waiting_for_payload = False
     depth = 0
     for lineno, line in enumerate(text.splitlines(), 1):
+        if REQUEST_OPEN.search(line):
+            request_waiting_for_payload = True
+        if request_waiting_for_payload and "{" in line:
+            request_depths.append(depth + 1)
+            request_waiting_for_payload = False
         if SPREAD_OPEN.search(line):
             guard_depths.append(depth + line.count("{") - line.count("}"))
         match = LITERAL.match(line)
-        if match and not guard_depths:
+        is_boolean = match and match.group(2) in {"true", "false"}
+        if match and not guard_depths and (is_boolean or request_depths):
             found.append((lineno, match.group(1)))
         depth += line.count("{") - line.count("}")
         while guard_depths and depth < guard_depths[-1]:
             guard_depths.pop()
+        while request_depths and depth < request_depths[-1]:
+            request_depths.pop()
     return found
 
 
@@ -69,6 +94,32 @@ CORPUS: list[tuple[str, str, list[str]]] = [
         [],
     ),
     (
+        "numeric request literal",
+        'sendRequest("analyze", {\n  mapq_threshold: 25,\n});',
+        ["mapq_threshold"],
+    ),
+    (
+        "guarded numeric literal, the correct form",
+        'sendRequest("analyze", {\n'
+        "  ...(useDefaultTrim && {\n    trim_flank_bp: 30,\n  }),\n});",
+        [],
+    ),
+    (
+        "numeric field driven by its control",
+        'sendRequest("analyze", {\n  mapq_threshold: mapqThreshold,\n});',
+        [],
+    ),
+    (
+        "numeric local state is not a request payload",
+        "const defaults = {\n  mapq_threshold: 25,\n};",
+        [],
+    ),
+    (
+        "closed request does not leak its scope",
+        'sendRequest("health_info", {});\nconst defaults = {\n  mapq_threshold: 25,\n};',
+        [],
+    ),
+    (
         "flag driven by its control",
         "return {\n  auto_relax: fillOnFailure,\n};",
         [],
@@ -81,6 +132,18 @@ CORPUS: list[tuple[str, str, list[str]]] = [
     (
         "camelCase local state is not a request field",
         "const state = {\n  isDesigning: true,\n};",
+        [],
+    ),
+    (
+        "response initializer is not a request payload",
+        # The scan is deliberately limited to request construction. This is a
+        # sidecar response initializer, so its zero values must not be flagged.
+        "export const EMPTY_RESCUE_STATS: RescueStats = {\n"
+        "  pool_cascade: 0,\n"
+        "  auto_relax: 0,\n"
+        "  positions_attempted: 0,\n"
+        "  pool_variants_tried: 0,\n"
+        "};",
         [],
     ),
 ]

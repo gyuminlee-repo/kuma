@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.16.38 (The retry that changed its geometry, and the validation that described another run)
+
+A failed full-overlap design could be retried as partial overlap without the operator asking for it. `RetryFailedParams.overlap_mode` had a `partial` default, while every retry omitted the field, so validation accepted the request and the UI continued to say full overlap. The field is required now. Retrying also carried primer-length bounds after their limit was switched off, and the substitution stages then used their own 62/58/42 °C and 40/60 % defaults instead of the selected Tm and GC values. The suggestion code read `tm_no_overlap`, which is not on the wire; it now reads `tm_overlap`, rather than silently suggesting the default target. In full-overlap mode the displayed 17–39 nt range became 19–27 nt after the engine intersected separate forward and reverse bounds; the displayed range is now sent to both axes.
+
+The same gap appeared in MAME where a value shown to the operator was not the value the sidecar used. `minFilteredDepth` displayed 15 but the handler applied 30. It now travels as `min_read_count`, matches its displayed default, and survives a reload. Validate and run had independently assembled their payloads, with different `cds_start` and `wt_placement` values possible, so validation could approve a run other than the one it described. They now use one builder. Review also caught a regression introduced while rewrapping the handler's `try/except`: `remeasure_numeric_xlsx` had been dropped, which would have exported primary measurements where numeric confirmation values were required. It is forwarded again, and the regression test compares the complete forwarded mapping so another missing argument fails rather than exporting plausible but wrong output.
+
+Reloading a workspace also treated absent disabled domain/Pareto diversity controls as enabled. That state now remains disabled, and liquid-handler volumes and quadrants, the structure source, and the MAME variant sheet and column persist. Barcode-package requests no longer send `expected_mutations_path`, `variant_sheet`, or `variant_column`: the core had deleted those unused parameters while still documenting them as accepted. Labels in all ten locales now describe the limits the backend actually applies, including auto-relax widening that caps can reduce to zero and a seed tooltip that claimed pending backend integration.
+
+### Highlights
+
+- Retry requests now preserve the selected overlap geometry, primer limits, Tm and GC settings instead of falling back to defaults.
+- Full-overlap primer ranges now match the bounds the engine receives, rather than narrowing a displayed 17–39 nt range to 19–27 nt.
+- MAME minimum filtered depth now matches the applied value and survives reload.
+- MAME validation and run share one payload, so validation describes the run that will execute.
+- Reloading keeps disabled diversity controls disabled and preserves liquid-handler, structure, and variant-list settings.
+
+### Fixed
+
+- `RetryFailedParams.overlap_mode` defaulted to partial while every retry omitted it, changing a full-overlap retry's geometry without changing its label. The field is now required.
+- Retry substitution stages discarded the operator's Tm and GC settings for model defaults of 62/58/42 °C and 40/60 %, and retained length bounds after the length limit was disabled.
+- `suggestRetryParams` read the absent `tm_no_overlap` field instead of `tm_overlap`, silently using the default overlap target.
+- MAME displayed a minimum filtered depth of 15 while the handler used 30. The applied `min_read_count` now matches the display and persists.
+- Separately built MAME validation and run payloads could disagree on `cds_start` and `wt_placement`; both are now built together.
+- A `try/except` rewrap dropped `remeasure_numeric_xlsx`, which would have exported primary measurements where numeric confirmation values were required. The complete forwarded mapping is now regression-tested.
+- Disabled domain/Pareto diversity controls restored as enabled, and liquid-handler, structure-source, variant-sheet, and variant-column values were not restored.
+- Labels across all ten locales stated fixed auto-relax widening despite backend caps, and said seed integration was pending although it already existed.
+
+### Removed
+
+- `expected_mutations_path`, `variant_sheet`, and `variant_column` from barcode-package requests and the core signature, because the core had deleted their unused handling while the request still accepted them.
+
 ## v0.16.37 (Four switches that could not be honoured, and one number that disagreed with itself)
 
 The previous release found six Settings controls that stored a preference and changed nothing, implemented two of them, and left four disabled with a notice. Reading the frontend standards that govern this repository turns two of those four into controls that must not be built at all, and measuring the other two turns them into controls not worth building. So they are gone rather than pending.

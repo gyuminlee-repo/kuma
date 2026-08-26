@@ -2566,14 +2566,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Two telemetry opt-ins are gone: the standards make zero outbound telemetry release-blocking, so they could never have been switched on.",
-      "The cancel timeout is gone: the standards fix that wait at 5 seconds, and no cancel path waits before killing in the first place.",
-      "Shutdown now waits the 5 seconds the standards require and the helper already documented, instead of the 2 its caller passed.",
-      "The concurrency setting is gone: a full plate designs in about two seconds, so there is no pool for it to cap.",
-      "Settings written by an older build still load, keeping every preference that still exists."
+      "Retry requests now preserve the selected overlap geometry, primer limits, Tm and GC settings instead of falling back to defaults.",
+      "Full-overlap primer ranges now match the bounds the engine receives, rather than narrowing a displayed 17–39 nt range to 19–27 nt.",
+      "MAME minimum filtered depth now matches the applied value and survives reload.",
+      "MAME validation and run share one payload, so validation describes the run that will execute.",
+      "Reloading keeps disabled diversity controls disabled and preserves liquid-handler, structure, and variant-list settings."
     ],
-    "highlightsStamp": "0.16.37+93aa6e16",
+    "highlightsStamp": "0.16.38+6da048ca",
     "releases": {
+      "0.16.38": [
+        "Retry requests now preserve the selected overlap geometry, primer limits, Tm and GC settings instead of falling back to defaults.",
+        "Full-overlap primer ranges now match the bounds the engine receives, rather than narrowing a displayed 17–39 nt range to 19–27 nt.",
+        "MAME minimum filtered depth now matches the applied value and survives reload.",
+        "MAME validation and run share one payload, so validation describes the run that will execute.",
+        "Reloading keeps disabled diversity controls disabled and preserves liquid-handler, structure, and variant-list settings."
+      ],
       "0.16.37": [
         "Two telemetry opt-ins are gone: the standards make zero outbound telemetry release-blocking, so they could never have been switched on.",
         "The cancel timeout is gone: the standards fix that wait at 5 seconds, and no cancel path waits before killing in the first place.",
@@ -2851,6 +2858,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",
       "0.16.35": "d628e48a",
