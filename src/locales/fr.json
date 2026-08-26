@@ -167,16 +167,6 @@
     "parameters": {
       "title": "Paramètres",
       "subtitle": "Seuils et mode d'ingestion pour ce lot.",
-      "targetAmpliconLength": "Longueur d'amplicon cible (bp)",
-      "targetAmpliconLengthHelp": "Longueur d'amplicon attendue après tri par barcode. Laisser vide pour auto-détection à partir des reads ; définir manuellement si la distribution est bruitée.",
-      "targetAmpliconLengthPlaceholder": "Laisser vide pour auto-détection",
-      "targetAmpliconLengthAriaLabel": "Longueur d'amplicon cible en bp ; laisser vide pour auto-détection",
-      "lengthTolerance": "Tolérance de longueur ± bp",
-      "lengthToleranceHelp": "Fenêtre autorisée autour de la longueur d'amplicon cible. Les reads hors de cible ± tolérance sont filtrés lorsque le length filter est actif.",
-      "minQscore": "Q-score minimum",
-      "minQscoreHelp": "Seuil minimum de qscore par read lorsque les métadonnées sequencing_summary sont disponibles.",
-      "normalizeHeaders": "Normaliser les en-têtes",
-      "normalizeHeadersHelp": "Écrit le nom du well dans les headers FASTA au lieu de conserver les read IDs ONT. Cela rend le parsing par well plus cohérent en aval.",
       "rawRunOptions": "Options de raw run",
       "rawRunOptionsAriaLabel": "Options de demux et de filtrage du raw run",
       "barcodeRunsAutomatically": "Le tri par barcode s'exécute automatiquement quand vous appuyez sur le bouton Run principal.",
@@ -201,17 +191,9 @@
       "recommendedCutoff": "Recommandé : {{value}} KB ({{method}})",
       "useCutoffBtn": "Utiliser",
       "bimodalTooltip": "La distribution semble bimodale. La valeur recommandée utilise la détection de knee.",
-      "autoDetected": "Auto-détecté : {{length}} bp",
-      "normalizeHeadersAriaLabel": "Écrire le nom du well comme header FASTA au lieu du read ID ONT",
-      "demuxProgressAriaLabel": "Progression du demux",
-      "demuxComplete": "Demux terminé :",
-      "demuxCompleteReads": "{{assigned}} reads assignés / {{total}} au total ({{backend}})",
-      "lengthFilter": "Length filter : {{mode}}",
       "legacyKbCutoff": "Legacy KB Cutoff (proxy)",
       "legacyKbCutoffAriaLabel": "Seuil KB hérité de taille de fichier minimum (proxy de read depth)",
-      "lengthToleranceAriaLabel": "Tolérance de longueur : ±{{bp}} bp",
       "applyCutoffAriaLabel": "Appliquer le cutoff recommandé de {{kb}} KB",
-      "autoDetectedAriaLabel": "Longueur d'amplicon auto-détectée : {{length}} bp, confiance {{confidence}}, {{reads}} reads échantillonnés",
       "modeAmpliconTitle": "Cible amplicon PCR linéaire. Les reads couvrent une région unique définie ; consensus calculé par barcode dans cette région.",
       "modePlasmidTitle": "Cible plasmide circulaire. Les reads peuvent franchir l'origine ; le consensus tient compte de la topologie complète du plasmide.",
       "ingestBarcodeTitle": "Regrouper les reads par barcode Nanopore (NB01, NB02, ...). Chaque bin de barcode devient un échantillon.",
@@ -250,7 +232,9 @@
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
       "chimeraSplitAriaLabel": "Enable chimera detection by evaluating all alignment hits per read",
-      "ampliconConfidenceHelp": "Confidence of the amplicon length auto-detected from sampled reads: peak read-length bin share at or above 30% is high, at or above 15% is medium, otherwise low."
+      "mapqThreshold": "Qualité minimale d’alignement (0–60)",
+      "mapqThresholdHelp": "Les lectures sous cette qualité d’alignement sont exclues lors du démultiplexage. Les valeurs admises vont de 0 à 60.",
+      "mapqThresholdAriaLabel": "Qualité minimale d’alignement de 0 à 60"
     },
     "barcodeSetup": {
       "title": "Configuration du paquet de barcodes",
@@ -1216,7 +1200,9 @@
       "expectedXlsx": "Liste des variants conçus",
       "expectedXlsxHelper": "Source d'ordre des identifiants numériques: la liste des variants conçus que lit l'étape d'analyse. À préférer au fichier de plaque recopié à la main.",
       "orderSource": "Source d'ordre (liste des variants conçus ou plate layout, exactement une)",
-      "dismissError": "Fermer"
+      "dismissError": "Fermer",
+      "mismatchThreshold": "Seuil de divergence",
+      "mismatchThresholdHelper": "Différence absolue d’activité qui signale une divergence et bloque l’export jusqu’à vérification. Doit être supérieure à zéro."
     },
     "verdictBadge": {
       "help": {
@@ -3420,7 +3406,9 @@
     "restoredUnverifiedNote": "Cette application n'a pas ecrit {{files}} et ne peut donc pas confirmer que ces fichiers sont restes inchanges depuis.",
     "rebuiltNote": "Une reponse anterieure du {{when}} a ete calculee a partir de ces memes fichiers ({{files}}) avant que l'etape 4.1 ne les regenere. Elle decrit la version precedente et reste conservee comme historique. Relancez la classification pour la version actuelle.",
     "supersededNote": "Une reponse anterieure du {{when}} a ete calculee a partir d'une autre liste ({{files}}). Elle ne dit rien des fichiers actuellement selectionnes et n'est donc pas affichee.",
-    "headingHelp": "Regroupe les résultats EVOLVEpro de plusieurs cycles pour repérer un signal de saturation et suggérer de poursuivre le mutant unique, passer au combinatorial, arrêter ou différer. Lecture seule : rien n'est confirmé ni enregistré ici, et avec moins de 3 cycles il n'y a pas encore de verdict."
+    "headingHelp": "Regroupe les résultats EVOLVEpro de plusieurs cycles pour repérer un signal de saturation et suggérer de poursuivre le mutant unique, passer au combinatorial, arrêter ou différer. Lecture seule : rien n'est confirmé ni enregistré ici, et avec moins de 3 cycles il n'y a pas encore de verdict.",
+    "nextRoundCapacity": "Capacité de plaque du prochain cycle",
+    "nextRoundCapacityHelper": "Nombre de puits disponibles pour le prochain cycle combinatoire. Il détermine la recommandation de débit."
   },
   "validation": {
     "missing": {

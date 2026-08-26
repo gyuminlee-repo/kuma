@@ -55,6 +55,8 @@ import {
 import { useRoundStore } from "@/store/round/roundSlice";
 import { Button } from "@/components/ui/button";
 import { InlineHelp } from "@/components/ui/InlineHelp";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import type {
   ClassifyDecisionResult,
   ClassifyNotAssessableResult,
@@ -311,6 +313,10 @@ export function AdvisoryDecisionCard({
   const stamps = useMemo(() => roundOutputStamps(rounds), [rounds]);
 
   const [files, setFiles] = useState<RoundFileEntry[]>([]);
+  // Rounds do not carry the next plate format. Do not silently convert that
+  // missing campaign decision into the handler's former 96-well assumption:
+  // expose the capacity that derives K_throughput beside the action it changes.
+  const [nextRoundCapacity, setNextRoundCapacity] = useState(96);
   const [prefillSource, setPrefillSource] = useState<PrefillSource>("none");
   const [result, setResult] = useState<ClassifyRoundResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -410,7 +416,7 @@ export function AdvisoryDecisionCard({
     setError(null);
     setResult(null);
     try {
-      const res = await classifyRound(files);
+      const res = await classifyRound(files, nextRoundCapacity);
       setResult(res);
       // File the answer on the round together with what it was computed from,
       // so it can be re-examined after a restart instead of vanishing with this
@@ -432,7 +438,7 @@ export function AdvisoryDecisionCard({
     } finally {
       setLoading(false);
     }
-  }, [files, loading, stamps]);
+  }, [files, loading, nextRoundCapacity, stamps]);
 
   // What the round already has on record, and whether it still describes the
   // list on screen. A stored answer is about one ordered set of file contents,
@@ -519,6 +525,28 @@ export function AdvisoryDecisionCard({
       )}
 
       <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="advisory-next-round-capacity" className="text-xs">
+            {t("advisoryDecision.nextRoundCapacity")}
+          </Label>
+          <Input
+            id="advisory-next-round-capacity"
+            type="number"
+            min={1}
+            step={1}
+            value={nextRoundCapacity}
+            disabled={loading}
+            className="h-7 w-20 text-xs"
+            aria-describedby="advisory-next-round-capacity-help"
+            onChange={(event) => {
+              const value = Number(event.target.value);
+              if (Number.isFinite(value) && value >= 1) {
+                setNextRoundCapacity(Math.round(value));
+                clearAnswer();
+              }
+            }}
+          />
+        </div>
         <Button
           type="button"
           variant="outline"
@@ -556,6 +584,9 @@ export function AdvisoryDecisionCard({
           {t("advisoryDecision.classify")}
         </Button>
       </div>
+      <p id="advisory-next-round-capacity-help" className="text-meta text-muted-foreground">
+        {t("advisoryDecision.nextRoundCapacityHelper")}
+      </p>
 
       {loading && (
         <p className="text-xs text-muted-foreground" aria-live="polite">

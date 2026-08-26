@@ -8,6 +8,7 @@ import {
 } from "./inputSlice.helpers";
 import type { Round } from "@/types/round";
 import type { MergedRow } from "@/types/mame/activity";
+import type { EvolveproLoadResult } from "@/types/models";
 
 // ─── fixtures ─────────────────────────────────────────────────────────────────
 
@@ -212,13 +213,18 @@ describe("resolveSelectionDomains", () => {
 });
 
 describe("buildEvolveproLoadStateUpdate: a missing prediction is not a fitness", () => {
-  function build(variants: string[], yPreds: (number | undefined)[]) {
+  function build(
+    variants: string[],
+    yPreds: (number | undefined)[],
+    rankedCandidates: NonNullable<EvolveproLoadResult["ranked_candidates"]> = [],
+  ) {
     return buildEvolveproLoadStateUpdate({
       result: {
         variants,
         // The shape the sidecar returns. A short y_preds is what produces the
         // undefined this test is about.
         y_preds: yPreds as number[],
+        ranked_candidates: rankedCandidates,
         total_count: variants.length,
         selected_count: variants.length,
       },
@@ -248,5 +254,14 @@ describe("buildEvolveproLoadStateUpdate: a missing prediction is not a fitness",
   it("빠진 예측이 없으면 전부 남는다", () => {
     const update = build(["A1V", "B2C"], [0.8, -0.3]);
     expect(update.yPredMap).toEqual({ A1V: 0.8, B2C: -0.3 });
+  });
+
+  it("keeps a ranked buffer candidate score when the user selects it later", () => {
+    const update = build(
+      ["A1V"],
+      [0.8],
+      [{ variant: "B2C", y_pred: 0, aa_position: 2 }],
+    );
+    expect(update.yPredMap).toEqual({ B2C: 0, A1V: 0.8 });
   });
 });

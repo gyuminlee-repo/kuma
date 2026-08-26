@@ -43,13 +43,11 @@ ALLOWED: dict[str, str] = {
     "src/lib/mame/sampleData.ts:is_fallback": (
         "sample rows handed to the table for the demo run, not a request payload"
     ),
-    # Known request defects remain visible until fix/intent-not-reflected-sweep
-    # exposes both demux parameters as controls.
-    "src/store/mame/slices/inputSlice.ts:mapq_threshold": (
-        "real raw-run MAPQ parameter, tracked on fix/intent-not-reflected-sweep"
-    ),
+    # mapq_threshold now follows rawRunParams.mapqThreshold. trim_flank_bp stays
+    # pinned at 30: AnalyzeRawRunParams consumes it as bases around each aligned
+    # hit in per-well FASTA slices, and analyze forwards it to ingest_run_folder.
     "src/store/mame/slices/inputSlice.ts:trim_flank_bp": (
-        "real raw-run flank-trim parameter, tracked on fix/intent-not-reflected-sweep"
+        "real raw-run flank-trim parameter pinned to the sidecar's slice margin"
     ),
 }
 

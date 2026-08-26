@@ -892,7 +892,9 @@ export async function applyKuroSnapshot(
       try {
         // (d) loadEvolveproCsv도 store 쓰기(mutationText 갱신)라 호출 전에 막는다.
         if (!alive()) return done(false);
-        await useAppStore.getState().loadEvolveproCsv(activeSourcePath);
+        // Restoring must retain the result block until the divergence check
+        // below decides whether this re-derived selection invalidates it.
+        await useAppStore.getState().loadEvolveproCsv(activeSourcePath, undefined, true);
         // (e) discardResultsIfVariantsDiverged는 setState로 결과물 블록을 비운다.
         //     await 뒤 취소됐다면 다음 프로젝트의 결과물을 지우게 되므로 막는다.
         if (!alive()) return done(false);
@@ -1407,20 +1409,37 @@ export async function applyMameAutoDetect(
  *
  * schema 4 부터 이 둘도 `project://` 로 저장된다. 구 스냅샷은 절대 경로이고
  * `fromPortablePath` 가 접두사 없는 값을 그대로 통과시키므로 그대로 읽힌다.
- * params 자체가 없으면 undefined 를 넘겨 store 기본값을 쓰게 한다.
+ * Schema 5 removed filter settings that the analyze RPC never consumed. Select
+ * known fields rather than spreading the old object, so an older snapshot's
+ * discarded settings cannot become silent store state again.
  */
 function resolveRawRunParams(
   raw: unknown,
   projectPath: string | null | undefined,
-): RawRunParams | undefined {
+): Partial<RawRunParams> | undefined {
   if (!raw || typeof raw !== "object") return undefined;
-  const params = raw as RawRunParams;
+  const params = raw as Record<string, unknown>;
   const base = projectPath ?? null;
-  return {
-    ...params,
-    customBarcodesPath: fromPortablePath(base, params.customBarcodesPath ?? ""),
-    sequencingSummaryPath: fromPortablePath(base, params.sequencingSummaryPath ?? ""),
-  };
+  const restored: Partial<RawRunParams> = {};
+  if (typeof params.customBarcodesPath === "string") {
+    restored.customBarcodesPath = fromPortablePath(base, params.customBarcodesPath);
+  }
+  if (typeof params.sequencingSummaryPath === "string") {
+    restored.sequencingSummaryPath = fromPortablePath(base, params.sequencingSummaryPath);
+  }
+  if (typeof params.coverageFraction === "number") {
+    restored.coverageFraction = params.coverageFraction;
+  }
+  if (typeof params.editDistRatio === "number") {
+    restored.editDistRatio = params.editDistRatio;
+  }
+  if (typeof params.chimeraSplit === "boolean") {
+    restored.chimeraSplit = params.chimeraSplit;
+  }
+  if (typeof params.mapqThreshold === "number") {
+    restored.mapqThreshold = params.mapqThreshold;
+  }
+  return restored;
 }
 
 /** applyMameSnapshot 결과. 통째로 거절된 리뷰 그룹의 필드 이름을 싣는다. */

@@ -24,6 +24,7 @@ from kuma_core.mame.ingest.barcode_package import (
     generate_mame_package,
     parse_barcode_seeds,
 )
+import kuma_core.mame.ingest.barcode_package as barcode_package
 from kuma_core.mame.ingest.polymerase import get_profile
 
 # ---------------------------------------------------------------------------
@@ -223,6 +224,52 @@ class TestDesignFlankingPrimers:
             assert fwd[-1].upper() in "GC", f"fwd primer {fwd!r} lacks GC clamp"
         if not rev_warned:
             assert rev[-1].upper() in "GC", f"rev primer {rev!r} lacks GC clamp"
+
+    def test_gc_clamp_excludes_tm_best_fallback_candidate(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A required clamp outranks Tm distance when no candidate meets the window."""
+        sequence = list("A" * 60)
+        sequence[17] = "C"  # GC-clamped forward candidate, but not Tm-best.
+        sequence[41:44] = "CCC"  # Every reverse candidate is GC-clamped.
+
+        def fake_tm(candidate: str, _profile: object) -> float:
+            return 100.4 if candidate.upper() == "A" else 60.0
+
+        monkeypatch.setattr(barcode_package, "_calc_tm", fake_tm)
+        fwd, rev, _warnings = design_flanking_primers(
+            "".join(sequence),
+            gene_start=20,
+            gene_end=40,
+            profile=self._PROFILE,
+            flank_min=2,
+            flank_max=4,
+            binding_min_len=1,
+            binding_max_len=1,
+            tm_min=100.0,
+            tm_max=101.0,
+            require_gc_clamp=True,
+        )
+
+        assert fwd[-1].upper() in "GC"
+        assert rev[-1].upper() in "GC"
+
+    def test_gc_clamp_fails_when_no_conforming_candidate_exists(self) -> None:
+        """A required clamp must not silently return an unclamped fallback."""
+        with pytest.raises(ValueError, match="GC clamp"):
+            design_flanking_primers(
+                "A" * 60,
+                gene_start=20,
+                gene_end=40,
+                profile=self._PROFILE,
+                flank_min=2,
+                flank_max=4,
+                binding_min_len=1,
+                binding_max_len=1,
+                tm_min=100.0,
+                tm_max=101.0,
+                require_gc_clamp=True,
+            )
 
     def test_impossible_tm_produces_warnings(self) -> None:
         """An impossible Tm window (e.g. tm_min=99.0) must produce non-empty warnings."""

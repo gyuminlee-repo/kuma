@@ -167,16 +167,6 @@
     "parameters": {
       "title": "Parameter",
       "subtitle": "Thresholds und ingest Modus für this batch.",
-      "targetAmpliconLength": "Ziel-Amplicon-Länge (bp)",
-      "targetAmpliconLengthHelp": "Expected Amplicon Länge after barcode sorting. Leer lassen für automatische Erkennung von sample reads; set manually wenn die distribution ist noisy.",
-      "targetAmpliconLengthPlaceholder": "Leer lassen für automatische Erkennung",
-      "targetAmpliconLengthAriaLabel": "Target Amplicon Länge in bp; leave blank zu automatisch erkennen",
-      "lengthTolerance": "Längen-Toleranz ± bp",
-      "lengthToleranceHelp": "Allowed window around target Amplicon Länge. Reads outside target ± Toleranz sind gefiltert wenn Länge filtering ist active.",
-      "minQscore": "Min Q-Score",
-      "minQscoreHelp": "Minimum per-Read qscore Schwellenwert wenn sequencing_summary metadata ist available.",
-      "normalizeHeaders": "Header normalisieren",
-      "normalizeHeadersHelp": "Writes die well name into FASTA headers instead von preserving ONT Read IDs. This makes downstream per-well parsing mehr consistent.",
       "rawRunOptions": "Raw Ausführen Options",
       "rawRunOptionsAriaLabel": "Raw ausführen demux und filter options",
       "barcodeRunsAutomatically": "Barcode sorting runs automatically wenn you press die main Ausführen button.",
@@ -201,17 +191,9 @@
       "recommendedCutoff": "Empfohlen: {{value}} KB ({{method}})",
       "useCutoffBtn": "Verwenden",
       "bimodalTooltip": "Distribution looks bimodal. Empfohlen uses knee detection.",
-      "autoDetected": "Automatisch erkannt: {{length}} bp",
-      "normalizeHeadersAriaLabel": "Write well name as FASTA header instead von ONT Read ID",
-      "demuxProgressAriaLabel": "Demux-Fortschritt",
-      "demuxComplete": "Demux abgeschlossen:",
-      "demuxCompleteReads": "{{assigned}} reads zugewiesen / {{total}} gesamt ({{backend}})",
-      "lengthFilter": "Länge filter: {{mode}}",
       "legacyKbCutoff": "Legacy KB Cutoff (Proxy)",
       "legacyKbCutoffAriaLabel": "Legacy min Datei size KB cutoff (proxy für Read depth)",
-      "lengthToleranceAriaLabel": "Länge Toleranz: ±{{bp}} bp",
       "applyCutoffAriaLabel": "Anwenden empfohlen cutoff von {{kb}} KB",
-      "autoDetectedAriaLabel": "Automatisch erkannt Amplicon Länge: {{length}} bp, confidence {{confidence}}, sampled {{reads}} reads",
       "modeAmpliconTitle": "Linear PCR Amplicon target. Reads cover ein single defined region; Consensus called per barcode within that region.",
       "modePlasmidTitle": "Circular plasmid target. Reads can wrap die origin; Consensus accounts für full plasmid topology.",
       "ingestBarcodeTitle": "Group reads durch Nanopore barcode (NB01, NB02, ...). Each barcode bin becomes one sample.",
@@ -250,7 +232,9 @@
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
       "chimeraSplitAriaLabel": "Enable chimera detection by evaluating all alignment hits per read",
-      "ampliconConfidenceHelp": "Confidence of the amplicon length auto-detected from sampled reads: peak read-length bin share at or above 30% is high, at or above 15% is medium, otherwise low."
+      "mapqThreshold": "Minimale Mapping-Qualität (0–60)",
+      "mapqThresholdHelp": "Reads unter diesem Mapping-Qualitätswert werden bei der Demultiplexierung ausgeschlossen. Zulässig sind 0 bis 60.",
+      "mapqThresholdAriaLabel": "Minimale Mapping-Qualität von 0 bis 60"
     },
     "barcodeSetup": {
       "title": "Barcode-Paket Setup",
@@ -1216,7 +1200,9 @@
       "expectedXlsx": "Entworfene Variantenliste",
       "expectedXlsxHelper": "Reihenfolgequelle für numerische IDs: dieselbe entworfene Variantenliste, die der Analyze-Schritt liest. Der handgeschriebenen Plattendatei vorzuziehen.",
       "orderSource": "Reihenfolgequelle (entworfene Variantenliste oder Plattenlayout, genau eine)",
-      "dismissError": "Schließen"
+      "dismissError": "Schließen",
+      "mismatchThreshold": "Schwelle für Abweichungen",
+      "mismatchThresholdHelper": "Absolute Aktivitätsdifferenz, die eine Abweichung markiert und den Export bis zur Prüfung blockiert. Muss größer als null sein."
     },
     "verdictBadge": {
       "help": {
@@ -3420,7 +3406,9 @@
     "restoredUnverifiedNote": "Diese Anwendung hat {{files}} nicht geschrieben und kann daher nicht bestaetigen, dass diese Dateien seitdem unveraendert sind.",
     "rebuiltNote": "Eine fruehere Antwort vom {{when}} wurde aus genau diesen Dateien ({{files}}) berechnet, bevor Schritt 4.1 sie neu erzeugt hat. Sie beschreibt den vorherigen Stand und bleibt als Verlauf erhalten. Fuer den aktuellen Stand die Klassifikation erneut ausfuehren.",
     "supersededNote": "Eine fruehere Antwort vom {{when}} wurde aus einer anderen Liste berechnet ({{files}}). Sie sagt nichts ueber die jetzt gewaehlten Dateien und wird deshalb nicht angezeigt.",
-    "headingHelp": "Bündelt EVOLVEpro-Ergebnisse über mehrere Runden, um ein Sättigungssignal zu erkennen, und schlägt Fortsetzen der Einzelmutante, Umstellung auf combinatorial, Stopp oder Zurückstellung vor. Schreibgeschützt: Hier wird nichts bestätigt oder gespeichert, und bei weniger als 3 Runden gibt es noch keine Einschätzung."
+    "headingHelp": "Bündelt EVOLVEpro-Ergebnisse über mehrere Runden, um ein Sättigungssignal zu erkennen, und schlägt Fortsetzen der Einzelmutante, Umstellung auf combinatorial, Stopp oder Zurückstellung vor. Schreibgeschützt: Hier wird nichts bestätigt oder gespeichert, und bei weniger als 3 Runden gibt es noch keine Einschätzung.",
+    "nextRoundCapacity": "Plattenkapazität der nächsten Runde",
+    "nextRoundCapacityHelper": "Anzahl verfügbarer Wells in der nächsten kombinatorischen Runde. Sie bestimmt die Durchsatzempfehlung."
   },
   "validation": {
     "missing": {

@@ -167,16 +167,6 @@
     "parameters": {
       "title": "Parâmetros",
       "subtitle": "Limiares e modo de ingest para este lote.",
-      "targetAmpliconLength": "Comprimento alvo do amplicon (bp)",
-      "targetAmpliconLengthHelp": "Comprimento esperado do amplicon após a separação por barcode. Deixar em branco para auto-detecção a partir de read de amostra; ajustar manualmente quando a distribuição estiver ruidosa.",
-      "targetAmpliconLengthPlaceholder": "Deixar em branco para auto-detecção",
-      "targetAmpliconLengthAriaLabel": "Comprimento alvo do amplicon em bp; deixar em branco para auto-detecção",
-      "lengthTolerance": "Tolerância de comprimento ± bp",
-      "lengthToleranceHelp": "Janela permitida em torno do comprimento alvo do amplicon. Read fora de target ± tolerância são filtrados quando o filtro de comprimento está ativo.",
-      "minQscore": "Q-score mínimo",
-      "minQscoreHelp": "Limiar mínimo de qscore por read quando há metadados de sequencing_summary disponíveis.",
-      "normalizeHeaders": "Normalizar headers",
-      "normalizeHeadersHelp": "Escreve o nome do well nos headers FASTA em vez de preservar os read IDs do ONT. Torna o parsing per-well downstream mais consistente.",
       "rawRunOptions": "Opções de raw run",
       "rawRunOptionsAriaLabel": "Opções de demux e filtro para raw run",
       "barcodeRunsAutomatically": "A separação por barcode é executada automaticamente ao pressionar o botão principal Run.",
@@ -201,17 +191,9 @@
       "recommendedCutoff": "Recomendado: {{value}} KB ({{method}})",
       "useCutoffBtn": "Usar",
       "bimodalTooltip": "A distribuição parece bimodal. O valor recomendado usa detecção de knee.",
-      "autoDetected": "Auto-detectado: {{length}} bp",
-      "normalizeHeadersAriaLabel": "Escrever nome do well como header FASTA em vez do read ID do ONT",
-      "demuxProgressAriaLabel": "Progresso do demux",
-      "demuxComplete": "Demux concluído:",
-      "demuxCompleteReads": "{{assigned}} read atribuídos / {{total}} totais ({{backend}})",
-      "lengthFilter": "Filtro de comprimento: {{mode}}",
       "legacyKbCutoff": "Cutoff KB legacy (proxy)",
       "legacyKbCutoffAriaLabel": "Cutoff legacy de tamanho de arquivo em KB (proxy para read depth)",
-      "lengthToleranceAriaLabel": "Tolerância de comprimento: ±{{bp}} bp",
       "applyCutoffAriaLabel": "Aplicar cutoff recomendado de {{kb}} KB",
-      "autoDetectedAriaLabel": "Comprimento de amplicon auto-detectado: {{length}} bp, confiança {{confidence}}, amostrados {{reads}} read",
       "modeAmpliconTitle": "Alvo de amplicon linear de PCR. Read cobrem uma única região definida; consensus chamado por barcode dentro dessa região.",
       "modePlasmidTitle": "Alvo plasmidial circular. Read podem envolver a origem; consensus contempla a topologia completa do plasmídeo.",
       "ingestBarcodeTitle": "Agrupar read por barcode Nanopore (NB01, NB02, ...). Cada bin de barcode vira uma amostra.",
@@ -250,7 +232,9 @@
       "chimeraSplit": "Chimera Split",
       "chimeraSplitHelp": "When enabled, all alignment hits per read are evaluated to detect chimeric reads that span multiple wells. Recommended to leave on.",
       "chimeraSplitAriaLabel": "Enable chimera detection by evaluating all alignment hits per read",
-      "ampliconConfidenceHelp": "Confidence of the amplicon length auto-detected from sampled reads: peak read-length bin share at or above 30% is high, at or above 15% is medium, otherwise low."
+      "mapqThreshold": "Qualidade mínima de mapeamento (0–60)",
+      "mapqThresholdHelp": "Leituras abaixo desta qualidade de mapeamento são excluídas na demultiplexação. São aceitos valores de 0 a 60.",
+      "mapqThresholdAriaLabel": "Qualidade mínima de mapeamento de 0 a 60"
     },
     "barcodeSetup": {
       "title": "Configuração do pacote de barcodes",
@@ -1216,7 +1200,9 @@
       "expectedXlsx": "Lista de variantes projetadas",
       "expectedXlsxHelper": "Fonte de ordem para IDs numéricos: a mesma lista de variantes projetadas que a etapa de análise lê. Preferível ao arquivo de placa transcrito à mão.",
       "orderSource": "Fonte de ordem (lista de variantes projetadas ou plate layout, exatamente uma)",
-      "dismissError": "Fechar"
+      "dismissError": "Fechar",
+      "mismatchThreshold": "Limite de divergência",
+      "mismatchThresholdHelper": "Diferença absoluta de atividade que marca uma divergência e bloqueia a exportação até revisão. Deve ser maior que zero."
     },
     "verdictBadge": {
       "help": {
@@ -3420,7 +3406,9 @@
     "restoredUnverifiedNote": "Este aplicativo nao gravou {{files}}, portanto nao pode confirmar que continuam inalterados desde entao.",
     "rebuiltNote": "Uma resposta anterior de {{when}} foi calculada a partir destes mesmos arquivos ({{files}}) antes de a etapa 4.1 os regerar. Ela descreve a versao anterior e fica como historico. Execute a classificacao novamente para a versao atual.",
     "supersededNote": "Uma resposta anterior de {{when}} foi calculada a partir de outra lista ({{files}}). Ela nao diz nada sobre os arquivos selecionados agora, por isso nao e exibida.",
-    "headingHelp": "Combina os resultados do EVOLVEpro de várias rodadas para procurar um sinal de saturação e sugerir continuar com o mutante único, mudar para combinatorial, parar ou adiar. Somente leitura: nada aqui é confirmado ou salvo, e com menos de 3 rodadas ainda não há veredito."
+    "headingHelp": "Combina os resultados do EVOLVEpro de várias rodadas para procurar um sinal de saturação e sugerir continuar com o mutante único, mudar para combinatorial, parar ou adiar. Somente leitura: nada aqui é confirmado ou salvo, e com menos de 3 rodadas ainda não há veredito.",
+    "nextRoundCapacity": "Capacidade da placa da próxima rodada",
+    "nextRoundCapacityHelper": "Número de poços disponíveis na próxima rodada combinatória. Determina a recomendação de capacidade."
   },
   "validation": {
     "missing": {

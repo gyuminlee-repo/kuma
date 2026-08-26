@@ -745,7 +745,7 @@ describe("useAutosaveHydration: analyze-result restore", () => {
     });
   });
 
-  it("resolves project-relative raw run params against the project that is open now", async () => {
+  it("resolves supported raw run params and ignores removed filters from old snapshots", async () => {
     // The snapshot was written on another machine, so the stored value is
     // relative. Restoring must rebuild it against the current folder rather
     // than handing the backend a bare fragment.
@@ -772,6 +772,9 @@ describe("useAutosaveHydration: analyze-result restore", () => {
                 customBarcodesPath: "project://inputs/barcodes.xlsx",
                 sequencingSummaryPath: "/data/run/sequencing_summary.txt",
                 minQscore: 12,
+                targetLength: 900,
+                lengthToleranceBp: 30,
+                normalizeHeaders: true,
               },
               cds_start: 0,
               cds_end: 0,
@@ -793,10 +796,14 @@ describe("useAutosaveHydration: analyze-result restore", () => {
         "/proj/inputs/barcodes.xlsx",
       );
     });
-    // Absolute values are left as they are, and non-path params survive.
+    // Absolute path values are left as they are; removed filter keys must not
+    // re-enter state from an old snapshot now that the Run path cannot honor them.
     const params = useMameAppStore.getState().rawRunParams;
     expect(params.sequencingSummaryPath).toBe("/data/run/sequencing_summary.txt");
-    expect(params.minQscore).toBe(12);
+    expect(params).not.toHaveProperty("minQscore");
+    expect(params).not.toHaveProperty("targetLength");
+    expect(params).not.toHaveProperty("lengthToleranceBp");
+    expect(params).not.toHaveProperty("normalizeHeaders");
   });
 
   it("fills empty MAME expected mutations from the latest KURO SDM primer artifact", async () => {
@@ -917,15 +924,10 @@ describe("useAutosaveHydration: analyze-result restore", () => {
               raw_run_params: {
                 customBarcodesPath: "/proj/barcodes.xlsx",
                 sequencingSummaryPath: "/proj/sequencing_summary.txt",
-                minQscore: 10,
-                lengthMin: 0,
-                lengthMax: 0,
-                targetLength: null,
-                lengthToleranceBp: 50,
-                normalizeHeaders: true,
                 coverageFraction: 0.98,
                 editDistRatio: 0.25,
                 chimeraSplit: true,
+                mapqThreshold: 37,
               },
               cds_start: 1,
               cds_end: 900,
@@ -958,6 +960,7 @@ describe("useAutosaveHydration: analyze-result restore", () => {
       expect(useMameAppStore.getState().currentMameSubStep).toBe("analyze.review");
     });
     const st = useMameAppStore.getState();
+    expect(st.rawRunParams.mapqThreshold).toBe(37);
     expect(st.verdicts).toEqual([VERDICT]);
     expect(st.replicates).toEqual([REPLICATE]);
     expect(st.summary).toEqual(ANALYZE_RESULT.summary);
@@ -1026,12 +1029,6 @@ describe("useAutosaveHydration: analyze-result restore", () => {
           raw_run_params: {
             customBarcodesPath: "",
             sequencingSummaryPath: "",
-            minQscore: 10,
-            lengthMin: 0,
-            lengthMax: 0,
-            targetLength: null,
-            lengthToleranceBp: 50,
-            normalizeHeaders: true,
             coverageFraction: 0.98,
             editDistRatio: 0.25,
             chimeraSplit: true,

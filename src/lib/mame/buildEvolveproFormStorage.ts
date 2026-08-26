@@ -11,6 +11,7 @@ export interface BuildEvolveproFormState {
   confirmationSource: BuildEvolveproConfirmationSource;
   activityPath: string;
   activityScale: "raw" | "relative_to_wt";
+  mismatchThreshold: number;
   layoutXlsx: string;
   gcDataXlsx: string;
   round1ReportXlsx: string;
@@ -40,6 +41,7 @@ export const BUILD_EVOLVEPRO_DEFAULT_STATE: BuildEvolveproFormState = {
   confirmationSource: "none",
   activityPath: "",
   activityScale: "raw",
+  mismatchThreshold: 0.1,
   layoutXlsx: "",
   gcDataXlsx: "",
   round1ReportXlsx: "",
@@ -154,6 +156,12 @@ function readState(
     confirmationSource,
     activityPath: fromPortablePath(stringValue(payload, "activityPath"), projectPath),
     activityScale: payload.activityScale === "relative_to_wt" ? "relative_to_wt" : "raw",
+    mismatchThreshold:
+      typeof payload.mismatchThreshold === "number" &&
+      Number.isFinite(payload.mismatchThreshold) &&
+      payload.mismatchThreshold > 0
+        ? payload.mismatchThreshold
+        : BUILD_EVOLVEPRO_DEFAULT_STATE.mismatchThreshold,
     layoutXlsx: fromPortablePath(stringValue(payload, "layoutXlsx"), projectPath),
     gcDataXlsx: fromPortablePath(stringValue(payload, "gcDataXlsx"), projectPath),
     round1ReportXlsx: fromPortablePath(stringValue(payload, "round1ReportXlsx"), projectPath),

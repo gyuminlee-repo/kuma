@@ -634,6 +634,30 @@ describe("exportSlice — schema_version 0.3", () => {
     expect(store.state.evolveproExtraExposed).toBe(10)
   })
 
+  it("rejects Excel export failure so the UI cannot toast that it was saved", async () => {
+    vi.mocked(sendRequest).mockRejectedValueOnce(new Error("disk full"))
+    await expect(store.slice.exportExcel("/test/output.xlsx")).rejects.toThrow("disk full")
+    expect(store.state.statusMessage).toMatch(/Excel export failed/)
+  })
+
+  it("leaves a missing restored EVOLVEpro prediction absent instead of fabricating 0.0", async () => {
+    vi.mocked(sendRequest).mockResolvedValueOnce({
+      variants: ["A1V", "B2C"],
+      y_preds: [0.8],
+      pool_variants: [],
+    } as never)
+    await store.slice.restoreWorkspace({
+      schema_version: "0.3",
+      rounds: [], active_round_id: null,
+      inputs: { fastaPath: "", mutationInputMode: "evolvepro", mutationText: "", evolveproCsvPath: "/test/evolve.csv", selectedGene: "" },
+      settings: { codonStrategy: "closest", maxPrimers: 95, tmFwdTarget: 62, tmRevTarget: 58, tmOverlapTarget: 42, gcMin: 40, gcMax: 60 },
+      results: { designResults: [], successCount: 0, totalCount: 0, failedMutations: [], plateMappings: [], dedupInfo: {}, manuallySwapped: {}, customCandidates: {} },
+      ui: { tableSorting: [] },
+    } as WorkspaceV3)
+    expect(store.state.yPredMap).toEqual({ A1V: 0.8 })
+    expect(store.state.yPredMap).not.toHaveProperty("B2C")
+  })
+
   it("getWorkspaceSnapshot still includes kuro inputs (backward compat)", () => {
     const snap = store.slice.getWorkspaceSnapshot() as WorkspaceV3
     expect(snap.inputs).toBeDefined()

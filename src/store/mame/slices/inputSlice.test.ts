@@ -95,6 +95,7 @@ describe("mame inputSlice", () => {
       rawRunParams: {
         ...makeStore().rawRunParams,
         customBarcodesPath: "D:/project/barcodes sequence.xlsx",
+        mapqThreshold: 37,
       },
       cdsStart: 101,
       cdsEnd: 900,
@@ -172,7 +173,7 @@ describe("mame inputSlice", () => {
         edit_dist_ratio: 0.25,
         chimera_split: true,
         demux_output_dir: demuxOutputDir,
-        mapq_threshold: 25,
+        mapq_threshold: 37,
         trim_flank_bp: 30,
       }),
       3_000_000,

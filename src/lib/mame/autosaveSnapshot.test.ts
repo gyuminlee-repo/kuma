@@ -142,15 +142,10 @@ describe("buildMameSnapshot", () => {
       rawRunParams: {
         customBarcodesPath: "/proj/barcodes.xlsx",
         sequencingSummaryPath: "/proj/sequencing_summary.txt",
-        minQscore: 10,
-        lengthMin: 0,
-        lengthMax: 0,
-        targetLength: null,
-        lengthToleranceBp: 50,
-        normalizeHeaders: true,
         coverageFraction: 0.98,
         editDistRatio: 0.25,
         chimeraSplit: true,
+        mapqThreshold: 25,
       },
       cdsStart: 1,
       cdsEnd: 900,
@@ -221,15 +216,10 @@ describe("buildMameSnapshot 경로 이식성", () => {
     rawRunParams: {
       customBarcodesPath: "",
       sequencingSummaryPath: "",
-      minQscore: 10,
-      lengthMin: 0,
-      lengthMax: 0,
-      targetLength: null,
-      lengthToleranceBp: 50,
-      normalizeHeaders: true,
       coverageFraction: 0.98,
       editDistRatio: 0.25,
       chimeraSplit: true,
+      mapqThreshold: 25,
     },
     cdsStart: 1,
     cdsEnd: 900,
@@ -313,12 +303,6 @@ describe("buildMameSnapshot raw run params portability", () => {
       rawRunParams: {
         customBarcodesPath: "",
         sequencingSummaryPath: "",
-        minQscore: 9,
-        lengthMin: 0,
-        lengthMax: 0,
-        targetLength: null,
-        lengthToleranceBp: 50,
-        normalizeHeaders: true,
         coverageFraction: 0.98,
         editDistRatio: 0.25,
         chimeraSplit: true,
@@ -336,6 +320,7 @@ describe("buildMameSnapshot raw run params portability", () => {
       stateWithRawParams({
         customBarcodesPath: "/proj/inputs/barcodes.xlsx",
         sequencingSummaryPath: "/data/run/sequencing_summary.txt",
+        mapqThreshold: 37,
       }),
       undefined,
       "/proj",
@@ -349,11 +334,11 @@ describe("buildMameSnapshot raw run params portability", () => {
     expect(snap.parameters.raw_run_params.sequencingSummaryPath).toBe(
       "/data/run/sequencing_summary.txt",
     );
-    // Thresholds are not paths and must survive untouched.
+    // Demux settings that reach the real Run payload survive untouched.
     expect(snap.parameters.raw_run_params).toMatchObject({
-      minQscore: 9,
       coverageFraction: 0.98,
       chimeraSplit: true,
+      mapqThreshold: 37,
     });
   });
 

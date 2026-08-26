@@ -51,12 +51,6 @@ function makeStore(initial: Partial<AppState> = {}) {
     rawRunParams: {
       customBarcodesPath: "",
       sequencingSummaryPath: "",
-      minQscore: 0,
-      lengthMin: 0,
-      lengthMax: 0,
-      targetLength: null,
-      lengthToleranceBp: 0,
-      normalizeHeaders: false,
     } as AppState["rawRunParams"],
     validationErrors: [],
     analyzeMessage: "",

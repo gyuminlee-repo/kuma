@@ -185,7 +185,6 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
   const [seqLength, setSeqLength] = useState<number | null>(null);
   const setParams = useMameAppStore((s) => s.setParams);
   const setReferencePath = useMameAppStore((s) => s.setReferencePath);
-  const currentTargetLength = useMameAppStore((s) => s.rawRunParams.targetLength);
   const cdsCandidates = useMameAppStore((s) => s.cdsCandidates);
   const selectedCdsIndex = useMameAppStore((s) => s.selectedCdsIndex);
   const setCdsCandidates = useMameAppStore((s) => s.setCdsCandidates);
@@ -513,9 +512,6 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
         cdsEnd: geneEndNum - geneStartNum,
         rawRunParams: {
           customBarcodesPath: res.barcodes_xlsx,
-          ...(res.amplicon_length != null && currentTargetLength === null
-            ? { targetLength: res.amplicon_length }
-            : {}),
         },
       });
       await registerArtifacts([

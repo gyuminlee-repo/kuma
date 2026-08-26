@@ -120,6 +120,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
       remeasure_report_xlsx: undefined,
       verdict_xlsx: "/project/ngs/verdict.xlsx",
       output_xlsx: RESULT.output_path,
+      mismatch_threshold: 0.1,
     });
   });
 
@@ -147,6 +148,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
       remeasure_report_xlsx: undefined,
       verdict_xlsx: "/project/ngs/verdict.xlsx",
       output_xlsx: RESULT.output_path,
+      mismatch_threshold: 0.1,
     });
   });
 
@@ -168,6 +170,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
         remeasure_report_xlsx: undefined,
         verdict_xlsx: "/project/ngs/verdict.xlsx",
         output_xlsx: RESULT.output_path,
+        mismatch_threshold: 0.1,
       });
     },
   );
@@ -192,6 +195,7 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
       remeasure_numeric_xlsx: undefined,
       verdict_xlsx: "/project/ngs/verdict.xlsx",
       output_xlsx: RESULT.output_path,
+      mismatch_threshold: 0.1,
     });
   });
 
@@ -293,6 +297,13 @@ describe("BuildEvolveproInputPanel persistence", () => {
     );
     expect(scopedKey).toBeDefined();
     expect(localStorage.getItem(scopedKey!)).toContain('"@project/activity/activity.csv"');
+  });
+
+  it("round-trips the mismatch threshold instead of reverting to the backend default", () => {
+    const form = readyForm({ mismatchThreshold: 0.27 });
+    saveBuildEvolveproToStorage(form, PROJECT);
+
+    expect(loadBuildEvolveproFromStorage(PROJECT).mismatchThreshold).toBe(0.27);
   });
 
   it("does not silently consume ambiguous external legacy state", () => {

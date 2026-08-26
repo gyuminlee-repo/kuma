@@ -47,14 +47,6 @@ export type ReferenceResolution = NonNullable<AnalyzeResult["reference_resolutio
 export interface RawRunParams {
   customBarcodesPath: string;
   sequencingSummaryPath: string;
-  minQscore: number;
-  lengthMin: number;
-  lengthMax: number;
-  // R6.5: amplicon length auto-detection
-  targetLength: number | null;       // null → auto-detect
-  lengthToleranceBp: number;         // ± window around targetLength
-  // R6.5: header normalization
-  normalizeHeaders: boolean;         // write >{well} FASTA headers
   // PR-A: combinatorial demux advanced params.
   // Ranges are stated once, in `ParameterPanel`, next to the inputs that
   // enforce them and the comment explaining which bounds restate
@@ -64,6 +56,7 @@ export interface RawRunParams {
   coverageFraction: number;          // min fraction of ref covered, default 0.98
   editDistRatio: number;             // max edit dist as fraction of barcode prefix, default 0.25
   chimeraSplit: boolean;             // evaluate all alignment hits per read, default true
+  mapqThreshold: number;             // min mapping quality, 0-60, default 25
 }
 
 export interface InputSlice {
@@ -302,7 +295,6 @@ export interface InputSlice {
   // result. Called right after the operator picks the file, before any other
   // input is necessarily chosen. Silent when the check cannot run.
   checkExpectedPlateOrder: (expectedPath: string) => Promise<void>;
-  runDemuxAndFilter: () => Promise<void>;
   runAnalysis: () => Promise<void>;
   cancelAnalysis: () => Promise<void>;
   // Internal shared raw_run helper: run_combinatorial_demux (threading

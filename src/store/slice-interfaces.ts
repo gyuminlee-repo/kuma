@@ -202,7 +202,7 @@ export interface InputSlice {
   setMutationInputMode: (mode: MutationInputMode) => void;
   setMutationText: (text: string) => void;
   parseMutations: () => Promise<void>;
-  loadEvolveproCsv: (filepath: string, topNOverride?: number, preserveSelection?: boolean) => Promise<void>;
+  loadEvolveproCsv: (filepath: string, topNOverride?: number, preserveDesignResults?: boolean) => Promise<void>;
   loadSampleData: () => Promise<void>;
   setEvolveproMode: (mode: EvolveproMode) => void;
   setEvolveproVariantColumn: (col: string | null) => void;

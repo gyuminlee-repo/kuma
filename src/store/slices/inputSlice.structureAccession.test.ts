@@ -63,6 +63,7 @@ function makeStore(overrides: Record<string, unknown> = {}) {
     evolveproScoreColumn: null,
     evolveproScoreOrder: "desc",
     evolveproSheetName: null,
+    evolveproSelectedVariants: [],
     uniprotAccession: "",
     structureAccession: "",
     structureLoaded: false,

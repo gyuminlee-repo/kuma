@@ -85,11 +85,13 @@ interface KindState {
    * flushAutosave가 타이머를 취소할 때 이 task를 pending으로 승격시킨다.
    */
   timerTask: (() => Promise<void>) | null;
+  /** Last completed write failure; flush must surface it to manual-save callers. */
+  lastError: Error | null;
 }
 
 const kindState: Record<AutosaveKind, KindState> = {
-  kuro: { timer: null, lastFlushAt: 0, inFlight: null, pending: null, timerTask: null },
-  mame: { timer: null, lastFlushAt: 0, inFlight: null, pending: null, timerTask: null },
+  kuro: { timer: null, lastFlushAt: 0, inFlight: null, pending: null, timerTask: null, lastError: null },
+  mame: { timer: null, lastFlushAt: 0, inFlight: null, pending: null, timerTask: null, lastError: null },
 };
 
 /** ensureAutosaveDir 결과 캐시 (projectPath → dirPath) */
@@ -411,6 +413,7 @@ function drainQueue(kind: AutosaveKind): void {
 
   const task = state.pending;
   state.pending = null;
+  state.lastError = null;
 
   emit({ kind, type: "saving" });
 
@@ -422,7 +425,7 @@ function drainQueue(kind: AutosaveKind): void {
       const error = err instanceof Error ? err : new Error(String(err));
       console.warn(`[autosave] Write failed (${kind}):`, error);
       emit({ kind, type: "error", error });
-      throw error;
+      state.lastError = error;
     })
     .finally(() => {
       state.inFlight = null;
@@ -527,6 +530,7 @@ export async function flushAutosave(
 
       // in-flight + pending 모두 끝날 때까지 대기
       await waitForDrain(k);
+      if (state.lastError !== null) throw state.lastError;
     }),
   );
 }
@@ -538,11 +542,7 @@ async function waitForDrain(kind: AutosaveKind): Promise<void> {
   for (let i = 0; i < 100; i++) {
     if (state.inFlight === null && state.pending === null) break;
     if (state.inFlight !== null) {
-      try {
-        await state.inFlight;
-      } catch {
-        // 실패해도 drain 완료로 간주
-      }
+      await state.inFlight;
     }
     // inFlight가 끝난 뒤 pending이 새로 시작됐을 수 있으므로 다시 확인
     if (state.pending !== null) {
@@ -563,6 +563,7 @@ export function _resetStateForTest(): void {
     state.inFlight = null;
     state.pending = null;
     state.timerTask = null;
+    state.lastError = null;
   }
   writeBlock.kuro = null;
   writeBlock.mame = null;

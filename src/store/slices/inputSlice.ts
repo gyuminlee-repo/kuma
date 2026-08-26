@@ -4,6 +4,7 @@ import { resolveResource } from "@tauri-apps/api/path";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import { buildKuroDesignInputPatch } from "../../lib/kuroResultReset";
+import { clampMaxPrimers } from "../../lib/inputThresholds";
 import type { AppState } from "../types";
 import type { Round } from "../../types/round";
 import {
@@ -47,7 +48,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   setMutationInputMode: (mode) => set(buildKuroDesignInputPatch(get(), { mutationInputMode: mode })),
   setMutationText: (text) => set(buildKuroDesignInputPatch(get(), { mutationText: text })),
 
-  loadEvolveproCsv: async (filepath: string, topNOverride?: number) => {
+  loadEvolveproCsv: async (
+    filepath: string,
+    topNOverride?: number,
+    preserveDesignResults = false,
+  ) => {
     const gen = ++csvLoadGeneration;
     try {
       const {
@@ -154,9 +159,13 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         structureLoaded: get().structureLoaded,
       });
       if (result.total_count > 0 && maxPrimers > result.total_count) {
-        get().setMaxPrimers(result.total_count);
+        if (preserveDesignResults) {
+          set({ maxPrimers: clampMaxPrimers(result.total_count) });
+        } else {
+          get().setMaxPrimers(result.total_count);
+        }
       }
-      set({
+      const inputPatch: Partial<AppState> = {
         mutationText: update.mutationText,
         mutationInputMode: "evolvepro",
         yPredMap: update.yPredMap,
@@ -175,7 +184,12 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproSelectedVariants: result.variants ?? [],
         evolveproUsedVariantColumn: result.used_variant_column ?? null,
         evolveproUsedScoreColumn: result.used_score_column ?? null,
-      });
+      };
+      if (preserveDesignResults) {
+        set(inputPatch);
+      } else {
+        set(buildKuroDesignInputPatch(get(), inputPatch));
+      }
 
       // Dual-write to MAME shared store so other panels can auto-fill.
       try {

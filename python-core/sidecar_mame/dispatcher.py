@@ -32,7 +32,6 @@ from sidecar_mame.handlers.export import (
 )
 from sidecar_mame.handlers.kuma_meta import handle_read_kuma_meta
 from sidecar_mame.handlers.report import handle_export_run_report
-from sidecar_mame.handlers.demux import handle_demux_and_filter
 from sidecar_mame.handlers.health import handle_get_run_health
 from sidecar_mame.handlers.activity import (
     ExportBlockedError,
@@ -105,8 +104,6 @@ _METHODS = {
     "read_kuma_meta": handle_read_kuma_meta,
     "export_run_report": handle_export_run_report,
     "reset_state": _handle_reset_state,
-    # A1/A3: raw-run demux + quality filter (R6)
-    "demux_and_filter": handle_demux_and_filter,
     # A8: run health panel
     "get_run_health": handle_get_run_health,
     # Phase 2 Task 2.1: activity integration RPC
@@ -144,7 +141,7 @@ _METHODS = {
 # Long-running handlers run on a worker thread so stdin keeps draining.
 # "shutdown" is intentionally excluded — it must run on the main thread so the
 # ack flushes to stdout before the loop exits.
-_ASYNC_METHODS = {"analyze", "demux_and_filter", "mame.run_combinatorial_demux"}
+_ASYNC_METHODS = {"analyze", "mame.run_combinatorial_demux"}
 
 # Worker-thread dispatch is unsafe on a frozen Windows build: while the main
 # loop blocks reading the next stdin line, a spawned worker thread does not get
