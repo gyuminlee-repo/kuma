@@ -10,7 +10,8 @@ from sidecar_kuro.models import DesignSdmPrimersParams, RetryFailedParams
 def test_retry_requires_the_originating_overlap_geometry():
     """A retry without mode cannot safely choose partial over full overlap."""
     with pytest.raises(ValidationError, match="overlap_mode"):
-        RetryFailedParams(fasta_path="template.gb")
+        # Deliberately omit the required mode so runtime validation proves retries cannot guess geometry.
+        RetryFailedParams(fasta_path="template.gb")  # pyright: ignore[reportCallIssue]
 
     retry = RetryFailedParams(fasta_path="template.gb", overlap_mode="full")
     assert retry.overlap_mode == "full"
