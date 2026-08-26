@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.16.39 (Controls that were never sent, and readouts that filled their own gaps)
+
+A second pass over one bug class: what the operator asked for did not reach the code that acts on it.
+
+Five MAME raw-run controls were serialized only by an action nothing ever called. Setting a Q-score filter or a target amplicon length changed the screen and nothing else. Those controls are gone, together with the orphaned action and the RPC registration behind it. The GC clamp had the mirror-image problem. It gated the preferred match while every candidate still entered a fallback pool ordered by melting temperature alone, so a primer that broke the clamp could still come back from a run that required it.
+
+Two policies decided the answer without saying so. The MAPQ threshold was fixed at 25 while the parameter it belongs to declares a 0 to 60 range, and it is a control now. The EVOLVEpro mismatch threshold that blocks an export and the next-round capacity that moves the advisory recommendation are on screen for the same reason.
+
+Stale primers used to survive the settings that produced them. Changing a melting-temperature target, a GC range, a polymerase or a diversity setting left the previous run on screen and available to export. Design inputs now invalidate through the shared change-sensitive boundary that the analyze side already used.
+
+Missing numbers used to render as confident ones. An absent synthesis score painted a green 100, an absent run-health measurement plotted at zero, and a restored workspace invented an EVOLVEpro score of 0 even though 0.0 is a real fitness value. Each reads as unavailable now. A failed save, a failed export and an unreadable manifest no longer report success, and a corrupt manifest is kept rather than overwritten.
+
+### Highlights
+
+- Five MAME raw-run controls that were never sent are gone, so a Q-score filter or target length no longer looks set while doing nothing.
+- Require GC clamp now binds every candidate, not the preferred match alone, so a primer cannot break the clamp a run asked for.
+- The MAPQ threshold is a control instead of a hardcoded 25, and the EVOLVEpro mismatch limit and next-round capacity are visible too.
+- Changing a Tm target, GC range, polymerase or diversity setting clears the previous primers instead of leaving them exportable.
+- A missing synthesis score reads as unavailable rather than a green 100, and a missing run-health measurement no longer plots as zero.
+
 ## v0.16.38 (The retry that changed its geometry, and the validation that described another run)
 
 A failed full-overlap design could be retried as partial overlap without the operator asking for it. `RetryFailedParams.overlap_mode` had a `partial` default, while every retry omitted the field, so validation accepted the request and the UI continued to say full overlap. The field is required now. Retrying also carried primer-length bounds after their limit was switched off, and the substitution stages then used their own 62/58/42 °C and 40/60 % defaults instead of the selected Tm and GC values. The suggestion code read `tm_no_overlap`, which is not on the wire; it now reads `tm_overlap`, rather than silently suggesting the default target. In full-overlap mode the displayed 17–39 nt range became 19–27 nt after the engine intersected separate forward and reverse bounds; the displayed range is now sent to both axes.

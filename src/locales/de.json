@@ -2509,14 +2509,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Wiederholte Anfragen behalten nun die gewählte Overlap-Geometrie, Primer-Grenzen sowie Tm- und GC-Einstellungen, statt auf Standardwerte zurückzufallen.",
-      "Primer-Bereiche mit vollständigem Overlap entsprechen nun den Grenzen, die die Engine erhält, statt einen angezeigten Bereich von 17–39 nt auf 19–27 nt einzuengen.",
-      "Die minimale gefilterte Tiefe von MAME entspricht nun dem angewendeten Wert und bleibt nach dem Neuladen erhalten.",
-      "MAME-Validierung und -Ausführung verwenden dieselbe Nutzlast, sodass die Validierung den tatsächlich ausgeführten Lauf beschreibt.",
-      "Beim Neuladen bleiben deaktivierte Diversity-Steuerelemente deaktiviert sowie Einstellungen für Liquid Handler, Struktur und Variantenliste erhalten."
+      "Fünf MAME-Raw-Run-Bedienelemente, die nie gesendet wurden, sind entfernt. Ein Q-Score-Filter oder eine Ziellänge wirkte gesetzt und tat nichts.",
+      "Die GC-Clamp-Vorgabe bindet jetzt jeden Kandidaten statt nur den bevorzugten Treffer, sodass kein Primer die geforderte Clamp verletzt.",
+      "Der MAPQ-Schwellwert ist ein Bedienelement statt fest verdrahteter 25, und auch das EVOLVEpro-Mismatch-Limit und die Kapazität sind sichtbar.",
+      "Ein geändertes Tm-Ziel, ein GC-Bereich, eine Polymerase oder eine Diversity-Einstellung löscht die vorherigen Primer, statt sie exportierbar zu lassen.",
+      "Ein fehlender Synthesewert erscheint als nicht verfügbar statt als grüne 100, und eine fehlende Run-Health-Messung wird nicht mehr als null gezeichnet."
     ],
-    "highlightsStamp": "0.16.38+6da048ca",
+    "highlightsStamp": "0.16.39+d8fb93a8",
     "releases": {
+      "0.16.39": [
+        "Fünf MAME-Raw-Run-Bedienelemente, die nie gesendet wurden, sind entfernt. Ein Q-Score-Filter oder eine Ziellänge wirkte gesetzt und tat nichts.",
+        "Die GC-Clamp-Vorgabe bindet jetzt jeden Kandidaten statt nur den bevorzugten Treffer, sodass kein Primer die geforderte Clamp verletzt.",
+        "Der MAPQ-Schwellwert ist ein Bedienelement statt fest verdrahteter 25, und auch das EVOLVEpro-Mismatch-Limit und die Kapazität sind sichtbar.",
+        "Ein geändertes Tm-Ziel, ein GC-Bereich, eine Polymerase oder eine Diversity-Einstellung löscht die vorherigen Primer, statt sie exportierbar zu lassen.",
+        "Ein fehlender Synthesewert erscheint als nicht verfügbar statt als grüne 100, und eine fehlende Run-Health-Messung wird nicht mehr als null gezeichnet."
+      ],
       "0.16.38": [
         "Wiederholte Anfragen behalten nun die gewählte Overlap-Geometrie, Primer-Grenzen sowie Tm- und GC-Einstellungen, statt auf Standardwerte zurückzufallen.",
         "Primer-Bereiche mit vollständigem Overlap entsprechen nun den Grenzen, die die Engine erhält, statt einen angezeigten Bereich von 17–39 nt auf 19–27 nt einzuengen.",
@@ -2801,6 +2808,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",

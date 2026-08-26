@@ -2509,14 +2509,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les demandes relancées conservent désormais la géométrie de chevauchement choisie, les limites des amorces et les réglages de Tm et GC au lieu de revenir aux valeurs par défaut.",
-      "Les plages d amorces à chevauchement complet correspondent désormais aux limites reçues par le moteur, au lieu de réduire une plage affichée de 17–39 nt à 19–27 nt.",
-      "La profondeur filtrée minimale de MAME correspond désormais à la valeur appliquée et est conservée après rechargement.",
-      "La validation et l exécution MAME partagent une même charge utile, de sorte que la validation décrit l exécution qui sera lancée.",
-      "Le rechargement conserve désactivés les contrôles de diversité désactivés et préserve les réglages du manipulateur de liquides, de structure et de liste de variants."
+      "Cinq commandes MAME de run brut qui n'étaient jamais envoyées ont disparu. Un filtre de score Q ou une longueur cible semblait réglé sans rien faire.",
+      "L'exigence de GC clamp lie désormais chaque candidat, et non la seule correspondance préférée, donc aucune amorce ne viole la contrainte demandée.",
+      "Le seuil MAPQ est une commande au lieu d'un 25 codé en dur, et la limite de mésappariement EVOLVEpro ainsi que la capacité sont visibles.",
+      "Changer une cible de Tm, une plage GC, une polymérase ou un réglage de diversité efface les amorces précédentes au lieu de les laisser exportables.",
+      "Un score de synthèse absent s'affiche comme indisponible plutôt qu'en 100 vert, et une mesure de santé de run absente n'est plus tracée à zéro."
     ],
-    "highlightsStamp": "0.16.38+6da048ca",
+    "highlightsStamp": "0.16.39+d8fb93a8",
     "releases": {
+      "0.16.39": [
+        "Cinq commandes MAME de run brut qui n'étaient jamais envoyées ont disparu. Un filtre de score Q ou une longueur cible semblait réglé sans rien faire.",
+        "L'exigence de GC clamp lie désormais chaque candidat, et non la seule correspondance préférée, donc aucune amorce ne viole la contrainte demandée.",
+        "Le seuil MAPQ est une commande au lieu d'un 25 codé en dur, et la limite de mésappariement EVOLVEpro ainsi que la capacité sont visibles.",
+        "Changer une cible de Tm, une plage GC, une polymérase ou un réglage de diversité efface les amorces précédentes au lieu de les laisser exportables.",
+        "Un score de synthèse absent s'affiche comme indisponible plutôt qu'en 100 vert, et une mesure de santé de run absente n'est plus tracée à zéro."
+      ],
       "0.16.38": [
         "Les demandes relancées conservent désormais la géométrie de chevauchement choisie, les limites des amorces et les réglages de Tm et GC au lieu de revenir aux valeurs par défaut.",
         "Les plages d amorces à chevauchement complet correspondent désormais aux limites reçues par le moteur, au lieu de réduire une plage affichée de 17–39 nt à 19–27 nt.",
@@ -2801,6 +2808,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",

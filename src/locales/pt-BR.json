@@ -2509,14 +2509,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Solicitações repetidas agora preservam a geometria de sobreposição selecionada, os limites dos iniciadores e as configurações de Tm e GC, em vez de voltar aos padrões.",
-      "As faixas de iniciadores com sobreposição total agora correspondem aos limites recebidos pelo mecanismo, em vez de estreitar uma faixa exibida de 17–39 nt para 19–27 nt.",
-      "A profundidade mínima filtrada do MAME agora corresponde ao valor aplicado e persiste após recarregar.",
-      "A validação e a execução do MAME compartilham uma única carga útil, portanto a validação descreve a execução que será realizada.",
-      "Ao recarregar, os controles de diversidade desativados permanecem desativados e as configurações do manipulador de líquidos, estrutura e lista de variantes são preservadas."
+      "Cinco controles de run bruto do MAME que nunca eram enviados foram removidos. Um filtro de Q-score ou um comprimento alvo parecia definido e não fazia nada.",
+      "A exigência de GC clamp agora vincula todos os candidatos, e não apenas a correspondência preferida, então nenhum primer viola a restrição pedida.",
+      "O limiar MAPQ é um controle em vez de um 25 fixo, e o limite de divergência do EVOLVEpro e a capacidade da próxima rodada ficam visíveis.",
+      "Mudar um alvo de Tm, uma faixa de GC, uma polimerase ou um ajuste de diversidade limpa os primers anteriores em vez de deixá-los exportáveis.",
+      "Uma pontuação de síntese ausente aparece como indisponível em vez de um 100 verde, e uma medição de saúde do run ausente não é mais plotada como zero."
     ],
-    "highlightsStamp": "0.16.38+6da048ca",
+    "highlightsStamp": "0.16.39+d8fb93a8",
     "releases": {
+      "0.16.39": [
+        "Cinco controles de run bruto do MAME que nunca eram enviados foram removidos. Um filtro de Q-score ou um comprimento alvo parecia definido e não fazia nada.",
+        "A exigência de GC clamp agora vincula todos os candidatos, e não apenas a correspondência preferida, então nenhum primer viola a restrição pedida.",
+        "O limiar MAPQ é um controle em vez de um 25 fixo, e o limite de divergência do EVOLVEpro e a capacidade da próxima rodada ficam visíveis.",
+        "Mudar um alvo de Tm, uma faixa de GC, uma polimerase ou um ajuste de diversidade limpa os primers anteriores em vez de deixá-los exportáveis.",
+        "Uma pontuação de síntese ausente aparece como indisponível em vez de um 100 verde, e uma medição de saúde do run ausente não é mais plotada como zero."
+      ],
       "0.16.38": [
         "Solicitações repetidas agora preservam a geometria de sobreposição selecionada, os limites dos iniciadores e as configurações de Tm e GC, em vez de voltar aos padrões.",
         "As faixas de iniciadores com sobreposição total agora correspondem aos limites recebidos pelo mecanismo, em vez de estreitar uma faixa exibida de 17–39 nt para 19–27 nt.",
@@ -2801,6 +2808,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",

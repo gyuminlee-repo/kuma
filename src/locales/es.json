@@ -2509,14 +2509,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Las solicitudes reintentadas ahora conservan la geometría de solapamiento elegida, los límites de cebadores y la configuración de Tm y GC en vez de volver a los valores predeterminados.",
-      "Los rangos de cebadores con solapamiento completo ahora coinciden con los límites que recibe el motor, en vez de estrechar un rango mostrado de 17–39 nt a 19–27 nt.",
-      "La profundidad mínima filtrada de MAME ahora coincide con el valor aplicado y se conserva tras recargar.",
-      "La validación y la ejecución de MAME comparten una misma carga útil, por lo que la validación describe la ejecución que se realizará.",
-      "Al recargar se mantienen desactivados los controles de diversidad deshabilitados y se conservan los ajustes del manipulador de líquidos, estructura y lista de variantes."
+      "Se eliminaron cinco controles de run bruto de MAME que nunca se enviaban. Un filtro de Q-score o una longitud objetivo parecía fijado y no hacía nada.",
+      "La exigencia de GC clamp ahora vincula a todos los candidatos, no solo a la coincidencia preferida, así que ningún cebador viola la restricción pedida.",
+      "El umbral MAPQ es un control en lugar de un 25 fijo, y el límite de desajuste de EVOLVEpro y la capacidad de la siguiente ronda quedan visibles.",
+      "Cambiar un objetivo de Tm, un rango GC, una polimerasa o un ajuste de diversidad borra los cebadores anteriores en vez de dejarlos exportables.",
+      "Una puntuación de síntesis ausente se lee como no disponible en vez de un 100 verde, y una medida de salud del run ausente ya no se dibuja como cero."
     ],
-    "highlightsStamp": "0.16.38+6da048ca",
+    "highlightsStamp": "0.16.39+d8fb93a8",
     "releases": {
+      "0.16.39": [
+        "Se eliminaron cinco controles de run bruto de MAME que nunca se enviaban. Un filtro de Q-score o una longitud objetivo parecía fijado y no hacía nada.",
+        "La exigencia de GC clamp ahora vincula a todos los candidatos, no solo a la coincidencia preferida, así que ningún cebador viola la restricción pedida.",
+        "El umbral MAPQ es un control en lugar de un 25 fijo, y el límite de desajuste de EVOLVEpro y la capacidad de la siguiente ronda quedan visibles.",
+        "Cambiar un objetivo de Tm, un rango GC, una polimerasa o un ajuste de diversidad borra los cebadores anteriores en vez de dejarlos exportables.",
+        "Una puntuación de síntesis ausente se lee como no disponible en vez de un 100 verde, y una medida de salud del run ausente ya no se dibuja como cero."
+      ],
       "0.16.38": [
         "Las solicitudes reintentadas ahora conservan la geometría de solapamiento elegida, los límites de cebadores y la configuración de Tm y GC en vez de volver a los valores predeterminados.",
         "Los rangos de cebadores con solapamiento completo ahora coinciden con los límites que recibe el motor, en vez de estrechar un rango mostrado de 17–39 nt a 19–27 nt.",
@@ -2801,6 +2808,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",

@@ -2552,14 +2552,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Retry requests now preserve the selected overlap geometry, primer limits, Tm and GC settings instead of falling back to defaults.",
-      "Full-overlap primer ranges now match the bounds the engine receives, rather than narrowing a displayed 17–39 nt range to 19–27 nt.",
-      "MAME minimum filtered depth now matches the applied value and survives reload.",
-      "MAME validation and run share one payload, so validation describes the run that will execute.",
-      "Reloading keeps disabled diversity controls disabled and preserves liquid-handler, structure, and variant-list settings."
+      "Five MAME raw-run controls that were never sent are gone, so a Q-score filter or target length no longer looks set while doing nothing.",
+      "Require GC clamp now binds every candidate, not the preferred match alone, so a primer cannot break the clamp a run asked for.",
+      "The MAPQ threshold is a control instead of a hardcoded 25, and the EVOLVEpro mismatch limit and next-round capacity are visible too.",
+      "Changing a Tm target, GC range, polymerase or diversity setting clears the previous primers instead of leaving them exportable.",
+      "A missing synthesis score reads as unavailable rather than a green 100, and a missing run-health measurement no longer plots as zero."
     ],
-    "highlightsStamp": "0.16.38+6da048ca",
+    "highlightsStamp": "0.16.39+d8fb93a8",
     "releases": {
+      "0.16.39": [
+        "Five MAME raw-run controls that were never sent are gone, so a Q-score filter or target length no longer looks set while doing nothing.",
+        "Require GC clamp now binds every candidate, not the preferred match alone, so a primer cannot break the clamp a run asked for.",
+        "The MAPQ threshold is a control instead of a hardcoded 25, and the EVOLVEpro mismatch limit and next-round capacity are visible too.",
+        "Changing a Tm target, GC range, polymerase or diversity setting clears the previous primers instead of leaving them exportable.",
+        "A missing synthesis score reads as unavailable rather than a green 100, and a missing run-health measurement no longer plots as zero."
+      ],
       "0.16.38": [
         "Retry requests now preserve the selected overlap geometry, primer limits, Tm and GC settings instead of falling back to defaults.",
         "Full-overlap primer ranges now match the bounds the engine receives, rather than narrowing a displayed 17–39 nt range to 19–27 nt.",
@@ -2844,6 +2851,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",
