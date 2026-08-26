@@ -85,7 +85,7 @@
     "diagnostics": "Диагностика",
     "generateDiagnostics": "Создать диагностику",
     "generating": "Создание...",
-    "diagnosticsNote": "Сохраняет JSON-bundle (информация о приложении + crash log) по выбранному пути. Пользовательские данные и последовательности не включаются.",
+    "diagnosticsNote": "Сохраняет JSON-пакет по выбранному пути. Он может содержать абсолютные пути и исходный текст логов или ошибок sidecar, включая идентификаторы мутаций или вариантов. Проверьте перед передачей.",
     "copyCrashLog": "Копировать crash log",
     "ok": "OK",
     "updates": "Обновления"
@@ -105,8 +105,8 @@
     "notificationsDisabled": "отключено",
     "languageSelectionLabel": "Выбор языка",
     "enableNotifications": "Включить уведомления",
-    "notificationsNote": "Срабатывает для задач длительностью более 5 минут.",
-    "sleepPrevention": "Защита от сна: включена, пока выполняются задачи.",
+    "notificationsNote": "Показывается для заданий проектирования KURO и объединения активности, выполняющихся дольше 5 минут.",
+    "sleepPrevention": "Предотвращение сна включается во время проектирования KURO и объединения активности.",
     "dataFolder": "Папка данных",
     "dataFolderLoading": "загрузка...",
     "dataFolderChange": "Изменить...",
@@ -115,8 +115,7 @@
     "close": "Закрыть",
     "tab": {
       "general": "Основные",
-      "network": "Сеть",
-      "sidecar": "Sidecar"
+      "network": "Сеть"
     },
     "theme": {
       "label": "Тема",
@@ -134,11 +133,6 @@
         "alphafold": "AlphaFold via EBI (поиск структуры)",
         "interpro": "InterPro / Pfam via EBI (аннотация доменов)"
       }
-    },
-    "sidecar": {
-      "persistOnCancel": "При отмене",
-      "persistPartial": "Сохранить частичные результаты",
-      "persistDiscard": "Удалить все результаты"
     },
     "savedAt": "Сохранено в {{time}}"
   },
@@ -223,7 +217,7 @@
       "ingestBarcodeTitle": "Группировать reads по Nanopore barcode (NB01, NB02, ...). Каждый bin barcode становится одним sample.",
       "ingestAmpliconTitle": "Группировать reads по amplicon identity. Используйте, когда несколько amplicon делят barcode или при demultiplexing по совпадению последовательности.",
       "inputModeConsensusTitle": "Старт от готового consensus FASTA (одна последовательность на barcode). Пропускает sorting и consensus calling.",
-      "inputModeSortedBarcodeTitle": "Старт от уже отсортированных директорий barcode (fastq.gz на barcode). Пропускает MinKNOW sorting; выполняет consensus calling.",
+      "inputModeSortedBarcodeTitle": "Анализирует заранее рассчитанные консенсусные FASTA-файлы (по одной последовательности на лунку). Пропускает сортировку MinKNOW и вызов консенсуса.",
       "inputModeRawRunTitle": "Старт от raw папки MinKNOW run (fastq_pass/ + метаданные run). Полный pipeline: сортировка barcode, фильтр, затем consensus.",
       "minFilteredDepth": "Min Filtered Depth (reads)",
       "minFilteredDepthHelp": "Cutoff по числу reads, прошедших length-window фильтр. Основной quality cutoff по depth.",
@@ -285,7 +279,7 @@
       "toastSuccessDesc": "Файлы сохранены в {{dir}}/",
       "toastSuccessDescWithLength": "Длина amplicon: {{length}} bp. Файлы сохранены в {{dir}}/",
       "toastError": "Создание не удалось",
-      "overwriteConfirmDir": "Папка {{dir}}/ уже существует и будет перезаписана (primer CSV, barcode XLSX, amplicon FASTA). Продолжить?",
+      "overwriteConfirmDir": "Папка {{dir}}/ уже существует и будет перезаписана (barcodes_sequence.xlsx, {gene}_amplicon.fa и mame_context.json в корне проекта). Продолжить?",
       "geneEndError": "gene_end должен быть больше gene_start.",
       "noProjectWarning": "Для создания package необходимо открыть проект. Выберите Открыть проект в меню Файл.",
       "barcodeSeedsXlsxHelper": "xlsx файл с seed-последовательностями fwd_1..12 и rev_1..8.",
@@ -309,7 +303,7 @@
       },
       "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
       "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. egfp).",
-      "polymeraseHelp": "Polymerase, записываемая в протокол barcode PCR. Только метаданные, не влияет на расчёт Tm или праймеров.",
+      "polymeraseHelp": "Полимераза для barcode PCR. Её солевой профиль используется при расчёте Tm во время выбора праймеров.",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
       "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
@@ -330,11 +324,10 @@
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "Не удалось открыть папку.",
-      "variantSheet": "List so spiskom variantov",
-      "variantColumn": "Stolbec variantov",
-      "variantColumnPlaceholder": "Vyberite stolbec",
-      "variantColumnHelper": "Строки заполняют 96-луночный планшет в порядке этого столбца, сверху вниз по каждому столбцу планшета: A1, B1, C1 до H1, затем A2. Строка WT служит контролем, отдельная строка не добавляется.",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "templateTopology": "Топология шаблона",
+      "topologyLinear": "Линейная",
+      "topologyCircular": "Кольцевая",
+      "templateTopologyHelper": "Файлы FASTA не содержат топологию. Выбирайте кольцевую только когда шаблон пересекает начало последовательности.",
       "outputLocationStateLabel": "Необязательно"
     },
     "activity": {
@@ -819,7 +812,7 @@
         "placeholder": "Выберите папку; {{filename}} будет создан",
         "stateLabel": "Сохранить в",
         "helperText": "Отчёт анализа использует KURO-style rule-based имя файла .xlsx",
-        "helpText": "Папка, куда сохраняется Excel с результатом анализа. Имя файла генерируется автоматически по правилам KURO-style, объединяя дату, токены reference/input, MAME target и токены количества результатов.",
+        "helpText": "Имя файла автоматически создаётся из даты, токена ссылки или ввода и цели MAME.",
         "reuseNotice": "Если в этой папке уже есть результаты предыдущего запуска, совпадающие единицы используются повторно, а остальное перезаписывается.",
         "overwriteConfirmDir": "В {{dir}} уже есть результаты предыдущего анализа (demux_filtered/). Совпадающие единицы будут использованы повторно, остальное перезаписано. Продолжить?"
       },
@@ -1198,6 +1191,8 @@
       "warningsLabel": "Предупреждения",
       "mismatchedLabel": "Confirmation vs primary mismatch",
       "mismatchedHint": "Variants whose confirmation mean differs notably from the primary value.",
+      "allowLabelMismatch": "Разрешить проверенное несоответствие меток",
+      "allowLabelMismatchHelper": "Снимает блокировку экспорта при обнаруженной перестановке меток. Сначала проверьте раскладку и метки вердикта.",
       "mismatchedAuthoritative": "Confirmation",
       "mismatchedFallback": "Primary",
       "colVariant": "Variant",
@@ -1308,7 +1303,7 @@
           "effect": "Только диагностика. Ни одна проверка не читает это значение. Высокое число означает неоднозначное картирование ридов, обычно повтор или неверный референс."
         },
         "spanFailed": {
-          "what": "Риды, отброшенные из-за того, что их выравнивание не покрывает всю длину референса.",
+          "what": "Reads отброшены, поскольку их выравнивание покрывает меньше настроенной доли референса (по умолчанию 98%).",
           "stage": "Фильтрация выравнивания, после фильтра MAPQ. Ноль, если запуск анализировался из консенсусного FASTA.",
           "effect": "Только диагностика. Ни одна проверка не читает это значение. Высокое число обычно означает обрезанные риды или ампликон короче референса."
         },
@@ -1546,22 +1541,22 @@
     "primerLenInvalidError": "Min должен быть меньше Max",
     "designSectionLabel": "Design",
     "autoRescueLabel": "Авто-rescue для неудачных мутаций",
-    "autoRescueTitle": "Когда включено, повторяет неудачные мутации через 4 (top-N) или 6 (pipeline) stages с ослабленными параметрами. Когда выключено, неудачные мутации остаются как есть без авто-retry.",
+    "autoRescueTitle": "При включении запускает sidecar-спасение с ослабленными ограничениями и каскад frontend из 4 этапов (top-N) или 6 (pipeline). При выключении неудачные мутации автоматически не повторяются.",
     "seedLabel": "Seed:",
-    "seedTitle": "Необязательное целое зерно. Сохраняется вместе с запуском как сведения о происхождении. Дизайн праймеров детерминирован, поэтому зерно не меняет получаемые праймеры.",
-    "seedAriaLabel": "Random seed (опционально)",
-    "seedFixed": "fixed: {{seed}}",
-    "seedAuto": "auto",
+    "seedTitle": "Необязательный целочисленный seed, записываемый только в происхождение дизайна; на ранжирование primer не влияет.",
+    "seedAriaLabel": "Seed (необязательно)",
+    "seedFixed": "записан: {{seed}}",
+    "seedAuto": "не записан",
     "tmPrimerHelp": "Target Tm (°C) for symmetric full-overlap primers. Default 62.",
     "tmFwdHelp": "Target Tm (°C) for forward primer in partial-overlap mode. Lower value increases mismatch tolerance.",
     "tmRevHelp": "Target Tm (°C) for reverse primer. Should approximate tmFwd for balanced PCR.",
     "tmOverlapHelp": "Target Tm (°C) of the overlap region between two primers.",
     "gcRangeHelp": "Accepted GC content range (%) for primer regions. Recommended 40-60.",
-    "primerLenLimitHelp": "Toggle to bound primer length. When off, engine uses Tm-only optimization.",
-    "primerLenFwdHelp": "Диапазон длины прямого праймера (нт). Значение по умолчанию 18-39 покрывает большинство случаев SDM.",
+    "primerLenLimitHelp": "Переключает ограничения длины primer. Выключено — движок использует границы длины выбранного профиля полимеразы.",
+    "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
-    "autoRescueHelp": "Auto-fill failed mutations with relaxed constraints in a second pass.",
-    "seedHelp": "Random seed for reproducible primer ranking. Leave empty for auto (time-based).",
+    "autoRescueHelp": "Управляет sidecar-спасением с ослабленными ограничениями и каскадом frontend из 4 этапов (top-N) / 6 (pipeline).",
+    "seedHelp": "Записывает только метаданные происхождения и не влияет на ранжирование primer. Пустое значение не записывает seed.",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
   "designReport": {
@@ -1610,7 +1605,7 @@
     "statPositionCoverageValue": "{{rescued}}/{{attempted}} rescued",
     "statPoolCascade": "Pool cascade",
     "statPoolCascadeValue": "{{cascade}} ({{tried}} tried)",
-    "statAutoRelax": "Auto-relax (±3→±5°C)",
+    "statAutoRelax": "Автоослабление (допуск Tm до +2 °C, диапазон GC до ±5 п.п., минимальная длина до −2 nt)",
     "statAutoRetry": "Auto-retry (рекомендация)",
     "statCascadeRescues": "Cascade rescues",
     "statStillFailed": "Всё ещё failed",
@@ -1684,8 +1679,8 @@
     "minQuotaHelp": "Minimum primer quota per domain (0-20). Ensures each domain represented.",
     "poolKLabelHelp": "Pool-K diversity weighting target. Auto value derived from sequence properties.",
     "entropyWeightHelp": "Weight (0-1) for entropy-guided primer selection vs pure diversity.",
-    "autoRedesignOnLoadHelp": "Re-run primer design automatically when a workspace is loaded.",
-    "savePipelineCacheHelp": "Save intermediate pipeline outputs to disk for faster re-runs.",
+    "autoRedesignOnLoadHelp": "При включении повторно запускает проектирование праймеров при загрузке рабочего пространства, только если нет сохранённых результатов.",
+    "savePipelineCacheHelp": "Включает кэш альтернативных праймеров и результаты бенчмарка в снимки рабочего пространства.",
     "topPercentileHelp": "Benchmark top percentile (1-100) cutoff for primer scoring.",
     "randomTrialsHelp": "Number of random baseline trials for benchmark (1-1000). Higher value yields more reliable estimate.",
     "benchmarkRandomSeedHelp": "Random seed for benchmark reproducibility. Empty value defaults to auto.",
@@ -1980,7 +1975,7 @@
     "insideProject": "Внутри каждого проекта",
     "kuroDesc": "Kernel for Upstream Recombination Oligodesign. Пакетный SDM primer design из шаблонов Gibson Assembly.",
     "mameDesc": "Mutagenesis Assessment & Microplate Export. Verdict для Oxford Nanopore NGS.",
-    "autosaveNote": "Входы и параметры autosave per project. Ничего не утекает между проектами.",
+    "autosaveNote": "Входные данные и параметры автоматически сохраняются для каждого проекта. Черновики Barcode Setup, включая абсолютные пути, доступны всем проектам.",
     "titleStart": "Начать",
     "descStart": "Выберите папку по умолчанию для проектов. kuma хранит каждый Kuro design и Mame verdict run в собственной папке проекта, чтобы работа сохранялась между неделями ожидания sequencing.",
     "chooseFolderBtn": "Выбрать папку",
@@ -2124,7 +2119,7 @@
     "mutationsEntered": "{{count}} мутаций введено",
     "mutationsValidated": "({{count}} проверено)",
     "mutationsFailed": "({{count}} failed)",
-    "topNZeroHint": "Установите top-N равным 0, чтобы загрузить все варианты из CSV",
+    "topNZeroHint": "Top-N может быть от 1 до 96. Увеличьте его, чтобы загрузить больше вариантов из CSV.",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
@@ -3367,6 +3362,9 @@
         "kuro": "KURO sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry.",
         "mame": "MAME sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry."
       }
+    },
+    "mame": {
+      "labelMismatchBlocked": "Обнаружена перестановка меток; экспорт заблокирован. Проверьте раскладку и метки вердикта, затем выберите Разрешить проверенное несоответствие меток."
     }
   },
   "advisoryDecision": {

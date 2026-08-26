@@ -616,6 +616,32 @@ export async function applyKuroSnapshot(
   if (typeof params?.random_seed === "number" || params?.random_seed === null) {
     patch.randomSeed = params.random_seed ?? null;
   }
+  if (typeof params?.echo_transfer_vol === "number") {
+    patch.echoTransferVol = params.echo_transfer_vol;
+  }
+  const echoQuadrant = params?.echo_quadrant;
+  if (
+    echoQuadrant === null ||
+    echoQuadrant === "A1" ||
+    echoQuadrant === "A2" ||
+    echoQuadrant === "B1" ||
+    echoQuadrant === "B2"
+  ) {
+    patch.echoQuadrant = echoQuadrant;
+  }
+  const echoUsedQuadrants = params?.echo_used_quadrants;
+  if (
+    Array.isArray(echoUsedQuadrants) &&
+    echoUsedQuadrants.every(
+      (quadrant) =>
+        quadrant === "A1" || quadrant === "A2" || quadrant === "B1" || quadrant === "B2",
+    )
+  ) {
+    patch.echoUsedQuadrants = echoUsedQuadrants as AppState["echoUsedQuadrants"];
+  }
+  if (typeof params?.janus_transfer_vol === "number") {
+    patch.janusTransferVol = params.janus_transfer_vol;
+  }
 
   // benchmark (schema 5+)
   const benchmark = snapshot.benchmark as Record<string, unknown> | undefined;
@@ -649,6 +675,9 @@ export async function applyKuroSnapshot(
       ? (input.sequence_info as AppState["seqInfo"])
       : null;
   const pipeline = snapshot.pipeline as Record<string, unknown> | undefined;
+  if (typeof pipeline?.evolvepro_extra_exposed === "number") {
+    patch.evolveproExtraExposed = pipeline.evolvepro_extra_exposed;
+  }
 
   // (a) loadSequence는 그 자체가 store 쓰기라 호출 전에 막아야 한다.
   if (!alive()) return done(false);
@@ -1414,7 +1443,9 @@ function applyMameSnapshot(
     cdsStart: parameters.cds_start,
     cdsEnd: parameters.cds_end,
     minFileSizeKb: parameters.min_file_size_kb,
+    minFilteredDepth: parameters.min_read_count,
     manyCutoff: parameters.many_cutoff,
+    maxConsensusNFraction: parameters.max_consensus_n_fraction,
   });
   // 프로젝트 폴더 안을 가리키던 입력은 여기서 현재 폴더 기준으로 되살아난다.
   // 폴더 밖 절대 경로는 그대로 복원되며, 옮긴 PC에 없으면 이어지는 자동 탐지가

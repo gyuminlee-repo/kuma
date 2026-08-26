@@ -143,12 +143,6 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
     updateSettings({ network: { ...settings?.network, [key]: val } });
   }
 
-  // ── Sidecar helpers ─────────────────────────────────────────────────────────
-
-  function handlePersistOnCancelChange(val: "partial" | "discard") {
-    updateSettings({ sidecar: { ...settings?.sidecar, persist_on_cancel: val } });
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col" aria-describedby={undefined}>
@@ -158,10 +152,9 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
 
         <div className="flex-1 overflow-y-auto pr-1 -mr-1">
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="w-full grid grid-cols-3">
+          <TabsList className="w-full grid grid-cols-2">
             <TabsTrigger value="general" className="min-w-0 truncate">{t("settings.tab.general")}</TabsTrigger>
             <TabsTrigger value="network" className="min-w-0 truncate">{t("settings.tab.network")}</TabsTrigger>
-            <TabsTrigger value="sidecar" className="min-w-0 truncate">{t("settings.tab.sidecar")}</TabsTrigger>
           </TabsList>
 
           {/* ── General ──────────────────────────────────────────────────────── */}
@@ -339,36 +332,6 @@ export function SettingsDialog({ open, onOpenChange, scope = "kuro" }: SettingsD
                   <span className="text-foreground">{t(labelKey)}</span>
                 </label>
               ))}
-            </section>
-          </TabsContent>
-
-          {/* ── Sidecar ──────────────────────────────────────────────────────── */}
-          <TabsContent value="sidecar" className="flex flex-col gap-4 pt-3">
-
-            {/* Persist on cancel */}
-            <section aria-labelledby="settings-persist-heading" className="flex flex-col gap-2">
-              <p id="settings-persist-heading" className="text-sm font-semibold text-foreground">
-                {t("settings.sidecar.persistOnCancel")}
-              </p>
-              <div className="flex flex-col gap-1.5" role="radiogroup" aria-labelledby="settings-persist-heading">
-                {(["partial", "discard"] as const).map((val) => (
-                  <label key={val} className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input
-                      type="radio"
-                      name="settings-persist-on-cancel"
-                      value={val}
-                      checked={(settings?.sidecar?.persist_on_cancel ?? "partial") === val}
-                      onChange={() => handlePersistOnCancelChange(val)}
-                      className="accent-primary"
-                    />
-                    <span className="text-foreground">
-                      {val === "partial"
-                        ? t("settings.sidecar.persistPartial")
-                        : t("settings.sidecar.persistDiscard")}
-                    </span>
-                  </label>
-                ))}
-              </div>
             </section>
           </TabsContent>
 

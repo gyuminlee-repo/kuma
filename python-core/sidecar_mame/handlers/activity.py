@@ -566,22 +566,36 @@ def handle_build_evolvepro_input(params: dict) -> dict:
     from sidecar_mame.models import BuildEvolveproInputParams
 
     p = BuildEvolveproInputParams.model_validate(params)
-    result = build_evolvepro_input(
-        p.output_xlsx,
-        activity_path=p.activity_path,
-        activity_scale=p.activity_scale,
-        gc_data_xlsx=p.gc_data_xlsx,
-        round1_report_xlsx=p.round1_report_xlsx,
-        numeric_report_xlsx=p.numeric_report_xlsx,
-        remeasure_report_xlsx=p.remeasure_report_xlsx,
-        remeasure_numeric_xlsx=p.remeasure_numeric_xlsx,
-        verdict_xlsx=p.verdict_xlsx,
-        layout_xlsx=p.layout_xlsx,
-        expected_xlsx=p.expected_xlsx,
-        mismatch_threshold=p.mismatch_threshold,
-        gc_export_xlsx=p.gc_export_xlsx,
-        allow_label_mismatch=p.allow_label_mismatch,
-    )
+    try:
+        result = build_evolvepro_input(
+            p.output_xlsx,
+            activity_path=p.activity_path,
+            activity_scale=p.activity_scale,
+            gc_data_xlsx=p.gc_data_xlsx,
+            round1_report_xlsx=p.round1_report_xlsx,
+            numeric_report_xlsx=p.numeric_report_xlsx,
+            remeasure_report_xlsx=p.remeasure_report_xlsx,
+            remeasure_numeric_xlsx=p.remeasure_numeric_xlsx,
+            verdict_xlsx=p.verdict_xlsx,
+            layout_xlsx=p.layout_xlsx,
+            expected_xlsx=p.expected_xlsx,
+            mismatch_threshold=p.mismatch_threshold,
+            gc_export_xlsx=p.gc_export_xlsx,
+            allow_label_mismatch=p.allow_label_mismatch,
+        )
+    except ValueError as exc:
+        # The core owns the audit decision, while this adapter owns the GUI
+        # contract. Replace only its stable blocked-export message so a GUI
+        # operator is directed to the acknowledgement control rather than an
+        # unreachable JSON-RPC parameter.
+        if str(exc) == (
+            "Label swap detected; export blocked. Review the layout and verdict labels "
+            "or set allow_label_mismatch=True after review."
+        ):
+            raise ValueError(
+                "errors.mame.labelMismatchBlocked"
+            ) from exc
+        raise
     return {
         "output_path": str(result.output_path),
         "n_variants": result.n_variants,

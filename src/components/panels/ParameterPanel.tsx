@@ -385,12 +385,12 @@ export function ParameterPanel() {
                 <span className="text-caption text-muted-foreground">bp</span>
                 <InlineHelp text={t("parameterPanel.primerLenRevHelp")} />
               </div>
-              {(fwdLenMin >= fwdLenMax || revLenMin >= revLenMax) && (
+              {(fwdLenMin > fwdLenMax || revLenMin > revLenMax) && (
                 <div className="text-caption text-error pl-8">{t("parameterPanel.primerLenInvalidError")}</div>
               )}
             </>
           )}
-          {primerLenEnabled && isFullOverlap && fwdLenMin >= fwdLenMax && (
+          {primerLenEnabled && isFullOverlap && fwdLenMin > fwdLenMax && (
             <div className="text-caption text-error pl-8">{t("parameterPanel.primerLenInvalidError")}</div>
           )}
 

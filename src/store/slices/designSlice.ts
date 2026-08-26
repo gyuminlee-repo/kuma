@@ -24,6 +24,7 @@ import {
   applyReversePropagation,
   buildIncludedPlateState,
   buildDesignRequestPayload,
+  buildPrimerLengthBounds,
   EMPTY_RESCUE_STATS,
   prepareDesignInput,
   processDesignResult,
@@ -33,6 +34,13 @@ import {
 
 import type { DesignSlice } from "../slice-interfaces";
 export type { DesignSlice };
+
+function requireNumericRetryBound(value: number | string, field: string): number {
+  if (typeof value !== "number") {
+    throw new TypeError(`Retry ${field} must be numeric`);
+  }
+  return value;
+}
 
 export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (set, get) => ({
   isDesigning: false,
@@ -596,10 +604,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
           tm_overlap_target: params.tmOverlap,
           gc_min: params.gcMin,
           gc_max: params.gcMax,
-          fwd_len_min: params.fwdLenMin,
-          fwd_len_max: params.fwdLenMax,
-          rev_len_min: params.revLenMin,
-          rev_len_max: params.revLenMax,
+          ...buildPrimerLengthBounds(get().primerLenEnabled, get().overlapMode, params),
           tol_max: params.tolMax,
           codon_strategy: get().codonStrategy,
         };
@@ -651,7 +656,16 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
           if (!candidate) continue;
 
           try {
+            // Substitution changes only the mutation identity. Sending fewer
+            // fields here makes the sidecar fall back to 62/58/42, 40/60, and
+            // partial overlap instead of the constraints that failed request used.
             const candidates = await get().retryFailedMutation(candidate, {
+              tm_fwd_target: baseInput.tmFwd,
+              tm_rev_target: baseInput.tmRev,
+              tm_overlap_target: baseInput.tmOverlap,
+              gc_min: baseInput.gcMin,
+              gc_max: baseInput.gcMax,
+              ...buildPrimerLengthBounds(get().primerLenEnabled, get().overlapMode, baseInput),
               codon_strategy: get().codonStrategy,
               tol_max: baseTol,
             });
@@ -716,10 +730,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       tm_overlap_target: suggestion.tmOverlap,
       gc_min: suggestion.gcMin,
       gc_max: suggestion.gcMax,
-      fwd_len_min: suggestion.fwdLenMin,
-      fwd_len_max: suggestion.fwdLenMax,
-      rev_len_min: suggestion.revLenMin,
-      rev_len_max: suggestion.revLenMax,
+      ...buildPrimerLengthBounds(get().primerLenEnabled, get().overlapMode, suggestion),
       tol_max: suggestion.tolMax,
       codon_strategy: codonStrategy,
     };
@@ -772,8 +783,26 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
 
   retryFailedMutation: async (mutation: string, params: Record<string, number | string>) => {
     try {
-      const { fastaPath, selectedGene, selectedPolymerase, organism } = get();
+      const {
+        fastaPath,
+        selectedGene,
+        selectedPolymerase,
+        organism,
+        primerLenEnabled,
+        overlapMode,
+        fwdLenMin,
+        fwdLenMax,
+        revLenMin,
+        revLenMax,
+      } = get();
       const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
+      const {
+        fwd_len_min = fwdLenMin,
+        fwd_len_max = fwdLenMax,
+        rev_len_min = revLenMin,
+        rev_len_max = revLenMax,
+        ...retryParams
+      } = params;
       const result = await sendRequest(
         "retry_failed_mutation",
         {
@@ -782,7 +811,16 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
           target_start: targetStart,
           polymerase: selectedPolymerase,
           organism,
-          ...params,
+          // RetryFailedParams requires overlap_mode; every retry must carry
+          // the originating geometry or request validation fails.
+          overlap_mode: overlapMode,
+          ...retryParams,
+          ...buildPrimerLengthBounds(primerLenEnabled, overlapMode, {
+            fwdLenMin: requireNumericRetryBound(fwd_len_min, "fwd_len_min"),
+            fwdLenMax: requireNumericRetryBound(fwd_len_max, "fwd_len_max"),
+            revLenMin: requireNumericRetryBound(rev_len_min, "rev_len_min"),
+            revLenMax: requireNumericRetryBound(rev_len_max, "rev_len_max"),
+          }),
         },
       );
       set({

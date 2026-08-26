@@ -148,9 +148,7 @@ describe("payloads from the moved call sites are now refused", () => {
           consent_alphafold: true,
           consent_interpro: true,
         },
-        sidecar: {
-          persist_on_cancel: "partial",
-        },
+
       },
     };
     mocks.rpc.mockResolvedValueOnce(real);
@@ -171,11 +169,6 @@ describe("payloads from the moved call sites are now refused", () => {
         language: "en",
         theme: "auto",
         network: { offline_mode: true, consent_blast: false },
-        sidecar: {
-          concurrency_default: 8,
-          cancel_timeout_secs: 90,
-          persist_on_cancel: "discard",
-        },
         telemetry: { crash_log_auto_send: true, anonymous_stats: true },
       },
     };

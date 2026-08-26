@@ -13,8 +13,6 @@ import type {
   BenchmarkResult,
   SequenceInfo,
   WorkspaceData,
-  WorkspaceV1,
-  WorkspaceV2,
   WorkspaceV3,
 } from "../../types/models";
 import { useRoundStore } from "../round/roundSlice";
@@ -30,6 +28,12 @@ import {
 } from "../../lib/polymeraseAliases";
 
 import type { ExportSlice } from "../slice-interfaces";
+
+// These match the creating slices: inputSlice starts in top-N mode and
+// diversitySlice uses round 0 as the backend-aligned "not set" value. Restore
+// and reset must use the same defaults rather than manufacturing a pipeline run.
+const DEFAULT_EVOLVEPRO_MODE = "topN" as const;
+const DEFAULT_EVOLVEPRO_ROUND = 0;
 export type { ExportSlice };
 
 async function sha256ProteinSequence(sequence: string): Promise<string> {
@@ -37,87 +41,6 @@ async function sha256ProteinSequence(sequence: string): Promise<string> {
   const bytes = new TextEncoder().encode(normalized);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-function normalizeWorkspace(ws: WorkspaceV1 | WorkspaceV2 | WorkspaceV3): WorkspaceV2 | WorkspaceV3 {
-  if ("schema_version" in ws && ws.schema_version === "0.3") {
-    return ws;
-  }
-  if ("version" in ws && ws.version === 2) {
-    return ws;
-  }
-
-  const legacy = ws as WorkspaceV1;
-  return {
-    version: 2,
-    inputs: {
-      fastaPath: legacy.fastaPath,
-      mutationInputMode: legacy.mutationInputMode,
-      mutationText: legacy.mutationText,
-      evolveproCsvPath: legacy.evolveproCsvPath,
-      selectedGene: legacy.selectedGene,
-    },
-    settings: {
-      selectedPolymerase: undefined,
-      codonStrategy: legacy.codonStrategy,
-      maxPrimers: legacy.maxPrimers,
-      tmFwdTarget: legacy.tmFwdTarget,
-      tmRevTarget: legacy.tmRevTarget,
-      tmOverlapTarget: legacy.tmOverlapTarget,
-      gcMin: legacy.gcMin,
-      gcMax: legacy.gcMax,
-      primerLenEnabled: legacy.primerLenEnabled,
-      fwdLenMin: legacy.fwdLenMin,
-      fwdLenMax: legacy.fwdLenMax,
-      revLenMin: legacy.revLenMin,
-      revLenMax: legacy.revLenMax,
-      fillOnFailure: legacy.fillOnFailure,
-      uniprotAccession: legacy.uniprotAccession,
-      domains: legacy.domains,
-      domainDiversityEnabled: legacy.domainDiversityEnabled,
-      domainStrategy: legacy.domainStrategy,
-      domainOverlapPolicy: "first",
-      linkerHandling: "include",
-      domainQuotaMin: 1,
-      paretoDiversityEnabled: legacy.paretoDiversityEnabled,
-      disabledDomains: legacy.disabledDomains,
-      rescuedMutations: legacy.rescuedMutations,
-      entropyWeightEnabled: legacy.entropyWeightEnabled,
-      entropyWeight: legacy.entropyWeight,
-      paretoPoolMultiplier: 2.0,
-      distanceMode: "auto",
-      benchmarkTopPercentile: 10,
-      benchmarkRandomTrials: 100,
-      benchmarkRandomSeed: null,
-      autoRedesignOnLoad: true,
-      saveCache: true,
-      organism: legacy.organism,
-      positionDiversityEnabled: legacy.positionDiversityEnabled,
-      maxPerPosition: legacy.maxPerPosition,
-      overlapMode: undefined,
-    },
-    results: {
-      designResults: legacy.designResults,
-      successCount: legacy.successCount,
-      totalCount: legacy.totalCount,
-      failedMutations: legacy.failedMutations,
-      plateMappings: legacy.plateMappings,
-      dedupInfo: legacy.dedupInfo,
-      manuallySwapped: legacy.manuallySwapped,
-      customCandidates: legacy.customCandidates,
-      rescuedMutationDetails: [],
-    },
-    ui: {
-      tableSorting: legacy.tableSorting,
-    },
-    cache: {
-      evolveproTotalCount: legacy.evolveproTotalCount,
-      evolveproFilteredCount: legacy.evolveproFilteredCount,
-      evolveproParetoExchanges: legacy.evolveproParetoExchanges,
-      evolveproStepStats: legacy.evolveproStepStats,
-      benchmarkResults: null,
-    },
-  };
 }
 
 function avg(values: number[]): number {
@@ -254,7 +177,7 @@ function buildReportData(state: AppState) {
           ? [{ label: "Pool cascade", value: `${state.rescueStats.pool_cascade} (${state.rescueStats.pool_variants_tried} tried)` }]
           : []),
         ...(state.rescueStats.auto_relax > 0
-          ? [{ label: "Auto-relax (+/-3->+/-5C)", value: state.rescueStats.auto_relax }]
+          ? [{ label: "Auto-relax (Tm tolerance up to +2°C, GC range up to ±5 pp, minimum length up to −2 nt)", value: state.rescueStats.auto_relax }]
           : []),
         ...(failCount > 0 ? [{ label: "Still failed", value: failCount, warn: true }] : []),
         ...(rescuePenalties.length > 0
@@ -482,14 +405,16 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         domains: s.domains.length > 0 ? s.domains : undefined,
         refDomains: s.refDomains?.length ? s.refDomains : undefined,
         refDomainHash: s.refDomainHash || undefined,
-        domainDiversityEnabled: s.domainDiversityEnabled || undefined,
+        domainDiversityEnabled: s.domainDiversityEnabled,
         domainStrategy: s.domainDiversityEnabled ? s.domainStrategy : undefined,
         domainOverlapPolicy: s.domainDiversityEnabled ? s.domainOverlapPolicy : undefined,
         linkerHandling: s.domainDiversityEnabled ? s.linkerHandling : undefined,
         domainQuotaMin: s.domainDiversityEnabled ? s.domainQuotaMin : undefined,
-        paretoDiversityEnabled: s.paretoDiversityEnabled || undefined,
-        structuralDiversityEnabled: s.structuralDiversityEnabled || undefined,
+        paretoDiversityEnabled: s.paretoDiversityEnabled,
+        structuralDiversityEnabled: s.structuralDiversityEnabled,
         structuralKappa: s.structuralKappa,
+        structureAccession: s.structureAccession,
+        structureLoaded: s.structureLoaded,
         disabledDomains: s.disabledDomains,
         rescuedMutations: s.rescuedMutations,
         entropyWeightEnabled: s.entropyWeightEnabled,
@@ -510,6 +435,10 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         roundSize: s.roundSize,
         overlapMode: s.overlapMode,
         randomSeed: s.randomSeed ?? null,
+        echoTransferVol: s.echoTransferVol,
+        echoQuadrant: s.echoQuadrant,
+        echoUsedQuadrants: s.echoUsedQuadrants,
+        janusTransferVol: s.janusTransferVol,
       },
       results: {
         designResults: s.designResults,
@@ -546,11 +475,9 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         i18next.t("exportSlice.legacyWorkspaceUnsupported")
       );
     }
-    // schema_version >= "0.3" 이면 WorkspaceV3이므로 legacy normalize는 불필요.
-    // 하지만 기존 KURO 상태 복원에 normalizeWorkspace 로직을 재활용한다.
-    // WorkspaceV3의 inputs/settings/results/ui 구조는 WorkspaceV2와 동일하므로 안전.
-    const normalized = normalizeWorkspace(ws as WorkspaceV1 | WorkspaceV2);
-    const { inputs, settings, results, ui, cache } = normalized;
+    // The guard rejects V1/V2 before this point, so migrating them here was
+    // unreachable and could silently discard V3 fields such as overlapMode.
+    const { inputs, settings, results, ui, cache } = ws as WorkspaceV3;
     let loadedSeqInfo: SequenceInfo | null = null;
     let restoredGene = "";
     let templateLoadError: string | null = null;
@@ -749,10 +676,10 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
         settings.evolveproMode === "others"
           ? "pipeline"
           : settings.evolveproMode ??
-            (settings.pipelineMode === false ? "topN" : "pipeline"),
+            (settings.pipelineMode === true ? "pipeline" : DEFAULT_EVOLVEPRO_MODE),
       positionDiversityEnabled: settings.positionDiversityEnabled ?? true,
       maxPerPosition: settings.maxPerPosition ?? 1,
-      evolveproRound: settings.evolveproRound ?? 1,
+      evolveproRound: settings.evolveproRound ?? DEFAULT_EVOLVEPRO_ROUND,
       roundSize: settings.roundSize ?? 96,
       overlapMode: settings.overlapMode ?? "partial",
       randomSeed: settings.randomSeed ?? null,
@@ -766,6 +693,12 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       paretoDiversityEnabled: settings.paretoDiversityEnabled ?? true,
       structuralDiversityEnabled: settings.structuralDiversityEnabled ?? false,
       structuralKappa: settings.structuralKappa ?? 0.3,
+      structureAccession: settings.structureAccession ?? "",
+      structureLoaded: settings.structureLoaded ?? false,
+      echoTransferVol: settings.echoTransferVol ?? 100,
+      echoQuadrant: settings.echoQuadrant ?? null,
+      echoUsedQuadrants: settings.echoUsedQuadrants ?? [],
+      janusTransferVol: settings.janusTransferVol ?? 2.0,
       yPredMap: preloadedYPred ?? {},
       poolVariants: preloadedPoolVariants ?? [],
       // 두 실패는 독립이다. 분기로 두면 템플릿 실패가 EVOLVEpro 실패를 가려,
@@ -834,7 +767,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       evolveproSelectedVariants: [],
       evolveproExtraExposed: 10,
       yPredMap: {},
-      evolveproMode: "pipeline" as const,
+      evolveproMode: DEFAULT_EVOLVEPRO_MODE,
       positionDiversityEnabled: true,
       maxPerPosition: 1,
       domainDiversityEnabled: true,
@@ -857,7 +790,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       entropyWeight: 0.3,
       paretoPoolMultiplier: 2.0,
       distanceMode: "auto",
-      evolveproRound: 1,
+      evolveproRound: DEFAULT_EVOLVEPRO_ROUND,
       roundSize: 96,
       benchmarkTopPercentile: 10,
       benchmarkRandomTrials: 100,

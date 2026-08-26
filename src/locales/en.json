@@ -85,7 +85,7 @@
     "diagnostics": "Diagnostics",
     "generateDiagnostics": "Generate Diagnostics",
     "generating": "Generating...",
-    "diagnosticsNote": "Saves a JSON bundle (app info + crash log) to a location you choose. No user data or sequences are included.",
+    "diagnosticsNote": "Saves a JSON bundle to a location you choose. It may contain absolute file paths and raw sidecar log or error text, including mutation or variant identifiers. Review before sharing.",
     "copyCrashLog": "Copy Crash Log",
     "ok": "OK",
     "updates": "Updates"
@@ -105,8 +105,8 @@
     "notificationsDisabled": "disabled",
     "languageSelectionLabel": "Language selection",
     "enableNotifications": "Enable Notifications",
-    "notificationsNote": "Fired for jobs lasting longer than 5 minutes.",
-    "sleepPrevention": "Sleep prevention: enabled while jobs run.",
+    "notificationsNote": "Shown for KURO design and activity merges that run longer than 5 minutes.",
+    "sleepPrevention": "Sleep prevention is enabled for KURO design and activity merges.",
     "dataFolder": "Data folder",
     "dataFolderLoading": "loading...",
     "dataFolderChange": "Change...",
@@ -115,8 +115,7 @@
     "close": "Close",
     "tab": {
       "general": "General",
-      "network": "Network",
-      "sidecar": "Sidecar"
+      "network": "Network"
     },
     "theme": {
       "label": "Theme",
@@ -134,11 +133,6 @@
         "alphafold": "AlphaFold via EBI (structure lookup)",
         "interpro": "InterPro / Pfam via EBI (domain annotation)"
       }
-    },
-    "sidecar": {
-      "persistOnCancel": "On cancel",
-      "persistPartial": "Keep partial results",
-      "persistDiscard": "Discard all results"
     },
     "savedAt": "Saved at {{time}}"
   },
@@ -304,7 +298,7 @@
       "ingestBarcodeTitle": "Group reads by Nanopore barcode (NB01, NB02, ...). Each barcode bin becomes one sample.",
       "ingestAmpliconTitle": "Group reads by amplicon identity. Use when multiple amplicons share a barcode or when demultiplexing by sequence match.",
       "inputModeConsensusTitle": "Start from pre-computed consensus FASTA (one sequence per barcode). Skips sorting and consensus calling.",
-      "inputModeSortedBarcodeTitle": "Start from already-sorted barcode directories (fastq.gz per barcode). Skips MinKNOW sorting; runs consensus calling.",
+      "inputModeSortedBarcodeTitle": "Analyze pre-computed consensus FASTA files (one sequence per well). Skips MinKNOW sorting and consensus calling.",
       "inputModeRawRunTitle": "Start from a raw MinKNOW run folder (fastq_pass/ + run metadata). Full pipeline: sort barcodes, filter, then consensus.",
       "minFilteredDepth": "Min Filtered Depth (reads)",
       "minFilteredDepthHelp": "Cutoff based on read count passing the length-window filter. This is the primary depth-based quality cutoff.",
@@ -366,7 +360,7 @@
       "toastSuccessDesc": "Files saved to {{dir}}/",
       "toastSuccessDescWithLength": "Amplicon length: {{length}} bp. Files saved to {{dir}}/",
       "toastError": "Generation failed",
-      "overwriteConfirmDir": "The {{dir}}/ folder already exists and will be overwritten (primer CSV, barcode XLSX, amplicon FASTA). Do you want to continue?",
+      "overwriteConfirmDir": "The {{dir}}/ folder already exists and will be overwritten (barcodes_sequence.xlsx, {gene}_amplicon.fa, and project-root mame_context.json). Do you want to continue?",
       "geneEndError": "gene_end must be greater than gene_start.",
       "noProjectWarning": "A project must be open to generate a package. Select Open Project from the File menu.",
       "barcodeSeedsXlsxHelper": "xlsx file containing fwd_1..12 and rev_1..8 seed sequences.",
@@ -390,7 +384,7 @@
       "cdsCandidateNoneDetected": "No CDS detected. Enter coordinates manually.",
       "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
       "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. egfp).",
-      "polymeraseHelp": "Polymerase recorded for the barcode PCR protocol. This is metadata only and does not drive any Tm or primer calculation.",
+      "polymeraseHelp": "Polymerase used for the barcode PCR protocol. Its salt profile drives Tm calculation during primer selection.",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
       "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
@@ -411,11 +405,10 @@
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "Could not open the folder.",
-      "variantSheet": "Variant sheet",
-      "variantColumn": "Variant column",
-      "variantColumnPlaceholder": "Select a column",
-      "variantColumnHelper": "Rows fill the 96-well plate in this column's order, down each plate column: A1, B1, C1 to H1, then A2. A WT row is used as the control instead of appending one.",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "templateTopology": "Template topology",
+      "topologyLinear": "Linear",
+      "topologyCircular": "Circular",
+      "templateTopologyHelper": "FASTA files do not record topology. Choose circular only when the template crosses the origin.",
       "outputLocationStateLabel": "Optional"
     },
     "activity": {
@@ -547,6 +540,8 @@
       "warningsLabel": "Warnings",
       "mismatchedLabel": "Confirmation vs primary mismatch",
       "mismatchedHint": "Variants whose confirmation mean differs notably from the primary value.",
+      "allowLabelMismatch": "Allow reviewed label mismatch",
+      "allowLabelMismatchHelper": "Bypasses the export block for a detected label swap. Confirm the layout and verdict labels first.",
       "mismatchedAuthoritative": "Confirmation",
       "mismatchedFallback": "Primary",
       "colVariant": "Variant",
@@ -978,7 +973,7 @@
         "placeholder": "Choose a folder; {{filename}} will be created",
         "stateLabel": "Save to",
         "helperText": "Analysis report will use a KURO-style rule-based .xlsx filename",
-        "helpText": "Folder where the analysis result Excel will be saved. The filename is auto-generated using KURO-style rules combining date, reference/input tokens, MAME target, and result count tokens.",
+        "helpText": "The filename is auto-generated from the date, reference or input token, and MAME target.",
         "reuseNotice": "If this folder already holds output from a previous run, matching units are reused and the rest is overwritten.",
         "overwriteConfirmDir": "{{dir}} already holds output from a previous analysis (demux_filtered/). Matching units will be reused and the rest overwritten. Do you want to continue?"
       },
@@ -1308,7 +1303,7 @@
           "effect": "Diagnostic only. No gate reads this number. A high count means the reads map ambiguously, typically a repeat or the wrong reference."
         },
         "spanFailed": {
-          "what": "Reads dropped because their alignment does not cover the full reference length.",
+          "what": "Reads dropped because their alignment covers less than the configured reference fraction (default 98%).",
           "stage": "Alignment filtering, applied after the MAPQ filter. Zero when the run was analyzed from consensus FASTA.",
           "effect": "Diagnostic only. No gate reads this number. A high count usually means truncated reads or an amplicon shorter than the reference."
         },
@@ -1577,22 +1572,22 @@
     "primerLenInvalidError": "Min must be less than Max",
     "designSectionLabel": "Design",
     "autoRescueLabel": "Auto-rescue failed mutations",
-    "autoRescueTitle": "When enabled, retries failed mutations through 4 (top-N) or 6 (pipeline) stages of relaxed parameters. When disabled, failed mutations remain as-is with no auto-retry.",
+    "autoRescueTitle": "When enabled, runs the sidecar relaxed-constraint rescue pass and 4 (top-N) or 6 (pipeline) frontend cascade stages. When disabled, failed mutations are not automatically retried.",
     "seedLabel": "Seed:",
-    "seedTitle": "Optional integer seed. Recorded with the run for provenance. Primer design is deterministic, so the seed does not change which primers you get.",
-    "seedAriaLabel": "Random seed (optional)",
-    "seedFixed": "fixed: {{seed}}",
-    "seedAuto": "auto",
+    "seedTitle": "Optional integer seed recorded in design provenance only; it does not affect primer ranking.",
+    "seedAriaLabel": "Seed (optional)",
+    "seedFixed": "recorded: {{seed}}",
+    "seedAuto": "not recorded",
     "tmPrimerHelp": "Target Tm (°C) for symmetric full-overlap primers. Default 62.",
     "tmFwdHelp": "Target Tm (°C) for forward primer in partial-overlap mode. Lower value increases mismatch tolerance.",
     "tmRevHelp": "Target Tm (°C) for reverse primer. Should approximate tmFwd for balanced PCR.",
     "tmOverlapHelp": "Target Tm (°C) of the overlap region between two primers.",
     "gcRangeHelp": "Accepted GC content range (%) for primer regions. Recommended 40-60.",
-    "primerLenLimitHelp": "Toggle to bound primer length. When off, engine uses Tm-only optimization.",
-    "primerLenFwdHelp": "Forward primer length range (nt). Default 18-39 covers most SDM cases.",
+    "primerLenLimitHelp": "Toggle primer length bounds. When off, the engine uses the selected polymerase profile's length bounds.",
+    "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
-    "autoRescueHelp": "Auto-fill failed mutations with relaxed constraints in a second pass.",
-    "seedHelp": "Random seed for reproducible primer ranking. Leave empty for auto (time-based).",
+    "autoRescueHelp": "Gates the sidecar relaxed-constraint rescue pass and 4-stage (top-N) / 6-stage (pipeline) frontend cascade.",
+    "seedHelp": "Records provenance metadata only; it does not affect primer ranking. Empty leaves no seed recorded.",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
   "designReport": {
@@ -1641,7 +1636,7 @@
     "statPositionCoverageValue": "{{rescued}}/{{attempted}} rescued",
     "statPoolCascade": "Pool cascade",
     "statPoolCascadeValue": "{{cascade}} ({{tried}} tried)",
-    "statAutoRelax": "Auto-relax (±3→±5°C)",
+    "statAutoRelax": "Auto-relax (Tm tolerance up to +2°C, GC range up to ±5 pp, minimum length up to −2 nt)",
     "statAutoRetry": "Auto-retry (suggestion)",
     "statCascadeRescues": "Cascade rescues",
     "statStillFailed": "Still failed",
@@ -1715,8 +1710,8 @@
     "minQuotaHelp": "Minimum primer quota per domain (0-20). Ensures each domain represented.",
     "poolKLabelHelp": "Pool-K diversity weighting target. Auto value derived from sequence properties.",
     "entropyWeightHelp": "Weight (0-1) for entropy-guided primer selection vs pure diversity.",
-    "autoRedesignOnLoadHelp": "Re-run primer design automatically when a workspace is loaded.",
-    "savePipelineCacheHelp": "Save intermediate pipeline outputs to disk for faster re-runs.",
+    "autoRedesignOnLoadHelp": "When enabled, re-run primer design on workspace load only if it has no saved design results.",
+    "savePipelineCacheHelp": "Include alternative-primer cache and benchmark results in workspace snapshots.",
     "topPercentileHelp": "Benchmark top percentile (1-100) cutoff for primer scoring.",
     "randomTrialsHelp": "Number of random baseline trials for benchmark (1-1000). Higher value yields more reliable estimate.",
     "benchmarkRandomSeedHelp": "Random seed for benchmark reproducibility. Empty value defaults to auto.",
@@ -2011,7 +2006,7 @@
     "insideProject": "Inside each project",
     "kuroDesc": "Kernel for Upstream Recombination Oligodesign. Batch SDM primer design from Gibson Assembly templates.",
     "mameDesc": "Mutagenesis Assessment & Microplate Export. Oxford Nanopore NGS verdict.",
-    "autosaveNote": "Inputs and parameters autosave per project. Nothing leaks between projects.",
+    "autosaveNote": "Inputs and parameters autosave per project. Barcode Setup drafts, including absolute paths, are shared across projects.",
     "titleStart": "Get started",
     "descStart": "Choose a default folder for projects. kuma keeps every Kuro design and Mame verdict run inside its own project folder so the work survives across weeks-long sequencing turnaround.",
     "chooseFolderBtn": "Choose folder",
@@ -2155,7 +2150,7 @@
     "mutationsEntered": "{{count}} mutations entered",
     "mutationsValidated": "({{count}} validated)",
     "mutationsFailed": "({{count}} failed)",
-    "topNZeroHint": "Set top-N to 0 to load every variant from CSV",
+    "topNZeroHint": "Top-N ranges from 1 to 96. Increase it to load more variants from CSV.",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
@@ -3383,6 +3378,9 @@
         "kuro": "KURO sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry.",
         "mame": "MAME sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry."
       }
+    },
+    "mame": {
+      "labelMismatchBlocked": "Label swap detected; export blocked. Review the layout and verdict labels, then select Allow reviewed label mismatch."
     },
     "sequence": {
       "fastaNotSupported": "CDS annotation required. Use a GenBank (.gb/.gbk) or SnapGene (.dna) file."

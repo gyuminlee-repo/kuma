@@ -270,6 +270,7 @@ def test_retry_failed_lands_in_the_manifest_with_its_own_parameters(
         "target_start": TARGET_START,
         "polymerase": "KOD",
         "overlap_len": 18,
+        "overlap_mode": "partial",
         "rev_len_max": 29,
         "tol_max": 6.0,
     })
@@ -299,6 +300,7 @@ def test_interventions_keep_call_order(tmp_path, mutation_lines, restore_state):
         "target_start": TARGET_START,
         "polymerase": "KOD",
         "overlap_len": 18,
+        "overlap_mode": "partial",
         "num_return": 3,
     })
     # The engine returns what it can find, which is not always num_return.
@@ -508,6 +510,7 @@ def test_batch_manifest_carries_the_intervention_log(
         "target_start": TARGET_START,
         "polymerase": "KOD",
         "overlap_len": 18,
+        "overlap_mode": "partial",
         "rev_len_max": 29,
     })
 

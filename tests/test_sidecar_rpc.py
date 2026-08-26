@@ -878,6 +878,7 @@ class TestRetryFailedMutation:
                 "rev_len_max": 27,
                 "tol_max": 5.0,
                 "codon_strategy": "closest",
+                "overlap_mode": "partial",
             },
         )
         assert "result" in resp, f"retry_failed_mutation failed: {resp}"

@@ -382,6 +382,7 @@ export interface WorkspaceV1 {
   maxPerPosition?: number;
   evolveproRound?: number;
   roundSize?: number;
+  overlapMode?: OverlapMode;
   evolveproTotalCount?: number;
   evolveproFilteredCount?: number | null;
   evolveproParetoExchanges?: number | null;
@@ -427,6 +428,8 @@ export interface WorkspaceSettings {
   domains?: DomainInfo[];
   refDomains?: DomainInfo[];
   refDomainHash?: string;
+  structureAccession?: string;
+  structureLoaded?: boolean;
   domainDiversityEnabled?: boolean;
   domainStrategy?: "proportional" | "equal";
   domainOverlapPolicy?: DomainOverlapPolicy;
@@ -460,6 +463,10 @@ export interface WorkspaceSettings {
   overlapMode?: OverlapMode;
   /** §12 Optional RNG seed for reproducible design runs. */
   randomSeed?: number | null;
+  echoTransferVol?: number;
+  echoQuadrant?: EchoQuadrant | null;
+  echoUsedQuadrants?: EchoQuadrant[];
+  janusTransferVol?: number;
 }
 
 export interface WorkspaceResults {

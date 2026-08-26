@@ -169,7 +169,10 @@ const mameInputInitialState = {
   cdsStart: 0,
   cdsEnd: 0,
   minFileSizeKb: 50,
-  minFilteredDepth: 15,
+  // The sidecar's fallback is 30. Keep the form at that value too: this is
+  // the primary verdict cutoff, so displaying 15 while applying 30 would make
+  // an untouched project silently report a different analysis.
+  minFilteredDepth: 30,
   manyCutoff: 5,
   maxConsensusNFraction: 0.0,
   validationErrors: [] as string[],
@@ -225,6 +228,31 @@ function variantSourceParams(state: AppState): Record<string, string> {
   return {
     ...(state.variantSheet ? { variant_sheet: state.variantSheet } : {}),
     ...(state.variantColumn ? { variant_column: state.variantColumn } : {}),
+  };
+}
+
+/**
+ * Inputs that define the analysis must be identical for validation and both
+ * analyze paths. In particular, `validate_inputs` skips CDS bounds checks
+ * without `cds_start`, while `wt_placement` changes the plate-capacity
+ * findings; separate literals had allowed both checks to describe another run.
+ */
+function analyzeInputParams(state: AppState) {
+  return {
+    input_dir: state.inputDir,
+    reference: state.referencePath,
+    expected: state.expectedPath,
+    cds_start: state.cdsStart,
+    cds_end: state.cdsEnd,
+    min_file_size_kb: state.minFileSizeKb,
+    min_read_count: state.minFilteredDepth,
+    many_cutoff: state.manyCutoff,
+    max_consensus_n_fraction: state.maxConsensusNFraction,
+    well_layout: state.wellLayout ?? null,
+    selected_wells: state.selectedWells,
+    wt_placement: state.wtPlacement,
+    legacy_sample_map_xlsx: state.legacySampleMapPath,
+    ...variantSourceParams(state),
   };
 }
 
@@ -360,13 +388,15 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       set({ variantSourceInfo: null });
     }
   },
-  // The sheet and the column decide WHICH ROWS are read, so they decide who is
-  // on the plate just as much as the workbook path does. The well selection
-  // therefore goes with them, for the reason spelled out in `setExpectedPath`:
-  // occupant i takes the i-th selected well, and a selection made for one
-  // reading silently re-seats another. Routed through `setSelectedWells` so
-  // there is one rule for what a dropped selection invalidates.
+  // The sheet and column decide WHICH ROWS are read, so they define a
+  // different campaign just as much as the workbook path does. The well
+  // selection must be re-declared for that campaign; it narrows the fixed
+  // draft layout and never re-seats occupants. Routed through
+  // `setSelectedWells` so its own change invalidates results once.
   setVariantSheet: (variantSheet) => {
+    const state = get();
+    if (state.variantSheet === variantSheet) return;
+    const selectionWasEmpty = state.selectedWells === null;
     set({
       variantSheet,
       // The headers differ per sheet, so the column chosen for the old one
@@ -377,8 +407,14 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       wellSelectionOccupants: null,
     });
     get().setSelectedWells(null);
+    // The sheet itself changes the expected rows even with no declared wells,
+    // when `setSelectedWells(null)` is intentionally a no-op.
+    if (selectionWasEmpty) get().clearResults();
   },
   setVariantColumn: (variantColumn) => {
+    const state = get();
+    if (state.variantColumn === variantColumn) return;
+    const selectionWasEmpty = state.selectedWells === null;
     set({
       variantColumn,
       variantSelectionExplicit: true,
@@ -386,6 +422,9 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       wellSelectionOccupants: null,
     });
     get().setSelectedWells(null);
+    // Like the sheet, a column names a different expected-row set even when
+    // there is no well declaration left for `setSelectedWells` to invalidate.
+    if (selectionWasEmpty) get().clearResults();
   },
   setJanusSettings: (janusSettings: JanusExportSettings) => {
     saveJanusSettings(janusSettings);
@@ -426,19 +465,23 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   // holding the run when the declared wells cannot seat them all.
   setWellSelectionOccupants: (wellSelectionOccupants) =>
     set({ wellSelectionOccupants }),
-  setWtPlacement: (wtPlacement) => set({ wtPlacement }),
+  // Sent as `wt_placement` to every analyze call; changing it changes which
+  // wells are treated as controls and therefore invalidates finished verdicts.
+  setWtPlacement: (wtPlacement) => {
+    if (get().wtPlacement === wtPlacement) return;
+    set({ wtPlacement });
+    get().clearResults();
+  },
   setWtWell: (wtWell) => set({ wtWell }),
   // Migration only, and never an input: the run does not read this file, it is
   // compared against the computed layout. Setting it therefore invalidates
   // nothing.
   setLegacySampleMapPath: (legacySampleMapPath) => set({ legacySampleMapPath }),
   setProjectPath: (projectPath) => set({ projectPath }),
-  // mode/cdsStart/cdsEnd/minFileSizeKb/manyCutoff/maxConsensusNFraction and
-  // rawRunParams are all sent verbatim as analyze/demux RPC params, so a
-  // change here invalidates a completed run the same way the file setters
-  // above do. minFilteredDepth is excluded: it is a display-only threshold,
-  // never sent to the backend, so changing it does not change what the last
-  // run's outputs mean.
+  // mode/cdsStart/cdsEnd/minFileSizeKb/minFilteredDepth/manyCutoff/
+  // maxConsensusNFraction and rawRunParams are all sent verbatim as
+  // analyze/demux RPC params, so a change here invalidates a completed run the
+  // same way the file setters above do.
   setParams: (params) => {
     const state = get();
     const nextRawRunParams =
@@ -452,6 +495,8 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       (params.cdsStart !== undefined && params.cdsStart !== state.cdsStart) ||
       (params.cdsEnd !== undefined && params.cdsEnd !== state.cdsEnd) ||
       (params.minFileSizeKb !== undefined && params.minFileSizeKb !== state.minFileSizeKb) ||
+      (params.minFilteredDepth !== undefined &&
+        params.minFilteredDepth !== state.minFilteredDepth) ||
       (params.manyCutoff !== undefined && params.manyCutoff !== state.manyCutoff) ||
       (params.maxConsensusNFraction !== undefined &&
         params.maxConsensusNFraction !== state.maxConsensusNFraction) ||
@@ -586,24 +631,12 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   validateInputs: async () => {
     set({ isValidating: true, validationErrors: [] });
     try {
+      const state = get();
       const result = await sendRequest<ValidationResult>("validate_inputs", {
-        input_dir: get().inputDir,
-        reference: get().referencePath,
-        expected: get().expectedPath,
-        cds_end: get().cdsEnd,
+        ...analyzeInputParams(state),
         // Raw-run guard in the backend validate_inputs needs the barcodes xlsx
         // to recognise a configured raw MinKNOW run folder; empty in non-raw mode.
-        custom_barcodes_xlsx: get().rawRunParams.customBarcodesPath,
-        // Sent under the same names analyze uses, so validation reads the run
-        // the operator is about to start. They no longer soften a plate-order
-        // disagreement: placing wells is not the same as certifying which of a
-        // workbook's two plates was pipetted (2026-08-05).
-        well_layout: get().wellLayout ?? null,
-        selected_wells: get().selectedWells,
-        // Not an input. The backend compares it against the layout this run
-        // would use and refuses when the two name different plates.
-        legacy_sample_map_xlsx: get().legacySampleMapPath,
-        ...variantSourceParams(get()),
+        custom_barcodes_xlsx: state.rawRunParams.customBarcodesPath,
       });
       set({
         validationErrors: result.errors,
@@ -651,32 +684,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     const result = await sendRequest<AnalyzeResult>(
       "analyze",
       {
-        input_dir: state.inputDir,
-        reference: state.referencePath,
-        expected: state.expectedPath,
+        ...analyzeInputParams(state),
         output: joinPathSlice(state.outputPath, defaultMameExportFilename({ referencePath: state.referencePath, inputDir: state.inputDir, verdictCount: 0 })),
         mode: state.mode,
         ingest_mode: "barcode",
-        cds_start: state.cdsStart,
-        cds_end: state.cdsEnd,
-        min_file_size_kb: state.minFileSizeKb,
-        many_cutoff: state.manyCutoff,
-        max_consensus_n_fraction: state.maxConsensusNFraction,
-        well_layout: state.wellLayout ?? null,
-        selected_wells: state.selectedWells,
-        // The control-well policy the WT-placement picker holds. Same param
-        // `WellSelectionPanel` sends to `mame.build_well_layout` to draw the
-        // preview, so the plate this run scores is the plate the operator saw.
-        wt_placement: state.wtPlacement,
-        // Not an input. The backend compares it against the layout this run
-        // would use and refuses before the demux when the two name different
-        // plates. Sent from here as well as from `validateInputs` because an
-        // operator can press Run without ever validating, and the file on disk
-        // would then contradict the run in silence.
-        legacy_sample_map_xlsx: state.legacySampleMapPath,
-        // Same reading of the variant list the validation used, and the same
-        // Janus policy the export dialog holds.
-        ...variantSourceParams(state),
         janus_settings: toRpcParams(state.janusSettings),
         // Raw-run demux knobs folded into analyze. `reference` above is reused
         // server-side as reference_fasta.
@@ -819,34 +830,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       const result = await sendRequest<AnalyzeResult>(
         "analyze",
         {
-          input_dir: state.inputDir,
-          reference: state.referencePath,
-          expected: state.expectedPath,
+          ...analyzeInputParams(state),
           output: joinPathSlice(state.outputPath, defaultMameExportFilename({ referencePath: state.referencePath, inputDir: state.inputDir, verdictCount: 0 })),
           mode: state.mode,
           ingest_mode: state.ingestMode,
-          cds_start: state.cdsStart,
-          cds_end: state.cdsEnd,
-          min_file_size_kb: state.minFileSizeKb,
-          many_cutoff: state.manyCutoff,
-          max_consensus_n_fraction: state.maxConsensusNFraction,
-          // Per-well verdict scoping. Without these, every well is compared
-          // against the FULL expected-mutations list and fails as WRONG_AA
-          // ("missing expected" for the variants it does not carry). The
-          // raw-run path (_demuxAndAnalyze) already forwards both; the non-raw
-          // path must too, or the plate plan shows PASS wells as fails.
-          well_layout: state.wellLayout ?? null,
-          selected_wells: state.selectedWells,
-          // Same reasoning as `_demuxAndAnalyze`: the WT-placement picker's
-          // choice has to reach this call too, or this path silently keeps
-          // scoring the pre-2026-08-18 default regardless of what the preview
-          // drew.
-          wt_placement: state.wtPlacement,
-          // See `_demuxAndAnalyze`: compared against the computed layout, never
-          // read as one, and both analyze paths have to send it or the run that
-          // skipped the validate button scores a plate the file contradicts.
-          legacy_sample_map_xlsx: state.legacySampleMapPath,
-          ...variantSourceParams(state),
           // The sidecar writes the pick list at the end of every run
           // (`_autosave_picks`, forced to legacy5), which honours dest_layout
           // and include_verdicts/include_fallback from these settings but

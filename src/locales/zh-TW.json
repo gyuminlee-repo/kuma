@@ -85,7 +85,7 @@
     "diagnostics": "診斷",
     "generateDiagnostics": "生成診斷",
     "generating": "生成中...",
-    "diagnosticsNote": "將 JSON 包(應用資訊 + 崩潰日誌)儲存到所選位置。不包含任何使用者資料或序列。",
+    "diagnosticsNote": "將 JSON 包儲存到所選位置。其中可能包含絕對檔案路徑，以及原始側車日誌或錯誤文字（包括突變或變異識別碼）。分享前請檢查。",
     "copyCrashLog": "複製崩潰日誌",
     "ok": "確定",
     "updates": "更新"
@@ -105,8 +105,8 @@
     "notificationsDisabled": "已禁用",
     "languageSelectionLabel": "語言選擇",
     "enableNotifications": "啟用通知",
-    "notificationsNote": "對超過 5 分鐘的作業觸發通知。",
-    "sleepPrevention": "防止休眠: 作業執行期間啟用。",
+    "notificationsNote": "顯示於執行超過 5 分鐘的 KURO 設計和活性合併工作。",
+    "sleepPrevention": "KURO 設計和活性合併期間會啟用防止休眠。",
     "dataFolder": "資料資料夾",
     "dataFolderLoading": "載入中...",
     "dataFolderChange": "更改...",
@@ -115,8 +115,7 @@
     "close": "關閉",
     "tab": {
       "general": "一般",
-      "network": "網路",
-      "sidecar": "Sidecar"
+      "network": "網路"
     },
     "theme": {
       "label": "主題",
@@ -134,11 +133,6 @@
         "alphafold": "AlphaFold via EBI（結構查詢）",
         "interpro": "InterPro / Pfam via EBI（域註釋）"
       }
-    },
-    "sidecar": {
-      "persistOnCancel": "取消時",
-      "persistPartial": "保留部分結果",
-      "persistDiscard": "捨棄所有結果"
     },
     "savedAt": "已於 {{time}} 儲存"
   },
@@ -223,7 +217,7 @@
       "ingestBarcodeTitle": "按 Nanopore barcode 分組 read (NB01, NB02, ...)。每個 barcode bin 對應一個樣本。",
       "ingestAmpliconTitle": "按 amplicon 身份分組 read。當多個 amplicon 共用一個 barcode,或按序列匹配做 demultiplexing 時使用。",
       "inputModeConsensusTitle": "從預先計算的 consensus FASTA (每個 barcode 一條序列) 開始。跳過分揀與 consensus calling。",
-      "inputModeSortedBarcodeTitle": "從已分揀的 barcode 目錄 (每個 barcode 的 fastq.gz) 開始。跳過 MinKNOW 分揀,執行 consensus calling。",
+      "inputModeSortedBarcodeTitle": "分析預先計算的共識 FASTA 檔案（每孔一個序列）。略過 MinKNOW 分類和共識呼叫。",
       "inputModeRawRunTitle": "從 raw MinKNOW run 資料夾 (fastq_pass/ + run metadata) 開始。完整流程: 分揀 barcode、過濾,然後 consensus。",
       "minFilteredDepth": "最小 Filtered Depth (reads)",
       "minFilteredDepthHelp": "基於透過 length-window 過濾的 read 數的 cutoff。這是主要的基於 depth 的質量 cutoff。",
@@ -285,7 +279,7 @@
       "toastSuccessDesc": "檔案已儲存到 {{dir}}/",
       "toastSuccessDescWithLength": "Amplicon 長度: {{length}} bp。檔案已儲存到 {{dir}}/",
       "toastError": "生成失敗",
-      "overwriteConfirmDir": "{{dir}}/ 資料夾已存在並將被覆蓋 (primer CSV, barcode XLSX, amplicon FASTA)。是否繼續?",
+      "overwriteConfirmDir": "{{dir}}/ 資料夾已存在，將被覆寫（barcodes_sequence.xlsx、{gene}_amplicon.fa 和專案根目錄的 mame_context.json）。要繼續嗎？",
       "geneEndError": "gene_end 必須大於 gene_start。",
       "noProjectWarning": "必須開啟專案才能生成包。在檔案選單中選擇開啟專案。",
       "barcodeSeedsXlsxHelper": "包含 fwd_1..12 與 rev_1..8 seed 序列的 xlsx 檔案。",
@@ -309,7 +303,7 @@
       },
       "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
       "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. egfp).",
-      "polymeraseHelp": "記錄至條碼 PCR 流程的聚合酶。僅為中繼資料，不參與任何 Tm 或引物計算。",
+      "polymeraseHelp": "用於條碼 PCR 的聚合酶。其鹽濃度設定會參與引子篩選時的 Tm 計算。",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
       "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
@@ -330,11 +324,10 @@
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "無法開啟資料夾。",
-      "variantSheet": "變異清單工作表",
-      "variantColumn": "變異欄",
-      "variantColumnPlaceholder": "選擇欄位",
-      "variantColumnHelper": "依此欄的列順序填入 96 孔盤，在盤上先由上往下填滿一欄再換下一欄：A1、B1、C1 到 H1，接著 A2。若有 WT 列，則以其作為對照，不會另行追加。",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "templateTopology": "模板拓撲",
+      "topologyLinear": "線性",
+      "topologyCircular": "環狀",
+      "templateTopologyHelper": "FASTA 檔案不記錄拓撲。僅在模板跨越原點時選擇環狀。",
       "outputLocationStateLabel": "選填"
     },
     "activity": {
@@ -819,7 +812,7 @@
         "placeholder": "選擇一個資料夾;將建立 {{filename}}",
         "stateLabel": "儲存到",
         "helperText": "分析報告將使用 KURO 風格的規則生成 .xlsx 檔名",
-        "helpText": "儲存分析結果 Excel 的資料夾。檔名透過 KURO 風格規則自動生成,結合日期、reference/input token、MAME 目標和結果計數 token。",
+        "helpText": "檔名會依日期、參考或輸入權杖及 MAME 目標自動產生。",
         "reuseNotice": "如果該資料夾已有先前執行的輸出，符合條件的單元將被重複使用，其餘內容將被覆蓋。",
         "overwriteConfirmDir": "{{dir}} 中已有先前分析的輸出 (demux_filtered/)。符合條件的單元將被重複使用，其餘內容將被覆蓋。是否繼續?"
       },
@@ -1198,6 +1191,8 @@
       "warningsLabel": "警告",
       "mismatchedLabel": "Confirmation vs primary mismatch",
       "mismatchedHint": "Variants whose confirmation mean differs notably from the primary value.",
+      "allowLabelMismatch": "允許已審核的標籤不一致",
+      "allowLabelMismatchHelper": "解除偵測到標籤互換後的匯出封鎖。請先確認版面配置與判定標籤。",
       "mismatchedAuthoritative": "Confirmation",
       "mismatchedFallback": "Primary",
       "colVariant": "Variant",
@@ -1308,7 +1303,7 @@
           "effect": "僅供診斷，沒有任何門檻讀取此值。數值偏高表示 reads 比對位置不明確，通常是重複序列或參考序列錯誤。"
         },
         "spanFailed": {
-          "what": "因比對區間未涵蓋參考序列全長而被剔除的 reads 數。",
+          "what": "因比對覆蓋率低於設定的參考序列比例（預設 98%）而捨棄的 reads。",
           "stage": "比對過濾階段，在 MAPQ 過濾之後。若輸入為 consensus FASTA，則為 0。",
           "effect": "僅供診斷，沒有任何門檻讀取此值。數值偏高通常表示 reads 被截斷，或 amplicon 短於參考序列。"
         },
@@ -1546,22 +1541,22 @@
     "primerLenInvalidError": "Min 必須小於 Max",
     "designSectionLabel": "設計",
     "autoRescueLabel": "自動 rescue 失敗 mutation",
-    "autoRescueTitle": "啟用時,失敗的 mutation 會透過 4 個 (top-N) 或 6 個 (pipeline) 放寬引數階段重試。禁用時,失敗的 mutation 保持原樣,不自動重試。",
+    "autoRescueTitle": "啟用時，執行 sidecar 的放寬限制補救步驟及前端 4 階段 (top-N) 或 6 階段 (pipeline) 級聯。禁用時不會自動重試失敗的 mutation。",
     "seedLabel": "Seed:",
-    "seedTitle": "選用的整數種子。作為溯源資訊隨執行記錄保存。引物設計是確定性的，種子不會改變得到的引物。",
-    "seedAriaLabel": "隨機 seed (可選)",
-    "seedFixed": "已固定: {{seed}}",
-    "seedAuto": "自動",
+    "seedTitle": "可選整數 seed，僅記錄於設計溯源，不影響 primer 排名。",
+    "seedAriaLabel": "Seed（可選）",
+    "seedFixed": "已記錄：{{seed}}",
+    "seedAuto": "不記錄",
     "tmPrimerHelp": "Target Tm (°C) for symmetric full-overlap primers. Default 62.",
     "tmFwdHelp": "Target Tm (°C) for forward primer in partial-overlap mode. Lower value increases mismatch tolerance.",
     "tmRevHelp": "Target Tm (°C) for reverse primer. Should approximate tmFwd for balanced PCR.",
     "tmOverlapHelp": "Target Tm (°C) of the overlap region between two primers.",
     "gcRangeHelp": "Accepted GC content range (%) for primer regions. Recommended 40-60.",
-    "primerLenLimitHelp": "Toggle to bound primer length. When off, engine uses Tm-only optimization.",
-    "primerLenFwdHelp": "正向引物長度範圍(nt)。預設 18-39 涵蓋大多數 SDM 情境。",
+    "primerLenLimitHelp": "切換 primer 長度範圍。關閉時，engine 使用所選 polymerase profile 自身的長度範圍。",
+    "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
-    "autoRescueHelp": "Auto-fill failed mutations with relaxed constraints in a second pass.",
-    "seedHelp": "Random seed for reproducible primer ranking. Leave empty for auto (time-based).",
+    "autoRescueHelp": "控制 sidecar 的放寬限制補救步驟及 4 階段 (top-N) / 6 階段 (pipeline) 前端級聯。",
+    "seedHelp": "僅記錄溯源中繼資料，不影響 primer 排名。留空時不記錄 seed。",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
   "designReport": {
@@ -1610,7 +1605,7 @@
     "statPositionCoverageValue": "已 rescue {{rescued}}/{{attempted}}",
     "statPoolCascade": "Pool cascade",
     "statPoolCascadeValue": "{{cascade}} (嘗試 {{tried}})",
-    "statAutoRelax": "Auto-relax (±3→±5°C)",
+    "statAutoRelax": "自動放寬（Tm 容差最多 +2 °C、GC 範圍最多 ±5 個百分點、最小長度最多 −2 nt）",
     "statAutoRetry": "Auto-retry (建議)",
     "statCascadeRescues": "Cascade rescues",
     "statStillFailed": "仍然失敗",
@@ -1684,8 +1679,8 @@
     "minQuotaHelp": "Minimum primer quota per domain (0-20). Ensures each domain represented.",
     "poolKLabelHelp": "Pool-K diversity weighting target. Auto value derived from sequence properties.",
     "entropyWeightHelp": "Weight (0-1) for entropy-guided primer selection vs pure diversity.",
-    "autoRedesignOnLoadHelp": "Re-run primer design automatically when a workspace is loaded.",
-    "savePipelineCacheHelp": "Save intermediate pipeline outputs to disk for faster re-runs.",
+    "autoRedesignOnLoadHelp": "啟用後，僅在載入的工作區沒有已儲存的設計結果時自動重新執行引子設計。",
+    "savePipelineCacheHelp": "在工作區快照中包含替代引子快取和基準測試結果。",
     "topPercentileHelp": "Benchmark top percentile (1-100) cutoff for primer scoring.",
     "randomTrialsHelp": "Number of random baseline trials for benchmark (1-1000). Higher value yields more reliable estimate.",
     "benchmarkRandomSeedHelp": "Random seed for benchmark reproducibility. Empty value defaults to auto.",
@@ -1980,7 +1975,7 @@
     "insideProject": "每個專案內部",
     "kuroDesc": "Kernel for Upstream Recombination Oligodesign. 基於 Gibson Assembly 模板的批次 SDM primer 設計。",
     "mameDesc": "Mutagenesis Assessment & Microplate Export. Oxford Nanopore NGS verdict。",
-    "autosaveNote": "輸入與引數按專案自動儲存。專案間不會洩漏。",
+    "autosaveNote": "輸入和參數會依專案自動儲存。包含絕對路徑的 Barcode Setup 草稿會在專案之間共用。",
     "titleStart": "開始使用",
     "descStart": "為專案選擇預設資料夾。kuma 將每個 Kuro design 和 Mame verdict run 儲存在各自的專案資料夾中,使工作在數週的測序週轉期間得以保留。",
     "chooseFolderBtn": "選擇資料夾",
@@ -2124,7 +2119,7 @@
     "mutationsEntered": "已輸入 {{count}} 個 mutation",
     "mutationsValidated": "(已驗證 {{count}})",
     "mutationsFailed": "(失敗 {{count}})",
-    "topNZeroHint": "將 top-N 設為 0 可載入 CSV 中的所有變體",
+    "topNZeroHint": "Top-N 的範圍是 1 到 96。增加此值可從 CSV 載入更多變體。",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
@@ -3367,6 +3362,9 @@
         "kuro": "KURO sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry.",
         "mame": "MAME sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry."
       }
+    },
+    "mame": {
+      "labelMismatchBlocked": "偵測到標籤互換，已封鎖匯出。請先檢查版面配置與判定標籤，然後選擇允許已審核的標籤不一致。"
     }
   },
   "advisoryDecision": {

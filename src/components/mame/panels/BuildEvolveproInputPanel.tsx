@@ -103,6 +103,7 @@ export function BuildEvolveproInputPanel() {
     hasBuildEvolveproFormValues(loadFromStorage(project?.path)),
   );
   const [isBuilding, setIsBuilding] = useState(false);
+  const [allowLabelMismatch, setAllowLabelMismatch] = useState(false);
   const [buildError, setBuildError] = useState<string | null>(null);
   const [result, setResult] = useState<BuildEvolveproInputResult | null>(null);
   const resetEpoch = useMameAppStore((s) => s.resetEpoch);
@@ -167,6 +168,9 @@ export function BuildEvolveproInputPanel() {
 
   useEffect(() => {
     setResult(null);
+    // Acknowledgement is evidence-specific: changing any source may change
+    // the label audit, so never carry approval from an earlier set of files.
+    setAllowLabelMismatch(false);
   }, [form]);
 
   useEffect(() => {
@@ -296,6 +300,7 @@ export function BuildEvolveproInputPanel() {
         form.confirmationSource === "numericIds" ? form.remeasureNumericXlsx : undefined,
       verdict_xlsx: form.verdictXlsx,
       output_xlsx: form.outputXlsx,
+      allow_label_mismatch: allowLabelMismatch,
     };
   }
 
@@ -681,6 +686,29 @@ export function BuildEvolveproInputPanel() {
           </Button>
         </div>
       )}
+
+      <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+        <div className="flex items-start gap-2">
+          <input
+            id="bep-allow-label-mismatch"
+            type="checkbox"
+            checked={allowLabelMismatch}
+            onChange={(event) => setAllowLabelMismatch(event.target.checked)}
+            className="mt-0.5 h-4 w-4 cursor-pointer accent-primary"
+          />
+          <div>
+            <Label
+              htmlFor="bep-allow-label-mismatch"
+              className="cursor-pointer text-xs font-medium text-foreground"
+            >
+              {t("mame.buildEvolvepro.allowLabelMismatch")}
+            </Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("mame.buildEvolvepro.allowLabelMismatchHelper")}
+            </p>
+          </div>
+        </div>
+      </div>
 
       <Button
         type="button"

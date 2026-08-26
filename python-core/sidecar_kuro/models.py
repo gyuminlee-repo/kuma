@@ -49,7 +49,7 @@ class DesignSdmPrimersParams(BaseModel):
     fasta_path: str
     target_start: int = Field(default=0, ge=0)
     mutations_csv_or_text: str = ""
-    polymerase: str = "Q5"
+    polymerase: str = "KOD"
     # None → resolved from polymerase profile (slide spec: 18). le=18 hard-caps user input.
     overlap_len: Optional[int] = Field(default=None, ge=8, le=18)
     codon_strategy: str = "closest"
@@ -86,7 +86,7 @@ class DesignSdmPrimersParams(BaseModel):
 class RetryFailedParams(BaseModel):
     mutation: str = ""
     fasta_path: str
-    polymerase: str = "Benchling"
+    polymerase: str = "KOD"
     target_start: int = Field(default=0, ge=0)
     # rescue may explore overlap lengths outside the design spec (le=40)
     overlap_len: Optional[int] = Field(default=None, ge=8, le=40)
@@ -104,7 +104,10 @@ class RetryFailedParams(BaseModel):
     rev_len_max: Optional[int] = Field(default=None, ge=10, le=100)
     tol_max: float = Field(default=4.0, ge=0.5, le=10.0)
     num_return: int = Field(default=10, ge=1, le=960)
-    overlap_mode: Literal["partial", "full"] = "partial"
+    # Retries must retain the originating geometry: in full mode sdm_engine
+    # intersects the forward/reverse length bounds, so defaulting to partial
+    # would silently produce different primer geometry.
+    overlap_mode: Literal["partial", "full"]
 
 
 class SwapPrimerParams(BaseModel):
@@ -378,16 +381,21 @@ class WorkspaceSettingsModel(WorkspaceModel):
     revLenMin: Optional[int] = None
     revLenMax: Optional[int] = None
     fillOnFailure: Optional[bool] = None
+    tmTolerance: Optional[float] = None
     uniprotAccession: Optional[str] = None
     domains: Optional[list[DomainInfoModel]] = None
     refDomains: Optional[list[DomainInfoModel]] = None
     refDomainHash: Optional[str] = None
+    structureAccession: Optional[str] = None
+    structureLoaded: Optional[bool] = None
     domainDiversityEnabled: Optional[bool] = None
     domainStrategy: Optional[Literal["proportional", "equal"]] = None
     domainOverlapPolicy: Optional[Literal["first", "largest"]] = None
     linkerHandling: Optional[Literal["include", "exclude", "separate-bin"]] = None
     domainQuotaMin: Optional[int] = None
     paretoDiversityEnabled: Optional[bool] = None
+    structuralDiversityEnabled: Optional[bool] = None
+    structuralKappa: Optional[float] = None
     disabledDomains: Optional[list[str]] = None
     rescuedMutations: Optional[list[str]] = None
     entropyWeightEnabled: Optional[bool] = None
@@ -408,6 +416,11 @@ class WorkspaceSettingsModel(WorkspaceModel):
     maxPerPosition: Optional[int] = None
     evolveproRound: Optional[int] = None
     roundSize: Optional[int] = None
+    randomSeed: Optional[int] = None
+    echoTransferVol: Optional[float] = None
+    echoQuadrant: Optional[Literal["A1", "A2", "B1", "B2"]] = None
+    echoUsedQuadrants: Optional[list[Literal["A1", "A2", "B1", "B2"]]] = None
+    janusTransferVol: Optional[float] = None
 
 
 class WorkspaceResultsModel(WorkspaceModel):
@@ -1030,31 +1043,6 @@ class SettingsNetwork(BaseModel):
     consent_interpro: bool = True
 
 
-class SettingsSidecar(BaseModel):
-    """Sidecar behaviour a user can choose.
-
-    Held to what the app can actually honour. Two neighbours were removed once
-    it turned out nothing read them, and that reading the charter said nothing
-    ever should:
-
-    - `concurrency_default` capped a parallel design pool that does not exist.
-      Designs run one mutation at a time, and measured end to end a 96-well
-      plate takes about two seconds, so there is nothing here to parallelise.
-    - `cancel_timeout_secs` offered 5 to 120 seconds before a force-kill.
-      docs/standards/common-frontend-standards.md fixes both ends of that:
-      section 22 requires a 5 second SIGKILL fallback on shutdown and section 1
-      requires cancel to finish within 5 seconds. A user-set 120 would break
-      both, and no cancel path waits before killing anyway (KURO cancels
-      cooperatively, MAME kills and respawns).
-
-    A preferences file written by an older build still carries the two names.
-    Pydantic ignores unknown keys by default, so they are dropped on load and
-    nothing else in the bundle is disturbed.
-    """
-
-    persist_on_cancel: Literal["partial", "discard"] = "partial"
-
-
 class SettingsBundle(BaseModel):
     """Complete application preferences bundle persisted to ~/.kuma/preferences.json."""
 
@@ -1062,13 +1050,6 @@ class SettingsBundle(BaseModel):
     theme: SettingsTheme = "auto"
     default_workspace_folder: Optional[str] = None
     network: SettingsNetwork = Field(default_factory=SettingsNetwork)
-    sidecar: SettingsSidecar = Field(default_factory=SettingsSidecar)
-    # No telemetry section. Section 10 of the frontend standards makes "사용자
-    # 데이터·메트릭 외부 송신 0건" a release-blocking requirement, and the
-    # charter changelog records external diagnostic transmission being removed
-    # deliberately in favour of the local zip in section 16, which the Run menu
-    # already produces. Two opt-in flags sat here offering the opposite; they
-    # were never read, and implementing them would have violated the standard.
 
 
 class SettingsLoadRequest(BaseModel):

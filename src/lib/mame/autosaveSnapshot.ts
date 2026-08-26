@@ -16,7 +16,7 @@ import type { WtPlacement } from "@/types/mame/well_layout";
 import { toPortablePath } from "@/lib/projectPath";
 import { RESULT_CONTRACT } from "@/lib/mame/resultContract";
 
-export const MAME_SCHEMA = 4;
+export const MAME_SCHEMA = 5;
 
 export type MameSnapshotState = Pick<
   AppState,
@@ -33,7 +33,9 @@ export type MameSnapshotState = Pick<
   | "cdsStart"
   | "cdsEnd"
   | "minFileSizeKb"
+  | "minFilteredDepth"
   | "manyCutoff"
+  | "maxConsensusNFraction"
   | "verdicts"
   | "replicates"
   | "summary"
@@ -87,7 +89,11 @@ export interface MameAutosaveSnapshot extends AutosaveSnapshot {
     cds_start: number;
     cds_end: number;
     min_file_size_kb: number;
+    /** Optional so schema 4 snapshots retain the store default on restore. */
+    min_read_count?: number;
     many_cutoff: number;
+    /** Optional so schema 4 snapshots retain the store default on restore. */
+    max_consensus_n_fraction?: number;
   };
   results?: {
     verdicts: AppState["verdicts"];
@@ -172,7 +178,9 @@ export function buildMameSnapshot(
       cds_start: state.cdsStart,
       cds_end: state.cdsEnd,
       min_file_size_kb: state.minFileSizeKb,
+      min_read_count: state.minFilteredDepth,
       many_cutoff: state.manyCutoff,
+      max_consensus_n_fraction: state.maxConsensusNFraction,
     },
     results: {
       verdicts: state.verdicts,

@@ -23,7 +23,7 @@ export const HEADER_TOOLTIPS: Record<string, string> = {
   tm_no_rev: "Whole reverse primer Tm. Fixed SantaLucia 1998 (Benchling) scale, identical for every polymerase",
   tm_overlap: "Overlap region Tm - should be lower than Fwd/Rev Tm. Fixed SantaLucia 1998 (Benchling) scale.",
   recommended_ta: "Recommended annealing temperature (Ta). Hover a cell for the formula and touchdown schedule",
-  tolerance_used: "Tm tolerance Fwd/Rev (each starts at +/-0.5, widens by 0.5 up to +/-3.0)",
+  tolerance_used: "Tm tolerance Fwd/Rev (starts at +/-0.5 and widens by 0.5 up to the configured tolerance)",
   penalty: "Penalty score: Tm deviation + GC% + codon distance + hairpin/homodimer + synthesis difficulty (lower = better)",
   candidate_count: "Unique forward / reverse candidates (click to compare if >1)",
   // Design-search rows (design_sdm_primers) always read OK: an off-target
@@ -166,7 +166,7 @@ export function makeResultTableColumns(opts: {
                 auto_relax: {
                   icon: "⚡",
                   label: "⚡ relaxed",
-                  tooltip: "Auto-relax: widened Tm tolerance and GC range",
+                  tooltip: "Auto-relax may add up to 2°C Tm tolerance, widen GC by up to 5 pp per side, and lower minimum lengths by up to 2 nt",
                   colorClass: "bg-warning/10 text-warning",
                 },
                 auto_suggestion: {

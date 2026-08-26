@@ -85,7 +85,7 @@
     "diagnostics": "診断",
     "generateDiagnostics": "診断を生成",
     "generating": "生成中...",
-    "diagnosticsNote": "アプリ情報とクラッシュログを含む JSON バンドルを選択した場所に保存します。ユーザーデータや配列は含まれません。",
+    "diagnosticsNote": "選択した場所に JSON バンドルを保存します。絶対ファイルパスや、変異・バリアント識別子を含むサイドカーの生ログまたはエラー文が含まれる場合があります。共有前に確認してください。",
     "copyCrashLog": "クラッシュログをコピー",
     "ok": "OK",
     "updates": "アップデート"
@@ -105,8 +105,8 @@
     "notificationsDisabled": "無効",
     "languageSelectionLabel": "言語選択",
     "enableNotifications": "通知を有効化",
-    "notificationsNote": "5 分以上かかるジョブで通知が発火します。",
-    "sleepPrevention": "スリープ抑制: ジョブ実行中は有効。",
+    "notificationsNote": "5分を超えるKURO設計およびアクティビティ結合ジョブで表示されます。",
+    "sleepPrevention": "スリープ防止はKURO設計およびアクティビティ結合中に有効になります。",
     "dataFolder": "データフォルダ",
     "dataFolderLoading": "読み込み中...",
     "dataFolderChange": "変更...",
@@ -115,8 +115,7 @@
     "close": "閉じる",
     "tab": {
       "general": "一般",
-      "network": "ネットワーク",
-      "sidecar": "Sidecar"
+      "network": "ネットワーク"
     },
     "theme": {
       "label": "テーマ",
@@ -134,11 +133,6 @@
         "alphafold": "AlphaFold via EBI（構造参照）",
         "interpro": "InterPro / Pfam via EBI（ドメインアノテーション）"
       }
-    },
-    "sidecar": {
-      "persistOnCancel": "キャンセル時の動作",
-      "persistPartial": "部分結果を保持",
-      "persistDiscard": "すべての結果を破棄"
     },
     "savedAt": "{{time}} に保存済み"
   },
@@ -223,7 +217,7 @@
       "ingestBarcodeTitle": "Nanopore barcode 単位 (NB01, NB02, ...) で read をグループ化。barcode bin 1 つが 1 サンプル。",
       "ingestAmpliconTitle": "amplicon の同一性で read をグループ化。複数 amplicon が barcode を共有する場合や、配列マッチによる demultiplex に使用。",
       "inputModeConsensusTitle": "事前計算済みの consensus FASTA (barcode あたり 1 配列) から開始。仕分けと consensus calling をスキップ。",
-      "inputModeSortedBarcodeTitle": "すでに仕分け済みの barcode ディレクトリ (barcode あたり fastq.gz) から開始。MinKNOW 仕分けをスキップし、consensus calling を実行。",
+      "inputModeSortedBarcodeTitle": "事前計算済みコンセンサスFASTAファイル（ウェルごとに1配列）を解析します。MinKNOWのソートとコンセンサスコールは行いません。",
       "inputModeRawRunTitle": "MinKNOW raw run フォルダ (fastq_pass/ + run メタデータ) から開始。barcode 仕分け、フィルタ、consensus までのフルパイプライン。",
       "minFilteredDepth": "最小 Filtered Depth (reads)",
       "minFilteredDepthHelp": "length-window filter を通過した read 数に基づく cutoff。基本となる depth 品質基準です。",
@@ -285,7 +279,7 @@
       "toastSuccessDesc": "ファイルを {{dir}}/ に保存しました",
       "toastSuccessDescWithLength": "amplicon 長: {{length}} bp。ファイルを {{dir}}/ に保存しました",
       "toastError": "生成に失敗しました",
-      "overwriteConfirmDir": "{{dir}}/ フォルダーは既に存在し、上書きされます (primer CSV, barcode XLSX, amplicon FASTA)。続行しますか?",
+      "overwriteConfirmDir": "{{dir}}/ フォルダーは既に存在し、上書きされます（barcodes_sequence.xlsx、{gene}_amplicon.fa、プロジェクトルートのmame_context.json）。続行しますか？",
       "geneEndError": "gene_end は gene_start より大きい値を指定してください。",
       "noProjectWarning": "パッケージ生成にはプロジェクトを開く必要があります。File メニューから Open Project を選択してください。",
       "barcodeSeedsXlsxHelper": "fwd_1..12 と rev_1..8 のシード配列が含まれた xlsx ファイル。",
@@ -309,7 +303,7 @@
       },
       "cdsCandidateHelp": "CDS candidate auto-detected from the FASTA. Coordinates apply on selection.",
       "geneNameHelp": "Short gene identifier used in output filenames and labels (e.g. egfp).",
-      "polymeraseHelp": "バーコード PCR プロトコルに記録する polymerase です。メタデータのみで、Tm や primer の計算には関与しません。",
+      "polymeraseHelp": "バーコード PCR に使うポリメラーゼです。塩濃度プロファイルがプライマー選択時の Tm 計算に使われます。",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
       "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
@@ -330,11 +324,10 @@
         "contextJson": "Run context (JSON)"
       },
       "openFolderError": "フォルダーを開けませんでした。",
-      "variantSheet": "変異リストのシート",
-      "variantColumn": "変異の列",
-      "variantColumnPlaceholder": "列を選択",
-      "variantColumnHelper": "この列の行順で 96 well プレートに配置します。プレートは縦方向に進み、A1, B1, C1 から H1 まで、その次が A2 です。WT 行がある場合は、新たに追加せずその行を対照として使います。",
-      "variantColumnKuroHelper": "With the KURO reader sheet selected the column is fixed to mutant_id and the status filter runs first. Choose the sheet that describes the plate to name a column yourself.",
+      "templateTopology": "テンプレートトポロジー",
+      "topologyLinear": "直鎖状",
+      "topologyCircular": "環状",
+      "templateTopologyHelper": "FASTA ファイルにはトポロジー情報がありません。テンプレートが原点をまたぐ場合だけ環状を選択してください。",
       "outputLocationStateLabel": "任意"
     },
     "activity": {
@@ -819,7 +812,7 @@
         "placeholder": "フォルダを選択 — {{filename}} が作成されます",
         "stateLabel": "保存先",
         "helperText": "解析レポートには KURO スタイルのルールベース .xlsx ファイル名を使用",
-        "helpText": "解析結果 Excel を保存するフォルダ。日付、reference/input トークン、MAME ターゲット、結果カウントトークンを組み合わせた KURO スタイルのルールでファイル名が自動生成されます。",
+        "helpText": "ファイル名は日付、参照または入力トークン、MAMEターゲットから自動生成されます。",
         "reuseNotice": "このフォルダーに以前の実行結果がある場合、条件が一致する単位は再利用され、残りは上書きされます。",
         "overwriteConfirmDir": "{{dir}} に以前の解析結果 (demux_filtered/) があります。条件が一致する単位は再利用され、残りは上書きされます。続行しますか?"
       },
@@ -1198,6 +1191,8 @@
       "warningsLabel": "警告",
       "mismatchedLabel": "Confirmation vs primary mismatch",
       "mismatchedHint": "Variants whose confirmation mean differs notably from the primary value.",
+      "allowLabelMismatch": "確認済みのラベル不一致を許可",
+      "allowLabelMismatchHelper": "検出されたラベル入れ替わりによるエクスポート停止を解除します。先にレイアウトと判定ラベルを確認してください。",
       "mismatchedAuthoritative": "Confirmation",
       "mismatchedFallback": "Primary",
       "colVariant": "Variant",
@@ -1308,7 +1303,7 @@
           "effect": "診断用です。どのゲートもこの値を読みません。値が大きい場合はリードが曖昧にマップされており、多くは繰り返し配列かリファレンスの誤りです。"
         },
         "spanFailed": {
-          "what": "アラインメントがリファレンス全長を覆わず除外されたリード数です。",
+          "what": "アラインメントが設定済みの参照配列比率（既定値98%）を満たさないリードが除外されました。",
           "stage": "アラインメントのフィルタ段階、MAPQ フィルタの後。consensus FASTA から解析した実行では 0 です。",
           "effect": "診断用です。どのゲートもこの値を読みません。値が大きい場合はリードが途中で切れているか、amplicon がリファレンスより短いことを意味します。"
         },
@@ -1546,22 +1541,22 @@
     "primerLenInvalidError": "Min は Max より小さくしてください",
     "designSectionLabel": "Design",
     "autoRescueLabel": "失敗 mutation を自動リカバリ",
-    "autoRescueTitle": "有効時、失敗 mutation を 4 (top-N) または 6 (pipeline) 段階の緩和パラメータで再試行。無効時、失敗 mutation はそのままで自動リトライしません。",
+    "autoRescueTitle": "有効時、sidecar の制約緩和リカバリとフロントエンドの 4 段階 (top-N) または 6 段階 (pipeline) カスケードを実行します。無効時は自動再試行しません。",
     "seedLabel": "Seed:",
-    "seedTitle": "任意の整数シードです。実行記録に来歴として残ります。プライマー設計は決定論的なので、シードが結果を変えることはありません。",
-    "seedAriaLabel": "Random seed (任意)",
-    "seedFixed": "固定: {{seed}}",
-    "seedAuto": "自動",
+    "seedTitle": "任意の整数 seed。設計の来歴にのみ記録され、primer の順位には影響しません。",
+    "seedAriaLabel": "Seed (任意)",
+    "seedFixed": "記録済み: {{seed}}",
+    "seedAuto": "記録しない",
     "tmPrimerHelp": "Target Tm (°C) for symmetric full-overlap primers. Default 62.",
     "tmFwdHelp": "Target Tm (°C) for forward primer in partial-overlap mode. Lower value increases mismatch tolerance.",
     "tmRevHelp": "Target Tm (°C) for reverse primer. Should approximate tmFwd for balanced PCR.",
     "tmOverlapHelp": "Target Tm (°C) of the overlap region between two primers.",
     "gcRangeHelp": "Accepted GC content range (%) for primer regions. Recommended 40-60.",
-    "primerLenLimitHelp": "Toggle to bound primer length. When off, engine uses Tm-only optimization.",
-    "primerLenFwdHelp": "フォワードプライマーの長さ範囲(nt)。既定の18-39でほとんどのSDMケースを網羅します。",
+    "primerLenLimitHelp": "primer 長の範囲を切り替えます。オフでは engine は選択した polymerase profile の長さ範囲を使います。",
+    "primerLenFwdHelp": "Forward primer length range (nt). Default 17-39 covers most SDM cases.",
     "primerLenRevHelp": "Reverse primer length range (nt). Default 19-27.",
-    "autoRescueHelp": "Auto-fill failed mutations with relaxed constraints in a second pass.",
-    "seedHelp": "Random seed for reproducible primer ranking. Leave empty for auto (time-based).",
+    "autoRescueHelp": "sidecar の制約緩和リカバリと、4 段階 (top-N) / 6 段階 (pipeline) のフロントエンドカスケードを制御します。",
+    "seedHelp": "来歴メタデータのみを記録し、primer の順位には影響しません。空欄では seed を記録しません。",
     "tmSectionHelp": "Melting temperature targets define how the engine balances primer stability and selectivity."
   },
   "designReport": {
@@ -1610,7 +1605,7 @@
     "statPositionCoverageValue": "{{rescued}}/{{attempted}} rescued",
     "statPoolCascade": "Pool cascade",
     "statPoolCascadeValue": "{{cascade}} ({{tried}} tried)",
-    "statAutoRelax": "Auto-relax (±3→±5°C)",
+    "statAutoRelax": "自動緩和 (Tm 許容差を最大 +2 °C、GC 範囲を最大 ±5 ポイント、最小長を最大 −2 nt)",
     "statAutoRetry": "Auto-retry (推奨)",
     "statCascadeRescues": "Cascade rescues",
     "statStillFailed": "まだ失敗",
@@ -1684,8 +1679,8 @@
     "minQuotaHelp": "Minimum primer quota per domain (0-20). Ensures each domain represented.",
     "poolKLabelHelp": "Pool-K diversity weighting target. Auto value derived from sequence properties.",
     "entropyWeightHelp": "Weight (0-1) for entropy-guided primer selection vs pure diversity.",
-    "autoRedesignOnLoadHelp": "Re-run primer design automatically when a workspace is loaded.",
-    "savePipelineCacheHelp": "Save intermediate pipeline outputs to disk for faster re-runs.",
+    "autoRedesignOnLoadHelp": "有効な場合、保存済みの設計結果がないワークスペースを読み込むときにのみプライマー設計を自動で再実行します。",
+    "savePipelineCacheHelp": "ワークスペーススナップショットに代替プライマーキャッシュとベンチマーク結果を含めます。",
     "topPercentileHelp": "Benchmark top percentile (1-100) cutoff for primer scoring.",
     "randomTrialsHelp": "Number of random baseline trials for benchmark (1-1000). Higher value yields more reliable estimate.",
     "benchmarkRandomSeedHelp": "Random seed for benchmark reproducibility. Empty value defaults to auto.",
@@ -1980,7 +1975,7 @@
     "insideProject": "各プロジェクト内",
     "kuroDesc": "Kernel for Upstream Recombination Oligodesign。Gibson Assembly テンプレートからのバッチ SDM primer 設計。",
     "mameDesc": "Mutagenesis Assessment & Microplate Export。Oxford Nanopore NGS verdict。",
-    "autosaveNote": "入力とパラメータはプロジェクト単位で Autosave されます。プロジェクト間で漏れることはありません。",
+    "autosaveNote": "入力とパラメーターはプロジェクトごとに自動保存されます。絶対パスを含むBarcode Setupの下書きはプロジェクト間で共有されます。",
     "titleStart": "始める",
     "descStart": "プロジェクト用のデフォルトフォルダを選択してください。kuma はすべての Kuro 設計と Mame verdict run を個別のプロジェクトフォルダに保管し、数週間に及ぶ sequencing turnaround をまたいで作業を保持します。",
     "chooseFolderBtn": "フォルダを選択",
@@ -2124,7 +2119,7 @@
     "mutationsEntered": "{{count}} mutations 入力",
     "mutationsValidated": "({{count}} 検証済み)",
     "mutationsFailed": "({{count}} 失敗)",
-    "topNZeroHint": "top-Nを0にするとCSVの全バリアントを読み込みます",
+    "topNZeroHint": "Top-Nの範囲は1～96です。CSVからより多くのバリアントを読み込むには値を増やしてください。",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
@@ -3367,6 +3362,9 @@
         "kuro": "KURO sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry.",
         "mame": "MAME sidecar is outdated (missing method: {{method}}). Run `pnpm run sidecar:build` and retry."
       }
+    },
+    "mame": {
+      "labelMismatchBlocked": "ラベルの入れ替わりが検出されたため、エクスポートを停止しました。レイアウトと判定ラベルを確認してから、確認済みのラベル不一致を許可を選択してください。"
     }
   },
   "advisoryDecision": {

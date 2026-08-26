@@ -57,6 +57,10 @@ const baseState: KuroSnapshotState = {
   overlapMode: "full",
   tmTolerance: 4.0,
   randomSeed: null,
+  echoTransferVol: 100,
+  echoQuadrant: null,
+  echoUsedQuadrants: [],
+  janusTransferVol: 2,
   benchmarkTopPercentile: 10,
   benchmarkRandomTrials: 100,
   benchmarkRandomSeed: null,
@@ -87,6 +91,7 @@ const baseState: KuroSnapshotState = {
   },
   yPredMap: {},
   evolveproSelectedVariants: [],
+  evolveproExtraExposed: 10,
   evolveproRankedCandidates: [],
   evolveproUsedVariantColumn: null,
   evolveproUsedScoreColumn: null,
@@ -97,10 +102,10 @@ const baseState: KuroSnapshotState = {
   domainStats: {},
 };
 
-describe("buildKuroSnapshot: schema 5", () => {
-  it("uses schema 5", () => {
-    expect(KURO_SCHEMA).toBe(5);
-    expect(buildKuroSnapshot(baseState).schema).toBe(5);
+describe("buildKuroSnapshot: schema 6", () => {
+  it("uses schema 6", () => {
+    expect(KURO_SCHEMA).toBe(6);
+    expect(buildKuroSnapshot(baseState).schema).toBe(6);
   });
 
   it("serializes navigation, pipeline, ui, benchmark and sequence_info blocks", () => {
@@ -169,8 +174,8 @@ describe("buildKuroSnapshot: schema 5", () => {
 });
 
 describe("buildKuroSnapshot: schema 4 poolVariants", () => {
-  it("uses schema 5 (schema 4 필드는 그대로 유지)", () => {
-    expect(buildKuroSnapshot(baseState).schema).toBe(5);
+  it("uses schema 6 (schema 4 필드는 그대로 유지)", () => {
+    expect(buildKuroSnapshot(baseState).schema).toBe(6);
   });
 
   it("includes poolVariants in the results block", () => {
@@ -240,6 +245,25 @@ describe("buildKuroSnapshot", () => {
       structural_diversity_enabled: true,
       structural_kappa: 0.7,
     });
+  });
+
+  it("serializes liquid-handler controls and picker exposure", () => {
+    const snapshot = buildKuroSnapshot({
+      ...baseState,
+      echoTransferVol: 250,
+      echoQuadrant: "B2",
+      echoUsedQuadrants: ["A1", "B2"],
+      janusTransferVol: 1.5,
+      evolveproExtraExposed: 24,
+    });
+
+    expect(snapshot.parameters).toMatchObject({
+      echo_transfer_vol: 250,
+      echo_quadrant: "B2",
+      echo_used_quadrants: ["A1", "B2"],
+      janus_transfer_vol: 1.5,
+    });
+    expect(snapshot.pipeline).toMatchObject({ evolvepro_extra_exposed: 24 });
   });
 });
 

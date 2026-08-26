@@ -84,8 +84,35 @@ describe("inputSlice: clearing stale run outputs on input change", () => {
     expect(store.clearResults).toHaveBeenCalledTimes(1);
   });
 
-  it("setParams does not clear results for the display-only minFilteredDepth", () => {
+  it("setParams clears results when the minimum read depth changes", () => {
     store.setParams({ minFilteredDepth: 25 });
+    expect(store.clearResults).toHaveBeenCalledTimes(1);
+  });
+
+  it("setWtPlacement clears results only when the analyzed placement changes", () => {
+    store.setWtPlacement("after_last_variant");
+    expect(store.clearResults).toHaveBeenCalledTimes(1);
+
+    (store.clearResults as ReturnType<typeof vi.fn>).mockClear();
+    store.setWtPlacement("after_last_variant");
+    expect(store.clearResults).not.toHaveBeenCalled();
+  });
+
+  it("setVariantSheet clears results even when the declared wells are already null", () => {
+    store.setVariantSheet("Variants");
+    expect(store.clearResults).toHaveBeenCalledTimes(1);
+
+    (store.clearResults as ReturnType<typeof vi.fn>).mockClear();
+    store.setVariantSheet("Variants");
+    expect(store.clearResults).not.toHaveBeenCalled();
+  });
+
+  it("setVariantColumn clears results even when the declared wells are already null", () => {
+    store.setVariantColumn("Mutation");
+    expect(store.clearResults).toHaveBeenCalledTimes(1);
+
+    (store.clearResults as ReturnType<typeof vi.fn>).mockClear();
+    store.setVariantColumn("Mutation");
     expect(store.clearResults).not.toHaveBeenCalled();
   });
 });

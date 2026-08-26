@@ -38,27 +38,8 @@ export interface GenerateMamePackageParams {
   tm_max?: number
   /** Require GC clamp on 3-prime end. Default: true. */
   require_gc_clamp?: boolean
-  /**
-   * Optional variant list. Accepted and unused: it once pre-filled a sample-map
-   * template, and the plate is computed from the variant list at analyze time
-   * now, so nothing writes it down.
-   *
-   * A KURO results xlsx carrying an expected_mutations sheet is detected and
-   * read with its own strict reader. Any other workbook or csv is read as a
-   * plain list, one variant per row, in file order.
-   */
-  expected_mutations_path?: string
-  /**
-   * Sheet holding the variant list. Only needed for a non-KURO file whose sheet
-   * cannot be inferred; ignored for KURO exports.
-   */
-  variant_sheet?: string
-  /**
-   * Column holding the variant labels. Only needed when the header is not a
-   * recognised name (variant, mutation, mutant_id, ...) and the sheet has more
-   * than one column.
-   */
-  variant_column?: string
+  /** Explicit topology for plain FASTA; annotated inputs auto-detect it. */
+  topology?: "linear" | "circular"
 }
 
 /** Parameters for the inspect_variant_source RPC method. */

@@ -54,6 +54,10 @@
  *   (`lib/sourceFingerprint.ts`). 복원 측이 현재 파일과 대조해 재도출 필요
  *   여부를 정한다.
  *
+ * schema 6부터 liquid-handler controls와 `evolveproExtraExposed`를 저장한다.
+ * 전자는 다음 robot mapping의 source-well placement/transfer volume을, 후자는
+ * picker의 exposed candidate count를 결정하므로 어느 쪽도 UI-only가 아니다.
+ *
  * KURO 스냅샷은 Round 엔티티(`rounds`/`active_round_id`)를 저장하지 않는다.
  * `lib/mame/autosaveSnapshot.ts`의 MAME 스냅샷이 이미 이 상태를 저장·복원하고
  * (`useAutosaveHydration.ts`의 mame 처리 구간) `useMameAutosave.ts`가 round
@@ -68,7 +72,7 @@ import type { AppState } from "@/store/types";
 import type { SourceFingerprint } from "./sourceFingerprint";
 import { toPortablePath } from "./projectPath";
 
-export const KURO_SCHEMA = 5;
+export const KURO_SCHEMA = 6;
 
 /** buildKuroSnapshot에 전달하는 store 상태 부분집합 */
 export interface KuroSnapshotState
@@ -93,6 +97,7 @@ export interface KuroSnapshotState
     | "gcMin" | "gcMax" | "primerLenEnabled"
     | "fwdLenMin" | "fwdLenMax" | "revLenMin" | "revLenMax" | "fillOnFailure"
     | "overlapMode" | "tmTolerance" | "randomSeed"
+    | "echoTransferVol" | "echoQuadrant" | "echoUsedQuadrants" | "janusTransferVol"
     | "benchmarkTopPercentile" | "benchmarkRandomTrials" | "benchmarkRandomSeed"
     | "designResults" | "successCount" | "totalCount" | "failedMutations"
     | "plateMappings" | "dedupInfo" | "manuallySwapped" | "customCandidates"
@@ -100,7 +105,7 @@ export interface KuroSnapshotState
     | "alternativesCache" | "benchmarkResults" | "showBenchmark"
     | "tableSorting"
     | "currentMajor" | "currentSubStep" | "stepStatus"
-    | "yPredMap" | "evolveproSelectedVariants" | "evolveproRankedCandidates"
+    | "yPredMap" | "evolveproSelectedVariants" | "evolveproExtraExposed" | "evolveproRankedCandidates"
     | "evolveproUsedVariantColumn" | "evolveproUsedScoreColumn"
     | "evolveproTotalCount" | "evolveproFilteredCount" | "evolveproParetoExchanges"
     | "evolveproStepStats" | "domainStats"
@@ -178,6 +183,13 @@ export function buildKuroSnapshot(
       // schema 5+
       tm_tolerance: state.tmTolerance,
       random_seed: state.randomSeed,
+      // schema 6+. These controls determine the source-well placement and
+      // transfer volume in exported mappings, so treating them as UI-only
+      // would make reopening a project change the next robot sheet.
+      echo_transfer_vol: state.echoTransferVol,
+      echo_quadrant: state.echoQuadrant,
+      echo_used_quadrants: state.echoUsedQuadrants,
+      janus_transfer_vol: state.janusTransferVol,
     },
     diversity: {
       pipeline_mode: state.evolveproMode !== "topN",
@@ -255,6 +267,7 @@ export function buildKuroSnapshot(
     pipeline: {
       y_pred_map: state.yPredMap,
       evolvepro_selected_variants: state.evolveproSelectedVariants,
+      evolvepro_extra_exposed: state.evolveproExtraExposed,
       evolvepro_ranked_candidates: state.evolveproRankedCandidates,
       evolvepro_used_variant_column: state.evolveproUsedVariantColumn,
       evolvepro_used_score_column: state.evolveproUsedScoreColumn,

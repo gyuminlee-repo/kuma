@@ -2,6 +2,7 @@ import i18next from "i18next";
 import type { StateCreator } from "zustand";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
+import { buildKuroDesignInputPatch } from "../../lib/kuroResultReset";
 import type { AppState } from "../types";
 import type {
   ComputeDispersionResult,
@@ -171,38 +172,38 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
 
 
   setPositionDiversityEnabled: (enabled: boolean) => {
-    set({ positionDiversityEnabled: enabled });
+    set(buildKuroDesignInputPatch(get(), { positionDiversityEnabled: enabled }));
     debouncedReload();
   },
 
   setMaxPerPosition: (n: number) => {
-    set({ maxPerPosition: Math.max(1, n) });
+    set(buildKuroDesignInputPatch(get(), { maxPerPosition: Math.max(1, n) }));
     debouncedReload();
   },
 
   setDomainDiversityEnabled: (enabled: boolean) => {
-    set({ domainDiversityEnabled: enabled });
+    set(buildKuroDesignInputPatch(get(), { domainDiversityEnabled: enabled }));
     debouncedReload();
     if (enabled) maybeBackfillUniprotSearch();
   },
 
   setDomainStrategy: (strategy: "proportional" | "equal") => {
-    set({ domainStrategy: strategy });
+    set(buildKuroDesignInputPatch(get(), { domainStrategy: strategy }));
     debouncedReload();
   },
 
   setDomainOverlapPolicy: (policy: DomainOverlapPolicy) => {
-    set({ domainOverlapPolicy: policy });
+    set(buildKuroDesignInputPatch(get(), { domainOverlapPolicy: policy }));
     debouncedReload();
   },
 
   setLinkerHandling: (handling: LinkerHandling) => {
-    set({ linkerHandling: handling });
+    set(buildKuroDesignInputPatch(get(), { linkerHandling: handling }));
     debouncedReload();
   },
 
   setDomainQuotaMin: (value: number) => {
-    set({ domainQuotaMin: Math.max(0, Math.min(20, Math.round(value))) });
+    set(buildKuroDesignInputPatch(get(), { domainQuotaMin: Math.max(0, Math.min(20, Math.round(value))) }));
     debouncedReload();
   },
 
@@ -269,7 +270,7 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
   },
 
   setDomains: (domains: DomainInfo[]) => {
-    set({ refDomains: domains, refDomainHash: "manual", disabledDomains: [] });
+    set(buildKuroDesignInputPatch(get(), { refDomains: domains, refDomainHash: "manual", disabledDomains: [] }));
     const state = get();
     if (getActiveEvolveproPath(state) && state.domainDiversityEnabled) {
       void reloadEvolveproCsv("manual reference-domain update");
@@ -281,57 +282,57 @@ export const createDiversitySlice: StateCreator<AppState, [], [], DiversitySlice
     const next = current.includes(domainKey)
       ? current.filter((k) => k !== domainKey)
       : [...current, domainKey];
-    set({ disabledDomains: next });
+    set(buildKuroDesignInputPatch(get(), { disabledDomains: next }));
     debouncedReload();
   },
 
   setParetoDiversityEnabled: (enabled: boolean) => {
-    set({ paretoDiversityEnabled: enabled });
+    set(buildKuroDesignInputPatch(get(), { paretoDiversityEnabled: enabled }));
     debouncedReload();
     if (enabled) maybeBackfillUniprotSearch();
   },
   setStructuralDiversityEnabled: (enabled: boolean) => {
-    set({ structuralDiversityEnabled: enabled });
+    set(buildKuroDesignInputPatch(get(), { structuralDiversityEnabled: enabled }));
     debouncedReload();
     if (enabled) maybeBackfillUniprotSearch();
   },
 
   setStructuralKappa: (v: number) => {
     const clamped = Math.max(0, Math.min(1, v));
-    set({ structuralKappa: clamped });
+    set(buildKuroDesignInputPatch(get(), { structuralKappa: clamped }));
     debouncedReload();
   },
 
 
   setEntropyWeightEnabled: (enabled: boolean) => {
-    set({ entropyWeightEnabled: enabled });
+    set(buildKuroDesignInputPatch(get(), { entropyWeightEnabled: enabled }));
     debouncedReload();
   },
 
   setEntropyWeight: (weight: number) => {
     const clamped = Math.max(0, Math.min(1, weight));
-    set({ entropyWeight: clamped });
+    set(buildKuroDesignInputPatch(get(), { entropyWeight: clamped }));
     debouncedReload();
   },
 
   setParetoPoolMultiplier: (value: number) => {
     const clamped = Math.max(1, Math.min(10, value));
-    set({ paretoPoolMultiplier: clamped });
+    set(buildKuroDesignInputPatch(get(), { paretoPoolMultiplier: clamped }));
     debouncedReload();
   },
 
   setDistanceMode: (mode: DistanceMode) => {
-    set({ distanceMode: mode });
+    set(buildKuroDesignInputPatch(get(), { distanceMode: mode }));
     debouncedReload();
   },
 
   setEvolveproRound: (n: number) => {
-    set({ evolveproRound: Math.max(1, Math.round(n)) });
+    set(buildKuroDesignInputPatch(get(), { evolveproRound: Math.max(1, Math.round(n)) }));
     debouncedReload();
   },
 
   setRoundSize: (n: number) => {
-    set({ roundSize: Math.max(1, Math.min(960, Math.round(n))) });
+    set(buildKuroDesignInputPatch(get(), { roundSize: Math.max(1, Math.min(960, Math.round(n))) }));
     debouncedReload();
   },
 

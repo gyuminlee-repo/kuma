@@ -47,6 +47,31 @@ interface DesignRequestPayload extends Record<string, unknown> {
   seed?: number;
 }
 
+type PrimerLengthBounds = {
+  fwdLenMin: number;
+  fwdLenMax: number;
+  revLenMin: number;
+  revLenMax: number;
+};
+
+export function buildPrimerLengthBounds(
+  primerLenEnabled: boolean,
+  overlapMode: OverlapMode,
+  lengths: PrimerLengthBounds,
+): Record<string, number> {
+  if (!primerLenEnabled) return {};
+  const { fwdLenMin, fwdLenMax, revLenMin, revLenMax } = lengths;
+  // kuma_core/kuro/sdm_engine.py intersects both axes in full overlap, but
+  // ParameterPanel exposes only the forward range. Mirroring prevents a stale
+  // hidden reverse range from narrowing an initial design or any retry.
+  return {
+    fwd_len_min: fwdLenMin,
+    fwd_len_max: fwdLenMax,
+    rev_len_min: overlapMode === "full" ? fwdLenMin : revLenMin,
+    rev_len_max: overlapMode === "full" ? fwdLenMax : revLenMax,
+  };
+}
+
 interface ProcessedDesignResult {
   capped: SdmPrimerResult[];
   intendedFailed: FailedMutation[];
@@ -189,7 +214,10 @@ export function prepareDesignInput(params: {
   const intendedMuts = new Set(allLines.slice(0, maxPrimers).map((l) => l.trim()));
   const limitedText = allLines.slice(0, sendCount).join("\n");
   const targetStart = selectedGene ? parseInt(selectedGene, 10) : 0;
-  const rescuePool = isEvolveMode
+  // The sidecar treats rescue_pool as permission to replace a failed requested
+  // mutation with another variant, so it must be absent with auto-rescue off;
+  // limiting the frontend's own cascade alone leaves that backend rescue active.
+  const rescuePool = fillOnFailure && isEvolveMode
     ? poolVariants.filter((v) => !intendedMuts.has(v))
     : [];
 
@@ -268,11 +296,11 @@ export function buildDesignRequestPayload(params: {
     tm_overlap_target: tmOverlapTarget,
     gc_min: gcMin,
     gc_max: gcMax,
-    ...(primerLenEnabled && {
-      fwd_len_min: fwdLenMin,
-      fwd_len_max: fwdLenMax,
-      rev_len_min: revLenMin,
-      rev_len_max: revLenMax,
+    ...buildPrimerLengthBounds(primerLenEnabled, overlapMode, {
+      fwdLenMin,
+      fwdLenMax,
+      revLenMin,
+      revLenMax,
     }),
     overlap_mode: overlapMode,
     ...(fillOnFailure && rescuePool.length > 0 && { rescue_pool: rescuePool }),
