@@ -302,13 +302,13 @@ function buildSteps(bundle: MameBundle): Step[] {
     {
       name: "03-inputs-detail",
       caption:
-        "The rest of the same panel: the construct the reads are aligned to, where output lands, and the draft placement of every variant on the plate.",
+        "The rest of the same panel: where output lands, and the draft placement the plate opens on, 96 wells holding 95 variants and the wild-type control.",
       scrollBy: 700,
     },
     {
       name: "04-parameters",
       caption:
-        "The thresholds this run scores against: 15 filtered reads per well, at most 5 unexpected amino-acid changes, and the raw-run read filter at Q8 with a 30 bp length tolerance.",
+        "The thresholds this run scores against: amplicon mode on a MinKNOW raw run, 30 filtered reads per well, at most 5 unexpected amino-acid changes, and no consensus N tolerated.",
       scrollBy: 1800,
     },
     {
