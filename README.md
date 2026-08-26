@@ -11,7 +11,9 @@
 
 Design primers in the Kuro tab, run wet-lab + sequencing, then switch to the Mame tab to verify which clones carry the intended mutations.
 
-![kuma overview](docs/kuro_overview.png)
+![kuma overview](docs/kuma_overview_hero.svg)
+
+<sub>Full pipeline figure with parameters: [`docs/kuma_overview.svg`](docs/kuma_overview.svg), [caption and provenance](docs/kuma_overview_caption.md) · [what the figure leaves out](docs/overview-figure.md)</sub>
 
 Project folders keep Kuro design output and Mame verification linked across the weeks-long gap between ordering oligos and reading sequencing output. A hidden `__kuma_meta__` sheet in every Kuro-exported xlsx lets Mame auto-recognise the source project when the file is dropped back in.
 

@@ -9,7 +9,9 @@
 
 Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로 넘어가 의도한 돌연변이가 제대로 들어갔는지 판정한다.
 
-![kuma overview](docs/kuro_overview.png)
+![kuma overview](docs/kuma_overview_hero.svg)
+
+<sub>파라미터까지 담은 전체 파이프라인 그림: [`docs/kuma_overview.svg`](docs/kuma_overview.svg), [캡션과 출처](docs/kuma_overview_caption.md) · [그림에서 뺀 내용](docs/overview-figure.md)</sub>
 
 프로젝트 폴더로 Kuro 설계 결과와 Mame 검증 결과를 연결해, 올리고 주문부터 시퀀싱 판독까지 수 주의 시간차가 있어도 작업이 이어진다. Kuro가 내보내는 xlsx에 숨김 시트 `__kuma_meta__`를 삽입해, 나중에 Mame에서 파일을 드롭만 해도 출처 프로젝트를 자동 인식한다.
 

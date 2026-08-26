@@ -147,3 +147,9 @@ python-core/vendor/minimap2/macos-arm64/minimap2
 python-core/vendor/minimap2/windows-x64/minimap2.exe
 .venv-al/
 .notes/
+
+# overview figure inspection renders (SVG is the shipped asset)
+docs/kuma_overview.png
+docs/kuma_overview_900.png
+docs/kuma_overview_hero.png
+docs/kuma_overview_hero_900.png
