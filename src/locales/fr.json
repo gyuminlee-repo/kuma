@@ -2509,13 +2509,13 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les données d'exemple terminent désormais une compilation d'étape 4. Le classeur Analyze fourni apporte la preuve de verdict requise.",
-      "Aucun run nanopore brut n'est fourni. L'écran affiche un run produit par un vrai pipeline, et ce même run alimente l'étape 4.",
-      "La plaque d'exemple place chaque variant dans un seul puits, ce que les lecteurs de layout et de verdict acceptent au lieu de le refuser.",
-      "Les positions des variants d'exemple sont numérotées d'après la référence EGFP fournie, et non d'après une autre protéine.",
-      "Quatre nouveaux fichiers couvrent les entrées en échelle brute, à étiquette de variant et à confirmation numérique, jusqu'ici sans exemple."
+      "Les données d'exemple forment désormais une seule campagne. La plaque MAME porte les variants proposés par la prédiction KURO fournie.",
+      "La plaque découle de cette prédiction en exécutant la conception d'amorces, si bien qu'un candidat sans amorces n'y figure jamais.",
+      "Les codons des mutations attendues viennent de la conception KURO, donc la feuille indique le codon que portent les amorces.",
+      "L'activité mesurée ne suit pas le classement prédit, et trois des dix variants se situent sous le type sauvage.",
+      "Un nouveau test lit les fichiers livrés et échoue dès que KURO et MAME décrivent de nouveau des expériences différentes."
     ],
-    "highlightsStamp": "0.16.40+54e3cb8d",
+    "highlightsStamp": "0.16.41+78e69028",
     "releases": {
       "0.16.39": [
         "Cinq commandes MAME de run brut qui n'étaient jamais envoyées ont disparu. Un filtre de score Q ou une longueur cible semblait réglé sans rien faire.",
@@ -2812,6 +2812,13 @@
         "La plaque d'exemple place chaque variant dans un seul puits, ce que les lecteurs de layout et de verdict acceptent au lieu de le refuser.",
         "Les positions des variants d'exemple sont numérotées d'après la référence EGFP fournie, et non d'après une autre protéine.",
         "Quatre nouveaux fichiers couvrent les entrées en échelle brute, à étiquette de variant et à confirmation numérique, jusqu'ici sans exemple."
+      ],
+      "0.16.41": [
+        "Les données d'exemple forment désormais une seule campagne. La plaque MAME porte les variants proposés par la prédiction KURO fournie.",
+        "La plaque découle de cette prédiction en exécutant la conception d'amorces, si bien qu'un candidat sans amorces n'y figure jamais.",
+        "Les codons des mutations attendues viennent de la conception KURO, donc la feuille indique le codon que portent les amorces.",
+        "L'activité mesurée ne suit pas le classement prédit, et trois des dix variants se situent sous le type sauvage.",
+        "Un nouveau test lit les fichiers livrés et échoue dès que KURO et MAME décrivent de nouveau des expériences différentes."
       ]
     },
     "releaseStamps": {
@@ -2864,7 +2871,8 @@
       "0.16.33": "059a2f27",
       "0.16.34": "d7925cb6",
       "0.16.35": "d628e48a",
-      "0.16.40": "54e3cb8d"
+      "0.16.40": "54e3cb8d",
+      "0.16.41": "78e69028"
     }
   },
   "primerDisplay": {

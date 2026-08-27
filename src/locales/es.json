@@ -2509,13 +2509,13 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Los datos de ejemplo ya completan una compilación del paso 4. El libro de Analyze incluido aporta la evidencia de verdict requerida.",
-      "No se incluye ninguna ejecución nanopore en bruto. La pantalla muestra una ejecución real y esa misma ejecución alimenta el paso 4.",
-      "La placa de ejemplo asigna un pocillo por variante, de modo que los lectores de layout y verdict la aceptan en lugar de rechazarla.",
-      "Las posiciones de las variantes de ejemplo se numeran según la referencia EGFP incluida y no según otra proteína distinta.",
-      "Cuatro archivos nuevos cubren entradas de escala bruta, con etiqueta de variante y de confirmación numérica que antes no tenían ejemplo."
+      "Los datos de ejemplo son ahora una sola campaña. La placa de MAME lleva variantes que propone la predicción KURO incluida.",
+      "La placa se deriva de esa predicción ejecutando el diseño de cebadores, así un candidato sin cebadores nunca aparece en ella.",
+      "Los codones de las mutaciones esperadas vienen del diseño de KURO, por lo que la hoja indica el codón que llevan los cebadores.",
+      "La actividad medida no sigue el orden predicho, y tres de las diez variantes quedan por debajo del tipo silvestre.",
+      "Una prueba nueva lee los archivos incluidos y falla en cuanto KURO y MAME vuelven a describir experimentos distintos."
     ],
-    "highlightsStamp": "0.16.40+54e3cb8d",
+    "highlightsStamp": "0.16.41+78e69028",
     "releases": {
       "0.16.39": [
         "Se eliminaron cinco controles de run bruto de MAME que nunca se enviaban. Un filtro de Q-score o una longitud objetivo parecía fijado y no hacía nada.",
@@ -2812,6 +2812,13 @@
         "La placa de ejemplo asigna un pocillo por variante, de modo que los lectores de layout y verdict la aceptan en lugar de rechazarla.",
         "Las posiciones de las variantes de ejemplo se numeran según la referencia EGFP incluida y no según otra proteína distinta.",
         "Cuatro archivos nuevos cubren entradas de escala bruta, con etiqueta de variante y de confirmación numérica que antes no tenían ejemplo."
+      ],
+      "0.16.41": [
+        "Los datos de ejemplo son ahora una sola campaña. La placa de MAME lleva variantes que propone la predicción KURO incluida.",
+        "La placa se deriva de esa predicción ejecutando el diseño de cebadores, así un candidato sin cebadores nunca aparece en ella.",
+        "Los codones de las mutaciones esperadas vienen del diseño de KURO, por lo que la hoja indica el codón que llevan los cebadores.",
+        "La actividad medida no sigue el orden predicho, y tres de las diez variantes quedan por debajo del tipo silvestre.",
+        "Una prueba nueva lee los archivos incluidos y falla en cuanto KURO y MAME vuelven a describir experimentos distintos."
       ]
     },
     "releaseStamps": {
@@ -2864,7 +2871,8 @@
       "0.16.33": "059a2f27",
       "0.16.34": "d7925cb6",
       "0.16.35": "d628e48a",
-      "0.16.40": "54e3cb8d"
+      "0.16.40": "54e3cb8d",
+      "0.16.41": "78e69028"
     }
   },
   "primerDisplay": {

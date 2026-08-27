@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.16.41 (One campaign, from the prediction to the plate)
+
+The two halves of the sample data named different variants. KURO opens on a round-0 EVOLVEpro prediction of twenty-four candidates and designs primers for the ones an operator picks. MAME opened on a plate of ten variants that shared none of them. Primers were designed for one set of substitutions while sequencing verdicts and activity were reported for another, so the demo walked through a campaign nobody could have run. Both halves already described the same protein, which is why nothing caught it: the plasmid coding sequence and the analyze reference translate to the same two hundred and thirty-nine residues.
+
+The plate is no longer written down anywhere. It is derived. The predictions name the candidates, KURO is run to see which of them it can build primers for, and the best-predicted survivors go to the bench. Eight of the twenty-four fail primer design, each for a stated melting-temperature or off-target reason, and a candidate whose primers do not design never reaches a well. The codons come from that same design, so the expected-mutation sheet states the codon the primers carry rather than one chosen beside them.
+
+Measured activity is deliberately not the prediction ranking. The best measured variant is not the top prediction, and three of the ten land below wild-type. A demo where the model ordered the assay perfectly would teach the wrong thing about what a round of screening is for.
+
+A test now reads the shipped files and states each link of that chain on its own: one protein, every plate variant predicted, the selection being the best buildable candidates, every reference residue matching, and the layout, verdict workbook and activity export naming one set. Run against the previous sample set it fails five of its seven checks, so it discriminates rather than passing on anything put in front of it.
+
+### Highlights
+
+- Sample data is one campaign now. The MAME plate holds variants the bundled KURO prediction proposed, instead of a separate list.
+- The plate is derived from that prediction by running the primer design, so a candidate whose primers fail never appears on it.
+- Expected-mutation codons come from the KURO design, so the sheet states the codon the primers actually carry.
+- Measured activity does not follow the prediction ranking, and three of the ten variants land below wild-type.
+- A new test reads the shipped files and fails if the KURO and MAME halves ever describe different experiments again.
+
 ## v0.16.40 (Sample data that finishes the run it starts)
 
 Load Sample Data filled every screen up to step 4 and stopped there. The activity build requires a verdict workbook, no bundled file carried one, and the demo ended at "verdict_xlsx is required". Nothing in the bundle could produce one either. That workbook comes out of an Analyze run, and analysing needs a nanopore run folder, which is far too large to ship inside a desktop download. The sample set now carries the workbook a real Analyze run wrote, so step 4 finishes without a raw run being bundled to make it.
