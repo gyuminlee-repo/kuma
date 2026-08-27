@@ -104,13 +104,21 @@ ESMFold) supplies domain and active-site residues; mean pairwise
 C-alpha distance over the mapped positions drives structural-diversity selection,
 scored against a null distribution by the dispersion module.
 
-The figure is drawn for a 180 mm print width. At that width one user unit is
-0.155172 mm (0.43986 pt) and the body type is 21 user units, that is 9.24 pt.
-The rest of the ladder: foot key 18 uu (7.92 pt), band and lane-D slot titles
-and engine names 22 uu (9.68 pt), the ribbon title 24 uu (10.56 pt), box titles
-26 uu (11.44 pt), lane words 30 uu (13.20 pt) and lane letters 46 uu (20.23 pt).
-The compact variant is a screen artefact for a README and claims no print
-width; at a 900 CSS px render its body type is 11.25 px.
+The figure is drawn to fit one A4 portrait page. A4 measures 210 by 297 mm, and
+with 20 mm margins on four sides and 30 mm held under the figure for this
+caption the block available is 170 by 227 mm. The 1112 by 1485 unit canvas
+fills that block exactly, at 0.152862 mm per user unit (0.43329 pt), so the
+body type of 21 user units prints at 9.10 pt and clears the 9 pt floor of the
+house ladder. The rest of the ladder: foot key 18 uu (7.80 pt), band and lane-D
+slot titles and engine names 22 uu (9.53 pt), the ribbon title 24 uu
+(10.40 pt), box titles 26 uu (11.27 pt), lane words 30 uu (13.00 pt) and lane
+letters 46 uu (19.93 pt). Box widths come from a table of real Source Sans 3
+advance widths frozen as a constant in the builder and generated once by
+`scripts/gen-font-metrics.py`, so one set of numbers drives both the layout and
+the box-fit check while the committed SVG stays byte-identical on any machine.
+The builder asserts the A4 fit and the 9 pt floor on every run and fails the
+build when either slips. The compact variant is a screen artefact for a README
+and claims no print width; at a 900 CSS px render its body type is 11.25 px.
 
 ---
 
@@ -168,8 +176,10 @@ repository root.
 | Excluded rows and their reasons go to `.excluded.csv` | `kuma_core/mame/activity/export_evolvepro.py:50-58`, `kuma_core/mame/activity/export_evolvepro.py:73-88` |
 | Mean pairwise C-alpha distance against a null distribution | `kuma_core/kuro/dispersion.py:4`, `kuma_core/kuro/dispersion.py:79`, `kuma_core/kuro/dispersion.py:122` |
 | Ranked pairs are seated onto 96-well plates in order (column order A1 to H1 to A2 by default) | `kuma_core/kuro/plate_mapper.py:1-53` |
-| 180 mm print width, 9.24 pt body, type ladder | `scripts/build-overview-figure.py:17-29` |
-| Compact variant is a screen artefact, 900 px arithmetic | `scripts/build-overview-figure.py:853-869` |
+| A4 portrait figure block 170 x 227 mm, 9.10 pt body, type ladder | `scripts/build-overview-figure.py:19-37` |
+| Advance widths read from Source Sans 3 3.052 and frozen as a constant | `scripts/gen-font-metrics.py:1-14`, `scripts/build-overview-figure.py:122-167` |
+| A4 fit and the 9 pt floor are asserted on every run | `scripts/build-overview-figure.py:979-1000` |
+| Compact variant is a screen artefact, 900 px arithmetic | `scripts/build-overview-figure.py:1050-1061` |
 
 ### One stale string left in the code, flagged
 
