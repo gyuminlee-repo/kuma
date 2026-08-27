@@ -2509,13 +2509,13 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Fünf MAME-Raw-Run-Bedienelemente, die nie gesendet wurden, sind entfernt. Ein Q-Score-Filter oder eine Ziellänge wirkte gesetzt und tat nichts.",
-      "Die GC-Clamp-Vorgabe bindet jetzt jeden Kandidaten statt nur den bevorzugten Treffer, sodass kein Primer die geforderte Clamp verletzt.",
-      "Der MAPQ-Schwellwert ist ein Bedienelement statt fest verdrahteter 25, und auch das EVOLVEpro-Mismatch-Limit und die Kapazität sind sichtbar.",
-      "Ein geändertes Tm-Ziel, ein GC-Bereich, eine Polymerase oder eine Diversity-Einstellung löscht die vorherigen Primer, statt sie exportierbar zu lassen.",
-      "Ein fehlender Synthesewert erscheint als nicht verfügbar statt als grüne 100, und eine fehlende Run-Health-Messung wird nicht mehr als null gezeichnet."
+      "Beispieldaten schließen einen Step-4-Build jetzt ab. Die mitgelieferte Analyze-Arbeitsmappe liefert den erforderlichen Verdict-Nachweis.",
+      "Kein Nanopore-Rohlauf wird mitgeliefert. Der Bildschirm zeigt einen Lauf einer echten Pipeline, und derselbe Lauf speist Step 4.",
+      "Die Beispielplatte belegt pro Variante genau ein Well, sodass Layout- und Verdict-Reader sie annehmen statt eine Wiederholung abzulehnen.",
+      "Die Positionen der Beispielvarianten sind gegen die mitgelieferte EGFP-Referenz nummeriert statt gegen ein anderes Protein.",
+      "Vier neue Beispieldateien decken Rohskala, variantenbeschriftete und numerische Bestätigungseingaben ab, für die es bisher kein Beispiel gab."
     ],
-    "highlightsStamp": "0.16.39+d8fb93a8",
+    "highlightsStamp": "0.16.40+54e3cb8d",
     "releases": {
       "0.16.39": [
         "Fünf MAME-Raw-Run-Bedienelemente, die nie gesendet wurden, sind entfernt. Ein Q-Score-Filter oder eine Ziellänge wirkte gesetzt und tat nichts.",
@@ -2805,6 +2805,13 @@
         "MAME hat jetzt Screenshots, aufgenommen aus einem echten Nanopore-Lauf mit 288 Vertiefungen statt aus Testdaten.",
         "Die Aufnahme klickt sich selbst durch den Assistenten, jedes Bild zeigt also einen Zustand, den die Anwendung wirklich erreicht hat.",
         "Aufgezeichnete Sidecar-Antworten werden nach Sidecar und Methode abgelegt. Ein MAME-Bildschirm bekommt keine KURO-Antwort mehr."
+      ],
+      "0.16.40": [
+        "Beispieldaten schließen einen Step-4-Build jetzt ab. Die mitgelieferte Analyze-Arbeitsmappe liefert den erforderlichen Verdict-Nachweis.",
+        "Kein Nanopore-Rohlauf wird mitgeliefert. Der Bildschirm zeigt einen Lauf einer echten Pipeline, und derselbe Lauf speist Step 4.",
+        "Die Beispielplatte belegt pro Variante genau ein Well, sodass Layout- und Verdict-Reader sie annehmen statt eine Wiederholung abzulehnen.",
+        "Die Positionen der Beispielvarianten sind gegen die mitgelieferte EGFP-Referenz nummeriert statt gegen ein anderes Protein.",
+        "Vier neue Beispieldateien decken Rohskala, variantenbeschriftete und numerische Bestätigungseingaben ab, für die es bisher kein Beispiel gab."
       ]
     },
     "releaseStamps": {
@@ -2856,7 +2863,8 @@
       "0.16.32": "3be3b377",
       "0.16.33": "059a2f27",
       "0.16.34": "d7925cb6",
-      "0.16.35": "d628e48a"
+      "0.16.35": "d628e48a",
+      "0.16.40": "54e3cb8d"
     }
   },
   "primerDisplay": {

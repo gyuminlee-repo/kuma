@@ -2509,13 +2509,13 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Cinco controles de run bruto do MAME que nunca eram enviados foram removidos. Um filtro de Q-score ou um comprimento alvo parecia definido e não fazia nada.",
-      "A exigência de GC clamp agora vincula todos os candidatos, e não apenas a correspondência preferida, então nenhum primer viola a restrição pedida.",
-      "O limiar MAPQ é um controle em vez de um 25 fixo, e o limite de divergência do EVOLVEpro e a capacidade da próxima rodada ficam visíveis.",
-      "Mudar um alvo de Tm, uma faixa de GC, uma polimerase ou um ajuste de diversidade limpa os primers anteriores em vez de deixá-los exportáveis.",
-      "Uma pontuação de síntese ausente aparece como indisponível em vez de um 100 verde, e uma medição de saúde do run ausente não é mais plotada como zero."
+      "Os dados de exemplo agora concluem uma compilação da etapa 4. A pasta de trabalho do Analyze incluída fornece a evidência de verdict exigida.",
+      "Nenhuma corrida nanopore bruta é incluída. A tela mostra uma corrida produzida por um pipeline real, e essa mesma corrida alimenta a etapa 4.",
+      "A placa de exemplo aloca um poço por variante, de modo que os leitores de layout e de verdict a aceitam em vez de recusá-la.",
+      "As posições das variantes de exemplo são numeradas pela referência EGFP incluída, e não por outra proteína.",
+      "Quatro novos arquivos cobrem entradas em escala bruta, com rótulo de variante e de confirmação numérica que antes não tinham exemplo."
     ],
-    "highlightsStamp": "0.16.39+d8fb93a8",
+    "highlightsStamp": "0.16.40+54e3cb8d",
     "releases": {
       "0.16.39": [
         "Cinco controles de run bruto do MAME que nunca eram enviados foram removidos. Um filtro de Q-score ou um comprimento alvo parecia definido e não fazia nada.",
@@ -2805,6 +2805,13 @@
         "O MAME agora tem capturas de tela, feitas a partir de uma corrida nanopore real de 288 pocos em vez de dados de teste.",
         "A captura percorre o assistente clicando sozinha, entao cada imagem mostra uma tela que o aplicativo realmente alcancou.",
         "As respostas gravadas do sidecar sao indexadas por sidecar alem do metodo. Uma tela do MAME nao recebe mais uma resposta do KURO."
+      ],
+      "0.16.40": [
+        "Os dados de exemplo agora concluem uma compilação da etapa 4. A pasta de trabalho do Analyze incluída fornece a evidência de verdict exigida.",
+        "Nenhuma corrida nanopore bruta é incluída. A tela mostra uma corrida produzida por um pipeline real, e essa mesma corrida alimenta a etapa 4.",
+        "A placa de exemplo aloca um poço por variante, de modo que os leitores de layout e de verdict a aceitam em vez de recusá-la.",
+        "As posições das variantes de exemplo são numeradas pela referência EGFP incluída, e não por outra proteína.",
+        "Quatro novos arquivos cobrem entradas em escala bruta, com rótulo de variante e de confirmação numérica que antes não tinham exemplo."
       ]
     },
     "releaseStamps": {
@@ -2856,7 +2863,8 @@
       "0.16.32": "3be3b377",
       "0.16.33": "059a2f27",
       "0.16.34": "d7925cb6",
-      "0.16.35": "d628e48a"
+      "0.16.35": "d628e48a",
+      "0.16.40": "54e3cb8d"
     }
   },
   "primerDisplay": {

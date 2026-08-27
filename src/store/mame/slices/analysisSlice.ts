@@ -13,11 +13,31 @@ import { seedBuildEvolveproForm } from "@/lib/mame/buildEvolveproFormStorage";
 import { useRoundStore } from "@/store/round/roundSlice";
 import type { ActivityRecord, PlateMeta } from "@/types/mame/activity";
 import type {
+  AnalyzeSummary,
   PlateDataResult,
+  ReplicateResult,
   RunHealthData,
+  VerdictRecord,
+  WellEntry,
 } from "@/types/mame/models";
 import type { AnalysisSlice } from "../slice-interfaces";
 import type { AppState } from "../types";
+
+/** `src-tauri/samples/mame/sample_analysis_result.json`.
+ *
+ * Written by `python-core/scripts/generate_mame_step4_samples.py`, which
+ * serialises a real pipeline run through the same handlers the sidecar answers
+ * a live Analyze with. Every field is therefore the shape a run produces, and
+ * each is optional here because a bundle that lost the file should degrade to
+ * the fallback rather than throw on a missing key.
+ */
+type SampleAnalysisFixture = {
+  verdicts?: VerdictRecord[];
+  replicates?: ReplicateResult[];
+  summary?: AnalyzeSummary;
+  wells?: WellEntry[];
+  runHealth?: RunHealthData;
+};
 
 export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> = (
   set,
@@ -183,6 +203,10 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       "samples/mame/10_mame_gc_prenormalised.xlsx",
       "samples/mame/11_mame_gc_fid_round1_raw.xlsx",
       "samples/mame/sample_analysis_result.json",
+      // Appended rather than inserted: `reasonAt` indexes into this list, so a
+      // new entry in the middle renumbers every message below it.
+      "samples/mame/13_mame_verdict.xlsx",
+      "samples/mame/14_mame_activity_long_raw.csv",
     ];
     const settled = await Promise.allSettled(relPaths.map((p) => resolveResource(p)));
     const resolved: (string | null)[] = settled.map((r, i) => {
@@ -214,6 +238,8 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       gcDataXlsxPath,
       round1ReportXlsxPath,
       analysisResultPath,
+      verdictXlsxPath,
+      activityRawCsvPath,
     ] = resolved;
 
     // Critical inputs: reference.fasta and activity CSV. Abort with a
@@ -242,6 +268,31 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     if (!gcDataXlsxPath) optionalFailures.push("10_mame_gc_prenormalised.xlsx");
     if (!round1ReportXlsxPath)
       optionalFailures.push("11_mame_gc_fid_round1_raw.xlsx");
+    if (!verdictXlsxPath) optionalFailures.push("13_mame_verdict.xlsx");
+    if (!activityRawCsvPath)
+      optionalFailures.push("14_mame_activity_long_raw.csv");
+
+    // The fixture is read before anything is shown, because what it holds
+    // decides what gets shown. It is the output of a real pipeline run over the
+    // same variant list, plate and reference the rest of the sample set names,
+    // so the results screen states the campaign the other files describe. The
+    // hand-written mocks below are the fallback for a bundle that lost the
+    // file: they are internally consistent but describe a different plate, so
+    // reaching for them means the demo no longer agrees with itself.
+    let fixture: SampleAnalysisFixture | null = null;
+    if (analysisResultPath) {
+      try {
+        fixture = JSON.parse(
+          await readTextFile(analysisResultPath),
+        ) as SampleAnalysisFixture;
+      } catch (fixtureErr) {
+        console.warn(
+          "[analysisSlice] sample_analysis_result.json load failed:",
+          fixtureErr,
+        );
+        optionalFailures.push("sample_analysis_result.json");
+      }
+    }
 
     // Populate input store via cross-slice setters (skip ones that failed).
     //
@@ -284,14 +335,15 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     });
 
     // Activity pipeline: create round + set plate meta (WT wells) + upload measurements.
-    // WT wells A1/A2/A3 derived from 06_mame_plate_layout.xlsx (rows 2-4 → WT_r1/r2/r3).
+    // The control well is the one `06_mame_plate_layout.xlsx` marks WT, which
+    // is where `build_draft_layout` seats the control row of the variant list.
     // Round entity is required so WtWellGrid / ActivityPanel can surface the
     // pre-annotated WT wells without forcing the user to redo the click-grid.
     // Partial-success allowed per Wave B1 spec: RPC failure must not block the
     // mock results screen — user is notified via analyzeMessage.
     const samplePlateMeta: PlateMeta = {
       plates: [
-        { plate_id: "plate01", wt_wells: ["A1", "A2", "A3"], control_wells: [] },
+        { plate_id: "plate01", wt_wells: ["H12"], control_wells: [] },
       ],
     };
     const roundId = useRoundStore.getState().addRound({ plate_meta: samplePlateMeta });
@@ -320,11 +372,11 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       console.warn("[analysisSlice] activity RPC failed, falling back to mock:", rpcErr);
     }
 
-    const wells = sampleWells();
+    const wells = fixture?.wells ?? sampleWells();
     set({
-      verdicts: sampleVerdicts(),
-      replicates: sampleReplicates(),
-      summary: sampleSummary(),
+      verdicts: fixture?.verdicts ?? sampleVerdicts(),
+      replicates: fixture?.replicates ?? sampleReplicates(),
+      summary: fixture?.summary ?? sampleSummary(),
       // Sample data carries no demux yield or mapping provenance; drop any
       // left over from a real run.
       analyzeYield: null,
@@ -352,9 +404,12 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       demuxResume: null,
       wells,
       selectedWell: wells.find((w) => w.selected) ?? wells[0] ?? null,
+      // The well count is read off what was loaded rather than stated here. A
+      // literal went stale the moment the sample plate changed shape, and it
+      // said 22 while the screen showed something else.
       analyzeMessage:
         (activityErr === null
-          ? "Sample data loaded (22 wells, plate01)"
+          ? `Sample data loaded (${wells.length} wells, plate01)`
           : `Sample data loaded (results only; activity RPC unavailable: ${
               activityErr instanceof Error ? activityErr.message : String(activityErr)
             })`) +
@@ -363,33 +418,32 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
           : ""),
     });
 
-    // Task B: Load fixture analysis result to populate the run-health graphs.
-    // Only runHealth is missing — verdicts/wells/summary are already set from
-    // the mock helpers above. Setting runHealth makes the Per-plate verdict
-    // breakdown render instead of showing "Setup incomplete".
-    if (analysisResultPath) {
-      try {
-        const fixtureText = await readTextFile(analysisResultPath);
-        const fixtureData = JSON.parse(fixtureText) as { runHealth?: RunHealthData };
-        if (fixtureData.runHealth) {
-          set({ runHealth: fixtureData.runHealth });
-        }
-      } catch (fixtureErr) {
-        console.warn(
-          "[analysisSlice] sample_analysis_result.json load failed:",
-          fixtureErr,
-        );
-      }
+    // Run health comes from the same fixture, which is why the per-plate
+    // breakdown renders instead of "Setup incomplete".
+    if (fixture?.runHealth) {
+      set({ runHealth: fixture.runHealth });
     }
 
-    // Seed the supported Step 3 inputs for this project only.
+    // Seed the step 4 inputs for this project only.
+    //
+    // The raw long-format file is the one seeded as the measurement source
+    // because the form opens on the raw scale. Seeding the already-relative
+    // twin left the demo one dropdown away from a build that divides values by
+    // a wild-type mean they were already divided by.
+    //
+    // `verdictXlsx` is seeded too. It is a required input with no other source
+    // in sample data: nothing here runs Analyze, so without it every build
+    // stopped at "verdict_xlsx is required" and step 4 could be looked at but
+    // not finished.
     seedBuildEvolveproForm(
       {
-        activityPath: activityCsvPath,
+        activityPath: activityRawCsvPath ?? activityCsvPath,
         layoutXlsx: layoutXlsxPath ?? undefined,
         gcDataXlsx: gcDataXlsxPath ?? undefined,
         round1ReportXlsx: round1ReportXlsxPath ?? undefined,
         remeasureReportXlsx: variantLabelsReportPath ?? undefined,
+        verdictXlsx: verdictXlsxPath ?? undefined,
+        expectedXlsx: expectedPath ?? undefined,
       },
       get().projectPath,
     );

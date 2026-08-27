@@ -52,13 +52,25 @@ Round 2 EVOLVEpro pred        ── 다음 라운드 (이 폴더 범위 밖)
 | D | D1-D3 | S65A |
 | H | H12 | blank |
 
-## Cross-file 일관성 검증 (검증 완료)
+## 이 폴더와 번들 샘플은 다른 캠페인이다
 
-- 22 wells 모두 #6 plate_layout, #7 activity_long 일치
-- Measured variant set {WT, S65T, Y66H, T203Y, F64L, A206K, S65A}: #6/#8/#9/#10/#11/#12 일치
-- #3 expected mutations 는 plate subset 보다 넓은 9개 EGFP single 후보를 담고, #6 이후 activity/Step 3 파일은 실제 측정된 6개 후보만 담는다
-- True activity 값 통일: WT=1.00, S65T=1.85, Y66H=0.48, T203Y=2.33, F64L=1.55, A206K=1.20, S65A=3.11
-- Step 3 Help 샘플 기본 조합: #11 raw GC-FID round-1 primary + #12 numeric-index confirmation + #8 rank source
+위 시나리오는 **이 폴더(`templates/`)** 의 내용이다. 앱이 Help > Load Sample Data 로 여는 파일은 `src-tauri/samples/mame/` 에 있다. 그쪽은 2026-08-27 에 별도 캠페인으로 재생성됐다. 두 폴더를 같은 것으로 읽지 마라.
+
+번들 샘플 쪽은 `python-core/scripts/generate_mame_step4_samples.py` 가 만든다. 스크립트는 shipped reference 로 위치와 잔기를 확정한다. 이어서 실제 파이프라인을 돌려 결과와 verdict 워크북을 뽑는다. 마지막으로 step 4 입력 분기 10개를 전부 `build_evolvepro_input` 으로 통과시킨 뒤에야 끝난다.
+
+### templates/#6 은 step 4 build 를 통과하지 못한다
+
+이 폴더의 `06_mame_plate_layout.xlsx` 는 변이당 웰 3개(`_r<n>` 반복)를 쓴다. `build_evolvepro_input` 의 `_layout_maps` 는 한 변이가 두 웰에 앉는 것을 거절한다(`kuma_core/mame/activity/build_evolvepro_input.py:113-115`). 이 파일을 `layout_xlsx` 로 넘기면 `layout maps variant '232A' to multiple wells` 로 멈춘다. verdict 워크북에서 매핑을 유도하는 경로도 같은 1:1 제약을 건다(`:145-146`).
+
+`plate_layout_xlsx.py` 는 `_r<n>` 접미사를 벗겨내도록 만들어져 있으므로 반복 웰은 의도된 표기다. 파서와 소비자가 서로 다른 계약을 들고 있는 상태이며 어느 쪽을 정본으로 삼을지는 아직 정해지지 않았다. 번들 샘플은 그 결정을 기다리지 않고 변이당 웰 1개로 재생성해 build 가 도는 쪽을 택했다.
+
+## 번들 샘플 캠페인 (`src-tauri/samples/mame/`)
+
+- 설계 변이 10개 + WT 대조 1행. 전부 shipped `reference.fasta` (EGFP CDS 720 bp) 넘버링이고 `wt_aa` 는 그 서열에서 읽는다. 이전 목록은 avGFP 넘버링이라 EGFP 가 이미 갖고 있는 `S65T`·`F64L` 을 다시 도입하라고 적고 있었다.
+- 변이 목록은 위치 오름차순이다. 플레이트는 파일 행 순서로 채워지는데 numeric-ID 디코더는 위치 순서로 순번을 매기므로, 정렬돼 있을 때만 두 해석이 같은 웰을 가리킨다.
+- 플레이트: 변이 10개가 A01~B02, WT 대조가 H12.
+- `13_mame_verdict.xlsx` 는 실제 analyze 실행이 쓴 워크북이다. step 4 필수 입력이며 샘플 데이터에 다른 공급원이 없다.
+- nanopore raw run(fastq, MinKNOW 폴더)은 번들에 넣지 않는다. 용량이 크고 화면에 필요한 것은 결과이지 원시 신호가 아니다. 대신 결과 픽스처와 verdict 워크북이 같은 실행에서 나온다.
 
 ## 파일 목록
 
@@ -75,6 +87,15 @@ Round 2 EVOLVEpro pred        ── 다음 라운드 (이 폴더 범위 밖)
 | 10 | `10_mame_gc_prenormalised.xlsx` | MAME activity / Step 3 | plateLayout route `gc_data_xlsx` (축 A) 또는 GC-sheet primary screen | `Sample Name`=well, `Area`=WT 대비 상대값 | `GC_normalised` |
 | 11 | `11_mame_gc_fid_round1_raw.xlsx` | MAME Step 3 | primary screen | FID1B block, `Sample Name`=well, `Area`=raw peak area, WT blocks 포함 | `GC-FID round1 raw` |
 | 12 | `12_mame_agilent_numeric_index.xlsx` | MAME Step 3 | numeric-index confirmation | FID1B block, `Sample Name`=`1`, `1-2`, `1-3` 형식, WT blocks 포함 | `Agilent numeric index` |
+
+번들 샘플 전용(`src-tauri/samples/mame/`, 이 폴더에는 없다):
+
+| # | 파일 | 단계 | 필수 컬럼/헤더 | 시트명 |
+|---|---|---|---|---|
+| 13 | `13_mame_verdict.xlsx` | step 4 `verdict_xlsx` (필수) | Analyze 워크북 그대로. `Final` 시트의 `well_id`, `verdict`, `mutant_id` 를 읽는다 | `Final` 외 analyze 시트 일체 |
+| 14 | `14_mame_activity_long_raw.csv` | step 4 `activity_path`, `activity_scale=raw` | `plate_id`, `well_id`, `value`, `replicate_idx`. `WT_1`~`WT_3` 행이 분모다 | 없음 (csv) |
+| 15 | `15_mame_activity_variant.csv` | step 4 `activity_path`, variant 라벨 | `variant`, `activity`, `replicate_idx`. plate layout 이 필요 없다 | 없음 (csv) |
+| 16 | `16_mame_agilent_numeric_confirmation.xlsx` | step 4 `remeasure_numeric_xlsx` | FID1B block. 순번이 primary 의 above-WT 부분집합을 센다 | `Agilent numeric confirmation` |
 
 ## 비고
 
