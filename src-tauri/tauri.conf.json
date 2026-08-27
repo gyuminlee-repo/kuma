@@ -67,6 +67,10 @@
       "samples/mame/10_mame_gc_prenormalised.xlsx": "samples/mame/10_mame_gc_prenormalised.xlsx",
       "samples/mame/11_mame_gc_fid_round1_raw.xlsx": "samples/mame/11_mame_gc_fid_round1_raw.xlsx",
       "samples/mame/12_mame_agilent_numeric_index.xlsx": "samples/mame/12_mame_agilent_numeric_index.xlsx",
+      "samples/mame/13_mame_verdict.xlsx": "samples/mame/13_mame_verdict.xlsx",
+      "samples/mame/14_mame_activity_long_raw.csv": "samples/mame/14_mame_activity_long_raw.csv",
+      "samples/mame/15_mame_activity_variant.csv": "samples/mame/15_mame_activity_variant.csv",
+      "samples/mame/16_mame_agilent_numeric_confirmation.xlsx": "samples/mame/16_mame_agilent_numeric_confirmation.xlsx",
       "samples/mame/sample_analysis_result.json": "samples/mame/sample_analysis_result.json",
       "resources/NOTICE.md": "resources/NOTICE.md",
       "sidecar-hashes.json": "sidecar-hashes.json"

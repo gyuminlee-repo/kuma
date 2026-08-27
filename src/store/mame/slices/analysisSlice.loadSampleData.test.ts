@@ -2,7 +2,7 @@
  * analysisSlice.loadSampleData.test.ts
  *
  * MAME loadSampleData() 동작 검증:
- * - resolveResource 11개 경로 호출 (Phase 1 setup prefill seeds + EVOLVEpro form + fixture 포함)
+ * - resolveResource 13개 경로 호출 (Phase 1 setup prefill seeds + EVOLVEpro form + fixture 포함)
  * - activity.set_plate_meta + activity.upload RPC 호출 파라미터
  * - 입력 경로 setter + hardcoded sample 결과 populate
  * - activity RPC 실패 시 fallback (결과는 populate, 메시지 변경)
@@ -33,6 +33,7 @@ vi.mock("@/lib/mame/buildEvolveproFormStorage", () => ({
 }));
 
 import { resolveResource } from "@tauri-apps/api/path";
+import { readTextFile } from "@tauri-apps/plugin-fs";
 import { seedBuildEvolveproForm } from "@/lib/mame/buildEvolveproFormStorage";
 import {
   sampleReplicates,
@@ -100,7 +101,7 @@ describe("mame analysisSlice.loadSampleData", () => {
     useRoundStore.setState({ rounds: [], active_round_id: null });
   });
 
-  it("resolves 11 bundled resources, creates round + WT-well plate meta, calls activity RPCs, populates input + results", async () => {
+  it("resolves 13 bundled resources, creates round + WT-well plate meta, calls activity RPCs, populates input + results", async () => {
     // activity.upload returns records + plate_meta; hydrated into round.activity
     mockSendRequest.mockImplementation((method: string) => {
       if (method === "activity.upload") {
@@ -110,7 +111,7 @@ describe("mame analysisSlice.loadSampleData", () => {
           ],
           plate_meta: {
             plates: [
-              { plate_id: "plate01", wt_wells: ["A1", "A2", "A3"], control_wells: [] },
+              { plate_id: "plate01", wt_wells: ["H12"], control_wells: [] },
             ],
           },
         });
@@ -133,10 +134,14 @@ describe("mame analysisSlice.loadSampleData", () => {
       "samples/mame/10_mame_gc_prenormalised.xlsx",
       "samples/mame/11_mame_gc_fid_round1_raw.xlsx",
       "samples/mame/sample_analysis_result.json",
+      "samples/mame/13_mame_verdict.xlsx",
+      "samples/mame/14_mame_activity_long_raw.csv",
     ];
-    // One per entry of `expectedPaths` and nothing else: the sample map
-    // (`05_mame_sample_map.xlsx`) was dropped along with the field it filled,
-    // so this run resolves 11 where it used to resolve 12.
+    // One per entry of `expectedPaths` and nothing else. The sample map
+    // (`05_mame_sample_map.xlsx`) was dropped along with the field it filled;
+    // the verdict workbook and the raw long file were added because step 4
+    // cannot finish a build without the first and opens on the scale of the
+    // second.
     expect(resolveResource).toHaveBeenCalledTimes(expectedPaths.length);
     for (const p of expectedPaths) {
       expect(resolveResource).toHaveBeenCalledWith(p);
@@ -147,7 +152,7 @@ describe("mame analysisSlice.loadSampleData", () => {
     expect(roundState.rounds.length).toBe(1);
     const round = roundState.rounds[0]!;
     expect(round.plate_meta.plates).toEqual([
-      { plate_id: "plate01", wt_wells: ["A1", "A2", "A3"], control_wells: [] },
+      { plate_id: "plate01", wt_wells: ["H12"], control_wells: [] },
     ]);
     expect(roundState.active_round_id).toBe(round.id);
 
@@ -158,7 +163,7 @@ describe("mame analysisSlice.loadSampleData", () => {
         round_id: round.id,
         plate_meta: expect.objectContaining({
           plates: [
-            { plate_id: "plate01", wt_wells: ["A1", "A2", "A3"], control_wells: [] },
+            { plate_id: "plate01", wt_wells: ["H12"], control_wells: [] },
           ],
         }),
       }),
@@ -176,11 +181,7 @@ describe("mame analysisSlice.loadSampleData", () => {
 
     // 5. round.activity hydrated from upload response
     expect(round.activity).not.toBeNull();
-    expect(round.activity?.plate_meta.plates[0]?.wt_wells).toEqual([
-      "A1",
-      "A2",
-      "A3",
-    ]);
+    expect(round.activity?.plate_meta.plates[0]?.wt_wells).toEqual(["H12"]);
     expect(round.activity?.records.length).toBeGreaterThan(0);
 
     // 4. 입력 경로 store populated. The analyze reference is the flanked
@@ -203,15 +204,21 @@ describe("mame analysisSlice.loadSampleData", () => {
     expect(store.wells).toEqual(sampleWells());
     expect(store.selectedWell).not.toBeNull();
 
+    // The measurement source is the raw file, not the relative twin: the form
+    // opens on the raw scale, and seeding the relative one would divide values
+    // by a wild-type mean they already carry. The verdict workbook is seeded
+    // because step 4 requires it and sample data has no other source for it.
     expect(seedBuildEvolveproForm).toHaveBeenCalledWith(
       {
-        activityPath: "/resolved/samples/mame/07_mame_activity_long.csv",
+        activityPath: "/resolved/samples/mame/14_mame_activity_long_raw.csv",
         layoutXlsx: "/resolved/samples/mame/06_mame_plate_layout.xlsx",
         gcDataXlsx: "/resolved/samples/mame/10_mame_gc_prenormalised.xlsx",
         round1ReportXlsx:
           "/resolved/samples/mame/11_mame_gc_fid_round1_raw.xlsx",
         remeasureReportXlsx:
           "/resolved/samples/mame/09_mame_agilent_rep_batch.xlsx",
+        verdictXlsx: "/resolved/samples/mame/13_mame_verdict.xlsx",
+        expectedXlsx: "/resolved/samples/mame/03_mame_expected_mutations.xlsx",
       },
       "/project",
     );
@@ -219,6 +226,38 @@ describe("mame analysisSlice.loadSampleData", () => {
     // 6. 성공 메시지
     expect(store.analyzeMessage).toMatch(/loaded/i);
     expect(store.analyzeMessage).not.toMatch(/activity RPC unavailable/);
+  });
+
+  it("shows the bundled run rather than the fallback when the fixture carries one", async () => {
+    // The point of the fixture is that the results screen states the same
+    // campaign the rest of the sample files describe. A fixture that is read
+    // for run health alone leaves the screen showing a different plate than
+    // step 4 is about to build from, which is how the two drifted apart.
+    const fixtureVerdicts = [
+      { native_barcode: "1_1", custom_barcode: "1_1", verdict: "PASS", mutant_id: "Y67H" },
+    ];
+    const fixtureWells = [
+      { well: "A1", mutant_id: "Y67H", verdict: "PASS", selected: true },
+    ];
+    (readTextFile as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      JSON.stringify({
+        verdicts: fixtureVerdicts,
+        replicates: [{ mutant_id: "Y67H", selected_plate: "NB01", failed: false }],
+        summary: { total: 1, pass_count: 1, ambiguous_count: 0, fail_count: 0 },
+        wells: fixtureWells,
+        runHealth: { cross_talk_status: "not_run" },
+      }),
+    );
+    const store = makeStore();
+
+    await store.loadSampleData();
+
+    expect(store.verdicts).toEqual(fixtureVerdicts);
+    expect(store.wells).toEqual(fixtureWells);
+    expect(store.summary?.total).toBe(1);
+    expect(store.verdicts).not.toEqual(sampleVerdicts());
+    // The count in the message is read off what loaded, so it moves with it.
+    expect(store.analyzeMessage).toMatch(/1 wells/);
   });
 
   it("drops the replicate axis of the previous run", async () => {
