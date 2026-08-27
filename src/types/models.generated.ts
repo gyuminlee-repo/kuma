@@ -490,7 +490,11 @@ export interface ExcludedRange {
   [k: string]: unknown;
 }
 /**
- * Params for `export_all` RPC method (6-file batch export).
+ * Params for `export_all` RPC method.
+ *
+ * The batch writes six artefact kinds as eight files: echo and janus each go
+ * out as a csv and an xlsx. See ``EXPORT_ALL_BUNDLE`` in
+ * ``sidecar_kuro.handlers.export`` for the declaration both counts come from.
  */
 export interface ExportAllParams {
   amount?: "0.05" | "0.2";

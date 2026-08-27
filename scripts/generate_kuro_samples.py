@@ -1,4 +1,4 @@
-"""Generate KURO export-all 6-file sample set under src-tauri/samples/kuro/.
+"""Generate the KURO export-all sample bundle under src-tauri/samples/kuro/.
 
 Run once via:
     python3 scripts/generate_kuro_samples.py
@@ -22,8 +22,10 @@ first run off the GenBank record reproduced the committed echo.csv and
 primers.fasta byte for byte.
 
 Idempotent: removes the target subfolder before regenerating so re-runs
-produce identical output. The 6 (plus xlsx variants = 8) flat files are
-the same set that `handle_export_all` writes in production. This script
+produce identical output. The six artefact kinds above go out as eight flat
+files (echo and janus each as a csv and an xlsx), the same set that
+`handle_export_all` writes in production off its EXPORT_ALL_BUNDLE
+declaration. This script
 exists solely to materialise an in-repo sample bundle so the Tauri app
 can ship a working demo input for MAME onboarding.
 

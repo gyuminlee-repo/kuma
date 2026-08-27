@@ -984,7 +984,12 @@ class ExportMacrogenParams(BaseModel):
 
 
 class ExportAllParams(BaseModel):
-    """Params for `export_all` RPC method (6-file batch export)."""
+    """Params for `export_all` RPC method.
+
+    The batch writes six artefact kinds as eight files: echo and janus each go
+    out as a csv and an xlsx. See ``EXPORT_ALL_BUNDLE`` in
+    ``sidecar_kuro.handlers.export`` for the declaration both counts come from.
+    """
 
     project_id: Optional[str] = None
     project_name: Optional[str] = None

@@ -6,6 +6,7 @@ from dataclasses import fields as dc_fields
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Callable, NamedTuple
 
 import openpyxl
 
@@ -974,8 +975,42 @@ def handle_export_janus_mapping_dry_run(params: dict) -> dict:
     return {"rows": rows, "total": len(rows), "transfer_vol": float(vol)}
 
 
+class _BundleArtefact(NamedTuple):
+    """One artefact kind in the ``export_all`` bundle and the files it writes.
+
+    ``suffixes`` is what gets appended to the run's file prefix, in write
+    order. Most kinds are a single file; echo and janus each go out as a csv
+    and an xlsx, which is why the bundle counts six kinds but eight files.
+    """
+
+    kind: str
+    suffixes: tuple[str, ...]
+
+
+# The bundle `handle_export_all` writes, in write order. This is the single
+# declaration of what the batch export produces: the handler iterates it
+# rather than naming files one by one, so the counts are read off this tuple
+# instead of being restated in prose that then drifts.
+EXPORT_ALL_BUNDLE: tuple[_BundleArtefact, ...] = (
+    _BundleArtefact("macrogen", ("macrogen.xls",)),
+    _BundleArtefact("primers", ("primers.fasta",)),
+    _BundleArtefact("echo", ("echo.csv", "echo.xlsx")),
+    _BundleArtefact("janus", ("janus.csv", "janus.xlsx")),
+    _BundleArtefact("platemap", ("platemap.xlsx",)),
+    _BundleArtefact("run", ("run.json",)),
+)
+
+# Flattened file suffixes, still in write order.
+EXPORT_ALL_FILE_SUFFIXES: tuple[str, ...] = tuple(
+    suffix for artefact in EXPORT_ALL_BUNDLE for suffix in artefact.suffixes
+)
+
+
 def handle_export_all(params: dict) -> dict:
-    """Run the 6-file batch export pipeline.
+    """Run the batch export pipeline: six artefact kinds written as eight files.
+
+    The two counts differ because echo and janus each go out as a csv and an
+    xlsx. ``EXPORT_ALL_BUNDLE`` is the declaration both counts are read from.
 
     Returns ``{"success": [filename, ...], "failed": [{path, reason}, ...], "output_dir": str}``.
     Individual exporter failures are recorded but do not raise.
@@ -1024,107 +1059,119 @@ def handle_export_all(params: dict) -> dict:
     target_dir.mkdir(parents=True)
 
     file_prefix = target_dir.name
-    ECHO_CSV = f"{file_prefix}_echo.csv"
-    ECHO_XLSX = f"{file_prefix}_echo.xlsx"
-    JANUS_CSV = f"{file_prefix}_janus.csv"
-    JANUS_XLSX = f"{file_prefix}_janus.xlsx"
-    MACROGEN = f"{file_prefix}_macrogen.xls"
-    PRIMERS_FASTA = f"{file_prefix}_primers.fasta"
-    PLATEMAP_XLSX = f"{file_prefix}_platemap.xlsx"
-    RUN_JSON = f"{file_prefix}_run.json"
+
+    def _name(suffix: str) -> str:
+        return f"{file_prefix}_{suffix}"
+
+    def _write_run_json() -> None:
+        # Built here rather than before the loop so the manifest still closes
+        # the run: finished_at is the moment the last artefact is written, and
+        # the manifest describes the exports that came before it.
+        finished_at = datetime.now(timezone.utc)
+
+        # Same reading as handle_export_excel, and for the same reason: the
+        # design results come out of _core._state.results on both branches
+        # above (the payload branch only filters them by the mutations the
+        # caller kept), so the session provenance describes this export either
+        # way, and where the well layout came from is recorded separately
+        # instead of being folded into results_source. Keying results_source
+        # off p.mappings the way handle_export_mapping does would drop the
+        # provenance on the only path operators actually use:
+        # src/components/layout/export-handlers.ts always sends mappings for
+        # export_all, so every real batch export would come out stamped
+        # provenance_omitted.
+        manifest_inputs, manifest_extra = _design_provenance_for_manifest("state")
+        manifest_extra["mappings_source"] = (
+            "payload" if p.mappings is not None else "state"
+        )
+        manifest = build_run_manifest(
+            method="export_all",
+            inputs=manifest_inputs,
+            # mappings and dedup_info are the plate map, which the same file
+            # already carries in full. Copying them into params would double
+            # the file.
+            params={
+                k: v for k, v in params.items()
+                if k not in ("mappings", "dedup_info")
+            },
+            started_at=started_at,
+            finished_at=finished_at,
+            extra=manifest_extra,
+        )
+        _export_run_json(
+            mappings, results, rev_groups,
+            target_dir / _name("run.json"), manifest=manifest,
+        )
+
+    writers: dict[str, Callable[[], None]] = {
+        "macrogen.xls": lambda: export_macrogen_xls(
+            fwd_primers=fwd,
+            rev_primers=rev,
+            fwd_plate_name=p.fwd_plate_name,
+            rev_plate_name=p.rev_plate_name,
+            amount=p.amount,
+            purification=p.purification,
+            output_path=str(target_dir / _name("macrogen.xls")),
+        ),
+        "primers.fasta": lambda: _export_primers_fasta(
+            mappings, target_dir / _name("primers.fasta"),
+        ),
+        "echo.csv": lambda: _export_echo_for_all(
+            fwd, rev, target_dir / _name("echo.csv"),
+            transfer_vol=int(p.echo_transfer_vol),
+            rev_groups=rev_groups,
+            bom=p.bom,
+            quadrant=p.quadrant,
+            used_quadrants=list(p.used_quadrants or []),
+        ),
+        # The same quadrant the csv above is written with. One export_all used
+        # to leave a csv and an xlsx naming different source wells for the same
+        # primer, and nothing in either file says which one the plate was
+        # stamped from.
+        "echo.xlsx": lambda: export_echo_mapping_xlsx(
+            fwd, rev, target_dir / _name("echo.xlsx"),
+            transfer_vol=int(p.echo_transfer_vol),
+            rev_groups=rev_groups,
+            quadrant=p.quadrant,
+            used_quadrants=list(p.used_quadrants or []),
+        ),
+        "janus.csv": lambda: _export_janus_for_all(
+            fwd, rev, target_dir / _name("janus.csv"),
+            transfer_vol=float(p.janus_transfer_vol),
+            rev_groups=rev_groups,
+            bom=p.bom,
+        ),
+        "janus.xlsx": lambda: export_janus_mapping_xlsx(
+            fwd, rev, target_dir / _name("janus.xlsx"),
+            transfer_vol=float(p.janus_transfer_vol),
+            rev_groups=rev_groups,
+        ),
+        "platemap.xlsx": lambda: _export_platemap_for_all(
+            mappings, results, rev_groups, target_dir / _name("platemap.xlsx"),
+        ),
+        "run.json": _write_run_json,
+    }
+
+    # A declared artefact with no writer is a programming error, not an export
+    # failure, so it is raised rather than folded into `failed`.
+    missing = [s for s in EXPORT_ALL_FILE_SUFFIXES if s not in writers]
+    extra_writers = [s for s in writers if s not in EXPORT_ALL_FILE_SUFFIXES]
+    if missing or extra_writers:
+        raise RuntimeError(
+            "export_all bundle declaration and writers disagree: "
+            f"missing={missing} undeclared={extra_writers}"
+        )
 
     success: list[str] = []
     failed: list[dict] = []
 
-    def _try(name: str, fn) -> None:
+    for suffix in EXPORT_ALL_FILE_SUFFIXES:
+        name = _name(suffix)
         try:
-            fn()
+            writers[suffix]()
             success.append(name)
         except Exception as exc:  # noqa: BLE001 -- intentionally aggregating per-file
             failed.append({"path": name, "reason": str(exc)})
-
-    _try(MACROGEN, lambda: export_macrogen_xls(
-        fwd_primers=fwd,
-        rev_primers=rev,
-        fwd_plate_name=p.fwd_plate_name,
-        rev_plate_name=p.rev_plate_name,
-        amount=p.amount,
-        purification=p.purification,
-        output_path=str(target_dir / MACROGEN),
-    ))
-
-    _try(PRIMERS_FASTA, lambda: _export_primers_fasta(mappings, target_dir / PRIMERS_FASTA))
-
-    _try(ECHO_CSV, lambda: _export_echo_for_all(
-        fwd, rev, target_dir / ECHO_CSV,
-        transfer_vol=int(p.echo_transfer_vol),
-        rev_groups=rev_groups,
-        bom=p.bom,
-        quadrant=p.quadrant,
-        used_quadrants=list(p.used_quadrants or []),
-    ))
-
-    # The same quadrant the csv above is written with. One export_all used to
-    # leave a csv and an xlsx naming different source wells for the same primer,
-    # and nothing in either file says which one the plate was stamped from.
-    _try(ECHO_XLSX, lambda: export_echo_mapping_xlsx(
-        fwd, rev, target_dir / ECHO_XLSX,
-        transfer_vol=int(p.echo_transfer_vol),
-        rev_groups=rev_groups,
-        quadrant=p.quadrant,
-        used_quadrants=list(p.used_quadrants or []),
-    ))
-
-    _try(JANUS_CSV, lambda: _export_janus_for_all(
-        fwd, rev, target_dir / JANUS_CSV,
-        transfer_vol=float(p.janus_transfer_vol),
-        rev_groups=rev_groups,
-        bom=p.bom,
-    ))
-
-    _try(JANUS_XLSX, lambda: export_janus_mapping_xlsx(
-        fwd, rev, target_dir / JANUS_XLSX,
-        transfer_vol=float(p.janus_transfer_vol),
-        rev_groups=rev_groups,
-    ))
-
-    _try(PLATEMAP_XLSX, lambda: _export_platemap_for_all(
-        mappings, results, rev_groups, target_dir / PLATEMAP_XLSX,
-    ))
-
-    finished_at = datetime.now(timezone.utc)
-
-    # Same reading as handle_export_excel, and for the same reason: the design
-    # results come out of _core._state.results on both branches above (the
-    # payload branch only filters them by the mutations the caller kept), so the
-    # session provenance describes this export either way, and where the well
-    # layout came from is recorded separately instead of being folded into
-    # results_source. Keying results_source off p.mappings the way
-    # handle_export_mapping does would drop the provenance on the only path
-    # operators actually use: src/components/layout/export-handlers.ts always
-    # sends mappings for export_all, so every real batch export would come out
-    # stamped provenance_omitted.
-    manifest_inputs, manifest_extra = _design_provenance_for_manifest("state")
-    manifest_extra["mappings_source"] = (
-        "payload" if p.mappings is not None else "state"
-    )
-    manifest = build_run_manifest(
-        method="export_all",
-        inputs=manifest_inputs,
-        # mappings and dedup_info are the plate map, which the same file already
-        # carries in full below. Copying them into params would double the file.
-        params={
-            k: v for k, v in params.items()
-            if k not in ("mappings", "dedup_info")
-        },
-        started_at=started_at,
-        finished_at=finished_at,
-        extra=manifest_extra,
-    )
-
-    _try(RUN_JSON, lambda: _export_run_json(
-        mappings, results, rev_groups, target_dir / RUN_JSON, manifest=manifest,
-    ))
 
     return {
         "success": success,
