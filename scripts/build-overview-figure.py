@@ -300,10 +300,11 @@ def box_height(items):
 
 
 def plan_row(specs, x0, x1, gap, title_fs=FS_BOXTITLE):
-    """Derive each box width from its longest line and the row height from
-    the line count, then spread the leftover slack evenly so the row fills
-    its lane. Heights are never hardcoded, so a cut line takes its own
-    vertical space away with it instead of leaving dead air."""
+    """Derive each box width from its longest line and each box height from
+    its own line count, then spread the leftover slack evenly so the row
+    fills its lane. Heights are never hardcoded: the row settles on the
+    tallest box it derived and every box in the row takes that height, so a
+    cut line still moves the whole row and the bottoms stay on one line."""
     req = []
     for title, items, _opts in specs:
         need = width_of(title, title_fs, True) * FIT_MARGIN
@@ -315,16 +316,18 @@ def plan_row(specs, x0, x1, gap, title_fs=FS_BOXTITLE):
         _fit_errors.append("row does not fit: needs %.1f uu more" % -slack)
         slack = 0
     extra = slack / len(specs)
-    # Each box gets the height its own item list needs, so a box that lost
-    # lines gives up its vertical space instead of holding it as dead air.
-    # The row height that comes back is only what the LANE has to enclose.
-    heights = [box_height(items) for _t, items, _o in specs]
+    # Each box asks for the height its own item list needs, then the row
+    # takes the tallest of those and hands it to every box. A row of ragged
+    # bottom edges reads as an accident in a printed figure, and body text
+    # stays top-anchored, so a shorter list simply leaves white below it.
+    # The row height that comes back is also what the LANE has to enclose.
+    row_h = max(box_height(items) for _t, items, _o in specs)
     plan = []
     x = x0
-    for r, bh in zip(req, heights):
-        plan.append((x, r + extra, bh))
+    for r in req:
+        plan.append((x, r + extra, row_h))
         x += r + extra + gap
-    return plan, max(heights)
+    return plan, row_h
 
 
 def draw_box(x, y, w, h, title, items, fill=WHITE, title_fs=FS_BOXTITLE):
@@ -472,7 +475,11 @@ A_BASE, A_RULE_Y = 56, 66
 LANE_A_Y = 84
 SUB_A_Y = LANE_A_Y + 14
 A_PLAN, SUB_A_H = plan_row(A_SPECS, IN_X, IN_R, 10)
-SIDE_Y = SUB_A_Y + SUB_A_H + 22
+# The side channel feeds variant choice through an arrow that rises into
+# box 1. Box bottoms are now flush at the row maximum, so this clearance
+# is what the shaft has to live in and it carries the head as well.
+SIDE_GAP = 72
+SIDE_Y = SUB_A_Y + SUB_A_H + SIDE_GAP
 SIDE_H = 70
 LANE_A_H = (SIDE_Y + SIDE_H + 14) - LANE_A_Y
 LANE_A_B = LANE_A_Y + LANE_A_H
