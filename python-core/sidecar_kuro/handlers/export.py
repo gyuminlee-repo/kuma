@@ -1013,7 +1013,11 @@ def handle_export_all(params: dict) -> dict:
     xlsx. ``EXPORT_ALL_BUNDLE`` is the declaration both counts are read from.
 
     Returns ``{"success": [filename, ...], "failed": [{path, reason}, ...], "output_dir": str}``.
-    Individual exporter failures are recorded but do not raise.
+    Individual exporter failures are recorded but do not raise. That now covers
+    run.json as well: its manifest is assembled inside the loop, so a manifest
+    error is reported as a failed run.json alongside the files that did land,
+    rather than raising past the seven successes as it did before the bundle
+    became a single declaration.
     """
     started_at = datetime.now(timezone.utc)
 
