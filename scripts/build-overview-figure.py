@@ -983,17 +983,28 @@ PC_X, PC_W = 1146, 420              # C  MAME
 H_ARROW_Y = H_ROW_Y + H_ROW_H / 2.0   # 205
 H_TEXT_Y = H_ROW_Y + 44             # first body baseline in A and C
 
-# The staple brackets the two software panels and is deliberately BROKEN
-# across the bench, so the bracket cannot be read as enclosing panel B.
+# The staple runs CONTINUOUSLY from the A leg to the C leg, because what it
+# asserts is data continuity: one design carries through to the verdict that
+# checks it, and that claim holds across the bench rather than stopping at it.
+# B being outside kuma is already carried by its grey fill and the foot key,
+# so the bracket does not have to say it a second time. The title notches the
+# top border instead of sitting under it (style_spec idiom 7, fieldset
+# cutout), which is what makes the label point at the line rather than at the
+# box above it.
 H_BR_L, H_BR_R, H_BR_Y = 250, 1400, 344   # the project-link staple
-H_BR_GAP_L, H_BR_GAP_R = 676, 964         # the bench, left outside it
-H_LINK_X = H_BR_L                         # caption sits on the A leg
+H_BR_CX = (H_BR_L + H_BR_R) / 2.0         # the notch, centred on the span
+H_BR_NOTCH_PAD = 5                        # air between glyph and dash run
 
 H_D_BASE, H_D_RULE = 446, 456
 H_D_Y, H_D_H = 474, 104
 H_CELL_Y, H_CELL_H = 488, 76
-H_CELLS = (84, 608, 1132)
-H_CELL_W = 420
+# Per-cell widths, each at the floor the fit check imposes on its own longest
+# line rather than one shared width sized for the widest. A single 420 left
+# slot 2 nearly half empty. The freed space goes to the gutters, which now
+# run 224 uu against the 206 to 210 uu the A/B/C row keeps, so the two rows
+# read on the same rhythm. The floors come from the deliberately conservative
+# 0.52/0.55 em estimate, not from real Source Sans 3 metrics.
+H_CELLS = ((84, 372), (680, 348), (1252, 300))   # slot 3, slot 2, slot 1
 H_DROP_X = 1500                     # C to D, kept right of the staple
 H_FOOT_Y = H_D_Y + H_D_H + 26       # the key row, same system as the figure
 HH = int(H_FOOT_Y + 26 + 30)
@@ -1093,18 +1104,26 @@ hshaft(H_ARROW_Y, _ch[2], PC_X - 16)
 head_right(PC_X, H_ARROW_Y)
 
 # --- the project link: a dashed staple that joins A to C under the bench ---
-for _leg, _end in ((H_BR_L, H_BR_GAP_L), (H_BR_R, H_BR_GAP_R)):
+# The two halves are one line with a cutout, not two brackets. Each half runs
+# from its leg to the edge of the notch the title sits in.
+_notch = width_of("kuma project", HFS_TITLE, True) / 2.0 + H_BR_NOTCH_PAD
+for _leg, _end in ((H_BR_L, H_BR_CX - _notch), (H_BR_R, H_BR_CX + _notch)):
     out.append('<path d="M%g,%g L%g,%g L%g,%g" fill="none" stroke="%s" '
                'stroke-width="%g" stroke-dasharray="8 5"/>'
                % (_leg, H_ROW_B, _leg, H_BR_Y, _end, H_BR_Y, WARM_INK, SW_SUB))
     _connectors.append((min(_leg, _end) - 1, H_ROW_B,
                         max(_leg, _end) + 1, H_BR_Y + 1, "project link"))
-text(H_LINK_X, 372, "kuma project", HFS_TITLE, fill=WARM_INK, bold=True)
+# Sits ON the border, vertically centred on it, so it reads as the name of
+# the line. No overprint exception is needed: the dash run stops at the notch
+# and the glyph box is what the notch was cut to hold.
+text(H_BR_CX, H_BR_Y + 0.35 * HFS_TITLE, "kuma project", HFS_TITLE,
+     fill=WARM_INK, bold=True, anchor="middle")
 _link = "one project_id carries a design through to the verdict that checks it"
-# Start-anchored at the A leg, so the room it has is what lies to its right
-# inside the page margin, not a symmetric span about the page centre.
-fit(_link, HFS_BODY, (HW - PA_X) - H_LINK_X, "project link", False)
-text(H_LINK_X, 398, _link, HFS_BODY)
+# Centre-anchored on the same axis as the title, so the room it has is twice
+# the nearer distance to the page margin.
+fit(_link, HFS_BODY, 2 * min(H_BR_CX - PA_X, (PC_X + PC_W) - H_BR_CX),
+    "project link", False)
+text(H_BR_CX, 398, _link, HFS_BODY, anchor="middle")
 
 # C to D, kept to the right of the staple so nothing crosses anything
 arrow_down(H_DROP_X, H_ROW_B, H_D_Y)
@@ -1116,22 +1135,23 @@ hero_stage_title("D", "LEARN", "activity data and the next round",
                  PA_X, H_D_BASE, H_D_RULE)
 box(PA_X, H_D_Y, PC_X + PC_W - PA_X, H_D_H, INK, SW_LANE, rx=10,
     label="hero D")
-box(H_CELLS[2], H_CELL_Y, H_CELL_W, H_CELL_H, TRACK_GREY, SW_SUB,
+_d1_x, _d1_w = H_CELLS[2]
+box(_d1_x, H_CELL_Y, _d1_w, H_CELL_H, TRACK_GREY, SW_SUB,
     fill=LIGHT_GREY, label="hero D1")
-fit("1  Activity assay", HFS_TITLE, H_CELL_W - 2 * H_PAD, "hero D1", True)
-text(H_CELLS[2] + H_PAD, 534, "1  Activity assay", HFS_TITLE, bold=True)
-box(H_CELLS[1], H_CELL_Y, H_CELL_W, H_CELL_H, TRACK_GREY, SW_SUB,
-    label="hero D2")
-fit("2  Activity per well", HFS_TITLE, H_CELL_W - 2 * H_PAD, "hero D2", True)
-text(H_CELLS[1] + H_PAD, 534, "2  Activity per well", HFS_TITLE, bold=True)
-box(H_CELLS[0], H_CELL_Y, H_CELL_W, H_CELL_H, TRACK_GREY, SW_SUB,
-    label="hero D3")
-hero_rows(H_CELLS[0] + H_PAD, 520, [
+fit("1  Activity assay", HFS_TITLE, _d1_w - 2 * H_PAD, "hero D1", True)
+text(_d1_x + H_PAD, 534, "1  Activity assay", HFS_TITLE, bold=True)
+_d2_x, _d2_w = H_CELLS[1]
+box(_d2_x, H_CELL_Y, _d2_w, H_CELL_H, TRACK_GREY, SW_SUB, label="hero D2")
+fit("2  Activity per well", HFS_TITLE, _d2_w - 2 * H_PAD, "hero D2", True)
+text(_d2_x + H_PAD, 534, "2  Activity per well", HFS_TITLE, bold=True)
+_d3_x, _d3_w = H_CELLS[0]
+box(_d3_x, H_CELL_Y, _d3_w, H_CELL_H, TRACK_GREY, SW_SUB, label="hero D3")
+hero_rows(_d3_x + H_PAD, 520, [
     ("3  Round N+1", HFS_TITLE, True),
     ("scored variants back into KURO", HFS_BODY, False),
-], H_CELL_W - 2 * H_PAD, "hero D3", lead=28)
-for _cx in (556, 1080):
-    chevron_left(_cx, H_CELL_Y + 38)
+], _d3_w - 2 * H_PAD, "hero D3", lead=28)
+for _lo, _hi in ((_d3_x + _d3_w, _d2_x), (_d2_x + _d2_w, _d1_x)):
+    chevron_left((_lo + _hi) / 2.0, H_CELL_Y + 38)
 
 # --- the closed loop: the sole alert_red element on the hero ---------------
 _hy_from = H_CELL_Y + 38.0

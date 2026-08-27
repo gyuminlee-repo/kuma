@@ -43,10 +43,10 @@
   <line x1="940" y1="205" x2="981" y2="205" stroke="#0b0305" stroke-width="4"/>
   <line x1="1105" y1="205" x2="1130" y2="205" stroke="#0b0305" stroke-width="4"/>
   <polygon points="1130,195 1130,215 1146,205" fill="#0b0305"/>
-  <path d="M250,310 L250,344 L676,344" fill="none" stroke="#231815" stroke-width="2" stroke-dasharray="8 5"/>
-  <path d="M1400,310 L1400,344 L964,344" fill="none" stroke="#231815" stroke-width="2" stroke-dasharray="8 5"/>
-  <text x="250" y="372" font-size="26" font-weight="700" fill="#231815">kuma project</text>
-  <text x="250" y="398" font-size="20" fill="#231815">one project_id carries a design through to the verdict that checks it</text>
+  <path d="M250,310 L250,344 L734.2,344" fill="none" stroke="#231815" stroke-width="2" stroke-dasharray="8 5"/>
+  <path d="M1400,310 L1400,344 L915.8,344" fill="none" stroke="#231815" stroke-width="2" stroke-dasharray="8 5"/>
+  <text x="825" y="353.1" font-size="26" font-weight="700" text-anchor="middle" fill="#231815">kuma project</text>
+  <text x="825" y="398" font-size="20" text-anchor="middle" fill="#231815">one project_id carries a design through to the verdict that checks it</text>
   <line x1="1500" y1="310" x2="1500" y2="456" stroke="#0b0305" stroke-width="4"/>
   <polygon points="1489,456 1511,456 1500,474" fill="#0b0305"/>
   <text x="70" y="446" font-size="44" font-weight="700" fill="#0b0305">D</text>
@@ -54,17 +54,17 @@
   <line x1="110.2" y1="456" x2="198.28" y2="456" stroke="#231815" stroke-width="2"/>
   <text x="214.28" y="446" font-size="22" fill="#231815">activity data and the next round</text>
   <rect x="70" y="474" width="1496" height="104" rx="10" fill="#ffffff" stroke="#0b0305" stroke-width="3"/>
-  <rect x="1132" y="488" width="420" height="76" rx="6" fill="#d9d9d9" stroke="#525252" stroke-width="2"/>
-  <text x="1148" y="534" font-size="26" font-weight="700" fill="#231815">1  Activity assay</text>
-  <rect x="608" y="488" width="420" height="76" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
-  <text x="624" y="534" font-size="26" font-weight="700" fill="#231815">2  Activity per well</text>
-  <rect x="84" y="488" width="420" height="76" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
+  <rect x="1252" y="488" width="300" height="76" rx="6" fill="#d9d9d9" stroke="#525252" stroke-width="2"/>
+  <text x="1268" y="534" font-size="26" font-weight="700" fill="#231815">1  Activity assay</text>
+  <rect x="680" y="488" width="348" height="76" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
+  <text x="696" y="534" font-size="26" font-weight="700" fill="#231815">2  Activity per well</text>
+  <rect x="84" y="488" width="372" height="76" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
   <text x="100" y="520" font-size="26" font-weight="700" fill="#231815">3  Round N+1</text>
   <text x="100" y="548" font-size="20" fill="#231815">scored variants back into KURO</text>
-  <polygon points="539.5,526 559.5,512 559.5,540" fill="#0b0305"/>
-  <rect x="559.5" y="521" width="13" height="10" fill="#0b0305"/>
-  <polygon points="1063.5,526 1083.5,512 1083.5,540" fill="#0b0305"/>
-  <rect x="1083.5" y="521" width="13" height="10" fill="#0b0305"/>
+  <polygon points="551.5,526 571.5,512 571.5,540" fill="#0b0305"/>
+  <rect x="571.5" y="521" width="13" height="10" fill="#0b0305"/>
+  <polygon points="1123.5,526 1143.5,512 1143.5,540" fill="#0b0305"/>
+  <rect x="1143.5" y="521" width="13" height="10" fill="#0b0305"/>
   <path d="M69,526 L34,526 L34,144 L51,144" fill="none" stroke="#cb3228" stroke-width="7" stroke-linejoin="miter"/>
   <polygon points="51,131 51,157 67,144" fill="#cb3228"/>
   <rect x="60" y="596" width="298.68" height="30" rx="4" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
