@@ -2552,14 +2552,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Five MAME raw-run controls that were never sent are gone, so a Q-score filter or target length no longer looks set while doing nothing.",
-      "Require GC clamp now binds every candidate, not the preferred match alone, so a primer cannot break the clamp a run asked for.",
-      "The MAPQ threshold is a control instead of a hardcoded 25, and the EVOLVEpro mismatch limit and next-round capacity are visible too.",
-      "Changing a Tm target, GC range, polymerase or diversity setting clears the previous primers instead of leaving them exportable.",
-      "A missing synthesis score reads as unavailable rather than a green 100, and a missing run-health measurement no longer plots as zero."
+      "Sample data now finishes a step 4 build. The bundled Analyze workbook supplies the verdict evidence every build requires.",
+      "No nanopore run folder is bundled. The screen shows a run a real pipeline produced, and that same run feeds step 4.",
+      "The sample plate seats each variant in one well, so the layout and verdict readers accept it instead of refusing a repeated variant.",
+      "Sample variant positions are numbered against the shipped EGFP reference, replacing a list numbered against a different protein.",
+      "Four new sample files cover raw-scale, variant-labeled and numeric-ID confirmation inputs that had no example before."
     ],
-    "highlightsStamp": "0.16.39+d8fb93a8",
+    "highlightsStamp": "0.16.40+54e3cb8d",
     "releases": {
+      "0.16.40": [
+        "Sample data now finishes a step 4 build. The bundled Analyze workbook supplies the verdict evidence every build requires.",
+        "No nanopore run folder is bundled. The screen shows a run a real pipeline produced, and that same run feeds step 4.",
+        "The sample plate seats each variant in one well, so the layout and verdict readers accept it instead of refusing a repeated variant.",
+        "Sample variant positions are numbered against the shipped EGFP reference, replacing a list numbered against a different protein.",
+        "Four new sample files cover raw-scale, variant-labeled and numeric-ID confirmation inputs that had no example before."
+      ],
       "0.16.39": [
         "Five MAME raw-run controls that were never sent are gone, so a Q-score filter or target length no longer looks set while doing nothing.",
         "Require GC clamp now binds every candidate, not the preferred match alone, so a primer cannot break the clamp a run asked for.",
@@ -2851,6 +2858,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.40": "54e3cb8d",
       "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",

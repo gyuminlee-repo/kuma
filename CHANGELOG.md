@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.16.40 (Sample data that finishes the run it starts)
+
+Load Sample Data filled every screen up to step 4 and stopped there. The activity build requires a verdict workbook, no bundled file carried one, and the demo ended at "verdict_xlsx is required". Nothing in the bundle could produce one either. That workbook comes out of an Analyze run, and analysing needs a nanopore run folder, which is far too large to ship inside a desktop download. The sample set now carries the workbook a real Analyze run wrote, so step 4 finishes without a raw run being bundled to make it.
+
+The plate the samples described could not have been built from in any case. Each variant sat in three wells, and both the layout reader and the verdict reader require one well per variant: a variant in two wells has no single well for its sequencing evidence to attach to. Every step 4 input combination stopped at that check. The bundled plate now seats each variant once.
+
+The variant list also disagreed with the sequence it is scored against. Positions were numbered against avGFP while the shipped reference is EGFP, which already carries two of the substitutions the list asked for, and no primer can introduce a substitution that is already there. Ten positions replace them, each numbered against the shipped sequence and each holding the residue the list claims.
+
+The Analyze screen showed hand-written constants describing a different plate than every other sample file named. It now shows the bundled fixture, which a real pipeline run produced over the same variant list, plate and reference that step 4 then builds from.
+
+Four files cover input formats that had no example at all: raw-scale measurements with the wild-type rows that normalise them, variant-labeled measurements that need no plate layout, and a numeric-ID confirmation report whose identifiers count the subset it re-measures. A generator writes all of it and refuses to finish unless all ten step 4 input branches accept what it just wrote.
+
+### Highlights
+
+- Sample data now finishes a step 4 build. The bundled Analyze workbook supplies the verdict evidence every build requires.
+- No nanopore run folder is bundled. The screen shows a run a real pipeline produced, and that same run feeds step 4.
+- The sample plate seats each variant in one well, so the layout and verdict readers accept it instead of refusing a repeated variant.
+- Sample variant positions are numbered against the shipped EGFP reference, replacing a list numbered against a different protein.
+- Four new sample files cover raw-scale, variant-labeled and numeric-ID confirmation inputs that had no example before.
+
 ## v0.16.39 (Controls that were never sent, and readouts that filled their own gaps)
 
 A second pass over one bug class: what the operator asked for did not reach the code that acts on it.

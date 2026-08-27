@@ -2509,13 +2509,13 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Cinq commandes MAME de run brut qui n'étaient jamais envoyées ont disparu. Un filtre de score Q ou une longueur cible semblait réglé sans rien faire.",
-      "L'exigence de GC clamp lie désormais chaque candidat, et non la seule correspondance préférée, donc aucune amorce ne viole la contrainte demandée.",
-      "Le seuil MAPQ est une commande au lieu d'un 25 codé en dur, et la limite de mésappariement EVOLVEpro ainsi que la capacité sont visibles.",
-      "Changer une cible de Tm, une plage GC, une polymérase ou un réglage de diversité efface les amorces précédentes au lieu de les laisser exportables.",
-      "Un score de synthèse absent s'affiche comme indisponible plutôt qu'en 100 vert, et une mesure de santé de run absente n'est plus tracée à zéro."
+      "Les données d'exemple terminent désormais une compilation d'étape 4. Le classeur Analyze fourni apporte la preuve de verdict requise.",
+      "Aucun run nanopore brut n'est fourni. L'écran affiche un run produit par un vrai pipeline, et ce même run alimente l'étape 4.",
+      "La plaque d'exemple place chaque variant dans un seul puits, ce que les lecteurs de layout et de verdict acceptent au lieu de le refuser.",
+      "Les positions des variants d'exemple sont numérotées d'après la référence EGFP fournie, et non d'après une autre protéine.",
+      "Quatre nouveaux fichiers couvrent les entrées en échelle brute, à étiquette de variant et à confirmation numérique, jusqu'ici sans exemple."
     ],
-    "highlightsStamp": "0.16.39+d8fb93a8",
+    "highlightsStamp": "0.16.40+54e3cb8d",
     "releases": {
       "0.16.39": [
         "Cinq commandes MAME de run brut qui n'étaient jamais envoyées ont disparu. Un filtre de score Q ou une longueur cible semblait réglé sans rien faire.",
@@ -2805,6 +2805,13 @@
         "MAME dispose enfin de captures d'ecran, prises sur un vrai run nanopore de 288 puits plutot que sur des donnees factices.",
         "La capture parcourt l'assistant en cliquant elle-meme, chaque image montre donc un ecran que l'application a reellement atteint.",
         "Les reponses enregistrees du sidecar sont indexees par sidecar autant que par methode. Un ecran MAME ne peut plus recevoir une reponse KURO."
+      ],
+      "0.16.40": [
+        "Les données d'exemple terminent désormais une compilation d'étape 4. Le classeur Analyze fourni apporte la preuve de verdict requise.",
+        "Aucun run nanopore brut n'est fourni. L'écran affiche un run produit par un vrai pipeline, et ce même run alimente l'étape 4.",
+        "La plaque d'exemple place chaque variant dans un seul puits, ce que les lecteurs de layout et de verdict acceptent au lieu de le refuser.",
+        "Les positions des variants d'exemple sont numérotées d'après la référence EGFP fournie, et non d'après une autre protéine.",
+        "Quatre nouveaux fichiers couvrent les entrées en échelle brute, à étiquette de variant et à confirmation numérique, jusqu'ici sans exemple."
       ]
     },
     "releaseStamps": {
@@ -2856,7 +2863,8 @@
       "0.16.32": "3be3b377",
       "0.16.33": "059a2f27",
       "0.16.34": "d7925cb6",
-      "0.16.35": "d628e48a"
+      "0.16.35": "d628e48a",
+      "0.16.40": "54e3cb8d"
     }
   },
   "primerDisplay": {
