@@ -5,28 +5,36 @@ LEARN), bridged by a dashed __kuma_meta__ ribbon and closed by a single
 alert_red return sweep.
 
 ASSUMPTIONS, stated up front:
-  * Text advance is estimated at 0.52 em per character for Source Sans 3
-    regular and 0.55 em for bold. That estimate drives the box-fit check,
-    the viewBox containment check and the collision checks. It is an
-    estimate, not a metric read from the font file, so every box is laid
-    out with headroom and the fit check reserves a 6 percent safety margin
-    on top of the estimate.
-  * Print target is a 180 mm full-page width, so 1 user unit is
-    180/1160 mm = 0.15517 mm = 0.43987 pt.
+  * Text advance is summed per character from a table of real Source Sans 3
+    advance widths (ADV_REG and ADV_BOLD below), read once from the font
+    files by scripts/gen-font-metrics.py and pasted here as a constant. The
+    same table drives the layout, the box-fit check, the viewBox containment
+    check and the collision checks, so no check can end up looser than the
+    layout it audits. Reading a font at build time would tie the committed
+    SVG to whichever fonts a machine carries, so the table is frozen rather
+    than looked up. The fit check adds a 2 percent reserve for kerning.
+    The estimate this replaced was a flat 0.52 em per character, which ran
+    about 28 percent wide, and every box on the canvas was padded to match
+    it. Reclaiming that padding is what paid for the narrower page.
+  * Print target is the figure block an A4 portrait page leaves: 210 x 297 mm
+    less 20 mm margins on four sides and 30 mm under the figure for the
+    caption, so 170 x 227 mm. The page scale is derived rather than declared,
+    as whichever of the two bounds binds first, and both the fit and the body
+    type size are asserted on every run.
 
     BODY TYPE ARITHMETIC, stated as required.
-      1 uu   = 180 mm / 1160 uu     = 0.155172 mm
-             = 0.155172 / 0.352778  = 0.43986 pt
-      body   = 21 uu * 0.43986      = 9.24 pt
-      title  = 26 uu * 0.43986      = 11.44 pt
-      stage  = 30 uu                = 13.20 pt
-      letter = 46 uu                = 20.23 pt
-    The previous build set the body at 16 uu = 7.04 pt, below the house
-    ladder, which puts tick and legend type at 9 to 11 pt. The label cull
-    is what pays for the larger type: fewer strings on the canvas, each of
-    them big enough to read at print size. Parameter values, file names,
-    dependency versions and QC file globs now live in the caption or in
-    the docs pages, not on the canvas.
+      1 uu   = min(170/1112, 227/1485) mm = 0.152862 mm
+             = 0.152862 / 0.352778        = 0.43331 pt
+      body   = 21 uu * 0.43331            = 9.10 pt
+      title  = 26 uu * 0.43331            = 11.27 pt
+      stage  = 30 uu                      = 13.00 pt
+      letter = 46 uu                      = 19.93 pt
+    The house ladder puts tick and legend type at 9 to 11 pt, and the body
+    clears its floor with 0.10 pt to spare. The label cull is what pays for
+    type that size: fewer strings on the canvas, each of them big enough to
+    read at print size. Parameter values, file names, dependency versions
+    and QC file globs live in the caption or in the docs pages, not on the
+    canvas.
   * Box tiers follow the style kit archetype (template_schematic.svg and
     the author own workflow cards figure1_1/1_2/1_3): outer stage box =
     ink keyline, inner sub-box = track_grey keyline, one bold title, a
@@ -91,10 +99,15 @@ PALETTE_HEXES = {
 # was supposed to catch.
 TYPE_HEXES = {WARM_INK, INK}
 
-W = 1160
-PRINT_MM = 180.0
-MM_PER_UNIT = PRINT_MM / W
-PT_PER_UNIT = MM_PER_UNIT / 0.352778
+W = 1112
+# A4 portrait is 210 x 297 mm. With 20 mm margins on four sides and 30 mm left
+# under the figure for the caption, the figure block is 170 x 227 mm. The page
+# scale is whichever bound binds first, so a canvas taller than 1.335 times its
+# own width starts paying for the extra height in type size.
+A4_BLOCK_W_MM = 170.0
+A4_BLOCK_H_MM = 227.0
+BODY_FLOOR_PT = 9.0     # house type ladder floor, style_spec section 3
+MM_PER_PT = 0.352778
 PX_PER_UNIT_README = 900.0 / W
 
 FS_LETTER = 46      # bare bold panel letter, the loudest glyph
@@ -106,10 +119,52 @@ FS_SLOT = 22        # band and lane-D slot title
 FS_BODY = 21        # body, 9.24 pt at 180 mm
 FS_FOOT = 18        # foot key and footnotes, 7.92 pt, 0.85 x body
 
-AVG_REG = 0.52
-AVG_BOLD = 0.55
-UPPER_FACTOR = 1.12   # capitals advance wider than the mixed-case average
-FIT_MARGIN = 1.06   # reserve 6 percent for real Source Sans 3 metrics
+# Real Source Sans 3 advance widths, in units per 1000 em, printable ASCII
+# only. Generated once by scripts/gen-font-metrics.py from
+# SourceSans3-Regular.ttf and SourceSans3-Bold.ttf, both Version 3.052
+# (hotconv 1.1.0, makeotfexe 2.6.0). The table is a constant here on purpose:
+# reading a font at build time would make the committed SVG depend on which
+# fonts a machine happens to carry, and this file has to emit the same bytes
+# everywhere. Re-run the generator only when the pinned font version changes.
+ADV_REG = {
+    ' ': 200, '!': 289, '"': 426, '#': 497, '$': 497, '%': 824, '&': 609,
+    "'": 249, '(': 303, ')': 303, '*': 418, '+': 497, ',': 249, '-': 311,
+    '.': 249, '/': 350, '0': 497, '1': 497, '2': 497, '3': 497, '4': 497,
+    '5': 497, '6': 497, '7': 497, '8': 497, '9': 497, ':': 249, ';': 249,
+    '<': 497, '=': 497, '>': 497, '?': 425, '@': 847, 'A': 544, 'B': 588,
+    'C': 571, 'D': 615, 'E': 527, 'F': 494, 'G': 617, 'H': 652, 'I': 263,
+    'J': 480, 'K': 579, 'L': 486, 'M': 727, 'N': 647, 'O': 664, 'P': 566,
+    'Q': 664, 'R': 569, 'S': 534, 'T': 536, 'U': 645, 'V': 515, 'W': 786,
+    'X': 513, 'Y': 476, 'Z': 539, '[': 303, '\\': 350, ']': 303, '^': 497,
+    '_': 500, '`': 542, 'a': 504, 'b': 553, 'c': 456, 'd': 555, 'e': 496,
+    'f': 292, 'g': 504, 'h': 544, 'i': 246, 'j': 247, 'k': 495, 'l': 255,
+    'm': 829, 'n': 547, 'o': 542, 'p': 555, 'q': 555, 'r': 347, 's': 419,
+    't': 338, 'u': 544, 'v': 467, 'w': 719, 'x': 446, 'y': 467, 'z': 425,
+    '{': 303, '|': 241, '}': 303, '~': 497,
+}
+ADV_BOLD = {
+    ' ': 200, '!': 340, '"': 537, '#': 528, '$': 528, '%': 857, '&': 667,
+    "'": 300, '(': 344, ')': 344, '*': 457, '+': 528, ',': 300, '-': 332,
+    '.': 300, '/': 339, '0': 528, '1': 528, '2': 528, '3': 528, '4': 528,
+    '5': 528, '6': 528, '7': 528, '8': 528, '9': 528, ':': 300, ';': 300,
+    '<': 528, '=': 528, '>': 528, '?': 463, '@': 902, 'A': 573, 'B': 605,
+    'C': 582, 'D': 635, 'E': 548, 'F': 524, 'G': 638, 'H': 674, 'I': 301,
+    'J': 509, 'K': 614, 'L': 518, 'M': 762, 'N': 665, 'O': 684, 'P': 596,
+    'Q': 684, 'R': 613, 'S': 556, 'T': 556, 'U': 665, 'V': 556, 'W': 813,
+    'X': 567, 'Y': 525, 'Z': 541, '[': 344, '\\': 339, ']': 344, '^': 528,
+    '_': 500, '`': 555, 'a': 527, 'b': 573, 'c': 467, 'd': 573, 'e': 518,
+    'f': 341, 'g': 534, 'h': 571, 'i': 276, 'j': 278, 'k': 548, 'l': 286,
+    'm': 857, 'n': 572, 'o': 555, 'p': 573, 'q': 573, 'r': 398, 's': 443,
+    't': 383, 'u': 568, 'v': 523, 'w': 776, 'x': 514, 'y': 521, 'z': 460,
+    '{': 344, '|': 268, '}': 344, '~': 528,
+}
+WIDEST_REG = max(ADV_REG.values())
+WIDEST_BOLD = max(ADV_BOLD.values())
+# Kerning and hinting move a rendered run by well under one percent of its
+# advance sum, so 2 percent is the reserve the fit check keeps on top of the
+# table. One table drives the layout and the fit check alike, which is what
+# stops the check from ever being looser than what the layout assumed.
+FIT_MARGIN = 1.02
 
 SW_LANE = 3
 SW_SUB = 2
@@ -121,11 +176,11 @@ SW_HAIR = 1.2       # 0.5 pt at this scale: title rules and matrix cells
 LEAD = 28           # body leading, 1.33 x the 21 uu body size
 
 RAIL_X = 40         # the red return rail, left of every lane
-LANE_X, LANE_W = 76, 1044
-LANE_R = LANE_X + LANE_W          # 1120
+LANE_X, LANE_W = 76, 996
+LANE_R = LANE_X + LANE_W          # 1072
 PAD = 12
 IN_X = LANE_X + PAD               # 88
-IN_R = LANE_R - PAD               # 1108
+IN_R = LANE_R - PAD               # 1060
 ENGINE_X = 330                    # one column for every lane engine name
 
 # sub-box internal metrics, all derived from the type sizes above
@@ -149,13 +204,14 @@ def esc(s):
 
 
 def width_of(s, fs, bold=False):
-    per = AVG_BOLD if bold else AVG_REG
-    letters = [c for c in s if c.isalpha()]
-    if len(letters) >= 3 and all(c.isupper() for c in letters):
-        # AMBIGUOUS and WRONG_AA were both under-estimated by the mixed-case
-        # average, which spent the 6 percent fit reserve before the check ran.
-        per *= UPPER_FACTOR
-    return len(s) * fs * per
+    """Advance width of *s* at font size *fs*, summed from the real table.
+
+    A character outside the table falls back to the widest glyph in the face,
+    so an unlisted symbol can only make the figure too generous, never too
+    tight."""
+    adv = ADV_BOLD if bold else ADV_REG
+    widest = WIDEST_BOLD if bold else WIDEST_REG
+    return sum(adv.get(c, widest) for c in s) * fs / 1000.0
 
 
 def fit(s, fs, avail, where, bold=False):
@@ -477,8 +533,12 @@ SUB_A_Y = LANE_A_Y + 14
 A_PLAN, SUB_A_H = plan_row(A_SPECS, IN_X, IN_R, 10)
 # The side channel feeds variant choice through an arrow that rises into
 # box 1. Box bottoms are now flush at the row maximum, so this clearance
-# is what the shaft has to live in and it carries the head as well.
-SIDE_GAP = 72
+# is what the shaft has to live in and it carries the head as well. The head
+# is 13 uu and the shaft starts 12 uu above the box, so 40 uu leaves a 15 uu
+# shaft: short, but long enough that the head reads as the end of a line
+# rather than as a loose triangle. The A4 page height is what pays for the
+# rest, and this gap was the largest single vertical slack on the canvas.
+SIDE_GAP = 40
 SIDE_Y = SUB_A_Y + SUB_A_H + SIDE_GAP
 SIDE_H = 70
 LANE_A_H = (SIDE_Y + SIDE_H + 14) - LANE_A_Y
@@ -487,7 +547,7 @@ LANE_A_B = LANE_A_Y + LANE_A_H
 CHIP_A_Y = LANE_A_B + 12
 CHIP_H = FS_BODY + 14
 
-B_BASE = LANE_A_B + 76
+B_BASE = LANE_A_B + 64
 B_RULE_Y = B_BASE + 10
 # The band is only as wide as its four step names need, because the corridor
 # to its right is where the __kuma_meta__ chip drops through to the ribbon.
@@ -509,7 +569,7 @@ RIB_L, RIB_TIP = 280, 248
 RIB_COL = 568
 RIB_B = RIB_Y + RIB_H
 
-C_BASE = RIB_B + 62
+C_BASE = RIB_B + 54
 C_RULE_Y = C_BASE + 10
 LANE_C_Y = C_BASE + 28
 SUB_C_Y = LANE_C_Y + 14
@@ -519,7 +579,7 @@ LANE_C_B = LANE_C_Y + LANE_C_H
 
 CHIP_D_Y = LANE_C_B + 12
 
-D_BASE = LANE_C_B + 76
+D_BASE = LANE_C_B + 64
 D_RULE_Y = D_BASE + 10
 LANE_D_Y = D_BASE + 28
 SLOT_D_Y = LANE_D_Y + 14
@@ -533,6 +593,15 @@ LANE_D_B = LANE_D_Y + LANE_D_H
 
 FOOT_Y = LANE_D_B + 34          # the key row: grey chip, then the footnotes
 H = int(FOOT_Y + 26 + 22)
+
+# Page scale, derived from the canvas rather than declared. Whichever A4 bound
+# binds first sets the millimetres a user unit is worth, and the type ladder
+# follows from that one number.
+MM_PER_UNIT = min(A4_BLOCK_W_MM / W, A4_BLOCK_H_MM / H)
+PT_PER_UNIT = MM_PER_UNIT / MM_PER_PT
+PRINT_MM = W * MM_PER_UNIT
+PRINT_H_MM = H * MM_PER_UNIT
+BODY_PT = FS_BODY * PT_PER_UNIT
 
 # ===========================================================================
 # ground
@@ -572,7 +641,9 @@ arrow_down(_band_cx[0], LANE_A_B, BAND_Y)
 lines(_band_cx[0] - 34 - width_of("receive oligos", FS_BODY), CHIP_A_Y + 12,
       ["order primers,", "receive oligos"], 260, "AB label")
 
-_chip_a_cx = 988
+# Flush the chip against the inner right margin rather than at a number tied
+# to one canvas width, so a change of page width carries it along.
+_chip_a_cx = IN_R - width_of("expected_mutations.xlsx", FS_BODY) / 2.0 - 10
 shaft(_chip_a_cx, LANE_A_B, CHIP_META_Y)
 _c = chip(_chip_a_cx, CHIP_META_Y, "expected_mutations.xlsx")
 arrow_down(_chip_a_cx, _c[3], RIB_Y)
@@ -771,7 +842,8 @@ def audit(label, svg, W, H, FS_BODY, _fit_errors, _texts, _connectors, _rects,
     check("smallest type is at least %d uu" % FS_BODY, min(sizes) >= FS_BODY,
           "sizes present: %s" % [int(s) for s in sizes])
 
-    check("every text line fits its box (6 percent metric margin)", not _fit_errors,
+    check("every text line fits its box (%.0f percent metric margin)"
+          % ((FIT_MARGIN - 1) * 100), not _fit_errors,
           "\n      ".join(_fit_errors) if _fit_errors else "no overruns")
 
 
@@ -903,13 +975,29 @@ _d_titles = [t for t, _i, _o in D_DRAW]
 _ordinals_ok = (_d_titles[-1].startswith("1") and _d_titles[0].startswith("4")
                 and BAND_TITLES[0].startswith("1")
                 and _band_cx[0] == max(_band_cx))
+
+# The A4 gate. The canvas has to sit inside the 170 x 227 mm block an A4
+# portrait page leaves under 20 mm margins and a 30 mm caption, and the body
+# type at that scale has to clear the 9 pt house floor. Both hold or the build
+# fails, so neither a wider row nor a taller lane can quietly shrink the type.
+_a4_fits = PRINT_MM <= A4_BLOCK_W_MM + 1e-9 and PRINT_H_MM <= A4_BLOCK_H_MM + 1e-9
+_a4_type_ok = BODY_PT >= BODY_FLOOR_PT
+
 if not audit("kuma_overview.svg", svg, W, H, FS_FOOT,
              _fit_errors, _texts, _connectors, _rects, text_budget=100,
              extra=[("every numbered lane runs ordinal 1 rightmost, against "
                      "its left-pointing chevrons", _ordinals_ok,
                      "lane D right to left: %s; band B slot 1 at x %.0f"
                      % (" ".join(t.split()[0] for t in _d_titles[::-1]),
-                        _band_cx[0]))]):
+                        _band_cx[0])),
+                    ("fits the %.0f x %.0f mm A4 portrait figure block"
+                     % (A4_BLOCK_W_MM, A4_BLOCK_H_MM), _a4_fits,
+                     "%.1f x %.1f mm at %.6f mm per unit"
+                     % (PRINT_MM, PRINT_H_MM, MM_PER_UNIT)),
+                    ("body type clears the %.0f pt house floor at that size"
+                     % BODY_FLOOR_PT, _a4_type_ok,
+                     "body %d uu = %.2f pt, foot key %d uu = %.2f pt"
+                     % (FS_BODY, BODY_PT, FS_FOOT, FS_FOOT * PT_PER_UNIT))]):
     sys.exit(1)
 
 # ===========================================================================
@@ -942,10 +1030,14 @@ print("wrote %s" % svg_path)
 render_png(svg_path, os.path.join(DOCS, "kuma_overview.png"), 1800)
 render_png(svg_path, os.path.join(DOCS, "kuma_overview_900.png"), 900)
 
-print("viewBox 0 0 %d %d  (%.1f x %.1f mm at a %.0f mm page width)"
-      % (W, H, W * MM_PER_UNIT, H * MM_PER_UNIT, PRINT_MM))
-print("smallest type %d uu = %.2f pt at %.0f mm = %.2f CSS px at 900 px wide"
-      % (FS_BODY, FS_BODY * PT_PER_UNIT, PRINT_MM, FS_BODY * PX_PER_UNIT_README))
+print("viewBox 0 0 %d %d  (%.1f x %.1f mm inside the %.0f x %.0f mm A4 block, "
+      "%.6f mm per unit)"
+      % (W, H, PRINT_MM, PRINT_H_MM, A4_BLOCK_W_MM, A4_BLOCK_H_MM,
+         MM_PER_UNIT))
+print("body %d uu = %.2f pt, foot key %d uu = %.2f pt, and %.2f CSS px at "
+      "900 px wide"
+      % (FS_BODY, BODY_PT, FS_FOOT, FS_FOOT * PT_PER_UNIT,
+         FS_BODY * PX_PER_UNIT_README))
 
 # ===========================================================================
 # the compact hero figure
@@ -1009,8 +1101,10 @@ H_CELL_Y, H_CELL_H = 488, 76
 # line rather than one shared width sized for the widest. A single 420 left
 # slot 2 nearly half empty. The freed space goes to the gutters, which now
 # run 224 uu against the 206 to 210 uu the A/B/C row keeps, so the two rows
-# read on the same rhythm. The floors come from the deliberately conservative
-# 0.52/0.55 em estimate, not from real Source Sans 3 metrics.
+# read on the same rhythm. The widths are held where the old flat 0.52 em
+# estimate put them: the real metric table gives every cell more air than it
+# needs, and this row is a screen artefact with no page to fit into, so
+# retuning it would move the hero for no reader benefit.
 H_CELLS = ((84, 372), (680, 348), (1252, 300))   # slot 3, slot 2, slot 1
 H_DROP_X = 1500                     # C to D, kept right of the staple
 H_FOOT_Y = H_D_Y + H_D_H + 26       # the key row, same system as the figure

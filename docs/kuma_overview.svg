@@ -1,269 +1,269 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 1160 1549" width="1160" height="1549" font-family="Source Sans 3, sans-serif">
-  <rect x="0" y="0" width="1160" height="1549" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 1112 1485" width="1112" height="1485" font-family="Source Sans 3, sans-serif">
+  <rect x="0" y="0" width="1112" height="1485" fill="#ffffff"/>
   <text x="76" y="56" font-size="46" font-weight="700" fill="#0b0305">A</text>
-  <text x="117.3" y="56" font-size="30" font-weight="700" fill="#231815">DESIGN</text>
-  <line x1="117.3" y1="66" x2="236.18" y2="66" stroke="#231815" stroke-width="2"/>
+  <text x="118.358" y="56" font-size="30" font-weight="700" fill="#231815">DESIGN</text>
+  <line x1="118.358" y1="66" x2="226.648" y2="66" stroke="#231815" stroke-width="2"/>
   <text x="330" y="56" font-size="22" fill="#231815">KURO design engine</text>
-  <rect x="76" y="84" width="1044" height="432" rx="10" fill="#ffffff" stroke="#0b0305" stroke-width="3"/>
-  <rect x="88" y="98" width="229.748" height="262" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
+  <rect x="76" y="84" width="996" height="400" rx="10" fill="#ffffff" stroke="#0b0305" stroke-width="3"/>
+  <rect x="88" y="98" width="228.881" height="262" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
   <text x="100" y="132" font-size="26" font-weight="700" fill="#231815">Input</text>
-  <line x1="100" y1="144" x2="305.748" y2="144" stroke="#231815" stroke-width="1.2"/>
+  <line x1="100" y1="144" x2="304.881" y2="144" stroke="#231815" stroke-width="1.2"/>
   <text x="100" y="175" font-size="21" fill="#231815">GenBank template</text>
   <text x="100" y="203" font-size="21" font-weight="700" fill="#231815">CDS annotation</text>
   <text x="100" y="231" font-size="21" font-weight="700" fill="#231815">required; plain</text>
   <text x="100" y="259" font-size="21" font-weight="700" fill="#231815">FASTA rejected</text>
   <text x="100" y="287" font-size="21" fill="#231815">variants as Q232A</text>
-  <rect x="327.748" y="98" width="253.343" height="262" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
-  <text x="339.748" y="132" font-size="26" font-weight="700" fill="#231815">Primer build</text>
-  <line x1="339.748" y1="144" x2="569.091" y2="144" stroke="#231815" stroke-width="1.2"/>
-  <text x="339.748" y="175" font-size="21" fill="#231815">polymerase profile</text>
-  <text x="339.748" y="203" font-size="21" fill="#231815">codon strategy</text>
-  <text x="339.748" y="231" font-size="21" fill="#231815">Gibson or Q5 SDM</text>
-  <text x="339.748" y="259" font-size="21" fill="#231815">primer3 Tm, dimer</text>
-  <text x="339.748" y="287" font-size="21" font-weight="700" fill="#231815">advisory penalties</text>
-  <text x="339.748" y="315" font-size="21" font-weight="700" fill="#231815">and hard rejects</text>
-  <rect x="591.091" y="98" width="241.323" height="262" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
-  <text x="603.091" y="132" font-size="26" font-weight="700" fill="#231815">Rank, plate</text>
-  <line x1="603.091" y1="144" x2="820.414" y2="144" stroke="#231815" stroke-width="1.2"/>
-  <text x="603.091" y="175" font-size="21" fill="#231815">rank by penalty</text>
-  <text x="603.091" y="203" font-size="21" fill="#231815">failures go to the</text>
-  <text x="603.091" y="231" font-size="21" fill="#231815">rescue cascade</text>
-  <rect x="645.752" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="645.752" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="645.752" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="645.752" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="645.752" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="645.752" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="645.752" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="645.752" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="656.752" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="656.752" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="656.752" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="656.752" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="656.752" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="656.752" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="656.752" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="656.752" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="667.752" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="667.752" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="667.752" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="667.752" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="667.752" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="667.752" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="667.752" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="667.752" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="678.752" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="678.752" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="678.752" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="678.752" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="678.752" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="678.752" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="678.752" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="678.752" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="689.752" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="689.752" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="689.752" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="689.752" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="689.752" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="689.752" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="689.752" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="689.752" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="700.752" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="700.752" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="700.752" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="700.752" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="700.752" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="700.752" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="700.752" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="700.752" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="711.752" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="711.752" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="711.752" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="711.752" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="711.752" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="711.752" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="711.752" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="711.752" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="722.752" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="722.752" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="722.752" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="722.752" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="722.752" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="722.752" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="722.752" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="722.752" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="733.752" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="733.752" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="733.752" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="733.752" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="733.752" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="733.752" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="733.752" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="733.752" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="744.752" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="744.752" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="744.752" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="744.752" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="744.752" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="744.752" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="744.752" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="744.752" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="755.752" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="755.752" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="755.752" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="755.752" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="755.752" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="755.752" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="755.752" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="755.752" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="766.752" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="766.752" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="766.752" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="766.752" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="766.752" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="766.752" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="766.752" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="766.752" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="842.414" y="98" width="265.586" height="262" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
-  <text x="854.414" y="132" font-size="26" font-weight="700" fill="#231815">Outputs</text>
-  <line x1="854.414" y1="144" x2="1096" y2="144" stroke="#231815" stroke-width="1.2"/>
-  <text x="854.414" y="175" font-size="21" fill="#231815">__kuma_meta__ sheet</text>
-  <text x="854.414" y="203" font-size="21" fill="#231815">SHA-256 checksum</text>
-  <text x="854.414" y="231" font-size="21" font-weight="700" fill="#231815">order, robot bundle</text>
-  <text x="854.414" y="259" font-size="21" fill="#231815">8 files</text>
-  <rect x="88" y="432" width="1020" height="70" rx="6" fill="#ffffff" stroke="#231815" stroke-width="2" stroke-dasharray="8 5"/>
-  <text x="100" y="460" font-size="22" font-weight="700" fill="#231815">Optional structure side-channel</text>
-  <text x="100" y="490" font-size="21" fill="#231815">UniProt / AlphaFold / PDB / ESMFold; domain and active-site residues</text>
-  <line x1="202.874" y1="432" x2="202.874" y2="372" stroke="#0b0305" stroke-width="4"/>
-  <polygon points="193.874,373 211.874,373 202.874,360" fill="#0b0305"/>
-  <line x1="886.996" y1="516" x2="886.996" y2="602" stroke="#0b0305" stroke-width="4"/>
-  <polygon points="875.996,602 897.996,602 886.996,620" fill="#0b0305"/>
-  <text x="700.116" y="540" font-size="21" fill="#231815">order primers,</text>
-  <text x="700.116" y="568" font-size="21" fill="#231815">receive oligos</text>
-  <line x1="988" y1="516" x2="988" y2="722" stroke="#0b0305" stroke-width="4"/>
-  <rect x="852.42" y="722" width="271.16" height="35" rx="4" fill="#f4ee6b" stroke="#0b0305" stroke-width="2"/>
-  <text x="862.42" y="746" font-size="21" fill="#231815">expected_mutations.xlsx</text>
-  <line x1="988" y1="757" x2="988" y2="755" stroke="#0b0305" stroke-width="4"/>
-  <polygon points="977,755 999,755 988,773" fill="#0b0305"/>
-  <text x="76" y="592" font-size="46" font-weight="700" fill="#0b0305">B</text>
-  <text x="117.3" y="592" font-size="30" font-weight="700" fill="#231815">BUILD</text>
-  <line x1="117.3" y1="602" x2="217.7" y2="602" stroke="#231815" stroke-width="2"/>
-  <text x="330" y="592" font-size="22" fill="#231815">wet lab and sequencing</text>
-  <rect x="88" y="620" width="882.821" height="78" rx="10" fill="#d9d9d9" stroke="#0b0305" stroke-width="3"/>
-  <text x="886.996" y="667" font-size="22" font-weight="700" text-anchor="middle" fill="#231815">1  SDM PCR</text>
-  <text x="660.149" y="667" font-size="22" font-weight="700" text-anchor="middle" fill="#231815">2  Transformation</text>
-  <text x="396.107" y="667" font-size="22" font-weight="700" text-anchor="middle" fill="#231815">3  Colony picking</text>
-  <text x="170.543" y="667" font-size="22" font-weight="700" text-anchor="middle" fill="#231815">4  Nanopore</text>
-  <polygon points="775.67,659 795.67,645 795.67,673" fill="#0b0305"/>
-  <rect x="795.67" y="654" width="13" height="10" fill="#0b0305"/>
-  <polygon points="511.628,659 531.628,645 531.628,673" fill="#0b0305"/>
-  <rect x="531.628" y="654" width="13" height="10" fill="#0b0305"/>
-  <polygon points="247.586,659 267.586,645 267.586,673" fill="#0b0305"/>
-  <rect x="267.586" y="654" width="13" height="10" fill="#0b0305"/>
-  <polygon points="1120,773 1120,869 280,869 248,821 280,773" fill="#ffffff" stroke="#231815" stroke-width="2" stroke-dasharray="8 5"/>
-  <text x="290" y="811" font-size="24" font-weight="700" fill="#231815">__kuma_meta__ bridge</text>
-  <text x="290" y="843" font-size="21" fill="#231815">per-tab autosave</text>
-  <text x="568" y="811" font-size="21" fill="#231815">draft -&gt; design_complete -&gt; analyzing -&gt; done</text>
-  <text x="568" y="843" font-size="21" fill="#231815">MAME matches a dropped KURO xlsx on project_id</text>
-  <line x1="206.921" y1="698" x2="206.921" y2="712" stroke="#0b0305" stroke-width="4"/>
-  <rect x="98.6412" y="712" width="216.56" height="35" rx="4" fill="#f4ee6b" stroke="#0b0305" stroke-width="2"/>
-  <text x="108.641" y="736" font-size="21" fill="#231815">MinKNOW run folder</text>
-  <line x1="206.921" y1="747" x2="206.921" y2="941" stroke="#0b0305" stroke-width="4"/>
-  <polygon points="195.921,941 217.921,941 206.921,959" fill="#0b0305"/>
-  <line x1="286" y1="869" x2="286" y2="941" stroke="#0b0305" stroke-width="4"/>
-  <polygon points="275,941 297,941 286,959" fill="#0b0305"/>
-  <text x="76" y="931" font-size="46" font-weight="700" fill="#0b0305">C</text>
-  <text x="117.3" y="931" font-size="30" font-weight="700" fill="#231815">TEST</text>
-  <line x1="117.3" y1="941" x2="199.22" y2="941" stroke="#231815" stroke-width="2"/>
-  <text x="330" y="931" font-size="22" fill="#231815">MAME verification engine</text>
-  <rect x="76" y="959" width="1044" height="276" rx="10" fill="#ffffff" stroke="#0b0305" stroke-width="3"/>
-  <rect x="88" y="973" width="237.842" height="248" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
-  <text x="100" y="1007" font-size="26" font-weight="700" fill="#231815">Input</text>
-  <line x1="100" y1="1019" x2="313.842" y2="1019" stroke="#231815" stroke-width="1.2"/>
-  <text x="100" y="1050" font-size="21" fill="#231815">MinKNOW run folder</text>
-  <text x="100" y="1078" font-size="21" fill="#231815">single-record</text>
-  <text x="100" y="1106" font-size="21" fill="#231815">reference FASTA</text>
-  <text x="100" y="1134" font-size="21" font-weight="700" fill="#231815">custom barcode</text>
-  <text x="100" y="1162" font-size="21" font-weight="700" fill="#231815">workbook required</text>
-  <text x="100" y="1190" font-size="21" fill="#231815">expected variants</text>
-  <rect x="335.842" y="973" width="237.842" height="248" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
-  <text x="347.842" y="1007" font-size="26" font-weight="700" fill="#231815">Align, demux</text>
-  <line x1="347.842" y1="1019" x2="561.685" y2="1019" stroke="#231815" stroke-width="1.2"/>
-  <text x="347.842" y="1050" font-size="21" fill="#231815">amplicon extract</text>
-  <text x="347.842" y="1078" font-size="21" fill="#231815">from the reference</text>
-  <text x="347.842" y="1106" font-size="21" fill="#231815">minimap2 map-ont</text>
-  <text x="347.842" y="1134" font-size="21" fill="#231815">R/F combinatorial</text>
-  <text x="347.842" y="1162" font-size="21" fill="#231815">barcode demux</text>
-  <text x="347.842" y="1190" font-size="21" fill="#231815">edlib fuzzy match</text>
-  <rect x="583.685" y="973" width="191.542" height="248" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
-  <text x="595.685" y="1007" font-size="26" font-weight="700" fill="#231815">Consensus</text>
-  <line x1="595.685" y1="1019" x2="763.227" y2="1019" stroke="#231815" stroke-width="1.2"/>
-  <text x="595.685" y="1050" font-size="21" fill="#231815">Phred-aware</text>
-  <text x="595.685" y="1078" font-size="21" fill="#231815">majority call</text>
-  <text x="595.685" y="1106" font-size="21" fill="#231815">translate and</text>
-  <text x="595.685" y="1134" font-size="21" fill="#231815">compare to the</text>
-  <text x="595.685" y="1162" font-size="21" fill="#231815">expected list</text>
-  <rect x="785.227" y="973" width="322.773" height="248" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
-  <text x="797.227" y="1007" font-size="26" font-weight="700" fill="#231815">Verdict</text>
-  <line x1="797.227" y1="1019" x2="1096" y2="1019" stroke="#231815" stroke-width="1.2"/>
-  <rect x="797.227" y="1029" width="143.642" height="26" fill="#ffffff" stroke="#0b0305" stroke-width="2"/>
-  <text x="804.227" y="1048" font-size="21" font-weight="700" fill="#231815">PASS</text>
-  <rect x="946.869" y="1029" width="143.642" height="26" fill="#bfbebe" stroke="#0b0305" stroke-width="2"/>
-  <text x="953.869" y="1048" font-size="21" fill="#231815">AMBIGUOUS</text>
-  <rect x="797.227" y="1059" width="143.642" height="26" fill="#bfbebe" stroke="#0b0305" stroke-width="2"/>
-  <text x="804.227" y="1078" font-size="21" fill="#231815">MIXED</text>
-  <rect x="946.869" y="1059" width="143.642" height="26" fill="#bfbebe" stroke="#0b0305" stroke-width="2"/>
-  <text x="953.869" y="1078" font-size="21" fill="#231815">FRAMESHIFT</text>
-  <rect x="797.227" y="1089" width="143.642" height="26" fill="#bfbebe" stroke="#0b0305" stroke-width="2"/>
-  <text x="804.227" y="1108" font-size="21" fill="#231815">MANY</text>
-  <rect x="946.869" y="1089" width="143.642" height="26" fill="#bfbebe" stroke="#0b0305" stroke-width="2"/>
-  <text x="953.869" y="1108" font-size="21" fill="#231815">LOWDEPTH</text>
-  <rect x="797.227" y="1119" width="143.642" height="26" fill="#bfbebe" stroke="#0b0305" stroke-width="2"/>
-  <text x="804.227" y="1138" font-size="21" fill="#231815">NO_CALL</text>
-  <rect x="946.869" y="1119" width="143.642" height="26" fill="#bfbebe" stroke="#0b0305" stroke-width="2"/>
-  <text x="953.869" y="1138" font-size="21" fill="#231815">WRONG_AA</text>
-  <text x="797.227" y="1170" font-size="21" fill="#231815">pick list *</text>
-  <text x="797.227" y="1198" font-size="21" fill="#231815">janus worklist **</text>
-  <line x1="946.613" y1="1235" x2="946.613" y2="1247" stroke="#0b0305" stroke-width="4"/>
-  <rect x="827.413" y="1247" width="238.4" height="35" rx="4" fill="#f4ee6b" stroke="#0b0305" stroke-width="2"/>
-  <text x="837.413" y="1271" font-size="21" fill="#231815">&lt;workbook&gt;_picks.csv</text>
-  <line x1="946.613" y1="1282" x2="946.613" y2="1321" stroke="#0b0305" stroke-width="4"/>
-  <polygon points="935.613,1321 957.613,1321 946.613,1339" fill="#0b0305"/>
-  <text x="76" y="1311" font-size="46" font-weight="700" fill="#0b0305">D</text>
-  <text x="117.3" y="1311" font-size="30" font-weight="700" fill="#231815">LEARN</text>
-  <line x1="117.3" y1="1321" x2="217.7" y2="1321" stroke="#231815" stroke-width="2"/>
-  <text x="330" y="1311" font-size="22" fill="#231815">activity data and the next round</text>
-  <rect x="76" y="1339" width="1044" height="128" rx="10" fill="#ffffff" stroke="#0b0305" stroke-width="3"/>
-  <rect x="88" y="1353" width="209.312" height="100" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
-  <text x="100" y="1387" font-size="22" font-weight="700" fill="#231815">4  Round N+1</text>
-  <line x1="100" y1="1399" x2="285.312" y2="1399" stroke="#231815" stroke-width="1.2"/>
-  <text x="100" y="1430" font-size="21" fill="#231815">EVOLVEpro scores</text>
-  <rect x="333.312" y="1353" width="244.038" height="100" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
-  <text x="345.312" y="1387" font-size="22" font-weight="700" fill="#231815">3  Fold change</text>
-  <line x1="345.312" y1="1399" x2="565.35" y2="1399" stroke="#231815" stroke-width="1.2"/>
-  <text x="345.312" y="1430" font-size="21" fill="#231815">log2_fc vs WT wells</text>
-  <rect x="613.35" y="1353" width="216.499" height="100" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
-  <text x="625.35" y="1387" font-size="22" font-weight="700" fill="#231815">2  Activity CSV</text>
-  <line x1="625.35" y1="1399" x2="817.849" y2="1399" stroke="#231815" stroke-width="1.2"/>
-  <text x="625.35" y="1430" font-size="21" fill="#231815">long format</text>
-  <rect x="865.849" y="1353" width="242.151" height="100" rx="6" fill="#d9d9d9" stroke="#525252" stroke-width="2"/>
-  <text x="877.849" y="1387" font-size="22" font-weight="700" fill="#231815">1  Activity assay</text>
-  <line x1="877.849" y1="1399" x2="1096" y2="1399" stroke="#231815" stroke-width="1.2"/>
-  <text x="877.849" y="1430" font-size="21" fill="#231815">on picked colonies</text>
-  <polygon points="298.812,1403 318.812,1389 318.812,1417" fill="#0b0305"/>
-  <rect x="318.812" y="1398" width="13" height="10" fill="#0b0305"/>
-  <polygon points="578.85,1403 598.85,1389 598.85,1417" fill="#0b0305"/>
-  <rect x="598.85" y="1398" width="13" height="10" fill="#0b0305"/>
-  <polygon points="831.349,1403 851.349,1389 851.349,1417" fill="#0b0305"/>
-  <rect x="851.349" y="1398" width="13" height="10" fill="#0b0305"/>
-  <rect x="78" y="1493" width="1044.48" height="34" rx="4" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
-  <rect x="88" y="1502" width="22" height="15" fill="#d9d9d9" stroke="#0b0305" stroke-width="1.2"/>
-  <text x="122" y="1515" font-size="18" fill="#231815">work performed outside kuma</text>
-  <rect x="402.72" y="1502" width="22" height="15" fill="#bfbebe" stroke="#0b0305" stroke-width="1.2"/>
-  <text x="436.72" y="1515" font-size="18" fill="#231815">verdict other than PASS</text>
-  <text x="680" y="1515" font-size="18" fill="#231815">* written by every run</text>
-  <text x="913.92" y="1515" font-size="18" fill="#231815">** manual export only</text>
-  <path d="M75,1403 L40,1403 L40,229 L57,229" fill="none" stroke="#cb3228" stroke-width="7" stroke-linejoin="miter"/>
+  <rect x="326.881" y="98" width="235.457" height="262" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
+  <text x="338.881" y="132" font-size="26" font-weight="700" fill="#231815">Primer build</text>
+  <line x1="338.881" y1="144" x2="550.338" y2="144" stroke="#231815" stroke-width="1.2"/>
+  <text x="338.881" y="175" font-size="21" fill="#231815">polymerase profile</text>
+  <text x="338.881" y="203" font-size="21" fill="#231815">codon strategy</text>
+  <text x="338.881" y="231" font-size="21" fill="#231815">Gibson or Q5 SDM</text>
+  <text x="338.881" y="259" font-size="21" fill="#231815">primer3 Tm, dimer</text>
+  <text x="338.881" y="287" font-size="21" font-weight="700" fill="#231815">advisory penalties</text>
+  <text x="338.881" y="315" font-size="21" font-weight="700" fill="#231815">and hard rejects</text>
+  <rect x="572.338" y="98" width="211.788" height="262" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
+  <text x="584.338" y="132" font-size="26" font-weight="700" fill="#231815">Rank, plate</text>
+  <line x1="584.338" y1="144" x2="772.126" y2="144" stroke="#231815" stroke-width="1.2"/>
+  <text x="584.338" y="175" font-size="21" fill="#231815">rank by penalty</text>
+  <text x="584.338" y="203" font-size="21" fill="#231815">failures go to the</text>
+  <text x="584.338" y="231" font-size="21" fill="#231815">rescue cascade</text>
+  <rect x="612.232" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="612.232" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="612.232" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="612.232" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="612.232" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="612.232" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="612.232" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="612.232" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="623.232" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="623.232" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="623.232" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="623.232" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="623.232" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="623.232" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="623.232" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="623.232" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="634.232" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="634.232" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="634.232" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="634.232" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="634.232" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="634.232" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="634.232" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="634.232" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="645.232" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="645.232" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="645.232" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="645.232" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="645.232" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="645.232" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="645.232" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="645.232" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="656.232" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="656.232" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="656.232" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="656.232" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="656.232" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="656.232" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="656.232" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="656.232" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="667.232" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="667.232" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="667.232" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="667.232" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="667.232" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="667.232" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="667.232" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="667.232" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="678.232" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="678.232" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="678.232" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="678.232" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="678.232" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="678.232" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="678.232" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="678.232" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="689.232" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="689.232" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="689.232" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="689.232" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="689.232" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="689.232" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="689.232" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="689.232" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="700.232" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="700.232" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="700.232" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="700.232" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="700.232" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="700.232" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="700.232" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="700.232" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="711.232" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="711.232" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="711.232" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="711.232" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="711.232" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="711.232" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="711.232" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="711.232" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="722.232" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="722.232" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="722.232" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="722.232" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="722.232" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="722.232" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="722.232" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="722.232" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="733.232" y="256" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="733.232" y="267" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="733.232" y="278" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="733.232" y="289" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="733.232" y="300" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="733.232" y="311" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="733.232" y="322" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="733.232" y="333" width="11" height="11" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="794.126" y="98" width="265.874" height="262" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
+  <text x="806.126" y="132" font-size="26" font-weight="700" fill="#231815">Outputs</text>
+  <line x1="806.126" y1="144" x2="1048" y2="144" stroke="#231815" stroke-width="1.2"/>
+  <text x="806.126" y="175" font-size="21" fill="#231815">__kuma_meta__ sheet</text>
+  <text x="806.126" y="203" font-size="21" fill="#231815">SHA-256 checksum</text>
+  <text x="806.126" y="231" font-size="21" font-weight="700" fill="#231815">order, robot bundle</text>
+  <text x="806.126" y="259" font-size="21" fill="#231815">8 files</text>
+  <rect x="88" y="400" width="972" height="70" rx="6" fill="#ffffff" stroke="#231815" stroke-width="2" stroke-dasharray="8 5"/>
+  <text x="100" y="428" font-size="22" font-weight="700" fill="#231815">Optional structure side-channel</text>
+  <text x="100" y="458" font-size="21" fill="#231815">UniProt / AlphaFold / PDB / ESMFold; domain and active-site residues</text>
+  <line x1="202.441" y1="400" x2="202.441" y2="372" stroke="#0b0305" stroke-width="4"/>
+  <polygon points="193.441,373 211.441,373 202.441,360" fill="#0b0305"/>
+  <line x1="755.466" y1="484" x2="755.466" y2="558" stroke="#0b0305" stroke-width="4"/>
+  <polygon points="744.466,558 766.466,558 755.466,576" fill="#0b0305"/>
+  <text x="601.514" y="508" font-size="21" fill="#231815">order primers,</text>
+  <text x="601.514" y="536" font-size="21" fill="#231815">receive oligos</text>
+  <line x1="940.17" y1="484" x2="940.17" y2="678" stroke="#0b0305" stroke-width="4"/>
+  <rect x="820.34" y="678" width="239.66" height="35" rx="4" fill="#f4ee6b" stroke="#0b0305" stroke-width="2"/>
+  <text x="830.34" y="702" font-size="21" fill="#231815">expected_mutations.xlsx</text>
+  <line x1="940.17" y1="713" x2="940.17" y2="711" stroke="#0b0305" stroke-width="4"/>
+  <polygon points="929.17,711 951.17,711 940.17,729" fill="#0b0305"/>
+  <text x="76" y="548" font-size="46" font-weight="700" fill="#0b0305">B</text>
+  <text x="119.83" y="548" font-size="30" font-weight="700" fill="#231815">BUILD</text>
+  <line x1="119.83" y1="558" x2="209.55" y2="558" stroke="#231815" stroke-width="2"/>
+  <text x="330" y="548" font-size="22" fill="#231815">wet lab and sequencing</text>
+  <rect x="88" y="576" width="734.13" height="78" rx="10" fill="#d9d9d9" stroke="#0b0305" stroke-width="3"/>
+  <text x="755.466" y="623" font-size="22" font-weight="700" text-anchor="middle" fill="#231815">1  SDM PCR</text>
+  <text x="566.299" y="623" font-size="22" font-weight="700" text-anchor="middle" fill="#231815">2  Transformation</text>
+  <text x="348.263" y="623" font-size="22" font-weight="700" text-anchor="middle" fill="#231815">3  Colony picking</text>
+  <text x="159.365" y="623" font-size="22" font-weight="700" text-anchor="middle" fill="#231815">4  Nanopore</text>
+  <polygon points="661.303,615 681.303,601 681.303,629" fill="#0b0305"/>
+  <rect x="681.303" y="610" width="13" height="10" fill="#0b0305"/>
+  <polygon points="438.296,615 458.296,601 458.296,629" fill="#0b0305"/>
+  <rect x="458.296" y="610" width="13" height="10" fill="#0b0305"/>
+  <polygon points="225.23,615 245.23,601 245.23,629" fill="#0b0305"/>
+  <rect x="245.23" y="610" width="13" height="10" fill="#0b0305"/>
+  <polygon points="1072,729 1072,825 280,825 248,777 280,729" fill="#ffffff" stroke="#231815" stroke-width="2" stroke-dasharray="8 5"/>
+  <text x="290" y="767" font-size="24" font-weight="700" fill="#231815">__kuma_meta__ bridge</text>
+  <text x="290" y="799" font-size="21" fill="#231815">per-tab autosave</text>
+  <text x="568" y="767" font-size="21" fill="#231815">draft -&gt; design_complete -&gt; analyzing -&gt; done</text>
+  <text x="568" y="799" font-size="21" fill="#231815">MAME matches a dropped KURO xlsx on project_id</text>
+  <line x1="202.689" y1="654" x2="202.689" y2="668" stroke="#0b0305" stroke-width="4"/>
+  <rect x="103.218" y="668" width="198.941" height="35" rx="4" fill="#f4ee6b" stroke="#0b0305" stroke-width="2"/>
+  <text x="113.218" y="692" font-size="21" fill="#231815">MinKNOW run folder</text>
+  <line x1="202.689" y1="703" x2="202.689" y2="889" stroke="#0b0305" stroke-width="4"/>
+  <polygon points="191.689,889 213.689,889 202.689,907" fill="#0b0305"/>
+  <line x1="286" y1="825" x2="286" y2="889" stroke="#0b0305" stroke-width="4"/>
+  <polygon points="275,889 297,889 286,907" fill="#0b0305"/>
+  <text x="76" y="879" font-size="46" font-weight="700" fill="#0b0305">C</text>
+  <text x="118.772" y="879" font-size="30" font-weight="700" fill="#231815">TEST</text>
+  <line x1="118.772" y1="889" x2="193.252" y2="889" stroke="#231815" stroke-width="2"/>
+  <text x="330" y="879" font-size="22" fill="#231815">MAME verification engine</text>
+  <rect x="76" y="907" width="996" height="276" rx="10" fill="#ffffff" stroke="#0b0305" stroke-width="3"/>
+  <rect x="88" y="921" width="229.378" height="248" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
+  <text x="100" y="955" font-size="26" font-weight="700" fill="#231815">Input</text>
+  <line x1="100" y1="967" x2="305.378" y2="967" stroke="#231815" stroke-width="1.2"/>
+  <text x="100" y="998" font-size="21" fill="#231815">MinKNOW run folder</text>
+  <text x="100" y="1026" font-size="21" fill="#231815">single-record</text>
+  <text x="100" y="1054" font-size="21" fill="#231815">reference FASTA</text>
+  <text x="100" y="1082" font-size="21" font-weight="700" fill="#231815">custom barcode</text>
+  <text x="100" y="1110" font-size="21" font-weight="700" fill="#231815">workbook required</text>
+  <text x="100" y="1138" font-size="21" fill="#231815">expected variants</text>
+  <rect x="327.378" y="921" width="219.717" height="248" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
+  <text x="339.378" y="955" font-size="26" font-weight="700" fill="#231815">Align, demux</text>
+  <line x1="339.378" y1="967" x2="535.095" y2="967" stroke="#231815" stroke-width="1.2"/>
+  <text x="339.378" y="998" font-size="21" fill="#231815">amplicon extract</text>
+  <text x="339.378" y="1026" font-size="21" fill="#231815">from the reference</text>
+  <text x="339.378" y="1054" font-size="21" fill="#231815">minimap2 map-ont</text>
+  <text x="339.378" y="1082" font-size="21" fill="#231815">R/F combinatorial</text>
+  <text x="339.378" y="1110" font-size="21" fill="#231815">barcode demux</text>
+  <text x="339.378" y="1138" font-size="21" fill="#231815">edlib fuzzy match</text>
+  <rect x="557.095" y="921" width="183.475" height="248" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
+  <text x="569.095" y="955" font-size="26" font-weight="700" fill="#231815">Consensus</text>
+  <line x1="569.095" y1="967" x2="728.569" y2="967" stroke="#231815" stroke-width="1.2"/>
+  <text x="569.095" y="998" font-size="21" fill="#231815">Phred-aware</text>
+  <text x="569.095" y="1026" font-size="21" fill="#231815">majority call</text>
+  <text x="569.095" y="1054" font-size="21" fill="#231815">translate and</text>
+  <text x="569.095" y="1082" font-size="21" fill="#231815">compare to the</text>
+  <text x="569.095" y="1110" font-size="21" fill="#231815">expected list</text>
+  <rect x="750.569" y="921" width="309.431" height="248" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
+  <text x="762.569" y="955" font-size="26" font-weight="700" fill="#231815">Verdict</text>
+  <line x1="762.569" y1="967" x2="1048" y2="967" stroke="#231815" stroke-width="1.2"/>
+  <rect x="762.569" y="977" width="128.383" height="26" fill="#ffffff" stroke="#0b0305" stroke-width="2"/>
+  <text x="769.569" y="996" font-size="21" font-weight="700" fill="#231815">PASS</text>
+  <rect x="896.952" y="977" width="128.383" height="26" fill="#bfbebe" stroke="#0b0305" stroke-width="2"/>
+  <text x="903.952" y="996" font-size="21" fill="#231815">AMBIGUOUS</text>
+  <rect x="762.569" y="1007" width="128.383" height="26" fill="#bfbebe" stroke="#0b0305" stroke-width="2"/>
+  <text x="769.569" y="1026" font-size="21" fill="#231815">MIXED</text>
+  <rect x="896.952" y="1007" width="128.383" height="26" fill="#bfbebe" stroke="#0b0305" stroke-width="2"/>
+  <text x="903.952" y="1026" font-size="21" fill="#231815">FRAMESHIFT</text>
+  <rect x="762.569" y="1037" width="128.383" height="26" fill="#bfbebe" stroke="#0b0305" stroke-width="2"/>
+  <text x="769.569" y="1056" font-size="21" fill="#231815">MANY</text>
+  <rect x="896.952" y="1037" width="128.383" height="26" fill="#bfbebe" stroke="#0b0305" stroke-width="2"/>
+  <text x="903.952" y="1056" font-size="21" fill="#231815">LOWDEPTH</text>
+  <rect x="762.569" y="1067" width="128.383" height="26" fill="#bfbebe" stroke="#0b0305" stroke-width="2"/>
+  <text x="769.569" y="1086" font-size="21" fill="#231815">NO_CALL</text>
+  <rect x="896.952" y="1067" width="128.383" height="26" fill="#bfbebe" stroke="#0b0305" stroke-width="2"/>
+  <text x="903.952" y="1086" font-size="21" fill="#231815">WRONG_AA</text>
+  <text x="762.569" y="1118" font-size="21" fill="#231815">pick list *</text>
+  <text x="762.569" y="1146" font-size="21" fill="#231815">janus worklist **</text>
+  <line x1="905.285" y1="1183" x2="905.285" y2="1195" stroke="#0b0305" stroke-width="4"/>
+  <rect x="795.629" y="1195" width="219.311" height="35" rx="4" fill="#f4ee6b" stroke="#0b0305" stroke-width="2"/>
+  <text x="805.629" y="1219" font-size="21" fill="#231815">&lt;workbook&gt;_picks.csv</text>
+  <line x1="905.285" y1="1230" x2="905.285" y2="1257" stroke="#0b0305" stroke-width="4"/>
+  <polygon points="894.285,1257 916.285,1257 905.285,1275" fill="#0b0305"/>
+  <text x="76" y="1247" font-size="46" font-weight="700" fill="#0b0305">D</text>
+  <text x="121.21" y="1247" font-size="30" font-weight="700" fill="#231815">LEARN</text>
+  <line x1="121.21" y1="1257" x2="216.72" y2="1257" stroke="#231815" stroke-width="2"/>
+  <text x="330" y="1247" font-size="22" fill="#231815">activity data and the next round</text>
+  <rect x="76" y="1275" width="996" height="128" rx="10" fill="#ffffff" stroke="#0b0305" stroke-width="3"/>
+  <rect x="88" y="1289" width="217.915" height="100" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
+  <text x="100" y="1323" font-size="22" font-weight="700" fill="#231815">4  Round N+1</text>
+  <line x1="100" y1="1335" x2="293.915" y2="1335" stroke="#231815" stroke-width="1.2"/>
+  <text x="100" y="1366" font-size="21" fill="#231815">EVOLVEpro scores</text>
+  <rect x="341.915" y="1289" width="227.361" height="100" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
+  <text x="353.915" y="1323" font-size="22" font-weight="700" fill="#231815">3  Fold change</text>
+  <line x1="353.915" y1="1335" x2="557.276" y2="1335" stroke="#231815" stroke-width="1.2"/>
+  <text x="353.915" y="1366" font-size="21" fill="#231815">log2_fc vs WT wells</text>
+  <rect x="605.276" y="1289" width="195.711" height="100" rx="6" fill="#ffffff" stroke="#525252" stroke-width="2"/>
+  <text x="617.276" y="1323" font-size="22" font-weight="700" fill="#231815">2  Activity CSV</text>
+  <line x1="617.276" y1="1335" x2="788.987" y2="1335" stroke="#231815" stroke-width="1.2"/>
+  <text x="617.276" y="1366" font-size="21" fill="#231815">long format</text>
+  <rect x="836.987" y="1289" width="223.013" height="100" rx="6" fill="#d9d9d9" stroke="#525252" stroke-width="2"/>
+  <text x="848.987" y="1323" font-size="22" font-weight="700" fill="#231815">1  Activity assay</text>
+  <line x1="848.987" y1="1335" x2="1048" y2="1335" stroke="#231815" stroke-width="1.2"/>
+  <text x="848.987" y="1366" font-size="21" fill="#231815">on picked colonies</text>
+  <polygon points="307.415,1339 327.415,1325 327.415,1353" fill="#0b0305"/>
+  <rect x="327.415" y="1334" width="13" height="10" fill="#0b0305"/>
+  <polygon points="570.776,1339 590.776,1325 590.776,1353" fill="#0b0305"/>
+  <rect x="590.776" y="1334" width="13" height="10" fill="#0b0305"/>
+  <polygon points="802.487,1339 822.487,1325 822.487,1353" fill="#0b0305"/>
+  <rect x="822.487" y="1334" width="13" height="10" fill="#0b0305"/>
+  <rect x="78" y="1429" width="906.438" height="34" rx="4" fill="#ffffff" stroke="#0b0305" stroke-width="1.2"/>
+  <rect x="88" y="1438" width="22" height="15" fill="#d9d9d9" stroke="#0b0305" stroke-width="1.2"/>
+  <text x="122" y="1451" font-size="18" fill="#231815">work performed outside kuma</text>
+  <rect x="378.132" y="1438" width="22" height="15" fill="#bfbebe" stroke="#0b0305" stroke-width="1.2"/>
+  <text x="412.132" y="1451" font-size="18" fill="#231815">verdict other than PASS</text>
+  <text x="618.026" y="1451" font-size="18" fill="#231815">* written by every run</text>
+  <text x="807.666" y="1451" font-size="18" fill="#231815">** manual export only</text>
+  <path d="M75,1339 L40,1339 L40,229 L57,229" fill="none" stroke="#cb3228" stroke-width="7" stroke-linejoin="miter"/>
   <polygon points="57,216 57,242 73,229" fill="#cb3228"/>
 </svg>
