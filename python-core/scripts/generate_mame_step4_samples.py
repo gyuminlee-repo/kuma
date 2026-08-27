@@ -63,53 +63,41 @@ for _p in [str(_REPO_ROOT), str(_PYTHON_CORE)]:
 SAMPLES = _REPO_ROOT / "src-tauri" / "samples" / "mame"
 REFERENCE = SAMPLES / "reference.fasta"
 
-#: Designed variants, numbered against the shipped reference.
-#:
-#: The reference is EGFP, which already carries the two substitutions that turn
-#: wild-type avGFP into it (``F64L`` and ``S65T`` in avGFP numbering). Asking a
-#: campaign to introduce those again is what the previous list did, and it is
-#: not a mutation any primer can make. These ten are positions the reference
-#: still holds the wild-type residue at, so each one is a substitution that can
-#: actually be designed, ordered and sequenced.
-#:
-#: ``(position, mt_aa, mt_codon, note)``. ``wt_aa`` and ``wt_codon`` are read
-#: off the reference rather than stated here, so a wrong position fails loudly
-#: instead of shipping a list that disagrees with the sequence.
-#:
-#: Listed by ascending position, which is not cosmetic. The plate is filled in
-#: file order by ``build_draft_layout``, while the numeric-ID decoder derives
-#: its plate order from ``expected_variant_order``, which sorts by position. The
-#: two agree only when the file is already sorted, and a sample set that
-#: disagreed with itself would place a variant in one well and score it in
-#: another. Keeping the list sorted is the sample-side half of that; the two
-#: order sources still owe each other a reconciliation.
-DESIGNED: tuple[tuple[int, str, str, str], ...] = (
-    (67, "H", "CAC", "blue-shifted chromophore"),
-    (100, "S", "TCC", "folding"),
-    (148, "P", "CCC", "barrel turn"),
-    (149, "D", "GAC", "barrel turn"),
-    (154, "T", "ACG", "folding"),
-    (164, "A", "GCG", "folding"),
-    (168, "T", "ACC", "chromophore environment"),
-    (204, "Y", "TAC", "yellow-shifted, stacks on the chromophore"),
-    (206, "T", "ACC", "chromophore environment"),
-    (207, "K", "AAG", "breaks the dimer interface"),
-)
+#: The KURO half of the same campaign. ``Help > Load Sample Data`` opens these
+#: two in KURO: the round-0 EVOLVEpro prediction the operator picks from, and
+#: the plasmid the primers are designed against. The MAME plate is built from
+#: them rather than from a list of its own, because a demo whose two halves name
+#: different variants is two demos. The plasmid CDS and ``reference.fasta`` are
+#: the same 239-residue protein, which :func:`select_variants` re-checks.
+EVOLVEPRO_CSV = _REPO_ROOT / "src-tauri" / "samples" / "sample_evolvepro.csv"
+PLASMID = _REPO_ROOT / "src-tauri" / "samples" / "sample_plasmid.gb"
+
+#: How many of the predicted candidates reach the plate.
+VARIANT_COUNT = 10
 
 #: Activity relative to wild-type, per variant, as the demo reports it. Three
 #: replicate measurements each, spread by a per-variant amount rather than a
 #: single constant so a reader cannot mistake the spread for a fixed artefact.
+#:
+#: The ranking is deliberately not the prediction ranking. ``A88V`` is the best
+#: measured variant while ``F28A`` was predicted highest, and three candidates
+#: land below wild-type. A demo where the model ordered the assay perfectly
+#: would be teaching the wrong thing about what a round of screening is for.
+#:
+#: Keys must be exactly the selected variants. :func:`select_variants` raises
+#: when they drift apart rather than letting a renamed variant fall out of the
+#: measurements without a word.
 ACTIVITY: dict[str, tuple[float, float, float]] = {
-    "Y67H": (0.47, 0.44, 0.51),
-    "T204Y": (2.29, 2.31, 2.33),
-    "A207K": (1.20, 1.18, 1.21),
-    "F100S": (1.51, 1.53, 1.56),
-    "M154T": (1.84, 1.87, 1.86),
-    "V164A": (1.63, 1.60, 1.66),
-    "S148P": (0.88, 0.91, 0.86),
-    "H149D": (1.05, 1.02, 1.09),
-    "I168T": (3.11, 3.07, 3.13),
-    "S206T": (1.34, 1.31, 1.37),
+    "F28A": (2.41, 2.38, 2.44),
+    "H78A": (1.86, 1.83, 1.90),
+    "A88V": (3.12, 3.07, 3.15),
+    "R97A": (0.62, 0.59, 0.66),
+    "I124A": (1.54, 1.51, 1.57),
+    "N150A": (1.19, 1.16, 1.22),
+    "K163A": (0.88, 0.85, 0.91),
+    "G175A": (1.33, 1.30, 1.36),
+    "G190A": (0.47, 0.44, 0.50),
+    "H200A": (1.05, 1.02, 1.08),
 }
 
 #: Wild-type replicates on the raw scale. Every raw value below is this mean
@@ -121,9 +109,9 @@ WT_RAW: tuple[float, float, float] = (1011.0, 962.0, 982.0)
 #: close to but not on the primary numbers, which is what a repeat measurement
 #: looks like and what the merge step exists to reconcile.
 CONFIRMATION: dict[str, tuple[float, float]] = {
-    "I168T": (3.18, 3.21),
-    "T204Y": (2.26, 2.28),
-    "M154T": (1.89, 1.91),
+    "A88V": (3.18, 3.21),
+    "F28A": (2.36, 2.39),
+    "H78A": (1.89, 1.91),
 }
 
 
@@ -160,35 +148,105 @@ def translate(cds: str) -> str:
     return str(Seq(cds).translate())
 
 
-def resolve_variants(cds: str) -> list[Variant]:
-    """Bind each designed substitution to the residue the reference carries."""
+def plasmid_cds_start() -> int:
+    """Where the CDS begins in the KURO sample plasmid."""
+    from Bio import SeqIO
+
+    record = next(SeqIO.parse(str(PLASMID), "genbank"))
+    coding = [f for f in record.features if f.type == "CDS"]
+    if not coding:
+        raise ValueError(f"{PLASMID.name} has no CDS feature")
+    return int(coding[0].location.start)
+
+
+def read_predictions() -> list[str]:
+    """The round-0 candidates, best prediction first."""
+    import csv
+
+    with EVOLVEPRO_CSV.open(encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    ranked = sorted(rows, key=lambda row: float(row["y_pred"]), reverse=True)
+    return [row["variant"].strip() for row in ranked]
+
+
+def select_variants(cds: str) -> list[Variant]:
+    """The variants this campaign actually put on a plate.
+
+    The list is derived rather than written down. The predictions name the
+    candidates, KURO says which of them it can build primers for, and the best
+    predicted survivors go to the bench. A candidate whose primers do not design
+    never reaches a well, so including one would put a variant on the plate that
+    the campaign could not have made.
+
+    Codons come from the KURO design rather than from a table here, so the
+    expected-mutation sheet states the codon the primers actually carry.
+    """
+    from kuma_core.kuro.sdm_engine import design_sdm_primers
+
     protein = translate(cds)
+    predictions = read_predictions()
+
+    with tempfile.TemporaryDirectory(prefix="kuro_design_") as _tmp:
+        csv_path = Path(_tmp) / "mutations.csv"
+        csv_path.write_text(
+            "mutation\n" + "".join(f"{v}\n" for v in predictions), encoding="utf-8"
+        )
+        results, _candidates, failed = design_sdm_primers(
+            fasta_path=PLASMID,
+            target_start=plasmid_cds_start(),
+            mutations_csv=csv_path,
+            polymerase="KOD",
+        )
+
+    designed = {str(result.mutation.raw): result.mutation for result in results}
+    print(
+        f"KURO designed {len(designed)} of {len(predictions)} predicted candidates; "
+        f"{len(failed)} could not be built"
+    )
+    for variant, reason in failed.items():
+        print(f"  no primers for {variant}: {str(reason).split(' - ')[0]}")
+
+    picked = [v for v in predictions if v in designed][:VARIANT_COUNT]
+    if len(picked) < VARIANT_COUNT:
+        raise ValueError(
+            f"only {len(picked)} of the predicted candidates designed, "
+            f"{VARIANT_COUNT} are needed for the plate"
+        )
+
+    missing = set(picked) - set(ACTIVITY)
+    extra = set(ACTIVITY) - set(picked)
+    if missing or extra:
+        raise ValueError(
+            "ACTIVITY does not describe the selected variants: "
+            f"missing {sorted(missing)}, unused {sorted(extra)}"
+        )
+
     resolved: list[Variant] = []
-    for position, mt_aa, mt_codon, note in DESIGNED:
-        if position > len(protein):
+    for name in picked:
+        mutation = designed[name]
+        position = int(mutation.position)
+        if position > len(protein) or protein[position - 1] != mutation.wt_aa:
             raise ValueError(
-                f"position {position} is past the end of the reference protein "
-                f"({len(protein)} residues)"
+                f"{name} names {mutation.wt_aa}{position}, but the MAME "
+                f"reference holds {protein[position - 1: position] or '(past the end)'}"
             )
-        wt_aa = protein[position - 1]
-        if wt_aa == mt_aa:
-            raise ValueError(
-                f"position {position} already holds {mt_aa}: the reference "
-                "carries this substitution, so it cannot be designed"
-            )
-        wt_codon = cds[(position - 1) * 3 : position * 3]
         resolved.append(
             Variant(
-                mutant_id=f"{wt_aa}{position}{mt_aa}",
+                mutant_id=name,
                 position=position,
-                wt_aa=wt_aa,
-                mt_aa=mt_aa,
-                wt_codon=wt_codon,
-                mt_codon=mt_codon,
-                note=note,
+                wt_aa=str(mutation.wt_aa),
+                mt_aa=str(mutation.mt_aa),
+                wt_codon=str(mutation.wt_codon),
+                mt_codon=str(mutation.mt_codon),
+                note=f"EVOLVEpro rank {predictions.index(name) + 1}",
             )
         )
-    return resolved
+    # Ascending position, which is not cosmetic. The plate is filled in file
+    # order by ``build_draft_layout`` while the numeric-ID decoder derives its
+    # plate order from ``expected_variant_order``, which sorts by position. The
+    # two agree only when the file is already sorted, and a set that disagreed
+    # with itself would place a variant in one well and score it in another.
+    return sorted(resolved, key=lambda variant: variant.position)
 
 
 def apply_substitution(cds: str, variant: Variant) -> str:
@@ -507,7 +565,7 @@ def main() -> None:
     from kuma_core.mame.layout import build_draft_layout
 
     cds = read_reference_cds()
-    variants = resolve_variants(cds)
+    variants = select_variants(cds)
     by_id = {variant.mutant_id: variant for variant in variants}
     print(f"reference: {REFERENCE.name}, {len(cds)} bp, {len(cds) // 3} residues")
     for variant in variants:

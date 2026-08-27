@@ -2509,13 +2509,13 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Beispieldaten schließen einen Step-4-Build jetzt ab. Die mitgelieferte Analyze-Arbeitsmappe liefert den erforderlichen Verdict-Nachweis.",
-      "Kein Nanopore-Rohlauf wird mitgeliefert. Der Bildschirm zeigt einen Lauf einer echten Pipeline, und derselbe Lauf speist Step 4.",
-      "Die Beispielplatte belegt pro Variante genau ein Well, sodass Layout- und Verdict-Reader sie annehmen statt eine Wiederholung abzulehnen.",
-      "Die Positionen der Beispielvarianten sind gegen die mitgelieferte EGFP-Referenz nummeriert statt gegen ein anderes Protein.",
-      "Vier neue Beispieldateien decken Rohskala, variantenbeschriftete und numerische Bestätigungseingaben ab, für die es bisher kein Beispiel gab."
+      "Die Beispieldaten sind jetzt eine Kampagne. Die MAME-Platte trägt Varianten, die die mitgelieferte KURO-Vorhersage vorschlägt.",
+      "Die Platte wird aus dieser Vorhersage durch echten Primerentwurf abgeleitet, sodass ein Kandidat ohne Primer nie darauf erscheint.",
+      "Die Codons der erwarteten Mutationen stammen aus dem KURO-Entwurf, also nennt das Blatt das Codon, das die Primer tragen.",
+      "Die gemessene Aktivität folgt der Vorhersagerangfolge nicht, und drei der zehn Varianten liegen unter dem Wildtyp.",
+      "Ein neuer Test liest die ausgelieferten Dateien und schlägt fehl, sobald KURO und MAME wieder verschiedene Experimente beschreiben."
     ],
-    "highlightsStamp": "0.16.40+54e3cb8d",
+    "highlightsStamp": "0.16.41+78e69028",
     "releases": {
       "0.16.39": [
         "Fünf MAME-Raw-Run-Bedienelemente, die nie gesendet wurden, sind entfernt. Ein Q-Score-Filter oder eine Ziellänge wirkte gesetzt und tat nichts.",
@@ -2812,6 +2812,13 @@
         "Die Beispielplatte belegt pro Variante genau ein Well, sodass Layout- und Verdict-Reader sie annehmen statt eine Wiederholung abzulehnen.",
         "Die Positionen der Beispielvarianten sind gegen die mitgelieferte EGFP-Referenz nummeriert statt gegen ein anderes Protein.",
         "Vier neue Beispieldateien decken Rohskala, variantenbeschriftete und numerische Bestätigungseingaben ab, für die es bisher kein Beispiel gab."
+      ],
+      "0.16.41": [
+        "Die Beispieldaten sind jetzt eine Kampagne. Die MAME-Platte trägt Varianten, die die mitgelieferte KURO-Vorhersage vorschlägt.",
+        "Die Platte wird aus dieser Vorhersage durch echten Primerentwurf abgeleitet, sodass ein Kandidat ohne Primer nie darauf erscheint.",
+        "Die Codons der erwarteten Mutationen stammen aus dem KURO-Entwurf, also nennt das Blatt das Codon, das die Primer tragen.",
+        "Die gemessene Aktivität folgt der Vorhersagerangfolge nicht, und drei der zehn Varianten liegen unter dem Wildtyp.",
+        "Ein neuer Test liest die ausgelieferten Dateien und schlägt fehl, sobald KURO und MAME wieder verschiedene Experimente beschreiben."
       ]
     },
     "releaseStamps": {
@@ -2864,7 +2871,8 @@
       "0.16.33": "059a2f27",
       "0.16.34": "d7925cb6",
       "0.16.35": "d628e48a",
-      "0.16.40": "54e3cb8d"
+      "0.16.40": "54e3cb8d",
+      "0.16.41": "78e69028"
     }
   },
   "primerDisplay": {

@@ -17,19 +17,21 @@
       "n_aligned_reads": 232,
       "n_mapq_failed": 5,
       "n_span_failed": 3,
-      "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/1_1.fasta",
-      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTHGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+      "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/1_1.fasta",
+      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKASVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
       "observed_nt_changes": [
-        "T199C"
+        "T82G",
+        "T83C",
+        "C84G"
       ],
       "observed_aa_changes": [
-        "Y67H"
+        "F28A"
       ],
       "n_no_call_aa": 0,
       "expected_mutations": [
-        "Y67H"
+        "F28A"
       ],
-      "mutant_id": "Y67H",
+      "mutant_id": "F28A",
       "verdict": "PASS",
       "verdict_notes": "",
       "n_eligible_positions": 0,
@@ -56,19 +58,19 @@
       "n_aligned_reads": 232,
       "n_mapq_failed": 5,
       "n_span_failed": 3,
-      "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/1_2.fasta",
-      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQTALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+      "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/1_2.fasta",
+      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIADGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
       "observed_nt_changes": [
-        "T616A"
+        "G569C"
       ],
       "observed_aa_changes": [
-        "S206T"
+        "G190A"
       ],
       "n_no_call_aa": 0,
       "expected_mutations": [
-        "S206T"
+        "G190A"
       ],
-      "mutant_id": "S206T",
+      "mutant_id": "G190A",
       "verdict": "PASS",
       "verdict_notes": "",
       "n_eligible_positions": 0,
@@ -95,19 +97,20 @@
       "n_aligned_reads": 232,
       "n_mapq_failed": 5,
       "n_span_failed": 3,
-      "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/2_1.fasta",
-      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTISFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+      "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/2_1.fasta",
+      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDAMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
       "observed_nt_changes": [
-        "T299C"
+        "C232G",
+        "A233C"
       ],
       "observed_aa_changes": [
-        "F100S"
+        "H78A"
       ],
       "n_no_call_aa": 0,
       "expected_mutations": [
-        "F100S"
+        "H78A"
       ],
-      "mutant_id": "F100S",
+      "mutant_id": "H78A",
       "verdict": "PASS",
       "verdict_notes": "",
       "n_eligible_positions": 0,
@@ -134,21 +137,20 @@
       "n_aligned_reads": 232,
       "n_mapq_failed": 5,
       "n_span_failed": 3,
-      "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/2_2.fasta",
-      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSKLSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+      "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/2_2.fasta",
+      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNAYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
       "observed_nt_changes": [
-        "G619A",
-        "C620A",
-        "C621G"
+        "C598G",
+        "A599C"
       ],
       "observed_aa_changes": [
-        "A207K"
+        "H200A"
       ],
       "n_no_call_aa": 0,
       "expected_mutations": [
-        "A207K"
+        "H200A"
       ],
-      "mutant_id": "A207K",
+      "mutant_id": "H200A",
       "verdict": "PASS",
       "verdict_notes": "",
       "n_eligible_positions": 0,
@@ -175,20 +177,19 @@
       "n_aligned_reads": 232,
       "n_mapq_failed": 5,
       "n_span_failed": 3,
-      "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/3_1.fasta",
-      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNPHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+      "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/3_1.fasta",
+      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSVMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
       "observed_nt_changes": [
-        "A442C",
-        "G443C"
+        "C263T"
       ],
       "observed_aa_changes": [
-        "S148P"
+        "A88V"
       ],
       "n_no_call_aa": 0,
       "expected_mutations": [
-        "S148P"
+        "A88V"
       ],
-      "mutant_id": "S148P",
+      "mutant_id": "A88V",
       "verdict": "PASS",
       "verdict_notes": "",
       "n_eligible_positions": 0,
@@ -215,19 +216,20 @@
       "n_aligned_reads": 232,
       "n_mapq_failed": 5,
       "n_span_failed": 3,
-      "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/4_1.fasta",
-      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSDNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+      "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/4_1.fasta",
+      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQEATIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
       "observed_nt_changes": [
-        "C445G"
+        "C289G",
+        "G290C"
       ],
       "observed_aa_changes": [
-        "H149D"
+        "R97A"
       ],
       "n_no_call_aa": 0,
       "expected_mutations": [
-        "H149D"
+        "R97A"
       ],
-      "mutant_id": "H149D",
+      "mutant_id": "R97A",
       "verdict": "PASS",
       "verdict_notes": "",
       "n_eligible_positions": 0,
@@ -254,19 +256,20 @@
       "n_aligned_reads": 232,
       "n_mapq_failed": 5,
       "n_span_failed": 3,
-      "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/5_1.fasta",
-      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYITADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+      "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/5_1.fasta",
+      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRAELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
       "observed_nt_changes": [
-        "T461C"
+        "A370G",
+        "T371C"
       ],
       "observed_aa_changes": [
-        "M154T"
+        "I124A"
       ],
       "n_no_call_aa": 0,
       "expected_mutations": [
-        "M154T"
+        "I124A"
       ],
-      "mutant_id": "M154T",
+      "mutant_id": "I124A",
       "verdict": "PASS",
       "verdict_notes": "",
       "n_eligible_positions": 0,
@@ -293,19 +296,20 @@
       "n_aligned_reads": 232,
       "n_mapq_failed": 5,
       "n_span_failed": 3,
-      "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/6_1.fasta",
-      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKANFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+      "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/6_1.fasta",
+      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHAVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
       "observed_nt_changes": [
-        "T491C"
+        "A448G",
+        "A449C"
       ],
       "observed_aa_changes": [
-        "V164A"
+        "N150A"
       ],
       "n_no_call_aa": 0,
       "expected_mutations": [
-        "V164A"
+        "N150A"
       ],
-      "mutant_id": "V164A",
+      "mutant_id": "N150A",
       "verdict": "PASS",
       "verdict_notes": "",
       "n_eligible_positions": 0,
@@ -332,19 +336,20 @@
       "n_aligned_reads": 232,
       "n_mapq_failed": 5,
       "n_span_failed": 3,
-      "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/7_1.fasta",
-      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKTRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+      "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/7_1.fasta",
+      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIAVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
       "observed_nt_changes": [
-        "T503C"
+        "A487G",
+        "A488C"
       ],
       "observed_aa_changes": [
-        "I168T"
+        "K163A"
       ],
       "n_no_call_aa": 0,
       "expected_mutations": [
-        "I168T"
+        "K163A"
       ],
-      "mutant_id": "I168T",
+      "mutant_id": "K163A",
       "verdict": "PASS",
       "verdict_notes": "",
       "n_eligible_positions": 0,
@@ -371,20 +376,20 @@
       "n_aligned_reads": 232,
       "n_mapq_failed": 5,
       "n_span_failed": 3,
-      "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/8_1.fasta",
-      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSYQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+      "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/8_1.fasta",
+      "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDASVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
       "observed_nt_changes": [
-        "A610T",
-        "C611A"
+        "G524C",
+        "C525G"
       ],
       "observed_aa_changes": [
-        "T204Y"
+        "G175A"
       ],
       "n_no_call_aa": 0,
       "expected_mutations": [
-        "T204Y"
+        "G175A"
       ],
-      "mutant_id": "T204Y",
+      "mutant_id": "G175A",
       "verdict": "PASS",
       "verdict_notes": "",
       "n_eligible_positions": 0,
@@ -411,7 +416,7 @@
       "n_aligned_reads": 232,
       "n_mapq_failed": 5,
       "n_span_failed": 3,
-      "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/8_12.fasta",
+      "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/8_12.fasta",
       "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
       "observed_nt_changes": [],
       "observed_aa_changes": [],
@@ -431,7 +436,7 @@
   ],
   "replicates": [
     {
-      "mutant_id": "Y67H",
+      "mutant_id": "F28A",
       "selected_plate": "NB01",
       "selection_reason": "verdict=PASS; tiebreak=NB-ascending among ['NB01']",
       "failed": false,
@@ -455,19 +460,21 @@
           "n_aligned_reads": 232,
           "n_mapq_failed": 5,
           "n_span_failed": 3,
-          "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/1_1.fasta",
-          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTHGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+          "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/1_1.fasta",
+          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKASVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
           "observed_nt_changes": [
-            "T199C"
+            "T82G",
+            "T83C",
+            "C84G"
           ],
           "observed_aa_changes": [
-            "Y67H"
+            "F28A"
           ],
           "n_no_call_aa": 0,
           "expected_mutations": [
-            "Y67H"
+            "F28A"
           ],
-          "mutant_id": "Y67H",
+          "mutant_id": "F28A",
           "verdict": "PASS",
           "verdict_notes": "",
           "n_eligible_positions": 0,
@@ -483,7 +490,7 @@
       "fallback_reason": null
     },
     {
-      "mutant_id": "S206T",
+      "mutant_id": "G190A",
       "selected_plate": "NB01",
       "selection_reason": "verdict=PASS; tiebreak=NB-ascending among ['NB01']",
       "failed": false,
@@ -507,19 +514,19 @@
           "n_aligned_reads": 232,
           "n_mapq_failed": 5,
           "n_span_failed": 3,
-          "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/1_2.fasta",
-          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQTALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+          "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/1_2.fasta",
+          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIADGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
           "observed_nt_changes": [
-            "T616A"
+            "G569C"
           ],
           "observed_aa_changes": [
-            "S206T"
+            "G190A"
           ],
           "n_no_call_aa": 0,
           "expected_mutations": [
-            "S206T"
+            "G190A"
           ],
-          "mutant_id": "S206T",
+          "mutant_id": "G190A",
           "verdict": "PASS",
           "verdict_notes": "",
           "n_eligible_positions": 0,
@@ -535,7 +542,7 @@
       "fallback_reason": null
     },
     {
-      "mutant_id": "F100S",
+      "mutant_id": "H78A",
       "selected_plate": "NB01",
       "selection_reason": "verdict=PASS; tiebreak=NB-ascending among ['NB01']",
       "failed": false,
@@ -559,19 +566,20 @@
           "n_aligned_reads": 232,
           "n_mapq_failed": 5,
           "n_span_failed": 3,
-          "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/2_1.fasta",
-          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTISFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+          "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/2_1.fasta",
+          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDAMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
           "observed_nt_changes": [
-            "T299C"
+            "C232G",
+            "A233C"
           ],
           "observed_aa_changes": [
-            "F100S"
+            "H78A"
           ],
           "n_no_call_aa": 0,
           "expected_mutations": [
-            "F100S"
+            "H78A"
           ],
-          "mutant_id": "F100S",
+          "mutant_id": "H78A",
           "verdict": "PASS",
           "verdict_notes": "",
           "n_eligible_positions": 0,
@@ -587,7 +595,7 @@
       "fallback_reason": null
     },
     {
-      "mutant_id": "A207K",
+      "mutant_id": "H200A",
       "selected_plate": "NB01",
       "selection_reason": "verdict=PASS; tiebreak=NB-ascending among ['NB01']",
       "failed": false,
@@ -611,21 +619,20 @@
           "n_aligned_reads": 232,
           "n_mapq_failed": 5,
           "n_span_failed": 3,
-          "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/2_2.fasta",
-          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSKLSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+          "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/2_2.fasta",
+          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNAYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
           "observed_nt_changes": [
-            "G619A",
-            "C620A",
-            "C621G"
+            "C598G",
+            "A599C"
           ],
           "observed_aa_changes": [
-            "A207K"
+            "H200A"
           ],
           "n_no_call_aa": 0,
           "expected_mutations": [
-            "A207K"
+            "H200A"
           ],
-          "mutant_id": "A207K",
+          "mutant_id": "H200A",
           "verdict": "PASS",
           "verdict_notes": "",
           "n_eligible_positions": 0,
@@ -641,7 +648,7 @@
       "fallback_reason": null
     },
     {
-      "mutant_id": "S148P",
+      "mutant_id": "A88V",
       "selected_plate": "NB01",
       "selection_reason": "verdict=PASS; tiebreak=NB-ascending among ['NB01']",
       "failed": false,
@@ -665,20 +672,19 @@
           "n_aligned_reads": 232,
           "n_mapq_failed": 5,
           "n_span_failed": 3,
-          "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/3_1.fasta",
-          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNPHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+          "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/3_1.fasta",
+          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSVMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
           "observed_nt_changes": [
-            "A442C",
-            "G443C"
+            "C263T"
           ],
           "observed_aa_changes": [
-            "S148P"
+            "A88V"
           ],
           "n_no_call_aa": 0,
           "expected_mutations": [
-            "S148P"
+            "A88V"
           ],
-          "mutant_id": "S148P",
+          "mutant_id": "A88V",
           "verdict": "PASS",
           "verdict_notes": "",
           "n_eligible_positions": 0,
@@ -694,7 +700,7 @@
       "fallback_reason": null
     },
     {
-      "mutant_id": "H149D",
+      "mutant_id": "R97A",
       "selected_plate": "NB01",
       "selection_reason": "verdict=PASS; tiebreak=NB-ascending among ['NB01']",
       "failed": false,
@@ -718,19 +724,20 @@
           "n_aligned_reads": 232,
           "n_mapq_failed": 5,
           "n_span_failed": 3,
-          "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/4_1.fasta",
-          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSDNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+          "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/4_1.fasta",
+          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQEATIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
           "observed_nt_changes": [
-            "C445G"
+            "C289G",
+            "G290C"
           ],
           "observed_aa_changes": [
-            "H149D"
+            "R97A"
           ],
           "n_no_call_aa": 0,
           "expected_mutations": [
-            "H149D"
+            "R97A"
           ],
-          "mutant_id": "H149D",
+          "mutant_id": "R97A",
           "verdict": "PASS",
           "verdict_notes": "",
           "n_eligible_positions": 0,
@@ -746,7 +753,7 @@
       "fallback_reason": null
     },
     {
-      "mutant_id": "M154T",
+      "mutant_id": "I124A",
       "selected_plate": "NB01",
       "selection_reason": "verdict=PASS; tiebreak=NB-ascending among ['NB01']",
       "failed": false,
@@ -770,19 +777,20 @@
           "n_aligned_reads": 232,
           "n_mapq_failed": 5,
           "n_span_failed": 3,
-          "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/5_1.fasta",
-          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYITADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+          "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/5_1.fasta",
+          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRAELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
           "observed_nt_changes": [
-            "T461C"
+            "A370G",
+            "T371C"
           ],
           "observed_aa_changes": [
-            "M154T"
+            "I124A"
           ],
           "n_no_call_aa": 0,
           "expected_mutations": [
-            "M154T"
+            "I124A"
           ],
-          "mutant_id": "M154T",
+          "mutant_id": "I124A",
           "verdict": "PASS",
           "verdict_notes": "",
           "n_eligible_positions": 0,
@@ -798,7 +806,7 @@
       "fallback_reason": null
     },
     {
-      "mutant_id": "V164A",
+      "mutant_id": "N150A",
       "selected_plate": "NB01",
       "selection_reason": "verdict=PASS; tiebreak=NB-ascending among ['NB01']",
       "failed": false,
@@ -822,19 +830,20 @@
           "n_aligned_reads": 232,
           "n_mapq_failed": 5,
           "n_span_failed": 3,
-          "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/6_1.fasta",
-          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKANFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+          "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/6_1.fasta",
+          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHAVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
           "observed_nt_changes": [
-            "T491C"
+            "A448G",
+            "A449C"
           ],
           "observed_aa_changes": [
-            "V164A"
+            "N150A"
           ],
           "n_no_call_aa": 0,
           "expected_mutations": [
-            "V164A"
+            "N150A"
           ],
-          "mutant_id": "V164A",
+          "mutant_id": "N150A",
           "verdict": "PASS",
           "verdict_notes": "",
           "n_eligible_positions": 0,
@@ -850,7 +859,7 @@
       "fallback_reason": null
     },
     {
-      "mutant_id": "I168T",
+      "mutant_id": "K163A",
       "selected_plate": "NB01",
       "selection_reason": "verdict=PASS; tiebreak=NB-ascending among ['NB01']",
       "failed": false,
@@ -874,19 +883,20 @@
           "n_aligned_reads": 232,
           "n_mapq_failed": 5,
           "n_span_failed": 3,
-          "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/7_1.fasta",
-          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKTRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+          "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/7_1.fasta",
+          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIAVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
           "observed_nt_changes": [
-            "T503C"
+            "A487G",
+            "A488C"
           ],
           "observed_aa_changes": [
-            "I168T"
+            "K163A"
           ],
           "n_no_call_aa": 0,
           "expected_mutations": [
-            "I168T"
+            "K163A"
           ],
-          "mutant_id": "I168T",
+          "mutant_id": "K163A",
           "verdict": "PASS",
           "verdict_notes": "",
           "n_eligible_positions": 0,
@@ -902,7 +912,7 @@
       "fallback_reason": null
     },
     {
-      "mutant_id": "T204Y",
+      "mutant_id": "G175A",
       "selected_plate": "NB01",
       "selection_reason": "verdict=PASS; tiebreak=NB-ascending among ['NB01']",
       "failed": false,
@@ -926,20 +936,20 @@
           "n_aligned_reads": 232,
           "n_mapq_failed": 5,
           "n_span_failed": 3,
-          "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/8_1.fasta",
-          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSYQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
+          "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/8_1.fasta",
+          "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDASVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
           "observed_nt_changes": [
-            "A610T",
-            "C611A"
+            "G524C",
+            "C525G"
           ],
           "observed_aa_changes": [
-            "T204Y"
+            "G175A"
           ],
           "n_no_call_aa": 0,
           "expected_mutations": [
-            "T204Y"
+            "G175A"
           ],
-          "mutant_id": "T204Y",
+          "mutant_id": "G175A",
           "verdict": "PASS",
           "verdict_notes": "",
           "n_eligible_positions": 0,
@@ -979,7 +989,7 @@
           "n_aligned_reads": 232,
           "n_mapq_failed": 5,
           "n_span_failed": 3,
-          "source_path": "/tmp/mame_step4_samples_tucpte91/consensus/NB01/8_12.fasta",
+          "source_path": "/tmp/mame_step4_samples_wwre_gbr/consensus/NB01/8_12.fasta",
           "aa_sequence": "MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK*",
           "observed_nt_changes": [],
           "observed_aa_changes": [],
@@ -1014,7 +1024,7 @@
       "barcode": "1_1",
       "native_barcode": "NB01",
       "verdict": "PASS",
-      "mutant_id": "Y67H",
+      "mutant_id": "F28A",
       "selected": true,
       "notes": "",
       "is_fallback": false,
@@ -1025,7 +1035,7 @@
       "barcode": "1_2",
       "native_barcode": "NB01",
       "verdict": "PASS",
-      "mutant_id": "S206T",
+      "mutant_id": "G190A",
       "selected": true,
       "notes": "",
       "is_fallback": false,
@@ -1036,7 +1046,7 @@
       "barcode": "2_1",
       "native_barcode": "NB01",
       "verdict": "PASS",
-      "mutant_id": "F100S",
+      "mutant_id": "H78A",
       "selected": true,
       "notes": "",
       "is_fallback": false,
@@ -1047,7 +1057,7 @@
       "barcode": "2_2",
       "native_barcode": "NB01",
       "verdict": "PASS",
-      "mutant_id": "A207K",
+      "mutant_id": "H200A",
       "selected": true,
       "notes": "",
       "is_fallback": false,
@@ -1058,7 +1068,7 @@
       "barcode": "3_1",
       "native_barcode": "NB01",
       "verdict": "PASS",
-      "mutant_id": "S148P",
+      "mutant_id": "A88V",
       "selected": true,
       "notes": "",
       "is_fallback": false,
@@ -1069,7 +1079,7 @@
       "barcode": "4_1",
       "native_barcode": "NB01",
       "verdict": "PASS",
-      "mutant_id": "H149D",
+      "mutant_id": "R97A",
       "selected": true,
       "notes": "",
       "is_fallback": false,
@@ -1080,7 +1090,7 @@
       "barcode": "5_1",
       "native_barcode": "NB01",
       "verdict": "PASS",
-      "mutant_id": "M154T",
+      "mutant_id": "I124A",
       "selected": true,
       "notes": "",
       "is_fallback": false,
@@ -1091,7 +1101,7 @@
       "barcode": "6_1",
       "native_barcode": "NB01",
       "verdict": "PASS",
-      "mutant_id": "V164A",
+      "mutant_id": "N150A",
       "selected": true,
       "notes": "",
       "is_fallback": false,
@@ -1102,7 +1112,7 @@
       "barcode": "7_1",
       "native_barcode": "NB01",
       "verdict": "PASS",
-      "mutant_id": "I168T",
+      "mutant_id": "K163A",
       "selected": true,
       "notes": "",
       "is_fallback": false,
@@ -1113,7 +1123,7 @@
       "barcode": "8_1",
       "native_barcode": "NB01",
       "verdict": "PASS",
-      "mutant_id": "T204Y",
+      "mutant_id": "G175A",
       "selected": true,
       "notes": "",
       "is_fallback": false,

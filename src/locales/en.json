@@ -2552,14 +2552,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Sample data now finishes a step 4 build. The bundled Analyze workbook supplies the verdict evidence every build requires.",
-      "No nanopore run folder is bundled. The screen shows a run a real pipeline produced, and that same run feeds step 4.",
-      "The sample plate seats each variant in one well, so the layout and verdict readers accept it instead of refusing a repeated variant.",
-      "Sample variant positions are numbered against the shipped EGFP reference, replacing a list numbered against a different protein.",
-      "Four new sample files cover raw-scale, variant-labeled and numeric-ID confirmation inputs that had no example before."
+      "Sample data is one campaign now. The MAME plate holds variants the bundled KURO prediction proposed, instead of a separate list.",
+      "The plate is derived from that prediction by running the primer design, so a candidate whose primers fail never appears on it.",
+      "Expected-mutation codons come from the KURO design, so the sheet states the codon the primers actually carry.",
+      "Measured activity does not follow the prediction ranking, and three of the ten variants land below wild-type.",
+      "A new test reads the shipped files and fails if the KURO and MAME halves ever describe different experiments again."
     ],
-    "highlightsStamp": "0.16.40+54e3cb8d",
+    "highlightsStamp": "0.16.41+78e69028",
     "releases": {
+      "0.16.41": [
+        "Sample data is one campaign now. The MAME plate holds variants the bundled KURO prediction proposed, instead of a separate list.",
+        "The plate is derived from that prediction by running the primer design, so a candidate whose primers fail never appears on it.",
+        "Expected-mutation codons come from the KURO design, so the sheet states the codon the primers actually carry.",
+        "Measured activity does not follow the prediction ranking, and three of the ten variants land below wild-type.",
+        "A new test reads the shipped files and fails if the KURO and MAME halves ever describe different experiments again."
+      ],
       "0.16.40": [
         "Sample data now finishes a step 4 build. The bundled Analyze workbook supplies the verdict evidence every build requires.",
         "No nanopore run folder is bundled. The screen shows a run a real pipeline produced, and that same run feeds step 4.",
@@ -2858,6 +2865,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.41": "78e69028",
       "0.16.40": "54e3cb8d",
       "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",
