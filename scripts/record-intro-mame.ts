@@ -45,6 +45,17 @@ import { createRequire } from "module";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { mkdirSync, existsSync, writeFileSync, renameSync } from "fs";
+import {
+  injectCursor,
+  moveTo,
+  moveToSelector,
+  clickSelector,
+  smoothScrollIntoView,
+  smoothScrollTo,
+  zoomTo,
+  resetZoom,
+  dwell,
+} from "./record-motion.js";
 
 declare global {
   interface Window {
@@ -112,7 +123,50 @@ interface Step {
   scrollBy?: number;
 }
 
-type Beat = { screen: string; hold: number; note: string };
+/**
+ * A beat is a held shot, and everything past `note` decides what moves in it.
+ *
+ * `filmClicks` starts the beat clock before the step's clicks rather than
+ * after. The wizard is already being driven by clicks, and with the cursor
+ * visible those clicks are the most honest motion available: a hand reaching
+ * for Browse five times is what an operator actually does. Charged as
+ * transition time (the default) they land outside the window the assembler
+ * cuts and never reach the film. It stays off for the step that waits 83 s on
+ * the analyze, because that wait would eat the beat.
+ *
+ * `scrollInBeat` moves the step's `scrollBy` inside the beat and eases it, so
+ * the arrival at the plate or the distribution is a travel rather than a jump.
+ * Only usable on a step with no `expect` marker, since the marker is checked
+ * before the beat starts.
+ */
+type Beat = {
+  screen: string;
+  hold: number;
+  note: string;
+  filmClicks?: boolean;
+  scrollInBeat?: boolean;
+  motion?: (page: Page) => Promise<void>;
+};
+
+const WIZARD_BODY = '[data-testid="wizard-body"]';
+const PLATE_GRID = ".well-plate-grid";
+const INSPECTOR = '[data-testid="inspector"]';
+
+/** Sweep the cursor across a handful of points inside an element's box. */
+async function sweepAcross(
+  page: Page,
+  selector: string,
+  points: Array<[number, number]>,
+  dwellMs = 380,
+): Promise<boolean> {
+  const box = await page.locator(selector).first().boundingBox({ timeout: 5000 }).catch(() => null);
+  if (!box) return false;
+  for (const [fx, fy] of points) {
+    await moveTo(page, box.x + box.width * fx, box.y + box.height * fy);
+    await page.waitForTimeout(dwellMs);
+  }
+  return true;
+}
 
 /**
  * The narrative order, not the driving order. Sections 3 and 4 of the intro
@@ -122,11 +176,109 @@ type Beat = { screen: string; hold: number; note: string };
  * separates holding from driving.
  */
 const TIMELINE: Beat[] = [
-  { screen: "02-inputs-filled", hold: 4500, note: "run folder as it came off the sequencer" },
-  { screen: "07-native-barcodes", hold: 3500, note: "barcodes detected" },
-  { screen: "09-verdict-plate", hold: 6000, note: "288 wells, verdicts split" },
-  { screen: "10-replicate-distribution", hold: 4000, note: "replicate agreement" },
-  { screen: "08-run-quality", hold: 4000, note: "run health, nothing invented" },
+  {
+    screen: "02-inputs-filled",
+    hold: 8000,
+    note: "run folder as it came off the sequencer",
+    // The five Browse presses ARE the beat. They were always happening; they
+    // were just happening off camera.
+    filmClicks: true,
+    motion: async (page) => {
+      await zoomTo(page, [{ selector: WIZARD_BODY }], { ms: 900, min: 1.2, max: 1.5 });
+      await dwell(page, 900);
+    },
+  },
+  {
+    screen: "07-native-barcodes",
+    hold: 6500,
+    note: "barcodes detected",
+    filmClicks: true,
+    motion: async (page) => {
+      await smoothScrollIntoView(
+        page,
+        { selector: '[role="dialog"], ' + WIZARD_BODY, contains: "replicate axis" },
+        { ms: 900 },
+      );
+      await zoomTo(
+        page,
+        [
+          { selector: '[role="dialog"]', contains: "replicate axis" },
+          { selector: WIZARD_BODY, contains: "replicate axis" },
+        ],
+        { ms: 1000, min: 1.3, max: 1.9 },
+      );
+      await dwell(page, 1200);
+    },
+  },
+  {
+    screen: "09-verdict-plate",
+    hold: 11000,
+    note: "288 wells, verdicts split",
+    scrollInBeat: true,
+    motion: async (page) => {
+      // Arrive at the plate by travelling to it, hover a few wells, push in on
+      // the grid, then carry on down to the verdict evidence.
+      await smoothScrollTo(page, WIZARD_BODY, 560, 1400);
+      await sweepAcross(page, PLATE_GRID, [
+        [0.25, 0.3],
+        [0.55, 0.55],
+        [0.8, 0.35],
+      ], 320);
+      await zoomTo(page, [{ selector: PLATE_GRID }], { ms: 900, min: 1.3, max: 2.0 });
+      await dwell(page, 1400);
+      await resetZoom(page, 600);
+      await smoothScrollIntoView(page, { selector: '[data-testid="verdict-detail"]' }, { ms: 1100 });
+      await zoomTo(page, [{ selector: '[data-testid="verdict-detail"]' }], {
+        ms: 900,
+        min: 1.4,
+        max: 2.1,
+      });
+      await dwell(page, 1000);
+    },
+  },
+  {
+    screen: "10-replicate-distribution",
+    hold: 6000,
+    note: "replicate agreement",
+    scrollInBeat: true,
+    motion: async (page) => {
+      await smoothScrollTo(page, WIZARD_BODY, 1500, 1600);
+      await moveToSelector(page, '[data-testid="replicate-row"]');
+      await dwell(page, 500);
+      await zoomTo(
+        page,
+        [{ selector: '[data-testid="verdict-detail"]' }, { selector: WIZARD_BODY }],
+        { ms: 900, min: 1.3, max: 1.9 },
+      );
+      await dwell(page, 900);
+    },
+  },
+  {
+    screen: "08-run-quality",
+    hold: 8500,
+    note: "run health, nothing invented",
+    scrollInBeat: true,
+    motion: async (page) => {
+      await smoothScrollTo(page, WIZARD_BODY, 0, 1500);
+      await dwell(page, 400);
+      // "Median depth 571 is under the recommended 1500 reads per amplicon"
+      // is written by RunQualityNotice (en.json mame.runQuality.finding), which
+      // is where the subtitle's two numbers actually live.
+      await smoothScrollIntoView(page, { selector: "li, p, div", contains: "Median depth" }, { ms: 1100 });
+      const hit = await zoomTo(
+        page,
+        [
+          { selector: '[data-testid="run-quality-notice"]' },
+          { selector: "li, p, div", contains: "Median depth" },
+          { selector: '[data-testid="run-qc-section"]' },
+          { selector: INSPECTOR },
+        ],
+        { ms: 1000, min: 1.4, max: 2.1, padding: 260 },
+      );
+      console.log(`  [motion] 08-run-quality zoom -> ${hit ? hit.matched : "no target"}`);
+      await dwell(page, 1600);
+    },
+  },
 ];
 
 /** Probe runs cut to the first two beats at a fixed short hold, which also stops short of the analyze. */
@@ -260,7 +412,11 @@ async function dismissOverlays(page: Page): Promise<void> {
  * dropped: a recording run is never soft, because a miss films a screen that
  * contradicts its own subtitle.
  */
-async function runStep(page: Page, step: Step): Promise<void> {
+async function runStep(
+  page: Page,
+  step: Step,
+  opts: { cursor?: boolean; skipScroll?: boolean } = {},
+): Promise<void> {
   const clickTimeout = step.slowMs ?? 15_000;
   const markerTimeout = step.slowMs ?? 20_000;
   if (step.dialogPaths) {
@@ -271,6 +427,13 @@ async function runStep(page: Page, step: Step): Promise<void> {
   }
 
   for (const selector of step.clicks ?? []) {
+    if (opts.cursor) {
+      // Same real input as below, with the cursor travelling to the control
+      // and a pulse under the press, so the beat shows the app being driven.
+      await clickSelector(page, selector, clickTimeout);
+      await page.waitForTimeout(320);
+      continue;
+    }
     const target = page.locator(selector).first();
     await target.waitFor({ state: "visible", timeout: clickTimeout });
     // Radix menus and popovers open on pointerdown, which a JS .click() never
@@ -279,7 +442,7 @@ async function runStep(page: Page, step: Step): Promise<void> {
     await page.waitForTimeout(500);
   }
 
-  if (step.scrollBy) {
+  if (step.scrollBy && !opts.skipScroll) {
     const moved = await page.evaluate((amount) => {
       const body = document.querySelector('[data-testid="wizard-body"]');
       if (!body) return false;
@@ -303,7 +466,18 @@ async function runStep(page: Page, step: Step): Promise<void> {
  * scrolling back to the top of the same review page reads as a failure, and its
  * click loop would replay step 08's clicks and start a second analyze run.
  */
-async function revisitStep(page: Page, step: Step): Promise<void> {
+async function revisitStep(
+  page: Page,
+  step: Step,
+  opts: { skipScroll?: boolean } = {},
+): Promise<void> {
+  if (opts.skipScroll) {
+    // The beat eases this scroll itself, inside the window that gets filmed.
+    if (step.expect) {
+      await page.locator(step.expect).first().waitFor({ state: "visible", timeout: 20_000 });
+    }
+    return;
+  }
   const landed = await page.evaluate((amount) => {
     const body = document.querySelector('[data-testid="wizard-body"]');
     if (!body) return null;
@@ -500,6 +674,8 @@ async function main(): Promise<void> {
     // the editor trims using the offsets below.
     const recordingStart = Date.now();
     await enterMame(page);
+    // On document.body, so no wizard re-render can take it away.
+    await injectCursor(page);
 
     let cumulative = 0;
     const entries: Array<Beat & { startMs: number; actualStartMs: number; actualEndMs: number }> = [];
@@ -508,19 +684,44 @@ async function main(): Promise<void> {
       const label = action.beat ? "record" : "drive";
       console.log(`[${label}] ${action.step.name}${action.beat ? ` (${action.beat.hold}ms)` : ""}`);
 
+      const beat = action.beat;
+      // A beat that films its own clicks starts the clock before them; every
+      // other beat starts it after the step has settled, the way it always did.
+      const filmClicks = Boolean(beat?.filmClicks);
+      const skipScroll = Boolean(beat?.scrollInBeat);
+      let actualStartMs = 0;
+
+      // Every beat starts unzoomed. resetZoom before the step, not after, so
+      // the geometry the step's own scroll works against is untransformed.
+      await resetZoom(page);
+      if (filmClicks) actualStartMs = Date.now() - recordingStart;
+
       if (action.kind === "drive") {
         if (!action.step.keepOverlay) await dismissOverlays(page);
-        await runStep(page, action.step);
+        await runStep(page, action.step, { cursor: filmClicks, skipScroll });
       } else {
         await dismissOverlays(page);
-        await revisitStep(page, action.step);
+        await revisitStep(page, action.step, { skipScroll });
       }
 
-      if (!action.beat) continue;
+      if (!beat) continue;
       // The hold is the on-screen dwell only. Everything above is transition
       // time and is charged to actualStartMs rather than to the beat.
-      const actualStartMs = Date.now() - recordingStart;
-      await page.waitForTimeout(action.beat.hold);
+      if (!filmClicks) actualStartMs = Date.now() - recordingStart;
+      const spentBefore = Date.now() - recordingStart - actualStartMs;
+      if (beat.motion) {
+        const t0 = Date.now();
+        await beat.motion(page);
+        const spent = spentBefore + (Date.now() - t0);
+        if (spent > beat.hold) {
+          console.warn(
+            `  [motion] ${beat.screen} ran ${spent}ms against a ${beat.hold}ms hold; the tail will be cut`,
+          );
+        }
+        await page.waitForTimeout(Math.max(0, beat.hold - spent));
+      } else {
+        await page.waitForTimeout(Math.max(0, beat.hold - spentBefore));
+      }
       const actualEndMs = Date.now() - recordingStart;
       entries.push({
         screen: action.beat.screen,

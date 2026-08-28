@@ -7,7 +7,7 @@
  *  - Beat boundaries come from the timeline JSON files written by the recorder
  *    (actualStartMs / actualEndMs). Boundaries past the real file duration are
  *    clamped to it.
- *  - Order is hook, transition card, KURO, MAME, closing card.
+ *  - Order is hook, KURO, MAME, closing card.
  *  - Waiting/idle footage between beats is discarded with hard cuts.
  *  - Output is silent H.264, 25 fps, CRF 18, 1920x1080.
  *
@@ -39,9 +39,8 @@ const TL = {
 const FPS = 25;
 const CRF_INTERMEDIATE = '14';
 const CRF_FINAL = '18';
-const HOOK_DURATION = 30.0;   // trim the 0.88 s tail off the 30.88 s recording
-const TRANSITION_DURATION = 15.0;
-const CLOSING_DURATION = 25.0;
+const HOOK_DURATION = 16.0;   // three cuts of 5.5 s + 5 s + 5.5 s, tail trimmed
+const CLOSING_DURATION = 20.0;
 
 const sh = (bin, args) => execFileSync(bin, args, { stdio: ['ignore', 'pipe', 'inherit'] }).toString();
 const probeDuration = (f) => parseFloat(sh('ffprobe', [
@@ -51,16 +50,19 @@ const r3 = (n) => Math.round(n * 1000) / 1000;
 // ---------------------------------------------------------------- subtitles
 // VERBATIM copy. Do not reword: every figure here was measured against the app.
 const HOOK_SUBS = [
-  { in: 0.5, out: 4.5, lines: ['Protein engineering: designing mutations,', 'then finding out which ones the lab actually built.'] },
-  { in: 5.0, out: 10.0, lines: ['A model ranks 10,528 candidate mutations.'] },
-  { in: 10.5, out: 20.0, lines: ['A plate holds 96.'] },
-  { in: 20.5, out: 30.0, lines: ['Weeks later the sequencing run comes back: 794,194 reads.', 'Which clones carry the mutation is still unknown.'] },
-];
-const TRANSITION_SUBS = [
-  { in: 1.0, out: 14.0, lines: ['kuma is one desktop app with two halves: primer design,', 'and the sequencing verdict that says what the lab built.'] },
+  // Two cards span the three cuts rather than one card per cut: at 16 s there is
+  // no room for four. Card 1 covers cut 1 (the prediction table); card 2 carries
+  // every figure the old cards 2 to 4 held and runs under cuts 2 and 3, which
+  // are the plate order sheet and the run folder those figures name. Each card
+  // clears the 17 characters/second reading ceiling plus 0.5 s: 93 characters
+  // needs 5.97 s and has 7.5 s, 64 characters needs 4.26 s and has 7.5 s.
+  { in: 0.5, out: 8.0, lines: ['Protein engineering: designing mutations,', 'then finding out which ones the lab actually built.'] },
+  { in: 8.5, out: 16.0, lines: ['10,547 predictions. 96 wells.', 'One sequencing run, 794,194 reads.'] },
 ];
 const KURO_SUBS = {
-  '02-file-loaded': ['One plasmid. 561 residues of isoprene synthase.'],
+  // Carries what the deleted transition card used to say, because the app now
+  // follows the hook directly and nothing else states what kuma is.
+  '02-file-loaded': ['kuma designs the primers and then reads the sequencing', 'that says what the lab built. One plasmid, 561 residues.'],
   '03-mutations-entered': ['The model ranked 10,528 mutations. 95 of them go to the plate.'],
   '10-designing': ['Primer design for a full plate runs in about two seconds.'],
   '04-design-complete': ['95 of 95 designed.'],
@@ -79,20 +81,6 @@ const MAME_SUBS = {
 const BEAT_SUB_PAD = 0.3; // show 0.3 s after a beat starts, hide 0.3 s before it ends
 
 // ------------------------------------------------------------ still cards
-function renderTransitionCard(png) {
-  // rsvg-convert keeps the SVG text as real glyphs (no rasterised-then-scaled text).
-  const svg = path.join(REPO, 'docs/kuma_overview.svg');
-  const inner = path.join(WORK, 'overview.png');
-  // The SVG is a tall portrait poster (1112x1485). Fit it into the frame ABOVE
-  // the subtitle band, otherwise the caption sits on top of its bottom section.
-  const bandH = 170;          // reserved for the burned-in caption
-  const targetH = 1080 - bandH - 20;
-  sh('rsvg-convert', ['-h', String(targetH), '-b', '#ffffff', '-o', inner, svg]);
-  sh('magick', [inner, '-background', '#f4f4f5', '-gravity', 'center',
-    '-extent', `1920x${1080 - bandH}`, '-background', '#f4f4f5', '-gravity', 'north',
-    '-extent', '1920x1080', '-colorspace', 'sRGB', png]);
-}
-
 async function renderClosingCard(png) {
   const html = path.join(WORK, 'closing.html');
   writeFileSync(html, `<!doctype html><meta charset="utf-8"><style>
@@ -169,25 +157,16 @@ async function main() {
   let clock = 0;
   const push = (file, label, duration) => { parts.push({ file, label, duration }); clock = r3(clock + duration); };
 
-  // 1. hook: contiguous, tail trimmed to a round 30 s
+  // 1. hook: contiguous, tail trimmed to a round 16 s
   const hookFile = path.join(WORK, '01-hook.mp4');
   cutBeat(SRC.hook, 0, HOOK_DURATION, hookFile);
   const hookStart = clock;
   for (const s of HOOK_SUBS) cues.push({ in: r3(hookStart + s.in), out: r3(hookStart + s.out), lines: s.lines });
   push(hookFile, 'hook', HOOK_DURATION);
 
-  // 2. transition card
-  const transPng = path.join(WORK, 'transition.png');
-  const transFile = path.join(WORK, '02-transition.mp4');
-  renderTransitionCard(transPng);
-  stillToVideo(transPng, TRANSITION_DURATION, transFile);
-  const transStart = clock;
-  for (const s of TRANSITION_SUBS) cues.push({ in: r3(transStart + s.in), out: r3(transStart + s.out), lines: s.lines });
-  push(transFile, 'transition', TRANSITION_DURATION);
-
-  // 3 + 4. beat-sliced app segments
+  // 2 + 3. beat-sliced app segments
   const beatReport = {};
-  for (const [name, subs, idx] of [['kuro', KURO_SUBS, '03'], ['mame', MAME_SUBS, '04']]) {
+  for (const [name, subs, idx] of [['kuro', KURO_SUBS, '02'], ['mame', MAME_SUBS, '03']]) {
     const srcDur = probeDuration(SRC[name]);
     const beats = JSON.parse(readFileSync(TL[name], 'utf8')).beats;
     const segStart = clock;
@@ -196,7 +175,15 @@ async function main() {
     beatReport[name] = [];
     beats.forEach((b, i) => {
       const start = b.actualStartMs / 1000;
-      const end = Math.min(b.actualEndMs / 1000, srcDur); // clamp past-EOF boundaries
+      // The measured end is an upper bound, not the dwell. Playwright's
+      // waitForTimeout can return late when the page stalls the timer, and one
+      // KURO take put 49.5 s on a 6.5 s beat that way, all of it the same
+      // static export screen. The nominal hold is what the beat was designed
+      // for and what the subtitle timing is computed against, so the beat is
+      // capped at it. The measured end and the file duration still clamp from
+      // above, for a take that ended early or short of the boundary.
+      const nominalEnd = b.actualStartMs / 1000 + (b.hold ?? Infinity) / 1000;
+      const end = Math.min(nominalEnd, b.actualEndMs / 1000, srcDur);
       const dur = r3(end - start);
       const f = path.join(WORK, `${idx}-${name}-${String(i).padStart(2, '0')}.mp4`);
       cutBeat(SRC[name], start, dur, f);
@@ -220,9 +207,9 @@ async function main() {
     push(segFile, name, offset);
   }
 
-  // 5. closing card: no subtitles, the card is the text
+  // 4. closing card: no subtitles, the card is the text
   const closePng = path.join(WORK, 'closing.png');
-  const closeFile = path.join(WORK, '05-closing.mp4');
+  const closeFile = path.join(WORK, '04-closing.mp4');
   await renderClosingCard(closePng);
   stillToVideo(closePng, CLOSING_DURATION, closeFile);
   push(closeFile, 'closing', CLOSING_DURATION);

@@ -25,7 +25,18 @@ import { spawn, execFileSync, type ChildProcess } from "child_process";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { mkdirSync, existsSync, writeFileSync, renameSync } from "fs";
+import { createRequire } from "module";
 import { screenStates, type ScreenState } from "./real-data.js";
+import {
+  injectCursor,
+  moveTo,
+  moveToSelector,
+  smoothScrollIntoView,
+  smoothScrollTo,
+  zoomTo,
+  resetZoom,
+  dwell,
+} from "./record-motion.js";
 
 declare global {
   interface Window {
@@ -44,7 +55,79 @@ const BASE_URL = `http://localhost:${PORT}`;
 /** Native 1080p. deviceScaleFactor stays 1: a 2x buffer only inflates the file. */
 const VIEWPORT = { width: 1920, height: 1080 };
 
-type Beat = { screen: string; hold: number; note: string };
+/**
+ * A beat is a held shot, and `motion` is what happens inside it.
+ *
+ * Without `motion` the hold is a waitForTimeout and the beat films a still,
+ * which is what the first cut of this video was: eight screens averaging 5.1
+ * seconds each, no cursor, no scroll, nothing for the eye to follow. The
+ * motion runs inside the same window the assembler cuts (actualStartMs plus
+ * `hold`), so anything it does is on film; anything before applyState returns
+ * is transition footage and gets trimmed.
+ */
+type Beat = {
+  screen: string;
+  hold: number;
+  note: string;
+  motion?: (page: Page) => Promise<void>;
+};
+
+/** Names the rescue pass recovered, read from the same bundle the states come from. */
+const rescuedNames: string[] = (() => {
+  const bundle = createRequire(import.meta.url)("./real-data.json") as {
+    design: { rescued_mutations?: Array<string | { original: string }> };
+  };
+  return (bundle.design.rescued_mutations ?? []).map((e) =>
+    typeof e === "string" ? e : e.original,
+  );
+})();
+
+/** Selector for the pane holding the primer table on the output step. */
+const PRIMER_PANEL = '[data-testid="output-primer-panel"]';
+const INSPECTOR = '[data-testid="inspector"]';
+const PLATE_PANEL = '[data-testid="output-plate-panel"]';
+
+/** Sweep the cursor across a handful of points inside an element's box. */
+async function sweepAcross(
+  page: Page,
+  selector: string,
+  points: Array<[number, number]>,
+  dwellMs = 380,
+): Promise<boolean> {
+  const box = await page.locator(selector).first().boundingBox({ timeout: 5000 }).catch(() => null);
+  if (!box) return false;
+  for (const [fx, fy] of points) {
+    await moveTo(page, box.x + box.width * fx, box.y + box.height * fy);
+    await page.waitForTimeout(dwellMs);
+  }
+  return true;
+}
+
+/**
+ * Walk the progress bar the way the sidecar drives it.
+ *
+ * The 10-designing state is a snapshot of a run in flight, so holding it still
+ * films a frozen progress bar. Stepping `progress` and the status line moves it
+ * without inventing anything: the ceiling is the run's own 95 designed
+ * primers, which is what the finished state reports.
+ */
+async function animateDesignProgress(page: Page, totalMs: number): Promise<void> {
+  const steps = [18, 31, 44, 57, 68, 79, 88, 94];
+  const per = Math.max(120, Math.floor(totalMs / steps.length));
+  for (const pct of steps) {
+    await page.evaluate(
+      ({ p, done, total }) => {
+        window.__store?.setState({
+          progress: p,
+          isDesigning: true,
+          statusMessage: `Designing primers... (${done}/${total})`,
+        });
+      },
+      { p: pct, done: Math.round((pct / 100) * 95), total: 95 },
+    );
+    await page.waitForTimeout(per);
+  }
+}
 
 /**
  * The narrative order, not the capture order. It walks one story (load, predict,
@@ -52,14 +135,157 @@ type Beat = { screen: string; hold: number; note: string };
  * exist only to document a control.
  */
 const TIMELINE: Beat[] = [
-  { screen: "02-file-loaded", hold: 3000, note: "plasmid loaded" },
-  { screen: "03-mutations-entered", hold: 4000, note: "10,528 predictions in" },
-  { screen: "10-designing", hold: 2500, note: "design running" },
-  { screen: "04-design-complete", hold: 4500, note: "95/95 designed" },
-  { screen: "11-rescued-rows", hold: 4000, note: "auto-relax rescues" },
-  { screen: "16-design-report", hold: 4000, note: "design report" },
-  { screen: "05-plate-map", hold: 3500, note: "96-well plate" },
-  { screen: "17-mapping-export", hold: 4500, note: "export, MAME handoff" },
+  {
+    screen: "02-file-loaded",
+    hold: 8000,
+    note: "plasmid loaded",
+    motion: async (page) => {
+      await moveToSelector(page, "select");
+      await dwell(page, 400);
+      await sweepAcross(page, "svg, canvas", [
+        [0.25, 0.5],
+        [0.7, 0.5],
+      ], 300);
+      // The sidecar log line carries the plasmid and the 561 residues the
+      // subtitle names. The Source Inspector does not: on this step it still
+      // reads "No artifact loaded", which is why it is not the target.
+      await zoomTo(page, [{ selector: "div, span, p", contains: "561 aa" }], {
+        ms: 1100,
+        min: 1.4,
+        max: 1.9,
+        padding: 420,
+      });
+      await dwell(page, 900);
+    },
+  },
+  {
+    screen: "03-mutations-entered",
+    hold: 6000,
+    note: "10,528 predictions in",
+    motion: async (page) => {
+      // EVOLVEpro mode has no textarea: the variants arrive as a CSV and the
+      // step shows a banner plus the column mapping, so the travel is the
+      // wizard body and the target is the banner stating the count.
+      await moveToSelector(page, "button:has-text('Preview'), select");
+      // Zoom the count first, then pull back and travel down to the ranked
+      // predictions it came from. Scrolling first put the banner above the
+      // fold and left the zoom with nothing to frame.
+      await zoomTo(page, [{ selector: "div, span, p", contains: "variants loaded" }], {
+        ms: 900,
+        min: 1.4,
+        max: 1.9,
+        padding: 420,
+      });
+      await dwell(page, 900);
+      await resetZoom(page, 600);
+      await smoothScrollTo(page, '[data-testid="wizard-body"]', 320, 1200);
+      await dwell(page, 400);
+    },
+  },
+  {
+    screen: "10-designing",
+    hold: 5000,
+    note: "design running",
+    // The one beat whose motion is the app's own state rather than the camera.
+    motion: async (page) => {
+      await animateDesignProgress(page, 4200);
+    },
+  },
+  {
+    screen: "04-design-complete",
+    hold: 6500,
+    note: "95/95 designed",
+    motion: async (page) => {
+      await sweepAcross(page, PRIMER_PANEL, [
+        [0.3, 0.35],
+        [0.6, 0.5],
+      ]);
+      await zoomTo(page, [{ selector: INSPECTOR }], { ms: 1100, min: 1.5, max: 2.1 });
+      await dwell(page, 1400);
+    },
+  },
+  {
+    screen: "11-rescued-rows",
+    hold: 8000,
+    note: "auto-relax rescues",
+    motion: async (page) => {
+      // The state's own action already parked the row mid-table. Ride back up
+      // and travel down to it, so the arrival is a scroll rather than a cut.
+      await smoothScrollTo(page, PRIMER_PANEL, 0, 700);
+      const rows = rescuedNames.slice(0, 3);
+      for (const name of rows) {
+        await smoothScrollIntoView(page, { selector: "tr", contains: name }, { ms: 900 });
+        await moveToSelector(page, "tr:has-text('" + name + "')");
+        await dwell(page, 450);
+      }
+      if (rows.length > 0) {
+        await zoomTo(page, [{ selector: "tr", contains: rows[0] }, { selector: PRIMER_PANEL }], {
+          ms: 1000,
+          min: 1.6,
+          max: 2.4,
+          padding: 220,
+        });
+        await dwell(page, 1200);
+      }
+    },
+  },
+  {
+    screen: "16-design-report",
+    hold: 8000,
+    note: "design report",
+    motion: async (page) => {
+      await zoomTo(page, [{ selector: INSPECTOR }], { ms: 1000, min: 1.5, max: 2.0 });
+      await dwell(page, 700);
+      // Travel the report inside the zoom: rescue block first, then the Tm
+      // distribution the subtitle names.
+      await smoothScrollIntoView(page, { selector: "h4", contains: "Rescue" }, { ms: 1200 });
+      await dwell(page, 900);
+      await smoothScrollIntoView(page, { selector: "h4", contains: "Tm" }, { ms: 1400 });
+      // Tighter than beat 04's framing of the same inspector, so the two beats
+      // do not read as the same shot held twice.
+      await zoomTo(page, [{ selector: "div", contains: "Overlap" }, { selector: INSPECTOR }], {
+        ms: 800,
+        min: 1.8,
+        max: 2.4,
+        padding: 260,
+      });
+      await dwell(page, 700);
+    },
+  },
+  {
+    screen: "05-plate-map",
+    hold: 5000,
+    note: "96-well plate",
+    motion: async (page) => {
+      await sweepAcross(
+        page,
+        PLATE_PANEL,
+        [
+          [0.2, 0.35],
+          [0.5, 0.55],
+          [0.78, 0.4],
+          [0.4, 0.75],
+        ],
+        420,
+      );
+      await zoomTo(page, [{ selector: PLATE_PANEL }], { ms: 900, min: 1.25, max: 1.7 });
+      await dwell(page, 600);
+    },
+  },
+  {
+    screen: "17-mapping-export",
+    hold: 8500,
+    note: "export, MAME handoff",
+    motion: async (page) => {
+      await moveToSelector(page, "select#amount, select");
+      await dwell(page, 400);
+      await moveToSelector(page, INSPECTOR);
+      await zoomTo(page, [{ selector: INSPECTOR }], { ms: 1100, min: 1.6, max: 2.2 });
+      await dwell(page, 1200);
+      await smoothScrollIntoView(page, { selector: INSPECTOR, contains: "MAME" }, { ms: 1300 });
+      await dwell(page, 1600);
+    },
+  },
 ];
 
 /** Probe runs cut to the first three beats at a fixed short hold. */
@@ -198,6 +424,10 @@ async function dismissOverlays(page: Page): Promise<void> {
 }
 
 async function applyState(page: Page, screen: ScreenState): Promise<void> {
+  // Every beat starts from an unzoomed frame. zoomTo measures with the
+  // transform cleared, so a leftover push-in would not corrupt the geometry,
+  // but it would corrupt the shot.
+  await resetZoom(page);
   await dismissOverlays(page);
   await settleConsent(page);
   await settleRoundPrompt(page);
@@ -284,6 +514,9 @@ async function main(): Promise<void> {
     // project picker click) is footage the editor trims.
     const recordingStart = Date.now();
     await enterWorkspace(page);
+    // The cursor lives on document.body, so a React re-render cannot take it
+    // away and it survives every setState the beats do.
+    await injectCursor(page);
 
     let cumulative = 0;
     const entries: Array<
@@ -296,7 +529,21 @@ async function main(): Promise<void> {
       // The hold is the on-screen dwell only. Setup above is transition time and
       // is charged to actualStartMs rather than to the beat.
       const actualStartMs = Date.now() - recordingStart;
-      await page.waitForTimeout(beat.hold);
+      if (beat.motion) {
+        const t0 = Date.now();
+        await beat.motion(page);
+        const spent = Date.now() - t0;
+        if (spent > beat.hold) {
+          // The assembler caps the cut at the nominal hold, so an overrun is
+          // footage that gets thrown away mid-move. Worth knowing about.
+          console.warn(
+            `  [motion] ${beat.screen} ran ${spent}ms against a ${beat.hold}ms hold; the tail will be cut`,
+          );
+        }
+        await page.waitForTimeout(Math.max(0, beat.hold - spent));
+      } else {
+        await page.waitForTimeout(beat.hold);
+      }
       const actualEndMs = Date.now() - recordingStart;
       entries.push({
         screen: beat.screen,

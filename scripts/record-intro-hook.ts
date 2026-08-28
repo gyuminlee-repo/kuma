@@ -50,7 +50,14 @@ const VENV_PYTHON = join(ROOT, "..", "..", "..", ".venv", "bin", "python");
 
 /** Native 1080p, matching record-intro.ts. A 2x buffer only inflates the file. */
 const VIEWPORT = { width: 1920, height: 1080 };
-const HOLD_MS = 10_000;
+/**
+ * Per-cut dwell, 16 s total. The hook used to run 34 s, which put half the
+ * video on text files before the app appeared once; the segment now states the
+ * premise and hands the time to the app. Two subtitle cards span the three cuts
+ * rather than one card per cut. The scroll animations are driven from the hold
+ * they are handed, so they cover less ground rather than whipping through.
+ */
+const HOLD_MS: Record<number, number> = { 1: 5_500, 2: 5_000, 3: 5_500 };
 const PROBE_HOLD_MS = 2_000;
 
 /** Rows rendered for cut 1. The table is not meant to be read to its end. */
@@ -289,7 +296,7 @@ function buildHtml(csv: CsvData, sheet: SheetData, run: RunData): string {
 
   // Scroll and reveal are driven by rAF against wall clock rather than by a
   // fixed step per frame, so a dropped frame shifts nothing: position is always
-  // a function of elapsed time and the take stays on its 10 second budget.
+  // a function of elapsed time and the take stays on the budget it was handed.
   function animateScroll(el, durationMs, holdStartMs, distance) {
     var t0 = performance.now();
     function frame(now) {
@@ -303,16 +310,23 @@ function buildHtml(csv: CsvData, sheet: SheetData, run: RunData): string {
 
   window.__runCut1 = function (durationMs) {
     var el = document.getElementById('scroll-1');
-    // Deliberately short of the rendered bottom: the table has to look like it
-    // keeps going, which is what the real file does for another 10,000 rows.
-    var distance = Math.min(el.scrollHeight - el.clientHeight, 8000);
-    animateScroll(el, durationMs, 400, distance);
+    // Distance follows the time available at a fixed 600 px/s, roughly 17 rows
+    // per second at the 34 px line height, which is the fastest the rows still
+    // read as rows rather than as a grey smear. Capped short of the rendered
+    // bottom: the table has to look like it keeps going, which is what the real
+    // file does for another 10,000 rows.
+    var settleMs = 400;
+    var travelSec = Math.max(0, durationMs - settleMs) / 1000;
+    var distance = Math.min(el.scrollHeight - el.clientHeight, 8000, 600 * travelSec);
+    animateScroll(el, durationMs, settleMs, distance);
   };
 
   window.__runCut2 = function (durationMs) {
     var el = document.getElementById('scroll-2');
-    // Settle on the first wells before moving, then walk the whole plate.
-    animateScroll(el, durationMs, 1800, el.scrollHeight - el.clientHeight);
+    // Settle on the first wells before moving, then walk the whole plate. The
+    // settle is a fixed share of the hold so a shorter cut does not spend most
+    // of itself standing still.
+    animateScroll(el, durationMs, durationMs * 0.18, el.scrollHeight - el.clientHeight);
   };
 
   window.__runCut3 = function (durationMs) {
@@ -341,7 +355,7 @@ function buildHtml(csv: CsvData, sheet: SheetData, run: RunData): string {
 async function main(): Promise<void> {
   const dir = outputDir();
   const probe = process.argv.includes("--probe");
-  const hold = probe ? PROBE_HOLD_MS : HOLD_MS;
+  const holdFor = (cut: number): number => (probe ? PROBE_HOLD_MS : HOLD_MS[cut]);
   mkdirSync(dir, { recursive: true });
 
   const csv = readCsv();
@@ -391,6 +405,7 @@ async function main(): Promise<void> {
     let cumulative = 0;
 
     for (const cut of CUTS) {
+      const hold = holdFor(cut.cut);
       console.log(`[hook] cut ${cut.cut} (${hold}ms)`);
       await page.evaluate((n) => {
         (window as unknown as Record<string, (v: number) => void>).__showCut(n);
