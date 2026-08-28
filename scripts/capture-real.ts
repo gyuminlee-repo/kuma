@@ -146,6 +146,26 @@ async function settleConsent(page: Page): Promise<void> {
 }
 
 /**
+ * "Set EVOLVEpro round" opens by itself whenever the campaign round is still
+ * unset, and once open it covers the screen behind it. v0.16.38 (58a78410,
+ * 2026-08-26) routed setEvolveproRound through the change-sensitive boundary,
+ * so a capture run that leaves the round at 0 now gets that modal on top of
+ * 03-mutations-entered: edge luminance dropped from 246.1 in the committed
+ * v0.16.34 set to 165.5 today, which is the modal scrim, and the Campaign Round
+ * field behind it reads empty where the committed shot reads "Round 1".
+ * Seeding the round is enough to keep the prompt from ever mounting. Only a
+ * round of 0 is touched, so a screenState that sets its own round keeps it.
+ */
+async function settleRoundPrompt(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    if (!window.__store) return;
+    if ((window.__store.getState().evolveproRound ?? 0) === 0) {
+      window.__store.setState({ evolveproRound: 1 });
+    }
+  });
+}
+
+/**
  * A Radix dropdown opened for one screen stays open into the next one, which is
  * how 14-polymerase-editor came out showing the File menu. Escape closes
  * whatever layer is on top before the next state lands.
@@ -160,6 +180,7 @@ async function dismissOverlays(page: Page): Promise<void> {
 async function applyState(page: Page, screen: ScreenState): Promise<void> {
   await dismissOverlays(page);
   await settleConsent(page);
+  await settleRoundPrompt(page);
   await page.evaluate(
     ({ state, nav }) => {
       if (!window.__store) throw new Error("window.__store missing; is MOCK_MODE dev build running?");
