@@ -7,7 +7,7 @@
  *  - Beat boundaries come from the timeline JSON files written by the recorder
  *    (actualStartMs / actualEndMs). Boundaries past the real file duration are
  *    clamped to it.
- *  - Order is hook, KURO, MAME, closing card.
+ *  - Order is KURO, MAME, closing card. The video opens on the app itself.
  *  - Waiting/idle footage between beats is discarded with hard cuts.
  *  - Output is silent H.264, 25 fps, CRF 18, 1920x1080.
  *
@@ -27,7 +27,6 @@ const WORK = path.join(OUT, 'work');
 
 // kuro-segment.webm + timeline.json live in OUT; the rest live in IN.
 const SRC = {
-  hook: path.join(IN, 'hook-segment.webm'),
   kuro: path.join(OUT, 'kuro-segment.webm'),
   mame: path.join(IN, 'mame-segment.webm'),
 };
@@ -39,8 +38,11 @@ const TL = {
 const FPS = 25;
 const CRF_INTERMEDIATE = '14';
 const CRF_FINAL = '18';
-const HOOK_DURATION = 16.0;   // three cuts of 5.5 s + 5 s + 5.5 s, tail trimmed
-const CLOSING_DURATION = 20.0;
+const CLOSING_DURATION = 12.0;
+// The closing text is laid over a frozen, darkened frame of the app rather than a
+// blank card, so the last thing on screen is still the thing being shown. Taken
+// from the middle of the MAME verdict-plate beat.
+const CLOSING_BG_SOURCE_S = 114.0;
 
 const sh = (bin, args) => execFileSync(bin, args, { stdio: ['ignore', 'pipe', 'inherit'] }).toString();
 const probeDuration = (f) => parseFloat(sh('ffprobe', [
@@ -49,19 +51,9 @@ const r3 = (n) => Math.round(n * 1000) / 1000;
 
 // ---------------------------------------------------------------- subtitles
 // VERBATIM copy. Do not reword: every figure here was measured against the app.
-const HOOK_SUBS = [
-  // Two cards span the three cuts rather than one card per cut: at 16 s there is
-  // no room for four. Card 1 covers cut 1 (the prediction table); card 2 carries
-  // every figure the old cards 2 to 4 held and runs under cuts 2 and 3, which
-  // are the plate order sheet and the run folder those figures name. Each card
-  // clears the 17 characters/second reading ceiling plus 0.5 s: 93 characters
-  // needs 5.97 s and has 7.5 s, 64 characters needs 4.26 s and has 7.5 s.
-  { in: 0.5, out: 8.0, lines: ['Protein engineering: designing mutations,', 'then finding out which ones the lab actually built.'] },
-  { in: 8.5, out: 16.0, lines: ['10,547 predictions. 96 wells.', 'One sequencing run, 794,194 reads.'] },
-];
 const KURO_SUBS = {
-  // Carries what the deleted transition card used to say, because the app now
-  // follows the hook directly and nothing else states what kuma is.
+  // Carries what the deleted transition card used to say. This is the first
+  // beat of the video, so nothing else states what kuma is.
   '02-file-loaded': ['kuma designs the primers and then reads the sequencing', 'that says what the lab built. One plasmid, 561 residues.'],
   '03-mutations-entered': ['The model ranked 10,528 mutations. 95 of them go to the plate.'],
   '10-designing': ['Primer design for a full plate runs in about two seconds.'],
@@ -72,7 +64,7 @@ const KURO_SUBS = {
   '17-mapping-export': ['The export already knows where it goes.', 'The verification side reads this same file.'],
 };
 const MAME_SUBS = {
-  '02-inputs-filled': ['Point it at the run folder as it came off the sequencer.', 'No sorting, no renaming.'],
+  '02-inputs-filled': ['Three weeks later, one sequencing run comes back.', 'Point kuma at the folder as it came off the sequencer, unsorted.'],
   '07-native-barcodes': ['Three barcodes were used.', 'The app finds them rather than asking.'],
   '09-verdict-plate': ['288 wells. 234 pass, 54 fail,', 'and every verdict carries the reads behind it.'],
   '10-replicate-distribution': ['Three plates of the same 96 variants, scored separately.'],
@@ -81,22 +73,34 @@ const MAME_SUBS = {
 const BEAT_SUB_PAD = 0.3; // show 0.3 s after a beat starts, hide 0.3 s before it ends
 
 // ------------------------------------------------------------ still cards
-async function renderClosingCard(png) {
+async function renderClosingCard(png, bgPng) {
   const html = path.join(WORK, 'closing.html');
   writeFileSync(html, `<!doctype html><meta charset="utf-8"><style>
   html,body{margin:0;padding:0;width:1920px;height:1080px;background:#0f1216;}
-  body{display:flex;flex-direction:column;justify-content:center;align-items:center;
+  /* The app frame sits behind the text: blurred so it reads as texture rather
+     than as a screen the viewer should be parsing, and dimmed by a scrim. The
+     scrim is heavier than a nominal 50% because the app is light themed, and
+     white text over a 50% dimmed white UI has no contrast left. */
+  .bg{position:fixed;inset:0;background:#0f1216 url("file://${bgPng}") center/cover no-repeat;
+      filter:blur(9px) brightness(0.42) saturate(0.75);transform:scale(1.04);}
+  .scrim{position:fixed;inset:0;background:rgba(15,18,22,0.46);}
+  body{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;
        font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;color:#f2f4f7;
-       -webkit-font-smoothing:antialiased;}
+       -webkit-font-smoothing:antialiased;text-shadow:0 2px 18px rgba(0,0,0,0.75);}
+  .wrap{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;
+        width:100%;height:100%;}
   .a{font-size:62px;font-weight:600;letter-spacing:-0.5px;}
   .u{font-size:52px;font-weight:400;color:#7fc4ff;margin-top:18px;font-family:"SF Mono",Menlo,monospace;}
   .b{font-size:44px;font-weight:400;color:#c3c9d2;margin-top:96px;text-align:center;}
   .c{font-size:38px;font-weight:400;color:#8b929c;margin-top:96px;}
 </style>
+<div class="bg"></div><div class="scrim"></div>
+<div class="wrap">
 <div class="a">Download for Windows, macOS and Linux</div>
 <div class="u">github.com/gyuminlee-repo/kuma</div>
 <div class="b">Help &gt; Load Sample Data runs the whole thing without your own data</div>
-<div class="c">Available in 10 languages.&nbsp;&nbsp;GPL v2.</div>`);
+<div class="c">Available in 10 languages.&nbsp;&nbsp;GPL v2.</div>
+</div>`);
   const { chromium } = await import('playwright');
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
@@ -157,16 +161,10 @@ async function main() {
   let clock = 0;
   const push = (file, label, duration) => { parts.push({ file, label, duration }); clock = r3(clock + duration); };
 
-  // 1. hook: contiguous, tail trimmed to a round 16 s
-  const hookFile = path.join(WORK, '01-hook.mp4');
-  cutBeat(SRC.hook, 0, HOOK_DURATION, hookFile);
-  const hookStart = clock;
-  for (const s of HOOK_SUBS) cues.push({ in: r3(hookStart + s.in), out: r3(hookStart + s.out), lines: s.lines });
-  push(hookFile, 'hook', HOOK_DURATION);
-
-  // 2 + 3. beat-sliced app segments
+  // 1 + 2. beat-sliced app segments. Frame 0 of the video is the first frame of
+  // the first KURO beat: the app with a plasmid already loaded.
   const beatReport = {};
-  for (const [name, subs, idx] of [['kuro', KURO_SUBS, '02'], ['mame', MAME_SUBS, '03']]) {
+  for (const [name, subs, idx] of [['kuro', KURO_SUBS, '01'], ['mame', MAME_SUBS, '02']]) {
     const srcDur = probeDuration(SRC[name]);
     const beats = JSON.parse(readFileSync(TL[name], 'utf8')).beats;
     const segStart = clock;
@@ -207,10 +205,13 @@ async function main() {
     push(segFile, name, offset);
   }
 
-  // 4. closing card: no subtitles, the card is the text
+  // 3. closing card: no subtitles, the card is the text
+  const closeBg = path.join(WORK, 'closing-bg.png');
+  sh('ffmpeg', ['-y', '-v', 'error', '-accurate_seek', '-ss', String(CLOSING_BG_SOURCE_S),
+    '-i', SRC.mame, '-frames:v', '1', closeBg]);
   const closePng = path.join(WORK, 'closing.png');
-  const closeFile = path.join(WORK, '04-closing.mp4');
-  await renderClosingCard(closePng);
+  const closeFile = path.join(WORK, '03-closing.mp4');
+  await renderClosingCard(closePng, closeBg);
   stillToVideo(closePng, CLOSING_DURATION, closeFile);
   push(closeFile, 'closing', CLOSING_DURATION);
 
