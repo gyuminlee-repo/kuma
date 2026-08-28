@@ -142,6 +142,8 @@ gh pr view <N> --json baseRefOid,mergeable,mergeStateStatus
 2. 9개 로케일을 번역한다. 스탬프는 번역하지 말고 `en.json` 값을 그대로 복사한다.
 3. `git commit --amend --no-edit` 로 로케일을 같은 커밋에 접는다.
 
+**CHANGELOG 새 섹션은 이 1단계에서 쓴다. 코드 커밋을 push 하기 전에 미리 써 두지 마라.** pre-push 의 `sync:check` 는 커밋이 아니라 **워킹트리** 를 읽으므로, 다음 버전 섹션이 커밋되지 않은 채 남아 있으면 `gen-whatsnew` 가 `CHANGELOG.md's latest section is vX.Y.Z, but package.json is at <이전>` 로 코드 커밋 push 자체를 거절한다. 매니페스트는 아직 라벨 커밋을 받지 않았으니 그 판정은 맞다. 미리 써 버렸으면 stash 로 워킹트리에서 빼고 push 한 뒤 되돌리는 수밖에 없다 (2026-08-27 v0.16.41 에서 겪음).
+
 **두 훅이 서로 반대로 걸리는 교착이 있다.** `commit-msg-version-collision.sh` 는 PR 의 CI 가 적색이면 라벨 커밋을 거부하고, pre-push 의 `check-version-label` 은 매니페스트를 되돌린 브랜치의 push 를 거부한다(히스토리에 라벨이 남아 있으므로). 라벨을 잘못 쌓아 CI 가 적색이 되면 고치는 커밋도 되돌리는 push 도 둘 다 막힌다. 탈출 경로는 브랜치를 다시 세우는 것 하나다.
 
 1. `origin/main` 에서 새 브랜치를 만들어 **코드 커밋만** 체리픽한다.
