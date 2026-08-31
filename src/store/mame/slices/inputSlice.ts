@@ -155,6 +155,16 @@ const mameInputInitialState = {
   wtWell: null as string | null,
   legacySampleMapPath: null as string | null,
   projectPath: null as string | null,
+  // Storage key BuildEvolveproInputPanel/buildEvolveproFormStorage key their
+  // localStorage entries on, bridged from useKumaProject() context the same
+  // way `projectPath` is. Deliberately NOT gated on `scratch` the way
+  // `projectPath` is: `projectPath` being null for a scratch project means
+  // "do not write a result-snapshot file to disk", but a scratch project's
+  // synthetic `project.path` is exactly the key the panel itself reads
+  // (`useKumaProject().path`), so seeding step 4 from analysisSlice needs this
+  // separate, always-populated field to reach the same storage row the
+  // mounted panel loads from.
+  formStoragePath: null as string | null,
   mode: "amplicon" as const,
   ingestMode: "barcode" as const,
   inputMode: "raw_run" as const,
@@ -471,6 +481,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   // nothing.
   setLegacySampleMapPath: (legacySampleMapPath) => set({ legacySampleMapPath }),
   setProjectPath: (projectPath) => set({ projectPath }),
+  setFormStoragePath: (formStoragePath) => set({ formStoragePath }),
   // mode/cdsStart/cdsEnd/minFileSizeKb/minFilteredDepth/manyCutoff/
   // maxConsensusNFraction and rawRunParams are all sent verbatim as
   // analyze/demux RPC params, so a change here invalidates a completed run the

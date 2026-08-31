@@ -70,6 +70,10 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
   buildEvolveproCompletion: null,
   mameSamplePrefill: null,
   consumeMameSamplePrefill: () => set({ mameSamplePrefill: null }),
+  sampleDataLoaded: false,
+  buildEvolveproSeedEpoch: 0,
+  bumpBuildEvolveproSeedEpoch: () =>
+    set((s) => ({ buildEvolveproSeedEpoch: s.buildEvolveproSeedEpoch + 1 })),
   setVerdicts: (verdicts) => set({ verdicts }),
   setReplicates: (replicates) => set({ replicates }),
   setSummary: (summary) => set({ summary }),
@@ -155,6 +159,11 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       // is deliberately not `[]` ("pooled, one plate").
       selectedNativeBarcodes: null,
       detectedBarcodeCount: null,
+      // Describes the results being cleared, same as the fields above: a real
+      // input change or a project switch means whatever is on screen next did
+      // not come from the sample bundle, so the step-2 run-folder notice must
+      // not carry over.
+      sampleDataLoaded: false,
     }),
   resetAnalysis: () => {
     get().clearResults();
@@ -402,6 +411,11 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       selectedNativeBarcodes: null,
       detectedBarcodeCount: null,
       demuxResume: null,
+      // The bundle ships no MinKNOW run folder (kept out for size), so
+      // `inputDir` stays empty even though every other field above is filled.
+      // Read by InputPanel to explain that empty field instead of leaving it
+      // looking abandoned.
+      sampleDataLoaded: true,
       wells,
       selectedWell: wells.find((w) => w.selected) ?? wells[0] ?? null,
       // The well count is read off what was loaded rather than stated here. A
@@ -435,6 +449,11 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     // in sample data: nothing here runs Analyze, so without it every build
     // stopped at "verdict_xlsx is required" and step 4 could be looked at but
     // not finished.
+    // Keyed on `formStoragePath`, not `projectPath`: the latter is null for a
+    // scratch session (it gates the result-snapshot file write), but
+    // BuildEvolveproInputPanel reads its storage row off
+    // `useKumaProject().path` regardless of scratch, and `formStoragePath` is
+    // the always-populated mirror of that same path.
     seedBuildEvolveproForm(
       {
         activityPath: activityRawCsvPath ?? activityCsvPath,
@@ -445,7 +464,12 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
         verdictXlsx: verdictXlsxPath ?? undefined,
         expectedXlsx: expectedPath ?? undefined,
       },
-      get().projectPath,
+      get().formStoragePath,
     );
+    // A mounted BuildEvolveproInputPanel already read its form from storage
+    // (possibly before this seed landed, since seeding only touches
+    // localStorage). Bump the epoch so it re-reads now that the sample paths
+    // are in.
+    get().bumpBuildEvolveproSeedEpoch();
   },
 });

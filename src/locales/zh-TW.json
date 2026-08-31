@@ -744,6 +744,7 @@
       "toastNoFiles": "未檢測到新檔案",
       "toastAutoDetected": "自動檢測: {{items}}",
       "noPathSelected": "未選擇路徑",
+      "sampleNoRunFolder": "範例資料不包含 raw run 資料夾(為控制體積而省略)。下方結果為預先計算的結果。",
       "fileReady": "就緒",
       "browseFolderAriaLabel": "瀏覽 {{label}}",
       "consensus": {
@@ -2509,14 +2510,21 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "樣本資料現在是一個完整的實驗。MAME 盤上的變體來自隨附的 KURO 預測所提出的候選。",
-      "盤由該預測經真實的引子設計得出，設計失敗的候選不會出現在盤上。",
-      "expected mutations 的密碼子取自 KURO 的設計結果，因此表中寫的是引子實際攜帶的密碼子。",
-      "實測活性並不遵循預測排序，10 個變體中有 3 個低於野生型。",
-      "新增的測試直接讀取隨附檔案，一旦 KURO 與 MAME 再次描述不同實驗就會失敗。"
+      "範例資料現在以 triplicate 定序，一塊盤由三個 native barcode 讀取，而非單次。",
+      "有一個變體在第一個 barcode 上為 low-depth，在另外兩個上通過。這正是第三份副本的意義。",
+      "八種 verdict 全部出現，範例不再只展示通過，也展示審閱者需要處理的失敗。",
+      "載入範例資料時 step 4 的檔案路徑會填入，包括先前被靜默略過的 scratch 工作階段。",
+      "run folder 欄位會說明為控制下載體積而未包含 raw run，不再顯得未完成。"
     ],
-    "highlightsStamp": "0.16.41+78e69028",
+    "highlightsStamp": "0.16.42+e1b0d6ec",
     "releases": {
+      "0.16.42": [
+        "範例資料現在以 triplicate 定序，一塊盤由三個 native barcode 讀取，而非單次。",
+        "有一個變體在第一個 barcode 上為 low-depth，在另外兩個上通過。這正是第三份副本的意義。",
+        "八種 verdict 全部出現，範例不再只展示通過，也展示審閱者需要處理的失敗。",
+        "載入範例資料時 step 4 的檔案路徑會填入，包括先前被靜默略過的 scratch 工作階段。",
+        "run folder 欄位會說明為控制下載體積而未包含 raw run，不再顯得未完成。"
+      ],
       "0.16.39": [
         "移除了 5 個從未被送出的 MAME raw run 控制項。先前設定 Q-score 過濾或目標長度看似生效，實際上毫無作用。",
         "要求 GC clamp 現在約束所有候選，而不只是首選比對，因此不會再回傳違反該 clamp 的引子。",
@@ -2822,6 +2830,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.42": "e1b0d6ec",
       "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",

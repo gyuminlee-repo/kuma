@@ -744,6 +744,7 @@
       "toastNoFiles": "Nein neu Dateien detected",
       "toastAutoDetected": "Automatisch erkannt: {{items}}",
       "noPathSelected": "Kein Pfad ausgewählt",
+      "sampleNoRunFolder": "Beispieldaten enthalten keinen raw-run-Ordner (aus Größengründen weggelassen). Die unten gezeigten Ergebnisse sind vorberechnet.",
       "fileReady": "Bereit",
       "browseFolderAriaLabel": "Durchsuchen {{label}}",
       "consensus": {
@@ -2509,14 +2510,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die Beispieldaten sind jetzt eine Kampagne. Die MAME-Platte trägt Varianten, die die mitgelieferte KURO-Vorhersage vorschlägt.",
-      "Die Platte wird aus dieser Vorhersage durch echten Primerentwurf abgeleitet, sodass ein Kandidat ohne Primer nie darauf erscheint.",
-      "Die Codons der erwarteten Mutationen stammen aus dem KURO-Entwurf, also nennt das Blatt das Codon, das die Primer tragen.",
-      "Die gemessene Aktivität folgt der Vorhersagerangfolge nicht, und drei der zehn Varianten liegen unter dem Wildtyp.",
-      "Ein neuer Test liest die ausgelieferten Dateien und schlägt fehl, sobald KURO und MAME wieder verschiedene Experimente beschreiben."
+      "Beispieldaten werden jetzt in triplicate sequenziert, über drei native barcodes auf einer Platte statt in einem Durchlauf.",
+      "Eine Variante ist auf dem ersten barcode low-depth und besteht auf den beiden anderen. Genau dafür ist die dritte Kopie da.",
+      "Alle acht verdict-Klassen erscheinen nun, sodass die Demo auch die Fehlschläge zeigt, die geprüft werden müssen.",
+      "Dateipfade in step 4 werden beim Laden der Beispieldaten gefüllt, auch in scratch-Sitzungen, wo sie still übersprungen wurden.",
+      "Das Feld für den run folder erklärt, dass raw runs aus Größengründen fehlen, statt unfertig zu wirken."
     ],
-    "highlightsStamp": "0.16.41+78e69028",
+    "highlightsStamp": "0.16.42+e1b0d6ec",
     "releases": {
+      "0.16.42": [
+        "Beispieldaten werden jetzt in triplicate sequenziert, über drei native barcodes auf einer Platte statt in einem Durchlauf.",
+        "Eine Variante ist auf dem ersten barcode low-depth und besteht auf den beiden anderen. Genau dafür ist die dritte Kopie da.",
+        "Alle acht verdict-Klassen erscheinen nun, sodass die Demo auch die Fehlschläge zeigt, die geprüft werden müssen.",
+        "Dateipfade in step 4 werden beim Laden der Beispieldaten gefüllt, auch in scratch-Sitzungen, wo sie still übersprungen wurden.",
+        "Das Feld für den run folder erklärt, dass raw runs aus Größengründen fehlen, statt unfertig zu wirken."
+      ],
       "0.16.39": [
         "Fünf MAME-Raw-Run-Bedienelemente, die nie gesendet wurden, sind entfernt. Ein Q-Score-Filter oder eine Ziellänge wirkte gesetzt und tat nichts.",
         "Die GC-Clamp-Vorgabe bindet jetzt jeden Kandidaten statt nur den bevorzugten Treffer, sodass kein Primer die geforderte Clamp verletzt.",
@@ -2822,6 +2830,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.42": "e1b0d6ec",
       "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",

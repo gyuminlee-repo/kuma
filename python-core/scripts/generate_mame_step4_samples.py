@@ -72,8 +72,17 @@ REFERENCE = SAMPLES / "reference.fasta"
 EVOLVEPRO_CSV = _REPO_ROOT / "src-tauri" / "samples" / "sample_evolvepro.csv"
 PLASMID = _REPO_ROOT / "src-tauri" / "samples" / "sample_plasmid.gb"
 
-#: How many of the predicted candidates reach the plate.
-VARIANT_COUNT = 10
+#: How many of the predicted candidates reach the plate. 9 stay a clean
+#: PASS (one of them, G190A, also demonstrates why a plate is triplicate-
+#: sequenced: see ``_LOWDEPTH_REPLICATE_VARIANT`` below); the other 7 each
+#: demonstrate one of the remaining ``VerdictClass`` values at FINAL
+#: (selected-replicate) verdict, so every one of the 8 classes in
+#: ``kuma_core.mame.models.VerdictClass`` is reachable from the bundled
+#: sample. See ``_TARGET_VERDICT`` below for which variant carries which
+#: class and how its consensus is built to earn it honestly through
+#: ``kuma_core.mame.compare.verdict.classify_verdict`` rather than being
+#: asserted.
+VARIANT_COUNT = 16
 
 #: Activity relative to wild-type, per variant, as the demo reports it. Three
 #: replicate measurements each, spread by a per-variant amount rather than a
@@ -97,7 +106,18 @@ ACTIVITY: dict[str, tuple[float, float, float]] = {
     "K163A": (0.88, 0.85, 0.91),
     "G175A": (1.33, 1.30, 1.36),
     "G190A": (0.47, 0.44, 0.50),
+    # The 7 below are measured like every other well (a wet-lab operator plates
+    # and reads activity before NGS comes back) but do not survive NGS
+    # confirmation; see ``_TARGET_VERDICT``. Their values are ordinary points on
+    # the same scale, not flagged in any way, because the assay has no way to
+    # know a well's NGS class in advance.
     "H200A": (1.05, 1.02, 1.08),
+    "K215A": (0.95, 0.92, 0.98),
+    "Q205A": (1.42, 1.38, 1.46),
+    "K210A": (0.71, 0.68, 0.74),
+    "A227V": (1.68, 1.64, 1.72),
+    "D235A": (0.55, 0.52, 0.58),
+    "K239A": (1.20, 1.16, 1.24),
 }
 
 #: Wild-type replicates on the raw scale. Every raw value below is this mean
@@ -317,29 +337,267 @@ def seq_to_token(seq: int) -> str:
     return f"{row}_{col}"
 
 
-_FASTA_STATS = (
-    "depth=240 input_reads=240 aligned_reads=232 mapq_failed=5 span_failed=3 "
-    "low_depth_positions=0 consensus_n_fraction=0.000 low_quality_bases=0 "
-    "max_minor_allele_fraction=0.04 mixed_positions=0"
-)
+#: Three native barcodes: the same plate, sequenced on three separate nanopore
+#: loads. MAME's plate model allows exactly one well per variant (see
+#: :func:`write_plate_layout`), so the NGS replicate axis this campaign needs
+#: lives here, in which native-barcode consensus directory a well's FASTA
+#: sits in, not in extra wells.
+NATIVE_BARCODES: tuple[str, ...] = ("NB01", "NB02", "NB03")
+
+#: Per-run depth and per-run background purity, one nanopore load each. No two
+#: loads off the same library pool return the same read count or the same
+#: background error rate, so the three are given different baselines rather
+#: than three copies of one number: NB02 ran deepest but noisiest, NB03 ran
+#: shallow but purest, NB01 sits in between. Numbers are illustrative
+#: nanopore-range values, not measurements.
+_NB_PROFILE: dict[str, dict[str, float]] = {
+    "NB01": {"depth": 230.0, "purity": 0.960},
+    "NB02": {"depth": 280.0, "purity": 0.945},
+    "NB03": {"depth": 195.0, "purity": 0.970},
+}
+
+#: Per-well multiplicative/additive jitter around a load's baseline, so a well
+#: is not simply its native barcode's constant. ``random.Random`` is seeded on
+#: ``f"{mutant_id}:{nb}"`` so the jitter is reproducible across re-runs of this
+#: script (see module docstring: "The script is re-runnable") while still
+#: differing well to well and barcode to barcode. With this spread,
+#: :func:`kuma_core.mame.select.best_pick.pick_best_replicate`'s Wilson-bound
+#: tiebreak (kuma_core/mame/select/best_pick.py) picks NB01 for 4 of the 10
+#: variants, NB03 for 5, and NB02 for 1 in the current fixture: sequencing
+#: order (NB ascending) does not decide the winner, purity does.
+_DEPTH_JITTER = (0.80, 1.20)
+_PURITY_JITTER = (-0.025, 0.025)
+
+
+def _nb_stats(mutant_id: str, nb: str) -> tuple[int, float]:
+    """Return ``(depth, purity)`` for one (variant, native-barcode) well.
+
+    ``purity`` is the fraction of reads at the designed substitution's codon
+    that agree with the called allele, i.e. the ``min_variant_support`` this
+    campaign's consensus caller would have reported. Only meaningful for a
+    variant well: a WT well calls no substitution, so callers must not read
+    this ``purity`` for the control.
+    """
+    import random
+
+    profile = _NB_PROFILE[nb]
+    rng = random.Random(f"{mutant_id}:{nb}")
+    depth = max(30, round(profile["depth"] * rng.uniform(*_DEPTH_JITTER)))
+    purity = min(0.995, max(0.80, profile["purity"] + rng.uniform(*_PURITY_JITTER)))
+    return depth, purity
+
+
+#: Standard codon for each amino acid, used only to manufacture an AA change
+#: at a chosen position. Any codon coding the target amino acid works; these
+#: are arbitrary picks, not a usage table.
+_AA_CODON: dict[str, str] = {
+    "A": "GCC", "R": "CGC", "N": "AAC", "D": "GAC", "C": "TGC", "Q": "CAG",
+    "E": "GAG", "G": "GGC", "H": "CAC", "I": "ATC", "L": "CTC", "K": "AAG",
+    "M": "ATG", "F": "TTC", "P": "CCC", "S": "AGC", "T": "ACC", "W": "TGG",
+    "Y": "TAC", "V": "GTC",
+}
+
+
+def _codon_aa(codon: str) -> str:
+    from Bio.Seq import Seq
+
+    return str(Seq(codon).translate())
+
+
+def _codon_for_other_aa(seq: str, position: int, *avoid: str) -> str:
+    """A codon for 1-based amino-acid ``position`` that differs from what
+    ``seq`` currently holds there and from every amino acid in ``avoid``."""
+    start = (position - 1) * 3
+    current_aa = _codon_aa(seq[start : start + 3])
+    banned = {current_aa, *avoid}
+    for aa, codon in _AA_CODON.items():
+        if aa not in banned:
+            return codon
+    raise AssertionError("no amino acid left to pick")
+
+
+def _apply_other_aa(seq: str, position: int, *avoid: str) -> str:
+    start = (position - 1) * 3
+    codon = _codon_for_other_aa(seq, position, *avoid)
+    return seq[:start] + codon + seq[start + 3 :]
+
+
+#: Each of these variants demonstrates one non-PASS ``VerdictClass`` at FINAL
+#: (selected-replicate) verdict, applied identically across all three native
+#: barcodes so the class is not an artefact of the triplicate tiebreak. Gate
+#: order and thresholds are read from ``kuma_core/mame/compare/verdict.py``
+#: (module docstring: "LOWDEPTH -> FRAMESHIFT -> INDEL_EVENT(-> AMBIGUOUS) ->
+#: NO_CALL -> MANY -> MIXED -> WRONG_AA -> AMBIGUOUS -> PASS") and
+#: ``kuma_core/mame/models.py`` (``CompareParams`` defaults):
+#:
+#: * WRONG_AA (``H200A``): the consensus carries a different amino acid than
+#:   designed at the expected position (``classify_verdict`` step "4) WRONG_AA").
+#: * MANY (``K215A``): the designed substitution is present, plus 5 more AA
+#:   changes elsewhere -- over ``CompareParams.many_mutation_cutoff`` (5) and
+#:   over the well's own 1 expected mutation (step "3) MANY").
+#: * FRAMESHIFT (``Q205A``): the consensus header's ``consensus_net_indel`` is
+#:   not a multiple of 3 (the net-indel check, second gate, right after
+#:   LOWDEPTH: ``net_indel is not None and net_indel % 3 != 0``).
+#: * MIXED (``K210A``): header ``mixed_positions`` > 0 at a depth at/above the
+#:   confident-mixed floor (``min_read_count`` (30) x ``_MIXED_CONFIDENT_DEPTH_FACTOR``
+#:   (3) = 90), so it reads as contamination rather than being downgraded to
+#:   LOWDEPTH by the floor check inside the MIXED gate.
+#: * LOWDEPTH (``A227V``): header ``depth``/``aligned_reads`` sits under
+#:   ``CompareParams.min_read_count`` (30), the very first gate.
+#: * NO_CALL (``D235A``): the consensus sequence itself carries N bases well
+#:   away from the designed codon, so the covered-scoped ``consensus_n_fraction``
+#:   recovered from them (``fasta_parser._recover_covered_n_fraction``) exceeds
+#:   ``CompareParams.max_consensus_n_fraction`` (0.0).
+#: * AMBIGUOUS (``K239A``): the designed substitution is present, plus one
+#:   extra AA change within ``CompareParams.indel_window_codon`` (5) codons of
+#:   it (step "5) AMBIGUOUS", the window check).
+_TARGET_VERDICT: dict[str, str] = {
+    "H200A": "WRONG_AA",
+    "K215A": "MANY",
+    "Q205A": "FRAMESHIFT",
+    "K210A": "MIXED",
+    "A227V": "LOWDEPTH",
+    "D235A": "NO_CALL",
+    "K239A": "AMBIGUOUS",
+}
+
+#: The one PASS variant whose three native barcodes do not all read the same
+#: class. Its NB01 consensus is deliberately shallow (LOWDEPTH, header only);
+#: NB02 and NB03 read the clean designed substitution at full depth.
+#: :func:`kuma_core.mame.select.best_pick.pick_best_replicate` ranks PASS
+#: above LOWDEPTH (``PRIORITY_ORDER``), so the FINAL verdict is PASS by way of
+#: NB02/NB03 -- the sample demonstrates why a plate is sequenced three times:
+#: one bad load does not sink a well the other two loads confirm.
+_LOWDEPTH_REPLICATE_VARIANT = "G190A"
+_LOWDEPTH_REPLICATE_NB = "NB01"
+
+#: Header-only LOWDEPTH depth: under ``CompareParams.min_read_count`` (30).
+_SHALLOW_DEPTH = 14
+
+#: Header-only MIXED depth: at/above the confident-mixed floor (90) so the
+#: mixed signal is not downgraded to LOWDEPTH by the floor inside that gate.
+_MIXED_DEPTH = 200
+_MIXED_MINOR_ALLELE_FRACTION = 0.30
+
+
+def _special_sequence(sample: str, sequence: str, variant: Variant, protein_len: int) -> str:
+    """Depart from the correct single substitution for a ``_TARGET_VERDICT`` well.
+
+    Only WRONG_AA, MANY, AMBIGUOUS and NO_CALL act on the sequence; FRAMESHIFT,
+    MIXED and LOWDEPTH act on header metadata only (see :func:`_consensus_header`),
+    so this returns ``sequence`` unchanged for them.
+    """
+    target = _TARGET_VERDICT.get(sample)
+    if target == "WRONG_AA":
+        return _apply_other_aa(sequence, variant.position, variant.wt_aa)
+    if target == "MANY":
+        for offset in (3, 6, 9, -3, -6):
+            pos = variant.position + offset
+            if 2 <= pos <= protein_len - 1:
+                sequence = _apply_other_aa(sequence, pos)
+        return sequence
+    if target == "AMBIGUOUS":
+        pos = variant.position + 3
+        if pos > protein_len - 1:
+            pos = variant.position - 3
+        return _apply_other_aa(sequence, pos)
+    if target == "NO_CALL":
+        # First two codons: far from every designed position in this campaign
+        # (all sit past residue 28), so the N run never touches the codon
+        # NO_CALL is meant to be scored against, and NO_CALL returns before
+        # any AA diff is inspected anyway.
+        start = 3
+        return sequence[:start] + "N" * 5 + sequence[start + 5 :]
+    return sequence
+
+
+def _consensus_header(nb: str, mutant_id: str, is_control: bool) -> str:
+    """One consensus FASTA header's metadata, depth/purity resolved per well.
+
+    ``max_minor_allele_fraction``/``mixed_positions`` and depth stay fixed at
+    their clean defaults across every well and native barcode except where
+    ``_TARGET_VERDICT`` or ``_LOWDEPTH_REPLICATE_VARIANT`` names a departure
+    (see the constants above for exactly which class each departure earns and
+    why).
+
+    ``variant_positions``/``min_variant_support``/``min_variant_support_depth``
+    are only written for a variant well. A WT well calls no substitution, and
+    :func:`kuma_core.mame.select.purity.support_lower_bound` already treats a
+    header missing them as "not evaluable" rather than zero support, so
+    omitting them for WT states exactly that.
+    """
+    depth, purity = _nb_stats(mutant_id, nb)
+    mixed_positions = 0
+    max_minor_allele_fraction = 0.04
+    net_indel: int | None = None
+
+    target = _TARGET_VERDICT.get(mutant_id)
+    if target == "LOWDEPTH":
+        depth = _SHALLOW_DEPTH
+    elif target == "MIXED":
+        depth = _MIXED_DEPTH
+        mixed_positions = 1
+        max_minor_allele_fraction = _MIXED_MINOR_ALLELE_FRACTION
+    elif target == "FRAMESHIFT":
+        net_indel = 1  # not a multiple of 3
+    elif mutant_id == _LOWDEPTH_REPLICATE_VARIANT and nb == _LOWDEPTH_REPLICATE_NB:
+        depth = _SHALLOW_DEPTH
+
+    aligned_reads = depth
+    parts = [
+        f"depth={depth}",
+        f"input_reads={depth + 8}",
+        f"aligned_reads={aligned_reads}",
+        "mapq_failed=5",
+        "span_failed=3",
+        "low_depth_positions=0",
+        "consensus_n_fraction=0.000",
+        "low_quality_bases=0",
+        f"max_minor_allele_fraction={max_minor_allele_fraction:.2f}",
+        f"mixed_positions={mixed_positions}",
+    ]
+    if net_indel is not None:
+        parts.append(f"consensus_net_indel={net_indel}")
+    if not is_control:
+        parts.append("variant_positions=1")
+        parts.append(f"min_variant_support={purity:.4f}")
+        parts.append(f"min_variant_support_depth={depth}")
+    return " ".join(parts)
 
 
 def build_consensus_dir(
-    workdir: Path, cds: str, layout: dict[str, str], by_id: dict[str, Variant]
+    workdir: Path,
+    cds: str,
+    layout: dict[str, str],
+    by_id: dict[str, Variant],
+    native_barcodes: tuple[str, ...] = NATIVE_BARCODES,
 ) -> Path:
-    """One consensus FASTA per occupied well, named by that well's barcode."""
+    """One consensus FASTA per occupied well, once per native barcode.
+
+    Writing the same well into ``NATIVE_BARCODES`` directories is the
+    triplicate: the plate is not re-arranged, it is re-sequenced.
+    :func:`kuma_core.mame.pipeline.run_analyze` groups verdicts by
+    ``native_barcode`` (the directory name), so this is what turns three
+    directories into three replicates per mutant on the Analyze screen.
+    """
     from kuma_core.mame.plate_geometry import well_to_seq
 
+    protein_len = len(cds) // 3
     consensus = workdir / "consensus"
-    native = consensus / "NB01"
-    native.mkdir(parents=True)
-
-    for well, sample in layout.items():
-        token = seq_to_token(well_to_seq(well))
-        sequence = cds if sample == "WT" else apply_substitution(cds, by_id[sample])
-        (native / f"{token}.fasta").write_text(
-            f">{token} {_FASTA_STATS}\n{sequence}\n", encoding="utf-8"
-        )
+    for nb in native_barcodes:
+        native = consensus / nb
+        native.mkdir(parents=True)
+        for well, sample in layout.items():
+            token = seq_to_token(well_to_seq(well))
+            if sample == "WT":
+                sequence = cds
+            else:
+                sequence = apply_substitution(cds, by_id[sample])
+                sequence = _special_sequence(sample, sequence, by_id[sample], protein_len)
+            header = _consensus_header(nb, sample, is_control=sample == "WT")
+            (native / f"{token}.fasta").write_text(
+                f">{token} {header}\n{sequence}\n", encoding="utf-8"
+            )
     return consensus
 
 
@@ -590,6 +848,12 @@ def main() -> None:
         from kuma_core.mame.ingest import IngestMode
         from kuma_core.mame.pipeline import run_analyze
 
+        # min_read_count=30 and max_consensus_n_fraction=0.0 are the shipped
+        # CompareParams defaults (kuma_core/mame/models.py); a previous version
+        # of this script passed None for both, disabling the LOWDEPTH read-count
+        # gate and the NO_CALL N-fraction gate outright. Real thresholds are
+        # needed for the plate to demonstrate every VerdictClass (see
+        # _TARGET_VERDICT above) with LOWDEPTH and NO_CALL among them.
         verdicts, replicates = run_analyze(
             input_dir=consensus,
             reference_path=REFERENCE,
@@ -599,8 +863,8 @@ def main() -> None:
             cds_end=len(cds),
             mode="amplicon",
             min_file_size_kb=0.0,
-            min_read_count=None,
-            max_consensus_n_fraction=None,
+            min_read_count=30,
+            max_consensus_n_fraction=0.0,
             many_cutoff=5,
             ingest_mode=IngestMode.BARCODE,
             well_layout=layout,

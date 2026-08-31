@@ -744,6 +744,7 @@
       "toastNoFiles": "No se detectaron archivos nuevos",
       "toastAutoDetected": "Auto-detectado: {{items}}",
       "noPathSelected": "Ninguna ruta seleccionada",
+      "sampleNoRunFolder": "Los datos de muestra no incluyen una carpeta raw run (omitida por tamaño). Los resultados de abajo están precalculados.",
       "fileReady": "Listo",
       "browseFolderAriaLabel": "Explorar {{label}}",
       "consensus": {
@@ -2509,14 +2510,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Los datos de ejemplo son ahora una sola campaña. La placa de MAME lleva variantes que propone la predicción KURO incluida.",
-      "La placa se deriva de esa predicción ejecutando el diseño de cebadores, así un candidato sin cebadores nunca aparece en ella.",
-      "Los codones de las mutaciones esperadas vienen del diseño de KURO, por lo que la hoja indica el codón que llevan los cebadores.",
-      "La actividad medida no sigue el orden predicho, y tres de las diez variantes quedan por debajo del tipo silvestre.",
-      "Una prueba nueva lee los archivos incluidos y falla en cuanto KURO y MAME vuelven a describir experimentos distintos."
+      "Los datos de muestra ahora se secuencian en triplicate, con tres native barcodes en una placa en lugar de una sola pasada.",
+      "Una variante da low-depth en el primer barcode y pasa en los otros dos. Para eso sirve la tercera copia.",
+      "Aparecen las ocho clases de verdict, así la demostración muestra también los fallos que hay que atender.",
+      "Las rutas de archivo del step 4 se rellenan al cargar los datos de muestra, incluidas las sesiones scratch donde se omitían en silencio.",
+      "El campo del run folder explica que los raw runs se omiten por tamaño, en vez de parecer incompleto."
     ],
-    "highlightsStamp": "0.16.41+78e69028",
+    "highlightsStamp": "0.16.42+e1b0d6ec",
     "releases": {
+      "0.16.42": [
+        "Los datos de muestra ahora se secuencian en triplicate, con tres native barcodes en una placa en lugar de una sola pasada.",
+        "Una variante da low-depth en el primer barcode y pasa en los otros dos. Para eso sirve la tercera copia.",
+        "Aparecen las ocho clases de verdict, así la demostración muestra también los fallos que hay que atender.",
+        "Las rutas de archivo del step 4 se rellenan al cargar los datos de muestra, incluidas las sesiones scratch donde se omitían en silencio.",
+        "El campo del run folder explica que los raw runs se omiten por tamaño, en vez de parecer incompleto."
+      ],
       "0.16.39": [
         "Se eliminaron cinco controles de run bruto de MAME que nunca se enviaban. Un filtro de Q-score o una longitud objetivo parecía fijado y no hacía nada.",
         "La exigencia de GC clamp ahora vincula a todos los candidatos, no solo a la coincidencia preferida, así que ningún cebador viola la restricción pedida.",
@@ -2822,6 +2830,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.42": "e1b0d6ec",
       "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",

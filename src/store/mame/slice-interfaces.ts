@@ -117,6 +117,14 @@ export interface InputSlice {
   // analyze-result persistence (resultSnapshot.ts) can write from the slice,
   // which has no React context access. null/scratch -> no result file written.
   projectPath: string | null;
+  // The same context path, but WITHOUT the scratch gate above: it is the
+  // localStorage key `buildEvolveproFormStorage`/BuildEvolveproInputPanel key
+  // their step-4 form on (`useKumaProject().path`), and a scratch project's
+  // synthetic path is exactly that key even though it must never gate a
+  // result-snapshot write. Kept separate from `projectPath` rather than
+  // reusing it so a future write-gate on that field cannot silently break
+  // step-4 seeding for scratch sessions again.
+  formStoragePath: string | null;
   mode: "amplicon" | "plasmid";
   ingestMode: "barcode" | "amplicon";
   inputMode: InputMode;
@@ -242,6 +250,7 @@ export interface InputSlice {
   setWtWell: (well: string | null) => void;
   setLegacySampleMapPath: (path: string | null) => void;
   setProjectPath: (path: string | null) => void;
+  setFormStoragePath: (path: string | null) => void;
   setParams: (
     params: Partial<{
       mode: "amplicon" | "plasmid";
@@ -462,6 +471,26 @@ export interface AnalysisSlice {
   // the user does not have to re-click Browse for the demo files.
   mameSamplePrefill: { fastaPath: string; barcodeSeedsPath: string } | null;
   consumeMameSamplePrefill: () => void;
+  /**
+   * True from the moment `loadSampleData` finishes populating results until
+   * the next `clearResults` (a real input change, a reset, or a project
+   * switch). Read-only outside this slice; InputPanel uses it to explain WHY
+   * the run-folder field at the top of step 2 is empty even though the rest
+   * of the demo is filled in (the bundle ships no MinKNOW run folder). Not an
+   * analyze input and never sent to the sidecar.
+   */
+  sampleDataLoaded: boolean;
+  /**
+   * Bumped once, after `loadSampleData` finishes writing the step-4 form to
+   * storage. BuildEvolveproInputPanel subscribes to this to re-read storage
+   * when it is already mounted: `seedBuildEvolveproForm` only touches
+   * localStorage, so a panel that loaded its form before the seed landed
+   * would otherwise keep showing the stale (empty) fields it read at mount.
+   * Starts at 0 like `resetEpoch`, so the first render's baseline load is not
+   * mistaken for a seed.
+   */
+  buildEvolveproSeedEpoch: number;
+  bumpBuildEvolveproSeedEpoch: () => void;
 }
 
 export interface ExportSlice {

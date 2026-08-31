@@ -1,6 +1,18 @@
 #!/usr/bin/env python3
 """Generate a static MAME analysis-result fixture for the sample-data UX.
 
+THIS SCRIPT DOES NOT BUILD THE BUNDLED SAMPLE. The fixture that ships in
+``src-tauri/samples/mame/sample_analysis_result.json`` is produced by
+``python-core/scripts/generate_mame_step4_samples.py``, which regenerates
+that file together with every other bundled MAME/KURO sample as one
+coherent campaign (a single 12-well plate, one native barcode per
+triplicate NGS replicate). This script builds its own synthetic 12-well
+plate from 60 bp toy sequences under a single native barcode and is kept
+only as a smaller, dependency-light fixture generator; running it
+overwrites the bundled fixture with content that disagrees with the rest
+of the sample set (different variants, different plate size, no NGS
+replicate axis). Do not run it to refresh the shipped sample.
+
 Runs a real (in-process) analyze pipeline over synthetic consensus FASTA files,
 then serialises the results to src-tauri/samples/mame/sample_analysis_result.json.
 

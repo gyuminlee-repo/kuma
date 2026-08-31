@@ -222,10 +222,44 @@ def test_the_verdict_workbook_scores_exactly_those_variants(designed):
     )
 
 
-def test_the_step4_export_carries_those_variants_in_evolvepro_notation(designed):
-    """The round closes where it opened, in the notation the next round reads."""
+def test_the_step4_export_carries_exactly_the_final_pass_variants(designed):
+    """The round closes where it opened, in the notation the next round reads.
+
+    ``build_evolvepro_input`` (kuma_core/mame/activity/build_evolvepro_input.py)
+    requires explicit FINAL PASS NGS evidence for every row it writes, dropping
+    a variant even when its own verdict class carries mutant identity (an
+    AMBIGUOUS or fallback-selected WRONG_AA/MANY/FRAMESHIFT/MIXED/LOWDEPTH/
+    NO_CALL replicate). The bundled plate deliberately carries one designed
+    variant per non-PASS class (see generate_mame_step4_samples.py's
+    ``_TARGET_VERDICT``) precisely so this filter has something to filter;
+    the export is checked against the FINAL verdict actually read off
+    13_mame_verdict.xlsx's "Final" sheet, not against every designed name.
+    """
+    header, rows = _sheet_with(_MAME / "13_mame_verdict.xlsx", "mutant_id", "verdict")
+    mutant_col = header.index("mutant_id")
+    verdict_col = header.index("verdict")
+    pass_mutants = {
+        str(row[mutant_col]).strip()
+        for row in rows[1:]
+        if len(row) > verdict_col
+        and str(row[mutant_col]).strip().upper() not in {"", "WT"}
+        and str(row[verdict_col]).strip() == "PASS"
+    }
+    assert pass_mutants, "no FINAL PASS variant found in 13_mame_verdict.xlsx"
+
+    designed_names = {name for name, _, _ in designed}
+    assert pass_mutants <= designed_names, (
+        f"the Final sheet names PASS mutants outside the designed list: "
+        f"{sorted(pass_mutants - designed_names)}"
+    )
+    non_pass = designed_names - pass_mutants
+    assert non_pass, (
+        "every designed variant reads FINAL PASS; the plate no longer "
+        "demonstrates a variant excluded from the step 4 export"
+    )
+
     short = set()
-    for name, _, _ in designed:
+    for name in pass_mutants:
         match = _VARIANT.match(name)
         assert match
         short.add(f"{match.group(2)}{match.group(3)}")
