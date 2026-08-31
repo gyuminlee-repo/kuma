@@ -2510,14 +2510,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les données d'exemple forment désormais une seule campagne. La plaque MAME porte les variants proposés par la prédiction KURO fournie.",
-      "La plaque découle de cette prédiction en exécutant la conception d'amorces, si bien qu'un candidat sans amorces n'y figure jamais.",
-      "Les codons des mutations attendues viennent de la conception KURO, donc la feuille indique le codon que portent les amorces.",
-      "L'activité mesurée ne suit pas le classement prédit, et trois des dix variants se situent sous le type sauvage.",
-      "Un nouveau test lit les fichiers livrés et échoue dès que KURO et MAME décrivent de nouveau des expériences différentes."
+      "Les données d'exemple sont désormais séquencées en triplicate, sur trois native barcodes d'une même plaque.",
+      "Une variante est low-depth sur le premier barcode et passe sur les deux autres. C'est à cela que sert la troisième copie.",
+      "Les huit classes de verdict apparaissent, la démonstration montre donc aussi les échecs à traiter.",
+      "Les chemins de fichiers de step 4 se remplissent au chargement des données d'exemple, y compris en session scratch.",
+      "Le champ du run folder explique que les raw runs sont omis pour la taille, au lieu de sembler inachevé."
     ],
-    "highlightsStamp": "0.16.41+78e69028",
+    "highlightsStamp": "0.16.42+e1b0d6ec",
     "releases": {
+      "0.16.42": [
+        "Les données d'exemple sont désormais séquencées en triplicate, sur trois native barcodes d'une même plaque.",
+        "Une variante est low-depth sur le premier barcode et passe sur les deux autres. C'est à cela que sert la troisième copie.",
+        "Les huit classes de verdict apparaissent, la démonstration montre donc aussi les échecs à traiter.",
+        "Les chemins de fichiers de step 4 se remplissent au chargement des données d'exemple, y compris en session scratch.",
+        "Le champ du run folder explique que les raw runs sont omis pour la taille, au lieu de sembler inachevé."
+      ],
       "0.16.39": [
         "Cinq commandes MAME de run brut qui n'étaient jamais envoyées ont disparu. Un filtre de score Q ou une longueur cible semblait réglé sans rien faire.",
         "L'exigence de GC clamp lie désormais chaque candidat, et non la seule correspondance préférée, donc aucune amorce ne viole la contrainte demandée.",
@@ -2823,6 +2830,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.42": "e1b0d6ec",
       "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",

@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.16.42 (Three barcodes, and every verdict the pipeline can reach)
+
+Nanopore runs are sequenced in triplicate. The bundled sample was not. One native barcode carried eleven wells and every one of them passed, so two things an operator leans on stayed invisible: the replicate axis that decides which copy of a well is believed, and the failures that decide which variants go back to the bench.
+
+The sample now ships three native barcodes over one plate. NB01 through NB03 each hold the same sixteen variants and wild-type, and each is demultiplexed on its own before the pipeline picks the best copy per variant. The well count did not change, because it cannot. Both the layout reader and the verdict reader require one well per variant, since a variant sitting in two wells has no single well for its sequencing evidence to attach to. Triplicate is an axis across the plate, not a wider plate.
+
+G190A is what that axis is for. It reads low-depth on the first barcode and passes on the other two, so the run keeps a variant that a single pass would have sent back for a redo. Ten other variants are also settled by a barcode other than the first.
+
+All eight verdict classes now appear on the selected replicate: ten passes, and one each of AMBIGUOUS, FRAMESHIFT, LOWDEPTH, MANY, MIXED, NO_CALL and WRONG_AA. Every one of them is reached through the consensus sequence and the FASTA header alone. The classifier was not touched and no fixture was edited by hand, so what the demo displays is what the pipeline decided. Expected mutations, plate layout, verdict workbook, activity files and the Agilent workbooks were regenerated together, so the campaign still agrees with itself.
+
+Loading the sample also left two steps looking unfinished. Step 4 wrote its file paths under one project key and read them under another, so a scratch session seeded nothing at all, and a panel already on screen never re-read what had been written. The MinKNOW run folder has no bundled counterpart, because a raw run is far too large to ship inside a desktop download. That field now says so, instead of reading like a pick the operator left half-done. It stays empty, so nothing invented reaches the sidecar.
+
+### Highlights
+
+- Sample data is sequenced in triplicate now, across three native barcodes on one plate rather than a single pass.
+- One variant reads low-depth on the first barcode and passes on the other two, which is what a third copy is for.
+- All eight verdict classes now appear, so the demo shows the failures a reviewer has to act on and not only passes.
+- Step 4 file paths fill in when sample data loads, including scratch sessions where they were skipped in silence.
+- The run folder field explains that raw runs are left out to keep the download small, instead of looking unfinished.
+
 ## v0.16.41 (One campaign, from the prediction to the plate)
 
 The two halves of the sample data named different variants. KURO opens on a round-0 EVOLVEpro prediction of twenty-four candidates and designs primers for the ones an operator picks. MAME opened on a plate of ten variants that shared none of them. Primers were designed for one set of substitutions while sequencing verdicts and activity were reported for another, so the demo walked through a campaign nobody could have run. Both halves already described the same protein, which is why nothing caught it: the plasmid coding sequence and the analyze reference translate to the same two hundred and thirty-nine residues.

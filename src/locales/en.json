@@ -2553,14 +2553,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Sample data is one campaign now. The MAME plate holds variants the bundled KURO prediction proposed, instead of a separate list.",
-      "The plate is derived from that prediction by running the primer design, so a candidate whose primers fail never appears on it.",
-      "Expected-mutation codons come from the KURO design, so the sheet states the codon the primers actually carry.",
-      "Measured activity does not follow the prediction ranking, and three of the ten variants land below wild-type.",
-      "A new test reads the shipped files and fails if the KURO and MAME halves ever describe different experiments again."
+      "Sample data is sequenced in triplicate now, across three native barcodes on one plate rather than a single pass.",
+      "One variant reads low-depth on the first barcode and passes on the other two, which is what a third copy is for.",
+      "All eight verdict classes now appear, so the demo shows the failures a reviewer has to act on and not only passes.",
+      "Step 4 file paths fill in when sample data loads, including scratch sessions where they were skipped in silence.",
+      "The run folder field explains that raw runs are left out to keep the download small, instead of looking unfinished."
     ],
-    "highlightsStamp": "0.16.41+78e69028",
+    "highlightsStamp": "0.16.42+e1b0d6ec",
     "releases": {
+      "0.16.42": [
+        "Sample data is sequenced in triplicate now, across three native barcodes on one plate rather than a single pass.",
+        "One variant reads low-depth on the first barcode and passes on the other two, which is what a third copy is for.",
+        "All eight verdict classes now appear, so the demo shows the failures a reviewer has to act on and not only passes.",
+        "Step 4 file paths fill in when sample data loads, including scratch sessions where they were skipped in silence.",
+        "The run folder field explains that raw runs are left out to keep the download small, instead of looking unfinished."
+      ],
       "0.16.41": [
         "Sample data is one campaign now. The MAME plate holds variants the bundled KURO prediction proposed, instead of a separate list.",
         "The plate is derived from that prediction by running the primer design, so a candidate whose primers fail never appears on it.",
@@ -2866,6 +2873,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.42": "e1b0d6ec",
       "0.16.41": "78e69028",
       "0.16.40": "54e3cb8d",
       "0.16.39": "d8fb93a8",

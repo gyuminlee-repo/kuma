@@ -2510,14 +2510,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Os dados de exemplo agora formam uma única campanha. A placa do MAME leva variantes propostas pela predição KURO incluída.",
-      "A placa deriva dessa predição executando o desenho de primers, de modo que um candidato sem primers nunca aparece nela.",
-      "Os códons das mutações esperadas vêm do desenho do KURO, então a planilha indica o códon que os primers carregam.",
-      "A atividade medida não segue a ordem predita, e três das dez variantes ficam abaixo do tipo selvagem.",
-      "Um novo teste lê os arquivos incluídos e falha assim que KURO e MAME voltarem a descrever experimentos diferentes."
+      "Os dados de amostra agora são sequenciados em triplicate, com três native barcodes em uma placa em vez de uma única passagem.",
+      "Uma variante fica low-depth no primeiro barcode e passa nos outros dois. É para isso que serve a terceira cópia.",
+      "As oito classes de verdict aparecem, então a demonstração mostra também as falhas que precisam de atenção.",
+      "Os caminhos de arquivo da step 4 são preenchidos ao carregar os dados de amostra, inclusive em sessões scratch.",
+      "O campo da pasta run folder explica que os raw runs ficam de fora por tamanho, em vez de parecer incompleto."
     ],
-    "highlightsStamp": "0.16.41+78e69028",
+    "highlightsStamp": "0.16.42+e1b0d6ec",
     "releases": {
+      "0.16.42": [
+        "Os dados de amostra agora são sequenciados em triplicate, com três native barcodes em uma placa em vez de uma única passagem.",
+        "Uma variante fica low-depth no primeiro barcode e passa nos outros dois. É para isso que serve a terceira cópia.",
+        "As oito classes de verdict aparecem, então a demonstração mostra também as falhas que precisam de atenção.",
+        "Os caminhos de arquivo da step 4 são preenchidos ao carregar os dados de amostra, inclusive em sessões scratch.",
+        "O campo da pasta run folder explica que os raw runs ficam de fora por tamanho, em vez de parecer incompleto."
+      ],
       "0.16.39": [
         "Cinco controles de run bruto do MAME que nunca eram enviados foram removidos. Um filtro de Q-score ou um comprimento alvo parecia definido e não fazia nada.",
         "A exigência de GC clamp agora vincula todos os candidatos, e não apenas a correspondência preferida, então nenhum primer viola a restrição pedida.",
@@ -2823,6 +2830,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.42": "e1b0d6ec",
       "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",
