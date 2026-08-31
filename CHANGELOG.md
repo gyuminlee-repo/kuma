@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.16.45 (Load Sample Data fills what it can and explains what it cannot)
+
+Load Sample Data referenced thirteen of the eighteen bundled MAME files. Two of the five it skipped have their own form fields, so the numeric-ID branch could be selected but never demonstrated, and the template documentation claimed the loader filled it. Both are now seeded, the primary numeric report and its confirmation report. Selecting an order source is not affected: that requirement applies only when a numeric branch is chosen, and the default state is unchanged.
+
+Three files stay unreferenced because there is nowhere to put them. Two are other formats of the slot the raw long-format measurement already fills, and one has no form field at all in the current interface. Comments beside the path list now record which is which, since the question of why a bundled file goes unused has been re-investigated more than once.
+
+A field that sample data cannot fill used to read exactly like a pick the operator had not finished. A survey of every path control found two, both places to write output rather than input: the analyze export folder and the design output folder. Each now says that sample data does not choose a save location. The value stays empty and only the wording changes, and only once sample data has been loaded, so anyone who has not loaded it still sees the ordinary prompt. Writing an invented path into the field would send it to the sidecar.
+
+KURO gained the existence check MAME received earlier. Resolving a bundled resource joins a path without touching the filesystem, so a bundle missing the sample plasmid surfaced as an error from the sidecar rather than as the missing file it is. Both bundled KURO samples are now checked before use.
+
+Two stale descriptions were corrected. The comment above the KURO loader described a text-mode path injecting demo mutations, which no longer exists in the interface, and the sample bundle for KURO exports opened by calling itself in-app input although nothing reads it and it is not shipped.
+
+### Highlights
+
+- Load Sample Data now fills the numeric-ID inputs, so that branch can be run from the sample rather than only selected.
+- Three bundled files stay unused on purpose, and the reason each one has nowhere to go is recorded beside the code.
+- A field sample data cannot fill now says so instead of looking like an unfinished pick, on both output folders.
+- KURO checks that a bundled sample is really on disk, so a missing file is named rather than surfacing as a sidecar error.
+- Two comments describing behaviour that no longer exists were corrected.
+
 ## v0.16.44 (Every variant recovered on one of three reads)
 
 The previous release stopped the sample electing an AMBIGUOUS well and left the rest of the rule unapplied. Six variants still carried the same defect on all three barcodes, so the picker had nothing passing to choose from and elected the defect anyway: five through the fallback that runs when no pickable candidate remains, and one because low depth is pickable by priority. A verdict that no picking path would ever take was still being shown as the well that was chosen.

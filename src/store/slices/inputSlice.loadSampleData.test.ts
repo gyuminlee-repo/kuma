@@ -24,10 +24,12 @@ vi.mock("@tauri-apps/plugin-fs", () => ({
   readTextFile: vi.fn(() =>
     Promise.resolve("variant,y_pred\nN267F,0.99\nQ163W,0.98\n"),
   ),
+  exists: vi.fn(() => Promise.resolve(true)),
 }))
 
 import { sendRequest } from "@/lib/ipc-kuro"
 import { resolveResource } from "@tauri-apps/api/path"
+import { exists } from "@tauri-apps/plugin-fs"
 import { createInputSlice } from "./inputSlice"
 import type { AppState } from "../types"
 
@@ -94,6 +96,7 @@ function makeStore(overrides: Record<string, unknown> = {}) {
 describe("inputSlice.loadSampleData", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    ;(exists as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(true)
   })
 
   it("loads EGFP plasmid and calls loadEvolveproCsv with sample CSV path", async () => {
@@ -151,6 +154,47 @@ describe("inputSlice.loadSampleData", () => {
     expect(loadSequence).not.toHaveBeenCalled()
     expect(loadEvolveproCsv).not.toHaveBeenCalled()
     expect(store.state.statusMessage).toMatch(/Sample load failed/)
+  })
+
+  // Regression: `resolveResource` only concatenates a path and never touches
+  // disk, so a bundle entry that was deleted still "resolves" successfully.
+  // MAME's loader already guards this with `exists()`; KURO's did not, so a
+  // missing sample surfaced as an opaque sidecar error instead of naming the
+  // file up front.
+  it("aborts with an i18n-keyed message naming the file when sample_plasmid.gb does not exist", async () => {
+    ;(exists as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false)
+    const loadSequence = vi.fn()
+    const loadEvolveproCsv = vi.fn()
+    const store = makeStore({ loadSequence, loadEvolveproCsv })
+
+    await store.slice.loadSampleData()
+
+    expect(loadSequence).not.toHaveBeenCalled()
+    expect(loadEvolveproCsv).not.toHaveBeenCalled()
+    expect(store.state.statusMessage).toContain("samples/sample_plasmid.gb")
+  })
+
+  it("aborts with an i18n-keyed message naming the file when sample_evolvepro.csv does not exist", async () => {
+    ;(exists as unknown as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(true) // sample_plasmid.gb present
+      .mockResolvedValueOnce(false) // sample_evolvepro.csv missing
+    const loadSequence = vi.fn(async () => {
+      ;(store.state as { seqInfo: unknown }).seqInfo = {
+        header: "x",
+        seq_length: 720,
+        genes: [
+          { gene: "egfp", aa_length: 239, translation: "M", cds_start: 1, cds_end: 720 },
+        ],
+      }
+    })
+    const loadEvolveproCsv = vi.fn(async () => {})
+    const store = makeStore({ loadSequence, loadEvolveproCsv })
+
+    await store.slice.loadSampleData()
+
+    expect(loadSequence).toHaveBeenCalledTimes(1)
+    expect(loadEvolveproCsv).not.toHaveBeenCalled()
+    expect(store.state.statusMessage).toContain("samples/sample_evolvepro.csv")
   })
 })
 

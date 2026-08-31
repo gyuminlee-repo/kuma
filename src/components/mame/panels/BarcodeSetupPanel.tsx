@@ -191,6 +191,7 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
   const setSelectedCdsIndex = useMameAppStore((s) => s.setSelectedCdsIndex);
   const samplePrefill = useMameAppStore((s) => s.mameSamplePrefill);
   const consumeSamplePrefill = useMameAppStore((s) => s.consumeMameSamplePrefill);
+  const sampleDataLoaded = useMameAppStore((s) => s.sampleDataLoaded);
   const resetEpoch = useMameAppStore((s) => s.resetEpoch);
   const sharedFastaPath = useMameAppStore((s) => s.sharedFastaPath);
 
@@ -922,7 +923,16 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
             stateLabel={t("mame.barcodeSetup.outputLocationStateLabel")}
             filled={Boolean(form.outputDir)}
             helperText={t("mame.barcodeSetup.outputLocationHelper")}
-            noPathLabel={t("mame.inputPanel.noPathSelected")}
+            noPathLabel={
+              // outputDir is a save destination the operator chooses;
+              // loadSampleData never seeds it (samplePrefill only carries
+              // fastaPath + barcodeSeedsPath), so the default "No path
+              // selected" would misread as an unfinished pick after Load
+              // Sample Data instead of a field sample data never fills.
+              sampleDataLoaded && !form.outputDir
+                ? t("mame.inputPanel.sampleNoOutputDest")
+                : t("mame.inputPanel.noPathSelected")
+            }
             readyLabel={t("mame.inputPanel.fileReady")}
             browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.barcodeSetup.outputLocation") })}
           />

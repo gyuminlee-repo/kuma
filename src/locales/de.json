@@ -749,6 +749,7 @@
       "toastAutoDetected": "Automatisch erkannt: {{items}}",
       "noPathSelected": "Kein Pfad ausgewählt",
       "sampleNoRunFolder": "Beispieldaten enthalten keinen raw-run-Ordner (aus Größengründen weggelassen). Die unten gezeigten Ergebnisse sind vorberechnet.",
+      "sampleNoOutputDest": "Beispieldaten legen keinen Speicherort fest, wählen Sie selbst, wohin Ihre Ausgabe geschrieben werden soll.",
       "fileReady": "Bereit",
       "browseFolderAriaLabel": "Durchsuchen {{label}}",
       "consensus": {
@@ -2514,14 +2515,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Jede Beispielvariante hat nun eine bestandene Kopie als Vertretung, kein unwählbares verdict erscheint als gewähltes Well.",
-      "Jeder Defekt liegt auf genau einem barcode, und acht Varianten unterscheiden sich zwischen ihren Reads. Dafür ist die dritte Kopie da.",
-      "Keine Vertretung stammt mehr aus dem fallback-Pfad, und der gewählte barcode verteilt sich über die Platte.",
-      "Alle acht verdict-Klassen bleiben erhalten, im replicate-Vergleich statt auf dem endgültigen Well.",
-      "step 4 exportiert alle sechzehn Varianten der Beispieldaten, ohne Ausschluss durch NGS-Belege."
+      "Load Sample Data füllt jetzt auch die numeric-ID-Eingaben, sodass dieser Zweig aus den Beispieldaten laufen kann.",
+      "Drei mitgelieferte Dateien bleiben absichtlich unbenutzt, und der Grund steht jeweils neben dem Code.",
+      "Ein Feld, das Beispieldaten nicht füllen können, sagt das nun, statt unfertig zu wirken. Gilt für beide Ausgabeordner.",
+      "KURO prüft, ob eine mitgelieferte Beispieldatei wirklich vorhanden ist, und benennt sie statt einen sidecar-Fehler zu zeigen.",
+      "Zwei Kommentare, die nicht mehr vorhandenes Verhalten beschrieben, wurden korrigiert."
     ],
-    "highlightsStamp": "0.16.44+77881f90",
+    "highlightsStamp": "0.16.45+eb59dd47",
     "releases": {
+      "0.16.45": [
+        "Load Sample Data füllt jetzt auch die numeric-ID-Eingaben, sodass dieser Zweig aus den Beispieldaten laufen kann.",
+        "Drei mitgelieferte Dateien bleiben absichtlich unbenutzt, und der Grund steht jeweils neben dem Code.",
+        "Ein Feld, das Beispieldaten nicht füllen können, sagt das nun, statt unfertig zu wirken. Gilt für beide Ausgabeordner.",
+        "KURO prüft, ob eine mitgelieferte Beispieldatei wirklich vorhanden ist, und benennt sie statt einen sidecar-Fehler zu zeigen.",
+        "Zwei Kommentare, die nicht mehr vorhandenes Verhalten beschrieben, wurden korrigiert."
+      ],
       "0.16.44": [
         "Jede Beispielvariante hat nun eine bestandene Kopie als Vertretung, kein unwählbares verdict erscheint als gewähltes Well.",
         "Jeder Defekt liegt auf genau einem barcode, und acht Varianten unterscheiden sich zwischen ihren Reads. Dafür ist die dritte Kopie da.",
@@ -2848,6 +2856,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.45": "eb59dd47",
       "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",
@@ -3270,6 +3279,9 @@
     }
   },
   "kuro": {
+    "sampleData": {
+      "loadFailed": "Laden der Beispieldaten fehlgeschlagen: {{file}} ({{reason}})"
+    },
     "load": {
       "inspectorTitle": "Quell-Inspektor",
       "artifactLabel": "MAME-Artefakt",

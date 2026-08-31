@@ -1,9 +1,14 @@
 # KURO export-all sample bundle
 
-This directory ships a fully materialised KURO `export_all` output bundle as
-in-app sample input for the MAME onboarding flow. The bundle mirrors what
-`handle_export_all` (`python-core/sidecar_kuro/handlers/export.py`) writes
-when a user clicks **Export all** at the end of a real KURO run.
+This directory holds a fully materialised KURO `export_all` output bundle,
+checked in as a reference fixture and as the source `expected_mutations`
+is extracted from for `../mame/03_mame_expected_mutations.xlsx`. It is
+**not** an in-app sample: this path is absent from `bundle.resources` in
+`src-tauri/tauri.conf.json`, so it is not shipped in installed builds, and
+no MAME loader (`src/store/mame/slices/analysisSlice.ts` `loadSampleData`)
+reads from it at runtime. The bundle mirrors what `handle_export_all`
+(`python-core/sidecar_kuro/handlers/export.py`) writes when a user clicks
+**Export all** at the end of a real KURO run.
 
 ## Regenerate
 

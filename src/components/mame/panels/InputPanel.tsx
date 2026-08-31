@@ -276,6 +276,14 @@ export function InputPanel() {
     sampleDataLoaded && !inputDir
       ? t("mame.inputPanel.sampleNoRunFolder")
       : noPathLabel;
+  // outputPath is a destination the operator chooses, not an input sample
+  // data can seed (loadSampleData never calls setOutputPath). Without this,
+  // the field after Load Sample Data reads exactly like an unfinished pick,
+  // the same defect the raw-run-folder label above was added for.
+  const outputPathNoPathLabel =
+    sampleDataLoaded && !outputPath
+      ? t("mame.inputPanel.sampleNoOutputDest")
+      : noPathLabel;
 
   return (
     <div className="rounded-lg border border-border bg-background p-4 space-y-4">
@@ -418,7 +426,7 @@ export function InputPanel() {
           "mame.inputPanel.exportDest.reuseNotice",
         )}`}
         helpText={t("mame.inputPanel.exportDest.helpText")}
-        noPathLabel={noPathLabel}
+        noPathLabel={outputPathNoPathLabel}
         readyLabel={readyLabel}
         browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.inputPanel.exportDest.label") })}
       />

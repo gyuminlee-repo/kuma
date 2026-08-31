@@ -749,6 +749,7 @@
       "toastAutoDetected": "Auto-detectado: {{items}}",
       "noPathSelected": "Ninguna ruta seleccionada",
       "sampleNoRunFolder": "Los datos de muestra no incluyen una carpeta raw run (omitida por tamaño). Los resultados de abajo están precalculados.",
+      "sampleNoOutputDest": "Los datos de muestra no eligen una ubicación de guardado; elija dónde escribir su propia salida.",
       "fileReady": "Listo",
       "browseFolderAriaLabel": "Explorar {{label}}",
       "consensus": {
@@ -2514,14 +2515,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Cada variante de ejemplo tiene ahora una copia aprobada que la representa, ningún verdict no elegible aparece como pocillo elegido.",
-      "Cada defecto está en un solo barcode y ocho variantes difieren entre sus lecturas. Para eso sirve la tercera copia.",
-      "Ninguna representación procede ya de la vía fallback, y el barcode elegido se reparte por toda la placa.",
-      "Las ocho clases de verdict siguen presentes, en la comparación de replicate y no en el pocillo final.",
-      "step 4 exporta las dieciséis variantes de la muestra, sin ninguna excluida por evidencia NGS."
+      "Load Sample Data ahora rellena las entradas numeric-ID, así esa vía se puede ejecutar desde la muestra y no solo elegir.",
+      "Tres archivos incluidos quedan sin usar a propósito, y el motivo de cada uno está anotado junto al código.",
+      "Un campo que la muestra no puede rellenar ahora lo indica en vez de parecer incompleto, en ambas carpetas de salida.",
+      "KURO comprueba que la muestra incluida esté realmente en disco y nombra el archivo ausente en lugar de dar un error del sidecar.",
+      "Se corrigieron dos comentarios que describían un comportamiento ya inexistente."
     ],
-    "highlightsStamp": "0.16.44+77881f90",
+    "highlightsStamp": "0.16.45+eb59dd47",
     "releases": {
+      "0.16.45": [
+        "Load Sample Data ahora rellena las entradas numeric-ID, así esa vía se puede ejecutar desde la muestra y no solo elegir.",
+        "Tres archivos incluidos quedan sin usar a propósito, y el motivo de cada uno está anotado junto al código.",
+        "Un campo que la muestra no puede rellenar ahora lo indica en vez de parecer incompleto, en ambas carpetas de salida.",
+        "KURO comprueba que la muestra incluida esté realmente en disco y nombra el archivo ausente en lugar de dar un error del sidecar.",
+        "Se corrigieron dos comentarios que describían un comportamiento ya inexistente."
+      ],
       "0.16.44": [
         "Cada variante de ejemplo tiene ahora una copia aprobada que la representa, ningún verdict no elegible aparece como pocillo elegido.",
         "Cada defecto está en un solo barcode y ocho variantes difieren entre sus lecturas. Para eso sirve la tercera copia.",
@@ -2848,6 +2856,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.45": "eb59dd47",
       "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",
@@ -3270,6 +3279,9 @@
     }
   },
   "kuro": {
+    "sampleData": {
+      "loadFailed": "Error al cargar los datos de ejemplo: {{file}} ({{reason}})"
+    },
     "load": {
       "inspectorTitle": "Inspector de Fuente",
       "artifactLabel": "Artefacto MAME",

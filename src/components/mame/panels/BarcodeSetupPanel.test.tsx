@@ -411,3 +411,88 @@ describe("BarcodeSetupPanel annotation autofill", () => {
     expect(input.value).toBe("my_custom_gene");
   });
 });
+
+// ─── Output-location notice after Load Sample Data ────────────────────────
+//
+// outputDir is a save destination the operator chooses; loadSampleData's
+// samplePrefill only carries fastaPath + barcodeSeedsPath (analysisSlice.ts
+// mameSamplePrefill), so this field stays empty after Load Sample Data the
+// same way step 2's export-destination field does. Without an explanation it
+// reads exactly like an unfinished pick.
+describe("BarcodeSetupPanel sample-data output-location notice", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+    useMameAppStore.getState().resetInput();
+    mockRegisterArtifacts.mockResolvedValue(undefined);
+  });
+
+  it("shows the ordinary 'No path selected' text before any sample data is loaded", () => {
+    seedSetupForm();
+
+    render(
+      <ProjectProvider value={{ path: "/proj", name: "Demo", scratch: false }}>
+        <BarcodeSetupPanel group="design" />
+      </ProjectProvider>,
+    );
+
+    expect(screen.getByText("No path selected")).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "Sample data does not choose a save location, pick where to write your own output.",
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it("swaps in the destination explanation once sampleDataLoaded is true and outputDir is still empty", () => {
+    seedSetupForm();
+    useMameAppStore.setState({ sampleDataLoaded: true });
+
+    render(
+      <ProjectProvider value={{ path: "/proj", name: "Demo", scratch: false }}>
+        <BarcodeSetupPanel group="design" />
+      </ProjectProvider>,
+    );
+
+    expect(
+      screen.getByText(
+        "Sample data does not choose a save location, pick where to write your own output.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("does not override the label once the operator has actually chosen an output directory", () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        fastaPath: "/proj/input/cds.fa",
+        geneStart: "0",
+        geneEnd: "534",
+        geneName: "target_gene",
+        polymerase: "Q5",
+        flankMin: "100",
+        flankMax: "400",
+        bindingMinLen: "18",
+        bindingMaxLen: "35",
+        tmMin: "55.0",
+        tmMax: "68.0",
+        requireGcClamp: true,
+        barcodeSeedsPath: "/proj/input/barcode_seeds.xlsx",
+        outputDir: "/proj/chosen_output",
+      }),
+    );
+    useMameAppStore.setState({ sampleDataLoaded: true });
+
+    render(
+      <ProjectProvider value={{ path: "/proj", name: "Demo", scratch: false }}>
+        <BarcodeSetupPanel group="design" />
+      </ProjectProvider>,
+    );
+
+    expect(
+      screen.queryByText(
+        "Sample data does not choose a save location, pick where to write your own output.",
+      ),
+    ).not.toBeInTheDocument();
+  });
+});

@@ -2,7 +2,7 @@
  * analysisSlice.loadSampleData.test.ts
  *
  * MAME loadSampleData() 동작 검증:
- * - resolveResource 13개 경로 호출 (Phase 1 setup prefill seeds + EVOLVEpro form + fixture 포함)
+ * - resolveResource 15개 경로 호출 (Phase 1 setup prefill seeds + EVOLVEpro form + fixture 포함)
  * - activity.set_plate_meta + activity.upload RPC 호출 파라미터
  * - 입력 경로 setter + hardcoded sample 결과 populate
  * - activity RPC 실패 시 fallback (결과는 populate, 메시지 변경)
@@ -144,12 +144,16 @@ describe("mame analysisSlice.loadSampleData", () => {
       "samples/mame/sample_analysis_result.json",
       "samples/mame/13_mame_verdict.xlsx",
       "samples/mame/14_mame_activity_long_raw.csv",
+      "samples/mame/12_mame_agilent_numeric_index.xlsx",
+      "samples/mame/16_mame_agilent_numeric_confirmation.xlsx",
     ];
     // One per entry of `expectedPaths` and nothing else. The sample map
     // (`05_mame_sample_map.xlsx`) was dropped along with the field it filled;
     // the verdict workbook and the raw long file were added because step 4
     // cannot finish a build without the first and opens on the scale of the
-    // second.
+    // second. The numeric-index and numeric-confirmation files were added so
+    // clicking Load Sample Data seeds every file that has a step 4 field to
+    // hold it (07_...xlsx, 08_..., 15_... still have none).
     expect(resolveResource).toHaveBeenCalledTimes(expectedPaths.length);
     for (const p of expectedPaths) {
       expect(resolveResource).toHaveBeenCalledWith(p);
@@ -225,6 +229,10 @@ describe("mame analysisSlice.loadSampleData", () => {
           "/resolved/samples/mame/11_mame_gc_fid_round1_raw.xlsx",
         remeasureReportXlsx:
           "/resolved/samples/mame/09_mame_agilent_rep_batch.xlsx",
+        numericReportXlsx:
+          "/resolved/samples/mame/12_mame_agilent_numeric_index.xlsx",
+        remeasureNumericXlsx:
+          "/resolved/samples/mame/16_mame_agilent_numeric_confirmation.xlsx",
         verdictXlsx: "/resolved/samples/mame/13_mame_verdict.xlsx",
         expectedXlsx: "/resolved/samples/mame/03_mame_expected_mutations.xlsx",
       },
@@ -379,5 +387,25 @@ describe("mame analysisSlice.loadSampleData", () => {
         .mock.calls[0] as [Record<string, string | undefined>, string];
       expect(seededPaths.verdictXlsx).toBeUndefined();
     });
+  });
+
+  // Regression: 12_mame_agilent_numeric_index.xlsx and
+  // 16_mame_agilent_numeric_confirmation.xlsx were bundled and declared in
+  // tauri.conf.json resources but never referenced by loadSampleData, so
+  // clicking Load Sample Data left numericReportXlsx/remeasureNumericXlsx
+  // empty even though BuildEvolveproFormState has dedicated fields for them.
+  it("seeds numericReportXlsx and remeasureNumericXlsx from #12 and #16", async () => {
+    const store = makeStore({ projectPath: "/project", formStoragePath: "/project" });
+
+    await store.loadSampleData();
+
+    const [seededPaths] = (seedBuildEvolveproForm as unknown as ReturnType<typeof vi.fn>)
+      .mock.calls[0] as [Record<string, string | undefined>, string];
+    expect(seededPaths.numericReportXlsx).toBe(
+      "/resolved/samples/mame/12_mame_agilent_numeric_index.xlsx",
+    );
+    expect(seededPaths.remeasureNumericXlsx).toBe(
+      "/resolved/samples/mame/16_mame_agilent_numeric_confirmation.xlsx",
+    );
   });
 });

@@ -217,7 +217,20 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       // new entry in the middle renumbers every message below it.
       "samples/mame/13_mame_verdict.xlsx",
       "samples/mame/14_mame_activity_long_raw.csv",
+      "samples/mame/12_mame_agilent_numeric_index.xlsx",
+      "samples/mame/16_mame_agilent_numeric_confirmation.xlsx",
     ];
+    // Bundled but deliberately not seeded here (not a gap, no free form
+    // field to put them in):
+    // - 07_mame_activity_long.xlsx: same activityPath slot as
+    //   14_mame_activity_long_raw.csv, which is seeded; this is just the
+    //   xlsx-format twin of that one input.
+    // - 15_mame_activity_variant.csv: same activityPath slot again, the
+    //   variant-labelled twin.
+    // - 08_mame_evolvepro_raw.xlsx: no current form field takes it.
+    //   round1EvolveproXlsx/repBatchXlsx only exist in
+    //   buildEvolveproFormStorage.ts's LEGACY_PATH_KEYS migration list, not
+    //   in BuildEvolveproFormState.
     // `resolveResource` only concatenates a path; it never touches disk (see
     // `node_modules/@tauri-apps/api/path.js`, `plugin:path|resolve_directory`).
     // A bundle entry that was deleted still "resolves" successfully, which is
@@ -266,6 +279,8 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       analysisResultPath,
       verdictXlsxPath,
       activityRawCsvPath,
+      numericReportXlsxPath,
+      remeasureNumericXlsxPath,
     ] = resolved;
 
     // Critical inputs: reference.fasta and activity CSV. Abort with a
@@ -305,6 +320,10 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     if (!verdictXlsxPath) optionalFailures.push("13_mame_verdict.xlsx");
     if (!activityRawCsvPath)
       optionalFailures.push("14_mame_activity_long_raw.csv");
+    if (!numericReportXlsxPath)
+      optionalFailures.push("12_mame_agilent_numeric_index.xlsx");
+    if (!remeasureNumericXlsxPath)
+      optionalFailures.push("16_mame_agilent_numeric_confirmation.xlsx");
 
     // The fixture is read before anything is shown, because what it holds
     // decides what gets shown. It is the output of a real pipeline run over the
@@ -488,6 +507,8 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
         gcDataXlsx: gcDataXlsxPath ?? undefined,
         round1ReportXlsx: round1ReportXlsxPath ?? undefined,
         remeasureReportXlsx: variantLabelsReportPath ?? undefined,
+        numericReportXlsx: numericReportXlsxPath ?? undefined,
+        remeasureNumericXlsx: remeasureNumericXlsxPath ?? undefined,
         verdictXlsx: verdictXlsxPath ?? undefined,
         expectedXlsx: expectedPath ?? undefined,
       },
