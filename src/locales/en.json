@@ -912,6 +912,7 @@
       "toastAutoDetected": "Auto-detected: {{items}}",
       "noPathSelected": "No path selected",
       "sampleNoRunFolder": "Sample data has no raw run folder (left out to keep the bundle small). The results below are pre-computed.",
+      "sampleNoOutputDest": "Sample data does not choose a save location, pick where to write your own output.",
       "fileReady": "Ready",
       "browseFolderAriaLabel": "Browse {{label}}",
       "consensus": {
@@ -3284,6 +3285,9 @@
     }
   },
   "kuro": {
+    "sampleData": {
+      "loadFailed": "Sample load failed: {{file}} ({{reason}})"
+    },
     "load": {
       "inspectorTitle": "Source Inspector",
       "artifactLabel": "MAME artifact",

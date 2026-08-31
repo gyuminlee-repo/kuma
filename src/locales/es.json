@@ -749,6 +749,7 @@
       "toastAutoDetected": "Auto-detectado: {{items}}",
       "noPathSelected": "Ninguna ruta seleccionada",
       "sampleNoRunFolder": "Los datos de muestra no incluyen una carpeta raw run (omitida por tamaño). Los resultados de abajo están precalculados.",
+      "sampleNoOutputDest": "Los datos de muestra no eligen una ubicación de guardado; elija dónde escribir su propia salida.",
       "fileReady": "Listo",
       "browseFolderAriaLabel": "Explorar {{label}}",
       "consensus": {
@@ -3270,6 +3271,9 @@
     }
   },
   "kuro": {
+    "sampleData": {
+      "loadFailed": "Error al cargar los datos de ejemplo: {{file}} ({{reason}})"
+    },
     "load": {
       "inspectorTitle": "Inspector de Fuente",
       "artifactLabel": "Artefacto MAME",

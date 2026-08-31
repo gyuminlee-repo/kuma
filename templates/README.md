@@ -105,7 +105,7 @@ Round 2 EVOLVEpro pred        ── 다음 라운드 (이 폴더 범위 밖)
 
 - **#4 custom_barcodes**: 96-well combinatorial barcode 정의 자체이므로 다른 파일과 직접 매핑되지 않는 독립 reference 데이터.
 - **#9 Agilent**: variant-labeled confirmation report. 파일명은 이전 샘플명과 호환을 위해 유지하지만, 내용은 Step 3 `variantLabels` 입력 형식이다.
-- **#11/#12 Step 3 샘플**: Help → Load Sample Data 가 EVOLVEpro 입력 생성 패널을 바로 실행 가능한 raw primary + numeric confirmation 조합으로 채우는 데 사용.
+- **#11/#12/#16 Step 3 샘플**: Help → Load Sample Data 가 EVOLVEpro 입력 생성 패널을 raw primary(#11) + numeric confirmation(#12 index, #16 confirmation) 조합으로 채우는 데 사용. 기본 선택된 primary/confirmation source 는 여전히 #7/#14(longFormat/none)이고, #11/#12/#16 은 폼 필드에 채워지기만 하므로 이 조합을 쓰려면 드롭다운을 rawReport/numericIds 로 바꿔야 한다.
 - **#7/#8/#10/#11/#12**: 동일 measurement 의 다른 표현 (long vs variant-mean vs raw report). 값은 일치.
 - **step 3 의 두 입력 경로는 서로 다르다**: genotype route 는 #7 을 `activity.upload` 로 올려 NGS verdict 와 well 단위로 묶고, plateLayout route 는 #6/#8/#9/#10 xlsx 를 `build_evolvepro_input` 에 직접 넘긴다. #8/#9/#10 은 #7 의 대체 업로드 포맷이 아니다.
 - **#7 컬럼 별칭**: well 컬럼은 `well_id`, `sample name`, `sample`, `well`, `well pos.` 중 하나, 값 컬럼은 `value`, `area`, `activity` 중 하나면 된다 (헤더는 소문자로 정규화 후 비교). `plate_id` 는 plate 가 정확히 1개일 때만 생략 가능하고, 여러 plate 를 한 파일에 담으면 필수다. `replicate_idx` 를 빼면 1 로 채운다.

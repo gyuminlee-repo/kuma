@@ -749,6 +749,7 @@
       "toastAutoDetected": "自動検出: {{items}}",
       "noPathSelected": "パス未選択",
       "sampleNoRunFolder": "サンプルデータには raw run フォルダが含まれていません(容量削減のため省略)。以下の結果は事前に計算されたものです。",
+      "sampleNoOutputDest": "サンプルデータは保存先を選択しません。出力の書き込み先を自分で指定してください。",
       "fileReady": "準備完了",
       "browseFolderAriaLabel": "{{label}} を参照",
       "consensus": {
@@ -3270,6 +3271,9 @@
     }
   },
   "kuro": {
+    "sampleData": {
+      "loadFailed": "サンプルの読み込みに失敗しました: {{file}} ({{reason}})"
+    },
     "load": {
       "inspectorTitle": "ソースインスペクター",
       "artifactLabel": "MAMEアーティファクト",

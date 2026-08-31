@@ -749,6 +749,7 @@
       "toastAutoDetected": "Automatisch erkannt: {{items}}",
       "noPathSelected": "Kein Pfad ausgewählt",
       "sampleNoRunFolder": "Beispieldaten enthalten keinen raw-run-Ordner (aus Größengründen weggelassen). Die unten gezeigten Ergebnisse sind vorberechnet.",
+      "sampleNoOutputDest": "Beispieldaten legen keinen Speicherort fest, wählen Sie selbst, wohin Ihre Ausgabe geschrieben werden soll.",
       "fileReady": "Bereit",
       "browseFolderAriaLabel": "Durchsuchen {{label}}",
       "consensus": {
@@ -3270,6 +3271,9 @@
     }
   },
   "kuro": {
+    "sampleData": {
+      "loadFailed": "Laden der Beispieldaten fehlgeschlagen: {{file}} ({{reason}})"
+    },
     "load": {
       "inspectorTitle": "Quell-Inspektor",
       "artifactLabel": "MAME-Artefakt",

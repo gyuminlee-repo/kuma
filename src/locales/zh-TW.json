@@ -749,6 +749,7 @@
       "toastAutoDetected": "自動檢測: {{items}}",
       "noPathSelected": "未選擇路徑",
       "sampleNoRunFolder": "範例資料不包含 raw run 資料夾(為控制體積而省略)。下方結果為預先計算的結果。",
+      "sampleNoOutputDest": "範例資料不會選擇儲存位置，請自行指定輸出寫入位置。",
       "fileReady": "就緒",
       "browseFolderAriaLabel": "瀏覽 {{label}}",
       "consensus": {
@@ -3270,6 +3271,9 @@
     }
   },
   "kuro": {
+    "sampleData": {
+      "loadFailed": "範例資料載入失敗：{{file}}（{{reason}}）"
+    },
     "load": {
       "inspectorTitle": "來源檢查器",
       "artifactLabel": "MAME 製品",

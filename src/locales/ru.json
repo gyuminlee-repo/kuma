@@ -749,6 +749,7 @@
       "toastAutoDetected": "Авто-определено: {{items}}",
       "noPathSelected": "Путь не выбран",
       "sampleNoRunFolder": "В образце данных отсутствует папка raw run (исключена для уменьшения размера). Приведенные ниже результаты предварительно рассчитаны.",
+      "sampleNoOutputDest": "Образец данных не выбирает место сохранения, укажите, куда записать собственный результат.",
       "fileReady": "Готово",
       "browseFolderAriaLabel": "Выбрать {{label}}",
       "consensus": {
@@ -3270,6 +3271,9 @@
     }
   },
   "kuro": {
+    "sampleData": {
+      "loadFailed": "Не удалось загрузить образец данных: {{file}} ({{reason}})"
+    },
     "load": {
       "inspectorTitle": "Инспектор источника",
       "artifactLabel": "Артефакт MAME",

@@ -121,9 +121,16 @@ describe("InputPanel sample-data run-folder notice (defect 3 regression)", () =>
         "Sample data has no raw run folder (left out to keep the bundle small). The results below are pre-computed.",
       ),
     ).toBeInTheDocument();
-    // The unrelated export-destination field (also empty here) must keep the
-    // generic text: only the run-folder field at the top is swapped.
-    expect(screen.getAllByText("No path selected").length).toBeGreaterThan(0);
+    // The export-destination field is also empty here, and it gets its own
+    // distinct swap (defect 3 follow-up): loadSampleData never calls
+    // setOutputPath either, but for a different reason (it is a save
+    // destination the operator picks, not a bundle omission), so it reads a
+    // different sentence rather than the generic text.
+    expect(
+      screen.getByText(
+        "Sample data does not choose a save location, pick where to write your own output.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("does not override the label once the operator (or auto-detect) has actually filled inputDir", () => {
@@ -149,5 +156,45 @@ describe("InputPanel sample-data run-folder notice (defect 3 regression)", () =>
       ).toBeInTheDocument();
       unmount();
     }
+  });
+});
+
+describe("InputPanel sample-data export-destination notice", () => {
+  it("shows the ordinary 'no path selected' text before any sample data is loaded", () => {
+    mockState = baseState({ sampleDataLoaded: false, outputPath: "" });
+    renderPanel();
+
+    expect(
+      screen.queryByText(
+        "Sample data does not choose a save location, pick where to write your own output.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByText("No path selected").length).toBeGreaterThan(0);
+  });
+
+  it("swaps in the destination explanation once sampleDataLoaded is true and outputPath is still empty", () => {
+    mockState = baseState({ sampleDataLoaded: true, outputPath: "", inputDir: "/some/minknow/run" });
+    renderPanel();
+
+    expect(
+      screen.getByText(
+        "Sample data does not choose a save location, pick where to write your own output.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("does not override the label once the operator has actually chosen an output path", () => {
+    mockState = baseState({
+      sampleDataLoaded: true,
+      outputPath: "/some/export/dir",
+      inputDir: "/some/minknow/run",
+    });
+    renderPanel();
+
+    expect(
+      screen.queryByText(
+        "Sample data does not choose a save location, pick where to write your own output.",
+      ),
+    ).not.toBeInTheDocument();
   });
 });

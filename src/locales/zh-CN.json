@@ -749,6 +749,7 @@
       "toastAutoDetected": "自动检测: {{items}}",
       "noPathSelected": "未选择路径",
       "sampleNoRunFolder": "示例数据不包含 raw run 文件夹(为控制体积而省略)。下方结果为预先计算的结果。",
+      "sampleNoOutputDest": "示例数据不会选择保存位置，请自行指定输出写入位置。",
       "fileReady": "就绪",
       "browseFolderAriaLabel": "浏览 {{label}}",
       "consensus": {
@@ -3270,6 +3271,9 @@
     }
   },
   "kuro": {
+    "sampleData": {
+      "loadFailed": "示例数据加载失败：{{file}}（{{reason}}）"
+    },
     "load": {
       "inspectorTitle": "源检查器",
       "artifactLabel": "MAME制品",

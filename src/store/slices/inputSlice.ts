@@ -1,6 +1,7 @@
 import type { StateCreator } from "zustand";
 import i18next from "i18next";
 import { resolveResource } from "@tauri-apps/api/path";
+import { exists } from "@tauri-apps/plugin-fs";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
 import { buildKuroDesignInputPatch } from "../../lib/kuroResultReset";
@@ -263,18 +264,42 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
 
   loadSampleData: async () => {
     // Auto-populate every required field so the user can press Next at each
-    // wizard step without manual setup. Mode-aware: evolvepro mode loads the
-    // EGFP-compatible CSV (since v0.9.9.X), text mode injects the 120 demo
-    // mutations verified against the bundled EGFP translation.
+    // wizard step without manual setup. Loads the EGFP plasmid and its
+    // matching EVOLVEpro CSV regardless of mutationInputMode: the "text"
+    // mode member of that type has no input in the UI (no component calls
+    // setMutationInputMode) and this loader never wrote demo mutation text.
     try {
       set({ statusMessage: "Loading sample data..." });
       const gbPath = await resolveResource("samples/sample_plasmid.gb");
+      // `resolveResource` only concatenates a path; it never touches disk.
+      // A bundle entry that was deleted still "resolves" successfully, so it
+      // must also be checked with `exists()` before use, or a missing file
+      // reads as present here and only fails later inside `loadSequence`
+      // with a sidecar error that does not name which sample file is gone.
+      if (!(await exists(gbPath))) {
+        set({
+          statusMessage: i18next.t("kuro.sampleData.loadFailed", {
+            file: "samples/sample_plasmid.gb",
+            reason: "file not found",
+          }),
+        });
+        return;
+      }
       await get().loadSequence(gbPath);
       if (!get().seqInfo) {
         // loadSequence swallowed an error and left statusMessage with the cause; preserve it.
         return;
       }
       const csvPath = await resolveResource("samples/sample_evolvepro.csv");
+      if (!(await exists(csvPath))) {
+        set({
+          statusMessage: i18next.t("kuro.sampleData.loadFailed", {
+            file: "samples/sample_evolvepro.csv",
+            reason: "file not found",
+          }),
+        });
+        return;
+      }
       await get().loadEvolveproCsv(csvPath);
       set({ statusMessage: "Sample data loaded (EGFP + EVOLVEpro CSV)." });
     } catch (err) {
