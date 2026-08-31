@@ -83,9 +83,12 @@ _PINNED_OCCUPANTS = {
     # python-core/scripts/generate_mame_step4_samples.py, which numbers every
     # position against the shipped reference; the list it replaced was numbered
     # against a different protein and asked for two substitutions the reference
-    # already carried. 9 of the 16 stay a clean PASS at FINAL verdict and 7
-    # each demonstrate one of the remaining VerdictClass values (see
-    # generate_mame_step4_samples.py's _TARGET_VERDICT).
+    # already carried. 10 of the 16 stay a clean PASS at FINAL (selected-
+    # replicate) verdict and 6 each demonstrate one of the remaining non-PASS,
+    # non-AMBIGUOUS VerdictClass values; AMBIGUOUS is reachable only at the
+    # replicate-comparison layer, not at FINAL (see
+    # generate_mame_step4_samples.py's _TARGET_VERDICT and
+    # _AMBIGUOUS_REPLICATE_VARIANT).
     "src-tauri/samples/mame/03_mame_expected_mutations.xlsx": 17,
 }
 
