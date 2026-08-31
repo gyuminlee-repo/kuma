@@ -2514,14 +2514,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Beispieldaten werden jetzt in triplicate sequenziert, über drei native barcodes auf einer Platte statt in einem Durchlauf.",
-      "Eine Variante ist auf dem ersten barcode low-depth und besteht auf den beiden anderen. Genau dafür ist die dritte Kopie da.",
-      "Alle acht verdict-Klassen erscheinen nun, sodass die Demo auch die Fehlschläge zeigt, die geprüft werden müssen.",
-      "Dateipfade in step 4 werden beim Laden der Beispieldaten gefüllt, auch in scratch-Sitzungen, wo sie still übersprungen wurden.",
-      "Das Feld für den run folder erklärt, dass raw runs aus Größengründen fehlen, statt unfertig zu wirken."
+      "Die Beispieldaten zeigen kein AMBIGUOUS-Well mehr als ausgewählt. Eine bestandene Kopie vertritt die Variante.",
+      "AMBIGUOUS bleibt auf einem barcode erhalten, genau dort, wo der replicate-Vergleich es zeigen soll.",
+      "Beim Laden der Beispieldaten werden fehlende Dateien genannt, statt Erfolg zu melden und in step 4 zu scheitern.",
+      "step 4 erhält keine Dateipfade mehr, die ins Leere zeigen, der Build startet mit vorhandenen Eingaben.",
+      "Ein gespeicherter Formulareintrag ohne Pfade deaktiviert die step-4-Schaltfläche nicht mehr dauerhaft."
     ],
-    "highlightsStamp": "0.16.42+e1b0d6ec",
+    "highlightsStamp": "0.16.43+dbab62ef",
     "releases": {
+      "0.16.43": [
+        "Die Beispieldaten zeigen kein AMBIGUOUS-Well mehr als ausgewählt. Eine bestandene Kopie vertritt die Variante.",
+        "AMBIGUOUS bleibt auf einem barcode erhalten, genau dort, wo der replicate-Vergleich es zeigen soll.",
+        "Beim Laden der Beispieldaten werden fehlende Dateien genannt, statt Erfolg zu melden und in step 4 zu scheitern.",
+        "step 4 erhält keine Dateipfade mehr, die ins Leere zeigen, der Build startet mit vorhandenen Eingaben.",
+        "Ein gespeicherter Formulareintrag ohne Pfade deaktiviert die step-4-Schaltfläche nicht mehr dauerhaft."
+      ],
       "0.16.42": [
         "Beispieldaten werden jetzt in triplicate sequenziert, über drei native barcodes auf einer Platte statt in einem Durchlauf.",
         "Eine Variante ist auf dem ersten barcode low-depth und besteht auf den beiden anderen. Genau dafür ist die dritte Kopie da.",
@@ -2834,6 +2841,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",
       "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",

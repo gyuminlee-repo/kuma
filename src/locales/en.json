@@ -2557,14 +2557,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Sample data is sequenced in triplicate now, across three native barcodes on one plate rather than a single pass.",
-      "One variant reads low-depth on the first barcode and passes on the other two, which is what a third copy is for.",
-      "All eight verdict classes now appear, so the demo shows the failures a reviewer has to act on and not only passes.",
-      "Step 4 file paths fill in when sample data loads, including scratch sessions where they were skipped in silence.",
-      "The run folder field explains that raw runs are left out to keep the download small, instead of looking unfinished."
+      "The sample no longer shows an AMBIGUOUS well as the chosen one. A passing copy represents the variant instead.",
+      "AMBIGUOUS is still there, on one barcode, where the replicate comparison is meant to show it.",
+      "Loading sample data now says which files are missing instead of reporting success and failing later in step 4.",
+      "Step 4 no longer receives file paths that point at nothing, so a build starts with inputs that exist.",
+      "A saved form with no stored paths no longer disables the step 4 build button permanently."
     ],
-    "highlightsStamp": "0.16.42+e1b0d6ec",
+    "highlightsStamp": "0.16.43+dbab62ef",
     "releases": {
+      "0.16.43": [
+        "The sample no longer shows an AMBIGUOUS well as the chosen one. A passing copy represents the variant instead.",
+        "AMBIGUOUS is still there, on one barcode, where the replicate comparison is meant to show it.",
+        "Loading sample data now says which files are missing instead of reporting success and failing later in step 4.",
+        "Step 4 no longer receives file paths that point at nothing, so a build starts with inputs that exist.",
+        "A saved form with no stored paths no longer disables the step 4 build button permanently."
+      ],
       "0.16.42": [
         "Sample data is sequenced in triplicate now, across three native barcodes on one plate rather than a single pass.",
         "One variant reads low-depth on the first barcode and passes on the other two, which is what a third copy is for.",
@@ -2877,6 +2884,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",
       "0.16.41": "78e69028",
       "0.16.40": "54e3cb8d",
