@@ -2515,14 +2515,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Cada variante de amostra tem agora uma cópia aprovada que a representa, e nenhum verdict inelegível aparece como poço escolhido.",
-      "Cada defeito fica em um único barcode e oito variantes diferem entre suas leituras. É para isso que serve a terceira cópia.",
-      "Nenhuma representação vem mais do caminho de fallback, e o barcode eleito se distribui pela placa.",
-      "As oito classes de verdict continuam presentes, na comparação de replicate e não no poço final.",
-      "A step 4 exporta as dezesseis variantes da amostra, sem nenhuma excluída por evidência de NGS."
+      "O Load Sample Data agora preenche as entradas numeric-ID, então esse caminho pode ser executado a partir da amostra.",
+      "Três arquivos incluídos ficam sem uso de propósito, e o motivo de cada um está anotado ao lado do código.",
+      "Um campo que a amostra não pode preencher agora informa isso em vez de parecer incompleto, nas duas pastas de saída.",
+      "O KURO verifica se a amostra incluída está de fato no disco e nomeia o arquivo ausente em vez de dar um erro do sidecar.",
+      "Dois comentários que descreviam comportamento inexistente foram corrigidos."
     ],
-    "highlightsStamp": "0.16.44+77881f90",
+    "highlightsStamp": "0.16.45+eb59dd47",
     "releases": {
+      "0.16.45": [
+        "O Load Sample Data agora preenche as entradas numeric-ID, então esse caminho pode ser executado a partir da amostra.",
+        "Três arquivos incluídos ficam sem uso de propósito, e o motivo de cada um está anotado ao lado do código.",
+        "Um campo que a amostra não pode preencher agora informa isso em vez de parecer incompleto, nas duas pastas de saída.",
+        "O KURO verifica se a amostra incluída está de fato no disco e nomeia o arquivo ausente em vez de dar um erro do sidecar.",
+        "Dois comentários que descreviam comportamento inexistente foram corrigidos."
+      ],
       "0.16.44": [
         "Cada variante de amostra tem agora uma cópia aprovada que a representa, e nenhum verdict inelegível aparece como poço escolhido.",
         "Cada defeito fica em um único barcode e oito variantes diferem entre suas leituras. É para isso que serve a terceira cópia.",
@@ -2849,6 +2856,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.45": "eb59dd47",
       "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",

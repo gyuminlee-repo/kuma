@@ -2515,14 +2515,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Chaque variante d'exemple a une copie réussie qui la représente, aucun verdict non sélectionnable n'apparaît comme puits choisi.",
-      "Chaque défaut porte sur un seul barcode et huit variantes diffèrent entre leurs lectures. C'est à cela que sert la troisième copie.",
-      "Aucune représentation ne vient plus de la voie fallback, et le barcode retenu se répartit sur la plaque.",
-      "Les huit classes de verdict subsistent, dans la comparaison de replicate plutôt que sur le puits final.",
-      "step 4 exporte les seize variantes de l'exemple, sans aucune exclusion fondée sur les données NGS."
+      "Load Sample Data remplit désormais les entrées numeric-ID, cette voie peut donc être exécutée depuis l'exemple.",
+      "Trois fichiers fournis restent inutilisés à dessein, et la raison de chacun est notée à côté du code.",
+      "Un champ que l'exemple ne peut pas remplir l'indique au lieu de sembler inachevé, dans les deux dossiers de sortie.",
+      "KURO vérifie que l'exemple fourni est bien présent et nomme le fichier absent au lieu d'un message d'erreur du sidecar.",
+      "Deux commentaires décrivant un comportement disparu ont été corrigés."
     ],
-    "highlightsStamp": "0.16.44+77881f90",
+    "highlightsStamp": "0.16.45+eb59dd47",
     "releases": {
+      "0.16.45": [
+        "Load Sample Data remplit désormais les entrées numeric-ID, cette voie peut donc être exécutée depuis l'exemple.",
+        "Trois fichiers fournis restent inutilisés à dessein, et la raison de chacun est notée à côté du code.",
+        "Un champ que l'exemple ne peut pas remplir l'indique au lieu de sembler inachevé, dans les deux dossiers de sortie.",
+        "KURO vérifie que l'exemple fourni est bien présent et nomme le fichier absent au lieu d'un message d'erreur du sidecar.",
+        "Deux commentaires décrivant un comportement disparu ont été corrigés."
+      ],
       "0.16.44": [
         "Chaque variante d'exemple a une copie réussie qui la représente, aucun verdict non sélectionnable n'apparaît comme puits choisi.",
         "Chaque défaut porte sur un seul barcode et huit variantes diffèrent entre leurs lectures. C'est à cela que sert la troisième copie.",
@@ -2849,6 +2856,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.45": "eb59dd47",
       "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",

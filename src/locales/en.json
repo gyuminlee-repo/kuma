@@ -2558,14 +2558,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Every sample variant now has a passing copy representing it, so no unpickable verdict is shown as the chosen well.",
-      "Defects sit on one barcode each, and eight variants differ between their reads, which is what a third copy is for.",
-      "No representative comes from the fallback path any more, and the elected barcode varies across the plate.",
-      "All eight verdict classes remain, in the replicate comparison where they belong rather than on the final well.",
-      "Step 4 exports all sixteen variants from the sample, with none excluded on NGS evidence."
+      "Load Sample Data now fills the numeric-ID inputs, so that branch can be run from the sample rather than only selected.",
+      "Three bundled files stay unused on purpose, and the reason each one has nowhere to go is recorded beside the code.",
+      "A field sample data cannot fill now says so instead of looking like an unfinished pick, on both output folders.",
+      "KURO checks that a bundled sample is really on disk, so a missing file is named rather than surfacing as a sidecar error.",
+      "Two comments describing behaviour that no longer exists were corrected."
     ],
-    "highlightsStamp": "0.16.44+77881f90",
+    "highlightsStamp": "0.16.45+eb59dd47",
     "releases": {
+      "0.16.45": [
+        "Load Sample Data now fills the numeric-ID inputs, so that branch can be run from the sample rather than only selected.",
+        "Three bundled files stay unused on purpose, and the reason each one has nowhere to go is recorded beside the code.",
+        "A field sample data cannot fill now says so instead of looking like an unfinished pick, on both output folders.",
+        "KURO checks that a bundled sample is really on disk, so a missing file is named rather than surfacing as a sidecar error.",
+        "Two comments describing behaviour that no longer exists were corrected."
+      ],
       "0.16.44": [
         "Every sample variant now has a passing copy representing it, so no unpickable verdict is shown as the chosen well.",
         "Defects sit on one barcode each, and eight variants differ between their reads, which is what a third copy is for.",
@@ -2892,6 +2899,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.45": "eb59dd47",
       "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",
