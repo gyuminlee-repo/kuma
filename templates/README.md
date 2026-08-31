@@ -54,7 +54,7 @@ Round 2 EVOLVEpro pred        ── 다음 라운드 (이 폴더 범위 밖)
 
 ## 이 폴더와 번들 샘플은 다른 캠페인이다
 
-위 시나리오는 **이 폴더(`templates/`)** 의 내용이다. 앱이 Help > Load Sample Data 로 여는 파일은 `src-tauri/samples/mame/` 에 있다. 그쪽은 2026-08-27 에 별도 캠페인으로 재생성됐다. 두 폴더를 같은 것으로 읽지 마라.
+위 시나리오는 **이 폴더(`templates/`)** 의 내용이다. 앱이 Help > Load Sample Data 로 여는 파일은 `src-tauri/samples/mame/` 에 있다. 그쪽은 2026-08-31 에 별도 캠페인으로 재생성됐다. 두 폴더를 같은 것으로 읽지 마라.
 
 번들 샘플 쪽은 `python-core/scripts/generate_mame_step4_samples.py` 가 만든다. 스크립트는 shipped reference 로 위치와 잔기를 확정한다. 이어서 실제 파이프라인을 돌려 결과와 verdict 워크북을 뽑는다. 마지막으로 step 4 입력 분기 10개를 전부 `build_evolvepro_input` 으로 통과시킨 뒤에야 끝난다.
 
@@ -66,13 +66,15 @@ Round 2 EVOLVEpro pred        ── 다음 라운드 (이 폴더 범위 밖)
 
 ## 번들 샘플 캠페인 (`src-tauri/samples/mame/`)
 
-- **KURO 와 MAME 가 한 캠페인이다.** 변이 목록을 손으로 적지 않고 KURO 샘플에서 유도한다. `sample_evolvepro.csv` 의 round-0 예측 24개를 `sample_plasmid.gb` 에 대해 실제로 설계해 보고, 프라이머가 나온 후보만 예측 순위대로 10개를 뽑아 플레이트에 올린다. 설계에 실패한 후보는 벤치에 도달할 수 없으므로 제외된다(현재 기본 설정 KOD 에서 8개 실패). 코돈도 KURO 설계 결과에서 가져오므로 expected mutations 시트가 프라이머가 실제로 싣는 코돈을 적는다.
-- 설계 변이 10개 + WT 대조 1행. `sample_plasmid.gb` 의 CDS 와 `reference.fasta` 는 같은 239 잔기 단백질이고 `wt_aa` 는 그 서열에서 읽는다. 이전 목록은 avGFP 넘버링이라 EGFP 가 이미 갖고 있는 `S65T`·`F64L` 을 다시 도입하라고 적고 있었고, 그 전 판은 KURO 예측과 아예 겹치지 않는 변이를 검증하고 있었다.
+- **KURO 와 MAME 가 한 캠페인이다.** 변이 목록을 손으로 적지 않고 KURO 샘플에서 유도한다. `sample_evolvepro.csv` 의 round-0 예측 24개를 `sample_plasmid.gb` 에 대해 실제로 설계해 보고, 프라이머가 나온 후보를 예측 순위대로 16개 뽑아 플레이트에 올린다. 설계에 실패한 후보는 벤치에 도달할 수 없으므로 제외된다(현재 기본 설정 KOD 에서 8개 실패). 즉 지금은 설계 가능한 후보 전부가 플레이트에 오른다. 코돈도 KURO 설계 결과에서 가져오므로 expected mutations 시트가 프라이머가 실제로 싣는 코돈을 적는다.
+- 설계 변이 16개 + WT 대조 1행. `sample_plasmid.gb` 의 CDS 와 `reference.fasta` 는 같은 239 잔기 단백질이고 `wt_aa` 는 그 서열에서 읽는다. 이전 목록은 avGFP 넘버링이라 EGFP 가 이미 갖고 있는 `S65T`·`F64L` 을 다시 도입하라고 적고 있었고, 그 전 판은 KURO 예측과 아예 겹치지 않는 변이를 검증하고 있었다.
 - 변이 목록은 위치 오름차순이다. 플레이트는 파일 행 순서로 채워지는데 numeric-ID 디코더는 위치 순서로 순번을 매기므로, 정렬돼 있을 때만 두 해석이 같은 웰을 가리킨다.
-- 플레이트: 변이 10개가 A01~B02, WT 대조가 H12.
-- 체인이 끊어지면 `tests/mame/test_sample_campaign_chain.py` 가 잡는다. 같은 단백질인지, 플레이트 변이가 전부 예측 후보인지, 설계 가능한 상위 10개인지, verdict 와 step 4 export 가 같은 집합을 말하는지를 출하 파일에서 직접 읽어 검사한다.
-- `13_mame_verdict.xlsx` 는 실제 analyze 실행이 쓴 워크북이다. step 4 필수 입력이며 샘플 데이터에 다른 공급원이 없다.
-- nanopore raw run(fastq, MinKNOW 폴더)은 번들에 넣지 않는다. 용량이 크고 화면에 필요한 것은 결과이지 원시 신호가 아니다. 대신 결과 픽스처와 verdict 워크북이 같은 실행에서 나온다.
+- 플레이트: 변이 16개가 A01~H02, WT 대조가 H12.
+- **native barcode 3개로 읽은 triplicate 다 (v0.16.42).** NB01·NB02·NB03 이 같은 플레이트를 각각 demux 하고, 파이프라인이 변이마다 최적 복제본을 고른다. 웰은 변이당 하나 그대로다. 두 웰에 앉은 변이는 NGS 근거를 붙일 웰이 정해지지 않아 layout 리더와 verdict 리더가 모두 거절하기 때문이다. 3중은 플레이트를 넓히는 것이 아니라 플레이트 위에 축을 하나 더 얹는 것이다.
+- **8개 verdict 종류가 전부 나온다 (v0.16.42).** 선정된 복제본 기준으로 PASS 10개, 그리고 AMBIGUOUS·FRAMESHIFT·LOWDEPTH·MANY·MIXED·NO_CALL·WRONG_AA 각 1개다. 전부 consensus 서열과 FASTA 헤더 값만으로 유발하므로 `classify_verdict` 는 손대지 않았고 픽스처도 손으로 고치지 않았다. `G190A` 는 NB01 에서 LOWDEPTH 이고 나머지 둘에서 통과해 NB03 이 선정된다. 복제본을 셋 두는 이유가 그 한 줄에 들어 있다.
+- 체인이 끊어지면 `tests/mame/test_sample_campaign_chain.py` 가 잡는다. 같은 단백질인지, 플레이트 변이가 전부 예측 후보인지, 설계 가능한 상위 16개인지, verdict 워크북이 그 변이들을 채점하는지, step 4 export 가 FINAL PASS 변이와 정확히 일치하는지를 출하 파일에서 직접 읽어 검사한다. 마지막 항목은 `build_evolvepro_input` 이 엄격한 PASS 만 내보내므로 "설계된 전부" 가 아니라 "통과한 것" 과 대조한다.
+- `13_mame_verdict.xlsx` 는 실제 analyze 실행이 쓴 워크북이다. step 4 필수 입력이며 샘플 데이터에 다른 공급원이 없다. 시트는 `NB01`·`NB02`·`NB03`·`Final`·`NGS Results`·`Final (matrix)` 와 메타 시트다.
+- nanopore raw run(fastq, MinKNOW 폴더)은 번들에 넣지 않는다. 용량이 크고 화면에 필요한 것은 결과이지 원시 신호가 아니다. 대신 결과 픽스처와 verdict 워크북이 같은 실행에서 나온다. step 2 의 run folder 칸은 샘플을 불러오면 그 사실을 문구로 밝히고 비어 있는 채로 남는다.
 
 ## 파일 목록
 
