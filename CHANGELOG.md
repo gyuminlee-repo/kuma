@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.16.44 (Every variant recovered on one of three reads)
+
+The previous release stopped the sample electing an AMBIGUOUS well and left the rest of the rule unapplied. Six variants still carried the same defect on all three barcodes, so the picker had nothing passing to choose from and elected the defect anyway: five through the fallback that runs when no pickable candidate remains, and one because low depth is pickable by priority. A verdict that no picking path would ever take was still being shown as the well that was chosen.
+
+Each defect now lands on a single named barcode and the other two carry the plain substitution. Every variant has a passing copy to represent it, no replicate is a fallback, and the elected barcode varies across the plate rather than settling on the lowest number. The generator holds one rule for this instead of a constant per exception: a variant maps to a verdict class and the barcode that carries it.
+
+The eight verdict classes did not disappear. They moved to the layer that owns them. All eight are still present across the fifty-one verdicts, and eight variants now read differently between their barcodes, so the plate shows what triplicate sequencing is for: a well that fails one read is recovered by another. Step 4 exports all sixteen variants with nothing excluded, which is the shape of a plate where every variant came back.
+
+One consequence is worth stating. The sample no longer demonstrates a variant measured at the bench and then dropped on NGS evidence, because no variant fails all three reads. Keeping a well that cannot be picked, purely to show that path, is what the rule rules out.
+
+### Highlights
+
+- Every sample variant now has a passing copy representing it, so no unpickable verdict is shown as the chosen well.
+- Defects sit on one barcode each, and eight variants differ between their reads, which is what a third copy is for.
+- No representative comes from the fallback path any more, and the elected barcode varies across the plate.
+- All eight verdict classes remain, in the replicate comparison where they belong rather than on the final well.
+- Step 4 exports all sixteen variants from the sample, with none excluded on NGS evidence.
+
 ## v0.16.43 (A representative that could actually be picked)
 
 Picking keeps fully verified clones only. AMBIGUOUS carries the designed change plus a side indel, so its activity measurement would be mislabelled, and step 4 gates on strict PASS for the same reason. Choosing which copy of a well to believe is a separate question, and there the order is PASS, then AMBIGUOUS, then LOWDEPTH. A variant whose three barcodes all read AMBIGUOUS therefore got an AMBIGUOUS representative, and the plate map draws a representative the same way whether or not it passed. The sample showed a well as chosen that no picking path would ever take.

@@ -2514,14 +2514,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les données d'exemple ne montrent plus un puits AMBIGUOUS comme choisi. Une copie réussie représente la variante.",
-      "AMBIGUOUS reste présent sur un barcode, là où la comparaison de replicate doit le montrer.",
-      "Le chargement des données d'exemple signale les fichiers manquants au lieu d'annoncer un succès puis d'échouer.",
-      "step 4 ne reçoit plus de chemins pointant vers rien, la construction part donc d'entrées qui existent.",
-      "Un formulaire enregistré sans chemins ne désactive plus définitivement le bouton de construction de step 4."
+      "Chaque variante d'exemple a une copie réussie qui la représente, aucun verdict non sélectionnable n'apparaît comme puits choisi.",
+      "Chaque défaut porte sur un seul barcode et huit variantes diffèrent entre leurs lectures. C'est à cela que sert la troisième copie.",
+      "Aucune représentation ne vient plus de la voie fallback, et le barcode retenu se répartit sur la plaque.",
+      "Les huit classes de verdict subsistent, dans la comparaison de replicate plutôt que sur le puits final.",
+      "step 4 exporte les seize variantes de l'exemple, sans aucune exclusion fondée sur les données NGS."
     ],
-    "highlightsStamp": "0.16.43+dbab62ef",
+    "highlightsStamp": "0.16.44+77881f90",
     "releases": {
+      "0.16.44": [
+        "Chaque variante d'exemple a une copie réussie qui la représente, aucun verdict non sélectionnable n'apparaît comme puits choisi.",
+        "Chaque défaut porte sur un seul barcode et huit variantes diffèrent entre leurs lectures. C'est à cela que sert la troisième copie.",
+        "Aucune représentation ne vient plus de la voie fallback, et le barcode retenu se répartit sur la plaque.",
+        "Les huit classes de verdict subsistent, dans la comparaison de replicate plutôt que sur le puits final.",
+        "step 4 exporte les seize variantes de l'exemple, sans aucune exclusion fondée sur les données NGS."
+      ],
       "0.16.43": [
         "Les données d'exemple ne montrent plus un puits AMBIGUOUS comme choisi. Une copie réussie représente la variante.",
         "AMBIGUOUS reste présent sur un barcode, là où la comparaison de replicate doit le montrer.",
@@ -2841,6 +2848,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",
       "0.16.39": "d8fb93a8",

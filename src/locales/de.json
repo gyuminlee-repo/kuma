@@ -2514,14 +2514,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die Beispieldaten zeigen kein AMBIGUOUS-Well mehr als ausgewählt. Eine bestandene Kopie vertritt die Variante.",
-      "AMBIGUOUS bleibt auf einem barcode erhalten, genau dort, wo der replicate-Vergleich es zeigen soll.",
-      "Beim Laden der Beispieldaten werden fehlende Dateien genannt, statt Erfolg zu melden und in step 4 zu scheitern.",
-      "step 4 erhält keine Dateipfade mehr, die ins Leere zeigen, der Build startet mit vorhandenen Eingaben.",
-      "Ein gespeicherter Formulareintrag ohne Pfade deaktiviert die step-4-Schaltfläche nicht mehr dauerhaft."
+      "Jede Beispielvariante hat nun eine bestandene Kopie als Vertretung, kein unwählbares verdict erscheint als gewähltes Well.",
+      "Jeder Defekt liegt auf genau einem barcode, und acht Varianten unterscheiden sich zwischen ihren Reads. Dafür ist die dritte Kopie da.",
+      "Keine Vertretung stammt mehr aus dem fallback-Pfad, und der gewählte barcode verteilt sich über die Platte.",
+      "Alle acht verdict-Klassen bleiben erhalten, im replicate-Vergleich statt auf dem endgültigen Well.",
+      "step 4 exportiert alle sechzehn Varianten der Beispieldaten, ohne Ausschluss durch NGS-Belege."
     ],
-    "highlightsStamp": "0.16.43+dbab62ef",
+    "highlightsStamp": "0.16.44+77881f90",
     "releases": {
+      "0.16.44": [
+        "Jede Beispielvariante hat nun eine bestandene Kopie als Vertretung, kein unwählbares verdict erscheint als gewähltes Well.",
+        "Jeder Defekt liegt auf genau einem barcode, und acht Varianten unterscheiden sich zwischen ihren Reads. Dafür ist die dritte Kopie da.",
+        "Keine Vertretung stammt mehr aus dem fallback-Pfad, und der gewählte barcode verteilt sich über die Platte.",
+        "Alle acht verdict-Klassen bleiben erhalten, im replicate-Vergleich statt auf dem endgültigen Well.",
+        "step 4 exportiert alle sechzehn Varianten der Beispieldaten, ohne Ausschluss durch NGS-Belege."
+      ],
       "0.16.43": [
         "Die Beispieldaten zeigen kein AMBIGUOUS-Well mehr als ausgewählt. Eine bestandene Kopie vertritt die Variante.",
         "AMBIGUOUS bleibt auf einem barcode erhalten, genau dort, wo der replicate-Vergleich es zeigen soll.",
@@ -2841,6 +2848,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",
       "0.16.39": "d8fb93a8",

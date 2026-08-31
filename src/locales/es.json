@@ -2514,14 +2514,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Los datos de ejemplo ya no muestran un pocillo AMBIGUOUS como elegido. Lo representa una copia que pasó.",
-      "AMBIGUOUS sigue presente en un barcode, justo donde la comparación de replicate debe mostrarlo.",
-      "Al cargar los datos de ejemplo se indican los archivos que faltan, sin informar éxito y fallar luego en step 4.",
-      "step 4 ya no recibe rutas que apuntan a la nada, así que la compilación parte de entradas que existen.",
-      "Un formulario guardado sin rutas ya no deja el botón de compilación de step 4 desactivado para siempre."
+      "Cada variante de ejemplo tiene ahora una copia aprobada que la representa, ningún verdict no elegible aparece como pocillo elegido.",
+      "Cada defecto está en un solo barcode y ocho variantes difieren entre sus lecturas. Para eso sirve la tercera copia.",
+      "Ninguna representación procede ya de la vía fallback, y el barcode elegido se reparte por toda la placa.",
+      "Las ocho clases de verdict siguen presentes, en la comparación de replicate y no en el pocillo final.",
+      "step 4 exporta las dieciséis variantes de la muestra, sin ninguna excluida por evidencia NGS."
     ],
-    "highlightsStamp": "0.16.43+dbab62ef",
+    "highlightsStamp": "0.16.44+77881f90",
     "releases": {
+      "0.16.44": [
+        "Cada variante de ejemplo tiene ahora una copia aprobada que la representa, ningún verdict no elegible aparece como pocillo elegido.",
+        "Cada defecto está en un solo barcode y ocho variantes difieren entre sus lecturas. Para eso sirve la tercera copia.",
+        "Ninguna representación procede ya de la vía fallback, y el barcode elegido se reparte por toda la placa.",
+        "Las ocho clases de verdict siguen presentes, en la comparación de replicate y no en el pocillo final.",
+        "step 4 exporta las dieciséis variantes de la muestra, sin ninguna excluida por evidencia NGS."
+      ],
       "0.16.43": [
         "Los datos de ejemplo ya no muestran un pocillo AMBIGUOUS como elegido. Lo representa una copia que pasó.",
         "AMBIGUOUS sigue presente en un barcode, justo donde la comparación de replicate debe mostrarlo.",
@@ -2841,6 +2848,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",
       "0.16.39": "d8fb93a8",
