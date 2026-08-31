@@ -907,6 +907,7 @@
       "toastNoFiles": "No new files detected",
       "toastAutoDetected": "Auto-detected: {{items}}",
       "noPathSelected": "No path selected",
+      "sampleNoRunFolder": "Sample data has no raw run folder (left out to keep the bundle small). The results below are pre-computed.",
       "fileReady": "Ready",
       "browseFolderAriaLabel": "Browse {{label}}",
       "consensus": {

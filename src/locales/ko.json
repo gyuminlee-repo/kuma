@@ -907,6 +907,7 @@
       "toastNoFiles": "새로 감지된 파일 없음",
       "toastAutoDetected": "자동 감지됨: {{items}}",
       "noPathSelected": "경로 미선택",
+      "sampleNoRunFolder": "샘플 데이터에는 raw run 폴더가 포함되어 있지 않습니다(용량 때문에 제외). 아래 결과는 미리 계산된 것입니다.",
       "fileReady": "준비됨",
       "browseFolderAriaLabel": "{{label}} 찾아보기",
       "consensus": {

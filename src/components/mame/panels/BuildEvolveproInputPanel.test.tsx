@@ -4,6 +4,13 @@ import { ProjectProvider } from "@/state/projectContext";
 
 const mockSetBuildEvolveproCompletion = vi.hoisted(() => vi.fn());
 const mockMkdir = vi.hoisted(() => vi.fn());
+// Mutable so a test can bump `buildEvolveproSeedEpoch` mid-test (mirroring
+// `loadSampleData`'s post-seed bump) and observe the panel re-read storage on
+// its next render, the same way it observes `resetEpoch`.
+const mockMameState = vi.hoisted(() => ({
+  resetEpoch: 0,
+  buildEvolveproSeedEpoch: 0,
+}));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn(), save: vi.fn() }));
 vi.mock("@tauri-apps/plugin-fs", () => ({ mkdir: mockMkdir }));
@@ -12,8 +19,12 @@ vi.mock("@/lib/openFolder", () => ({ revealInOSFolder: vi.fn() }));
 vi.mock("@/lib/workspace", () => ({ registerArtifacts: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/store/mame/mameAppStore", () => ({
-  useMameAppStore: (selector: (state: { resetEpoch: number; setBuildEvolveproCompletion: typeof mockSetBuildEvolveproCompletion }) => unknown) =>
-    selector({ resetEpoch: 0, setBuildEvolveproCompletion: mockSetBuildEvolveproCompletion }),
+  useMameAppStore: (selector: (state: {
+    resetEpoch: number;
+    buildEvolveproSeedEpoch: number;
+    setBuildEvolveproCompletion: typeof mockSetBuildEvolveproCompletion;
+  }) => unknown) =>
+    selector({ ...mockMameState, setBuildEvolveproCompletion: mockSetBuildEvolveproCompletion }),
 }));
 
 import { buildEvolveproInput } from "@/lib/ipc-mame";
@@ -104,6 +115,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockMkdir.mockResolvedValue(undefined);
   vi.mocked(buildEvolveproInput).mockResolvedValue(RESULT);
+  mockMameState.resetEpoch = 0;
+  mockMameState.buildEvolveproSeedEpoch = 0;
 });
 
 describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
@@ -317,5 +330,48 @@ describe("BuildEvolveproInputPanel persistence", () => {
       ...BUILD_EVOLVEPRO_DEFAULT_STATE,
       migrationNotice: true,
     });
+  });
+});
+
+describe("BuildEvolveproInputPanel sample-data seed reload (defect 2 regression)", () => {
+  // loadSampleData only writes to localStorage (seedBuildEvolveproForm); it
+  // has no way to reach an already-mounted panel's React state directly. The
+  // panel must notice via `buildEvolveproSeedEpoch` and re-read storage,
+  // otherwise it keeps showing whatever it had at mount (here: nothing).
+  it("re-reads storage once loadSampleData bumps buildEvolveproSeedEpoch", () => {
+    const { rerender } = render(
+      <ProjectProvider value={{ path: PROJECT, name: "Demo", scratch: false }}>
+        <BuildEvolveproInputPanel />
+      </ProjectProvider>,
+    );
+
+    // Mounted before any sample data existed: activityPath reads empty.
+    expect(screen.getByLabelText("Activity CSV/XLSX")).toHaveValue("");
+
+    // loadSampleData's seedBuildEvolveproForm writes straight to storage
+    // without touching the panel's React state.
+    saveBuildEvolveproToStorage(
+      readyForm({ activityPath: "/project/samples/mame/14_mame_activity_long_raw.csv" }),
+      PROJECT,
+    );
+    mockMameState.buildEvolveproSeedEpoch = 1;
+    rerender(
+      <ProjectProvider value={{ path: PROJECT, name: "Demo", scratch: false }}>
+        <BuildEvolveproInputPanel />
+      </ProjectProvider>,
+    );
+
+    expect(screen.getByLabelText("Activity CSV/XLSX")).toHaveValue(
+      "14_mame_activity_long_raw.csv",
+    );
+  });
+
+  it("does nothing on mount, before the epoch has ever bumped (epoch 0 is not a seed)", () => {
+    saveBuildEvolveproToStorage(readyForm(), PROJECT);
+    renderPanel();
+
+    // The mount-time load (useState initializer) already picked this up;
+    // asserting it here pins down that the epoch-0 guard does not clear it.
+    expect(screen.getByLabelText("Activity CSV/XLSX")).toHaveValue("activity.csv");
   });
 });

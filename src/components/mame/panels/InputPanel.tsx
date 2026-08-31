@@ -55,6 +55,7 @@ export function InputPanel() {
   const outputPath = useMameAppStore((s) => s.outputPath);
   const rawRunParams = useMameAppStore((s) => s.rawRunParams);
   const barcodeAxisCounts = useMameAppStore((s) => s.barcodeAxisCounts);
+  const sampleDataLoaded = useMameAppStore((s) => s.sampleDataLoaded);
   const verdictCount = useMameAppStore((s) => s.verdicts.length);
   const setInputDir = useMameAppStore((s) => s.setInputDir);
   const setExpectedPath = useMameAppStore((s) => s.setExpectedPath);
@@ -267,6 +268,14 @@ export function InputPanel() {
   const inputDirKeys = INPUT_DIR_CONFIG_KEYS[inputMode];
   const noPathLabel = t("mame.inputPanel.noPathSelected");
   const readyLabel = t("mame.inputPanel.fileReady");
+  // loadSampleData never calls setInputDir (the bundle ships no run folder,
+  // kept out for size), so this field stays empty in every inputMode while
+  // the other three step-2 fields fill in. Without this, the field reads
+  // exactly like an operator's own unfinished pick.
+  const inputDirNoPathLabel =
+    sampleDataLoaded && !inputDir
+      ? t("mame.inputPanel.sampleNoRunFolder")
+      : noPathLabel;
 
   return (
     <div className="rounded-lg border border-border bg-background p-4 space-y-4">
@@ -305,7 +314,7 @@ export function InputPanel() {
         stateLabel={t("mame.inputPanel.kuroXlsx.stateLabel")}
         filled={Boolean(inputDir)}
         helperText={t(inputDirKeys.helperTextKey)}
-        noPathLabel={noPathLabel}
+        noPathLabel={inputDirNoPathLabel}
         readyLabel={readyLabel}
         browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t(inputDirKeys.labelKey) })}
       />

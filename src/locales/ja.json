@@ -744,6 +744,7 @@
       "toastNoFiles": "新しいファイルは検出されませんでした",
       "toastAutoDetected": "自動検出: {{items}}",
       "noPathSelected": "パス未選択",
+      "sampleNoRunFolder": "サンプルデータには raw run フォルダが含まれていません(容量削減のため省略)。以下の結果は事前に計算されたものです。",
       "fileReady": "準備完了",
       "browseFolderAriaLabel": "{{label}} を参照",
       "consensus": {

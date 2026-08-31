@@ -744,6 +744,7 @@
       "toastNoFiles": "未檢測到新檔案",
       "toastAutoDetected": "自動檢測: {{items}}",
       "noPathSelected": "未選擇路徑",
+      "sampleNoRunFolder": "範例資料不包含 raw run 資料夾(為控制體積而省略)。下方結果為預先計算的結果。",
       "fileReady": "就緒",
       "browseFolderAriaLabel": "瀏覽 {{label}}",
       "consensus": {

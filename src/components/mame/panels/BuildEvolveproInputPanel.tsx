@@ -107,6 +107,7 @@ export function BuildEvolveproInputPanel() {
   const [buildError, setBuildError] = useState<string | null>(null);
   const [result, setResult] = useState<BuildEvolveproInputResult | null>(null);
   const resetEpoch = useMameAppStore((s) => s.resetEpoch);
+  const seedEpoch = useMameAppStore((s) => s.buildEvolveproSeedEpoch);
   const setBuildEvolveproCompletion = useMameAppStore(
     (s) => s.setBuildEvolveproCompletion,
   );
@@ -182,6 +183,23 @@ export function BuildEvolveproInputPanel() {
     setBuildEvolveproCompletion(null);
     setResult(null);
   }, [project?.path, resetEpoch, setBuildEvolveproCompletion]);
+
+  // loadSampleData bumps this once it has finished writing sample paths to
+  // this project's storage row. `seedBuildEvolveproForm` only touches
+  // localStorage, so a panel already mounted (and therefore already holding
+  // whatever it read at mount, before the seed landed) would otherwise keep
+  // showing stale, empty fields until the operator navigated away and back.
+  // Starts at 0, same convention as resetEpoch, so the mount-time load above
+  // is not re-run here too.
+  useEffect(() => {
+    if (seedEpoch === 0) return;
+    const loaded = loadFromStorage(project?.path);
+    setFormRaw(loaded);
+    setShowRestoredNotice(hasBuildEvolveproFormValues(loaded));
+    setResult(null);
+    setBuildEvolveproCompletion(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedEpoch]);
 
   const browseFile = useCallback(
     async (key: keyof FormState, title: string, extensions: string[]) => {

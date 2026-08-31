@@ -89,6 +89,15 @@ export function useMameAutosave(): { flushMameAutosave: () => Promise<void> } {
     );
   }, [project?.path, project?.scratch]);
 
+  // Same context path, but not gated on scratch: BuildEvolveproInputPanel and
+  // buildEvolveproFormStorage key their localStorage row on
+  // `useKumaProject().path` regardless of scratch, so `loadSampleData` (which
+  // has no context access) needs this always-populated mirror to seed the
+  // same row the mounted panel reads from.
+  useEffect(() => {
+    useMameAppStore.getState().setFormStoragePath(project?.path ?? null);
+  }, [project?.path]);
+
   useEffect(() => {
     if (!project || project.scratch || !project.path) return;
 

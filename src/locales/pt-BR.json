@@ -744,6 +744,7 @@
       "toastNoFiles": "Nenhum arquivo novo detectado",
       "toastAutoDetected": "Auto-detectado: {{items}}",
       "noPathSelected": "Nenhum caminho selecionado",
+      "sampleNoRunFolder": "Os dados de amostra não incluem uma pasta raw run (omitida para reduzir o tamanho). Os resultados abaixo são pré-calculados.",
       "fileReady": "Pronto",
       "browseFolderAriaLabel": "Procurar {{label}}",
       "consensus": {

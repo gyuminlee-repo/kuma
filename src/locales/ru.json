@@ -744,6 +744,7 @@
       "toastNoFiles": "Новые файлы не обнаружены",
       "toastAutoDetected": "Авто-определено: {{items}}",
       "noPathSelected": "Путь не выбран",
+      "sampleNoRunFolder": "В образце данных отсутствует папка raw run (исключена для уменьшения размера). Приведенные ниже результаты предварительно рассчитаны.",
       "fileReady": "Готово",
       "browseFolderAriaLabel": "Выбрать {{label}}",
       "consensus": {

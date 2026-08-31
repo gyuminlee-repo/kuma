@@ -118,7 +118,12 @@ describe("mame analysisSlice.loadSampleData", () => {
       }
       return Promise.resolve({});
     });
-    const store = makeStore({ projectPath: "/project" });
+    // `seedBuildEvolveproForm`'s second arg is `formStoragePath`, not
+    // `projectPath`: the latter stays null for a scratch session (it gates
+    // the result-snapshot write), so step 4 keys its localStorage row on the
+    // always-populated mirror instead. Both are set here since this test's
+    // project is not scratch.
+    const store = makeStore({ projectPath: "/project", formStoragePath: "/project" });
 
     await store.loadSampleData();
 
