@@ -2514,14 +2514,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Os dados de amostra não mostram mais um poço AMBIGUOUS como escolhido. Uma cópia aprovada representa a variante.",
-      "AMBIGUOUS continua em um barcode, exatamente onde a comparação de replicate deve mostrá-lo.",
-      "Ao carregar os dados de amostra, os arquivos ausentes são informados, sem sucesso falso e falha depois na step 4.",
-      "A step 4 não recebe mais caminhos que apontam para nada, então a compilação parte de entradas existentes.",
-      "Um formulário salvo sem caminhos não desativa mais o botão de compilação da step 4 em definitivo."
+      "Cada variante de amostra tem agora uma cópia aprovada que a representa, e nenhum verdict inelegível aparece como poço escolhido.",
+      "Cada defeito fica em um único barcode e oito variantes diferem entre suas leituras. É para isso que serve a terceira cópia.",
+      "Nenhuma representação vem mais do caminho de fallback, e o barcode eleito se distribui pela placa.",
+      "As oito classes de verdict continuam presentes, na comparação de replicate e não no poço final.",
+      "A step 4 exporta as dezesseis variantes da amostra, sem nenhuma excluída por evidência de NGS."
     ],
-    "highlightsStamp": "0.16.43+dbab62ef",
+    "highlightsStamp": "0.16.44+77881f90",
     "releases": {
+      "0.16.44": [
+        "Cada variante de amostra tem agora uma cópia aprovada que a representa, e nenhum verdict inelegível aparece como poço escolhido.",
+        "Cada defeito fica em um único barcode e oito variantes diferem entre suas leituras. É para isso que serve a terceira cópia.",
+        "Nenhuma representação vem mais do caminho de fallback, e o barcode eleito se distribui pela placa.",
+        "As oito classes de verdict continuam presentes, na comparação de replicate e não no poço final.",
+        "A step 4 exporta as dezesseis variantes da amostra, sem nenhuma excluída por evidência de NGS."
+      ],
       "0.16.43": [
         "Os dados de amostra não mostram mais um poço AMBIGUOUS como escolhido. Uma cópia aprovada representa a variante.",
         "AMBIGUOUS continua em um barcode, exatamente onde a comparação de replicate deve mostrá-lo.",
@@ -2841,6 +2848,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",
       "0.16.39": "d8fb93a8",

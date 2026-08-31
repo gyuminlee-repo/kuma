@@ -226,14 +226,18 @@ def test_the_step4_export_carries_exactly_the_final_pass_variants(designed):
     """The round closes where it opened, in the notation the next round reads.
 
     ``build_evolvepro_input`` (kuma_core/mame/activity/build_evolvepro_input.py)
-    requires explicit FINAL PASS NGS evidence for every row it writes, dropping
-    a variant even when its own verdict class carries mutant identity (an
-    AMBIGUOUS or fallback-selected WRONG_AA/MANY/FRAMESHIFT/MIXED/LOWDEPTH/
-    NO_CALL replicate). The bundled plate deliberately carries one designed
-    variant per non-PASS class (see generate_mame_step4_samples.py's
-    ``_TARGET_VERDICT``) precisely so this filter has something to filter;
-    the export is checked against the FINAL verdict actually read off
-    13_mame_verdict.xlsx's "Final" sheet, not against every designed name.
+    requires explicit FINAL PASS NGS evidence for every row it writes. The
+    user rule this plate demonstrates (2026-08-31) is that nothing which is
+    not PASS may ever be selected as a variant's FINAL (selected-replicate)
+    representative, so every one of the 16 designed variants reads FINAL PASS
+    and none is dropped here. The 7 non-PASS ``VerdictClass`` values this
+    campaign also demonstrates (AMBIGUOUS/LOWDEPTH/WRONG_AA/MANY/FRAMESHIFT/
+    MIXED/NO_CALL, see generate_mame_step4_samples.py's ``_TARGET_VERDICT``)
+    still exist in the underlying 51-row verdict set, one per targeted
+    (variant, native-barcode) well, but each of those variants also has two
+    clean native barcodes, so the picker always resolves it to PASS at FINAL.
+    The export is checked against the FINAL verdict actually read off
+    13_mame_verdict.xlsx's "Final" sheet, not asserted independently of it.
     """
     header, rows = _sheet_with(_MAME / "13_mame_verdict.xlsx", "mutant_id", "verdict")
     mutant_col = header.index("mutant_id")
@@ -248,14 +252,11 @@ def test_the_step4_export_carries_exactly_the_final_pass_variants(designed):
     assert pass_mutants, "no FINAL PASS variant found in 13_mame_verdict.xlsx"
 
     designed_names = {name for name, _, _ in designed}
-    assert pass_mutants <= designed_names, (
-        f"the Final sheet names PASS mutants outside the designed list: "
-        f"{sorted(pass_mutants - designed_names)}"
-    )
-    non_pass = designed_names - pass_mutants
-    assert non_pass, (
-        "every designed variant reads FINAL PASS; the plate no longer "
-        "demonstrates a variant excluded from the step 4 export"
+    assert pass_mutants == designed_names, (
+        "FINAL PASS mutants should be exactly the designed list (no variant "
+        "should be selected as a non-PASS representative): "
+        f"missing {sorted(designed_names - pass_mutants)}, "
+        f"extra {sorted(pass_mutants - designed_names)}"
     )
 
     short = set()

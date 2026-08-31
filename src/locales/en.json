@@ -2557,14 +2557,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The sample no longer shows an AMBIGUOUS well as the chosen one. A passing copy represents the variant instead.",
-      "AMBIGUOUS is still there, on one barcode, where the replicate comparison is meant to show it.",
-      "Loading sample data now says which files are missing instead of reporting success and failing later in step 4.",
-      "Step 4 no longer receives file paths that point at nothing, so a build starts with inputs that exist.",
-      "A saved form with no stored paths no longer disables the step 4 build button permanently."
+      "Every sample variant now has a passing copy representing it, so no unpickable verdict is shown as the chosen well.",
+      "Defects sit on one barcode each, and eight variants differ between their reads, which is what a third copy is for.",
+      "No representative comes from the fallback path any more, and the elected barcode varies across the plate.",
+      "All eight verdict classes remain, in the replicate comparison where they belong rather than on the final well.",
+      "Step 4 exports all sixteen variants from the sample, with none excluded on NGS evidence."
     ],
-    "highlightsStamp": "0.16.43+dbab62ef",
+    "highlightsStamp": "0.16.44+77881f90",
     "releases": {
+      "0.16.44": [
+        "Every sample variant now has a passing copy representing it, so no unpickable verdict is shown as the chosen well.",
+        "Defects sit on one barcode each, and eight variants differ between their reads, which is what a third copy is for.",
+        "No representative comes from the fallback path any more, and the elected barcode varies across the plate.",
+        "All eight verdict classes remain, in the replicate comparison where they belong rather than on the final well.",
+        "Step 4 exports all sixteen variants from the sample, with none excluded on NGS evidence."
+      ],
       "0.16.43": [
         "The sample no longer shows an AMBIGUOUS well as the chosen one. A passing copy represents the variant instead.",
         "AMBIGUOUS is still there, on one barcode, where the replicate comparison is meant to show it.",
@@ -2884,6 +2891,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",
       "0.16.41": "78e69028",
