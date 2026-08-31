@@ -83,12 +83,14 @@ _PINNED_OCCUPANTS = {
     # python-core/scripts/generate_mame_step4_samples.py, which numbers every
     # position against the shipped reference; the list it replaced was numbered
     # against a different protein and asked for two substitutions the reference
-    # already carried. 10 of the 16 stay a clean PASS at FINAL (selected-
-    # replicate) verdict and 6 each demonstrate one of the remaining non-PASS,
-    # non-AMBIGUOUS VerdictClass values; AMBIGUOUS is reachable only at the
-    # replicate-comparison layer, not at FINAL (see
-    # generate_mame_step4_samples.py's _TARGET_VERDICT and
-    # _AMBIGUOUS_REPLICATE_VARIANT).
+    # already carried. All 16 (plus WT) resolve to a clean PASS at FINAL
+    # (selected-replicate) verdict, per the user rule that nothing but PASS is
+    # ever selected as a representative (2026-08-31). The remaining 7
+    # VerdictClass values (AMBIGUOUS/LOWDEPTH/WRONG_AA/MANY/FRAMESHIFT/MIXED/
+    # NO_CALL) are still reachable, each planted on exactly one of a variant's
+    # three native barcodes rather than on all three (see
+    # generate_mame_step4_samples.py's _TARGET_VERDICT), so they surface only
+    # at the replicate-comparison layer, never at FINAL.
     "src-tauri/samples/mame/03_mame_expected_mutations.xlsx": 17,
 }
 

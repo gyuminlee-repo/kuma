@@ -72,20 +72,23 @@ REFERENCE = SAMPLES / "reference.fasta"
 EVOLVEPRO_CSV = _REPO_ROOT / "src-tauri" / "samples" / "sample_evolvepro.csv"
 PLASMID = _REPO_ROOT / "src-tauri" / "samples" / "sample_plasmid.gb"
 
-#: How many of the predicted candidates reach the plate. 10 resolve to a clean
-#: PASS at FINAL (selected-replicate) verdict -- one of them, G190A, also
-#: demonstrates why a plate is triplicate-sequenced (see
-#: ``_LOWDEPTH_REPLICATE_VARIANT`` below), and another, K239A, demonstrates it
-#: from the opposite direction (see ``_AMBIGUOUS_REPLICATE_VARIANT`` below).
-#: The other 6 each demonstrate one of the remaining non-PASS, non-AMBIGUOUS
-#: ``VerdictClass`` values at FINAL, so 7 of the 8 classes in
-#: ``kuma_core.mame.models.VerdictClass`` are reachable at FINAL from the
-#: bundled sample (all but AMBIGUOUS: see ``_AMBIGUOUS_REPLICATE_VARIANT`` for
-#: why FINAL never selects it here). AMBIGUOUS is still reachable, only at the
-#: replicate-comparison layer rather than FINAL. See ``_TARGET_VERDICT`` below
-#: for which variant carries which class and how its consensus is built to
-#: earn it honestly through ``kuma_core.mame.compare.verdict.classify_verdict``
-#: rather than being asserted.
+#: How many of the predicted candidates reach the plate. All 16 (plus WT)
+#: resolve to PASS at FINAL (selected-replicate) verdict: the user-facing rule
+#: this campaign models is "nothing that is not PASS gets selected as a
+#: representative" (2026-08-31), so no ``VerdictClass`` other than PASS may
+#: ever win the picker for a variant that also has a clean well available.
+#:
+#: The other 7 ``VerdictClass`` values (AMBIGUOUS, LOWDEPTH, WRONG_AA, MANY,
+#: FRAMESHIFT, MIXED, NO_CALL) are still fully reachable, just one layer down:
+#: each is planted on exactly one of a variant's three native barcodes (see
+#: ``_TARGET_VERDICT`` below), so that barcode's own replicate verdict is the
+#: non-PASS class while the other two native barcodes carry the plain,
+#: correct substitution and score PASS. ``pick_best_replicate``
+#: (``kuma_core/mame/select/best_pick.py``) then always has a PASS candidate
+#: to choose, and the defective replicate is visible only in the
+#: replicate-comparison view, never at FINAL. Verdict diversity therefore
+#: moves to the replicate layer; it does not disappear, and it does not
+#: require ``is_fallback`` to appear anywhere in the fixture.
 VARIANT_COUNT = 16
 
 #: Activity relative to wild-type, per variant, as the demo reports it. Three
@@ -111,10 +114,12 @@ ACTIVITY: dict[str, tuple[float, float, float]] = {
     "G175A": (1.33, 1.30, 1.36),
     "G190A": (0.47, 0.44, 0.50),
     # The 7 below are measured like every other well (a wet-lab operator plates
-    # and reads activity before NGS comes back) but do not survive NGS
-    # confirmation; see ``_TARGET_VERDICT``. Their values are ordinary points on
-    # the same scale, not flagged in any way, because the assay has no way to
-    # know a well's NGS class in advance.
+    # and reads activity before NGS comes back). Each carries a defect on one
+    # of its three native barcodes (see ``_TARGET_VERDICT``) but still resolves
+    # to PASS at FINAL through its other two barcodes, so activity is reported
+    # for it exactly like any other passing variant. Their values are ordinary
+    # points on the same scale, not flagged in any way, because the assay has
+    # no way to know a well's NGS class in advance.
     "H200A": (1.05, 1.02, 1.08),
     "K215A": (0.95, 0.92, 0.98),
     "Q205A": (1.42, 1.38, 1.46),
@@ -366,10 +371,10 @@ _NB_PROFILE: dict[str, dict[str, float]] = {
 #: script (see module docstring: "The script is re-runnable") while still
 #: differing well to well and barcode to barcode. With this spread,
 #: :func:`kuma_core.mame.select.best_pick.pick_best_replicate`'s Wilson-bound
-#: tiebreak (kuma_core/mame/select/best_pick.py) picks NB01 for 5 of the 10
-#: variants that resolve to PASS at FINAL, NB03 for 5, and NB02 for 1 in the
-#: current fixture (counts are read off the regenerated fixture, not
-#: hand-kept, because they move whenever a variant or its jitter changes):
+#: tiebreak (kuma_core/mame/select/best_pick.py) spreads which native barcode
+#: is picked as FINAL representative across all 16 variants -- counts are read
+#: off the regenerated fixture, not hand-kept, because they move whenever a
+#: variant, its jitter, or a ``_TARGET_VERDICT`` defect placement changes:
 #: sequencing order (NB ascending) does not decide the winner, purity does.
 _DEPTH_JITTER = (0.80, 1.20)
 _PURITY_JITTER = (-0.025, 0.025)
@@ -428,82 +433,76 @@ def _apply_other_aa(seq: str, position: int, *avoid: str) -> str:
     return seq[:start] + codon + seq[start + 3 :]
 
 
-#: Each of these variants demonstrates one non-PASS ``VerdictClass`` at FINAL
-#: (selected-replicate) verdict, applied identically across all three native
-#: barcodes so the class is not an artefact of the triplicate tiebreak. Gate
-#: order and thresholds are read from ``kuma_core/mame/compare/verdict.py``
+#: Each of these variants demonstrates one non-PASS ``VerdictClass``, planted
+#: on exactly one of its three native barcodes (the second element of each
+#: tuple below). The other two native barcodes for that variant carry the
+#: plain, correct substitution and score PASS, so
+#: :func:`kuma_core.mame.select.best_pick.pick_best_replicate` always has a
+#: PASS candidate to prefer and FINAL (selected-replicate) verdict for every
+#: one of these variants is PASS. The non-PASS class stays fully reachable,
+#: only at the replicate-comparison layer rather than at FINAL.
+#:
+#: This is deliberate, not an accident of which variant happens to be "the
+#: AMBIGUOUS one": PASS/AMBIGUOUS/LOWDEPTH are the only ``pickable`` classes
+#: (``kuma_core/mame/select/best_pick.py`` docstring), so a variant whose
+#: three native barcodes are all WRONG_AA/MANY/FRAMESHIFT/MIXED/NO_CALL falls
+#: to the fallback path (``is_fallback=True``) with no PASS well selected --
+#: which is exactly the state the user reported as wrong (2026-08-31: the
+#: bundled fixture had 6 non-PASS FINAL representatives, one per unpickable
+#: class, all ``is_fallback=True``, because every native barcode of each
+#: variant carried the same departure). A triplicate-sequenced plate does not
+#: model "the app picked a bad well" as a normal outcome for a variant that
+#: also has two good wells, so every departure below is confined to one native
+#: barcode. Verdict diversity across all 8 ``VerdictClass`` values still shows
+#: up in the 3-per-variant replicate view; it never wins FINAL over a PASS
+#: sibling.
+#:
+#: Defect placement is spread across NB01/NB02/NB03 rather than concentrated
+#: on one barcode, so the fixture does not read as "NB01 is the bad load" --
+#: each native barcode carries its own mix of clean and defective wells, as a
+#: real nanopore load would.
+#:
+#: Gate order and thresholds are read from ``kuma_core/mame/compare/verdict.py``
 #: (module docstring: "LOWDEPTH -> FRAMESHIFT -> INDEL_EVENT(-> AMBIGUOUS) ->
 #: NO_CALL -> MANY -> MIXED -> WRONG_AA -> AMBIGUOUS -> PASS") and
 #: ``kuma_core/mame/models.py`` (``CompareParams`` defaults):
 #:
-#: * WRONG_AA (``H200A``): the consensus carries a different amino acid than
-#:   designed at the expected position (``classify_verdict`` step "4) WRONG_AA").
-#: * MANY (``K215A``): the designed substitution is present, plus 5 more AA
-#:   changes elsewhere -- over ``CompareParams.many_mutation_cutoff`` (5) and
-#:   over the well's own 1 expected mutation (step "3) MANY").
-#: * FRAMESHIFT (``Q205A``): the consensus header's ``consensus_net_indel`` is
-#:   not a multiple of 3 (the net-indel check, second gate, right after
-#:   LOWDEPTH: ``net_indel is not None and net_indel % 3 != 0``).
-#: * MIXED (``K210A``): header ``mixed_positions`` > 0 at a depth at/above the
-#:   confident-mixed floor (``min_read_count`` (30) x ``_MIXED_CONFIDENT_DEPTH_FACTOR``
-#:   (3) = 90), so it reads as contamination rather than being downgraded to
-#:   LOWDEPTH by the floor check inside the MIXED gate.
-#: * LOWDEPTH (``A227V``): header ``depth``/``aligned_reads`` sits under
-#:   ``CompareParams.min_read_count`` (30), the very first gate.
-#: * NO_CALL (``D235A``): the consensus sequence itself carries N bases well
-#:   away from the designed codon, so the covered-scoped ``consensus_n_fraction``
-#:   recovered from them (``fasta_parser._recover_covered_n_fraction``) exceeds
+#: * LOWDEPTH (``G190A`` on NB01, ``A227V`` on NB03): header
+#:   ``depth``/``aligned_reads`` sits under ``CompareParams.min_read_count``
+#:   (30), the very first gate.
+#: * WRONG_AA (``H200A`` on NB02): the consensus carries a different amino
+#:   acid than designed at the expected position (``classify_verdict`` step
+#:   "4) WRONG_AA").
+#: * MANY (``K215A`` on NB03): the designed substitution is present, plus 5
+#:   more AA changes elsewhere -- over ``CompareParams.many_mutation_cutoff``
+#:   (5) and over the well's own 1 expected mutation (step "3) MANY").
+#: * FRAMESHIFT (``Q205A`` on NB01): the consensus header's
+#:   ``consensus_net_indel`` is not a multiple of 3 (the net-indel check,
+#:   second gate, right after LOWDEPTH: ``net_indel is not None and
+#:   net_indel % 3 != 0``).
+#: * MIXED (``K210A`` on NB02): header ``mixed_positions`` > 0 at a depth
+#:   at/above the confident-mixed floor (``min_read_count`` (30) x
+#:   ``_MIXED_CONFIDENT_DEPTH_FACTOR`` (3) = 90), so it reads as contamination
+#:   rather than being downgraded to LOWDEPTH by the floor check inside the
+#:   MIXED gate.
+#: * NO_CALL (``D235A`` on NB03): the consensus sequence itself carries N
+#:   bases well away from the designed codon, so the covered-scoped
+#:   ``consensus_n_fraction`` recovered from them
+#:   (``fasta_parser._recover_covered_n_fraction``) exceeds
 #:   ``CompareParams.max_consensus_n_fraction`` (0.0).
-#: * AMBIGUOUS (``K239A``): the designed substitution is present, plus one
-#:   extra AA change within ``CompareParams.indel_window_codon`` (5) codons of
-#:   it (step "5) AMBIGUOUS", the window check). Unlike the other six classes
-#:   above, this departure is applied to only one of the three native barcodes
-#:   (``_AMBIGUOUS_REPLICATE_NB``, see :func:`_special_sequence` for why); the
-#:   FINAL (selected-replicate) verdict for ``K239A`` is PASS, by way of the
-#:   other two barcodes, and AMBIGUOUS itself is reachable only in the
-#:   replicate-comparison view. FINAL therefore surfaces 7 of the 8
-#:   ``VerdictClass`` values (all but AMBIGUOUS); the 8th is intentionally not
-#:   pushed through the picker (see ``_AMBIGUOUS_REPLICATE_VARIANT``).
-_TARGET_VERDICT: dict[str, str] = {
-    "H200A": "WRONG_AA",
-    "K215A": "MANY",
-    "Q205A": "FRAMESHIFT",
-    "K210A": "MIXED",
-    "A227V": "LOWDEPTH",
-    "D235A": "NO_CALL",
-    "K239A": "AMBIGUOUS",
+#: * AMBIGUOUS (``K239A`` on NB01): the designed substitution is present, plus
+#:   one extra AA change within ``CompareParams.indel_window_codon`` (5)
+#:   codons of it (step "5) AMBIGUOUS", the window check).
+_TARGET_VERDICT: dict[str, tuple[str, str]] = {
+    "G190A": ("LOWDEPTH", "NB01"),
+    "H200A": ("WRONG_AA", "NB02"),
+    "Q205A": ("FRAMESHIFT", "NB01"),
+    "K210A": ("MIXED", "NB02"),
+    "K215A": ("MANY", "NB03"),
+    "A227V": ("LOWDEPTH", "NB03"),
+    "D235A": ("NO_CALL", "NB03"),
+    "K239A": ("AMBIGUOUS", "NB01"),
 }
-
-#: The one PASS variant whose three native barcodes do not all read the same
-#: class. Its NB01 consensus is deliberately shallow (LOWDEPTH, header only);
-#: NB02 and NB03 read the clean designed substitution at full depth.
-#: :func:`kuma_core.mame.select.best_pick.pick_best_replicate` ranks PASS
-#: above LOWDEPTH (``PRIORITY_ORDER``), so the FINAL verdict is PASS by way of
-#: NB02/NB03 -- the sample demonstrates why a plate is sequenced three times:
-#: one bad load does not sink a well the other two loads confirm.
-_LOWDEPTH_REPLICATE_VARIANT = "G190A"
-_LOWDEPTH_REPLICATE_NB = "NB01"
-
-#: The one AMBIGUOUS variant whose three native barcodes do not all read the
-#: same class, for the opposite reason ``_LOWDEPTH_REPLICATE_VARIANT`` exists.
-#: ``kuma_core.mame.select.best_pick.PRIORITY_ORDER`` is
-#: ``[PASS, AMBIGUOUS, LOWDEPTH]``, so a variant whose three native barcodes
-#: are *all* AMBIGUOUS has no PASS candidate for the picker to prefer and
-#: AMBIGUOUS becomes its FINAL (selected-replicate) verdict -- on the Analyze
-#: screen that reads as "the app chose an ambiguous well", which the
-#: selection layer (``pick_best_replicate``) exists specifically to avoid for
-#: a variant that has a clean well available. Only ``_AMBIGUOUS_REPLICATE_NB``
-#: carries the AMBIGUOUS departure (see :func:`_special_sequence`); the other
-#: two native barcodes read the plain, correct substitution and score PASS,
-#: so the picker resolves this variant to PASS at FINAL and AMBIGUOUS is
-#: reachable only by comparing its three replicates against each other. Do
-#: not apply this departure to all three barcodes to "recover" an AMBIGUOUS
-#: FINAL: that is the exact state the user reported as wrong (2026-08-31,
-#: bundled K239A sample had FINAL=AMBIGUOUS chosen over two other AMBIGUOUS
-#: wells) and is not a state a triplicate-sequenced plate should model as a
-#: normal outcome for a variant that also has good data.
-_AMBIGUOUS_REPLICATE_VARIANT = "K239A"
-_AMBIGUOUS_REPLICATE_NB = "NB01"
 
 #: Header-only LOWDEPTH depth: under ``CompareParams.min_read_count`` (30).
 _SHALLOW_DEPTH = 14
@@ -517,31 +516,23 @@ _MIXED_MINOR_ALLELE_FRACTION = 0.30
 def _special_sequence(
     sample: str, sequence: str, variant: Variant, protein_len: int, nb: str
 ) -> str:
-    """Depart from the correct single substitution for a ``_TARGET_VERDICT`` well.
+    """Depart from the correct single substitution on ``sample``'s targeted
+    native barcode only, per ``_TARGET_VERDICT``.
 
     Only WRONG_AA, MANY, AMBIGUOUS and NO_CALL act on the sequence; FRAMESHIFT,
     MIXED and LOWDEPTH act on header metadata only (see :func:`_consensus_header`),
-    so this returns ``sequence`` unchanged for them.
-
-    AMBIGUOUS is the one class this campaign's selection layer, not just its
-    scoring layer, treats as non-clean: ``kuma_core.mame.select.best_pick``'s
-    ``PRIORITY_ORDER`` ranks AMBIGUOUS above only LOWDEPTH, so a variant whose
-    three native barcodes are *all* AMBIGUOUS gets AMBIGUOUS picked as its
-    FINAL (selected-replicate) verdict -- there is no PASS well for the picker
-    to prefer. That reads on the Analyze screen as "the app picked an
-    ambiguous well", which is not what triplicate sequencing is supposed to
-    let happen. So unlike WRONG_AA/MANY/FRAMESHIFT/MIXED/NO_CALL, which stay
-    applied to every native barcode because nothing above them in
-    ``PRIORITY_ORDER`` (or ``_FALLBACK_ELIGIBLE``) can rescue a clean well from
-    the fallback path anyway, AMBIGUOUS is applied to exactly one native
-    barcode (``_AMBIGUOUS_REPLICATE_NB``). The other two read the plain,
-    correct substitution and score PASS, so the picker still resolves
-    ``_AMBIGUOUS_REPLICATE_VARIANT`` to PASS at FINAL -- the same shape as
-    ``_LOWDEPTH_REPLICATE_VARIANT`` below, one bad load among three good ones.
-    AMBIGUOUS itself remains fully reachable, just at the replicate-comparison
-    layer rather than at FINAL: see ``_AMBIGUOUS_REPLICATE_VARIANT``.
+    so this returns ``sequence`` unchanged for them. For every class, ``nb``
+    other than the one ``_TARGET_VERDICT`` names is unaffected: that native
+    barcode keeps the plain, correct substitution and scores PASS, which is
+    what lets ``pick_best_replicate`` resolve the variant to PASS at FINAL
+    (selected-replicate) verdict instead of falling to the unpickable/fallback
+    path. See the ``_TARGET_VERDICT`` docstring for why this is confined to
+    one barcode rather than applied to all three.
     """
-    target = _TARGET_VERDICT.get(sample)
+    entry = _TARGET_VERDICT.get(sample)
+    if entry is None or entry[1] != nb:
+        return sequence
+    target, _ = entry
     if target == "WRONG_AA":
         return _apply_other_aa(sequence, variant.position, variant.wt_aa)
     if target == "MANY":
@@ -551,8 +542,6 @@ def _special_sequence(
                 sequence = _apply_other_aa(sequence, pos)
         return sequence
     if target == "AMBIGUOUS":
-        if nb != _AMBIGUOUS_REPLICATE_NB:
-            return sequence
         pos = variant.position + 3
         if pos > protein_len - 1:
             pos = variant.position - 3
@@ -572,9 +561,9 @@ def _consensus_header(nb: str, mutant_id: str, is_control: bool) -> str:
 
     ``max_minor_allele_fraction``/``mixed_positions`` and depth stay fixed at
     their clean defaults across every well and native barcode except where
-    ``_TARGET_VERDICT`` or ``_LOWDEPTH_REPLICATE_VARIANT`` names a departure
-    (see the constants above for exactly which class each departure earns and
-    why).
+    ``_TARGET_VERDICT`` names ``nb`` as the one carrying the departure (see
+    the ``_TARGET_VERDICT`` docstring for exactly which class each departure
+    earns and why it is confined to one native barcode).
 
     ``variant_positions``/``min_variant_support``/``min_variant_support_depth``
     are only written for a variant well. A WT well calls no substitution, and
@@ -587,7 +576,8 @@ def _consensus_header(nb: str, mutant_id: str, is_control: bool) -> str:
     max_minor_allele_fraction = 0.04
     net_indel: int | None = None
 
-    target = _TARGET_VERDICT.get(mutant_id)
+    entry = _TARGET_VERDICT.get(mutant_id)
+    target = entry[0] if entry is not None and entry[1] == nb else None
     if target == "LOWDEPTH":
         depth = _SHALLOW_DEPTH
     elif target == "MIXED":
@@ -596,8 +586,6 @@ def _consensus_header(nb: str, mutant_id: str, is_control: bool) -> str:
         max_minor_allele_fraction = _MIXED_MINOR_ALLELE_FRACTION
     elif target == "FRAMESHIFT":
         net_indel = 1  # not a multiple of 3
-    elif mutant_id == _LOWDEPTH_REPLICATE_VARIANT and nb == _LOWDEPTH_REPLICATE_NB:
-        depth = _SHALLOW_DEPTH
 
     aligned_reads = depth
     parts = [
