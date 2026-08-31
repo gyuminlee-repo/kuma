@@ -144,6 +144,10 @@
       "missing": "On the plate but absent from expected_mutations: {{items}}. Each one shifts every later well by one.",
       "resolution": "Re-export the workbook from KURO v0.14.3 or later, or pick one whose sheets agree, then validate again. MAME does not pick a sheet for you, and no other input on this screen can state which plate went into the tubes."
     },
+    "sampleData": {
+      "loadFailed": "Échec du chargement des données d'exemple : {{file}} ({{reason}})",
+      "optionalMissing": "(fichiers optionnels manquants : {{files}})"
+    },
     "input": {
       "redetect": "Redétecter",
       "redetecting": "Détection..."
@@ -2510,14 +2514,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les données d'exemple sont désormais séquencées en triplicate, sur trois native barcodes d'une même plaque.",
-      "Une variante est low-depth sur le premier barcode et passe sur les deux autres. C'est à cela que sert la troisième copie.",
-      "Les huit classes de verdict apparaissent, la démonstration montre donc aussi les échecs à traiter.",
-      "Les chemins de fichiers de step 4 se remplissent au chargement des données d'exemple, y compris en session scratch.",
-      "Le champ du run folder explique que les raw runs sont omis pour la taille, au lieu de sembler inachevé."
+      "Les données d'exemple ne montrent plus un puits AMBIGUOUS comme choisi. Une copie réussie représente la variante.",
+      "AMBIGUOUS reste présent sur un barcode, là où la comparaison de replicate doit le montrer.",
+      "Le chargement des données d'exemple signale les fichiers manquants au lieu d'annoncer un succès puis d'échouer.",
+      "step 4 ne reçoit plus de chemins pointant vers rien, la construction part donc d'entrées qui existent.",
+      "Un formulaire enregistré sans chemins ne désactive plus définitivement le bouton de construction de step 4."
     ],
-    "highlightsStamp": "0.16.42+e1b0d6ec",
+    "highlightsStamp": "0.16.43+dbab62ef",
     "releases": {
+      "0.16.43": [
+        "Les données d'exemple ne montrent plus un puits AMBIGUOUS comme choisi. Une copie réussie représente la variante.",
+        "AMBIGUOUS reste présent sur un barcode, là où la comparaison de replicate doit le montrer.",
+        "Le chargement des données d'exemple signale les fichiers manquants au lieu d'annoncer un succès puis d'échouer.",
+        "step 4 ne reçoit plus de chemins pointant vers rien, la construction part donc d'entrées qui existent.",
+        "Un formulaire enregistré sans chemins ne désactive plus définitivement le bouton de construction de step 4."
+      ],
       "0.16.42": [
         "Les données d'exemple sont désormais séquencées en triplicate, sur trois native barcodes d'une même plaque.",
         "Une variante est low-depth sur le premier barcode et passe sur les deux autres. C'est à cela que sert la troisième copie.",
@@ -2830,6 +2841,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",
       "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",

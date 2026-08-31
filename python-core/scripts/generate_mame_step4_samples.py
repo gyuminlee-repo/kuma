@@ -72,16 +72,20 @@ REFERENCE = SAMPLES / "reference.fasta"
 EVOLVEPRO_CSV = _REPO_ROOT / "src-tauri" / "samples" / "sample_evolvepro.csv"
 PLASMID = _REPO_ROOT / "src-tauri" / "samples" / "sample_plasmid.gb"
 
-#: How many of the predicted candidates reach the plate. 9 stay a clean
-#: PASS (one of them, G190A, also demonstrates why a plate is triplicate-
-#: sequenced: see ``_LOWDEPTH_REPLICATE_VARIANT`` below); the other 7 each
-#: demonstrate one of the remaining ``VerdictClass`` values at FINAL
-#: (selected-replicate) verdict, so every one of the 8 classes in
-#: ``kuma_core.mame.models.VerdictClass`` is reachable from the bundled
-#: sample. See ``_TARGET_VERDICT`` below for which variant carries which
-#: class and how its consensus is built to earn it honestly through
-#: ``kuma_core.mame.compare.verdict.classify_verdict`` rather than being
-#: asserted.
+#: How many of the predicted candidates reach the plate. 10 resolve to a clean
+#: PASS at FINAL (selected-replicate) verdict -- one of them, G190A, also
+#: demonstrates why a plate is triplicate-sequenced (see
+#: ``_LOWDEPTH_REPLICATE_VARIANT`` below), and another, K239A, demonstrates it
+#: from the opposite direction (see ``_AMBIGUOUS_REPLICATE_VARIANT`` below).
+#: The other 6 each demonstrate one of the remaining non-PASS, non-AMBIGUOUS
+#: ``VerdictClass`` values at FINAL, so 7 of the 8 classes in
+#: ``kuma_core.mame.models.VerdictClass`` are reachable at FINAL from the
+#: bundled sample (all but AMBIGUOUS: see ``_AMBIGUOUS_REPLICATE_VARIANT`` for
+#: why FINAL never selects it here). AMBIGUOUS is still reachable, only at the
+#: replicate-comparison layer rather than FINAL. See ``_TARGET_VERDICT`` below
+#: for which variant carries which class and how its consensus is built to
+#: earn it honestly through ``kuma_core.mame.compare.verdict.classify_verdict``
+#: rather than being asserted.
 VARIANT_COUNT = 16
 
 #: Activity relative to wild-type, per variant, as the demo reports it. Three
@@ -362,9 +366,11 @@ _NB_PROFILE: dict[str, dict[str, float]] = {
 #: script (see module docstring: "The script is re-runnable") while still
 #: differing well to well and barcode to barcode. With this spread,
 #: :func:`kuma_core.mame.select.best_pick.pick_best_replicate`'s Wilson-bound
-#: tiebreak (kuma_core/mame/select/best_pick.py) picks NB01 for 4 of the 10
-#: variants, NB03 for 5, and NB02 for 1 in the current fixture: sequencing
-#: order (NB ascending) does not decide the winner, purity does.
+#: tiebreak (kuma_core/mame/select/best_pick.py) picks NB01 for 5 of the 10
+#: variants that resolve to PASS at FINAL, NB03 for 5, and NB02 for 1 in the
+#: current fixture (counts are read off the regenerated fixture, not
+#: hand-kept, because they move whenever a variant or its jitter changes):
+#: sequencing order (NB ascending) does not decide the winner, purity does.
 _DEPTH_JITTER = (0.80, 1.20)
 _PURITY_JITTER = (-0.025, 0.025)
 
@@ -450,7 +456,14 @@ def _apply_other_aa(seq: str, position: int, *avoid: str) -> str:
 #:   ``CompareParams.max_consensus_n_fraction`` (0.0).
 #: * AMBIGUOUS (``K239A``): the designed substitution is present, plus one
 #:   extra AA change within ``CompareParams.indel_window_codon`` (5) codons of
-#:   it (step "5) AMBIGUOUS", the window check).
+#:   it (step "5) AMBIGUOUS", the window check). Unlike the other six classes
+#:   above, this departure is applied to only one of the three native barcodes
+#:   (``_AMBIGUOUS_REPLICATE_NB``, see :func:`_special_sequence` for why); the
+#:   FINAL (selected-replicate) verdict for ``K239A`` is PASS, by way of the
+#:   other two barcodes, and AMBIGUOUS itself is reachable only in the
+#:   replicate-comparison view. FINAL therefore surfaces 7 of the 8
+#:   ``VerdictClass`` values (all but AMBIGUOUS); the 8th is intentionally not
+#:   pushed through the picker (see ``_AMBIGUOUS_REPLICATE_VARIANT``).
 _TARGET_VERDICT: dict[str, str] = {
     "H200A": "WRONG_AA",
     "K215A": "MANY",
@@ -471,6 +484,27 @@ _TARGET_VERDICT: dict[str, str] = {
 _LOWDEPTH_REPLICATE_VARIANT = "G190A"
 _LOWDEPTH_REPLICATE_NB = "NB01"
 
+#: The one AMBIGUOUS variant whose three native barcodes do not all read the
+#: same class, for the opposite reason ``_LOWDEPTH_REPLICATE_VARIANT`` exists.
+#: ``kuma_core.mame.select.best_pick.PRIORITY_ORDER`` is
+#: ``[PASS, AMBIGUOUS, LOWDEPTH]``, so a variant whose three native barcodes
+#: are *all* AMBIGUOUS has no PASS candidate for the picker to prefer and
+#: AMBIGUOUS becomes its FINAL (selected-replicate) verdict -- on the Analyze
+#: screen that reads as "the app chose an ambiguous well", which the
+#: selection layer (``pick_best_replicate``) exists specifically to avoid for
+#: a variant that has a clean well available. Only ``_AMBIGUOUS_REPLICATE_NB``
+#: carries the AMBIGUOUS departure (see :func:`_special_sequence`); the other
+#: two native barcodes read the plain, correct substitution and score PASS,
+#: so the picker resolves this variant to PASS at FINAL and AMBIGUOUS is
+#: reachable only by comparing its three replicates against each other. Do
+#: not apply this departure to all three barcodes to "recover" an AMBIGUOUS
+#: FINAL: that is the exact state the user reported as wrong (2026-08-31,
+#: bundled K239A sample had FINAL=AMBIGUOUS chosen over two other AMBIGUOUS
+#: wells) and is not a state a triplicate-sequenced plate should model as a
+#: normal outcome for a variant that also has good data.
+_AMBIGUOUS_REPLICATE_VARIANT = "K239A"
+_AMBIGUOUS_REPLICATE_NB = "NB01"
+
 #: Header-only LOWDEPTH depth: under ``CompareParams.min_read_count`` (30).
 _SHALLOW_DEPTH = 14
 
@@ -480,12 +514,32 @@ _MIXED_DEPTH = 200
 _MIXED_MINOR_ALLELE_FRACTION = 0.30
 
 
-def _special_sequence(sample: str, sequence: str, variant: Variant, protein_len: int) -> str:
+def _special_sequence(
+    sample: str, sequence: str, variant: Variant, protein_len: int, nb: str
+) -> str:
     """Depart from the correct single substitution for a ``_TARGET_VERDICT`` well.
 
     Only WRONG_AA, MANY, AMBIGUOUS and NO_CALL act on the sequence; FRAMESHIFT,
     MIXED and LOWDEPTH act on header metadata only (see :func:`_consensus_header`),
     so this returns ``sequence`` unchanged for them.
+
+    AMBIGUOUS is the one class this campaign's selection layer, not just its
+    scoring layer, treats as non-clean: ``kuma_core.mame.select.best_pick``'s
+    ``PRIORITY_ORDER`` ranks AMBIGUOUS above only LOWDEPTH, so a variant whose
+    three native barcodes are *all* AMBIGUOUS gets AMBIGUOUS picked as its
+    FINAL (selected-replicate) verdict -- there is no PASS well for the picker
+    to prefer. That reads on the Analyze screen as "the app picked an
+    ambiguous well", which is not what triplicate sequencing is supposed to
+    let happen. So unlike WRONG_AA/MANY/FRAMESHIFT/MIXED/NO_CALL, which stay
+    applied to every native barcode because nothing above them in
+    ``PRIORITY_ORDER`` (or ``_FALLBACK_ELIGIBLE``) can rescue a clean well from
+    the fallback path anyway, AMBIGUOUS is applied to exactly one native
+    barcode (``_AMBIGUOUS_REPLICATE_NB``). The other two read the plain,
+    correct substitution and score PASS, so the picker still resolves
+    ``_AMBIGUOUS_REPLICATE_VARIANT`` to PASS at FINAL -- the same shape as
+    ``_LOWDEPTH_REPLICATE_VARIANT`` below, one bad load among three good ones.
+    AMBIGUOUS itself remains fully reachable, just at the replicate-comparison
+    layer rather than at FINAL: see ``_AMBIGUOUS_REPLICATE_VARIANT``.
     """
     target = _TARGET_VERDICT.get(sample)
     if target == "WRONG_AA":
@@ -497,6 +551,8 @@ def _special_sequence(sample: str, sequence: str, variant: Variant, protein_len:
                 sequence = _apply_other_aa(sequence, pos)
         return sequence
     if target == "AMBIGUOUS":
+        if nb != _AMBIGUOUS_REPLICATE_NB:
+            return sequence
         pos = variant.position + 3
         if pos > protein_len - 1:
             pos = variant.position - 3
@@ -593,7 +649,7 @@ def build_consensus_dir(
                 sequence = cds
             else:
                 sequence = apply_substitution(cds, by_id[sample])
-                sequence = _special_sequence(sample, sequence, by_id[sample], protein_len)
+                sequence = _special_sequence(sample, sequence, by_id[sample], protein_len, nb)
             header = _consensus_header(nb, sample, is_control=sample == "WT")
             (native / f"{token}.fasta").write_text(
                 f">{token} {header}\n{sequence}\n", encoding="utf-8"

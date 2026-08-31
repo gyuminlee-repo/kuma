@@ -144,6 +144,10 @@
       "missing": "On the plate but absent from expected_mutations: {{items}}. Each one shifts every later well by one.",
       "resolution": "Re-export the workbook from KURO v0.14.3 or later, or pick one whose sheets agree, then validate again. MAME does not pick a sheet for you, and no other input on this screen can state which plate went into the tubes."
     },
+    "sampleData": {
+      "loadFailed": "Falha ao carregar os dados de amostra: {{file}} ({{reason}})",
+      "optionalMissing": "(arquivos opcionais ausentes: {{files}})"
+    },
     "input": {
       "redetect": "Detectar novamente",
       "redetecting": "Detectando..."
@@ -2510,14 +2514,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Os dados de amostra agora são sequenciados em triplicate, com três native barcodes em uma placa em vez de uma única passagem.",
-      "Uma variante fica low-depth no primeiro barcode e passa nos outros dois. É para isso que serve a terceira cópia.",
-      "As oito classes de verdict aparecem, então a demonstração mostra também as falhas que precisam de atenção.",
-      "Os caminhos de arquivo da step 4 são preenchidos ao carregar os dados de amostra, inclusive em sessões scratch.",
-      "O campo da pasta run folder explica que os raw runs ficam de fora por tamanho, em vez de parecer incompleto."
+      "Os dados de amostra não mostram mais um poço AMBIGUOUS como escolhido. Uma cópia aprovada representa a variante.",
+      "AMBIGUOUS continua em um barcode, exatamente onde a comparação de replicate deve mostrá-lo.",
+      "Ao carregar os dados de amostra, os arquivos ausentes são informados, sem sucesso falso e falha depois na step 4.",
+      "A step 4 não recebe mais caminhos que apontam para nada, então a compilação parte de entradas existentes.",
+      "Um formulário salvo sem caminhos não desativa mais o botão de compilação da step 4 em definitivo."
     ],
-    "highlightsStamp": "0.16.42+e1b0d6ec",
+    "highlightsStamp": "0.16.43+dbab62ef",
     "releases": {
+      "0.16.43": [
+        "Os dados de amostra não mostram mais um poço AMBIGUOUS como escolhido. Uma cópia aprovada representa a variante.",
+        "AMBIGUOUS continua em um barcode, exatamente onde a comparação de replicate deve mostrá-lo.",
+        "Ao carregar os dados de amostra, os arquivos ausentes são informados, sem sucesso falso e falha depois na step 4.",
+        "A step 4 não recebe mais caminhos que apontam para nada, então a compilação parte de entradas existentes.",
+        "Um formulário salvo sem caminhos não desativa mais o botão de compilação da step 4 em definitivo."
+      ],
       "0.16.42": [
         "Os dados de amostra agora são sequenciados em triplicate, com três native barcodes em uma placa em vez de uma única passagem.",
         "Uma variante fica low-depth no primeiro barcode e passa nos outros dois. É para isso que serve a terceira cópia.",
@@ -2830,6 +2841,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",
       "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",

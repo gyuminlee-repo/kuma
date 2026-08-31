@@ -36,6 +36,7 @@ vi.mock("@tauri-apps/api/path", () => ({
 
 vi.mock("@tauri-apps/plugin-fs", () => ({
   readTextFile: vi.fn(() => Promise.resolve("{}")),
+  exists: vi.fn(() => Promise.resolve(true)),
 }));
 
 const mockSeedBuildEvolveproForm = vi.fn();

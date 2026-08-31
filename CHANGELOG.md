@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.16.43 (A representative that could actually be picked)
+
+Picking keeps fully verified clones only. AMBIGUOUS carries the designed change plus a side indel, so its activity measurement would be mislabelled, and step 4 gates on strict PASS for the same reason. Choosing which copy of a well to believe is a separate question, and there the order is PASS, then AMBIGUOUS, then LOWDEPTH. A variant whose three barcodes all read AMBIGUOUS therefore got an AMBIGUOUS representative, and the plate map draws a representative the same way whether or not it passed. The sample showed a well as chosen that no picking path would ever take.
+
+The departure now lands on one barcode instead of three. The other two carry the plain substitution and pass, so a passing copy represents the variant and AMBIGUOUS stays where it belongs, in the replicate comparison. The variant that reads low-depth on its first barcode already had this shape. Coverage on the selected replicate is seven verdict classes rather than eight, which is the point: a class that cannot be picked is no longer displayed as picked. One variant still reads low-depth on all three barcodes and is still elected, left as it is pending the same decision.
+
+Loading the sample also announced a success it had not verified. Resolving a bundled resource joins a path and never touches the filesystem, so every file came back resolved whether or not it was there. Paths pointing at nothing were seeded into step 4, and the failure surfaced much later as a not-found from the sidecar. A development build whose resource copy predates the newer sample files reproduces it exactly. Each path is now checked before it is used: a missing required file names itself and stops, a missing optional one is listed and is not seeded. Two files that could already fail unreported are covered by the same list.
+
+Step 4 could also be disabled outright. A stored form record holding no paths says nothing about which project it came from, but the check demanded at least one path before adopting it, so such a record read as belonging elsewhere. Seeding then became a silent no-op and the build button stayed disabled for good. Both fixes carry tests that fail without them. The suite passed throughout because nothing in it asked whether the files were on disk.
+
+### Highlights
+
+- The sample no longer shows an AMBIGUOUS well as the chosen one. A passing copy represents the variant instead.
+- AMBIGUOUS is still there, on one barcode, where the replicate comparison is meant to show it.
+- Loading sample data now says which files are missing instead of reporting success and failing later in step 4.
+- Step 4 no longer receives file paths that point at nothing, so a build starts with inputs that exist.
+- A saved form with no stored paths no longer disables the step 4 build button permanently.
+
 ## v0.16.42 (Three barcodes, and every verdict the pipeline can reach)
 
 Nanopore runs are sequenced in triplicate. The bundled sample was not. One native barcode carried eleven wells and every one of them passed, so two things an operator leans on stayed invisible: the replicate axis that decides which copy of a well is believed, and the failures that decide which variants go back to the bench.

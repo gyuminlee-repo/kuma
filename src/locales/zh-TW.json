@@ -144,6 +144,10 @@
       "missing": "On the plate but absent from expected_mutations: {{items}}. Each one shifts every later well by one.",
       "resolution": "Re-export the workbook from KURO v0.14.3 or later, or pick one whose sheets agree, then validate again. MAME does not pick a sheet for you, and no other input on this screen can state which plate went into the tubes."
     },
+    "sampleData": {
+      "loadFailed": "範例資料載入失敗：{{file}}（{{reason}}）",
+      "optionalMissing": "（缺少選用檔案：{{files}}）"
+    },
     "input": {
       "redetect": "重新檢測",
       "redetecting": "檢測中..."
@@ -2510,14 +2514,21 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "範例資料現在以 triplicate 定序，一塊盤由三個 native barcode 讀取，而非單次。",
-      "有一個變體在第一個 barcode 上為 low-depth，在另外兩個上通過。這正是第三份副本的意義。",
-      "八種 verdict 全部出現，範例不再只展示通過，也展示審閱者需要處理的失敗。",
-      "載入範例資料時 step 4 的檔案路徑會填入，包括先前被靜默略過的 scratch 工作階段。",
-      "run folder 欄位會說明為控制下載體積而未包含 raw run，不再顯得未完成。"
+      "範例不再把 AMBIGUOUS 孔顯示為已選取。代表該變體的是通過的那份副本。",
+      "AMBIGUOUS 仍保留在一個 barcode 上，正是 replicate 比較檢視應當展示它的位置。",
+      "載入範例資料時會指出缺少的檔案，不再先回報成功、隨後在 step 4 失敗。",
+      "step 4 不再收到指向空處的檔案路徑，建置從真實存在的輸入開始。",
+      "沒有儲存路徑的表單紀錄不再永久停用 step 4 的建置按鈕。"
     ],
-    "highlightsStamp": "0.16.42+e1b0d6ec",
+    "highlightsStamp": "0.16.43+dbab62ef",
     "releases": {
+      "0.16.43": [
+        "範例不再把 AMBIGUOUS 孔顯示為已選取。代表該變體的是通過的那份副本。",
+        "AMBIGUOUS 仍保留在一個 barcode 上，正是 replicate 比較檢視應當展示它的位置。",
+        "載入範例資料時會指出缺少的檔案，不再先回報成功、隨後在 step 4 失敗。",
+        "step 4 不再收到指向空處的檔案路徑，建置從真實存在的輸入開始。",
+        "沒有儲存路徑的表單紀錄不再永久停用 step 4 的建置按鈕。"
+      ],
       "0.16.42": [
         "範例資料現在以 triplicate 定序，一塊盤由三個 native barcode 讀取，而非單次。",
         "有一個變體在第一個 barcode 上為 low-depth，在另外兩個上通過。這正是第三份副本的意義。",
@@ -2830,6 +2841,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",
       "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",
