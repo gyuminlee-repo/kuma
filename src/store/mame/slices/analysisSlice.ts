@@ -1,6 +1,7 @@
 import { functionalUpdate } from "@tanstack/react-table";
 import { resolveResource } from "@tauri-apps/api/path";
-import { readTextFile } from "@tauri-apps/plugin-fs";
+import { exists, readTextFile } from "@tauri-apps/plugin-fs";
+import i18next from "i18next";
 import type { StateCreator } from "zustand";
 import { sendRequest } from "@/lib/ipc-mame";
 import {
@@ -217,7 +218,23 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
       "samples/mame/13_mame_verdict.xlsx",
       "samples/mame/14_mame_activity_long_raw.csv",
     ];
-    const settled = await Promise.allSettled(relPaths.map((p) => resolveResource(p)));
+    // `resolveResource` only concatenates a path; it never touches disk (see
+    // `node_modules/@tauri-apps/api/path.js`, `plugin:path|resolve_directory`).
+    // A bundle entry that was deleted still "resolves" successfully, which is
+    // why every one of these must also be checked with `exists()` before it
+    // is treated as present. Without this, a missing file reads as a
+    // successful load here and only fails much later inside the sidecar
+    // (`activity_path not found`, `Input xlsx not found`), by which point the
+    // path has already been seeded into the step 4 form.
+    const settled = await Promise.allSettled(
+      relPaths.map(async (p) => {
+        const resolvedPath = await resolveResource(p);
+        if (!(await exists(resolvedPath))) {
+          throw new Error(`resource missing: ${resolvedPath}`);
+        }
+        return resolvedPath;
+      }),
+    );
     const resolved: (string | null)[] = settled.map((r, i) => {
       if (r.status === "fulfilled") return r.value;
       console.warn(`[analysisSlice] resolveResource failed for ${relPaths[i]}:`, r.reason);
@@ -255,13 +272,19 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     // specific error naming the failing file (explicit user-facing message).
     if (!refPath) {
       set({
-        analyzeMessage: `Sample load failed: samples/mame/reference.fasta (${reasonAt(0)})`,
+        analyzeMessage: i18next.t("mame.sampleData.loadFailed", {
+          file: "samples/mame/reference.fasta",
+          reason: reasonAt(0),
+        }),
       });
       return;
     }
     if (!activityCsvPath) {
       set({
-        analyzeMessage: `Sample load failed: samples/mame/07_mame_activity_long.csv (${reasonAt(4)})`,
+        analyzeMessage: i18next.t("mame.sampleData.loadFailed", {
+          file: "samples/mame/07_mame_activity_long.csv",
+          reason: reasonAt(4),
+        }),
       });
       return;
     }
@@ -270,6 +293,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     const optionalFailures: string[] = [];
     if (!expectedPath) optionalFailures.push("03_mame_expected_mutations.xlsx");
     if (!barcodesPath) optionalFailures.push("04_mame_custom_barcodes.xlsx");
+    if (!layoutXlsxPath) optionalFailures.push("06_mame_plate_layout.xlsx");
     if (!barcodeSeedsPath) optionalFailures.push("02_mame_barcode_seeds.xlsx");
     if (!designFastaPath) optionalFailures.push("egfp_with_flanks.fa");
     if (!variantLabelsReportPath)
@@ -277,6 +301,7 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
     if (!gcDataXlsxPath) optionalFailures.push("10_mame_gc_prenormalised.xlsx");
     if (!round1ReportXlsxPath)
       optionalFailures.push("11_mame_gc_fid_round1_raw.xlsx");
+    if (!analysisResultPath) optionalFailures.push("sample_analysis_result.json");
     if (!verdictXlsxPath) optionalFailures.push("13_mame_verdict.xlsx");
     if (!activityRawCsvPath)
       optionalFailures.push("14_mame_activity_long_raw.csv");
@@ -428,7 +453,9 @@ export const createAnalysisSlice: StateCreator<AppState, [], [], AnalysisSlice> 
               activityErr instanceof Error ? activityErr.message : String(activityErr)
             })`) +
         (optionalFailures.length > 0
-          ? ` (missing optional files: ${optionalFailures.join(", ")})`
+          ? ` ${i18next.t("mame.sampleData.optionalMissing", {
+              files: optionalFailures.join(", "),
+            })}`
           : ""),
     });
 

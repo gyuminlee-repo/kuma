@@ -23,8 +23,11 @@ vi.mock("@tauri-apps/api/path", () => ({
 }));
 
 // readTextFile: return empty JSON object by default (fixture load warn-only on parse failure)
+// exists: default to true so `resolveResource` success continues to mean "the
+// file is there" for tests that only care about the RPC/populate behaviour.
 vi.mock("@tauri-apps/plugin-fs", () => ({
   readTextFile: vi.fn(() => Promise.resolve("{}")),
+  exists: vi.fn(() => Promise.resolve(true)),
 }));
 
 // seedBuildEvolveproForm touches localStorage; mock to avoid jsdom side-effects in unit tests
@@ -33,7 +36,7 @@ vi.mock("@/lib/mame/buildEvolveproFormStorage", () => ({
 }));
 
 import { resolveResource } from "@tauri-apps/api/path";
-import { readTextFile } from "@tauri-apps/plugin-fs";
+import { exists, readTextFile } from "@tauri-apps/plugin-fs";
 import { seedBuildEvolveproForm } from "@/lib/mame/buildEvolveproFormStorage";
 import {
   sampleReplicates,
@@ -327,5 +330,54 @@ describe("mame analysisSlice.loadSampleData", () => {
     // 에러 메시지
     expect(store.analyzeMessage).toMatch(/Sample load failed/);
     expect(store.analyzeMessage).toMatch(/resource missing/);
+  });
+
+  // Regression for defect 1: `resolveResource` only concatenates a path and
+  // never touches disk, so a resolved-but-absent file used to be read as a
+  // successful load. These pin the behaviour once `exists()` is consulted:
+  // a missing critical file aborts the same way a rejected resolve does, and
+  // a missing optional file is named to the user instead of being seeded as
+  // a path that will fail much later inside the sidecar.
+  describe("resolveResource succeeds but exists() reports the file is gone (defect 1)", () => {
+    it("aborts with Sample load failed when the critical reference.fasta does not exist on disk", async () => {
+      (exists as unknown as ReturnType<typeof vi.fn>).mockImplementation((p: string) =>
+        Promise.resolve(!p.includes("reference.fasta")),
+      );
+      const store = makeStore();
+
+      await store.loadSampleData();
+
+      expect(store.verdicts).toEqual([]);
+      expect(store.wells).toEqual([]);
+      expect(mockSendRequest).not.toHaveBeenCalled();
+      expect(store.analyzeMessage).toMatch(/Sample load failed/);
+      expect(store.analyzeMessage).toMatch(/reference\.fasta/);
+      expect(store.sampleDataLoaded).toBe(false);
+    });
+
+    it("names a missing optional file instead of seeding its (non-existent) path into step 4", async () => {
+      (exists as unknown as ReturnType<typeof vi.fn>).mockImplementation((p: string) =>
+        Promise.resolve(!p.includes("13_mame_verdict.xlsx")),
+      );
+      const store = makeStore({ projectPath: "/project", formStoragePath: "/project" });
+
+      await store.loadSampleData();
+
+      // The rest of the load still succeeds: this is a non-critical file.
+      expect(store.verdicts).toEqual(sampleVerdicts());
+      expect(store.sampleDataLoaded).toBe(true);
+
+      // The user is told the file is missing...
+      expect(store.analyzeMessage).toMatch(/missing optional files/);
+      expect(store.analyzeMessage).toMatch(/13_mame_verdict\.xlsx/);
+
+      // ...and the absent path is not seeded into the step 4 form (seeding a
+      // path that does not exist reproduces the original defect one step
+      // later: a Build that fails with "verdict_xlsx not found" instead of
+      // being told up front that the sample never had one).
+      const [seededPaths] = (seedBuildEvolveproForm as unknown as ReturnType<typeof vi.fn>)
+        .mock.calls[0] as [Record<string, string | undefined>, string];
+      expect(seededPaths.verdictXlsx).toBeUndefined();
+    });
   });
 });

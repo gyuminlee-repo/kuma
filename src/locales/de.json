@@ -144,6 +144,10 @@
       "missing": "On the plate but absent from expected_mutations: {{items}}. Each one shifts every later well by one.",
       "resolution": "Re-export the workbook from KURO v0.14.3 or later, or pick one whose sheets agree, then validate again. MAME does not pick a sheet for you, and no other input on this screen can state which plate went into the tubes."
     },
+    "sampleData": {
+      "loadFailed": "Laden der Beispieldaten fehlgeschlagen: {{file}} ({{reason}})",
+      "optionalMissing": "(fehlende optionale Dateien: {{files}})"
+    },
     "input": {
       "redetect": "Erneut erkennen",
       "redetecting": "Erkenne..."

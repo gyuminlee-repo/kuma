@@ -117,11 +117,22 @@ const LEGACY_PATH_KEYS = [
 ] as const;
 
 
+// A legacy record with no paths at all carries no evidence either way: it is
+// not "another project's data" the way a record whose paths point elsewhere
+// is, it is a record that never states a project. `paths.every(...)` on an
+// empty array is vacuously true, which is the right reading here: there is
+// nothing to contradict adoption, so importing it costs nothing (there are no
+// foreign paths to inherit) and unblocks whatever primarySource/verdictXlsx/
+// etc. fields it does carry. Before this, an empty-paths record read as
+// belonging to no project, forcing `migrationNotice: true`, which makes
+// `seedBuildEvolveproForm` a permanent no-op (it bails on
+// `current.migrationNotice`) and leaves the panel stuck on "Unsupported saved
+// mode" with no way to clear it short of wiping localStorage by hand.
 function legacyPathsBelongToProject(payload: Record<string, unknown>, projectPath: string): boolean {
   const paths = LEGACY_PATH_KEYS
     .map((key) => stringValue(payload, key))
     .filter(Boolean);
-  return paths.length > 0 && paths.every((path) => pathBelongsToProject(path, projectPath));
+  return paths.every((path) => pathBelongsToProject(path, projectPath));
 }
 
 function hasRemovedSelection(payload: Record<string, unknown>): boolean {

@@ -144,6 +144,10 @@
       "missing": "플레이트에는 있으나 expected_mutations 에 없는 항목: {{items}}. 하나마다 뒤쪽 well 이 한 칸씩 밀립니다.",
       "resolution": "KURO v0.14.3 이상에서 워크북을 다시 export 하거나 두 시트가 일치하는 파일을 고른 뒤 다시 검증하세요. MAME 가 대신 시트를 고르지는 않으며, 이 화면의 어떤 입력도 어느 플레이트가 튜브에 들어갔는지 말해 주지 못합니다."
     },
+    "sampleData": {
+      "loadFailed": "샘플 로드 실패: {{file}} ({{reason}})",
+      "optionalMissing": "(선택적 파일 누락: {{files}})"
+    },
     "input": {
       "redetect": "재감지",
       "redetecting": "감지 중..."
