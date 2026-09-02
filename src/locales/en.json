@@ -2585,14 +2585,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Choosing the measurement file comes first, and three of the four instrument formats are then identified without asking.",
-      "A variant-labeled report is offered to the confirmation slot instead of being accepted as a primary measurement and failing later.",
-      "Two format pairs that the file cannot separate are asked as two options each, never guessed.",
-      "A file that matches nothing, or a detection that fails, falls back to the full four-way choice with the reason shown.",
-      "Six fewer controls on the screen as it opens, on top of the four folded away in the previous release."
+      "Eleven file fields now open a small grid showing the rows that file needs, lifted from the sample the app ships.",
+      "Six of them are outside the measurement step: two in the first step, one in the second, one in KURO, and two more.",
+      "The rows are generated from the samples and re-checked on every test run, so a preview cannot drift from what the reader accepts.",
+      "Two fields with no bundled sample list the columns their reader requires, checked against that reader rather than transcribed.",
+      "The numeric report and the numeric recheck no longer show the same table, and each says how its numbering differs."
     ],
-    "highlightsStamp": "0.16.47+a565326e",
+    "highlightsStamp": "0.16.48+ff7d23ff",
     "releases": {
+      "0.16.48": [
+        "Eleven file fields now open a small grid showing the rows that file needs, lifted from the sample the app ships.",
+        "Six of them are outside the measurement step: two in the first step, one in the second, one in KURO, and two more.",
+        "The rows are generated from the samples and re-checked on every test run, so a preview cannot drift from what the reader accepts.",
+        "Two fields with no bundled sample list the columns their reader requires, checked against that reader rather than transcribed.",
+        "The numeric report and the numeric recheck no longer show the same table, and each says how its numbering differs."
+      ],
       "0.16.47": [
         "Choosing the measurement file comes first, and three of the four instrument formats are then identified without asking.",
         "A variant-labeled report is offered to the confirmation slot instead of being accepted as a primary measurement and failing later.",
@@ -2940,6 +2947,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
       "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",

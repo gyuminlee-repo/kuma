@@ -2542,14 +2542,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Le fichier de mesure se choisit en premier, et trois des quatre formats d instrument sont ensuite identifiés sans question.",
-      "Un rapport étiqueté par variante est proposé à la case de confirmation, au lieu d être accepté comme mesure primaire puis de échouer.",
-      "Les deux paires de formats que le fichier ne sépare pas sont posées en deux options chacune, jamais devinées.",
-      "Si un fichier ne correspond à aucun format ou si la détection échoue, la raison apparaît avec le choix complet entre quatre.",
-      "Six contrôles de moins à l ouverture, en plus des quatre repliés dans la version précédente."
+      "Onze champs de fichier ouvrent désormais une petite grille montrant les lignes attendues, tirées de exemple fourni.",
+      "Six sont hors de étape de mesure : deux dans la première, un dans la deuxième, un dans KURO et deux autres.",
+      "Les lignes sont générées depuis les exemples et revérifiées à chaque test, elles ne peuvent donc pas diverger de ce que le lecteur accepte.",
+      "Deux champs sans exemple fourni listent les colonnes que leur lecteur exige, vérifiées contre ce lecteur plutôt que recopiées.",
+      "Le rapport numérique et la remesure numérique ne montrent plus la même table, et chacune indique sa numérotation."
     ],
-    "highlightsStamp": "0.16.47+a565326e",
+    "highlightsStamp": "0.16.48+ff7d23ff",
     "releases": {
+      "0.16.48": [
+        "Onze champs de fichier ouvrent désormais une petite grille montrant les lignes attendues, tirées de exemple fourni.",
+        "Six sont hors de étape de mesure : deux dans la première, un dans la deuxième, un dans KURO et deux autres.",
+        "Les lignes sont générées depuis les exemples et revérifiées à chaque test, elles ne peuvent donc pas diverger de ce que le lecteur accepte.",
+        "Deux champs sans exemple fourni listent les colonnes que leur lecteur exige, vérifiées contre ce lecteur plutôt que recopiées.",
+        "Le rapport numérique et la remesure numérique ne montrent plus la même table, et chacune indique sa numérotation."
+      ],
       "0.16.47": [
         "Le fichier de mesure se choisit en premier, et trois des quatre formats d instrument sont ensuite identifiés sans question.",
         "Un rapport étiqueté par variante est proposé à la case de confirmation, au lieu d être accepté comme mesure primaire puis de échouer.",
@@ -2897,6 +2904,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
       "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",

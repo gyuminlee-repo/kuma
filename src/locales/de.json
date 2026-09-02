@@ -2542,14 +2542,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die Messdatei wird zuerst gewählt, und drei der vier Geräteformate werden danach ohne Rückfrage erkannt.",
-      "Ein variantenbeschrifteter Bericht wird der Bestätigungsspalte angeboten, statt als Primärmessung angenommen zu werden und später zu scheitern.",
-      "Zwei Formatpaare, die sich aus der Datei nicht trennen lassen, werden als je zwei Optionen gefragt und nie geraten.",
-      "Passt eine Datei zu keinem Format oder scheitert die Erkennung, erscheint der Grund und die volle Vierfachauswahl.",
-      "Sechs Bedienelemente weniger beim Öffnen, zusätzlich zu den vier aus der vorigen Version."
+      "Elf Dateifelder öffnen jetzt ein kleines Raster mit den Zeilen, die diese Datei braucht, entnommen der mitgelieferten Probe.",
+      "Sechs davon liegen außerhalb des Messschritts: zwei im ersten, eines im zweiten, eines in KURO und zwei weitere.",
+      "Die Zeilen werden aus den Proben erzeugt und bei jedem Testlauf neu geprüft, also können sie nicht von dem abweichen, was der Parser annimmt.",
+      "Zwei Felder ohne mitgelieferte Probe zeigen die Spalten, die ihr Parser verlangt, gegen diesen Parser geprüft statt abgeschrieben.",
+      "Numerischer Bericht und numerische Nachmessung zeigen nicht länger dieselbe Tabelle, und jede nennt ihre Nummerierung."
     ],
-    "highlightsStamp": "0.16.47+a565326e",
+    "highlightsStamp": "0.16.48+ff7d23ff",
     "releases": {
+      "0.16.48": [
+        "Elf Dateifelder öffnen jetzt ein kleines Raster mit den Zeilen, die diese Datei braucht, entnommen der mitgelieferten Probe.",
+        "Sechs davon liegen außerhalb des Messschritts: zwei im ersten, eines im zweiten, eines in KURO und zwei weitere.",
+        "Die Zeilen werden aus den Proben erzeugt und bei jedem Testlauf neu geprüft, also können sie nicht von dem abweichen, was der Parser annimmt.",
+        "Zwei Felder ohne mitgelieferte Probe zeigen die Spalten, die ihr Parser verlangt, gegen diesen Parser geprüft statt abgeschrieben.",
+        "Numerischer Bericht und numerische Nachmessung zeigen nicht länger dieselbe Tabelle, und jede nennt ihre Nummerierung."
+      ],
       "0.16.47": [
         "Die Messdatei wird zuerst gewählt, und drei der vier Geräteformate werden danach ohne Rückfrage erkannt.",
         "Ein variantenbeschrifteter Bericht wird der Bestätigungsspalte angeboten, statt als Primärmessung angenommen zu werden und später zu scheitern.",
@@ -2897,6 +2904,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
       "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",

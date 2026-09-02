@@ -2542,14 +2542,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El archivo de medida se elige primero, y tres de los cuatro formatos de instrumento se identifican luego sin preguntar.",
-      "Un informe con etiquetas de variante se ofrece a la ranura de confirmación, en vez de aceptarse como medida primaria y fallar después.",
-      "Los dos pares de formatos que el archivo no puede separar se preguntan como dos opciones cada uno, nunca se adivinan.",
-      "Si un archivo no encaja en ningún formato o la detección falla, aparece el motivo y la elección completa de cuatro.",
-      "Seis controles menos en la pantalla al abrirla, sumados a los cuatro plegados en la versión anterior."
+      "Once campos de archivo abren ahora una pequeña tabla con las filas que ese archivo necesita, tomadas de la muestra incluida.",
+      "Seis de ellos están fuera del paso de medida: dos en el primero, uno en el segundo, uno en KURO y otros dos.",
+      "Las filas se generan de las muestras y se comprueban en cada ejecución de tests, así que no pueden alejarse de lo que acepta el lector.",
+      "Dos campos sin muestra incluida enumeran las columnas que su lector exige, contrastadas con ese lector en vez de copiadas.",
+      "El informe numérico y la remedida numérica ya no muestran la misma tabla, y cada una indica cómo numera."
     ],
-    "highlightsStamp": "0.16.47+a565326e",
+    "highlightsStamp": "0.16.48+ff7d23ff",
     "releases": {
+      "0.16.48": [
+        "Once campos de archivo abren ahora una pequeña tabla con las filas que ese archivo necesita, tomadas de la muestra incluida.",
+        "Seis de ellos están fuera del paso de medida: dos en el primero, uno en el segundo, uno en KURO y otros dos.",
+        "Las filas se generan de las muestras y se comprueban en cada ejecución de tests, así que no pueden alejarse de lo que acepta el lector.",
+        "Dos campos sin muestra incluida enumeran las columnas que su lector exige, contrastadas con ese lector en vez de copiadas.",
+        "El informe numérico y la remedida numérica ya no muestran la misma tabla, y cada una indica cómo numera."
+      ],
       "0.16.47": [
         "El archivo de medida se elige primero, y tres de los cuatro formatos de instrumento se identifican luego sin preguntar.",
         "Un informe con etiquetas de variante se ofrece a la ranura de confirmación, en vez de aceptarse como medida primaria y fallar después.",
@@ -2897,6 +2904,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
       "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",

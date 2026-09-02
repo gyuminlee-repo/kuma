@@ -2542,14 +2542,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "O arquivo de medida é escolhido primeiro, e três dos quatro formatos de instrumento são identificados sem perguntar.",
-      "Um relatório rotulado por variante é oferecido ao campo de confirmação, em vez de ser aceito como medida primária e falhar depois.",
-      "Os dois pares de formatos que o arquivo não separa são perguntados como duas opções cada, nunca adivinhados.",
-      "Se um arquivo não corresponde a nenhum formato ou a detecção falha, o motivo aparece junto com a escolha completa entre quatro.",
-      "Seis controles a menos na tela ao abrir, somados aos quatro recolhidos na versão anterior."
+      "Onze campos de arquivo agora abrem uma pequena tabela com as linhas que aquele arquivo precisa, tiradas da amostra que acompanha o app.",
+      "Seis deles ficam fora da etapa de medida: dois na primeira, um na segunda, um no KURO e outros dois.",
+      "As linhas são geradas das amostras e reconferidas a cada rodada de testes, então não podem divergir do que o leitor aceita.",
+      "Dois campos sem amostra listam as colunas que seu leitor exige, conferidas contra esse leitor em vez de copiadas.",
+      "O relatório numérico e a remedição numérica não mostram mais a mesma tabela, e cada uma diz como numera."
     ],
-    "highlightsStamp": "0.16.47+a565326e",
+    "highlightsStamp": "0.16.48+ff7d23ff",
     "releases": {
+      "0.16.48": [
+        "Onze campos de arquivo agora abrem uma pequena tabela com as linhas que aquele arquivo precisa, tiradas da amostra que acompanha o app.",
+        "Seis deles ficam fora da etapa de medida: dois na primeira, um na segunda, um no KURO e outros dois.",
+        "As linhas são geradas das amostras e reconferidas a cada rodada de testes, então não podem divergir do que o leitor aceita.",
+        "Dois campos sem amostra listam as colunas que seu leitor exige, conferidas contra esse leitor em vez de copiadas.",
+        "O relatório numérico e a remedição numérica não mostram mais a mesma tabela, e cada uma diz como numera."
+      ],
       "0.16.47": [
         "O arquivo de medida é escolhido primeiro, e três dos quatro formatos de instrumento são identificados sem perguntar.",
         "Um relatório rotulado por variante é oferecido ao campo de confirmação, em vez de ser aceito como medida primária e falhar depois.",
@@ -2897,6 +2904,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
       "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",
