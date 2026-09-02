@@ -627,6 +627,39 @@ def handle_build_evolvepro_input(params: dict) -> dict:
     }
 
 
+def handle_detect_measurement_source(params: dict) -> dict:
+    """Report which step 4.1 measurement sources the given file could be.
+
+    Step 4.1 asked the operator to pick one of four formats.  The file states
+    which ones it can be, so this reads it instead.  The answer is a list: a
+    pre-normalised GC sheet is also a valid long-format file, and the two
+    readings differ in what they do with the wild-type rows, which is the
+    round's decision rather than the file's.  An unrecognised file comes back
+    with an empty ``candidates`` and a ``reason``, not an error, because "not
+    one of the four" is an answer the caller shows.
+    """
+    from kuma_core.mame.activity.detect_measurement_source import (
+        detect_measurement_source,
+    )
+    from sidecar_mame.models import (
+        DetectMeasurementSourceParams,
+        DetectMeasurementSourceResult,
+    )
+
+    p = DetectMeasurementSourceParams.model_validate(params)
+    path = _validate_filepath(
+        p.measurement_path, allowed_extensions=_ALLOWED_ACTIVITY_EXTENSIONS
+    )
+    detection = detect_measurement_source(path, sheet_index=p.sheet_index)
+    return DetectMeasurementSourceResult(
+        path=detection.path,
+        candidates=detection.candidates,
+        ambiguous=detection.ambiguous,
+        evidence=detection.evidence,
+        reason=detection.reason,
+    ).model_dump()
+
+
 __all__ = [
     "handle_activity_upload",
     "handle_activity_set_plate_meta",
@@ -634,6 +667,7 @@ __all__ = [
     "handle_activity_export_evolvepro_xlsx",
     "handle_merge_for_evolvepro",
     "handle_build_evolvepro_input",
+    "handle_detect_measurement_source",
     "ExportBlockedError",
     "_rounds",
 ]
