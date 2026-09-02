@@ -7,6 +7,7 @@ import { browseFile } from "../../../lib/file-utils";
 import { useArtifact } from "../../../lib/workspace";
 import { Button } from "../../ui/button";
 import { InlineHelp } from "../../ui/InlineHelp";
+import { FormatPreviewHelp } from "@/components/ui/FormatPreviewHelp";
 import { ArtifactBadge } from "../../widgets/ArtifactBadge";
 import { SourceColumnPanel } from "./SourceColumnPanel";
 import { EvolveproSelectTable } from "../../widgets/EvolveproSelectTable";
@@ -127,10 +128,32 @@ export function MutationInput() {
 
   return (
     <div className="space-y-1">
-      <label className="text-xs font-medium text-foreground inline-flex items-center gap-1.5">
-        {t("mutationInput.mutations")}
-        <InlineHelp text={t("mutationInput.mutationsHelp")} />
-      </label>
+      {/* One "?" and not two. In EVOLVEpro mode the field takes a prediction
+          table, so the shape of that table is what the reader needs and the
+          sentence about mutation notation moves inside the same panel. Typed
+          mutations have no file, so there the sentence is the whole answer.
+          The help control sits beside the label rather than inside it: a
+          button is not allowed inside a <label>. */}
+      <div className="inline-flex items-center gap-1.5">
+        <span className="text-xs font-medium text-foreground">
+          {t("mutationInput.mutations")}
+        </span>
+        {mutationInputMode === "evolvepro" ? (
+          <FormatPreviewHelp
+            testId="format-preview-evolvepro"
+            fieldLabel={t("mutationInput.evolveproFormatTitle")}
+            intro={t("mutationInput.mutationsHelp")}
+            entries={[
+              {
+                id: "evolveproPrediction",
+                title: t("mutationInput.evolveproFormatTitle"),
+              },
+            ]}
+          />
+        ) : (
+          <InlineHelp text={t("mutationInput.mutationsHelp")} />
+        )}
+      </div>
       {mutationInputMode === "evolvepro" && (
         <div className="space-y-2">
           {/* CSV / XLSX file loader, source kind is auto-detected by the backend,

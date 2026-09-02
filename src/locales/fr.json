@@ -1222,7 +1222,18 @@
       "confirmationOnlyFile": "Ce fichier est une mesure de confirmation, pas une mesure primaire. Choisir un autre fichier comme mesure, ou classer celui-ci comme confirmation.",
       "useAsConfirmation": "Classer comme {{format}}",
       "detectionNoMatch": "Le format n'a pas pu être lu dans ce fichier. Le choisir ci-dessous.",
-      "detectionFailed": "La détection de format n'a pas eu lieu. Choisir le format ci-dessous."
+      "detectionFailed": "La détection de format n'a pas eu lieu. Choisir le format ci-dessous.",
+      "formatPreview": {
+        "heading": "Forme du fichier",
+        "trigger": "Montrer à quoi ressemble un fichier {{label}}",
+        "sourceLabel": "Fichier d'exemple : {{file}}",
+        "omitted": "lignes omises",
+        "highlightNote": "Le Sample Name marqué est la seule cellule qui distingue ces formats de rapport.",
+        "multipleFormats": "Ce champ accepte chacun d'eux. Une fois le fichier choisi, seul le format correspondant reste.",
+        "requiredColumnsNote": "L'application ne fournit aucun exemple de ce fichier, les colonnes exigées sont donc listées à la place des lignes. Les noms doivent correspondre exactement."
+      },
+      "numericPrimaryNote": "L'ID i désigne la i-ème variante de la plaque entière, numérotée dans l'ordre de la liste de conception.",
+      "numericConfirmationNote": "L'ID j ne numérote que les variantes mesurées au-dessus du type sauvage lors du criblage primaire, dans ce même ordre de plaque, et chacune est remesurée."
     },
     "verdictBadge": {
       "help": {
@@ -1242,7 +1253,8 @@
       "browse": "Parcourir",
       "chooseTitle": "Localiser {{name}}",
       "mismatchTitle": "Il peut s agir d un fichier different",
-      "mismatchBody": "Etait {{expected}}, choisi {{actual}}. Ignorez si le changement est voulu."
+      "mismatchBody": "Etait {{expected}}, choisi {{actual}}. Ignorez si le changement est voulu.",
+      "sequencingSummaryFormat": "Texte séparé par des tabulations produit par MinKNOW, noms de colonnes sur la première ligne."
     },
     "verdictDetail": {
       "openAriaLabel": "Show details for {{id}} (well {{well}})",
@@ -2127,6 +2139,7 @@
     "mutationsFailed": "({{count}} échouées)",
     "topNZeroHint": "Top-N va de 1 à 96. Augmentez-le pour charger davantage de variants depuis CSV.",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
+    "evolveproFormatTitle": "Prédiction EVOLVEpro (csv/tsv/xlsx)",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
     "othersVariantColumnPlaceholder": "Auto-detect",
@@ -2529,14 +2542,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Le fichier de mesure se choisit en premier, et trois des quatre formats d instrument sont ensuite identifiés sans question.",
-      "Un rapport étiqueté par variante est proposé à la case de confirmation, au lieu d être accepté comme mesure primaire puis de échouer.",
-      "Les deux paires de formats que le fichier ne sépare pas sont posées en deux options chacune, jamais devinées.",
-      "Si un fichier ne correspond à aucun format ou si la détection échoue, la raison apparaît avec le choix complet entre quatre.",
-      "Six contrôles de moins à l ouverture, en plus des quatre repliés dans la version précédente."
+      "Onze champs de fichier ouvrent désormais une petite grille montrant les lignes attendues, tirées de exemple fourni.",
+      "Six sont hors de étape de mesure : deux dans la première, un dans la deuxième, un dans KURO et deux autres.",
+      "Les lignes sont générées depuis les exemples et revérifiées à chaque test, elles ne peuvent donc pas diverger de ce que le lecteur accepte.",
+      "Deux champs sans exemple fourni listent les colonnes que leur lecteur exige, vérifiées contre ce lecteur plutôt que recopiées.",
+      "Le rapport numérique et la remesure numérique ne montrent plus la même table, et chacune indique sa numérotation."
     ],
-    "highlightsStamp": "0.16.47+a565326e",
+    "highlightsStamp": "0.16.48+ff7d23ff",
     "releases": {
+      "0.16.48": [
+        "Onze champs de fichier ouvrent désormais une petite grille montrant les lignes attendues, tirées de exemple fourni.",
+        "Six sont hors de étape de mesure : deux dans la première, un dans la deuxième, un dans KURO et deux autres.",
+        "Les lignes sont générées depuis les exemples et revérifiées à chaque test, elles ne peuvent donc pas diverger de ce que le lecteur accepte.",
+        "Deux champs sans exemple fourni listent les colonnes que leur lecteur exige, vérifiées contre ce lecteur plutôt que recopiées.",
+        "Le rapport numérique et la remesure numérique ne montrent plus la même table, et chacune indique sa numérotation."
+      ],
       "0.16.47": [
         "Le fichier de mesure se choisit en premier, et trois des quatre formats d instrument sont ensuite identifiés sans question.",
         "Un rapport étiqueté par variante est proposé à la case de confirmation, au lieu d être accepté comme mesure primaire puis de échouer.",
@@ -2884,6 +2904,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
       "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",
@@ -3467,6 +3488,8 @@
     "filePickerTitle": "Select round result xlsx files",
     "addFiles": "Add xlsx files",
     "addFilesAriaLabel": "Add round result xlsx files (Variant + activity fold-change columns required)",
+    "roundXlsxFormatTitle": "xlsx de résultats de cycle",
+    "roundXlsxFormatNote": "Première feuille, noms de colonnes sur la première ligne.",
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",

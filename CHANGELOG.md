@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.16.48 (Every file field shows the file it wants)
+
+A field that asks for a workbook used to describe it in a sentence. Eleven of them now carry a question mark that opens the thing itself: a few rows lifted from the sample the app already ships, drawn as a small grid the way a spreadsheet would show them.
+
+Six fields gained one outside the measurement step that started this work. Custom barcodes and the expected-variant list in the first step, barcode seeds in the second, the prediction file on the KURO side, the sequencing summary, and the round advisory workbook.
+
+Nothing in those grids is typed by hand. A generator reads the shipped samples and a test regenerates them on every run, so a preview cannot drift into claiming a shape the reader would reject. The same test counts how many previews it checked, because a run that silently checked none would otherwise look like a clean one.
+
+Showing the opening rows would have been wrong here, which the work found out by trying. The three Agilent report formats are identical for their first fifteen rows, all of them wild-type blocks, and they part at a single cell further down where the sample name reads a well, a number, or a variant. Each preview pairs one wild-type block with the first real sample block and marks that cell.
+
+Two of the six have no sample to lift from, so they list the columns their reader requires and say on screen that columns are what they are showing. Those names are checked against the reader that consumes them rather than transcribed.
+
+The work turned up a defect of its own. The numeric report and the numeric recheck were showing the same table, because they are the same shape of file. They still are, which is why the format question offers both, but the previews now differ the way the two fields do, and a line under each says what a table cannot: one numbers the whole plate in design order, the other numbers within the selection the screen put above wild type.
+
+Twelve other file inputs take folders, sequences, structures, or archives. A grid says nothing useful about those, so they keep the sentence they had.
+
+### Highlights
+
+- Eleven file fields now open a small grid showing the rows that file needs, lifted from the sample the app ships.
+- Six of them are outside the measurement step: two in the first step, one in the second, one in KURO, and two more.
+- The rows are generated from the samples and re-checked on every test run, so a preview cannot drift from what the reader accepts.
+- Two fields with no bundled sample list the columns their reader requires, checked against that reader rather than transcribed.
+- The numeric report and the numeric recheck no longer show the same table, and each says how its numbering differs.
+
 ## v0.16.47 (Step 4.1 reads the format off the file)
 
 Step 4.1 asked which of four instrument formats a measurement file was, and only then offered the picker for that branch. The order is reversed. One file picker comes first, and the format is read from the file that was chosen.

@@ -24,6 +24,12 @@ vi.mock("@/store/round/roundSlice", () => ({
     selector(roundState),
 }));
 
+import { getColumnRequirement } from "@/data/formatColumnRequirements";
+import {
+  openPreview,
+  previewTriggerIds,
+  renderedColumns,
+} from "@/test-utils/formatPreview";
 import { AdvisoryDecisionCard } from "./AdvisoryDecisionCard";
 
 describe("AdvisoryDecisionCard", () => {
@@ -39,5 +45,30 @@ describe("AdvisoryDecisionCard", () => {
       [{ n: 1, path: "/project/round-1.xlsx" }],
       384,
     ));
+  });
+});
+
+/**
+ * The handler rejects a workbook missing either column by name, and until now
+ * the only place that said so was the button's accessible name, which a
+ * sighted reader never sees. No sample of this workbook ships, so the help
+ * lists the two columns and shows no values.
+ */
+describe("AdvisoryDecisionCard round workbook shape", () => {
+  it("lists the columns the handler requires, taken from the data file", () => {
+    render(<AdvisoryDecisionCard />);
+
+    openPreview("format-preview-round-xlsx");
+    expect(renderedColumns("advisoryRoundXlsx")).toEqual(
+      getColumnRequirement("advisoryRoundXlsx").columns,
+    );
+  });
+
+  it("puts one '?' on the card and none on the capacity field", () => {
+    render(<AdvisoryDecisionCard />);
+
+    // Negative control: the next-round capacity is a number typed in place,
+    // with no file behind it.
+    expect(previewTriggerIds()).toEqual(["format-preview-round-xlsx-trigger"]);
   });
 });

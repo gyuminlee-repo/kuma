@@ -1222,7 +1222,18 @@
       "confirmationOnlyFile": "此檔案是確認測量，而非首次測量。請另選一個檔案作為測量檔案，或將此檔案放入確認測量位置。",
       "useAsConfirmation": "作為 {{format}} 登錄",
       "detectionNoMatch": "無法從此檔案讀取格式。請於下方自行選擇。",
-      "detectionFailed": "格式判別未執行。請於下方選擇格式。"
+      "detectionFailed": "格式判別未執行。請於下方選擇格式。",
+      "formatPreview": {
+        "heading": "檔案樣貌",
+        "trigger": "查看 {{label}} 檔案的樣子",
+        "sourceLabel": "範例檔案：{{file}}",
+        "omitted": "省略的列",
+        "highlightNote": "標記的 Sample Name 是區分這幾種報告格式的唯一儲存格。",
+        "multipleFormats": "此項接受以下任一格式。選定檔案後只保留相符的格式。",
+        "requiredColumnsNote": "應用未附帶該檔案的範例，因此列出必須包含的欄位而非資料列。欄位名稱須完全一致。"
+      },
+      "numericPrimaryNote": "ID i 表示按設計清單順序對整塊盤編號後的第 i 個變體。",
+      "numericConfirmationNote": "ID j 只對初篩中高於野生型的變體按同一盤序編號，並對每個變體重新測定。"
     },
     "verdictBadge": {
       "help": {
@@ -1242,7 +1253,8 @@
       "browse": "瀏覽",
       "chooseTitle": "指定 {{name}}",
       "mismatchTitle": "可能是不同的檔案",
-      "mismatchBody": "原為 {{expected}}，選擇了 {{actual}}。若為有意變更可忽略。"
+      "mismatchBody": "原為 {{expected}}，選擇了 {{actual}}。若為有意變更可忽略。",
+      "sequencingSummaryFormat": "MinKNOW 輸出的定位字元分隔文字，首列為欄位名稱。"
     },
     "verdictDetail": {
       "openAriaLabel": "Show details for {{id}} (well {{well}})",
@@ -2127,6 +2139,7 @@
     "mutationsFailed": "(失敗 {{count}})",
     "topNZeroHint": "Top-N 的範圍是 1 到 96。增加此值可從 CSV 載入更多變體。",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
+    "evolveproFormatTitle": "EVOLVEpro 預測 (csv/tsv/xlsx)",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
     "othersVariantColumnPlaceholder": "Auto-detect",
@@ -2529,14 +2542,21 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "先選擇測量檔案，四種儀器格式中的三種隨即透過讀取檔案識別，無需詢問。",
-      "variant 標籤報告會被引導到確認測量槽位，而不是當作一次測量接受後再失敗。",
-      "檔案無法區分的兩組格式各以兩個選項詢問，絕不猜測。",
-      "檔案不符合任何格式或識別失敗時，顯示原因並直接開啟完整的四選一。",
-      "開啟介面時的控制項再減少 6 個，疊加上一版本摺疊的 4 個。"
+      "11 處檔案欄位現在用小表格展示該檔案需要的列，取自應用隨附的範例。",
+      "其中 6 處在測量步驟之外，第一步兩處、第二步一處、KURO 一處，另有兩處。",
+      "表格內容由範例產生並在每次測試時重新比對，因此不會偏離解析器實際接受的形狀。",
+      "兩個沒有隨附範例的欄位改為展示解析器要求的欄，欄名不是抄寫而是與解析器比對。",
+      "數值報告與數值複測先前顯示同一張表，現已區分，並說明兩者編號方式的差異。"
     ],
-    "highlightsStamp": "0.16.47+a565326e",
+    "highlightsStamp": "0.16.48+ff7d23ff",
     "releases": {
+      "0.16.48": [
+        "11 處檔案欄位現在用小表格展示該檔案需要的列，取自應用隨附的範例。",
+        "其中 6 處在測量步驟之外，第一步兩處、第二步一處、KURO 一處，另有兩處。",
+        "表格內容由範例產生並在每次測試時重新比對，因此不會偏離解析器實際接受的形狀。",
+        "兩個沒有隨附範例的欄位改為展示解析器要求的欄，欄名不是抄寫而是與解析器比對。",
+        "數值報告與數值複測先前顯示同一張表，現已區分，並說明兩者編號方式的差異。"
+      ],
       "0.16.47": [
         "先選擇測量檔案，四種儀器格式中的三種隨即透過讀取檔案識別，無需詢問。",
         "variant 標籤報告會被引導到確認測量槽位，而不是當作一次測量接受後再失敗。",
@@ -2884,6 +2904,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
       "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",
@@ -3467,6 +3488,8 @@
     "filePickerTitle": "Select round result xlsx files",
     "addFiles": "Add xlsx files",
     "addFilesAriaLabel": "Add round result xlsx files (Variant + activity fold-change columns required)",
+    "roundXlsxFormatTitle": "輪次結果 xlsx",
+    "roundXlsxFormatNote": "第一個工作表，首列為欄位名稱。",
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",

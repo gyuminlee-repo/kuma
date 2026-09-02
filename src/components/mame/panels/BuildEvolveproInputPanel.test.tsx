@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectProvider } from "@/state/projectContext";
 
@@ -43,6 +43,10 @@ import {
   type BuildEvolveproFormState,
 } from "@/lib/mame/buildEvolveproFormStorage";
 import type { BuildEvolveproInputResult } from "@/types/mame/build_evolvepro_input";
+import {
+  getFormatPreview,
+  type FormatPreviewId,
+} from "@/data/mameFormatPreviews";
 import { BuildEvolveproInputPanel } from "./BuildEvolveproInputPanel";
 
 const PROJECT = "/project";
@@ -774,5 +778,230 @@ describe("BuildEvolveproInputPanel measurement format detection", () => {
     expect(buildEvolveproInput).toHaveBeenCalledWith(
       expect.objectContaining({ activity_path: second }),
     );
+  });
+});
+
+/**
+ * The "?" beside each file field. What it shows is generated out of
+ * `templates/` by `scripts/gen_mame_format_preview.py`, so these tests compare
+ * the rendered grid against that generated JSON rather than against rows typed
+ * out here: a hand-copied expectation keeps passing after the template it
+ * describes has changed, which is the failure the preview exists to prevent.
+ */
+describe("BuildEvolveproInputPanel file-shape previews", () => {
+  /** Rendered rows of a preview table, the ellipsis rows dropped. */
+  function renderedRows(id: FormatPreviewId): string[][] {
+    const table = screen.getByTestId(`format-preview-table-${id}`);
+    return within(table)
+      .getAllByRole("row")
+      .map((row) =>
+        within(row)
+          .queryAllByRole("cell")
+          .map((cell) => cell.textContent ?? ""),
+      )
+      .filter((cells) => cells.length > 1);
+  }
+
+  /** The same rows as the generator wrote them, the header row excluded. */
+  function generatedRows(id: FormatPreviewId): string[][] {
+    const preview = getFormatPreview(id);
+    return preview.windows.flatMap((window, index) =>
+      preview.headerRow && index === 0 ? window.rows.slice(1) : window.rows,
+    );
+  }
+
+  function openPreview(testId: string): void {
+    fireEvent.click(screen.getByTestId(`${testId}-trigger`));
+  }
+
+  const PRIMARY_IDS: FormatPreviewId[] = [
+    "longFormat",
+    "gcSheet",
+    "rawReport",
+    "numericReport",
+  ];
+
+  it("offers every accepted format while none has been settled", () => {
+    seed(readyForm({ activityPath: "" }));
+    renderPanel();
+
+    openPreview("format-preview-measurement");
+    for (const id of PRIMARY_IDS) {
+      expect(screen.getByTestId(`format-preview-table-${id}`)).toBeInTheDocument();
+    }
+  });
+
+  it("narrows to the settled format once the file has been read", () => {
+    seed(readyForm());
+    renderPanel();
+
+    openPreview("format-preview-measurement");
+    expect(screen.getByTestId("format-preview-table-longFormat")).toBeInTheDocument();
+    for (const id of ["gcSheet", "rawReport", "numericReport"]) {
+      expect(screen.queryByTestId(`format-preview-table-${id}`)).toBeNull();
+    }
+  });
+
+  it("shows the generated rows, not rows written into this test", () => {
+    seed(readyForm({ activityPath: "" }));
+    renderPanel();
+
+    openPreview("format-preview-measurement");
+    let compared = 0;
+    for (const id of PRIMARY_IDS) {
+      expect(renderedRows(id)).toEqual(generatedRows(id));
+      compared += 1;
+    }
+    expect(compared).toBe(PRIMARY_IDS.length);
+  });
+
+  it("marks the one cell that tells the block report formats apart", () => {
+    seed(readyForm({ activityPath: "" }));
+    renderPanel();
+
+    openPreview("format-preview-measurement");
+    // Templates 11 and 12 are the same file down to row 17. A4 against 1 is
+    // the whole of the difference, and it is what the mark points at.
+    expect(screen.getByTestId("format-preview-highlight-rawReport")).toHaveTextContent(
+      "A4",
+    );
+    expect(
+      screen.getByTestId("format-preview-highlight-numericReport"),
+    ).toHaveTextContent("1");
+  });
+
+  it("names the sample file the loader would have put in the field", () => {
+    seed(readyForm());
+    renderPanel();
+
+    openPreview("format-preview-measurement");
+    const source = getFormatPreview("longFormat").source;
+    const name = source.slice(source.lastIndexOf("/") + 1);
+    expect(screen.getByText(`Sample file: ${name}`)).toBeInTheDocument();
+  });
+
+  it("explains the optional plate layout", () => {
+    seed(readyForm({ layoutXlsx: "/project/layout.xlsx" }));
+    renderPanel();
+
+    openPreview("format-preview-layout");
+    expect(renderedRows("plateLayout")).toEqual(generatedRows("plateLayout"));
+  });
+
+  it("explains the designed variant list a numeric screen orders by", () => {
+    seed(
+      readyForm({
+        primarySource: "numericReport",
+        activityPath: "",
+        numericReportXlsx: "/project/numeric.xlsx",
+        expectedXlsx: "/project/expected.xlsx",
+      }),
+    );
+    renderPanel();
+
+    openPreview("format-preview-expected");
+    expect(renderedRows("expectedMutations")).toEqual(generatedRows("expectedMutations"));
+  });
+
+  it("explains the variant-labeled confirmation report", () => {
+    seed(readyForm({ confirmationSource: "variantLabels" }));
+    renderPanel();
+
+    openPreview("format-preview-remeasure");
+    expect(renderedRows("confirmationVariantLabels")).toEqual(
+      generatedRows("confirmationVariantLabels"),
+    );
+    expect(
+      screen.getByTestId("format-preview-highlight-confirmationVariantLabels"),
+    ).toHaveTextContent("65A");
+  });
+
+  it("explains the numeric-ID confirmation report", () => {
+    seed(readyForm({ confirmationSource: "numericIds" }));
+    renderPanel();
+
+    openPreview("format-preview-remeasure-numeric");
+    expect(renderedRows("confirmationNumericIds")).toEqual(
+      generatedRows("confirmationNumericIds"),
+    );
+    // The repeat block, not the first sample block: `1-2` is the second
+    // measurement of the tube `1` names, which is what a confirmation file is.
+    expect(
+      screen.getByTestId("format-preview-highlight-confirmationNumericIds"),
+    ).toHaveTextContent("1-2");
+  });
+
+  it("does not show the same table for the numeric screen and its confirmation", () => {
+    // Both read template 12, and taking the first sample block for each made
+    // the two panels identical: a reader holding one of the files could open
+    // either "?" and see the other one's rows.
+    seed(readyForm({ primarySource: "numericReport", activityPath: "", numericReportXlsx: "/project/numeric.xlsx", expectedXlsx: "/project/expected.xlsx" }));
+    renderPanel();
+    openPreview("format-preview-measurement");
+    const primary = renderedRows("numericReport");
+
+    cleanup();
+    seed(readyForm({ confirmationSource: "numericIds" }));
+    renderPanel();
+    openPreview("format-preview-remeasure-numeric");
+    const confirmation = renderedRows("confirmationNumericIds");
+
+    expect(primary).not.toEqual(confirmation);
+    expect(getFormatPreview("numericReport").source).toBe(
+      getFormatPreview("confirmationNumericIds").source,
+    );
+  });
+
+  it("says what the two numeric formats count, which no table can show", () => {
+    seed(readyForm({ confirmationSource: "numericIds" }));
+    renderPanel();
+
+    openPreview("format-preview-remeasure-numeric");
+    expect(
+      screen.getByText(
+        "ID j counts only the variants the primary screen measured above wild type, numbered in that same plate order, and each is measured again.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("gives the output path no '?' at all", () => {
+    seed(readyForm({ activityPath: "" }));
+    renderPanel();
+
+    // Negative control: the app writes the output, so there is no file for the
+    // operator to shape. Only the input fields carry a preview.
+    const triggers = screen
+      .queryAllByTestId(/^format-preview-.*-trigger$/)
+      .map((node) => node.getAttribute("data-testid"));
+    expect(triggers).not.toContain("format-preview-output-trigger");
+    expect(triggers.length).toBeGreaterThan(0);
+  });
+
+  it("closes on Escape and gives focus back to the trigger", () => {
+    seed(readyForm());
+    renderPanel();
+
+    const trigger = screen.getByTestId("format-preview-measurement-trigger");
+    fireEvent.click(trigger);
+    expect(screen.getByTestId("format-preview-table-longFormat")).toBeInTheDocument();
+    fireEvent.keyDown(trigger, { key: "Escape" });
+    expect(screen.queryByTestId("format-preview-table-longFormat")).toBeNull();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("puts no preview on the verdict or the output, which the app fills", () => {
+    seed(readyForm());
+    renderPanel();
+
+    expect(screen.queryByTestId("format-preview-verdict-trigger")).toBeNull();
+    expect(screen.queryByTestId("format-preview-output-trigger")).toBeNull();
+    // Only the fields the operator brings a file to: the measurement and the
+    // optional plate layout (rendered inside its collapsed disclosure).
+    expect(
+      screen.getAllByTestId(/^format-preview-.+-trigger$/).map((el) => el.dataset.testid),
+    ).toEqual([
+      "format-preview-measurement-trigger",
+      "format-preview-layout-trigger",
+    ]);
   });
 });

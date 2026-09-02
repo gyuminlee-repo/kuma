@@ -31,6 +31,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InlineHelp } from "@/components/ui/InlineHelp";
+import {
+  FormatPreviewHelp,
+  type FormatPreviewEntry,
+} from "@/components/ui/FormatPreviewHelp";
 import { Label } from "@/components/ui/label";
 import type {
   BuildEvolveproInputParams,
@@ -78,6 +82,18 @@ const PRIMARY_HELP: Record<FormState["primarySource"], string> = {
   rawReport: "mame.buildEvolvepro.primarySourceRawReportHelper",
   numericReport: "mame.buildEvolvepro.primarySourceNumericReportHelper",
 };
+
+/**
+ * The four primary formats in the order the "?" preview stacks them, widest
+ * audience first: the generic long format, then the pre-normalized sheet, then
+ * the two raw reports that are the hard pair to tell apart.
+ */
+const PRIMARY_SOURCE_ORDER: FormState["primarySource"][] = [
+  "longFormat",
+  "gcSheet",
+  "rawReport",
+  "numericReport",
+];
 
 const CONFIRMATION_HELP: Record<FormState["confirmationSource"], string> = {
   none: "mame.buildEvolvepro.confirmationSourceNoneHelper",
@@ -462,6 +478,31 @@ export function BuildEvolveproInputPanel() {
     detection.status === "detected" &&
     detection.path === measurementPath;
 
+  // What the "?" beside the measurement field shows. Before a format is
+  // settled the field accepts any of the four, and which one the operator
+  // holds is exactly the open question, so all four are shown. Once the format
+  // is settled the other three are noise.
+  // The numeric screen and the numeric confirmation are the same file shape
+  // read against different numbering, which no table can show, so that one
+  // difference is stated in words beside each of them.
+  const previewNote = (source: MeasurementSource): string | undefined =>
+    source === "numericReport"
+      ? t("mame.buildEvolvepro.numericPrimaryNote")
+      : undefined;
+  const measurementPreviews: FormatPreviewEntry[] = showSummary
+    ? [
+        {
+          id: form.primarySource,
+          title: t(SOURCE_LABEL[form.primarySource]),
+          note: previewNote(form.primarySource),
+        },
+      ]
+    : PRIMARY_SOURCE_ORDER.map((source) => ({
+        id: source,
+        title: t(SOURCE_LABEL[source]),
+        note: previewNote(source),
+      }));
+
   const missing: { label: string; fieldId: string }[] = [];
   const need = (key: string, fieldId: string) =>
     missing.push({ label: t(`mame.buildEvolvepro.${key}`), fieldId });
@@ -667,6 +708,13 @@ export function BuildEvolveproInputPanel() {
               label={t("mame.buildEvolvepro.measurementFile")}
               value={measurementPath}
               onChange={() => setManualFormat(true)}
+              help={
+                <FormatPreviewHelp
+                  testId="format-preview-measurement"
+                  fieldLabel={t("mame.buildEvolvepro.measurementFile")}
+                  entries={measurementPreviews}
+                />
+              }
             />
           ) : (
             <FilePickerField
@@ -676,6 +724,13 @@ export function BuildEvolveproInputPanel() {
               value={measurementPath}
               onBrowse={handleMeasurementBrowse}
               helperText={t("mame.buildEvolvepro.measurementFileHelper")}
+              help={
+                <FormatPreviewHelp
+                  testId="format-preview-measurement"
+                  fieldLabel={t("mame.buildEvolvepro.measurementFile")}
+                  entries={measurementPreviews}
+                />
+              }
             />
           )}
 
@@ -825,6 +880,18 @@ export function BuildEvolveproInputPanel() {
                   ? t("mame.buildEvolvepro.layoutXlsxOptionalHelper")
                   : t("mame.buildEvolvepro.layoutXlsxHelper")
               }
+              help={
+                <FormatPreviewHelp
+                  testId="format-preview-layout"
+                  fieldLabel={t("mame.buildEvolvepro.layoutXlsx")}
+                  entries={[
+                    {
+                      id: "plateLayout",
+                      title: t("mame.buildEvolvepro.layoutXlsx"),
+                    },
+                  ]}
+                />
+              }
               optional
             />
           </LayoutDisclosure>
@@ -837,6 +904,18 @@ export function BuildEvolveproInputPanel() {
               value={form.expectedXlsx}
               onBrowse={() => browseFile("expectedXlsx", t("mame.buildEvolvepro.expectedXlsx"), ["xlsx", "xls", "csv", "tsv", "txt"])}
               helperText={t("mame.buildEvolvepro.expectedXlsxHelper")}
+              help={
+                <FormatPreviewHelp
+                  testId="format-preview-expected"
+                  fieldLabel={t("mame.buildEvolvepro.expectedXlsx")}
+                  entries={[
+                    {
+                      id: "expectedMutations",
+                      title: t("mame.buildEvolvepro.expectedXlsx"),
+                    },
+                  ]}
+                />
+              }
             />
           )}
 
@@ -860,6 +939,18 @@ export function BuildEvolveproInputPanel() {
               value={form.remeasureReportXlsx}
               onBrowse={() => browseXlsx("remeasureReportXlsx", t("mame.buildEvolvepro.remeasureReportXlsx"))}
               helperText={t("mame.buildEvolvepro.remeasureReportXlsxHelper")}
+              help={
+                <FormatPreviewHelp
+                  testId="format-preview-remeasure"
+                  fieldLabel={t("mame.buildEvolvepro.remeasureReportXlsx")}
+                  entries={[
+                    {
+                      id: "confirmationVariantLabels",
+                      title: t("mame.buildEvolvepro.confirmationSourceVariantLabels"),
+                    },
+                  ]}
+                />
+              }
             />
           )}
 
@@ -871,6 +962,19 @@ export function BuildEvolveproInputPanel() {
               value={form.remeasureNumericXlsx}
               onBrowse={() => browseXlsx("remeasureNumericXlsx", t("mame.buildEvolvepro.remeasureNumericXlsx"))}
               helperText={t("mame.buildEvolvepro.remeasureNumericXlsxHelper")}
+              help={
+                <FormatPreviewHelp
+                  testId="format-preview-remeasure-numeric"
+                  fieldLabel={t("mame.buildEvolvepro.remeasureNumericXlsx")}
+                  entries={[
+                    {
+                      id: "confirmationNumericIds",
+                      title: t("mame.buildEvolvepro.confirmationSourceNumericIds"),
+                      note: t("mame.buildEvolvepro.numericConfirmationNote"),
+                    },
+                  ]}
+                />
+              }
             />
           )}
 
@@ -1245,11 +1349,14 @@ function FileSummaryRow({
   label,
   value,
   onChange,
+  help,
 }: {
   id: string;
   label: string;
   value: string;
   onChange: () => void;
+  /** Same help control the picker carries, kept once the row collapses. */
+  help?: ReactNode;
 }) {
   const { t } = useTranslation();
   const changeLabel = t("mame.buildEvolvepro.changeFile");
@@ -1262,6 +1369,7 @@ function FileSummaryRow({
         <span className="font-medium uppercase tracking-wide">{label}</span>{" "}
         <span className="font-mono text-foreground">{getFilename(value)}</span>
       </p>
+      {help}
       <Button
         id={id}
         type="button"
@@ -1353,6 +1461,7 @@ function FilePickerField({
   onBrowse,
   helperText,
   helpText,
+  help,
   optional = false,
 }: {
   id: string;
@@ -1362,6 +1471,8 @@ function FilePickerField({
   onBrowse: () => Promise<void>;
   helperText?: string;
   helpText?: string;
+  /** Extra help control beside the label, for help that is not one string. */
+  help?: ReactNode;
   optional?: boolean;
 }) {
   const { t } = useTranslation();
@@ -1377,6 +1488,7 @@ function FilePickerField({
             {label}
           </Label>
           {helpText && <InlineHelp text={helpText} />}
+          {help}
         </span>
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-medium ${

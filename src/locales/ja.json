@@ -1222,7 +1222,18 @@
       "confirmationOnlyFile": "このファイルは確認測定であり、1 次測定ではありません。測定ファイルには別のファイルを選ぶか、このファイルを確認測定の枠に入れてください。",
       "useAsConfirmation": "{{format}} として登録",
       "detectionNoMatch": "このファイルからは形式を読み取れませんでした。下で選んでください。",
-      "detectionFailed": "形式の判別が実行されませんでした。下で形式を選んでください。"
+      "detectionFailed": "形式の判別が実行されませんでした。下で形式を選んでください。",
+      "formatPreview": {
+        "heading": "ファイルの形",
+        "trigger": "{{label}} ファイルの見た目を表示",
+        "sourceLabel": "サンプルファイル: {{file}}",
+        "omitted": "省略された行",
+        "highlightNote": "印を付けた sample name が、これらのレポート形式を見分ける唯一のセルです。",
+        "multipleFormats": "この項目は以下のいずれも受け付けます。ファイルを選ぶと該当する形式だけが残ります。",
+        "requiredColumnsNote": "このファイルのサンプルはアプリに同梱されていないため、行ではなく必須の列名を示す。名称は完全に一致する必要がある。"
+      },
+      "numericPrimaryNote": "ID i は、設計リストの順にプレート全体へ番号を振ったときの i 番目のバリアントである。",
+      "numericConfirmationNote": "ID j は一次スクリーンで野生型を上回ったバリアントだけを同じプレート順で番号付けしたもので、それぞれを再測定する。"
     },
     "verdictBadge": {
       "help": {
@@ -1242,7 +1253,8 @@
       "browse": "参照",
       "chooseTitle": "{{name}} を指定",
       "mismatchTitle": "別のファイルの可能性があります",
-      "mismatchBody": "元: {{expected}}、選択: {{actual}}。意図した変更なら無視してください。"
+      "mismatchBody": "元: {{expected}}、選択: {{actual}}。意図した変更なら無視してください。",
+      "sequencingSummaryFormat": "MinKNOW が出力するタブ区切りテキスト。1 行目に列名。"
     },
     "verdictDetail": {
       "openAriaLabel": "Show details for {{id}} (well {{well}})",
@@ -2127,6 +2139,7 @@
     "mutationsFailed": "({{count}} 失敗)",
     "topNZeroHint": "Top-Nの範囲は1～96です。CSVからより多くのバリアントを読み込むには値を増やしてください。",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
+    "evolveproFormatTitle": "EVOLVEpro 予測 (csv/tsv/xlsx)",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
     "othersVariantColumnPlaceholder": "Auto-detect",
@@ -2529,14 +2542,21 @@
     "descriptionRange": "v{{from}} 以降のすべてのアップデートの主な変更点です。",
     "gotItBtn": "了解",
     "highlights": [
-      "測定値ファイルを先に選びます。装置形式 4 種のうち 3 種はそのファイルを読んで問わずに判別します。",
-      "variant ラベルのレポートは 1 次測定として受け入れて後で失敗する代わりに、確認測定の枠へ案内します。",
-      "ファイルでは分けられない 2 つの形式ペアは、それぞれ 2 択で尋ねます。推測はしません。",
-      "どの形式にも合わない場合や判別が失敗した場合は理由を示し、4 択をそのまま開きます。",
-      "画面を開いた時点のコントロールがさらに 6 個減りました。前回たたんだ 4 個に加わります。"
+      "ファイル欄 11 か所が、そのファイルに必要な行を小さな表で示します。同梱サンプルから取ったものです。",
+      "うち 6 か所は測定値ステップの外です。1 段階に 2 つ、2 段階に 1 つ、KURO に 1 つ、残り 2 つです。",
+      "表の行はサンプルから生成され、テストのたびに突き合わせるので、パーサが受け取らない形にずれません。",
+      "同梱サンプルがない 2 欄はパーサが要求する列を示します。その名前は書き写さずパーサと突き合わせます。",
+      "数値レポートと数値再測定が同じ表を出していた点を修正し、番号の付け方の違いも記します。"
     ],
-    "highlightsStamp": "0.16.47+a565326e",
+    "highlightsStamp": "0.16.48+ff7d23ff",
     "releases": {
+      "0.16.48": [
+        "ファイル欄 11 か所が、そのファイルに必要な行を小さな表で示します。同梱サンプルから取ったものです。",
+        "うち 6 か所は測定値ステップの外です。1 段階に 2 つ、2 段階に 1 つ、KURO に 1 つ、残り 2 つです。",
+        "表の行はサンプルから生成され、テストのたびに突き合わせるので、パーサが受け取らない形にずれません。",
+        "同梱サンプルがない 2 欄はパーサが要求する列を示します。その名前は書き写さずパーサと突き合わせます。",
+        "数値レポートと数値再測定が同じ表を出していた点を修正し、番号の付け方の違いも記します。"
+      ],
       "0.16.47": [
         "測定値ファイルを先に選びます。装置形式 4 種のうち 3 種はそのファイルを読んで問わずに判別します。",
         "variant ラベルのレポートは 1 次測定として受け入れて後で失敗する代わりに、確認測定の枠へ案内します。",
@@ -2884,6 +2904,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
       "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",
@@ -3467,6 +3488,8 @@
     "filePickerTitle": "Select round result xlsx files",
     "addFiles": "Add xlsx files",
     "addFilesAriaLabel": "Add round result xlsx files (Variant + activity fold-change columns required)",
+    "roundXlsxFormatTitle": "ラウンド結果 xlsx",
+    "roundXlsxFormatNote": "先頭シート、1 行目に列名。",
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",

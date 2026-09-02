@@ -10,6 +10,7 @@ import { detectFromInputDir } from "@/lib/mame/detectProjectFiles";
 import type { InputMode } from "@/store/mame/slice-interfaces";
 import { Button } from "@/components/ui/button";
 import { FileField } from "./FileField";
+import { FormatPreviewHelp } from "@/components/ui/FormatPreviewHelp";
 import { VariantColumnMapping } from "./VariantColumnMapping";
 import { Spinner } from "@/components/ui/Spinner";
 import { defaultMameExportFilename } from "@/lib/filename";
@@ -342,7 +343,19 @@ export function InputPanel() {
             stateLabel={t("mame.inputPanel.customBarcodes.stateLabel")}
             filled={Boolean(rawRunParams.customBarcodesPath)}
             helperText={t("mame.inputPanel.customBarcodes.helperText")}
-            helpText={t("mame.inputPanel.customBarcodes.helpText")}
+            help={
+              <FormatPreviewHelp
+                testId="format-preview-custom-barcodes"
+                fieldLabel={t("mame.inputPanel.customBarcodes.label")}
+                intro={t("mame.inputPanel.customBarcodes.helpText")}
+                entries={[
+                  {
+                    id: "customBarcodes",
+                    title: t("mame.inputPanel.customBarcodes.label"),
+                  },
+                ]}
+              />
+            }
             noPathLabel={noPathLabel}
             readyLabel={readyLabel}
             browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.inputPanel.customBarcodes.label") })}
@@ -370,7 +383,19 @@ export function InputPanel() {
         stateLabel={t("mame.inputPanel.kuroXlsx.stateLabel")}
         filled={Boolean(expectedPath)}
         helperText={t("mame.inputPanel.kuroXlsx.helperText")}
-        helpText={t("mame.inputPanel.kuroXlsx.helpText")}
+        help={
+          <FormatPreviewHelp
+            testId="format-preview-expected-variants"
+            fieldLabel={t("mame.inputPanel.kuroXlsx.label")}
+            intro={t("mame.inputPanel.kuroXlsx.helpText")}
+            entries={[
+              {
+                id: "expectedMutations",
+                title: t("mame.inputPanel.kuroXlsx.label"),
+              },
+            ]}
+          />
+        }
         noPathLabel={noPathLabel}
         readyLabel={readyLabel}
         browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.inputPanel.kuroXlsx.label") })}

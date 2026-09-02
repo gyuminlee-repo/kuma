@@ -569,7 +569,18 @@
       "confirmationOnlyFile": "This file is a confirmation measurement, not a primary one. Choose another file as the measurement, or file this one as the confirmation.",
       "useAsConfirmation": "File as {{format}}",
       "detectionNoMatch": "The format could not be read from this file. Choose it below.",
-      "detectionFailed": "Format detection did not run. Choose the format below."
+      "detectionFailed": "Format detection did not run. Choose the format below.",
+      "formatPreview": {
+        "heading": "File shape",
+        "trigger": "Show what a {{label}} file looks like",
+        "sourceLabel": "Sample file: {{file}}",
+        "omitted": "rows omitted",
+        "highlightNote": "The marked sample name is the one cell that tells these report formats apart.",
+        "multipleFormats": "This field takes any of these. Once a file is picked, only the matching one is shown.",
+        "requiredColumnsNote": "No sample of this file ships with the app, so the columns it must carry are listed instead of rows. The names have to match exactly."
+      },
+      "numericPrimaryNote": "ID i is the i-th variant of the whole plate, numbered in the order the design list places them.",
+      "numericConfirmationNote": "ID j counts only the variants the primary screen measured above wild type, numbered in that same plate order, and each is measured again."
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",
@@ -1242,7 +1253,8 @@
       "browse": "Browse",
       "chooseTitle": "Locate {{name}}",
       "mismatchTitle": "This may be a different file",
-      "mismatchBody": "Was {{expected}}, picked {{actual}}. Ignore this if the change is intended."
+      "mismatchBody": "Was {{expected}}, picked {{actual}}. Ignore this if the change is intended.",
+      "sequencingSummaryFormat": "Tab-separated text written by MinKNOW, column names on the first line."
     },
     "verdictDetail": {
       "openAriaLabel": "Show details for {{id}} (well {{well}})",
@@ -2158,6 +2170,7 @@
     "mutationsFailed": "({{count}} failed)",
     "topNZeroHint": "Top-N ranges from 1 to 96. Increase it to load more variants from CSV.",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
+    "evolveproFormatTitle": "EVOLVEpro prediction (csv/tsv/xlsx)",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
     "othersVariantColumnPlaceholder": "Auto-detect",
@@ -2572,14 +2585,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Choosing the measurement file comes first, and three of the four instrument formats are then identified without asking.",
-      "A variant-labeled report is offered to the confirmation slot instead of being accepted as a primary measurement and failing later.",
-      "Two format pairs that the file cannot separate are asked as two options each, never guessed.",
-      "A file that matches nothing, or a detection that fails, falls back to the full four-way choice with the reason shown.",
-      "Six fewer controls on the screen as it opens, on top of the four folded away in the previous release."
+      "Eleven file fields now open a small grid showing the rows that file needs, lifted from the sample the app ships.",
+      "Six of them are outside the measurement step: two in the first step, one in the second, one in KURO, and two more.",
+      "The rows are generated from the samples and re-checked on every test run, so a preview cannot drift from what the reader accepts.",
+      "Two fields with no bundled sample list the columns their reader requires, checked against that reader rather than transcribed.",
+      "The numeric report and the numeric recheck no longer show the same table, and each says how its numbering differs."
     ],
-    "highlightsStamp": "0.16.47+a565326e",
+    "highlightsStamp": "0.16.48+ff7d23ff",
     "releases": {
+      "0.16.48": [
+        "Eleven file fields now open a small grid showing the rows that file needs, lifted from the sample the app ships.",
+        "Six of them are outside the measurement step: two in the first step, one in the second, one in KURO, and two more.",
+        "The rows are generated from the samples and re-checked on every test run, so a preview cannot drift from what the reader accepts.",
+        "Two fields with no bundled sample list the columns their reader requires, checked against that reader rather than transcribed.",
+        "The numeric report and the numeric recheck no longer show the same table, and each says how its numbering differs."
+      ],
       "0.16.47": [
         "Choosing the measurement file comes first, and three of the four instrument formats are then identified without asking.",
         "A variant-labeled report is offered to the confirmation slot instead of being accepted as a primary measurement and failing later.",
@@ -2927,6 +2947,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
       "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",
@@ -3486,6 +3507,8 @@
     "filePickerTitle": "Select round result xlsx files",
     "addFiles": "Add xlsx files",
     "addFilesAriaLabel": "Add round result xlsx files (Variant + activity fold-change columns required)",
+    "roundXlsxFormatTitle": "Round result xlsx",
+    "roundXlsxFormatNote": "First sheet, column names on the first row.",
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
