@@ -1208,7 +1208,8 @@
       "orderSource": "順序ソース (設計 variant リストまたは plate layout のいずれか一つ)",
       "dismissError": "閉じる",
       "mismatchThreshold": "不一致しきい値",
-      "mismatchThresholdHelper": "不一致として扱い、確認までエクスポートを阻止する絶対活性差です。0より大きい値にしてください。"
+      "mismatchThresholdHelper": "不一致として扱い、確認までエクスポートを阻止する絶対活性差です。0より大きい値にしてください。",
+      "changeFile": "変更"
     },
     "verdictBadge": {
       "help": {

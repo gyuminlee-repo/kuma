@@ -1208,7 +1208,8 @@
       "orderSource": "Reihenfolgequelle (entworfene Variantenliste oder Plattenlayout, genau eine)",
       "dismissError": "Schließen",
       "mismatchThreshold": "Schwelle für Abweichungen",
-      "mismatchThresholdHelper": "Absolute Aktivitätsdifferenz, die eine Abweichung markiert und den Export bis zur Prüfung blockiert. Muss größer als null sein."
+      "mismatchThresholdHelper": "Absolute Aktivitätsdifferenz, die eine Abweichung markiert und den Export bis zur Prüfung blockiert. Muss größer als null sein.",
+      "changeFile": "Ändern"
     },
     "verdictBadge": {
       "help": {

@@ -1208,7 +1208,8 @@
       "orderSource": "Fonte de ordem (lista de variantes projetadas ou plate layout, exatamente uma)",
       "dismissError": "Fechar",
       "mismatchThreshold": "Limite de divergência",
-      "mismatchThresholdHelper": "Diferença absoluta de atividade que marca uma divergência e bloqueia a exportação até revisão. Deve ser maior que zero."
+      "mismatchThresholdHelper": "Diferença absoluta de atividade que marca uma divergência e bloqueia a exportação até revisão. Deve ser maior que zero.",
+      "changeFile": "Alterar"
     },
     "verdictBadge": {
       "help": {

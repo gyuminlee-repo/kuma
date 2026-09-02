@@ -1208,7 +1208,8 @@
       "orderSource": "Fuente de orden (lista de variantes diseñadas o plate layout, exactamente una)",
       "dismissError": "Cerrar",
       "mismatchThreshold": "Umbral de discrepancia",
-      "mismatchThresholdHelper": "Diferencia absoluta de actividad que marca una discrepancia y bloquea la exportación hasta revisarla. Debe ser mayor que cero."
+      "mismatchThresholdHelper": "Diferencia absoluta de actividad que marca una discrepancia y bloquea la exportación hasta revisarla. Debe ser mayor que cero.",
+      "changeFile": "Cambiar"
     },
     "verdictBadge": {
       "help": {

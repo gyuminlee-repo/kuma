@@ -1208,7 +1208,8 @@
       "orderSource": "Source d'ordre (liste des variants conçus ou plate layout, exactement une)",
       "dismissError": "Fermer",
       "mismatchThreshold": "Seuil de divergence",
-      "mismatchThresholdHelper": "Différence absolue d’activité qui signale une divergence et bloque l’export jusqu’à vérification. Doit être supérieure à zéro."
+      "mismatchThresholdHelper": "Différence absolue d’activité qui signale une divergence et bloque l’export jusqu’à vérification. Doit être supérieure à zéro.",
+      "changeFile": "Modifier"
     },
     "verdictBadge": {
       "help": {

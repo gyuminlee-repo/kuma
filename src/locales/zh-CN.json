@@ -1208,7 +1208,8 @@
       "orderSource": "顺序来源 (设计变体列表或 plate layout，二选一)",
       "dismissError": "关闭",
       "mismatchThreshold": "不匹配阈值",
-      "mismatchThresholdHelper": "标记不匹配并在审核前阻止导出的绝对活性差值。必须大于零。"
+      "mismatchThresholdHelper": "标记不匹配并在审核前阻止导出的绝对活性差值。必须大于零。",
+      "changeFile": "更改"
     },
     "verdictBadge": {
       "help": {

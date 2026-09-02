@@ -555,7 +555,8 @@
       "orderSource": "순서 소스 (설계 변이 목록 또는 plate layout 중 하나)",
       "dismissError": "닫기",
       "mismatchThreshold": "불일치 임계값",
-      "mismatchThresholdHelper": "불일치로 표시하고 검토 전까지 내보내기를 막는 절대 활성값 차이입니다. 0보다 커야 합니다."
+      "mismatchThresholdHelper": "불일치로 표시하고 검토 전까지 내보내기를 막는 절대 활성값 차이입니다. 0보다 커야 합니다.",
+      "changeFile": "변경"
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",

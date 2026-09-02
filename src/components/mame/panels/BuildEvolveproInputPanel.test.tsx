@@ -41,6 +41,10 @@ import type { BuildEvolveproInputResult } from "@/types/mame/build_evolvepro_inp
 import { BuildEvolveproInputPanel } from "./BuildEvolveproInputPanel";
 
 const PROJECT = "/project";
+const LABEL_SWAP_MESSAGE =
+  "Label swap detected; export blocked. Review the layout and verdict labels " +
+  "or set allow_label_mismatch=True after review.";
+const LAYOUT_LABEL = "Plate layout xlsx (optional)";
 const RESULT: BuildEvolveproInputResult = {
   output_path: "/project/activity/evolvepro_input.xlsx",
   n_variants: 3,
@@ -137,16 +141,115 @@ describe("BuildEvolveproInputPanel unified Activity-step inputs", () => {
     });
   });
 
-  it("sends reviewed-label-mismatch acknowledgement", async () => {
+  it("offers the label-mismatch acknowledgement only after the build is refused for it", async () => {
+    vi.mocked(buildEvolveproInput).mockRejectedValueOnce(new Error(LABEL_SWAP_MESSAGE));
     seed(readyForm());
     renderPanel();
 
-    fireEvent.click(screen.getByRole("checkbox", { name: "Allow reviewed label mismatch" }));
+    // Nothing to acknowledge before a refusal.
+    expect(
+      screen.queryByRole("checkbox", { name: "Allow reviewed label mismatch" }),
+    ).not.toBeInTheDocument();
+
+    await build();
+    expect(buildEvolveproInput).toHaveBeenLastCalledWith(
+      expect.objectContaining({ allow_label_mismatch: false }),
+    );
+
+    const checkbox = await screen.findByRole("checkbox", {
+      name: "Allow reviewed label mismatch",
+    });
+    expect(screen.getByRole("alert")).toContainElement(checkbox);
+
+    fireEvent.click(checkbox);
+    fireEvent.click(screen.getByRole("button", { name: "Build EVOLVEpro input" }));
+    await waitFor(() => expect(buildEvolveproInput).toHaveBeenCalledTimes(2));
+
+    expect(buildEvolveproInput).toHaveBeenLastCalledWith(
+      expect.objectContaining({ allow_label_mismatch: true }),
+    );
+  });
+
+  it("keeps the acknowledgement off an ordinary build failure", async () => {
+    vi.mocked(buildEvolveproInput).mockRejectedValueOnce(
+      new Error("Verdict sheet has no PASS rows"),
+    );
+    seed(readyForm());
+    renderPanel();
+
     await build();
 
-    expect(buildEvolveproInput).toHaveBeenCalledWith(expect.objectContaining({
-      allow_label_mismatch: true,
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("checkbox", { name: "Allow reviewed label mismatch" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("hides the mismatch threshold while no confirmation source can populate it", async () => {
+    seed(readyForm());
+    renderPanel();
+
+    expect(screen.queryByLabelText("Mismatch threshold")).not.toBeInTheDocument();
+
+    // The value is still sent, so the backend keeps behaving identically.
+    await build();
+    expect(buildEvolveproInput).toHaveBeenCalledWith(
+      expect.objectContaining({ mismatch_threshold: 0.1 }),
+    );
+  });
+
+  it("shows the mismatch threshold once a confirmation source is selected", () => {
+    seed(readyForm({
+      confirmationSource: "variantLabels",
+      remeasureReportXlsx: "/project/remeasure.xlsx",
     }));
+    renderPanel();
+
+    expect(screen.getByLabelText("Mismatch threshold")).toBeInTheDocument();
+  });
+
+  it("summarises an auto-filled verdict and output until the operator asks to change them", () => {
+    seed(readyForm());
+    renderPanel();
+
+    expect(screen.queryByLabelText("NGS verdict xlsx")).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Output EVOLVEpro xlsx" })).not.toBeInTheDocument();
+    expect(screen.getByText("verdict.xlsx")).toBeInTheDocument();
+    expect(screen.getByText("evolvepro_input.xlsx")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Change: NGS verdict xlsx" }));
+    expect(screen.getByLabelText("NGS verdict xlsx")).toHaveValue("verdict.xlsx");
+    // Only the field that was asked for opens.
+    expect(screen.queryByRole("textbox", { name: "Output EVOLVEpro xlsx" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Change: Output EVOLVEpro xlsx" }));
+    expect(screen.getByRole("textbox", { name: "Output EVOLVEpro xlsx" })).toHaveValue(
+      "evolvepro_input.xlsx",
+    );
+  });
+
+  it("shows the picker outright when the verdict or output is still empty", () => {
+    seed(readyForm({ verdictXlsx: "", outputXlsx: "" }));
+    renderPanel();
+
+    expect(screen.getByLabelText("NGS verdict xlsx")).toHaveValue("");
+    expect(screen.getByRole("textbox", { name: "Output EVOLVEpro xlsx" })).toHaveValue("");
+    // Still gated on those two inputs.
+    expect(screen.getByRole("button", { name: "Build EVOLVEpro input" })).toBeDisabled();
+  });
+
+  it("folds the optional plate layout away, and unfolds it when one is selected", () => {
+    seed(readyForm());
+    const { unmount } = renderPanel();
+
+    expect(screen.getByLabelText(LAYOUT_LABEL)).not.toBeVisible();
+    unmount();
+
+    seed(readyForm({ layoutXlsx: "/project/layout.xlsx" }));
+    renderPanel();
+
+    expect(screen.getByLabelText(LAYOUT_LABEL)).toBeVisible();
+    expect(screen.getByLabelText(LAYOUT_LABEL)).toHaveValue("layout.xlsx");
   });
 
   it.each(WELL_LABELED_FORMS)("builds %s with a layout and one selected primary source", async (_name, form, primary) => {

@@ -555,7 +555,8 @@
       "orderSource": "Order source (designed variant list or plate layout, exactly one)",
       "dismissError": "Dismiss",
       "mismatchThreshold": "Mismatch threshold",
-      "mismatchThresholdHelper": "Absolute activity difference that marks a mismatch and blocks export until reviewed. Must be greater than zero."
+      "mismatchThresholdHelper": "Absolute activity difference that marks a mismatch and blocks export until reviewed. Must be greater than zero.",
+      "changeFile": "Change"
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",

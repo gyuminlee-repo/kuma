@@ -1208,7 +1208,8 @@
       "orderSource": "順序來源 (設計變體清單或 plate layout，擇一)",
       "dismissError": "關閉",
       "mismatchThreshold": "不匹配閾值",
-      "mismatchThresholdHelper": "標記不匹配並在審核前阻止匯出的絕對活性差值。必須大於零。"
+      "mismatchThresholdHelper": "標記不匹配並在審核前阻止匯出的絕對活性差值。必須大於零。",
+      "changeFile": "變更"
     },
     "verdictBadge": {
       "help": {
