@@ -2542,14 +2542,17 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Onze campos de arquivo agora abrem uma pequena tabela com as linhas que aquele arquivo precisa, tiradas da amostra que acompanha o app.",
-      "Seis deles ficam fora da etapa de medida: dois na primeira, um na segunda, um no KURO e outros dois.",
-      "As linhas são geradas das amostras e reconferidas a cada rodada de testes, então não podem divergir do que o leitor aceita.",
-      "Dois campos sem amostra listam as colunas que seu leitor exige, conferidas contra esse leitor em vez de copiadas.",
-      "O relatório numérico e a remedição numérica não mostram mais a mesma tabela, e cada uma diz como numera."
+      "A compilação de publicação não instala mais um linter e um formatador que nunca executa, o que quebrou a versão anterior.",
+      "Bastou uma imagem de runner do macOS com seu próprio cargo-clippy para falhar uma instalação pedida e nunca chamada.",
+      "Linux e Windows já haviam compilado limpo; a publicação foi pulada por um detalhe de toolchain, não pelo aplicativo."
     ],
-    "highlightsStamp": "0.16.48+ff7d23ff",
+    "highlightsStamp": "0.16.49+76255984",
     "releases": {
+      "0.16.49": [
+        "A compilação de publicação não instala mais um linter e um formatador que nunca executa, o que quebrou a versão anterior.",
+        "Bastou uma imagem de runner do macOS com seu próprio cargo-clippy para falhar uma instalação pedida e nunca chamada.",
+        "Linux e Windows já haviam compilado limpo; a publicação foi pulada por um detalhe de toolchain, não pelo aplicativo."
+      ],
       "0.16.48": [
         "Onze campos de arquivo agora abrem uma pequena tabela com as linhas que aquele arquivo precisa, tiradas da amostra que acompanha o app.",
         "Seis deles ficam fora da etapa de medida: dois na primeira, um na segunda, um no KURO e outros dois.",
@@ -2904,6 +2907,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.49": "76255984",
       "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
       "0.16.46": "f210d215",

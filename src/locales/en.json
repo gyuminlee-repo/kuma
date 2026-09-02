@@ -2585,14 +2585,17 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Eleven file fields now open a small grid showing the rows that file needs, lifted from the sample the app ships.",
-      "Six of them are outside the measurement step: two in the first step, one in the second, one in KURO, and two more.",
-      "The rows are generated from the samples and re-checked on every test run, so a preview cannot drift from what the reader accepts.",
-      "Two fields with no bundled sample list the columns their reader requires, checked against that reader rather than transcribed.",
-      "The numeric report and the numeric recheck no longer show the same table, and each says how its numbering differs."
+      "The release build no longer installs a linter and a formatter it never runs, which is what broke the previous release.",
+      "A macOS runner image carrying its own cargo-clippy is enough to fail an install that was requested but never called.",
+      "Linux and Windows had built clean, so publishing was skipped for a toolchain detail rather than anything in the app."
     ],
-    "highlightsStamp": "0.16.48+ff7d23ff",
+    "highlightsStamp": "0.16.49+76255984",
     "releases": {
+      "0.16.49": [
+        "The release build no longer installs a linter and a formatter it never runs, which is what broke the previous release.",
+        "A macOS runner image carrying its own cargo-clippy is enough to fail an install that was requested but never called.",
+        "Linux and Windows had built clean, so publishing was skipped for a toolchain detail rather than anything in the app."
+      ],
       "0.16.48": [
         "Eleven file fields now open a small grid showing the rows that file needs, lifted from the sample the app ships.",
         "Six of them are outside the measurement step: two in the first step, one in the second, one in KURO, and two more.",
@@ -2947,6 +2950,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.49": "76255984",
       "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
       "0.16.46": "f210d215",

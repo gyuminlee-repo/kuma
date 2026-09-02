@@ -2542,14 +2542,17 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Once campos de archivo abren ahora una pequeña tabla con las filas que ese archivo necesita, tomadas de la muestra incluida.",
-      "Seis de ellos están fuera del paso de medida: dos en el primero, uno en el segundo, uno en KURO y otros dos.",
-      "Las filas se generan de las muestras y se comprueban en cada ejecución de tests, así que no pueden alejarse de lo que acepta el lector.",
-      "Dos campos sin muestra incluida enumeran las columnas que su lector exige, contrastadas con ese lector en vez de copiadas.",
-      "El informe numérico y la remedida numérica ya no muestran la misma tabla, y cada una indica cómo numera."
+      "La compilación de publicación ya no instala un linter ni un formateador que nunca ejecuta, que es lo que rompió la versión anterior.",
+      "Bastó una imagen de runner de macOS con su propio cargo-clippy para que fallara una instalación pedida y nunca invocada.",
+      "Linux y Windows habían compilado limpio; la publicación se omitió por un detalle de toolchain, no por la aplicación."
     ],
-    "highlightsStamp": "0.16.48+ff7d23ff",
+    "highlightsStamp": "0.16.49+76255984",
     "releases": {
+      "0.16.49": [
+        "La compilación de publicación ya no instala un linter ni un formateador que nunca ejecuta, que es lo que rompió la versión anterior.",
+        "Bastó una imagen de runner de macOS con su propio cargo-clippy para que fallara una instalación pedida y nunca invocada.",
+        "Linux y Windows habían compilado limpio; la publicación se omitió por un detalle de toolchain, no por la aplicación."
+      ],
       "0.16.48": [
         "Once campos de archivo abren ahora una pequeña tabla con las filas que ese archivo necesita, tomadas de la muestra incluida.",
         "Seis de ellos están fuera del paso de medida: dos en el primero, uno en el segundo, uno en KURO y otros dos.",
@@ -2904,6 +2907,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.49": "76255984",
       "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
       "0.16.46": "f210d215",

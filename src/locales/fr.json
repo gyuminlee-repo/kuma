@@ -2542,14 +2542,17 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Onze champs de fichier ouvrent désormais une petite grille montrant les lignes attendues, tirées de exemple fourni.",
-      "Six sont hors de étape de mesure : deux dans la première, un dans la deuxième, un dans KURO et deux autres.",
-      "Les lignes sont générées depuis les exemples et revérifiées à chaque test, elles ne peuvent donc pas diverger de ce que le lecteur accepte.",
-      "Deux champs sans exemple fourni listent les colonnes que leur lecteur exige, vérifiées contre ce lecteur plutôt que recopiées.",
-      "Le rapport numérique et la remesure numérique ne montrent plus la même table, et chacune indique sa numérotation."
+      "La compilation de publication n installe plus un linter et un formateur qu elle n exécute jamais, ce qui avait cassé la version précédente.",
+      "Une image de runner macOS embarquant son propre cargo-clippy a suffi à faire échouer une installation demandée et jamais appelée.",
+      "Linux et Windows avaient compilé proprement ; la publication a été sautée pour un détail de toolchain, pas pour application."
     ],
-    "highlightsStamp": "0.16.48+ff7d23ff",
+    "highlightsStamp": "0.16.49+76255984",
     "releases": {
+      "0.16.49": [
+        "La compilation de publication n installe plus un linter et un formateur qu elle n exécute jamais, ce qui avait cassé la version précédente.",
+        "Une image de runner macOS embarquant son propre cargo-clippy a suffi à faire échouer une installation demandée et jamais appelée.",
+        "Linux et Windows avaient compilé proprement ; la publication a été sautée pour un détail de toolchain, pas pour application."
+      ],
       "0.16.48": [
         "Onze champs de fichier ouvrent désormais une petite grille montrant les lignes attendues, tirées de exemple fourni.",
         "Six sont hors de étape de mesure : deux dans la première, un dans la deuxième, un dans KURO et deux autres.",
@@ -2904,6 +2907,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.49": "76255984",
       "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
       "0.16.46": "f210d215",
