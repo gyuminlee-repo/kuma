@@ -6,7 +6,8 @@ Run via:
 Outputs:
     src/data/mameFormatPreviews.generated.json
 
-Every cell comes out of `templates/`, none of it is written by hand: a copied
+Every cell comes out of a file that ships with the app (`templates/`, and one
+workbook under `src-tauri/samples/`), none of it is written by hand: a copied
 table goes stale the moment a template changes and a stale copy shows the
 operator a spreadsheet that no longer exists.
 `tests/scripts/test_mame_format_preview_drift.py` re-runs `build_previews()`

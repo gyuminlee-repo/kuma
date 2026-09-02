@@ -141,7 +141,7 @@ export function MutationInput() {
         {mutationInputMode === "evolvepro" ? (
           <FormatPreviewHelp
             testId="format-preview-evolvepro"
-            fieldLabel={t("mutationInput.mutations")}
+            fieldLabel={t("mutationInput.evolveproFormatTitle")}
             intro={t("mutationInput.mutationsHelp")}
             entries={[
               {

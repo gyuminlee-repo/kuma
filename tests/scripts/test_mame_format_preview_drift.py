@@ -1,4 +1,4 @@
-"""The checked-in step 4.1 file-shape previews still match the templates.
+"""The checked-in file-shape previews still match the files they were read from.
 
 `src/data/mameFormatPreviews.generated.json` is a snapshot of rows read out of
 `templates/`. A snapshot goes stale silently: nothing in the app rereads the
@@ -117,7 +117,7 @@ def test_every_preview_carries_rows_from_its_template(checked_in: dict[str, Any]
     assert inspected == len(EXPECTED_IDS)
 
 
-def test_block_formats_differ_only_in_the_highlighted_cell(
+def test_block_formats_are_told_apart_by_the_highlighted_cell(
     generator: Any, checked_in: dict[str, Any]
 ) -> None:
     checked = 0

@@ -1,5 +1,5 @@
 /**
- * Typed view over the generated MAME step 4.1 file-shape previews.
+ * Typed view over the generated file-shape previews.
  *
  * The JSON beside this file is written by `scripts/gen_mame_format_preview.py`
  * straight out of `templates/`, so the tables the operator reads in the panel
@@ -43,7 +43,7 @@ export interface FormatPreview {
 export const MAME_FORMAT_PREVIEWS: Readonly<Record<string, FormatPreview>> =
   generated.previews;
 
-/** Ids the panel can ask for. Verdict and output have no preview by design. */
+/** Ids a field can ask for. Verdict and output have no preview by design. */
 export type FormatPreviewId = keyof typeof generated.previews;
 
 export function getFormatPreview(id: FormatPreviewId): FormatPreview {

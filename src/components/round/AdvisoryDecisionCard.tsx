@@ -565,7 +565,7 @@ export function AdvisoryDecisionCard({
             yet needs to see them laid out, not read them in a sentence. */}
         <FormatPreviewHelp
           testId="format-preview-round-xlsx"
-          fieldLabel={t("advisoryDecision.addFiles")}
+          fieldLabel={t("advisoryDecision.roundXlsxFormatTitle")}
           columnEntries={[
             {
               id: "advisoryRoundXlsx",
