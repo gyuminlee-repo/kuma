@@ -2516,14 +2516,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "O Load Sample Data agora preenche as entradas numeric-ID, então esse caminho pode ser executado a partir da amostra.",
-      "Três arquivos incluídos ficam sem uso de propósito, e o motivo de cada um está anotado ao lado do código.",
-      "Um campo que a amostra não pode preencher agora informa isso em vez de parecer incompleto, nas duas pastas de saída.",
-      "O KURO verifica se a amostra incluída está de fato no disco e nomeia o arquivo ausente em vez de dar um erro do sidecar.",
-      "Dois comentários que descreviam comportamento inexistente foram corrigidos."
+      "O mismatch threshold aparece apenas com uma confirmation source, o único estado em que ele pode mudar um número exportado.",
+      "A confirmação de label mismatch saiu do aviso permanente e aparece na falha que ela autoriza, quando essa falha acontece.",
+      "Os caminhos de verdict e de saída já são preenchidos sozinhos e agora ocupam uma linha com botão de alterar em vez de um picker inteiro.",
+      "O plate layout picker recolhe porque é opcional, e abre sozinho quando um layout já foi escolhido.",
+      "As quatro fontes de medida continuam: cada uma lê um formato de instrumento que nenhuma das outras lê."
     ],
-    "highlightsStamp": "0.16.45+eb59dd47",
+    "highlightsStamp": "0.16.46+f210d215",
     "releases": {
+      "0.16.46": [
+        "O mismatch threshold aparece apenas com uma confirmation source, o único estado em que ele pode mudar um número exportado.",
+        "A confirmação de label mismatch saiu do aviso permanente e aparece na falha que ela autoriza, quando essa falha acontece.",
+        "Os caminhos de verdict e de saída já são preenchidos sozinhos e agora ocupam uma linha com botão de alterar em vez de um picker inteiro.",
+        "O plate layout picker recolhe porque é opcional, e abre sozinho quando um layout já foi escolhido.",
+        "As quatro fontes de medida continuam: cada uma lê um formato de instrumento que nenhuma das outras lê."
+      ],
       "0.16.45": [
         "O Load Sample Data agora preenche as entradas numeric-ID, então esse caminho pode ser executado a partir da amostra.",
         "Três arquivos incluídos ficam sem uso de propósito, e o motivo de cada um está anotado ao lado do código.",
@@ -2857,6 +2864,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",
       "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",

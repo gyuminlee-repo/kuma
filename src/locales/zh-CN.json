@@ -2516,14 +2516,21 @@
     "descriptionRange": "自 v{{from}} 以来每次更新的主要变化。",
     "gotItBtn": "知道了",
     "highlights": [
-      "Load Sample Data 现在也会填入 numeric-ID 输入，因此该分支可以用示例运行，而不只是被选中。",
-      "三个捆绑文件按设计不被使用，各自没有位置可放的原因已记录在代码旁。",
-      "示例无法填写的字段现在会说明这一点，不再像未完成的选择。已应用于两个输出文件夹。",
-      "KURO 会检查捆绑示例是否真的在磁盘上，缺失的文件会被指名，而不是表现为 sidecar 错误。",
-      "修正了两处描述已不存在行为的注释。"
+      "mismatch threshold 仅在选择 confirmation source 时显示，那是它能改变导出数值的唯一状态。",
+      "label-mismatch 确认复选框已移出常驻警告框，只在它所授权的失败真正发生时出现。",
+      "已自动填入的 verdict 与 output 路径改为一行文件名加更改按钮，不再是完整的 picker。",
+      "plate layout picker 因为可选而折叠收起，若已选定 layout 则自动展开。",
+      "四种测量数据来源保持不变，每一种读取的仪器格式其余三种都读不了。"
     ],
-    "highlightsStamp": "0.16.45+eb59dd47",
+    "highlightsStamp": "0.16.46+f210d215",
     "releases": {
+      "0.16.46": [
+        "mismatch threshold 仅在选择 confirmation source 时显示，那是它能改变导出数值的唯一状态。",
+        "label-mismatch 确认复选框已移出常驻警告框，只在它所授权的失败真正发生时出现。",
+        "已自动填入的 verdict 与 output 路径改为一行文件名加更改按钮，不再是完整的 picker。",
+        "plate layout picker 因为可选而折叠收起，若已选定 layout 则自动展开。",
+        "四种测量数据来源保持不变，每一种读取的仪器格式其余三种都读不了。"
+      ],
       "0.16.45": [
         "Load Sample Data 现在也会填入 numeric-ID 输入，因此该分支可以用示例运行，而不只是被选中。",
         "三个捆绑文件按设计不被使用，各自没有位置可放的原因已记录在代码旁。",
@@ -2857,6 +2864,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",
       "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",
