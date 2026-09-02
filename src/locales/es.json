@@ -1209,7 +1209,20 @@
       "dismissError": "Cerrar",
       "mismatchThreshold": "Umbral de discrepancia",
       "mismatchThresholdHelper": "Diferencia absoluta de actividad que marca una discrepancia y bloquea la exportación hasta revisarla. Debe ser mayor que cero.",
-      "changeFile": "Cambiar"
+      "changeFile": "Cambiar",
+      "measurementFile": "Archivo de medición",
+      "measurementFileHelper": "Elegir primero el archivo. El formato se lee del propio archivo. Acepta csv, xlsx y xls.",
+      "detectingFormat": "Leyendo el archivo para determinar su formato...",
+      "detectedFormat": "Detectado: {{format}}",
+      "selectedFormat": "Formato: {{format}}",
+      "chooseBetweenFormats": "Este archivo se lee como dos formatos y nada en él indica cuál. Elegir uno.",
+      "ambiguityGcVsLongFormat": "Una hoja GC prenormalizada significa que los valores ya son relativos al wild type. Long-format activity significa que están tal como se midieron.",
+      "ambiguityNumericRound": "Numeric-ID screen indica la primera medición de esta ronda. La confirmación numeric-ID indica una remedición que la sustituye.",
+      "ambiguityGeneric": "Ambos formatos leen este archivo. Elegir el que corresponda a cómo se midió la serie.",
+      "confirmationOnlyFile": "Este archivo es una medición de confirmación, no una primaria. Elegir otro archivo como medición, o registrar este como confirmación.",
+      "useAsConfirmation": "Registrar como {{format}}",
+      "detectionNoMatch": "No se pudo leer el formato de este archivo. Elegirlo abajo.",
+      "detectionFailed": "La detección de formato no se ejecutó. Elegir el formato abajo."
     },
     "verdictBadge": {
       "help": {

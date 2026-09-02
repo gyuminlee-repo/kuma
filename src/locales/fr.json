@@ -1209,7 +1209,20 @@
       "dismissError": "Fermer",
       "mismatchThreshold": "Seuil de divergence",
       "mismatchThresholdHelper": "Différence absolue d’activité qui signale une divergence et bloque l’export jusqu’à vérification. Doit être supérieure à zéro.",
-      "changeFile": "Modifier"
+      "changeFile": "Modifier",
+      "measurementFile": "Fichier de mesure",
+      "measurementFileHelper": "Choisir d'abord le fichier. Le format est lu dans le fichier lui-même. Accepte csv, xlsx et xls.",
+      "detectingFormat": "Lecture du fichier pour en déterminer le format...",
+      "detectedFormat": "Détecté : {{format}}",
+      "selectedFormat": "Format : {{format}}",
+      "chooseBetweenFormats": "Ce fichier se lit selon deux formats et rien n'y indique lequel. En choisir un.",
+      "ambiguityGcVsLongFormat": "Une feuille GC prénormalisée signifie que les valeurs sont déjà relatives au wild type. Long-format activity signifie qu'elles sont telles que mesurées.",
+      "ambiguityNumericRound": "Numeric-ID screen désigne la première mesure de ce cycle. La confirmation numeric-ID désigne une remesure qui la remplace.",
+      "ambiguityGeneric": "Les deux formats lisent ce fichier. Choisir celui qui correspond à la mesure réelle.",
+      "confirmationOnlyFile": "Ce fichier est une mesure de confirmation, pas une mesure primaire. Choisir un autre fichier comme mesure, ou classer celui-ci comme confirmation.",
+      "useAsConfirmation": "Classer comme {{format}}",
+      "detectionNoMatch": "Le format n'a pas pu être lu dans ce fichier. Le choisir ci-dessous.",
+      "detectionFailed": "La détection de format n'a pas eu lieu. Choisir le format ci-dessous."
     },
     "verdictBadge": {
       "help": {

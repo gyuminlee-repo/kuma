@@ -236,9 +236,13 @@ def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any]) -> Mea
         # consumers call the same parser on the same file and differ only in
         # the order source the caller hands over afterwards, so the file cannot
         # settle this and neither can this detector.
+        # Function names only.  A line number here would be a runtime string
+        # that goes stale the moment `numeric_id_decode.py` shifts by a line,
+        # breaking assertions that have nothing to do with detection.  The
+        # module docstring above carries the line references.
         evidence["numeric_namespace_consumers"] = [
-            "decode_primary_screen (numeric_id_decode.py:323)",
-            "decode_confirmation_against (numeric_id_decode.py:411)",
+            "decode_primary_screen",
+            "decode_confirmation_against",
         ]
         evidence["ambiguity"] = (
             "both consumers call parse_agilent_block_rep_batch on this file; "

@@ -1209,7 +1209,20 @@
       "dismissError": "關閉",
       "mismatchThreshold": "不匹配閾值",
       "mismatchThresholdHelper": "標記不匹配並在審核前阻止匯出的絕對活性差值。必須大於零。",
-      "changeFile": "變更"
+      "changeFile": "變更",
+      "measurementFile": "測量檔案",
+      "measurementFileHelper": "請先選擇檔案。格式會從檔案內容讀取。支援 csv、xlsx 與 xls。",
+      "detectingFormat": "正在讀取檔案以判別格式...",
+      "detectedFormat": "已偵測: {{format}}",
+      "selectedFormat": "格式: {{format}}",
+      "chooseBetweenFormats": "此檔案可用兩種格式讀取，檔案本身並未說明是哪一種。請選擇其一。",
+      "ambiguityGcVsLongFormat": "已正規化的 GC 工作表表示數值已是相對於 wild type 的比值。Long-format activity 表示數值為實測原值。",
+      "ambiguityNumericRound": "數字 ID screen 表示這是本輪的首次測量。數字 ID 確認測量表示這是覆蓋首次測量的重測。",
+      "ambiguityGeneric": "兩種格式都能讀取此檔案。請選擇與實際測量方式相符的一種。",
+      "confirmationOnlyFile": "此檔案是確認測量，而非首次測量。請另選一個檔案作為測量檔案，或將此檔案放入確認測量位置。",
+      "useAsConfirmation": "作為 {{format}} 登錄",
+      "detectionNoMatch": "無法從此檔案讀取格式。請於下方自行選擇。",
+      "detectionFailed": "格式判別未執行。請於下方選擇格式。"
     },
     "verdictBadge": {
       "help": {

@@ -556,7 +556,20 @@
       "dismissError": "닫기",
       "mismatchThreshold": "불일치 임계값",
       "mismatchThresholdHelper": "불일치로 표시하고 검토 전까지 내보내기를 막는 절대 활성값 차이입니다. 0보다 커야 합니다.",
-      "changeFile": "변경"
+      "changeFile": "변경",
+      "measurementFile": "측정 파일",
+      "measurementFileHelper": "파일을 먼저 고르십시오. 형식은 파일 내용에서 읽습니다. csv, xlsx, xls 를 받습니다.",
+      "detectingFormat": "파일을 읽어 형식을 판별하는 중입니다...",
+      "detectedFormat": "감지: {{format}}",
+      "selectedFormat": "형식: {{format}}",
+      "chooseBetweenFormats": "이 파일은 두 형식으로 모두 읽히고 파일 안에는 어느 쪽인지 적혀 있지 않습니다. 하나를 고르십시오.",
+      "ambiguityGcVsLongFormat": "정규화된 GC 시트는 값이 이미 wild type 대비 상대값이라는 뜻입니다. Long-format activity 는 측정된 값 그대로라는 뜻입니다.",
+      "ambiguityNumericRound": "숫자 ID screen 은 이 라운드의 1차 측정이라는 뜻입니다. 숫자 ID 확인 측정은 1차 측정을 덮어쓰는 재측정이라는 뜻입니다.",
+      "ambiguityGeneric": "두 형식 모두 이 파일을 읽습니다. 실제 측정 방식에 맞는 쪽을 고르십시오.",
+      "confirmationOnlyFile": "이 파일은 확인 측정이고 1차 측정이 아닙니다. 측정 파일로 다른 파일을 고르거나 이 파일을 확인 측정 자리에 넣으십시오.",
+      "useAsConfirmation": "{{format}} 로 넣기",
+      "detectionNoMatch": "이 파일에서는 형식을 읽지 못했습니다. 아래에서 직접 고르십시오.",
+      "detectionFailed": "형식 판별이 실행되지 않았습니다. 아래에서 형식을 고르십시오."
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",

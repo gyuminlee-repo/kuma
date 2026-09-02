@@ -1209,7 +1209,20 @@
       "dismissError": "关闭",
       "mismatchThreshold": "不匹配阈值",
       "mismatchThresholdHelper": "标记不匹配并在审核前阻止导出的绝对活性差值。必须大于零。",
-      "changeFile": "更改"
+      "changeFile": "更改",
+      "measurementFile": "测量文件",
+      "measurementFileHelper": "请先选择文件。格式将从文件内容中读取。支持 csv、xlsx 和 xls。",
+      "detectingFormat": "正在读取文件以判别格式...",
+      "detectedFormat": "已检测: {{format}}",
+      "selectedFormat": "格式: {{format}}",
+      "chooseBetweenFormats": "该文件可按两种格式读取，文件本身并未说明是哪一种。请选择其一。",
+      "ambiguityGcVsLongFormat": "已归一化的 GC 表意味着数值已是相对于 wild type 的比值。Long-format activity 意味着数值为实测原值。",
+      "ambiguityNumericRound": "数字 ID screen 表示这是本轮的首次测量。数字 ID 确认测量表示这是覆盖首次测量的复测。",
+      "ambiguityGeneric": "两种格式都能读取该文件。请选择与实际测量方式相符的一种。",
+      "confirmationOnlyFile": "该文件是确认测量，而非首次测量。请另选一个文件作为测量文件，或将该文件放入确认测量位置。",
+      "useAsConfirmation": "作为 {{format}} 登记",
+      "detectionNoMatch": "无法从该文件读取格式。请在下方自行选择。",
+      "detectionFailed": "格式判别未执行。请在下方选择格式。"
     },
     "verdictBadge": {
       "help": {

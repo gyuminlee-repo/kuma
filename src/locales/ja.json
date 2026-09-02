@@ -1209,7 +1209,20 @@
       "dismissError": "閉じる",
       "mismatchThreshold": "不一致しきい値",
       "mismatchThresholdHelper": "不一致として扱い、確認までエクスポートを阻止する絶対活性差です。0より大きい値にしてください。",
-      "changeFile": "変更"
+      "changeFile": "変更",
+      "measurementFile": "測定ファイル",
+      "measurementFileHelper": "先にファイルを選んでください。形式はファイルの内容から読み取ります。csv、xlsx、xls に対応します。",
+      "detectingFormat": "ファイルを読み込んで形式を判別しています...",
+      "detectedFormat": "検出: {{format}}",
+      "selectedFormat": "形式: {{format}}",
+      "chooseBetweenFormats": "このファイルは 2 つの形式として読めますが、どちらかはファイル内に書かれていません。1 つ選んでください。",
+      "ambiguityGcVsLongFormat": "正規化済み GC シートは値がすでに wild type 比であることを意味します。Long-format activity は測定値そのままであることを意味します。",
+      "ambiguityNumericRound": "数値 ID screen はこのラウンドの 1 回目の測定を意味します。数値 ID 確認測定はそれを上書きする再測定を意味します。",
+      "ambiguityGeneric": "どちらの形式でもこのファイルを読めます。実際の測定方法に合う方を選んでください。",
+      "confirmationOnlyFile": "このファイルは確認測定であり、1 次測定ではありません。測定ファイルには別のファイルを選ぶか、このファイルを確認測定の枠に入れてください。",
+      "useAsConfirmation": "{{format}} として登録",
+      "detectionNoMatch": "このファイルからは形式を読み取れませんでした。下で選んでください。",
+      "detectionFailed": "形式の判別が実行されませんでした。下で形式を選んでください。"
     },
     "verdictBadge": {
       "help": {

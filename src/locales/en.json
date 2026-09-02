@@ -556,7 +556,20 @@
       "dismissError": "Dismiss",
       "mismatchThreshold": "Mismatch threshold",
       "mismatchThresholdHelper": "Absolute activity difference that marks a mismatch and blocks export until reviewed. Must be greater than zero.",
-      "changeFile": "Change"
+      "changeFile": "Change",
+      "measurementFile": "Measurement file",
+      "measurementFileHelper": "Pick the file first. Its format is read from the file itself. Accepts csv, xlsx and xls.",
+      "detectingFormat": "Reading the file to tell its format...",
+      "detectedFormat": "Detected: {{format}}",
+      "selectedFormat": "Format: {{format}}",
+      "chooseBetweenFormats": "This file reads as two formats and nothing in it says which. Choose one.",
+      "ambiguityGcVsLongFormat": "Pre-normalized GC sheet means the values are already relative to the wild type. Long-format activity means they are as measured.",
+      "ambiguityNumericRound": "Numeric-ID screen means this is the first measurement of the round. Numeric-ID confirmation means it is a re-measurement that overrides one.",
+      "ambiguityGeneric": "Both formats read this file. Choose the one that matches how the run was measured.",
+      "confirmationOnlyFile": "This file is a confirmation measurement, not a primary one. Choose another file as the measurement, or file this one as the confirmation.",
+      "useAsConfirmation": "File as {{format}}",
+      "detectionNoMatch": "The format could not be read from this file. Choose it below.",
+      "detectionFailed": "Format detection did not run. Choose the format below."
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",

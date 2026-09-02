@@ -100,10 +100,13 @@ def test_numeric_block_file_is_exactly_two_candidates() -> None:
     assert LONG_FORMAT not in result.candidates
     assert result.ambiguous is True
     assert result.reason == ""
-    assert result.evidence["numeric_namespace_consumers"] == [
-        "decode_primary_screen (numeric_id_decode.py:323)",
-        "decode_confirmation_against (numeric_id_decode.py:411)",
-    ]
+    # Named by function, not by line: a line number would tie this assertion
+    # to the layout of an unrelated file.  Both consumers must still be named,
+    # so dropping one still fails.
+    consumers = result.evidence["numeric_namespace_consumers"]
+    assert any("decode_primary_screen" in entry for entry in consumers)
+    assert any("decode_confirmation_against" in entry for entry in consumers)
+    assert len(consumers) == 2
     assert "parse_agilent_block_rep_batch" in result.evidence["ambiguity"]
 
 
