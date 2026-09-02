@@ -19,7 +19,7 @@ import {
   openPreview,
   previewTriggerIds,
   renderedRows,
-} from "@/components/ui/formatPreviewTestUtils";
+} from "@/test-utils/formatPreview";
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn(), save: vi.fn() }));
 vi.mock("@/hooks/useAutosaveHydration", () => ({ applyMameAutoDetect: vi.fn() }));

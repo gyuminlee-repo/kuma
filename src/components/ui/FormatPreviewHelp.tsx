@@ -20,6 +20,12 @@
  * is the wild-type block every one of them carries. The window that matters is
  * the first non-wild-type block, and inside it the sample name cell, which is
  * marked.
+ *
+ * The locale keys this file reads still sit under `mame.buildEvolvepro`, where
+ * they were written when only step 4.1 had a preview, so KURO now reads a MAME
+ * key. Moving them means re-stamping ten locale files and the step 4.1 tests
+ * for no change on screen; fold it into the next round of locale work rather
+ * than paying it on its own.
  */
 import { useTranslation } from "react-i18next";
 import { InfoPopover } from "@/components/ui/InfoPopover";

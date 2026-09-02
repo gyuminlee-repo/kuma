@@ -13,7 +13,7 @@ import {
   openPreview,
   previewTriggerIds,
   renderedRows,
-} from "@/components/ui/formatPreviewTestUtils";
+} from "@/test-utils/formatPreview";
 
 const mockRpc = vi.hoisted(() => vi.fn());
 const mockRegisterArtifacts = vi.hoisted(() => vi.fn());

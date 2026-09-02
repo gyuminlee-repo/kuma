@@ -6,6 +6,12 @@
  * into a test? Written once here so that a test cannot quietly compare against
  * a hand-copied expectation, which is the exact failure the preview exists to
  * prevent.
+ *
+ * Outside `components/` on purpose. This file imports `@testing-library`, and
+ * everything under `components/ui/` is a control that renders on screen, so a
+ * later reader would have had no reason to suspect that importing it drags a
+ * test library into the production bundle. Test scaffolding lives at the top
+ * of `src/`, beside `test-setup.ts`.
  */
 import { screen, within, fireEvent } from "@testing-library/react";
 import {

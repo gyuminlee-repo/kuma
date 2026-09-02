@@ -19,7 +19,7 @@ import {
   openPreview,
   previewTriggerIds,
   renderedRows,
-} from "@/components/ui/formatPreviewTestUtils";
+} from "@/test-utils/formatPreview";
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn() }));
 vi.mock("../../../lib/file-utils", () => ({ browseFile: vi.fn() }));

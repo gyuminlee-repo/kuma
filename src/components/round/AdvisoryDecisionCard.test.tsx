@@ -29,7 +29,7 @@ import {
   openPreview,
   previewTriggerIds,
   renderedColumns,
-} from "@/components/ui/formatPreviewTestUtils";
+} from "@/test-utils/formatPreview";
 import { AdvisoryDecisionCard } from "./AdvisoryDecisionCard";
 
 describe("AdvisoryDecisionCard", () => {
