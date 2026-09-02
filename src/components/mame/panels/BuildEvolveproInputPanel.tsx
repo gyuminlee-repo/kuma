@@ -10,6 +10,7 @@
  */
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { mkdir } from "@tauri-apps/plugin-fs";
@@ -104,6 +105,12 @@ export function BuildEvolveproInputPanel() {
   );
   const [isBuilding, setIsBuilding] = useState(false);
   const [allowLabelMismatch, setAllowLabelMismatch] = useState(false);
+  // Verdict and output are both auto-filled, so they render as one-line
+  // summaries until the operator asks to change them. Kept out of the `form`
+  // reset effect below: that effect also fires on the auto-fill writes, which
+  // would collapse a picker the operator has just opened.
+  const [showVerdictPicker, setShowVerdictPicker] = useState(false);
+  const [showOutputPicker, setShowOutputPicker] = useState(false);
   const [buildError, setBuildError] = useState<string | null>(null);
   const [result, setResult] = useState<BuildEvolveproInputResult | null>(null);
   const resetEpoch = useMameAppStore((s) => s.resetEpoch);
@@ -113,6 +120,13 @@ export function BuildEvolveproInputPanel() {
   );
   const formRef = useRef(form);
   const formGenerationRef = useRef(0);
+  // Plate layout is optional in every branch, so it starts folded away. A
+  // layout that is already selected (restored, seeded, or just browsed) is
+  // never hidden from the operator.
+  const [layoutOpen, setLayoutOpen] = useState(() => Boolean(form.layoutXlsx));
+  useEffect(() => {
+    if (form.layoutXlsx) setLayoutOpen(true);
+  }, [form.layoutXlsx]);
 
   useEffect(() => {
     const loaded = loadFromStorage(project?.path);
@@ -400,6 +414,11 @@ export function BuildEvolveproInputPanel() {
     }
   }
 
+  // Backend refusal wording (kuma_core/mame/activity/build_evolvepro_input.py
+  // and python-core/sidecar_mame/handlers/activity.py both start with it).
+  const isLabelSwapError =
+    buildError !== null && buildError.includes("Label swap detected");
+
   function handleMissingClick(fieldId: string) {
     const field = document.getElementById(fieldId);
     if (!field) return;
@@ -495,25 +514,31 @@ export function BuildEvolveproInputPanel() {
                 selected={form.activityScale}
                 onSelect={(v) => setForm({ activityScale: v as FormState["activityScale"] })}
               />
-              <FilePickerField
-                id="bep-layout"
-                label={`${t("mame.buildEvolvepro.layoutXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
-                filled={Boolean(form.layoutXlsx)}
-                value={form.layoutXlsx}
-                onBrowse={() => browseXlsx("layoutXlsx", t("mame.buildEvolvepro.layoutXlsx"))}
-                helperText={t("mame.buildEvolvepro.layoutXlsxOptionalHelper")}
-              />
+              <LayoutDisclosure open={layoutOpen} onOpenChange={setLayoutOpen}>
+                <FilePickerField
+                  id="bep-layout"
+                  label={`${t("mame.buildEvolvepro.layoutXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
+                  filled={Boolean(form.layoutXlsx)}
+                  value={form.layoutXlsx}
+                  onBrowse={() => browseXlsx("layoutXlsx", t("mame.buildEvolvepro.layoutXlsx"))}
+                  helperText={t("mame.buildEvolvepro.layoutXlsxOptionalHelper")}
+                  optional
+                />
+              </LayoutDisclosure>
             </>
           ) : (
             <>
-              <FilePickerField
-                id="bep-layout"
-                label={`${t("mame.buildEvolvepro.layoutXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
-                filled={Boolean(form.layoutXlsx)}
-                value={form.layoutXlsx}
-                onBrowse={() => browseXlsx("layoutXlsx", t("mame.buildEvolvepro.layoutXlsx"))}
-                helperText={t("mame.buildEvolvepro.layoutXlsxHelper")}
-              />
+              <LayoutDisclosure open={layoutOpen} onOpenChange={setLayoutOpen}>
+                <FilePickerField
+                  id="bep-layout"
+                  label={`${t("mame.buildEvolvepro.layoutXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
+                  filled={Boolean(form.layoutXlsx)}
+                  value={form.layoutXlsx}
+                  onBrowse={() => browseXlsx("layoutXlsx", t("mame.buildEvolvepro.layoutXlsx"))}
+                  helperText={t("mame.buildEvolvepro.layoutXlsxHelper")}
+                  optional
+                />
+              </LayoutDisclosure>
               {form.primarySource === "numericReport" ? (
                 <FilePickerField
                   id="bep-numeric"
@@ -538,29 +563,6 @@ export function BuildEvolveproInputPanel() {
               )}
             </>
           )}
-
-          <div className="space-y-1">
-            <Label htmlFor="bep-mismatch-threshold">
-              {t("mame.buildEvolvepro.mismatchThreshold")}
-            </Label>
-            <Input
-              id="bep-mismatch-threshold"
-              type="number"
-              min={0.001}
-              step={0.01}
-              value={form.mismatchThreshold}
-              onChange={(event) => {
-                const value = Number(event.target.value);
-                if (Number.isFinite(value) && value > 0) {
-                  setForm({ mismatchThreshold: value });
-                }
-              }}
-              aria-describedby="bep-mismatch-threshold-help"
-            />
-            <p id="bep-mismatch-threshold-help" className="text-xs text-muted-foreground">
-              {t("mame.buildEvolvepro.mismatchThresholdHelper")}
-            </p>
-          </div>
 
           {buildEvolveproNeedsOrderSource(form) && (
             <FilePickerField
@@ -607,14 +609,51 @@ export function BuildEvolveproInputPanel() {
             />
           )}
 
-          <FilePickerField
-            id="bep-verdict"
-            label={t("mame.buildEvolvepro.verdictXlsx")}
-            filled={Boolean(form.verdictXlsx)}
-            value={form.verdictXlsx}
-            onBrowse={() => browseXlsx("verdictXlsx", t("mame.buildEvolvepro.verdictXlsx"))}
-            helperText={t("mame.buildEvolvepro.verdictXlsxHelper")}
-          />
+          {/* Only a confirmation source fills the authoritative side of the
+              merge, so with no confirmation this threshold can never flag
+              anything. The value itself is kept and still sent. */}
+          {form.confirmationSource !== "none" && (
+            <div className="space-y-1">
+              <Label htmlFor="bep-mismatch-threshold">
+                {t("mame.buildEvolvepro.mismatchThreshold")}
+              </Label>
+              <Input
+                id="bep-mismatch-threshold"
+                type="number"
+                min={0.001}
+                step={0.01}
+                value={form.mismatchThreshold}
+                onChange={(event) => {
+                  const value = Number(event.target.value);
+                  if (Number.isFinite(value) && value > 0) {
+                    setForm({ mismatchThreshold: value });
+                  }
+                }}
+                aria-describedby="bep-mismatch-threshold-help"
+              />
+              <p id="bep-mismatch-threshold-help" className="text-xs text-muted-foreground">
+                {t("mame.buildEvolvepro.mismatchThresholdHelper")}
+              </p>
+            </div>
+          )}
+
+          {form.verdictXlsx && !showVerdictPicker ? (
+            <FileSummaryRow
+              id="bep-verdict"
+              label={t("mame.buildEvolvepro.verdictXlsx")}
+              value={form.verdictXlsx}
+              onChange={() => setShowVerdictPicker(true)}
+            />
+          ) : (
+            <FilePickerField
+              id="bep-verdict"
+              label={t("mame.buildEvolvepro.verdictXlsx")}
+              filled={Boolean(form.verdictXlsx)}
+              value={form.verdictXlsx}
+              onBrowse={() => browseXlsx("verdictXlsx", t("mame.buildEvolvepro.verdictXlsx"))}
+              helperText={t("mame.buildEvolvepro.verdictXlsxHelper")}
+            />
+          )}
         </div>
       </section>
 
@@ -626,51 +665,62 @@ export function BuildEvolveproInputPanel() {
           {t("mame.buildEvolvepro.outputXlsx")}
         </h3>
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between gap-3">
-            <span className="inline-flex items-center gap-1.5">
-              <Label
-                htmlFor="bep-output-path"
-                className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-              >
-                {t("mame.buildEvolvepro.outputXlsx")}
-              </Label>
-              <InlineHelp text={t("mame.buildEvolvepro.outputXlsxHelper")} />
-            </span>
-            <span
-              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                form.outputXlsx
-                  ? "bg-primary/10 text-primary"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {form.outputXlsx
-                ? t("mame.inputPanel.fileReady")
-                : t("mame.buildEvolvepro.requiredStateLabel")}
-            </span>
-          </div>
-          <div className="flex gap-1.5">
-            <Input
+          {form.outputXlsx && !showOutputPicker ? (
+            <FileSummaryRow
               id="bep-output-path"
-              value={getFilename(form.outputXlsx)}
-              readOnly
-              placeholder={t("mame.buildEvolvepro.noOutputSelected")}
-              className="h-8 flex-1 min-w-0 text-xs font-mono"
-              aria-label={t("mame.buildEvolvepro.outputXlsx")}
-              title={form.outputXlsx || undefined}
+              label={t("mame.buildEvolvepro.outputXlsx")}
+              value={form.outputXlsx}
+              onChange={() => setShowOutputPicker(true)}
             />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => void browseOutput()}
-              className="h-8 gap-1 px-2"
-            >
-              <FolderOpen size={12} aria-hidden="true" />
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground/90">
-            {t("mame.buildEvolvepro.outputXlsxHelper")}
-          </p>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-1.5">
+                  <Label
+                    htmlFor="bep-output-path"
+                    className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                  >
+                    {t("mame.buildEvolvepro.outputXlsx")}
+                  </Label>
+                  <InlineHelp text={t("mame.buildEvolvepro.outputXlsxHelper")} />
+                </span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    form.outputXlsx
+                      ? "bg-primary/10 text-primary"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {form.outputXlsx
+                    ? t("mame.inputPanel.fileReady")
+                    : t("mame.buildEvolvepro.requiredStateLabel")}
+                </span>
+              </div>
+              <div className="flex gap-1.5">
+                <Input
+                  id="bep-output-path"
+                  value={getFilename(form.outputXlsx)}
+                  readOnly
+                  placeholder={t("mame.buildEvolvepro.noOutputSelected")}
+                  className="h-8 flex-1 min-w-0 text-xs font-mono"
+                  aria-label={t("mame.buildEvolvepro.outputXlsx")}
+                  title={form.outputXlsx || undefined}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void browseOutput()}
+                  className="h-8 gap-1 px-2"
+                >
+                  <FolderOpen size={12} aria-hidden="true" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground/90">
+                {t("mame.buildEvolvepro.outputXlsxHelper")}
+              </p>
+            </>
+          )}
           {collidingRound && (
             <p
               role="status"
@@ -717,6 +767,31 @@ export function BuildEvolveproInputPanel() {
         >
           <p className="font-medium">{t("mame.buildEvolvepro.toastError")}</p>
           <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{buildError}</p>
+          {/* The acknowledgement only exists to clear this one refusal, so it
+              is offered where the refusal is reported rather than standing on
+              the form for every build. */}
+          {isLabelSwapError && (
+            <div className="mt-2 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+              <input
+                id="bep-allow-label-mismatch"
+                type="checkbox"
+                checked={allowLabelMismatch}
+                onChange={(event) => setAllowLabelMismatch(event.target.checked)}
+                className="mt-0.5 h-4 w-4 cursor-pointer accent-primary"
+              />
+              <div>
+                <Label
+                  htmlFor="bep-allow-label-mismatch"
+                  className="cursor-pointer text-xs font-medium text-foreground"
+                >
+                  {t("mame.buildEvolvepro.allowLabelMismatch")}
+                </Label>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("mame.buildEvolvepro.allowLabelMismatchHelper")}
+                </p>
+              </div>
+            </div>
+          )}
           <Button
             type="button"
             variant="outline"
@@ -728,29 +803,6 @@ export function BuildEvolveproInputPanel() {
           </Button>
         </div>
       )}
-
-      <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2">
-        <div className="flex items-start gap-2">
-          <input
-            id="bep-allow-label-mismatch"
-            type="checkbox"
-            checked={allowLabelMismatch}
-            onChange={(event) => setAllowLabelMismatch(event.target.checked)}
-            className="mt-0.5 h-4 w-4 cursor-pointer accent-primary"
-          />
-          <div>
-            <Label
-              htmlFor="bep-allow-label-mismatch"
-              className="cursor-pointer text-xs font-medium text-foreground"
-            >
-              {t("mame.buildEvolvepro.allowLabelMismatch")}
-            </Label>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {t("mame.buildEvolvepro.allowLabelMismatchHelper")}
-            </p>
-          </div>
-        </div>
-      </div>
 
       <Button
         type="button"
@@ -890,6 +942,73 @@ function BuildResult({ result }: { result: BuildEvolveproInputResult }) {
         {t("mame.buildEvolvepro.openFolder")}
       </Button>
     </section>
+  );
+}
+
+/** Folded container for an input that is optional in every branch. */
+function LayoutDisclosure({
+  open,
+  onOpenChange,
+  children,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: ReactNode;
+}) {
+  const { t } = useTranslation();
+  return (
+    <details
+      className="rounded-md border border-border px-3 py-2"
+      open={open}
+      onToggle={(event) => onOpenChange(event.currentTarget.open)}
+    >
+      <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {`${t("mame.buildEvolvepro.layoutXlsx")} (${t("mame.buildEvolvepro.optionalLabel")})`}
+      </summary>
+      <div className="mt-2">{children}</div>
+    </details>
+  );
+}
+
+/**
+ * One-line stand-in for a file field that is already filled in for the
+ * operator. `id` stays on the focusable button so the "Still needed" jump
+ * targets keep working if the field is ever both filled and reported.
+ */
+function FileSummaryRow({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: () => void;
+}) {
+  const { t } = useTranslation();
+  const changeLabel = t("mame.buildEvolvepro.changeFile");
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <p
+        className="min-w-0 flex-1 truncate text-xs text-muted-foreground"
+        title={value || undefined}
+      >
+        <span className="font-medium uppercase tracking-wide">{label}</span>{" "}
+        <span className="font-mono text-foreground">{getFilename(value)}</span>
+      </p>
+      <Button
+        id={id}
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-7 shrink-0 px-2 text-xs"
+        aria-label={`${changeLabel}: ${label}`}
+        onClick={onChange}
+      >
+        {changeLabel}
+      </Button>
+    </div>
   );
 }
 

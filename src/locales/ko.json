@@ -555,7 +555,8 @@
       "orderSource": "순서 소스 (설계 변이 목록 또는 plate layout 중 하나)",
       "dismissError": "닫기",
       "mismatchThreshold": "불일치 임계값",
-      "mismatchThresholdHelper": "불일치로 표시하고 검토 전까지 내보내기를 막는 절대 활성값 차이입니다. 0보다 커야 합니다."
+      "mismatchThresholdHelper": "불일치로 표시하고 검토 전까지 내보내기를 막는 절대 활성값 차이입니다. 0보다 커야 합니다.",
+      "changeFile": "변경"
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",
@@ -2558,14 +2559,21 @@
     "descriptionRange": "v{{from}} 이후 모든 업데이트의 주요 변경 사항입니다.",
     "gotItBtn": "확인",
     "highlights": [
-      "Load Sample Data 가 numeric-ID 입력까지 채워, 그 분기를 고르기만 하는 것이 아니라 샘플로 실행할 수 있습니다.",
-      "번들 파일 3개는 의도적으로 쓰이지 않으며, 각각 넣을 자리가 없는 이유를 코드 옆에 적어 두었습니다.",
-      "샘플이 채울 수 없는 칸이 미완성처럼 보이지 않고 그 사실을 알립니다. 출력 폴더 두 곳에 적용했습니다.",
-      "KURO 가 번들 샘플이 실제로 디스크에 있는지 확인해, 없는 파일을 sidecar 오류 대신 이름으로 알립니다.",
-      "더 이상 존재하지 않는 동작을 설명하던 주석 2건을 바로잡았습니다."
+      "mismatch threshold 는 confirmation source 를 골랐을 때만 나타납니다. 내보내는 숫자를 바꿀 수 있는 유일한 상태입니다.",
+      "label-mismatch 승인 체크박스가 상시 경고 상자에서 빠졌습니다. 이제 그것이 승인하는 실패가 실제로 났을 때 나타납니다.",
+      "이미 자동으로 채워지는 verdict 와 output 경로는 전체 picker 대신 파일명 한 줄과 변경 버튼으로 표시됩니다.",
+      "plate layout picker 는 선택 입력이라 접혀 있고 이미 고른 layout 이 있으면 스스로 펼쳐집니다.",
+      "측정값 소스 4가지는 그대로입니다. 각각 나머지로는 읽을 수 없는 장비 형식을 읽습니다."
     ],
-    "highlightsStamp": "0.16.45+eb59dd47",
+    "highlightsStamp": "0.16.46+f210d215",
     "releases": {
+      "0.16.46": [
+        "mismatch threshold 는 confirmation source 를 골랐을 때만 나타납니다. 내보내는 숫자를 바꿀 수 있는 유일한 상태입니다.",
+        "label-mismatch 승인 체크박스가 상시 경고 상자에서 빠졌습니다. 이제 그것이 승인하는 실패가 실제로 났을 때 나타납니다.",
+        "이미 자동으로 채워지는 verdict 와 output 경로는 전체 picker 대신 파일명 한 줄과 변경 버튼으로 표시됩니다.",
+        "plate layout picker 는 선택 입력이라 접혀 있고 이미 고른 layout 이 있으면 스스로 펼쳐집니다.",
+        "측정값 소스 4가지는 그대로입니다. 각각 나머지로는 읽을 수 없는 장비 형식을 읽습니다."
+      ],
       "0.16.45": [
         "Load Sample Data 가 numeric-ID 입력까지 채워, 그 분기를 고르기만 하는 것이 아니라 샘플로 실행할 수 있습니다.",
         "번들 파일 3개는 의도적으로 쓰이지 않으며, 각각 넣을 자리가 없는 이유를 코드 옆에 적어 두었습니다.",
@@ -2899,6 +2907,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",
       "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",

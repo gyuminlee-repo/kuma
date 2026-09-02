@@ -555,7 +555,8 @@
       "orderSource": "Order source (designed variant list or plate layout, exactly one)",
       "dismissError": "Dismiss",
       "mismatchThreshold": "Mismatch threshold",
-      "mismatchThresholdHelper": "Absolute activity difference that marks a mismatch and blocks export until reviewed. Must be greater than zero."
+      "mismatchThresholdHelper": "Absolute activity difference that marks a mismatch and blocks export until reviewed. Must be greater than zero.",
+      "changeFile": "Change"
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",
@@ -2558,14 +2559,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Load Sample Data now fills the numeric-ID inputs, so that branch can be run from the sample rather than only selected.",
-      "Three bundled files stay unused on purpose, and the reason each one has nowhere to go is recorded beside the code.",
-      "A field sample data cannot fill now says so instead of looking like an unfinished pick, on both output folders.",
-      "KURO checks that a bundled sample is really on disk, so a missing file is named rather than surfacing as a sidecar error.",
-      "Two comments describing behaviour that no longer exists were corrected."
+      "The mismatch threshold appears only with a confirmation source, the one state where it can change an exported number.",
+      "The label-mismatch acknowledgement moved out of its permanent warning box and into the failure it authorises.",
+      "Verdict and output paths, filled automatically already, read as one line with a change button instead of a full picker.",
+      "The plate layout picker folds away because it is optional, and opens by itself when a layout is already chosen.",
+      "All four measurement sources stay: each reads an instrument format that none of the others can."
     ],
-    "highlightsStamp": "0.16.45+eb59dd47",
+    "highlightsStamp": "0.16.46+f210d215",
     "releases": {
+      "0.16.46": [
+        "The mismatch threshold appears only with a confirmation source, the one state where it can change an exported number.",
+        "The label-mismatch acknowledgement moved out of its permanent warning box and into the failure it authorises.",
+        "Verdict and output paths, filled automatically already, read as one line with a change button instead of a full picker.",
+        "The plate layout picker folds away because it is optional, and opens by itself when a layout is already chosen.",
+        "All four measurement sources stay: each reads an instrument format that none of the others can."
+      ],
       "0.16.45": [
         "Load Sample Data now fills the numeric-ID inputs, so that branch can be run from the sample rather than only selected.",
         "Three bundled files stay unused on purpose, and the reason each one has nowhere to go is recorded beside the code.",
@@ -2899,6 +2907,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",
       "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",

@@ -1208,7 +1208,8 @@
       "orderSource": "順序來源 (設計變體清單或 plate layout，擇一)",
       "dismissError": "關閉",
       "mismatchThreshold": "不匹配閾值",
-      "mismatchThresholdHelper": "標記不匹配並在審核前阻止匯出的絕對活性差值。必須大於零。"
+      "mismatchThresholdHelper": "標記不匹配並在審核前阻止匯出的絕對活性差值。必須大於零。",
+      "changeFile": "變更"
     },
     "verdictBadge": {
       "help": {
@@ -2515,14 +2516,21 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "Load Sample Data 現在也會填入 numeric-ID 輸入，因此該分支可以用範例執行，而不只是被選取。",
-      "三個隨附檔案按設計不被使用，各自沒有位置可放的原因已記錄在程式碼旁。",
-      "範例無法填寫的欄位現在會說明這一點，不再像未完成的選擇。已套用於兩個輸出資料夾。",
-      "KURO 會檢查隨附範例是否真的在磁碟上，缺少的檔案會被指名，而不是表現為 sidecar 錯誤。",
-      "修正了兩處描述已不存在行為的註解。"
+      "mismatch threshold 僅在選擇 confirmation source 時顯示，那是它能改變匯出數值的唯一狀態。",
+      "label-mismatch 確認核取方塊已移出常駐警告框，只在它所授權的失敗真正發生時出現。",
+      "已自動填入的 verdict 與 output 路徑改為一行檔名加變更按鈕，不再是完整的 picker。",
+      "plate layout picker 因為可選而摺疊收起，若已選定 layout 則自動展開。",
+      "四種測量資料來源維持不變，每一種讀取的儀器格式其餘三種都讀不了。"
     ],
-    "highlightsStamp": "0.16.45+eb59dd47",
+    "highlightsStamp": "0.16.46+f210d215",
     "releases": {
+      "0.16.46": [
+        "mismatch threshold 僅在選擇 confirmation source 時顯示，那是它能改變匯出數值的唯一狀態。",
+        "label-mismatch 確認核取方塊已移出常駐警告框，只在它所授權的失敗真正發生時出現。",
+        "已自動填入的 verdict 與 output 路徑改為一行檔名加變更按鈕，不再是完整的 picker。",
+        "plate layout picker 因為可選而摺疊收起，若已選定 layout 則自動展開。",
+        "四種測量資料來源維持不變，每一種讀取的儀器格式其餘三種都讀不了。"
+      ],
       "0.16.45": [
         "Load Sample Data 現在也會填入 numeric-ID 輸入，因此該分支可以用範例執行，而不只是被選取。",
         "三個隨附檔案按設計不被使用，各自沒有位置可放的原因已記錄在程式碼旁。",
@@ -2856,6 +2864,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",
       "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",

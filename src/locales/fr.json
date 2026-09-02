@@ -1208,7 +1208,8 @@
       "orderSource": "Source d'ordre (liste des variants conçus ou plate layout, exactement une)",
       "dismissError": "Fermer",
       "mismatchThreshold": "Seuil de divergence",
-      "mismatchThresholdHelper": "Différence absolue d’activité qui signale une divergence et bloque l’export jusqu’à vérification. Doit être supérieure à zéro."
+      "mismatchThresholdHelper": "Différence absolue d’activité qui signale une divergence et bloque l’export jusqu’à vérification. Doit être supérieure à zéro.",
+      "changeFile": "Modifier"
     },
     "verdictBadge": {
       "help": {
@@ -2515,14 +2516,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Load Sample Data remplit désormais les entrées numeric-ID, cette voie peut donc être exécutée depuis l'exemple.",
-      "Trois fichiers fournis restent inutilisés à dessein, et la raison de chacun est notée à côté du code.",
-      "Un champ que l'exemple ne peut pas remplir l'indique au lieu de sembler inachevé, dans les deux dossiers de sortie.",
-      "KURO vérifie que l'exemple fourni est bien présent et nomme le fichier absent au lieu d'un message d'erreur du sidecar.",
-      "Deux commentaires décrivant un comportement disparu ont été corrigés."
+      "Le mismatch threshold apparaît uniquement avec une confirmation source, le seul état où il peut modifier une valeur exportée.",
+      "La validation du label mismatch quitte son encadré permanent et apparaît dans le échec qu elle autorise, une fois cet échec survenu.",
+      "Les chemins verdict et de sortie sont déjà remplis automatiquement et tiennent désormais sur une ligne avec un bouton de modification.",
+      "Le plate layout picker se replie parce qu il est optionnel, et s ouvre de lui-même quand un layout est déjà choisi.",
+      "Les quatre sources de mesure restent : chacune lit un format d instrument que les autres ne savent pas lire."
     ],
-    "highlightsStamp": "0.16.45+eb59dd47",
+    "highlightsStamp": "0.16.46+f210d215",
     "releases": {
+      "0.16.46": [
+        "Le mismatch threshold apparaît uniquement avec une confirmation source, le seul état où il peut modifier une valeur exportée.",
+        "La validation du label mismatch quitte son encadré permanent et apparaît dans le échec qu elle autorise, une fois cet échec survenu.",
+        "Les chemins verdict et de sortie sont déjà remplis automatiquement et tiennent désormais sur une ligne avec un bouton de modification.",
+        "Le plate layout picker se replie parce qu il est optionnel, et s ouvre de lui-même quand un layout est déjà choisi.",
+        "Les quatre sources de mesure restent : chacune lit un format d instrument que les autres ne savent pas lire."
+      ],
       "0.16.45": [
         "Load Sample Data remplit désormais les entrées numeric-ID, cette voie peut donc être exécutée depuis l'exemple.",
         "Trois fichiers fournis restent inutilisés à dessein, et la raison de chacun est notée à côté du code.",
@@ -2856,6 +2864,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",
       "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",

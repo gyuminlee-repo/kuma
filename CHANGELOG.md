@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.16.46 (Step 4.1 shows the controls that are doing something)
+
+Step 4.1 rendered every control it owns at all times, and four of them do nothing in the state the screen opens in. Each one is folded away rather than removed, so no branch of the measurement builder lost a capability.
+
+The mismatch threshold reaches a comparison that needs two measurements of the same variant. The second measurement arrives only with a confirmation source, so at the default of none the field cannot move any exported number. It now appears with the confirmation file it belongs to, and it is still transmitted on every build, so the request the sidecar receives is unchanged.
+
+The label-mismatch acknowledgement sat in a permanent amber box asking for approval of an exception that had not happened. It now appears inside the failure it authorises, after a build is actually refused for a label swap, where there is something to review. Approval still resets whenever any input changes, so it can never carry across a different set of files.
+
+The verdict workbook and the output destination are both filled automatically already, one from the active round and one from the project. A filled path now reads as a single line naming the file with a button to change it, and an empty one still opens the full picker. The warning about writing over another round output is untouched.
+
+The plate layout file is optional on every branch, because the verdict workbook names the same wells when no layout is given. It moved into a section that stays folded, and a layout that is already chosen opens that section rather than hiding behind it.
+
+Counted on the screen as it opens, twenty-four interactive controls became twenty. The four measurement sources stay as they are. Each reads an instrument format the others cannot, and dropping one would take a workflow away rather than simplify it.
+
+### Highlights
+
+- The mismatch threshold appears only with a confirmation source, the one state where it can change an exported number.
+- The label-mismatch acknowledgement moved out of its permanent warning box and into the failure it authorises.
+- Verdict and output paths, filled automatically already, read as one line with a change button instead of a full picker.
+- The plate layout picker folds away because it is optional, and opens by itself when a layout is already chosen.
+- All four measurement sources stay: each reads an instrument format that none of the others can.
+
 ## v0.16.45 (Load Sample Data fills what it can and explains what it cannot)
 
 Load Sample Data referenced thirteen of the eighteen bundled MAME files. Two of the five it skipped have their own form fields, so the numeric-ID branch could be selected but never demonstrated, and the template documentation claimed the loader filled it. Both are now seeded, the primary numeric report and its confirmation report. Selecting an order source is not affected: that requirement applies only when a numeric branch is chosen, and the default state is unchanged.

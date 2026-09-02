@@ -1208,7 +1208,8 @@
       "orderSource": "Fuente de orden (lista de variantes diseñadas o plate layout, exactamente una)",
       "dismissError": "Cerrar",
       "mismatchThreshold": "Umbral de discrepancia",
-      "mismatchThresholdHelper": "Diferencia absoluta de actividad que marca una discrepancia y bloquea la exportación hasta revisarla. Debe ser mayor que cero."
+      "mismatchThresholdHelper": "Diferencia absoluta de actividad que marca una discrepancia y bloquea la exportación hasta revisarla. Debe ser mayor que cero.",
+      "changeFile": "Cambiar"
     },
     "verdictBadge": {
       "help": {
@@ -2515,14 +2516,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Load Sample Data ahora rellena las entradas numeric-ID, así esa vía se puede ejecutar desde la muestra y no solo elegir.",
-      "Tres archivos incluidos quedan sin usar a propósito, y el motivo de cada uno está anotado junto al código.",
-      "Un campo que la muestra no puede rellenar ahora lo indica en vez de parecer incompleto, en ambas carpetas de salida.",
-      "KURO comprueba que la muestra incluida esté realmente en disco y nombra el archivo ausente en lugar de dar un error del sidecar.",
-      "Se corrigieron dos comentarios que describían un comportamiento ya inexistente."
+      "El mismatch threshold aparece solo con una confirmation source, el único estado en el que puede cambiar una cifra exportada.",
+      "La confirmación de label mismatch sale del aviso permanente y aparece en el fallo que autoriza, cuando ese fallo ocurre.",
+      "Las rutas de verdict y de salida ya se rellenan solas y ahora se muestran como una línea con botón de cambio en vez de un picker completo.",
+      "El plate layout picker se pliega porque es opcional, y se abre solo cuando ya hay un layout elegido.",
+      "Las cuatro fuentes de medida siguen ahí: cada una lee un formato de instrumento que ninguna otra puede leer."
     ],
-    "highlightsStamp": "0.16.45+eb59dd47",
+    "highlightsStamp": "0.16.46+f210d215",
     "releases": {
+      "0.16.46": [
+        "El mismatch threshold aparece solo con una confirmation source, el único estado en el que puede cambiar una cifra exportada.",
+        "La confirmación de label mismatch sale del aviso permanente y aparece en el fallo que autoriza, cuando ese fallo ocurre.",
+        "Las rutas de verdict y de salida ya se rellenan solas y ahora se muestran como una línea con botón de cambio en vez de un picker completo.",
+        "El plate layout picker se pliega porque es opcional, y se abre solo cuando ya hay un layout elegido.",
+        "Las cuatro fuentes de medida siguen ahí: cada una lee un formato de instrumento que ninguna otra puede leer."
+      ],
       "0.16.45": [
         "Load Sample Data ahora rellena las entradas numeric-ID, así esa vía se puede ejecutar desde la muestra y no solo elegir.",
         "Tres archivos incluidos quedan sin usar a propósito, y el motivo de cada uno está anotado junto al código.",
@@ -2856,6 +2864,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",
       "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",
