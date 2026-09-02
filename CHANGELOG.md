@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.16.47 (Step 4.1 reads the format off the file)
+
+Step 4.1 asked which of four instrument formats a measurement file was, and only then offered the picker for that branch. The order is reversed. One file picker comes first, and the format is read from the file that was chosen.
+
+Three of the four are settled without a question. A csv is long-format. An Agilent block file announces itself with a signal row, and its sample names say which kind it is: plate wells, position numbers, or variant short forms. The last of those is not a primary measurement at all, because the raw-report reader refuses a sample name that is not a well. That file now gets offered to the confirmation slot it belongs in, instead of being accepted and then failing at build time.
+
+Two pairs are never guessed. A flat sheet of sample names and areas is also a valid long-format file, and the two readings differ in what they do with wild type. A file whose sample names are position numbers is either the primary screen or the numeric recheck, and both are decoded by the same reader. Each pair is offered as two options with the difference spelled out.
+
+What separates those pairs is not in the file. Whether a flat sheet is already relative to wild type, and whether a numeric file is the screen or the recheck, are things the round knows. Guessing either one changes an exported number without saying so, so both stay as questions. The activity scale control stays for the same reason.
+
+Detection never stands in the way. A file that matches nothing, or a call that fails, falls back to the full four-way choice with the reason shown, and the change button reopens all four from any state.
+
+Counted on the screen as it opens, six fewer controls than the previous release. The four-way choice appears only when the operator asks for it, and the scale question waits until there is a file for it to describe.
+
+### Highlights
+
+- Choosing the measurement file comes first, and three of the four instrument formats are then identified without asking.
+- A variant-labeled report is offered to the confirmation slot instead of being accepted as a primary measurement and failing later.
+- Two format pairs that the file cannot separate are asked as two options each, never guessed.
+- A file that matches nothing, or a detection that fails, falls back to the full four-way choice with the reason shown.
+- Six fewer controls on the screen as it opens, on top of the four folded away in the previous release.
+
 ## v0.16.46 (Step 4.1 shows the controls that are doing something)
 
 Step 4.1 rendered every control it owns at all times, and four of them do nothing in the state the screen opens in. Each one is folded away rather than removed, so no branch of the measurement builder lost a capability.

@@ -2529,14 +2529,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El mismatch threshold aparece solo con una confirmation source, el único estado en el que puede cambiar una cifra exportada.",
-      "La confirmación de label mismatch sale del aviso permanente y aparece en el fallo que autoriza, cuando ese fallo ocurre.",
-      "Las rutas de verdict y de salida ya se rellenan solas y ahora se muestran como una línea con botón de cambio en vez de un picker completo.",
-      "El plate layout picker se pliega porque es opcional, y se abre solo cuando ya hay un layout elegido.",
-      "Las cuatro fuentes de medida siguen ahí: cada una lee un formato de instrumento que ninguna otra puede leer."
+      "El archivo de medida se elige primero, y tres de los cuatro formatos de instrumento se identifican luego sin preguntar.",
+      "Un informe con etiquetas de variante se ofrece a la ranura de confirmación, en vez de aceptarse como medida primaria y fallar después.",
+      "Los dos pares de formatos que el archivo no puede separar se preguntan como dos opciones cada uno, nunca se adivinan.",
+      "Si un archivo no encaja en ningún formato o la detección falla, aparece el motivo y la elección completa de cuatro.",
+      "Seis controles menos en la pantalla al abrirla, sumados a los cuatro plegados en la versión anterior."
     ],
-    "highlightsStamp": "0.16.46+f210d215",
+    "highlightsStamp": "0.16.47+a565326e",
     "releases": {
+      "0.16.47": [
+        "El archivo de medida se elige primero, y tres de los cuatro formatos de instrumento se identifican luego sin preguntar.",
+        "Un informe con etiquetas de variante se ofrece a la ranura de confirmación, en vez de aceptarse como medida primaria y fallar después.",
+        "Los dos pares de formatos que el archivo no puede separar se preguntan como dos opciones cada uno, nunca se adivinan.",
+        "Si un archivo no encaja en ningún formato o la detección falla, aparece el motivo y la elección completa de cuatro.",
+        "Seis controles menos en la pantalla al abrirla, sumados a los cuatro plegados en la versión anterior."
+      ],
       "0.16.46": [
         "El mismatch threshold aparece solo con una confirmation source, el único estado en el que puede cambiar una cifra exportada.",
         "La confirmación de label mismatch sale del aviso permanente y aparece en el fallo que autoriza, cuando ese fallo ocurre.",
@@ -2877,6 +2884,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.47": "a565326e",
       "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",
       "0.16.44": "77881f90",
