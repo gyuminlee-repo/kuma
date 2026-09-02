@@ -269,10 +269,16 @@ jobs:
         shell: bash
 
       # --- Rust ---
+      # No components. This job compiles the app; clippy and rustfmt run in
+      # ci.yml, and nothing here invokes either. Asking for them made the
+      # release depend on a component install that has nothing to do with the
+      # build, and on 2026-09-02 that dependency broke it: a macOS runner image
+      # shipping its own cargo-clippy turned the install into "detected
+      # conflict: 'bin/cargo-clippy'" and took the whole v0.16.48 release down
+      # with it, after Linux and Windows had already built clean.
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "1.88.0"
-          components: clippy, rustfmt
 
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4  # v2.9.1
         with:

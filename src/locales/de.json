@@ -2542,14 +2542,17 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Elf Dateifelder öffnen jetzt ein kleines Raster mit den Zeilen, die diese Datei braucht, entnommen der mitgelieferten Probe.",
-      "Sechs davon liegen außerhalb des Messschritts: zwei im ersten, eines im zweiten, eines in KURO und zwei weitere.",
-      "Die Zeilen werden aus den Proben erzeugt und bei jedem Testlauf neu geprüft, also können sie nicht von dem abweichen, was der Parser annimmt.",
-      "Zwei Felder ohne mitgelieferte Probe zeigen die Spalten, die ihr Parser verlangt, gegen diesen Parser geprüft statt abgeschrieben.",
-      "Numerischer Bericht und numerische Nachmessung zeigen nicht länger dieselbe Tabelle, und jede nennt ihre Nummerierung."
+      "Der Release-Build installiert keinen Linter und keinen Formatter mehr, die er nie ausführt. Genau daran scheiterte das letzte Release.",
+      "Ein macOS-Runner-Image mit eigenem cargo-clippy genügte, um eine Installation scheitern zu lassen, die angefordert und nie aufgerufen wurde.",
+      "Linux und Windows hatten sauber gebaut; die Veröffentlichung entfiel wegen eines Toolchain-Details, nicht wegen der App."
     ],
-    "highlightsStamp": "0.16.48+ff7d23ff",
+    "highlightsStamp": "0.16.49+76255984",
     "releases": {
+      "0.16.49": [
+        "Der Release-Build installiert keinen Linter und keinen Formatter mehr, die er nie ausführt. Genau daran scheiterte das letzte Release.",
+        "Ein macOS-Runner-Image mit eigenem cargo-clippy genügte, um eine Installation scheitern zu lassen, die angefordert und nie aufgerufen wurde.",
+        "Linux und Windows hatten sauber gebaut; die Veröffentlichung entfiel wegen eines Toolchain-Details, nicht wegen der App."
+      ],
       "0.16.48": [
         "Elf Dateifelder öffnen jetzt ein kleines Raster mit den Zeilen, die diese Datei braucht, entnommen der mitgelieferten Probe.",
         "Sechs davon liegen außerhalb des Messschritts: zwei im ersten, eines im zweiten, eines in KURO und zwei weitere.",
@@ -2904,6 +2907,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.49": "76255984",
       "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
       "0.16.46": "f210d215",

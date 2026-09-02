@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.16.49 (Stop the release build installing a linter it never runs)
+
+The v0.16.48 release build compiled on all three platforms and then failed anyway. The macOS job asked its Rust toolchain for clippy and rustfmt, the runner image had arrived carrying its own cargo-clippy, and the install refused with a file conflict. Linux and Windows had already finished clean. Publishing waits on all three, so it was skipped and no release appeared for a tag that was already pushed.
+
+Neither component was ever used in that job. It compiles the app; linting and formatting run in the other workflow. The request was there without a caller, which made publishing depend on a toolchain detail with no bearing on the build, and one runner image change was enough to turn that into a failed release.
+
+The request is gone and the reason sits in the file, so the next person reading it learns what the components cost rather than only that they were removed.
+
+### Highlights
+
+- The release build no longer installs a linter and a formatter it never runs, which is what broke the previous release.
+- A macOS runner image carrying its own cargo-clippy is enough to fail an install that was requested but never called.
+- Linux and Windows had built clean, so publishing was skipped for a toolchain detail rather than anything in the app.
+
 ## v0.16.48 (Every file field shows the file it wants)
 
 A field that asks for a workbook used to describe it in a sentence. Eleven of them now carry a question mark that opens the thing itself: a few rows lifted from the sample the app already ships, drawn as a small grid the way a spreadsheet would show them.
