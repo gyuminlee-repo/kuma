@@ -1229,8 +1229,11 @@
         "sourceLabel": "サンプルファイル: {{file}}",
         "omitted": "省略された行",
         "highlightNote": "印を付けた sample name が、これらのレポート形式を見分ける唯一のセルです。",
-        "multipleFormats": "この項目は以下のいずれも受け付けます。ファイルを選ぶと該当する形式だけが残ります。"
-      }
+        "multipleFormats": "この項目は以下のいずれも受け付けます。ファイルを選ぶと該当する形式だけが残ります。",
+        "requiredColumnsNote": "このファイルのサンプルはアプリに同梱されていないため、行ではなく必須の列名を示す。名称は完全に一致する必要がある。"
+      },
+      "numericPrimaryNote": "ID i は、設計リストの順にプレート全体へ番号を振ったときの i 番目のバリアントである。",
+      "numericConfirmationNote": "ID j は一次スクリーンで野生型を上回ったバリアントだけを同じプレート順で番号付けしたもので、それぞれを再測定する。"
     },
     "verdictBadge": {
       "help": {
@@ -1250,7 +1253,8 @@
       "browse": "参照",
       "chooseTitle": "{{name}} を指定",
       "mismatchTitle": "別のファイルの可能性があります",
-      "mismatchBody": "元: {{expected}}、選択: {{actual}}。意図した変更なら無視してください。"
+      "mismatchBody": "元: {{expected}}、選択: {{actual}}。意図した変更なら無視してください。",
+      "sequencingSummaryFormat": "MinKNOW が出力するタブ区切りテキスト。1 行目に列名。"
     },
     "verdictDetail": {
       "openAriaLabel": "Show details for {{id}} (well {{well}})",
@@ -2135,6 +2139,7 @@
     "mutationsFailed": "({{count}} 失敗)",
     "topNZeroHint": "Top-Nの範囲は1～96です。CSVからより多くのバリアントを読み込むには値を増やしてください。",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
+    "evolveproFormatTitle": "EVOLVEpro 予測 (csv/tsv/xlsx)",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
     "othersVariantColumnPlaceholder": "Auto-detect",
@@ -3475,6 +3480,8 @@
     "filePickerTitle": "Select round result xlsx files",
     "addFiles": "Add xlsx files",
     "addFilesAriaLabel": "Add round result xlsx files (Variant + activity fold-change columns required)",
+    "roundXlsxFormatTitle": "ラウンド結果 xlsx",
+    "roundXlsxFormatNote": "先頭シート、1 行目に列名。",
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",

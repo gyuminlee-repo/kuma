@@ -1,13 +1,14 @@
 /**
  * FileField — shared file/folder picker row used across MAME input panels.
  *
- * Layout: label (+ optional `?` InlineHelp) + status badge (Ready/Optional),
+ * Layout: label (+ one optional `?`) + status badge (Ready/Optional),
  * a full-path text input with a Browse button, an optional helper line, and a
  * truncated basename preview (full path on hover). Single source of truth so
  * every MAME picker (MinKNOW run folder, barcode seeds, CDS FASTA, output dir,
  * export destination) renders identically.
  */
 
+import type { ReactNode } from "react";
 import { FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,7 @@ export function FileField({
   filled,
   helperText,
   helpText,
+  help,
   noPathLabel,
   readyLabel,
   browseAriaLabel,
@@ -43,7 +45,15 @@ export function FileField({
   stateLabel: string;
   filled: boolean;
   helperText?: string;
+  /** One-string help, shown only when no richer `help` control is given. */
   helpText?: string;
+  /**
+   * Help that is more than one string, such as a table of the file shape. It
+   * replaces `helpText` rather than joining it: two "?" buttons side by side
+   * give the reader no way to tell which one answers their question, so a
+   * field with both folds the sentence into the richer control.
+   */
+  help?: ReactNode;
   noPathLabel: string;
   readyLabel: string;
   browseAriaLabel?: string;
@@ -55,12 +65,15 @@ export function FileField({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-3">
-        <Label htmlFor={inputId} className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5">
+        {/* The help control is a sibling of the label, never inside it: a
+            button inside a <label> is not allowed there, and clicking it would
+            also focus the input. */}
+        <span className="inline-flex items-center gap-1.5">
+          <Label htmlFor={inputId} className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
             {label}
-            {helpText && <InlineHelp text={helpText} />}
-          </span>
-        </Label>
+          </Label>
+          {help ?? (helpText && <InlineHelp text={helpText} />)}
+        </span>
         <span
           className={`rounded-full px-2 py-0.5 text-caption font-medium ${
             filled

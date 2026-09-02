@@ -54,6 +54,7 @@ import {
 } from "@/lib/round/roundArtifacts";
 import { useRoundStore } from "@/store/round/roundSlice";
 import { Button } from "@/components/ui/button";
+import { FormatPreviewHelp } from "@/components/ui/FormatPreviewHelp";
 import { InlineHelp } from "@/components/ui/InlineHelp";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -559,6 +560,20 @@ export function AdvisoryDecisionCard({
           <FileSpreadsheet size={12} aria-hidden="true" />
           {t("advisoryDecision.addFiles")}
         </Button>
+        {/* Beside the button rather than in its label: the aria-label already
+            names the two columns, and a reader who has not built the workbook
+            yet needs to see them laid out, not read them in a sentence. */}
+        <FormatPreviewHelp
+          testId="format-preview-round-xlsx"
+          fieldLabel={t("advisoryDecision.addFiles")}
+          columnEntries={[
+            {
+              id: "advisoryRoundXlsx",
+              title: t("advisoryDecision.roundXlsxFormatTitle"),
+              note: t("advisoryDecision.roundXlsxFormatNote"),
+            },
+          ]}
+        />
         {roundFiles.length > 0 && (
           <Button
             type="button"

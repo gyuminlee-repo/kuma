@@ -1229,8 +1229,11 @@
         "sourceLabel": "Пример файла: {{file}}",
         "omitted": "пропущенные строки",
         "highlightNote": "Отмеченная ячейка Sample Name является единственной, которая различает эти форматы отчётов.",
-        "multipleFormats": "Это поле принимает любой из них. После выбора файла остаётся только подходящий формат."
-      }
+        "multipleFormats": "Это поле принимает любой из них. После выбора файла остаётся только подходящий формат.",
+        "requiredColumnsNote": "Приложение не содержит образца этого файла, поэтому вместо строк перечислены обязательные столбцы. Названия должны совпадать точно."
+      },
+      "numericPrimaryNote": "ID i обозначает i-й вариант всей плашки, пронумерованной в порядке проектного списка.",
+      "numericConfirmationNote": "ID j нумерует только варианты, превысившие дикий тип в первичном скрининге, в том же порядке плашки, и каждый измеряется повторно."
     },
     "verdictBadge": {
       "help": {
@@ -1250,7 +1253,8 @@
       "browse": "Обзор",
       "chooseTitle": "Указать {{name}}",
       "mismatchTitle": "Возможно, это другой файл",
-      "mismatchBody": "Было {{expected}}, выбрано {{actual}}. Игнорируйте, если замена намеренная."
+      "mismatchBody": "Было {{expected}}, выбрано {{actual}}. Игнорируйте, если замена намеренная.",
+      "sequencingSummaryFormat": "Текст с разделителями-табуляциями от MinKNOW, названия столбцов в первой строке."
     },
     "verdictDetail": {
       "openAriaLabel": "Show details for {{id}} (well {{well}})",
@@ -2135,6 +2139,7 @@
     "mutationsFailed": "({{count}} failed)",
     "topNZeroHint": "Top-N может быть от 1 до 96. Увеличьте его, чтобы загрузить больше вариантов из CSV.",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
+    "evolveproFormatTitle": "Прогноз EVOLVEpro (csv/tsv/xlsx)",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
     "othersVariantColumnPlaceholder": "Auto-detect",
@@ -3475,6 +3480,8 @@
     "filePickerTitle": "Select round result xlsx files",
     "addFiles": "Add xlsx files",
     "addFilesAriaLabel": "Add round result xlsx files (Variant + activity fold-change columns required)",
+    "roundXlsxFormatTitle": "xlsx с результатами раунда",
+    "roundXlsxFormatNote": "Первый лист, названия столбцов в первой строке.",
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",

@@ -34,7 +34,7 @@ import { InlineHelp } from "@/components/ui/InlineHelp";
 import {
   FormatPreviewHelp,
   type FormatPreviewEntry,
-} from "@/components/mame/panels/FormatPreviewHelp";
+} from "@/components/ui/FormatPreviewHelp";
 import { Label } from "@/components/ui/label";
 import type {
   BuildEvolveproInputParams,
@@ -482,16 +482,25 @@ export function BuildEvolveproInputPanel() {
   // settled the field accepts any of the four, and which one the operator
   // holds is exactly the open question, so all four are shown. Once the format
   // is settled the other three are noise.
+  // The numeric screen and the numeric confirmation are the same file shape
+  // read against different numbering, which no table can show, so that one
+  // difference is stated in words beside each of them.
+  const previewNote = (source: MeasurementSource): string | undefined =>
+    source === "numericReport"
+      ? t("mame.buildEvolvepro.numericPrimaryNote")
+      : undefined;
   const measurementPreviews: FormatPreviewEntry[] = showSummary
     ? [
         {
           id: form.primarySource,
           title: t(SOURCE_LABEL[form.primarySource]),
+          note: previewNote(form.primarySource),
         },
       ]
     : PRIMARY_SOURCE_ORDER.map((source) => ({
         id: source,
         title: t(SOURCE_LABEL[source]),
+        note: previewNote(source),
       }));
 
   const missing: { label: string; fieldId: string }[] = [];
@@ -961,6 +970,7 @@ export function BuildEvolveproInputPanel() {
                     {
                       id: "confirmationNumericIds",
                       title: t("mame.buildEvolvepro.confirmationSourceNumericIds"),
+                      note: t("mame.buildEvolvepro.numericConfirmationNote"),
                     },
                   ]}
                 />

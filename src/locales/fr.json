@@ -1229,8 +1229,11 @@
         "sourceLabel": "Fichier d'exemple : {{file}}",
         "omitted": "lignes omises",
         "highlightNote": "Le Sample Name marqué est la seule cellule qui distingue ces formats de rapport.",
-        "multipleFormats": "Ce champ accepte chacun d'eux. Une fois le fichier choisi, seul le format correspondant reste."
-      }
+        "multipleFormats": "Ce champ accepte chacun d'eux. Une fois le fichier choisi, seul le format correspondant reste.",
+        "requiredColumnsNote": "L'application ne fournit aucun exemple de ce fichier, les colonnes exigées sont donc listées à la place des lignes. Les noms doivent correspondre exactement."
+      },
+      "numericPrimaryNote": "L'ID i désigne la i-ème variante de la plaque entière, numérotée dans l'ordre de la liste de conception.",
+      "numericConfirmationNote": "L'ID j ne numérote que les variantes mesurées au-dessus du type sauvage lors du criblage primaire, dans ce même ordre de plaque, et chacune est remesurée."
     },
     "verdictBadge": {
       "help": {
@@ -1250,7 +1253,8 @@
       "browse": "Parcourir",
       "chooseTitle": "Localiser {{name}}",
       "mismatchTitle": "Il peut s agir d un fichier different",
-      "mismatchBody": "Etait {{expected}}, choisi {{actual}}. Ignorez si le changement est voulu."
+      "mismatchBody": "Etait {{expected}}, choisi {{actual}}. Ignorez si le changement est voulu.",
+      "sequencingSummaryFormat": "Texte séparé par des tabulations produit par MinKNOW, noms de colonnes sur la première ligne."
     },
     "verdictDetail": {
       "openAriaLabel": "Show details for {{id}} (well {{well}})",
@@ -2135,6 +2139,7 @@
     "mutationsFailed": "({{count}} échouées)",
     "topNZeroHint": "Top-N va de 1 à 96. Augmentez-le pour charger davantage de variants depuis CSV.",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
+    "evolveproFormatTitle": "Prédiction EVOLVEpro (csv/tsv/xlsx)",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
     "othersVariantColumnPlaceholder": "Auto-detect",
@@ -3475,6 +3480,8 @@
     "filePickerTitle": "Select round result xlsx files",
     "addFiles": "Add xlsx files",
     "addFilesAriaLabel": "Add round result xlsx files (Variant + activity fold-change columns required)",
+    "roundXlsxFormatTitle": "xlsx de résultats de cycle",
+    "roundXlsxFormatNote": "Première feuille, noms de colonnes sur la première ligne.",
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",

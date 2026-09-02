@@ -41,6 +41,7 @@ import type { GenerateMamePackageParams, MamePackageResult } from "@/types/mame/
 import { validateGenerateBarcodePackage } from "@/store/validation";
 import { AdvancedSection } from "@/components/ui/AdvancedSection";
 import { FileField } from "./FileField";
+import { FormatPreviewHelp } from "@/components/ui/FormatPreviewHelp";
 
 // ─── localStorage 영속화 ─────────────────────────────────────────────────────
 
@@ -641,6 +642,18 @@ export function BarcodeSetupPanel({ group, embedded }: BarcodeSetupPanelProps = 
               stateLabel={t("mame.barcodeSetup.requiredStateLabel")}
               filled={Boolean(form.barcodeSeedsPath)}
               helperText={t("mame.barcodeSetup.barcodeSeedsXlsxHelper")}
+              help={
+                <FormatPreviewHelp
+                  testId="format-preview-barcode-seeds"
+                  fieldLabel={t("mame.barcodeSetup.barcodeSeedsXlsx")}
+                  entries={[
+                    {
+                      id: "barcodeSeeds",
+                      title: t("mame.barcodeSetup.barcodeSeedsXlsx"),
+                    },
+                  ]}
+                />
+              }
               noPathLabel={t("mame.inputPanel.noPathSelected")}
               readyLabel={t("mame.inputPanel.fileReady")}
               browseAriaLabel={t("mame.inputPanel.browseFolderAriaLabel", { label: t("mame.barcodeSetup.barcodeSeedsXlsx") })}

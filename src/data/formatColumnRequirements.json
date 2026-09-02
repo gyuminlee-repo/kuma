@@ -1,0 +1,18 @@
+{
+  "_note": "Hand-written, unlike mameFormatPreviews.generated.json. These two file kinds have no bundled sample to lift rows from, so what is shown is the set of columns the reader has to provide and nothing that looks like data. tests/scripts/test_format_column_requirements.py asserts every name below still appears in the source it cites.",
+  "requirements": {
+    "sequencingSummary": {
+      "source": "kuma_core/mame/ingest/quality_filter.py",
+      "columns": [
+        "read_id",
+        "mean_qscore_template",
+        "sequence_length_template",
+        "barcode_score"
+      ]
+    },
+    "advisoryRoundXlsx": {
+      "source": "python-core/sidecar_mame/handlers/classify_round.py",
+      "columns": ["Variant", "activity"]
+    }
+  }
+}

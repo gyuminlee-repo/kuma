@@ -576,8 +576,11 @@
         "sourceLabel": "샘플 파일: {{file}}",
         "omitted": "생략된 행",
         "highlightNote": "표시된 sample name 이 이 리포트 형식들을 가르는 유일한 칸입니다.",
-        "multipleFormats": "이 항목은 아래 형식을 모두 받습니다. 파일을 고르면 해당하는 형식만 남습니다."
-      }
+        "multipleFormats": "이 항목은 아래 형식을 모두 받습니다. 파일을 고르면 해당하는 형식만 남습니다.",
+        "requiredColumnsNote": "이 파일은 앱이 예시를 제공하지 않으므로 행 대신 반드시 포함해야 하는 컬럼을 보여 준다. 이름이 정확히 일치해야 한다."
+      },
+      "numericPrimaryNote": "ID i 는 플레이트 전체를 설계 목록 순서로 번호 매겼을 때 i 번째 변이체다.",
+      "numericConfirmationNote": "ID j 는 1차 스크린에서 야생형을 넘긴 변이체만 같은 플레이트 순서로 번호 매긴 것이며 각각을 다시 측정한다."
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",
@@ -1250,7 +1253,8 @@
       "browse": "찾아보기",
       "chooseTitle": "{{name}} 다시 지정",
       "mismatchTitle": "다른 파일일 수 있습니다",
-      "mismatchBody": "원래: {{expected}}, 선택: {{actual}}. 그대로 사용하려면 무시하세요."
+      "mismatchBody": "원래: {{expected}}, 선택: {{actual}}. 그대로 사용하려면 무시하세요.",
+      "sequencingSummaryFormat": "MinKNOW 가 쓴 탭 구분 텍스트, 첫 줄에 컬럼 이름."
     },
     "verdictDetail": {
       "openAriaLabel": "{{id}} 상세 보기 (well {{well}})",
@@ -2117,6 +2121,7 @@
     "variantsLoaded": "{{count}}개 변이 불러옴",
     "topNZeroHint": "Top-N의 범위는 1~96입니다. CSV에서 더 많은 변이를 읽으려면 값을 늘리세요.",
     "mutationsHelp": "HGVS 또는 단순 형식 mutation(예: A123V, L45*). 줄 단위 또는 콤마 구분.",
+    "evolveproFormatTitle": "EVOLVEpro 예측 (csv/tsv/xlsx)",
     "othersColumnMapping": "Column 매핑",
     "othersVariantColumn": "Mutation column",
     "othersVariantColumnPlaceholder": "자동 감지",
@@ -3494,6 +3499,8 @@
     "filePickerTitle": "라운드 결과 xlsx 파일 선택",
     "addFiles": "xlsx 파일 추가",
     "addFilesAriaLabel": "라운드 결과 xlsx 파일 추가 (Variant 및 activity fold-change 컬럼 필수)",
+    "roundXlsxFormatTitle": "라운드 결과 xlsx",
+    "roundXlsxFormatNote": "첫 시트, 첫 행에 컬럼 이름.",
     "classify": "분류 실행",
     "classifyAriaLabel": "선택한 라운드 파일로 자문 분류 실행",
     "fileListAriaLabel": "선택된 라운드 xlsx 파일 목록",

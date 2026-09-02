@@ -20,6 +20,7 @@ import { stat } from "@tauri-apps/plugin-fs";
 import { AlertTriangle, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { FormatPreviewHelp } from "@/components/ui/FormatPreviewHelp";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import {
   basename,
@@ -172,8 +173,24 @@ export function MissingInputsBanner() {
                   className="flex flex-wrap items-center justify-between gap-2"
                 >
                   <div className="min-w-0">
-                    <span className="text-xs font-medium">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium">
                       {t(MAME_PATH_LABEL_KEYS[item.field])}
+                      {/* 이 배너가 sequencing summary 를 다시 고르는 유일한
+                          지점이라 파일 모양 안내도 여기에만 붙는다. 나머지
+                          항목은 폴더와 서열 파일이라 보여 줄 표가 없다. */}
+                      {item.field === "sequencingSummaryPath" && (
+                        <FormatPreviewHelp
+                          testId="format-preview-sequencing-summary"
+                          fieldLabel={t(MAME_PATH_LABEL_KEYS[item.field])}
+                          columnEntries={[
+                            {
+                              id: "sequencingSummary",
+                              title: t(MAME_PATH_LABEL_KEYS[item.field]),
+                              note: t("mame.missingInputs.sequencingSummaryFormat"),
+                            },
+                          ]}
+                        />
+                      )}
                     </span>
                     <span
                       className="ml-2 inline-block max-w-full truncate align-bottom text-xs text-muted-foreground"

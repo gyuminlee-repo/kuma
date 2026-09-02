@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectProvider } from "@/state/projectContext";
 
@@ -924,6 +924,57 @@ describe("BuildEvolveproInputPanel file-shape previews", () => {
     expect(renderedRows("confirmationNumericIds")).toEqual(
       generatedRows("confirmationNumericIds"),
     );
+    // The repeat block, not the first sample block: `1-2` is the second
+    // measurement of the tube `1` names, which is what a confirmation file is.
+    expect(
+      screen.getByTestId("format-preview-highlight-confirmationNumericIds"),
+    ).toHaveTextContent("1-2");
+  });
+
+  it("does not show the same table for the numeric screen and its confirmation", () => {
+    // Both read template 12, and taking the first sample block for each made
+    // the two panels identical: a reader holding one of the files could open
+    // either "?" and see the other one's rows.
+    seed(readyForm({ primarySource: "numericReport", activityPath: "", numericReportXlsx: "/project/numeric.xlsx", expectedXlsx: "/project/expected.xlsx" }));
+    renderPanel();
+    openPreview("format-preview-measurement");
+    const primary = renderedRows("numericReport");
+
+    cleanup();
+    seed(readyForm({ confirmationSource: "numericIds" }));
+    renderPanel();
+    openPreview("format-preview-remeasure-numeric");
+    const confirmation = renderedRows("confirmationNumericIds");
+
+    expect(primary).not.toEqual(confirmation);
+    expect(getFormatPreview("numericReport").source).toBe(
+      getFormatPreview("confirmationNumericIds").source,
+    );
+  });
+
+  it("says what the two numeric formats count, which no table can show", () => {
+    seed(readyForm({ confirmationSource: "numericIds" }));
+    renderPanel();
+
+    openPreview("format-preview-remeasure-numeric");
+    expect(
+      screen.getByText(
+        "ID j counts only the variants the primary screen measured above wild type, numbered in that same plate order, and each is measured again.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("gives the output path no '?' at all", () => {
+    seed(readyForm({ activityPath: "" }));
+    renderPanel();
+
+    // Negative control: the app writes the output, so there is no file for the
+    // operator to shape. Only the input fields carry a preview.
+    const triggers = screen
+      .queryAllByTestId(/^format-preview-.*-trigger$/)
+      .map((node) => node.getAttribute("data-testid"));
+    expect(triggers).not.toContain("format-preview-output-trigger");
+    expect(triggers.length).toBeGreaterThan(0);
   });
 
   it("closes on Escape and gives focus back to the trigger", () => {

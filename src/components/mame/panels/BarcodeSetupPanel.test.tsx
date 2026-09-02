@@ -8,6 +8,12 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { MamePackageResult } from "@/types/mame/barcode_package";
 import { validateGenerateBarcodePackage } from "@/store/validation";
 import { BarcodeSetupPanel } from "./BarcodeSetupPanel";
+import {
+  generatedRows,
+  openPreview,
+  previewTriggerIds,
+  renderedRows,
+} from "@/components/ui/formatPreviewTestUtils";
 
 const mockRpc = vi.hoisted(() => vi.fn());
 const mockRegisterArtifacts = vi.hoisted(() => vi.fn());
@@ -494,5 +500,38 @@ describe("BarcodeSetupPanel sample-data output-location notice", () => {
         "Sample data does not choose a save location, pick where to write your own output.",
       ),
     ).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * The seed workbook is two columns and a header, which is exactly the kind of
+ * fact a helper sentence cannot carry: "fwd_1..12 and rev_1..8 seed sequences"
+ * says what has to be in the file and not how the file is laid out. The rows
+ * are read from the sample workbook the app ships, so the table and the sample
+ * loader can never disagree.
+ */
+describe("BarcodeSetupPanel file-shape preview", () => {
+  function renderFiles() {
+    seedSetupForm();
+    render(
+      <ProjectProvider value={{ path: "/proj", name: "Demo", scratch: false }}>
+        <BarcodeSetupPanel group="files" />
+      </ProjectProvider>,
+    );
+  }
+
+  it("shows the seed workbook as the generator read it", () => {
+    renderFiles();
+
+    openPreview("format-preview-barcode-seeds");
+    expect(renderedRows("barcodeSeeds")).toEqual(generatedRows("barcodeSeeds"));
+  });
+
+  it("gives the CDS sequence field no '?' at all", () => {
+    renderFiles();
+
+    // Negative control: a fasta or GenBank record is not a table, so the one
+    // "?" in this section belongs to the seed workbook.
+    expect(previewTriggerIds()).toEqual(["format-preview-barcode-seeds-trigger"]);
   });
 });

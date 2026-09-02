@@ -14,10 +14,16 @@ in memory and fails when the checked-in JSON no longer matches.
 
 Three of the sources (09, 11, 12) are byte-identical for their first fifteen
 rows: three wild-type blocks with the same signal header, the same area and the
-same name. They diverge in exactly one cell, the sample name of the first
-non-wild-type block, which is why the preview shows two windows (one WT block,
-one sample block) rather than the top of the file, and why that one cell is
-reported as the highlight.
+same name. They diverge in the sample names further down, which is why the
+preview shows two windows (one WT block, one sample block) rather than the top
+of the file, and why the sample name cell is reported as the highlight.
+
+Which sample block a preview lands on is chosen per preview, as an index into
+the non-wild-type blocks rather than as a row number: template 12 backs both
+the primary numeric screen and the numeric confirmation, and the two would show
+the identical table if both took the first one. The confirmation takes the
+second, whose name (`1-2`) is a repeat measurement of the first, so the table
+carries the one thing the two formats really differ in.
 """
 
 from __future__ import annotations
@@ -26,7 +32,7 @@ import csv
 import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import openpyxl
 
@@ -140,13 +146,22 @@ def _flat_preview(source: str) -> dict[str, Any]:
     }
 
 
-def _block_preview(source: str) -> dict[str, Any]:
+def _block_preview(source: str, sample_block: int = 0) -> dict[str, Any]:
+    """Two windows out of an Agilent-style sheet: a WT block and a sample block.
+
+    *sample_block* indexes the non-wild-type blocks, found by their marker and
+    their name. A row number would break the moment a template gains a block.
+    """
     rows = _read_rows(_REPO_ROOT / source)
     blocks = _blocks(rows)
     wt = next((b for b in blocks if _is_wt(_block_sample_name(b[1]))), None)
-    sample = next((b for b in blocks if not _is_wt(_block_sample_name(b[1]))), None)
-    if wt is None or sample is None:
-        raise SystemExit(f"{source}: expected both a WT block and a sample block")
+    samples = [b for b in blocks if not _is_wt(_block_sample_name(b[1]))]
+    if wt is None or len(samples) <= sample_block:
+        raise SystemExit(
+            f"{source}: expected a WT block and at least "
+            f"{sample_block + 1} sample block(s)"
+        )
+    sample = samples[sample_block]
     windows = [
         {"startRow": wt[0] + 1, "rows": _rectangular(wt[1])},
         {"startRow": sample[0] + 1, "rows": _rectangular(sample[1])},
@@ -165,27 +180,49 @@ def _block_preview(source: str) -> dict[str, Any]:
     }
 
 
-#: preview id -> (template path, builder kind). Ids match `MeasurementSource`
-#: plus the two supporting files. The verdict sheet and the output path are
-#: absent on purpose: the app fills both instead of the operator choosing them.
-_PREVIEWS: dict[str, tuple[str, str]] = {
-    "longFormat": ("templates/07_mame_activity_long.csv", "flat"),
-    "gcSheet": ("templates/10_mame_gc_prenormalised.xlsx", "flat"),
-    "rawReport": ("templates/11_mame_gc_fid_round1_raw.xlsx", "block"),
-    "numericReport": ("templates/12_mame_agilent_numeric_index.xlsx", "block"),
-    "confirmationVariantLabels": ("templates/09_mame_agilent_rep_batch.xlsx", "block"),
-    "confirmationNumericIds": ("templates/12_mame_agilent_numeric_index.xlsx", "block"),
-    "plateLayout": ("templates/06_mame_plate_layout.xlsx", "flat"),
-    "expectedMutations": ("templates/03_mame_expected_mutations.xlsx", "flat"),
+class _Source(NamedTuple):
+    """Where one preview reads from and how the file is shaped."""
+
+    path: str
+    kind: str
+    #: Which non-wild-type block to show. Block sources only.
+    sample_block: int = 0
+
+
+#: preview id -> source. Ids match `MeasurementSource` plus the supporting
+#: files every other file field in the app asks for. Folder pickers, sequence
+#: and structure files, app-written manifests and every output path are absent
+#: on purpose: none of them is a table, and the app fills the outputs itself.
+_PREVIEWS: dict[str, _Source] = {
+    "longFormat": _Source("templates/07_mame_activity_long.csv", "flat"),
+    "gcSheet": _Source("templates/10_mame_gc_prenormalised.xlsx", "flat"),
+    "rawReport": _Source("templates/11_mame_gc_fid_round1_raw.xlsx", "block"),
+    "numericReport": _Source("templates/12_mame_agilent_numeric_index.xlsx", "block"),
+    "confirmationVariantLabels": _Source(
+        "templates/09_mame_agilent_rep_batch.xlsx", "block"
+    ),
+    # The second sample block, not the first: see the module docstring.
+    "confirmationNumericIds": _Source(
+        "templates/12_mame_agilent_numeric_index.xlsx", "block", sample_block=1
+    ),
+    "plateLayout": _Source("templates/06_mame_plate_layout.xlsx", "flat"),
+    "expectedMutations": _Source("templates/03_mame_expected_mutations.xlsx", "flat"),
+    "customBarcodes": _Source("templates/04_mame_custom_barcodes.xlsx", "flat"),
+    # The only one of these that ships beside the sample data rather than in
+    # `templates/`; it is still the file the sample loader hands the operator.
+    "barcodeSeeds": _Source("src-tauri/samples/mame/02_mame_barcode_seeds.xlsx", "flat"),
+    "evolveproPrediction": _Source("templates/01_kuro_evolvepro_pred.csv", "flat"),
 }
 
 
 def build_previews() -> dict[str, Any]:
     """Read every template and return the preview payload."""
     built: dict[str, Any] = {}
-    for preview_id, (source, kind) in _PREVIEWS.items():
+    for preview_id, source in _PREVIEWS.items():
         built[preview_id] = (
-            _flat_preview(source) if kind == "flat" else _block_preview(source)
+            _flat_preview(source.path)
+            if source.kind == "flat"
+            else _block_preview(source.path, source.sample_block)
         )
     return built
 

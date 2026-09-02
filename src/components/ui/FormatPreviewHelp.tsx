@@ -1,6 +1,11 @@
 /**
- * The "?" beside a step 4.1 file field: what the file it wants looks like,
- * shown as the spreadsheet rows themselves.
+ * The "?" beside a file field: what the file it wants looks like, shown as the
+ * spreadsheet rows themselves.
+ *
+ * Written for step 4.1 first and now used by every file field in the app whose
+ * input is a table the operator prepares. Fields that take a folder, a
+ * sequence, a structure, a file the app itself wrote, or an output path have no
+ * "?": there is no shape for the reader to match.
  *
  * The field labels name a format ("Raw Agilent report", "Numeric-ID Agilent
  * report") and a sentence of prose underneath describes it, but three of those
@@ -23,6 +28,10 @@ import {
   type FormatPreview,
   type FormatPreviewId,
 } from "@/data/mameFormatPreviews";
+import {
+  getColumnRequirement,
+  type FormatColumnRequirementId,
+} from "@/data/formatColumnRequirements";
 
 /** Wide enough for the ten-column designed variant list before it scrolls. */
 const PANEL_WIDTH = 420;
@@ -32,6 +41,21 @@ export interface FormatPreviewEntry {
   id: FormatPreviewId;
   /** Format name, used as the table caption. */
   title: string;
+  /**
+   * One sentence the table itself cannot carry, shown under the caption. Two
+   * numeric-ID formats are the same shape and differ in what the numbers count,
+   * which is a fact about the run and not a cell anyone can point at.
+   */
+  note?: string;
+}
+
+/** A file with no bundled sample: the columns it must carry, and nothing else. */
+export interface RequiredColumnsEntry {
+  id: FormatColumnRequirementId;
+  /** Format name, used as the table caption. */
+  title: string;
+  /** How the columns are laid out (delimiter, which sheet, header row). */
+  note: string;
 }
 
 function fileName(source: string): string {
@@ -77,7 +101,57 @@ function PreviewCell({
   );
 }
 
-function FormatPreviewTable({ id, title }: FormatPreviewEntry) {
+/** Caption block shared by both table kinds: the format name, then the note. */
+function PreviewCaption({ title, note }: { title: string; note?: string }) {
+  return (
+    <caption className="px-1.5 py-1 text-left text-caption text-foreground">
+      <span className="block font-semibold">{title}</span>
+      {note && (
+        <span className="block font-normal text-muted-foreground">{note}</span>
+      )}
+    </caption>
+  );
+}
+
+/**
+ * The columns a file has to carry, with no rows under them. A header and
+ * nothing else is the honest rendering: the app ships no sample of this file,
+ * so any row here would be a value nobody measured.
+ */
+function RequiredColumnsTable({ id, title, note }: RequiredColumnsEntry) {
+  const { t } = useTranslation();
+  const requirement = getColumnRequirement(id);
+  return (
+    <div className="mb-3 last:mb-0">
+      <div className="overflow-x-auto rounded-control border border-border">
+        <table
+          data-testid={`format-columns-table-${id}`}
+          className="w-full border-collapse text-plate-tiny font-mono"
+        >
+          <PreviewCaption title={title} note={note} />
+          <thead>
+            <tr className="bg-muted">
+              {requirement.columns.map((column) => (
+                <th
+                  key={column}
+                  scope="col"
+                  className="whitespace-nowrap border border-border/60 px-1.5 py-0.5 text-left font-semibold text-muted-foreground"
+                >
+                  {column}
+                </th>
+              ))}
+            </tr>
+          </thead>
+        </table>
+      </div>
+      <p className="mt-1 text-caption text-muted-foreground">
+        {t("mame.buildEvolvepro.formatPreview.requiredColumnsNote")}
+      </p>
+    </div>
+  );
+}
+
+function FormatPreviewTable({ id, title, note }: FormatPreviewEntry) {
   const { t } = useTranslation();
   const preview = getFormatPreview(id);
   const columnCount = preview.windows[0]?.rows[0]?.length ?? 1;
@@ -92,9 +166,7 @@ function FormatPreviewTable({ id, title }: FormatPreviewEntry) {
           data-testid={`format-preview-table-${id}`}
           className="w-full border-collapse text-plate-tiny font-mono"
         >
-          <caption className="px-1.5 py-1 text-left text-caption font-semibold text-foreground">
-            {title}
-          </caption>
+          <PreviewCaption title={title} note={note} />
           {headerCells && (
             <thead>
               <tr className="bg-muted">
@@ -189,17 +261,29 @@ function FormatPreviewTable({ id, title }: FormatPreviewEntry) {
 
 export function FormatPreviewHelp({
   fieldLabel,
-  entries,
+  entries = [],
+  columnEntries = [],
+  intro,
   testId,
 }: {
   /** Translated label of the field this help belongs to. */
   fieldLabel: string;
   /** One entry per format the field accepts, in the order they are shown. */
-  entries: FormatPreviewEntry[];
+  entries?: FormatPreviewEntry[];
+  /** Formats with no bundled sample, shown as their required columns. */
+  columnEntries?: RequiredColumnsEntry[];
+  /**
+   * Prose that already belonged to this field, kept above the tables instead of
+   * beside them: a field carrying its own "?" for a sentence and a second "?"
+   * for the shape offers the reader two identical buttons and no way to guess
+   * which is which.
+   */
+  intro?: string;
   testId: string;
 }) {
   const { t } = useTranslation();
-  if (entries.length === 0) return null;
+  const formatCount = entries.length + columnEntries.length;
+  if (formatCount === 0) return null;
   return (
     <InfoPopover
       variant="icon"
@@ -210,13 +294,29 @@ export function FormatPreviewHelp({
         label: fieldLabel,
       })}
     >
-      {entries.length > 1 && (
+      {intro && (
+        <p className="mb-2 text-caption text-muted-foreground">{intro}</p>
+      )}
+      {formatCount > 1 && (
         <p className="mb-2 text-caption text-muted-foreground">
           {t("mame.buildEvolvepro.formatPreview.multipleFormats")}
         </p>
       )}
       {entries.map((entry) => (
-        <FormatPreviewTable key={entry.id} id={entry.id} title={entry.title} />
+        <FormatPreviewTable
+          key={entry.id}
+          id={entry.id}
+          title={entry.title}
+          note={entry.note}
+        />
+      ))}
+      {columnEntries.map((entry) => (
+        <RequiredColumnsTable
+          key={entry.id}
+          id={entry.id}
+          title={entry.title}
+          note={entry.note}
+        />
       ))}
     </InfoPopover>
   );

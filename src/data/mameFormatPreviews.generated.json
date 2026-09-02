@@ -260,7 +260,7 @@
           ]
         },
         {
-          "startRow": 16,
+          "startRow": 21,
           "rows": [
             [
               "Signal:",
@@ -271,12 +271,12 @@
               "Sample Name"
             ],
             [
-              "3180",
-              "1"
+              "3210",
+              "1-2"
             ],
             [
               "Sum",
-              "3180"
+              "3210"
             ]
           ]
         }
@@ -373,6 +373,96 @@
               "PS_003",
               "single",
               "designed"
+            ]
+          ]
+        }
+      ],
+      "ellipsisBetweenWindows": false,
+      "truncatedAfter": true,
+      "highlight": null
+    },
+    "customBarcodes": {
+      "source": "templates/04_mame_custom_barcodes.xlsx",
+      "headerRow": true,
+      "windows": [
+        {
+          "startRow": 1,
+          "rows": [
+            [
+              "barcode_name",
+              "sequence"
+            ],
+            [
+              "isps_f_1",
+              "TATCTGACCTTCTATTCAGGGCGCGGTGG"
+            ],
+            [
+              "isps_f_2",
+              "GCATACGTAACCTATTCAGGGCGCGGTGG"
+            ],
+            [
+              "isps_f_3",
+              "AACTTGCATAGCTATTCAGGGCGCGGTGG"
+            ]
+          ]
+        }
+      ],
+      "ellipsisBetweenWindows": false,
+      "truncatedAfter": true,
+      "highlight": null
+    },
+    "barcodeSeeds": {
+      "source": "src-tauri/samples/mame/02_mame_barcode_seeds.xlsx",
+      "headerRow": true,
+      "windows": [
+        {
+          "startRow": 1,
+          "rows": [
+            [
+              "name",
+              "sequence"
+            ],
+            [
+              "fwd_1",
+              "TATCTGACCTT"
+            ],
+            [
+              "fwd_2",
+              "GCATACGTAAC"
+            ],
+            [
+              "fwd_3",
+              "AACTTGCATAG"
+            ]
+          ]
+        }
+      ],
+      "ellipsisBetweenWindows": false,
+      "truncatedAfter": true,
+      "highlight": null
+    },
+    "evolveproPrediction": {
+      "source": "templates/01_kuro_evolvepro_pred.csv",
+      "headerRow": true,
+      "windows": [
+        {
+          "startRow": 1,
+          "rows": [
+            [
+              "variant",
+              "y_pred"
+            ],
+            [
+              "Q232A",
+              "0.952"
+            ],
+            [
+              "Y233A",
+              "0.91"
+            ],
+            [
+              "A40P",
+              "0.887"
             ]
           ]
         }

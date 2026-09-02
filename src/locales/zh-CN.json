@@ -1229,8 +1229,11 @@
         "sourceLabel": "示例文件：{{file}}",
         "omitted": "省略的行",
         "highlightNote": "标记的 Sample Name 是区分这几种报告格式的唯一单元格。",
-        "multipleFormats": "此项接受以下任一格式。选定文件后只保留匹配的格式。"
-      }
+        "multipleFormats": "此项接受以下任一格式。选定文件后只保留匹配的格式。",
+        "requiredColumnsNote": "应用未附带该文件的示例，因此列出必须包含的列而非数据行。列名须完全一致。"
+      },
+      "numericPrimaryNote": "ID i 表示按设计清单顺序对整块板编号后的第 i 个变体。",
+      "numericConfirmationNote": "ID j 只对初筛中高于野生型的变体按同一板序编号，并对每个变体重新测定。"
     },
     "verdictBadge": {
       "help": {
@@ -1250,7 +1253,8 @@
       "browse": "浏览",
       "chooseTitle": "指定 {{name}}",
       "mismatchTitle": "可能是不同的文件",
-      "mismatchBody": "原为 {{expected}}，选择了 {{actual}}。如为有意更改可忽略。"
+      "mismatchBody": "原为 {{expected}}，选择了 {{actual}}。如为有意更改可忽略。",
+      "sequencingSummaryFormat": "MinKNOW 输出的制表符分隔文本，首行为列名。"
     },
     "verdictDetail": {
       "openAriaLabel": "Show details for {{id}} (well {{well}})",
@@ -2135,6 +2139,7 @@
     "mutationsFailed": "(失败 {{count}})",
     "topNZeroHint": "Top-N 的范围为 1 到 96。增大该值可从 CSV 加载更多变体。",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
+    "evolveproFormatTitle": "EVOLVEpro 预测 (csv/tsv/xlsx)",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
     "othersVariantColumnPlaceholder": "Auto-detect",
@@ -3475,6 +3480,8 @@
     "filePickerTitle": "Select round result xlsx files",
     "addFiles": "Add xlsx files",
     "addFilesAriaLabel": "Add round result xlsx files (Variant + activity fold-change columns required)",
+    "roundXlsxFormatTitle": "轮次结果 xlsx",
+    "roundXlsxFormatNote": "第一个工作表，首行为列名。",
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",

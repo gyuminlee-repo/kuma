@@ -35,16 +35,32 @@ EXPECTED_IDS = {
     "confirmationNumericIds",
     "plateLayout",
     "expectedMutations",
+    "customBarcodes",
+    "barcodeSeeds",
+    "evolveproPrediction",
 }
 
-#: The one cell each block format is told apart by. Everything before it is
-#: identical across the three files.
+#: The sample-name cell each block format is marked at. The three files are
+#: identical up to that cell, and the two previews taken from template 12 are
+#: told apart by it as well: the primary screen shows the first sample block,
+#: the confirmation the repeat measurement of it.
 EXPECTED_HIGHLIGHTS = {
     "rawReport": "A4",
     "numericReport": "1",
     "confirmationVariantLabels": "65A",
-    "confirmationNumericIds": "1",
+    "confirmationNumericIds": "1-2",
 }
+
+#: Previews shown as the top of a flat sheet, header row included.
+FLAT_IDS = [
+    "longFormat",
+    "gcSheet",
+    "plateLayout",
+    "expectedMutations",
+    "customBarcodes",
+    "barcodeSeeds",
+    "evolveproPrediction",
+]
 
 
 def _load_generator() -> Any:
@@ -122,11 +138,28 @@ def test_block_formats_differ_only_in_the_highlighted_cell(
 
 
 def test_flat_formats_have_one_window_and_no_highlight(checked_in: dict[str, Any]) -> None:
-    flat = ["longFormat", "gcSheet", "plateLayout", "expectedMutations"]
-    for preview_id in flat:
+    checked = 0
+    for preview_id in FLAT_IDS:
         preview = checked_in[preview_id]
         assert preview["highlight"] is None
         assert preview["headerRow"] is True
         assert len(preview["windows"]) == 1
         assert preview["ellipsisBetweenWindows"] is False
-    assert len(flat) == 4
+        checked += 1
+    assert checked == 7
+    assert set(FLAT_IDS) | set(EXPECTED_HIGHLIGHTS) == EXPECTED_IDS
+
+
+def test_the_two_numeric_previews_are_not_the_same_table(
+    checked_in: dict[str, Any],
+) -> None:
+    """The primary numeric screen and the numeric confirmation read the same
+    template, and taking the first sample block for both made the two "?"
+    panels show one identical table. A reader comparing them learned nothing.
+    The confirmation takes the repeat block instead.
+    """
+    primary = checked_in["numericReport"]
+    confirmation = checked_in["confirmationNumericIds"]
+    assert primary["source"] == confirmation["source"]
+    assert primary["windows"][1] != confirmation["windows"][1]
+    assert primary["windows"][1]["startRow"] < confirmation["windows"][1]["startRow"]

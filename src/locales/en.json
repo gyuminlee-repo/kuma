@@ -576,8 +576,11 @@
         "sourceLabel": "Sample file: {{file}}",
         "omitted": "rows omitted",
         "highlightNote": "The marked sample name is the one cell that tells these report formats apart.",
-        "multipleFormats": "This field takes any of these. Once a file is picked, only the matching one is shown."
-      }
+        "multipleFormats": "This field takes any of these. Once a file is picked, only the matching one is shown.",
+        "requiredColumnsNote": "No sample of this file ships with the app, so the columns it must carry are listed instead of rows. The names have to match exactly."
+      },
+      "numericPrimaryNote": "ID i is the i-th variant of the whole plate, numbered in the order the design list places them.",
+      "numericConfirmationNote": "ID j counts only the variants the primary screen measured above wild type, numbered in that same plate order, and each is measured again."
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",
@@ -1250,7 +1253,8 @@
       "browse": "Browse",
       "chooseTitle": "Locate {{name}}",
       "mismatchTitle": "This may be a different file",
-      "mismatchBody": "Was {{expected}}, picked {{actual}}. Ignore this if the change is intended."
+      "mismatchBody": "Was {{expected}}, picked {{actual}}. Ignore this if the change is intended.",
+      "sequencingSummaryFormat": "Tab-separated text written by MinKNOW, column names on the first line."
     },
     "verdictDetail": {
       "openAriaLabel": "Show details for {{id}} (well {{well}})",
@@ -2166,6 +2170,7 @@
     "mutationsFailed": "({{count}} failed)",
     "topNZeroHint": "Top-N ranges from 1 to 96. Increase it to load more variants from CSV.",
     "mutationsHelp": "Mutations in HGVS or plain format (e.g. A123V, L45*). One per line or comma-separated.",
+    "evolveproFormatTitle": "EVOLVEpro prediction (csv/tsv/xlsx)",
     "othersColumnMapping": "Column mapping",
     "othersVariantColumn": "Mutation column",
     "othersVariantColumnPlaceholder": "Auto-detect",
@@ -3494,6 +3499,8 @@
     "filePickerTitle": "Select round result xlsx files",
     "addFiles": "Add xlsx files",
     "addFilesAriaLabel": "Add round result xlsx files (Variant + activity fold-change columns required)",
+    "roundXlsxFormatTitle": "Round result xlsx",
+    "roundXlsxFormatNote": "First sheet, column names on the first row.",
     "classify": "Run classification",
     "classifyAriaLabel": "Run advisory classification using the selected round files",
     "fileListAriaLabel": "Selected round xlsx files",
