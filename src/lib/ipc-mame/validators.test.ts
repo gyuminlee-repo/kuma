@@ -149,6 +149,61 @@ describe("MAME RPC result validation", () => {
   });
 });
 
+describe("mame.activity.detect_measurement_source", () => {
+  const METHOD = "mame.activity.detect_measurement_source";
+
+  function goodResult(): Record<string, unknown> {
+    return {
+      path: "/tmp/gc.xlsx",
+      candidates: ["gcSheet", "longFormat"],
+      ambiguous: true,
+      evidence: { header: ["sample name", "area"], fid1b_signature: false },
+      reason: "",
+    };
+  }
+
+  beforeEach(() => {
+    mocks.rpc.mockReset();
+  });
+
+  it("accepts the ambiguous two-candidate answer", async () => {
+    mocks.rpc.mockResolvedValue(goodResult());
+    await expect(sendRequest(METHOD, {})).resolves.toMatchObject({
+      candidates: ["gcSheet", "longFormat"],
+    });
+  });
+
+  it("accepts an empty candidate list, which is an answer and not a failure", async () => {
+    mocks.rpc.mockResolvedValue({
+      ...goodResult(),
+      candidates: [],
+      ambiguous: false,
+      reason: "header is ['mutant', 'well pos.']",
+    });
+    await expect(sendRequest(METHOD, {})).resolves.toMatchObject({
+      candidates: [],
+    });
+  });
+
+  it("refuses a candidate outside the declared union", async () => {
+    // A sixth name would reach the switch that decides which build path runs.
+    mocks.rpc.mockResolvedValue({
+      ...goodResult(),
+      candidates: ["gcSheet", "somethingElse"],
+    });
+    await expect(sendRequest(METHOD, {})).rejects.toThrow();
+  });
+
+  it("refuses an ambiguous flag that disagrees with the list", async () => {
+    mocks.rpc.mockResolvedValue({
+      ...goodResult(),
+      candidates: ["gcSheet"],
+      ambiguous: true,
+    });
+    await expect(sendRequest(METHOD, {})).rejects.toThrow();
+  });
+});
+
 describe("coverage of the MAME dispatcher", () => {
   it("classifies every dispatcher method as validated or listed", () => {
     // The point of `MAME_UNVALIDATED_METHODS` is that the gap is visible. A

@@ -556,7 +556,20 @@
       "dismissError": "Dismiss",
       "mismatchThreshold": "Mismatch threshold",
       "mismatchThresholdHelper": "Absolute activity difference that marks a mismatch and blocks export until reviewed. Must be greater than zero.",
-      "changeFile": "Change"
+      "changeFile": "Change",
+      "measurementFile": "Measurement file",
+      "measurementFileHelper": "Pick the file first. Its format is read from the file itself. Accepts csv, xlsx and xls.",
+      "detectingFormat": "Reading the file to tell its format...",
+      "detectedFormat": "Detected: {{format}}",
+      "selectedFormat": "Format: {{format}}",
+      "chooseBetweenFormats": "This file reads as two formats and nothing in it says which. Choose one.",
+      "ambiguityGcVsLongFormat": "Pre-normalized GC sheet means the values are already relative to the wild type. Long-format activity means they are as measured.",
+      "ambiguityNumericRound": "Numeric-ID screen means this is the first measurement of the round. Numeric-ID confirmation means it is a re-measurement that overrides one.",
+      "ambiguityGeneric": "Both formats read this file. Choose the one that matches how the run was measured.",
+      "confirmationOnlyFile": "This file is a confirmation measurement, not a primary one. Choose another file as the measurement, or file this one as the confirmation.",
+      "useAsConfirmation": "File as {{format}}",
+      "detectionNoMatch": "The format could not be read from this file. Choose it below.",
+      "detectionFailed": "Format detection did not run. Choose the format below."
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",
@@ -2559,14 +2572,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The mismatch threshold appears only with a confirmation source, the one state where it can change an exported number.",
-      "The label-mismatch acknowledgement moved out of its permanent warning box and into the failure it authorises.",
-      "Verdict and output paths, filled automatically already, read as one line with a change button instead of a full picker.",
-      "The plate layout picker folds away because it is optional, and opens by itself when a layout is already chosen.",
-      "All four measurement sources stay: each reads an instrument format that none of the others can."
+      "Choosing the measurement file comes first, and three of the four instrument formats are then identified without asking.",
+      "A variant-labeled report is offered to the confirmation slot instead of being accepted as a primary measurement and failing later.",
+      "Two format pairs that the file cannot separate are asked as two options each, never guessed.",
+      "A file that matches nothing, or a detection that fails, falls back to the full four-way choice with the reason shown.",
+      "Six fewer controls on the screen as it opens, on top of the four folded away in the previous release."
     ],
-    "highlightsStamp": "0.16.46+f210d215",
+    "highlightsStamp": "0.16.47+a565326e",
     "releases": {
+      "0.16.47": [
+        "Choosing the measurement file comes first, and three of the four instrument formats are then identified without asking.",
+        "A variant-labeled report is offered to the confirmation slot instead of being accepted as a primary measurement and failing later.",
+        "Two format pairs that the file cannot separate are asked as two options each, never guessed.",
+        "A file that matches nothing, or a detection that fails, falls back to the full four-way choice with the reason shown.",
+        "Six fewer controls on the screen as it opens, on top of the four folded away in the previous release."
+      ],
       "0.16.46": [
         "The mismatch threshold appears only with a confirmation source, the one state where it can change an exported number.",
         "The label-mismatch acknowledgement moved out of its permanent warning box and into the failure it authorises.",
@@ -2907,6 +2927,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.47": "a565326e",
       "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",
       "0.16.44": "77881f90",

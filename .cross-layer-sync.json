@@ -1306,6 +1306,30 @@
       ],
       "note": "step 4.1 의 label-mismatch 승인 체크박스는 상시 노출을 그만두고, 빌드가 실제로 label swap 으로 거절됐을 때만 에러 패널 안에 나타난다. 그 판정은 백엔드 예외 문구에 'Label swap detected' 가 들어 있는지로 하며(describeRpcError 가 원문을 그대로 돌려준다), 문구를 바꾸면 체크박스가 영영 나타나지 않아 사용자가 검토 후 재빌드할 방법이 사라진다. 실패는 조용하다: 타입검사도 테스트도 문구 일치를 보지 않는다. 예외 문구를 고칠 때 패널의 매칭도 같이 고칠 것.",
       "severity": "warning"
+    },
+    {
+      "id": "mame-detect-measurement-source",
+      "files": [
+        "kuma_core/mame/activity/detect_measurement_source.py",
+        "kuma_core/mame/activity/build_evolvepro_input.py",
+        "kuma_core/mame/activity/evolvepro_xlsx.py",
+        "kuma_core/mame/activity/plate_layout_xlsx.py",
+        "python-core/sidecar_mame/models.py",
+        "python-core/sidecar_mame/dispatcher.py",
+        "python-core/sidecar_mame/handlers/activity.py",
+        "src/types/mame/detect_measurement_source.ts",
+        "src/types/mame/validators.ts",
+        "src/lib/ipc-mame/index.ts"
+      ],
+      "symbols": [
+        "detect_measurement_source",
+        "MEASUREMENT_SOURCES",
+        "DetectMeasurementSourceParams",
+        "DetectMeasurementSourceResult",
+        "detectMeasurementSource"
+      ],
+      "note": "Step 4.1 measurement source detection: the detector reads the file and reports every source it could be, so the six names in MEASUREMENT_SOURCES must match the MeasurementSource union in TS and the membership set the result validator checks. The membership tests are borrowed rather than re-written (_WELL_RE from plate_layout_xlsx, _BLOCK_REP_ID_RE and _iter_fid1b_blocks from evolvepro_xlsx, _short_variant and the column sets from build_evolvepro_input), so a change to any of those changes what this reports. Two pairs are reported as two candidates rather than resolved: a gcSheet is also a valid longFormat file, and a numeric-ID block file is numericReport or confirmationNumericIds because decode_primary_screen and decode_confirmation_against call the same parse_agilent_block_rep_batch.",
+      "severity": "warning"
     }
   ]
 }

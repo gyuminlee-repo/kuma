@@ -1209,7 +1209,20 @@
       "dismissError": "關閉",
       "mismatchThreshold": "不匹配閾值",
       "mismatchThresholdHelper": "標記不匹配並在審核前阻止匯出的絕對活性差值。必須大於零。",
-      "changeFile": "變更"
+      "changeFile": "變更",
+      "measurementFile": "測量檔案",
+      "measurementFileHelper": "請先選擇檔案。格式會從檔案內容讀取。支援 csv、xlsx 與 xls。",
+      "detectingFormat": "正在讀取檔案以判別格式...",
+      "detectedFormat": "已偵測: {{format}}",
+      "selectedFormat": "格式: {{format}}",
+      "chooseBetweenFormats": "此檔案可用兩種格式讀取，檔案本身並未說明是哪一種。請選擇其一。",
+      "ambiguityGcVsLongFormat": "已正規化的 GC 工作表表示數值已是相對於 wild type 的比值。Long-format activity 表示數值為實測原值。",
+      "ambiguityNumericRound": "數字 ID screen 表示這是本輪的首次測量。數字 ID 確認測量表示這是覆蓋首次測量的重測。",
+      "ambiguityGeneric": "兩種格式都能讀取此檔案。請選擇與實際測量方式相符的一種。",
+      "confirmationOnlyFile": "此檔案是確認測量，而非首次測量。請另選一個檔案作為測量檔案，或將此檔案放入確認測量位置。",
+      "useAsConfirmation": "作為 {{format}} 登錄",
+      "detectionNoMatch": "無法從此檔案讀取格式。請於下方自行選擇。",
+      "detectionFailed": "格式判別未執行。請於下方選擇格式。"
     },
     "verdictBadge": {
       "help": {
@@ -2516,14 +2529,21 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "mismatch threshold 僅在選擇 confirmation source 時顯示，那是它能改變匯出數值的唯一狀態。",
-      "label-mismatch 確認核取方塊已移出常駐警告框，只在它所授權的失敗真正發生時出現。",
-      "已自動填入的 verdict 與 output 路徑改為一行檔名加變更按鈕，不再是完整的 picker。",
-      "plate layout picker 因為可選而摺疊收起，若已選定 layout 則自動展開。",
-      "四種測量資料來源維持不變，每一種讀取的儀器格式其餘三種都讀不了。"
+      "先選擇測量檔案，四種儀器格式中的三種隨即透過讀取檔案識別，無需詢問。",
+      "variant 標籤報告會被引導到確認測量槽位，而不是當作一次測量接受後再失敗。",
+      "檔案無法區分的兩組格式各以兩個選項詢問，絕不猜測。",
+      "檔案不符合任何格式或識別失敗時，顯示原因並直接開啟完整的四選一。",
+      "開啟介面時的控制項再減少 6 個，疊加上一版本摺疊的 4 個。"
     ],
-    "highlightsStamp": "0.16.46+f210d215",
+    "highlightsStamp": "0.16.47+a565326e",
     "releases": {
+      "0.16.47": [
+        "先選擇測量檔案，四種儀器格式中的三種隨即透過讀取檔案識別，無需詢問。",
+        "variant 標籤報告會被引導到確認測量槽位，而不是當作一次測量接受後再失敗。",
+        "檔案無法區分的兩組格式各以兩個選項詢問，絕不猜測。",
+        "檔案不符合任何格式或識別失敗時，顯示原因並直接開啟完整的四選一。",
+        "開啟介面時的控制項再減少 6 個，疊加上一版本摺疊的 4 個。"
+      ],
       "0.16.46": [
         "mismatch threshold 僅在選擇 confirmation source 時顯示，那是它能改變匯出數值的唯一狀態。",
         "label-mismatch 確認核取方塊已移出常駐警告框，只在它所授權的失敗真正發生時出現。",
@@ -2864,6 +2884,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.47": "a565326e",
       "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",
       "0.16.44": "77881f90",

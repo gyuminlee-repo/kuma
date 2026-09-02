@@ -1209,7 +1209,20 @@
       "dismissError": "Schließen",
       "mismatchThreshold": "Schwelle für Abweichungen",
       "mismatchThresholdHelper": "Absolute Aktivitätsdifferenz, die eine Abweichung markiert und den Export bis zur Prüfung blockiert. Muss größer als null sein.",
-      "changeFile": "Ändern"
+      "changeFile": "Ändern",
+      "measurementFile": "Messdatei",
+      "measurementFileHelper": "Zuerst die Datei wählen. Das Format wird aus der Datei selbst gelesen. Akzeptiert csv, xlsx und xls.",
+      "detectingFormat": "Datei wird gelesen, um das Format zu bestimmen...",
+      "detectedFormat": "Erkannt: {{format}}",
+      "selectedFormat": "Format: {{format}}",
+      "chooseBetweenFormats": "Diese Datei liest sich als zwei Formate, und nichts darin sagt, welches. Eines auswählen.",
+      "ambiguityGcVsLongFormat": "Vornormalisiertes GC-Sheet bedeutet, die Werte sind bereits relativ zum wild type. Long-format activity bedeutet, sie stehen wie gemessen.",
+      "ambiguityNumericRound": "Numeric-ID screen bedeutet die erste Messung dieser Runde. Numeric-ID Bestätigungsmessung bedeutet eine Nachmessung, die jene überschreibt.",
+      "ambiguityGeneric": "Beide Formate lesen diese Datei. Jenes wählen, das zur tatsächlichen Messung passt.",
+      "confirmationOnlyFile": "Diese Datei ist eine Bestätigungsmessung, keine Primärmessung. Eine andere Datei als Messdatei wählen oder diese als Bestätigung ablegen.",
+      "useAsConfirmation": "Als {{format}} ablegen",
+      "detectionNoMatch": "Das Format ließ sich aus dieser Datei nicht lesen. Unten auswählen.",
+      "detectionFailed": "Die Formaterkennung lief nicht. Das Format unten auswählen."
     },
     "verdictBadge": {
       "help": {
@@ -2516,14 +2529,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Der mismatch threshold erscheint nur mit einer confirmation source, dem einzigen Zustand, in dem er eine exportierte Zahl ändern kann.",
-      "Die Bestätigung für label mismatch verlässt den dauerhaften Warnkasten und erscheint erst bei dem Fehlschlag, den sie freigibt.",
-      "Verdict und Ausgabepfad werden ohnehin automatisch gefüllt und stehen jetzt als eine Zeile mit Ändern-Schaltfläche statt als voller Picker.",
-      "Der plate layout picker klappt zu, weil er optional ist, und öffnet sich von selbst, wenn bereits ein Layout gewählt ist.",
-      "Alle vier Messquellen bleiben: jede liest ein Geräteformat, das keine der anderen lesen kann."
+      "Die Messdatei wird zuerst gewählt, und drei der vier Geräteformate werden danach ohne Rückfrage erkannt.",
+      "Ein variantenbeschrifteter Bericht wird der Bestätigungsspalte angeboten, statt als Primärmessung angenommen zu werden und später zu scheitern.",
+      "Zwei Formatpaare, die sich aus der Datei nicht trennen lassen, werden als je zwei Optionen gefragt und nie geraten.",
+      "Passt eine Datei zu keinem Format oder scheitert die Erkennung, erscheint der Grund und die volle Vierfachauswahl.",
+      "Sechs Bedienelemente weniger beim Öffnen, zusätzlich zu den vier aus der vorigen Version."
     ],
-    "highlightsStamp": "0.16.46+f210d215",
+    "highlightsStamp": "0.16.47+a565326e",
     "releases": {
+      "0.16.47": [
+        "Die Messdatei wird zuerst gewählt, und drei der vier Geräteformate werden danach ohne Rückfrage erkannt.",
+        "Ein variantenbeschrifteter Bericht wird der Bestätigungsspalte angeboten, statt als Primärmessung angenommen zu werden und später zu scheitern.",
+        "Zwei Formatpaare, die sich aus der Datei nicht trennen lassen, werden als je zwei Optionen gefragt und nie geraten.",
+        "Passt eine Datei zu keinem Format oder scheitert die Erkennung, erscheint der Grund und die volle Vierfachauswahl.",
+        "Sechs Bedienelemente weniger beim Öffnen, zusätzlich zu den vier aus der vorigen Version."
+      ],
       "0.16.46": [
         "Der mismatch threshold erscheint nur mit einer confirmation source, dem einzigen Zustand, in dem er eine exportierte Zahl ändern kann.",
         "Die Bestätigung für label mismatch verlässt den dauerhaften Warnkasten und erscheint erst bei dem Fehlschlag, den sie freigibt.",
@@ -2864,6 +2884,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.47": "a565326e",
       "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",
       "0.16.44": "77881f90",

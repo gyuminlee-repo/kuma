@@ -26,6 +26,7 @@
  */
 
 import { isRecord } from "../validators";
+import { MEASUREMENT_SOURCES } from "./detect_measurement_source";
 
 /** A guard over one method result. Returns false when the payload is refused. */
 export type MameResultValidator = (value: unknown) => boolean;
@@ -71,6 +72,9 @@ function isRecordOfFiniteNumberArray(value: unknown): boolean {
  * (`src/types/validators.ts:475`); these do the same, and each list mirrors the
  * Python that produces it.
  */
+
+/** `kuma_core/mame/activity/detect_measurement_source.py` (`MEASUREMENT_SOURCES`). */
+const MEASUREMENT_SOURCE_NAMES = new Set<string>(MEASUREMENT_SOURCES);
 
 /** `kuma_core/strategy/classify.py:68` (`DecisionLabel`). */
 const DECISION_LABELS = new Set([
@@ -330,8 +334,35 @@ const isReadKumaMetaResult: MameResultValidator = (value) => {
   );
 };
 
+/**
+ * `mame.activity.detect_measurement_source`.
+ *
+ * `python-core/sidecar_mame/handlers/activity.py` serialising
+ * `DetectMeasurementSourceResult`. Two fields need care:
+ *
+ *  - `candidates` is a list, and an EMPTY list is a SUCCESS result: the file is
+ *    none of the four step 4.1 sources, and `reason` says what was seen. Each
+ *    member is checked for membership rather than for being a string, because
+ *    the UI switches on it and a sixth value would reach that switch.
+ *  - `evidence` is deliberately open (`dict[str, Any]` in Python), so it is
+ *    checked for being a record and nothing more. Its keys differ by branch: a
+ *    block workbook carries namespace counts, a header file carries the header.
+ */
+const isDetectMeasurementSourceResult: MameResultValidator = (value) =>
+  isRecord(value) &&
+  isString(value.path) &&
+  Array.isArray(value.candidates) &&
+  value.candidates.every(
+    (candidate) => isString(candidate) && MEASUREMENT_SOURCE_NAMES.has(candidate),
+  ) &&
+  typeof value.ambiguous === "boolean" &&
+  value.ambiguous === value.candidates.length > 1 &&
+  isRecord(value.evidence) &&
+  isString(value.reason);
+
 const VALIDATORS: Record<string, MameResultValidator> = {
   "mame.activity.build_evolvepro_input": isBuildEvolveproInputResult,
+  "mame.activity.detect_measurement_source": isDetectMeasurementSourceResult,
   "strategy.classify_round": isClassifyRoundResult,
   "mame.build_well_layout": isBuildWellLayoutResult,
   health_info: isHealthInfoResult,

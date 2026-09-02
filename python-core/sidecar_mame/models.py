@@ -16,6 +16,7 @@ internally when existence checks are needed, but the model stores ``str``.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -593,11 +594,68 @@ class DetectNativeBarcodesParams(BaseModel):
         return v
 
 
+class DetectMeasurementSourceParams(BaseModel):
+    """Parameters for the ``mame.activity.detect_measurement_source`` RPC method.
+
+    Required fields
+    ---------------
+    measurement_path
+        The step 4.1 measurement file to read.  Same extension set as every
+        other activity input (``handlers/activity._ALLOWED_ACTIVITY_EXTENSIONS``).
+
+    Optional fields
+    ---------------
+    sheet_index
+        Zero-based sheet index for a workbook, matching the other xlsx readers.
+        Ignored for a csv.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    measurement_path: str
+    sheet_index: int = Field(default=0, ge=0)
+
+    @field_validator("measurement_path", mode="after")
+    @classmethod
+    def _check_measurement_path(cls, v: str) -> str:
+        p = Path(v)
+        if ".." in p.parts:
+            raise ValueError(f"Path traversal not allowed: {v}")
+        if p.suffix.lower() not in {".csv", ".xlsx", ".xls"}:
+            raise ValueError(f"measurement_path must be .csv, .xlsx, or .xls: {v}")
+        if not p.exists():
+            raise ValueError(f"measurement_path not found: {v}")
+        return v
+
+
+class DetectMeasurementSourceResult(BaseModel):
+    """Response contract for ``mame.activity.detect_measurement_source``.
+
+    ``candidates`` is a list rather than one value on purpose.  Two pairs are
+    the same file and nothing in either settles which reading the round wants,
+    so the caller is handed both and chooses: a pre-normalised GC sheet is also
+    a valid long-format file, and a numeric-ID block file is a primary screen
+    or a numeric confirmation because both decoders call the same
+    ``parse_agilent_block_rep_batch``.  An empty list is an answer rather than
+    a failure, and ``reason`` says what was seen.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    path: str
+    candidates: list[str]
+    ambiguous: bool
+    evidence: dict[str, Any] = Field(default_factory=dict)
+    reason: str = ""
+
+
 __all__ = [
     "AnalyzeRawRunParams",
     "BuildEvolveproInputParams",
     "BuildWellLayoutParams",
     "CombinatorialDemuxParams",
     "DemuxParamsBase",
+    "DetectMeasurementSourceParams",
+    "DetectMeasurementSourceResult",
     "DetectNativeBarcodesParams",
 ]

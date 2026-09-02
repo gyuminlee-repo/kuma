@@ -1209,7 +1209,20 @@
       "dismissError": "Fermer",
       "mismatchThreshold": "Seuil de divergence",
       "mismatchThresholdHelper": "Différence absolue d’activité qui signale une divergence et bloque l’export jusqu’à vérification. Doit être supérieure à zéro.",
-      "changeFile": "Modifier"
+      "changeFile": "Modifier",
+      "measurementFile": "Fichier de mesure",
+      "measurementFileHelper": "Choisir d'abord le fichier. Le format est lu dans le fichier lui-même. Accepte csv, xlsx et xls.",
+      "detectingFormat": "Lecture du fichier pour en déterminer le format...",
+      "detectedFormat": "Détecté : {{format}}",
+      "selectedFormat": "Format : {{format}}",
+      "chooseBetweenFormats": "Ce fichier se lit selon deux formats et rien n'y indique lequel. En choisir un.",
+      "ambiguityGcVsLongFormat": "Une feuille GC prénormalisée signifie que les valeurs sont déjà relatives au wild type. Long-format activity signifie qu'elles sont telles que mesurées.",
+      "ambiguityNumericRound": "Numeric-ID screen désigne la première mesure de ce cycle. La confirmation numeric-ID désigne une remesure qui la remplace.",
+      "ambiguityGeneric": "Les deux formats lisent ce fichier. Choisir celui qui correspond à la mesure réelle.",
+      "confirmationOnlyFile": "Ce fichier est une mesure de confirmation, pas une mesure primaire. Choisir un autre fichier comme mesure, ou classer celui-ci comme confirmation.",
+      "useAsConfirmation": "Classer comme {{format}}",
+      "detectionNoMatch": "Le format n'a pas pu être lu dans ce fichier. Le choisir ci-dessous.",
+      "detectionFailed": "La détection de format n'a pas eu lieu. Choisir le format ci-dessous."
     },
     "verdictBadge": {
       "help": {
@@ -2516,14 +2529,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Le mismatch threshold apparaît uniquement avec une confirmation source, le seul état où il peut modifier une valeur exportée.",
-      "La validation du label mismatch quitte son encadré permanent et apparaît dans le échec qu elle autorise, une fois cet échec survenu.",
-      "Les chemins verdict et de sortie sont déjà remplis automatiquement et tiennent désormais sur une ligne avec un bouton de modification.",
-      "Le plate layout picker se replie parce qu il est optionnel, et s ouvre de lui-même quand un layout est déjà choisi.",
-      "Les quatre sources de mesure restent : chacune lit un format d instrument que les autres ne savent pas lire."
+      "Le fichier de mesure se choisit en premier, et trois des quatre formats d instrument sont ensuite identifiés sans question.",
+      "Un rapport étiqueté par variante est proposé à la case de confirmation, au lieu d être accepté comme mesure primaire puis de échouer.",
+      "Les deux paires de formats que le fichier ne sépare pas sont posées en deux options chacune, jamais devinées.",
+      "Si un fichier ne correspond à aucun format ou si la détection échoue, la raison apparaît avec le choix complet entre quatre.",
+      "Six contrôles de moins à l ouverture, en plus des quatre repliés dans la version précédente."
     ],
-    "highlightsStamp": "0.16.46+f210d215",
+    "highlightsStamp": "0.16.47+a565326e",
     "releases": {
+      "0.16.47": [
+        "Le fichier de mesure se choisit en premier, et trois des quatre formats d instrument sont ensuite identifiés sans question.",
+        "Un rapport étiqueté par variante est proposé à la case de confirmation, au lieu d être accepté comme mesure primaire puis de échouer.",
+        "Les deux paires de formats que le fichier ne sépare pas sont posées en deux options chacune, jamais devinées.",
+        "Si un fichier ne correspond à aucun format ou si la détection échoue, la raison apparaît avec le choix complet entre quatre.",
+        "Six contrôles de moins à l ouverture, en plus des quatre repliés dans la version précédente."
+      ],
       "0.16.46": [
         "Le mismatch threshold apparaît uniquement avec une confirmation source, le seul état où il peut modifier une valeur exportée.",
         "La validation du label mismatch quitte son encadré permanent et apparaît dans le échec qu elle autorise, une fois cet échec survenu.",
@@ -2864,6 +2884,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.47": "a565326e",
       "0.16.46": "f210d215",
       "0.16.45": "eb59dd47",
       "0.16.44": "77881f90",

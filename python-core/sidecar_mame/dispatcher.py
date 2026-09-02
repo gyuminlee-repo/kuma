@@ -40,6 +40,7 @@ from sidecar_mame.handlers.activity import (
     handle_activity_set_plate_meta,
     handle_activity_upload,
     handle_build_evolvepro_input,
+    handle_detect_measurement_source,
     handle_merge_for_evolvepro,
     reset_activity_state,
 )
@@ -115,6 +116,8 @@ _METHODS = {
     "mame.activity.merge_for_evolvepro": handle_merge_for_evolvepro,
     # A-pipeline: 4-file EVOLVEpro input build (layout + GC + rep-batch + prev EP)
     "mame.activity.build_evolvepro_input": handle_build_evolvepro_input,
+    # Step 4.1: read the measurement file rather than asking which format it is
+    "mame.activity.detect_measurement_source": handle_detect_measurement_source,
     # Feature B: MAME Barcode Setup
     "generate_mame_package": handle_generate_mame_package,
     "check_plate_order": handle_check_plate_order,

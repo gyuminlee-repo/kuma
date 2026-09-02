@@ -9,6 +9,10 @@ import type {
   ClassifyRoundResult,
   RoundFileEntry,
 } from "@/types/mame/strategy";
+import type {
+  DetectMeasurementSourceParams,
+  DetectMeasurementSourceResult,
+} from "@/types/mame/detect_measurement_source";
 import { getMameRpcResultValidator } from "@/types/mame/validators";
 
 type ProgressEventPayload = {
@@ -185,6 +189,26 @@ export async function buildEvolveproInput(
     "mame.activity.build_evolvepro_input",
     params as unknown as Record<string, unknown>,
     120_000,
+  );
+}
+
+/**
+ * Report which step 4.1 measurement sources a file could be, by reading it.
+ *
+ * Mirrors `mame.activity.detect_measurement_source`. Default timeout: it opens
+ * one file and reads its header or walks its blocks.
+ *
+ * The result is a LIST. A file that reads as two things comes back as two, and
+ * a file that reads as none comes back with an empty `candidates` and a
+ * `reason` rather than a rejected promise, so the caller shows it rather than
+ * treating it as a failure.
+ */
+export async function detectMeasurementSource(
+  params: DetectMeasurementSourceParams,
+): Promise<DetectMeasurementSourceResult> {
+  return sendRequest<DetectMeasurementSourceResult>(
+    "mame.activity.detect_measurement_source",
+    params as unknown as Record<string, unknown>,
   );
 }
 
