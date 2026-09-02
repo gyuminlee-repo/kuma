@@ -631,11 +631,13 @@ class DetectMeasurementSourceParams(BaseModel):
 class DetectMeasurementSourceResult(BaseModel):
     """Response contract for ``mame.activity.detect_measurement_source``.
 
-    ``candidates`` is a list rather than one value on purpose: a pre-normalised
-    GC sheet is also a valid long-format file and nothing in it settles which
-    reading the round wants, so the caller is handed both and chooses.  An
-    empty list is an answer rather than a failure, and ``reason`` says what was
-    seen.
+    ``candidates`` is a list rather than one value on purpose.  Two pairs are
+    the same file and nothing in either settles which reading the round wants,
+    so the caller is handed both and chooses: a pre-normalised GC sheet is also
+    a valid long-format file, and a numeric-ID block file is a primary screen
+    or a numeric confirmation because both decoders call the same
+    ``parse_agilent_block_rep_batch``.  An empty list is an answer rather than
+    a failure, and ``reason`` says what was seen.
     """
 
     model_config = ConfigDict(extra="forbid")

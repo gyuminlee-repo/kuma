@@ -8,13 +8,18 @@
  * (`DetectMeasurementSourceParams`, `DetectMeasurementSourceResult`).
  */
 
-/** The four step 4.1 measurement sources, plus the long format they share. */
+/**
+ * The step 4.1 measurement sources. Mirrors `MEASUREMENT_SOURCES` in
+ * `kuma_core/mame/activity/detect_measurement_source.py`; the two lists must
+ * hold the same names.
+ */
 export type MeasurementSource =
   | "longFormat"
   | "gcSheet"
   | "rawReport"
   | "numericReport"
-  | "confirmationVariantLabels";
+  | "confirmationVariantLabels"
+  | "confirmationNumericIds";
 
 export const MEASUREMENT_SOURCES: readonly MeasurementSource[] = [
   "longFormat",
@@ -22,6 +27,7 @@ export const MEASUREMENT_SOURCES: readonly MeasurementSource[] = [
   "rawReport",
   "numericReport",
   "confirmationVariantLabels",
+  "confirmationNumericIds",
 ];
 
 export interface DetectMeasurementSourceParams {
@@ -35,11 +41,12 @@ export interface DetectMeasurementSourceResult {
   /** The file that was read, resolved. */
   path: string;
   /**
-   * Every source the file could be, never narrowed to a guess. A
-   * pre-normalized GC sheet is also a valid long-format file, and the two
-   * readings differ in what they do with the wild-type rows, so both are
-   * reported and the operator chooses. An empty list is an answer: the file is
-   * none of the four, and `reason` says what was seen.
+   * Every source the file could be, never narrowed to a guess. Two pairs are
+   * the same file: a pre-normalized GC sheet is also a valid long-format file,
+   * and a numeric-ID block file is a primary screen or a numeric confirmation
+   * because both decoders call the same parser. Each pair is reported whole
+   * and the operator chooses. An empty list is an answer: the file is none of
+   * them, and `reason` says what was seen.
    */
   candidates: MeasurementSource[];
   /** `candidates.length > 1`. */

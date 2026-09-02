@@ -6,7 +6,10 @@ before the detector's rules were fixed, so a rule that happens to sort the six
 positives is not enough on its own.
 
 Every assertion is on the exact list, order included, because the whole point
-of the ambiguous case is that it names two things and no third.
+of an ambiguous case is that it names two things and no third.  There are two
+such cases: a pre-normalised GC sheet is also a long-format file, and a
+numeric-ID block file is a primary screen or a numeric confirmation because
+both decoders call the same parser.
 """
 from __future__ import annotations
 
@@ -16,6 +19,7 @@ import pytest
 from openpyxl import Workbook
 
 from kuma_core.mame.activity.detect_measurement_source import (
+    CONFIRMATION_NUMERIC_IDS,
     CONFIRMATION_VARIANT_LABELS,
     GC_SHEET,
     LONG_FORMAT,
@@ -35,7 +39,7 @@ CORPUS: list[tuple[str, list[str]]] = [
     # readings disagree about the wild-type rows, so both are reported.
     ("10_mame_gc_prenormalised.xlsx", [GC_SHEET, LONG_FORMAT]),
     ("11_mame_gc_fid_round1_raw.xlsx", [RAW_REPORT]),
-    ("12_mame_agilent_numeric_index.xlsx", [NUMERIC_REPORT]),
+    ("12_mame_agilent_numeric_index.xlsx", [NUMERIC_REPORT, CONFIRMATION_NUMERIC_IDS]),
     ("09_mame_agilent_rep_batch.xlsx", [CONFIRMATION_VARIANT_LABELS]),
 ]
 
@@ -44,6 +48,9 @@ def _write_block_workbook(path: Path, sample_names: list[str]) -> Path:
     """Write a FID1B block workbook with one data row per name."""
     wb = Workbook()
     ws = wb.active
+    # `Workbook.active` is Optional and the detector reads sheet 0, so take the
+    # default sheet rather than creating one (`create_sheet` appends at 1).
+    assert ws is not None
     ws.title = "Agilent"
     for name in sample_names:
         ws.append(["Signal:", "FID1B"])
@@ -72,6 +79,46 @@ def test_gc_sheet_is_exactly_two_candidates() -> None:
     assert result.ambiguous is True
     assert result.evidence["header"] == ["sample name", "area"]
     assert result.evidence["fid1b_signature"] is False
+
+
+def test_numeric_block_file_is_exactly_two_candidates() -> None:
+    """A numeric-ID block file is a primary screen or a numeric confirmation.
+
+    `decode_primary_screen` (`numeric_id_decode.py:323`) and
+    `decode_confirmation_against` (`:411`) call the same
+    `parse_agilent_block_rep_batch`, so the file does not say which one it is
+    and `templates/12` is the bundled sample for both slots.  Naming one would
+    be a guess.
+    """
+    result = detect_measurement_source(TEMPLATES / "12_mame_agilent_numeric_index.xlsx")
+    assert result.candidates == [NUMERIC_REPORT, CONFIRMATION_NUMERIC_IDS]
+    assert set(result.candidates) == {NUMERIC_REPORT, CONFIRMATION_NUMERIC_IDS}
+    assert len(result.candidates) == 2
+    assert RAW_REPORT not in result.candidates
+    assert CONFIRMATION_VARIANT_LABELS not in result.candidates
+    assert GC_SHEET not in result.candidates
+    assert LONG_FORMAT not in result.candidates
+    assert result.ambiguous is True
+    assert result.reason == ""
+    assert result.evidence["numeric_namespace_consumers"] == [
+        "decode_primary_screen (numeric_id_decode.py:323)",
+        "decode_confirmation_against (numeric_id_decode.py:411)",
+    ]
+    assert "parse_agilent_block_rep_batch" in result.evidence["ambiguity"]
+
+
+def test_variant_label_block_file_is_one_candidate() -> None:
+    """The variant-label block file has one consumer, so it stays single.
+
+    `_raw_report_primary` refuses a sample name that is not a well
+    (`build_evolvepro_input.py:270-272`), so there is no primary reading of it.
+    """
+    result = detect_measurement_source(TEMPLATES / "09_mame_agilent_rep_batch.xlsx")
+    assert result.candidates == [CONFIRMATION_VARIANT_LABELS]
+    assert result.ambiguous is False
+    assert result.evidence["sample_name_namespaces"]["numericId"] == 0
+    assert result.evidence["sample_name_namespaces"]["well"] == 0
+    assert "_raw_report_primary" in result.evidence["ambiguity"]
 
 
 def test_block_evidence_names_the_namespace_and_the_wild_type_rows() -> None:
@@ -120,7 +167,7 @@ def test_bare_wild_type_row_is_not_a_sample(tmp_path: Path) -> None:
         ["WT", "WT_2", "1", "1-2", "2"],
     )
     result = detect_measurement_source(path)
-    assert result.candidates == [NUMERIC_REPORT]
+    assert result.candidates == [NUMERIC_REPORT, CONFIRMATION_NUMERIC_IDS]
     assert result.evidence["n_wt_rows"] == 2
     assert result.evidence["sample_name_namespaces"]["unclassified"] == 0
 
@@ -148,6 +195,7 @@ def test_unrecognised_header_is_echoed(tmp_path: Path) -> None:
     path = tmp_path / "layout_like.xlsx"
     wb = Workbook()
     ws = wb.active
+    assert ws is not None
     ws.append(["Mutant", "Well Pos."])
     ws.append(["F89W", "A1"])
     wb.save(path)

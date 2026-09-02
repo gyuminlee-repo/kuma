@@ -1328,7 +1328,7 @@
         "DetectMeasurementSourceResult",
         "detectMeasurementSource"
       ],
-      "note": "Step 4.1 measurement source detection: the detector reads the file and reports every source it could be, so the five names in MEASUREMENT_SOURCES must match the MeasurementSource union in TS and the membership set the result validator checks. The membership tests are borrowed rather than re-written (_WELL_RE from plate_layout_xlsx, _BLOCK_REP_ID_RE and _iter_fid1b_blocks from evolvepro_xlsx, _short_variant and the column sets from build_evolvepro_input), so a change to any of those changes what this reports. A gcSheet is also a valid longFormat file and that pair is reported as two candidates rather than resolved.",
+      "note": "Step 4.1 measurement source detection: the detector reads the file and reports every source it could be, so the six names in MEASUREMENT_SOURCES must match the MeasurementSource union in TS and the membership set the result validator checks. The membership tests are borrowed rather than re-written (_WELL_RE from plate_layout_xlsx, _BLOCK_REP_ID_RE and _iter_fid1b_blocks from evolvepro_xlsx, _short_variant and the column sets from build_evolvepro_input), so a change to any of those changes what this reports. Two pairs are reported as two candidates rather than resolved: a gcSheet is also a valid longFormat file, and a numeric-ID block file is numericReport or confirmationNumericIds because decode_primary_screen and decode_confirmation_against call the same parse_agilent_block_rep_batch.",
       "severity": "warning"
     }
   ]

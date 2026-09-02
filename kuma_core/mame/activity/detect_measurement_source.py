@@ -4,14 +4,32 @@ Step 4.1 used to ask the operator which of four things the file in front of
 them was.  The four shapes are distinguishable from their own contents, so
 this module reads the file and reports what it could be.
 
-The report is a *list*, never a guess.  Two of the four accepted shapes are
-genuinely the same file: every pre-normalised GC sheet has the header
-``Sample Name`` + ``Area``, and ``build_evolvepro_input._read_long`` accepts
-``sample name`` as a label column and ``area`` as a value column
-(``build_evolvepro_input.py:34,36``), so the same workbook parses on both
-paths.  They differ only in what they do with the wild-type rows, which is a
-decision about the run rather than a fact about the file, so both are
-reported and the caller chooses.
+The report is a *list*, never a guess.  Two pairs of accepted shapes are
+genuinely the same file, and neither pair is separable by reading:
+
+* every pre-normalised GC sheet has the header ``Sample Name`` + ``Area``, and
+  ``build_evolvepro_input._read_long`` accepts ``sample name`` as a label
+  column and ``area`` as a value column (``build_evolvepro_input.py:34,36``),
+  so the same workbook parses on both paths.  They differ only in what they do
+  with the wild-type rows, which is a decision about the run rather than a fact
+  about the file.
+* a block workbook whose sample names are numeric IDs is read by
+  ``decode_primary_screen`` (``numeric_id_decode.py:323``) and by
+  ``decode_confirmation_against`` (``numeric_id_decode.py:411``), and both call
+  the *same* ``parse_agilent_block_rep_batch``.  Which round the file came from
+  is not written in it: the two differ only in what order source the caller
+  supplies afterwards.  The bundled sample
+  ``templates/12_mame_agilent_numeric_index.xlsx`` is the sample for both
+  slots.
+
+Both pairs are reported with ``ambiguous`` set and the caller chooses.
+
+A variant-label block file is not a pair.  Only ``_confirmation`` reads it: the
+primary path ``_raw_report_primary`` puts every non-WT sample name through
+``_normalise_well`` and turns the failure into a refusal
+(``build_evolvepro_input.py:270-272``), and ``_normalise_well`` fails on a
+variant label because it takes ``int(raw[1:])`` (``plate_layout_xlsx.py:70``:
+``_normalise_well("F89W")`` raises ``ValueError``).
 
 Membership tests are the ones the consuming paths already use, so a file this
 module names is a file that path accepts:
@@ -25,6 +43,24 @@ module names is a file that path accepts:
   three.
 * variant labels use ``_short_variant`` (``build_evolvepro_input.py:96``), which
   is what ``_confirmation`` requires of every non-WT row it reads.
+
+What this detector does *not* look at, so a pass here is not a promise the run
+will succeed:
+
+* the extension set is wider than some consumers accept.  A ``.csv`` named as
+  the long format is only checked against the long-format reader.
+* one sheet only (``sheet_index``, default 0).  A workbook whose measurement
+  table sits on the second sheet reads as nothing.
+* header and sample-name shape only.  No value is read, converted to a number,
+  or range-checked, so a long-format file whose ``area`` column is empty or
+  textual still reports ``longFormat``.
+* the long-format test is "exactly one label column and exactly one value
+  column".  It does not check that the pair is one the caller wants: a
+  ``sample name`` + ``value`` sheet reports ``longFormat`` the same as a
+  ``well`` + ``area`` one.
+* block internals.  Only the sample name of each FID1B block is classified.
+  Replicate counts, area presence, WT block placement and whether the IDs form
+  a gapless run are the parser's business and are not checked here.
 """
 from __future__ import annotations
 
@@ -47,6 +83,7 @@ GC_SHEET = "gcSheet"
 RAW_REPORT = "rawReport"
 NUMERIC_REPORT = "numericReport"
 CONFIRMATION_VARIANT_LABELS = "confirmationVariantLabels"
+CONFIRMATION_NUMERIC_IDS = "confirmationNumericIds"
 
 MEASUREMENT_SOURCES = (
     LONG_FORMAT,
@@ -54,6 +91,7 @@ MEASUREMENT_SOURCES = (
     RAW_REPORT,
     NUMERIC_REPORT,
     CONFIRMATION_VARIANT_LABELS,
+    CONFIRMATION_NUMERIC_IDS,
 )
 
 _TABULAR_SUFFIXES = {".csv", ".tsv", ".txt"}
@@ -193,6 +231,43 @@ def _detect_block(path: Path, rows: list[list], evidence: dict[str, Any]) -> Mea
         CONFIRMATION_VARIANT_LABELS: variants,
     }
     occupied = [source for source, members in populated.items() if members]
+    if occupied == [NUMERIC_REPORT] and not unclassified:
+        # The numeric namespace does not say which round it came from.  Both
+        # consumers call the same parser on the same file and differ only in
+        # the order source the caller hands over afterwards, so the file cannot
+        # settle this and neither can this detector.
+        evidence["numeric_namespace_consumers"] = [
+            "decode_primary_screen (numeric_id_decode.py:323)",
+            "decode_confirmation_against (numeric_id_decode.py:411)",
+        ]
+        evidence["ambiguity"] = (
+            "both consumers call parse_agilent_block_rep_batch on this file; "
+            "the round is decided by the order source given to the decoder, "
+            "which is not in the file"
+        )
+        return MeasurementSourceDetection(
+            path=str(path),
+            candidates=[NUMERIC_REPORT, CONFIRMATION_NUMERIC_IDS],
+            ambiguous=True,
+            evidence=evidence,
+        )
+    if occupied == [CONFIRMATION_VARIANT_LABELS] and not unclassified:
+        # Not a pair, unlike the numeric case above: the primary path
+        # `_raw_report_primary` refuses a non-well sample name
+        # (`build_evolvepro_input.py:270-272`, raised out of
+        # `_normalise_well`'s `int(raw[1:])` at `plate_layout_xlsx.py:70`),
+        # so no primary reading of a variant-label block file exists.
+        evidence["ambiguity"] = (
+            "none: _raw_report_primary refuses a sample name that is not a "
+            "well (build_evolvepro_input.py:270-272), so a variant-label "
+            "block file has one consumer"
+        )
+        return MeasurementSourceDetection(
+            path=str(path),
+            candidates=[CONFIRMATION_VARIANT_LABELS],
+            ambiguous=False,
+            evidence=evidence,
+        )
     if len(occupied) == 1 and not unclassified:
         return MeasurementSourceDetection(
             path=str(path),
@@ -344,6 +419,7 @@ def detect_measurement_source(
 
 
 __all__ = [
+    "CONFIRMATION_NUMERIC_IDS",
     "CONFIRMATION_VARIANT_LABELS",
     "GC_SHEET",
     "LONG_FORMAT",
