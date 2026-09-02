@@ -38,7 +38,7 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 /** Panel geometry (px). Wide enough for a wrapped sentence, clamped to viewport. */
-const PANEL_WIDTH = 320;
+const DEFAULT_PANEL_WIDTH = 320;
 const PANEL_MARGIN = 8;
 /** Gap between the trigger and the panel edge. */
 const PANEL_GAP = 4;
@@ -61,8 +61,17 @@ interface PanelPosition {
   maxHeight: number;
 }
 
+/**
+ * `link` puts the label itself on screen as the trigger. `icon` hides it and
+ * shows a round "?" instead, for a field whose visible label is already the
+ * form label next to it: repeating that label as a second piece of underlined
+ * text reads as a second field rather than as help for the first. The label is
+ * still the panel heading and still part of the accessible name.
+ */
+type InfoPopoverVariant = "link" | "icon";
+
 interface InfoPopoverProps {
-  /** Visible trigger text, also the panel heading. */
+  /** Visible trigger text (variant `link`), and the panel heading in both. */
   label: string;
   /** Accessible name for the trigger button. Says what will be explained. */
   ariaLabel: string;
@@ -72,6 +81,14 @@ interface InfoPopoverProps {
   className?: string;
   /** Test hook on the panel; the trigger carries `${testId}-trigger`. */
   testId?: string;
+  /** Trigger shape. Defaults to the inline text link. */
+  variant?: InfoPopoverVariant;
+  /**
+   * Panel width in px. A panel holding a table needs more room than one
+   * holding a sentence, and the width has to be known before the panel is
+   * laid out because the horizontal clamp above is computed from it.
+   */
+  width?: number;
 }
 
 export function InfoPopover({
@@ -80,6 +97,8 @@ export function InfoPopover({
   children,
   className,
   testId = "info-popover",
+  variant = "link",
+  width = DEFAULT_PANEL_WIDTH,
 }: InfoPopoverProps) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<PanelPosition | null>(null);
@@ -99,7 +118,7 @@ export function InfoPopover({
       if (!rect) return;
       const left = Math.max(
         PANEL_MARGIN,
-        Math.min(rect.left, window.innerWidth - PANEL_WIDTH - PANEL_MARGIN),
+        Math.min(rect.left, window.innerWidth - width - PANEL_MARGIN),
       );
       const spaceBelow = window.innerHeight - rect.bottom - PANEL_GAP - PANEL_MARGIN;
       const spaceAbove = rect.top - PANEL_GAP - PANEL_MARGIN;
@@ -140,7 +159,7 @@ export function InfoPopover({
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("mousedown", onPointerDown);
     };
-  }, [open, close]);
+  }, [open, close, width]);
 
   return (
     <>
@@ -166,12 +185,21 @@ export function InfoPopover({
           event.stopPropagation();
         }}
         className={cn(
-          "rounded-control text-left underline decoration-dotted underline-offset-2",
-          "hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+          "rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+          variant === "icon"
+            ? [
+                "inline-flex h-4 w-4 items-center justify-center rounded-full",
+                "text-plate-tiny font-bold leading-none transition-colors",
+                "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+              ]
+            : [
+                "text-left underline decoration-dotted underline-offset-2",
+                "hover:text-foreground",
+              ],
           className,
         )}
       >
-        {label}
+        {variant === "icon" ? "?" : label}
       </button>
       {open &&
         position &&
@@ -186,7 +214,7 @@ export function InfoPopover({
               left: position.left,
               top: position.top,
               bottom: position.bottom,
-              width: PANEL_WIDTH,
+              width,
               maxHeight: position.maxHeight,
             }}
           >

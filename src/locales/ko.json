@@ -569,7 +569,15 @@
       "confirmationOnlyFile": "이 파일은 확인 측정이고 1차 측정이 아닙니다. 측정 파일로 다른 파일을 고르거나 이 파일을 확인 측정 자리에 넣으십시오.",
       "useAsConfirmation": "{{format}} 로 넣기",
       "detectionNoMatch": "이 파일에서는 형식을 읽지 못했습니다. 아래에서 직접 고르십시오.",
-      "detectionFailed": "형식 판별이 실행되지 않았습니다. 아래에서 형식을 고르십시오."
+      "detectionFailed": "형식 판별이 실행되지 않았습니다. 아래에서 형식을 고르십시오.",
+      "formatPreview": {
+        "heading": "파일 모양",
+        "trigger": "{{label}} 파일이 어떻게 생겼는지 보기",
+        "sourceLabel": "샘플 파일: {{file}}",
+        "omitted": "생략된 행",
+        "highlightNote": "표시된 sample name 이 이 리포트 형식들을 가르는 유일한 칸입니다.",
+        "multipleFormats": "이 항목은 아래 형식을 모두 받습니다. 파일을 고르면 해당하는 형식만 남습니다."
+      }
     },
     "runHealth": {
       "panelAriaLabel": "실행 상태 패널",

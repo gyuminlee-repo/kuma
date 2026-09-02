@@ -569,7 +569,15 @@
       "confirmationOnlyFile": "This file is a confirmation measurement, not a primary one. Choose another file as the measurement, or file this one as the confirmation.",
       "useAsConfirmation": "File as {{format}}",
       "detectionNoMatch": "The format could not be read from this file. Choose it below.",
-      "detectionFailed": "Format detection did not run. Choose the format below."
+      "detectionFailed": "Format detection did not run. Choose the format below.",
+      "formatPreview": {
+        "heading": "File shape",
+        "trigger": "Show what a {{label}} file looks like",
+        "sourceLabel": "Sample file: {{file}}",
+        "omitted": "rows omitted",
+        "highlightNote": "The marked sample name is the one cell that tells these report formats apart.",
+        "multipleFormats": "This field takes any of these. Once a file is picked, only the matching one is shown."
+      }
     },
     "runHealth": {
       "panelAriaLabel": "Run health panel",

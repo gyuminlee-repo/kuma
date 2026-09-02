@@ -1222,7 +1222,15 @@
       "confirmationOnlyFile": "このファイルは確認測定であり、1 次測定ではありません。測定ファイルには別のファイルを選ぶか、このファイルを確認測定の枠に入れてください。",
       "useAsConfirmation": "{{format}} として登録",
       "detectionNoMatch": "このファイルからは形式を読み取れませんでした。下で選んでください。",
-      "detectionFailed": "形式の判別が実行されませんでした。下で形式を選んでください。"
+      "detectionFailed": "形式の判別が実行されませんでした。下で形式を選んでください。",
+      "formatPreview": {
+        "heading": "ファイルの形",
+        "trigger": "{{label}} ファイルの見た目を表示",
+        "sourceLabel": "サンプルファイル: {{file}}",
+        "omitted": "省略された行",
+        "highlightNote": "印を付けた sample name が、これらのレポート形式を見分ける唯一のセルです。",
+        "multipleFormats": "この項目は以下のいずれも受け付けます。ファイルを選ぶと該当する形式だけが残ります。"
+      }
     },
     "verdictBadge": {
       "help": {

@@ -1222,7 +1222,15 @@
       "confirmationOnlyFile": "此檔案是確認測量，而非首次測量。請另選一個檔案作為測量檔案，或將此檔案放入確認測量位置。",
       "useAsConfirmation": "作為 {{format}} 登錄",
       "detectionNoMatch": "無法從此檔案讀取格式。請於下方自行選擇。",
-      "detectionFailed": "格式判別未執行。請於下方選擇格式。"
+      "detectionFailed": "格式判別未執行。請於下方選擇格式。",
+      "formatPreview": {
+        "heading": "檔案樣貌",
+        "trigger": "查看 {{label}} 檔案的樣子",
+        "sourceLabel": "範例檔案：{{file}}",
+        "omitted": "省略的列",
+        "highlightNote": "標記的 Sample Name 是區分這幾種報告格式的唯一儲存格。",
+        "multipleFormats": "此項接受以下任一格式。選定檔案後只保留相符的格式。"
+      }
     },
     "verdictBadge": {
       "help": {

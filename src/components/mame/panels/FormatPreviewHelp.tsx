@@ -1,0 +1,223 @@
+/**
+ * The "?" beside a step 4.1 file field: what the file it wants looks like,
+ * shown as the spreadsheet rows themselves.
+ *
+ * The field labels name a format ("Raw Agilent report", "Numeric-ID Agilent
+ * report") and a sentence of prose underneath describes it, but three of those
+ * formats are the same file for their first fifteen rows and differ in one
+ * cell. A reader holding an unfamiliar export cannot settle which one they
+ * have from a description; they can settle it by comparing their sheet to the
+ * sheet. So the rows come out of `templates/` through
+ * `scripts/gen_mame_format_preview.py`, which is the same file the sample-data
+ * loader puts in this field.
+ *
+ * For a block format that means two windows, not the top of the file: the top
+ * is the wild-type block every one of them carries. The window that matters is
+ * the first non-wild-type block, and inside it the sample name cell, which is
+ * marked.
+ */
+import { useTranslation } from "react-i18next";
+import { InfoPopover } from "@/components/ui/InfoPopover";
+import {
+  getFormatPreview,
+  type FormatPreview,
+  type FormatPreviewId,
+} from "@/data/mameFormatPreviews";
+
+/** Wide enough for the ten-column designed variant list before it scrolls. */
+const PANEL_WIDTH = 420;
+
+/** One preview to show, with the already-translated name of its format. */
+export interface FormatPreviewEntry {
+  id: FormatPreviewId;
+  /** Format name, used as the table caption. */
+  title: string;
+}
+
+function fileName(source: string): string {
+  const parts = source.split("/");
+  return parts[parts.length - 1] ?? source;
+}
+
+function isHighlighted(
+  preview: FormatPreview,
+  windowIndex: number,
+  rowIndex: number,
+  colIndex: number,
+): boolean {
+  const highlight = preview.highlight;
+  return (
+    highlight !== null &&
+    highlight.window === windowIndex &&
+    highlight.row === rowIndex &&
+    highlight.col === colIndex
+  );
+}
+
+function PreviewCell({
+  value,
+  highlighted,
+  testId,
+}: {
+  value: string;
+  highlighted: boolean;
+  testId?: string;
+}) {
+  return (
+    <td
+      data-testid={testId}
+      className={
+        highlighted
+          ? "whitespace-nowrap border border-primary bg-primary/15 px-1.5 py-0.5 font-semibold text-primary"
+          : "whitespace-nowrap border border-border/60 px-1.5 py-0.5 text-foreground"
+      }
+    >
+      {value}
+    </td>
+  );
+}
+
+function FormatPreviewTable({ id, title }: FormatPreviewEntry) {
+  const { t } = useTranslation();
+  const preview = getFormatPreview(id);
+  const columnCount = preview.windows[0]?.rows[0]?.length ?? 1;
+  // A header row is the first row of the first window and is never part of the
+  // body, so the body of that window starts one row later.
+  const headerCells = preview.headerRow ? preview.windows[0]?.rows[0] : undefined;
+
+  return (
+    <div className="mb-3 last:mb-0">
+      <div className="overflow-x-auto rounded-control border border-border">
+        <table
+          data-testid={`format-preview-table-${id}`}
+          className="w-full border-collapse text-plate-tiny font-mono"
+        >
+          <caption className="px-1.5 py-1 text-left text-caption font-semibold text-foreground">
+            {title}
+          </caption>
+          {headerCells && (
+            <thead>
+              <tr className="bg-muted">
+                {headerCells.map((cell, colIndex) => (
+                  <th
+                    key={colIndex}
+                    scope="col"
+                    className="whitespace-nowrap border border-border/60 px-1.5 py-0.5 text-left font-semibold text-muted-foreground"
+                  >
+                    {cell}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+          )}
+          {preview.windows.map((window, windowIndex) => {
+            const bodyRows =
+              preview.headerRow && windowIndex === 0
+                ? window.rows.slice(1)
+                : window.rows;
+            const rowOffset = preview.headerRow && windowIndex === 0 ? 1 : 0;
+            return (
+              <tbody key={windowIndex}>
+                {windowIndex > 0 && preview.ellipsisBetweenWindows && (
+                  <tr>
+                    <td
+                      colSpan={columnCount}
+                      className="border border-border/60 px-1.5 py-0.5 text-center text-muted-foreground"
+                    >
+                      <span aria-hidden="true">⋮</span>
+                      <span className="sr-only">
+                        {t("mame.buildEvolvepro.formatPreview.omitted")}
+                      </span>
+                    </td>
+                  </tr>
+                )}
+                {bodyRows.map((row, bodyIndex) => (
+                  <tr key={bodyIndex}>
+                    {row.map((cell, colIndex) => {
+                      const highlighted = isHighlighted(
+                        preview,
+                        windowIndex,
+                        bodyIndex + rowOffset,
+                        colIndex,
+                      );
+                      return (
+                        <PreviewCell
+                          key={colIndex}
+                          value={cell}
+                          highlighted={highlighted}
+                          testId={
+                            highlighted ? `format-preview-highlight-${id}` : undefined
+                          }
+                        />
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            );
+          })}
+          {preview.truncatedAfter && (
+            <tfoot>
+              <tr>
+                <td
+                  colSpan={columnCount}
+                  className="border border-border/60 px-1.5 py-0.5 text-center text-muted-foreground"
+                >
+                  <span aria-hidden="true">⋮</span>
+                  <span className="sr-only">
+                    {t("mame.buildEvolvepro.formatPreview.omitted")}
+                  </span>
+                </td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+      {preview.highlight !== null && (
+        <p className="mt-1 text-caption text-muted-foreground">
+          {t("mame.buildEvolvepro.formatPreview.highlightNote")}
+        </p>
+      )}
+      <p className="mt-0.5 text-caption text-muted-foreground">
+        {t("mame.buildEvolvepro.formatPreview.sourceLabel", {
+          file: fileName(preview.source),
+        })}
+      </p>
+    </div>
+  );
+}
+
+export function FormatPreviewHelp({
+  fieldLabel,
+  entries,
+  testId,
+}: {
+  /** Translated label of the field this help belongs to. */
+  fieldLabel: string;
+  /** One entry per format the field accepts, in the order they are shown. */
+  entries: FormatPreviewEntry[];
+  testId: string;
+}) {
+  const { t } = useTranslation();
+  if (entries.length === 0) return null;
+  return (
+    <InfoPopover
+      variant="icon"
+      width={PANEL_WIDTH}
+      testId={testId}
+      label={t("mame.buildEvolvepro.formatPreview.heading")}
+      ariaLabel={t("mame.buildEvolvepro.formatPreview.trigger", {
+        label: fieldLabel,
+      })}
+    >
+      {entries.length > 1 && (
+        <p className="mb-2 text-caption text-muted-foreground">
+          {t("mame.buildEvolvepro.formatPreview.multipleFormats")}
+        </p>
+      )}
+      {entries.map((entry) => (
+        <FormatPreviewTable key={entry.id} id={entry.id} title={entry.title} />
+      ))}
+    </InfoPopover>
+  );
+}

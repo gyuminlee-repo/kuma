@@ -1222,7 +1222,15 @@
       "confirmationOnlyFile": "Diese Datei ist eine Bestätigungsmessung, keine Primärmessung. Eine andere Datei als Messdatei wählen oder diese als Bestätigung ablegen.",
       "useAsConfirmation": "Als {{format}} ablegen",
       "detectionNoMatch": "Das Format ließ sich aus dieser Datei nicht lesen. Unten auswählen.",
-      "detectionFailed": "Die Formaterkennung lief nicht. Das Format unten auswählen."
+      "detectionFailed": "Die Formaterkennung lief nicht. Das Format unten auswählen.",
+      "formatPreview": {
+        "heading": "Dateiform",
+        "trigger": "Zeigen, wie eine {{label}}-Datei aussieht",
+        "sourceLabel": "Beispieldatei: {{file}}",
+        "omitted": "ausgelassene Zeilen",
+        "highlightNote": "Der markierte Sample Name ist die einzige Zelle, die diese Berichtsformate unterscheidet.",
+        "multipleFormats": "Dieses Feld nimmt jedes davon an. Nach der Dateiwahl bleibt nur das passende Format."
+      }
     },
     "verdictBadge": {
       "help": {

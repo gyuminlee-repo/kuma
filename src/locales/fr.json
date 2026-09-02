@@ -1222,7 +1222,15 @@
       "confirmationOnlyFile": "Ce fichier est une mesure de confirmation, pas une mesure primaire. Choisir un autre fichier comme mesure, ou classer celui-ci comme confirmation.",
       "useAsConfirmation": "Classer comme {{format}}",
       "detectionNoMatch": "Le format n'a pas pu être lu dans ce fichier. Le choisir ci-dessous.",
-      "detectionFailed": "La détection de format n'a pas eu lieu. Choisir le format ci-dessous."
+      "detectionFailed": "La détection de format n'a pas eu lieu. Choisir le format ci-dessous.",
+      "formatPreview": {
+        "heading": "Forme du fichier",
+        "trigger": "Montrer à quoi ressemble un fichier {{label}}",
+        "sourceLabel": "Fichier d'exemple : {{file}}",
+        "omitted": "lignes omises",
+        "highlightNote": "Le Sample Name marqué est la seule cellule qui distingue ces formats de rapport.",
+        "multipleFormats": "Ce champ accepte chacun d'eux. Une fois le fichier choisi, seul le format correspondant reste."
+      }
     },
     "verdictBadge": {
       "help": {

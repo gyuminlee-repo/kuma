@@ -1222,7 +1222,15 @@
       "confirmationOnlyFile": "该文件是确认测量，而非首次测量。请另选一个文件作为测量文件，或将该文件放入确认测量位置。",
       "useAsConfirmation": "作为 {{format}} 登记",
       "detectionNoMatch": "无法从该文件读取格式。请在下方自行选择。",
-      "detectionFailed": "格式判别未执行。请在下方选择格式。"
+      "detectionFailed": "格式判别未执行。请在下方选择格式。",
+      "formatPreview": {
+        "heading": "文件形态",
+        "trigger": "查看 {{label}} 文件的样子",
+        "sourceLabel": "示例文件：{{file}}",
+        "omitted": "省略的行",
+        "highlightNote": "标记的 Sample Name 是区分这几种报告格式的唯一单元格。",
+        "multipleFormats": "此项接受以下任一格式。选定文件后只保留匹配的格式。"
+      }
     },
     "verdictBadge": {
       "help": {

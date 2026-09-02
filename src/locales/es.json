@@ -1222,7 +1222,15 @@
       "confirmationOnlyFile": "Este archivo es una medición de confirmación, no una primaria. Elegir otro archivo como medición, o registrar este como confirmación.",
       "useAsConfirmation": "Registrar como {{format}}",
       "detectionNoMatch": "No se pudo leer el formato de este archivo. Elegirlo abajo.",
-      "detectionFailed": "La detección de formato no se ejecutó. Elegir el formato abajo."
+      "detectionFailed": "La detección de formato no se ejecutó. Elegir el formato abajo.",
+      "formatPreview": {
+        "heading": "Forma del archivo",
+        "trigger": "Mostrar cómo es un archivo {{label}}",
+        "sourceLabel": "Archivo de ejemplo: {{file}}",
+        "omitted": "filas omitidas",
+        "highlightNote": "El Sample Name marcado es la única celda que distingue estos formatos de informe.",
+        "multipleFormats": "Este campo acepta cualquiera de ellos. Al elegir un archivo solo queda el formato correspondiente."
+      }
     },
     "verdictBadge": {
       "help": {
