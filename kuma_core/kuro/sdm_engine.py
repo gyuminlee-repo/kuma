@@ -758,8 +758,15 @@ def check_offtarget(
        18(4):999 (3' terminal mismatches cut yield 20-100x, internal
        mismatches barely matter, the last 4 bases are what counts);
        Huang/Arnheim/Goodman 1992 NAR 20(17):4567 (Taq extends a 3' mispair
-       at 1e-3 to 1e-6 relative efficiency, i.e. it is not simply blocked);
-       Primer3 itself uses the same last-4-nt-clean convention.
+       at 1e-3 to 1e-6 relative efficiency, i.e. it is not simply blocked).
+       ``end_nt`` defaults to 4 after that Kwok last-four-bases result, not
+       after Primer3. Primer3 3'-end windows are all five bases
+       (``PRIMER_MAX_END_STABILITY`` scores the last 5 via
+       ``end_oligodg(seq, 5, ...)`` at libprimer3.c:3718,
+       ``PRIMER_MAX_END_GC`` defaults to 5 at libprimer3.c:710 and counts
+       G/C in the last 5, ``PRIMER_MUST_MATCH_THREE_PRIME`` takes a
+       5-character pattern), and Primer3 carries no last-4-nt-clean rule.
+       Checked against the bundled primer3-py 2.3.0 source on 2026-08-31.
 
     ``TM_THRESHOLD`` (``mismatch_tm_threshold``, default 45.0) was measured
     against fixtures/pSHCE-dmpR.gb + fixtures/mutation_list_insilico_test.csv
