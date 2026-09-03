@@ -2163,7 +2163,8 @@
     "colStrand": "가닥",
     "colTm": "Tm (°C)",
     "noHits": "Off-target 위치 없음",
-    "title": "{{mutation}} - Off-Target 위치 ({{count}})"
+    "title": "{{mutation}} - Off-Target 위치 ({{count}})",
+    "thresholdNote": "임계값은 단일 테스트 데이터셋과 교정 활성이 없는 중합효소 데이터 (Taq; Kwok 1990, Huang 1992) 를 근거로 정했습니다. Q5 와 KOD One 은 교정 활성이 있으므로 이 결과는 절대 기준이 아니라 방향성 참고로 보십시오."
   },
   "overwriteConfirm": {
     "title": "파일이 이미 존재합니다",

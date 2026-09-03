@@ -2050,7 +2050,8 @@
     "colStrand": "Strand",
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
-    "colSequence": "Secuencia"
+    "colSequence": "Secuencia",
+    "thresholdNote": "Los umbrales se calibraron con un único conjunto de datos de prueba y con datos de polimerasas sin actividad correctora (Taq; Kwok 1990, Huang 1992). Q5 y KOD One sí corrigen, por lo que estos hits deben interpretarse como orientativos y no como absolutos."
   },
   "hairpinDetail": {
     "title": "{{mutation}} — Estructura secundaria",

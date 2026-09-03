@@ -2050,7 +2050,8 @@
     "colStrand": "Strand",
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
-    "colSequence": "Sequenz"
+    "colSequence": "Sequenz",
+    "thresholdNote": "Die Schwellenwerte beruhen auf einem einzelnen Testdatensatz und auf Daten zu Polymerasen ohne Korrekturlesefunktion (Taq; Kwok 1990, Huang 1992). Q5 und KOD One besitzen eine Korrekturlesefunktion, daher sind diese Treffer als Richtwerte und nicht als absolute Aussage zu lesen."
   },
   "hairpinDetail": {
     "title": "{{mutation}}, Sekundärstruktur",

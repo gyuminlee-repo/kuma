@@ -2050,7 +2050,8 @@
     "colStrand": "Strand",
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
-    "colSequence": "Sequência"
+    "colSequence": "Sequência",
+    "thresholdNote": "Os limiares foram calibrados com um único conjunto de dados de teste e com dados de polimerases sem atividade corretora (Taq; Kwok 1990, Huang 1992). Q5 e KOD One possuem atividade corretora, portanto trate estes hits como indicativos e não como absolutos."
   },
   "hairpinDetail": {
     "title": "{{mutation}} — Estrutura secundária",

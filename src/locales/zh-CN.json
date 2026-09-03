@@ -2050,7 +2050,8 @@
     "colStrand": "Strand",
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
-    "colSequence": "序列"
+    "colSequence": "序列",
+    "thresholdNote": "阈值基于单一测试数据集以及无校对活性的聚合酶数据 (Taq; Kwok 1990, Huang 1992) 标定。Q5 与 KOD One 具有校对活性，因此这些命中应视为方向性参考，而非绝对判定。"
   },
   "hairpinDetail": {
     "title": "{{mutation}} — 二级结构",
