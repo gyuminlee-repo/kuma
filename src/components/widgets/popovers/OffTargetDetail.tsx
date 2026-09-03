@@ -55,36 +55,41 @@ export function OffTargetDetail({
         {allHits.length === 0 ? (
           <div className="py-4 text-center text-xs text-muted-foreground">{t("offTargetDetail.noHits")}</div>
         ) : (
-          <table className="w-full text-xs border-collapse">
-            <thead>
-              <tr className="bg-muted text-muted-foreground font-semibold">
-                <th className="px-2 py-1.5 text-left">{t("offTargetDetail.colPrimer")}</th>
-                <th className="px-2 py-1.5 text-right">{t("offTargetDetail.colPosition")}</th>
-                <th className="px-2 py-1.5 text-center">{t("offTargetDetail.colStrand")}</th>
-                <th className="px-2 py-1.5 text-right">{t("offTargetDetail.colMatch")}</th>
-                <th className="px-2 py-1.5 text-right">{t("offTargetDetail.colTm")}</th>
-                <th className="px-2 py-1.5 text-left">{t("offTargetDetail.colSequence")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allHits.map((h, i) => (
-                <tr key={i} className="border-b border-border">
-                  <td className={`px-2 py-1.5 font-medium ${h.primer === "Fwd" ? "text-info" : "text-warning"}`}>
-                    {h.primer}
-                  </td>
-                  <td className="px-2 py-1.5 text-right font-mono">{h.position}</td>
-                  <td className="px-2 py-1.5 text-center">
-                    <span className={`inline-block px-1 py-0.5 rounded text-plate-tiny ${h.strand === "sense" ? "bg-info/10 text-info" : "bg-primary/10 text-primary"}`}>
-                      {h.strand === "sense" ? "+" : "−"}
-                    </span>
-                  </td>
-                  <td className="px-2 py-1.5 text-right font-mono">{h.match_length}</td>
-                  <td className="px-2 py-1.5 text-right font-mono">{h.tm.toFixed(1)}</td>
-                  <td className="px-2 py-1.5 font-mono text-caption break-all max-w-36">{h.match_seq}</td>
+          <>
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="bg-muted text-muted-foreground font-semibold">
+                  <th className="px-2 py-1.5 text-left">{t("offTargetDetail.colPrimer")}</th>
+                  <th className="px-2 py-1.5 text-right">{t("offTargetDetail.colPosition")}</th>
+                  <th className="px-2 py-1.5 text-center">{t("offTargetDetail.colStrand")}</th>
+                  <th className="px-2 py-1.5 text-right">{t("offTargetDetail.colMatch")}</th>
+                  <th className="px-2 py-1.5 text-right">{t("offTargetDetail.colTm")}</th>
+                  <th className="px-2 py-1.5 text-left">{t("offTargetDetail.colSequence")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {allHits.map((h, i) => (
+                  <tr key={i} className="border-b border-border">
+                    <td className={`px-2 py-1.5 font-medium ${h.primer === "Fwd" ? "text-info" : "text-warning"}`}>
+                      {h.primer}
+                    </td>
+                    <td className="px-2 py-1.5 text-right font-mono">{h.position}</td>
+                    <td className="px-2 py-1.5 text-center">
+                      <span className={`inline-block px-1 py-0.5 rounded text-plate-tiny ${h.strand === "sense" ? "bg-info/10 text-info" : "bg-primary/10 text-primary"}`}>
+                        {h.strand === "sense" ? "+" : "−"}
+                      </span>
+                    </td>
+                    <td className="px-2 py-1.5 text-right font-mono">{h.match_length}</td>
+                    <td className="px-2 py-1.5 text-right font-mono">{h.tm.toFixed(1)}</td>
+                    <td className="px-2 py-1.5 font-mono text-caption break-all max-w-36">{h.match_seq}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="mt-3 text-xs leading-snug text-muted-foreground">
+              {t("offTargetDetail.thresholdNote")}
+            </p>
+          </>
         )}
       </div>
     </div>

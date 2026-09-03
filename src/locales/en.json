@@ -2081,7 +2081,8 @@
     "colStrand": "Strand",
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
-    "colSequence": "Sequence"
+    "colSequence": "Sequence",
+    "thresholdNote": "Thresholds are calibrated on one fixture set and on non-proofreading polymerase data (Taq; Kwok 1990, Huang 1992). Q5 and KOD One proofread, so treat these hits as directional rather than absolute."
   },
   "hairpinDetail": {
     "title": "{{mutation}} — Secondary Structure",

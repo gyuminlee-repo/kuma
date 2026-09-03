@@ -2050,7 +2050,8 @@
     "colStrand": "Strand",
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
-    "colSequence": "Séquence"
+    "colSequence": "Séquence",
+    "thresholdNote": "Les seuils sont calibrés sur un seul jeu de données de test et sur des polymérases sans activité de relecture (Taq ; Kwok 1990, Huang 1992). Q5 et KOD One possèdent cette activité : ces hits sont donc indicatifs et non absolus."
   },
   "hairpinDetail": {
     "title": "{{mutation}} — Structure secondaire",

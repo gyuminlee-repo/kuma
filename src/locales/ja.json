@@ -2050,7 +2050,8 @@
     "colStrand": "Strand",
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
-    "colSequence": "配列"
+    "colSequence": "配列",
+    "thresholdNote": "しきい値は単一のテストデータセットと、校正活性をもたないポリメラーゼのデータ (Taq; Kwok 1990, Huang 1992) に基づいています。Q5 と KOD One は校正活性をもつため、これらのヒットは絶対的な判定ではなく目安として扱ってください。"
   },
   "hairpinDetail": {
     "title": "{{mutation}} — Secondary Structure",
