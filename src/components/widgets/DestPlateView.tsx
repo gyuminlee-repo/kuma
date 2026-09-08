@@ -2,10 +2,11 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { DestCell } from "@/lib/echoJanusAdapter";
 import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
+  PlateCellPopover,
+  PlateColumnHeaderRow,
+  PlateRowHeader,
+  PlateWellCell,
+} from "./PlatePreviewGrid";
 import {
   PLATE_FILL_DEST_COMPLETE,
   PLATE_FILL_DEST_PARTIAL,
@@ -73,42 +74,24 @@ export function DestPlateView({ cells, sourceMethod, title, className }: Props) 
             "auto repeat(12, minmax(var(--plate-preview-cell-min), var(--plate-preview-cell-cap)))",
         }}
       >
-        <div role="row" className="contents">
-          <div />
-          {COLS.map((c) => (
-            <div key={c} role="columnheader" className="text-caption text-center text-muted-foreground">
-              {c}
-            </div>
-          ))}
-        </div>
+        <PlateColumnHeaderRow cols={COLS} />
         {ROWS.map((r) => (
           <div key={r} role="row" className="contents">
-            <div
-              role="rowheader"
-              data-row-label={r}
-              aria-label={t("exportPreview.rowAriaLabel", { row: r })}
-              className="text-caption text-muted-foreground text-right pr-1"
-            >
-              {r}
-            </div>
+            <PlateRowHeader row={r} />
             {COLS.map((c) => {
               const well = wellKey(r, c);
               const cell = byWell.get(well);
 
               if (!cell) {
                 return (
-                  <div
+                  <PlateWellCell
                     key={well}
-                    role="gridcell"
-                    data-testid="dest-cell"
-                    data-row={r}
-                    data-well={well}
-                    data-state="empty"
+                    testId="dest-cell"
+                    row={r}
+                    well={well}
+                    state="empty"
                     title={well}
-                    className={cn(
-                      "aspect-square rounded-[2px] border border-border/50",
-                      "bg-muted/40 dark:bg-muted/20",
-                    )}
+                    fillClassName="bg-muted/40 dark:bg-muted/20"
                   />
                 );
               }
@@ -117,61 +100,58 @@ export function DestPlateView({ cells, sourceMethod, title, className }: Props) 
               const state = complete ? "complete" : "partial";
               const bg = complete ? PLATE_FILL_DEST_COMPLETE : PLATE_FILL_DEST_PARTIAL;
               const tip = `${cell.mutation} (${well}): F=${cell.hasF ? "✓" : "✗"} R=${cell.hasR ? "✓" : "✗"}`;
+              const missing = (
+                <span className="text-amber-600 dark:text-amber-400">
+                  {t("exportPreview.missing", { defaultValue: "missing" })}
+                </span>
+              );
 
               return (
-                <Popover key={well}>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      data-testid="dest-cell"
-                      data-row={r}
-                      data-well={well}
-                      data-state={state}
-                      title={tip}
-                      className={cn(
-                        "plate-preview-cell aspect-square rounded-[2px] border border-border/50 flex items-center justify-center overflow-hidden p-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring",
-                        bg,
-                      )}
-                    >
-                      <span className="font-mono leading-none text-white truncate px-0.5">
-                        {cell.mutation}
-                      </span>
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto text-xs space-y-1">
-                    <div className="font-mono font-medium">{cell.mutation}</div>
-                    <div>
-                      <span className="text-muted-foreground">
-                        {t("exportPreview.destWell", { defaultValue: "Dest well" })}:{" "}
-                      </span>
-                      <span className="font-mono">{well}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">F: </span>
-                      {cell.hasF ? (
-                        <span className="font-mono">
-                          {cell.fwdSource ?? "?"} · {cell.fwdVol ?? "?"} {unit}
-                        </span>
-                      ) : (
-                        <span className="text-amber-600 dark:text-amber-400">
-                          {t("exportPreview.missing", { defaultValue: "missing" })}
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">R: </span>
-                      {cell.hasR ? (
-                        <span className="font-mono">
-                          {cell.revSource ?? "?"} · {cell.revVol ?? "?"} {unit}
-                        </span>
-                      ) : (
-                        <span className="text-amber-600 dark:text-amber-400">
-                          {t("exportPreview.missing", { defaultValue: "missing" })}
-                        </span>
-                      )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <PlateWellCell
+                  key={well}
+                  testId="dest-cell"
+                  row={r}
+                  well={well}
+                  state={state}
+                  title={tip}
+                  cellClassName="plate-preview-cell"
+                  fillClassName={bg}
+                  popover={
+                    <PlateCellPopover
+                      title={cell.mutation}
+                      rows={[
+                        {
+                          label: `${t("exportPreview.destWell", { defaultValue: "Dest well" })}:`,
+                          value: <span className="font-mono">{well}</span>,
+                        },
+                        {
+                          label: "F:",
+                          value: cell.hasF ? (
+                            <span className="font-mono">
+                              {cell.fwdSource ?? "?"} · {cell.fwdVol ?? "?"} {unit}
+                            </span>
+                          ) : (
+                            missing
+                          ),
+                        },
+                        {
+                          label: "R:",
+                          value: cell.hasR ? (
+                            <span className="font-mono">
+                              {cell.revSource ?? "?"} · {cell.revVol ?? "?"} {unit}
+                            </span>
+                          ) : (
+                            missing
+                          ),
+                        },
+                      ]}
+                    />
+                  }
+                >
+                  <span className="font-mono leading-none text-white truncate px-0.5">
+                    {cell.mutation}
+                  </span>
+                </PlateWellCell>
               );
             })}
           </div>

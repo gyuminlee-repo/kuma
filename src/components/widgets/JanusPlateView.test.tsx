@@ -3,24 +3,37 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect } from "vitest";
 import { JanusPlateView } from "./JanusPlateView";
 import { PLATE_PREVIEW_FRAME } from "@/lib/platePreviewStyles";
+import {
+  expectCellSizeClass,
+  expectFramedScroller,
+  expectGridSemantics,
+  expectGridTemplate,
+} from "@/test-utils/platePreviewGrid";
 
-/**
- * The frame/scroller contract these previews now share with WellPlate: the
- * outermost element carries the card frame and the horizontal scroll, and
- * `min-w-*` sits on a descendant, so a plate wider than the viewport scrolls
- * inside its own frame instead of pushing the page.
- */
-function expectFramedScroller(root: HTMLElement, minWidthClass: string): void {
-  expect(root.className).toContain(PLATE_PREVIEW_FRAME);
-  expect(root.className).toContain("overflow-x-auto");
-  expect(root.className).not.toMatch(/min-w-/);
-  expect(root.querySelector(`.${CSS.escape(minWidthClass)}`)).not.toBeNull();
-}
+const JANUS_TEMPLATE =
+  "auto repeat(12, minmax(var(--plate-preview-cell-min-tiny), var(--plate-preview-cell-cap)))";
+
+const FILLED_RACK1 = [
+  {
+    well: "A1",
+    rowLetter: "A",
+    colNumber: 1,
+    rack: 1 as const,
+    name: "Q232A-fw",
+    volumeUl: 2.0,
+    mutation: "Q232A",
+  },
+];
+
 
 describe("JanusPlateView", () => {
   it("frames the rack pair and keeps the scroll inside that frame", () => {
     const { container } = render(<JanusPlateView rack1={[]} rack2={[]} />);
-    expectFramedScroller(container.firstElementChild as HTMLElement, "min-w-[700px]");
+    expectFramedScroller(
+      container.firstElementChild as HTMLElement,
+      PLATE_PREVIEW_FRAME,
+      "min-w-[700px]",
+    );
   });
 
   it("leaves the query container on each rack, not on the pair", () => {
@@ -153,5 +166,31 @@ describe("JanusPlateView", () => {
       // Empty cells display only the well coordinate (e.g., "A1"), no µL
       expect(title).not.toMatch(/µL/);
     });
+  });
+
+  it("wraps every well in a gridcell and labels its row header", () => {
+    const { container } = render(<JanusPlateView rack1={FILLED_RACK1} rack2={[]} />);
+    expectGridSemantics(container, "janus-cell");
+  });
+
+  it("keeps the tuned 12-column track template on both racks", () => {
+    const { container } = render(<JanusPlateView rack1={[]} rack2={[]} />);
+    expectGridTemplate(container, JANUS_TEMPLATE);
+  });
+
+  it("keeps its own cell size class after the shared-cell refactor", () => {
+    const { container } = render(<JanusPlateView rack1={FILLED_RACK1} rack2={[]} />);
+    const filled = container.querySelector<HTMLElement>("button[data-testid='janus-cell']");
+    expect(filled).not.toBeNull();
+    expectCellSizeClass(filled!, "plate-preview-cell-narrow", [
+      "plate-preview-cell",
+      "plate-preview-cell-tiny",
+    ]);
+  });
+
+  it("renders its popover through the shared popover component", async () => {
+    render(<JanusPlateView rack1={FILLED_RACK1} rack2={[]} />);
+    await userEvent.click(screen.getByText("Q232A"));
+    expect(await screen.findByTestId("plate-popover-body")).toBeInTheDocument();
   });
 });

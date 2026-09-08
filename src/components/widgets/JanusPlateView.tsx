@@ -1,12 +1,13 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
 import type { JanusCell } from "@/lib/echoJanusAdapter";
 import { parseJanusName } from "@/lib/echoJanusAdapter";
+import {
+  PlateCellPopover,
+  PlateColumnHeaderRow,
+  PlateRowHeader,
+  PlateWellCell,
+} from "./PlatePreviewGrid";
 import {
   PLATE_FILL_FORWARD,
   PLATE_FILL_REVERSE,
@@ -80,27 +81,10 @@ function Rack({
             "auto repeat(12, minmax(var(--plate-preview-cell-min-tiny), var(--plate-preview-cell-cap)))",
         }}
       >
-        <div role="row" className="contents">
-          <div />
-          {COLS.map((c) => (
-            <div
-              key={c}
-              role="columnheader"
-              className="text-caption text-center text-muted-foreground"
-            >
-              {c}
-            </div>
-          ))}
-        </div>
+        <PlateColumnHeaderRow cols={COLS} />
         {ROWS.map((r) => (
           <div key={r} role="row" className="contents">
-            <div
-              role="rowheader"
-              aria-label={t("exportPreview.rowAriaLabel", { row: r })}
-              className="text-caption text-muted-foreground text-right pr-1"
-            >
-              {r}
-            </div>
+            <PlateRowHeader row={r} />
 
             {COLS.map((c) => {
               const well = `${r}${c}`;
@@ -108,75 +92,65 @@ function Rack({
               const tip = cell
                 ? `${cell.name} (${cell.volumeUl} µL), well ${well}`
                 : well;
-              const mutation = cell
-                ? cell.mutation || parseJanusName(cell.name).mutation
-                : "";
-              const tag = cell ? rackTag(cell.rack) : null;
 
               if (!cell) {
                 return (
-                  <div
+                  <PlateWellCell
                     key={well}
-                    role="gridcell"
-                    data-testid="janus-cell"
-                    data-rack={rack}
-                    data-well={well}
-                    data-row={r}
+                    testId="janus-cell"
+                    row={r}
+                    well={well}
+                    rack={rack}
                     title={tip}
-                    className={cn(
-                      "aspect-square rounded-[2px] border border-border/50 flex flex-col items-center justify-center overflow-hidden p-0",
-                      emptyBg,
-                    )}
+                    fillClassName={emptyBg}
                   />
                 );
               }
 
+              const mutation = cell.mutation || parseJanusName(cell.name).mutation;
+              const tag = rackTag(cell.rack);
+
               return (
-                <Popover key={well}>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      role="gridcell"
-                      data-testid="janus-cell"
-                      data-rack={rack}
-                      data-well={well}
-                      data-row={r}
-                      title={tip}
-                      className={cn(
-                        "plate-preview-cell-narrow aspect-square rounded-[2px] border border-border/50 flex flex-col items-center justify-center overflow-hidden p-0 cursor-pointer",
-                        "focus:outline-none focus:ring-1 focus:ring-ring",
-                        filledBg,
-                      )}
-                    >
-                      {/* Mutation label matches DestPlateView's text-white on
-                          a saturated fill. The F/R tag used text-muted-foreground,
-                          a token meant for card backgrounds, on bg-blue-400/
-                          bg-orange-400 it was nearly invisible (flagged from a
-                          1900px screenshot). text-white/75 keeps it visibly
-                          secondary to the mutation label while staying legible
-                          on both fill colors in light and dark. */}
-                      <span className="font-mono leading-none w-full text-center truncate text-white">
-                        {mutation}
-                      </span>
-                      {tag ? (
-                        <span className="text-[0.85em] leading-none text-white/75 w-full text-center truncate">
-                          {tag}
-                        </span>
-                      ) : null}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto text-xs">
-                    <div className="space-y-1">
-                      <div className="font-mono font-medium">{cell.name}</div>
-                      <div>
-                        {t("exportPreview.janusPopoverWellLabel")} {cell.well}
-                      </div>
-                      <div>
-                        {t("exportPreview.janusPopoverVolumeLabel")} {cell.volumeUl} µL
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <PlateWellCell
+                  key={well}
+                  testId="janus-cell"
+                  row={r}
+                  well={well}
+                  rack={rack}
+                  title={tip}
+                  cellClassName="plate-preview-cell-narrow"
+                  contentClassName="flex-col items-center"
+                  fillClassName={filledBg}
+                  popover={
+                    <PlateCellPopover
+                      title={cell.name}
+                      rows={[
+                        {
+                          label: t("exportPreview.janusPopoverWellLabel"),
+                          value: <span>{cell.well}</span>,
+                        },
+                        {
+                          label: t("exportPreview.janusPopoverVolumeLabel"),
+                          value: <span>{cell.volumeUl} µL</span>,
+                        },
+                      ]}
+                    />
+                  }
+                >
+                  {/* Mutation label matches DestPlateView's text-white on
+                      a saturated fill. The F/R tag used text-muted-foreground,
+                      a token meant for card backgrounds, on bg-blue-400/
+                      bg-orange-400 it was nearly invisible (flagged from a
+                      1900px screenshot). text-white/75 keeps it visibly
+                      secondary to the mutation label while staying legible
+                      on both fill colors in light and dark. */}
+                  <span className="font-mono leading-none w-full text-center truncate text-white">
+                    {mutation}
+                  </span>
+                  <span className="text-[0.85em] leading-none text-white/75 w-full text-center truncate">
+                    {tag}
+                  </span>
+                </PlateWellCell>
               );
             })}
           </div>
