@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.16.51 (A finished design stops throwing itself away)
+
+A design would run, succeed, and leave the summary step empty. The operator had no way to tell whether any primer had been made.
+
+The primers were made. Feeding the same project inputs and settings straight to the design handler returns ninety-five of them in nine seconds. They reached the app too, and were deleted two statements later by the code that had just stored them.
+
+Topping the selection back up after a run reloads the prediction file, and that reload rewrites the mutation list. The app reads a rewritten mutation list as a new input and clears whatever a previous run left behind, which on that path is the run that had just finished. Everything downstream then behaves correctly for a run that produced nothing: the retry is skipped, the toast counts zero, and the step never advances, which is why the wizard stayed on the submit step.
+
+The autosave from the failing run carries the fingerprint. Every count is zero except the six rescued mutations, and the only writer that could leave exactly that is the clearing patch, which had been missing those two fields. The reload now says it is preserving the run, the clearing patch covers the fields it had skipped, and switching projects no longer leaks the previous numbers.
+
+A design also had four ways to end and only three of them said so. When the sidecar restarts mid-run the error was swallowed silently, the progress bar returned to zero, and nothing else changed on screen, which is the state behind not knowing whether anything ran. Each ending now leaves a message, including that one.
+
+The summary step used to give the same blank card whether a design had never been started or had been started and kept nothing. Those are now different, and the second one names the time, the counts and how the run ended.
+
+### Highlights
+
+- A finished design no longer discards its own primers while topping the selection back up afterwards.
+- The counters and the table can no longer disagree, because clearing a run now covers every field a run writes.
+- A run interrupted by a sidecar restart says so instead of returning the progress bar to zero in silence.
+- Every way a design can end now leaves a message: the count, the failure, the cancellation, or the interruption.
+- The summary step separates never having run from having run and kept nothing, and names the time and counts.
+
 ## v0.16.50 (The step 6 plates look like the rest of the app)
 
 The mapping grids on the last KURO step looked less finished than everything around them. Measuring against the running app said the reason was not the type, which had already been tuned cell by cell, but the box around it. The other two plate views in this app sit in a bordered, rounded, padded card. These three sat on the page with none of that. They have it now, matching the plate view they most resemble.

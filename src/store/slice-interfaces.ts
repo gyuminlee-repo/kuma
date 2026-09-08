@@ -15,6 +15,7 @@ import type { Round } from "../types/round";
 import type {
   BenchmarkResult,
   ComputeDispersionResult,
+  DesignRunRecord,
   DistanceMode,
   DomainInfo,
   DomainOverlapPolicy,
@@ -259,6 +260,12 @@ export interface DesignSlice {
   rescuedMutations: string[];
   rescueStats: RescueStats;
   rescuedMutationDetails: RescuedMutation[];
+  /**
+   * Trace of the last design run (success, failure, cancel, sidecar loss).
+   * Survives result invalidation so an empty output step can say whether a
+   * design ever ran. Session-scoped, never persisted.
+   */
+  lastDesignRun: DesignRunRecord | null;
   /** @deprecated Phase C (v0.9.2): popup auto-mount removed. Report now renders
    * inline via DesignReportInspector. Slice retained for legacy Dialog wrapper
    * (DesignReport.tsx) in case manual entry is reintroduced. Do not persist. */

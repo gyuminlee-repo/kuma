@@ -268,6 +268,32 @@ export interface RescueStats {
   pool_variants_tried: number;
 }
 
+/**
+ * How the most recent design run ended.
+ *
+ * "interrupted" is a run whose sidecar went away mid-request (menu restart or
+ * an update install); the backend may well have finished, but the answer never
+ * reached the store.
+ */
+export type DesignRunOutcome = "success" | "failed" | "cancelled" | "interrupted";
+
+/**
+ * Trace of the most recent design run, kept so an empty result table can tell
+ * "never ran" apart from "ran and the results are gone". Session-scoped: it is
+ * not written to the autosave snapshot, and unlike the result fields it is not
+ * cleared by buildKuroResultResetPatch (that is the whole point of it).
+ */
+export interface DesignRunRecord {
+  outcome: DesignRunOutcome;
+  /** Epoch ms at which the run ended. */
+  finishedAt: number;
+  successCount: number;
+  totalCount: number;
+  failedCount: number;
+  /** Error text or cancel reason; null when there is nothing to add. */
+  detail: string | null;
+}
+
 export interface DesignResult {
   results: SdmPrimerResult[];
   success_count: number;

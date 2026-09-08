@@ -2543,14 +2543,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Las tres rejillas de mapping del último paso van ahora en la misma tarjeta con borde que las otras vistas de placa.",
-      "El desplazamiento lateral se queda dentro de la rejilla en vez de ensanchar la página y arrastrar el resto del paso.",
-      "Carga, vacío y error usan el componente de estado compartido, así que el error se anuncia al lector de pantalla.",
-      "Las dos rejillas de la pestaña Echo tienen nombre, y la leyenda coincide con los colores de la placa en modo oscuro.",
-      "Las tres rejillas comparten una sola copia de su marcado, y por eso pozos, etiquetas de fila y popovers concuerdan."
+      "Un diseño terminado ya no descarta sus propios primers mientras vuelve a completar la selección después.",
+      "Al descartar una ejecución se limpian todos los campos, así que la tabla y los contadores no se contradicen.",
+      "Una ejecución interrumpida por el reinicio del sidecar lo dice, en vez de dejar el progreso en cero en silencio.",
+      "Las cuatro formas de terminar dejan mensaje: el recuento, el fallo, la cancelación y la interrupción.",
+      "El paso de resumen separa no haber corrido de haber corrido sin guardar nada, e indica hora y recuentos."
     ],
-    "highlightsStamp": "0.16.50+e59fd423",
+    "highlightsStamp": "0.16.51+da55c894",
     "releases": {
+      "0.16.51": [
+        "Un diseño terminado ya no descarta sus propios primers mientras vuelve a completar la selección después.",
+        "Al descartar una ejecución se limpian todos los campos, así que la tabla y los contadores no se contradicen.",
+        "Una ejecución interrumpida por el reinicio del sidecar lo dice, en vez de dejar el progreso en cero en silencio.",
+        "Las cuatro formas de terminar dejan mensaje: el recuento, el fallo, la cancelación y la interrupción.",
+        "El paso de resumen separa no haber corrido de haber corrido sin guardar nada, e indica hora y recuentos."
+      ],
       "0.16.50": [
         "Las tres rejillas de mapping del último paso van ahora en la misma tarjeta con borde que las otras vistas de placa.",
         "El desplazamiento lateral se queda dentro de la rejilla en vez de ensanchar la página y arrastrar el resto del paso.",
@@ -2917,6 +2924,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.51": "da55c894",
       "0.16.50": "e59fd423",
       "0.16.49": "76255984",
       "0.16.48": "ff7d23ff",
@@ -3316,6 +3324,13 @@
     }
   },
   "report": {
+    "lastRun": {
+      "cancelled": "El último diseño de las {{time}} se canceló antes de guardar ningún cebador. Ejecútelo de nuevo cuando quiera.",
+      "failed": "El último diseño de las {{time}} falló antes de guardar ningún cebador. Revise los parámetros y las entradas y ejecute el diseño de nuevo.",
+      "interrupted": "El último diseño de las {{time}} se interrumpió al reiniciarse el sidecar, por lo que ningún resultado llegó a la aplicación. Ejecute el diseño de nuevo.",
+      "success": "El último diseño de las {{time}} produjo {{success}} de {{total}} cebadores, pero esos resultados ya no están en el espacio de trabajo. Cambiar una entrada después de un diseño descarta sus resultados. Ejecute el diseño de nuevo.",
+      "title": "Este espacio de trabajo no tiene resultados de cebadores"
+    },
     "noResultsTitle": "Aún no hay resultados",
     "noResultsDesc": "Ejecutar el diseño primero para ver los primers aquí.",
     "stats": {

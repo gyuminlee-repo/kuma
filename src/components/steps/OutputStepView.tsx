@@ -64,12 +64,13 @@ export function OutputStepView() {
   const goToNextStep = useAppStore((s) => s.goToNextStep);
   const goToPrevStep = useAppStore((s) => s.goToPrevStep);
 
-  const { designResults, plateMappings, failedMutations, rescueStats } = useAppStore(
+  const { designResults, plateMappings, failedMutations, rescueStats, lastDesignRun } = useAppStore(
     useShallow((s) => ({
       designResults: s.designResults,
       plateMappings: s.plateMappings,
       failedMutations: s.failedMutations,
       rescueStats: s.rescueStats,
+      lastDesignRun: s.lastDesignRun,
     })),
   );
 
@@ -155,12 +156,32 @@ export function OutputStepView() {
       onNext={() => goToNextStep()}
     >
       {!hasResults ? (
-        <div className="flex h-48 items-center justify-center">
-          <StateView
-            variant="empty"
-            title={t("report.noResultsTitle")}
-            description={t("report.noResultsDesc")}
-          />
+        // An empty table after a run that did happen is a different situation
+        // from one before any run, and the advice differs too. lastDesignRun is
+        // the only thing that tells them apart (it outlives result invalidation).
+        <div
+          className="flex h-48 items-center justify-center"
+          data-testid={lastDesignRun ? "output-empty-after-run" : "output-empty-never-run"}
+        >
+          {lastDesignRun ? (
+            <StateView
+              variant={lastDesignRun.outcome === "success" ? "empty" : "error"}
+              title={t("report.lastRun.title")}
+              description={t(`report.lastRun.${lastDesignRun.outcome}`, {
+                time: new Date(lastDesignRun.finishedAt).toLocaleTimeString(),
+                success: lastDesignRun.successCount,
+                total: lastDesignRun.totalCount,
+                failed: lastDesignRun.failedCount,
+              })}
+              details={lastDesignRun.detail ?? undefined}
+            />
+          ) : (
+            <StateView
+              variant="empty"
+              title={t("report.noResultsTitle")}
+              description={t("report.noResultsDesc")}
+            />
+          )}
         </div>
       ) : (
         <div

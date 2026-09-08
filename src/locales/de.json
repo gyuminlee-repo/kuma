@@ -2543,14 +2543,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die drei Mapping-Raster im letzten Schritt sitzen jetzt in derselben gerahmten Karte wie die anderen Plattenansichten der App.",
-      "Seitliches Scrollen bleibt im Raster, statt die Seite zu verbreitern und den Rest des Schritts mitzuziehen.",
-      "Laden, Leerzustand und Fehler nutzen die gemeinsame Zustandskomponente, wodurch der Fehler nun angesagt wird.",
-      "Die beiden Raster im Echo-Tab haben Namen, und die Legende trifft im dunklen Modus die Farben der Platte.",
-      "Die drei Raster teilen sich eine Kopie ihres Markups, was Wells, Zeilenbeschriftungen und Popover in Einklang brachte."
+      "Ein fertiger Entwurf verwirft seine eigenen Primer nicht mehr, während er die Auswahl danach wieder auffüllt.",
+      "Beim Verwerfen eines Laufs werden alle Felder erfasst, sodass Tabelle und Zähler nicht mehr auseinanderlaufen.",
+      "Ein durch einen Sidecar-Neustart abgebrochener Lauf sagt das jetzt, statt den Fortschritt schweigend auf null zu setzen.",
+      "Alle vier Enden eines Entwurfs hinterlassen eine Meldung: die Anzahl, der Fehler, der Abbruch, die Unterbrechung.",
+      "Der Übersichtsschritt trennt nie gelaufen von gelaufen und nichts behalten und nennt Zeitpunkt und Anzahl."
     ],
-    "highlightsStamp": "0.16.50+e59fd423",
+    "highlightsStamp": "0.16.51+da55c894",
     "releases": {
+      "0.16.51": [
+        "Ein fertiger Entwurf verwirft seine eigenen Primer nicht mehr, während er die Auswahl danach wieder auffüllt.",
+        "Beim Verwerfen eines Laufs werden alle Felder erfasst, sodass Tabelle und Zähler nicht mehr auseinanderlaufen.",
+        "Ein durch einen Sidecar-Neustart abgebrochener Lauf sagt das jetzt, statt den Fortschritt schweigend auf null zu setzen.",
+        "Alle vier Enden eines Entwurfs hinterlassen eine Meldung: die Anzahl, der Fehler, der Abbruch, die Unterbrechung.",
+        "Der Übersichtsschritt trennt nie gelaufen von gelaufen und nichts behalten und nennt Zeitpunkt und Anzahl."
+      ],
       "0.16.50": [
         "Die drei Mapping-Raster im letzten Schritt sitzen jetzt in derselben gerahmten Karte wie die anderen Plattenansichten der App.",
         "Seitliches Scrollen bleibt im Raster, statt die Seite zu verbreitern und den Rest des Schritts mitzuziehen.",
@@ -2917,6 +2924,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.51": "da55c894",
       "0.16.50": "e59fd423",
       "0.16.49": "76255984",
       "0.16.48": "ff7d23ff",
@@ -3316,6 +3324,13 @@
     }
   },
   "report": {
+    "lastRun": {
+      "cancelled": "Der letzte Entwurfslauf um {{time}} wurde abgebrochen, bevor ein Primer gespeichert wurde. Starten Sie ihn erneut, sobald Sie bereit sind.",
+      "failed": "Der letzte Entwurfslauf um {{time}} schlug fehl, bevor ein Primer gespeichert wurde. Prüfen Sie Parameter und Eingaben und starten Sie den Entwurf erneut.",
+      "interrupted": "Der letzte Entwurfslauf um {{time}} endete mit einem Neustart des Sidecars, sodass kein Ergebnis die App erreichte. Starten Sie den Entwurf erneut.",
+      "success": "Der letzte Entwurfslauf um {{time}} erzeugte {{success}} von {{total}} Primern, doch diese Ergebnisse sind nicht mehr im Arbeitsbereich. Wird eine Eingabe nach einem Lauf geändert, werden dessen Ergebnisse verworfen. Starten Sie den Entwurf erneut.",
+      "title": "Dieser Arbeitsbereich enthält keine Primer-Ergebnisse"
+    },
     "noResultsTitle": "Noch keine Ergebnisse",
     "noResultsDesc": "Ausführen Design first zu see Primer results here.",
     "stats": {

@@ -6,7 +6,7 @@ import { cancelAndRespawn, sendRequest } from "../../lib/ipc-kuro";
 import { wellName } from "../../lib/plate-utils";
 import { clampMaxPrimers } from "../../lib/inputThresholds";
 import { formatError } from "../../lib/utils";
-import { buildKuroDesignInputPatch } from "../../lib/kuroResultReset";
+import { buildKuroDesignInputPatch, buildKuroResultResetPatch } from "../../lib/kuroResultReset";
 import { suggestRetryParams, getStageParams } from "../../lib/primerSuggestion";
 import {
   DEFAULT_POLYMERASE,
@@ -15,6 +15,8 @@ import {
 } from "../../lib/polymeraseAliases";
 import type { AppState } from "../types";
 import type {
+  DesignRunOutcome,
+  DesignRunRecord,
   SdmPrimerResult,
   PolymeraseProfile,
   RescuedMutation,
@@ -78,6 +80,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
   rescuedMutations: [],
   rescueStats: EMPTY_RESCUE_STATS,
   rescuedMutationDetails: [],
+  lastDesignRun: null,
 
   loadPolymerases: async () => {
     try {
@@ -231,18 +234,30 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
       return;
     }
 
+    // The reset patch, not a hand-picked subset: a previous run left
+    // successCount/totalCount/failedMutations behind, so a second run that
+    // ended without results showed an empty table beside the old counters.
     set({
+      ...buildKuroResultResetPatch(),
       isDesigning: true,
-      backendDesignStateSynced: false,
       progress: 0,
       statusMessage: "Designing primers...",
-      designResults: [],
-      plateMappings: [],
-      customCandidates: {},
       alternativesCache: {},
-      manuallySwapped: {},
-      rescueStats: EMPTY_RESCUE_STATS,
-      rescuedMutationDetails: [],
+    });
+
+    // Every exit from this run writes one of these, so an empty result table
+    // can always tell "never ran" from "ran and the results are gone".
+    const runRecord = (
+      outcome: DesignRunOutcome,
+      detail: string | null,
+      counts?: { successCount: number; totalCount: number; failedCount: number },
+    ): DesignRunRecord => ({
+      outcome,
+      finishedAt: Date.now(),
+      successCount: counts?.successCount ?? 0,
+      totalCount: counts?.totalCount ?? prepared.intendedMuts.size,
+      failedCount: counts?.failedCount ?? 0,
+      detail,
     });
 
     const _designStartedAt = Date.now();
@@ -276,6 +291,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         set({
           backendDesignStateSynced: false,
           statusMessage: "Design cancelled",
+          lastDesignRun: runRecord("cancelled", null),
         });
         return;
       }
@@ -301,11 +317,22 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         plateMappings: plateState.plateMappings,
         dedupInfo: plateState.dedupInfo,
         statusMessage: processed.statusMessage,
+        lastDesignRun: runRecord("success", null, {
+          successCount: processed.capped.length,
+          totalCount: prepared.intendedMuts.size,
+          failedCount: processed.intendedFailed.length,
+        }),
       });
 
       const fillSourcePath = get().evolveproCsvPath;
       if (fillOnFailure && isEvolveMode && fillSourcePath) {
-        await get().loadEvolveproCsv(fillSourcePath);
+        // preserveDesignResults=true. Without it this reload rewrites
+        // mutationText (the first load above asked for sendCount*2 variants,
+        // this one for maxPrimers) and buildKuroDesignInputPatch reads that as
+        // a design-input change, so the results set two statements earlier were
+        // discarded on every successful run. Same argument as the
+        // autosave restore call in useAutosaveHydration.ts.
+        await get().loadEvolveproCsv(fillSourcePath, undefined, true);
       }
 
       const postFailed = get().failedMutations;
@@ -317,6 +344,15 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         await get().cascadeFailedRetry("topn-fill");
       }
       // fillOnFailure=false: no auto-retry; mutations remain as failed
+
+      // Re-stamp with the post-cascade counts so the record matches the table.
+      set({
+        lastDesignRun: runRecord("success", null, {
+          successCount: get().designResults.length,
+          totalCount: get().totalCount,
+          failedCount: get().failedMutations.length,
+        }),
+      });
       // §13: Notify if job took long enough.
       void notifyJobComplete({
         title: "Design complete",
@@ -330,11 +366,28 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         durationMs: Date.now() - _designStartedAt,
       });
     } catch (err) {
-      if (formatError(err).includes("Sidecar killed")) return;
-      set({ statusMessage: `Design failed: ${formatError(err)}` });
+      const message = formatError(err);
+      if (message.includes("Sidecar killed")) {
+        // The sidecar was killed under the request (menu restart or an update
+        // install). The design may have finished on the backend, but nothing
+        // came back, so say so instead of returning in silence.
+        set({
+          backendDesignStateSynced: false,
+          statusMessage: "Design interrupted: the sidecar restarted before results arrived. Run design again.",
+          lastDesignRun: runRecord("interrupted", message),
+        });
+        notifyJobError("Design interrupted", "The sidecar restarted before results arrived.");
+        return;
+      }
+      set({
+        statusMessage: `Design failed: ${message}`,
+        lastDesignRun: runRecord("failed", message),
+      });
       notifyJobError("Design failed", err);
     } finally {
       void stopKeepAwake();
+      // Guard kept: resetAll() sets isDesigning false, so a run whose project
+      // was reset mid-flight must not land its state or navigate the new one.
       if (get().isDesigning) {
         const hasResults = get().designResults.length > 0;
         set({
