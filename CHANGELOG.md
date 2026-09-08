@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.16.50 (The step 6 plates look like the rest of the app)
+
+The mapping grids on the last KURO step looked less finished than everything around them. Measuring against the running app said the reason was not the type, which had already been tuned cell by cell, but the box around it. The other two plate views in this app sit in a bordered, rounded, padded card. These three sat on the page with none of that. They have it now, matching the plate view they most resemble.
+
+Sideways overflow used to leave the grid and push the page. The minimum width and the scroll behaviour were on the same element, so a grid that could not fit simply widened its surroundings, dragging the format picker and the order summary along. Measured at four pane widths, that happened only in the narrowest one, and the new arrangement holds the scrolling inside the grid where the older plate view already kept it.
+
+Loading, empty and error were three bare lines of text while the rest of the app puts those through one shared component. Now they go through it too, which is also how the error announces itself to a screen reader for the first time.
+
+The Echo tab stacked two grids with no titles, because the label the code could pass was never passed. Both are named now. The legend and the plate also stopped disagreeing in dark mode: the swatches were painted from one set of colours and the wells from another, and both now read the same four.
+
+Underneath, the three grids stopped keeping their own copies of the same markup. The header row, the row header, the well and the popover were written three times, and every remaining inconsistency traced back to that. Wells are announced the same way in all three now, row headers all carry their labels, and the popover has one shape. The measured cell sizes and fonts come out identical to before, which is what says the rearrangement changed nothing on screen.
+
+### Highlights
+
+- The three mapping grids on the last step now sit in the same bordered card as the other plate views in the app.
+- Sideways scrolling stays inside the grid instead of widening the page and dragging the rest of the step with it.
+- Loading, empty and error use the shared state component, so the error is announced to a screen reader.
+- The two grids on the Echo tab are named, and the legend now matches the plate colours in dark mode.
+- The three grids share one copy of their markup, which is what let the wells, row labels and popovers agree.
+
 ## v0.16.49 (Stop the release build installing a linter it never runs)
 
 The v0.16.48 release build compiled on all three platforms and then failed anyway. The macOS job asked its Rust toolchain for clippy and rustfmt, the runner image had arrived carrying its own cargo-clippy, and the install refused with a file conflict. Linux and Windows had already finished clean. Publishing waits on all three, so it was skipped and no release appeared for a tag that was already pushed.

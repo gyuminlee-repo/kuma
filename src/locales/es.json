@@ -2543,12 +2543,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "La compilación de publicación ya no instala un linter ni un formateador que nunca ejecuta, que es lo que rompió la versión anterior.",
-      "Bastó una imagen de runner de macOS con su propio cargo-clippy para que fallara una instalación pedida y nunca invocada.",
-      "Linux y Windows habían compilado limpio; la publicación se omitió por un detalle de toolchain, no por la aplicación."
+      "Las tres rejillas de mapping del último paso van ahora en la misma tarjeta con borde que las otras vistas de placa.",
+      "El desplazamiento lateral se queda dentro de la rejilla en vez de ensanchar la página y arrastrar el resto del paso.",
+      "Carga, vacío y error usan el componente de estado compartido, así que el error se anuncia al lector de pantalla.",
+      "Las dos rejillas de la pestaña Echo tienen nombre, y la leyenda coincide con los colores de la placa en modo oscuro.",
+      "Las tres rejillas comparten una sola copia de su marcado, y por eso pozos, etiquetas de fila y popovers concuerdan."
     ],
-    "highlightsStamp": "0.16.49+76255984",
+    "highlightsStamp": "0.16.50+e59fd423",
     "releases": {
+      "0.16.50": [
+        "Las tres rejillas de mapping del último paso van ahora en la misma tarjeta con borde que las otras vistas de placa.",
+        "El desplazamiento lateral se queda dentro de la rejilla en vez de ensanchar la página y arrastrar el resto del paso.",
+        "Carga, vacío y error usan el componente de estado compartido, así que el error se anuncia al lector de pantalla.",
+        "Las dos rejillas de la pestaña Echo tienen nombre, y la leyenda coincide con los colores de la placa en modo oscuro.",
+        "Las tres rejillas comparten una sola copia de su marcado, y por eso pozos, etiquetas de fila y popovers concuerdan."
+      ],
       "0.16.49": [
         "La compilación de publicación ya no instala un linter ni un formateador que nunca ejecuta, que es lo que rompió la versión anterior.",
         "Bastó una imagen de runner de macOS con su propio cargo-clippy para que fallara una instalación pedida y nunca invocada.",
@@ -2908,6 +2917,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.50": "e59fd423",
       "0.16.49": "76255984",
       "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
@@ -3466,7 +3476,10 @@
     "rowAriaLabel": "Fila {{row}}",
     "echoGridAriaLabel": "Placa fuente Echo, 384 pocillos",
     "janusGridAriaLabel": "Cuadrícula de {{label}}",
-    "destGridAriaLabel": "Placa de destino, 96 pocillos"
+    "destGridAriaLabel": "Placa de destino, 96 pocillos",
+    "errorTitle": "Error en la vista previa",
+    "echoSourcePlateLabel": "Placa de origen Echo (384 pocillos)",
+    "destPlateLabel": "Placa de destino (96 pocillos)"
   },
   "errors": {
     "sequence": {

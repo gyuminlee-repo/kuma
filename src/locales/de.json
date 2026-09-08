@@ -2543,12 +2543,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Der Release-Build installiert keinen Linter und keinen Formatter mehr, die er nie ausführt. Genau daran scheiterte das letzte Release.",
-      "Ein macOS-Runner-Image mit eigenem cargo-clippy genügte, um eine Installation scheitern zu lassen, die angefordert und nie aufgerufen wurde.",
-      "Linux und Windows hatten sauber gebaut; die Veröffentlichung entfiel wegen eines Toolchain-Details, nicht wegen der App."
+      "Die drei Mapping-Raster im letzten Schritt sitzen jetzt in derselben gerahmten Karte wie die anderen Plattenansichten der App.",
+      "Seitliches Scrollen bleibt im Raster, statt die Seite zu verbreitern und den Rest des Schritts mitzuziehen.",
+      "Laden, Leerzustand und Fehler nutzen die gemeinsame Zustandskomponente, wodurch der Fehler nun angesagt wird.",
+      "Die beiden Raster im Echo-Tab haben Namen, und die Legende trifft im dunklen Modus die Farben der Platte.",
+      "Die drei Raster teilen sich eine Kopie ihres Markups, was Wells, Zeilenbeschriftungen und Popover in Einklang brachte."
     ],
-    "highlightsStamp": "0.16.49+76255984",
+    "highlightsStamp": "0.16.50+e59fd423",
     "releases": {
+      "0.16.50": [
+        "Die drei Mapping-Raster im letzten Schritt sitzen jetzt in derselben gerahmten Karte wie die anderen Plattenansichten der App.",
+        "Seitliches Scrollen bleibt im Raster, statt die Seite zu verbreitern und den Rest des Schritts mitzuziehen.",
+        "Laden, Leerzustand und Fehler nutzen die gemeinsame Zustandskomponente, wodurch der Fehler nun angesagt wird.",
+        "Die beiden Raster im Echo-Tab haben Namen, und die Legende trifft im dunklen Modus die Farben der Platte.",
+        "Die drei Raster teilen sich eine Kopie ihres Markups, was Wells, Zeilenbeschriftungen und Popover in Einklang brachte."
+      ],
       "0.16.49": [
         "Der Release-Build installiert keinen Linter und keinen Formatter mehr, die er nie ausführt. Genau daran scheiterte das letzte Release.",
         "Ein macOS-Runner-Image mit eigenem cargo-clippy genügte, um eine Installation scheitern zu lassen, die angefordert und nie aufgerufen wurde.",
@@ -2908,6 +2917,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.50": "e59fd423",
       "0.16.49": "76255984",
       "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
@@ -3466,7 +3476,10 @@
     "rowAriaLabel": "Zeile {{row}}",
     "echoGridAriaLabel": "Echo-Quellplatte, 384 Wells",
     "janusGridAriaLabel": "{{label}}-Raster",
-    "destGridAriaLabel": "Zielplatte, 96 Wells"
+    "destGridAriaLabel": "Zielplatte, 96 Wells",
+    "errorTitle": "Vorschau fehlgeschlagen",
+    "echoSourcePlateLabel": "Echo-Quellplatte (384 Wells)",
+    "destPlateLabel": "Zielplatte (96 Wells)"
   },
   "errors": {
     "sequence": {

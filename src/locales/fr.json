@@ -2543,12 +2543,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "La compilation de publication n installe plus un linter et un formateur qu elle n exécute jamais, ce qui avait cassé la version précédente.",
-      "Une image de runner macOS embarquant son propre cargo-clippy a suffi à faire échouer une installation demandée et jamais appelée.",
-      "Linux et Windows avaient compilé proprement ; la publication a été sautée pour un détail de toolchain, pas pour application."
+      "Les trois grilles de mapping de la dernière étape tiennent maintenant dans la même carte bordée que les autres vues de plaque.",
+      "Le défilement horizontal reste dans la grille au lieu élargir la page et entraîner le reste de étape.",
+      "Chargement, vide et erreur passent par le composant état partagé, si bien que erreur est annoncée au lecteur écran.",
+      "Les deux grilles de onglet Echo portent un nom, et la légende suit les couleurs de la plaque en mode sombre.",
+      "Les trois grilles partagent une seule copie de leur balisage, ce qui a mis puits, libellés de ligne et popovers accord."
     ],
-    "highlightsStamp": "0.16.49+76255984",
+    "highlightsStamp": "0.16.50+e59fd423",
     "releases": {
+      "0.16.50": [
+        "Les trois grilles de mapping de la dernière étape tiennent maintenant dans la même carte bordée que les autres vues de plaque.",
+        "Le défilement horizontal reste dans la grille au lieu élargir la page et entraîner le reste de étape.",
+        "Chargement, vide et erreur passent par le composant état partagé, si bien que erreur est annoncée au lecteur écran.",
+        "Les deux grilles de onglet Echo portent un nom, et la légende suit les couleurs de la plaque en mode sombre.",
+        "Les trois grilles partagent une seule copie de leur balisage, ce qui a mis puits, libellés de ligne et popovers accord."
+      ],
       "0.16.49": [
         "La compilation de publication n installe plus un linter et un formateur qu elle n exécute jamais, ce qui avait cassé la version précédente.",
         "Une image de runner macOS embarquant son propre cargo-clippy a suffi à faire échouer une installation demandée et jamais appelée.",
@@ -2908,6 +2917,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.50": "e59fd423",
       "0.16.49": "76255984",
       "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
@@ -3466,7 +3476,10 @@
     "rowAriaLabel": "Ligne {{row}}",
     "echoGridAriaLabel": "Plaque source Echo, 384 puits",
     "janusGridAriaLabel": "Grille {{label}}",
-    "destGridAriaLabel": "Plaque de destination, 96 puits"
+    "destGridAriaLabel": "Plaque de destination, 96 puits",
+    "errorTitle": "Échec de l'aperçu",
+    "echoSourcePlateLabel": "Plaque source Echo (384 puits)",
+    "destPlateLabel": "Plaque de destination (96 puits)"
   },
   "errors": {
     "sequence": {

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import { StateView } from "@/components/ui/StateView";
 import { sendRequest } from "@/lib/ipc-kuro";
 import {
   adaptEchoRows,
@@ -123,14 +123,20 @@ export function ExportPlatePreview() {
     void load();
   }, [load]);
 
+  // Loading/empty/error go through StateView like the app's other data
+  // surfaces (PlateMap, ResultTable, VerdictTable, SequenceViewer), which is
+  // also where role="alert" and aria-live come from: the hand-rolled versions
+  // announced nothing when a retry failed again.
   if (error) {
     return (
       <Card>
-        <CardContent className="p-4">
-          <p className="text-error">{error}</p>
-          <Button size="sm" variant="outline" onClick={() => void load()} className="mt-2">
-            {t("common.retry")}
-          </Button>
+        <CardContent className="p-0">
+          <StateView
+            variant="error"
+            title={t("exportPreview.errorTitle")}
+            description={error}
+            action={{ label: t("common.retry"), onClick: () => void load() }}
+          />
         </CardContent>
       </Card>
     );
@@ -139,8 +145,8 @@ export function ExportPlatePreview() {
   if (loading) {
     return (
       <Card>
-        <CardContent className="p-4 text-muted-foreground">
-          {t("exportPreview.loading")}
+        <CardContent className="p-0">
+          <StateView variant="loading" title={t("exportPreview.loading")} />
         </CardContent>
       </Card>
     );
@@ -149,8 +155,8 @@ export function ExportPlatePreview() {
   if (echo.length === 0 && janus.rack1.length === 0 && janus.rack2.length === 0) {
     return (
       <Card>
-        <CardContent className="p-4 text-muted-foreground">
-          {t("exportPreview.empty")}
+        <CardContent className="p-0">
+          <StateView variant="empty" title={t("exportPreview.empty")} />
         </CardContent>
       </Card>
     );
@@ -171,14 +177,24 @@ export function ExportPlatePreview() {
           </TabsList>
           <TabsContent value="echo">
             <div className="space-y-3">
-              <EchoPlateView cells={echo} />
-              <DestPlateView cells={echoDest} sourceMethod="echo" />
+              {/* Both grids carry a caption at the JANUS rack-label level, so
+                  the two stacked plates in this tab say which is which. */}
+              <EchoPlateView cells={echo} title={t("exportPreview.echoSourcePlateLabel")} />
+              <DestPlateView
+                cells={echoDest}
+                sourceMethod="echo"
+                title={t("exportPreview.destPlateLabel")}
+              />
             </div>
           </TabsContent>
           <TabsContent value="janus">
             <div className="space-y-3">
               <JanusPlateView rack1={janus.rack1} rack2={janus.rack2} />
-              <DestPlateView cells={janusDest} sourceMethod="janus" />
+              <DestPlateView
+                cells={janusDest}
+                sourceMethod="janus"
+                title={t("exportPreview.destPlateLabel")}
+              />
             </div>
           </TabsContent>
         </Tabs>
