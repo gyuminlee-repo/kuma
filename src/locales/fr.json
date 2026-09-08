@@ -2543,14 +2543,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les trois grilles de mapping de la dernière étape tiennent maintenant dans la même carte bordée que les autres vues de plaque.",
-      "Le défilement horizontal reste dans la grille au lieu élargir la page et entraîner le reste de étape.",
-      "Chargement, vide et erreur passent par le composant état partagé, si bien que erreur est annoncée au lecteur écran.",
-      "Les deux grilles de onglet Echo portent un nom, et la légende suit les couleurs de la plaque en mode sombre.",
-      "Les trois grilles partagent une seule copie de leur balisage, ce qui a mis puits, libellés de ligne et popovers accord."
+      "Un calcul terminé ne jette plus ses propres amorces pendant qu il recomplète la sélection ensuite.",
+      "Effacer un calcul couvre désormais tous les champs, si bien que le tableau et les compteurs ne divergent plus.",
+      "Un calcul interrompu par le redémarrage du sidecar le dit, au lieu de remettre la progression à zéro en silence.",
+      "Les quatre façons de finir laissent un message : le compte, échec, annulation, interruption.",
+      "étape de synthèse distingue jamais lancé de lancé sans rien garder, et donne heure et comptes."
     ],
-    "highlightsStamp": "0.16.50+e59fd423",
+    "highlightsStamp": "0.16.51+da55c894",
     "releases": {
+      "0.16.51": [
+        "Un calcul terminé ne jette plus ses propres amorces pendant qu il recomplète la sélection ensuite.",
+        "Effacer un calcul couvre désormais tous les champs, si bien que le tableau et les compteurs ne divergent plus.",
+        "Un calcul interrompu par le redémarrage du sidecar le dit, au lieu de remettre la progression à zéro en silence.",
+        "Les quatre façons de finir laissent un message : le compte, échec, annulation, interruption.",
+        "étape de synthèse distingue jamais lancé de lancé sans rien garder, et donne heure et comptes."
+      ],
       "0.16.50": [
         "Les trois grilles de mapping de la dernière étape tiennent maintenant dans la même carte bordée que les autres vues de plaque.",
         "Le défilement horizontal reste dans la grille au lieu élargir la page et entraîner le reste de étape.",
@@ -2917,6 +2924,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.51": "da55c894",
       "0.16.50": "e59fd423",
       "0.16.49": "76255984",
       "0.16.48": "ff7d23ff",

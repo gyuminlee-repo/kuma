@@ -2589,14 +2589,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The three mapping grids on the last step now sit in the same bordered card as the other plate views in the app.",
-      "Sideways scrolling stays inside the grid instead of widening the page and dragging the rest of the step with it.",
-      "Loading, empty and error use the shared state component, so the error is announced to a screen reader.",
-      "The two grids on the Echo tab are named, and the legend now matches the plate colours in dark mode.",
-      "The three grids share one copy of their markup, which is what let the wells, row labels and popovers agree."
+      "A finished design no longer discards its own primers while topping the selection back up afterwards.",
+      "The counters and the table can no longer disagree, because clearing a run now covers every field a run writes.",
+      "A run interrupted by a sidecar restart says so instead of returning the progress bar to zero in silence.",
+      "Every way a design can end now leaves a message: the count, the failure, the cancellation, or the interruption.",
+      "The summary step separates never having run from having run and kept nothing, and names the time and counts."
     ],
-    "highlightsStamp": "0.16.50+e59fd423",
+    "highlightsStamp": "0.16.51+da55c894",
     "releases": {
+      "0.16.51": [
+        "A finished design no longer discards its own primers while topping the selection back up afterwards.",
+        "The counters and the table can no longer disagree, because clearing a run now covers every field a run writes.",
+        "A run interrupted by a sidecar restart says so instead of returning the progress bar to zero in silence.",
+        "Every way a design can end now leaves a message: the count, the failure, the cancellation, or the interruption.",
+        "The summary step separates never having run from having run and kept nothing, and names the time and counts."
+      ],
       "0.16.50": [
         "The three mapping grids on the last step now sit in the same bordered card as the other plate views in the app.",
         "Sideways scrolling stays inside the grid instead of widening the page and dragging the rest of the step with it.",
@@ -2963,6 +2970,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.51": "da55c894",
       "0.16.50": "e59fd423",
       "0.16.49": "76255984",
       "0.16.48": "ff7d23ff",

@@ -2543,14 +2543,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "As três grades de mapping da última etapa ficam agora no mesmo cartão com borda das outras visões de placa do app.",
-      "A rolagem lateral fica dentro da grade em vez de alargar a página e arrastar o resto da etapa junto.",
-      "Carregando, vazio e erro usam o componente de estado compartilhado, então o erro é anunciado ao leitor de tela.",
-      "As duas grades da aba Echo têm nome, e a legenda combina com as cores da placa no modo escuro.",
-      "As três grades compartilham uma só cópia da marcação, e foi isso que alinhou poços, rótulos de linha e popovers."
+      "Um projeto concluído não descarta mais os próprios primers enquanto recompleta a seleção depois.",
+      "Limpar uma execução cobre todos os campos, então a tabela e os contadores não se contradizem.",
+      "Uma execução interrompida pelo reinício do sidecar avisa, em vez de zerar o progresso em silêncio.",
+      "As quatro formas de terminar deixam mensagem: a contagem, a falha, o cancelamento e a interrupção.",
+      "A etapa de resumo separa nunca executado de executado sem guardar nada, e informa hora e contagens."
     ],
-    "highlightsStamp": "0.16.50+e59fd423",
+    "highlightsStamp": "0.16.51+da55c894",
     "releases": {
+      "0.16.51": [
+        "Um projeto concluído não descarta mais os próprios primers enquanto recompleta a seleção depois.",
+        "Limpar uma execução cobre todos os campos, então a tabela e os contadores não se contradizem.",
+        "Uma execução interrompida pelo reinício do sidecar avisa, em vez de zerar o progresso em silêncio.",
+        "As quatro formas de terminar deixam mensagem: a contagem, a falha, o cancelamento e a interrupção.",
+        "A etapa de resumo separa nunca executado de executado sem guardar nada, e informa hora e contagens."
+      ],
       "0.16.50": [
         "As três grades de mapping da última etapa ficam agora no mesmo cartão com borda das outras visões de placa do app.",
         "A rolagem lateral fica dentro da grade em vez de alargar a página e arrastar o resto da etapa junto.",
@@ -2917,6 +2924,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.51": "da55c894",
       "0.16.50": "e59fd423",
       "0.16.49": "76255984",
       "0.16.48": "ff7d23ff",
