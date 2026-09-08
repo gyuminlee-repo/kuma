@@ -3316,6 +3316,13 @@
     }
   },
   "report": {
+    "lastRun": {
+      "cancelled": "{{time}} 的設計在儲存任何引子之前被取消。準備好後請重新執行。",
+      "failed": "{{time}} 的設計在儲存任何引子之前失敗。請檢查參數與輸入後重新執行設計。",
+      "interrupted": "{{time}} 的設計因 sidecar 重新啟動而中斷，結果未能送達應用程式。請重新執行設計。",
+      "success": "{{time}} 的設計產生了 {{total}} 個中的 {{success}} 個引子，但這些結果已不在工作區中。設計後變更輸入會捨棄結果。請重新執行設計。",
+      "title": "此工作區沒有引子結果"
+    },
     "noResultsTitle": "暫無結果",
     "noResultsDesc": "請先執行 Design 以在此處檢視 primer 結果。",
     "stats": {

@@ -3316,6 +3316,13 @@
     }
   },
   "report": {
+    "lastRun": {
+      "cancelled": "O último projeto às {{time}} foi cancelado antes de salvar qualquer primer. Execute novamente quando quiser.",
+      "failed": "O último projeto às {{time}} falhou antes de salvar qualquer primer. Verifique os parâmetros e as entradas e execute o projeto novamente.",
+      "interrupted": "O último projeto às {{time}} parou quando o sidecar reiniciou, então nenhum resultado chegou ao aplicativo. Execute novamente.",
+      "success": "O último projeto às {{time}} gerou {{success}} de {{total}} primers, mas esses resultados não estão mais no espaço de trabalho. Alterar uma entrada depois de uma execução descarta os resultados dela. Execute o projeto novamente.",
+      "title": "Este espaço de trabalho não tem resultados de primers"
+    },
     "noResultsTitle": "Ainda não há resultados",
     "noResultsDesc": "Executar o design primeiro para ver os primers aqui.",
     "stats": {

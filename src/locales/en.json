@@ -3491,6 +3491,13 @@
     "actionBlockedTitle": "Cannot proceed — missing required input"
   },
   "report": {
+    "lastRun": {
+      "cancelled": "The last design run at {{time}} was cancelled before any primer was stored. Run design again when ready.",
+      "failed": "The last design run at {{time}} failed before any primer was stored. Check the parameters and inputs, then run design again.",
+      "interrupted": "The last design run at {{time}} stopped when the sidecar restarted, so no result reached the app. Run design again.",
+      "success": "The last design run at {{time}} produced {{success}} of {{total}} primers, but those results are no longer in this workspace. Changing a design input after a run discards its results. Run design again to restore them.",
+      "title": "This workspace has no primer results"
+    },
     "noResultsDesc": "Run Design first to see primer results here.",
     "noResultsTitle": "No results yet",
     "stats": {

@@ -3316,6 +3316,13 @@
     }
   },
   "report": {
+    "lastRun": {
+      "cancelled": "Der letzte Entwurfslauf um {{time}} wurde abgebrochen, bevor ein Primer gespeichert wurde. Starten Sie ihn erneut, sobald Sie bereit sind.",
+      "failed": "Der letzte Entwurfslauf um {{time}} schlug fehl, bevor ein Primer gespeichert wurde. Prüfen Sie Parameter und Eingaben und starten Sie den Entwurf erneut.",
+      "interrupted": "Der letzte Entwurfslauf um {{time}} endete mit einem Neustart des Sidecars, sodass kein Ergebnis die App erreichte. Starten Sie den Entwurf erneut.",
+      "success": "Der letzte Entwurfslauf um {{time}} erzeugte {{success}} von {{total}} Primern, doch diese Ergebnisse sind nicht mehr im Arbeitsbereich. Wird eine Eingabe nach einem Lauf geändert, werden dessen Ergebnisse verworfen. Starten Sie den Entwurf erneut.",
+      "title": "Dieser Arbeitsbereich enthält keine Primer-Ergebnisse"
+    },
     "noResultsTitle": "Noch keine Ergebnisse",
     "noResultsDesc": "Ausführen Design first zu see Primer results here.",
     "stats": {

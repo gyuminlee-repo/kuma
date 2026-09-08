@@ -33,6 +33,16 @@ export function buildKuroResultResetPatch(): Partial<AppState> {
     manuallySwapped: {},
     customCandidates: {},
     rescuedMutationDetails: [],
+    // rescuedMutations/rescueStats derive from the same run as designResults.
+    // Leaving them out let a discarded run keep a rescue badge list and rescue
+    // counters next to an empty table (observed in a user autosave: results 0,
+    // rescuedMutations 6), and the report header counted rescues that had no
+    // rows behind them.
+    rescuedMutations: [],
+    // Literal rather than an import of designSlice.helpers.EMPTY_RESCUE_STATS:
+    // this module keeps the "no store import" invariant above. The two are
+    // pinned together by kuroResultReset.test.ts.
+    rescueStats: { pool_cascade: 0, auto_relax: 0, positions_attempted: 0, pool_variants_tried: 0 },
     backendDesignStateSynced: false,
   };
 }

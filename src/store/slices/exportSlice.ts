@@ -18,6 +18,7 @@ import type {
 import { useRoundStore } from "../round/roundSlice";
 import {
   buildIncludedPlateState,
+  EMPTY_RESCUE_STATS,
   getIncludedDesignResults,
 } from "./designSlice.helpers";
 import { resolveSelectionDomains } from "./inputSlice.helpers";
@@ -837,6 +838,12 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       customCandidates: {},
       alternativesCache: {},
       rescuedMutations: [],
+      // Run-scoped, like the rescue list above: without these a new project
+      // opens showing the previous project's rescue counters and its
+      // "last design produced N primers" card.
+      rescueStats: EMPTY_RESCUE_STATS,
+      rescuedMutationDetails: [],
+      lastDesignRun: null,
       structureAccession: "",
       structureLoaded: false,
       structureLoading: false,

@@ -3316,6 +3316,13 @@
     }
   },
   "report": {
+    "lastRun": {
+      "cancelled": "La dernière conception de {{time}} a été annulée avant l'enregistrement d'une amorce. Relancez-la quand vous le souhaitez.",
+      "failed": "La dernière conception de {{time}} a échoué avant l'enregistrement d'une amorce. Vérifiez les paramètres et les entrées, puis relancez la conception.",
+      "interrupted": "La dernière conception de {{time}} s'est arrêtée au redémarrage du sidecar et aucun résultat n'est parvenu à l'application. Relancez la conception.",
+      "success": "La dernière conception de {{time}} a produit {{success}} amorces sur {{total}}, mais ces résultats ne sont plus dans l'espace de travail. Modifier une entrée après une exécution supprime ses résultats. Relancez la conception.",
+      "title": "Cet espace de travail ne contient aucun résultat d'amorces"
+    },
     "noResultsTitle": "Aucun élément pour le moment",
     "noResultsDesc": "Lancer Run Design d'abord pour voir les éléments de primer ici.",
     "stats": {

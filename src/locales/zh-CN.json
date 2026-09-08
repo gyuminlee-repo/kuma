@@ -3316,6 +3316,13 @@
     }
   },
   "report": {
+    "lastRun": {
+      "cancelled": "{{time}} 的设计在保存任何引物之前被取消。准备好后请重新运行。",
+      "failed": "{{time}} 的设计在保存任何引物之前失败。请检查参数和输入后重新运行设计。",
+      "interrupted": "{{time}} 的设计因 sidecar 重启而中断，结果未能到达应用。请重新运行设计。",
+      "success": "{{time}} 的设计生成了 {{total}} 个中的 {{success}} 个引物，但这些结果已不在工作区中。设计后更改输入会丢弃结果。请重新运行设计。",
+      "title": "此工作区没有引物结果"
+    },
     "noResultsTitle": "暂无结果",
     "noResultsDesc": "请先运行 Design 以在此处查看 primer 结果。",
     "stats": {

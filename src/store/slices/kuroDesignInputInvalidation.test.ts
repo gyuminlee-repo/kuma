@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { useAppStore } from "../appStore";
+import { EMPTY_RESCUE_STATS } from "./designSlice.helpers";
 import type { AppState } from "../types";
 import type {
   FailedMutation,
@@ -59,6 +60,8 @@ const completedDesign: Pick<
   | "manuallySwapped"
   | "customCandidates"
   | "rescuedMutationDetails"
+  | "rescuedMutations"
+  | "rescueStats"
   | "backendDesignStateSynced"
 > = {
   designResults: [result],
@@ -70,6 +73,13 @@ const completedDesign: Pick<
   manuallySwapped: { F385Y: "both" as const },
   customCandidates: { F385Y: [] },
   rescuedMutationDetails: [rescuedMutation],
+  rescuedMutations: [result.mutation],
+  rescueStats: {
+    pool_cascade: 1,
+    auto_relax: 0,
+    positions_attempted: 2,
+    pool_variants_tried: 3,
+  },
   backendDesignStateSynced: true,
 };
 
@@ -98,6 +108,11 @@ function expectResultsCleared() {
   expect(state.manuallySwapped).toEqual({});
   expect(state.customCandidates).toEqual({});
   expect(state.rescuedMutationDetails).toEqual([]);
+  // The rescue list and counters belong to the same run as the table. Leaving
+  // them behind is what made a discarded run look like a run that never
+  // stored anything (kuroResultReset.test.ts).
+  expect(state.rescuedMutations).toEqual([]);
+  expect(state.rescueStats).toEqual(EMPTY_RESCUE_STATS);
   expect(state.backendDesignStateSynced).toBe(false);
 }
 
