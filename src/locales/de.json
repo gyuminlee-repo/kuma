@@ -3466,7 +3466,10 @@
     "rowAriaLabel": "Zeile {{row}}",
     "echoGridAriaLabel": "Echo-Quellplatte, 384 Wells",
     "janusGridAriaLabel": "{{label}}-Raster",
-    "destGridAriaLabel": "Zielplatte, 96 Wells"
+    "destGridAriaLabel": "Zielplatte, 96 Wells",
+    "errorTitle": "Vorschau fehlgeschlagen",
+    "echoSourcePlateLabel": "Echo-Quellplatte (384 Wells)",
+    "destPlateLabel": "Zielplatte (96 Wells)"
   },
   "errors": {
     "sequence": {

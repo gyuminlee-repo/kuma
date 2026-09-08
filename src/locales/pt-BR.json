@@ -3466,7 +3466,10 @@
     "rowAriaLabel": "Linha {{row}}",
     "echoGridAriaLabel": "Placa de origem Echo, 384 poços",
     "janusGridAriaLabel": "Grade de {{label}}",
-    "destGridAriaLabel": "Placa de destino, 96 poços"
+    "destGridAriaLabel": "Placa de destino, 96 poços",
+    "errorTitle": "Falha na prévia",
+    "echoSourcePlateLabel": "Placa de origem Echo (384 poços)",
+    "destPlateLabel": "Placa de destino (96 poços)"
   },
   "errors": {
     "sequence": {

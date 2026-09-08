@@ -3466,7 +3466,10 @@
     "rowAriaLabel": "第 {{row}} 行",
     "echoGridAriaLabel": "Echo 源板，384 孔",
     "janusGridAriaLabel": "{{label}}网格",
-    "destGridAriaLabel": "目标板，96 孔"
+    "destGridAriaLabel": "目标板，96 孔",
+    "errorTitle": "预览失败",
+    "echoSourcePlateLabel": "Echo 源板 (384 孔)",
+    "destPlateLabel": "目标板 (96 孔)"
   },
   "errors": {
     "sequence": {

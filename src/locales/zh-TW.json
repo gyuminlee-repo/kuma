@@ -3466,7 +3466,10 @@
     "rowAriaLabel": "第 {{row}} 列",
     "echoGridAriaLabel": "Echo 來源盤，384 孔",
     "janusGridAriaLabel": "{{label}}網格",
-    "destGridAriaLabel": "目的地盤，96 孔"
+    "destGridAriaLabel": "目的地盤，96 孔",
+    "errorTitle": "預覽失敗",
+    "echoSourcePlateLabel": "Echo 來源盤 (384 孔)",
+    "destPlateLabel": "目的地盤 (96 孔)"
   },
   "errors": {
     "sequence": {

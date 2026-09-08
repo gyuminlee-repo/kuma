@@ -56,7 +56,10 @@ describe("ExportPlatePreview", () => {
   it("shows empty state when no rows", async () => {
     mockBothEmpty();
     render(<ExportPlatePreview />);
-    expect(await screen.findByText(/no mapping/i)).toBeInTheDocument();
+    const empty = await screen.findByText(/no mapping/i);
+    expect(empty).toBeInTheDocument();
+    // StateView's title <p>, not the plain muted div this replaced.
+    expect(empty.className).toContain("text-title");
   });
 
   it("shows error with retry on failure", async () => {
@@ -64,6 +67,50 @@ describe("ExportPlatePreview", () => {
     render(<ExportPlatePreview />);
     expect(await screen.findByText(/boom/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /retry|재시도/i })).toBeInTheDocument();
+  });
+
+  it("announces the error through StateView's alert role", async () => {
+    (invoke as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("boom"));
+    render(<ExportPlatePreview />);
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/boom/);
+  });
+
+  it("marks the loading state as a live region", () => {
+    (invoke as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(() => {}));
+    const { container } = render(<ExportPlatePreview />);
+    expect(container.querySelector("[aria-live='polite']")).not.toBeNull();
+  });
+
+  it("labels the two Echo-tab grids differently", async () => {
+    (invoke as ReturnType<typeof vi.fn>).mockImplementation((...a: unknown[]) => {
+      const arg = a[1] as { method?: string };
+      if (arg?.method === "export_echo_mapping_dry_run") {
+        return Promise.resolve({
+          rows: [
+            {
+              // Full eight-key shape validators.ts:870 requires; a short
+              // fixture is rejected before the view ever renders.
+              source_plate: "P1",
+              source_well_name: "P1-fw",
+              source_well: "A01",
+              dest_plate: "D1",
+              dest_well_name: "D1-A1",
+              dest_well: "A1",
+              transfer_vol: 25,
+              mutation: "P1",
+            },
+          ],
+          total: 1,
+          transfer_vol: 25,
+        });
+      }
+      return Promise.resolve(emptyJanus);
+    });
+    render(<ExportPlatePreview />);
+    const source = await screen.findByText(/Echo source plate \(384/i);
+    const dest = await screen.findByText(/Destination plate \(96/i);
+    expect(source.textContent).not.toBe(dest.textContent);
   });
 
   it("renders loading state initially", () => {

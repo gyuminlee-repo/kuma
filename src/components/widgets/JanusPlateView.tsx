@@ -7,6 +7,12 @@ import {
 } from "@/components/ui/popover";
 import type { JanusCell } from "@/lib/echoJanusAdapter";
 import { parseJanusName } from "@/lib/echoJanusAdapter";
+import {
+  PLATE_FILL_FORWARD,
+  PLATE_FILL_REVERSE,
+  PLATE_PREVIEW_FRAME,
+  PLATE_PREVIEW_LABEL,
+} from "@/lib/platePreviewStyles";
 
 export type { JanusCell };
 
@@ -48,10 +54,7 @@ function Rack({
 }) {
   const { t } = useTranslation();
   const byWell = new Map(cells.map((c) => [c.well, c]));
-  const filledBg =
-    tone === "fwd"
-      ? "bg-blue-400 dark:bg-blue-500"
-      : "bg-orange-400 dark:bg-orange-500";
+  const filledBg = tone === "fwd" ? PLATE_FILL_FORWARD : PLATE_FILL_REVERSE;
   const emptyBg =
     tone === "fwd"
       ? "bg-blue-50 dark:bg-blue-950/30"
@@ -61,7 +64,7 @@ function Rack({
     <div className="plate-preview-grid min-w-[340px] flex-1 overflow-hidden">
       <div
         data-testid={labelTestId}
-        className="text-caption text-muted-foreground mb-1"
+        className={PLATE_PREVIEW_LABEL}
       >
         {label}
       </div>
@@ -186,7 +189,14 @@ function Rack({
 export function JanusPlateView({ rack1, rack2, className }: Props) {
   const { t } = useTranslation();
   return (
-    <div className={cn("flex gap-4 min-w-[700px] overflow-x-auto", className)}>
+    // No `plate-preview-grid` here on purpose: JANUS's container-type sits
+    // on each Rack (index.css:225-237 tuned .plate-preview-cell-narrow
+    // against a single rack's width, roughly half this row). Making the pair
+    // a query container as well would re-anchor the racks to the wider box
+    // and double every clamped font size.
+    <div className={cn(PLATE_PREVIEW_FRAME, className)}>
+      {/* min-w on the rack row, not on the scroller above it. */}
+      <div className="flex gap-4 min-w-[700px]">
       <Rack
         rack={1}
         cells={rack1}
@@ -201,6 +211,7 @@ export function JanusPlateView({ rack1, rack2, className }: Props) {
         labelTestId="janus-reverse-source-label"
         tone="rev"
       />
+      </div>
     </div>
   );
 }

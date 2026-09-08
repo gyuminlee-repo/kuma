@@ -3466,7 +3466,10 @@
     "rowAriaLabel": "行 {{row}}",
     "echoGridAriaLabel": "Echoソースプレート、384ウェル",
     "janusGridAriaLabel": "{{label}}グリッド",
-    "destGridAriaLabel": "デスティネーションプレート、96ウェル"
+    "destGridAriaLabel": "デスティネーションプレート、96ウェル",
+    "errorTitle": "プレビューに失敗しました",
+    "echoSourcePlateLabel": "Echo ソースプレート (384 ウェル)",
+    "destPlateLabel": "デスティネーションプレート (96 ウェル)"
   },
   "errors": {
     "sequence": {

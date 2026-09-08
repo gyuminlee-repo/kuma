@@ -1517,7 +1517,10 @@
     "rowAriaLabel": "Row {{row}}",
     "echoGridAriaLabel": "Echo source plate, 384 wells",
     "janusGridAriaLabel": "{{label}} grid",
-    "destGridAriaLabel": "Destination plate, 96 wells"
+    "destGridAriaLabel": "Destination plate, 96 wells",
+    "errorTitle": "Preview failed",
+    "echoSourcePlateLabel": "Echo source plate (384 wells)",
+    "destPlateLabel": "Destination plate (96 wells)"
   },
   "globalAppBar": {
     "navAriaLabel": "Application navigation",

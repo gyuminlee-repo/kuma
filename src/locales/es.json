@@ -3466,7 +3466,10 @@
     "rowAriaLabel": "Fila {{row}}",
     "echoGridAriaLabel": "Placa fuente Echo, 384 pocillos",
     "janusGridAriaLabel": "Cuadrícula de {{label}}",
-    "destGridAriaLabel": "Placa de destino, 96 pocillos"
+    "destGridAriaLabel": "Placa de destino, 96 pocillos",
+    "errorTitle": "Error en la vista previa",
+    "echoSourcePlateLabel": "Placa de origen Echo (384 pocillos)",
+    "destPlateLabel": "Placa de destino (96 pocillos)"
   },
   "errors": {
     "sequence": {

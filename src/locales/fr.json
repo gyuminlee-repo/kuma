@@ -3466,7 +3466,10 @@
     "rowAriaLabel": "Ligne {{row}}",
     "echoGridAriaLabel": "Plaque source Echo, 384 puits",
     "janusGridAriaLabel": "Grille {{label}}",
-    "destGridAriaLabel": "Plaque de destination, 96 puits"
+    "destGridAriaLabel": "Plaque de destination, 96 puits",
+    "errorTitle": "Échec de l'aperçu",
+    "echoSourcePlateLabel": "Plaque source Echo (384 puits)",
+    "destPlateLabel": "Plaque de destination (96 puits)"
   },
   "errors": {
     "sequence": {

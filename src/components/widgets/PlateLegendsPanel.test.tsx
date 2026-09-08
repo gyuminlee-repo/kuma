@@ -1,6 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import { PlateLegendsPanel } from "./PlateLegendsPanel";
+import {
+  PLATE_FILL_DEST_COMPLETE,
+  PLATE_FILL_DEST_PARTIAL,
+  PLATE_FILL_FORWARD,
+  PLATE_FILL_REVERSE,
+} from "@/lib/platePreviewStyles";
 
 describe("PlateLegendsPanel", () => {
   it("renders 4 legend chips and a heading", () => {
@@ -16,10 +22,20 @@ describe("PlateLegendsPanel", () => {
     expect(container.querySelectorAll(".rounded-sm")).toHaveLength(4);
   });
 
-  it("matches DestPlateView's actual colors: emerald for complete, amber for partial", () => {
+  it("takes every swatch colour from the constants the cells use", () => {
+    // Asserted against the shared constants, not literal class names: the
+    // defect this replaces was swatch and cell holding separate literals that
+    // drifted (cells gained dark: variants, swatches did not). A literal
+    // assertion stayed green right through that.
     const { container } = render(<PlateLegendsPanel />);
     const swatches = Array.from(container.querySelectorAll(".rounded-sm"));
-    expect(swatches.some((el) => el.className.includes("bg-emerald-400"))).toBe(true);
-    expect(swatches.some((el) => el.className.includes("bg-amber-400"))).toBe(true);
+    for (const cls of [
+      PLATE_FILL_FORWARD,
+      PLATE_FILL_REVERSE,
+      PLATE_FILL_DEST_COMPLETE,
+      PLATE_FILL_DEST_PARTIAL,
+    ]) {
+      expect(swatches.some((el) => el.className.includes(cls))).toBe(true);
+    }
   });
 });

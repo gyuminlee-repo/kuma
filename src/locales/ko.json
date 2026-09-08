@@ -1517,7 +1517,10 @@
     "rowAriaLabel": "행 {{row}}",
     "echoGridAriaLabel": "Echo 소스 플레이트, 384 well",
     "janusGridAriaLabel": "{{label}} 그리드",
-    "destGridAriaLabel": "목적지 플레이트, 96 well"
+    "destGridAriaLabel": "목적지 플레이트, 96 well",
+    "errorTitle": "미리보기 실패",
+    "echoSourcePlateLabel": "Echo 소스 플레이트 (384 well)",
+    "destPlateLabel": "목적지 플레이트 (96 well)"
   },
   "globalAppBar": {
     "navAriaLabel": "앱 내비게이션",

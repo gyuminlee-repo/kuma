@@ -2,8 +2,36 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect } from "vitest";
 import { JanusPlateView } from "./JanusPlateView";
+import { PLATE_PREVIEW_FRAME } from "@/lib/platePreviewStyles";
+
+/**
+ * The frame/scroller contract these previews now share with WellPlate: the
+ * outermost element carries the card frame and the horizontal scroll, and
+ * `min-w-*` sits on a descendant, so a plate wider than the viewport scrolls
+ * inside its own frame instead of pushing the page.
+ */
+function expectFramedScroller(root: HTMLElement, minWidthClass: string): void {
+  expect(root.className).toContain(PLATE_PREVIEW_FRAME);
+  expect(root.className).toContain("overflow-x-auto");
+  expect(root.className).not.toMatch(/min-w-/);
+  expect(root.querySelector(`.${CSS.escape(minWidthClass)}`)).not.toBeNull();
+}
 
 describe("JanusPlateView", () => {
+  it("frames the rack pair and keeps the scroll inside that frame", () => {
+    const { container } = render(<JanusPlateView rack1={[]} rack2={[]} />);
+    expectFramedScroller(container.firstElementChild as HTMLElement, "min-w-[700px]");
+  });
+
+  it("leaves the query container on each rack, not on the pair", () => {
+    // index.css tuned .plate-preview-cell-narrow against one rack's
+    // width; a container on the pair would re-anchor every clamped font.
+    const { container } = render(<JanusPlateView rack1={[]} rack2={[]} />);
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.className).not.toContain("plate-preview-grid");
+    expect(container.querySelectorAll(".plate-preview-grid")).toHaveLength(2);
+  });
+
   it("renders 2 source plate panels of 96 cells (192 total)", () => {
     const { container } = render(<JanusPlateView rack1={[]} rack2={[]} />);
     expect(container.querySelectorAll("[data-testid='janus-cell']")).toHaveLength(192);

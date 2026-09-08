@@ -3466,7 +3466,10 @@
     "rowAriaLabel": "Ряд {{row}}",
     "echoGridAriaLabel": "Исходный планшет Echo, 384 лунки",
     "janusGridAriaLabel": "Сетка {{label}}",
-    "destGridAriaLabel": "Планшет назначения, 96 лунок"
+    "destGridAriaLabel": "Планшет назначения, 96 лунок",
+    "errorTitle": "Ошибка предпросмотра",
+    "echoSourcePlateLabel": "Планшет-источник Echo (384 лунки)",
+    "destPlateLabel": "Планшет назначения (96 лунок)"
   },
   "errors": {
     "sequence": {

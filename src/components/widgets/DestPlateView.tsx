@@ -6,6 +6,12 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
+import {
+  PLATE_FILL_DEST_COMPLETE,
+  PLATE_FILL_DEST_PARTIAL,
+  PLATE_PREVIEW_FRAME,
+  PLATE_PREVIEW_LABEL,
+} from "@/lib/platePreviewStyles";
 
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
 const COLS = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -47,10 +53,14 @@ export function DestPlateView({ cells, sourceMethod, title, className }: Props) 
   }
 
   return (
-    <div className={cn("plate-preview-grid min-w-[400px] overflow-x-auto", className)}>
-      {title ? (
-        <div className="text-caption text-muted-foreground mb-1">{title}</div>
-      ) : null}
+    // container-type stays on this scrolling frame rather than the inner
+    // min-w box: see EchoPlateView.tsx for why (contain: layout would turn
+    // the inner box's overflow into clipping) and for why the cqw basis is
+    // unchanged apart from this frame's 22px of padding and border.
+    <div className={cn("plate-preview-grid", PLATE_PREVIEW_FRAME, className)}>
+      {/* min-w on the grid box, not on the scroller: WellPlate.tsx:73 shape. */}
+      <div className="min-w-[400px]">
+      {title ? <div className={PLATE_PREVIEW_LABEL}>{title}</div> : null}
       {/* inline-grid + minmax(min,cap): see EchoPlateView.tsx for why 1fr was
           replaced (was 156px cells at 1900px, 10% text coverage). Cap is
           shared with Echo/Janus. */}
@@ -105,9 +115,7 @@ export function DestPlateView({ cells, sourceMethod, title, className }: Props) 
 
               const complete = cell.hasF && cell.hasR;
               const state = complete ? "complete" : "partial";
-              const bg = complete
-                ? "bg-emerald-400 dark:bg-emerald-500"
-                : "bg-amber-400 dark:bg-amber-500";
+              const bg = complete ? PLATE_FILL_DEST_COMPLETE : PLATE_FILL_DEST_PARTIAL;
               const tip = `${cell.mutation} (${well}): F=${cell.hasF ? "✓" : "✗"} R=${cell.hasR ? "✓" : "✗"}`;
 
               return (
@@ -168,6 +176,7 @@ export function DestPlateView({ cells, sourceMethod, title, className }: Props) 
             })}
           </div>
         ))}
+      </div>
       </div>
     </div>
   );
