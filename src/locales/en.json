@@ -2589,12 +2589,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The release build no longer installs a linter and a formatter it never runs, which is what broke the previous release.",
-      "A macOS runner image carrying its own cargo-clippy is enough to fail an install that was requested but never called.",
-      "Linux and Windows had built clean, so publishing was skipped for a toolchain detail rather than anything in the app."
+      "The three mapping grids on the last step now sit in the same bordered card as the other plate views in the app.",
+      "Sideways scrolling stays inside the grid instead of widening the page and dragging the rest of the step with it.",
+      "Loading, empty and error use the shared state component, so the error is announced to a screen reader.",
+      "The two grids on the Echo tab are named, and the legend now matches the plate colours in dark mode.",
+      "The three grids share one copy of their markup, which is what let the wells, row labels and popovers agree."
     ],
-    "highlightsStamp": "0.16.49+76255984",
+    "highlightsStamp": "0.16.50+e59fd423",
     "releases": {
+      "0.16.50": [
+        "The three mapping grids on the last step now sit in the same bordered card as the other plate views in the app.",
+        "Sideways scrolling stays inside the grid instead of widening the page and dragging the rest of the step with it.",
+        "Loading, empty and error use the shared state component, so the error is announced to a screen reader.",
+        "The two grids on the Echo tab are named, and the legend now matches the plate colours in dark mode.",
+        "The three grids share one copy of their markup, which is what let the wells, row labels and popovers agree."
+      ],
       "0.16.49": [
         "The release build no longer installs a linter and a formatter it never runs, which is what broke the previous release.",
         "A macOS runner image carrying its own cargo-clippy is enough to fail an install that was requested but never called.",
@@ -2954,6 +2963,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.50": "e59fd423",
       "0.16.49": "76255984",
       "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",

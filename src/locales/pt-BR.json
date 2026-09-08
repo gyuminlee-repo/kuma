@@ -2543,12 +2543,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "A compilação de publicação não instala mais um linter e um formatador que nunca executa, o que quebrou a versão anterior.",
-      "Bastou uma imagem de runner do macOS com seu próprio cargo-clippy para falhar uma instalação pedida e nunca chamada.",
-      "Linux e Windows já haviam compilado limpo; a publicação foi pulada por um detalhe de toolchain, não pelo aplicativo."
+      "As três grades de mapping da última etapa ficam agora no mesmo cartão com borda das outras visões de placa do app.",
+      "A rolagem lateral fica dentro da grade em vez de alargar a página e arrastar o resto da etapa junto.",
+      "Carregando, vazio e erro usam o componente de estado compartilhado, então o erro é anunciado ao leitor de tela.",
+      "As duas grades da aba Echo têm nome, e a legenda combina com as cores da placa no modo escuro.",
+      "As três grades compartilham uma só cópia da marcação, e foi isso que alinhou poços, rótulos de linha e popovers."
     ],
-    "highlightsStamp": "0.16.49+76255984",
+    "highlightsStamp": "0.16.50+e59fd423",
     "releases": {
+      "0.16.50": [
+        "As três grades de mapping da última etapa ficam agora no mesmo cartão com borda das outras visões de placa do app.",
+        "A rolagem lateral fica dentro da grade em vez de alargar a página e arrastar o resto da etapa junto.",
+        "Carregando, vazio e erro usam o componente de estado compartilhado, então o erro é anunciado ao leitor de tela.",
+        "As duas grades da aba Echo têm nome, e a legenda combina com as cores da placa no modo escuro.",
+        "As três grades compartilham uma só cópia da marcação, e foi isso que alinhou poços, rótulos de linha e popovers."
+      ],
       "0.16.49": [
         "A compilação de publicação não instala mais um linter e um formatador que nunca executa, o que quebrou a versão anterior.",
         "Bastou uma imagem de runner do macOS com seu próprio cargo-clippy para falhar uma instalação pedida e nunca chamada.",
@@ -2908,6 +2917,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.50": "e59fd423",
       "0.16.49": "76255984",
       "0.16.48": "ff7d23ff",
       "0.16.47": "a565326e",
