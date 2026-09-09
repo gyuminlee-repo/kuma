@@ -2543,14 +2543,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die Plattenvorschau nennt das gezeichnete Paar, wie viel der Platte der Lauf belegt und warum die Lücken da sind.",
-      "Wells, die dieser Lauf nicht erreicht, bekommen einen gestrichelten Rand und sehen nicht mehr aus wie einfach leere Wells.",
-      "Vorwärts und rückwärts waren bei zwei der vier Startpunkte vertauscht und folgen jetzt dem Lauf statt der Zeilennummer.",
-      "Raster, Popover und Legende beantworten die Richtungsfrage aus einer Quelle statt aus zweien.",
-      "Ein Lauf belegt zwei Quadranten, eine Platte fasst also zwei Runden, und die Fortschrittszeile sagt das."
+      "UniProt-Abfragen prüfen Zertifikate über den Vertrauensspeicher des Betriebssystems, sodass ein Proxy-Zertifikat der Einrichtung akzeptiert wird.",
+      "Der macOS-Schlüsselbund wird direkt gelesen statt über eine mitgelieferte Zertifikatsliste.",
+      "Die mitgelieferte Liste und die Standardeinstellung bleiben als Rückfallebene, und das Protokoll nennt die verwendete Vertrauensquelle.",
+      "Die Protokolldatei wird als UTF-8 geschrieben, sodass ein von der Konsole nicht darstellbares Zeichen den Eintrag nicht mehr zerstört.",
+      "In Protokollmeldungen für die Konsole wurden Gedankenstriche durch einfache Satzzeichen ersetzt."
     ],
-    "highlightsStamp": "0.16.53+39ca20cf",
+    "highlightsStamp": "0.16.54+137dd51e",
     "releases": {
+      "0.16.54": [
+        "UniProt-Abfragen prüfen Zertifikate über den Vertrauensspeicher des Betriebssystems, sodass ein Proxy-Zertifikat der Einrichtung akzeptiert wird.",
+        "Der macOS-Schlüsselbund wird direkt gelesen statt über eine mitgelieferte Zertifikatsliste.",
+        "Die mitgelieferte Liste und die Standardeinstellung bleiben als Rückfallebene, und das Protokoll nennt die verwendete Vertrauensquelle.",
+        "Die Protokolldatei wird als UTF-8 geschrieben, sodass ein von der Konsole nicht darstellbares Zeichen den Eintrag nicht mehr zerstört.",
+        "In Protokollmeldungen für die Konsole wurden Gedankenstriche durch einfache Satzzeichen ersetzt."
+      ],
       "0.16.53": [
         "Die Plattenvorschau nennt das gezeichnete Paar, wie viel der Platte der Lauf belegt und warum die Lücken da sind.",
         "Wells, die dieser Lauf nicht erreicht, bekommen einen gestrichelten Rand und sehen nicht mehr aus wie einfach leere Wells.",
@@ -2938,6 +2945,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",
       "0.16.52": "7c46035e",
       "0.16.51": "da55c894",
@@ -2950,10 +2958,18 @@
       "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",
+      "0.16.41": "78e69028",
+      "0.16.40": "54e3cb8d",
       "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",
+      "0.16.35": "d628e48a",
+      "0.16.34": "d7925cb6",
+      "0.16.33": "059a2f27",
+      "0.16.32": "3be3b377",
+      "0.16.31": "60d4442c",
+      "0.16.30": "bab83ea7",
       "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",
@@ -2992,15 +3008,7 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21",
-      "0.16.30": "bab83ea7",
-      "0.16.31": "60d4442c",
-      "0.16.32": "3be3b377",
-      "0.16.33": "059a2f27",
-      "0.16.34": "d7925cb6",
-      "0.16.35": "d628e48a",
-      "0.16.40": "54e3cb8d",
-      "0.16.41": "78e69028"
+      "0.15.16": "fe8e6f21"
     }
   },
   "primerDisplay": {

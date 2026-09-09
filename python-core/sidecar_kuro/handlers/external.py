@@ -221,7 +221,7 @@ def handle_search_uniprot(params: dict) -> dict:
             with urllib.request.urlopen(req, context=_get_ssl_ctx(), timeout=15) as resp:
                 return json.loads(resp.read().decode("utf-8")), ""
         except Exception as exc:
-            logger.warning("UniProt fetch failed: %s — %s", url, exc)
+            logger.warning("UniProt fetch failed: %s - %s", url, exc)
             return None, f"{type(exc).__name__}: {exc}"
 
     def _fetch_text(url: str) -> tuple[str, str]:

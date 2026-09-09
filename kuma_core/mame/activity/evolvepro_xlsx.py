@@ -96,7 +96,7 @@ def _float_or_raise(cell: object, context: str) -> float:
     raw = _str(cell)
     if raw == "":
         raise ValueError(
-            f"Expected numeric area value but got empty cell — {context}"
+            f"Expected numeric area value but got empty cell - {context}"
         )
     try:
         value = float(raw)

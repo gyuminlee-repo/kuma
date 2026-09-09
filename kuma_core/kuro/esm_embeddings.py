@@ -77,7 +77,7 @@ def get_embedding(
             _save_cache(embedding, accession, sequence)
             return embedding
 
-    _log.warning("ESM-2 embedding unavailable — Pareto will use 1D position distance")
+    _log.warning("ESM-2 embedding unavailable - Pareto will use 1D position distance")
     return None
 
 
@@ -165,7 +165,7 @@ def _remote_fetch(accession: str) -> list[list[float]] | None:
                     _log.info("Remote ESM embedding: %s (%d residues)", url, len(data))
                     return data
         except Exception as exc:
-            _log.info("Remote ESM endpoint unavailable: %s — %s", url, exc)
+            _log.info("Remote ESM endpoint unavailable: %s - %s", url, exc)
 
     return None
 

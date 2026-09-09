@@ -130,7 +130,7 @@ def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         prog="kuro",
-        description="KURO — EVOLVEpro SDM primer batch design tool",
+        description="KURO - EVOLVEpro SDM primer batch design tool",
     )
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Enable verbose logging"

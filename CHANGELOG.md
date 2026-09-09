@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.16.54 (UniProt lookups trust the machine again, and the log stops eating itself)
+
+Every UniProt lookup on the operator machine failed certificate verification. The sidecar log carried 72 of them, all reporting a self-signed certificate in the chain. The institution re-signs TLS at its proxy, and that proxy certificate lives in the operating system trust store.
+
+An earlier change had pinned verification to a bundled certificate list, to fix frozen macOS builds where the system OpenSSL cannot read the Keychain. That list cannot contain a certificate specific to one institution, so pinning to it traded one broken platform for another.
+
+Verification now goes through the platform APIs, which read the Keychain on macOS and the certificate store on Windows directly. That removes the cause the earlier change was routing around rather than adding a second workaround beside it. If the native path ever fails to load inside a frozen bundle, the bundled list and then the standard default still stand behind it, and the log records which one was taken.
+
+Measured against the live proxy, the same request that fails with the bundled list alone returns 200 through the trust store.
+
+The log had also been destroying the evidence. Its file handler carried no encoding, so on a Korean Windows install it took the locale codec and raised on the first dash character, filling the file with logging tracebacks around the very lines needed to diagnose the failure. The file is now written as UTF-8, and characters a console cannot render no longer take the message down with them.
+
+### Highlights
+
+- UniProt lookups verify against the operating system trust store, so an institutional proxy certificate is honoured.
+- The macOS Keychain is read directly rather than through a bundled certificate list.
+- The bundled list and the standard default remain as fallbacks, and the log says which trust source was used.
+- The log file is written as UTF-8, so a character the console cannot render no longer breaks the entry.
+- Log messages that reach a console had their dash characters replaced with plain punctuation.
+
 ## v0.16.53 (The Echo plate preview explains its gaps and gets its colours right)
 
 The source-plate preview drew a grid with every other well empty and said nothing about why, which reads as though primers had been skipped. It also painted forward and reverse the wrong way round for two of the four starting points.

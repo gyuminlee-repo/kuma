@@ -38,6 +38,16 @@ TARGETS = {
             # sidecar raises ModuleNotFoundError on any .xls source, while a
             # development run succeeds because the wheel is installed.
             "xlrd",
+            # truststore backs the OS trust-store SSL context in
+            # kuma_core/shared/net.py. Both that import and the backend
+            # imports in truststore/_api.py are plain import statements, so
+            # PyInstaller is expected to follow them on its own; this entry
+            # plus collect_all below are belt-and-braces so that every
+            # platform backend (_windows, _macos, _openssl) and py.typed are
+            # present regardless. Getting this wrong is silent: the sidecar
+            # falls back to the certifi bundle and fails on any network with
+            # a TLS-inspecting proxy.
+            "truststore",
             "sidecar_kuro",
             "sidecar_kuro.dispatcher",
             "kuma_core.kuro",
@@ -52,7 +62,7 @@ TARGETS = {
             "setuptools._vendor.jaraco.text",
             "setuptools._vendor.jaraco.functools",
         ],
-        "collect_all": ["pydantic", "primer3", "sidecar_kuro", "kuma_core", "setuptools"],
+        "collect_all": ["pydantic", "primer3", "sidecar_kuro", "kuma_core", "setuptools", "truststore"],
         "excludes": [],
     },
     "mame": {
@@ -71,6 +81,16 @@ TARGETS = {
             # Without this entry the packaged sidecar raises ModuleNotFoundError
             # at the demux step, surfaced to the UI as -32603 Internal error.
             "edlib",
+            # truststore backs the OS trust-store SSL context in
+            # kuma_core/shared/net.py. Both that import and the backend
+            # imports in truststore/_api.py are plain import statements, so
+            # PyInstaller is expected to follow them on its own; this entry
+            # plus collect_all below are belt-and-braces so that every
+            # platform backend (_windows, _macos, _openssl) and py.typed are
+            # present regardless. Getting this wrong is silent: the sidecar
+            # falls back to the certifi bundle and fails on any network with
+            # a TLS-inspecting proxy.
+            "truststore",
             "sidecar_mame",
             "sidecar_mame.dispatcher",
             "kuma_core.mame",
@@ -81,7 +101,7 @@ TARGETS = {
             "setuptools._vendor.jaraco.text",
             "setuptools._vendor.jaraco.functools",
         ],
-        "collect_all": ["openpyxl", "primer3", "sidecar_mame", "kuma_core", "setuptools"],
+        "collect_all": ["openpyxl", "primer3", "sidecar_mame", "kuma_core", "setuptools", "truststore"],
         "excludes": [
             "matplotlib",
             "sklearn",

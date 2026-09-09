@@ -238,7 +238,7 @@ def fetch_ca_coords(accession: str) -> list[tuple[float, float, float] | None] |
         logger.warning("Cache write failed for %s: %s", accession, exc)
 
     valid = sum(1 for c in coords if c is not None)
-    logger.info("AlphaFold structure loaded: %s — %d Cα residues", accession, valid)
+    logger.info("AlphaFold structure loaded: %s - %d Cα residues", accession, valid)
     return coords
 
 
