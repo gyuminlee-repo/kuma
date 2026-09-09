@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { invoke } from "@tauri-apps/api/core";
 import { ExportPlatePreview } from "./ExportPlatePreview";
 import { useAppStore } from "@/store/appStore";
+import { PLATE_FILL_FORWARD, PLATE_FILL_REVERSE } from "@/lib/platePreviewStyles";
 import type { PlateMapping, SdmPrimerResult } from "@/types/models";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -442,6 +443,81 @@ describe("ExportPlatePreview", () => {
       const note = await screen.findByTestId("echo-quadrant-note");
       expect(note.textContent).toMatch(/no quadrant selected/i);
       expect(screen.queryByTestId("echo-quadrant-progress")).toBeNull();
+    });
+  });
+
+  // The direction rule lives in the adapters and its unit tests cover it, but
+  // the adapters learn the quadrant only because this component hands it over.
+  // Drop that argument and the default `null` restores the old row-parity rule
+  // without a type error or a failing adapter test: the preview would go back
+  // to inverting every B1/B2 run, silently. These two render the whole
+  // component so the handover is inside what is measured.
+  describe("Echo grid colour follows the selected quadrant", () => {
+    /** Two transfers of one mutation: 384 row B forward, row A reverse. */
+    function mockPairedEchoRows() {
+      const echoRows = {
+        rows: [
+          {
+            source_plate: "P1",
+            source_well_name: "P1-fw",
+            source_well: "B01",
+            dest_plate: "D1",
+            dest_well_name: "D1-A1",
+            dest_well: "A1",
+            transfer_vol: 25,
+            mutation: "P1",
+          },
+          {
+            source_plate: "P1",
+            source_well_name: "P1-rv",
+            source_well: "A01",
+            dest_plate: "D1",
+            dest_well_name: "D1-A1",
+            dest_well: "A1",
+            transfer_vol: 25,
+            mutation: "P1",
+          },
+        ],
+        total: 2,
+        transfer_vol: 25,
+      };
+      (invoke as ReturnType<typeof vi.fn>).mockImplementation((_cmd, args) => {
+        const a = args as { method: string };
+        if (a.method === "export_echo_mapping_dry_run") return Promise.resolve(echoRows);
+        if (a.method === "export_janus_mapping_dry_run") return Promise.resolve(emptyJanus);
+        return Promise.resolve({});
+      });
+    }
+
+    /** The rendered Echo well for `well`, in render order (A01 first). */
+    function echoCell(container: HTMLElement, well: string): HTMLElement {
+      const row = "ABCDEFGHIJKLMNOP".indexOf(well[0]);
+      const idx = row * 24 + (Number(well.slice(1)) - 1);
+      return container.querySelectorAll("[data-testid='echo-cell']")[idx] as HTMLElement;
+    }
+
+    it("paints the odd-row primer forward when the run starts at B1", async () => {
+      useAppStore.setState({ echoQuadrant: "B1" });
+      mockPairedEchoRows();
+      const { container } = render(<ExportPlatePreview />);
+      await screen.findByTestId("echo-quadrant-note");
+      await waitFor(() => {
+        // B1 puts forward primers on odd rows, so B01 is the forward well and
+        // A01 belongs to its paired reverse quadrant A1.
+        expect(echoCell(container, "B01").className).toContain(PLATE_FILL_FORWARD);
+        expect(echoCell(container, "A01").className).toContain(PLATE_FILL_REVERSE);
+      });
+    });
+
+    it("keeps the A1 run the other way round", async () => {
+      useAppStore.setState({ echoQuadrant: "A1" });
+      mockPairedEchoRows();
+      const { container } = render(<ExportPlatePreview />);
+      await screen.findByTestId("echo-quadrant-note");
+      await waitFor(() => {
+        expect(echoCell(container, "A01").className).toContain(PLATE_FILL_FORWARD);
+        expect(echoCell(container, "B01").className).toContain(PLATE_FILL_REVERSE);
+      });
     });
   });
 });
