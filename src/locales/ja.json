@@ -45,7 +45,7 @@
     "titleMame": "Mame について",
     "kuroDescription": "Tm ベースのオーバーラップ伸長を用いた SDM primer バッチ設計ツール。",
     "kuroBuiltWith": "Tauri + React + primer3-py で構築",
-    "mameTagline": "Mutagenesis Assessment & Microplate Export",
+    "mameTagline": "Mutagenesis Assessment & Measurement Export",
     "mameSummary": "NB-plate mutagenesis 実験の verdict 解析デスクトップツール。",
     "mameBuiltWith": "Tauri + React + Python sidecar で構築。",
     "checkForUpdates": "アップデートを確認",
@@ -1992,7 +1992,7 @@
     "done": "完了",
     "insideProject": "各プロジェクト内",
     "kuroDesc": "Kernel for Upstream Recombination Oligodesign。Gibson Assembly テンプレートからのバッチ SDM primer 設計。",
-    "mameDesc": "Mutagenesis Assessment & Microplate Export。Oxford Nanopore NGS verdict。",
+    "mameDesc": "Mutagenesis Assessment & Measurement Export。Oxford Nanopore NGS verdict。",
     "autosaveNote": "入力とパラメーターはプロジェクトごとに自動保存されます。絶対パスを含むBarcode Setupの下書きはプロジェクト間で共有されます。",
     "titleStart": "始める",
     "descStart": "プロジェクト用のデフォルトフォルダを選択してください。kuma はすべての Kuro 設計と Mame verdict run を個別のプロジェクトフォルダに保管し、数週間に及ぶ sequencing turnaround をまたいで作業を保持します。",
@@ -2543,14 +2543,21 @@
     "descriptionRange": "v{{from}} 以降のすべてのアップデートの主な変更点です。",
     "gotItBtn": "了解",
     "highlights": [
-      "設計の後で選択リストを補充する際に、作ったばかりのプライマーを捨てていた点を直しました。",
-      "実行結果を消すときに全フィールドをまとめて消すので、表とカウンタが食い違いません。",
-      "サイドカー再起動で中断された場合はそれを知らせます。進捗が 0 に戻るだけで黙っていた点を直しました。",
-      "設計が終わる 4 つの場合すべてがメッセージを残します。件数、失敗理由、キャンセル、中断です。",
-      "要約ステップが未実行と実行済みで残らなかったを区別し、実行時刻と件数を示します。"
+      "MAME を Mutagenesis Assessment and Measurement Export と展開します。アプリと文書全体に反映しました。",
+      "旧来の後半は副産物を指し、別のサブツールを指し、省略できる工程に依拠していました。",
+      "測定値を受け取り次ラウンドの入力を書く工程はすべての実行が通るので、名前はそこを指します。",
+      "何を書き出すのかを名前に含めることで、アプリ反対側のプレートと発注の書き出しと区別されます。",
+      "過去のリリースノートは旧表記のままです。それらの版が実際に表示した名前だからです。"
     ],
-    "highlightsStamp": "0.16.51+da55c894",
+    "highlightsStamp": "0.16.52+7c46035e",
     "releases": {
+      "0.16.52": [
+        "MAME を Mutagenesis Assessment and Measurement Export と展開します。アプリと文書全体に反映しました。",
+        "旧来の後半は副産物を指し、別のサブツールを指し、省略できる工程に依拠していました。",
+        "測定値を受け取り次ラウンドの入力を書く工程はすべての実行が通るので、名前はそこを指します。",
+        "何を書き出すのかを名前に含めることで、アプリ反対側のプレートと発注の書き出しと区別されます。",
+        "過去のリリースノートは旧表記のままです。それらの版が実際に表示した名前だからです。"
+      ],
       "0.16.51": [
         "設計の後で選択リストを補充する際に、作ったばかりのプライマーを捨てていた点を直しました。",
         "実行結果を消すときに全フィールドをまとめて消すので、表とカウンタが食い違いません。",
@@ -2924,6 +2931,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.52": "7c46035e",
       "0.16.51": "da55c894",
       "0.16.50": "e59fd423",
       "0.16.49": "76255984",

@@ -45,7 +45,7 @@
     "titleMame": "À propos de Mame",
     "kuroDescription": "Outil de design de primers SDM en lot avec extension par overlap guidée par Tm.",
     "kuroBuiltWith": "Conçu avec Tauri + React + primer3-py",
-    "mameTagline": "Mutagenesis Assessment & Microplate Export",
+    "mameTagline": "Mutagenesis Assessment & Measurement Export",
     "mameSummary": "Outil de bureau pour l'analyse des verdicts de runs de mutagénèse sur plaque NB.",
     "mameBuiltWith": "Conçu avec Tauri + React + sidecar Python.",
     "checkForUpdates": "Rechercher des mises à jour",
@@ -1992,7 +1992,7 @@
     "done": "Terminé",
     "insideProject": "Dans chaque projet",
     "kuroDesc": "Kernel for Upstream Recombination Oligodesign. Design de primers SDM en lot à partir de templates Gibson Assembly.",
-    "mameDesc": "Mutagenesis Assessment & Microplate Export. Verdict NGS Oxford Nanopore.",
+    "mameDesc": "Mutagenesis Assessment & Measurement Export. Verdict NGS Oxford Nanopore.",
     "autosaveNote": "Les entrées et paramètres sont enregistrés automatiquement par projet. Les brouillons Barcode Setup, y compris les chemins absolus, sont partagés entre projets.",
     "titleStart": "Démarrer",
     "descStart": "Choisir un dossier par défaut pour les projets. kuma garde chaque design Kuro et chaque run de verdict Mame dans son propre dossier projet, afin que le travail survive aux délais de séquençage de plusieurs semaines.",
@@ -2543,14 +2543,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Un calcul terminé ne jette plus ses propres amorces pendant qu il recomplète la sélection ensuite.",
-      "Effacer un calcul couvre désormais tous les champs, si bien que le tableau et les compteurs ne divergent plus.",
-      "Un calcul interrompu par le redémarrage du sidecar le dit, au lieu de remettre la progression à zéro en silence.",
-      "Les quatre façons de finir laissent un message : le compte, échec, annulation, interruption.",
-      "étape de synthèse distingue jamais lancé de lancé sans rien garder, et donne heure et comptes."
+      "MAME se développe désormais en Mutagenesis Assessment and Measurement Export, dans application et dans toute la documentation.",
+      "ancienne seconde moitié nommait un sous-produit, désignait autre sous-outil et reposait sur une étape que on peut sauter.",
+      "Recevoir les mesures et écrire entrée du tour suivant est étape par laquelle passe chaque exécution.",
+      "Nommer ce qui est exporté le distingue de export de plaques et de commandes de autre côté de application.",
+      "Les notes des versions passées gardent ancienne forme, puisque est le nom que ces versions affichaient."
     ],
-    "highlightsStamp": "0.16.51+da55c894",
+    "highlightsStamp": "0.16.52+7c46035e",
     "releases": {
+      "0.16.52": [
+        "MAME se développe désormais en Mutagenesis Assessment and Measurement Export, dans application et dans toute la documentation.",
+        "ancienne seconde moitié nommait un sous-produit, désignait autre sous-outil et reposait sur une étape que on peut sauter.",
+        "Recevoir les mesures et écrire entrée du tour suivant est étape par laquelle passe chaque exécution.",
+        "Nommer ce qui est exporté le distingue de export de plaques et de commandes de autre côté de application.",
+        "Les notes des versions passées gardent ancienne forme, puisque est le nom que ces versions affichaient."
+      ],
       "0.16.51": [
         "Un calcul terminé ne jette plus ses propres amorces pendant qu il recomplète la sélection ensuite.",
         "Effacer un calcul couvre désormais tous les champs, si bien que le tableau et les compteurs ne divergent plus.",
@@ -2924,6 +2931,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.52": "7c46035e",
       "0.16.51": "da55c894",
       "0.16.50": "e59fd423",
       "0.16.49": "76255984",

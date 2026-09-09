@@ -7,7 +7,7 @@
 **kuma** integrates two subtools into a single Tauri desktop app:
 
 - **Kuro** (Kernel for Upstream Recombination Oligodesign) — batch SDM primer design from Gibson Assembly templates.
-- **Mame** (Mutagenesis Assessment & Microplate Export) — Oxford Nanopore NGS verdict for screening which clones carry the intended mutations.
+- **Mame** (Mutagenesis Assessment & Measurement Export) — Oxford Nanopore NGS verdict for screening which clones carry the intended mutations.
 
 Both tabs share a project workspace; a hidden `__kuma_meta__` sheet in every Kuro xlsx export lets Mame auto-match sequencing reads back to the originating project weeks later. See the [project README](../README.md) for installation and architecture.
 

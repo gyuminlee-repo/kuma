@@ -45,7 +45,7 @@
     "titleMame": "關於 Mame",
     "kuroDescription": "基於 Tm 引導 overlap extension 的 SDM primer 批次設計工具。",
     "kuroBuiltWith": "基於 Tauri + React + primer3-py 構建",
-    "mameTagline": "Mutagenesis Assessment & Microplate Export",
+    "mameTagline": "Mutagenesis Assessment & Measurement Export",
     "mameSummary": "用於 NB-plate 突變實驗執行的桌面判定分析工具。",
     "mameBuiltWith": "基於 Tauri + React + Python sidecar 構建。",
     "checkForUpdates": "檢查更新",
@@ -1992,7 +1992,7 @@
     "done": "完成",
     "insideProject": "每個專案內部",
     "kuroDesc": "Kernel for Upstream Recombination Oligodesign. 基於 Gibson Assembly 模板的批次 SDM primer 設計。",
-    "mameDesc": "Mutagenesis Assessment & Microplate Export. Oxford Nanopore NGS verdict。",
+    "mameDesc": "Mutagenesis Assessment & Measurement Export. Oxford Nanopore NGS verdict。",
     "autosaveNote": "輸入和參數會依專案自動儲存。包含絕對路徑的 Barcode Setup 草稿會在專案之間共用。",
     "titleStart": "開始使用",
     "descStart": "為專案選擇預設資料夾。kuma 將每個 Kuro design 和 Mame verdict run 儲存在各自的專案資料夾中,使工作在數週的測序週轉期間得以保留。",
@@ -2543,14 +2543,21 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "修正了設計完成後補充選擇清單時丟棄剛產生引子的問題。",
-      "清除執行記錄時會一併清除所有欄位，表格與計數不再互相矛盾。",
-      "被 sidecar 重啟中斷時會明確告知，不再只是把進度條歸零而保持沉默。",
-      "設計結束的四種情況都會留下訊息：筆數、失敗原因、取消與中斷。",
-      "摘要步驟區分從未執行與執行後未保留，並給出執行時間與筆數。"
+      "MAME 現在展開為 Mutagenesis Assessment and Measurement Export，應用與文件已同步。",
+      "舊的後半部分指向副產物、指向另一個子工具，並依賴於一個可以略過的步驟。",
+      "接收測量值並寫出下一輪輸入是每次執行都會經過的步驟，名稱因此指向那裡。",
+      "把匯出的對象寫進名稱，就與應用另一側的孔盤與訂單匯出區分開來。",
+      "歷史發布說明保留舊寫法，因為那正是那些版本實際顯示的名稱。"
     ],
-    "highlightsStamp": "0.16.51+da55c894",
+    "highlightsStamp": "0.16.52+7c46035e",
     "releases": {
+      "0.16.52": [
+        "MAME 現在展開為 Mutagenesis Assessment and Measurement Export，應用與文件已同步。",
+        "舊的後半部分指向副產物、指向另一個子工具，並依賴於一個可以略過的步驟。",
+        "接收測量值並寫出下一輪輸入是每次執行都會經過的步驟，名稱因此指向那裡。",
+        "把匯出的對象寫進名稱，就與應用另一側的孔盤與訂單匯出區分開來。",
+        "歷史發布說明保留舊寫法，因為那正是那些版本實際顯示的名稱。"
+      ],
       "0.16.51": [
         "修正了設計完成後補充選擇清單時丟棄剛產生引子的問題。",
         "清除執行記錄時會一併清除所有欄位，表格與計數不再互相矛盾。",
@@ -2924,6 +2931,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.52": "7c46035e",
       "0.16.51": "da55c894",
       "0.16.50": "e59fd423",
       "0.16.49": "76255984",

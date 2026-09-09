@@ -45,7 +45,7 @@
     "titleMame": "Über Mame",
     "kuroDescription": "SDM Primer batch design tool mit Tm-guided overlap extension.",
     "kuroBuiltWith": "Built mit Tauri + React + primer3-py",
-    "mameTagline": "Mutagenesis Assessment & Microplate Export",
+    "mameTagline": "Mutagenesis Assessment & Measurement Export",
     "mameSummary": "Desktop verdict analysis tool für NB-Platte mutagenesis runs.",
     "mameBuiltWith": "Built mit Tauri + React + Python sidecar.",
     "checkForUpdates": "Auf Aktualisierungen prüfen",
@@ -1992,7 +1992,7 @@
     "done": "Fertig",
     "insideProject": "Inside jeder Projekt",
     "kuroDesc": "Kernel für Upstream Recombination Oligodesign. Batch SDM Primer design von Gibson Assembly templates.",
-    "mameDesc": "Mutagenesis Assessment & Microplate Export. Oxford-Nanopore-NGS-Verdict.",
+    "mameDesc": "Mutagenesis Assessment & Measurement Export. Oxford-Nanopore-NGS-Verdict.",
     "autosaveNote": "Eingaben und Parameter werden pro Projekt automatisch gespeichert. Barcode-Setup-Entwürfe einschließlich absoluter Pfade werden projektübergreifend geteilt.",
     "titleStart": "Loslegen",
     "descStart": "Wählen ein Standard Ordner für projects. kuma keeps every Kuro design und Mame verdict ausführen inside its own Projekt Ordner so die work survives across weeks-long sequencing turnaround.",
@@ -2543,14 +2543,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein fertiger Entwurf verwirft seine eigenen Primer nicht mehr, während er die Auswahl danach wieder auffüllt.",
-      "Beim Verwerfen eines Laufs werden alle Felder erfasst, sodass Tabelle und Zähler nicht mehr auseinanderlaufen.",
-      "Ein durch einen Sidecar-Neustart abgebrochener Lauf sagt das jetzt, statt den Fortschritt schweigend auf null zu setzen.",
-      "Alle vier Enden eines Entwurfs hinterlassen eine Meldung: die Anzahl, der Fehler, der Abbruch, die Unterbrechung.",
-      "Der Übersichtsschritt trennt nie gelaufen von gelaufen und nichts behalten und nennt Zeitpunkt und Anzahl."
+      "MAME steht jetzt für Mutagenesis Assessment and Measurement Export, in der App und in der gesamten Dokumentation.",
+      "Die alte zweite Hälfte benannte ein Nebenprodukt, zeigte auf das andere Teilwerkzeug und stützte sich auf einen überspringbaren Schritt.",
+      "Messwerte entgegenzunehmen und die Eingabe der nächsten Runde zu schreiben ist der Schritt, den jeder Lauf durchläuft.",
+      "Den Gegenstand des Exports in den Namen zu nehmen trennt ihn vom Platten- und Bestellexport auf der anderen Seite der App.",
+      "Ältere Versionshinweise behalten die alte Schreibweise, weil jene Versionen genau diesen Namen anzeigten."
     ],
-    "highlightsStamp": "0.16.51+da55c894",
+    "highlightsStamp": "0.16.52+7c46035e",
     "releases": {
+      "0.16.52": [
+        "MAME steht jetzt für Mutagenesis Assessment and Measurement Export, in der App und in der gesamten Dokumentation.",
+        "Die alte zweite Hälfte benannte ein Nebenprodukt, zeigte auf das andere Teilwerkzeug und stützte sich auf einen überspringbaren Schritt.",
+        "Messwerte entgegenzunehmen und die Eingabe der nächsten Runde zu schreiben ist der Schritt, den jeder Lauf durchläuft.",
+        "Den Gegenstand des Exports in den Namen zu nehmen trennt ihn vom Platten- und Bestellexport auf der anderen Seite der App.",
+        "Ältere Versionshinweise behalten die alte Schreibweise, weil jene Versionen genau diesen Namen anzeigten."
+      ],
       "0.16.51": [
         "Ein fertiger Entwurf verwirft seine eigenen Primer nicht mehr, während er die Auswahl danach wieder auffüllt.",
         "Beim Verwerfen eines Laufs werden alle Felder erfasst, sodass Tabelle und Zähler nicht mehr auseinanderlaufen.",
@@ -2924,6 +2931,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.52": "7c46035e",
       "0.16.51": "da55c894",
       "0.16.50": "e59fd423",
       "0.16.49": "76255984",

@@ -45,7 +45,7 @@
     "titleMame": "关于 Mame",
     "kuroDescription": "基于 Tm 引导 overlap extension 的 SDM primer 批量设计工具。",
     "kuroBuiltWith": "基于 Tauri + React + primer3-py 构建",
-    "mameTagline": "Mutagenesis Assessment & Microplate Export",
+    "mameTagline": "Mutagenesis Assessment & Measurement Export",
     "mameSummary": "用于 NB-plate 突变实验运行的桌面判定分析工具。",
     "mameBuiltWith": "基于 Tauri + React + Python sidecar 构建。",
     "checkForUpdates": "检查更新",
@@ -1992,7 +1992,7 @@
     "done": "完成",
     "insideProject": "每个项目内部",
     "kuroDesc": "Kernel for Upstream Recombination Oligodesign. 基于 Gibson Assembly 模板的批量 SDM primer 设计。",
-    "mameDesc": "Mutagenesis Assessment & Microplate Export. Oxford Nanopore NGS verdict。",
+    "mameDesc": "Mutagenesis Assessment & Measurement Export. Oxford Nanopore NGS verdict。",
     "autosaveNote": "输入和参数按项目自动保存。包括绝对路径在内的 Barcode Setup 草稿在项目之间共享。",
     "titleStart": "开始使用",
     "descStart": "为项目选择默认文件夹。kuma 将每个 Kuro design 和 Mame verdict run 保存在各自的项目文件夹中,使工作在数周的测序周转期间得以保留。",
@@ -2543,14 +2543,21 @@
     "descriptionRange": "自 v{{from}} 以来每次更新的主要变化。",
     "gotItBtn": "知道了",
     "highlights": [
-      "修复了设计完成后补充选择列表时丢弃刚生成引物的问题。",
-      "清除运行记录时会一并清除所有字段，表格与计数不再互相矛盾。",
-      "被 sidecar 重启打断时会明确告知，不再只是把进度条归零而保持沉默。",
-      "设计结束的四种情况都会留下消息：条数、失败原因、取消与中断。",
-      "摘要步骤区分从未运行与运行后未保留，并给出运行时间与条数。"
+      "MAME 现在展开为 Mutagenesis Assessment and Measurement Export，应用与文档已同步。",
+      "旧的后半部分指向副产物、指向另一个子工具，并依赖于一个可以跳过的步骤。",
+      "接收测量值并写出下一轮输入是每次运行都会经过的步骤，名称因此指向那里。",
+      "把导出的对象写进名称，就与应用另一侧的孔板与订单导出区分开来。",
+      "历史发布说明保留旧写法，因为那正是那些版本实际显示的名称。"
     ],
-    "highlightsStamp": "0.16.51+da55c894",
+    "highlightsStamp": "0.16.52+7c46035e",
     "releases": {
+      "0.16.52": [
+        "MAME 现在展开为 Mutagenesis Assessment and Measurement Export，应用与文档已同步。",
+        "旧的后半部分指向副产物、指向另一个子工具，并依赖于一个可以跳过的步骤。",
+        "接收测量值并写出下一轮输入是每次运行都会经过的步骤，名称因此指向那里。",
+        "把导出的对象写进名称，就与应用另一侧的孔板与订单导出区分开来。",
+        "历史发布说明保留旧写法，因为那正是那些版本实际显示的名称。"
+      ],
       "0.16.51": [
         "修复了设计完成后补充选择列表时丢弃刚生成引物的问题。",
         "清除运行记录时会一并清除所有字段，表格与计数不再互相矛盾。",
@@ -2924,6 +2931,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.52": "7c46035e",
       "0.16.51": "da55c894",
       "0.16.50": "e59fd423",
       "0.16.49": "76255984",

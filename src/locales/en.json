@@ -45,7 +45,7 @@
     "titleMame": "About Mame",
     "kuroDescription": "SDM primer batch design tool with Tm-guided overlap extension.",
     "kuroBuiltWith": "Built with Tauri + React + primer3-py",
-    "mameTagline": "Mutagenesis Assessment & Microplate Export",
+    "mameTagline": "Mutagenesis Assessment & Measurement Export",
     "mameSummary": "Desktop verdict analysis tool for NB-plate mutagenesis runs.",
     "mameBuiltWith": "Built with Tauri + React + Python sidecar.",
     "checkForUpdates": "Check for updates",
@@ -2026,7 +2026,7 @@
     "done": "Done",
     "insideProject": "Inside each project",
     "kuroDesc": "Kernel for Upstream Recombination Oligodesign. Batch SDM primer design from Gibson Assembly templates.",
-    "mameDesc": "Mutagenesis Assessment & Microplate Export. Oxford Nanopore NGS verdict.",
+    "mameDesc": "Mutagenesis Assessment & Measurement Export. Oxford Nanopore NGS verdict.",
     "autosaveNote": "Inputs and parameters autosave per project. Barcode Setup drafts, including absolute paths, are shared across projects.",
     "titleStart": "Get started",
     "descStart": "Choose a default folder for projects. kuma keeps every Kuro design and Mame verdict run inside its own project folder so the work survives across weeks-long sequencing turnaround.",
@@ -2589,14 +2589,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A finished design no longer discards its own primers while topping the selection back up afterwards.",
-      "The counters and the table can no longer disagree, because clearing a run now covers every field a run writes.",
-      "A run interrupted by a sidecar restart says so instead of returning the progress bar to zero in silence.",
-      "Every way a design can end now leaves a message: the count, the failure, the cancellation, or the interruption.",
-      "The summary step separates never having run from having run and kept nothing, and names the time and counts."
+      "MAME now expands as Mutagenesis Assessment and Measurement Export, in the app and across the documentation.",
+      "The old second half named a side product, pointed at the other sub-tool, and rested on a step that can be skipped.",
+      "Taking measurements and writing the next round input is the step every run passes through, so the name points there.",
+      "Naming what gets exported keeps this apart from the plate and order export on the other side of the app.",
+      "Past release notes keep the old wording, because that is the name those versions actually displayed."
     ],
-    "highlightsStamp": "0.16.51+da55c894",
+    "highlightsStamp": "0.16.52+7c46035e",
     "releases": {
+      "0.16.52": [
+        "MAME now expands as Mutagenesis Assessment and Measurement Export, in the app and across the documentation.",
+        "The old second half named a side product, pointed at the other sub-tool, and rested on a step that can be skipped.",
+        "Taking measurements and writing the next round input is the step every run passes through, so the name points there.",
+        "Naming what gets exported keeps this apart from the plate and order export on the other side of the app.",
+        "Past release notes keep the old wording, because that is the name those versions actually displayed."
+      ],
       "0.16.51": [
         "A finished design no longer discards its own primers while topping the selection back up afterwards.",
         "The counters and the table can no longer disagree, because clearing a run now covers every field a run writes.",
@@ -2970,6 +2977,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.52": "7c46035e",
       "0.16.51": "da55c894",
       "0.16.50": "e59fd423",
       "0.16.49": "76255984",
