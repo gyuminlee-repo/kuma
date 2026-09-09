@@ -44,7 +44,11 @@ from kuma_core.mame.select.purity import (
     support_lower_bound,
 )
 from kuma_core.mame.models import ReplicateResult, VerdictClass, VerdictRecord
-from kuma_core.mame.detected import compute_recovery, replicate_is_recovered
+from kuma_core.mame.detected import (
+    compute_recovery,
+    compute_success_rate,
+    replicate_is_recovered,
+)
 from kuma_core.mame.export.nb_label import nb_label, nb_order_key, well_sort_key
 from kuma_core.mame.plate_geometry import DEFAULT_ADDRESSING, token_to_seq
 
@@ -601,14 +605,23 @@ def _write_unified_ngs_sheet(
     for row in rows:
         ws.append([row.get(col, "") for col in header])
 
-    # Recovery (재현율) summary area below the per-mutant rows.
+    # Rate summary area below the per-mutant rows. Both rates share a
+    # denominator, so each label names the verdict set it counts. Success rate
+    # comes first because the pick list exports PASS alone.
+    success = compute_success_rate(replicate_results, designed_mutant_ids)
     recovery = compute_recovery(replicate_results, designed_mutant_ids)
     ws.append([])
-    if recovery is None:
-        ws.append(["Recovery (재현율)", "n/a"])
+    if success is None or recovery is None:
+        ws.append(["Success rate (PASS)", "n/a"])
+        ws.append(["Reproduced (PASS+AMBIGUOUS)", "n/a"])
     else:
         ws.append([
-            "Recovery (재현율)",
+            "Success rate (PASS)",
+            f"{success.success_rate * 100:.1f}%",
+        ])
+        ws.append(["passed_mutants", success.passed_mutants])
+        ws.append([
+            "Reproduced (PASS+AMBIGUOUS)",
             f"{recovery.recovery_rate * 100:.1f}%",
         ])
         ws.append(["recovered_mutants", recovery.recovered_mutants])
