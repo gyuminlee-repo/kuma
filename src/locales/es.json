@@ -3502,7 +3502,15 @@
     "destGridAriaLabel": "Placa de destino, 96 pocillos",
     "errorTitle": "Error en la vista previa",
     "echoSourcePlateLabel": "Placa de origen Echo (384 pocillos)",
-    "destPlateLabel": "Placa de destino (96 pocillos)"
+    "destPlateLabel": "Placa de destino (96 pocillos)",
+    "quadrantBatch": "Esta tanda llena el cuadrante {{fwd}} (cebadores directos) y {{rev}} (cebadores inversos).",
+    "quadrantProgress": "Tras esta tanda quedan ocupados {{filled}} de {{total}} cuadrantes de esta placa.",
+    "quadrantInterleaveNote": "Un cabezal de 96 alcanza solo una fila de cada dos y una columna de cada dos por estampado, así que los cuatro cuadrantes se entrelazan en lugar de formar bloques contiguos. Los pocillos intermedios pertenecen a {{others}} y quedan libres para una tanda posterior.",
+    "quadrantUsedNote": "Ya ocupados en esta placa: {{list}}",
+    "quadrantNoneNote": "Ningún cuadrante seleccionado, la vista previa muestra la disposición antigua con filas duplicadas.",
+    "quadrantLegendFree": "Borde continuo: pocillo que usa esta tanda",
+    "quadrantLegendReserved": "Borde discontinuo: reservado para {{others}}",
+    "echoReservedWellTitle": "{{well}}, reservado al cuadrante {{quadrants}}"
   },
   "errors": {
     "sequence": {

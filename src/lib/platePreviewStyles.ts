@@ -23,6 +23,16 @@ export const PLATE_FILL_DEST_COMPLETE = "bg-emerald-400 dark:bg-emerald-500";
 export const PLATE_FILL_DEST_PARTIAL = "bg-amber-400 dark:bg-amber-500";
 
 /**
+ * Echo source well the selected quadrant pair does not reach: it belongs to
+ * the other pair and is held for the next run.
+ *
+ * Dashed *and* muted, not muted alone: an empty well of the selected pair is
+ * also pale, so colour alone would leave the two indistinguishable to a
+ * red-green or low-contrast reader. The border style carries the same split.
+ */
+export const PLATE_FILL_RESERVED = "border-dashed border-border bg-muted/60 dark:bg-muted/40";
+
+/**
  * Frame + scroll container shared by all three preview views.
  *
  * Copied from the class list on WellPlate.tsx's grid wrapper so the step-6

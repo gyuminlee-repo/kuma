@@ -9,10 +9,13 @@ import {
 } from "./PlatePreviewGrid";
 import {
   PLATE_FILL_FORWARD,
+  PLATE_FILL_RESERVED,
   PLATE_FILL_REVERSE,
   PLATE_PREVIEW_FRAME,
   PLATE_PREVIEW_LABEL,
 } from "@/lib/platePreviewStyles";
+import { isColumnInQuadrantPair, otherQuadrantPair } from "@/lib/echoQuadrant";
+import type { EchoQuadrant } from "@/types/models";
 
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P"] as const;
 const COLS = Array.from({ length: 24 }, (_, i) => i + 1);
@@ -21,12 +24,24 @@ interface Props {
   cells: EchoCell[];
   /** Caption drawn above the grid, at the same level as JANUS rack labels. */
   title?: string;
+  /**
+   * Forward quadrant this run stamps, or null for the legacy row-doubled
+   * layout the mapper falls back to when nothing is selected
+   * (plate_mapper.py:789-799). Only a selected quadrant splits the empty
+   * wells into "this run leaves it empty" and "another run owns it"; under
+   * the legacy layout quadrants are not a fact about the plate, so nothing is
+   * marked.
+   */
+  quadrant?: EchoQuadrant | null;
   className?: string;
 }
 
-export function EchoPlateView({ cells, title, className }: Props) {
+export function EchoPlateView({ cells, title, quadrant = null, className }: Props) {
   const { t } = useTranslation();
   const byWell = new Map(cells.map((c) => [c.well, c]));
+  // Names of the two quadrants a run on `quadrant` does not touch, for the
+  // reserved wells' native tooltip (the only text an empty well carries).
+  const otherPair = quadrant === null ? "" : otherQuadrantPair(quadrant).join(", ");
   return (
     // `plate-preview-grid` (container-type: inline-size) stays on the
     // scrolling frame, not on the inner min-w box: container-type implies
@@ -70,16 +85,37 @@ export function EchoPlateView({ cells, title, className }: Props) {
                 const cell = byWell.get(well);
                 const fill = isFwdRow ? PLATE_FILL_FORWARD : PLATE_FILL_REVERSE;
                 if (!cell) {
+                  // A run spends a *pair* of quadrants (forward q and its
+                  // paired reverse), and the pair shares a column offset, so
+                  // column parity alone decides whether this well is one this
+                  // run can reach. Testing the row as well would mark every
+                  // reverse-primer well as belonging to another run.
+                  const reserved = quadrant !== null && !isColumnInQuadrantPair(c, quadrant);
                   return (
                     <PlateWellCell
                       key={well}
                       testId="echo-cell"
                       row={r}
-                      title={well}
+                      // No quadrant means the legacy layout, where "reserved"
+                      // would be a claim about a plate the export does not
+                      // divide; the attribute stays off entirely.
+                      state={
+                        quadrant === null ? undefined : reserved ? "reserved" : "free"
+                      }
+                      title={
+                        reserved
+                          ? t("exportPreview.echoReservedWellTitle", {
+                              well,
+                              quadrants: otherPair,
+                            })
+                          : well
+                      }
                       fillClassName={
-                        isFwdRow
-                          ? "bg-blue-50 dark:bg-blue-950/30"
-                          : "bg-orange-50 dark:bg-orange-950/30"
+                        reserved
+                          ? PLATE_FILL_RESERVED
+                          : isFwdRow
+                            ? "bg-blue-50 dark:bg-blue-950/30"
+                            : "bg-orange-50 dark:bg-orange-950/30"
                       }
                     />
                   );

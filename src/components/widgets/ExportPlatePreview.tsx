@@ -20,6 +20,14 @@ import { DestPlateView } from "./DestPlateView";
 import { PlateLegendsPanel } from "./PlateLegendsPanel";
 import { useAppStore } from "@/store/appStore";
 import { getSortedMutations, reorderMappings } from "@/lib/plate-utils";
+import {
+  otherQuadrantPair,
+  pairedQuadrant,
+  quadrantsFilledAfterRun,
+  ECHO_QUADRANTS,
+} from "@/lib/echoQuadrant";
+import { PLATE_FILL_RESERVED } from "@/lib/platePreviewStyles";
+import type { EchoQuadrant } from "@/types/models";
 
 // The two dry-run result shapes used to be declared here and asserted onto the
 // raw transport reply. They now come from RpcMethodMap via sendRequest, which
@@ -27,6 +35,78 @@ import { getSortedMutations, reorderMappings } from "@/lib/plate-utils";
 // local restatement would be a second source of truth for the same contract.
 
 type View = "echo" | "janus";
+
+/**
+ * Caption that makes the Echo grid explain itself: which quadrant pair this
+ * run stamps, how much of the plate that leaves, and why the wells in between
+ * are empty.
+ *
+ * The grid reads as "primers placed every other row and column" and the
+ * question it drew was why they are not four contiguous blocks. They cannot
+ * be: a 96-head on a 9 mm pitch over a 4.5 mm plate reaches every other row
+ * and column in one stamp, so the four sets interleave
+ * (kuma_core/kuro/plate_quadrant.py). The picker in ExportFormatSelector says
+ * this at the point of choosing; this says it at the point of looking, which
+ * is where the layout is actually seen.
+ *
+ * A run spends a *pair* (forward `q` plus `pairedQuadrant(q)`), so progress is
+ * stated as quadrants filled out of four rather than as a batch ordinal the
+ * mapper does not have.
+ */
+function EchoQuadrantNote({
+  quadrant,
+  usedQuadrants,
+}: {
+  quadrant: EchoQuadrant | null;
+  usedQuadrants: EchoQuadrant[];
+}) {
+  const { t } = useTranslation();
+
+  if (quadrant === null) {
+    return (
+      <p data-testid="echo-quadrant-note" className="text-caption text-muted-foreground">
+        {t("exportPreview.quadrantNoneNote")}
+      </p>
+    );
+  }
+
+  const reverse = pairedQuadrant(quadrant);
+  const others = otherQuadrantPair(quadrant).join(", ");
+  return (
+    <div data-testid="echo-quadrant-note" className="space-y-1">
+      <p className="text-sm font-medium text-foreground">
+        {t("exportPreview.quadrantBatch", { fwd: quadrant, rev: reverse })}
+      </p>
+      <p data-testid="echo-quadrant-progress" className="text-caption text-muted-foreground">
+        {t("exportPreview.quadrantProgress", {
+          filled: quadrantsFilledAfterRun(quadrant, usedQuadrants),
+          total: ECHO_QUADRANTS.length,
+        })}
+      </p>
+      <p className="text-caption text-muted-foreground">
+        {t("exportPreview.quadrantInterleaveNote", { others })}
+      </p>
+      {usedQuadrants.length > 0 ? (
+        <p data-testid="echo-quadrant-used" className="text-caption text-muted-foreground">
+          {t("exportPreview.quadrantUsedNote", { list: usedQuadrants.join(", ") })}
+        </p>
+      ) : null}
+      {/* Swatches name the two empty-well shapes the grid draws. Outline style
+          carries the split as well as the fill does, so the distinction does
+          not rest on colour alone. */}
+      <div className="flex flex-wrap gap-3 pt-0.5">
+        <span className="flex items-center gap-2 text-caption text-muted-foreground">
+          <span className="w-5 h-3 rounded-sm border border-border/50 bg-background" />
+          {t("exportPreview.quadrantLegendFree")}
+        </span>
+        <span className="flex items-center gap-2 text-caption text-muted-foreground">
+          <span className={`w-5 h-3 rounded-sm border ${PLATE_FILL_RESERVED}`} />
+          {t("exportPreview.quadrantLegendReserved", { others })}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 /**
  * ExportPlatePreview
@@ -179,7 +259,12 @@ export function ExportPlatePreview() {
             <div className="space-y-3">
               {/* Both grids carry a caption at the JANUS rack-label level, so
                   the two stacked plates in this tab say which is which. */}
-              <EchoPlateView cells={echo} title={t("exportPreview.echoSourcePlateLabel")} />
+              <EchoQuadrantNote quadrant={echoQuadrant} usedQuadrants={echoUsedQuadrants} />
+              <EchoPlateView
+                cells={echo}
+                title={t("exportPreview.echoSourcePlateLabel")}
+                quadrant={echoQuadrant}
+              />
               <DestPlateView
                 cells={echoDest}
                 sourceMethod="echo"

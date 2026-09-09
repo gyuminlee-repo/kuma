@@ -3502,7 +3502,15 @@
     "destGridAriaLabel": "目的地盤，96 孔",
     "errorTitle": "預覽失敗",
     "echoSourcePlateLabel": "Echo 來源盤 (384 孔)",
-    "destPlateLabel": "目的地盤 (96 孔)"
+    "destPlateLabel": "目的地盤 (96 孔)",
+    "quadrantBatch": "本次分配填充象限 {{fwd}}（正向）與 {{rev}}（反向）。",
+    "quadrantProgress": "本次分配完成後，本盤 {{total}} 個象限中已使用 {{filled}} 個。",
+    "quadrantInterleaveNote": "96 頭一次只能隔行隔列取樣，因此四個象限彼此交錯，而非形成連續的方塊。中間的空孔屬於 {{others}}，留給下一次分配。",
+    "quadrantUsedNote": "本盤已使用的象限：{{list}}",
+    "quadrantNoneNote": "未選擇象限，預覽顯示原有的列加倍配置。",
+    "quadrantLegendFree": "實線邊框：本次分配使用的孔",
+    "quadrantLegendReserved": "虛線邊框：為 {{others}} 保留的孔",
+    "echoReservedWellTitle": "{{well}}，屬於象限 {{quadrants}}"
   },
   "errors": {
     "sequence": {

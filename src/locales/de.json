@@ -3502,7 +3502,15 @@
     "destGridAriaLabel": "Zielplatte, 96 Wells",
     "errorTitle": "Vorschau fehlgeschlagen",
     "echoSourcePlateLabel": "Echo-Quellplatte (384 Wells)",
-    "destPlateLabel": "Zielplatte (96 Wells)"
+    "destPlateLabel": "Zielplatte (96 Wells)",
+    "quadrantBatch": "Dieser Lauf füllt Quadrant {{fwd}} (Vorwärtsprimer) und {{rev}} (Rückwärtsprimer).",
+    "quadrantProgress": "Nach diesem Lauf sind {{filled}} von {{total}} Quadranten dieser Platte belegt.",
+    "quadrantInterleaveNote": "Ein 96-Kopf erreicht pro Stempel nur jede zweite Zeile und jede zweite Spalte, daher greifen die vier Quadranten ineinander statt zusammenhängende Blöcke zu bilden. Die Wells dazwischen gehören zu {{others}} und bleiben für einen späteren Lauf frei.",
+    "quadrantUsedNote": "Auf dieser Platte bereits belegt: {{list}}",
+    "quadrantNoneNote": "Kein Quadrant gewählt, die Vorschau zeigt das bisherige Layout mit verdoppelten Zeilen.",
+    "quadrantLegendFree": "Durchgezogener Rahmen: Well, das dieser Lauf nutzt",
+    "quadrantLegendReserved": "Gestrichelter Rahmen: freigehalten für {{others}}",
+    "echoReservedWellTitle": "{{well}}, freigehalten für Quadrant {{quadrants}}"
   },
   "errors": {
     "sequence": {

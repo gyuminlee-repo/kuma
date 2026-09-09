@@ -13,7 +13,15 @@ vi.mock("@tauri-apps/api/core", () => ({
 beforeEach(() => {
   (globalThis as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
   (invoke as ReturnType<typeof vi.fn>).mockReset();
-  useAppStore.setState({ echoTransferVol: 100, janusTransferVol: 2.0 });
+  // Quadrant state is reset here too: it is store state a test can set, and a
+  // leftover selection would silently change what the Echo grid and its
+  // caption claim in every later test.
+  useAppStore.setState({
+    echoTransferVol: 100,
+    janusTransferVol: 2.0,
+    echoQuadrant: null,
+    echoUsedQuadrants: [],
+  });
 });
 
 const emptyEcho = { rows: [], total: 0, transfer_vol: 25 };
@@ -355,5 +363,85 @@ describe("ExportPlatePreview", () => {
       const params = (c[1] as { params?: Record<string, unknown> }).params ?? {};
       expect(params).not.toHaveProperty("mapping_range");
     }
+  });
+
+  // The grid draws one quadrant pair of an interleaved layout, which reads as
+  // "primers placed one well apart" unless the view says what it is showing.
+  describe("Echo quadrant caption", () => {
+    function mockEchoRow() {
+      const echoRows = {
+        rows: [
+          {
+            source_plate: "P1",
+            source_well_name: "P1-fw",
+            source_well: "A01",
+            dest_plate: "D1",
+            dest_well_name: "D1-A1",
+            dest_well: "A1",
+            transfer_vol: 25,
+            mutation: "P1",
+          },
+        ],
+        total: 1,
+        transfer_vol: 25,
+      };
+      (invoke as ReturnType<typeof vi.fn>).mockImplementation((_cmd, args) => {
+        const a = args as { method: string };
+        if (a.method === "export_echo_mapping_dry_run") return Promise.resolve(echoRows);
+        if (a.method === "export_janus_mapping_dry_run") return Promise.resolve(emptyJanus);
+        return Promise.resolve({});
+      });
+    }
+
+    it("names both quadrants of the pair the selected run fills", async () => {
+      useAppStore.setState({ echoQuadrant: "A1" });
+      mockEchoRow();
+      render(<ExportPlatePreview />);
+      const note = await screen.findByTestId("echo-quadrant-note");
+      // A1 alone would leave the reverse primers in rows B, D, F looking like
+      // another run's wells; the caption names the pair the mapper spends.
+      expect(note.textContent).toContain("A1");
+      expect(note.textContent).toContain("B1");
+    });
+
+    it("counts the quadrants this run leaves spent", async () => {
+      useAppStore.setState({ echoQuadrant: "A1" });
+      mockEchoRow();
+      render(<ExportPlatePreview />);
+      const progress = await screen.findByTestId("echo-quadrant-progress");
+      expect(progress.textContent).toMatch(/2 of 4/);
+    });
+
+    it("adds the operator's spent quadrants to that count", async () => {
+      useAppStore.setState({ echoQuadrant: "A1", echoUsedQuadrants: ["A2", "B2"] });
+      mockEchoRow();
+      render(<ExportPlatePreview />);
+      const progress = await screen.findByTestId("echo-quadrant-progress");
+      expect(progress.textContent).toMatch(/4 of 4/);
+    });
+
+    it("lists the spent quadrants only when the operator named some", async () => {
+      useAppStore.setState({ echoQuadrant: "A1", echoUsedQuadrants: ["A2"] });
+      mockEchoRow();
+      render(<ExportPlatePreview />);
+      const used = await screen.findByTestId("echo-quadrant-used");
+      expect(used.textContent).toContain("A2");
+    });
+
+    it("shows no spent-quadrant line when none were named", async () => {
+      useAppStore.setState({ echoQuadrant: "A1", echoUsedQuadrants: [] });
+      mockEchoRow();
+      render(<ExportPlatePreview />);
+      await screen.findByTestId("echo-quadrant-note");
+      expect(screen.queryByTestId("echo-quadrant-used")).toBeNull();
+    });
+
+    it("says so instead when no quadrant is selected", async () => {
+      mockEchoRow();
+      render(<ExportPlatePreview />);
+      const note = await screen.findByTestId("echo-quadrant-note");
+      expect(note.textContent).toMatch(/no quadrant selected/i);
+      expect(screen.queryByTestId("echo-quadrant-progress")).toBeNull();
+    });
   });
 });

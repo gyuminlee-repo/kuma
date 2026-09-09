@@ -3502,7 +3502,15 @@
     "destGridAriaLabel": "Placa de destino, 96 poços",
     "errorTitle": "Falha na prévia",
     "echoSourcePlateLabel": "Placa de origem Echo (384 poços)",
-    "destPlateLabel": "Placa de destino (96 poços)"
+    "destPlateLabel": "Placa de destino (96 poços)",
+    "quadrantBatch": "Esta rodada preenche o quadrante {{fwd}} (primers diretos) e {{rev}} (primers reversos).",
+    "quadrantProgress": "Após esta rodada, {{filled}} de {{total}} quadrantes desta placa estão ocupados.",
+    "quadrantInterleaveNote": "Uma cabeça de 96 alcança apenas uma linha a cada duas e uma coluna a cada duas por estampagem, então os quatro quadrantes se entrelaçam em vez de formar blocos contíguos. Os poços intermediários pertencem a {{others}} e ficam livres para uma rodada posterior.",
+    "quadrantUsedNote": "Já ocupados nesta placa: {{list}}",
+    "quadrantNoneNote": "Nenhum quadrante selecionado, a prévia mostra o layout antigo com linhas duplicadas.",
+    "quadrantLegendFree": "Borda contínua: poço usado por esta rodada",
+    "quadrantLegendReserved": "Borda tracejada: reservado para {{others}}",
+    "echoReservedWellTitle": "{{well}}, reservado ao quadrante {{quadrants}}"
   },
   "errors": {
     "sequence": {

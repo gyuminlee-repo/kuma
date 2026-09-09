@@ -3502,7 +3502,15 @@
     "destGridAriaLabel": "目标板，96 孔",
     "errorTitle": "预览失败",
     "echoSourcePlateLabel": "Echo 源板 (384 孔)",
-    "destPlateLabel": "目标板 (96 孔)"
+    "destPlateLabel": "目标板 (96 孔)",
+    "quadrantBatch": "本次分配填充象限 {{fwd}}（正向）和 {{rev}}（反向）。",
+    "quadrantProgress": "本次分配完成后，本板 {{total}} 个象限中已使用 {{filled}} 个。",
+    "quadrantInterleaveNote": "96 头一次只能隔行隔列取样，因此四个象限相互交错，而不是形成连续的方块。中间的空孔属于 {{others}}，留给下一次分配。",
+    "quadrantUsedNote": "本板已使用的象限：{{list}}",
+    "quadrantNoneNote": "未选择象限，预览显示原有的行加倍布局。",
+    "quadrantLegendFree": "实线边框：本次分配使用的孔",
+    "quadrantLegendReserved": "虚线边框：为 {{others}} 保留的孔",
+    "echoReservedWellTitle": "{{well}}，属于象限 {{quadrants}}"
   },
   "errors": {
     "sequence": {

@@ -1520,7 +1520,15 @@
     "destGridAriaLabel": "목적지 플레이트, 96 well",
     "errorTitle": "미리보기 실패",
     "echoSourcePlateLabel": "Echo 소스 플레이트 (384 well)",
-    "destPlateLabel": "목적지 플레이트 (96 well)"
+    "destPlateLabel": "목적지 플레이트 (96 well)",
+    "quadrantBatch": "이번 배치는 사분면 {{fwd}}(정방향)과 {{rev}}(역방향)을 채웁니다.",
+    "quadrantProgress": "이번 배치까지 마치면 이 플레이트의 사분면 {{total}}개 중 {{filled}}개를 사용합니다.",
+    "quadrantInterleaveNote": "96헤드는 한 번에 한 행 걸러 한 열 걸러 닿기 때문에 네 사분면이 연속 블록이 아니라 서로 엇갈려 배치됩니다. 사이의 빈 웰은 {{others}} 몫이고 다음 배치를 위해 비워 둡니다.",
+    "quadrantUsedNote": "이 플레이트에서 이미 사용한 사분면: {{list}}",
+    "quadrantNoneNote": "사분면을 고르지 않아 기존 행 2배 배치를 미리 보여 줍니다.",
+    "quadrantLegendFree": "실선 테두리: 이번 배치가 쓰는 웰",
+    "quadrantLegendReserved": "점선 테두리: {{others}} 몫으로 비워 둔 웰",
+    "echoReservedWellTitle": "{{well}}, 사분면 {{quadrants}} 몫"
   },
   "globalAppBar": {
     "navAriaLabel": "앱 내비게이션",

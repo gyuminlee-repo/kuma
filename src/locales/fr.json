@@ -3502,7 +3502,15 @@
     "destGridAriaLabel": "Plaque de destination, 96 puits",
     "errorTitle": "Échec de l'aperçu",
     "echoSourcePlateLabel": "Plaque source Echo (384 puits)",
-    "destPlateLabel": "Plaque de destination (96 puits)"
+    "destPlateLabel": "Plaque de destination (96 puits)",
+    "quadrantBatch": "Cette série remplit le quadrant {{fwd}} (amorces sens) et {{rev}} (amorces antisens).",
+    "quadrantProgress": "Après cette série, {{filled}} quadrants sur {{total}} de cette plaque sont occupés.",
+    "quadrantInterleaveNote": "Une tête 96 n'atteint qu'une ligne sur deux et une colonne sur deux par dépôt, donc les quatre quadrants s'imbriquent au lieu de former des blocs contigus. Les puits intermédiaires appartiennent à {{others}} et restent libres pour une série ultérieure.",
+    "quadrantUsedNote": "Déjà occupés sur cette plaque : {{list}}",
+    "quadrantNoneNote": "Aucun quadrant sélectionné, l'aperçu montre l'ancienne disposition à lignes doublées.",
+    "quadrantLegendFree": "Bordure pleine : puits utilisé par cette série",
+    "quadrantLegendReserved": "Bordure pointillée : réservé pour {{others}}",
+    "echoReservedWellTitle": "{{well}}, réservé au quadrant {{quadrants}}"
   },
   "errors": {
     "sequence": {

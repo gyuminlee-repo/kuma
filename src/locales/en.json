@@ -1520,7 +1520,15 @@
     "destGridAriaLabel": "Destination plate, 96 wells",
     "errorTitle": "Preview failed",
     "echoSourcePlateLabel": "Echo source plate (384 wells)",
-    "destPlateLabel": "Destination plate (96 wells)"
+    "destPlateLabel": "Destination plate (96 wells)",
+    "quadrantBatch": "This run fills quadrant {{fwd}} (forward primers) and {{rev}} (reverse primers).",
+    "quadrantProgress": "{{filled}} of {{total}} quadrants on this plate are spent once this run lands.",
+    "quadrantInterleaveNote": "One 96-head stamp reaches every other row and every other column, so the four quadrants interleave instead of forming contiguous blocks. The wells in between belong to {{others}} and stay empty for a later run.",
+    "quadrantUsedNote": "Already used on this plate: {{list}}",
+    "quadrantNoneNote": "No quadrant selected, so the preview shows the legacy row-doubled layout.",
+    "quadrantLegendFree": "Solid outline: well this run can reach",
+    "quadrantLegendReserved": "Dashed outline: held for {{others}}",
+    "echoReservedWellTitle": "{{well}}, held for quadrant {{quadrants}}"
   },
   "globalAppBar": {
     "navAriaLabel": "Application navigation",

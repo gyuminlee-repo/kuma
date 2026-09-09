@@ -3502,7 +3502,15 @@
     "destGridAriaLabel": "デスティネーションプレート、96ウェル",
     "errorTitle": "プレビューに失敗しました",
     "echoSourcePlateLabel": "Echo ソースプレート (384 ウェル)",
-    "destPlateLabel": "デスティネーションプレート (96 ウェル)"
+    "destPlateLabel": "デスティネーションプレート (96 ウェル)",
+    "quadrantBatch": "今回の配置は象限 {{fwd}}（フォワード）と {{rev}}（リバース）を埋めます。",
+    "quadrantProgress": "今回の配置が終わると、このプレートの象限 {{total}} 個のうち {{filled}} 個を使用します。",
+    "quadrantInterleaveNote": "96ヘッドは1回で1行おき・1列おきにしか届かないため、4つの象限は連続したブロックではなく互い違いに並びます。間の空ウェルは {{others}} の分で、次回の配置のために空けてあります。",
+    "quadrantUsedNote": "このプレートで使用済みの象限: {{list}}",
+    "quadrantNoneNote": "象限が未選択のため、従来の行2倍レイアウトを表示しています。",
+    "quadrantLegendFree": "実線の枠: 今回の配置が使うウェル",
+    "quadrantLegendReserved": "破線の枠: {{others}} 用に空けたウェル",
+    "echoReservedWellTitle": "{{well}}、象限 {{quadrants}} 用"
   },
   "errors": {
     "sequence": {
