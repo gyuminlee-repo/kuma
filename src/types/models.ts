@@ -14,6 +14,22 @@ export interface PolymeraseInfo {
   proofreading?: boolean | null;
 }
 
+/**
+ * One codon table as `list_organisms` reports it.
+ *
+ * `taxid` is nullable because the backend emits `data.get("taxid")`
+ * (kuma_core/kuro/codon_table.py) and a table JSON is not required to carry
+ * the field. An in-house strain legitimately has none. The result is
+ * validated element-by-element through `isArrayOf`, so declaring `taxid` as a
+ * plain number would make a single taxid-less table reject the WHOLE payload
+ * and leave the organism dropdown empty.
+ */
+export interface OrganismSummary {
+  key: string;
+  name: string;
+  taxid: number | null;
+}
+
 export interface PolymeraseProfile {
   name: string;
   tm_method: string;
@@ -699,7 +715,7 @@ export interface RpcMethodMap {
   };
   list_organisms: {
     params: Record<string, never>;
-    result: Array<{ key: string; name: string; taxid: number }>;
+    result: OrganismSummary[];
   };
   load_fasta: {
     params: { filepath: string };

@@ -28,6 +28,7 @@ import type {
   PredictStructureEsmfoldResult,
   LinkerHandling,
   MutationInputMode,
+  OrganismSummary,
   OverlapMode,
   ParsedMutation,
   ParseError,
@@ -55,11 +56,16 @@ export interface SequenceSlice {
   seqInfo: SequenceInfo | null;
   selectedGene: string;
   organism: string;
+  // Codon tables the sidecar found on this machine. Empty until the sidecar
+  // reports ready, and empty again if the list call fails, so every consumer
+  // has to tolerate a selection that is not in it.
+  organisms: OrganismSummary[];
 
   // Actions
   loadSequence: (filepath: string) => Promise<void>;
   setSelectedGene: (gene: string) => void;
   setOrganism: (organism: string) => void;
+  loadOrganisms: () => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
