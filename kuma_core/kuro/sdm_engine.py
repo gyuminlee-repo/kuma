@@ -1067,6 +1067,54 @@ def _search_candidates(
 
 
 
+class _TolerancePool:
+    """Best-so-far accumulator for the progressive tolerance sweep.
+
+    design_single_sdm widens the Tm tolerance in 0.5 C steps. It used to return
+    the moment any candidate survived the current step, so it never compared a
+    tight step against a looser one, and a looser window can hold a strictly
+    better primer. Measured on egfp G175A / Q5 SDM / full overlap / E. coli: the
+    engine exited at +-2.0 C with penalty 14.12 while +-2.5 C held 9.83. The
+    sweep therefore runs to tol_max and ranks every survivor together. The
+    narrow-window-first intent is unchanged, only the "take the first hit"
+    part is: each result still records the tolerance that produced it, so the
+    Tol column keeps meaning what it said.
+
+    Candidates are keyed by primer pair. A pair found at a tight step is found
+    again at looser ones; the first occurrence is kept because its
+    tolerance_used names the narrowest window that produced it. Keying also
+    stops the off-target and structure checks from re-running on a pair already
+    decided, which is what keeps the extra steps affordable.
+    """
+
+    __slots__ = ("_decided",)
+
+    def __init__(self) -> None:
+        # primer pair -> surviving result, or None once the pair is rejected.
+        self._decided: dict[tuple[str, str], SdmPrimerResult | None] = {}
+
+    @staticmethod
+    def _key(c: SdmPrimerResult) -> tuple[str, str]:
+        return (c.forward_seq, c.reverse_seq)
+
+    def is_new(self, c: SdmPrimerResult) -> bool:
+        """False when an earlier, tighter step already decided this pair."""
+        return self._key(c) not in self._decided
+
+    def reject(self, c: SdmPrimerResult) -> None:
+        self._decided[self._key(c)] = None
+
+    def accept(self, c: SdmPrimerResult) -> None:
+        self._decided[self._key(c)] = c
+
+    def ranked(self, num_return: int) -> list[SdmPrimerResult]:
+        survivors = [c for c in self._decided.values() if c is not None]
+        # Ties keep insertion order, so an equal-penalty primer from a tighter
+        # tolerance step still wins, as it did when one step was ranked alone.
+        survivors.sort(key=lambda r: r.penalty)
+        return survivors[:num_return]
+
+
 def design_single_sdm(
     seq: str,
     mutation: Mutation,
@@ -1089,7 +1137,9 @@ def design_single_sdm(
     Length parameters (overlap_len, fwd_len_min/max, rev_len_min/max) default
     to the polymerase profile; fall back to overlap 18, fwd 18-39, rev 19-27.
     Overlap is placed UPSTREAM of the codon. Whole-primer Tm targeting with
-    progressive tolerance (±0.5 → ±tol_max). Returns top-N by penalty score.
+    progressive tolerance (±0.5 → ±tol_max). Every step of that sweep is
+    searched and all survivors are ranked together, so a primer found only at a
+    looser tolerance can win; see _TolerancePool. Returns top-N by penalty.
 
     overlap_mode:
       "partial" (default) — standard Gibson-style: overlap upstream + downstream extension.
@@ -1152,6 +1202,7 @@ def design_single_sdm(
         # tests/test_annealing_ta_ceiling.py rather than transcribed here, so
         # it cannot go stale. See
         # docs/2026-07-16-annealing-ta-rules-verified.md.
+        pool = _TolerancePool()
         tol = tol_step
         while tol <= tol_max + 1e-9:
             all_candidates: list[SdmPrimerResult] = []
@@ -1237,8 +1288,9 @@ def design_single_sdm(
 
             if all_candidates:
                 rc_template = reverse_complement(seq.upper())
-                surviving: list[SdmPrimerResult] = []
                 for c in all_candidates:
+                    if not pool.is_new(c):
+                        continue
                     c.offtarget_fwd = check_offtarget(
                         c.forward_seq, seq,
                         c.overlap_window.start, c.overlap_window.end,
@@ -1254,28 +1306,25 @@ def design_single_sdm(
                     if c.offtarget_fwd or c.offtarget_rev:
                         # Off-target hit: reject the candidate outright rather
                         # than penalize it (a penalty still lets it win if no
-                        # alternative exists). If every candidate at this tol
-                        # is rejected, fall through and widen tol below.
+                        # alternative exists).
+                        pool.reject(c)
                         continue
                     _check_secondary_structure(c)
                     _check_synthesis_score(c)
                     _check_gc_clamp(c)
                     _check_vendor_spec(c, profile)
-                    surviving.append(c)
-
-                if surviving:
-                    surviving.sort(key=lambda r: r.penalty)
-                    return surviving[:num_return]
+                    pool.accept(c)
 
             tol += tol_step
 
-        return []
+        return pool.ranked(num_return)
 
     # ── Partial overlap branch (original Gibson-style) ───────────────────────
     # adaptive overlap range: shorter allowed when low Tm target
     min_overlap = 8 if tm_target_overlap < 50.0 else 15
     overlap_lengths = list(range(overlap_len, min_overlap - 1, -1))
 
+    pool = _TolerancePool()
     tol = tol_step
     while tol <= tol_max + 1e-9:
         all_candidates = []
@@ -1294,8 +1343,9 @@ def design_single_sdm(
 
         if all_candidates:
             rc_template = reverse_complement(seq.upper())
-            surviving = []
             for c in all_candidates:
+                if not pool.is_new(c):
+                    continue
                 fwd_start = c.overlap_window.start
                 fwd_end = fwd_start + c.fwd_len
                 # 5' overlap arm = the part of the primer that is not the
@@ -1317,23 +1367,19 @@ def design_single_sdm(
                 )
                 if c.offtarget_fwd or c.offtarget_rev:
                     # Off-target hit: reject the candidate outright rather
-                    # than penalize it. If every candidate at this tol is
-                    # rejected, fall through and widen tol below.
+                    # than penalize it.
+                    pool.reject(c)
                     continue
 
                 _check_secondary_structure(c)
                 _check_synthesis_score(c)
                 _check_gc_clamp(c)
                 _check_vendor_spec(c, profile)
-                surviving.append(c)
-
-            if surviving:
-                surviving.sort(key=lambda r: r.penalty)
-                return surviving[:num_return]
+                pool.accept(c)
 
         tol += tol_step
 
-    return []
+    return pool.ranked(num_return)
 
 
 # Tolerance used only by the failure diagnostic. Wide enough that the search
