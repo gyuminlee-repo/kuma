@@ -62,7 +62,7 @@ Given a mutation list (plain text / EVOLVEpro CSV) and a template sequence (GenB
 
 #### Codon & thermodynamic parameters
 
-- **Codon strategy selection**: Choose between Min. changes (fewest base changes from WT) or Optimal (E. coli-optimized codon)
+- **Codon strategy selection**: Choose between Min. changes (fewest base changes from WT) or Optimal (highest-usage codon in the selected organism codon table)
 - **Polymerase profile selector**: Seven built-in profiles (Taq, Phusion, Q5, Q5 SDM, KOD, DreamTaq, TAKARA_GXL), each with Tm method, salt concentration, DNA concentration, and GC range calibrated to the manufacturer manual. Custom profiles can be created via the Custom Polymerase dialog and are persisted at `~/.kuma/kuro/custom_polymerases.json`. Selecting a profile sets the recommended annealing temperature (Ta) rule, the GC range, and the overlap mode; the design-time Tm scale is fixed and does not follow the profile
 - **Tm calculation**: SantaLucia 1998 nearest-neighbor model; salt/DNA/divalent conditions vary per polymerase profile (e.g. Phusion HF 222 mM monovalent, Q5 150 mM monovalent + 2000 nM DNA). Default Tm targets: Fwd 62°C, Rev 58°C, Overlap 42°C — adjustable in Advanced Options
 - **Progressive Tm tolerance**: Starts at ±0.5°C for Fwd/Rev independently, expanding by ±0.5°C per step (up to ±3.0°C)
@@ -292,7 +292,7 @@ xlsx-native readers cover the inputs the wet-lab actually produces: `mutants-wel
 
 `mame.activity.merge_for_evolvepro` (v0.2.9.0) replaces the legacy merge for EVOLVEpro export: it joins activity to genotype, runs `merge_replicates_priority` (authoritative-prefer with mismatch flag), executes the label-swap guard, and surfaces `replicate_stats` plus `export_blocked` in the response. The 5/12 demo continues to use the legacy `activity.merge` path; the v0.3 button "EVOLVEpro용 병합 (v0.3)" lives next to it in the panel and never replaces it.
 
-For EVOLVEpro replicate merging, `ref_seq` comes from the currently selected sequence input and its CDS translation. Non-WT replicate measurements are rejected when that input-derived reference is unavailable; production code never substitutes an EGFP fixture or another implicit target. `fixtures/ispS.fa` (Populus alba ispS CDS, AB198180.1) remains available for legacy IspS rounds.
+For EVOLVEpro replicate merging, `ref_seq` comes from the currently selected sequence input and its CDS translation. Non-WT replicate measurements are rejected when that input-derived reference is unavailable; production code never substitutes an EGFP fixture or another implicit target. `fixtures/ispS.fa` (Populus alba ispS CDS, AB198180.1) remains available for legacy IspS rounds, but it is frame-shifted and is not a usable reference CDS; see `fixtures/FIXTURE-DEFECTS.md`.
 
 </details>
 

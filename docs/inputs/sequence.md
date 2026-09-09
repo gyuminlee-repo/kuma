@@ -29,8 +29,9 @@ KURO Step 1 · MAME Step 1.1 에서 사용하는 서열 파일 사양.
 
 ## Organism
 
-| 값 | codon table |
-|---|---|
-| `ecoli` | E. coli K-12 |
-| `bsubtilis` | B. subtilis |
-| `scerevisiae` | S. cerevisiae |
+값은 `kuma_core/kuro/resources/codon_tables/` 에 있는 JSON 파일 이름(확장자 제외)이다.
+이 디렉토리가 정본이므로 여기에 목록을 고정하지 않는다.
+
+- 표시 이름은 각 JSON 의 `name` 필드에서 온다.
+- UI dropdown 은 `list_organisms` RPC 로 이 디렉토리를 조회한다 (`kuma_core/kuro/codon_table.py` 의 `list_organisms`).
+- 설계 시점 검증(`python-core/sidecar_kuro/handlers/design.py`)도 같은 목록을 쓴다. 파일을 추가하면 양쪽에 함께 반영된다.

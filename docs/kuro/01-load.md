@@ -8,7 +8,7 @@
 |---|---|---|
 | 서열 파일 | GenBank `.gb/.gbk/.gbff`, SnapGene `.dna`, FASTA `.fa/.fasta/.fna` | 필수 |
 | Target gene | 파일에서 자동 추출 후 dropdown 선택 | 필수 (multi-CDS 일 때) |
-| Organism | `ecoli` / `bsubtilis` / `scerevisiae` | 필수 (codon table 결정) |
+| Organism | `kuma_core/kuro/resources/codon_tables/` 의 codon table 키 (목록은 `list_organisms` RPC 가 반환) | 필수 (codon table 결정) |
 
 ## 동작
 
