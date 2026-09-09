@@ -66,18 +66,24 @@ def _render_header(data: RunReportData) -> str:
 # ── Section 2: Summary cards ─────────────────────────────────────────────────
 
 
+def _render_rate(numerator: int | None, total: int | None, rate: float | None) -> str:
+    """Format a designed-set rate, or ``n/a`` when the designed set was unavailable."""
+    if numerator is None or total is None or rate is None:
+        return "n/a"
+    return f"{rate * 100:.0f}% ({numerator}/{total})"
+
+
 def _render_summary_cards(data: RunReportData) -> str:
-    if (
-        data.recovered_mutants is None
-        or data.total_mutants is None
-        or data.recovery_rate is None
-    ):
-        recovery_value = "n/a"
-    else:
-        recovery_value = (
-            f"{data.recovery_rate * 100:.0f}% "
-            f"({data.recovered_mutants}/{data.total_mutants})"
-        )
+    # Two percentages sit on the same denominator, so each label names the
+    # verdict set it counts. Success rate is the headline: the pick list exports
+    # PASS alone. Reproduced stays as a supporting figure rather than being
+    # dropped, because it is what the per-plate detected counts add up to.
+    success_value = _render_rate(
+        data.passed_mutants, data.total_mutants, data.success_rate
+    )
+    recovery_value = _render_rate(
+        data.recovered_mutants, data.total_mutants, data.recovery_rate
+    )
     cards = [
         ("Total Wells", data.total_wells, _CLR_TEXT),
         ("PASS", data.pass_count, _CLR_PASS),
@@ -85,7 +91,8 @@ def _render_summary_cards(data: RunReportData) -> str:
         ("FAIL", data.fail_count, _CLR_FAIL),
         ("Fallback", data.fallback_count, _CLR_FALLBACK),
         ("Final 96 Filled", data.final_96_filled, _CLR_ACCENT),
-        ("Detected / 재현율", recovery_value, _CLR_PASS),
+        ("Success rate (PASS)", success_value, _CLR_PASS),
+        ("Reproduced (PASS+AMBIGUOUS)", recovery_value, _CLR_TEXT),
     ]
     items = "".join(
         f"""<div class="card" style="border-top:3px solid {c}">

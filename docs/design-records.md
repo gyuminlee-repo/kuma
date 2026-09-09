@@ -74,6 +74,14 @@ EVOLVEpro 라운드 모델도 그렇다. 스펙 §12-A.0 은 라운드마다 bes
 
 전환 신호의 현재 가용성은 `python-core/sidecar_mame/handlers/classify_round.py` 의 모듈 docstring 이 가장 정확하다. 어떤 신호가 왜 NA 인지, 부트스트랩 신뢰도를 어디까지 믿어야 하는지 거기 적혀 있다.
 
+## MAME 실행 지표의 정본 (2026-09-09)
+
+`kuma_core/mame/detected.py` 의 deep-interview 스펙은 PASS+AMBIGUOUS 를 재현 지표로 잠갔고 그 위에 `compute_recovery` 하나만 두었다. 2026-08-12 에 실행 지표는 성공률(PASS 단독) 하나만 헤드라인으로 표시한다는 결정이 났다. 같은 분모 위에 헤드라인 퍼센트가 둘이면 읽는 사람이 높은 쪽을 인용할 여지가 생긴다. pick list 는 PASS 만 내보내므로(`kuma_core/mame/export/janus_mapping.py` 의 `DEFAULT_INCLUDE_VERDICTS`) 성공률이 정본이다.
+
+그 결정은 React 패널(`src/components/mame/widgets/SummaryRow.tsx`)에서만 이행됐다. 근본 원인은 파이썬 쪽에 PASS 단독 지표를 계산하는 코드가 아예 없었다는 것이다. 찍을 다른 숫자가 없어서 HTML 리포트와 엑셀 산출물은 폐기된 재현율을 계속 헤드라인으로 찍었다. `compute_success_rate` 가 그 빈자리를 메운다. 분모와 설계 변이 집합 필터는 `_count_designed` 하나로 모아 두 지표가 같은 코드를 타게 했다.
+
+재현율을 삭제하지 않고 강등한 이유는 둘이다. `recovery_rate` 필드와 `DETECTED_CLASSES` 는 저장 파일 호환과 pick 우선순위 때문에 PASS+AMBIGUOUS 로 남아 있어야 한다. 리포트의 per-plate 검출 수치가 합산되는 대상도 재현율이라 그 값이 사라지면 표가 스스로를 설명하지 못한다. 대신 라벨이 세는 verdict 집합을 말하게 했다. `Detected / 재현율` 처럼 집합을 말하지 않는 라벨은 남기지 않았고 `Success rate (PASS)` 와 `Reproduced (PASS+AMBIGUOUS)` 로 갈랐다(`kuma_core/mame/report/html_renderer.py`, `kuma_core/mame/export/excel_writer.py`). 엑셀의 `recovered_mutants` 와 `total_mutants` 행은 기존 분석이 참조할 수 있어 유지했다.
+
 ## 새 인용을 쓸 때
 
 저장소 안에서 해석되는 경로만 인용한다. 근거가 내부 문서에만 있으면 두 가지 중 하나를 택한다. 공개 가능한 결론만 `docs/` 로 옮겨 적고 그것을 인용하거나(`docs/2026-06-08-mame-transition-backtest.md` 가 그 방식이다), `scripts/doc-citations-allow.json` 에 항목을 추가하고 왜 해석되지 않아도 되는지 `reason` 에 적는다.
