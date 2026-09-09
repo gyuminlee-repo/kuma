@@ -6,13 +6,17 @@ SSL context.
 
 | File | Subject / issuer CN | Read by |
 |---|---|---|
-| `throwaway_test_only_ca_proxy.crt` | `kuma-test-proxy-ca` | `test_operator_ca_from_env_is_loaded` (via `KURO_CA_BUNDLE`) |
-| `throwaway_test_only_ca_config.crt` | `kuma-config-ca` | `test_operator_ca_from_config_is_loaded` (via `ca_bundle` in `~/.kuma/kuro/config.json`) |
+| `throwaway_test_only_ca_proxy.crt` | `kuma-test-proxy-ca` | every test that reaches the CA through `KURO_CA_BUNDLE`, including the two that assert the CN |
+| `throwaway_test_only_ca_config.crt` | `kuma-config-ca` | `test_operator_ca_from_config_is_loaded`, via `ca_bundle` in `~/.kuma/kuro/config.json` |
 
-Two files rather than one, so that the environment variable and the config key
-are exercised on distinct certificates. A shared file would let a test pass on
-the certificate the other source had loaded, which is the failure a test of
-precedence between the two sources is meant to catch.
+Two files rather than one is inherited from an earlier revision in which each
+of those tests asserted its own CN. Today only `kuma-test-proxy-ca` is asserted
+by name; the config fixture shows only that the config key reaches
+`load_verify_locations`, which is worth checking on its own because that key
+takes a different route through `operator_ca_bundle()` than the environment
+variable does. Keeping the two files distinct costs nothing and stops the two
+sources from sharing a subject, which would leave a CN assertion unable to say
+which source the certificate came from.
 
 ## These are not credentials
 
