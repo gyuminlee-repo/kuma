@@ -19,6 +19,22 @@ Semantics (locked by deep-interview spec ``deep-interview-mame-detected-recovery
 - When the designed-mutant set is unavailable (e.g. an export/reload path that
   never cached it), :func:`compute_recovery` returns ``None`` so callers render
   ``n/a`` instead of a misleading ``0%``.
+
+``detected`` IS NOT THE REPORTED SUCCESS METRIC. The 2026-08-12 decision withdrew
+the recovery (재현율) headline from the run screen and made the success rate, which
+counts ``PASS`` alone over the same designed set, the single reported figure. The
+reason was that two headline percentages over one denominator, differing only in
+whether a well with an extra change beside the target counts, let a reader quote
+whichever was higher; the pick list ships ``PASS`` alone
+(``export/janus_mapping.py`` ``DEFAULT_INCLUDE_VERDICTS``), so that is the number
+describing what leaves the run. ``DETECTED_CLASSES`` was deliberately left at
+``PASS`` + ``AMBIGUOUS`` for save-file compatibility and pick priority, and
+redefining it to ``PASS`` alone was rejected as a duplicate of the success rate.
+
+So this constant answers "was the designed variant reproduced at all", not "did
+this well pass". Do not cite ``recovery_rate`` or ``DETECTED_CLASSES`` as the
+run success figure, and do not read them as evidence that ``AMBIGUOUS`` counts
+as a success in reporting: it does not.
 """
 
 from __future__ import annotations
