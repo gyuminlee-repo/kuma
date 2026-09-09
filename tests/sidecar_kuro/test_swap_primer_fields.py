@@ -83,9 +83,13 @@ def designed(restore_state) -> SdmPrimerResult:
 
 
 # Values chosen far outside anything the engine produces, so a stale number is
-# unmistakable in the assertion output.
+# unmistakable in the assertion output. Tolerance has to clear tol_max, not just
+# the value this fixture happens to design at: the engine now searches every
+# tolerance step up to tol_max instead of stopping at the first one that yields
+# a primer, so any value in 0.5..tol_max can legitimately come back. 3.5 read as
+# out of reach only because the old early return kept this fixture at 1.0.
 _ALT_FWD = dict(
-    tolerance_fwd=3.5,
+    tolerance_fwd=9.5,
     synthesis_score_fwd=41.0,
     hairpin_tm_fwd=71.5,
     hairpin_dg_fwd=-9.75,
