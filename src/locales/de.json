@@ -2543,14 +2543,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "UniProt-Abfragen prüfen Zertifikate über den Vertrauensspeicher des Betriebssystems, sodass ein Proxy-Zertifikat der Einrichtung akzeptiert wird.",
-      "Der macOS-Schlüsselbund wird direkt gelesen statt über eine mitgelieferte Zertifikatsliste.",
-      "Die mitgelieferte Liste und die Standardeinstellung bleiben als Rückfallebene, und das Protokoll nennt die verwendete Vertrauensquelle.",
-      "Die Protokolldatei wird als UTF-8 geschrieben, sodass ein von der Konsole nicht darstellbares Zeichen den Eintrag nicht mehr zerstört.",
-      "In Protokollmeldungen für die Konsole wurden Gedankenstriche durch einfache Satzzeichen ersetzt."
+      "Der MAME-Laufbericht und die exportierte Arbeitsmappe führen nun mit der Erfolgsrate, die allein PASS zählt.",
+      "Jede Ratenbezeichnung nennt die gezählte Verdict-Menge, sodass die weitere Zahl nicht als Berichtswert gilt.",
+      "Der Reproduktionswert über PASS und AMBIGUOUS bleibt als unterstützende Zeile erhalten statt zu entfallen.",
+      "Beide Raten beziehen ihren Nenner aus derselben Codestelle, sodass sie nicht auseinanderlaufen können.",
+      "Die Werte recovered und total mutant in der Arbeitsmappe bleiben unverändert und weiter auswertbar."
     ],
-    "highlightsStamp": "0.16.54+137dd51e",
+    "highlightsStamp": "0.16.55+0e44b7f4",
     "releases": {
+      "0.16.55": [
+        "Der MAME-Laufbericht und die exportierte Arbeitsmappe führen nun mit der Erfolgsrate, die allein PASS zählt.",
+        "Jede Ratenbezeichnung nennt die gezählte Verdict-Menge, sodass die weitere Zahl nicht als Berichtswert gilt.",
+        "Der Reproduktionswert über PASS und AMBIGUOUS bleibt als unterstützende Zeile erhalten statt zu entfallen.",
+        "Beide Raten beziehen ihren Nenner aus derselben Codestelle, sodass sie nicht auseinanderlaufen können.",
+        "Die Werte recovered und total mutant in der Arbeitsmappe bleiben unverändert und weiter auswertbar."
+      ],
       "0.16.54": [
         "UniProt-Abfragen prüfen Zertifikate über den Vertrauensspeicher des Betriebssystems, sodass ein Proxy-Zertifikat der Einrichtung akzeptiert wird.",
         "Der macOS-Schlüsselbund wird direkt gelesen statt über eine mitgelieferte Zertifikatsliste.",
@@ -2945,6 +2952,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",
       "0.16.52": "7c46035e",
