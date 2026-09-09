@@ -188,8 +188,11 @@ export function ExportPlatePreview() {
       ]);
       const echoRows = e?.rows ?? [];
       const janusRows = j?.rows ?? [];
-      setEcho(adaptEchoRows(echoRows));
-      setEchoDest(adaptDestCellsEcho(echoRows));
+      // The quadrant decides which rows hold forward primers, so both
+      // adapters need it; without it every B1/B2 run reports its directions
+      // inverted.
+      setEcho(adaptEchoRows(echoRows, echoQuadrant));
+      setEchoDest(adaptDestCellsEcho(echoRows, echoQuadrant));
       setJanus(adaptJanusRows(janusRows));
       setJanusDest(adaptDestCellsJanus(janusRows));
     } catch (err) {

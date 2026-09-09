@@ -1,13 +1,21 @@
 // Adapter: dry-run RPC rows -> plate cell types for Echo/Janus preview.
 // Assumptions:
 // - Echo source plate is 384-well. Well code format "<RowLetter><2-digit col>" e.g. "A01".."P24".
-// - Rows alternate fwd/rev: A(idx 0)=fwd, B(idx 1)=rev, ... P(idx 15)=rev. isFwd = rowIndex % 2 === 0.
+// - Direction comes from the selected forward quadrant, not from the row on its
+//   own: `isForwardRow(rowIndex, quadrant)` (`echoQuadrant.ts`). A run on B1 or
+//   B2 stamps its forward wells onto odd rows, so the plain "A(idx 0)=fwd,
+//   B(idx 1)=rev" alternation this file once assumed holds only for the legacy
+//   row-doubled layout the mapper falls back to when no quadrant is selected
+//   (`plate_mapper.py:789-799`), which is what `quadrant === null` means here.
 // - Janus uses 96-well racks (A1..H12). Direction comes from the row's `role`
 //   field ("fwd"/"rev"), which the sidecar states outright; the rack fields hold
 //   plate names set by deck policy and are not read as a direction marker. A row
 //   whose direction is not stated is skipped.
 // - Dest mapping: rows are grouped by `mutation` to form a 96-well destination cell.
 //   Both Echo and Janus dry-run rows carry `mutation` directly from the sidecar (Phase 1/2).
+
+import { isForwardRow } from "@/lib/echoQuadrant";
+import type { EchoQuadrant } from "@/types/models";
 
 export interface EchoCell {
   well: string;
@@ -143,7 +151,17 @@ export function parseJanusName(name: string): {
   return { mutation: name, tag: null };
 }
 
-export function adaptEchoRows(rows: EchoDryRunRow[]): EchoCell[] {
+/**
+ * Adapt Echo dry-run rows for the preview.
+ *
+ * `quadrant` is the forward quadrant this run stamps; pass `null` (the
+ * default) for the legacy row-doubled layout. It decides `isFwd`, so every
+ * surface reading that field agrees with the grid.
+ */
+export function adaptEchoRows(
+  rows: EchoDryRunRow[],
+  quadrant: EchoQuadrant | null = null,
+): EchoCell[] {
   return rows.map((r) => {
     const { rowLetter, colNumber } = parseWell(r.source_well);
     const idx = rowIndex(rowLetter);
@@ -151,7 +169,7 @@ export function adaptEchoRows(rows: EchoDryRunRow[]): EchoCell[] {
       well: rowLetter && colNumber > 0 ? `${rowLetter}${String(colNumber).padStart(2, "0")}` : r.source_well,
       rowLetter,
       colNumber,
-      isFwd: idx % 2 === 0,
+      isFwd: isForwardRow(idx, quadrant),
       sourceWellName: r.source_well_name,
       destPlate: r.dest_plate,
       destWell: r.dest_well,
@@ -217,15 +235,22 @@ function ensureDest(
 
 /**
  * Build a `DestCell[]` from Echo dry-run rows. Groups by `mutation`.
- * Echo rows distinguish fwd/rev via 384-well source row parity (A,C,E,...=fwd).
+ *
+ * Direction of an Echo row is the 384 source row read against the forward
+ * quadrant ({@link isForwardRow}), not row parity on its own: under B1/B2 the
+ * forward wells sit on odd rows. `quadrant === null` is the legacy
+ * row-doubled layout, where A,C,E,... really are forward.
  */
-export function adaptDestCellsEcho(rows: EchoDryRunRow[]): DestCell[] {
+export function adaptDestCellsEcho(
+  rows: EchoDryRunRow[],
+  quadrant: EchoQuadrant | null = null,
+): DestCell[] {
   const map = new Map<string, DestCell>();
   for (const r of rows) {
     if (!r.mutation) continue;
     const cell = ensureDest(map, r.mutation, r.dest_well);
     const { rowLetter } = parseWell(r.source_well);
-    const isFwd = rowLetter ? rowIndex(rowLetter) % 2 === 0 : false;
+    const isFwd = rowLetter ? isForwardRow(rowIndex(rowLetter), quadrant) : false;
     if (isFwd) {
       cell.hasF = true;
       cell.fwdVol = r.transfer_vol;

@@ -14,7 +14,7 @@ import {
   PLATE_PREVIEW_FRAME,
   PLATE_PREVIEW_LABEL,
 } from "@/lib/platePreviewStyles";
-import { isColumnInQuadrantPair, otherQuadrantPair } from "@/lib/echoQuadrant";
+import { isColumnInQuadrantPair, isForwardRow, otherQuadrantPair } from "@/lib/echoQuadrant";
 import type { EchoQuadrant } from "@/types/models";
 
 const ROWS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P"] as const;
@@ -76,14 +76,19 @@ export function EchoPlateView({ cells, title, quadrant = null, className }: Prop
       >
         <PlateColumnHeaderRow cols={COLS} />
         {ROWS.map((r, idx) => {
-          const isFwdRow = idx % 2 === 0;
+          // Row parity is not direction. The forward quadrant carries a row
+          // offset, so a run on B1/B2 puts forward wells on odd rows; with no
+          // quadrant the mapper uses the legacy row-doubled layout and even
+          // rows are forward. Only the empty stripe reads this: a filled well
+          // takes its colour from `cell.isFwd`, the same field the popover
+          // prints, so the two cannot disagree.
+          const isFwdRow = isForwardRow(idx, quadrant);
           return (
             <div key={r} role="row" className="contents">
               <PlateRowHeader row={r} />
               {COLS.map((c) => {
                 const well = `${r}${String(c).padStart(2, "0")}`;
                 const cell = byWell.get(well);
-                const fill = isFwdRow ? PLATE_FILL_FORWARD : PLATE_FILL_REVERSE;
                 if (!cell) {
                   // A run spends a *pair* of quadrants (forward q and its
                   // paired reverse), and the pair shares a column offset, so
@@ -120,6 +125,7 @@ export function EchoPlateView({ cells, title, quadrant = null, className }: Prop
                     />
                   );
                 }
+                const fill = cell.isFwd ? PLATE_FILL_FORWARD : PLATE_FILL_REVERSE;
                 const mutation = cell.mutation || cell.sourceWellName;
                 const tip = `${cell.sourceWellName} → ${cell.destPlate} ${cell.destWell} (${cell.transferVolNl} nL)`;
                 return (

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect } from "vitest";
 import { PLATE_FILL_RESERVED } from "@/lib/platePreviewStyles";
 import { EchoPlateView } from "./EchoPlateView";
-import { PLATE_FILL_FORWARD, PLATE_PREVIEW_FRAME } from "@/lib/platePreviewStyles";
+import { PLATE_FILL_FORWARD, PLATE_FILL_REVERSE, PLATE_PREVIEW_FRAME } from "@/lib/platePreviewStyles";
 import {
   expectCellSizeClass,
   expectFramedScroller,
@@ -182,6 +182,57 @@ describe("EchoPlateView", () => {
     render(<EchoPlateView cells={[FILLED_CELL]} />);
     await userEvent.click(screen.getByText("Q232A"));
     expect(await screen.findByTestId("plate-popover-body")).toBeInTheDocument();
+  });
+
+  // The forward quadrant carries a row offset, so B1/B2 stamp forward primers
+  // onto odd rows. Colouring by row index alone inverted those runs, and the
+  // caption the grid sits under said the opposite of what the colours did.
+  describe("direction colouring under a selected quadrant", () => {
+    const B01_FORWARD = {
+      well: "B01",
+      rowLetter: "B",
+      colNumber: 1,
+      isFwd: true,
+      sourceWellName: "Q232A_F",
+      destPlate: "Destination [1]",
+      destWell: "A1",
+      transferVolNl: 100,
+      mutation: "Q232A",
+    };
+
+    /** The rendered cell for a well, in row-major order (A01 first). */
+    function cellAt(container: HTMLElement, well: string): HTMLElement {
+      const row = "ABCDEFGHIJKLMNOP".indexOf(well[0]);
+      const idx = row * 24 + (Number(well.slice(1)) - 1);
+      return container.querySelectorAll("[data-testid='echo-cell']")[idx] as HTMLElement;
+    }
+
+    it("paints an odd-row forward well with the forward colour under B1", () => {
+      const { container } = render(<EchoPlateView cells={[B01_FORWARD]} quadrant="B1" />);
+      const filled = container.querySelector("button[data-testid='echo-cell']") as HTMLElement;
+      expect(filled.className).toContain(PLATE_FILL_FORWARD);
+      expect(filled.className).not.toContain(PLATE_FILL_REVERSE);
+    });
+
+    it("flips the empty stripe with the quadrant row offset", () => {
+      const { container } = render(<EchoPlateView cells={[]} quadrant="B1" />);
+      expect(cellAt(container, "B01").className).toMatch(/blue/);
+      expect(cellAt(container, "A01").className).toMatch(/orange/);
+    });
+
+    it("keeps the A1 stripe as it was (negative control)", () => {
+      const { container } = render(<EchoPlateView cells={[]} quadrant="A1" />);
+      expect(cellAt(container, "A01").className).toMatch(/blue/);
+      expect(cellAt(container, "B01").className).toMatch(/orange/);
+    });
+
+    it("says forward in the popover of the cell it painted forward", async () => {
+      render(<EchoPlateView cells={[B01_FORWARD]} quadrant="B1" />);
+      await userEvent.click(screen.getByText("Q232A"));
+      expect(await screen.findByTestId("plate-popover-body")).toBeInTheDocument();
+      expect(screen.getByText("Forward")).toBeInTheDocument();
+      expect(screen.queryByText("Reverse")).toBeNull();
+    });
   });
 
   // A run spends a quadrant *pair* sharing a column offset (A1 with B1), so

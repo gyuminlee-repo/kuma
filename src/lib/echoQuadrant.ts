@@ -71,3 +71,20 @@ export function otherQuadrantPair(q: EchoQuadrant): EchoQuadrant[] {
 export function quadrantsFilledAfterRun(q: EchoQuadrant, used: readonly EchoQuadrant[]): number {
   return new Set<EchoQuadrant>([...used, q, pairedQuadrant(q)]).size;
 }
+
+/**
+ * Is the 384 row at `rowIdx` (0 = A) a forward-primer row for this run?
+ *
+ * Row parity alone is not the answer. The forward quadrant carries a row
+ * offset (`OFFSETS[q][0]`), so a run on B1 or B2 puts its forward wells on
+ * *odd* rows and its reverse wells on even ones, exactly inverting the old
+ * `rowIdx % 2 === 0` rule.
+ *
+ * `q === null` is the legacy row-doubled layout the mapper falls back to when
+ * no quadrant is selected (`plate_mapper.py:789-799`). There even rows really
+ * are forward, and that fallback is the only case the bare parity rule was
+ * ever right about.
+ */
+export function isForwardRow(rowIdx: number, q: EchoQuadrant | null): boolean {
+  return rowIdx % 2 === (q === null ? 0 : OFFSETS[q][0]);
+}
