@@ -19,21 +19,12 @@ import type { KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { EchoQuadrant } from "@/types/models";
+// Geometry (offsets, pairing) lives in one module now: EchoPlateView needs the
+// same offsets to shade the wells a run does not touch, and a second copy of a
+// table that mirrors plate_quadrant.py would be a second thing to keep in step.
+import { ECHO_QUADRANTS, pairedQuadrant } from "@/lib/echoQuadrant";
 
-const GRID: EchoQuadrant[] = ["A1", "A2", "B1", "B2"];
-
-/** Quadrant sharing a column with `q` (the paired forward/reverse quadrant).
- *  Mirrors kuma_core/kuro/plate_quadrant.py `paired_quadrant`: A1<->B1 and
- *  A2<->B2 (same column offset, opposite row offset). */
-function pairedQuadrant(q: EchoQuadrant): EchoQuadrant {
-  const pairs: Record<EchoQuadrant, EchoQuadrant> = {
-    A1: "B1",
-    B1: "A1",
-    A2: "B2",
-    B2: "A2",
-  };
-  return pairs[q];
-}
+const GRID: readonly EchoQuadrant[] = ECHO_QUADRANTS;
 
 type Option = EchoQuadrant | "none";
 

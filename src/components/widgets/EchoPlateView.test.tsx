@@ -1,8 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect } from "vitest";
+import { PLATE_FILL_RESERVED } from "@/lib/platePreviewStyles";
 import { EchoPlateView } from "./EchoPlateView";
-import { PLATE_FILL_FORWARD, PLATE_PREVIEW_FRAME } from "@/lib/platePreviewStyles";
+import { PLATE_FILL_FORWARD, PLATE_FILL_REVERSE, PLATE_PREVIEW_FRAME } from "@/lib/platePreviewStyles";
 import {
   expectCellSizeClass,
   expectFramedScroller,
@@ -181,5 +182,116 @@ describe("EchoPlateView", () => {
     render(<EchoPlateView cells={[FILLED_CELL]} />);
     await userEvent.click(screen.getByText("Q232A"));
     expect(await screen.findByTestId("plate-popover-body")).toBeInTheDocument();
+  });
+
+  // The forward quadrant carries a row offset, so B1/B2 stamp forward primers
+  // onto odd rows. Colouring by row index alone inverted those runs, and the
+  // caption the grid sits under said the opposite of what the colours did.
+  describe("direction colouring under a selected quadrant", () => {
+    const B01_FORWARD = {
+      well: "B01",
+      rowLetter: "B",
+      colNumber: 1,
+      isFwd: true,
+      sourceWellName: "Q232A_F",
+      destPlate: "Destination [1]",
+      destWell: "A1",
+      transferVolNl: 100,
+      mutation: "Q232A",
+    };
+
+    /** The rendered cell for a well, in row-major order (A01 first). */
+    function cellAt(container: HTMLElement, well: string): HTMLElement {
+      const row = "ABCDEFGHIJKLMNOP".indexOf(well[0]);
+      const idx = row * 24 + (Number(well.slice(1)) - 1);
+      return container.querySelectorAll("[data-testid='echo-cell']")[idx] as HTMLElement;
+    }
+
+    it("paints an odd-row forward well with the forward colour under B1", () => {
+      const { container } = render(<EchoPlateView cells={[B01_FORWARD]} quadrant="B1" />);
+      const filled = container.querySelector("button[data-testid='echo-cell']") as HTMLElement;
+      expect(filled.className).toContain(PLATE_FILL_FORWARD);
+      expect(filled.className).not.toContain(PLATE_FILL_REVERSE);
+    });
+
+    it("flips the empty stripe with the quadrant row offset", () => {
+      const { container } = render(<EchoPlateView cells={[]} quadrant="B1" />);
+      expect(cellAt(container, "B01").className).toMatch(/blue/);
+      expect(cellAt(container, "A01").className).toMatch(/orange/);
+    });
+
+    it("keeps the A1 stripe as it was (negative control)", () => {
+      const { container } = render(<EchoPlateView cells={[]} quadrant="A1" />);
+      expect(cellAt(container, "A01").className).toMatch(/blue/);
+      expect(cellAt(container, "B01").className).toMatch(/orange/);
+    });
+
+    it("says forward in the popover of the cell it painted forward", async () => {
+      render(<EchoPlateView cells={[B01_FORWARD]} quadrant="B1" />);
+      await userEvent.click(screen.getByText("Q232A"));
+      expect(await screen.findByTestId("plate-popover-body")).toBeInTheDocument();
+      expect(screen.getByText("Forward")).toBeInTheDocument();
+      expect(screen.queryByText("Reverse")).toBeNull();
+    });
+  });
+
+  // A run spends a quadrant *pair* sharing a column offset (A1 with B1), so
+  // "this run can reach it" is a column-parity question. The A1 and A2 cases
+  // below disagree on exactly the wells that separate that rule from a
+  // "selected quadrant only" rule, which would call every reverse-primer well
+  // reserved.
+  describe("empty-well classification", () => {
+    function stateOf(container: HTMLElement, well: string): string | null {
+      const idx = wellIndex(well);
+      const cells = container.querySelectorAll("[data-testid='echo-cell']");
+      return (cells[idx] as HTMLElement).getAttribute("data-state");
+    }
+
+    /** Index of a 384 well in render order (row-major, A01 first). */
+    function wellIndex(well: string): number {
+      const row = "ABCDEFGHIJKLMNOP".indexOf(well[0]);
+      const col = Number(well.slice(1));
+      return row * 24 + (col - 1);
+    }
+
+    it("marks odd columns free and even columns reserved for quadrant A1", () => {
+      const { container } = render(<EchoPlateView cells={[]} quadrant="A1" />);
+      // A01: forward quadrant. B01: its paired reverse quadrant B1, same
+      // column offset, so also this run's.
+      expect(stateOf(container, "A01")).toBe("free");
+      expect(stateOf(container, "B01")).toBe("free");
+      expect(stateOf(container, "A02")).toBe("reserved");
+    });
+
+    it("flips that split for quadrant A2", () => {
+      const { container } = render(<EchoPlateView cells={[]} quadrant="A2" />);
+      expect(stateOf(container, "A02")).toBe("free");
+      expect(stateOf(container, "B02")).toBe("free");
+      expect(stateOf(container, "A01")).toBe("reserved");
+    });
+
+    it("draws the two empty kinds with different classes, not colour alone", () => {
+      const { container } = render(<EchoPlateView cells={[]} quadrant="A1" />);
+      const reserved = container.querySelector<HTMLElement>("[data-state='reserved']");
+      const free = container.querySelector<HTMLElement>("[data-state='free']");
+      expect(reserved).not.toBeNull();
+      expect(free).not.toBeNull();
+      expect(reserved!.className).toContain(PLATE_FILL_RESERVED);
+      expect(reserved!.className).toContain("border-dashed");
+      expect(free!.className).not.toContain("border-dashed");
+      expect(free!.className).not.toBe(reserved!.className);
+    });
+
+    it("says in the tooltip which quadrants a reserved well is held for", () => {
+      const { container } = render(<EchoPlateView cells={[]} quadrant="A1" />);
+      const reserved = container.querySelector<HTMLElement>("[data-state='reserved']");
+      expect(reserved!.getAttribute("title")).toContain("A2, B2");
+    });
+
+    it("claims nothing about quadrants when none is selected", () => {
+      const { container } = render(<EchoPlateView cells={[]} />);
+      expect(container.querySelectorAll("[data-state='reserved']")).toHaveLength(0);
+      expect(container.querySelectorAll("[data-state='free']")).toHaveLength(0);
+    });
   });
 });

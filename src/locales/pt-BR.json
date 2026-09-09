@@ -2543,14 +2543,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "MAME agora se expande como Mutagenesis Assessment and Measurement Export, no aplicativo e em toda a documentação.",
-      "A antiga segunda metade nomeava um subproduto, apontava para a outra subferramenta e se apoiava numa etapa que pode ser pulada.",
-      "Receber medidas e escrever a entrada da rodada seguinte é a etapa por onde toda execução passa.",
-      "Nomear o que é exportado separa isso da exportação de placas e pedidos do outro lado do aplicativo.",
-      "As notas de versões antigas mantêm a forma anterior, porque esse é o nome que aquelas versões exibiam."
+      "A prévia da placa diz qual par desenha, quanto da placa a execução ocupa e por que existem lacunas.",
+      "Os poços que esta execução não alcança recebem borda tracejada e não parecem mais poços simplesmente vazios.",
+      "Em dois dos quatro pontos de partida as cores direta e reversa estavam trocadas; agora seguem a execução.",
+      "Grade, balão e legenda resolvem a direção num único lugar em vez de dois.",
+      "Uma execução ocupa dois quadrantes, então uma placa comporta duas rodadas, e o progresso mostra isso."
     ],
-    "highlightsStamp": "0.16.52+7c46035e",
+    "highlightsStamp": "0.16.53+39ca20cf",
     "releases": {
+      "0.16.53": [
+        "A prévia da placa diz qual par desenha, quanto da placa a execução ocupa e por que existem lacunas.",
+        "Os poços que esta execução não alcança recebem borda tracejada e não parecem mais poços simplesmente vazios.",
+        "Em dois dos quatro pontos de partida as cores direta e reversa estavam trocadas; agora seguem a execução.",
+        "Grade, balão e legenda resolvem a direção num único lugar em vez de dois.",
+        "Uma execução ocupa dois quadrantes, então uma placa comporta duas rodadas, e o progresso mostra isso."
+      ],
       "0.16.52": [
         "MAME agora se expande como Mutagenesis Assessment and Measurement Export, no aplicativo e em toda a documentação.",
         "A antiga segunda metade nomeava um subproduto, apontava para a outra subferramenta e se apoiava numa etapa que pode ser pulada.",
@@ -2931,6 +2938,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.53": "39ca20cf",
       "0.16.52": "7c46035e",
       "0.16.51": "da55c894",
       "0.16.50": "e59fd423",
@@ -3502,7 +3510,15 @@
     "destGridAriaLabel": "Placa de destino, 96 poços",
     "errorTitle": "Falha na prévia",
     "echoSourcePlateLabel": "Placa de origem Echo (384 poços)",
-    "destPlateLabel": "Placa de destino (96 poços)"
+    "destPlateLabel": "Placa de destino (96 poços)",
+    "quadrantBatch": "Esta rodada preenche o quadrante {{fwd}} (primers diretos) e {{rev}} (primers reversos).",
+    "quadrantProgress": "Após esta rodada, {{filled}} de {{total}} quadrantes desta placa estão ocupados.",
+    "quadrantInterleaveNote": "Uma cabeça de 96 alcança apenas uma linha a cada duas e uma coluna a cada duas por estampagem, então os quatro quadrantes se entrelaçam em vez de formar blocos contíguos. Os poços intermediários pertencem a {{others}} e ficam livres para uma rodada posterior.",
+    "quadrantUsedNote": "Já ocupados nesta placa: {{list}}",
+    "quadrantNoneNote": "Nenhum quadrante selecionado, a prévia mostra o layout antigo com linhas duplicadas.",
+    "quadrantLegendFree": "Borda contínua: poço usado por esta rodada",
+    "quadrantLegendReserved": "Borda tracejada: reservado para {{others}}",
+    "echoReservedWellTitle": "{{well}}, reservado ao quadrante {{quadrants}}"
   },
   "errors": {
     "sequence": {

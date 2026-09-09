@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.16.53 (The Echo plate preview explains its gaps and gets its colours right)
+
+The source-plate preview drew a grid with every other well empty and said nothing about why, which reads as though primers had been skipped. It also painted forward and reverse the wrong way round for two of the four starting points.
+
+A 96-head dispenser has twice the tip spacing of a 384-well plate, so one stamp can only reach every other row and every other column. That is why there are four starting points to choose between, and it is what was asked for when this feature was requested. Filling a solid block instead is the arbitrary placement the same request ruled out.
+
+The grid now names the pair it is drawing, says how much of the plate the run will have used once it finishes, lists any quadrants already spent, and explains the gaps. Wells the current run cannot reach are drawn with a dashed border and a muted fill rather than looking the same as a well that is merely empty, so the two kinds of blank tell themselves apart without relying on colour.
+
+One thing the code corrected along the way: a run uses a pair of quadrants, not one. Forward primers go to the chosen quadrant and reverse primers to its row partner, so a plate holds two rounds rather than four. The progress line says so.
+
+The colour fault came from deciding direction by row position. That is only true when the run starts at one of the two upper quadrants; starting at a lower one puts forward primers on the rows the grid had been colouring as reverse. Colour, popover and legend now answer that question the same way, using the chosen quadrant rather than the row number, and the comment that had asserted the old rule was corrected.
+
+### Highlights
+
+- The plate preview says which pair it draws, how much of the plate the run uses, and why the gaps are there.
+- Wells the run cannot reach are drawn with a dashed border, so they no longer look like wells that are simply empty.
+- Forward and reverse were coloured backwards for two of the four starting points, and now follow the run rather than the row.
+- The grid, the popover and the legend answer the direction question from one place instead of two.
+- A run uses two quadrants rather than one, so a plate holds two rounds, and the progress line reflects that.
+
 ## v0.16.52 (MAME says what its second half actually does)
 
 MAME stood for Mutagenesis Assessment and Microplate Export. The first half is right. The second named the wrong thing three times over.

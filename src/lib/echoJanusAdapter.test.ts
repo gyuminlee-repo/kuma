@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   adaptEchoRows,
   adaptJanusRows,
+  adaptDestCellsEcho,
   adaptDestCellsJanus,
+  type EchoDryRunRow,
   type JanusDryRunRow,
 } from "./echoJanusAdapter";
 
@@ -117,6 +119,53 @@ describe("adaptEchoRows", () => {
       rowLetter: "P",
       colNumber: 24,
       isFwd: false,
+    });
+  });
+
+  // Direction is geometry: the forward quadrant carries a row offset
+  // (`_OFFSETS` in kuma_core/kuro/plate_quadrant.py, mirrored in
+  // echoQuadrant.ts), so B1/B2 put forward wells on odd rows. Reading row
+  // parity on its own inverted every B1/B2 run.
+  describe("direction under a selected quadrant", () => {
+    function echoRow(well: string): EchoDryRunRow {
+      return {
+        source_plate: "Source [1]",
+        source_well_name: `${well}-primer`,
+        source_well: well,
+        dest_plate: "Dest [1]",
+        dest_well_name: "M",
+        dest_well: "A1",
+        transfer_vol: 100,
+        mutation: "M",
+      };
+    }
+
+    it("calls odd-row B01 forward when the forward quadrant is B1", () => {
+      expect(adaptEchoRows([echoRow("B01")], "B1")[0].isFwd).toBe(true);
+    });
+
+    it("calls even-row A01 reverse when the forward quadrant is B1", () => {
+      expect(adaptEchoRows([echoRow("A01")], "B1")[0].isFwd).toBe(false);
+    });
+
+    it("leaves the A1 case as it was (negative control)", () => {
+      expect(adaptEchoRows([echoRow("A01")], "A1")[0].isFwd).toBe(true);
+      expect(adaptEchoRows([echoRow("B01")], "A1")[0].isFwd).toBe(false);
+    });
+
+    it("keeps plain row parity when no quadrant is selected", () => {
+      expect(adaptEchoRows([echoRow("A01")])[0].isFwd).toBe(true);
+      expect(adaptEchoRows([echoRow("B01")])[0].isFwd).toBe(false);
+    });
+
+    it("routes the destination F/R flags through the same rule", () => {
+      const rows = [echoRow("B01"), echoRow("A01")];
+      const underB1 = adaptDestCellsEcho(rows, "B1")[0];
+      expect(underB1.fwdSource).toBe("B01-primer");
+      expect(underB1.revSource).toBe("A01-primer");
+      const legacy = adaptDestCellsEcho(rows)[0];
+      expect(legacy.fwdSource).toBe("A01-primer");
+      expect(legacy.revSource).toBe("B01-primer");
     });
   });
 });
