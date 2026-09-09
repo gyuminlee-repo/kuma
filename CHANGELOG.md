@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.16.52 (MAME says what its second half actually does)
+
+MAME stood for Mutagenesis Assessment and Microplate Export. The first half is right. The second named the wrong thing three times over.
+
+It pointed at a side product. The 96-well workbook reports verdicts onto a plate that already exists rather than producing one, so calling that an export of microplates has the direction backwards.
+
+It pointed at the wrong tool. Designing and exporting a plate is what the other sub-tool does on its last step, where the Echo source plate, the racks and the destination plate are drawn and the order is written. Someone hearing the old name would reasonably go looking there.
+
+It pointed at an optional step. The instrument settings step can be skipped entirely by anyone who only wants a sequencing verdict, and nothing in the run is allowed to depend on it. Half the name rested on a step that need never run.
+
+The expansion is now Mutagenesis Assessment and Measurement Export. Taking activity measurements and writing the input for the next round is the second half of what this tool does, it sits on the path every run takes, and naming the thing being exported is what keeps it apart from the plate export elsewhere in the app.
+
+The historical release notes keep the old expansion. Those entries record what a past version put on its menu bar, and that version put the old name there.
+
+### Highlights
+
+- MAME now expands as Mutagenesis Assessment and Measurement Export, in the app and across the documentation.
+- The old second half named a side product, pointed at the other sub-tool, and rested on a step that can be skipped.
+- Taking measurements and writing the next round input is the step every run passes through, so the name points there.
+- Naming what gets exported keeps this apart from the plate and order export on the other side of the app.
+- Past release notes keep the old wording, because that is the name those versions actually displayed.
+
 ## v0.16.51 (A finished design stops throwing itself away)
 
 A design would run, succeed, and leave the summary step empty. The operator had no way to tell whether any primer had been made.

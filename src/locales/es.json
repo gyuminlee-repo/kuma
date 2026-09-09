@@ -2543,14 +2543,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Un diseño terminado ya no descarta sus propios primers mientras vuelve a completar la selección después.",
-      "Al descartar una ejecución se limpian todos los campos, así que la tabla y los contadores no se contradicen.",
-      "Una ejecución interrumpida por el reinicio del sidecar lo dice, en vez de dejar el progreso en cero en silencio.",
-      "Las cuatro formas de terminar dejan mensaje: el recuento, el fallo, la cancelación y la interrupción.",
-      "El paso de resumen separa no haber corrido de haber corrido sin guardar nada, e indica hora y recuentos."
+      "MAME se expande ahora como Mutagenesis Assessment and Measurement Export, en la aplicación y en toda la documentación.",
+      "La antigua segunda mitad nombraba un producto secundario, apuntaba a la otra subherramienta y se apoyaba en un paso omitible.",
+      "Recibir medidas y escribir la entrada de la ronda siguiente es el paso por el que pasa toda ejecución.",
+      "Nombrar lo que se exporta lo separa de la exportación de placas y pedidos del otro lado de la aplicación.",
+      "Las notas de versiones antiguas conservan la forma anterior, porque ese es el nombre que aquellas versiones mostraban."
     ],
-    "highlightsStamp": "0.16.51+da55c894",
+    "highlightsStamp": "0.16.52+7c46035e",
     "releases": {
+      "0.16.52": [
+        "MAME se expande ahora como Mutagenesis Assessment and Measurement Export, en la aplicación y en toda la documentación.",
+        "La antigua segunda mitad nombraba un producto secundario, apuntaba a la otra subherramienta y se apoyaba en un paso omitible.",
+        "Recibir medidas y escribir la entrada de la ronda siguiente es el paso por el que pasa toda ejecución.",
+        "Nombrar lo que se exporta lo separa de la exportación de placas y pedidos del otro lado de la aplicación.",
+        "Las notas de versiones antiguas conservan la forma anterior, porque ese es el nombre que aquellas versiones mostraban."
+      ],
       "0.16.51": [
         "Un diseño terminado ya no descarta sus propios primers mientras vuelve a completar la selección después.",
         "Al descartar una ejecución se limpian todos los campos, así que la tabla y los contadores no se contradicen.",
@@ -2924,6 +2931,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.52": "7c46035e",
       "0.16.51": "da55c894",
       "0.16.50": "e59fd423",
       "0.16.49": "76255984",

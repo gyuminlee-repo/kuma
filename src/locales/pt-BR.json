@@ -2543,14 +2543,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Um projeto concluído não descarta mais os próprios primers enquanto recompleta a seleção depois.",
-      "Limpar uma execução cobre todos os campos, então a tabela e os contadores não se contradizem.",
-      "Uma execução interrompida pelo reinício do sidecar avisa, em vez de zerar o progresso em silêncio.",
-      "As quatro formas de terminar deixam mensagem: a contagem, a falha, o cancelamento e a interrupção.",
-      "A etapa de resumo separa nunca executado de executado sem guardar nada, e informa hora e contagens."
+      "MAME agora se expande como Mutagenesis Assessment and Measurement Export, no aplicativo e em toda a documentação.",
+      "A antiga segunda metade nomeava um subproduto, apontava para a outra subferramenta e se apoiava numa etapa que pode ser pulada.",
+      "Receber medidas e escrever a entrada da rodada seguinte é a etapa por onde toda execução passa.",
+      "Nomear o que é exportado separa isso da exportação de placas e pedidos do outro lado do aplicativo.",
+      "As notas de versões antigas mantêm a forma anterior, porque esse é o nome que aquelas versões exibiam."
     ],
-    "highlightsStamp": "0.16.51+da55c894",
+    "highlightsStamp": "0.16.52+7c46035e",
     "releases": {
+      "0.16.52": [
+        "MAME agora se expande como Mutagenesis Assessment and Measurement Export, no aplicativo e em toda a documentação.",
+        "A antiga segunda metade nomeava um subproduto, apontava para a outra subferramenta e se apoiava numa etapa que pode ser pulada.",
+        "Receber medidas e escrever a entrada da rodada seguinte é a etapa por onde toda execução passa.",
+        "Nomear o que é exportado separa isso da exportação de placas e pedidos do outro lado do aplicativo.",
+        "As notas de versões antigas mantêm a forma anterior, porque esse é o nome que aquelas versões exibiam."
+      ],
       "0.16.51": [
         "Um projeto concluído não descarta mais os próprios primers enquanto recompleta a seleção depois.",
         "Limpar uma execução cobre todos os campos, então a tabela e os contadores não se contradizem.",
@@ -2924,6 +2931,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.52": "7c46035e",
       "0.16.51": "da55c894",
       "0.16.50": "e59fd423",
       "0.16.49": "76255984",
