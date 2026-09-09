@@ -224,6 +224,43 @@ class TestCodonTableRegistry:
             assert "name" in item
             assert "taxid" in item
 
+    def test_taxid_less_table_still_lists(self, tmp_path, monkeypatch):
+        """A table JSON without a "taxid" key must list, not poison the list.
+
+        list_organisms_detailed reports data.get("taxid"), so an in-house
+        strain that never got an NCBI taxid reports None. The frontend
+        validates this payload element by element through isArrayOf, so an
+        entry that fails the guard rejects the whole array and empties the
+        organism dropdown. Keep the None-bearing entry present and keep its
+        neighbours intact.
+        """
+        import json
+        import shutil
+
+        import kuma_core.kuro.codon_table as codon_table_mod
+
+        src = codon_table_mod._RESOURCES_DIR / "ecoli.json"
+        shutil.copy(src, tmp_path / "ecoli.json")
+
+        data = json.loads(src.read_text(encoding="utf-8"))
+        data["name"] = "In-house strain"
+        data.pop("taxid", None)
+        (tmp_path / "inhouse.json").write_text(
+            json.dumps(data), encoding="utf-8"
+        )
+
+        monkeypatch.setattr(codon_table_mod, "_RESOURCES_DIR", tmp_path)
+        registry = CodonTableRegistry()
+
+        details = registry.list_organisms_detailed()
+        by_key = {item["key"]: item for item in details}
+
+        assert set(by_key) == {"ecoli", "inhouse"}
+        assert by_key["inhouse"]["taxid"] is None
+        assert by_key["inhouse"]["name"] == "In-house strain"
+        # The taxid-less neighbour must not cost the well-formed entry.
+        assert by_key["ecoli"]["taxid"] == 83333
+
     def test_get_codon_table_ecoli(self):
         table = get_codon_table("ecoli")
         assert "A" in table

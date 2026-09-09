@@ -191,14 +191,19 @@ function isPolymeraseProfile(value: unknown): value is PolymeraseProfile {
   );
 }
 
+// `taxid` is nullable on purpose: the backend emits `data.get("taxid")` and a
+// codon table JSON need not carry the field (an in-house strain has none).
+// This guard runs per element through `isArrayOf`, so requiring a number here
+// made one taxid-less table reject the entire `list_organisms` payload and
+// render an empty organism dropdown.
 function isOrganismSummary(
   value: unknown,
-): value is { key: string; name: string; taxid: number } {
+): value is { key: string; name: string; taxid: number | null } {
   return (
     isRecord(value) &&
     isString(value.key) &&
     isString(value.name) &&
-    isNumber(value.taxid)
+    (value.taxid === null || isNumber(value.taxid))
   );
 }
 

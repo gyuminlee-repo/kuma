@@ -439,7 +439,7 @@ export function makeResultTableColumns(opts: {
         tooltip:
           codonStrategy === "closest"
             ? "Mutant codon (min. nucleotide changes from WT)"
-            : "Mutant codon (E. coli optimal)",
+            : "Mutant codon (highest-usage codon for the selected organism)",
       },
       cell: (info) => <span className="font-mono">{info.getValue()}</span>,
     }),
