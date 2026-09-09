@@ -1,8 +1,13 @@
-"""Multi-organism codon usage tables (Kazusa DB).
+"""Multi-organism codon usage tables.
 
-Supports E. coli K-12, B. subtilis 168, S. cerevisiae, H. sapiens,
-and M. extorquens AM1. Frequencies are fraction of synonymous codons
-for each amino acid.
+The tables themselves live in ``resources/codon_tables/*.json`` and that
+directory is the source of truth: ``CodonTableRegistry`` globs it at run time,
+so the shipped set is whatever it holds rather than whatever this docstring
+says. Today that is E. coli K-12, B. subtilis 168, S. cerevisiae, H. sapiens
+and M. extorquens AM1. Provenance differs per table and each one names its own
+in a ``source`` field (Kazusa Codon Usage Database or NCBI RefSeq).
+
+Frequencies are fraction of synonymous codons for each amino acid.
 """
 
 from __future__ import annotations
@@ -32,6 +37,16 @@ _ORGANISM_ALIASES: dict[str, str] = {
     "h.sapiens": "hsapiens",
     "homo sapiens": "hsapiens",
     "human": "hsapiens",
+    # Methylorubrum and Methylobacterium are competing genus assignments for
+    # this organism and public databases are split between them, so both
+    # spellings resolve to the same table.
+    "mextorquens": "mextorquens",
+    "m. extorquens": "mextorquens",
+    "m.extorquens": "mextorquens",
+    "methylorubrum extorquens": "mextorquens",
+    "methylorubrum extorquens am1": "mextorquens",
+    "methylobacterium extorquens": "mextorquens",
+    "methylobacterium extorquens am1": "mextorquens",
 }
 
 

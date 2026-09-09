@@ -19,6 +19,15 @@ from kuma_core.kuro.codon_table import (
 
 STANDARD_20_AA = "ACDEFGHIKLMNPQRSTVWY"
 
+# Canonical keys of the tables shipped in resources/codon_tables/.
+SHIPPED_ORGANISMS = {"ecoli", "bsubtilis", "scerevisiae", "hsapiens", "mextorquens"}
+
+# Amino acid groups whose rounded fractions sum further than 0.02 from 1.00.
+# hsapiens Ser sums to 0.97 in the table as shipped; it predates this suite and
+# is not corrected here, so it is exempted by name rather than by widening the
+# tolerance for every table.
+_SUM_TOLERANCE_EXEMPTIONS = {("hsapiens", "S")}
+
 
 class TestBestCodon:
     def test_all_20_amino_acids_return_valid_codon(self):
@@ -191,17 +200,21 @@ class TestResolveOrganismKey:
 
 
 class TestCodonTableRegistry:
-    def test_list_organisms_returns_four(self):
+    def test_list_organisms_returns_shipped_set(self):
         registry = CodonTableRegistry()
         organisms = registry.list_organisms()
-        assert len(organisms) == 4
-        expected = {"ecoli", "bsubtilis", "scerevisiae", "hsapiens"}
-        assert set(organisms) == expected
+        assert len(organisms) == 5
+        assert set(organisms) == SHIPPED_ORGANISMS
+
+    def test_list_organisms_includes_mextorquens(self):
+        # D3: the table has to be discoverable, not merely present on disk
+        registry = CodonTableRegistry()
+        assert "mextorquens" in registry.list_organisms()
 
     def test_list_organisms_detailed_has_keys(self):
         registry = CodonTableRegistry()
         details = registry.list_organisms_detailed()
-        assert len(details) == 4
+        assert len(details) == 5
         for item in details:
             assert "key" in item
             assert "name" in item
@@ -260,3 +273,136 @@ class TestCodonTableRegistry:
         assert codon_to_aa(ecoli_closest) == "A"
         assert codon_to_aa(yeast_closest) == "A"
 
+
+
+class TestEcoliHistidineOrdering:
+    """Regression test for D1: the E. coli His pair was inverted.
+
+    Kazusa E. coli W3110 raw counts are CAT 17,791 and CAC 13,399, so CAT is
+    0.5704 and is the more used codon. The table shipped CAC 0.57 / CAT 0.43.
+    """
+
+    def test_cat_listed_before_cac(self):
+        codons = [codon for codon, _ in ECOLI_CODON_USAGE["H"]]
+        assert codons.index("CAT") < codons.index("CAC")
+
+    def test_cat_carries_the_higher_fraction(self):
+        freqs = dict(ECOLI_CODON_USAGE["H"])
+        assert freqs["CAT"] == 0.57
+        assert freqs["CAC"] == 0.43
+
+    def test_best_codon_is_cat(self):
+        assert best_codon("H", "ecoli") == "CAT"
+
+    def test_optimal_design_codon_is_cat(self):
+        # A His codon resynthesised under the "optimal" strategy now emits CAT
+        assert mt_codons_for_design("CAC", "H", strategy="optimal")[0] == "CAT"
+
+
+class TestShippedTableStructure:
+    """Structural guard over every table in resources/codon_tables/.
+
+    D2 shipped a B. subtilis table of unknown provenance. These checks do not
+    judge the numbers, they pin the shape every consumer relies on: a complete
+    genetic code, one amino acid per codon, and fractions that behave like
+    fractions.
+    """
+
+    @pytest.mark.parametrize("organism", sorted(SHIPPED_ORGANISMS))
+    def test_has_21_amino_acid_keys(self, organism: str):
+        table = get_codon_table(organism)
+        assert len(table) == 21
+        assert set(table) == set(STANDARD_20_AA) | {"*"}
+
+    @pytest.mark.parametrize("organism", sorted(SHIPPED_ORGANISMS))
+    def test_has_64_distinct_codons(self, organism: str):
+        table = get_codon_table(organism)
+        codons = [codon for entries in table.values() for codon, _ in entries]
+        assert len(codons) == 64
+        assert len(set(codons)) == 64
+
+    @pytest.mark.parametrize("organism", sorted(SHIPPED_ORGANISMS))
+    def test_codons_agree_with_the_genetic_code(self, organism: str):
+        # CODON_TO_AA is built from the E. coli table, so this also catches a
+        # codon filed under the wrong amino acid in any other table.
+        table = get_codon_table(organism)
+        for aa, entries in table.items():
+            for codon, _ in entries:
+                assert CODON_TO_AA[codon] == aa, f"{organism}: {codon} under {aa}"
+
+    @pytest.mark.parametrize("organism", sorted(SHIPPED_ORGANISMS))
+    def test_fractions_are_within_zero_and_one(self, organism: str):
+        table = get_codon_table(organism)
+        for aa, entries in table.items():
+            for codon, freq in entries:
+                assert isinstance(freq, float)
+                assert 0.0 <= freq <= 1.0, f"{organism}/{aa}/{codon}: {freq}"
+
+    @pytest.mark.parametrize("organism", sorted(SHIPPED_ORGANISMS))
+    def test_each_group_sums_to_one_within_two_hundredths(self, organism: str):
+        table = get_codon_table(organism)
+        for aa, entries in table.items():
+            if (organism, aa) in _SUM_TOLERANCE_EXEMPTIONS:
+                continue
+            total = sum(freq for _, freq in entries)
+            assert abs(total - 1.0) <= 0.02, f"{organism}/{aa}: freq sum={total}"
+
+
+class TestMextorquensTable:
+    """Regression test for D3: an AM1 user used to fall back to E. coli.
+
+    The module docstring claimed M. extorquens support while no table and no
+    alias existed, so resolve_organism_key returned None and the caller kept
+    the E. coli default.
+    """
+
+    @pytest.mark.parametrize(
+        "annotation",
+        [
+            "mextorquens",
+            "M. extorquens",
+            "m.extorquens",
+            "Methylorubrum extorquens",
+            "Methylorubrum extorquens AM1",
+            "Methylobacterium extorquens",
+            " Methylobacterium extorquens AM1 ",
+        ],
+    )
+    def test_both_genus_spellings_resolve_to_one_key(self, annotation: str):
+        assert resolve_organism_key(annotation) == "mextorquens"
+
+    def test_both_genus_spellings_reach_the_same_table(self):
+        registry = CodonTableRegistry()
+        methylorubrum = registry.get_codon_table("Methylorubrum extorquens")
+        methylobacterium = registry.get_codon_table("Methylobacterium extorquens AM1")
+        assert methylorubrum is methylobacterium
+
+    def test_table_is_not_the_ecoli_fallback(self):
+        # AM1 is GC-rich and E. coli is not, so Lys and Glu separate them:
+        # AM1 reads AAG 0.89 / GAG 0.79 where E. coli reads AAA 0.76 / GAA 0.68.
+        assert best_codon("K", "mextorquens") == "AAG"
+        assert best_codon("E", "mextorquens") == "GAG"
+        assert best_codon("K", "ecoli") == "AAA"
+        assert best_codon("E", "ecoli") == "GAA"
+        assert get_codon_table("mextorquens") != ECOLI_CODON_USAGE
+
+
+class TestRoundedTieOrdering:
+    """Pin the two picks that rounding leaves to array order.
+
+    best_codon takes max(), which returns the first maximum, so where two
+    codons round to the same 2-decimal fraction the JSON order alone decides.
+    Both picks below are the genuinely more frequent codon in the raw counts;
+    a reformatter that re-sorted either group would silently change designed
+    primers with nothing else failing.
+    """
+
+    def test_bsubtilis_leucine_prefers_ctg(self):
+        # RefSeq ASM904v1: CTG 28,686 vs CTT 28,582, both 0.24 rounded
+        assert best_codon("L", "bsubtilis") == "CTG"
+
+    def test_mextorquens_leucine_prefers_ctc(self):
+        # RefSeq ASM2268v1, all 5 replicons: CTC 87,117 vs CTG 86,425, both
+        # 0.44 rounded. The chromosome alone reverses the order, so the
+        # all-replicon count is the recorded choice.
+        assert best_codon("L", "mextorquens") == "CTC"

@@ -665,7 +665,7 @@ class TestListOrganisms:
         assert "result" in resp
         organisms = resp["result"]
         assert isinstance(organisms, list)
-        assert len(organisms) == 4
+        assert len(organisms) == 5
 
     def test_each_organism_has_required_keys(self):
         resp = _rpc("list_organisms")
@@ -679,10 +679,10 @@ class TestListOrganisms:
         keys = [o["key"] for o in resp["result"]]
         assert "ecoli" in keys
 
-    def test_all_four_organisms_present(self):
+    def test_all_shipped_organisms_present(self):
         resp = _rpc("list_organisms")
         keys = {o["key"] for o in resp["result"]}
-        expected = {"ecoli", "bsubtilis", "scerevisiae", "hsapiens"}
+        expected = {"ecoli", "bsubtilis", "scerevisiae", "hsapiens", "mextorquens"}
         assert keys == expected
 
 
