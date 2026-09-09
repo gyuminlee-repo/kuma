@@ -50,6 +50,7 @@ export interface RunQualityFinding {
     | "median_depth_below_recommended"
     | "flow_cell_reused"
     | "variants_at_reference_edge"
+    | "amplicon_extraction_skipped"
   severity: RunQualitySeverity
   [key: string]: unknown
 }
@@ -263,6 +264,19 @@ export interface RunQuality {
    */
   edge_variants?: string[]
   edge_margin_bp?: number
+  /**
+   * Whether the amplicon between the primer sites was cut out of the supplied
+   * reference. `false` means the run aligned against the reference as given,
+   * so its amino-acid coordinates and its coverage gate belong to that
+   * reference. `null` on the consensus-directory path, which resolves no
+   * reference, and on results from before this field existed.
+   */
+  amplicon_extracted?: boolean | null
+  /**
+   * Why the extraction was skipped: `not_found`, `not_unique`, `out_of_order`
+   * or `no_shared_tail`. Null whenever an amplicon was extracted.
+   */
+  amplicon_skip_reason?: string | null
   thresholds: Record<string, RunQualityThreshold>
   findings: RunQualityFinding[]
   /**

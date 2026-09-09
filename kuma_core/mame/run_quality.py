@@ -210,6 +210,14 @@ class RunQuality:
     edge_variants: list[str] = field(default_factory=list)
     edge_margin_bp: int = REFERENCE_EDGE_MARGIN_BP
 
+    #: Whether the amplicon between the primer sites was cut out of the
+    #: supplied reference. ``False`` means the reference was aligned against
+    #: unmodified, ``None`` means no reference was resolved at all (the
+    #: consensus-directory path, which reads no barcode workbook).
+    amplicon_extracted: bool | None = None
+    #: Which ``_SpanReason`` stopped the extraction, when one did.
+    amplicon_skip_reason: str | None = None
+
     findings: list[dict] = field(default_factory=list)
 
     @property
@@ -268,6 +276,7 @@ def assess_run_quality(
     reused_from: dict | None = None,
     warranty_min: int = MINION_WARRANTY_PORES,
     amplicon_extracted: bool | None = None,
+    amplicon_skip_reason: str | None = None,
     edge_variants: list[str] | None = None,
     edge_margin_bp: int = REFERENCE_EDGE_MARGIN_BP,
     well_eligible_positions: Sequence[int] | None = None,
@@ -300,6 +309,14 @@ def assess_run_quality(
     * Reuse gets no threshold either, because it is not a measurement. It is the
       fact that this project already sequenced on this cell, reported with what
       the cell had left last time.
+    * A SKIPPED AMPLICON EXTRACTION is a warning, and the one finding here that
+      is about the inputs rather than the instrument. The run aligned against
+      the reference as supplied, so its amino-acid coordinates and its coverage
+      gate belong to that reference rather than to the sequenced amplicon. It
+      cannot be blocking because one benign reading of it exists (an amplicon
+      handed over already trimmed of its primer regions) and nothing in the
+      file separates that from a bare CDS. See the branch itself for the
+      measured cost of staying silent.
     * The MIXED depth factor's amplicon scale gets no grading. It is a premise
       check: that factor was derived over 1500 positions per amplicon and the
       classifier reads no length, so this states how far this run sits from the
@@ -343,6 +360,55 @@ def assess_run_quality(
                         "min_read_count": min_read_count,
                     }
                 )
+
+    # The reference this run aligned against was not the primer-bounded
+    # amplicon, and nothing on the screen said so.
+    #
+    # WHY THIS IS A WARNING AND NOT A REFUSAL, and how the two paths are told
+    # apart. Extraction searches the reference for the shared primer tails and
+    # cuts between them. A reference that CARRIES those tails therefore always
+    # extracts, whatever it is: measured on synthetic references, a whole
+    # plasmid extracts (span 81-174 of a 244 bp construct) and the amplicon
+    # itself extracts unchanged (span 1-94 of 94 bp). So reaching this branch
+    # means the reference does not contain the primer sites, which leaves two
+    # readings: it is a sub-region of what was sequenced (a bare CDS, the
+    # damaging case), or it is an amplicon already trimmed of its primer
+    # regions (harmless, and the run is correct). NOTHING IN THE FILE
+    # SEPARATES THOSE TWO, which is exactly why this warns rather than blocks:
+    # refusing would throw away the second, and staying silent has a measured
+    # price on the first.
+    #
+    # That price, reported by the operator who found this rather than measured
+    # by this repo: the same round-2 nanopore reads over 92 scored wells
+    # reproduced 74 designed variants against a bare-CDS reference and 84
+    # against the amplicon reference. The loss is FALSE NEGATIVES, correct
+    # clones discarded, which is the direction a reader of the result table
+    # cannot detect, since the run finishes normally and every verdict it does
+    # print looks ordinary.
+    #
+    # ``check_coverage_reachable`` in the ingest already refuses the case where
+    # the whole construct is used and no read could clear the coverage gate. It
+    # cannot see this one: reads cover a bare CDS comfortably, so the run is
+    # reachable and proceeds. This finding is what covers the gap that leaves.
+    #
+    # ``reason`` is carried rather than branched on. All four cases end the same
+    # way (the supplied reference is used unmodified) so all four warn, and the
+    # operator gets the one they actually hit.
+    quality.amplicon_extracted = amplicon_extracted
+    if amplicon_extracted is False:
+        quality.amplicon_skip_reason = amplicon_skip_reason
+        quality.findings.append(
+            {
+                "code": "amplicon_extraction_skipped",
+                "severity": SEVERITY_WARNING,
+                "reason": amplicon_skip_reason,
+                "reference_length": reference_length,
+                # Ours, and advisory only: nothing is dropped, reclassified or
+                # refused by it. The reference stands as the operator gave it.
+                "kind": "self_set",
+                "enforced": False,
+            }
+        )
 
     # Mutations sitting against a reference end, on a run whose reference was
     # used unmodified. Both halves are required. Against an extracted amplicon
@@ -648,6 +714,8 @@ def serialise_run_quality(quality: RunQuality) -> dict:
         "reused_from": quality.reused_from,
         "edge_variants": list(quality.edge_variants),
         "edge_margin_bp": quality.edge_margin_bp,
+        "amplicon_extracted": quality.amplicon_extracted,
+        "amplicon_skip_reason": quality.amplicon_skip_reason,
         # Where each threshold on this block comes from, carried with the block
         # so a reader is never left deciding whether a number is a vendor
         # figure, a measurement, or ours. The repo used to state 30 as "the

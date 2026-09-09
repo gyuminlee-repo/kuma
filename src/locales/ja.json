@@ -1006,7 +1006,8 @@
         "median_depth_below_floor": "深さの中央値 {{median}} が下限 {{floor}} 未満。",
         "median_depth_below_recommended": "深さの中央値 {{median}} が推奨の amplicon あたり {{recommended}} read 未満。",
         "flow_cell_reused": "フローセル {{cell}} はこのプロジェクトで既に1回ランを経ており、そのとき細孔 {{previousPores}} で終わった。",
-        "variants_at_reference_edge": "{{variants}} がリファレンス末端から {{margin}} bp 以内にあり、このランは与えられたリファレンスをそのまま整列に使いました。アライナは付けられない不一致で read を切るため、その位置はウェルが報告する depth より浅く読まれることがあります。プライマー結合領域まで含むリファレンスにすると内側に入ります。"
+        "variants_at_reference_edge": "{{variants}} がリファレンス末端から {{margin}} bp 以内にあり、このランは与えられたリファレンスをそのまま整列に使いました。アライナは付けられない不一致で read を切るため、その位置はウェルが報告する depth より浅く読まれることがあります。プライマー結合領域まで含むリファレンスにすると内側に入ります。",
+        "amplicon_extraction_skipped": "プライマーで挟まれた amplicon の区間をリファレンス内に見つけられなかったため、この実行は与えられたリファレンスをそのまま整列に使いました。アミノ酸位置と coverage の判定はそのリファレンス基準です。これが CDS だけでシーケンスした amplicon ではない場合は、construct または amplicon を指定して再実行してください。"
       },
       "positionRecurrence": {
         "title": "反復出現位置",

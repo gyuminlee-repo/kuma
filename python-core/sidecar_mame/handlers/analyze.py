@@ -1578,6 +1578,11 @@ def handle_analyze(params: dict) -> dict:
     # an expected mutation against a reference end, so the run-quality warning
     # needs this here. None in consensus-dir mode, which resolves no reference.
     amplicon_extracted: bool | None = None
+    # Which of the _SpanReason cases stopped an extraction that was skipped.
+    # Carried onto the run result so the operator reads WHY the reference was
+    # used unmodified, not only that it was. None whenever extraction happened
+    # and in consensus-dir mode, which resolves no reference.
+    amplicon_skip_reason: str | None = None
     expected = _validate_filepath(
         params["expected"], allowed_extensions=_ALLOWED_EXCEL_EXTENSIONS
     )
@@ -1865,6 +1870,7 @@ def handle_analyze(params: dict) -> dict:
 
         reference_for_pipeline = amplicon_resolution.reference_fasta
         amplicon_extracted = amplicon_resolution.extracted
+        amplicon_skip_reason = amplicon_resolution.skip_reason
         if amplicon_resolution.extracted:
             reference = reference_for_pipeline
             original_cds_start = int(params.get("cds_start", 0))
@@ -2439,6 +2445,7 @@ def handle_analyze(params: dict) -> dict:
             pore_end=_flow_cell.pore_end,
             reused_from=_previous_use,
             amplicon_extracted=amplicon_extracted,
+            amplicon_skip_reason=amplicon_skip_reason,
             edge_variants=_edge_variants,
             # The scale the MIXED confidence floor was derived over. Taken from
             # the same verdicts the depth is, for the same reason: a declared
