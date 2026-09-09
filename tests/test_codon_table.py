@@ -23,10 +23,14 @@ STANDARD_20_AA = "ACDEFGHIKLMNPQRSTVWY"
 SHIPPED_ORGANISMS = {"ecoli", "bsubtilis", "scerevisiae", "hsapiens", "mextorquens"}
 
 # Amino acid groups whose rounded fractions sum further than 0.02 from 1.00.
-# hsapiens Ser sums to 0.97 in the table as shipped; it predates this suite and
-# is not corrected here, so it is exempted by name rather than by widening the
-# tolerance for every table.
-_SUM_TOLERANCE_EXEMPTIONS = {("hsapiens", "S")}
+# Empty: every shipped group is now within tolerance. The hsapiens Ser entry
+# that used to sit here was a transcription defect, not a rounding artifact,
+# and was repaired against Kazusa 9606 rather than exempted.
+#
+# The mechanism stays because a future table can legitimately need it: six
+# synonymous codons each rounded to 2 decimals can sum as far as 0.03 from
+# 1.00 with every individual cell faithful to its source.
+_SUM_TOLERANCE_EXEMPTIONS: set[tuple[str, str]] = set()
 
 
 class TestBestCodon:
@@ -406,3 +410,75 @@ class TestRoundedTieOrdering:
         # 0.44 rounded. The chromosome alone reverses the order, so the
         # all-replicon count is the recorded choice.
         assert best_codon("L", "mextorquens") == "CTC"
+
+    def test_hsapiens_arginine_prefers_aga(self):
+        # Kazusa 9606: AGA 494,682 vs AGG 486,463, both 0.21 rounded.
+        assert best_codon("R", "hsapiens") == "AGA"
+
+    def test_hsapiens_arginine_lists_aga_before_agg(self):
+        # The fractions are equal at 2 decimals, so only this array order
+        # keeps max() on the codon the raw counts actually favour.
+        codons = [codon for codon, _ in get_codon_table("hsapiens")["R"]]
+        assert codons.index("AGA") < codons.index("AGG")
+
+
+class TestHsapiensArginine:
+    """Regression test for the hsapiens Arg group, which promoted CGG.
+
+    Kazusa 9606 (93,487 CDS, 40,662,582 codons) counts AGA 494,682,
+    AGG 486,463 and CGG 464,485, giving 0.21 / 0.21 / 0.20. The table shipped
+    CGG 0.21 first with AGA and AGG at 0.20, so best_codon returned CGG and
+    CGG also outranked AGG in every equidistant closest_codon race.
+    """
+
+    def test_best_codon_is_aga(self):
+        assert best_codon("R", "hsapiens") == "AGA"
+
+    def test_cgg_ranks_below_both_ag_codons(self):
+        codons = [codon for codon, _ in get_codon_table("hsapiens")["R"]]
+        assert codons.index("AGA") < codons.index("CGG")
+        assert codons.index("AGG") < codons.index("CGG")
+
+    def test_optimal_design_codon_is_aga(self):
+        picked = mt_codons_for_design(
+            "CGG", "R", strategy="optimal", organism="hsapiens"
+        )
+        assert picked[0] == "AGA"
+
+    @pytest.mark.parametrize(
+        "wt_codon", ["TTG", "TCG", "TAG", "TGG", "GTG", "GCG", "GAG", "GGG"]
+    )
+    def test_equidistant_race_against_cgg_now_picks_agg(self, wt_codon: str):
+        # These eight WT codons are the same hamming distance from CGG and
+        # AGG. AGG carries the higher fraction once CGG is no longer inflated,
+        # so it wins the tiebreak; before the repair all eight returned CGG.
+        assert closest_codon(wt_codon, "R", organism="hsapiens") == "AGG"
+
+
+class TestHsapiensSerine:
+    """Regression test for the hsapiens Ser group, which summed to 0.97.
+
+    Kazusa 9606 Ser is AGC 0.24, TCC 0.22, TCT 0.19, TCA 0.15, AGT 0.15 and
+    TCG 0.05, summing to exactly 1.00. The table shipped TCT at 0.15 and TCG
+    at 0.06, and the whole 0.03 shortfall lived in those two cells rather than
+    in six simultaneous round-downs. The structural sum check used to skip
+    this group by name.
+    """
+
+    def test_group_sums_to_one_within_the_standard_tolerance(self):
+        entries = get_codon_table("hsapiens")["S"]
+        total = sum(freq for _, freq in entries)
+        assert abs(total - 1.0) <= 0.02, f"hsapiens/S: freq sum={total}"
+
+    def test_group_carries_no_sum_tolerance_exemption(self):
+        assert ("hsapiens", "S") not in _SUM_TOLERANCE_EXEMPTIONS
+
+    def test_tct_and_tcg_carry_the_kazusa_fractions(self):
+        freqs = dict(get_codon_table("hsapiens")["S"])
+        assert freqs["TCT"] == 0.19
+        assert freqs["TCG"] == 0.05
+
+    def test_best_codon_is_unchanged(self):
+        # TCT rising from 0.15 to 0.19 leaves AGC 0.24 on top, which is why
+        # repairing Ser alone moved no design decision.
+        assert best_codon("S", "hsapiens") == "AGC"
