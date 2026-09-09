@@ -2543,14 +2543,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "aperçu de la plaque indique quelle paire il dessine, quelle part de la plaque le passage occupe et pourquoi il y a des trous.",
-      "Les puits que ce passage atteint pas ont un bord en pointillés et ne ressemblent plus à des puits simplement vides.",
-      "Sur deux des quatre points de départ les couleurs avant et arrière étaient inversées ; elles suivent maintenant le passage.",
-      "Grille, infobulle et légende tranchent la question du sens au même endroit au lieu de deux.",
-      "Un passage occupe deux quadrants, donc une plaque tient deux tours, et la ligne de progression le dit."
+      "Les requêtes UniProt vérifient les certificats via le magasin de confiance du système, ce qui permet d accepter un certificat de proxy institutionnel.",
+      "Le trousseau macOS est lu directement plutôt que via une liste de certificats fournie avec l application.",
+      "La liste fournie et la valeur par défaut restent en repli, et le journal indique la source de confiance utilisée.",
+      "Le fichier journal est écrit en UTF-8, si bien qu un caractère que la console ne peut afficher ne casse plus l entrée.",
+      "Dans les messages destinés à la console, les tirets longs ont été remplacés par une ponctuation simple."
     ],
-    "highlightsStamp": "0.16.53+39ca20cf",
+    "highlightsStamp": "0.16.54+137dd51e",
     "releases": {
+      "0.16.54": [
+        "Les requêtes UniProt vérifient les certificats via le magasin de confiance du système, ce qui permet d accepter un certificat de proxy institutionnel.",
+        "Le trousseau macOS est lu directement plutôt que via une liste de certificats fournie avec l application.",
+        "La liste fournie et la valeur par défaut restent en repli, et le journal indique la source de confiance utilisée.",
+        "Le fichier journal est écrit en UTF-8, si bien qu un caractère que la console ne peut afficher ne casse plus l entrée.",
+        "Dans les messages destinés à la console, les tirets longs ont été remplacés par une ponctuation simple."
+      ],
       "0.16.53": [
         "aperçu de la plaque indique quelle paire il dessine, quelle part de la plaque le passage occupe et pourquoi il y a des trous.",
         "Les puits que ce passage atteint pas ont un bord en pointillés et ne ressemblent plus à des puits simplement vides.",
@@ -2938,6 +2945,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",
       "0.16.52": "7c46035e",
       "0.16.51": "da55c894",
@@ -2950,10 +2958,18 @@
       "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",
+      "0.16.41": "78e69028",
+      "0.16.40": "54e3cb8d",
       "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",
+      "0.16.35": "d628e48a",
+      "0.16.34": "d7925cb6",
+      "0.16.33": "059a2f27",
+      "0.16.32": "3be3b377",
+      "0.16.31": "60d4442c",
+      "0.16.30": "bab83ea7",
       "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",
@@ -2992,15 +3008,7 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21",
-      "0.16.30": "bab83ea7",
-      "0.16.31": "60d4442c",
-      "0.16.32": "3be3b377",
-      "0.16.33": "059a2f27",
-      "0.16.34": "d7925cb6",
-      "0.16.35": "d628e48a",
-      "0.16.40": "54e3cb8d",
-      "0.16.41": "78e69028"
+      "0.15.16": "fe8e6f21"
     }
   },
   "primerDisplay": {

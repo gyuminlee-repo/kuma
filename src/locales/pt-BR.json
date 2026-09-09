@@ -2543,14 +2543,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "A prévia da placa diz qual par desenha, quanto da placa a execução ocupa e por que existem lacunas.",
-      "Os poços que esta execução não alcança recebem borda tracejada e não parecem mais poços simplesmente vazios.",
-      "Em dois dos quatro pontos de partida as cores direta e reversa estavam trocadas; agora seguem a execução.",
-      "Grade, balão e legenda resolvem a direção num único lugar em vez de dois.",
-      "Uma execução ocupa dois quadrantes, então uma placa comporta duas rodadas, e o progresso mostra isso."
+      "As consultas ao UniProt verificam certificados pelo repositório de confiança do sistema operacional, de modo que um certificado de proxy institucional é aceito.",
+      "O Keychain do macOS passa a ser lido diretamente, em vez de por uma lista de certificados embutida.",
+      "A lista embutida e o padrão do sistema permanecem como alternativas, e o log informa qual fonte de confiança foi usada.",
+      "O arquivo de log é gravado em UTF-8, então um caractere que o console não consegue exibir não quebra mais o registro.",
+      "Nas mensagens de log que vão para o console, os travessões foram trocados por pontuação simples."
     ],
-    "highlightsStamp": "0.16.53+39ca20cf",
+    "highlightsStamp": "0.16.54+137dd51e",
     "releases": {
+      "0.16.54": [
+        "As consultas ao UniProt verificam certificados pelo repositório de confiança do sistema operacional, de modo que um certificado de proxy institucional é aceito.",
+        "O Keychain do macOS passa a ser lido diretamente, em vez de por uma lista de certificados embutida.",
+        "A lista embutida e o padrão do sistema permanecem como alternativas, e o log informa qual fonte de confiança foi usada.",
+        "O arquivo de log é gravado em UTF-8, então um caractere que o console não consegue exibir não quebra mais o registro.",
+        "Nas mensagens de log que vão para o console, os travessões foram trocados por pontuação simples."
+      ],
       "0.16.53": [
         "A prévia da placa diz qual par desenha, quanto da placa a execução ocupa e por que existem lacunas.",
         "Os poços que esta execução não alcança recebem borda tracejada e não parecem mais poços simplesmente vazios.",
@@ -2938,6 +2945,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",
       "0.16.52": "7c46035e",
       "0.16.51": "da55c894",
@@ -2950,10 +2958,18 @@
       "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",
+      "0.16.41": "78e69028",
+      "0.16.40": "54e3cb8d",
       "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",
+      "0.16.35": "d628e48a",
+      "0.16.34": "d7925cb6",
+      "0.16.33": "059a2f27",
+      "0.16.32": "3be3b377",
+      "0.16.31": "60d4442c",
+      "0.16.30": "bab83ea7",
       "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",
@@ -2992,15 +3008,7 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21",
-      "0.16.30": "bab83ea7",
-      "0.16.31": "60d4442c",
-      "0.16.32": "3be3b377",
-      "0.16.33": "059a2f27",
-      "0.16.34": "d7925cb6",
-      "0.16.35": "d628e48a",
-      "0.16.40": "54e3cb8d",
-      "0.16.41": "78e69028"
+      "0.15.16": "fe8e6f21"
     }
   },
   "primerDisplay": {

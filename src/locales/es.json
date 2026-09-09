@@ -2543,14 +2543,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "La vista previa de la placa dice qué par dibuja, cuánto de la placa ocupa la ejecución y por qué hay huecos.",
-      "Los pocillos que esta ejecución no alcanza llevan borde discontinuo y ya no parecen pocillos simplemente vacíos.",
-      "En dos de los cuatro puntos de partida los colores directo e inverso estaban al revés; ahora siguen la ejecución.",
-      "Rejilla, ventana emergente y leyenda resuelven la dirección en un solo sitio en vez de en dos.",
-      "Una ejecución ocupa dos cuadrantes, así que una placa admite dos rondas, y el progreso lo indica."
+      "Las consultas a UniProt verifican los certificados con el almacén de confianza del sistema operativo, de modo que se acepta el certificado de un proxy institucional.",
+      "El llavero de macOS se lee directamente en lugar de usar una lista de certificados incluida.",
+      "La lista incluida y el valor predeterminado siguen como alternativas, y el registro indica qué fuente de confianza se usó.",
+      "El archivo de registro se escribe en UTF-8, así que un carácter que la consola no puede mostrar ya no rompe la entrada.",
+      "En los mensajes de registro que llegan a la consola se sustituyeron las rayas por puntuación simple."
     ],
-    "highlightsStamp": "0.16.53+39ca20cf",
+    "highlightsStamp": "0.16.54+137dd51e",
     "releases": {
+      "0.16.54": [
+        "Las consultas a UniProt verifican los certificados con el almacén de confianza del sistema operativo, de modo que se acepta el certificado de un proxy institucional.",
+        "El llavero de macOS se lee directamente en lugar de usar una lista de certificados incluida.",
+        "La lista incluida y el valor predeterminado siguen como alternativas, y el registro indica qué fuente de confianza se usó.",
+        "El archivo de registro se escribe en UTF-8, así que un carácter que la consola no puede mostrar ya no rompe la entrada.",
+        "En los mensajes de registro que llegan a la consola se sustituyeron las rayas por puntuación simple."
+      ],
       "0.16.53": [
         "La vista previa de la placa dice qué par dibuja, cuánto de la placa ocupa la ejecución y por qué hay huecos.",
         "Los pocillos que esta ejecución no alcanza llevan borde discontinuo y ya no parecen pocillos simplemente vacíos.",
@@ -2938,6 +2945,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",
       "0.16.52": "7c46035e",
       "0.16.51": "da55c894",
@@ -2950,10 +2958,18 @@
       "0.16.44": "77881f90",
       "0.16.43": "dbab62ef",
       "0.16.42": "e1b0d6ec",
+      "0.16.41": "78e69028",
+      "0.16.40": "54e3cb8d",
       "0.16.39": "d8fb93a8",
       "0.16.38": "6da048ca",
       "0.16.37": "93aa6e16",
       "0.16.36": "5119f52e",
+      "0.16.35": "d628e48a",
+      "0.16.34": "d7925cb6",
+      "0.16.33": "059a2f27",
+      "0.16.32": "3be3b377",
+      "0.16.31": "60d4442c",
+      "0.16.30": "bab83ea7",
       "0.16.29": "3f25adcf",
       "0.16.28": "35bab529",
       "0.16.27": "4cd14ddd",
@@ -2992,15 +3008,7 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21",
-      "0.16.30": "bab83ea7",
-      "0.16.31": "60d4442c",
-      "0.16.32": "3be3b377",
-      "0.16.33": "059a2f27",
-      "0.16.34": "d7925cb6",
-      "0.16.35": "d628e48a",
-      "0.16.40": "54e3cb8d",
-      "0.16.41": "78e69028"
+      "0.15.16": "fe8e6f21"
     }
   },
   "primerDisplay": {

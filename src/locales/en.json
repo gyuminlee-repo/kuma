@@ -2597,14 +2597,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The plate preview says which pair it draws, how much of the plate the run uses, and why the gaps are there.",
-      "Wells the run cannot reach are drawn with a dashed border, so they no longer look like wells that are simply empty.",
-      "Forward and reverse were coloured backwards for two of the four starting points, and now follow the run rather than the row.",
-      "The grid, the popover and the legend answer the direction question from one place instead of two.",
-      "A run uses two quadrants rather than one, so a plate holds two rounds, and the progress line reflects that."
+      "UniProt lookups verify against the operating system trust store, so an institutional proxy certificate is honoured.",
+      "The macOS Keychain is read directly rather than through a bundled certificate list.",
+      "The bundled list and the standard default remain as fallbacks, and the log says which trust source was used.",
+      "The log file is written as UTF-8, so a character the console cannot render no longer breaks the entry.",
+      "Log messages that reach a console had their dash characters replaced with plain punctuation."
     ],
-    "highlightsStamp": "0.16.53+39ca20cf",
+    "highlightsStamp": "0.16.54+137dd51e",
     "releases": {
+      "0.16.54": [
+        "UniProt lookups verify against the operating system trust store, so an institutional proxy certificate is honoured.",
+        "The macOS Keychain is read directly rather than through a bundled certificate list.",
+        "The bundled list and the standard default remain as fallbacks, and the log says which trust source was used.",
+        "The log file is written as UTF-8, so a character the console cannot render no longer breaks the entry.",
+        "Log messages that reach a console had their dash characters replaced with plain punctuation."
+      ],
       "0.16.53": [
         "The plate preview says which pair it draws, how much of the plate the run uses, and why the gaps are there.",
         "Wells the run cannot reach are drawn with a dashed border, so they no longer look like wells that are simply empty.",
@@ -2992,6 +2999,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",
       "0.16.52": "7c46035e",
       "0.16.51": "da55c894",
