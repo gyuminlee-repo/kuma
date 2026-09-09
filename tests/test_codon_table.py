@@ -12,6 +12,7 @@ from kuma_core.kuro.codon_table import (
     closest_codon,
     codon_to_aa,
     get_codon_table,
+    codon_usage_fraction,
     mt_codons_for_design,
     resolve_organism_key,
 )
@@ -130,28 +131,33 @@ class TestClosestCodon:
 
 
 class TestMtCodonsForDesign:
-    def test_closest_strategy_order(self):
+    """The pool the design engine receives.
+
+    It used to be [closest, optimal] and is now every synonymous codon the host
+    uses at least CODON_USAGE_FLOOR of the time, WT excluded. Floor, ordering
+    and the inert ``strategy`` argument are pinned in tests/test_codon_pool.py;
+    these keep the plain contract the rest of this file relies on.
+    """
+
+    def test_every_offered_codon_encodes_the_target(self):
         codons = mt_codons_for_design("AAA", "A", strategy="closest")
         assert len(codons) >= 1
         for c in codons:
             assert codon_to_aa(c) == "A"
 
-    def test_optimal_strategy_order(self):
-        codons = mt_codons_for_design("AAA", "A", strategy="optimal")
-        assert codons[0] == best_codon("A")
-
-    def test_single_result_when_closest_equals_optimal(self):
-        # GCG is the best codon for A; closest to GCG for A is also GCG
-        codons = mt_codons_for_design("GCG", "A", strategy="closest")
-        assert len(codons) == 1
-        assert codons[0] == "GCG"
-
-    def test_two_distinct_codons_when_different(self):
-        # AAA -> A: closest (GCA, hamming=2) != optimal (GCG)
+    def test_the_whole_synonymous_set_is_offered(self):
+        # E. coli uses all four Ala codons above the floor and none of them is
+        # the WT codon here, so the pool is the full set rather than two of it.
         codons = mt_codons_for_design("AAA", "A", strategy="closest")
-        assert len(codons) == 2
-        assert codons[0] != codons[1]
-        assert all(codon_to_aa(c) == "A" for c in codons)
+        assert sorted(codons) == ["GCA", "GCC", "GCG", "GCT"]
+        assert len(set(codons)) == len(codons)
+
+    def test_a_silent_request_drops_the_wt_codon(self):
+        # GCG->A is silent: re-emitting GCG is not a mutation, so it is dropped
+        # and the other three Ala codons remain.
+        codons = mt_codons_for_design("GCG", "A", strategy="closest")
+        assert "GCG" not in codons
+        assert sorted(codons) == ["GCA", "GCC", "GCT"]
 
     def test_methionine_always_returns_one(self):
         # M has only one codon (ATG)
@@ -476,11 +482,17 @@ class TestHsapiensArginine:
         assert codons.index("AGA") < codons.index("CGG")
         assert codons.index("AGG") < codons.index("CGG")
 
-    def test_optimal_design_codon_is_aga(self):
-        picked = mt_codons_for_design(
-            "CGG", "R", strategy="optimal", organism="hsapiens"
-        )
+    def test_the_design_pool_leads_with_aga_where_distance_ties(self):
+        # The pool orders by hamming distance first and only then by usage, so
+        # the repair shows in the order wherever distance cannot decide. GGT is
+        # two changes from AGA, AGG and CGG alike, which leaves the fractions to
+        # break the tie; before the repair CGG's inflated 0.21 led here.
+        picked = mt_codons_for_design("GGT", "R", organism="hsapiens")
         assert picked[0] == "AGA"
+        assert picked.index("AGA") < picked.index("CGG")
+        assert codon_usage_fraction("AGA", "hsapiens") > codon_usage_fraction(
+            "CGG", "hsapiens"
+        )
 
     @pytest.mark.parametrize(
         "wt_codon", ["TTG", "TCG", "TAG", "TGG", "GTG", "GCG", "GAG", "GGG"]

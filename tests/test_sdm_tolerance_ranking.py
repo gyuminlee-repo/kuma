@@ -155,12 +155,15 @@ def test_returned_candidates_report_the_window_that_produced_them(egfp):
 
     The Tol column is read as a quality signal, so a candidate found at a tight
     window must not be relabelled with the widest one just because the sweep ran
-    that far. Here the winner comes from +-4.0 C and the runner-up from +-2.0 C.
+    that far. Here the winner comes from +-2.5 C while a worse primer survived
+    at +-2.0 C, which is the shape that matters: the engine used to return at
+    the first step that yielded anything, so it would have stopped at 2.0 and
+    could never have reached this primer.
     """
     mut = _mutation(egfp, _EGFP_CDS, "G", 175, "A")
     profile = PolymeraseRegistry().get("Q5 SDM")
     hits = design_single_sdm(
-        egfp, mut, profile, organism="scerevisiae", tol_max=4.0, overlap_mode="full"
+        egfp, mut, profile, organism="ecoli", tol_max=4.0, overlap_mode="full"
     )
 
     assert len(hits) >= 2, "expected the losing codon to survive as a runner-up"
@@ -169,6 +172,9 @@ def test_returned_candidates_report_the_window_that_produced_them(egfp):
         "every candidate carries the same tolerance, so the sweep is not being "
         "ranked across steps"
     )
-    assert hits[0].tolerance_used > hits[1].tolerance_used, (
-        "the better primer here is the one from the looser window"
+    tightest = min(h.tolerance_used for h in hits)
+    assert hits[0].tolerance_used > tightest, (
+        f"the winner is labelled +-{hits[0].tolerance_used} C and something "
+        f"already survived at +-{tightest} C, so an engine that returned at the "
+        "first surviving step would have found this primer too"
     )
