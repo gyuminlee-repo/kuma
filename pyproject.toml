@@ -22,6 +22,11 @@ dependencies = [
     # versions, so no platform restriction is needed.
     "edlib==1.3.9.post1",
     "certifi>=2024.2.2",
+    # truststore: verify TLS against the OS trust store (macOS Keychain,
+    # Windows cert store, OpenSSL on Linux). Floor is the version verified
+    # here (0.10.4), whose metadata declares Requires-Python >=3.10; local
+    # dev runs 3.11 and the frozen build 3.12, so both satisfy it.
+    "truststore>=0.10.4",
 ]
 
 [project.optional-dependencies]

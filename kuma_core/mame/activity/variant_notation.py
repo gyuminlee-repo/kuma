@@ -46,7 +46,7 @@ def to_evolvepro(internal: str) -> str:
     m = _INTERNAL_RE.match(internal)
     if m is None:
         raise ValueError(
-            f"to_evolvepro: cannot parse {internal!r} — expected pattern "
+            f"to_evolvepro: cannot parse {internal!r} - expected pattern "
             "[A-Z]\\d+[A-Z] (e.g. 'F89W') or 'WT'"
         )
     return f"{m.group(2)}{m.group(3)}"
@@ -78,7 +78,7 @@ def from_evolvepro(short: str, ref_seq: str) -> str:
     m = _SHORT_RE.match(short)
     if m is None:
         raise ValueError(
-            f"from_evolvepro: cannot parse {short!r} — expected pattern "
+            f"from_evolvepro: cannot parse {short!r} - expected pattern "
             "\\d+[A-Z] (e.g. '89W')"
         )
 

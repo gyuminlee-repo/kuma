@@ -1748,7 +1748,7 @@ def handle_analyze(params: dict) -> dict:
             # "730 / 1,000". The barcode tally stays in the message.
             value = int(50 * done / max(1, total))
             cur, tot = int(100 * done / max(1, total)), None
-            message = f"Sorting reads — {stage_str}"
+            message = f"Sorting reads - {stage_str}"
         emit_params: dict = {
             "value": min(50, value),
             "message": message,
@@ -1904,7 +1904,7 @@ def handle_analyze(params: dict) -> dict:
                         "method": "progress",
                         "params": {
                             "value": _demux_state["value"],
-                            "message": f"{_demux_state['message']} — {mm}m{ss:02d}s",
+                            "message": f"{_demux_state['message']} - {mm}m{ss:02d}s",
                             "current": _demux_state["current"],
                             "total": _demux_state["total"],
                             "stage": "demux",

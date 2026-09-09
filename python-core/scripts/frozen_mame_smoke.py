@@ -142,7 +142,7 @@ def _build_barcodes_xlsx(workdir: Path) -> Path:
     try:
         import openpyxl
     except ImportError as exc:
-        print(f"FAIL: openpyxl not available — install it with: pip install openpyxl")
+        print(f"FAIL: openpyxl not available - install it with: pip install openpyxl")
         print(f"  ImportError: {exc}")
         sys.exit(1)
 
@@ -255,7 +255,7 @@ def _build_expected_mutations_xlsx(workdir: Path) -> Path:
     try:
         import openpyxl
     except ImportError as exc:
-        print(f"FAIL: openpyxl not available — install it with: pip install openpyxl")
+        print(f"FAIL: openpyxl not available - install it with: pip install openpyxl")
         print(f"  ImportError: {exc}")
         sys.exit(1)
 
@@ -324,7 +324,7 @@ def run_smoke(binary: Path) -> None:
         try:
             ping_resp = sio.recv(1, timeout=30.0)
             if ping_resp.get("result", {}).get("ok") is not True:
-                failures.append(f"ping: ok is not True — got {ping_resp!r}")
+                failures.append(f"ping: ok is not True - got {ping_resp!r}")
             else:
                 print("      ping OK")
         except (TimeoutError, RuntimeError) as exc:
@@ -345,7 +345,7 @@ def run_smoke(binary: Path) -> None:
                 if total < 1:
                     failures.append(f"detect: total_count={total}, expected >= 1")
                 else:
-                    print(f"      detect OK — total_count={total}, "
+                    print(f"      detect OK - total_count={total}, "
                           f"native_barcodes={detect_result.get('native_barcodes')}")
         except (TimeoutError, RuntimeError) as exc:
             failures.append(f"detect timed out or process died: {exc}")
@@ -368,14 +368,14 @@ def run_smoke(binary: Path) -> None:
                 per_nb = demux_result.get("native_barcodes")
                 if not isinstance(per_nb, list):
                     failures.append(
-                        f"demux: native_barcodes is not a list — got {type(per_nb).__name__!r}"
+                        f"demux: native_barcodes is not a list - got {type(per_nb).__name__!r}"
                     )
                 elif len(per_nb) != 2:
                     failures.append(
                         f"demux: native_barcodes length={len(per_nb)}, expected 2"
                     )
                 else:
-                    print(f"      demux OK — native_barcodes list length={len(per_nb)}")
+                    print(f"      demux OK - native_barcodes list length={len(per_nb)}")
         except (TimeoutError, RuntimeError) as exc:
             failures.append(f"demux timed out or process died: {exc}")
 
@@ -399,7 +399,7 @@ def run_smoke(binary: Path) -> None:
                 verdicts = analyze_result.get("verdicts")
                 if not isinstance(verdicts, list):
                     failures.append(
-                        f"analyze: verdicts is not a list — got {type(verdicts).__name__!r}"
+                        f"analyze: verdicts is not a list - got {type(verdicts).__name__!r}"
                     )
                 elif "assigned_reads" not in analyze_result:
                     failures.append(
@@ -411,7 +411,7 @@ def run_smoke(binary: Path) -> None:
                     )
                 else:
                     print(
-                        f"      analyze OK — verdicts={len(verdicts)}, "
+                        f"      analyze OK - verdicts={len(verdicts)}, "
                         f"assigned_reads={analyze_result.get('assigned_reads')}, "
                         f"wells_with_reads={analyze_result.get('wells_with_reads')}"
                     )
@@ -563,13 +563,13 @@ def run_smoke(binary: Path) -> None:
 
     if started_count == 0:
         failures.append(
-            "freeze_support check: 'MAME sidecar started' not found in stderr — "
+            "freeze_support check: 'MAME sidecar started' not found in stderr - "
             "sidecar may not have launched correctly"
         )
     elif started_count > 1:
         failures.append(
             f"freeze_support BROKEN: 'MAME sidecar started' appeared {started_count}x "
-            f"(expected exactly 1) — spawned children are re-running the server loop"
+            f"(expected exactly 1) - spawned children are re-running the server loop"
         )
     else:
         print("      freeze_support OK: exactly 1 'MAME sidecar started' line")
