@@ -2543,14 +2543,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Les requêtes UniProt vérifient les certificats via le magasin de confiance du système, ce qui permet d accepter un certificat de proxy institutionnel.",
-      "Le trousseau macOS est lu directement plutôt que via une liste de certificats fournie avec l application.",
-      "La liste fournie et la valeur par défaut restent en repli, et le journal indique la source de confiance utilisée.",
-      "Le fichier journal est écrit en UTF-8, si bien qu un caractère que la console ne peut afficher ne casse plus l entrée.",
-      "Dans les messages destinés à la console, les tirets longs ont été remplacés par une ponctuation simple."
+      "Le rapport d'exécution MAME et le classeur exporté affichent d'abord le taux de réussite, qui compte PASS seul.",
+      "Chaque libellé de taux nomme l'ensemble de verdicts compté, afin que le chiffre plus large ne passe pas pour la valeur rapportée.",
+      "Le chiffre de reproduction, comptant PASS et AMBIGUOUS, demeure une ligne de soutien au lieu d'être supprimé.",
+      "Les deux taux tirent leur dénominateur du même code, de sorte qu'ils ne peuvent pas diverger.",
+      "Les comptes recovered et total mutant du classeur restent inchangés et les analyses existantes les lisent encore."
     ],
-    "highlightsStamp": "0.16.54+137dd51e",
+    "highlightsStamp": "0.16.55+0e44b7f4",
     "releases": {
+      "0.16.55": [
+        "Le rapport d'exécution MAME et le classeur exporté affichent d'abord le taux de réussite, qui compte PASS seul.",
+        "Chaque libellé de taux nomme l'ensemble de verdicts compté, afin que le chiffre plus large ne passe pas pour la valeur rapportée.",
+        "Le chiffre de reproduction, comptant PASS et AMBIGUOUS, demeure une ligne de soutien au lieu d'être supprimé.",
+        "Les deux taux tirent leur dénominateur du même code, de sorte qu'ils ne peuvent pas diverger.",
+        "Les comptes recovered et total mutant du classeur restent inchangés et les analyses existantes les lisent encore."
+      ],
       "0.16.54": [
         "Les requêtes UniProt vérifient les certificats via le magasin de confiance du système, ce qui permet d accepter un certificat de proxy institutionnel.",
         "Le trousseau macOS est lu directement plutôt que via une liste de certificats fournie avec l application.",
@@ -2945,6 +2952,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",
       "0.16.52": "7c46035e",

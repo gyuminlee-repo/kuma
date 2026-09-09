@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.16.55 (One reported run figure for MAME, and every label says what it counts)
+
+A decision taken in August made the success rate the single reported MAME run figure. It counts PASS alone, because the pick list exports PASS alone and nothing wider can be carried to the instrument. Two headline percentages over one denominator invite quoting whichever is higher, so only one of them is the reported figure.
+
+That decision reached the analyze panel and stopped there. The Python side had no code computing PASS on its own, so the HTML run report and the exported workbook went on printing the recovery rate as their headline. It was the only number they could reach. A report handed to someone else therefore led with a figure the project had already retired.
+
+The success rate now exists in the domain package and both output paths lead with it. The recovery rate is demoted rather than removed: it is what the per-plate detected counts add up to, and the stored field behind it also drives replicate pick priority and keeps older saved runs loadable. Removing it would take the supporting figure away from a table that needs it to explain itself.
+
+Both rates take their denominator and their designed-mutant filter from one helper, so a change to the exclusion rules cannot move one figure without moving the other. Labels that named no verdict set are gone. The report and the workbook now read Success rate (PASS) and Reproduced (PASS+AMBIGUOUS). The recovered and total mutant counts in the workbook are unchanged, so an analysis already reading those rows still finds them.
+
+### Highlights
+
+- The MAME run report and the exported workbook now lead with the success rate, which counts PASS alone.
+- Every rate label names the verdict set it counts, so the wider figure cannot be read as the reported one.
+- The reproduced figure, counting PASS and AMBIGUOUS, stays as a supporting line rather than being dropped.
+- Both rates take their denominator from one piece of code, so the two cannot drift apart.
+- The recovered and total mutant counts in the workbook are unchanged, so existing analyses still read them.
+
 ## v0.16.54 (UniProt lookups trust the machine again, and the log stops eating itself)
 
 Every UniProt lookup on the operator machine failed certificate verification. The sidecar log carried 72 of them, all reporting a self-signed certificate in the chain. The institution re-signs TLS at its proxy, and that proxy certificate lives in the operating system trust store.

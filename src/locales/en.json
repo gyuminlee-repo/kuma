@@ -2597,14 +2597,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "UniProt lookups verify against the operating system trust store, so an institutional proxy certificate is honoured.",
-      "The macOS Keychain is read directly rather than through a bundled certificate list.",
-      "The bundled list and the standard default remain as fallbacks, and the log says which trust source was used.",
-      "The log file is written as UTF-8, so a character the console cannot render no longer breaks the entry.",
-      "Log messages that reach a console had their dash characters replaced with plain punctuation."
+      "The MAME run report and the exported workbook now lead with the success rate, which counts PASS alone.",
+      "Every rate label names the verdict set it counts, so the wider figure cannot be read as the reported one.",
+      "The reproduced figure, counting PASS and AMBIGUOUS, stays as a supporting line rather than being dropped.",
+      "Both rates take their denominator from one piece of code, so the two cannot drift apart.",
+      "The recovered and total mutant counts in the workbook are unchanged, so existing analyses still read them."
     ],
-    "highlightsStamp": "0.16.54+137dd51e",
+    "highlightsStamp": "0.16.55+0e44b7f4",
     "releases": {
+      "0.16.55": [
+        "The MAME run report and the exported workbook now lead with the success rate, which counts PASS alone.",
+        "Every rate label names the verdict set it counts, so the wider figure cannot be read as the reported one.",
+        "The reproduced figure, counting PASS and AMBIGUOUS, stays as a supporting line rather than being dropped.",
+        "Both rates take their denominator from one piece of code, so the two cannot drift apart.",
+        "The recovered and total mutant counts in the workbook are unchanged, so existing analyses still read them."
+      ],
       "0.16.54": [
         "UniProt lookups verify against the operating system trust store, so an institutional proxy certificate is honoured.",
         "The macOS Keychain is read directly rather than through a bundled certificate list.",
@@ -2999,6 +3006,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",
       "0.16.52": "7c46035e",

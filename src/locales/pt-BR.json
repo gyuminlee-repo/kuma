@@ -2543,14 +2543,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "As consultas ao UniProt verificam certificados pelo repositório de confiança do sistema operacional, de modo que um certificado de proxy institucional é aceito.",
-      "O Keychain do macOS passa a ser lido diretamente, em vez de por uma lista de certificados embutida.",
-      "A lista embutida e o padrão do sistema permanecem como alternativas, e o log informa qual fonte de confiança foi usada.",
-      "O arquivo de log é gravado em UTF-8, então um caractere que o console não consegue exibir não quebra mais o registro.",
-      "Nas mensagens de log que vão para o console, os travessões foram trocados por pontuação simples."
+      "O relatório de execução do MAME e a pasta de trabalho exportada agora destacam a taxa de sucesso, que conta apenas PASS.",
+      "Cada rótulo de taxa nomeia o conjunto de verdicts que conta, de modo que a cifra mais ampla não seja lida como a reportada.",
+      "A cifra de reprodução, que conta PASS e AMBIGUOUS, permanece como linha de apoio em vez de ser removida.",
+      "As duas taxas tiram o denominador do mesmo trecho de código, portanto não podem divergir entre si.",
+      "As contagens recovered e total mutant da pasta de trabalho seguem inalteradas e as análises existentes ainda as leem."
     ],
-    "highlightsStamp": "0.16.54+137dd51e",
+    "highlightsStamp": "0.16.55+0e44b7f4",
     "releases": {
+      "0.16.55": [
+        "O relatório de execução do MAME e a pasta de trabalho exportada agora destacam a taxa de sucesso, que conta apenas PASS.",
+        "Cada rótulo de taxa nomeia o conjunto de verdicts que conta, de modo que a cifra mais ampla não seja lida como a reportada.",
+        "A cifra de reprodução, que conta PASS e AMBIGUOUS, permanece como linha de apoio em vez de ser removida.",
+        "As duas taxas tiram o denominador do mesmo trecho de código, portanto não podem divergir entre si.",
+        "As contagens recovered e total mutant da pasta de trabalho seguem inalteradas e as análises existentes ainda as leem."
+      ],
       "0.16.54": [
         "As consultas ao UniProt verificam certificados pelo repositório de confiança do sistema operacional, de modo que um certificado de proxy institucional é aceito.",
         "O Keychain do macOS passa a ser lido diretamente, em vez de por uma lista de certificados embutida.",
@@ -2945,6 +2952,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",
       "0.16.52": "7c46035e",
