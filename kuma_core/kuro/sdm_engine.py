@@ -2007,7 +2007,9 @@ def design_sdm_primers(
 
     failed_reasons: dict[str, str] = {}
     try:
-        mutations = parse_mutations(mutations_csv, sequence, target_start)
+        mutations = parse_mutations(
+            mutations_csv, sequence, target_start, organism
+        )
     except ValueError as exc:
         # line-by-line fallback when batch parse fails. Preserve the original
         # error signature so a genuine parse failure is not silently masked.

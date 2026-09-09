@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from kuma_core.kuro.codon_table import CODON_TO_AA
+from kuma_core.kuro.codon_table import CODON_TO_AA, best_codon
 from kuma_core.kuro.mutation import (
     Mutation,
     mutate_sequence,
@@ -38,7 +38,7 @@ class TestMutationParsing:
             parse_mutation_notation("invalid")
 
     def test_parse_mutations_csv(self, template_sequence, mutations_csv):
-        mutations = parse_mutations(mutations_csv, template_sequence, TARGET_START)
+        mutations = parse_mutations(mutations_csv, template_sequence, TARGET_START, "ecoli")
         assert len(mutations) == 12
 
         # Check first mutation: Q232A
@@ -52,7 +52,7 @@ class TestMutationParsing:
         assert CODON_TO_AA[m.wt_codon] == "Q"
 
     def test_all_12_mutations_parse(self, template_sequence, mutations_csv):
-        mutations = parse_mutations(mutations_csv, template_sequence, TARGET_START)
+        mutations = parse_mutations(mutations_csv, template_sequence, TARGET_START, "ecoli")
         expected_names = [
             "Q232A", "Y233A", "E335A", "E167A", "K200A", "F203A",
             "D227A", "G237A", "P240A", "Y155A", "H100A", "C175A",
@@ -62,7 +62,7 @@ class TestMutationParsing:
 
     def test_wt_codon_verification(self, template_sequence, mutations_csv):
         """Every parsed mutation's WT codon must encode the expected WT amino acid."""
-        mutations = parse_mutations(mutations_csv, template_sequence, TARGET_START)
+        mutations = parse_mutations(mutations_csv, template_sequence, TARGET_START, "ecoli")
         for m in mutations:
             assert CODON_TO_AA[m.wt_codon] == m.wt_aa, (
                 f"{m.raw}: codon {m.wt_codon} encodes {CODON_TO_AA[m.wt_codon]}, "
@@ -106,7 +106,7 @@ class TestParseMutationsMulti:
         csv_file = tmp_path / "multi_test.csv"
         csv_file.write_text("mutation\nQ232A/Y233A\n")
 
-        mutations = parse_mutations(csv_file, template_sequence, TARGET_START)
+        mutations = parse_mutations(csv_file, template_sequence, TARGET_START, "ecoli")
 
         assert len(mutations) == 2
         assert mutations[0].raw == "Q232A"
@@ -121,7 +121,7 @@ class TestParseMutationsMulti:
         csv_file = tmp_path / "mixed_test.csv"
         csv_file.write_text("mutation\nH100A\nQ232A/Y233A\n")
 
-        mutations = parse_mutations(csv_file, template_sequence, TARGET_START)
+        mutations = parse_mutations(csv_file, template_sequence, TARGET_START, "ecoli")
 
         assert len(mutations) == 3
         # Single-mutation row has no group_id
@@ -134,9 +134,56 @@ class TestParseMutationsMulti:
         assert mutations[2].group_id == "Q232A/Y233A"
 
 
+class TestParseMutationsOrganism:
+    """The seed mutant codon must follow the requested organism.
+
+    kuma_core/kuro/mutation.py once called best_codon() without an organism,
+    so every seed codon came from the E. coli table no matter what the caller
+    asked for. design_single_sdm overwrote the value downstream, which is why
+    no wrong primer shipped, but nothing failed when the seed was wrong. These
+    tests fail if that default ever comes back.
+    """
+
+    # Alanine is the amino acid measured to differ between these two shipped
+    # tables, and the DmpR fixture is an alanine scan, so every row exercises it.
+    ECOLI_ALA = "GCG"
+    YEAST_ALA = "GCT"
+
+    def test_tables_still_disagree_on_alanine(self):
+        """Guard: the pair below is only a regression test while it differs."""
+        assert best_codon("A", "ecoli") == self.ECOLI_ALA
+        assert best_codon("A", "scerevisiae") == self.YEAST_ALA
+        assert self.ECOLI_ALA != self.YEAST_ALA
+
+    def test_seed_codon_follows_organism(self, template_sequence, mutations_csv):
+        ecoli = parse_mutations(mutations_csv, template_sequence, TARGET_START, "ecoli")
+        yeast = parse_mutations(
+            mutations_csv, template_sequence, TARGET_START, "scerevisiae"
+        )
+
+        assert [m.raw for m in ecoli] == [m.raw for m in yeast]
+        assert {m.mt_codon for m in ecoli} == {self.ECOLI_ALA}
+        assert {m.mt_codon for m in yeast} == {self.YEAST_ALA}
+
+    def test_multi_notation_rows_follow_organism(self, template_sequence, tmp_path):
+        """The multi-mutation branch resolves through the same helper."""
+        csv_file = tmp_path / "multi_organism.csv"
+        csv_file.write_text("mutation\nQ232A/Y233A\n")
+
+        yeast = parse_mutations(csv_file, template_sequence, TARGET_START, "scerevisiae")
+
+        assert len(yeast) == 2
+        assert [m.mt_codon for m in yeast] == [self.YEAST_ALA, self.YEAST_ALA]
+
+    def test_organism_is_required(self, template_sequence, mutations_csv):
+        """Omitting the organism is a TypeError, not a silent E. coli fallback."""
+        with pytest.raises(TypeError):
+            parse_mutations(mutations_csv, template_sequence, TARGET_START)  # type: ignore[call-arg]
+
+
 class TestMutateSequence:
     def test_mutate_sequence(self, template_sequence, mutations_csv):
-        mutations = parse_mutations(mutations_csv, template_sequence, TARGET_START)
+        mutations = parse_mutations(mutations_csv, template_sequence, TARGET_START, "ecoli")
         m = mutations[0]  # Q232A
 
         mutated = mutate_sequence(template_sequence, m)
