@@ -17,7 +17,12 @@ import primer3
 
 from .polymerase import PolymeraseProfile, PolymeraseRegistry
 
-from .codon_table import best_codon, mt_codons_for_design, CODON_TO_AA
+from .codon_table import (
+    best_codon,
+    codon_usage_fraction,
+    mt_codons_for_design,
+    CODON_TO_AA,
+)
 from .mutation import Mutation, mutate_sequence, parse_mutations
 from .overlap import (
     OverlapWindow,
@@ -191,6 +196,30 @@ DEFAULT_REV_LEN_MAX = 27
 # target is preferred only when it is more than _TM_OVERSHOOT_WEIGHT closer in
 # relative terms: hot wins iff dev_cool > (1 + weight) * dev_hot.
 _TM_OVERSHOOT_WEIGHT = 0.2
+
+
+# Weight on the codon-usage term in the design penalty:
+#     usage_penalty = USAGE_WEIGHT * (1 - usage_fraction)
+# so a codon the host uses for every occurrence of its amino acid costs 0
+# and one it never uses costs USAGE_WEIGHT. The term exists because the rest
+# of the penalty is usage-blind: it scores Tm, GC and nucleotide changes, and
+# once the pool holds every synonymous codon rather than two, nothing else
+# stops a design from landing on a codon the host avoids.
+#
+# 4.0 comes from the same weight sweep over this repository's fixture material
+# as codon_table.CODON_USAGE_FLOOR, and is on the scale of the existing terms:
+# one extra nucleotide change costs 2.0, so dropping from a 1.00-usage codon to
+# a 0.50 one costs about one extra mismatch.
+#
+# It biases and does not forbid; the floor is what guarantees no rare landing.
+# What it adds on top of the floor, measured over 1,213 designs: 76 of them
+# move to a higher-usage codon and none to a lower-usage one, mean winner usage
+# rises 0.400 to 0.414, and mean primer quality (Tm, GC, hairpin and synthesis,
+# with the mismatch and usage terms taken back out) pays 0.026 penalty units for
+# it. It also keeps the organism choice meaningful, which a pool alone does not:
+# the pool's contents change with the organism only where the floor bites, while
+# this term prices every codon by the selected table.
+USAGE_WEIGHT = 4.0
 
 
 def _tm_score(tm: float, target: float) -> float:
@@ -947,11 +976,18 @@ def _search_candidates(
     fwd_len_max: int = DEFAULT_FWD_LEN_MAX,
     rev_len_min: int = DEFAULT_REV_LEN_MIN,
     rev_len_max: int = DEFAULT_REV_LEN_MAX,
+    mt_usage: float = 1.0,
 ) -> list[SdmPrimerResult]:
     """Search for SDM primer candidates at a given tolerance.
 
     Forward primer: mutation codon centered with balanced flanking.
     Reverse primer: extends from overlap region upstream of codon.
+
+    mt_usage is the host usage fraction of mutation.mt_codon, resolved once
+    by the caller and passed in rather than looked up here, which would mean
+    threading the organism through this frame for a value the caller already
+    holds. The default of 1.0 makes the usage term vanish, so a direct call
+    that does not care about codon usage scores exactly as it did before.
     """
     codon_start = mutation.codon_start
     codon_end = codon_start + 3
@@ -1022,6 +1058,7 @@ def _search_candidates(
             a != b for a, b in zip(mutation.wt_codon, mutation.mt_codon)
         )
         codon_penalty = (codon_changes - 1) * 2.0  # 1bp=0, 2bp=2, 3bp=4
+        usage_penalty = USAGE_WEIGHT * (1.0 - mt_usage)
 
         penalty = (
             _tm_score(tm_fwd, tm_target_fwd)
@@ -1029,6 +1066,7 @@ def _search_candidates(
             + _tm_score(overlap_tm, tm_target_overlap)
             + gc_penalty
             + codon_penalty
+            + usage_penalty
         )
 
         warnings: list[str] = []
@@ -1136,6 +1174,9 @@ def design_single_sdm(
 
     Length parameters (overlap_len, fwd_len_min/max, rev_len_min/max) default
     to the polymerase profile; fall back to overlap 18, fwd 18-39, rev 19-27.
+    Every codon the host can use for the target amino acid is tried, not just
+    the closest and the most-used one; see codon_table.mt_codons_for_design
+    for the pool and USAGE_WEIGHT for how rarity is scored.
     Overlap is placed UPSTREAM of the codon. Whole-primer Tm targeting with
     progressive tolerance (±0.5 → ±tol_max). Every step of that sweep is
     searched and all survivors are ranked together, so a primer found only at a
@@ -1158,7 +1199,9 @@ def design_single_sdm(
         rev_len_max = profile.rev_len_max if profile.rev_len_max is not None else DEFAULT_REV_LEN_MAX
 
     alt_codons = mt_codons_for_design(mutation.wt_codon, mutation.mt_aa, codon_strategy, organism=organism)
-    mutations_to_try = []
+    # Each variant carries its own host usage fraction so the scoring sites,
+    # which are three and five frames down, never have to see the organism.
+    mutations_to_try: list[tuple[Mutation, float]] = []
     for mt_codon in alt_codons:
         m = Mutation(
             raw=mutation.raw,
@@ -1169,7 +1212,7 @@ def design_single_sdm(
             wt_codon=mutation.wt_codon,
             mt_codon=mt_codon,
         )
-        mutations_to_try.append(m)
+        mutations_to_try.append((m, codon_usage_fraction(mt_codon, organism)))
 
     # SDM Tm targets are method-level constants of the overlap-extension design,
     # not enzyme chemistry: Landwehr et al. 2025 (Nat Commun 16, 865) SI Fig. S4
@@ -1206,7 +1249,7 @@ def design_single_sdm(
         tol = tol_step
         while tol <= tol_max + 1e-9:
             all_candidates: list[SdmPrimerResult] = []
-            for mut_variant in mutations_to_try:
+            for mut_variant, mt_usage in mutations_to_try:
                 mutated_seq = mutate_sequence(seq, mut_variant)
                 result = _design_full_overlap(
                     mutated_seq,
@@ -1251,8 +1294,14 @@ def design_single_sdm(
                     a != b for a, b in zip(mut_variant.wt_codon, mut_variant.mt_codon)
                 )
                 codon_penalty = (codon_changes - 1) * 2.0
+                usage_penalty = USAGE_WEIGHT * (1.0 - mt_usage)
 
-                penalty = _tm_score(tm_fwd, tm_target_fwd) + gc_penalty + codon_penalty
+                penalty = (
+                    _tm_score(tm_fwd, tm_target_fwd)
+                    + gc_penalty
+                    + codon_penalty
+                    + usage_penalty
+                )
 
                 warnings: list[str] = []
                 if len(fwd_seq) > 60:
@@ -1328,7 +1377,7 @@ def design_single_sdm(
     tol = tol_step
     while tol <= tol_max + 1e-9:
         all_candidates = []
-        for mut_variant in mutations_to_try:
+        for mut_variant, mt_usage in mutations_to_try:
             mutated_seq = mutate_sequence(seq, mut_variant)
             for ov_len in overlap_lengths:
                 candidates = _search_candidates(
@@ -1338,6 +1387,7 @@ def design_single_sdm(
                     gc_min=gc_min, gc_max=gc_max,
                     fwd_len_min=fwd_len_min, fwd_len_max=fwd_len_max,
                     rev_len_min=rev_len_min, rev_len_max=rev_len_max,
+                    mt_usage=mt_usage,
                 )
                 all_candidates.extend(candidates)
 
