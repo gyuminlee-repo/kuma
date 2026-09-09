@@ -409,7 +409,7 @@ class DemuxResult:
     """
 
     stats: DemuxStats
-    per_well_reads: dict[str, list[tuple[str, str]]] = field(default_factory=dict)
+    per_well_reads: dict[str, list[tuple[str, str, str]]] = field(default_factory=dict)
     per_well_consensus: dict[str, str] = field(default_factory=dict)
     per_well_read_counts: dict[str, int] = field(default_factory=dict)
 
@@ -895,8 +895,15 @@ def load_barcodes(barcodes_xlsx: Path) -> tuple[list[str], list[str]]:
 # ---------------------------------------------------------------------------
 
 
-def _iter_fastq(paths: list[Path]) -> Iterator[tuple[str, str]]:
-    """Yield (read_id, sequence) from one or more FASTQ(.gz) files."""
+def _iter_fastq(paths: list[Path]) -> Iterator[tuple[str, str, str]]:
+    """Yield (read_id, sequence, quality) from one or more FASTQ(.gz) files.
+
+    The quality string is the raw FASTQ line, one Phred+33 char per base,
+    same length and order as ``sequence``. It flows through the well buffer
+    and the aligner unchanged and is what lets ``consensus.py`` apply its
+    per-base quality filter (``min_base_quality``); before this it was read
+    and discarded here, so that filter never saw a real quality value.
+    """
     for path in paths:
         opener = gzip.open if str(path).endswith(".gz") else open
         with opener(path, "rt") as fh:
@@ -906,10 +913,10 @@ def _iter_fastq(paths: list[Path]) -> Iterator[tuple[str, str]]:
                     break
                 seq = fh.readline().rstrip("\n")
                 fh.readline()   # '+'
-                fh.readline()   # quality
+                qual = fh.readline().rstrip("\n")
                 if seq:
                     read_id = header[1:].split()[0].rstrip("\n")
-                    yield read_id, seq
+                    yield read_id, seq, qual
 
 
 #: Queue depth (in chunks) of the FASTQ prefetch thread. 0 disables prefetch
@@ -1839,16 +1846,18 @@ class _WellReadBuffer:
     first touch (``first_touch`` in ``ingest/consensus.py``). Nothing here may
     reorder reads within a well.
 
-    The spill format is one ``read_id<TAB>sequence`` line per read.
-    ``_iter_fastq`` takes the read id as ``header[1:].split()[0]``, so it can
-    contain neither a tab nor a newline and needs no escaping.
+    The spill format is one ``read_id<TAB>sequence<TAB>quality`` line per
+    read. ``_iter_fastq`` takes the read id as ``header[1:].split()[0]``, so
+    it can contain neither a tab nor a newline and needs no escaping; the
+    Phred+33 quality string is likewise restricted to printable ASCII
+    (33-126) by the FASTQ format and cannot contain either character either.
     """
 
     __slots__ = ("_budget", "_mem", "_counts", "_sizes", "_bytes", "_tmp", "_spilled")
 
     def __init__(self, budget_bytes: int) -> None:
         self._budget = budget_bytes
-        self._mem: dict[tuple[int, int], list[tuple[str, str]]] = defaultdict(list)
+        self._mem: dict[tuple[int, int], list[tuple[str, str, str]]] = defaultdict(list)
         self._counts: dict[tuple[int, int], int] = {}
         self._sizes: dict[tuple[int, int], int] = {}
         self._bytes = 0
@@ -1860,11 +1869,11 @@ class _WellReadBuffer:
         """True once anything has been written to disk (final after the read loop)."""
         return bool(self._spilled)
 
-    def append(self, well: tuple[int, int], read_id: str, seq: str) -> None:
-        self._mem[well].append((read_id, seq))
+    def append(self, well: tuple[int, int], read_id: str, seq: str, qual: str) -> None:
+        self._mem[well].append((read_id, seq, qual))
         self._counts[well] = self._counts.get(well, 0) + 1
         self._sizes[well] = self._sizes.get(well, 0) + len(seq)
-        self._bytes += len(seq) + len(read_id) + 1
+        self._bytes += len(seq) + len(qual) + len(read_id) + 1
         if self._budget and self._bytes > self._budget:
             self.flush()
 
@@ -1892,20 +1901,21 @@ class _WellReadBuffer:
                 if not reads:
                     continue
                 with self._path(well).open("a", encoding="utf-8") as fh:
-                    fh.writelines(f"{rid}\t{seq}\n" for rid, seq in reads)
+                    fh.writelines(f"{rid}\t{seq}\t{qual}\n" for rid, seq, qual in reads)
                 self._spilled.add(well)
         self._mem.clear()
         self._bytes = 0
 
-    def load(self, well: tuple[int, int]) -> list[tuple[str, str]]:
+    def load(self, well: tuple[int, int]) -> list[tuple[str, str, str]]:
         """Return this well's reads in append order (spilled part first)."""
-        out: list[tuple[str, str]] = []
+        out: list[tuple[str, str, str]] = []
         if well in self._spilled:
             with TIMER.phase("well_buffer_reload"):
                 with self._path(well).open(encoding="utf-8") as fh:
                     for line in fh:
-                        rid, _tab, seq = line.rstrip("\n").partition("\t")
-                        out.append((rid, seq))
+                        rid, _tab, rest = line.rstrip("\n").partition("\t")
+                        seq, _tab2, qual = rest.partition("\t")
+                        out.append((rid, seq, qual))
         out.extend(self._mem.get(well, ()))
         return out
 
@@ -1913,7 +1923,7 @@ class _WellReadBuffer:
         """Drop a well's reads once its consensus is written."""
         reads = self._mem.pop(well, None)
         if reads:
-            self._bytes -= sum(len(s) + len(r) + 1 for r, s in reads)
+            self._bytes -= sum(len(s) + len(q) + len(r) + 1 for r, s, q in reads)
         if well in self._spilled:
             self._spilled.discard(well)
             self._path(well).unlink(missing_ok=True)
@@ -1925,10 +1935,10 @@ class _WellReadBuffer:
 
 
 def _iter_chunks(
-    it: Iterator[tuple[str, str]], size: int
-) -> Iterator[list[tuple[str, str]]]:
+    it: Iterator[tuple[str, str, str]], size: int
+) -> Iterator[list[tuple[str, str, str]]]:
     """Yield successive ``size``-length lists from *it* (last may be shorter)."""
-    chunk: list[tuple[str, str]] = []
+    chunk: list[tuple[str, str, str]] = []
     for item in it:
         chunk.append(item)
         if len(chunk) >= size:
@@ -1945,7 +1955,7 @@ def _match_reads_chunk(
     window_bp: int,
     edit_dist_ratio: float,
     trim_flank_bp: int,
-) -> list[tuple[int, list[tuple[int, int, str]], int, int, int, list[int]]]:
+) -> list[tuple[int, list[tuple[int, int, str, str]], int, int, int, list[int]]]:
     """Pure per-read barcode matching for the chimera (multi-hit) path.
 
     Module-level (no closure) so it is picklable for a ``spawn`` ProcessPool.
@@ -1960,13 +1970,14 @@ def _match_reads_chunk(
     chunk:
         ``(read_index, read_id, read_seq, hits)`` tuples. ``read_index`` is the
         position in the original ``multi_results`` list, used by the caller to
-        re-sort results into input order before appending.
+        re-sort results into input order before appending. Each ``hit`` carries
+        ``read_qual`` matching the read's full, unsliced ``read_seq``.
 
     Returns
     -------
     One tuple per input read: ``(read_index, appends, assigned_delta,
     chimera_delta, ambiguous_delta, drop_deltas)`` where ``appends`` is the
-    ordered list of ``(r_idx, f_idx, slice_seq)`` to push onto
+    ordered list of ``(r_idx, f_idx, slice_seq, slice_qual)`` to push onto
     ``per_well[(r_idx, f_idx)]``, the three deltas are this read's contribution
     to the matching stats, and ``drop_deltas`` splits ``ambiguous_delta`` across
     :data:`_DROP_REASON_FIELDS` (same order, and it sums to ``ambiguous_delta``).
@@ -1975,12 +1986,12 @@ def _match_reads_chunk(
     plan = _build_barcode_plan(r_barcodes, f_barcodes, edit_dist_ratio)
 
     out: list[
-        tuple[int, list[tuple[int, int, str]], int, int, int, list[int]]
+        tuple[int, list[tuple[int, int, str, str]], int, int, int, list[int]]
     ] = []
     for read_index, _read_id, read_seq, hits in chunk:
         assigned_wells_this_read: set[tuple[int, int]] = set()
         is_first_hit = True
-        appends: list[tuple[int, int, str]] = []
+        appends: list[tuple[int, int, str, str]] = []
         assigned_delta = 0
         chimera_delta = 0
         ambiguous_delta = 0
@@ -1991,6 +2002,7 @@ def _match_reads_chunk(
             slice_start = max(0, hit.q_st - trim_flank_bp)
             slice_end = min(len(read_seq), hit.q_en + trim_flank_bp)
             slice_seq = read_seq[slice_start:slice_end]
+            slice_qual = (hit.read_qual or "")[slice_start:slice_end]
 
             q_st_in_slice = hit.q_st - slice_start
             q_en_in_slice = hit.q_en - slice_start
@@ -2030,7 +2042,7 @@ def _match_reads_chunk(
                 continue
 
             assigned_wells_this_read.add(well)
-            appends.append((r_idx, f_idx, slice_seq))
+            appends.append((r_idx, f_idx, slice_seq, slice_qual))
 
             if is_first_hit:
                 assigned_delta += 1
@@ -2332,7 +2344,7 @@ def _run_combinatorial_demux_body(
     for chunk_reads in timed_iter(_read_chunks, "fastq_read"):
         stats.total_reads += len(chunk_reads)
         _chunk_offset = _name_offset
-        _name_offset += sum(1 for _rid, _seq in chunk_reads if _seq)
+        _name_offset += sum(1 for _rid, _seq, _qual in chunk_reads if _seq)
 
         if chimera_split:
             # --- multi-hit path: chimera / concatemer splitting ------------
@@ -2413,7 +2425,7 @@ def _run_combinatorial_demux_body(
                 ]
 
                 collected: list[
-                    tuple[int, list[tuple[int, int, str]], int, int, int,
+                    tuple[int, list[tuple[int, int, str, str]], int, int, int,
                           list[int]]
                 ] = []
                 ctx = _demux_mp_context()
@@ -2452,8 +2464,8 @@ def _run_combinatorial_demux_body(
                     drop_d,
                 ) in collected:
                     read_id = id_by_index[read_index]
-                    for r_idx, f_idx, slice_seq in appends:
-                        per_well.append((r_idx, f_idx), read_id, slice_seq)
+                    for r_idx, f_idx, slice_seq, slice_qual in appends:
+                        per_well.append((r_idx, f_idx), read_id, slice_seq, slice_qual)
                     stats.assigned_reads += assigned_d
                     stats.chimera_splits += chimera_d
                     stats.ambiguous_dropped += ambiguous_d
@@ -2482,6 +2494,7 @@ def _run_combinatorial_demux_body(
                         slice_start = max(0, hit.q_st - trim_flank_bp)
                         slice_end = min(len(read_seq), hit.q_en + trim_flank_bp)
                         slice_seq = read_seq[slice_start:slice_end]
+                        slice_qual = (hit.read_qual or "")[slice_start:slice_end]
 
                         # Alignment anchors within the slice coordinate space.
                         # q_st/q_en are absolute positions in read_seq.
@@ -2521,7 +2534,7 @@ def _run_combinatorial_demux_body(
                             continue
 
                         assigned_wells_this_read.add(well)
-                        per_well.append(well, read_id, slice_seq)
+                        per_well.append(well, read_id, slice_seq, slice_qual)
 
                         if is_first_hit:
                             stats.assigned_reads += 1
@@ -2563,7 +2576,7 @@ def _run_combinatorial_demux_body(
             _t_match = time.perf_counter()
             legacy_drop_sink: list[int] = []
             for aln in alignments:
-                trimmed = _trim_read(aln, aln.read_seq, trim_flank_bp)
+                trimmed, trimmed_qual = _trim_read(aln, aln.read_seq, trim_flank_bp)
                 legacy_drop_sink.clear()
                 result = _demux_read_anchored(
                     read_seq=aln.read_seq,
@@ -2584,7 +2597,7 @@ def _run_combinatorial_demux_body(
                         setattr(stats, name, getattr(stats, name) + 1)
                     continue
                 r_idx, f_idx = result
-                per_well.append((r_idx, f_idx), aln.read_id, trimmed)
+                per_well.append((r_idx, f_idx), aln.read_id, trimmed, trimmed_qual)
                 stats.assigned_reads += 1
             TIMER.add("barcode_match", time.perf_counter() - _t_match)
 
@@ -2640,7 +2653,7 @@ def _run_combinatorial_demux_body(
     # spilled, i.e. when holding them costs nothing beyond what the run already
     # held; a spilled run reports read COUNTS instead (per_well_read_counts,
     # which is what every production consumer of this field actually reads).
-    per_well_reads: dict[str, list[tuple[str, str]]] = {}
+    per_well_reads: dict[str, list[tuple[str, str, str]]] = {}
     _materialise_reads = not per_well.spilled
 
     # Build the reference minimap2 index once (map-ont preset, identical to the
@@ -2719,7 +2732,7 @@ def _run_combinatorial_demux_body(
 
     def _run_well(
         well_name: str,
-        reads: list[tuple[str, str]],
+        reads: list[tuple[str, str, str]],
         alignments: list[Alignment],
     ) -> tuple[str, WellConsensus]:
         """Worker: the well name paired with its whole consensus result.
@@ -2764,7 +2777,7 @@ def _run_combinatorial_demux_body(
                 # align_reads_grouped skips empty sequences when it assigns indices, so
                 # the offset must advance by the same count.
                 _cons_name_offset += sum(
-                    1 for _wn, rds in groups for _rid, _seq in rds if _seq
+                    1 for _wn, rds in groups for _rid, _seq, _qual in rds if _seq
                 )
 
                 if keep_well_reads:
@@ -2777,7 +2790,7 @@ def _run_combinatorial_demux_body(
                         for well_name, reads in groups:
                             atomic_write_text(
                                 reads_dir / f"{well_name}.fasta",
-                                "".join(f">{rid}\n{seq}\n" for rid, seq in reads),
+                                "".join(f">{rid}\n{seq}\n" for rid, seq, _qual in reads),
                                 fsync=False,
                             )
                 if _materialise_reads:
@@ -2893,11 +2906,19 @@ def _run_combinatorial_demux_body(
 # ---------------------------------------------------------------------------
 
 
-def _trim_read(aln: Alignment, original_seq: str, flank_bp: int) -> str:
-    """Return the aligned region of a read with +/-flank_bp flanks."""
+def _trim_read(
+    aln: Alignment, original_seq: str, flank_bp: int
+) -> tuple[str, str]:
+    """Return the aligned region of a read, and its matching quality slice,
+    with +/-flank_bp flanks. ``aln.read_qual`` is the full, unsliced quality
+    string paired with ``original_seq`` (see ``Alignment.read_qual``); when it
+    is ``None`` (no quality available for this read) the quality slice is the
+    empty string, same as an unsliced qual of ``None`` would be.
+    """
     start = max(0, aln.q_st - flank_bp)
     end = min(len(original_seq), aln.q_en + flank_bp)
-    return original_seq[start:end]
+    qual = aln.read_qual or ""
+    return original_seq[start:end], qual[start:end]
 
 
 class WellConsensus(NamedTuple):
@@ -3000,7 +3021,7 @@ def _empty_well_consensus(ref_len: int, input_reads: int) -> WellConsensus:
 
 def _compute_well_consensus(
     well_name: str,
-    reads: list[tuple[str, str]],
+    reads: list[tuple[str, str, str]],
     well_alignments: list[Alignment],
     ref_seq: str,
     ref_len: int,
