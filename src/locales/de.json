@@ -2543,14 +2543,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "MAME steht jetzt für Mutagenesis Assessment and Measurement Export, in der App und in der gesamten Dokumentation.",
-      "Die alte zweite Hälfte benannte ein Nebenprodukt, zeigte auf das andere Teilwerkzeug und stützte sich auf einen überspringbaren Schritt.",
-      "Messwerte entgegenzunehmen und die Eingabe der nächsten Runde zu schreiben ist der Schritt, den jeder Lauf durchläuft.",
-      "Den Gegenstand des Exports in den Namen zu nehmen trennt ihn vom Platten- und Bestellexport auf der anderen Seite der App.",
-      "Ältere Versionshinweise behalten die alte Schreibweise, weil jene Versionen genau diesen Namen anzeigten."
+      "Die Plattenvorschau nennt das gezeichnete Paar, wie viel der Platte der Lauf belegt und warum die Lücken da sind.",
+      "Wells, die dieser Lauf nicht erreicht, bekommen einen gestrichelten Rand und sehen nicht mehr aus wie einfach leere Wells.",
+      "Vorwärts und rückwärts waren bei zwei der vier Startpunkte vertauscht und folgen jetzt dem Lauf statt der Zeilennummer.",
+      "Raster, Popover und Legende beantworten die Richtungsfrage aus einer Quelle statt aus zweien.",
+      "Ein Lauf belegt zwei Quadranten, eine Platte fasst also zwei Runden, und die Fortschrittszeile sagt das."
     ],
-    "highlightsStamp": "0.16.52+7c46035e",
+    "highlightsStamp": "0.16.53+39ca20cf",
     "releases": {
+      "0.16.53": [
+        "Die Plattenvorschau nennt das gezeichnete Paar, wie viel der Platte der Lauf belegt und warum die Lücken da sind.",
+        "Wells, die dieser Lauf nicht erreicht, bekommen einen gestrichelten Rand und sehen nicht mehr aus wie einfach leere Wells.",
+        "Vorwärts und rückwärts waren bei zwei der vier Startpunkte vertauscht und folgen jetzt dem Lauf statt der Zeilennummer.",
+        "Raster, Popover und Legende beantworten die Richtungsfrage aus einer Quelle statt aus zweien.",
+        "Ein Lauf belegt zwei Quadranten, eine Platte fasst also zwei Runden, und die Fortschrittszeile sagt das."
+      ],
       "0.16.52": [
         "MAME steht jetzt für Mutagenesis Assessment and Measurement Export, in der App und in der gesamten Dokumentation.",
         "Die alte zweite Hälfte benannte ein Nebenprodukt, zeigte auf das andere Teilwerkzeug und stützte sich auf einen überspringbaren Schritt.",
@@ -2931,6 +2938,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.53": "39ca20cf",
       "0.16.52": "7c46035e",
       "0.16.51": "da55c894",
       "0.16.50": "e59fd423",

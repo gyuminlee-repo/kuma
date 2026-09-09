@@ -2597,14 +2597,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "MAME now expands as Mutagenesis Assessment and Measurement Export, in the app and across the documentation.",
-      "The old second half named a side product, pointed at the other sub-tool, and rested on a step that can be skipped.",
-      "Taking measurements and writing the next round input is the step every run passes through, so the name points there.",
-      "Naming what gets exported keeps this apart from the plate and order export on the other side of the app.",
-      "Past release notes keep the old wording, because that is the name those versions actually displayed."
+      "The plate preview says which pair it draws, how much of the plate the run uses, and why the gaps are there.",
+      "Wells the run cannot reach are drawn with a dashed border, so they no longer look like wells that are simply empty.",
+      "Forward and reverse were coloured backwards for two of the four starting points, and now follow the run rather than the row.",
+      "The grid, the popover and the legend answer the direction question from one place instead of two.",
+      "A run uses two quadrants rather than one, so a plate holds two rounds, and the progress line reflects that."
     ],
-    "highlightsStamp": "0.16.52+7c46035e",
+    "highlightsStamp": "0.16.53+39ca20cf",
     "releases": {
+      "0.16.53": [
+        "The plate preview says which pair it draws, how much of the plate the run uses, and why the gaps are there.",
+        "Wells the run cannot reach are drawn with a dashed border, so they no longer look like wells that are simply empty.",
+        "Forward and reverse were coloured backwards for two of the four starting points, and now follow the run rather than the row.",
+        "The grid, the popover and the legend answer the direction question from one place instead of two.",
+        "A run uses two quadrants rather than one, so a plate holds two rounds, and the progress line reflects that."
+      ],
       "0.16.52": [
         "MAME now expands as Mutagenesis Assessment and Measurement Export, in the app and across the documentation.",
         "The old second half named a side product, pointed at the other sub-tool, and rested on a step that can be skipped.",
@@ -2985,6 +2992,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.53": "39ca20cf",
       "0.16.52": "7c46035e",
       "0.16.51": "da55c894",
       "0.16.50": "e59fd423",

@@ -2543,14 +2543,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "MAME se développe désormais en Mutagenesis Assessment and Measurement Export, dans application et dans toute la documentation.",
-      "ancienne seconde moitié nommait un sous-produit, désignait autre sous-outil et reposait sur une étape que on peut sauter.",
-      "Recevoir les mesures et écrire entrée du tour suivant est étape par laquelle passe chaque exécution.",
-      "Nommer ce qui est exporté le distingue de export de plaques et de commandes de autre côté de application.",
-      "Les notes des versions passées gardent ancienne forme, puisque est le nom que ces versions affichaient."
+      "aperçu de la plaque indique quelle paire il dessine, quelle part de la plaque le passage occupe et pourquoi il y a des trous.",
+      "Les puits que ce passage atteint pas ont un bord en pointillés et ne ressemblent plus à des puits simplement vides.",
+      "Sur deux des quatre points de départ les couleurs avant et arrière étaient inversées ; elles suivent maintenant le passage.",
+      "Grille, infobulle et légende tranchent la question du sens au même endroit au lieu de deux.",
+      "Un passage occupe deux quadrants, donc une plaque tient deux tours, et la ligne de progression le dit."
     ],
-    "highlightsStamp": "0.16.52+7c46035e",
+    "highlightsStamp": "0.16.53+39ca20cf",
     "releases": {
+      "0.16.53": [
+        "aperçu de la plaque indique quelle paire il dessine, quelle part de la plaque le passage occupe et pourquoi il y a des trous.",
+        "Les puits que ce passage atteint pas ont un bord en pointillés et ne ressemblent plus à des puits simplement vides.",
+        "Sur deux des quatre points de départ les couleurs avant et arrière étaient inversées ; elles suivent maintenant le passage.",
+        "Grille, infobulle et légende tranchent la question du sens au même endroit au lieu de deux.",
+        "Un passage occupe deux quadrants, donc une plaque tient deux tours, et la ligne de progression le dit."
+      ],
       "0.16.52": [
         "MAME se développe désormais en Mutagenesis Assessment and Measurement Export, dans application et dans toute la documentation.",
         "ancienne seconde moitié nommait un sous-produit, désignait autre sous-outil et reposait sur une étape que on peut sauter.",
@@ -2931,6 +2938,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.53": "39ca20cf",
       "0.16.52": "7c46035e",
       "0.16.51": "da55c894",
       "0.16.50": "e59fd423",
