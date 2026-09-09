@@ -1159,7 +1159,8 @@
         "median_depth_below_floor": "Median depth {{median}} is under the floor of {{floor}}.",
         "median_depth_below_recommended": "Median depth {{median}} is under the recommended {{recommended}} reads per amplicon.",
         "flow_cell_reused": "Flow cell {{cell}} already carried a run in this project, which ended with {{previousPores}} pores.",
-        "variants_at_reference_edge": "{{variants}} sit within {{margin}} bp of an end of the reference, and this run aligned against the reference as supplied. An aligner clips a read at a mismatch it cannot attach, so those positions can see less depth than the well reports. A reference that includes the primer binding regions puts them further inside."
+        "variants_at_reference_edge": "{{variants}} sit within {{margin}} bp of an end of the reference, and this run aligned against the reference as supplied. An aligner clips a read at a mismatch it cannot attach, so those positions can see less depth than the well reports. A reference that includes the primer binding regions puts them further inside.",
+        "amplicon_extraction_skipped": "The primer-bounded amplicon could not be located in the reference, so this run aligned against the reference exactly as it was supplied. Amino-acid positions and the coverage gate are relative to that reference. If it holds only a coding sequence rather than the sequenced amplicon, run it again with the construct or with the amplicon itself, so the primer binding regions are present."
       },
       "positionRecurrence": {
         "title": "Recurring positions",

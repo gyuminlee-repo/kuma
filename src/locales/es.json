@@ -1006,7 +1006,8 @@
         "median_depth_below_floor": "Profundidad mediana {{median}} por debajo del minimo de {{floor}}.",
         "median_depth_below_recommended": "Profundidad mediana {{median}} por debajo de las {{recommended}} lecturas por amplicon recomendadas.",
         "flow_cell_reused": "La celda {{cell}} ya llevo una ejecucion en este proyecto, que termino con {{previousPores}} poros.",
-        "variants_at_reference_edge": "{{variants}} estan a menos de {{margin}} pb de un extremo de la referencia, y esta ejecucion alineo contra la referencia tal como se entrego. Un alineador corta una lectura en un desapareamiento que no puede unir, asi que esas posiciones pueden ver menos profundidad de la que informa el pocillo. Una referencia que incluya las regiones de union de los cebadores las deja mas hacia adentro."
+        "variants_at_reference_edge": "{{variants}} estan a menos de {{margin}} pb de un extremo de la referencia, y esta ejecucion alineo contra la referencia tal como se entrego. Un alineador corta una lectura en un desapareamiento que no puede unir, asi que esas posiciones pueden ver menos profundidad de la que informa el pocillo. Una referencia que incluya las regiones de union de los cebadores las deja mas hacia adentro.",
+        "amplicon_extraction_skipped": "No se pudo localizar en la referencia el tramo del amplicon delimitado por los cebadores, asi que esta ejecucion alineo contra la referencia tal como se entrego. Las posiciones de aminoacidos y el filtro de coverage se miden sobre esa referencia. Si solo contiene la CDS y no el amplicon secuenciado, vuelva a ejecutar con el constructo o con el amplicon."
       },
       "positionRecurrence": {
         "title": "Posiciones recurrentes",

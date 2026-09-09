@@ -1006,7 +1006,8 @@
         "median_depth_below_floor": "深度中位數 {{median}} 低於下限 {{floor}}。",
         "median_depth_below_recommended": "深度中位數 {{median}} 低於建議的每個擴增子 {{recommended}} 條讀段。",
         "flow_cell_reused": "流通池 {{cell}} 在本專案中已執行過一次，結束時孔隙為 {{previousPores}}。",
-        "variants_at_reference_edge": "{{variants}} 位於參考序列末端 {{margin}} bp 以內，而本次執行直接使用了所提供的參考序列。比對器會在無法連接的錯配處截斷讀段，因此這些位置的深度可能低於該孔報告的深度。改用包含引子結合區的參考序列可讓它們更靠內。"
+        "variants_at_reference_edge": "{{variants}} 位於參考序列末端 {{margin}} bp 以內，而本次執行直接使用了所提供的參考序列。比對器會在無法連接的錯配處截斷讀段，因此這些位置的深度可能低於該孔報告的深度。改用包含引子結合區的參考序列可讓它們更靠內。",
+        "amplicon_extraction_skipped": "未能在參考序列中定位引子界定的 amplicon 區間，因此本次執行直接使用了所提供的參考序列。胺基酸位置與 coverage 判定均以該參考序列為準。若它只包含 CDS 而非定序得到的 amplicon，請改用完整 construct 或 amplicon 重新執行。"
       },
       "positionRecurrence": {
         "title": "反覆出現的位點",
