@@ -85,6 +85,7 @@ def _resolve_single(
     sequence: str,
     target_start: int,
     group_id: Optional[str],
+    organism: str,
 ) -> Mutation:
     """Parse one single-mutation notation and resolve its codon in *sequence*.
 
@@ -93,6 +94,9 @@ def _resolve_single(
         sequence: Full plasmid DNA sequence (uppercase).
         target_start: 0-based position of the CDS start codon (ATG).
         group_id: Original multi-mutation notation for traceability (or None).
+        organism: Codon-table key the seed mutant codon is drawn from.
+            Required rather than defaulted so that a caller holding an
+            organism cannot silently fall back to the E. coli table.
 
     Returns:
         Fully resolved Mutation object.
@@ -124,7 +128,7 @@ def _resolve_single(
         mt_aa=mt_aa,
         codon_start=codon_start,
         wt_codon=wt_codon,
-        mt_codon=best_codon(mt_aa),
+        mt_codon=best_codon(mt_aa, organism),
         group_id=group_id,
     )
 
@@ -133,6 +137,7 @@ def parse_mutations(
     csv_path: Path,
     sequence: str,
     target_start: int,
+    organism: str,
 ) -> list[Mutation]:
     """Parse a CSV file of mutations and resolve codon positions.
 
@@ -145,6 +150,9 @@ def parse_mutations(
         csv_path: Path to the CSV file.
         sequence: Full plasmid DNA sequence (uppercase).
         target_start: 0-based position of the CDS start codon (ATG).
+        organism: Codon-table key the seed mutant codons are drawn from.
+            Required rather than defaulted so that a caller holding an
+            organism cannot silently fall back to the E. coli table.
 
     Returns:
         List of Mutation objects with resolved codon information.
@@ -173,7 +181,9 @@ def parse_mutations(
 
             for notation in individual:
                 mutations.append(
-                    _resolve_single(notation, sequence, target_start, group_id)
+                    _resolve_single(
+                        notation, sequence, target_start, group_id, organism
+                    )
                 )
 
     return mutations
