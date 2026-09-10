@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.16.56 (Read quality reaches the consensus filter, and a skipped amplicon cut is announced)
+
+Two faults in the MAME raw run path, both silent, both able to change which clones a plate reports.
+
+The consensus stage carries a minimum base quality filter with a default of 10, and on a raw run that filter had never excluded anything. The FASTQ reader read the quality line and threw it away, so every alignment arriving at the consensus caller held no quality at all and the filter had nothing to act on. The count of low quality bases was zero whatever the input. Quality now travels from the FASTQ reader through the read buffer, the chimera and single hit paths and the trimmer into the alignment, so a base below the threshold is dropped where it always should have been. A fixture pins the effect on a call: seven low quality reads carrying a wrong base no longer outvote three high quality reads carrying the right one.
+
+The second fault concerns the reference an analyze run scores against. A raw run locates the barcode workbook primer tails inside the supplied reference and cuts the amplicon between them. When that search fails the run does not stop, because the coverage guard refuses only a reference no read could cover, and a bare coding sequence clears it comfortably. The plate then finished and looked ordinary while being scored against a region shorter than what was sequenced. The cost falls on correct clones that are discarded, a direction a reader of the table cannot detect. The operator who reported it saw 74 designed variants recovered against a coding sequence reference where the amplicon reference gave 84, from the same reads over the same 92 wells.
+
+A run quality warning now fires whenever no amplicon was cut, carrying the reason the resolver recorded. It warns rather than refuses, because a reference already trimmed of its primer regions reaches the same branch and is harmless, and nothing in the file separates that case from the damaging one.
+
+### Highlights
+
+- Raw run consensus now applies the minimum base quality filter, which had no effect because the FASTQ quality line was discarded.
+- A base under the quality threshold no longer counts toward a call, so a low quality majority cannot outvote a high quality minority.
+- An analyze run now warns when no amplicon could be cut from the supplied reference, and names the reason the search failed.
+- That case used to pass in silence and score the plate against a shorter region, which discards correct clones without saying so.
+- The new finding warns rather than refuses, because a reference already trimmed of its primer regions reaches the same branch and is fine.
+
 ## v0.16.55 (One reported run figure for MAME, and every label says what it counts)
 
 A decision taken in August made the success rate the single reported MAME run figure. It counts PASS alone, because the pick list exports PASS alone and nothing wider can be carried to the instrument. Two headline percentages over one denominator invite quoting whichever is higher, so only one of them is the reported figure.

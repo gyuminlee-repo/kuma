@@ -2598,14 +2598,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The MAME run report and the exported workbook now lead with the success rate, which counts PASS alone.",
-      "Every rate label names the verdict set it counts, so the wider figure cannot be read as the reported one.",
-      "The reproduced figure, counting PASS and AMBIGUOUS, stays as a supporting line rather than being dropped.",
-      "Both rates take their denominator from one piece of code, so the two cannot drift apart.",
-      "The recovered and total mutant counts in the workbook are unchanged, so existing analyses still read them."
+      "Raw run consensus now applies the minimum base quality filter, which had no effect because the FASTQ quality line was discarded.",
+      "A base under the quality threshold no longer counts toward a call, so a low quality majority cannot outvote a high quality minority.",
+      "An analyze run now warns when no amplicon could be cut from the supplied reference, and names the reason the search failed.",
+      "That case used to pass in silence and score the plate against a shorter region, which discards correct clones without saying so.",
+      "The new finding warns rather than refuses, because a reference already trimmed of its primer regions reaches the same branch and is fine."
     ],
-    "highlightsStamp": "0.16.55+0e44b7f4",
+    "highlightsStamp": "0.16.56+9b525cb2",
     "releases": {
+      "0.16.56": [
+        "Raw run consensus now applies the minimum base quality filter, which had no effect because the FASTQ quality line was discarded.",
+        "A base under the quality threshold no longer counts toward a call, so a low quality majority cannot outvote a high quality minority.",
+        "An analyze run now warns when no amplicon could be cut from the supplied reference, and names the reason the search failed.",
+        "That case used to pass in silence and score the plate against a shorter region, which discards correct clones without saying so.",
+        "The new finding warns rather than refuses, because a reference already trimmed of its primer regions reaches the same branch and is fine."
+      ],
       "0.16.55": [
         "The MAME run report and the exported workbook now lead with the success rate, which counts PASS alone.",
         "Every rate label names the verdict set it counts, so the wider figure cannot be read as the reported one.",
@@ -3007,6 +3014,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",

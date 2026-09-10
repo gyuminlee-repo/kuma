@@ -239,7 +239,7 @@ def _classify_consensus_diff(
     return "tie-only"
 
 
-def _pileup_at(well_reads: list[tuple[str, str]], pos: int) -> dict[str, int]:
+def _pileup_at(well_reads: list[tuple[str, str, str]], pos: int) -> dict[str, int]:
     """Rebuild the per-position base-count pileup for a well at *pos*."""
     ref_seq = _read_reference_seq(FIXTURE_DIR / "reference.fasta")
     alns = align_reads(

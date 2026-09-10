@@ -2598,14 +2598,21 @@
     "descriptionRange": "v{{from}} 이후 모든 업데이트의 주요 변경 사항입니다.",
     "gotItBtn": "확인",
     "highlights": [
-      "MAME 실행 리포트와 내보낸 워크북이 이제 PASS 만 세는 성공률을 앞에 둔다.",
-      "각 비율 라벨이 세는 verdict 집합을 명시하므로 더 넓은 수치를 보고 값으로 읽을 수 없다.",
-      "PASS 와 AMBIGUOUS 를 세는 재현 수치는 삭제하지 않고 보조 항목으로 남는다.",
-      "두 비율이 분모를 같은 코드에서 가져오므로 서로 어긋날 수 없다.",
-      "워크북의 recovered 및 total mutant 수치는 그대로라서 기존 분석이 계속 읽는다."
+      "raw run consensus 가 이제 minimum base quality 필터를 적용한다. 그동안 FASTQ quality 줄을 버려서 효과가 없었다.",
+      "품질 임계값 아래의 base 는 더 이상 call 에 반영되지 않으므로 저품질 다수가 고품질 소수를 이길 수 없다.",
+      "analyze 실행이 이제 주어진 reference 에서 amplicon 을 잘라내지 못하면 경고하고 실패 사유를 함께 알린다.",
+      "이전에는 이 경우가 조용히 통과해 더 짧은 구간으로 plate 를 채점했고 정상 clone 이 말없이 버려졌다.",
+      "새 finding 은 거부가 아니라 경고다. primer 구간이 이미 잘린 reference 도 같은 분기에 닿는데 이쪽은 정상이기 때문이다."
     ],
-    "highlightsStamp": "0.16.55+0e44b7f4",
+    "highlightsStamp": "0.16.56+9b525cb2",
     "releases": {
+      "0.16.56": [
+        "raw run consensus 가 이제 minimum base quality 필터를 적용한다. 그동안 FASTQ quality 줄을 버려서 효과가 없었다.",
+        "품질 임계값 아래의 base 는 더 이상 call 에 반영되지 않으므로 저품질 다수가 고품질 소수를 이길 수 없다.",
+        "analyze 실행이 이제 주어진 reference 에서 amplicon 을 잘라내지 못하면 경고하고 실패 사유를 함께 알린다.",
+        "이전에는 이 경우가 조용히 통과해 더 짧은 구간으로 plate 를 채점했고 정상 clone 이 말없이 버려졌다.",
+        "새 finding 은 거부가 아니라 경고다. primer 구간이 이미 잘린 reference 도 같은 분기에 닿는데 이쪽은 정상이기 때문이다."
+      ],
       "0.16.55": [
         "MAME 실행 리포트와 내보낸 워크북이 이제 PASS 만 세는 성공률을 앞에 둔다.",
         "각 비율 라벨이 세는 verdict 집합을 명시하므로 더 넓은 수치를 보고 값으로 읽을 수 없다.",
@@ -3007,6 +3014,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",
