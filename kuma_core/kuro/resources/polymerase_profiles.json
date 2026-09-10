@@ -1,6 +1,7 @@
 {
   "Taq": {
     "name": "Taq",
+    "proofreading": false,
     "tm_method": "santalucia",
     "salt_correction": "owczarzy",
     "opt_tm": 64.0,
@@ -48,6 +49,7 @@
   },
   "Phusion": {
     "name": "Phusion",
+    "proofreading": true,
     "tm_method": "santalucia",
     "salt_correction": "schildkraut",
     "opt_tm": 68.0,
@@ -95,6 +97,7 @@
   },
   "Q5": {
     "name": "Q5",
+    "proofreading": true,
     "tm_method": "santalucia",
     "salt_correction": "owczarzy",
     "opt_tm": 68.0,
@@ -142,6 +145,7 @@
   },
   "KOD": {
     "name": "KOD",
+    "proofreading": true,
     "tm_method": "santalucia",
     "salt_correction": "santalucia",
     "opt_tm": 68.0,
@@ -189,6 +193,7 @@
   },
   "DreamTaq": {
     "name": "DreamTaq",
+    "proofreading": false,
     "tm_method": "santalucia",
     "salt_correction": "owczarzy",
     "opt_tm": 66.0,
@@ -236,6 +241,7 @@
   },
   "TAKARA_GXL": {
     "name": "TAKARA_GXL",
+    "proofreading": true,
     "tm_method": "santalucia",
     "salt_correction": "owczarzy",
     "opt_tm": 62.0,
@@ -287,6 +293,7 @@
   },
   "Q5 SDM": {
     "name": "Q5 SDM",
+    "proofreading": true,
     "tm_method": "santalucia",
     "salt_correction": "owczarzy",
     "opt_tm": 68.0,

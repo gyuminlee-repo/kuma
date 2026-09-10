@@ -2052,7 +2052,8 @@
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
     "colSequence": "Séquence",
-    "thresholdNote": "Les seuils sont calibrés sur un seul jeu de données de test et sur des polymérases sans activité de relecture (Taq ; Kwok 1990, Huang 1992). Q5 et KOD One possèdent cette activité : ces hits sont donc indicatifs et non absolus."
+    "thresholdNote": "Le seuil de 45 °C a été mesuré sur un seul fixture (pSHCE-dmpR, Q5). Un site n'apparaît dans la liste que si sa base terminale 3' correspond exactement à la matrice ou si elle s'apparie de façon incorrecte à l'intérieur de l'overlap arm ; une liste courte ou vide n'est donc pas la preuve qu'aucun amorçage hors cible ne peut se produire.",
+    "proofreadingNote": "{{polymerase}} possède une activité de relecture (proofreading) et peut donc exciser un mésappariement terminal en 3' puis s'étendre à partir d'un site que ce tableau ne liste pas."
   },
   "hairpinDetail": {
     "title": "{{mutation}} — Structure secondaire",

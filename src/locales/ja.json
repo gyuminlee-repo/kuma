@@ -2052,7 +2052,8 @@
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
     "colSequence": "配列",
-    "thresholdNote": "しきい値は単一のテストデータセットと、校正活性をもたないポリメラーゼのデータ (Taq; Kwok 1990, Huang 1992) に基づいています。Q5 と KOD One は校正活性をもつため、これらのヒットは絶対的な判定ではなく目安として扱ってください。"
+    "thresholdNote": "45℃ のしきい値は、単一の fixture (pSHCE-dmpR、Q5) で測定した値です。ある部位は 3' 末端塩基が鋳型と完全に一致する場合、または overlap arm 内でミスアニールする場合にのみ表に列挙されるため、リストが短い、または空であることは off-target priming が起こらない証拠にはなりません。",
+    "proofreadingNote": "{{polymerase}} は proofreading 機能を持つため、3' 末端のミスマッチを除去し、この表に載っていない部位から伸長できます。"
   },
   "hairpinDetail": {
     "title": "{{mutation}} — Secondary Structure",

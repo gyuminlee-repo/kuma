@@ -53,6 +53,13 @@ class PolymeraseProfile:
     # Warning-only, consumed by sdm_engine._check_vendor_spec. Never affects
     # design-time Tm scale, candidate search, or penalty/ranking.
     vendor_spec: dict | None = None
+    # Whether this enzyme has 3'->5' exonuclease (proofreading) activity.
+    # None for custom profiles that do not declare it. Consumed by the
+    # off-target detail UI to caveat the listed hits (a proofreading enzyme
+    # can excise a 3' terminal mismatch and extend from a site the table
+    # does not list). Never affects design-time Tm scale, candidate search,
+    # off-target detection, or penalty/ranking.
+    proofreading: bool | None = None
 
 
 def _resource_path(relative_path: str) -> Path:
@@ -95,6 +102,7 @@ def _dict_to_profile(data: dict) -> PolymeraseProfile:
         default_overlap_mode=data.get("default_overlap_mode"),
         ta_rule=data.get("ta_rule"),
         vendor_spec=data.get("vendor_spec"),
+        proofreading=data.get("proofreading"),
     )
 
 

@@ -2052,7 +2052,8 @@
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
     "colSequence": "Sequência",
-    "thresholdNote": "Os limiares foram calibrados com um único conjunto de dados de teste e com dados de polimerases sem atividade corretora (Taq; Kwok 1990, Huang 1992). Q5 e KOD One possuem atividade corretora, portanto trate estes hits como indicativos e não como absolutos."
+    "thresholdNote": "O limiar de 45 °C foi medido em um único fixture (pSHCE-dmpR, Q5). Um sítio só aparece na lista quando sua base terminal 3' corresponde exatamente ao molde ou quando pareia incorretamente dentro do overlap arm, portanto uma lista curta ou vazia não é prova de que não possa ocorrer priming off-target.",
+    "proofreadingNote": "{{polymerase}} tem atividade corretora (proofreading), portanto pode excisar um mismatch terminal 3' e estender a partir de um sítio que esta tabela não lista."
   },
   "hairpinDetail": {
     "title": "{{mutation}} — Estrutura secundária",

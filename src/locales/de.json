@@ -2052,7 +2052,8 @@
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
     "colSequence": "Sequenz",
-    "thresholdNote": "Die Schwellenwerte beruhen auf einem einzelnen Testdatensatz und auf Daten zu Polymerasen ohne Korrekturlesefunktion (Taq; Kwok 1990, Huang 1992). Q5 und KOD One besitzen eine Korrekturlesefunktion, daher sind diese Treffer als Richtwerte und nicht als absolute Aussage zu lesen."
+    "thresholdNote": "Der Schwellenwert von 45 °C wurde an einem einzigen Fixture (pSHCE-dmpR, Q5) gemessen. Eine Stelle wird nur aufgeführt, wenn ihre 3'-terminale Base exakt mit der Vorlage übereinstimmt oder wenn sie innerhalb des Overlap-Arms fehlpaart, daher ist eine kurze oder leere Liste kein Beweis dafür, dass keine Off-Target-Primerbindung auftreten kann.",
+    "proofreadingNote": "{{polymerase}} besitzt eine Korrekturlesefunktion (Proofreading) und kann daher eine 3'-terminale Fehlpaarung entfernen und von einer Stelle aus verlängern, die in dieser Tabelle nicht aufgeführt ist."
   },
   "hairpinDetail": {
     "title": "{{mutation}}, Sekundärstruktur",

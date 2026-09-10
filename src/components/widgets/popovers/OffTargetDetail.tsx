@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useFocusTrap } from "../../../hooks/useFocusTrap";
+import { useAppStore } from "../../../store/appStore";
 import type { SdmPrimerResult } from "../../../types/models";
 
 type PrimerLabel = "Fwd" | "Rev";
@@ -17,6 +18,11 @@ export function OffTargetDetail({
 }) {
   const { t } = useTranslation();
   const focusTrapRef = useFocusTrap<HTMLDivElement>();
+  const selectedPolymerase = useAppStore((s) => s.selectedPolymerase);
+  const polymerases = useAppStore((s) => s.polymerases);
+  const selectedProfile = polymerases.find((p) => p.name === selectedPolymerase);
+  // Unknown or unset proofreading status renders nothing, never a silent false.
+  const showProofreadingNote = selectedProfile?.proofreading === true;
 
   const fwdHits = result.offtarget_fwd ?? [];
   const revHits = result.offtarget_rev ?? [];
@@ -89,6 +95,11 @@ export function OffTargetDetail({
             <p className="mt-3 text-xs leading-snug text-muted-foreground">
               {t("offTargetDetail.thresholdNote")}
             </p>
+            {showProofreadingNote ? (
+              <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                {t("offTargetDetail.proofreadingNote", { polymerase: selectedPolymerase })}
+              </p>
+            ) : null}
           </>
         )}
       </div>

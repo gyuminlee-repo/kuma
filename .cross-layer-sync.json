@@ -1330,6 +1330,25 @@
       ],
       "note": "Step 4.1 measurement source detection: the detector reads the file and reports every source it could be, so the six names in MEASUREMENT_SOURCES must match the MeasurementSource union in TS and the membership set the result validator checks. The membership tests are borrowed rather than re-written (_WELL_RE from plate_layout_xlsx, _BLOCK_REP_ID_RE and _iter_fid1b_blocks from evolvepro_xlsx, _short_variant and the column sets from build_evolvepro_input), so a change to any of those changes what this reports. Two pairs are reported as two candidates rather than resolved: a gcSheet is also a valid longFormat file, and a numeric-ID block file is numericReport or confirmationNumericIds because decode_primary_screen and decode_confirmation_against call the same parse_agilent_block_rep_batch.",
       "severity": "warning"
+    },
+    {
+      "id": "kuro-polymerase-proofreading",
+      "files": [
+        "kuma_core/kuro/resources/polymerase_profiles.json",
+        "kuma_core/kuro/polymerase.py",
+        "python-core/sidecar_kuro/handlers/misc.py",
+        "src/types/models.ts",
+        "src/components/widgets/popovers/OffTargetDetail.tsx"
+      ],
+      "symbols": [
+        "proofreading",
+        "PolymeraseProfile",
+        "PolymeraseProfileModel",
+        "handle_list_polymerases",
+        "PolymeraseInfo"
+      ],
+      "note": "polymerase_profiles.json의 proofreading 필드는 PolymeraseProfile dataclass(_dict_to_profile) -> handle_list_polymerases -> TS PolymeraseInfo/PolymeraseProfile -> OffTargetDetail의 proofreadingNote 조건부 렌더까지 한 줄로 흐른다. PolymeraseProfileModel(Pydantic)은 extra=\"allow\"라 필드 선언 없이 get_polymerase_details 응답에 그대로 실린다(ta_rule/vendor_spec과 같은 경로). 새 폴리머라제를 추가하면 JSON에 proofreading을 명시해야 UI가 조용히 미표시로 빠지지 않는다.",
+      "severity": "blocking"
     }
   ]
 }

@@ -2052,7 +2052,8 @@
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
     "colSequence": "序列",
-    "thresholdNote": "阈值基于单一测试数据集以及无校对活性的聚合酶数据 (Taq; Kwok 1990, Huang 1992) 标定。Q5 与 KOD One 具有校对活性，因此这些命中应视为方向性参考，而非绝对判定。"
+    "thresholdNote": "45℃ 阈值是在单一 fixture（pSHCE-dmpR，Q5）上测得的。只有当某位点的 3' 末端碱基与模板完全匹配，或在 overlap arm 内发生错配退火时，该位点才会列入表中，因此列表短或为空并不能证明不会发生 off-target 引物结合。",
+    "proofreadingNote": "{{polymerase}} 具有校对（proofreading）活性，因此可以切除 3' 末端错配并从本表未列出的位点延伸。"
   },
   "hairpinDetail": {
     "title": "{{mutation}} — 二级结构",

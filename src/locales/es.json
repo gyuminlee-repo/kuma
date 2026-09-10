@@ -2052,7 +2052,8 @@
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
     "colSequence": "Secuencia",
-    "thresholdNote": "Los umbrales se calibraron con un único conjunto de datos de prueba y con datos de polimerasas sin actividad correctora (Taq; Kwok 1990, Huang 1992). Q5 y KOD One sí corrigen, por lo que estos hits deben interpretarse como orientativos y no como absolutos."
+    "thresholdNote": "El umbral de 45 °C se midió en un único fixture (pSHCE-dmpR, Q5). Un sitio solo aparece en la lista cuando su base terminal 3' coincide exactamente con la plantilla o cuando se aparea mal dentro del overlap arm, por lo que una lista corta o vacía no es prueba de que no pueda producirse cebado fuera de objetivo (off-target).",
+    "proofreadingNote": "{{polymerase}} tiene actividad correctora (proofreading), por lo que puede eliminar un desapareamiento terminal 3' y extenderse desde un sitio que esta tabla no incluye."
   },
   "hairpinDetail": {
     "title": "{{mutation}} — Estructura secundaria",
