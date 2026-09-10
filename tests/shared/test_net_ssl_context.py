@@ -31,6 +31,7 @@ import os
 import ssl
 import sys
 import urllib.error
+from pathlib import Path
 
 import pytest
 
@@ -200,7 +201,12 @@ def test_env_wins_over_config(monkeypatch, tmp_path):
 
 def test_tilde_in_operator_ca_path_is_expanded(monkeypatch, tmp_path):
     monkeypatch.setenv(net.CA_BUNDLE_ENV, "~/proxy-ca.pem")
-    assert net.operator_ca_bundle() == str(tmp_path / "home" / "proxy-ca.pem")
+    # Compared as paths rather than strings. expanduser substitutes the tilde
+    # and leaves the rest of the value alone, so on Windows the result mixes
+    # separators: <profile>\...\home/proxy-ca.pem. That is a well formed path
+    # the OS and load_verify_locations both accept, and only a string equality
+    # rejects it, which is what failed both Windows jobs on PR 387.
+    assert Path(net.operator_ca_bundle()) == tmp_path / "home" / "proxy-ca.pem"
 
 
 # --- degradation ------------------------------------------------------------
