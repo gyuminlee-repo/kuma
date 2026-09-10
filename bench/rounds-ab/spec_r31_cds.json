@@ -1,0 +1,16 @@
+{
+  "mame": [
+    {"xlsx": "/mnt/d/_workspace/cc/claude-dotfiles/jobs/8a6b0e5c/tmp/rounds-ab/run3_1/armA/R3-1-amp_MAME.xlsx", "arm": "A", "round": "R3-1", "reference": "amplicon"},
+    {"xlsx": "/mnt/d/_workspace/cc/claude-dotfiles/jobs/8a6b0e5c/tmp/rounds-ab/run3_1/armAp_kr/R3-1-amp_MAME.xlsx", "arm": "Ap", "round": "R3-1", "reference": "amplicon"},
+    {"xlsx": "/mnt/d/_workspace/cc/claude-dotfiles/jobs/8a6b0e5c/tmp/rounds-ab/run2_amp/armA/R2-amp_MAME.xlsx", "arm": "A", "round": "R2", "reference": "amplicon"},
+    {"xlsx": "/mnt/d/_workspace/cc/claude-dotfiles/jobs/8a6b0e5c/tmp/rounds-ab/run2_amp/armAp_kr/R2-amp_MAME.xlsx", "arm": "Ap", "round": "R2", "reference": "amplicon"},
+    {"xlsx": "/mnt/d/_workspace/cc/claude-dotfiles/jobs/8a6b0e5c/tmp/rounds-ab/run3_1_cds/armA/R3-1-cds_MAME.xlsx", "arm": "A", "round": "R3-1", "reference": "cds"},
+    {"xlsx": "/mnt/d/_workspace/cc/claude-dotfiles/jobs/8a6b0e5c/tmp/rounds-ab/run3_1_cds/armAp_kr/R3-1-cds_MAME.xlsx", "arm": "Ap", "round": "R3-1", "reference": "cds"}
+  ],
+  "bc_json": [
+    "/mnt/d/_workspace/cc/claude-dotfiles/jobs/8a6b0e5c/tmp/rounds-ab/run3_1/bc_work/bc_results.json",
+    "/mnt/d/_workspace/cc/claude-dotfiles/jobs/8a6b0e5c/tmp/rounds-ab/run2_amp/bc_work/bc_results.json",
+    "/mnt/d/_workspace/cc/claude-dotfiles/jobs/8a6b0e5c/tmp/rounds-ab/run3_1_cds/bc_work/bc_results.json"
+  ],
+  "include_r2_cds": true
+}
