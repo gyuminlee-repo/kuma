@@ -40,7 +40,13 @@ from kuma_core.shared import net
 @pytest.fixture(autouse=True)
 def _isolated_context(monkeypatch, tmp_path):
     """Every test starts from a cold cache and an empty ~/.kuma."""
+    # USERPROFILE as well as HOME, because ntpath.expanduser never consults
+    # HOME: it takes USERPROFILE and falls back to HOMEDRIVE plus HOMEPATH.
+    # Setting HOME alone left the tilde expanding into the real profile on
+    # Windows, which failed test_tilde_in_operator_ca_path_is_expanded on both
+    # 3.11 and 3.12 while every POSIX runner passed.
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path / "home"))
     monkeypatch.delenv(net.CA_BUNDLE_ENV, raising=False)
     net.reset_ssl_context()
     yield
