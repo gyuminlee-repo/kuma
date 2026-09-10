@@ -652,7 +652,11 @@ def test_ngs_recovered_column_present(tmp_path: Path) -> None:
 
 
 def test_ngs_recovery_summary(tmp_path: Path) -> None:
-    """AC14: recovery summary reflects compute_recovery over designed_mutant_ids."""
+    """AC14: rate summary reflects the designed_mutant_ids denominator.
+
+    Both labels name their verdict set, so a reader cannot take the wider figure
+    for the reported success figure.
+    """
     vr = _make_verdict("NB01", "1_1", VerdictClass.PASS)
     rr = _make_replicate("V5F", "NB01", "1_1")
     out = tmp_path / "recovery_summary.xlsx"
@@ -664,45 +668,52 @@ def test_ngs_recovery_summary(tmp_path: Path) -> None:
     )
     ws = openpyxl.load_workbook(out)["NGS Results"]
     pairs = _ngs_summary_pairs(ws)
+    assert pairs.get("passed_mutants") == 1
     assert pairs.get("recovered_mutants") == 1
     assert pairs.get("total_mutants") == 1
-    assert pairs.get("Recovery (재현율)") == "100.0%"
+    assert pairs.get("Success rate (PASS)") == "100.0%"
+    assert pairs.get("Reproduced (PASS+AMBIGUOUS)") == "100.0%"
 
 
 def test_ngs_recovery_summary_na_when_unavailable(tmp_path: Path) -> None:
-    """AC14: with no designed_mutant_ids the recovery summary renders n/a (never 0%)."""
+    """AC14: with no designed_mutant_ids both rates render n/a (never 0%)."""
     vr = _make_verdict("NB01", "1_1", VerdictClass.PASS)
     rr = _make_replicate("V5F", "NB01", "1_1")
     out = tmp_path / "recovery_na.xlsx"
     write_excel(verdict_records=[vr], replicate_results=[rr], output_path=out)
     ws = openpyxl.load_workbook(out)["NGS Results"]
     pairs = _ngs_summary_pairs(ws)
-    assert pairs.get("Recovery (재현율)") == "n/a"
+    assert pairs.get("Success rate (PASS)") == "n/a"
+    assert pairs.get("Reproduced (PASS+AMBIGUOUS)") == "n/a"
+    assert "passed_mutants" not in pairs
     assert "recovered_mutants" not in pairs
 
 
 def test_report_detected_chip_and_plate_dt() -> None:
-    """AC12-13: HTML report shows Detected/재현율 chip and per-plate 검출 D/T."""
+    """AC12-13: HTML report shows both rate cards and per-plate 검출 D/T."""
     vr = _make_verdict("NB01", "1_1", VerdictClass.PASS)
     rr = _make_replicate("V5F", "NB01", "1_1")
     data = build_run_report_data(
         [vr], [rr], designed_mutant_ids=frozenset({"V5F"})
     )
     html = render_html(data)
-    assert "Detected / 재현율" in html
-    assert "100% (1/1)" in html  # recovery chip value
+    assert "Success rate (PASS)" in html
+    assert "Reproduced (PASS+AMBIGUOUS)" in html
+    assert "Detected / 재현율" not in html  # unlabelled set is gone
+    assert html.count("100% (1/1)") == 2  # both cards, one PASS well
     assert "검출 1/1" in html  # per-plate detected D/T
 
 
 def test_report_detected_chip_na_when_unavailable() -> None:
-    """AC12: chip renders n/a (not 0%) when recovery is unavailable."""
+    """AC12: both rate cards render n/a (not 0%) when the designed set is absent."""
     vr = _make_verdict("NB01", "1_1", VerdictClass.PASS)
     rr = _make_replicate("V5F", "NB01", "1_1")
     data = build_run_report_data([vr], [rr])
     html = render_html(data)
-    assert "Detected / 재현율" in html
-    # chip value cell renders n/a, never a fabricated 0%.
-    assert ">n/a<" in html
+    assert "Success rate (PASS)" in html
+    assert "Reproduced (PASS+AMBIGUOUS)" in html
+    # Both value cells render n/a, never a fabricated 0%.
+    assert html.count(">n/a<") == 2
 
 # ---------------------------------------------------------------------------
 # Selection / fallback marker columns + unified well sorting (AC-2.1/2.3/2.4)

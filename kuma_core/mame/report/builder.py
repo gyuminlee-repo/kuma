@@ -11,7 +11,7 @@ from __future__ import annotations
 import datetime
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
-from kuma_core.mame.detected import compute_recovery
+from kuma_core.mame.detected import compute_recovery, compute_success_rate
 
 if TYPE_CHECKING:
     from kuma_core.mame.ingest.run_meta import NgsRunMeta
@@ -65,6 +65,10 @@ class RunReportData:
 
     # ── Tool provenance ───────────────────────────────────────────────────
     kuma_version: str = ""
+    # Headline run figure: PASS only. See kuma_core.mame.detected.
+    passed_mutants: int | None = None
+    success_rate: float | None = None
+    # Supporting figure: PASS+AMBIGUOUS over the same denominator.
     recovered_mutants: int | None = None
     total_mutants: int | None = None
     recovery_rate: float | None = None
@@ -140,6 +144,7 @@ def build_run_report_data(
     fail_count = total_wells - pass_count - ambiguous_count
 
     _recovery = compute_recovery(replicates, designed_mutant_ids)
+    _success = compute_success_rate(replicates, designed_mutant_ids)
 
     return RunReportData(
         project_name=project_name,
@@ -157,6 +162,8 @@ def build_run_report_data(
         bimodal=dist.bimodal,
         suggested_method=dist.suggested_method,
         kuma_version=kuma_version,
+        passed_mutants=_success.passed_mutants if _success else None,
+        success_rate=_success.success_rate if _success else None,
         recovered_mutants=_recovery.recovered_mutants if _recovery else None,
         total_mutants=_recovery.total_mutants if _recovery else None,
         recovery_rate=_recovery.recovery_rate if _recovery else None,
