@@ -146,6 +146,7 @@ class _FakeHit:
         self.q_st = q_st
         self.q_en = q_en
         self.strand = 1
+        self.read_qual = None
 
 
 def _chunk_stats(monkeypatch: pytest.MonkeyPatch, outcomes: list[object]) -> tuple:

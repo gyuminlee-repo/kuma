@@ -1006,7 +1006,8 @@
         "median_depth_below_floor": "Profundidade mediana {{median}} abaixo do piso de {{floor}}.",
         "median_depth_below_recommended": "Profundidade mediana {{median}} abaixo das {{recommended}} leituras por amplicon recomendadas.",
         "flow_cell_reused": "A celula {{cell}} ja levou uma execucao neste projeto, encerrada com {{previousPores}} poros.",
-        "variants_at_reference_edge": "{{variants}} ficam a menos de {{margin}} pb de uma extremidade da referencia, e esta execucao alinhou contra a referencia como foi fornecida. Um alinhador corta uma leitura em um desemparelhamento que nao consegue anexar, entao essas posicoes podem ver menos profundidade do que o poco relata. Uma referencia que inclua as regioes de ligacao dos primers as deixa mais para dentro."
+        "variants_at_reference_edge": "{{variants}} ficam a menos de {{margin}} pb de uma extremidade da referencia, e esta execucao alinhou contra a referencia como foi fornecida. Um alinhador corta uma leitura em um desemparelhamento que nao consegue anexar, entao essas posicoes podem ver menos profundidade do que o poco relata. Uma referencia que inclua as regioes de ligacao dos primers as deixa mais para dentro.",
+        "amplicon_extraction_skipped": "Nao foi possivel localizar na referencia o trecho do amplicon delimitado pelos primers, entao esta execucao alinhou contra a referencia como foi fornecida. As posicoes de aminoacidos e o filtro de coverage sao relativos a essa referencia. Se ela contiver apenas a CDS e nao o amplicon sequenciado, execute novamente com o construto ou com o amplicon."
       },
       "positionRecurrence": {
         "title": "Posições recorrentes",
@@ -2543,14 +2544,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "O relatório de execução do MAME e a pasta de trabalho exportada agora destacam a taxa de sucesso, que conta apenas PASS.",
-      "Cada rótulo de taxa nomeia o conjunto de verdicts que conta, de modo que a cifra mais ampla não seja lida como a reportada.",
-      "A cifra de reprodução, que conta PASS e AMBIGUOUS, permanece como linha de apoio em vez de ser removida.",
-      "As duas taxas tiram o denominador do mesmo trecho de código, portanto não podem divergir entre si.",
-      "As contagens recovered e total mutant da pasta de trabalho seguem inalteradas e as análises existentes ainda as leem."
+      "O consenso de raw run agora aplica o filtro de qualidade mínima de base, que não tinha efeito porque a linha de qualidade do FASTQ era descartada.",
+      "Uma base abaixo do limiar de qualidade não conta mais para uma chamada, então uma maioria de baixa qualidade não supera uma minoria de alta qualidade.",
+      "Uma execução de analyze agora avisa quando nenhum amplicon pôde ser recortado da referência informada, e indica o motivo da falha.",
+      "Antes esse caso passava em silêncio e pontuava a placa contra uma região mais curta, descartando clones corretos sem avisar.",
+      "O novo achado avisa em vez de recusar, porque uma referência já sem as regiões de primer chega ao mesmo ramo e não é problema."
     ],
-    "highlightsStamp": "0.16.55+0e44b7f4",
+    "highlightsStamp": "0.16.56+9b525cb2",
     "releases": {
+      "0.16.56": [
+        "O consenso de raw run agora aplica o filtro de qualidade mínima de base, que não tinha efeito porque a linha de qualidade do FASTQ era descartada.",
+        "Uma base abaixo do limiar de qualidade não conta mais para uma chamada, então uma maioria de baixa qualidade não supera uma minoria de alta qualidade.",
+        "Uma execução de analyze agora avisa quando nenhum amplicon pôde ser recortado da referência informada, e indica o motivo da falha.",
+        "Antes esse caso passava em silêncio e pontuava a placa contra uma região mais curta, descartando clones corretos sem avisar.",
+        "O novo achado avisa em vez de recusar, porque uma referência já sem as regiões de primer chega ao mesmo ramo e não é problema."
+      ],
       "0.16.55": [
         "O relatório de execução do MAME e a pasta de trabalho exportada agora destacam a taxa de sucesso, que conta apenas PASS.",
         "Cada rótulo de taxa nomeia o conjunto de verdicts que conta, de modo que a cifra mais ampla não seja lida como a reportada.",
@@ -2952,6 +2960,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",

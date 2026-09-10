@@ -51,6 +51,11 @@ class AmpliconReferenceResolution:
     #: The two used to be indistinguishable, so the one case where the frame is
     #: genuinely unknown looked exactly like every skipped extraction.
     coding_bounds_found: bool
+    #: Which of the ``_SpanReason`` cases stopped the extraction, or ``None``
+    #: when an amplicon was cut out. ``note`` already says this in prose; this
+    #: is the same fact in a form a caller can branch on, which is what
+    #: ``run_quality`` needs to state the reason on the run result.
+    skip_reason: str | None = None
 
 
 class AmpliconReferenceError(ValueError):
@@ -126,6 +131,10 @@ def _barcode_sequences(path: Path) -> tuple[list[str], list[str]]:
 #: previously sent operators hunting for duplicate primer sites when the
 #: reference simply did not contain the tail at all (2026-08 incident).
 class _SpanReason:
+    #: The barcode workbook stated no shared annealing tail, so there was
+    #: nothing to look for in the reference. Kept beside the three search
+    #: outcomes so every skipped extraction speaks one vocabulary.
+    NO_SHARED_TAIL = "no_shared_tail"
     NOT_FOUND = "not_found"
     NOT_UNIQUE = "not_unique"
     OUT_OF_ORDER = "out_of_order"
@@ -201,6 +210,7 @@ def resolve_amplicon_reference(
             reference_fasta, False, None, len(sequence), 0, 0,
             "Amplicon extraction skipped because shared primer tails could not be derived.",
             False,
+            _SpanReason.NO_SHARED_TAIL,
         )
     span = _unique_span(sequence, forward_tail, reverse_tail)
     if span is None:
@@ -227,7 +237,7 @@ def resolve_amplicon_reference(
                 "primer sites were found out of order in the reference."
             )
         return AmpliconReferenceResolution(
-            reference_fasta, False, None, len(sequence), 0, 0, note, False,
+            reference_fasta, False, None, len(sequence), 0, 0, note, False, reason,
         )
     amplicon = sequence[span.start:span.end]
     coding_bounds = _longest_forward_orf(amplicon)
@@ -271,6 +281,7 @@ def resolve_amplicon_reference(
         cds_end,
         extraction_note,
         coding_bounds is not None,
+        None,
     )
 
 

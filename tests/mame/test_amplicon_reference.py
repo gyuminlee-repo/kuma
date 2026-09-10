@@ -57,6 +57,61 @@ def test_whole_plasmid_is_reduced_to_primer_bounded_amplicon(tmp_path: Path) -> 
     assert resolution.cds_end == len(_F_TAIL) + len(coding)
 
 
+def test_the_reason_an_extraction_was_skipped_is_machine_readable(
+    tmp_path: Path,
+) -> None:
+    """``note`` says it in prose; ``skip_reason`` says it in a form run_quality
+    can branch on. Without this the run result could report that the reference
+    was used unmodified but never why.
+    """
+    coding = "ATG" + "GCT" * 19 + "TAA"
+    barcodes = tmp_path / "barcodes.xlsx"
+    _write_barcodes(barcodes)
+
+    bare_cds = tmp_path / "cds.fa"
+    bare_cds.write_text(f">cds\n{coding}\n", encoding="utf-8")
+    assert (
+        resolve_amplicon_reference(bare_cds, barcodes, tmp_path / "out1").skip_reason
+        == "not_found"
+    )
+
+    amplicon = _F_TAIL + coding + _reverse_complement(_R_TAIL)
+    twice = tmp_path / "twice.fa"
+    twice.write_text(f">twice\n{amplicon}TT{amplicon}\n", encoding="utf-8")
+    assert (
+        resolve_amplicon_reference(twice, barcodes, tmp_path / "out2").skip_reason
+        == "not_unique"
+    )
+
+
+def test_a_reference_carrying_the_primer_sites_always_extracts(
+    tmp_path: Path,
+) -> None:
+    """Why a skipped extraction warrants a warning at all.
+
+    Extraction searches the reference for the shared primer tails, so a
+    reference that CARRIES them extracts whatever else it is: the whole plasmid
+    above, and the amplicon itself here, which comes back unchanged with a span
+    covering all of it. A skipped extraction therefore means the reference does
+    not contain the primer sites, which is either a sub-region of what was
+    sequenced or an unrelated molecule. That is the discrimination
+    ``run_quality`` reports on, and it is pinned here rather than assumed.
+    """
+    coding = "ATG" + "GCT" * 19 + "TAA"
+    amplicon = _F_TAIL + coding + _reverse_complement(_R_TAIL)
+    reference = tmp_path / "amplicon.fa"
+    reference.write_text(f">amplicon\n{amplicon}\n", encoding="utf-8")
+    barcodes = tmp_path / "barcodes.xlsx"
+    _write_barcodes(barcodes)
+
+    resolution = resolve_amplicon_reference(reference, barcodes, tmp_path / "out")
+
+    assert resolution.extracted is True
+    assert resolution.skip_reason is None
+    assert resolution.span is not None
+    assert (resolution.span.start, resolution.span.end) == (0, len(amplicon))
+
+
 def test_existing_amplicon_reference_is_left_unchanged(tmp_path: Path) -> None:
     reference = tmp_path / "amplicon.fa"
     reference.write_text(">amplicon\nATGGCTGCTTAA\n", encoding="utf-8")

@@ -1006,7 +1006,8 @@
         "median_depth_below_floor": "Profundidad mediana {{median}} por debajo del minimo de {{floor}}.",
         "median_depth_below_recommended": "Profundidad mediana {{median}} por debajo de las {{recommended}} lecturas por amplicon recomendadas.",
         "flow_cell_reused": "La celda {{cell}} ya llevo una ejecucion en este proyecto, que termino con {{previousPores}} poros.",
-        "variants_at_reference_edge": "{{variants}} estan a menos de {{margin}} pb de un extremo de la referencia, y esta ejecucion alineo contra la referencia tal como se entrego. Un alineador corta una lectura en un desapareamiento que no puede unir, asi que esas posiciones pueden ver menos profundidad de la que informa el pocillo. Una referencia que incluya las regiones de union de los cebadores las deja mas hacia adentro."
+        "variants_at_reference_edge": "{{variants}} estan a menos de {{margin}} pb de un extremo de la referencia, y esta ejecucion alineo contra la referencia tal como se entrego. Un alineador corta una lectura en un desapareamiento que no puede unir, asi que esas posiciones pueden ver menos profundidad de la que informa el pocillo. Una referencia que incluya las regiones de union de los cebadores las deja mas hacia adentro.",
+        "amplicon_extraction_skipped": "No se pudo localizar en la referencia el tramo del amplicon delimitado por los cebadores, asi que esta ejecucion alineo contra la referencia tal como se entrego. Las posiciones de aminoacidos y el filtro de coverage se miden sobre esa referencia. Si solo contiene la CDS y no el amplicon secuenciado, vuelva a ejecutar con el constructo o con el amplicon."
       },
       "positionRecurrence": {
         "title": "Posiciones recurrentes",
@@ -2543,14 +2544,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "El informe de ejecución de MAME y el libro exportado encabezan ahora con la tasa de éxito, que cuenta solo PASS.",
-      "Cada etiqueta de tasa nombra el conjunto de verdicts que cuenta, de modo que la cifra más amplia no se lea como la reportada.",
-      "La cifra de reproducción, que cuenta PASS y AMBIGUOUS, permanece como línea de apoyo en lugar de eliminarse.",
-      "Ambas tasas toman su denominador del mismo código, así que no pueden desviarse entre sí.",
-      "Los recuentos recovered y total mutant del libro no cambian, por lo que los análisis existentes siguen leyéndolos."
+      "El consenso de raw run ya aplica el filtro de calidad mínima de base, que no tenía efecto porque se descartaba la línea de calidad del FASTQ.",
+      "Una base por debajo del umbral de calidad ya no cuenta para una llamada, así que una mayoría de baja calidad no vence a una minoría de alta calidad.",
+      "Una ejecución de analyze ahora avisa cuando no se pudo recortar ningún amplicon de la referencia indicada, y nombra el motivo del fallo.",
+      "Antes ese caso pasaba en silencio y puntuaba la placa contra una región más corta, descartando clones correctos sin decirlo.",
+      "El nuevo hallazgo avisa en lugar de rechazar, porque una referencia ya recortada de sus regiones de primer llega a la misma rama y es correcta."
     ],
-    "highlightsStamp": "0.16.55+0e44b7f4",
+    "highlightsStamp": "0.16.56+9b525cb2",
     "releases": {
+      "0.16.56": [
+        "El consenso de raw run ya aplica el filtro de calidad mínima de base, que no tenía efecto porque se descartaba la línea de calidad del FASTQ.",
+        "Una base por debajo del umbral de calidad ya no cuenta para una llamada, así que una mayoría de baja calidad no vence a una minoría de alta calidad.",
+        "Una ejecución de analyze ahora avisa cuando no se pudo recortar ningún amplicon de la referencia indicada, y nombra el motivo del fallo.",
+        "Antes ese caso pasaba en silencio y puntuaba la placa contra una región más corta, descartando clones correctos sin decirlo.",
+        "El nuevo hallazgo avisa en lugar de rechazar, porque una referencia ya recortada de sus regiones de primer llega a la misma rama y es correcta."
+      ],
       "0.16.55": [
         "El informe de ejecución de MAME y el libro exportado encabezan ahora con la tasa de éxito, que cuenta solo PASS.",
         "Cada etiqueta de tasa nombra el conjunto de verdicts que cuenta, de modo que la cifra más amplia no se lea como la reportada.",
@@ -2952,6 +2960,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",

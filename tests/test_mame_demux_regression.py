@@ -107,7 +107,7 @@ def _run_demux_combinatorial(out: Path) -> dict:
     wells: dict[str, dict] = {}
     for well_name, reads in result.per_well_reads.items():
         wells[well_name] = {
-            "read_ids": sorted(read_id for read_id, _ in reads),
+            "read_ids": sorted(read_id for read_id, _seq, _qual in reads),
             "consensus": result.per_well_consensus.get(well_name),
         }
     stats = {
@@ -239,7 +239,7 @@ def _classify_consensus_diff(
     return "tie-only"
 
 
-def _pileup_at(well_reads: list[tuple[str, str]], pos: int) -> dict[str, int]:
+def _pileup_at(well_reads: list[tuple[str, str, str]], pos: int) -> dict[str, int]:
     """Rebuild the per-position base-count pileup for a well at *pos*."""
     ref_seq = _read_reference_seq(FIXTURE_DIR / "reference.fasta")
     alns = align_reads(

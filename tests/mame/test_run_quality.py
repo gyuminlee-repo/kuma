@@ -339,11 +339,21 @@ def test_an_unmodified_reference_with_edge_variants_warns() -> None:
         edge_variants=["R560D", "R560N"],
     )
 
-    assert _codes(quality) == {"variants_at_reference_edge"}
+    assert _codes(quality) == {
+        "variants_at_reference_edge",
+        # The cause of the edge risk, reported alongside it: this run aligned
+        # against the reference as supplied. See the skipped-extraction block
+        # below for why the two are separate findings.
+        "amplicon_extraction_skipped",
+    }
     # A WARNING and never blocking: on the run this came from, these wells
     # scored. Calling it blocking would throw away a usable plate.
     assert quality.severity == SEVERITY_WARNING
-    finding = quality.findings[0]
+    # Selected by code rather than by position: the skipped-extraction finding
+    # is appended first, because it is the cause and this one the consequence.
+    finding = next(
+        f for f in quality.findings if f["code"] == "variants_at_reference_edge"
+    )
     assert finding["variants"] == ["R560D", "R560N"]
     assert finding["margin_bp"] == REFERENCE_EDGE_MARGIN_BP
 
@@ -365,6 +375,121 @@ def test_the_edge_margin_is_carried_with_its_source() -> None:
     assert edge["kind"] == "self_set"
     assert edge["provisional"] is True
     assert edge["enforced"] is False
+
+
+# ---------------------------------------------------------------------------
+# A reference that was never cut down to the amplicon
+# ---------------------------------------------------------------------------
+#
+# ``check_coverage_reachable`` already refuses the case where the whole
+# construct is used and no read could clear the coverage gate. It cannot see
+# the case where a bare CDS is used: reads cover a CDS comfortably, so the run
+# is reachable, finishes normally, and prints a plate of ordinary-looking
+# verdicts computed against the wrong reference. The operator who found this
+# reports 74 designed variants reproduced against a CDS reference and 84
+# against the amplicon reference over the same round-2 reads and 92 scored
+# wells. These pin that the run now says so.
+
+
+def test_a_skipped_extraction_is_reported_with_its_reason() -> None:
+    quality = assess_run_quality(
+        well_read_counts=[4777] * 96,
+        min_read_count=MIN_READS,
+        amplicon_extracted=False,
+        amplicon_skip_reason="not_found",
+        reference_length=1683,
+    )
+
+    assert _codes(quality) == {"amplicon_extraction_skipped"}
+    # A WARNING and never blocking. One benign reading of a skipped extraction
+    # exists (an amplicon handed over already trimmed of its primer regions),
+    # and nothing in the file separates it from a bare CDS, so refusing the run
+    # would throw away a correct one.
+    assert quality.severity == SEVERITY_WARNING
+    finding = quality.findings[0]
+    assert finding["reason"] == "not_found"
+    assert finding["reference_length"] == 1683
+    assert finding["enforced"] is False
+
+
+def test_an_extracted_amplicon_says_nothing_about_extraction() -> None:
+    """The oversight half of the check: no finding on the ordinary run.
+
+    A reference that CARRIES the primer tails always extracts, whatever it is:
+    measured on synthetic references, a whole plasmid extracts and the amplicon
+    itself extracts unchanged. So the ordinary run reaches here with
+    ``amplicon_extracted=True`` and must be silent, or every raw run carries a
+    notice and the panel becomes furniture.
+    """
+    quality = assess_run_quality(
+        well_read_counts=[4777] * 96,
+        min_read_count=MIN_READS,
+        amplicon_extracted=True,
+        amplicon_skip_reason=None,
+        reference_length=1715,
+    )
+
+    assert quality.findings == []
+    assert quality.severity is None
+
+
+def test_a_consensus_directory_run_says_nothing_about_extraction() -> None:
+    """``None`` is not ``False``.
+
+    The consensus-directory path resolves no reference and reads no barcode
+    workbook, so it never asks whether an amplicon could be cut. Reporting a
+    skipped extraction there would name a step that run never took.
+    """
+    quality = assess_run_quality(
+        well_read_counts=[4777] * 96,
+        min_read_count=MIN_READS,
+        amplicon_extracted=None,
+    )
+
+    assert quality.findings == []
+    assert quality.severity is None
+
+
+def test_the_skipped_extraction_reaches_the_response_block() -> None:
+    payload = serialise_run_quality(
+        assess_run_quality(
+            well_read_counts=[4777] * 96,
+            min_read_count=MIN_READS,
+            amplicon_extracted=False,
+            amplicon_skip_reason="no_shared_tail",
+        )
+    )
+
+    assert payload["amplicon_extracted"] is False
+    assert payload["amplicon_skip_reason"] == "no_shared_tail"
+    assert payload["severity"] == SEVERITY_WARNING
+
+
+def test_every_skip_reason_the_resolver_can_report_is_carried() -> None:
+    """The four ``_SpanReason`` values, read off the resolver rather than typed.
+
+    All four end the same way, with the supplied reference used unmodified, so
+    all four warn. Reading the vocabulary from the resolver keeps this from
+    passing while the two modules disagree about what a reason is called.
+    """
+    from kuma_core.mame.ingest import amplicon_reference
+
+    reasons = sorted(
+        value
+        for name, value in vars(amplicon_reference._SpanReason).items()
+        if not name.startswith("__") and isinstance(value, str)
+    )
+    assert reasons == ["no_shared_tail", "not_found", "not_unique", "out_of_order"]
+
+    for reason in reasons:
+        quality = assess_run_quality(
+            well_read_counts=[4777] * 96,
+            min_read_count=MIN_READS,
+            amplicon_extracted=False,
+            amplicon_skip_reason=reason,
+        )
+        assert _codes(quality) == {"amplicon_extraction_skipped"}
+        assert quality.findings[0]["reason"] == reason
 
 
 # ---------------------------------------------------------------------------

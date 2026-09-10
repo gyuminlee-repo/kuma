@@ -1006,7 +1006,8 @@
         "median_depth_below_floor": "Profondeur mediane {{median}} sous le plancher de {{floor}}.",
         "median_depth_below_recommended": "Profondeur mediane {{median}} sous les {{recommended}} lectures par amplicon recommandees.",
         "flow_cell_reused": "La cellule {{cell}} a deja porte une execution dans ce projet, terminee avec {{previousPores}} pores.",
-        "variants_at_reference_edge": "{{variants}} se trouvent a moins de {{margin}} pb d'une extremite de la reference, et cette execution a aligne sur la reference telle que fournie. Un aligneur coupe une lecture a une mesappariement qu'il ne peut pas rattacher, donc ces positions peuvent voir moins de profondeur que le puits n'en rapporte. Une reference incluant les sites de fixation des amorces les place plus a l'interieur."
+        "variants_at_reference_edge": "{{variants}} se trouvent a moins de {{margin}} pb d'une extremite de la reference, et cette execution a aligne sur la reference telle que fournie. Un aligneur coupe une lecture a une mesappariement qu'il ne peut pas rattacher, donc ces positions peuvent voir moins de profondeur que le puits n'en rapporte. Une reference incluant les sites de fixation des amorces les place plus a l'interieur.",
+        "amplicon_extraction_skipped": "Le segment d'amplicon delimite par les amorces n'a pas ete localise dans la reference, donc cette execution a aligne sur la reference telle que fournie. Les positions d'acides amines et le filtre de coverage se rapportent a cette reference. Si elle ne contient que la CDS et non l'amplicon sequence, relancer avec le construct ou avec l'amplicon."
       },
       "positionRecurrence": {
         "title": "Positions récurrentes",
@@ -2543,14 +2544,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Le rapport d'exécution MAME et le classeur exporté affichent d'abord le taux de réussite, qui compte PASS seul.",
-      "Chaque libellé de taux nomme l'ensemble de verdicts compté, afin que le chiffre plus large ne passe pas pour la valeur rapportée.",
-      "Le chiffre de reproduction, comptant PASS et AMBIGUOUS, demeure une ligne de soutien au lieu d'être supprimé.",
-      "Les deux taux tirent leur dénominateur du même code, de sorte qu'ils ne peuvent pas diverger.",
-      "Les comptes recovered et total mutant du classeur restent inchangés et les analyses existantes les lisent encore."
+      "Le consensus du raw run applique désormais le filtre de qualité minimale de base, sans effet auparavant car la ligne de qualité FASTQ était ignorée.",
+      "Une base sous le seuil de qualité ne compte plus pour un appel, donc une majorité de faible qualité ne peut pas l'emporter sur une minorité fiable.",
+      "Une exécution analyze avertit maintenant lorsqu'aucun amplicon n'a pu être découpé dans la référence fournie, et nomme la raison de l'échec.",
+      "Ce cas passait auparavant en silence et notait la plaque contre une région plus courte, écartant des clones corrects sans le signaler.",
+      "Le nouveau constat avertit au lieu de refuser, car une référence déjà débarrassée de ses régions d'amorce atteint la même branche sans problème."
     ],
-    "highlightsStamp": "0.16.55+0e44b7f4",
+    "highlightsStamp": "0.16.56+9b525cb2",
     "releases": {
+      "0.16.56": [
+        "Le consensus du raw run applique désormais le filtre de qualité minimale de base, sans effet auparavant car la ligne de qualité FASTQ était ignorée.",
+        "Une base sous le seuil de qualité ne compte plus pour un appel, donc une majorité de faible qualité ne peut pas l'emporter sur une minorité fiable.",
+        "Une exécution analyze avertit maintenant lorsqu'aucun amplicon n'a pu être découpé dans la référence fournie, et nomme la raison de l'échec.",
+        "Ce cas passait auparavant en silence et notait la plaque contre une région plus courte, écartant des clones corrects sans le signaler.",
+        "Le nouveau constat avertit au lieu de refuser, car une référence déjà débarrassée de ses régions d'amorce atteint la même branche sans problème."
+      ],
       "0.16.55": [
         "Le rapport d'exécution MAME et le classeur exporté affichent d'abord le taux de réussite, qui compte PASS seul.",
         "Chaque libellé de taux nomme l'ensemble de verdicts compté, afin que le chiffre plus large ne passe pas pour la valeur rapportée.",
@@ -2952,6 +2960,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",

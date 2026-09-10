@@ -1159,7 +1159,8 @@
         "median_depth_below_floor": "깊이 중앙값 {{median}}이 하한 {{floor}} 미달이다.",
         "median_depth_below_recommended": "깊이 중앙값 {{median}}이 권장치 amplicon당 {{recommended}} read 미달이다.",
         "flow_cell_reused": "플로우셀 {{cell}}은 이 프로젝트에서 이미 런을 한 번 거쳤고, 그때 공극 {{previousPores}}로 끝났다.",
-        "variants_at_reference_edge": "{{variants}} 이(가) 레퍼런스 끝에서 {{margin}} bp 이내에 있고, 이번 런은 주어진 레퍼런스를 그대로 정렬에 썼습니다. 정렬기는 붙이지 못한 불일치 지점에서 read 를 잘라내므로, 해당 위치는 웰이 보고하는 depth 보다 얕게 읽힐 수 있습니다. 프라이머가 붙는 구간까지 포함한 레퍼런스를 쓰면 그 위치가 안쪽으로 들어옵니다."
+        "variants_at_reference_edge": "{{variants}} 이(가) 레퍼런스 끝에서 {{margin}} bp 이내에 있고, 이번 런은 주어진 레퍼런스를 그대로 정렬에 썼습니다. 정렬기는 붙이지 못한 불일치 지점에서 read 를 잘라내므로, 해당 위치는 웰이 보고하는 depth 보다 얕게 읽힐 수 있습니다. 프라이머가 붙는 구간까지 포함한 레퍼런스를 쓰면 그 위치가 안쪽으로 들어옵니다.",
+        "amplicon_extraction_skipped": "프라이머로 구획되는 amplicon 구간을 레퍼런스에서 찾지 못해 이번 런은 주어진 레퍼런스를 그대로 정렬에 썼습니다. 아미노산 위치와 coverage 판정은 그 레퍼런스를 기준으로 합니다. 이 레퍼런스가 시퀀싱한 amplicon 이 아니라 CDS 만 담고 있다면 construct 나 amplicon 으로 다시 실행하십시오."
       },
       "positionRecurrence": {
         "title": "반복 출현 위치",
@@ -2597,14 +2598,21 @@
     "descriptionRange": "v{{from}} 이후 모든 업데이트의 주요 변경 사항입니다.",
     "gotItBtn": "확인",
     "highlights": [
-      "MAME 실행 리포트와 내보낸 워크북이 이제 PASS 만 세는 성공률을 앞에 둔다.",
-      "각 비율 라벨이 세는 verdict 집합을 명시하므로 더 넓은 수치를 보고 값으로 읽을 수 없다.",
-      "PASS 와 AMBIGUOUS 를 세는 재현 수치는 삭제하지 않고 보조 항목으로 남는다.",
-      "두 비율이 분모를 같은 코드에서 가져오므로 서로 어긋날 수 없다.",
-      "워크북의 recovered 및 total mutant 수치는 그대로라서 기존 분석이 계속 읽는다."
+      "raw run consensus 가 이제 minimum base quality 필터를 적용한다. 그동안 FASTQ quality 줄을 버려서 효과가 없었다.",
+      "품질 임계값 아래의 base 는 더 이상 call 에 반영되지 않으므로 저품질 다수가 고품질 소수를 이길 수 없다.",
+      "analyze 실행이 이제 주어진 reference 에서 amplicon 을 잘라내지 못하면 경고하고 실패 사유를 함께 알린다.",
+      "이전에는 이 경우가 조용히 통과해 더 짧은 구간으로 plate 를 채점했고 정상 clone 이 말없이 버려졌다.",
+      "새 finding 은 거부가 아니라 경고다. primer 구간이 이미 잘린 reference 도 같은 분기에 닿는데 이쪽은 정상이기 때문이다."
     ],
-    "highlightsStamp": "0.16.55+0e44b7f4",
+    "highlightsStamp": "0.16.56+9b525cb2",
     "releases": {
+      "0.16.56": [
+        "raw run consensus 가 이제 minimum base quality 필터를 적용한다. 그동안 FASTQ quality 줄을 버려서 효과가 없었다.",
+        "품질 임계값 아래의 base 는 더 이상 call 에 반영되지 않으므로 저품질 다수가 고품질 소수를 이길 수 없다.",
+        "analyze 실행이 이제 주어진 reference 에서 amplicon 을 잘라내지 못하면 경고하고 실패 사유를 함께 알린다.",
+        "이전에는 이 경우가 조용히 통과해 더 짧은 구간으로 plate 를 채점했고 정상 clone 이 말없이 버려졌다.",
+        "새 finding 은 거부가 아니라 경고다. primer 구간이 이미 잘린 reference 도 같은 분기에 닿는데 이쪽은 정상이기 때문이다."
+      ],
       "0.16.55": [
         "MAME 실행 리포트와 내보낸 워크북이 이제 PASS 만 세는 성공률을 앞에 둔다.",
         "각 비율 라벨이 세는 verdict 집합을 명시하므로 더 넓은 수치를 보고 값으로 읽을 수 없다.",
@@ -3006,6 +3014,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",

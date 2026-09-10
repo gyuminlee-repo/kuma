@@ -1006,7 +1006,8 @@
         "median_depth_below_floor": "深度中位数 {{median}} 低于下限 {{floor}}。",
         "median_depth_below_recommended": "深度中位数 {{median}} 低于推荐的每个扩增子 {{recommended}} 条读段。",
         "flow_cell_reused": "流通池 {{cell}} 在本项目中已运行过一次，结束时孔隙为 {{previousPores}}。",
-        "variants_at_reference_edge": "{{variants}} 位于参考序列末端 {{margin}} bp 以内，而本次运行直接使用了所提供的参考序列。比对器会在无法连接的错配处截断读段，因此这些位置的深度可能低于该孔报告的深度。改用包含引物结合区的参考序列可让它们更靠内。"
+        "variants_at_reference_edge": "{{variants}} 位于参考序列末端 {{margin}} bp 以内，而本次运行直接使用了所提供的参考序列。比对器会在无法连接的错配处截断读段，因此这些位置的深度可能低于该孔报告的深度。改用包含引物结合区的参考序列可让它们更靠内。",
+        "amplicon_extraction_skipped": "未能在参考序列中定位引物界定的 amplicon 区间，因此本次运行直接使用了所提供的参考序列。氨基酸位置和 coverage 判定均以该参考序列为准。若它只包含 CDS 而非测序得到的 amplicon，请改用完整 construct 或 amplicon 重新运行。"
       },
       "positionRecurrence": {
         "title": "反复出现的位点",
@@ -2543,14 +2544,21 @@
     "descriptionRange": "自 v{{from}} 以来每次更新的主要变化。",
     "gotItBtn": "知道了",
     "highlights": [
-      "MAME 运行报告和导出的工作簿现在以仅统计 PASS 的成功率作为首要指标。",
-      "每个比率标签都标明其统计的 verdict 集合，因此不会把更宽的数值误读为报告值。",
-      "统计 PASS 与 AMBIGUOUS 的再现数值不会被删除，而是作为辅助项保留。",
-      "两个比率的分母来自同一段代码，因此两者不会出现偏差。",
-      "工作簿中的 recovered 与 total mutant 计数保持不变，现有分析仍可读取。"
+      "raw run 的 consensus 现在会应用最低碱基质量过滤器，此前因为 FASTQ 质量行被丢弃而始终无效。",
+      "低于质量阈值的碱基不再计入 call，因此低质量的多数无法压过高质量的少数。",
+      "analyze 运行在无法从给定 reference 中切出 amplicon 时会发出警告，并说明查找失败的原因。",
+      "此前这种情况会静默通过，并按更短的区段给平板打分，正确的克隆被无声丢弃。",
+      "新的 finding 只警告而不拒绝，因为已去除 primer 区域的 reference 也会走到同一分支，而那种情况没有问题。"
     ],
-    "highlightsStamp": "0.16.55+0e44b7f4",
+    "highlightsStamp": "0.16.56+9b525cb2",
     "releases": {
+      "0.16.56": [
+        "raw run 的 consensus 现在会应用最低碱基质量过滤器，此前因为 FASTQ 质量行被丢弃而始终无效。",
+        "低于质量阈值的碱基不再计入 call，因此低质量的多数无法压过高质量的少数。",
+        "analyze 运行在无法从给定 reference 中切出 amplicon 时会发出警告，并说明查找失败的原因。",
+        "此前这种情况会静默通过，并按更短的区段给平板打分，正确的克隆被无声丢弃。",
+        "新的 finding 只警告而不拒绝，因为已去除 primer 区域的 reference 也会走到同一分支，而那种情况没有问题。"
+      ],
       "0.16.55": [
         "MAME 运行报告和导出的工作簿现在以仅统计 PASS 的成功率作为首要指标。",
         "每个比率标签都标明其统计的 verdict 集合，因此不会把更宽的数值误读为报告值。",
@@ -2952,6 +2960,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",

@@ -1006,7 +1006,8 @@
         "median_depth_below_floor": "Mediane Tiefe {{median}} liegt unter der Untergrenze von {{floor}}.",
         "median_depth_below_recommended": "Mediane Tiefe {{median}} liegt unter den empfohlenen {{recommended}} Reads pro Amplikon.",
         "flow_cell_reused": "Flusszelle {{cell}} trug in diesem Projekt bereits einen Lauf, der mit {{previousPores}} Poren endete.",
-        "variants_at_reference_edge": "{{variants}} liegen innerhalb von {{margin}} bp vor einem Ende der Referenz, und dieser Lauf hat gegen die gelieferte Referenz aligniert. Ein Aligner schneidet einen Read an einer Fehlpaarung ab, die er nicht anfuegen kann, daher koennen diese Positionen weniger Tiefe sehen als das Well meldet. Eine Referenz mit den Primerbindungsstellen rueckt sie weiter nach innen."
+        "variants_at_reference_edge": "{{variants}} liegen innerhalb von {{margin}} bp vor einem Ende der Referenz, und dieser Lauf hat gegen die gelieferte Referenz aligniert. Ein Aligner schneidet einen Read an einer Fehlpaarung ab, die er nicht anfuegen kann, daher koennen diese Positionen weniger Tiefe sehen als das Well meldet. Eine Referenz mit den Primerbindungsstellen rueckt sie weiter nach innen.",
+        "amplicon_extraction_skipped": "Der von den Primern begrenzte Amplicon-Bereich wurde in der Referenz nicht gefunden, daher hat dieser Lauf gegen die gelieferte Referenz aligniert. Aminosaeure-Positionen und die Coverage-Pruefung beziehen sich auf diese Referenz. Enthaelt sie nur die CDS und nicht das sequenzierte Amplicon, den Lauf mit dem Konstrukt oder mit dem Amplicon wiederholen."
       },
       "positionRecurrence": {
         "title": "Wiederkehrende Positionen",
@@ -2543,14 +2544,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Der MAME-Laufbericht und die exportierte Arbeitsmappe führen nun mit der Erfolgsrate, die allein PASS zählt.",
-      "Jede Ratenbezeichnung nennt die gezählte Verdict-Menge, sodass die weitere Zahl nicht als Berichtswert gilt.",
-      "Der Reproduktionswert über PASS und AMBIGUOUS bleibt als unterstützende Zeile erhalten statt zu entfallen.",
-      "Beide Raten beziehen ihren Nenner aus derselben Codestelle, sodass sie nicht auseinanderlaufen können.",
-      "Die Werte recovered und total mutant in der Arbeitsmappe bleiben unverändert und weiter auswertbar."
+      "Der raw-run-Consensus wendet nun den Filter für minimale Basenqualität an, der ohne die verworfene FASTQ-Qualitätszeile wirkungslos war.",
+      "Eine Base unter dem Qualitätsschwellenwert zählt nicht mehr für einen Call, sodass eine schlechte Mehrheit keine gute Minderheit überstimmt.",
+      "Ein Analyze-Lauf warnt jetzt, wenn aus der angegebenen Referenz kein Amplicon geschnitten werden konnte, und nennt den Grund.",
+      "Bisher lief dieser Fall stumm durch und bewertete die Platte gegen einen kürzeren Bereich, wodurch korrekte Klone verworfen wurden.",
+      "Der neue Befund warnt statt abzulehnen, denn eine bereits um die Primerbereiche gekürzte Referenz erreicht denselben Zweig und ist unbedenklich."
     ],
-    "highlightsStamp": "0.16.55+0e44b7f4",
+    "highlightsStamp": "0.16.56+9b525cb2",
     "releases": {
+      "0.16.56": [
+        "Der raw-run-Consensus wendet nun den Filter für minimale Basenqualität an, der ohne die verworfene FASTQ-Qualitätszeile wirkungslos war.",
+        "Eine Base unter dem Qualitätsschwellenwert zählt nicht mehr für einen Call, sodass eine schlechte Mehrheit keine gute Minderheit überstimmt.",
+        "Ein Analyze-Lauf warnt jetzt, wenn aus der angegebenen Referenz kein Amplicon geschnitten werden konnte, und nennt den Grund.",
+        "Bisher lief dieser Fall stumm durch und bewertete die Platte gegen einen kürzeren Bereich, wodurch korrekte Klone verworfen wurden.",
+        "Der neue Befund warnt statt abzulehnen, denn eine bereits um die Primerbereiche gekürzte Referenz erreicht denselben Zweig und ist unbedenklich."
+      ],
       "0.16.55": [
         "Der MAME-Laufbericht und die exportierte Arbeitsmappe führen nun mit der Erfolgsrate, die allein PASS zählt.",
         "Jede Ratenbezeichnung nennt die gezählte Verdict-Menge, sodass die weitere Zahl nicht als Berichtswert gilt.",
@@ -2952,6 +2960,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",

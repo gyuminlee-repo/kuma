@@ -1006,7 +1006,8 @@
         "median_depth_below_floor": "深度中位數 {{median}} 低於下限 {{floor}}。",
         "median_depth_below_recommended": "深度中位數 {{median}} 低於建議的每個擴增子 {{recommended}} 條讀段。",
         "flow_cell_reused": "流通池 {{cell}} 在本專案中已執行過一次，結束時孔隙為 {{previousPores}}。",
-        "variants_at_reference_edge": "{{variants}} 位於參考序列末端 {{margin}} bp 以內，而本次執行直接使用了所提供的參考序列。比對器會在無法連接的錯配處截斷讀段，因此這些位置的深度可能低於該孔報告的深度。改用包含引子結合區的參考序列可讓它們更靠內。"
+        "variants_at_reference_edge": "{{variants}} 位於參考序列末端 {{margin}} bp 以內，而本次執行直接使用了所提供的參考序列。比對器會在無法連接的錯配處截斷讀段，因此這些位置的深度可能低於該孔報告的深度。改用包含引子結合區的參考序列可讓它們更靠內。",
+        "amplicon_extraction_skipped": "未能在參考序列中定位引子界定的 amplicon 區間，因此本次執行直接使用了所提供的參考序列。胺基酸位置與 coverage 判定均以該參考序列為準。若它只包含 CDS 而非定序得到的 amplicon，請改用完整 construct 或 amplicon 重新執行。"
       },
       "positionRecurrence": {
         "title": "反覆出現的位點",
@@ -2543,14 +2544,21 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "MAME 執行報告與匯出的活頁簿現在以僅統計 PASS 的成功率作為首要指標。",
-      "每個比率標籤都標明其統計的 verdict 集合，因此不會把較寬的數值誤讀為報告值。",
-      "統計 PASS 與 AMBIGUOUS 的再現數值不會被刪除，而是作為輔助項保留。",
-      "兩個比率的分母來自同一段程式碼，因此兩者不會出現偏差。",
-      "活頁簿中的 recovered 與 total mutant 計數保持不變，現有分析仍可讀取。"
+      "raw run 的 consensus 現在會套用最低鹼基品質過濾器，先前因為 FASTQ 品質行被丟棄而始終無效。",
+      "低於品質門檻的鹼基不再計入 call，因此低品質的多數無法壓過高品質的少數。",
+      "analyze 執行在無法從給定 reference 切出 amplicon 時會發出警告，並說明搜尋失敗的原因。",
+      "此前這種情況會靜默通過，並以較短的區段為平板評分，正確的 clone 被無聲丟棄。",
+      "新的 finding 只警告而不拒絕，因為已移除 primer 區域的 reference 也會走到同一分支，那種情況並無問題。"
     ],
-    "highlightsStamp": "0.16.55+0e44b7f4",
+    "highlightsStamp": "0.16.56+9b525cb2",
     "releases": {
+      "0.16.56": [
+        "raw run 的 consensus 現在會套用最低鹼基品質過濾器，先前因為 FASTQ 品質行被丟棄而始終無效。",
+        "低於品質門檻的鹼基不再計入 call，因此低品質的多數無法壓過高品質的少數。",
+        "analyze 執行在無法從給定 reference 切出 amplicon 時會發出警告，並說明搜尋失敗的原因。",
+        "此前這種情況會靜默通過，並以較短的區段為平板評分，正確的 clone 被無聲丟棄。",
+        "新的 finding 只警告而不拒絕，因為已移除 primer 區域的 reference 也會走到同一分支，那種情況並無問題。"
+      ],
       "0.16.55": [
         "MAME 執行報告與匯出的活頁簿現在以僅統計 PASS 的成功率作為首要指標。",
         "每個比率標籤都標明其統計的 verdict 集合，因此不會把較寬的數值誤讀為報告值。",
@@ -2952,6 +2960,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
       "0.16.53": "39ca20cf",

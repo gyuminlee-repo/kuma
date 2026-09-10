@@ -62,7 +62,7 @@ def _full_reads(n: int, seq: str) -> list[Alignment]:
 def test_raw_run_path_measures_an_evenly_covered_well() -> None:
     """Values, not just keys: a flat well reports a flat CV and full breadth."""
     alignments = _full_reads(20, _REF)
-    reads = [(a.read_id, a.read_seq) for a in alignments]
+    reads = [(a.read_id, a.read_seq, "I" * len(a.read_seq)) for a in alignments]
 
     result = cd_mod._compute_well_consensus(
         "1_1", reads, alignments, _REF, len(_REF), min_depth=1
@@ -87,7 +87,7 @@ def test_raw_run_path_separates_a_hole_from_an_even_well_at_equal_depth() -> Non
     left = [_aln(_REF[:80], 0, len(_REF), f"l{i}") for i in range(20)]
     right = [_aln(_REF[120:], 120, len(_REF), f"r{i}") for i in range(20)]
     alignments = left + right
-    reads = [(a.read_id, a.read_seq) for a in alignments]
+    reads = [(a.read_id, a.read_seq, "I" * len(a.read_seq)) for a in alignments]
 
     result = cd_mod._compute_well_consensus(
         "1_2", reads, alignments, _REF, len(_REF), min_depth=1
@@ -105,7 +105,7 @@ def test_raw_run_path_reports_identity_below_one_for_a_mismatching_well() -> Non
     """A consensus that disagrees with the reference says so."""
     variant = "T" + _REF[1:]
     alignments = _full_reads(20, variant)
-    reads = [(a.read_id, a.read_seq) for a in alignments]
+    reads = [(a.read_id, a.read_seq, "I" * len(a.read_seq)) for a in alignments]
 
     result = cd_mod._compute_well_consensus(
         "2_1", reads, alignments, _REF, len(_REF), min_depth=1
@@ -118,11 +118,11 @@ def test_raw_run_path_reports_identity_below_one_for_a_mismatching_well() -> Non
 
 @pytest.mark.parametrize(
     ("reads", "alignments"),
-    [([], []), ([("r0", "A" * 30)], [])],
+    [([], []), ([("r0", "A" * 30, "I" * 30)], [])],
     ids=["no reads", "no alignments"],
 )
 def test_a_well_with_no_consensus_measures_breadth_and_nothing_else(
-    reads: list[tuple[str, str]], alignments: list[Alignment]
+    reads: list[tuple[str, str, str]], alignments: list[Alignment]
 ) -> None:
     """0.0 breadth is a measurement; the other four are not.
 

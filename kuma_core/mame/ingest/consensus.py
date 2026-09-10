@@ -1,7 +1,9 @@
 """A5 — CIGAR-based pileup consensus caller.
 
-Implements a majority-vote consensus algorithm equivalent to
-``samtools consensus`` default mode:
+Implements a majority-vote consensus algorithm equivalent to the ``samtools
+consensus`` "simple" (frequency-counting) mode, which is NOT that tool's
+default: htslib's own docs state the default is the Bayesian (Gap5) method,
+with "simple" as the other, non-default option:
 
 - Per-position base counts from aligned reads via CIGAR walking.
 - Majority base (≥ 0.5 fraction of total depth) is adopted.
@@ -15,9 +17,11 @@ Implements a majority-vote consensus algorithm equivalent to
 
 Reference
 ---------
-https://www.htslib.org/doc/samtools-consensus.html — "Default (simple) mode":
-  Each position calls the most common base across all reads.  Positions with
-  only deletions/no coverage output 'N'.
+https://www.htslib.org/doc/samtools-consensus.html: 'Valid modes are
+"simple" frequency counting and the "bayesian" (Gap5) methods, with Bayesian
+being the default.'  This module implements the "simple" mode's rule (most
+common base across all reads; positions with only deletions/no coverage
+output 'N'), not the Bayesian default.
 
 Note on quality weighting
 --------------------------

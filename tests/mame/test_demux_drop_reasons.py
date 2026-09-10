@@ -265,6 +265,7 @@ class _Hit:
         self.q_st = q_st
         self.q_en = q_en
         self.strand = strand
+        self.read_qual = None
 
 
 def _mixed_reads() -> list[tuple[str, int, int]]:
