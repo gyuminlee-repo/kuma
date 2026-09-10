@@ -2545,13 +2545,11 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Der raw-run-Consensus wendet nun den Filter für minimale Basenqualität an, der ohne die verworfene FASTQ-Qualitätszeile wirkungslos war.",
-      "Eine Base unter dem Qualitätsschwellenwert zählt nicht mehr für einen Call, sodass eine schlechte Mehrheit keine gute Minderheit überstimmt.",
-      "Ein Analyze-Lauf warnt jetzt, wenn aus der angegebenen Referenz kein Amplicon geschnitten werden konnte, und nennt den Grund.",
-      "Bisher lief dieser Fall stumm durch und bewertete die Platte gegen einen kürzeren Bereich, wodurch korrekte Klone verworfen wurden.",
-      "Der neue Befund warnt statt abzulehnen, denn eine bereits um die Primerbereiche gekürzte Referenz erreicht denselben Zweig und ist unbedenklich."
+      "Der Off-Target-Hinweis nennt für den 45-°C-Schwellenwert nicht mehr Kwok 1990 und Huang 1992 als Quelle. Dieser Wert wurde an einer einzigen Fixture mit Q5 gemessen.",
+      "Der Hinweis besagt nun, dass eine leere Liste kein Beweis für fehlendes Off-Target-Priming ist, da nur eine exakte 3'-Terminalübereinstimmung aufgeführt wird.",
+      "Ein Proofreading-Enzym wird nun aus dem gewählten Profil benannt, statt zwei fest codierte Enzymnamen im String zu verwenden."
     ],
-    "highlightsStamp": "0.16.56+9b525cb2",
+    "highlightsStamp": "0.16.57+b25a7d73",
     "releases": {
       "0.16.56": [
         "Der raw-run-Consensus wendet nun den Filter für minimale Basenqualität an, der ohne die verworfene FASTQ-Qualitätszeile wirkungslos war.",
@@ -2958,6 +2956,11 @@
         "Die Codons der erwarteten Mutationen stammen aus dem KURO-Entwurf, also nennt das Blatt das Codon, das die Primer tragen.",
         "Die gemessene Aktivität folgt der Vorhersagerangfolge nicht, und drei der zehn Varianten liegen unter dem Wildtyp.",
         "Ein neuer Test liest die ausgelieferten Dateien und schlägt fehl, sobald KURO und MAME wieder verschiedene Experimente beschreiben."
+      ],
+      "0.16.57": [
+        "Der Off-Target-Hinweis nennt für den 45-°C-Schwellenwert nicht mehr Kwok 1990 und Huang 1992 als Quelle. Dieser Wert wurde an einer einzigen Fixture mit Q5 gemessen.",
+        "Der Hinweis besagt nun, dass eine leere Liste kein Beweis für fehlendes Off-Target-Priming ist, da nur eine exakte 3'-Terminalübereinstimmung aufgeführt wird.",
+        "Ein Proofreading-Enzym wird nun aus dem gewählten Profil benannt, statt zwei fest codierte Enzymnamen im String zu verwenden."
       ]
     },
     "releaseStamps": {
@@ -3026,7 +3029,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.57": "b25a7d73"
     }
   },
   "primerDisplay": {

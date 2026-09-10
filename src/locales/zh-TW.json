@@ -2545,13 +2545,11 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "raw run 的 consensus 現在會套用最低鹼基品質過濾器，先前因為 FASTQ 品質行被丟棄而始終無效。",
-      "低於品質門檻的鹼基不再計入 call，因此低品質的多數無法壓過高品質的少數。",
-      "analyze 執行在無法從給定 reference 切出 amplicon 時會發出警告，並說明搜尋失敗的原因。",
-      "此前這種情況會靜默通過，並以較短的區段為平板評分，正確的 clone 被無聲丟棄。",
-      "新的 finding 只警告而不拒絕，因為已移除 primer 區域的 reference 也會走到同一分支，那種情況並無問題。"
+      "off-target 提示不再將 45°C 閾值歸功於 Kwok 1990 和 Huang 1992，該數值是使用 Q5 在單一 fixture 上測得的。",
+      "提示現在說明，空清單並不能證明不存在 off-target priming，因為清單中僅列出精確吻合的 3' 端。",
+      "proofreading 酶的名稱現在來自所選的 profile，而非硬編碼在字串中的兩個酶名。"
     ],
-    "highlightsStamp": "0.16.56+9b525cb2",
+    "highlightsStamp": "0.16.57+b25a7d73",
     "releases": {
       "0.16.56": [
         "raw run 的 consensus 現在會套用最低鹼基品質過濾器，先前因為 FASTQ 品質行被丟棄而始終無效。",
@@ -2958,6 +2956,11 @@
         "expected mutations 的密碼子取自 KURO 的設計結果，因此表中寫的是引子實際攜帶的密碼子。",
         "實測活性並不遵循預測排序，10 個變體中有 3 個低於野生型。",
         "新增的測試直接讀取隨附檔案，一旦 KURO 與 MAME 再次描述不同實驗就會失敗。"
+      ],
+      "0.16.57": [
+        "off-target 提示不再將 45°C 閾值歸功於 Kwok 1990 和 Huang 1992，該數值是使用 Q5 在單一 fixture 上測得的。",
+        "提示現在說明，空清單並不能證明不存在 off-target priming，因為清單中僅列出精確吻合的 3' 端。",
+        "proofreading 酶的名稱現在來自所選的 profile，而非硬編碼在字串中的兩個酶名。"
       ]
     },
     "releaseStamps": {
@@ -3026,7 +3029,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.57": "b25a7d73"
     }
   },
   "primerDisplay": {
