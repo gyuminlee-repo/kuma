@@ -1729,28 +1729,13 @@
 <li>snapgene-reader 로 파싱. GenBank 와 동등하게 multi-CDS 지원.</li>
 </ul>
 <h2 id="organism">Organism<a class="headerlink" href="#organism" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>값</th>
-<th>codon table</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>ecoli</code></td>
-<td>E. coli K-12</td>
-</tr>
-<tr>
-<td><code>bsubtilis</code></td>
-<td>B. subtilis</td>
-</tr>
-<tr>
-<td><code>scerevisiae</code></td>
-<td>S. cerevisiae</td>
-</tr>
-</tbody>
-</table>
+<p>값은 <code>kuma_core/kuro/resources/codon_tables/</code> 에 있는 JSON 파일 이름(확장자 제외)이다.
+이 디렉토리가 정본이므로 여기에 목록을 고정하지 않는다.</p>
+<ul>
+<li>표시 이름은 각 JSON 의 <code>name</code> 필드에서 온다.</li>
+<li>UI dropdown 은 <code>list_organisms</code> RPC 로 이 디렉토리를 조회한다 (<code>kuma_core/kuro/codon_table.py</code> 의 <code>list_organisms</code>).</li>
+<li>설계 시점 검증(<code>python-core/sidecar_kuro/handlers/design.py</code>)도 같은 목록을 쓴다. 파일을 추가하면 양쪽에 함께 반영된다.</li>
+</ul>
 
 
 
