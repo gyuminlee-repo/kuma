@@ -1,0 +1,109 @@
+{
+  "arms": {
+    "no_quality": {
+      "low_quality_bases_dropped": 0,
+      "mean_max_indel_event_fraction": 0.465411,
+      "no_call_rate_control": 0.0,
+      "no_call_rate_homopolymer": 0.046627,
+      "no_call_rate_overall": 0.008589,
+      "no_calls_by_region": {
+        "control": 0,
+        "flank": 0,
+        "homopolymer": 47
+      },
+      "no_calls_by_run_length": {
+        "6": 18,
+        "7": 16,
+        "8": 13
+      },
+      "no_calls_by_tier": {
+        "0.10": 0,
+        "0.30": 0,
+        "0.50": 11,
+        "0.70": 36
+      },
+      "reads_passed_filter": 959,
+      "verdicts_design_empty": {
+        "AMBIGUOUS": 7,
+        "FRAMESHIFT": 4,
+        "LOWDEPTH": 0,
+        "MANY": 0,
+        "MIXED": 0,
+        "NO_CALL": 1,
+        "PASS": 12,
+        "WRONG_AA": 0
+      },
+      "verdicts_design_unconfirmed": {
+        "AMBIGUOUS": 0,
+        "FRAMESHIFT": 4,
+        "LOWDEPTH": 0,
+        "MANY": 0,
+        "MIXED": 0,
+        "NO_CALL": 8,
+        "PASS": 0,
+        "WRONG_AA": 12
+      }
+    },
+    "with_quality": {
+      "low_quality_bases_dropped": 3316,
+      "mean_max_indel_event_fraction": 0.472051,
+      "no_call_rate_control": 0.0,
+      "no_call_rate_homopolymer": 0.046627,
+      "no_call_rate_overall": 0.008589,
+      "no_calls_by_region": {
+        "control": 0,
+        "flank": 0,
+        "homopolymer": 47
+      },
+      "no_calls_by_run_length": {
+        "6": 18,
+        "7": 16,
+        "8": 13
+      },
+      "no_calls_by_tier": {
+        "0.10": 0,
+        "0.30": 0,
+        "0.50": 11,
+        "0.70": 36
+      },
+      "reads_passed_filter": 959,
+      "verdicts_design_empty": {
+        "AMBIGUOUS": 7,
+        "FRAMESHIFT": 4,
+        "LOWDEPTH": 0,
+        "MANY": 0,
+        "MIXED": 0,
+        "NO_CALL": 1,
+        "PASS": 12,
+        "WRONG_AA": 0
+      },
+      "verdicts_design_unconfirmed": {
+        "AMBIGUOUS": 0,
+        "FRAMESHIFT": 4,
+        "LOWDEPTH": 0,
+        "MANY": 0,
+        "MIXED": 0,
+        "NO_CALL": 8,
+        "PASS": 0,
+        "WRONG_AA": 12
+      }
+    }
+  },
+  "hp_del_prob_tiers": [
+    0.1,
+    0.3,
+    0.5,
+    0.7
+  ],
+  "minimap2_version": "2.30-r1287",
+  "positions_examined_per_arm": 5472,
+  "positions_per_well_by_region": {
+    "control": 162,
+    "flank": 24,
+    "homopolymer": 42
+  },
+  "reads_per_well": 40,
+  "reference_length": 228,
+  "seed": 20260910,
+  "wells_examined": 24
+}
