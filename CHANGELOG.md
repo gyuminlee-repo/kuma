@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.16.58 (Every codon the host uses, and the whole tolerance sweep)
+
+Four faults in KURO primer design, all of them upstream of the primer a user copies into an order.
+
+The codon usage tables were audited against independent references and three of them were wrong. The E. coli table had histidine inverted, so the most frequent codon was reported as the rarer of the pair. The B. subtilis table was of unknown provenance and carried the wrong top codon in five of eighteen amino acids, and it is regenerated from the RefSeq assembly rather than patched. The human table had arginine ranked CGG first, which no reference supports, alongside a serine row that failed the structural sum check and had been exempted instead of investigated. Both rows are repaired to the source values. A M. extorquens AM1 table is added, since the module documented support that did not exist and an AM1 user silently received the E. coli table. Designs produced before this release can therefore differ from designs produced after it, and the arginine repair alone moves eight of 1,344 codon pairs.
+
+Mutant codon choice saw two candidates. The search was handed the codon closest to the wild type codon and the codon the organism uses most, and never saw the other synonymous codons at all. It now receives every synonymous codon for the target amino acid whose usage fraction clears a floor of 0.10, ordered so the pool is deterministic. Widening a pool on its own walks into codons the host avoids, because nothing in the scoring function had ever read codon usage, so two things hold it back. The floor keeps rare codons out, which is a guarantee. A usage term in the penalty biases the ranking toward common codons, which is a preference. Measured over 1,620 design cells, 315 improved and 45 worsened, coverage went from 1,192 to 1,213, and the share of winners sitting below 0.10 usage fell to zero on all five organisms. The floor of 0.10 is an operating choice from measurement on this repository fixture material and not a literature constant.
+
+Tm tolerance widened in half degree steps and the search returned the moment any candidate survived the current step, so a tight window was never compared against a looser one. A looser window can hold a strictly better primer and the engine could not see it. The sweep now runs to its maximum and every survivor is ranked together. On 70 of 1,192 successful designs the chosen primer pair changes, improving on all 70 and worsening on none. The reported Tol figure rises on all of them. A low Tol reads as a quality signal, so this looks like a loosening while it is in fact a better scoring primer.
+
+Design time roughly triples as a result, from about 1.8 seconds to 5.6 seconds for a 96 well plate. Both changes trade wall clock for search breadth and the two compound.
+
+The organism dropdown listed three options while the backend already read its resources directory, so the human table shipped without ever appearing and the new AM1 table would have joined it. The dropdown now renders whatever the backend reports. Option labels come from the table itself rather than a locale key, so a Latin binomial appears in full and a user supplied table can carry its own name.
+
+Network trust gains an operator supplied CA on top of the platform trust store tiering that shipped in v0.16.54. Two cases that tiering does not cover remain, a native verifier that fails to load inside a frozen bundle and a proxy root present in neither the OS store nor the bundled fallback, and both are recoverable only this way. The bundle is layered onto whichever tier won rather than replacing it, so an operator CA costs the OS store nothing.
+
+Improvement here is measured by the scoring function KURO itself minimises, which is close to self referential. The GC window and Tm target readouts are physical and independent of it. Whether these primers amplify better at the bench is unverified.
+
+### Highlights
+
+- Mutant codon choice now weighs every synonymous codon the selected organism uses, where before the search saw only two.
+- Rare codons are kept out of that pool, so a design no longer lands on a codon the chosen organism effectively avoids.
+- Design ranks candidates across the whole Tm tolerance sweep, so a looser window holding a better primer is no longer skipped.
+- The Tol figure rises on those designs. A higher Tol here marks a better scoring primer, not a looser standard.
+- Three codon tables were corrected and the organism list now shows every shipped table, so earlier designs can differ.
+
 ## v0.16.57 (The off-target caveat says what the list can miss)
 
 The note printed under the off-target table asserted three things the code does not support. It credited Kwok 1990 and Huang 1992 for the temperature threshold, when those papers underpin the extendability criterion instead and the 45 °C figure was measured on a single fixture, pSHCE-dmpR, with Q5. It described the listed hits as directional because Q5 and KOD One proofread, naming two enzymes unconditionally while a run designed with Taq or DreamTaq read a disclaimer that did not apply to it, and while Phusion and PrimeSTAR GXL went unnamed.

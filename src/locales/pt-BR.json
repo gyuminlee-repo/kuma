@@ -2545,11 +2545,13 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "O aviso de off-target não credita mais Kwok 1990 e Huang 1992 pelo limiar de 45 °C, valor medido em um único fixture com Q5.",
-      "O aviso agora diz que uma lista vazia não é prova de ausência de priming off-target, já que apenas uma correspondência terminal 3' exata é listada.",
-      "O nome da enzima de revisão agora vem do perfil selecionado, em vez de dois nomes de enzima fixos na string."
+      "A escolha do códon mutante agora pondera todos os códons sinônimos que o organismo selecionado usa. Antes a busca via apenas dois.",
+      "Códons raros ficam fora desse conjunto, então um desenho não cai mais em um códon que o organismo escolhido praticamente não usa.",
+      "O Design classifica os candidatos em toda a varredura de tolerância de Tm, então uma janela mais larga com um primer melhor não é mais pulada.",
+      "O valor de Tol sobe nesses desenhos. Um Tol mais alto aqui indica um primer com melhor pontuação, não um critério mais frouxo.",
+      "Três tabelas de códons foram corrigidas e a lista de organismos agora mostra todas as tabelas incluídas, então desenhos anteriores podem diferir."
     ],
-    "highlightsStamp": "0.16.57+b25a7d73",
+    "highlightsStamp": "0.16.58+1ce19d3d",
     "releases": {
       "0.16.56": [
         "O consenso de raw run agora aplica o filtro de qualidade mínima de base, que não tinha efeito porque a linha de qualidade do FASTQ era descartada.",
@@ -2961,6 +2963,13 @@
         "O aviso de off-target não credita mais Kwok 1990 e Huang 1992 pelo limiar de 45 °C, valor medido em um único fixture com Q5.",
         "O aviso agora diz que uma lista vazia não é prova de ausência de priming off-target, já que apenas uma correspondência terminal 3' exata é listada.",
         "O nome da enzima de revisão agora vem do perfil selecionado, em vez de dois nomes de enzima fixos na string."
+      ],
+      "0.16.58": [
+        "A escolha do códon mutante agora pondera todos os códons sinônimos que o organismo selecionado usa. Antes a busca via apenas dois.",
+        "Códons raros ficam fora desse conjunto, então um desenho não cai mais em um códon que o organismo escolhido praticamente não usa.",
+        "O Design classifica os candidatos em toda a varredura de tolerância de Tm, então uma janela mais larga com um primer melhor não é mais pulada.",
+        "O valor de Tol sobe nesses desenhos. Um Tol mais alto aqui indica um primer com melhor pontuação, não um critério mais frouxo.",
+        "Três tabelas de códons foram corrigidas e a lista de organismos agora mostra todas as tabelas incluídas, então desenhos anteriores podem diferir."
       ]
     },
     "releaseStamps": {
@@ -3030,7 +3039,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.57": "b25a7d73"
+      "0.16.57": "b25a7d73",
+      "0.16.58": "1ce19d3d"
     }
   },
   "primerDisplay": {

@@ -2545,11 +2545,13 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "La advertencia de off-target ya no atribuye el umbral de 45 °C a Kwok 1990 y Huang 1992, valor que se midió en un único fixture con Q5.",
-      "La advertencia ahora indica que una lista vacía no es prueba de ausencia de priming off-target, ya que solo se incluye una coincidencia terminal 3' exacta.",
-      "El nombre de la enzima de corrección de pruebas ahora proviene del perfil seleccionado, en lugar de dos nombres de enzima fijos en la cadena."
+      "La elección del codón mutante ahora pondera todos los codones sinónimos que usa el organismo seleccionado. Antes la búsqueda solo veía dos.",
+      "Los codones raros quedan fuera de ese conjunto, así un diseño ya no acaba en un codón que el organismo elegido apenas utiliza.",
+      "Design ordena los candidatos en todo el barrido de tolerancia de Tm, así una ventana más amplia con un cebador mejor ya no se omite.",
+      "El valor de Tol sube en esos diseños. Un Tol más alto indica aquí un cebador mejor puntuado, no un criterio más laxo.",
+      "Se corrigieron tres tablas de codones y la lista de organismos ya muestra todas las tablas incluidas, así los diseños anteriores pueden diferir."
     ],
-    "highlightsStamp": "0.16.57+b25a7d73",
+    "highlightsStamp": "0.16.58+1ce19d3d",
     "releases": {
       "0.16.56": [
         "El consenso de raw run ya aplica el filtro de calidad mínima de base, que no tenía efecto porque se descartaba la línea de calidad del FASTQ.",
@@ -2961,6 +2963,13 @@
         "La advertencia de off-target ya no atribuye el umbral de 45 °C a Kwok 1990 y Huang 1992, valor que se midió en un único fixture con Q5.",
         "La advertencia ahora indica que una lista vacía no es prueba de ausencia de priming off-target, ya que solo se incluye una coincidencia terminal 3' exacta.",
         "El nombre de la enzima de corrección de pruebas ahora proviene del perfil seleccionado, en lugar de dos nombres de enzima fijos en la cadena."
+      ],
+      "0.16.58": [
+        "La elección del codón mutante ahora pondera todos los codones sinónimos que usa el organismo seleccionado. Antes la búsqueda solo veía dos.",
+        "Los codones raros quedan fuera de ese conjunto, así un diseño ya no acaba en un codón que el organismo elegido apenas utiliza.",
+        "Design ordena los candidatos en todo el barrido de tolerancia de Tm, así una ventana más amplia con un cebador mejor ya no se omite.",
+        "El valor de Tol sube en esos diseños. Un Tol más alto indica aquí un cebador mejor puntuado, no un criterio más laxo.",
+        "Se corrigieron tres tablas de codones y la lista de organismos ya muestra todas las tablas incluidas, así los diseños anteriores pueden diferir."
       ]
     },
     "releaseStamps": {
@@ -3030,7 +3039,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.57": "b25a7d73"
+      "0.16.57": "b25a7d73",
+      "0.16.58": "1ce19d3d"
     }
   },
   "primerDisplay": {

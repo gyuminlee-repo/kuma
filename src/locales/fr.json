@@ -2545,11 +2545,13 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "L'avertissement off-target n'attribue plus le seuil de 45 °C à Kwok 1990 et Huang 1992, valeur mesurée sur un seul fixture avec Q5.",
-      "L'avertissement indique désormais qu'une liste vide n'est pas une preuve d'absence de priming off-target, car seule une correspondance terminale 3' exacte y figure.",
-      "Le nom de l'enzyme de relecture provient désormais du profil sélectionné, au lieu de deux noms d'enzyme codés en dur dans la chaîne."
+      "Le choix du codon mutant évalue désormais chaque codon synonyme utilisé par l'organisme sélectionné. Auparavant la recherche n'en voyait que deux.",
+      "Les codons rares restent hors de cet ensemble, si bien qu'un design ne tombe plus sur un codon que l'organisme choisi n'emploie presque jamais.",
+      "Design classe les candidats sur tout le balayage de tolérance Tm, si bien qu'une fenêtre plus large contenant une meilleure amorce n'est plus ignorée.",
+      "La valeur Tol augmente sur ces designs. Un Tol plus élevé signale ici une amorce mieux notée, et non un critère assoupli.",
+      "Trois tables de codons ont été corrigées et la liste des organismes affiche désormais toutes les tables fournies, donc les designs antérieurs peuvent différer."
     ],
-    "highlightsStamp": "0.16.57+b25a7d73",
+    "highlightsStamp": "0.16.58+1ce19d3d",
     "releases": {
       "0.16.56": [
         "Le consensus du raw run applique désormais le filtre de qualité minimale de base, sans effet auparavant car la ligne de qualité FASTQ était ignorée.",
@@ -2961,6 +2963,13 @@
         "L'avertissement off-target n'attribue plus le seuil de 45 °C à Kwok 1990 et Huang 1992, valeur mesurée sur un seul fixture avec Q5.",
         "L'avertissement indique désormais qu'une liste vide n'est pas une preuve d'absence de priming off-target, car seule une correspondance terminale 3' exacte y figure.",
         "Le nom de l'enzyme de relecture provient désormais du profil sélectionné, au lieu de deux noms d'enzyme codés en dur dans la chaîne."
+      ],
+      "0.16.58": [
+        "Le choix du codon mutant évalue désormais chaque codon synonyme utilisé par l'organisme sélectionné. Auparavant la recherche n'en voyait que deux.",
+        "Les codons rares restent hors de cet ensemble, si bien qu'un design ne tombe plus sur un codon que l'organisme choisi n'emploie presque jamais.",
+        "Design classe les candidats sur tout le balayage de tolérance Tm, si bien qu'une fenêtre plus large contenant une meilleure amorce n'est plus ignorée.",
+        "La valeur Tol augmente sur ces designs. Un Tol plus élevé signale ici une amorce mieux notée, et non un critère assoupli.",
+        "Trois tables de codons ont été corrigées et la liste des organismes affiche désormais toutes les tables fournies, donc les designs antérieurs peuvent différer."
       ]
     },
     "releaseStamps": {
@@ -3030,7 +3039,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.57": "b25a7d73"
+      "0.16.57": "b25a7d73",
+      "0.16.58": "1ce19d3d"
     }
   },
   "primerDisplay": {
