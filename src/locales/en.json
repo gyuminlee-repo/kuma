@@ -2599,12 +2599,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "The off-target caveat no longer credits Kwok 1990 and Huang 1992 for the 45 °C threshold, which was measured on one fixture with Q5.",
-      "The caveat now says an empty list is not proof of no off-target priming, since only an exact 3' terminal match is listed.",
-      "A proofreading enzyme is named from the selected profile instead of two enzyme names hardcoded into the string."
+      "Mutant codon choice now weighs every synonymous codon the selected organism uses, where before the search saw only two.",
+      "Rare codons are kept out of that pool, so a design no longer lands on a codon the chosen organism effectively avoids.",
+      "Design ranks candidates across the whole Tm tolerance sweep, so a looser window holding a better primer is no longer skipped.",
+      "The Tol figure rises on those designs. A higher Tol here marks a better scoring primer, not a looser standard.",
+      "Three codon tables were corrected and the organism list now shows every shipped table, so earlier designs can differ."
     ],
-    "highlightsStamp": "0.16.57+b25a7d73",
+    "highlightsStamp": "0.16.58+1ce19d3d",
     "releases": {
+      "0.16.58": [
+        "Mutant codon choice now weighs every synonymous codon the selected organism uses, where before the search saw only two.",
+        "Rare codons are kept out of that pool, so a design no longer lands on a codon the chosen organism effectively avoids.",
+        "Design ranks candidates across the whole Tm tolerance sweep, so a looser window holding a better primer is no longer skipped.",
+        "The Tol figure rises on those designs. A higher Tol here marks a better scoring primer, not a looser standard.",
+        "Three codon tables were corrected and the organism list now shows every shipped table, so earlier designs can differ."
+      ],
       "0.16.57": [
         "The off-target caveat no longer credits Kwok 1990 and Huang 1992 for the 45 °C threshold, which was measured on one fixture with Q5.",
         "The caveat now says an empty list is not proof of no off-target priming, since only an exact 3' terminal match is listed.",
@@ -3018,6 +3027,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.58": "1ce19d3d",
       "0.16.57": "b25a7d73",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",

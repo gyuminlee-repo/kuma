@@ -45,6 +45,7 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
   seqInfo: null,
   selectedGene: "",
   organism: "ecoli",
+  organisms: [],
 
   loadSequence: async (filepath: string) => {
     // 판정에 쓸 직전 상태는 set()이 덮어쓰기 전에 잡아 둔다.
@@ -208,4 +209,27 @@ export const createSequenceSlice: StateCreator<AppState, [], [], SequenceSlice> 
   },
 
   setOrganism: (organism: string) => set(buildKuroDesignInputPatch(get(), { organism })),
+
+  /**
+   * Fill the organism dropdown from the codon tables the sidecar actually has.
+   *
+   * The backend globs its resources directory, so the shipped set is whatever
+   * is on disk and a hardcoded list in the UI goes stale every time a table is
+   * added. Mirrors loadPolymerases in designSlice, minus its retired-profile
+   * migration: a saved `organism` is never remapped or reset here, because a
+   * key that is missing on this machine (a renamed or deleted table) must
+   * survive a workspace restore rather than be silently switched to another
+   * organism. SequenceInput keeps such a key selectable.
+   */
+  loadOrganisms: async () => {
+    try {
+      const organisms = await sendRequest("list_organisms", {});
+      // sendRequest validates and throws on a bad payload, so a non-array only
+      // reaches here from a stubbed transport. Guard anyway: assigning
+      // undefined would break every reader of this list.
+      if (Array.isArray(organisms)) set({ organisms });
+    } catch (err) {
+      set({ statusMessage: `Organism list load failed: ${formatError(err)}` });
+    }
+  },
 });

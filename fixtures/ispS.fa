@@ -1,4 +1,4 @@
->AB198180.1 Populus alba ispS isoprene synthase, complete CDS
+>AB198180.1 Populus alba ispS isoprene synthase, complete CDS [DEFECTIVE FIXTURE: 1789 nt, not a multiple of 3; frame 0 carries 38 internal stop codons from residue 126. Not repaired, because the inserted base is one of 47 equally valid candidates. Read fixtures/FIXTURE-DEFECTS.md before using this as a reference CDS.]
 ATGGCAACTGAATTATTGTGCTTGCACCGTCCAATCTCACTGACACACAAACTTTTCAGA
 AATCCCTTACCTAAAGTCATCCAGGCCACTCCCTTAACTTTGAAACTCAGATGTTCTGTA
 AGCACAGAAAACGTCAGCTTCACAGAAACAGAAACAGAAGCCAGACGGTCTGCCAATTAT

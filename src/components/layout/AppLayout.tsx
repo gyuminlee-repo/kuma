@@ -66,6 +66,7 @@ export function AppLayout() {
     return classifyError(statusMessage).kind;
   }, [statusMessage]);
   const loadPolymerases = useAppStore((s) => s.loadPolymerases);
+  const loadOrganisms = useAppStore((s) => s.loadOrganisms);
   const showBenchmark = useAppStore((s) => s.showBenchmark);
   const loadNetworkConsentSettings = useAppStore((s) => s.loadNetworkConsentSettings);
   const loadSettings = useAppStore((s) => s.loadSettings);
@@ -128,8 +129,11 @@ export function AppLayout() {
       void loadPolymerases().catch((err) => {
         console.warn("[AppLayout] loadPolymerases failed:", err);
       });
+      void loadOrganisms().catch((err) => {
+        console.warn("[AppLayout] loadOrganisms failed:", err);
+      });
     }
-  }, [loadPolymerases, sidecarStatus]);
+  }, [loadOrganisms, loadPolymerases, sidecarStatus]);
 
   // §1 Dead-lock 감지: design 진행 중 DEADLOCK_THRESHOLD_MS 초과 시 모달 표시
   useEffect(() => {

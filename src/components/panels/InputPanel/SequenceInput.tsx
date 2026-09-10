@@ -9,7 +9,6 @@ import { InlineHelp } from "../../ui/InlineHelp";
 
 const SEQUENCE_DROP_EXTENSIONS = new Set([".gb", ".gbk", ".gbff", ".dna"]);
 const FASTA_EXTENSIONS = new Set([".fa", ".fasta", ".fna"]);
-const STATIC_ORGANISM_KEYS = new Set(["ecoli", "bsubtilis", "scerevisiae"]);
 
 export function SequenceInput() {
   const { t } = useTranslation();
@@ -20,13 +19,21 @@ export function SequenceInput() {
   const setSelectedGene = useAppStore((s) => s.setSelectedGene);
   const organism = useAppStore((s) => s.organism);
   const setOrganism = useAppStore((s) => s.setOrganism);
+  const organisms = useAppStore((s) => s.organisms);
   const loadSequence = useAppStore((s) => s.loadSequence);
   const uniprotSearching = useAppStore((s) => s.uniprotSearching);
 
-  const isAutoOrganism = organism !== "" && !STATIC_ORGANISM_KEYS.has(organism);
-  // Find any gene whose organism_key matches to get the raw annotation as label.
-  // Avoids duplicating Python alias logic in TypeScript.
-  const autoOrganismLabel = isAutoOrganism
+  // The selection can sit outside the loaded list in three ways: the sidecar has
+  // not answered yet, its codon table was deleted or renamed since the workspace
+  // was saved, or the list call failed. All three need an option carrying the
+  // current value, otherwise the select renders blank and the next change event
+  // silently rewrites a saved selection.
+  const isUnlistedOrganism =
+    organism !== "" && !organisms.some((o) => o.key === organism);
+  // Label it from the sequence annotation when one matches, so an auto-detected
+  // organism still reads as the annotation rather than the bare key. Avoids
+  // duplicating Python alias logic in TypeScript.
+  const unlistedOrganismLabel = isUnlistedOrganism
     ? (seqInfo?.genes.find((g) => g.organism_key === organism)?.organism ?? organism)
     : null;
 
@@ -173,12 +180,15 @@ export function SequenceInput() {
           value={organism}
           onChange={(e) => setOrganism(e.target.value)}
         >
-          {isAutoOrganism && autoOrganismLabel !== null && (
-            <option value={organism}>{autoOrganismLabel}</option>
+          {isUnlistedOrganism && unlistedOrganismLabel !== null && (
+            <option value={organism}>{unlistedOrganismLabel}</option>
           )}
-          <option value="ecoli" title={t("sequenceInput.ecoliTitle")}>E. coli K-12</option>
-          <option value="bsubtilis" title={t("sequenceInput.bsubtilisTitle")}>B. subtilis 168</option>
-          <option value="scerevisiae" title={t("sequenceInput.scerevisiaeTitle")}>S. cerevisiae</option>
+          {/* Labels come from the table JSON "name" field the backend already
+              returns. A locale key per organism would not survive a user-added
+              table, and Latin binomials are conventionally untranslated. */}
+          {organisms.map((o) => (
+            <option key={o.key} value={o.key}>{o.name}</option>
+          ))}
         </select>
       </div>
     </>

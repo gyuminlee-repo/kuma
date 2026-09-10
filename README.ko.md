@@ -60,7 +60,7 @@ Kuro 탭에서 프라이머를 설계하고 실험·시퀀싱 후 Mame 탭으로
 
 #### 코돈 & 열역학 파라미터
 
-- **코돈 전략 선택**: Min. changes (WT 대비 최소 염기 변이) 또는 Optimal (E. coli 최적 코돈)
+- **코돈 전략 선택**: Min. changes (WT 대비 최소 염기 변이) 또는 Optimal (선택한 organism codon table 의 최빈 코돈)
 - **Polymerase 프로파일**: 7종 내장 (Taq, Phusion, Q5, Q5 SDM, KOD, DreamTaq, TAKARA_GXL). 각 프로파일은 제조사 매뉴얼 기준 Tm 방법·염 농도·DNA 농도·GC 범위 보정. 프로파일 선택은 권장 어닐링 온도(Ta) 규칙·GC 범위·overlap 모드를 정하며, 설계 시점 Tm 스케일은 고정이라 프로파일을 따르지 않음. Custom Polymerase 다이얼로그로 사용자 정의 프로파일을 만들면 `~/.kuma/kuro/custom_polymerases.json`에 영구 저장됨
 - **Tm 계산**: SantaLucia 1998 nearest-neighbor 모델. 염/DNA/divalent 농도는 선택한 polymerase 프로파일에 따라 달라짐. 기본 Tm 타겟 Fwd 62°C, Rev 58°C, Overlap 42°C
 - **점진적 Tm tolerance**: Fwd/Rev 각각 ±0.5°C부터 시작, ±0.5씩 독립 확장 (최대 ±3.0°C)
@@ -287,7 +287,7 @@ Fold change와 log2_fc는 플레이트별 WT 평균을 기준으로 계산된다
 
 `mame.activity.merge_for_evolvepro` (v0.2.9.0)가 EVOLVEpro 내보내기용 병합을 대체: 활성-지노타입 join + `merge_replicates_priority` (authoritative 우선·mismatch 플래그) + 라벨 교체 가드. 응답에 `replicate_stats`·`export_blocked` 노출. 5/12 데모는 기존 `activity.merge`를 그대로 사용하며 v0.3 버튼 "EVOLVEpro용 병합 (v0.3)"이 패널에 병행 배치.
 
-EVOLVEpro replicate 병합의 `ref_seq`는 현재 선택된 sequence 입력과 해당 CDS translation에서 가져옵니다. 입력에서 유도한 reference가 없으면 non-WT replicate 측정값을 거부하며, 운영 코드가 EGFP fixture 또는 다른 암묵적 target으로 대체하지 않습니다. 레거시 IspS 라운드용 `fixtures/ispS.fa` (Populus alba ispS CDS, AB198180.1)는 계속 보존됩니다.
+EVOLVEpro replicate 병합의 `ref_seq`는 현재 선택된 sequence 입력과 해당 CDS translation에서 가져옵니다. 입력에서 유도한 reference가 없으면 non-WT replicate 측정값을 거부하며, 운영 코드가 EGFP fixture 또는 다른 암묵적 target으로 대체하지 않습니다. 레거시 IspS 라운드용 `fixtures/ispS.fa` (Populus alba ispS CDS, AB198180.1)는 계속 보존됩니다. 다만 이 파일은 frame 이 어긋나 있어 reference CDS 로 쓸 수 없습니다. `fixtures/FIXTURE-DEFECTS.md` 를 먼저 확인하세요.
 
 </details>
 

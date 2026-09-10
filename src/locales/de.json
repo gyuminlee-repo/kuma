@@ -2545,11 +2545,13 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Der Off-Target-Hinweis nennt für den 45-°C-Schwellenwert nicht mehr Kwok 1990 und Huang 1992 als Quelle. Dieser Wert wurde an einer einzigen Fixture mit Q5 gemessen.",
-      "Der Hinweis besagt nun, dass eine leere Liste kein Beweis für fehlendes Off-Target-Priming ist, da nur eine exakte 3'-Terminalübereinstimmung aufgeführt wird.",
-      "Ein Proofreading-Enzym wird nun aus dem gewählten Profil benannt, statt zwei fest codierte Enzymnamen im String zu verwenden."
+      "Die Auswahl des Mutant-Codons bewertet jetzt jedes synonyme Codon, das der gewählte Organismus verwendet. Zuvor sah die Suche nur zwei.",
+      "Seltene Codons bleiben aus diesem Kandidatensatz heraus, sodass ein Entwurf nicht mehr auf einem Codon landet, das der Organismus kaum nutzt.",
+      "Design bewertet Kandidaten über den gesamten Tm-Toleranzdurchlauf, sodass ein weiterer Bereich mit einem besseren Primer nicht mehr übersprungen wird.",
+      "Der Tol-Wert steigt bei diesen Entwürfen. Ein höherer Tol steht hier für einen besser bewerteten Primer, nicht für einen lockereren Maßstab.",
+      "Drei Codon-Tabellen wurden korrigiert, und die Organismusliste zeigt nun jede mitgelieferte Tabelle, daher können frühere Entwürfe abweichen."
     ],
-    "highlightsStamp": "0.16.57+b25a7d73",
+    "highlightsStamp": "0.16.58+1ce19d3d",
     "releases": {
       "0.16.56": [
         "Der raw-run-Consensus wendet nun den Filter für minimale Basenqualität an, der ohne die verworfene FASTQ-Qualitätszeile wirkungslos war.",
@@ -2961,6 +2963,13 @@
         "Der Off-Target-Hinweis nennt für den 45-°C-Schwellenwert nicht mehr Kwok 1990 und Huang 1992 als Quelle. Dieser Wert wurde an einer einzigen Fixture mit Q5 gemessen.",
         "Der Hinweis besagt nun, dass eine leere Liste kein Beweis für fehlendes Off-Target-Priming ist, da nur eine exakte 3'-Terminalübereinstimmung aufgeführt wird.",
         "Ein Proofreading-Enzym wird nun aus dem gewählten Profil benannt, statt zwei fest codierte Enzymnamen im String zu verwenden."
+      ],
+      "0.16.58": [
+        "Die Auswahl des Mutant-Codons bewertet jetzt jedes synonyme Codon, das der gewählte Organismus verwendet. Zuvor sah die Suche nur zwei.",
+        "Seltene Codons bleiben aus diesem Kandidatensatz heraus, sodass ein Entwurf nicht mehr auf einem Codon landet, das der Organismus kaum nutzt.",
+        "Design bewertet Kandidaten über den gesamten Tm-Toleranzdurchlauf, sodass ein weiterer Bereich mit einem besseren Primer nicht mehr übersprungen wird.",
+        "Der Tol-Wert steigt bei diesen Entwürfen. Ein höherer Tol steht hier für einen besser bewerteten Primer, nicht für einen lockereren Maßstab.",
+        "Drei Codon-Tabellen wurden korrigiert, und die Organismusliste zeigt nun jede mitgelieferte Tabelle, daher können frühere Entwürfe abweichen."
       ]
     },
     "releaseStamps": {
@@ -3030,7 +3039,8 @@
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
-      "0.16.57": "b25a7d73"
+      "0.16.57": "b25a7d73",
+      "0.16.58": "1ce19d3d"
     }
   },
   "primerDisplay": {

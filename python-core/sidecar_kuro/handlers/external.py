@@ -8,6 +8,8 @@ import urllib.parse
 import urllib.request
 from difflib import SequenceMatcher
 
+from kuma_core.shared.net import describe_tls_error
+
 import sidecar_kuro.core as _core
 from sidecar_kuro.core import (
     _get_ssl_ctx,
@@ -215,6 +217,12 @@ def handle_search_uniprot(params: dict) -> dict:
     auto_selected: str | None = None
     last_error: str = ""
 
+    def _detail(exc: Exception) -> str:
+        """Error text for the UI, prefixed with the CA remedy when it is a TLS failure."""
+        detail = f"{type(exc).__name__}: {exc}"
+        remedy = describe_tls_error(exc)
+        return f"{remedy} ({detail})" if remedy else detail
+
     def _fetch_json(url: str) -> tuple[dict | None, str]:
         try:
             req = urllib.request.Request(url, headers={"Accept": "application/json"})
@@ -222,7 +230,7 @@ def handle_search_uniprot(params: dict) -> dict:
                 return json.loads(resp.read().decode("utf-8")), ""
         except Exception as exc:
             logger.warning("UniProt fetch failed: %s - %s", url, exc)
-            return None, f"{type(exc).__name__}: {exc}"
+            return None, _detail(exc)
 
     def _fetch_text(url: str) -> tuple[str, str]:
         try:
@@ -230,7 +238,7 @@ def handle_search_uniprot(params: dict) -> dict:
             with urllib.request.urlopen(req, context=_get_ssl_ctx(), timeout=30) as resp:
                 return resp.read().decode("utf-8").strip(), ""
         except Exception as exc:
-            return "", f"{type(exc).__name__}: {exc}"
+            return "", _detail(exc)
 
     seen_accessions: set[str] = set()
 

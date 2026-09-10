@@ -33,6 +33,14 @@ const NETWORK_PATTERNS: RegExp[] = [
   /no route to host/i,
   /name or service not known/i,
   /connection\s+reset/i,
+  // TLS trust failures. On a network with an inspection proxy every outbound
+  // call fails this way, and the sidecar message carries the CA remedy text.
+  // `verif` rather than `verify` so the remedy's own wording
+  // ("certificate verification failed") matches even where the native verifier
+  // on macOS or Windows words the underlying error differently from OpenSSL.
+  /certificate_verify_failed/i,
+  /certificate\s+verif/i,
+  /\bssl\b/i,
 ];
 
 const VALIDATION_PATTERNS: RegExp[] = [
