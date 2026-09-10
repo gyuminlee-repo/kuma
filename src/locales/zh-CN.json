@@ -2052,7 +2052,8 @@
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
     "colSequence": "序列",
-    "thresholdNote": "阈值基于单一测试数据集以及无校对活性的聚合酶数据 (Taq; Kwok 1990, Huang 1992) 标定。Q5 与 KOD One 具有校对活性，因此这些命中应视为方向性参考，而非绝对判定。"
+    "thresholdNote": "45℃ 阈值是在单一 fixture（pSHCE-dmpR，Q5）上测得的。只有当某位点的 3' 末端碱基与模板完全匹配，或在 overlap arm 内发生错配退火时，该位点才会列入表中，因此列表短或为空并不能证明不会发生 off-target 引物结合。",
+    "proofreadingNote": "{{polymerase}} 具有校对（proofreading）活性，因此可以切除 3' 末端错配并从本表未列出的位点延伸。"
   },
   "hairpinDetail": {
     "title": "{{mutation}} — 二级结构",
@@ -2544,13 +2545,11 @@
     "descriptionRange": "自 v{{from}} 以来每次更新的主要变化。",
     "gotItBtn": "知道了",
     "highlights": [
-      "raw run 的 consensus 现在会应用最低碱基质量过滤器，此前因为 FASTQ 质量行被丢弃而始终无效。",
-      "低于质量阈值的碱基不再计入 call，因此低质量的多数无法压过高质量的少数。",
-      "analyze 运行在无法从给定 reference 中切出 amplicon 时会发出警告，并说明查找失败的原因。",
-      "此前这种情况会静默通过，并按更短的区段给平板打分，正确的克隆被无声丢弃。",
-      "新的 finding 只警告而不拒绝，因为已去除 primer 区域的 reference 也会走到同一分支，而那种情况没有问题。"
+      "off-target 提示不再将 45°C 阈值归功于 Kwok 1990 和 Huang 1992，该数值是使用 Q5 在单个 fixture 上测得的。",
+      "提示现在说明，空列表并不能证明不存在 off-target priming，因为列表中仅包含精确匹配的 3' 末端。",
+      "proofreading 酶的名称现在来自所选的 profile，而不是硬编码在字符串中的两个酶名。"
     ],
-    "highlightsStamp": "0.16.56+9b525cb2",
+    "highlightsStamp": "0.16.57+b25a7d73",
     "releases": {
       "0.16.56": [
         "raw run 的 consensus 现在会应用最低碱基质量过滤器，此前因为 FASTQ 质量行被丢弃而始终无效。",
@@ -2957,6 +2956,11 @@
         "expected mutations 的密码子取自 KURO 的设计结果，因此表中写的是引物实际携带的密码子。",
         "实测活性并不遵循预测排序，10 个变体中有 3 个低于野生型。",
         "新增的测试直接读取随附文件，一旦 KURO 与 MAME 再次描述不同实验就会失败。"
+      ],
+      "0.16.57": [
+        "off-target 提示不再将 45°C 阈值归功于 Kwok 1990 和 Huang 1992，该数值是使用 Q5 在单个 fixture 上测得的。",
+        "提示现在说明，空列表并不能证明不存在 off-target priming，因为列表中仅包含精确匹配的 3' 末端。",
+        "proofreading 酶的名称现在来自所选的 profile，而不是硬编码在字符串中的两个酶名。"
       ]
     },
     "releaseStamps": {
@@ -3025,7 +3029,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.57": "b25a7d73"
     }
   },
   "primerDisplay": {

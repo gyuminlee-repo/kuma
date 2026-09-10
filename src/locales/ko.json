@@ -2176,7 +2176,8 @@
     "colTm": "Tm (°C)",
     "noHits": "Off-target 위치 없음",
     "title": "{{mutation}} - Off-Target 위치 ({{count}})",
-    "thresholdNote": "임계값은 단일 테스트 데이터셋과 교정 활성이 없는 중합효소 데이터 (Taq; Kwok 1990, Huang 1992) 를 근거로 정했습니다. Q5 와 KOD One 은 교정 활성이 있으므로 이 결과는 절대 기준이 아니라 방향성 참고로 보십시오."
+    "thresholdNote": "45℃ 임계값은 fixture 하나(pSHCE-dmpR, Q5)에서 측정한 값입니다. 어떤 자리는 3' 말단 염기가 주형과 정확히 일치하거나 overlap arm 안에서 misanneal 할 때만 표에 올라오므로 목록이 짧거나 비어 있다고 해서 off-target priming이 없다는 증거는 아닙니다.",
+    "proofreadingNote": "{{polymerase}}는 proofreading 기능이 있어 3' 말단 미스매치를 제거하고 이 표에 없는 자리에서 연장할 수 있습니다."
   },
   "overwriteConfirm": {
     "title": "파일이 이미 존재합니다",
@@ -2598,13 +2599,11 @@
     "descriptionRange": "v{{from}} 이후 모든 업데이트의 주요 변경 사항입니다.",
     "gotItBtn": "확인",
     "highlights": [
-      "raw run consensus 가 이제 minimum base quality 필터를 적용한다. 그동안 FASTQ quality 줄을 버려서 효과가 없었다.",
-      "품질 임계값 아래의 base 는 더 이상 call 에 반영되지 않으므로 저품질 다수가 고품질 소수를 이길 수 없다.",
-      "analyze 실행이 이제 주어진 reference 에서 amplicon 을 잘라내지 못하면 경고하고 실패 사유를 함께 알린다.",
-      "이전에는 이 경우가 조용히 통과해 더 짧은 구간으로 plate 를 채점했고 정상 clone 이 말없이 버려졌다.",
-      "새 finding 은 거부가 아니라 경고다. primer 구간이 이미 잘린 reference 도 같은 분기에 닿는데 이쪽은 정상이기 때문이다."
+      "off-target 주의문이 45°C 임계값의 근거로 Kwok 1990 과 Huang 1992 를 더 이상 들지 않는다. 그 값은 Q5 로 진행한 픽스처 하나에서 측정됐다.",
+      "빈 목록이 off-target priming 이 없다는 증거가 아니라는 문구가 주의문에 추가됐다. 목록에는 정확히 일치하는 3' 말단만 실리기 때문이다.",
+      "proofreading 효소 이름을 문자열에 고정된 두 효소명 대신 선택된 profile 에서 가져온다."
     ],
-    "highlightsStamp": "0.16.56+9b525cb2",
+    "highlightsStamp": "0.16.57+b25a7d73",
     "releases": {
       "0.16.56": [
         "raw run consensus 가 이제 minimum base quality 필터를 적용한다. 그동안 FASTQ quality 줄을 버려서 효과가 없었다.",
@@ -3011,6 +3010,11 @@
         "expected mutations 코돈을 KURO 설계 결과에서 가져오므로 시트가 프라이머가 실제로 싣는 코돈을 적습니다.",
         "측정 활성은 예측 순위를 따르지 않습니다. 10개 중 3개는 wild-type 미만입니다.",
         "출하 파일을 읽는 테스트를 추가해 KURO 와 MAME 가 다시 다른 실험을 말하면 실패합니다."
+      ],
+      "0.16.57": [
+        "off-target 주의문이 45°C 임계값의 근거로 Kwok 1990 과 Huang 1992 를 더 이상 들지 않는다. 그 값은 Q5 로 진행한 픽스처 하나에서 측정됐다.",
+        "빈 목록이 off-target priming 이 없다는 증거가 아니라는 문구가 주의문에 추가됐다. 목록에는 정확히 일치하는 3' 말단만 실리기 때문이다.",
+        "proofreading 효소 이름을 문자열에 고정된 두 효소명 대신 선택된 profile 에서 가져온다."
       ]
     },
     "releaseStamps": {
@@ -3079,7 +3083,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.57": "b25a7d73"
     }
   },
   "primerDisplay": {

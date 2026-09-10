@@ -11,6 +11,7 @@ export interface PolymeraseInfo {
   name: string;
   manufacturer: string;
   fidelity: string;
+  proofreading?: boolean | null;
 }
 
 export interface PolymeraseProfile {
@@ -36,6 +37,7 @@ export interface PolymeraseProfile {
   rev_len_min?: number | null;
   rev_len_max?: number | null;
   default_overlap_mode?: OverlapMode | null;
+  proofreading?: boolean | null;
 }
 
 export interface GeneInfo {

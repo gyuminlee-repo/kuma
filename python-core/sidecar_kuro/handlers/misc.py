@@ -52,6 +52,7 @@ def handle_list_polymerases(_params: dict) -> list[dict]:
                 "name": name,
                 "manufacturer": meta["manufacturer"],
                 "fidelity": meta["fidelity"],
+                "proofreading": _poly_registry.get(name).proofreading,
             }
         )
     return result

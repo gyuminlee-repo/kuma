@@ -2052,7 +2052,8 @@
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
     "colSequence": "Sequência",
-    "thresholdNote": "Os limiares foram calibrados com um único conjunto de dados de teste e com dados de polimerases sem atividade corretora (Taq; Kwok 1990, Huang 1992). Q5 e KOD One possuem atividade corretora, portanto trate estes hits como indicativos e não como absolutos."
+    "thresholdNote": "O limiar de 45 °C foi medido em um único fixture (pSHCE-dmpR, Q5). Um sítio só aparece na lista quando sua base terminal 3' corresponde exatamente ao molde ou quando pareia incorretamente dentro do overlap arm, portanto uma lista curta ou vazia não é prova de que não possa ocorrer priming off-target.",
+    "proofreadingNote": "{{polymerase}} tem atividade corretora (proofreading), portanto pode excisar um mismatch terminal 3' e estender a partir de um sítio que esta tabela não lista."
   },
   "hairpinDetail": {
     "title": "{{mutation}} — Estrutura secundária",
@@ -2544,13 +2545,11 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "O consenso de raw run agora aplica o filtro de qualidade mínima de base, que não tinha efeito porque a linha de qualidade do FASTQ era descartada.",
-      "Uma base abaixo do limiar de qualidade não conta mais para uma chamada, então uma maioria de baixa qualidade não supera uma minoria de alta qualidade.",
-      "Uma execução de analyze agora avisa quando nenhum amplicon pôde ser recortado da referência informada, e indica o motivo da falha.",
-      "Antes esse caso passava em silêncio e pontuava a placa contra uma região mais curta, descartando clones corretos sem avisar.",
-      "O novo achado avisa em vez de recusar, porque uma referência já sem as regiões de primer chega ao mesmo ramo e não é problema."
+      "O aviso de off-target não credita mais Kwok 1990 e Huang 1992 pelo limiar de 45 °C, valor medido em um único fixture com Q5.",
+      "O aviso agora diz que uma lista vazia não é prova de ausência de priming off-target, já que apenas uma correspondência terminal 3' exata é listada.",
+      "O nome da enzima de revisão agora vem do perfil selecionado, em vez de dois nomes de enzima fixos na string."
     ],
-    "highlightsStamp": "0.16.56+9b525cb2",
+    "highlightsStamp": "0.16.57+b25a7d73",
     "releases": {
       "0.16.56": [
         "O consenso de raw run agora aplica o filtro de qualidade mínima de base, que não tinha efeito porque a linha de qualidade do FASTQ era descartada.",
@@ -2957,6 +2956,11 @@
         "Os códons das mutações esperadas vêm do desenho do KURO, então a planilha indica o códon que os primers carregam.",
         "A atividade medida não segue a ordem predita, e três das dez variantes ficam abaixo do tipo selvagem.",
         "Um novo teste lê os arquivos incluídos e falha assim que KURO e MAME voltarem a descrever experimentos diferentes."
+      ],
+      "0.16.57": [
+        "O aviso de off-target não credita mais Kwok 1990 e Huang 1992 pelo limiar de 45 °C, valor medido em um único fixture com Q5.",
+        "O aviso agora diz que uma lista vazia não é prova de ausência de priming off-target, já que apenas uma correspondência terminal 3' exata é listada.",
+        "O nome da enzima de revisão agora vem do perfil selecionado, em vez de dois nomes de enzima fixos na string."
       ]
     },
     "releaseStamps": {
@@ -3025,7 +3029,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.57": "b25a7d73"
     }
   },
   "primerDisplay": {

@@ -2052,7 +2052,8 @@
     "colMatch": "Match (bp)",
     "colTm": "Tm (°C)",
     "colSequence": "Séquence",
-    "thresholdNote": "Les seuils sont calibrés sur un seul jeu de données de test et sur des polymérases sans activité de relecture (Taq ; Kwok 1990, Huang 1992). Q5 et KOD One possèdent cette activité : ces hits sont donc indicatifs et non absolus."
+    "thresholdNote": "Le seuil de 45 °C a été mesuré sur un seul fixture (pSHCE-dmpR, Q5). Un site n'apparaît dans la liste que si sa base terminale 3' correspond exactement à la matrice ou si elle s'apparie de façon incorrecte à l'intérieur de l'overlap arm ; une liste courte ou vide n'est donc pas la preuve qu'aucun amorçage hors cible ne peut se produire.",
+    "proofreadingNote": "{{polymerase}} possède une activité de relecture (proofreading) et peut donc exciser un mésappariement terminal en 3' puis s'étendre à partir d'un site que ce tableau ne liste pas."
   },
   "hairpinDetail": {
     "title": "{{mutation}} — Structure secondaire",
@@ -2544,13 +2545,11 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Le consensus du raw run applique désormais le filtre de qualité minimale de base, sans effet auparavant car la ligne de qualité FASTQ était ignorée.",
-      "Une base sous le seuil de qualité ne compte plus pour un appel, donc une majorité de faible qualité ne peut pas l'emporter sur une minorité fiable.",
-      "Une exécution analyze avertit maintenant lorsqu'aucun amplicon n'a pu être découpé dans la référence fournie, et nomme la raison de l'échec.",
-      "Ce cas passait auparavant en silence et notait la plaque contre une région plus courte, écartant des clones corrects sans le signaler.",
-      "Le nouveau constat avertit au lieu de refuser, car une référence déjà débarrassée de ses régions d'amorce atteint la même branche sans problème."
+      "L'avertissement off-target n'attribue plus le seuil de 45 °C à Kwok 1990 et Huang 1992, valeur mesurée sur un seul fixture avec Q5.",
+      "L'avertissement indique désormais qu'une liste vide n'est pas une preuve d'absence de priming off-target, car seule une correspondance terminale 3' exacte y figure.",
+      "Le nom de l'enzyme de relecture provient désormais du profil sélectionné, au lieu de deux noms d'enzyme codés en dur dans la chaîne."
     ],
-    "highlightsStamp": "0.16.56+9b525cb2",
+    "highlightsStamp": "0.16.57+b25a7d73",
     "releases": {
       "0.16.56": [
         "Le consensus du raw run applique désormais le filtre de qualité minimale de base, sans effet auparavant car la ligne de qualité FASTQ était ignorée.",
@@ -2957,6 +2956,11 @@
         "Les codons des mutations attendues viennent de la conception KURO, donc la feuille indique le codon que portent les amorces.",
         "L'activité mesurée ne suit pas le classement prédit, et trois des dix variants se situent sous le type sauvage.",
         "Un nouveau test lit les fichiers livrés et échoue dès que KURO et MAME décrivent de nouveau des expériences différentes."
+      ],
+      "0.16.57": [
+        "L'avertissement off-target n'attribue plus le seuil de 45 °C à Kwok 1990 et Huang 1992, valeur mesurée sur un seul fixture avec Q5.",
+        "L'avertissement indique désormais qu'une liste vide n'est pas une preuve d'absence de priming off-target, car seule une correspondance terminale 3' exacte y figure.",
+        "Le nom de l'enzyme de relecture provient désormais du profil sélectionné, au lieu de deux noms d'enzyme codés en dur dans la chaîne."
       ]
     },
     "releaseStamps": {
@@ -3025,7 +3029,8 @@
       "0.15.19": "23a13b2a",
       "0.15.18": "992e2c6b",
       "0.15.17": "6ee369a3",
-      "0.15.16": "fe8e6f21"
+      "0.15.16": "fe8e6f21",
+      "0.16.57": "b25a7d73"
     }
   },
   "primerDisplay": {

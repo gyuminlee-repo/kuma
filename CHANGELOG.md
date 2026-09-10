@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.16.57 (The off-target caveat says what the list can miss)
+
+The note printed under the off-target table asserted three things the code does not support. It credited Kwok 1990 and Huang 1992 for the temperature threshold, when those papers underpin the extendability criterion instead and the 45 °C figure was measured on a single fixture, pSHCE-dmpR, with Q5. It described the listed hits as directional because Q5 and KOD One proofread, naming two enzymes unconditionally while a run designed with Taq or DreamTaq read a disclaimer that did not apply to it, and while Phusion and PrimeSTAR GXL went unnamed.
+
+The third claim ran the wrong way round. A site reaches the table only when its 3' terminal base matches the template exactly or when it misanneals inside the overlap arm. A proofreading enzyme excises a 3' mispair and extends from it, so the sites such an enzyme can prime are the ones the table does not show. The old note reassured a reader about the rows on screen while the real exposure sat in the rows missing from it.
+
+The note now states where the threshold came from, states that only an exact 3' terminal match or an overlap arm misanneal is listed, and says that a short or empty list is not proof that no off-target priming can occur. Each polymerase profile carries a proofreading flag, and a second line naming the selected enzyme appears only when that flag is true. An unknown flag prints nothing rather than a silent negative.
+
+### Highlights
+
+- The off-target caveat no longer credits Kwok 1990 and Huang 1992 for the 45 °C threshold, which was measured on one fixture with Q5.
+- The caveat now says an empty list is not proof of no off-target priming, since only an exact 3' terminal match is listed.
+- A proofreading enzyme is named from the selected profile instead of two enzyme names hardcoded into the string.
+
 ## v0.16.56 (Read quality reaches the consensus filter, and a skipped amplicon cut is announced)
 
 Two faults in the MAME raw run path, both silent, both able to change which clones a plate reports.
