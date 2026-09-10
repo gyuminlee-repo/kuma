@@ -29,6 +29,31 @@ delivers. Both arms run on the same simulated reads and both run on either
 branch, so this module measures what the WIRING BUYS without depending on the
 wiring being present. The plumbing itself is that branch's own test concern.
 
+WHAT THIS FIXTURE CANNOT SEE
+----------------------------
+Written here rather than left implicit, because a passing checker is only
+evidence within the range it inspects.
+
+* The quality model is an assumption, stated in ``create_fixtures``. Quality here
+  is informative about the simulator's own substitution decisions in a way no
+  real basecaller is, so the quality arm is an optimistic bound rather than a
+  prediction.
+* Simulated deletions are applied by shortening the run, and minimap2 left-aligns
+  the resulting gap, so the artifact always lands at the run's leftmost
+  reference position. A real error can sit anywhere inside the run and a real
+  aligner can place it elsewhere. Whether the gates behave differently for a
+  mid-run or right-edge artifact is NOT measured here.
+* The reads are wild type. Under ``_DESIGN_UNCONFIRMED`` a WRONG_AA verdict means
+  `expected this, observed nothing`, so the numbers measure GATE ORDERING and not
+  the discrimination of the WRONG_AA class against a well carrying a different
+  residue.
+* One reference, one depth (40 reads), one preset, no primer flank, no chimera,
+  no barcode cross-talk. Nothing here speaks to real run yield.
+* The aligner is required, so the Windows CI leg skips the measurement class and
+  keeps only the fixture invariants.
+* The baseline is bound to a minimap2 version, recorded alongside it. A version
+  bump can move these numbers without anything in MAME changing.
+
 REGENERATING THE BASELINE
 -------------------------
     KUMA_HP_BASELINE_UPDATE=1 python -m pytest tests/mame/test_homopolymer_regression.py
@@ -252,6 +277,13 @@ def _measure() -> dict:
         "arms": {},
     }
 
+    # Consensus strings per arm, so the arm comparison rests on the sequences and
+    # not only on the counts derived from them. Two arms can agree on how many
+    # no-calls they made and still disagree about which base they called
+    # everywhere else, and a summary built only from counts would call that
+    # `no effect`.
+    consensus_by_arm: dict[str, dict[str, str]] = {}
+
     for arm in ("no_quality", "with_quality"):
         n_by_region = {k: 0 for k in bins}
         n_by_run_length = {"6": 0, "7": 0, "8": 0}
@@ -261,6 +293,7 @@ def _measure() -> dict:
         reads_passed = 0
         low_quality_dropped = 0
         indel_event_fractions: list[float] = []
+        consensus_by_arm[arm] = {}
 
         for well, reads in wells.items():
             payload = [
@@ -285,6 +318,7 @@ def _measure() -> dict:
             reads_passed += stats.n_passed_filter
             low_quality_dropped += call.n_low_quality_bases
             indel_event_fractions.append(call.max_indel_event_fraction)
+            consensus_by_arm[arm][well] = call.consensus_seq
 
             tier_key = f"{HOMOPOLYMER_DEL_PROB_TIERS[int(well[4])]:.2f}"
             for i, base in enumerate(call.consensus_seq):
@@ -336,6 +370,17 @@ def _measure() -> dict:
             "verdicts_design_empty": verdicts_empty,
             "verdicts_design_unconfirmed": verdicts_unconfirmed,
         }
+
+    # Sequence-level arm comparison. Equal no-call counts do not imply equal
+    # consensus: dropping low-quality bases can flip a base call at a position
+    # that stays a confident call either way, and a summary of counts alone would
+    # report that as `no effect`.
+    arm_a, arm_b = consensus_by_arm["no_quality"], consensus_by_arm["with_quality"]
+    differing_wells = [w for w in arm_a if arm_a[w] != arm_b[w]]
+    summary["arm_consensus_differing_wells"] = len(differing_wells)
+    summary["arm_consensus_differing_positions"] = sum(
+        sum(1 for x, y in zip(arm_a[w], arm_b[w]) if x != y) for w in differing_wells
+    )
     return summary
 
 

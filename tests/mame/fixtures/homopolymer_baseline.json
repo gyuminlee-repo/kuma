@@ -1,4 +1,6 @@
 {
+  "arm_consensus_differing_positions": 0,
+  "arm_consensus_differing_wells": 0,
   "arms": {
     "no_quality": {
       "low_quality_bases_dropped": 0,
