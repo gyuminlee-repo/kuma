@@ -35,7 +35,6 @@ export function ResultTable() {
     totalCount,
     sorting,
     setSorting,
-    codonStrategy,
     overlapMode,
     manuallySwapped,
     customCandidatesAll,
@@ -53,7 +52,6 @@ export function ResultTable() {
       totalCount: s.totalCount,
       sorting: s.tableSorting,
       setSorting: s.setTableSorting,
-      codonStrategy: s.codonStrategy,
       overlapMode: s.overlapMode,
       manuallySwapped: s.manuallySwapped,
       customCandidatesAll: s.customCandidates,
@@ -112,7 +110,6 @@ export function ResultTable() {
     () =>
       makeResultTableColumns({
         groupColorMap,
-        codonStrategy,
         overlapMode,
         swapped: manuallySwapped,
         customCandidates: customCandidatesAll,
@@ -126,7 +123,6 @@ export function ResultTable() {
       }),
     [
       groupColorMap,
-      codonStrategy,
       overlapMode,
       manuallySwapped,
       customCandidatesAll,

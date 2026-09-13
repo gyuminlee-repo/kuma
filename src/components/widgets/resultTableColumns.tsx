@@ -79,7 +79,6 @@ export function buildGroupColorMap(results: SdmPrimerResult[]): Map<number, stri
 
 export function makeResultTableColumns(opts: {
   groupColorMap: Map<number, string>;
-  codonStrategy: "closest" | "optimal";
   overlapMode: "partial" | "full";
   swapped: Record<string, string>;
   customCandidates: Record<string, SdmPrimerResult[]>;
@@ -101,7 +100,6 @@ export function makeResultTableColumns(opts: {
 }) {
   const {
     groupColorMap,
-    codonStrategy,
     overlapMode,
     swapped,
     customCandidates,
@@ -436,10 +434,7 @@ export function makeResultTableColumns(opts: {
       header: "MT",
       size: 40,
       meta: {
-        tooltip:
-          codonStrategy === "closest"
-            ? "Mutant codon (min. nucleotide changes from WT)"
-            : "Mutant codon (highest-usage codon for the selected organism)",
+        tooltip: "Mutant codon (min. nucleotide changes from WT)",
       },
       cell: (info) => <span className="font-mono">{info.getValue()}</span>,
     }),
