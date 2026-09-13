@@ -1,0 +1,17 @@
+[17:16:07] loadavg_start=1.41 7.90 13.56 16/858 1139786
+[17:16:07] code=/mnt/d/_workspace/cc/kuma/.claude/worktrees/r2-release
+[17:16:07] code_rev=ac841d65
+[17:16:07] version=KUMA_VERSION = "0.16.58"
+[17:16:07] run=/mnt/d/_workspace/020.admin/projects/060.nanopore_NGS/20260212_2227_X4_FBF10847_e7145f8e
+[17:16:07] ref=/mnt/d/_workspace/020.admin/projects/070.KUMA_elements/260730 MAME test/260804_MAME_output/demux_filtered/pTSN-PtIspS-idi(KanR)_corrected.reference.amplicon.fa
+[17:16:07] === R2 release, amplicon reference ===
+=== R2-release run_dir=/mnt/d/_workspace/020.admin/projects/060.nanopore_NGS/20260212_2227_X4_FBF10847_e7145f8e ref=/mnt/d/_workspace/020.admin/projects/070.KUMA_elements/260730 MAME test/260804_MAME_output/demux_filtered/pTSN-PtIspS-idi(KanR)_corrected.reference.amplicon.fa cds=16..1699
+    workbook=/mnt/d/_workspace/020.admin/projects/060.nanopore_NGS/NGS_260212/260526_mame_input_96mutants.xlsx native_barcodes=['barcode06', 'barcode13', 'barcode20']
+demux+ingest done in 1116.7s -> 288 records
+    stats={'total_reads': 2706444, 'passed_mapq': 2700849, 'passed_coverage': 2062713, 'assigned_reads': 1475396, 'ambiguous_dropped': 861541, 'chimera_splits': 592667, 'wells_with_reads': 288, 'wells_with_min_reads': 288, 'drop_short_window_read_5p': 71, 'drop_short_window_read_3p': 683483, 'drop_no_barcode_f': 56501, 'drop_no_barcode_r': 78807, 'drop_ambiguous_tie_f': 18285, 'drop_ambiguous_tie_r': 3493, 'drop_both_axes': 20901}
+analyze rows=95 wt_ordinal=96 layout=96 -> R2-release_MAME.xlsx
+    288 verdicts, 96 replicate groups, 0.5s
+=== R2-release complete, total 1117.2s
+[17:34:50] R2-release rc=0
+[17:34:50] loadavg_end=3.58 5.78 8.64 13/986 1284598
+[17:34:50] BENCH_R2_RELEASE_DONE
