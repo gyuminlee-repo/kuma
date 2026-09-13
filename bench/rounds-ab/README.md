@@ -21,11 +21,20 @@ retired CDS reference (1683 bp) and the current amplicon reference (1715 bp).
 
 ## Cautions that travel with this data
 
-- **The round-2 reference pair is confounded.** Its two conditions read
-  different run folders, 138 fastq files against 7. The shallow one lowered
-  `min_file_size_kb` from 50.0 to 1.0 so wells would not all fail on depth.
-  Reference effect and depth effect cannot be separated there. The clean
-  reference comparison is round 3-1, same run folder and same reads.
+- **The round-2 CDS cell was re-measured on 2026-09-13 and its old numbers are
+  retired.** The original round-2 CDS arms read a shallow 7-file 134 MB subset
+  while the round-2 amplicon arms read the full folder, so that pair mixed a
+  reference effect with a depth effect. `bench_r2_cds.sh` re-ran the cell on the
+  full folder; both conditions now report `total_reads` 2706444, so they read the
+  same reads and differ only in the reference. Retired values, do not cite:
+  A 74, Ap 74, B 72, C_bayesian_default 80, C_r10.4_sup 83.
+- **The size of the reference effect is run-specific, not a constant.** With the
+  same reads in each round, round 3-1 goes 85 -> 94 wells and round 2 goes
+  83 -> 84. In both rounds every well the CDS reference loses carries a variant
+  at codon 560 of 561, but the design-codon depth that survives the switch
+  differs: round 3-1 collapses from a median 454 to 10 while round 2 holds near
+  7190. Why the two runs differ at the 3' end is unverified. Quote the per-round
+  numbers rather than a single headline figure.
 - **Arms B and C read one codon only**, the designed one. MAME scans the whole
   CDS. The two sides can only be compared on whether the designed mutation was
   reproduced, never on off-target changes.

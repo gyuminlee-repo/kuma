@@ -1,9 +1,14 @@
-"""Assert the three pre-existing (round,reference) cells are byte-identical
-row lists in file order, before vs after regeneration. Counts alone would miss
-a reordering or a changed field, so this compares the full row dicts."""
+"""Assert the pre-existing (round,reference) cells are byte-identical row lists
+in file order, before vs after regeneration. Counts alone would miss a reordering
+or a changed field, so this compares the full row dicts.
+
+KEYS holds the cells that must not move. It was last updated on 2026-09-13, when
+the round-2 CDS cell was re-measured on the full run folder and so became the
+cell under change rather than a fixed one; it carries 477 rows now, down from the
+478 of the retired subset measurement."""
 import csv, sys
 before, after = sys.argv[1], sys.argv[2]
-KEYS = [("R2", "amplicon", 477), ("R2", "cds", 478), ("R3-1", "amplicon", 477)]
+KEYS = [("R2", "amplicon", 477), ("R3-1", "amplicon", 477), ("R3-1", "cds", 477)]
 
 def load(p):
     return list(csv.DictReader(open(p)))
