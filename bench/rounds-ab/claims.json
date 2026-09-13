@@ -1,0 +1,68 @@
+[
+  {
+    "id": "caption-r31-n",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/040.Weekly/assets/mame_method_comparison-CAPTION.md",
+    "quote": "왼쪽 묶음은 라운드 3-1 이고 판정 웰 {value}개다.",
+    "source": "cells:R3-1:amplicon:_n_scored"
+  },
+  {
+    "id": "caption-r2-n",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/040.Weekly/assets/mame_method_comparison-CAPTION.md",
+    "quote": "오른쪽 묶음은 라운드 2 이고 판정 웰 {value}개다.",
+    "source": "cells:R2:amplicon:_n_scored"
+  },
+  {
+    "id": "caption-r31-cds",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/040.Weekly/assets/mame_method_comparison-CAPTION.md",
+    "quote": "라운드 3-1 은 {value} 에서",
+    "source": "cells:R3-1:cds:A"
+  },
+  {
+    "id": "caption-r31-ampl",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/040.Weekly/assets/mame_method_comparison-CAPTION.md",
+    "quote": "85 에서 {value} 로 9웰이 오르고",
+    "source": "cells:R3-1:amplicon:A"
+  },
+  {
+    "id": "caption-r2-cds",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/040.Weekly/assets/mame_method_comparison-CAPTION.md",
+    "quote": "라운드 2 는 {value} 에서",
+    "source": "cells:R2:cds:A"
+  },
+  {
+    "id": "caption-r2-ampl",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/040.Weekly/assets/mame_method_comparison-CAPTION.md",
+    "quote": "83 에서 {value} 로 1웰이 오른다",
+    "source": "cells:R2:amplicon:A"
+  },
+  {
+    "id": "note13-r31-A",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| MAME 현행 | 95 | **{value}** | 0 | 1 |",
+    "source": "cells:R3-1:amplicon:A"
+  },
+  {
+    "id": "note13-r31-Ap",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| MAME + 품질 배선 | 95 | **{value}** | 0 | 1 |",
+    "source": "cells:R3-1:amplicon:Ap"
+  },
+  {
+    "id": "note13-r31-B",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| samtools mpileup | 95 | **{value}** | 0 | 1 |",
+    "source": "cells:R3-1:amplicon:B"
+  },
+  {
+    "id": "note13-r31-Csup",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| samtools consensus (`--config r10.4_sup`) | 95 | **{value}** | 0 | 1 |",
+    "source": "cells:R3-1:amplicon:C_r10.4_sup"
+  },
+  {
+    "id": "note13-r31-Cbay",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| samtools consensus (프리셋 없음) | 95 | {value} | 0 | 0 |",
+    "source": "cells:R3-1:amplicon:C_bayesian_default"
+  }
+]
