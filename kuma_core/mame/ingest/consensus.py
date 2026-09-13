@@ -251,7 +251,9 @@ class ConsensusCall:
     # ACGT depth at the position ``min_variant_support`` was measured on.
     min_variant_support_depth: int = 0
     # Per-well insertion-event evidence. Insertions are discarded from the
-    # reference-length consensus (same as samtools consensus default), so
+    # reference-length consensus, which corresponds to samtools consensus run
+    # as '-m simple --show-ins no --show-del no' and NOT to its default (that
+    # default is bayesian with --show-ins yes), so
     # variant clones with only an in-frame insertion reach a WT-identical
     # consensus and pass verdict unchallenged. These two counters surface
     # the buried signal without altering the consensus sequence itself.
@@ -382,7 +384,9 @@ def call_consensus(
     -------
     Consensus sequence string of length ``len(reference_seq)``.  Each character
     is one of A/C/G/T/N.  Indels (deletions) that achieve majority vote are
-    collapsed to 'N' (gap-free output, matching samtools consensus default).
+    collapsed to 'N' (gap-free, reference-length output).  The nearest
+    samtools equivalent is '-m simple --show-ins no --show-del no', which is
+    not its default mode and still shortens its output where this keeps 'N'.
     """
     return call_consensus_with_metrics(
         alignments=alignments,
@@ -1077,7 +1081,8 @@ def _accumulate(
 
         elif op == _CIGAR_I:
             # Insertion: advance query only; insertions are not represented in
-            # the reference-length output (same as samtools consensus default).
+            # the reference-length output (samtools drops them only under
+            # '--show-ins no'; its default is yes).
             # Track the event count at the ref_pos just before the insertion
             # so callers can detect insertion-bearing wells.
             net_indel += length

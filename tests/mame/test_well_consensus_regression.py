@@ -7,17 +7,18 @@ Two test classes:
 
 2. TestReferenceGroundTruth — integration test using per-well ground-truth data.
    Uses per-well raw reads from the combinatorial demux pipeline (sort_barcode06/*.fasta)
-   as input.  Because samtools consensus output is not available in this
-   environment, the test validates:
+   as input.  The test validates:
    - Pipeline runs without error.
    - Output consensus is a non-empty, single-record FASTA.
    - Consensus length == reference length.
    - Per-position consistency: majority base at >= 99.9% of covered positions
      matches the consensus call (self-consistency check).
 
-   NOTE: samtools binary-level comparison is NOT performed (samtools consensus
-   output absent from this environment).  The regression target is internal
-   pipeline consistency verified against the same ground-truth read set.
+   NOTE: the regression target here is internal pipeline consistency against
+   the same ground-truth read set.  The comparison against an established
+   caller lives in tests/mame/test_consensus_samtools_oracle.py, which runs
+   samtools consensus over the reads MAME's gates admitted and skips when no
+   samtools binary is available.
 
    Data path: $WORKSPACE_ROOT/020.admin/projects/060.nanopore_NGS/
               NGS_260212/sort_barcode06/
