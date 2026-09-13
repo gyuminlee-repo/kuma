@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.16.59 (A round fills half the Echo source plate, the way the bench fills it)
+
+The 384 source plate layout that shipped in v0.14.0 was wrong, and this release returns it to the layout the bench uses.
+
+KURO placed a round on every other row and every other column, so a filled plate showed primers in columns 1, 3, 5 and so on with the even columns empty. The mapping files this lab actually runs do not look like that. Project2-1 primer dispensing (Echo525).xlsx holds 190 transfers over 161 source wells and 260417_echo_mapping.csv holds 760 transfers over 192 source wells. In both, forward primers sit on rows A, C, E, G, I, K, M, O, each reverse primer one row below, and every occupied column falls between 1 and 12. A round fills 192 wells, which is exactly half a 384 plate, and two rounds fill one plate. That is the working concept of two round primer sets per Echo source plate, and it is a split into halves rather than quarters.
+
+The interleaved geometry entered the code from a 2.69 second screen recording in the v0.14.0 request material. The recording does show a 96 head selection cycling through four alternating patterns, and the inference that a 9 mm pitch head reaches a 4.5 mm pitch plate only in that way is sound on its own. What was never checked is whether that screen governs how the source plate is filled. An output existed the whole time and contradicts it. Forward placement is now pinned against all 95 forward transfers read from that workbook and reproduces every one of them, so the test that would have caught this now exists.
+
+The selector offers two halves instead of four quadrants, A1 for columns 1 to 12 and A13 for columns 13 to 24. A quarter cannot hold a round: it offers four forward rows where 96 variants need eight. Forward and reverse are no longer separate placements either, since a reverse primer always sits one row below its forward primer in the same half.
+
+Projects saved before this release still open. The stored values fold on load, A1 and B1 onto the left half and A2 and B2 onto the right, at every path that reads them. The note shown when no half is chosen used to claim an undivided layout, which was never true: that run lands on columns 1 to 12, the same wells as half A1, and only the refusal to dispense onto a spent half is skipped.
+
+One thing stays open. The original request asked for four options by name, while the mapping files from the same lab are halves. This release follows the files, and the discrepancy is worth settling with the requester rather than leaving to the code.
+
+### Highlights
+
+- An Echo round now fills half the source plate, columns 1 to 12 or 13 to 24, matching the mapping files this lab actually runs.
+- Primer placement since v0.14.0 skipped every other column, a layout that no run on the bench has used.
+- The four quadrant choice becomes two halves, because one round fills 192 wells and a quarter plate cannot hold it.
+- Projects saved with the older A1, A2, B1 or B2 setting still open, folding onto the half that setting meant.
+- Forward placement is now pinned against 95 transfers read from a real Echo worklist, so this cannot drift back unnoticed.
+
 ## v0.16.58 (Every codon the host uses, and the whole tolerance sweep)
 
 Four faults in KURO primer design, all of them upstream of the primer a user copies into an order.

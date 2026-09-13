@@ -2545,14 +2545,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "La elección del codón mutante ahora pondera todos los codones sinónimos que usa el organismo seleccionado. Antes la búsqueda solo veía dos.",
-      "Los codones raros quedan fuera de ese conjunto, así un diseño ya no acaba en un codón que el organismo elegido apenas utiliza.",
-      "Design ordena los candidatos en todo el barrido de tolerancia de Tm, así una ventana más amplia con un cebador mejor ya no se omite.",
-      "El valor de Tol sube en esos diseños. Un Tol más alto indica aquí un cebador mejor puntuado, no un criterio más laxo.",
-      "Se corrigieron tres tablas de codones y la lista de organismos ya muestra todas las tablas incluidas, así los diseños anteriores pueden diferir."
+      "Un run de Echo llena ahora la mitad de la source plate, columnas 1 a 12 o 13 a 24, igual que los archivos de mapping que este laboratorio usa realmente.",
+      "Desde la v0.14.0 el colocado de primers dejaba una columna sí y otra no, una disposición que nunca se usó en el banco.",
+      "La elección entre cuatro cuadrantes pasa a dos mitades, porque un run ocupa 192 pocillos y no cabe en un cuarto de placa.",
+      "Los proyectos guardados con el ajuste antiguo A1, A2, B1 o B2 siguen abriéndose y se pliegan a la mitad que ese ajuste indicaba.",
+      "La colocación forward queda fijada frente a 95 transferencias leídas de una worklist real de Echo, así no puede desviarse sin que se note."
     ],
-    "highlightsStamp": "0.16.58+1ce19d3d",
+    "highlightsStamp": "0.16.59+f60ab133",
     "releases": {
+      "0.16.59": [
+        "Un run de Echo llena ahora la mitad de la source plate, columnas 1 a 12 o 13 a 24, igual que los archivos de mapping que este laboratorio usa realmente.",
+        "Desde la v0.14.0 el colocado de primers dejaba una columna sí y otra no, una disposición que nunca se usó en el banco.",
+        "La elección entre cuatro cuadrantes pasa a dos mitades, porque un run ocupa 192 pocillos y no cabe en un cuarto de placa.",
+        "Los proyectos guardados con el ajuste antiguo A1, A2, B1 o B2 siguen abriéndose y se pliegan a la mitad que ese ajuste indicaba.",
+        "La colocación forward queda fijada frente a 95 transferencias leídas de una worklist real de Echo, así no puede desviarse sin que se note."
+      ],
       "0.16.56": [
         "El consenso de raw run ya aplica el filtro de calidad mínima de base, que no tenía efecto porque se descartaba la línea de calidad del FASTQ.",
         "Una base por debajo del umbral de calidad ya no cuenta para una llamada, así que una mayoría de baja calidad no vence a una minoría de alta calidad.",
@@ -2973,6 +2980,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.59": "f60ab133",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",

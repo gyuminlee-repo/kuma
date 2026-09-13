@@ -2599,14 +2599,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Mutant codon choice now weighs every synonymous codon the selected organism uses, where before the search saw only two.",
-      "Rare codons are kept out of that pool, so a design no longer lands on a codon the chosen organism effectively avoids.",
-      "Design ranks candidates across the whole Tm tolerance sweep, so a looser window holding a better primer is no longer skipped.",
-      "The Tol figure rises on those designs. A higher Tol here marks a better scoring primer, not a looser standard.",
-      "Three codon tables were corrected and the organism list now shows every shipped table, so earlier designs can differ."
+      "An Echo round now fills half the source plate, columns 1 to 12 or 13 to 24, matching the mapping files this lab actually runs.",
+      "Primer placement since v0.14.0 skipped every other column, a layout that no run on the bench has used.",
+      "The four quadrant choice becomes two halves, because one round fills 192 wells and a quarter plate cannot hold it.",
+      "Projects saved with the older A1, A2, B1 or B2 setting still open, folding onto the half that setting meant.",
+      "Forward placement is now pinned against 95 transfers read from a real Echo worklist, so this cannot drift back unnoticed."
     ],
-    "highlightsStamp": "0.16.58+1ce19d3d",
+    "highlightsStamp": "0.16.59+f60ab133",
     "releases": {
+      "0.16.59": [
+        "An Echo round now fills half the source plate, columns 1 to 12 or 13 to 24, matching the mapping files this lab actually runs.",
+        "Primer placement since v0.14.0 skipped every other column, a layout that no run on the bench has used.",
+        "The four quadrant choice becomes two halves, because one round fills 192 wells and a quarter plate cannot hold it.",
+        "Projects saved with the older A1, A2, B1 or B2 setting still open, folding onto the half that setting meant.",
+        "Forward placement is now pinned against 95 transfers read from a real Echo worklist, so this cannot drift back unnoticed."
+      ],
       "0.16.58": [
         "Mutant codon choice now weighs every synonymous codon the selected organism uses, where before the search saw only two.",
         "Rare codons are kept out of that pool, so a design no longer lands on a codon the chosen organism effectively avoids.",
@@ -3027,6 +3034,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.59": "f60ab133",
       "0.16.58": "1ce19d3d",
       "0.16.57": "b25a7d73",
       "0.16.56": "9b525cb2",

@@ -2545,14 +2545,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Le choix du codon mutant évalue désormais chaque codon synonyme utilisé par l'organisme sélectionné. Auparavant la recherche n'en voyait que deux.",
-      "Les codons rares restent hors de cet ensemble, si bien qu'un design ne tombe plus sur un codon que l'organisme choisi n'emploie presque jamais.",
-      "Design classe les candidats sur tout le balayage de tolérance Tm, si bien qu'une fenêtre plus large contenant une meilleure amorce n'est plus ignorée.",
-      "La valeur Tol augmente sur ces designs. Un Tol plus élevé signale ici une amorce mieux notée, et non un critère assoupli.",
-      "Trois tables de codons ont été corrigées et la liste des organismes affiche désormais toutes les tables fournies, donc les designs antérieurs peuvent différer."
+      "Un run Echo remplit désormais la moitié de la source plate, colonnes 1 à 12 ou 13 à 24, comme dans les fichiers de mapping réellement utilisés par ce laboratoire.",
+      "Depuis la v0.14.0, le placement des primers sautait une colonne sur deux, une disposition jamais utilisée à la paillasse.",
+      "Le choix entre quatre quadrants devient deux moitiés, car un run occupe 192 puits et ne tient pas dans un quart de plaque.",
+      "Les projets enregistrés avec l'ancien réglage A1, A2, B1 ou B2 s'ouvrent toujours et se replient sur la moitié visée.",
+      "Le placement forward est fixé sur 95 transferts lus dans une vraie worklist Echo, il ne peut plus dériver sans être vu."
     ],
-    "highlightsStamp": "0.16.58+1ce19d3d",
+    "highlightsStamp": "0.16.59+f60ab133",
     "releases": {
+      "0.16.59": [
+        "Un run Echo remplit désormais la moitié de la source plate, colonnes 1 à 12 ou 13 à 24, comme dans les fichiers de mapping réellement utilisés par ce laboratoire.",
+        "Depuis la v0.14.0, le placement des primers sautait une colonne sur deux, une disposition jamais utilisée à la paillasse.",
+        "Le choix entre quatre quadrants devient deux moitiés, car un run occupe 192 puits et ne tient pas dans un quart de plaque.",
+        "Les projets enregistrés avec l'ancien réglage A1, A2, B1 ou B2 s'ouvrent toujours et se replient sur la moitié visée.",
+        "Le placement forward est fixé sur 95 transferts lus dans une vraie worklist Echo, il ne peut plus dériver sans être vu."
+      ],
       "0.16.56": [
         "Le consensus du raw run applique désormais le filtre de qualité minimale de base, sans effet auparavant car la ligne de qualité FASTQ était ignorée.",
         "Une base sous le seuil de qualité ne compte plus pour un appel, donc une majorité de faible qualité ne peut pas l'emporter sur une minorité fiable.",
@@ -2973,6 +2980,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.59": "f60ab133",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",

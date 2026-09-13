@@ -2545,14 +2545,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die Auswahl des Mutant-Codons bewertet jetzt jedes synonyme Codon, das der gewählte Organismus verwendet. Zuvor sah die Suche nur zwei.",
-      "Seltene Codons bleiben aus diesem Kandidatensatz heraus, sodass ein Entwurf nicht mehr auf einem Codon landet, das der Organismus kaum nutzt.",
-      "Design bewertet Kandidaten über den gesamten Tm-Toleranzdurchlauf, sodass ein weiterer Bereich mit einem besseren Primer nicht mehr übersprungen wird.",
-      "Der Tol-Wert steigt bei diesen Entwürfen. Ein höherer Tol steht hier für einen besser bewerteten Primer, nicht für einen lockereren Maßstab.",
-      "Drei Codon-Tabellen wurden korrigiert, und die Organismusliste zeigt nun jede mitgelieferte Tabelle, daher können frühere Entwürfe abweichen."
+      "Ein Echo Durchlauf füllt jetzt eine Hälfte der Source Plate, Spalten 1 bis 12 oder 13 bis 24, wie in den Mapping Dateien, die dieses Labor tatsächlich fährt.",
+      "Die Primer Platzierung ließ seit v0.14.0 jede zweite Spalte frei, ein Layout, das am Bench nie gefahren wurde.",
+      "Aus der Auswahl von vier Quadranten werden zwei Hälften, denn ein Durchlauf füllt 192 Wells und passt nicht in ein Viertel.",
+      "Projekte mit der alten Einstellung A1, A2, B1 oder B2 öffnen weiterhin und klappen auf die gemeinte Hälfte.",
+      "Die Forward Platzierung ist gegen 95 Transfers aus einer echten Echo Worklist festgelegt und kann nicht unbemerkt zurückdriften."
     ],
-    "highlightsStamp": "0.16.58+1ce19d3d",
+    "highlightsStamp": "0.16.59+f60ab133",
     "releases": {
+      "0.16.59": [
+        "Ein Echo Durchlauf füllt jetzt eine Hälfte der Source Plate, Spalten 1 bis 12 oder 13 bis 24, wie in den Mapping Dateien, die dieses Labor tatsächlich fährt.",
+        "Die Primer Platzierung ließ seit v0.14.0 jede zweite Spalte frei, ein Layout, das am Bench nie gefahren wurde.",
+        "Aus der Auswahl von vier Quadranten werden zwei Hälften, denn ein Durchlauf füllt 192 Wells und passt nicht in ein Viertel.",
+        "Projekte mit der alten Einstellung A1, A2, B1 oder B2 öffnen weiterhin und klappen auf die gemeinte Hälfte.",
+        "Die Forward Platzierung ist gegen 95 Transfers aus einer echten Echo Worklist festgelegt und kann nicht unbemerkt zurückdriften."
+      ],
       "0.16.56": [
         "Der raw-run-Consensus wendet nun den Filter für minimale Basenqualität an, der ohne die verworfene FASTQ-Qualitätszeile wirkungslos war.",
         "Eine Base unter dem Qualitätsschwellenwert zählt nicht mehr für einen Call, sodass eine schlechte Mehrheit keine gute Minderheit überstimmt.",
@@ -2973,6 +2980,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.59": "f60ab133",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
