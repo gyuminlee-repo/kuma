@@ -189,7 +189,7 @@ def _oracle(
 
 
 def test_gates_drop_reads_so_the_read_set_restriction_is_live(
-    ref_fasta: Path, tmp_path: Path
+    ref_fasta: Path,
 ) -> None:
     """Guard for the fairness argument itself.
 
