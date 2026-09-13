@@ -12,8 +12,13 @@ carries no designed variant and is dropped in both rounds.
 
 Run with no argument to re-derive the published table as a known-answer control.
 """
-import csv, sys
+import csv, os, sys
 from collections import defaultdict
+
+# The measurement this script checks travels with it. An earlier default pointed
+# at a session scratch directory, which is gone the moment the session is.
+DEFAULT_RESULTS = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "results.csv")
 
 ARMS = ["A", "Ap", "B", "C_bayesian_default", "C_r10.4_sup"]
 LABEL = {"A": "MAME (current)", "Ap": "MAME + quality wiring",
@@ -57,7 +62,7 @@ def count(path):
 
 
 if __name__ == "__main__":
-    path = sys.argv[1] if len(sys.argv) > 1 else "/home/gml/.claude/jobs/39122e9f/tmp/results_base.csv"
+    path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_RESULTS
     got = count(path)
     fails = 0
     checked = 0

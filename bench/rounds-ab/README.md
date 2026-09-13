@@ -19,6 +19,33 @@ mutation of each well.
 Four combinations are in `results.csv`: round 2 and round 3-1, each against the
 retired CDS reference (1683 bp) and the current amplicon reference (1715 bp).
 
+## Checking the numbers this data feeds
+
+Three checkers guard the path from these reads to the sentences that quote them.
+Each reads its constants from the artefact rather than holding a second copy,
+prints how many checks it ran, states what it does not cover, and exits non-zero
+on the first value that moved.
+
+Run them from the repository root.
+
+```
+.venv/bin/python bench/rounds-ab/count_cells.py
+.venv/bin/python bench/rounds-ab/release_r2/count_workbook.py
+.venv/bin/python bench/rounds-ab/check_claims.py
+```
+
+`count_cells.py` re-derives the per-arm counts published in the meeting note
+from `results.csv`. `count_workbook.py` re-derives the round-2 eight-class
+distribution from the shipped-release workbook in `release_r2/`.
+`check_claims.py` takes those two and requires the documents that quote them to
+say the same thing: the caption and the meeting-note tables by exact sentence,
+and the figure script by reading its panel A literals with ast.
+
+Run all three after any change to `results.csv`, to the release workbook, or to
+a document listed in `claims.json`. A checker that passes only because nothing
+was checked is worse than none, so each one fails when its check count is zero,
+and each was verified to fail on a deliberately altered copy.
+
 ## Cautions that travel with this data
 
 - **The round-2 CDS cell was re-measured on 2026-09-13 and its old numbers are
