@@ -434,7 +434,7 @@ export function makeResultTableColumns(opts: {
       header: "MT",
       size: 40,
       meta: {
-        tooltip: "Mutant codon (min. nucleotide changes from WT)",
+        tooltip: "Mutant codon chosen by the design",
       },
       cell: (info) => <span className="font-mono">{info.getValue()}</span>,
     }),
