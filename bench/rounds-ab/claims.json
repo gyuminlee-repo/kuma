@@ -214,5 +214,29 @@
     "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
     "quote": "| consensus (r10.4_sup) | 83 | {value} |",
     "source": "cells:R2:amplicon:C_r10.4_sup"
+  },
+  {
+    "id": "caption-gap-r31",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/040.Weekly/assets/mame_method_comparison-CAPTION.md",
+    "quote": "로 {value}웰이 오르고",
+    "source": "gap:R3-1:A"
+  },
+  {
+    "id": "caption-gap-r2",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/040.Weekly/assets/mame_method_comparison-CAPTION.md",
+    "quote": "로 {value}웰이 오른다",
+    "source": "gap:R2:A"
+  },
+  {
+    "id": "note-gap-r31",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "로 {value}웰이 오른다. 라운드 2 는",
+    "source": "gap:R3-1:A"
+  },
+  {
+    "id": "note-gap-r2",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "84 로 {value}웰이 오른다. 같은 조작인데 크기가",
+    "source": "gap:R2:A"
   }
 ]

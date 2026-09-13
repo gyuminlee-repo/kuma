@@ -17,6 +17,7 @@ Sources a claim can draw on:
   workbook:n_scored       designed-variant wells in that workbook
   workbook:pass_pct       PASS share of those wells, one decimal
   cells:<round>:<ref>:<arm>   wells reproducing the designed variant, results.csv
+  gap:<round>:<arm>       how many wells the amplicon reference gains over the CDS one
 
 Exit status is 0 only when every claim is found as written.
 """
@@ -49,11 +50,23 @@ def build_values():
     npass = values["workbook:PASS"]
     values["workbook:pass_pct"] = f"{100.0 * npass / n:.1f}" if n else "n/a"
 
-    for (rnd, ref), per_arm in count_cells.count(RESULTS_CSV).items():
+    cells = count_cells.count(RESULTS_CSV)
+    for (rnd, ref), per_arm in cells.items():
         per_arm = dict(per_arm)
         values[f"cells:{rnd}:{ref}:_n_scored"] = per_arm.pop("_n_scored")
         for arm, got in per_arm.items():
             values[f"cells:{rnd}:{ref}:{arm}"] = got
+
+    # Derived gaps. The caption states the size of the reference effect as its
+    # own number ("9 wells", "1 well"), and a reader who updates an endpoint
+    # without recomputing the gap leaves a sentence that contradicts itself.
+    for rnd in {r for r, _ in cells}:
+        amp, cds = cells.get((rnd, "amplicon")), cells.get((rnd, "cds"))
+        if not amp or not cds:
+            continue
+        for arm in amp:
+            if arm != "_n_scored" and arm in cds:
+                values[f"gap:{rnd}:{arm}"] = amp[arm] - cds[arm]
     return values
 
 
