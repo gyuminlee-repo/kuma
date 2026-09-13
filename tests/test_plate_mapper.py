@@ -907,7 +907,7 @@ class TestMappingRangeWrapGuard:
         # already doing whenever it did not wrap.
         assert fwd == [_to_384_well_fwd(f"{r}1") for r in "ABCDEFGH"]
 
-    def test_a_quadrant_is_unaffected_since_it_outranks_the_band(self):
-        # quadrant takes precedence in the mapper, so a band that would wrap on
-        # its own must not make a quadrant export raise.
+    def test_a_half_is_unaffected_since_it_outranks_the_band(self):
+        # 절반 선택이 mapper 에서 우선하므로, 혼자서는 wrap 할 band 라도
+        # 절반을 지정한 export 는 예외를 내지 않아야 한다.
         assert _to_384_well_fwd("H1", mapping_range=("J", "K"), quadrant="A1")

@@ -219,8 +219,8 @@ describe("exportSlice — schema_version 0.3", () => {
       structureAccession: "8abc",
       structureLoaded: true,
       echoTransferVol: 250,
-      echoQuadrant: "B2",
-      echoUsedQuadrants: ["A1", "B2"],
+      echoQuadrant: "A13",
+      echoUsedQuadrants: ["A1", "A13"],
       janusTransferVol: 1.5,
     });
 
@@ -232,8 +232,8 @@ describe("exportSlice — schema_version 0.3", () => {
       structureAccession: "8abc",
       structureLoaded: true,
       echoTransferVol: 250,
-      echoQuadrant: "B2",
-      echoUsedQuadrants: ["A1", "B2"],
+      echoQuadrant: "A13",
+      echoUsedQuadrants: ["A1", "A13"],
       janusTransferVol: 1.5,
     });
 
@@ -246,9 +246,28 @@ describe("exportSlice — schema_version 0.3", () => {
       structureAccession: "8abc",
       structureLoaded: true,
       echoTransferVol: 250,
-      echoQuadrant: "B2",
-      echoUsedQuadrants: ["A1", "B2"],
+      echoQuadrant: "A13",
+      echoUsedQuadrants: ["A1", "A13"],
       janusTransferVol: 1.5,
+    });
+  });
+
+  // The sidecar workspace path is the second place a stored quadrant is read,
+  // and it took the value through untouched. A workspace saved before the half
+  // layout therefore restored "B2" into a store that now only knows two
+  // halves, and every surface downstream read a value the picker cannot show.
+  it("folds a legacy quadrant on the workspace restore path too", async () => {
+    const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
+    // No cast needed: the persisted type accepts the legacy names on purpose,
+    // and this fixture is exactly the old-project case.
+    snapshot.settings.echoQuadrant = "B2";
+    snapshot.settings.echoUsedQuadrants = ["A1", "B1"];
+
+    await store.slice.restoreWorkspace(snapshot);
+
+    expect(store.state).toMatchObject({
+      echoQuadrant: "A13",
+      echoUsedQuadrants: ["A1"],
     });
   });
 

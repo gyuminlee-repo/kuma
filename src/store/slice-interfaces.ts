@@ -380,11 +380,12 @@ export interface ExportSlice {
   isExporting: boolean;
   echoTransferVol: number;
   /**
-   * 384 Echo source plate 에서 96-head Zephyr 가 stamp 를 시작할 quadrant.
-   * null 이면 기존 row-doubled 배치를 그대로 쓴다. reverse 는 짝 quadrant 로 간다.
+   * 이 round 가 차지할 384 Echo source plate 의 절반. "A1" 은 1~12열,
+   * "A13" 은 13~24열이다. null 이면 절반을 나누지 않은 기존 배치를 쓴다.
+   * reverse 는 같은 절반에서 forward 바로 아래 행으로 간다.
    */
   echoQuadrant: EchoQuadrant | null;
-  /** 이 plate 에서 이미 소진된 quadrant. 작업자가 직접 입력한다. */
+  /** 이 plate 에서 이미 소진된 절반. 작업자가 직접 입력한다. */
   echoUsedQuadrants: EchoQuadrant[];
   janusTransferVol: number;
   getPlateMap: () => Promise<void>;

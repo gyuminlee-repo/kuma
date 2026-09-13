@@ -5,7 +5,7 @@ describe the same physical dispense, and each used to derive its own source
 wells. Only the CSV read both placement parameters: the XLSX worklist sheet
 read neither and the preview only ``mapping_range``. So one ``export_all`` wrote
 a csv and an xlsx naming different wells for the same primer, and the preview
-rendered above the quadrant selector agreed with neither, which is what the
+rendered above the half selector agreed with neither, which is what the
 operator checks before loading the csv onto the robot.
 
 These tests deliberately compare the three outputs *to each other* rather than
@@ -38,7 +38,8 @@ TRANSFER_VOL = 100
 # is what each of them hard-coded. The other two are where they split.
 PLACEMENTS = [
     pytest.param(None, None, id="no-placement-parameters"),
-    pytest.param("B2", None, id="quadrant"),
+    pytest.param("A13", None, id="half"),
+    pytest.param("B2", None, id="legacy-half-value"),
     pytest.param(None, ("A", "P"), id="mapping-range"),
 ]
 
@@ -196,7 +197,7 @@ class TestWritersAgree:
             assert row["mutation"]
 
 
-class TestSpentQuadrantRefusal:
+class TestSpentHalfRefusal:
     def test_the_xlsx_export_refuses_before_writing(
         self, shared_rev_mappings, tmp_path
     ):
@@ -229,7 +230,7 @@ class TestLayoutSheetIsUntouched:
         self, shared_rev_mappings, tmp_path
     ):
         """The layout sheet draws the default plate, not this transfer list, and
-        sidecar_kuro/models.py says so. A quadrant must not move it.
+        sidecar_kuro/models.py says so. A half selection must not move it.
         """
         fwd, rev, groups = shared_rev_mappings
         plain = tmp_path / "plain.xlsx"

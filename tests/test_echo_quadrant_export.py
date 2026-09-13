@@ -1,7 +1,7 @@
-"""Echo mapping CSV with a Zephyr quadrant selected.
+"""Echo mapping CSV with a source-plate half selected.
 
-The source-plate addresses have to land inside the chosen interleaved set,
-because that set is what one 96-head stamp can physically fill.
+The source-plate addresses have to land inside the chosen half, because a half
+is what one round of a primer set occupies and two rounds fill the plate.
 
 Whether the CSV, the XLSX worklist sheet and the sidecar preview name the same
 wells is a separate question, asked in tests/test_echo_writer_consistency.py.
@@ -41,20 +41,35 @@ def _source_wells(path):
     return [(r[name_idx], r[idx]) for r in rows[1:]]
 
 
-class TestQuadrantAddresses:
-    @pytest.mark.parametrize("quadrant", ["A1", "A2", "B1", "B2"])
-    def test_every_source_well_lies_in_the_chosen_pair(self, mappings, tmp_path, quadrant):
-        from kuma_core.kuro.plate_quadrant import paired_quadrant
-
+class TestHalfAddresses:
+    @pytest.mark.parametrize("half", ["A1", "A13"])
+    def test_every_source_well_lies_in_the_chosen_half(self, mappings, tmp_path, half):
         fwd, rev = mappings
         out = tmp_path / "echo.csv"
-        export_echo_mapping_csv(fwd, rev, out, quadrant=quadrant)
+        export_echo_mapping_csv(fwd, rev, out, quadrant=half)
 
-        allowed = set(quadrant_wells(quadrant)) | set(quadrant_wells(paired_quadrant(quadrant)))
+        allowed = set(quadrant_wells(half))
         for _, well in _source_wells(out):
-            assert well in allowed, f"{well} outside quadrant {quadrant}"
+            assert well in allowed, f"{well} outside half {half}"
 
-    def test_forward_and_reverse_split_across_the_paired_quadrants(self, mappings, tmp_path):
+    @pytest.mark.parametrize(
+        "half,columns",
+        [("A1", set(range(1, 13))), ("A13", set(range(13, 25)))],
+    )
+    def test_a_half_uses_twelve_consecutive_columns(
+        self, mappings, tmp_path, half, columns
+    ):
+        # 교차 배치였다면 홀수 또는 짝수 열만 나와 이 집합에 들지 못한다.
+        fwd, rev = mappings
+        out = tmp_path / "echo.csv"
+        export_echo_mapping_csv(fwd, rev, out, quadrant=half)
+
+        used = {int(w[1:]) for _, w in _source_wells(out)}
+        assert used <= columns
+
+    def test_forward_and_reverse_split_across_the_rows_of_one_half(
+        self, mappings, tmp_path
+    ):
         fwd, rev = mappings
         out = tmp_path / "echo.csv"
         export_echo_mapping_csv(fwd, rev, out, quadrant="A1")
@@ -62,8 +77,8 @@ class TestQuadrantAddresses:
         fwd_wells = {w for name, w in _source_wells(out) if name.endswith("_F")}
         rev_wells = {w for name, w in _source_wells(out) if name.endswith("_R")}
 
-        assert fwd_wells <= set(quadrant_wells("A1"))
-        assert rev_wells <= set(quadrant_wells("B1"))
+        assert fwd_wells <= set(quadrant_wells("A1", reverse=False))
+        assert rev_wells <= set(quadrant_wells("A1", reverse=True))
         assert not (fwd_wells & rev_wells)
 
     def test_a1_maps_the_first_well_to_384_a1(self, mappings, tmp_path):
@@ -74,30 +89,49 @@ class TestQuadrantAddresses:
         wells = dict(_source_wells(out))
         assert wells["M1_F"] == "A1"
         assert wells["M1_R"] == "B1"
+        assert wells["M3_F"] == "O12"
 
-    def test_a2_shifts_the_same_layout_one_column_over(self, mappings, tmp_path):
+    def test_a13_shifts_the_same_layout_twelve_columns_over(self, mappings, tmp_path):
         fwd, rev = mappings
         out = tmp_path / "echo.csv"
-        export_echo_mapping_csv(fwd, rev, out, quadrant="A2")
+        export_echo_mapping_csv(fwd, rev, out, quadrant="A13")
 
         wells = dict(_source_wells(out))
-        assert wells["M1_F"] == "A2"
-        assert wells["M1_R"] == "B2"
+        assert wells["M1_F"] == "A13"
+        assert wells["M1_R"] == "B13"
+        assert wells["M3_F"] == "O24"
 
-    def test_without_a_quadrant_the_old_row_doubled_layout_is_unchanged(self, mappings, tmp_path):
+    def test_without_a_half_the_layout_is_the_left_one(self, mappings, tmp_path):
         fwd, rev = mappings
-        out = tmp_path / "echo.csv"
-        export_echo_mapping_csv(fwd, rev, out)
+        plain = tmp_path / "plain.csv"
+        left = tmp_path / "left.csv"
+        export_echo_mapping_csv(fwd, rev, plain)
+        export_echo_mapping_csv(fwd, rev, left, quadrant="A1")
 
-        wells = dict(_source_wells(out))
-        # 기존 동작: 행만 2배, 열은 그대로.
+        assert _source_wells(plain) == _source_wells(left)
+        wells = dict(_source_wells(plain))
         assert wells["M1_F"] == "A1"
         assert wells["M1_R"] == "B1"
         assert wells["M3_F"] == "O12"
 
 
-class TestUsedQuadrantRefusal:
-    def test_refuses_to_dispense_onto_a_spent_quadrant(self, mappings, tmp_path):
+class TestLegacyStoredValues:
+    @pytest.mark.parametrize(
+        "stored,expected_fwd",
+        [("A1", "A1"), ("B1", "A1"), ("A2", "A13"), ("B2", "A13")],
+    )
+    def test_a_saved_project_still_exports(
+        self, mappings, tmp_path, stored, expected_fwd
+    ):
+        fwd, rev = mappings
+        out = tmp_path / "echo.csv"
+        export_echo_mapping_csv(fwd, rev, out, quadrant=stored)
+
+        assert dict(_source_wells(out))["M1_F"] == expected_fwd
+
+
+class TestUsedHalfRefusal:
+    def test_refuses_to_dispense_onto_a_spent_half(self, mappings, tmp_path):
         fwd, rev = mappings
 
         with pytest.raises(ValueError, match="already used"):
@@ -106,16 +140,26 @@ class TestUsedQuadrantRefusal:
                 quadrant="A1", used_quadrants=["A1", "B1"],
             )
 
-    def test_second_round_onto_the_free_pair_is_allowed(self, mappings, tmp_path):
+    def test_second_round_onto_the_free_half_is_allowed(self, mappings, tmp_path):
         fwd, rev = mappings
         out = tmp_path / "echo.csv"
 
         export_echo_mapping_csv(
-            fwd, rev, out, quadrant="A2", used_quadrants=["A1", "B1"],
+            fwd, rev, out, quadrant="A13", used_quadrants=["A1", "B1"],
         )
 
         wells = dict(_source_wells(out))
-        assert wells["M1_F"] == "A2"
+        assert wells["M1_F"] == "A13"
+
+    def test_a_legacy_partner_value_still_blocks_its_half(self, mappings, tmp_path):
+        # 저장된 프로젝트의 "B1" 은 좌측 절반을 뜻하므로 A1 요청을 막아야 한다.
+        fwd, rev = mappings
+
+        with pytest.raises(ValueError, match="already used"):
+            export_echo_mapping_csv(
+                fwd, rev, tmp_path / "echo.csv",
+                quadrant="A1", used_quadrants=["B1"],
+            )
 
     def test_refusal_happens_before_the_file_is_written(self, mappings, tmp_path):
         fwd, rev = mappings

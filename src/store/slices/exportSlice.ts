@@ -4,6 +4,7 @@ import type { SortingState, Updater } from "@tanstack/react-table";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { getSortedMutations, reorderMappings, wellName } from "../../lib/plate-utils";
 import { clampMaxPrimers } from "../../lib/inputThresholds";
+import { foldLegacyQuadrant, foldLegacyQuadrants } from "../../lib/echoQuadrant";
 import { formatError } from "../../lib/utils";
 import { readKuroDesignOutcome } from "../../lib/kuroSnapshot";
 import { notifyJobDone, notifyJobError } from "../../lib/toast";
@@ -701,8 +702,11 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (s
       structureAccession: settings.structureAccession ?? "",
       structureLoaded: settings.structureLoaded ?? false,
       echoTransferVol: settings.echoTransferVol ?? 100,
-      echoQuadrant: settings.echoQuadrant ?? null,
-      echoUsedQuadrants: settings.echoUsedQuadrants ?? [],
+      // Same fold as the autosave path (useAutosaveHydration): a workspace
+      // saved before the half layout carries A2/B1/B2, which map onto a half
+      // rather than being dropped.
+      echoQuadrant: foldLegacyQuadrant(settings.echoQuadrant),
+      echoUsedQuadrants: foldLegacyQuadrants(settings.echoUsedQuadrants ?? []),
       janusTransferVol: settings.janusTransferVol ?? 2.0,
       yPredMap: preloadedYPred ?? {},
       poolVariants: preloadedPoolVariants ?? [],

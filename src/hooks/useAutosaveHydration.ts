@@ -38,6 +38,7 @@ import {
   readKuroDesignOutcome,
 } from "@/lib/kuroSnapshot";
 import { clampMaxPrimers } from "@/lib/inputThresholds";
+import { foldLegacyQuadrant, foldLegacyQuadrants } from "@/lib/echoQuadrant";
 import { buildKuroResultResetPatch } from "@/lib/kuroResultReset";
 import { fingerprintSource, fingerprintsEqual, type SourceFingerprint } from "@/lib/sourceFingerprint";
 import { MAJOR_ORDER, SUBSTEP_ORDER, type MajorStepId, type StepStatus, type SubStepId } from "@/store/slices/navigationSlice";
@@ -619,25 +620,22 @@ export async function applyKuroSnapshot(
   if (typeof params?.echo_transfer_vol === "number") {
     patch.echoTransferVol = params.echo_transfer_vol;
   }
+  // The stored value set is wider than what the app now writes: a project
+  // saved before the half layout carries A2/B1/B2. `foldLegacyQuadrant` maps
+  // those onto a half instead of dropping them, which a hardcoded membership
+  // test here used to do silently, losing the placement of every project saved
+  // after the change as well (A13 was not in the old list either).
   const echoQuadrant = params?.echo_quadrant;
-  if (
-    echoQuadrant === null ||
-    echoQuadrant === "A1" ||
-    echoQuadrant === "A2" ||
-    echoQuadrant === "B1" ||
-    echoQuadrant === "B2"
-  ) {
-    patch.echoQuadrant = echoQuadrant;
+  if (echoQuadrant === null) {
+    patch.echoQuadrant = null;
+  } else if (echoQuadrant !== undefined) {
+    const folded = foldLegacyQuadrant(echoQuadrant);
+    if (folded !== null) patch.echoQuadrant = folded;
   }
   const echoUsedQuadrants = params?.echo_used_quadrants;
-  if (
-    Array.isArray(echoUsedQuadrants) &&
-    echoUsedQuadrants.every(
-      (quadrant) =>
-        quadrant === "A1" || quadrant === "A2" || quadrant === "B1" || quadrant === "B2",
-    )
-  ) {
-    patch.echoUsedQuadrants = echoUsedQuadrants as AppState["echoUsedQuadrants"];
+  if (Array.isArray(echoUsedQuadrants)) {
+    // Folding de-duplicates: A1 and B1 were one half named twice.
+    patch.echoUsedQuadrants = foldLegacyQuadrants(echoUsedQuadrants);
   }
   if (typeof params?.janus_transfer_vol === "number") {
     patch.janusTransferVol = params.janus_transfer_vol;

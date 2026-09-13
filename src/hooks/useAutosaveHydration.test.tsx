@@ -1856,6 +1856,42 @@ describe("applyKuroSnapshot: 지문 기반 재도출 건너뛰기 (schema 5)", (
     expect(useAppStore.getState().maxPrimers).toBe(96);
   });
 
+  // 이 세 건은 저장값 판정을 하드코딩 목록으로 되돌리는 회귀를 잡는다. 옛 목록은
+  // A1/A2/B1/B2 였고 A13 이 없어서, 절반 배치로 저장한 프로젝트를 다시 열면
+  // 배치가 조용히 버려졌다.
+  it("절반 이름으로 저장한 echo_quadrant 를 그대로 복원한다", async () => {
+    await applyKuroSnapshot(
+      fastPathSnapshot({ parameters: { echo_quadrant: "A13", echo_used_quadrants: ["A1"] } }),
+    );
+
+    expect(useAppStore.getState().echoQuadrant).toBe("A13");
+    expect(useAppStore.getState().echoUsedQuadrants).toEqual(["A1"]);
+  });
+
+  it("옛 사분면 이름 4종을 각각 대응하는 절반으로 접는다", async () => {
+    for (const [stored, folded] of [
+      ["A1", "A1"],
+      ["B1", "A1"],
+      ["A2", "A13"],
+      ["B2", "A13"],
+    ] as const) {
+      await applyKuroSnapshot(fastPathSnapshot({ parameters: { echo_quadrant: stored } }));
+      expect(useAppStore.getState().echoQuadrant).toBe(folded);
+    }
+  });
+
+  it("한 절반을 두 이름으로 적은 used 목록을 한 항목으로 접는다", async () => {
+    // A1 과 B1 은 같은 열의 forward/reverse 집합이었으므로 소진된 절반은 하나다.
+    await applyKuroSnapshot(
+      fastPathSnapshot({
+        parameters: { echo_quadrant: "A2", echo_used_quadrants: ["A1", "B1", "C9"] },
+      }),
+    );
+
+    expect(useAppStore.getState().echoQuadrant).toBe("A13");
+    expect(useAppStore.getState().echoUsedQuadrants).toEqual(["A1"]);
+  });
+
   it("범위 밖 entropy_weight를 담은 스냅샷은 1로 클램프되어 복원된다", async () => {
     // 바로 위 structural_kappa와 같은 0..1 블렌드 가중치다. 드롭이 아니라
     // 클램프로 처리하는 이유는 max_primers 쪽 주석과 같다.

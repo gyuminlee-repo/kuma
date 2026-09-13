@@ -287,9 +287,9 @@ export function ExportFormatSelector() {
       </div>
 
       {/*
-        Echo source plate quadrant. 96-head Zephyr 는 384 plate 에서 한 번에
-        홀/짝 행 x 홀/짝 열 96칸만 찍을 수 있고 시작점이 4개다. reverse 는 짝
-        quadrant 로 자동으로 간다. 고르지 않으면 기존 배치를 그대로 쓴다.
+        Echo source plate 의 절반. 한 round 가 연속한 12열(A1 = 1~12,
+        A13 = 13~24)을 쓰고, reverse 는 같은 절반에서 forward 바로 아래 행으로
+        간다. 고르지 않으면 절반을 나누지 않은 기존 배치를 그대로 쓴다.
       */}
       <PlateQuadrantPicker
         value={echoQuadrant}

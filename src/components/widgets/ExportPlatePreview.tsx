@@ -21,8 +21,9 @@ import { PlateLegendsPanel } from "./PlateLegendsPanel";
 import { useAppStore } from "@/store/appStore";
 import { getSortedMutations, reorderMappings } from "@/lib/plate-utils";
 import {
-  otherQuadrantPair,
-  pairedQuadrant,
+  otherHalves,
+  quadrantFirstColumn,
+  quadrantLastColumn,
   quadrantsFilledAfterRun,
   ECHO_QUADRANTS,
 } from "@/lib/echoQuadrant";
@@ -37,21 +38,18 @@ import type { EchoQuadrant } from "@/types/models";
 type View = "echo" | "janus";
 
 /**
- * Caption that makes the Echo grid explain itself: which quadrant pair this
- * run stamps, how much of the plate that leaves, and why the wells in between
- * are empty.
+ * Caption that makes the Echo grid explain itself: which half of the plate
+ * this run fills, how much of the plate that leaves, and why the other block
+ * of columns is empty.
  *
- * The grid reads as "primers placed every other row and column" and the
- * question it drew was why they are not four contiguous blocks. They cannot
- * be: a 96-head on a 9 mm pitch over a 4.5 mm plate reaches every other row
- * and column in one stamp, so the four sets interleave
+ * A round occupies a contiguous block of twelve columns, forward primers on
+ * the even rows and their reverses one row below
  * (kuma_core/kuro/plate_quadrant.py). The picker in ExportFormatSelector says
  * this at the point of choosing; this says it at the point of looking, which
  * is where the layout is actually seen.
  *
- * A run spends a *pair* (forward `q` plus `pairedQuadrant(q)`), so progress is
- * stated as quadrants filled out of four rather than as a batch ordinal the
- * mapper does not have.
+ * A run spends one half, so progress is stated as halves filled out of two
+ * rather than as a batch ordinal the mapper does not have.
  */
 function EchoQuadrantNote({
   quadrant,
@@ -70,12 +68,16 @@ function EchoQuadrantNote({
     );
   }
 
-  const reverse = pairedQuadrant(quadrant);
-  const others = otherQuadrantPair(quadrant).join(", ");
+  const otherList = otherHalves(quadrant);
+  const others = otherList.join(", ");
   return (
     <div data-testid="echo-quadrant-note" className="space-y-1">
       <p className="text-sm font-medium text-foreground">
-        {t("exportPreview.quadrantBatch", { fwd: quadrant, rev: reverse })}
+        {t("exportPreview.quadrantBatch", {
+          half: quadrant,
+          from: quadrantFirstColumn(quadrant),
+          to: quadrantLastColumn(quadrant),
+        })}
       </p>
       <p data-testid="echo-quadrant-progress" className="text-caption text-muted-foreground">
         {t("exportPreview.quadrantProgress", {
@@ -84,7 +86,11 @@ function EchoQuadrantNote({
         })}
       </p>
       <p className="text-caption text-muted-foreground">
-        {t("exportPreview.quadrantInterleaveNote", { others })}
+        {t("exportPreview.quadrantHalfNote", {
+          others,
+          from: otherList.length > 0 ? quadrantFirstColumn(otherList[0]) : 0,
+          to: otherList.length > 0 ? quadrantLastColumn(otherList[0]) : 0,
+        })}
       </p>
       {usedQuadrants.length > 0 ? (
         <p data-testid="echo-quadrant-used" className="text-caption text-muted-foreground">
@@ -188,11 +194,10 @@ export function ExportPlatePreview() {
       ]);
       const echoRows = e?.rows ?? [];
       const janusRows = j?.rows ?? [];
-      // The quadrant decides which rows hold forward primers, so both
-      // adapters need it; without it every B1/B2 run reports its directions
-      // inverted.
-      setEcho(adaptEchoRows(echoRows, echoQuadrant));
-      setEchoDest(adaptDestCellsEcho(echoRows, echoQuadrant));
+      // Direction is 384 row parity in either half, so the adapters do not
+      // need to be told which half this run took.
+      setEcho(adaptEchoRows(echoRows));
+      setEchoDest(adaptDestCellsEcho(echoRows));
       setJanus(adaptJanusRows(janusRows));
       setJanusDest(adaptDestCellsJanus(janusRows));
     } catch (err) {

@@ -418,8 +418,8 @@ class WorkspaceSettingsModel(WorkspaceModel):
     roundSize: Optional[int] = None
     randomSeed: Optional[int] = None
     echoTransferVol: Optional[float] = None
-    echoQuadrant: Optional[Literal["A1", "A2", "B1", "B2"]] = None
-    echoUsedQuadrants: Optional[list[Literal["A1", "A2", "B1", "B2"]]] = None
+    echoQuadrant: Optional[Literal["A1", "A13", "A2", "B1", "B2"]] = None
+    echoUsedQuadrants: Optional[list[Literal["A1", "A13", "A2", "B1", "B2"]]] = None
     janusTransferVol: Optional[float] = None
 
 
@@ -590,14 +590,16 @@ class ExportMappingParams(BaseModel):
     mappings: Optional[list[PlateMappingItem]] = None
     dedup_info: Optional[dict[str, list[str]]] = None
     mapping_range: Optional[MappingRange] = None
-    #: Forward-primer quadrant of the 384 source plate (A1/A2/B1/B2), i.e. where a
-    #: 96-head Zephyr starts its stamp. Reverse primers land in the row-paired
-    #: partner. Takes precedence over ``mapping_range``, which cannot express a
-    #: column offset. Echo only.
-    quadrant: Optional[Literal["A1", "A2", "B1", "B2"]] = None
-    #: Quadrants already spent on a part-used plate, stated by the operator.
+    #: Which half of the 384 source plate this round occupies: "A1" for columns
+    #: 1-12 and "A13" for columns 13-24. Reverse primers sit one row below their
+    #: forward primer in the same half. Takes precedence over ``mapping_range``,
+    #: which cannot express a column offset. Echo only. "A2"/"B1"/"B2" are
+    #: legacy values from projects saved before the half layout; the core folds
+    #: them onto a half rather than rejecting them.
+    quadrant: Optional[Literal["A1", "A13", "A2", "B1", "B2"]] = None
+    #: Halves already spent on a part-used plate, stated by the operator.
     #: Dispensing onto one is refused rather than warned about.
-    used_quadrants: Optional[list[Literal["A1", "A2", "B1", "B2"]]] = None
+    used_quadrants: Optional[list[Literal["A1", "A13", "A2", "B1", "B2"]]] = None
     bom: bool = False
 
 
@@ -617,8 +619,8 @@ class ExportMappingDryRunParams(BaseModel):
     #: the quadrant selector in the export step, so a preview that ignored them
     #: had the operator checking wells the exported csv would not use. Echo only;
     #: the JANUS dry run accepts and ignores them, as it does ``mapping_range``.
-    quadrant: Optional[Literal["A1", "A2", "B1", "B2"]] = None
-    used_quadrants: Optional[list[Literal["A1", "A2", "B1", "B2"]]] = None
+    quadrant: Optional[Literal["A1", "A13", "A2", "B1", "B2"]] = None
+    used_quadrants: Optional[list[Literal["A1", "A13", "A2", "B1", "B2"]]] = None
 
 
 class SaveWorkspaceParams(BaseModel):
@@ -1003,12 +1005,12 @@ class ExportAllParams(BaseModel):
     bom: bool = False
     mappings: Optional[list[PlateMappingItem]] = None
     dedup_info: Optional[dict[str, list[str]]] = None
-    #: Forward-primer quadrant of the 384 Echo source plate. See
+    #: Half of the 384 Echo source plate this round occupies. See
     #: ``ExportMappingParams.quadrant``. Applies to the Echo csv only; the xlsx
-    #: layout sheet keeps the row-doubled view.
-    quadrant: Optional[Literal["A1", "A2", "B1", "B2"]] = None
-    #: Quadrants already spent on a part-used plate, stated by the operator.
-    used_quadrants: Optional[list[Literal["A1", "A2", "B1", "B2"]]] = None
+    #: layout sheet keeps the 96-well view.
+    quadrant: Optional[Literal["A1", "A13", "A2", "B1", "B2"]] = None
+    #: Halves already spent on a part-used plate, stated by the operator.
+    used_quadrants: Optional[list[Literal["A1", "A13", "A2", "B1", "B2"]]] = None
 
     @field_validator("fwd_plate_name", "rev_plate_name")
     @classmethod

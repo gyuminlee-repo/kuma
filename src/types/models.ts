@@ -367,11 +367,25 @@ export interface ExportOrderResult extends ExportResult {
 }
 
 /**
- * The four wells a 96-head Zephyr can start a 384-plate stamp from. Each covers
- * one interleaved set of 96 wells (row parity x column parity); the four tile
- * the plate. Mirrors kuma_core/kuro/plate_quadrant.QUADRANTS.
+ * The two halves of a 384 Echo source plate a round can occupy: "A1" is
+ * columns 1-12 and "A13" is columns 13-24. Forward primers sit on the even
+ * rows of the half and their reverses one row below, so a half is 192 wells
+ * and one plate holds two rounds. Mirrors
+ * kuma_core/kuro/plate_quadrant.QUADRANTS.
+ *
+ * The persisted key is still spelled `quadrant` so projects saved before the
+ * half layout keep loading; only the value set changed.
  */
-export type EchoQuadrant = "A1" | "A2" | "B1" | "B2";
+export type EchoQuadrant = "A1" | "A13";
+
+/**
+ * What a saved project's `quadrant` field may hold. "A2", "B1" and "B2" are
+ * the interleaved-quadrant names written before the half layout and are
+ * accepted on load only: `foldLegacyQuadrant` in lib/echoQuadrant.ts folds
+ * A1/B1 onto "A1" and A2/B2 onto "A13". Nothing this app writes is outside
+ * {@link EchoQuadrant}.
+ */
+export type PersistedEchoQuadrant = EchoQuadrant | "A2" | "B1" | "B2";
 
 export interface ExportMappingResult extends ExportResult {
   format: "echo" | "janus";
@@ -508,8 +522,13 @@ export interface WorkspaceSettings {
   /** §12 Optional RNG seed for reproducible design runs. */
   randomSeed?: number | null;
   echoTransferVol?: number;
-  echoQuadrant?: EchoQuadrant | null;
-  echoUsedQuadrants?: EchoQuadrant[];
+  /**
+   * Persisted, so it is read with the legacy value set. The store only ever
+   * holds an {@link EchoQuadrant}, so saving cannot write a legacy name;
+   * loading folds one through `foldLegacyQuadrant`.
+   */
+  echoQuadrant?: PersistedEchoQuadrant | null;
+  echoUsedQuadrants?: PersistedEchoQuadrant[];
   janusTransferVol?: number;
 }
 

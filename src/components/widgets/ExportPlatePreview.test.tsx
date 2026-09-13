@@ -366,9 +366,9 @@ describe("ExportPlatePreview", () => {
     }
   });
 
-  // The grid draws one quadrant pair of an interleaved layout, which reads as
-  // "primers placed one well apart" unless the view says what it is showing.
-  describe("Echo quadrant caption", () => {
+  // The grid draws one half of the plate, which reads as "half the plate is
+  // missing" unless the view says what it is showing.
+  describe("Echo half caption", () => {
     function mockEchoRow() {
       const echoRows = {
         rows: [
@@ -394,42 +394,51 @@ describe("ExportPlatePreview", () => {
       });
     }
 
-    it("names both quadrants of the pair the selected run fills", async () => {
+    it("names the columns the selected half fills", async () => {
       useAppStore.setState({ echoQuadrant: "A1" });
       mockEchoRow();
       render(<ExportPlatePreview />);
       const note = await screen.findByTestId("echo-quadrant-note");
-      // A1 alone would leave the reverse primers in rows B, D, F looking like
-      // another run's wells; the caption names the pair the mapper spends.
+      // The half name alone does not say where it is; the caption states the
+      // contiguous column range so the grid can be read against it.
       expect(note.textContent).toContain("A1");
-      expect(note.textContent).toContain("B1");
+      expect(note.textContent).toContain("1-12");
     });
 
-    it("counts the quadrants this run leaves spent", async () => {
+    it("points at the other half's columns as the ones left empty", async () => {
+      useAppStore.setState({ echoQuadrant: "A1" });
+      mockEchoRow();
+      render(<ExportPlatePreview />);
+      const note = await screen.findByTestId("echo-quadrant-note");
+      expect(note.textContent).toContain("13-24");
+      expect(note.textContent).toContain("A13");
+    });
+
+    it("counts the halves this run leaves spent", async () => {
       useAppStore.setState({ echoQuadrant: "A1" });
       mockEchoRow();
       render(<ExportPlatePreview />);
       const progress = await screen.findByTestId("echo-quadrant-progress");
-      expect(progress.textContent).toMatch(/2 of 4/);
+      expect(progress.textContent).toMatch(/1 of 2/);
     });
 
-    it("adds the operator's spent quadrants to that count", async () => {
-      useAppStore.setState({ echoQuadrant: "A1", echoUsedQuadrants: ["A2", "B2"] });
+    it("adds the operator's spent halves to that count", async () => {
+      useAppStore.setState({ echoQuadrant: "A1", echoUsedQuadrants: ["A13"] });
       mockEchoRow();
       render(<ExportPlatePreview />);
       const progress = await screen.findByTestId("echo-quadrant-progress");
-      expect(progress.textContent).toMatch(/4 of 4/);
+      expect(progress.textContent).toMatch(/2 of 2/);
     });
 
-    it("lists the spent quadrants only when the operator named some", async () => {
-      useAppStore.setState({ echoQuadrant: "A1", echoUsedQuadrants: ["A2"] });
+    it("lists the spent halves only when the operator named some", async () => {
+      useAppStore.setState({ echoQuadrant: "A1", echoUsedQuadrants: ["A13"] });
       mockEchoRow();
       render(<ExportPlatePreview />);
       const used = await screen.findByTestId("echo-quadrant-used");
-      expect(used.textContent).toContain("A2");
+      expect(used.textContent).toContain("A13");
     });
 
-    it("shows no spent-quadrant line when none were named", async () => {
+    it("shows no spent-half line when none were named", async () => {
       useAppStore.setState({ echoQuadrant: "A1", echoUsedQuadrants: [] });
       mockEchoRow();
       render(<ExportPlatePreview />);
@@ -437,22 +446,20 @@ describe("ExportPlatePreview", () => {
       expect(screen.queryByTestId("echo-quadrant-used")).toBeNull();
     });
 
-    it("says so instead when no quadrant is selected", async () => {
+    it("says so instead when no half is selected", async () => {
       mockEchoRow();
       render(<ExportPlatePreview />);
       const note = await screen.findByTestId("echo-quadrant-note");
-      expect(note.textContent).toMatch(/no quadrant selected/i);
+      expect(note.textContent).toMatch(/no half selected/i);
       expect(screen.queryByTestId("echo-quadrant-progress")).toBeNull();
     });
   });
 
-  // The direction rule lives in the adapters and its unit tests cover it, but
-  // the adapters learn the quadrant only because this component hands it over.
-  // Drop that argument and the default `null` restores the old row-parity rule
-  // without a type error or a failing adapter test: the preview would go back
-  // to inverting every B1/B2 run, silently. These two render the whole
-  // component so the handover is inside what is measured.
-  describe("Echo grid colour follows the selected quadrant", () => {
+  // Direction is row parity in either half, so the selected half must not move
+  // the forward/reverse colouring. These two render the whole component under
+  // both halves and pin that the stripe stays put, which is the claim the old
+  // interleaved geometry violated.
+  describe("Echo grid colour is row parity in either half", () => {
     /** Two transfers of one mutation: 384 row B forward, row A reverse. */
     function mockPairedEchoRows() {
       const echoRows = {
@@ -496,20 +503,20 @@ describe("ExportPlatePreview", () => {
       return container.querySelectorAll("[data-testid='echo-cell']")[idx] as HTMLElement;
     }
 
-    it("paints the odd-row primer forward when the run starts at B1", async () => {
-      useAppStore.setState({ echoQuadrant: "B1" });
+    it("paints the even-row primer forward when the run takes half A13", async () => {
+      useAppStore.setState({ echoQuadrant: "A13" });
       mockPairedEchoRows();
       const { container } = render(<ExportPlatePreview />);
       await screen.findByTestId("echo-quadrant-note");
       await waitFor(() => {
-        // B1 puts forward primers on odd rows, so B01 is the forward well and
-        // A01 belongs to its paired reverse quadrant A1.
-        expect(echoCell(container, "B01").className).toContain(PLATE_FILL_FORWARD);
-        expect(echoCell(container, "A01").className).toContain(PLATE_FILL_REVERSE);
+        // The half shifts columns only, so A01 stays forward and B01 stays
+        // reverse whichever half is selected.
+        expect(echoCell(container, "A01").className).toContain(PLATE_FILL_FORWARD);
+        expect(echoCell(container, "B01").className).toContain(PLATE_FILL_REVERSE);
       });
     });
 
-    it("keeps the A1 run the other way round", async () => {
+    it("paints the A1 run exactly the same way", async () => {
       useAppStore.setState({ echoQuadrant: "A1" });
       mockPairedEchoRows();
       const { container } = render(<ExportPlatePreview />);
