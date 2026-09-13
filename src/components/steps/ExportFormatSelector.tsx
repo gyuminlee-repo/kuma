@@ -27,6 +27,7 @@ import type { AppState } from "@/store/appStore";
 import { validateExportAll } from "@/store/validation";
 import { localeIsKorean } from "@/lib/localeUtils";
 import { PLATE_WELL_COUNT } from "@/lib/plate-utils";
+import { echoPlacementIssue, HALF_LAYOUT_VERSION } from "@/lib/echoQuadrant";
 const PLATE_NAME_RE = /^[A-Za-z0-9_-]{1,20}$/;
 const PROJECT_NAME_RE = /^[A-Za-z0-9가-힣_\-]{0,40}$/;
 const ECHO_RANGE = { min: 25, max: 500, step: 1, unit: "nL" } as const;
@@ -43,6 +44,7 @@ export function ExportFormatSelector() {
   const setEchoQuadrant = useAppStore((s: AppState) => s.setEchoQuadrant);
   const echoUsedQuadrants = useAppStore((s: AppState) => s.echoUsedQuadrants);
   const setEchoUsedQuadrants = useAppStore((s: AppState) => s.setEchoUsedQuadrants);
+  const echoLegacyPlacement = useAppStore((s: AppState) => s.echoLegacyPlacement);
   const janusVol = useAppStore((s: AppState) => s.janusTransferVol);
   const setEchoVol = useAppStore((s: AppState) => s.setEchoTransferVol);
   const setJanusVol = useAppStore((s: AppState) => s.setJanusTransferVol);
@@ -65,7 +67,18 @@ export function ExportFormatSelector() {
   const wellOverflow = wellCount > PLATE_WELL_COUNT;
   const canExport = !wellOverflow && !running && projectNameValid;
 
+  // 사이드카가 거부하는 두 조합은 여기서 먼저 막는다. 넘기면 돌아오는 것은
+  // 개발자용 영어 문장이고, 작업자가 할 일(절반 고르기 또는 소진 표시 해제)은
+  // 거기 없다.
+  const placementIssue = echoPlacementIssue(echoQuadrant, echoUsedQuadrants);
+
   const onExport = async () => {
+    if (placementIssue !== null) {
+      toast.warning(t("validation.actionBlockedTitle"), {
+        description: t(`phaseC.export.all.placementBlocked.${placementIssue}`),
+      });
+      return;
+    }
     const check = validateExportAll({
       fwdPlate,
       rvsPlate,
@@ -291,6 +304,18 @@ export function ExportFormatSelector() {
         A13 = 13~24)을 쓰고, reverse 는 같은 절반에서 forward 바로 아래 행으로
         간다. 고르지 않으면 절반을 나누지 않은 기존 배치를 그대로 쓴다.
       */}
+      {echoLegacyPlacement !== null && (
+        <p
+          role="status"
+          data-testid="echo-legacy-placement-notice"
+          className="rounded-md border border-warning/40 bg-warning/10 p-2 text-caption text-foreground"
+        >
+          {t("phaseC.export.all.legacyPlacementNotice", {
+            values: echoLegacyPlacement.join(", "),
+            version: HALF_LAYOUT_VERSION,
+          })}
+        </p>
+      )}
       <PlateQuadrantPicker
         value={echoQuadrant}
         onChange={setEchoQuadrant}

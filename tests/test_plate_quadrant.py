@@ -14,6 +14,7 @@ from kuma_core.kuro.plate_mapper import _to_384_well_fwd, _to_384_well_rev
 from kuma_core.kuro.plate_quadrant import (
     QUADRANTS,
     check_quadrants_available,
+    fold_persisted_placement,
     quadrant_wells,
     to_384_well,
     validate_quadrant,
@@ -158,19 +159,135 @@ class TestGeometry:
         assert wells[8] == "A2"
 
 
-class TestLegacyFold:
-    """A project saved before the half layout must still load."""
+class TestOldGeometryIsNotAHalf:
+    """The old placement spanned the plate, so it folds onto no half.
+
+    The old module cannot be imported next to the new one, so its rule is
+    inlined here from
+    ``git show 4d38efe2~1:kuma_core/kuro/plate_quadrant.py``: rows doubled with
+    a 0/1 row offset and ``col_384 = (col - 1) * 2 + 1 + col_offset`` with
+    ``col_offset`` 0 for A1/B1 and 1 for A2/B2. The interleaved layout arrived
+    in ``c285d5d6`` (#211, v0.14.0) and the workbook in
+    ``tests/test_plate_quadrant.py::OBSERVED_FORWARD`` contradicts it.
+    """
+
+    @staticmethod
+    def _old_well(well_96: str, quadrant: str) -> str:
+        row_offset = 0 if quadrant[0] == "A" else 1
+        col_offset = 0 if quadrant[1:] == "1" else 1
+        col = int(well_96[1:])
+        row = "ABCDEFGHIJKLMNOP"[_ROWS_96.index(well_96[0]) * 2 + row_offset]
+        return f"{row}{(col - 1) * 2 + 1 + col_offset}"
 
     @pytest.mark.parametrize(
-        "stored,expected",
-        [("A1", "A1"), ("B1", "A1"), ("A2", "A13"), ("B2", "A13"), ("A13", "A13")],
+        "well,old,new",
+        [
+            # Observed by running the old rule above. A1 is the one well the
+            # two geometries agree on, which is why the drift stayed invisible.
+            ("A1", "A1", "A1"),
+            ("A2", "A3", "A2"),
+            ("D7", "G13", "G7"),
+            ("H12", "O23", "O12"),
+        ],
     )
-    def test_stored_values_fold_onto_a_half(self, stored, expected):
-        assert validate_quadrant(stored) == expected
-        assert to_384_well("A1", stored) == to_384_well("A1", expected)
-        assert check_quadrants_available(stored) == expected
+    def test_a_stored_value_points_somewhere_else_now(self, well, old, new):
+        assert self._old_well(well, "A1") == old
+        assert to_384_well(well, "A1") == new
 
-    def test_the_legacy_default_matches_the_no_quadrant_path_everywhere(self):
+    @pytest.mark.parametrize("quadrant", ["A1", "A2", "B1", "B2"])
+    def test_every_old_value_spanned_the_full_plate_width(self, quadrant):
+        columns = {int(self._old_well(w, quadrant)[1:]) for w in _all_96_wells()}
+
+        assert min(columns) <= 2
+        assert max(columns) >= 23
+
+    @pytest.mark.parametrize("pair", [("A1", "B1"), ("A2", "B2")])
+    def test_an_old_round_left_96_wells_in_each_new_half(self, pair):
+        # 모듈 docstring 이 적은 192 중 96/96 을 여기서 계산해 고정한다. 옛 라운드
+        # 하나가 양쪽 절반을 반씩 채웠으므로 어느 절반도 새 라운드를 통째로 받지
+        # 못한다.
+        occupied = {
+            self._old_well(well, half) for half in pair for well in _all_96_wells()
+        }
+
+        assert len(occupied) == 192
+        assert len([w for w in occupied if int(w[1:]) <= 12]) == 96
+        assert len([w for w in occupied if int(w[1:]) >= 13]) == 96
+
+
+class TestPersistedPlacement:
+    """``fold_persisted_placement`` is the one definition of the load rule."""
+
+    @pytest.mark.parametrize("stored", ["A2", "B1", "B2"])
+    def test_an_old_quadrant_is_dropped_rather_than_folded(self, stored):
+        placement = fold_persisted_placement(stored, [])
+
+        assert placement.quadrant is None
+        assert placement.legacy_seen == (stored,)
+        assert placement.used_quadrants == ["A1", "A13"]
+
+    @pytest.mark.parametrize(
+        "stored", [["A1", "B1"], ["A2"], ["B1"], ["B2"], ["A2", "B2"]],
+    )
+    def test_an_old_used_list_spends_both_halves(self, stored):
+        placement = fold_persisted_placement(None, stored)
+
+        assert placement.used_quadrants == ["A1", "A13"]
+        assert placement.legacy_seen
+
+    def test_an_old_value_anywhere_dates_the_whole_placement(self):
+        # quadrant 가 옛 값이면 used 의 "A1" 도 옛 이름이다. 두 필드를 함께 읽어야
+        # 그 "A1" 을 좌측 절반으로 오독하지 않는다.
+        placement = fold_persisted_placement("B2", ["A1"])
+
+        assert placement.quadrant is None
+        assert placement.legacy_seen == ("B2", "A1")
+        assert placement.used_quadrants == ["A1", "A13"]
+
+    @pytest.mark.parametrize(
+        "quadrant,used",
+        [("A1", []), ("A13", ["A1"]), (None, ["A1", "A13"]), (None, [])],
+    )
+    def test_a_current_placement_passes_through_untouched(self, quadrant, used):
+        placement = fold_persisted_placement(quadrant, used)
+
+        assert placement.quadrant == quadrant
+        assert placement.used_quadrants == [q for q in QUADRANTS if q in used]
+        assert placement.legacy_seen == ()
+
+    def test_a_bare_a1_is_read_as_the_current_half(self):
+        """``A1`` names a half now and named an odd-column set before.
+
+        The task asked for every old value in ``used_quadrants`` to spend both
+        halves, and also for a current project to pass through untouched. Those
+        collide on this one input and the current reading wins: the other one
+        would mark every project this version saves as full. The module
+        docstring carries the same note.
+        """
+        assert fold_persisted_placement(None, ["A1"]).used_quadrants == ["A1"]
+        assert fold_persisted_placement("A1", ["A13"]).quadrant == "A1"
+        assert fold_persisted_placement("A1", ["A13"]).legacy_seen == ()
+
+    def test_unknown_strings_are_dropped_without_being_called_legacy(self):
+        placement = fold_persisted_placement("C9", ["A13", "Z4", "a13"])
+
+        assert placement.quadrant is None
+        assert placement.used_quadrants == ["A13"]
+        assert placement.legacy_seen == ()
+
+    @pytest.mark.parametrize("stored", ["A2", "B1", "B2"])
+    def test_the_geometry_refuses_an_old_value_instead_of_moving_wells(self, stored):
+        # fold 를 거치지 않고 옛 값이 기하에 닿으면 소스 웰이 말없이 옮겨진다.
+        for call in (
+            lambda: validate_quadrant(stored),
+            lambda: to_384_well("A1", stored),
+            lambda: quadrant_wells(stored),
+            lambda: check_quadrants_available(stored),
+        ):
+            with pytest.raises(ValueError, match="predates"):
+                call()
+
+    def test_the_default_matches_the_no_quadrant_path_everywhere(self):
         # quadrant 미지정 경로가 A1 절반과 96 웰 전부에서 같은 답을 내야 한다.
         # 다르면 기존 프로젝트의 소스 웰이 조용히 움직인다.
         for well in _all_96_wells():
@@ -189,14 +306,28 @@ class TestUsedQuadrants:
         with pytest.raises(ValueError, match="already used"):
             check_quadrants_available("A1", used_quadrants=["A1"])
 
-    def test_legacy_used_values_fold_before_the_clash_check(self):
-        # 저장된 프로젝트가 ["A1", "B1"] 을 들고 있으면 둘 다 좌측 절반이다.
+    @pytest.mark.parametrize("stored", [["A1", "B1"], ["A2"], ["B1"], ["B2"]])
+    @pytest.mark.parametrize("target", ["A1", "A13"])
+    def test_an_old_used_value_blocks_both_halves(self, stored, target):
+        # 옛 값 하나가 플레이트 전폭에 걸쳐 있었으므로 남는 절반이 없다. 이전
+        # 판은 ["A1","B1"] 을 좌측 하나로 접어 우측을 비어 있다고 선언했고, 그
+        # 절반에 실제로 들어 있던 프라이머 96개를 덮어쓰게 두었다.
         with pytest.raises(ValueError, match="already used"):
+            check_quadrants_available(target, used_quadrants=stored)
+
+    def test_the_refusal_says_whether_the_half_was_stated_or_folded(self):
+        with pytest.raises(ValueError, match="stated for this plate"):
+            check_quadrants_available("A1", used_quadrants=["A1"])
+
+        with pytest.raises(ValueError, match="folded from the stored value"):
             check_quadrants_available("A1", used_quadrants=["B1"])
-        assert check_quadrants_available("A2", used_quadrants=["A1", "B1"]) == "A13"
 
     def test_error_names_the_half_still_free(self):
         with pytest.raises(ValueError, match="Still free: A13"):
+            check_quadrants_available("A1", used_quadrants=["A1"])
+
+    def test_error_says_the_plate_is_full_when_an_old_value_spent_it(self):
+        with pytest.raises(ValueError, match="this plate is full"):
             check_quadrants_available("A1", used_quadrants=["B1"])
 
     def test_error_says_so_when_the_plate_is_full(self):
@@ -211,7 +342,7 @@ class TestRefusals:
             to_384_well("A1", bad)
 
     def test_half_name_is_case_insensitive(self):
-        assert to_384_well("A1", "b2") == "A13"
+        assert to_384_well("A1", "a13") == "A13"
 
     @pytest.mark.parametrize("bad", ["I1", "A13", "A0", "AX"])
     def test_bad_96_well_address(self, bad):

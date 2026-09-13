@@ -438,6 +438,34 @@ describe("ExportPlatePreview", () => {
       expect(used.textContent).toContain("A13");
     });
 
+    // A project saved before the half layout reopens as exactly this state:
+    // no half selected and both marked spent. The mapper raises on it rather
+    // than quietly drawing the left half, so the request is not made at all.
+    // Before this guard the raw sidecar sentence became the preview's error.
+    it("does not ask the sidecar for a placement it refuses", async () => {
+      useAppStore.setState({ echoQuadrant: null, echoUsedQuadrants: ["A1", "A13"] });
+      mockEchoRow();
+      render(<ExportPlatePreview />);
+      const blocked = await screen.findByTestId("echo-placement-blocked");
+      // Assert the text, not just the node: a missing locale key renders the
+      // key itself and an existence check would pass on it.
+      expect(blocked.textContent).toMatch(/no half is selected/);
+      const methods = (invoke as ReturnType<typeof vi.fn>).mock.calls.map(
+        (c) => (c[1] as { method?: string })?.method,
+      );
+      expect(methods).not.toContain("export_echo_mapping_dry_run");
+      // JANUS is a separate rack layout and is unaffected by the Echo half.
+      expect(methods).toContain("export_janus_mapping_dry_run");
+    });
+
+    it("says which half is spent instead of dispensing on top of it", async () => {
+      useAppStore.setState({ echoQuadrant: "A13", echoUsedQuadrants: ["A13"] });
+      mockEchoRow();
+      render(<ExportPlatePreview />);
+      const blocked = await screen.findByTestId("echo-placement-blocked");
+      expect(blocked.textContent).toMatch(/already marked as used/);
+    });
+
     it("shows no spent-half line when none were named", async () => {
       useAppStore.setState({ echoQuadrant: "A1", echoUsedQuadrants: [] });
       mockEchoRow();

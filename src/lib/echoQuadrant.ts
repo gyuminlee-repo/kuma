@@ -20,7 +20,8 @@
  * copies of a geometry that mirrors a Python file would be two places to drift
  * from it.
  */
-import type { EchoQuadrant, PersistedEchoQuadrant } from "@/types/models";
+import { compareVersionParts, parseVersionParts } from "@/lib/mame/resultContract";
+import type { EchoQuadrant } from "@/types/models";
 
 /** The two wells a round can start from, in the order the UI offers them. */
 export const ECHO_QUADRANTS: readonly EchoQuadrant[] = ["A1", "A13"] as const;
@@ -32,46 +33,121 @@ const COLUMN_OFFSETS: Record<EchoQuadrant, 0 | 12> = {
 };
 
 /**
- * Values a project saved before the half layout can carry, and the half each
- * folds onto (`_LEGACY_FOLD` in python). The old A1/B1 pair was the left
- * columns and A2/B2 the right.
+ * Values only a project saved before the half layout can carry
+ * (`LEGACY_QUADRANTS` in python). "A1" is not one of them: it is a current
+ * half name too, so it is dated by the saved app version instead.
  */
-const LEGACY_FOLD: Record<PersistedEchoQuadrant, EchoQuadrant> = {
-  A1: "A1",
-  B1: "A1",
-  A2: "A13",
-  B2: "A13",
-  A13: "A13",
-};
+const LEGACY_QUADRANTS: ReadonlySet<string> = new Set(["A2", "B1", "B2"]);
 
 /**
- * Canonical half for a value read back from a saved project, or `null` for
- * anything this app never wrote.
- *
- * Load paths call this rather than testing membership themselves: a project
- * saved with `A13` must survive a reopen, and one saved under the old four-way
- * names must fold instead of being silently dropped. Folding is the
- * conservative direction, as a folded `used_quadrants` marks more of the plate
- * as spent than it may be and the core prefers a refusal over dispensing on
- * top of primers that are already there.
+ * First release that wrote half names. A project saved before it means the
+ * old geometry even when every stored name is still spelled the same way.
  */
-export function foldLegacyQuadrant(value: unknown): EchoQuadrant | null {
-  if (typeof value !== "string") return null;
-  return LEGACY_FOLD[value as PersistedEchoQuadrant] ?? null;
+export const HALF_LAYOUT_VERSION = "0.16.59";
+
+const HALF_LAYOUT_PARTS: number[] = parseVersionParts(HALF_LAYOUT_VERSION) ?? [];
+
+/**
+ * Was `version` written before the source plate became two halves?
+ *
+ * The one value the stored names cannot date is a lone "A1": the old layout
+ * and this one spell it the same, and the old one meant the odd columns of
+ * the whole plate rather than the left half. The saved app version is the
+ * only signal that separates them, so anything this cannot parse, including
+ * a file with no version at all, is read as old. Dotted segments are compared
+ * as numbers, never as strings, so "0.16.9" is older than "0.16.59".
+ */
+export function predatesHalfLayout(version: unknown): boolean {
+  if (typeof version !== "string") return true;
+  const parts = parseVersionParts(version);
+  if (parts === null) return true;
+  return compareVersionParts(parts, HALF_LAYOUT_PARTS) < 0;
+}
+
+/** What a stored Echo placement means under the half layout. */
+export interface PersistedEchoPlacement {
+  /** Half this round takes, or null when the operator has to pick again. */
+  quadrant: EchoQuadrant | null;
+  /** Halves that are spent, in {@link ECHO_QUADRANTS} order. */
+  usedQuadrants: EchoQuadrant[];
+  /**
+   * Every stored name of a placement that predates the half layout, in the
+   * order it was read and with the `quadrant` first. Empty for a placement
+   * this version wrote. Callers report it rather than re-deriving the rule.
+   */
+  legacySeen: string[];
 }
 
 /**
- * Fold a stored `used_quadrants` list, dropping unknown entries and
- * de-duplicating. `["A1", "B1"]` was one half stated twice under the old
- * names, so it folds to `["A1"]` rather than to a repeated entry.
+ * Read a stored Echo placement. This function is the rule, mirroring
+ * `fold_persisted_placement` in kuma_core/kuro/plate_quadrant.py and adding
+ * the version test that file cannot make (it is handed values, not files).
+ *
+ * Both fields are read together, because one old value dates the whole
+ * placement: `quadrant="B2"` with `used=["A1"]` is an old project, and that
+ * "A1" is an odd-column interleaved set rather than the left half.
+ *
+ * An old placement yields `(null, ["A1", "A13"], <old values>)`: every old
+ * value spanned the full plate width, so both halves hold primers and no half
+ * is a legitimate selection. A current placement passes through unchanged,
+ * with unknown entries dropped and halves de-duplicated.
+ *
+ * An empty placement stays empty whatever the version says. A project that
+ * never chose a half has nothing to date, and reporting both halves spent for
+ * it would invent a plate state the operator never stated.
+ *
+ * Unlike the python side, non-string entries are dropped rather than raising:
+ * this reads a JSON file straight off disk, where the core reads values
+ * Pydantic has already typed.
  */
-export function foldLegacyQuadrants(values: readonly unknown[]): EchoQuadrant[] {
-  const folded: EchoQuadrant[] = [];
-  for (const value of values) {
-    const half = foldLegacyQuadrant(value);
-    if (half !== null && !folded.includes(half)) folded.push(half);
+export function foldPersistedPlacement(
+  quadrant: unknown,
+  usedQuadrants: readonly unknown[],
+  savedVersion: unknown,
+): PersistedEchoPlacement {
+  const normalize = (value: unknown): string | null => {
+    if (typeof value !== "string") return null;
+    const name = value.trim().toUpperCase();
+    return name.length > 0 ? name : null;
+  };
+  const target = normalize(quadrant);
+  const spentRaw = usedQuadrants.map(normalize).filter((n): n is string => n !== null);
+  const names = (target === null ? [] : [target]).concat(spentRaw);
+
+  if (names.length > 0) {
+    const legacy =
+      names.some((name) => LEGACY_QUADRANTS.has(name)) || predatesHalfLayout(savedVersion);
+    if (legacy) {
+      return { quadrant: null, usedQuadrants: [...ECHO_QUADRANTS], legacySeen: names };
+    }
   }
-  return folded;
+
+  const spent = new Set(spentRaw);
+  const isHalf = (name: string | null): name is EchoQuadrant =>
+    name !== null && (ECHO_QUADRANTS as readonly string[]).includes(name);
+  return {
+    quadrant: isHalf(target) ? target : null,
+    usedQuadrants: ECHO_QUADRANTS.filter((half) => spent.has(half)),
+    legacySeen: [],
+  };
+}
+
+/**
+ * Why a placement cannot be sent to the sidecar, or null when it can.
+ *
+ * The sidecar refuses both of these (`plate_mapper.py`,
+ * `check_quadrants_available`), and its message is an English sentence aimed
+ * at a developer. Testing the same two conditions here keeps that string off
+ * the screen and lets the UI say what to do instead.
+ */
+export type EchoPlacementIssue = "noHalfSelected" | "halfAlreadyUsed" | null;
+
+export function echoPlacementIssue(
+  quadrant: EchoQuadrant | null,
+  usedQuadrants: readonly EchoQuadrant[],
+): EchoPlacementIssue {
+  if (quadrant === null) return usedQuadrants.length > 0 ? "noHalfSelected" : null;
+  return usedQuadrants.includes(quadrant) ? "halfAlreadyUsed" : null;
 }
 
 /** First 384 column (1-based) of `q`: 1 for A1, 13 for A13. */

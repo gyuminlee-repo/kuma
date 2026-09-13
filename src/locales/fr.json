@@ -2548,16 +2548,16 @@
       "Un run Echo remplit désormais la moitié de la source plate, colonnes 1 à 12 ou 13 à 24, comme dans les fichiers de mapping réellement utilisés par ce laboratoire.",
       "Depuis la v0.14.0, le placement des primers sautait une colonne sur deux, une disposition jamais utilisée à la paillasse.",
       "Le choix entre quatre quadrants devient deux moitiés, car un run occupe 192 puits et ne tient pas dans un quart de plaque.",
-      "Les projets enregistrés avec l'ancien réglage A1, A2, B1 ou B2 s'ouvrent toujours et se replient sur la moitié visée.",
+      "Une plaque antérieure à cette version n'a pas de moitié libre : le run d'alors couvrait les deux, donc les deux sont marquées comme utilisées et c'est à vous de les libérer.",
       "Le placement forward est fixé sur 95 transferts lus dans une vraie worklist Echo, il ne peut plus dériver sans être vu."
     ],
-    "highlightsStamp": "0.16.59+f60ab133",
+    "highlightsStamp": "0.16.59+f9b38f15",
     "releases": {
       "0.16.59": [
         "Un run Echo remplit désormais la moitié de la source plate, colonnes 1 à 12 ou 13 à 24, comme dans les fichiers de mapping réellement utilisés par ce laboratoire.",
         "Depuis la v0.14.0, le placement des primers sautait une colonne sur deux, une disposition jamais utilisée à la paillasse.",
         "Le choix entre quatre quadrants devient deux moitiés, car un run occupe 192 puits et ne tient pas dans un quart de plaque.",
-        "Les projets enregistrés avec l'ancien réglage A1, A2, B1 ou B2 s'ouvrent toujours et se replient sur la moitié visée.",
+        "Une plaque antérieure à cette version n'a pas de moitié libre : le run d'alors couvrait les deux, donc les deux sont marquées comme utilisées et c'est à vous de les libérer.",
         "Le placement forward est fixé sur 95 transferts lus dans une vraie worklist Echo, il ne peut plus dériver sans être vu."
       ],
       "0.16.56": [
@@ -2980,7 +2980,7 @@
       ]
     },
     "releaseStamps": {
-      "0.16.59": "f60ab133",
+      "0.16.59": "f9b38f15",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
@@ -3271,6 +3271,11 @@
         "quadrantHelper": "Une série remplit une moitié : les amorces forward sur les lignes A, C, E ... et chaque reverse une ligne en dessous, dans la même colonne.",
         "usedQuadrantsLabel": "Moitiés déjà utilisées sur cette plaque",
         "usedQuadrantsHelper": "L'export est refusé si la moitié sélectionnée est l'une d'elles.",
+        "legacyPlacementNotice": "Ce projet a été enregistré avant la v{{version}}, quand une série occupait toute la source plate au lieu d'une moitié. La disposition enregistrée ({{values}}) couvre les deux moitiés, donc les deux sont marquées comme utilisées et aucune n'est sélectionnée. Sur une plaque neuve, décochez d'abord les moitiés utilisées ci-dessous, puis choisissez une moitié.",
+        "placementBlocked": {
+          "noHalfSelected": "Des moitiés sont marquées comme utilisées sur cette plaque, mais aucune moitié n'est sélectionnée pour cette série. Choisissez A1 ou A13, ou décochez les moitiés utilisées si la plaque est neuve.",
+          "halfAlreadyUsed": "La moitié sélectionnée est déjà marquée comme utilisée sur cette plaque. Y distribuer détruirait les primers qui s'y trouvent. Choisissez l'autre moitié ou décochez sa case."
+        },
         "plateNameFwd": "Nom de la plaque d'amorces forward",
         "plateNameRev": "Nom de la plaque d'amorces reverse",
         "wellCount": "{{count}} puits",

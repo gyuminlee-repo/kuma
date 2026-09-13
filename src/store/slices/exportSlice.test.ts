@@ -41,6 +41,7 @@ import { createExportSlice } from "./exportSlice"
 import { sendRequest } from "@/lib/ipc-kuro"
 import { MAX_MUTATIONS_PER_RUN } from "@/lib/inputThresholds"
 import type { PlateMapping, SdmPrimerResult, SequenceInfo, WorkspaceV3 } from "@/types/models"
+import { HALF_LAYOUT_VERSION } from "../../lib/echoQuadrant"
 
 // 최소 Zustand store 생성 helper
 function makeStore() {
@@ -225,6 +226,10 @@ describe("exportSlice — schema_version 0.3", () => {
     });
 
     const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
+    // The test build stamps "0.0.0-test", which reads as unparseable and so as
+    // a pre-half-layout file. This case is about a project saved by a build
+    // that has the half layout, so it says which build that is.
+    snapshot.kuma_version = HALF_LAYOUT_VERSION;
     expect(snapshot.settings).toMatchObject({
       domainDiversityEnabled: false,
       paretoDiversityEnabled: false,
@@ -252,11 +257,14 @@ describe("exportSlice — schema_version 0.3", () => {
     });
   });
 
-  // The sidecar workspace path is the second place a stored quadrant is read,
+  // The sidecar workspace path is the second place a stored placement is read,
   // and it took the value through untouched. A workspace saved before the half
   // layout therefore restored "B2" into a store that now only knows two
   // halves, and every surface downstream read a value the picker cannot show.
-  it("folds a legacy quadrant on the workspace restore path too", async () => {
+  // Folding it onto one half was the next wrong answer: an old round spanned
+  // the full plate width, so it occupies 96 wells of each half and no half of
+  // it is free.
+  it("reads a legacy placement as both halves spent on the workspace restore path too", async () => {
     const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
     // No cast needed: the persisted type accepts the legacy names on purpose,
     // and this fixture is exactly the old-project case.
@@ -266,9 +274,35 @@ describe("exportSlice — schema_version 0.3", () => {
     await store.slice.restoreWorkspace(snapshot);
 
     expect(store.state).toMatchObject({
-      echoQuadrant: "A13",
-      echoUsedQuadrants: ["A1"],
+      echoQuadrant: null,
+      echoUsedQuadrants: ["A1", "A13"],
+      echoLegacyPlacement: ["B2", "A1", "B1"],
     });
+  });
+
+  // The value no stored name can date: both vocabularies spell it "A1". The
+  // file's own version stamp is the only thing that separates the old odd
+  // columns 1-23 from the new left half.
+  it("reads a lone A1 as legacy when the workspace predates the half layout", async () => {
+    const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
+    snapshot.kuma_version = "0.16.58";
+    snapshot.settings.echoQuadrant = "A1";
+    snapshot.settings.echoUsedQuadrants = [];
+
+    await store.slice.restoreWorkspace(snapshot);
+
+    expect(store.state).toMatchObject({
+      echoQuadrant: null,
+      echoUsedQuadrants: ["A1", "A13"],
+      echoLegacyPlacement: ["A1"],
+    });
+  });
+
+  it("stamps the writing build so a reopened workspace can be dated", () => {
+    const snapshot = store.slice.getWorkspaceSnapshot() as WorkspaceV3;
+    // A file with no stamp is read as predating the half layout, so the field
+    // has to be written for a project saved today to reopen unchanged.
+    expect(typeof snapshot.kuma_version).toBe("string");
   });
 
   it("restores the creation defaults for absent EVOLVEpro mode and round", async () => {

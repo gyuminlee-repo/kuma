@@ -594,8 +594,10 @@ class ExportMappingParams(BaseModel):
     #: 1-12 and "A13" for columns 13-24. Reverse primers sit one row below their
     #: forward primer in the same half. Takes precedence over ``mapping_range``,
     #: which cannot express a column offset. Echo only. "A2"/"B1"/"B2" are
-    #: legacy values from projects saved before the half layout; the core folds
-    #: them onto a half rather than rejecting them.
+    #: values from projects saved before the half layout. They stay in this
+    #: Literal so an old project still loads, but they name no half: each of
+    #: them spanned the full plate width (``plate_quadrant`` docstring), so the
+    #: core refuses one sent here and the operator picks a half again.
     quadrant: Optional[Literal["A1", "A13", "A2", "B1", "B2"]] = None
     #: Halves already spent on a part-used plate, stated by the operator.
     #: Dispensing onto one is refused rather than warned about.
@@ -1006,8 +1008,9 @@ class ExportAllParams(BaseModel):
     mappings: Optional[list[PlateMappingItem]] = None
     dedup_info: Optional[dict[str, list[str]]] = None
     #: Half of the 384 Echo source plate this round occupies. See
-    #: ``ExportMappingParams.quadrant``. Applies to the Echo csv only; the xlsx
-    #: layout sheet keeps the 96-well view.
+    #: ``ExportMappingParams.quadrant``. Reaches the Echo csv, the xlsx
+    #: worklist sheet and the xlsx layout grid, which draws the half the
+    #: worklist beside it aspirates from.
     quadrant: Optional[Literal["A1", "A13", "A2", "B1", "B2"]] = None
     #: Halves already spent on a part-used plate, stated by the operator.
     used_quadrants: Optional[list[Literal["A1", "A13", "A2", "B1", "B2"]]] = None

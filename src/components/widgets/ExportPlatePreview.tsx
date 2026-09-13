@@ -21,6 +21,7 @@ import { PlateLegendsPanel } from "./PlateLegendsPanel";
 import { useAppStore } from "@/store/appStore";
 import { getSortedMutations, reorderMappings } from "@/lib/plate-utils";
 import {
+  echoPlacementIssue,
   otherHalves,
   quadrantFirstColumn,
   quadrantLastColumn,
@@ -122,8 +123,9 @@ function EchoQuadrantNote({
  * 384-well Echo plate or 96-well JANUS racks under a Tabs switcher. Echo
  * and JANUS are mutually exclusive views (never rendered simultaneously).
  *
- * Source-plate placement is chosen by the quadrant selector rendered beneath
- * this preview, which is the choice the 96-head Zephyr can actually stamp.
+ * Source-plate placement is chosen by the half picker rendered beneath this
+ * preview: a round fills one contiguous block of twelve columns, which is the
+ * layout the bench worklists actually ran (kuma_core/kuro/plate_quadrant.py).
  * A row-band picker used to sit here as well; it fed ``mapping_range``,
  * which the mapper wraps modulo the band width, so every band it could
  * express other than the full plate stacked different mutants onto one well
@@ -170,6 +172,11 @@ export function ExportPlatePreview() {
     return reorderMappings(plateMappings, dedupInfo, sortedMuts);
   }, [designResults, tableSorting, yPredMap, customCandidates, plateMappings, dedupInfo]);
 
+  // 사이드카가 거부하는 조합은 보내지 않는다. 보내면 catch 가 그 영어 문장을
+  // 그대로 화면에 올리고, preview 전체가 오류 상태가 된다. 거부 사유는 Echo
+  // 배치뿐이므로 JANUS 쪽 dry-run 은 그대로 돈다.
+  const placementIssue = echoPlacementIssue(echoQuadrant, echoUsedQuadrants);
+
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
@@ -189,7 +196,9 @@ export function ExportPlatePreview() {
         transfer_vol: janusTransferVol,
       };
       const [e, j] = await Promise.all([
-        sendRequest("export_echo_mapping_dry_run", echoParams),
+        placementIssue === null
+          ? sendRequest("export_echo_mapping_dry_run", echoParams)
+          : undefined,
         sendRequest("export_janus_mapping_dry_run", janusParams),
       ]);
       const echoRows = e?.rows ?? [];
@@ -205,7 +214,7 @@ export function ExportPlatePreview() {
     } finally {
       setLoading(false);
     }
-  }, [sortedMappings, dedupInfo, echoTransferVol, janusTransferVol, echoQuadrant, echoUsedQuadrants]);
+  }, [sortedMappings, dedupInfo, echoTransferVol, janusTransferVol, echoQuadrant, echoUsedQuadrants, placementIssue]);
 
   useEffect(() => {
     void load();
@@ -240,7 +249,16 @@ export function ExportPlatePreview() {
     );
   }
 
-  if (echo.length === 0 && janus.rack1.length === 0 && janus.rack2.length === 0) {
+  // A refused placement leaves the Echo grid empty because the request was
+  // never made, which is not the same thing as having nothing to preview. The
+  // empty state would say "design primers first" to an operator whose primers
+  // are designed, so the tabs stay up and the notice below says what to fix.
+  if (
+    placementIssue === null &&
+    echo.length === 0 &&
+    janus.rack1.length === 0 &&
+    janus.rack2.length === 0
+  ) {
     return (
       <Card>
         <CardContent className="p-0">
@@ -267,6 +285,15 @@ export function ExportPlatePreview() {
             <div className="space-y-3">
               {/* Both grids carry a caption at the JANUS rack-label level, so
                   the two stacked plates in this tab say which is which. */}
+              {placementIssue !== null ? (
+                <p
+                  role="status"
+                  data-testid="echo-placement-blocked"
+                  className="rounded-md border border-warning/40 bg-warning/10 p-2 text-caption text-foreground"
+                >
+                  {t(`phaseC.export.all.placementBlocked.${placementIssue}`)}
+                </p>
+              ) : null}
               <EchoQuadrantNote quadrant={echoQuadrant} usedQuadrants={echoUsedQuadrants} />
               <EchoPlateView
                 cells={echo}

@@ -2548,16 +2548,16 @@
       "Uma rodada do Echo agora preenche metade da source plate, colunas 1 a 12 ou 13 a 24, como nos arquivos de mapping que este laboratório realmente usa.",
       "Desde a v0.14.0 o posicionamento dos primers pulava uma coluna sim e outra não, um layout que nunca foi usado na bancada.",
       "A escolha entre quatro quadrantes vira duas metades, porque uma rodada ocupa 192 poços e não cabe em um quarto da placa.",
-      "Projetos salvos com o ajuste antigo A1, A2, B1 ou B2 continuam abrindo e se dobram para a metade que aquele ajuste indicava.",
+      "Uma placa anterior a esta versão não tem metade livre: aquela rodada cobria as duas, então ambas ficam marcadas como usadas e você as libera.",
       "O posicionamento forward está fixado contra 95 transferências lidas de uma worklist real do Echo, então não volta a desviar sem ser notado."
     ],
-    "highlightsStamp": "0.16.59+f60ab133",
+    "highlightsStamp": "0.16.59+f9b38f15",
     "releases": {
       "0.16.59": [
         "Uma rodada do Echo agora preenche metade da source plate, colunas 1 a 12 ou 13 a 24, como nos arquivos de mapping que este laboratório realmente usa.",
         "Desde a v0.14.0 o posicionamento dos primers pulava uma coluna sim e outra não, um layout que nunca foi usado na bancada.",
         "A escolha entre quatro quadrantes vira duas metades, porque uma rodada ocupa 192 poços e não cabe em um quarto da placa.",
-        "Projetos salvos com o ajuste antigo A1, A2, B1 ou B2 continuam abrindo e se dobram para a metade que aquele ajuste indicava.",
+        "Uma placa anterior a esta versão não tem metade livre: aquela rodada cobria as duas, então ambas ficam marcadas como usadas e você as libera.",
         "O posicionamento forward está fixado contra 95 transferências lidas de uma worklist real do Echo, então não volta a desviar sem ser notado."
       ],
       "0.16.56": [
@@ -2980,7 +2980,7 @@
       ]
     },
     "releaseStamps": {
-      "0.16.59": "f60ab133",
+      "0.16.59": "f9b38f15",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
@@ -3271,6 +3271,11 @@
         "quadrantHelper": "Uma rodada preenche uma metade: os primers forward nas linhas A, C, E ... e cada reverse uma linha abaixo, na mesma coluna.",
         "usedQuadrantsLabel": "Metades já usadas nesta placa",
         "usedQuadrantsHelper": "A exportação é recusada se a metade selecionada for uma destas.",
+        "legacyPlacementNotice": "Este projeto foi salvo antes da v{{version}}, quando uma rodada se espalhava por toda a source plate em vez de uma metade. A disposição salva ({{values}}) cobre as duas metades, então ambas ficam marcadas como usadas e nenhuma metade fica selecionada. Em uma placa nova, desmarque abaixo as metades usadas antes de escolher uma metade.",
+        "placementBlocked": {
+          "noHalfSelected": "Há metades marcadas como usadas nesta placa, mas nenhuma metade foi selecionada para esta rodada. Escolha A1 ou A13, ou desmarque as metades usadas se a placa for nova.",
+          "halfAlreadyUsed": "A metade selecionada já está marcada como usada nesta placa. Dispensar nela destruiria os primers que já estão lá. Escolha a outra metade ou desmarque a caixa dela."
+        },
         "plateNameFwd": "Nome da placa de primers forward",
         "plateNameRev": "Nome da placa de primers reverse",
         "wellCount": "{{count}} poços",

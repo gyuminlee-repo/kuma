@@ -166,8 +166,11 @@ export function PlateQuadrantPicker({
         {t("phaseC.export.all.quadrantHelper")}
       </p>
 
-      {/* 이미 소진된 half. plate 는 kuma 가 볼 수 없는 물건이라 작업자가 말한다. */}
-      {value !== null && (
+      {/* 이미 소진된 half. plate 는 kuma 가 볼 수 없는 물건이라 작업자가 말한다.
+          절반을 아직 안 골랐어도 소진 표시가 있으면 보여야 한다. 옛 배치로
+          저장된 프로젝트는 절반 미선택 + 양쪽 소진 상태로 열리는데, 이때
+          체크박스를 숨기면 작업자가 해제할 길이 없어 어느 절반을 골라도 거부된다. */}
+      {(value !== null || usedQuadrants.length > 0) && (
         <div className="flex flex-col gap-1 mt-2">
           <span className="text-sm font-medium text-foreground">
             {t("phaseC.export.all.usedQuadrantsLabel")}

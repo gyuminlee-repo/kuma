@@ -387,6 +387,13 @@ export interface ExportSlice {
   echoQuadrant: EchoQuadrant | null;
   /** 이 plate 에서 이미 소진된 절반. 작업자가 직접 입력한다. */
   echoUsedQuadrants: EchoQuadrant[];
+  /**
+   * 방금 연 프로젝트가 half layout 이전 배치로 저장돼 선택을 떨어뜨렸으면 그때
+   * 읽은 저장값들. null 이면 떨어뜨린 것이 없다. 저장하지 않는 파생 값이며
+   * 불러올 때마다 다시 판정한다(`foldPersistedPlacement`). 작업자가 소진 표시를
+   * 고치면 지운다. 조용히 버리면 소스 웰이 말없이 옮겨간다.
+   */
+  echoLegacyPlacement: string[] | null;
   janusTransferVol: number;
   getPlateMap: () => Promise<void>;
   exportExcel: (filepath: string, projectId?: string) => Promise<void>;

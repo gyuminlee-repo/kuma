@@ -10,7 +10,7 @@ The interleaved geometry entered the code from a 2.69 second screen recording in
 
 The selector offers two halves instead of four quadrants, A1 for columns 1 to 12 and A13 for columns 13 to 24. A quarter cannot hold a round: it offers four forward rows where 96 variants need eight. Forward and reverse are no longer separate placements either, since a reverse primer always sits one row below its forward primer in the same half.
 
-Projects saved before this release still open. The stored values fold on load, A1 and B1 onto the left half and A2 and B2 onto the right, at every path that reads them. The note shown when no half is chosen used to claim an undivided layout, which was never true: that run lands on columns 1 to 12, the same wells as half A1, and only the refusal to dispense onto a spent half is skipped.
+Projects saved before this release still open, and what they carry is not a half. The old column formula put A1 and B1 on the odd columns 1 to 23 and A2 and B2 on the even columns 2 to 24, so all four spanned the full width of the plate. Of the 192 wells an old round occupied, 96 fall in each of the new halves. Reading a stored placement as one half would therefore declare a half free while 96 primers sit in it, which is the one thing this module exists to refuse. A stored placement from an older save is instead dropped, both halves are marked spent, and the export screen says so and says to clear the marks if the plate is a fresh one. A save that predates this release is recognised by its recorded version rather than by its stored value, because A1 reads the same in both vocabularies and means different wells in each. The note shown when no half is chosen also claimed an undivided layout, which was never true: that run lands on columns 1 to 12, the same wells as half A1.
 
 One thing stays open. The original request asked for four options by name, while the mapping files from the same lab are halves. This release follows the files, and the discrepancy is worth settling with the requester rather than leaving to the code.
 
@@ -19,7 +19,7 @@ One thing stays open. The original request asked for four options by name, while
 - An Echo round now fills half the source plate, columns 1 to 12 or 13 to 24, matching the mapping files this lab actually runs.
 - Primer placement since v0.14.0 skipped every other column, a layout that no run on the bench has used.
 - The four quadrant choice becomes two halves, because one round fills 192 wells and a quarter plate cannot hold it.
-- Projects saved with the older A1, A2, B1 or B2 setting still open, folding onto the half that setting meant.
+- A plate from before this release is not half free: its round spanned both halves, so both are marked spent and you clear them.
 - Forward placement is now pinned against 95 transfers read from a real Echo worklist, so this cannot drift back unnoticed.
 
 ## v0.16.58 (Every codon the host uses, and the whole tolerance sweep)

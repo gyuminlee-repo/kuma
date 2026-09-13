@@ -896,13 +896,25 @@ def build_echo_rows(
         quadrant: Source-plate half the round occupies (A1 or A13).
         used_quadrants: Halves already spent on a part-used plate.
     """
-    if quadrant is not None:
-        # 이미 쓴 절반 위에 덮어쓰면 그 안의 프라이머가 사라진다. 경고가 아니라
-        # 거부다. 판단 근거는 작업자가 입력한 현재 plate 상태뿐이다. 여기에 두어야
-        # preview 도 같은 거부를 내고, 작업자가 못 쓸 배치를 검산하지 않는다.
-        from kuma_core.kuro.plate_quadrant import check_quadrants_available
+    # 이미 쓴 절반 위에 덮어쓰면 그 안의 프라이머가 사라진다. 경고가 아니라
+    # 거부다. 판단 근거는 작업자가 입력한 현재 plate 상태뿐이다. 여기에 두어야
+    # preview 도 같은 거부를 내고, 작업자가 못 쓸 배치를 검산하지 않는다.
+    from kuma_core.kuro.plate_quadrant import (
+        check_quadrants_available,
+        fold_persisted_placement,
+    )
 
+    if quadrant is not None:
         check_quadrants_available(quadrant, used_quadrants)
+    elif fold_persisted_placement(None, used_quadrants).used_quadrants:
+        # 절반이 소진됐다고 적어 두고 절반을 안 고르면 기본 경로가 조용히 좌측
+        # 절반을 그린다. 그 경로에는 위 검사가 걸리지 않아 소진 선언이 통째로
+        # 무시된다. 골라 달라고 되묻는 쪽이 덮어쓰기보다 낫다.
+        raise ValueError(
+            "Halves are marked as already used on this plate but no half was "
+            "selected for this round. Select A1 or A13 so the clash can be "
+            "checked."
+        )
 
     fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
         fwd_mappings, rev_mappings, rev_groups,
@@ -1340,9 +1352,12 @@ def export_echo_mapping_xlsx(
         preview show), so a single ``export_all`` cannot leave a csv and an xlsx
         that name different source wells for the same primer.
 
-    ``mapping_range`` / ``quadrant`` / ``used_quadrants`` reach the worklist
-    sheet only. The layout sheet keeps the row-doubled 384 view it always drew,
-    which is a picture of the default plate and not of this transfer list.
+    ``quadrant`` reaches both sheets: the layout sheet is the picture of the
+    transfer list beside it, so it draws the half the worklist aspirates from.
+    It used to draw columns 1-12 whatever was selected, which an ``A13`` run
+    showed as a grid exactly twelve columns away from its own worklist.
+    ``mapping_range`` still reaches the worklist sheet only; the layout sheet
+    keeps the default row bands for it.
     """
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
@@ -1388,13 +1403,16 @@ def export_echo_mapping_xlsx(
         cell.alignment = center
 
     # Build 384-well lookup: well_384 → primer_name
+    # 워크리스트와 같은 quadrant 로 그린다. 그리지 않으면 A13 실행에서 그림은
+    # 1-12 열을, 워크리스트는 13-24 열을 가리켜 정확히 12열 어긋난다. A1 이
+    # 마침 quadrant 없는 기본 배치와 같아 이 어긋남이 오래 보이지 않았다.
     well_384: dict[str, str] = {}
     for m in fwd_mappings:
         _, base = _parse_well_plate(m.well)
-        well_384[_to_384_well_fwd(base)] = m.primer_name
+        well_384[_to_384_well_fwd(base, quadrant=quadrant)] = m.primer_name
     for m in rev_mappings:
         _, base = _parse_well_plate(m.well)
-        well_384[_to_384_well_rev(base)] = m.primer_name
+        well_384[_to_384_well_rev(base, quadrant=quadrant)] = m.primer_name
 
     # 384-well grid: rows A-P (16 rows)
     for ri, row_letter in enumerate(_ROWS_384):

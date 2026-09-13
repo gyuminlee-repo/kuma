@@ -2548,16 +2548,16 @@
       "Ein Echo Durchlauf füllt jetzt eine Hälfte der Source Plate, Spalten 1 bis 12 oder 13 bis 24, wie in den Mapping Dateien, die dieses Labor tatsächlich fährt.",
       "Die Primer Platzierung ließ seit v0.14.0 jede zweite Spalte frei, ein Layout, das am Bench nie gefahren wurde.",
       "Aus der Auswahl von vier Quadranten werden zwei Hälften, denn ein Durchlauf füllt 192 Wells und passt nicht in ein Viertel.",
-      "Projekte mit der alten Einstellung A1, A2, B1 oder B2 öffnen weiterhin und klappen auf die gemeinte Hälfte.",
+      "Eine Platte von vor diesem Release hat keine freie Hälfte: der damalige Durchlauf lag über beiden, also gelten beide als verbraucht, bis Sie das aufheben.",
       "Die Forward Platzierung ist gegen 95 Transfers aus einer echten Echo Worklist festgelegt und kann nicht unbemerkt zurückdriften."
     ],
-    "highlightsStamp": "0.16.59+f60ab133",
+    "highlightsStamp": "0.16.59+f9b38f15",
     "releases": {
       "0.16.59": [
         "Ein Echo Durchlauf füllt jetzt eine Hälfte der Source Plate, Spalten 1 bis 12 oder 13 bis 24, wie in den Mapping Dateien, die dieses Labor tatsächlich fährt.",
         "Die Primer Platzierung ließ seit v0.14.0 jede zweite Spalte frei, ein Layout, das am Bench nie gefahren wurde.",
         "Aus der Auswahl von vier Quadranten werden zwei Hälften, denn ein Durchlauf füllt 192 Wells und passt nicht in ein Viertel.",
-        "Projekte mit der alten Einstellung A1, A2, B1 oder B2 öffnen weiterhin und klappen auf die gemeinte Hälfte.",
+        "Eine Platte von vor diesem Release hat keine freie Hälfte: der damalige Durchlauf lag über beiden, also gelten beide als verbraucht, bis Sie das aufheben.",
         "Die Forward Platzierung ist gegen 95 Transfers aus einer echten Echo Worklist festgelegt und kann nicht unbemerkt zurückdriften."
       ],
       "0.16.56": [
@@ -2980,7 +2980,7 @@
       ]
     },
     "releaseStamps": {
-      "0.16.59": "f60ab133",
+      "0.16.59": "f9b38f15",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
@@ -3271,6 +3271,11 @@
         "quadrantHelper": "Eine Runde füllt eine Hälfte: Forward-Primer auf den Zeilen A, C, E ... und jeder Reverse-Primer eine Zeile darunter in derselben Spalte.",
         "usedQuadrantsLabel": "Auf dieser Platte bereits belegte Hälften",
         "usedQuadrantsHelper": "Der Export wird abgelehnt, wenn die gewählte Hälfte eine davon ist.",
+        "legacyPlacementNotice": "Dieses Projekt wurde vor v{{version}} gespeichert. Damals verteilte sich eine Runde über die gesamte Source Plate statt über eine Hälfte. Die gespeicherte Belegung ({{values}}) deckt beide Hälften ab, daher gelten beide als belegt und keine Hälfte ist ausgewählt. Bei einer neuen Platte zuerst die Häkchen für belegte Hälften unten entfernen und dann eine Hälfte wählen.",
+        "placementBlocked": {
+          "noHalfSelected": "Auf dieser Platte sind Hälften als belegt markiert, für diese Runde ist aber keine Hälfte ausgewählt. Wählen Sie A1 oder A13, oder entfernen Sie die Häkchen, wenn die Platte neu ist.",
+          "halfAlreadyUsed": "Die gewählte Hälfte ist auf dieser Platte bereits als belegt markiert. Ein Dispensieren dort zerstört die vorhandenen Primer. Wählen Sie die andere Hälfte oder entfernen Sie deren Häkchen."
+        },
         "plateNameFwd": "Forward-Primer-Plattenname",
         "plateNameRev": "Reverse-Primer-Plattenname",
         "wellCount": "{{count}} Wells",

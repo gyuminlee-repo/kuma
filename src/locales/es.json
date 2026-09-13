@@ -2548,16 +2548,16 @@
       "Un run de Echo llena ahora la mitad de la source plate, columnas 1 a 12 o 13 a 24, igual que los archivos de mapping que este laboratorio usa realmente.",
       "Desde la v0.14.0 el colocado de primers dejaba una columna sí y otra no, una disposición que nunca se usó en el banco.",
       "La elección entre cuatro cuadrantes pasa a dos mitades, porque un run ocupa 192 pocillos y no cabe en un cuarto de placa.",
-      "Los proyectos guardados con el ajuste antiguo A1, A2, B1 o B2 siguen abriéndose y se pliegan a la mitad que ese ajuste indicaba.",
+      "Una placa anterior a esta versión no tiene una mitad libre: aquel run cubría las dos, así que ambas se marcan como usadas y usted las libera.",
       "La colocación forward queda fijada frente a 95 transferencias leídas de una worklist real de Echo, así no puede desviarse sin que se note."
     ],
-    "highlightsStamp": "0.16.59+f60ab133",
+    "highlightsStamp": "0.16.59+f9b38f15",
     "releases": {
       "0.16.59": [
         "Un run de Echo llena ahora la mitad de la source plate, columnas 1 a 12 o 13 a 24, igual que los archivos de mapping que este laboratorio usa realmente.",
         "Desde la v0.14.0 el colocado de primers dejaba una columna sí y otra no, una disposición que nunca se usó en el banco.",
         "La elección entre cuatro cuadrantes pasa a dos mitades, porque un run ocupa 192 pocillos y no cabe en un cuarto de placa.",
-        "Los proyectos guardados con el ajuste antiguo A1, A2, B1 o B2 siguen abriéndose y se pliegan a la mitad que ese ajuste indicaba.",
+        "Una placa anterior a esta versión no tiene una mitad libre: aquel run cubría las dos, así que ambas se marcan como usadas y usted las libera.",
         "La colocación forward queda fijada frente a 95 transferencias leídas de una worklist real de Echo, así no puede desviarse sin que se note."
       ],
       "0.16.56": [
@@ -2980,7 +2980,7 @@
       ]
     },
     "releaseStamps": {
-      "0.16.59": "f60ab133",
+      "0.16.59": "f9b38f15",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
@@ -3271,6 +3271,11 @@
         "quadrantHelper": "Una ronda llena una mitad: los primers forward en las filas A, C, E ... y cada reverse una fila más abajo, en la misma columna.",
         "usedQuadrantsLabel": "Mitades ya utilizadas en esta placa",
         "usedQuadrantsHelper": "La exportación se rechaza si la mitad seleccionada es una de estas.",
+        "legacyPlacementNotice": "Este proyecto se guardó antes de v{{version}}, cuando una ronda se repartía por toda la source plate en lugar de por una mitad. La disposición guardada ({{values}}) cubre ambas mitades, por lo que las dos quedan marcadas como usadas y no hay ninguna seleccionada. Si la placa es nueva, desmarque abajo las mitades usadas antes de elegir una.",
+        "placementBlocked": {
+          "noHalfSelected": "Hay mitades marcadas como usadas en esta placa, pero no se ha seleccionado ninguna para esta ronda. Elija A1 o A13, o desmarque las mitades usadas si la placa es nueva.",
+          "halfAlreadyUsed": "La mitad seleccionada ya está marcada como usada en esta placa. Dispensar allí destruiría los primers que ya contiene. Elija la otra mitad o desmarque su casilla."
+        },
         "plateNameFwd": "Nombre de la placa de primers forward",
         "plateNameRev": "Nombre de la placa de primers reverse",
         "wellCount": "{{count}} pocillos",

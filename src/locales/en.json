@@ -2602,16 +2602,16 @@
       "An Echo round now fills half the source plate, columns 1 to 12 or 13 to 24, matching the mapping files this lab actually runs.",
       "Primer placement since v0.14.0 skipped every other column, a layout that no run on the bench has used.",
       "The four quadrant choice becomes two halves, because one round fills 192 wells and a quarter plate cannot hold it.",
-      "Projects saved with the older A1, A2, B1 or B2 setting still open, folding onto the half that setting meant.",
+      "A plate from before this release is not half free: its round spanned both halves, so both are marked spent and you clear them.",
       "Forward placement is now pinned against 95 transfers read from a real Echo worklist, so this cannot drift back unnoticed."
     ],
-    "highlightsStamp": "0.16.59+f60ab133",
+    "highlightsStamp": "0.16.59+f9b38f15",
     "releases": {
       "0.16.59": [
         "An Echo round now fills half the source plate, columns 1 to 12 or 13 to 24, matching the mapping files this lab actually runs.",
         "Primer placement since v0.14.0 skipped every other column, a layout that no run on the bench has used.",
         "The four quadrant choice becomes two halves, because one round fills 192 wells and a quarter plate cannot hold it.",
-        "Projects saved with the older A1, A2, B1 or B2 setting still open, folding onto the half that setting meant.",
+        "A plate from before this release is not half free: its round spanned both halves, so both are marked spent and you clear them.",
         "Forward placement is now pinned against 95 transfers read from a real Echo worklist, so this cannot drift back unnoticed."
       ],
       "0.16.58": [
@@ -3034,7 +3034,7 @@
       ]
     },
     "releaseStamps": {
-      "0.16.59": "f60ab133",
+      "0.16.59": "f9b38f15",
       "0.16.58": "1ce19d3d",
       "0.16.57": "b25a7d73",
       "0.16.56": "9b525cb2",
@@ -3325,6 +3325,11 @@
         "quadrantHelper": "A round fills one half: forward primers on rows A, C, E ... and each reverse primer one row below, in the same column.",
         "usedQuadrantsLabel": "Halves already used on this plate",
         "usedQuadrantsHelper": "Export is refused if the selected half is one of these.",
+        "legacyPlacementNotice": "This project was saved before v{{version}}, when a round was spread across the whole source plate instead of one half. The stored placement ({{values}}) covers both halves, so both are marked as used and no half is selected. On a fresh plate, clear the used-half checkboxes below before choosing a half.",
+        "placementBlocked": {
+          "noHalfSelected": "Halves are marked as used on this plate but no half is selected for this round. Choose A1 or A13, or clear the used-half checkboxes if this is a fresh plate.",
+          "halfAlreadyUsed": "The selected half is already marked as used on this plate. Dispensing into it would destroy the primers already there. Choose the other half, or clear its used-half checkbox."
+        },
         "plateNameFwd": "Forward primer plate name",
         "plateNameRev": "Reverse primer plate name",
         "wellCount": "{{count}} wells",
