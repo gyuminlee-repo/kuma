@@ -2255,6 +2255,23 @@ def handle_analyze(params: dict) -> dict:
         _holder["value"] = 60
         _holder["message"] = "Classifying verdicts..."
 
+        # Collect the run metadata discovered alongside the work above. It is
+        # joined HERE, before the pipeline runs, because the pipeline is what
+        # writes the workbook: joined after it, the run this result came from
+        # reached only the in-memory cache and every freshly analysed workbook
+        # recorded "no MinKNOW run folder detected". The overlap it was put on a
+        # thread for is already paid (ingest and the expected-mutations read ran
+        # while it searched), so nothing returns to the critical path.
+        # Sink for the conditions the pipeline records in the workbook, kept so
+        # a later re-export of the same run states them too.
+        _conditions: list[Any] = []
+
+        _meta_thread.join()
+        _meta_error = _run_meta_holder.get("error")
+        if _meta_error is not None:
+            raise _meta_error
+        run_meta = _run_meta_holder.get("value")
+
         if not is_raw and reference.suffix.lower() not in _ALLOWED_FASTA_EXTENSIONS:
             with tempfile.TemporaryDirectory(prefix="mame-reference-") as tmpdir:
                 reference_for_pipeline = _write_reference_fasta(reference, Path(tmpdir))
@@ -2280,6 +2297,8 @@ def handle_analyze(params: dict) -> dict:
                     designed_mutant_ids=dids,
                     perf_scope=None,
                     barcode_prefix_note=_barcode_prefix_note,
+                    ngs_run_meta=run_meta,
+                    conditions_out=_conditions,
                 )
         else:
             verdicts, replicates = run_analyze(
@@ -2304,6 +2323,8 @@ def handle_analyze(params: dict) -> dict:
                 designed_mutant_ids=dids,
                 perf_scope=None,
                 barcode_prefix_note=_barcode_prefix_note,
+                ngs_run_meta=run_meta,
+                conditions_out=_conditions,
             )
     finally:
         # Stop and join the heartbeat BEFORE the terminal milestones so a stale
@@ -2314,15 +2335,11 @@ def handle_analyze(params: dict) -> dict:
     _emit(85, "Selecting best replicates...")
     _emit(100, "Writing Excel output...")
 
-    # Collect the run metadata discovered alongside the pipeline. ``dids`` (the
-    # recovery denominator: distinct designed mutant_ids) came from the single
-    # expected-mutations read above, which ``run_analyze`` shared, so downstream
-    # recovery still survives both analyze and workspace-reload.
-    _meta_thread.join()
-    _meta_error = _run_meta_holder.get("error")
-    if _meta_error is not None:
-        raise _meta_error
-    run_meta = _run_meta_holder.get("value")
+    # ``run_meta`` was joined before the pipeline (see above) so it could reach
+    # the workbook. ``dids`` (the recovery denominator: distinct designed
+    # mutant_ids) came from the single expected-mutations read above, which
+    # ``run_analyze`` shared, so downstream recovery still survives both analyze
+    # and workspace-reload.
 
     set_last_analyze(
         verdicts,
@@ -2331,6 +2348,7 @@ def handle_analyze(params: dict) -> dict:
         run_meta=run_meta,
         designed_mutant_ids=dids,
         barcode_prefix_note=_barcode_prefix_note,
+        analysis_conditions=_conditions[0] if _conditions else None,
     )
 
     # The pick list is the second artefact of the same run, so it is written here
