@@ -64,5 +64,155 @@
     "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
     "quote": "| samtools consensus (프리셋 없음) | 95 | {value} | 0 | 0 |",
     "source": "cells:R3-1:amplicon:C_bayesian_default"
+  },
+  {
+    "id": "note-tbl1-A-0",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| MAME 현행 | {value} | 84 | 83 |",
+    "source": "cells:R3-1:amplicon:A"
+  },
+  {
+    "id": "note-tbl1-A-1",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| MAME 현행 | 94 | {value} | 83 |",
+    "source": "cells:R2:amplicon:A"
+  },
+  {
+    "id": "note-tbl1-A-2",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| MAME 현행 | 94 | 84 | {value} |",
+    "source": "cells:R2:cds:A"
+  },
+  {
+    "id": "note-tbl1-Ap-0",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| MAME + 품질 배선 | {value} | 84 | 83 |",
+    "source": "cells:R3-1:amplicon:Ap"
+  },
+  {
+    "id": "note-tbl1-Ap-1",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| MAME + 품질 배선 | 94 | {value} | 83 |",
+    "source": "cells:R2:amplicon:Ap"
+  },
+  {
+    "id": "note-tbl1-Ap-2",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| MAME + 품질 배선 | 94 | 84 | {value} |",
+    "source": "cells:R2:cds:Ap"
+  },
+  {
+    "id": "note-tbl1-B-0",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| samtools mpileup | {value} | 84 | 83 |",
+    "source": "cells:R3-1:amplicon:B"
+  },
+  {
+    "id": "note-tbl1-B-1",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| samtools mpileup | 94 | {value} | 83 |",
+    "source": "cells:R2:amplicon:B"
+  },
+  {
+    "id": "note-tbl1-B-2",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| samtools mpileup | 94 | 84 | {value} |",
+    "source": "cells:R2:cds:B"
+  },
+  {
+    "id": "note-tbl1-C_bayesian_default-0",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| samtools consensus (프리셋 없음) | {value} | 83 | 82 |",
+    "source": "cells:R3-1:amplicon:C_bayesian_default"
+  },
+  {
+    "id": "note-tbl1-C_bayesian_default-1",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| samtools consensus (프리셋 없음) | 89 | {value} | 82 |",
+    "source": "cells:R2:amplicon:C_bayesian_default"
+  },
+  {
+    "id": "note-tbl1-C_bayesian_default-2",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| samtools consensus (프리셋 없음) | 89 | 83 | {value} |",
+    "source": "cells:R2:cds:C_bayesian_default"
+  },
+  {
+    "id": "note-tbl1-C_r10.4_sup-0",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| samtools consensus (r10.4_sup) | {value} | 84 | 83 |",
+    "source": "cells:R3-1:amplicon:C_r10.4_sup"
+  },
+  {
+    "id": "note-tbl1-C_r10.4_sup-1",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| samtools consensus (r10.4_sup) | 94 | {value} | 83 |",
+    "source": "cells:R2:amplicon:C_r10.4_sup"
+  },
+  {
+    "id": "note-tbl1-C_r10.4_sup-2",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| samtools consensus (r10.4_sup) | 94 | 84 | {value} |",
+    "source": "cells:R2:cds:C_r10.4_sup"
+  },
+  {
+    "id": "note-tbl2-A-0",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| MAME 현행 | {value} | 84 |",
+    "source": "cells:R2:cds:A"
+  },
+  {
+    "id": "note-tbl2-A-1",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| MAME 현행 | 83 | {value} |",
+    "source": "cells:R2:amplicon:A"
+  },
+  {
+    "id": "note-tbl2-Ap-0",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| MAME + 품질 배선 | {value} | 84 |",
+    "source": "cells:R2:cds:Ap"
+  },
+  {
+    "id": "note-tbl2-Ap-1",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| MAME + 품질 배선 | 83 | {value} |",
+    "source": "cells:R2:amplicon:Ap"
+  },
+  {
+    "id": "note-tbl2-B-0",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| samtools mpileup | {value} | 84 |",
+    "source": "cells:R2:cds:B"
+  },
+  {
+    "id": "note-tbl2-B-1",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| samtools mpileup | 83 | {value} |",
+    "source": "cells:R2:amplicon:B"
+  },
+  {
+    "id": "note-tbl2-C_bayesian_default-0",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| consensus (프리셋 없음) | {value} | 83 |",
+    "source": "cells:R2:cds:C_bayesian_default"
+  },
+  {
+    "id": "note-tbl2-C_bayesian_default-1",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| consensus (프리셋 없음) | 82 | {value} |",
+    "source": "cells:R2:amplicon:C_bayesian_default"
+  },
+  {
+    "id": "note-tbl2-C_r10.4_sup-0",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| consensus (r10.4_sup) | {value} | 84 |",
+    "source": "cells:R2:cds:C_r10.4_sup"
+  },
+  {
+    "id": "note-tbl2-C_r10.4_sup-1",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
+    "quote": "| consensus (r10.4_sup) | 83 | {value} |",
+    "source": "cells:R2:amplicon:C_r10.4_sup"
   }
 ]
