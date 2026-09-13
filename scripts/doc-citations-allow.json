@@ -345,6 +345,11 @@
       "path": "_fixture.md",
       "category": "prose",
       "reason": "ASCII tail of a Korean fixture filename in the docstring of tests/mame/create_fixtures.py; the extractor cannot match the Korean segment, so it reports the fragment."
+    },
+    {
+      "path": "OBSIDIAN_VAULT/010.KRIBB/040.Weekly/assets/mame_method_comparison-CAPTION.md",
+      "category": "external",
+      "reason": "Figure caption in the project vault, cited by bench/rounds-ab/claims.json so the counts it quotes are checked against results.csv instead of staying hand-copied. The vault is a separate repository and never arrives in a kuma checkout, so check_claims.py reports the document as missing and checks the rest."
     }
   ]
 }
