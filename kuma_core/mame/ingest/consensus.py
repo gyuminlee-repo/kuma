@@ -25,7 +25,7 @@ https://www.htslib.org/doc/samtools-consensus.html: 'Valid modes are
 being the default.'  This module implements the "simple" mode's rule (most
 common base across all reads; positions with only deletions/no coverage
 output 'N'), not the Bayesian default.  Two further defaults of that tool
-differ from this module: '-c, --call-fract FLOAT [...] Only used for the
+differ from this module: '-c C, --call-fract C [...] Only used for the
 simple consensus algorithm.  Require at least C fraction of bases agreeing
 with the most likely consensus call to emit that base type.  This defaults
 to 0.75.' and '--show-ins yes/no [...] Whether to show insertions in the
