@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import random
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -123,7 +124,7 @@ def _block_sub(del_pos: int, ins_pos: int, base: str) -> Alignment:
 
 
 def _record(call, **over) -> BarcodeRecord:
-    kw = dict(
+    kw: dict[str, Any] = dict(
         native_barcode="nb01",
         custom_barcode="w1",
         consensus_seq=call.consensus_seq,
@@ -395,6 +396,7 @@ def test_insertion_only_well_rebuilds_the_inserted_molecule() -> None:
     )
     rec = _record(call)
     built = build_length_true_nt(rec, call.consensus_seq, 0, len(REF))
+    assert built is not None
     assert built == REF[:70] + "GGG" + REF[70:]
     assert len(built) == len(REF) + call.consensus_net_indel_bp
 
@@ -410,6 +412,7 @@ def test_deletion_only_well_rebuilds_the_shortened_molecule() -> None:
     call = call_consensus_with_metrics(dels + [_full()], REF)
     rec = _record(call)
     built = build_length_true_nt(rec, call.consensus_seq, 0, len(REF))
+    assert built is not None
     assert built == REF[:79] + REF[80:]
     assert len(built) == len(REF) + call.consensus_net_indel_bp
 
@@ -430,6 +433,7 @@ def test_block_substitution_is_recovered_though_the_net_indel_is_zero() -> None:
 
     assert expected not in call.consensus_seq
     built = build_length_true_nt(_record(call), call.consensus_seq, 0, len(REF))
+    assert built is not None
     assert built == expected
     assert len(built) == len(REF)
 
@@ -447,6 +451,7 @@ def test_filling_the_deleted_slot_would_not_have_worked() -> None:
     call = call_consensus_with_metrics(alns, REF)
     filled = call.consensus_seq[:79] + "G" + call.consensus_seq[80:]
     built = build_length_true_nt(_record(call), call.consensus_seq, 0, len(REF))
+    assert built is not None
     assert len(filled) == len(built)
     assert filled != built
 
