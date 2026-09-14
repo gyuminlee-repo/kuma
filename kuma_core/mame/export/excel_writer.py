@@ -722,8 +722,10 @@ def _write_kuma_meta_sheet(
     """Append a ``__kuma_meta__`` sheet to *wb*.
 
     Row format: col-A = key, col-B = value.
-    When *meta* is ``None``, only the ``kuma_version`` and a ``ngs_run_meta``
-    placeholder row are written so the sheet is always present.
+    When *meta* is ``None``, the run-specific rows give way to a ``ngs_run_meta``
+    placeholder so the sheet is always present; the rows that do not depend on a
+    run (``kuma_version``, ``generated_at``, ``verdict_classes``) are written
+    either way.
 
     *barcode_prefix_note* is the one sentence
     ``combinatorial_demux.BarcodePrefixResolution.note`` produces about how the
@@ -761,6 +763,17 @@ def _write_kuma_meta_sheet(
             "(not recorded: this workbook was written by a caller that did not "
             "run the analysis)",
         ])
+
+    # Outside the branch above because the class set is a property of kuma and
+    # not of one execution: a threshold or a reference is true of the run that
+    # was made, while the vocabulary a verdict can be drawn from is the same
+    # whoever wrote the file and whether or not an analysis was run. Iterated
+    # from the enum rather than listed here: consumers that copied the names by
+    # hand drifted from the definition, and wells carrying a class their copy
+    # did not know appeared in no figure at all. Written here rather than in
+    # ``AnalysisConditions.rows()`` so there is one producer of the row and the
+    # ``analysis is not None`` path cannot emit it twice.
+    ws.append(["verdict_classes", ", ".join(v.value for v in VerdictClass)])
 
     # Written before the run-meta branch so it survives a run with no MinKNOW
     # folder: the two answers are independent.

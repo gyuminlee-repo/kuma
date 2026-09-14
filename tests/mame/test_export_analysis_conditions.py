@@ -276,3 +276,74 @@ def test_an_export_without_conditions_says_they_are_missing(tmp_path: Path) -> N
     kv = _meta_rows(out)
     assert "analysis_conditions" in kv
     assert kv["analysis_conditions"].startswith("(not recorded")
+
+
+def _meta_keys(xlsx: Path) -> list[str]:
+    """Column-A keys in sheet order, duplicates kept.
+
+    ``_meta_rows`` builds a dict, and a dict collapses a key that was written
+    twice into one entry, so it cannot answer "does this row appear exactly
+    once". Counting has to read the rows as they were appended.
+    """
+    wb = openpyxl.load_workbook(xlsx)
+    try:
+        ws = wb["__kuma_meta__"]
+        return [
+            str(row[0])
+            for row in ws.iter_rows(min_row=2, max_col=2, values_only=True)
+            if row[0]
+        ]
+    finally:
+        wb.close()
+
+
+def _bare_workbook(out: Path) -> Path:
+    """A workbook written by a caller that ran no analysis."""
+    from kuma_core.mame.export import write_excel
+
+    from tests.mame.test_run_meta import _make_replicate, _make_verdict
+
+    write_excel(
+        verdict_records=[_make_verdict("NB01", "1_1")],
+        replicate_results=[_make_replicate("V5F", "NB01", "1_1")],
+        output_path=out,
+    )
+    return out
+
+
+def test_the_verdict_vocabulary_is_recorded_even_without_analysis_conditions(
+    tmp_path: Path,
+) -> None:
+    """The class set is a property of kuma, not of one run.
+
+    ``reference_sha256`` or ``min_read_count`` are true of one execution and of
+    nothing else, so a workbook written by a caller that ran no analysis cannot
+    state them. The eight verdict classes are the same whoever wrote the file,
+    and a reader that has to hand-copy them because this workbook happens to
+    come from the export path is the drift this row exists to stop.
+    """
+    pytest.importorskip("openpyxl")
+    from kuma_core.mame.models import VerdictClass
+
+    kv = _meta_rows(_bare_workbook(tmp_path / "bare.xlsx"))
+
+    assert kv["verdict_classes"].split(", ") == [v.value for v in VerdictClass]
+    # The other fact the sheet states on this path is untouched and still true.
+    assert kv["analysis_conditions"].startswith("(not recorded")
+
+
+def test_the_verdict_vocabulary_row_is_written_once_on_either_path(
+    tmp_path: Path,
+) -> None:
+    """Two copies of the row would be two answers to one question.
+
+    A reader that finds the key twice has to decide which cell to trust, and a
+    later edit to one of the two producers would make that choice matter.
+    """
+    pytest.importorskip("openpyxl")
+
+    with_analysis = _meta_keys(_run(tmp_path))
+    without_analysis = _meta_keys(_bare_workbook(tmp_path / "bare.xlsx"))
+
+    assert with_analysis.count("verdict_classes") == 1
+    assert without_analysis.count("verdict_classes") == 1
