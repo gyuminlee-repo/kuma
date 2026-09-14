@@ -1523,12 +1523,6 @@
     "polymeraseManufacturer": "メーカー: {{manufacturer}}",
     "polymeraseFidelity": "忠実度: {{fidelity}}",
     "customPolymerase": "Custom Polymerase",
-    "codonLabel": "変異 codon (3 nt):",
-    "codonHelp": "変異サイトの codon (3 nt) にのみ適用。Flanking primer 領域は WT のまま。\n\nMin. changes: wild-type codon からのヌクレオチド変化が最小 (合成コスト最小化)。\nOptimal: 選択した生物の最高頻度 codon (発現最大化)。",
-    "codonOption_closest": "Min. changes (WT からの nt 変化最小)",
-    "codonOption_closest_title": "Wild-type codon からのヌクレオチド変化が最も少ない mutant codon を選択。Primer の mismatch と合成コストを最小化。変異 codon (3 nt) のみ変更されます。",
-    "codonOption_optimal": "Optimal (生物 codon usage)",
-    "codonOption_optimal_title": "選択した生物の codon usage テーブルで最高頻度の codon を選択。発現を最大化しますが、nt 変化が多くなる場合があります。変異 codon (3 nt) のみ変更されます。",
     "mutationsLabel": "Mutations:",
     "mutationsHelp": "生成する primer 設計の最大数。\nEVOLVEpro モード: CSV variant 数で上限。\n96-well プレート 1 枚に 95 mutants + 1 WT コントロールが収まります。",
     "plates_one": "{{count}} plate",
@@ -2545,14 +2539,21 @@
     "descriptionRange": "v{{from}} 以降のすべてのアップデートの主な変更点です。",
     "gotItBtn": "了解",
     "highlights": [
-      "Mutant codon の選択は、選んだ生物が使う同義コドンをすべて評価します。以前の探索は 2 個しか見ていませんでした。",
-      "使用頻度の低いコドンは候補から除きます。選んだ生物がほとんど使わないコドンに設計が当たることはなくなりました。",
-      "Design は Tm 許容範囲のスイープ全体で候補を順位付けします。より良いプライマーを含む広い範囲が飛ばされることはなくなりました。",
-      "対象の設計では Tol の値が上がります。ここでの Tol の増加は基準の緩和ではなく、より高評価のプライマーを意味します。",
-      "コドン表 3 件を修正し、生物の一覧に同梱テーブルをすべて表示します。以前の設計とは結果が変わることがあります。"
+      "MAME ワークブックに、実行時のリファレンス、コーディング領域、モード、しきい値が記録されるようになりました。",
+      "リファレンスは解析後の配列のダイジェストで識別します。同じ分子を別名で保存しても同一と判定されます。",
+      "判定クラスの語彙をすべてのワークブックに記録します。後続の処理でクラス名を手作業で書き写す必要はありません。",
+      "ライブラリ経路で書き出したワークブックで空だった kuma バージョンと実行メタデータが埋まるようになりました。",
+      "判定結果は変わりません。記録される項目は既に適用されていた設定であり、判定ロジックは変更していません。"
     ],
-    "highlightsStamp": "0.16.58+1ce19d3d",
+    "highlightsStamp": "0.16.59+69e92cd5",
     "releases": {
+      "0.16.59": [
+        "MAME ワークブックに、実行時のリファレンス、コーディング領域、モード、しきい値が記録されるようになりました。",
+        "リファレンスは解析後の配列のダイジェストで識別します。同じ分子を別名で保存しても同一と判定されます。",
+        "判定クラスの語彙をすべてのワークブックに記録します。後続の処理でクラス名を手作業で書き写す必要はありません。",
+        "ライブラリ経路で書き出したワークブックで空だった kuma バージョンと実行メタデータが埋まるようになりました。",
+        "判定結果は変わりません。記録される項目は既に適用されていた設定であり、判定ロジックは変更していません。"
+      ],
       "0.16.56": [
         "raw run の consensus が minimum base quality フィルタを適用するようになった。これまでは FASTQ の quality 行を捨てていたため効果がなかった。",
         "品質しきい値を下回る base は call に数えられなくなり、低品質の多数が高品質の少数を上回ることはない。",
@@ -2973,6 +2974,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",

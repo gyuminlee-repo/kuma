@@ -171,6 +171,9 @@ def handle_export_excel(params: dict) -> dict:
         # statement about how the barcode seeds were cut. Dropping it here would
         # make the record of the cut depend on which button wrote the file.
         barcode_prefix_note=state.last_barcode_prefix_note,
+        # Same reason as the note above: the conditions are the run's, not the
+        # button's, so a re-export states them exactly as the analyze did.
+        analysis=state.last_analysis_conditions,  # type: ignore[arg-type]
     )
 
     set_last_analyze(
@@ -179,6 +182,7 @@ def handle_export_excel(params: dict) -> dict:
         str(output),
         run_meta=state.last_run_meta,
         barcode_prefix_note=state.last_barcode_prefix_note,
+        analysis_conditions=state.last_analysis_conditions,
     )
 
     return {"output_path": str(output)}

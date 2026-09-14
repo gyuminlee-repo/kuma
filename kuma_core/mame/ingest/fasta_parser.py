@@ -57,6 +57,13 @@ from kuma_core.mame.ingest.consensus_metadata import (
     LOW_QUALITY_BASES,
     MAPQ_FAILED,
     MAX_DEL_RUN_LENGTH,
+    DEL_MAJORITY_POSITIONS,
+    N_DEL_MAJORITY_POSITIONS,
+    NO_CALL_ZERO_DEPTH,
+    NO_CALL_DELETION,
+    NO_CALL_AMBIGUOUS,
+    NO_CALL_NO_MAJORITY,
+    parse_position_runs,
     MAX_INDEL_EVENT_FRACTION,
     MAX_MINOR_ALLELE_FRACTION,
     MAX_MINOR_ALLELE_MINUS,
@@ -436,6 +443,21 @@ def parse_fasta_file(
     n_indel_event_positions = _read_int_metadata(metadata, INDEL_EVENT_POSITIONS) or 0
     max_indel_event_fraction = _read_float_metadata(metadata, MAX_INDEL_EVENT_FRACTION) or 0.0
     max_del_run_length = _read_int_metadata(metadata, MAX_DEL_RUN_LENGTH) or 0
+    # Absent keys give () and 0, which is exactly what a well with no deletion
+    # majority reports, so a consensus file written before these keys existed
+    # takes the same path as a clean well and nothing downstream changes.
+    del_majority_positions = parse_position_runs(
+        metadata.get(DEL_MAJORITY_POSITIONS.lower())
+    )
+    n_del_majority_positions = (
+        _read_int_metadata(metadata, N_DEL_MAJORITY_POSITIONS) or 0
+    )
+    n_no_call_zero_depth = _read_int_metadata(metadata, NO_CALL_ZERO_DEPTH) or 0
+    n_no_call_deletion = _read_int_metadata(metadata, NO_CALL_DELETION) or 0
+    n_no_call_ambiguous = _read_int_metadata(metadata, NO_CALL_AMBIGUOUS) or 0
+    n_no_call_no_majority = (
+        _read_int_metadata(metadata, NO_CALL_NO_MAJORITY) or 0
+    )
     consensus_net_indel_bp = _read_int_metadata(metadata, CONSENSUS_NET_INDEL)
     # The legacy ``net_indel`` key stored the per-read median under a name that
     # read like a consensus measurement. It is folded into the read metric, never
@@ -511,6 +533,12 @@ def parse_fasta_file(
         n_indel_event_positions=n_indel_event_positions,
         max_indel_event_fraction=max_indel_event_fraction,
         max_del_run_length=max_del_run_length,
+        del_majority_positions=del_majority_positions,
+        n_del_majority_positions=n_del_majority_positions,
+        n_no_call_zero_depth=n_no_call_zero_depth,
+        n_no_call_deletion=n_no_call_deletion,
+        n_no_call_ambiguous=n_no_call_ambiguous,
+        n_no_call_no_majority=n_no_call_no_majority,
         min_variant_support=min_variant_support,
         n_variant_positions=n_variant_positions,
         min_variant_support_depth=min_variant_support_depth,

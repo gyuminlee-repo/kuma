@@ -34,6 +34,55 @@ Reference: <https://v2.tauri.app/plugin/updater/#signing-updates>
 
 ---
 
+## CRITICAL, Release Integrity
+
+### An announced release is not a released one until the tag is pushed
+
+`.github/workflows/build.yml` runs on `push: tags: ["v*"]` and on nothing else.
+Landing a three-component label (`vA.BB.CC:`) on main and writing the CHANGELOG
+section announce a release. Neither builds an artifact. On 2026-09-14 the newest
+version tag was v0.16.54 while main had announced v0.16.55 through v0.16.58,
+each with its CHANGELOG section and none of them built.
+
+Before cutting a release, list what is outstanding:
+
+```bash
+pnpm run release:untagged     # node scripts/list-untagged-releases.mjs
+```
+
+Then, on main at the commit the release describes:
+
+```bash
+git tag vA.BB.CC && git push origin vA.BB.CC
+```
+
+This is not a CI gate on purpose. At merge time a missing tag is the normal
+state, so failing on it would fire on every release merge and teach the reader
+to skip the whole category.
+
+### The label that lands is the one the squash writes, not the one on the branch
+
+`squash_merge_commit_title` on this repository is `COMMIT_OR_PR_TITLE`: GitHub
+writes the pull request title when the branch holds more than one commit, and
+the single commit's own subject when it holds exactly one. So the subject
+`scripts/check-version-label.mjs` reads on a branch is not the subject that
+reaches main. Pull request 391 passed that way and turned main red: branch HEAD
+said v0.16.58.05, the title said v0.16.59, three commits, manifests 0.16.58.
+
+`scripts/check-landing-label.mjs` computes the landing subject from the pull
+request payload and runs the label-against-manifest comparison on it, plus the
+CHANGELOG requirement when the label claims a release. It runs as the
+`Release label` workflow on every pull request, including on a title edit.
+
+To see what it would say for a given pull request before opening one, set the
+title first and let CI answer; locally the script needs an event payload:
+
+```bash
+node scripts/check-landing-label.mjs --event <payload.json>
+```
+
+---
+
 ## CRITICAL, Build Integrity
 
 ### Sidecar binary hash must match `src-tauri/sidecar-hashes.json`

@@ -144,20 +144,32 @@ def test_a_well_with_no_consensus_measures_breadth_and_nothing_else(
 def test_well_consensus_fields_are_reachable_by_name_and_by_position() -> None:
     """``WellConsensus`` is a ``NamedTuple``, so both access styles hold.
 
-    The five coverage fields are last, and this pins that: a field inserted in
-    the middle would move them and silently shift a positional reader.
+    What this pins is that no field is inserted in the MIDDLE: that would move
+    every later field and silently shift a positional reader. Appending is safe
+    and is how the tuple has grown, so the coverage block is checked at its own
+    offset rather than at the tail. The six deletion-channel and no-call fields
+    were appended after it (v0.16.58.02).
     """
     result = cd_mod._compute_well_consensus(
         "1_1", [], [], _REF, len(_REF), min_depth=1
     )
 
-    assert len(result) == 30
-    assert result[-5:] == (
+    assert len(result) == 36
+    coverage_start = result._fields.index("depth_cv")
+    assert result[coverage_start : coverage_start + 5] == (
         result.depth_cv,
         result.depth_p10,
         result.depth_min_covered,
         result.breadth_at_mix_min_depth,
         result.consensus_identity,
+    )
+    assert result[-6:] == (
+        result.del_majority_positions,
+        result.n_del_majority_positions,
+        result.n_no_call_zero_depth,
+        result.n_no_call_deletion,
+        result.n_no_call_ambiguous,
+        result.n_no_call_no_majority,
     )
     assert result[0] == result.consensus_seq
 

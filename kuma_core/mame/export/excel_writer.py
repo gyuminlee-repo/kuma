@@ -22,6 +22,9 @@ basecalling_enabled, and raw_run_dir.  A ``kuma_version`` row is always
 written so consumers can identify the generating software version.
 When ``ngs_run_meta`` is ``None`` a single placeholder row is written to
 keep the sheet structure consistent.
+The sheet also carries the ``AnalysisConditions`` the run was executed with
+(reference identity, coding window, thresholds) when the caller ran the
+analysis; see ``kuma_core.mame.export.analysis_meta``.
 """
 
 from __future__ import annotations
@@ -36,6 +39,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.workbook import Workbook
 
 from kuma_core.mame.export.well_mapper import WellMapper, seq_to_well
+from kuma_core.shared.version import KUMA_VERSION
 from kuma_core.mame.ingest.consensus_metadata import format_noisy_positions
 from kuma_core.mame.select.purity import (
     PlateBaseline,
@@ -53,6 +57,7 @@ from kuma_core.mame.export.nb_label import nb_label, nb_order_key, well_sort_key
 from kuma_core.mame.plate_geometry import DEFAULT_ADDRESSING, token_to_seq
 
 if TYPE_CHECKING:
+    from kuma_core.mame.export.analysis_meta import AnalysisConditions
     from kuma_core.mame.ingest.run_meta import NgsRunMeta
 
 # Confirmed color map (040 AC-09).
@@ -712,12 +717,15 @@ def _write_kuma_meta_sheet(
     meta: "NgsRunMeta | None",
     kuma_version: str,
     barcode_prefix_note: str | None = None,
+    analysis: "AnalysisConditions | None" = None,
 ) -> None:
     """Append a ``__kuma_meta__`` sheet to *wb*.
 
     Row format: col-A = key, col-B = value.
-    When *meta* is ``None``, only the ``kuma_version`` and a ``ngs_run_meta``
-    placeholder row are written so the sheet is always present.
+    When *meta* is ``None``, the run-specific rows give way to a ``ngs_run_meta``
+    placeholder so the sheet is always present; the rows that do not depend on a
+    run (``kuma_version``, ``generated_at``, ``verdict_classes``) are written
+    either way.
 
     *barcode_prefix_note* is the one sentence
     ``combinatorial_demux.BarcodePrefixResolution.note`` produces about how the
@@ -741,6 +749,31 @@ def _write_kuma_meta_sheet(
         "generated_at",
         datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     ])
+
+    # What this file was produced from and under which thresholds. Written
+    # before the run-meta branch because a run with no MinKNOW folder still has
+    # conditions, and they are the part of the provenance that changes between
+    # two runs of the same plate.
+    if analysis is not None:
+        for key, value in analysis.rows():
+            ws.append([key, value])
+    else:
+        ws.append([
+            "analysis_conditions",
+            "(not recorded: this workbook was written by a caller that did not "
+            "run the analysis)",
+        ])
+
+    # Outside the branch above because the class set is a property of kuma and
+    # not of one execution: a threshold or a reference is true of the run that
+    # was made, while the vocabulary a verdict can be drawn from is the same
+    # whoever wrote the file and whether or not an analysis was run. Iterated
+    # from the enum rather than listed here: consumers that copied the names by
+    # hand drifted from the definition, and wells carrying a class their copy
+    # did not know appeared in no figure at all. Written here rather than in
+    # ``AnalysisConditions.rows()`` so there is one producer of the row and the
+    # ``analysis is not None`` path cannot emit it twice.
+    ws.append(["verdict_classes", ", ".join(v.value for v in VerdictClass)])
 
     # Written before the run-meta branch so it survives a run with no MinKNOW
     # folder: the two answers are independent.
@@ -778,9 +811,10 @@ def write_excel(
     mapper: WellMapper | None = None,
     mode: Literal["amplicon", "plasmid"] = "amplicon",  # reserved for Phase 2
     ngs_run_meta: "NgsRunMeta | None" = None,
-    kuma_version: str = "",
+    kuma_version: str | None = None,
     designed_mutant_ids: frozenset[str] | None = None,
     barcode_prefix_note: str | None = None,
+    analysis: "AnalysisConditions | None" = None,
 ) -> Path:
     """Write the combined Excel report to ``output_path``. Returns the path.
 
@@ -827,7 +861,13 @@ def write_excel(
     _write_final_matrix_sheet(wb, replicate_results, nbs)
 
     # A11 / G3: MinKNOW run metadata sheet — always present, content optional.
-    _write_kuma_meta_sheet(wb, ngs_run_meta, kuma_version, barcode_prefix_note)
+    _write_kuma_meta_sheet(
+        wb,
+        ngs_run_meta,
+        kuma_version or KUMA_VERSION,
+        barcode_prefix_note,
+        analysis,
+    )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(output_path)

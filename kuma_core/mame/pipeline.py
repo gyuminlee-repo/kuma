@@ -10,9 +10,11 @@ from pathlib import Path
 from kuma_core.mame.compare import classify_verdict, parse_mutation_label
 from kuma_core.mame.detected import designed_mutant_ids as _designed_mutant_ids_from_expected
 from kuma_core.mame.export import WellMapper, write_excel
+from kuma_core.mame.export.analysis_meta import AnalysisConditions
 from kuma_core.mame.export.excel_writer import _custom_barcode_to_seq
 from kuma_core.mame.export.well_mapper import seq_to_well
 from kuma_core.mame.ingest import IngestMode, route_ingest
+from kuma_core.mame.ingest.run_meta import NgsRunMeta, discover_run_meta
 from kuma_core.mame.io.kuro_reader import expected_to_labels
 from kuma_core.mame.io.variant_list import read_variant_source
 from kuma_core.mame.perf import TIMER
@@ -27,6 +29,19 @@ from kuma_core.mame.models import (
 )
 from kuma_core.mame.select import pick_best_replicate, prefer_within_plate
 from kuma_core.mame.translate import translate_and_diff
+
+
+class _Discover:
+    """Marker for "no run metadata was handed in, go and look for it".
+
+    ``None`` cannot carry this: a caller that already searched and found nothing
+    passes ``None``, and re-running the search for it would repeat ~0.17 s of
+    directory globbing over a network share for a result that is known.
+    """
+
+
+#: See :class:`_Discover`.
+DISCOVER_RUN_META = _Discover()
 
 
 def _read_reference_fasta(path: Path) -> str:
@@ -152,6 +167,8 @@ def run_analyze(
     variant_sheet: str | None = None,
     variant_column: str | None = None,
     barcode_prefix_note: str | None = None,
+    ngs_run_meta: "NgsRunMeta | None | _Discover" = DISCOVER_RUN_META,
+    conditions_out: list[AnalysisConditions] | None = None,
 ) -> tuple[list[VerdictRecord], list[ReplicateResult]]:
     """Run the full pipeline and write the Excel output. Returns in-memory results.
 
@@ -181,6 +198,19 @@ def run_analyze(
     export.  Both default to ``None``, which is auto-detection and leaves a KURO
     export on exactly the path it took before.  They are ignored when
     ``expected_mutations`` is supplied, since nothing is read then.
+
+    ``ngs_run_meta`` names the sequencing run this result came from.  Left at
+    ``DISCOVER_RUN_META`` the function searches ``input_dir`` itself, which is
+    what every library and CLI caller wants and what used to be missing: the
+    workbook recorded "no MinKNOW run folder detected" on runs whose reads sat
+    inside the folder that names the flow cell.  A caller that has already
+    searched (the sidecar does it on a worker thread) passes its result,
+    including an explicit ``None`` for "searched, found nothing".
+
+    ``conditions_out``, when given, receives the :class:`AnalysisConditions`
+    this run wrote into the workbook.  A caller that offers a re-export button
+    needs them: without it the same run's workbook would state its conditions or
+    not depending on which button wrote the file.
     """
 
     _perf_base = TIMER.begin() if perf_scope is not None else None
@@ -339,6 +369,28 @@ def run_analyze(
         if designed_mutant_ids is not None
         else _designed_mutant_ids_from_expected(expected_mutations)
     )
+    if isinstance(ngs_run_meta, _Discover):
+        with TIMER.phase("run_meta"):
+            resolved_run_meta = discover_run_meta(input_dir)
+    else:
+        resolved_run_meta = ngs_run_meta
+
+    conditions = AnalysisConditions.build(
+        reference_path=reference_path,
+        reference_seq=reference_seq,
+        cds_start=cds_start,
+        cds_end=cds_end,
+        mode=mode,
+        ingest_mode=str(ingest_mode),
+        min_read_count=min_read_count,
+        max_consensus_n_fraction=max_consensus_n_fraction,
+        min_file_size_kb=min_file_size_kb,
+        many_cutoff=many_cutoff,
+    )
+
+    if conditions_out is not None:
+        conditions_out.append(conditions)
+
     with TIMER.phase("export_excel"):
         write_excel(
             verdict_records=verdicts,
@@ -350,6 +402,11 @@ def run_analyze(
             # Provenance for the seeds this run matched against; the caller that
             # read the barcode workbook is the only layer that knows it.
             barcode_prefix_note=barcode_prefix_note,
+            ngs_run_meta=resolved_run_meta,
+            # The conditions this run was executed under. Everything here was
+            # already an argument to this function; the workbook is where they
+            # outlive the session.
+            analysis=conditions,
         )
 
     if perf_scope is not None and _perf_base is not None:

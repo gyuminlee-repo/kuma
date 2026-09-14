@@ -30,6 +30,20 @@ LOW_QUALITY_BASES = "low_quality_bases"
 INDEL_EVENT_POSITIONS = "indel_event_positions"
 MAX_INDEL_EVENT_FRACTION = "max_indel_event_fraction"
 MAX_DEL_RUN_LENGTH = "max_del_run_length"
+# Reference positions (1-based) the called molecule is missing, run-encoded.
+# Written only when the well has a deletion majority AND few enough separate
+# runs to list honestly, so absence means "none, or not reported", never a
+# partial list. ``N_DEL_MAJORITY_POSITIONS`` carries the exact count either way
+# and tells the two apart. A file written before these keys existed carries
+# neither, and every consumer then behaves exactly as it did before.
+DEL_MAJORITY_POSITIONS = "del_majority_positions"
+N_DEL_MAJORITY_POSITIONS = "n_del_majority_positions"
+# Why the consensus emitted each 'N', as four mutually exclusive counts that sum
+# to the ``consensus_n_fraction`` numerator. Always written; 0 is a real answer.
+NO_CALL_ZERO_DEPTH = "no_call_zero_depth"
+NO_CALL_DELETION = "no_call_deletion"
+NO_CALL_AMBIGUOUS = "no_call_ambiguous"
+NO_CALL_NO_MAJORITY = "no_call_no_majority"
 # Net indel of the consensus itself; the FRAMESHIFT gate reads this one.
 CONSENSUS_NET_INDEL = "consensus_net_indel"
 # Median per-read net indel; a read-quality metric, never a verdict input.
@@ -92,6 +106,71 @@ _NOISY_FIELD_SEP = ":"
 _NOISY_RECORD_SEP = ","
 #: Values per record: position, minor fraction, depth, plus count, minus count.
 _NOISY_FIELDS = 5
+
+
+_RUN_SEP = ","
+_RUN_RANGE_SEP = "-"
+
+
+def format_position_runs(positions: Sequence[int]) -> str:
+    """Encode ascending 1-based *positions* as ``start-end`` runs, comma-joined.
+
+    A run of one is written as the bare position. Deletions come in contiguous
+    stretches, so run encoding keeps a real header short without losing a single
+    position: the decoder reproduces the input exactly.
+    """
+
+    runs: list[str] = []
+    start: int | None = None
+    prev: int | None = None
+    for pos in positions:
+        if start is None:
+            start = prev = pos
+            continue
+        assert prev is not None
+        if pos == prev + 1:
+            prev = pos
+            continue
+        runs.append(
+            str(start) if start == prev else f"{start}{_RUN_RANGE_SEP}{prev}"
+        )
+        start = prev = pos
+    if start is not None and prev is not None:
+        runs.append(
+            str(start) if start == prev else f"{start}{_RUN_RANGE_SEP}{prev}"
+        )
+    return _RUN_SEP.join(runs)
+
+
+def parse_position_runs(raw: str | None) -> tuple[int, ...]:
+    """Decode a run-encoded position list; ``None`` or ``""`` gives ``()``.
+
+    A malformed or non-ascending record makes the WHOLE value unusable rather
+    than partially usable: the caller reconstructs a deletion picture from it,
+    and half a picture scored as a whole one is the failure this avoids.
+    """
+
+    if not raw:
+        return ()
+    out: list[int] = []
+    for record in raw.split(_RUN_SEP):
+        record = record.strip()
+        if not record:
+            continue
+        try:
+            if _RUN_RANGE_SEP in record:
+                lo_s, hi_s = record.split(_RUN_RANGE_SEP, 1)
+                lo, hi = int(lo_s), int(hi_s)
+            else:
+                lo = hi = int(record)
+        except ValueError:
+            _logger.warning("Unparsable position run %r; list discarded", record)
+            return ()
+        if lo < 1 or hi < lo or (out and lo <= out[-1]):
+            _logger.warning("Out-of-order position run %r; list discarded", record)
+            return ()
+        out.extend(range(lo, hi + 1))
+    return tuple(out)
 
 
 def format_noisy_positions(positions: Sequence[NoisyPosition]) -> str:
@@ -186,6 +265,12 @@ class ConsensusMetadata:
     n_indel_event_positions: int = 0
     max_indel_event_fraction: float = 0.0
     max_del_run_length: int = 0
+    del_majority_positions: tuple[int, ...] = ()
+    n_del_majority_positions: int = 0
+    n_no_call_zero_depth: int = 0
+    n_no_call_deletion: int = 0
+    n_no_call_ambiguous: int = 0
+    n_no_call_no_majority: int = 0
     consensus_net_indel: int = 0
     read_net_indel: int = 0
     # Denominator that produced ``consensus_n_fraction``. Always written so any
@@ -237,6 +322,19 @@ class ConsensusMetadata:
         yield INDEL_EVENT_POSITIONS, str(self.n_indel_event_positions)
         yield MAX_INDEL_EVENT_FRACTION, f"{self.max_indel_event_fraction:.3f}"
         yield MAX_DEL_RUN_LENGTH, str(self.max_del_run_length)
+        yield N_DEL_MAJORITY_POSITIONS, str(self.n_del_majority_positions)
+        # Omitted when empty so an ordinary well does not carry a dangling key,
+        # and so a reader cannot read "" as a reported census of zero positions
+        # when the count above says otherwise.
+        if self.del_majority_positions:
+            yield (
+                DEL_MAJORITY_POSITIONS,
+                format_position_runs(self.del_majority_positions),
+            )
+        yield NO_CALL_ZERO_DEPTH, str(self.n_no_call_zero_depth)
+        yield NO_CALL_DELETION, str(self.n_no_call_deletion)
+        yield NO_CALL_AMBIGUOUS, str(self.n_no_call_ambiguous)
+        yield NO_CALL_NO_MAJORITY, str(self.n_no_call_no_majority)
         yield CONSENSUS_NET_INDEL, str(self.consensus_net_indel)
         yield READ_NET_INDEL, str(self.read_net_indel)
         yield CONSENSUS_N_FRACTION_BASIS, self.consensus_n_fraction_basis
@@ -321,6 +419,14 @@ __all__ = [
     "INDEL_EVENT_POSITIONS",
     "MAX_INDEL_EVENT_FRACTION",
     "MAX_DEL_RUN_LENGTH",
+    "DEL_MAJORITY_POSITIONS",
+    "N_DEL_MAJORITY_POSITIONS",
+    "NO_CALL_ZERO_DEPTH",
+    "NO_CALL_DELETION",
+    "NO_CALL_AMBIGUOUS",
+    "NO_CALL_NO_MAJORITY",
+    "format_position_runs",
+    "parse_position_runs",
     "CONSENSUS_NET_INDEL",
     "READ_NET_INDEL",
     "NET_INDEL",

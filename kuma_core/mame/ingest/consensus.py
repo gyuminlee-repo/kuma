@@ -1,16 +1,19 @@
 """A5 — CIGAR-based pileup consensus caller.
 
-Implements a majority-vote consensus algorithm equivalent to the ``samtools
+Implements a majority-vote consensus algorithm corresponding to the ``samtools
 consensus`` "simple" (frequency-counting) mode, which is NOT that tool's
 default: htslib's own docs state the default is the Bayesian (Gap5) method,
 with "simple" as the other, non-default option:
 
 - Per-position base counts from aligned reads via CIGAR walking.
-- Majority base (≥ 0.5 fraction of total depth) is adopted.
+- Majority base (≥ 0.5 fraction of total depth) is adopted.  This threshold
+  is more permissive than the samtools simple-mode default, whose
+  ``-c``/``--call-fract`` is 0.75.
 - Positions with depth < ``min_depth`` yield 'N'.
-- Insertions: counted but not incorporated into the linear consensus
-  (same as samtools consensus default, which omits insertions from
-  the output sequence).
+- Insertions: counted but not incorporated into the linear consensus.
+  This is not the samtools default behaviour: ``samtools consensus``
+  defaults to ``--show-ins yes``, so omitting insertions corresponds to
+  running that tool with ``--show-ins no``.
 - Deletions: contribute a deletion token ('-') to the position vote;
   if deletions are the majority base the output is 'N' (gap-free output).
 - Reverse-complement reads: bases are reverse-complemented before voting.
@@ -21,7 +24,12 @@ https://www.htslib.org/doc/samtools-consensus.html: 'Valid modes are
 "simple" frequency counting and the "bayesian" (Gap5) methods, with Bayesian
 being the default.'  This module implements the "simple" mode's rule (most
 common base across all reads; positions with only deletions/no coverage
-output 'N'), not the Bayesian default.
+output 'N'), not the Bayesian default.  Two further defaults of that tool
+differ from this module: '-c C, --call-fract C [...] Only used for the
+simple consensus algorithm.  Require at least C fraction of bases agreeing
+with the most likely consensus call to emit that base type.  This defaults
+to 0.75.' and '--show-ins yes/no [...] Whether to show insertions in the
+consensus.  Defaults to yes.'
 
 Note on quality weighting
 --------------------------
@@ -213,6 +221,21 @@ def _expand_ranges(starts: np.ndarray, counts: np.ndarray) -> np.ndarray:
     return np.repeat(starts, counts) + flat
 
 
+def _true_run_lengths(mask: np.ndarray) -> np.ndarray:
+    """Lengths of each maximal run of ``True`` in *mask*, in position order.
+
+    One pass serves two readers: the longest run (``max_del_run_length``) and
+    how many separate runs there are (the position-list reporting budget). They
+    have to see the same segmentation, so it is computed once.
+    """
+    if mask.size == 0 or not bool(mask.any()):
+        return np.empty(0, dtype=np.int64)
+    edges = np.flatnonzero(
+        np.concatenate(([True], mask[1:] != mask[:-1], [True]))
+    )
+    return np.diff(edges)[mask[edges[:-1]]]
+
+
 # How many positions a well reports. This is a REPORTING BUDGET, not a
 # classification threshold: nothing is accepted or rejected by it and no verdict
 # reads it. A well typically has a handful of eligible positions, so ten covers
@@ -226,6 +249,41 @@ _NOISY_POSITION_REPORT_BUDGET = 10
 #: repeating the literal 10 in two files. Changing it changes only what is
 #: REPORTED: no verdict, gate or threshold reads either consumer.
 DEFAULT_MIX_MIN_DEPTH = 10
+
+#: Fraction of spanning reads that must vote a deletion before the called
+#: molecule is treated as carrying that deletion. NOT a tuned constant: it is the
+#: same majority rule that calls a base (``majority_frac < 0.5`` below), reused
+#: so the sequence and the deletion evidence cannot disagree. A position whose
+#: winning token is the deletion but whose deletion fraction sits at or below
+#: this value has no majority at all and stays a plain no-call.
+#:
+#: The margin it has to clear is ONT per-read deletion error, which is large and
+#: homopolymer-context-systematic. On the synthetic homopolymer ladder (A6-A12,
+#: badread nanopore2023, 250x) WT wells reached a per-position deletion fraction
+#: of 0.34 at worst, and on the real ispS run the WT/SNV ceiling was 0.4645 at a
+#: single isolated position. True deletions measured 0.91 and 0.97 on the ladder
+#: and >= 0.86 for a real 1 bp event. 0.5 therefore sits inside a gap the data
+#: leaves open rather than at a number picked to separate two labelled sets.
+#:
+#: READING THE RESULT. A deletion majority whose ``consensus_net_indel_bp`` is 0
+#: is an ALIGNMENT REPRESENTATION, not a missing base: an insertion majority sits
+#: at the same anchor and cancels it, which is how minimap2 can write a designed
+#: substitution as adjacent insert-plus-delete instead of a mismatch. Three wells
+#: of the 260212 ispS plate do exactly this at their own designed codon (1_5 at
+#: ref 653 for V218L, 2_3 at 279 for R93A, 8_5 at 679 near E228D), and the vault
+#: analysis recorded the matching read-level insertions independently. A genuine
+#: lost base carries a nonzero net indel (3_5 at 638, net -1). Both are reported;
+#: the net indel is what tells them apart.
+DEL_MAJORITY_FRACTION = 0.5
+
+#: How many deletion-majority RUNS a well reports positions for. A reporting
+#: budget, not a threshold: nothing is accepted or rejected by it. When a well
+#: exceeds it the position list is omitted entirely rather than truncated, so a
+#: consumer never reconstructs a partial deletion picture and silently scores it
+#: as complete; ``n_del_majority_positions`` still states the full count. A well
+#: with more than this many separate deletion runs is deletion-dominated and its
+#: ``consensus_n_fraction`` already routes it to the no-call gate.
+DEL_RUN_REPORT_BUDGET = 64
 
 
 @dataclass(frozen=True)
@@ -251,12 +309,14 @@ class ConsensusCall:
     # ACGT depth at the position ``min_variant_support`` was measured on.
     min_variant_support_depth: int = 0
     # Per-well insertion-event evidence. Insertions are discarded from the
-    # reference-length consensus, which corresponds to samtools consensus run
-    # as '-m simple --show-ins no --show-del no' and NOT to its default (that
-    # default is bayesian with --show-ins yes), so
-    # variant clones with only an in-frame insertion reach a WT-identical
-    # consensus and pass verdict unchallenged. These two counters surface
-    # the buried signal without altering the consensus sequence itself.
+    # reference-length consensus. That is this module's design choice, which
+    # keeps every coordinate anchored to the reference for codon-level
+    # comparison against the expected workbook; it is not the samtools
+    # default, which is ``--show-ins yes`` and can emit a consensus whose
+    # length differs from the reference. The cost is that variant clones with
+    # only an in-frame insertion reach a WT-identical consensus and pass
+    # verdict unchallenged. These two counters surface the buried signal
+    # without altering the consensus sequence itself.
     #
     # Calibration (bench_v2 depth_50, 177 bp CDS, ~190 reads/well):
     #   WT / SNV wells (G1-G3): max_indel_event_fraction <= 0.21
@@ -272,6 +332,49 @@ class ConsensusCall:
     # alignment artifact); >=2 = an N-bp contiguous deletion (more likely real).
     # Informational only; does not change the consensus or the verdict gate.
     max_del_run_length: int = 0
+    # Reference positions (1-based, ascending) whose deletion fraction clears
+    # ``DEL_MAJORITY_FRACTION``. The consensus string still writes 'N' at each of
+    # them: the stored sequence stays in the ACGTN alphabet every existing
+    # project and every downstream reader was written against. This list is the
+    # separate channel that carries the same fact without rewriting the record,
+    # and ``translate/aa_translator.py`` uses it to build a gapped COPY at
+    # translation time. Empty when the well has no deletion majority and also
+    # when the run count exceeded ``DEL_RUN_REPORT_BUDGET``; the two are told
+    # apart by ``n_del_majority_positions``.
+    del_majority_positions: tuple[int, ...] = ()
+    # Full count of those positions, always exact. Equal to the deletion term of
+    # ``consensus_net_indel_bp``, reported separately so a reader can see whether
+    # the list above is a census or an omission.
+    n_del_majority_positions: int = 0
+    # No-call decomposition. The consensus writes one 'N' for four different
+    # reasons and an operator has a different job for each, so the single
+    # ``consensus_n_fraction`` cannot be acted on. These four partition the
+    # no-call positions WITHIN THE COVERED AMPLICON, i.e. the same numerator
+    # ``consensus_n_fraction`` divides, so they sum to it exactly.
+    #
+    # Positions the reads never reached at usable depth are NOT here: they are
+    # outside that numerator by construction (see the denominator note in
+    # ``call_consensus_with_metrics``) and are already reported as
+    # ``n_low_depth_positions``.
+    #
+    # The causes overlap, so each position is placed in exactly one bucket by a
+    # fixed priority. The order runs from "nothing could be judged" to "the
+    # evidence conflicts", because that is the order in which an operator can act
+    # on it and because the earlier cause explains the later one whenever both
+    # hold:
+    #   1. zero depth  - no evidence at all, so no other cause can be meant.
+    #   2. deletion    - a biological signal with a majority behind it; a
+    #                    deletion-majority position also fails the "is there a
+    #                    base majority" test, and reporting it as noise would
+    #                    hide the one cause that names a molecule.
+    #   3. ambiguous   - the reads agree, and what they agree on is 'N'. An
+    #                    instrument-side no-call, distinct from disagreement.
+    #   4. no majority - the residue: reads disagree, which is a mixed or noisy
+    #                    well and the only cause that says "re-pick the colony".
+    n_no_call_zero_depth: int = 0
+    n_no_call_deletion: int = 0
+    n_no_call_ambiguous: int = 0
+    n_no_call_no_majority: int = 0
     # Net indel of the CONSENSUS relative to the reference, in bp:
     #   (bp of majority-supported insertion) - (deletion-majority ref positions)
     # Both terms are read off the same majority rule that produces the base
@@ -384,9 +487,11 @@ def call_consensus(
     -------
     Consensus sequence string of length ``len(reference_seq)``.  Each character
     is one of A/C/G/T/N.  Indels (deletions) that achieve majority vote are
-    collapsed to 'N' (gap-free, reference-length output).  The nearest
-    samtools equivalent is '-m simple --show-ins no --show-del no', which is
-    not its default mode and still shortens its output where this keeps 'N'.
+    collapsed to 'N'.  The gap-free, reference-length output is this module's
+    design choice, which keeps positions reference-anchored for codon-level
+    comparison against the expected workbook; it is not the ``samtools
+    consensus`` default, which is ``--show-ins yes`` and can emit a sequence
+    whose length differs from the reference.
     """
     return call_consensus_with_metrics(
         alignments=alignments,
@@ -551,6 +656,22 @@ def call_consensus_with_metrics(
     ) | (total == 0)
     n_covered_no_call = int((covered & no_call).sum())
 
+    # Why each of those no-calls happened. Mutually exclusive by construction:
+    # every later mask subtracts the ones already claimed, so the four counts
+    # partition ``covered & no_call`` and sum to ``n_covered_no_call``. See the
+    # ConsensusCall field block for the priority and the reason for its order.
+    covered_no_call = covered & no_call
+    zero_depth_nc = covered_no_call & (total == 0)
+    remaining = covered_no_call & ~zero_depth_nc
+    deletion_nc = remaining & (best_idx == _TOK_DEL)
+    remaining = remaining & ~deletion_nc
+    ambiguous_nc = remaining & (best_idx == _TOK_N)
+    no_majority_nc = remaining & ~ambiguous_nc
+    n_no_call_zero_depth = int(zero_depth_nc.sum())
+    n_no_call_deletion = int(deletion_nc.sum())
+    n_no_call_ambiguous = int(ambiguous_nc.sum())
+    n_no_call_no_majority = int(no_majority_nc.sum())
+
     out_chars = np.where(
         covered & ~no_call, _CONSENSUS_CHARS[best_idx], np.uint8(ord("N"))
     ).astype(np.uint8)
@@ -594,16 +715,13 @@ def call_consensus_with_metrics(
     max_indel_event_fraction = float(pos_max.max()) if ref_len else 0.0
     n_indel_event_positions = int((pos_max >= 0.05).sum())
 
-    # Longest contiguous run of deletion-majority positions (del_frac > 0.5).
-    # Same 0.5 majority definition used for base calls.
-    del_major = del_frac > 0.5
-    max_del_run = 0
-    if bool(del_major.any()):
-        edges = np.flatnonzero(
-            np.concatenate(([True], del_major[1:] != del_major[:-1], [True]))
-        )
-        run_lengths = np.diff(edges)
-        max_del_run = int(run_lengths[del_major[edges[:-1]]].max())
+    # Longest contiguous run of deletion-majority positions. The threshold is
+    # the shared ``DEL_MAJORITY_FRACTION``, which is the same majority rule the
+    # base call uses; see that constant for the ONT deletion-error margin it has
+    # to clear.
+    del_major = del_frac > DEL_MAJORITY_FRACTION
+    del_run_lengths = _true_run_lengths(del_major)
+    max_del_run = int(del_run_lengths.max()) if del_run_lengths.size else 0
 
     # Net indel of the CONSENSUS, from the same majority rule that calls bases.
     #
@@ -625,7 +743,16 @@ def call_consensus_with_metrics(
     # mostly -1 bp but whose consensus aligns to the reference gap-free has a
     # consensus net indel of 0 and is not a frameshift.
     n_del_majority = int(del_major.sum())
-    ins_major = ins_frac > 0.5
+    # Positions the called molecule is missing, 1-based and ascending. Reported
+    # as a list only when the well has few enough separate runs to report
+    # honestly; past the budget the list is omitted rather than cut short, so no
+    # consumer can mistake a partial picture for the whole one.
+    del_majority_positions: tuple[int, ...] = ()
+    if n_del_majority and del_run_lengths.size <= DEL_RUN_REPORT_BUDGET:
+        del_majority_positions = tuple(
+            int(x) + 1 for x in np.flatnonzero(del_major)
+        )
+    ins_major = ins_frac > DEL_MAJORITY_FRACTION
     inserted_bp = 0
     if bool(ins_major.any()):
         ev = insertion_events[ins_major]
@@ -677,6 +804,12 @@ def call_consensus_with_metrics(
         n_indel_event_positions=n_indel_event_positions,
         max_indel_event_fraction=max_indel_event_fraction,
         max_del_run_length=max_del_run,
+        del_majority_positions=del_majority_positions,
+        n_del_majority_positions=n_del_majority,
+        n_no_call_zero_depth=n_no_call_zero_depth,
+        n_no_call_deletion=n_no_call_deletion,
+        n_no_call_ambiguous=n_no_call_ambiguous,
+        n_no_call_no_majority=n_no_call_no_majority,
         consensus_net_indel_bp=consensus_net_indel_bp,
         median_read_net_indel_bp=median_read_net_indel_bp,
         min_variant_support=min_variant_support,
@@ -1081,8 +1214,9 @@ def _accumulate(
 
         elif op == _CIGAR_I:
             # Insertion: advance query only; insertions are not represented in
-            # the reference-length output (samtools drops them only under
-            # '--show-ins no'; its default is yes).
+            # the reference-length output.  That is this module's design
+            # choice, which keeps coordinates reference-anchored for workbook
+            # comparison, not the samtools default, which is --show-ins yes.
             # Track the event count at the ref_pos just before the insertion
             # so callers can detect insertion-bearing wells.
             net_indel += length

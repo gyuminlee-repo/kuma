@@ -152,6 +152,39 @@ def _aa_ungapped_diffs(
     return "".join(aa_chars), aa_changes, n_no_call
 
 
+def _apply_deletion_gaps(
+    query_cds: str, del_positions: tuple[int, ...], cds_start: int, cds_end: int
+) -> str:
+    """Return *query_cds* with '-' written at each deletion-majority position.
+
+    A LOCAL COPY. The stored consensus keeps 'N' at these positions and the FASTA
+    on disk is never rewritten, so a project analysed today and the same project
+    analysed before this existed hold byte-identical sequence records. What
+    changes is only what the comparison below is handed.
+
+    Why the substitution matters: 'N' at a deleted position is indistinguishable
+    from 'N' at an uncovered one, so ``extract_nt_changes`` reported a deleted
+    base as a substitution ``{REF}{pos}N`` and the codon translated to 'X', which
+    ``_aa_ungapped_diffs`` counts as a no-call rather than a change. The deletion
+    machinery in this module (the ``qry == "-"`` branch, the ``"---"`` and partial
+    gap branches) was already written and simply never received a gap.
+
+    *del_positions* are 1-based reference coordinates. Positions outside the CDS
+    window are dropped: the caller already bounds the query to that window, and a
+    deletion in flanking backbone is not part of this comparison.
+    """
+
+    if not del_positions:
+        return query_cds
+    chars = list(query_cds)
+    n = len(chars)
+    for pos in del_positions:
+        idx = pos - 1 - cds_start
+        if 0 <= idx < n and pos - 1 < cds_end:
+            chars[idx] = "-"
+    return "".join(chars)
+
+
 def translate_and_diff(
     record: BarcodeRecord,
     reference_seq: str,
@@ -218,9 +251,19 @@ def translate_and_diff(
     # the reference IS the bare CDS (cds_end == len(reference)) the two are identical.
     query_cds_aa = query_cds_full[: cds_end - cds_start]
 
-    aa_sequence, aa_changes, n_no_call = _aa_ungapped_diffs(query_cds_aa, ref_cds, table=table)
+    # Deletion-majority positions arrive on their own channel rather than inside
+    # the sequence (see ``BarcodeRecord.del_majority_positions``). They are
+    # written into a local copy here, so the diff below sees the called molecule
+    # while the record keeps the sequence it was stored with. An empty list
+    # leaves the query untouched, which is the path every consensus file written
+    # before the channel existed takes.
+    query_cds_cmp = _apply_deletion_gaps(
+        query_cds_aa, record.del_majority_positions, cds_start, comparable_cds_end
+    )
+
+    aa_sequence, aa_changes, n_no_call = _aa_ungapped_diffs(query_cds_cmp, ref_cds, table=table)
     nt_changes = extract_nt_changes(
-        query_seq=query_cds_aa,
+        query_seq=query_cds_cmp,
         ref_seq=ref_cds,
         offset=cds_start,
     )

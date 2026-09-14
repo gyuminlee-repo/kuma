@@ -1565,12 +1565,6 @@
     "polymeraseManufacturer": "Manufacturer: {{manufacturer}}",
     "polymeraseFidelity": "Fidelity: {{fidelity}}",
     "customPolymerase": "Custom Polymerase",
-    "codonLabel": "Codon:",
-    "codonHelp": "Min. changes: fewest nucleotide changes from wild-type codon (minimises synthesis cost).\nOptimal: highest-frequency codon for the selected organism (maximises expression).",
-    "codonOption_closest": "Min. changes (fewest nt changes from WT)",
-    "codonOption_closest_title": "Pick the mutant codon with the fewest nucleotide changes from the wild-type codon. Minimises primer mismatch and synthesis cost.",
-    "codonOption_optimal": "Optimal (organism codon usage)",
-    "codonOption_optimal_title": "Pick the highest-frequency codon for the selected organism's codon usage table. Maximises expression but may require more nt changes.",
     "mutationsLabel": "Design count:",
     "mutationsHelp": "Number of mutation candidates to load/design.\nFor EVOLVEpro/Others mode, this is the candidate design count, not a guaranteed final order count.\nFinal downstream count is determined by included rows.",
     "plates_one": "{{count}} plate",
@@ -2599,14 +2593,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "Mutant codon choice now weighs every synonymous codon the selected organism uses, where before the search saw only two.",
-      "Rare codons are kept out of that pool, so a design no longer lands on a codon the chosen organism effectively avoids.",
-      "Design ranks candidates across the whole Tm tolerance sweep, so a looser window holding a better primer is no longer skipped.",
-      "The Tol figure rises on those designs. A higher Tol here marks a better scoring primer, not a looser standard.",
-      "Three codon tables were corrected and the organism list now shows every shipped table, so earlier designs can differ."
+      "A MAME workbook now records the reference, the coding window, the mode and the thresholds the run was executed under.",
+      "The reference is identified by a digest over the parsed sequence, so the same molecule re-saved under another name still matches.",
+      "The verdict class vocabulary is recorded on every workbook, so a downstream reader no longer hand-copies the class names.",
+      "The kuma version and the sequencing run metadata, both empty on every workbook written through the library path, are now filled.",
+      "No verdict changes: the entries describe settings that were already in force, and the judgment logic is untouched."
     ],
-    "highlightsStamp": "0.16.58+1ce19d3d",
+    "highlightsStamp": "0.16.59+69e92cd5",
     "releases": {
+      "0.16.59": [
+        "A MAME workbook now records the reference, the coding window, the mode and the thresholds the run was executed under.",
+        "The reference is identified by a digest over the parsed sequence, so the same molecule re-saved under another name still matches.",
+        "The verdict class vocabulary is recorded on every workbook, so a downstream reader no longer hand-copies the class names.",
+        "The kuma version and the sequencing run metadata, both empty on every workbook written through the library path, are now filled.",
+        "No verdict changes: the entries describe settings that were already in force, and the judgment logic is untouched."
+      ],
       "0.16.58": [
         "Mutant codon choice now weighs every synonymous codon the selected organism uses, where before the search saw only two.",
         "Rare codons are kept out of that pool, so a design no longer lands on a codon the chosen organism effectively avoids.",
@@ -3027,6 +3028,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.59": "69e92cd5",
       "0.16.58": "1ce19d3d",
       "0.16.57": "b25a7d73",
       "0.16.56": "9b525cb2",

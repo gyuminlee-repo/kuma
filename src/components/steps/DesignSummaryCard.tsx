@@ -11,7 +11,7 @@
  *   2. Mutation source     mutationInputMode                    (evolvepro)
  *   3. Selection mode      evolveproMode != topN ? Pipeline (failover) : Top-N only
  *   4. Variant count       evolveproTotalCount (always)
- *   5. Polymerase / codon  selectedPolymerase · codonStrategy · tmFwdTarget · maxPrimers
+ *   5. Polymerase         selectedPolymerase · tmFwdTarget · maxPrimers
  *
  * Memoization: zustand 개별 selector 호출 (참조 안정). 별도 useMemo 불필요.
  */
@@ -27,7 +27,6 @@ export function DesignSummaryCard() {
   const evolveproMode = useAppStore((s) => s.evolveproMode);
   const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
   const selectedPolymerase = useAppStore((s) => s.selectedPolymerase);
-  const codonStrategy = useAppStore((s) => s.codonStrategy);
   const tmFwdTarget = useAppStore((s) => s.tmFwdTarget);
   const maxPrimers = useAppStore((s) => s.maxPrimers);
 
@@ -48,7 +47,7 @@ export function DesignSummaryCard() {
     [t("phaseE.summary.variants.label"), String(variantCount)],
     [
       t("phaseE.summary.polymerase.label"),
-      `${selectedPolymerase || "—"} · ${codonStrategy} · Tm ${tmFwdTarget}°C · max ${maxPrimers}`,
+      `${selectedPolymerase || "—"} · Tm ${tmFwdTarget}°C · max ${maxPrimers}`,
     ],
   ];
 
