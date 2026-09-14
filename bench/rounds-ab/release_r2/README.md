@@ -10,6 +10,14 @@ PaperA Figure 2b 를 FASTQ 부터의 재분석으로 갱신하기 위해 만든 
 - 코딩 윈도: 16..1699
 - 네이티브 바코드: barcode06, barcode13, barcode20
 - 드라이버와 로그: 같은 폴더의 `bench_r2_release.sh`, `bench_r2_release.log`
+
+드라이버는 어느 체크아웃의 코드를 읽을지 인자로 받는다. 기본값이 없으므로 지정하지 않으면 거부한다.
+
+```
+./bench_r2_release.sh <kuma-checkout>
+```
+
+실행 직전에 인터프리터에게 `kuma_core.__file__` 을 직접 물어 그 체크아웃 아래인지 확인하고 아니면 중단한다. 지정한 체크아웃의 커밋 SHA 와 브랜치와 워킹트리 clean 여부는 로그에 남는다. 산출물 위치는 `BENCH_R2_OUT` 으로 바꾸며 미지정 시 `070.KUMA_elements/bench_out/rounds-ab` 를 쓴다. `BENCH_PREFLIGHT_ONLY=1` 은 이 확인까지만 하고 재분석 없이 끝낸다.
 - 소요: 1,117초. `total_reads` 2,706,444
 
 ## 결과: 설계변이 95웰의 8분류 분포
