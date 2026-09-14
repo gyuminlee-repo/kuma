@@ -1015,6 +1015,7 @@
         "predatesBuild": "Dieses gespeicherte Ergebnis entstand, bevor wiederkehrende Positionen gezählt wurden, daher ist dazu nichts bekannt. Es heißt nicht, dass keine Position wiederkehrte.",
         "what": "Ein minor allele an einer Position in einem Well ist ein Mischungskandidat. Dieselbe Position Well für Well ist das Bild eines sequence-context-Artefakts, denn der Kontext gehört zum amplicon und nicht zum Klon. Hier wird nichts bewertet.",
         "lowerBound": "Jede Zahl unten ist eine Untergrenze: jedes Well steuert höchstens zehn nach minor fraction sortierte Positionen bei, und {{truncated}} von {{contributing}} beitragenden Wells erreichten diese Grenze, sodass Positionen jenseits des zehnten Rangs in der Zählung fehlen.",
+        "strandAbsent": "Jedes gemeldete minor allele dieser Platte wurde vom selben Strand gelesen, daher stehen in den weak-strand-Spalten unten durchgehend 0,0 % und es wurde kein Kontrast gemessen. Vorgelagert auf die Referenz normalisierte Reads sehen genau so aus.",
         "wellsContributing": "Datensätze mit einer Position",
         "wellsTruncated": "Davon bei zehn abgeschnitten",
         "positionsSeen": "Verschiedene gesehene Positionen",
@@ -1022,7 +1023,9 @@
         "none": "Keine Position wurde von mehr als einem Datensatz gemeldet.",
         "caption": "Referenzpositionen, die mehr als ein Datensatz meldete, häufigste zuerst.",
         "colPosition": "Position",
-        "colWells": "Datensätze",
+        "colWells": "Datensätze (Rate)",
+        "colMedianFraction": "Median der minor fraction",
+        "colFractionRange": "Minor fraction Min / Max",
         "colMedianShare": "Median weak strand",
         "colShareRange": "Min / Max",
         "colSharesKnown": "Anteile bekannt"

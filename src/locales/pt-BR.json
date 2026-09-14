@@ -1015,6 +1015,7 @@
         "predatesBuild": "Este resultado salvo foi escrito antes de as posições recorrentes serem contadas, então nada se sabe sobre elas. Não significa que nenhuma posição se repetiu.",
         "what": "Um minor allele em uma posição de um poço é candidato a mistura. A mesma posição poço após poço é a cara de um artefato de sequence context, porque o contexto pertence ao amplicon e não ao clone. Nada aqui é graduado.",
         "lowerBound": "Cada contagem abaixo é um limite inferior: cada poço contribui com no máximo dez posições ordenadas por minor fraction, e {{truncated}} de {{contributing}} poços contribuintes bateram nesse teto, de modo que posições além da décima faltam na contagem.",
+        "strandAbsent": "Todo minor allele relatado nesta placa foi lido da mesma fita, portanto as colunas de weak strand abaixo são todas 0,0% e não mediram contraste algum. Leituras normalizadas para a referência a montante têm exatamente esta aparência.",
         "wellsContributing": "Registros que contribuíram com uma posição",
         "wellsTruncated": "Desses, truncados em dez",
         "positionsSeen": "Posições distintas observadas",
@@ -1022,7 +1023,9 @@
         "none": "Nenhuma posição foi reportada por mais de um registro.",
         "caption": "Posições de referência reportadas por mais de um registro, as mais recorrentes primeiro.",
         "colPosition": "Posição",
-        "colWells": "Registros",
+        "colWells": "Registros (taxa)",
+        "colMedianFraction": "Mediana da minor fraction",
+        "colFractionRange": "Minor fraction mín. / máx.",
         "colMedianShare": "Mediana weak strand",
         "colShareRange": "Mín / máx",
         "colSharesKnown": "Frações conhecidas"

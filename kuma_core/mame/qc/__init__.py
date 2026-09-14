@@ -6,11 +6,6 @@ run's own verdicts for a signature no single-well check can see.
 """
 
 from kuma_core.mame.qc.contamination import Signal, analyze_contamination
-from kuma_core.mame.qc.cross_well_recurrence import (
-    CrossWellRecurrence,
-    RecurrentPosition,
-    summarise_cross_well_recurrence,
-)
 from kuma_core.mame.qc.mapping_integrity import (
     MappingIntegrityReport,
     WellObservation,
@@ -19,13 +14,10 @@ from kuma_core.mame.qc.mapping_integrity import (
 )
 
 __all__ = [
-    "CrossWellRecurrence",
     "MappingIntegrityReport",
-    "RecurrentPosition",
     "Signal",
     "WellObservation",
     "analyze_contamination",
     "check_mapping_integrity",
     "observations_from_verdicts",
-    "summarise_cross_well_recurrence",
 ]
