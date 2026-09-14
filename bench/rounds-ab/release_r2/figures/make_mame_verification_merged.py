@@ -92,6 +92,40 @@ def resolve_workbook() -> Path:
         f"canonical workbook {WORKBOOK_NAME} not found; set KUMA_MAME_XLSX")
 
 
+KUMA_REPO_REL = Path("cc/kuma/.claude/worktrees/rounds-ab")
+
+
+def load_verdict_classes() -> list[str]:
+    """Read the class list and its order off VerdictClass, never off a literal.
+
+    The vocabulary is not typed out anywhere in this file. A hand-copied list is
+    what broke this figure: the enum carried eight classes while the list here
+    carried six, and every well of the two missing classes was dropped without
+    a sign. Importing the enum makes the figure track the pipeline by
+    construction.
+
+    Search order for the kuma checkout: KUMA_REPO_ROOT, then any ancestor of
+    this script that contains kuma_core (the case when this file runs from its
+    git home bench/rounds-ab/release_r2/figures/), then $WORKSPACE_ROOT plus the
+    bench worktree path. Not finding it is a hard error, not a fallback to a
+    literal list.
+    """
+    cands = []
+    env = os.environ.get("KUMA_REPO_ROOT")
+    if env:
+        cands.append(Path(env))
+    cands.extend(HERE.parents)
+    cands.append(WORKSPACE_ROOT / KUMA_REPO_REL)
+    for root in cands:
+        if (root / "kuma_core" / "mame" / "models.py").is_file():
+            if str(root) not in sys.path:
+                sys.path.insert(0, str(root))
+            from kuma_core.mame.models import VerdictClass
+            return [v.value for v in VerdictClass]
+    raise ImportError(
+        "kuma_core.mame.models not found; set KUMA_REPO_ROOT to a kuma checkout")
+
+
 MAME_XLSX = resolve_workbook()
 MAME_SHEET = "Final"
 BARCODE_SHEETS = ["NB06", "NB13", "NB20"]
@@ -151,10 +185,17 @@ VCOL = {"PASS": COL["green"], "NO_CALL": COL["darkgray"], "MIXED": COL["blue"],
         "AMBIGUOUS": COL["purple"], "FRAMESHIFT": palette.MET_TEAL,
         "MANY": palette.LIME_OLIVE}
 BCOL = VCOL
-V_CLASSES = ["PASS", "AMBIGUOUS", "MIXED", "FRAMESHIFT", "MANY", "LOWDEPTH",
-             "NO_CALL", "WRONG_AA"]
-V_LABELS = ["PASS", "AMBIG.", "MIXED", "FRAME\nSHIFT", "MANY", "LOW\nDEPTH",
-            "NO\nCALL", "WRONG\nAA"]
+V_CLASSES = load_verdict_classes()
+uncoloured = [c for c in V_CLASSES if c not in VCOL]
+if uncoloured:
+    raise KeyError(f"VerdictClass grew a member with no colour token: {uncoloured}")
+
+# Tick labels are derived from the class names, so a new enum member gets a
+# label instead of an IndexError or a silent blank.
+V_TICKS = {"AMBIGUOUS": "AMBIG.", "FRAMESHIFT": "FRAME\nSHIFT",
+           "LOWDEPTH": "LOW\nDEPTH", "NO_CALL": "NO\nCALL",
+           "WRONG_AA": "WRONG\nAA"}
+V_LABELS = [V_TICKS.get(c, c.replace("_", "\n")) for c in V_CLASSES]
 B_CLASSES = V_CLASSES
 WT_TILE = COL["gray"]
 EMPTY_TILE = palette.WHITE
@@ -282,6 +323,12 @@ def panel_a_verdicts(ax, wells: list[dict], letter: str | None = "a") -> dict:
     mutant = [w for w in wells if w["mutant_id"] != WT_MUTANT_ID]
     counts = [sum(1 for w in mutant if w["verdict"] == c) for c in V_CLASSES]
     n_mutant = len(mutant)
+    # The bars must account for every mutant well. Tallying over a closed class
+    # list without checking the total is how the old six-class list hid the
+    # wells it could not name.
+    if sum(counts) != n_mutant:
+        raise ValueError(f"panel (a) bars sum to {sum(counts)}, "
+                         f"expected {n_mutant} mutant wells")
     ax.bar(range(len(V_CLASSES)), counts, color=[VCOL[c] for c in V_CLASSES],
            edgecolor=palette.INK, lw=0.7)
     ax.set_xticks(range(len(V_CLASSES)))
@@ -330,7 +377,14 @@ def panel_b_depth(ax, obs: list[dict], letter: str | None = "b") -> dict:
     """
     by_class = {c: [] for c in B_CLASSES}
     for o in obs:
-        by_class.setdefault(o["verdict"], []).append(o)
+        if o["verdict"] not in by_class:
+            raise ValueError(f"panel (b): verdict {o['verdict']!r} is not a "
+                             f"VerdictClass member")
+        by_class[o["verdict"]].append(o)
+    drawn_total = sum(len(v) for v in by_class.values())
+    if drawn_total != len(obs):
+        raise ValueError(f"panel (b) columns hold {drawn_total} observations, "
+                         f"expected {len(obs)}")
     stats = {}
     rng = np.random.default_rng(20260722)
 
@@ -446,6 +500,14 @@ def panel_c_platemap(ax, wells: list[dict], letter: str | None = "c") -> dict:
                 ax.text(x + 0.5, y + 0.5, "WT" if key == "WT" else "blank",
                         ha="center", va="center", fontsize=5.2,
                         color=palette.INK if key == "WT" else COL["darkgray"])
+
+    n_cells = len(PLATE_ROWS) * len(PLATE_COLS)
+    if sum(tally.values()) != n_cells:
+        raise ValueError(f"panel (c) tally sums to {sum(tally.values())}, "
+                         f"expected {n_cells} tiles")
+    if tally["no verdict"]:
+        raise ValueError(f"panel (c): {tally['no verdict']} tile(s) carry no "
+                         f"drawable verdict")
 
     ax.set_xlim(0, len(PLATE_COLS))
     ax.set_ylim(0, len(PLATE_ROWS))

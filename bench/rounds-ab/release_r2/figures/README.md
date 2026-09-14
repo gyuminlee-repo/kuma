@@ -23,13 +23,27 @@ The style kit is not vendored here. Both scripts import
 
 ## Class vocabulary
 
-Eight classes, in the order of `VerdictClass` in `kuma_core/mame/models.py`:
-PASS, AMBIGUOUS, MIXED, FRAMESHIFT, MANY, LOWDEPTH, NO_CALL, WRONG_AA. A class
-with zero observations keeps its axis slot and its legend row at n=0. The
-six-class list these scripts used before dropped the FRAMESHIFT wells from
-every panel without a warning; both scripts now raise on any class outside the
-list. Note that `../count_workbook.py:32` calls the eighth class `NO_READS`;
-the name in the code is `MANY`.
+Neither script types the vocabulary out. Both import `VerdictClass` from
+`kuma_core/mame/models.py` and take `list(VerdictClass)` as the class list and
+the drawing order: PASS, AMBIGUOUS, MIXED, FRAMESHIFT, MANY, LOWDEPTH, NO_CALL,
+WRONG_AA. A hand-copied list is the defect being fixed. The list here had six
+entries while the enum had eight, and every well of the two missing classes
+left the figure unmentioned.
+
+The checkout is located through `KUMA_REPO_ROOT`, then an ancestor of the
+script holding `kuma_core`, then `$WORKSPACE_ROOT` plus the bench worktree
+path. Not finding it raises; there is no literal list to fall back on.
+
+Three guards ride along:
+
+- a class outside the enum raises instead of being skipped,
+- each panel checks its tally against the number of records loaded, which is
+  what would have exposed the short list on its own,
+- a new enum member with no colour token raises at import time.
+
+A class with zero observations keeps its axis slot and its legend row at n=0.
+Note that `../count_workbook.py:32` calls the eighth class `NO_READS`; no such
+name exists in kuma, and the class is `MANY`.
 
 ## Run
 

@@ -79,11 +79,40 @@ plt.rcParams.update({
     "ps.fonttype": 42,
 })
 
-# 8-class verdict colour key and class order, transcribed from VerdictClass in
-# kuma_core/mame/models.py (kuma bench/rounds-ab worktree). Seven classes are
-# observed at this layer; MANY occurs zero times. A class absent from the data
-# keeps its colour token and its legend row marked n=0, per figure-style S6.1
-# (a category absent from the data is marked, not omitted).
+KUMA_REPO_REL = Path("cc/kuma/.claude/worktrees/rounds-ab")
+
+
+def load_verdict_classes() -> list[str]:
+    """Read the class list and its order off VerdictClass, never off a literal.
+
+    A hand-copied list is what broke this figure set, so the vocabulary is not
+    typed out in this file. Search order for the kuma checkout: KUMA_REPO_ROOT,
+    then any ancestor of this script holding kuma_core (the case when this file
+    runs from its git home bench/rounds-ab/release_r2/figures/), then
+    $WORKSPACE_ROOT plus the bench worktree path. Not finding it is a hard
+    error.
+    """
+    cands = []
+    env = os.environ.get("KUMA_REPO_ROOT")
+    if env:
+        cands.append(Path(env))
+    cands.extend(HERE.parents)
+    cands.append(WORKSPACE_ROOT / KUMA_REPO_REL)
+    for root in cands:
+        if (root / "kuma_core" / "mame" / "models.py").is_file():
+            if str(root) not in sys.path:
+                sys.path.insert(0, str(root))
+            from kuma_core.mame.models import VerdictClass
+            return [v.value for v in VerdictClass]
+    raise ImportError(
+        "kuma_core.mame.models not found; set KUMA_REPO_ROOT to a kuma checkout")
+
+
+# Verdict colour key. The class list and its order come from the enum above;
+# seven classes are observed at this layer and MANY occurs zero times. A class
+# absent from the data keeps its colour token and its legend row marked n=0,
+# per figure-style S6.1 (a category absent from the data is marked, not
+# omitted).
 VCOL = {
     "PASS": palette.DEEP_GREEN,
     "NO_CALL": palette.TRACK_GREY,
@@ -94,8 +123,10 @@ VCOL = {
     "FRAMESHIFT": palette.MET_TEAL,
     "MANY": palette.LIME_OLIVE,
 }
-V_ORDER = ["PASS", "AMBIGUOUS", "MIXED", "FRAMESHIFT", "MANY", "LOWDEPTH",
-           "NO_CALL", "WRONG_AA"]
+V_ORDER = load_verdict_classes()
+_uncoloured = [c for c in V_ORDER if c not in VCOL]
+if _uncoloured:
+    raise KeyError(f"VerdictClass grew a member with no colour token: {_uncoloured}")
 STEM_COLOR = palette.LIGHT_GREY
 
 WELL_PAT = re.compile(r"^([A-H])(1[0-2]|[1-9])$")
@@ -189,12 +220,19 @@ def draw_column(ax, plate: str, wells_sorted: list[str], by_well_plate: dict,
         rec = by_well_plate[(wid, plate)]
         rc = rec["read_count"]
         verdict = rec["verdict_after_floor"]
+        if verdict not in counts:
+            raise ValueError(f"{plate} {wid}: verdict {verdict!r} is not a "
+                             f"VerdictClass member")
         counts[verdict] += 1
 
         ax.plot([10, rc], [y, y], color=STEM_COLOR, lw=0.6, zorder=1)
         ax.scatter([rc], [y], s=6.0,
                    marker=PLATE_MARKERS[plate], facecolor=VCOL[verdict],
                    edgecolor=palette.INK, linewidth=0.35, zorder=3)
+
+    if sum(counts.values()) != n:
+        raise ValueError(f"{plate}: drew {sum(counts.values())} records, "
+                         f"expected {n}")
 
     ax.axvline(FLOOR_LOWDEPTH_READS, color=palette.INK, lw=0.6,
                linestyle=(0, (4, 2)), alpha=0.6, zorder=0)
@@ -245,6 +283,12 @@ def build_figure():
                              show_well_labels=(i == 0))
         for c, n in counts.items():
             all_counts[c] += n
+    # Every record loaded has to end up in exactly one legend count. Tallying
+    # over a closed class list without checking the total is the other half of
+    # the defect this rebuild fixes.
+    if sum(all_counts.values()) != d["n_records"]:
+        raise ValueError(f"drew {sum(all_counts.values())} records, "
+                         f"expected {d['n_records']}")
 
     fig.suptitle(
         "MAME per-plate verdicts, replicate layer\n"
