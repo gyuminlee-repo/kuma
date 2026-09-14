@@ -19,6 +19,7 @@ from mame_common2 import log_open  # noqa: E402
 
 from kuma_core.mame.detected import designed_mutant_ids  # noqa: E402
 from kuma_core.mame.ingest import IngestMode, ingest_run_folder  # noqa: E402
+from kuma_core.mame.ingest.run_meta import discover_run_meta  # noqa: E402
 from kuma_core.mame.io.variant_list import read_variant_source  # noqa: E402
 from kuma_core.mame.layout import build_draft_layout  # noqa: E402
 from kuma_core.mame.pipeline import run_analyze  # noqa: E402
@@ -114,6 +115,11 @@ def main() -> None:
         max_consensus_n_fraction=0.0,
         many_cutoff=5,
         ingest_mode=IngestMode.BARCODE,
+        # run_analyze discovers the sequencing run from input_dir, and the
+        # input_dir handed to it here is the demux scratch folder, which holds
+        # no MinKNOW run. The raw folder is known at this point, so the answer
+        # is passed rather than left to a search that cannot succeed.
+        ngs_run_meta=discover_run_meta(run_dir),
         well_layout=draft.layout,
         scored_wells=None,
         records=records,
