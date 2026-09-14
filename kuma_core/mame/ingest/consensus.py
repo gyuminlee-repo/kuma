@@ -264,6 +264,16 @@ DEFAULT_MIX_MIN_DEPTH = 10
 #: single isolated position. True deletions measured 0.91 and 0.97 on the ladder
 #: and >= 0.86 for a real 1 bp event. 0.5 therefore sits inside a gap the data
 #: leaves open rather than at a number picked to separate two labelled sets.
+#:
+#: READING THE RESULT. A deletion majority whose ``consensus_net_indel_bp`` is 0
+#: is an ALIGNMENT REPRESENTATION, not a missing base: an insertion majority sits
+#: at the same anchor and cancels it, which is how minimap2 can write a designed
+#: substitution as adjacent insert-plus-delete instead of a mismatch. Three wells
+#: of the 260212 ispS plate do exactly this at their own designed codon (1_5 at
+#: ref 653 for V218L, 2_3 at 279 for R93A, 8_5 at 679 near E228D), and the vault
+#: analysis recorded the matching read-level insertions independently. A genuine
+#: lost base carries a nonzero net indel (3_5 at 638, net -1). Both are reported;
+#: the net indel is what tells them apart.
 DEL_MAJORITY_FRACTION = 0.5
 
 #: How many deletion-majority RUNS a well reports positions for. A reporting

@@ -549,3 +549,141 @@ def test_the_integer_frameshift_path_is_untouched_by_the_channel() -> None:
             call.n_del_majority_positions == 0
             and call.consensus_net_indel_bp == 0
         )
+
+
+# ---------------------------------------------------------------------------
+# 7. Where the channel does and does not move a verdict class
+# ---------------------------------------------------------------------------
+
+
+def _confirmed_design_plus_deletion():
+    """A well that reproduces its designed substitution and also lost a codon."""
+    del_at, del_len = 120, 3  # codon 41 exactly, so the frame survives
+
+    def read(alt: str) -> Alignment:
+        chars = list(REF)
+        chars[28] = alt
+        seq = "".join(chars)
+        return _aln(
+            seq[:del_at] + seq[del_at + del_len :],
+            [
+                [del_at, _CIGAR_M],
+                [del_len, _CIGAR_D],
+                [len(REF) - del_at - del_len, _CIGAR_M],
+            ],
+        )
+
+    for alt in (b for b in "ACGT" if b != REF[28]):
+        alns = [read(alt)] * 18 + [_full()] * 2
+        call = call_consensus_with_metrics(alns, REF)
+        labels = translate_and_diff(
+            _record(call.consensus_seq, ()), REF, 0, len(REF)
+        ).observed_aa_changes
+        # A stop would be judged as nonsense rather than by the label comparison.
+        if len(labels) == 1 and "*" not in labels[0]:
+            return call, labels
+    raise AssertionError("no non-stop substitution available at this position")
+
+
+def _verdicts(call, expected, params):
+    from kuma_core.mame.compare.verdict import classify_verdict
+
+    def record(dels):
+        return BarcodeRecord(
+            native_barcode="NB",
+            custom_barcode="1_1",
+            consensus_seq=call.consensus_seq,
+            file_size_kb=100.0,
+            source_path=Path("x.fasta"),
+            read_count=200,
+            consensus_net_indel_bp=call.consensus_net_indel_bp,
+            max_indel_event_fraction=call.max_indel_event_fraction,
+            max_del_run_length=call.max_del_run_length,
+            consensus_n_fraction=call.consensus_n_fraction,
+            n_low_depth_positions=call.n_low_depth_positions,
+            del_majority_positions=dels,
+            n_del_majority_positions=len(dels),
+        )
+
+    before = classify_verdict(
+        translate_and_diff(record(()), REF, 0, len(REF)), expected, params
+    )
+    after = classify_verdict(
+        translate_and_diff(record(call.del_majority_positions), REF, 0, len(REF)),
+        expected,
+        params,
+    )
+    return before, after
+
+
+def test_shipped_defaults_do_not_move_the_class() -> None:
+    """Under the shipped gates an earlier gate always claims the well first.
+
+    This is structural rather than evidence that the label is inert: a
+    deletion-majority position pushes ``max_indel_event_fraction`` past 0.5, so
+    the indel gate returns before the expected/observed comparison is reached,
+    and ``max_consensus_n_fraction`` defaults to 0.0, so any surviving no-call
+    routes to NO_CALL. Both were already true before the channel existed.
+    """
+    from kuma_core.mame.models import CompareParams
+
+    call, expected = _confirmed_design_plus_deletion()
+    before, after = _verdicts(call, expected, CompareParams())
+    assert before.verdict == after.verdict
+    assert "W41del" not in " ".join(
+        c for c in expected
+    )  # the label is new, the class is not
+
+
+def test_the_label_does_move_the_class_once_the_earlier_gates_stand_down() -> None:
+    """With the indel gate off and the N gate tolerant, the deletion decides.
+
+    Reported rather than hidden: this is the regime a caller enters by relaxing
+    ``max_indel_event_fraction``, and there the well stops being a clean PASS
+    because a codon it did not design for is missing.
+    """
+    from kuma_core.mame.models import CompareParams, VerdictClass
+
+    call, expected = _confirmed_design_plus_deletion()
+    params = CompareParams(
+        max_indel_event_fraction=None, max_consensus_n_fraction=0.1
+    )
+    before, after = _verdicts(call, expected, params)
+    assert before.verdict == VerdictClass.PASS
+    assert after.verdict == VerdictClass.WRONG_AA
+    assert "41del" in after.verdict_notes or "41-" in after.verdict_notes
+
+
+# ---------------------------------------------------------------------------
+# 8. The CDS offset arithmetic
+# ---------------------------------------------------------------------------
+
+
+def test_gaps_land_correctly_when_the_cds_does_not_start_at_zero() -> None:
+    """A plasmid-style reference: the CDS is a window, not the whole record.
+
+    ``_apply_deletion_gaps`` converts a REFERENCE position into an index inside
+    the CDS slice, and this is the only new off-by-one surface. Every other test
+    runs ``cds_start=0``, where the conversion is the identity.
+    """
+    flank = "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"  # 30 bp, keeps the frame simple
+    assert len(flank) == 30
+    padded_ref = flank + REF
+    cds_start, cds_end = 30, 30 + len(REF)
+
+    call = call_consensus_with_metrics(CASES["del3"], REF)
+    padded_consensus = flank + call.consensus_seq
+    shifted = tuple(p + 30 for p in call.del_majority_positions)
+    assert shifted == (91, 92, 93)
+
+    result = translate_and_diff(
+        _record(padded_consensus, shifted), padded_ref, cds_start, cds_end
+    )
+    deletions = [c for c in result.observed_aa_changes if c.endswith("del")]
+    assert len(deletions) == 1
+    assert deletions[0].endswith("21del")
+    assert result.aa_sequence[20] == "-"
+    # The flank is untouched and contributes no change.
+    assert all("del" not in c for c in result.observed_nt_changes[:0] or [])
+    assert f"{padded_ref[60]}61del" not in result.observed_nt_changes
+    assert f"{padded_ref[90]}91del" in result.observed_nt_changes

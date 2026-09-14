@@ -169,6 +169,11 @@ class BarcodeRecord:
     # while the list is empty, and it means "not reported", never "none".
     del_majority_positions: tuple[int, ...] = ()
     n_del_majority_positions: int = 0
+    # A nonzero count with ``consensus_net_indel_bp == 0`` means an insertion
+    # majority cancels the deletion at the same anchor, i.e. an alignment
+    # representation of a substitution rather than a lost base. The reported
+    # ``{WT}{pos}del`` label is then true of the pileup and not of the molecule,
+    # and the net indel is what separates the two cases.
     # Why this consensus emitted each 'N', as four mutually exclusive counts over
     # the covered amplicon. They sum to the ``consensus_n_fraction`` numerator,
     # so an elevated N fraction can be read as coverage, deletion, instrument
