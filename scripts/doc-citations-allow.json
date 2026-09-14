@@ -350,6 +350,11 @@
       "path": "OBSIDIAN_VAULT/010.KRIBB/040.Weekly/assets/mame_method_comparison-CAPTION.md",
       "category": "external",
       "reason": "Figure caption in the project vault, cited by bench/rounds-ab/claims.json so the counts it quotes are checked against results.csv instead of staying hand-copied. The vault is a separate repository and never arrives in a kuma checkout, so check_claims.py reports the document as missing and checks the rest."
+    },
+    {
+      "path": "_IspS_LowCost_Workflow/05_Manuscript/260824_PaperA_draft_v3.md",
+      "category": "external",
+      "reason": "PaperA manuscript in the project vault, cited by bench/rounds-ab/claims.json so the round 2 verdict counts it reports are checked against the release workbook rather than left as hand-copied integers, including a check that every copy of a repeated distribution sentence carries the same value. The vault is a separate repository and never arrives in a kuma checkout, so check_claims.py reports the document as missing and checks the rest."
     }
   ]
 }
