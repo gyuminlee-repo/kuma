@@ -54,6 +54,8 @@ OUT_NAME = "SuppFig3_replicate_260826"
 PLATES = ["NB06", "NB13", "NB20"]
 PLATE_MARKERS = {"NB06": "o", "NB13": "^", "NB20": "s"}
 
+# min_read_count default, kuma_core/mame/models.py:268, times the mixed-call
+# factor _MIXED_CONFIDENT_DEPTH_FACTOR = 3, kuma_core/mame/compare/verdict.py:77.
 FLOOR_LOWDEPTH_READS = 30
 FLOOR_MIXED_READS = 90
 

@@ -42,8 +42,9 @@ Three guards ride along:
 - a new enum member with no colour token raises at import time.
 
 A class with zero observations keeps its axis slot and its legend row at n=0.
-Note that `../count_workbook.py:32` calls the eighth class `NO_READS`; no such
-name exists in kuma, and the class is `MANY`.
+As of 2026-09-14 `../count_workbook.py:32` still calls the eighth class
+`NO_READS`; no such name exists in kuma, and the class is `MANY`. That file is
+the bench checker and is not touched here.
 
 ## Run
 

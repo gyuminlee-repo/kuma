@@ -364,8 +364,10 @@ def panel_b_depth(ax, obs: list[dict], letter: str | None = "b") -> dict:
     mixed-call floor, min_read_count x mixed_confident_depth_factor=3, below
     which a MIXED call is reclassified to LOWDEPTH). Both are single criteria
     among several the verdict pipeline checks, so neither line alone implies
-    the class boundary; the caption states that. Constants transcribed from
-    260825_replicate_layer_distribution.json 'assumptions'.
+    the class boundary; the caption states that. Both constants come from the
+    kuma code: min_read_count defaults to 30 in kuma_core/mame/models.py:268
+    and the mixed-call factor is _MIXED_CONFIDENT_DEPTH_FACTOR = 3 in
+    kuma_core/mame/compare/verdict.py:77, applied at verdict.py:425.
 
     Absorbed from the per-plate median panel this replaces: plate identity
     (marker shape) and the pooled well x plate denominator (title). The plate
