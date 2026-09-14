@@ -39,7 +39,7 @@ WORKBOOK = os.path.join(HERE, "R2_FBF10847_v0.16.58_amplicon_MAME.xlsx")
 
 # Recorded when the workbook was committed. A different file under the same
 # name is a different measurement and must not pass silently.
-WORKBOOK_SHA256 = "edf4ca869e9ba8413cb46113295920cc76b54c9637cf8caef4e0e7d2cfcb8683"
+WORKBOOK_SHA256 = "1791b97a3621ba5abca37795af53741d15790e3ddc5303a3715465a7c0dce785"
 
 # CLASSES comes from verdict_vocab, which reads VerdictClass off the product.
 # It used to be typed out here and carried a class named NO_READS that kuma has

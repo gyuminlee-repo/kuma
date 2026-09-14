@@ -1,34 +1,34 @@
-[13:36:54] === bench_r2_release.sh 2026-09-14 13:36:54 ===
-[13:36:54] loadavg_start=4.58 7.40 7.21 4/1077 1478032
-[13:36:54] out=/mnt/d/_workspace/020.admin/projects/070.KUMA_elements/bench_out/rounds-ab_regen391
-[13:36:54] code=/mnt/d/_workspace/cc/kuma/.claude/worktrees/r2-regen-main
-[13:36:54] kuma_core_file=/mnt/d/_workspace/cc/kuma/.claude/worktrees/r2-regen-main/kuma_core/__init__.py
-[13:36:54] code_sha=5680554501d5a305670fcc465e84383e00097614
-[13:36:54] code_branch=(detached)
-[13:36:55] code_clean=yes
-[13:36:55] version=KUMA_VERSION = "0.16.58"
-[13:36:55] run=/mnt/d/_workspace/020.admin/projects/060.nanopore_NGS/20260212_2227_X4_FBF10847_e7145f8e
-[13:36:55] ref=/mnt/d/_workspace/020.admin/projects/070.KUMA_elements/260730 MAME test/260804_MAME_output/demux_filtered/pTSN-PtIspS-idi(KanR)_corrected.reference.amplicon.fa
-[13:36:55] BENCH_R2_RELEASE_PREFLIGHT_OK
-[13:37:08] === bench_r2_release.sh 2026-09-14 13:37:08 ===
-[13:37:08] loadavg_start=5.78 7.53 7.25 29/1127 1489335
-[13:37:08] out=/mnt/d/_workspace/020.admin/projects/070.KUMA_elements/bench_out/rounds-ab_regen391
-[13:37:08] code=/mnt/d/_workspace/cc/kuma/.claude/worktrees/r2-regen-main
-[13:37:08] kuma_core_file=/mnt/d/_workspace/cc/kuma/.claude/worktrees/r2-regen-main/kuma_core/__init__.py
-[13:37:08] code_sha=5680554501d5a305670fcc465e84383e00097614
-[13:37:08] code_branch=(detached)
-[13:37:10] code_clean=yes
-[13:37:10] version=KUMA_VERSION = "0.16.58"
-[13:37:10] run=/mnt/d/_workspace/020.admin/projects/060.nanopore_NGS/20260212_2227_X4_FBF10847_e7145f8e
-[13:37:10] ref=/mnt/d/_workspace/020.admin/projects/070.KUMA_elements/260730 MAME test/260804_MAME_output/demux_filtered/pTSN-PtIspS-idi(KanR)_corrected.reference.amplicon.fa
-[13:37:10] === R2 release, amplicon reference ===
+[16:37:02] === bench_r2_release.sh 2026-09-14 16:37:02 ===
+[16:37:02] loadavg_start=7.75 10.89 9.03 3/970 2945836
+[16:37:02] out=/mnt/d/_workspace/020.admin/projects/070.KUMA_elements/bench_out/rounds-ab_regen2
+[16:37:02] code=/mnt/d/_workspace/cc/kuma/.claude/worktrees/r2-regen2
+[16:37:02] kuma_core_file=/mnt/d/_workspace/cc/kuma/.claude/worktrees/r2-regen2/kuma_core/__init__.py
+[16:37:03] code_sha=5680554501d5a305670fcc465e84383e00097614
+[16:37:03] code_branch=(detached)
+[16:37:04] code_clean=yes
+[16:37:04] version=KUMA_VERSION = "0.16.58"
+[16:37:04] run=/mnt/d/_workspace/020.admin/projects/060.nanopore_NGS/20260212_2227_X4_FBF10847_e7145f8e
+[16:37:04] ref=/mnt/d/_workspace/020.admin/projects/070.KUMA_elements/260730 MAME test/260804_MAME_output/demux_filtered/pTSN-PtIspS-idi(KanR)_corrected.reference.amplicon.fa
+[16:37:04] BENCH_R2_RELEASE_PREFLIGHT_OK
+[16:37:12] === bench_r2_release.sh 2026-09-14 16:37:12 ===
+[16:37:12] loadavg_start=7.10 10.64 8.97 6/952 2949491
+[16:37:12] out=/mnt/d/_workspace/020.admin/projects/070.KUMA_elements/bench_out/rounds-ab_regen2
+[16:37:12] code=/mnt/d/_workspace/cc/kuma/.claude/worktrees/r2-regen2
+[16:37:13] kuma_core_file=/mnt/d/_workspace/cc/kuma/.claude/worktrees/r2-regen2/kuma_core/__init__.py
+[16:37:13] code_sha=5680554501d5a305670fcc465e84383e00097614
+[16:37:13] code_branch=(detached)
+[16:37:14] code_clean=yes
+[16:37:14] version=KUMA_VERSION = "0.16.58"
+[16:37:14] run=/mnt/d/_workspace/020.admin/projects/060.nanopore_NGS/20260212_2227_X4_FBF10847_e7145f8e
+[16:37:14] ref=/mnt/d/_workspace/020.admin/projects/070.KUMA_elements/260730 MAME test/260804_MAME_output/demux_filtered/pTSN-PtIspS-idi(KanR)_corrected.reference.amplicon.fa
+[16:37:14] === R2 release, amplicon reference ===
 === R2-release run_dir=/mnt/d/_workspace/020.admin/projects/060.nanopore_NGS/20260212_2227_X4_FBF10847_e7145f8e ref=/mnt/d/_workspace/020.admin/projects/070.KUMA_elements/260730 MAME test/260804_MAME_output/demux_filtered/pTSN-PtIspS-idi(KanR)_corrected.reference.amplicon.fa cds=16..1699
     workbook=/mnt/d/_workspace/020.admin/projects/060.nanopore_NGS/NGS_260212/260526_mame_input_96mutants.xlsx native_barcodes=['barcode06', 'barcode13', 'barcode20']
-demux+ingest done in 2137.4s -> 288 records
+demux+ingest done in 1597.2s -> 288 records
     stats={'total_reads': 2706444, 'passed_mapq': 2700849, 'passed_coverage': 2062713, 'assigned_reads': 1475396, 'ambiguous_dropped': 861541, 'chimera_splits': 592667, 'wells_with_reads': 288, 'wells_with_min_reads': 288, 'drop_short_window_read_5p': 71, 'drop_short_window_read_3p': 683483, 'drop_no_barcode_f': 56501, 'drop_no_barcode_r': 78807, 'drop_ambiguous_tie_f': 18285, 'drop_ambiguous_tie_r': 3493, 'drop_both_axes': 20901}
 analyze rows=95 wt_ordinal=96 layout=96 -> R2-release_MAME.xlsx
-    288 verdicts, 96 replicate groups, 0.7s
-=== R2-release complete, total 2138.1s
-[14:12:53] R2-release rc=0
-[14:12:53] loadavg_end=11.24 12.91 14.02 2/1070 1826998
-[14:12:53] BENCH_R2_RELEASE_DONE
+    288 verdicts, 96 replicate groups, 0.5s
+=== R2-release complete, total 1597.8s
+[17:03:56] R2-release rc=0
+[17:03:56] loadavg_end=5.23 8.33 9.68 2/911 3135142
+[17:03:56] BENCH_R2_RELEASE_DONE

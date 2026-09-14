@@ -4,7 +4,7 @@ PaperA Figure 2b 를 FASTQ 부터의 재분석으로 갱신하기 위해 만든 
 
 ## 무엇을 돌렸나
 
-- 코드: kuma `origin/main` 커밋 `56805545`, `KUMA_VERSION = "0.16.58"`. 벤치 하네스 코드가 아니라 배포 코드다. 이 커밋은 워크북이 자기 조건을 기록하게 만든 PR 391 을 포함한다. 판정 로직은 직전 배포 `ac841d65` 와 동일하다. `consensus.py` 의 차이는 AST 동일이라 문서뿐이고 나머지 변경은 메타데이터 배선이다. 재생성 결과가 알려진 답 27건을 그대로 재현했고 바뀐 값은 워크북 해시 하나다
+- 코드: kuma `origin/main` 커밋 `56805545`, `KUMA_VERSION = "0.16.58"`. 벤치 하네스 코드가 아니라 배포 코드다. 이 커밋은 워크북이 자기 조건을 기록하게 만든 PR 391 을 포함한다. 판정 로직은 직전 배포 `ac841d65` 와 동일하다. `consensus.py` 의 차이는 AST 동일이라 문서뿐이고 나머지 변경은 메타데이터 배선이다. 재생성 결과가 알려진 답 27건을 그대로 재현했고 바뀐 값은 워크북 해시 하나다. 시퀀싱 런 메타(`instrument`, `flow_cell_id`, `sample_id`, `kit`)도 함께 기록된다. `run_analyze` 가 받는 `input_dir` 은 demux 스크래치 폴더라 스스로 찾을 수 없으므로 드라이버가 원본 런 폴더에서 찾아 넘긴다
 - 런 폴더: `060.nanopore_NGS/20260212_2227_X4_FBF10847_e7145f8e` 전량
 - 참조: `070.KUMA_elements/260730 MAME test/260804_MAME_output/demux_filtered/pTSN-PtIspS-idi(KanR)_corrected.reference.amplicon.fa` (amplicon 1715 bp, 현행 조건)
 - 코딩 윈도: 16..1699
@@ -73,7 +73,7 @@ kuma/.venv/bin/python count_workbook.py
 
 검사 건수는 검사를 더할 때마다 바뀌는 값이므로 여기에 고정하지 않는다. 실행하면 검사기가 스스로 건수와 상시 가드 지점 수와 한계를 출력한다. 전부 맞으면 `CONTROL_OK`, 하나라도 어긋나면 어느 값이 얼마로 바뀌었는지 찍고 exit 1 이다. 검사 대상은 워크북 sha256, 채점 웰 수 95, 8분류 각각의 값, WT 대조 판정, 그리고 replicate 층의 레코드 수와 8분류와 클래스별 depth 중앙값이다. 선언하지 않은 판정 분류는 검사 항목이 아니라 즉시 중단 사유다. 워크북을 읽는 자리에서 `VerdictClass` 밖의 판정을 만나면 세지 않고 abort 한다. 분류별 집계 합이 레코드 수와 다른 경우도 같다. 8분류 목록은 `kuma_core/mame/models.py` 의 `VerdictClass` 에서 읽어 온다. 기댓값 숫자는 알려진 답이므로 손으로 적은 채로 남고 키 집합만 enum 과 맞춘다. 웰 하나의 판정을 PASS 에서 WRONG_AA 로 바꾼 사본으로 돌려 실제로 실패하는지 확인했다. 해시와 PASS 와 WRONG_AA 세 경로로 잡는다. per-plate 레코드 하나를 PASS 에서 MIXED 로 바꾼 사본에서는 다섯 경로로 잡는다.
 
-워크북 sha256 은 `edf4ca869e9ba8413cb46113295920cc76b54c9637cf8caef4e0e7d2cfcb8683` 이다. 같은 이름의 다른 파일은 다른 측정이므로 통과하지 않는다.
+워크북 sha256 은 `1791b97a3621ba5abca37795af53741d15790e3ddc5303a3715465a7c0dce785` 이다. 같은 이름의 다른 파일은 다른 측정이므로 통과하지 않는다.
 
 한계도 같이 찍힌다. 이 워크북의 `__kuma_meta__` 시트는 참조 파일, 코딩 윈도, `min_read_count` 를 기록하지 않는다. 그 조건은 옆의 `bench_r2_release.sh` 에서 읽어야 한다. 기록하지 않는 것은 작성기 쪽 결함이고 별도로 고치는 중이다.
 
