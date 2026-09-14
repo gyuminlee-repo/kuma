@@ -38,6 +38,14 @@ MAX_DEL_RUN_LENGTH = "max_del_run_length"
 # neither, and every consumer then behaves exactly as it did before.
 DEL_MAJORITY_POSITIONS = "del_majority_positions"
 N_DEL_MAJORITY_POSITIONS = "n_del_majority_positions"
+# The bases the called molecule gained, as ``anchor:SEQ`` records. The anchor is
+# the 1-based reference position the insertion FOLLOWS. Same budget rule and same
+# absence semantics as the deletion pair above: ``N_INS_MAJORITY_ANCHORS`` carries
+# the full count, so an empty list beside a nonzero count is "not reported" and an
+# empty list beside a zero count is "none". A header written before these keys
+# existed carries neither and every consumer behaves exactly as it did before.
+INS_MAJORITY_BASES = "ins_majority_bases"
+N_INS_MAJORITY_ANCHORS = "n_ins_majority_anchors"
 # Why the consensus emitted each 'N', as four mutually exclusive counts that sum
 # to the ``consensus_n_fraction`` numerator. Always written; 0 is a real answer.
 NO_CALL_ZERO_DEPTH = "no_call_zero_depth"
@@ -173,6 +181,63 @@ def parse_position_runs(raw: str | None) -> tuple[int, ...]:
     return tuple(out)
 
 
+_INS_FIELD_SEP = ":"
+_INS_BASES = frozenset("ACGTN")
+
+
+def format_insertion_bases(entries: Sequence[tuple[int, str]]) -> str:
+    """Encode ``(anchor, bases)`` pairs as ``anchor:SEQ`` records, comma-joined.
+
+    Anchors are 1-based. Not run-encodable the way positions are: each record
+    carries its own payload, so there is nothing to collapse.
+    """
+
+    return _RUN_SEP.join(
+        f"{anchor}{_INS_FIELD_SEP}{bases}" for anchor, bases in entries
+    )
+
+
+def parse_insertion_bases(raw: str | None) -> tuple[tuple[int, str], ...]:
+    """Decode ``anchor:SEQ`` records; ``None`` or ``""`` gives ``()``.
+
+    Discards the WHOLE value on any malformed or non-ascending record, matching
+    ``parse_position_runs``. The caller splices these bases into a sequence it
+    then reports as the called molecule, and a partially recovered splice would
+    be read with the same confidence as a complete one while naming bases the
+    well never showed.
+
+    A sequence outside the ACGTN alphabet is malformed: the pileup only ever
+    records read bases, so anything else means the field did not come from this
+    writer.
+    """
+
+    if not raw:
+        return ()
+    out: list[tuple[int, str]] = []
+    for record in raw.split(_RUN_SEP):
+        record = record.strip()
+        if not record:
+            continue
+        anchor_s, sep, bases = record.partition(_INS_FIELD_SEP)
+        if not sep:
+            _logger.warning("Unparsable insertion record %r; list discarded", record)
+            return ()
+        try:
+            anchor = int(anchor_s)
+        except ValueError:
+            _logger.warning("Unparsable insertion anchor %r; list discarded", record)
+            return ()
+        bases = bases.strip().upper()
+        if not bases or not set(bases) <= _INS_BASES:
+            _logger.warning("Non-nucleotide insertion %r; list discarded", record)
+            return ()
+        if anchor < 1 or (out and anchor <= out[-1][0]):
+            _logger.warning("Out-of-order insertion %r; list discarded", record)
+            return ()
+        out.append((anchor, bases))
+    return tuple(out)
+
+
 def format_noisy_positions(positions: Sequence[NoisyPosition]) -> str:
     """Encode *positions* as ``pos:frac:depth:plus:minus`` records, comma-joined.
 
@@ -267,6 +332,8 @@ class ConsensusMetadata:
     max_del_run_length: int = 0
     del_majority_positions: tuple[int, ...] = ()
     n_del_majority_positions: int = 0
+    ins_majority_bases: tuple[tuple[int, str], ...] = ()
+    n_ins_majority_anchors: int = 0
     n_no_call_zero_depth: int = 0
     n_no_call_deletion: int = 0
     n_no_call_ambiguous: int = 0
@@ -330,6 +397,15 @@ class ConsensusMetadata:
             yield (
                 DEL_MAJORITY_POSITIONS,
                 format_position_runs(self.del_majority_positions),
+            )
+        yield N_INS_MAJORITY_ANCHORS, str(self.n_ins_majority_anchors)
+        # Omitted when empty for the same reason the deletion list is: an
+        # ordinary well should not carry a dangling key, and "" must not read as
+        # a reported census of zero when the count above disagrees.
+        if self.ins_majority_bases:
+            yield (
+                INS_MAJORITY_BASES,
+                format_insertion_bases(self.ins_majority_bases),
             )
         yield NO_CALL_ZERO_DEPTH, str(self.n_no_call_zero_depth)
         yield NO_CALL_DELETION, str(self.n_no_call_deletion)
@@ -421,6 +497,10 @@ __all__ = [
     "MAX_DEL_RUN_LENGTH",
     "DEL_MAJORITY_POSITIONS",
     "N_DEL_MAJORITY_POSITIONS",
+    "INS_MAJORITY_BASES",
+    "N_INS_MAJORITY_ANCHORS",
+    "format_insertion_bases",
+    "parse_insertion_bases",
     "NO_CALL_ZERO_DEPTH",
     "NO_CALL_DELETION",
     "NO_CALL_AMBIGUOUS",
