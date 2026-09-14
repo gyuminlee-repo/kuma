@@ -259,10 +259,14 @@ class ConsensusCall:
     # ACGT depth at the position ``min_variant_support`` was measured on.
     min_variant_support_depth: int = 0
     # Per-well insertion-event evidence. Insertions are discarded from the
-    # reference-length consensus (same as samtools consensus default), so
-    # variant clones with only an in-frame insertion reach a WT-identical
-    # consensus and pass verdict unchallenged. These two counters surface
-    # the buried signal without altering the consensus sequence itself.
+    # reference-length consensus. That is this module's design choice, which
+    # keeps every coordinate anchored to the reference for codon-level
+    # comparison against the expected workbook; it is not the samtools
+    # default, which is ``--show-ins yes`` and can emit a consensus whose
+    # length differs from the reference. The cost is that variant clones with
+    # only an in-frame insertion reach a WT-identical consensus and pass
+    # verdict unchallenged. These two counters surface the buried signal
+    # without altering the consensus sequence itself.
     #
     # Calibration (bench_v2 depth_50, 177 bp CDS, ~190 reads/well):
     #   WT / SNV wells (G1-G3): max_indel_event_fraction <= 0.21
@@ -390,7 +394,11 @@ def call_consensus(
     -------
     Consensus sequence string of length ``len(reference_seq)``.  Each character
     is one of A/C/G/T/N.  Indels (deletions) that achieve majority vote are
-    collapsed to 'N' (gap-free output, matching samtools consensus default).
+    collapsed to 'N'.  The gap-free, reference-length output is this module's
+    design choice, which keeps positions reference-anchored for codon-level
+    comparison against the expected workbook; it is not the ``samtools
+    consensus`` default, which is ``--show-ins yes`` and can emit a sequence
+    whose length differs from the reference.
     """
     return call_consensus_with_metrics(
         alignments=alignments,
@@ -1085,7 +1093,9 @@ def _accumulate(
 
         elif op == _CIGAR_I:
             # Insertion: advance query only; insertions are not represented in
-            # the reference-length output (same as samtools consensus default).
+            # the reference-length output.  That is this module's design
+            # choice, which keeps coordinates reference-anchored for workbook
+            # comparison, not the samtools default, which is --show-ins yes.
             # Track the event count at the ref_pos just before the insertion
             # so callers can detect insertion-bearing wells.
             net_indel += length
