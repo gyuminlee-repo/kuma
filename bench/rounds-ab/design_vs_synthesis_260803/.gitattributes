@@ -1,0 +1,6 @@
+# These files are evidence, not source. The repository default for *.csv is
+# eol=crlf (.gitattributes:39), which would hand a checkout different bytes
+# than the run used and break the byte-for-byte comparison against the copy
+# under 020.admin. Line endings are therefore left alone here.
+well_verdicts.csv -text
+fixtures/*.csv -text
