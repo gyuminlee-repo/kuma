@@ -63,7 +63,7 @@ MIXED 판정에 쓰는 90-read floor 는 이 재분석에서도 실제로 작동
 kuma/.venv/bin/python count_workbook.py
 ```
 
-29건을 검사하고 전부 맞으면 `CONTROL_OK`, 하나라도 어긋나면 어느 값이 얼마로 바뀌었는지 찍고 exit 1 이다. 검사 대상은 워크북 sha256, 채점 웰 수 95, 8분류 각각의 값, 선언하지 않은 판정 분류의 출현, WT 대조 판정, 그리고 replicate 층의 레코드 수와 8분류와 클래스별 depth 중앙값이다. 웰 하나의 판정을 PASS 에서 WRONG_AA 로 바꾼 사본으로 돌려 실제로 실패하는지 확인했다. 해시와 PASS 와 WRONG_AA 세 경로로 잡는다. per-plate 레코드 하나를 PASS 에서 MIXED 로 바꾼 사본에서는 다섯 경로로 잡는다.
+28건을 검사하고 전부 맞으면 `CONTROL_OK`, 하나라도 어긋나면 어느 값이 얼마로 바뀌었는지 찍고 exit 1 이다. 검사 대상은 워크북 sha256, 채점 웰 수 95, 8분류 각각의 값, WT 대조 판정, 그리고 replicate 층의 레코드 수와 8분류와 클래스별 depth 중앙값이다. 선언하지 않은 판정 분류는 검사 항목이 아니라 즉시 중단 사유다. 워크북을 읽는 자리에서 `VerdictClass` 밖의 판정을 만나면 세지 않고 abort 한다. 분류별 집계 합이 레코드 수와 다른 경우도 같다. 8분류 목록은 `kuma_core/mame/models.py` 의 `VerdictClass` 에서 읽어 온다. 기댓값 숫자는 알려진 답이므로 손으로 적은 채로 남고 키 집합만 enum 과 맞춘다. 웰 하나의 판정을 PASS 에서 WRONG_AA 로 바꾼 사본으로 돌려 실제로 실패하는지 확인했다. 해시와 PASS 와 WRONG_AA 세 경로로 잡는다. per-plate 레코드 하나를 PASS 에서 MIXED 로 바꾼 사본에서는 다섯 경로로 잡는다.
 
 워크북 sha256 은 `80bcddd08d637f79728ba1d995523d1530077857b954a7b2fc8fc019913477d0` 이다. 같은 이름의 다른 파일은 다른 측정이므로 통과하지 않는다.
 
