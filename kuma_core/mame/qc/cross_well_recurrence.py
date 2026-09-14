@@ -150,10 +150,10 @@ class CrossWellRecurrence:
     positions_seen: int = 0
     positions_single_well: int = 0
     #: Whether strand could be measured on this plate at all. ``absent`` means
-    #: every reported minor allele was read off the forward strand, which
-    #: happens when reads were normalised to the reference upstream; the shares
-    #: are then ``None`` rather than the 0.0 that would read as "one strand
-    #: only" and be taken for a basecaller artifact.
+    #: every reported minor allele was read off the SAME strand, which happens
+    #: when reads were normalised to the reference upstream (in either
+    #: direction); the shares are then ``None`` rather than the 0.0 that would
+    #: read as "one strand only" and be taken for a basecaller artifact.
     strand_information: str = STRAND_NO_DATA
 
 
@@ -180,6 +180,7 @@ def summarise_cross_well_recurrence(
     shares: dict[int, list[float]] = {}
     wells_contributing = 0
     wells_truncated = 0
+    any_plus = False
     any_minus = False
     any_position = False
 
@@ -195,6 +196,8 @@ def summarise_cross_well_recurrence(
             key = int(entry.position)
             fractions.setdefault(key, []).append(float(entry.minor_fraction))
             bucket = shares.setdefault(key, [])
+            if entry.plus_count > 0:
+                any_plus = True
             if entry.minus_count > 0:
                 any_minus = True
             share = entry.weak_strand_share
@@ -203,13 +206,17 @@ def summarise_cross_well_recurrence(
 
     if not any_position:
         strand_information = STRAND_NO_DATA
-    elif any_minus:
+    elif any_plus and any_minus:
         strand_information = STRAND_PRESENT
     else:
-        # Every reported minor allele was read off the forward strand. Each
-        # individual share is therefore 0.0, which the record defines as "one
-        # strand only" and a reader would take for a basecaller artifact. The
-        # plate carried no strand information, so none is reported.
+        # Every reported minor allele was read off the SAME strand, whichever
+        # one that is. Each individual share is therefore 0.0, which the record
+        # defines as "one strand only" and a reader would take for a basecaller
+        # artifact. Both directions have to be checked: reads normalised to the
+        # reverse strand leave ``plus_count`` at zero everywhere and would
+        # otherwise pass a minus-only test while carrying no more information
+        # than the forward case. The plate measured no strand contrast, so none
+        # is reported.
         strand_information = STRAND_ABSENT
 
     rows: list[RecurrentPosition] = []

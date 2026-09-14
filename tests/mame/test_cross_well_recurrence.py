@@ -133,6 +133,26 @@ def test_two_strand_plate_reports_measured_shares():
     assert row.shares_unknown == 0
 
 
+def test_reverse_normalised_plate_also_reports_no_strand_information():
+    """Kills the mutation that drops ``any_plus`` from the guard.
+
+    The forward case is the one the measured plates show, so a guard written
+    only against it passes every test here while leaving the identical trap on
+    the other side: reads normalised to the REVERSE strand leave ``plus_count``
+    at zero everywhere, every share still evaluates to 0.0, and a minus-only
+    test would report those zeros as a measurement. Neither direction carries
+    strand contrast.
+    """
+    wells = [_Well([_pos(1232, 0.05, plus=0, minus=10)]) for _ in range(3)]
+
+    result = summarise_cross_well_recurrence(wells)
+
+    assert result.strand_information == STRAND_ABSENT
+    (row,) = result.positions
+    assert row.median_weak_strand_share is None
+    assert row.shares_known == 0
+
+
 def test_strand_absent_is_distinct_from_no_data():
     """An empty plate measured nothing; it did not measure "one strand"."""
     result = summarise_cross_well_recurrence([_Well([]), _Well([])])
