@@ -39,14 +39,14 @@ WORKBOOK = os.path.join(HERE, "R2_FBF10847_v0.16.58_amplicon_MAME.xlsx")
 
 # Recorded when the workbook was committed. A different file under the same
 # name is a different measurement and must not pass silently.
-WORKBOOK_SHA256 = "80bcddd08d637f79728ba1d995523d1530077857b954a7b2fc8fc019913477d0"
+WORKBOOK_SHA256 = "edf4ca869e9ba8413cb46113295920cc76b54c9637cf8caef4e0e7d2cfcb8683"
 
 # CLASSES comes from verdict_vocab, which reads VerdictClass off the product.
 # It used to be typed out here and carried a class named NO_READS that kuma has
 # never had; the eighth class is MANY.
 
 # Known answers: the distribution cited for round 2 regenerated from the raw run
-# folder with the shipped release (v0.16.58, ac841d65) and the current amplicon
+# folder with origin/main at 56805545 (KUMA_VERSION 0.16.58) and the current amplicon
 # reference. Verified well-for-well against bench arm A, 0 mismatches of 96.
 EXPECTED = {"PASS": 82, "NO_CALL": 3, "LOWDEPTH": 2, "WRONG_AA": 4,
             "AMBIGUOUS": 2, "FRAMESHIFT": 1, "MIXED": 1, "MANY": 0}

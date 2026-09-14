@@ -5,8 +5,8 @@
 #
 # Which code reads the run is an explicit argument, not an ambient default. The
 # workbook shipped next to this script was produced from the checkout at
-# ac841d65 (v0.16.58, origin/main at the time); nothing here pins that, so the
-# log records what the interpreter actually loaded for this invocation.
+# 56805545 (origin/main, KUMA_VERSION 0.16.58), and the log records the sha the
+# interpreter actually loaded rather than the one this file names.
 #
 # Usage:
 #   bench_r2_release.sh <kuma-checkout>
