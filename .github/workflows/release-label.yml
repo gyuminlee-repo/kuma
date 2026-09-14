@@ -34,6 +34,13 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
+          # setup-node reads package.json's `packageManager` field and, by
+          # default, primes that manager's cache. This job installs nothing, so
+          # pnpm is never set up and that default fails the step before the
+          # check runs. ci.yml does not hit it because it runs
+          # pnpm/action-setup first. Turning the cache off is cheaper here than
+          # installing a package manager for a job that uses node builtins.
+          package-manager-cache: false
 
       # No dependency install: the script uses node builtins and git only.
       - name: Check the label this merge would land on main
