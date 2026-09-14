@@ -1,0 +1,40 @@
+name: Release label
+
+# Its own workflow rather than a job in ci.yml, for one reason: `edited`.
+#
+# The default pull_request types are opened, synchronize and reopened, so a
+# title change after the last push fires no run at all. This check reads the
+# title, so without `edited` a green result on one title would still stand
+# after somebody renamed the pull request to a bad one. Adding `edited` to
+# ci.yml would re-run its 3-OS by 2-version Python matrix, a Rust check and a
+# full pnpm install every time anyone fixes a typo in a title. This workflow is
+# a checkout and one node run, so a rename costs seconds.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  landing-label:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # The pull_request checkout is the merge ref, so package.json and
+          # CHANGELOG.md here are already the merged result, which is what
+          # lands. Depth 50 brings both parents in, so a one-commit branch's
+          # head sha is readable: that is the case where GitHub squashes under
+          # the commit's own subject rather than the title.
+          fetch-depth: 50
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      # No dependency install: the script uses node builtins and git only.
+      - name: Check the label this merge would land on main
+        run: node scripts/check-landing-label.mjs

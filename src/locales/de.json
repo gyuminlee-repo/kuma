@@ -2545,14 +2545,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Die Auswahl des Mutant-Codons bewertet jetzt jedes synonyme Codon, das der gewählte Organismus verwendet. Zuvor sah die Suche nur zwei.",
-      "Seltene Codons bleiben aus diesem Kandidatensatz heraus, sodass ein Entwurf nicht mehr auf einem Codon landet, das der Organismus kaum nutzt.",
-      "Design bewertet Kandidaten über den gesamten Tm-Toleranzdurchlauf, sodass ein weiterer Bereich mit einem besseren Primer nicht mehr übersprungen wird.",
-      "Der Tol-Wert steigt bei diesen Entwürfen. Ein höherer Tol steht hier für einen besser bewerteten Primer, nicht für einen lockereren Maßstab.",
-      "Drei Codon-Tabellen wurden korrigiert, und die Organismusliste zeigt nun jede mitgelieferte Tabelle, daher können frühere Entwürfe abweichen."
+      "Eine MAME-Arbeitsmappe hält jetzt die Referenz, das kodierende Fenster, den Modus und die Schwellenwerte des Laufs fest.",
+      "Die Referenz wird über einen Digest der geparsten Sequenz identifiziert, sodass dasselbe Molekül unter anderem Namen weiterhin passt.",
+      "Das Vokabular der Bewertungsklassen steht in jeder Arbeitsmappe, sodass nachgelagerte Leser die Klassennamen nicht mehr abschreiben.",
+      "Die kuma-Version und die Metadaten des Sequenzierlaufs, auf dem Bibliothekspfad stets leer, werden jetzt geschrieben.",
+      "Keine geänderten Bewertungen: Die Einträge beschreiben bereits geltende Einstellungen, und die Bewertungslogik bleibt unberührt."
     ],
-    "highlightsStamp": "0.16.58+1ce19d3d",
+    "highlightsStamp": "0.16.59+69e92cd5",
     "releases": {
+      "0.16.59": [
+        "Eine MAME-Arbeitsmappe hält jetzt die Referenz, das kodierende Fenster, den Modus und die Schwellenwerte des Laufs fest.",
+        "Die Referenz wird über einen Digest der geparsten Sequenz identifiziert, sodass dasselbe Molekül unter anderem Namen weiterhin passt.",
+        "Das Vokabular der Bewertungsklassen steht in jeder Arbeitsmappe, sodass nachgelagerte Leser die Klassennamen nicht mehr abschreiben.",
+        "Die kuma-Version und die Metadaten des Sequenzierlaufs, auf dem Bibliothekspfad stets leer, werden jetzt geschrieben.",
+        "Keine geänderten Bewertungen: Die Einträge beschreiben bereits geltende Einstellungen, und die Bewertungslogik bleibt unberührt."
+      ],
       "0.16.56": [
         "Der raw-run-Consensus wendet nun den Filter für minimale Basenqualität an, der ohne die verworfene FASTQ-Qualitätszeile wirkungslos war.",
         "Eine Base unter dem Qualitätsschwellenwert zählt nicht mehr für einen Call, sodass eine schlechte Mehrheit keine gute Minderheit überstimmt.",
@@ -2973,6 +2980,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
