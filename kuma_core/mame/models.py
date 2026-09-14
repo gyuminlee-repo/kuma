@@ -200,8 +200,13 @@ class BarcodeRecord:
     # the covered amplicon. They sum to the ``consensus_n_fraction`` numerator,
     # so an elevated N fraction can be read as coverage, deletion, instrument
     # ambiguity or well mixture rather than as one undifferentiated number.
-    # REPORTED ONLY: no gate reads them, and the N-fraction gate is unchanged.
-    # 0 throughout for files written before the keys existed.
+    # The NO_CALL gate reads ``n_no_call_deletion`` (and the other three, to
+    # recover the numerator they partition) so it can judge the no-call rate with
+    # decided deletions taken out; see compare/verdict.py
+    # ``gate_consensus_n_fraction``. The reported ``consensus_n_fraction`` above
+    # still counts all four and is what every other reader sees.
+    # 0 throughout for files written before the keys existed, which leaves the
+    # gate reading ``consensus_n_fraction`` untouched.
     n_no_call_zero_depth: int = 0
     n_no_call_deletion: int = 0
     n_no_call_ambiguous: int = 0
