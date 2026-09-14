@@ -39,7 +39,11 @@ benchmark/data/
 .gjc/
 .worktrees/
 notes/
-.codex-review-passed
+# Review-gate markers written per checkout by the local hooks. The hooks treat
+# every .codex-review-* name as machine state (_review-gate-common.sh), so the
+# pattern matches theirs: listing only the passed marker left .codex-review-attempt
+# showing up as untracked in every worktree that had run the gate.
+.codex-review-*
 .loophaus/
 "package-lock.json" 
 "package-lock.json" 
