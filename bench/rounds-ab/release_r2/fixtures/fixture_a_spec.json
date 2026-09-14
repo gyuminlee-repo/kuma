@@ -1,0 +1,36 @@
+{
+  "sha256": "fc54d6e59add4ed89272eb863a29d26f3dace4e7c5828b3d6895761ad91c39c4",
+  "n_scored": 11,
+  "expected": {
+    "PASS": 4,
+    "AMBIGUOUS": 1,
+    "MIXED": 1,
+    "FRAMESHIFT": 1,
+    "MANY": 1,
+    "LOWDEPTH": 1,
+    "NO_CALL": 1,
+    "WRONG_AA": 1
+  },
+  "wt_verdict": "PASS",
+  "n_records": 36,
+  "expected_replicate": {
+    "PASS": 15,
+    "AMBIGUOUS": 3,
+    "MIXED": 3,
+    "FRAMESHIFT": 3,
+    "MANY": 3,
+    "LOWDEPTH": 3,
+    "NO_CALL": 3,
+    "WRONG_AA": 3
+  },
+  "median_depth": {
+    "PASS": 5000,
+    "AMBIGUOUS": 3200,
+    "MIXED": 2100,
+    "FRAMESHIFT": 3000,
+    "MANY": 1500,
+    "LOWDEPTH": 20,
+    "NO_CALL": 4200,
+    "WRONG_AA": 2600
+  }
+}
