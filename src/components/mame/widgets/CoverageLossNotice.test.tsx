@@ -49,7 +49,8 @@ describe("diagnoseCoverageLoss", () => {
   });
 
   it("reports the plate that prompted this notice", () => {
-    // The CloneFlow comparison: a third of the wells returned nothing while
+    // The plate that prompted this notice, an independent multi-locus
+    // amplicon run: a third of the wells returned nothing while
     // holding reads, because a constant ~28 bp shortfall at the reference 3'
     // end fails a fractional gate on short amplicons.
     const lost = diagnoseCoverageLoss({
