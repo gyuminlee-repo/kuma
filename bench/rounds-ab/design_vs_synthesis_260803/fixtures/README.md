@@ -32,12 +32,12 @@ LOWDEPTH, NO_CALL 네 레코드가 조용히 총계에서 빠졌다. (b) 에서�
 
 ## 왜 실제 CSV 를 깎아 만들었나
 
-`build()` 가 96행을 assert 하고(`../make_fidelity_panel.py:166`) 데이터에서 유도한
-비-clean 집합이 `AUDIT_CLASS` 와 같은지 assert 한다(`:173`). 작은 합성 플레이트는
-집계에 닿기 전에 둘 다에서 걸린다. 그래서 실제 `well_verdicts.csv` 에서
+`build()` 가 96행을 assert 하고(`../make_fidelity_panel.py:183`) 데이터에서 유도한
+비-clean 집합이 `AUDIT_CLASS` 와 같은지 assert 한다(`:190`). 작은 합성 플레이트는
+집계에 닿기 전에 둘 다에서 걸린다. 픽스처를 실제 `well_verdicts.csv` 에서
 `PASS|PASS|PASS` 인 웰을 골라 두 번째나 세 번째 replicate 슬롯만 고쳐 썼다. 첫
 슬롯은 그대로라 `clean_from_data` 가 여전히 True 를 내고 감사 집합이 흔들리지
-않는다. 심은 네 클래스는 이 실행이 낸 적 없는 것들이고, 옛 네 키 목록이 버렸을
+않는다. 심은 네 클래스는 이 실행이 낸 적 없는 것들이고 옛 네 키 목록이 버렸을
 바로 그 클래스들이다.
 
 기대 수치는 손으로 적었다. 알려진 답이라 파일에서 유도하면 검사가 자기를 검사한다.

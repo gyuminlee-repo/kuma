@@ -20,8 +20,8 @@ fail-first, so one file holding both would stop at BOGUS and never show whether
 the eight classes were counted right.
 
 WHY THE REAL CSV AND NOT A SMALL SYNTHETIC PLATE. build() asserts 96 rows
-(make_fidelity_panel.py:166) and asserts that the non-clean set derived from the
-data equals AUDIT_CLASS (:173). A hand-sized plate fails both before reaching
+(make_fidelity_panel.py:183) and asserts that the non-clean set derived from the
+data equals AUDIT_CLASS (:190). A hand-sized plate fails both before reaching
 the tally. The planted slots are therefore chosen among wells reading
 PASS|PASS|PASS, and only the second or third replicate is rewritten, so the
 first replicate still carries the designed change alone and clean_from_data()

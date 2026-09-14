@@ -14,7 +14,7 @@
   `LOWDEPTH` 가 나올 수 없는 실행이다. `release_r2` 쪽은 게이트가 실제로 작동한다
 - 더 이른 실행이다. 참조도 amplicon 이 아니라 `ispS.fasta` CDS 0-1683 이다
 
-그래서 두 폴더의 replicate 층 분포는 서로 다른 수치이고 대조표로 나란히 놓으면
+두 폴더의 replicate 층 분포는 그래서 서로 다른 수치이고 대조표로 나란히 놓으면
 안 된다. 이 실행본 288 레코드는 PASS 210, WRONG_AA 60, AMBIGUOUS 9, MANY 9 다.
 `release_r2` 의 288 레코드는 PASS 191 로 시작하는 8분류 분포다.
 
@@ -32,7 +32,7 @@
 ## 판정 어휘
 
 스크립트는 판정 목록을 손으로 적지 않는다. `kuma_core/mame/models.py` 의
-`VerdictClass` 에서 읽어 온다(`make_fidelity_panel.py:39-72`). checkout 탐색 순서는
+`VerdictClass` 에서 읽어 온다(`make_fidelity_panel.py:54-89`). checkout 탐색 순서는
 `KUMA_REPO_ROOT`, 스크립트 조상 중 `kuma_core` 를 가진 것, `$WORKSPACE_ROOT` 에
 bench worktree 경로를 붙인 것이다. 못 찾으면 예외이고 대체 리터럴은 없다.
 
@@ -43,8 +43,8 @@ bench worktree 경로를 붙인 것이다. 못 찾으면 예외이고 대체 리
 - 집계 합이 읽은 판정 수와 같은지 검산한다. 짧은 목록을 혼자 드러내는 쪽이 이것이다
 
 `rep` 는 집계와 검산 전용이고 시각 요소가 아니다. 관측 0인 클래스가 생겨도 마크,
-범례 행, 축 칸 어디에도 나타나지 않는다. 그래서 이 수정으로 SVG 두 개가 바이트
-동일하게 유지된다.
+범례 행, 축 칸 어디에도 나타나지 않는다. 이 수정이 SVG 두 개를 바이트 동일하게
+유지하는 이유가 그것이다.
 
 `GATE = {"AMBIGUOUS", "MANY", "LOWDEPTH", "NO_CALL"}` 는 지웠다. 정의만 있고 읽는
 곳이 없는 죽은 코드였다. 웰 단위 보류 판정은 `AUDIT_CLASS` 와 `clean_from_data` 가
