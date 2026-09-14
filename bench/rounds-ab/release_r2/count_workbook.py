@@ -32,7 +32,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 
 from verdict_vocab import (  # noqa: E402
-    CLASSES, require_full_vocabulary, require_known, require_total)
+    CLASSES, guard_line, require_full_vocabulary, require_known,
+    require_total)
 
 WORKBOOK = os.path.join(HERE, "R2_FBF10847_v0.16.58_amplicon_MAME.xlsx")
 
@@ -264,6 +265,7 @@ def main(argv=None):
               "until the writer records them.")
 
     print(f"\nknown-answer checks: {checked}, mismatches: {len(fails)}")
+    print(guard_line(__file__))
     for f in fails:
         print(f"  MISMATCH {f}")
     print("CONTROL_OK" if checked and not fails else "CONTROL_FAIL")

@@ -23,7 +23,7 @@ from collections import defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from verdict_vocab import CLASS_SET, VerdictClass  # noqa: E402
+from verdict_vocab import CLASS_SET, VerdictClass, guard_line  # noqa: E402
 
 # The measurement this script checks travels with it. An earlier default pointed
 # at a session scratch directory, which is gone the moment the session is.
@@ -130,5 +130,14 @@ if __name__ == "__main__":
             line += "   (no published value to check)"
         print(line)
     print(f"\nknown-answer checks: {checked}, mismatches: {fails}")
+    print(guard_line(__file__))
+    print("LIMIT: only the per-arm reproduced counts declared in EXPECTED are "
+          "checked. The printed n is not a declared answer, so a well missing "
+          "from every arm shrinks the denominator without failing anything, "
+          "and the per-arm equality guard catches uneven loss only. A "
+          "(round, reference) cell EXPECTED does not list prints its numbers "
+          "and cannot fail. WRONG_AA_STILL_WT is accepted by name rather than "
+          "read from score_bc.py, so renaming that label there aborts this "
+          "script while changing what it means does not.")
     print("CONTROL_OK" if checked and not fails else "CONTROL_FAIL")
     sys.exit(0 if checked and not fails else 1)

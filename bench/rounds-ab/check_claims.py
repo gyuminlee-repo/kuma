@@ -37,7 +37,7 @@ sys.path.insert(0, os.path.join(HERE, "release_r2"))
 
 import count_cells  # noqa: E402
 import count_workbook  # noqa: E402
-from verdict_vocab import CLASSES, require_total  # noqa: E402
+from verdict_vocab import CLASSES, guard_line, require_total  # noqa: E402
 
 RESULTS_CSV = os.path.join(HERE, "results.csv")
 CLAIMS = os.path.join(HERE, "claims.json")
@@ -249,6 +249,7 @@ def main():
     for f in fails:
         print(f"  FAIL  {f}")
     print(f"\nclaims checked: {checked}, mismatches: {len(fails)}")
+    print(guard_line(__file__))
     print("LIMIT: only the claims listed in claims.json and the figure panel A "
           "literals are checked. A number added to a document without a claim "
           "entry is not covered, and figure panel B counts method disagreement "

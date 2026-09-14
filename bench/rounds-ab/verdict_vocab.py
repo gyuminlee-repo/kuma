@@ -14,8 +14,10 @@ ancestor scan always succeeds and that fallback is left out on purpose.
 """
 from __future__ import annotations
 
+import ast
 import os
 import sys
+from collections import Counter
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -88,3 +90,56 @@ def require_full_vocabulary(keys, where):
             f"ABORT: {where} declares {sorted(got)}, the enum declares "
             f"{sorted(want)}; missing {sorted(want - got)}, "
             f"unknown {sorted(got - want)}")
+
+
+def _guard_names():
+    """The abort guards this module exports, read off the module itself.
+
+    Typing the three names into a list here would be the same hand-copied
+    closed list these checkers exist to remove. A fourth require_* guard added
+    later is picked up with no edit.
+    """
+    return {n for n, o in vars(sys.modules[__name__]).items()
+            if n.startswith("require_") and callable(o)}
+
+
+def guard_sites(path):
+    """Return (kind, line) for every always-on abort site in a checker file.
+
+    Parsed out of the file, never declared, so adding or dropping a guard moves
+    the number with nobody editing a total. Two kinds count: a call to one of
+    this module's require_* guards, and a bare `raise SystemExit(...)`. Both
+    stop the run where the violation is, which is why they never show up in the
+    known-answer tally.
+
+    LIMIT: the match is by bare name, so a guard reached under an alias
+    (`import ... as rt`) or wrapped in a local helper is not seen here.
+    """
+    names = _guard_names()
+    tree = ast.parse(Path(path).read_text(encoding="utf-8"), filename=str(path))
+    sites = []
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id in names):
+            sites.append((node.func.id, node.lineno))
+        elif (isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call)
+                and isinstance(node.exc.func, ast.Name)
+                and node.exc.func.id == "SystemExit"):
+            sites.append(("inline SystemExit", node.lineno))
+    return sorted(sites, key=lambda s: s[1])
+
+
+def guard_line(path):
+    """One line naming the always-on guards of `path`, counted from its source.
+
+    Kept apart from the known-answer tally on purpose. A known-answer check
+    asks whether a number equals the declared answer; a guard asks whether the
+    tally is structurally possible at all, and merging the two would report one
+    protection where there are two.
+    """
+    sites = guard_sites(path)
+    kinds = Counter(k for k, _ in sites)
+    detail = ", ".join(f"{k} x{n}" for k, n in sorted(kinds.items()))
+    return (f"always-on guards: {len(sites)} abort sites in {Path(path).name} "
+            f"({detail}), counted from its source; any violation aborts the "
+            f"run before this line")
