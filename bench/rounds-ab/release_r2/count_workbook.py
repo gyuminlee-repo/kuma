@@ -15,6 +15,7 @@ import hashlib
 import os
 import re
 import sys
+import statistics
 from collections import Counter
 
 import openpyxl
@@ -38,6 +39,26 @@ EXPECTED = {"PASS": 82, "NO_CALL": 3, "LOWDEPTH": 2, "WRONG_AA": 4,
 EXPECTED_N_SCORED = 95
 EXPECTED_WT_VERDICT = "PASS"
 
+# The replicate layer of the same reanalysis: one record per well per plate,
+# read from the three per-barcode sheets. The manuscript reports this layer
+# beside the consolidated one, so it is checked here rather than recomputed by
+# hand each time a document quotes it.
+PLATE_SHEETS = ["NB06", "NB13", "NB20"]
+EXPECTED_REPLICATE = {"PASS": 191, "WRONG_AA": 37, "MIXED": 30, "NO_CALL": 12,
+                      "AMBIGUOUS": 8, "FRAMESHIFT": 5, "LOWDEPTH": 5,
+                      "NO_READS": 0}
+EXPECTED_N_RECORDS = 288
+
+# Depth medians per class, which the supplementary figure tabulates.
+EXPECTED_MEDIAN_DEPTH = {"PASS": 5684, "NO_CALL": 4213, "AMBIGUOUS": 3193,
+                         "FRAMESHIFT": 3063, "WRONG_AA": 2639, "MIXED": 2103,
+                         "LOWDEPTH": 30}
+
+# The MIXED confidence floor, as the product computes it. Read from the code
+# rather than restated, so a change to either constant surfaces here.
+MIN_READ_COUNT = 30
+MIXED_DEPTH_FACTOR = 3
+
 
 # The Final sheet ends with a run-summary row whose well_id is a sentence, not a
 # plate position. Counting it as a control well is the kind of silent off-by-one
@@ -50,6 +71,25 @@ def is_designed(mutant_id):
     if mutant_id is None:
         return False
     return str(mutant_id).strip().upper() not in ("", "WT", "NONE")
+
+
+def read_replicates(wb):
+    """One record per well per plate, with its depth and mixed-position count."""
+    out = []
+    for sheet in PLATE_SHEETS:
+        ws = wb[sheet]
+        it = ws.iter_rows(values_only=True)
+        head = [str(c) if c is not None else "" for c in next(it)]
+        i_w, i_r = head.index("well_id"), head.index("read_count")
+        i_m, i_v = head.index("mixed_positions"), head.index("verdict")
+        for r in it:
+            if r[i_w] is None:
+                continue
+            well = str(r[i_w]).strip()
+            if not WELL_RE.match(well):
+                continue
+            out.append((sheet, well, r[i_r], r[i_m], str(r[i_v])))
+    return out
 
 
 def read(path):
@@ -116,6 +156,42 @@ def main():
     wt_verdicts = sorted(set(wt.values()))
     if wt_verdicts != [EXPECTED_WT_VERDICT]:
         fails.append(f"control verdict {wt_verdicts} != [{EXPECTED_WT_VERDICT}]")
+
+    # Replicate layer, from the same workbook and the same reanalysis.
+    reps = read_replicates(openpyxl.load_workbook(path, data_only=True))
+    rep_counts = Counter(v for _s, _w, _r, _m, v in reps)
+    depths = {}
+    for _s, _w, rc, _m, v in reps:
+        if rc is not None:
+            depths.setdefault(v, []).append(rc)
+    mixed_floor = MIN_READ_COUNT * MIXED_DEPTH_FACTOR
+    below = [(s_, w, rc) for s_, w, rc, m, _v in reps
+             if m and rc is not None and rc < mixed_floor]
+
+    print(f"\nreplicate layer: {len(reps)} records over {len(PLATE_SHEETS)} plates")
+    for cls in CLASSES:
+        n = rep_counts.get(cls, 0)
+        med = statistics.median(depths[cls]) if depths.get(cls) else None
+        med_s = f"  median depth {med:.0f}" if med is not None else ""
+        print(f"  {cls:11s} {n:3d}{med_s}")
+    print(f"  records with a mixed position below the {mixed_floor}-read "
+          f"mixture floor: {len(below)}")
+
+    checked += 1
+    if len(reps) != EXPECTED_N_RECORDS:
+        fails.append(f"replicate records {len(reps)} != {EXPECTED_N_RECORDS}")
+    for cls, want in EXPECTED_REPLICATE.items():
+        checked += 1
+        if rep_counts.get(cls, 0) != want:
+            fails.append(f"replicate {cls}: got {rep_counts.get(cls, 0)} want {want}")
+    for cls, want in EXPECTED_MEDIAN_DEPTH.items():
+        checked += 1
+        got = statistics.median(depths[cls]) if depths.get(cls) else None
+        if got is None or round(got) != want:
+            fails.append(f"replicate {cls} median depth: got {got} want {want}")
+    checked += 1
+    if any(rc is None for _s, _w, rc, _m, _v in reps):
+        fails.append("some replicate records carry no read count")
 
     print("\nprovenance recorded in the workbook:")
     for k, v in meta.items():
