@@ -238,5 +238,68 @@
     "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/010.프라이머_설계_툴/kuma/MAME_NGS_자동화/MAME_분석/260909_팀미팅_samtools_medaka_적용가능성_판정.md",
     "quote": "84 로 {value}웰이 오른다. 같은 조작인데 크기가",
     "source": "gap:R2:A"
+  },
+  {
+    "id": "ms-pass",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/060.강혜민_IspS_LowCost_Workflow/05_Manuscript/260824_PaperA_draft_v3.md",
+    "quote": "PASS {value} (86.3 per cent)",
+    "source": "workbook:PASS",
+    "mode": "all"
+  },
+  {
+    "id": "ms-pass-pct",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/060.강혜민_IspS_LowCost_Workflow/05_Manuscript/260824_PaperA_draft_v3.md",
+    "quote": "PASS 82 ({value} per cent)",
+    "source": "workbook:pass_pct",
+    "mode": "all"
+  },
+  {
+    "id": "ms-wrongaa",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/060.강혜민_IspS_LowCost_Workflow/05_Manuscript/260824_PaperA_draft_v3.md",
+    "quote": "WRONG_AA {value}, NO_CALL 3",
+    "source": "workbook:WRONG_AA",
+    "mode": "all"
+  },
+  {
+    "id": "ms-nocall",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/060.강혜민_IspS_LowCost_Workflow/05_Manuscript/260824_PaperA_draft_v3.md",
+    "quote": "WRONG_AA 4, NO_CALL {value}",
+    "source": "workbook:NO_CALL",
+    "mode": "all"
+  },
+  {
+    "id": "ms-rep-pass",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/060.강혜민_IspS_LowCost_Workflow/05_Manuscript/260824_PaperA_draft_v3.md",
+    "quote": "PASS {value}, WRONG_AA 37",
+    "source": "workbook:rep:PASS",
+    "mode": "all"
+  },
+  {
+    "id": "ms-rep-wrongaa",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/060.강혜민_IspS_LowCost_Workflow/05_Manuscript/260824_PaperA_draft_v3.md",
+    "quote": "PASS 191, WRONG_AA {value}",
+    "source": "workbook:rep:WRONG_AA",
+    "mode": "all"
+  },
+  {
+    "id": "ms-rep-mixed",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/060.강혜민_IspS_LowCost_Workflow/05_Manuscript/260824_PaperA_draft_v3.md",
+    "quote": "MIXED {value}, NO_CALL 12",
+    "source": "workbook:rep:MIXED",
+    "mode": "all"
+  },
+  {
+    "id": "ms-rep-nocall",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/060.강혜민_IspS_LowCost_Workflow/05_Manuscript/260824_PaperA_draft_v3.md",
+    "quote": "MIXED 30, NO_CALL {value}",
+    "source": "workbook:rep:NO_CALL",
+    "mode": "all"
+  },
+  {
+    "id": "ms-rep-ambig",
+    "doc": "$OBSIDIAN_VAULT/010.KRIBB/010.Projects/060.강혜민_IspS_LowCost_Workflow/05_Manuscript/260824_PaperA_draft_v3.md",
+    "quote": "AMBIGUOUS {value}, FRAMESHIFT 5",
+    "source": "workbook:rep:AMBIGUOUS",
+    "mode": "all"
   }
 ]

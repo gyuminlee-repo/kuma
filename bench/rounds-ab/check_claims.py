@@ -16,6 +16,9 @@ Sources a claim can draw on:
   workbook:<VERDICT>      one of the eight classes, from the release workbook
   workbook:n_scored       designed-variant wells in that workbook
   workbook:pass_pct       PASS share of those wells, one decimal
+  workbook:wt_total_pass  PASS over all 96 wells, control included
+  workbook:rep:<VERDICT>  the same reanalysis at the 288-record replicate layer
+  workbook:rep:n          how many replicate records that layer holds
   cells:<round>:<ref>:<arm>   wells reproducing the designed variant, results.csv
   gap:<round>:<arm>       how many wells the amplicon reference gains over the CDS one
 
@@ -49,6 +52,19 @@ def build_values():
         values[f"workbook:{cls}"] = sum(1 for v in designed.values() if v == cls)
     npass = values["workbook:PASS"]
     values["workbook:pass_pct"] = f"{100.0 * npass / n:.1f}" if n else "n/a"
+    values["workbook:wt_total_pass"] = npass + sum(
+        1 for v in wt.values() if v == "PASS")
+
+    # Replicate layer, the stratum the supplementary figure reports.
+    wb = count_workbook.openpyxl.load_workbook(count_workbook.WORKBOOK,
+                                               data_only=True)
+    reps = count_workbook.read_replicates(wb)
+    values["workbook:rep:n"] = len(reps)
+    rep_counts = {}
+    for _s, _w, _r, _m, verdict in reps:
+        rep_counts[verdict] = rep_counts.get(verdict, 0) + 1
+    for cls in count_workbook.CLASSES:
+        values[f"workbook:rep:{cls}"] = rep_counts.get(cls, 0)
 
     cells = count_cells.count(RESULTS_CSV)
     for (rnd, ref), per_arm in cells.items():
@@ -139,6 +155,23 @@ def check_figure_script(values, path):
     return reports, fails
 
 
+def variant_scan(quote, want, text):
+    """Find copies of this sentence that carry some other number.
+
+    A distribution sentence is repeated across the body, the caption and the
+    working notes. Correcting one copy and not the rest is the failure this
+    catches, so the template is turned into a pattern over the literal wording
+    with only the value position left open. Nothing here reads free prose.
+    """
+    before, after = quote.split("{value}")
+    # A comma is a thousands separator only between digit groups, never a
+    # trailing one: "NO_CALL 3, LOWDEPTH" must yield 3 and not "3,".
+    number = r"([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?)"
+    pattern = re.escape(before) + number + re.escape(after)
+    found = [m.group(1) for m in re.finditer(pattern, text)]
+    return [g for g in found if g != want], len(found)
+
+
 def resolve(path):
     """Documents are addressed through the vault variable, never a fixed path."""
     return os.path.expandvars(path)
@@ -169,7 +202,17 @@ def main():
             fails.append(f"{cid}: document not found at {doc}")
             continue
         if sentence in text:
-            print(f"  ok    {cid:34s} {src} = {want}")
+            if c.get("mode") == "all":
+                wrong, total = variant_scan(c["quote"], want, text)
+                if wrong:
+                    fails.append(f"{cid}: {total} copies of this sentence, "
+                                 f"{len(wrong)} carry {sorted(set(wrong))} "
+                                 f"instead of {want}")
+                    continue
+                print(f"  ok    {cid:34s} {src} = {want}  "
+                      f"({total} copies agree)")
+            else:
+                print(f"  ok    {cid:34s} {src} = {want}")
             continue
         # Say what the document holds instead, so the report is actionable.
         head = c["quote"].split("{value}")[0][-40:]
