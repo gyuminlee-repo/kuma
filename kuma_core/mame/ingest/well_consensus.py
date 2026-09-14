@@ -120,6 +120,13 @@ class ConsensusResult:
     # behind an empty list at a nonzero count.
     del_majority_positions: tuple[int, ...] = ()
     n_del_majority_positions: int = 0
+    # Bases the called molecule GAINED, as ``(anchor, bases)`` pairs with the
+    # anchor 1-based and naming the reference base the insertion follows. The
+    # mirror of ``del_majority_positions``: the consensus drops insertions and
+    # keeps reference length, and this is the channel that carries what was
+    # dropped. See ConsensusCall in ingest/consensus.py.
+    ins_majority_bases: tuple[tuple[int, str], ...] = ()
+    n_ins_majority_anchors: int = 0
     # Why the no-calls happened. Partition of the ``consensus_n_fraction``
     # numerator; the four sum to it exactly. See ConsensusCall for the priority.
     n_no_call_zero_depth: int = 0
@@ -373,6 +380,8 @@ def compute_well_consensuses(
             max_del_run_length=consensus_call.max_del_run_length,
             del_majority_positions=consensus_call.del_majority_positions,
             n_del_majority_positions=consensus_call.n_del_majority_positions,
+            ins_majority_bases=consensus_call.ins_majority_bases,
+            n_ins_majority_anchors=consensus_call.n_ins_majority_anchors,
             n_no_call_zero_depth=consensus_call.n_no_call_zero_depth,
             n_no_call_deletion=consensus_call.n_no_call_deletion,
             n_no_call_ambiguous=consensus_call.n_no_call_ambiguous,

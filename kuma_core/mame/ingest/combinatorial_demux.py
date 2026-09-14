@@ -2828,6 +2828,12 @@ def _run_combinatorial_demux_body(
                                 n_del_majority_positions=(
                                     r.n_del_majority_positions
                                 ),
+                                ins_majority_bases=(
+                                    r.ins_majority_bases
+                                ),
+                                n_ins_majority_anchors=(
+                                    r.n_ins_majority_anchors
+                                ),
                                 n_no_call_zero_depth=r.n_no_call_zero_depth,
                                 n_no_call_deletion=r.n_no_call_deletion,
                                 n_no_call_ambiguous=r.n_no_call_ambiguous,
@@ -2987,6 +2993,13 @@ class WellConsensus(NamedTuple):
     # See ConsensusCall in ingest/consensus.py.
     del_majority_positions: tuple[int, ...] = ()
     n_del_majority_positions: int = 0
+    # Bases the called molecule GAINED, as ``(anchor, bases)`` pairs with the
+    # anchor 1-based and naming the reference base the insertion follows. The
+    # mirror of ``del_majority_positions``: the consensus drops insertions and
+    # keeps reference length, and this is the channel that carries what was
+    # dropped. See ConsensusCall in ingest/consensus.py.
+    ins_majority_bases: tuple[tuple[int, str], ...] = ()
+    n_ins_majority_anchors: int = 0
     n_no_call_zero_depth: int = 0
     n_no_call_deletion: int = 0
     n_no_call_ambiguous: int = 0
@@ -3091,6 +3104,8 @@ def _compute_well_consensus(
         max_del_run_length=consensus_call.max_del_run_length,
         del_majority_positions=consensus_call.del_majority_positions,
         n_del_majority_positions=consensus_call.n_del_majority_positions,
+        ins_majority_bases=consensus_call.ins_majority_bases,
+        n_ins_majority_anchors=consensus_call.n_ins_majority_anchors,
         n_no_call_zero_depth=consensus_call.n_no_call_zero_depth,
         n_no_call_deletion=consensus_call.n_no_call_deletion,
         n_no_call_ambiguous=consensus_call.n_no_call_ambiguous,

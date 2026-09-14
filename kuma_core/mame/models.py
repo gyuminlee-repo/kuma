@@ -169,6 +169,28 @@ class BarcodeRecord:
     # while the list is empty, and it means "not reported", never "none".
     del_majority_positions: tuple[int, ...] = ()
     n_del_majority_positions: int = 0
+    # Bases the called molecule GAINED, as ``(anchor, bases)`` pairs with the
+    # anchor 1-based and naming the reference base the insertion FOLLOWS. The
+    # mirror of the two fields above. ``consensus_seq`` drops insertions
+    # entirely and KEEPS DOING SO, so the stored record stays at reference
+    # length; this is the separate channel that carries what was dropped, and
+    # ``translate/aa_translator.py`` splices it back into a copy at translation
+    # time to build the length-true sequence.
+    #
+    # Without it a block substitution is unreadable. minimap2 writes a swapped
+    # codon as an insertion beside a deletion, so the deletion becomes an 'N' and
+    # the insertion vanishes: the LENGTH is right
+    # (``consensus_net_indel_bp == 0``) and the BASES are absent. That is the one
+    # case where a zero net indel does not mean "nothing happened", and the only
+    # way to tell it from a clean well is that both this list and
+    # ``del_majority_positions`` are non-empty.
+    #
+    # Empty for a well with no insertion majority, for a file written before the
+    # key existed, and for a well over the reporting budget. The count below
+    # tells the last apart from the first two, and also counts anchors whose
+    # reads tied on WHICH sequence they inserted.
+    ins_majority_bases: tuple[tuple[int, str], ...] = ()
+    n_ins_majority_anchors: int = 0
     # A nonzero count with ``consensus_net_indel_bp == 0`` means an insertion
     # majority cancels the deletion at the same anchor, i.e. an alignment
     # representation of a substitution rather than a lost base. The reported
@@ -228,6 +250,21 @@ class TranslatedRecord:
     # carried N bases (no-call). Excluded from observed_aa_changes so they do not
     # flood the verdict table or inflate the MANY count; surfaced separately.
     n_no_call_aa: int = 0
+    # The molecule as called, at its own length rather than the reference's:
+    # deletion-majority positions removed and majority insertions spliced back
+    # in. ``None`` when it could not be built honestly, which is every record
+    # whose consensus carries no indel channel (an externally supplied FASTA, a
+    # file written before the keys existed) and every record whose channel is
+    # incomplete because a list exceeded the reporting budget or its reads tied.
+    #
+    # REPORTED ONLY. ``observed_nt_changes`` and ``observed_aa_changes`` are
+    # produced exactly as before and no gate reads this field, so adding it
+    # cannot move a verdict. It exists because a block substitution is invisible
+    # in every other output: length is unchanged, the deleted base reads as an
+    # 'N' and the inserted base is absent, so the sequence the well actually
+    # carries appears nowhere. Diffing it positionally against the reference is a
+    # separate decision, and it is only meaningful when the length matches.
+    length_true_nt: str | None = None
 
 
 #: Labels a variant list uses for the wild-type control rather than a mutant.

@@ -59,6 +59,9 @@ from kuma_core.mame.ingest.consensus_metadata import (
     MAX_DEL_RUN_LENGTH,
     DEL_MAJORITY_POSITIONS,
     N_DEL_MAJORITY_POSITIONS,
+    INS_MAJORITY_BASES,
+    N_INS_MAJORITY_ANCHORS,
+    parse_insertion_bases,
     NO_CALL_ZERO_DEPTH,
     NO_CALL_DELETION,
     NO_CALL_AMBIGUOUS,
@@ -452,6 +455,16 @@ def parse_fasta_file(
     n_del_majority_positions = (
         _read_int_metadata(metadata, N_DEL_MAJORITY_POSITIONS) or 0
     )
+    # Same absence semantics as the deletion pair: no key gives () and 0, which
+    # is exactly what a well with no insertion majority reports, so a file
+    # written before these keys existed takes the clean-well path and nothing
+    # downstream moves.
+    ins_majority_bases = parse_insertion_bases(
+        metadata.get(INS_MAJORITY_BASES.lower())
+    )
+    n_ins_majority_anchors = (
+        _read_int_metadata(metadata, N_INS_MAJORITY_ANCHORS) or 0
+    )
     n_no_call_zero_depth = _read_int_metadata(metadata, NO_CALL_ZERO_DEPTH) or 0
     n_no_call_deletion = _read_int_metadata(metadata, NO_CALL_DELETION) or 0
     n_no_call_ambiguous = _read_int_metadata(metadata, NO_CALL_AMBIGUOUS) or 0
@@ -535,6 +548,8 @@ def parse_fasta_file(
         max_del_run_length=max_del_run_length,
         del_majority_positions=del_majority_positions,
         n_del_majority_positions=n_del_majority_positions,
+        ins_majority_bases=ins_majority_bases,
+        n_ins_majority_anchors=n_ins_majority_anchors,
         n_no_call_zero_depth=n_no_call_zero_depth,
         n_no_call_deletion=n_no_call_deletion,
         n_no_call_ambiguous=n_no_call_ambiguous,
