@@ -154,6 +154,31 @@ class BarcodeRecord:
     # 0 = insertion-driven, 1 = isolated single position (artifact suspect),
     # >=2 = N-bp contiguous deletion.
     max_del_run_length: int = 0
+    # Reference positions (1-based) the called molecule is missing, i.e. the
+    # positions whose deletion fraction won a majority. ``consensus_seq`` writes
+    # 'N' at each of them and KEEPS DOING SO: the stored record stays in the
+    # ACGTN alphabet, and this list is the separate channel that carries the same
+    # fact. ``translate/aa_translator.py`` reads it to build a gapped copy at
+    # translation time, which is what turns a deletion into a `{REF}{pos}del`
+    # marker instead of a spurious substitution to N.
+    #
+    # Empty for a well with no deletion majority, for a consensus file written
+    # before the key existed, and for a well whose deletion runs exceeded the
+    # reporting budget. The first two are indistinguishable and neither states
+    # anything false. The third is told apart by the count below being nonzero
+    # while the list is empty, and it means "not reported", never "none".
+    del_majority_positions: tuple[int, ...] = ()
+    n_del_majority_positions: int = 0
+    # Why this consensus emitted each 'N', as four mutually exclusive counts over
+    # the covered amplicon. They sum to the ``consensus_n_fraction`` numerator,
+    # so an elevated N fraction can be read as coverage, deletion, instrument
+    # ambiguity or well mixture rather than as one undifferentiated number.
+    # REPORTED ONLY: no gate reads them, and the N-fraction gate is unchanged.
+    # 0 throughout for files written before the keys existed.
+    n_no_call_zero_depth: int = 0
+    n_no_call_deletion: int = 0
+    n_no_call_ambiguous: int = 0
+    n_no_call_no_majority: int = 0
     # Net indel of the consensus relative to the reference. The FRAMESHIFT gate
     # reads this field. ``None`` for inputs that carry no such measurement
     # (pre-aligned FASTA, and files written before the field was renamed away

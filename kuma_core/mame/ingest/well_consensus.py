@@ -113,6 +113,19 @@ class ConsensusResult:
     n_indel_event_positions: int = 0
     max_indel_event_fraction: float = 0.0
     max_del_run_length: int = 0
+    # Deletion-majority evidence carried alongside the sequence rather than
+    # inside it. ``consensus_seq`` keeps 'N' at these positions so the stored
+    # record stays in the alphabet every existing project was written in; see
+    # ConsensusCall for why the channel is separate and for the budget rule
+    # behind an empty list at a nonzero count.
+    del_majority_positions: tuple[int, ...] = ()
+    n_del_majority_positions: int = 0
+    # Why the no-calls happened. Partition of the ``consensus_n_fraction``
+    # numerator; the four sum to it exactly. See ConsensusCall for the priority.
+    n_no_call_zero_depth: int = 0
+    n_no_call_deletion: int = 0
+    n_no_call_ambiguous: int = 0
+    n_no_call_no_majority: int = 0
     consensus_net_indel_bp: int = 0
     median_read_net_indel_bp: int = 0
     max_minor_allele_strand_share: float | None = None
@@ -358,6 +371,12 @@ def compute_well_consensuses(
             n_indel_event_positions=consensus_call.n_indel_event_positions,
             max_indel_event_fraction=consensus_call.max_indel_event_fraction,
             max_del_run_length=consensus_call.max_del_run_length,
+            del_majority_positions=consensus_call.del_majority_positions,
+            n_del_majority_positions=consensus_call.n_del_majority_positions,
+            n_no_call_zero_depth=consensus_call.n_no_call_zero_depth,
+            n_no_call_deletion=consensus_call.n_no_call_deletion,
+            n_no_call_ambiguous=consensus_call.n_no_call_ambiguous,
+            n_no_call_no_majority=consensus_call.n_no_call_no_majority,
             consensus_net_indel_bp=consensus_call.consensus_net_indel_bp,
             median_read_net_indel_bp=consensus_call.median_read_net_indel_bp,
             max_minor_allele_strand_share=(

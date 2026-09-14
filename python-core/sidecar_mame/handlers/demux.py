@@ -286,6 +286,17 @@ def _run_consensus_on_dir(
                     n_indel_event_positions=result.n_indel_event_positions,
                     max_indel_event_fraction=result.max_indel_event_fraction,
                     max_del_run_length=result.max_del_run_length,
+                    # FASTA-header metadata only. The response dict below is a
+                    # cross-layer contract with the TypeScript types and is
+                    # deliberately left alone; this block is what the parser
+                    # reads back, so a file this path writes carries the same
+                    # evidence as one the raw-run path writes.
+                    del_majority_positions=result.del_majority_positions,
+                    n_del_majority_positions=result.n_del_majority_positions,
+                    n_no_call_zero_depth=result.n_no_call_zero_depth,
+                    n_no_call_deletion=result.n_no_call_deletion,
+                    n_no_call_ambiguous=result.n_no_call_ambiguous,
+                    n_no_call_no_majority=result.n_no_call_no_majority,
                     consensus_net_indel=result.consensus_net_indel_bp,
                     read_net_indel=result.median_read_net_indel_bp,
                     consensus_n_fraction_basis=BASIS_COVERED,
