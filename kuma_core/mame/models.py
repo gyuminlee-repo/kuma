@@ -48,7 +48,12 @@ class NoisyPosition:
     ``(plus_count + minus_count) / depth``.
 
     Nothing here classifies anything. These are measurements the caller may
-    weigh; no verdict reads them.
+    weigh. One gate reads the ORDER rather than the values: ``position`` is
+    matched against ``del_majority_positions`` by
+    ``compare/verdict.py`` ``gate_mixed_positions``, which relies on this tuple
+    being the minor-fraction-descending prefix of the eligible positions so the
+    first ``n_mixed_positions`` entries name the mixed set. No verdict reads
+    ``minor_fraction``, ``depth`` or the strand counts.
     """
 
     position: int
@@ -167,6 +172,10 @@ class BarcodeRecord:
     # reporting budget. The first two are indistinguishable and neither states
     # anything false. The third is told apart by the count below being nonzero
     # while the list is empty, and it means "not reported", never "none".
+    #
+    # ``compare/verdict.py`` ``gate_mixed_positions`` also reads these two, to
+    # keep a deletion-majority coordinate out of the MIXED gate's input for the
+    # same reason ``gate_consensus_n_fraction`` keeps it out of the N gate's.
     del_majority_positions: tuple[int, ...] = ()
     n_del_majority_positions: int = 0
     # Bases the called molecule GAINED, as ``(anchor, bases)`` pairs with the
