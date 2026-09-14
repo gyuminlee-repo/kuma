@@ -73,6 +73,12 @@ class SidecarState:
     # None after ``load_analyze_result``, which restores a payload that does not
     # carry it: an omitted row is honest, a row copied from another run is not.
     last_barcode_prefix_note: str | None = None
+    # The conditions the analyze ran under (AnalysisConditions | None), so a
+    # re-export writes the same __kuma_meta__ rows the analyze wrote. Same rule
+    # as the note above: None after ``load_analyze_result``, because a restored
+    # payload does not carry them and inventing them would be worse than a
+    # missing row.
+    last_analysis_conditions: object | None = None
 
 
 _state = SidecarState()
@@ -91,6 +97,7 @@ def set_last_analyze(
     run_meta: object | None = None,
     designed_mutant_ids: frozenset[str] | None = None,
     barcode_prefix_note: str | None = None,
+    analysis_conditions: object | None = None,
 ) -> None:
     with _state_lock:
         _state.last_verdicts = verdicts
@@ -99,6 +106,7 @@ def set_last_analyze(
         _state.last_run_meta = run_meta
         _state.last_designed_mutant_ids = designed_mutant_ids
         _state.last_barcode_prefix_note = barcode_prefix_note
+        _state.last_analysis_conditions = analysis_conditions
 
 
 def reset_state() -> None:
@@ -110,6 +118,7 @@ def reset_state() -> None:
         _state.last_run_meta = None
         _state.last_designed_mutant_ids = None
         _state.last_barcode_prefix_note = None
+        _state.last_analysis_conditions = None
 
 # ---------------------------------------------------------------------------
 # stdout JSON-RPC framing. Thread-safe writer.
