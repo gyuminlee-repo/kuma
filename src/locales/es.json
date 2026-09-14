@@ -2545,14 +2545,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "La elección del codón mutante ahora pondera todos los codones sinónimos que usa el organismo seleccionado. Antes la búsqueda solo veía dos.",
-      "Los codones raros quedan fuera de ese conjunto, así un diseño ya no acaba en un codón que el organismo elegido apenas utiliza.",
-      "Design ordena los candidatos en todo el barrido de tolerancia de Tm, así una ventana más amplia con un cebador mejor ya no se omite.",
-      "El valor de Tol sube en esos diseños. Un Tol más alto indica aquí un cebador mejor puntuado, no un criterio más laxo.",
-      "Se corrigieron tres tablas de codones y la lista de organismos ya muestra todas las tablas incluidas, así los diseños anteriores pueden diferir."
+      "Un libro de MAME ahora registra la referencia, la ventana codificante, el modo y los umbrales con los que se ejecutó la corrida.",
+      "La referencia se identifica por un resumen de la secuencia analizada, así la misma molécula guardada con otro nombre sigue coincidiendo.",
+      "El vocabulario de clases de veredicto se registra en cada libro, así quien lo lea después ya no copia a mano los nombres de las clases.",
+      "La versión de kuma y los metadatos de la corrida de secuenciación, vacíos en cada libro escrito por la ruta de biblioteca, ya se completan.",
+      "Sin cambios de veredicto: las entradas describen ajustes que ya estaban vigentes y la lógica de decisión queda intacta."
     ],
-    "highlightsStamp": "0.16.58+1ce19d3d",
+    "highlightsStamp": "0.16.59+69e92cd5",
     "releases": {
+      "0.16.59": [
+        "Un libro de MAME ahora registra la referencia, la ventana codificante, el modo y los umbrales con los que se ejecutó la corrida.",
+        "La referencia se identifica por un resumen de la secuencia analizada, así la misma molécula guardada con otro nombre sigue coincidiendo.",
+        "El vocabulario de clases de veredicto se registra en cada libro, así quien lo lea después ya no copia a mano los nombres de las clases.",
+        "La versión de kuma y los metadatos de la corrida de secuenciación, vacíos en cada libro escrito por la ruta de biblioteca, ya se completan.",
+        "Sin cambios de veredicto: las entradas describen ajustes que ya estaban vigentes y la lógica de decisión queda intacta."
+      ],
       "0.16.56": [
         "El consenso de raw run ya aplica el filtro de calidad mínima de base, que no tenía efecto porque se descartaba la línea de calidad del FASTQ.",
         "Una base por debajo del umbral de calidad ya no cuenta para una llamada, así que una mayoría de baja calidad no vence a una minoría de alta calidad.",
@@ -2973,6 +2980,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",

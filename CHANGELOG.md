@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.16.59 (A finished workbook says what produced it)
+
+A finished MAME workbook named plates, wells and verdicts and said nothing about what produced them. The reference the reads were graded against, the translated window, and the thresholds that turn reads into a verdict lived only in the session that ran the analysis. Two results from the same plate under different settings were indistinguishable once that session was gone, and nobody could say whether they may be compared.
+
+The hidden metadata sheet now carries thirteen entries describing the run: the reference file name, its parsed length and a sha256 over the parsed sequence, the coding window, the mode, the ingest mode, the minimum read count, the maximum consensus N fraction, the minimum file size, the many cutoff, the MIXED confidence depth factor and read count, and the verdict class vocabulary. The digest is taken over the parsed sequence rather than over the file bytes, so the same molecule re-saved under another name or re-wrapped at a different line width is recognised as the same reference, which a byte hash would deny.
+
+The verdict vocabulary row is written for every workbook, including one produced by a caller that ran no analysis at all. The class names are a property of kuma rather than of a single run, and a reader holding only the workbook had no way to ask which vocabulary was in force. The row is iterated from the class definition rather than listed by hand, so a class added there reaches the sheet without anyone editing the exporter.
+
+Two provenance fields that were meant to be there already were empty on every workbook written through the library path. The kuma version was never passed in by the pipeline, and the sequencing run metadata was discovered on a thread joined after the pipeline had written the file, so the discovered value reached only the in-memory cache. The join now happens first and both fields reach the file. A re-export carries the same record, because the record belongs to the run rather than to the button that wrote it.
+
+Nothing here changes how a well is judged. The entries describe settings that were already in force, and the judgment logic is untouched.
+
+### Highlights
+
+- A MAME workbook now records the reference, the coding window, the mode and the thresholds the run was executed under.
+- The reference is identified by a digest over the parsed sequence, so the same molecule re-saved under another name still matches.
+- The verdict class vocabulary is recorded on every workbook, so a downstream reader no longer hand-copies the class names.
+- The kuma version and the sequencing run metadata, both empty on every workbook written through the library path, are now filled.
+- No verdict changes: the entries describe settings that were already in force, and the judgment logic is untouched.
+
 ## v0.16.58 (Every codon the host uses, and the whole tolerance sweep)
 
 Four faults in KURO primer design, all of them upstream of the primer a user copies into an order.

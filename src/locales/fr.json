@@ -2545,14 +2545,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Le choix du codon mutant évalue désormais chaque codon synonyme utilisé par l'organisme sélectionné. Auparavant la recherche n'en voyait que deux.",
-      "Les codons rares restent hors de cet ensemble, si bien qu'un design ne tombe plus sur un codon que l'organisme choisi n'emploie presque jamais.",
-      "Design classe les candidats sur tout le balayage de tolérance Tm, si bien qu'une fenêtre plus large contenant une meilleure amorce n'est plus ignorée.",
-      "La valeur Tol augmente sur ces designs. Un Tol plus élevé signale ici une amorce mieux notée, et non un critère assoupli.",
-      "Trois tables de codons ont été corrigées et la liste des organismes affiche désormais toutes les tables fournies, donc les designs antérieurs peuvent différer."
+      "Un classeur MAME enregistre désormais la référence, la fenêtre codante, le mode et les seuils sous lesquels la série a été exécutée.",
+      "La référence est identifiée par une empreinte de la séquence analysée, si bien que la même molécule enregistrée sous un autre nom correspond toujours.",
+      "Le vocabulaire des classes de verdict figure dans chaque classeur, si bien qu'un lecteur en aval ne recopie plus les noms de classes à la main.",
+      "La version de kuma et les métadonnées de la série de séquençage, vides dans tout classeur écrit par la voie bibliothèque, sont désormais remplies.",
+      "Aucun verdict ne change : les entrées décrivent des réglages déjà en vigueur et la logique de décision reste inchangée."
     ],
-    "highlightsStamp": "0.16.58+1ce19d3d",
+    "highlightsStamp": "0.16.59+69e92cd5",
     "releases": {
+      "0.16.59": [
+        "Un classeur MAME enregistre désormais la référence, la fenêtre codante, le mode et les seuils sous lesquels la série a été exécutée.",
+        "La référence est identifiée par une empreinte de la séquence analysée, si bien que la même molécule enregistrée sous un autre nom correspond toujours.",
+        "Le vocabulaire des classes de verdict figure dans chaque classeur, si bien qu'un lecteur en aval ne recopie plus les noms de classes à la main.",
+        "La version de kuma et les métadonnées de la série de séquençage, vides dans tout classeur écrit par la voie bibliothèque, sont désormais remplies.",
+        "Aucun verdict ne change : les entrées décrivent des réglages déjà en vigueur et la logique de décision reste inchangée."
+      ],
       "0.16.56": [
         "Le consensus du raw run applique désormais le filtre de qualité minimale de base, sans effet auparavant car la ligne de qualité FASTQ était ignorée.",
         "Une base sous le seuil de qualité ne compte plus pour un appel, donc une majorité de faible qualité ne peut pas l'emporter sur une minorité fiable.",
@@ -2973,6 +2980,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
       "0.16.54": "137dd51e",
