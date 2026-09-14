@@ -2993,6 +2993,13 @@ class WellConsensus(NamedTuple):
     # See ConsensusCall in ingest/consensus.py.
     del_majority_positions: tuple[int, ...] = ()
     n_del_majority_positions: int = 0
+    n_no_call_zero_depth: int = 0
+    n_no_call_deletion: int = 0
+    n_no_call_ambiguous: int = 0
+    n_no_call_no_majority: int = 0
+    # APPENDED, never inserted: this is a NamedTuple and a positional reader
+    # would silently shift if a field landed in the middle. See
+    # tests/mame/test_coverage_uniformity_surface.py, which pins that rule.
     # Bases the called molecule GAINED, as ``(anchor, bases)`` pairs with the
     # anchor 1-based and naming the reference base the insertion follows. The
     # mirror of ``del_majority_positions``: the consensus drops insertions and
@@ -3000,10 +3007,6 @@ class WellConsensus(NamedTuple):
     # dropped. See ConsensusCall in ingest/consensus.py.
     ins_majority_bases: tuple[tuple[int, str], ...] = ()
     n_ins_majority_anchors: int = 0
-    n_no_call_zero_depth: int = 0
-    n_no_call_deletion: int = 0
-    n_no_call_ambiguous: int = 0
-    n_no_call_no_majority: int = 0
 
 
 def _empty_well_consensus(ref_len: int, input_reads: int) -> WellConsensus:
