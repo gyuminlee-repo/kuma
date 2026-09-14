@@ -52,6 +52,35 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install minimap2
 
+      # samtools is a TEST-ONLY oracle for the consensus caller
+      # (tests/mame/test_consensus_samtools_oracle.py). It is not vendored and
+      # never enters a release bundle, so build.yml is untouched and only this
+      # leg provisions it; the Windows and macOS legs skip those tests, which
+      # -rs already prints with a reason.
+      #
+      # Built from the release tarball rather than apt: ubuntu-22.04 ships
+      # samtools 1.13 and the 'consensus' subcommand only exists from 1.16
+      # (tests/mame/samtools_support.py rejects anything older, so an apt
+      # binary would silently skip the whole comparison). --without-curses
+      # because nothing here is interactive; the apt packages are what bundled
+      # htslib links against.
+      - name: Provide samtools (Linux, test-only consensus oracle)
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y zlib1g-dev libbz2-dev liblzma-dev
+          SAMTOOLS_VERSION=1.24
+          curl -fsSL -o samtools.tar.bz2 \
+            "https://github.com/samtools/samtools/releases/download/${SAMTOOLS_VERSION}/samtools-${SAMTOOLS_VERSION}.tar.bz2"
+          tar -xjf samtools.tar.bz2
+          cd "samtools-${SAMTOOLS_VERSION}"
+          ./configure --prefix="$GITHUB_WORKSPACE/.samtools" --without-curses
+          make -j"$(nproc)"
+          make install
+          "$GITHUB_WORKSPACE/.samtools/bin/samtools" --version | head -1
+          echo "$GITHUB_WORKSPACE/.samtools/bin" >> $GITHUB_PATH
+
       - name: Run Python tests
         # -rs prints a short summary of every skipped test with its reason.
         # 15 tests (tests/integration/test_xlsx_pipeline.py, 9, and
