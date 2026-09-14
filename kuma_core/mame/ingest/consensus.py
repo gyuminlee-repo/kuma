@@ -1,16 +1,19 @@
 """A5 — CIGAR-based pileup consensus caller.
 
-Implements a majority-vote consensus algorithm equivalent to the ``samtools
+Implements a majority-vote consensus algorithm corresponding to the ``samtools
 consensus`` "simple" (frequency-counting) mode, which is NOT that tool's
 default: htslib's own docs state the default is the Bayesian (Gap5) method,
 with "simple" as the other, non-default option:
 
 - Per-position base counts from aligned reads via CIGAR walking.
-- Majority base (≥ 0.5 fraction of total depth) is adopted.
+- Majority base (≥ 0.5 fraction of total depth) is adopted.  This threshold
+  is more permissive than the samtools simple-mode default, whose
+  ``-c``/``--call-fract`` is 0.75.
 - Positions with depth < ``min_depth`` yield 'N'.
-- Insertions: counted but not incorporated into the linear consensus
-  (same as samtools consensus default, which omits insertions from
-  the output sequence).
+- Insertions: counted but not incorporated into the linear consensus.
+  This is not the samtools default behaviour: ``samtools consensus``
+  defaults to ``--show-ins yes``, so omitting insertions corresponds to
+  running that tool with ``--show-ins no``.
 - Deletions: contribute a deletion token ('-') to the position vote;
   if deletions are the majority base the output is 'N' (gap-free output).
 - Reverse-complement reads: bases are reverse-complemented before voting.
@@ -21,7 +24,12 @@ https://www.htslib.org/doc/samtools-consensus.html: 'Valid modes are
 "simple" frequency counting and the "bayesian" (Gap5) methods, with Bayesian
 being the default.'  This module implements the "simple" mode's rule (most
 common base across all reads; positions with only deletions/no coverage
-output 'N'), not the Bayesian default.
+output 'N'), not the Bayesian default.  Two further defaults of that tool
+differ from this module: '-c C, --call-fract C [...] Only used for the
+simple consensus algorithm.  Require at least C fraction of bases agreeing
+with the most likely consensus call to emit that base type.  This defaults
+to 0.75.' and '--show-ins yes/no [...] Whether to show insertions in the
+consensus.  Defaults to yes.'
 
 Note on quality weighting
 --------------------------
