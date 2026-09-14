@@ -293,6 +293,8 @@ def _run_consensus_on_dir(
                     # evidence as one the raw-run path writes.
                     del_majority_positions=result.del_majority_positions,
                     n_del_majority_positions=result.n_del_majority_positions,
+                    ins_majority_bases=result.ins_majority_bases,
+                    n_ins_majority_anchors=result.n_ins_majority_anchors,
                     n_no_call_zero_depth=result.n_no_call_zero_depth,
                     n_no_call_deletion=result.n_no_call_deletion,
                     n_no_call_ambiguous=result.n_no_call_ambiguous,

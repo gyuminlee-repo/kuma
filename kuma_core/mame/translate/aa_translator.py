@@ -185,6 +185,93 @@ def _apply_deletion_gaps(
     return "".join(chars)
 
 
+def _apply_insertion_bases(
+    gapped_cds: str,
+    ins_entries: tuple[tuple[int, str], ...],
+    cds_start: int,
+    cds_end: int,
+) -> str:
+    """Return *gapped_cds* with each majority insertion spliced in after its anchor.
+
+    A LOCAL COPY, exactly as ``_apply_deletion_gaps`` is. The stored consensus
+    drops insertions and keeps reference length, and this function does not
+    change that; it only changes what a caller is handed.
+
+    ORDER MATTERS AND IS FIXED: deletions first, then insertions. Writing '-' in
+    place changes no index, so a deletion pass leaves every anchor coordinate
+    still valid as a reference coordinate. Splicing bases in DOES shift every
+    later index, so doing insertions first would leave the deletion positions
+    pointing at the wrong bases by the accumulated insertion length. The reverse
+    order needs a running offset and a rule for a deletion that lands inside an
+    insertion; this order needs neither, because after the deletion pass the
+    string is still in reference coordinates.
+
+    Within this function the anchors are walked in DESCENDING order for the same
+    reason: each splice shifts everything after it, so consuming the list from
+    the back keeps the not-yet-applied indices correct without bookkeeping.
+
+    *ins_entries* are ``(anchor, bases)`` with the anchor 1-based and naming the
+    reference base the insertion FOLLOWS, so the bases land at ``anchor``.
+    Anchors outside the CDS window are dropped: the caller bounds the query to
+    that window, and an insertion in flanking backbone is not part of this
+    comparison. An anchor AT ``cds_end`` is dropped too, because bases appended
+    past the last compared base belong to the flank on either reading and
+    keeping them would make the length disagree with the net indel for no gain.
+    """
+
+    if not ins_entries:
+        return gapped_cds
+    chars = list(gapped_cds)
+    n = len(chars)
+    for anchor, bases in sorted(ins_entries, reverse=True):
+        idx = anchor - cds_start
+        if 0 <= idx <= n and cds_start < anchor < cds_end:
+            chars[idx:idx] = list(bases)
+    return "".join(chars)
+
+
+def build_length_true_nt(
+    record: BarcodeRecord,
+    query_cds: str,
+    cds_start: int,
+    cds_end: int,
+) -> str | None:
+    """Return the called molecule at its own length, or ``None`` if unknowable.
+
+    Refuses rather than guesses. The indel channel is reported under a budget and
+    a tie drops an anchor, so a list can be shorter than its count; splicing a
+    partial list would produce a sequence that LOOKS complete and is missing
+    bases nobody could point at. ``None`` says the same thing honestly.
+
+    ``None`` is therefore returned for a record with no channel at all (an
+    externally supplied FASTA, a consensus written before the keys existed) and
+    for one whose channel is incomplete. A record with a complete channel and no
+    indels at all returns the query unchanged, which is the ordinary well.
+
+    The result satisfies ``len(result) == len(query) + net``, where ``net`` is
+    the insertion bases minus the deletion positions inside the CDS window. For a
+    reference-length consensus over a full-CDS window that is exactly
+    ``ref_len + consensus_net_indel_bp``.
+    """
+
+    if len(record.del_majority_positions) != record.n_del_majority_positions:
+        return None
+    if len(record.ins_majority_bases) != record.n_ins_majority_anchors:
+        return None
+    if not record.del_majority_positions and not record.ins_majority_bases:
+        # No channel and no indels are indistinguishable here ON PURPOSE: both
+        # mean the query already is the called molecule, and a caller comparing
+        # lengths gets the same answer either way.
+        return query_cds
+    gapped = _apply_deletion_gaps(
+        query_cds, record.del_majority_positions, cds_start, cds_end
+    )
+    spliced = _apply_insertion_bases(
+        gapped, record.ins_majority_bases, cds_start, cds_end
+    )
+    return _strip_gaps(spliced)
+
+
 def translate_and_diff(
     record: BarcodeRecord,
     reference_seq: str,
@@ -268,10 +355,21 @@ def translate_and_diff(
         offset=cds_start,
     )
 
+    # Built from the SAME bounded query the diff above used, and reported beside
+    # the diff rather than feeding it. The diff stays in reference coordinates
+    # because both of its consumers index by reference position; the length-true
+    # sequence is the molecule at its own length and its coordinates deliberately
+    # do not line up with those. Making the diff read it is a verdict change and
+    # a separate decision.
+    length_true_nt = build_length_true_nt(
+        record, query_cds_aa, cds_start, comparable_cds_end
+    )
+
     return TranslatedRecord(
         barcode=record,
         aa_sequence=aa_sequence,
         observed_nt_changes=nt_changes,
         observed_aa_changes=aa_changes,
         n_no_call_aa=n_no_call,
+        length_true_nt=length_true_nt,
     )

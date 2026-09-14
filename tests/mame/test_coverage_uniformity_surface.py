@@ -148,13 +148,14 @@ def test_well_consensus_fields_are_reachable_by_name_and_by_position() -> None:
     every later field and silently shift a positional reader. Appending is safe
     and is how the tuple has grown, so the coverage block is checked at its own
     offset rather than at the tail. The six deletion-channel and no-call fields
-    were appended after it (v0.16.58.02).
+    were appended after it (v0.16.58.02), and the two insertion-channel fields
+    after those.
     """
     result = cd_mod._compute_well_consensus(
         "1_1", [], [], _REF, len(_REF), min_depth=1
     )
 
-    assert len(result) == 36
+    assert len(result) == 38
     coverage_start = result._fields.index("depth_cv")
     assert result[coverage_start : coverage_start + 5] == (
         result.depth_cv,
@@ -163,13 +164,15 @@ def test_well_consensus_fields_are_reachable_by_name_and_by_position() -> None:
         result.breadth_at_mix_min_depth,
         result.consensus_identity,
     )
-    assert result[-6:] == (
+    assert result[-8:] == (
         result.del_majority_positions,
         result.n_del_majority_positions,
         result.n_no_call_zero_depth,
         result.n_no_call_deletion,
         result.n_no_call_ambiguous,
         result.n_no_call_no_majority,
+        result.ins_majority_bases,
+        result.n_ins_majority_anchors,
     )
     assert result[0] == result.consensus_seq
 

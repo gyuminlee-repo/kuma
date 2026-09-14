@@ -41,6 +41,7 @@ unweighted majority vote behavior.
 
 from __future__ import annotations
 
+import logging
 import os
 import statistics
 from dataclasses import dataclass
@@ -70,6 +71,8 @@ from kuma_core.mame.ingest.align import (
 from kuma_core.mame.models import NoisyPosition
 
 # Complement table (single-char, uppercase).
+_logger = logging.getLogger(__name__)
+
 _COMP = str.maketrans("ACGTacgtNn", "TGCAtgcaNn")
 
 # ---------------------------------------------------------------------------
@@ -346,6 +349,35 @@ class ConsensusCall:
     # ``consensus_net_indel_bp``, reported separately so a reader can see whether
     # the list above is a census or an omission.
     n_del_majority_positions: int = 0
+    # The mirror of the two fields above for insertions: ``(anchor, bases)``
+    # pairs, anchor 1-based and naming the reference base the insertion FOLLOWS,
+    # ascending. Reported only for anchors whose insertion fraction clears
+    # ``DEL_MAJORITY_FRACTION``, i.e. exactly the anchors ``inserted_bp`` counts.
+    #
+    # This is the only place the CONTENT of an insertion survives.
+    # ``insertion_events`` counts inserting reads and ``insertion_bp`` sums their
+    # lengths, so before this field a well could report that it gained two bases
+    # without anyone being able to say which two. That gap is what makes a block
+    # substitution unreadable: minimap2 writes a swapped codon as an insertion
+    # next to a deletion, the deletion becomes 'N' and the insertion is dropped,
+    # and the real sequence is nowhere in the output even though the LENGTH is
+    # measured correctly (``consensus_net_indel_bp`` is 0, which is true of the
+    # molecule and says nothing about its bases).
+    #
+    # The consensus string is unchanged and still drops insertions entirely.
+    # ``translate/aa_translator.py`` splices these back into a COPY at
+    # translation time, the same way it gaps the deletions.
+    #
+    # Empty when no anchor won a majority, when the file predates the field, and
+    # when the anchor count exceeded ``DEL_RUN_REPORT_BUDGET``; the count below
+    # tells the last case from the first two. An anchor whose reads TIE on which
+    # sequence they inserted is also absent, and is counted below.
+    ins_majority_bases: tuple[tuple[int, str], ...] = ()
+    # Full count of majority anchors that had any recorded sequence, including
+    # the ties omitted above. A count larger than ``len(ins_majority_bases)``
+    # means part of the picture is missing, which is the signal not to treat the
+    # spliced sequence as complete.
+    n_ins_majority_anchors: int = 0
     # No-call decomposition. The consensus writes one 'N' for four different
     # reasons and an operator has a different job for each, so the single
     # ``consensus_n_fraction`` cannot be acted on. These four partition the
@@ -531,6 +563,7 @@ def call_consensus_with_metrics(
         first_touch,
         insertion_events,
         insertion_bp,
+        insertion_seqs,
         n_low_quality_bases,
         per_read_net_indel,
     ) = _accumulate_all(alignments, ref_len, min_base_quality)
@@ -760,6 +793,51 @@ def call_consensus_with_metrics(
         inserted_bp = int(np.rint(bp / np.maximum(ev, 1)).sum())
     consensus_net_indel_bp = inserted_bp - n_del_majority
 
+    # The bases behind ``inserted_bp``, for the anchors that already won a
+    # majority above.  ``inserted_bp`` is a rounded MEAN LENGTH and stays exactly
+    # as it was: the FRAMESHIFT gate reads ``consensus_net_indel_bp`` derived
+    # from it, and re-deriving that number from the sequence chosen here would
+    # move a shipped verdict. The consequence is that when reads disagree on
+    # insertion LENGTH the two can differ, with ``inserted_bp`` reporting the
+    # rounded mean and this list reporting the single most common sequence.
+    # ``n_ins_majority_anchors`` below is the honest count either way.
+    #
+    # Plurality, not a fraction threshold. The anchor has already cleared
+    # ``DEL_MAJORITY_FRACTION`` of the spanning depth on ``ins_frac``; what is
+    # left is only WHICH sequence those inserting reads carry, and the most
+    # common one is the consensus of that set by the same rule the base call
+    # uses. A tie is not broken: the anchor is dropped from the list, because an
+    # arbitrary winner would be reported with the same confidence as a real one
+    # and nothing downstream could tell them apart.
+    ins_majority_bases: tuple[tuple[int, str], ...] = ()
+    n_ins_majority_anchors = 0
+    if bool(ins_major.any()):
+        chosen: list[tuple[int, str]] = []
+        n_anchors = 0
+        for anchor in np.flatnonzero(ins_major).tolist():
+            tally = insertion_seqs.get(anchor)
+            if not tally:
+                continue
+            n_anchors += 1
+            top = max(tally.values())
+            winners = [seq for seq, n in tally.items() if n == top]
+            if len(winners) != 1:
+                _logger.debug(
+                    "Insertion sequences tie at anchor %d (%d candidates at "
+                    "%d reads); anchor omitted",
+                    anchor + 1,
+                    len(winners),
+                    top,
+                )
+                continue
+            chosen.append((anchor + 1, winners[0].decode("ascii", "replace")))
+        n_ins_majority_anchors = n_anchors
+        # Same budget rule the deletion list uses: past it the list is omitted
+        # whole rather than cut short, so an empty list at a nonzero count reads
+        # as "not reported" and never as "none".
+        if chosen and len(chosen) <= DEL_RUN_REPORT_BUDGET:
+            ins_majority_bases = tuple(chosen)
+
     # Support for the substitutions this consensus actually calls.
     #
     # ``max_minor_allele_fraction`` is a maximum over every position, so it is
@@ -806,6 +884,8 @@ def call_consensus_with_metrics(
         max_del_run_length=max_del_run,
         del_majority_positions=del_majority_positions,
         n_del_majority_positions=n_del_majority,
+        ins_majority_bases=ins_majority_bases,
+        n_ins_majority_anchors=n_ins_majority_anchors,
         n_no_call_zero_depth=n_no_call_zero_depth,
         n_no_call_deletion=n_no_call_deletion,
         n_no_call_ambiguous=n_no_call_ambiguous,
@@ -828,12 +908,22 @@ def _accumulate_all(
     ref_len: int,
     min_base_quality: int,
 ) -> tuple[
-    np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, list[int]
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    dict[int, dict[bytes, int]],
+    int,
+    list[int],
 ]:
     """Build the whole-well pileup from every alignment.
 
     Returns ``(counts, minus_counts, first_touch, insertion_events,
-    insertion_bp, n_low_quality_bases, per_read_net_indel)``.
+    insertion_bp, insertion_seqs, n_low_quality_bases, per_read_net_indel)``.
+    ``insertion_seqs`` is the sparse companion to the two insertion arrays: it
+    maps a 0-based anchor to a tally of the exact bytes each read inserted
+    there, which is the only place the CONTENT of an insertion survives.
     ``insertion_bp[ref_pos]`` is the
     total inserted length summed over the reads counted in
     ``insertion_events[ref_pos]``, so their ratio is the mean inserted length at
@@ -865,6 +955,7 @@ def _accumulate_all(
     first_touch = np.full((ref_len, _N_TOKENS), _BIG, dtype=np.int64)
     insertion_events = np.zeros(ref_len, dtype=np.int64)
     insertion_bp = np.zeros(ref_len, dtype=np.int64)
+    insertion_seqs: dict[int, dict[bytes, int]] = {}
     if n_reads == 0 or ref_len == 0:
         return (
             counts,
@@ -872,6 +963,7 @@ def _accumulate_all(
             first_touch,
             insertion_events,
             insertion_bp,
+            insertion_seqs,
             0,
             [0] * n_reads,
         )
@@ -893,6 +985,7 @@ def _accumulate_all(
             batch_first,
             insertion_events,
             insertion_bp,
+            insertion_seqs,
             per_read_net_indel,
         )
 
@@ -902,6 +995,7 @@ def _accumulate_all(
         first_touch,
         insertion_events,
         insertion_bp,
+        insertion_seqs,
         n_low_quality_bases,
         per_read_net_indel,
     )
@@ -941,14 +1035,17 @@ def _accumulate_batch(
     batch_first: np.ndarray,
     insertion_events: np.ndarray,
     insertion_bp: np.ndarray,
+    insertion_seqs: dict[int, dict[bytes, int]],
     per_read_net_indel: list[int],
 ) -> int:
     """Fold ``alignments[lo_read:hi_read]`` into the running well accumulators.
 
     ``counts``, ``minus_counts``, ``first_touch``, ``insertion_events``,
-    ``insertion_bp`` and
+    ``insertion_bp``, ``insertion_seqs`` and
     ``per_read_net_indel`` are updated in place; the low-quality base count for
     this batch is returned.
+    ``insertion_seqs`` maps a 0-based anchor to ``{inserted bytes: read count}``
+    and is sparse: an anchor no read inserted at is simply absent.
     ``batch_first`` is caller-owned scratch of the same shape as ``first_touch``.
     ``minus_counts`` needs no scratch of its own: it is a plain sum, so batches
     accumulate into it directly.
@@ -1089,11 +1186,13 @@ def _accumulate_batch(
 
     # --- insertion anchors --------------------------------------------------
     if is_ins.any():
-        anchors = ref_starts[is_ins] - 1
-        ins_len = lengths[is_ins]
+        ins_sel = np.flatnonzero(is_ins)
+        anchors = ref_starts[ins_sel] - 1
+        ins_len = lengths[ins_sel]
         in_range = (anchors >= 0) & (anchors < ref_len)
         anchors = anchors[in_range]
         ins_len = ins_len[in_range]
+        ins_sel = ins_sel[in_range]
         if anchors.size:
             insertion_events += np.bincount(anchors, minlength=ref_len).astype(
                 np.int64
@@ -1104,6 +1203,43 @@ def _accumulate_batch(
             insertion_bp += np.bincount(
                 anchors, weights=ins_len.astype(np.float64), minlength=ref_len
             ).astype(np.int64)
+            # WHAT was inserted, not just how much.  ``insertion_events`` and
+            # ``insertion_bp`` describe the size of the event and are enough to
+            # detect it; neither can reproduce the bases, which is the one thing
+            # a block substitution needs (see ``ins_majority_bases``).
+            #
+            # Gathered from the SAME rows the two arrays above were built from,
+            # so every sequence recorded here belongs to a read those counters
+            # counted and a majority over this tally is a majority over exactly
+            # that set.  ``seq_arr`` is already in reference orientation: the
+            # flatten loop reverse-complements a minus-strand read before
+            # encoding it, so no strand handling belongs here.
+            #
+            # NOT quality filtered, matching ``insertion_events``.  An inserted
+            # base has no aligned reference position, so the per-base gate that
+            # ``is_match`` applies has nothing to key on; filtering here would
+            # make the sequence tally disagree with the event count that decides
+            # whether the anchor carries a majority at all.
+            #
+            # Sparse on purpose: a dense ``(ref_len, ...)`` structure would pay
+            # for every reference position, and insertion anchors are a handful
+            # per well.  The loop runs once per I OP, never once per base.
+            ins_rd = op_read[ins_sel]
+            ins_qp = qry_starts[ins_sel]
+            ins_base = seq_off[ins_rd] + ins_qp
+            for a, b, ln in zip(
+                anchors.tolist(), ins_base.tolist(), ins_len.tolist()
+            ):
+                seq = seq_arr[b : b + ln].tobytes()
+                if len(seq) != ln:
+                    # Truncated query buffer; the event is still counted above
+                    # but its sequence is unknown, so record nothing rather than
+                    # a short string that would win a majority as itself.
+                    continue
+                tally = insertion_seqs.get(a)
+                if tally is None:
+                    tally = insertion_seqs[a] = {}
+                tally[seq] = tally.get(seq, 0) + 1
 
     if flat_match.size or flat_del.size:
         allflat = np.concatenate((flat_match, flat_del))
@@ -1156,6 +1292,7 @@ def _accumulate(
     per_position: list[dict[str, int]],
     insertion_events: list[int],
     min_base_quality: int,
+    insertion_seqs: dict[int, dict[bytes, int]] | None = None,
 ) -> tuple[int, int]:
     """Walk a single alignment's CIGAR and add base votes to per_position.
 
@@ -1169,6 +1306,13 @@ def _accumulate(
     insertion starting at ``ref_pos`` (anchored at the base just before the
     inserted sequence).  This lets callers track insertion evidence per
     reference position without altering the consensus length.
+
+    ``insertion_seqs``, when given, additionally tallies the exact inserted
+    bases per anchor as ``{anchor: {inserted bytes: read count}}``.  Optional
+    because this is the reference implementation the vectorized path is checked
+    against, and an existing caller that only wants the event count keeps
+    working unchanged.  ``q_seq`` is already reference-oriented at this point,
+    matching ``_accumulate_batch``.
     """
     # Prepare query sequence oriented to the forward strand.
     if aln.strand == -1:
@@ -1223,6 +1367,16 @@ def _accumulate(
             rp = ref_pos - 1
             if 0 <= rp < ref_len:
                 insertion_events[rp] += 1
+                if insertion_seqs is not None:
+                    seq = q_seq[q_pos : q_pos + length].upper().encode(
+                        "ascii", "replace"
+                    )
+                    # A read whose SEQ ends inside the insertion yields fewer
+                    # bases than the CIGAR claims; drop it rather than let a
+                    # truncated string compete as its own candidate.
+                    if len(seq) == length:
+                        tally = insertion_seqs.setdefault(rp, {})
+                        tally[seq] = tally.get(seq, 0) + 1
             q_pos += length
 
         elif op == _CIGAR_S:
