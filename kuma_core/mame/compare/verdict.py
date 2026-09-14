@@ -13,6 +13,7 @@ from __future__ import annotations
 import re
 
 from kuma_core.mame.models import (
+    BarcodeRecord,
     CompareParams,
     TranslatedRecord,
     VerdictClass,
@@ -80,6 +81,58 @@ _MIXED_CONFIDENT_DEPTH_FACTOR = 3
 #: run-level check compares against the number the derivation actually used,
 #: rather than a second copy of it that can drift away from this comment.
 MIXED_FACTOR_ASSUMED_POSITIONS = 1500
+
+
+def gate_consensus_n_fraction(barcode: BarcodeRecord) -> tuple[float, int]:
+    """Return the N fraction the NO_CALL gate judges, and the positions excluded.
+
+    ``consensus_n_fraction`` answers "how much of the covered amplicon came back
+    as 'N'". Every reader of that number keeps it: it is written to the consensus
+    FASTA header, restored by ``ingest/fasta_parser.py``, exported to the
+    workbook, and the threshold calibration on record was measured against it.
+    Redefining it would silently change what past records mean, so it is left
+    alone and only the gate's INPUT is narrowed here.
+
+    The narrowing follows from ``n_no_call_deletion`` being a decided call rather
+    than a failure to call. The four ``n_no_call_*`` counts partition the
+    numerator of ``consensus_n_fraction`` (``ingest/consensus.py`` builds them by
+    successive subtraction, so they sum to it exactly), and three of them mean
+    "this position could not be read": no reads, reads agreeing on 'N', reads
+    with no majority. The fourth means the reads agreed the base is ABSENT. The
+    consensus alphabet has no gap character and writes 'N' there, which is the
+    only reason a decided deletion ever entered a no-call count. Failing a well
+    on it asks the AA comparison to be skipped for a fact the AA comparison is
+    the right place to report, as ``{WT}{pos}del``.
+
+    The exclusion is computed as a ratio of the counts rather than by rebuilding
+    ``n_covered_positions``. The denominator is not carried on ``BarcodeRecord``
+    and recovering it would mean assuming the stored sequence length equals the
+    reference length. Scaling by ``(n_nc - deletion) / n_nc`` needs no
+    denominator, and the distinction that matters at the shipped threshold of
+    0.0 (zero versus nonzero) stays exact even though a header round-trip keeps
+    only three decimals of the fraction itself.
+
+    A record whose four counts are all zero gets ``consensus_n_fraction`` back
+    unchanged. That is every consensus file written before the counts existed,
+    where the decomposition is unknown rather than empty, and it is also a well
+    with no no-call position at all. Both must keep the shipped behaviour, and
+    returning the value untouched is what does that.
+
+    Returns ``(fraction, n_excluded_positions)``.
+    """
+    n_nc = (
+        barcode.n_no_call_zero_depth
+        + barcode.n_no_call_deletion
+        + barcode.n_no_call_ambiguous
+        + barcode.n_no_call_no_majority
+    )
+    if n_nc <= 0 or barcode.n_no_call_deletion <= 0:
+        return barcode.consensus_n_fraction, 0
+    kept = n_nc - barcode.n_no_call_deletion
+    return (
+        barcode.consensus_n_fraction * kept / n_nc,
+        barcode.n_no_call_deletion,
+    )
 
 
 class ExpectedCoordinateMismatchError(ValueError):
@@ -319,6 +372,11 @@ def classify_verdict(
     # directions: it is neither failed on a number that means something else nor
     # quietly passed as if it were clean. The reason travels with the well in
     # verdict_notes so the operator can act on it.
+    #
+    # The number compared here is narrowed by gate_consensus_n_fraction: a
+    # position the reads agreed is DELETED is a decided call and does not count
+    # toward "too ambiguous to score". The reported consensus_n_fraction is
+    # unchanged and still appears in the note.
     if (
         params.max_consensus_n_fraction is not None
         and not translated.barcode.consensus_n_fraction_evaluable
@@ -328,16 +386,21 @@ def classify_verdict(
             "a covered-scoped N fraction); N-fraction gate skipped, re-run "
             "consensus to restore it"
         )
-    elif (
-        params.max_consensus_n_fraction is not None
-        and translated.barcode.consensus_n_fraction
-        > params.max_consensus_n_fraction
-    ):
+    elif params.max_consensus_n_fraction is not None and (
+        gate_n_fraction := gate_consensus_n_fraction(translated.barcode)
+    )[0] > params.max_consensus_n_fraction:
+        gate_fraction, n_excluded = gate_n_fraction
         notes.append(
             "consensus_n_fraction="
             f"{translated.barcode.consensus_n_fraction:.3f} > "
             f"max_consensus_n_fraction={params.max_consensus_n_fraction:.3f}"
         )
+        if n_excluded > 0:
+            notes.append(
+                f"gate fraction={gate_fraction:.3f} after excluding "
+                f"{n_excluded} deletion-majority no-call position"
+                f"{'s' if n_excluded != 1 else ''}"
+            )
         if translated.n_no_call_aa > 0:
             notes.append(f"no_call_aa={translated.n_no_call_aa}")
         if translated.barcode.n_low_depth_positions > 0:
