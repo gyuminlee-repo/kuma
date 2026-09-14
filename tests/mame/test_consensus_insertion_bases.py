@@ -28,6 +28,7 @@ These tests fix four things:
 from __future__ import annotations
 
 import random
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -39,6 +40,7 @@ from kuma_core.mame.ingest.align import (
     _CIGAR_M,
 )
 from kuma_core.mame.ingest.consensus import (
+    ConsensusCall,
     DEL_MAJORITY_FRACTION,
     _accumulate,
     _accumulate_all,
@@ -122,8 +124,17 @@ def _block_sub(del_pos: int, ins_pos: int, base: str) -> Alignment:
     )
 
 
-def _record(call, **over) -> BarcodeRecord:
-    kw = dict(
+def _record(call: ConsensusCall, **over: object) -> BarcodeRecord:
+    """Build a record from *call*, with *over* applied on top.
+
+    The overrides go through ``dataclasses.replace`` rather than a ``dict`` that
+    is splatted into the constructor. Building the keywords in a dict widens
+    every value to the union of the literal types present (``str | int | float |
+    Path``), and the splat then offers that union to every parameter, which the
+    type checker rejects field by field.
+    """
+
+    record = BarcodeRecord(
         native_barcode="nb01",
         custom_barcode="w1",
         consensus_seq=call.consensus_seq,
@@ -135,8 +146,7 @@ def _record(call, **over) -> BarcodeRecord:
         ins_majority_bases=call.ins_majority_bases,
         n_ins_majority_anchors=call.n_ins_majority_anchors,
     )
-    kw.update(over)
-    return BarcodeRecord(**kw)
+    return replace(record, **over) if over else record
 
 
 # ---------------------------------------------------------------------------
@@ -396,6 +406,7 @@ def test_insertion_only_well_rebuilds_the_inserted_molecule() -> None:
     rec = _record(call)
     built = build_length_true_nt(rec, call.consensus_seq, 0, len(REF))
     assert built == REF[:70] + "GGG" + REF[70:]
+    assert built is not None
     assert len(built) == len(REF) + call.consensus_net_indel_bp
 
 
@@ -411,6 +422,7 @@ def test_deletion_only_well_rebuilds_the_shortened_molecule() -> None:
     rec = _record(call)
     built = build_length_true_nt(rec, call.consensus_seq, 0, len(REF))
     assert built == REF[:79] + REF[80:]
+    assert built is not None
     assert len(built) == len(REF) + call.consensus_net_indel_bp
 
 
@@ -431,6 +443,7 @@ def test_block_substitution_is_recovered_though_the_net_indel_is_zero() -> None:
     assert expected not in call.consensus_seq
     built = build_length_true_nt(_record(call), call.consensus_seq, 0, len(REF))
     assert built == expected
+    assert built is not None
     assert len(built) == len(REF)
 
 
@@ -447,6 +460,7 @@ def test_filling_the_deleted_slot_would_not_have_worked() -> None:
     call = call_consensus_with_metrics(alns, REF)
     filled = call.consensus_seq[:79] + "G" + call.consensus_seq[80:]
     built = build_length_true_nt(_record(call), call.consensus_seq, 0, len(REF))
+    assert built is not None
     assert len(filled) == len(built)
     assert filled != built
 
