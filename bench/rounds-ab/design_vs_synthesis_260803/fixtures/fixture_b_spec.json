@@ -1,0 +1,15 @@
+{
+  "sha256": "bf2161d9edefac1bd06869fa891a6c08ecd987341abf48059c94362ba56c706f",
+  "n_wells": 96,
+  "n_records": 288,
+  "expected": {
+    "PASS": 206,
+    "AMBIGUOUS": 9,
+    "MIXED": 1,
+    "FRAMESHIFT": 1,
+    "MANY": 9,
+    "LOWDEPTH": 1,
+    "NO_CALL": 1,
+    "WRONG_AA": 60
+  }
+}

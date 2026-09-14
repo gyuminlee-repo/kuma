@@ -33,7 +33,22 @@ ROWS = "ABCDEFGH"
 NCOL = 12
 
 KUMA_REPO_REL = Path("cc/kuma/.claude/worktrees/rounds-ab")
-WORKSPACE_ROOT = Path(os.environ.get("WORKSPACE_ROOT", OUT.parents[4]))
+
+
+def workspace_root():
+    """$WORKSPACE_ROOT, else the ancestor five levels up from this file.
+
+    Five levels is where the workspace sits when the script runs from its
+    020.admin home, 010.fig/<panel>/ under projects/<project>/. A copy running
+    somewhere shallower has no such ancestor, so the derivation is skipped
+    rather than raising: it is only one of three candidates and the other two
+    may well resolve.
+    """
+    env = os.environ.get("WORKSPACE_ROOT")
+    if env:
+        return Path(env)
+    parents = OUT.parents
+    return parents[4] if len(parents) > 4 else None
 
 
 def load_verdict_classes():
@@ -54,7 +69,9 @@ def load_verdict_classes():
     if env:
         cands.append(Path(env))
     cands.extend(OUT.parents)
-    cands.append(WORKSPACE_ROOT / KUMA_REPO_REL)
+    ws = workspace_root()
+    if ws is not None:
+        cands.append(ws / KUMA_REPO_REL)
     for root in cands:
         if (root / "kuma_core" / "mame" / "models.py").is_file():
             if str(root) not in sys.path:
