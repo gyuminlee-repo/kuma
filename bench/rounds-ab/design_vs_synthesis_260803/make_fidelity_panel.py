@@ -10,6 +10,7 @@ verdict 와 관측 아미노산 변화에서 계산하며 손으로 옮긴 값�
 
 import csv
 import os
+import sys
 from pathlib import Path
 
 COMPACT = os.environ.get("COMPACT") == "1"
@@ -30,7 +31,45 @@ else:
 
 ROWS = "ABCDEFGH"
 NCOL = 12
-GATE = {"AMBIGUOUS", "MANY", "LOWDEPTH", "NO_CALL"}
+
+KUMA_REPO_REL = Path("cc/kuma/.claude/worktrees/rounds-ab")
+WORKSPACE_ROOT = Path(os.environ.get("WORKSPACE_ROOT", OUT.parents[4]))
+
+
+def load_verdict_classes():
+    """Read the verdict vocabulary off VerdictClass, never off a literal.
+
+    A hand-typed class list is what this script got wrong: the replicate tally
+    walked four literal keys and skipped anything else in silence, so a record
+    the product can produce would have left the total with nothing said. Search
+    order for the kuma checkout: KUMA_REPO_ROOT, then any ancestor of this file
+    holding kuma_core (the case when it runs from its git home under
+    bench/rounds-ab/), then $WORKSPACE_ROOT plus the bench worktree path (the
+    case when it runs from the 020.admin working copy, which has no kuma
+    ancestor). Not finding it is a hard error; there is no literal to fall back
+    on.
+    """
+    cands = []
+    env = os.environ.get("KUMA_REPO_ROOT")
+    if env:
+        cands.append(Path(env))
+    cands.extend(OUT.parents)
+    cands.append(WORKSPACE_ROOT / KUMA_REPO_REL)
+    for root in cands:
+        if (root / "kuma_core" / "mame" / "models.py").is_file():
+            if str(root) not in sys.path:
+                sys.path.insert(0, str(root))
+            from kuma_core.mame.models import VerdictClass
+            return [v.value for v in VerdictClass]
+    raise ImportError(
+        "kuma_core.mame.models not found; set KUMA_REPO_ROOT to a kuma checkout")
+
+
+# PASS, AMBIGUOUS, MIXED, FRAMESHIFT, MANY, LOWDEPTH, NO_CALL, WRONG_AA.
+# Used for the replicate tally and its reconciliation only. It is not a visual
+# element: no mark, legend row or axis slot is derived from it, so a class that
+# is observed zero times adds nothing to the artwork.
+VERDICT_CLASSES = load_verdict_classes()
 
 # Okabe-Ito 기반. 의미별로 고정한다.
 CLEAN = "#009E73"
@@ -127,7 +166,8 @@ def build():
     assert len(rows) == 96, f"well 수가 96이 아니다: {len(rows)}"
     by_well = {}
     counts = {k: 0 for k, _, _ in CATS}
-    rep = {"PASS": 0, "WRONG_AA": 0, "AMBIGUOUS": 0, "MANY": 0}
+    rep = {c: 0 for c in VERDICT_CLASSES}
+    n_obs = 0
     data_nonclean = {r["well"] for r in rows if not clean_from_data(r)}
     data_nonclean |= {r["well"] for r in rows if not (r["expected"] or "")}
     assert data_nonclean == set(AUDIT_CLASS), (
@@ -139,13 +179,21 @@ def build():
         by_well[r["well"]] = (cat, r["mutant"])
         counts[cat] += 1
         for v in r["verdicts"].split("|"):
-            if v in rep:
-                rep[v] += 1
+            if v not in rep:
+                raise SystemExit(
+                    f"ABORT: well {r['well']} carries verdict {v!r}, which is "
+                    f"not a VerdictClass member. Declared vocabulary: "
+                    f"{VERDICT_CLASSES}")
+            rep[v] += 1
+            n_obs += 1
 
     color = {k: c for k, _, c in CATS}
     label = {k: n for k, n, _ in CATS}
     n_well = len(rows)
     n_rep = sum(rep.values())
+    # The tally has to account for every verdict read. A closed list plus a
+    # silent skip reports a plausible table while records leave the total.
+    assert n_rep == n_obs, f"replicate 집계 {n_rep} 가 관측 {n_obs} 와 다르다"
     n_design = n_well - counts["wt"]
 
     # ---------- language-specific text content ----------
