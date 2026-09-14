@@ -49,7 +49,7 @@ PASS 가 아닌 13웰은 이렇다. A3 R87P, A8 Y360F, G6 R261N, H2 R87M 이 WRO
 | AMBIGUOUS | 8 | 3,193 |
 | FRAMESHIFT | 5 | 3,063 |
 | LOWDEPTH | 5 | 30 |
-| NO_READS | 0 | 해당 없음 |
+| MANY | 0 | 해당 없음 |
 
 합계 288 이고 read count 결측은 0건이다. 288 레코드는 같은 construct 를 3 플레이트에서 잰 기술 반복이고 생물학적 반복이 아니다.
 

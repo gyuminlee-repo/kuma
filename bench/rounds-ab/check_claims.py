@@ -13,7 +13,8 @@ missing rather than silently passing.
 
 Sources a claim can draw on:
 
-  workbook:<VERDICT>      one of the eight classes, from the release workbook
+  workbook:<VERDICT>      one of the eight VerdictClass classes, from the
+                          release workbook
   workbook:n_scored       designed-variant wells in that workbook
   workbook:pass_pct       PASS share of those wells, one decimal
   workbook:wt_total_pass  PASS over all 96 wells, control included
@@ -36,37 +37,50 @@ sys.path.insert(0, os.path.join(HERE, "release_r2"))
 
 import count_cells  # noqa: E402
 import count_workbook  # noqa: E402
+from verdict_vocab import CLASSES, require_total  # noqa: E402
 
 RESULTS_CSV = os.path.join(HERE, "results.csv")
 CLAIMS = os.path.join(HERE, "claims.json")
 
 
-def build_values():
-    """Compute every citable value once, from the artefacts themselves."""
+def build_values(workbook=None, results=None):
+    """Compute every citable value once, from the artefacts themselves.
+
+    The two paths are arguments so the fixture runner can point this at a
+    workbook whose right answers are known, rather than only at the release
+    artefacts.
+    """
+    workbook = workbook or count_workbook.WORKBOOK
+    results = results or RESULTS_CSV
     values = {}
 
-    designed, wt, _meta = count_workbook.read(count_workbook.WORKBOOK)
+    designed, wt, _meta = count_workbook.read(workbook)
     n = len(designed)
     values["workbook:n_scored"] = n
-    for cls in count_workbook.CLASSES:
+    for cls in CLASSES:
         values[f"workbook:{cls}"] = sum(1 for v in designed.values() if v == cls)
+    # Every well must land in exactly one class. Without this, a verdict
+    # outside the vocabulary would leave the table looking complete.
+    require_total({c: values[f"workbook:{c}"] for c in CLASSES}, n,
+                  "claims consolidated tally")
     npass = values["workbook:PASS"]
     values["workbook:pass_pct"] = f"{100.0 * npass / n:.1f}" if n else "n/a"
     values["workbook:wt_total_pass"] = npass + sum(
         1 for v in wt.values() if v == "PASS")
 
     # Replicate layer, the stratum the supplementary figure reports.
-    wb = count_workbook.openpyxl.load_workbook(count_workbook.WORKBOOK,
-                                               data_only=True)
+    wb = count_workbook.openpyxl.load_workbook(workbook, data_only=True)
     reps = count_workbook.read_replicates(wb)
     values["workbook:rep:n"] = len(reps)
     rep_counts = {}
     for _s, _w, _r, _m, verdict in reps:
         rep_counts[verdict] = rep_counts.get(verdict, 0) + 1
-    for cls in count_workbook.CLASSES:
+    for cls in CLASSES:
         values[f"workbook:rep:{cls}"] = rep_counts.get(cls, 0)
+    require_total({c: values[f"workbook:rep:{c}"] for c in CLASSES}, len(reps),
+                  "claims replicate tally")
 
-    cells = count_cells.count(RESULTS_CSV)
+    cells = count_cells.count(results)
     for (rnd, ref), per_arm in cells.items():
         per_arm = dict(per_arm)
         values[f"cells:{rnd}:{ref}:_n_scored"] = per_arm.pop("_n_scored")
