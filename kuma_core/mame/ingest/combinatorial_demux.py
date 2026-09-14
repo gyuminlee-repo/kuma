@@ -2822,6 +2822,16 @@ def _run_combinatorial_demux_body(
                                 n_indel_event_positions=r.n_indel_event_positions,
                                 max_indel_event_fraction=r.max_indel_event_fraction,
                                 max_del_run_length=r.max_del_run_length,
+                                del_majority_positions=(
+                                    r.del_majority_positions
+                                ),
+                                n_del_majority_positions=(
+                                    r.n_del_majority_positions
+                                ),
+                                n_no_call_zero_depth=r.n_no_call_zero_depth,
+                                n_no_call_deletion=r.n_no_call_deletion,
+                                n_no_call_ambiguous=r.n_no_call_ambiguous,
+                                n_no_call_no_majority=r.n_no_call_no_majority,
                                 consensus_net_indel=r.consensus_net_indel,
                                 read_net_indel=r.read_net_indel,
                                 consensus_n_fraction_basis=BASIS_COVERED,
@@ -2973,6 +2983,14 @@ class WellConsensus(NamedTuple):
     depth_min_covered: int | None
     breadth_at_mix_min_depth: float | None
     consensus_identity: float | None
+    # Deletion-majority evidence, carried beside the sequence rather than in it.
+    # See ConsensusCall in ingest/consensus.py.
+    del_majority_positions: tuple[int, ...] = ()
+    n_del_majority_positions: int = 0
+    n_no_call_zero_depth: int = 0
+    n_no_call_deletion: int = 0
+    n_no_call_ambiguous: int = 0
+    n_no_call_no_majority: int = 0
 
 
 def _empty_well_consensus(ref_len: int, input_reads: int) -> WellConsensus:
@@ -3071,6 +3089,12 @@ def _compute_well_consensus(
         n_indel_event_positions=consensus_call.n_indel_event_positions,
         max_indel_event_fraction=consensus_call.max_indel_event_fraction,
         max_del_run_length=consensus_call.max_del_run_length,
+        del_majority_positions=consensus_call.del_majority_positions,
+        n_del_majority_positions=consensus_call.n_del_majority_positions,
+        n_no_call_zero_depth=consensus_call.n_no_call_zero_depth,
+        n_no_call_deletion=consensus_call.n_no_call_deletion,
+        n_no_call_ambiguous=consensus_call.n_no_call_ambiguous,
+        n_no_call_no_majority=consensus_call.n_no_call_no_majority,
         consensus_net_indel=consensus_call.consensus_net_indel_bp,
         read_net_indel=consensus_call.median_read_net_indel_bp,
         min_variant_support=consensus_call.min_variant_support,
