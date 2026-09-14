@@ -13,6 +13,7 @@ from __future__ import annotations
 import re
 
 from kuma_core.mame.models import (
+    BarcodeRecord,
     CompareParams,
     TranslatedRecord,
     VerdictClass,
@@ -80,6 +81,138 @@ _MIXED_CONFIDENT_DEPTH_FACTOR = 3
 #: run-level check compares against the number the derivation actually used,
 #: rather than a second copy of it that can drift away from this comment.
 MIXED_FACTOR_ASSUMED_POSITIONS = 1500
+
+
+def gate_consensus_n_fraction(barcode: BarcodeRecord) -> tuple[float, int]:
+    """Return the N fraction the NO_CALL gate judges, and the positions excluded.
+
+    ``consensus_n_fraction`` answers "how much of the covered amplicon came back
+    as 'N'". Every reader of that number keeps it: it is written to the consensus
+    FASTA header, restored by ``ingest/fasta_parser.py``, exported to the
+    workbook, and the threshold calibration on record was measured against it.
+    Redefining it would silently change what past records mean, so it is left
+    alone and only the gate's INPUT is narrowed here.
+
+    The narrowing follows from ``n_no_call_deletion`` being a decided call rather
+    than a failure to call. The four ``n_no_call_*`` counts partition the
+    numerator of ``consensus_n_fraction`` (``ingest/consensus.py`` builds them by
+    successive subtraction, so they sum to it exactly), and three of them mean
+    "this position could not be read": no reads, reads agreeing on 'N', reads
+    with no majority. The fourth means the reads agreed the base is ABSENT. The
+    consensus alphabet has no gap character and writes 'N' there, which is the
+    only reason a decided deletion ever entered a no-call count. Failing a well
+    on it asks the AA comparison to be skipped for a fact the AA comparison is
+    the right place to report, as ``{WT}{pos}del``.
+
+    The exclusion is computed as a ratio of the counts rather than by rebuilding
+    ``n_covered_positions``. The denominator is not carried on ``BarcodeRecord``
+    and recovering it would mean assuming the stored sequence length equals the
+    reference length. Scaling by ``(n_nc - deletion) / n_nc`` needs no
+    denominator, and the distinction that matters at the shipped threshold of
+    0.0 (zero versus nonzero) stays exact even though a header round-trip keeps
+    only three decimals of the fraction itself.
+
+    A record whose four counts are all zero gets ``consensus_n_fraction`` back
+    unchanged. That is every consensus file written before the counts existed,
+    where the decomposition is unknown rather than empty, and it is also a well
+    with no no-call position at all. Both must keep the shipped behaviour, and
+    returning the value untouched is what does that.
+
+    Returns ``(fraction, n_excluded_positions)``.
+    """
+    n_nc = (
+        barcode.n_no_call_zero_depth
+        + barcode.n_no_call_deletion
+        + barcode.n_no_call_ambiguous
+        + barcode.n_no_call_no_majority
+    )
+    if n_nc <= 0 or barcode.n_no_call_deletion <= 0:
+        return barcode.consensus_n_fraction, 0
+    kept = n_nc - barcode.n_no_call_deletion
+    return (
+        barcode.consensus_n_fraction * kept / n_nc,
+        barcode.n_no_call_deletion,
+    )
+
+
+def gate_mixed_positions(barcode: BarcodeRecord) -> tuple[int, int, str]:
+    """Return the mixed-position count the MIXED gate judges, and what it dropped.
+
+    The twin of ``gate_consensus_n_fraction`` above, for the same reason and with
+    the same rule: the REPORTED field is left alone and only the gate's INPUT is
+    narrowed. ``n_mixed_positions`` stays what it has always been, is written to
+    the consensus FASTA header, restored by ``ingest/fasta_parser.py``, and
+    exported; redefining it would change what past records mean.
+
+    What has to be narrowed is this. ``ingest/consensus.py`` measures the minor
+    allele over A/C/G/T depth alone (``acgt = counts[:, :4]``), so reads voting
+    for a DELETION are not in the denominator, while mix-eligibility is decided
+    on the full depth. At a position whose reads mostly voted "this base is
+    absent" the fraction is therefore computed over the thin remainder and clears
+    0.20 on a handful of reads. Measured on well ``1_5`` of the 260729 ispS run:
+    reference position 669 reports ``minor_fraction=0.368`` at an ACGT depth of
+    87 while the well carries 3908 reads, i.e. about 32 reads over a spanning
+    depth near 174, which is 0.18 and under the gate. The well is not mixed; its
+    designed substitution simply did not go in. Because MIXED sits above
+    WRONG_AA, the miscount hid that.
+
+    A deletion-majority position is a decided call, exactly as in the N-fraction
+    twin, and ``del_majority_positions`` already names those coordinates. Both
+    lists are 1-based (``models.py`` ``NoisyPosition``,
+    ``ingest/consensus.py`` converts once at the reporting boundary), so they
+    intersect without conversion.
+
+    WHICH positions are the mixed ones is recoverable without this layer knowing
+    ``mix_minor_fraction_threshold``. ``noisy_positions`` is the top-K prefix of
+    the eligible positions ranked by minor fraction DESCENDING, and the mixed
+    ones are by definition those at or above a threshold, so the first
+    ``n_mixed_positions`` entries are exactly the mixed set whenever the list is
+    long enough to hold them. ``parse_noisy_positions`` keeps the written order
+    and re-sorts nothing, so this survives a header round-trip.
+
+    Two cases give up and return the shipped count with a reason:
+
+    * the list is shorter than ``n_mixed_positions`` (report budget), so the
+      mixed set cannot be named. The exception is ``n_mixed_positions >
+      n_del_majority_positions``: there are then more mixed positions than there
+      are deletion-majority positions in the whole well, so the gate stays open
+      whatever the intersection is, and the shipped count is already the answer.
+    * ``n_del_majority_positions`` is nonzero while ``del_majority_positions`` is
+      empty, which means the deletion runs exceeded ``DEL_RUN_REPORT_BUDGET`` and
+      the coordinates were not written. Empty there means "not reported", never
+      "none".
+
+    A record with no deletion majority, including every consensus file written
+    before these keys existed, gets its count back untouched.
+
+    Returns ``(gated_count, n_excluded_positions, reason)``; *reason* is ``""``
+    when nothing was given up.
+    """
+    n_mixed = barcode.n_mixed_positions
+    n_del = barcode.n_del_majority_positions
+    if n_mixed <= 0 or n_del <= 0:
+        return n_mixed, 0, ""
+    if not barcode.del_majority_positions:
+        return (
+            n_mixed,
+            0,
+            f"mixed gate not narrowed: {n_del} deletion-majority position"
+            f"{'s' if n_del != 1 else ''} counted but their coordinates were "
+            "not reported (over the consensus deletion-run budget)",
+        )
+    if n_mixed > len(barcode.noisy_positions):
+        if n_mixed > n_del:
+            return n_mixed, 0, ""
+        return (
+            n_mixed,
+            0,
+            f"mixed gate not narrowed: {n_mixed} mixed positions cannot be "
+            f"named from a {len(barcode.noisy_positions)}-entry noisy-position "
+            "sample",
+        )
+    mixed_positions = {p.position for p in barcode.noisy_positions[:n_mixed]}
+    n_excluded = len(mixed_positions & set(barcode.del_majority_positions))
+    return n_mixed - n_excluded, n_excluded, ""
 
 
 class ExpectedCoordinateMismatchError(ValueError):
@@ -319,6 +452,11 @@ def classify_verdict(
     # directions: it is neither failed on a number that means something else nor
     # quietly passed as if it were clean. The reason travels with the well in
     # verdict_notes so the operator can act on it.
+    #
+    # The number compared here is narrowed by gate_consensus_n_fraction: a
+    # position the reads agreed is DELETED is a decided call and does not count
+    # toward "too ambiguous to score". The reported consensus_n_fraction is
+    # unchanged and still appears in the note.
     if (
         params.max_consensus_n_fraction is not None
         and not translated.barcode.consensus_n_fraction_evaluable
@@ -328,16 +466,21 @@ def classify_verdict(
             "a covered-scoped N fraction); N-fraction gate skipped, re-run "
             "consensus to restore it"
         )
-    elif (
-        params.max_consensus_n_fraction is not None
-        and translated.barcode.consensus_n_fraction
-        > params.max_consensus_n_fraction
-    ):
+    elif params.max_consensus_n_fraction is not None and (
+        gate_n_fraction := gate_consensus_n_fraction(translated.barcode)
+    )[0] > params.max_consensus_n_fraction:
+        gate_fraction, n_excluded = gate_n_fraction
         notes.append(
             "consensus_n_fraction="
             f"{translated.barcode.consensus_n_fraction:.3f} > "
             f"max_consensus_n_fraction={params.max_consensus_n_fraction:.3f}"
         )
+        if n_excluded > 0:
+            notes.append(
+                f"gate fraction={gate_fraction:.3f} after excluding "
+                f"{n_excluded} deletion-majority no-call position"
+                f"{'s' if n_excluded != 1 else ''}"
+            )
         if translated.n_no_call_aa > 0:
             notes.append(f"no_call_aa={translated.n_no_call_aa}")
         if translated.barcode.n_low_depth_positions > 0:
@@ -416,7 +559,25 @@ def classify_verdict(
     # example 51/49) means majority consensus can look exact while the well is
     # actually mixed. Detected before WRONG_AA so contamination is reported as
     # its own class rather than being masked by an AA-mismatch verdict.
-    if translated.barcode.n_mixed_positions > 0:
+    #
+    # The count compared here is narrowed by gate_mixed_positions: a position the
+    # reads agreed is DELETED has its minor fraction measured over the thin
+    # remaining A/C/G/T pool, so it clears the 0.20 gate on a handful of reads
+    # without the well being mixed. The reported n_mixed_positions is unchanged
+    # and still appears in the note.
+    gate_n_mixed, n_mixed_excluded, mixed_gate_reason = gate_mixed_positions(
+        translated.barcode
+    )
+    if mixed_gate_reason:
+        notes.append(mixed_gate_reason)
+    if n_mixed_excluded > 0:
+        notes.append(
+            f"mixed gate count={gate_n_mixed} after excluding "
+            f"{n_mixed_excluded} mixed position"
+            f"{'s' if n_mixed_excluded != 1 else ''} at deletion-majority "
+            "coordinates"
+        )
+    if gate_n_mixed > 0:
         # MIXED confidence floor: below min_read_count x factor the minor allele
         # cannot be distinguished from ONT error, so report LOWDEPTH
         # (inconclusive) rather than a confident contamination call. Recovery is
