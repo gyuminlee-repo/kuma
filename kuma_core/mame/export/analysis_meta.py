@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from kuma_core.mame.compare.verdict import _MIXED_CONFIDENT_DEPTH_FACTOR
+from kuma_core.mame.models import VerdictClass
 
 #: What a threshold that is switched off is written as. An empty cell would be
 #: indistinguishable from a value that failed to be recorded, which is the
@@ -118,6 +119,15 @@ class AnalysisConditions:
                 str(_MIXED_CONFIDENT_DEPTH_FACTOR),
             ),
             ("mixed_confident_read_count", mixed_floor),
+            # The vocabulary the verdicts above were drawn from. Iterated from
+            # the enum rather than listed here: consumers that copied the eight
+            # names by hand drifted from the definition, and wells carrying a
+            # class their copy did not know appeared in no figure at all. A
+            # second hand-written copy in this row would reproduce exactly that.
+            (
+                "verdict_classes",
+                ", ".join(v.value for v in VerdictClass),
+            ),
         ]
 
 

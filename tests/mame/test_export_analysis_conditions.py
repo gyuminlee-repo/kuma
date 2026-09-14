@@ -123,6 +123,24 @@ def test_the_workbook_states_the_conditions_it_was_produced_under(
     assert kv.get("mixed_confident_read_count") == "90"
 
 
+def test_the_workbook_names_the_vocabulary_its_verdicts_were_drawn_from(
+    tmp_path: Path,
+) -> None:
+    """The reader must not have to guess which classes were in play.
+
+    Derived from ``VerdictClass`` rather than spelled out, because a
+    hand-written expectation here is the same hand-copy that drifted from the
+    definition downstream and hid whole wells. The enum is the definition, not
+    the writer, so reading it is not comparing the sheet against itself.
+    """
+    pytest.importorskip("openpyxl")
+    from kuma_core.mame.models import VerdictClass
+
+    kv = _meta_rows(_run(tmp_path))
+
+    assert kv["verdict_classes"].split(", ") == [v.value for v in VerdictClass]
+
+
 def test_no_condition_row_is_left_blank(tmp_path: Path) -> None:
     """A key with an empty value records nothing while looking like a record."""
     pytest.importorskip("openpyxl")
