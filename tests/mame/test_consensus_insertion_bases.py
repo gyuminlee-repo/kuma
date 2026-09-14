@@ -512,10 +512,11 @@ def test_deletions_are_applied_before_insertions() -> None:
 
 
 def test_translate_and_diff_reports_the_rebuild_without_moving_the_diff() -> None:
-    """The new field is reported beside the verdict inputs, never into them.
+    """An insertion-only well keeps every existing field.
 
-    Deletion handling is #396's and stays exactly as #396 left it; the insertion
-    channel adds a field and changes no existing one.
+    The rebuild is longer than the reference, so it no longer shares the codon
+    frame ``_aa_ungapped_diffs`` walks and the AA comparison stays on the gap
+    copy. The field is still reported.
     """
 
     alns = [_inserted(69, "GGG") for _ in range(9)] + [_full()]
@@ -553,3 +554,160 @@ def test_an_anchor_outside_the_cds_window_is_dropped() -> None:
     )
     built = build_length_true_nt(rec, REF[30:150], 30, 150)
     assert built == REF[30:100] + "A" + REF[100:150]
+
+
+# ---------------------------------------------------------------------------
+# 5. the AA comparison reads the rebuild when it still shares the frame
+# ---------------------------------------------------------------------------
+
+
+def _ref_aa() -> str:
+    from Bio.Seq import Seq
+
+    return str(Seq(REF[: len(REF) - len(REF) % 3]).translate(table="11")).rstrip("*")
+
+
+def test_a_cancelling_block_substitution_is_read_as_a_substitution() -> None:
+    """The label correction this consumption exists for.
+
+    Insertion and deletion cancel inside the coding window, so the molecule is
+    reference-length and carries changed residues rather than a missing one. The
+    gap copy could only say 'del', because the stored consensus has an 'N' where
+    the deletion landed and no trace of the insertion.
+
+    Asserted against the residues the rebuilt molecule actually translates to,
+    not against a hand-typed list, so the test states the contract rather than a
+    transcription of today's output.
+    """
+
+    alns = [_block_sub(80, 70, "G") for _ in range(9)] + [_full()]
+    call = call_consensus_with_metrics(alns, REF)
+    assert call.consensus_net_indel_bp == 0
+    rec = _record(call)
+
+    built = build_length_true_nt(rec, call.consensus_seq, 0, len(REF))
+    assert built is not None and len(built) == len(REF)
+
+    result = translate_and_diff(rec, REF, 0, len(REF))
+
+    from Bio.Seq import Seq
+
+    trim = len(built) - len(built) % 3
+    expected_aa = str(Seq(built[:trim]).translate(table="11")).rstrip("*")
+    assert result.aa_sequence == expected_aa
+
+    ref_aa = _ref_aa()
+    expected_changes = [
+        f"{ref_aa[i]}{i + 1}{expected_aa[i]}"
+        for i in range(min(len(ref_aa), len(expected_aa)))
+        if ref_aa[i] != expected_aa[i]
+    ]
+    assert result.observed_aa_changes == expected_changes
+    # The point of the correction: nothing is reported as deleted.
+    assert not [c for c in result.observed_aa_changes if c.endswith("del")]
+    assert expected_changes, "the fixture must actually change a residue"
+
+
+def test_the_nt_diff_stays_in_reference_coordinates() -> None:
+    """Consuming the rebuild moves the AA labels only.
+
+    ``_has_frameshift`` and the workbook both index by reference position, so the
+    NT diff is built from the gap copy on every path.
+    """
+
+    alns = [_block_sub(80, 70, "G") for _ in range(9)] + [_full()]
+    call = call_consensus_with_metrics(alns, REF)
+    with_channel = translate_and_diff(_record(call), REF, 0, len(REF))
+    without = translate_and_diff(
+        _record(call, ins_majority_bases=(), n_ins_majority_anchors=0),
+        REF,
+        0,
+        len(REF),
+    )
+    assert with_channel.observed_nt_changes == without.observed_nt_changes
+    assert with_channel.observed_aa_changes != without.observed_aa_changes
+
+
+def test_a_deletion_only_well_keeps_the_deletion_labels() -> None:
+    """A real length change is not reinterpreted.
+
+    The rebuild is shorter than the reference, so it leaves the codon frame and
+    the AA comparison stays on the gap copy that reports the deletion. This is
+    the regression guard for wells whose net indel is genuine.
+    """
+
+    dels = [
+        _aln(
+            REF[:79] + REF[80:],
+            [[79, _CIGAR_M], [1, _CIGAR_D], [len(REF) - 80, _CIGAR_M]],
+        )
+        for _ in range(9)
+    ]
+    call = call_consensus_with_metrics(dels + [_full()], REF)
+    assert call.consensus_net_indel_bp == -1
+    result = translate_and_diff(_record(call), REF, 0, len(REF))
+    without_channel = translate_and_diff(
+        _record(
+            call,
+            del_majority_positions=(),
+            n_del_majority_positions=0,
+            ins_majority_bases=(),
+            n_ins_majority_anchors=0,
+        ),
+        REF,
+        0,
+        len(REF),
+    )
+    assert [c for c in result.observed_aa_changes if c.endswith("del")]
+    # #396 behaviour, unchanged: the gap copy is still what the AA diff reads.
+    assert result.observed_aa_changes != without_channel.observed_aa_changes
+
+
+def test_a_record_without_the_channel_is_untouched() -> None:
+    """The old-project path. No channel means no rebuild and no change."""
+
+    alns = [_block_sub(80, 70, "G") for _ in range(9)] + [_full()]
+    call = call_consensus_with_metrics(alns, REF)
+    bare = _record(
+        call,
+        del_majority_positions=(),
+        n_del_majority_positions=0,
+        ins_majority_bases=(),
+        n_ins_majority_anchors=0,
+    )
+    result = translate_and_diff(bare, REF, 0, len(REF))
+    assert result.length_true_nt == call.consensus_seq
+    assert not [c for c in result.observed_aa_changes if c.endswith("del")]
+    # Identical to translating the stored sequence with no channel machinery at
+    # all, which is what a consensus written before the keys existed gets.
+    from kuma_core.mame.translate.aa_translator import _aa_ungapped_diffs
+
+    aa, changes, n_no_call = _aa_ungapped_diffs(call.consensus_seq, REF, table=11)
+    assert (result.aa_sequence, result.observed_aa_changes, result.n_no_call_aa) == (
+        aa,
+        changes,
+        n_no_call,
+    )
+
+
+def test_an_incomplete_channel_keeps_the_existing_path() -> None:
+    """``build_length_true_nt`` refuses, so the AA comparison does not move."""
+
+    alns = [_block_sub(80, 70, "G") for _ in range(9)] + [_full()]
+    call = call_consensus_with_metrics(alns, REF)
+    truthful = translate_and_diff(_record(call), REF, 0, len(REF))
+    partial = translate_and_diff(
+        _record(call, n_ins_majority_anchors=call.n_ins_majority_anchors + 1),
+        REF,
+        0,
+        len(REF),
+    )
+    gapped = translate_and_diff(
+        _record(call, ins_majority_bases=(), n_ins_majority_anchors=0),
+        REF,
+        0,
+        len(REF),
+    )
+    assert partial.length_true_nt is None
+    assert partial.observed_aa_changes == gapped.observed_aa_changes
+    assert partial.observed_aa_changes != truthful.observed_aa_changes

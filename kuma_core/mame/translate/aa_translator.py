@@ -348,21 +348,50 @@ def translate_and_diff(
         query_cds_aa, record.del_majority_positions, cds_start, comparable_cds_end
     )
 
-    aa_sequence, aa_changes, n_no_call = _aa_ungapped_diffs(query_cds_cmp, ref_cds, table=table)
+    # Built from the SAME bounded query the gap copy above is built from.
+    length_true_nt = build_length_true_nt(
+        record, query_cds_aa, cds_start, comparable_cds_end
+    )
+
+    # The AA comparison reads the length-true sequence WHEN THAT SEQUENCE STILL
+    # LINES UP WITH THE REFERENCE, and the gap copy otherwise.
+    #
+    # Why it must read it at all: an insertion and a deletion that sit in the
+    # same codon cancel, and the stored consensus cannot show that. It keeps
+    # reference length and writes 'N' where the deletion is, so the gap copy
+    # turns that codon into '---' and the diff reports a residue that never left
+    # the molecule. Three wells of a real 96-well plate (A5 designed V218L, B3
+    # designed R93A, H5 designed E228D) were reported V218del, R93del and
+    # K227del by that path. A human audit had already read the codon windows and
+    # found block substitutions of unchanged length, so this is the tool saying
+    # for itself what the audit said (see the 2026-09-08 14-well judgement note).
+    #
+    # Why the length gate: ``_aa_ungapped_diffs`` walks codons positionally
+    # against ``ref_cds``. A sequence whose length differs from the reference no
+    # longer shares that frame, so feeding it one would rewrite every residue
+    # after the indel rather than the residues the indel touches. Those wells are
+    # exactly the ones whose net indel is real, and a genuine frameshift is
+    # already decided from ``consensus_net_indel_bp`` before the AA labels are
+    # read at all. Keeping them on the existing path leaves every field they
+    # carry byte-identical.
+    #
+    # ``None`` (no indel channel, or an incomplete one) also keeps the existing
+    # path, so a project analysed before the channel existed is unaffected.
+    aa_source = (
+        length_true_nt
+        if length_true_nt is not None and len(length_true_nt) == len(query_cds_aa)
+        else query_cds_cmp
+    )
+
+    aa_sequence, aa_changes, n_no_call = _aa_ungapped_diffs(aa_source, ref_cds, table=table)
+    # The NT diff stays in REFERENCE coordinates. Both of its consumers index by
+    # reference position (``_has_frameshift`` reads ``{pos}_INDEL`` offsets and the
+    # workbook prints positions against the reference), and the length-true
+    # sequence deliberately does not line up with those.
     nt_changes = extract_nt_changes(
         query_seq=query_cds_cmp,
         ref_seq=ref_cds,
         offset=cds_start,
-    )
-
-    # Built from the SAME bounded query the diff above used, and reported beside
-    # the diff rather than feeding it. The diff stays in reference coordinates
-    # because both of its consumers index by reference position; the length-true
-    # sequence is the molecule at its own length and its coordinates deliberately
-    # do not line up with those. Making the diff read it is a verdict change and
-    # a separate decision.
-    length_true_nt = build_length_true_nt(
-        record, query_cds_aa, cds_start, comparable_cds_end
     )
 
     return TranslatedRecord(
