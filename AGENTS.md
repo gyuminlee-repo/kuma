@@ -63,9 +63,9 @@ DMG bundle 단계 실패 시 `pnpm run sidecar:hash:postbuild` 단독 실행으�
 
 ### UI smoke (브라우저 렌더 검증)
 ```bash
-node scripts/ui-smoke.mjs        # = pnpm run smoke:ui
+node scripts/ui-smoke.mjs
 ```
-`vite preview` 로 프로덕션 번들을 띄우고 Chromium 으로 접속해 title, `#root` 렌더, KURO 탭 렌더, MAME 탭 렌더, pageerror 0 을 확인한다. **KURO·MAME 탭은 `lazy()` 동적 import 라(`src/screens/MainShell.tsx:27-31`) 탭 청크가 깨져도 `tsc --noEmit` 과 `vite build` 는 통과한다.** 실측으로 확인했다. `MameTab.tsx` 최상단에 `throw` 를 넣어도 빌드는 exit 0 이고 스모크만 exit 1 로 잡았다. 타입체크와 유닛 테스트가 못 보는 층이므로 프론트엔드를 만졌으면 돌린다.
+정본 명령은 이 한 줄뿐이다. 패키지 매니저나 온디맨드 실행기를 거치지 않는다(WSL 공유 체크아웃, Git hooks 절과 같은 이유). 스크립트가 자체적으로 `node node_modules/vite/bin/vite.js build` 를 먼저 실행한 뒤 그 결과물로 `vite preview` 를 띄우므로 별도 사전 빌드가 필요 없다. 자기완결로 만든 이유는 사전 빌드를 손에 맡기면 낡은 `dist/` 로 거짓 통과하기 때문이다. 실측에서 `MameTab.tsx` 를 깨뜨린 뒤 빌드 없이 돌리자 exit 0 으로 통과했고 마커에는 깨진 소스의 지문이 기록됐다. Chromium 으로 접속해 title, `#root` 렌더, KURO 탭 렌더, MAME 탭 렌더, pageerror 0, 스텁에 없는 Tauri 커맨드 호출 0 을 확인한다. **KURO·MAME 탭은 `lazy()` 동적 import 라(`src/screens/MainShell.tsx:27-31`) 탭 청크가 깨져도 `tsc --noEmit` 과 `vite build` 는 통과한다.** 실측으로 확인했다. `MameTab.tsx` 최상단에 `throw` 를 넣으면 빌드는 exit 0 이고 스모크만 exit 1 로 잡는다. 타입체크와 유닛 테스트가 못 보는 층이므로 프론트엔드를 만졌으면 돌린다. 빌드에 수십 초가 걸리므로 빌드·브라우저 검증 각 단계 소요 시간을 stdout 에 한 줄씩 찍는다.
 
 통과하면 `.ui-smoke-passed`(gitignore) 에 프론트엔드 지문을 기록하고 실패하면 지운다. 지문은 `scripts/ui-smoke-fingerprint.mjs` 단일 구현이 계산하며 `src/**`(테스트 파일 제외) 와 빌드 설정 파일만 본다. 테스트 파일만 고쳤을 때 재실행을 요구하면 상시 경고가 되어 무시되기 때문이다. Stop 훅 `ui-smoke-gate.sh` 가 이 마커와 현재 지문을 대조해 낡았으면 재실행을 요구한다. 훅은 스모크를 직접 돌리지 않는다. 빌드와 preview 기동이 Stop 훅 예산을 넘고 포트 4173 을 물기 때문이다.
 

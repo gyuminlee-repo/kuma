@@ -18,7 +18,10 @@
  *   - excluded: *.test.ts, *.test.tsx, src/test-setup.ts, src/test-utils/**
  *     (test-only edits must not force a UI re-check; requiring one for every
  *     test file touch would make the gate a standing, ignorable warning)
- *   - gitignored files are excluded regardless of tracked/untracked state
+ *   - untracked files that are gitignored are excluded via `--exclude-standard`
+ *     (applies only to the untracked half of `git ls-files`; a file that is
+ *     both tracked and gitignored would still appear here, but this repo has
+ *     none in the included scope)
  *   - hashed from the actual working tree bytes, not HEAD, so uncommitted
  *     edits are covered
  *

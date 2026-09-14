@@ -18,6 +18,10 @@ const VITE_BIN = resolve(
   ".bin",
   process.platform === "win32" ? "vite.cmd" : "vite",
 );
+// Called directly through `node`, never through a package manager or an
+// on-demand runner (npx/pnpm dlx): this checkout is a WSL-shared folder and
+// this script must stay self-contained (see AGENTS.md "Git hooks").
+const VITE_JS = resolve(REPO_ROOT, "node_modules", "vite", "bin", "vite.js");
 const URL = `http://${HOST}:${PORT}`;
 
 async function waitForServer(url, timeoutMs = 30000) {
@@ -68,6 +72,46 @@ function killAndWait(child, { graceMs = 2000 } = {}) {
 }
 
 /**
+ * Runs `node <scriptPath> ...args` to completion, inheriting stdio so build
+ * output/errors are visible, and rejects on a non-zero exit or a signal kill.
+ */
+function runNodeScript(scriptPath, args, { cwd = REPO_ROOT } = {}) {
+  return new Promise((resolveRun, rejectRun) => {
+    const child = spawn(process.execPath, [scriptPath, ...args], {
+      cwd,
+      stdio: "inherit",
+    });
+    child.on("error", rejectRun);
+    child.on("exit", (code, signal) => {
+      if (signal) {
+        rejectRun(new Error(`${scriptPath} ${args.join(" ")} killed by signal ${signal}`));
+      } else if (code !== 0) {
+        rejectRun(new Error(`${scriptPath} ${args.join(" ")} exited with code ${code}`));
+      } else {
+        resolveRun();
+      }
+    });
+  });
+}
+
+/**
+ * Builds the production bundle this script is about to smoke-test.
+ *
+ * Without this, `ui-smoke.mjs` served whatever `dist/` happened to already
+ * be on disk. A stale `dist/` from a prior, unrelated build let a genuinely
+ * broken checkout pass: reproduced by injecting a `throw` at the top of
+ * `MameTab.tsx` and running the smoke script without rebuilding first, it
+ * exited 0 and recorded a marker for the broken source. Building here makes
+ * the script self-contained: whatever it certifies is what it just compiled.
+ */
+async function buildFrontend() {
+  const t0 = Date.now();
+  await runNodeScript(VITE_JS, ["build"]);
+  const elapsedS = ((Date.now() - t0) / 1000).toFixed(1);
+  console.log(`ui-smoke: build finished in ${elapsedS}s`);
+}
+
+/**
  * Minimal `window.__TAURI_INTERNALS__` bridge, injected before any app script
  * runs. Without it `App.tsx`'s `getConfig()` call rejects (no Tauri backend
  * behind `vite preview`) and the app is permanently stuck on the onboarding
@@ -88,8 +132,15 @@ function killAndWait(child, { graceMs = 2000 } = {}) {
  * attempt to support deeper wizard steps (file uploads, sidecar RPC
  * payloads); that is screenshot-capture territory (scripts/capture-*.ts),
  * not this smoke gate's job.
+ *
+ * Any command outside this set is recorded on `window.__uiSmokeMissingCommands`
+ * (checked by the driver after the run) instead of failing silently. A
+ * console.error line is also emitted for a human reading the transcript, but
+ * nothing here relies on that being read: the page-global array is what the
+ * driver actually inspects.
  */
 function installTauriBridgeStub() {
+  window.__uiSmokeMissingCommands = [];
   const CONFIG = {
     projects_root: "~/Documents/kuma",
     recent_projects: [
@@ -188,12 +239,10 @@ function installTauriBridgeStub() {
       case "plugin:window|set_title":
         return Promise.resolve(null);
       default:
-        // Logged rather than silently swallowed: an app code path that
-        // starts requiring a new bridge command should surface here, not
-        // fail invisibly a layer up.
         if (!missing.has(cmd)) {
           missing.add(cmd);
           console.error(`ui-smoke: no stub for Tauri command "${cmd}"`);
+          window.__uiSmokeMissingCommands.push(cmd);
         }
         return Promise.resolve(null);
     }
@@ -225,9 +274,9 @@ function currentCommitSha() {
   }
 }
 
-function writeMarker() {
+function writeMarker(fingerprint) {
   const marker = {
-    fingerprint: computeFingerprint(REPO_ROOT),
+    fingerprint,
     ts: new Date().toISOString(),
     commit: currentCommitSha(),
   };
@@ -241,20 +290,12 @@ function clearMarker() {
   }
 }
 
-const server = spawn(
-  VITE_BIN,
-  ["preview", "--host", HOST, "--port", String(PORT), "--strictPort"],
-  {
-    stdio: "inherit",
-    shell: process.platform === "win32",
-  },
-);
-
-let passed = false;
-let failure = null;
-try {
-  await waitForServer(URL);
-
+/**
+ * Runs the Chromium checks against an already-running preview server.
+ * Returns once every assertion (title, root render, KURO tab, MAME tab, zero
+ * pageerrors, zero unstubbed Tauri commands) has passed; throws otherwise.
+ */
+async function runBrowserChecks() {
   const browser = await chromium.launch({ headless: true });
   try {
     const context = await browser.newContext();
@@ -317,18 +358,94 @@ try {
       throw pageErrors[0];
     }
 
-    passed = true;
+    // An app code path calling a Tauri command outside the stub's known set
+    // must fail the gate, not resolve to `null` and render "successfully"
+    // with data it never actually asked for.
+    const missingCommands = await page.evaluate(() => window.__uiSmokeMissingCommands || []);
+    if (missingCommands.length > 0) {
+      throw new Error(
+        `ui-smoke: unstubbed Tauri command(s) called: ${missingCommands.join(", ")}`,
+      );
+    }
   } finally {
     await browser.close();
   }
+}
+
+// ─── main ───────────────────────────────────────────────────────────────
+
+let passed = false;
+let failure = null;
+let preFingerprint = null;
+
+// One place to track "whatever child process is currently our responsibility
+// to clean up", so the SIGINT/SIGTERM handler below has something to kill
+// regardless of which phase (build or preview) is running when the signal
+// arrives.
+let activeChild = null;
+let shuttingDownFromSignal = false;
+
+async function handleSignal(signal) {
+  if (shuttingDownFromSignal) return;
+  shuttingDownFromSignal = true;
+  console.error(`\nui-smoke: received ${signal}, cleaning up`);
+  clearMarker();
+  if (activeChild) {
+    await killAndWait(activeChild);
+  }
+  process.exit(signal === "SIGINT" ? 130 : 143);
+}
+process.on("SIGINT", () => void handleSignal("SIGINT"));
+process.on("SIGTERM", () => void handleSignal("SIGTERM"));
+
+try {
+  // Fingerprint the source tree right before it is compiled: this is the
+  // exact state the upcoming build (and therefore everything the browser
+  // checks below observe) reflects. Recomputed again at the end; if it
+  // differs, some other lane edited src/ mid-run and the pass below does not
+  // certify the code currently on disk (AGENTS.md documents parallel lanes
+  // as the normal case here, not an edge case).
+  preFingerprint = computeFingerprint(REPO_ROOT);
+
+  await buildFrontend();
+
+  const server = spawn(
+    VITE_BIN,
+    ["preview", "--host", HOST, "--port", String(PORT), "--strictPort"],
+    {
+      stdio: "inherit",
+      shell: process.platform === "win32",
+    },
+  );
+  activeChild = server;
+
+  const checksStart = Date.now();
+  try {
+    await waitForServer(URL);
+    await runBrowserChecks();
+  } finally {
+    await killAndWait(server);
+    activeChild = null;
+  }
+  const checksElapsedS = ((Date.now() - checksStart) / 1000).toFixed(1);
+  console.log(`ui-smoke: browser checks finished in ${checksElapsedS}s`);
+
+  const postFingerprint = computeFingerprint(REPO_ROOT);
+  if (postFingerprint !== preFingerprint) {
+    throw new Error(
+      "ui-smoke: source tree changed while the smoke test was running " +
+        `(fingerprint ${preFingerprint} -> ${postFingerprint}); ` +
+        "cannot certify code that no longer matches what was built. Re-run.",
+    );
+  }
+
+  passed = true;
 } catch (err) {
   failure = err;
-} finally {
-  await killAndWait(server);
 }
 
 if (passed) {
-  const marker = writeMarker();
+  const marker = writeMarker(preFingerprint);
   console.log(`ui-smoke: PASS (fingerprint ${marker.fingerprint})`);
 } else {
   clearMarker();
