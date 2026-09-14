@@ -17,7 +17,7 @@ function row(): SdmPrimerResult {
 describe("synthesis score column", () => {
   it("renders a missing backend score as unavailable rather than a perfect 100", () => {
     const columns = makeResultTableColumns({
-      groupColorMap: new Map(), codonStrategy: "closest", overlapMode: "partial", swapped: {},
+      groupColorMap: new Map(), overlapMode: "partial", swapped: {},
       customCandidates: {}, rescuedMutations: new Set(), rescueDetailMap: new Map(),
       removeDesignResult: vi.fn(), yPredMap: {}, t: ((key: string) => key) as never,
     });

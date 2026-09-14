@@ -7,7 +7,7 @@
  *  (a) sequence 없음 → "Not loaded"
  *  (b) pipelineMode=true, mode=single → "Pipeline (failover)"
  *  (d) variants count = mode=single이면 parsedMutations.length, 아니면 evolveproTotalCount
- *  (e) polymerase row: selectedPolymerase + codonStrategy + tmFwdTarget + maxPrimers
+ *  (e) polymerase row: selectedPolymerase + tmFwdTarget + maxPrimers (no codon strategy)
  */
 
 import { render } from "@testing-library/react";
@@ -81,9 +81,11 @@ describe("DesignSummaryCard (Phase B6)", () => {
     expect(getByTestId("design-summary-variants").textContent).toBe("42");
   });
 
-  it("(e) polymerase row includes selectedPolymerase, codonStrategy, Tm, maxPrimers", () => {
+  it("(e) polymerase row includes selectedPolymerase, Tm, maxPrimers and omits codon strategy", () => {
     useAppStore.setState({
       selectedPolymerase: "PrimeSTAR",
+      // Still in the store for old projects, but the operator can no longer set
+      // it, so the summary must not report it.
       codonStrategy: "optimal",
       tmFwdTarget: 65,
       maxPrimers: 24,
@@ -91,7 +93,7 @@ describe("DesignSummaryCard (Phase B6)", () => {
     const { getByTestId } = render(<DesignSummaryCard />);
     const cell = getByTestId("design-summary-polymerase").textContent || "";
     expect(cell).toContain("PrimeSTAR");
-    expect(cell).toContain("optimal");
+    expect(cell).not.toContain("optimal");
     expect(cell).toContain("65");
     expect(cell).toContain("24");
   });

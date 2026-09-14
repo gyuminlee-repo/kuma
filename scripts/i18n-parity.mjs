@@ -584,15 +584,18 @@ const UNTRANSLATED_BASELINE = {
   // Tightened 2026-08-25 to the counts the gate reported. v0.16.37.00 and
   // v0.16.37.01 translated one value in each of these locales, and the gate
   // asked for the slack to be taken back rather than left as headroom.
-  de: 559,
-  es: 549,
-  fr: 546,
-  ja: 614,
-  ko: 154,
-  "pt-BR": 551,
-  ru: 656,
-  "zh-CN": 607,
-  "zh-TW": 607,
+  // Tightened again when the codon-strategy select left the UI: its six keys were
+  // deleted from all ten locales, so the counts fell without anything being
+  // translated. Slack taken back rather than left as headroom.
+  de: 554,
+  es: 542,
+  fr: 539,
+  ja: 606,
+  ko: 152,
+  "pt-BR": 544,
+  ru: 647,
+  "zh-CN": 600,
+  "zh-TW": 600,
 };
 
 const isProse = (v) => typeof v === "string" && v.trim() !== "" && /\s/.test(v.trim());

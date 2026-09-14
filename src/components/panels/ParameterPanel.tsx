@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } fro
 import { useTranslation } from "react-i18next";
 import { sendRequest } from "../../lib/ipc-kuro";
 import { formatError } from "../../lib/utils";
-import type { CodonStrategy, OverlapMode, PolymeraseProfile } from "../../types/models";
+import type { OverlapMode, PolymeraseProfile } from "../../types/models";
 import { PolymeraseEditor } from "../dialogs/PolymeraseEditor";
 import { Button } from "../ui/button";
 import { HelpTip } from "./InputPanel/DiversitySections";
@@ -23,10 +23,6 @@ function useLocalNum(storeVal: number, fallback: number, commit: (v: number) => 
   return { value: str, onChange, onBlur, onKeyDown };
 }
 
-function isCodonStrategy(value: string): value is CodonStrategy {
-  return value === "closest" || value === "optimal";
-}
-
 function isOverlapMode(value: string): value is OverlapMode {
   return value === "partial" || value === "full";
 }
@@ -37,9 +33,7 @@ export function ParameterPanel() {
   const selectedPolymerase = useAppStore((s) => s.selectedPolymerase);
   const setSelectedPolymerase = useAppStore((s) => s.setSelectedPolymerase);
   const saveCustomPolymerase = useAppStore((s) => s.saveCustomPolymerase);
-  const codonStrategy = useAppStore((s) => s.codonStrategy);
   const maxPrimers = useAppStore((s) => s.maxPrimers);
-  const setCodonStrategy = useAppStore((s) => s.setCodonStrategy);
   const setMaxPrimers = useAppStore((s) => s.setMaxPrimers);
   const mutationInputMode = useAppStore((s) => s.mutationInputMode);
   const evolveproTotalCount = useAppStore((s) => s.evolveproTotalCount);
@@ -220,24 +214,6 @@ export function ParameterPanel() {
           </Button>
         </div>
       </div>
-
-      <label htmlFor="codon-strategy" className="flex items-center gap-2 text-caption">
-        <span className="w-24 text-muted-foreground">{t("parameterPanel.codonLabel")}</span>
-        <InlineHelp text={t("parameterPanel.codonHelp")} />
-        <select
-          id="codon-strategy"
-          className="h-control min-w-0 flex-1 rounded-control border border-border bg-card px-3 text-caption focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          value={codonStrategy}
-          onChange={(e) => {
-            if (isCodonStrategy(e.target.value)) {
-              setCodonStrategy(e.target.value);
-            }
-          }}
-        >
-          <option value="closest" title={t("parameterPanel.codonOption_closest_title")}>{t("parameterPanel.codonOption_closest")}</option>
-          <option value="optimal" title={t("parameterPanel.codonOption_optimal_title")}>{t("parameterPanel.codonOption_optimal")}</option>
-        </select>
-      </label>
 
       <label className="flex items-center gap-2 text-caption">
         <span className="w-24 text-muted-foreground">{t("parameterPanel.mutationsLabel")}</span>
