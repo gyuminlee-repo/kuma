@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { OPEN_HELP_EVENT, type OpenHelpDetail } from "@/help/events";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MainShell } from "./MainShell";
@@ -148,6 +149,35 @@ describe("MainShell", () => {
     await waitFor(() => {
       expect(rpcMock).toHaveBeenCalledWith("kuro", "ping", {});
     });
+  });
+
+  it("keeps the help panel and its topic when the tab changes", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProjectProvider value={{ path: "/tmp/x", name: "Demo", scratch: false }}>
+        <MainShell />
+      </ProjectProvider>,
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent<OpenHelpDetail>(OPEN_HELP_EVENT, { detail: { topic: "mame-02-review" } }),
+      );
+    });
+    const panel = await screen.findByRole("dialog", { name: "Help" });
+    expect(within(panel).getByRole("button", { name: "Analyze and review" })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+
+    await user.click(screen.getByRole("tab", { name: "Mame" }));
+    await user.click(screen.getByRole("tab", { name: "Kuro" }));
+
+    const after = screen.getByRole("dialog", { name: "Help" });
+    expect(within(after).getByRole("button", { name: "Analyze and review" })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
   });
 
   // ── 복원 훅 ↔ HydrationOverlay / 투어 게이트 배선
