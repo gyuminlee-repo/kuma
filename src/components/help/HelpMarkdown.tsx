@@ -22,7 +22,7 @@ interface HelpMarkdownProps {
  */
 export function HelpMarkdown({ body, knownTopics, onTopicChange }: HelpMarkdownProps) {
   return (
-    <div className="space-y-2 text-sm leading-relaxed [&_h2]:mt-4 [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:font-medium [&_ul]:list-disc [&_ul]:pl-5 [&_code]:rounded [&_code]:bg-muted/30 [&_code]:px-1 [&_table]:border-collapse [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:font-medium [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1">
+    <div className="space-y-2 text-sm leading-relaxed [&_h1]:mt-1 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:mt-4 [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:font-medium [&_ul]:list-disc [&_ul]:pl-5 [&_code]:rounded [&_code]:bg-muted/30 [&_code]:px-1 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-muted/30 [&_pre]:p-2 [&_pre]:text-xs [&_pre_code]:bg-transparent [&_pre_code]:px-0 [&_table]:border-collapse [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:font-medium [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1">
       <Markdown
         remarkPlugins={[remarkGfm]}
         skipHtml

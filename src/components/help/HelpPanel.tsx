@@ -49,7 +49,7 @@ export function HelpPanel({ open, topic, onTopicChange, onClose }: HelpPanelProp
       role="dialog"
       aria-modal="false"
       aria-labelledby={titleId}
-      className="fixed inset-y-0 right-0 z-40 flex w-[440px] max-w-full flex-col border-l border-border bg-card text-card-foreground shadow-lg"
+      className="fixed inset-y-0 right-0 z-[45] flex w-[440px] max-w-full flex-col border-l border-border bg-card text-card-foreground shadow-lg"
     >
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 id={titleId} className="text-sm font-semibold">
