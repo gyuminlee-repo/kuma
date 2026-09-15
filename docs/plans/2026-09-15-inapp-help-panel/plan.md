@@ -1,8 +1,8 @@
 # In-app help panel 구현 계획
 
-**목표:** KURO 와 MAME 양쪽에서 열리는 우측 슬라이드오버 도움말 패널을 붙여, 앱을 떠나지 않고 14개 주제를 찾아 읽게 한다.
+**목표:** KURO 와 MAME 양쪽에서 열리는 우측 슬라이드오버 도움말 패널을 붙여, 앱을 떠나지 않고 13개 주제를 찾아 읽게 한다.
 
-**아키텍처:** 마크다운 14편을 로케일별로 두고 Vite `import.meta.glob` 이 빌드 시점에 문자열로 끌어온다. 패널은 상태를 갖지 않고 `topic` 과 `onTopicChange` 를 props 로 받으며, 각 탭의 `MenuBar` 가 자기 스토어에서 현재 단계를 읽어 주제를 정한다. 본문 내 상대 링크는 렌더러가 가로채 패널 안에서 주제만 바꾼다.
+**아키텍처:** 마크다운 13편을 로케일별로 두고 Vite `import.meta.glob` 이 빌드 시점에 문자열로 끌어온다. 패널은 상태를 갖지 않고 `topic` 과 `onTopicChange` 를 props 로 받으며, 각 탭의 `MenuBar` 가 자기 스토어에서 현재 단계를 읽어 주제를 정한다. 본문 내 상대 링크는 렌더러가 가로채 패널 안에서 주제만 바꾼다.
 
 **기술 스택:** React 19, Vite 6 `import.meta.glob`, `react-markdown` 10.1.0, vitest, i18next
 
@@ -24,6 +24,23 @@
 | `react-markdown` 10.1.0 peer 는 `react: ">=18"` | npm registry, 2026-09-15 확인 |
 | 컴포넌트 테스트는 같은 자리에 `*.test.tsx` | `src/components/ui/Panel.test.tsx` |
 
+## 명령 전제
+
+계획 안의 모든 명령과 `feature_list.json` 의 `verify_command` 는 이 두 변수를 전제한다. 실행 전에 셸에 넣는다.
+
+```bash
+export WORKTREE=/mnt/d/_workspace/cc/kuma/.claude/worktrees/help-spec
+export MAIN=/mnt/d/_workspace/cc/kuma
+```
+
+**`tsc` 는 `$MAIN` 의 것을 쓴다.** 워크트리에는 `node_modules` 가 없다. 타입 검사 범위는 그래도 워크트리다. `tsconfig.json` 의 `include` 가 `["src"]` 이고 이는 tsc 를 실행한 위치의 `tsconfig.json` 기준으로 풀리므로, `$WORKTREE` 에서 `$MAIN` 의 tsc 를 부르면 워크트리의 신규 파일이 검사 대상에 들어간다. 실측으로 exit 0 을 확인했다.
+
+```bash
+cd "$WORKTREE" && node "$MAIN/node_modules/typescript/bin/tsc" --noEmit
+```
+
+vitest 도 같은 이유로 `win-build.sh` 를 거쳐 `--cwd "$WORKTREE"` 로 부른다. 공유 폴더의 `node_modules` 는 Windows 설치본이라 WSL 에서 실행되지 않는다.
+
 ## 라벨 규약
 
 **본문에 `vA.BB.CC.DD` 라벨을 박지 않는다.** 커밋 제목은 `feat(help):` 같은 라벨 없는 형식을 쓴다. 이 작업은 shipped 동작을 바꾸므로 릴리스 라벨이 필요하지만, 그것은 머지 직전 `git fetch` 후 원격 최댓값으로 결정한다.
@@ -34,8 +51,8 @@
 
 | 경로 | 책임 |
 |---|---|
-| `docs/help/ko/` 14편 | 한국어 본문. `docs/kuro`·`docs/mame` 에서 옮김 |
-| `docs/help/en/` 14편 | 영어 본문. 신규 번역 |
+| `docs/help/ko/` 13편 | 한국어 본문. `docs/kuro`·`docs/mame` 에서 옮김 |
+| `docs/help/en/` 13편 | 영어 본문. 신규 번역 |
 | `src/help/topics.ts` | 주제 id 목록, 목차 그룹, 단계 대 주제 대응표. 순수 데이터 |
 | `src/help/content.ts` | `import.meta.glob` 로 본문 적재, 로케일 폴백 해석 |
 | `src/help/content.test.ts` | 적재·폴백·재고 검사 |
@@ -131,7 +148,7 @@ git commit -m "chore(help): add react-markdown for the in-app help panel"
 ## Task 1: 본문을 옮기고 drift 를 묶는다
 
 **파일:**
-- 생성: `docs/help/ko/` 14편
+- 생성: `docs/help/ko/` 13편
 - 수정: `.cross-layer-sync.json`
 
 - [ ] **Step 1: 파일 복사와 이름 맞추기**
@@ -157,7 +174,7 @@ mame/mame-pipeline  mame-pipeline
 PAIRS
 ```
 
-13편이다. 14번째는 `docs/kuro/biological-unit-tier2-spec.md` 인데 목차 그룹 어디에도 안 들어가므로 **옮기지 않는다.** 스펙 D1 의 "8 files" 는 이 사양 문서를 포함한 수이고 목차는 13개 주제다. 스펙의 "14 topics" 를 13 으로 정정해야 한다.
+13편이다. `docs/kuro` 8편 중 tier 2 사양서는 목차 그룹 어디에도 안 들어가므로 **옮기지 않는다.** 사용자 문서가 아니라 사양서다. 스펙은 이미 13 으로 정정돼 있다.
 
 - [ ] **Step 2: 내부 링크를 새 이름으로 고친다**
 
@@ -188,13 +205,32 @@ PAIRS
 
 `files` 에는 13쌍 26개 경로를 실제 값으로 적는다. 앞은 `docs/help/ko/<topic-id>` 이고 뒤는 그 원본이다. severity 는 `warning` 이다. 문서가 갈라지는 것은 빌드를 막을 일이 아니다.
 
-- [ ] **Step 5: 검사와 커밋**
+- [ ] **Step 5: 발행 사이트에서 제외**
+
+`mkdocs.yml` 의 `exclude_docs` 에 `help/` 를 더한다. 그것이 없으면 새 26편이 발행 사이트로 새어 나간다. `nav` 가 명시적이라 페이지로 렌더되지는 않지만 소스는 빌드 폴더에 복사된다. 인앱 도움말은 앱의 것이고 사이트에는 이미 같은 내용이 `docs/kuro`·`docs/mame` 로 올라가 있어 중복이다.
+
+```yaml
+exclude_docs: |
+  README.md
+  README.ko.md
+  debug-findings.md
+  design/
+  en/
+  help/
+  ko/
+  screenshots/
+  ...
+```
+
+같은 이유로 `plans/` 도 빠져 있는지 확인한다. 이 계획 문서 자체가 `docs/plans/` 에 있다.
+
+- [ ] **Step 6: 검사와 커밋**
 
 실행: `node scripts/sync-check-groups.mjs`
 예상: 통과
 
 ```bash
-git add docs/help/ko .cross-layer-sync.json
+git add docs/help/ko .cross-layer-sync.json mkdocs.yml
 git commit -m "docs(help): move the step guides into the in-app help tree"
 ```
 
@@ -228,6 +264,8 @@ git commit -m "docs(help): translate the in-app help topics into English"
 ---
 
 ## Task 3: 본문 적재와 로케일 폴백
+
+> 선행: Task 1 과 **Task 2 둘 다**. 폴백 테스트가 "어느 로케일에 주제가 없을 때"를 확인하므로 두 트리가 모두 있어야 관측된다.
 
 **파일:**
 - 생성: `src/help/content.ts`, `src/help/content.test.ts`
@@ -739,7 +777,7 @@ export function HelpPanel({ open, topic, onTopicChange, onClose }: HelpPanelProp
       role="dialog"
       aria-modal="false"
       aria-label={t("help.panel.title")}
-      className="fixed inset-y-0 right-0 z-40 flex w-[440px] max-w-full flex-col border-l border-border bg-surface shadow-lg"
+      className="fixed inset-y-0 right-0 z-40 flex w-[440px] max-w-full flex-col border-l border-border bg-card shadow-lg"
     >
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold">{t("help.panel.title")}</h2>
@@ -887,7 +925,7 @@ const currentSubStep = useMameAppStore((s) => s.currentMameSubStep);
 
 실행:
 ```bash
-node node_modules/typescript/bin/tsc --noEmit
+node "$MAIN/node_modules/typescript/bin/tsc" --noEmit
 node scripts/i18n-lint.mjs
 node scripts/i18n-parity.mjs
 ```
@@ -907,13 +945,19 @@ git commit -m "feat(help): open the help panel from both Help menus"
 - [ ] **Step 1: 전량 테스트**
 
 ```bash
-bash $W pnpm exec vitest run --silent --reporter=dot --cwd <워크트리>
-node node_modules/typescript/bin/tsc --noEmit
+cd "$WORKTREE"
+bash "$HOME/.claude/skills/win-build/scripts/win-build.sh" pnpm exec vitest run --silent --reporter=dot --cwd "$WORKTREE"
+node "$MAIN/node_modules/typescript/bin/tsc" --noEmit
 node scripts/i18n-lint.mjs && node scripts/i18n-parity.mjs
 node scripts/sync-check-groups.mjs
 node scripts/check-doc-citations.mjs
 python3 -m pytest tests/ -q
+node "$MAIN/node_modules/.bin/basedpyright" 2>/dev/null || python3 -m basedpyright
 ```
+
+**vitest 판정은 종료 코드가 아니라 출력의 `Tests N passed` 줄로 한다.** 파이프라인 종료 코드는 마지막 명령의 것이라 앞이 실행조차 안 돼도 0 이 나온다.
+
+`basedpyright` 기준선은 2 errors 이고 둘 다 `scripts/gen-font-metrics.py` 다. 이 작업은 Python 을 건드리지 않으므로 그 값이 그대로여야 한다. 넘으면 무언가 잘못 딸려 온 것이다.
 
 기대값: vitest 0 failed, tsc exit 0, pytest 실패 0. Python 은 건드리지 않았으므로 기준선 그대로여야 한다.
 
