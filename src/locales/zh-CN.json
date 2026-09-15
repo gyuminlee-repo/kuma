@@ -3294,11 +3294,17 @@
         },
         "bomLabel": "添加 UTF-8 BOM",
         "bomHint": "(Excel 兼容)",
-        "quadrantLabel": "Echo 源板象限",
-        "quadrantNone": "未指定(旧版布局)",
-        "quadrantHelper": "Forward 引物从此处开始；reverse 引物进入配对象限(A1-B1、A2-B2)。",
-        "usedQuadrantsLabel": "此板上已使用的象限",
-        "usedQuadrantsHelper": "如果所选配对与其中之一重叠，导出将被拒绝。",
+        "quadrantLabel": "Echo 源板半区",
+        "quadrantNone": "未指定(第 1-12 列，不检查已用半区)",
+        "quadrantColumns": "第 {{from}}-{{to}} 列",
+        "quadrantHelper": "一轮填充一个半区：forward 引物在 A、C、E ... 行，reverse 引物在同一列的下一行。",
+        "usedQuadrantsLabel": "此板上已使用的半区",
+        "usedQuadrantsHelper": "如果所选半区是其中之一，导出将被拒绝。",
+        "legacyPlacementNotice": "此项目保存于 v{{version}} 之前。当时一个 round 分布在整块 source plate 上，而不是其中一半。保存的排布（{{values}}）覆盖两个半区，因此两者都标记为已使用，且未选择任何半区。若使用新板，请先清除下方的已使用勾选，再选择半区。",
+        "placementBlocked": {
+          "noHalfSelected": "此板上已有标记为已使用的半区，但本轮尚未选择半区。请选择 A1 或 A13；若为新板，请清除已使用勾选。",
+          "halfAlreadyUsed": "所选半区在此板上已标记为已使用。在其上分液会破坏已有的 primer。请选择另一半区，或清除该半区的已使用勾选。"
+        },
         "plateNameFwd": "Forward 引物板名称",
         "plateNameRev": "Reverse 引物板名称",
         "wellCount": "{{count}} 孔",
@@ -3588,14 +3594,14 @@
     "errorTitle": "预览失败",
     "echoSourcePlateLabel": "Echo 源板 (384 孔)",
     "destPlateLabel": "目标板 (96 孔)",
-    "quadrantBatch": "本次分配填充象限 {{fwd}}（正向）和 {{rev}}（反向）。",
-    "quadrantProgress": "本次分配完成后，本板 {{total}} 个象限中已使用 {{filled}} 个。",
-    "quadrantInterleaveNote": "96 头一次只能隔行隔列取样，因此四个象限相互交错，而不是形成连续的方块。中间的空孔属于 {{others}}，留给下一次分配。",
-    "quadrantUsedNote": "本板已使用的象限：{{list}}",
-    "quadrantNoneNote": "未选择象限，预览显示原有的行加倍布局。",
+    "quadrantBatch": "本次分配填充板的 {{half}} 半区，即第 {{from}}-{{to}} 列。Forward 引物位于 A、C、E ... 行，reverse 引物各在下一行。",
+    "quadrantProgress": "本次分配完成后，本板 {{total}} 个半区中已使用 {{filled}} 个。",
+    "quadrantHalfNote": "第 {{from}}-{{to}} 列属于另一半区 {{others}}，留给下一轮。",
+    "quadrantUsedNote": "本板已使用的半区：{{list}}",
+    "quadrantNoneNote": "未选择半区。运行仍落在第 1-12 列，与半区 A1 的孔位相同，只是跳过与已用半区的核对。",
     "quadrantLegendFree": "实线边框：本次分配使用的孔",
     "quadrantLegendReserved": "虚线边框：为 {{others}} 保留的孔",
-    "echoReservedWellTitle": "{{well}}，属于象限 {{quadrants}}"
+    "echoReservedWellTitle": "{{well}}，属于半区 {{quadrants}}"
   },
   "errors": {
     "sequence": {

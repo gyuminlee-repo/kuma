@@ -184,14 +184,15 @@ describe("EchoPlateView", () => {
     expect(await screen.findByTestId("plate-popover-body")).toBeInTheDocument();
   });
 
-  // The forward quadrant carries a row offset, so B1/B2 stamp forward primers
-  // onto odd rows. Colouring by row index alone inverted those runs, and the
-  // caption the grid sits under said the opposite of what the colours did.
-  describe("direction colouring under a selected quadrant", () => {
-    const B01_FORWARD = {
-      well: "B01",
-      rowLetter: "B",
-      colNumber: 1,
+  // Direction is 384 row parity in either half: a forward primer sits at row
+  // 2r and its reverse at 2r+1, and the half shifts columns only. These cases
+  // pin that the stripe does not move when the selected half does, which is
+  // what the old interleaved geometry got wrong.
+  describe("direction colouring under a selected half", () => {
+    const A13_FORWARD = {
+      well: "A13",
+      rowLetter: "A",
+      colNumber: 13,
       isFwd: true,
       sourceWellName: "Q232A_F",
       destPlate: "Destination [1]",
@@ -207,17 +208,17 @@ describe("EchoPlateView", () => {
       return container.querySelectorAll("[data-testid='echo-cell']")[idx] as HTMLElement;
     }
 
-    it("paints an odd-row forward well with the forward colour under B1", () => {
-      const { container } = render(<EchoPlateView cells={[B01_FORWARD]} quadrant="B1" />);
+    it("paints an even-row forward well with the forward colour under A13", () => {
+      const { container } = render(<EchoPlateView cells={[A13_FORWARD]} quadrant="A13" />);
       const filled = container.querySelector("button[data-testid='echo-cell']") as HTMLElement;
       expect(filled.className).toContain(PLATE_FILL_FORWARD);
       expect(filled.className).not.toContain(PLATE_FILL_REVERSE);
     });
 
-    it("flips the empty stripe with the quadrant row offset", () => {
-      const { container } = render(<EchoPlateView cells={[]} quadrant="B1" />);
-      expect(cellAt(container, "B01").className).toMatch(/blue/);
-      expect(cellAt(container, "A01").className).toMatch(/orange/);
+    it("keeps the same stripe under A13 as under A1", () => {
+      const { container } = render(<EchoPlateView cells={[]} quadrant="A13" />);
+      expect(cellAt(container, "A13").className).toMatch(/blue/);
+      expect(cellAt(container, "B13").className).toMatch(/orange/);
     });
 
     it("keeps the A1 stripe as it was (negative control)", () => {
@@ -227,7 +228,7 @@ describe("EchoPlateView", () => {
     });
 
     it("says forward in the popover of the cell it painted forward", async () => {
-      render(<EchoPlateView cells={[B01_FORWARD]} quadrant="B1" />);
+      render(<EchoPlateView cells={[A13_FORWARD]} quadrant="A13" />);
       await userEvent.click(screen.getByText("Q232A"));
       expect(await screen.findByTestId("plate-popover-body")).toBeInTheDocument();
       expect(screen.getByText("Forward")).toBeInTheDocument();
@@ -235,11 +236,11 @@ describe("EchoPlateView", () => {
     });
   });
 
-  // A run spends a quadrant *pair* sharing a column offset (A1 with B1), so
-  // "this run can reach it" is a column-parity question. The A1 and A2 cases
-  // below disagree on exactly the wells that separate that rule from a
-  // "selected quadrant only" rule, which would call every reverse-primer well
-  // reserved.
+  // A half is a contiguous block of twelve columns holding both the forward
+  // wells and their reverses, so "this run can reach it" is a column-range
+  // question. The A1 and A13 cases below disagree on exactly the wells that
+  // separate a range rule from the old column-parity one, which called every
+  // second column reserved inside the half this run actually fills.
   describe("empty-well classification", () => {
     function stateOf(container: HTMLElement, well: string): string | null {
       const idx = wellIndex(well);
@@ -254,20 +255,25 @@ describe("EchoPlateView", () => {
       return row * 24 + (col - 1);
     }
 
-    it("marks odd columns free and even columns reserved for quadrant A1", () => {
+    it("marks columns 1-12 free and 13-24 reserved for half A1", () => {
       const { container } = render(<EchoPlateView cells={[]} quadrant="A1" />);
-      // A01: forward quadrant. B01: its paired reverse quadrant B1, same
-      // column offset, so also this run's.
+      // A01 is a forward well and B01 its reverse, one row below in the same
+      // column, so both are this run's. A02 is inside the half as well: the
+      // columns run without a gap.
       expect(stateOf(container, "A01")).toBe("free");
       expect(stateOf(container, "B01")).toBe("free");
-      expect(stateOf(container, "A02")).toBe("reserved");
+      expect(stateOf(container, "A02")).toBe("free");
+      expect(stateOf(container, "A12")).toBe("free");
+      expect(stateOf(container, "A13")).toBe("reserved");
     });
 
-    it("flips that split for quadrant A2", () => {
-      const { container } = render(<EchoPlateView cells={[]} quadrant="A2" />);
-      expect(stateOf(container, "A02")).toBe("free");
-      expect(stateOf(container, "B02")).toBe("free");
+    it("flips that split for half A13", () => {
+      const { container } = render(<EchoPlateView cells={[]} quadrant="A13" />);
+      expect(stateOf(container, "A13")).toBe("free");
+      expect(stateOf(container, "B13")).toBe("free");
+      expect(stateOf(container, "A24")).toBe("free");
       expect(stateOf(container, "A01")).toBe("reserved");
+      expect(stateOf(container, "A12")).toBe("reserved");
     });
 
     it("draws the two empty kinds with different classes, not colour alone", () => {
@@ -282,13 +288,13 @@ describe("EchoPlateView", () => {
       expect(free!.className).not.toBe(reserved!.className);
     });
 
-    it("says in the tooltip which quadrants a reserved well is held for", () => {
+    it("says in the tooltip which half a reserved well is held for", () => {
       const { container } = render(<EchoPlateView cells={[]} quadrant="A1" />);
       const reserved = container.querySelector<HTMLElement>("[data-state='reserved']");
-      expect(reserved!.getAttribute("title")).toContain("A2, B2");
+      expect(reserved!.getAttribute("title")).toContain("A13");
     });
 
-    it("claims nothing about quadrants when none is selected", () => {
+    it("claims nothing about halves when none is selected", () => {
       const { container } = render(<EchoPlateView cells={[]} />);
       expect(container.querySelectorAll("[data-state='reserved']")).toHaveLength(0);
       expect(container.querySelectorAll("[data-state='free']")).toHaveLength(0);

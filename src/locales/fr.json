@@ -3294,11 +3294,17 @@
         },
         "bomLabel": "Ajouter un BOM UTF-8",
         "bomHint": "(compatibilité Excel)",
-        "quadrantLabel": "Quadrant de la plaque source Echo",
-        "quadrantNone": "Non spécifié (disposition héritée)",
-        "quadrantHelper": "Les amorces forward démarrent ici ; les reverse vont dans le quadrant apparié (A1-B1, A2-B2).",
-        "usedQuadrantsLabel": "Quadrants déjà utilisés sur cette plaque",
-        "usedQuadrantsHelper": "L'export est refusé si la paire sélectionnée chevauche l'un de ces quadrants.",
+        "quadrantLabel": "Moitié de la plaque source Echo",
+        "quadrantNone": "Non spécifiée (colonnes 1-12, sans contrôle des moitiés utilisées)",
+        "quadrantColumns": "colonnes {{from}}-{{to}}",
+        "quadrantHelper": "Une série remplit une moitié : les amorces forward sur les lignes A, C, E ... et chaque reverse une ligne en dessous, dans la même colonne.",
+        "usedQuadrantsLabel": "Moitiés déjà utilisées sur cette plaque",
+        "usedQuadrantsHelper": "L'export est refusé si la moitié sélectionnée est l'une d'elles.",
+        "legacyPlacementNotice": "Ce projet a été enregistré avant la v{{version}}, quand une série occupait toute la source plate au lieu d'une moitié. La disposition enregistrée ({{values}}) couvre les deux moitiés, donc les deux sont marquées comme utilisées et aucune n'est sélectionnée. Sur une plaque neuve, décochez d'abord les moitiés utilisées ci-dessous, puis choisissez une moitié.",
+        "placementBlocked": {
+          "noHalfSelected": "Des moitiés sont marquées comme utilisées sur cette plaque, mais aucune moitié n'est sélectionnée pour cette série. Choisissez A1 ou A13, ou décochez les moitiés utilisées si la plaque est neuve.",
+          "halfAlreadyUsed": "La moitié sélectionnée est déjà marquée comme utilisée sur cette plaque. Y distribuer détruirait les primers qui s'y trouvent. Choisissez l'autre moitié ou décochez sa case."
+        },
         "plateNameFwd": "Nom de la plaque d'amorces forward",
         "plateNameRev": "Nom de la plaque d'amorces reverse",
         "wellCount": "{{count}} puits",
@@ -3588,14 +3594,14 @@
     "errorTitle": "Échec de l'aperçu",
     "echoSourcePlateLabel": "Plaque source Echo (384 puits)",
     "destPlateLabel": "Plaque de destination (96 puits)",
-    "quadrantBatch": "Cette série remplit le quadrant {{fwd}} (amorces sens) et {{rev}} (amorces antisens).",
-    "quadrantProgress": "Après cette série, {{filled}} quadrants sur {{total}} de cette plaque sont occupés.",
-    "quadrantInterleaveNote": "Une tête 96 n'atteint qu'une ligne sur deux et une colonne sur deux par dépôt, donc les quatre quadrants s'imbriquent au lieu de former des blocs contigus. Les puits intermédiaires appartiennent à {{others}} et restent libres pour une série ultérieure.",
-    "quadrantUsedNote": "Déjà occupés sur cette plaque : {{list}}",
-    "quadrantNoneNote": "Aucun quadrant sélectionné, l'aperçu montre l'ancienne disposition à lignes doublées.",
+    "quadrantBatch": "Cette série remplit la moitié {{half}} de la plaque, colonnes {{from}}-{{to}}. Les amorces sens occupent les lignes A, C, E ... et chaque amorce antisens se place une ligne en dessous.",
+    "quadrantProgress": "Après cette série, {{filled}} moitiés sur {{total}} de cette plaque sont occupées.",
+    "quadrantHalfNote": "Les colonnes {{from}}-{{to}} forment l'autre moitié, {{others}}, et restent libres pour la série suivante.",
+    "quadrantUsedNote": "Déjà occupées sur cette plaque : {{list}}",
+    "quadrantNoneNote": "Aucune moitié sélectionnée. Le run occupe toujours les colonnes 1-12, les mêmes puits que la moitié A1, seule la vérification des moitiés déjà utilisées est ignorée.",
     "quadrantLegendFree": "Bordure pleine : puits utilisé par cette série",
     "quadrantLegendReserved": "Bordure pointillée : réservé pour {{others}}",
-    "echoReservedWellTitle": "{{well}}, réservé au quadrant {{quadrants}}"
+    "echoReservedWellTitle": "{{well}}, réservé à la moitié {{quadrants}}"
   },
   "errors": {
     "sequence": {

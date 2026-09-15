@@ -380,12 +380,20 @@ export interface ExportSlice {
   isExporting: boolean;
   echoTransferVol: number;
   /**
-   * 384 Echo source plate 에서 96-head Zephyr 가 stamp 를 시작할 quadrant.
-   * null 이면 기존 row-doubled 배치를 그대로 쓴다. reverse 는 짝 quadrant 로 간다.
+   * 이 round 가 차지할 384 Echo source plate 의 절반. "A1" 은 1~12열,
+   * "A13" 은 13~24열이다. null 이면 절반을 나누지 않은 기존 배치를 쓴다.
+   * reverse 는 같은 절반에서 forward 바로 아래 행으로 간다.
    */
   echoQuadrant: EchoQuadrant | null;
-  /** 이 plate 에서 이미 소진된 quadrant. 작업자가 직접 입력한다. */
+  /** 이 plate 에서 이미 소진된 절반. 작업자가 직접 입력한다. */
   echoUsedQuadrants: EchoQuadrant[];
+  /**
+   * 방금 연 프로젝트가 half layout 이전 배치로 저장돼 선택을 떨어뜨렸으면 그때
+   * 읽은 저장값들. null 이면 떨어뜨린 것이 없다. 저장하지 않는 파생 값이며
+   * 불러올 때마다 다시 판정한다(`foldPersistedPlacement`). 작업자가 소진 표시를
+   * 고치면 지운다. 조용히 버리면 소스 웰이 말없이 옮겨간다.
+   */
+  echoLegacyPlacement: string[] | null;
   janusTransferVol: number;
   getPlateMap: () => Promise<void>;
   exportExcel: (filepath: string, projectId?: string) => Promise<void>;

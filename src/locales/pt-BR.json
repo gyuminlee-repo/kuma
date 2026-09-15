@@ -3294,11 +3294,17 @@
         },
         "bomLabel": "Adicionar BOM UTF-8",
         "bomHint": "(compatibilidade com Excel)",
-        "quadrantLabel": "Quadrante da placa de origem Echo",
-        "quadrantNone": "Não especificado (layout legado)",
-        "quadrantHelper": "Os primers forward começam aqui; os reverse vão para o quadrante pareado (A1-B1, A2-B2).",
-        "usedQuadrantsLabel": "Quadrantes já usados nesta placa",
-        "usedQuadrantsHelper": "A exportação é recusada se o par selecionado sobrepor um destes.",
+        "quadrantLabel": "Metade da placa de origem Echo",
+        "quadrantNone": "Não especificada (colunas 1-12, sem verificar metades usadas)",
+        "quadrantColumns": "colunas {{from}}-{{to}}",
+        "quadrantHelper": "Uma rodada preenche uma metade: os primers forward nas linhas A, C, E ... e cada reverse uma linha abaixo, na mesma coluna.",
+        "usedQuadrantsLabel": "Metades já usadas nesta placa",
+        "usedQuadrantsHelper": "A exportação é recusada se a metade selecionada for uma destas.",
+        "legacyPlacementNotice": "Este projeto foi salvo antes da v{{version}}, quando uma rodada se espalhava por toda a source plate em vez de uma metade. A disposição salva ({{values}}) cobre as duas metades, então ambas ficam marcadas como usadas e nenhuma metade fica selecionada. Em uma placa nova, desmarque abaixo as metades usadas antes de escolher uma metade.",
+        "placementBlocked": {
+          "noHalfSelected": "Há metades marcadas como usadas nesta placa, mas nenhuma metade foi selecionada para esta rodada. Escolha A1 ou A13, ou desmarque as metades usadas se a placa for nova.",
+          "halfAlreadyUsed": "A metade selecionada já está marcada como usada nesta placa. Dispensar nela destruiria os primers que já estão lá. Escolha a outra metade ou desmarque a caixa dela."
+        },
         "plateNameFwd": "Nome da placa de primers forward",
         "plateNameRev": "Nome da placa de primers reverse",
         "wellCount": "{{count}} poços",
@@ -3588,14 +3594,14 @@
     "errorTitle": "Falha na prévia",
     "echoSourcePlateLabel": "Placa de origem Echo (384 poços)",
     "destPlateLabel": "Placa de destino (96 poços)",
-    "quadrantBatch": "Esta rodada preenche o quadrante {{fwd}} (primers diretos) e {{rev}} (primers reversos).",
-    "quadrantProgress": "Após esta rodada, {{filled}} de {{total}} quadrantes desta placa estão ocupados.",
-    "quadrantInterleaveNote": "Uma cabeça de 96 alcança apenas uma linha a cada duas e uma coluna a cada duas por estampagem, então os quatro quadrantes se entrelaçam em vez de formar blocos contíguos. Os poços intermediários pertencem a {{others}} e ficam livres para uma rodada posterior.",
-    "quadrantUsedNote": "Já ocupados nesta placa: {{list}}",
-    "quadrantNoneNote": "Nenhum quadrante selecionado, a prévia mostra o layout antigo com linhas duplicadas.",
+    "quadrantBatch": "Esta rodada preenche a metade {{half}} da placa, colunas {{from}}-{{to}}. Os primers forward ficam nas linhas A, C, E ... e cada reverse uma linha abaixo.",
+    "quadrantProgress": "Após esta rodada, {{filled}} de {{total}} metades desta placa estão ocupadas.",
+    "quadrantHalfNote": "As colunas {{from}}-{{to}} são a outra metade, {{others}}, e ficam livres para a próxima rodada.",
+    "quadrantUsedNote": "Já ocupadas nesta placa: {{list}}",
+    "quadrantNoneNote": "Nenhuma metade selecionada. A execução continua nas colunas 1-12, os mesmos poços da metade A1, e apenas a verificação das metades já usadas é ignorada.",
     "quadrantLegendFree": "Borda contínua: poço usado por esta rodada",
     "quadrantLegendReserved": "Borda tracejada: reservado para {{others}}",
-    "echoReservedWellTitle": "{{well}}, reservado ao quadrante {{quadrants}}"
+    "echoReservedWellTitle": "{{well}}, reservado à metade {{quadrants}}"
   },
   "errors": {
     "sequence": {

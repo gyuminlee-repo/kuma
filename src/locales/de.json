@@ -3294,11 +3294,17 @@
         },
         "bomLabel": "Hinzufügen UTF-8 BOM",
         "bomHint": "(Excel-Kompatibilität)",
-        "quadrantLabel": "Echo-Quellplatten-Quadrant",
-        "quadrantNone": "Nicht angegeben (Legacy-Layout)",
-        "quadrantHelper": "Forward-Primer starten hier; Reverse-Primer gehen in den gepaarten Quadranten (A1-B1, A2-B2).",
-        "usedQuadrantsLabel": "Auf dieser Platte bereits belegte Quadranten",
-        "usedQuadrantsHelper": "Der Export wird abgelehnt, wenn das gewählte Paar einen dieser Quadranten überschneidet.",
+        "quadrantLabel": "Hälfte der Echo-Quellplatte",
+        "quadrantNone": "Nicht angegeben (Spalten 1-12, keine Prüfung verbrauchter Hälften)",
+        "quadrantColumns": "Spalten {{from}}-{{to}}",
+        "quadrantHelper": "Eine Runde füllt eine Hälfte: Forward-Primer auf den Zeilen A, C, E ... und jeder Reverse-Primer eine Zeile darunter in derselben Spalte.",
+        "usedQuadrantsLabel": "Auf dieser Platte bereits belegte Hälften",
+        "usedQuadrantsHelper": "Der Export wird abgelehnt, wenn die gewählte Hälfte eine davon ist.",
+        "legacyPlacementNotice": "Dieses Projekt wurde vor v{{version}} gespeichert. Damals verteilte sich eine Runde über die gesamte Source Plate statt über eine Hälfte. Die gespeicherte Belegung ({{values}}) deckt beide Hälften ab, daher gelten beide als belegt und keine Hälfte ist ausgewählt. Bei einer neuen Platte zuerst die Häkchen für belegte Hälften unten entfernen und dann eine Hälfte wählen.",
+        "placementBlocked": {
+          "noHalfSelected": "Auf dieser Platte sind Hälften als belegt markiert, für diese Runde ist aber keine Hälfte ausgewählt. Wählen Sie A1 oder A13, oder entfernen Sie die Häkchen, wenn die Platte neu ist.",
+          "halfAlreadyUsed": "Die gewählte Hälfte ist auf dieser Platte bereits als belegt markiert. Ein Dispensieren dort zerstört die vorhandenen Primer. Wählen Sie die andere Hälfte oder entfernen Sie deren Häkchen."
+        },
         "plateNameFwd": "Forward-Primer-Plattenname",
         "plateNameRev": "Reverse-Primer-Plattenname",
         "wellCount": "{{count}} Wells",
@@ -3588,14 +3594,14 @@
     "errorTitle": "Vorschau fehlgeschlagen",
     "echoSourcePlateLabel": "Echo-Quellplatte (384 Wells)",
     "destPlateLabel": "Zielplatte (96 Wells)",
-    "quadrantBatch": "Dieser Lauf füllt Quadrant {{fwd}} (Vorwärtsprimer) und {{rev}} (Rückwärtsprimer).",
-    "quadrantProgress": "Nach diesem Lauf sind {{filled}} von {{total}} Quadranten dieser Platte belegt.",
-    "quadrantInterleaveNote": "Ein 96-Kopf erreicht pro Stempel nur jede zweite Zeile und jede zweite Spalte, daher greifen die vier Quadranten ineinander statt zusammenhängende Blöcke zu bilden. Die Wells dazwischen gehören zu {{others}} und bleiben für einen späteren Lauf frei.",
+    "quadrantBatch": "Dieser Lauf füllt die Plattenhälfte {{half}}, Spalten {{from}}-{{to}}. Vorwärtsprimer liegen auf den Zeilen A, C, E ... und jeder Rückwärtsprimer eine Zeile darunter.",
+    "quadrantProgress": "Nach diesem Lauf sind {{filled}} von {{total}} Hälften dieser Platte belegt.",
+    "quadrantHalfNote": "Die Spalten {{from}}-{{to}} sind die andere Hälfte, {{others}}, und bleiben für die nächste Runde frei.",
     "quadrantUsedNote": "Auf dieser Platte bereits belegt: {{list}}",
-    "quadrantNoneNote": "Kein Quadrant gewählt, die Vorschau zeigt das bisherige Layout mit verdoppelten Zeilen.",
+    "quadrantNoneNote": "Keine Hälfte gewählt. Der Lauf landet weiterhin in den Spalten 1-12, denselben Wells wie Hälfte A1, nur der Abgleich mit bereits verbrauchten Hälften entfällt.",
     "quadrantLegendFree": "Durchgezogener Rahmen: Well, das dieser Lauf nutzt",
     "quadrantLegendReserved": "Gestrichelter Rahmen: freigehalten für {{others}}",
-    "echoReservedWellTitle": "{{well}}, freigehalten für Quadrant {{quadrants}}"
+    "echoReservedWellTitle": "{{well}}, freigehalten für Hälfte {{quadrants}}"
   },
   "errors": {
     "sequence": {

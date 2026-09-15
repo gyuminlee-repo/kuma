@@ -1,28 +1,32 @@
 /**
- * PlateQuadrantPicker, visual 2x2 picker for the Echo source-plate quadrant
- * a 96-head Zephyr stamps from.
+ * PlateQuadrantPicker, visual picker for the half of the Echo source plate a
+ * round is dispensed into.
  *
  * [source: kuma_core/kuro/plate_quadrant.py, read-only reference, not edited here]
  *
- * Replaces a `<select>` with the same four options (A1/A2/B1/B2) plus "not
- * specified". A dropdown hides the one fact that matters here: forward and
- * reverse stay on the same column (A1<->B1, A2<->B2), so picking A1 always
- * puts reverse in B1. Laying the four options out as a 2x2 grid, in the same
- * geometry the physical plate has (row A on top, row B below; column 1 on
- * the left, column 2 on the right), lets that pairing be seen instead of
- * memorized from a caption. `usedQuadrants` renders wherever it did before
- * (independent checkboxes) because the plate is a physical object this
- * program never sees and a stale guess would be worse than a checkbox list.
+ * Two options (A1 = columns 1-12, A13 = columns 13-24) plus "not specified".
+ * They are laid out side by side, in the geometry the physical plate has (the
+ * left half on the left), so the one fact that matters here can be seen rather
+ * than memorised from a caption: a half is a block of columns, and forward and
+ * reverse primers are both inside it, the reverse one row under its forward.
+ * `usedQuadrants` renders as independent checkboxes because the plate is a
+ * physical object this program never sees and a stale guess would be worse
+ * than a checkbox list.
  */
 import { useCallback, useId, useRef } from "react";
 import type { KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { EchoQuadrant } from "@/types/models";
-// Geometry (offsets, pairing) lives in one module now: EchoPlateView needs the
-// same offsets to shade the wells a run does not touch, and a second copy of a
-// table that mirrors plate_quadrant.py would be a second thing to keep in step.
-import { ECHO_QUADRANTS, pairedQuadrant } from "@/lib/echoQuadrant";
+// Geometry (column ranges, the legacy fold) lives in one module: EchoPlateView
+// needs the same ranges to shade the wells a run does not touch, and a second
+// copy of a table that mirrors plate_quadrant.py would be a second thing to
+// keep in step.
+import {
+  ECHO_QUADRANTS,
+  quadrantFirstColumn,
+  quadrantLastColumn,
+} from "@/lib/echoQuadrant";
 
 const GRID: readonly EchoQuadrant[] = ECHO_QUADRANTS;
 
@@ -51,29 +55,19 @@ export function PlateQuadrantPicker({
     refs.current[opt]?.focus();
   }, []);
 
-  /** Arrow-key neighbour lookup over the 2x2 grid plus the "none" row below
-   *  it. Down from either bottom cell reaches "none"; up from "none" returns
-   *  to B1 (no column memory needed for four cells). */
+  /** Arrow-key neighbour lookup over the two halves plus the "none" row below
+   *  them. Down from either half reaches "none"; up from "none" returns to A1
+   *  (no column memory needed for two cells). */
   const neighbour = useCallback((from: Option, key: string): Option | null => {
     switch (key) {
       case "ArrowRight":
-        if (from === "A1") return "A2";
-        if (from === "B1") return "B2";
-        return null;
+        return from === "A1" ? "A13" : null;
       case "ArrowLeft":
-        if (from === "A2") return "A1";
-        if (from === "B2") return "B1";
-        return null;
+        return from === "A13" ? "A1" : null;
       case "ArrowDown":
-        if (from === "A1") return "B1";
-        if (from === "A2") return "B2";
-        if (from === "B1" || from === "B2") return "none";
-        return null;
+        return from === "none" ? null : "none";
       case "ArrowUp":
-        if (from === "B1") return "A1";
-        if (from === "B2") return "A2";
-        if (from === "none") return "B1";
-        return null;
+        return from === "none" ? "A1" : null;
       default:
         return null;
     }
@@ -109,10 +103,13 @@ export function PlateQuadrantPicker({
     [neighbour, focusOption, select],
   );
 
-  const renderCell = (opt: Option, label: string, extraClassName?: string) => {
+  const renderCell = (
+    opt: Option,
+    label: string,
+    sublabel?: string,
+    extraClassName?: string,
+  ) => {
     const selected = current === opt;
-    const isPaired =
-      value !== null && opt !== "none" && opt !== value && pairedQuadrant(value) === opt;
     return (
       <button
         key={opt}
@@ -126,19 +123,24 @@ export function PlateQuadrantPicker({
         onClick={() => select(opt)}
         onKeyDown={(event) => onKeyDown(event, opt)}
         className={cn(
-          "flex h-11 items-center justify-center rounded-md border text-sm font-medium transition-colors",
+          "flex h-11 flex-col items-center justify-center rounded-md border text-sm font-medium transition-colors",
           selected
             ? "border-primary bg-primary/10 text-foreground"
-            : isPaired
-              ? "border-primary/40 bg-primary/5 text-muted-foreground"
-              : "border-border text-muted-foreground hover:bg-muted",
+            : "border-border text-muted-foreground hover:bg-muted",
           extraClassName,
         )}
       >
-        {label}
+        <span>{label}</span>
+        {sublabel ? <span className="text-caption font-normal">{sublabel}</span> : null}
       </button>
     );
   };
+
+  const columnRange = (q: EchoQuadrant) =>
+    t("phaseC.export.all.quadrantColumns", {
+      from: quadrantFirstColumn(q),
+      to: quadrantLastColumn(q),
+    });
 
   return (
     <div className="flex flex-col gap-1">
@@ -150,20 +152,25 @@ export function PlateQuadrantPicker({
         aria-labelledby={`${groupId}-label`}
         className="flex flex-col gap-2 w-fit"
       >
-        <div className="grid grid-cols-2 gap-1 w-40">
-          {renderCell("A1", "A1")}
-          {renderCell("A2", "A2")}
-          {renderCell("B1", "B1")}
-          {renderCell("B2", "B2")}
+        <div className="grid grid-cols-2 gap-1 w-52">
+          {GRID.map((q) => renderCell(q, q, columnRange(q)))}
         </div>
-        {renderCell("none", t("phaseC.export.all.quadrantNone"), "w-40 h-9 text-caption")}
+        {renderCell(
+          "none",
+          t("phaseC.export.all.quadrantNone"),
+          undefined,
+          "w-52 h-9 text-caption",
+        )}
       </div>
       <p className="text-caption text-muted-foreground">
         {t("phaseC.export.all.quadrantHelper")}
       </p>
 
-      {/* 이미 소진된 quadrant. plate 는 kuma 가 볼 수 없는 물건이라 작업자가 말한다. */}
-      {value !== null && (
+      {/* 이미 소진된 half. plate 는 kuma 가 볼 수 없는 물건이라 작업자가 말한다.
+          절반을 아직 안 골랐어도 소진 표시가 있으면 보여야 한다. 옛 배치로
+          저장된 프로젝트는 절반 미선택 + 양쪽 소진 상태로 열리는데, 이때
+          체크박스를 숨기면 작업자가 해제할 길이 없어 어느 절반을 골라도 거부된다. */}
+      {(value !== null || usedQuadrants.length > 0) && (
         <div className="flex flex-col gap-1 mt-2">
           <span className="text-sm font-medium text-foreground">
             {t("phaseC.export.all.usedQuadrantsLabel")}

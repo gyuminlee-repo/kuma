@@ -510,9 +510,9 @@ export interface ExportAllParams {
   project_id?: string | null;
   project_name?: string | null;
   purification?: "MOPC";
-  quadrant?: ("A1" | "A2" | "B1" | "B2") | null;
+  quadrant?: ("A1" | "A13" | "A2" | "B1" | "B2") | null;
   rev_plate_name?: string;
-  used_quadrants?: ("A1" | "A2" | "B1" | "B2")[] | null;
+  used_quadrants?: ("A1" | "A13" | "A2" | "B1" | "B2")[] | null;
   [k: string]: unknown;
 }
 export interface PlateMappingItem {
@@ -573,9 +573,9 @@ export interface ExportMappingDryRunParams {
   } | null;
   mapping_range?: MappingRange | null;
   mappings?: PlateMappingItem[] | null;
-  quadrant?: ("A1" | "A2" | "B1" | "B2") | null;
+  quadrant?: ("A1" | "A13" | "A2" | "B1" | "B2") | null;
   transfer_vol?: number | null;
-  used_quadrants?: ("A1" | "A2" | "B1" | "B2")[] | null;
+  used_quadrants?: ("A1" | "A13" | "A2" | "B1" | "B2")[] | null;
   [k: string]: unknown;
 }
 /**
@@ -599,9 +599,9 @@ export interface ExportMappingParams {
   format?: "echo" | "janus";
   mapping_range?: MappingRange | null;
   mappings?: PlateMappingItem[] | null;
-  quadrant?: ("A1" | "A2" | "B1" | "B2") | null;
+  quadrant?: ("A1" | "A13" | "A2" | "B1" | "B2") | null;
   transfer_vol?: number | null;
-  used_quadrants?: ("A1" | "A2" | "B1" | "B2")[] | null;
+  used_quadrants?: ("A1" | "A13" | "A2" | "B1" | "B2")[] | null;
   [k: string]: unknown;
 }
 export interface ExportMappingResultModel {
@@ -1032,9 +1032,9 @@ export interface WorkspaceSettingsModel {
   domainQuotaMin?: number | null;
   domainStrategy?: ("proportional" | "equal") | null;
   domains?: DomainInfoModel[] | null;
-  echoQuadrant?: ("A1" | "A2" | "B1" | "B2") | null;
+  echoQuadrant?: ("A1" | "A13" | "A2" | "B1" | "B2") | null;
   echoTransferVol?: number | null;
-  echoUsedQuadrants?: ("A1" | "A2" | "B1" | "B2")[] | null;
+  echoUsedQuadrants?: ("A1" | "A13" | "A2" | "B1" | "B2")[] | null;
   entropyWeight?: number | null;
   entropyWeightEnabled?: boolean | null;
   evolveproMode?: ("topN" | "pipeline" | "others") | null;

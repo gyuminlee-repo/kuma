@@ -5,7 +5,7 @@ describe the same physical dispense, and each used to derive its own source
 wells. Only the CSV read both placement parameters: the XLSX worklist sheet
 read neither and the preview only ``mapping_range``. So one ``export_all`` wrote
 a csv and an xlsx naming different wells for the same primer, and the preview
-rendered above the quadrant selector agreed with neither, which is what the
+rendered above the half selector agreed with neither, which is what the
 operator checks before loading the csv onto the robot.
 
 These tests deliberately compare the three outputs *to each other* rather than
@@ -38,9 +38,16 @@ TRANSFER_VOL = 100
 # is what each of them hard-coded. The other two are where they split.
 PLACEMENTS = [
     pytest.param(None, None, id="no-placement-parameters"),
-    pytest.param("B2", None, id="quadrant"),
+    pytest.param("A1", None, id="left-half"),
+    pytest.param("A13", None, id="right-half"),
     pytest.param(None, ("A", "P"), id="mapping-range"),
 ]
+
+#: The placements the layout sheet is expected to follow. It draws the source
+#: plate this worklist aspirates from, so a half moves it. ``mapping_range`` is
+#: left out on purpose: the sheet still keeps the default row bands for it and
+#: nothing in this change touched that.
+HALVES = [pytest.param("A1", id="left-half"), pytest.param("A13", id="right-half")]
 
 
 @pytest.fixture
@@ -176,7 +183,7 @@ class TestWritersAgree:
         """Every forward mutation gets a reverse row, in all three writers."""
         fwd, rev, groups = shared_rev_mappings
         csv_path, xlsx_path, preview = _write_both(
-            fwd, rev, groups, tmp_path, "B2", None
+            fwd, rev, groups, tmp_path, "A13", None
         )
 
         expected = 2 * len(fwd)
@@ -196,7 +203,7 @@ class TestWritersAgree:
             assert row["mutation"]
 
 
-class TestSpentQuadrantRefusal:
+class TestSpentHalfRefusal:
     def test_the_xlsx_export_refuses_before_writing(
         self, shared_rev_mappings, tmp_path
     ):
@@ -224,22 +231,60 @@ class TestSpentQuadrantRefusal:
             )
 
 
-class TestLayoutSheetIsUntouched:
-    def test_the_layout_sheet_keeps_the_row_doubled_view(
+class TestLayoutSheetFollowsTheWorklist:
+    """The layout sheet is the picture of the worklist printed beside it.
+
+    It used to draw columns 1-12 whatever half was selected, so an ``A13`` run
+    shipped a grid exactly twelve columns away from its own transfer list. The
+    old ``A1``-only test could not see it: ``A1`` happens to equal the
+    no-quadrant fallback.
+    """
+
+    @pytest.mark.parametrize("half", HALVES)
+    def test_the_grid_names_the_wells_the_worklist_aspirates_from(
+        self, shared_rev_mappings, tmp_path, half
+    ):
+        fwd, rev, groups = shared_rev_mappings
+        _, xlsx_path, _ = _write_both(fwd, rev, groups, tmp_path, half, None)
+
+        well_col = ECHO_DEVICE_HEADER.index("Source Well")
+        name_col = ECHO_DEVICE_HEADER.index("Source Well Name")
+        _, worklist = _xlsx_table(xlsx_path)
+        drawn = _layout_names(xlsx_path)
+
+        assert drawn, "an empty grid would pass every assertion below"
+        assert {(r[well_col], r[name_col]) for r in worklist} >= set(drawn.items())
+
+    def test_the_right_half_grid_is_the_left_one_moved_twelve_columns(
         self, shared_rev_mappings, tmp_path
     ):
-        """The layout sheet draws the default plate, not this transfer list, and
-        sidecar_kuro/models.py says so. A quadrant must not move it.
-        """
+        fwd, rev, groups = shared_rev_mappings
+        left = tmp_path / "left.xlsx"
+        right = tmp_path / "right.xlsx"
+        for path, half in ((left, "A1"), (right, "A13")):
+            export_echo_mapping_xlsx(
+                fwd, rev, path, transfer_vol=TRANSFER_VOL, rev_groups=groups,
+                quadrant=half,
+            )
+
+        shifted = {
+            f"{well[0]}{int(well[1:]) + 12}": name
+            for well, name in _layout_names(left).items()
+        }
+        assert _layout_names(right) == shifted
+
+    def test_no_half_still_draws_the_default_plate(
+        self, shared_rev_mappings, tmp_path
+    ):
         fwd, rev, groups = shared_rev_mappings
         plain = tmp_path / "plain.xlsx"
-        shifted = tmp_path / "shifted.xlsx"
+        left = tmp_path / "left.xlsx"
         export_echo_mapping_xlsx(
             fwd, rev, plain, transfer_vol=TRANSFER_VOL, rev_groups=groups,
         )
         export_echo_mapping_xlsx(
-            fwd, rev, shifted, transfer_vol=TRANSFER_VOL, rev_groups=groups,
-            quadrant="B2",
+            fwd, rev, left, transfer_vol=TRANSFER_VOL, rev_groups=groups,
+            quadrant="A1",
         )
 
-        assert _layout_names(shifted) == _layout_names(plain)
+        assert _layout_names(plain) == _layout_names(left)
