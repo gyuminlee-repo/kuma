@@ -60,7 +60,7 @@ export function SetupStepView() {
           ? { ok: true }
           : {
               ok: false,
-              missing: ["mame.barcodeSetup.requireBarcodePackage"],
+              missing: ["validation.missing.barcodePackage"],
             }
       }
     >

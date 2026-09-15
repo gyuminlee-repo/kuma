@@ -3644,6 +3644,7 @@
       "designResults": "내보낼 설계 결과가 없습니다",
       "cdsFasta": "CDS FASTA 파일이 필요합니다",
       "barcodeSeeds": "Barcode seeds xlsx가 필요합니다",
+      "barcodePackage": "바코드 패키지 생성이 필요합니다",
       "geneCoordinates": "gene_start, gene_end 좌표가 필요합니다",
       "geneRangeInvalid": "gene_end가 gene_start보다 커야 합니다",
       "projectPath": "프로젝트를 먼저 열거나 생성해 주세요",
