@@ -143,7 +143,7 @@ The topic id is the file stem, so a link naming the barcode-setup file resolves 
 Both are cheap and both invalidate the design if they fail.
 
 - **`import.meta.glob` options.** The repository is on Vite 6 (`package.json`, `"vite": "^6.0.0"`). The `query` and `import` options replaced the older `as: "raw"` spelling, so the syntax in D3 is the Vite 5-and-later form. Prove it by importing one file and asserting the string is non-empty, before writing the panel.
-- **`react-markdown` against React 19.** The repository is on React 19 (`"react": "^19.0.0"`). Peer-range compatibility is **unconfirmed** and must be checked at install time, not assumed. If it does not hold, the fallback is build-time conversion, which was the second option considered and needs no runtime dependency.
+- **`react-markdown` against React 19.** The repository is on React 19 (`"react": "^19.0.0"`). The peer range holds: `react-markdown` 10.1.0 declares `react: ">=18"` (npm registry, checked 2026-09-15). That settles installation, not behaviour, so the first thing built is a smoke render of one topic. If rendering misbehaves the fallback is build-time conversion, which was the second option considered and needs no runtime dependency.
 
 ## Error handling
 
@@ -194,7 +194,7 @@ Content presence is worth stating: a mistyped glob returns an empty object and e
 | 4 | No search | findability across 14 topics | matches reference implementation |
 | 5 | No images | comprehension of spatial steps | matches reference implementation |
 | 6 | `docs/help/ko` duplicates the mkdocs sources rather than replacing them | drift risk, mitigated by the sync group | unconfirmed |
-| 7 | `react-markdown` supports React 19 | the whole rendering choice | unconfirmed, gated by C4 |
+| 7 | `react-markdown` renders correctly under React 19 | the whole rendering choice | peer range confirmed 2026-09-15; runtime behaviour gated by the C4 smoke render |
 | 8 | The panel stays put when the tab changes | reader interruption | design choice, see C1 |
 
 ## Out of scope
