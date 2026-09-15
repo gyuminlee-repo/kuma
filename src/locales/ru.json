@@ -37,7 +37,36 @@
     "showOnboarding": "Показать обучение",
     "viewCrashLog": "Показать crash log",
     "settings": "Настройки...",
-    "about": "О программе"
+    "about": "О программе",
+    "userGuide": "Руководство пользователя",
+    "panel": {
+      "title": "Справка",
+      "close": "Закрыть справку",
+      "notTranslated": "Эта тема пока недоступна.",
+      "shownInEnglish": "Показано на английском, так как эта тема ещё не переведена на ваш язык.",
+      "shownInKorean": "Показано на корейском, так как эта тема ещё не переведена на ваш язык.",
+      "group": {
+        "start": "Начало работы",
+        "kuro": "Дизайн KURO",
+        "mame": "Проверка MAME",
+        "deeper": "Подробнее"
+      },
+      "topic": {
+        "kuro-index": "Обзор KURO",
+        "kuro-01-load": "Загрузка",
+        "kuro-02-mutation": "Мутации",
+        "kuro-03-params": "Параметры",
+        "kuro-04-submit": "Отправка",
+        "kuro-05-output": "Результаты",
+        "kuro-06-export": "Экспорт",
+        "mame-index": "Обзор MAME",
+        "mame-01-setup": "Настройка штрихкодов",
+        "mame-02-review": "Анализ и проверка",
+        "mame-03-janus": "Janus",
+        "mame-04-activity": "Активность",
+        "mame-pipeline": "Конвейер MAME"
+      }
+    }
   },
   "about": {
     "title": "О Kuma",

@@ -37,7 +37,36 @@
     "showOnboarding": "显示新手引导",
     "viewCrashLog": "查看崩溃日志",
     "settings": "设置...",
-    "about": "关于"
+    "about": "关于",
+    "userGuide": "用户指南",
+    "panel": {
+      "title": "帮助",
+      "close": "关闭帮助",
+      "notTranslated": "该主题暂不可用。",
+      "shownInEnglish": "该主题尚未翻译为您的语言，因此以英语显示。",
+      "shownInKorean": "该主题尚未翻译为您的语言，因此以韩语显示。",
+      "group": {
+        "start": "入门",
+        "kuro": "KURO 设计",
+        "mame": "MAME 验证",
+        "deeper": "深入"
+      },
+      "topic": {
+        "kuro-index": "KURO 概览",
+        "kuro-01-load": "加载",
+        "kuro-02-mutation": "突变",
+        "kuro-03-params": "参数",
+        "kuro-04-submit": "提交",
+        "kuro-05-output": "结果",
+        "kuro-06-export": "导出",
+        "mame-index": "MAME 概览",
+        "mame-01-setup": "条形码设置",
+        "mame-02-review": "分析与审阅",
+        "mame-03-janus": "Janus",
+        "mame-04-activity": "活性",
+        "mame-pipeline": "MAME 流程"
+      }
+    }
   },
   "about": {
     "title": "关于 Kuma",

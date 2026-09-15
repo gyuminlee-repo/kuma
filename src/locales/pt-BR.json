@@ -37,7 +37,36 @@
     "showOnboarding": "Mostrar introdução",
     "viewCrashLog": "Ver registro de falhas",
     "settings": "Configurações...",
-    "about": "Sobre"
+    "about": "Sobre",
+    "userGuide": "Guia do usuário",
+    "panel": {
+      "title": "Ajuda",
+      "close": "Fechar ajuda",
+      "notTranslated": "Este tópico ainda não está disponível.",
+      "shownInEnglish": "Exibido em inglês porque este tópico ainda não foi traduzido para o seu idioma.",
+      "shownInKorean": "Exibido em coreano porque este tópico ainda não foi traduzido para o seu idioma.",
+      "group": {
+        "start": "Primeiros passos",
+        "kuro": "Design KURO",
+        "mame": "Verificação MAME",
+        "deeper": "Aprofundamento"
+      },
+      "topic": {
+        "kuro-index": "Visão geral do KURO",
+        "kuro-01-load": "Carregar",
+        "kuro-02-mutation": "Mutações",
+        "kuro-03-params": "Parâmetros",
+        "kuro-04-submit": "Enviar",
+        "kuro-05-output": "Resultados",
+        "kuro-06-export": "Exportar",
+        "mame-index": "Visão geral do MAME",
+        "mame-01-setup": "Configuração de códigos de barras",
+        "mame-02-review": "Análise e revisão",
+        "mame-03-janus": "Janus",
+        "mame-04-activity": "Atividade",
+        "mame-pipeline": "Pipeline do MAME"
+      }
+    }
   },
   "about": {
     "title": "Sobre o Kuma",
