@@ -49,7 +49,7 @@
       "id": "t5-markdown",
       "description": "Render markdown and apply the three-branch link rule so cross-references stay inside the panel",
       "verify_command": "bash \"$HOME/.claude/skills/win-build/scripts/win-build.sh\" pnpm exec vitest run --silent --reporter=dot --cwd \"$WORKTREE\" src/components/help/HelpMarkdown.test.tsx",
-      "state": "pending",
+      "state": "done",
       "depends_on": [
         "t0-spike"
       ]
@@ -67,7 +67,7 @@
       "id": "t7-wiring",
       "description": "Open the panel from both Help menus at the topic matching each tab's current step, with locale keys in all ten files",
       "verify_command": "cd \"$WORKTREE\" && node \"$MAIN/node_modules/typescript/bin/tsc\" --noEmit && node scripts/i18n-lint.mjs && node scripts/i18n-parity.mjs",
-      "state": "pending",
+      "state": "done",
       "depends_on": [
         "t6-panel"
       ]
