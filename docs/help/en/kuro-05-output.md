@@ -1,58 +1,47 @@
-# Step 5. Output Summary
+# Step 5. Summary
 
-Shows the per-mutation design outcome as a table + 96-well plate map + the DesignReportInspector on the right.
+Review the design output as a table and a plate map. This is where you decide which variants actually get exported.
 
-## Layout
+## Screen layout
 
-```
-┌──────────────────────────────────────┬─────────────────────┐
-│  Result table (sortable)             │ DesignReport         │
-│  + Plate map (96-well)               │ Inspector            │
-│  + Sequence Map                      │ (fixed display)      │
-└──────────────────────────────────────┴─────────────────────┘
-```
+The left side holds a statistics line, the result table, and the 3D structure analysis below it. The right side holds the plate map. Drag the vertical handle in the middle to change the split. The button at the top right collapses the plate map and restores it.
 
-The width of the left and right areas can be adjusted with the `react-resizable-panels` splitter (v0.9.2.x D2). The Inspector toggle button collapses the right area.
+| Statistic | Meaning |
+|---|---|
+| Primers | Primers that were designed successfully |
+| Plates | 96-well plates the forward primers occupy |
+| Failed | Variants no primer could be designed for |
+| Rescued | Variants recovered by relaxing constraints or moving to an alternative position |
 
 ## Result table
 
-- Every column is sortable (including y_pred and synthesis score)
-- Click a primer sequence → Candidate comparison popover
-- Click a failed mutation → retry popover (median Tm / GC pre-filled + "Use suggestion" button)
+- Every column sorts. The sort order carries through to the plate map and to the export files.
+- The `Include` checkbox decides the fate of a row. Clear it and the row drops out of the plate map and out of every export file.
+- Click a failed row to open the retry popover. Suggested Tm and GC values are pre-filled.
+- When `Pipeline + Fill on failure substituted these positions; retry is unnecessary.` appears, another variant already took that slot and the retry button stays disabled.
 
-## DesignReportInspector (new in v0.9.2.x)
+## Plate map
 
-`src/components/inspectors/kuro/DesignReportInspector.tsx`. The body of the former `DesignReport.tsx` was split out into a reusable `DesignReportContent`, which is used by both the inspector and export.
+`Plate pair review` shows one forward plate together with its deduplicated reverse partner on the same page. A `Shared reverse` marker means several forward primers use the same reverse primer.
 
-Contents:
-- Total mutation count / success / failed
-- Counts per stage of the Position rescue cascade (🎯¹ length / 🎯² +GC / 🎯³ +mild Tm / 🎯⁴ strong / ↻¹ alt-variant / ↻² alt-position)
-- Synthesis quality score distribution
-- Off-target detection log
+## 3D structure analysis
 
-## Candidate 3D structure analysis (v0.13.7)
+The `Candidate 3D structure analysis` panel below the table places the candidate positions on the protein structure.
 
-A collapsible panel at the bottom of Output (collapsed by default, 3Dmol loads only when opened). With a structure/UniProt accession it loads the AlphaFold/PDB structure, and without one it falls back to a PDB/CIF upload. The target is the current design candidate set (`evolveproSelectedVariants`), or all ranked candidates when there is none.
+- With a UniProt accession it loads the AlphaFold structure. Without one it predicts from sequence with ESMFold, and the Active site and Binding site overlays are hidden in that case.
+- A sequence longer than 400 residues with no accession is not predicted. Provide an accession or load a file with `Upload PDB/CIF`.
+- Variant positions are spheres coloured by y_pred. Orange sticks are catalytic residues (`Active site`) and magenta spheres are ligand, substrate, or metal binding residues (`Binding site`). These are not protein-protein interfaces.
+- Click a row in `Color legend` to show or hide that layer in the 3D view.
+- `Structural Dispersion` compares how clustered or spread the chosen positions are against random residue sets. `P1` means strongly clustered and `P99` means strongly spread.
 
-Layout order (top→bottom): **toolbar → 3D viewer → Color legend → Structural Dispersion → Active site → Selected Positions/Positions by Domain**. The viewer and the controls sit next to each other so the effect of a toggle or coloring action can be checked immediately in the viewer right above.
+Treat this panel as an interpretation and QC aid. It does not filter candidates.
 
-Components:
-- **3Dmol viewer**: cartoon + variant sphere (y_pred gradient) + active-site stick (orange) + binding-site sphere (magenta). domain/pLDDT/plain coloring modes, surface, spin, fullscreen, PNG export.
-- **Color legend**: directly below the viewer. Shows the meaning of each color for the current coloring mode/display state, and **clicking a row turns a 3D layer on/off** (variant / active-site / binding-site). The backbone is not a toggle target because the structure must always be visible.
-- **Structural Dispersion card**: compares how clustered or spread the selected mutation positions are in 3D space against random matched-size residue sets (null). mean pairwise Cα distance, null p05–p95, percentile (`P1`=strong clustering, `P99`=strong spread), classification, null distribution histogram.
-- **`?` help toggle**: inline explanations (InlineHelp) on the card/histogram/each metric/legend.
-- **Selected Positions / Positions by Domain table**: positions mapped to the accession frame, active/binding/pLDDT/domain.
+## When the table is empty
 
-**Terminology note (binding site)**: what the magenta spheres show is the UniProt `Binding site` feature (residues binding a ligand/substrate/cofactor/metal ion). **It is not a protein-protein interface.** The label formerly written as "Interface" was corrected to `Binding site` (v0.13.7.2). The orange sticks are the UniProt `Active site` (catalytic residues).
-
-### Interpretation principle: a QC aid, not a selection filter
-
-3D dispersion·pLDDT·active/interface overlay are **interpretation and QC aid metrics**. They are not a candidate selection gate.
-
-- Residues that do not form structure (low pLDDT / disordered) are **not automatically excluded from mutation targets.** Authority over candidate selection lies with the EVOLVEpro `y_pred` ranking.
-- Rationale (asymmetric cost): 1 wasted well (bounded, ~1%) < a missed true hot spot (unrecoverable in that round). ESM/EVOLVEpro scores already rank low-constraint positions low, so a structure filter is mostly redundant, and it risks cutting beneficial mutations that come from loops/dynamics.
-- The exception is not a "filter" but a coordinate consistency issue: **segments absent from the mature protein**, such as a transit peptide / tag / linker, are excluded from mutation target coordinates in the first place.
-- When a low-pLDDT position reaches the top, it is not excluded automatically. A person looks at it in this panel and decides.
+| On-screen text | What to do |
+|---|---|
+| `No results yet` | No design run has happened yet. Go back to Step 4 and run one |
+| `This workspace has no primer results` | A design input changed after the run, so the primer output was discarded. Check the time and counts in the message, then run again |
 
 ## Next
 

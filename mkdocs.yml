@@ -12,6 +12,7 @@ exclude_docs: |
   en/
   help/
   ko/
+  plans/
   screenshots/
   screenshots-real/
   screenshots-mame/

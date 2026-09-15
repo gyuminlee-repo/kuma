@@ -1,72 +1,63 @@
 # Step 4. Activity Data
 
-Step 4 filters **the activity measurements of this round** by the NGS verdicts of the same round, then applies WT normalization and replicate merging to produce the EVOLVEpro input xlsx (`Variant`, `activity`).
+Filter this round's activity measurements by the NGS verdicts of the same round, then apply WT normalization and replicate merging to build the EVOLVEpro input xlsx. Build the file in 4.1 and read the direction for the next round in 4.2.
 
-## 4.1 A single common pipeline
+## 4.1 Build EVOLVEpro Input
 
-No separate route is chosen according to where the activity values come from. The top-level choice is the **measurement format**, and all four input adapters join the common flow below.
+1. Choose the **Measurement file**. The format is read from the file contents, and csv, xlsx and xls are accepted.
+2. If one file reads as two formats, pick one. The screen states what separates them.
+3. Add a confirmation measurement under **Optional confirmation** if there is one. Leave it as None otherwise.
+4. Choose the **NGS verdict xlsx**. This is the verdict Analyze produced for this round, and it is required.
+5. Choose the **Output EVOLVEpro xlsx** path and press **Build EVOLVEpro input**.
 
-1. Read the measurements
-2. If well labels, map to variants through the plate layout or the verdict workbook; if sequence numbers, decode by plate order
-3. If raw values, normalize by the WT mean of the same plate/cohort
-4. Merge replicates
-5. Apply the NGS verdict of this round
-6. Export EVOLVEpro `[Variant, activity]`
+Everything after the format choice is the same. Normalization, replicate merging, the NGS verdict and the export form one pipeline.
 
-The plate layout is not an activity value source but `well → variant` mapping metadata. The same mapping can also be obtained from `verdict_xlsx`, so the layout file is the replaceable one. The NGS verdict is required for every measurement format.
+### Measurement formats
 
-## 4.2 Measurement formats
+| Format | Label | Value | Also needed |
+|---|---|---|---|
+| Generic long-format | Well or variant | Activity scale selects raw or relative to WT | One mapping when labels are wells |
+| GC data sheet | Well | Already relative to WT | One mapping |
+| Raw Agilent report | Well | Normalized by the WT block mean in the report | One mapping |
+| Numeric-ID Agilent report | Plate position number | Normalized by the WT block mean in the report | One order source |
 
-A single build uses exactly one of the following.
+What well labels require is **one mapping from well to variant**. Given a Plate layout xlsx, that sheet is the mapping. Without it, the mapping comes from the variant names the NGS verdict sheet records for each well. A variant seated in two wells is refused, because the well to attach NGS evidence to cannot be settled as one.
 
-| Format | Request field | Label | Value interpretation | Additional input |
-|---|---|---|---|---|
-| Generic long-format | `activity_path` | Either well or variant | WT normalization if `activity_scale` is `raw`, used as is if `relative_to_wt` | One mapping when well labels |
-| GC data | `gc_data_xlsx` | well | Already relative to WT | One mapping |
-| raw Agilent report | `round1_report_xlsx` | well | FID area normalized by the mean of the WT block in the report | One mapping |
-| numeric-ID full screening | `numeric_report_xlsx` | Plate sequence number | FID area normalized by the mean of the WT block in the report | One order source (`expected_xlsx` first, `layout_xlsx` if absent) |
+For numeric IDs, position i is the i-th variant in plate order. The order source is the designed variant list first, the plate layout when that is absent. An ID set that does not match the order one to one is refused rather than attached to neighboring variants.
 
-What the well label formats require is not `layout_xlsx` itself but **one mapping from well to variant**. If `layout_xlsx` is given, that sheet becomes the mapping. If not, the mapping is derived from the `mutant_id` that the already required `verdict_xlsx` records for each well. Either way, a variant seated in two wells is refused, because the well to attach NGS evidence to cannot be settled as one.
+### Generic long-format requirements
 
-`numeric_report_xlsx` carries sequence numbers instead of labels. Sequence number `i` is the `i`th variant in plate order. If the ID set does not match that order one to one, it is refused rather than attaching values to neighboring variants.
-
-### Generic long-format contract
-
-The CSV or XLSX must satisfy the following.
-
-- Exactly one label column: `well_id`, `well`, `well pos.`, `sample name`, `sample`, `variant`, `mutation`, `mutant`, `mutant_id`
-- Exactly one value column: `value`, `area`, `activity`
+- Exactly one label column and exactly one value column.
 - Well labels and variant labels are not mixed in one file.
-- Raw values do not allow negatives, NaN, or infinity.
-- If `activity_scale=raw`, the mean of WT rows of the form `WT_1`, `WT1` for each `plate_id` is used as the denominator. Without `plate_id`, the whole file is one cohort.
-- If `activity_scale=relative_to_wt`, it is not normalized again.
+- Raw values carry no negatives, NaN or infinity.
+- With raw selected, the mean of the WT rows of each `plate_id` is the denominator. Without a `plate_id` column, the whole file is one cohort.
+- With relative to WT selected, nothing is normalized again.
 
-## 4.3 Optional confirmation measurement
+### Confirmation measurement
 
-A confirmation measurement is optional, and at most one of the two is given.
+Give at most one of the two. A confirmation mean replaces the primary value of the same variant.
 
-`remeasure_report_xlsx` accepts only raw Agilent reports whose sample names are **stated as variants**, such as `V5F` or `5F`. The replicate mean, independently normalized by the WT rows in the report, replaces the primary measurement of the same variant.
+- **Variant-labeled Agilent report**: accepted only when the sample names are variant labels.
+- **Numeric-ID replicate report**: the numbers count the subset that exceeded WT in the primary screen, not the whole plate. The order source must be exactly one of the designed variant list or the plate layout. Giving both is refused.
 
-`remeasure_numeric_xlsx` accepts the same report by sequence number. What the sequence numbers count is not the whole plate but **the subset that exceeded WT in the primary screening**, because the instrument reruns only the hits and numbers them in the order received. The order source must be **exactly one** of `expected_xlsx` or `layout_xlsx`. Giving both is refused. The primary-side `numeric_report_xlsx` accepts both together and prefers `expected_xlsx`, so the contracts of the two paths differ on this point.
+Inferring variant names from activity rank or from a previous EVOLVEpro file is no longer supported. A saved state pointing at that approach does not run and shows conversion guidance instead.
 
-Inferring variant names from activity rank or from a previous EVOLVEpro file is not supported. If a previously saved state points to that approach, KUMA does not run and shows conversion guidance. What is checked is legacy `sourceMode: "rank"` and `prev`·`numeric` of legacy `round1Source`. The current numeric-ID decode is not a target of that check.
+### What the NGS verdict filters out
 
-## 4.4 NGS verdict
+A variant is exported only when its verdict is an explicit Pass, carries no failure or fallback replicate mark, and has no verdict or variant identity conflict between duplicate rows. Rows with a missing verdict, a conflict, or anything other than Pass are excluded rather than presumed to pass. If no variant passes, the build fails rather than publishing an empty file as a success.
 
-`verdict_xlsx` is required and uses the verdict evidence that Analyze produced for this round.
+### Reading the result
 
-For a variant to be exported, all of its evidence must be satisfied.
+The build result reports variants written, confirmation overrides, primary values and NGS-excluded counts. The output file carries exactly the two columns `Variant` and `activity`.
 
-- The verdict is an explicit `PASS`
-- Not `failed`
-- Not `is_fallback`
-- No conflict of verdict, failure, fallback, or mutant identity between duplicate rows
-- The well/variant identity matches the measurements and the plate layout
+A confirmation mean that differs notably from the primary value is marked as a mismatch and blocks the export. Check the layout and the verdict labels, then release it with **Allow reviewed label mismatch**. Choosing an output path that another round already recorded as its output raises a notice that building here overwrites it.
 
-Rows with a missing verdict, a conflict, non-PASS, failed, or fallback are excluded rather than presumed to pass. If no variant passes, the build fails rather than publishing an empty file as a success.
+When the measurement input, the verdict evidence or the output path changes, the previous completion mark becomes invalid and the file has to be built again.
 
-## 4.5 Output and state
+## 4.2 Signals and handoff
 
-A successful output has exactly the two columns `Variant`, `activity`. The output bundle, including the optional GC review export of the raw Agilent format, is written entirely to temporary files and then published together, so a failure midway does not overwrite only part of an existing output.
+Collect the per-round EVOLVEpro result xlsx files and run the advisory classification. The list is prefilled with the outputs 4.1 produced, and entries can be added or removed. **Run classification** answers with one of continue single-mutant walking, switch to combinatorial, stop, or defer, together with its reasons. The advice is read-only and confirms or saves nothing.
 
-Step 4 form state is saved with versioning per project path. The `verdict_xlsx` and evidence signature obtained when Analyze completes are recorded in the round that started the run and linked to Step 4. When the measurement input, the verdict evidence, or the output path changes, the previous completion signature becomes invalid and a build is needed again.
+→ [MAME pipeline](mame-pipeline.md) describes what each stage computes.
+
+→ [MAME overview](mame-index.md)

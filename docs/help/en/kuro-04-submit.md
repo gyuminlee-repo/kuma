@@ -1,31 +1,39 @@
-# Step 4. Submit Design
+# Step 4. Pool Filters & Run
 
-Run the design job.
+The screen right before the design job starts. Check the inputs collected so far, then run primer design.
 
-## DesignSummaryCard (new in v0.9.2.x)
+## Design summary
 
-A read-only summary card shown at the top of the Submit step. It subscribes directly to the zustand store through a memoized selector.
+The card at the top shows the values this run will use. If something is not what you expect, go back to the earlier step and fix it there.
 
-| Item | Source |
+| Item | What it shows |
 |---|---|
-| Sequence | `seqInfo.name` + length |
-| Mutation source | `single` / `evolvepro` |
-| Selection mode | `Pipeline (failover)` / `Top-N only` |
-| Variant count | `evolveproTotalCount` or the number of mutation rows |
-| Polymerase | Name of the selected profile |
-| Codon strategy | `Min. changes` / `Optimal` |
+| Sequence | Name and length of the loaded sequence. `Not loaded` when there is none |
+| Mutation source | Where the variants came from. An EVOLVEpro table reads `evolvepro` |
+| Selection mode | `Pipeline (failover)` or `Top-N only` |
+| Variants | Number of variants this run will design |
+| Polymerase | Chosen polymerase, target Tm, primer cap |
 
-The Selection mode text on this card always matches the radio selection in Step 2 (covered by a regression E2E test).
+In `Pipeline (failover)` mode the pool filter controls appear below the card. In `Top-N only` mode they do not.
 
-<!-- TODO: insert screenshot of DesignSummaryCard -->
+## Running the design
 
-## Run Design
+1. Click `Run Design`. The button in the middle of the page and the one in the footer do the same thing.
+2. Above 1,000 selected variants an input size warning appears with a time estimate. Choose whether to continue.
+3. Read the pre-flight dialog when it appears. With no errors listed, `Continue with warnings` proceeds.
+4. A progress bar is shown. Click `Cancel` to stop the run.
+5. As soon as the run produces any result, the app moves to the Output screen on its own.
 
-Click `Run Design` → progress bar → on success it advances automatically to `output.summary` without showing a popup Dialog. On failure or cancel the Submit screen stays and an error is shown.
+A failed or cancelled run leaves you on this screen. Read the status message, fix the input or the parameters, then run again.
 
-## Changes in v0.9.2.x
+## Warnings and errors
 
-- The former DesignReport popup was removed. The Report is shown fixed in the [DesignReportInspector](kuro-05-output.md) on the right of Output.
-- The footer button acts as a "Next" fallback only in the exceptional case where auto-advance failed.
+| What you see | What to do |
+|---|---|
+| Yellow list above the button (`Sequence file (Browse a .gb / .fasta / .dna file)`, `Mutations (enter at least one mutation in the Mutation panel)`, `Target gene (select one in the Sequence panel)`) | Go to the panel each line names and fill the value in. The button stays disabled until they are all present |
+| `Pre-flight check failed` | For `Sidecar is not ready`, use the Retry button in the status bar or restart the app |
+| `Pre-flight check (warnings)` | Advisory only, such as checking free disk space. You can continue after reading it |
 
-→ [Step 5. Output Summary](kuro-05-output.md)
+## Next
+
+→ [Step 5. Summary](kuro-05-output.md)

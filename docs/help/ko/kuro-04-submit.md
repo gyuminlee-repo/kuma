@@ -1,31 +1,39 @@
-# Step 4. Submit Design
+# 단계 4. 풀 필터 및 실행
 
-설계 작업을 실행한다.
+설계를 돌리기 직전 화면이다. 지금까지 넣은 입력을 확인하고 프라이머 설계를 실행한다.
 
-## DesignSummaryCard (v0.9.2.x 신설)
+## 현재 입력 요약
 
-Submit step 상단에 표시되는 read-only 요약 카드. zustand store 를 memoized selector 로 직접 구독한다.
+화면 맨 위 카드에 이번 실행에 쓰일 값이 그대로 나온다. 값이 예상과 다르면 이전 단계로 돌아가 고친다.
 
-| 항목 | 출처 |
+| 항목 | 표시되는 값 |
 |---|---|
-| Sequence | `seqInfo.name` + 길이 |
-| Mutation source | `single` / `evolvepro` |
-| Selection mode | `Pipeline (failover)` / `Top-N only` |
-| Variant count | `evolveproTotalCount` 또는 mutation row 개수 |
-| Polymerase | 선택된 profile 이름 |
-| Codon strategy | `Min. changes` / `Optimal` |
+| 서열 | 불러온 서열 이름과 길이. 불러오지 않았으면 `미로딩` |
+| 변이 입력 | 변이를 어디서 받았는지. EVOLVEpro 표를 썼으면 `evolvepro` |
+| 선택 모드 | `Pipeline (failover)` 또는 `Top-N` |
+| 변이 개수 | 이번 실행에서 설계할 변이 수 |
+| Polymerase | 고른 polymerase, Tm 목표, 최대 프라이머 수 |
 
-이 카드의 Selection mode 텍스트는 Step 2 의 라디오 선택과 항상 일치한다 (회귀 방지 E2E test 대상).
+선택 모드가 `Pipeline (failover)` 이면 카드 아래에 풀 필터 항목이 함께 나온다. `Top-N` 이면 나오지 않는다.
 
-<!-- TODO: insert screenshot of DesignSummaryCard -->
+## 설계 실행
 
-## Run Design
+1. `설계 실행` 을 누른다. 화면 가운데 버튼과 아래쪽 버튼은 같은 동작이다.
+2. 고른 변이가 1,000 개를 넘으면 입력 크기 경고가 예상 소요 시간과 함께 뜬다. 계속할지 취소할지 고른다.
+3. 사전 점검 창이 뜨면 내용을 읽는다. 오류가 없으면 `경고 무시하고 계속` 으로 진행한다.
+4. 진행률이 표시된다. 도중에 멈추려면 `취소` 를 누른다.
+5. 결과가 하나라도 나오면 Output 화면으로 자동으로 넘어간다.
 
-`Run Design` 클릭 → progress bar → 성공 시 popup Dialog 표시 없이 `output.summary` 로 자동 advance. 실패·취소 시 Submit 화면 유지 + 오류 표시.
+실패하거나 취소하면 이 화면에 그대로 남는다. 상태 메시지를 읽고 입력이나 파라미터를 고친 뒤 다시 실행한다.
 
-## v0.9.2.x 변경
+## 경고와 오류
 
-- 기존 DesignReport popup 제거. Report 는 Output 우측 [DesignReportInspector](kuro-05-output.md) 에 고정 표시.
-- auto-advance 가 실패한 예외 상황에서만 footer button 이 "Next" fallback 으로 동작.
+| 화면에 보이는 것 | 할 일 |
+|---|---|
+| 버튼 위 노란 목록 (`시퀀스 파일 (.gb / .fasta / .dna 파일을 찾아보세요)`, `변이 정보 (변이 패널에 최소 1개의 변이를 입력하세요)`, `대상 유전자 (시퀀스 패널에서 유전자를 선택하세요)`) | 목록이 가리키는 패널로 가서 값을 채운다. 다 채우기 전에는 버튼이 눌리지 않는다 |
+| `사전 점검 실패` | `Sidecar 준비되지 않았습니다` 면 상태 표시줄의 재시도 버튼을 쓰거나 앱을 다시 시작한다 |
+| `사전 점검 (경고)` | 디스크 여유 공간 확인 같은 권고다. 확인한 뒤 계속 진행할 수 있다 |
 
-→ [Step 5. Output Summary](kuro-05-output.md)
+## 다음
+
+→ [단계 5. 요약](kuro-05-output.md)

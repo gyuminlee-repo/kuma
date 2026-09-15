@@ -1,53 +1,53 @@
-# Step 1. Run Setup
+# 단계 1. 바코드 설정
 
-MAME 가 어떤 시퀀싱 run 을 분석할지 지정한다.
+CDS 서열과 바코드 시드 파일로 MAME 바코드 패키지를 만드는 화면이다. 여기서 만든 amplicon 레퍼런스와 바코드 표가 2단계 분석의 입력이 된다.
 
-## 1.1 Files & Coordinates
+## 순서
 
-| 입력 | 포맷 | 필수 |
+1. **입력 파일** 에서 CDS 서열과 바코드 시드 xlsx 를 고른다.
+2. **유전자 좌표** 를 확인한다. 파일에서 CDS 후보를 찾으면 드롭다운으로 나오고 좌표가 자동으로 채워진다.
+3. **프로젝트 메타데이터** 에 유전자 이름을 넣고 중합효소를 고른다.
+4. 필요하면 **고급 옵션** 을 펼쳐 플랭크와 결합 파라미터를 바꾼다.
+5. **출력 위치** 를 고른다. 비워 두면 프로젝트의 `design/` 폴더에 쓴다.
+6. **바코드 패키지 생성** 을 누른다.
+
+## 입력
+
+| 입력 | 형식 | 필수 |
 |---|---|---|
-| Reference FASTA | `.fa/.fasta` | 필수 |
-| Consensus directory | MAME-generated consensus FASTA 폴더 또는 raw_run 출력 대상 | 필수 |
-| CDS start (1-based) | int | 필수 |
-| CDS end | int | 필수 |
-| Run mode | `raw_run` 또는 `sorted_barcode` | 필수 |
+| CDS 서열 | `.fa` `.fasta` `.gb` `.gbk` `.dna` | 필수 |
+| 바코드 시드 xlsx | `fwd_1..12`, `rev_1..8` 시드 서열이 담긴 `.xlsx` | 필수 |
+| 유전자 좌표 | gene_start, gene_end (0-based, 끝 제외) | 필수 |
+| 유전자 이름 | 출력 파일명에 쓰이는 짧은 식별자 | 필수 |
+| 중합효소 | Q5 / Taq / Phusion / KOD | 기본값 Q5 |
+| 출력 위치 | 폴더 | 선택 |
 
-### Run mode
+CDS 서열은 유전자 양쪽에 flanking 서열이 포함된 plasmid 또는 construct map 이어야 한다. MAME 프라이머는 유전자 바깥쪽에서 결합하므로 각 방향에 최소 flank_max(기본값 400 bp)만큼의 template 이 필요하다. CDS 만 있는 FASTA 는 작동하지 않는다.
 
-- **`raw_run`** — MinKNOW `fastq_pass/<barcode*|NB*>/*.fastq(.gz)`에서 시작한다. MAME가 minimap2 (CLI) 정렬, barcode demux, Phred-aware consensus calling, verdict를 자체 수행한다. FASTQ quality가 보존되는 권장 경로다.
-- **`sorted_barcode`** — MAME가 생성한 barcode별 single-record consensus FASTA를 재분석하는 경로다. Legacy FASTA-only input은 quality string이 없으므로 unweighted majority 결과를 사용하며, header의 `depth`, `consensus_n_fraction`, `mixed_positions` 등 metadata가 판정 근거가 된다.
+**템플릿 위상** 선택은 확장자가 `.fa` `.fasta` 인 일반 FASTA 를 골랐을 때만 나온다. FASTA 에는 위상 정보가 없기 때문이다. GenBank 와 SnapGene 파일은 파일 자체가 위상을 갖고 있어 이 선택이 나오지 않는다.
 
-### MAME consensus header contract
+## 경고와 오류
 
-MAME가 생성한 consensus FASTA header는 다음 metadata를 가질 수 있다.
+| 화면에 나오는 말 | 할 일 |
+|---|---|
+| 이 파일에서 유전자 주석을 읽지 못했습니다 | GenBank 또는 SnapGene 파일이 손상되었는지 확인하고 다른 파일로 다시 고른다 |
+| CDS를 감지하지 못했습니다. 좌표를 수동으로 입력하세요. | gene_start 와 gene_end 를 직접 넣는다 |
+| gene_end는 gene_start보다 커야 합니다. | 두 좌표를 바꿔 넣지 않았는지 확인한다 |
+| 선형 template에서는 프라이머 설계가 실패할 수 있습니다 | 유전자 바깥 template 이 모자란다는 뜻이다. flank_max 를 줄이거나 flanking 서열이 더 긴 파일을 쓴다. 생성 버튼을 막지는 않는다 |
+| 패키지를 생성하려면 프로젝트를 열어야 합니다 | 파일 메뉴에서 프로젝트 열기를 고른다. 프로젝트가 없으면 생성 버튼이 눌리지 않는다 |
+| 필수 입력이 누락되어 진행할 수 없습니다 | 목록에 나온 항목을 채운다. 생성 버튼은 입력이 비어 있어도 눌리고 이 안내로 알려준다 |
+| 생성 실패 | 안내에 적힌 사유를 읽는다. 파라미터를 바꾸지 않고 다시 눌러도 같은 결과가 나온다 |
 
-```text
->{well_name} depth={passed_reads} input_reads={raw_well_reads} aligned_reads={aligned_reads} mapq_failed={n} span_failed={n} mixed_positions={n} max_minor_allele_fraction={f} low_depth_positions={n} consensus_n_fraction={f} low_quality_bases={n} ... consensus_n_fraction_basis=covered
-```
+출력 폴더가 이미 있으면 덮어쓸지 묻는 확인창이 먼저 뜬다.
 
-- `depth`: 실제 consensus에 기여한 read 수. optional `min_read_count` LOWDEPTH gate에 사용.
-- `consensus_n_fraction`, `low_depth_positions`: per-base depth 부족 또는 ambiguous base call 근거. `consensus_n_fraction`의 분모는 `min_depth`에 도달한 position이며, `consensus_n_fraction_basis=covered` 표식이 그 정의를 명시한다. 표식이 없는 v0.13.23 이전 파일 처리는 `mame-pipeline.md` 참조.
-- `low_quality_bases`: FASTQ Phred gate로 vote에서 제외된 base 수.
-- `mixed_positions`, `max_minor_allele_fraction`: 51/49 같은 within-well mixture가 clean PASS로 숨지 않도록 AMBIGUOUS 판정에 사용.
-- `mapq_failed`, `span_failed`: 정렬 품질/coverage filter에서 탈락한 read 수. Verdict table과 Excel QC 컬럼에 표시된다.
+## 생성된 파일
 
-## Expected mutations 워크북
+성공하면 **생성된 파일** 에 세 개가 나온다.
 
-step 1 의 sub-step 은 1.1 하나다. 예전 1.2 는 1.1 에 병합되었고(`setup.design` 은 redirect 용 legacy id 로만 남아 있다) expected 워크북은 2.1 Inputs 에서 고른다.
+- 바코드 표 (xlsx)
+- Amplicon 레퍼런스 (FASTA)
+- Run context (JSON)
 
+**폴더 열기** 로 저장 위치를 연다. 생성이 끝나면 amplicon 레퍼런스가 2단계의 reference 로, 바코드 표가 커스텀 바코드 파일로 자동 설정된다. 패키지를 만들기 전에 Next 를 누르면 진행이 막힌다.
 
-| 입력 | 포맷 | 필수 |
-|---|---|---|
-| 변이 목록 | KURO export 워크북(`expected_mutations` 시트) 또는 변이만 나열한 `.csv`/`.tsv`/`.txt`/`.xlsx` | 필수 |
-| Custom barcode xlsx | combinatorial barcode 사용 시 | 선택 |
-
-KURO 를 쓰지 않는 사용자는 변이 한 열짜리 목록을 그대로 넣으면 된다. well 위치는 적지 않고 행 순서가 곧 플레이트 순서다. 사양은 `docs/inputs/expected-mutations.md` 에 있다.
-
-KURO 가 만든 xlsx 는 `__kuma_meta__` 숨김 시트로 프로젝트와 자동 매칭된다. 다른 프로젝트의 `project_id` 를 가진 워크북을 넣으면 최근 프로젝트 중 같은 id 를 찾아 전환할지 묻는다.
-
-## v0.9.2.x 변경
-
-- 사이드바 자유 navigate. 미입력 상태 진입 시 "Reference file required" empty state.
-- Next 버튼은 missing input Dialog (validation.missing.reference 등) 표시.
-
-→ [Step 2. Sequencing Review](mame-02-review.md)
+→ [단계 2. 분석 및 검토](mame-02-review.md)

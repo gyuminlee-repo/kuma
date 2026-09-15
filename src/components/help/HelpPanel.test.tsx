@@ -118,14 +118,14 @@ describe("HelpPanel", () => {
     expect(screen.queryByTestId("help-fallback-notice")).toBeNull();
   });
 
-  // KNOWN LEAK, recorded rather than fixed here: HelpMarkdown renders raw HTML
-  // as escaped text, so the screenshot TODO comment reaches the screen. The fix
-  // belongs to HelpMarkdown. `it.fails` keeps the suite green while the leak
-  // stands and turns red once it is fixed, which is the cue to drop `.fails`.
   it("does not leak HTML comments in the body as text", () => {
     setup({ topic: "kuro-01-load" });
     // The body must actually be on screen, or the absence below proves nothing.
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Sequence Load");
+    // The heading text itself is not pinned: it is prose that the help content
+    // is free to reword, and pinning it makes every copy edit fail here.
+    expect(
+      screen.getByRole("heading", { level: 1 }).textContent?.trim(),
+    ).not.toHaveLength(0);
     expect(screen.getByRole("dialog").textContent).not.toMatch(/TODO|insert screenshot|<!--/);
   });
 });
