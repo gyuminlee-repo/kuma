@@ -190,6 +190,20 @@ _CONSENSUS_WORKERS: int = int(
 # downstream tools that expect one multi-record FASTA keep working.
 _COMBINED_CONSENSUS_FILENAME = "consensus_all_dna.fasta"
 
+
+def _keep_well_reads() -> bool:
+    """True when KUMA_MAME_KEEP_WELL_READS=1 asks for the per-well reads FASTA.
+
+    The on-disk per-well reads FASTA is not read by any production code path;
+    it is off by default and only written for post-hoc forensics. Writing one
+    small file per well dominates wall time on network/9p-backed output dirs.
+    The same flag decides whether the ``reads/`` directory exists at all, since
+    an always-empty folder next to the consensus files only raised the question
+    of what was supposed to be in it.
+    """
+    return os.environ.get("KUMA_MAME_KEEP_WELL_READS", "").strip() == "1"
+
+
 #: Subdirectory of a pooled run's output_dir that holds the per-well consensus
 #: FASTA. Named here rather than spelled again by each caller: it is the unit
 #: directory a pooled run produces, and the reader has to be told which units a
@@ -2128,8 +2142,8 @@ def run_combinatorial_demux(
         When True, write single-record per-well consensus FASTA files at the
         top level of ``output_dir`` (so a non-recursive top-level ``*.fasta``
         glob sees only consensus files), the multi-record per-well reads under
-        ``output_dir/reads/``, and the combined consensus FASTA under
-        ``output_dir/final/``.  When False (default), keep the legacy layout
+        ``output_dir/reads/`` (only when KUMA_MAME_KEEP_WELL_READS=1), and the
+        combined consensus FASTA under ``output_dir/final/``.  When False (default), keep the legacy layout
         (reads at root, consensus under ``output_dir/consensus/``, combined at
         root).
     minimap2_threads:
@@ -2234,9 +2248,13 @@ def _run_combinatorial_demux_body(
     :meth:`PhaseTimer.session`; behaviour is unchanged.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
+    # Read once, so the directory created here and the files written into it
+    # further down cannot disagree about the flag.
+    keep_well_reads = _keep_well_reads()
     if well_consensus_at_root:
         reads_dir = output_dir / "reads"
-        reads_dir.mkdir(exist_ok=True)
+        if keep_well_reads:
+            reads_dir.mkdir(exist_ok=True)
         final_dir = output_dir / "final"
         final_dir.mkdir(exist_ok=True)
         consensus_dir = output_dir
@@ -2625,12 +2643,9 @@ def _run_combinatorial_demux_body(
     well_sizes = per_well.sizes()
     well_keys = per_well.wells()
 
-    # The on-disk per-well reads FASTA is not read by any production code path;
-    # it is off by default and only written when KUMA_MAME_KEEP_WELL_READS=1 is
-    # set for post-hoc forensics. Writing one small file per well dominates
-    # wall time on network/9p-backed output dirs. It is written inside the
-    # consensus batch loop, where the reads are resident anyway.
-    keep_well_reads = os.environ.get("KUMA_MAME_KEEP_WELL_READS", "").strip() == "1"
+    # The per-well reads FASTA (see _keep_well_reads, read at the top of this
+    # function) is written inside the consensus batch loop, where the reads are
+    # resident anyway.
 
     stats.wells_with_reads = sum(1 for n in well_counts.values() if n >= 1)
     stats.wells_with_min_reads = sum(

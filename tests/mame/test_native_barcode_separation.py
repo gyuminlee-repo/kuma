@@ -600,9 +600,8 @@ def _build_read(r_idx: int, f_idx: int, amplicon: str) -> str:
     )
 
 
-@requires_minimap2
-def test_real_per_nb_writer_well_consensus_at_root(tmp_path: Path) -> None:
-    """well_consensus_at_root=True: consensus at top, reads/ and final/ nested."""
+def _run_real_per_nb_writer(tmp_path: Path):
+    """Run the real demux over one 1_1 well with well_consensus_at_root=True."""
     pytest.importorskip("edlib", reason="edlib unavailable; real demux gated out")
     try:
         import openpyxl  # type: ignore[import]
@@ -640,9 +639,21 @@ def test_real_per_nb_writer_well_consensus_at_root(tmp_path: Path) -> None:
         min_depth=1,
         well_consensus_at_root=True,
     )
+    return out_dir, result
+
+
+@requires_minimap2
+def test_real_per_nb_writer_well_consensus_at_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """well_consensus_at_root=True: consensus at top, final/ nested, no reads/ by default."""
+    monkeypatch.delenv("KUMA_MAME_KEEP_WELL_READS", raising=False)
+    out_dir, result = _run_real_per_nb_writer(tmp_path)
 
     # Structural layout contract (holds regardless of per-well yield):
-    assert (out_dir / "reads").is_dir(), "reads/ subdir must exist"
+    # nothing writes per-well reads unless KUMA_MAME_KEEP_WELL_READS=1, so the
+    # directory is not created either.
+    assert not (out_dir / "reads").exists(), "reads/ must not exist by default"
     assert (out_dir / "final" / "consensus_all_dna.fasta").exists(), (
         "combined consensus must be under final/"
     )
@@ -660,6 +671,24 @@ def test_real_per_nb_writer_well_consensus_at_root(tmp_path: Path) -> None:
     # The demux actually populated at least the 1_1 well.
     assert result.per_well_reads, "expected at least one populated well"
     assert "1_1" in result.per_well_reads
+
+
+@requires_minimap2
+def test_real_per_nb_writer_keeps_well_reads_when_asked(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """KUMA_MAME_KEEP_WELL_READS=1 creates reads/ and writes the per-well FASTA."""
+    monkeypatch.setenv("KUMA_MAME_KEEP_WELL_READS", "1")
+    out_dir, _result = _run_real_per_nb_writer(tmp_path)
+
+    assert (out_dir / "reads").is_dir(), "reads/ subdir must exist when kept"
+    well_reads = out_dir / "reads" / "1_1.fasta"
+    assert well_reads.is_file(), "per-well reads FASTA must be written when kept"
+    headers = sum(
+        1 for ln in well_reads.read_text(encoding="utf-8").splitlines()
+        if ln.startswith(">")
+    )
+    assert headers >= 1
 
 
 # ===========================================================================
