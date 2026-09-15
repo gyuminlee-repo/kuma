@@ -12,7 +12,7 @@
       "id": "t1-content-ko",
       "description": "Move the thirteen Korean step guides into docs/help/ko and tie the copies together in the sync group",
       "verify_command": "cd \"$WORKTREE\" && test \"$(ls docs/help/ko/*.md | wc -l)\" -eq 13 && node scripts/sync-check-groups.mjs && node scripts/check-doc-citations.mjs",
-      "state": "pending",
+      "state": "done",
       "depends_on": [
         "t0-spike"
       ]
@@ -21,7 +21,7 @@
       "id": "t2-content-en",
       "description": "Translate the thirteen topics into English, file names matching the Korean set",
       "verify_command": "cd \"$WORKTREE\" && diff <(ls docs/help/ko) <(ls docs/help/en)",
-      "state": "pending",
+      "state": "done",
       "depends_on": [
         "t1-content-ko"
       ]
