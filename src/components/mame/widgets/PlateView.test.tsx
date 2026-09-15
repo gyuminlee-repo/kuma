@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "zustand";
 import en from "@/locales/en.json";
 import type { AppState as MameAppStore } from "@/store/mame/mameAppStore";
-import type { VerdictClass, WellEntry } from "@/types/mame/models";
+import type { VerdictClass, VerdictRecord, WellEntry } from "@/types/mame/models";
 
 vi.mock("@/store/mame/mameAppStore");
 
@@ -24,7 +24,7 @@ function well(w: string, verdict: WellEntry["verdict"]): WellEntry {
   };
 }
 
-function mockStore(wells: WellEntry[]) {
+function mockStore(wells: WellEntry[], extra: Partial<MameAppStore> = {}) {
   vi.mocked(useMameAppStore).mockImplementation(
     (sel: (s: MameAppStore) => unknown) =>
       sel(
@@ -34,8 +34,10 @@ function mockStore(wells: WellEntry[]) {
               verdicts: [],
               wells,
               selectedWell: null,
+              replicates: [],
               setSelectedWell: vi.fn(),
               loadPlateData: vi.fn(),
+              ...extra,
             }) as unknown as MameAppStore,
         ).getState(),
       ),
@@ -213,5 +215,78 @@ describe("PlateView expand toggle", () => {
     expect(screen.queryByRole("button", { name: "Expand" })).toBeNull();
     fireEvent.click(btn);
     expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("PlateView selected well read at designed site", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const LABEL = en.mame.verdictDetail.labelReadAtSite;
+
+  function verdict(nativeBarcode: string, overrides: Partial<VerdictRecord> = {}): VerdictRecord {
+    return {
+      native_barcode: nativeBarcode,
+      custom_barcode: "1_1",
+      file_size_kb: 100,
+      read_count: 500,
+      n_mixed_positions: 0,
+      max_minor_allele_fraction: 0,
+      n_low_depth_positions: 0,
+      consensus_n_fraction: 0,
+      n_low_quality_bases: 0,
+      n_input_reads: 500,
+      n_aligned_reads: 490,
+      n_mapq_failed: 0,
+      n_span_failed: 0,
+      source_path: "",
+      aa_sequence: "",
+      observed_nt_changes: [],
+      observed_aa_changes: [],
+      n_no_call_aa: 0,
+      expected_mutations: ["L187G"],
+      mutant_id: "L187G",
+      verdict: "WRONG_AA",
+      verdict_notes: "",
+      ...overrides,
+    };
+  }
+
+  /** The value cell of the DetailRow whose label is `label`. */
+  function detailValue(label: string): string | null {
+    const labelEl = screen.queryByText(label);
+    return labelEl?.nextElementSibling?.textContent ?? null;
+  }
+
+  it("shows what this exact copy read at each designed site", () => {
+    const selected = well("A3", "WRONG_AA");
+    mockStore(WELLS, {
+      selectedWell: selected,
+      verdicts: [
+        // Same custom barcode on another plate: must not be the one read.
+        verdict("barcode02", {
+          expected_site_reads: [{ label: "L187G", position: 187, read: "no call" }],
+        }),
+        verdict("barcode01", {
+          expected_mutations: ["L187G", "A50T"],
+          expected_site_reads: [
+            { label: "L187G", position: 187, read: "WT" },
+            { label: "A50T", position: 50, read: "A50S" },
+          ],
+        }),
+      ],
+    });
+    render(<PlateView />);
+    expect(detailValue(LABEL)).toBe("L187G: WT, A50T: A50S");
+  });
+
+  it("adds no row for a record that predates the field", () => {
+    mockStore(WELLS, {
+      selectedWell: well("A3", "WRONG_AA"),
+      verdicts: [verdict("barcode01")],
+    });
+    render(<PlateView />);
+    expect(screen.queryByText(LABEL)).toBeNull();
+    // The rest of the aside still renders.
+    expect(screen.getByText(en.mame.plateView.detailNotes)).toBeInTheDocument();
   });
 });

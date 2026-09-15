@@ -7,6 +7,7 @@ deserialize pair is lossless at the dataclass level.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -394,3 +395,140 @@ def test_get_plate_data_marks_every_pick_on_shared_native_barcode() -> None:
         1 for w in wells if w["native_barcode"] == "NB06" and w["selected"]
     )
     assert picked_on_nb06 == 3
+
+
+# ---------------------------------------------------------------------------
+# expected_site_reads: what the well read at each designed site
+# ---------------------------------------------------------------------------
+
+
+def _site_verdict(
+    aa_sequence: str,
+    observed_aa: list[str],
+    expected: list[str],
+    verdict: VerdictClass = VerdictClass.WRONG_AA,
+) -> VerdictRecord:
+    barcode = BarcodeRecord(
+        native_barcode="NB01",
+        custom_barcode="1_1",
+        consensus_seq="",
+        file_size_kb=60.0,
+        source_path=Path("/tmp/mock.fasta"),
+    )
+    translated = TranslatedRecord(
+        barcode=barcode,
+        aa_sequence=aa_sequence,
+        observed_nt_changes=[],
+        observed_aa_changes=observed_aa,
+    )
+    return VerdictRecord(
+        translated=translated,
+        expected_mutations=expected,
+        verdict=verdict,
+        verdict_notes="",
+    )
+
+
+def test_expected_site_reads_wt() -> None:
+    payload = _serialize_verdict(_site_verdict("MKVLL", [], ["L4G"]))
+    assert payload["expected_site_reads"] == [
+        {"label": "L4G", "position": 4, "read": "WT"}
+    ]
+
+
+def test_expected_site_reads_x_is_no_call() -> None:
+    """An 'X' residue has no observed label, and it is not wild type."""
+    payload = _serialize_verdict(_site_verdict("MKVXL", [], ["L4G"]))
+    assert payload["expected_site_reads"] == [
+        {"label": "L4G", "position": 4, "read": "no call"}
+    ]
+
+
+def test_expected_site_reads_short_sequence_is_not_covered() -> None:
+    payload = _serialize_verdict(_site_verdict("MKV", [], ["L4G"]))
+    assert payload["expected_site_reads"] == [
+        {"label": "L4G", "position": 4, "read": "not covered"}
+    ]
+
+
+def test_expected_site_reads_carries_the_observed_label() -> None:
+    payload = _serialize_verdict(
+        _site_verdict("MKVAL", ["L4A", "K2del"], ["L4G", "K2R"])
+    )
+    assert payload["expected_site_reads"] == [
+        {"label": "L4G", "position": 4, "read": "L4A"},
+        {"label": "K2R", "position": 2, "read": "K2del"},
+    ]
+
+
+def test_expected_site_reads_skips_unparseable_labels() -> None:
+    payload = _serialize_verdict(
+        _site_verdict("MKVLL", [], ["junk", "L4G", "WT", ""])
+    )
+    assert payload["expected_site_reads"] == [
+        {"label": "L4G", "position": 4, "read": "WT"}
+    ]
+
+
+def test_expected_site_reads_collapses_labels_at_one_position() -> None:
+    """Same keying as classify_verdict ``expected_parsed``: the later label wins
+    and the site keeps the place of its first appearance."""
+    payload = _serialize_verdict(
+        _site_verdict("MKVLL", [], ["L4G", "V3A", "L4W"])
+    )
+    assert payload["expected_site_reads"] == [
+        {"label": "L4W", "position": 4, "read": "WT"},
+        {"label": "V3A", "position": 3, "read": "WT"},
+    ]
+
+
+@pytest.mark.parametrize("verdict", list(VerdictClass))
+def test_expected_site_reads_is_emitted_for_every_verdict_class(
+    verdict: VerdictClass,
+) -> None:
+    payload = _serialize_verdict(_site_verdict("MKVLL", [], ["L4G"], verdict))
+    assert payload["expected_site_reads"] == [
+        {"label": "L4G", "position": 4, "read": "WT"}
+    ]
+
+
+def test_expected_site_reads_on_replicate_plate_verdicts() -> None:
+    rr = ReplicateResult(
+        mutant_id="L4G",
+        plate_verdicts={
+            "NB01": _site_verdict("MKVLL", [], ["L4G"]),
+            "NB02": _site_verdict("MKVXL", [], ["L4G"]),
+        },
+        selected_plate=None,
+        selection_reason="all fail",
+        failed=True,
+    )
+    plates = _serialize_replicate(rr)["plate_verdicts"]
+    assert plates["NB01"]["expected_site_reads"] == [
+        {"label": "L4G", "position": 4, "read": "WT"}
+    ]
+    assert plates["NB02"]["expected_site_reads"] == [
+        {"label": "L4G", "position": 4, "read": "no call"}
+    ]
+
+
+def test_expected_site_reads_is_recomputed_across_a_round_trip() -> None:
+    """Derived at serialize time only: a payload written before the field existed
+    regains it, and a stale value carried in a payload is never read back."""
+    vr = _site_verdict("MKVXLA", ["A6G"], ["L4G", "V3A", "A6T"])
+    original = _serialize_verdict(vr)["expected_site_reads"]
+    assert original == [
+        {"label": "L4G", "position": 4, "read": "no call"},
+        {"label": "V3A", "position": 3, "read": "WT"},
+        {"label": "A6T", "position": 6, "read": "A6G"},
+    ]
+
+    legacy = json.loads(json.dumps(_serialize_verdict(vr)))
+    del legacy["expected_site_reads"]
+    rebuilt = _deserialize_verdict(legacy)
+    assert _serialize_verdict(rebuilt)["expected_site_reads"] == original
+
+    stale = json.loads(json.dumps(_serialize_verdict(vr)))
+    stale["expected_site_reads"] = [{"label": "L4G", "position": 4, "read": "WT"}]
+    rebuilt = _deserialize_verdict(stale)
+    assert _serialize_verdict(rebuilt)["expected_site_reads"] == original

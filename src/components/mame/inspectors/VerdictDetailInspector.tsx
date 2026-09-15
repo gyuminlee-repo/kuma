@@ -26,6 +26,7 @@ import { useMameAppStore } from "@/store/mame/mameAppStore";
 import { VerdictBadge } from "@/components/mame/widgets/VerdictBadge";
 import { InfoPopover } from "@/components/ui/InfoPopover";
 import { nbLabel, nbOrderKey } from "@/lib/mame/nbLabel";
+import { formatSiteRead, siteReadPairs, tokenSiteReads } from "@/lib/mame/siteReads";
 import type {
   CompareParams,
   ReplicateResult,
@@ -262,10 +263,21 @@ function ReplicateComparison({
                     )}
                   </span>
                 )}
-                {record.observed_aa_changes.length > 0 && (
+                {record.observed_aa_changes.length > 0 ? (
                   <span className="mt-1 block break-all font-mono text-caption text-muted-foreground">
                     {record.observed_aa_changes.join(", ")}
                   </span>
+                ) : (
+                  // Nothing observed still says what the designed site read, so
+                  // a copy that stayed WT and one with a no call there differ.
+                  tokenSiteReads(record).length > 0 && (
+                    <span
+                      data-testid="replicate-site-reads"
+                      className="mt-1 block break-all font-mono text-caption text-muted-foreground"
+                    >
+                      {siteReadPairs(tokenSiteReads(record), t)}
+                    </span>
+                  )
                 )}
               </button>
             </li>
@@ -404,6 +416,13 @@ function WellHeader({ well, mutantId }: { well: WellEntry; mutantId: string }) {
 function EvidenceSection({ record }: { record: VerdictRecord }) {
   const { t } = useTranslation();
   const observed = record.observed_aa_changes;
+  // One line per designed site when the sidecar reported them. An observed
+  // label at a site is that site's read verbatim (one label per codon), so the
+  // observed labels left over are the changes away from every designed site.
+  const siteReads = record.expected_site_reads ?? [];
+  const extraObserved = observed.filter(
+    (label) => !siteReads.some((site) => site.read === label),
+  );
   return (
     <Section title={t("mame.verdictDetail.sectionEvidence")}>
       <div className="grid grid-cols-2 gap-2">
@@ -425,14 +444,25 @@ function EvidenceSection({ record }: { record: VerdictRecord }) {
           <p className="text-caption text-muted-foreground">
             {t("mame.verdictDetail.labelObserved")}
           </p>
-          {observed.length > 0 ? (
+          {siteReads.map((site) => (
+            <p
+              key={`${site.position}-${site.label}`}
+              data-testid="observed-site-read"
+              className="break-all font-mono text-caption font-medium text-foreground"
+            >
+              {`${site.label} → ${formatSiteRead(site.read, t)}`}
+            </p>
+          ))}
+          {extraObserved.length > 0 ? (
             <p className="break-all font-mono text-caption font-medium text-foreground">
-              {observed.join(", ")}
+              {extraObserved.join(", ")}
             </p>
           ) : (
-            <p className="text-caption font-medium text-warning">
-              {t("mame.verdictDetail.observedNone")}
-            </p>
+            siteReads.length === 0 && (
+              <p className="text-caption font-medium text-warning">
+                {t("mame.verdictDetail.observedNone")}
+              </p>
+            )
           )}
         </div>
       </div>

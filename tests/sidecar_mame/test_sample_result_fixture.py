@@ -107,7 +107,7 @@ def test_fixture_verdicts_carry_every_serialized_field(fixture_json: dict) -> No
         assert set(entry) == expected, (
             f"{sorted(expected - set(entry))} missing from fixture verdict "
             f"{entry.get('custom_barcode')!r}; regenerate with "
-            "python-core/scripts/generate_mame_sample_result.py"
+            "python-core/scripts/generate_mame_step4_samples.py"
         )
 
 
@@ -120,7 +120,7 @@ def test_fixture_replicates_carry_every_serialized_field(fixture_json: dict) -> 
         assert set(entry) == expected, (
             f"{sorted(expected - set(entry))} missing from fixture replicate "
             f"{entry.get('mutant_id')!r}; regenerate with "
-            "python-core/scripts/generate_mame_sample_result.py"
+            "python-core/scripts/generate_mame_step4_samples.py"
         )
         for plate, nested in entry["plate_verdicts"].items():
             nested_expected = set(_serialize_verdict(_deserialize_verdict(nested)))
@@ -172,7 +172,7 @@ def test_fixture_run_health_carries_every_handler_field(fixture_json: dict) -> N
     missing = sorted(expected - set(fixture_json["runHealth"]))
     assert set(fixture_json["runHealth"]) == expected, (
         f"{missing} missing from fixture runHealth; regenerate with "
-        "python-core/scripts/generate_mame_sample_result.py"
+        "python-core/scripts/generate_mame_step4_samples.py"
     )
 
 

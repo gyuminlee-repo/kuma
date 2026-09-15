@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "zustand";
 import type { AppState as MameAppStore } from "@/store/mame/mameAppStore";
@@ -378,6 +378,105 @@ describe("VerdictTable", () => {
       native_barcode: "barcode01",
       mutant_id: "F89W",
     });
+  });
+});
+
+// ── AA Changes: what a WRONG_AA well read at its designed site ─────────────
+//
+// An empty `observed_aa_changes` means either the reference residue or no call
+// there, so without `expected_site_reads` those two wells render the same "-".
+describe("VerdictTable AA Changes site reads", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function wrongAa(
+    custom_barcode: string,
+    observed_aa_changes: string[],
+    read: string,
+  ): VerdictRecord {
+    return {
+      ...mockVerdict,
+      custom_barcode,
+      mutant_id: `m_${custom_barcode}`,
+      verdict: "WRONG_AA",
+      observed_aa_changes,
+      expected_mutations: ["L187G"],
+      expected_site_reads: [{ label: "L187G", position: 187, read }],
+    };
+  }
+
+  function renderStore(overrides: Partial<MameAppStore>) {
+    vi.mocked(useMameAppStore).mockImplementation((sel: (s: MameAppStore) => unknown) =>
+      sel(makeMameStore(overrides).getState()),
+    );
+    vi.mocked(useRoundStore).mockImplementation((sel: (s: RoundSlice) => unknown) =>
+      sel(makeRoundStore([], null).getState()),
+    );
+    render(<VerdictTable />);
+  }
+
+  it("names a site that stayed WT", () => {
+    renderStore({ verdicts: [wrongAa("A01", [], "WT")] });
+    expect(screen.getByText("L187G: WT")).toBeTruthy();
+  });
+
+  it("names a site with no call", () => {
+    renderStore({ verdicts: [wrongAa("A01", [], "no call")] });
+    expect(screen.getByText("L187G: no call")).toBeTruthy();
+  });
+
+  it("keeps a wrong residue as the observed label", () => {
+    renderStore({ verdicts: [wrongAa("A01", ["L187A"], "L187A")] });
+    expect(screen.getByText("L187A")).toBeTruthy();
+    expect(screen.queryByText(/L187G:/)).toBeNull();
+  });
+
+  it("lists the WT site ahead of an extra observed change", () => {
+    renderStore({ verdicts: [wrongAa("A01", ["A50T"], "WT")] });
+    expect(screen.getByText("L187G: WT, A50T")).toBeTruthy();
+  });
+
+  it("keeps '-' for a WRONG_AA record that predates the field", () => {
+    const legacy: VerdictRecord = {
+      ...mockVerdict,
+      verdict: "WRONG_AA",
+      observed_aa_changes: [],
+    };
+    renderStore({ verdicts: [legacy] });
+    // Header row first, then the one data row.
+    const cells = within(screen.getAllByRole("row")[1]!).getAllByRole("cell");
+    const headers = screen.getAllByRole("columnheader").map((h) => h.textContent ?? "");
+    const aaIndex = headers.findIndex((h) => h.startsWith("AA Changes"));
+    expect(aaIndex).toBeGreaterThanOrEqual(0);
+    expect(cells[aaIndex]!.textContent).toBe("-");
+  });
+
+  it("finds a no-call well by searching for what the cell shows", () => {
+    renderStore({
+      verdicts: [wrongAa("A01", [], "no call"), wrongAa("B01", [], "WT")],
+      searchQuery: "no call",
+    });
+    expect(screen.getByText("A01")).toBeTruthy();
+    expect(screen.queryByText("B01")).toBeNull();
+  });
+
+  it("sorts the column by the text the cell shows", () => {
+    // By observed labels alone A01 ("") sorts before B01 ("A50T"), and the
+    // table's own well order agrees, so only the shown text puts B01 first.
+    const b01: VerdictRecord = {
+      ...mockVerdict,
+      custom_barcode: "B01",
+      mutant_id: "m_B01",
+      verdict: "PASS",
+      observed_aa_changes: ["A50T"],
+    };
+    renderStore({
+      verdicts: [wrongAa("A01", [], "WT"), b01],
+      sorting: [{ id: "observed_aa_changes", desc: false }],
+    });
+    const order = screen.getAllByText(/^[AB]01$/).map((el) => el.textContent);
+    expect(order).toEqual(["B01", "A01"]);
   });
 });
 

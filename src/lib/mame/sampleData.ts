@@ -27,7 +27,7 @@ export function sampleVerdicts(): VerdictRecord[] {
   >[] = [
     { native_barcode: "barcode1", custom_barcode: "1_1", verdict: "PASS", verdict_notes: "", aa_sequence: "MSTTS", observed_aa_changes: ["V5F"], expected_mutations: ["V5F"], mutant_id: "V5F" },
     { native_barcode: "barcode2", custom_barcode: "1_2", verdict: "PASS", verdict_notes: "", aa_sequence: "MSTTS", observed_aa_changes: ["K53N"], expected_mutations: ["K53N"], mutant_id: "K53N" },
-    { native_barcode: "barcode3", custom_barcode: "1_3", verdict: "WRONG_AA", verdict_notes: "observed V5S, expected V5F", aa_sequence: "MSTSS", observed_aa_changes: ["V5S"], expected_mutations: ["V5F"], mutant_id: "V5F" },
+    { native_barcode: "barcode3", custom_barcode: "1_3", verdict: "WRONG_AA", verdict_notes: "expected V5F, observed V5S", aa_sequence: "MSTSS", observed_aa_changes: ["V5S"], expected_mutations: ["V5F"], expected_site_reads: [{ label: "V5F", position: 5, read: "V5S" }], mutant_id: "V5F" },
     { native_barcode: "barcode4", custom_barcode: "1_4", verdict: "AMBIGUOUS", verdict_notes: "mixed trace", aa_sequence: "MSTTS", observed_aa_changes: [], expected_mutations: ["T10A"], mutant_id: "T10A" },
     { native_barcode: "barcode5", custom_barcode: "2_1", verdict: "FRAMESHIFT", verdict_notes: "insertion at pos 15", aa_sequence: "MSTT", observed_aa_changes: [], expected_mutations: ["L12I"], mutant_id: "L12I" },
     { native_barcode: "barcode6", custom_barcode: "2_2", verdict: "PASS", verdict_notes: "", aa_sequence: "MSTTS", observed_aa_changes: ["Q80R"], expected_mutations: ["Q80R"], mutant_id: "Q80R" },

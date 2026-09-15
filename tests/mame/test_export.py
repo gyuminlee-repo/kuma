@@ -59,6 +59,9 @@ def _make_verdict(
     size_kb: float = 60.0,
     read_count: int | None = None,
     observed_aa: list[str] | None = None,
+    aa_sequence: str = "",
+    expected: list[str] | None = None,
+    n_no_call_aa: int = 0,
 ) -> VerdictRecord:
     barcode = BarcodeRecord(
         native_barcode=nb,
@@ -70,13 +73,14 @@ def _make_verdict(
     )
     translated = TranslatedRecord(
         barcode=barcode,
-        aa_sequence="",
+        aa_sequence=aa_sequence,
         observed_nt_changes=[],
         observed_aa_changes=observed_aa or [],
+        n_no_call_aa=n_no_call_aa,
     )
     return VerdictRecord(
         translated=translated,
-        expected_mutations=[],
+        expected_mutations=list(expected or []),
         verdict=verdict,
         verdict_notes="",
     )
@@ -316,6 +320,83 @@ def test_ngs_reads_uses_read_count_not_filesize(tmp_path: Path) -> None:
     assert ws[2][reads_idx].value != 123.0
     # Row 3 = rr_none: blank (read_count None, no file_size_kb fallback).
     assert ws[3][reads_idx].value in ("", None)
+
+
+# An AA sequence carrying L at 1-based position 187, the site the expected
+# label L187G names. Every other residue is A so no position collides with it.
+def _aa_with(residue: str, pos: int = 187, length: int = 200) -> str:
+    return "A" * (pos - 1) + residue + "A" * (length - pos)
+
+
+def _detected_and_plate_observed(
+    tmp_path: Path, vr: VerdictRecord, mutant_id: str = "L187G"
+) -> tuple[object, object]:
+    """Write one well and return its NGS Results detected cell and NB observed_aa."""
+    rr = ReplicateResult(
+        mutant_id=mutant_id,
+        plate_verdicts={"NB01": vr},
+        selected_plate=None,
+        selection_reason="no pass",
+        failed=True,
+    )
+    out = tmp_path / "detected.xlsx"
+    write_excel(verdict_records=[vr], replicate_results=[rr], output_path=out)
+    wb = openpyxl.load_workbook(out)
+    ngs = wb["NGS Results"]
+    detected = ngs[2][[c.value for c in ngs[1]].index(f"{nb_label('NB01')}_detected")]
+    plate = wb["NB01"]
+    observed = plate[2][_col(plate, "observed_aa")]
+    return detected.value, observed.value
+
+
+def test_ngs_detected_says_wt_for_a_wrong_aa_well_that_stayed_wild_type(
+    tmp_path: Path,
+) -> None:
+    """The detected column names what was read, not the verdict class."""
+    vr = _make_verdict(
+        "NB01",
+        "1_1",
+        VerdictClass.WRONG_AA,
+        read_count=500,
+        aa_sequence=_aa_with("L"),
+        expected=["L187G"],
+    )
+    detected, observed = _detected_and_plate_observed(tmp_path, vr)
+    assert detected == "WT"
+    # The per-plate observed_aa is read back as mutation labels by
+    # activity/verdict_ngs.py, so it must stay blank rather than carry "WT".
+    assert observed in ("", None)
+
+
+def test_ngs_detected_keeps_wrong_aa_when_the_expected_site_is_a_no_call(
+    tmp_path: Path,
+) -> None:
+    vr = _make_verdict(
+        "NB01",
+        "1_1",
+        VerdictClass.WRONG_AA,
+        read_count=500,
+        aa_sequence=_aa_with("X"),
+        expected=["L187G"],
+        n_no_call_aa=1,
+    )
+    detected, _observed = _detected_and_plate_observed(tmp_path, vr)
+    assert detected == "WRONG_AA"
+
+
+def test_ngs_detected_never_reads_wt_for_a_lowdepth_well(tmp_path: Path) -> None:
+    # Same wild-type sequence and expected label as the WT case above, so only
+    # the verdict class keeps this cell from reading "WT".
+    vr = _make_verdict(
+        "NB01",
+        "1_1",
+        VerdictClass.LOWDEPTH,
+        read_count=2,
+        aa_sequence=_aa_with("L"),
+        expected=["L187G"],
+    )
+    detected, _observed = _detected_and_plate_observed(tmp_path, vr)
+    assert detected == "LOWDEPTH"
 
 
 def test_dynamic_nb_columns_variable_names(tmp_path: Path) -> None:
