@@ -21,8 +21,8 @@ Load a sequence file and specify the target gene and organism.
 
 ## Changes in v0.9.2.x
 
-- Clicking the mutation/params steps in the Sidebar ahead of time is not blocked (free navigation). Those steps show a "Load sequence first" empty state.
-- Clicking Next with no sequence loaded opens a validation Dialog: "Sequence file required".
+- Clicking the mutation/params steps in the Sidebar ahead of time is not blocked (free navigation). Those steps show a "Load a sequence file first" empty state.
+- Clicking Next with no sequence loaded opens a validation Dialog: "Sequence file is required".
 
 ## Next
 

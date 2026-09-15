@@ -47,7 +47,7 @@ An xlsx made by KURO is matched to the project automatically through the hidden 
 
 ## Changes in v0.9.2.x
 
-- Free Sidebar navigation. Entering with no input shows the "Reference FASTA required" empty state.
+- Free Sidebar navigation. Entering with no input shows the "Reference file required" empty state.
 - The Next button shows a missing input Dialog (validation.missing.reference etc.).
 
 → [Step 2. Sequencing Review](mame-02-review.md)
