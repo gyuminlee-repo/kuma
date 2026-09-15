@@ -287,6 +287,11 @@
       "reason": "The cross-layer-sync skill document, which lives in the Claude Code skill directory outside this repository."
     },
     {
+      "path": "../x/beta-topic.md",
+      "category": "prose",
+      "reason": "Test literal in src/components/help/HelpMarkdown.test.tsx: a cross-reference carrying a directory, which the renderer has to reduce to its last segment. The path is a fixture and is never a file."
+    },
+    {
       "path": "alpha-topic.md",
       "category": "prose",
       "reason": "Test literal in the help panel plan. The HelpMarkdown link tests need a topic name that resolves, and a real topic id would tie a unit test to the help contents; this name is a fixture and is never a file."
