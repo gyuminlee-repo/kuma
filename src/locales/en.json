@@ -37,7 +37,36 @@
     "showOnboarding": "Show Onboarding",
     "viewCrashLog": "View Crash Log",
     "settings": "Settings...",
-    "about": "About"
+    "about": "About",
+    "userGuide": "User guide",
+    "panel": {
+      "title": "Help",
+      "close": "Close help",
+      "notTranslated": "This topic is not available yet.",
+      "shownInEnglish": "Shown in English because this topic is not translated into your language yet.",
+      "shownInKorean": "Shown in Korean because this topic is not translated into your language yet.",
+      "group": {
+        "start": "Getting started",
+        "kuro": "KURO design",
+        "mame": "MAME verification",
+        "deeper": "Deeper"
+      },
+      "topic": {
+        "kuro-index": "KURO overview",
+        "kuro-01-load": "Load",
+        "kuro-02-mutation": "Mutations",
+        "kuro-03-params": "Parameters",
+        "kuro-04-submit": "Submit",
+        "kuro-05-output": "Results",
+        "kuro-06-export": "Export",
+        "mame-index": "MAME overview",
+        "mame-01-setup": "Barcode setup",
+        "mame-02-review": "Analyze and review",
+        "mame-03-janus": "Janus",
+        "mame-04-activity": "Activity",
+        "mame-pipeline": "MAME pipeline"
+      }
+    }
   },
   "about": {
     "title": "About Kuma",
