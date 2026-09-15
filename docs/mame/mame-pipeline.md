@@ -76,7 +76,7 @@ native barcode 하나가 unit 하나다. `{output_dir}/{unit}/` 아래 구조는
     ├── {r_idx}_{f_idx}.fasta           # per-well consensus sequence
     ├── final/
     │   └── consensus_all_dna.fasta     # 전체 well 병합 consensus
-    ├── reads/                          # 기본적으로 비어 있음 (아래 참조)
+    ├── reads/                          # KUMA_MAME_KEEP_WELL_READS=1 일 때만 생성 (아래 참조)
     └── .demux_consensus_complete.json  # 완료 marker (resume 판정)
 ```
 
@@ -84,8 +84,8 @@ per-well raw reads FASTA(`reads/{r_idx}_{f_idx}.fasta`)는 기본으로 쓰지 �
 consensus 단계가 메모리에 있는 read를 그대로 쓰기 때문에 이 파일을 읽는 코드가
 없고, well 하나당 파일 하나를 쓰는 비용이 네트워크·9p 마운트 출력 경로에서
 전체 시간의 상당 부분을 차지했다. 사후 확인이 필요하면 환경변수
-`KUMA_MAME_KEEP_WELL_READS=1`로 예전 동작을 되살린다. `reads/` 디렉터리 자체는
-두 경우 모두 생성된다.
+`KUMA_MAME_KEEP_WELL_READS=1`로 예전 동작을 되살린다. `reads/` 디렉터리도 이
+환경변수가 켜졌을 때만 생성되므로 기본 실행의 출력에는 `reads/`가 없다.
 
 - well 이름 형식: `{R_index}_{F_index}` (예: `1_1`, `8_12`)
 - consensus header 예:
