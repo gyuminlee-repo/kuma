@@ -12,7 +12,7 @@ Present surfaces, all verified on `origin/main` at `e7dafbfc`:
 
 | Surface | Where | Answers |
 |---|---|---|
-| `InlineHelp` `?` icons, 52 call sites | `src/components/ui/InlineHelp.tsx:21-79` | "what is this field" |
+| `InlineHelp` `?` icons, 50 call sites | `src/components/ui/InlineHelp.tsx:21-79` | "what is this field" |
 | `FormatPreviewHelp` | `src/components/ui/FormatPreviewHelp.tsx:294-327` | "what shape does this file take" |
 | `GuidedTour`, 10 spots | `src/components/dialogs/GuidedTour.tsx` | "where is everything" |
 | `Onboarding`, 1 page | `src/screens/Onboarding.tsx` | "what is this app" |
@@ -53,9 +53,11 @@ Layout:
 
 ```
 docs/help/
-  ko/  kuro-index.md, kuro-01-load.md ... kuro-06-export.md,
-       mame-index.md, mame-01-setup.md ... mame-04-activity.md, mame-pipeline.md
+  ko/  kuro-index, kuro-01-load ... kuro-06-export,
+       mame-index, mame-01-setup ... mame-04-activity, mame-pipeline
   en/  the same 14 names
+
+each file named <topic-id> plus the markdown extension
 ```
 
 ### D3. Vite `?raw`, not Tauri resources
@@ -85,7 +87,7 @@ A hand-rolled parser is rejected: the repository rule is to reach for an establi
 Cross-references are written in the markdown as ordinary relative links:
 
 ```markdown
-See [Barcode setup](mame-01-setup.md).
+See [Barcode setup](<topic-id>.md).
 ```
 
 The renderer overrides the `a` component. A link ending in `.md` swaps the active topic inside the panel and does not navigate. Only `http(s)` links leave, through the opener.
@@ -103,9 +105,45 @@ Table of contents, four groups:
 | MAME verification | Barcode setup, Analyze and review, Janus, Activity |
 | Deeper | MAME pipeline |
 
-Opening the panel selects the topic matching the current step. On MAME `analyze.review` the panel opens at "Analyze and review". Step identifiers already exist: `src/components/mame/layout/MameWorkflowRail.tsx:24-32` and `src/components/steps/constants.ts:9-18`. This is the reason D1 chose step-aligned content.
+Opening the panel selects the topic matching the current step. On MAME `analyze.review` the panel opens at "Analyze and review". Step identifiers already exist: `src/components/mame/layout/MameWorkflowRail.tsx:23-30` and `src/components/steps/constants.ts:9-18`. This is the reason D1 chose step-aligned content.
 
 No search and no images, following the reference implementation. Fourteen topics are covered by the table of contents, and leaving images out keeps the bundle question closed.
+
+## Implementation contract
+
+The sections above state what the panel is. This section states the things a plan would otherwise have to invent.
+
+### C1. How the panel learns the current step
+
+The panel takes `topic` and `onTopicChange` as props and holds no step knowledge of its own. Each tab passes the topic derived from its own store, because the two stores are separate and neither is reachable from the other.
+
+- MAME reads `currentMameSubStep` from the MAME store (`src/store/mame/slices/navigationSlice.ts:39`, default `"setup.files"` at `:46`).
+- KURO reads its sub-step from the KURO store, typed by `KuroSubStepId` (`src/store/validation.ts:13`, index map in `src/components/steps/constants.ts:9-18`).
+
+A step-to-topic map lives beside the content, one entry per step id. A step with no entry opens the group index rather than nothing.
+
+**Tab switching does not move the panel.** The topic follows the tab that opened the panel, and switching tabs while it is open leaves it where it is. Re-opening from the other tab's Help menu re-derives the topic. Making the panel chase the active tab would throw away what the reader was in the middle of.
+
+### C2. Link interception
+
+`react-markdown` takes a `components` override for `a`. The rule, in order:
+
+1. `href` starts with `http://` or `https://`: hand to the opener, which is already restricted by `src-tauri/capabilities/default.json`.
+2. `href` ends in `.md`: resolve against the topic set, call `onTopicChange`, prevent default. An href that resolves to no known topic renders as plain text rather than a dead link.
+3. anything else, including `#anchor`: render as plain text.
+
+The topic id is the file stem, so a link naming the barcode-setup file resolves to topic `mame-01-setup`. Cross-references never carry a directory or a locale, because the locale is chosen at render time.
+
+### C3. The sync group does not exist yet
+
+`.cross-layer-sync.json` carries 77 groups and none of them mentions help. Adding the group is the first step of the work rather than a consequence of it, and the group is what keeps `docs/help/ko` from drifting away from `docs/kuro` and `docs/mame`.
+
+### C4. Two things to prove before the rest is built
+
+Both are cheap and both invalidate the design if they fail.
+
+- **`import.meta.glob` options.** The repository is on Vite 6 (`package.json`, `"vite": "^6.0.0"`). The `query` and `import` options replaced the older `as: "raw"` spelling, so the syntax in D3 is the Vite 5-and-later form. Prove it by importing one file and asserting the string is non-empty, before writing the panel.
+- **`react-markdown` against React 19.** The repository is on React 19 (`"react": "^19.0.0"`). Peer-range compatibility is **unconfirmed** and must be checked at install time, not assumed. If it does not hold, the fallback is build-time conversion, which was the second option considered and needs no runtime dependency.
 
 ## Error handling
 
@@ -143,7 +181,8 @@ Content presence is worth stating: a mistyped glob returns an empty object and e
 - `node node_modules/typescript/bin/tsc --noEmit` exit 0, no new `as any` or `@ts-ignore`
 - vitest 0 failed
 - `i18n-lint`, `i18n-parity`, `sync-check-groups` pass
-- the app is launched and the panel opened by eye, on both tabs
+- the 14 English topics are written, not stubbed
+- the app is launched and checked by hand on both tabs: the Help menu opens the panel, each step opens its own topic, a cross-reference swaps the topic without leaving the panel, and a missing locale shows the fallback notice with the contents still usable
 
 ## Assumption ledger
 
@@ -155,6 +194,8 @@ Content presence is worth stating: a mistyped glob returns an empty object and e
 | 4 | No search | findability across 14 topics | matches reference implementation |
 | 5 | No images | comprehension of spatial steps | matches reference implementation |
 | 6 | `docs/help/ko` duplicates the mkdocs sources rather than replacing them | drift risk, mitigated by the sync group | unconfirmed |
+| 7 | `react-markdown` supports React 19 | the whole rendering choice | unconfirmed, gated by C4 |
+| 8 | The panel stays put when the tab changes | reader interruption | design choice, see C1 |
 
 ## Out of scope
 
