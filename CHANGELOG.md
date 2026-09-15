@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.16.61 (A WRONG_AA well says what it read)
+
+A WRONG_AA well whose designed site had not changed carried the note "missing expected: L187G" and nothing else. Its amino acid column was blank and the NGS Results sheet printed the verdict name in the column meant for what was detected, so an operator could not tell a well that stayed wild type from one whose consensus had no call at that site. A well that read a different residue already said so ("expected L187A, observed L187G"). The missing-site note now says it in the same shape: "expected L187G, observed WT (L187)", "expected L187G, observed no call (X at 187)" or "expected L187G, observed not covered (187)".
+
+An empty change list does not mean wild type. The translator keeps an N-bearing codon out of the change list and counts it as a no call, so the note reads the residue from the translated sequence itself, which carries one character per reference codon. The NGS Results detected cell prints WT only for a WRONG_AA well that read the reference residue at every designed site. A no call at any of them, and every other verdict, keep the verdict name. The per-plate observed_aa column stays blank, because the activity data step reads that column back as mutation labels and a WT token there would enter the label audit as a mutation.
+
+Each sort_barcode directory under demux_filtered also carried an empty reads folder. Per-well read FASTAs were already written only when KUMA_MAME_KEEP_WELL_READS=1 and nothing downstream reads them, but the folder was created on every run. It is now created only under that flag.
+
+A workbook written by an earlier version keeps its old notes until the analysis is run again.
+
+### Highlights
+
+- A WRONG_AA well whose designed site did not change now says what it read there: wild type, a no call, or not covered.
+- The NGS Results sheet prints WT instead of WRONG_AA for a well that read the reference residue at every designed site.
+- The reads folder under each sort_barcode directory is created only when per-well reads are kept, instead of always empty.
+
 ## v0.16.60 (What the plate read, and what the caller had already decided)
 
 A consensus that calls a deletion had decided something. Two verdict gates were counting that decision as if nothing had been decided, and the result was that a well carrying a real amino acid substitution never got to say so.

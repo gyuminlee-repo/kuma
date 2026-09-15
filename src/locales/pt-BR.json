@@ -2566,14 +2566,17 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Uma deleção decidida não conta mais para os gates NO_CALL e MIXED, de modo que três poços relatam a substituição de aminoácido que carregam.",
-      "A tradução reconstrói a molécula de comprimento real a partir das deleções e inserções chamadas em vez de uma sequência de comprimento de referência.",
-      "A recorrência de placa ganha canais de deleção e inserção ao lado da tabela de substituições, com truncamento, omissão e empates contados separadamente.",
-      "Cada posição recorrente carrega quantas mutações esperadas distintas seus poços tinham, o que separa um artefato do caller de uma amostra compartilhada.",
-      "Uma análise salva agora mantém suas evidências de indels de consenso, antes perdidas ao reabrir."
+      "Um well WRONG_AA cujo sítio projetado não mudou agora mostra o que foi lido ali: WT, no call ou not covered.",
+      "Um well que leu o resíduo de referência em todos os sítios projetados aparece como WT em vez de WRONG_AA na planilha NGS Results.",
+      "A pasta reads em cada diretório sort_barcode só é criada quando os reads por well são mantidos, em vez de ficar sempre vazia."
     ],
-    "highlightsStamp": "0.16.60+a87cf2d1",
+    "highlightsStamp": "0.16.61+a9988b7c",
     "releases": {
+      "0.16.61": [
+        "Um well WRONG_AA cujo sítio projetado não mudou agora mostra o que foi lido ali: WT, no call ou not covered.",
+        "Um well que leu o resíduo de referência em todos os sítios projetados aparece como WT em vez de WRONG_AA na planilha NGS Results.",
+        "A pasta reads em cada diretório sort_barcode só é criada quando os reads por well são mantidos, em vez de ficar sempre vazia."
+      ],
       "0.16.59": [
         "Uma pasta do MAME agora registra a referência, a janela codificante, o modo e os limiares sob os quais a execução ocorreu.",
         "A referência é identificada por um resumo da sequência analisada, então a mesma molécula salva com outro nome continua correspondendo.",
@@ -3008,6 +3011,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.61": "a9988b7c",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",

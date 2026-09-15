@@ -2566,14 +2566,17 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "已確定的 deletion 不再計入 NO_CALL 與 MIXED gate，三個 well 現在報告其實際攜帶的胺基酸取代。",
-      "翻譯階段依據呼叫的 deletion 與 insertion 重建真實長度的分子，而非 reference 長度的序列。",
-      "Plate recurrence 新增 deletion 與 insertion 通道，截斷、整體省略與並列分別計數。",
-      "每個重現位置附帶其貢獻 well 的不同預期突變數量，用以區分 caller 假象與共享樣品。",
-      "儲存的分析結果現在保留 consensus indel 證據，此前重新開啟時會遺失。"
+      "設計位點未發生變化的 WRONG_AA well 現在會顯示該位點實際讀到的內容：WT、no call 或 not covered。",
+      "在所有設計位點都讀到 reference 殘基的 well，在 NGS Results 表中顯示為 WT，而非 WRONG_AA。",
+      "sort_barcode 目錄下的 reads 資料夾僅在保留每個 well 的 read 時建立，不再總是產生空資料夾。"
     ],
-    "highlightsStamp": "0.16.60+a87cf2d1",
+    "highlightsStamp": "0.16.61+a9988b7c",
     "releases": {
+      "0.16.61": [
+        "設計位點未發生變化的 WRONG_AA well 現在會顯示該位點實際讀到的內容：WT、no call 或 not covered。",
+        "在所有設計位點都讀到 reference 殘基的 well，在 NGS Results 表中顯示為 WT，而非 WRONG_AA。",
+        "sort_barcode 目錄下的 reads 資料夾僅在保留每個 well 的 read 時建立，不再總是產生空資料夾。"
+      ],
       "0.16.59": [
         "MAME 活頁簿現在會記錄執行所用的參考序列、編碼視窗、模式與閾值。",
         "參考序列以解析後序列的摘要來識別，同一分子換個檔名儲存仍視為相同。",
@@ -3008,6 +3011,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.61": "a9988b7c",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",

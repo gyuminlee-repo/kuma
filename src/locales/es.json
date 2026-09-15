@@ -2566,14 +2566,17 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Una deleción decidida ya no cuenta para las gates NO_CALL y MIXED, por lo que tres pocillos informan la sustitución de aminoácido que portan.",
-      "La traducción reconstruye la molécula de longitud real a partir de las deleciones e inserciones llamadas en lugar de una secuencia de longitud de referencia.",
-      "La recurrencia de placa gana canales de deleción e inserción junto a la tabla de sustituciones, con truncamiento, omisión y empates contados por separado.",
-      "Cada posición recurrente lleva cuántas mutaciones esperadas distintas tenían sus pocillos, lo que separa un artefacto del caller de una muestra compartida.",
-      "Un análisis guardado ahora conserva sus evidencias de indels de consenso, antes perdidas al reabrirlo."
+      "Un well WRONG_AA cuyo sitio diseñado no cambió ahora indica lo que se leyó allí: WT, no call o not covered.",
+      "Un well que leyó el residuo de referencia en todos los sitios diseñados aparece como WT en la hoja NGS Results en lugar de WRONG_AA.",
+      "La carpeta reads bajo cada directorio sort_barcode solo se crea cuando se conservan los reads por well, en lugar de quedar siempre vacía."
     ],
-    "highlightsStamp": "0.16.60+a87cf2d1",
+    "highlightsStamp": "0.16.61+a9988b7c",
     "releases": {
+      "0.16.61": [
+        "Un well WRONG_AA cuyo sitio diseñado no cambió ahora indica lo que se leyó allí: WT, no call o not covered.",
+        "Un well que leyó el residuo de referencia en todos los sitios diseñados aparece como WT en la hoja NGS Results en lugar de WRONG_AA.",
+        "La carpeta reads bajo cada directorio sort_barcode solo se crea cuando se conservan los reads por well, en lugar de quedar siempre vacía."
+      ],
       "0.16.59": [
         "Un libro de MAME ahora registra la referencia, la ventana codificante, el modo y los umbrales con los que se ejecutó la corrida.",
         "La referencia se identifica por un resumen de la secuencia analizada, así la misma molécula guardada con otro nombre sigue coincidiendo.",
@@ -3008,6 +3011,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.61": "a9988b7c",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",

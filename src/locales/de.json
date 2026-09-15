@@ -2566,14 +2566,17 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Eine entschiedene Deletion zählt nicht mehr für die NO_CALL- und MIXED-Gates, sodass drei Wells die tatsächliche Aminosäuresubstitution melden.",
-      "Die Translation rekonstruiert das längentreue Molekül aus den aufgerufenen Deletionen und Insertionen statt aus einer Sequenz in Referenzlänge.",
-      "Plate Recurrence erhält Deletions- und Insertionskanäle neben der Substitutionstabelle; Kürzung, Auslassung und Gleichstand werden getrennt gezählt.",
-      "Jede wiederkehrende Position führt mit, wie viele unterschiedliche erwartete Mutationen ihre Wells hatten, was ein Caller-Artefakt von einer geteilten Probe trennt.",
-      "Ein gespeichertes Ergebnis behält nun seine Consensus-Indel-Belege, die beim erneuten Öffnen zuvor verloren gingen."
+      "Ein WRONG_AA-Well, dessen Designposition unverändert blieb, zeigt jetzt, was dort gelesen wurde: WT, no call oder not covered.",
+      "Ein Well, das an jeder Designposition den Referenzrest gelesen hat, erscheint im Blatt NGS Results als WT statt WRONG_AA.",
+      "Der reads-Ordner unter jedem sort_barcode-Verzeichnis wird nur noch angelegt, wenn Reads pro Well behalten werden, statt immer leer."
     ],
-    "highlightsStamp": "0.16.60+a87cf2d1",
+    "highlightsStamp": "0.16.61+a9988b7c",
     "releases": {
+      "0.16.61": [
+        "Ein WRONG_AA-Well, dessen Designposition unverändert blieb, zeigt jetzt, was dort gelesen wurde: WT, no call oder not covered.",
+        "Ein Well, das an jeder Designposition den Referenzrest gelesen hat, erscheint im Blatt NGS Results als WT statt WRONG_AA.",
+        "Der reads-Ordner unter jedem sort_barcode-Verzeichnis wird nur noch angelegt, wenn Reads pro Well behalten werden, statt immer leer."
+      ],
       "0.16.59": [
         "Eine MAME-Arbeitsmappe hält jetzt die Referenz, das kodierende Fenster, den Modus und die Schwellenwerte des Laufs fest.",
         "Die Referenz wird über einen Digest der geparsten Sequenz identifiziert, sodass dasselbe Molekül unter anderem Namen weiterhin passt.",
@@ -3008,6 +3011,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.61": "a9988b7c",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",

@@ -2566,14 +2566,17 @@
     "descriptionRange": "v{{from}} 以降のすべてのアップデートの主な変更点です。",
     "gotItBtn": "了解",
     "highlights": [
-      "確定した deletion は NO_CALL と MIXED gate に含まれなくなりました。3 つの well が実際のアミノ酸置換を報告します。",
-      "翻訳段階が reference 長の配列ではなく、呼び出された deletion と insertion から実長の分子を再構成します。",
-      "Plate recurrence に deletion と insertion のチャネルを追加しました。切り詰め、省略、同数をそれぞれ別に数えます。",
-      "再発位置ごとに寄与した well の異なる期待変異数を併記します。caller の人工産物と共有試料を区別します。",
-      "保存した解析結果が consensus indel の証拠を保持します。以前は再度開くと失われていました。"
+      "設計部位が変わらなかった WRONG_AA well が、その部位で実際に読まれた内容を表示します。WT、no call、not covered を区別します。",
+      "すべての設計部位で reference 残基を読んだ well は、NGS Results シートで WRONG_AA ではなく WT と表示されます。",
+      "sort_barcode フォルダ下の reads フォルダは well ごとの read を保持する場合にのみ作成されます。以前は常に空で作成されていました。"
     ],
-    "highlightsStamp": "0.16.60+a87cf2d1",
+    "highlightsStamp": "0.16.61+a9988b7c",
     "releases": {
+      "0.16.61": [
+        "設計部位が変わらなかった WRONG_AA well が、その部位で実際に読まれた内容を表示します。WT、no call、not covered を区別します。",
+        "すべての設計部位で reference 残基を読んだ well は、NGS Results シートで WRONG_AA ではなく WT と表示されます。",
+        "sort_barcode フォルダ下の reads フォルダは well ごとの read を保持する場合にのみ作成されます。以前は常に空で作成されていました。"
+      ],
       "0.16.59": [
         "MAME ワークブックに、実行時のリファレンス、コーディング領域、モード、しきい値が記録されるようになりました。",
         "リファレンスは解析後の配列のダイジェストで識別します。同じ分子を別名で保存しても同一と判定されます。",
@@ -3008,6 +3011,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.61": "a9988b7c",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",

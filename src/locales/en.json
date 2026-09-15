@@ -2620,14 +2620,17 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A decided deletion no longer counts toward the NO_CALL and MIXED gates, so three wells now report the amino acid substitution they carry.",
-      "Translation rebuilds the length-true molecule from the called deletions and insertions rather than a reference-length sequence.",
-      "Plate recurrence gains deletion and insertion channels beside the substitution table, with truncation, omission and ties counted apart.",
-      "Each recurrent position carries how many distinct expected mutations its wells had, separating a caller artifact from a shared sample.",
-      "A saved analysis now carries its consensus indel evidence, which was previously lost on reopening."
+      "A WRONG_AA well whose designed site did not change now says what it read there: wild type, a no call, or not covered.",
+      "The NGS Results sheet prints WT instead of WRONG_AA for a well that read the reference residue at every designed site.",
+      "The reads folder under each sort_barcode directory is created only when per-well reads are kept, instead of always empty."
     ],
-    "highlightsStamp": "0.16.60+a87cf2d1",
+    "highlightsStamp": "0.16.61+a9988b7c",
     "releases": {
+      "0.16.61": [
+        "A WRONG_AA well whose designed site did not change now says what it read there: wild type, a no call, or not covered.",
+        "The NGS Results sheet prints WT instead of WRONG_AA for a well that read the reference residue at every designed site.",
+        "The reads folder under each sort_barcode directory is created only when per-well reads are kept, instead of always empty."
+      ],
       "0.16.60": [
         "A decided deletion no longer counts toward the NO_CALL and MIXED gates, so three wells now report the amino acid substitution they carry.",
         "Translation rebuilds the length-true molecule from the called deletions and insertions rather than a reference-length sequence.",
@@ -3062,6 +3065,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.61": "a9988b7c",
       "0.16.60": "a87cf2d1",
       "0.16.59": "69e92cd5",
       "0.16.58": "1ce19d3d",
