@@ -367,11 +367,27 @@ export interface ExportOrderResult extends ExportResult {
 }
 
 /**
- * The four wells a 96-head Zephyr can start a 384-plate stamp from. Each covers
- * one interleaved set of 96 wells (row parity x column parity); the four tile
- * the plate. Mirrors kuma_core/kuro/plate_quadrant.QUADRANTS.
+ * The two halves of a 384 Echo source plate a round can occupy: "A1" is
+ * columns 1-12 and "A13" is columns 13-24. Forward primers sit on the even
+ * rows of the half and their reverses one row below, so a half is 192 wells
+ * and one plate holds two rounds. Mirrors
+ * kuma_core/kuro/plate_quadrant.QUADRANTS.
+ *
+ * The persisted key is still spelled `quadrant` so projects saved before the
+ * half layout keep loading; only the value set changed.
  */
-export type EchoQuadrant = "A1" | "A2" | "B1" | "B2";
+export type EchoQuadrant = "A1" | "A13";
+
+/**
+ * What a saved project's `quadrant` field may hold. "A2", "B1" and "B2" are
+ * the interleaved-quadrant names written before the half layout and are
+ * accepted on load only. None of them folds onto a half: each spanned the
+ * full plate width, so `foldPersistedPlacement` in lib/echoQuadrant.ts reads
+ * such a placement as both halves spent and no half selected. A stored "A1"
+ * is dated by the saved app version, because the two vocabularies spell it
+ * the same. Nothing this app writes is outside {@link EchoQuadrant}.
+ */
+export type PersistedEchoQuadrant = EchoQuadrant | "A2" | "B1" | "B2";
 
 export interface ExportMappingResult extends ExportResult {
   format: "echo" | "janus";
@@ -508,8 +524,14 @@ export interface WorkspaceSettings {
   /** §12 Optional RNG seed for reproducible design runs. */
   randomSeed?: number | null;
   echoTransferVol?: number;
-  echoQuadrant?: EchoQuadrant | null;
-  echoUsedQuadrants?: EchoQuadrant[];
+  /**
+   * Persisted, so it is read with the legacy value set. The store only ever
+   * holds an {@link EchoQuadrant}, so saving cannot write a legacy name;
+   * loading reads the pair through `foldPersistedPlacement` together with the
+   * saved app version.
+   */
+  echoQuadrant?: PersistedEchoQuadrant | null;
+  echoUsedQuadrants?: PersistedEchoQuadrant[];
   janusTransferVol?: number;
 }
 
@@ -554,6 +576,14 @@ export interface WorkspaceV2 {
  */
 export interface WorkspaceV3 {
   schema_version: "0.3";
+  /**
+   * Build that wrote the file, the same `__APP_VERSION__` stamp the autosave
+   * snapshot carries. Optional because files written before this field exists
+   * do not have it, and that absence is itself the signal: such a file
+   * predates the source-plate half layout, so its stored Echo placement is
+   * read as the old full-width geometry (`foldPersistedPlacement`).
+   */
+  kuma_version?: string;
   inputs: WorkspaceInputs;
   settings: WorkspaceSettings;
   results: WorkspaceResults;
@@ -766,10 +796,12 @@ export interface RpcMethodMap {
       bom?: boolean;
       mapping_range?: { row_start: string; row_end: string } | null;
       /**
-       * Forward-primer quadrant of the 384 source plate, i.e. where a 96-head
-       * Zephyr starts its stamp. Reverse primers land in the row-paired partner
-       * (A1 -> B1, A2 -> B2). Takes precedence over mapping_range, which cannot
-       * express a column offset. Echo only.
+       * Half of the 384 source plate this round fills: "A1" is columns 1-12
+       * and "A13" is columns 13-24. The reverse primer sits one 384 row below
+       * its forward primer inside the same half. Takes precedence over
+       * mapping_range, which cannot express a column offset. Echo only. A
+       * value that predates the half layout is refused by the sidecar rather
+       * than folded, so only {@link EchoQuadrant} may be sent.
        */
       quadrant?: EchoQuadrant | null;
       /** Quadrants already spent on a part-used plate, stated by the operator. */

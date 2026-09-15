@@ -38,6 +38,7 @@ import {
   readKuroDesignOutcome,
 } from "@/lib/kuroSnapshot";
 import { clampMaxPrimers } from "@/lib/inputThresholds";
+import { foldPersistedPlacement } from "@/lib/echoQuadrant";
 import { buildKuroResultResetPatch } from "@/lib/kuroResultReset";
 import { fingerprintSource, fingerprintsEqual, type SourceFingerprint } from "@/lib/sourceFingerprint";
 import { MAJOR_ORDER, SUBSTEP_ORDER, type MajorStepId, type StepStatus, type SubStepId } from "@/store/slices/navigationSlice";
@@ -619,25 +620,23 @@ export async function applyKuroSnapshot(
   if (typeof params?.echo_transfer_vol === "number") {
     patch.echoTransferVol = params.echo_transfer_vol;
   }
+  // The two fields are read together, and with the build that wrote the file,
+  // because one old value dates the whole placement and a lone "A1" is dated
+  // by nothing else (`foldPersistedPlacement`). An old placement spanned the
+  // full plate width, so it resolves to no half selected and both halves
+  // spent rather than folding onto one of them.
   const echoQuadrant = params?.echo_quadrant;
-  if (
-    echoQuadrant === null ||
-    echoQuadrant === "A1" ||
-    echoQuadrant === "A2" ||
-    echoQuadrant === "B1" ||
-    echoQuadrant === "B2"
-  ) {
-    patch.echoQuadrant = echoQuadrant;
-  }
   const echoUsedQuadrants = params?.echo_used_quadrants;
-  if (
-    Array.isArray(echoUsedQuadrants) &&
-    echoUsedQuadrants.every(
-      (quadrant) =>
-        quadrant === "A1" || quadrant === "A2" || quadrant === "B1" || quadrant === "B2",
-    )
-  ) {
-    patch.echoUsedQuadrants = echoUsedQuadrants as AppState["echoUsedQuadrants"];
+  if (echoQuadrant !== undefined || Array.isArray(echoUsedQuadrants)) {
+    const placement = foldPersistedPlacement(
+      echoQuadrant,
+      Array.isArray(echoUsedQuadrants) ? echoUsedQuadrants : [],
+      snapshot.kuma_version,
+    );
+    patch.echoQuadrant = placement.quadrant;
+    patch.echoUsedQuadrants = placement.usedQuadrants;
+    patch.echoLegacyPlacement =
+      placement.legacySeen.length > 0 ? placement.legacySeen : null;
   }
   if (typeof params?.janus_transfer_vol === "number") {
     patch.janusTransferVol = params.janus_transfer_vol;

@@ -2566,14 +2566,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Una deleción decidida ya no cuenta para las gates NO_CALL y MIXED, por lo que tres pocillos informan la sustitución de aminoácido que portan.",
-      "La traducción reconstruye la molécula de longitud real a partir de las deleciones e inserciones llamadas en lugar de una secuencia de longitud de referencia.",
-      "La recurrencia de placa gana canales de deleción e inserción junto a la tabla de sustituciones, con truncamiento, omisión y empates contados por separado.",
-      "Cada posición recurrente lleva cuántas mutaciones esperadas distintas tenían sus pocillos, lo que separa un artefacto del caller de una muestra compartida.",
-      "Un análisis guardado ahora conserva sus evidencias de indels de consenso, antes perdidas al reabrirlo."
+      "Un run de Echo llena ahora la mitad de la source plate, columnas 1 a 12 o 13 a 24, igual que los archivos de mapping que este laboratorio usa realmente.",
+      "Desde la v0.14.0 el colocado de primers dejaba una columna sí y otra no, una disposición que nunca se usó en el banco.",
+      "La elección entre cuatro cuadrantes pasa a dos mitades, porque un run ocupa 192 pocillos y no cabe en un cuarto de placa.",
+      "Una placa anterior a esta versión no tiene una mitad libre: aquel run cubría las dos, así que ambas se marcan como usadas y usted las libera.",
+      "La colocación forward queda fijada frente a 95 transferencias leídas de una worklist real de Echo, así no puede desviarse sin que se note."
     ],
-    "highlightsStamp": "0.16.60+a87cf2d1",
+    "highlightsStamp": "0.16.61+f9b38f15",
     "releases": {
+      "0.16.61": [
+        "Un run de Echo llena ahora la mitad de la source plate, columnas 1 a 12 o 13 a 24, igual que los archivos de mapping que este laboratorio usa realmente.",
+        "Desde la v0.14.0 el colocado de primers dejaba una columna sí y otra no, una disposición que nunca se usó en el banco.",
+        "La elección entre cuatro cuadrantes pasa a dos mitades, porque un run ocupa 192 pocillos y no cabe en un cuarto de placa.",
+        "Una placa anterior a esta versión no tiene una mitad libre: aquel run cubría las dos, así que ambas se marcan como usadas y usted las libera.",
+        "La colocación forward queda fijada frente a 95 transferencias leídas de una worklist real de Echo, así no puede desviarse sin que se note."
+      ],
       "0.16.59": [
         "Un libro de MAME ahora registra la referencia, la ventana codificante, el modo y los umbrales con los que se ejecutó la corrida.",
         "La referencia se identifica por un resumen de la secuencia analizada, así la misma molécula guardada con otro nombre sigue coincidiendo.",
@@ -3008,6 +3015,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.61": "f9b38f15",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
@@ -3294,11 +3302,17 @@
         },
         "bomLabel": "Añadir BOM UTF-8",
         "bomHint": "(compatibilidad con Excel)",
-        "quadrantLabel": "Cuadrante de la placa fuente Echo",
-        "quadrantNone": "No especificado (diseño heredado)",
-        "quadrantHelper": "Los primers forward comienzan aquí; los reverse van al cuadrante emparejado (A1-B1, A2-B2).",
-        "usedQuadrantsLabel": "Cuadrantes ya utilizados en esta placa",
-        "usedQuadrantsHelper": "La exportación se rechaza si el par seleccionado coincide con uno de estos.",
+        "quadrantLabel": "Mitad de la placa fuente Echo",
+        "quadrantNone": "No especificada (columnas 1-12, sin comprobar mitades usadas)",
+        "quadrantColumns": "columnas {{from}}-{{to}}",
+        "quadrantHelper": "Una ronda llena una mitad: los primers forward en las filas A, C, E ... y cada reverse una fila más abajo, en la misma columna.",
+        "usedQuadrantsLabel": "Mitades ya utilizadas en esta placa",
+        "usedQuadrantsHelper": "La exportación se rechaza si la mitad seleccionada es una de estas.",
+        "legacyPlacementNotice": "Este proyecto se guardó antes de v{{version}}, cuando una ronda se repartía por toda la source plate en lugar de por una mitad. La disposición guardada ({{values}}) cubre ambas mitades, por lo que las dos quedan marcadas como usadas y no hay ninguna seleccionada. Si la placa es nueva, desmarque abajo las mitades usadas antes de elegir una.",
+        "placementBlocked": {
+          "noHalfSelected": "Hay mitades marcadas como usadas en esta placa, pero no se ha seleccionado ninguna para esta ronda. Elija A1 o A13, o desmarque las mitades usadas si la placa es nueva.",
+          "halfAlreadyUsed": "La mitad seleccionada ya está marcada como usada en esta placa. Dispensar allí destruiría los primers que ya contiene. Elija la otra mitad o desmarque su casilla."
+        },
         "plateNameFwd": "Nombre de la placa de primers forward",
         "plateNameRev": "Nombre de la placa de primers reverse",
         "wellCount": "{{count}} pocillos",
@@ -3588,14 +3602,14 @@
     "errorTitle": "Error en la vista previa",
     "echoSourcePlateLabel": "Placa de origen Echo (384 pocillos)",
     "destPlateLabel": "Placa de destino (96 pocillos)",
-    "quadrantBatch": "Esta tanda llena el cuadrante {{fwd}} (cebadores directos) y {{rev}} (cebadores inversos).",
-    "quadrantProgress": "Tras esta tanda quedan ocupados {{filled}} de {{total}} cuadrantes de esta placa.",
-    "quadrantInterleaveNote": "Un cabezal de 96 alcanza solo una fila de cada dos y una columna de cada dos por estampado, así que los cuatro cuadrantes se entrelazan en lugar de formar bloques contiguos. Los pocillos intermedios pertenecen a {{others}} y quedan libres para una tanda posterior.",
-    "quadrantUsedNote": "Ya ocupados en esta placa: {{list}}",
-    "quadrantNoneNote": "Ningún cuadrante seleccionado, la vista previa muestra la disposición antigua con filas duplicadas.",
+    "quadrantBatch": "Esta tanda llena la mitad {{half}} de la placa, columnas {{from}}-{{to}}. Los primers forward ocupan las filas A, C, E ... y cada reverse queda una fila más abajo.",
+    "quadrantProgress": "Tras esta tanda quedan ocupadas {{filled}} de {{total}} mitades de esta placa.",
+    "quadrantHalfNote": "Las columnas {{from}}-{{to}} son la otra mitad, {{others}}, y quedan libres para la siguiente ronda.",
+    "quadrantUsedNote": "Ya ocupadas en esta placa: {{list}}",
+    "quadrantNoneNote": "Ninguna mitad seleccionada. El run sigue ocupando las columnas 1-12, los mismos pocillos que la mitad A1, y solo se omite la comprobación de las mitades ya usadas.",
     "quadrantLegendFree": "Borde continuo: pocillo que usa esta tanda",
     "quadrantLegendReserved": "Borde discontinuo: reservado para {{others}}",
-    "echoReservedWellTitle": "{{well}}, reservado al cuadrante {{quadrants}}"
+    "echoReservedWellTitle": "{{well}}, reservado a la mitad {{quadrants}}"
   },
   "errors": {
     "sequence": {

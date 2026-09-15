@@ -122,11 +122,10 @@ describe("adaptEchoRows", () => {
     });
   });
 
-  // Direction is geometry: the forward quadrant carries a row offset
-  // (`_OFFSETS` in kuma_core/kuro/plate_quadrant.py, mirrored in
-  // echoQuadrant.ts), so B1/B2 put forward wells on odd rows. Reading row
-  // parity on its own inverted every B1/B2 run.
-  describe("direction under a selected quadrant", () => {
+  // Direction is geometry: a forward primer sits at 384 row 2r and its reverse
+  // at 2r+1 (`plate_quadrant.py`, mirrored in echoQuadrant.ts). A half shifts
+  // columns only, so the same parity holds in columns 13-24 as in 1-12.
+  describe("direction is row parity in either half", () => {
     function echoRow(well: string): EchoDryRunRow {
       return {
         source_plate: "Source [1]",
@@ -140,32 +139,24 @@ describe("adaptEchoRows", () => {
       };
     }
 
-    it("calls odd-row B01 forward when the forward quadrant is B1", () => {
-      expect(adaptEchoRows([echoRow("B01")], "B1")[0].isFwd).toBe(true);
-    });
-
-    it("calls even-row A01 reverse when the forward quadrant is B1", () => {
-      expect(adaptEchoRows([echoRow("A01")], "B1")[0].isFwd).toBe(false);
-    });
-
-    it("leaves the A1 case as it was (negative control)", () => {
-      expect(adaptEchoRows([echoRow("A01")], "A1")[0].isFwd).toBe(true);
-      expect(adaptEchoRows([echoRow("B01")], "A1")[0].isFwd).toBe(false);
-    });
-
-    it("keeps plain row parity when no quadrant is selected", () => {
+    it("calls even-row A01 forward and odd-row B01 reverse", () => {
       expect(adaptEchoRows([echoRow("A01")])[0].isFwd).toBe(true);
       expect(adaptEchoRows([echoRow("B01")])[0].isFwd).toBe(false);
     });
 
+    it("reads the A13 half by the same parity", () => {
+      // Columns 13-24 are the second round's half. The old interleaved rule
+      // made direction depend on which set was selected, which would have put
+      // A13 on the reverse side here.
+      expect(adaptEchoRows([echoRow("A13")])[0].isFwd).toBe(true);
+      expect(adaptEchoRows([echoRow("B13")])[0].isFwd).toBe(false);
+    });
+
     it("routes the destination F/R flags through the same rule", () => {
       const rows = [echoRow("B01"), echoRow("A01")];
-      const underB1 = adaptDestCellsEcho(rows, "B1")[0];
-      expect(underB1.fwdSource).toBe("B01-primer");
-      expect(underB1.revSource).toBe("A01-primer");
-      const legacy = adaptDestCellsEcho(rows)[0];
-      expect(legacy.fwdSource).toBe("A01-primer");
-      expect(legacy.revSource).toBe("B01-primer");
+      const dest = adaptDestCellsEcho(rows)[0];
+      expect(dest.fwdSource).toBe("A01-primer");
+      expect(dest.revSource).toBe("B01-primer");
     });
   });
 });

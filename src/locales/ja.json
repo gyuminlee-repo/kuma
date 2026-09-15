@@ -2566,14 +2566,21 @@
     "descriptionRange": "v{{from}} 以降のすべてのアップデートの主な変更点です。",
     "gotItBtn": "了解",
     "highlights": [
-      "確定した deletion は NO_CALL と MIXED gate に含まれなくなりました。3 つの well が実際のアミノ酸置換を報告します。",
-      "翻訳段階が reference 長の配列ではなく、呼び出された deletion と insertion から実長の分子を再構成します。",
-      "Plate recurrence に deletion と insertion のチャネルを追加しました。切り詰め、省略、同数をそれぞれ別に数えます。",
-      "再発位置ごとに寄与した well の異なる期待変異数を併記します。caller の人工産物と共有試料を区別します。",
-      "保存した解析結果が consensus indel の証拠を保持します。以前は再度開くと失われていました。"
+      "Echo の 1 ラウンドが source plate の半分、1-12 列または 13-24 列を埋めるようになりました。このラボが実際に使う mapping ファイルと同じ配置です。",
+      "v0.14.0 以降の primer 配置は 1 列おきに空けていました。実験台で使われたことのない配置です。",
+      "4 分割の選択肢が 2 分割になります。1 ラウンドが 192 well を占めるため 4 分の 1 には収まりません。",
+      "以前のリリースで使った plate は半分が空いていません。当時のラウンドが両方の半分にまたがるため両方が使用済みとして表示され、解除は作業者が行います。",
+      "Forward の配置を実際の Echo worklist から読んだ 95 件の転送に固定しました。気付かないうちに戻ることはありません。"
     ],
-    "highlightsStamp": "0.16.60+a87cf2d1",
+    "highlightsStamp": "0.16.61+f9b38f15",
     "releases": {
+      "0.16.61": [
+        "Echo の 1 ラウンドが source plate の半分、1-12 列または 13-24 列を埋めるようになりました。このラボが実際に使う mapping ファイルと同じ配置です。",
+        "v0.14.0 以降の primer 配置は 1 列おきに空けていました。実験台で使われたことのない配置です。",
+        "4 分割の選択肢が 2 分割になります。1 ラウンドが 192 well を占めるため 4 分の 1 には収まりません。",
+        "以前のリリースで使った plate は半分が空いていません。当時のラウンドが両方の半分にまたがるため両方が使用済みとして表示され、解除は作業者が行います。",
+        "Forward の配置を実際の Echo worklist から読んだ 95 件の転送に固定しました。気付かないうちに戻ることはありません。"
+      ],
       "0.16.59": [
         "MAME ワークブックに、実行時のリファレンス、コーディング領域、モード、しきい値が記録されるようになりました。",
         "リファレンスは解析後の配列のダイジェストで識別します。同じ分子を別名で保存しても同一と判定されます。",
@@ -3008,6 +3015,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.61": "f9b38f15",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
@@ -3294,11 +3302,17 @@
         },
         "bomLabel": "UTF-8 BOM を追加",
         "bomHint": "(Excel 互換)",
-        "quadrantLabel": "Echoソースプレートのクアドラント",
-        "quadrantNone": "指定なし(従来レイアウト)",
-        "quadrantHelper": "Forwardプライマーはここから開始し、Reverseプライマーは対になるクアドラント(A1-B1、A2-B2)に入ります。",
-        "usedQuadrantsLabel": "このプレートで既に使用済みのクアドラント",
-        "usedQuadrantsHelper": "選択したペアがこれらのいずれかと重なる場合、エクスポートは拒否されます。",
+        "quadrantLabel": "Echoソースプレートの半分",
+        "quadrantNone": "指定なし(1-12列、使用済み半区の照合なし)",
+        "quadrantColumns": "{{from}}〜{{to}} 列",
+        "quadrantHelper": "1ラウンドが半分を埋めます。Forwardプライマーは A, C, E ... 行に、reverseプライマーは同じ列の1行下に入ります。",
+        "usedQuadrantsLabel": "このプレートで既に使用済みの半分",
+        "usedQuadrantsHelper": "選択した半分がこれらのいずれかであれば、エクスポートは拒否されます。",
+        "legacyPlacementNotice": "このプロジェクトは v{{version}} より前に保存されています。当時は 1 ラウンドが半分ではなく source plate 全幅に配置されていました。保存された配置（{{values}}）は両方の半分にまたがるため、両方が使用済みとして表示され、どの半分も選択されません。新しい plate を使う場合は、下の使用済みチェックを外してから半分を選んでください。",
+        "placementBlocked": {
+          "noHalfSelected": "この plate に使用済みの半分がありますが、今回のラウンドの半分が選択されていません。A1 または A13 を選ぶか、新しい plate であれば使用済みチェックを外してください。",
+          "halfAlreadyUsed": "選択した半分はこの plate で使用済みとして表示されています。その上に分注すると既存の primer が失われます。別の半分を選ぶか、その使用済みチェックを外してください。"
+        },
         "plateNameFwd": "Forwardプライマープレート名",
         "plateNameRev": "Reverseプライマープレート名",
         "wellCount": "{{count}} ウェル",
@@ -3588,14 +3602,14 @@
     "errorTitle": "プレビューに失敗しました",
     "echoSourcePlateLabel": "Echo ソースプレート (384 ウェル)",
     "destPlateLabel": "デスティネーションプレート (96 ウェル)",
-    "quadrantBatch": "今回の配置は象限 {{fwd}}（フォワード）と {{rev}}（リバース）を埋めます。",
-    "quadrantProgress": "今回の配置が終わると、このプレートの象限 {{total}} 個のうち {{filled}} 個を使用します。",
-    "quadrantInterleaveNote": "96ヘッドは1回で1行おき・1列おきにしか届かないため、4つの象限は連続したブロックではなく互い違いに並びます。間の空ウェルは {{others}} の分で、次回の配置のために空けてあります。",
-    "quadrantUsedNote": "このプレートで使用済みの象限: {{list}}",
-    "quadrantNoneNote": "象限が未選択のため、従来の行2倍レイアウトを表示しています。",
+    "quadrantBatch": "今回の配置はプレートの半分 {{half}}、つまり {{from}}〜{{to}} 列を埋めます。Forward プライマーは A, C, E ... 行に入り、reverse プライマーはそれぞれ1行下に入ります。",
+    "quadrantProgress": "今回の配置が終わると、このプレートの半分 {{total}} 個のうち {{filled}} 個を使用します。",
+    "quadrantHalfNote": "{{from}}〜{{to}} 列はもう一方の半分 {{others}} の分で、次のラウンドのために空けてあります。",
+    "quadrantUsedNote": "このプレートで使用済みの半分: {{list}}",
+    "quadrantNoneNote": "半区が未選択です。実行は 1-12 列、つまり半区 A1 と同じウェルに配置され、使用済み半区との照合だけを省きます。",
     "quadrantLegendFree": "実線の枠: 今回の配置が使うウェル",
     "quadrantLegendReserved": "破線の枠: {{others}} 用に空けたウェル",
-    "echoReservedWellTitle": "{{well}}、象限 {{quadrants}} 用"
+    "echoReservedWellTitle": "{{well}}、半分 {{quadrants}} 用"
   },
   "errors": {
     "sequence": {

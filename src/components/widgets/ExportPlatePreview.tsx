@@ -21,8 +21,10 @@ import { PlateLegendsPanel } from "./PlateLegendsPanel";
 import { useAppStore } from "@/store/appStore";
 import { getSortedMutations, reorderMappings } from "@/lib/plate-utils";
 import {
-  otherQuadrantPair,
-  pairedQuadrant,
+  echoPlacementIssue,
+  otherHalves,
+  quadrantFirstColumn,
+  quadrantLastColumn,
   quadrantsFilledAfterRun,
   ECHO_QUADRANTS,
 } from "@/lib/echoQuadrant";
@@ -37,21 +39,18 @@ import type { EchoQuadrant } from "@/types/models";
 type View = "echo" | "janus";
 
 /**
- * Caption that makes the Echo grid explain itself: which quadrant pair this
- * run stamps, how much of the plate that leaves, and why the wells in between
- * are empty.
+ * Caption that makes the Echo grid explain itself: which half of the plate
+ * this run fills, how much of the plate that leaves, and why the other block
+ * of columns is empty.
  *
- * The grid reads as "primers placed every other row and column" and the
- * question it drew was why they are not four contiguous blocks. They cannot
- * be: a 96-head on a 9 mm pitch over a 4.5 mm plate reaches every other row
- * and column in one stamp, so the four sets interleave
+ * A round occupies a contiguous block of twelve columns, forward primers on
+ * the even rows and their reverses one row below
  * (kuma_core/kuro/plate_quadrant.py). The picker in ExportFormatSelector says
  * this at the point of choosing; this says it at the point of looking, which
  * is where the layout is actually seen.
  *
- * A run spends a *pair* (forward `q` plus `pairedQuadrant(q)`), so progress is
- * stated as quadrants filled out of four rather than as a batch ordinal the
- * mapper does not have.
+ * A run spends one half, so progress is stated as halves filled out of two
+ * rather than as a batch ordinal the mapper does not have.
  */
 function EchoQuadrantNote({
   quadrant,
@@ -70,12 +69,16 @@ function EchoQuadrantNote({
     );
   }
 
-  const reverse = pairedQuadrant(quadrant);
-  const others = otherQuadrantPair(quadrant).join(", ");
+  const otherList = otherHalves(quadrant);
+  const others = otherList.join(", ");
   return (
     <div data-testid="echo-quadrant-note" className="space-y-1">
       <p className="text-sm font-medium text-foreground">
-        {t("exportPreview.quadrantBatch", { fwd: quadrant, rev: reverse })}
+        {t("exportPreview.quadrantBatch", {
+          half: quadrant,
+          from: quadrantFirstColumn(quadrant),
+          to: quadrantLastColumn(quadrant),
+        })}
       </p>
       <p data-testid="echo-quadrant-progress" className="text-caption text-muted-foreground">
         {t("exportPreview.quadrantProgress", {
@@ -84,7 +87,11 @@ function EchoQuadrantNote({
         })}
       </p>
       <p className="text-caption text-muted-foreground">
-        {t("exportPreview.quadrantInterleaveNote", { others })}
+        {t("exportPreview.quadrantHalfNote", {
+          others,
+          from: otherList.length > 0 ? quadrantFirstColumn(otherList[0]) : 0,
+          to: otherList.length > 0 ? quadrantLastColumn(otherList[0]) : 0,
+        })}
       </p>
       {usedQuadrants.length > 0 ? (
         <p data-testid="echo-quadrant-used" className="text-caption text-muted-foreground">
@@ -116,8 +123,9 @@ function EchoQuadrantNote({
  * 384-well Echo plate or 96-well JANUS racks under a Tabs switcher. Echo
  * and JANUS are mutually exclusive views (never rendered simultaneously).
  *
- * Source-plate placement is chosen by the quadrant selector rendered beneath
- * this preview, which is the choice the 96-head Zephyr can actually stamp.
+ * Source-plate placement is chosen by the half picker rendered beneath this
+ * preview: a round fills one contiguous block of twelve columns, which is the
+ * layout the bench worklists actually ran (kuma_core/kuro/plate_quadrant.py).
  * A row-band picker used to sit here as well; it fed ``mapping_range``,
  * which the mapper wraps modulo the band width, so every band it could
  * express other than the full plate stacked different mutants onto one well
@@ -164,6 +172,11 @@ export function ExportPlatePreview() {
     return reorderMappings(plateMappings, dedupInfo, sortedMuts);
   }, [designResults, tableSorting, yPredMap, customCandidates, plateMappings, dedupInfo]);
 
+  // 사이드카가 거부하는 조합은 보내지 않는다. 보내면 catch 가 그 영어 문장을
+  // 그대로 화면에 올리고, preview 전체가 오류 상태가 된다. 거부 사유는 Echo
+  // 배치뿐이므로 JANUS 쪽 dry-run 은 그대로 돈다.
+  const placementIssue = echoPlacementIssue(echoQuadrant, echoUsedQuadrants);
+
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
@@ -183,16 +196,17 @@ export function ExportPlatePreview() {
         transfer_vol: janusTransferVol,
       };
       const [e, j] = await Promise.all([
-        sendRequest("export_echo_mapping_dry_run", echoParams),
+        placementIssue === null
+          ? sendRequest("export_echo_mapping_dry_run", echoParams)
+          : undefined,
         sendRequest("export_janus_mapping_dry_run", janusParams),
       ]);
       const echoRows = e?.rows ?? [];
       const janusRows = j?.rows ?? [];
-      // The quadrant decides which rows hold forward primers, so both
-      // adapters need it; without it every B1/B2 run reports its directions
-      // inverted.
-      setEcho(adaptEchoRows(echoRows, echoQuadrant));
-      setEchoDest(adaptDestCellsEcho(echoRows, echoQuadrant));
+      // Direction is 384 row parity in either half, so the adapters do not
+      // need to be told which half this run took.
+      setEcho(adaptEchoRows(echoRows));
+      setEchoDest(adaptDestCellsEcho(echoRows));
       setJanus(adaptJanusRows(janusRows));
       setJanusDest(adaptDestCellsJanus(janusRows));
     } catch (err) {
@@ -200,7 +214,7 @@ export function ExportPlatePreview() {
     } finally {
       setLoading(false);
     }
-  }, [sortedMappings, dedupInfo, echoTransferVol, janusTransferVol, echoQuadrant, echoUsedQuadrants]);
+  }, [sortedMappings, dedupInfo, echoTransferVol, janusTransferVol, echoQuadrant, echoUsedQuadrants, placementIssue]);
 
   useEffect(() => {
     void load();
@@ -235,7 +249,16 @@ export function ExportPlatePreview() {
     );
   }
 
-  if (echo.length === 0 && janus.rack1.length === 0 && janus.rack2.length === 0) {
+  // A refused placement leaves the Echo grid empty because the request was
+  // never made, which is not the same thing as having nothing to preview. The
+  // empty state would say "design primers first" to an operator whose primers
+  // are designed, so the tabs stay up and the notice below says what to fix.
+  if (
+    placementIssue === null &&
+    echo.length === 0 &&
+    janus.rack1.length === 0 &&
+    janus.rack2.length === 0
+  ) {
     return (
       <Card>
         <CardContent className="p-0">
@@ -262,6 +285,15 @@ export function ExportPlatePreview() {
             <div className="space-y-3">
               {/* Both grids carry a caption at the JANUS rack-label level, so
                   the two stacked plates in this tab say which is which. */}
+              {placementIssue !== null ? (
+                <p
+                  role="status"
+                  data-testid="echo-placement-blocked"
+                  className="rounded-md border border-warning/40 bg-warning/10 p-2 text-caption text-foreground"
+                >
+                  {t(`phaseC.export.all.placementBlocked.${placementIssue}`)}
+                </p>
+              ) : null}
               <EchoQuadrantNote quadrant={echoQuadrant} usedQuadrants={echoUsedQuadrants} />
               <EchoPlateView
                 cells={echo}

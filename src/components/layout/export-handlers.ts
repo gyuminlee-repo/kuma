@@ -203,11 +203,11 @@ export interface ExportAllUiParams {
   janusTransferVol: number;
   bom: boolean;
   /**
-   * Forward-primer quadrant of the 384 Echo source plate, i.e. where a 96-head
-   * Zephyr starts its stamp. Omitted keeps the older row-doubled layout.
+   * Half of the 384 Echo source plate this round occupies: "A1" is columns
+   * 1-12 and "A13" is columns 13-24. Omitted keeps the no-half layout.
    */
   quadrant?: EchoQuadrant | null;
-  /** Quadrants already spent on a part-used plate, stated by the operator. */
+  /** Halves already spent on a part-used plate, stated by the operator. */
   usedQuadrants?: EchoQuadrant[];
 }
 

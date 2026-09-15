@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.16.61 (A round fills half the Echo source plate, the way the bench fills it)
+
+The 384 source plate layout that shipped in v0.14.0 was wrong, and this release returns it to the layout the bench uses.
+
+KURO placed a round on every other row and every other column, so a filled plate showed primers in columns 1, 3, 5 and so on with the even columns empty. The mapping files this lab actually runs do not look like that. Project2-1 primer dispensing (Echo525).xlsx holds 190 transfers over 161 source wells and 260417_echo_mapping.csv holds 760 transfers over 192 source wells. In both, forward primers sit on rows A, C, E, G, I, K, M, O, each reverse primer one row below, and every occupied column falls between 1 and 12. A round fills 192 wells, which is exactly half a 384 plate, and two rounds fill one plate. That is the working concept of two round primer sets per Echo source plate, and it is a split into halves rather than quarters.
+
+The interleaved geometry entered the code from a 2.69 second screen recording in the v0.14.0 request material. The recording does show a 96 head selection cycling through four alternating patterns, and the inference that a 9 mm pitch head reaches a 4.5 mm pitch plate only in that way is sound on its own. What was never checked is whether that screen governs how the source plate is filled. An output existed the whole time and contradicts it. Forward placement is now pinned against all 95 forward transfers read from that workbook and reproduces every one of them, so the test that would have caught this now exists.
+
+The selector offers two halves instead of four quadrants, A1 for columns 1 to 12 and A13 for columns 13 to 24. A quarter cannot hold a round: it offers four forward rows where 96 variants need eight. Forward and reverse are no longer separate placements either, since a reverse primer always sits one row below its forward primer in the same half.
+
+Projects saved before this release still open, and what they carry is not a half. The old column formula put A1 and B1 on the odd columns 1 to 23 and A2 and B2 on the even columns 2 to 24, so all four spanned the full width of the plate. Of the 192 wells an old round occupied, 96 fall in each of the new halves. Reading a stored placement as one half would therefore declare a half free while 96 primers sit in it, which is the one thing this module exists to refuse. A stored placement from an older save is instead dropped, both halves are marked spent, and the export screen says so and says to clear the marks if the plate is a fresh one. A save that predates this release is recognised by its recorded version rather than by its stored value, because A1 reads the same in both vocabularies and means different wells in each. The note shown when no half is chosen also claimed an undivided layout, which was never true: that run lands on columns 1 to 12, the same wells as half A1.
+
+One thing stays open. The original request asked for four options by name, while the mapping files from the same lab are halves. This release follows the files, and the discrepancy is worth settling with the requester rather than leaving to the code.
+
+### Highlights
+
+- An Echo round now fills half the source plate, columns 1 to 12 or 13 to 24, matching the mapping files this lab actually runs.
+- Primer placement since v0.14.0 skipped every other column, a layout that no run on the bench has used.
+- The four quadrant choice becomes two halves, because one round fills 192 wells and a quarter plate cannot hold it.
+- A plate from before this release is not half free: its round spanned both halves, so both are marked spent and you clear them.
+- Forward placement is now pinned against 95 transfers read from a real Echo worklist, so this cannot drift back unnoticed.
+
 ## v0.16.60 (What the plate read, and what the caller had already decided)
 
 A consensus that calls a deletion had decided something. Two verdict gates were counting that decision as if nothing had been decided, and the result was that a well carrying a real amino acid substitution never got to say so.

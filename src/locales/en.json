@@ -1549,14 +1549,14 @@
     "errorTitle": "Preview failed",
     "echoSourcePlateLabel": "Echo source plate (384 wells)",
     "destPlateLabel": "Destination plate (96 wells)",
-    "quadrantBatch": "This run fills quadrant {{fwd}} (forward primers) and {{rev}} (reverse primers).",
-    "quadrantProgress": "{{filled}} of {{total}} quadrants on this plate are spent once this run lands.",
-    "quadrantInterleaveNote": "One 96-head stamp reaches every other row and every other column, so the four quadrants interleave instead of forming contiguous blocks. The wells in between belong to {{others}} and stay empty for a later run.",
+    "quadrantBatch": "This run fills half {{half}} of the plate, columns {{from}}-{{to}}. Forward primers sit on rows A, C, E ... and each reverse primer one row below.",
+    "quadrantProgress": "{{filled}} of {{total}} halves on this plate are spent once this run lands.",
+    "quadrantHalfNote": "Columns {{from}}-{{to}} are the other half, {{others}}, and stay empty for the next round.",
     "quadrantUsedNote": "Already used on this plate: {{list}}",
-    "quadrantNoneNote": "No quadrant selected, so the preview shows the legacy row-doubled layout.",
+    "quadrantNoneNote": "No half selected. The run still lands on columns 1-12, the same wells as half A1, and only the check against halves already spent is skipped.",
     "quadrantLegendFree": "Solid outline: well this run can reach",
     "quadrantLegendReserved": "Dashed outline: held for {{others}}",
-    "echoReservedWellTitle": "{{well}}, held for quadrant {{quadrants}}"
+    "echoReservedWellTitle": "{{well}}, held for half {{quadrants}}"
   },
   "globalAppBar": {
     "navAriaLabel": "Application navigation",
@@ -2620,14 +2620,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A decided deletion no longer counts toward the NO_CALL and MIXED gates, so three wells now report the amino acid substitution they carry.",
-      "Translation rebuilds the length-true molecule from the called deletions and insertions rather than a reference-length sequence.",
-      "Plate recurrence gains deletion and insertion channels beside the substitution table, with truncation, omission and ties counted apart.",
-      "Each recurrent position carries how many distinct expected mutations its wells had, separating a caller artifact from a shared sample.",
-      "A saved analysis now carries its consensus indel evidence, which was previously lost on reopening."
+      "An Echo round now fills half the source plate, columns 1 to 12 or 13 to 24, matching the mapping files this lab actually runs.",
+      "Primer placement since v0.14.0 skipped every other column, a layout that no run on the bench has used.",
+      "The four quadrant choice becomes two halves, because one round fills 192 wells and a quarter plate cannot hold it.",
+      "A plate from before this release is not half free: its round spanned both halves, so both are marked spent and you clear them.",
+      "Forward placement is now pinned against 95 transfers read from a real Echo worklist, so this cannot drift back unnoticed."
     ],
-    "highlightsStamp": "0.16.60+a87cf2d1",
+    "highlightsStamp": "0.16.61+f9b38f15",
     "releases": {
+      "0.16.61": [
+        "An Echo round now fills half the source plate, columns 1 to 12 or 13 to 24, matching the mapping files this lab actually runs.",
+        "Primer placement since v0.14.0 skipped every other column, a layout that no run on the bench has used.",
+        "The four quadrant choice becomes two halves, because one round fills 192 wells and a quarter plate cannot hold it.",
+        "A plate from before this release is not half free: its round spanned both halves, so both are marked spent and you clear them.",
+        "Forward placement is now pinned against 95 transfers read from a real Echo worklist, so this cannot drift back unnoticed."
+      ],
       "0.16.60": [
         "A decided deletion no longer counts toward the NO_CALL and MIXED gates, so three wells now report the amino acid substitution they carry.",
         "Translation rebuilds the length-true molecule from the called deletions and insertions rather than a reference-length sequence.",
@@ -3062,6 +3069,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.61": "f9b38f15",
       "0.16.60": "a87cf2d1",
       "0.16.59": "69e92cd5",
       "0.16.58": "1ce19d3d",
@@ -3348,11 +3356,17 @@
         },
         "bomLabel": "Add UTF-8 BOM",
         "bomHint": "(Excel compatibility)",
-        "quadrantLabel": "Echo source plate quadrant",
-        "quadrantNone": "Not specified (legacy layout)",
-        "quadrantHelper": "Forward primers start here; reverse primers go to the paired quadrant (A1-B1, A2-B2).",
-        "usedQuadrantsLabel": "Quadrants already used on this plate",
-        "usedQuadrantsHelper": "Export is refused if the selected pair overlaps one of these.",
+        "quadrantLabel": "Echo source plate half",
+        "quadrantNone": "Not specified (columns 1-12, no spent-half check)",
+        "quadrantColumns": "columns {{from}}-{{to}}",
+        "quadrantHelper": "A round fills one half: forward primers on rows A, C, E ... and each reverse primer one row below, in the same column.",
+        "usedQuadrantsLabel": "Halves already used on this plate",
+        "usedQuadrantsHelper": "Export is refused if the selected half is one of these.",
+        "legacyPlacementNotice": "This project was saved before v{{version}}, when a round was spread across the whole source plate instead of one half. The stored placement ({{values}}) covers both halves, so both are marked as used and no half is selected. On a fresh plate, clear the used-half checkboxes below before choosing a half.",
+        "placementBlocked": {
+          "noHalfSelected": "Halves are marked as used on this plate but no half is selected for this round. Choose A1 or A13, or clear the used-half checkboxes if this is a fresh plate.",
+          "halfAlreadyUsed": "The selected half is already marked as used on this plate. Dispensing into it would destroy the primers already there. Choose the other half, or clear its used-half checkbox."
+        },
         "plateNameFwd": "Forward primer plate name",
         "plateNameRev": "Reverse primer plate name",
         "wellCount": "{{count}} wells",

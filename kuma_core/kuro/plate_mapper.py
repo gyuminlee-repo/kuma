@@ -781,10 +781,10 @@ def _to_384_well_fwd(
     With ``mapping_range=(row_start, row_end)`` (inclusive, A-P), forward rows
     are restricted to the even sub-offsets within that range.
 
-    ``quadrant`` selects one of the four interleaved sets a 96-head Zephyr can
-    stamp (A1/A2/B1/B2) and takes precedence over ``mapping_range``, which
-    describes row bands of the older row-doubled layout and cannot express a
-    column offset. See ``plate_quadrant`` for the geometry.
+    ``quadrant`` selects which half of the 384 source plate a round occupies
+    (A1 for columns 1-12, A13 for columns 13-24) and takes precedence over
+    ``mapping_range``, which describes row bands and cannot express a column
+    offset. See ``plate_quadrant`` for the geometry and its evidence.
     """
     if quadrant is not None:
         from kuma_core.kuro.plate_quadrant import to_384_well
@@ -810,14 +810,14 @@ def _to_384_well_rev(
     With ``mapping_range=(row_start, row_end)`` (inclusive, A-P), reverse rows
     are restricted to the odd sub-offsets within that range.
 
-    ``quadrant`` here is the *forward* quadrant; the reverse set lands in its
-    row-paired partner (A1 -> B1, A2 -> B2) so forward and reverse stay on
-    adjacent rows of the same columns, as they did before.
+    ``quadrant`` is the half the round occupies, the same value the forward
+    mapper takes. The reverse primer sits one row below its forward primer in
+    that same half, so there is nothing extra to choose.
     """
     if quadrant is not None:
-        from kuma_core.kuro.plate_quadrant import paired_quadrant, to_384_well
+        from kuma_core.kuro.plate_quadrant import to_384_well
 
-        return to_384_well(well_96, paired_quadrant(quadrant))
+        return to_384_well(well_96, quadrant, reverse=True)
     rng = _validate_mapping_range(mapping_range)
     row_idx = _ROWS_96.index(well_96[0])
     if rng is None:
@@ -873,9 +873,10 @@ def build_echo_rows(
       - Default: forward primers occupy odd rows (A, C, E, ...), reverse
         primers the even rows, both keeping the 96-well column ordering.
       - ``mapping_range`` restricts those rows to an inclusive A-P band.
-      - ``quadrant`` places forward primers in one interleaved 96-head set and
-        reverse primers in its row-paired partner. Takes precedence over
-        ``mapping_range``, which cannot express a column offset.
+      - ``quadrant`` places the round in one half of the source plate, A1 for
+        columns 1-12 and A13 for columns 13-24, keeping the row doubling.
+        Takes precedence over ``mapping_range``, which cannot express a column
+        offset.
 
     Row order is forward primers first (in ``fwd_mappings`` order), then reverse
     primers expanded so every forward mutation gets its own transfer row,
@@ -892,16 +893,28 @@ def build_echo_rows(
             Used to expand shared primers to all destination wells.
         transfer_vol: Transfer volume in nL (default 100).
         mapping_range: Inclusive 384 row band (row_start, row_end).
-        quadrant: Forward-primer quadrant (A1/A2/B1/B2).
-        used_quadrants: Quadrants already spent on a part-used plate.
+        quadrant: Source-plate half the round occupies (A1 or A13).
+        used_quadrants: Halves already spent on a part-used plate.
     """
-    if quadrant is not None:
-        # 이미 쓴 quadrant 위에 덮어쓰면 그 안의 프라이머가 사라진다. 경고가 아니라
-        # 거부다. 판단 근거는 작업자가 입력한 현재 plate 상태뿐이다. 여기에 두어야
-        # preview 도 같은 거부를 내고, 작업자가 못 쓸 배치를 검산하지 않는다.
-        from kuma_core.kuro.plate_quadrant import check_quadrants_available
+    # 이미 쓴 절반 위에 덮어쓰면 그 안의 프라이머가 사라진다. 경고가 아니라
+    # 거부다. 판단 근거는 작업자가 입력한 현재 plate 상태뿐이다. 여기에 두어야
+    # preview 도 같은 거부를 내고, 작업자가 못 쓸 배치를 검산하지 않는다.
+    from kuma_core.kuro.plate_quadrant import (
+        check_quadrants_available,
+        fold_persisted_placement,
+    )
 
+    if quadrant is not None:
         check_quadrants_available(quadrant, used_quadrants)
+    elif fold_persisted_placement(None, used_quadrants).used_quadrants:
+        # 절반이 소진됐다고 적어 두고 절반을 안 고르면 기본 경로가 조용히 좌측
+        # 절반을 그린다. 그 경로에는 위 검사가 걸리지 않아 소진 선언이 통째로
+        # 무시된다. 골라 달라고 되묻는 쪽이 덮어쓰기보다 낫다.
+        raise ValueError(
+            "Halves are marked as already used on this plate but no half was "
+            "selected for this round. Select A1 or A13 so the clash can be "
+            "checked."
+        )
 
     fwd_by_mut, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
         fwd_mappings, rev_mappings, rev_groups,
@@ -990,8 +1003,8 @@ def export_echo_mapping_csv(
             Used to expand shared primers to all destination wells.
         encoding: File encoding (default "utf-8"; use "utf-8-sig" for BOM).
         mapping_range: Inclusive 384 row band (row_start, row_end).
-        quadrant: Forward-primer quadrant (A1/A2/B1/B2).
-        used_quadrants: Quadrants already spent on a part-used plate. A clash is
+        quadrant: Source-plate half the round occupies (A1 or A13).
+        used_quadrants: Halves already spent on a part-used plate. A clash is
             refused before the file is opened, so nothing is written.
     """
     import csv
@@ -1339,9 +1352,12 @@ def export_echo_mapping_xlsx(
         preview show), so a single ``export_all`` cannot leave a csv and an xlsx
         that name different source wells for the same primer.
 
-    ``mapping_range`` / ``quadrant`` / ``used_quadrants`` reach the worklist
-    sheet only. The layout sheet keeps the row-doubled 384 view it always drew,
-    which is a picture of the default plate and not of this transfer list.
+    ``quadrant`` reaches both sheets: the layout sheet is the picture of the
+    transfer list beside it, so it draws the half the worklist aspirates from.
+    It used to draw columns 1-12 whatever was selected, which an ``A13`` run
+    showed as a grid exactly twelve columns away from its own worklist.
+    ``mapping_range`` still reaches the worklist sheet only; the layout sheet
+    keeps the default row bands for it.
     """
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
@@ -1351,7 +1367,7 @@ def export_echo_mapping_xlsx(
     _, rev_by_seq, mut_to_rev_seq = _build_rev_lookups(
         fwd_mappings, rev_mappings, rev_groups,
     )
-    # Built before the workbook so a spent-quadrant refusal happens with no file
+    # Built before the workbook so a spent-half refusal happens with no file
     # written, the way the CSV export already behaved.
     echo_rows = build_echo_rows(
         fwd_mappings, rev_mappings, rev_groups, transfer_vol,
@@ -1387,13 +1403,16 @@ def export_echo_mapping_xlsx(
         cell.alignment = center
 
     # Build 384-well lookup: well_384 → primer_name
+    # 워크리스트와 같은 quadrant 로 그린다. 그리지 않으면 A13 실행에서 그림은
+    # 1-12 열을, 워크리스트는 13-24 열을 가리켜 정확히 12열 어긋난다. A1 이
+    # 마침 quadrant 없는 기본 배치와 같아 이 어긋남이 오래 보이지 않았다.
     well_384: dict[str, str] = {}
     for m in fwd_mappings:
         _, base = _parse_well_plate(m.well)
-        well_384[_to_384_well_fwd(base)] = m.primer_name
+        well_384[_to_384_well_fwd(base, quadrant=quadrant)] = m.primer_name
     for m in rev_mappings:
         _, base = _parse_well_plate(m.well)
-        well_384[_to_384_well_rev(base)] = m.primer_name
+        well_384[_to_384_well_rev(base, quadrant=quadrant)] = m.primer_name
 
     # 384-well grid: rows A-P (16 rows)
     for ri, row_letter in enumerate(_ROWS_384):
