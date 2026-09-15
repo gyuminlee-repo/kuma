@@ -1352,6 +1352,39 @@
       ],
       "note": "polymerase_profiles.json의 proofreading 필드는 PolymeraseProfile dataclass(_dict_to_profile) -> handle_list_polymerases -> TS PolymeraseInfo/PolymeraseProfile -> OffTargetDetail의 proofreadingNote 조건부 렌더까지 한 줄로 흐른다. PolymeraseProfileModel(Pydantic)은 extra=\"allow\"라 필드 선언 없이 get_polymerase_details 응답에 그대로 실린다(ta_rule/vendor_spec과 같은 경로). 새 폴리머라제를 추가하면 JSON에 proofreading을 명시해야 UI가 조용히 미표시로 빠지지 않는다.",
       "severity": "blocking"
+    },
+    {
+      "id": "help-content-mirror",
+      "files": [
+        "docs/help/ko/kuro-index.md",
+        "docs/kuro/index.md",
+        "docs/help/ko/kuro-01-load.md",
+        "docs/kuro/01-load.md",
+        "docs/help/ko/kuro-02-mutation.md",
+        "docs/kuro/02-mutation.md",
+        "docs/help/ko/kuro-03-params.md",
+        "docs/kuro/03-params.md",
+        "docs/help/ko/kuro-04-submit.md",
+        "docs/kuro/04-submit.md",
+        "docs/help/ko/kuro-05-output.md",
+        "docs/kuro/05-output.md",
+        "docs/help/ko/kuro-06-export.md",
+        "docs/kuro/06-export.md",
+        "docs/help/ko/mame-index.md",
+        "docs/mame/index.md",
+        "docs/help/ko/mame-01-setup.md",
+        "docs/mame/01-setup.md",
+        "docs/help/ko/mame-02-review.md",
+        "docs/mame/02-review.md",
+        "docs/help/ko/mame-03-janus.md",
+        "docs/mame/03-janus.md",
+        "docs/help/ko/mame-04-activity.md",
+        "docs/mame/04-activity.md",
+        "docs/help/ko/mame-pipeline.md",
+        "docs/mame/mame-pipeline.md"
+      ],
+      "note": "In-app help content is a copy of the published step guides. A change to one side has to reach the other or the app and the site disagree.",
+      "severity": "warning"
     }
   ]
 }
