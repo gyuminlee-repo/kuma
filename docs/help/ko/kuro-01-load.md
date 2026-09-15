@@ -26,4 +26,4 @@
 
 ## 다음
 
-→ [Step 2. Mutation Input](02-mutation.md)
+→ [Step 2. Mutation Input](kuro-02-mutation.md)

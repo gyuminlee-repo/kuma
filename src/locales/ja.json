@@ -37,7 +37,36 @@
     "showOnboarding": "オンボーディングを表示",
     "viewCrashLog": "クラッシュログを表示",
     "settings": "設定...",
-    "about": "について"
+    "about": "について",
+    "userGuide": "ユーザーガイド",
+    "panel": {
+      "title": "ヘルプ",
+      "close": "ヘルプを閉じる",
+      "notTranslated": "このトピックはまだ利用できません。",
+      "shownInEnglish": "このトピックはまだお使いの言語に翻訳されていないため、英語で表示しています。",
+      "shownInKorean": "このトピックはまだお使いの言語に翻訳されていないため、韓国語で表示しています。",
+      "group": {
+        "start": "はじめに",
+        "kuro": "KURO 設計",
+        "mame": "MAME 検証",
+        "deeper": "詳細"
+      },
+      "topic": {
+        "kuro-index": "KURO の概要",
+        "kuro-01-load": "読み込み",
+        "kuro-02-mutation": "変異",
+        "kuro-03-params": "パラメーター",
+        "kuro-04-submit": "送信",
+        "kuro-05-output": "結果",
+        "kuro-06-export": "エクスポート",
+        "mame-index": "MAME の概要",
+        "mame-01-setup": "バーコード設定",
+        "mame-02-review": "解析とレビュー",
+        "mame-03-janus": "Janus",
+        "mame-04-activity": "活性",
+        "mame-pipeline": "MAME パイプライン"
+      }
+    }
   },
   "about": {
     "title": "Kuma について",

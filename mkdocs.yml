@@ -10,6 +10,7 @@ exclude_docs: |
   debug-findings.md
   design/
   en/
+  help/
   ko/
   screenshots/
   screenshots-real/

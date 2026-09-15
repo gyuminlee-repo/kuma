@@ -50,4 +50,4 @@ KURO 가 만든 xlsx 는 `__kuma_meta__` 숨김 시트로 프로젝트와 자동
 - 사이드바 자유 navigate. 미입력 상태 진입 시 "Reference file required" empty state.
 - Next 버튼은 missing input Dialog (validation.missing.reference 등) 표시.
 
-→ [Step 2. Sequencing Review](02-review.md)
+→ [Step 2. Sequencing Review](mame-02-review.md)
