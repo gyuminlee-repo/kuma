@@ -2570,14 +2570,19 @@
     "descriptionRange": "自 v{{from}} 以來每次更新的主要變更。",
     "gotItBtn": "知道了",
     "highlights": [
-      "Echo 的一輪現在填滿 source plate 的一半，即第 1-12 欄或第 13-24 欄，與本實驗室實際使用的 mapping 檔案一致。",
-      "自 v0.14.0 起的 primer 排佈每隔一欄留空，這種排佈在實驗檯上從未使用過。",
-      "四象限選項改為兩個半區，因為一輪要佔 192 個 well，四分之一塊板放不下。",
-      "先前版本用過的盤並非有一半空著。當時的一輪跨越兩個半區，因此兩邊都標為已用，由操作者自行清除。",
-      "Forward 排佈已固定為真實 Echo worklist 中讀取的 95 筆轉移紀錄，不會再悄悄偏離。"
+      "設計位點未發生變化的 WRONG_AA well 現在會顯示該位點實際讀到的內容：WT、no call 或 not covered。",
+      "判定表、well 詳情與 plate 面板在每個設計位點顯示讀取結果，不再只顯示短橫線。",
+      "在所有設計位點都讀到 reference 殘基的 well，在 NGS Results 表中顯示為 WT，而非 WRONG_AA。",
+      "sort_barcode 目錄下的 reads 資料夾僅在保留每個 well 的 read 時建立，不再總是產生空資料夾。"
     ],
-    "highlightsStamp": "0.16.61+f9b38f15",
+    "highlightsStamp": "0.16.62+e46c1db9",
     "releases": {
+      "0.16.62": [
+        "設計位點未發生變化的 WRONG_AA well 現在會顯示該位點實際讀到的內容：WT、no call 或 not covered。",
+        "判定表、well 詳情與 plate 面板在每個設計位點顯示讀取結果，不再只顯示短橫線。",
+        "在所有設計位點都讀到 reference 殘基的 well，在 NGS Results 表中顯示為 WT，而非 WRONG_AA。",
+        "sort_barcode 目錄下的 reads 資料夾僅在保留每個 well 的 read 時建立，不再總是產生空資料夾。"
+      ],
       "0.16.61": [
         "Echo 的一輪現在填滿 source plate 的一半，即第 1-12 欄或第 13-24 欄，與本實驗室實際使用的 mapping 檔案一致。",
         "自 v0.14.0 起的 primer 排佈每隔一欄留空，這種排佈在實驗檯上從未使用過。",
@@ -3019,6 +3024,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.62": "e46c1db9",
       "0.16.61": "f9b38f15",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",

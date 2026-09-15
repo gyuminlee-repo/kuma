@@ -2570,14 +2570,19 @@
     "descriptionRange": "自 v{{from}} 以来每次更新的主要变化。",
     "gotItBtn": "知道了",
     "highlights": [
-      "Echo 的一轮现在填充 source plate 的一半，即第 1-12 列或第 13-24 列，与本实验室实际使用的 mapping 文件一致。",
-      "自 v0.14.0 起的 primer 排布每隔一列留空，这种排布在实验台上从未使用过。",
-      "四象限选项改为两个半区，因为一轮要占 192 个 well，四分之一块板放不下。",
-      "此前版本用过的板并非有一半空着。当时的一轮跨越两个半区，因此两边都标为已用，由操作者自行清除。",
-      "Forward 排布已固定为真实 Echo worklist 中读取的 95 条转移记录，不会再悄悄偏离。"
+      "设计位点未发生变化的 WRONG_AA well 现在会显示该位点实际读到的内容：WT、no call 或 not covered。",
+      "判定表、well 详情和 plate 面板在每个设计位点显示读取结果，不再只显示短横线。",
+      "在所有设计位点都读到 reference 残基的 well，在 NGS Results 表中显示为 WT，而不是 WRONG_AA。",
+      "sort_barcode 目录下的 reads 文件夹仅在保留每个 well 的 read 时创建，不再总是生成空文件夹。"
     ],
-    "highlightsStamp": "0.16.61+f9b38f15",
+    "highlightsStamp": "0.16.62+e46c1db9",
     "releases": {
+      "0.16.62": [
+        "设计位点未发生变化的 WRONG_AA well 现在会显示该位点实际读到的内容：WT、no call 或 not covered。",
+        "判定表、well 详情和 plate 面板在每个设计位点显示读取结果，不再只显示短横线。",
+        "在所有设计位点都读到 reference 残基的 well，在 NGS Results 表中显示为 WT，而不是 WRONG_AA。",
+        "sort_barcode 目录下的 reads 文件夹仅在保留每个 well 的 read 时创建，不再总是生成空文件夹。"
+      ],
       "0.16.61": [
         "Echo 的一轮现在填充 source plate 的一半，即第 1-12 列或第 13-24 列，与本实验室实际使用的 mapping 文件一致。",
         "自 v0.14.0 起的 primer 排布每隔一列留空，这种排布在实验台上从未使用过。",
@@ -3019,6 +3024,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.62": "e46c1db9",
       "0.16.61": "f9b38f15",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",

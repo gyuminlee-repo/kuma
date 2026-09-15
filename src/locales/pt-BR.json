@@ -2570,14 +2570,19 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Uma rodada do Echo agora preenche metade da source plate, colunas 1 a 12 ou 13 a 24, como nos arquivos de mapping que este laboratório realmente usa.",
-      "Desde a v0.14.0 o posicionamento dos primers pulava uma coluna sim e outra não, um layout que nunca foi usado na bancada.",
-      "A escolha entre quatro quadrantes vira duas metades, porque uma rodada ocupa 192 poços e não cabe em um quarto da placa.",
-      "Uma placa anterior a esta versão não tem metade livre: aquela rodada cobria as duas, então ambas ficam marcadas como usadas e você as libera.",
-      "O posicionamento forward está fixado contra 95 transferências lidas de uma worklist real do Echo, então não volta a desviar sem ser notado."
+      "Um well WRONG_AA cujo sítio projetado não mudou agora mostra o que foi lido ali: WT, no call ou not covered.",
+      "A tabela de veredictos, os detalhes do well e o painel da placa mostram a leitura em cada sítio projetado em vez de um traço.",
+      "Um well que leu o resíduo de referência em todos os sítios projetados aparece como WT em vez de WRONG_AA na planilha NGS Results.",
+      "A pasta reads em cada diretório sort_barcode só é criada quando os reads por well são mantidos, em vez de ficar sempre vazia."
     ],
-    "highlightsStamp": "0.16.61+f9b38f15",
+    "highlightsStamp": "0.16.62+e46c1db9",
     "releases": {
+      "0.16.62": [
+        "Um well WRONG_AA cujo sítio projetado não mudou agora mostra o que foi lido ali: WT, no call ou not covered.",
+        "A tabela de veredictos, os detalhes do well e o painel da placa mostram a leitura em cada sítio projetado em vez de um traço.",
+        "Um well que leu o resíduo de referência em todos os sítios projetados aparece como WT em vez de WRONG_AA na planilha NGS Results.",
+        "A pasta reads em cada diretório sort_barcode só é criada quando os reads por well são mantidos, em vez de ficar sempre vazia."
+      ],
       "0.16.61": [
         "Uma rodada do Echo agora preenche metade da source plate, colunas 1 a 12 ou 13 a 24, como nos arquivos de mapping que este laboratório realmente usa.",
         "Desde a v0.14.0 o posicionamento dos primers pulava uma coluna sim e outra não, um layout que nunca foi usado na bancada.",
@@ -3019,6 +3024,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.62": "e46c1db9",
       "0.16.61": "f9b38f15",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",
