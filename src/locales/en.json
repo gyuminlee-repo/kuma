@@ -1409,7 +1409,11 @@
         "consensusN": "Consensus N fraction",
         "identityNote": "Identity is measured over called bases only, so a mostly-N consensus can read as a near-perfect match. Read it against the N fraction above.",
         "nNotEvaluable": "The N fraction of this consensus could not be recovered and 0 was substituted, so the identity above rests on an unknown amount of sequence."
-      }
+      },
+      "readWt": "WT",
+      "readNoCall": "no call",
+      "readNotCovered": "not covered",
+      "labelReadAtSite": "Read at designed site"
     },
     "wellSelection": {
       "title": "Wells used",
@@ -2620,14 +2624,19 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "An Echo round now fills half the source plate, columns 1 to 12 or 13 to 24, matching the mapping files this lab actually runs.",
-      "Primer placement since v0.14.0 skipped every other column, a layout that no run on the bench has used.",
-      "The four quadrant choice becomes two halves, because one round fills 192 wells and a quarter plate cannot hold it.",
-      "A plate from before this release is not half free: its round spanned both halves, so both are marked spent and you clear them.",
-      "Forward placement is now pinned against 95 transfers read from a real Echo worklist, so this cannot drift back unnoticed."
+      "A WRONG_AA well whose designed site did not change now says what it read there: wild type, a no call, or not covered.",
+      "The verdict table, well details and plate panel show the read at each designed site instead of a bare dash.",
+      "The NGS Results sheet prints WT instead of WRONG_AA for a well that read the reference residue at every designed site.",
+      "The reads folder under each sort_barcode directory is created only when per-well reads are kept, instead of always empty."
     ],
-    "highlightsStamp": "0.16.61+f9b38f15",
+    "highlightsStamp": "0.16.62+e46c1db9",
     "releases": {
+      "0.16.62": [
+        "A WRONG_AA well whose designed site did not change now says what it read there: wild type, a no call, or not covered.",
+        "The verdict table, well details and plate panel show the read at each designed site instead of a bare dash.",
+        "The NGS Results sheet prints WT instead of WRONG_AA for a well that read the reference residue at every designed site.",
+        "The reads folder under each sort_barcode directory is created only when per-well reads are kept, instead of always empty."
+      ],
       "0.16.61": [
         "An Echo round now fills half the source plate, columns 1 to 12 or 13 to 24, matching the mapping files this lab actually runs.",
         "Primer placement since v0.14.0 skipped every other column, a layout that no run on the bench has used.",
@@ -3069,6 +3078,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.62": "e46c1db9",
       "0.16.61": "f9b38f15",
       "0.16.60": "a87cf2d1",
       "0.16.59": "69e92cd5",

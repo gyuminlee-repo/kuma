@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from kuma_core.mame.compare import classify_verdict
+from kuma_core.mame.compare.verdict import read_at_position
 from kuma_core.mame.models import (
     BarcodeRecord,
     CompareParams,
@@ -25,6 +26,8 @@ def _tr(
     n_low_quality_bases: int = 0,
     consensus_net_indel_bp: int | None = None,
     median_read_net_indel_bp: int | None = None,
+    aa_sequence: str = "",
+    n_no_call_aa: int = 0,
 ) -> TranslatedRecord:
     barcode = BarcodeRecord(
         native_barcode="NB01",
@@ -43,9 +46,10 @@ def _tr(
     )
     return TranslatedRecord(
         barcode=barcode,
-        aa_sequence="",
+        aa_sequence=aa_sequence,
         observed_nt_changes=list(observed_nt or []),
         observed_aa_changes=list(observed_aa),
+        n_no_call_aa=n_no_call_aa,
     )
 
 
@@ -152,6 +156,62 @@ def test_f06_wrong_aa() -> None:
     tr = _tr(["N63S"])
     result = classify_verdict(tr, ["N63F"], _params())
     assert result.verdict is VerdictClass.WRONG_AA
+
+
+def _aa_seq(residues: dict[int, str], length: int = 200) -> str:
+    """An AA sequence of A with the given 1-based positions overwritten."""
+    chars = ["A"] * length
+    for pos, residue in residues.items():
+        chars[pos - 1] = residue
+    return "".join(chars)
+
+
+def test_wrong_aa_missing_expected_site_read_as_wild_type() -> None:
+    """A well that stayed wild type says so instead of only naming the site."""
+    tr = _tr([], read_count=500, aa_sequence=_aa_seq({187: "L"}))
+    result = classify_verdict(tr, ["L187G"], _params())
+    assert result.verdict is VerdictClass.WRONG_AA
+    assert result.verdict_notes == "expected L187G, observed WT (L187)"
+    assert read_at_position(tr, 187) == "WT"
+
+
+def test_wrong_aa_missing_expected_site_that_is_a_no_call() -> None:
+    """An 'X' at the site is not wild type: the translator only kept it off the list."""
+    tr = _tr([], read_count=500, aa_sequence=_aa_seq({187: "X"}), n_no_call_aa=1)
+    result = classify_verdict(tr, ["L187G"], _params())
+    assert result.verdict is VerdictClass.WRONG_AA
+    assert result.verdict_notes == "expected L187G, observed no call (X at 187)"
+    assert read_at_position(tr, 187) == "no call"
+
+
+def test_wrong_aa_missing_expected_site_past_the_translated_sequence() -> None:
+    tr = _tr([], read_count=500, aa_sequence=_aa_seq({}, length=150))
+    result = classify_verdict(tr, ["L187G"], _params())
+    assert result.verdict is VerdictClass.WRONG_AA
+    assert result.verdict_notes == "expected L187G, observed not covered (187)"
+
+
+def test_wrong_aa_two_missing_expected_sites_each_get_a_phrase() -> None:
+    tr = _tr(
+        [],
+        read_count=500,
+        aa_sequence=_aa_seq({187: "L", 190: "X"}),
+        n_no_call_aa=1,
+    )
+    result = classify_verdict(tr, ["L187G", "K190R"], _params())
+    assert result.verdict is VerdictClass.WRONG_AA
+    assert result.verdict_notes == (
+        "expected L187G, observed WT (L187); "
+        "expected K190R, observed no call (X at 190)"
+    )
+
+
+def test_wrong_aa_mismatch_note_is_unchanged() -> None:
+    tr = _tr(["L187A"], read_count=500, aa_sequence=_aa_seq({187: "A"}))
+    result = classify_verdict(tr, ["L187G"], _params())
+    assert result.verdict is VerdictClass.WRONG_AA
+    assert result.verdict_notes == "expected L187G, observed L187A"
+    assert read_at_position(tr, 187) == "L187A"
 
 
 def test_min_file_size_parameterization() -> None:

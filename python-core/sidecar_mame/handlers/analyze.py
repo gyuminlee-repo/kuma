@@ -252,6 +252,8 @@ def _write_reference_fasta(reference_path: Path, output_dir: Path) -> Path:
 
 
 def _serialize_verdict(vr: Any) -> dict:
+    from kuma_core.mame.compare.verdict import expected_site_reads
+
     t = vr.translated
     b = t.barcode
     out = {
@@ -290,6 +292,18 @@ def _serialize_verdict(vr: Any) -> dict:
         "mutant_id": getattr(vr, "mutant_id", ""),
         "verdict": vr.verdict.value,
         "verdict_notes": vr.verdict_notes,
+        # What the well read at each designed site: an observed label, "WT",
+        # "no call" or "not covered" (compare/verdict.py read_at_position). An
+        # empty observed_aa_changes cannot say which, because an N-bearing codon
+        # is kept out of that list. Derived here from aa_sequence and
+        # expected_mutations on every serialize, for every verdict class. It is
+        # stored in no dataclass and _deserialize_verdict does not read it, so a
+        # reloaded payload recomputes it and a payload written before the field
+        # existed simply lacks it (optional on the TypeScript side).
+        "expected_site_reads": [
+            {"label": label, "position": pos, "read": read}
+            for label, pos, read in expected_site_reads(t, list(vr.expected_mutations))
+        ],
         # How many mix-eligible positions this well had, which is the pool
         # ``noisy_positions`` samples. Unconditional because 0 is a real answer
         # (nothing eligible) and because without it a truncated top-K sample

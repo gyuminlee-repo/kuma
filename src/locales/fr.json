@@ -1409,7 +1409,11 @@
         "consensusN": "Fraction N du consensus",
         "identityNote": "L'identité est mesurée uniquement sur les bases appelées, donc un consensus majoritairement N peut apparaître comme une correspondance presque parfaite. Lisez-la avec la fraction N ci-dessus.",
         "nNotEvaluable": "La fraction N de ce consensus n'a pas pu être retrouvée et 0 a été substitué, donc l'identité ci-dessus repose sur une quantité de séquence inconnue."
-      }
+      },
+      "readWt": "WT",
+      "readNoCall": "no call (non déterminé)",
+      "readNotCovered": "non couvert",
+      "labelReadAtSite": "Lecture au site conçu"
     },
     "wellSelection": {
       "title": "Puits utilisés",
@@ -2566,14 +2570,19 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Un run Echo remplit désormais la moitié de la source plate, colonnes 1 à 12 ou 13 à 24, comme dans les fichiers de mapping réellement utilisés par ce laboratoire.",
-      "Depuis la v0.14.0, le placement des primers sautait une colonne sur deux, une disposition jamais utilisée à la paillasse.",
-      "Le choix entre quatre quadrants devient deux moitiés, car un run occupe 192 puits et ne tient pas dans un quart de plaque.",
-      "Une plaque antérieure à cette version n'a pas de moitié libre : le run d'alors couvrait les deux, donc les deux sont marquées comme utilisées et c'est à vous de les libérer.",
-      "Le placement forward est fixé sur 95 transferts lus dans une vraie worklist Echo, il ne peut plus dériver sans être vu."
+      "Un well WRONG_AA dont le site conçu n'a pas changé indique désormais ce qui y a été lu : WT, no call ou not covered.",
+      "Le tableau des verdicts, le détail du well et le panneau de plaque affichent la lecture à chaque site conçu au lieu d'un simple tiret.",
+      "Un well ayant lu le résidu de référence à chaque site conçu apparaît comme WT au lieu de WRONG_AA dans la feuille NGS Results.",
+      "Le dossier reads sous chaque répertoire sort_barcode n'est créé que si les reads par well sont conservés, au lieu d'être toujours vide."
     ],
-    "highlightsStamp": "0.16.61+f9b38f15",
+    "highlightsStamp": "0.16.62+e46c1db9",
     "releases": {
+      "0.16.62": [
+        "Un well WRONG_AA dont le site conçu n'a pas changé indique désormais ce qui y a été lu : WT, no call ou not covered.",
+        "Le tableau des verdicts, le détail du well et le panneau de plaque affichent la lecture à chaque site conçu au lieu d'un simple tiret.",
+        "Un well ayant lu le résidu de référence à chaque site conçu apparaît comme WT au lieu de WRONG_AA dans la feuille NGS Results.",
+        "Le dossier reads sous chaque répertoire sort_barcode n'est créé que si les reads par well sont conservés, au lieu d'être toujours vide."
+      ],
       "0.16.61": [
         "Un run Echo remplit désormais la moitié de la source plate, colonnes 1 à 12 ou 13 à 24, comme dans les fichiers de mapping réellement utilisés par ce laboratoire.",
         "Depuis la v0.14.0, le placement des primers sautait une colonne sur deux, une disposition jamais utilisée à la paillasse.",
@@ -3015,6 +3024,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.62": "e46c1db9",
       "0.16.61": "f9b38f15",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",

@@ -1409,7 +1409,11 @@
         "consensusN": "Consensus-N-Anteil",
         "identityNote": "Die Identität wird nur über gerufene Basen gemessen, daher kann ein überwiegend aus N bestehender Consensus als nahezu perfekte Übereinstimmung erscheinen. Lesen Sie sie zusammen mit dem N-Anteil darüber.",
         "nNotEvaluable": "Der N-Anteil dieses Consensus war nicht rekonstruierbar und wurde durch 0 ersetzt, daher beruht die Identität darüber auf einer unbekannten Menge Sequenz."
-      }
+      },
+      "readWt": "WT",
+      "readNoCall": "no call (nicht bestimmbar)",
+      "readNotCovered": "nicht abgedeckt",
+      "labelReadAtSite": "Ablesung an der Designposition"
     },
     "wellSelection": {
       "title": "Verwendete Wells",
@@ -2566,14 +2570,19 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein Echo Durchlauf füllt jetzt eine Hälfte der Source Plate, Spalten 1 bis 12 oder 13 bis 24, wie in den Mapping Dateien, die dieses Labor tatsächlich fährt.",
-      "Die Primer Platzierung ließ seit v0.14.0 jede zweite Spalte frei, ein Layout, das am Bench nie gefahren wurde.",
-      "Aus der Auswahl von vier Quadranten werden zwei Hälften, denn ein Durchlauf füllt 192 Wells und passt nicht in ein Viertel.",
-      "Eine Platte von vor diesem Release hat keine freie Hälfte: der damalige Durchlauf lag über beiden, also gelten beide als verbraucht, bis Sie das aufheben.",
-      "Die Forward Platzierung ist gegen 95 Transfers aus einer echten Echo Worklist festgelegt und kann nicht unbemerkt zurückdriften."
+      "Ein WRONG_AA-Well, dessen Designposition unverändert blieb, zeigt jetzt, was dort gelesen wurde: WT, no call oder not covered.",
+      "Verdict-Tabelle, Well-Details und Plate-Bereich zeigen an jeder Designposition die Ablesung statt eines leeren Strichs.",
+      "Ein Well, das an jeder Designposition den Referenzrest gelesen hat, erscheint im Blatt NGS Results als WT statt WRONG_AA.",
+      "Der reads-Ordner unter jedem sort_barcode-Verzeichnis wird nur noch angelegt, wenn Reads pro Well behalten werden, statt immer leer."
     ],
-    "highlightsStamp": "0.16.61+f9b38f15",
+    "highlightsStamp": "0.16.62+e46c1db9",
     "releases": {
+      "0.16.62": [
+        "Ein WRONG_AA-Well, dessen Designposition unverändert blieb, zeigt jetzt, was dort gelesen wurde: WT, no call oder not covered.",
+        "Verdict-Tabelle, Well-Details und Plate-Bereich zeigen an jeder Designposition die Ablesung statt eines leeren Strichs.",
+        "Ein Well, das an jeder Designposition den Referenzrest gelesen hat, erscheint im Blatt NGS Results als WT statt WRONG_AA.",
+        "Der reads-Ordner unter jedem sort_barcode-Verzeichnis wird nur noch angelegt, wenn Reads pro Well behalten werden, statt immer leer."
+      ],
       "0.16.61": [
         "Ein Echo Durchlauf füllt jetzt eine Hälfte der Source Plate, Spalten 1 bis 12 oder 13 bis 24, wie in den Mapping Dateien, die dieses Labor tatsächlich fährt.",
         "Die Primer Platzierung ließ seit v0.14.0 jede zweite Spalte frei, ein Layout, das am Bench nie gefahren wurde.",
@@ -3015,6 +3024,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.62": "e46c1db9",
       "0.16.61": "f9b38f15",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",

@@ -582,3 +582,103 @@ describe("VerdictDetailInspector, coverage uniformity", () => {
     );
   });
 });
+
+/**
+ * What each designed site read. An empty observed list is either the reference
+ * residue or no call there, so the Observed block names the read per site
+ * instead of the single "No change observed" line both used to share.
+ */
+describe("VerdictDetailInspector, reads at the designed sites", () => {
+  const en = enLocale.mame.verdictDetail;
+
+  it("prints one line per site with the read, then the changes away from every site", () => {
+    const record = makeVerdict({
+      verdict: "WRONG_AA",
+      expected_mutations: ["L187G", "K48A", "R9K", "F89W"],
+      observed_aa_changes: ["F89W", "A50T"],
+      expected_site_reads: [
+        { label: "L187G", position: 187, read: "WT" },
+        { label: "K48A", position: 48, read: "no call" },
+        { label: "R9K", position: 9, read: "not covered" },
+        { label: "F89W", position: 89, read: "F89W" },
+      ],
+    });
+    seedStore({ verdicts: [record], replicates: [], selectedWell: wells[0]! });
+    render(<VerdictDetailInspector />);
+
+    const observedBlock = screen.getByText("Observed").parentElement!;
+    const lines = within(observedBlock)
+      .getAllByTestId("observed-site-read")
+      .map((el) => el.textContent);
+    expect(lines).toEqual([
+      `L187G → ${en.readWt}`,
+      `K48A → ${en.readNoCall}`,
+      `R9K → ${en.readNotCovered}`,
+      "F89W → F89W",
+    ]);
+    // F89W is already a site read, so only A50T is left as a separate change.
+    expect(within(observedBlock).getByText("A50T")).toBeInTheDocument();
+    expect(within(observedBlock).queryByText("F89W")).toBeNull();
+    expect(within(observedBlock).queryByText(en.observedNone)).toBeNull();
+  });
+
+  it("says what a replicate copy with nothing observed read at its site", () => {
+    const noCallCopy = makeVerdict({
+      ...rejectedVerdict,
+      expected_site_reads: [{ label: "F89W", position: 89, read: "no call" }],
+    });
+    const wtCopy = makeVerdict({
+      ...selectedVerdict,
+      verdict: "WRONG_AA",
+      observed_aa_changes: [],
+      expected_site_reads: [{ label: "F89W", position: 89, read: "WT" }],
+    });
+    seedStore({
+      verdicts: [wtCopy, noCallCopy],
+      replicates: [
+        {
+          ...replicate,
+          plate_verdicts: { sort_barcode01: wtCopy, sort_barcode02: noCallCopy },
+        },
+      ],
+      selectedWell: wells[0]!,
+    });
+    render(<VerdictDetailInspector />);
+
+    const rows = screen.getAllByTestId("replicate-row");
+    expect(within(rows[0]!).getByTestId("replicate-site-reads").textContent).toBe(
+      `F89W: ${en.readWt}`,
+    );
+    expect(within(rows[1]!).getByTestId("replicate-site-reads").textContent).toBe(
+      `F89W: ${en.readNoCall}`,
+    );
+  });
+
+  it("keeps a replicate row with nothing observed silent when the copy predates the field", () => {
+    // rejectedVerdict observed nothing and carries no expected_site_reads.
+    seedStore({ selectedWell: wells[0]! });
+    render(<VerdictDetailInspector />);
+    expect(screen.getAllByTestId("replicate-row")).toHaveLength(2);
+    expect(screen.queryByTestId("replicate-site-reads")).toBeNull();
+  });
+
+  it("falls back to No change observed when the field is absent or empty", () => {
+    seedStore({
+      verdicts: [makeVerdict({ observed_aa_changes: [] })],
+      replicates: [],
+      selectedWell: wells[0]!,
+    });
+    const first = render(<VerdictDetailInspector />);
+    expect(screen.getByText(en.observedNone)).toBeInTheDocument();
+    expect(screen.queryByTestId("observed-site-read")).toBeNull();
+    first.unmount();
+
+    seedStore({
+      verdicts: [makeVerdict({ observed_aa_changes: [], expected_site_reads: [] })],
+      replicates: [],
+      selectedWell: wells[0]!,
+    });
+    render(<VerdictDetailInspector />);
+    expect(screen.getByText(en.observedNone)).toBeInTheDocument();
+  });
+});

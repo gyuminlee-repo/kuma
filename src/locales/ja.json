@@ -1409,7 +1409,11 @@
         "consensusN": "Consensus N 割合",
         "identityNote": "identity はコールされた塩基のみで計算されるため、ほとんどが N の consensus でもほぼ完全一致に見えることがあります。上の N 割合と併せて読んでください。",
         "nNotEvaluable": "この consensus の N 割合を復元できず 0 が代入されました。したがって上の identity がどれだけの配列に基づくかは不明です。"
-      }
+      },
+      "readWt": "WT",
+      "readNoCall": "no call（判定不能）",
+      "readNotCovered": "カバレッジなし",
+      "labelReadAtSite": "設計部位の読み取り"
     },
     "wellSelection": {
       "title": "使用するウェル",
@@ -2566,14 +2570,19 @@
     "descriptionRange": "v{{from}} 以降のすべてのアップデートの主な変更点です。",
     "gotItBtn": "了解",
     "highlights": [
-      "Echo の 1 ラウンドが source plate の半分、1-12 列または 13-24 列を埋めるようになりました。このラボが実際に使う mapping ファイルと同じ配置です。",
-      "v0.14.0 以降の primer 配置は 1 列おきに空けていました。実験台で使われたことのない配置です。",
-      "4 分割の選択肢が 2 分割になります。1 ラウンドが 192 well を占めるため 4 分の 1 には収まりません。",
-      "以前のリリースで使った plate は半分が空いていません。当時のラウンドが両方の半分にまたがるため両方が使用済みとして表示され、解除は作業者が行います。",
-      "Forward の配置を実際の Echo worklist から読んだ 95 件の転送に固定しました。気付かないうちに戻ることはありません。"
+      "設計部位が変わらなかった WRONG_AA well が、その部位で実際に読まれた内容を表示します。WT、no call、not covered を区別します。",
+      "判定テーブル、well 詳細、plate パネルが、ダッシュだけでなく設計部位ごとの読み取り結果を表示します。",
+      "すべての設計部位で reference 残基を読んだ well は、NGS Results シートで WRONG_AA ではなく WT と表示されます。",
+      "sort_barcode フォルダ下の reads フォルダは well ごとの read を保持する場合にのみ作成されます。以前は常に空で作成されていました。"
     ],
-    "highlightsStamp": "0.16.61+f9b38f15",
+    "highlightsStamp": "0.16.62+e46c1db9",
     "releases": {
+      "0.16.62": [
+        "設計部位が変わらなかった WRONG_AA well が、その部位で実際に読まれた内容を表示します。WT、no call、not covered を区別します。",
+        "判定テーブル、well 詳細、plate パネルが、ダッシュだけでなく設計部位ごとの読み取り結果を表示します。",
+        "すべての設計部位で reference 残基を読んだ well は、NGS Results シートで WRONG_AA ではなく WT と表示されます。",
+        "sort_barcode フォルダ下の reads フォルダは well ごとの read を保持する場合にのみ作成されます。以前は常に空で作成されていました。"
+      ],
       "0.16.61": [
         "Echo の 1 ラウンドが source plate の半分、1-12 列または 13-24 列を埋めるようになりました。このラボが実際に使う mapping ファイルと同じ配置です。",
         "v0.14.0 以降の primer 配置は 1 列おきに空けていました。実験台で使われたことのない配置です。",
@@ -3015,6 +3024,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.62": "e46c1db9",
       "0.16.61": "f9b38f15",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",

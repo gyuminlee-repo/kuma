@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.16.62 (A WRONG_AA well says what it read)
+
+A WRONG_AA well whose designed site had not changed carried the note "missing expected: L187G" and nothing else. Its amino acid column was blank and the NGS Results sheet printed the verdict name in the column meant for what was detected, so an operator could not tell a well that stayed wild type from one whose consensus had no call at that site. A well that read a different residue already said so ("expected L187A, observed L187G"). The missing-site note now says it in the same shape: "expected L187G, observed WT (L187)", "expected L187G, observed no call (X at 187)" or "expected L187G, observed not covered (187)".
+
+An empty change list does not mean wild type. The translator keeps an N-bearing codon out of the change list and counts it as a no call, so the note reads the residue from the translated sequence itself, which carries one character per reference codon. The NGS Results detected cell prints WT only for a WRONG_AA well that read the reference residue at every designed site. A no call at any of them, and every other verdict, keep the verdict name. The per-plate observed_aa column stays blank, because the activity data step reads that column back as mutation labels and a WT token there would enter the label audit as a mutation.
+
+The app says the same thing. Every verdict the sidecar sends now carries what each designed site read, as the observed label or one of those three words, derived when the verdict is serialized rather than stored. The AA Changes column of a WRONG_AA row names a site that stayed wild type or had no call ahead of the observed changes, and the table sorts and searches on that same text. The well detail panel lists the read at each designed site before any other change, a replicate row names the read of a copy that observed nothing, and the selected-well panel beside the plate gains a row for it.
+
+Each sort_barcode directory under demux_filtered also carried an empty reads folder. Per-well read FASTAs were already written only when KUMA_MAME_KEEP_WELL_READS=1 and nothing downstream reads them, but the folder was created on every run. It is now created only under that flag.
+
+A run analysed by an earlier version keeps its old notes and shows no site reads until it is analysed again.
+
+### Highlights
+
+- A WRONG_AA well whose designed site did not change now says what it read there: wild type, a no call, or not covered.
+- The verdict table, well details and plate panel show the read at each designed site instead of a bare dash.
+- The NGS Results sheet prints WT instead of WRONG_AA for a well that read the reference residue at every designed site.
+- The reads folder under each sort_barcode directory is created only when per-well reads are kept, instead of always empty.
+
 ## v0.16.61 (A round fills half the Echo source plate, the way the bench fills it)
 
 The 384 source plate layout that shipped in v0.14.0 was wrong, and this release returns it to the layout the bench uses.

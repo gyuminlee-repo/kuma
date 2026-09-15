@@ -244,6 +244,63 @@ def parse_mutation_label(label: str) -> tuple[str, int, str] | None:
     return None
 
 
+def read_at_position(translated: TranslatedRecord, pos: int) -> str:
+    """Return what the well read at 1-based AA position *pos*.
+
+    One of: the observed label sitting at *pos*, ``"WT"``, ``"no call"`` or
+    ``"not covered"``.
+
+    Why this cannot be inferred from an empty ``observed_aa_changes``: the
+    translator keeps an N-bearing codon out of that list (it becomes 'X' in
+    ``aa_sequence`` and is counted in ``n_no_call_aa``), so "no label here" means
+    either the reference residue or no call at all. Only ``aa_sequence`` tells
+    them apart. It carries one character per reference codon, so index
+    ``pos - 1`` is the same coordinate the labels use. A gapped codon ('-') always
+    has a ``del`` label and is caught by the first branch; a query that ended
+    early leaves ``aa_sequence`` short, which reads as not covered.
+    """
+
+    for label in translated.observed_aa_changes:
+        parsed = parse_mutation_label(label)
+        if parsed is not None and parsed[1] == pos:
+            return label
+    seq = translated.aa_sequence
+    if not 0 < pos <= len(seq):
+        return "not covered"
+    residue = seq[pos - 1]
+    if residue == "X":
+        return "no call"
+    if residue == "-":
+        # Unreachable through the translator (a gap always carries a del label),
+        # kept so a hand-built record can never report a gap as WT.
+        return "not covered"
+    return "WT"
+
+
+def expected_site_reads(
+    translated: TranslatedRecord, expected_mutations: list[str]
+) -> list[tuple[str, int, str]]:
+    """Return ``(label, position, read)`` for every designed site of a well.
+
+    *read* is :func:`read_at_position` at that site. Sites are keyed by position
+    exactly as :func:`classify_verdict` builds ``expected_parsed``: a label that
+    does not parse is skipped, and when two labels share a position the later
+    label wins while the site keeps the place of its first appearance. The
+    missing-expected WRONG_AA note, the Excel detected cell and the serialized
+    ``expected_site_reads`` payload all read this, so the three cannot disagree
+    about which sites a well was designed at.
+    """
+
+    sites: dict[int, str] = {}
+    for label in expected_mutations:
+        parsed = parse_mutation_label(label)
+        if parsed is not None:
+            sites[parsed[1]] = label
+    return [
+        (label, pos, read_at_position(translated, pos)) for pos, label in sites.items()
+    ]
+
+
 def _join(notes: list[str], note: str) -> str:
     """Join accumulated notes with a verdict-specific note, dropping blanks."""
     return "; ".join([n for n in (*notes, note) if n])
@@ -637,17 +694,32 @@ def classify_verdict(
 
     # All expected mutations must be present with matching MT to proceed.
     missing_expected = [
-        f"{wt}{pos}{mt}" for pos, (wt, mt) in expected_parsed.items() if pos not in observed_parsed
+        (pos, read)
+        for _label, pos, read in expected_site_reads(translated, expected_mutations)
+        if pos not in observed_parsed
     ]
     if missing_expected:
         # Missing an expected position = not a PASS; treat as WRONG_AA-style failure.
+        #
+        # The note says what the well read there, in the same shape as the
+        # mismatch note above. "missing expected: L187G" alone left the AA column
+        # blank and gave the operator no way to tell a well that stayed wild type
+        # from one whose consensus had no call at the site.
+        phrases: list[str] = []
+        for pos, read in missing_expected:
+            wt, mt = expected_parsed[pos]
+            if read == "WT":
+                read = f"WT ({translated.aa_sequence[pos - 1]}{pos})"
+            elif read == "no call":
+                read = f"no call (X at {pos})"
+            elif read == "not covered":
+                read = f"not covered ({pos})"
+            phrases.append(f"expected {wt}{pos}{mt}, observed {read}")
         return VerdictRecord(
             translated=translated,
             expected_mutations=list(expected_mutations),
             verdict=VerdictClass.WRONG_AA,
-            verdict_notes=_join(
-                notes, f"missing expected: {', '.join(missing_expected)}"
-            ),
+            verdict_notes=_join(notes, "; ".join(phrases)),
         )
 
     # 5) AMBIGUOUS — expected positions are all matched, but extra AA changes

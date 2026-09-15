@@ -22,6 +22,7 @@ import {
   isFlagged,
   type WellConcordance,
 } from "@/lib/mame/replicateConcordance";
+import { aaChangesText } from "@/lib/mame/siteReads";
 import { VerdictBadge } from "./VerdictBadge";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -418,12 +419,14 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
     if (!searchQuery.trim()) return flagFiltered;
     const query = searchQuery.trim().toLowerCase();
     return flagFiltered.filter((row) =>
-      [row.custom_barcode, row.native_barcode, row.mutant_id, row.verdict_notes, row.observed_aa_changes.join(",")]
+      // AA changes through the same text the cell shows, so a search for what
+      // the operator reads there ("no call") finds the row.
+      [row.custom_barcode, row.native_barcode, row.mutant_id, row.verdict_notes, aaChangesText(row, t)]
         .join(" ")
         .toLowerCase()
         .includes(query),
     );
-  }, [rows, searchQuery, flaggedOnly, concordance]);
+  }, [rows, searchQuery, flaggedOnly, concordance, t]);
 
   // Per-mutant FINAL recovered status: a variant is recovered if ANY of its
   // replicate wells (across ALL native barcodes, tab-independent) is detected
@@ -580,9 +583,11 @@ function VerdictTableContent({ verdicts }: { verdicts: VerdictRecord[] }) {
       {
         id: "observed_aa_changes",
         header: t("mame.verdictTable.colAaChanges"),
-        accessorFn: (row) => row.observed_aa_changes.join(", "),
+        // A WRONG_AA well names what its designed site read (WT, no call, not
+        // covered) ahead of the observed labels; see lib/mame/siteReads.ts.
+        accessorFn: (row) => aaChangesText(row, t),
         cell: ({ row }) => {
-          const changes = row.original.observed_aa_changes.join(", ");
+          const changes = aaChangesText(row.original, t);
           const noCall = row.original.n_no_call_aa;
           return (
             <span className="flex items-center gap-1 font-mono text-xs text-muted-foreground">

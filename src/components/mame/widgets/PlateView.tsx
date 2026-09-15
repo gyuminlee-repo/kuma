@@ -10,6 +10,7 @@ import type { VerdictClass, WellEntry } from "@/types/mame/models";
 import { VERDICT_HELP_KEY, VERDICT_LABEL } from "@/lib/mame/verdictColors";
 import { nbLabel, nbOrderKey } from "@/lib/mame/nbLabel";
 import { collapseWells } from "@/lib/mame/plateWells";
+import { siteReadPairs } from "@/lib/mame/siteReads";
 
 function getSelectedPlateLabel(nativeBarcode: string | null): string {
   return nativeBarcode ? nbLabel(nativeBarcode) : "None";
@@ -329,6 +330,24 @@ export function PlateView({ wellColorOf, wells: externalWells, expanded, onToggl
                   <DetailRow
                     label={t("mame.plateView.detailSelectedReplicate")}
                     value={label}
+                  />
+                );
+              })()}
+              {(() => {
+                // WellEntry carries no site reads, so read them from the verdict
+                // record of this exact copy, keyed the way VerdictDetailInspector
+                // keys it: custom_barcode alone cannot tell replicates apart.
+                const record = verdicts.find(
+                  (v) =>
+                    v.native_barcode === selectedWell.native_barcode &&
+                    v.custom_barcode === selectedWell.barcode,
+                );
+                const sites = record?.expected_site_reads ?? [];
+                if (sites.length === 0) return null;
+                return (
+                  <DetailRow
+                    label={t("mame.verdictDetail.labelReadAtSite")}
+                    value={siteReadPairs(sites, t)}
                   />
                 );
               })()}

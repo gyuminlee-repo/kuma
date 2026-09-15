@@ -1409,7 +1409,11 @@
         "consensusN": "Fracción N del consensus",
         "identityNote": "La identidad se mide solo sobre bases llamadas, así que un consensus mayormente N puede parecer una coincidencia casi perfecta. Léala junto a la fracción N de arriba.",
         "nNotEvaluable": "La fracción N de este consensus no se pudo recuperar y se sustituyó por 0, así que la identidad de arriba se apoya en una cantidad de secuencia desconocida."
-      }
+      },
+      "readWt": "WT",
+      "readNoCall": "no call (sin lectura)",
+      "readNotCovered": "sin cobertura",
+      "labelReadAtSite": "Lectura en el sitio diseñado"
     },
     "wellSelection": {
       "title": "Pocillos usados",
@@ -2566,14 +2570,19 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Un run de Echo llena ahora la mitad de la source plate, columnas 1 a 12 o 13 a 24, igual que los archivos de mapping que este laboratorio usa realmente.",
-      "Desde la v0.14.0 el colocado de primers dejaba una columna sí y otra no, una disposición que nunca se usó en el banco.",
-      "La elección entre cuatro cuadrantes pasa a dos mitades, porque un run ocupa 192 pocillos y no cabe en un cuarto de placa.",
-      "Una placa anterior a esta versión no tiene una mitad libre: aquel run cubría las dos, así que ambas se marcan como usadas y usted las libera.",
-      "La colocación forward queda fijada frente a 95 transferencias leídas de una worklist real de Echo, así no puede desviarse sin que se note."
+      "Un well WRONG_AA cuyo sitio diseñado no cambió ahora indica lo que se leyó allí: WT, no call o not covered.",
+      "La tabla de veredictos, el detalle del well y el panel de la placa muestran la lectura en cada sitio diseñado en lugar de un guion.",
+      "Un well que leyó el residuo de referencia en todos los sitios diseñados aparece como WT en la hoja NGS Results en lugar de WRONG_AA.",
+      "La carpeta reads bajo cada directorio sort_barcode solo se crea cuando se conservan los reads por well, en lugar de quedar siempre vacía."
     ],
-    "highlightsStamp": "0.16.61+f9b38f15",
+    "highlightsStamp": "0.16.62+e46c1db9",
     "releases": {
+      "0.16.62": [
+        "Un well WRONG_AA cuyo sitio diseñado no cambió ahora indica lo que se leyó allí: WT, no call o not covered.",
+        "La tabla de veredictos, el detalle del well y el panel de la placa muestran la lectura en cada sitio diseñado en lugar de un guion.",
+        "Un well que leyó el residuo de referencia en todos los sitios diseñados aparece como WT en la hoja NGS Results en lugar de WRONG_AA.",
+        "La carpeta reads bajo cada directorio sort_barcode solo se crea cuando se conservan los reads por well, en lugar de quedar siempre vacía."
+      ],
       "0.16.61": [
         "Un run de Echo llena ahora la mitad de la source plate, columnas 1 a 12 o 13 a 24, igual que los archivos de mapping que este laboratorio usa realmente.",
         "Desde la v0.14.0 el colocado de primers dejaba una columna sí y otra no, una disposición que nunca se usó en el banco.",
@@ -3015,6 +3024,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.62": "e46c1db9",
       "0.16.61": "f9b38f15",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",
