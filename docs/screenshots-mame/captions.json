@@ -58,5 +58,10 @@
     "name": "12-activity-data",
     "caption": "The activity step, empty: this run carries sequencing verdicts only, with no assay readings uploaded yet.",
     "file": "12-activity-data.png"
+  },
+  {
+    "name": "14-activity-signals",
+    "caption": "The last MAME step, opened on a session with no round outputs behind it: the advisory classifier is read-only, the file list is empty, and Run classification stays disabled until a round result xlsx from step 4.1 is added.",
+    "file": "14-activity-signals.png"
   }
 ]
