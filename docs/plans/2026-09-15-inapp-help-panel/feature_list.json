@@ -6,7 +6,7 @@
       "id": "t0-spike",
       "description": "Prove the Vite raw glob options and that react-markdown renders under React 19, before anything is built on either",
       "verify_command": "cd \"$WORKTREE\" && node -e \"const p=require('./package.json');process.exit(p.dependencies&&p.dependencies['react-markdown']?0:1)\"",
-      "state": "pending"
+      "state": "done"
     },
     {
       "id": "t1-content-ko",
