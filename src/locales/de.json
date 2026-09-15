@@ -1409,7 +1409,11 @@
         "consensusN": "Consensus-N-Anteil",
         "identityNote": "Die Identität wird nur über gerufene Basen gemessen, daher kann ein überwiegend aus N bestehender Consensus als nahezu perfekte Übereinstimmung erscheinen. Lesen Sie sie zusammen mit dem N-Anteil darüber.",
         "nNotEvaluable": "Der N-Anteil dieses Consensus war nicht rekonstruierbar und wurde durch 0 ersetzt, daher beruht die Identität darüber auf einer unbekannten Menge Sequenz."
-      }
+      },
+      "readWt": "WT",
+      "readNoCall": "no call (nicht bestimmbar)",
+      "readNotCovered": "nicht abgedeckt",
+      "labelReadAtSite": "Ablesung an der Designposition"
     },
     "wellSelection": {
       "title": "Verwendete Wells",

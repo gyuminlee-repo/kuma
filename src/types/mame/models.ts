@@ -31,6 +31,17 @@ export interface NoisyPosition {
   minus_count: number;
 }
 
+/**
+ * What one designed site read in one well. `position` is the 1-based amino acid
+ * coordinate of `label`; `read` is the observed label there (e.g. "L187A",
+ * "K48del") or one of the tokens "WT", "no call", "not covered".
+ */
+export interface ExpectedSiteRead {
+  label: string;
+  position: number;
+  read: string;
+}
+
 export interface VerdictRecord {
   native_barcode: string;
   custom_barcode: string;
@@ -143,6 +154,18 @@ export interface VerdictRecord {
   observed_aa_changes: string[];
   n_no_call_aa: number;
   expected_mutations: string[];
+  /**
+   * What the well read at each designed site, one entry per site in
+   * `expected_mutations` order (a later label at the same position replaces an
+   * earlier one, as the verdict does). `read` is the observed label at that
+   * position or one of "WT", "no call", "not covered", which an empty
+   * `observed_aa_changes` cannot tell apart. Computed by the sidecar serializer.
+   *
+   * Optional only because results persisted before this field are replayed
+   * verbatim; `undefined` is such a payload and every view then renders as it
+   * did before the field existed.
+   */
+  expected_site_reads?: ExpectedSiteRead[];
   /**
    * Per-well variant identity assigned by the pipeline (run-layout ground truth
    * in combinatorial-sort runs, else the observation/heuristic grouping result).

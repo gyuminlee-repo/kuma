@@ -1409,7 +1409,11 @@
         "consensusN": "Consensus N fraction",
         "identityNote": "Identity is measured over called bases only, so a mostly-N consensus can read as a near-perfect match. Read it against the N fraction above.",
         "nNotEvaluable": "The N fraction of this consensus could not be recovered and 0 was substituted, so the identity above rests on an unknown amount of sequence."
-      }
+      },
+      "readWt": "WT",
+      "readNoCall": "no call",
+      "readNotCovered": "not covered",
+      "labelReadAtSite": "Read at designed site"
     },
     "wellSelection": {
       "title": "Wells used",

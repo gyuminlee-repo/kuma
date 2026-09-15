@@ -1409,7 +1409,11 @@
         "consensusN": "Consensus N 割合",
         "identityNote": "identity はコールされた塩基のみで計算されるため、ほとんどが N の consensus でもほぼ完全一致に見えることがあります。上の N 割合と併せて読んでください。",
         "nNotEvaluable": "この consensus の N 割合を復元できず 0 が代入されました。したがって上の identity がどれだけの配列に基づくかは不明です。"
-      }
+      },
+      "readWt": "WT",
+      "readNoCall": "no call（判定不能）",
+      "readNotCovered": "カバレッジなし",
+      "labelReadAtSite": "設計部位の読み取り"
     },
     "wellSelection": {
       "title": "使用するウェル",

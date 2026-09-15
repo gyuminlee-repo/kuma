@@ -1409,7 +1409,11 @@
         "consensusN": "Fracción N del consensus",
         "identityNote": "La identidad se mide solo sobre bases llamadas, así que un consensus mayormente N puede parecer una coincidencia casi perfecta. Léala junto a la fracción N de arriba.",
         "nNotEvaluable": "La fracción N de este consensus no se pudo recuperar y se sustituyó por 0, así que la identidad de arriba se apoya en una cantidad de secuencia desconocida."
-      }
+      },
+      "readWt": "WT",
+      "readNoCall": "no call (sin lectura)",
+      "readNotCovered": "sin cobertura",
+      "labelReadAtSite": "Lectura en el sitio diseñado"
     },
     "wellSelection": {
       "title": "Pocillos usados",

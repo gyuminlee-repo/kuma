@@ -1409,7 +1409,11 @@
         "consensusN": "Fraction N du consensus",
         "identityNote": "L'identité est mesurée uniquement sur les bases appelées, donc un consensus majoritairement N peut apparaître comme une correspondance presque parfaite. Lisez-la avec la fraction N ci-dessus.",
         "nNotEvaluable": "La fraction N de ce consensus n'a pas pu être retrouvée et 0 a été substitué, donc l'identité ci-dessus repose sur une quantité de séquence inconnue."
-      }
+      },
+      "readWt": "WT",
+      "readNoCall": "no call (non déterminé)",
+      "readNotCovered": "non couvert",
+      "labelReadAtSite": "Lecture au site conçu"
     },
     "wellSelection": {
       "title": "Puits utilisés",

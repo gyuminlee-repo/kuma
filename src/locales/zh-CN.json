@@ -1409,7 +1409,11 @@
         "consensusN": "Consensus N 比例",
         "identityNote": "identity 只在已判读的碱基上计算，因此大部分为 N 的 consensus 也可能显示为近乎完全一致。请与上方的 N 比例对照阅读。",
         "nNotEvaluable": "该 consensus 的 N 比例无法复原，已以 0 代入，因此上方的 identity 建立在未知长度的序列之上。"
-      }
+      },
+      "readWt": "WT",
+      "readNoCall": "no call（无法判读）",
+      "readNotCovered": "未覆盖",
+      "labelReadAtSite": "设计位点读取结果"
     },
     "wellSelection": {
       "title": "使用的孔位",

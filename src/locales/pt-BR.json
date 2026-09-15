@@ -1409,7 +1409,11 @@
         "consensusN": "Fração N do consensus",
         "identityNote": "A identidade é medida só sobre bases chamadas, então um consensus quase todo N pode parecer uma correspondência quase perfeita. Leia junto com a fração N acima.",
         "nNotEvaluable": "A fração N deste consensus não pôde ser recuperada e 0 foi substituído, então a identidade acima se apoia em uma quantidade de sequência desconhecida."
-      }
+      },
+      "readWt": "WT",
+      "readNoCall": "no call (sem leitura)",
+      "readNotCovered": "sem cobertura",
+      "labelReadAtSite": "Leitura no sítio projetado"
     },
     "wellSelection": {
       "title": "Poços usados",

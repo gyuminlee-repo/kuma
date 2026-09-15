@@ -1409,7 +1409,11 @@
         "consensusN": "Consensus N 비율",
         "identityNote": "identity 는 호출된 염기에 대해서만 계산되므로 대부분이 N 인 consensus 도 거의 완벽한 일치로 보일 수 있습니다. 위의 N 비율과 함께 읽으십시오.",
         "nNotEvaluable": "이 consensus 의 N 비율을 복원하지 못해 0 이 대입됐습니다. 따라서 위 identity 가 얼마만큼의 서열에 근거하는지 알 수 없습니다."
-      }
+      },
+      "readWt": "WT",
+      "readNoCall": "no call (판독 불가)",
+      "readNotCovered": "커버리지 없음",
+      "labelReadAtSite": "설계 위치 판독"
     },
     "wellSelection": {
       "title": "사용할 웰",
