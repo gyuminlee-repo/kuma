@@ -2566,14 +2566,21 @@
     "descriptionRange": "Aspectos destacados de todas las actualizaciones desde la v{{from}}.",
     "gotItBtn": "Entendido",
     "highlights": [
-      "Una deleción decidida ya no cuenta para las gates NO_CALL y MIXED, por lo que tres pocillos informan la sustitución de aminoácido que portan.",
-      "La traducción reconstruye la molécula de longitud real a partir de las deleciones e inserciones llamadas en lugar de una secuencia de longitud de referencia.",
-      "La recurrencia de placa gana canales de deleción e inserción junto a la tabla de sustituciones, con truncamiento, omisión y empates contados por separado.",
-      "Cada posición recurrente lleva cuántas mutaciones esperadas distintas tenían sus pocillos, lo que separa un artefacto del caller de una muestra compartida.",
-      "Un análisis guardado ahora conserva sus evidencias de indels de consenso, antes perdidas al reabrirlo."
+      "Un run de Echo llena ahora la mitad de la source plate, columnas 1 a 12 o 13 a 24, igual que los archivos de mapping que este laboratorio usa realmente.",
+      "Desde la v0.14.0 el colocado de primers dejaba una columna sí y otra no, una disposición que nunca se usó en el banco.",
+      "La elección entre cuatro cuadrantes pasa a dos mitades, porque un run ocupa 192 pocillos y no cabe en un cuarto de placa.",
+      "Una placa anterior a esta versión no tiene una mitad libre: aquel run cubría las dos, así que ambas se marcan como usadas y usted las libera.",
+      "La colocación forward queda fijada frente a 95 transferencias leídas de una worklist real de Echo, así no puede desviarse sin que se note."
     ],
-    "highlightsStamp": "0.16.60+a87cf2d1",
+    "highlightsStamp": "0.16.61+f9b38f15",
     "releases": {
+      "0.16.61": [
+        "Un run de Echo llena ahora la mitad de la source plate, columnas 1 a 12 o 13 a 24, igual que los archivos de mapping que este laboratorio usa realmente.",
+        "Desde la v0.14.0 el colocado de primers dejaba una columna sí y otra no, una disposición que nunca se usó en el banco.",
+        "La elección entre cuatro cuadrantes pasa a dos mitades, porque un run ocupa 192 pocillos y no cabe en un cuarto de placa.",
+        "Una placa anterior a esta versión no tiene una mitad libre: aquel run cubría las dos, así que ambas se marcan como usadas y usted las libera.",
+        "La colocación forward queda fijada frente a 95 transferencias leídas de una worklist real de Echo, así no puede desviarse sin que se note."
+      ],
       "0.16.59": [
         "Un libro de MAME ahora registra la referencia, la ventana codificante, el modo y los umbrales con los que se ejecutó la corrida.",
         "La referencia se identifica por un resumen de la secuencia analizada, así la misma molécula guardada con otro nombre sigue coincidiendo.",
@@ -3008,6 +3015,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.61": "f9b38f15",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",

@@ -2566,14 +2566,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Uma deleção decidida não conta mais para os gates NO_CALL e MIXED, de modo que três poços relatam a substituição de aminoácido que carregam.",
-      "A tradução reconstrói a molécula de comprimento real a partir das deleções e inserções chamadas em vez de uma sequência de comprimento de referência.",
-      "A recorrência de placa ganha canais de deleção e inserção ao lado da tabela de substituições, com truncamento, omissão e empates contados separadamente.",
-      "Cada posição recorrente carrega quantas mutações esperadas distintas seus poços tinham, o que separa um artefato do caller de uma amostra compartilhada.",
-      "Uma análise salva agora mantém suas evidências de indels de consenso, antes perdidas ao reabrir."
+      "Uma rodada do Echo agora preenche metade da source plate, colunas 1 a 12 ou 13 a 24, como nos arquivos de mapping que este laboratório realmente usa.",
+      "Desde a v0.14.0 o posicionamento dos primers pulava uma coluna sim e outra não, um layout que nunca foi usado na bancada.",
+      "A escolha entre quatro quadrantes vira duas metades, porque uma rodada ocupa 192 poços e não cabe em um quarto da placa.",
+      "Uma placa anterior a esta versão não tem metade livre: aquela rodada cobria as duas, então ambas ficam marcadas como usadas e você as libera.",
+      "O posicionamento forward está fixado contra 95 transferências lidas de uma worklist real do Echo, então não volta a desviar sem ser notado."
     ],
-    "highlightsStamp": "0.16.60+a87cf2d1",
+    "highlightsStamp": "0.16.61+f9b38f15",
     "releases": {
+      "0.16.61": [
+        "Uma rodada do Echo agora preenche metade da source plate, colunas 1 a 12 ou 13 a 24, como nos arquivos de mapping que este laboratório realmente usa.",
+        "Desde a v0.14.0 o posicionamento dos primers pulava uma coluna sim e outra não, um layout que nunca foi usado na bancada.",
+        "A escolha entre quatro quadrantes vira duas metades, porque uma rodada ocupa 192 poços e não cabe em um quarto da placa.",
+        "Uma placa anterior a esta versão não tem metade livre: aquela rodada cobria as duas, então ambas ficam marcadas como usadas e você as libera.",
+        "O posicionamento forward está fixado contra 95 transferências lidas de uma worklist real do Echo, então não volta a desviar sem ser notado."
+      ],
       "0.16.59": [
         "Uma pasta do MAME agora registra a referência, a janela codificante, o modo e os limiares sob os quais a execução ocorreu.",
         "A referência é identificada por um resumo da sequência analisada, então a mesma molécula salva com outro nome continua correspondendo.",
@@ -3008,6 +3015,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.61": "f9b38f15",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",

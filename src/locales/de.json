@@ -2566,14 +2566,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Eine entschiedene Deletion zählt nicht mehr für die NO_CALL- und MIXED-Gates, sodass drei Wells die tatsächliche Aminosäuresubstitution melden.",
-      "Die Translation rekonstruiert das längentreue Molekül aus den aufgerufenen Deletionen und Insertionen statt aus einer Sequenz in Referenzlänge.",
-      "Plate Recurrence erhält Deletions- und Insertionskanäle neben der Substitutionstabelle; Kürzung, Auslassung und Gleichstand werden getrennt gezählt.",
-      "Jede wiederkehrende Position führt mit, wie viele unterschiedliche erwartete Mutationen ihre Wells hatten, was ein Caller-Artefakt von einer geteilten Probe trennt.",
-      "Ein gespeichertes Ergebnis behält nun seine Consensus-Indel-Belege, die beim erneuten Öffnen zuvor verloren gingen."
+      "Ein Echo Durchlauf füllt jetzt eine Hälfte der Source Plate, Spalten 1 bis 12 oder 13 bis 24, wie in den Mapping Dateien, die dieses Labor tatsächlich fährt.",
+      "Die Primer Platzierung ließ seit v0.14.0 jede zweite Spalte frei, ein Layout, das am Bench nie gefahren wurde.",
+      "Aus der Auswahl von vier Quadranten werden zwei Hälften, denn ein Durchlauf füllt 192 Wells und passt nicht in ein Viertel.",
+      "Eine Platte von vor diesem Release hat keine freie Hälfte: der damalige Durchlauf lag über beiden, also gelten beide als verbraucht, bis Sie das aufheben.",
+      "Die Forward Platzierung ist gegen 95 Transfers aus einer echten Echo Worklist festgelegt und kann nicht unbemerkt zurückdriften."
     ],
-    "highlightsStamp": "0.16.60+a87cf2d1",
+    "highlightsStamp": "0.16.61+f9b38f15",
     "releases": {
+      "0.16.61": [
+        "Ein Echo Durchlauf füllt jetzt eine Hälfte der Source Plate, Spalten 1 bis 12 oder 13 bis 24, wie in den Mapping Dateien, die dieses Labor tatsächlich fährt.",
+        "Die Primer Platzierung ließ seit v0.14.0 jede zweite Spalte frei, ein Layout, das am Bench nie gefahren wurde.",
+        "Aus der Auswahl von vier Quadranten werden zwei Hälften, denn ein Durchlauf füllt 192 Wells und passt nicht in ein Viertel.",
+        "Eine Platte von vor diesem Release hat keine freie Hälfte: der damalige Durchlauf lag über beiden, also gelten beide als verbraucht, bis Sie das aufheben.",
+        "Die Forward Platzierung ist gegen 95 Transfers aus einer echten Echo Worklist festgelegt und kann nicht unbemerkt zurückdriften."
+      ],
       "0.16.59": [
         "Eine MAME-Arbeitsmappe hält jetzt die Referenz, das kodierende Fenster, den Modus und die Schwellenwerte des Laufs fest.",
         "Die Referenz wird über einen Digest der geparsten Sequenz identifiziert, sodass dasselbe Molekül unter anderem Namen weiterhin passt.",
@@ -3008,6 +3015,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.61": "f9b38f15",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",

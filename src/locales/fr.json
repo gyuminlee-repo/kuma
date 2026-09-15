@@ -2566,14 +2566,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Une délétion décidée ne compte plus dans les gates NO_CALL et MIXED, de sorte que trois puits signalent la substitution d'acide aminé qu'ils portent.",
-      "La traduction reconstruit la molécule de longueur réelle à partir des délétions et insertions appelées plutôt qu'une séquence de longueur de référence.",
-      "La récurrence de plaque gagne des canaux de délétion et d'insertion à côté du tableau des substitutions, avec troncature, omission et égalités comptées séparément.",
-      "Chaque position récurrente porte le nombre de mutations attendues distinctes de ses puits, ce qui sépare un artefact du caller d'un échantillon partagé.",
-      "Une analyse enregistrée conserve désormais ses preuves d'indels de consensus, auparavant perdues à la réouverture."
+      "Un run Echo remplit désormais la moitié de la source plate, colonnes 1 à 12 ou 13 à 24, comme dans les fichiers de mapping réellement utilisés par ce laboratoire.",
+      "Depuis la v0.14.0, le placement des primers sautait une colonne sur deux, une disposition jamais utilisée à la paillasse.",
+      "Le choix entre quatre quadrants devient deux moitiés, car un run occupe 192 puits et ne tient pas dans un quart de plaque.",
+      "Une plaque antérieure à cette version n'a pas de moitié libre : le run d'alors couvrait les deux, donc les deux sont marquées comme utilisées et c'est à vous de les libérer.",
+      "Le placement forward est fixé sur 95 transferts lus dans une vraie worklist Echo, il ne peut plus dériver sans être vu."
     ],
-    "highlightsStamp": "0.16.60+a87cf2d1",
+    "highlightsStamp": "0.16.61+f9b38f15",
     "releases": {
+      "0.16.61": [
+        "Un run Echo remplit désormais la moitié de la source plate, colonnes 1 à 12 ou 13 à 24, comme dans les fichiers de mapping réellement utilisés par ce laboratoire.",
+        "Depuis la v0.14.0, le placement des primers sautait une colonne sur deux, une disposition jamais utilisée à la paillasse.",
+        "Le choix entre quatre quadrants devient deux moitiés, car un run occupe 192 puits et ne tient pas dans un quart de plaque.",
+        "Une plaque antérieure à cette version n'a pas de moitié libre : le run d'alors couvrait les deux, donc les deux sont marquées comme utilisées et c'est à vous de les libérer.",
+        "Le placement forward est fixé sur 95 transferts lus dans une vraie worklist Echo, il ne peut plus dériver sans être vu."
+      ],
       "0.16.59": [
         "Un classeur MAME enregistre désormais la référence, la fenêtre codante, le mode et les seuils sous lesquels la série a été exécutée.",
         "La référence est identifiée par une empreinte de la séquence analysée, si bien que la même molécule enregistrée sous un autre nom correspond toujours.",
@@ -3008,6 +3015,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.61": "f9b38f15",
       "0.16.59": "69e92cd5",
       "0.16.56": "9b525cb2",
       "0.16.55": "0e44b7f4",
