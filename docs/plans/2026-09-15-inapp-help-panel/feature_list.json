@@ -30,7 +30,7 @@
       "id": "t3-loader",
       "description": "Load topics through import.meta.glob with a locale fallback that reports itself. Needs both locale trees: the fallback tests assert what happens when a locale lacks a topic, which cannot be observed with only one tree present.",
       "verify_command": "bash \"$HOME/.claude/skills/win-build/scripts/win-build.sh\" pnpm exec vitest run --silent --reporter=dot --cwd \"$WORKTREE\" src/help/content.test.ts",
-      "state": "pending",
+      "state": "done",
       "depends_on": [
         "t1-content-ko",
         "t2-content-en"
@@ -40,7 +40,7 @@
       "id": "t4-topics",
       "description": "Declare the contents groups, the step mapping, and prove no cross-reference points at a missing topic",
       "verify_command": "bash \"$HOME/.claude/skills/win-build/scripts/win-build.sh\" pnpm exec vitest run --silent --reporter=dot --cwd \"$WORKTREE\" src/help/topics.test.ts",
-      "state": "pending",
+      "state": "done",
       "depends_on": [
         "t3-loader"
       ]
