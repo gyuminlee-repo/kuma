@@ -1,35 +1,40 @@
-# Step 3. Parameters
+# 단계 3. 프라이머 파라미터
 
-polymerase profile, codon strategy, Tm/GC 범위를 지정한다.
+설계 전략과 중합효소를 고르고 이번 실행에서 설계할 후보 수를 정한다. 나머지 값은 기본값으로 두어도 설계가 돈다.
 
-## Polymerase profile
+## 기본 설정
 
-7 종 내장 + custom:
-
-- Taq, Phusion, Q5, Q5 SDM, KOD, DreamTaq, TAKARA_GXL (기본값 KOD)
-- Custom profile 은 `~/.kuma/kuro/custom_polymerases.json` 에 저장.
-
-profile 선택 시 설계에 반영되는 값은 GC 범위와 overlap 모드다. 설계 시점 Tm 은 SantaLucia 1998 (Benchling) 고정 스케일이라 profile 을 바꿔도 변하지 않는다. profile 의 Tm method · salt · DNA 값은 권장 annealing 온도(Ta) 계산에만 쓰인다.
-
-## Codon strategy
-
-| 값 | 의미 |
+| 항목 | 고르는 값 |
 |---|---|
-| Min. changes | WT 코돈에서 최소 염기 변경 |
-| Optimal | E. coli 최적 codon |
+| `전략:` | `부분 오버랩 (Gibson)` 은 forward 와 reverse 를 따로 설계하고 overlap 을 코돈 상류에 둔다. `전체 오버랩 (Q5 SDM)` 은 reverse 를 forward 의 역상보 서열로 만들어 한 쌍이 변이 위치를 덮는다. |
+| `중합효소:` | 프리셋을 고르면 권장 어닐링 온도 규칙, GC 범위, overlap 모드가 함께 바뀐다. 기본값은 KOD 다. `사용자 폴리머라제` 로 직접 정의할 수도 있다. |
+| `설계 후보 수:` | 이번 실행에서 설계할 변이 수다. 옆에 플레이트 몇 장인지 함께 표시된다. |
 
-## Tm / GC
+중합효소를 바꾸면 Tm 목표값과 GC 범위가 그 프리셋 값으로 덮어써진다. 직접 맞춰 둔 값이 있으면 다시 확인한다. 내장 프리셋 7종은 같은 Tm 과 GC 값을 쓰므로 내장끼리 바꾸면 화면 숫자는 그대로다.
 
-- Default: Fwd 62 °C, Rev 58 °C, Overlap 42 °C
-- Tolerance: ±0.5 ~ ±10.0 °C (default 3.0)
-- GC range: 40-60 % (Advanced Options 에서 조정)
+설계 시점 Tm 계산식은 SantaLucia 1998 고정이다. 중합효소를 바꿔도 계산식은 달라지지 않는다.
 
-## Length
+## 고급 옵션
 
-Fwd/Rev min/max length 제한 옵션.
+`고급 옵션` 을 펼치면 아래 값이 나온다.
 
-## v0.9.2.x 변경
+| 항목 | 기본값 |
+|---|---|
+| Tm (`Fwd:` `Rev:` `Overlap:`) | 62 °C, 58 °C, 42 °C. 전체 오버랩에서는 `Primer:` 하나로 합쳐진다. |
+| `Tm 허용 오차 ±` | 4.0 °C. 2~5 °C 를 권장한다. |
+| GC% `범위:` | 40~60 %. |
+| Primer 길이 `제한` | 켜져 있고 F 는 18~39 bp, R 은 19~27 bp 다. 끄면 고른 중합효소 프리셋의 길이 범위를 쓴다. |
+| `실패한 돌연변이 자동 구제` | 켜져 있다. 제약을 완화한 재시도를 돌린다. |
+| `시드:` | 비어 있다. 값을 넣으면 설계 기록에만 남고 프라이머 순위는 바뀌지 않는다. |
 
-- ParameterPanel 의 모든 local state 가 Next 클릭 시 store 로 flush 된다. Submit step 의 Design summary 카드 값이 항상 일치.
+## 화면에 나오는 문구
 
-→ [Step 4. Submit Design](kuro-04-submit.md)
+| 문구 | 뜻과 할 일 |
+|---|---|
+| `설계 후보 수를 한 플레이트 분량으로 제한했습니다` | 96 을 넘는 값을 넣었다. 한 번의 설계는 플레이트 한 장까지 다루므로 96 으로 되돌린다. |
+| `CSV에 변이가 {n}개뿐입니다` | 설계 후보 수가 불러온 변이 수보다 크다. 후보 수를 줄이거나 변이를 더 불러온다. |
+| `최솟값은 최댓값보다 작아야 합니다` | GC 범위나 길이 범위의 앞뒤가 뒤집혔다. 두 값을 바로잡는다. |
+
+## 다음
+
+→ [단계 4. 풀 필터 및 실행](kuro-04-submit.md)

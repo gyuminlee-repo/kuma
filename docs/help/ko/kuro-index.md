@@ -1,24 +1,26 @@
-# KURO — 6-step 워크플로우
+# KURO 6단계 워크플로우
 
-KURO 는 6개 step 으로 구성된 linear wizard 이다. 왼쪽 Workflow Rail 에서 step 을 자유롭게 클릭할 수 있고, 하단 Next 버튼은 누락 입력이 있을 때 안내 Dialog 를 띄운다.
+KURO 는 프라이머를 설계해 주문 파일까지 내보내는 6단계 마법사다. 각 단계 화면 위에는 `단계 N: 제목` 머리말이 있고 아래에는 `이전`, `다음` 버튼이 있다.
 
-```
-1. Load        →  서열 + 유전자 + organism 선택
-2. Mutation    →  text / EVOLVEpro 입력
-3. Parameters  →  polymerase · codon strategy · Tm 범위
-4. Submit      →  Design summary 카드 + Run Design
-5. Output      →  per-mutation 결과 표 + 우측 DesignReportInspector
-6. Export      →  xlsx / Echo / JANUS / plate map
-```
+## 6개 단계
 
-<!-- TODO: insert screenshot of KURO 6-step rail -->
+| 단계 | 화면 이름 | 하는 일 |
+|---|---|---|
+| 1 | 변이체 로드 | 서열 파일을 불러오고 타겟 유전자와 생물체를 정한다. [자세히](kuro-01-load.md) |
+| 2 | 변이 | 예측 표를 불러와 설계할 변이를 고른다. [자세히](kuro-02-mutation.md) |
+| 3 | 프라이머 파라미터 | 전략, 중합효소, 설계 후보 수와 Tm·GC 범위를 정한다. [자세히](kuro-03-params.md) |
+| 4 | 풀 필터 및 실행 | 요약을 확인하고 `설계 실행` 을 누른다. [자세히](kuro-04-submit.md) |
+| 5 | 요약 | 설계 결과 표, 플레이트 맵, 리포트를 읽는다. [자세히](kuro-05-output.md) |
+| 6 | 내보내기 | 주문용 파일과 장비용 파일을 저장한다. [자세히](kuro-06-export.md) |
 
-## v0.9.2.x 패치에서 바뀐 점
+## 단계 사이 이동
 
-- **Sidebar 자유 navigate**: 어떤 step 이든 즉시 클릭 이동. prerequisite 미충족 step 은 빈 화면이 아닌 empty-state 메시지를 보여준다.
-- **Next 버튼**: 필수 입력 누락 시 validation Dialog. sidebar 클릭은 차단하지 않는다.
-- **Run Design 자동 advance**: 성공 시 popup 없이 `output.summary` 로 자동 이동.
-- **DesignReportInspector**: Output 우측 고정 패널에 report 표시. 별도 step 아님.
-- **DesignSummaryCard**: Submit step 상단에 sequence/mutation/parameter 핵심값 요약.
+왼쪽 목록에서 어느 단계든 바로 누를 수 있다.
 
-자세한 step 설명은 좌측 메뉴에서 step 별 페이지를 참고한다.
+`다음` 버튼은 그 단계의 필수 입력을 검사한다. 빠진 것이 있으면 `정보 누락` 대화상자가 열려 무엇이 없는지 알려 준다. 왼쪽 목록 클릭은 이 검사를 거치지 않는다.
+
+화면 위쪽의 `Sequence Map` 은 모든 단계에서 함께 보인다. 서열을 아직 불러오지 않았으면 `시퀀스 없음` 상태로 남는다.
+
+## 다음
+
+→ [단계 1. 변이체 로드](kuro-01-load.md)

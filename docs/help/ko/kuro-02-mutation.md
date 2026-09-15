@@ -1,29 +1,39 @@
-# Step 2. Mutation Input
+# 단계 2. 변이
 
-두 가지 입력 모드 중 하나를 선택한다.
+EVOLVEpro 예측 표를 불러와 이번 설계에 넣을 변이를 고른다.
 
-## Mode 1 — Text (수기 입력)
+## 하는 일
 
-`Q232A` 형식 한 줄당 한 변이. 비어있는 줄은 무시된다.
+1. `Browse` 로 예측 파일을 고른다. `.csv`, `.tsv`, `.xlsx`, `.xls` 를 받는다.
+2. `캠페인 라운드` 에서 `라운드` 번호와 `크기` 를 확인한다. 이 값은 뒤 단계의 기본값 계산에 쓰인다.
+3. `Column 매핑` 에서 `Mutation column` 과 `Ranking column` 이 제대로 잡혔는지 본다. 기본은 자동 감지다.
+4. `선택 모드` 에서 `Top-N만` 또는 `파이프라인` 을 고른다.
+5. 아래 후보 표에서 체크를 켜고 꺼서 최종 목록을 다듬는다.
 
-## Mode 2 — EVOLVEpro CSV
+## 화면이 보여주는 것
 
-`variant`, `y_pred` 두 컬럼을 가진 `df_test.csv` 형식. Drag-drop 후 score 내림차순 정렬 → top-N 자동 선택.
-
-| 옵션 | 효과 |
+| 표시 | 읽는 법 |
 |---|---|
-| Position diversity | 한 position 당 변이 N 개 제한 (Grantham 1974 distance tie-break) |
-| Domain diversity | InterPro/Pfam domain 별 quota 분배 |
-| Pareto diversity | greedy maximin position spread |
-| σ-Adaptive Pool | EVOLVEpro Round 기반 K·entropy 보정 |
+| `{n}개 변이 불러옴` | 파일에서 읽어 들인 변이 총 개수다. |
+| `Top-N만 (y_pred 내림차순)` | 점수가 높은 순서로 위에서부터 자른다. |
+| `파이프라인 (단계별 필터링)` | 단계 4 의 풀 필터를 거쳐 고른다. |
+| `추가 후보 표시 수` | 선택되지 않은 후보를 몇 개까지 표에 더 보여줄지 정한다. `0` 이면 선택된 것만 보인다. |
+| `{n}개 변이 입력됨` | 지금 설계에 들어갈 변이 수다. 뒤에 `({n}개 검증됨)` 과 `({n}개 실패)` 가 따라붙는다. |
 
-position 1 (개시코돈, initiator Met) 변이는 치환 시 단백질 발현이 사라지므로 로드 단계에서 자동 제외된다. 제외된 변이 목록과 개수는 Design Report 에 표시된다 (`start_codon_removed`, `start_codon_removed_variants`).
+실패한 줄은 표 아래에 줄 번호, 원문, 이유와 함께 나열된다.
 
-## v0.9.2.x 변경
+## 화면에 나오는 문구
 
-- Selection mode 라디오 변경값이 Submit step 의 Design summary 카드에 즉시 반영된다 (store flush).
-- Sidebar 자유 navigate: 서열 미로딩 상태에서 진입 가능. 단 mutation 표는 disabled 상태로 표시된다.
+| 문구 | 뜻과 할 일 |
+|---|---|
+| `파일 선택 없음` | 아직 예측 파일이 없다. `Browse` 로 파일을 고른다. |
+| `라운드 이력상 라운드 N이(가) 제안되지만, 현재 M으로 설정되어 있습니다.` | 저장된 라운드 이력과 지금 입력한 라운드 번호가 어긋난다. 번호를 맞추거나 의도한 값이면 그대로 둔다. |
+| `EVOLVEpro 파일 불러오기 실패: …` | 자동 감지가 실패했다. 안내대로 mutation column 과 ranking column 을 직접 고른 뒤 `선택한 column 적용` 을 누른다. |
+| `이 파일에서 column을 찾지 못했습니다. 파일을 확인하거나 다른 sheet를 선택하세요.` | xlsx 의 다른 sheet 를 고르거나 파일을 확인한다. |
+| `Top-N의 범위는 1~96입니다. CSV에서 더 많은 변이를 읽으려면 값을 늘리세요.` | 여기서 말하는 값은 단계 3 의 `설계 후보 수:` 다. 한 번의 설계는 플레이트 한 장 분량까지만 다룬다. |
+| `추가 후보 {n}개 전체 표시됨` | 더 보여줄 후보가 남지 않았다. |
+| `Mutation 입력이 필요합니다` | `다음` 을 눌렀을 때 뜨는 `정보 누락` 대화상자의 항목이다. 예측 파일을 먼저 불러온다. |
 
 ## 다음
 
-→ [Step 3. Parameters](kuro-03-params.md)
+→ [단계 3. 프라이머 파라미터](kuro-03-params.md)

@@ -1,42 +1,30 @@
-# MAME — Major.Sub 워크플로우
+# MAME 워크플로우
 
-MAME 는 4개 major step 으로 구성되며, 각 major 는 하위 sub-step 을 가진다. KURO 의 단일 1..6 카운트와 달리 **Major.Sub 계층 표기** (`1.1`, `2.1`, `2.2`, `3.1`, `4.1`) 를 쓴다. rail 이 세는 sub-step 은 6개이며, 정본은 `src/components/mame/layout/MameWorkflowRail.tsx` 의 `ALL_SUBSTEPS` 와 `SUBSTEP_DISPLAY` 다.
+MAME 는 바코드 프라이머 설계에서 시작해 시퀀싱 판정, 로봇 피킹 시트, 활성도 데이터까지 네 단계로 이어진다. 왼쪽 레일에서 어느 단계든 눌러 바로 이동할 수 있다.
 
-```
-1. Barcode Setup
-   1.1 Files & Coordinates
-2. Analyze
-   2.1 Inputs                 (실행 입력, Run/Validate)
-   2.2 Review                 (verdict + plate + per-plate verdict bar)
-3. Janus instrument settings
-   3.1 Janus                  (선택 단계. 건너뛰어도 실행에 지장 없음)
-4. Activity Data
-   4.1 Ingest
-   4.2 Signals                (merge + export 포함)
-```
+## 네 단계
 
-Janus 장비 설정은 v0.15.12 에서 step 2.1 밖으로 나와 자체 major step 3 이 되었다. Activity 는 4.x 로 밀렸다. 시퀀싱 판정만 필요한 운용자가 쓰지 않을 로봇 설정을 지나치지 않도록 한 분리이며 step 3 은 어떤 실행도 막지 않는다.
+| 단계 | 이 화면에서 하는 일 |
+|---|---|
+| 1. 커스텀 바코드 프라이머 설계 | CDS 서열과 바코드 시드 xlsx 로 바코드 패키지를 만든다 |
+| 2. 시퀀싱 QC | MinKNOW run 폴더를 분석해 well 별 판정을 낸다 |
+| 3. Janus 장비 설정 | 선정된 클론을 로봇이 읽는 시트로 내보낸다 |
+| 4. 활성도 데이터 | 활성 측정값을 EVOLVEpro 입력으로 바꾼다 |
 
-## step 3 (v0.16.1 기준)
+레일에는 단계마다 하위 번호가 붙는다. 1.1 바코드 패키지, 2.1 입력, 2.2 검토, 3.1 Janus 장비 설정, 4.1 활성 데이터, 4.2 신호 및 핸드오프 여섯 개다.
 
-실행이 스스로 쓰는 Janus 파일은 선정 클론 pick 목록(`..._picks.csv`) 하나다. 로봇이 읽는 8열 매핑 시트(`..._janus.csv`)는 step 3 의 export 를 눌렀을 때만 만들어진다. 로봇 시트는 deck 을 적는 파일이고 이 값은 export 시점의 실험실 상태를 진술하므로 재실행마다 자동으로 다시 쓰지 않는다. 두 rack 열에는 deck 번호가 아니라 플레이트 이름이 들어가고 liquid class 열은 없다.
+## 3단계는 선택이다
 
-step 3 화면에서 다이얼로그가 사라졌다. "Janus 장비 설정 열기" 버튼과 팝업 대신 같은 내용(volume, liquid class, sample type, 행 미리보기, 제외 클론, export 버튼)이 step 3 페이지에 인라인으로 펼쳐진다.
+시퀀싱 판정만 필요하면 2단계에서 4단계로 바로 넘어가면 된다. Janus 값은 실행도, 2단계도, 4단계도 막지 않는다. 분석 실행은 선정 결과 파일(`..._picks.csv`)을 스스로 기록한다. 로봇이 읽는 시트(`..._janus.csv`)는 3단계에서 내보내기를 누를 때만 기록된다.
 
-analyze 화면(2.x)에는 Janus 가 없다. 장비 설정도, 실행이 장비용 파일을 썼다는 안내도 step 3 에서만 나온다.
+## 입력은 MinKNOW run 폴더다
 
-<!-- TODO: insert screenshot of MAME rail with Major.Sub labels -->
+2단계에 넣는 것은 MinKNOW 가 만든 run 폴더 그대로다. 바코드별로 미리 정렬해 둘 필요가 없다. MAME 가 `fastq_pass/` 아래의 `.fastq` 와 `.fastq.gz` 를 읽어 바코드를 나누고 consensus 를 만든다.
 
-## 표기 위치
+## 단계별 문서
 
-- WizardContainer header: `Step 1.1: Files & Coordinates`
-- Sidebar rail: major 굵게 (`1. Barcode Setup`), sub 들여쓰기 (`  1.1 Files & Coordinates`)
-- Footer progress: `Step 1.1 / 4.2`
-
-## v0.9.2.x 변경
-
-- Sidebar 자유 navigate: 1.1 → 4.2 어떤 sub-step 이든 즉시 클릭 이동.
-- 빈 화면 fallback 제거. step 별 default 경로가 모두 empty-state 메시지로 처리됨.
-- 2.1/2.2 통합 review sub-step + per-plate verdict bar (PPT slide 6 의 NGS 효율 그래프) — **Task #12 구현 진행 중**.
-
-자세한 step 설명은 좌측 메뉴.
+- [바코드 설정](mame-01-setup.md)
+- [분석 및 검토](mame-02-review.md)
+- [Janus](mame-03-janus.md)
+- [활성](mame-04-activity.md)
+- [MAME 파이프라인](mame-pipeline.md)

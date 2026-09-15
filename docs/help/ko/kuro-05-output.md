@@ -1,59 +1,48 @@
-# Step 5. Output Summary
+# 단계 5. 요약
 
-per-mutation 설계 결과를 표 + 96-well plate map + 우측 DesignReportInspector 로 표시한다.
+설계 결과를 표와 플레이트 맵으로 확인한다. 어떤 변이를 실제로 내보낼지 여기서 정한다.
 
-## Layout
+## 화면 구성
 
-```
-┌──────────────────────────────────────┬─────────────────────┐
-│  Result table (sortable)             │ DesignReport         │
-│  + Plate map (96-well)               │ Inspector            │
-│  + Sequence Map                      │ (고정 표시)          │
-└──────────────────────────────────────┴─────────────────────┘
-```
+왼쪽은 통계 한 줄과 결과 표, 그 아래 3D 구조 분석이다. 오른쪽은 플레이트 맵이다. 가운데 세로 손잡이를 끌면 좌우 폭이 바뀐다. 오른쪽 위 버튼을 누르면 플레이트 맵이 접히고 다시 누르면 펼쳐진다.
 
-좌·우 영역은 `react-resizable-panels` splitter 로 폭 조절 가능 (v0.9.2.x D2). Inspector toggle 버튼으로 우측 영역을 접을 수 있다.
+| 통계 | 뜻 |
+|---|---|
+| 프라이머 | 설계에 성공한 프라이머 수 |
+| 플레이트 | 정방향 프라이머가 차지하는 96-well 플레이트 수 |
+| 실패 | 설계하지 못한 변이 수 |
+| 복구됨 | 제약을 완화하거나 대체 위치로 되살린 변이 수 |
 
-## Result table
+## 결과 표
 
-- 모든 컬럼 sortable (y_pred, synthesis score 포함)
-- Primer sequence 클릭 → Candidate comparison popover
-- Failed mutation 클릭 → retry popover (median Tm / GC pre-fill + "Use suggestion" 버튼)
+- 모든 열을 정렬할 수 있다. 정렬 순서는 플레이트 맵과 내보내기 파일에 그대로 반영된다.
+- `포함` 체크박스가 그 행의 운명을 정한다. 체크를 풀면 플레이트 맵과 모든 내보내기 파일에서 빠진다.
+- 실패한 행을 누르면 재시도 창이 열린다. 제안 Tm 과 GC 값이 미리 채워져 있다.
+- `파이프라인 + 실패 시 채우기가 해당 위치를 대체했으므로 재시도가 불필요합니다.` 가 보이면 그 행은 이미 다른 변이로 채워진 자리다. 재시도 버튼은 눌리지 않는다.
 
-## DesignReportInspector (v0.9.2.x 신설)
+## 플레이트 맵
 
-`src/components/inspectors/kuro/DesignReportInspector.tsx`. 기존 `DesignReport.tsx` 본문이 재사용 가능한 `DesignReportContent` 로 분리되어 inspector 와 export 양쪽에서 사용된다.
+`플레이트 쌍 검토` 는 정방향 플레이트 하나와 중복 제거된 역방향 파트너를 한 페이지에 함께 보여준다. `공유 역방향` 표시는 여러 정방향 프라이머가 같은 역방향 프라이머를 함께 쓴다는 뜻이다.
 
-내용:
-- 전체 mutation 수 / success / failed
-- Position rescue cascade 단계별 카운트 (🎯¹ length / 🎯² +GC / 🎯³ +mild Tm / 🎯⁴ strong / ↻¹ alt-variant / ↻² alt-position)
-- Synthesis quality score 분포
-- Off-target 검출 로그
+## 3D 구조 분석
 
-## Candidate 3D structure analysis (v0.13.7)
+표 아래 `Candidate 3D structure analysis` 패널이 후보 위치를 단백질 구조 위에 올려 준다.
 
-Output 하단의 접이식 패널 (기본 접힘, 열 때만 3Dmol 로드). structure/UniProt accession 이 있으면 AlphaFold/PDB 구조를 불러오고, 없으면 PDB/CIF 업로드 fallback 으로 진행한다. 대상은 현재 design 후보 집합 (`evolveproSelectedVariants`), 없으면 ranked candidates 전체.
+- UniProt accession 이 있으면 AlphaFold 구조를 불러온다. accession 이 없으면 서열에서 ESMFold 로 예측하며 이때 Active site 와 Binding site 표시는 숨겨진다.
+- 서열이 400 잔기를 넘고 accession 도 없으면 예측하지 않는다. accession 을 넣거나 `Upload PDB/CIF` 로 구조 파일을 직접 올린다.
+- 변이 위치는 sphere 로 표시되고 색은 y_pred 를 따른다. 주황 stick 은 촉매 잔기(`Active site`), 마젠타 sphere 는 리간드·기질·금속 결합 잔기(`Binding site`)다. 단백질끼리 만나는 계면이 아니다.
+- `Color legend` 의 행을 누르면 그 층이 3D 화면에서 켜지거나 꺼진다.
+- `Structural Dispersion` 은 고른 변이 위치가 공간에서 뭉쳤는지 퍼졌는지를 무작위 잔기 집합과 비교한다. `P1` 은 강한 뭉침, `P99` 는 강한 퍼짐이다.
 
-레이아웃 순서(위→아래): **툴바 → 3D viewer → Color legend → Structural Dispersion → Active site → Selected Positions/Positions by Domain**. 토글·색칠 조작 결과를 바로 위 viewer에서 즉시 확인할 수 있도록 뷰어와 컨트롤을 붙여 배치.
+이 패널은 해석과 점검을 돕는 자료다. 후보를 걸러내는 필터가 아니다.
 
-구성:
-- **3Dmol viewer** — cartoon + variant sphere(y_pred 그라데이션) + active-site stick(주황) + binding-site sphere(마젠타). domain/pLDDT/plain 색칠 모드, surface, spin, fullscreen, PNG export.
-- **Color legend** — viewer 바로 아래. 각 색의 의미를 현재 색칠 모드/표시 상태에 맞춰 표시하고, **행 클릭으로 3D 레이어 on/off** (variant / active-site / binding-site). backbone은 구조가 항상 보여야 하므로 토글 대상 제외.
-- **Structural Dispersion 카드** — 선택 변이 위치들이 3D 공간에서 얼마나 뭉쳤는지/퍼졌는지를 무작위 matched-size 잔기 집합(null)과 비교. mean pairwise Cα 거리, null p05–p95, percentile(`P1`=강한 clustering, `P99`=강한 spread), classification, null 분포 히스토그램.
-- **`?` 도움말 토글** — 카드/히스토그램/각 지표/legend에 인라인 설명(InlineHelp).
-- **Selected Positions / Positions by Domain 표** — accession-frame 로 매핑된 위치, active/binding/pLDDT/domain.
+## 결과가 보이지 않을 때
 
-**용어 주의 (binding site)**: 마젠타 sphere로 표시되는 것은 UniProt `Binding site` feature(리간드/기질/보조인자/금속이온 결합 잔기)다. **단백질-단백질 계면(interface)이 아니다.** 이전에 "Interface"로 표기했던 라벨은 `Binding site`로 정정됨(v0.13.7.2). 주황 stick은 UniProt `Active site`(촉매 잔기).
-
-### 해석 원칙 — QC 보조이지 selection filter 가 아님
-
-3D dispersion·pLDDT·active/interface overlay 는 **해석·QC 보조 지표**다. 후보 선정 게이트가 아니다.
-
-- 구조를 못 이루는(저 pLDDT / disordered) 잔기라도 **변이 대상에서 자동 배제하지 않는다.** 후보 선정 권한은 EVOLVEpro `y_pred` 랭킹에 있다.
-- 근거(비대칭 손익): 낭비되는 well 1개(bounded, ~1%) < 놓친 진짜 hot spot(그 라운드에서 회복 불가). ESM/EVOLVEpro 점수가 이미 저제약 위치를 낮게 랭크하므로 구조 필터는 대체로 중복이고, loop/동역학 유래 유익 변이를 잘라낼 위험이 있다.
-- 예외는 “필터”가 아니라 좌표 정합성 문제다: transit peptide / tag / linker 처럼 **성숙 단백질에 없는 구간**은 애초에 변이 대상 좌표에서 제외한다.
-- 저 pLDDT 위치가 top 에 올라오면 자동 배제가 아니라 사람이 이 패널로 보고 판단한다.
+| 화면 문구 | 할 일 |
+|---|---|
+| `아직 결과 없음` | 아직 설계를 돌린 적이 없다. 단계 4 로 돌아가 실행한다 |
+| `이 작업 공간에 프라이머 결과가 없습니다` | 설계 뒤에 입력을 바꿔 결과가 폐기됐다. 안내에 적힌 시각과 개수를 확인하고 다시 실행한다 |
 
 ## 다음
 
-→ [Step 6. Export](kuro-06-export.md)
+→ [단계 6. 내보내기](kuro-06-export.md)

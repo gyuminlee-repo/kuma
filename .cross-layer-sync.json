@@ -1417,7 +1417,7 @@
         "docs/help/ko/mame-pipeline.md",
         "docs/mame/mame-pipeline.md"
       ],
-      "note": "In-app help content is a copy of the published step guides. A change to one side has to reach the other or the app and the site disagree.",
+      "note": "In-app help is the user-facing digest of the published step guide next to it: same screen, same steps, same warnings, with the version history, module paths and design rationale left out. The two are not identical by design, so this group is a warning rather than a gate. When a step changes behaviour, both sides have to say the new behaviour or the app and the site disagree about what the app does.",
       "severity": "warning"
     }
   ]

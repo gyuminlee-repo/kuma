@@ -1,29 +1,33 @@
-# Step 1. Sequence Load
+# 단계 1. 변이체 로드
 
-서열 파일을 로드하고 target gene · organism 을 지정한다.
+설계의 바탕이 될 서열 파일을 불러오고 프라이머를 설계할 유전자와 코돈 사용 빈도표를 정한다.
+
+## 하는 일
+
+1. `찾아보기` 를 누르거나 창 안으로 파일을 끌어다 놓아 서열을 불러온다.
+2. `타겟 유전자` 에서 설계 대상 CDS 를 고른다. 가장 긴 coding sequence 가 먼저 선택되어 있고 유전자가 하나뿐이면 그대로 두면 된다.
+3. `생물체` 에서 코돈 사용 빈도표를 확인한다. 서열 주석에 생물체가 적혀 있으면 자동으로 맞춰진다.
 
 ## 입력
 
-| 항목 | 포맷 | 필수 |
-|---|---|---|
-| 서열 파일 | GenBank `.gb/.gbk/.gbff`, SnapGene `.dna`, FASTA `.fa/.fasta/.fna` | 필수 |
-| Target gene | 파일에서 자동 추출 후 dropdown 선택 | 필수 (multi-CDS 일 때) |
-| Organism | `kuma_core/kuro/resources/codon_tables/` 의 codon table 키 (목록은 `list_organisms` RPC 가 반환) | 필수 (codon table 결정) |
+| 항목 | 받는 형식 |
+|---|---|
+| 시퀀스 파일 | GenBank `.gb`, `.gbk`, `.gbff` 또는 SnapGene `.dna` |
+| 타겟 유전자 | 불러온 파일에서 찾은 CDS 목록 중 하나 |
+| 생물체 | 내장 코돈 사용 빈도표 중 하나 |
 
-## 동작
+파일을 불러오면 이름 아래에 서열 머리말, 염기 길이, 찾은 유전자 개수가 함께 표시된다.
 
-1. 드래그앤드롭 또는 Browse 로 서열 로드.
-2. UniProt BLAST 자동 트리거 (network 동의 필요).
-3. AlphaFold Cα 좌표 EBI API 에서 fetch (`consent_alphafold` 동의).
-4. Sequence Map 패널에 CDS / domain / mutation 위치 SVG 가 표시된다.
+## 화면에 나오는 문구
 
-<!-- TODO: insert screenshot of Sequence Load step -->
-
-## v0.9.2.x 변경
-
-- Sidebar 의 mutation/params step 을 미리 클릭해도 차단되지 않는다 (자유 navigate). 단, 해당 step 은 "Load a sequence file first" empty state 를 표시한다.
-- Next 클릭 시 서열 미로딩이면 validation Dialog: "Sequence file is required".
+| 문구 | 뜻과 할 일 |
+|---|---|
+| `파일 선택 없음 (.gb / .dna)` | 아직 서열이 없다. `찾아보기` 로 파일을 고른다. |
+| `CDS annotation이 필요합니다. GenBank(.gb/.gbk) 또는 SnapGene(.dna) 파일을 사용하세요.` | FASTA 를 골랐다. FASTA 에는 CDS 주석이 없어 설계에 쓸 수 없다. GenBank 또는 SnapGene 파일로 바꾼다. |
+| `먼저 시퀀스 파일을 불러오세요` | 유전자 목록 자리에 나온다. 파일을 먼저 불러온다. |
+| `UniProt BLAST 검색 중… (완료 후 Step 2 사용 가능)` | 불러온 서열로 UniProt 검색이 도는 중이다. 끝날 때까지 기다린다. |
+| `Sequence 파일이 필요합니다` | `다음` 을 눌렀을 때 뜨는 `정보 누락` 대화상자의 항목이다. 서열을 불러온 뒤 다시 누른다. |
 
 ## 다음
 
-→ [Step 2. Mutation Input](kuro-02-mutation.md)
+→ [단계 2. 변이](kuro-02-mutation.md)

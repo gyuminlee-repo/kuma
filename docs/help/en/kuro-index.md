@@ -1,24 +1,26 @@
-# KURO: 6-step workflow
+# KURO 6-step workflow
 
-KURO is a linear wizard made of 6 steps. Steps can be clicked freely in the Workflow Rail on the left, and the Next button at the bottom opens a guidance Dialog when an input is missing.
+KURO is a 6-step wizard that designs primers and exports the order files. Every step screen carries a `Step N: Title` heading at the top and `Back` and `Next` buttons at the bottom.
 
-```
-1. Load        →  sequence + gene + organism selection
-2. Mutation    →  text / EVOLVEpro input
-3. Parameters  →  polymerase · codon strategy · Tm range
-4. Submit      →  Design summary card + Run Design
-5. Output      →  per-mutation result table + DesignReportInspector on the right
-6. Export      →  xlsx / Echo / JANUS / plate map
-```
+## The six steps
 
-<!-- TODO: insert screenshot of KURO 6-step rail -->
+| Step | Screen name | What it does |
+|---|---|---|
+| 1 | Load Variants | Load a sequence file and set the target gene and organism. [Details](kuro-01-load.md) |
+| 2 | Mutations | Load a prediction table and choose the variants to design. [Details](kuro-02-mutation.md) |
+| 3 | Primer Parameters | Set the strategy, polymerase, design count, and Tm/GC ranges. [Details](kuro-03-params.md) |
+| 4 | Pool Filters & Run | Check the summary and press `Run Design`. [Details](kuro-04-submit.md) |
+| 5 | Summary | Read the result table, the plate map, and the report. [Details](kuro-05-output.md) |
+| 6 | Export | Save the order files and the instrument files. [Details](kuro-06-export.md) |
 
-## What changed in the v0.9.2.x patch
+## Moving between steps
 
-- **Free Sidebar navigation**: click to move to any step immediately. A step with unmet prerequisites shows an empty-state message rather than a blank screen.
-- **Next button**: a validation Dialog when a required input is missing. Sidebar clicks are not blocked.
-- **Run Design auto advance**: on success it moves automatically to `output.summary` without a popup.
-- **DesignReportInspector**: the report is shown in a fixed panel on the right of Output. It is not a separate step.
-- **DesignSummaryCard**: a summary of the key sequence/mutation/parameter values at the top of the Submit step.
+Click any step in the list on the left to go there directly.
 
-For detailed step descriptions, see the per-step pages in the left menu.
+`Next` checks the required input for that step. When something is missing, a `Missing information` dialog opens and names what is absent. Clicking a step in the left list does not run this check.
+
+The `Sequence Map` at the top of the window stays visible on every step. It reads `No sequence loaded` until a sequence is loaded.
+
+## Next
+
+→ [Step 1. Load Variants](kuro-01-load.md)
