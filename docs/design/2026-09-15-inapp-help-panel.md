@@ -45,9 +45,11 @@ Both sets are currently excluded from the published site by `mkdocs.yml:7-18`, s
 
 ### D2. Two languages, explicit fallback
 
-`docs/help/ko` and `docs/help/en`, 14 topics each. The remaining eight locales fall back to English.
+`docs/help/ko` and `docs/help/en`, 13 topics each. The remaining eight locales fall back to English.
 
-`docs/kuro` and `docs/mame` are written in Korean, so the English half is new translation work for all 14 topics.
+Thirteen rather than fourteen: `docs/kuro` holds eight files and one of them, the biological-unit tier 2 specification, is a specification rather than a user topic. It stays where it is.
+
+`docs/kuro` and `docs/mame` are written in Korean, so the English half is new translation work for all 13 topics.
 
 Layout:
 
@@ -55,7 +57,7 @@ Layout:
 docs/help/
   ko/  kuro-index, kuro-01-load ... kuro-06-export,
        mame-index, mame-01-setup ... mame-04-activity, mame-pipeline
-  en/  the same 14 names
+  en/  the same 13 names
 
 each file named <topic-id> plus the markdown extension
 ```
@@ -107,7 +109,7 @@ Table of contents, four groups:
 
 Opening the panel selects the topic matching the current step. On MAME `analyze.review` the panel opens at "Analyze and review". Step identifiers already exist: `src/components/mame/layout/MameWorkflowRail.tsx:23-30` and `src/components/steps/constants.ts:9-18`. This is the reason D1 chose step-aligned content.
 
-No search and no images, following the reference implementation. Fourteen topics are covered by the table of contents, and leaving images out keeps the bundle question closed.
+No search and no images, following the reference implementation. Thirteen topics are covered by the table of contents, and leaving images out keeps the bundle question closed.
 
 ## Implementation contract
 
@@ -181,7 +183,7 @@ Content presence is worth stating: a mistyped glob returns an empty object and e
 - `node node_modules/typescript/bin/tsc --noEmit` exit 0, no new `as any` or `@ts-ignore`
 - vitest 0 failed
 - `i18n-lint`, `i18n-parity`, `sync-check-groups` pass
-- the 14 English topics are written, not stubbed
+- the 13 English topics are written, not stubbed
 - the app is launched and checked by hand on both tabs: the Help menu opens the panel, each step opens its own topic, a cross-reference swaps the topic without leaving the panel, and a missing locale shows the fallback notice with the contents still usable
 
 ## Assumption ledger
