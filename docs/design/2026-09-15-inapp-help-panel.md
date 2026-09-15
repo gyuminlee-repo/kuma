@@ -193,7 +193,7 @@ Content presence is worth stating: a mistyped glob returns an empty object and e
 | 1 | `docs/kuro` and `docs/en` overlap is left alone | content architecture | user informed, deferred |
 | 2 | `docs/en` and `docs/ko` stay unpublished and unbundled | 58 files remain dead | recorded, not acted on |
 | 3 | Eight locales read English rather than their own language | non-Korean non-English operators | user chose two languages |
-| 4 | No search | findability across 14 topics | matches reference implementation |
+| 4 | No search | findability across 13 topics | matches reference implementation |
 | 5 | No images | comprehension of spatial steps | matches reference implementation |
 | 6 | `docs/help/ko` duplicates the mkdocs sources rather than replacing them | drift risk, mitigated by the sync group | unconfirmed |
 | 7 | `react-markdown` renders correctly under React 19 | the whole rendering choice | peer range confirmed 2026-09-15; runtime behaviour gated by the C4 smoke render |
