@@ -127,6 +127,116 @@ export interface RecurringPosition {
  * fraction, and on both measured runs every single well was truncated, so a
  * position that ranked eleventh in a well is missing from its tally here.
  */
+/**
+ * One reference coordinate the plate LOST bases at, over every scored record.
+ *
+ * A separate table from `RecurringPosition` rather than more rows on it. A
+ * decided deletion has no minor-allele fraction and no strand counts, so those
+ * columns would have to be blanked or zeroed, and a zero in the minor-fraction
+ * column is the reading "a clean position".
+ */
+export interface RecurringDeletion {
+  /** 1-based reference coordinate. A contiguous 3 bp deletion is THREE rows:
+   * the evidence is per position and merging runs would invent a grouping the
+   * measurement does not carry. */
+  position: number
+  /** Scored records whose deletion-majority list named this coordinate. */
+  wells: number
+  /**
+   * Distinct expected-mutation sets among those records, which is the axis that
+   * separates the two readings of a repeat. Wells that all expect the SAME
+   * variant share a sample; a basecaller artifact strikes one coordinate
+   * whatever each well was meant to carry. Measured on the ispS run at position
+   * 669, recurring in three wells that all expect V218L.
+   *
+   * Nothing grades it. Three wells with one expectation and thirty wells with
+   * thirty are different events and the screen states both numbers.
+   */
+  expected_variants: number
+}
+
+/** One anchor the plate GAINED bases after, over every scored record. */
+export interface RecurringInsertion {
+  /** 1-based coordinate of the reference base the insertion FOLLOWS. */
+  anchor: number
+  wells: number
+  /** Same axis and same reading as on a deletion row. */
+  expected_variants: number
+  /** Distinct inserted sequences reported at this anchor. One sequence in five
+   * wells and five sequences in five wells are different events, and the anchor
+   * alone cannot tell them apart. */
+  distinct_sequences: number
+}
+
+/**
+ * Deletions and insertions that repeat across one plate, each with its own
+ * denominators.
+ *
+ * `lower_bound` is true here as on `PositionRecurrence`, for a DIFFERENT
+ * cause, which `lower_bound_cause` states. There the floor comes from
+ * TRUNCATION: a well contributes its top ten of a larger pool and its eleventh
+ * is missing from one row. Here it comes from OMISSION: a well past the
+ * reporting budget drops its coordinate list WHOLE and is absent from every
+ * row. A layer that adds the two counters together, or reads either as the
+ * other, reports a floor nobody measured.
+ *
+ * Nothing here grades, for the reason `PositionRecurrence` states. The only
+ * restriction on either table is definitional: a coordinate one record named
+ * has not recurred.
+ *
+ * SCOPE, stated because it is narrow. Only DECIDED deletions reach this block.
+ * A homopolymer where forty percent of the reads drop a base has no field with
+ * position resolution anywhere on the record, so this answers "where did the
+ * consensus lose bases, again and again" and not "where were the reads unsure".
+ */
+export interface IndelRecurrence {
+  lower_bound: boolean
+  /** Why the counts are a floor, distinguishing this block from the
+   * truncation that makes `PositionRecurrence` one. */
+  lower_bound_cause: string
+  /**
+   * Every scored record, reported or not. Carried instead of a per-row rate so
+   * that no layer divides by the contributing few: most wells of an ordinary
+   * plate carry no indel, so three wells of three contributing would print as a
+   * whole plate.
+   */
+  wells_scored: number
+  /** Records that named at least one deletion-majority coordinate. */
+  deletion_wells_contributing: number
+  /**
+   * Records that HAD a deletion majority and reported no coordinates, because
+   * the list exceeded the reporting budget and was dropped whole. Absent from
+   * every row rather than under-counted in one, which is why it is not the same
+   * field as `PositionRecurrence.wells_truncated`.
+   */
+  deletion_wells_omitted: number
+  deletion_positions_seen: number
+  /** Coordinates exactly one record named, left out because "recurrence" means
+   * more than once. Definitional, not a threshold, and counted rather than
+   * silently dropped. */
+  deletion_positions_single_well: number
+  insertion_wells_contributing: number
+  /**
+   * Records that HAD an insertion majority and reported no anchors. Two causes
+   * produce this exact shape and the record cannot separate them: every anchor
+   * tied on which sequence the reads inserted, or the list exceeded the budget.
+   * Named for the shape rather than for a cause nobody established.
+   */
+  insertion_wells_unreported: number
+  /**
+   * Anchors dropped for a TIE, counted only where that cause is certain: a
+   * record reporting some anchors but fewer than it counted is inside the
+   * budget by construction. An ANCHOR count, while the two `wells_` fields are
+   * RECORD counts.
+   */
+  insertion_anchors_tied: number
+  insertion_anchors_seen: number
+  insertion_anchors_single_well: number
+  /** Most-recurrent first, then by coordinate. Never truncated. */
+  deletions: RecurringDeletion[]
+  insertions: RecurringInsertion[]
+}
+
 export interface PositionRecurrence {
   /** Always true. The counts below are floors, never a census. */
   lower_bound: boolean
@@ -322,6 +432,17 @@ export interface RunQuality {
    * yet.
    */
   position_recurrence?: PositionRecurrence
+  /**
+   * Deletions and insertions that repeat across the plate, the channel the
+   * substitution tally above cannot see (its eligibility mask is ACGT, so a
+   * deletion token is in neither its numerator nor its denominator).
+   *
+   * Optional for the same reason `position_recurrence` is, and undefined is a
+   * state of its own rather than a plate on which nothing recurred: a result
+   * autosaved before this block existed never asked the question. Never
+   * zero-filled.
+   */
+  indel_recurrence?: IndelRecurrence
   /**
    * Optional for the same reason `position_recurrence` is: a result autosaved
    * by a sidecar that predates this block carries none, and an absent block

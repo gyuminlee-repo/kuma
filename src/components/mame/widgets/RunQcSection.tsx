@@ -12,6 +12,8 @@
  *  - `demuxResult.filter_stats`, what the quality filter threw away and why.
  *  - `run_quality.position_recurrence`, which reference positions came back well
  *    after well.
+ *  - `run_quality.indel_recurrence`, the same question asked of bases the
+ *    consensus lost or gained, which that tally cannot see.
  *  - `run_quality.read_length`, the instrument's own N50 read against this run's
  *    reference.
  *
@@ -135,6 +137,17 @@ export function RunQcSection({ runHealth }: { runHealth: RunHealthData | null })
       ? t("mame.runQuality.positionRecurrence.noRun")
       : recurrence === undefined
         ? t("mame.runQuality.positionRecurrence.predatesBuild")
+        : undefined;
+
+  // Same three states, and the same rule: undefined on a present run_quality is
+  // a result saved before the indel channel existed, which is not a plate on
+  // which nothing recurred.
+  const indels = runQuality?.indel_recurrence;
+  const indelsReason =
+    runQuality === null
+      ? t("mame.runQuality.indelRecurrence.noRun")
+      : indels === undefined
+        ? t("mame.runQuality.indelRecurrence.predatesBuild")
         : undefined;
 
   const readLength = runQuality?.read_length;
@@ -334,6 +347,171 @@ export function RunQcSection({ runHealth }: { runHealth: RunHealthData | null })
                             </td>
                             <td className="py-1 tabular-nums">
                               {`${p.shares_known} / ${p.shares_known + p.shares_unknown}`}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </QcBlock>
+
+          <QcBlock
+            testId="run-qc-indel-recurrence"
+            title={t("mame.runQuality.indelRecurrence.title")}
+            reason={indelsReason}
+          >
+            {indels !== undefined && (
+              <div className="flex flex-col gap-1.5">
+                <p className="text-caption text-muted-foreground">
+                  {t("mame.runQuality.indelRecurrence.what")}
+                </p>
+                {/* Unconditional, like the sentence on the block above, and
+                    stating a DIFFERENT cause: omission, where a well past the
+                    reporting budget drops its list whole, rather than the
+                    truncation that makes the substitution tally a floor. */}
+                <p
+                  data-testid="indel-lower-bound"
+                  data-lower-bound={String(indels.lower_bound)}
+                  data-lower-bound-cause={indels.lower_bound_cause}
+                  className="text-caption text-muted-foreground"
+                >
+                  {t("mame.runQuality.indelRecurrence.lowerBound", {
+                    omitted: indels.deletion_wells_omitted,
+                    unreported: indels.insertion_wells_unreported,
+                    scored: indels.wells_scored,
+                  })}
+                </p>
+                {/* Always present, never keyed on a value. The scope is the
+                    block's own limit rather than a finding about this run. */}
+                <p className="text-caption text-muted-foreground">
+                  {t("mame.runQuality.indelRecurrence.scope")}
+                </p>
+                <div>
+                  <QcRow
+                    testId="indel-wells-scored"
+                    label={t("mame.runQuality.indelRecurrence.wellsScored")}
+                    value={numText(indels.wells_scored)}
+                  />
+                  <QcRow
+                    testId="indel-del-contributing"
+                    label={t("mame.runQuality.indelRecurrence.deletionWellsContributing")}
+                    value={numText(indels.deletion_wells_contributing)}
+                  />
+                  <QcRow
+                    testId="indel-del-omitted"
+                    label={t("mame.runQuality.indelRecurrence.deletionWellsOmitted")}
+                    value={numText(indels.deletion_wells_omitted)}
+                  />
+                  <QcRow
+                    testId="indel-del-single"
+                    label={t("mame.runQuality.indelRecurrence.deletionPositionsSingleWell")}
+                    value={numText(indels.deletion_positions_single_well)}
+                  />
+                  <QcRow
+                    testId="indel-ins-contributing"
+                    label={t("mame.runQuality.indelRecurrence.insertionWellsContributing")}
+                    value={numText(indels.insertion_wells_contributing)}
+                  />
+                  <QcRow
+                    testId="indel-ins-unreported"
+                    label={t("mame.runQuality.indelRecurrence.insertionWellsUnreported")}
+                    value={numText(indels.insertion_wells_unreported)}
+                  />
+                  <QcRow
+                    testId="indel-ins-tied"
+                    label={t("mame.runQuality.indelRecurrence.insertionAnchorsTied")}
+                    value={numText(indels.insertion_anchors_tied)}
+                  />
+                </div>
+                {indels.deletions.length === 0 ? (
+                  <p className="text-caption text-muted-foreground">
+                    {t("mame.runQuality.indelRecurrence.noDeletions")}
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-caption" data-testid="indel-deletion-table">
+                      <caption className="sr-only">
+                        {t("mame.runQuality.indelRecurrence.deletionCaption")}
+                      </caption>
+                      <thead>
+                        <tr className="border-b border-border text-left text-muted-foreground">
+                          <th scope="col" className="py-1 pr-3 font-medium">
+                            {t("mame.runQuality.indelRecurrence.colPosition")}
+                          </th>
+                          <th scope="col" className="py-1 pr-3 font-medium">
+                            {t("mame.runQuality.indelRecurrence.colWells")}
+                          </th>
+                          <th scope="col" className="py-1 font-medium">
+                            {t("mame.runQuality.indelRecurrence.colExpectedVariants")}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {indels.deletions.map((d) => (
+                          <tr
+                            key={d.position}
+                            data-testid={`indel-deletion-row-${d.position}`}
+                            data-expected-variants={d.expected_variants}
+                            className="border-b border-border/50 last:border-0"
+                          >
+                            <td className="py-1 pr-3 tabular-nums">{d.position}</td>
+                            <td className="py-1 pr-3 tabular-nums">{numText(d.wells)}</td>
+                            {/* The column that separates a shared sample from a
+                                systematic artifact. No badge and no colour: the
+                                number is handed over and the operator reads it. */}
+                            <td className="py-1 tabular-nums">
+                              {numText(d.expected_variants)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {indels.insertions.length === 0 ? (
+                  <p className="text-caption text-muted-foreground">
+                    {t("mame.runQuality.indelRecurrence.noInsertions")}
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-caption" data-testid="indel-insertion-table">
+                      <caption className="sr-only">
+                        {t("mame.runQuality.indelRecurrence.insertionCaption")}
+                      </caption>
+                      <thead>
+                        <tr className="border-b border-border text-left text-muted-foreground">
+                          <th scope="col" className="py-1 pr-3 font-medium">
+                            {t("mame.runQuality.indelRecurrence.colAnchor")}
+                          </th>
+                          <th scope="col" className="py-1 pr-3 font-medium">
+                            {t("mame.runQuality.indelRecurrence.colWells")}
+                          </th>
+                          <th scope="col" className="py-1 pr-3 font-medium">
+                            {t("mame.runQuality.indelRecurrence.colExpectedVariants")}
+                          </th>
+                          <th scope="col" className="py-1 font-medium">
+                            {t("mame.runQuality.indelRecurrence.colDistinctSequences")}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {indels.insertions.map((ins) => (
+                          <tr
+                            key={ins.anchor}
+                            data-testid={`indel-insertion-row-${ins.anchor}`}
+                            data-expected-variants={ins.expected_variants}
+                            className="border-b border-border/50 last:border-0"
+                          >
+                            <td className="py-1 pr-3 tabular-nums">{ins.anchor}</td>
+                            <td className="py-1 pr-3 tabular-nums">{numText(ins.wells)}</td>
+                            <td className="py-1 pr-3 tabular-nums">
+                              {numText(ins.expected_variants)}
+                            </td>
+                            <td className="py-1 tabular-nums">
+                              {numText(ins.distinct_sequences)}
                             </td>
                           </tr>
                         ))}
