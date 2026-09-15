@@ -48,6 +48,10 @@ export default defineConfig(({ }) => {
                 __dirname,
                 "scripts/stubs/fs.ts",
               ),
+              "@tauri-apps/api/event": resolve(
+                __dirname,
+                "scripts/stubs/event.ts",
+              ),
               "@tauri-apps/api/webview": resolve(
                 __dirname,
                 "scripts/stubs/webview.ts",
