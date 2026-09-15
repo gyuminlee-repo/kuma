@@ -287,6 +287,16 @@
       "reason": "The cross-layer-sync skill document, which lives in the Claude Code skill directory outside this repository."
     },
     {
+      "path": "alpha-topic.md",
+      "category": "prose",
+      "reason": "Test literal in the help panel plan. The HelpMarkdown link tests need a topic name that resolves, and a real topic id would tie a unit test to the help contents; this name is a fixture and is never a file."
+    },
+    {
+      "path": "gamma-topic.md",
+      "category": "prose",
+      "reason": "Test literal in the help panel plan, the counterpart to alpha-topic.md: the name a link points at when no such topic exists, which the renderer has to degrade to plain text."
+    },
+    {
       "path": "configuration.md",
       "category": "prose",
       "reason": "One of the docs page names listed in a changelog sentence that states the docs/en/ and docs/ko/ prefix separately, so the filename alone is not a path."

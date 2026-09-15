@@ -1,0 +1,75 @@
+{
+  "plan": "docs/plans/2026-09-15-inapp-help-panel/plan.md",
+  "spec": "docs/design/2026-09-15-inapp-help-panel.md",
+  "features": [
+    {
+      "id": "t0-spike",
+      "description": "Prove the Vite raw glob options and that react-markdown renders under React 19, before anything is built on either",
+      "verify_command": "cd \"$WORKTREE\" && node -e \"const p=require('./package.json');process.exit(p.dependencies&&p.dependencies['react-markdown']?0:1)\"",
+      "state": "pending"
+    },
+    {
+      "id": "t1-content-ko",
+      "description": "Move the thirteen Korean step guides into docs/help/ko and tie the copies together in the sync group",
+      "verify_command": "cd \"$WORKTREE\" && test \"$(ls docs/help/ko/*.md | wc -l)\" -eq 13 && node scripts/sync-check-groups.mjs && node scripts/check-doc-citations.mjs",
+      "state": "pending",
+      "depends_on": ["t0-spike"]
+    },
+    {
+      "id": "t2-content-en",
+      "description": "Translate the thirteen topics into English, file names matching the Korean set",
+      "verify_command": "cd \"$WORKTREE\" && diff <(ls docs/help/ko) <(ls docs/help/en)",
+      "state": "pending",
+      "depends_on": ["t1-content-ko"]
+    },
+    {
+      "id": "t3-loader",
+      "description": "Load topics through import.meta.glob with a locale fallback that reports itself",
+      "verify_command": "bash \"$HOME/.claude/skills/win-build/scripts/win-build.sh\" pnpm exec vitest run --silent --reporter=dot --cwd \"$WORKTREE\" src/help/content.test.ts",
+      "state": "pending",
+      "depends_on": ["t1-content-ko"]
+    },
+    {
+      "id": "t4-topics",
+      "description": "Declare the contents groups, the step mapping, and prove no cross-reference points at a missing topic",
+      "verify_command": "bash \"$HOME/.claude/skills/win-build/scripts/win-build.sh\" pnpm exec vitest run --silent --reporter=dot --cwd \"$WORKTREE\" src/help/topics.test.ts",
+      "state": "pending",
+      "depends_on": ["t3-loader"]
+    },
+    {
+      "id": "t5-markdown",
+      "description": "Render markdown and apply the three-branch link rule so cross-references stay inside the panel",
+      "verify_command": "bash \"$HOME/.claude/skills/win-build/scripts/win-build.sh\" pnpm exec vitest run --silent --reporter=dot --cwd \"$WORKTREE\" src/components/help/HelpMarkdown.test.tsx",
+      "state": "pending",
+      "depends_on": ["t0-spike", "t4-topics"]
+    },
+    {
+      "id": "t6-panel",
+      "description": "Build the stateless slide-over panel with contents, fallback notice and missing-topic handling",
+      "verify_command": "bash \"$HOME/.claude/skills/win-build/scripts/win-build.sh\" pnpm exec vitest run --silent --reporter=dot --cwd \"$WORKTREE\" src/components/help/HelpPanel.test.tsx",
+      "state": "pending",
+      "depends_on": ["t5-markdown"]
+    },
+    {
+      "id": "t7-wiring",
+      "description": "Open the panel from both Help menus at the topic matching each tab's current step, with locale keys in all ten files",
+      "verify_command": "cd \"$WORKTREE\" && node node_modules/typescript/bin/tsc --noEmit && node scripts/i18n-lint.mjs && node scripts/i18n-parity.mjs",
+      "state": "pending",
+      "depends_on": ["t6-panel"]
+    },
+    {
+      "id": "t8-verify",
+      "description": "Full gate: vitest, tsc, i18n, sync groups, doc citations and the Python suite at its baseline",
+      "verify_command": "cd \"$WORKTREE\" && node node_modules/typescript/bin/tsc --noEmit && node scripts/i18n-lint.mjs && node scripts/i18n-parity.mjs && node scripts/sync-check-groups.mjs && node scripts/check-doc-citations.mjs && python3 -m pytest tests/ -q",
+      "state": "pending",
+      "depends_on": ["t2-content-en", "t7-wiring"]
+    },
+    {
+      "id": "t9-eyes",
+      "description": "Launch the app on Windows and confirm by eye: panel opens from both menus, step entry selects the right topic, a cross-reference swaps the topic, the close control returns the work, a tab switch leaves the panel alone, and the markdown is actually styled",
+      "verify_command": "echo 'manual: no automated check, see plan Task 8 Step 2' && false",
+      "state": "pending",
+      "depends_on": ["t8-verify"]
+    }
+  ]
+}
