@@ -3,7 +3,12 @@ import { beforeEach, describe, expect, it } from "vitest";
 import en from "@/locales/en.json";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
 import type { DemuxAndFilterResult, RunHealthData } from "@/types/mame/models";
-import type { PositionRecurrence, ReadLengthQC, RunQuality } from "@/types/mame/run_quality";
+import type {
+  IndelRecurrence,
+  PositionRecurrence,
+  ReadLengthQC,
+  RunQuality,
+} from "@/types/mame/run_quality";
 import { RunQcSection } from "./RunQcSection";
 
 function makeHealth(overrides: Partial<RunHealthData> = {}): RunHealthData {
@@ -58,6 +63,29 @@ function makeRunQuality(overrides: Partial<RunQuality> = {}): RunQuality {
     ...overrides,
   };
 }
+
+/** A plate whose deletion at 669 recurs in three wells that ALL expect V218L,
+ *  which is the measured counterexample the expected-variant column exists for,
+ *  beside one at 1102 spread over three different expectations. */
+const indelRecurrence: IndelRecurrence = {
+  lower_bound: true,
+  lower_bound_cause: "omission",
+  wells_scored: 96,
+  deletion_wells_contributing: 7,
+  deletion_wells_omitted: 2,
+  deletion_positions_seen: 5,
+  deletion_positions_single_well: 3,
+  insertion_wells_contributing: 2,
+  insertion_wells_unreported: 1,
+  insertion_anchors_tied: 4,
+  insertion_anchors_seen: 2,
+  insertion_anchors_single_well: 1,
+  deletions: [
+    { position: 669, wells: 3, expected_variants: 1 },
+    { position: 1102, wells: 3, expected_variants: 3 },
+  ],
+  insertions: [{ anchor: 900, wells: 2, expected_variants: 2, distinct_sequences: 1 }],
+};
 
 const recurrence: PositionRecurrence = {
   lower_bound: true,
@@ -181,6 +209,7 @@ describe("RunQcSection, the disclosure itself", () => {
       ["run-qc-health", en.mame.runHealth.qcHealthAbsent],
       ["run-qc-filter-stats", en.mame.runHealth.filterStats.noDemux],
       ["run-qc-position-recurrence", en.mame.runQuality.positionRecurrence.noRun],
+      ["run-qc-indel-recurrence", en.mame.runQuality.indelRecurrence.noRun],
       ["run-qc-read-length", en.mame.runQuality.readLength.noRun],
     ];
     for (const [id, reason] of expected) {
@@ -476,5 +505,84 @@ describe("RunQcSection, read length", () => {
       en.mame.runHealth.qcNotMeasured,
     );
     expect(screen.getByTestId("read-length-near-1").textContent ?? "").not.toContain("0.0%");
+  });
+});
+
+describe("RunQcSection, indel recurrence", () => {
+  it("separates a saved result that predates the tally from a run without one", () => {
+    useMameAppStore.setState({ runQuality: makeRunQuality() });
+    render(<RunQcSection runHealth={makeHealth()} />);
+    open();
+
+    const block = screen.getByTestId("run-qc-indel-recurrence");
+    expect(block).toHaveAttribute("data-state", "unavailable");
+    expect(block.textContent ?? "").toContain(
+      en.mame.runQuality.indelRecurrence.predatesBuild,
+    );
+    expect(block.textContent ?? "").not.toContain(en.mame.runQuality.indelRecurrence.noRun);
+  });
+
+  it("states the floor as OMISSION, which is not the truncation above it", () => {
+    useMameAppStore.setState({
+      runQuality: makeRunQuality({ indel_recurrence: indelRecurrence }),
+    });
+    render(<RunQcSection runHealth={makeHealth()} />);
+    open();
+
+    const line = screen.getByTestId("indel-lower-bound");
+    expect(line).toHaveAttribute("data-lower-bound", "true");
+    expect(line).toHaveAttribute("data-lower-bound-cause", "omission");
+    // Both omitted records and the unreported insertion well appear, over the
+    // scored denominator rather than the contributing few.
+    expect(line.textContent ?? "").toContain("2");
+    expect(line.textContent ?? "").toContain("96");
+    expect(screen.getByTestId("indel-del-omitted").textContent ?? "").toContain("2");
+    expect(screen.getByTestId("indel-ins-unreported").textContent ?? "").toContain("1");
+    expect(screen.getByTestId("indel-ins-tied").textContent ?? "").toContain("4");
+  });
+
+  it("gives three shared wells and three spread wells different expectation counts", () => {
+    useMameAppStore.setState({
+      runQuality: makeRunQuality({ indel_recurrence: indelRecurrence }),
+    });
+    render(<RunQcSection runHealth={makeHealth()} />);
+    open();
+
+    // Same well count, different event. The column is the only thing that says
+    // so, and it carries no badge, colour or ordering of its own.
+    const shared = screen.getByTestId("indel-deletion-row-669");
+    const spread = screen.getByTestId("indel-deletion-row-1102");
+    expect(shared).toHaveAttribute("data-expected-variants", "1");
+    expect(spread).toHaveAttribute("data-expected-variants", "3");
+    expect(shared.textContent ?? "").toContain("3");
+    expect(spread.textContent ?? "").toContain("3");
+  });
+
+  it("draws the insertion table with its anchor and distinct sequence count", () => {
+    useMameAppStore.setState({
+      runQuality: makeRunQuality({ indel_recurrence: indelRecurrence }),
+    });
+    render(<RunQcSection runHealth={makeHealth()} />);
+    open();
+
+    const row = screen.getByTestId("indel-insertion-row-900");
+    expect(row).toHaveAttribute("data-expected-variants", "2");
+    expect(screen.getByTestId("indel-insertion-table")).toBeInTheDocument();
+  });
+
+  it("says nothing recurred rather than drawing an empty table", () => {
+    useMameAppStore.setState({
+      runQuality: makeRunQuality({
+        indel_recurrence: { ...indelRecurrence, deletions: [], insertions: [] },
+      }),
+    });
+    render(<RunQcSection runHealth={makeHealth()} />);
+    open();
+
+    const block = screen.getByTestId("run-qc-indel-recurrence");
+    expect(block).toHaveAttribute("data-state", "present");
+    expect(block.textContent ?? "").toContain(en.mame.runQuality.indelRecurrence.noDeletions);
+    expect(block.textContent ?? "").toContain(en.mame.runQuality.indelRecurrence.noInsertions);
+    expect(screen.queryByTestId("indel-deletion-table")).not.toBeInTheDocument();
   });
 });

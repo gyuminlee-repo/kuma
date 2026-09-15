@@ -33,7 +33,7 @@ from kuma_core.mame.compare.verdict import (
     _MIXED_CONFIDENT_DEPTH_FACTOR,
 )
 from kuma_core.mame.ingest.flow_cell import MINION_WARRANTY_PORES
-from kuma_core.mame.models import NoisyPosition
+from kuma_core.mame.models import NoisyPosition, VerdictRecord
 
 #: Severity of a run-level finding. ``blocking`` means no well on this plate can
 #: carry a meaning, so nothing below it is worth reading. ``warning`` means the
@@ -781,6 +781,290 @@ def serialise_position_recurrence(summary: PositionRecurrence) -> dict:
     }
 
 
+# ── Which reference positions LOSE or GAIN bases well after well ─────────────
+#
+# The block above counts substitutions and only substitutions. Its eligibility
+# mask is ``counts[:, :4]`` (``ingest/consensus.py``), so a deletion token is in
+# neither its numerator nor its denominator, and an insertion has no place in
+# that encoding at all. A deletion that repeats at one reference coordinate
+# across a plate is therefore invisible to every screen the app draws, which is
+# what this second channel exists to end.
+#
+# It is a SEPARATE channel and not more rows on the substitution table, because
+# a decided deletion has no ``minor_fraction`` and no strand counts. Folding the
+# two together would fill those columns with a blank or a zero, and a zero in
+# the minor-fraction column is the reading "a clean position", which is the
+# opposite of what a deletion majority is.
+#
+# Nothing here grades either, for the reason stated on the substitution tally:
+# on three technical replicates of the same DNA every candidate cut fell on a
+# different side in different replicates, and a number that contradicts itself
+# is not a threshold. The only restriction is the definitional one, that a
+# coordinate seen in a single well has not recurred.
+
+
+@dataclass(frozen=True)
+class RecurringDeletion:
+    """One reference coordinate the plate lost bases at, over every record."""
+
+    #: 1-based reference coordinate, the convention ``del_majority_positions``
+    #: states. A contiguous 3 bp deletion is THREE rows: the record carries per
+    #: position evidence and merging runs here would invent a grouping the
+    #: measurement does not have.
+    position: int
+    #: Scored records whose deletion-majority list named this coordinate.
+    wells: int
+    #: Distinct expected-mutation sets among those records, which is the axis
+    #: that separates the two readings of a repeat. A basecaller artifact hits
+    #: the same coordinate whatever a well was meant to carry, so it lands on
+    #: many different expectations; wells that all expect the SAME variant
+    #: share a sample and their agreement is ordinary. Measured on the ispS run
+    #: at position 669, recurring in three wells that all expect V218L.
+    #:
+    #: The key is the record's ``expected_mutations`` as a set. A record with an
+    #: empty list (a wild-type control, or a well the layout did not name) is
+    #: its own key rather than dropped: "expects nothing" is an expectation.
+    expected_variants: int
+
+
+@dataclass(frozen=True)
+class RecurringInsertion:
+    """One anchor the plate gained bases after, over every record."""
+
+    #: 1-based coordinate of the reference base the insertion FOLLOWS, the
+    #: convention ``ins_majority_bases`` states.
+    anchor: int
+    wells: int
+    #: Same axis and same reading as on a deletion row.
+    expected_variants: int
+    #: How many distinct inserted sequences those records reported at this
+    #: anchor. One sequence in five wells and five sequences in five wells are
+    #: different events, and the anchor alone cannot tell them apart. Carried,
+    #: never graded.
+    distinct_sequences: int
+
+
+@dataclass
+class IndelRecurrence:
+    """The deletion and insertion tables, each with its own denominators."""
+
+    deletions: list[RecurringDeletion] = field(default_factory=list)
+    insertions: list[RecurringInsertion] = field(default_factory=list)
+    #: Every record handed over, reported or not. The natural denominator for
+    #: both tables, and carried instead of a per-row rate precisely so that no
+    #: layer divides by the contributing few: most wells of an ordinary plate
+    #: carry no indel at all, so three wells of three contributing would print
+    #: as 100% while being three wells of ninety-six.
+    wells_scored: int = 0
+
+    # ── deletions ────────────────────────────────────────────────────────────
+    #: Records that named at least one deletion-majority coordinate.
+    deletion_wells_contributing: int = 0
+    #: Records that HAD a deletion majority and reported no coordinates, i.e.
+    #: ``n_del_majority_positions > 0`` with an empty list. ``consensus.py``
+    #: omits the list WHOLE past ``DEL_RUN_REPORT_BUDGET`` rather than cutting
+    #: it short, so this is OMISSION and not truncation: the well is absent
+    #: from every row below, not under-counted in one. That is a different
+    #: event from the substitution block's ``wells_truncated``, where a well
+    #: contributes its top ten and its eleventh is missing, and the two must
+    #: not be added together or read as one number.
+    deletion_wells_omitted: int = 0
+    #: Distinct coordinates seen at all, and how many of them the "recurrence
+    #: means more than once" rule left out of ``deletions``.
+    deletion_positions_seen: int = 0
+    deletion_positions_single_well: int = 0
+
+    # ── insertions ───────────────────────────────────────────────────────────
+    #: Records that named at least one insertion anchor with its bases.
+    insertion_wells_contributing: int = 0
+    #: Records that HAD an insertion majority and reported no anchors at all.
+    #: Two causes produce this exact shape and ``BarcodeRecord`` cannot tell
+    #: them apart: every anchor of the well tied on WHICH sequence the reads
+    #: inserted (``consensus.py`` drops a tied anchor rather than pick a
+    #: winner), or the chosen list exceeded ``DEL_RUN_REPORT_BUDGET`` and was
+    #: omitted whole. Named for the shape rather than for a cause this layer
+    #: cannot establish.
+    insertion_wells_unreported: int = 0
+    #: Anchors dropped for a TIE, counted where the cause is unambiguous:
+    #: a record reporting some anchors but fewer than it counted is inside the
+    #: budget by construction, so every anchor missing from it is a tie. This
+    #: is the third state the insertion channel has and the deletion channel
+    #: does not, and it is an ANCHOR count while the two ``wells_`` fields
+    #: above are RECORD counts.
+    insertion_anchors_tied: int = 0
+    #: Distinct anchors seen at all, and how many of them were single-well.
+    insertion_anchors_seen: int = 0
+    insertion_anchors_single_well: int = 0
+
+
+def summarise_indel_recurrence(
+    verdicts: Iterable[VerdictRecord],
+) -> IndelRecurrence:
+    """Tally which reference coordinates lose or gain bases across one run.
+
+    Takes ``VerdictRecord`` and not the ``BarcodeRecord`` the substitution
+    tally reads, because the count of wells alone cannot separate the two
+    readings of a repeat and the thing that can is the EXPECTATION each well
+    was scored against, which lives one level up. A basecaller artifact strikes
+    the same coordinate whatever the well was meant to carry; wells that all
+    expect the same variant share a sample. Nominal rather than structural
+    typing here, unlike ``_WellLike`` above, because this is one class and not
+    two: ``ConsensusCall`` carries no expectation and could not stand in.
+
+    Three absences are reported and none of them is a zero.
+    ``deletion_wells_omitted`` is a well whose deletion list was dropped WHOLE
+    for exceeding the reporting budget, which is omission rather than the
+    substitution block's truncation. ``insertion_wells_unreported`` is the same
+    shape on the insertion side with two possible causes this layer cannot
+    separate. ``insertion_anchors_tied`` is anchors dropped because the reads
+    disagreed on which sequence they inserted, counted only where that cause is
+    certain.
+
+    SCOPE, and it is narrow on purpose. Only DECIDED deletions are visible
+    here: a homopolymer where forty percent of the reads drop a base has no
+    field with position resolution anywhere on the record, because
+    ``noisy_positions`` masks the deletion token out and the two indel-event
+    metrics are plate-level scalars. So this answers "where did the consensus
+    lose bases, again and again" and not "where were the reads unsure".
+
+    NOTHING here grades, exactly as on the substitution tally: no finding, no
+    severity, no cut. The only restriction is definitional, that a coordinate
+    one record named has not recurred, and the count left out that way is
+    reported rather than hidden.
+    """
+    del_wells_by_position: defaultdict[int, list[tuple[str, ...]]] = defaultdict(list)
+    ins_wells_by_anchor: defaultdict[int, list[tuple[str, ...]]] = defaultdict(list)
+    ins_seqs_by_anchor: defaultdict[int, set[str]] = defaultdict(set)
+
+    summary = IndelRecurrence()
+
+    for record in verdicts:
+        summary.wells_scored += 1
+        well = record.translated.barcode
+        # The expectation this record was scored against, as a set so that two
+        # wells listing the same variants in a different order are one
+        # expectation. An empty tuple is a real key: see ``expected_variants``.
+        expectation = tuple(sorted(record.expected_mutations))
+
+        del_positions = tuple(well.del_majority_positions)
+        if del_positions:
+            summary.deletion_wells_contributing += 1
+            for position in del_positions:
+                del_wells_by_position[int(position)].append(expectation)
+        elif well.n_del_majority_positions > 0:
+            # A deletion majority the record HAS and did not report. Omission,
+            # not truncation, and not "no deletion".
+            summary.deletion_wells_omitted += 1
+
+        ins_bases = tuple(well.ins_majority_bases)
+        if ins_bases:
+            summary.insertion_wells_contributing += 1
+            # Inside the budget by construction, so every anchor counted but
+            # not listed was dropped for a tie.
+            missing = well.n_ins_majority_anchors - len(ins_bases)
+            if missing > 0:
+                summary.insertion_anchors_tied += missing
+            for anchor, bases in ins_bases:
+                ins_wells_by_anchor[int(anchor)].append(expectation)
+                ins_seqs_by_anchor[int(anchor)].add(str(bases))
+        elif well.n_ins_majority_anchors > 0:
+            summary.insertion_wells_unreported += 1
+
+    summary.deletion_positions_seen = len(del_wells_by_position)
+    summary.deletion_positions_single_well = sum(
+        1
+        for seen in del_wells_by_position.values()
+        if len(seen) < _MIN_WELLS_TO_RECUR
+    )
+    summary.insertion_anchors_seen = len(ins_wells_by_anchor)
+    summary.insertion_anchors_single_well = sum(
+        1
+        for seen in ins_wells_by_anchor.values()
+        if len(seen) < _MIN_WELLS_TO_RECUR
+    )
+
+    deletions = [
+        RecurringDeletion(
+            position=position,
+            wells=len(seen),
+            expected_variants=len(set(seen)),
+        )
+        for position, seen in del_wells_by_position.items()
+        if len(seen) >= _MIN_WELLS_TO_RECUR
+    ]
+    insertions = [
+        RecurringInsertion(
+            anchor=anchor,
+            wells=len(seen),
+            expected_variants=len(set(seen)),
+            distinct_sequences=len(ins_seqs_by_anchor[anchor]),
+        )
+        for anchor, seen in ins_wells_by_anchor.items()
+        if len(seen) >= _MIN_WELLS_TO_RECUR
+    ]
+    # Most-recurrent first, then by coordinate. An ordering and not a ranking:
+    # nothing is cut off either list.
+    deletions.sort(key=lambda row: (-row.wells, row.position))
+    insertions.sort(key=lambda row: (-row.wells, row.anchor))
+    summary.deletions = deletions
+    summary.insertions = insertions
+    return summary
+
+
+def serialise_indel_recurrence(summary: IndelRecurrence) -> dict:
+    """The deletion and insertion tables as the analyze response carries them.
+
+    A sibling of :func:`serialise_position_recurrence` and deliberately not a
+    branch inside it: the two tables carry different columns because the
+    evidence behind them is different, and one shape holding both would have to
+    blank or zero half of every row.
+    """
+    return {
+        # A floor here too, and for a DIFFERENT reason than the substitution
+        # block's, which is why the two cannot share one flag's reading. There
+        # the cause is truncation, a well contributing its top ten of a larger
+        # pool. Here it is OMISSION, a well over the reporting budget dropping
+        # its list whole, plus ties on the insertion side. The counters below
+        # say which wells that happened to.
+        "lower_bound": True,
+        "lower_bound_cause": "omission",
+        "wells_scored": summary.wells_scored,
+        "deletion_wells_contributing": summary.deletion_wells_contributing,
+        # Records with a deletion majority and no coordinates reported. Absent
+        # from the table entirely rather than under-counted in it.
+        "deletion_wells_omitted": summary.deletion_wells_omitted,
+        "deletion_positions_seen": summary.deletion_positions_seen,
+        "deletion_positions_single_well": summary.deletion_positions_single_well,
+        "insertion_wells_contributing": summary.insertion_wells_contributing,
+        # Records with an insertion majority and no anchors reported: every
+        # anchor tied, or the list exceeded the budget. Not separable here.
+        "insertion_wells_unreported": summary.insertion_wells_unreported,
+        # Anchors dropped for a tie where the cause is certain.
+        "insertion_anchors_tied": summary.insertion_anchors_tied,
+        "insertion_anchors_seen": summary.insertion_anchors_seen,
+        "insertion_anchors_single_well": summary.insertion_anchors_single_well,
+        "deletions": [
+            {
+                "position": row.position,
+                "wells": row.wells,
+                # What separates a shared sample from a systematic artifact.
+                # No cut is applied to it.
+                "expected_variants": row.expected_variants,
+            }
+            for row in summary.deletions
+        ],
+        "insertions": [
+            {
+                "anchor": row.anchor,
+                "wells": row.wells,
+                "expected_variants": row.expected_variants,
+                "distinct_sequences": row.distinct_sequences,
+            }
+            for row in summary.insertions
+        ],
+    }
+
+
 def serialise_run_quality(quality: RunQuality) -> dict:
     """The block the analyze response carries."""
     return {
@@ -867,9 +1151,14 @@ __all__ = [
     "RunQuality",
     "PositionRecurrence",
     "RecurringPosition",
+    "IndelRecurrence",
+    "RecurringDeletion",
+    "RecurringInsertion",
     "assess_run_quality",
     "serialise_run_quality",
     "summarise_position_recurrence",
     "serialise_position_recurrence",
+    "summarise_indel_recurrence",
+    "serialise_indel_recurrence",
     "variants_near_reference_edge",
 ]

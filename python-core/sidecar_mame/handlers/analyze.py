@@ -2406,8 +2406,10 @@ def handle_analyze(params: dict) -> dict:
     )
     from kuma_core.mame.run_quality import (
         assess_run_quality,
+        serialise_indel_recurrence,
         serialise_position_recurrence,
         serialise_run_quality,
+        summarise_indel_recurrence,
         summarise_position_recurrence,
         variants_near_reference_edge,
     )
@@ -2489,6 +2491,22 @@ def handle_analyze(params: dict) -> dict:
     # the well count nor the strand share carries a cut this repo will defend.
     run_quality["position_recurrence"] = serialise_position_recurrence(
         summarise_position_recurrence(vr.translated.barcode for vr in verdicts)
+    )
+    # The same question asked of bases the consensus LOST or GAINED, which the
+    # tally above cannot see: its eligibility mask is ACGT only, so a deletion
+    # token is in neither its numerator nor its denominator and an insertion is
+    # not in that encoding at all.
+    #
+    # Handed the VERDICTS themselves rather than their barcodes, because a
+    # coordinate repeating across wells has two readings and the well count
+    # cannot separate them. Wells that all expect the SAME variant share a
+    # sample; a basecaller artifact strikes one coordinate whatever each well
+    # was meant to carry. The expectation lives on the verdict, so the tally
+    # takes the verdict.
+    #
+    # No grading here either: see summarise_indel_recurrence.
+    run_quality["indel_recurrence"] = serialise_indel_recurrence(
+        summarise_indel_recurrence(verdicts)
     )
     # What MinKNOW already measured about read lengths, nested on the same block
     # for the same reason: a run-level fact read before the verdicts, and one

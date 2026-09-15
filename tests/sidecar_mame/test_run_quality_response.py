@@ -144,6 +144,25 @@ def test_pore_counts_and_depth_reach_the_response(tmp_path: Path) -> None:
     # No grading anywhere on it, which is the whole point of the tally.
     assert "severity" not in recurrence
     assert "findings" not in recurrence
+    # The indel channel rides the same block and follows the same rule: present
+    # on every response, empty when there is nothing to say. It is SEPARATE
+    # from the tally above rather than more rows on it, because a decided
+    # deletion carries no minor fraction and no strand counts, and a zero in
+    # those columns is the reading "a clean position".
+    indels = quality["indel_recurrence"]
+    assert indels["deletions"] == []
+    assert indels["insertions"] == []
+    # The denominator is every scored record, not the contributing few.
+    assert indels["wells_scored"] == len(result["verdicts"])
+    assert indels["deletion_wells_omitted"] == 0
+    assert indels["insertion_wells_unreported"] == 0
+    assert indels["insertion_anchors_tied"] == 0
+    # Its lower bound has a different cause than the substitution block's, and
+    # the json says which so the two floors are never read as one.
+    assert indels["lower_bound"] is True
+    assert indels["lower_bound_cause"] == "omission"
+    assert "severity" not in indels
+    assert "findings" not in indels
 
 
 def test_a_shallow_run_blocks_and_a_weak_cell_alone_does_not(tmp_path: Path) -> None:
