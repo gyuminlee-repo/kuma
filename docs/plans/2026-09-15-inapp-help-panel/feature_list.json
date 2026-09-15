@@ -58,7 +58,7 @@
       "id": "t6-panel",
       "description": "Build the stateless slide-over panel with contents, fallback notice and missing-topic handling",
       "verify_command": "bash \"$HOME/.claude/skills/win-build/scripts/win-build.sh\" pnpm exec vitest run --silent --reporter=dot --cwd \"$WORKTREE\" src/components/help/HelpPanel.test.tsx",
-      "state": "pending",
+      "state": "done",
       "depends_on": [
         "t5-markdown"
       ]
