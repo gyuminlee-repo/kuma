@@ -348,6 +348,34 @@ def _serialize_verdict(vr: Any) -> dict:
     out["min_variant_support_depth"] = b.min_variant_support_depth
     out["n_indel_event_positions"] = b.n_indel_event_positions
     out["max_indel_event_fraction"] = b.max_indel_event_fraction
+    # The indel evidence of the consensus itself, which is a different thing
+    # from the four read-level counters above: those say how many reads carried
+    # an indel, these say what the CALLED consensus dropped or gained. They
+    # reach BarcodeRecord over the FASTA header (consensus_metadata.py ->
+    # fasta_parser.py) and were the only header fields this serializer did not
+    # carry, so a reopened session restored them as BarcodeRecord's defaults,
+    # () and 0, and the well then claimed no deletion at all. Live analysis kept
+    # them, so the loss showed up only across a session boundary.
+    #
+    # Each count is emitted SEPARATELY from its list and is never derived from
+    # len(): a count larger than its list is a real, load-bearing state meaning
+    # the coordinates went over the report budget (consensus.py
+    # DEL_RUN_REPORT_BUDGET, ins tie handling). verdict.py reads exactly that
+    # mismatch to decide it cannot narrow the mixed gate, and aa_translator.py
+    # branches on it too, so folding the two together would turn "not reported"
+    # into "none".
+    #
+    # Unconditional because 0 and [] are real answers here (a well whose
+    # consensus called no deletion), unlike the strand share above where 0.0 is
+    # an artifact reading. Positions are 1-based and insertion anchors are
+    # 1-based, exactly as produced; no coordinate is translated on the way out.
+    out["del_majority_positions"] = list(b.del_majority_positions)
+    out["n_del_majority_positions"] = b.n_del_majority_positions
+    out["ins_majority_bases"] = [
+        {"anchor": anchor, "bases": bases}
+        for anchor, bases in b.ins_majority_bases
+    ]
+    out["n_ins_majority_anchors"] = b.n_ins_majority_anchors
     return out
 
 
@@ -496,6 +524,25 @@ def _deserialize_verdict(d: dict) -> Any:
         min_variant_support_depth=int(d.get("min_variant_support_depth", 0)),
         n_indel_event_positions=int(d.get("n_indel_event_positions", 0)),
         max_indel_event_fraction=float(d.get("max_indel_event_fraction", 0.0)),
+        # The consensus indel evidence. Absent in a payload persisted before
+        # these were serialized, in which case BarcodeRecord's own defaults
+        # stand and the record restores exactly as it does today. That means a
+        # legacy payload cannot tell "never written" from "measured none"; the
+        # header layer has the same limitation and reports the same way, so no
+        # flag is invented here to split them.
+        #
+        # Each count is read from its OWN key rather than from len() of its
+        # list, because a count larger than its list is the over-budget state
+        # verdict.py and aa_translator.py both branch on.
+        del_majority_positions=tuple(
+            int(p) for p in d.get("del_majority_positions", ())
+        ),
+        n_del_majority_positions=int(d.get("n_del_majority_positions", 0)),
+        ins_majority_bases=tuple(
+            (int(item["anchor"]), str(item["bases"]))
+            for item in d.get("ins_majority_bases", ())
+        ),
+        n_ins_majority_anchors=int(d.get("n_ins_majority_anchors", 0)),
     )
     translated = TranslatedRecord(
         barcode=barcode,
