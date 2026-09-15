@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.16.60 (What the plate read, and what the caller had already decided)
+
+A consensus that calls a deletion had decided something. Two verdict gates were counting that decision as if nothing had been decided, and the result was that a well carrying a real amino acid substitution never got to say so.
+
+The NO_CALL gate reads the fraction of the consensus that is N. A position whose majority call is a deletion is not an unresolved base, yet it was entering that fraction, and with the threshold at zero a single such position short-circuited the verdict before the amino acid comparison ever ran. The MIXED gate had the same shape: a position the caller had resolved as a deletion was entering the denominator of the mixture test, so a well was classed as contaminated on the strength of a deletion nobody disputed. Both gates now exclude decided deletions from their input. The reported fields are untouched and the exclusion count is recorded in the verdict note.
+
+Measured across 288 wells, three wells move from MIXED to WRONG_AA. All three are the same well coordinate on three technical replicates of one DNA, and the position that had been counted as mixed was the deletion position itself. Those wells now report the substitution they actually carry.
+
+A deletion also used to disappear from the molecule before translation. The consensus sequence is pinned to the reference length, so a deletion left the stored sequence the same length with the neighbouring bases shifted into the gap, and the translated protein was read from a molecule the reads never described. Insertions were dropped entirely and were not recorded anywhere, so nothing downstream could reconstruct them. The inserted bases are now kept alongside the event counts, and translation rebuilds the length-true molecule in memory from the deletions and the insertions together whenever the rebuild still shares the reference reading frame. The stored FASTA is unchanged: the rebuild is a reading of the same record rather than a rewriting of it.
+
+The plate-level recurrence tally counted substitutions only, because the mix-eligible mask excludes the deletion token by construction. Deletions and insertions now have their own channels beside the substitution table rather than inside it, since a decided indel carries neither a minor fraction nor strand statistics and folding it in would mean filling half a row with blanks.
+
+Recurrence on its own cannot say what it found. The same reference position turning up well after well excludes one explanation, per-well biological mixing, and chooses among none of the rest. It cannot even separate a caller artifact from a shared sample: on the measured plate every recurrent deletion is one well coordinate replicated three times, which is a property of the DNA and not of the basecaller. Each row therefore carries the number of distinct expected mutations among the wells that contributed to it. Three wells with one expectation and thirty wells with thirty expectations are different findings, and without that column the first would have been labelled as the second. Truncation, whole-list omission and insertion ties are carried as three separate denominators, because a list cut short, a list dropped whole and an anchor whose reads disagreed are three different absences.
+
+Two aggregators had grown up doing nearly the same work and only one of them was wired to anything. The wired one is now canonical and carries the fraction columns the unwired one had, which are what separate a plate-wide low-fraction site from one well in genuine mixture at the same position. The unwired module is removed.
+
+Saved results lost their deletion evidence. The serializer that writes a finished analysis dropped the four consensus indel fields, so a run reopened in a later session claimed zero deletions while the live session had them. The round trip now carries them, with each count read from its own key rather than derived from the length of its list, because a count larger than its list is how the format says the report budget was exceeded.
+
+Nothing here grades, scores or emits a severity. A recurrence sweep over three technical replicates of one DNA put every candidate cut on different sides of the line in different replicates, so no threshold is applied to any of it.
+
+### Highlights
+
+- A decided deletion no longer counts toward the NO_CALL and MIXED gates, so three wells now report the amino acid substitution they carry.
+- Translation rebuilds the length-true molecule from the called deletions and insertions rather than a reference-length sequence.
+- Plate recurrence gains deletion and insertion channels beside the substitution table, with truncation, omission and ties counted apart.
+- Each recurrent position carries how many distinct expected mutations its wells had, separating a caller artifact from a shared sample.
+- A saved analysis now carries its consensus indel evidence, which was previously lost on reopening.
+
 ## v0.16.59 (A finished workbook says what produced it)
 
 A finished MAME workbook named plates, wells and verdicts and said nothing about what produced them. The reference the reads were graded against, the translated window, and the thresholds that turn reads into a verdict lived only in the session that ran the analysis. Two results from the same plate under different settings were indistinguishable once that session was gone, and nobody could say whether they may be compared.

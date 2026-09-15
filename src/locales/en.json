@@ -2620,14 +2620,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A MAME workbook now records the reference, the coding window, the mode and the thresholds the run was executed under.",
-      "The reference is identified by a digest over the parsed sequence, so the same molecule re-saved under another name still matches.",
-      "The verdict class vocabulary is recorded on every workbook, so a downstream reader no longer hand-copies the class names.",
-      "The kuma version and the sequencing run metadata, both empty on every workbook written through the library path, are now filled.",
-      "No verdict changes: the entries describe settings that were already in force, and the judgment logic is untouched."
+      "A decided deletion no longer counts toward the NO_CALL and MIXED gates, so three wells now report the amino acid substitution they carry.",
+      "Translation rebuilds the length-true molecule from the called deletions and insertions rather than a reference-length sequence.",
+      "Plate recurrence gains deletion and insertion channels beside the substitution table, with truncation, omission and ties counted apart.",
+      "Each recurrent position carries how many distinct expected mutations its wells had, separating a caller artifact from a shared sample.",
+      "A saved analysis now carries its consensus indel evidence, which was previously lost on reopening."
     ],
-    "highlightsStamp": "0.16.59+69e92cd5",
+    "highlightsStamp": "0.16.60+a87cf2d1",
     "releases": {
+      "0.16.60": [
+        "A decided deletion no longer counts toward the NO_CALL and MIXED gates, so three wells now report the amino acid substitution they carry.",
+        "Translation rebuilds the length-true molecule from the called deletions and insertions rather than a reference-length sequence.",
+        "Plate recurrence gains deletion and insertion channels beside the substitution table, with truncation, omission and ties counted apart.",
+        "Each recurrent position carries how many distinct expected mutations its wells had, separating a caller artifact from a shared sample.",
+        "A saved analysis now carries its consensus indel evidence, which was previously lost on reopening."
+      ],
       "0.16.59": [
         "A MAME workbook now records the reference, the coding window, the mode and the thresholds the run was executed under.",
         "The reference is identified by a digest over the parsed sequence, so the same molecule re-saved under another name still matches.",
@@ -3055,6 +3062,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.60": "a87cf2d1",
       "0.16.59": "69e92cd5",
       "0.16.58": "1ce19d3d",
       "0.16.57": "b25a7d73",

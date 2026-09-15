@@ -2566,13 +2566,13 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Uma pasta do MAME agora registra a referência, a janela codificante, o modo e os limiares sob os quais a execução ocorreu.",
-      "A referência é identificada por um resumo da sequência analisada, então a mesma molécula salva com outro nome continua correspondendo.",
-      "O vocabulário das classes de veredito é registrado em toda pasta, então quem lê depois não copia mais os nomes das classes à mão.",
-      "A versão do kuma e os metadados da corrida de sequenciamento, vazios em toda pasta escrita pelo caminho de biblioteca, agora são preenchidos.",
-      "Nenhum veredito muda: as entradas descrevem ajustes que já estavam em vigor e a lógica de decisão permanece intacta."
+      "Uma deleção decidida não conta mais para os gates NO_CALL e MIXED, de modo que três poços relatam a substituição de aminoácido que carregam.",
+      "A tradução reconstrói a molécula de comprimento real a partir das deleções e inserções chamadas em vez de uma sequência de comprimento de referência.",
+      "A recorrência de placa ganha canais de deleção e inserção ao lado da tabela de substituições, com truncamento, omissão e empates contados separadamente.",
+      "Cada posição recorrente carrega quantas mutações esperadas distintas seus poços tinham, o que separa um artefato do caller de uma amostra compartilhada.",
+      "Uma análise salva agora mantém suas evidências de indels de consenso, antes perdidas ao reabrir."
     ],
-    "highlightsStamp": "0.16.59+69e92cd5",
+    "highlightsStamp": "0.16.60+a87cf2d1",
     "releases": {
       "0.16.59": [
         "Uma pasta do MAME agora registra a referência, a janela codificante, o modo e os limiares sob os quais a execução ocorreu.",
@@ -2998,6 +2998,13 @@
         "O Design classifica os candidatos em toda a varredura de tolerância de Tm, então uma janela mais larga com um primer melhor não é mais pulada.",
         "O valor de Tol sobe nesses desenhos. Um Tol mais alto aqui indica um primer com melhor pontuação, não um critério mais frouxo.",
         "Três tabelas de códons foram corrigidas e a lista de organismos agora mostra todas as tabelas incluídas, então desenhos anteriores podem diferir."
+      ],
+      "0.16.60": [
+        "Uma deleção decidida não conta mais para os gates NO_CALL e MIXED, de modo que três poços relatam a substituição de aminoácido que carregam.",
+        "A tradução reconstrói a molécula de comprimento real a partir das deleções e inserções chamadas em vez de uma sequência de comprimento de referência.",
+        "A recorrência de placa ganha canais de deleção e inserção ao lado da tabela de substituições, com truncamento, omissão e empates contados separadamente.",
+        "Cada posição recorrente carrega quantas mutações esperadas distintas seus poços tinham, o que separa um artefato do caller de uma amostra compartilhada.",
+        "Uma análise salva agora mantém suas evidências de indels de consenso, antes perdidas ao reabrir."
       ]
     },
     "releaseStamps": {
@@ -3069,7 +3076,8 @@
       "0.15.17": "6ee369a3",
       "0.15.16": "fe8e6f21",
       "0.16.57": "b25a7d73",
-      "0.16.58": "1ce19d3d"
+      "0.16.58": "1ce19d3d",
+      "0.16.60": "a87cf2d1"
     }
   },
   "primerDisplay": {
