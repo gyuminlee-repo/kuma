@@ -21,8 +21,8 @@
 
 ## v0.9.2.x 변경
 
-- Sidebar 의 mutation/params step 을 미리 클릭해도 차단되지 않는다 (자유 navigate). 단, 해당 step 은 "Load sequence first" empty state 를 표시한다.
-- Next 클릭 시 서열 미로딩이면 validation Dialog: "Sequence file required".
+- Sidebar 의 mutation/params step 을 미리 클릭해도 차단되지 않는다 (자유 navigate). 단, 해당 step 은 "Load a sequence file first" empty state 를 표시한다.
+- Next 클릭 시 서열 미로딩이면 validation Dialog: "Sequence file is required".
 
 ## 다음
 

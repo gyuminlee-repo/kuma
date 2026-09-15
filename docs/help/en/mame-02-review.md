@@ -19,7 +19,7 @@ Based on the `VerdictClass` enum in code (kuma_core/mame/models.py). Classificat
 
 ## 2.1 Inputs
 
-Choose the run inputs (run folder, expected workbook, reference FASTA, and the wells this run declares it occupies) and press Run or Validate. Wells are selected in the "Wells to use" panel, and if left untouched the leading wells are used. The sample map was removed from the inputs in v0.16.0. Janus instrument settings are not on this screen. They belong to step 3.
+Choose the run inputs (run folder, expected workbook, reference FASTA, and the wells this run declares it occupies) and press Run or Validate. Wells are selected in the "Wells used" panel, and if left untouched the leading wells are used. The sample map was removed from the inputs in v0.16.0. Janus instrument settings are not on this screen. They belong to step 3.
 
 ### Well selection narrows the placement and does not move it (v0.16.11, v0.16.16)
 
@@ -31,7 +31,7 @@ So declaring fewer wells than samples is simply a partly filled plate and not a 
 
 ### Barcode worklist (v0.16.13)
 
-The **Barcode worklist (csv)** button in the "Wells to use" panel writes the custom barcodes this campaign uses to a file. Each filled well gets one row with the well·sample·`{R}_{F}` token·reverse/forward seed primer names, and the seed types this campaign actually needs are reported as well. For a partial plate this is fewer than the 20 in the workbook. The placement comes from the same computation the run uses, so the sheet cannot describe a plate different from the plate the run will score. Without a barcode workbook only the primer names are empty and the token placement still comes out.
+The **Barcode worklist (csv)** button in the "Wells used" panel writes the custom barcodes this campaign uses to a file. Each filled well gets one row with the well·sample·`{R}_{F}` token·reverse/forward seed primer names, and the seed types this campaign actually needs are reported as well. For a partial plate this is fewer than the 20 in the workbook. The placement comes from the same computation the run uses, so the sheet cannot describe a plate different from the plate the run will score. Without a barcode workbook only the primer names are empty and the token placement still comes out.
 
 ### Changing an input clears the previous run output (v0.15.14)
 
