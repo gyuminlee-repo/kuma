@@ -80,6 +80,27 @@ export interface RecurringPosition {
    */
   wells: number
   /**
+   * `wells` over `wells_contributing`, carried on the row so a reader cannot
+   * divide by the wrong denominator.
+   *
+   * Optional, and undefined is NOT 0. A result saved by a sidecar that tallied
+   * recurrence but predates these four columns carries the row without them,
+   * and an absent measurement rendered as a zero would state a finding nobody
+   * made. This is the same rule `shares_unknown` follows one field below.
+   */
+  recurrence_rate?: number
+  /**
+   * The minor-allele fraction over those records, and its spread. The median
+   * alone cannot separate a plate-wide low-fraction site from one well in
+   * genuine mixture at the same position (measured: position 1654, eighteen
+   * wells at median 0.018 with one well at 0.476), so both ends are carried.
+   *
+   * Optional for the same reason as `recurrence_rate`, and never zero-filled.
+   */
+  median_minor_fraction?: number
+  min_minor_fraction?: number
+  max_minor_fraction?: number
+  /**
    * Weak-strand share of the minor allele over those records, `min(plus, minus)
    * / (plus + minus)`. Null for all three when no record carried a share, which
    * is UNKNOWN and never the same as 0.0, the reading "one strand only".
@@ -121,6 +142,21 @@ export interface PositionRecurrence {
    * silently dropped.
    */
   positions_single_well: number
+  /**
+   * Whether the plate carried strand contrast at all. `absent` means every
+   * reported minor allele was read off the SAME strand, which happens when
+   * reads were normalised to the reference upstream in either direction; the
+   * per-row shares are then all 0.0, and this is the only field that says those
+   * zeros measured no contrast. It annotates the shares and never replaces
+   * them: 0.0 stays "one strand only" and null stays unknown.
+   *
+   * Optional, and undefined is a fourth state distinct from all three named
+   * ones: a result saved before this field existed never determined the
+   * plate's strand contrast. `no_data` says a plate was examined and reported
+   * nothing, which is a measurement; undefined says nobody looked. The screen
+   * must stay silent about strand on such a result rather than claim `absent`.
+   */
+  strand_information?: "absent" | "present" | "no_data"
   /** Most-recurrent first, then by coordinate. Never truncated. */
   positions: RecurringPosition[]
 }

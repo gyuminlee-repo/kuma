@@ -1015,6 +1015,7 @@
         "predatesBuild": "Ce résultat enregistré a été écrit avant le comptage des positions récurrentes, donc rien n'est connu à leur sujet. Cela ne signifie pas qu'aucune position ne s'est répétée.",
         "what": "Un minor allele à une position dans un puits est un candidat mélange. La même position puits après puits, c'est l'allure d'un artefact de sequence context, car le contexte appartient à l'amplicon et non au clone. Rien ici n'est noté.",
         "lowerBound": "Chaque compte ci-dessous est une borne inférieure : chaque puits contribue au plus dix positions classées par minor fraction, et {{truncated}} des {{contributing}} puits contributeurs ont atteint ce plafond, si bien que les positions au-delà du dixième rang manquent au décompte.",
+        "strandAbsent": "Chaque minor allele signalé sur cette plaque a été lu sur le même brin, si bien que les colonnes weak strand ci-dessous valent toutes 0,0 % et n'ont mesuré aucun contraste. Des lectures normalisées sur la référence en amont ont exactement cette allure.",
         "wellsContributing": "Enregistrements ayant fourni une position",
         "wellsTruncated": "Dont tronqués à dix",
         "positionsSeen": "Positions distinctes observées",
@@ -1022,7 +1023,9 @@
         "none": "Aucune position n'a été rapportée par plus d'un enregistrement.",
         "caption": "Positions de référence rapportées par plus d'un enregistrement, les plus récurrentes d'abord.",
         "colPosition": "Position",
-        "colWells": "Enregistrements",
+        "colWells": "Enregistrements (taux)",
+        "colMedianFraction": "Médiane de minor fraction",
+        "colFractionRange": "Minor fraction, min. / max.",
         "colMedianShare": "Médiane weak strand",
         "colShareRange": "Min / max",
         "colSharesKnown": "Fractions connues"

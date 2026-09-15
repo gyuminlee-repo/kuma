@@ -1015,6 +1015,7 @@
         "predatesBuild": "該儲存結果寫於統計反覆位點之前，因此對此一無所知。這不代表沒有位點反覆出現。",
         "what": "單一孔中某一位點的 minor allele 是混合的候選。同一位點在一個又一個孔中出現，則是 sequence context artifact 的樣子，因為該 context 屬於 amplicon 而非選殖株。此處不作任何評級。",
         "lowerBound": "下列每個計數都是下界：每個孔最多貢獻按 minor fraction 排序的十個位點，而在 {{contributing}} 個有貢獻的孔中有 {{truncated}} 個觸及該上限，因此排在第十位之後的位點未計入。",
+        "strandAbsent": "該盤報告的所有 minor allele 都讀自同一條 strand，因此下方的 weak strand 各欄全為 0.0%，並未測到任何對比。在上游依參考序列正規化的 read 正是這種形態。",
         "wellsContributing": "貢獻了位點的紀錄",
         "wellsTruncated": "其中在十處被截斷",
         "positionsSeen": "觀測到的不同位點",
@@ -1022,7 +1023,9 @@
         "none": "沒有位點被一筆以上的紀錄報告。",
         "caption": "被一筆以上紀錄報告的參考位點，反覆次數多者在前。",
         "colPosition": "位點",
-        "colWells": "紀錄",
+        "colWells": "記錄 (比例)",
+        "colMedianFraction": "minor fraction 中位數",
+        "colFractionRange": "minor fraction 最小 / 最大",
         "colMedianShare": "weak strand 中位數",
         "colShareRange": "最小 / 最大",
         "colSharesKnown": "已知比例"

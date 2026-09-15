@@ -18,8 +18,13 @@ an unknown strand share never enters a median as 0.0.
 
 from dataclasses import dataclass
 
+import pytest
+
 from kuma_core.mame.models import NoisyPosition
 from kuma_core.mame.run_quality import (
+    STRAND_ABSENT,
+    STRAND_NO_DATA,
+    STRAND_PRESENT,
     serialise_position_recurrence,
     summarise_position_recurrence,
 )
@@ -201,3 +206,168 @@ def test_the_table_is_ordered_by_recurrence_and_never_cut_off() -> None:
         (30, 2),
         (40, 2),
     ]
+
+
+# ── Migrated from the former qc/cross_well_recurrence module ─────────────────
+#
+# That module was a second aggregator over the same input with no production
+# caller. Its unique columns (the recurrence rate, the minor-fraction spread and
+# the plate-level strand determination) moved onto this one, and these are the
+# cases it carried that nothing here already covered. Each names the mutation it
+# is meant to catch, so a future reader can check it still has teeth.
+
+
+def test_recurrence_rate_denominator_is_contributing_wells() -> None:
+    """Kills a denominator swapped for the number of wells passed in.
+
+    A well with no eligible position carries no evidence either way. Folding it
+    into the denominator would understate every rate on a plate that had some.
+    """
+    wells = [
+        _well(_position(50, plus=10, minus=10, minor_fraction=0.05)),
+        _well(_position(50, plus=10, minus=10, minor_fraction=0.05)),
+        _well(),  # contributes nothing, must not enter the denominator
+        _well(),
+    ]
+
+    summary = summarise_position_recurrence(wells)
+
+    assert summary.wells_contributing == 2
+    assert summary.positions[0].wells == 2
+    assert summary.positions[0].recurrence_rate == 1.0
+    assert serialise_position_recurrence(summary)["positions"][0][
+        "recurrence_rate"
+    ] == 1.0
+
+
+def test_spread_is_reported_beside_the_median() -> None:
+    """Kills median->mean, and kills dropping min/max.
+
+    This is the shape that separates a plate-wide low-fraction site from one
+    well in genuine mixture at the same position: measured at position 1654,
+    eighteen wells at median 0.018 with one well at 0.476. A single scalar
+    cannot state it.
+    """
+    # All three statistics differ, on purpose. A fixture whose median equals its
+    # own minimum cannot catch min being computed as the median, which is the
+    # cheapest way to lose the lower end.
+    wells = [_well(_position(1654, plus=10, minus=10, minor_fraction=0.024))]
+    wells += [
+        _well(_position(1654, plus=10, minus=10, minor_fraction=0.0505))
+        for _ in range(16)
+    ]
+    wells.append(_well(_position(1654, plus=10, minus=10, minor_fraction=0.476)))
+
+    (row,) = summarise_position_recurrence(wells).positions
+
+    assert row.wells == 18
+    assert row.median_minor_fraction == pytest.approx(0.0505)
+    assert row.min_minor_fraction == pytest.approx(0.024)
+    assert row.max_minor_fraction == pytest.approx(0.476)
+    # A mean would be pulled to ~0.0727 and hide both ends.
+    assert row.median_minor_fraction < 0.06
+    payload = serialise_position_recurrence(summarise_position_recurrence(wells))
+    assert payload["positions"][0]["min_minor_fraction"] == pytest.approx(0.024)
+    assert payload["positions"][0]["max_minor_fraction"] == pytest.approx(0.476)
+
+
+def test_forward_normalised_plate_reports_no_strand_information() -> None:
+    """Kills removal of the plate-level strand determination.
+
+    Every share on such a plate evaluates to 0.0, which the record defines as
+    "read off one strand only" and a reader would otherwise take for a
+    basecaller artifact. The three measured plates are exactly this case: reads
+    were normalised to the forward strand upstream, so no minus read survives.
+
+    The shares keep their own reading rather than being blanked, because 0.0 is
+    what was measured and the serialised key is read that way downstream.
+    ``strand_information`` is what tells a reader those zeros carry no contrast.
+    """
+    wells = [_well(_position(1232, plus=10, minus=0)) for _ in range(3)]
+
+    summary = summarise_position_recurrence(wells)
+
+    assert summary.strand_information == STRAND_ABSENT
+    (row,) = summary.positions
+    assert row.median_weak_strand_share == 0.0
+    assert row.shares_known == 3
+    assert row.shares_unknown == 0
+    assert (
+        serialise_position_recurrence(summary)["strand_information"] == STRAND_ABSENT
+    )
+
+
+def test_two_strand_plate_reports_measured_shares() -> None:
+    """The other half: a plate that did carry contrast says so."""
+    wells = [_well(_position(1232, plus=6, minus=4)) for _ in range(3)]
+
+    summary = summarise_position_recurrence(wells)
+
+    assert summary.strand_information == STRAND_PRESENT
+    (row,) = summary.positions
+    assert row.median_weak_strand_share == pytest.approx(0.4)
+    assert row.shares_known == 3
+    assert row.shares_unknown == 0
+
+
+def test_reverse_normalised_plate_also_reports_no_strand_information() -> None:
+    """Kills the mutation that drops ``any_plus`` from the determination.
+
+    The forward case is the one the measured plates show, so a check written
+    only against it passes every test here while leaving the identical trap on
+    the other side: reads normalised to the REVERSE strand leave ``plus_count``
+    at zero everywhere, every share still evaluates to 0.0, and a minus-only
+    test would report the plate as having measured strand. Neither direction
+    carries contrast.
+    """
+    wells = [_well(_position(1232, plus=0, minus=10)) for _ in range(3)]
+
+    summary = summarise_position_recurrence(wells)
+
+    assert summary.strand_information == STRAND_ABSENT
+
+
+def test_strand_absent_is_distinct_from_no_data() -> None:
+    """An empty plate measured nothing; it did not measure "one strand"."""
+    summary = summarise_position_recurrence([_well(), _well()])
+
+    assert summary.strand_information == STRAND_NO_DATA
+    assert summary.wells_contributing == 0
+    assert summary.positions == []
+
+
+def test_recurrence_separates_a_plate_wide_site_from_a_single_well_mixture() -> None:
+    """The discrimination the migrated columns exist for, as the plates showed it.
+
+    Position 1232 was reported by 90 of 93 contributing wells at a median
+    fraction of 0.0505; position 16 was reported by two wells, one of them at
+    0.456 and its neighbour at 0.029, and the same well read 0.017 on another
+    plate. Both are rows. The columns, not a threshold, tell them apart.
+    """
+    wells = [
+        _well(
+            _position(1232, plus=10, minus=10, minor_fraction=0.05),
+            _position(16, plus=10, minus=10, minor_fraction=0.029),
+        )
+    ]
+    wells += [
+        _well(_position(1232, plus=10, minus=10, minor_fraction=0.05))
+        for _ in range(89)
+    ]
+    wells.append(
+        _well(
+            _position(1232, plus=10, minus=10, minor_fraction=0.05),
+            _position(16, plus=10, minus=10, minor_fraction=0.456),
+        )
+    )
+
+    rows = {
+        row.position: row for row in summarise_position_recurrence(wells).positions
+    }
+
+    systemic, mixture = rows[1232], rows[16]
+    assert systemic.recurrence_rate == pytest.approx(1.0)
+    assert mixture.recurrence_rate < 0.05
+    # The mixture row spans an order of magnitude; the recurrent one does not.
+    assert mixture.max_minor_fraction / mixture.min_minor_fraction > 10
+    assert systemic.max_minor_fraction == systemic.min_minor_fraction

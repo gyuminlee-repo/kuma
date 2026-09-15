@@ -1168,6 +1168,7 @@
         "predatesBuild": "This saved result was written before recurring positions were tallied, so nothing is known about them. It does not mean no position recurred.",
         "what": "A minor allele at one position in one well is a candidate mixture. The same position returning well after well is what a sequence-context artifact looks like, because the context belongs to the amplicon rather than to the clone. Nothing here is graded.",
         "lowerBound": "Every count below is a lower bound: each well contributes at most ten positions ranked by minor fraction, and {{truncated}} of {{contributing}} contributing wells hit that ceiling, so positions ranked past tenth are missing from the tally.",
+        "strandAbsent": "Every reported minor allele on this plate was read off the same strand, so the weak strand columns below are all 0.0% and measured no contrast. Reads normalised to the reference upstream look exactly like this.",
         "wellsContributing": "Records contributing a position",
         "wellsTruncated": "Of those, truncated at ten",
         "positionsSeen": "Distinct positions seen",
@@ -1175,7 +1176,9 @@
         "none": "No position was reported by more than one record.",
         "caption": "Reference positions reported by more than one record, most recurrent first.",
         "colPosition": "Position",
-        "colWells": "Records",
+        "colWells": "Records (rate)",
+        "colMedianFraction": "Median minor fraction",
+        "colFractionRange": "Minor fraction min / max",
         "colMedianShare": "Median weak strand",
         "colShareRange": "Min / max",
         "colSharesKnown": "Shares known"

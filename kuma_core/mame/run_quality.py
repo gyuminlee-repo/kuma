@@ -505,6 +505,21 @@ def assess_run_quality(
 # module emits a table and no verdict.
 
 
+#: A position reported by one well has not recurred. This is what "recurrence"
+#: means rather than a tuned cut.
+_MIN_WELLS_TO_RECUR = 2
+
+#: Strand could not be measured, because every reported minor allele on the
+#: plate was read off the SAME strand. Distinct from "measured and one-sided",
+#: which is a per-position 0.0.
+STRAND_ABSENT = "absent"
+#: Strand was measured: at least one reported minor allele had a plus read and
+#: at least one had a minus read.
+STRAND_PRESENT = "present"
+#: No well reported a position at all, so there was nothing to measure.
+STRAND_NO_DATA = "no_data"
+
+
 class _WellLike(Protocol):
     """A scored well, as ``BarcodeRecord`` and ``ConsensusCall`` both present it.
 
@@ -539,6 +554,16 @@ class RecurringPosition:
     #: one record per plate, so this counts SCORED RECORDS and not distinct
     #: physical wells; a plate sequenced twice can report 2 for one well.
     wells: int
+    #: ``wells`` over the records that reported ANY position, precomputed here
+    #: so a caller cannot divide by the wrong denominator.
+    recurrence_rate: float
+    #: The minor-allele fraction across those records. The spread is carried
+    #: because the median alone cannot distinguish a plate-wide low-fraction
+    #: site from one well in genuine mixture at the same position (measured:
+    #: position 1654, 18 wells at median 0.018, one well at 0.476).
+    median_minor_fraction: float
+    min_minor_fraction: float
+    max_minor_fraction: float
     #: Weak-strand share of the minor allele across those records. ``None`` for
     #: all three when no record carried a share, which is not 0.0.
     median_weak_strand_share: float | None
@@ -565,6 +590,15 @@ class PositionRecurrence:
     #: means more than once" rule below left out of ``positions``.
     positions_seen: int = 0
     positions_single_well: int = 0
+    #: Whether strand could be measured on this plate at all. ``absent`` means
+    #: every reported minor allele was read off the SAME strand, which happens
+    #: when reads were normalised to the reference upstream (in either
+    #: direction); every per-position share is then the 0.0 that means "one
+    #: strand only", and this field is the only thing that says those zeros
+    #: carry no strand contrast. The per-row shares keep their own reading: 0.0
+    #: stays a measurement and ``None`` stays unknown, because the serialised
+    #: keys those rows already ship are read that way downstream.
+    strand_information: str = STRAND_NO_DATA
 
 
 def summarise_position_recurrence(
@@ -601,11 +635,21 @@ def summarise_position_recurrence(
     whatever its individual positions measured. ``None`` there is UNKNOWN and
     stays out of the median rather than entering it as the 0.0 that means "one
     strand only", which ``shares_unknown`` per row makes visible.
+
+    The strand determination on the block is PLATE-LEVEL and not per-position.
+    A genuinely one-sided artifact at a single site still has minus reads
+    elsewhere on the plate; a plate with no minus read anywhere carried no
+    strand information to begin with, and the difference is not visible one
+    position at a time. It annotates the per-row shares and does not overwrite
+    them: 0.0 stays the measurement "one strand only" and ``None`` stays
+    unknown.
     """
     shares_by_position: defaultdict[int, list[float]] = defaultdict(list)
-    counts_by_position: defaultdict[int, int] = defaultdict(int)
+    fractions_by_position: defaultdict[int, list[float]] = defaultdict(list)
     wells_contributing = 0
     wells_truncated = 0
+    any_plus = False
+    any_minus = False
 
     for well in wells:
         # Read straight off the protocol rather than through ``getattr`` with a
@@ -620,32 +664,59 @@ def summarise_position_recurrence(
         if len(positions) < well.n_eligible_positions:
             wells_truncated += 1
         for entry in positions:
-            counts_by_position[int(entry.position)] += 1
+            key = int(entry.position)
+            fractions_by_position[key].append(float(entry.minor_fraction))
+            if entry.plus_count > 0:
+                any_plus = True
+            if entry.minus_count > 0:
+                any_minus = True
             share = entry.weak_strand_share
             if share is not None:
-                shares_by_position[int(entry.position)].append(share)
+                shares_by_position[key].append(share)
+
+    if not fractions_by_position:
+        strand_information = STRAND_NO_DATA
+    elif any_plus and any_minus:
+        strand_information = STRAND_PRESENT
+    else:
+        # Every reported minor allele was read off the SAME strand, whichever
+        # one that is. Both directions have to be checked: reads normalised to
+        # the reverse strand leave ``plus_count`` at zero everywhere and would
+        # otherwise pass a minus-only test while carrying no more information
+        # than the forward case. The plate measured no strand contrast, so the
+        # block says so rather than leaving a reader to infer it from a column
+        # of zeros.
+        strand_information = STRAND_ABSENT
 
     summary = PositionRecurrence(
         wells_contributing=wells_contributing,
         wells_truncated=wells_truncated,
-        positions_seen=len(counts_by_position),
+        positions_seen=len(fractions_by_position),
+        strand_information=strand_information,
     )
     # "Recurrence" means "seen more than once", so a position only one well
     # reported is not a row in a recurrence table. Counted, never dropped in
     # silence.
     summary.positions_single_well = sum(
-        1 for count in counts_by_position.values() if count < 2
+        1
+        for values in fractions_by_position.values()
+        if len(values) < _MIN_WELLS_TO_RECUR
     )
 
     rows: list[RecurringPosition] = []
-    for position, count in counts_by_position.items():
-        if count < 2:
+    for position, fractions in fractions_by_position.items():
+        count = len(fractions)
+        if count < _MIN_WELLS_TO_RECUR:
             continue
         shares = shares_by_position.get(position, [])
         rows.append(
             RecurringPosition(
                 position=position,
                 wells=count,
+                recurrence_rate=count / wells_contributing,
+                median_minor_fraction=median(fractions),
+                min_minor_fraction=min(fractions),
+                max_minor_fraction=max(fractions),
                 median_weak_strand_share=median(shares) if shares else None,
                 min_weak_strand_share=min(shares) if shares else None,
                 max_weak_strand_share=max(shares) if shares else None,
@@ -678,10 +749,23 @@ def serialise_position_recurrence(summary: PositionRecurrence) -> dict:
         # Positions exactly one well reported, excluded because recurrence means
         # more than once. Not a threshold, and not hidden.
         "positions_single_well": summary.positions_single_well,
+        # Whether the plate carried strand contrast at all. ``absent`` means
+        # every reported minor allele was read off one strand, so the 0.0
+        # shares below are all that could have been measured.
+        "strand_information": summary.strand_information,
         "positions": [
             {
                 "position": row.position,
                 "wells": row.wells,
+                # ``wells`` over wells_contributing, carried so a reader cannot
+                # divide by the wrong denominator.
+                "recurrence_rate": row.recurrence_rate,
+                # The minor-allele fraction and its spread. The median alone
+                # cannot separate a plate-wide low-fraction site from one well
+                # in genuine mixture at the same position.
+                "median_minor_fraction": row.median_minor_fraction,
+                "min_minor_fraction": row.min_minor_fraction,
+                "max_minor_fraction": row.max_minor_fraction,
                 "median_weak_strand_share": row.median_weak_strand_share,
                 "min_weak_strand_share": row.min_weak_strand_share,
                 "max_weak_strand_share": row.max_weak_strand_share,

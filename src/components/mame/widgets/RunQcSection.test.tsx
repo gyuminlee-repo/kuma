@@ -65,10 +65,17 @@ const recurrence: PositionRecurrence = {
   wells_truncated: 40,
   positions_seen: 130,
   positions_single_well: 90,
+  // A plate that did carry strand contrast, so the notice below stays off and
+  // the shares read as measurements.
+  strand_information: "present",
   positions: [
     {
       position: 512,
       wells: 31,
+      recurrence_rate: 31 / 40,
+      median_minor_fraction: 0.051,
+      min_minor_fraction: 0.024,
+      max_minor_fraction: 0.087,
       median_weak_strand_share: 0.32,
       min_weak_strand_share: 0.11,
       max_weak_strand_share: 0.48,
@@ -78,13 +85,20 @@ const recurrence: PositionRecurrence = {
     {
       // Every share unknown. Rendering these as 0.0% would state the opposite
       // finding: 0 is "the minor allele came off one strand only".
+      // 5 of 40 and not 4: the rate cell renders "12.5%", while 4 would render
+      // "10.0%" and the assertion below that an unknown share never prints as
+      // "0.0%" is a substring check that "10.0%" satisfies by accident.
       position: 900,
-      wells: 4,
+      wells: 5,
+      recurrence_rate: 5 / 40,
+      median_minor_fraction: 0.31,
+      min_minor_fraction: 0.017,
+      max_minor_fraction: 0.456,
       median_weak_strand_share: null,
       min_weak_strand_share: null,
       max_weak_strand_share: null,
       shares_known: 0,
-      shares_unknown: 4,
+      shares_unknown: 5,
     },
   ],
 };
@@ -334,6 +348,88 @@ describe("RunQcSection, position recurrence", () => {
     expect(unknownRow).toHaveAttribute("data-share-known", "false");
     expect(unknownRow.textContent ?? "").toContain(en.mame.runHealth.qcNotMeasured);
     expect(unknownRow.textContent ?? "").not.toContain("0.0%");
+  });
+
+  it("carries the minor fraction spread beside the median, not a median alone", () => {
+    useMameAppStore.setState({ runQuality: makeRunQuality({ position_recurrence: recurrence }) });
+    render(<RunQcSection runHealth={makeHealth()} />);
+    open();
+
+    // Position 900 is the shape a single scalar cannot state: a median an order
+    // of magnitude above its own minimum. Dropping either end hides it.
+    const mixture = screen.getByTestId("recurrence-row-900").textContent ?? "";
+    expect(mixture).toContain("31.0%");
+    expect(mixture).toContain("1.7%");
+    expect(mixture).toContain("45.6%");
+    // And the well count is shown with the rate it works out to.
+    expect(mixture).toContain("12.5%");
+  });
+
+  it("says so when the plate measured no strand contrast at all", () => {
+    useMameAppStore.setState({
+      runQuality: makeRunQuality({
+        position_recurrence: { ...recurrence, strand_information: "absent" },
+      }),
+    });
+    render(<RunQcSection runHealth={makeHealth()} />);
+    open();
+
+    expect(screen.getByTestId("recurrence-strand-absent").textContent ?? "").toBe(
+      en.mame.runQuality.positionRecurrence.strandAbsent,
+    );
+  });
+
+  it("shows an older saved result's new columns as unmeasured, never as zero", () => {
+    // The shape an autosave written between the tally's introduction and the
+    // columns below it carries: position_recurrence is present, the four
+    // fraction columns and the plate strand determination are not. Rendering a
+    // missing measurement as 0.0% would state a finding nobody made, which is
+    // the rule shares_unknown already follows.
+    const legacyRow = {
+      position: 512,
+      wells: 31,
+      median_weak_strand_share: 0.32,
+      min_weak_strand_share: 0.11,
+      max_weak_strand_share: 0.48,
+      shares_known: 31,
+      shares_unknown: 0,
+    };
+    const legacy: PositionRecurrence = {
+      lower_bound: true,
+      wells_contributing: 40,
+      wells_truncated: 40,
+      positions_seen: 130,
+      positions_single_well: 90,
+      positions: [legacyRow],
+    };
+    useMameAppStore.setState({ runQuality: makeRunQuality({ position_recurrence: legacy }) });
+    render(<RunQcSection runHealth={makeHealth()} />);
+    open();
+
+    // The block renders rather than falling over, and the row is still there.
+    const row = screen.getByTestId("recurrence-row-512");
+    const text = row.textContent ?? "";
+    // The columns that WERE recorded still read as themselves.
+    expect(text).toContain("31");
+    expect(text).toContain("32.0%");
+    // The ones that were not read as unmeasured, in the same notation the table
+    // already uses for a null weak-strand share.
+    // Four cells: the rate beside the well count, the median minor fraction,
+    // and both ends of its range. Counted by splitting rather than by regex, so
+    // the locale string is never read as a pattern.
+    expect(text.split(en.mame.runHealth.qcNotMeasured).length - 1).toBe(4);
+    expect(text).not.toContain("0.0%");
+
+    // And nothing claims to know the plate's strand contrast.
+    expect(screen.queryByTestId("recurrence-strand-absent")).toBeNull();
+  });
+
+  it("stays silent about strand when the plate did carry contrast", () => {
+    useMameAppStore.setState({ runQuality: makeRunQuality({ position_recurrence: recurrence }) });
+    render(<RunQcSection runHealth={makeHealth()} />);
+    open();
+
+    expect(screen.queryByTestId("recurrence-strand-absent")).toBeNull();
   });
 });
 

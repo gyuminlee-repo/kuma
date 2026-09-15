@@ -1015,6 +1015,7 @@
         "predatesBuild": "この保存結果は反復位置の集計が導入される前に書かれたため、情報がありません。反復した位置がなかったという意味ではありません。",
         "what": "1 ウェルの 1 位置に出る minor allele は混合の候補です。同じ位置がウェルごとに繰り返し出るのは sequence context artifact の姿であり、その context はクローンではなく amplicon に属します。ここでは何も等級付けしません。",
         "lowerBound": "以下の値はすべて下限です。各ウェルは minor fraction 順に最大 10 位置しか寄与せず、寄与した {{contributing}} ウェルのうち {{truncated}} がその上限に達したため、11 番目以降の位置は集計から抜けています。",
+        "strandAbsent": "このプレートが報告した minor allele はすべて同じ strand から読まれています。したがって下の weak strand 列はすべて 0.0% であり、コントラストを測定した値ではありません。上流で参照配列に正規化された read がちょうどこの形になります。",
         "wellsContributing": "位置を寄与したレコード",
         "wellsTruncated": "うち 10 で打ち切られたレコード",
         "positionsSeen": "観測された固有位置",
@@ -1022,7 +1023,9 @@
         "none": "複数のレコードが報告した位置はありません。",
         "caption": "複数のレコードが報告した参照位置。反復の多い順。",
         "colPosition": "位置",
-        "colWells": "レコード",
+        "colWells": "レコード (比率)",
+        "colMedianFraction": "minor fraction の中央値",
+        "colFractionRange": "minor fraction 最小 / 最大",
         "colMedianShare": "weak strand 中央値",
         "colShareRange": "最小 / 最大",
         "colSharesKnown": "share 判明"

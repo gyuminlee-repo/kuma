@@ -231,6 +231,19 @@ export function RunQcSection({ runHealth }: { runHealth: RunHealthData | null })
                     contributing: recurrence.wells_contributing,
                   })}
                 </p>
+                {/* Unconditional on the value being `absent`, and only then:
+                    on such a plate every weak-strand column below reads 0.0%,
+                    which on its own is the finding "one strand only". The
+                    sentence is what keeps a column of zeros from being read as
+                    ninety measurements nobody made. */}
+                {recurrence.strand_information === "absent" && (
+                  <p
+                    data-testid="recurrence-strand-absent"
+                    className="text-caption text-muted-foreground"
+                  >
+                    {t("mame.runQuality.positionRecurrence.strandAbsent")}
+                  </p>
+                )}
                 <div>
                   <QcRow
                     testId="recurrence-contributing"
@@ -272,6 +285,12 @@ export function RunQcSection({ runHealth }: { runHealth: RunHealthData | null })
                             {t("mame.runQuality.positionRecurrence.colWells")}
                           </th>
                           <th scope="col" className="py-1 pr-3 font-medium">
+                            {t("mame.runQuality.positionRecurrence.colMedianFraction")}
+                          </th>
+                          <th scope="col" className="py-1 pr-3 font-medium">
+                            {t("mame.runQuality.positionRecurrence.colFractionRange")}
+                          </th>
+                          <th scope="col" className="py-1 pr-3 font-medium">
                             {t("mame.runQuality.positionRecurrence.colMedianShare")}
                           </th>
                           <th scope="col" className="py-1 pr-3 font-medium">
@@ -291,7 +310,19 @@ export function RunQcSection({ runHealth }: { runHealth: RunHealthData | null })
                             className="border-b border-border/50 last:border-0"
                           >
                             <td className="py-1 pr-3 tabular-nums">{p.position}</td>
-                            <td className="py-1 pr-3 tabular-nums">{p.wells}</td>
+                            {/* The count and the rate it works out to. The rate
+                                is carried by the block rather than divided here
+                                so the denominator can only be the one the
+                                tally used. */}
+                            <td className="py-1 pr-3 tabular-nums">
+                              {`${p.wells} (${pctText(p.recurrence_rate)})`}
+                            </td>
+                            <td className="py-1 pr-3 tabular-nums">
+                              {pctText(p.median_minor_fraction)}
+                            </td>
+                            <td className="py-1 pr-3 tabular-nums">
+                              {`${pctText(p.min_minor_fraction)} / ${pctText(p.max_minor_fraction)}`}
+                            </td>
                             {/* Null is UNKNOWN and 0.0 is the reading "one strand
                                 only". They are opposite findings, so the unknown
                                 never borrows the zero. */}
