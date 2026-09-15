@@ -47,6 +47,7 @@ from kuma_core.mame.select.purity import (
     review_reason,
     support_lower_bound,
 )
+from kuma_core.mame.compare.verdict import parse_mutation_label, read_at_position
 from kuma_core.mame.models import ReplicateResult, VerdictClass, VerdictRecord
 from kuma_core.mame.detected import (
     compute_recovery,
@@ -566,7 +567,7 @@ def _build_unified_ngs_data(
             label = nb_label(plate)
             vr = rr.plate_verdicts.get(plate)
             if vr is not None:
-                detected = ", ".join(vr.translated.observed_aa_changes) or vr.verdict.value
+                detected = ", ".join(vr.translated.observed_aa_changes) or _detected_fallback(vr)
                 bc = vr.translated.barcode
                 # read_count verbatim; blank when absent (no file_size_kb proxy).
                 reads_val: int | str = bc.read_count if bc.read_count is not None else ""
@@ -592,6 +593,35 @@ def _build_unified_ngs_data(
         rows.append(row)
 
     return rows
+
+
+def _detected_fallback(vr: VerdictRecord) -> str:
+    """Return the ``<NB>_detected`` cell for a well with no observed AA change.
+
+    The column is named for what was detected, and printing the verdict class
+    there told the operator nothing: a WRONG_AA well that simply stayed wild type
+    at every designed site read "WRONG_AA". Only that case becomes "WT", and only
+    when the well actually called the reference residue at every expected
+    position. A no call at any of them keeps the verdict, and every other verdict
+    (LOWDEPTH, NO_CALL, ...) keeps it too, because an empty change list there is
+    an absence of evidence rather than a wild-type read.
+
+    This is the unified sheet only. The per-plate ``observed_aa`` column is read
+    back as mutation labels by ``activity/verdict_ngs.py``, so a "WT" token there
+    would become a fake mutation.
+    """
+
+    if vr.verdict is VerdictClass.WRONG_AA:
+        positions = [
+            parsed[1]
+            for label in vr.expected_mutations
+            if (parsed := parse_mutation_label(label)) is not None
+        ]
+        if positions and all(
+            read_at_position(vr.translated, pos) == "WT" for pos in positions
+        ):
+            return "WT"
+    return vr.verdict.value
 
 
 def _write_unified_ngs_sheet(
