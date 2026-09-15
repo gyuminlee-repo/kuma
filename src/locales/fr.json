@@ -3702,6 +3702,7 @@
       "designResults": "No designed primers to export",
       "cdsFasta": "CDS FASTA file is required",
       "barcodeSeeds": "Barcode seeds xlsx is required",
+      "barcodePackage": "Le paquet de codes-barres est requis",
       "geneCoordinates": "Gene start and end coordinates are required",
       "geneRangeInvalid": "Gene end must be greater than gene start",
       "projectPath": "Open or create a project first",

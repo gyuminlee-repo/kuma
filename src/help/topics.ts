@@ -44,7 +44,11 @@ export const STEP_TO_TOPIC: Record<KuroSubStepId | MameSubStepId, string> = {
   "export.all": "kuro-06-export",
   "setup.files": "mame-01-setup",
   "setup.design": "mame-01-setup",
-  "analyze.inputs": "mame-01-setup",
+  // 2.1 Inputs belongs to the analyze topic: it is where the run folder, the
+  // expected workbook, the reference and the well selection are chosen, and
+  // mame-02-review documents all four. mame-01-setup is the barcode package
+  // screen, which is a different step.
+  "analyze.inputs": "mame-02-review",
   "analyze.review": "mame-02-review",
   "analyze.verdict": "mame-02-review",
   "analyze.plate": "mame-02-review",
