@@ -277,6 +277,30 @@ def read_at_position(translated: TranslatedRecord, pos: int) -> str:
     return "WT"
 
 
+def expected_site_reads(
+    translated: TranslatedRecord, expected_mutations: list[str]
+) -> list[tuple[str, int, str]]:
+    """Return ``(label, position, read)`` for every designed site of a well.
+
+    *read* is :func:`read_at_position` at that site. Sites are keyed by position
+    exactly as :func:`classify_verdict` builds ``expected_parsed``: a label that
+    does not parse is skipped, and when two labels share a position the later
+    label wins while the site keeps the place of its first appearance. The
+    missing-expected WRONG_AA note, the Excel detected cell and the serialized
+    ``expected_site_reads`` payload all read this, so the three cannot disagree
+    about which sites a well was designed at.
+    """
+
+    sites: dict[int, str] = {}
+    for label in expected_mutations:
+        parsed = parse_mutation_label(label)
+        if parsed is not None:
+            sites[parsed[1]] = label
+    return [
+        (label, pos, read_at_position(translated, pos)) for pos, label in sites.items()
+    ]
+
+
 def _join(notes: list[str], note: str) -> str:
     """Join accumulated notes with a verdict-specific note, dropping blanks."""
     return "; ".join([n for n in (*notes, note) if n])
@@ -670,7 +694,9 @@ def classify_verdict(
 
     # All expected mutations must be present with matching MT to proceed.
     missing_expected = [
-        (wt, pos, mt) for pos, (wt, mt) in expected_parsed.items() if pos not in observed_parsed
+        (pos, read)
+        for _label, pos, read in expected_site_reads(translated, expected_mutations)
+        if pos not in observed_parsed
     ]
     if missing_expected:
         # Missing an expected position = not a PASS; treat as WRONG_AA-style failure.
@@ -680,8 +706,8 @@ def classify_verdict(
         # blank and gave the operator no way to tell a well that stayed wild type
         # from one whose consensus had no call at the site.
         phrases: list[str] = []
-        for wt, pos, mt in missing_expected:
-            read = read_at_position(translated, pos)
+        for pos, read in missing_expected:
+            wt, mt = expected_parsed[pos]
             if read == "WT":
                 read = f"WT ({translated.aa_sequence[pos - 1]}{pos})"
             elif read == "no call":

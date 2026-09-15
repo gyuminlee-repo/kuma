@@ -47,7 +47,7 @@ from kuma_core.mame.select.purity import (
     review_reason,
     support_lower_bound,
 )
-from kuma_core.mame.compare.verdict import parse_mutation_label, read_at_position
+from kuma_core.mame.compare.verdict import expected_site_reads
 from kuma_core.mame.models import ReplicateResult, VerdictClass, VerdictRecord
 from kuma_core.mame.detected import (
     compute_recovery,
@@ -612,14 +612,13 @@ def _detected_fallback(vr: VerdictRecord) -> str:
     """
 
     if vr.verdict is VerdictClass.WRONG_AA:
-        positions = [
-            parsed[1]
-            for label in vr.expected_mutations
-            if (parsed := parse_mutation_label(label)) is not None
+        reads = [
+            read
+            for _label, _pos, read in expected_site_reads(
+                vr.translated, list(vr.expected_mutations)
+            )
         ]
-        if positions and all(
-            read_at_position(vr.translated, pos) == "WT" for pos in positions
-        ):
+        if reads and all(read == "WT" for read in reads):
             return "WT"
     return vr.verdict.value
 
