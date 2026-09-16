@@ -100,6 +100,8 @@ bash $W pnpm exec vitest run --silent --reporter=dot --cwd <워크트리 절대�
 
 worktree 의 `node_modules` 는 main checkout 과 경로가 달라 Windows 설치본을 덮지 않는다(설치 전후로 main checkout 의 mtime 과 `.bin/*.CMD` 가 그대로인 것을 확인했다). 2026-08-06 에 이 경로를 모르고 vitest 를 CI 에만 맡겼다가 타입 오류 4건과 테스트 실패 9건을 push 두 번으로 나눠 받았다.
 
+브랜치를 새 `main` 위로 옮긴 뒤 pre-push 의 `tsc` 가 모듈 미해결(`Cannot find module`)로 떨어지면 그 사이 `main` 이 의존성을 추가한 것이다. worktree 의 `node_modules` 는 그때 설치한 시점에 묶여 있으므로 위 설치 명령을 다시 돌린다. 2026-09-16 에 v0.16.63 이 더한 `react-markdown` 과 `remark-gfm` 이 없어 `HelpMarkdown.tsx` 에서 오류 5건이 났고 같은 커밋의 CI `frontend-typecheck` 는 success 였다. 코드가 아니라 설치본이 낡은 경우이므로 `--no-verify` 로 넘기지 말고 재설치한다.
+
 로컬에서 `sync-check.mjs` 의 `tauri-resources` 가 `resources/NOTICE.md` 부재로 실패하는 것은 환경 문제가 아니라 구조다. 그 파일은 `scripts/build-notice.mjs` 가 릴리스 빌드 때 만들고 `.gitignore` 에 있으므로 새 체크아웃에는 절대 없다. pre-push 는 `scripts/pre-push-sync.mjs` 를 거쳐 이 한 건만 경고로 낮추고 나머지는 그대로 막는다. CI 는 빌드 후 검사하므로 `pnpm sync:check` 를 엄격하게 그대로 쓴다.
 
 `generated-models` 실패는 false-positive 가 아니다. `json2ts` 를 실행하지 못한다는 뜻이며, 보통 원인은 node_modules 가 없는 worktree 에서 돌린 것이다. 정상 체크아웃에서 실패하면 진짜 drift 이므로 `pnpm gen:models` 로 재생성해 함께 커밋한다. (2026-08-05 정정: 이전 판은 두 건 모두 "dev false-positive" 로 적어 두어, pre-push 를 `--no-verify` 로 넘기는 것이 관행이 돼 있었다.)
