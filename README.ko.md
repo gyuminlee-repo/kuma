@@ -118,7 +118,7 @@ Kuro가 만든 `expected_mutations.xlsx`, 참조 FASTA, MAME가 생성한 barcod
 
 #### 판정 & QC 근거
 
-- **8-class 판정**: 각 바코드를 8가지로 분류, `PASS`(관찰 변이가 설계와 정확 일치), `WRONG_AA`(기대 위치 불일치·기대 변이 누락·예상밖 추가 변이), `AMBIGUOUS`(기대 변이는 모두 일치하나 인접 window 추가 변이 또는 indel 이벤트 신호), `MIXED`(well 내 유의한 2nd allele 혼합), `FRAMESHIFT`(consensus 의 순 삽입·결실 길이가 3 의 배수가 아님), `MANY`(cutoff·설계를 모두 초과한 과다 변이), `LOWDEPTH`(read depth 미달), `NO_CALL`(consensus N 과다)
+- **8-class 판정**: 각 바코드를 8가지로 분류, `PASS`(관찰 변이가 설계와 정확 일치), `WRONG_AA`(기대 위치 불일치·기대 변이 누락·예상밖 추가 변이. 설계 위치를 어떻게 읽었는지를 관측 라벨 또는 `WT`·`no call`·`not covered` 로 함께 적는다), `AMBIGUOUS`(기대 변이는 모두 일치하나 인접 window 추가 변이 또는 indel 이벤트 신호), `MIXED`(well 내 유의한 2nd allele 혼합), `FRAMESHIFT`(consensus 의 순 삽입·결실 길이가 3 의 배수가 아님), `MANY`(cutoff·설계를 모두 초과한 과다 변이), `LOWDEPTH`(read depth 미달), `NO_CALL`(consensus N 과다)
 - **Mixed-well guard**: minor-allele metric이 있는 consensus는 within-well mixture 근거가 충분할 때 다수결 PASS 대신 `MIXED`로 표시한다.
 - **Explainable QC evidence**: 판정 테이블과 Excel export에 read depth, N fraction, low-depth 위치, low-quality base 제외 수, MAPQ/span drop counter를 표시한다.
 - **3-replicate best pick**: 삼중 바코드 중 최고 점수 클론 선택
