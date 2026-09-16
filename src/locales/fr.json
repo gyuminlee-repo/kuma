@@ -2599,13 +2599,21 @@
     "descriptionRange": "Points forts de toutes les mises à jour depuis la v{{from}}.",
     "gotItBtn": "Compris",
     "highlights": [
-      "Un well WRONG_AA dont le site conçu n'a pas changé indique désormais ce qui y a été lu : WT, no call ou not covered.",
-      "Le tableau des verdicts, le détail du well et le panneau de plaque affichent la lecture à chaque site conçu au lieu d'un simple tiret.",
-      "Un well ayant lu le résidu de référence à chaque site conçu apparaît comme WT au lieu de WRONG_AA dans la feuille NGS Results.",
-      "Le dossier reads sous chaque répertoire sort_barcode n'est créé que si les reads par well sont conservés, au lieu d'être toujours vide."
+      "Le menu Aide ouvre un panneau d'aide à côté de l'écran, au sujet correspondant à l'étape en cours, en coréen ou en anglais.",
+      "Treize sujets couvrent KURO et MAME, écrits autour de ce qui est fait sur chaque écran et de ce que signifient les avertissements qui s'y affichent.",
+      "Un renvoi à l'intérieur de l'aide s'ouvre dans le même panneau, qui reste ouvert lors du passage entre KURO et MAME.",
+      "Le menu d'aide de l'écran des entrées d'analyse de MAME ouvre le sujet Analyse et revue au lieu de Configuration des codes-barres.",
+      "Appuyer sur Suivant à l'étape 1 de MAME sans paquet de barcodes nomme l'entrée manquante au lieu d'afficher une clé interne."
     ],
-    "highlightsStamp": "0.16.62+e46c1db9",
+    "highlightsStamp": "0.16.63+27af3ec6",
     "releases": {
+      "0.16.63": [
+        "Le menu Aide ouvre un panneau d'aide à côté de l'écran, au sujet correspondant à l'étape en cours, en coréen ou en anglais.",
+        "Treize sujets couvrent KURO et MAME, écrits autour de ce qui est fait sur chaque écran et de ce que signifient les avertissements qui s'y affichent.",
+        "Un renvoi à l'intérieur de l'aide s'ouvre dans le même panneau, qui reste ouvert lors du passage entre KURO et MAME.",
+        "Le menu d'aide de l'écran des entrées d'analyse de MAME ouvre le sujet Analyse et revue au lieu de Configuration des codes-barres.",
+        "Appuyer sur Suivant à l'étape 1 de MAME sans paquet de barcodes nomme l'entrée manquante au lieu d'afficher une clé interne."
+      ],
       "0.16.62": [
         "Un well WRONG_AA dont le site conçu n'a pas changé indique désormais ce qui y a été lu : WT, no call ou not covered.",
         "Le tableau des verdicts, le détail du well et le panneau de plaque affichent la lecture à chaque site conçu au lieu d'un simple tiret.",
@@ -3053,6 +3061,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
       "0.16.61": "f9b38f15",
       "0.16.59": "69e92cd5",
