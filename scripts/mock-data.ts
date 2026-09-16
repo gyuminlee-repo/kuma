@@ -92,20 +92,63 @@ for (const r of mockDesignResults) {
   mockDedupInfo[r.reverse_seq].push(r.mutation);
 }
 
+// Benchmark fixture. BenchmarkDialog returns null when benchmarkResults is
+// null, so the dialog cannot be captured without one.
+const mockBenchmarkResults: Record<string, {
+  n_selected: number; hit_rate: number; mean_fitness: number; unique_positions: number;
+  position_coverage: number; domain_coverage: number; structural_spread: number;
+  hits: number; threshold: number; n_trials?: number;
+}> = {
+  topn: { n_selected: 95, hit_rate: 42.1, mean_fitness: 1.86, unique_positions: 71, position_coverage: 18.6, domain_coverage: 0.55, structural_spread: 12.4, hits: 40, threshold: 1.42 },
+  random: { n_selected: 95, hit_rate: 11.3, mean_fitness: 0.94, unique_positions: 88, position_coverage: 23.4, domain_coverage: 0.78, structural_spread: 19.8, hits: 10, threshold: 1.42, n_trials: 200 },
+  position_cap: { n_selected: 95, hit_rate: 38.4, mean_fitness: 1.71, unique_positions: 90, position_coverage: 24.2, domain_coverage: 0.71, structural_spread: 17.2, hits: 36, threshold: 1.42 },
+  domain: { n_selected: 95, hit_rate: 36.2, mean_fitness: 1.68, unique_positions: 84, position_coverage: 22.1, domain_coverage: 0.93, structural_spread: 18.6, hits: 34, threshold: 1.42 },
+  pareto_entropy: { n_selected: 95, hit_rate: 40.5, mean_fitness: 1.79, unique_positions: 92, position_coverage: 24.0, domain_coverage: 0.88, structural_spread: 21.3, hits: 38, threshold: 1.42 },
+};
+
+// y_pred landscape the dialog plots underneath the table.
+const mockYPredMap: Record<string, number> = Object.fromEntries(
+  parsedMutations.map((m, i) => [m.raw, Number((2.6 - i * 0.022).toFixed(3))]),
+);
+
 // --- Screen states ---
+
+// Mirrors SubStepId in src/store/slices/navigationSlice.ts. Declared locally
+// because tsconfig.scripts.json does not resolve the "@/" app alias.
+export type SubStepId =
+  | "design.load"
+  | "design.mutation"
+  | "design.params"
+  | "design.submit"
+  | "output.summary"
+  | "export.all";
 
 export interface ScreenState {
   name: string;
   caption: string;
+  /**
+   * KURO wizard sub-step the screen lives on (navigationSlice). The workspace
+   * is a step wizard, so store state alone does not decide what renders.
+   */
+  nav?: SubStepId;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   state: Record<string, any>;
+  /** Body of an IIFE run after the state is applied. Must not throw. */
   action?: string;
+  /** Extra settle time before the shot (lazy dialogs need more). */
+  settleMs?: number;
+  actionSettleMs?: number;
+  /** localStorage keys written before the page loads (panel layout, etc). */
+  storage?: Record<string, string>;
+  /** Playwright selector clicked with real pointer events after the state is applied. */
+  click?: string;
 }
 
 export const screenStates: ScreenState[] = [
   {
     name: "01-initial",
     caption: "Initial screen — before loading any file",
+    nav: "design.load",
     state: {
       fastaPath: "",
       seqInfo: null,
@@ -122,6 +165,7 @@ export const screenStates: ScreenState[] = [
   {
     name: "02-file-loaded",
     caption: "GenBank file loaded — synR gene auto-selected",
+    nav: "design.load",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -138,6 +182,7 @@ export const screenStates: ScreenState[] = [
   {
     name: "03-mutations-entered",
     caption: "EVOLVEpro CSV loaded — 95 variants",
+    nav: "design.mutation",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -156,6 +201,7 @@ export const screenStates: ScreenState[] = [
   {
     name: "04-design-complete",
     caption: "Design complete — primer table for 95 variants",
+    nav: "output.summary",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -180,6 +226,10 @@ export const screenStates: ScreenState[] = [
   {
     name: "05-plate-map",
     caption: "Plate Map — 95 primers arranged in 96-well format",
+    nav: "output.summary",
+    // Output step is a split view; give the plate panel most of the width so
+    // this screen differs from 04, which shows the summary side.
+    storage: { "kuro.output.split": "22" },
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -200,6 +250,7 @@ export const screenStates: ScreenState[] = [
   {
     name: "06-parameter-advanced",
     caption: "Parameter panel — Advanced options expanded",
+    nav: "design.params",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -210,13 +261,16 @@ export const screenStates: ScreenState[] = [
       isDesigning: false,
     },
     action: `
-      const btn = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Advanced options...');
-      if (btn) btn.click();
+      const btn = [...document.querySelectorAll('button')].find(b => /advanced options/i.test(b.textContent || ''));
+      if (!btn) throw new Error('advanced-options toggle not found');
+      btn.click();
+      btn.scrollIntoView({ block: 'center' });
     `,
   },
   {
     name: "07-uniprot-candidates",
     caption: "UniProt candidate list (EVOLVEpro mode + pipeline active)",
+    nav: "design.submit",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -240,6 +294,7 @@ export const screenStates: ScreenState[] = [
   {
     name: "08-diversity-position",
     caption: "Position diversity enabled (EVOLVEpro mode)",
+    nav: "design.submit",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -256,6 +311,7 @@ export const screenStates: ScreenState[] = [
   {
     name: "09-diversity-domain",
     caption: "Domain diversity with InterPro domains fetched",
+    nav: "design.submit",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -280,6 +336,7 @@ export const screenStates: ScreenState[] = [
   {
     name: "10-designing",
     caption: "Design in progress — progress bar active",
+    nav: "design.submit",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -295,6 +352,7 @@ export const screenStates: ScreenState[] = [
   {
     name: "11-failed-rows",
     caption: "Result table with failed mutations (red rows)",
+    nav: "output.summary",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -319,6 +377,7 @@ export const screenStates: ScreenState[] = [
   {
     name: "12-plate-multi",
     caption: "Multi-plate navigation (192 mutations = 2 plates)",
+    nav: "output.summary",
     state: (() => {
       const extended = [...mockDesignResults, ...mockDesignResults].slice(0, 192).map((r, i) => ({ ...r, mutation: `M${i+1}` }));
       const plates = extended.map((r, i) => ({
@@ -347,6 +406,7 @@ export const screenStates: ScreenState[] = [
   {
     name: "19-gene-dropdown",
     caption: "Gene selection dropdown (multi-CDS GenBank)",
+    nav: "design.load",
     state: {
       fastaPath: "C:\\samples\\multi_cds.gb",
       seqInfo: {
@@ -358,13 +418,19 @@ export const screenStates: ScreenState[] = [
       isDesigning: false,
     },
     action: `
-      const sel = document.querySelector('select[id*="gene" i]') || [...document.querySelectorAll('select')].find(s => s.options.length > 1);
-      if (sel) { sel.focus(); sel.size = sel.options.length; }
+      const sel = [...document.querySelectorAll('select')].find(
+        (s) => [...s.options].some((o) => o.value === '1957'),
+      );
+      if (!sel) throw new Error('target-gene select not found');
+      sel.focus();
+      sel.size = sel.options.length;
+      sel.scrollIntoView({ block: 'center' });
     `,
   },
   {
     name: "20-pipeline-full",
     caption: "Full pipeline: EVOLVEpro + position + domain + Pareto",
+    nav: "design.submit",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -399,6 +465,8 @@ export const screenStates: ScreenState[] = [
   {
     name: "14-polymerase-editor",
     caption: "Custom Polymerase Editor dialog",
+    nav: "design.params",
+    actionSettleMs: 2000,
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -406,25 +474,33 @@ export const screenStates: ScreenState[] = [
       isDesigning: false,
     },
     action: `
-      const btn = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Custom Polymerase');
-      if (btn) btn.click();
+      const btn = [...document.querySelectorAll('button')].find(b => /custom polymerase/i.test(b.textContent || ''));
+      if (!btn) throw new Error('custom polymerase button not found');
+      btn.click();
     `,
   },
   {
     name: "15-benchmark-dialog",
     caption: "Benchmark dialog — strategy comparison",
+    nav: "design.submit",
+    settleMs: 3000,
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
       selectedGene: "1957",
       showBenchmark: true,
-      benchmarkResults: null,
+      benchmarkResults: mockBenchmarkResults,
+      benchmarkTopPercentile: 10,
+      benchmarkRandomTrials: 200,
+      benchmarkRandomSeed: 42,
+      yPredMap: mockYPredMap,
       isDesigning: false,
     },
   },
   {
     name: "16-design-report",
     caption: "Design Report dialog",
+    nav: "output.summary",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -445,6 +521,7 @@ export const screenStates: ScreenState[] = [
   {
     name: "17-mapping-export-dialog",
     caption: "Mapping Export dialog (Echo/JANUS)",
+    nav: "export.all",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -456,14 +533,13 @@ export const screenStates: ScreenState[] = [
       totalCount: 95,
       isDesigning: false,
     },
-    action: `
-      const btn = [...document.querySelectorAll('button')].find(b => b.textContent.trim().startsWith('Export Mapping'));
-      if (btn) btn.click();
-    `,
+    // The standalone MappingExportDialog was removed from the UI; plate mapping
+    // export now lives on the export step, so this screen captures that step.
   },
   {
     name: "18-primer-popover",
     caption: "Primer candidate popover (Fwd click)",
+    nav: "output.summary",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -474,14 +550,14 @@ export const screenStates: ScreenState[] = [
       totalCount: 95,
       isDesigning: false,
     },
-    action: `
-      const cells = document.querySelectorAll('td [class*="font-mono"], td [class*="cursor-pointer"]');
-      if (cells.length) cells[0].click();
-    `,
+    // The click handler sits on the cell, and only sequence columns carry
+    // cursor-pointer, so this targets a forward primer cell.
+    click: 'td.cursor-pointer',
   },
   {
     name: "13-menu-bar",
     caption: "File menu expanded",
+    nav: "design.load",
     state: {
       fastaPath: "C:\\samples\\sample_plasmid.gb",
       seqInfo: mockSeqInfo,
@@ -493,9 +569,6 @@ export const screenStates: ScreenState[] = [
       totalCount: 95,
       isDesigning: false,
     },
-    action: `
-      const fileBtn = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'File');
-      if (fileBtn) fileBtn.click();
-    `,
+    click: 'button:text-is("File")',
   },
 ];
