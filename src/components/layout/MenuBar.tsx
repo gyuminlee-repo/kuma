@@ -43,6 +43,7 @@ import { KeyboardShortcutsDialog } from "../dialogs/KeyboardShortcutsDialog";
 import { SharedAboutDialog } from "./SharedAboutDialog";
 import { UPDATE_CHECK_EVENT } from "../../lib/updateCheck";
 import { START_GUIDED_TOUR_EVENT } from "../dialogs/ProjectTourCoordinator";
+import { requestHelpForStep } from "../../help/events";
 
 const MOD_KEY = navigator.userAgent.includes("Mac") ? "⌘" : "Ctrl+";
 
@@ -95,6 +96,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps = {}) {
   const isExporting = useAppStore((s) => s.isExporting);
   const isDesigning = useAppStore((s) => s.isDesigning);
   const loadSampleData = useAppStore((s) => s.loadSampleData);
+  const currentSubStep = useAppStore((s) => s.currentSubStep);
   const logPanelVisible = useAppStore((s) => s.logPanelVisible);
   const toggleLogPanel = useAppStore((s) => s.toggleLogPanel);
   const jobsPanelVisible = useAppStore((s) => s.jobsPanelVisible);
@@ -413,6 +415,10 @@ export function MenuBar({ onClearRequest }: MenuBarProps = {}) {
           <button className={TRIGGER_CLS}>{t("menu.help")}</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
+          <DropdownMenuItem onClick={() => requestHelpForStep(currentSubStep)}>
+            {t("help.userGuide")}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={loadSampleData}>
             {t("help.loadSampleData")}
           </DropdownMenuItem>

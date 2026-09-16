@@ -20,6 +20,8 @@ import { registerShutdownHook, runShutdownHooks } from "@/lib/shutdownHook";
 import { toast } from "sonner";
 import { ProjectTourCoordinator } from "@/components/dialogs/ProjectTourCoordinator";
 import { HydrationOverlay } from "@/components/dialogs/HydrationOverlay";
+import { HelpPanel } from "@/components/help/HelpPanel";
+import { useHelpPanel } from "@/help/useHelpPanel";
 
 const LazySettingsDialog = lazy(async () =>
   import("@/components/layout/SettingsDialog").then((m) => ({ default: m.SettingsDialog })),
@@ -117,6 +119,7 @@ async function runWithTimeout(
 export function MainShell() {
   const { t } = useTranslation();
   const project = useKumaProject();
+  const help = useHelpPanel();
   const projectName = project
     ? `${project.name}${project.scratch ? ` (${t("mainShell.scratch")})` : ""}`
     : t("mainShell.workspace");
@@ -543,6 +546,14 @@ export function MainShell() {
           </TabsContent>
         </div>
       </Tabs>
+
+      {/* 도움말 패널은 탭 밖에 한 벌. 비활성 TabsContent 는 언마운트되므로 탭 안에 두면 탭 전환에 닫힌다(스펙 C1). */}
+      <HelpPanel
+        open={help.open}
+        topic={help.topic}
+        onTopicChange={help.setTopic}
+        onClose={help.close}
+      />
 
       {/* 복원 중에는 투어를 띄우지 않는다. GuidedTour 가 #root 에 inert 를 걸어 HydrationOverlay 취소 버튼을 죽인다. */}
       {project && !project.scratch && !hydrating && (

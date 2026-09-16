@@ -37,7 +37,36 @@
     "showOnboarding": "Einführung anzeigen",
     "viewCrashLog": "Absturzprotokoll anzeigen",
     "settings": "Einstellungen...",
-    "about": "Über"
+    "about": "Über",
+    "userGuide": "Benutzerhandbuch",
+    "panel": {
+      "title": "Hilfe",
+      "close": "Hilfe schließen",
+      "notTranslated": "Dieses Thema ist noch nicht verfügbar.",
+      "shownInEnglish": "Auf Englisch angezeigt, da dieses Thema noch nicht in Ihre Sprache übersetzt ist.",
+      "shownInKorean": "Auf Koreanisch angezeigt, da dieses Thema noch nicht in Ihre Sprache übersetzt ist.",
+      "group": {
+        "start": "Erste Schritte",
+        "kuro": "KURO-Design",
+        "mame": "MAME-Verifizierung",
+        "deeper": "Vertiefung"
+      },
+      "topic": {
+        "kuro-index": "KURO-Überblick",
+        "kuro-01-load": "Laden",
+        "kuro-02-mutation": "Mutationen",
+        "kuro-03-params": "Parameter",
+        "kuro-04-submit": "Absenden",
+        "kuro-05-output": "Ergebnisse",
+        "kuro-06-export": "Export",
+        "mame-index": "MAME-Überblick",
+        "mame-01-setup": "Barcode-Einrichtung",
+        "mame-02-review": "Analyse und Prüfung",
+        "mame-03-janus": "Janus",
+        "mame-04-activity": "Aktivität",
+        "mame-pipeline": "MAME-Pipeline"
+      }
+    }
   },
   "about": {
     "title": "Über Kuma",
@@ -2570,13 +2599,21 @@
     "descriptionRange": "Highlights aller Updates seit v{{from}}.",
     "gotItBtn": "Verstanden",
     "highlights": [
-      "Ein WRONG_AA-Well, dessen Designposition unverändert blieb, zeigt jetzt, was dort gelesen wurde: WT, no call oder not covered.",
-      "Verdict-Tabelle, Well-Details und Plate-Bereich zeigen an jeder Designposition die Ablesung statt eines leeren Strichs.",
-      "Ein Well, das an jeder Designposition den Referenzrest gelesen hat, erscheint im Blatt NGS Results als WT statt WRONG_AA.",
-      "Der reads-Ordner unter jedem sort_barcode-Verzeichnis wird nur noch angelegt, wenn Reads pro Well behalten werden, statt immer leer."
+      "Das Hilfemenü öffnet ein Hilfe-Panel neben dem Bildschirm, beim Thema des gerade bearbeiteten Schritts, auf Koreanisch oder Englisch.",
+      "Dreizehn Themen decken KURO und MAME ab, geschrieben entlang dessen, was auf jedem Bildschirm getan wird und was die dortigen Warnungen bedeuten.",
+      "Ein Querverweis in der Hilfe öffnet sich im selben Panel, das beim Wechsel zwischen KURO und MAME geöffnet bleibt.",
+      "Das Hilfemenü im MAME-Bildschirm für Analyse-Eingaben öffnet das Thema Analyse und Prüfung statt Barcode-Einrichtung.",
+      "Wer auf MAME-Schritt 1 ohne Barcode-Paket auf Weiter drückt, sieht den Namen der fehlenden Eingabe statt eines internen Schlüssels."
     ],
-    "highlightsStamp": "0.16.62+e46c1db9",
+    "highlightsStamp": "0.16.63+27af3ec6",
     "releases": {
+      "0.16.63": [
+        "Das Hilfemenü öffnet ein Hilfe-Panel neben dem Bildschirm, beim Thema des gerade bearbeiteten Schritts, auf Koreanisch oder Englisch.",
+        "Dreizehn Themen decken KURO und MAME ab, geschrieben entlang dessen, was auf jedem Bildschirm getan wird und was die dortigen Warnungen bedeuten.",
+        "Ein Querverweis in der Hilfe öffnet sich im selben Panel, das beim Wechsel zwischen KURO und MAME geöffnet bleibt.",
+        "Das Hilfemenü im MAME-Bildschirm für Analyse-Eingaben öffnet das Thema Analyse und Prüfung statt Barcode-Einrichtung.",
+        "Wer auf MAME-Schritt 1 ohne Barcode-Paket auf Weiter drückt, sieht den Namen der fehlenden Eingabe statt eines internen Schlüssels."
+      ],
       "0.16.62": [
         "Ein WRONG_AA-Well, dessen Designposition unverändert blieb, zeigt jetzt, was dort gelesen wurde: WT, no call oder not covered.",
         "Verdict-Tabelle, Well-Details und Plate-Bereich zeigen an jeder Designposition die Ablesung statt eines leeren Strichs.",
@@ -3024,6 +3061,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
       "0.16.61": "f9b38f15",
       "0.16.59": "69e92cd5",
@@ -3697,6 +3735,7 @@
       "designResults": "No designed primers to export",
       "cdsFasta": "CDS FASTA file is required",
       "barcodeSeeds": "Barcode seeds xlsx is required",
+      "barcodePackage": "Barcode-Paket ist erforderlich",
       "geneCoordinates": "Gene start and end coordinates are required",
       "geneRangeInvalid": "Gene end must be greater than gene start",
       "projectPath": "Open or create a project first",

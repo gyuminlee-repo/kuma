@@ -37,7 +37,36 @@
     "showOnboarding": "Mostrar introdução",
     "viewCrashLog": "Ver registro de falhas",
     "settings": "Configurações...",
-    "about": "Sobre"
+    "about": "Sobre",
+    "userGuide": "Guia do usuário",
+    "panel": {
+      "title": "Ajuda",
+      "close": "Fechar ajuda",
+      "notTranslated": "Este tópico ainda não está disponível.",
+      "shownInEnglish": "Exibido em inglês porque este tópico ainda não foi traduzido para o seu idioma.",
+      "shownInKorean": "Exibido em coreano porque este tópico ainda não foi traduzido para o seu idioma.",
+      "group": {
+        "start": "Primeiros passos",
+        "kuro": "Design KURO",
+        "mame": "Verificação MAME",
+        "deeper": "Aprofundamento"
+      },
+      "topic": {
+        "kuro-index": "Visão geral do KURO",
+        "kuro-01-load": "Carregar",
+        "kuro-02-mutation": "Mutações",
+        "kuro-03-params": "Parâmetros",
+        "kuro-04-submit": "Enviar",
+        "kuro-05-output": "Resultados",
+        "kuro-06-export": "Exportar",
+        "mame-index": "Visão geral do MAME",
+        "mame-01-setup": "Configuração de códigos de barras",
+        "mame-02-review": "Análise e revisão",
+        "mame-03-janus": "Janus",
+        "mame-04-activity": "Atividade",
+        "mame-pipeline": "Pipeline do MAME"
+      }
+    }
   },
   "about": {
     "title": "Sobre o Kuma",
@@ -2570,13 +2599,21 @@
     "descriptionRange": "Destaques de todas as atualizações desde a v{{from}}.",
     "gotItBtn": "Entendi",
     "highlights": [
-      "Um well WRONG_AA cujo sítio projetado não mudou agora mostra o que foi lido ali: WT, no call ou not covered.",
-      "A tabela de veredictos, os detalhes do well e o painel da placa mostram a leitura em cada sítio projetado em vez de um traço.",
-      "Um well que leu o resíduo de referência em todos os sítios projetados aparece como WT em vez de WRONG_AA na planilha NGS Results.",
-      "A pasta reads em cada diretório sort_barcode só é criada quando os reads por well são mantidos, em vez de ficar sempre vazia."
+      "O menu Ajuda abre um painel de ajuda ao lado da tela, no tópico da etapa em que se está trabalhando, em coreano ou inglês.",
+      "Treze tópicos cobrem KURO e MAME, escritos em torno do que se faz em cada tela e do que significam os avisos que aparecem ali.",
+      "Uma referência cruzada dentro da ajuda abre no mesmo painel, que permanece aberto ao alternar entre KURO e MAME.",
+      "O menu de ajuda na tela de entradas de análise do MAME abre o tópico Análise e revisão em vez de Configuração de códigos de barras.",
+      "Pressionar Avançar na etapa 1 do MAME sem um pacote de barcodes indica a entrada que falta em vez de mostrar uma chave interna."
     ],
-    "highlightsStamp": "0.16.62+e46c1db9",
+    "highlightsStamp": "0.16.63+27af3ec6",
     "releases": {
+      "0.16.63": [
+        "O menu Ajuda abre um painel de ajuda ao lado da tela, no tópico da etapa em que se está trabalhando, em coreano ou inglês.",
+        "Treze tópicos cobrem KURO e MAME, escritos em torno do que se faz em cada tela e do que significam os avisos que aparecem ali.",
+        "Uma referência cruzada dentro da ajuda abre no mesmo painel, que permanece aberto ao alternar entre KURO e MAME.",
+        "O menu de ajuda na tela de entradas de análise do MAME abre o tópico Análise e revisão em vez de Configuração de códigos de barras.",
+        "Pressionar Avançar na etapa 1 do MAME sem um pacote de barcodes indica a entrada que falta em vez de mostrar uma chave interna."
+      ],
       "0.16.62": [
         "Um well WRONG_AA cujo sítio projetado não mudou agora mostra o que foi lido ali: WT, no call ou not covered.",
         "A tabela de veredictos, os detalhes do well e o painel da placa mostram a leitura em cada sítio projetado em vez de um traço.",
@@ -3024,6 +3061,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
       "0.16.61": "f9b38f15",
       "0.16.59": "69e92cd5",
@@ -3697,6 +3735,7 @@
       "designResults": "No designed primers to export",
       "cdsFasta": "CDS FASTA file is required",
       "barcodeSeeds": "Barcode seeds xlsx is required",
+      "barcodePackage": "O pacote de códigos de barras é obrigatório",
       "geneCoordinates": "Gene start and end coordinates are required",
       "geneRangeInvalid": "Gene end must be greater than gene start",
       "projectPath": "Open or create a project first",

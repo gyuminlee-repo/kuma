@@ -1386,6 +1386,39 @@
       ],
       "note": "Every verdict dict from _serialize_verdict (including replicate plate_verdicts) carries expected_site_reads, a list of {label, position, read} per designed site built by verdict.py expected_site_reads over read_at_position. read is an observed label or one of the tokens WT, no call, not covered, and a TS consumer that branches on those three strings stops matching silently if a token is renamed on either side. The field is derived at serialize time only: no dataclass stores it and _deserialize_verdict never reads it, so a reloaded result recomputes it. It is optional in TS (ExpectedSiteRead on VerdictRecord) because an autosaved payload replayed from before the field existed lacks it, and every UI must then render exactly as it did without the field.",
       "severity": "warning"
+    },
+    {
+      "id": "help-content-mirror",
+      "files": [
+        "docs/help/ko/kuro-index.md",
+        "docs/kuro/index.md",
+        "docs/help/ko/kuro-01-load.md",
+        "docs/kuro/01-load.md",
+        "docs/help/ko/kuro-02-mutation.md",
+        "docs/kuro/02-mutation.md",
+        "docs/help/ko/kuro-03-params.md",
+        "docs/kuro/03-params.md",
+        "docs/help/ko/kuro-04-submit.md",
+        "docs/kuro/04-submit.md",
+        "docs/help/ko/kuro-05-output.md",
+        "docs/kuro/05-output.md",
+        "docs/help/ko/kuro-06-export.md",
+        "docs/kuro/06-export.md",
+        "docs/help/ko/mame-index.md",
+        "docs/mame/index.md",
+        "docs/help/ko/mame-01-setup.md",
+        "docs/mame/01-setup.md",
+        "docs/help/ko/mame-02-review.md",
+        "docs/mame/02-review.md",
+        "docs/help/ko/mame-03-janus.md",
+        "docs/mame/03-janus.md",
+        "docs/help/ko/mame-04-activity.md",
+        "docs/mame/04-activity.md",
+        "docs/help/ko/mame-pipeline.md",
+        "docs/mame/mame-pipeline.md"
+      ],
+      "note": "In-app help is the user-facing digest of the published step guide next to it: same screen, same steps, same warnings, with the version history, module paths and design rationale left out. The two are not identical by design, so this group is a warning rather than a gate. When a step changes behaviour, both sides have to say the new behaviour or the app and the site disagree about what the app does.",
+      "severity": "warning"
     }
   ]
 }

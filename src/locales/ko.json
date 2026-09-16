@@ -37,7 +37,36 @@
     "showOnboarding": "온보딩 보기",
     "viewCrashLog": "충돌 로그 보기",
     "settings": "설정...",
-    "about": "정보"
+    "about": "정보",
+    "userGuide": "사용자 가이드",
+    "panel": {
+      "title": "도움말",
+      "close": "도움말 닫기",
+      "notTranslated": "이 주제는 아직 제공되지 않습니다.",
+      "shownInEnglish": "이 주제는 아직 사용 중인 언어로 번역되지 않아 영어로 표시합니다.",
+      "shownInKorean": "이 주제는 아직 사용 중인 언어로 번역되지 않아 한국어로 표시합니다.",
+      "group": {
+        "start": "시작하기",
+        "kuro": "KURO 설계",
+        "mame": "MAME 검증",
+        "deeper": "심화"
+      },
+      "topic": {
+        "kuro-index": "KURO 개요",
+        "kuro-01-load": "불러오기",
+        "kuro-02-mutation": "변이",
+        "kuro-03-params": "파라미터",
+        "kuro-04-submit": "제출",
+        "kuro-05-output": "결과",
+        "kuro-06-export": "내보내기",
+        "mame-index": "MAME 개요",
+        "mame-01-setup": "바코드 설정",
+        "mame-02-review": "분석 및 검토",
+        "mame-03-janus": "Janus",
+        "mame-04-activity": "활성",
+        "mame-pipeline": "MAME 파이프라인"
+      }
+    }
   },
   "about": {
     "title": "Kuma 정보",
@@ -2624,13 +2653,21 @@
     "descriptionRange": "v{{from}} 이후 모든 업데이트의 주요 변경 사항입니다.",
     "gotItBtn": "확인",
     "highlights": [
-      "설계 위치가 바뀌지 않은 WRONG_AA well 이 그 자리에서 실제로 읽힌 값을 표시합니다. WT, no call, not covered 로 구분합니다.",
-      "판정 테이블, well 상세, plate 패널이 빈 대시 대신 설계 위치마다 판독 결과를 표시합니다.",
-      "모든 설계 위치에서 reference 잔기를 읽은 well 은 NGS Results 시트에 WRONG_AA 대신 WT 로 표시됩니다.",
-      "sort_barcode 폴더 아래 reads 폴더는 well 별 read 를 보관할 때만 만들어집니다. 이전에는 항상 빈 폴더로 생겼습니다."
+      "도움말 메뉴가 화면 옆에 도움말 패널을 열고 지금 작업 중인 단계의 주제를 바로 보여줍니다. 표시 언어는 한국어와 영어입니다.",
+      "주제 13개가 KURO 와 MAME 를 다룹니다. 각 화면에서 무엇을 하는지와 거기 나오는 경고가 무슨 뜻인지를 중심으로 썼습니다.",
+      "도움말 안의 상호 참조는 같은 패널에서 열립니다. 패널은 KURO 와 MAME 를 오갈 때도 열린 채로 유지됩니다.",
+      "MAME 분석 입력 화면의 도움말 메뉴는 바코드 설정 대신 분석 및 검토 주제를 엽니다.",
+      "바코드 패키지 없이 MAME 1단계에서 다음을 누르면 내부 키 대신 빠진 입력의 이름을 알려줍니다."
     ],
-    "highlightsStamp": "0.16.62+e46c1db9",
+    "highlightsStamp": "0.16.63+27af3ec6",
     "releases": {
+      "0.16.63": [
+        "도움말 메뉴가 화면 옆에 도움말 패널을 열고 지금 작업 중인 단계의 주제를 바로 보여줍니다. 표시 언어는 한국어와 영어입니다.",
+        "주제 13개가 KURO 와 MAME 를 다룹니다. 각 화면에서 무엇을 하는지와 거기 나오는 경고가 무슨 뜻인지를 중심으로 썼습니다.",
+        "도움말 안의 상호 참조는 같은 패널에서 열립니다. 패널은 KURO 와 MAME 를 오갈 때도 열린 채로 유지됩니다.",
+        "MAME 분석 입력 화면의 도움말 메뉴는 바코드 설정 대신 분석 및 검토 주제를 엽니다.",
+        "바코드 패키지 없이 MAME 1단계에서 다음을 누르면 내부 키 대신 빠진 입력의 이름을 알려줍니다."
+      ],
       "0.16.62": [
         "설계 위치가 바뀌지 않은 WRONG_AA well 이 그 자리에서 실제로 읽힌 값을 표시합니다. WT, no call, not covered 로 구분합니다.",
         "판정 테이블, well 상세, plate 패널이 빈 대시 대신 설계 위치마다 판독 결과를 표시합니다.",
@@ -3078,6 +3115,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
       "0.16.61": "f9b38f15",
       "0.16.59": "69e92cd5",
@@ -3615,6 +3653,7 @@
       "designResults": "내보낼 설계 결과가 없습니다",
       "cdsFasta": "CDS FASTA 파일이 필요합니다",
       "barcodeSeeds": "Barcode seeds xlsx가 필요합니다",
+      "barcodePackage": "바코드 패키지 생성이 필요합니다",
       "geneCoordinates": "gene_start, gene_end 좌표가 필요합니다",
       "geneRangeInvalid": "gene_end가 gene_start보다 커야 합니다",
       "projectPath": "프로젝트를 먼저 열거나 생성해 주세요",

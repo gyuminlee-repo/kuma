@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.16.63 (Help that answers the question in front of you)
+
+The Help menu of both apps gains a User guide item. It opens a panel down the right side of the window at the topic for the step being worked on, and the panel stays where it is while the screen behind it is used. Thirteen topics cover the six KURO steps and the four MAME steps, plus an overview for each app and a description of what the MAME pipeline does between a run folder and a verdict. Every topic ships in Korean and English, and a language with no translation falls back to English and says so rather than showing nothing.
+
+A link inside a topic to another topic swaps the panel to it instead of leaving the app, so a cross-reference costs one click and no lost place. A link to the outside opens in the browser. The panel closes with Escape or the close button, and switching between the KURO and MAME tabs does not close it.
+
+The content is written for the person at the bench rather than the person who wrote the code. The step guides these topics came from carried version change notes, module paths, internal field names and layout specifications, none of which answer a question asked while looking at a screen. Each topic now says what is done on that screen, what the screen shows, and what to do about the warnings that actually appear there, quoting the buttons and messages the app displays in the language being read.
+
+Reading the screens while rewriting turned up passages describing controls that are not there: a mutation text-input mode with no way to reach it, a codon strategy control absent from the parameter panel, FASTA listed as a KURO sequence input that the loader rejects, pool filter options placed on the wrong step, and a MAME step 1 topic that described the analyze inputs screen instead of barcode setup. Those are gone.
+
+Two defects behind the help menu are fixed with it. The menu on the MAME analyze inputs screen opened the barcode setup topic, and now opens the analyze topic that documents the run folder, the expected workbook, the reference and the well selection. Pressing Next on MAME step 1 before generating a barcode package opened a dialog listing an internal key, because no language declared a message for it; the dialog now names the missing input in all ten languages.
+
+### Highlights
+
+- The Help menu opens a help panel beside the screen, at the topic for the step being worked on, in Korean or English.
+- Thirteen topics cover KURO and MAME, written around what is done on each screen and what the warnings there mean.
+- A cross-reference inside the help opens in the same panel, which stays open while switching between KURO and MAME.
+- The help menu on the MAME analyze inputs screen opens the analyze topic instead of the barcode setup one.
+- Pressing Next on MAME step 1 without a barcode package names the missing input instead of showing an internal key.
+
 ## v0.16.62 (A WRONG_AA well says what it read)
 
 A WRONG_AA well whose designed site had not changed carried the note "missing expected: L187G" and nothing else. Its amino acid column was blank and the NGS Results sheet printed the verdict name in the column meant for what was detected, so an operator could not tell a well that stayed wild type from one whose consensus had no call at that site. A well that read a different residue already said so ("expected L187A, observed L187G"). The missing-site note now says it in the same shape: "expected L187G, observed WT (L187)", "expected L187G, observed no call (X at 187)" or "expected L187G, observed not covered (187)".

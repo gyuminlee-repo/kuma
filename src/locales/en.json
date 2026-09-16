@@ -37,7 +37,36 @@
     "showOnboarding": "Show Onboarding",
     "viewCrashLog": "View Crash Log",
     "settings": "Settings...",
-    "about": "About"
+    "about": "About",
+    "userGuide": "User guide",
+    "panel": {
+      "title": "Help",
+      "close": "Close help",
+      "notTranslated": "This topic is not available yet.",
+      "shownInEnglish": "Shown in English because this topic is not translated into your language yet.",
+      "shownInKorean": "Shown in Korean because this topic is not translated into your language yet.",
+      "group": {
+        "start": "Getting started",
+        "kuro": "KURO design",
+        "mame": "MAME verification",
+        "deeper": "Deeper"
+      },
+      "topic": {
+        "kuro-index": "KURO overview",
+        "kuro-01-load": "Load",
+        "kuro-02-mutation": "Mutations",
+        "kuro-03-params": "Parameters",
+        "kuro-04-submit": "Submit",
+        "kuro-05-output": "Results",
+        "kuro-06-export": "Export",
+        "mame-index": "MAME overview",
+        "mame-01-setup": "Barcode setup",
+        "mame-02-review": "Analyze and review",
+        "mame-03-janus": "Janus",
+        "mame-04-activity": "Activity",
+        "mame-pipeline": "MAME pipeline"
+      }
+    }
   },
   "about": {
     "title": "About Kuma",
@@ -2624,13 +2653,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A WRONG_AA well whose designed site did not change now says what it read there: wild type, a no call, or not covered.",
-      "The verdict table, well details and plate panel show the read at each designed site instead of a bare dash.",
-      "The NGS Results sheet prints WT instead of WRONG_AA for a well that read the reference residue at every designed site.",
-      "The reads folder under each sort_barcode directory is created only when per-well reads are kept, instead of always empty."
+      "The Help menu opens a help panel beside the screen, at the topic for the step being worked on, in Korean or English.",
+      "Thirteen topics cover KURO and MAME, written around what is done on each screen and what the warnings there mean.",
+      "A cross-reference inside the help opens in the same panel, which stays open while switching between KURO and MAME.",
+      "The help menu on the MAME analyze inputs screen opens the analyze topic instead of the barcode setup one.",
+      "Pressing Next on MAME step 1 without a barcode package names the missing input instead of showing an internal key."
     ],
-    "highlightsStamp": "0.16.62+e46c1db9",
+    "highlightsStamp": "0.16.63+27af3ec6",
     "releases": {
+      "0.16.63": [
+        "The Help menu opens a help panel beside the screen, at the topic for the step being worked on, in Korean or English.",
+        "Thirteen topics cover KURO and MAME, written around what is done on each screen and what the warnings there mean.",
+        "A cross-reference inside the help opens in the same panel, which stays open while switching between KURO and MAME.",
+        "The help menu on the MAME analyze inputs screen opens the analyze topic instead of the barcode setup one.",
+        "Pressing Next on MAME step 1 without a barcode package names the missing input instead of showing an internal key."
+      ],
       "0.16.62": [
         "A WRONG_AA well whose designed site did not change now says what it read there: wild type, a no call, or not covered.",
         "The verdict table, well details and plate panel show the read at each designed site instead of a bare dash.",
@@ -3078,6 +3115,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.63": "27af3ec6",
       "0.16.62": "e46c1db9",
       "0.16.61": "f9b38f15",
       "0.16.60": "a87cf2d1",
@@ -3615,6 +3653,7 @@
       "designResults": "No designed primers to export",
       "cdsFasta": "CDS FASTA file is required",
       "barcodeSeeds": "Barcode seeds xlsx is required",
+      "barcodePackage": "Barcode package is required",
       "geneCoordinates": "Gene start and end coordinates are required",
       "geneRangeInvalid": "Gene end must be greater than gene start",
       "projectPath": "Open or create a project first",
