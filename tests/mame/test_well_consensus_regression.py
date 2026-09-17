@@ -167,8 +167,8 @@ class TestWellConsensusUnit:
         }
         results = compute_well_consensuses(per_well, ref_fasta, min_mapq=0)
         r = results["w"]
-        assert r.n_passed_filter >= 1
-        assert len(r.consensus_seq) == len(_SYNTH_REF)
+        assert r.n_passed_filter == 2
+        assert r.consensus_seq == _SYNTH_REF
 
     @requires_minimap2
     def test_one_bp_deletion_well_net_indel_minus_one(self, ref_fasta: Path) -> None:

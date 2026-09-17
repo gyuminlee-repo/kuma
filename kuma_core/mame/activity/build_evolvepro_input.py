@@ -165,7 +165,7 @@ def _wt_wells(layout_xlsx: str | Path | None, verdict_xlsx: str | Path) -> set[s
 
 def _read_long(path: str | Path, activity_scale: str, well_to_variant: dict[str, str], variant_to_well: dict[str, str], unmapped: list[str]) -> tuple[dict[str, list[float]], dict[str, str], list[str], list[float]]:
     source = Path(path)
-    frame = pd.read_excel(source) if source.suffix.lower() in {".xlsx", ".xls"} else pd.read_csv(source)
+    frame = pd.read_excel(source) if source.suffix.lower() in {".xlsx", ".xls"} else pd.read_csv(source, sep=None, engine="python")
     frame.columns = [str(column).strip().lower() for column in frame.columns]
     label_columns = [column for column in frame.columns if column in _WELL_COLUMNS | _VARIANT_COLUMNS]
     value_columns = [column for column in frame.columns if column in _VALUE_COLUMNS]
@@ -410,7 +410,8 @@ def _strict_ngs_gate(merged: dict[Variant, float], variant_to_well: dict[str, st
             raise ValueError(f"variant {name!r} has conflicting layout and verdict mutant identity wells")
         well = layout_well or identity_well
         row = verdicts.get(well) if well else None
-        if row is None or row.verdict != _PASS or row.failed or row.is_fallback:
+        identity_matches = row is not None and _short_variant(row.mutant_id) == name
+        if row is None or row.verdict != _PASS or row.failed or row.is_fallback or not identity_matches:
             del merged[variant]
             excluded.append(name)
             reason = (
@@ -420,6 +421,8 @@ def _strict_ngs_gate(merged: dict[Variant, float], variant_to_well: dict[str, st
                 if row.failed
                 else "fallback"
                 if row.is_fallback
+                else "identity_mismatch"
+                if row.verdict == _PASS and not identity_matches
                 else row.verdict
             )
             reason_counts[reason] = reason_counts.get(reason, 0) + 1

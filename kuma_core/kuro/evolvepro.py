@@ -18,7 +18,7 @@ from kuma_core.kuro.alphafold import pairwise_ca_distance, ca_max_dist
 
 _POS_RE = re.compile(r"[A-Z](\d+)[A-Z]")
 _SINGLE_POS_RE = re.compile(r"^[A-Z](\d+)[A-Z]$")
-_TOKEN_SPLIT_RE = re.compile(r"[\s/,]+")
+_TOKEN_SPLIT_RE = re.compile(r"[\s/,:]+")
 
 def _combo_positions(variant: str) -> list[int]:
     """Return ALL substituted positions in a (possibly colon-separated) combo variant.
@@ -494,7 +494,7 @@ def _load_evolvepro_rows(
 def _variant_has_position_one(variant: str) -> bool:
     """Return True if any token in a (possibly multi-variant) string is at position 1.
 
-    Tokens are split with _TOKEN_SPLIT_RE (whitespace, '/', ','), the same
+    Tokens are split with _TOKEN_SPLIT_RE (whitespace, '/', ',', ':'), the same
     splitter _extract_aa_position and _combo_positions use, so a whitespace-
     separated combo ("M1A A2V") cannot slip past this filter. Each token is
     matched against _SINGLE_POS_RE; if the captured position is 1 the function
@@ -513,7 +513,7 @@ def _variant_has_position_one(variant: str) -> bool:
 def _extract_aa_position(variant: str) -> int | None:
     """Extract the 1-based amino acid position from the first token of a variant string.
 
-    Tokens are split on whitespace, slash, or comma (matching the EVOLVEpro
+    Tokens are split on whitespace, slash, comma, or colon (matching the EVOLVEpro
     multi-substitution conventions in _variant_has_position_one).  _POS_RE is
     applied only to the first token so that later tokens cannot override the
     result — a leading non-positional token (e.g. WT) correctly returns None.

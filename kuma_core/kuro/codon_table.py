@@ -78,14 +78,19 @@ class CodonTableRegistry:
             )
         with open(json_path, encoding="utf-8") as f:
             data = json.load(f)
+        table: dict[str, list[tuple[str, float]]] = {}
+        for aa, codons in data["codons"].items():
+            if not any(freq > 0 for _, freq in codons):
+                raise ValueError(
+                    f"Codon usage unavailable for amino acid '{aa}' "
+                    f"in organism '{key}': no positive usage fractions"
+                )
+            table[aa] = [(codon, freq) for codon, freq in codons]
         self._metadata[key] = {
             "name": data.get("name", key),
             "taxid": data.get("taxid"),
             "source": data.get("source", ""),
         }
-        table: dict[str, list[tuple[str, float]]] = {}
-        for aa, codons in data["codons"].items():
-            table[aa] = [(codon, freq) for codon, freq in codons]
         return table
 
     def get_codon_table(
@@ -100,7 +105,7 @@ class CodonTableRegistry:
             Dict mapping amino acid to list of (codon, frequency) tuples.
 
         Raises:
-            ValueError: If the organism is not found.
+            ValueError: If the organism is not found or a group has no usage evidence.
         """
         key = self._resolve_key(organism)
         if key not in self._cache:

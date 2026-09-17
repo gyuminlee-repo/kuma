@@ -1496,10 +1496,12 @@ def diagnose_sdm_failure(
     prefix = "No valid primer pair - "
 
     if overlap_mode == "full":
-        # _design_full_overlap is the single gate in full mode.
         l_min = max(fwd_len_min, rev_len_min)
         l_max = min(fwd_len_max, rev_len_max)
         best: tuple[float, int] | None = None
+        valid_pairs = 0
+        rejected_pairs = 0
+        rc_template = reverse_complement(seq.upper())
         for variant in variants:
             mutated_seq = mutate_sequence(seq, variant)
             probe = _design_full_overlap(
@@ -1520,8 +1522,26 @@ def diagnose_sdm_failure(
             cand = (tm_fwd, len(_fwd))
             if best is None or abs(cand[0] - tm_target_fwd) < abs(best[0] - tm_target_fwd):
                 best = cand
+            if abs(_calc_sdm_tm(_fwd) - tm_target_fwd) <= tol_max:
+                valid_pairs += 1
+                start = variant.codon_start - _left
+                end = start + len(_fwd)
+                hits_fwd = check_offtarget(
+                    _fwd, seq, start, end, antisense_cache=rc_template, profile=profile,
+                )
+                hits_rev = check_offtarget(
+                    _rev, seq, start, end, antisense_cache=rc_template, profile=profile,
+                )
+                rejected_pairs += bool(hits_fwd or hits_rev)
         if best is None:
             return prefix + f"full overlap: no candidate satisfies length {l_min}-{l_max} bp"
+        if valid_pairs:
+            if rejected_pairs == valid_pairs:
+                return prefix + (
+                    f"full overlap off-target: all {valid_pairs} Tm/length-valid "
+                    "candidate(s) rejected for off-target binding"
+                )
+            return prefix + "full overlap: cause not isolated to Tm, length, or off-target binding"
         return prefix + (
             f"full overlap: closest Tm {best[0]:.1f}C at {best[1]} bp, "
             f"outside {tm_target_fwd:.0f}+-{tol_max:.1f}C (length {l_min}-{l_max} bp)"
@@ -1920,7 +1940,7 @@ def detect_topology(filepath: Path) -> str:
 
 
 def _load_genbank(gb_path: Path) -> tuple[str, str, list[GeneInfo]]:
-    """Load a GenBank file and extract CDS features across all records."""
+    """Load the first GenBank record's template and its own CDS features."""
     from Bio import SeqIO
 
     with open(gb_path, encoding="utf-8", errors="replace") as fh:
@@ -1933,7 +1953,7 @@ def _load_genbank(gb_path: Path) -> tuple[str, str, list[GeneInfo]]:
     sequence = str(first.seq).upper()
     if not sequence:
         raise ValueError(f"Empty sequence in GenBank file: {gb_path.name}")
-    genes = _extract_cds_features(records)
+    genes = _extract_cds_features(first)
     return header, sequence, genes
 
 

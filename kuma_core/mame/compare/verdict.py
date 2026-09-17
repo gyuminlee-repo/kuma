@@ -93,16 +93,11 @@ def gate_consensus_n_fraction(barcode: BarcodeRecord) -> tuple[float, int]:
     Redefining it would silently change what past records mean, so it is left
     alone and only the gate's INPUT is narrowed here.
 
-    The narrowing follows from ``n_no_call_deletion`` being a decided call rather
-    than a failure to call. The four ``n_no_call_*`` counts partition the
-    numerator of ``consensus_n_fraction`` (``ingest/consensus.py`` builds them by
-    successive subtraction, so they sum to it exactly), and three of them mean
-    "this position could not be read": no reads, reads agreeing on 'N', reads
-    with no majority. The fourth means the reads agreed the base is ABSENT. The
-    consensus alphabet has no gap character and writes 'N' there, which is the
-    only reason a decided deletion ever entered a no-call count. Failing a well
-    on it asks the AA comparison to be skipped for a fact the AA comparison is
-    the right place to report, as ``{WT}{pos}del``.
+    Only ``n_no_call_deletion_majority`` is a decided deletion: it counts the
+    covered no-call positions with strictly more than half of reads voting DEL.
+    The broader deletion bucket also contains plurality and exact ties, which
+    remain unresolved. The total deletion-majority count cannot substitute for
+    this subset because it includes positions below the coverage threshold.
 
     The exclusion is computed as a ratio of the counts rather than by rebuilding
     ``n_covered_positions``. The denominator is not carried on ``BarcodeRecord``
@@ -112,11 +107,8 @@ def gate_consensus_n_fraction(barcode: BarcodeRecord) -> tuple[float, int]:
     0.0 (zero versus nonzero) stays exact even though a header round-trip keeps
     only three decimals of the fraction itself.
 
-    A record whose four counts are all zero gets ``consensus_n_fraction`` back
-    unchanged. That is every consensus file written before the counts existed,
-    where the decomposition is unknown rather than empty, and it is also a well
-    with no no-call position at all. Both must keep the shipped behaviour, and
-    returning the value untouched is what does that.
+    Missing strict-subset metadata (legacy files) or an inconsistent subset
+    leaves the reported fraction unchanged; neither proves a safe exclusion.
 
     Returns ``(fraction, n_excluded_positions)``.
     """
@@ -126,12 +118,17 @@ def gate_consensus_n_fraction(barcode: BarcodeRecord) -> tuple[float, int]:
         + barcode.n_no_call_ambiguous
         + barcode.n_no_call_no_majority
     )
-    if n_nc <= 0 or barcode.n_no_call_deletion <= 0:
+    n_excluded = barcode.n_no_call_deletion_majority
+    if (
+        n_nc <= 0
+        or n_excluded is None
+        or not 0 < n_excluded <= barcode.n_no_call_deletion <= n_nc
+    ):
         return barcode.consensus_n_fraction, 0
-    kept = n_nc - barcode.n_no_call_deletion
+    kept = n_nc - n_excluded
     return (
         barcode.consensus_n_fraction * kept / n_nc,
-        barcode.n_no_call_deletion,
+        n_excluded,
     )
 
 

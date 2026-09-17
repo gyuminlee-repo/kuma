@@ -297,6 +297,7 @@ def _run_consensus_on_dir(
                     n_ins_majority_anchors=result.n_ins_majority_anchors,
                     n_no_call_zero_depth=result.n_no_call_zero_depth,
                     n_no_call_deletion=result.n_no_call_deletion,
+                    n_no_call_deletion_majority=result.n_no_call_deletion_majority,
                     n_no_call_ambiguous=result.n_no_call_ambiguous,
                     n_no_call_no_majority=result.n_no_call_no_majority,
                     consensus_net_indel=result.consensus_net_indel_bp,
@@ -899,16 +900,14 @@ def handle_demux_and_filter(params: dict) -> dict:
         "n_failed_barcode": n_qf_failed_barcode,
     }
 
-    if updated_per_well:
-        # Rebuild demux_result with updated counts.
-        n_assigned_filtered = sum(updated_per_well.values())
-        demux_result = type(demux_result)(
-            output_dir=demux_result.output_dir,
-            n_input_reads=demux_result.n_input_reads,
-            n_assigned=n_assigned_filtered,
-            n_unassigned=demux_result.n_input_reads - n_assigned_filtered,
-            per_well_counts=updated_per_well,
-        )
+    n_assigned_filtered = sum(updated_per_well.values())
+    demux_result = type(demux_result)(
+        output_dir=demux_result.output_dir,
+        n_input_reads=demux_result.n_input_reads,
+        n_assigned=n_assigned_filtered,
+        n_unassigned=demux_result.n_input_reads - n_assigned_filtered,
+        per_well_counts=updated_per_well,
+    )
 
     # ── A4/A5: Alignment + consensus (when reference_fasta provided) ──────
     consensus_stats_dict: dict | None = None

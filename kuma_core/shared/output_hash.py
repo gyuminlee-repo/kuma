@@ -63,6 +63,11 @@ def write_output_checksum(output_path: Path, *, algorithm: str = "sha256") -> Pa
     hex_digest = compute_input_sha256(output_path)
 
     checksum_path = output_path.parent / (output_path.name + ".sha256")
+    filename = output_path.name
+    escaped = any(character in filename for character in "\\\n\r")
+    if escaped:
+        filename = filename.replace("\\", "\\\\").replace("\n", "\\n").replace("\r", "\\r")
+    prefix = "\\" if escaped else ""
     # Two spaces: text-mode marker per GNU coreutils shasum convention.
     # newline="" suppresses translation: this file is consumed by external
     # checkers that treat everything after the two spaces as the filename, so a
@@ -74,7 +79,7 @@ def write_output_checksum(output_path: Path, *, algorithm: str = "sha256") -> Pa
     # written beside this one already publishes that way.
     atomic_write_text(
         checksum_path,
-        f"{hex_digest}  {output_path.name}\n",
+        f"{prefix}{hex_digest}  {filename}\n",
         encoding="utf-8",
         newline="",
     )

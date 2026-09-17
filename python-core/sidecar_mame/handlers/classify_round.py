@@ -251,6 +251,12 @@ def _load_xlsx(path: str) -> list[dict]:
                 f"float for Variant={variant_raw!r} in {path}"
             ) from exc
 
+        if not math.isfinite(activity):
+            wb.close()
+            raise ValueError(
+                f"Row {row_num}: activity={activity!r} must be finite "
+                f"for Variant={variant_raw!r} in {path}"
+            )
         if activity <= 0.0:
             wb.close()
             raise ValueError(

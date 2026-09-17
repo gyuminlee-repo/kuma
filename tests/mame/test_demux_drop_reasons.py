@@ -448,27 +448,36 @@ class TestResumeOmitsWhatItCannotKnow:
         response omits them rather than reporting a partial split as a whole.
         """
         def _legacy_worker(payload: dict) -> dict:
+            stats = _legacy_marker_stats()
+            if payload["nb_name"] == "barcode05":
+                stats.update({k: 0 for k in _DEMUX_NB_DROP_KEYS})
+                stats["drop_short_window_read_3p"] = 3
             return {
                 "nb_name": payload["nb_name"],
                 "sort_barcode_name": payload["sort_barcode_name"],
                 "output_dir": payload["output_dir"],
-                "stats": _legacy_marker_stats(),
+                "stats": stats,
                 "per_well_read_counts": {"1_1": 5},
             }
 
         monkeypatch.setattr(cdx, "_demux_one_nb", _legacy_worker)
         ref = tmp_path / "ref.fasta"
         ref.write_text(">stub\nACGTACGTACGTACGT\n", encoding="utf-8")
+        fastq = tmp_path / "a.fastq"
+        fastq.write_bytes(b"stub FASTQ")
+        workbook = tmp_path / "barcodes.xlsx"
+        workbook.write_bytes(b"stub workbook")
 
         result = run_combinatorial_demux_per_nb(
-            {"barcode06": [Path("a")]},
+            {"barcode05": [fastq], "barcode06": [fastq]},
             ref,
-            Path("barcodes.xlsx"),
+            workbook,
             tmp_path / "out",
             parallel=False,
         )
 
         merged = result["merged_stats"]
+        assert merged["total_reads"] == 20
         assert set(merged) == set(_DEMUX_NB_STAT_KEYS)
         for key in _DEMUX_NB_DROP_KEYS:
             assert key not in merged

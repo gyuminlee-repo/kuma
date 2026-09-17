@@ -147,6 +147,9 @@ class SidecarIO:
         except subprocess.TimeoutExpired:
             self.proc.kill()
             rc = self.proc.wait()
+        self._reader.join(timeout=timeout)
+        if not self._reader.is_alive() and self.proc.stdout is not None:
+            self.proc.stdout.close()
         self._stderr_fh.flush()
         self._stderr_fh.close()
         return rc

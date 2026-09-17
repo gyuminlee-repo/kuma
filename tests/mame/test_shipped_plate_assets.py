@@ -174,7 +174,7 @@ class TestShippedVariantWorkbook:
     def test_the_pinned_workbooks_still_hold_the_plate_they_are_shipped_for(
         self, path, sheets
     ):
-        relative = str(path.relative_to(_REPO_ROOT))
+        relative = path.relative_to(_REPO_ROOT).as_posix()
         if relative not in _PINNED_OCCUPANTS:
             pytest.skip(f"{relative} carries no pinned occupant count")
         occupants = _PINNED_OCCUPANTS[relative]

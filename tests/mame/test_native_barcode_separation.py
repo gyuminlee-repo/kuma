@@ -378,26 +378,32 @@ def _stub_reference(tmp_path: Path) -> Path:
     return path
 
 
+def _stub_input(tmp_path: Path, name: str) -> Path:
+    path = tmp_path / name
+    path.write_bytes(b"stub input")
+    return path
+
+
 def test_orchestration_per_nb_inline_order_and_merge(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """run_combinatorial_demux_per_nb (parallel=False) orders, maps, and merges.
 
     With ``parallel=False`` the inline path calls ``_demux_one_nb`` directly via
-    the module global, so ``monkeypatch.setattr`` applies.  The stub does no I/O,
-    so ref/xlsx/output paths need not exist on disk.
+    the module global, so ``monkeypatch.setattr`` applies. Input files still
+    exist because the orchestrator fingerprints their contents before dispatch.
     """
     monkeypatch.setattr(cdx, "_demux_one_nb", _stub_demux_one_nb)
 
     nb_to_fastq: dict[str, list[Path]] = {
-        "barcode06": [Path("a"), Path("b")],
-        "barcode20": [Path("c")],
+        "barcode06": [_stub_input(tmp_path, "a"), _stub_input(tmp_path, "b")],
+        "barcode20": [_stub_input(tmp_path, "c")],
     }
 
     result = run_combinatorial_demux_per_nb(
         nb_to_fastq,
         _stub_reference(tmp_path),
-        Path("barcodes.xlsx"),
+        _stub_input(tmp_path, "barcodes.xlsx"),
         tmp_path / "out",
         parallel=False,
     )
@@ -438,13 +444,13 @@ def test_orchestration_per_nb_progress_is_aggregate_and_monotonic(
 
     calls: list[tuple[int, int, str]] = []
     nb_to_fastq: dict[str, list[Path]] = {
-        "barcode06": [Path("a")],
-        "barcode20": [Path("c")],
+        "barcode06": [_stub_input(tmp_path, "a")],
+        "barcode20": [_stub_input(tmp_path, "c")],
     }
     run_combinatorial_demux_per_nb(
         nb_to_fastq,
         _stub_reference(tmp_path),
-        Path("barcodes.xlsx"),
+        _stub_input(tmp_path, "barcodes.xlsx"),
         tmp_path / "out",
         parallel=False,
         progress_callback=lambda done, total, stage: calls.append((done, total, stage)),
@@ -477,14 +483,14 @@ def test_orchestration_per_nb_parallel_smoke(
     monkeypatch.setenv("KUMA_MAME_NB_PARALLEL", "0")
 
     nb_to_fastq: dict[str, list[Path]] = {
-        "barcode01": [Path("x")],
-        "barcode02": [Path("y")],
+        "barcode01": [_stub_input(tmp_path, "x")],
+        "barcode02": [_stub_input(tmp_path, "y")],
     }
 
     result = run_combinatorial_demux_per_nb(
         nb_to_fastq,
         _stub_reference(tmp_path),
-        Path("barcodes.xlsx"),
+        _stub_input(tmp_path, "barcodes.xlsx"),
         tmp_path / "out2",
         parallel=True,
     )

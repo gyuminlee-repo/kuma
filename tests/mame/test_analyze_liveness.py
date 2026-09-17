@@ -212,12 +212,19 @@ def test_handle_analyze_heartbeat_starts_emits_and_stops(
     monkeypatch.setattr(analyze_mod, "_HEARTBEAT_INTERVAL_S", 0.05)
 
     sent: list[dict] = []
-    monkeypatch.setattr(analyze_mod, "_send", lambda obj: sent.append(obj))
+    heartbeat = threading.Event()
+
+    def _record(obj: dict) -> None:
+        sent.append(obj)
+        if threading.current_thread().name == "analyze-heartbeat" and obj.get("method") == "progress":
+            heartbeat.set()
+
+    monkeypatch.setattr(analyze_mod, "_send", _record)
 
     # Stub run_analyze (function-local import -> patch the source binding) with
     # a long, otherwise-silent run that emits NO progress of its own.
     def _slow_run_analyze(*_args, **_kwargs):
-        time.sleep(0.3)  # >> heartbeat interval -> several beats
+        assert heartbeat.wait(timeout=5), "heartbeat did not emit during the silent run"
         return ([], [])
 
     monkeypatch.setattr(

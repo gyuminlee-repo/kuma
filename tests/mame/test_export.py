@@ -110,14 +110,23 @@ def test_excel_sheet_colors(tmp_path: Path) -> None:
         "1_3": VERDICT_FILL[VerdictClass.FRAMESHIFT],
         "1_4": VERDICT_FILL[VerdictClass.MANY],
     }
-    ws = wb["NB01"]
-    header = [c.value for c in ws[1]]
-    custom_col = header.index("custom_barcode") + 1
-    for row in ws.iter_rows(min_row=2):
-        label = row[custom_col - 1].value
-        if isinstance(label, str) and label in expected_fills:
-            fg = row[0].fill.fgColor.rgb or ""
-            assert fg.endswith(expected_fills[label])
+    try:
+        for sheet, expected in {
+            "NB01": expected_fills,
+            "NB02": {"1_1": VERDICT_FILL[VerdictClass.LOWDEPTH]},
+        }.items():
+            ws = wb[sheet]
+            custom_col = [c.value for c in ws[1]].index("custom_barcode")
+            observed = {}
+            for row in ws.iter_rows(min_row=2):
+                label = row[custom_col].value
+                if label in expected:
+                    observed[label] = row[0].fill.fgColor.rgb
+            assert observed.keys() == expected.keys()
+            for label, color in expected.items():
+                assert observed[label].endswith(color)
+    finally:
+        wb.close()
 
 
 def test_excel_failed_well(tmp_path: Path) -> None:

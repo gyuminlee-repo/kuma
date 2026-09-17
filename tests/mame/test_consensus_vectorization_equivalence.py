@@ -96,6 +96,8 @@ def _scalar_accumulate(
     ref_len = len(per_position)
     n_low_quality_bases = 0
     net_indel = 0
+    voted_positions: set[int] = set()
+    inserted_positions: set[int] = set()
 
     for length, op in aln.cigar:
         if op in (_CIGAR_M, _CIGAR_EQ, _CIGAR_X):
@@ -111,6 +113,7 @@ def _scalar_accumulate(
                     base = q_seq[qp].upper()
                     if base in "ACGTN":
                         per_position[rp][base] += 1
+                        voted_positions.add(rp)
             ref_pos += length
             q_pos += length
 
@@ -120,13 +123,16 @@ def _scalar_accumulate(
                 rp = ref_pos + i
                 if 0 <= rp < ref_len:
                     per_position[rp]["-"] += 1
+                    voted_positions.add(rp)
             ref_pos += length
 
         elif op == _CIGAR_I:
             net_indel += length
             rp = ref_pos - 1
-            if 0 <= rp < ref_len:
-                insertion_events[rp] += 1
+            if rp in voted_positions:
+                if rp not in inserted_positions:
+                    insertion_events[rp] += 1
+                    inserted_positions.add(rp)
                 insertion_bp[rp] += length
             q_pos += length
 

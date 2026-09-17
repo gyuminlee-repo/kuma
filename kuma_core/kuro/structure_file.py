@@ -127,6 +127,7 @@ def _parse_cif_ca(
         )
 
     idx_atom = column("label_atom_id", "auth_atom_id")
+    idx_group = column("group_PDB")
     idx_comp = column("label_comp_id", "auth_comp_id")
     idx_seq = column("label_seq_id", "auth_seq_id")
     idx_x = column("Cartn_x")
@@ -150,11 +151,11 @@ def _parse_cif_ca(
         line = raw.strip()
         if not line or line.startswith("#"):
             break
-        if not (line.startswith("ATOM") or line.startswith("HETATM")):
-            continue
         fields = _split_cif_tokens(line)
         if len(fields) < width:
             malformed += 1
+            continue
+        if fields[idx_group] not in {"ATOM", "HETATM"}:
             continue
         if fields[idx_atom] != "CA":
             continue

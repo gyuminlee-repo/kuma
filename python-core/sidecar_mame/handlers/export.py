@@ -181,6 +181,7 @@ def handle_export_excel(params: dict) -> dict:
         state.last_replicates,
         str(output),
         run_meta=state.last_run_meta,
+        designed_mutant_ids=state.last_designed_mutant_ids,
         barcode_prefix_note=state.last_barcode_prefix_note,
         analysis_conditions=state.last_analysis_conditions,
     )

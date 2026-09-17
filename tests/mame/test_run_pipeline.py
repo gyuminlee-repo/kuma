@@ -452,6 +452,12 @@ class TestIngestPerNb:
             mapq_threshold=0, coverage_fraction=0.5, trim_flank_bp=30,
         )
         assert (out_dir / "sort_barcode20").is_dir()
+        old_unit = out_dir / "sort_barcode20"
+        previous_files = {
+            path.relative_to(old_unit): path.read_bytes()
+            for path in old_unit.rglob("*") if path.is_file()
+        }
+        assert previous_files
 
         records = ingest_run_folder(
             run_dir, xlsx, ref, out_dir, native_barcodes=["barcode06"],
@@ -459,12 +465,18 @@ class TestIngestPerNb:
         )
         assert {r.native_barcode for r in records} == {"sort_barcode06"}
 
-        # The stray is reported to whoever asks, and left on disk.
         strays: dict = {}
         reread = load_barcode_directory(out_dir, strays_out=strays)
         assert {r.native_barcode for r in reread} == {"sort_barcode06"}
-        assert strays["names"] == ["sort_barcode20"]
-        assert (out_dir / "sort_barcode20").is_dir()
+        assert strays["names"] == []
+        assert not old_unit.exists()
+        archived_units = list(tmp_path.glob(f".{out_dir.name}-demux-stale-*/sort_barcode20"))
+        assert len(archived_units) == 1
+        archived = archived_units[0]
+        assert {
+            path.relative_to(archived): path.read_bytes()
+            for path in archived.rglob("*") if path.is_file()
+        } == previous_files
 
     def test_per_nb_out_receives_one_matrix_per_native_barcode(
         self, tmp_path: Path

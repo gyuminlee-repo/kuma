@@ -64,6 +64,7 @@ from kuma_core.mame.ingest.consensus_metadata import (
     parse_insertion_bases,
     NO_CALL_ZERO_DEPTH,
     NO_CALL_DELETION,
+    NO_CALL_DELETION_MAJORITY,
     NO_CALL_AMBIGUOUS,
     NO_CALL_NO_MAJORITY,
     parse_position_runs,
@@ -552,6 +553,9 @@ def parse_fasta_file(
         n_ins_majority_anchors=n_ins_majority_anchors,
         n_no_call_zero_depth=n_no_call_zero_depth,
         n_no_call_deletion=n_no_call_deletion,
+        n_no_call_deletion_majority=_read_int_metadata(
+            metadata, NO_CALL_DELETION_MAJORITY
+        ),
         n_no_call_ambiguous=n_no_call_ambiguous,
         n_no_call_no_majority=n_no_call_no_majority,
         min_variant_support=min_variant_support,

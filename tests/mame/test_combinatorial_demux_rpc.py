@@ -23,6 +23,7 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+from pydantic import ValidationError
 
 from sidecar_mame.models import CombinatorialDemuxParams
 
@@ -283,10 +284,12 @@ class TestCombinatorialDemuxParamsValidation:
     def test_path_traversal_in_run_dir_raises(
         self, barcodes_xlsx: Path, reference_fasta: Path, tmp_path: Path
     ) -> None:
-        with pytest.raises(Exception):
+        (tmp_path / "nested").mkdir()
+        (tmp_path / "traversal_target").mkdir()
+        with pytest.raises(ValidationError, match="Path traversal not allowed"):
             CombinatorialDemuxParams.model_validate(
                 {
-                    "minknow_run_dir": str(tmp_path / ".." / "traversal_target"),
+                    "minknow_run_dir": str(tmp_path / "nested" / ".." / "traversal_target"),
                     "custom_barcodes_xlsx": str(barcodes_xlsx),
                     "reference_fasta": str(reference_fasta),
                     "output_dir": str(tmp_path / "out"),

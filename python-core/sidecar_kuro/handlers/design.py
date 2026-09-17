@@ -489,7 +489,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
         temp_csv.close()
         mutations_csv_path = Path(temp_csv_name)
 
-    cancel_event = _core._begin_design_job()
+    cancel_event = None
 
     def _cancelled_result(
         partial_results: list | None = None,
@@ -527,6 +527,7 @@ def handle_design_sdm_primers(params: dict) -> dict:
         ).to_rpc_dict()
 
     try:
+        cancel_event = _core._begin_design_job()
         with _core._state_lock:
             _core._state.results = []
             _core._state.candidates = {}
@@ -733,7 +734,8 @@ def handle_design_sdm_primers(params: dict) -> dict:
             ],
         ).to_rpc_dict()
     finally:
-        _core._finish_design_job(cancel_event)
+        if cancel_event is not None:
+            _core._finish_design_job(cancel_event)
         if temp_csv is not None:
             os.unlink(temp_csv_name)
 

@@ -5,6 +5,8 @@ Covers:
   - from_evolvepro: position lookup, out-of-range, empty ref_seq, bad pattern
 """
 
+import json
+
 import pytest
 
 from kuma_core.mame.activity.variant_notation import (
@@ -81,7 +83,7 @@ def test_from_evolvepro_empty_ref_raises():
 
 def test_from_evolvepro_none_ref_raises():
     with pytest.raises(ValueError, match="ref_seq"):
-        from_evolvepro("89W", "")  # type: ignore[arg-type]
+        from_evolvepro("89W", json.loads("null"))
 
 
 def test_from_evolvepro_out_of_range_raises():

@@ -405,6 +405,7 @@ class ConsensusCall:
     #                    well and the only cause that says "re-pick the colony".
     n_no_call_zero_depth: int = 0
     n_no_call_deletion: int = 0
+    n_no_call_deletion_majority: int = 0
     n_no_call_ambiguous: int = 0
     n_no_call_no_majority: int = 0
     # Net indel of the CONSENSUS relative to the reference, in bp:
@@ -736,8 +737,8 @@ def call_consensus_with_metrics(
     # max_indel_event_fraction = max across all positions of either fraction.
     #
     # Spanning depth: reads that covered this position (base votes + del votes).
-    # Inserting reads always vote a base at the anchor M op before the I op, so
-    # they are already counted. Using total depth as the denominator guarantees
+    # Insertion evidence requires an accepted vote by that read at the anchor.
+    # Using total depth as the denominator guarantees
     # ins_frac <= 1.0 whenever ins_ev <= depth (true by construction). del_frac
     # uses the same denominator; del_votes is a subset of depth so it is <= 1.0.
     del_votes = counts[:, _TOK_DEL]
@@ -888,6 +889,7 @@ def call_consensus_with_metrics(
         n_ins_majority_anchors=n_ins_majority_anchors,
         n_no_call_zero_depth=n_no_call_zero_depth,
         n_no_call_deletion=n_no_call_deletion,
+        n_no_call_deletion_majority=int((deletion_nc & del_major).sum()),
         n_no_call_ambiguous=n_no_call_ambiguous,
         n_no_call_no_majority=n_no_call_no_majority,
         consensus_net_indel_bp=consensus_net_indel_bp,
@@ -1193,8 +1195,18 @@ def _accumulate_batch(
         anchors = anchors[in_range]
         ins_len = ins_len[in_range]
         ins_sel = ins_sel[in_range]
+        vote_keys = np.concatenate((
+            read_match * ref_len + flat_match // _N_TOKENS,
+            read_del * ref_len + flat_del // _N_TOKENS,
+        ))
+        supported = np.isin(op_read[ins_sel] * ref_len + anchors, vote_keys)
+        anchors = anchors[supported]
+        ins_len = ins_len[supported]
+        ins_sel = ins_sel[supported]
         if anchors.size:
-            insertion_events += np.bincount(anchors, minlength=ref_len).astype(
+            keys = op_read[ins_sel] * ref_len + anchors
+            unique_keys = np.unique(keys)
+            insertion_events += np.bincount(unique_keys % ref_len, minlength=ref_len).astype(
                 np.int64
             )
             # Same anchors, weighted by inserted length, so the two arrays stay
@@ -1215,7 +1227,7 @@ def _accumulate_batch(
             # flatten loop reverse-complements a minus-strand read before
             # encoding it, so no strand handling belongs here.
             #
-            # NOT quality filtered, matching ``insertion_events``.  An inserted
+            # Inserted bases are not quality filtered. An inserted
             # base has no aligned reference position, so the per-base gate that
             # ``is_match`` applies has nothing to key on; filtering here would
             # make the sequence tally disagree with the event count that decides
@@ -1227,15 +1239,20 @@ def _accumulate_batch(
             ins_rd = op_read[ins_sel]
             ins_qp = qry_starts[ins_sel]
             ins_base = seq_off[ins_rd] + ins_qp
-            for a, b, ln in zip(
-                anchors.tolist(), ins_base.tolist(), ins_len.tolist()
+            sequences: dict[int, bytes | None] = {}
+            for key, b, ln, rd, qp in zip(
+                keys.tolist(), ins_base.tolist(), ins_len.tolist(),
+                ins_rd.tolist(), ins_qp.tolist(),
             ):
-                seq = seq_arr[b : b + ln].tobytes()
-                if len(seq) != ln:
-                    # Truncated query buffer; the event is still counted above
-                    # but its sequence is unknown, so record nothing rather than
-                    # a short string that would win a majority as itself.
+                previous = sequences.get(key, b"")
+                if previous is None or qp < 0 or qp + ln > seq_len[rd]:
+                    sequences[key] = None
+                else:
+                    sequences[key] = previous + seq_arr[b : b + ln].tobytes().upper()
+            for key, seq in sequences.items():
+                if seq is None:
                     continue
+                a = key % ref_len
                 tally = insertion_seqs.get(a)
                 if tally is None:
                     tally = insertion_seqs[a] = {}
@@ -1327,6 +1344,8 @@ def _accumulate(
     ref_len = len(per_position)
     n_low_quality_bases = 0
     net_indel = 0
+    voted_positions: set[int] = set()
+    inserted_sequences: dict[int, bytes | None] = {}
 
     for length, op in aln.cigar:
         if op in (_CIGAR_M, _CIGAR_EQ, _CIGAR_X):
@@ -1343,6 +1362,7 @@ def _accumulate(
                     base = q_seq[qp].upper()
                     if base in "ACGTN":
                         per_position[rp][base] += 1
+                        voted_positions.add(rp)
             ref_pos += length
             q_pos += length
 
@@ -1353,6 +1373,7 @@ def _accumulate(
                 rp = ref_pos + i
                 if 0 <= rp < ref_len:
                     per_position[rp]["-"] += 1
+                    voted_positions.add(rp)
             ref_pos += length
             # q_pos unchanged (deletion consumes reference only)
 
@@ -1365,18 +1386,16 @@ def _accumulate(
             # so callers can detect insertion-bearing wells.
             net_indel += length
             rp = ref_pos - 1
-            if 0 <= rp < ref_len:
-                insertion_events[rp] += 1
-                if insertion_seqs is not None:
-                    seq = q_seq[q_pos : q_pos + length].upper().encode(
+            if rp in voted_positions:
+                if rp not in inserted_sequences:
+                    insertion_events[rp] += 1
+                previous = inserted_sequences.get(rp, b"")
+                if previous is None or q_pos < 0 or q_pos + length > len(q_seq):
+                    inserted_sequences[rp] = None
+                else:
+                    inserted_sequences[rp] = previous + q_seq[q_pos : q_pos + length].upper().encode(
                         "ascii", "replace"
                     )
-                    # A read whose SEQ ends inside the insertion yields fewer
-                    # bases than the CIGAR claims; drop it rather than let a
-                    # truncated string compete as its own candidate.
-                    if len(seq) == length:
-                        tally = insertion_seqs.setdefault(rp, {})
-                        tally[seq] = tally.get(seq, 0) + 1
             q_pos += length
 
         elif op == _CIGAR_S:
@@ -1391,6 +1410,11 @@ def _accumulate(
             # Unknown op — skip without advancing (defensive).
             pass
 
+    if insertion_seqs is not None:
+        for rp, seq in inserted_sequences.items():
+            if seq is not None:
+                tally = insertion_seqs.setdefault(rp, {})
+                tally[seq] = tally.get(seq, 0) + 1
     return n_low_quality_bases, net_indel
 
 

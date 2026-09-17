@@ -6,16 +6,19 @@ without invoking the full dispatcher machinery.
 
 from __future__ import annotations
 
+import importlib
 import os
 import sys
 
 from kuma_core.shared.memory_monitor import get_self_rss_bytes
+import pytest
 
 
-def test_health_info_pid() -> None:
+@pytest.mark.parametrize("sidecar", ["sidecar_kuro", "sidecar_mame"])
+def test_health_info_pid(sidecar: str) -> None:
     """PID returned by health_info matches the current process."""
-    pid = os.getpid()
-    assert pid > 0, f"Expected positive PID, got {pid}"
+    result = importlib.import_module(f"{sidecar}.dispatcher")._METHODS["health_info"]({})
+    assert result["pid"] == os.getpid()
 
 
 def test_health_info_rss_positive() -> None:
@@ -24,8 +27,9 @@ def test_health_info_rss_positive() -> None:
     assert rss > 0, f"Expected positive RSS bytes, got {rss}"
 
 
-def test_health_info_py_version() -> None:
+@pytest.mark.parametrize("sidecar", ["sidecar_kuro", "sidecar_mame"])
+def test_health_info_py_version(sidecar: str) -> None:
     """Python version string is non-empty and starts with a digit."""
-    version = sys.version.split()[0]
-    assert version, "Python version string must not be empty"
-    assert version[0].isdigit(), f"Expected version to start with a digit, got {version!r}"
+    result = importlib.import_module(f"{sidecar}.dispatcher")._METHODS["health_info"]({})
+    assert result["py_version"] == sys.version.split()[0]
+    assert result["rss_bytes"] > 0
