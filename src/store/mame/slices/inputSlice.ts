@@ -336,6 +336,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
   // leading wells, which is the only placement the new file states.
   setExpectedPath: (expectedPath) => {
     const changed = get().expectedPath !== expectedPath;
+    if (!changed) return;
     set({
       expectedPath,
       validationErrors: [],
@@ -377,6 +378,10 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         30_000,
       );
       if (get().expectedPath !== path) return;
+      if (get().variantSelectionExplicit) {
+        set({ variantSourceInfo: info });
+        return;
+      }
       set({
         variantSourceInfo: info,
         // Sheet stays unset for a KURO export: the backend already knows which

@@ -73,25 +73,32 @@ export interface AutosaveSnapshot {
 
 // ─── 내부 상태 ────────────────────────────────────────────────────────────
 
+interface AutosaveTask {
+  target: AutosaveTarget;
+  run: () => Promise<void>;
+}
+
 interface KindState {
+  failedTask: AutosaveTask | null;
+  firstPendingAt: number | null;
   timer: ReturnType<typeof setTimeout> | null;
   lastFlushAt: number;
   /** in-flight write Promise. 직렬 큐: 끝나야 다음 write 실행. */
   inFlight: Promise<void> | null;
   /** 다음 flush에 실행할 task. in-flight 중 새 요청이 오면 덮어씀. */
-  pending: (() => Promise<void>) | null;
+  pending: AutosaveTask | null;
   /**
    * 타이머가 살아 있는 동안 "타이머 만료 시 실행할 task"를 미리 저장.
    * flushAutosave가 타이머를 취소할 때 이 task를 pending으로 승격시킨다.
    */
-  timerTask: (() => Promise<void>) | null;
+  timerTask: AutosaveTask | null;
   /** Last completed write failure; flush must surface it to manual-save callers. */
   lastError: Error | null;
 }
 
 const kindState: Record<AutosaveKind, KindState> = {
-  kuro: { timer: null, lastFlushAt: 0, inFlight: null, pending: null, timerTask: null, lastError: null },
-  mame: { timer: null, lastFlushAt: 0, inFlight: null, pending: null, timerTask: null, lastError: null },
+  kuro: { failedTask: null, firstPendingAt: null, timer: null, lastFlushAt: 0, inFlight: null, pending: null, timerTask: null, lastError: null },
+  mame: { failedTask: null, firstPendingAt: null, timer: null, lastFlushAt: 0, inFlight: null, pending: null, timerTask: null, lastError: null },
 };
 
 /** ensureAutosaveDir 결과 캐시 (projectPath → dirPath) */
@@ -381,7 +388,22 @@ async function readAutosaveFile(
 
   let parsed: AutosaveSnapshot;
   try {
-    parsed = JSON.parse(text) as AutosaveSnapshot;
+    const candidate: unknown = JSON.parse(text);
+    if (
+      typeof candidate !== "object" || candidate === null || Array.isArray(candidate)
+      || !("schema" in candidate) || typeof candidate.schema !== "number"
+      || !Number.isInteger(candidate.schema) || candidate.schema < 0
+      || !("saved_at" in candidate) || typeof candidate.saved_at !== "string"
+      || !("kuma_version" in candidate) || typeof candidate.kuma_version !== "string"
+    ) {
+      throw new Error("Invalid autosave envelope");
+    }
+    parsed = {
+      ...candidate,
+      schema: candidate.schema,
+      saved_at: candidate.saved_at,
+      kuma_version: candidate.kuma_version,
+    };
   } catch {
     const isoTs = new Date().toISOString().replace(/[:.]/g, "-");
     const backupPath = `${filePath}.bad-${isoTs}`;
@@ -417,8 +439,9 @@ function drainQueue(kind: AutosaveKind): void {
 
   emit({ kind, type: "saving" });
 
-  state.inFlight = task()
+  state.inFlight = task.run()
     .then(() => {
+      state.failedTask = null;
       emit({ kind, type: "saved", savedAt: new Date().toISOString() });
     })
     .catch((err: unknown) => {
@@ -426,6 +449,7 @@ function drainQueue(kind: AutosaveKind): void {
       console.warn(`[autosave] Write failed (${kind}):`, error);
       emit({ kind, type: "error", error });
       state.lastError = error;
+      state.failedTask = task;
     })
     .finally(() => {
       state.inFlight = null;
@@ -455,6 +479,7 @@ export function scheduleAutosave(
   const resolvedTarget: AutosaveTarget = { ...target };
   const state = kindState[kind];
   const now = Date.now();
+  state.firstPendingAt ??= now;
 
   // 기존 디바운스 타이머 취소
   if (state.timer !== null) {
@@ -463,15 +488,16 @@ export function scheduleAutosave(
   }
 
   const snapshot = buildSnapshot();
-  const task = async (): Promise<void> => {
+  const task: AutosaveTask = { target: resolvedTarget, run: async (): Promise<void> => {
     const filePath = await resolveTargetPath(resolvedTarget, kind);
     if (filePath === null) return;
     // 덮어쓰기 전에만 세대를 뜬다. 내부에서 간격을 보고 대부분 즉시 빠진다.
     await rotateGenerations(filePath);
     await atomicWriteJson(filePath, snapshot);
-  };
+  } };
 
   const enqueue = (): void => {
+    state.firstPendingAt = null;
     state.lastFlushAt = Date.now();
     state.timerTask = null;
     state.pending = task;
@@ -480,7 +506,8 @@ export function scheduleAutosave(
 
   // 30초 강제 flush: 마지막 flush 이후 MAX_SKEW_MS 초과 시 즉시 실행
   const elapsed = now - state.lastFlushAt;
-  if (state.lastFlushAt > 0 && elapsed >= MAX_SKEW_MS) {
+  const remaining = MAX_SKEW_MS - (now - state.firstPendingAt);
+  if (remaining <= 0 || (state.lastFlushAt > 0 && elapsed >= MAX_SKEW_MS)) {
     enqueue();
     return;
   }
@@ -490,7 +517,7 @@ export function scheduleAutosave(
   state.timer = setTimeout(() => {
     state.timer = null;
     enqueue();
-  }, DEBOUNCE_MS);
+  }, Math.min(DEBOUNCE_MS, remaining));
 }
 
 // ─── flushAutosave ────────────────────────────────────────────────────────
@@ -520,6 +547,7 @@ export async function flushAutosave(
       if (state.timer !== null) {
         clearTimeout(state.timer);
         state.timer = null;
+        state.firstPendingAt = null;
         if (state.timerTask !== null) {
           state.lastFlushAt = Date.now();
           state.pending = state.timerTask;
@@ -533,6 +561,29 @@ export async function flushAutosave(
       if (state.lastError !== null) throw state.lastError;
     }),
   );
+}
+
+export async function retryAutosave(target: AutosaveTarget, kind?: AutosaveKind): Promise<void> {
+  const kinds: AutosaveKind[] = kind !== undefined ? [kind] : ["kuro", "mame"];
+  for (const k of kinds) {
+    if (!hasWritableTarget(target, k)) continue;
+    if (writeBlock[k] !== null) throw writeBlock[k];
+    if (hydrationDepth > 0) throw new Error("Autosave hydration is in progress");
+    await waitForDrain(k);
+    if (writeBlock[k] !== null) throw writeBlock[k];
+    if (hydrationDepth > 0) throw new Error("Autosave hydration is in progress");
+    const state = kindState[k];
+    const task = state.timerTask ?? state.failedTask;
+    if (!task) continue;
+    const taskProject = task.target.scratch ? null : task.target.projectPath;
+    const retryProject = target.scratch ? null : target.projectPath;
+    if (taskProject !== retryProject) continue;
+    if (state.timerTask === null) {
+      state.pending = task;
+      drainQueue(k);
+    }
+    await flushAutosave(target, k);
+  }
 }
 
 /** in-flight + pending 체인이 완전히 빌 때까지 대기 */
@@ -560,10 +611,12 @@ export function _resetStateForTest(): void {
     if (state.timer !== null) clearTimeout(state.timer);
     state.timer = null;
     state.lastFlushAt = 0;
+    state.firstPendingAt = null;
     state.inFlight = null;
     state.pending = null;
     state.timerTask = null;
     state.lastError = null;
+    state.failedTask = null;
   }
   writeBlock.kuro = null;
   writeBlock.mame = null;

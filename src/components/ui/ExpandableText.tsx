@@ -54,6 +54,7 @@ export function ExpandableText({ text, label, className, children }: ExpandableT
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const nodeRef = useRef<HTMLElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<ResizeObserver | null>(null);
   const panelId = useId();
 
@@ -101,7 +102,7 @@ export function ExpandableText({ text, label, className, children }: ExpandableT
     };
     const onPointerDown = (event: MouseEvent) => {
       const target = event.target;
-      if (target instanceof Node && nodeRef.current?.contains(target)) return;
+      if (target instanceof Node && (nodeRef.current?.contains(target) || panelRef.current?.contains(target))) return;
       setOpen(false);
     };
     window.addEventListener("scroll", update, true);
@@ -146,6 +147,7 @@ export function ExpandableText({ text, label, className, children }: ExpandableT
         onKeyDown={(event: ReactKeyboardEvent<HTMLButtonElement>) => {
           // The table header/row handlers must not react to a cell expansion.
           event.stopPropagation();
+          if (event.key === "Escape") setOpen(false);
         }}
         className={cn(
           "block w-full min-w-0 truncate rounded-control text-left underline decoration-dotted underline-offset-2",
@@ -160,6 +162,7 @@ export function ExpandableText({ text, label, className, children }: ExpandableT
         typeof document !== "undefined" &&
         createPortal(
           <div
+            ref={panelRef}
             id={panelId}
             role="tooltip"
             data-testid="expandable-text-panel"

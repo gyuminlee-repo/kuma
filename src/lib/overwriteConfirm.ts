@@ -88,6 +88,7 @@ export function requestOverwriteConfirm(
   message?: string,
 ): Promise<OverwriteDecision> {
   return new Promise<OverwriteDecision>((resolve) => {
+    _pendingResolve?.("cancel");
     _pendingPath = filepath;
     _pendingMessage = message ?? null;
     _pendingResolve = resolve;

@@ -198,7 +198,7 @@ export function MenuBar({ onClearRequest }: MenuBarProps = {}) {
         setShortcutsOpen((v) => !v);
         return;
     }
-  }, [toggleLogPanel, toggleJobsPanel]);
+  }, [toggleLogPanel, toggleJobsPanel, handleManualSave, t]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleViewKeyDown);

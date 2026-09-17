@@ -1385,6 +1385,7 @@ export async function applyMameAutoDetect(
   if (!storeAfterDetection.expectedPath) {
     try {
       const sdmPrimer = await getLatestArtifact("sdm_primer_xlsx");
+      if (!alive()) return;
       if (sdmPrimer?.path && !useMameAppStore.getState().expectedPath) {
         useMameAppStore.getState().setExpectedPath(sdmPrimer.path);
         filled.push(i18next.t("autosaveHydration.fieldExpected"));
@@ -1394,6 +1395,7 @@ export async function applyMameAutoDetect(
     }
   }
 
+  if (!alive()) return;
   onMessage(filled);
 }
 

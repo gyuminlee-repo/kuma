@@ -130,17 +130,17 @@ describe("loadSequence derived-result invalidation", () => {
     expect(state.statusMessage).toContain("sequenceSlice.resultsClearedOnTemplateChange");
   });
 
-  it("keeps design results when the same unchanged file is reloaded", async () => {
+  it("invalidates design results when reload cannot prove nucleotide identity", async () => {
     mockedSendRequest.mockResolvedValue(seqInfoOf(GENE_A) as never);
     const { state, slice } = makeStore();
 
     await slice.loadSequence("/tmp/a.gb");
 
-    expect(state.designResults).toEqual([{ mutation: "F385Y" }]);
-    expect(state.successCount).toBe(1);
-    expect(state.totalCount).toBe(2);
-    expect(state.backendDesignStateSynced).toBe(true);
-    expect(state.statusMessage).not.toContain("resultsClearedOnTemplateChange");
+    expect(state.designResults).toEqual([]);
+    expect(state.successCount).toBe(0);
+    expect(state.totalCount).toBe(0);
+    expect(state.backendDesignStateSynced).toBe(false);
+    expect(state.statusMessage).toContain("resultsClearedOnTemplateChange");
   });
 
   it("does not announce a clear on the first load when no results exist yet", async () => {

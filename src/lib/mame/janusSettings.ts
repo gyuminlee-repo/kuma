@@ -117,13 +117,6 @@ export const JANUS_SETTINGS_STORAGE_KEY_V2 = "kuma:mame:janusSettings:v2";
 function normalizeLoadedSettings(parsed: Partial<JanusExportSettings>): JanusExportSettings {
   const merged = { ...DEFAULT_JANUS_SETTINGS, ...parsed };
 
-  // A stored 100 is the old shipped default, which the UI itself used to call
-  // an assumption with no lab source, so it reads as never chosen rather than
-  // as a decision. The lab asked for 70, and without this a machine that ran
-  // the earlier build would keep writing 100 into the mapping file. Any other
-  // number is an operator decision and survives untouched.
-  if (merged.volume === 100) merged.volume = DEFAULT_JANUS_SETTINGS.volume;
-
   // Same reading for a stored "cell": it is the old shipped default, and the
   // lab workbook writes "cell stock" in the type column of every row. Without
   // this, a machine that ever opened step 3 keeps writing the shorter word
@@ -219,6 +212,7 @@ export function loadJanusSettings(): JanusExportSettings {
     if (!legacy) return DEFAULT_JANUS_SETTINGS;
 
     const migrated = normalizeLoadedSettings(legacy);
+    if (migrated.volume === 100) migrated.volume = DEFAULT_JANUS_SETTINGS.volume;
     migrated.destLayout = DEFAULT_JANUS_SETTINGS.destLayout;
 
     // Best-effort: a machine that cannot write localStorage already hit that

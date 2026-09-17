@@ -253,7 +253,7 @@ export function BuildEvolveproInputPanel() {
     formRef.current = form;
   }, [form]);
 
-  function setForm(partial: Partial<FormState>) {
+  const setForm = useCallback((partial: Partial<FormState>) => {
     setFormRaw((prev) => {
       const next = { ...prev, ...partial, migrationNotice: false };
       saveToStorage(next, project?.path);
@@ -261,7 +261,7 @@ export function BuildEvolveproInputPanel() {
       setBuildEvolveproCompletion(null);
       return next;
     });
-  }
+  }, [project?.path, setBuildEvolveproCompletion]);
 
   // The default destination carries the round number so building round 2 does
   // not write over what round 1 produced, which is the series step 4.2 reads.
@@ -342,7 +342,7 @@ export function BuildEvolveproInputPanel() {
         } as Partial<FormState>);
       }
     },
-    [],
+    [setForm],
   );
   useEffect(() => {
     if (!activeRoundId || !roundVerdictPath) return;
@@ -527,7 +527,7 @@ export function BuildEvolveproInputPanel() {
   if (!form.outputXlsx) need("outputXlsx", "bep-output-path");
   if (form.migrationNotice) missing.push({ label: "Unsupported saved mode", fieldId: "bep-input-files" });
 
-  const canBuild = missing.length === 0 && !isBuilding;
+  const canBuild = missing.length === 0 && !isBuilding && !unresolved;
 
   function buildParams(): BuildEvolveproInputParams {
     const layout = form.layoutXlsx || undefined;
@@ -1120,7 +1120,7 @@ export function BuildEvolveproInputPanel() {
                 variant="outline"
                 size="sm"
                 onClick={() => handleMissingClick(item.fieldId)}
-                className="h-6 px-2 text-xs"
+                className="h-auto min-h-6 min-w-0 max-w-full whitespace-normal break-words px-2 text-xs"
               >
                 {item.label}
               </Button>
@@ -1432,7 +1432,7 @@ function ChoiceToggle({
             type="button"
             size="sm"
             variant={selected === o.value ? "default" : "outline"}
-            className="flex-1 min-w-0 text-xs"
+            className="h-auto min-h-7 flex-1 min-w-0 whitespace-normal break-words py-1 text-xs"
             role="radio"
             aria-checked={selected === o.value}
             onClick={() => onSelect(o.value)}

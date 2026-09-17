@@ -53,6 +53,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
     filepath: string,
     topNOverride?: number,
     preserveDesignResults = false,
+    preserveSelection = false,
   ) => {
     const gen = ++csvLoadGeneration;
     try {
@@ -177,12 +178,11 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
         evolveproParetoExchanges: update.evolveproParetoExchanges,
         evolveproStepStats: update.evolveproStepStats,
         structure3dState: update.structure3dState,
-        statusMessage: update.statusMessage,
         evolveproRankedCandidates: result.ranked_candidates ?? [],
         // Initialize selection directly from result.variants (pipeline source-of-truth).
         // ranked_candidates is guaranteed to contain all selected variants (backend invariant:
         // selected ⊆ ranked_candidates), but we seed from result.variants for authority clarity.
-        evolveproSelectedVariants: result.variants ?? [],
+        evolveproSelectedVariants: preserveSelection ? get().evolveproSelectedVariants : result.variants ?? [],
         evolveproUsedVariantColumn: result.used_variant_column ?? null,
         evolveproUsedScoreColumn: result.used_score_column ?? null,
       };
@@ -191,6 +191,7 @@ export const createInputSlice: StateCreator<AppState, [], [], InputSlice> = (set
       } else {
         set(buildKuroDesignInputPatch(get(), inputPatch));
       }
+      set({ statusMessage: update.statusMessage });
 
       // Dual-write to MAME shared store so other panels can auto-fill.
       try {

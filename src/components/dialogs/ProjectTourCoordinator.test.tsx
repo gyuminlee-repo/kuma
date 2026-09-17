@@ -118,7 +118,7 @@ describe("ProjectTourCoordinator", () => {
     );
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    window.dispatchEvent(new CustomEvent(START_GUIDED_TOUR_EVENT));
+    fireEvent(window, new CustomEvent(START_GUIDED_TOUR_EVENT));
 
     expect(await screen.findByText("Follow the Mame workflow")).toBeInTheDocument();
   });
@@ -135,16 +135,14 @@ describe("ProjectTourCoordinator", () => {
       />,
     );
 
-    window.dispatchEvent(new CustomEvent(START_GUIDED_TOUR_EVENT));
+    // Flush replay mount effects before interacting with the first stop.
+    fireEvent(window, new CustomEvent(START_GUIDED_TOUR_EVENT));
 
     expect(await screen.findByText("Follow the Mame workflow")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    // findByText, not getByText: advancing a stop is a state update, and a
-    // synchronous read races the re-render. The assertion above already awaits
-    // for the same reason. Under CI load this one caught the tour still on
-    // "Step 1 / 4" and failed a component that works.
     expect(
       await screen.findByText("Choose a Mame input route"),
     ).toBeInTheDocument();
   });
+
 });

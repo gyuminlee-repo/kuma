@@ -112,7 +112,7 @@ export function SummaryRow() {
       ? t("mame.summaryRow.statusErrors", { count: validationErrors.length })
       : verdicts.length > 0
         ? t("mame.summaryRow.statusReady")
-        : readyCount === 4
+        : readyCount === requiredInputs.length
           ? t("mame.summaryRow.statusReadyToRun")
           : t("mame.summaryRow.statusDraft");
 

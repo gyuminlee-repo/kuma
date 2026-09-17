@@ -511,7 +511,8 @@ function isWorkspaceInputs(value: unknown): boolean {
     isMutationInputMode(value.mutationInputMode) &&
     isString(value.mutationText) &&
     isString(value.evolveproCsvPath) &&
-    isString(value.selectedGene)
+    isString(value.selectedGene) &&
+    isOptional(value.othersSourcePath, isString)
   );
 }
 
@@ -532,6 +533,9 @@ function isWorkspaceSettings(value: unknown): boolean {
     isOptional(value.revLenMin, isNumber) &&
     isOptional(value.revLenMax, isNumber) &&
     isOptional(value.fillOnFailure, isBoolean) &&
+    isOptional(value.tmTolerance, isNumber) &&
+    isOptional(value.structureAccession, isString) &&
+    isOptional(value.structureLoaded, isBoolean) &&
     isOptional(value.uniprotAccession, isString) &&
     isOptional(value.domains, (item) => isArrayOf(item, isDomainInfo)) &&
     isOptional(value.refDomains, (item) => isArrayOf(item, isDomainInfo)) &&
@@ -555,6 +559,13 @@ function isWorkspaceSettings(value: unknown): boolean {
     isOptional(value.saveCache, isBoolean) &&
     isOptional(value.organism, isString) &&
     isOptional(value.pipelineMode, isBoolean) &&
+    isOptional(value.evolveproMode, (v) => v === "topN" || v === "pipeline" || v === "others") &&
+    isOptional(value.overlapMode, (v) => v === "partial" || v === "full") &&
+    isOptionalNullable(value.randomSeed, isNumber) &&
+    isOptional(value.echoTransferVol, isNumber) &&
+    isOptionalNullable(value.echoQuadrant, isPersistedEchoQuadrant) &&
+    isOptional(value.echoUsedQuadrants, (v) => isArrayOf(v, isPersistedEchoQuadrant)) &&
+    isOptional(value.janusTransferVol, isNumber) &&
     isOptional(value.positionDiversityEnabled, isBoolean) &&
     isOptional(value.maxPerPosition, isNumber) &&
     isOptional(value.evolveproRound, isNumber) &&
@@ -607,6 +618,89 @@ function isWorkspaceCache(value: unknown): boolean {
   );
 }
 
+function isPersistedEchoQuadrant(value: unknown): boolean {
+  return value === "A1" || value === "A13" || value === "A2" || value === "B1" || value === "B2";
+}
+
+function isPlateMeta(value: unknown): boolean {
+  return isRecord(value) && isArrayOf(value.plates, (plate) =>
+    isRecord(plate) && isString(plate.plate_id) &&
+    isStringArray(plate.wt_wells) && isStringArray(plate.control_wells));
+}
+
+function isActivityRecord(value: unknown): boolean {
+  return isRecord(value) && isString(value.plate_id) && isString(value.well_id) &&
+    isNumber(value.value) && isNumber(value.replicate_idx) &&
+    isBoolean(value.is_wt) && isString(value.source_file);
+}
+
+function isNullableString(value: unknown): boolean {
+  return value === null || isString(value);
+}
+
+function isNullableNumber(value: unknown): boolean {
+  return value === null || isNumber(value);
+}
+
+function isMergedRow(value: unknown): boolean {
+  return isRecord(value) && isString(value.plate_id) && isString(value.well_id) &&
+    isNullableString(value.mutation) &&
+    (value.mutation_source === "kuro_design" || value.mutation_source === "mame_genotype" || value.mutation_source === "activity_only") &&
+    isNullableString(value.expected_mutation) && isNullableString(value.called_mutation) &&
+    isBoolean(value.ngs_success) && isNullableNumber(value.activity_raw_mean) &&
+    isNullableNumber(value.activity_raw_sd) && isNumberArray(value.activity_replicates) &&
+    isNumber(value.replicate_n) && isNullableNumber(value.fold_change) &&
+    isNullableNumber(value.log2_fc) && isOptionalNullable(value.activity_merged_mean, isNumber);
+}
+
+function isRoundFile(value: unknown): boolean {
+  return isRecord(value) && isString(value.path) &&
+    isOptional(value.wt_values, isNumberArray) &&
+    isOptional(value.variant_replicates, (v) => isRecordOf(v, isNumberArray));
+}
+
+function isDecisionLabel(value: unknown): boolean {
+  return value === "continue_walking" || value === "switch_combinatorial" ||
+    value === "stop" || value === "deferred";
+}
+
+function isAdvisoryResult(value: unknown): boolean {
+  if (!isRecord(value) || !isArrayOf(value.missing_inputs, (v) => v === "wt_replicates")) return false;
+  switch (value.advisory) {
+    case "decision":
+      return isDecisionLabel(value.label) && isString(value.reason) &&
+        isNullableNumber(value.confidence);
+    case "not_assessable":
+      return (value.reason === "wt_replicates_missing" || value.reason === "wt_replicates_insufficient") &&
+        isArrayOf(value.blocked_decisions, isDecisionLabel) &&
+        isOptional(value.wt_replicate_count, isNumber) && isOptional(value.wt_replicate_min, isNumber);
+    default:
+      return false;
+  }
+}
+
+function isRound(value: unknown): boolean {
+  return isRecord(value) && isString(value.id) && isNumber(value.n) &&
+    isString(value.created_at) &&
+    (value.status === "design" || value.status === "ordered" || value.status === "ngs_done" ||
+      value.status === "activity_linked" || value.status === "exported" ||
+      value.status === "combinatorial" || value.status === "closed" || value.status === "error") &&
+    (value.error_info === null || (isRecord(value.error_info) &&
+      (value.error_info.stage === "upload" || value.error_info.stage === "merge" ||
+        value.error_info.stage === "export" || value.error_info.stage === "handoff") &&
+      isString(value.error_info.message) && isString(value.error_info.occurred_at))) &&
+    isPlateMeta(value.plate_meta) && isRecord(value.design) && isRecord(value.genotype) &&
+    (value.activity === null || (isRecord(value.activity) &&
+      isArrayOf(value.activity.records, isActivityRecord) && isPlateMeta(value.activity.plate_meta))) &&
+    isArrayOf(value.merged_table, isMergedRow) &&
+    isOptionalNullable(value.evolvepro_input, (v) =>
+      isRecord(v) && isRoundFile(v) && isString(v.produced_at)) &&
+    isOptionalNullable(value.advisory, (v) =>
+      isRecord(v) && isAdvisoryResult(v.result) &&
+      isArrayOf(v.inputs, (entry) => isRecord(entry) && isRoundFile(entry) && isNumber(entry.n)) &&
+      isString(v.decided_at) && isString(v.input_signature));
+}
+
 function isWorkspaceData(value: unknown): value is WorkspaceData {
   if (!isRecord(value)) {
     return false;
@@ -620,7 +714,7 @@ function isWorkspaceData(value: unknown): value is WorkspaceData {
       isRecord(value.ui) &&
       isSortingState(value.ui.tableSorting) &&
       isOptional(value.cache, isWorkspaceCache) &&
-      Array.isArray(value.rounds) &&
+      isArrayOf(value.rounds, isRound) &&
       (value.active_round_id === null || isString(value.active_round_id))
     );
   }
@@ -763,7 +857,7 @@ function isLoadStructureFileResult(value: unknown): value is LoadStructureFileRe
 function isFetchInterfaceResiduesResult(value: unknown): value is FetchInterfaceResiduesResult {
   return (
     isRecord(value) &&
-    Array.isArray(value.interface_positions) &&
+    isNumberArray(value.interface_positions) &&
     isString(value.source) &&
     isOptional(value.pdb_id, isString) &&
     isOptional(value.error, isString) &&
@@ -1030,10 +1124,10 @@ const rpcResultValidators = {
     (value as { ok?: unknown }).ok === true &&
     typeof (value as { path?: unknown }).path === "string",
   export_all: (value): value is RpcMethodResult<"export_all"> =>
-    typeof value === "object" && value !== null &&
-    Array.isArray((value as { success?: unknown }).success) &&
-    Array.isArray((value as { failed?: unknown }).failed) &&
-    typeof (value as { output_dir?: unknown }).output_dir === "string",
+    isRecord(value) &&
+    isStringArray(value.success) &&
+    isArrayOf(value.failed, (v) => isRecord(v) && isString(v.path) && isString(v.reason)) &&
+    isString(value.output_dir),
   export_benchmark_csv: (value): value is RpcMethodResult<"export_benchmark_csv"> =>
     isExportResult(value),
   evaluate_primer: (value): value is RpcMethodResult<"evaluate_primer"> =>

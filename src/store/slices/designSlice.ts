@@ -213,6 +213,8 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         await state.loadEvolveproCsv(
           activeEvolveproPath,
           fillOnFailure ? sendCount * 2 : undefined,
+          false,
+          true,
         );
       } catch {
         return;
@@ -332,7 +334,7 @@ export const createDesignSlice: StateCreator<AppState, [], [], DesignSlice> = (s
         // a design-input change, so the results set two statements earlier were
         // discarded on every successful run. Same argument as the
         // autosave restore call in useAutosaveHydration.ts.
-        await get().loadEvolveproCsv(fillSourcePath, undefined, true);
+        await get().loadEvolveproCsv(fillSourcePath, undefined, true, true);
       }
 
       const postFailed = get().failedMutations;

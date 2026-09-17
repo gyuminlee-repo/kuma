@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HALF_LAYOUT_VERSION } from "@/lib/echoQuadrant";
+import { buildKuroSnapshot, readKuroBenchmarkResults } from "@/lib/kuroSnapshot";
 import { ProjectProvider } from "@/state/projectContext";
 import { useAppStore } from "@/store/appStore";
 import { useMameAppStore } from "@/store/mame/mameAppStore";
@@ -2503,6 +2504,33 @@ describe("useAutosaveHydration: 복원되는 결과 그룹", () => {
   });
 
   // ── D4: 벤치마크 블록 ────────────────────────────────────────────────────
+
+  it("clears stale benchmark results without an incomplete warning when the saved benchmark is null", async () => {
+    const snapshot = buildKuroSnapshot({
+      ...useAppStore.getState(),
+      fastaPath: "",
+      evolveproCsvPath: "",
+      saveCache: true,
+      benchmarkResults: null,
+    });
+    const persisted: AutosaveSnapshot = JSON.parse(JSON.stringify(snapshot));
+    expect(persisted.results).toHaveProperty("benchmarkResults", null);
+    useAppStore.setState({ benchmarkResults: {} });
+
+    const outcome = await applyKuroSnapshot(persisted);
+
+    expect(outcome.incompleteResults).toEqual([]);
+    expect(useAppStore.getState().benchmarkResults).toBeNull();
+  });
+
+  it.each([false, 0, "invalid", [], { selected: null }, { selected: {} }].map((value) => ({ value })))(
+    "rejects malformed non-null benchmark results: %j",
+    ({ value }) => {
+      const result = readKuroBenchmarkResults(value);
+
+      expect(result.ok).toBe(false);
+    },
+  );
 
   it("비유한 벤치마크 지표는 0.0% 로 찍히기 전에 걸러낸다", async () => {
     hooks.readAutosave.mockImplementation((_p: string, kind: string) =>

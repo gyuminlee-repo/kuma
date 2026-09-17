@@ -37,39 +37,68 @@ export function ResizeHandle({
   const { t } = useTranslation();
   const dragging = useRef(false);
   const rafRef = useRef<number | null>(null);
+  const pendingX = useRef<number | null>(null);
+  const previousBodyStyle = useRef<{ cursor: string; userSelect: string; resizing: boolean } | null>(null);
 
   const clamp = useCallback(
     (v: number) => Math.max(min, Math.min(max, v)),
     [min, max],
   );
+  const callbacks = useRef({ clamp, onResize, onCommit });
+  useEffect(() => {
+    callbacks.current = { clamp, onResize, onCommit };
+  }, [clamp, onResize, onCommit]);
 
   useEffect(() => {
+    const restoreBody = () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+      pendingX.current = null;
+      dragging.current = false;
+      const previous = previousBodyStyle.current;
+      if (!previous) return;
+      document.body.style.cursor = previous.cursor;
+      document.body.style.userSelect = previous.userSelect;
+      document.body.classList.toggle("resizing-sidebar", previous.resizing);
+      previousBodyStyle.current = null;
+    };
     const onMove = (e: MouseEvent) => {
       if (!dragging.current) return;
+      pendingX.current = e.clientX;
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(() => {
-        onResize(clamp(e.clientX));
+        rafRef.current = null;
+        if (!dragging.current) return;
+        pendingX.current = null;
+        callbacks.current.onResize(callbacks.current.clamp(e.clientX));
       });
     };
 
     const onUp = () => {
       if (!dragging.current) return;
-      dragging.current = false;
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-      document.body.classList.remove("resizing-sidebar");
-      onCommit?.();
+      if (pendingX.current !== null) {
+        callbacks.current.onResize(callbacks.current.clamp(pendingX.current));
+      }
+      restoreBody();
+      callbacks.current.onCommit?.();
     };
 
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
     return () => {
+      restoreBody();
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
     };
-  }, [clamp, onResize, onCommit]);
+  }, []);
 
   const handleMouseDown = () => {
+    if (dragging.current) return;
+    previousBodyStyle.current = {
+      cursor: document.body.style.cursor,
+      userSelect: document.body.style.userSelect,
+      resizing: document.body.classList.contains("resizing-sidebar"),
+    };
     dragging.current = true;
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";

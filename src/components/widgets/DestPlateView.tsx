@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { DestCell } from "@/lib/echoJanusAdapter";
+import { PlatePreviewSelector, usePreviewPlate } from "./PlatePreviewSelector";
 import {
   PlateCellPopover,
   PlateColumnHeaderRow,
@@ -48,8 +49,12 @@ function wellKey(row: string, col: number): string {
 export function DestPlateView({ cells, sourceMethod, title, className }: Props) {
   const { t } = useTranslation();
   const unit = sourceMethod === "echo" ? "nL" : "µL";
+  const { plates, selected, setSelection } = usePreviewPlate(
+    cells.map((c) => sourceMethod === "echo" ? (c.destPlate ?? "") : ""),
+  );
   const byWell = new Map<string, DestCell>();
   for (const c of cells) {
+    if (sourceMethod === "echo" && (c.destPlate ?? "") !== selected) continue;
     if (c.well) byWell.set(c.well, c);
   }
 
@@ -59,13 +64,17 @@ export function DestPlateView({ cells, sourceMethod, title, className }: Props) 
     // the inner box's overflow into clipping) and for why the cqw basis is
     // unchanged apart from this frame's 22px of padding and border.
     <div className={cn("plate-preview-grid", PLATE_PREVIEW_FRAME, className)}>
+      {sourceMethod === "echo" ? (
+        <PlatePreviewSelector title={title ?? t("exportPreview.destPlateLabel")} plates={plates} selected={selected} onChange={setSelection} />
+      ) : null}
       {/* min-w on the grid box, not on the scroller: WellPlate.tsx:73 shape. */}
       <div className="min-w-[400px]">
-      {title ? <div className={PLATE_PREVIEW_LABEL}>{title}</div> : null}
+      {title && sourceMethod === "janus" ? <div className={PLATE_PREVIEW_LABEL}>{title}</div> : null}
       {/* inline-grid + minmax(min,cap): see EchoPlateView.tsx for why 1fr was
           replaced (was 156px cells at 1900px, 10% text coverage). Cap is
           shared with Echo/Janus. */}
       <div
+        key={selected}
         role="grid"
         aria-label={t("exportPreview.destGridAriaLabel")}
         className="inline-grid gap-px"
@@ -122,7 +131,7 @@ export function DestPlateView({ cells, sourceMethod, title, className }: Props) 
                       rows={[
                         {
                           label: `${t("exportPreview.destWell", { defaultValue: "Dest well" })}:`,
-                          value: <span className="font-mono">{well}</span>,
+                          value: <span className="font-mono">{[cell.destPlate, well].filter(Boolean).join(" ")}</span>,
                         },
                         {
                           label: "F:",

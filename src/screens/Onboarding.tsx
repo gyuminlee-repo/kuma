@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
 import { documentDir, join } from "@tauri-apps/api/path";
@@ -17,6 +17,7 @@ const DEFAULT_PROJECTS_ROOT = "~/Documents/kuma/";
 export function Onboarding({ initialPath, onDone }: OnboardingProps) {
   const { t } = useTranslation();
   const [path, setPath] = useState(initialPath ?? "");
+  const pathEdited = useRef(false);
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isResolvingDefault, setIsResolvingDefault] = useState(!initialPath);
@@ -32,9 +33,9 @@ export function Onboarding({ initialPath, onDone }: OnboardingProps) {
       try {
         const documents = await documentDir();
         const defaultPath = await join(documents, "kuma");
-        if (!cancelled) setPath(defaultPath);
+        if (!cancelled && !pathEdited.current) setPath(defaultPath);
       } catch {
-        if (!cancelled) setPath(DEFAULT_PROJECTS_ROOT);
+        if (!cancelled && !pathEdited.current) setPath(DEFAULT_PROJECTS_ROOT);
       } finally {
         if (!cancelled) setIsResolvingDefault(false);
       }
@@ -52,6 +53,7 @@ export function Onboarding({ initialPath, onDone }: OnboardingProps) {
     try {
       const selected = await open({ directory: true });
       if (typeof selected === "string") {
+        pathEdited.current = true;
         setPath(selected);
       }
     } catch (err) {
@@ -94,7 +96,10 @@ export function Onboarding({ initialPath, onDone }: OnboardingProps) {
         <Input
           id="projects-root"
           value={path}
-          onChange={(event) => setPath(event.target.value)}
+          onChange={(event) => {
+            pathEdited.current = true;
+            setPath(event.target.value);
+          }}
           placeholder={initialPath ? undefined : t("onboarding.folderPlaceholder")}
           className="mt-2"
         />

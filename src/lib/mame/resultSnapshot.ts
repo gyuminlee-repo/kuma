@@ -18,6 +18,7 @@ import { exists, readTextFile, rename } from "@tauri-apps/plugin-fs";
 import { ensureAutosaveDir, atomicWriteJson } from "@/lib/autosave";
 import type { AnalyzeResult } from "@/types/mame/models";
 import { RESULT_CONTRACT } from "@/lib/mame/resultContract";
+import { hasValidRunQuality } from "@/types/mame/runQualityValidator";
 
 /** Result snapshot schema. Bumped independently of the input snapshot schema. */
 export const MAME_RESULT_SCHEMA = 1;
@@ -110,7 +111,8 @@ export async function readMameResultSnapshot(
     return { status: "missing" };
   }
 
-  if (parsed.schema > MAME_RESULT_SCHEMA || !parsed.result) {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) ||
+      parsed.schema > MAME_RESULT_SCHEMA || !hasValidRunQuality(parsed.result)) {
     return { status: "missing" };
   }
   return { status: "ok", snapshot: parsed };

@@ -65,8 +65,11 @@ function stringValue(payload: Record<string, unknown>, key: string): string {
 }
 
 function pathBelongsToProject(path: string, projectPath: string): boolean {
-  const normalizedPath = path.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
-  const normalizedProject = projectPath.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+  const normalizedPath = path.replace(/\\/g, "/").replace(/\/+$/, "");
+  const normalizedProject = projectPath.replace(/\\/g, "/").replace(/\/+$/, "");
+  if (/^(?:[a-z]:\/|\/\/)/i.test(normalizedProject)) {
+    return normalizedPath.toLowerCase().startsWith(`${normalizedProject.toLowerCase()}/`);
+  }
   return normalizedPath.startsWith(`${normalizedProject}/`);
 }
 
@@ -337,7 +340,7 @@ export function seedBuildEvolveproForm(
     }
   }
 
-  if (!current.activityPath) {
+  if (current.primarySource === "longFormat" && !current.activityPath) {
     if (paths.activityPath) next.primarySource = "longFormat";
     else if (paths.gcDataXlsx) next.primarySource = "gcSheet";
     else if (paths.round1ReportXlsx) next.primarySource = "rawReport";
