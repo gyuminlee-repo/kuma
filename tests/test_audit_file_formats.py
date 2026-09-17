@@ -28,12 +28,40 @@ def _checker_escapes_carriage_return(checker: str, tmp_path: Path) -> bool:
     return observed.startswith(b"\\")
 
 
+def _checker_uses_gnu_escaping(checker: str, tmp_path: Path) -> bool:
+    """Observe whether this machine's checker escapes at all.
+
+    Every GNU coreutils era prefixes a line whose name contains a backslash
+    with "\\" and doubles the backslash. A checker that leaves the name
+    literal is not GNU, so the escaping contract this test pins cannot be
+    compared against it. Observed by running the checker rather than by
+    naming a platform, because which binary "sha256sum" resolves to differs
+    per machine.
+    """
+    probe_dir = tmp_path / "gnu_probe"
+    probe_dir.mkdir()
+    probe = probe_dir / "probe\\name"
+    probe.write_bytes(b"probe\n")
+    observed = subprocess.run(
+        [checker, "--", probe.name], cwd=probe_dir, capture_output=True, check=True
+    ).stdout
+    return observed.startswith(b"\\")
+
+
 @pytest.mark.skipif(os.name != "posix", reason="POSIX filename contract")
 @pytest.mark.parametrize("name", ["normal.csv", "space name.csv", "with\\slash.csv", "with\nnewline.csv", "with\rcarriage.csv"])
 def test_checksum_matches_gnu_escaping(tmp_path: Path, name: str) -> None:
     checker = shutil.which("sha256sum")
     if checker is None:
         pytest.skip("GNU sha256sum unavailable")
+    if not _checker_uses_gnu_escaping(checker, tmp_path):
+        version = subprocess.run(
+            [checker, "--version"], capture_output=True, check=False
+        ).stdout.split(b"\n", 1)[0]
+        pytest.skip(
+            "sha256sum on PATH leaves backslashes literal, so it is not a GNU "
+            f"checker to compare escaping against: {checker} ({version!r})"
+        )
     output = tmp_path / name
     output.write_bytes(b"contents\n")
 

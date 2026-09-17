@@ -15,6 +15,36 @@ from kuma_core.kuro import codon_table
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def _usable_posix_shell() -> bool:
+    """True when a ``bash`` that actually runs POSIX shell scripts is on PATH.
+
+    Observed rather than inferred: Windows runners resolve ``bash`` to the WSL
+    launcher, which reports ``no installed distributions`` on stderr (UTF-16)
+    and exits 1 without ever reading the script. ``text=True`` is deliberately
+    omitted so that UTF-16 stderr cannot raise a decoding error here.
+    """
+    try:
+        probe = subprocess.run(
+            ["bash", "-c", "exit 7"], capture_output=True, timeout=10, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return probe.returncode == 7
+
+
+# The benchmark runner is a POSIX shell script and this test pins a POSIX-shell
+# contract: the python3 stub below carries a ``#!/bin/sh`` shebang, and the
+# expected values are built with ``str(Path)``, so they only line up with a
+# shell that speaks the same path syntax as the host Python. A non-POSIX host
+# is therefore out of scope for this test rather than a failure of the script.
+@pytest.mark.skipif(
+    os.name != "posix",
+    reason="POSIX shell contract: /bin/sh stub shebang and POSIX path strings",
+)
+@pytest.mark.skipif(
+    not _usable_posix_shell(),
+    reason="no usable bash on PATH (probe 'bash -c \"exit 7\"' did not return 7)",
+)
 @pytest.mark.parametrize("portable", [False, True])
 @pytest.mark.parametrize("override", [None, "", "explicit", "trailing", "root"])
 def test_benchmark_paths_when_workspace_is_inferred_or_overridden(

@@ -9,6 +9,7 @@ import pytest
 
 from kuma_core.mame.ingest.combinatorial_demux import run_combinatorial_demux_per_nb
 from kuma_core.mame.ingest.stage_marker import MARKER_FILENAME, is_unit_complete
+from tests.mame.minimap2_support import requires_minimap2
 from tests.mame.test_combinatorial_demux import (
     _F_BARCODES,
     _F_TAIL,
@@ -16,6 +17,11 @@ from tests.mame.test_combinatorial_demux import (
     _R_TAIL,
     _build_read,
 )
+
+# Every test here drives the real combinatorial demux, which shells out to
+# minimap2. ci.yml provisions that binary for Linux and macOS only, so the
+# Windows leg has to skip rather than fail on a missing aligner.
+pytestmark = requires_minimap2
 
 
 @pytest.fixture
