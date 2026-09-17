@@ -123,7 +123,7 @@ consensus 단계가 메모리에 있는 read를 그대로 쓰기 때문에 이 �
 | 소수 대립 게이트 0.20 | **자체 기준** (in-silico 스윕 1건, 저장소 밖) | 벤더가 발행하지 않는 항목. 260729 ispS 런 실측 노이즈(포지션별 중앙값 0.003, 최악 0.054) 위에 약 4배 여유. 랩세미나 in-silico 혼합 스윕 dev 분할에서 FPR 0.0000, 50% 검출 1.0000. 아래 「0.20 게이트의 측정 근거」 참조 |
 | 공극 800 | 벤더 **워런티** (임계값으로 미적용) | ONT flow cell warranty, MinION/GridION |
 | 레퍼런스 말단 여유 30 bp | **자체 기준** (권고용, 잠정) | `trim_flank_bp` 에서 가져옴. 아래 절 참조 |
-| indel event gate 0.50 | **자체 실측** 위에 놓은 값 (재현 불가) | 운용 임계값은 `max_indel_event_fraction` 기본값 0.50 이고 비교는 `>=`. 근거는 `bench_v2 depth_50` 관측값으로 노이즈 웰 <= 0.21, 진짜 결손 웰 >= 0.83. bench_v2 의 데이터와 실행 조건은 이 저장소에 없다 |
+| indel event gate 0.50 | **자체 실측** 위에 놓은 값 (이 저장소에서 재실행 불가) | 운용 임계값은 `max_indel_event_fraction` 기본값 0.50 이고 비교는 `>=`. 근거는 `bench_v2 depth_50` 관측값으로 노이즈 웰 <= 0.21, 진짜 결손 웰 >= 0.83. bench_v2 의 데이터와 실행 조건은 이 저장소에 없다 |
 
 주의할 점이 둘이다. `min_read_count = 30` 은 값이 ONT 기본값과 같지만 **규격이 아니고**, 그 워크플로는 haploid amplicon 대상이며 혼합 시료용이 아니라고 명시한다. 이 앱은 그 워크플로를 돌리지 않고 자체 consensus 와 자체 판정을 쓰므로, 다른 파이프라인의 기본값을 가져온 유추다. 그래서 잠정값으로 표시하며, 근거를 세우려면 실제 런을 subsample 해 판정이 깨지는 depth 를 재야 한다(indel gate 를 `bench_v2` 로 정한 방식이다. bench_v2 자체는 이 저장소에 없어 방법의 선례로만 남고 출발점이 되는 데이터는 아니다).
 
@@ -152,9 +152,15 @@ MIXED 하한은 그 자체로 신뢰도를 정하는 값이 아니라 **소수 �
 
 두 가지 단서를 붙인다. 이 계산은 read 별 오류가 독립이라고 가정하지만 나노포어 오류는 문맥 의존적이라(homopolymer, strand bias) 계통적으로 15% 오류를 내는 포지션은 depth 로 해결되지 않는다. 그리고 노이즈 수치는 amplicon 하나, 런 하나에서 나온 값이다. 둘 다 남는 문제를 하한이 아니라 0.20 게이트 쪽으로 민다. 노이즈 바닥과 20% 사이의 진짜 혼합 웰은 depth 와 무관하게 보이지 않으며, 이 게이트를 옮기는 일이야말로 subsample 캘리브레이션과 Moller 급 depth 가 필요하고 기존 모든 프로젝트의 웰을 재분류한다.
 
+MAME verdict table과 Excel export는 위 근거를 노출한다. 따라서 단순히
+`LOWDEPTH`/`AMBIGUOUS` 라벨만 보는 것이 아니라, 어떤 read-depth·base-quality·
+alignment drop 때문에 판정이 내려졌는지 추적할 수 있다.
+
 #### 0.20 게이트의 측정 근거 (저장소 밖)
 
-0.20 을 직접 잰 기록이 하나 있다. 랩세미나 체크아웃 `$WORKSPACE_ROOT/010.lab/seminar_preparation/260911_생명연_랩세미나/analysis/lod/` 의 in-silico 혼합 스윕이다. `dev_runA_mix.csv` 4,096 행과 `test_runB_mix.csv` 2,304 행이 두 런의 read 를 비율대로 섞어 만든 격자이고 `candidate_compare.py` 가 고정 0.20, 웰 자체 노이즈 중앙값의 k 배, 정확 이항 검정, strand 균형 결합의 네 후보를 같은 측정값에 적용해 `out/candidate_summary.csv` 로 쓴다. dev 분할(runA)에서 고정 0.20 은 비혼합 대조 512 건에서 FPR 0.0000, 50% 혼합 512 건에서 검출 1.0000 이었고 어느 축에서도 이기는 대안이 없었다. test 분할(runB, 288 건씩)은 전이 확인용이고 거기서는 이항 검정 후보가 같은 값으로 동률이다.
+0.20 을 직접 잰 기록이 하나 있다. 랩세미나 체크아웃 `$WORKSPACE_ROOT/010.lab/seminar_preparation/260911_생명연_랩세미나/analysis/lod/` 의 in-silico 혼합 스윕이다. `dev_runA_mix.csv` 4,096 행과 `test_runB_mix.csv` 2,304 행이 두 런의 read 를 비율대로 섞어 만든 격자이고 `candidate_compare.py` 가 고정 0.20, 웰 자체 노이즈 중앙값의 k 배, 정확 이항 검정, strand 균형 결합의 네 후보를 같은 측정값에 적용해 `out/candidate_summary.csv` 로 쓴다. dev 분할(runA)에서 고정 0.20 은 비혼합 대조 512 건에서 FPR 0.0000, 50% 혼합 512 건에서 검출 1.0000 이었고 그 두 축에서는 이기는 대안이 없었다. test 분할(runB, 288 건씩)은 전이 확인용이고 거기서는 이항 검정 후보가 같은 값으로 동률이다.
+
+요약표가 싣지 않는 중간 VAF 에서는 사정이 다르다. 같은 스윕의 call 단위 파일 `out/candidate_calls_dev_runA.csv` 를 집계하면 이항 검정 후보가 VAF 0.05 에서 0.2773 대 0.0000, 0.10 에서 0.5605 대 0.0059, 0.20 에서 0.7988 대 0.7266 으로 고정 0.20 보다 많이 잡는다. 대신 비혼합 대조에서 FPR 0.0156 을 낸다. 동률이 아니라 고정 게이트가 받지 않기로 한 교환이다. 고정 0.20 의 VAF 0.20 검출률이 0.7266 이라는 사실은 노이즈 바닥과 20% 사이가 보이지 않는다는 위 단서를 그대로 뒷받침한다.
 
 한정이 둘 있다. 그 체크아웃은 원격이 없는 로컬 git 저장소라 이 포인터는 이 머신 밖에서 따라갈 수 없다. in-silico 혼합은 키메라도 인덱스 호핑도 만들지 않으므로 이 스윕이 긋는 것은 표본 추출 노이즈의 경계이고 실험 오염을 재현하지 않는다. 위 단락이 말한 노이즈 바닥과 20% 사이의 진짜 혼합 웰 문제는 그대로 남는다.
 
@@ -173,10 +179,6 @@ MIXED 하한은 그 자체로 신뢰도를 정하는 값이 아니라 **소수 �
 - **보정 천장과 게이트 사이의 구간(0.21 ~ 0.50)**. 보정은 노이즈 천장을 0.21 로 잡았는데 게이트는 0.50 에 있다. 그 사이 웰은 노이즈로 설명되지 않은 채 PASS 한다. 288 웰 검토의 실측 사례 셋이 전부 PASS 였다: `NB08 H4` 0.344, `NB08 F5` 0.432, `NB09 F8` 0.467. 셋 다 `review` 열에만 잡혔다. 해소하려면 그 구간의 웰이 정렬 artifact 인지 진짜 저빈도 indel 인지 독립 방법으로 가르는 실험이 필요하다.
 - **in-frame 삽입만 있는 클론**. reference-length consensus 를 쓰므로 in-frame 삽입만 가진 클론은 WT 와 같은 consensus 를 내고 통과한다. 좌표를 레퍼런스에 고정해 코돈 단위 대조를 가능하게 한 설계의 대가다. `n_indel_event_positions` 와 `max_indel_event_fraction` 카운터가 신호를 내보내지만 그것을 판정으로 옮기는 것은 위 indel 게이트라 첫 항목과 뿌리가 같다. 같은 실험이 둘을 함께 닫는다.
 - **`min_read_count = 30` 의 보정**. 값은 ONT `wf-amplicon` 의 `minimum_mean_depth` 와 같지만 세는 대상이 다르다. 벤더 값은 de novo consensus QC 의 **평균 depth** 기준이고 kuma 는 웰 하나의 `read_count` 정수를 직접 비교하며 평균을 계산하지 않는다. 코드는 이미 PROVISIONAL 로 표시했으므로 남은 일은 표시가 아니라 보정이다. 정답 서열이 확인된 깊게 읽힌 웰에서 read 를 줄여 가며 판정이 깨지는 depth 를 재야 한다. 그때 read 가 많은 상태의 MAME 결과를 정답으로 삼으면 자기 결과의 안정성만 재게 되므로 정답은 밖에서 와야 한다. ONT 문서 원문은 이 항목을 쓰면서 대조하지 않았다(미확인).
-
-MAME verdict table과 Excel export는 위 근거를 노출한다. 따라서 단순히
-`LOWDEPTH`/`AMBIGUOUS` 라벨만 보는 것이 아니라, 어떤 read-depth·base-quality·
-alignment drop 때문에 판정이 내려졌는지 추적할 수 있다.
 
 ### v0.13.23 이전에 기록된 consensus 파일
 
