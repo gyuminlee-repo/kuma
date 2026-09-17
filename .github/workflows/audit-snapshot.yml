@@ -1,0 +1,35 @@
+name: Audit source snapshot (temporary)
+
+# Temporary review aid. Removed before this branch is merged.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/audit-snapshot.yml
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    if: github.head_ref == 'audit/code-health-20260918'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Archive tracked source only
+        run: |
+          set -euo pipefail
+          git archive --format=tar.gz --output="$RUNNER_TEMP/kuma-audit-source.tar.gz" HEAD
+          git rev-parse HEAD
+          git ls-files | wc -l
+      - uses: actions/upload-artifact@v6
+        with:
+          name: kuma-audit-source
+          path: ${{ runner.temp }}/kuma-audit-source.tar.gz
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 0
