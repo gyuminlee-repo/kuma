@@ -328,8 +328,8 @@
       "legacyOptionsToggle": "레거시 옵션 표시",
       "legacyOptionsDeprecationWarning": "이 옵션은 deprecated 상태이며 향후 버전에서 제거됩니다. Min Filtered Depth 사용을 권장합니다.",
       "tooltips": {
-        "flankMin": "유전자 경계 기준 primer 시작 위치 범위(nt)",
-        "flankMax": "유전자 경계 기준 primer 시작 위치 범위(nt)",
+        "overhangMin": "최소 overhang (nt): amplicon 이 유전자 경계 바깥으로 뻗는 거리",
+        "overhangMax": "유전자 경계 바깥으로 탐색하는 최대 overhang (nt)",
         "bindingMinLen": "후보 enumeration 단계에서 탐색할 primer 길이 범위(nt)",
         "bindingMaxLen": "후보 enumeration 단계에서 탐색할 primer 길이 범위(nt)",
         "tmMin": "primer binding 구간의 melting temperature 허용 범위(°C)",
@@ -356,7 +356,7 @@
       "inputFiles": "입력 파일",
       "geneCoordinates": "유전자 좌표",
       "projectMetadata": "프로젝트 메타데이터",
-      "flankParameters": "플랭크 파라미터",
+      "flankParameters": "Overhang 파라미터",
       "bindingParameters": "결합 파라미터",
       "advancedParameters": "고급 옵션",
       "outputLocation": "출력 위치",
@@ -365,7 +365,7 @@
       "generatedFiles": "생성된 파일",
       "cdsFasta": "CDS 서열",
       "cdsFastaPlaceholder": ".fa / .fasta / .gb / .gbk / .dna 파일 경로",
-      "cdsFastaHelper": "유전자 양쪽에 flanking 서열이 포함된 plasmid 또는 construct map(GenBank 또는 SnapGene .dna)이어야 합니다. MAME 프라이머는 유전자 바깥쪽에서 결합하므로 각 방향에 최소 flank_max(기본값 400 bp)만큼의 template이 필요합니다. CDS만 있는 FASTA는 작동하지 않습니다. gene_start / gene_end는 이 서열 내 0-based 인덱스입니다.",
+      "cdsFastaHelper": "유전자 양쪽에 flanking 서열이 포함된 plasmid 또는 construct map(GenBank 또는 SnapGene .dna)이어야 합니다. MAME 프라이머는 유전자 바깥쪽에서 결합하므로 각 방향에 사용 가능한 최소 overhang 만큼의 template 이 필요합니다. 그 값은 overhang_min 과 binding_min_len 중 큰 쪽입니다(기본값에서는 한쪽당 20 bp). circular template 은 원점을 넘어 이어지므로 이 요구는 linear template 에만 적용됩니다. CDS만 있는 FASTA는 작동하지 않습니다. gene_start / gene_end는 이 서열 내 0-based 인덱스입니다.",
       "cdsFastaLoadError": "이 파일에서 유전자 주석을 읽지 못했습니다: {{error}}",
       "barcodeSeedsXlsx": "바코드 시드 xlsx",
       "geneName": "유전자 이름",
@@ -404,12 +404,12 @@
       "polymeraseHelp": "바코드 PCR에 사용할 중합효소입니다. 염 농도 프로필이 프라이머 선택 중 Tm 계산에 사용됩니다.",
       "geneStartHelp": "CDS 시작 좌표 (0-based, inclusive).",
       "geneEndHelp": "CDS 종료 좌표 (0-based, exclusive).",
-      "flankMinHelp": "barcode primer 탐색용 CDS 양옆 flank 최소 길이(nt). 기본 100.",
-      "flankMaxHelp": "flank 최대 길이(nt). 클수록 후보는 많아지나 탐색이 느려짐.",
+      "overhangMinHelp": "유전자 경계 바깥으로 뻗는 최소 overhang (nt). 기본값 20. 프라이머는 유전자 안으로 들어가지 않으므로 binding_min_len 보다 작은 overhang 에는 binding site 가 들어가지 못하고 그 구간은 효과가 없습니다.",
+      "overhangMaxHelp": "유전자 경계 바깥으로 탐색하는 최대 overhang (nt). 기본값 60. 창이 클수록 후보는 많아지나 탐색이 느려지며 linear template 에서는 서열 끝으로 클램프됩니다.",
       "bindingMinLenHelp": "primer binding 최소 길이(nt). 안정적 PCR은 18-22 권장.",
       "bindingMaxLenHelp": "primer binding 최대 길이(nt). 35 초과 시 secondary structure 위험 증가.",
-      "flankWarningUpstream": "선형 template에서는 프라이머 설계가 실패할 수 있습니다: gene_start 앞쪽에 최소 {{needed}} bp가 필요하지만 {{available}} bp만 확보되어 있습니다 ({{shortfall}} bp 부족).",
-      "flankWarningDownstream": "선형 template에서는 프라이머 설계가 실패할 수 있습니다: gene_end 뒤쪽에 최소 {{needed}} bp가 필요하지만 {{available}} bp만 확보되어 있습니다 ({{shortfall}} bp 부족).",
+      "flankWarningUpstream": "선형 template에서는 프라이머 설계가 실패할 수 있습니다: gene_start 앞쪽에 최소 {{needed}} bp(overhang_min 과 binding_min_len 중 큰 값)가 필요하지만 {{available}} bp만 확보되어 있습니다 ({{shortfall}} bp 부족).",
+      "flankWarningDownstream": "선형 template에서는 프라이머 설계가 실패할 수 있습니다: gene_end 뒤쪽에 최소 {{needed}} bp(overhang_min 과 binding_min_len 중 큰 값)가 필요하지만 {{available}} bp만 확보되어 있습니다 ({{shortfall}} bp 부족).",
       "cdsTooltipLabel": "라벨: {{label}}",
       "cdsTooltipRange": "범위: {{start}}-{{end}}",
       "cdsTooltipLength": "길이: {{length}} aa",
@@ -2653,14 +2653,21 @@
     "descriptionRange": "v{{from}} 이후 모든 업데이트의 주요 변경 사항입니다.",
     "gotItBtn": "확인",
     "highlights": [
-      "이제 각 라운드가 자기 wild-type 반복값에서 assay noise 를 추정하므로 plateau 검정이 2라운드 연속 포화 규칙을 지탱할 수 있습니다.",
-      "hit rate 추세는 적합된 기울기가 자기 sampling error 보다 가파르게 떨어질 때만 감소로 셉니다.",
-      "활성이 정확히 0 인 변이는 판정을 멈추는 대신 점수에 들어가고 hit rate 분모에도 남습니다.",
-      "워크북 어디에 있든 wild-type 대조 행은 개수를 세고 변이 통계에서는 빼둡니다.",
-      "자문은 각 라운드가 담고 있던 활성 0 변이와 대조 행이 몇 건인지 보고합니다."
+      "바코드 단계가 gap 과 overhang 이 이름을 공유하던 방식 대신 앰플리콘이 CDS 밖으로 뻗는 거리 하나만 받습니다.",
+      "기본값이 100 과 400 에서 20 과 60 으로 낮아졌고, 이 범위는 ispS 설계에서 실측한 16 bp overhang 을 담습니다.",
+      "짧은 선형 template 을 바깥 탐색 한계보다 짧다는 이유로 거부하지 않고 template 끝까지 탐색합니다.",
+      "양쪽 가닥이 바깥 방향으로 탐색하므로 앰플리콘이 대칭이 되고 마지막 코돈이 reference edge margin 밖에 놓입니다.",
+      "프라이머가 코딩 영역 안에 놓일 수 없고, 저장된 flank_max 는 overhang_max 로 이어집니다."
     ],
-    "highlightsStamp": "0.16.66+c8cb9c13",
+    "highlightsStamp": "0.16.67+a8a547ef",
     "releases": {
+      "0.16.67": [
+        "바코드 단계가 gap 과 overhang 이 이름을 공유하던 방식 대신 앰플리콘이 CDS 밖으로 뻗는 거리 하나만 받습니다.",
+        "기본값이 100 과 400 에서 20 과 60 으로 낮아졌고, 이 범위는 ispS 설계에서 실측한 16 bp overhang 을 담습니다.",
+        "짧은 선형 template 을 바깥 탐색 한계보다 짧다는 이유로 거부하지 않고 template 끝까지 탐색합니다.",
+        "양쪽 가닥이 바깥 방향으로 탐색하므로 앰플리콘이 대칭이 되고 마지막 코돈이 reference edge margin 밖에 놓입니다.",
+        "프라이머가 코딩 영역 안에 놓일 수 없고, 저장된 flank_max 는 overhang_max 로 이어집니다."
+      ],
       "0.16.66": [
         "이제 각 라운드가 자기 wild-type 반복값에서 assay noise 를 추정하므로 plateau 검정이 2라운드 연속 포화 규칙을 지탱할 수 있습니다.",
         "hit rate 추세는 적합된 기울기가 자기 sampling error 보다 가파르게 떨어질 때만 감소로 셉니다.",
@@ -3133,6 +3140,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "45d46897",
       "0.16.64": "b5666e23",

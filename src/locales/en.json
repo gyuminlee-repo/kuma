@@ -328,8 +328,8 @@
       "legacyOptionsToggle": "Show legacy options",
       "legacyOptionsDeprecationWarning": "These options are deprecated and will be removed in a future version. Prefer Min Filtered Depth.",
       "tooltips": {
-        "flankMin": "Outer range (nt) for primer start position relative to gene boundary",
-        "flankMax": "Outer range (nt) for primer start position relative to gene boundary",
+        "overhangMin": "Minimum overhang (nt): how far the amplicon reaches past the gene boundary",
+        "overhangMax": "Maximum overhang (nt) searched past the gene boundary",
         "bindingMinLen": "Primer length range (nt) explored during candidate enumeration",
         "bindingMaxLen": "Primer length range (nt) explored during candidate enumeration",
         "tmMin": "Acceptable melting temperature range (degree C) for primer binding region",
@@ -356,7 +356,7 @@
       "inputFiles": "Input files",
       "geneCoordinates": "Gene coordinates",
       "projectMetadata": "Project metadata",
-      "flankParameters": "Flank parameters",
+      "flankParameters": "Overhang parameters",
       "bindingParameters": "Binding parameters",
       "advancedParameters": "Advanced options",
       "outputLocation": "Output location",
@@ -365,7 +365,7 @@
       "generatedFiles": "Generated files",
       "cdsFasta": "CDS sequence",
       "cdsFastaPlaceholder": ".fa / .fasta / .gb / .gbk / .dna file path",
-      "cdsFastaHelper": "Plasmid or construct map (GenBank or SnapGene .dna) containing the gene plus flanking template on both sides. MAME primers bind outside the gene, so at least flank_max (default 400 bp) of template is needed on each side. A CDS-only FASTA will not work. gene_start / gene_end are 0-based indices into this sequence.",
+      "cdsFastaHelper": "Plasmid or construct map (GenBank or SnapGene .dna) containing the gene plus flanking template on both sides. MAME primers bind outside the gene, so each side needs at least as much template as the smallest usable overhang, which is the larger of overhang_min and binding_min_len (20 bp per side at the defaults). A circular template wraps around the origin, so this applies to linear templates only. A CDS-only FASTA will not work. gene_start / gene_end are 0-based indices into this sequence.",
       "cdsFastaLoadError": "Could not read gene annotations from this file: {{error}}",
       "barcodeSeedsXlsx": "Barcode Seeds xlsx",
       "geneName": "Gene name",
@@ -404,12 +404,12 @@
       "polymeraseHelp": "Polymerase used for the barcode PCR protocol. Its salt profile drives Tm calculation during primer selection.",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
-      "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
-      "flankMaxHelp": "Maximum flank length (nt). Larger windows give more primer candidates but slow search.",
+      "overhangMinHelp": "Minimum overhang (nt) past the gene boundary. Default 20. A primer never enters the gene, so an overhang below binding_min_len cannot hold a binding site and that part of the range has no effect.",
+      "overhangMaxHelp": "Maximum overhang (nt) searched past the gene boundary. Default 60. Larger windows give more candidates but slow the search; on a linear template the reach is clamped to the sequence ends.",
       "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
       "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk.",
-      "flankWarningUpstream": "Primer design may fail on a linear template: needs at least {{needed}} bp upstream of gene_start, but only {{available}} bp is available (short by {{shortfall}} bp).",
-      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "flankWarningUpstream": "Primer design may fail on a linear template: needs at least {{needed}} bp (the larger of overhang_min and binding_min_len) upstream of gene_start, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp (the larger of overhang_min and binding_min_len) downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp).",
       "cdsTooltipLabel": "Label: {{label}}",
       "cdsTooltipRange": "Range: {{start}}-{{end}}",
       "cdsTooltipLength": "Length: {{length}} aa",
@@ -2653,14 +2653,21 @@
     "descriptionRange": "Highlights from every update since v{{from}}.",
     "gotItBtn": "Got it",
     "highlights": [
-      "A round now estimates assay noise from its own wild-type replicates, so the plateau test can carry the two-round saturation rule.",
-      "The hit-rate trend counts as a decline only when the fitted slope falls further than its own sampling error.",
-      "A variant measured at exactly zero activity is scored instead of stopping the call, and stays in the hit-rate denominator.",
-      "A wild-type control row anywhere in the workbook is counted and kept out of the variant statistics.",
-      "The advisory reports how many zero-activity variants and control rows a round carried."
+      "The barcode step now states one number, how far the amplicon may reach past the CDS, instead of a gap and an overhang sharing a name.",
+      "Defaults drop from 100 and 400 to 20 and 60, a range that holds the 16 bp overhang measured on the shipped ispS design.",
+      "A short linear template is searched to its own edge instead of being refused for being shorter than the outer search bound.",
+      "Both strands search outward, so the amplicon is symmetric and the last codons stay clear of the reference edge margin.",
+      "A primer can no longer sit inside the coding region, and a saved flank_max carries over as overhang_max."
     ],
-    "highlightsStamp": "0.16.66+c8cb9c13",
+    "highlightsStamp": "0.16.67+a8a547ef",
     "releases": {
+      "0.16.67": [
+        "The barcode step now states one number, how far the amplicon may reach past the CDS, instead of a gap and an overhang sharing a name.",
+        "Defaults drop from 100 and 400 to 20 and 60, a range that holds the 16 bp overhang measured on the shipped ispS design.",
+        "A short linear template is searched to its own edge instead of being refused for being shorter than the outer search bound.",
+        "Both strands search outward, so the amplicon is symmetric and the last codons stay clear of the reference edge margin.",
+        "A primer can no longer sit inside the coding region, and a saved flank_max carries over as overhang_max."
+      ],
       "0.16.66": [
         "A round now estimates assay noise from its own wild-type replicates, so the plateau test can carry the two-round saturation rule.",
         "The hit-rate trend counts as a decline only when the fitted slope falls further than its own sampling error.",
@@ -3133,6 +3140,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "45d46897",
       "0.16.64": "b5666e23",

@@ -349,8 +349,8 @@ def design_flanking_primers(
     gene_start: int,
     gene_end: int,
     profile: PolymeraseProfile,
-    flank_min: int = 100,
-    flank_max: int = 400,
+    overhang_min: int = 20,
+    overhang_max: int = 60,
     binding_min_len: int = 18,
     binding_max_len: int = 35,
     tm_min: float = 55.0,
@@ -360,22 +360,53 @@ def design_flanking_primers(
 ) -> tuple[str, str, list[str]]:
     """Design Tm-guided flanking primers flanking a gene region.
 
-    Search strategy
-    ---------------
-    For the forward primer, the binding site is sought in the region
-    ``[gene_start - flank_max, gene_start - flank_min)``.
-    Outer loop: start position ascending from ``gene_start - flank_max``.
-    Inner loop: binding length ascending from ``binding_min_len`` to ``binding_max_len``.
-    First candidate satisfying both the Tm window and the GC-clamp (if requested)
-    is returned immediately.
-    If no candidate meets the criteria, the candidate whose Tm is closest to
-    ``(tm_min + tm_max) / 2`` (Tm midpoint) is returned instead, and a warning
-    is appended.
+    What the window measures
+    ------------------------
+    The single configured axis is the **overhang**: how far the outer end of
+    the amplicon reaches past the CDS boundary. For the forward primer the
+    binding site is ``[pos, pos + length)`` and the overhang is
+    ``gene_start - pos``. For the reverse primer the binding site is
+    ``[start, end)`` and the overhang is ``end - gene_end``. Both must satisfy
+    ``overhang_min <= overhang <= overhang_max``. This is the same quantity the
+    downstream steps already measure, so ``trim_flank_bp`` and the terminal
+    variant advisories speak of the same distance.
 
-    For the reverse primer, the binding site is sought in
-    ``[gene_end + flank_min, gene_end + flank_max)``.
-    The candidate sequence is ``reverse_complement(cds_sequence[end - length : end])``.
-    Same selection logic applies.
+    The gap between primer and gene is **not** a parameter. It is fixed at
+    ``>= 0``: a base a primer covers is read from the primer rather than from
+    the template, so a primer reaching into the CDS would hide the very
+    mutations this assay scores. The forward primer therefore ends no later
+    than ``gene_start`` and the reverse binding site starts no earlier than
+    ``gene_end``. Because ``overhang = gap + binding_length``, an
+    ``overhang_min`` below ``binding_min_len`` describes a sub-range no primer
+    can occupy; that is reported as a warning rather than refused, since larger
+    overhangs in the same range remain reachable.
+
+    Search order
+    ------------
+    Inner loop: binding length ascending from ``binding_min_len`` to
+    ``binding_max_len``. First candidate satisfying both the Tm window and the
+    GC-clamp (if requested) is returned immediately. If no candidate meets the
+    criteria, the candidate whose Tm is closest to ``(tm_min + tm_max) / 2`` is
+    returned instead and a warning is appended.
+
+    The outer loop walks **outside-in on both strands**, from the largest
+    reachable overhang towards ``overhang_min``. Forward iterates ``pos``
+    ascending from ``gene_start - overhang_max``; reverse iterates ``end``
+    descending from ``gene_end + overhang_max``, which is the same direction
+    expressed in that strand's coordinates. The first accepted candidate
+    therefore lands at the reachable cap on either side.
+
+    That direction is the point of the default of 60, so do not turn either
+    loop towards the gene without re-measuring. Landing at the cap leaves
+    roughly ``60`` minus one binding length of template between the primer and
+    the CDS on **both** sides, which keeps the 30 bp
+    ``variants_near_reference_edge`` margin clear at both termini. Walking
+    reverse inwards instead seated it near ``max(overhang_min,
+    binding_min_len)``, about 22 bp at the defaults, which pulled the last few
+    codons of the CDS inside that margin while the forward side was unaffected.
+    Both directions are pinned by
+    ``tests/mame/test_overhang_window.py::test_both_strands_search_outward``
+    and its clamped counterpart.
 
     Parameters
     ----------
@@ -387,12 +418,12 @@ def design_flanking_primers(
         0-based exclusive end position of the gene within ``cds_sequence``.
     profile:
         PolymeraseProfile supplying salt concentrations for Tm calculation.
-    flank_min:
-        Minimum distance (bp) upstream/downstream of the gene boundary where the
-        primer binding site must end/start.
-    flank_max:
-        Maximum distance (bp) upstream/downstream of the gene boundary that is
-        searched for a binding site.
+    overhang_min:
+        Minimum overhang (bp): how far past the gene boundary the outer end of
+        the binding site must reach. Values below ``binding_min_len`` are
+        unreachable and produce a warning.
+    overhang_max:
+        Maximum overhang (bp) that is searched.
     binding_min_len:
         Minimum primer binding length to try.
     binding_max_len:
@@ -404,9 +435,10 @@ def design_flanking_primers(
     require_gc_clamp:
         If True, the 3' terminal base of every candidate must be G or C.
     topology:
-        Either "linear" (default) or "circular". When "linear", a search
-        window that falls outside ``cds_sequence`` boundaries raises
-        ValueError (unchanged behaviour). When "circular", the forward and
+        Either "linear" (default) or "circular". When "linear", an overhang
+        that would reach outside ``cds_sequence`` is clamped to the sequence,
+        and ValueError is raised only when the clamped reach is below
+        ``max(overhang_min, binding_min_len)``. When "circular", the forward and
         reverse search windows are allowed to wrap around the sequence
         origin, since the corresponding template region physically exists on
         a circular molecule.
@@ -419,8 +451,9 @@ def design_flanking_primers(
     Raises
     ------
     ValueError
-        If topology is not "linear" or "circular", if the flank search window
-        falls outside ``cds_sequence`` boundaries under linear topology, if
+        If topology is not "linear" or "circular", if the clamped overhang
+        reach under linear topology is below
+        ``max(overhang_min, binding_min_len)``, if
         wrapping under circular topology would require reading past a full
         revolution of the sequence, or if ``gene_start >= gene_end``, or if
         parameter ranges are invalid.
@@ -442,9 +475,10 @@ def design_flanking_primers(
         raise ValueError(
             f"gene_start ({gene_start}) must be < gene_end ({gene_end})."
         )
-    if flank_min < 0 or flank_max <= flank_min:
+    if overhang_min < 0 or overhang_max < overhang_min:
         raise ValueError(
-            f"flank_min ({flank_min}) must be >= 0 and < flank_max ({flank_max})."
+            f"overhang_min ({overhang_min}) must be >= 0 and "
+            f"<= overhang_max ({overhang_max})."
         )
     if binding_min_len < 1 or binding_max_len < binding_min_len:
         raise ValueError(
@@ -452,71 +486,99 @@ def design_flanking_primers(
             f"<= binding_max_len ({binding_max_len})."
         )
 
-    if binding_min_len > flank_max - flank_min:
-        raise ValueError(
-            f"binding_min_len ({binding_min_len}) exceeds the flank search "
-            f"window width ({flank_max - flank_min})."
-        )
-
     if topology == "circular" and (
-        (flank_max - flank_min) > seq_len or binding_max_len > seq_len
+        overhang_max > seq_len or binding_max_len > seq_len
     ):
         raise ValueError(
-            f"Circular wrap search window (flank_max - flank_min = "
-            f"{flank_max - flank_min}) or binding_max_len ({binding_max_len}) "
-            f"exceeds the sequence length (seq_len={seq_len}); wrapping would "
-            "read the same base more than once. Reduce flank_max/binding_max_len "
-            "or use a longer template."
-        )
-
-    # Forward primer search window: positions [fwd_window_start, fwd_window_end)
-    # The primer starts at `pos` and extends binding_len bases to the right.
-    # The primer must end no later than gene_start - flank_min,
-    # so pos + length <= gene_start - flank_min  =>  pos <= gene_start - flank_min - length.
-    # The primer starts no earlier than gene_start - flank_max.
-    fwd_region_start = gene_start - flank_max
-    fwd_region_end = gene_start - flank_min  # exclusive upper bound for pos
-
-    if topology == "linear" and fwd_region_start < 0:
-        raise ValueError(
-            f"Forward primer search window starts at {fwd_region_start} "
-            f"(gene_start={gene_start}, flank_max={flank_max}); "
-            "sequence is too short upstream of the gene."
-        )
-    if fwd_region_end <= fwd_region_start:
-        raise ValueError(
-            f"Forward primer search window [{fwd_region_start}, {fwd_region_end}) "
-            "is empty. Increase the gap between gene_start and flank_min/flank_max."
-        )
-
-    # Reverse primer search window: binding ends at `end`, starts at `end - length`.
-    # The whole binding site must fit inside the downstream search window.
-    rev_region_start = gene_end + flank_min
-    rev_region_end = gene_end + flank_max    # inclusive upper bound for `end`
-
-    if topology == "linear" and rev_region_end > seq_len:
-        raise ValueError(
-            f"Reverse primer search window ends at {rev_region_end} "
-            f"(gene_end={gene_end}, flank_max={flank_max}); "
-            "sequence is too short downstream of the gene."
-        )
-    if rev_region_start > rev_region_end:
-        raise ValueError(
-            f"Reverse primer search window [{rev_region_start}, {rev_region_end}] "
-            "is empty. Increase the gap between gene_end and flank_min/flank_max."
+            f"Circular wrap overhang (overhang_max = {overhang_max}) or "
+            f"binding_max_len ({binding_max_len}) exceeds the sequence length "
+            f"(seq_len={seq_len}); wrapping would read the same base more than "
+            "once. Reduce overhang_max/binding_max_len or use a longer template."
         )
 
     collected_warnings: list[str] = []
+
+    # overhang = gap + binding_length and gap >= 0, so no primer can occupy an
+    # overhang below binding_min_len. The sub-range is inert rather than fatal.
+    if overhang_min < binding_min_len:
+        collected_warnings.append(
+            f"overhang_min ({overhang_min}) is below binding_min_len "
+            f"({binding_min_len}); overhangs under {binding_min_len} bp cannot "
+            f"hold a binding site, so the effective minimum is {binding_min_len}."
+        )
+
+    # The gap between primer and gene is a fixed invariant, not a parameter:
+    # the forward primer ends no later than gene_start and the reverse binding
+    # site starts no earlier than gene_end, so no scored base is read from a
+    # primer. Only the overhang is configurable.
+    overhang_floor = max(overhang_min, binding_min_len)
+    fwd_overhang_cap = overhang_max
+    rev_overhang_cap = overhang_max
+
+    if topology == "linear":
+        # A linear template has no bases before position 0 or after the last
+        # one. Clamp the reach to what exists instead of refusing: what a
+        # primer physically needs is one binding site, not the full
+        # overhang_max.
+        fwd_overhang_cap = min(overhang_max, gene_start)
+        rev_overhang_cap = min(overhang_max, seq_len - gene_end)
+
+    # Two different causes land here and the remedy differs, so name the one
+    # that actually applies rather than always blaming the template.
+    if fwd_overhang_cap < overhang_floor:
+        cause = (
+            "sequence is too short upstream of the gene"
+            if fwd_overhang_cap < overhang_max
+            else "raise overhang_max or lower binding_min_len"
+        )
+        raise ValueError(
+            f"Forward primer overhang reaches at most {fwd_overhang_cap} bp, "
+            f"which leaves {fwd_overhang_cap} bp, but "
+            f"binding_min_len ({binding_min_len}) and overhang_min "
+            f"({overhang_min}) require {overhang_floor} bp "
+            f"(gene_start={gene_start}, overhang_max={overhang_max}); "
+            f"{cause}."
+        )
+    if rev_overhang_cap < overhang_floor:
+        cause = (
+            "sequence is too short downstream of the gene"
+            if rev_overhang_cap < overhang_max
+            else "raise overhang_max or lower binding_min_len"
+        )
+        raise ValueError(
+            f"Reverse primer overhang reaches at most {rev_overhang_cap} bp, "
+            f"which leaves {rev_overhang_cap} bp, but "
+            f"binding_min_len ({binding_min_len}) and overhang_min "
+            f"({overhang_min}) require {overhang_floor} bp "
+            f"(gene_end={gene_end}, seq_len={seq_len}, "
+            f"overhang_max={overhang_max}); "
+            f"{cause}."
+        )
+
+    # Both strands are walked outside-in: the first position tried is the one
+    # with the largest reachable overhang and the last is the one at
+    # overhang_min. `_first` and `_last` therefore name iteration order, not
+    # coordinate order, and the reverse loop counts down because on that strand
+    # the outermost coordinate is the largest one.
+    #
+    # Forward: the primer ends at gene_start at the latest, which caps its
+    # length at the overhang itself.
+    fwd_pos_first = gene_start - fwd_overhang_cap
+    fwd_pos_last = gene_start - overhang_min  # inclusive
+
+    # Reverse: the binding site starts at gene_end at the earliest, which
+    # likewise caps its length at the overhang.
+    rev_end_first = gene_end + rev_overhang_cap
+    rev_end_last = gene_end + overhang_min  # inclusive
+
     tm_target = (tm_min + tm_max) / 2.0
 
     # --- Forward primer -------------------------------------------------------
     fwd_candidates: list[tuple[float, str]] = []  # (abs(Tm - target), seq)
     fwd_chosen: str | None = None
 
-    for pos in range(fwd_region_start, fwd_region_end):
-        for length in range(binding_min_len, binding_max_len + 1):
-            if pos + length > fwd_region_end:
-                break
+    for pos in range(fwd_pos_first, fwd_pos_last + 1):
+        for length in range(binding_min_len, min(binding_max_len, gene_start - pos) + 1):
             if topology == "circular":
                 candidate = _circular_slice(cds_sequence, pos, length, seq_len)
             else:
@@ -555,7 +617,7 @@ def design_flanking_primers(
         else:
             raise ValueError(
                 "Forward primer search produced no candidates. "
-                f"Check flank_min={flank_min}, flank_max={flank_max}, "
+                f"Check overhang_min={overhang_min}, overhang_max={overhang_max}, "
                 f"binding_min_len={binding_min_len}, binding_max_len={binding_max_len}."
             )
 
@@ -563,11 +625,9 @@ def design_flanking_primers(
     rev_candidates: list[tuple[float, str]] = []
     rev_chosen: str | None = None
 
-    for end in range(rev_region_start, rev_region_end + 1):
-        for length in range(binding_min_len, binding_max_len + 1):
+    for end in range(rev_end_first, rev_end_last - 1, -1):
+        for length in range(binding_min_len, min(binding_max_len, end - gene_end) + 1):
             start = end - length
-            if start < rev_region_start:
-                break
             if topology == "circular":
                 candidate_raw = _circular_slice(cds_sequence, start, length, seq_len)
             else:
@@ -609,7 +669,7 @@ def design_flanking_primers(
         else:
             raise ValueError(
                 "Reverse primer search produced no candidates. "
-                f"Check flank_min={flank_min}, flank_max={flank_max}, "
+                f"Check overhang_min={overhang_min}, overhang_max={overhang_max}, "
                 f"binding_min_len={binding_min_len}, binding_max_len={binding_max_len}."
             )
 
@@ -643,8 +703,8 @@ def generate_mame_package(
     project_root: Path,
     gene_name: str,
     polymerase: str = "Q5",
-    flank_min: int = 100,
-    flank_max: int = 400,
+    overhang_min: int = 20,
+    overhang_max: int = 60,
     binding_min_len: int = 18,
     binding_max_len: int = 35,
     tm_min: float = 55.0,
@@ -689,10 +749,11 @@ def generate_mame_package(
     polymerase:
         Name of the polymerase profile to use for Tm calculation.
         Must be one of the keys in ``POLYMERASE_PROFILES`` (default "Q5").
-    flank_min:
-        Minimum distance (bp) from the gene boundary to the primer binding site.
-    flank_max:
-        Maximum distance (bp) from the gene boundary searched for a binding site.
+    overhang_min:
+        Minimum overhang (bp): how far past the gene boundary the outer end of
+        the primer binding site must reach.
+    overhang_max:
+        Maximum overhang (bp) searched.
     binding_min_len:
         Minimum primer binding length to try.
     binding_max_len:
@@ -741,8 +802,8 @@ def generate_mame_package(
         gene_start=gene_start,
         gene_end=gene_end,
         profile=profile,
-        flank_min=flank_min,
-        flank_max=flank_max,
+        overhang_min=overhang_min,
+        overhang_max=overhang_max,
         binding_min_len=binding_min_len,
         binding_max_len=binding_max_len,
         tm_min=tm_min,

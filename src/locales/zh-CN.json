@@ -245,8 +245,8 @@
       "ingestHelp": "Ingest layout: barcode (per-well demultiplexed) or amplicon (single bulk read set).",
       "inputSourceHelp": "Input source: consensus (pre-called), sorted_barcode (per-well FASTQ), or raw_run (MinKNOW run folder).",
       "tooltips": {
-        "flankMin": "primer 起始位置相对于基因边界的外侧范围 (nt)",
-        "flankMax": "primer 起始位置相对于基因边界的外侧范围 (nt)",
+        "overhangMin": "最小 overhang (nt)：amplicon 伸出基因边界的距离",
+        "overhangMax": "在基因边界之外搜索的最大 overhang (nt)",
         "bindingMinLen": "候选枚举过程中探索的 primer 长度范围 (nt)",
         "bindingMaxLen": "候选枚举过程中探索的 primer 长度范围 (nt)",
         "tmMin": "primer binding 区域可接受的 melting temperature 范围 (°C)",
@@ -275,7 +275,7 @@
       "inputFiles": "输入文件",
       "geneCoordinates": "基因坐标",
       "projectMetadata": "项目元数据",
-      "flankParameters": "Flank 参数",
+      "flankParameters": "Overhang 参数",
       "bindingParameters": "Binding 参数",
       "advancedParameters": "高级选项",
       "outputLocation": "输出位置",
@@ -284,7 +284,7 @@
       "generatedFiles": "已生成文件",
       "cdsFasta": "CDS 序列",
       "cdsFastaPlaceholder": ".fa / .fasta / .gb / .gbk / .dna 文件路径",
-      "cdsFastaHelper": "Plasmid or construct map (GenBank or SnapGene .dna) containing the gene plus flanking template on both sides. MAME primers bind outside the gene, so at least flank_max (default 400 bp) of template is needed on each side. A CDS-only FASTA will not work. gene_start / gene_end are 0-based indices into this sequence.",
+      "cdsFastaHelper": "需要在基因两侧包含 flanking 序列的 plasmid 或 construct map (GenBank 或 SnapGene .dna)。MAME 引物结合在基因外部，因此每侧至少需要与最小可用 overhang 等长的 template，该值为 overhang_min 与 binding_min_len 中较大者 (默认值下每侧 20 bp)。circular template 可跨越起点，因此该要求仅适用于 linear template。仅含 CDS 的 FASTA 无法使用。gene_start / gene_end 是该序列中的 0-based 索引。",
       "cdsFastaLoadError": "Could not read gene annotations from this file: {{error}}",
       "barcodeSeedsXlsx": "Barcode Seeds xlsx",
       "geneName": "基因名",
@@ -323,12 +323,12 @@
       "polymeraseHelp": "用于条形码 PCR 的聚合酶。其盐浓度配置会参与引物筛选时的 Tm 计算。",
       "geneStartHelp": "CDS start coordinate (0-based, inclusive).",
       "geneEndHelp": "CDS end coordinate (0-based, exclusive).",
-      "flankMinHelp": "Minimum flank length (nt) around CDS for barcode primer search. Default 100.",
-      "flankMaxHelp": "Maximum flank length (nt). Larger windows give more primer candidates but slow search.",
+      "overhangMinHelp": "伸出基因边界的最小 overhang (nt)。默认 20。引物不会进入基因内部，因此小于 binding_min_len 的 overhang 容纳不下 binding site，该区间不起作用。",
+      "overhangMaxHelp": "在基因边界之外搜索的最大 overhang (nt)。默认 60。窗口越大候选越多但搜索越慢；在 linear template 上范围会被裁剪到序列末端。",
       "bindingMinLenHelp": "Minimum primer binding length (nt). Typical 18-22 for stable PCR priming.",
       "bindingMaxLenHelp": "Maximum primer binding length (nt). Above 35 increases secondary structure risk.",
-      "flankWarningUpstream": "Primer design may fail on a linear template: needs at least {{needed}} bp upstream of gene_start, but only {{available}} bp is available (short by {{shortfall}} bp).",
-      "flankWarningDownstream": "Primer design may fail on a linear template: needs at least {{needed}} bp downstream of gene_end, but only {{available}} bp is available (short by {{shortfall}} bp).",
+      "flankWarningUpstream": "在 linear template 上引物设计可能失败：gene_start 上游至少需要 {{needed}} bp (overhang_min 与 binding_min_len 中较大者)，但只有 {{available}} bp 可用 (缺少 {{shortfall}} bp)。",
+      "flankWarningDownstream": "在 linear template 上引物设计可能失败：gene_end 下游至少需要 {{needed}} bp (overhang_min 与 binding_min_len 中较大者)，但只有 {{available}} bp 可用 (缺少 {{shortfall}} bp)。",
       "cdsTooltipLabel": "标签: {{label}}",
       "cdsTooltipRange": "范围: {{start}}-{{end}}",
       "cdsTooltipLength": "长度: {{length}} aa",
@@ -2599,14 +2599,21 @@
     "descriptionRange": "自 v{{from}} 以来每次更新的主要变化。",
     "gotItBtn": "知道了",
     "highlights": [
-      "每一轮现在用自己的 wild-type 重复测量估计 assay noise，因此 plateau 检验能够支撑连续两轮的饱和判定规则。",
-      "hit rate 趋势只有在拟合斜率的下降幅度超过其自身 sampling error 时才算作下降。",
-      "活性恰好为 0 的变体现在照常计分，不再中断判定，并仍保留在 hit rate 的分母中。",
-      "工作簿中任何位置的 wild-type 对照行都会被计数，并排除在变体统计之外。",
-      "该建议会报告每一轮包含多少个零活性变体和多少条对照行。"
+      "条形码步骤现在只接收扩增子伸出 CDS 的距离这一个数值，而不再让 gap 与 overhang 共用一个名称。",
+      "默认值从 100 和 400 降到 20 和 60，该范围可容纳在 ispS 设计中实测到的 16 bp overhang。",
+      "短的线性模板不再因短于外侧搜索上限而被拒绝，而是搜索到模板自身的边缘。",
+      "两条链都向外搜索，因此扩增子是对称的，最后几个密码子位于 reference edge margin 之外。",
+      "引物不会再落在编码区内，已保存的 flank_max 会延续为 overhang_max。"
     ],
-    "highlightsStamp": "0.16.66+c8cb9c13",
+    "highlightsStamp": "0.16.67+a8a547ef",
     "releases": {
+      "0.16.67": [
+        "条形码步骤现在只接收扩增子伸出 CDS 的距离这一个数值，而不再让 gap 与 overhang 共用一个名称。",
+        "默认值从 100 和 400 降到 20 和 60，该范围可容纳在 ispS 设计中实测到的 16 bp overhang。",
+        "短的线性模板不再因短于外侧搜索上限而被拒绝，而是搜索到模板自身的边缘。",
+        "两条链都向外搜索，因此扩增子是对称的，最后几个密码子位于 reference edge margin 之外。",
+        "引物不会再落在编码区内，已保存的 flank_max 会延续为 overhang_max。"
+      ],
       "0.16.66": [
         "每一轮现在用自己的 wild-type 重复测量估计 assay noise，因此 plateau 检验能够支撑连续两轮的饱和判定规则。",
         "hit rate 趋势只有在拟合斜率的下降幅度超过其自身 sampling error 时才算作下降。",
@@ -3079,6 +3086,7 @@
       ]
     },
     "releaseStamps": {
+      "0.16.67": "a8a547ef",
       "0.16.66": "c8cb9c13",
       "0.16.65": "45d46897",
       "0.16.64": "b5666e23",
